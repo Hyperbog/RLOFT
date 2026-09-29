@@ -1,4 +1,4 @@
-#include "Code1UiMove24D4.h"
+#include "UiMove24D4.h"
 
 #include <array>
 #include <cstddef>
@@ -15,11 +15,11 @@ struct SavedPage24D4 {
 
 } // namespace
 
-void Code1UiMove24D4::animate(std::int32_t slot,
+void UiMove24D4::animate(std::int32_t slot,
                               std::int32_t targetX,
                               std::int32_t targetY,
-                              Code1UiMoveState24D4& state,
-                              const Code1UiMoveOps24D4& ops) {
+                              UiMoveState24D4& state,
+                              const UiMoveOps24D4& ops) {
     ops.call56DC();
     std::array<SavedPage24D4, 2> saved{};
     saved[0].buffer = ops.call71C8(0x1E80);

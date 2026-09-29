@@ -5,7 +5,7 @@
 
 namespace ravenloft::game {
 
-struct Code1UiDrawStateOps4520 {
+struct UiDrawStateOps4520 {
     std::function<std::uintptr_t(std::int32_t, std::int32_t)> call954C;
     std::function<void(std::int32_t, std::uintptr_t)> callA5C8;
     std::function<void(std::int32_t, std::int32_t, std::int32_t,
@@ -14,7 +14,7 @@ struct Code1UiDrawStateOps4520 {
                        std::int32_t, std::int32_t)> call6C60;
 };
 
-class Code1UiDrawState4520 {
+class UiDrawState4520 {
 public:
     // Direct reconstruction of CODE.1 0x4520..0x45EE.
     //
@@ -23,7 +23,7 @@ public:
     // CODE.1 0x45F9..0x45FB is alignment.
     static void draw(std::int32_t value,
                      std::int32_t delta,
-                     const Code1UiDrawStateOps4520& ops);
+                     const UiDrawStateOps4520& ops);
 };
 
 } // namespace ravenloft::game

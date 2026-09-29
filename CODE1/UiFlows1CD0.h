@@ -6,7 +6,7 @@
 
 namespace ravenloft::game {
 
-struct Code1UiFlowCharacterState {
+struct UiFlowCharacterState {
     std::array<std::uint8_t, 2> flags4C4{};
     std::array<std::uint8_t, 2> byte680B{};
     std::array<std::uint8_t, 2> byte680C{};
@@ -18,7 +18,7 @@ struct Code1UiFlowCharacterState {
     std::uintptr_t handle960 = 0;
 };
 
-struct Code1UiFlowOps1CD0 {
+struct UiFlowOps1CD0 {
     std::function<void()> call1A04;
     std::function<void(std::int32_t,
                        const std::array<std::int32_t, 9>&,
@@ -30,28 +30,28 @@ struct Code1UiFlowOps1CD0 {
     std::function<void(std::uintptr_t)> call7830;
 };
 
-class Code1UiFlow1CD0 {
+class UiFlow1CD0 {
 public:
     // Direct reconstruction of CODE.1 0x1CD0..0x1DD7.
-    static void run(Code1UiFlowCharacterState& state,
-                    const Code1UiFlowOps1CD0& ops);
+    static void run(UiFlowCharacterState& state,
+                    const UiFlowOps1CD0& ops);
 };
 
-class Code1UiFlow1DD8 {
+class UiFlow1DD8 {
 public:
     // Direct reconstruction of CODE.1 0x1DD8..0x1E61.
-    static void run(Code1UiFlowCharacterState& state,
-                    const Code1UiFlowOps1CD0& ops);
+    static void run(UiFlowCharacterState& state,
+                    const UiFlowOps1CD0& ops);
 };
 
-class Code1UiFlow1E64 {
+class UiFlow1E64 {
 public:
     // Direct reconstruction of CODE.1 0x1E64..0x1EE0.
-    static void run(Code1UiFlowCharacterState& state,
-                    const Code1UiFlowOps1CD0& ops);
+    static void run(UiFlowCharacterState& state,
+                    const UiFlowOps1CD0& ops);
 };
 
-class Code1SwapByte1EE4 {
+class SwapByte1EE4 {
 public:
     // Direct reconstruction of CODE.1 0x1EE4..0x1EFE.
     static void swap(std::uint8_t& a, std::uint8_t& b) noexcept;

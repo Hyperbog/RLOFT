@@ -1,11 +1,11 @@
-#include "Code1UiFlow1BD4.h"
+#include "UiFlow1BD4.h"
 
 #include <cstddef>
 
 namespace ravenloft::game {
 
-void Code1UiFlow1BD4::run(Code1UiFlowState1BD4& state,
-                          const Code1UiFlowOps1BD4& ops) {
+void UiFlow1BD4::run(UiFlowState1BD4& state,
+                          const UiFlowOps1BD4& ops) {
     state.previous904 = state.current908;
     state.previous90C = state.current910;
     state.current908 = 0x2F;

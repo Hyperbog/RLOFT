@@ -5,7 +5,7 @@
 
 namespace ravenloft::game {
 
-struct Code1UiHitTestState035C {
+struct UiHitTestState035C {
     std::int32_t mode4D0 = 0;
     std::array<std::int32_t, 9> panelX{};
     std::array<std::int32_t, 9> panelY{};
@@ -13,11 +13,11 @@ struct Code1UiHitTestState035C {
     std::int32_t specialY8A0 = 0;
 };
 
-class Code1UiHitTest035C {
+class UiHitTest035C {
 public:
     static std::int32_t hitTest(std::int32_t x,
                                 std::int32_t y,
-                                const Code1UiHitTestState035C& state) noexcept;
+                                const UiHitTestState035C& state) noexcept;
 };
 
 } // namespace ravenloft::game

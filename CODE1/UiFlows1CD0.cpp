@@ -1,4 +1,4 @@
-#include "Code1UiFlows1CD0.h"
+#include "UiFlows1CD0.h"
 
 #include <array>
 #include <cstddef>
@@ -6,8 +6,8 @@
 
 namespace ravenloft::game {
 
-void Code1UiFlow1CD0::run(Code1UiFlowCharacterState& state,
-                          const Code1UiFlowOps1CD0& ops) {
+void UiFlow1CD0::run(UiFlowCharacterState& state,
+                          const UiFlowOps1CD0& ops) {
     // 0x1CD5.
     ops.call1A04();
 
@@ -61,8 +61,8 @@ void Code1UiFlow1CD0::run(Code1UiFlowCharacterState& state,
     }
 }
 
-void Code1UiFlow1DD8::run(Code1UiFlowCharacterState& state,
-                          const Code1UiFlowOps1CD0& ops) {
+void UiFlow1DD8::run(UiFlowCharacterState& state,
+                          const UiFlowOps1CD0& ops) {
     // 0x1DDC..0x1DFB.
     const std::array<std::int32_t, 9> slots{
         -1, -1, 0x0C, 0x0D, -1, -1, -1, -1, -1
@@ -91,8 +91,8 @@ void Code1UiFlow1DD8::run(Code1UiFlowCharacterState& state,
     }
 }
 
-void Code1UiFlow1E64::run(Code1UiFlowCharacterState& state,
-                          const Code1UiFlowOps1CD0& ops) {
+void UiFlow1E64::run(UiFlowCharacterState& state,
+                          const UiFlowOps1CD0& ops) {
     // 0x1E68..0x1E87.
     const std::array<std::int32_t, 9> slots{
         0, 1, 2, 3, 4, 5, -1, -1, -1
@@ -113,7 +113,7 @@ void Code1UiFlow1E64::run(Code1UiFlowCharacterState& state,
     }
 }
 
-void Code1SwapByte1EE4::swap(std::uint8_t& a, std::uint8_t& b) noexcept {
+void SwapByte1EE4::swap(std::uint8_t& a, std::uint8_t& b) noexcept {
     const std::uint8_t temporary = a;
     a = b;
     b = temporary;

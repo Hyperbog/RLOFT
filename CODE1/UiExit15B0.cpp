@@ -1,4 +1,4 @@
-#include "Code1UiExit15B0.h"
+#include "UiExit15B0.h"
 
 #include <array>
 #include <cstddef>
@@ -25,12 +25,12 @@ struct SavedPage15B0 {
 
 } // namespace
 
-void Code1UiExit15B0::animate(std::int32_t selectedSlot,
+void UiExit15B0::animate(std::int32_t selectedSlot,
                               std::int32_t targetX,
                               std::int32_t targetY,
                               std::int32_t characterPanelStage,
-                              Code1UiExitState15B0& state,
-                              const Code1UiExitOps15B0& ops) {
+                              UiExitState15B0& state,
+                              const UiExitOps15B0& ops) {
     ops.call56DC();
 
     for (std::int32_t intensity = 0; intensity < 5; ++intensity) {

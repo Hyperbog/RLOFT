@@ -1,4 +1,4 @@
-#include "Code1UiEntry10A4.h"
+#include "UiEntry10A4.h"
 
 #include <array>
 #include <cstddef>
@@ -21,15 +21,15 @@ std::int32_t interpolate12(std::int32_t base,
     return base + (((target - base) * step) + 6) / 12;
 }
 
-void restore(const SavedRect10A4& r, const Code1UiEntryOps10A4& ops) {
+void restore(const SavedRect10A4& r, const UiEntryOps10A4& ops) {
     ops.call6744(r.buffer, r.x, r.y, r.width, r.height);
 }
 
 } // namespace
 
-void Code1UiEntry10A4::animate(std::int32_t characterPanelStage,
-                               Code1UiEntryState10A4& state,
-                               const Code1UiEntryOps10A4& ops) {
+void UiEntry10A4::animate(std::int32_t characterPanelStage,
+                               UiEntryState10A4& state,
+                               const UiEntryOps10A4& ops) {
     std::array<SavedRect10A4, 2> saved{};
     saved[0].buffer = ops.call71C8(0x3540);
     saved[1].buffer = ops.call71C8(0x3540);

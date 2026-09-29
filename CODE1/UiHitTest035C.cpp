@@ -1,13 +1,13 @@
-#include "Code1UiHitTest035C.h"
+#include "UiHitTest035C.h"
 
 #include <cstddef>
 
 namespace ravenloft::game {
 
-std::int32_t Code1UiHitTest035C::hitTest(
+std::int32_t UiHitTest035C::hitTest(
     std::int32_t x,
     std::int32_t y,
-    const Code1UiHitTestState035C& state) noexcept {
+    const UiHitTestState035C& state) noexcept {
     // CODE.1 0x0361: default return is -1.
     std::int32_t result = -1;
 
