@@ -14,4 +14,9 @@ file(GLOB_RECURSE RLOFT_SOURCES CONFIGURE_DEPENDS
 )
 
 add_library(rloft_port STATIC ${RLOFT_SOURCES})
-target_include_directories(rloft_port PUBLIC src)
+target_include_directories(rloft_port PUBLIC
+    src
+    src/CODE1
+    src/CODE2
+    src/DATA
+)
