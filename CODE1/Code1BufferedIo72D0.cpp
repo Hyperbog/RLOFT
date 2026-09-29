@@ -117,7 +117,7 @@ void Code1BufferedIo72D0::emitByte(
 }
 
 void Code1BufferedIo72D0::beginOutput(
-    std::int32_t arg899C,
+    std::uintptr_t arg899C,
     const std::uint8_t* descriptor,
     std::uint8_t* buffer,
     std::int32_t capacity,

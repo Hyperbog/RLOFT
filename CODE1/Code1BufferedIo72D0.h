@@ -23,7 +23,7 @@ struct Code1BufferedIoState72D0 {
     std::array<std::uint8_t, 0x84> rleBuffer2880{};
 
     const std::uint8_t* descriptor8994 = nullptr;
-    std::int32_t outputArg899C = 0;
+    std::uintptr_t outputArg899C = 0;
     std::int32_t outputCapacity89A4 = 0;
     std::int32_t outputIndex89B4 = 0;
     std::int32_t outputPos89B8 = 0;
@@ -72,7 +72,7 @@ public:
                          const Code1BufferedIoOps72D0& ops);
 
     // CODE.1 0x746C..0x74CD. 0x74CE..0x74CF is alignment.
-    static void beginOutput(std::int32_t arg899C,
+    static void beginOutput(std::uintptr_t arg899C,
                             const std::uint8_t* descriptor,
                             std::uint8_t* buffer,
                             std::int32_t capacity,
