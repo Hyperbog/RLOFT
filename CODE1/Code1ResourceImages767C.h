@@ -4,6 +4,7 @@
 #include "Code1Graphics66C0.h"
 #include "Code1Memory6F10.h"
 
+#include <array>
 #include <cstdint>
 #include <functional>
 
@@ -15,6 +16,15 @@ struct Code1ResourceDescriptor767C {
     std::uint8_t heightUnits = 0;
     std::uint8_t marker = 0xFF;
     std::uint8_t encoding = 0;
+};
+
+// The actual CODE.1 ABI for 0x767C is a packed nine-byte outer record.
+// Only its DWORD at +5 is dereferenced by 0x767C; it points at the inner
+// image descriptor represented above. The +3 WORD is consumed by 0x79C8.
+struct Code1ResourceOuter767C {
+    std::array<std::uint8_t, 3> bytes0_2{};
+    std::int16_t offset3 = 0;
+    const std::uint8_t* descriptorBytes5 = nullptr;
 };
 
 struct Code1ResourceImageOps767C {
@@ -38,7 +48,7 @@ public:
 
     // CODE.1 0x767C..0x782E. 0x782F is alignment.
     static std::uintptr_t load(
-        const Code1ResourceDescriptor767C& descriptor,
+        const Code1ResourceOuter767C& outer,
         std::int32_t handle,
         Code1BufferedIoState72D0& streamState,
         const Code1ResourceImageOps767C& ops);

@@ -3,25 +3,41 @@
 namespace ravenloft::game {
 namespace {
 
+std::uint16_t get16(
+    const std::uint8_t* bytes,
+    std::size_t offset) {
+    return
+        std::uint16_t(bytes[offset]) |
+        (std::uint16_t(bytes[offset + 1]) << 8);
+}
+
+std::int16_t getS16(
+    const std::uint8_t* bytes,
+    std::size_t offset) {
+    return static_cast<std::int16_t>(
+        get16(bytes, offset));
+}
+
 void put16(
     std::uint8_t* bytes,
     std::size_t offset,
     std::uint16_t value) {
     bytes[offset] =
         static_cast<std::uint8_t>(value);
-
     bytes[offset + 1] =
         static_cast<std::uint8_t>(
             value >> 8);
 }
 
-std::uint16_t get16(
-    const std::uint8_t* bytes,
-    std::size_t offset) {
-    return
-        std::uint16_t(bytes[offset]) |
-        (std::uint16_t(
-            bytes[offset + 1]) << 8);
+Code1ResourceDescriptor767C decodeDescriptor(
+    const std::uint8_t* bytes) {
+    Code1ResourceDescriptor767C descriptor{};
+    descriptor.frameCount = getS16(bytes, 0);
+    descriptor.width = getS16(bytes, 2);
+    descriptor.heightUnits = bytes[4];
+    descriptor.marker = bytes[5];
+    descriptor.encoding = bytes[6];
+    return descriptor;
 }
 
 void initializeHeader(
@@ -34,27 +50,25 @@ void initializeHeader(
     put16(bytes, 0, word0);
     put16(bytes, 2, frameCount);
     put16(bytes, 4, width);
-
-    bytes[6] =
-        heightUnits;
-
-    bytes[7] =
-        static_cast<std::uint8_t>(
-            marker != 0xFF
-                ? 0x80
-                : 0);
+    bytes[6] = heightUnits;
+    bytes[7] = static_cast<std::uint8_t>(
+        marker != 0xFF ? 0x80 : 0);
 }
 
 } // namespace
 
 std::uintptr_t Code1ResourceImages767C::load(
-    const Code1ResourceDescriptor767C& descriptor,
+    const Code1ResourceOuter767C& outer,
     std::int32_t handle,
     Code1BufferedIoState72D0& streamState,
     const Code1ResourceImageOps767C& ops) {
     Code1BufferedIo72D0::setHandle(
-        handle,
-        streamState);
+        handle, streamState);
+
+    // 0x768D..0x7693: follow DWORD outer+5 before reading the descriptor.
+    const auto descriptor =
+        decodeDescriptor(
+            outer.descriptorBytes5);
 
     if (descriptor.frameCount == 0) {
         ops.call9814(0x158);
@@ -71,7 +85,8 @@ std::uintptr_t Code1ResourceImages767C::load(
     const auto resource =
         Code1Memory6F10::heapAllocate71C8(
             static_cast<std::size_t>(
-                total + 8),
+                static_cast<std::uint32_t>(
+                    total + 8)),
             ops.memory);
 
     auto* header =
@@ -98,7 +113,8 @@ std::uintptr_t Code1ResourceImages767C::load(
     const auto temporary =
         Code1Memory6F10::heapAllocate71C8(
             static_cast<std::size_t>(
-                bytesPerFrame),
+                static_cast<std::uint32_t>(
+                    bytesPerFrame)),
             ops.memory);
 
     auto* temporaryBytes =
@@ -165,9 +181,7 @@ std::uintptr_t Code1ResourceImages767C::load(
     case 3:
         Code1BufferedIo72D0::beginOutput(
             resource,
-            reinterpret_cast<
-                const std::uint8_t*>(
-                    &descriptor),
+            outer.descriptorBytes5,
             temporaryBytes,
             bytesPerFrame,
             1,
@@ -206,7 +220,6 @@ std::int32_t Code1ResourceImages767C::allocationSize(
             const std::uint8_t*>(
                 resource);
 
-    // 0x784A uses a 16-bit IMUL. Preserve the low-WORD product.
     const std::uint16_t product =
         static_cast<std::uint16_t>(
             get16(bytes, 0) *
@@ -248,7 +261,8 @@ std::uintptr_t Code1ResourceImages767C::capture(
     const auto resource =
         Code1Memory6F10::heapAllocate71C8(
             static_cast<std::size_t>(
-                total + 8),
+                static_cast<std::uint32_t>(
+                    total + 8)),
             ops.memory);
 
     auto* bytes =
@@ -265,9 +279,7 @@ std::uintptr_t Code1ResourceImages767C::capture(
         marker);
 
     const std::size_t markerBytes =
-        marker != 0xFF
-            ? 1u
-            : 0u;
+        marker != 0xFF ? 1u : 0u;
 
     Code1Graphics66C0::capture(
         resource + 8u + markerBytes,
@@ -312,9 +324,7 @@ std::uintptr_t Code1ResourceImages767C::fillCaptured(
         marker);
 
     const std::size_t markerBytes =
-        marker != 0xFF
-            ? 1u
-            : 0u;
+        marker != 0xFF ? 1u : 0u;
 
     Code1Graphics66C0::capture(
         destination + 8u + markerBytes,
