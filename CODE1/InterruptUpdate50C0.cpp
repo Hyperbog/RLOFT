@@ -1,4 +1,4 @@
-#include "Code1InterruptUpdate50C0.h"
+#include "InterruptUpdate50C0.h"
 
 namespace ravenloft::game {
 namespace {
@@ -12,14 +12,14 @@ std::int32_t arithmeticShiftRightOne(std::int32_t value) noexcept {
 
 } // namespace
 
-void Code1InterruptUpdate50C0::run(
+void InterruptUpdate50C0::run(
     std::int32_t,
     std::int32_t valueEbx,
     std::int32_t valueEcx,
     std::int32_t valueEdx,
     const std::array<std::int16_t, 2>* pointerEsi,
-    Code1InterruptUpdateState50C0& state,
-    const Code1InterruptUpdateOps50C0& ops) {
+    InterruptUpdateState50C0& state,
+    const InterruptUpdateOps50C0& ops) {
     // 0x50C4.
     valueEcx = arithmeticShiftRightOne(valueEcx);
 

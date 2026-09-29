@@ -1,4 +1,4 @@
-#include "Code1PaletteEffectsBE70.h"
+#include "PaletteEffectsBE70.h"
 
 #include <algorithm>
 #include <array>
@@ -46,9 +46,9 @@ std::int32_t arithmeticShiftRight(
 
 } // namespace
 
-void Code1PaletteEffectsBE70::normalize(
+void PaletteEffectsBE70::normalize(
     std::span<std::uint8_t, 0x300> palette,
-    const Code1PaletteEffectsStateBE70& state) noexcept {
+    const PaletteEffectsStateBE70& state) noexcept {
     std::int32_t intensity =
         (*state.config2AA0)[0x6C];
 
@@ -102,7 +102,7 @@ void Code1PaletteEffectsBE70::normalize(
     }
 }
 
-void Code1PaletteEffectsBE70::copyRange(
+void PaletteEffectsBE70::copyRange(
     std::span<std::uint8_t, 0x300> destination,
     std::int32_t destinationIndex,
     std::span<const std::uint8_t, 0x300> source,
@@ -116,7 +116,7 @@ void Code1PaletteEffectsBE70::copyRange(
         static_cast<std::size_t>(count) * 3u);
 }
 
-void Code1PaletteEffectsBE70::fillRange(
+void PaletteEffectsBE70::fillRange(
     std::span<std::uint8_t, 0x300> palette,
     std::int32_t start,
     std::uint8_t red,
@@ -143,7 +143,7 @@ void Code1PaletteEffectsBE70::fillRange(
     }
 }
 
-void Code1PaletteEffectsBE70::interpolateRange(
+void PaletteEffectsBE70::interpolateRange(
     std::span<std::uint8_t, 0x300> palette,
     std::int32_t start,
     std::int32_t count,
@@ -185,15 +185,15 @@ void Code1PaletteEffectsBE70::interpolateRange(
     }
 }
 
-void Code1PaletteEffectsBE70::fadeToColor(
+void PaletteEffectsBE70::fadeToColor(
     std::span<const std::uint8_t, 0x300> source,
     std::int32_t start,
     std::int32_t end,
     std::uint8_t red,
     std::uint8_t green,
     std::uint8_t blue,
-    Code1PaletteEffectsStateBE70& state,
-    const Code1PaletteEffectsOpsBE70& ops) {
+    PaletteEffectsStateBE70& state,
+    const PaletteEffectsOpsBE70& ops) {
     const std::int32_t count =
         end - start + 1;
 
@@ -233,15 +233,15 @@ void Code1PaletteEffectsBE70::fadeToColor(
     ops.suspend9AB4();
 }
 
-void Code1PaletteEffectsBE70::fadeFromColor(
+void PaletteEffectsBE70::fadeFromColor(
     std::span<const std::uint8_t, 0x300> source,
     std::int32_t start,
     std::int32_t end,
     std::uint8_t red,
     std::uint8_t green,
     std::uint8_t blue,
-    Code1PaletteEffectsStateBE70& state,
-    const Code1PaletteEffectsOpsBE70& ops) {
+    PaletteEffectsStateBE70& state,
+    const PaletteEffectsOpsBE70& ops) {
     const std::int32_t count =
         end - start + 1;
 
@@ -281,9 +281,9 @@ void Code1PaletteEffectsBE70::fadeFromColor(
     ops.resume9AC4();
 }
 
-void Code1PaletteEffectsBE70::clearAndSuspend(
-    Code1PaletteEffectsStateBE70& state,
-    const Code1PaletteEffectsOpsBE70& ops) {
+void PaletteEffectsBE70::clearAndSuspend(
+    PaletteEffectsStateBE70& state,
+    const PaletteEffectsOpsBE70& ops) {
     fillRange(
         state.working2C48,
         0,
@@ -298,7 +298,7 @@ void Code1PaletteEffectsBE70::clearAndSuspend(
     ops.suspend9AB4();
 }
 
-void Code1PaletteEffectsBE70::rotateTriplets(
+void PaletteEffectsBE70::rotateTriplets(
     std::span<std::uint8_t, 0x300> palette,
     std::int32_t baseIndex,
     std::int32_t offset,
@@ -332,9 +332,9 @@ void Code1PaletteEffectsBE70::rotateTriplets(
         3);
 }
 
-std::int32_t Code1PaletteEffectsBE70::openPaletteFile(
+std::int32_t PaletteEffectsBE70::openPaletteFile(
     std::int32_t fileToken,
-    const Code1PaletteEffectsOpsBE70& ops) {
+    const PaletteEffectsOpsBE70& ops) {
     const std::int32_t handle =
         ops.openRead62A8(fileToken);
 
@@ -347,14 +347,14 @@ std::int32_t Code1PaletteEffectsBE70::openPaletteFile(
     return handle;
 }
 
-void Code1PaletteEffectsBE70::loadPaletteRange(
+void PaletteEffectsBE70::loadPaletteRange(
     std::span<std::uint8_t, 0x300> palette,
     std::int32_t destinationIndex,
     std::int32_t filePaletteIndex,
     std::int32_t fileToken,
     std::int32_t count,
-    Code1PaletteEffectsStateBE70& state,
-    const Code1PaletteEffectsOpsBE70& ops) {
+    PaletteEffectsStateBE70& state,
+    const PaletteEffectsOpsBE70& ops) {
     const std::int32_t handle =
         openPaletteFile(
             fileToken,

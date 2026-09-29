@@ -1,20 +1,20 @@
-#include "Code1PaletteSearch5880.h"
+#include "PaletteSearch5880.h"
 
 #include <cstddef>
 
 namespace ravenloft::game {
 
-void Code1PaletteInsert5880::insert(
-    Code1PaletteSearchState5880& state,
-    const Code1PaletteTreeNode5880& input,
+void PaletteInsert5880::insert(
+    PaletteSearchState5880& state,
+    const PaletteTreeNode5880& input,
     std::int16_t newIndex) noexcept {
     auto& node =
         state.tree7FF0[static_cast<std::size_t>(newIndex)];
 
     node.keyGRB = input.keyGRB;
     node.value = input.value;
-    node.low = Code1PaletteSearchState5880::kSentinel;
-    node.high = Code1PaletteSearchState5880::kSentinel;
+    node.low = PaletteSearchState5880::kSentinel;
+    node.high = PaletteSearchState5880::kSentinel;
 
     std::int16_t current =
         static_cast<std::int16_t>(state.tree7FF0[0].high);
@@ -24,7 +24,7 @@ void Code1PaletteInsert5880::insert(
     bool useHighLink = true;
 
     while (static_cast<std::uint16_t>(current) !=
-           Code1PaletteSearchState5880::kSentinel) {
+           PaletteSearchState5880::kSentinel) {
         parent = current;
 
         axis = axis == 2
@@ -61,7 +61,7 @@ void Code1PaletteInsert5880::insert(
     }
 }
 
-std::int32_t Code1PaletteCenter59AC::find(
+std::int32_t PaletteCenter59AC::find(
     const std::array<std::uint8_t, 0x300>& palette) noexcept {
     std::int32_t bestIndex = 0;
     std::int32_t bestDistance = 0x200;
@@ -92,31 +92,31 @@ std::int32_t Code1PaletteCenter59AC::find(
     return bestIndex;
 }
 
-void Code1PaletteTreeBuild5A34::build(
-    Code1PaletteSearchState5880& state,
+void PaletteTreeBuild5A34::build(
+    PaletteSearchState5880& state,
     const std::array<std::uint8_t, 0x300>& palette) noexcept {
     state.tree7FF0[0].value = 0xFFFFu;
     state.tree7FF0[0].low =
-        Code1PaletteSearchState5880::kSentinel;
+        PaletteSearchState5880::kSentinel;
     state.tree7FF0[0].high =
-        Code1PaletteSearchState5880::kSentinel;
+        PaletteSearchState5880::kSentinel;
 
     state.tree88F9[0].value = 0xFFFFu;
     state.tree88F9[0].low =
-        Code1PaletteSearchState5880::kSentinel;
+        PaletteSearchState5880::kSentinel;
     state.tree88F9[0].high =
-        Code1PaletteSearchState5880::kSentinel;
+        PaletteSearchState5880::kSentinel;
 
     std::int16_t nextNode = 1;
 
     const std::int32_t center =
-        Code1PaletteCenter59AC::find(palette);
+        PaletteCenter59AC::find(palette);
 
     const auto add = [&](std::int32_t paletteIndex) {
         const std::size_t offset =
             static_cast<std::size_t>(paletteIndex) * 3u;
 
-        Code1PaletteTreeNode5880 node{};
+        PaletteTreeNode5880 node{};
 
         // The original local nine-byte record is laid out G,R,B,index.
         node.keyGRB[0] = palette[offset + 1u];
@@ -125,7 +125,7 @@ void Code1PaletteTreeBuild5A34::build(
         node.value =
             static_cast<std::uint16_t>(paletteIndex);
 
-        Code1PaletteInsert5880::insert(
+        PaletteInsert5880::insert(
             state,
             node,
             nextNode);
@@ -148,8 +148,8 @@ void Code1PaletteTreeBuild5A34::build(
     state.word982 = 1;
 }
 
-std::int32_t Code1PaletteNearest5B64::find(
-    Code1PaletteSearchState5880& state,
+std::int32_t PaletteNearest5B64::find(
+    PaletteSearchState5880& state,
     std::uint8_t red,
     std::uint8_t green,
     std::uint8_t blue,
@@ -160,7 +160,7 @@ std::int32_t Code1PaletteNearest5B64::find(
 
     std::int32_t bestDistance = 0x2E83;
     std::uint16_t bestNode =
-        Code1PaletteSearchState5880::kSentinel;
+        PaletteSearchState5880::kSentinel;
 
     // Locals are ordered by the tree's packed G,R,B component order.
     const std::array<std::int16_t, 3> low{{
@@ -208,7 +208,7 @@ std::int32_t Code1PaletteNearest5B64::find(
                 static_cast<std::size_t>(state.word980)];
 
         while (current !=
-                   Code1PaletteSearchState5880::kSentinel &&
+                   PaletteSearchState5880::kSentinel &&
                bestDistance != 0) {
             ++state.word984;
 
@@ -268,7 +268,7 @@ std::int32_t Code1PaletteNearest5B64::find(
     }
 
     if (bestNode ==
-        Code1PaletteSearchState5880::kSentinel) {
+        PaletteSearchState5880::kSentinel) {
         // Sentinel index 257 aliases tree88F9[0] in original memory.
         return state.tree88F9[0].value;
     }

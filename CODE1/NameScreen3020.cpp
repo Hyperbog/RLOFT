@@ -1,13 +1,13 @@
-#include "Code1NameScreen3020.h"
+#include "NameScreen3020.h"
 
-#include "Code1TextEntry2DFC.h"
+#include "TextEntry2DFC.h"
 
 #include <array>
 
 namespace ravenloft::game {
 
-void Code1NameScreen3020::run(Code1NameScreenState3020& state,
-                              const Code1NameScreenOps3020& ops) {
+void NameScreen3020::run(NameScreenState3020& state,
+                              const NameScreenOps3020& ops) {
     const std::array<std::int32_t,9> slots{
         -1,-1,-1,-1,-1,-1,-1,0x14,-1
     };
@@ -18,10 +18,10 @@ void Code1NameScreen3020::run(Code1NameScreenState3020& state,
     ops.call53E4(state.buffer7138);
     state.buffer7138 ^= 1u;
 
-    Code1TextEntryState2DFC textState{};
+    TextEntryState2DFC textState{};
     textState.name67F8 = state.name67F8;
     textState.buffer7138 = state.buffer7138;
-    Code1TextEntry2DFC::run(0x93, 0x0F, textState, ops.textEntry);
+    TextEntry2DFC::run(0x93, 0x0F, textState, ops.textEntry);
     state.name67F8 = textState.name67F8;
     state.buffer7138 = textState.buffer7138;
 

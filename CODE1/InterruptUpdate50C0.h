@@ -6,7 +6,7 @@
 
 namespace ravenloft::game {
 
-struct Code1InterruptUpdateState50C0 {
+struct InterruptUpdateState50C0 {
     std::int16_t word73EC = 0;
     std::int32_t value97C = 0;
 
@@ -24,7 +24,7 @@ struct Code1InterruptUpdateState50C0 {
     std::array<std::int32_t, 4> rect7178{};
 };
 
-struct Code1InterruptUpdateOps50C0 {
+struct InterruptUpdateOps50C0 {
     std::function<std::int32_t()> call84E0;
     std::function<void(std::array<std::int32_t, 4>&)> call6C44;
     std::function<void(std::int32_t, std::int32_t,
@@ -33,7 +33,7 @@ struct Code1InterruptUpdateOps50C0 {
     std::function<void()> call57DC;
 };
 
-class Code1InterruptUpdate50C0 {
+class InterruptUpdate50C0 {
 public:
     // Direct reconstruction of CODE.1 0x50C0..0x522E.
     // CODE.1 0x522F is alignment.
@@ -45,8 +45,8 @@ public:
         std::int32_t valueEcx,
         std::int32_t valueEdx,
         const std::array<std::int16_t, 2>* pointerEsi,
-        Code1InterruptUpdateState50C0& state,
-        const Code1InterruptUpdateOps50C0& ops);
+        InterruptUpdateState50C0& state,
+        const InterruptUpdateOps50C0& ops);
 };
 
 } // namespace ravenloft::game

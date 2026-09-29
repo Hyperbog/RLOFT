@@ -1,4 +1,4 @@
-#include "Code1NearestColor5B64.h"
+#include "NearestColor5B64.h"
 
 #include <array>
 #include <cstddef>
@@ -6,15 +6,15 @@
 
 namespace ravenloft::game {
 
-std::int32_t Code1NearestColor5B64::find(
-    Code1ColorTreeState5880& state,
+std::int32_t NearestColor5B64::find(
+    ColorTreeState5880& state,
     std::uint8_t red,
     std::uint8_t green,
     std::uint8_t blue,
     std::int32_t radius) noexcept {
     std::int32_t bestDistance = 0x2E83;
     std::int16_t bestNode =
-        Code1ColorTreeState5880::kSentinel;
+        ColorTreeState5880::kSentinel;
 
     if (state.ready982 == 0) {
         return -1;
@@ -65,7 +65,7 @@ std::int32_t Code1NearestColor5B64::find(
             state.traversalStack[
                 static_cast<std::uint16_t>(state.stackDepth980)];
 
-        while (current != Code1ColorTreeState5880::kSentinel &&
+        while (current != ColorTreeState5880::kSentinel &&
                static_cast<std::int16_t>(bestDistance) != 0) {
             ++state.visited984;
 

@@ -1,4 +1,4 @@
-#include "Code1Memory6F10.h"
+#include "Memory6F10.h"
 
 namespace ravenloft::game {
 namespace {
@@ -23,11 +23,11 @@ std::uint32_t read32(const std::uint8_t* p) {
 
 } // namespace
 
-std::uint32_t Code1Memory6F10::allocateDos(
+std::uint32_t Memory6F10::allocateDos(
     std::int32_t bytes,
     std::uint32_t& farPointer,
     std::uint16_t& selector,
-    const Code1MemoryOps6F10& ops) {
+    const MemoryOps6F10& ops) {
     const std::int32_t paragraphs =
         (bytes + 0x10) / 0x10;
 
@@ -49,30 +49,30 @@ std::uint32_t Code1Memory6F10::allocateDos(
         result.segment) << 4u;
 }
 
-std::int32_t Code1Memory6F10::freeDos(
+std::int32_t Memory6F10::freeDos(
     std::uint16_t selector,
-    const Code1MemoryOps6F10& ops) {
+    const MemoryOps6F10& ops) {
     return ops.freeDosMemory(selector)
         ? -1
         : 0;
 }
 
-std::int32_t Code1Memory6F10::call6FAC(
+std::int32_t Memory6F10::call6FAC(
     std::uint16_t value,
-    const Code1MemoryOps6F10& ops) {
+    const MemoryOps6F10& ops) {
     return ops.callDA6C(value);
 }
 
-std::uint32_t Code1Memory6F10::selectorBase(
+std::uint32_t Memory6F10::selectorBase(
     std::uint16_t selector,
-    const Code1MemoryOps6F10& ops) {
+    const MemoryOps6F10& ops) {
     return ops.selectorBase(selector);
 }
 
 std::uint32_t
-Code1Memory6F10::allocateSelectorBlock(
+Memory6F10::allocateSelectorBlock(
     std::int32_t bytes,
-    const Code1MemoryOps6F10& ops) {
+    const MemoryOps6F10& ops) {
     const std::int32_t units =
         (bytes + 0x0F) / 0x10;
 
@@ -106,9 +106,9 @@ Code1Memory6F10::allocateSelectorBlock(
     return base;
 }
 
-std::int32_t Code1Memory6F10::resizeLinear(
+std::int32_t Memory6F10::resizeLinear(
     std::uint32_t value,
-    const Code1MemoryOps6F10& ops) {
+    const MemoryOps6F10& ops) {
     const auto high =
         static_cast<std::uint16_t>(
             value >> 16u);
@@ -121,9 +121,9 @@ std::int32_t Code1Memory6F10::resizeLinear(
         : 0;
 }
 
-std::uint32_t Code1Memory6F10::allocateLinear(
+std::uint32_t Memory6F10::allocateLinear(
     std::uint32_t size,
-    const Code1MemoryOps6F10& ops) {
+    const MemoryOps6F10& ops) {
     const auto high =
         static_cast<std::uint16_t>(
             size >> 16u);
@@ -147,8 +147,8 @@ std::uint32_t Code1Memory6F10::allocateLinear(
     return result.address;
 }
 
-std::uint32_t Code1Memory6F10::queryLargestDos(
-    const Code1MemoryOps6F10& ops) {
+std::uint32_t Memory6F10::queryLargestDos(
+    const MemoryOps6F10& ops) {
     const auto result =
         ops.allocateDosMemory(0xFFFFu);
 
@@ -158,13 +158,13 @@ std::uint32_t Code1Memory6F10::queryLargestDos(
         : 0u;
 }
 
-std::uint32_t Code1Memory6F10::queryFreeMemory(
-    const Code1MemoryOps6F10& ops) {
+std::uint32_t Memory6F10::queryFreeMemory(
+    const MemoryOps6F10& ops) {
     return ops.freeMemoryInfoFirstDword();
 }
 
-void Code1Memory6F10::fatal7184(
-    const Code1MemoryOps6F10& ops) {
+void Memory6F10::fatal7184(
+    const MemoryOps6F10& ops) {
     ops.callDisplay64DC(0xFF);
     ops.callPrint61D0(0xB8);
     ops.callCF98();
@@ -172,14 +172,14 @@ void Code1Memory6F10::fatal7184(
     ops.call97D4(0x0A);
 }
 
-std::int32_t Code1Memory6F10::heapInit71BC(
-    const Code1MemoryOps6F10& ops) {
+std::int32_t Memory6F10::heapInit71BC(
+    const MemoryOps6F10& ops) {
     return ops.callDAA6();
 }
 
-std::uintptr_t Code1Memory6F10::heapAllocate71C8(
+std::uintptr_t Memory6F10::heapAllocate71C8(
     std::size_t bytes,
-    const Code1MemoryOps6F10& ops) {
+    const MemoryOps6F10& ops) {
     std::uint8_t stage = 0;
     std::uintptr_t base = 0;
 
@@ -215,9 +215,9 @@ std::uintptr_t Code1Memory6F10::heapAllocate71C8(
     return base + 0x0Au;
 }
 
-void Code1Memory6F10::heapFree7240(
+void Memory6F10::heapFree7240(
     std::uintptr_t pointer,
-    const Code1MemoryOps6F10& ops) {
+    const MemoryOps6F10& ops) {
     const std::uintptr_t base =
         pointer - 0x0Au;
 

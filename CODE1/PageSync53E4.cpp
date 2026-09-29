@@ -1,11 +1,11 @@
-#include "Code1PageSync53E4.h"
+#include "PageSync53E4.h"
 
 namespace ravenloft::game {
 namespace {
 
 void clonePage(std::uint8_t sourcePage,
                std::uint8_t destinationPage,
-               Code1PageSyncState53E4& state) {
+               PageSyncState53E4& state) {
     state.pageBuffers73EF[destinationPage & 1u] =
         state.pageBuffers73EF[sourcePage & 1u];
 }
@@ -14,7 +14,7 @@ bool cursorOverlaps(std::int32_t x,
                     std::int32_t y,
                     std::int32_t width,
                     std::int32_t height,
-                    const Code1PageSyncState53E4& state) noexcept {
+                    const PageSyncState53E4& state) noexcept {
     const auto mouseX =
         static_cast<std::int32_t>(state.input.mouseX73E6);
     const auto mouseY =
@@ -28,9 +28,9 @@ bool cursorOverlaps(std::int32_t x,
 
 } // namespace
 
-void Code1PageSync53E4::showCursor(
-    Code1PageSyncState53E4& state,
-    const Code1PageSyncOps53E4& ops) {
+void PageSync53E4::showCursor(
+    PageSyncState53E4& state,
+    const PageSyncOps53E4& ops) {
     if (state.input.word71DA == 0) {
         return;
     }
@@ -65,9 +65,9 @@ void Code1PageSync53E4::showCursor(
     ++state.input.word73EC;
 }
 
-void Code1PageSync53E4::hideCursor(
-    Code1PageSyncState53E4& state,
-    const Code1PageSyncOps53E4& ops) {
+void PageSync53E4::hideCursor(
+    PageSyncState53E4& state,
+    const PageSyncOps53E4& ops) {
     if (state.input.word71DA == 0) {
         return;
     }
@@ -91,10 +91,10 @@ void Code1PageSync53E4::hideCursor(
     }
 }
 
-void Code1PageSync53E4::flip(
+void PageSync53E4::flip(
     std::uint8_t page,
-    Code1PageSyncState53E4& state,
-    const Code1PageSyncOps53E4& ops) {
+    PageSyncState53E4& state,
+    const PageSyncOps53E4& ops) {
     ops.call9AE8();
 
     if (state.input.word71DA == 0) {
@@ -117,10 +117,10 @@ void Code1PageSync53E4::flip(
     state.value97C = 0;
 }
 
-void Code1PageSync53E4::flipAndClone(
+void PageSync53E4::flipAndClone(
     std::uint8_t page,
-    Code1PageSyncState53E4& state,
-    const Code1PageSyncOps53E4& ops) {
+    PageSyncState53E4& state,
+    const PageSyncOps53E4& ops) {
     ops.call9AE8();
 
     if (state.input.word71DA == 0) {
@@ -148,14 +148,14 @@ void Code1PageSync53E4::flipAndClone(
     state.value97C = 0;
 }
 
-void Code1PageSync53E4::copyRectAndClone(
+void PageSync53E4::copyRectAndClone(
     std::uint8_t page,
     std::int32_t x,
     std::int32_t y,
     std::int32_t width,
     std::int32_t height,
-    Code1PageSyncState53E4& state,
-    const Code1PageSyncOps53E4& ops) {
+    PageSyncState53E4& state,
+    const PageSyncOps53E4& ops) {
     ops.call9AE8();
 
     if (state.input.word71DA == 0) {
@@ -186,14 +186,14 @@ void Code1PageSync53E4::copyRectAndClone(
     state.value97C = 0;
 }
 
-void Code1PageSync53E4::copyRect(
+void PageSync53E4::copyRect(
     std::uint8_t page,
     std::int32_t x,
     std::int32_t y,
     std::int32_t width,
     std::int32_t height,
-    Code1PageSyncState53E4& state,
-    const Code1PageSyncOps53E4& ops) {
+    PageSyncState53E4& state,
+    const PageSyncOps53E4& ops) {
     if (state.input.word71DA == 0) {
         return;
     }
@@ -233,9 +233,9 @@ void Code1PageSync53E4::copyRect(
     state.value97C = 0;
 }
 
-void Code1PageSync53E4::syncAlternate(
-    Code1PageSyncState53E4& state,
-    const Code1PageSyncOps53E4& ops) {
+void PageSync53E4::syncAlternate(
+    PageSyncState53E4& state,
+    const PageSyncOps53E4& ops) {
     if (state.input.word71DA == 0) {
         return;
     }
