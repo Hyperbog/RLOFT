@@ -1,7 +1,7 @@
-#include "Code1CharacterAdjust3C58.h"
+#include "CharacterAdjust3C58.h"
 
-#include "Code1CharacterNormalize3404.h"
-#include "Code1CharacterSheet38A4.h"
+#include "CharacterNormalize3404.h"
+#include "CharacterSheet38A4.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -9,8 +9,8 @@
 namespace ravenloft::game {
 namespace {
 
-void normalize(Code1CharacterAdjustState3C58& state) {
-    Code1CharacterNormalizeState3404 n{};
+void normalize(CharacterAdjustState3C58& state) {
+    CharacterNormalizeState3404 n{};
     n.field680C = state.field680C;
     n.fields680D = state.fields680D;
     n.field6813 = state.field6813;
@@ -19,7 +19,7 @@ void normalize(Code1CharacterAdjustState3C58& state) {
     n.bytes682A = state.bytes682A;
     n.global7118 = state.global7118;
     n.global711C = state.global711C;
-    Code1CharacterNormalize3404::apply(n);
+    CharacterNormalize3404::apply(n);
     state.field6813 = n.field6813;
     state.word6816 = n.word6816;
     state.bytes682A = n.bytes682A;
@@ -29,10 +29,10 @@ void normalize(Code1CharacterAdjustState3C58& state) {
 
 void drawSheet(std::int32_t x,
                std::int32_t y,
-               Code1CharacterAdjustState3C58& state,
-               const Code1TextDatabase& text,
-               const Code1CharacterAdjustOps3C58& ops) {
-    Code1CharacterSheetState38A4 sheet{};
+               CharacterAdjustState3C58& state,
+               const TextDatabase& text,
+               const CharacterAdjustOps3C58& ops) {
+    CharacterSheetState38A4 sheet{};
     sheet.fields680D = state.fields680D;
     sheet.word6810 = state.word6810;
     sheet.field6813 = state.field6813;
@@ -42,13 +42,13 @@ void drawSheet(std::int32_t x,
     sheet.selectedRow7124 = state.selectedRow7124;
     sheet.control59F8 = state.control59F8;
 
-    Code1CharacterSheet38A4::draw(x, y, sheet, text, ops.sheet);
+    CharacterSheet38A4::draw(x, y, sheet, text, ops.sheet);
     state.control59F8 = sheet.control59F8;
 }
 
-void redrawAndWait(Code1CharacterAdjustState3C58& state,
-                   const Code1TextDatabase& text,
-                   const Code1CharacterAdjustOps3C58& ops) {
+void redrawAndWait(CharacterAdjustState3C58& state,
+                   const TextDatabase& text,
+                   const CharacterAdjustOps3C58& ops) {
     ops.call6588(state.buffer7138);
     drawSheet(0x5B, 0x88, state, text, ops);
     ops.call55DC(state.buffer7138, 0x5B, 0x88, 0x7A, 0x30);
@@ -57,13 +57,13 @@ void redrawAndWait(Code1CharacterAdjustState3C58& state,
 }
 
 bool primaryAllowsExceptional(
-    const Code1CharacterAdjustState3C58& state) noexcept {
+    const CharacterAdjustState3C58& state) noexcept {
     return state.fields680D[0] == 0u ||
            state.fields680D[0] == 1u ||
            state.fields680D[0] == 2u;
 }
 
-void increaseSelected(Code1CharacterAdjustState3C58& state,
+void increaseSelected(CharacterAdjustState3C58& state,
                       std::int32_t mouseButtons) {
     const std::int32_t row = state.selectedRow7124;
 
@@ -99,7 +99,7 @@ void increaseSelected(Code1CharacterAdjustState3C58& state,
     }
 }
 
-void decreaseSelected(Code1CharacterAdjustState3C58& state,
+void decreaseSelected(CharacterAdjustState3C58& state,
                       std::int32_t mouseButtons) {
     const std::int32_t row = state.selectedRow7124;
 
@@ -135,10 +135,10 @@ void decreaseSelected(Code1CharacterAdjustState3C58& state,
 
 } // namespace
 
-void Code1CharacterAdjust3C58::run(
-    Code1CharacterAdjustState3C58& state,
-    const Code1TextDatabase& text,
-    const Code1CharacterAdjustOps3C58& ops) {
+void CharacterAdjust3C58::run(
+    CharacterAdjustState3C58& state,
+    const TextDatabase& text,
+    const CharacterAdjustOps3C58& ops) {
     // 0x3C5D..0x3CA5: transition into the adjustment page.
     state.value924 = state.value928;
     state.value92C = state.value930;
@@ -153,7 +153,7 @@ void Code1CharacterAdjust3C58::run(
     bool finished = false;
 
     while (!finished) {
-        const Code1AdjustmentInput3C58 input = ops.call043C();
+        const AdjustmentInput3C58 input = ops.call043C();
         const std::int32_t selection = input.selection;
 
         if (selection == 0) {

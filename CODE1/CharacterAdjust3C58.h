@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Code1TextDatabase.h"
-#include "Code1CharacterSheet38A4.h"
+#include "TextDatabase.h"
+#include "CharacterSheet38A4.h"
 
 #include <array>
 #include <cstdint>
@@ -9,13 +9,13 @@
 
 namespace ravenloft::game {
 
-struct Code1AdjustmentInput3C58 {
+struct AdjustmentInput3C58 {
     std::int32_t selection = -1;     // return value from CODE.1 0x043C
     std::int32_t mouseButtons4D4 = 0;
     std::int16_t mouseX73E6 = 0;
 };
 
-struct Code1CharacterAdjustState3C58 {
+struct CharacterAdjustState3C58 {
     std::uint8_t field680C = 0;
     std::array<std::uint8_t, 3> fields680D{{0xFFu,0xFFu,0xFFu}};
     std::uint16_t word6810 = 0;
@@ -42,12 +42,12 @@ struct Code1CharacterAdjustState3C58 {
     std::array<std::uint8_t, 9> control59F8{};
 };
 
-struct Code1CharacterAdjustOps3C58 {
-    Code1CharacterSheetOps38A4 sheet;
+struct CharacterAdjustOps3C58 {
+    CharacterSheetOps38A4 sheet;
 
     std::function<void(std::int32_t,std::int32_t)> call07E4;
     std::function<void()> call56DC;
-    std::function<Code1AdjustmentInput3C58()> call043C;
+    std::function<AdjustmentInput3C58()> call043C;
     std::function<void(std::uint8_t)> call6588;
     std::function<void(std::uint8_t,std::int32_t,std::int32_t,
                        std::int32_t,std::int32_t)> call55DC;
@@ -62,12 +62,12 @@ struct Code1CharacterAdjustOps3C58 {
                        std::int32_t,std::uintptr_t)> call67C8;
 };
 
-class Code1CharacterAdjust3C58 {
+class CharacterAdjust3C58 {
 public:
     // Direct reconstruction of CODE.1 0x3C58..0x40FA.
-    static void run(Code1CharacterAdjustState3C58& state,
-                    const Code1TextDatabase& text,
-                    const Code1CharacterAdjustOps3C58& ops);
+    static void run(CharacterAdjustState3C58& state,
+                    const TextDatabase& text,
+                    const CharacterAdjustOps3C58& ops);
 };
 
 } // namespace ravenloft::game

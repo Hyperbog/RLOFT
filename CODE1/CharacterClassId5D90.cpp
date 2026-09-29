@@ -1,8 +1,8 @@
-#include "Code1CharacterClassId5D90.h"
+#include "CharacterClassId5D90.h"
 
 namespace ravenloft::game {
 
-std::uint8_t Code1CharacterClassId5D90::classify(
+std::uint8_t CharacterClassId5D90::classify(
     const std::array<std::uint8_t, 3>& fields680D) noexcept {
     const std::uint8_t first = fields680D[0];
     const std::uint8_t second = fields680D[1];

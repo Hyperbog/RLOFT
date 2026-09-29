@@ -1,7 +1,7 @@
-#include "Code1CharacterChoice266C.h"
+#include "CharacterChoice266C.h"
 
-#include "Code1CharacterOptions2198.h"
-#include "Code1CharacterTriple1F24.h"
+#include "CharacterOptions2198.h"
+#include "CharacterTriple1F24.h"
 
 #include <array>
 #include <cstddef>
@@ -9,8 +9,8 @@
 
 namespace ravenloft::game {
 
-void Code1CharacterChoice266C::run(Code1CharacterChoiceState266C& state,
-                                   const Code1CharacterChoiceOps266C& ops) {
+void CharacterChoice266C::run(CharacterChoiceState266C& state,
+                                   const CharacterChoiceOps266C& ops) {
     std::int32_t lastSelection = 0;
     std::int32_t modeDelta = 0;
     bool pageInitialized = false;
@@ -26,10 +26,10 @@ void Code1CharacterChoice266C::run(Code1CharacterChoiceState266C& state,
         }
 
         std::array<std::int32_t, 6> optionFlags{};
-        const Code1CharacterOptionState2198 optionState{
+        const CharacterOptionState2198 optionState{
             state.field680C, state.fields680D[0], state.fields680D[1]
         };
-        if (!Code1CharacterOptions2198::build(optionFlags, stage, optionState)) {
+        if (!CharacterOptions2198::build(optionFlags, stage, optionState)) {
             break;
         }
 
@@ -123,7 +123,7 @@ void Code1CharacterChoice266C::run(Code1CharacterChoiceState266C& state,
 
     state.mode4D0 += modeDelta;
     if (modeDelta == 1) {
-        Code1CharacterTriple1F24::normalize(state.fields680D);
+        CharacterTriple1F24::normalize(state.fields680D);
     }
 }
 

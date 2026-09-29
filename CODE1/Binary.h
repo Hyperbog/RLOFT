@@ -6,7 +6,7 @@
 
 namespace ravenloft::game {
 
-class Code1Binary {
+class Binary {
 public:
     static std::uint16_t u16(std::span<const std::uint8_t> bytes,
                              std::size_t offset);

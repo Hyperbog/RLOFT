@@ -6,7 +6,7 @@
 
 namespace ravenloft::game {
 
-struct Code1CharacterChoiceState266C {
+struct CharacterChoiceState266C {
     std::uint8_t field680C = 0;
     std::array<std::uint8_t, 3> fields680D{{0xFFu, 0xFFu, 0xFFu}};
 
@@ -18,7 +18,7 @@ struct Code1CharacterChoiceState266C {
     std::uint8_t buffer7138 = 0;
 };
 
-struct Code1CharacterChoiceOps266C {
+struct CharacterChoiceOps266C {
     std::function<void(std::int32_t, std::int32_t, std::int32_t)> call24D4;
     std::function<void(std::uint8_t)> call6588;
     std::function<void(std::int32_t, std::int32_t,
@@ -34,11 +34,11 @@ struct Code1CharacterChoiceOps266C {
                        std::int32_t, std::int32_t)> call15B0;
 };
 
-class Code1CharacterChoice266C {
+class CharacterChoice266C {
 public:
     // Direct reconstruction of CODE.1 0x266C..0x28E1.
-    static void run(Code1CharacterChoiceState266C& state,
-                    const Code1CharacterChoiceOps266C& ops);
+    static void run(CharacterChoiceState266C& state,
+                    const CharacterChoiceOps266C& ops);
 };
 
 } // namespace ravenloft::game

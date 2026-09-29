@@ -1,13 +1,13 @@
-#include "Code1CharacterActivation3138.h"
+#include "CharacterActivation3138.h"
 
 #include <array>
 #include <cstddef>
 
 namespace ravenloft::game {
 
-void Code1CharacterActivation3138::run(
-    Code1CharacterActivationState3138& state,
-    const Code1CharacterActivationOps3138& ops) {
+void CharacterActivation3138::run(
+    CharacterActivationState3138& state,
+    const CharacterActivationOps3138& ops) {
     const std::array<std::int32_t, 9> slots{
         -1, -1, 0x2F, 0x30, -1, -1, -1, -1, -1
     };

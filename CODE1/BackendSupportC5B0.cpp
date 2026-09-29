@@ -1,12 +1,12 @@
-#include "Code1BackendSupportC5B0.h"
+#include "BackendSupportC5B0.h"
 
 namespace ravenloft::game {
 
-std::uintptr_t Code1BackendSupportC5B0::readLengthPrefixed(
+std::uintptr_t BackendSupportC5B0::readLengthPrefixed(
     std::int32_t,
     std::int32_t handle,
-    const Code1BackendSupportStateC5B0& state,
-    const Code1BackendSupportOpsC5B0& ops) {
+    const BackendSupportStateC5B0& state,
+    const BackendSupportOpsC5B0& ops) {
     if (state.active2F48 == 0) {
         return 0;
     }
@@ -29,20 +29,20 @@ std::uintptr_t Code1BackendSupportC5B0::readLengthPrefixed(
     return block;
 }
 
-void Code1BackendSupportC5B0::freeIfActive(
+void BackendSupportC5B0::freeIfActive(
     std::uintptr_t pointer,
-    const Code1BackendSupportStateC5B0& state,
-    const Code1BackendSupportOpsC5B0& ops) {
+    const BackendSupportStateC5B0& state,
+    const BackendSupportOpsC5B0& ops) {
     if (state.active2F48 != 0 &&
         pointer != 0) {
         ops.heapFree7240(pointer);
     }
 }
 
-void Code1BackendSupportC5B0::setEnabled(
+void BackendSupportC5B0::setEnabled(
     std::uint8_t enabled,
-    Code1BackendSupportStateC5B0& state,
-    const Code1BackendSupportOpsC5B0& ops) {
+    BackendSupportStateC5B0& state,
+    const BackendSupportOpsC5B0& ops) {
     state.enabled2F78 = enabled;
 
     if (state.active2F48 != 0 &&
@@ -51,15 +51,15 @@ void Code1BackendSupportC5B0::setEnabled(
     }
 }
 
-void Code1BackendSupportC5B0::setLookupParam(
+void BackendSupportC5B0::setLookupParam(
     std::int32_t value,
-    Code1BackendSupportStateC5B0& state) noexcept {
+    BackendSupportStateC5B0& state) noexcept {
     state.lookupParam2F4C = value;
 }
 
-std::int32_t Code1BackendSupportC5B0::type2Active(
-    const Code1BackendSupportStateC5B0& state,
-    const Code1BackendSupportOpsC5B0& ops) {
+std::int32_t BackendSupportC5B0::type2Active(
+    const BackendSupportStateC5B0& state,
+    const BackendSupportOpsC5B0& ops) {
     if (state.active2F48 == 0) {
         return 0;
     }
@@ -70,12 +70,12 @@ std::int32_t Code1BackendSupportC5B0::type2Active(
         : 0;
 }
 
-void Code1BackendSupportC5B0::queue(
+void BackendSupportC5B0::queue(
     std::int32_t resourceId,
     std::int32_t value,
     std::int32_t slot,
     std::int32_t priority,
-    Code1BackendSupportStateC5B0& state) noexcept {
+    BackendSupportStateC5B0& state) noexcept {
     if (state.active2F48 == 0) {
         return;
     }
@@ -98,12 +98,12 @@ void Code1BackendSupportC5B0::queue(
     }
 }
 
-void Code1BackendSupportC5B0::noOpC6F0() noexcept {
+void BackendSupportC5B0::noOpC6F0() noexcept {
 }
 
-void Code1BackendSupportC5B0::flushQueue(
-    Code1BackendSupportStateC5B0& state,
-    const Code1BackendSupportOpsC5B0& ops) {
+void BackendSupportC5B0::flushQueue(
+    BackendSupportStateC5B0& state,
+    const BackendSupportOpsC5B0& ops) {
     if (state.active2F48 == 0) {
         return;
     }

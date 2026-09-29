@@ -1,20 +1,20 @@
-#include "Code1BufferedIo72D0.h"
+#include "BufferedIo72D0.h"
 
-#include "Code1RuntimeMemset84A0.h"
+#include "RuntimeMemset84A0.h"
 
 namespace ravenloft::game {
 
-void Code1BufferedIo72D0::setHandle(
+void BufferedIo72D0::setHandle(
     std::int32_t handle,
-    Code1BufferedIoState72D0& state) noexcept {
+    BufferedIoState72D0& state) noexcept {
     state.handle2904 = handle;
 }
 
-void Code1BufferedIo72D0::alignAndFill(
-    Code1BufferedIoState72D0& state,
-    const Code1BufferedIoOps72D0& ops) {
+void BufferedIo72D0::alignAndFill(
+    BufferedIoState72D0& state,
+    const BufferedIoOps72D0& ops) {
     const std::int32_t position =
-        Code1DosServices6200::seek(
+        DosServices6200::seek(
             0, 1, state.handle2904, ops.dos);
 
     const std::int32_t remainder =
@@ -24,7 +24,7 @@ void Code1BufferedIo72D0::alignAndFill(
         0x400 - remainder;
 
     state.bufferRemaining2874 =
-        Code1DosServices6200::read(
+        DosServices6200::read(
             state.buffer2470.data(),
             count,
             state.handle2904,
@@ -33,12 +33,12 @@ void Code1BufferedIo72D0::alignAndFill(
     state.bufferPos2870 = 0;
 }
 
-void Code1BufferedIo72D0::refill(
-    Code1BufferedIoState72D0& state,
-    const Code1BufferedIoOps72D0& ops) {
+void BufferedIo72D0::refill(
+    BufferedIoState72D0& state,
+    const BufferedIoOps72D0& ops) {
     if (state.bufferRemaining2874 == 0) {
         state.bufferRemaining2874 =
-            Code1DosServices6200::read(
+            DosServices6200::read(
                 state.buffer2470.data(),
                 0x400,
                 state.handle2904,
@@ -48,9 +48,9 @@ void Code1BufferedIo72D0::refill(
     }
 }
 
-std::uint8_t Code1BufferedIo72D0::readByte(
-    Code1BufferedIoState72D0& state,
-    const Code1BufferedIoOps72D0& ops) {
+std::uint8_t BufferedIo72D0::readByte(
+    BufferedIoState72D0& state,
+    const BufferedIoOps72D0& ops) {
     if (state.bufferRemaining2874 == 0) {
         refill(state, ops);
     }
@@ -64,10 +64,10 @@ std::uint8_t Code1BufferedIo72D0::readByte(
     return value;
 }
 
-void Code1BufferedIo72D0::emitByte(
+void BufferedIo72D0::emitByte(
     std::uint8_t value,
-    Code1BufferedIoState72D0& state,
-    const Code1BufferedIoOps72D0& ops) {
+    BufferedIoState72D0& state,
+    const BufferedIoOps72D0& ops) {
     if (state.outputDone89CE != 0) {
         return;
     }
@@ -116,14 +116,14 @@ void Code1BufferedIo72D0::emitByte(
     state.outputDone89CE = 1;
 }
 
-void Code1BufferedIo72D0::beginOutput(
+void BufferedIo72D0::beginOutput(
     std::uintptr_t arg899C,
     const std::uint8_t* descriptor,
     std::uint8_t* buffer,
     std::int32_t capacity,
     std::uint8_t mode,
-    Code1BufferedIoState72D0& state,
-    const Code1BufferedIoOps72D0& ops) {
+    BufferedIoState72D0& state,
+    const BufferedIoOps72D0& ops) {
     state.outputMode89CF = mode;
     state.outputDone89CE = 0;
     state.descriptor8994 = descriptor;
@@ -143,11 +143,11 @@ void Code1BufferedIo72D0::beginOutput(
     ops.callDB80();
 }
 
-void Code1BufferedIo72D0::readBytes(
+void BufferedIo72D0::readBytes(
     std::uint8_t* destination,
     std::int32_t count,
-    Code1BufferedIoState72D0& state,
-    const Code1BufferedIoOps72D0& ops) {
+    BufferedIoState72D0& state,
+    const BufferedIoOps72D0& ops) {
     refill(state, ops);
 
     if (state.bufferRemaining2874 >=
@@ -179,7 +179,7 @@ void Code1BufferedIo72D0::readBytes(
     count -= first;
 
     state.bufferRemaining2874 =
-        Code1DosServices6200::read(
+        DosServices6200::read(
             state.buffer2470.data(),
             0x400,
             state.handle2904,
@@ -197,9 +197,9 @@ void Code1BufferedIo72D0::readBytes(
         count;
 }
 
-std::uint8_t Code1BufferedIo72D0::readRleByte(
-    Code1BufferedIoState72D0& state,
-    const Code1BufferedIoOps72D0& ops) {
+std::uint8_t BufferedIo72D0::readRleByte(
+    BufferedIoState72D0& state,
+    const BufferedIoOps72D0& ops) {
     if (state.rleCount2878 == 0) {
         state.rlePos287C = 0;
 
@@ -236,7 +236,7 @@ std::uint8_t Code1BufferedIo72D0::readRleByte(
             state.rleBuffer2880[0] =
                 value;
 
-            Code1RuntimeMemset84A0::set(
+            RuntimeMemset84A0::set(
                 state.rleBuffer2880.data() + 1,
                 value,
                 static_cast<std::size_t>(
@@ -254,12 +254,12 @@ std::uint8_t Code1BufferedIo72D0::readRleByte(
     return value;
 }
 
-void Code1BufferedIo72D0::readRleBlock(
+void BufferedIo72D0::readRleBlock(
     std::uint8_t* destination,
     std::int32_t width,
     std::int32_t heightUnits,
-    Code1BufferedIoState72D0& state,
-    const Code1BufferedIoOps72D0& ops) {
+    BufferedIoState72D0& state,
+    const BufferedIoOps72D0& ops) {
     const std::int32_t count =
         width * heightUnits * 8;
 
@@ -271,12 +271,12 @@ void Code1BufferedIo72D0::readRleBlock(
     }
 }
 
-void Code1BufferedIo72D0::readRawBlock(
+void BufferedIo72D0::readRawBlock(
     std::uint8_t* destination,
     std::int32_t width,
     std::int32_t heightUnits,
-    Code1BufferedIoState72D0& state,
-    const Code1BufferedIoOps72D0& ops) {
+    BufferedIoState72D0& state,
+    const BufferedIoOps72D0& ops) {
     const std::int32_t count =
         width * heightUnits * 8;
 
