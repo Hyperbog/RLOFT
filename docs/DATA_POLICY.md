@@ -14,6 +14,15 @@ The source port loads required content from a user-supplied original installatio
 
 ## Verification material
 
-Regression tests should prefer hashes, sizes, offsets, small structural fixtures, deterministic state traces, and independently generated synthetic fixtures rather than embedding copyrighted payloads.
+Regression tests should prefer:
+
+- hashes,
+- sizes,
+- offsets,
+- small structural fixtures,
+- deterministic state traces,
+- independently generated synthetic fixtures,
+
+rather than embedding copyrighted payloads.
 
 When a test requires the original installation, it should be marked as an external-data/integration test and skipped cleanly when original data is unavailable.

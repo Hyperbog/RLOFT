@@ -1,0 +1,15 @@
+Ravenloft data probe
+Level 22  30x15
+Placements: NPC 1, scenery 110, objects 0
+Interactions: 10
+Non-empty event blocks: 0
+Planes: ceiling=-1 floor=55
+NPCs:
+  type 9 ASSASSIN @ (13.4844, 7.46875) flags=2 HD=4 AC=5 THAC0=6
+Scenery types:
+  type 62 x52 base=344 resolvedSprite=2513 views=8 frames=1 radius=55768 effect=0
+  type 63 x42 base=360 resolvedSprite=2529 views=8 frames=1 radius=55768 effect=0
+  type 64 x16 base=376 resolvedSprite=2545 views=8 frames=1 radius=55768 effect=0
+Object placements:
+Resource counts: RES3=4234 RES4=667 T=1073
+Decoded referenced base sprites: 3; wall-bank entries: 2

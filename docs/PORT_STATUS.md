@@ -16,9 +16,27 @@ No percentage will be assigned to full C/C++ reconstruction until the complete e
 
 ## Imported baseline: 0.2.31
 
-The baseline selected for Git import is the last known-good reconstruction checkpoint before conversion to the full source-port program.
+The baseline imported into Git is the last known-good reconstruction checkpoint before conversion to the full source-port program.
 
-It contains reconstructed or partially reconstructed native-data loading, movement/collision, cell interactions, NPC behavior, RNG/timing, combat, object handling, ground pickup, inventory interaction portions, save handling, rendering selection, automap, HUD scaffolding, and the opening vertical slice.
+It includes reconstructed/partially reconstructed work in these areas:
+
+- native resource/data loading,
+- level/work-level parsing,
+- save-state encoding/decoding work,
+- player movement and collision,
+- cell/world interactions,
+- NPC overlap/collision/movement/decision/scheduling components,
+- RNG and gameplay/world clocks,
+- player/NPC hit, damage, attack and cooldown components,
+- object spawning/removal/ownership,
+- ground-object pickup,
+- inventory slot/grid interaction portions,
+- mist-transition logic for the opening vertical slice,
+- automap state/view components,
+- sprite selection/projection/raster paths,
+- HUD/model/presentation scaffolding.
+
+The authoritative function-by-function details are in `ASSEMBLY_RECONSTRUCTION_MAP.md`.
 
 ## Baseline verification
 
@@ -28,7 +46,11 @@ Clean baseline verification performed before the canonical Git import:
 cmake -S . -B build-linux -DCMAKE_BUILD_TYPE=Release
 cmake --build build-linux
 ctest --test-dir build-linux --output-on-failure
+```
 
+Result:
+
+```text
 100% tests passed, 0 tests failed out of 1
 ```
 
@@ -42,3 +64,5 @@ ctest --test-dir build-linux --output-on-failure
 4. Classify remaining routines as game logic, runtime/library support, embedded data, or dead/unreachable.
 5. Generate machine-readable and human-readable coverage reports.
 6. Use that denominator for future reconstruction percentages.
+
+After M1, implementation proceeds systematically until all required original game logic is reconstructed and verified.
