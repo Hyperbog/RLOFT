@@ -57,34 +57,34 @@ std::int32_t Code1DosServices6200::openExisting(
     return ops.callD55E(value, 0x180);
 }
 
-void Code1DosServices6200::close(
+std::int32_t Code1DosServices6200::close(
     std::int32_t handle,
     const Code1DosOps6200& ops) {
-    ops.callD573(handle);
+    return ops.callD573(handle);
 }
 
-void Code1DosServices6200::read(
+std::int32_t Code1DosServices6200::read(
     void* destination,
     std::int32_t count,
     std::int32_t handle,
     const Code1DosOps6200& ops) {
-    ops.callD5AD(handle, destination, count);
+    return ops.callD5AD(handle, destination, count);
 }
 
-void Code1DosServices6200::write(
+std::int32_t Code1DosServices6200::write(
     const void* source,
     std::int32_t count,
     std::int32_t handle,
     const Code1DosOps6200& ops) {
-    ops.callD686(handle, source, count);
+    return ops.callD686(handle, source, count);
 }
 
-void Code1DosServices6200::seek(
+std::int32_t Code1DosServices6200::seek(
     std::int32_t offset,
     std::int32_t origin,
     std::int32_t handle,
     const Code1DosOps6200& ops) {
-    ops.callD85F(handle, offset, origin);
+    return ops.callD85F(handle, offset, origin);
 }
 
 void Code1DosServices6200::seekIndexed(
@@ -99,10 +99,10 @@ void Code1DosServices6200::seekIndexed(
     seek(offset, 0, handle, ops);
 }
 
-void Code1DosServices6200::remove(
+std::int32_t Code1DosServices6200::remove(
     std::int32_t value,
     const Code1DosOps6200& ops) {
-    ops.callD8AA(value);
+    return ops.callD8AA(value);
 }
 
 std::int32_t Code1DosServices6200::setDrive(
@@ -125,9 +125,9 @@ std::int32_t Code1DosServices6200::refreshDrive(
     return setDrive(currentDrive(ops), ops);
 }
 
-void Code1DosServices6200::initPathBuffer(
+std::int32_t Code1DosServices6200::initPathBuffer(
     const Code1DosOps6200& ops) {
-    ops.callD906(0x892F, 0x50);
+    return ops.callD906(0x892F, 0x50);
 }
 
 std::int32_t Code1DosServices6200::changePath(

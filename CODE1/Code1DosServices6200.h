@@ -20,16 +20,16 @@ struct Code1DosOps6200 {
 
     std::function<std::int32_t(std::int32_t, std::int32_t)> callD313;
     std::function<std::int32_t(std::int32_t, std::int32_t)> callD55E;
-    std::function<void(std::int32_t)> callD573;
+    std::function<std::int32_t(std::int32_t)> callD573;
 
-    std::function<void(std::int32_t, void*, std::int32_t)> callD5AD;
-    std::function<void(std::int32_t, const void*, std::int32_t)> callD686;
-    std::function<void(std::int32_t, std::int32_t, std::int32_t)> callD85F;
+    std::function<std::int32_t(std::int32_t, void*, std::int32_t)> callD5AD;
+    std::function<std::int32_t(std::int32_t, const void*, std::int32_t)> callD686;
+    std::function<std::int32_t(std::int32_t, std::int32_t, std::int32_t)> callD85F;
 
-    std::function<void(std::int32_t)> callD8AA;
+    std::function<std::int32_t(std::int32_t)> callD8AA;
     std::function<void(std::int32_t, std::int32_t&)> callD8E8;
     std::function<void(std::int32_t&)> callD8D0;
-    std::function<void(std::uint32_t, std::int32_t)> callD906;
+    std::function<std::int32_t(std::uint32_t, std::int32_t)> callD906;
 
     std::function<std::int32_t(std::int32_t)> callD991;
     std::function<std::int32_t(const char*)> callD9A6;
@@ -77,24 +77,24 @@ public:
         const Code1DosOps6200& ops);
 
     // CODE.1 0x62F0..0x6302.
-    static void close(
+    static std::int32_t close(
         std::int32_t handle,
         const Code1DosOps6200& ops);
 
     // CODE.1 0x6304..0x631E.
-    static void read(void* destination,
+    static std::int32_t read(void* destination,
                      std::int32_t count,
                      std::int32_t handle,
                      const Code1DosOps6200& ops);
 
     // CODE.1 0x6320..0x633A.
-    static void write(const void* source,
+    static std::int32_t write(const void* source,
                       std::int32_t count,
                       std::int32_t handle,
                       const Code1DosOps6200& ops);
 
     // CODE.1 0x633C..0x6356.
-    static void seek(std::int32_t offset,
+    static std::int32_t seek(std::int32_t offset,
                      std::int32_t origin,
                      std::int32_t handle,
                      const Code1DosOps6200& ops);
@@ -105,7 +105,7 @@ public:
                             const Code1DosOps6200& ops);
 
     // CODE.1 0x63A4..0x63B6.
-    static void remove(std::int32_t value,
+    static std::int32_t remove(std::int32_t value,
                        const Code1DosOps6200& ops);
 
     // CODE.1 0x63B8..0x63D4.
@@ -122,7 +122,7 @@ public:
         const Code1DosOps6200& ops);
 
     // CODE.1 0x640C..0x6421.
-    static void initPathBuffer(
+    static std::int32_t initPathBuffer(
         const Code1DosOps6200& ops);
 
     // CODE.1 0x6424..0x648C.
