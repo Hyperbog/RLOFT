@@ -6,7 +6,7 @@
 
 namespace ravenloft::game {
 
-struct Code1CursorSyncState55DC {
+struct CursorSyncState55DC {
     std::int16_t word71DA = 0;
     std::int16_t word73EC = 0;
     std::int16_t mouseX73E6 = 0;
@@ -25,7 +25,7 @@ struct Code1CursorSyncState55DC {
     std::array<std::uint8_t, 0x20A> cursor71DC{};
 };
 
-struct Code1CursorSyncOps55DC {
+struct CursorSyncOps55DC {
     std::function<void(std::uint8_t,
                        std::int32_t, std::int32_t,
                        std::int32_t, std::int32_t,
@@ -55,7 +55,7 @@ struct Code1CursorSyncOps55DC {
                        const std::array<std::uint8_t, 0x20A>&)> call6D54;
 };
 
-class Code1ConditionalRectSync55DC {
+class ConditionalRectSync55DC {
 public:
     // Direct reconstruction of CODE.1 0x55DC..0x56DB.
     static void run(std::uint8_t page,
@@ -63,32 +63,32 @@ public:
                     std::int32_t y,
                     std::int32_t width,
                     std::int32_t height,
-                    Code1CursorSyncState55DC& state,
-                    const Code1CursorSyncOps55DC& ops);
+                    CursorSyncState55DC& state,
+                    const CursorSyncOps55DC& ops);
 };
 
-class Code1CursorPageSync56DC {
+class CursorPageSync56DC {
 public:
     // Direct reconstruction of CODE.1 0x56DC..0x577C.
     // CODE.1 0x577D..0x577F is alignment.
-    static void run(Code1CursorSyncState55DC& state,
-                    const Code1CursorSyncOps55DC& ops);
+    static void run(CursorSyncState55DC& state,
+                    const CursorSyncOps55DC& ops);
 };
 
-class Code1CursorHide5780 {
+class CursorHide5780 {
 public:
     // Direct reconstruction of CODE.1 0x5780..0x57DA.
     // CODE.1 0x57DB is alignment.
-    static void run(Code1CursorSyncState55DC& state,
-                    const Code1CursorSyncOps55DC& ops);
+    static void run(CursorSyncState55DC& state,
+                    const CursorSyncOps55DC& ops);
 };
 
-class Code1CursorShow57DC {
+class CursorShow57DC {
 public:
     // Direct reconstruction of CODE.1 0x57DC..0x5878.
     // CODE.1 0x5879..0x587F is non-executable zero/alignment data.
-    static void run(Code1CursorSyncState55DC& state,
-                    const Code1CursorSyncOps55DC& ops);
+    static void run(CursorSyncState55DC& state,
+                    const CursorSyncOps55DC& ops);
 };
 
 } // namespace ravenloft::game

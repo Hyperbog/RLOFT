@@ -1,15 +1,15 @@
-#include "Code1CursorSync55DC.h"
+#include "CursorSync55DC.h"
 
 namespace ravenloft::game {
 
-void Code1ConditionalRectSync55DC::run(
+void ConditionalRectSync55DC::run(
     std::uint8_t page,
     std::int32_t x,
     std::int32_t y,
     std::int32_t width,
     std::int32_t height,
-    Code1CursorSyncState55DC& state,
-    const Code1CursorSyncOps55DC& ops) {
+    CursorSyncState55DC& state,
+    const CursorSyncOps55DC& ops) {
     if (state.word71DA == 0) {
         return;
     }
@@ -59,9 +59,9 @@ void Code1ConditionalRectSync55DC::run(
     state.value97C = 0;
 }
 
-void Code1CursorPageSync56DC::run(
-    Code1CursorSyncState55DC& state,
-    const Code1CursorSyncOps55DC& ops) {
+void CursorPageSync56DC::run(
+    CursorSyncState55DC& state,
+    const CursorSyncOps55DC& ops) {
     if (state.word71DA == 0) {
         return;
     }
@@ -90,9 +90,9 @@ void Code1CursorPageSync56DC::run(
     ++state.word73EC;
 }
 
-void Code1CursorHide5780::run(
-    Code1CursorSyncState55DC& state,
-    const Code1CursorSyncOps55DC& ops) {
+void CursorHide5780::run(
+    CursorSyncState55DC& state,
+    const CursorSyncOps55DC& ops) {
     if (state.word71DA == 0) {
         return;
     }
@@ -115,9 +115,9 @@ void Code1CursorHide5780::run(
     ops.call8788();
 }
 
-void Code1CursorShow57DC::run(
-    Code1CursorSyncState55DC& state,
-    const Code1CursorSyncOps55DC& ops) {
+void CursorShow57DC::run(
+    CursorSyncState55DC& state,
+    const CursorSyncOps55DC& ops) {
     if (state.word71DA == 0) {
         return;
     }

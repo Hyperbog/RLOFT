@@ -1,11 +1,11 @@
-#include "Code1CreationDispatch5014.h"
+#include "CreationDispatch5014.h"
 
 namespace ravenloft::game {
 
-void Code1CreationFinalize5014::run(
+void CreationFinalize5014::run(
     std::int32_t result,
-    Code1CreationDispatchState5014& state,
-    const Code1CreationDispatchOps5014& ops) {
+    CreationDispatchState5014& state,
+    const CreationDispatchOps5014& ops) {
     // 0x5017..0x5024.
     ops.callBB80(0x9C4);
     ops.callBCB4();
@@ -31,9 +31,9 @@ void Code1CreationFinalize5014::run(
     ops.callCBF0(result);
 }
 
-void Code1CreationEntry508C::run(
+void CreationEntry508C::run(
     std::int32_t mode,
-    const Code1CreationEntryOps508C& ops) {
+    const CreationEntryOps508C& ops) {
     // 0x508F..0x50A4.
     if (mode != 2) {
         ops.call61D0(0x9C);

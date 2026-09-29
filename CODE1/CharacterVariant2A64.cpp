@@ -1,4 +1,4 @@
-#include "Code1CharacterVariant2A64.h"
+#include "CharacterVariant2A64.h"
 
 #include <array>
 #include <cstddef>
@@ -7,8 +7,8 @@
 namespace ravenloft::game {
 namespace {
 
-Code1UiHitTestState035C hitState(const Code1CharacterVariantState2A64& state) {
-    Code1UiHitTestState035C h{};
+UiHitTestState035C hitState(const CharacterVariantState2A64& state) {
+    UiHitTestState035C h{};
     h.mode4D0 = state.mode4D0;
     h.panelX = state.x87C;
     h.panelY = state.y880;
@@ -21,8 +21,8 @@ void drawHover(std::int32_t selection,
                std::int32_t baseOffset,
                std::uint8_t category,
                const std::array<std::uint8_t, 6>& enabled,
-               const Code1CharacterVariantState2A64& state,
-               const Code1CharacterVariantOps2A64& ops) {
+               const CharacterVariantState2A64& state,
+               const CharacterVariantOps2A64& ops) {
     if (selection <= 0 || selection == 0xFF || selection > 6) return;
     const auto index = static_cast<std::size_t>(selection - 1);
     if (enabled[index] == 0) return;
@@ -39,9 +39,9 @@ void drawHover(std::int32_t selection,
 
 } // namespace
 
-void Code1CharacterVariant2A64::run(
-    Code1CharacterVariantState2A64& state,
-    const Code1CharacterVariantOps2A64& ops) {
+void CharacterVariant2A64::run(
+    CharacterVariantState2A64& state,
+    const CharacterVariantOps2A64& ops) {
     bool firstPage = true;
     std::int32_t baseOffset = 0;
     std::int32_t exitState = 0;
@@ -93,7 +93,7 @@ void Code1CharacterVariant2A64::run(
             ops.call07E4(0, 6);
         }
 
-        Code1PointerSample043C pointer{};
+        PointerSample043C pointer{};
         do {
             pointer = ops.pollPointer();
         } while (pointer.buttons != 0);
@@ -106,7 +106,7 @@ void Code1CharacterVariant2A64::run(
 
             if (pointer.buttons == 0) {
                 const std::int32_t hover =
-                    Code1UiHitTest035C::hitTest(pointer.x, pointer.y, h);
+                    UiHitTest035C::hitTest(pointer.x, pointer.y, h);
                 if (hover == previousHover) continue;
 
                 ops.call6588(state.buffer7138);
@@ -117,7 +117,7 @@ void Code1CharacterVariant2A64::run(
             }
 
             const std::int32_t selection =
-                Code1UiHitTest035C::hitTest(pointer.x, pointer.y, h);
+                UiHitTest035C::hitTest(pointer.x, pointer.y, h);
             if (selection < 0) continue;
 
             if (selection > 0 && selection != 0xFF) {

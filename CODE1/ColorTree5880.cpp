@@ -1,4 +1,4 @@
-#include "Code1ColorTree5880.h"
+#include "ColorTree5880.h"
 
 #include <array>
 #include <cstddef>
@@ -6,8 +6,8 @@
 
 namespace ravenloft::game {
 
-void Code1ColorTreeInsert5880::insert(
-    Code1ColorTreeState5880& state,
+void ColorTreeInsert5880::insert(
+    ColorTreeState5880& state,
     std::uint8_t axis0,
     std::uint8_t axis1,
     std::uint8_t axis2,
@@ -20,7 +20,7 @@ void Code1ColorTreeInsert5880::insert(
     inserted.axis1 = axis1;
     inserted.axis2 = axis2;
     inserted.payload = payload;
-    inserted.right = Code1ColorTreeState5880::kSentinel;
+    inserted.right = ColorTreeState5880::kSentinel;
     inserted.left = inserted.right;
 
     std::int16_t current = state.nodes[0].right;
@@ -32,7 +32,7 @@ void Code1ColorTreeInsert5880::insert(
         axis0, axis1, axis2
     }};
 
-    while (current != Code1ColorTreeState5880::kSentinel) {
+    while (current != ColorTreeState5880::kSentinel) {
         previous = current;
 
         // 0x5926..0x5930.
@@ -68,7 +68,7 @@ void Code1ColorTreeInsert5880::insert(
     }
 }
 
-std::int32_t Code1PaletteMiddle59AC::find(
+std::int32_t PaletteMiddle59AC::find(
     std::span<const std::uint8_t> palette) noexcept {
     std::int32_t bestIndex = 0;
     std::int32_t bestDistance = 0x200;
@@ -100,26 +100,26 @@ std::int32_t Code1PaletteMiddle59AC::find(
     return bestIndex;
 }
 
-void Code1ColorTreeBuild5A34::build(
-    Code1ColorTreeState5880& state,
+void ColorTreeBuild5A34::build(
+    ColorTreeState5880& state,
     std::span<const std::uint8_t> palette) noexcept {
     // Synthetic root at DS:7FF0.
     state.nodes[0].payload = -1;
-    state.nodes[0].left = Code1ColorTreeState5880::kSentinel;
-    state.nodes[0].right = Code1ColorTreeState5880::kSentinel;
+    state.nodes[0].left = ColorTreeState5880::kSentinel;
+    state.nodes[0].right = ColorTreeState5880::kSentinel;
 
     // The second root record at DS:88F9 is exactly node index 0x101 from
     // DS:7FF0. It is the sentinel payload returned when no candidate wins.
     auto& sentinel =
-        state.nodes[Code1ColorTreeState5880::kSentinel];
+        state.nodes[ColorTreeState5880::kSentinel];
     sentinel.payload = -1;
-    sentinel.left = Code1ColorTreeState5880::kSentinel;
-    sentinel.right = Code1ColorTreeState5880::kSentinel;
+    sentinel.left = ColorTreeState5880::kSentinel;
+    sentinel.right = ColorTreeState5880::kSentinel;
 
     std::int16_t nodeIndex = 1;
 
     std::int32_t paletteIndex =
-        Code1PaletteMiddle59AC::find(palette);
+        PaletteMiddle59AC::find(palette);
     std::int32_t ascendingIndex = paletteIndex + 1;
 
     // 0x5AA6..0x5AFA: middle entry down through palette entry zero.
@@ -128,7 +128,7 @@ void Code1ColorTreeBuild5A34::build(
             static_cast<std::size_t>(paletteIndex) * 3u;
 
         // The original 9-byte packed call payload is G,R,B,index,0,0.
-        Code1ColorTreeInsert5880::insert(
+        ColorTreeInsert5880::insert(
             state,
             palette[offset + 1u],
             palette[offset],
@@ -145,7 +145,7 @@ void Code1ColorTreeBuild5A34::build(
         const std::size_t offset =
             static_cast<std::size_t>(ascendingIndex) * 3u;
 
-        Code1ColorTreeInsert5880::insert(
+        ColorTreeInsert5880::insert(
             state,
             palette[offset + 1u],
             palette[offset],

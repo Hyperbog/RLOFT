@@ -1,14 +1,14 @@
-#include "Code1Dice0010.h"
+#include "Dice0010.h"
 
 #include <cstdint>
 
 namespace ravenloft::game {
 
-int Code1Dice0010::roll(int diceCount,
+int Dice0010::roll(int diceCount,
                         int dieSides,
                         int perDieModifier,
                         int flatModifier,
-                        Code1RuntimeRng618A& rng) noexcept {
+                        RuntimeRng618A& rng) noexcept {
     // EBX in the original routine. Preserve 32-bit wrapping for every ADD.
     std::uint32_t totalBits = 0u;
 

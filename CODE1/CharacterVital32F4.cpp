@@ -1,6 +1,6 @@
-#include "Code1CharacterVital32F4.h"
+#include "CharacterVital32F4.h"
 
-#include "Code1Dice0010.h"
+#include "Dice0010.h"
 
 #include <array>
 #include <cstddef>
@@ -27,9 +27,9 @@ constexpr std::array<VitalRow32F4, 6> kVital082E{{
 
 } // namespace
 
-void Code1CharacterVital32F4::initialize(
-    Code1CharacterVitalState32F4& state,
-    Code1RuntimeRng618A& rng) noexcept {
+void CharacterVital32F4::initialize(
+    CharacterVitalState32F4& state,
+    RuntimeRng618A& rng) noexcept {
     // 0x3302..0x331A.
     const auto& row = kVital082E[static_cast<std::size_t>(state.field680C)];
     state.word6810 = row.base;
@@ -37,7 +37,7 @@ void Code1CharacterVital32F4::initialize(
     // 0x3321..0x3340 calls CODE.1 0x0010 with
     // (diceCount, dieSides, perDieModifier=0, flatModifier=0), then performs a
     // 16-bit add into the character record.
-    const int rolled = Code1Dice0010::roll(
+    const int rolled = Dice0010::roll(
         row.diceCount, row.dieSides, 0, 0, rng);
     state.word6810 = static_cast<std::uint16_t>(
         state.word6810 + static_cast<std::uint16_t>(rolled));

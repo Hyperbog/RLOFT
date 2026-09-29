@@ -1,27 +1,27 @@
-#include "Code1Display64DC.h"
+#include "Display64DC.h"
 
 namespace ravenloft::game {
 
-void Code1Display64DC::setActivePage(
+void Display64DC::setActivePage(
     std::uint8_t page,
-    Code1DisplayState64DC& state,
-    const Code1DisplayOps64DC& ops) {
+    DisplayState64DC& state,
+    const DisplayOps64DC& ops) {
     ops.callA35C(page);
     state.byte23E5 = page;
 }
 
-void Code1Display64DC::setDrawPage(
+void Display64DC::setDrawPage(
     std::uint8_t page,
-    Code1DisplayState64DC& state,
-    const Code1DisplayOps64DC& ops) {
+    DisplayState64DC& state,
+    const DisplayOps64DC& ops) {
     ops.callA36C(page);
     state.byte23E6 = page;
 }
 
-void Code1Display64DC::configure(
+void Display64DC::configure(
     std::int32_t mode,
-    Code1DisplayState64DC& state,
-    const Code1DisplayOps64DC& ops) {
+    DisplayState64DC& state,
+    const DisplayOps64DC& ops) {
     if (mode == 0xFF) {
         ops.call9DF4();
         state.byte23D4 = 0xFF;
@@ -57,12 +57,12 @@ void Code1Display64DC::configure(
         static_cast<std::uint8_t>(mode) & 0x7Fu;
 }
 
-void Code1Display64DC::verticalLine(
+void Display64DC::verticalLine(
     std::int32_t x,
     std::int32_t y,
     std::int32_t length,
     std::uint8_t color,
-    const Code1DisplayOps64DC& ops) {
+    const DisplayOps64DC& ops) {
     ops.callA05C(
         x,
         y,
@@ -71,12 +71,12 @@ void Code1Display64DC::verticalLine(
         color);
 }
 
-void Code1Display64DC::horizontalLine(
+void Display64DC::horizontalLine(
     std::int32_t x,
     std::int32_t y,
     std::int32_t length,
     std::uint8_t color,
-    const Code1DisplayOps64DC& ops) {
+    const DisplayOps64DC& ops) {
     if (length != 0) {
         ops.callA05C(
             x,
@@ -87,50 +87,50 @@ void Code1Display64DC::horizontalLine(
     }
 }
 
-void Code1Display64DC::palette(
+void Display64DC::palette(
     void* buffer,
-    const Code1DisplayOps64DC& ops) {
+    const DisplayOps64DC& ops) {
     ops.callA010(buffer, 0, 0x300);
 }
 
-void Code1Display64DC::paletteRange(
+void Display64DC::paletteRange(
     std::int32_t offset,
     std::int32_t colorCount,
     void* buffer,
-    const Code1DisplayOps64DC& ops) {
+    const DisplayOps64DC& ops) {
     ops.callA010(
         buffer,
         offset,
         colorCount * 3);
 }
 
-void Code1Display64DC::shiftA(
+void Display64DC::shiftA(
     std::int32_t value,
-    const Code1DisplayState64DC& state,
-    const Code1DisplayOps64DC& ops) {
+    const DisplayState64DC& state,
+    const DisplayOps64DC& ops) {
     ops.callA2B0(
         static_cast<std::int32_t>(state.word23D7) - value,
         value);
 }
 
-void Code1Display64DC::shiftB(
+void Display64DC::shiftB(
     std::int32_t value,
-    const Code1DisplayState64DC& state,
-    const Code1DisplayOps64DC& ops) {
+    const DisplayState64DC& state,
+    const DisplayOps64DC& ops) {
     ops.callA2B0(
         static_cast<std::int32_t>(state.word23D7) - value,
         value - static_cast<std::int32_t>(state.word23D7));
 }
 
-void Code1Display64DC::scroll(
+void Display64DC::scroll(
     std::int32_t value,
-    const Code1DisplayOps64DC& ops) {
+    const DisplayOps64DC& ops) {
     ops.callA21C(value);
 }
 
-void Code1Display64DC::scrollNegative(
+void Display64DC::scrollNegative(
     std::int32_t value,
-    const Code1DisplayOps64DC& ops) {
+    const DisplayOps64DC& ops) {
     ops.callA21C(-value);
 }
 
