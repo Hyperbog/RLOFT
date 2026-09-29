@@ -1,14 +1,14 @@
-#include "Code1TextEntry2DFC.h"
+#include "TextEntry2DFC.h"
 
 #include <cstddef>
 #include <cstdint>
 
 namespace ravenloft::game {
 
-void Code1TextEntry2DFC::run(std::int32_t x,
+void TextEntry2DFC::run(std::int32_t x,
                              std::int32_t maxCharacters,
-                             Code1TextEntryState2DFC& state,
-                             const Code1TextEntryOps2DFC& ops) {
+                             TextEntryState2DFC& state,
+                             const TextEntryOps2DFC& ops) {
     std::int32_t blink = 1;
     (void)ops.call7F50();
 

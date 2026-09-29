@@ -1,11 +1,11 @@
-#include "Code1UiDrawState4520.h"
+#include "UiDrawState4520.h"
 
 namespace ravenloft::game {
 
-void Code1UiDrawState4520::draw(
+void UiDrawState4520::draw(
     std::int32_t value,
     std::int32_t delta,
-    const Code1UiDrawStateOps4520& ops) {
+    const UiDrawStateOps4520& ops) {
     if (value == 0x16) {
         const auto resource = ops.call954C(0x3D, 7);
         ops.callA5C8(0, resource);

@@ -8,7 +8,7 @@
 
 namespace ravenloft::game {
 
-struct Code1SystemState95A8 {
+struct SystemState95A8 {
     std::uint32_t callbackValue23D0 = 0;
 
     std::uint8_t displayMode23D4 = 0xFF;
@@ -37,7 +37,7 @@ struct Code1SystemState95A8 {
     bool resourceIndexPresent = false;
 };
 
-struct Code1SystemOps95A8 {
+struct SystemOps95A8 {
     std::function<void(std::uint32_t, std::uint16_t)> registerFarCallbackE280;
     std::function<std::uint16_t()> currentCodeSegment;
 
@@ -103,20 +103,20 @@ struct Code1SystemOps95A8 {
     std::function<std::uint32_t()> readKey82C0;
 };
 
-class Code1System95A8 {
+class System95A8 {
 public:
     // Portable observable reconstruction of the far callback at
     // CODE.1 0x95A8..0x95BA. 0x95BB is alignment.
     static std::int32_t farCallback(
         std::uint32_t thirdArgument,
-        Code1SystemState95A8& state) noexcept;
+        SystemState95A8& state) noexcept;
 
     // Direct reconstruction of CODE.1 0x95BC..0x9723.
     static void initialize(
         std::uint32_t resourcePrefix,
         std::int32_t groupCount,
-        Code1SystemState95A8& state,
-        const Code1SystemOps95A8& ops);
+        SystemState95A8& state,
+        const SystemOps95A8& ops);
 
     // Direct reconstruction of CODE.1 0x9724..0x9776.
     // CODE.1 0x9777 is alignment.
@@ -124,51 +124,51 @@ public:
         std::int32_t value2B0C,
         std::int32_t specialItem,
         std::uint8_t color,
-        Code1SystemState95A8& state,
-        const Code1SystemOps95A8& ops);
+        SystemState95A8& state,
+        const SystemOps95A8& ops);
 
     // Direct reconstruction of CODE.1 0x9778..0x97D3.
     static void shutdown(
-        Code1SystemState95A8& state,
-        const Code1SystemOps95A8& ops);
+        SystemState95A8& state,
+        const SystemOps95A8& ops);
 
     // Direct reconstruction of CODE.1 0x97D4..0x97E4.
     // CODE.1 0x97E5..0x97E7 is alignment.
     static void exitWithCode(
         std::int32_t code,
-        const Code1SystemOps95A8& ops);
+        const SystemOps95A8& ops);
 
     // Direct reconstruction of CODE.1 0x97E8..0x9810.
     // CODE.1 0x9811..0x9813 is alignment.
     static void shutdownDisplay(
         std::int32_t exitAfter,
-        Code1SystemState95A8& state,
-        const Code1SystemOps95A8& ops);
+        SystemState95A8& state,
+        const SystemOps95A8& ops);
 
     // Direct reconstruction of CODE.1 0x9814..0x9870.
     // CODE.1 0x9871..0x9873 is alignment.
     static void fatal(
         const std::string& message,
-        Code1SystemState95A8& state,
-        const Code1SystemOps95A8& ops);
+        SystemState95A8& state,
+        const SystemOps95A8& ops);
 
     // Direct reconstruction of CODE.1 0x9874..0x9AB1.
     // CODE.1 0x9AB2..0x9AB3 is alignment.
     static std::int32_t prompt(
         const std::string& message,
         std::int32_t mode,
-        Code1SystemState95A8& state,
-        const Code1SystemOps95A8& ops);
+        SystemState95A8& state,
+        const SystemOps95A8& ops);
 
     // CODE.1 0x9AB4..0x9AC1. 0x9AC2..0x9AC3 alignment.
-    static void suspendUi(Code1SystemState95A8& state) noexcept;
+    static void suspendUi(SystemState95A8& state) noexcept;
 
     // CODE.1 0x9AC4..0x9AD1. 0x9AD2..0x9AD3 alignment.
-    static void resumeUi(Code1SystemState95A8& state) noexcept;
+    static void resumeUi(SystemState95A8& state) noexcept;
 
     // CODE.1 0x9AD4..0x9AE7.
     static std::int32_t uiActive(
-        const Code1SystemState95A8& state) noexcept;
+        const SystemState95A8& state) noexcept;
 };
 
 } // namespace ravenloft::game

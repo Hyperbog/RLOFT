@@ -20,7 +20,7 @@ namespace ravenloft::game {
 //
 // This source-port form operates on the already loaded file bytes while
 // preserving the shipped-file semantics exactly for valid input.
-class Code1TextRecord004C {
+class TextRecord004C {
 public:
     static std::string decode(std::span<const std::uint8_t> textFile,
                               std::int32_t recordIndex);

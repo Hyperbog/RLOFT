@@ -1,20 +1,20 @@
-#include "Code1TextDatabase.h"
+#include "TextDatabase.h"
 
-#include "Code1Binary.h"
-#include "Code1TextRecord004C.h"
+#include "Binary.h"
+#include "TextRecord004C.h"
 
 namespace ravenloft::game {
 
-Code1TextDatabase Code1TextDatabase::decode(
+TextDatabase TextDatabase::decode(
     std::span<const std::uint8_t> encodedTextFile) {
-    Code1TextDatabase out;
+    TextDatabase out;
 
-    const std::uint32_t count = Code1Binary::u32(encodedTextFile, 0);
+    const std::uint32_t count = Binary::u32(encodedTextFile, 0);
     out.entries_.reserve(count);
 
     for (std::uint32_t i = 0; i < count; ++i) {
         out.entries_.push_back(
-            Code1TextRecord004C::decode(
+            TextRecord004C::decode(
                 encodedTextFile,
                 static_cast<std::int32_t>(i)));
     }

@@ -8,9 +8,9 @@
 
 namespace ravenloft::game {
 
-class Code1TextDatabase {
+class TextDatabase {
 public:
-    static Code1TextDatabase decode(
+    static TextDatabase decode(
         std::span<const std::uint8_t> encodedTextFile);
 
     std::size_t count() const noexcept { return entries_.size(); }

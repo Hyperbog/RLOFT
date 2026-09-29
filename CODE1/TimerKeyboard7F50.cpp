@@ -1,17 +1,17 @@
-#include "Code1TimerKeyboard7F50.h"
+#include "TimerKeyboard7F50.h"
 
 #include <cstring>
 
 namespace ravenloft::game {
 
-std::uint32_t Code1TimerKeyboard7F50::ticks(
-    const Code1TimerKeyboardState7F50& state) noexcept {
+std::uint32_t TimerKeyboard7F50::ticks(
+    const TimerKeyboardState7F50& state) noexcept {
     return state.tick2934;
 }
 
-void Code1TimerKeyboard7F50::timerInterrupt(
-    Code1TimerKeyboardState7F50& state,
-    const Code1TimerKeyboardOps7F50& ops) {
+void TimerKeyboard7F50::timerInterrupt(
+    TimerKeyboardState7F50& state,
+    const TimerKeyboardOps7F50& ops) {
     ops.callCEC0();
     const std::uint32_t prior = state.tick2934;
     ++state.tick2934;
@@ -19,18 +19,18 @@ void Code1TimerKeyboard7F50::timerInterrupt(
     ops.chainOldInt8();
 }
 
-void Code1TimerKeyboard7F50::setTicks(
+void TimerKeyboard7F50::setTicks(
     std::uint32_t value,
-    Code1TimerKeyboardState7F50& state,
-    const Code1TimerKeyboardOps7F50& ops) {
+    TimerKeyboardState7F50& state,
+    const TimerKeyboardOps7F50& ops) {
     ops.enterCriticalDA18();
     state.tick2934 = value;
     ops.leaveCriticalDA1A();
 }
 
-void Code1TimerKeyboard7F50::removeQueuedScan(
+void TimerKeyboard7F50::removeQueuedScan(
     std::uint8_t scan,
-    Code1TimerKeyboardState7F50& state) noexcept {
+    TimerKeyboardState7F50& state) noexcept {
     std::uint32_t index = 0;
     while (index < state.queueCount2930) {
         if (state.queue89D0[index] == scan) {
@@ -54,9 +54,9 @@ void Code1TimerKeyboard7F50::removeQueuedScan(
     state.previousScan2919 = state.currentScan291A;
 }
 
-void Code1TimerKeyboard7F50::queueScan(
+void TimerKeyboard7F50::queueScan(
     std::uint8_t scan,
-    Code1TimerKeyboardState7F50& state) noexcept {
+    TimerKeyboardState7F50& state) noexcept {
     for (std::uint32_t index = 0; index < state.queueCount2930; ++index) {
         if (state.queue89D0[index] == scan) {
             removeQueuedScan(scan, state);
@@ -71,9 +71,9 @@ void Code1TimerKeyboard7F50::queueScan(
     state.previousScan2919 = state.currentScan291A;
 }
 
-std::int32_t Code1TimerKeyboard7F50::queued(
+std::int32_t TimerKeyboard7F50::queued(
     std::uint8_t scan,
-    const Code1TimerKeyboardState7F50& state) noexcept {
+    const TimerKeyboardState7F50& state) noexcept {
     for (std::uint32_t index = 0; index < state.queueCount2930; ++index) {
         if (state.queue89D0[index] == scan) {
             return 1;
@@ -82,9 +82,9 @@ std::int32_t Code1TimerKeyboard7F50::queued(
     return 0;
 }
 
-void Code1TimerKeyboard7F50::keyboardInterrupt(
-    Code1TimerKeyboardState7F50& state,
-    const Code1TimerKeyboardOps7F50& ops) {
+void TimerKeyboard7F50::keyboardInterrupt(
+    TimerKeyboardState7F50& state,
+    const TimerKeyboardOps7F50& ops) {
     ops.callCEC0();
 
     std::uint32_t scan = ops.inPortDDE7(0x60);
@@ -150,31 +150,31 @@ void Code1TimerKeyboard7F50::keyboardInterrupt(
     ops.leaveCriticalDA1A();
 }
 
-void Code1TimerKeyboard7F50::noop8270() noexcept {}
+void TimerKeyboard7F50::noop8270() noexcept {}
 
-std::uint32_t Code1TimerKeyboard7F50::modifiers(
+std::uint32_t TimerKeyboard7F50::modifiers(
     std::uint32_t mask,
-    const Code1TimerKeyboardState7F50& state) noexcept {
+    const TimerKeyboardState7F50& state) noexcept {
     return static_cast<std::uint32_t>(state.modifiers291B) & mask;
 }
 
-std::uint32_t Code1TimerKeyboard7F50::takeSpaceEvent(
-    Code1TimerKeyboardState7F50& state) noexcept {
+std::uint32_t TimerKeyboard7F50::takeSpaceEvent(
+    TimerKeyboardState7F50& state) noexcept {
     const std::uint32_t value = state.spaceEvent291C;
     state.spaceEvent291C = 0;
     return value;
 }
 
-std::int32_t Code1TimerKeyboard7F50::keyPending(
-    Code1TimerKeyboardState7F50& state,
-    const Code1TimerKeyboardOps7F50& ops) {
+std::int32_t TimerKeyboard7F50::keyPending(
+    TimerKeyboardState7F50& state,
+    const TimerKeyboardOps7F50& ops) {
     ops.service9AE8();
     return state.currentScan291A != 0 ? 1 : 0;
 }
 
-std::uint32_t Code1TimerKeyboard7F50::readKey(
-    Code1TimerKeyboardState7F50& state,
-    const Code1TimerKeyboardOps7F50& ops) {
+std::uint32_t TimerKeyboard7F50::readKey(
+    TimerKeyboardState7F50& state,
+    const TimerKeyboardOps7F50& ops) {
     while (state.currentScan291A == 0) {
         ops.service9AE8();
     }
@@ -183,28 +183,28 @@ std::uint32_t Code1TimerKeyboard7F50::readKey(
     return result;
 }
 
-void Code1TimerKeyboard7F50::clearQueue(
-    Code1TimerKeyboardState7F50& state) noexcept {
+void TimerKeyboard7F50::clearQueue(
+    TimerKeyboardState7F50& state) noexcept {
     state.queueCount2930 = 0;
     state.previousScan2919 = 0;
 }
 
-void Code1TimerKeyboard7F50::restoreCurrent(
-    Code1TimerKeyboardState7F50& state) noexcept {
+void TimerKeyboard7F50::restoreCurrent(
+    TimerKeyboardState7F50& state) noexcept {
     state.currentScan291A = state.previousScan2919;
     state.spaceEvent291C = 0;
 }
 
-std::uint32_t Code1TimerKeyboard7F50::peekKey(
-    Code1TimerKeyboardState7F50& state,
-    const Code1TimerKeyboardOps7F50& ops) {
+std::uint32_t TimerKeyboard7F50::peekKey(
+    TimerKeyboardState7F50& state,
+    const TimerKeyboardOps7F50& ops) {
     ops.service9AE8();
     return state.keyMap2938[state.currentScan291A];
 }
 
-void Code1TimerKeyboard7F50::divideErrorInterrupt(
-    Code1TimerKeyboardState7F50& state,
-    const Code1TimerKeyboardOps7F50& ops) {
+void TimerKeyboard7F50::divideErrorInterrupt(
+    TimerKeyboardState7F50& state,
+    const TimerKeyboardOps7F50& ops) {
     ops.callCEC0();
     ops.display64DC(0xFF);
     ops.callCF98();
@@ -213,31 +213,31 @@ void Code1TimerKeyboard7F50::divideErrorInterrupt(
     ops.chainOldInt0();
 }
 
-void Code1TimerKeyboard7F50::installHandlers(
-    Code1TimerKeyboardState7F50& state,
-    const Code1TimerKeyboardOps7F50& ops) {
+void TimerKeyboard7F50::installHandlers(
+    TimerKeyboardState7F50& state,
+    const TimerKeyboardOps7F50& ops) {
     if (state.handlersInstalled291D != 0) {
         return;
     }
 
     state.oldInt9 = ops.getVectorDE35(9);
     ops.setVectorDDFE(9,
-        Code1InterruptVector7F50{0x80BCu, ops.currentCodeSegment()});
+        InterruptVector7F50{0x80BCu, ops.currentCodeSegment()});
 
     state.oldInt8 = ops.getVectorDE35(8);
     ops.setVectorDDFE(8,
-        Code1InterruptVector7F50{0x7F5Cu, ops.currentCodeSegment()});
+        InterruptVector7F50{0x7F5Cu, ops.currentCodeSegment()});
 
     state.oldInt0 = ops.getVectorDE35(0);
     ops.setVectorDDFE(0,
-        Code1InterruptVector7F50{0x8338u, ops.currentCodeSegment()});
+        InterruptVector7F50{0x8338u, ops.currentCodeSegment()});
 
     state.handlersInstalled291D = 1;
 }
 
-void Code1TimerKeyboard7F50::restoreHandlers(
-    Code1TimerKeyboardState7F50& state,
-    const Code1TimerKeyboardOps7F50& ops) {
+void TimerKeyboard7F50::restoreHandlers(
+    TimerKeyboardState7F50& state,
+    const TimerKeyboardOps7F50& ops) {
     if (state.handlersInstalled291D == 0) {
         return;
     }
@@ -248,8 +248,8 @@ void Code1TimerKeyboard7F50::restoreHandlers(
     state.handlersInstalled291D = 0;
 }
 
-std::int32_t Code1TimerKeyboard7F50::handlersInstalled(
-    const Code1TimerKeyboardState7F50& state) noexcept {
+std::int32_t TimerKeyboard7F50::handlersInstalled(
+    const TimerKeyboardState7F50& state) noexcept {
     return state.handlersInstalled291D;
 }
 

@@ -1,10 +1,10 @@
-#include "Code1TextRecord004C.h"
+#include "TextRecord004C.h"
 
-#include "Code1Binary.h"
+#include "Binary.h"
 
 namespace ravenloft::game {
 
-std::string Code1TextRecord004C::decode(std::span<const std::uint8_t> textFile,
+std::string TextRecord004C::decode(std::span<const std::uint8_t> textFile,
                                         std::int32_t recordIndex) {
     // 0x005A..0x0068: byte offset = recordIndex * 4 + 4.
     const auto tableOffsetBits =
@@ -12,12 +12,12 @@ std::string Code1TextRecord004C::decode(std::span<const std::uint8_t> textFile,
     const auto tableOffset = static_cast<std::size_t>(tableOffsetBits);
 
     // 0x0070..0x0095: read the 32-bit record-file offset and seek to it.
-    const std::uint32_t recordOffset = Code1Binary::u32(textFile, tableOffset);
+    const std::uint32_t recordOffset = Binary::u32(textFile, tableOffset);
 
     // 0x0098..0x00A9: read the 16-bit encoded payload length.
-    const std::uint16_t payloadLength = Code1Binary::u16(textFile, recordOffset);
+    const std::uint16_t payloadLength = Binary::u16(textFile, recordOffset);
     const std::size_t payloadOffset = static_cast<std::size_t>(recordOffset) + 2u;
-    Code1Binary::requireRange(textFile, payloadOffset, payloadLength,
+    Binary::requireRange(textFile, payloadOffset, payloadLength,
                                   "CODE.1 0x004C text record");
 
     // 0x00AC..0x00CA: read payload and append the NUL terminator. std::string

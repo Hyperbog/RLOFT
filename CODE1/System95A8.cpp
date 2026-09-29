@@ -1,4 +1,4 @@
-#include "Code1System95A8.h"
+#include "System95A8.h"
 
 #include <cstddef>
 
@@ -15,18 +15,18 @@ std::int16_t signedWord(
 
 } // namespace
 
-std::int32_t Code1System95A8::farCallback(
+std::int32_t System95A8::farCallback(
     std::uint32_t thirdArgument,
-    Code1SystemState95A8& state) noexcept {
+    SystemState95A8& state) noexcept {
     state.callbackValue23D0 = thirdArgument;
     return 0;
 }
 
-void Code1System95A8::initialize(
+void System95A8::initialize(
     std::uint32_t resourcePrefix,
     std::int32_t groupCount,
-    Code1SystemState95A8& state,
-    const Code1SystemOps95A8& ops) {
+    SystemState95A8& state,
+    const SystemOps95A8& ops) {
     // 0x95C0..0x95E5.
     state.word23EB = 0x0182;
     state.displayRows23D6 = 0x0C;
@@ -105,12 +105,12 @@ void Code1System95A8::initialize(
     }
 }
 
-void Code1System95A8::setSpecial(
+void System95A8::setSpecial(
     std::int32_t value2B0C,
     std::int32_t specialItem,
     std::uint8_t color,
-    Code1SystemState95A8& state,
-    const Code1SystemOps95A8& ops) {
+    SystemState95A8& state,
+    const SystemOps95A8& ops) {
     // 0x9727..0x973D.
     if (state.specialItem2B10 != -1) {
         ops.unpin9488(
@@ -128,9 +128,9 @@ void Code1System95A8::setSpecial(
     state.color2B14 = color;
 }
 
-void Code1System95A8::shutdown(
-    Code1SystemState95A8& state,
-    const Code1SystemOps95A8& ops) {
+void System95A8::shutdown(
+    SystemState95A8& state,
+    const SystemOps95A8& ops) {
     // 0x977D. The return value is deliberately ignored.
     (void)ops.callCF98();
 
@@ -160,19 +160,19 @@ void Code1System95A8::shutdown(
     ops.restoreHandlers8424();
 }
 
-void Code1System95A8::exitWithCode(
+void System95A8::exitWithCode(
     std::int32_t code,
-    const Code1SystemOps95A8& ops) {
+    const SystemOps95A8& ops) {
     ops.callEDE0();
 
     // Original 0x97E0 is a tail jump to 0xCBF0.
     ops.callCBF0(code);
 }
 
-void Code1System95A8::shutdownDisplay(
+void System95A8::shutdownDisplay(
     std::int32_t exitAfter,
-    Code1SystemState95A8& state,
-    const Code1SystemOps95A8& ops) {
+    SystemState95A8& state,
+    const SystemOps95A8& ops) {
     ops.display64DC(0xFF);
     shutdown(state, ops);
 
@@ -181,10 +181,10 @@ void Code1System95A8::shutdownDisplay(
     }
 }
 
-void Code1System95A8::fatal(
+void System95A8::fatal(
     const std::string& message,
-    Code1SystemState95A8& state,
-    const Code1SystemOps95A8& ops) {
+    SystemState95A8& state,
+    const SystemOps95A8& ops) {
     if (state.specialItem2B10 != -1 &&
         (state.flags2B01 & 0x80u) == 0) {
         const std::int32_t response =
@@ -203,11 +203,11 @@ void Code1System95A8::fatal(
     exitWithCode(1, ops);
 }
 
-std::int32_t Code1System95A8::prompt(
+std::int32_t System95A8::prompt(
     const std::string& message,
     std::int32_t mode,
-    Code1SystemState95A8& state,
-    const Code1SystemOps95A8& ops) {
+    SystemState95A8& state,
+    const SystemOps95A8& ops) {
     // 0x987D / 0x9A9C: text-mode fallback.
     if (state.displayMode23D4 == 0xFF) {
         ops.dosPrint61D0(message);
@@ -364,18 +364,18 @@ std::int32_t Code1System95A8::prompt(
     return result;
 }
 
-void Code1System95A8::suspendUi(
-    Code1SystemState95A8& state) noexcept {
+void System95A8::suspendUi(
+    SystemState95A8& state) noexcept {
     state.flags2B01 |= 0x80u;
 }
 
-void Code1System95A8::resumeUi(
-    Code1SystemState95A8& state) noexcept {
+void System95A8::resumeUi(
+    SystemState95A8& state) noexcept {
     state.flags2B01 &= 0x7Fu;
 }
 
-std::int32_t Code1System95A8::uiActive(
-    const Code1SystemState95A8& state) noexcept {
+std::int32_t System95A8::uiActive(
+    const SystemState95A8& state) noexcept {
     return (state.flags2B01 & 0x80u) == 0
         ? 1
         : 0;

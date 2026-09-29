@@ -6,12 +6,12 @@
 
 namespace ravenloft::game {
 
-struct Code1TextEntryState2DFC {
+struct TextEntryState2DFC {
     std::array<char, 16> name67F8{};
     std::uint8_t buffer7138 = 0;
 };
 
-struct Code1TextEntryOps2DFC {
+struct TextEntryOps2DFC {
     std::function<std::uint32_t()> call7F50;
     std::function<void(std::int32_t, std::int32_t)> call7D68;
     std::function<void(std::uint8_t)> call6588;
@@ -29,13 +29,13 @@ struct Code1TextEntryOps2DFC {
                        const char*, std::int32_t)> call7D80;
 };
 
-class Code1TextEntry2DFC {
+class TextEntry2DFC {
 public:
     // Direct reconstruction of CODE.1 0x2DFC..0x301F.
     static void run(std::int32_t x,
                     std::int32_t maxCharacters,
-                    Code1TextEntryState2DFC& state,
-                    const Code1TextEntryOps2DFC& ops);
+                    TextEntryState2DFC& state,
+                    const TextEntryOps2DFC& ops);
 };
 
 } // namespace ravenloft::game

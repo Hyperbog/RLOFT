@@ -1,4 +1,4 @@
-#include "Code1Text7AB4.h"
+#include "Text7AB4.h"
 
 namespace ravenloft::game {
 namespace {
@@ -11,16 +11,16 @@ std::int32_t signedGlyph(
 }
 
 std::uint8_t glyphWidth(
-    const Code1FontView7AB4& font,
+    const FontView7AB4& font,
     std::int32_t glyph) {
     return font.widthAt(glyph);
 }
 
 void drawGlyph(
     std::int32_t glyph,
-    const Code1FontView7AB4& font,
-    Code1TextState7AB4& state,
-    const Code1TextOps7AB4& ops) {
+    const FontView7AB4& font,
+    TextState7AB4& state,
+    const TextOps7AB4& ops) {
     if (state.mode2908 != 0) {
         ops.call6824(
             glyph,
@@ -39,11 +39,11 @@ void drawGlyph(
 
 } // namespace
 
-std::int32_t Code1Text7AB4::width(
+std::int32_t Text7AB4::width(
     const char* text,
     std::int32_t font,
-    Code1TextState7AB4& state,
-    const Code1TextOps7AB4& ops) {
+    TextState7AB4& state,
+    const TextOps7AB4& ops) {
     state.font8988 =
         ops.call954CFont(font);
 
@@ -62,12 +62,12 @@ std::int32_t Code1Text7AB4::width(
     return total;
 }
 
-std::int32_t Code1Text7AB4::widthN(
+std::int32_t Text7AB4::widthN(
     const char* text,
     std::int32_t font,
     std::int32_t count,
-    Code1TextState7AB4& state,
-    const Code1TextOps7AB4& ops) {
+    TextState7AB4& state,
+    const TextOps7AB4& ops) {
     state.font8988 =
         ops.call954CFont(font);
 
@@ -88,11 +88,11 @@ std::int32_t Code1Text7AB4::widthN(
     return total;
 }
 
-std::int32_t Code1Text7AB4::glyphWidth(
+std::int32_t Text7AB4::glyphWidth(
     std::int32_t glyph,
     std::int32_t font,
-    Code1TextState7AB4& state,
-    const Code1TextOps7AB4& ops) {
+    TextState7AB4& state,
+    const TextOps7AB4& ops) {
     state.font8988 =
         ops.call954CFont(font);
 
@@ -101,21 +101,21 @@ std::int32_t Code1Text7AB4::glyphWidth(
         static_cast<std::int8_t>(glyph));
 }
 
-std::int32_t Code1Text7AB4::resourceWidth(
+std::int32_t Text7AB4::resourceWidth(
     std::int32_t font,
-    Code1TextState7AB4& state,
-    const Code1TextOps7AB4& ops) {
+    TextState7AB4& state,
+    const TextOps7AB4& ops) {
     state.font8988 =
         ops.call954CFont(font);
 
     return state.font8988.glyphResourceWidth;
 }
 
-void Code1Text7AB4::drawChar(
+void Text7AB4::drawChar(
     std::int32_t glyph,
     std::int32_t font,
-    Code1TextState7AB4& state,
-    const Code1TextOps7AB4& ops) {
+    TextState7AB4& state,
+    const TextOps7AB4& ops) {
     state.font8988 =
         ops.call954CFont(font);
 
@@ -135,11 +135,11 @@ void Code1Text7AB4::drawChar(
             index);
 }
 
-void Code1Text7AB4::drawString(
+void Text7AB4::drawString(
     const char* text,
     std::int32_t font,
-    Code1TextState7AB4& state,
-    const Code1TextOps7AB4& ops) {
+    TextState7AB4& state,
+    const TextOps7AB4& ops) {
     state.font8988 =
         ops.call954CFont(font);
 
@@ -166,12 +166,12 @@ void Code1Text7AB4::drawString(
     }
 }
 
-void Code1Text7AB4::drawStringN(
+void Text7AB4::drawStringN(
     const char* text,
     std::int32_t font,
     std::int32_t count,
-    Code1TextState7AB4& state,
-    const Code1TextOps7AB4& ops) {
+    TextState7AB4& state,
+    const TextOps7AB4& ops) {
     state.font8988 =
         ops.call954CFont(font);
 
@@ -200,22 +200,22 @@ void Code1Text7AB4::drawStringN(
     }
 }
 
-void Code1Text7AB4::setPosition(
+void Text7AB4::setPosition(
     std::int32_t first,
     std::int32_t second,
-    Code1TextState7AB4& state) noexcept {
+    TextState7AB4& state) noexcept {
     state.coord8990 = first;
     state.coord898C = second;
 }
 
-void Code1Text7AB4::drawCentered(
+void Text7AB4::drawCentered(
     std::int32_t first,
     std::int32_t second,
     std::int32_t extent,
     const char* text,
     std::int32_t font,
-    Code1TextState7AB4& state,
-    const Code1TextOps7AB4& ops) {
+    TextState7AB4& state,
+    const TextOps7AB4& ops) {
     if (text == nullptr) {
         return;
     }
@@ -243,29 +243,29 @@ void Code1Text7AB4::drawCentered(
         ops);
 }
 
-std::int32_t Code1Text7AB4::coord8990(
-    const Code1TextState7AB4& state) noexcept {
+std::int32_t Text7AB4::coord8990(
+    const TextState7AB4& state) noexcept {
     return state.coord8990;
 }
 
-std::int32_t Code1Text7AB4::coord898C(
-    const Code1TextState7AB4& state) noexcept {
+std::int32_t Text7AB4::coord898C(
+    const TextState7AB4& state) noexcept {
     return state.coord898C;
 }
 
-void Code1Text7AB4::setMode(
+void Text7AB4::setMode(
     std::int32_t mode,
-    Code1TextState7AB4& state) noexcept {
+    TextState7AB4& state) noexcept {
     state.mode2908 = mode;
 }
 
-void Code1Text7AB4::drawRightAligned(
+void Text7AB4::drawRightAligned(
     std::int32_t first,
     std::int32_t second,
     const char* text,
     std::int32_t font,
-    Code1TextState7AB4& state,
-    const Code1TextOps7AB4& ops) {
+    TextState7AB4& state,
+    const TextOps7AB4& ops) {
     if (text == nullptr) {
         return;
     }
@@ -289,13 +289,13 @@ void Code1Text7AB4::drawRightAligned(
         ops);
 }
 
-void Code1Text7AB4::drawAt(
+void Text7AB4::drawAt(
     std::int32_t first,
     std::int32_t second,
     const char* text,
     std::int32_t font,
-    Code1TextState7AB4& state,
-    const Code1TextOps7AB4& ops) {
+    TextState7AB4& state,
+    const TextOps7AB4& ops) {
     setPosition(
         first,
         second,
@@ -308,14 +308,14 @@ void Code1Text7AB4::drawAt(
         ops);
 }
 
-void Code1Text7AB4::drawWithin(
+void Text7AB4::drawWithin(
     std::int32_t first,
     std::int32_t second,
     const char* text,
     std::int32_t font,
     std::int32_t remaining,
-    Code1TextState7AB4& state,
-    const Code1TextOps7AB4& ops) {
+    TextState7AB4& state,
+    const TextOps7AB4& ops) {
     setPosition(
         first,
         second,
