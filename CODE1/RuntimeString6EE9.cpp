@@ -1,8 +1,8 @@
-#include "Code1RuntimeString6EE9.h"
+#include "RuntimeString6EE9.h"
 
 namespace ravenloft::game {
 
-std::size_t Code1RuntimeString6EE9::length(const char* text) noexcept {
+std::size_t RuntimeString6EE9::length(const char* text) noexcept {
     // 0x6EF5..0x6F00 implements the REPNE SCASB strlen sequence.
     const char* cursor = text;
     while (*cursor != '\0') {
@@ -11,7 +11,7 @@ std::size_t Code1RuntimeString6EE9::length(const char* text) noexcept {
     return static_cast<std::size_t>(cursor - text);
 }
 
-char* Code1RuntimeString6EE9::copy(char* destination,
+char* RuntimeString6EE9::copy(char* destination,
                                    const char* source) noexcept {
     // 0x72A9 saves the original destination for the return value. The body
     // copies bytes including the terminating NUL, two at a time when possible.

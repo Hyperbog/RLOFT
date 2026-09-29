@@ -25,7 +25,7 @@
 
 namespace ravenloft::game {
 
-struct Code1RuntimeTailCBF0 final {
+struct RuntimeTailCBF0 final {
     static constexpr unsigned begin = 0xCBF0;
     static constexpr unsigned endInclusive = 0x11301;
     static constexpr unsigned object1Size = 0x11302;

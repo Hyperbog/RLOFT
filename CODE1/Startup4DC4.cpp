@@ -1,4 +1,4 @@
-#include "Code1Startup4DC4.h"
+#include "Startup4DC4.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -18,15 +18,15 @@ void putU32(std::array<std::uint8_t, 0x920>& bytes,
 
 } // namespace
 
-void Code1Startup4DC4::initialize(
-    Code1StartupState4DC4& state,
-    const Code1StartupOps4DC4& ops) {
+void Startup4DC4::initialize(
+    StartupState4DC4& state,
+    const StartupOps4DC4& ops) {
     // 0x4DC8..0x4DF9.
     ops.call95BC(0x84, 0x0B);
     ops.call9724(0x88, 1, 0x3C);
 
-    Code1RecordBlock4D54::load(state.resources, ops.resourceOps);
-    Code1ResourceOpen4CB0::run(state.resources, ops.resourceOps);
+    RecordBlock4D54::load(state.resources, ops.resourceOps);
+    ResourceOpen4CB0::run(state.resources, ops.resourceOps);
 
     ops.call64DC(3);
 
@@ -35,9 +35,9 @@ void Code1Startup4DC4::initialize(
     ops.call6618(state.palette.palette64F8);
     ops.call9AC4();
 
-    Code1LuminanceTable4B18::build(state.palette, ops.paletteOps);
-    Code1IdentityTable4B00::build(state.palette);
-    Code1PaletteTable4A0C::build(state.palette, ops.paletteOps);
+    LuminanceTable4B18::build(state.palette, ops.paletteOps);
+    IdentityTable4B00::build(state.palette);
+    PaletteTable4A0C::build(state.palette, ops.paletteOps);
 
     // 0x4E38..0x4E71.
     state.palette.palette64F8.fill(0);
@@ -66,9 +66,9 @@ void Code1Startup4DC4::initialize(
     }
 }
 
-void Code1CharacterFinalize4EF0::run(
+void CharacterFinalize4EF0::run(
     std::array<std::uint8_t, 0x920>& records67F8,
-    const Code1CharacterFinalizeOps4EF0& ops) {
+    const CharacterFinalizeOps4EF0& ops) {
     // 0x4EF5..0x4FB9: finalize the first two 0x248-byte records.
     for (std::size_t record = 0; record < 2; ++record) {
         const std::size_t base = record * 0x248u;

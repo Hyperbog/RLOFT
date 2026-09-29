@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Code1PaletteTables4A0C.h"
-#include "Code1ResourceLoad4C80.h"
+#include "PaletteTables4A0C.h"
+#include "ResourceLoad4C80.h"
 
 #include <array>
 #include <cstdint>
@@ -9,17 +9,17 @@
 
 namespace ravenloft::game {
 
-struct Code1StartupState4DC4 {
-    Code1PaletteState4A0C palette{};
-    Code1ResourceLoadState4C80 resources{};
+struct StartupState4DC4 {
+    PaletteState4A0C palette{};
+    ResourceLoadState4C80 resources{};
 
     std::uint8_t buffer7138 = 0;
     std::array<std::uint8_t, 0x920> records67F8{};
 };
 
-struct Code1StartupOps4DC4 {
-    Code1PaletteOps4A0C paletteOps;
-    Code1ResourceLoadOps4C80 resourceOps;
+struct StartupOps4DC4 {
+    PaletteOps4A0C paletteOps;
+    ResourceLoadOps4C80 resourceOps;
 
     std::function<void(std::int32_t, std::int32_t)> call95BC;
     std::function<void(std::int32_t, std::int32_t,
@@ -37,15 +37,15 @@ struct Code1StartupOps4DC4 {
     std::function<void()> call52AC;
 };
 
-class Code1Startup4DC4 {
+class Startup4DC4 {
 public:
     // Direct reconstruction of CODE.1 0x4DC4..0x4EED.
     // CODE.1 0x4EEE..0x4EEF is alignment.
-    static void initialize(Code1StartupState4DC4& state,
-                           const Code1StartupOps4DC4& ops);
+    static void initialize(StartupState4DC4& state,
+                           const StartupOps4DC4& ops);
 };
 
-struct Code1CharacterFinalizeOps4EF0 {
+struct CharacterFinalizeOps4EF0 {
     std::function<void(std::int32_t)> call63A4;
     std::function<std::int32_t(std::int32_t)> call62D8;
     std::function<void(std::int32_t)> call62F0;
@@ -54,11 +54,11 @@ struct Code1CharacterFinalizeOps4EF0 {
                        std::int32_t)> call6320;
 };
 
-class Code1CharacterFinalize4EF0 {
+class CharacterFinalize4EF0 {
 public:
     // Direct reconstruction of CODE.1 0x4EF0..0x5013.
     static void run(std::array<std::uint8_t, 0x920>& records67F8,
-                    const Code1CharacterFinalizeOps4EF0& ops);
+                    const CharacterFinalizeOps4EF0& ops);
 };
 
 } // namespace ravenloft::game

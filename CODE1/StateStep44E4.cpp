@@ -1,8 +1,8 @@
-#include "Code1StateStep44E4.h"
+#include "StateStep44E4.h"
 
 namespace ravenloft::game {
 
-void Code1StateStep44E4::apply(std::int32_t& value,
+void StateStep44E4::apply(std::int32_t& value,
                                std::int32_t& delta) noexcept {
     value += delta;
 

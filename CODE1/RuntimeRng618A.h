@@ -11,9 +11,9 @@ namespace ravenloft::game {
 //
 // The original state lived at CODE.1 data offset 0x23CC. The source port keeps
 // the same 32-bit state semantics without exposing an emulated flat address.
-class Code1RuntimeRng618A {
+class RuntimeRng618A {
 public:
-    explicit Code1RuntimeRng618A(std::uint32_t state = 1u) noexcept : state_(state) {}
+    explicit RuntimeRng618A(std::uint32_t state = 1u) noexcept : state_(state) {}
 
     // CODE.1 0x6184.
     std::uint32_t* stateStorage() noexcept { return &state_; }

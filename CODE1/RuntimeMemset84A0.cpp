@@ -1,8 +1,8 @@
-#include "Code1RuntimeMemset84A0.h"
+#include "RuntimeMemset84A0.h"
 
 namespace ravenloft::game {
 
-void* Code1RuntimeMemset84A0::set(void* destination,
+void* RuntimeMemset84A0::set(void* destination,
                                   std::uint8_t value,
                                   std::size_t count) noexcept {
     auto* out = static_cast<std::uint8_t*>(destination);

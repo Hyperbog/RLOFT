@@ -1,8 +1,8 @@
-#include "Code1RuntimeStrcatB01A.h"
+#include "RuntimeStrcatB01A.h"
 
 namespace ravenloft::game {
 
-std::string& Code1RuntimeStrcatB01A::append(
+std::string& RuntimeStrcatB01A::append(
     std::string& destination,
     const std::string& source) {
     destination += source;

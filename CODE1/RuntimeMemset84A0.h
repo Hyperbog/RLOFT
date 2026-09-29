@@ -5,7 +5,7 @@
 
 namespace ravenloft::game {
 
-class Code1RuntimeMemset84A0 {
+class RuntimeMemset84A0 {
 public:
     // Observable C/C++ reconstruction of CODE.1 0x84A0..0x84C1.
     // The original expands the low byte across EDX and delegates the bulk fill
