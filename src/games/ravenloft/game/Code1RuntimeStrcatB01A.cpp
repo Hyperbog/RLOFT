@@ -1,0 +1,12 @@
+#include "games/ravenloft/game/Code1RuntimeStrcatB01A.h"
+
+namespace ravenloft::game {
+
+std::string& Code1RuntimeStrcatB01A::append(
+    std::string& destination,
+    const std::string& source) {
+    destination += source;
+    return destination;
+}
+
+} // namespace ravenloft::game
