@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Code1TextDatabase.h"
+#include "TextDatabase.h"
 
 #include <array>
 #include <cstdint>
@@ -9,7 +9,7 @@
 
 namespace ravenloft::game {
 
-struct Code1CharacterSheetState38A4 {
+struct CharacterSheetState38A4 {
     std::array<std::uint8_t, 3> fields680D{{0xFFu,0xFFu,0xFFu}};
     std::uint16_t word6810 = 0;
     std::uint8_t field6813 = 0;
@@ -24,7 +24,7 @@ struct Code1CharacterSheetState38A4 {
     std::array<std::uint8_t, 9> control59F8{};
 };
 
-struct Code1CharacterSheetOps38A4 {
+struct CharacterSheetOps38A4 {
     std::function<void(std::int32_t,std::int32_t,std::int32_t,
                        std::int32_t,std::int32_t)> call6C60;
     std::function<void(const std::uint8_t*)> call7DF4;
@@ -38,14 +38,14 @@ struct Code1CharacterSheetOps38A4 {
                        const std::string&,std::int32_t)> call7E04;
 };
 
-class Code1CharacterSheet38A4 {
+class CharacterSheet38A4 {
 public:
     // Direct reconstruction of CODE.1 0x38A4..0x3C54.
     static void draw(std::int32_t x,
                      std::int32_t y,
-                     Code1CharacterSheetState38A4& state,
-                     const Code1TextDatabase& text,
-                     const Code1CharacterSheetOps38A4& ops);
+                     CharacterSheetState38A4& state,
+                     const TextDatabase& text,
+                     const CharacterSheetOps38A4& ops);
 };
 
 } // namespace ravenloft::game

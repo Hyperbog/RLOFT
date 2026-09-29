@@ -1,11 +1,11 @@
-#include "Code1CharacterTable5D90.h"
+#include "CharacterTable5D90.h"
 
 #include <cstddef>
 #include <cstdint>
 
 namespace ravenloft::game {
 
-std::uint8_t Code1CharacterClassCode5D90::compute(
+std::uint8_t CharacterClassCode5D90::compute(
     const std::array<std::uint8_t, 3>& classes,
     std::uint8_t result) noexcept {
     if (static_cast<std::int8_t>(classes[1]) == -1) {
@@ -54,8 +54,8 @@ std::uint8_t Code1CharacterClassCode5D90::compute(
     return result;
 }
 
-void Code1CharacterTable5F4C::initialize(
-    Code1CharacterTableState5F4C& state) noexcept {
+void CharacterTable5F4C::initialize(
+    CharacterTableState5F4C& state) noexcept {
     std::uint8_t incomingBl = 0;
 
     // 0x5F55..0x5FEC: populate the first two character records.
@@ -63,7 +63,7 @@ void Code1CharacterTable5F4C::initialize(
          character < 2;
          ++character) {
         const std::uint8_t code =
-            Code1CharacterClassCode5D90::compute(
+            CharacterClassCode5D90::compute(
                 state.characters[character].classes680D,
                 incomingBl);
 
@@ -96,12 +96,12 @@ void Code1CharacterTable5F4C::initialize(
     // 0x5FF2..0x600A. At this point EBX was 2 before the first helper call;
     // the second helper receives the first helper's result in BL.
     const std::uint8_t code0 =
-        Code1CharacterClassCode5D90::compute(
+        CharacterClassCode5D90::compute(
             state.characters[0].classes680D,
             2u);
 
     const std::uint8_t code1 =
-        Code1CharacterClassCode5D90::compute(
+        CharacterClassCode5D90::compute(
             state.characters[1].classes680D,
             code0);
 

@@ -1,4 +1,4 @@
-#include "Code1CharacterProgress3208.h"
+#include "CharacterProgress3208.h"
 
 #include <array>
 #include <cstddef>
@@ -19,8 +19,8 @@ constexpr std::array<std::array<std::uint16_t, 20>, 6> kProgress057C{{
 
 } // namespace
 
-void Code1CharacterProgress3208::initialize(
-    Code1CharacterProgressState3208& state) noexcept {
+void CharacterProgress3208::initialize(
+    CharacterProgressState3208& state) noexcept {
     // 0x3211..0x3248: one active slot is mandatory; the two trailing
     // 0xFF-sentinel fields increase the class count when present.
     std::int32_t count = 1;

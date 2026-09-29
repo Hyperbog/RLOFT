@@ -1,7 +1,7 @@
-#include "Code1CharacterSheet38A4.h"
+#include "CharacterSheet38A4.h"
 
-#include "Code1RuntimeDecimal88D8.h"
-#include "Code1RuntimeStrcatB01A.h"
+#include "RuntimeDecimal88D8.h"
+#include "RuntimeStrcatB01A.h"
 
 #include <array>
 #include <cstddef>
@@ -32,8 +32,8 @@ std::string formatExceptional(std::uint8_t value, std::uint8_t percentile) {
     return buffer;
 }
 
-void setHighlight(Code1CharacterSheetState38A4& state,
-                  const Code1CharacterSheetOps38A4& ops,
+void setHighlight(CharacterSheetState38A4& state,
+                  const CharacterSheetOps38A4& ops,
                   bool enabled) {
     if (enabled) {
         state.control59F8[8] = 0x5A;
@@ -46,12 +46,12 @@ void setHighlight(Code1CharacterSheetState38A4& state,
 
 } // namespace
 
-void Code1CharacterSheet38A4::draw(
+void CharacterSheet38A4::draw(
     std::int32_t x,
     std::int32_t y,
-    Code1CharacterSheetState38A4& state,
-    const Code1TextDatabase& text,
-    const Code1CharacterSheetOps38A4& ops) {
+    CharacterSheetState38A4& state,
+    const TextDatabase& text,
+    const CharacterSheetOps38A4& ops) {
     // 0x38A9..0x38BF.
     ops.call6C60(0, x, y, 0x14, 7);
     x += 4;
@@ -82,7 +82,7 @@ void Code1CharacterSheet38A4::draw(
     ops.call7E44(x, y + 1, text.at(0x35), 0);
     ops.call7E04(
         x, y + 0x2F,
-        Code1RuntimeDecimal88D8::convert(
+        RuntimeDecimal88D8::convert(
             static_cast<std::int16_t>(state.word6810)),
         0);
 
@@ -96,7 +96,7 @@ void Code1CharacterSheet38A4::draw(
         static_cast<std::int32_t>(kModifier083F[modifierIndex]);
     ops.call7E04(
         x, y + 0x2F,
-        Code1RuntimeDecimal88D8::convert(derived),
+        RuntimeDecimal88D8::convert(derived),
         0);
 
     // 0x3A80..0x3BB6: label 0x37 for one class, 0x38 for multiple classes,
@@ -109,20 +109,20 @@ void Code1CharacterSheet38A4::draw(
     ops.call7E44(x, y + 1, text.at(hasSecond ? 0x38 : 0x37), 0);
 
     std::string levels =
-        Code1RuntimeDecimal88D8::convert(
+        RuntimeDecimal88D8::convert(
             static_cast<std::int16_t>(state.words6818[0]));
     if (hasSecond) {
-        Code1RuntimeStrcatB01A::append(levels, "/");
-        Code1RuntimeStrcatB01A::append(
+        RuntimeStrcatB01A::append(levels, "/");
+        RuntimeStrcatB01A::append(
             levels,
-            Code1RuntimeDecimal88D8::convert(
+            RuntimeDecimal88D8::convert(
                 static_cast<std::int16_t>(state.words6818[1])));
     }
     if (hasThird) {
-        Code1RuntimeStrcatB01A::append(levels, "/");
-        Code1RuntimeStrcatB01A::append(
+        RuntimeStrcatB01A::append(levels, "/");
+        RuntimeStrcatB01A::append(
             levels,
-            Code1RuntimeDecimal88D8::convert(
+            RuntimeDecimal88D8::convert(
                 static_cast<std::int16_t>(state.words6818[2])));
     }
     ops.call7E04(x, y + 0x2F, levels, 0);
@@ -135,7 +135,7 @@ void Code1CharacterSheet38A4::draw(
     ops.call7E44(x, y + 1, text.at(0x39), 0);
     ops.call7E04(
         x, y + 0x2F,
-        Code1RuntimeDecimal88D8::convert(
+        RuntimeDecimal88D8::convert(
             static_cast<std::int16_t>(state.word6816)),
         0);
 

@@ -1,4 +1,4 @@
-#include "Code1CharacterTable5F4C.h"
+#include "CharacterTable5F4C.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -16,14 +16,14 @@ std::int16_t readWord(
 
 } // namespace
 
-void Code1CharacterTable5F4C::apply(
-    std::array<Code1CharacterTableRecord5F4C, 2>& characters,
+void CharacterTable5F4C::apply(
+    std::array<CharacterTableRecord5F4C, 2>& characters,
     std::span<const std::uint8_t> table0988,
     std::span<const std::uint8_t> recordBlock7128) noexcept {
     // 0x5F55..0x5FEC: populate both character records.
     for (std::size_t character = 0; character < 2; ++character) {
         const std::uint8_t classId =
-            Code1CharacterClassId5D90::classify(
+            CharacterClassId5D90::classify(
                 characters[character].fields680D);
 
         const std::size_t base =
@@ -53,10 +53,10 @@ void Code1CharacterTable5F4C::apply(
     // 0x5FF2..0x604A: only when both characters have the same class-ID and
     // the same 680C byte does character 1 receive the record-block filtering.
     const std::uint8_t class0 =
-        Code1CharacterClassId5D90::classify(
+        CharacterClassId5D90::classify(
             characters[0].fields680D);
     const std::uint8_t class1 =
-        Code1CharacterClassId5D90::classify(
+        CharacterClassId5D90::classify(
             characters[1].fields680D);
 
     if (class0 != class1 ||

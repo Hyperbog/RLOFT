@@ -5,7 +5,7 @@
 
 namespace ravenloft::game {
 
-struct Code1CharacterProgressState3208 {
+struct CharacterProgressState3208 {
     // Character-record offsets 0x15..0x17 (DS:680D..680F).
     std::array<std::uint8_t, 3> fields680D{{0xFFu, 0xFFu, 0xFFu}};
 
@@ -16,10 +16,10 @@ struct Code1CharacterProgressState3208 {
     std::array<std::uint32_t, 3> dwords681E{};
 };
 
-class Code1CharacterProgress3208 {
+class CharacterProgress3208 {
 public:
     // Direct reconstruction of CODE.1 0x3208..0x32F3.
-    static void initialize(Code1CharacterProgressState3208& state) noexcept;
+    static void initialize(CharacterProgressState3208& state) noexcept;
 };
 
 } // namespace ravenloft::game

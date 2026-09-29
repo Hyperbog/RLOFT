@@ -1,12 +1,12 @@
-#include "Code1CharacterTriple1F24.h"
+#include "CharacterTriple1F24.h"
 
-#include "Code1UiFlows1CD0.h"
+#include "UiFlows1CD0.h"
 
 #include <cstdint>
 
 namespace ravenloft::game {
 
-void Code1CharacterTriple1F24::normalize(
+void CharacterTriple1F24::normalize(
     std::array<std::uint8_t, 3>& fields680D) noexcept {
     auto& field680D = fields680D[0];
     auto& field680E = fields680D[1];
@@ -58,7 +58,7 @@ void Code1CharacterTriple1F24::normalize(
     case 7u:
     case 8u:
         if (field680D != 0u) {
-            Code1SwapByte1EE4::swap(field680D, field680E);
+            SwapByte1EE4::swap(field680D, field680E);
         }
         break;
 
@@ -66,13 +66,13 @@ void Code1CharacterTriple1F24::normalize(
     case 0x0Au:
     case 0x0Bu:
         if (field680D != 3u) {
-            Code1SwapByte1EE4::swap(field680D, field680E);
+            SwapByte1EE4::swap(field680D, field680E);
         }
         break;
 
     case 0x0Cu:
         if (field680D != 4u) {
-            Code1SwapByte1EE4::swap(field680D, field680E);
+            SwapByte1EE4::swap(field680D, field680E);
         }
         break;
 

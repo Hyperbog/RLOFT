@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Code1CharacterClassId5D90.h"
+#include "CharacterClassId5D90.h"
 
 #include <array>
 #include <cstdint>
@@ -8,7 +8,7 @@
 
 namespace ravenloft::game {
 
-struct Code1CharacterTableRecord5F4C {
+struct CharacterTableRecord5F4C {
     std::uint8_t field680C = 0;
     std::array<std::uint8_t, 3> fields680D{{0xFFu, 0xFFu, 0xFFu}};
 
@@ -21,7 +21,7 @@ struct Code1CharacterTableRecord5F4C {
     std::int16_t word685A = 0;
 };
 
-class Code1CharacterTable5F4C {
+class CharacterTable5F4C {
 public:
     // Direct reconstruction of CODE.1 0x5F4C..0x6053.
     //
@@ -32,7 +32,7 @@ public:
     // recordBlock7128 is the original 65-byte-record block loaded by 0x4D54.
     // CODE.1 0x6054..0x605F is twelve bytes of zero padding.
     static void apply(
-        std::array<Code1CharacterTableRecord5F4C, 2>& characters,
+        std::array<CharacterTableRecord5F4C, 2>& characters,
         std::span<const std::uint8_t> table0988,
         std::span<const std::uint8_t> recordBlock7128) noexcept;
 };

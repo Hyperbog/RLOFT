@@ -5,7 +5,7 @@
 
 namespace ravenloft::game {
 
-class Code1CharacterTriple1F24 {
+class CharacterTriple1F24 {
 public:
     // Direct reconstruction of CODE.1 0x1F24..0x2196.
     // The three bytes correspond to character-record offsets 0x15..0x17
