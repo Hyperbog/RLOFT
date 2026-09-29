@@ -1,4 +1,4 @@
-#include "Code1AudioControlBB80.h"
+#include "AudioControlBB80.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -7,7 +7,7 @@ namespace ravenloft::game {
 namespace {
 
 std::uint16_t configWord32(
-    const Code1AudioInitStateB0F8& init) noexcept {
+    const AudioInitStateB0F8& init) noexcept {
     return static_cast<std::uint16_t>(
         (*init.config2AA0)[0x32]) |
         (static_cast<std::uint16_t>(
@@ -16,11 +16,11 @@ std::uint16_t configWord32(
 
 } // namespace
 
-void Code1AudioControlBB80::updateFourthParameter(
+void AudioControlBB80::updateFourthParameter(
     std::int32_t value,
-    const Code1AudioInitStateB0F8& init,
-    Code1AudioPlaybackStateB76C& state,
-    const Code1AudioControlOpsBB80& ops) {
+    const AudioInitStateB0F8& init,
+    AudioPlaybackStateB76C& state,
+    const AudioControlOpsBB80& ops) {
     if (!init.initialized2B84 ||
         state.currentChannel2C38 == -1) {
         return;
@@ -46,21 +46,21 @@ void Code1AudioControlBB80::updateFourthParameter(
         value);
 }
 
-void Code1AudioControlBB80::restartWithValue(
+void AudioControlBB80::restartWithValue(
     std::int32_t channel,
     std::int32_t value,
-    const Code1AudioInitStateB0F8& init,
-    const Code1SampleDataStateB060& sample,
-    Code1AudioChannelsStateB598& channels,
-    Code1AudioPlaybackStateB76C& state,
-    const Code1AudioChannelsOpsB598& channelOps,
-    const Code1AudioControlOpsBB80& ops) {
+    const AudioInitStateB0F8& init,
+    const SampleDataStateB060& sample,
+    AudioChannelsStateB598& channels,
+    AudioPlaybackStateB76C& state,
+    const AudioChannelsOpsB598& channelOps,
+    const AudioControlOpsBB80& ops) {
     if (!init.initialized2B84 ||
         state.enabled2C44 == 0) {
         return;
     }
 
-    Code1AudioPlaybackB76C::stopCurrent(
+    AudioPlaybackB76C::stopCurrent(
         init,
         sample,
         channels,
@@ -68,7 +68,7 @@ void Code1AudioControlBB80::restartWithValue(
         channelOps,
         ops.playback);
 
-    Code1AudioPlaybackB76C::selectWithValue(
+    AudioPlaybackB76C::selectWithValue(
         channel,
         value,
         init,
@@ -79,22 +79,22 @@ void Code1AudioControlBB80::restartWithValue(
         ops.playback);
 }
 
-void Code1AudioControlBB80::loadAndRestartWithValue(
+void AudioControlBB80::loadAndRestartWithValue(
     std::int32_t resource,
     std::int32_t channel,
     std::int32_t value,
-    const Code1AudioInitStateB0F8& init,
-    const Code1SampleDataStateB060& sample,
-    Code1AudioChannelsStateB598& channels,
-    Code1AudioPlaybackStateB76C& state,
-    const Code1AudioChannelsOpsB598& channelOps,
-    const Code1AudioControlOpsBB80& ops) {
+    const AudioInitStateB0F8& init,
+    const SampleDataStateB060& sample,
+    AudioChannelsStateB598& channels,
+    AudioPlaybackStateB76C& state,
+    const AudioChannelsOpsB598& channelOps,
+    const AudioControlOpsBB80& ops) {
     if (!init.initialized2B84 ||
         state.enabled2C44 == 0) {
         return;
     }
 
-    Code1AudioPlaybackB76C::stopCurrent(
+    AudioPlaybackB76C::stopCurrent(
         init,
         sample,
         channels,
@@ -102,7 +102,7 @@ void Code1AudioControlBB80::loadAndRestartWithValue(
         channelOps,
         ops.playback);
 
-    Code1AudioChannelsB598::clearAll(
+    AudioChannelsB598::clearAll(
         init,
         channels,
         channelOps);
@@ -140,7 +140,7 @@ void Code1AudioControlBB80::loadAndRestartWithValue(
         state.currentResource2C34 = resource;
     }
 
-    Code1AudioPlaybackB76C::selectWithValue(
+    AudioPlaybackB76C::selectWithValue(
         channel,
         value,
         init,
@@ -151,13 +151,13 @@ void Code1AudioControlBB80::loadAndRestartWithValue(
         ops.playback);
 }
 
-void Code1AudioControlBB80::waitUntilBackendIdle(
-    const Code1AudioInitStateB0F8& init,
-    const Code1SampleDataStateB060& sample,
-    Code1AudioChannelsStateB598& channels,
-    Code1AudioPlaybackStateB76C& state,
-    const Code1AudioChannelsOpsB598& channelOps,
-    const Code1AudioControlOpsBB80& ops) {
+void AudioControlBB80::waitUntilBackendIdle(
+    const AudioInitStateB0F8& init,
+    const SampleDataStateB060& sample,
+    AudioChannelsStateB598& channels,
+    AudioPlaybackStateB76C& state,
+    const AudioChannelsOpsB598& channelOps,
+    const AudioControlOpsBB80& ops) {
     if (!init.initialized2B84 ||
         state.currentChannel2C38 == -1) {
         return;
@@ -179,7 +179,7 @@ void Code1AudioControlBB80::waitUntilBackendIdle(
                state.currentHandle2C30) != 0) {
     }
 
-    Code1AudioPlaybackB76C::stopCurrent(
+    AudioPlaybackB76C::stopCurrent(
         init,
         sample,
         channels,
@@ -188,13 +188,13 @@ void Code1AudioControlBB80::waitUntilBackendIdle(
         ops.playback);
 }
 
-void Code1AudioControlBB80::setScaledValue(
+void AudioControlBB80::setScaledValue(
     std::int32_t value,
-    const Code1AudioInitStateB0F8& init,
-    Code1AudioChannelsStateB598& channels,
-    Code1AudioPlaybackStateB76C& state,
-    const Code1AudioChannelsOpsB598& channelOps,
-    const Code1AudioControlOpsBB80& ops) {
+    const AudioInitStateB0F8& init,
+    AudioChannelsStateB598& channels,
+    AudioPlaybackStateB76C& state,
+    const AudioChannelsOpsB598& channelOps,
+    const AudioControlOpsBB80& ops) {
     if (channels.value2C3C == value) {
         return;
     }
@@ -215,7 +215,7 @@ void Code1AudioControlBB80::setScaledValue(
     // The zero pushed at BD61 is ignored by B598, exactly as in the
     // previously reconstructed callers.
     const std::int32_t scaled =
-        Code1AudioChannelsB598::scaledValue(
+        AudioChannelsB598::scaledValue(
             init,
             channels,
             channelOps);
@@ -227,11 +227,11 @@ void Code1AudioControlBB80::setScaledValue(
         0);
 }
 
-void Code1AudioControlBB80::setSecondaryValue(
+void AudioControlBB80::setSecondaryValue(
     std::int32_t value,
-    const Code1AudioInitStateB0F8& init,
-    Code1AudioPlaybackStateB76C& state,
-    const Code1AudioControlOpsBB80& ops) {
+    const AudioInitStateB0F8& init,
+    AudioPlaybackStateB76C& state,
+    const AudioControlOpsBB80& ops) {
     if (state.value2C40 == value) {
         return;
     }
@@ -250,20 +250,20 @@ void Code1AudioControlBB80::setSecondaryValue(
         0);
 }
 
-std::int32_t Code1AudioControlBB80::currentChannel(
-    const Code1AudioPlaybackStateB76C& state) noexcept {
+std::int32_t AudioControlBB80::currentChannel(
+    const AudioPlaybackStateB76C& state) noexcept {
     return state.currentChannel2C38;
 }
 
-std::int32_t Code1AudioControlBB80::currentResource(
-    const Code1AudioPlaybackStateB76C& state) noexcept {
+std::int32_t AudioControlBB80::currentResource(
+    const AudioPlaybackStateB76C& state) noexcept {
     return state.currentResource2C34;
 }
 
-std::int32_t Code1AudioControlBB80::stopped(
-    const Code1AudioInitStateB0F8& init,
-    const Code1AudioPlaybackStateB76C& state,
-    const Code1AudioControlOpsBB80& ops) {
+std::int32_t AudioControlBB80::stopped(
+    const AudioInitStateB0F8& init,
+    const AudioPlaybackStateB76C& state,
+    const AudioControlOpsBB80& ops) {
     if (!init.initialized2B84 ||
         state.currentChannel2C38 == -1) {
         return 0;
@@ -279,29 +279,29 @@ std::int32_t Code1AudioControlBB80::stopped(
         : 0;
 }
 
-std::int32_t Code1AudioControlBB80::secondaryValue(
-    const Code1AudioPlaybackStateB76C& state) noexcept {
+std::int32_t AudioControlBB80::secondaryValue(
+    const AudioPlaybackStateB76C& state) noexcept {
     return state.value2C40;
 }
 
-std::int32_t Code1AudioControlBB80::scaledValueSetting(
-    const Code1AudioChannelsStateB598& channels) noexcept {
+std::int32_t AudioControlBB80::scaledValueSetting(
+    const AudioChannelsStateB598& channels) noexcept {
     return channels.value2C3C;
 }
 
-void Code1AudioControlBB80::setEnabled(
+void AudioControlBB80::setEnabled(
     std::uint8_t enabled,
-    const Code1AudioInitStateB0F8& init,
-    const Code1SampleDataStateB060& sample,
-    Code1AudioChannelsStateB598& channels,
-    Code1AudioPlaybackStateB76C& state,
-    const Code1AudioChannelsOpsB598& channelOps,
-    const Code1AudioControlOpsBB80& ops) {
+    const AudioInitStateB0F8& init,
+    const SampleDataStateB060& sample,
+    AudioChannelsStateB598& channels,
+    AudioPlaybackStateB76C& state,
+    const AudioChannelsOpsB598& channelOps,
+    const AudioControlOpsBB80& ops) {
     state.enabled2C44 = enabled;
 
     if (init.initialized2B84 &&
         enabled == 0) {
-        Code1AudioPlaybackB76C::stopCurrent(
+        AudioPlaybackB76C::stopCurrent(
             init,
             sample,
             channels,

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Code1AudioInitB0F8.h"
-#include "Code1FormatAFD8.h"
+#include "AudioInitB0F8.h"
+#include "FormatAFD8.h"
 
 #include <array>
 #include <cstdint>
@@ -9,7 +9,7 @@
 
 namespace ravenloft::game {
 
-struct Code1AudioChannelsStateB598 {
+struct AudioChannelsStateB598 {
     std::array<std::int32_t, 8> handles2C08{};
     std::array<std::uint8_t, 8> active2C28{};
 
@@ -19,7 +19,7 @@ struct Code1AudioChannelsStateB598 {
     std::int32_t setting2B88 = 0;
 };
 
-struct Code1AudioChannelsOpsB598 {
+struct AudioChannelsOpsB598 {
     std::function<void(
         std::array<std::uint8_t, 0x100>*)> bindConfig8A18;
 
@@ -44,49 +44,49 @@ struct Code1AudioChannelsOpsB598 {
         std::int32_t, std::int32_t)> callED0B;
 };
 
-class Code1AudioChannelsB598 {
+class AudioChannelsB598 {
 public:
     // Direct reconstruction of CODE.1 0xB598..0xB5E0.
     // CODE.1 0xB5E1..0xB5E3 is alignment.
     static std::int32_t scaledValue(
-        const Code1AudioInitStateB0F8& init,
-        Code1AudioChannelsStateB598& state,
-        const Code1AudioChannelsOpsB598& ops);
+        const AudioInitStateB0F8& init,
+        AudioChannelsStateB598& state,
+        const AudioChannelsOpsB598& ops);
 
     // Direct reconstruction of CODE.1 0xB5E4..0xB6BD.
     // CODE.1 0xB6BE..0xB6BF is alignment.
     static void start(
         std::int32_t channel,
-        const Code1AudioInitStateB0F8& init,
-        const Code1SampleDataStateB060& sample,
-        Code1AudioChannelsStateB598& state,
-        const Code1AudioChannelsOpsB598& ops);
+        const AudioInitStateB0F8& init,
+        const SampleDataStateB060& sample,
+        AudioChannelsStateB598& state,
+        const AudioChannelsOpsB598& ops);
 
     // Direct reconstruction of CODE.1 0xB6C0..0xB6EA.
     // CODE.1 0xB6EB is alignment.
     static void stop(
         std::int32_t channel,
-        const Code1AudioInitStateB0F8& init,
-        Code1AudioChannelsStateB598& state,
-        const Code1AudioChannelsOpsB598& ops);
+        const AudioInitStateB0F8& init,
+        AudioChannelsStateB598& state,
+        const AudioChannelsOpsB598& ops);
 
     // Direct reconstruction of CODE.1 0xB6EC..0xB74B.
     static void clearAll(
-        const Code1AudioInitStateB0F8& init,
-        Code1AudioChannelsStateB598& state,
-        const Code1AudioChannelsOpsB598& ops);
+        const AudioInitStateB0F8& init,
+        AudioChannelsStateB598& state,
+        const AudioChannelsOpsB598& ops);
 
     // Direct reconstruction of CODE.1 0xB74C..0xB75A.
     // CODE.1 0xB75B is alignment.
     static void setSetting2B80(
         std::int32_t value,
-        Code1AudioChannelsStateB598& state) noexcept;
+        AudioChannelsStateB598& state) noexcept;
 
     // Direct reconstruction of CODE.1 0xB75C..0xB76A.
     // CODE.1 0xB76B is alignment.
     static void setSetting2B88(
         std::int32_t value,
-        Code1AudioChannelsStateB598& state) noexcept;
+        AudioChannelsStateB598& state) noexcept;
 };
 
 } // namespace ravenloft::game

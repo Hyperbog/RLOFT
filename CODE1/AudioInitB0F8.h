@@ -8,12 +8,12 @@
 
 namespace ravenloft::game {
 
-struct Code1AudioBackendRecordB0F8 {
+struct AudioBackendRecordB0F8 {
     std::uint32_t field0 = 0;
     std::int32_t field4 = 0;
 };
 
-struct Code1AudioInitStateB0F8 {
+struct AudioInitStateB0F8 {
     bool initialized2B84 = false;
 
     std::int32_t object2B90 = -1;
@@ -38,7 +38,7 @@ struct Code1AudioInitStateB0F8 {
     std::array<std::uint8_t, 0x100>* config2AA0 = nullptr;
 };
 
-struct Code1AudioInitOpsB0F8 {
+struct AudioInitOpsB0F8 {
     std::function<std::uint32_t(
         std::int32_t, std::uint32_t&, std::uint16_t&)> allocateDos6F10;
     std::function<std::int32_t(std::uint16_t)> freeDos6F74;
@@ -60,7 +60,7 @@ struct Code1AudioInitOpsB0F8 {
     std::function<std::int32_t(std::uintptr_t)> callEA0B;
     std::function<std::int32_t(std::int32_t)> callE6EA;
 
-    std::function<const Code1AudioBackendRecordB0F8*(
+    std::function<const AudioBackendRecordB0F8*(
         std::int32_t)> callEAC8;
 
     std::function<std::int32_t(
@@ -83,7 +83,7 @@ struct Code1AudioInitOpsB0F8 {
     std::function<void()> loadSampleB060;
 };
 
-class Code1AudioInitB0F8 {
+class AudioInitB0F8 {
 public:
     // Direct reconstruction of CODE.1 0xB0F8..0xB42F.
     static void initialize(
@@ -92,8 +92,8 @@ public:
         std::int32_t arg10,
         std::int32_t arg14,
         std::int32_t arg18,
-        Code1AudioInitStateB0F8& state,
-        const Code1AudioInitOpsB0F8& ops);
+        AudioInitStateB0F8& state,
+        const AudioInitOpsB0F8& ops);
 };
 
 } // namespace ravenloft::game

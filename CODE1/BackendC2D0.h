@@ -5,17 +5,17 @@
 
 namespace ravenloft::game {
 
-struct Code1BackendDescriptorC2D0 {
+struct BackendDescriptorC2D0 {
     std::int32_t field0 = 0;
     std::int32_t type4 = 0;
 };
 
-struct Code1BackendResourceC4E0 {
+struct BackendResourceC4E0 {
     std::int32_t size = 0;
     const std::uint8_t* data = nullptr;
 };
 
-struct Code1BackendStateC2D0 {
+struct BackendStateC2D0 {
     std::int32_t active2F48 = 0;
     std::int32_t lookupParam2F4C = 0;
     std::uintptr_t dosLinear2F68 = 0;
@@ -25,7 +25,7 @@ struct Code1BackendStateC2D0 {
     std::uint8_t enabled2F78 = 0;
 };
 
-struct Code1BackendOpsC2D0 {
+struct BackendOpsC2D0 {
     std::function<std::uintptr_t(std::int32_t, std::uint32_t&, std::uint16_t&)> allocateDos6F10;
     std::function<void(std::uint16_t)> freeDos6F74;
 
@@ -40,7 +40,7 @@ struct Code1BackendOpsC2D0 {
     std::function<void()> callE680;
     std::function<std::int32_t(std::uintptr_t)> callEA0B;
     std::function<void(std::int32_t)> callE6EA;
-    std::function<Code1BackendDescriptorC2D0*(std::int32_t)> callEAC8;
+    std::function<BackendDescriptorC2D0*(std::int32_t)> callEAC8;
     std::function<std::int32_t(std::int32_t, std::int32_t, std::int32_t, std::int32_t, std::int32_t)> callEAE7;
     std::function<void(std::int32_t, std::int32_t, std::int32_t, std::int32_t, std::int32_t)> callEAF1;
 
@@ -48,14 +48,14 @@ struct Code1BackendOpsC2D0 {
     std::function<std::int32_t(std::int32_t)> callEC2F;
     std::function<void(std::int32_t)> callEC43;
 
-    std::function<Code1BackendResourceC4E0(std::int32_t, std::int32_t)> lookup954C;
+    std::function<BackendResourceC4E0(std::int32_t, std::int32_t)> lookup954C;
     std::function<void(std::uint8_t*, const std::uint8_t*, std::int32_t)> copyD9EE;
     std::function<void(std::int32_t, std::uintptr_t, std::uint16_t, std::int32_t)> callEC25;
     std::function<void(std::int32_t, std::uintptr_t, std::uint16_t, std::uint32_t, std::int32_t)> callEC1B;
     std::function<void(std::int32_t)> callEC39;
 };
 
-class Code1BackendC2D0 {
+class BackendC2D0 {
 public:
     // Direct reconstruction of CODE.1 0xC2D0..0xC49C.
     // 0xC49D..0xC49F is alignment.
@@ -64,22 +64,22 @@ public:
                            std::int32_t arg2,
                            std::int32_t arg3,
                            std::int32_t arg4,
-                           Code1BackendStateC2D0& state,
-                           const Code1BackendOpsC2D0& ops);
+                           BackendStateC2D0& state,
+                           const BackendOpsC2D0& ops);
 
     // Direct reconstruction of CODE.1 0xC4A0..0xC4DF.
-    static void shutdown(Code1BackendStateC2D0& state,
-                         const Code1BackendOpsC2D0& ops);
+    static void shutdown(BackendStateC2D0& state,
+                         const BackendOpsC2D0& ops);
 
     // Direct reconstruction of CODE.1 0xC4E0..0xC57A.
     // 0xC57B is alignment.
     static void submit(std::int32_t resourceId,
-                       Code1BackendStateC2D0& state,
-                       const Code1BackendOpsC2D0& ops);
+                       BackendStateC2D0& state,
+                       const BackendOpsC2D0& ops);
 
     // Direct reconstruction of CODE.1 0xC57C..0xC5AF.
-    static void stopIfType2(Code1BackendStateC2D0& state,
-                            const Code1BackendOpsC2D0& ops);
+    static void stopIfType2(BackendStateC2D0& state,
+                            const BackendOpsC2D0& ops);
 };
 
 } // namespace ravenloft::game

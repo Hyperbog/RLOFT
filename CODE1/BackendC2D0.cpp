@@ -1,18 +1,18 @@
-#include "Code1BackendC2D0.h"
+#include "BackendC2D0.h"
 
 #include <cstddef>
 #include <cstdint>
 
 namespace ravenloft::game {
 
-void Code1BackendC2D0::initialize(
+void BackendC2D0::initialize(
     std::int32_t fileToken,
     std::int32_t arg1,
     std::int32_t arg2,
     std::int32_t arg3,
     std::int32_t arg4,
-    Code1BackendStateC2D0& state,
-    const Code1BackendOpsC2D0& ops) {
+    BackendStateC2D0& state,
+    const BackendOpsC2D0& ops) {
     if (state.active2F48 != 0) {
         return;
     }
@@ -74,7 +74,7 @@ void Code1BackendC2D0::initialize(
         return;
     }
 
-    Code1BackendDescriptorC2D0* descriptor =
+    BackendDescriptorC2D0* descriptor =
         ops.callEAC8(state.backend2F74);
 
     if (descriptor->type4 != 2) {
@@ -104,9 +104,9 @@ void Code1BackendC2D0::initialize(
     state.active2F48 = 1;
 }
 
-void Code1BackendC2D0::shutdown(
-    Code1BackendStateC2D0& state,
-    const Code1BackendOpsC2D0& ops) {
+void BackendC2D0::shutdown(
+    BackendStateC2D0& state,
+    const BackendOpsC2D0& ops) {
     if (state.active2F48 == 0) {
         return;
     }
@@ -117,16 +117,16 @@ void Code1BackendC2D0::shutdown(
     state.active2F48 = 0;
 }
 
-void Code1BackendC2D0::submit(
+void BackendC2D0::submit(
     std::int32_t resourceId,
-    Code1BackendStateC2D0& state,
-    const Code1BackendOpsC2D0& ops) {
+    BackendStateC2D0& state,
+    const BackendOpsC2D0& ops) {
     if (state.active2F48 == 0 ||
         state.enabled2F78 == 0) {
         return;
     }
 
-    const Code1BackendResourceC4E0 resource =
+    const BackendResourceC4E0 resource =
         ops.lookup954C(
             resourceId,
             state.lookupParam2F4C);
@@ -155,9 +155,9 @@ void Code1BackendC2D0::submit(
     ops.callEC39(state.backend2F74);
 }
 
-void Code1BackendC2D0::stopIfType2(
-    Code1BackendStateC2D0& state,
-    const Code1BackendOpsC2D0& ops) {
+void BackendC2D0::stopIfType2(
+    BackendStateC2D0& state,
+    const BackendOpsC2D0& ops) {
     if (state.active2F48 == 0) {
         return;
     }

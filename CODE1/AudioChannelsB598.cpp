@@ -1,4 +1,4 @@
-#include "Code1AudioChannelsB598.h"
+#include "AudioChannelsB598.h"
 
 #include <bit>
 #include <cstddef>
@@ -17,10 +17,10 @@ std::uint16_t configWord32(
 
 } // namespace
 
-std::int32_t Code1AudioChannelsB598::scaledValue(
-    const Code1AudioInitStateB0F8& init,
-    Code1AudioChannelsStateB598& state,
-    const Code1AudioChannelsOpsB598& ops) {
+std::int32_t AudioChannelsB598::scaledValue(
+    const AudioInitStateB0F8& init,
+    AudioChannelsStateB598& state,
+    const AudioChannelsOpsB598& ops) {
     ops.bindConfig8A18(
         init.config2AA0);
 
@@ -53,12 +53,12 @@ std::int32_t Code1AudioChannelsB598::scaledValue(
     return state.value2C3C;
 }
 
-void Code1AudioChannelsB598::start(
+void AudioChannelsB598::start(
     std::int32_t channel,
-    const Code1AudioInitStateB0F8& init,
-    const Code1SampleDataStateB060& sample,
-    Code1AudioChannelsStateB598& state,
-    const Code1AudioChannelsOpsB598& ops) {
+    const AudioInitStateB0F8& init,
+    const SampleDataStateB060& sample,
+    AudioChannelsStateB598& state,
+    const AudioChannelsOpsB598& ops) {
     if (!init.initialized2B84) {
         return;
     }
@@ -121,11 +121,11 @@ void Code1AudioChannelsB598::start(
     state.active2C28[index] = 1;
 }
 
-void Code1AudioChannelsB598::stop(
+void AudioChannelsB598::stop(
     std::int32_t channel,
-    const Code1AudioInitStateB0F8& init,
-    Code1AudioChannelsStateB598& state,
-    const Code1AudioChannelsOpsB598& ops) {
+    const AudioInitStateB0F8& init,
+    AudioChannelsStateB598& state,
+    const AudioChannelsOpsB598& ops) {
     if (init.initialized2B84) {
         ops.callEC9D(
             init.object2B90,
@@ -134,10 +134,10 @@ void Code1AudioChannelsB598::stop(
     }
 }
 
-void Code1AudioChannelsB598::clearAll(
-    const Code1AudioInitStateB0F8& init,
-    Code1AudioChannelsStateB598& state,
-    const Code1AudioChannelsOpsB598& ops) {
+void AudioChannelsB598::clearAll(
+    const AudioInitStateB0F8& init,
+    AudioChannelsStateB598& state,
+    const AudioChannelsOpsB598& ops) {
     if (!init.initialized2B84) {
         return;
     }
@@ -165,15 +165,15 @@ void Code1AudioChannelsB598::clearAll(
     }
 }
 
-void Code1AudioChannelsB598::setSetting2B80(
+void AudioChannelsB598::setSetting2B80(
     std::int32_t value,
-    Code1AudioChannelsStateB598& state) noexcept {
+    AudioChannelsStateB598& state) noexcept {
     state.setting2B80 = value;
 }
 
-void Code1AudioChannelsB598::setSetting2B88(
+void AudioChannelsB598::setSetting2B88(
     std::int32_t value,
-    Code1AudioChannelsStateB598& state) noexcept {
+    AudioChannelsStateB598& state) noexcept {
     state.setting2B88 = value;
 }
 

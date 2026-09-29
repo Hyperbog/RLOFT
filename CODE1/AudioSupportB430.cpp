@@ -1,4 +1,4 @@
-#include "Code1AudioSupportB430.h"
+#include "AudioSupportB430.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -25,10 +25,10 @@ void write32(
 
 } // namespace
 
-void Code1AudioSupportB430::shutdown(
-    Code1AudioInitStateB0F8& state,
-    Code1SampleDataStateB060& sample,
-    const Code1AudioSupportOpsB430& ops) {
+void AudioSupportB430::shutdown(
+    AudioInitStateB0F8& state,
+    SampleDataStateB060& sample,
+    const AudioSupportOpsB430& ops) {
     if (!state.initialized2B84) {
         return;
     }
@@ -64,10 +64,10 @@ void Code1AudioSupportB430::shutdown(
     state.initialized2B84 = false;
 }
 
-std::uintptr_t Code1AudioSupportB430::findSample(
+std::uintptr_t AudioSupportB430::findSample(
     std::uint16_t first,
     std::uint16_t second,
-    const Code1SampleDataStateB060& sample) noexcept {
+    const SampleDataStateB060& sample) noexcept {
     const auto* base =
         reinterpret_cast<const std::uint8_t*>(
             sample.sampleData2B98);
@@ -99,10 +99,10 @@ std::uintptr_t Code1AudioSupportB430::findSample(
     }
 }
 
-std::uintptr_t Code1AudioSupportB430::loadBlob(
+std::uintptr_t AudioSupportB430::loadBlob(
     std::int32_t handle,
-    const Code1AudioInitStateB0F8& state,
-    const Code1AudioSupportOpsB430& ops) {
+    const AudioInitStateB0F8& state,
+    const AudioSupportOpsB430& ops) {
     if (!state.initialized2B84) {
         return 0;
     }
@@ -132,10 +132,10 @@ std::uintptr_t Code1AudioSupportB430::loadBlob(
     return resource;
 }
 
-void Code1AudioSupportB430::releaseBlob(
+void AudioSupportB430::releaseBlob(
     std::uintptr_t resource,
-    const Code1AudioInitStateB0F8& state,
-    const Code1AudioSupportOpsB430& ops) {
+    const AudioInitStateB0F8& state,
+    const AudioSupportOpsB430& ops) {
     if (state.initialized2B84 &&
         resource != 0) {
         ops.heapFree7240(resource);

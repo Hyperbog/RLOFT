@@ -1,18 +1,18 @@
-#include "Code1AudioInitB0F8.h"
+#include "AudioInitB0F8.h"
 
 #include <cstddef>
 #include <cstdint>
 
 namespace ravenloft::game {
 
-void Code1AudioInitB0F8::initialize(
+void AudioInitB0F8::initialize(
     const std::string& fileName,
     std::int32_t arg0C,
     std::int32_t arg10,
     std::int32_t arg14,
     std::int32_t arg18,
-    Code1AudioInitStateB0F8& state,
-    const Code1AudioInitOpsB0F8& ops) {
+    AudioInitStateB0F8& state,
+    const AudioInitOpsB0F8& ops) {
     // 0xB0FE..0xB105.
     if (state.initialized2B84) {
         return;

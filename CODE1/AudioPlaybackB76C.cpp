@@ -1,4 +1,4 @@
-#include "Code1AudioPlaybackB76C.h"
+#include "AudioPlaybackB76C.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -7,7 +7,7 @@ namespace ravenloft::game {
 namespace {
 
 std::uint16_t configWord32(
-    const Code1AudioInitStateB0F8& init) noexcept {
+    const AudioInitStateB0F8& init) noexcept {
     return static_cast<std::uint16_t>(
         (*init.config2AA0)[0x32]) |
         (static_cast<std::uint16_t>(
@@ -16,14 +16,14 @@ std::uint16_t configWord32(
 
 } // namespace
 
-void Code1AudioPlaybackB76C::select(
+void AudioPlaybackB76C::select(
     std::int32_t channel,
-    const Code1AudioInitStateB0F8& init,
-    const Code1SampleDataStateB060& sample,
-    Code1AudioChannelsStateB598& channels,
-    Code1AudioPlaybackStateB76C& state,
-    const Code1AudioChannelsOpsB598& channelOps,
-    const Code1AudioPlaybackOpsB76C& ops) {
+    const AudioInitStateB0F8& init,
+    const SampleDataStateB060& sample,
+    AudioChannelsStateB598& channels,
+    AudioPlaybackStateB76C& state,
+    const AudioChannelsOpsB598& channelOps,
+    const AudioPlaybackOpsB76C& ops) {
     if (!init.initialized2B84 ||
         state.enabled2C44 == 0 ||
         channel == state.currentChannel2C38) {
@@ -34,7 +34,7 @@ void Code1AudioPlaybackB76C::select(
         init, sample, channels, state,
         channelOps, ops);
 
-    Code1AudioChannelsB598::start(
+    AudioChannelsB598::start(
         channel, init, sample, channels, channelOps);
 
     state.currentHandle2C30 =
@@ -50,7 +50,7 @@ void Code1AudioPlaybackB76C::select(
     // B598 ignores the stack argument pushed by the caller and reads only
     // global 2C3C. Preserve that behavior.
     const std::int32_t scaled =
-        Code1AudioChannelsB598::scaledValue(
+        AudioChannelsB598::scaledValue(
             init, channels, channelOps);
 
     ops.callED29(
@@ -70,15 +70,15 @@ void Code1AudioPlaybackB76C::select(
         state.currentHandle2C30);
 }
 
-void Code1AudioPlaybackB76C::selectWithValue(
+void AudioPlaybackB76C::selectWithValue(
     std::int32_t channel,
     std::int32_t ignoredValue,
-    const Code1AudioInitStateB0F8& init,
-    const Code1SampleDataStateB060& sample,
-    Code1AudioChannelsStateB598& channels,
-    Code1AudioPlaybackStateB76C& state,
-    const Code1AudioChannelsOpsB598& channelOps,
-    const Code1AudioPlaybackOpsB76C& ops) {
+    const AudioInitStateB0F8& init,
+    const SampleDataStateB060& sample,
+    AudioChannelsStateB598& channels,
+    AudioPlaybackStateB76C& state,
+    const AudioChannelsOpsB598& channelOps,
+    const AudioPlaybackOpsB76C& ops) {
     // The original pushes this value to B598, but B598 never reads it.
     (void)ignoredValue;
 
@@ -92,7 +92,7 @@ void Code1AudioPlaybackB76C::selectWithValue(
         init, sample, channels, state,
         channelOps, ops);
 
-    Code1AudioChannelsB598::start(
+    AudioChannelsB598::start(
         channel, init, sample, channels, channelOps);
 
     state.currentHandle2C30 =
@@ -122,7 +122,7 @@ void Code1AudioPlaybackB76C::selectWithValue(
         0);
 
     const std::int32_t scaled =
-        Code1AudioChannelsB598::scaledValue(
+        AudioChannelsB598::scaledValue(
             init, channels, channelOps);
 
     ops.callED29(
@@ -132,15 +132,15 @@ void Code1AudioPlaybackB76C::selectWithValue(
         0);
 }
 
-void Code1AudioPlaybackB76C::modify(
+void AudioPlaybackB76C::modify(
     std::int32_t channel,
     std::int32_t branchValue,
-    const Code1AudioInitStateB0F8& init,
-    const Code1SampleDataStateB060& sample,
-    Code1AudioChannelsStateB598& channels,
-    Code1AudioPlaybackStateB76C& state,
-    const Code1AudioChannelsOpsB598& channelOps,
-    const Code1AudioPlaybackOpsB76C& ops) {
+    const AudioInitStateB0F8& init,
+    const SampleDataStateB060& sample,
+    AudioChannelsStateB598& channels,
+    AudioPlaybackStateB76C& state,
+    const AudioChannelsOpsB598& channelOps,
+    const AudioPlaybackOpsB76C& ops) {
     if (!init.initialized2B84 ||
         state.enabled2C44 == 0 ||
         channel == state.currentChannel2C38) {
@@ -178,7 +178,7 @@ void Code1AudioPlaybackB76C::modify(
     }
 
     const std::int32_t scaled =
-        Code1AudioChannelsB598::scaledValue(
+        AudioChannelsB598::scaledValue(
             init, channels, channelOps);
 
     ops.callED29(
@@ -200,7 +200,7 @@ void Code1AudioPlaybackB76C::modify(
 
         // branchValue is again pushed to B598 but ignored there.
         const std::int32_t scaledAgain =
-            Code1AudioChannelsB598::scaledValue(
+            AudioChannelsB598::scaledValue(
                 init, channels, channelOps);
 
         ops.callED29(
@@ -217,15 +217,15 @@ void Code1AudioPlaybackB76C::modify(
     }
 }
 
-void Code1AudioPlaybackB76C::loadAndSelect(
+void AudioPlaybackB76C::loadAndSelect(
     std::int32_t resource,
     std::int32_t channel,
-    const Code1AudioInitStateB0F8& init,
-    const Code1SampleDataStateB060& sample,
-    Code1AudioChannelsStateB598& channels,
-    Code1AudioPlaybackStateB76C& state,
-    const Code1AudioChannelsOpsB598& channelOps,
-    const Code1AudioPlaybackOpsB76C& ops) {
+    const AudioInitStateB0F8& init,
+    const SampleDataStateB060& sample,
+    AudioChannelsStateB598& channels,
+    AudioPlaybackStateB76C& state,
+    const AudioChannelsOpsB598& channelOps,
+    const AudioPlaybackOpsB76C& ops) {
     if (!init.initialized2B84 ||
         state.enabled2C44 == 0) {
         return;
@@ -235,7 +235,7 @@ void Code1AudioPlaybackB76C::loadAndSelect(
         init, sample, channels, state,
         channelOps, ops);
 
-    Code1AudioChannelsB598::clearAll(
+    AudioChannelsB598::clearAll(
         init, channels, channelOps);
 
     if (state.currentResource2C34 != resource) {
@@ -282,13 +282,13 @@ void Code1AudioPlaybackB76C::loadAndSelect(
         ops);
 }
 
-void Code1AudioPlaybackB76C::stopCurrent(
-    const Code1AudioInitStateB0F8& init,
-    const Code1SampleDataStateB060& sample,
-    Code1AudioChannelsStateB598& channels,
-    Code1AudioPlaybackStateB76C& state,
-    const Code1AudioChannelsOpsB598& channelOps,
-    const Code1AudioPlaybackOpsB76C& ops) {
+void AudioPlaybackB76C::stopCurrent(
+    const AudioInitStateB0F8& init,
+    const SampleDataStateB060& sample,
+    AudioChannelsStateB598& channels,
+    AudioPlaybackStateB76C& state,
+    const AudioChannelsOpsB598& channelOps,
+    const AudioPlaybackOpsB76C& ops) {
     if (!init.initialized2B84 ||
         state.currentChannel2C38 == -1) {
         return;
@@ -306,7 +306,7 @@ void Code1AudioPlaybackB76C::stopCurrent(
             state.currentHandle2C30);
     }
 
-    Code1AudioChannelsB598::start(
+    AudioChannelsB598::start(
         0, init, sample, channels, channelOps);
 
     state.currentHandle2C30 =
