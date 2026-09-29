@@ -20,6 +20,7 @@ struct Code1SystemState95A8 {
     std::uint8_t byte2400 = 0;
 
     std::uint8_t flags2B01 = 0;
+    std::uint8_t busy2B02 = 0;
     std::int32_t value2B0C = 0;
     std::int32_t specialItem2B10 = -1;
     std::uint8_t color2B14 = 0;
