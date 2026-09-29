@@ -6,20 +6,20 @@
 
 namespace ravenloft::game {
 
-class Code1CharacterFlags28E4 {
+class CharacterFlags28E4 {
 public:
     // Direct reconstruction of CODE.1 0x28E4..0x2990.
     static void build(std::array<std::int32_t, 6>& out,
                       const std::array<std::uint8_t, 3>& fields680D) noexcept;
 };
 
-struct Code1CharacterFlagChoiceState2994 {
+struct CharacterFlagChoiceState2994 {
     std::array<std::uint8_t, 3> fields680D{{0xFFu,0xFFu,0xFFu}};
     std::uint8_t field6812 = 0;
     std::int32_t mode4D0 = 0;
 };
 
-struct Code1CharacterFlagChoiceOps2994 {
+struct CharacterFlagChoiceOps2994 {
     std::function<void(std::int32_t,
                        const std::array<std::int32_t, 9>&,
                        std::int32_t, std::int32_t, std::int32_t)> call1464;
@@ -28,11 +28,11 @@ struct Code1CharacterFlagChoiceOps2994 {
                        std::int32_t, std::int32_t)> call15B0;
 };
 
-class Code1CharacterFlagChoice2994 {
+class CharacterFlagChoice2994 {
 public:
     // Direct reconstruction of CODE.1 0x2994..0x2A60.
-    static void run(Code1CharacterFlagChoiceState2994& state,
-                    const Code1CharacterFlagChoiceOps2994& ops);
+    static void run(CharacterFlagChoiceState2994& state,
+                    const CharacterFlagChoiceOps2994& ops);
 };
 
 } // namespace ravenloft::game

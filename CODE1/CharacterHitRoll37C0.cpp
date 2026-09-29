@@ -1,6 +1,6 @@
-#include "Code1CharacterHitRoll37C0.h"
+#include "CharacterHitRoll37C0.h"
 
-#include "Code1Dice0010.h"
+#include "Dice0010.h"
 
 #include <array>
 #include <cstddef>
@@ -26,9 +26,9 @@ std::int32_t activeClassCount(
 
 } // namespace
 
-void Code1CharacterHitRoll37C0::initialize(
-    Code1CharacterHitRollState37C0& state,
-    Code1RuntimeRng618A& rng) noexcept {
+void CharacterHitRoll37C0::initialize(
+    CharacterHitRollState37C0& state,
+    RuntimeRng618A& rng) noexcept {
     const std::int32_t count = activeClassCount(state.fields680D);
 
     std::int32_t total = 0;
@@ -46,7 +46,7 @@ void Code1CharacterHitRoll37C0::initialize(
         const std::int32_t diceCount =
             static_cast<std::int16_t>(state.words6818[index]);
 
-        total += Code1Dice0010::roll(
+        total += Dice0010::roll(
             diceCount, sides, 0, 0, rng);
     }
 

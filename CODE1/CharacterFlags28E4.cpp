@@ -1,4 +1,4 @@
-#include "Code1CharacterFlags28E4.h"
+#include "CharacterFlags28E4.h"
 
 #include <array>
 #include <cstddef>
@@ -6,7 +6,7 @@
 
 namespace ravenloft::game {
 
-void Code1CharacterFlags28E4::build(
+void CharacterFlags28E4::build(
     std::array<std::int32_t, 6>& out,
     const std::array<std::uint8_t, 3>& fields680D) noexcept {
     out.fill(1);
@@ -28,11 +28,11 @@ void Code1CharacterFlags28E4::build(
     }
 }
 
-void Code1CharacterFlagChoice2994::run(
-    Code1CharacterFlagChoiceState2994& state,
-    const Code1CharacterFlagChoiceOps2994& ops) {
+void CharacterFlagChoice2994::run(
+    CharacterFlagChoiceState2994& state,
+    const CharacterFlagChoiceOps2994& ops) {
     std::array<std::int32_t, 6> flags{};
-    Code1CharacterFlags28E4::build(flags, state.fields680D);
+    CharacterFlags28E4::build(flags, state.fields680D);
 
     std::array<std::int32_t, 9> slots{
         -1,-1,-1,-1,-1,-1,-1,-1,-1

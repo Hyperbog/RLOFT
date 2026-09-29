@@ -1,4 +1,4 @@
-#include "Code1CharacterOptions2198.h"
+#include "CharacterOptions2198.h"
 
 #include <array>
 #include <cstddef>
@@ -42,10 +42,10 @@ bool anySet(const std::array<std::int32_t, 6>& out) noexcept {
 
 } // namespace
 
-bool Code1CharacterOptions2198::build(
+bool CharacterOptions2198::build(
     std::array<std::int32_t, 6>& out,
     std::int32_t mode,
-    const Code1CharacterOptionState2198& state) noexcept {
+    const CharacterOptionState2198& state) noexcept {
     if (mode == 0) {
         if (state.field680C >= kTable06D8.size()) return false;
         return copyRow(out, kTable06D8[state.field680C]);

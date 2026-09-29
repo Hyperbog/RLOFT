@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Code1TextDatabase.h"
-#include "Code1CharacterInit3884.h"
-#include "Code1CharacterSheet38A4.h"
-#include "Code1RuntimeRng618A.h"
+#include "TextDatabase.h"
+#include "CharacterInit3884.h"
+#include "CharacterSheet38A4.h"
+#include "RuntimeRng618A.h"
 
 #include <array>
 #include <cstdint>
@@ -12,8 +12,8 @@
 
 namespace ravenloft::game {
 
-struct Code1CharacterFinalizeState40FC {
-    Code1CharacterInitState3884 character{};
+struct CharacterFinalizeState40FC {
+    CharacterInitState3884 character{};
 
     std::int32_t mode4D0 = 0;
     std::int32_t selectedRow7124 = -1;
@@ -35,8 +35,8 @@ struct Code1CharacterFinalizeState40FC {
     std::string text7140;
 };
 
-struct Code1CharacterFinalizeOps40FC {
-    Code1CharacterSheetOps38A4 sheet;
+struct CharacterFinalizeOps40FC {
+    CharacterSheetOps38A4 sheet;
 
     std::function<std::uint32_t()> call7F50;
     std::function<void(std::uint8_t)> call6588;
@@ -75,13 +75,13 @@ struct Code1CharacterFinalizeOps40FC {
     std::function<void(std::int32_t, std::int32_t)> call07E4;
 };
 
-class Code1CharacterFinalize40FC {
+class CharacterFinalize40FC {
 public:
     // Direct reconstruction of CODE.1 0x40FC..0x44E0.
-    static void run(Code1CharacterFinalizeState40FC& state,
-                    Code1RuntimeRng618A& rng,
-                    const Code1TextDatabase& text,
-                    const Code1CharacterFinalizeOps40FC& ops);
+    static void run(CharacterFinalizeState40FC& state,
+                    RuntimeRng618A& rng,
+                    const TextDatabase& text,
+                    const CharacterFinalizeOps40FC& ops);
 };
 
 } // namespace ravenloft::game

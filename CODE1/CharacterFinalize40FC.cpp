@@ -1,7 +1,7 @@
-#include "Code1CharacterFinalize40FC.h"
+#include "CharacterFinalize40FC.h"
 
-#include "Code1CharacterInit3884.h"
-#include "Code1CharacterSheet38A4.h"
+#include "CharacterInit3884.h"
+#include "CharacterSheet38A4.h"
 
 #include <array>
 #include <cstddef>
@@ -9,9 +9,9 @@
 namespace ravenloft::game {
 namespace {
 
-Code1CharacterSheetState38A4 makeSheetState(
-    const Code1CharacterFinalizeState40FC& state) {
-    Code1CharacterSheetState38A4 sheet{};
+CharacterSheetState38A4 makeSheetState(
+    const CharacterFinalizeState40FC& state) {
+    CharacterSheetState38A4 sheet{};
     sheet.fields680D = state.character.fields680D;
     sheet.word6810 = state.character.word6810;
     sheet.field6813 = state.character.field6813;
@@ -23,18 +23,18 @@ Code1CharacterSheetState38A4 makeSheetState(
     return sheet;
 }
 
-void drawCharacterSheet(Code1CharacterFinalizeState40FC& state,
-                        const Code1TextDatabase& text,
-                        const Code1CharacterFinalizeOps40FC& ops) {
+void drawCharacterSheet(CharacterFinalizeState40FC& state,
+                        const TextDatabase& text,
+                        const CharacterFinalizeOps40FC& ops) {
     auto sheet = makeSheetState(state);
-    Code1CharacterSheet38A4::draw(0, 0, sheet, text, ops.sheet);
+    CharacterSheet38A4::draw(0, 0, sheet, text, ops.sheet);
     state.control59F8 = sheet.control59F8;
 }
 
 std::uintptr_t rebuildSheetImage(
-    Code1CharacterFinalizeState40FC& state,
-    const Code1TextDatabase& text,
-    const Code1CharacterFinalizeOps40FC& ops) {
+    CharacterFinalizeState40FC& state,
+    const TextDatabase& text,
+    const CharacterFinalizeOps40FC& ops) {
     ops.call6588(state.buffer7138);
     const std::uintptr_t saved =
         ops.call7868(0, 0, 0x7A, 0x30, 0xFF);
@@ -50,8 +50,8 @@ std::uintptr_t rebuildSheetImage(
     return result;
 }
 
-void drawFinalizePage(Code1CharacterFinalizeState40FC& state,
-                      const Code1CharacterFinalizeOps40FC& ops) {
+void drawFinalizePage(CharacterFinalizeState40FC& state,
+                      const CharacterFinalizeOps40FC& ops) {
     ops.call6588(state.buffer7138);
     ops.call67C8(0, 0x5B, 0x88, state.handle958);
     ops.call6C60(0, 0x5B, 0xBD, 0x2E, 7);
@@ -59,14 +59,14 @@ void drawFinalizePage(Code1CharacterFinalizeState40FC& state,
     state.buffer7138 ^= 1u;
 }
 
-void redrawBothPages(Code1CharacterFinalizeState40FC& state,
-                     const Code1CharacterFinalizeOps40FC& ops) {
+void redrawBothPages(CharacterFinalizeState40FC& state,
+                     const CharacterFinalizeOps40FC& ops) {
     drawFinalizePage(state, ops);
     drawFinalizePage(state, ops);
 }
 
-void showAdjustmentBanner(Code1CharacterFinalizeState40FC& state,
-                          const Code1CharacterFinalizeOps40FC& ops) {
+void showAdjustmentBanner(CharacterFinalizeState40FC& state,
+                          const CharacterFinalizeOps40FC& ops) {
     ops.call6588(state.buffer7138);
     ops.call6C60(0, 5, 0, 0x2A, 7);
     ops.call7D80(5, 0, 0x140, state.text7140.c_str(), 1);
@@ -79,16 +79,16 @@ void showAdjustmentBanner(Code1CharacterFinalizeState40FC& state,
 
 } // namespace
 
-void Code1CharacterFinalize40FC::run(
-    Code1CharacterFinalizeState40FC& state,
-    Code1RuntimeRng618A& rng,
-    const Code1TextDatabase& text,
-    const Code1CharacterFinalizeOps40FC& ops) {
+void CharacterFinalize40FC::run(
+    CharacterFinalizeState40FC& state,
+    RuntimeRng618A& rng,
+    const TextDatabase& text,
+    const CharacterFinalizeOps40FC& ops) {
     // 0x4100..0x410B: seed the original CODE.1 RNG from the original timer.
     rng.seed(ops.call7F50());
 
     // 0x410E.
-    Code1CharacterInit3884::initialize(state.character, rng);
+    CharacterInit3884::initialize(state.character, rng);
 
     // 0x4113.
     state.selectedRow7124 = -1;
@@ -123,7 +123,7 @@ void Code1CharacterFinalize40FC::run(
             }
             state.handle954 = state.handle958;
 
-            Code1CharacterInit3884::initialize(state.character, rng);
+            CharacterInit3884::initialize(state.character, rng);
             state.handle958 = rebuildSheetImage(state, text, ops);
 
             state.value924 = state.value928;

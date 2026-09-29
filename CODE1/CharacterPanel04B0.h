@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Code1UiTextComposite00EC.h"
+#include "UiTextComposite00EC.h"
 
 #include <array>
 #include <cstdint>
@@ -8,7 +8,7 @@
 
 namespace ravenloft::game {
 
-struct Code1CharacterPanelState04B0 {
+struct CharacterPanelState04B0 {
     const char* recordBase67F8 = nullptr;
     std::int8_t field680A = 0;
     std::uint8_t field680B = 0;
@@ -19,17 +19,17 @@ struct Code1CharacterPanelState04B0 {
     std::int32_t global713C = 0;
 };
 
-struct Code1CharacterPanelOps04B0 {
-    Code1UiTextDrawOps00EC draw;
+struct CharacterPanelOps04B0 {
+    UiTextDrawOps00EC draw;
     std::function<void(std::int32_t, std::int32_t)> call38A4;
 };
 
-class Code1CharacterPanel04B0 {
+class CharacterPanel04B0 {
 public:
     // Direct reconstruction of CODE.1 0x04B0..0x0648.
     static void drawThroughStage(std::int32_t stage,
-                                 const Code1CharacterPanelState04B0& state,
-                                 const Code1CharacterPanelOps04B0& ops);
+                                 const CharacterPanelState04B0& state,
+                                 const CharacterPanelOps04B0& ops);
 };
 
 } // namespace ravenloft::game

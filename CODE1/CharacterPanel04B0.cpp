@@ -1,13 +1,13 @@
-#include "Code1CharacterPanel04B0.h"
+#include "CharacterPanel04B0.h"
 
 #include <cstddef>
 
 namespace ravenloft::game {
 
-void Code1CharacterPanel04B0::drawThroughStage(
+void CharacterPanel04B0::drawThroughStage(
     std::int32_t stage,
-    const Code1CharacterPanelState04B0& state,
-    const Code1CharacterPanelOps04B0& ops) {
+    const CharacterPanelState04B0& state,
+    const CharacterPanelOps04B0& ops) {
     // 0x04B4..0x04E4.
     if (stage >= 1) {
         ops.draw.call6EB0(0, 0x114, 3,

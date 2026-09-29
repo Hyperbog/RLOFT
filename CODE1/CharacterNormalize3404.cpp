@@ -1,4 +1,4 @@
-#include "Code1CharacterNormalize3404.h"
+#include "CharacterNormalize3404.h"
 
 #include <array>
 #include <cstddef>
@@ -63,8 +63,8 @@ std::int32_t activeClassCount(
 
 } // namespace
 
-void Code1CharacterNormalize3404::apply(
-    Code1CharacterNormalizeState3404& state) noexcept {
+void CharacterNormalize3404::apply(
+    CharacterNormalizeState3404& state) noexcept {
     const auto race = static_cast<std::size_t>(state.field680C);
 
     // 0x341E..0x34D4: clamp six alternating bytes using race bounds plus the
