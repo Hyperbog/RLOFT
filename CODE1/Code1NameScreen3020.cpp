@@ -1,6 +1,6 @@
-#include "games/ravenloft/game/Code1NameScreen3020.h"
+#include "Code1NameScreen3020.h"
 
-#include "games/ravenloft/game/Code1TextEntry2DFC.h"
+#include "Code1TextEntry2DFC.h"
 
 #include <array>
 

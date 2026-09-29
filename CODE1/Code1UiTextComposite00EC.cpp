@@ -1,6 +1,6 @@
-#include "games/ravenloft/game/Code1UiTextComposite00EC.h"
+#include "Code1UiTextComposite00EC.h"
 
-#include "games/ravenloft/game/Code1RuntimeString6EE9.h"
+#include "Code1RuntimeString6EE9.h"
 
 #include <cstddef>
 #include <vector>

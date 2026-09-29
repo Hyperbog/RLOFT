@@ -1,6 +1,6 @@
 #pragma once
 
-#include "games/ravenloft/game/Code1UiHitTest035C.h"
+#include "Code1UiHitTest035C.h"
 
 #include <cstdint>
 #include <functional>

@@ -1,7 +1,7 @@
-#include "games/ravenloft/game/Code1CharacterFinalize40FC.h"
+#include "Code1CharacterFinalize40FC.h"
 
-#include "games/ravenloft/game/Code1CharacterInit3884.h"
-#include "games/ravenloft/game/Code1CharacterSheet38A4.h"
+#include "Code1CharacterInit3884.h"
+#include "Code1CharacterSheet38A4.h"
 
 #include <array>
 #include <cstddef>
@@ -24,7 +24,7 @@ Code1CharacterSheetState38A4 makeSheetState(
 }
 
 void drawCharacterSheet(Code1CharacterFinalizeState40FC& state,
-                        const ravenloft::data::TextDatabase& text,
+                        const Code1TextDatabase& text,
                         const Code1CharacterFinalizeOps40FC& ops) {
     auto sheet = makeSheetState(state);
     Code1CharacterSheet38A4::draw(0, 0, sheet, text, ops.sheet);
@@ -33,7 +33,7 @@ void drawCharacterSheet(Code1CharacterFinalizeState40FC& state,
 
 std::uintptr_t rebuildSheetImage(
     Code1CharacterFinalizeState40FC& state,
-    const ravenloft::data::TextDatabase& text,
+    const Code1TextDatabase& text,
     const Code1CharacterFinalizeOps40FC& ops) {
     ops.call6588(state.buffer7138);
     const std::uintptr_t saved =
@@ -82,7 +82,7 @@ void showAdjustmentBanner(Code1CharacterFinalizeState40FC& state,
 void Code1CharacterFinalize40FC::run(
     Code1CharacterFinalizeState40FC& state,
     Code1RuntimeRng618A& rng,
-    const ravenloft::data::TextDatabase& text,
+    const Code1TextDatabase& text,
     const Code1CharacterFinalizeOps40FC& ops) {
     // 0x4100..0x410B: seed the original CODE.1 RNG from the original timer.
     rng.seed(ops.call7F50());

@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1UiFlows1CD0.h"
+#include "Code1UiFlows1CD0.h"
 
 #include <array>
 #include <cstddef>

@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1UiSetup1464.h"
+#include "Code1UiSetup1464.h"
 
 #include <cstddef>
 
@@ -46,7 +46,7 @@ void Code1UiSetup1464::run(
     std::int32_t textIndex948,
     std::int32_t titleSelector,
     Code1UiSetupState1464& state,
-    const ravenloft::data::TextDatabase& text,
+    const Code1TextDatabase& text,
     const Code1UiSetupOps1464& ops) {
     state.previous8F4Stride8.fill(0x15);
 

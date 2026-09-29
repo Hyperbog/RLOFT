@@ -1,6 +1,6 @@
-#include "games/ravenloft/game/Code1CharacterVital32F4.h"
+#include "Code1CharacterVital32F4.h"
 
-#include "games/ravenloft/game/Code1Dice0010.h"
+#include "Code1Dice0010.h"
 
 #include <array>
 #include <cstddef>

@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1RuntimeDecimal88D8.h"
+#include "Code1RuntimeDecimal88D8.h"
 
 #include <string>
 

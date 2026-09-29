@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1CharacterPanel04B0.h"
+#include "Code1CharacterPanel04B0.h"
 
 #include <cstddef>
 

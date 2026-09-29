@@ -1,6 +1,6 @@
 #pragma once
 
-#include "games/ravenloft/data/TextDatabase.h"
+#include "Code1TextDatabase.h"
 
 #include <array>
 #include <cstdint>
@@ -44,7 +44,7 @@ public:
     static void draw(std::int32_t x,
                      std::int32_t y,
                      Code1CharacterSheetState38A4& state,
-                     const ravenloft::data::TextDatabase& text,
+                     const Code1TextDatabase& text,
                      const Code1CharacterSheetOps38A4& ops);
 };
 

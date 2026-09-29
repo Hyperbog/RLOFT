@@ -1,7 +1,7 @@
 #pragma once
 
-#include "games/ravenloft/data/TextDatabase.h"
-#include "games/ravenloft/game/Code1UiTextComposite00EC.h"
+#include "Code1TextDatabase.h"
+#include "Code1UiTextComposite00EC.h"
 
 #include <cstdint>
 #include <functional>
@@ -42,7 +42,7 @@ class Code1CharacterPanelCache1A04 {
 public:
     // Direct reconstruction of CODE.1 0x1A04..0x1BD0.
     static void rebuild(Code1CharacterPanelCacheState1A04& state,
-                        const ravenloft::data::TextDatabase& text,
+                        const Code1TextDatabase& text,
                         const Code1CharacterPanelCacheOps1A04& ops);
 };
 

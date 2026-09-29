@@ -1,6 +1,6 @@
-#include "games/ravenloft/game/Code1CharacterHitRoll37C0.h"
+#include "Code1CharacterHitRoll37C0.h"
 
-#include "games/ravenloft/game/Code1Dice0010.h"
+#include "Code1Dice0010.h"
 
 #include <array>
 #include <cstddef>

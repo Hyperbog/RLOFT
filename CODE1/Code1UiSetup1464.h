@@ -1,8 +1,8 @@
 #pragma once
 
-#include "games/ravenloft/data/TextDatabase.h"
-#include "games/ravenloft/game/Code1UiEntry10A4.h"
-#include "games/ravenloft/game/Code1UiTransition07E4.h"
+#include "Code1TextDatabase.h"
+#include "Code1UiEntry10A4.h"
+#include "Code1UiTransition07E4.h"
 
 #include <array>
 #include <cstdint>
@@ -41,7 +41,7 @@ public:
                     std::int32_t textIndex948,
                     std::int32_t titleSelector,
                     Code1UiSetupState1464& state,
-                    const ravenloft::data::TextDatabase& text,
+                    const Code1TextDatabase& text,
                     const Code1UiSetupOps1464& ops);
 };
 

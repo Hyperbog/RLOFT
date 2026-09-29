@@ -1,7 +1,7 @@
-#include "games/ravenloft/game/Code1CharacterSheet38A4.h"
+#include "Code1CharacterSheet38A4.h"
 
-#include "games/ravenloft/game/Code1RuntimeDecimal88D8.h"
-#include "games/ravenloft/game/Code1RuntimeStrcatB01A.h"
+#include "Code1RuntimeDecimal88D8.h"
+#include "Code1RuntimeStrcatB01A.h"
 
 #include <array>
 #include <cstddef>
@@ -50,7 +50,7 @@ void Code1CharacterSheet38A4::draw(
     std::int32_t x,
     std::int32_t y,
     Code1CharacterSheetState38A4& state,
-    const ravenloft::data::TextDatabase& text,
+    const Code1TextDatabase& text,
     const Code1CharacterSheetOps38A4& ops) {
     // 0x38A9..0x38BF.
     ops.call6C60(0, x, y, 0x14, 7);

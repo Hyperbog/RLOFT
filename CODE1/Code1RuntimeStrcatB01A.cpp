@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1RuntimeStrcatB01A.h"
+#include "Code1RuntimeStrcatB01A.h"
 
 namespace ravenloft::game {
 

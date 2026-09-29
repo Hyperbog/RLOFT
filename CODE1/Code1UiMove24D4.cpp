@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1UiMove24D4.h"
+#include "Code1UiMove24D4.h"
 
 #include <array>
 #include <cstddef>

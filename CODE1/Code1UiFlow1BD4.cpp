@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1UiFlow1BD4.h"
+#include "Code1UiFlow1BD4.h"
 
 #include <cstddef>
 

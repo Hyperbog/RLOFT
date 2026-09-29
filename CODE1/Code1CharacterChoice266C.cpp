@@ -1,7 +1,7 @@
-#include "games/ravenloft/game/Code1CharacterChoice266C.h"
+#include "Code1CharacterChoice266C.h"
 
-#include "games/ravenloft/game/Code1CharacterOptions2198.h"
-#include "games/ravenloft/game/Code1CharacterTriple1F24.h"
+#include "Code1CharacterOptions2198.h"
+#include "Code1CharacterTriple1F24.h"
 
 #include <array>
 #include <cstddef>

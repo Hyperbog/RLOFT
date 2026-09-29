@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1UiSelection043C.h"
+#include "Code1UiSelection043C.h"
 
 namespace ravenloft::game {
 

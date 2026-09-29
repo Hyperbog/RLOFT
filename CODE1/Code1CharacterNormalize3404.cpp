@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1CharacterNormalize3404.h"
+#include "Code1CharacterNormalize3404.h"
 
 #include <array>
 #include <cstddef>

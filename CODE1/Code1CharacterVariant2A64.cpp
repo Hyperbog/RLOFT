@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1CharacterVariant2A64.h"
+#include "Code1CharacterVariant2A64.h"
 
 #include <array>
 #include <cstddef>

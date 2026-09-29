@@ -1,6 +1,6 @@
-#include "games/ravenloft/game/Code1CharacterPanelCache1A04.h"
+#include "Code1CharacterPanelCache1A04.h"
 
-#include "games/ravenloft/game/Code1UiTextComposite00EC.h"
+#include "Code1UiTextComposite00EC.h"
 
 namespace ravenloft::game {
 namespace {
@@ -10,7 +10,7 @@ void drawCharacterPanel(bool live,
                         std::int8_t signedField,
                         std::uint8_t unsignedField,
                         std::int32_t globalBase,
-                        const ravenloft::data::TextDatabase& text,
+                        const Code1TextDatabase& text,
                         const Code1CharacterPanelCacheOps1A04& ops) {
     if (!live) {
         const auto& label = text.at(0);
@@ -31,7 +31,7 @@ void drawCharacterPanel(bool live,
 
 void Code1CharacterPanelCache1A04::rebuild(
     Code1CharacterPanelCacheState1A04& state,
-    const ravenloft::data::TextDatabase& text,
+    const Code1TextDatabase& text,
     const Code1CharacterPanelCacheOps1A04& ops) {
     if (state.handle95C != 0) {
         ops.call7830(state.handle95C);

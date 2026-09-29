@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1TextEntry2DFC.h"
+#include "Code1TextEntry2DFC.h"
 
 #include <cstddef>
 #include <cstdint>

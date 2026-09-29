@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1Dice0010.h"
+#include "Code1Dice0010.h"
 
 #include <cstdint>
 

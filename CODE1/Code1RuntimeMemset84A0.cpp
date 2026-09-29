@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1RuntimeMemset84A0.h"
+#include "Code1RuntimeMemset84A0.h"
 
 namespace ravenloft::game {
 

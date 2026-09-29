@@ -1,6 +1,6 @@
 #pragma once
 
-#include "games/ravenloft/game/Code1RuntimeRng618A.h"
+#include "Code1RuntimeRng618A.h"
 
 namespace ravenloft::game {
 

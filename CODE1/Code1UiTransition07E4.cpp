@@ -1,6 +1,6 @@
-#include "games/ravenloft/game/Code1UiTransition07E4.h"
+#include "Code1UiTransition07E4.h"
 
-#include "games/ravenloft/game/Code1UiTextComposite00EC.h"
+#include "Code1UiTextComposite00EC.h"
 
 #include <array>
 #include <cstddef>
@@ -24,7 +24,7 @@ std::int32_t animatedY(std::int32_t y, std::int32_t amount) noexcept {
 }
 
 void drawTextFields(Code1UiTransitionState07E4& state,
-                    const ravenloft::data::TextDatabase& text,
+                    const Code1TextDatabase& text,
                     const Code1UiTransitionOps07E4& ops) {
     if (state.textIndex940 != -1) {
         const auto& label = text.at(static_cast<std::size_t>(state.textIndex940));
@@ -44,7 +44,7 @@ void Code1UiTransition07E4::animate(
     std::int32_t startIndex,
     std::int32_t endIndex,
     Code1UiTransitionState07E4& state,
-    const ravenloft::data::TextDatabase& text,
+    const Code1TextDatabase& text,
     const Code1UiTransitionOps07E4& ops) {
     std::array<std::uint8_t, 9> counters{};
 

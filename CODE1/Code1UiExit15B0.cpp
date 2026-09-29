@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1UiExit15B0.h"
+#include "Code1UiExit15B0.h"
 
 #include <array>
 #include <cstddef>

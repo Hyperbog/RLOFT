@@ -1,9 +1,9 @@
 #pragma once
 
-#include "games/ravenloft/data/TextDatabase.h"
-#include "games/ravenloft/game/Code1CharacterInit3884.h"
-#include "games/ravenloft/game/Code1CharacterSheet38A4.h"
-#include "games/ravenloft/game/Code1RuntimeRng618A.h"
+#include "Code1TextDatabase.h"
+#include "Code1CharacterInit3884.h"
+#include "Code1CharacterSheet38A4.h"
+#include "Code1RuntimeRng618A.h"
 
 #include <array>
 #include <cstdint>
@@ -80,7 +80,7 @@ public:
     // Direct reconstruction of CODE.1 0x40FC..0x44E0.
     static void run(Code1CharacterFinalizeState40FC& state,
                     Code1RuntimeRng618A& rng,
-                    const ravenloft::data::TextDatabase& text,
+                    const Code1TextDatabase& text,
                     const Code1CharacterFinalizeOps40FC& ops);
 };
 

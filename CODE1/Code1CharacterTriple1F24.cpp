@@ -1,6 +1,6 @@
-#include "games/ravenloft/game/Code1CharacterTriple1F24.h"
+#include "Code1CharacterTriple1F24.h"
 
-#include "games/ravenloft/game/Code1UiFlows1CD0.h"
+#include "Code1UiFlows1CD0.h"
 
 #include <cstdint>
 

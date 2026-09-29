@@ -1,7 +1,7 @@
-#include "games/ravenloft/game/Code1CharacterRolls334C.h"
+#include "Code1CharacterRolls334C.h"
 
-#include "games/ravenloft/game/Code1Dice0010.h"
-#include "games/ravenloft/game/Code1RuntimeMemset84A0.h"
+#include "Code1Dice0010.h"
+#include "Code1RuntimeMemset84A0.h"
 
 #include <cstddef>
 #include <cstdint>

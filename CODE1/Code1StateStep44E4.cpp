@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1StateStep44E4.h"
+#include "Code1StateStep44E4.h"
 
 namespace ravenloft::game {
 

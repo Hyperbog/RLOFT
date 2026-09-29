@@ -1,13 +1,13 @@
-#include "games/ravenloft/game/Code1UiPage064C.h"
+#include "Code1UiPage064C.h"
 
-#include "games/ravenloft/game/Code1UiTextComposite00EC.h"
+#include "Code1UiTextComposite00EC.h"
 
 #include <cstddef>
 
 namespace ravenloft::game {
 
 void Code1UiPage064C::draw(const Code1UiPageState064C& state,
-                           const ravenloft::data::TextDatabase& text,
+                           const Code1TextDatabase& text,
                            const Code1UiPageOps064C& ops) {
     // 0x0651..0x0759: process exactly nine display slots.
     for (std::int32_t i = 0; i < 9; ++i) {

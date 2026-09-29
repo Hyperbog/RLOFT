@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1CharacterOptions2198.h"
+#include "Code1CharacterOptions2198.h"
 
 #include <array>
 #include <cstddef>

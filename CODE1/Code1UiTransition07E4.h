@@ -1,7 +1,7 @@
 #pragma once
 
-#include "games/ravenloft/data/TextDatabase.h"
-#include "games/ravenloft/game/Code1UiTextComposite00EC.h"
+#include "Code1TextDatabase.h"
+#include "Code1UiTextComposite00EC.h"
 
 #include <array>
 #include <cstdint>
@@ -52,7 +52,7 @@ public:
     static void animate(std::int32_t startIndex,
                         std::int32_t endIndex,
                         Code1UiTransitionState07E4& state,
-                        const ravenloft::data::TextDatabase& text,
+                        const Code1TextDatabase& text,
                         const Code1UiTransitionOps07E4& ops);
 };
 

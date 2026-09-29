@@ -1,7 +1,7 @@
 #pragma once
 
-#include "games/ravenloft/game/Code1TextEntry2DFC.h"
-#include "games/ravenloft/game/Code1UiTextComposite00EC.h"
+#include "Code1TextEntry2DFC.h"
+#include "Code1UiTextComposite00EC.h"
 
 #include <array>
 #include <cstdint>

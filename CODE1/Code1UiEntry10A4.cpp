@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1UiEntry10A4.h"
+#include "Code1UiEntry10A4.h"
 
 #include <array>
 #include <cstddef>

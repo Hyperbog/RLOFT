@@ -1,6 +1,0 @@
-#include "games/ravenloft/data/Lzss.h"
-#include <array>
-#include <stdexcept>
-namespace ravenloft::data {
-std::vector<std::uint8_t> lzssDecode(std::span<const std::uint8_t> data,std::size_t expected,std::uint8_t fill){std::array<std::uint8_t,4096> ring{};ring.fill(fill);std::array<bool,4096> known{};for(std::size_t i=0;i<4078;++i)known[i]=true;std::size_t pos=4078,src=0;std::vector<std::uint8_t> out;out.reserve(expected);while(src<data.size()&&out.size()<expected){auto flags=data[src++];for(int bit=0;bit<8&&src<data.size()&&out.size()<expected;++bit){if(flags&(1u<<bit)){auto v=data[src++];out.push_back(v);ring[pos]=v;known[pos]=true;pos=(pos+1)&4095;}else{if(src+2>data.size())throw std::runtime_error("Truncated LZSS reference");auto lo=data[src++],hi=data[src++];std::size_t off=lo|((hi&0xF0)<<4),len=(hi&0x0F)+3;for(std::size_t j=0;j<len&&out.size()<expected;++j){auto q=(off+j)&4095;if(!known[q])throw std::runtime_error("LZSS references uninitialized dictionary tail");auto v=ring[q];out.push_back(v);ring[pos]=v;known[pos]=true;pos=(pos+1)&4095;}}}}if(out.size()!=expected)throw std::runtime_error("LZSS output size mismatch");if(src!=data.size())throw std::runtime_error("LZSS did not consume payload exactly");return out;}
-}

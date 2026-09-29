@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1RuntimeString6EE9.h"
+#include "Code1RuntimeString6EE9.h"
 
 namespace ravenloft::game {
 

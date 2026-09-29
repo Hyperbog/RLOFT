@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1CharacterFlags28E4.h"
+#include "Code1CharacterFlags28E4.h"
 
 #include <array>
 #include <cstddef>

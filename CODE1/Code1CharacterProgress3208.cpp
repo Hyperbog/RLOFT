@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1CharacterProgress3208.h"
+#include "Code1CharacterProgress3208.h"
 
 #include <array>
 #include <cstddef>

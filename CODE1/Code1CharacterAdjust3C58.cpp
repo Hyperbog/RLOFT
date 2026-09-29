@@ -1,7 +1,7 @@
-#include "games/ravenloft/game/Code1CharacterAdjust3C58.h"
+#include "Code1CharacterAdjust3C58.h"
 
-#include "games/ravenloft/game/Code1CharacterNormalize3404.h"
-#include "games/ravenloft/game/Code1CharacterSheet38A4.h"
+#include "Code1CharacterNormalize3404.h"
+#include "Code1CharacterSheet38A4.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -30,7 +30,7 @@ void normalize(Code1CharacterAdjustState3C58& state) {
 void drawSheet(std::int32_t x,
                std::int32_t y,
                Code1CharacterAdjustState3C58& state,
-               const ravenloft::data::TextDatabase& text,
+               const Code1TextDatabase& text,
                const Code1CharacterAdjustOps3C58& ops) {
     Code1CharacterSheetState38A4 sheet{};
     sheet.fields680D = state.fields680D;
@@ -47,7 +47,7 @@ void drawSheet(std::int32_t x,
 }
 
 void redrawAndWait(Code1CharacterAdjustState3C58& state,
-                   const ravenloft::data::TextDatabase& text,
+                   const Code1TextDatabase& text,
                    const Code1CharacterAdjustOps3C58& ops) {
     ops.call6588(state.buffer7138);
     drawSheet(0x5B, 0x88, state, text, ops);
@@ -137,7 +137,7 @@ void decreaseSelected(Code1CharacterAdjustState3C58& state,
 
 void Code1CharacterAdjust3C58::run(
     Code1CharacterAdjustState3C58& state,
-    const ravenloft::data::TextDatabase& text,
+    const Code1TextDatabase& text,
     const Code1CharacterAdjustOps3C58& ops) {
     // 0x3C5D..0x3CA5: transition into the adjustment page.
     state.value924 = state.value928;

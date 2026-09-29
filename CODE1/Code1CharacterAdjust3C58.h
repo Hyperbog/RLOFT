@@ -1,7 +1,7 @@
 #pragma once
 
-#include "games/ravenloft/data/TextDatabase.h"
-#include "games/ravenloft/game/Code1CharacterSheet38A4.h"
+#include "Code1TextDatabase.h"
+#include "Code1CharacterSheet38A4.h"
 
 #include <array>
 #include <cstdint>
@@ -66,7 +66,7 @@ class Code1CharacterAdjust3C58 {
 public:
     // Direct reconstruction of CODE.1 0x3C58..0x40FA.
     static void run(Code1CharacterAdjustState3C58& state,
-                    const ravenloft::data::TextDatabase& text,
+                    const Code1TextDatabase& text,
                     const Code1CharacterAdjustOps3C58& ops);
 };
 

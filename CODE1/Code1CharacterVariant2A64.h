@@ -1,8 +1,8 @@
 #pragma once
 
-#include "games/ravenloft/game/Code1UiHitTest035C.h"
-#include "games/ravenloft/game/Code1UiSelection043C.h"
-#include "games/ravenloft/game/Code1UiTextComposite00EC.h"
+#include "Code1UiHitTest035C.h"
+#include "Code1UiSelection043C.h"
+#include "Code1UiTextComposite00EC.h"
 
 #include <array>
 #include <cstdint>

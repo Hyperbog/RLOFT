@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1CharacterActivation3138.h"
+#include "Code1CharacterActivation3138.h"
 
 #include <array>
 #include <cstddef>

@@ -1,4 +1,4 @@
-#include "games/ravenloft/game/Code1UiDrawState4520.h"
+#include "Code1UiDrawState4520.h"
 
 namespace ravenloft::game {
 

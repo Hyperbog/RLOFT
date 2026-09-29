@@ -1,7 +1,7 @@
 #pragma once
 
-#include "games/ravenloft/data/TextDatabase.h"
-#include "games/ravenloft/game/Code1UiTextComposite00EC.h"
+#include "Code1TextDatabase.h"
+#include "Code1UiTextComposite00EC.h"
 
 #include <array>
 #include <cstdint>
@@ -31,7 +31,7 @@ class Code1UiPage064C {
 public:
     // Direct reconstruction of CODE.1 0x064C..0x07E1.
     static void draw(const Code1UiPageState064C& state,
-                     const ravenloft::data::TextDatabase& text,
+                     const Code1TextDatabase& text,
                      const Code1UiPageOps064C& ops);
 };
 

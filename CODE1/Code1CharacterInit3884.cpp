@@ -1,10 +1,10 @@
-#include "games/ravenloft/game/Code1CharacterInit3884.h"
+#include "Code1CharacterInit3884.h"
 
-#include "games/ravenloft/game/Code1CharacterHitRoll37C0.h"
-#include "games/ravenloft/game/Code1CharacterNormalize3404.h"
-#include "games/ravenloft/game/Code1CharacterProgress3208.h"
-#include "games/ravenloft/game/Code1CharacterRolls334C.h"
-#include "games/ravenloft/game/Code1CharacterVital32F4.h"
+#include "Code1CharacterHitRoll37C0.h"
+#include "Code1CharacterNormalize3404.h"
+#include "Code1CharacterProgress3208.h"
+#include "Code1CharacterRolls334C.h"
+#include "Code1CharacterVital32F4.h"
 
 namespace ravenloft::game {
 

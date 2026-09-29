@@ -1,8 +1,0 @@
-#include "games/ravenloft/data/InitDatabase.h"
-#include "games/ravenloft/data/Binary.h"
-#include "engine/core/FileSystem.h"
-#include <algorithm>
-#include <stdexcept>
-namespace ravenloft::data {
-InitDatabase::InitDatabase(const std::filesystem::path& path){auto b=ssi::core::readFile(path);std::span<const std::uint8_t>d(b);std::size_t p=0;for(int i=0;i<18;++i){globals_[i]=u16(d,p);p+=2;}auto n1=u16(d,p);p+=2;if(n1!=175)throw std::runtime_error("Unexpected INIT scenery count");scenery_.reserve(n1);for(int i=0;i<n1;++i){SceneryDefinition s;s.base=u16(d,p);s.radius=u16(d,p+2);s.views=d[p+4];s.frames=d[p+5];s.effect=d[p+6];scenery_.push_back(s);p+=7;}auto n2=u16(d,p);p+=2;if(n2!=12)throw std::runtime_error("Unexpected INIT transient count");transient_.reserve(n2);for(int i=0;i<n2;++i){TransientDefinition t;std::copy_n(d.begin()+p,7,t.raw.begin());transient_.push_back(t);p+=7;}auto gc=i16(d,p);p+=2;if(gc!=2)throw std::runtime_error("Unexpected INIT sky group count");skyGroups_.reserve(gc);for(int g=0;g<gc;++g){SkyGroupDefinition group;group.resourceBase=i16(d,p);auto cnt=i16(d,p+2);p+=4;if(cnt<0)throw std::runtime_error("Negative INIT sky element count");requireRange(d,p,std::size_t(cnt)*8,"INIT sky group");group.elements.reserve(cnt);for(int i=0;i<cnt;++i){SkyElementDefinition e;e.resource=i16(d,p);e.angle=i16(d,p+2);e.width=i16(d,p+4);e.vertical=i16(d,p+6);group.elements.push_back(e);p+=8;}skyGroups_.push_back(std::move(group));}if(skyGroups_.size()!=2||skyGroups_[0].resourceBase!=8||skyGroups_[0].elements.size()!=38||skyGroups_[1].resourceBase!=45||skyGroups_[1].elements.size()!=27)throw std::runtime_error("Unexpected INIT sky group layout");if(p!=d.size())throw std::runtime_error("INIT parser did not consume all bytes");}
-}
