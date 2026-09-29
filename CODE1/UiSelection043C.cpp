@@ -1,9 +1,9 @@
-#include "Code1UiSelection043C.h"
+#include "UiSelection043C.h"
 
 namespace ravenloft::game {
 
-std::int32_t Code1UiSelection043C::waitForSelection(
-    const Code1UiHitTestState035C& hitState,
+std::int32_t UiSelection043C::waitForSelection(
+    const UiHitTestState035C& hitState,
     std::int32_t& lastButtons4D4,
     const PointerPoll& pollPointer,
     const KeyPoll& pollKey) {
@@ -35,7 +35,7 @@ std::int32_t Code1UiSelection043C::waitForSelection(
 
         // 0x049C..0x04A8: keep polling until the hit-test is nonnegative.
         const auto selection =
-            Code1UiHitTest035C::hitTest(pointer.x, pointer.y, hitState);
+            UiHitTest035C::hitTest(pointer.x, pointer.y, hitState);
         if (selection >= 0) {
             return selection;
         }

@@ -1,4 +1,4 @@
-#include "Code1Vga9CA0.h"
+#include "Vga9CA0.h"
 
 #include <algorithm>
 #include <array>
@@ -25,7 +25,7 @@ std::uint8_t arithmeticShiftRight8(
 
 void setMapMask(
     std::uint8_t mask,
-    const Code1VgaOps9CA0& ops) {
+    const VgaOps9CA0& ops) {
     ops.out16(
         0x3C4,
         static_cast<std::uint16_t>(
@@ -45,11 +45,11 @@ void advanceAddress(
 
 } // namespace
 
-std::uint8_t Code1Vga9CA0::configure(
+std::uint8_t Vga9CA0::configure(
     std::uint8_t mode,
-    Code1VgaModeDescriptor9CA0& descriptor,
-    Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    VgaModeDescriptor9CA0& descriptor,
+    VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     // 0x9CA4..0x9CF4.
     state.flag2B29 = mode & 0x80u;
     state.mode2B2D = mode & 0x7Fu;
@@ -149,25 +149,25 @@ std::uint8_t Code1Vga9CA0::configure(
     return 0x0D;
 }
 
-void Code1Vga9CA0::restoreText(
-    const Code1VgaOps9CA0& ops) {
+void Vga9CA0::restoreText(
+    const VgaOps9CA0& ops) {
     ops.callAF08();
     ops.biosSetMode(3);
 }
 
-void Code1Vga9CA0::setLogicalOperationThunk(
+void Vga9CA0::setLogicalOperationThunk(
     std::int32_t index,
-    Code1VgaState9CA0& state) noexcept {
+    VgaState9CA0& state) noexcept {
     // CODE.1 0x9E10 is a jump thunk to 0x9E8C.
     setLogicalOperation(index, state);
 }
 
-void Code1Vga9CA0::setPixel(
+void Vga9CA0::setPixel(
     std::int32_t first,
     std::int32_t second,
     std::uint8_t color,
-    Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     const auto mapped =
         ops.mapAEA8(first, second);
 
@@ -197,10 +197,10 @@ void Code1Vga9CA0::setPixel(
     ops.out16(0x3CE, 0x0003);
 }
 
-std::uint8_t Code1Vga9CA0::getPixel(
+std::uint8_t Vga9CA0::getPixel(
     std::int32_t first,
     std::int32_t second,
-    const Code1VgaOps9CA0& ops) {
+    const VgaOps9CA0& ops) {
     const auto mapped =
         ops.mapAEA8(first, second);
 
@@ -214,9 +214,9 @@ std::uint8_t Code1Vga9CA0::getPixel(
     return ops.readMemory8(mapped.address);
 }
 
-void Code1Vga9CA0::setLogicalOperation(
+void Vga9CA0::setLogicalOperation(
     std::int32_t index,
-    Code1VgaState9CA0& state) noexcept {
+    VgaState9CA0& state) noexcept {
     // Exact CODE.1 bytes at 0x9EA3..0x9EA6.
     static constexpr std::array<std::uint8_t, 4>
         kLogicalOperations{{0x00, 0x08, 0x10, 0x18}};
@@ -226,14 +226,14 @@ void Code1Vga9CA0::setLogicalOperation(
             static_cast<std::size_t>(index)];
 }
 
-void Code1Vga9CA0::fillRect(
+void Vga9CA0::fillRect(
     std::int32_t first,
     std::int32_t second,
     std::int32_t firstCount,
     std::int32_t secondCount,
     std::uint8_t color,
-    Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     // 0x9EC8..0x9ED0 jumps to the shared function epilogue.
     if (firstCount <= 0 ||
         secondCount <= 0) {
@@ -427,11 +427,11 @@ void Code1Vga9CA0::fillRect(
     }
 }
 
-void Code1Vga9CA0::uploadPalette(
+void Vga9CA0::uploadPalette(
     std::span<const std::uint8_t> bytes,
     std::uint8_t startIndex,
     std::int32_t byteCount,
-    const Code1VgaOps9CA0& ops) {
+    const VgaOps9CA0& ops) {
     ops.out8(0x3C8, startIndex);
 
     std::size_t offset = 0;

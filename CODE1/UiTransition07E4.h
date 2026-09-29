@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Code1TextDatabase.h"
-#include "Code1UiTextComposite00EC.h"
+#include "TextDatabase.h"
+#include "UiTextComposite00EC.h"
 
 #include <array>
 #include <cstdint>
@@ -9,7 +9,7 @@
 
 namespace ravenloft::game {
 
-struct Code1UiTransitionState07E4 {
+struct UiTransitionState07E4 {
     std::int32_t mode4D0 = 0;
     std::array<std::int32_t, 9> x87C{};
     std::array<std::int32_t, 9> y880{};
@@ -24,8 +24,8 @@ struct Code1UiTransitionState07E4 {
     std::uint8_t byte63F8 = 0;
 };
 
-struct Code1UiTransitionOps07E4 {
-    Code1UiTextDrawOps00EC draw;
+struct UiTransitionOps07E4 {
+    UiTextDrawOps00EC draw;
 
     std::function<void(std::int32_t, std::int32_t)> call8E3C;
     std::function<void(std::uint8_t)> call6588;
@@ -45,15 +45,15 @@ struct Code1UiTransitionOps07E4 {
     std::function<void()> call064C;
 };
 
-class Code1UiTransition07E4 {
+class UiTransition07E4 {
 public:
     // Direct reconstruction of CODE.1 0x07E4..0x10A1.
     // startIndex/endIndex are the original half-open slot range arguments.
     static void animate(std::int32_t startIndex,
                         std::int32_t endIndex,
-                        Code1UiTransitionState07E4& state,
-                        const Code1TextDatabase& text,
-                        const Code1UiTransitionOps07E4& ops);
+                        UiTransitionState07E4& state,
+                        const TextDatabase& text,
+                        const UiTransitionOps07E4& ops);
 };
 
 } // namespace ravenloft::game

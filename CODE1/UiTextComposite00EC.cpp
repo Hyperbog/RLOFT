@@ -1,6 +1,6 @@
-#include "Code1UiTextComposite00EC.h"
+#include "UiTextComposite00EC.h"
 
-#include "Code1RuntimeString6EE9.h"
+#include "RuntimeString6EE9.h"
 
 #include <cstddef>
 #include <vector>
@@ -9,9 +9,9 @@ namespace ravenloft::game {
 namespace {
 
 std::vector<char> copyText(const char* text) {
-    const auto length = Code1RuntimeString6EE9::length(text);
+    const auto length = RuntimeString6EE9::length(text);
     std::vector<char> buffer(length + 1u, '\0');
-    Code1RuntimeString6EE9::copy(buffer.data(), text);
+    RuntimeString6EE9::copy(buffer.data(), text);
     return buffer;
 }
 
@@ -42,7 +42,7 @@ char* nextPiece(char* current) noexcept {
 
 } // namespace
 
-void Code1UiTextComposite00EC::draw(
+void UiTextComposite00EC::draw(
     std::int32_t x,
     std::int32_t y,
     std::int32_t width,
@@ -50,7 +50,7 @@ void Code1UiTextComposite00EC::draw(
     const char* text,
     std::int32_t mode,
     std::int32_t surfaceOrResource,
-    const Code1UiTextDrawOps00EC& ops) {
+    const UiTextDrawOps00EC& ops) {
     if (mode == 0) {
         // 0x00FF..0x0116.
         ops.call6EB0(0, x, y, 0x1A, 7, surfaceOrResource);

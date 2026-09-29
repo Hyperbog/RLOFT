@@ -1,15 +1,15 @@
-#include "Code1UiSequence45FC.h"
+#include "UiSequence45FC.h"
 
-#include "Code1StateStep44E4.h"
+#include "StateStep44E4.h"
 
 #include <array>
 #include <cstddef>
 
 namespace ravenloft::game {
 
-void Code1UiSequence45FC::run(
-    Code1UiSequenceState45FC& state,
-    const Code1UiSequenceOps45FC& ops) {
+void UiSequence45FC::run(
+    UiSequenceState45FC& state,
+    const UiSequenceOps45FC& ops) {
     static constexpr std::array<std::uint8_t, 10> kSequence{{
         0x36, 0x37, 0x38, 0x34, 0x35,
         0x36, 0x37, 0x38, 0x39, 0x3A
@@ -26,7 +26,7 @@ void Code1UiSequence45FC::run(
         ops.call7868(0xE5, 0, 0xAA, 0x50, 0xFF);
 
     // 0x4672..0x46B3.
-    Code1UiDrawState4520::draw(value, delta, ops.drawState);
+    UiDrawState4520::draw(value, delta, ops.drawState);
     ops.call6C60(0, 0x15F, 0x74, 0x31, 7);
     ops.callA390(static_cast<std::uint8_t>(state.buffer7138 ^ 1u));
     ops.call65A4(state.buffer7138);
@@ -58,7 +58,7 @@ void Code1UiSequence45FC::run(
             ops.call6C60(0, 0x96, 0x8C, kSequence[sequenceIndex], 7);
 
             ops.call67C8(0, 0xE5, 0, savedPanel);
-            Code1UiDrawState4520::draw(value, delta, ops.drawState);
+            UiDrawState4520::draw(value, delta, ops.drawState);
 
             ops.call65A4(state.buffer7138);
             state.buffer7138 ^= 1u;
@@ -73,7 +73,7 @@ void Code1UiSequence45FC::run(
                 ops.callC4E0(state.value712C + 0x0D);
             }
 
-            Code1StateStep44E4::apply(value, delta);
+            StateStep44E4::apply(value, delta);
         }
 
         // 0x4820..0x48F1: 25-frame second phase.
@@ -89,13 +89,13 @@ void Code1UiSequence45FC::run(
             }
 
             ops.call67C8(0, 0xE5, 0, savedPanel);
-            Code1UiDrawState4520::draw(value, delta, ops.drawState);
+            UiDrawState4520::draw(value, delta, ops.drawState);
 
             ops.call65A4(state.buffer7138);
             state.buffer7138 ^= 1u;
             ops.call87D8(2, 0);
 
-            Code1StateStep44E4::apply(value, delta);
+            StateStep44E4::apply(value, delta);
 
             if (pass == 0 && frame == 15) {
                 ops.callC4E0(state.value712C + 0x0C);

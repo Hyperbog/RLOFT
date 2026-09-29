@@ -1,6 +1,6 @@
-#include "Code1UiTransition07E4.h"
+#include "UiTransition07E4.h"
 
-#include "Code1UiTextComposite00EC.h"
+#include "UiTextComposite00EC.h"
 
 #include <array>
 #include <cstddef>
@@ -23,29 +23,29 @@ std::int32_t animatedY(std::int32_t y, std::int32_t amount) noexcept {
     return y + 0x18 - eax;
 }
 
-void drawTextFields(Code1UiTransitionState07E4& state,
-                    const Code1TextDatabase& text,
-                    const Code1UiTransitionOps07E4& ops) {
+void drawTextFields(UiTransitionState07E4& state,
+                    const TextDatabase& text,
+                    const UiTransitionOps07E4& ops) {
     if (state.textIndex940 != -1) {
         const auto& label = text.at(static_cast<std::size_t>(state.textIndex940));
-        Code1UiTextComposite00EC::draw(0x114, 0x10C, 0x7A, 0x30,
+        UiTextComposite00EC::draw(0x114, 0x10C, 0x7A, 0x30,
                                        label.c_str(), 0, 0x5FF8, ops.draw);
     }
     if (state.textIndex948 != -1) {
         const auto& label = text.at(static_cast<std::size_t>(state.textIndex948));
-        Code1UiTextComposite00EC::draw(0x114, 0xD7, 0x7A, 0x30,
+        UiTextComposite00EC::draw(0x114, 0xD7, 0x7A, 0x30,
                                        label.c_str(), 0, 0x5FF8, ops.draw);
     }
 }
 
 } // namespace
 
-void Code1UiTransition07E4::animate(
+void UiTransition07E4::animate(
     std::int32_t startIndex,
     std::int32_t endIndex,
-    Code1UiTransitionState07E4& state,
-    const Code1TextDatabase& text,
-    const Code1UiTransitionOps07E4& ops) {
+    UiTransitionState07E4& state,
+    const TextDatabase& text,
+    const UiTransitionOps07E4& ops) {
     std::array<std::uint8_t, 9> counters{};
 
     ops.call8E3C(0x14, 7);

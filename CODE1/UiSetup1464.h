@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Code1TextDatabase.h"
-#include "Code1UiEntry10A4.h"
-#include "Code1UiTransition07E4.h"
+#include "TextDatabase.h"
+#include "UiEntry10A4.h"
+#include "UiTransition07E4.h"
 
 #include <array>
 #include <cstdint>
@@ -10,7 +10,7 @@
 
 namespace ravenloft::game {
 
-struct Code1UiSetupState1464 {
+struct UiSetupState1464 {
     std::int32_t mode4D0 = 0;
     std::array<std::int32_t, 9> x87C{};
     std::array<std::int32_t, 9> y880{};
@@ -27,12 +27,12 @@ struct Code1UiSetupState1464 {
     std::string text7140;
 };
 
-struct Code1UiSetupOps1464 {
-    Code1UiEntryOps10A4 entry;
-    Code1UiTransitionOps07E4 transition;
+struct UiSetupOps1464 {
+    UiEntryOps10A4 entry;
+    UiTransitionOps07E4 transition;
 };
 
-class Code1UiSetup1464 {
+class UiSetup1464 {
 public:
     // Direct reconstruction of CODE.1 0x1464..0x15AD.
     static void run(std::int32_t characterPanelStage,
@@ -40,9 +40,9 @@ public:
                     std::int32_t textIndex940,
                     std::int32_t textIndex948,
                     std::int32_t titleSelector,
-                    Code1UiSetupState1464& state,
-                    const Code1TextDatabase& text,
-                    const Code1UiSetupOps1464& ops);
+                    UiSetupState1464& state,
+                    const TextDatabase& text,
+                    const UiSetupOps1464& ops);
 };
 
 } // namespace ravenloft::game

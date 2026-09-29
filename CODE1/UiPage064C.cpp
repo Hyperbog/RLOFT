@@ -1,14 +1,14 @@
-#include "Code1UiPage064C.h"
+#include "UiPage064C.h"
 
-#include "Code1UiTextComposite00EC.h"
+#include "UiTextComposite00EC.h"
 
 #include <cstddef>
 
 namespace ravenloft::game {
 
-void Code1UiPage064C::draw(const Code1UiPageState064C& state,
-                           const Code1TextDatabase& text,
-                           const Code1UiPageOps064C& ops) {
+void UiPage064C::draw(const UiPageState064C& state,
+                           const TextDatabase& text,
+                           const UiPageOps064C& ops) {
     // 0x0651..0x0759: process exactly nine display slots.
     for (std::int32_t i = 0; i < 9; ++i) {
         const auto index = static_cast<std::size_t>(i);
@@ -57,7 +57,7 @@ void Code1UiPage064C::draw(const Code1UiPageState064C& state,
     if (state.textIndex940 != -1) {
         const auto& label =
             text.at(static_cast<std::size_t>(state.textIndex940));
-        Code1UiTextComposite00EC::draw(0x114, 0x10C, 0x7A, 0x30,
+        UiTextComposite00EC::draw(0x114, 0x10C, 0x7A, 0x30,
                                        label.c_str(), 0, 0x5FF8, ops.draw);
     }
 
@@ -65,7 +65,7 @@ void Code1UiPage064C::draw(const Code1UiPageState064C& state,
     if (state.textIndex948 != -1) {
         const auto& label =
             text.at(static_cast<std::size_t>(state.textIndex948));
-        Code1UiTextComposite00EC::draw(0x114, 0xD7, 0x7A, 0x30,
+        UiTextComposite00EC::draw(0x114, 0xD7, 0x7A, 0x30,
                                        label.c_str(), 0, 0x5FF8, ops.draw);
     }
 }

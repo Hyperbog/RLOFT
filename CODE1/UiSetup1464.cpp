@@ -1,12 +1,12 @@
-#include "Code1UiSetup1464.h"
+#include "UiSetup1464.h"
 
 #include <cstddef>
 
 namespace ravenloft::game {
 namespace {
 
-Code1UiEntryState10A4 entryState(const Code1UiSetupState1464& state) {
-    Code1UiEntryState10A4 out{};
+UiEntryState10A4 entryState(const UiSetupState1464& state) {
+    UiEntryState10A4 out{};
     out.mode4D0 = state.mode4D0;
     out.x87C = state.x87C;
     out.y880 = state.y880;
@@ -18,8 +18,8 @@ Code1UiEntryState10A4 entryState(const Code1UiSetupState1464& state) {
     return out;
 }
 
-Code1UiTransitionState07E4 transitionState(const Code1UiSetupState1464& state) {
-    Code1UiTransitionState07E4 out{};
+UiTransitionState07E4 transitionState(const UiSetupState1464& state) {
+    UiTransitionState07E4 out{};
     out.mode4D0 = state.mode4D0;
     out.x87C = state.x87C;
     out.y880 = state.y880;
@@ -39,15 +39,15 @@ Code1UiTransitionState07E4 transitionState(const Code1UiSetupState1464& state) {
 
 } // namespace
 
-void Code1UiSetup1464::run(
+void UiSetup1464::run(
     std::int32_t characterPanelStage,
     const std::array<std::int32_t, 9>& slotValues,
     std::int32_t textIndex940,
     std::int32_t textIndex948,
     std::int32_t titleSelector,
-    Code1UiSetupState1464& state,
-    const Code1TextDatabase& text,
-    const Code1UiSetupOps1464& ops) {
+    UiSetupState1464& state,
+    const TextDatabase& text,
+    const UiSetupOps1464& ops) {
     state.previous8F4Stride8.fill(0x15);
 
     for (std::size_t i = 0; i < 9; ++i) state.current8F8Stride8[i] = slotValues[i];
@@ -63,7 +63,7 @@ void Code1UiSetup1464::run(
     }
 
     auto entry = entryState(state);
-    Code1UiEntry10A4::animate(characterPanelStage, entry, ops.entry);
+    UiEntry10A4::animate(characterPanelStage, entry, ops.entry);
     state.buffer7138 = entry.buffer7138;
 
     for (std::size_t i = 0; i < 9; ++i) {
@@ -87,7 +87,7 @@ void Code1UiSetup1464::run(
     }
 
     auto transition = transitionState(state);
-    Code1UiTransition07E4::animate(start, end, transition, text, ops.transition);
+    UiTransition07E4::animate(start, end, transition, text, ops.transition);
     state.buffer7138 = transition.buffer7138;
 }
 
