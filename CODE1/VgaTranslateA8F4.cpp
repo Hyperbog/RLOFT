@@ -1,4 +1,4 @@
-#include "Code1VgaTranslateA8F4.h"
+#include "VgaTranslateA8F4.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -13,7 +13,7 @@ std::uint16_t read16(std::span<const std::uint8_t> bytes,
 }
 
 void selectPlane(std::uint8_t plane,
-                 const Code1VgaOps9CA0& ops) {
+                 const VgaOps9CA0& ops) {
     ops.out16(
         0x3C4,
         static_cast<std::uint16_t>(
@@ -24,14 +24,14 @@ void selectPlane(std::uint8_t plane,
 
 } // namespace
 
-void Code1VgaTranslateA8F4::draw(
+void VgaTranslateA8F4::draw(
     std::uint32_t frameIndex,
     std::int32_t first,
     std::int32_t second,
     std::span<const std::uint8_t> resource,
     std::span<const std::uint8_t, 256> translation,
-    const Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    const VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     const auto mapped = ops.mapAEA8(first, second);
     const std::uintptr_t initialDestination = mapped.address;
     const std::uint8_t initialPlane = mapped.plane;

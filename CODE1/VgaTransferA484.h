@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Code1Vga9CA0.h"
+#include "Vga9CA0.h"
 
 #include <cstdint>
 #include <span>
 
 namespace ravenloft::game {
 
-class Code1VgaTransferA484 {
+class VgaTransferA484 {
 public:
     // Direct reconstruction of CODE.1 0xA484..0xA4E6.
     // CODE.1 0xA4E7 is alignment.
@@ -16,8 +16,8 @@ public:
                         std::int32_t second,
                         std::int32_t firstCount,
                         std::int32_t secondCount,
-                        const Code1VgaState9CA0& state,
-                        const Code1VgaOps9CA0& ops);
+                        const VgaState9CA0& state,
+                        const VgaOps9CA0& ops);
 
     // Direct reconstruction of CODE.1 0xA4E8..0xA554.
     // CODE.1 0xA555..0xA557 is alignment.
@@ -26,8 +26,8 @@ public:
                         std::int32_t second,
                         std::int32_t firstCount,
                         std::int32_t secondCount,
-                        const Code1VgaState9CA0& state,
-                        const Code1VgaOps9CA0& ops);
+                        const VgaState9CA0& state,
+                        const VgaOps9CA0& ops);
 
     // Direct reconstruction of CODE.1 0xA558..0xA57B.
     static std::uint32_t resourcePayloadSize(std::uint32_t frameCount,

@@ -1,4 +1,4 @@
-#include "Code1VgaTransferA484.h"
+#include "VgaTransferA484.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -13,7 +13,7 @@ std::uint16_t read16(std::span<const std::uint8_t> bytes,
 }
 
 void selectReadPlane(std::uint8_t plane,
-                     const Code1VgaOps9CA0& ops) {
+                     const VgaOps9CA0& ops) {
     ops.out16(
         0x3CE,
         static_cast<std::uint16_t>(
@@ -22,7 +22,7 @@ void selectReadPlane(std::uint8_t plane,
 }
 
 void selectWritePlane(std::uint8_t mask,
-                      const Code1VgaOps9CA0& ops) {
+                      const VgaOps9CA0& ops) {
     ops.out16(
         0x3C4,
         static_cast<std::uint16_t>(
@@ -32,14 +32,14 @@ void selectWritePlane(std::uint8_t mask,
 
 } // namespace
 
-void Code1VgaTransferA484::capture(
+void VgaTransferA484::capture(
     std::span<std::uint8_t> destination,
     std::int32_t first,
     std::int32_t second,
     std::int32_t firstCount,
     std::int32_t secondCount,
-    const Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    const VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     const auto mapped = ops.mapAEA8(first, second);
     const std::uintptr_t rowStart = mapped.address;
 
@@ -72,14 +72,14 @@ void Code1VgaTransferA484::capture(
     }
 }
 
-void Code1VgaTransferA484::restore(
+void VgaTransferA484::restore(
     std::span<const std::uint8_t> source,
     std::int32_t first,
     std::int32_t second,
     std::int32_t firstCount,
     std::int32_t secondCount,
-    const Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    const VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     const auto mapped = ops.mapAEA8(first, second);
     const std::uintptr_t rowStart = mapped.address;
 
@@ -117,7 +117,7 @@ void Code1VgaTransferA484::restore(
     selectWritePlane(0xFFu, ops);
 }
 
-std::uint32_t Code1VgaTransferA484::resourcePayloadSize(
+std::uint32_t VgaTransferA484::resourcePayloadSize(
     std::uint32_t frameCount,
     std::uint32_t width,
     std::uint32_t heightUnits,
@@ -134,7 +134,7 @@ std::uint32_t Code1VgaTransferA484::resourcePayloadSize(
     return value;
 }
 
-void Code1VgaTransferA484::packPlanarRow(
+void VgaTransferA484::packPlanarRow(
     std::uint32_t frameIndex,
     std::uint32_t pixelCount,
     std::span<const std::uint8_t> source,
