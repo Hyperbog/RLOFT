@@ -1,4 +1,4 @@
-#include "Code1ResourceImages767C.h"
+#include "ResourceImages767C.h"
 
 namespace ravenloft::game {
 namespace {
@@ -29,9 +29,9 @@ void put16(
             value >> 8);
 }
 
-Code1ResourceDescriptor767C decodeDescriptor(
+ResourceDescriptor767C decodeDescriptor(
     const std::uint8_t* bytes) {
-    Code1ResourceDescriptor767C descriptor{};
+    ResourceDescriptor767C descriptor{};
     descriptor.frameCount = getS16(bytes, 0);
     descriptor.width = getS16(bytes, 2);
     descriptor.heightUnits = bytes[4];
@@ -57,12 +57,12 @@ void initializeHeader(
 
 } // namespace
 
-std::uintptr_t Code1ResourceImages767C::load(
-    const Code1ResourceOuter767C& outer,
+std::uintptr_t ResourceImages767C::load(
+    const ResourceOuter767C& outer,
     std::int32_t handle,
-    Code1BufferedIoState72D0& streamState,
-    const Code1ResourceImageOps767C& ops) {
-    Code1BufferedIo72D0::setHandle(
+    BufferedIoState72D0& streamState,
+    const ResourceImageOps767C& ops) {
+    BufferedIo72D0::setHandle(
         handle, streamState);
 
     // 0x768D..0x7693: follow DWORD outer+5 before reading the descriptor.
@@ -83,7 +83,7 @@ std::uintptr_t Code1ResourceImages767C::load(
             descriptor.marker);
 
     const auto resource =
-        Code1Memory6F10::heapAllocate71C8(
+        Memory6F10::heapAllocate71C8(
             static_cast<std::size_t>(
                 static_cast<std::uint32_t>(
                     total + 8)),
@@ -111,7 +111,7 @@ std::uintptr_t Code1ResourceImages767C::load(
         8;
 
     const auto temporary =
-        Code1Memory6F10::heapAllocate71C8(
+        Memory6F10::heapAllocate71C8(
             static_cast<std::size_t>(
                 static_cast<std::uint32_t>(
                     bytesPerFrame)),
@@ -125,7 +125,7 @@ std::uintptr_t Code1ResourceImages767C::load(
         ops.call9814(0x17C);
     }
 
-    Code1BufferedIo72D0::alignAndFill(
+    BufferedIo72D0::alignAndFill(
         streamState,
         ops.stream);
 
@@ -136,7 +136,7 @@ std::uintptr_t Code1ResourceImages767C::load(
              ++frame) {
             ops.call9AE8();
 
-            Code1BufferedIo72D0::readRawBlock(
+            BufferedIo72D0::readRawBlock(
                 temporaryBytes,
                 descriptor.width,
                 descriptor.heightUnits,
@@ -158,7 +158,7 @@ std::uintptr_t Code1ResourceImages767C::load(
              ++frame) {
             ops.call9AE8();
 
-            Code1BufferedIo72D0::readRleBlock(
+            BufferedIo72D0::readRleBlock(
                 temporaryBytes,
                 descriptor.width,
                 descriptor.heightUnits,
@@ -179,7 +179,7 @@ std::uintptr_t Code1ResourceImages767C::load(
         break;
 
     case 3:
-        Code1BufferedIo72D0::beginOutput(
+        BufferedIo72D0::beginOutput(
             resource,
             outer.descriptorBytes5,
             temporaryBytes,
@@ -194,7 +194,7 @@ std::uintptr_t Code1ResourceImages767C::load(
         break;
     }
 
-    Code1Memory6F10::heapFree7240(
+    Memory6F10::heapFree7240(
         temporary,
         ops.memory);
 
@@ -205,15 +205,15 @@ std::uintptr_t Code1ResourceImages767C::load(
     return resource;
 }
 
-void Code1ResourceImages767C::release(
+void ResourceImages767C::release(
     std::uintptr_t resource,
-    const Code1ResourceImageOps767C& ops) {
-    Code1Memory6F10::heapFree7240(
+    const ResourceImageOps767C& ops) {
+    Memory6F10::heapFree7240(
         resource,
         ops.memory);
 }
 
-std::int32_t Code1ResourceImages767C::allocationSize(
+std::int32_t ResourceImages767C::allocationSize(
     std::uintptr_t resource) noexcept {
     const auto* bytes =
         reinterpret_cast<
@@ -237,14 +237,14 @@ std::int32_t Code1ResourceImages767C::allocationSize(
     return result;
 }
 
-std::uintptr_t Code1ResourceImages767C::capture(
+std::uintptr_t ResourceImages767C::capture(
     std::int32_t x,
     std::int32_t y,
     std::int32_t width,
     std::int32_t height,
     std::int32_t marker,
-    Code1GraphicsState66C0& graphicsState,
-    const Code1ResourceImageOps767C& ops) {
+    GraphicsState66C0& graphicsState,
+    const ResourceImageOps767C& ops) {
     if ((y & 3) != 0 ||
         (height & 7) != 0) {
         ops.call9814(0x1E0);
@@ -259,7 +259,7 @@ std::uintptr_t Code1ResourceImages767C::capture(
             marker);
 
     const auto resource =
-        Code1Memory6F10::heapAllocate71C8(
+        Memory6F10::heapAllocate71C8(
             static_cast<std::size_t>(
                 static_cast<std::uint32_t>(
                     total + 8)),
@@ -281,7 +281,7 @@ std::uintptr_t Code1ResourceImages767C::capture(
     const std::size_t markerBytes =
         marker != 0xFF ? 1u : 0u;
 
-    Code1Graphics66C0::capture(
+    Graphics66C0::capture(
         resource + 8u + markerBytes,
         x,
         y,
@@ -299,7 +299,7 @@ std::uintptr_t Code1ResourceImages767C::capture(
     return resource;
 }
 
-std::uintptr_t Code1ResourceImages767C::fillCaptured(
+std::uintptr_t ResourceImages767C::fillCaptured(
     std::uintptr_t destination,
     std::int32_t word0Value,
     std::int32_t x,
@@ -307,8 +307,8 @@ std::uintptr_t Code1ResourceImages767C::fillCaptured(
     std::int32_t width,
     std::int32_t height,
     std::int32_t marker,
-    Code1GraphicsState66C0& graphicsState,
-    const Code1ResourceImageOps767C& ops) {
+    GraphicsState66C0& graphicsState,
+    const ResourceImageOps767C& ops) {
     auto* bytes =
         reinterpret_cast<std::uint8_t*>(
             destination);
@@ -326,7 +326,7 @@ std::uintptr_t Code1ResourceImages767C::fillCaptured(
     const std::size_t markerBytes =
         marker != 0xFF ? 1u : 0u;
 
-    Code1Graphics66C0::capture(
+    Graphics66C0::capture(
         destination + 8u + markerBytes,
         x,
         y,

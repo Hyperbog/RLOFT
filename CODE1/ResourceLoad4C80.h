@@ -6,7 +6,7 @@
 
 namespace ravenloft::game {
 
-struct Code1ResourceLoadState4C80 {
+struct ResourceLoadState4C80 {
     std::int32_t global4BC = 0;
     std::int32_t global4C0 = 0;
     std::int32_t handle4C8 = 0;
@@ -19,7 +19,7 @@ struct Code1ResourceLoadState4C80 {
     std::uintptr_t buffer7128 = 0;
 };
 
-struct Code1ResourceLoadOps4C80 {
+struct ResourceLoadOps4C80 {
     std::function<void(std::int32_t, std::int32_t,
                        std::int32_t)> call633C;
     std::function<void(void*, std::int32_t,
@@ -34,27 +34,27 @@ struct Code1ResourceLoadOps4C80 {
     std::function<std::uintptr_t(std::size_t)> call71C8;
 };
 
-class Code1IndexedRead4C80 {
+class IndexedRead4C80 {
 public:
     // Direct reconstruction of CODE.1 0x4C80..0x4CAF.
     static std::int32_t read(std::int32_t index,
                              std::int32_t handle,
-                             const Code1ResourceLoadOps4C80& ops);
+                             const ResourceLoadOps4C80& ops);
 };
 
-class Code1ResourceOpen4CB0 {
+class ResourceOpen4CB0 {
 public:
     // Direct reconstruction of CODE.1 0x4CB0..0x4D50.
     // CODE.1 0x4D51..0x4D53 is alignment.
-    static void run(Code1ResourceLoadState4C80& state,
-                    const Code1ResourceLoadOps4C80& ops);
+    static void run(ResourceLoadState4C80& state,
+                    const ResourceLoadOps4C80& ops);
 };
 
-class Code1RecordBlock4D54 {
+class RecordBlock4D54 {
 public:
     // Direct reconstruction of CODE.1 0x4D54..0x4DC3.
-    static void load(Code1ResourceLoadState4C80& state,
-                     const Code1ResourceLoadOps4C80& ops);
+    static void load(ResourceLoadState4C80& state,
+                     const ResourceLoadOps4C80& ops);
 };
 
 } // namespace ravenloft::game

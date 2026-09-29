@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Code1BufferedIo72D0.h"
-#include "Code1Graphics66C0.h"
-#include "Code1Memory6F10.h"
+#include "BufferedIo72D0.h"
+#include "Graphics66C0.h"
+#include "Memory6F10.h"
 
 #include <array>
 #include <cstdint>
@@ -10,7 +10,7 @@
 
 namespace ravenloft::game {
 
-struct Code1ResourceDescriptor767C {
+struct ResourceDescriptor767C {
     std::int16_t frameCount = 0;
     std::int16_t width = 0;
     std::uint8_t heightUnits = 0;
@@ -21,16 +21,16 @@ struct Code1ResourceDescriptor767C {
 // The actual CODE.1 ABI for 0x767C is a packed nine-byte outer record.
 // Only its DWORD at +5 is dereferenced by 0x767C; it points at the inner
 // image descriptor represented above. The +3 WORD is consumed by 0x79C8.
-struct Code1ResourceOuter767C {
+struct ResourceOuter767C {
     std::array<std::uint8_t, 3> bytes0_2{};
     std::int16_t offset3 = 0;
     const std::uint8_t* descriptorBytes5 = nullptr;
 };
 
-struct Code1ResourceImageOps767C {
-    Code1MemoryOps6F10 memory;
-    Code1BufferedIoOps72D0 stream;
-    Code1GraphicsOps66C0 graphics;
+struct ResourceImageOps767C {
+    MemoryOps6F10 memory;
+    BufferedIoOps72D0 stream;
+    GraphicsOps66C0 graphics;
 
     std::function<std::int32_t(
         std::int32_t, std::int32_t, std::int32_t,
@@ -41,22 +41,22 @@ struct Code1ResourceImageOps767C {
     std::function<void(std::uintptr_t)> callDC90;
 };
 
-class Code1ResourceImages767C {
+class ResourceImages767C {
 public:
     // CODE.1 0x766A..0x766B is alignment.
     // CODE.1 0x766C..0x767B is the four-entry dispatch table used below.
 
     // CODE.1 0x767C..0x782E. 0x782F is alignment.
     static std::uintptr_t load(
-        const Code1ResourceOuter767C& outer,
+        const ResourceOuter767C& outer,
         std::int32_t handle,
-        Code1BufferedIoState72D0& streamState,
-        const Code1ResourceImageOps767C& ops);
+        BufferedIoState72D0& streamState,
+        const ResourceImageOps767C& ops);
 
     // CODE.1 0x7830..0x7842. 0x7843 is alignment.
     static void release(
         std::uintptr_t resource,
-        const Code1ResourceImageOps767C& ops);
+        const ResourceImageOps767C& ops);
 
     // CODE.1 0x7844..0x7867.
     static std::int32_t allocationSize(
@@ -69,8 +69,8 @@ public:
         std::int32_t width,
         std::int32_t height,
         std::int32_t marker,
-        Code1GraphicsState66C0& graphicsState,
-        const Code1ResourceImageOps767C& ops);
+        GraphicsState66C0& graphicsState,
+        const ResourceImageOps767C& ops);
 
     // CODE.1 0x7944..0x79C5.
     static std::uintptr_t fillCaptured(
@@ -81,8 +81,8 @@ public:
         std::int32_t width,
         std::int32_t height,
         std::int32_t marker,
-        Code1GraphicsState66C0& graphicsState,
-        const Code1ResourceImageOps767C& ops);
+        GraphicsState66C0& graphicsState,
+        const ResourceImageOps767C& ops);
 };
 
 } // namespace ravenloft::game

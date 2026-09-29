@@ -1,12 +1,12 @@
-#include "Code1PaletteTables4A0C.h"
+#include "PaletteTables4A0C.h"
 
 #include <cstddef>
 
 namespace ravenloft::game {
 
-void Code1PaletteTable4A0C::build(
-    Code1PaletteState4A0C& state,
-    const Code1PaletteOps4A0C& ops) {
+void PaletteTable4A0C::build(
+    PaletteState4A0C& state,
+    const PaletteOps4A0C& ops) {
     // 0x4A15.
     ops.call5A34(state.palette64F8);
 
@@ -36,16 +36,16 @@ void Code1PaletteTable4A0C::build(
     }
 }
 
-void Code1IdentityTable4B00::build(
-    Code1PaletteState4A0C& state) noexcept {
+void IdentityTable4B00::build(
+    PaletteState4A0C& state) noexcept {
     for (std::size_t index = 0; index < 0x100; ++index) {
         state.table59F8[index] = static_cast<std::uint8_t>(index);
     }
 }
 
-void Code1LuminanceTable4B18::build(
-    Code1PaletteState4A0C& state,
-    const Code1PaletteOps4A0C& ops) {
+void LuminanceTable4B18::build(
+    PaletteState4A0C& state,
+    const PaletteOps4A0C& ops) {
     // 0x4B21..0x4BC6: build page zero.
     for (std::size_t index = 0; index < 0x100; ++index) {
         const std::size_t paletteOffset = index * 3u;

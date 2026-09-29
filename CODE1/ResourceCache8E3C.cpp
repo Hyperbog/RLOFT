@@ -1,12 +1,12 @@
-#include "Code1ResourceCache8E3C.h"
+#include "ResourceCache8E3C.h"
 
 #include <cstddef>
 
 namespace ravenloft::game {
 namespace {
 
-Code1ResourceRecord8978& recordAt(
-    Code1ResourceCacheState8E3C& state,
+ResourceRecord8978& recordAt(
+    ResourceCacheState8E3C& state,
     std::int32_t item,
     std::int32_t group) {
     return state.index->groups[static_cast<std::size_t>(group)]
@@ -23,11 +23,11 @@ std::string outOfRangeMessage(
 
 } // namespace
 
-void Code1ResourceCache8E3C::load(
+void ResourceCache8E3C::load(
     std::int32_t item,
     std::int32_t group,
-    Code1ResourceCacheState8E3C& state,
-    const Code1ResourceCacheOps8E3C& ops) {
+    ResourceCacheState8E3C& state,
+    const ResourceCacheOps8E3C& ops) {
     auto& groupState =
         state.index->groups[static_cast<std::size_t>(group)];
 
@@ -50,7 +50,7 @@ void Code1ResourceCache8E3C::load(
             ops.beforeLoad2B1C(item, group);
         }
 
-        Code1ResourceHeader8D0C header{};
+        ResourceHeader8D0C header{};
         ops.readHeader8D0C(
             header,
             item,
@@ -91,11 +91,11 @@ void Code1ResourceCache8E3C::load(
             ops.ticks7F50() >> 5u));
 }
 
-void Code1ResourceCache8E3C::release(
+void ResourceCache8E3C::release(
     std::int32_t item,
     std::int32_t group,
-    Code1ResourceCacheState8E3C& state,
-    const Code1ResourceCacheOps8E3C& ops) {
+    ResourceCacheState8E3C& state,
+    const ResourceCacheOps8E3C& ops) {
     auto& groupState =
         state.index->groups[static_cast<std::size_t>(group)];
     auto& record = recordAt(state, item, group);
@@ -132,10 +132,10 @@ void Code1ResourceCache8E3C::release(
 }
 
 std::int32_t
-Code1ResourceCache8E3C::evictOldestByLoadedValue(
+ResourceCache8E3C::evictOldestByLoadedValue(
     std::int32_t loadedValue,
-    Code1ResourceCacheState8E3C& state,
-    const Code1ResourceCacheOps8E3C& ops) {
+    ResourceCacheState8E3C& state,
+    const ResourceCacheOps8E3C& ops) {
     std::int32_t bestItem = -1;
     std::int32_t bestGroup = 0;
     std::uint32_t bestAge = 0;
@@ -185,10 +185,10 @@ Code1ResourceCache8E3C::evictOldestByLoadedValue(
     return 1;
 }
 
-void Code1ResourceCache8E3C::pin(
+void ResourceCache8E3C::pin(
     std::int32_t item,
     std::int32_t group,
-    Code1ResourceCacheState8E3C& state) noexcept {
+    ResourceCacheState8E3C& state) noexcept {
     auto& record = recordAt(state, item, group);
 
     if (record.loaded2() != 0) {
@@ -196,10 +196,10 @@ void Code1ResourceCache8E3C::pin(
     }
 }
 
-void Code1ResourceCache8E3C::unpin(
+void ResourceCache8E3C::unpin(
     std::int32_t item,
     std::int32_t group,
-    Code1ResourceCacheState8E3C& state) noexcept {
+    ResourceCacheState8E3C& state) noexcept {
     auto& record = recordAt(state, item, group);
 
     if (record.loaded2() != 0) {
@@ -207,8 +207,8 @@ void Code1ResourceCache8E3C::unpin(
     }
 }
 
-void Code1ResourceCache8E3C::unpinAllExceptSpecial(
-    Code1ResourceCacheState8E3C& state) noexcept {
+void ResourceCache8E3C::unpinAllExceptSpecial(
+    ResourceCacheState8E3C& state) noexcept {
     for (std::int32_t group = 0;
          group < state.index->groupCount2B04;
          ++group) {
@@ -229,9 +229,9 @@ void Code1ResourceCache8E3C::unpinAllExceptSpecial(
     }
 }
 
-void Code1ResourceCache8E3C::reloadAndPinSpecial(
-    Code1ResourceCacheState8E3C& state,
-    const Code1ResourceCacheOps8E3C& ops) {
+void ResourceCache8E3C::reloadAndPinSpecial(
+    ResourceCacheState8E3C& state,
+    const ResourceCacheOps8E3C& ops) {
     // CODE.1 0x9523 calls 0x8B94: unpin then release every item.
     for (std::int32_t group = 0;
          group < state.index->groupCount2B04;
@@ -252,11 +252,11 @@ void Code1ResourceCache8E3C::reloadAndPinSpecial(
     pin(state.specialItem2B10, 0, state);
 }
 
-std::uint32_t Code1ResourceCache8E3C::ensureAndGet(
+std::uint32_t ResourceCache8E3C::ensureAndGet(
     std::int32_t item,
     std::int32_t group,
-    Code1ResourceCacheState8E3C& state,
-    const Code1ResourceCacheOps8E3C& ops) {
+    ResourceCacheState8E3C& state,
+    const ResourceCacheOps8E3C& ops) {
     load(item, group, state, ops);
 
     const auto& record =

@@ -1,4 +1,4 @@
-#include "Code1ResourceOwner79C8.h"
+#include "ResourceOwner79C8.h"
 
 namespace ravenloft::game {
 namespace {
@@ -30,12 +30,12 @@ std::uint32_t read32(
 
 } // namespace
 
-std::uintptr_t Code1ResourceOwner79C8::create(
-    const Code1ResourceOuter767C& outer,
+std::uintptr_t ResourceOwner79C8::create(
+    const ResourceOuter767C& outer,
     std::int32_t handle,
     std::uint8_t initialLocalF0,
-    Code1BufferedIoState72D0& streamState,
-    const Code1ResourceOwnerOps79C8& ops) {
+    BufferedIoState72D0& streamState,
+    const ResourceOwnerOps79C8& ops) {
     std::uint8_t localF0 =
         initialLocalF0;
 
@@ -54,7 +54,7 @@ std::uintptr_t Code1ResourceOwner79C8::create(
         readS16(block);
 
     const auto owner =
-        Code1Memory6F10::heapAllocate71C8(
+        Memory6F10::heapAllocate71C8(
             static_cast<std::size_t>(
                 static_cast<std::uint32_t>(
                     length + 4)),
@@ -71,14 +71,14 @@ std::uintptr_t Code1ResourceOwner79C8::create(
             outer.descriptorBytes5[i];
     }
 
-    Code1ResourceOuter767C patched =
+    ResourceOuter767C patched =
         outer;
 
     patched.offset3 = 8;
     patched.descriptorBytes5 = block;
 
     const auto resource =
-        Code1ResourceImages767C::load(
+        ResourceImages767C::load(
             patched,
             handle,
             streamState,
@@ -95,25 +95,25 @@ std::uintptr_t Code1ResourceOwner79C8::create(
     return owner;
 }
 
-void Code1ResourceOwner79C8::release(
+void ResourceOwner79C8::release(
     std::uintptr_t owner,
-    const Code1ResourceOwnerOps79C8& ops) {
+    const ResourceOwnerOps79C8& ops) {
     const auto* bytes =
         reinterpret_cast<
             const std::uint8_t*>(
                 owner);
 
-    Code1ResourceImages767C::release(
+    ResourceImages767C::release(
         ops.decodePointer32(
             read32(bytes)),
         ops.image);
 
-    Code1Memory6F10::heapFree7240(
+    Memory6F10::heapFree7240(
         owner,
         ops.image.memory);
 }
 
-char* Code1StringShift7A84::shift(
+char* StringShift7A84::shift(
     char* text,
     std::int32_t delta) noexcept {
     char* const original = text;

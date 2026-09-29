@@ -5,7 +5,7 @@
 
 namespace ravenloft::game {
 
-class Code1RuntimeDecimal88D8 {
+class RuntimeDecimal88D8 {
 public:
     // Observable reconstruction of CODE.1 0x88D8..0x88F6: signed integer to
     // base-10 text using the original shared conversion-buffer semantics.
