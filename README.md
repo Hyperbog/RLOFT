@@ -1,11 +1,11 @@
 # RLOFT
 
-![CODE.1 progress](https://img.shields.io/badge/CODE.1-66.0%25-red)
+![CODE.1 progress](https://img.shields.io/badge/CODE.1-66.7%25-red)
 ![CODE.2 progress](https://img.shields.io/badge/CODE.2-0.0%25-red)
-![Overall progress](https://img.shields.io/badge/Overall-15.0%25-red)
+![Overall progress](https://img.shields.io/badge/Overall-15.1%25-red)
 
-**CODE.1:** 66.0 / 100%  
+**CODE.1:** 66.7 / 100%  
 **CODE.2:** 0.0 / 100%  
-**Overall:** 15.0 / 100%
+**Overall:** 15.1 / 100%
 
-Current contiguous CODE.1 conversion/classification point: **0xB597**.
+Current contiguous CODE.1 conversion/classification point: **0xB76B**.
