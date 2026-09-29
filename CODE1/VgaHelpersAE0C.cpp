@@ -1,4 +1,4 @@
-#include "Code1VgaHelpersAE0C.h"
+#include "VgaHelpersAE0C.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -52,7 +52,7 @@ void transformFrame(
 
 } // namespace
 
-void Code1ImageRemapAE0C::translateFrame(
+void ImageRemapAE0C::translateFrame(
     std::uint32_t frameIndex,
     std::span<const std::uint8_t, 256> translation,
     std::span<std::uint8_t> resource) {
@@ -64,7 +64,7 @@ void Code1ImageRemapAE0C::translateFrame(
         });
 }
 
-void Code1ImageRemapAE0C::subtractFrameRegisterConvention(
+void ImageRemapAE0C::subtractFrameRegisterConvention(
     std::span<std::uint8_t> resource,
     std::uint32_t frameIndex,
     std::uint8_t adjustment) {
@@ -77,10 +77,10 @@ void Code1ImageRemapAE0C::subtractFrameRegisterConvention(
         });
 }
 
-Code1VgaMappedAddress9CA0 Code1VgaHelpersAEA8::map(
+VgaMappedAddress9CA0 VgaHelpersAEA8::map(
     std::int32_t first,
     std::int32_t second,
-    const Code1VgaState9CA0& state) noexcept {
+    const VgaState9CA0& state) noexcept {
     // EAX is shifted cumulatively in the original:
     // first<<shift2B35 plus first<<(shift2B35+shift2B39).
     std::uint32_t scaled =
@@ -105,9 +105,9 @@ Code1VgaMappedAddress9CA0 Code1VgaHelpersAEA8::map(
     };
 }
 
-void Code1VgaHelpersAEA8::setActivePage(
+void VgaHelpersAEA8::setActivePage(
     std::uint8_t page,
-    Code1VgaState9CA0& state) noexcept {
+    VgaState9CA0& state) noexcept {
     state.dword2B31 = page;
 
     state.frameBuffer2B49 =
@@ -116,9 +116,9 @@ void Code1VgaHelpersAEA8::setActivePage(
          0xA000u) << 4u;
 }
 
-void Code1VgaHelpersAEA8::clearFrameBuffer(
-    Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+void VgaHelpersAEA8::clearFrameBuffer(
+    VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     if (state.flag2B29 != 0) {
         return;
     }
@@ -135,8 +135,8 @@ void Code1VgaHelpersAEA8::clearFrameBuffer(
     }
 }
 
-void Code1VgaHelpersAEA8::waitRetraceStart(
-    const Code1VgaOps9CA0& ops) {
+void VgaHelpersAEA8::waitRetraceStart(
+    const VgaOps9CA0& ops) {
     while ((ops.in8(0x3DA) & 0x08u) != 0) {
     }
 
@@ -144,8 +144,8 @@ void Code1VgaHelpersAEA8::waitRetraceStart(
     }
 }
 
-void Code1VgaHelpersAEA8::waitRetraceEnd(
-    const Code1VgaOps9CA0& ops) {
+void VgaHelpersAEA8::waitRetraceEnd(
+    const VgaOps9CA0& ops) {
     while ((ops.in8(0x3DA) & 0x08u) == 0) {
     }
 
@@ -153,9 +153,9 @@ void Code1VgaHelpersAEA8::waitRetraceEnd(
     }
 }
 
-void Code1VgaHelpersAEA8::setDisplayStart(
+void VgaHelpersAEA8::setDisplayStart(
     std::uint16_t start,
-    const Code1VgaOps9CA0& ops) {
+    const VgaOps9CA0& ops) {
     ops.out16(
         0x3D4,
         static_cast<std::uint16_t>(
@@ -173,10 +173,10 @@ void Code1VgaHelpersAEA8::setDisplayStart(
     waitRetraceStart(ops);
 }
 
-void Code1VgaHelpersAEA8::setVerticalParameter(
+void VgaHelpersAEA8::setVerticalParameter(
     std::uint32_t value,
-    Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     state.dword2B3D = value;
 
     waitRetraceStart(ops);

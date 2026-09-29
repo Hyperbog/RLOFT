@@ -6,7 +6,7 @@
 
 namespace ravenloft::game {
 
-struct Code1VgaBlitterDescriptorC7A0 {
+struct VgaBlitterDescriptorC7A0 {
     std::uint16_t field0;
     std::uint16_t field2;
     std::uint16_t field4;
@@ -30,7 +30,7 @@ struct Code1VgaBlitterDescriptorC7A0 {
 // 0xC8C1..0xC8C3, 0xC9D2..0xC9D3, 0xCACA..0xCACB, and 0xCBD1..0xCBD3 are
 // alignment/no-op bytes.
 
-class Code1VgaBlittersC7A0 {
+class VgaBlittersC7A0 {
 public:
     // Direct reconstruction of CODE.1 0xCBD4..0xCBEE.
     // Copies exactly 256 bytes (64 dwords) into the translation table at 0x2F88.

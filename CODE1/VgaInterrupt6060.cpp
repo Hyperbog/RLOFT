@@ -1,10 +1,10 @@
-#include "Code1VgaInterrupt6060.h"
+#include "VgaInterrupt6060.h"
 
 namespace ravenloft::game {
 
-void Code1VgaSave6060::run(
-    Code1VgaState6060& state,
-    const Code1VgaOps6060& ops) {
+void VgaSave6060::run(
+    VgaState6060& state,
+    const VgaOps6060& ops) {
     state.saved136E = state.block2B28;
 
     state.byte136A = ops.in8(0x3C4);
@@ -19,9 +19,9 @@ void Code1VgaSave6060::run(
     state.byte136D = ops.in8(0x3CF);
 }
 
-void Code1VgaRestore60B4::run(
-    Code1VgaState6060& state,
-    const Code1VgaOps6060& ops) {
+void VgaRestore60B4::run(
+    VgaState6060& state,
+    const VgaOps6060& ops) {
     state.block2B28 = state.saved136E;
 
     ops.out16(
@@ -47,11 +47,11 @@ void Code1VgaRestore60B4::run(
     ops.out8(0x3CE, state.byte136C);
 }
 
-void Code1Interrupt6104::run(
-    const Code1InterruptFrame6104& frame,
-    Code1VgaState6060& vgaState,
-    Code1InterruptUpdateState50C0& updateState,
-    const Code1InterruptOps6104& ops) {
+void Interrupt6104::run(
+    const InterruptFrame6104& frame,
+    VgaState6060& vgaState,
+    InterruptUpdateState50C0& updateState,
+    const InterruptOps6104& ops) {
     // CODE.1 saves flags/general/segment registers before this point.
     ops.callCEC0();
 
@@ -70,9 +70,9 @@ void Code1Interrupt6104::run(
     const auto* pointer =
         ops.linearPointer(linearEsi);
 
-    Code1VgaSave6060::run(vgaState, ops.vga);
+    VgaSave6060::run(vgaState, ops.vga);
 
-    Code1InterruptUpdate50C0::run(
+    InterruptUpdate50C0::run(
         frame.eax,
         frame.ebx,
         frame.ecx,
@@ -81,17 +81,17 @@ void Code1Interrupt6104::run(
         updateState,
         ops.update);
 
-    Code1VgaRestore60B4::run(vgaState, ops.vga);
+    VgaRestore60B4::run(vgaState, ops.vga);
 
     vgaState.byte1368 = 0;
 }
 
-std::uint32_t Code1GlobalAccessor61C0::get(
-    const Code1GlobalState61C0& state) noexcept {
+std::uint32_t GlobalAccessor61C0::get(
+    const GlobalState61C0& state) noexcept {
     return state.dword046C;
 }
 
-void Code1DosPrint61D0::print(
+void DosPrint61D0::print(
     char* text,
     const std::function<void(const char*)>& dosAh09) {
     char* cursor = text;

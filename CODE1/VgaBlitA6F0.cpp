@@ -1,4 +1,4 @@
-#include "Code1VgaBlitA6F0.h"
+#include "VgaBlitA6F0.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -42,7 +42,7 @@ FrameView frameView(std::uint32_t frameIndex,
 }
 
 void selectPlane(std::uint8_t plane,
-                 const Code1VgaOps9CA0& ops) {
+                 const VgaOps9CA0& ops) {
     ops.out16(
         0x3C4,
         static_cast<std::uint16_t>(
@@ -57,8 +57,8 @@ void drawImpl(std::uint32_t frameIndex,
               std::span<const std::uint8_t> resource,
               std::uint8_t adjustment,
               bool adjust,
-              const Code1VgaState9CA0& state,
-              const Code1VgaOps9CA0& ops) {
+              const VgaState9CA0& state,
+              const VgaOps9CA0& ops) {
     const auto mapped = ops.mapAEA8(first, second);
     const std::uintptr_t initialDestination = mapped.address;
     const std::uint8_t initialPlane = mapped.plane;
@@ -113,13 +113,13 @@ void drawImpl(std::uint32_t frameIndex,
 
 } // namespace
 
-void Code1VgaBlitA6F0::draw(
+void VgaBlitA6F0::draw(
     std::uint32_t frameIndex,
     std::int32_t first,
     std::int32_t second,
     std::span<const std::uint8_t> resource,
-    const Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    const VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     drawImpl(
         frameIndex,
         first,
@@ -131,14 +131,14 @@ void Code1VgaBlitA6F0::draw(
         ops);
 }
 
-void Code1VgaBlitA6F0::drawAdjusted(
+void VgaBlitA6F0::drawAdjusted(
     std::uint32_t frameIndex,
     std::int32_t first,
     std::int32_t second,
     std::span<const std::uint8_t> resource,
     std::uint8_t adjustment,
-    const Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    const VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     drawImpl(
         frameIndex,
         first,

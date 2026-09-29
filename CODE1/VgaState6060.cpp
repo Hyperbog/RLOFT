@@ -1,12 +1,12 @@
-#include "Code1VgaState6060.h"
+#include "VgaState6060.h"
 
 #include <cstddef>
 
 namespace ravenloft::game {
 
-void Code1VgaSave6060::run(
-    Code1VgaState6060& state,
-    const Code1VgaOps6060& ops) {
+void VgaSave6060::run(
+    VgaState6060& state,
+    const VgaOps6060& ops) {
     // 0x6063..0x6075: copy backwards exactly as the original loop does.
     for (std::int32_t index = 0x54; index >= 0; --index) {
         state.saved136E[static_cast<std::size_t>(index)] =
@@ -34,9 +34,9 @@ void Code1VgaSave6060::run(
     state.graphicsData4136D = ops.in8(port);
 }
 
-void Code1VgaRestore60B4::run(
-    Code1VgaState6060& state,
-    const Code1VgaOps6060& ops) {
+void VgaRestore60B4::run(
+    VgaState6060& state,
+    const VgaOps6060& ops) {
     // 0x60B7..0x60C9.
     for (std::int32_t index = 0x54; index >= 0; --index) {
         state.live2B28[static_cast<std::size_t>(index)] =

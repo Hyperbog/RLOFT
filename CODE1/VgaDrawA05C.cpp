@@ -1,4 +1,4 @@
-#include "Code1VgaDrawA05C.h"
+#include "VgaDrawA05C.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -7,26 +7,26 @@ namespace ravenloft::game {
 namespace {
 
 void setMapMask(std::uint8_t mask,
-                const Code1VgaOps9CA0& ops) {
+                const VgaOps9CA0& ops) {
     ops.out16(0x3C4,
               static_cast<std::uint16_t>(
                   0x02u |
                   (static_cast<std::uint16_t>(mask) << 8u)));
 }
 
-void setWriteMode1(const Code1VgaOps9CA0& ops) {
+void setWriteMode1(const VgaOps9CA0& ops) {
     ops.out16(0x3CE, 0x4105);
     ops.out16(0x3C4, 0x0F02);
 }
 
-void restoreWriteMode0(const Code1VgaOps9CA0& ops) {
+void restoreWriteMode0(const VgaOps9CA0& ops) {
     ops.out16(0x3CE, 0x4005);
 }
 
 void copyForward(std::uintptr_t destination,
                  std::uintptr_t source,
                  std::uint32_t count,
-                 const Code1VgaOps9CA0& ops) {
+                 const VgaOps9CA0& ops) {
     for (std::uint32_t i = 0; i < count; ++i) {
         const std::uint8_t value = ops.readMemory8(source++);
         ops.writeMemory8(destination++, value);
@@ -36,7 +36,7 @@ void copyForward(std::uintptr_t destination,
 void copyBackward(std::uintptr_t destination,
                   std::uintptr_t source,
                   std::uint32_t count,
-                  const Code1VgaOps9CA0& ops) {
+                  const VgaOps9CA0& ops) {
     for (std::uint32_t i = 0; i < count; ++i) {
         const std::uint8_t value = ops.readMemory8(source--);
         ops.writeMemory8(destination--, value);
@@ -46,7 +46,7 @@ void copyBackward(std::uintptr_t destination,
 void writeLinePixel(std::int32_t first,
                     std::int32_t second,
                     std::uint8_t color,
-                    const Code1VgaOps9CA0& ops) {
+                    const VgaOps9CA0& ops) {
     const auto mapped = ops.mapAEA8(first, second);
     setMapMask(static_cast<std::uint8_t>(1u << mapped.plane), ops);
     (void)ops.readMemory8(mapped.address);
@@ -55,14 +55,14 @@ void writeLinePixel(std::int32_t first,
 
 } // namespace
 
-void Code1VgaDrawA05C::line(
+void VgaDrawA05C::line(
     std::int32_t first1,
     std::int32_t second1,
     std::int32_t first2,
     std::int32_t second2,
     std::uint8_t color,
-    Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     ops.out16(
         0x3CE,
         static_cast<std::uint16_t>(
@@ -148,10 +148,10 @@ void Code1VgaDrawA05C::line(
     ops.out16(0x3CE, 0x0003);
 }
 
-void Code1VgaDrawA05C::shiftPageMemory(
+void VgaDrawA05C::shiftPageMemory(
     std::int32_t amount,
-    Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     const bool nonNegative =
         static_cast<std::int16_t>(amount) >= 0;
 
@@ -183,11 +183,11 @@ void Code1VgaDrawA05C::shiftPageMemory(
     restoreWriteMode0(ops);
 }
 
-void Code1VgaDrawA05C::copyRows(
+void VgaDrawA05C::copyRows(
     std::int32_t rowCount,
     std::int32_t offset,
-    Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     const bool nonNegative =
         static_cast<std::int16_t>(offset) >= 0;
 
@@ -229,9 +229,9 @@ void Code1VgaDrawA05C::copyRows(
     restoreWriteMode0(ops);
 }
 
-void Code1VgaDrawA05C::setActivePage(
+void VgaDrawA05C::setActivePage(
     std::uint8_t page,
-    Code1VgaState9CA0& state) noexcept {
+    VgaState9CA0& state) noexcept {
     state.dword2B31 = page;
     state.frameBuffer2B49 =
         (static_cast<std::uint32_t>(page) *
@@ -239,10 +239,10 @@ void Code1VgaDrawA05C::setActivePage(
          0xA000u) << 4u;
 }
 
-void Code1VgaDrawA05C::setDisplayPage(
+void VgaDrawA05C::setDisplayPage(
     std::uint8_t page,
-    const Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    const VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     const std::uint32_t product =
         static_cast<std::uint32_t>(page) *
         (state.pageBytes2B4D >> 4u);
@@ -252,10 +252,10 @@ void Code1VgaDrawA05C::setDisplayPage(
             (product & 0xFFu) << 8u));
 }
 
-void Code1VgaDrawA05C::cloneCurrentPageTo(
+void VgaDrawA05C::cloneCurrentPageTo(
     std::uint8_t page,
-    Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     const std::uintptr_t destination =
         (static_cast<std::uint32_t>(page) *
              state.pageBytes2B4D +
@@ -276,7 +276,7 @@ void Code1VgaDrawA05C::cloneCurrentPageTo(
     restoreWriteMode0(ops);
 }
 
-void Code1VgaDrawA05C::copyRectBetweenPages(
+void VgaDrawA05C::copyRectBetweenPages(
     std::uint8_t destinationPage,
     std::int32_t sourceFirst,
     std::int32_t sourceSecond,
@@ -284,8 +284,8 @@ void Code1VgaDrawA05C::copyRectBetweenPages(
     std::int32_t destinationSecond,
     std::int32_t firstCount,
     std::int32_t secondCount,
-    Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     const auto sourceMapped =
         ops.mapAEA8(sourceFirst, sourceSecond);
     std::uintptr_t source = sourceMapped.address;
@@ -335,9 +335,9 @@ void Code1VgaDrawA05C::copyRectBetweenPages(
     restoreWriteMode0(ops);
 }
 
-void Code1VgaDrawA05C::setDisplayParameter(
+void VgaDrawA05C::setDisplayParameter(
     std::int32_t value,
-    const Code1VgaOps9CA0& ops) {
+    const VgaOps9CA0& ops) {
     ops.callAF80(value);
 }
 

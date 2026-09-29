@@ -1,4 +1,4 @@
-#include "Code1VgaClippedAA20.h"
+#include "VgaClippedAA20.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -13,7 +13,7 @@ std::uint16_t read16(std::span<const std::uint8_t> bytes,
 }
 
 void selectPlane(std::uint8_t plane,
-                 const Code1VgaOps9CA0& ops) {
+                 const VgaOps9CA0& ops) {
     ops.out16(
         0x3C4,
         static_cast<std::uint16_t>(
@@ -34,13 +34,13 @@ void advance(std::uintptr_t& address,
 void drawImpl(std::uint32_t frameIndex,
               std::int32_t first,
               std::int32_t second,
-              const Code1ClipWork6854& work,
+              const ClipWork6854& work,
               std::span<const std::uint8_t> resource,
               std::uint8_t adjustment,
               bool adjusted,
               bool repeatInitialPlaneSkip,
-              const Code1VgaState9CA0& state,
-              const Code1VgaOps9CA0& ops) {
+              const VgaState9CA0& state,
+              const VgaOps9CA0& ops) {
     const std::uint32_t sourceLead =
         static_cast<std::uint32_t>(work.sourceLeadBytes) >> 2u;
     const std::uint32_t sourceTail =
@@ -191,14 +191,14 @@ void drawImpl(std::uint32_t frameIndex,
 
 } // namespace
 
-void Code1VgaClippedAA20::draw(
+void VgaClippedAA20::draw(
     std::uint32_t frameIndex,
     std::int32_t first,
     std::int32_t second,
-    const Code1ClipWork6854& work,
+    const ClipWork6854& work,
     std::span<const std::uint8_t> resource,
-    const Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    const VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     drawImpl(
         frameIndex,
         first,
@@ -212,15 +212,15 @@ void Code1VgaClippedAA20::draw(
         ops);
 }
 
-void Code1VgaClippedAA20::drawAdjusted(
+void VgaClippedAA20::drawAdjusted(
     std::uint32_t frameIndex,
     std::int32_t first,
     std::int32_t second,
-    const Code1ClipWork6854& work,
+    const ClipWork6854& work,
     std::span<const std::uint8_t> resource,
     std::uint8_t adjustment,
-    const Code1VgaState9CA0& state,
-    const Code1VgaOps9CA0& ops) {
+    const VgaState9CA0& state,
+    const VgaOps9CA0& ops) {
     drawImpl(
         frameIndex,
         first,
