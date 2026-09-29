@@ -1,11 +1,11 @@
-#include "Code1Interrupt6104.h"
+#include "Interrupt6104.h"
 
 namespace ravenloft::game {
 
-void Code1Interrupt6104::run(
-    const Code1InterruptFrame6104& frame,
-    Code1InterruptState6104& state,
-    const Code1InterruptOps6104& ops) {
+void Interrupt6104::run(
+    const InterruptFrame6104& frame,
+    InterruptState6104& state,
+    const InterruptOps6104& ops) {
     // 0x610D..0x6114: establish the CODE.1 data context; ES then mirrors DS.
     ops.callCEC0();
 
@@ -29,9 +29,9 @@ void Code1Interrupt6104::run(
         ops.resolveLinearPointer(linearEsi);
 
     // 0x6155..0x6162.
-    Code1VgaSave6060::run(state.vga, ops.vga);
+    VgaSave6060::run(state.vga, ops.vga);
 
-    Code1InterruptUpdate50C0::run(
+    InterruptUpdate50C0::run(
         static_cast<std::int32_t>(frame.eax),
         static_cast<std::int32_t>(frame.ebx),
         static_cast<std::int32_t>(frame.ecx),
@@ -40,11 +40,11 @@ void Code1Interrupt6104::run(
         state.update,
         ops.update);
 
-    Code1VgaRestore60B4::run(state.vga, ops.vga);
+    VgaRestore60B4::run(state.vga, ops.vga);
 
     // 0x6167..0x6173 restores the interrupted SS:ESP and clears the reentry
     // guard. The C++ call frame itself already preserves the caller's CPU
-    // registers/flags represented by Code1InterruptFrame6104.
+    // registers/flags represented by InterruptFrame6104.
     state.active1368 = 0;
 }
 

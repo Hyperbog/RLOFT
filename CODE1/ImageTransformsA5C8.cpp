@@ -1,4 +1,4 @@
-#include "Code1ImageTransformsA5C8.h"
+#include "ImageTransformsA5C8.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -51,7 +51,7 @@ void swapRun(std::span<std::uint8_t> resource,
 
 } // namespace
 
-void Code1ImageTransformsA5C8::transformA5C8(
+void ImageTransformsA5C8::transformA5C8(
     std::uint32_t frameIndex,
     std::span<std::uint8_t> resource) {
     const std::uint16_t width = read16(resource, 4);
@@ -107,7 +107,7 @@ void Code1ImageTransformsA5C8::transformA5C8(
     }
 }
 
-void Code1ImageTransformsA5C8::transformA678(
+void ImageTransformsA5C8::transformA678(
     std::uint32_t frameIndex,
     std::span<std::uint8_t> resource) {
     const std::uint16_t width = read16(resource, 4);

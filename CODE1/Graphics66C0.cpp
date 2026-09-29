@@ -1,4 +1,4 @@
-#include "Code1Graphics66C0.h"
+#include "Graphics66C0.h"
 
 #include <cstddef>
 
@@ -9,7 +9,7 @@ void clipRectArgs(std::int32_t& x,
                   std::int32_t& y,
                   std::int32_t& width,
                   std::int32_t& height,
-                  const Code1GraphicsState66C0& state) noexcept {
+                  const GraphicsState66C0& state) noexcept {
     if (x < 0) {
         width += x;
         x = 0;
@@ -29,9 +29,9 @@ void clipRectArgs(std::int32_t& x,
     }
 }
 
-Code1ClipWork6854& pushScratch(
-    Code1GraphicsState66C0& state,
-    const Code1GraphicsOps66C0& ops) {
+ClipWork6854& pushScratch(
+    GraphicsState66C0& state,
+    const GraphicsOps66C0& ops) {
     ops.callDA18();
 
     auto& work =
@@ -45,8 +45,8 @@ Code1ClipWork6854& pushScratch(
     return work;
 }
 
-void popScratch(Code1GraphicsState66C0& state,
-                const Code1GraphicsOps66C0& ops) {
+void popScratch(GraphicsState66C0& state,
+                const GraphicsOps66C0& ops) {
     ops.callDA18();
     --state.scratchDepth246C;
     ops.callDA1A();
@@ -54,9 +54,9 @@ void popScratch(Code1GraphicsState66C0& state,
 
 void prepareClip(std::int32_t& x,
                  std::int32_t& y,
-                 const Code1ResourceView66C0& resource,
-                 Code1ClipWork6854& work,
-                 Code1GraphicsState66C0& state) noexcept {
+                 const ResourceView66C0& resource,
+                 ClipWork6854& work,
+                 GraphicsState66C0& state) noexcept {
     work = {};
     work.width = resource.width;
 
@@ -113,14 +113,14 @@ void prepareClip(std::int32_t& x,
 
 } // namespace
 
-void Code1Graphics66C0::capture(
+void Graphics66C0::capture(
     std::uintptr_t buffer,
     std::int32_t x,
     std::int32_t y,
     std::int32_t width,
     std::int32_t height,
-    const Code1GraphicsState66C0& state,
-    const Code1GraphicsOps66C0& ops) {
+    const GraphicsState66C0& state,
+    const GraphicsOps66C0& ops) {
     clipRectArgs(x, y, width, height, state);
 
     if (width > 0 && height > 0) {
@@ -129,14 +129,14 @@ void Code1Graphics66C0::capture(
     }
 }
 
-void Code1Graphics66C0::restore(
+void Graphics66C0::restore(
     std::uintptr_t buffer,
     std::int32_t x,
     std::int32_t y,
     std::int32_t width,
     std::int32_t height,
-    const Code1GraphicsState66C0& state,
-    const Code1GraphicsOps66C0& ops) {
+    const GraphicsState66C0& state,
+    const GraphicsOps66C0& ops) {
     clipRectArgs(x, y, width, height, state);
 
     // Original 0x679F uses JL rather than JLE:
@@ -147,12 +147,12 @@ void Code1Graphics66C0::restore(
     }
 }
 
-void Code1Graphics66C0::drawDirect(
+void Graphics66C0::drawDirect(
     std::int32_t page,
     std::int32_t x,
     std::int32_t y,
-    const Code1ResourceView66C0& resource,
-    const Code1GraphicsOps66C0& ops) {
+    const ResourceView66C0& resource,
+    const GraphicsOps66C0& ops) {
     if (resource) {
         ops.callA6F0(
             page, x, y, resource.handle);
@@ -160,13 +160,13 @@ void Code1Graphics66C0::drawDirect(
     }
 }
 
-void Code1Graphics66C0::drawDirectMasked(
+void Graphics66C0::drawDirectMasked(
     std::int32_t page,
     std::int32_t x,
     std::int32_t y,
-    const Code1ResourceView66C0& resource,
+    const ResourceView66C0& resource,
     std::uint8_t mask,
-    const Code1GraphicsOps66C0& ops) {
+    const GraphicsOps66C0& ops) {
     if (resource) {
         ops.callA7E8(
             page, x, y, resource.handle, mask);
@@ -174,13 +174,13 @@ void Code1Graphics66C0::drawDirectMasked(
     }
 }
 
-void Code1Graphics66C0::drawDirectMode(
+void Graphics66C0::drawDirectMode(
     std::int32_t page,
     std::int32_t x,
     std::int32_t y,
-    const Code1ResourceView66C0& resource,
+    const ResourceView66C0& resource,
     std::int32_t mode,
-    const Code1GraphicsOps66C0& ops) {
+    const GraphicsOps66C0& ops) {
     if (resource) {
         ops.callA8F4(
             page, x, y, resource.handle, mode);
@@ -188,14 +188,14 @@ void Code1Graphics66C0::drawDirectMode(
     }
 }
 
-std::int32_t Code1Graphics66C0::drawClipped(
+std::int32_t Graphics66C0::drawClipped(
     std::int32_t page,
     std::int32_t x,
     std::int32_t y,
-    const Code1ResourceView66C0& resource,
-    Code1ClipWork6854& work,
-    Code1GraphicsState66C0& state,
-    const Code1GraphicsOps66C0& ops) {
+    const ResourceView66C0& resource,
+    ClipWork6854& work,
+    GraphicsState66C0& state,
+    const GraphicsOps66C0& ops) {
     ops.call8960();
 
     if (!resource) {
@@ -222,15 +222,15 @@ std::int32_t Code1Graphics66C0::drawClipped(
     return 0;
 }
 
-std::int32_t Code1Graphics66C0::drawClippedMasked(
+std::int32_t Graphics66C0::drawClippedMasked(
     std::int32_t page,
     std::int32_t x,
     std::int32_t y,
-    const Code1ResourceView66C0& resource,
+    const ResourceView66C0& resource,
     std::uint8_t mask,
-    Code1ClipWork6854& work,
-    Code1GraphicsState66C0& state,
-    const Code1GraphicsOps66C0& ops) {
+    ClipWork6854& work,
+    GraphicsState66C0& state,
+    const GraphicsOps66C0& ops) {
     ops.call8960();
 
     if (!resource) {
@@ -258,12 +258,12 @@ std::int32_t Code1Graphics66C0::drawClippedMasked(
     return 0;
 }
 
-void Code1Graphics66C0::setClip(
+void Graphics66C0::setClip(
     std::int32_t left,
     std::int32_t top,
     std::int32_t right,
     std::int32_t bottom,
-    Code1GraphicsState66C0& state) noexcept {
+    GraphicsState66C0& state) noexcept {
     if (left < 0) {
         left = 0;
     }
@@ -296,8 +296,8 @@ void Code1Graphics66C0::setClip(
 }
 
 std::array<std::int32_t, 4>
-Code1Graphics66C0::getClip(
-    const Code1GraphicsState66C0& state) noexcept {
+Graphics66C0::getClip(
+    const GraphicsState66C0& state) noexcept {
     return {
         state.clipLeft23ED,
         state.clipRight23F1,
@@ -306,13 +306,13 @@ Code1Graphics66C0::getClip(
     };
 }
 
-void Code1Graphics66C0::drawResource(
+void Graphics66C0::drawResource(
     std::int32_t page,
     std::int32_t x,
     std::int32_t y,
     std::int32_t resourceId,
     std::int32_t bank,
-    const Code1GraphicsOps66C0& ops) {
+    const GraphicsOps66C0& ops) {
     drawDirect(
         page, x, y,
         ops.call954C(resourceId, bank),
@@ -320,14 +320,14 @@ void Code1Graphics66C0::drawResource(
 }
 
 std::int32_t
-Code1Graphics66C0::drawResourceClipped(
+Graphics66C0::drawResourceClipped(
     std::int32_t page,
     std::int32_t x,
     std::int32_t y,
     std::int32_t resourceId,
     std::int32_t bank,
-    Code1GraphicsState66C0& state,
-    const Code1GraphicsOps66C0& ops) {
+    GraphicsState66C0& state,
+    const GraphicsOps66C0& ops) {
     auto& work =
         pushScratch(state, ops);
 
@@ -341,13 +341,13 @@ Code1Graphics66C0::drawResourceClipped(
     return result;
 }
 
-void Code1Graphics66C0::callResource862C(
+void Graphics66C0::callResource862C(
     std::int32_t x,
     std::int32_t y,
     std::int32_t resourceId,
     std::int32_t bank,
-    Code1GraphicsState66C0& state,
-    const Code1GraphicsOps66C0& ops) {
+    GraphicsState66C0& state,
+    const GraphicsOps66C0& ops) {
     const auto resource =
         ops.call954C(resourceId, bank);
 
@@ -366,13 +366,13 @@ void Code1Graphics66C0::callResource862C(
 }
 
 std::int32_t
-Code1Graphics66C0::drawViewClipped(
+Graphics66C0::drawViewClipped(
     std::int32_t page,
     std::int32_t x,
     std::int32_t y,
-    const Code1ResourceView66C0& resource,
-    Code1GraphicsState66C0& state,
-    const Code1GraphicsOps66C0& ops) {
+    const ResourceView66C0& resource,
+    GraphicsState66C0& state,
+    const GraphicsOps66C0& ops) {
     auto& work =
         pushScratch(state, ops);
 
@@ -385,14 +385,14 @@ Code1Graphics66C0::drawViewClipped(
     return result;
 }
 
-void Code1Graphics66C0::drawResourceMasked(
+void Graphics66C0::drawResourceMasked(
     std::int32_t page,
     std::int32_t x,
     std::int32_t y,
     std::int32_t resourceId,
     std::int32_t bank,
     std::uint8_t mask,
-    const Code1GraphicsOps66C0& ops) {
+    const GraphicsOps66C0& ops) {
     drawDirectMasked(
         page, x, y,
         ops.call954C(resourceId, bank),
@@ -400,15 +400,15 @@ void Code1Graphics66C0::drawResourceMasked(
 }
 
 std::int32_t
-Code1Graphics66C0::drawResourceClippedMasked(
+Graphics66C0::drawResourceClippedMasked(
     std::int32_t page,
     std::int32_t x,
     std::int32_t y,
     std::int32_t resourceId,
     std::int32_t bank,
     std::uint8_t mask,
-    Code1GraphicsState66C0& state,
-    const Code1GraphicsOps66C0& ops) {
+    GraphicsState66C0& state,
+    const GraphicsOps66C0& ops) {
     auto& work =
         pushScratch(state, ops);
 
@@ -423,14 +423,14 @@ Code1Graphics66C0::drawResourceClippedMasked(
 }
 
 std::int32_t
-Code1Graphics66C0::drawViewClippedMasked(
+Graphics66C0::drawViewClippedMasked(
     std::int32_t page,
     std::int32_t x,
     std::int32_t y,
-    const Code1ResourceView66C0& resource,
+    const ResourceView66C0& resource,
     std::uint8_t mask,
-    Code1GraphicsState66C0& state,
-    const Code1GraphicsOps66C0& ops) {
+    GraphicsState66C0& state,
+    const GraphicsOps66C0& ops) {
     auto& work =
         pushScratch(state, ops);
 
@@ -443,14 +443,14 @@ Code1Graphics66C0::drawViewClippedMasked(
     return result;
 }
 
-void Code1Graphics66C0::drawResourceMode(
+void Graphics66C0::drawResourceMode(
     std::int32_t page,
     std::int32_t x,
     std::int32_t y,
     std::int32_t resourceId,
     std::int32_t bank,
     std::int32_t mode,
-    const Code1GraphicsOps66C0& ops) {
+    const GraphicsOps66C0& ops) {
     drawDirectMode(
         page, x, y,
         ops.call954C(resourceId, bank),

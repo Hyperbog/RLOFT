@@ -1,30 +1,30 @@
-#include "Code1InputGraphics84D0.h"
+#include "InputGraphics84D0.h"
 
 #include <utility>
 
 namespace ravenloft::game {
 
-std::int32_t Code1InputGraphics84D0::inputWord0(
-    const Code1InputGraphicsState84D0& state) noexcept {
+std::int32_t InputGraphics84D0::inputWord0(
+    const InputGraphicsState84D0& state) noexcept {
     return state.input2A9C != nullptr ? state.input2A9C->word0 : 0;
 }
 
-std::int32_t Code1InputGraphics84D0::inputWord4IsOne(
-    const Code1InputGraphicsState84D0& state) noexcept {
+std::int32_t InputGraphics84D0::inputWord4IsOne(
+    const InputGraphicsState84D0& state) noexcept {
     return state.input2A9C != nullptr && state.input2A9C->word4 == 1 ? 1 : 0;
 }
 
-std::int32_t Code1InputGraphics84D0::inputWord2WhenActive(
-    const Code1InputGraphicsState84D0& state) noexcept {
+std::int32_t InputGraphics84D0::inputWord2WhenActive(
+    const InputGraphicsState84D0& state) noexcept {
     if (state.input2A9C == nullptr || state.input2A9C->word0 == 0) return 0;
     return state.input2A9C->word2;
 }
 
-void Code1InputGraphics84D0::outlineRect(
+void InputGraphics84D0::outlineRect(
     std::int32_t x, std::int32_t y,
     std::int32_t width, std::int32_t height,
     std::uint8_t color,
-    const Code1InputGraphicsOps84D0& ops) {
+    const InputGraphicsOps84D0& ops) {
     ops.verticalLine65C0(x, y, height, color);
     if (width > 2) ops.horizontalLine65E8(x + 1, y, width - 2, color);
     if (width > 1) ops.verticalLine65C0(x + width - 1, y, height, color);
@@ -32,19 +32,19 @@ void Code1InputGraphics84D0::outlineRect(
         ops.horizontalLine65E8(x + 1, y + height - 1, width - 2, color);
 }
 
-void Code1InputGraphics84D0::forEachStrip(
+void InputGraphics84D0::forEachStrip(
     std::int32_t value,
-    const Code1StripDescriptor85A8& descriptor,
-    const Code1InputGraphicsOps84D0& ops) {
+    const StripDescriptor85A8& descriptor,
+    const InputGraphicsOps84D0& ops) {
     for (std::int32_t i = 0; i < descriptor.count; ++i)
         ops.callAE0C(i, value, descriptor.handle);
 }
 
-void Code1InputGraphics84D0::drawStripClipped(
+void InputGraphics84D0::drawStripClipped(
     std::int32_t x, std::int32_t y,
     std::int32_t start, std::int32_t end,
-    const Code1StripDescriptor85A8& descriptor,
-    const Code1InputGraphicsOps84D0& ops) {
+    const StripDescriptor85A8& descriptor,
+    const InputGraphicsOps84D0& ops) {
     if (end == -1) end = descriptor.count;
     else end += start;
     for (std::int32_t i = start; i < end; ++i) {
@@ -53,18 +53,18 @@ void Code1InputGraphics84D0::drawStripClipped(
     }
 }
 
-void Code1InputGraphics84D0::drawWholeStripClipped(
+void InputGraphics84D0::drawWholeStripClipped(
     std::int32_t x, std::int32_t y,
-    const Code1StripDescriptor85A8& descriptor,
-    const Code1InputGraphicsOps84D0& ops) {
+    const StripDescriptor85A8& descriptor,
+    const InputGraphicsOps84D0& ops) {
     drawStripClipped(x, y, 0, -1, descriptor, ops);
 }
 
-void Code1InputGraphics84D0::drawStripDirect(
+void InputGraphics84D0::drawStripDirect(
     std::int32_t x, std::int32_t y,
     std::int32_t start, std::int32_t end,
-    const Code1StripDescriptor85A8& descriptor,
-    const Code1InputGraphicsOps84D0& ops) {
+    const StripDescriptor85A8& descriptor,
+    const InputGraphicsOps84D0& ops) {
     if (end == -1) end = descriptor.count;
     else end += start;
     for (std::int32_t i = start; i < end; ++i) {
@@ -73,38 +73,38 @@ void Code1InputGraphics84D0::drawStripDirect(
     }
 }
 
-void Code1InputGraphics84D0::drawWholeStripDirect(
+void InputGraphics84D0::drawWholeStripDirect(
     std::int32_t x, std::int32_t y,
-    const Code1StripDescriptor85A8& descriptor,
-    const Code1InputGraphicsOps84D0& ops) {
+    const StripDescriptor85A8& descriptor,
+    const InputGraphicsOps84D0& ops) {
     drawStripDirect(x, y, 0, -1, descriptor, ops);
 }
 
-void Code1InputGraphics84D0::drawResourceStrip(
+void InputGraphics84D0::drawResourceStrip(
     std::int32_t x, std::int32_t y,
     std::int32_t resourceId, std::int32_t bank,
-    const Code1InputGraphicsOps84D0& ops) {
+    const InputGraphicsOps84D0& ops) {
     drawWholeStripDirect(x, y, ops.call954C(resourceId, bank), ops);
 }
 
-void Code1InputGraphics84D0::forEachA5C8(
-    const Code1StripDescriptor85A8& descriptor,
-    const Code1InputGraphicsOps84D0& ops) {
+void InputGraphics84D0::forEachA5C8(
+    const StripDescriptor85A8& descriptor,
+    const InputGraphicsOps84D0& ops) {
     for (std::int32_t i = 0; i < descriptor.count; ++i)
         ops.callA5C8(i, descriptor.handle);
 }
 
-void Code1InputGraphics84D0::forEachA678(
-    const Code1StripDescriptor85A8& descriptor,
-    const Code1InputGraphicsOps84D0& ops) {
+void InputGraphics84D0::forEachA678(
+    const StripDescriptor85A8& descriptor,
+    const InputGraphicsOps84D0& ops) {
     for (std::int32_t i = 0; i < descriptor.count; ++i)
         ops.callA678(i, descriptor.handle);
 }
 
-void Code1InputGraphics84D0::pushActivePage(
+void InputGraphics84D0::pushActivePage(
     std::uint8_t page,
-    Code1InputGraphicsState84D0& state,
-    const Code1InputGraphicsOps84D0& ops) {
+    InputGraphicsState84D0& state,
+    const InputGraphicsOps84D0& ops) {
     if (state.pageDepth2B20 == 10) ops.fatal9814(0x208);
     state.pageStack89EC[state.pageDepth2B20] = state.activePage23E5;
     ++state.pageDepth2B20;
@@ -112,9 +112,9 @@ void Code1InputGraphics84D0::pushActivePage(
     state.activePage23E5 = page;
 }
 
-void Code1InputGraphics84D0::popActivePage(
-    Code1InputGraphicsState84D0& state,
-    const Code1InputGraphicsOps84D0& ops) {
+void InputGraphics84D0::popActivePage(
+    InputGraphicsState84D0& state,
+    const InputGraphicsOps84D0& ops) {
     if (state.pageDepth2B20 == 0) ops.fatal9814(0x21C);
     --state.pageDepth2B20;
     const std::uint8_t page = state.pageStack89EC[state.pageDepth2B20];
@@ -122,16 +122,16 @@ void Code1InputGraphics84D0::popActivePage(
     state.activePage23E5 = page;
 }
 
-void Code1InputGraphics84D0::startWait(
-    Code1InputGraphicsState84D0& state,
-    const Code1InputGraphicsOps84D0& ops) {
+void InputGraphics84D0::startWait(
+    InputGraphicsState84D0& state,
+    const InputGraphicsOps84D0& ops) {
     state.waitAnchor89E8 = ops.ticks7F50();
 }
 
-std::uint32_t Code1InputGraphics84D0::wait(
+std::uint32_t InputGraphics84D0::wait(
     std::uint32_t delay, std::uint32_t flags,
-    Code1InputGraphicsState84D0& state,
-    const Code1InputGraphicsOps84D0& ops) {
+    InputGraphicsState84D0& state,
+    const InputGraphicsOps84D0& ops) {
     std::uint32_t deadline =
         state.waitAnchor89E8 != 0
             ? state.waitAnchor89E8 + delay
@@ -172,38 +172,38 @@ std::uint32_t Code1InputGraphics84D0::wait(
     }
 }
 
-void Code1InputGraphics84D0::delay6(
-    const Code1InputGraphicsOps84D0& ops,
-    Code1InputGraphicsState84D0& state) {
+void InputGraphics84D0::delay6(
+    const InputGraphicsOps84D0& ops,
+    InputGraphicsState84D0& state) {
     ops.callDF13(0x416);
     (void)wait(6, 0, state, ops);
     ops.callDF73();
 }
 
-std::string Code1InputGraphics84D0::unsignedDecimal(std::uint32_t value) {
+std::string InputGraphics84D0::unsignedDecimal(std::uint32_t value) {
     return std::to_string(value);
 }
 
-std::int32_t Code1InputGraphics84D0::signum(std::int32_t value) noexcept {
+std::int32_t InputGraphics84D0::signum(std::int32_t value) noexcept {
     if (value < 0) return -1;
     if (value > 0) return 1;
     return 0;
 }
 
-void Code1InputGraphics84D0::setCallback2B1C(
+void InputGraphics84D0::setCallback2B1C(
     std::function<void()> callback,
-    Code1InputGraphicsState84D0& state) {
+    InputGraphicsState84D0& state) {
     state.callback2B1C = std::move(callback);
 }
 
-void Code1InputGraphics84D0::setCallback2B18(
+void InputGraphics84D0::setCallback2B18(
     std::function<void()> callback,
-    Code1InputGraphicsState84D0& state) {
+    InputGraphicsState84D0& state) {
     state.callback2B18 = std::move(callback);
 }
 
-void Code1InputGraphics84D0::invokeCallback2B18(
-    Code1InputGraphicsState84D0& state) {
+void InputGraphics84D0::invokeCallback2B18(
+    InputGraphicsState84D0& state) {
     if (state.callback2B18) state.callback2B18();
 }
 

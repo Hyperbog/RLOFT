@@ -1,12 +1,12 @@
-#include "Code1FormatAFD8.h"
+#include "FormatAFD8.h"
 
 #include <array>
 
 namespace ravenloft::game {
 
-void Code1FormatAFD8::emit(
+void FormatAFD8::emit(
     void*,
-    Code1FormatSinkAFD8& sink,
+    FormatSinkAFD8& sink,
     std::uint8_t value) noexcept {
     char* destination = sink.cursor;
     ++sink.cursor;
@@ -17,14 +17,14 @@ void Code1FormatAFD8::emit(
     ++sink.count;
 }
 
-std::int32_t Code1FormatAFD8::format(
+std::int32_t FormatAFD8::format(
     char* destination,
     const char* formatString,
     const void* argumentCursor,
-    const Code1FormatOpsAFD8& ops) {
+    const FormatOpsAFD8& ops) {
     const auto callback =
         [](void* ignored,
-           Code1FormatSinkAFD8& sink,
+           FormatSinkAFD8& sink,
            std::uint8_t value) {
             emit(ignored, sink, value);
         };
@@ -40,9 +40,9 @@ std::int32_t Code1FormatAFD8::format(
     return length;
 }
 
-void Code1SampleDataB060::load(
-    Code1SampleDataStateB060& state,
-    const Code1SampleDataOpsB060& ops) {
+void SampleDataB060::load(
+    SampleDataStateB060& state,
+    const SampleDataOpsB060& ops) {
     // Exact ten bytes copied from CODE.1 data DS:030C.
     std::array<char, 10> fileName{{
         'S','A','M','P','L','E','.','A','D','\0'

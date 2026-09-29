@@ -1,11 +1,11 @@
-#include "Code1InputState5230.h"
+#include "InputState5230.h"
 
 namespace ravenloft::game {
 
-void Code1InstallHandler5230::run(
+void InstallHandler5230::run(
     std::int32_t value,
-    Code1InputState5230& state,
-    const Code1InputOps5230& ops) {
+    InputState5230& state,
+    const InputOps5230& ops) {
     state.word71AC = 0x0C;
     state.word71B4 = static_cast<std::uint16_t>(value);
     state.dword71B8 = 0x6104;
@@ -18,19 +18,19 @@ void Code1InstallHandler5230::run(
         &state.word71C8);
 }
 
-void Code1InputSnapshot527C::get(
+void InputSnapshot527C::get(
     std::int16_t& first,
     std::int16_t& second,
     std::int16_t& third,
-    const Code1InputState5230& state) noexcept {
+    const InputState5230& state) noexcept {
     first = state.value71D8;
     second = state.value71D6;
     third = state.value71D4;
 }
 
-void Code1InputInit52AC::run(
-    Code1InputState5230& state,
-    const Code1InputOps5230& ops) {
+void InputInit52AC::run(
+    InputState5230& state,
+    const InputOps5230& ops) {
     state.word71DA =
         static_cast<std::int16_t>(ops.call84D0());
 
@@ -66,15 +66,15 @@ void Code1InputInit52AC::run(
 
     ops.call6BC0(0, 0, 0x18F, 0x13F);
 
-    Code1InstallHandler5230::run(
+    InstallHandler5230::run(
         0xFFFF,
         state,
         ops);
 }
 
-void Code1InputShutdown538C::run(
-    Code1InputState5230& state,
-    const Code1InputOps5230& ops) {
+void InputShutdown538C::run(
+    InputState5230& state,
+    const InputOps5230& ops) {
     if (state.word71DA != 0) {
         if (state.word73EC != 0) {
             ops.call5780();
@@ -84,9 +84,9 @@ void Code1InputShutdown538C::run(
     }
 }
 
-std::int32_t Code1InputPoll53B4::poll(
-    Code1InputState5230& state,
-    const Code1InputOps5230& ops) {
+std::int32_t InputPoll53B4::poll(
+    InputState5230& state,
+    const InputOps5230& ops) {
     ops.call9AE8();
 
     if (state.word71DA == 0) {

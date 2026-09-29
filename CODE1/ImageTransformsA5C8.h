@@ -5,7 +5,7 @@
 
 namespace ravenloft::game {
 
-class Code1ImageTransformsA5C8 {
+class ImageTransformsA5C8 {
 public:
     // Direct reconstruction of CODE.1 0xA5C8..0xA674.
     // CODE.1 0xA675..0xA677 is alignment.
