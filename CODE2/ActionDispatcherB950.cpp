@@ -148,4 +148,10 @@ int ActionDispatcherB950::runSelectedTimed10(ActionDispatcherB950State&s,const A
 int ActionDispatcherB950::runDirectA668(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
  int r=1;o.begin19CCC(0);s.bf38=0;o.directA668(ch);s.characterCf5a(ch)=1;o.finish19CF4();s.bf38=1;return r;
 }
+int ActionDispatcherB950::runCreate8A80(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch,int mode){
+ int r=1;o.begin19CCC(0);s.bf38=0;
+ const int direction=o.direction9418(mode==0?0:1);
+ o.entityCreate8A80(mode,direction,ch,o.worldY255D4(),o.worldX255D0());
+ o.finish19CF4();s.bf38=1;return r;
+}
 }
