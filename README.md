@@ -1,11 +1,11 @@
 # RLOFT
 
 ![CODE.1 progress](https://img.shields.io/badge/CODE.1-100.0%25-brightgreen)
-![CODE.2 progress](https://img.shields.io/badge/CODE.2-2.7%25-red)
+![CODE.2 progress](https://img.shields.io/badge/CODE.2-2.9%25-red)
 ![Overall progress](https://img.shields.io/badge/Overall-22.6%25-red)
 
 **CODE.1:** 100.0 / 100%  
-**CODE.2:** 2.7 / 100%  
+**CODE.2:** 2.9 / 100%  
 **Overall:** 22.6 / 100%
 
 Current contiguous CODE.1 conversion/classification point: **0x11301 (complete)**.
@@ -15,7 +15,7 @@ CODE.1 object 1 is fully converted or explicitly classified. The tail from
 Ravenloft game-authored mechanics; the original bytes remain the authority for
 DOS-era runtime behavior.
 
-Current contiguous CODE.2 conversion/classification point: **0x139B**.
+Current contiguous CODE.2 conversion/classification point: **0x1557**.
 
 CODE.2 **0x0000..0x000F** is the original INT3/self-jump/NOP prefix.
 CODE.2 **0x0010..0x0072** is reconstructed in `EntitySelector0010`;
@@ -38,5 +38,6 @@ is alignment. CODE.2 **0x0BFC..0x0CAF** is reconstructed in
 `SceneCell0CB0`; **0x10C3** is alignment. CODE.2 **0x10C4..0x11A4** is reconstructed in `FrameDraw10C4`;
 **0x11A5..0x11A7** is alignment. CODE.2 **0x11A8..0x1226** is reconstructed
 in `PanelDraw11A8`; **0x1227** is alignment. CODE.2 **0x1228..0x1398** is
-reconstructed in `TextDraw1228`; **0x1399..0x139B** is alignment.
-Reconstruction continues at **0x139C**.
+reconstructed in `TextDraw1228`; **0x1399..0x139B** is alignment. CODE.2
+**0x139C..0x1556** is reconstructed in `SceneRender139C`; **0x1557** is
+alignment. Reconstruction continues at **0x1558**.
