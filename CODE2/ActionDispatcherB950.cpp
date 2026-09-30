@@ -86,4 +86,14 @@ int ActionDispatcherB950::runState83(ActionDispatcherB950State&s,const ActionDis
 int ActionDispatcherB950::runState84(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;r=o.state9790(0x84,ch,0x23,-1,-1,-1,-1);o.finish19CF4();s.bf38=1;return r;}
 int ActionDispatcherB950::runState85(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;int v=o.value22E40(3,ch);int half=(v-(v>>31))/2;r=o.state9790(0x85,ch,0x1f,0x80,7,half+4,0x438);o.finish19CF4();s.bf38=1;return r;}
 int ActionDispatcherB950::runState86(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;int v=o.value22E40(4,ch);r=o.state9790(0x86,ch,0x33,0x100,8,v,0x438);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runSelectedFlag80(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
+ int r=1;o.begin19CCC(0);s.bf38=0;
+ int e=o.select95C0();
+ if(e!=-1){
+  o.event28110(o.resource258D4(0x43),0xff,0,1);
+  const std::uint16_t type=o.entityType(e);
+  if((o.metadataWord(type,0x31)&0x0100u)==0)o.entityByte(e,8)|=0x80;
+ }
+ o.finish19CF4();s.bf38=1;return r;
+}
 }
