@@ -13,6 +13,9 @@ int ActionDispatcherB950::run01(ActionDispatcherB950State&s,const ActionDispatch
  return result;
 int ActionDispatcherB950::runSelectedEntity(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
  int result=1;o.begin19CCC(0);s.bf38=0;int i=o.select95C0();if(i==-1)result=0;else{o.e578(ch);int r=o.dice1C328(3,10,0,0);o.effectB02C(-180,180,7,r,0x900,1,9,0x2c,o.entityY(i),o.entityX(i));}o.finish19CF4();s.bf38=1;return result;
+int ActionDispatcherB950::runTarget03(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
+ int result=1;o.begin19CCC(0);s.bf38=0;result=o.effectA254(1,0,0,0,3,ch,0,0x438);o.finish19CF4();s.bf38=1;return result;
+}
 }
 }
 int ActionDispatcherB950::run0A(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
