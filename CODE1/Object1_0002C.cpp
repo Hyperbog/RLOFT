@@ -16,7 +16,9 @@ namespace ravenloft::code1 {
 
 struct OpeningState {
     std::int32_t currentCharacter4CC = 0;
-    std::int32_t nesting4D0 = 0;
+    // Stored as raw dword bits so INC/DEC are defined modulo 2^32 exactly as
+    // the original instructions, with no signed-overflow undefined behavior.
+    std::uint32_t nesting4D0 = 0;
     std::array<std::uint8_t, 0x248 * 2> characterRecords{};
 };
 
@@ -49,9 +51,10 @@ struct OpeningOps {
 // 0026 je -002E                0028 epilogue/ret
 //
 // The branch at 0x0026 is provably dead in this routine: EAX is assigned 1 at
-// 0x001F immediately before TEST.  This is not optimized source inference; it
-// is the literal control-flow consequence of the original instruction stream.
+// 0x001F immediately before TEST.  This is the literal control-flow result of
+// the original instruction stream, not an inferred replacement behavior.
 void openingRoutineFFAC(OpeningState& state, const OpeningOps& ops) {
+    // PUSH order in the binary is reversed here into cdecl argument order.
     ops.callF5AC({
         1, 0, 1, 2, 3, 4, 5, -1, -1, -1, 9, -1, 0x27
     });
@@ -59,25 +62,26 @@ void openingRoutineFFAC(OpeningState& state, const OpeningOps& ops) {
     const std::uint32_t selection = ops.callE584();
 
     if (selection != 0u) {
-        // MOV BL,AL / DEC BL wraps strictly at eight bits.
+        // MOV BL,AL / DEC BL: only AL is copied and the decrement wraps at 8 bits.
         const std::uint8_t bl = static_cast<std::uint8_t>(
             static_cast<std::uint8_t>(selection) - std::uint8_t{1});
 
-        // IMUL EAX,[04CC],0x248 keeps the low 32-bit product.  The original
-        // valid state indexes one of the two 0x248-byte character records.
+        // IMUL EAX,[04CC],0x248 retains the low 32-bit product.  In the valid
+        // game state 04CC selects one of the two 0x248-byte records beginning
+        // at DS:67F8; DS:680C is byte +0x14 within that record.
         const std::uint32_t offset =
             static_cast<std::uint32_t>(state.currentCharacter4CC) * 0x248u;
         state.characterRecords[static_cast<std::size_t>(offset + 0x14u)] = bl;
 
-        ++state.nesting4D0; // 0xFFFFFF: INC dword [04D0], modulo 2^32 below.
-        state.nesting4D0 = static_cast<std::int32_t>(
-            static_cast<std::uint32_t>(state.nesting4D0));
+        // INC dword [04D0], exactly modulo 2^32.
+        state.nesting4D0 += 1u;
 
-        const std::uint32_t edx = selection - 1u; // DEC EDX, modulo 2^32.
+        // EDX still holds the full EAX returned by -0xA7C. DEC is 32-bit.
+        const std::uint32_t edx = selection - 1u;
         ops.callF6F8(static_cast<std::int32_t>(edx), 0x114, 0x38, 2);
     } else {
-        state.nesting4D0 = static_cast<std::int32_t>(
-            static_cast<std::uint32_t>(state.nesting4D0) - 1u);
+        // DEC dword [04D0], exactly modulo 2^32.
+        state.nesting4D0 -= 1u;
         ops.callF6F8(-1, -1, -1, -1);
     }
 
