@@ -58,5 +58,12 @@ public:
  static int runTarget44(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runTarget02(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runUiStateBE28(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget51(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget6E(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget78(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget64(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget71(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget68(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget82(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
 };
 }
