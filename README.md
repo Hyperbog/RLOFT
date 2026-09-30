@@ -1,11 +1,11 @@
 # RLOFT
 
 ![CODE.1 progress](https://img.shields.io/badge/CODE.1-100.0%25-brightgreen)
-![CODE.2 progress](https://img.shields.io/badge/CODE.2-0.4%25-red)
+![CODE.2 progress](https://img.shields.io/badge/CODE.2-0.9%25-red)
 ![Overall progress](https://img.shields.io/badge/Overall-22.6%25-red)
 
 **CODE.1:** 100.0 / 100%  
-**CODE.2:** 0.4 / 100%  
+**CODE.2:** 0.9 / 100%  
 **Overall:** 22.6 / 100%
 
 Current contiguous CODE.1 conversion/classification point: **0x11301 (complete)**.
@@ -15,7 +15,7 @@ CODE.1 object 1 is fully converted or explicitly classified. The tail from
 Ravenloft game-authored mechanics; the original bytes remain the authority for
 DOS-era runtime behavior.
 
-Current contiguous CODE.2 conversion/classification point: **0x02A7**.
+Current contiguous CODE.2 conversion/classification point: **0x06B8**.
 
 CODE.2 **0x0000..0x000F** is the original INT3/self-jump/NOP prefix.
 CODE.2 **0x0010..0x0072** is reconstructed in `EntitySelector0010`;
@@ -24,4 +24,4 @@ CODE.2 **0x0010..0x0072** is reconstructed in `EntitySelector0010`;
 `PartyRoutine00B8`; **0x01FA..0x01FB** is alignment. CODE.2
 **0x01FC..0x0270** is reconstructed in `Routine01FC`. **0x0271..0x02A7**
 is an embedded 14-entry dword table plus padding, not executable code.
-Reconstruction continues at **0x02A8**.
+CODE.2 **0x02A8..0x06B8** is reconstructed in `Dispatcher02A8`, including\nthe original 13-way jump table at **0x0274..0x02A7**. Reconstruction continues\nafter **0x06B8**, with the following bytes requiring layout classification.
