@@ -8,7 +8,7 @@ namespace ravenloft::game {
 struct TileCodeState09B0 {
     // Raw storage such that original DS:0x1760 + base is byte offset 0x1760.
     std::span<const std::uint8_t> data;
-    std::int16_t width12756 = 0;
+    std::int16_t height12754 = 0;\n    std::int16_t width12756 = 0;
 
     // Original DWORD lookup table at DS:0x5FF0, indexed by four times the
     // accumulated low-value-neighbor mask.
