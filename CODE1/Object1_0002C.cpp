@@ -1,34 +1,99 @@
 #include <array>
 #include <cstdint>
+#include <functional>
 
 namespace ravenloft::code1 {
 
-// Original authority: CODE.1 SHA-256
+// Sole authority: original CODE.1 binary, SHA-256
 // fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed
 //
-// CODE.1 contains a bound LE executable.  Its first executable LE object has
-// virtual size 0x11302 and is the address space used by the offsets below.
-// This source is translated from that object as extracted directly from the
-// original CODE.1 pages; no generated ASM is an input to this reconstruction.
+// The virtual-address-zero boundary used by the existing CODE1 mapping occurs
+// at original CODE.1 file offset 0x2E5DC.  Direct inspection of the original
+// bytes proves that this boundary cuts through a live routine: that routine
+// starts 0x54 bytes earlier at file offset 0x2E588 and returns at virtual
+// 0x0028.  The reconstruction therefore includes the complete crossing
+// routine rather than inventing an entry point at 0x0000.
+
+struct OpeningState {
+    std::int32_t currentCharacter4CC = 0;
+    std::int32_t nesting4D0 = 0;
+    std::array<std::uint8_t, 0x248 * 2> characterRecords{};
+};
+
+struct OpeningOps {
+    // Calls are named by their original object-relative targets.  Their own
+    // implementations are reconstructed when their byte ranges are reached.
+    std::function<void(const std::array<std::int32_t, 13>&)> callF5AC;
+    std::function<std::uint32_t()> callE584;
+    std::function<void(std::int32_t, std::int32_t,
+                       std::int32_t, std::int32_t)> callF6F8;
+};
+
+// Original CODE.1 file 0x2E588..0x2E604, mapped -0x54..0x0028.
+// -054 push ebp                 -053 mov ebp,esp
+// -051 push ebx
+// -050..-036 push 27,-1,9,-1,-1,-1,5,4,3,2,1,0,1
+// -031 call -0xA54             -02C add esp,34
+// -029 call -0xA7C             -024 mov edx,eax
+// -022 test eax,eax            -020 je 0004
+// -01E mov bl,al               -01C dec bl
+// -01A imul eax,[04CC],248
+// -010 mov [eax+680C],bl
+// -00A push 2                  -008 push 38
+// -006 push 114                -001 inc dword [04D0]
+// 0005 dec edx                 0006 push edx
+// 0007 jmp 0017
+// 0009 push -1 x4              0011 dec dword [04D0]
+// 0017 call -0908              001C add esp,10
+// 001F mov eax,1               0024 test eax,eax
+// 0026 je -002E                0028 epilogue/ret
+//
+// The branch at 0x0026 is provably dead in this routine: EAX is assigned 1 at
+// 0x001F immediately before TEST.  This is not optimized source inference; it
+// is the literal control-flow consequence of the original instruction stream.
+void openingRoutineFFAC(OpeningState& state, const OpeningOps& ops) {
+    ops.callF5AC({
+        1, 0, 1, 2, 3, 4, 5, -1, -1, -1, 9, -1, 0x27
+    });
+
+    const std::uint32_t selection = ops.callE584();
+
+    if (selection != 0u) {
+        // MOV BL,AL / DEC BL wraps strictly at eight bits.
+        const std::uint8_t bl = static_cast<std::uint8_t>(
+            static_cast<std::uint8_t>(selection) - std::uint8_t{1});
+
+        // IMUL EAX,[04CC],0x248 keeps the low 32-bit product.  The original
+        // valid state indexes one of the two 0x248-byte character records.
+        const std::uint32_t offset =
+            static_cast<std::uint32_t>(state.currentCharacter4CC) * 0x248u;
+        state.characterRecords[static_cast<std::size_t>(offset + 0x14u)] = bl;
+
+        ++state.nesting4D0; // 0xFFFFFF: INC dword [04D0], modulo 2^32 below.
+        state.nesting4D0 = static_cast<std::int32_t>(
+            static_cast<std::uint32_t>(state.nesting4D0));
+
+        const std::uint32_t edx = selection - 1u; // DEC EDX, modulo 2^32.
+        ops.callF6F8(static_cast<std::int32_t>(edx), 0x114, 0x38, 2);
+    } else {
+        state.nesting4D0 = static_cast<std::int32_t>(
+            static_cast<std::uint32_t>(state.nesting4D0) - 1u);
+        ops.callF6F8(-1, -1, -1, -1);
+    }
+
+    // 0x001F forces EAX=1; 0x0024 TEST therefore cannot take 0x0026 JE.
+}
+
+// 0x0029..0x002B: LEA EAX,[EAX+0], three-byte alignment NOP.
 
 // 0x002C..0x0046
-// 002C  push ebp
-// 002D  mov  ebp,esp
-// 002F  mov  eax,[ebp+08]
-// 0032  mov  dh,[eax]
-// 0034  mov  eax,[ebp+0C]
-// 0037  mov  dl,[eax]
-// 0039  mov  eax,[ebp+08]
-// 003C  mov  [eax],dl
-// 003E  mov  eax,[ebp+0C]
-// 0041  mov  [eax],dh
-// 0043  mov  esp,ebp
-// 0045  pop  ebp
-// 0046  ret
-//
-// DH and DL are deliberately used as independent byte temporaries.  No flags
-// produced in this routine are consumed before RET, so the exact observable
-// operation is a byte swap at the two caller-provided addresses.
+// 002C push ebp                 002D mov ebp,esp
+// 002F mov eax,[ebp+08]         0032 mov dh,[eax]
+// 0034 mov eax,[ebp+0C]         0037 mov dl,[eax]
+// 0039 mov eax,[ebp+08]         003C mov [eax],dl
+// 003E mov eax,[ebp+0C]         0041 mov [eax],dh
+// 0043 mov esp,ebp              0045 pop ebp
+// 0046 ret
 void swapBytes002C(std::uint8_t* first, std::uint8_t* second) noexcept {
     const std::uint8_t dh = *first;
     const std::uint8_t dl = *second;
@@ -36,21 +101,10 @@ void swapBytes002C(std::uint8_t* first, std::uint8_t* second) noexcept {
     *second = dh;
 }
 
-// 0x0047 is a one-byte NOP alignment instruction.
-
-// 0x0048..0x006B are data, not instructions.  They are nine little-endian
-// object-relative targets.  LE relocation records identify each as an
-// internal object-1 pointer.  Preserve all duplicates and ordering exactly.
-inline constexpr std::array<std::uint32_t, 9> kTargets0048{
-    0x000020DDu,
-    0x000020DDu,
-    0x000020DDu,
-    0x0000210Fu,
-    0x0000210Fu,
-    0x0000210Fu,
-    0x0000213Du,
-    0x00002161u,
-    0x0000217Cu,
-};
+// 0x0047: NOP.
+//
+// No classification is claimed yet for 0x0048 onward.  Earlier generated
+// analysis called 0x0048..0x006B a pointer table, but this restart does not
+// inherit that conclusion.  It will be established again from CODE.1 itself.
 
 } // namespace ravenloft::code1
