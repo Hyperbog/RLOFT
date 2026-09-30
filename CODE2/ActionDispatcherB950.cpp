@@ -49,4 +49,25 @@ int ActionDispatcherB950::runTarget30(ActionDispatcherB950State&s,const ActionDi
 int ActionDispatcherB950::runA794(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;o.directA794(ch);o.finish19CF4();s.bf38=1;return r;}
 int ActionDispatcherB950::runTarget44(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;int v=o.value22E40(3,ch);r=o.effectA254(0x10000,0x10,4,v,0x44,ch,0,0x438);o.finish19CF4();s.bf38=1;return r;}
 int ActionDispatcherB950::runTarget02(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;int v=o.value22E40(3,ch)+1;r=o.effectA254(0x800,0x0b,3,v,2,ch,0,0x438);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runUiStateBE28(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
+ int r=1;o.begin19CCC(0);s.bf38=0;
+ o.event28110(o.resource258D4(0x2d),0xff,0,1);
+ s.cf5a[0]=s.cf5a[1]=s.cf5a[2]=1;
+ s.saved12ba0=s.d681;
+ s.saved12ba4=s.d682;
+ s.d682=0;
+ s.d681=s.d682;
+ s.cf5a[3]=1;
+ o.refresh1F494(1);
+ o.panel9B4C(ch,5,0);
+ s.d681=static_cast<std::uint8_t>(s.saved12ba0);
+ s.d682=static_cast<std::uint8_t>(s.saved12ba4);
+ if(s.d681!=0)s.d681=2;
+ if(s.d682!=0)s.d682=2;
+ s.cf5a[0]=s.cf5a[1]=s.cf5a[2]=s.cf5a[3]=1;
+ o.refresh1F494(1);
+ for(int i=0;i<0x15;++i)o.f238(ch,i,1);
+ s.characterCf5a(ch)=1;
+ o.finish19CF4();s.bf38=1;return r;
+}
 }
