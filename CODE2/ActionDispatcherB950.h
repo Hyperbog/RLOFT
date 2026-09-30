@@ -41,6 +41,10 @@ struct ActionDispatcherB950Ops {
  std::function<std::uint8_t&(int,int)> characterRawByte;
  std::function<std::uint32_t&(int,int)> characterRawDword;
  std::function<std::uint32_t&()> globalFd08;
+ std::function<std::uint16_t&()> global6DAE;
+ std::function<void()> playerShiftAE30;
+ std::function<void(int)> nearbyAED8;
+ std::function<void(int,int)> helper1C77C;
  std::function<int(int,int,int,int,int,int,int)> state9790;
  std::function<void(int)> refresh1F494;
  std::function<void(int,int,int)> panel9B4C;
@@ -106,5 +110,9 @@ public:
  static int runStatus17(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runTarget57(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runCharacterTimed02(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runPlayerShift(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runNearbyAED8(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runHelper1C77C(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runCharacterTimed10(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
 };
 }
