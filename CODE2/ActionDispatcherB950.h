@@ -27,6 +27,7 @@ struct ActionDispatcherB950Ops {
  std::function<void(std::int32_t,int,int,int)> event28110;
  std::function<void(std::int32_t)> refresh31F38;
  std::function<std::int32_t(int)> resource258D4;
+ std::function<void(int)> directA794;
 };
 class ActionDispatcherB950 {
 public:
@@ -47,5 +48,8 @@ public:
  static int runTarget45(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runTarget05(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runTarget30(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runA794(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget44(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget02(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
 };
 }
