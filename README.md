@@ -14,3 +14,10 @@ CODE.1 object 1 is fully converted or explicitly classified. The tail from
 **0xCBF0 through 0x11301** is linked Watcom/DOS runtime-support code rather than
 Ravenloft game-authored mechanics; the original bytes remain the authority for
 DOS-era runtime behavior.
+
+Current contiguous CODE.2 conversion/classification point: **0x0073**.
+
+CODE.2 **0x0000..0x000F** is the original INT3/self-jump/NOP prefix.
+CODE.2 **0x0010..0x0072** is reconstructed in `EntitySelector0010`;
+**0x0073** is the following alignment NOP. Reconstruction continues at
+**0x0074**.
