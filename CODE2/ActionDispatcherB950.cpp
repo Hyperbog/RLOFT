@@ -12,4 +12,13 @@ int ActionDispatcherB950::run01(ActionDispatcherB950State&s,const ActionDispatch
  s.bf38=1;
  return result;
 }
+int ActionDispatcherB950::run0A(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
+ int result=1;o.begin19CCC(0);s.bf38=0;int a=o.direction9418(1);o.e578(ch);int r=o.dice1C328(3,6,0,0);int d=a-s.facing;o.effectB02C(d,d,20,r,0x2100,0,8,0,s.playerX,s.playerY);o.finish19CF4();s.bf38=1;return result;
+}
+int ActionDispatcherB950::run1F(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
+ int result=1;o.begin19CCC(0);s.bf38=0;int i=o.select95C0();if(i!=-1)o.burstB410(i);else result=0;o.finish19CF4();s.bf38=1;return result;
+}
+int ActionDispatcherB950::run35(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
+ int result=1;o.begin19CCC(0);s.bf38=0;int a=o.direction9418(1);o.e578(ch);int r=o.dice1C328(3,6,0,0);int d=a-s.facing;o.effectB02C(d,d,20,r,0x900,0,9,0x3d,s.playerX,s.playerY);o.finish19CF4();s.bf38=1;return result;
+}
 }
