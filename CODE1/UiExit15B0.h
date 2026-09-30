@@ -15,19 +15,19 @@ struct UiExitState15B0 {
     std::array<std::int32_t, 9> x87C{};
     std::array<std::int32_t, 9> y880{};
     std::array<std::int32_t, 9> current8F8{};
+    // DS:0958 is resource954[1], because the original table starts at DS:0954.
     std::array<std::int32_t, 9> resource954{};
-    std::int32_t specialResource958 = 0;
     std::int32_t global713C = 0;
-    std::uint8_t buffer7138 = 0;
+    // DS:7138 is DWORD storage; only XOR at 0x1706/1795/198C/19F2 is byte-wide.
+    std::uint32_t buffer7138 = 0;
 };
 
 struct UiExitOps15B0 {
     UiTextDrawOps00EC draw;
-
     std::function<void()> call56DC;
-    std::function<void(std::uint8_t)> call6588;
-    std::function<void(std::uint8_t)> call53E4;
-    std::function<void(std::uint8_t)> call5454;
+    std::function<void(std::uint32_t)> call6588;
+    std::function<void(std::uint32_t)> call53E4;
+    std::function<void(std::uint32_t)> call5454;
     std::function<void(std::int32_t, std::int32_t, std::int32_t,
                        std::uintptr_t, std::int32_t)> call6824;
     std::function<ResourceView10A4(std::int32_t, std::int32_t)> call954C;
@@ -46,7 +46,7 @@ struct UiExitOps15B0 {
 
 class UiExit15B0 {
 public:
-    // Direct reconstruction of CODE.1 0x15B0..0x1A00.
+    // Direct-original-binary reconstruction of CODE.1 0x15B0..0x1A00.
     static void animate(std::int32_t selectedSlot,
                         std::int32_t targetX,
                         std::int32_t targetY,
