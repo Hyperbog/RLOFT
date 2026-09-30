@@ -35,6 +35,8 @@ struct ActionDispatcherB950Ops {
  std::function<void(int,int,int,int,int)> entityCreate8A80;
  std::function<std::int32_t()> worldX255D0;
  std::function<std::int32_t()> worldY255D4;
+ std::function<void(int)> mapABC4;
+ std::function<void(int)> mapAC2C;
  std::function<int(int,int,int,int,int,int,int)> state9790;
  std::function<void(int)> refresh1F494;
  std::function<void(int,int,int)> panel9B4C;
@@ -92,5 +94,9 @@ public:
  static int runCreate8A80(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character,int mode);
  static int runStateA5(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runCreate8A80Mode6(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget42Event(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget7BEvent(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runMapABC4(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runMapAC2C(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
 };
 }
