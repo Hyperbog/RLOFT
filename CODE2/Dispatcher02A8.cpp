@@ -55,7 +55,6 @@ void Dispatcher02A8::run(DispatcherState02A8& state,
             if (entity != nullptr) {
                 if (entity[0] == 1u) {
                     if (entity[6] == 0u) {
-                        stop = true;
                         break;
                     }
                     const std::uint8_t bit = oldBit7(entity);
