@@ -28,7 +28,6 @@ UiTransitionState07E4 transitionState(const UiSetupState1464& state) {
         out.current8F8[i] = state.current8F8Stride8[i];
     }
     out.resource954 = state.resource954;
-    out.specialResource958 = state.specialResource958;
     out.global713C = state.global713C;
     out.textIndex940 = state.current8F8Stride8[9];
     out.textIndex948 = state.current8F8Stride8[10];
@@ -87,7 +86,7 @@ void UiSetup1464::run(
     }
 
     auto transition = transitionState(state);
-    UiTransition07E4::animate(start, end, transition, text, ops.transition);
+    UiTransition07E4::animate(start, end, transition, ops.transition);
     state.buffer7138 = transition.buffer7138;
 }
 
