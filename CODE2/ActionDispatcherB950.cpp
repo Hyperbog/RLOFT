@@ -163,4 +163,15 @@ int ActionDispatcherB950::runMapAC2C(ActionDispatcherB950State&s,const ActionDis
 int ActionDispatcherB950::runStatus16(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;o.event28110(o.resource258D4(0x16),0xff,0,1);o.statusAD24(-1);o.finish19CF4();s.bf38=1;return r;}
 int ActionDispatcherB950::runStatus17(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;o.event28110(o.resource258D4(0x17),0xff,0,1);o.statusAD24(-1);o.finish19CF4();s.bf38=1;return r;}
 int ActionDispatcherB950::runTarget57(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;r=o.effectA254(-1,0x57,3,-1,0x10,ch,1,0);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runCharacterTimed02(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
+ int r=1;o.begin19CCC(0);s.bf38=0;
+ if((o.characterRawByte(ch,0x14)&2)==0)o.globalFd08()+=1;
+ o.event28110(o.resource258D4(0x46),0xff,0,1);
+ o.characterRawByte(ch,0x14)|=2;
+ const std::uint32_t duration=static_cast<std::uint32_t>(o.value22E40(3,ch))*0x438u;
+ const std::uint32_t expiry=static_cast<std::uint32_t>(o.clock19CC4())+duration;
+ s.characterCf5a(ch)=1;
+ o.characterRawDword(ch,0x5a)=expiry;
+ o.finish19CF4();s.bf38=1;return r;
+}
 }
