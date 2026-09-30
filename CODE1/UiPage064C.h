@@ -1,6 +1,5 @@
 #pragma once
 
-#include "TextDatabase.h"
 #include "UiTextComposite00EC.h"
 
 #include <array>
@@ -19,19 +18,21 @@ struct UiPageState064C {
     std::int32_t global713C = 0;
     std::int32_t textIndex940 = -1;
     std::int32_t textIndex948 = -1;
+    char* textBuffer55F8 = nullptr;
 };
 
 struct UiPageOps064C {
     UiTextDrawOps00EC draw;
     std::function<void(std::int32_t, std::int32_t,
                        std::int32_t, std::int32_t)> call67C8;
+    // CODE.1 0x004C: destination buffer first, signed record index second.
+    std::function<void(char*, std::int32_t)> call004C;
 };
 
 class UiPage064C {
 public:
-    // Direct reconstruction of CODE.1 0x064C..0x07E1.
+    // Fidelity-audited reconstruction of CODE.1 0x064C..0x07E3.
     static void draw(const UiPageState064C& state,
-                     const TextDatabase& text,
                      const UiPageOps064C& ops);
 };
 
