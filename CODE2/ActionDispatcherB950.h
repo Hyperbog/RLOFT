@@ -81,5 +81,6 @@ public:
  static int runState86(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runSelectedFlag80(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runSelectedTimed08(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runSelectedTimed08x2(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
 };
 }
