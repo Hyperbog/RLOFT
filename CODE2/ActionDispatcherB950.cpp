@@ -154,4 +154,6 @@ int ActionDispatcherB950::runCreate8A80(ActionDispatcherB950State&s,const Action
  o.entityCreate8A80(mode,direction,ch,o.worldY255D4(),o.worldX255D0());
  o.finish19CF4();s.bf38=1;return r;
 }
+int ActionDispatcherB950::runStateA5(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;r=o.state9790(0xa5,ch,0x38,-1,-1,-1,-1);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runCreate8A80Mode6(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;const int d=o.direction9418(1);o.entityCreate8A80(6,d,ch,o.worldY255D4(),o.worldX255D0());o.finish19CF4();s.bf38=1;return r;}
 }
