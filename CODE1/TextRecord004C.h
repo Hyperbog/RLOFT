@@ -7,21 +7,35 @@
 
 namespace ravenloft::game {
 
-// Direct reconstruction of CODE.1 0x004C..0x00EA.
+// Fidelity-audited reconstruction of CODE.1 0x004C..0x00EA.
 //
-// The original function used the global text-file handle at DS:04C8. It:
-//   1. sought to 4 + recordIndex * 4,
-//   2. read a 32-bit record offset,
-//   3. sought to that record,
-//   4. read a 16-bit length,
-//   5. read exactly that many bytes,
-//   6. appended a NUL byte,
-//   7. XOR-decoded every payload byte with 0xDC.
+// Original call contract:
+//   arg +08: caller-owned output buffer
+//   arg +0C: signed 32-bit record index
+//   DS:04C8: global text-file handle
 //
-// This source-port form operates on the already loaded file bytes while
-// preserving the shipped-file semantics exactly for valid input.
+// The routine performs its seeks/reads in the original order and decodes the
+// payload in place.  The FileOps boundary represents CODE.1 0x633C (seek) and
+// 0x6304 (read); it is not a replacement for the routine's file semantics.
 class TextRecord004C {
 public:
+    struct FileOps {
+        virtual ~FileOps() = default;
+        virtual void seek(std::uint32_t offset,
+                          std::int32_t origin,
+                          std::int32_t handle) = 0;
+        virtual void read(void* destination,
+                          std::uint32_t byteCount,
+                          std::int32_t handle) = 0;
+    };
+
+    static void decodeTo(char* output,
+                         std::int32_t recordIndex,
+                         std::int32_t textFileHandle,
+                         FileOps& io);
+
+    // Convenience adapter for tooling/tests that already hold the complete
+    // encoded file in memory.  This is not the original 0x004C call contract.
     static std::string decode(std::span<const std::uint8_t> textFile,
                               std::int32_t recordIndex);
 };
