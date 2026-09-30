@@ -38,6 +38,9 @@ struct ActionDispatcherB950Ops {
  std::function<void(int)> mapABC4;
  std::function<void(int)> mapAC2C;
  std::function<void(int)> statusAD24;
+ std::function<std::uint8_t&(int,int)> characterRawByte;
+ std::function<std::uint32_t&(int,int)> characterRawDword;
+ std::function<std::uint32_t&()> globalFd08;
  std::function<int(int,int,int,int,int,int,int)> state9790;
  std::function<void(int)> refresh1F494;
  std::function<void(int,int,int)> panel9B4C;
@@ -102,5 +105,6 @@ public:
  static int runStatus16(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runStatus17(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runTarget57(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runCharacterTimed02(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
 };
 }
