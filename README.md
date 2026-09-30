@@ -15,7 +15,7 @@ CODE.1 object 1 is fully converted or explicitly classified. The tail from
 Ravenloft game-authored mechanics; the original bytes remain the authority for
 DOS-era runtime behavior.
 
-Current contiguous CODE.2 conversion/classification point: **0x0B6B**.
+Current contiguous CODE.2 conversion/classification point: **0x0BFB**.
 
 CODE.2 **0x0000..0x000F** is the original INT3/self-jump/NOP prefix.
 CODE.2 **0x0010..0x0072** is reconstructed in `EntitySelector0010`;
