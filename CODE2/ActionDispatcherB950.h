@@ -18,6 +18,7 @@ struct ActionDispatcherB950Ops {
  std::function<std::int32_t(int)> entityY;
  std::function<int(int,int,int,int)> dice1C328;
  std::function<void(int,int,int,int,int,int,int,int,int,int)> effectB02C;
+ std::function<int(int,int,int,int,int,int,int,int)> effectA254;
 };
 class ActionDispatcherB950 {
 public:
@@ -26,5 +27,6 @@ public:
  static int run1F(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int run35(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runSelectedEntity(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget03(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
 };
 }
