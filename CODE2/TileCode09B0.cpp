@@ -45,14 +45,7 @@ std::int32_t TileCode09B0::run(const TileCodeState09B0& state,
         inspect(byteAt(state, p), 2, lowMask, dotMask);
     }
 
-    // The original uses DS:0x12754 for this boundary. It is adjacent to
-    // width12756 but is intentionally not inferred here; the caller-provided
-    // raw data exposes it at its original address.
-    const std::int16_t height12754 =
-        static_cast<std::int16_t>(
-            static_cast<std::uint16_t>(state.data[0x12754]) |
-            (static_cast<std::uint16_t>(state.data[0x12755]) << 8u));
-    if (static_cast<std::int32_t>(height12754) - 1 > column) {
+    if (static_cast<std::int32_t>(state.height12754) - 1 > column) {
         const std::int32_t p =
             base + static_cast<std::int32_t>(state.width12756) + 0x1760;
         inspect(byteAt(state, p), 4, lowMask, dotMask);
