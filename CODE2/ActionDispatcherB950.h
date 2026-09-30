@@ -40,5 +40,12 @@ public:
  static int runState03(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runStateTimed(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runState80(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget42(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget06(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget25(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget18(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget45(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget05(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runTarget30(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
 };
 }
