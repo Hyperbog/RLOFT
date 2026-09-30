@@ -6,6 +6,9 @@ struct ActionDispatcherB950State {
  std::int32_t playerX=0, playerY=0, facing=0;
  std::uint8_t bf38=0;
  std::uint16_t f03c=0;
+ std::uint8_t cf5a[4]{};
+ std::uint8_t d681=0,d682=0;
+ std::uint32_t saved12ba0=0,saved12ba4=0;
 };
 struct ActionDispatcherB950Ops {
  std::function<void(int)> begin19CCC;
@@ -28,6 +31,9 @@ struct ActionDispatcherB950Ops {
  std::function<void(std::int32_t)> refresh31F38;
  std::function<std::int32_t(int)> resource258D4;
  std::function<void(int)> directA794;
+ std::function<void(int)> refresh1F494;
+ std::function<void(int,int,int)> panel9B4C;
+ std::function<void(int,int,int)> f238;
 };
 class ActionDispatcherB950 {
 public:
@@ -51,5 +57,6 @@ public:
  static int runA794(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runTarget44(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runTarget02(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runUiStateBE28(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
 };
 }
