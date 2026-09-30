@@ -45,6 +45,10 @@ struct ActionDispatcherB950Ops {
  std::function<void()> playerShiftAE30;
  std::function<void(int)> nearbyAED8;
  std::function<void(int,int)> helper1C77C;
+ std::function<std::int8_t(int)> character218F5;
+ std::function<void(int,int)> nearbyB518;
+ std::function<int(int)> attributeA8A0;
+ std::function<int(int)> attributeAA30;
  std::function<int(int,int,int,int,int,int,int)> state9790;
  std::function<void(int)> refresh1F494;
  std::function<void(int,int,int)> panel9B4C;
@@ -114,5 +118,8 @@ public:
  static int runNearbyAED8(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runHelper1C77C(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runCharacterTimed10(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runNearbyB518(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runAttributeA8A0(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runAttributeAA30(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
 };
 }
