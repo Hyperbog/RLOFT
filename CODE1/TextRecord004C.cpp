@@ -3,6 +3,7 @@
 #include "Binary.h"
 
 #include <cstring>
+#include <stdexcept>
 #include <vector>
 
 namespace ravenloft::game {
@@ -81,7 +82,6 @@ std::string TextRecord004C::decode(std::span<const std::uint8_t> textFile,
         std::size_t position_ = 0;
     } io(textFile);
 
-    // Read the length only to size the caller-owned buffer expected by 0x004C.
     const std::uint32_t tableOffset =
         static_cast<std::uint32_t>(recordIndex) * 4u + 4u;
     const std::uint32_t recordOffset = Binary::u32(textFile, tableOffset);
