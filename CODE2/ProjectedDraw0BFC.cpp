@@ -33,18 +33,24 @@ void ProjectedDraw0BFC::run(const ProjectedDrawState0BFC& state,
         packedA += static_cast<std::uint32_t>(dx);
     }
 
-    const std::int16_t wordY =
+    const std::int16_t word0 =
+        static_cast<std::int16_t>(packedA & 0xFFFFu);
+    const std::int16_t word2 =
         static_cast<std::int16_t>((packedA >> 16u) & 0xFFFFu);
-    const std::int16_t wordX =
+    const std::int16_t word4 =
         static_cast<std::int16_t>(packedB & 0xFFFFu);
+    const std::int16_t word6 =
+        static_cast<std::int16_t>((packedB >> 16u) & 0xFFFFu);
 
-    // 0x0C74..0x0CAC: only nonnegative coordinates with X <= 399 reach
-    // 0x29CEC. There is no corresponding upper-Y check in this routine.
-    if (wordY < 0 || wordX < 0 || wordY > 0x18F) {
+    // 0x0C74..0x0CAC tests WORD +6, then WORD +2, and bounds WORD +6 to
+    // 0x18F. The call receives WORD +2 followed by WORD +6.
+    if (word6 < 0 || word2 < 0 || word6 > 0x18F) {
         return;
     }
 
-    ops.call29CEC(arg0, arg1, wordY, wordX, 0xFF);
+    (void)word0;
+    (void)word4;
+    ops.call29CEC(arg0, arg1, word2, word6, 0xFF);
 }
 
 } // namespace ravenloft::game
