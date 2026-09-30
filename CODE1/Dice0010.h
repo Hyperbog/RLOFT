@@ -4,11 +4,12 @@
 
 namespace ravenloft::game {
 
-// Direct reconstruction of CODE.1 0x0010..0x0048.
+// Fidelity-audited reconstruction of CODE.1 0x0010..0x0048.
 //
-// For each die actually rolled, the routine computes:
-//   1 + ((rng15 * dieSides) >> 15) + perDieModifier
-// It then adds flatModifier once and clamps the final signed result to >= 1.
+// Verified directly against the original instructions: signed JL controls the
+// die loop; IMUL's low 32-bit product is logically shifted by 15; INC and both
+// ADDs retain 32-bit wrap; the final CMP/JGE interprets EBX as signed and
+// clamps values below one to exactly one.
 class Dice0010 {
 public:
     static int roll(int diceCount,
