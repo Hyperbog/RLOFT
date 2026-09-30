@@ -39,4 +39,11 @@ int ActionDispatcherB950::runStateTimed(ActionDispatcherB950State&s,const Action
 int ActionDispatcherB950::runState80(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
  int result=1;o.begin19CCC(0);s.bf38=0;o.characterByte(ch,0x13)|=0x80;o.characterCf5a(ch)=1;o.event28110(o.resource258D4(0x22),0xff,0,1);o.finish19CF4();s.bf38=1;return result;
 }
+int ActionDispatcherB950::runTarget42(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;int v=o.value22E40(4,ch);r=o.effectA254(4,2,0,v*5,0x42,ch,0,0x438);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runTarget06(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;int v=o.value22E40(4,ch)+3;r=o.effectA254(8,3,1,v,6,ch,0,0x438);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runTarget25(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;int v=o.value22E40(4,ch)+3;r=o.effectA254(16,4,1,v,0x25,ch,0,0x438);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runTarget18(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;int v=o.value22E40(4,ch)*10;r=o.effectA254(0x80,7,0,v,0x18,ch,0,0x2a30);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runTarget45(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;r=o.effectA254(0x40,6,0,0,0x45,ch,0,0x438);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runTarget05(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;r=o.effectA254(0x100,8,2,6,5,ch,0,0x438);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runTarget30(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;r=o.effectA254(0x200,9,1,6,0x30,ch,0,0x438);o.finish19CF4();s.bf38=1;return r;}
 }
