@@ -14,8 +14,9 @@ struct UiTransitionState07E4 {
     std::array<std::int32_t, 9> y880{};
     std::array<std::int32_t, 9> previous8F4{};
     std::array<std::int32_t, 9> current8F8{};
+    // DS:0954 is a contiguous DWORD table.  DS:0958 is therefore exactly
+    // resource954[1], not independent state.
     std::array<std::int32_t, 9> resource954{};
-    std::int32_t specialResource958 = 0;
     std::int32_t global713C = 0;
     std::int32_t textIndex940 = -1;
     std::int32_t textIndex948 = -1;
@@ -52,7 +53,7 @@ struct UiTransitionOps07E4 {
 
 class UiTransition07E4 {
 public:
-    // Fidelity-audited reconstruction of CODE.1 0x07E4..0x10A3.
+    // Direct-binary-verified reconstruction of CODE.1 0x07E4..0x10A3.
     // startIndex/endIndex are the original half-open slot range arguments.
     static void animate(std::int32_t startIndex,
                         std::int32_t endIndex,
