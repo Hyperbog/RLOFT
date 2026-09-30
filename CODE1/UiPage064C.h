@@ -13,8 +13,12 @@ struct UiPageState064C {
     std::array<std::int32_t, 9> x87C{};
     std::array<std::int32_t, 9> y880{};
     std::array<std::int32_t, 9> value8F8{};
+
+    // Original storage is DS:0954 + i*4.  In particular DS:0958 is exactly
+    // resource954[1], not an independent value.  0x06B0 reads DS:0958 while
+    // 0x0679 reads DS:0954+i*4; retaining one array preserves that alias.
     std::array<std::int32_t, 9> resource954{};
-    std::int32_t specialResource958 = 0;
+
     std::int32_t global713C = 0;
     std::int32_t textIndex940 = -1;
     std::int32_t textIndex948 = -1;
@@ -31,7 +35,7 @@ struct UiPageOps064C {
 
 class UiPage064C {
 public:
-    // Fidelity-audited reconstruction of CODE.1 0x064C..0x07E3.
+    // Direct-binary fidelity reconstruction of CODE.1 0x064C..0x07E3.
     static void draw(const UiPageState064C& state,
                      const UiPageOps064C& ops);
 };
