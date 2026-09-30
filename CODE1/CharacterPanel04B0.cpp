@@ -17,14 +17,14 @@ void CharacterPanel04B0::drawThroughStage(
                           7, 0x5FF8);
     }
 
-    // 0x04E7..0x0514: unsigned byte at selected-record +0x14.
+    // 0x04E7..0x0514: unsigned byte at selected-record +0x680C.
     if (stage >= 2) {
         ops.draw.call6EB0(0, 0x114, 0x38,
                           static_cast<std::int32_t>(state.field680C),
                           7, 0x5FF8);
     }
 
-    // 0x0517..0x0568: EBX counts 2,1,0 and MOVSX reads signed bytes
+    // 0x0517..0x0567: EBX counts 2,1,0 and MOVSX reads signed bytes
     // 680F,680E,680D.  -1 suppresses that entry.
     if (stage >= 3) {
         for (std::int32_t slot = 2; slot >= 0; --slot) {
@@ -41,7 +41,7 @@ void CharacterPanel04B0::drawThroughStage(
         }
     }
 
-    // 0x0568..0x059B: unsigned selected-record byte 6812.
+    // 0x0568..0x059D: unsigned selected-record byte 6812.
     if (stage >= 4) {
         ops.draw.call6EB0(0, 0x114, 0xA2,
                           static_cast<std::int32_t>(state.field6812) + 0x0E,
@@ -49,7 +49,7 @@ void CharacterPanel04B0::drawThroughStage(
     }
 
     if (stage >= 5) {
-        // 0x05A8..0x05BD.
+        // 0x059E..0x05BD.
         ops.draw.call6C60(0, 0x114, 0xD7, 0x14, 7);
 
         // 0x05C0..0x05F7. IMUL/ADD are 32-bit. Use unsigned intermediates
