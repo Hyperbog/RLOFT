@@ -27,4 +27,16 @@ int ActionDispatcherB950::run1F(ActionDispatcherB950State&s,const ActionDispatch
 int ActionDispatcherB950::run35(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
  int result=1;o.begin19CCC(0);s.bf38=0;int a=o.direction9418(1);o.e578(ch);int r=o.dice1C328(3,6,0,0);int d=a-s.facing;o.effectB02C(d,d,20,r,0x900,0,9,0x3d,s.playerX,s.playerY);o.finish19CF4();s.bf38=1;return result;
 }
+int ActionDispatcherB950::runState04(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
+ int result=1;o.begin19CCC(0);s.bf38=0;o.characterByte(ch,0x12)|=2;int v=o.value22E40(4,ch);std::int32_t duration=((v*7)*32+v)*16;duration=duration*3;o.characterDword(ch,0x1a)=o.clock19CC4()+duration;o.characterCf5a(ch)=1;o.event28110(o.resource258D4(0x34),0xff,0,1);o.refresh31F38(0xf91c);o.finish19CF4();s.bf38=1;return result;
+}
+int ActionDispatcherB950::runState03(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
+ int result=1;o.begin19CCC(0);s.bf38=0;o.characterByte(ch,0x13)|=4;int v=o.value22E40(3,ch)+10;std::int32_t duration=((v*7)*32+v)*16;duration=duration*3;o.characterDword(ch,0x3e)=o.clock19CC4()+duration;o.characterCf5a(ch)=1;o.event28110(o.resource258D4(0x35),0xff,0,1);o.refresh31F38(0xf91c);o.finish19CF4();s.bf38=1;return result;
+}
+int ActionDispatcherB950::runStateTimed(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
+ int result=1;o.begin19CCC(0);s.bf38=0;o.characterByte(ch,0x14)|=4;o.characterDword(ch,0x5e)=o.clock19CC4()+0x438;++s.f03c;o.characterCf5a(ch)=1;o.event28110(o.resource258D4(0x14),0xff,0,1);o.finish19CF4();s.bf38=1;return result;
+}
+int ActionDispatcherB950::runState80(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
+ int result=1;o.begin19CCC(0);s.bf38=0;o.characterByte(ch,0x13)|=0x80;o.characterCf5a(ch)=1;o.event28110(o.resource258D4(0x22),0xff,0,1);o.finish19CF4();s.bf38=1;return result;
+}
 }
