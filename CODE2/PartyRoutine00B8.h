@@ -12,8 +12,8 @@ struct PartyState00B8 {
     // This routine touches +0x18E0/+0x18F0/+0x18F1 within each record.
     std::span<std::uint8_t> characters20000;
 
-    // Original one-byte per-character arrays at DS:0xCF5A and DS:0xCF5B.
-    std::array<std::uint8_t, 4> flagsCF5A{};
+    // Original indexed bytes at DS:0xCF5A and DS:0xCF5B. CF5A exposes the\n    // adjacent fifth byte because the original routine can write index 4.
+    std::array<std::uint8_t, 5> flagsCF5A{};
     std::array<std::uint8_t, 4> flagsCF5B{};
 };
 
