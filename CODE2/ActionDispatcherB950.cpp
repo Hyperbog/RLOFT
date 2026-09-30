@@ -160,4 +160,7 @@ int ActionDispatcherB950::runTarget42Event(ActionDispatcherB950State&s,const Act
 int ActionDispatcherB950::runTarget7BEvent(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;o.event28110(o.resource258D4(0x3f),0xff,0,1);r=o.effectA254(0x7b,0x7b,1,0,0x42,ch,1,0);o.finish19CF4();s.bf38=1;return r;}
 int ActionDispatcherB950::runMapABC4(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;o.mapABC4(o.direction9418(0));o.finish19CF4();s.bf38=1;return r;}
 int ActionDispatcherB950::runMapAC2C(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;o.mapAC2C(o.direction9418(0));o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runStatus16(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;o.event28110(o.resource258D4(0x16),0xff,0,1);o.statusAD24(-1);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runStatus17(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;o.event28110(o.resource258D4(0x17),0xff,0,1);o.statusAD24(-1);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runTarget57(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;r=o.effectA254(-1,0x57,3,-1,0x10,ch,1,0);o.finish19CF4();s.bf38=1;return r;}
 }
