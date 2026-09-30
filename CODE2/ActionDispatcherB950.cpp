@@ -139,4 +139,13 @@ int ActionDispatcherB950::runSelectedTimed08Mode3(ActionDispatcherB950State&s,co
  }
  o.finish19CF4();s.bf38=1;return r;
 }
+int ActionDispatcherB950::runSelectedTimed10(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
+ int r=1;o.begin19CCC(0);s.bf38=0;int e=o.select95C0();
+ if(e!=-1){o.event28110(o.resource258D4(0x29),0xff,0,1);const std::uint16_t type=o.entityType(e);
+  if((o.metadataWord(type,0x31)&0x0110u)==0){o.entityByte(e,8)|=0x08;const int v=o.value22E40(4,ch);o.entityWord(e,0x10)=static_cast<std::uint16_t>(v*0x438);}}
+ o.finish19CF4();s.bf38=1;return r;
+}
+int ActionDispatcherB950::runDirectA668(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
+ int r=1;o.begin19CCC(0);s.bf38=0;o.directA668(ch);s.characterCf5a(ch)=1;o.finish19CF4();s.bf38=1;return r;
+}
 }
