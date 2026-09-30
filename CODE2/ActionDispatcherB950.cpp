@@ -46,4 +46,7 @@ int ActionDispatcherB950::runTarget18(ActionDispatcherB950State&s,const ActionDi
 int ActionDispatcherB950::runTarget45(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;r=o.effectA254(0x40,6,0,0,0x45,ch,0,0x438);o.finish19CF4();s.bf38=1;return r;}
 int ActionDispatcherB950::runTarget05(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;r=o.effectA254(0x100,8,2,6,5,ch,0,0x438);o.finish19CF4();s.bf38=1;return r;}
 int ActionDispatcherB950::runTarget30(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;r=o.effectA254(0x200,9,1,6,0x30,ch,0,0x438);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runA794(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;o.directA794(ch);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runTarget44(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;int v=o.value22E40(3,ch);r=o.effectA254(0x10000,0x10,4,v,0x44,ch,0,0x438);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runTarget02(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;int v=o.value22E40(3,ch)+1;r=o.effectA254(0x800,0x0b,3,v,2,ch,0,0x438);o.finish19CF4();s.bf38=1;return r;}
 }
