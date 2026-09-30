@@ -96,4 +96,19 @@ int ActionDispatcherB950::runSelectedFlag80(ActionDispatcherB950State&s,const Ac
  }
  o.finish19CF4();s.bf38=1;return r;
 }
+int ActionDispatcherB950::runSelectedTimed08(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){
+ int r=1;o.begin19CCC(0);s.bf38=0;
+ int e=o.select95C0();
+ if(e!=-1){
+  o.event28110(o.resource258D4(0x2a),0xff,0,1);
+  const std::uint16_t type=o.entityType(e);
+  if((o.metadataWord(type,0x31)&0x0102u)==0){
+   o.entityByte(e,8)|=0x08;
+   const int base=o.value22E40(4,ch);
+   const int roll=o.dice1C328(4,0,0,0);
+   o.entityWord(e,0x10)=static_cast<std::uint16_t>((roll+base)*0x438);
+  }
+ }
+ o.finish19CF4();s.bf38=1;return r;
+}
 }
