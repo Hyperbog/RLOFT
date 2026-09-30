@@ -90,5 +90,7 @@ public:
  static int runSelectedTimed10(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runDirectA668(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runCreate8A80(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character,int mode);
+ static int runStateA5(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runCreate8A80Mode6(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
 };
 }
