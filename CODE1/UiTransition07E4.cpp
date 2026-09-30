@@ -24,7 +24,7 @@ bool inResourceWindow(std::int32_t value, std::int32_t base) noexcept {
 
 std::int32_t animatedY(std::int32_t y, std::int32_t amount) noexcept {
     // Exact arithmetic shape used repeatedly at 0x0A35, 0x0AB9, 0x0B4E,
-    // 0x0C7A, 0x0CCE, 0x0D56 and 0x0DDF.  LEA/SUB/SHL/LEA wrap at 32 bits;
+    // 0x0C7A, 0x0CCE, 0x0D56 and 0x0DDF. LEA/SUB/SHL/LEA wrap at 32 bits;
     // IDIV 6 is signed truncation toward zero, followed by Watcom's explicit
     // sign correction implementing another signed divide by two.
     std::uint32_t u = std::bit_cast<std::uint32_t>(amount);
@@ -41,7 +41,7 @@ std::int32_t animatedY(std::int32_t y, std::int32_t amount) noexcept {
 void drawTextFields(UiTransitionState07E4& state,
                     const UiTransitionOps07E4& ops) {
     // 0x0FAD..0x1026 calls the original 0x004C decoder into DS:55F8 before
-    // each 0x00EC draw.  Do not replace this with a pre-decoded text database.
+    // each 0x00EC draw. Do not replace this with a pre-decoded text database.
     if (state.textIndex940 != -1) {
         ops.call004C(state.textBuffer55F8, state.textIndex940);
         UiTextComposite00EC::draw(0x114, 0x10C, 0x7A, 0x30,
@@ -79,9 +79,9 @@ void UiTransition07E4::animate(
 
     std::int32_t frame = 0;
 
-    // 0x0889..0x106A.  The original termination byte is local[endIndex-1].
+    // 0x0889..0x106A. The original termination byte is local[endIndex-1].
     while (counters[static_cast<std::size_t>(endIndex - 1)] != 0x0B) {
-        // MOVZX BYTE [7138] before 0x6588: only the low byte is passed here.
+        // 0x0895 MOVZX BYTE [7138]: only the low byte is passed to 0x6588.
         ops.call6588(static_cast<std::uint8_t>(state.buffer7138));
 
         if (state.mode4D0 == 0 && frame < 2) {
@@ -103,10 +103,13 @@ void UiTransition07E4::animate(
             const std::int32_t current = state.current8F8[slot];
             const std::int32_t previous = state.previous8F4[slot];
 
+            // 0x090C..0x0F99 dispatches on previous/current equality and the
+            // local animation counter. All value-window comparisons are signed.
             if (current == previous) {
                 if (current == -1) continue;
                 if (index == 7 && current != 0x14) {
-                    ops.call67C8(0, x, y, state.specialResource958);
+                    // 0x0F1A reads DS:0958 = second DWORD of DS:0954 table.
+                    ops.call67C8(0, x, y, state.resource954[1]);
                     continue;
                 }
                 if (inResourceWindow(previous, state.global713C)) {
@@ -133,7 +136,7 @@ void UiTransition07E4::animate(
                     continue;
                 }
                 if (index == 7 && previous != 0x15) {
-                    // DS:0954 is the first element of the 4-byte resource table.
+                    // 0x09C8 reads DS:0954, table element zero.
                     ops.call67C8(0, x, y, state.resource954[0]);
                     continue;
                 }
@@ -161,6 +164,7 @@ void UiTransition07E4::animate(
                     continue;
                 }
                 if (index == 7 && previous != 0x15) {
+                    // 0x0B7C reads DS:0954, table element zero.
                     ops.call9C44(0, amount, 0x0A, 1, 1,
                                  state.resource954[0], x, animY);
                     continue;
@@ -179,7 +183,7 @@ void UiTransition07E4::animate(
             }
 
             if (counter > 6 && counter < 12) {
-                // 0x0C45 stores 12-counter back into the local counter value.
+                // 0x0C45 stores 12-counter back into the temporary value.
                 counter = 12 - counter;
                 ops.draw.call6C60(0, x, y, wrapAdd(index, 0x1Eu), 7);
                 const std::int32_t amount = 6 - counter;
@@ -191,8 +195,9 @@ void UiTransition07E4::animate(
                     continue;
                 }
                 if (index == 7 && current != 0x14) {
+                    // 0x0CFC reads DS:0958 = resource954[1].
                     ops.call9C44(0, amount, 6, 1, 1,
-                                 state.specialResource958, x, animY);
+                                 state.resource954[1], x, animY);
                     continue;
                 }
                 if (inResourceWindow(current, state.global713C)) {
@@ -214,7 +219,8 @@ void UiTransition07E4::animate(
                 continue;
             }
             if (index == 7 && current != 0x14) {
-                ops.call67C8(0, x, y, state.specialResource958);
+                // 0x0E7A reads DS:0958 = resource954[1].
+                ops.call67C8(0, x, y, state.resource954[1]);
                 continue;
             }
             if (inResourceWindow(current, state.global713C)) {
@@ -231,14 +237,17 @@ void UiTransition07E4::animate(
             // 0x103A pushes the complete DWORD at DS:7138.
             ops.call55DC(state.buffer7138, 0xEC, 0, 0xA4, 0x140);
         } else {
-            // 0x104A also pushes the complete DWORD, then XOR changes only byte 0.
+            // 0x104A pushes the complete DWORD, then XOR changes only byte 0.
             ops.call53E4(state.buffer7138);
             state.buffer7138 ^= 1u;
         }
 
-        ++frame; // INC DWORD: modulo 2^32 in the original valid-state path
+        // 0x105F INC DWORD [EBP-1C]. Valid animation paths terminate long
+        // before overflow; express the architectural wrap explicitly anyway.
+        frame = wrapAdd(frame, 1u);
     }
 
+    // 0x1070..0x10A1 finalizes the active buffer and redraws the page.
     ops.call6588(static_cast<std::uint8_t>(state.buffer7138));
     ops.call064C();
     ops.call53E4(state.buffer7138);
