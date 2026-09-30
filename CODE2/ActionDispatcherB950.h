@@ -37,6 +37,7 @@ struct ActionDispatcherB950Ops {
  std::function<void(int,int,int)> f238;
  std::function<std::uint8_t&(int,int)> entityByte;
  std::function<std::uint16_t(int)> entityType;
+ std::function<std::uint16_t&(int,int)> entityWord;
  std::function<std::uint16_t(int,int)> metadataWord;
 };
 class ActionDispatcherB950 {
@@ -79,5 +80,6 @@ public:
  static int runState85(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runState86(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runSelectedFlag80(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runSelectedTimed08(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
 };
 }
