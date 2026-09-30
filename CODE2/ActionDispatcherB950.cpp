@@ -174,4 +174,8 @@ int ActionDispatcherB950::runCharacterTimed02(ActionDispatcherB950State&s,const 
  o.characterRawDword(ch,0x5a)=expiry;
  o.finish19CF4();s.bf38=1;return r;
 }
+int ActionDispatcherB950::runPlayerShift(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;o.playerShiftAE30();o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runNearbyAED8(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;o.nearbyAED8(ch);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runHelper1C77C(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;o.event28110(o.resource258D4(0x15),0xff,0,1);o.helper1C77C(ch,0x31d);o.finish19CF4();s.bf38=1;return r;}
+int ActionDispatcherB950::runCharacterTimed10(ActionDispatcherB950State&s,const ActionDispatcherB950Ops&o,int ch){int r=1;o.begin19CCC(0);s.bf38=0;auto &flags=o.characterRawByte(ch,0x14);if((flags&0x10)==0)++o.global6DAE();o.event28110(o.resource258D4(0x13),0xff,0,1);flags|=0x10;s.cf5a[0]=s.cf5a[1]=s.cf5a[2]=s.cf5a[3]=1;o.characterRawDword(ch,0x66)=static_cast<std::uint32_t>(o.clock19CC4()+0x2a30);o.finish19CF4();s.bf38=1;return r;}
 }
