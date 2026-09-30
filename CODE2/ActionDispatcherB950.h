@@ -20,5 +20,8 @@ struct ActionDispatcherB950Ops {
 class ActionDispatcherB950 {
 public:
  static int run01(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int run0A(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int run1F(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int run35(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
 };
 }
