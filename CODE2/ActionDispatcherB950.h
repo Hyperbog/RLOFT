@@ -31,6 +31,7 @@ struct ActionDispatcherB950Ops {
  std::function<void(std::int32_t)> refresh31F38;
  std::function<std::int32_t(int)> resource258D4;
  std::function<void(int)> directA794;
+ std::function<void(int)> directA668;
  std::function<int(int,int,int,int,int,int,int)> state9790;
  std::function<void(int)> refresh1F494;
  std::function<void(int,int,int)> panel9B4C;
@@ -83,5 +84,7 @@ public:
  static int runSelectedTimed08(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runSelectedTimed08x2(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runSelectedTimed08Mode3(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runSelectedTimed10(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runDirectA668(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
 };
 }
