@@ -1,4 +1,5 @@
 #include <array>
+#include <bit>
 #include <cstdint>
 #include <functional>
 
@@ -8,27 +9,28 @@ namespace ravenloft::code1 {
 // fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed
 //
 // The virtual-address-zero boundary used by the existing CODE1 mapping occurs
-// at original CODE.1 file offset 0x2E5DC.  Direct inspection of the original
-// bytes proves that this boundary cuts through a live routine: that routine
-// starts 0x54 bytes earlier at file offset 0x2E588 and returns at virtual
-// 0x0028.  The reconstruction therefore includes the complete crossing
-// routine rather than inventing an entry point at 0x0000.
+// at original CODE.1 file offset 0x2E5DC. Direct inspection of CODE.1 proves
+// that this boundary cuts through a live routine. Its prologue is 0x54 bytes
+// earlier at file offset 0x2E588 and its RET is at mapped address 0x0028.
 
 struct OpeningState {
     std::int32_t currentCharacter4CC = 0;
-    // Stored as raw dword bits so INC/DEC are defined modulo 2^32 exactly as
-    // the original instructions, with no signed-overflow undefined behavior.
+    // Raw dword bits: INC/DEC must wrap modulo 2^32, never invoke signed UB.
     std::uint32_t nesting4D0 = 0;
-    std::array<std::uint8_t, 0x248 * 2> characterRecords{};
 };
 
 struct OpeningOps {
-    // Calls are named by their original object-relative targets.  Their own
-    // implementations are reconstructed when their byte ranges are reached.
+    // Targets retain their original object-relative identities until those
+    // routines themselves are reconstructed from CODE.1.
     std::function<void(const std::array<std::int32_t, 13>&)> callF5AC;
     std::function<std::uint32_t()> callE584;
     std::function<void(std::int32_t, std::int32_t,
                        std::int32_t, std::int32_t)> callF6F8;
+
+    // Original code writes through DS using a computed 32-bit address. Keeping
+    // that address explicit preserves even out-of-range/corrupt-state behavior
+    // for the eventual faithful memory layer instead of imposing C++ bounds.
+    std::function<void(std::uint32_t, std::uint8_t)> writeDsByte;
 };
 
 // Original CODE.1 file 0x2E588..0x2E604, mapped -0x54..0x0028.
@@ -49,43 +51,36 @@ struct OpeningOps {
 // 0017 call -0908              001C add esp,10
 // 001F mov eax,1               0024 test eax,eax
 // 0026 je -002E                0028 epilogue/ret
-//
-// The branch at 0x0026 is provably dead in this routine: EAX is assigned 1 at
-// 0x001F immediately before TEST.  This is the literal control-flow result of
-// the original instruction stream, not an inferred replacement behavior.
 void openingRoutineFFAC(OpeningState& state, const OpeningOps& ops) {
-    // PUSH order in the binary is reversed here into cdecl argument order.
-    ops.callF5AC({
-        1, 0, 1, 2, 3, 4, 5, -1, -1, -1, 9, -1, 0x27
-    });
+    // Binary PUSH order converted to cdecl argument order.
+    ops.callF5AC({1, 0, 1, 2, 3, 4, 5, -1, -1, -1, 9, -1, 0x27});
 
     const std::uint32_t selection = ops.callE584();
 
     if (selection != 0u) {
-        // MOV BL,AL / DEC BL: only AL is copied and the decrement wraps at 8 bits.
+        // MOV BL,AL / DEC BL: partial-register copy followed by 8-bit wrap.
         const std::uint8_t bl = static_cast<std::uint8_t>(
             static_cast<std::uint8_t>(selection) - std::uint8_t{1});
 
-        // IMUL EAX,[04CC],0x248 retains the low 32-bit product.  In the valid
-        // game state 04CC selects one of the two 0x248-byte records beginning
-        // at DS:67F8; DS:680C is byte +0x14 within that record.
-        const std::uint32_t offset =
+        // IMUL EAX,[04CC],0x248 keeps the low 32 bits; adding 0x680C is also
+        // modulo 2^32 because the effective address is formed in 32-bit mode.
+        const std::uint32_t recordOffset =
             static_cast<std::uint32_t>(state.currentCharacter4CC) * 0x248u;
-        state.characterRecords[static_cast<std::size_t>(offset + 0x14u)] = bl;
+        ops.writeDsByte(recordOffset + 0x680Cu, bl);
 
-        // INC dword [04D0], exactly modulo 2^32.
-        state.nesting4D0 += 1u;
+        state.nesting4D0 += 1u; // INC dword [04D0], modulo 2^32.
 
-        // EDX still holds the full EAX returned by -0xA7C. DEC is 32-bit.
-        const std::uint32_t edx = selection - 1u;
-        ops.callF6F8(static_cast<std::int32_t>(edx), 0x114, 0x38, 2);
+        // EDX contains the full return EAX, then DEC EDX. bit_cast passes the
+        // exact resulting 32-bit pattern as the signed C++ callback argument.
+        const std::uint32_t edxBits = selection - 1u;
+        ops.callF6F8(std::bit_cast<std::int32_t>(edxBits), 0x114, 0x38, 2);
     } else {
-        // DEC dword [04D0], exactly modulo 2^32.
-        state.nesting4D0 -= 1u;
+        state.nesting4D0 -= 1u; // DEC dword [04D0], modulo 2^32.
         ops.callF6F8(-1, -1, -1, -1);
     }
 
-    // 0x001F forces EAX=1; 0x0024 TEST therefore cannot take 0x0026 JE.
+    // 0x001F MOV EAX,1 immediately precedes TEST EAX,EAX. Therefore the JE at
+    // 0x0026 is unreachable for every execution of this instruction stream.
 }
 
 // 0x0029..0x002B: LEA EAX,[EAX+0], three-byte alignment NOP.
@@ -107,8 +102,8 @@ void swapBytes002C(std::uint8_t* first, std::uint8_t* second) noexcept {
 
 // 0x0047: NOP.
 //
-// No classification is claimed yet for 0x0048 onward.  Earlier generated
-// analysis called 0x0048..0x006B a pointer table, but this restart does not
-// inherit that conclusion.  It will be established again from CODE.1 itself.
+// No classification is claimed yet for 0x0048 onward. Earlier generated
+// analysis is deliberately not inherited by this restart; the next bytes will
+// be classified again from original CODE.1 evidence.
 
 } // namespace ravenloft::code1
