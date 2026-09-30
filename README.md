@@ -10,6 +10,6 @@
 
 Current contiguous CODE.1 conversion/classification point: **0x11301 (complete)**.
 
-Current contiguous CODE.2 conversion/classification point: **0xC42C**.
+Current contiguous CODE.2 conversion/classification point: **0xC46F**.
 
-Next CODE.2 conversion/classification point: **0xC42D**.
+Next CODE.2 conversion/classification point: **0xC470**.
