@@ -31,6 +31,7 @@ struct ActionDispatcherB950Ops {
  std::function<void(std::int32_t)> refresh31F38;
  std::function<std::int32_t(int)> resource258D4;
  std::function<void(int)> directA794;
+ std::function<int(int,int,int,int,int,int,int)> state9790;
  std::function<void(int)> refresh1F494;
  std::function<void(int,int,int)> panel9B4C;
  std::function<void(int,int,int)> f238;
@@ -65,5 +66,14 @@ public:
  static int runTarget71(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runTarget68(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
  static int runTarget82(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runState7E(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runState7F(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runState80_9790(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runState81(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runState82_9790(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runState83(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runState84(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runState85(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
+ static int runState86(ActionDispatcherB950State&,const ActionDispatcherB950Ops&,int character);
 };
 }
