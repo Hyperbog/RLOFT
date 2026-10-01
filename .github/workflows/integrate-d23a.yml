@@ -14,6 +14,9 @@ jobs:
         with:
           ref: code1-decompilation
       - run: python3 Code1/integrate_mid_ui_batch_03.py
+      - run: |
+          sed -i 's/dgroup(0x713cu)));/dgroup(0x713cu))));/' Code1/Code1.cpp
+          sed -i 's/dgroup(0x04d0u)));/dgroup(0x04d0u))));/' Code1/Code1.cpp
       - run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
       - run: |
           git config user.name github-actions[bot]
@@ -21,4 +24,4 @@ jobs:
           git add Code1/Code1.cpp Code1/PROGRESS.md Code1/STAGING_LEDGER.md Code1/DECOMPILATION_CONTINUITY.md Code1/integrate_mid_ui_batch_03.py
           git commit -m "Integrate CODE.1 mid UI batch 03"
           git push origin code1-decompilation
-# trigger mid UI batch 03
+# trigger mid UI batch 03 syntax fix
