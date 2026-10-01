@@ -178,3 +178,14 @@ Verified total is 14,578 bytes (20.70%). `1083F..10973` and `109C1..10C45` are i
 
 ## Runtime-tail checkpoint
 Verified total is 16,261 bytes (23.10%). `10C6F..11301` is integrated after direct disassembly; `10C6D..10C6E` are alignment zeros and excluded. This reaches the end of object 1. Preserve 10DD7 mode-0 versus nonzero DOS/extender resize boundaries, 8E84 active-stream list, 8E70 recycled-node list, and the 26-byte stream-record layout. Active staging remains 974 bytes.
+
+
+## 2026-10-01 increased batch 02 checkpoint
+- Source SHA-256 reverified: `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed`.
+- Verified total after this fold: **17,960 / 70,402 = 25.5106% (25.51%)**.
+- Newly counted this fold: 1,699 bytes: `0010..0048` 57, `004C..00EA` 159, `035C..043A` 223, `043C..04AF` 116, `FC98..FCE6` 79, FCE8 boundary correction +1, `FD6E..FE20` 179, `D2CD..D312` 70.
+- `FCE8` is the true first dispatcher byte (`56 57 53 06 ...`); `FCE7` is zero alignment. Do not revert to FCE9.
+- Interrupt veneer slot 3 is `CC 90 C3`, unlike the other `CD imm8 C3` slots.
+- Active staging: **904 bytes** = startup 747 + E2C3..E35F 157.
+- Early renderer translations `04B0..0648` and `064C..07E1` are integrated/countable after direct push-order reconciliation of 6EB0/6C60/7D80/67C8/00EC call sites.
+- Next high-output target: reconcile those renderer ABIs, then continue through the early-game address range instead of stopping at selector-sensitive runtime edges.

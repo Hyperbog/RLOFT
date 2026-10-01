@@ -36,7 +36,7 @@ s=s.replace('void function_fce9(Machine&m,RuntimeTailBoundaries&b)noexcept{','vo
 s=s.replace('static_assert(0xFD2Bu-0xFCE9u==66u);','static_assert(0xFD2Bu-0xFCE8u==67u);')
 s=s.replace('// FFD4..102D3: 256 three-byte interrupt veneers. Entry N is at FFD4+3*N and is exactly `INT N; RET`; the generic reconstruction preserves that table formula and dispatches the encoded vector through the machine interrupt boundary.','// FFD4..102D3: 256 fixed three-byte interrupt veneers. All vectors except 3 encode `CD imm8; C3`; vector 3 is `CC 90 C3` (INT3, NOP, RET) so its slot remains three bytes. The generic reconstruction preserves the semantic interrupt and exact slot-address formula.')
 # Add selector-sensitive DTA shuttles immediately before D313.
-needle='[[nodiscard]]u32 function_d313(FileBoundaries&b,u32 path,u32 flags,u32 mode)noexcept'
+needle='[[nodiscard]]u32 function_d313(FileBoundaries&b,u32 path,u32 flags,u32 first_variadic)noexcept'
 assert needle in s
 dta=r'''
 // D2CD..D312: mode-9 DTA shuttles. AH=2F is executed with the live machine selectors; the REP MOVSB direction is preserved instead of flattening DS/ES into one host pointer.

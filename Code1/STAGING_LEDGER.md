@@ -57,3 +57,10 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 - `1083F..10973`, `109C1..10C45` integrated: 954 verified heap-growth bytes. DPMI 0501/0503, DOS AH=48/49, segment-base conversion, mode-9 allocation, and break-extension remain explicit boundaries.
 
 - `10C6F..11301` integrated: 1,683 verified runtime-tail bytes. `10C6D..10C6E` are zero alignment and excluded. Program-break OS calls remain explicit boundaries; stream-list/buffer state is guest-address based.
+
+
+## Increased batch 02
+- `D2CD..D312` (70 bytes) moved from staging to integrated after preserving AH=2F and selector-qualified DS:ESI -> ES:EDI / reverse shuttle semantics.
+- Active staging is now 904 bytes: startup 747 + E2C3..E35F 157.
+- `04B0..0648` and `064C..07E1` renderer push-order contracts were reconciled and their 815 bytes are integrated/counted.
+- FCE8 boundary correction adds the previously omitted PUSH ESI byte; FCE7 is zero alignment.

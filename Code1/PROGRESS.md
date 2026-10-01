@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-23.10%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-25.51%25-red)
 
-**Verified conversion:** 23.10%  
-**Remaining:** 76.90%  
+**Verified conversion:** 25.51%  
+**Remaining:** 74.49%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **16,261**.  
+Current verified translated bytes: **17,960**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **23.0974%**, displayed as **23.10%**.
+Raw coverage: **25.5106%**, displayed as **25.51%**.
 
 ## Immutable source identity
 
@@ -22,10 +22,14 @@ Raw coverage: **23.0974%**, displayed as **23.10%**.
 
 ## Integrated verified translation inventory
 
+- Early-game arithmetic/record helpers `0010..0048` and `004C..00EA`: **216 bytes**.
+- Early-game hit-test/input routines `035C..043A` and `043C..04AF`: **339 bytes**.
+- Early-game staged UI renderers `04B0..0648` and `064C..07E1`: **815 bytes**.
 - Startup/recovery regions through `CD96`: **259 bytes**.
 - Structured mouse-facing routines `D08C..D153`, verified mouse/event pump `D154..D1E7`, plus overlap-safe copy `D1E8..D239`: **419 bytes**.
 - Attribute/status wrapper `D23A..D27C`: **67 bytes**.
 - Find-first/find-next wrappers `D280..D2CC`: **77 bytes**.
+- Mode-9 selector-sensitive DTA shuttles `D2CD..D312`: **70 bytes**.
 - Open front/fixed wrappers `D313..D331` and `D55E..D572`: **52 bytes**.
 - Descriptor/IOCTL setup `D4F2..D55D`: **108 bytes**.
 - Close wrapper `D573..D5AC`: **58 bytes**.
@@ -50,7 +54,9 @@ Raw coverage: **23.0974%**, displayed as **23.10%**.
 - Resource/source reader helper `F750..F7B2`: **99 bytes**.
 - Resource image-size parser `F7B8..F8BC`: **261 bytes**.
 - Resource image loader/relocator `F8C4..FC96`: **979 bytes**.
-- Runtime record dispatchers `FCE9..FD6D`: **133 bytes**.
+- Runtime launch wrapper `FC98..FCE6`: **79 bytes**.
+- Runtime record dispatchers `FCE8..FD6D`: **134 bytes**.
+- Argv/environment builder `FD6E..FE20`: **179 bytes**.
 - Command-line token scanner `FE21..FEFB`: **219 bytes**.
 - Complete interrupt veneer table `FFD4..102D3`: **768 bytes**.
 - CRT error/descriptor/stack/selector helpers `102D4..104DD` excluding four zero alignment bytes: **520 bytes**.
@@ -61,7 +67,7 @@ Raw coverage: **23.0974%**, displayed as **23.10%**.
 - Runtime heap-extension driver `10AA9..10C45`: **413 bytes**.
 - Runtime tail helpers `10C46..10C6C`: **39 bytes**.
 
-Total integrated verified translated bytes: **16,261**.
+Total integrated verified translated bytes: **17,960**.
 
 `DA45..DA47` is three zero bytes. `EDD3..EDDF` is **13 zero bytes**. Both are classified as data/alignment and are not counted as translated code.
 
@@ -81,7 +87,7 @@ The PSP command-tail `REPZ SCASB` mismatch behavior, environment executable-path
 
 ## D23A..D5AC DOS/CRT continuation under reconciliation
 
-`DosCrtNext.staging.cpp` originally covered **880 functional instruction bytes** in `D23A..D5AC`; `D573..D5AC` is now integrated, leaving **70 unique unintegrated bytes** in that staging span; `D27D..D27F` is three zero bytes and excluded. It maps attribute/status, find-first/find-next, DTA shuttles, open/create/truncate, descriptor/IOCTL setup, open wrapper, and close wrapper. `D332..D4F1` is integrated. The remaining DOS/CRT staging is the 70-byte `D2CD..D312` mode-9 DTA shuttle, retained because its DS/ES selector identity must not be flattened.
+`DosCrtNext.staging.cpp` originally covered **880 functional instruction bytes** in `D23A..D5AC`; `D573..D5AC` is now integrated, leaving **0 unique unintegrated bytes** in that staging span; `D27D..D27F` is three zero bytes and excluded. It maps attribute/status, find-first/find-next, DTA shuttles, open/create/truncate, descriptor/IOCTL setup, open wrapper, and close wrapper. `D332..D4F1` is integrated. `D2CD..D312` is now integrated with explicit DS/ES selector-qualified copying around AH=2F.
 
 ## DE6F..E0C7 accounting audit
 
@@ -93,7 +99,7 @@ The prior `RuntimeGapDE6F.staging.cpp` candidate was compared against the unifie
 
 ## Active continuation
 
-The unique unintegrated instruction-bounded staging pool is **974 bytes**: 747 startup + 70 remaining DOS/CRT + 157 remaining E2C3..E35F. `D280..D2CC` is integrated while its calls into `D2CD/D2F0` remain explicit selector-sensitive boundaries. `DE6F..DEA0` is an unresolved boundary and is deliberately outside that staging total. Continue hardening independently provable subranges and fold them only after exact call-contract reconciliation, preservation checks, and unified syntax checking.
+The unique unintegrated instruction-bounded staging pool is **904 bytes**: 747 startup + 157 remaining E2C3..E35F. `D280..D2CC` is integrated while its calls into `D2CD/D2F0` remain explicit selector-sensitive boundaries. `DE6F..DEA0` is an unresolved boundary and is deliberately outside that staging total. Continue hardening independently provable subranges and fold them only after exact call-contract reconciliation, preservation checks, and unified syntax checking.
 
 ## Integration placement audit
 
