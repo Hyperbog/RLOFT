@@ -1,11 +1,18 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <functional>
 
 namespace ravenloft::game {
 
-struct TextEntryState2DFC {};
+// Compatibility facade for callers not yet reconstructed. 0x2DFC itself uses
+// the raw CODE.1 memory callbacks below; these fields are not semantic inputs
+// to the verified routine.
+struct TextEntryState2DFC {
+    std::array<char, 16> name67F8{};
+    std::uint8_t buffer7138 = 0;
+};
 
 struct TextEntryOps2DFC {
     std::function<std::uint8_t(std::uint32_t)> readByte;
