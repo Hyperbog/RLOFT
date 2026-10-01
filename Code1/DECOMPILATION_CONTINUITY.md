@@ -197,3 +197,7 @@ Verified total is now **19,557 / 70,402 = 27.78%**. Newly integrated: `1464..15A
 
 ## 2026-10-01 actor/UI batch 04
 Verified total **20,970 / 70,402 = 29.79%**. Added 1,413 bytes at `1F24..2196`, `24D4..266B`, `28E4..2990`, `2994..2A60`. 1F24 preserves incoming DL until the encoded decision tree assigns it and resolves the 1F00 jump-table targets. 24D4 preserves guest scratch handles and nine-frame page alternation. Alignment bytes excluded. Active staging unchanged.
+
+
+## 2026-10-01 actor generation batch 05
+Verified total **24,603 / 70,402 = 34.95%**. Added **3,633 bytes** across `2A64..38A3` (alignment excluded). This covers class/order editing, bounded name input, final actor accept/delete, progression derivation, base/random stat generation, race/class minima, aggregate/clamp logic, and the 3884 initialization driver. Guest actor records remain dgroup-backed; external renderer/input/timing calls remain explicit boundaries. Active staging unchanged.
