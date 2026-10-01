@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-0.18%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-0.27%25-red)
 
-**Verified conversion:** 0.18%  
-**Remaining:** 99.82%  
+**Verified conversion:** 0.27%  
+**Remaining:** 99.73%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is a conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unverified translations do not count.
 
-Current verified translated bytes: **131**.  
+Current verified translated bytes: **188**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **0.1861%**, displayed conservatively as **0.18%**.
+Raw coverage: **0.2670%**, displayed as **0.27%**.
 
 ## Immutable source identity
 
@@ -32,6 +32,17 @@ Raw coverage: **0.1861%**, displayed conservatively as **0.18%**.
 - Entry `EB 78` jumps to `CC96`, over embedded Watcom runtime identification/data.
 - LE page-data extent ends exactly at CODE.1 EOF (`0x43D1B`).
 
+## Preventative architecture checkpoint
+
+The early review concerns were addressed before expanding translation:
+
+- `INT 21h` is no longer modeled as a callback whose name implies ordinary DOS semantics. It crosses an explicit protected-mode interrupt boundary carrying the machine state and interrupt vector. No DOS/4GW behavior is guessed inside the translated block.
+- DGROUP-relative offsets and register-derived linear addresses are represented by distinct address types. Linear reads cross an explicit resolver boundary instead of silently indexing the Object-2 byte array.
+- Existing translated DGROUP accesses were converted to the typed DGROUP boundary without changing their recovered offsets.
+- Segment-register moves into 32-bit GPRs are treated conservatively for the declared 80386 target: the selector word is written without assuming later-processor upper-word zero extension.
+
+This refactor adds **zero** progress by itself; only newly instruction-accounted CODE.1 bytes affect the percentage.
+
 ## Verified C++ translation
 
 ### Region 1 — entry/startup prefix
@@ -41,19 +52,22 @@ Raw coverage: **0.1861%**, displayed conservatively as **0.18%**.
 
 ### Region 2 — CCDE fall-through path
 - `CCDE..CD16`: **57 bytes**.
-- Preserves BL/AL partial-register operations and saved EAX behavior.
-- Loads the selector stored at DGROUP `52FC`, reads the original `ES:[5C]` value through an explicit input boundary, rounds it upward to a 4-KiB boundary, stores the result at DGROUP `52F0`, and shifts it by 12 exactly as encoded.
-- Reconstructs `ES=DS`, `AH=4Ah`, and the DOS `INT 21h` boundary without replacing DOS/4GW behavior with host assumptions.
-- Restores EAX from the original push, sets `BX=DS`, `CX=002Ch`, then jumps to `CD4E`.
+- Preserves partial-register behavior, stack-saved EAX, selector operations, 4-KiB rounding, DGROUP stores, and the protected-mode `INT 21h` boundary.
 
-Total verified translated bytes: **131**.
+### Region 3 — CD17 alternate successor/equal path
+- `CD17..CD4F`: **57 bytes**.
+- `CMP AX,4243h` / `JNE` is decoded with target **CD50**.
+- The equal path preserves `[3094]=EDX`, register-derived reads at `[ESI+1C]`, `[ESI+10]`, and `[EAX+2C]`, `AH=4Ah / INT 21h`, selector stores, `EDI`/`ESI` arithmetic, `AL=09h`, and the final jump to `CD97`.
+- Register-derived memory reads use the new linear-address resolver boundary and are not assumed to be DGROUP offsets.
 
-## Documentation check
+Total verified translated bytes: **188**.
 
-Open Watcom's DOS/4GW documentation states that protected-mode `INT 21h` calls are translated to the corresponding DOS register/pointer forms by DOS/4GW. It also specifically identifies DOS function `4Ah` as a kernel-mediated segment allocation/expansion operation. This supports preserving the interrupt as an explicit extender/DOS boundary instead of pretending it is an ordinary C++ allocator.
+## Correction caught before downstream expansion
+
+An earlier checkpoint comment described the `CD1B` conditional branch as targeting `CD4E`. Direct decoding of the original bytes (`0F 85 2F 00 00 00`) establishes the target as **`CD50`**. `Code1.cpp` and this progress record now use the corrected edge before the target block is translated.
 
 ## Next checkpoint
 
-Translate the alternate successor beginning at `CD17` and establish its join at `CD4E`. No bytes in that path are counted until the complete branch effects are represented.
+Translate the `CD50` alternate path and establish its convergence at `CD97`. The new address/interrupt boundaries stay in place as invariants for subsequent reconstruction.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
