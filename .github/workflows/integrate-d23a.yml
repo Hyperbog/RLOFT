@@ -1,4 +1,4 @@
-name: Integrate E190 constructors
+name: Integrate E0D0 object clone
 on:
   push:
     branches: [code1-decompilation]
@@ -12,12 +12,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - run: python3 Code1/integrate_e190.py
+      - run: python3 Code1/integrate_e0d0.py
       - run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
       - run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add Code1/Code1.cpp Code1/PROGRESS.md Code1/STAGING_LEDGER.md
-          git commit -m 'Integrate CODE.1 E190 runtime constructors'
+          git commit -m 'Integrate CODE.1 E0D0 object clone'
           git push origin code1-decompilation
-# trigger verified E190/E208 fold
