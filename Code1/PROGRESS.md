@@ -26,6 +26,8 @@ Raw coverage: **11.7766%**, displayed conservatively as **11.77%**.
 - Structured mouse-facing routines `D08C..D153`, verified mouse/event pump `D154..D1E7`, plus overlap-safe copy `D1E8..D239`: **419 bytes**.
 - File read/write/seek/delete `D5AD..D8CD`: **801 bytes**.
 - DOS/CRT directory and utility routines `D8D0..DA1B`: **332 bytes**.
+- Adapter wrapper `DA1C..DA44`: **41 bytes**.
+- DOS memory helpers `DA48..DAC8`: **129 bytes**.
 - Allocator wrapper `DAC9..DAD8`: **16 bytes**.
 - Runtime allocator/decoder/transform `DAD9..DDD7`: **764 bytes**.
 - Low-level/runtime regions through `E0C7`: **666 bytes**.
@@ -39,7 +41,7 @@ Raw coverage: **11.7766%**, displayed conservatively as **11.77%**.
 
 Total integrated verified translated bytes: **8,291**.
 
-`EDD3..EDDF` is **13 zero bytes** classified as data and is not counted as translated code.
+`DA45..DA47` is three zero bytes. `EDD3..EDDF` is **13 zero bytes**. Both are classified as data/alignment and are not counted as translated code.
 
 ## Startup continuation under reconciliation
 
@@ -47,46 +49,36 @@ Total integrated verified translated bytes: **8,291**.
 
 The PSP command-tail `REPZ SCASB` mismatch behavior, environment executable-path `ESI += 3` transition, FEFC/FF33 adapter mapping, `FC98` non-returning launch path, no-mouse unconditional dereference, and `CBF0 -> CE8B` termination stack relationship have all been reconciled directly against CODE.1. `StartupExit.reconciled.cpp` retains the detailed exit-path evidence.
 
-## DOS/runtime-memory continuation under reconciliation
+## DA1C..DAD8 integration
 
-`DA1C..DA44` and `DAC9..DAD8` are now physically integrated, adding **57 verified bytes**. `DA45..DA47` is three zero bytes. The already-integrated `DA48..DAC8` retains the reconciled AH=48/AH=4A DOS-returned BX and live AX+CF behavior.
+`DA1C..DA44` and `DAC9..DAD8` are now physically integrated, adding **57 verified bytes** in the latest bridge fold. `DA48..DAC8` was already integrated and retains the reconciled AH=48/AH=4A DOS-returned BX and live AX+CF behavior. `DA1C` remains address-named at the CEC8 boundary because FEFC selector/register state is not represented as an ordinary host call.
 
 ## Mouse/event-pump integration
 
-`D154..D178` and `D17C..D1E7` are now physically integrated in `Code1.cpp` after direct byte-for-byte disassembly reconciliation. The three-byte `D179..D17B` alignment LEA remains excluded. This adds **145 verified translated bytes**. The repeated `82A4` call at `D1B6` and the preserved pointer test after `8960` are represented explicitly.
+`D154..D178` and `D17C..D1E7` are physically integrated after direct byte-for-byte disassembly reconciliation. The three-byte `D179..D17B` alignment LEA remains excluded. This added **145 verified translated bytes**. The repeated `82A4` call at `D1B6` and the preserved pointer test after `8960` are represented explicitly.
 
 ## D23A..D5AC DOS/CRT continuation under reconciliation
 
 `DosCrtNext.staging.cpp` covers **880 functional instruction bytes** in `D23A..D5AC`; `D27D..D27F` is three zero bytes and excluded. It maps attribute/status, find-first/find-next, DTA shuttles, open/create/truncate, descriptor/IOCTL setup, open wrapper, and close wrapper. `D332..D4F1` remains structural staging until descriptor-table representation is reconciled against `103C3..1042C`.
 
-## DE6F..E0C7 low-level/runtime continuation under reconciliation
+## DE6F..E0C7 accounting audit
 
-`RuntimeGapDE6F.staging.cpp` adds **521 functional instruction bytes** immediately after the already mapped vector helpers. Direct disassembly separates the following functional ranges: `DE6F..DEA0` 50 bytes, `DEA7..DF12` 108, `DF13..DF72` 96, `DF73..DF8D` 27, `DFB3..DFFA` 72, `DFFB..E02A` 48, `E050..E097` 72, and `E098..E0C7` 48.
-
-`DEA1..DEA6` is six NOP bytes. `DF8E..DFB2` and `E02B..E04F` are separate 37-byte digit tables (`0123456789abcdefghijklmnopqrstuvwxyz\0`) referenced through CS overrides by the conversion routines and are classified as data rather than translated code.
-
-`DE6F` is an optimized fill front-end: it byte-aligns EAX while rotating EDX, delegates whole dwords to `DEA7`, and emits a 0..3 byte tail. `DEA7` is the 32-byte-unrolled dword fill core. `DF13` programs PIT channel 2 from divisor `0x1234DC / arg` and enables speaker/gate bits at port 61h when required; `DF73` clears those low two bits. The two conversion pairs implement unsigned and decimal-signed integer-to-string behavior with explicit base arguments and CS-relative digit tables.
-
-The fill routines remain staging until the exact pointer/address representation can be folded without host-alignment assumptions; the I/O routines remain bounded through explicit port callbacks.
+The prior `RuntimeGapDE6F.staging.cpp` candidate was compared against the unified file. `DEA7..E0C7` is already represented in `Code1.cpp` and therefore is not new staging. `DE6F..DEA0` is not accepted as a proven ordinary function boundary and remains on the unresolved-boundary queue. It is not counted or treated as integration-ready.
 
 ## E0D0..E3B2 runtime/interrupt continuation under reconciliation
 
-`RuntimeGapE0D0.staging.cpp` adds **722 functional instruction bytes** between the integrated low-level/runtime block ending at `E0C7` and the integrated dispatcher block beginning at `E3B4`. It includes allocation/copy helpers, wrappers, constructor-like chains, INT 24h installation, the full IRET trampoline, and signed decimal parsing. The interrupt trampoline remains explicitly machine-boundary staging.
+`RuntimeGapE0D0.staging.cpp` contains **722 functional instruction bytes** between the integrated low-level/runtime block ending at `E0C7` and the integrated dispatcher block beginning at `E3B4`. It includes allocation/copy helpers, wrappers, constructor-like chains, INT 24h installation, the full IRET trampoline, and signed decimal parsing. The interrupt trampoline remains explicitly machine-boundary staging.
 
 ## Active continuation
 
-Harden independently provable staged subranges and fold them only after exact call-contract reconciliation and unified syntax checking. Current uncounted instruction-bounded staging totals **3,201 bytes** across startup, DOS-memory, mouse-pump, DOS/CRT, DE6F..E0C7, and E0D0..E3B2 work streams. Continue past isolated blockers toward the approximately 4 KB batch target without relaxing fidelity.
+The unique unintegrated instruction-bounded staging pool is **2,349 bytes**: 747 startup + 880 DOS/CRT + 722 E0D0..E3B2. `DE6F..DEA0` is an unresolved boundary and is deliberately outside that staging total. Continue hardening independently provable subranges and fold them only after exact call-contract reconciliation, preservation checks, and unified syntax checking.
 
-## Integration accounting audit
+## Integration placement audit
 
-After comparing all active staging against `Code1.cpp`, DA48..DAA6 and DEA7..E0C7 were found already integrated and are not new work. `DE6F..DEA0` is not accepted as a proven function boundary: direct disassembly begins with bytes that do not form a justified ordinary entry, so it returns to the unresolved queue. After the 145-byte mouse fold, unique uncounted staged code is now **2,349 bytes** (747 startup + 880 D23A..D5AC + 722 E0D0..E3B2).
+A physical-file audit confirmed that `DAD9..DDD7` was present in `Code1.cpp` but appended near the footer rather than in address order. This exposed a tooling hazard: address-order assumptions about source placement are invalid. Future one-shot folds must assert preservation sentinels for previously integrated regions before committing.
 
 ## Larger-batch policy
 
 The working target remains approximately **4,000 newly verified bytes per substantial batch**, with fidelity controlling. Analysis continues past individual dependency edges rather than treating them as stopping points.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
-
-## Integration placement audit
-
-A physical-file audit confirmed that `DAD9..DDD7` was still present in `Code1.cpp`, but appended near the footer rather than in address order. The first attempted DAC9 fold therefore placed the wrapper before `AllocBoundary` and correctly failed syntax checking without committing. The integration was corrected to insert `DAC9..DAD8` adjacent to the existing DAD9 runtime definition. Preservation assertions now check existing verified-region sentinels before every one-shot fold.
