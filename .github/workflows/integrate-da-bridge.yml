@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Fold verified bridge
+      - name: Fold verified bridge after reconciliation
         run: python3 Code1/integrate_da_bridge.py
       - name: Syntax check unified translation
         run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
