@@ -25,21 +25,31 @@ struct Boundary{
 [[nodiscard]]u32 function_da1c(Boundary&b,u32 service,u32 input,u32 output,u32 local_guest)noexcept{
  if(b.call_104b1)b.call_104b1(local_guest);return b.call_cec8?b.call_cec8(service,input,output,local_guest):0;
 }
-/* DA48..DA6B: AH=48. On success EDX=returned AX and EAX=0. On failure EDX
- * remains the requested paragraph count and 10384 maps AX with CF=1. */
+/* DA48..DA6B: AH=48. EBX receives the requested paragraph count before the
+ * interrupt. Immediately afterward XCHG EDX,EBX makes the DOS-returned BX
+ * value become EDX and restores the output pointer to EBX. On success EDX is
+ * replaced by returned AX and EAX is zero. On carry, DOS BX is the largest
+ * available block and that exact value is written through arg2; 10384 maps
+ * AX while CF remains set. */
 [[nodiscard]]u32 function_da48(Boundary&b,u32 paragraphs,u32&out_value)noexcept{
- const auto r=b.dos_48_alloc?b.dos_48_alloc(u16(paragraphs)):Boundary::DosResult{};u32 edx=paragraphs,eax=0;
- if(!r.carry)edx=r.ax;else eax=b.call_10384?b.call_10384(r.ax,true):r.ax;out_value=edx;return eax;
+ const auto r=b.dos_48_alloc?b.dos_48_alloc(u16(paragraphs)):Boundary::DosResult{};
+ u32 eax=0;u32 edx=r.bx;
+ if(!r.carry)edx=r.ax;else eax=b.call_10384?b.call_10384(r.ax,true):r.ax;
+ out_value=edx;return eax;
 }
 /* DA6C..DA7D: AH=49 then unconditional CALL 10384 while INT 21h CF is still
  * live. 10384 returns zero when CF=0 and maps low AX when CF=1. */
 [[nodiscard]]u32 function_da6c(Boundary&b,u32 selector)noexcept{
  const auto r=b.dos_49_free?b.dos_49_free(u16(selector)):Boundary::DosResult{};return b.call_10384?b.call_10384(r.ax,r.carry):(r.carry?r.ax:0u);
 }
-/* DA7E..DAA5: AH=4A. On carry only, store the requested paragraph count via
- * arg3; then invoke 10384 with the unchanged DOS carry state. */
+/* DA7E..DAA5: AH=4A. EBX is loaded with the requested paragraph count for
+ * INT 21h. MOV EDX,EBX captures DOS's returned BX before the saved output
+ * pointer is restored. Therefore the carry path stores returned BX (largest
+ * possible block), not the original request. 10384 then consumes AX+CF. */
 [[nodiscard]]u32 function_da7e(Boundary&b,u32 paragraphs,u32 selector,u32&out_value)noexcept{
- const auto r=b.dos_4a_resize?b.dos_4a_resize(u16(paragraphs),u16(selector)):Boundary::DosResult{};if(r.carry)out_value=paragraphs;return b.call_10384?b.call_10384(r.ax,r.carry):(r.carry?r.ax:0u);
+ const auto r=b.dos_4a_resize?b.dos_4a_resize(u16(paragraphs),u16(selector)):Boundary::DosResult{};
+ if(r.carry)out_value=r.bx;
+ return b.call_10384?b.call_10384(r.ax,r.carry):(r.carry?r.ax:0u);
 }
 /* DAA6..DAC8: scan arena chain [30DC] to sentinel 30D4. Unsigned SUB by four
  * is preserved: a stored size below four wraps before the unsigned comparison. */
