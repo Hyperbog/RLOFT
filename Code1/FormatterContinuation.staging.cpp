@@ -24,7 +24,7 @@ void function_f206(char*out,s32 value,FormatState&s)noexcept{
  if((static_cast<u16>(magnitude)>>8)&0x80u){if(p==integer_begin){*integer_begin='1';}else{--p;if(*p=='.')--p;for(;;){if(*p!='9'){++*p;break;}*p='0';if(p==integer_begin){*p='1';break;}--p;if(*p=='.')--p;}}}
 }
 
-// Runtime-address boundary used by F2E9.  All original 32-bit cursor and selector
+// Runtime-address boundary used by F2E9. All original 32-bit cursor and selector
 // values stay guest addresses; no guest address is reinterpreted as a host pointer.
 struct FormatterBoundary{
  u32(*call_55c4)(u32 scratch,u32 cursor_cell,u32 state)=nullptr;
@@ -41,14 +41,13 @@ static u32 bounded8(FormatterBoundary&b,u32 p,u16 sel,u32 lim)noexcept{u32 n=0;w
 static u32 bounded16(FormatterBoundary&b,u32 p,u16 sel,u32 lim)noexcept{u32 n=0;while(n!=lim&&b.read_selector16&&b.read_selector16(sel,p+n*2u)!=0)++n;return n;}
 static u32 cstrlen(const char*p)noexcept{return static_cast<u32>(std::strlen(p));}
 static void uppercase(char*p)noexcept{while(*p){*p=static_cast<char>(function_d991(static_cast<u8>(*p)));++p;}}
-static void hexpad(u32 value,char*out,u32 width)noexcept{char tmp[16]{};(void)function_dffb(static_cast<s32>(value),tmp,16);const u32 n=cstrlen(tmp);u32 i=0;for(;i+ n<width;++i)out[i]='0';for(u32 j=0;j<n&&i<width;++j)out[i++]=tmp[j];out[width]='\0';}
+static void hexpad(u32 value,char*out,u32 width)noexcept{char tmp[16]{};(void)function_dffb(static_cast<s32>(value),tmp,16);const u32 n=cstrlen(tmp);u32 i=0;for(;i+n<width;++i)out[i]='0';for(u32 j=0;j<n&&i<width;++j)out[i++]=tmp[j];out[width]='\0';}
 
 struct MaterializeResult{u32 source_offset=0;u16 source_selector=0;u32 length=0;bool local_source=true;};
 
 // F2E9..F721 (1081): structural lift under byte-for-byte review.
-// Signature mirrors the encoded arguments: scratch offset, ADDRESS OF the argument
-// cursor cell, state offset, and fallback-string offset.  This version deliberately
-// removes the prior host-pointer reinterpret_cast shortcut.
+// The encoded arguments are scratch offset, ADDRESS OF the argument cursor cell,
+// state offset, and fallback-string offset. Guest addresses remain guest addresses.
 [[nodiscard]]MaterializeResult function_f2e9(FormatterBoundary&b,char*scratch,u32 scratch_guest,u32 cursor_cell,FormatState&s,u32 state_guest,u16 ds,u32 null_string_offset)noexcept{
  MaterializeResult r{};r.source_selector=ds;r.local_source=true;u32 numeric=0;bool signed_family=false,numeric_family=false;u32 radix=10;const u8 conv=s.conversion;
  if(conv=='X'||conv=='d'||conv=='i'||conv=='o'||conv=='u'||conv=='x'){
@@ -77,10 +76,35 @@ struct MaterializeResult{u32 source_offset=0;u16 source_selector=0;u32 length=0;
  case 'c':scratch[0]=static_cast<char>(take32(b,cursor_cell));scratch[1]=0;s.precision=1;s.flags=static_cast<u8>(s.flags&0xf9u);r.length=1;break;
  default:s.width=0;scratch[0]=static_cast<char>(conv);scratch[1]=0;s.precision=1;s.flags=static_cast<u8>(s.flags&0xf9u);r.length=1;break;
  }
- if(numeric_family){if(signed_family)(void)function_dffb(static_cast<s32>(numeric),scratch,radix);else (void)function_e050(numeric,scratch,radix);if(conv=='X')uppercase(scratch);r.length=cstrlen(scratch);if(s.precision==0&&scratch[0]=='0')scratch[0]=0;}
- // F695..F721 common tail remains structurally represented while exact local/selector
- // source-length and width arithmetic is checked against F163/F18C calling semantics.
- if(r.local_source&&r.length==0)r.length=cstrlen(scratch);
+ if(numeric_family){
+  if(signed_family)(void)function_dffb(static_cast<s32>(numeric),scratch,radix);else (void)function_e050(numeric,scratch,radix);
+  if(conv=='X')uppercase(scratch);r.length=cstrlen(scratch);
+  // F493..F4A4: precision zero suppresses a single generated zero by writing NUL
+  // through ES:EDI; the source pointer itself is retained.
+  if(s.precision==0&&scratch[0]=='0'){scratch[0]=0;r.length=0;}
+ }
+ if(r.local_source){r.source_offset=scratch_guest;r.source_selector=ds;if(r.length==0)r.length=cstrlen(scratch);}
+
+ // F695..F6D7: sign/prefix and numeric precision accounting. The original EAX
+ // carries the source length into this block. A leading '-' is removed from the
+ // returned source span and moved into state.prefix; otherwise blank/plus flags
+ // may synthesize a one-byte prefix. zero_count is precision-length when needed.
+ if(numeric_family||conv=='E'||conv=='F'||conv=='G'||conv=='e'||conv=='f'||conv=='g'){
+  if(r.length!=0&&b.read_selector8){const u8 first=r.local_source?static_cast<u8>(scratch[0]):b.read_selector8(r.source_selector,r.source_offset);if(first=='-'){--r.length;s.prefix[0]='-';s.prefix[1]=0;++r.source_offset;}else if(s.flags&0x02u){s.prefix[0]=' ';s.prefix[1]=0;}else if(s.flags&0x04u){s.prefix[0]='+';s.prefix[1]=0;}}
+  if(r.length>s.precision)s.precision=r.length;else s.zero_count=s.precision-r.length;
+ }
+
+ // F6D8..F6F9: '*' padding cancels sign/prefix flags. For every conversion except
+ // 'c', an unset precision or a precision greater than the actual source length is
+ // replaced with that actual length. This is exactly the branch structure encoded.
+ if(s.pad=='*'){s.prefix[0]=0;s.flags=static_cast<u8>(s.flags&0xf9u);}
+ if((s.precision==0xffffffffu||r.length<s.precision)&&conv!='c')s.precision=r.length;
+
+ // F6FA..F721: strlen(prefix) + precision + zero_count is subtracted from width;
+ // EDI and the saved selector are the function's returned source pair.
+ const u32 prefix_len=cstrlen(reinterpret_cast<const char*>(s.prefix));
+ const u32 occupied=prefix_len+s.precision+s.zero_count;
+ s.width-=occupied;
  return r;
 }
 
