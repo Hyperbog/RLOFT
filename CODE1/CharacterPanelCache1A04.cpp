@@ -61,8 +61,8 @@ void CharacterPanelCache1A04::rebuild(
     // 0x1A4A uses MOVZX BYTE [7138], not a DWORD read.
     ops.call6588(static_cast<std::uint8_t>(state.buffer7138));
 
-    // 0x1A5A..0x1A6F: temporary snapshot handle, retained in EBX.
-    const std::uintptr_t temporary = ops.call7868(0, 0, 0x7A, 0x30, 0xFF);
+    // 0x1A5A..0x1A6F: temporary snapshot handle, retained in 32-bit EBX.
+    const std::uint32_t temporary = ops.call7868(0, 0, 0x7A, 0x30, 0xFF);
 
     // 0x1A71..0x1AF5.
     drawPanel(state.flag4C4, state.record67F8,
