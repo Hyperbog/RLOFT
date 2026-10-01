@@ -17,6 +17,7 @@ jobs:
           sed -i 's/function_d313(FileBoundaries&b,u32 path,u32 flags,u32 mode)noexcept/function_d313(FileBoundaries\&b,u32 path,u32 flags,u32 first_variadic)noexcept/' Code1/integrate_increased_batch_02.py
       - run: python3 Code1/integrate_increased_batch_02.py
       - run: python3 Code1/fix_increased_batch_02.py
+      - run: sed -i '/#include <cstring>/a #include <initializer_list>' Code1/Code1.cpp
       - run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
       - run: |
           git config user.name github-actions[bot]
@@ -24,4 +25,4 @@ jobs:
           git add Code1/Code1.cpp Code1/PROGRESS.md Code1/STAGING_LEDGER.md Code1/DECOMPILATION_CONTINUITY.md Code1/integrate_increased_batch_02.py Code1/fix_increased_batch_02.py
           git commit -m "Integrate increased CODE.1 early game batch"
           git push origin code1-decompilation
-# trigger increased batch 02 anchor fix
+# trigger increased batch 02 include fix
