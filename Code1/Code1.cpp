@@ -45,14 +45,42 @@ void function_d17c(Machine&m,NativeBoundaries&b)noexcept{if(b.call_84d0&&b.call_
 void*function_d1e8(void*dst,const void*src,u32 n)noexcept{return std::memmove(dst,src,static_cast<std::size_t>(n));}
 
 struct DosAttrResult{u16 ax=0;u16 cx=0;bool carry=false;};
-struct FileBoundaries{DosAttrResult(*dos_get_attr)(u32)=nullptr;u32(*call_103c3)(u32)=nullptr;u32*(*call_103b7)()=nullptr;s32(*call_10314)(u16)=nullptr;u32(*call_1042d)()=nullptr;void(*call_1046f)()=nullptr;s32(*dos_read)(u16,void*,u32)=nullptr;s32(*dos_write)(u16,const void*,u32)=nullptr;s32(*dos_seek)(u16,s32,u8)=nullptr;s32(*dos_delete)(const char*)=nullptr;bool(*dos_close)(u16)=nullptr;void(*set_fd_state_10415)(u32,u32)=nullptr;bool(*ioctl_get_mode)(u16,u8&)=nullptr;bool(*ioctl_set_mode)(u16,u8)=nullptr;u32(*open_core_d332)(u32,u32,u32,u32)=nullptr;};
+struct DosHandleResult{u16 ax=0;bool carry=false;};
+struct FileBoundaries{DosAttrResult(*dos_get_attr)(u32)=nullptr;u32(*call_103c3)(u32)=nullptr;u32(*call_10397)(u32)=nullptr;u32*(*call_103b7)()=nullptr;s32(*call_10314)(u16)=nullptr;u32(*call_1042d)()=nullptr;void(*call_1046f)()=nullptr;s32(*dos_read)(u16,void*,u32)=nullptr;s32(*dos_write)(u16,const void*,u32)=nullptr;s32(*dos_seek)(u16,s32,u8)=nullptr;s32(*dos_delete)(const char*)=nullptr;bool(*dos_close)(u16)=nullptr;DosHandleResult(*dos_open_raw)(u32,u8)=nullptr;DosHandleResult(*dos_create_raw)(u32,u16)=nullptr;DosHandleResult(*dos_close_raw)(u16)=nullptr;DosHandleResult(*dos_write_zero_raw)(u16)=nullptr;u8(*read_guest8)(u32)=nullptr;u32(*read_dgroup32)(u32)=nullptr;void(*set_fd_state_10415)(u32,u32)=nullptr;bool(*ioctl_get_mode)(u16,u8&)=nullptr;bool(*ioctl_set_mode)(u16,u8)=nullptr;u32(*open_core_d332)(u32,u32,u32,u32)=nullptr;};
 // D23A..D27C: INT 21h/AH=43h attribute query. Caller flag bit 1 plus returned CX bit 0 synthesizes DOS error 6; 102D4/102EC/10314 reduce CF to 0 on success or mapped -1 on failure.
 [[nodiscard]]s32 function_d23a(FileBoundaries&b,u32 path,u32 flags)noexcept{DosAttrResult r=b.dos_get_attr?b.dos_get_attr(path):DosAttrResult{1,0,true};if(!r.carry&&(flags&2u)&&(r.cx&1u)){r.ax=0x0600u;r.carry=true;}if(!r.carry)return 0;return b.call_10314?b.call_10314(r.ax):-1;}
 static_assert(0xD27Du-0xD23Au==67u);
 static void set_runtime_error(FileBoundaries&b,u32 v)noexcept{if(b.call_103b7){if(u32*p=b.call_103b7())*p=v;}} static s32 map_dos_error(FileBoundaries&b,s32 v)noexcept{return b.call_10314?b.call_10314(static_cast<u16>(v)):v;}
+[[nodiscard]]u32 function_d332(FileBoundaries&,u32,u32,u32,u32)noexcept;
 // D313..D331: variadic front wrapper. The first variadic dword is forwarded as D332 arg4; arg3 is exactly zero.
-[[nodiscard]]u32 function_d313(FileBoundaries&b,u32 path,u32 flags,u32 first_variadic)noexcept{return b.open_core_d332?b.open_core_d332(path,flags,0u,first_variadic):0xffffffffu;}
+[[nodiscard]]u32 function_d313(FileBoundaries&b,u32 path,u32 flags,u32 first_variadic)noexcept{return function_d332(b,path,flags,0u,first_variadic);}
 static_assert(0xD332u-0xD313u==31u);
+// D332..D4F1: DOS open/create/truncate state machine. All DOS calls retain AX+CF explicitly; no host fopen semantics are substituted.
+[[nodiscard]]u32 function_d332(FileBoundaries&b,u32 path,u32 flags,u32 share,u32 create_mode)noexcept{
+ while(b.read_guest8&&b.read_guest8(path)==0x20u)++path;
+ u32 mode=flags&0x83u; const u8 open_mode=static_cast<u8>(mode|share);
+ DosHandleResult opened=b.dos_open_raw?b.dos_open_raw(path,open_mode):DosHandleResult{0xffffu,true};
+ u32 handle=opened.carry?0xffffffffu:static_cast<u32>(opened.ax); u16 error_ax=opened.ax;
+ if((flags&3u)!=0&&handle!=0xffffffffu&&(b.call_10397?b.call_10397(handle):0u)==0u){
+  if((flags&0x400u)!=0u){if(b.dos_close_raw)(void)b.dos_close_raw(static_cast<u16>(handle));set_runtime_error(b,7u);return 0xffffffffu;}
+  if((flags&0x40u)!=0u){const DosHandleResult wr=b.dos_write_zero_raw?b.dos_write_zero_raw(static_cast<u16>(handle)):DosHandleResult{0xffffu,true};if(wr.carry){if(b.dos_close_raw)(void)b.dos_close_raw(static_cast<u16>(handle));return static_cast<u32>(map_dos_error(b,static_cast<s32>(wr.ax)));}}
+ }
+ if(handle==0xffffffffu){
+  if((flags&0x20u)==0u||error_ax!=2u)return static_cast<u32>(map_dos_error(b,static_cast<s32>(error_ax)));
+  u32 cm=create_mode?create_mode:0x180u; const u32 mask=b.read_dgroup32?b.read_dgroup32(0x5340u):0u; cm^=mask; const u16 attr=(static_cast<u8>(cm)&0x80u)?0u:1u;
+  const DosHandleResult cr=b.dos_create_raw?b.dos_create_raw(path,attr):DosHandleResult{0xffffu,true};if(cr.carry)return static_cast<u32>(map_dos_error(b,static_cast<s32>(cr.ax)));
+  const DosHandleResult cl=b.dos_close_raw?b.dos_close_raw(cr.ax):DosHandleResult{0xffffu,true};if(cl.carry)return static_cast<u32>(map_dos_error(b,static_cast<s32>(cl.ax)));
+  opened=b.dos_open_raw?b.dos_open_raw(path,open_mode):DosHandleResult{0xffffu,true};if(opened.carry)return static_cast<u32>(map_dos_error(b,static_cast<s32>(opened.ax)));handle=static_cast<u32>(opened.ax);
+ }
+ u32 state=b.call_103c3?b.call_103c3(handle):0u; state=(state&~0xffu)|static_cast<u8>(state&0x3cu);
+ if((b.call_10397?b.call_10397(handle):0u)!=0u)state|=0x2000u; mode&=0x7fu;
+ if(mode==2u)state|=3u;if(mode==0u)state|=1u;if(mode==1u)state|=2u;if((flags&0x10u)!=0u)state|=0x80u;
+ const u32 text_state=(state&~0xffu)|static_cast<u8>(state|0x40u);
+ if((flags&0x300u)!=0u){if((flags&0x200u)!=0u)state=text_state;}else if((b.read_dgroup32?b.read_dgroup32(0x55a5u):0u)==0x200u)state=text_state;
+ if(b.set_fd_state_10415)b.set_fd_state_10415(handle,state);return handle;
+}
+static_assert(0xD4F2u-0xD332u==448u);
+
 // D4F2..D55D: commit descriptor state with AL|40h; for device descriptors perform INT 21h/AH=44h get/set, mapping the encoded DX error word through 10314.
 [[nodiscard]]s32 function_d4f2(FileBoundaries&b,u32 h)noexcept{u32 state=b.call_103c3?b.call_103c3(h):0;state=(state&~0xffu)|static_cast<u8>(state|0x40u);if(b.set_fd_state_10415)b.set_fd_state_10415(h,state);if((state&0x2000u)==0)return 0;u8 mode=0;if(!b.ioctl_get_mode||b.ioctl_get_mode(static_cast<u16>(h),mode)){return b.call_10314?b.call_10314(mode):-1;}mode=static_cast<u8>(mode|0x20u);if(!b.ioctl_set_mode||b.ioctl_set_mode(static_cast<u16>(h),mode)){return b.call_10314?b.call_10314(mode):-1;}return 0;}
 static_assert(0xD55Eu-0xD4F2u==108u);
@@ -334,6 +362,6 @@ static_assert(0xE2C3u-0xE280u==67u);
 [[nodiscard]]u32 function_e360(const u8*data,u32 text)noexcept{u32 p=text;auto cls=[&](u8 c)noexcept->u8{return data[0x3b4u+static_cast<u32>(static_cast<u8>(c+1u))];};while((cls(data[p])&0x02u)!=0)++p;const u8 sign=data[p];if(sign==0x2bu||sign==0x2du)++p;u32 v=0;while((cls(data[p])&0x20u)!=0){v=v*10u+static_cast<u32>(data[p]);++p;v-=0x30u;}if(sign==0x2du)v=0u-v;return v;}
 static_assert(0xE3B3u-0xE360u==83u);
 
-constexpr u32 kVerifiedTranslatedBytes=9141u;
+constexpr u32 kVerifiedTranslatedBytes=9589u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 } // namespace code1

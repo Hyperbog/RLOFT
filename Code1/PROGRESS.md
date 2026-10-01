@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-12.98%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-13.62%25-red)
 
-**Verified conversion:** 12.98%  
-**Remaining:** 87.02%  
+**Verified conversion:** 13.62%  
+**Remaining:** 86.38%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **9,141**.  
+Current verified translated bytes: **9,589**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **12.9840%**, displayed as **12.98%**.
+Raw coverage: **13.6204%**, displayed as **13.62%**.
 
 ## Immutable source identity
 
@@ -47,7 +47,7 @@ Raw coverage: **12.9840%**, displayed as **12.98%**.
 - Signed decimal parser `E360..E3B2`: **83 bytes**.
 - Complete formatter driver/parser/materializer `EDE7..F741`: **2,395 bytes**.
 
-Total integrated verified translated bytes: **9,141**.
+Total integrated verified translated bytes: **9,589**.
 
 `DA45..DA47` is three zero bytes. `EDD3..EDDF` is **13 zero bytes**. Both are classified as data/alignment and are not counted as translated code.
 
@@ -67,7 +67,7 @@ The PSP command-tail `REPZ SCASB` mismatch behavior, environment executable-path
 
 ## D23A..D5AC DOS/CRT continuation under reconciliation
 
-`DosCrtNext.staging.cpp` originally covered **880 functional instruction bytes** in `D23A..D5AC`; `D573..D5AC` is now integrated, leaving **595 unique unintegrated bytes** in that staging span; `D27D..D27F` is three zero bytes and excluded. It maps attribute/status, find-first/find-next, DTA shuttles, open/create/truncate, descriptor/IOCTL setup, open wrapper, and close wrapper. `D332..D4F1` remains structural staging until descriptor-table representation is reconciled against `103C3..1042C`.
+`DosCrtNext.staging.cpp` originally covered **880 functional instruction bytes** in `D23A..D5AC`; `D573..D5AC` is now integrated, leaving **147 unique unintegrated bytes** in that staging span; `D27D..D27F` is three zero bytes and excluded. It maps attribute/status, find-first/find-next, DTA shuttles, open/create/truncate, descriptor/IOCTL setup, open wrapper, and close wrapper. `D332..D4F1` remains structural staging until descriptor-table representation is reconciled against `103C3..1042C`.
 
 ## DE6F..E0C7 accounting audit
 

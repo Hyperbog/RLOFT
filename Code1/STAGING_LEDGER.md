@@ -9,10 +9,10 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 | Staging source | Active ranges | Functional bytes | Why staged / next proof required |
 |---|---:|---:|---|
 | `StartupNext.staging.cpp` + `StartupExit.reconciled.cpp` | `CD97..D08B` excluding proven padding/data | 747 | PSP/environment scanning and much of startup are understood, but integration still depends on exact selector/stack provenance around `CE21`, the `CEC8 -> FEFC` register-image contract, and preserving the nonreturning/shared exit paths. Re-disassemble each subrange before folding. |
-| `DosCrtNext.staging.cpp` | `D280..D312`, `D332..D4F1` | 595 | `D280..D312` performs DOS DTA get/set and 0x2B-byte copies whose DS/ES direction must be represented exactly. `D332..D4F1` is the open/create/truncate descriptor-state machine; its DOS carry/error encoding and `10397/103C3/10415` interactions are mapped but the placeholder staged C++ is not integration quality. `D313..D331`, `D4F2..D55D`, `D55E..D572`, and `D573..D5AC` are already integrated and must not be counted here. |
+| `DosCrtNext.staging.cpp` | `D280..D312` | 147 | `D280..D312` performs DOS DTA get/set and 0x2B-byte copies whose DS/ES direction must be represented exactly. `D332..D4F1` is the open/create/truncate descriptor-state machine; its DOS carry/error encoding and `10397/103C3/10415` interactions are mapped but the placeholder staged C++ is not integration quality. `D313..D331`, `D4F2..D55D`, `D55E..D572`, and `D573..D5AC` are already integrated and must not be counted here. |
 | `RuntimeGapE0D0.staging.cpp` | `E2C3..E35F` | 157 | Full interrupt trampoline: saves ES/DS and the complete general-register image, calls CEC0, switches SS:ESP to the runtime interrupt stack, far-calls the callback saved at 5102:5106, restores the prior stack with LSS, restores runtime stack metadata and registers, then IRET. It must remain a machine/interrupt boundary, never an ordinary host callback. `E280..E2C2` is now directly reconciled and integrated as the vector installer. |
 
-**Active unique staged bytes: 1,499.**
+**Active unique staged bytes: 1,051.**
 
 ## Resolved / rejected staging facts that must not regress
 
@@ -33,3 +33,5 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 6. Run `g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp`.
 7. Update `PROGRESS.md`, this ledger, and `DECOMPILATION_CONTINUITY.md` when state materially changes.
 8. Commit before reporting progress. Keep the progress badge red until 100%.
+
+- `D332..D4F1 integrated`: 448-byte DOS open/create/truncate descriptor-state machine directly re-disassembled and folded with AX+CF DOS boundaries; no host fopen substitution.
