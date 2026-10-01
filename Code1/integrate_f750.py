@@ -3,7 +3,7 @@ p=Path('Code1/Code1.cpp'); s=p.read_text()
 needle='struct DirectoryBoundaries{'
 assert needle in s
 assert 'function_f750(' not in s
-block='''// F750..F7B2: source reader used by the following resource parsers. Bit 0 selects an in-memory source; otherwise seek/read through the DOS wrappers and return the handle's resulting current position.\n[[nodiscard]]u32 function_f750(FileBoundaries&b,u32 source,u32 offset,u32 flags,u8*dst,u32 count)noexcept{\n if((flags&1u)!=0u){std::memmove(dst,reinterpret_cast<const void*>(static_cast<std::uintptr_t>(source+offset)),static_cast<std::size_t>(count));return offset+count;}\n (void)function_d85f(b,static_cast<u16>(source),static_cast<s32>(offset),0u);\n (void)function_d5ad(b,static_cast<u16>(source),dst,count);\n return static_cast<u32>(function_d85f(b,static_cast<u16>(source),0,1u));\n}\nstatic_assert(0xF7B3u-0xF750u==99u);\n\n'''
+block='''// F750..F7B2: source reader used by the following resource parsers. Bit 0 selects an in-memory source; otherwise seek/read through the DOS wrappers and return the handle's resulting current position.\n[[nodiscard]]u32 function_f750(FileBoundaries&b,u32 source,u32 offset,u32 flags,u8*dst,u32 count)noexcept{\n if((flags&1u)!=0u){for(u32 i=0;i<count;++i)dst[i]=b.read_guest8?b.read_guest8(source+offset+i):0u;return offset+count;}\n (void)function_d85f(b,static_cast<u16>(source),static_cast<s32>(offset),0u);\n (void)function_d5ad(b,static_cast<u16>(source),dst,count);\n return static_cast<u32>(function_d85f(b,static_cast<u16>(source),0,1u));\n}\nstatic_assert(0xF7B3u-0xF750u==99u);\n\n'''
 s=s.replace(needle,block+needle)
 s=s.replace('constexpr u32 kVerifiedTranslatedBytes=9666u;','constexpr u32 kVerifiedTranslatedBytes=9765u;')
 assert 'kVerifiedTranslatedBytes=9765u' in s
@@ -17,5 +17,5 @@ assert inv in t
 t=t.replace(inv,inv+'\n- Resource/source reader helper `F750..F7B2`: **99 bytes**.')
 q.write_text(t)
 r=Path('Code1/STAGING_LEDGER.md'); u=r.read_text()
-if 'F750..F7B2 integrated' not in u:u+='\n- `F750..F7B2 integrated`: 99-byte source reader directly disassembled; bit 0 selects memory-copy path, otherwise the encoded D85F/D5AD/D85F seek-read-position sequence is retained.\n'
+if 'F750..F7B2 integrated' not in u:u+='\n- `F750..F7B2 integrated`: 99-byte source reader directly disassembled; bit 0 selects the guest-memory copy path, otherwise the encoded D85F/D5AD/D85F seek-read-position sequence is retained.\n'
 r.write_text(u)
