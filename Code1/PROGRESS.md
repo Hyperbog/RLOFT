@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-1.89%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-2.36%25-red)
 
-**Verified conversion:** 1.89%  
-**Remaining:** 98.11%  
+**Verified conversion:** 2.36%  
+**Remaining:** 97.64%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
-The percentage remains the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unverified translations do not count.
+The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unverified translations do not count.
 
-Current verified translated bytes: **1,334**.  
+Current verified translated bytes: **1,666**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **1.8948%**, displayed conservatively as **1.89%**.
+Raw coverage: **2.3664%**, displayed conservatively as **2.36%**.
 
 ## Immutable source identity
 
@@ -24,37 +24,34 @@ Raw coverage: **1.8948%**, displayed conservatively as **1.89%**.
 
 - Startup/recovery regions through `CD96`: **259 bytes**.
 - Structured mouse-facing routines `D08C..D153` plus overlap-safe copy `D1E8..D239`: **274 bytes**.
-- Structured file read `D5AD..D685`: **217 bytes**.
-- Structured file write `D686..D85E`: **473 bytes**.
-- Structured file seek `D85F..D8A9`: **75 bytes**.
-- Structured file delete `D8AA..D8CD`: **36 bytes**.
+- File read/write/seek/delete `D5AD..D8CD`: **801 bytes**.
+- DOS/CRT directory and utility routines `D8D0..DA1B`: **332 bytes** of non-padding executable ranges.
 
-Total verified translated bytes: **1,334**.
+Total verified translated bytes: **1,666**.
+
+## Current pass: D8D0..DA1B
+
+This pass continued past unresolved call edges and verified another **332 bytes** directly from CODE.1:
+
+- `D8D0..D8E7` (24): query current DOS drive and store its one-based representation.
+- `D8E8..D905` (30): select a drive after converting the one-based argument to DOS's zero-based drive number.
+- `D906..D990` (139): obtain the current directory and construct the drive-qualified path, allocating storage only when the supplied destination is null.
+- `D991..D9A5` (21): ASCII lowercase-to-uppercase conversion.
+- `D9A6..D9C9` (36): DOS change-directory wrapper with the existing runtime error-conversion boundary.
+- `D9CA..D9ED` (36): DOS make-directory wrapper with the same error boundary.
+- `D9EE..DA17` (42): forward copy routine, represented as `memcpy`; unlike the previously recovered `D1E8` routine it contains no overlap-safe backward path.
+- `DA18..DA19` and `DA1A..DA1B` (2 bytes each): CLI/STI wrappers.
+
+The bytes `DA45..` were not automatically counted merely because they follow these routines; alignment/data ambiguity and subsequent runtime dependencies are being resolved before coverage is assigned.
+
+Open Watcom's preserved C Library Reference independently identifies `chdir`, `getcwd`, and `mkdir` as directory-manipulation functions. That documentation is corroboration only; CODE.1's instructions and DOS interrupt behavior remain controlling evidence.
 
 ## Larger-batch policy
 
-The working target is approximately **4,000 newly verified bytes per batch**, but an obstacle in one region no longer terminates the batch. Unresolved call edges are recorded and translation continues in other independently provable regions. Fidelity remains the hard constraint: no byte is counted merely to satisfy the target.
-
-This checkpoint adds **801 verified bytes** beyond the previous 533-byte total. The newly lifted region is particularly useful because it is ordinary structured C++ rather than CPU-state emulation: the original DOS file read/write/seek/delete behavior is represented behind explicit native boundaries, while still-unproven Watcom runtime helpers remain address-named (`10314`, `103B7`, `103C3`, `1042D`, `1046F`).
-
-### File-read fidelity (`D5AD..D685`)
-
-The reconstruction preserves the original handle-flag tests, direct/binary read path, text-mode CR removal, `1Ah` termination behavior, repeated reads, and runtime error boundaries.
-
-### File-write fidelity (`D686..D85E`)
-
-The reconstruction preserves append seeking, direct/binary writes, text-mode LF-to-CR/LF expansion, the original `0x80`/`0x200` temporary-buffer selection, short-write error handling, and the original return-accounting behavior.
-
-### Seek/delete (`D85F..D8CD`)
-
-The DOS `AH=42h` seek and `AH=41h` delete routines are lifted behind explicit file-system boundaries, retaining the original runtime error-conversion boundary rather than inventing host errno behavior.
+The working target remains approximately **4,000 newly verified bytes per substantial batch**, but fidelity is controlling. A blocked edge is queued and work moves to another independently provable region. A region is counted only after its boundaries and behavior are instruction-accounted.
 
 ## Unresolved queue
 
-Nearby unresolved dependencies such as `84D0`, `8960`, `82A4`, and the address-named CRT helpers remain queued. They do **not** prevent work on independent regions.
-
-## Next checkpoint
-
-Continue the same batch strategy toward approximately 4,000 additional verified bytes, moving among independently provable regions rather than stopping at the first unresolved edge.
+The existing `84D0`, `8960`, `82A4`, startup successor work, and address-named CRT helpers remain queued. The next nearby allocator/runtime region beginning around `DA45` is also being treated cautiously rather than receiving guessed host-allocation semantics.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
