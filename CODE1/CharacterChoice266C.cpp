@@ -27,7 +27,10 @@ void CharacterChoice266C::run(CharacterChoiceState266C& state,
         const CharacterOptionState2198 optionState{
             state.field680C, state.fields680D[0], state.fields680D[1]
         };
-        if (!CharacterOptions2198::build(optionFlags, stage, optionState)) break;
+        const CharacterOptionOps2198 optionOps{ops.readDsS8};
+        // This caller only invokes 0x2198 with stage 0..2. All three paths
+        // explicitly define EDX before returning, so inherited EDX is dead here.
+        if (CharacterOptions2198::build(optionFlags, stage, optionState, 0, optionOps) == 0) break;
 
         std::array<std::int32_t, 9> slots{
             -1, -1, -1, -1, -1, -1, -1, -1, -1
