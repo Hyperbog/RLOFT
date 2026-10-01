@@ -158,8 +158,49 @@ struct MaterializeResult{u32 source_offset=0;u16 source_selector=0;u32 accountin
 // payload state immediately before that shared epilogue.
 [[nodiscard]]MaterializeResult function_f2e9(FormatterBoundary&b,char*scratch,u32 scratch_guest,u32 cursor_cell,FormatState&s,u32 state_guest,u16 ds,u32 null_string_offset)noexcept{MaterializeResult r{scratch_guest,ds,0};u32 numeric=0;bool sign_processing=true;const u8 conv=s.conversion;s.zero_count=0;if(conv=='X'||conv=='o'||conv=='u'||conv=='x'){if(s.flags&0x20u)numeric=formatter_take32(b,cursor_cell);else if(s.flags&0x10u)numeric=formatter_take_u16(b,cursor_cell);else numeric=formatter_take32(b,cursor_cell);s.flags=static_cast<u8>(s.flags&0xf9u);}if(s.precision!=0xffffffffu&&(conv=='X'||conv=='d'||conv=='i'||conv=='o'||conv=='u'||conv=='x'))s.pad=' ';switch(conv){case 'E':case 'F':case 'G':case 'e':case 'f':case 'g':if((conv=='F'||conv=='f')&&(s.flags&0x10u)){function_f206(scratch,static_cast<s32>(formatter_take32(b,cursor_cell)),s);r.accounting_eax=formatter_strlen(scratch);}else{const FarReturn q=function_f2d2(b,scratch_guest,cursor_cell,state_guest);r.source_offset=q.offset;r.source_selector=q.selector;r.accounting_eax=formatter_bounded8(b,q.offset,q.selector,0xffffffffu);}break;case 'o':{char*digits=scratch;if(s.flags&1u)*digits++='0';(void)function_e098(static_cast<s32>(numeric),digits,8);if(s.precision==0&&digits[0]=='0')scratch[0]=0;r.accounting_eax=formatter_strlen(scratch);break;}case 'd':case 'i':{s32 value;if(s.flags&0x20u)value=static_cast<s32>(formatter_take32(b,cursor_cell));else if(s.flags&0x10u)value=formatter_take_s16(b,cursor_cell);else value=static_cast<s32>(formatter_take32(b,cursor_cell));if(s.flags&0x30u)(void)function_e098(value,scratch,10);else(void)function_dffb(value,scratch,10);if(s.precision==0&&scratch[0]=='0')scratch[0]=0;r.accounting_eax=formatter_strlen(scratch);break;}case 'u':(void)function_e050(numeric,scratch,10);if(s.precision==0&&scratch[0]=='0')scratch[0]=0;r.accounting_eax=formatter_strlen(scratch);break;case 'x':case 'X':if((s.flags&1u)&&numeric!=0){s.prefix[0]='0';s.prefix[1]=conv;s.prefix[2]=0;}(void)function_e050(numeric,scratch,16);if(conv=='X')function_f722(scratch);if(s.precision==0&&scratch[0]=='0')scratch[0]=0;r.accounting_eax=formatter_strlen(scratch);break;case 's':case 'S':{u32 p;u16 sel=ds;if(s.flags&0x80u){const u32 n=formatter_get32(b,cursor_cell)+8u;formatter_put32(b,cursor_cell,n);p=formatter_get32(b,n-8u);sel=b.read_linear16?b.read_linear16(n-4u):0;if(p==0&&sel==0){p=null_string_offset;sel=ds;}}else{p=formatter_take32(b,cursor_cell);if(p==0)p=null_string_offset;}r.source_offset=p;r.source_selector=sel;s.flags=static_cast<u8>(s.flags&0xf9u);sign_processing=false;if(conv=='S'){if(s.flags&0x20u){r.accounting_eax=b.read_selector16?b.read_selector16(sel,p):0;r.source_offset=p+2u;}else{r.accounting_eax=b.read_selector8?b.read_selector8(sel,p):0;r.source_offset=p+1u;}}else r.accounting_eax=(s.flags&0x20u)?formatter_bounded16(b,p,sel,s.precision):formatter_bounded8(b,p,sel,s.precision);break;}case 'p':case 'P':{if(s.width==0)s.width=(s.flags&0x80u)?13u:8u;s.flags=static_cast<u8>(s.flags&0xf9u);const u32 off=formatter_take32(b,cursor_cell);if(s.flags&0x80u){const u16 sel=formatter_take_u16(b,cursor_cell);formatter_hexpad(sel,scratch,4);scratch[4]=':';formatter_hexpad(off,scratch+5,8);}else formatter_hexpad(off,scratch,8);if(conv=='P')function_f722(scratch);r.accounting_eax=formatter_strlen(scratch);break;}case 'c':scratch[0]=static_cast<char>(formatter_take32(b,cursor_cell));scratch[1]=0;sign_processing=false;s.precision=1;s.flags=static_cast<u8>(s.flags&0xf9u);r.accounting_eax=1;break;default:s.width=0;scratch[0]=static_cast<char>(conv);scratch[1]=0;sign_processing=false;s.precision=1;s.flags=static_cast<u8>(s.flags&0xf9u);r.accounting_eax=1;break;}if(sign_processing){const bool local_source=(r.source_selector==ds&&r.source_offset==scratch_guest);const u8 first=local_source?static_cast<u8>(scratch[0]):(b.read_selector8?b.read_selector8(r.source_selector,r.source_offset):0);if(first=='-'){--r.accounting_eax;s.prefix[0]='-';s.prefix[1]=0;++r.source_offset;}else if(s.flags&2u){s.prefix[0]=' ';s.prefix[1]=0;}else if(s.flags&4u){s.prefix[0]='+';s.prefix[1]=0;}if(static_cast<s32>(r.accounting_eax)>static_cast<s32>(s.precision))s.precision=r.accounting_eax;else s.zero_count=s.precision-r.accounting_eax;}if(s.pad=='*'){s.prefix[0]=0;s.flags=static_cast<u8>(s.flags&0xf9u);}if((s.precision==0xffffffffu||static_cast<s32>(r.accounting_eax)<static_cast<s32>(s.precision))&&conv!='c')s.precision=r.accounting_eax;const u32 occupied=formatter_strlen(reinterpret_cast<const char*>(s.prefix))+s.precision+s.zero_count;s.width-=occupied;return r;}
 
-static_assert(0xE4C7u-0xE3B4u==275u); static_assert(0xEBF3u-0xEA0Bu==488u); static_assert(0xEDD3u-0xEBF3u==480u); static_assert(0xEDE7u-0xEDE0u==7u);
+// EDE7..F006: verified formatter driver. F2E9 shares the original F001
+// epilogue; the C++ boundary represents that encoded edge as a normal return.
+struct FormatterDriverBoundary{
+ const u8*(*parse_f007)(const u8*,u32 cursor_cell,FormatState&)=nullptr;
+ MaterializeResult(*materialize_f2e9)(u32 scratch_guest,u32 cursor_cell,FormatState&,u32 state_guest)=nullptr;
+ void(*emit)(FormatState&,u8)=nullptr;
+ u32(*read_linear32)(u32)=nullptr;u16(*read_linear16)(u32)=nullptr;
+ void(*write_linear32)(u32,u32)=nullptr;void(*write_linear16)(u32,u16)=nullptr;
+ u8(*read_selector8)(u16,u32)=nullptr;
+ void(*write_selector32)(u16,u32,u32)=nullptr;void(*write_selector16)(u16,u32,u16)=nullptr;
+};
+static u32 driver_rd32(FormatterDriverBoundary&b,u32 a)noexcept{return b.read_linear32?b.read_linear32(a):0;}
+static u16 driver_rd16(FormatterDriverBoundary&b,u32 a)noexcept{return b.read_linear16?b.read_linear16(a):0;}
+static void driver_wr32(FormatterDriverBoundary&b,u32 a,u32 v)noexcept{if(b.write_linear32)b.write_linear32(a,v);}
+static u32 driver_take32(FormatterDriverBoundary&b,u32 c)noexcept{const u32 n=driver_rd32(b,c)+4u;driver_wr32(b,c,n);return driver_rd32(b,n-4u);}
+static u32 driver_count(const FormatState&s)noexcept{return load_le32(s.opaque10);}
+static void driver_set_count(FormatState&s,u32 v)noexcept{store_le32(s.opaque10,v);}
+static void driver_output(FormatterDriverBoundary&b,FormatState&s,u8 ch)noexcept{if(b.emit)b.emit(s,ch);}
+[[nodiscard]]u32 function_ede7(FormatterDriverBoundary&b,u32 initial_context,const u8*format,u32 cursor_cell,u32 scratch_guest,u32 state_guest)noexcept{
+ FormatState s{};store_le32(s.opaque0,initial_context);driver_set_count(s,0);const u8*p=format;
+ for(;;){
+  if(*p==0)return driver_count(s);
+  if(*p!='%'){driver_output(b,s,*p++);continue;}
+  // EE72/EE75 increment EAX before EE79 reaches EE10: F007 receives p+1.
+  if(!b.parse_f007)return driver_count(s);const u8*conversion=b.parse_f007(p+1,cursor_cell,s);s.conversion=*conversion;p=conversion+1;if(s.conversion==0)return driver_count(s);
+  if(s.conversion=='n'){
+   const u32 count=driver_count(s);
+   if(s.flags&0x20u){if(s.flags&0x80u){const u32 base=driver_rd32(b,cursor_cell)+8u;driver_wr32(b,cursor_cell,base);const u32 off=driver_rd32(b,base-8u);const u16 sel=driver_rd16(b,base-4u);if(b.write_selector32)b.write_selector32(sel,off,count);}else{const u32 dst=driver_take32(b,cursor_cell);driver_wr32(b,dst,count);}}
+   else if(s.flags&0x10u){if(s.flags&0x80u){const u32 base=driver_rd32(b,cursor_cell)+8u;driver_wr32(b,cursor_cell,base);const u32 off=driver_rd32(b,base-8u);const u16 sel=driver_rd16(b,base-4u);if(b.write_selector16)b.write_selector16(sel,off,static_cast<u16>(count));}else{const u32 dst=driver_take32(b,cursor_cell);if(b.write_linear16)b.write_linear16(dst,static_cast<u16>(count));}}
+   else{if(s.flags&0x80u){const u32 base=driver_rd32(b,cursor_cell)+8u;driver_wr32(b,cursor_cell,base);const u32 off=driver_rd32(b,base-8u);const u16 sel=driver_rd16(b,base-4u);if(b.write_selector32)b.write_selector32(sel,off,count);}else{const u32 dst=driver_take32(b,cursor_cell);driver_wr32(b,dst,count);}}continue;
+  }
+  if(!b.materialize_f2e9)return driver_count(s);MaterializeResult r=b.materialize_f2e9(scratch_guest,cursor_cell,s,state_guest);u32 source=r.source_offset;const u16 selector=r.source_selector;
+  if((s.flags&0x08u)==0&&s.pad==' '){while(static_cast<s32>(--s.width)>=0)driver_output(b,s,s.pad);}
+  for(u32 i=0;i<3u&&s.prefix[i]!=0;++i)driver_output(b,s,s.prefix[i]);
+  for(;;){const u32 old=s.zero_count--;if(old==0)break;driver_output(b,s,'0');}
+  if((s.flags&0x08u)==0&&s.pad!=' '){while(static_cast<s32>(--s.width)>=0)driver_output(b,s,s.pad);}
+  for(;;){const u32 old=s.precision--;if(old==0)break;const u8 ch=b.read_selector8?b.read_selector8(selector,source):0;driver_output(b,s,ch);source+=((s.conversion=='s'||s.conversion=='S')&&(s.flags&0x20u))?2u:1u;}
+  if(s.flags&0x08u){while(static_cast<s32>(s.width)>0){const u32 old=s.width--;if(old==0)break;driver_output(b,s,' ');}}
+ }
+}
+
+static_assert(0xE4C7u-0xE3B4u==275u); static_assert(0xF007u-0xEDE7u==544u); static_assert(0xEBF3u-0xEA0Bu==488u); static_assert(0xEDD3u-0xEBF3u==480u); static_assert(0xEDE7u-0xEDE0u==7u);
 static_assert(0xF110u-0xF007u==265u); static_assert(0xF163u-0xF110u==83u); static_assert(0xF18Cu-0xF163u==41u); static_assert(0xF1B3u-0xF18Cu==39u); static_assert(0xF206u-0xF1B3u==83u); static_assert(0xF2D2u-0xF206u==204u); static_assert(0xF2E9u-0xF2D2u==23u); static_assert(0xF722u-0xF2E9u==1081u); static_assert(0xF742u-0xF722u==32u);
-constexpr u32 kVerifiedTranslatedBytes=6781u;
+constexpr u32 kVerifiedTranslatedBytes=7325u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 } // namespace code1

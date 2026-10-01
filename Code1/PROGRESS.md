@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-7.77%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-10.40%25-red)
 
-**Verified conversion:** 7.77%  
-**Remaining:** 92.23%  
+**Verified conversion:** 10.40%  
+**Remaining:** 89.60%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **5,473**.  
+Current verified translated bytes: **7,325**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **7.7739%**, displayed conservatively as **7.77%**.
+Raw coverage: **10.4045%**, displayed conservatively as **10.40%**.
 
 ## Immutable source identity
 
@@ -33,28 +33,23 @@ Raw coverage: **7.7739%**, displayed conservatively as **7.77%**.
 - Registration/event subsystem `EA0B..EBF2`: **488 bytes**.
 - 48 exact dispatcher wrappers `EBF3..EDD2`: **480 bytes**.
 - Frame no-op `EDE0..EDE6`: **7 bytes**.
-- Formatter helper subset `F007..F205` and `F722..F741`: **543 bytes**.
+- Complete formatter driver/parser/materializer `EDE7..F741`: **2,395 bytes**.
 
-Total integrated verified translated bytes: **5,473**.
+Total integrated verified translated bytes: **7,325**.
 
 `EDD3..EDDF` is **13 zero bytes** classified as data and is not counted as translated code.
 
-## Formatter staging cleared for integration
+## Formatter fully integrated
 
-Both remaining formatter staging files are now instruction-accounted and cleared:
+Both cleared staging ranges are now physically folded into `Code1.cpp`: `EDE7..F006` (**544 bytes**) and `F206..F721` (**1,308 bytes**). With the previously integrated helpers, the contiguous formatter region `EDE7..F741` accounts for **2,395 verified bytes**.
 
-- `FormatterDriver.staging.cpp`, `EDE7..F006`: **544 verified bytes**.
-- `FormatterContinuation.staging.cpp`, `F206..F721`: **1,308 verified bytes**.
+The fold preserves the corrected post-`%` parser pointer, `%n` near/far word and dword stores, callback-owned output count, post-decrement padding/precision behavior, selector-qualified payload reads, two-byte `s/S` stride, signed 16.16 conversion, EAX:DX far-return contract, and the original shared `F001` epilogue relationship.
 
-The final driver reconciliation found one structural-lift defect before clearance: at `EE75`, EAX is incremented before the `%` branch reaches `EE10`, so `F007` receives the byte immediately **after** `%`. The staging source previously passed the `%` address itself. This is corrected. The `%n` near/far word/dword stores, callback-owned count, pre/post padding loops, prefix and zero emission, selector-qualified payload reads, two-byte `s/S` stride, and shared `F001` epilogue were then rechecked against the immutable instruction stream.
-
-Together these staged ranges add **1,852 verified bytes**. Folding them into `Code1.cpp` will make the complete formatter region `EDE7..F741` contiguous at **2,395 verified bytes** and raise the integrated total to **7,325 / 70,402 = 10.4045%**, displayed conservatively as **10.40%**.
-
-The official percentage remains 7.77% until the physical fold is committed; verified-but-staged bytes are never counted early.
+The staging files are removed after the syntax-checked fold so no verified bytes can be double-counted.
 
 ## Active continuation
 
-Physically fold the two cleared formatter staging files into `Code1.cpp`, update the unified `FormatState` layout and verified-byte constant, syntax-check the resulting C++17 translation unit, remove the staging files, and then advance to the next independent CODE.1 regions.
+Advance to the next independent CODE.1 regions: allocator bodies at `DAD9`/`DB5B`, candidate compressed-data routine `DB80`, transformation routine `DC90`, uncertain entry at `DE6F`, startup successors, and remaining address-named CRT helpers.
 
 ## Larger-batch policy
 
