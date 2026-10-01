@@ -204,6 +204,13 @@ static void driver_output(FormatterDriverBoundary&b,FormatState&s,u8 ch)noexcept
  }
 }
 
+// DA1C..DA44: 41-byte wrapper. 104B1 initializes the 12-byte local adapter
+// cell; CEC8 receives the original three dword arguments followed by that cell.
+// The boundary stays address-named because CEC8/FEFC carries selector/register
+// state that is not yet representable as an ordinary host call.
+struct DosAdapterBoundary{void(*call_104b1)(u32 guest_cell)=nullptr;u32(*call_cec8)(u32,u32,u32,u32)=nullptr;};
+[[nodiscard]]u32 function_da1c(DosAdapterBoundary&b,u32 a1,u32 a2,u32 a3,u32 local_guest)noexcept{if(b.call_104b1)b.call_104b1(local_guest);return b.call_cec8?b.call_cec8(a1,a2,a3,local_guest):0;}
+
 // DAD9..DB7F. The encoded routine calls the allocator core at 104E0 with
 // EAX=request, EDX=DS, EBX=30B8h, then tries 10AA9 once and 10C46 as the
 // retry gate. DB5B passes the pointer to the free core at 10590. Names stay
@@ -228,6 +235,8 @@ struct AllocBoundary{
 }
 void function_db5b(AllocBoundary&b,u32 pointer)noexcept{if(b.call_10590)b.call_10590(pointer,b.ds,0x30b8u);if(b.write_linear8)b.write_linear8(0x8e78u,0);}
 void function_db4b(AllocBoundary&b,u32 pointer)noexcept{function_db5b(b,pointer);}
+// DAC9..DAD8: exact 16-byte frame wrapper around DAD9.
+[[nodiscard]]u32 function_dac9(AllocBoundary&b,u32 request)noexcept{return function_dad9(b,request);}
 
 // DB80..DC8C. Exact 4096-byte ring dictionary walk. 7360 returns a
 // zero-extended input byte; 738C consumes one output byte. The dictionary is
@@ -277,6 +286,6 @@ void function_dc90(TransformBoundary&b,u32 base)noexcept{
 static_assert(0xDB80u-0xDAD9u==167u); static_assert(0xDC8Du-0xDB80u==269u); static_assert(0xDDD8u-0xDC90u==328u);
 static_assert(0xE4C7u-0xE3B4u==275u); static_assert(0xF007u-0xEDE7u==544u); static_assert(0xEBF3u-0xEA0Bu==488u); static_assert(0xEDD3u-0xEBF3u==480u); static_assert(0xEDE7u-0xEDE0u==7u);
 static_assert(0xF110u-0xF007u==265u); static_assert(0xF163u-0xF110u==83u); static_assert(0xF18Cu-0xF163u==41u); static_assert(0xF1B3u-0xF18Cu==39u); static_assert(0xF206u-0xF1B3u==83u); static_assert(0xF2D2u-0xF206u==204u); static_assert(0xF2E9u-0xF2D2u==23u); static_assert(0xF722u-0xF2E9u==1081u); static_assert(0xF742u-0xF722u==32u);
-constexpr u32 kVerifiedTranslatedBytes=8089u;
+constexpr u32 kVerifiedTranslatedBytes=8291u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 } // namespace code1

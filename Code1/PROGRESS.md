@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-11.69%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-11.77%25-red)
 
-**Verified conversion:** 11.69%  
-**Remaining:** 88.31%  
+**Verified conversion:** 11.77%  
+**Remaining:** 88.23%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **8,234**.  
+Current verified translated bytes: **8,291**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **11.6957%**, displayed conservatively as **11.69%**.
+Raw coverage: **11.7766%**, displayed conservatively as **11.77%**.
 
 ## Immutable source identity
 
@@ -36,7 +36,7 @@ Raw coverage: **11.6957%**, displayed conservatively as **11.69%**.
 - Frame no-op `EDE0..EDE6`: **7 bytes**.
 - Complete formatter driver/parser/materializer `EDE7..F741`: **2,395 bytes**.
 
-Total integrated verified translated bytes: **8,234**.
+Total integrated verified translated bytes: **8,291**.
 
 `EDD3..EDDF` is **13 zero bytes** classified as data and is not counted as translated code.
 
@@ -48,7 +48,7 @@ The PSP command-tail `REPZ SCASB` mismatch behavior, environment executable-path
 
 ## DOS/runtime-memory continuation under reconciliation
 
-`DosMemoryNext.staging.cpp` contains **186 functional instruction-bounded bytes** from `DA1C..DAD8`; `DA45..DA47` is three zero bytes and excluded. AH=48/AH=4A failure outputs use DOS-returned BX, and `10384` consumes live AX+CF.
+`DA1C..DA44` and `DAC9..DAD8` are now physically integrated, adding **57 verified bytes**. `DA45..DA47` is three zero bytes. The already-integrated `DA48..DAC8` retains the reconciled AH=48/AH=4A DOS-returned BX and live AX+CF behavior.
 
 ## Mouse/event-pump integration
 
@@ -78,7 +78,7 @@ Harden independently provable staged subranges and fold them only after exact ca
 
 ## Integration accounting audit
 
-After comparing all active staging against `Code1.cpp`, DA48..DAA6 and DEA7..E0C7 were found already integrated and are not new work. `DE6F..DEA0` is not accepted as a proven function boundary: direct disassembly begins with bytes that do not form a justified ordinary entry, so it returns to the unresolved queue. After the 145-byte mouse fold, unique uncounted staged code is **2,406 bytes** (747 startup + 57 genuinely missing DA1C/DAC9 bridge bytes + 880 D23A..D5AC + 722 E0D0..E3B2).
+After comparing all active staging against `Code1.cpp`, DA48..DAA6 and DEA7..E0C7 were found already integrated and are not new work. `DE6F..DEA0` is not accepted as a proven function boundary: direct disassembly begins with bytes that do not form a justified ordinary entry, so it returns to the unresolved queue. After the 145-byte mouse fold, unique uncounted staged code is now **2,349 bytes** (747 startup + 880 D23A..D5AC + 722 E0D0..E3B2).
 
 ## Larger-batch policy
 
