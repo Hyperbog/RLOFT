@@ -46,12 +46,18 @@ void*function_d1e8(void*dst,const void*src,u32 n)noexcept{return std::memmove(ds
 
 struct DosAttrResult{u16 ax=0;u16 cx=0;bool carry=false;};
 struct DosHandleResult{u16 ax=0;bool carry=false;};
-struct FileBoundaries{DosAttrResult(*dos_get_attr)(u32)=nullptr;u32(*call_103c3)(u32)=nullptr;u32(*call_10397)(u32)=nullptr;u32*(*call_103b7)()=nullptr;s32(*call_10314)(u16)=nullptr;u32(*call_1042d)()=nullptr;void(*call_1046f)()=nullptr;s32(*dos_read)(u16,void*,u32)=nullptr;s32(*dos_write)(u16,const void*,u32)=nullptr;s32(*dos_seek)(u16,s32,u8)=nullptr;s32(*dos_delete)(const char*)=nullptr;bool(*dos_close)(u16)=nullptr;DosHandleResult(*dos_open_raw)(u32,u8)=nullptr;DosHandleResult(*dos_create_raw)(u32,u16)=nullptr;DosHandleResult(*dos_close_raw)(u16)=nullptr;DosHandleResult(*dos_write_zero_raw)(u16)=nullptr;u8(*read_guest8)(u32)=nullptr;u32(*read_dgroup32)(u32)=nullptr;void(*set_fd_state_10415)(u32,u32)=nullptr;bool(*ioctl_get_mode)(u16,u8&)=nullptr;bool(*ioctl_set_mode)(u16,u8)=nullptr;u32(*open_core_d332)(u32,u32,u32,u32)=nullptr;};
+struct FileBoundaries{DosAttrResult(*dos_get_attr)(u32)=nullptr;u32(*call_103c3)(u32)=nullptr;u32(*call_10397)(u32)=nullptr;u32*(*call_103b7)()=nullptr;s32(*call_10314)(u16)=nullptr;u32(*call_1042d)()=nullptr;void(*call_1046f)()=nullptr;s32(*dos_read)(u16,void*,u32)=nullptr;s32(*dos_write)(u16,const void*,u32)=nullptr;s32(*dos_seek)(u16,s32,u8)=nullptr;s32(*dos_delete)(const char*)=nullptr;bool(*dos_close)(u16)=nullptr;DosHandleResult(*dos_open_raw)(u32,u8)=nullptr;DosHandleResult(*dos_create_raw)(u32,u16)=nullptr;DosHandleResult(*dos_close_raw)(u16)=nullptr;DosHandleResult(*dos_write_zero_raw)(u16)=nullptr;u8(*read_guest8)(u32)=nullptr;u32(*read_dgroup32)(u32)=nullptr;void(*set_fd_state_10415)(u32,u32)=nullptr;bool(*ioctl_get_mode)(u16,u8&)=nullptr;bool(*ioctl_set_mode)(u16,u8)=nullptr;u32(*open_core_d332)(u32,u32,u32,u32)=nullptr;DosAttrResult(*dos_find_first)(u32,u16,u32)=nullptr;DosAttrResult(*dos_find_next)(u32)=nullptr;void(*dta_pre_find_next)(u32)=nullptr;void(*dta_post_find)(u32)=nullptr;};
 // D23A..D27C: INT 21h/AH=43h attribute query. Caller flag bit 1 plus returned CX bit 0 synthesizes DOS error 6; 102D4/102EC/10314 reduce CF to 0 on success or mapped -1 on failure.
 [[nodiscard]]s32 function_d23a(FileBoundaries&b,u32 path,u32 flags)noexcept{DosAttrResult r=b.dos_get_attr?b.dos_get_attr(path):DosAttrResult{1,0,true};if(!r.carry&&(flags&2u)&&(r.cx&1u)){r.ax=0x0600u;r.carry=true;}if(!r.carry)return 0;return b.call_10314?b.call_10314(r.ax):-1;}
 static_assert(0xD27Du-0xD23Au==67u);
 static void set_runtime_error(FileBoundaries&b,u32 v)noexcept{if(b.call_103b7){if(u32*p=b.call_103b7())*p=v;}} static s32 map_dos_error(FileBoundaries&b,s32 v)noexcept{return b.call_10314?b.call_10314(static_cast<u16>(v)):v;}
 [[nodiscard]]u32 function_d332(FileBoundaries&,u32,u32,u32,u32)noexcept;
+// D280..D2AC: set DOS DTA, execute AH=4Eh find-first, map AX+CF through 10384 semantics, then enter the exact D2CD mode-9 post-find shuttle boundary.
+[[nodiscard]]s32 function_d280(FileBoundaries&b,u32 path,u16 attr,u32 dta)noexcept{DosAttrResult r=b.dos_find_first?b.dos_find_first(path,attr,dta):DosAttrResult{1,0,true};const s32 out=r.carry?map_dos_error(b,r.ax):0;if(b.dta_post_find)b.dta_post_find(dta);return out;}
+static_assert(0xD2ADu-0xD280u==45u);
+// D2AD..D2CC: set DTA, execute the D2F0 mode-9 pre-find shuttle, AH=4Fh find-next, 10384 mapping, then D2CD post-find shuttle. D2CD/D2F0 remain machine/selector boundaries.
+[[nodiscard]]s32 function_d2ad(FileBoundaries&b,u32 dta)noexcept{if(b.dta_pre_find_next)b.dta_pre_find_next(dta);DosAttrResult r=b.dos_find_next?b.dos_find_next(dta):DosAttrResult{1,0,true};const s32 out=r.carry?map_dos_error(b,r.ax):0;if(b.dta_post_find)b.dta_post_find(dta);return out;}
+static_assert(0xD2CDu-0xD2ADu==32u);
 // D313..D331: variadic front wrapper. The first variadic dword is forwarded as D332 arg4; arg3 is exactly zero.
 [[nodiscard]]u32 function_d313(FileBoundaries&b,u32 path,u32 flags,u32 first_variadic)noexcept{return function_d332(b,path,flags,0u,first_variadic);}
 static_assert(0xD332u-0xD313u==31u);
@@ -362,6 +368,6 @@ static_assert(0xE2C3u-0xE280u==67u);
 [[nodiscard]]u32 function_e360(const u8*data,u32 text)noexcept{u32 p=text;auto cls=[&](u8 c)noexcept->u8{return data[0x3b4u+static_cast<u32>(static_cast<u8>(c+1u))];};while((cls(data[p])&0x02u)!=0)++p;const u8 sign=data[p];if(sign==0x2bu||sign==0x2du)++p;u32 v=0;while((cls(data[p])&0x20u)!=0){v=v*10u+static_cast<u32>(data[p]);++p;v-=0x30u;}if(sign==0x2du)v=0u-v;return v;}
 static_assert(0xE3B3u-0xE360u==83u);
 
-constexpr u32 kVerifiedTranslatedBytes=9589u;
+constexpr u32 kVerifiedTranslatedBytes=9666u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 } // namespace code1

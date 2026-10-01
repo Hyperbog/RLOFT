@@ -12,7 +12,7 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 | `DosCrtNext.staging.cpp` | `D280..D312` | 147 | `D280..D312` performs DOS DTA get/set and 0x2B-byte copies whose DS/ES direction must be represented exactly. `D332..D4F1` is the open/create/truncate descriptor-state machine; its DOS carry/error encoding and `10397/103C3/10415` interactions are mapped but the placeholder staged C++ is not integration quality. `D313..D331`, `D4F2..D55D`, `D55E..D572`, and `D573..D5AC` are already integrated and must not be counted here. |
 | `RuntimeGapE0D0.staging.cpp` | `E2C3..E35F` | 157 | Full interrupt trampoline: saves ES/DS and the complete general-register image, calls CEC0, switches SS:ESP to the runtime interrupt stack, far-calls the callback saved at 5102:5106, restores the prior stack with LSS, restores runtime stack metadata and registers, then IRET. It must remain a machine/interrupt boundary, never an ordinary host callback. `E280..E2C2` is now directly reconciled and integrated as the vector installer. |
 
-**Active unique staged bytes: 1,051.**
+**Active unique staged bytes: 974.**
 
 ## Resolved / rejected staging facts that must not regress
 
@@ -35,3 +35,7 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 8. Commit before reporting progress. Keep the progress badge red until 100%.
 
 - `D332..D4F1 integrated`: 448-byte DOS open/create/truncate descriptor-state machine directly re-disassembled and folded with AX+CF DOS boundaries; no host fopen substitution.
+
+
+## D280/D2AD fold update
+`D280..D2CC` (77 bytes) is now integrated. `D2CD..D312` (70 bytes) remains staged because AH=2F returns a DTA address whose DS/ES selector use in the two REP MOVSB directions must be represented exactly. The integrated wrappers retain pre/post shuttle calls as explicit machine-boundary callbacks; no flat-memory assumption was introduced.
