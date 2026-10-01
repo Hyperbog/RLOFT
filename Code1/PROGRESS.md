@@ -39,15 +39,17 @@ Total integrated verified translated bytes: **7,325**.
 
 `EDD3..EDDF` is **13 zero bytes** classified as data and is not counted as translated code.
 
-## Next runtime staging batch
+## Runtime staging cleared for integration
 
-`RuntimeNext.staging.cpp` now carries **764 instruction-bounded bytes** regenerated directly from the immutable object-1 bytes. These remain deliberately excluded from the verified percentage until final instruction-level reconciliation and fold-in.
+`RuntimeNext.staging.cpp` contains **764 verified instruction-accounted bytes**, now cleared for physical fold into `Code1.cpp` but still excluded from the official percentage until that fold occurs.
 
-- `DAD9..DB7F`: **167 bytes** — allocator wrapper/retry path and the `DB5B` free-core wrapper. Calls to `104E0`, `10AA9`, `10C46`, and `10590` remain address-named until their surrounding runtime contracts are fully integrated.
-- `DB80..DC8C`: **269 bytes** — 4096-byte `FEh`-initialized ring-dictionary decoder. The staging lift preserves the `FEEh` write index, 9-bit flag refill behavior, literal path, 12-bit back-reference construction, `(low nibble)+3` copy length, and the encoded `89CEh` termination checks.
-- `DC90..DDD7`: **328 bytes** — header-gated transformation/permutation routine using the shared `30E8h` workspace. The lift retains the permutation-table construction, word search/swap, quotient/remainder-by-four source addressing, byte-span swaps/copies, and final header rewrite.
+- `DAD9..DB7F`: **167 bytes** — allocator wrapper/retry path and `DB5B` free-core wrapper. The retry flag exactly models the encoded one-time `10AA9` attempt followed by `10C46` gating; successful or terminal exits clear byte `8E78h`.
+- `DB80..DC8C`: **269 bytes** — 4096-byte `FEh`-initialized ring-dictionary decoder. Direct inspection of `7360` confirms it returns the input byte zero-extended in EAX, validating the staged 12-bit back-reference construction and flag refill semantics.
+- `DC90..DDD7`: **328 bytes** — header-gated permutation/transformation routine. The final discrepancy was the `REPNE SCASW` model: the instruction compares the word at the initial EDI before advancing it, decrements ECX for every examined word, and leaves EDI one word past the match/final examined element. The following encoded `SUB EDI,2` therefore selects exactly that examined table entry. Staging now reproduces this state transition explicitly.
 
-The `DC90` search loop is still under exact REPNE-SCAS reconciliation, so none of this 764-byte batch is counted early. `DE6F` remains unclassified; disassembly from that byte does not establish a valid routine entry, while the coherent fill path begins immediately afterward.
+The three ranges total **764 bytes**. After physical integration the verified total will become **8,089 / 70,402 = 11.4897%**, displayed conservatively as **11.48%**.
+
+`DE6F` remains unclassified; no function boundary is inferred from an invalid-looking entry byte sequence.
 
 ## Formatter fully integrated
 
@@ -55,7 +57,7 @@ The contiguous formatter region `EDE7..F741` accounts for **2,395 verified bytes
 
 ## Active continuation
 
-Reconcile the staged `DAD9..DDD7` ranges instruction-by-instruction, especially `DC90`'s `REPNE SCASW` state and allocator retry contracts; fold only proven ranges into `Code1.cpp`. Continue past any isolated dependency into startup successors and remaining address-named CRT helpers to approach the larger-batch target without relaxing fidelity.
+Physically fold the cleared `DAD9..DDD7` runtime staging into `Code1.cpp`, syntax-check the unified translation unit, remove the staging file, and update integrated coverage to 11.48%. Then continue into independently provable startup successors and remaining address-named CRT helpers.
 
 ## Larger-batch policy
 
