@@ -70,3 +70,5 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 - Integrated directly from authoritative disassembly: `1F24..2196`, `24D4..266B`, `28E4..2990`, `2994..2A60` = **1,413 bytes**. `2197`, `2991..2993`, and `2A61..2A63` are alignment and excluded. The 1F00 jump table remains data.
 
 - Integrated directly from authoritative disassembly: actor generation/editor/stat chain `2A64..38A3` excluding alignment `2DF9..2DFB`, `3135..3137`, `3205..3207`, `334A..334B`, `37BE..37BF`, `3882..3883` = **3,633 verified bytes**.
+
+- Integrated directly from authoritative disassembly: `38A4..3C54`, `3C58..40FA`, `40FC..44E0`, `44E4..451E`, `4520..45EE`, `45FC..4976` = **4,286 bytes**. `3C55..3C57`, `40FB`, `44E1..44E3`, `451F`, and `45F9..45FB` are alignment; `45EF..45F8` is a ten-byte lookup table and is data.

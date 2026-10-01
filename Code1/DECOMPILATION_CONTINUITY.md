@@ -201,3 +201,7 @@ Verified total **20,970 / 70,402 = 29.79%**. Added 1,413 bytes at `1F24..2196`, 
 
 ## 2026-10-01 actor generation batch 05
 Verified total **24,603 / 70,402 = 34.95%**. Added **3,633 bytes** across `2A64..38A3` (alignment excluded). This covers class/order editing, bounded name input, final actor accept/delete, progression derivation, base/random stat generation, race/class minima, aggregate/clamp logic, and the 3884 initialization driver. Guest actor records remain dgroup-backed; external renderer/input/timing calls remain explicit boundaries. Active staging unchanged.
+
+
+## 2026-10-01 actor stat/presentation batch 06
+Verified total **28,889 / 70,402 = 41.03%**. Added **4,286 bytes** at `38A4..3C54`, `3C58..40FA`, `40FC..44E0`, `44E4..451E`, `4520..45EE`, `45FC..4976`. `45EF..45F8` is proven lookup data (`678456789:`); adjacent LEA/NOP alignment is excluded. 3C58 preserves event 7/8/9 stat-edit behavior and the `4D4` bit-0 alternate set/inc/dec semantics. 40FC preserves its EBX three-state control flow. 45FC preserves the 10-frame then 25-frame loops for each of two groups, including 44E4 paired-counter wrapping. Active staging is unchanged.
