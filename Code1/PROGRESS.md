@@ -34,27 +34,24 @@ Total integrated verified translated bytes: **3,680**.
 
 ## Current instruction-checked staging
 
-`DispatcherTimer.staging.cpp` now contains **763 instruction-accounted bytes** awaiting fold-in to the single `Code1.cpp` reconstruction. They are deliberately excluded from the percentage until integration.
+`DispatcherTimer.staging.cpp` now contains **1,250 instruction-accounted code bytes** awaiting fold-in to the single `Code1.cpp` reconstruction. They remain excluded from the percentage until integration.
 
-- `E3B4..E3DF` (44): callback-table lookup for one of 16 slots.
-- `E3E0..E3F1` (18): common event lookup and indirect tail-dispatch.
-- `E3F2..E4C6` (213): INT 8 handler, including reentrancy handling, 17 timer states, accumulator/period update, callback invocation, local PIC EOI path, and saved-vector chain path.
-- `EA0B..EA99` (143): free-slot scan, literal `79706F43h` (`Copy`) descriptor check, slot installation, EAC8 call, and unsigned returned-record bound check against `52E8h`.
-- `EA9A..EAC7` (46): slot-table clear for indices below 16.
-- `EAC8..EAE6` (31): event `64h` dispatch with original `{slot,E9F2h}` stack arguments.
-- `EAE7..EAF0` (10): event `65h` tail-dispatch wrapper.
-- `EAF1..EBB5` (197): slot setup/control, event `67h` timer callback lookup, timer allocation/rate setup, event `66h` five-argument dispatch, pending-state set, and timer enable.
-- `EBB6..EBF2` (61): pending-state exchange/clear, timer release, and event `68h` tail-dispatch.
+- `E3B4..E4C6`: **275 bytes** — callback lookup, common dispatcher, INT 8 handler, PIC EOI path, and saved-vector chain behavior.
+- `EA0B..EBF2`: **488 bytes** — descriptor/slot registration and clearing, events `64h`/`65h`, timer-backed event setup, pending-state release, and event `68h` dispatch.
+- `EBF3..EDD2`: **480 bytes** — exactly 48 consecutive ten-byte wrappers, each encoded as `mov eax,<event>; jmp E3E0`.
+- `EDE0..EDE6`: **7 bytes** — exact no-op-style frame routine.
 
-The staging representation remains address-named where semantics are not proven. In particular, the INT 8 saved-vector path is represented as a chain result rather than being modernized into a host timer.
-
-## Newly bounded continuation
-
-`EBF3..EDD2` is a contiguous **480-byte** block of exactly **48 ten-byte tail-dispatch wrappers**. Each is `mov eax,<event>; jmp E3E0`. The encoded event constants, in address order, are:
+The 48 wrapper event constants, in address order, are:
 
 `78,79,86,7A,7B,85,7C,7D,7E,7F,80,81,82,83,84,96,97,98,99,9A,9B,9C,9D,9E,9F,AA,AB,AD,AE,AF,B0,B1,B2,B3,B4,B5,B6,B7,B9,BA,BB,BC,BD,BE,BF,C0,C1,C2` (hex).
 
-`EDD3..EDDF` is **13 zero bytes** and is therefore not being treated as executable code. `EDE0..EDE6` is a separate 7-byte no-op-style routine (`push ebp; mov ebp,esp; mov esp,ebp; pop ebp; ret`). `EDE7` begins a substantially larger formatted-output/runtime routine and is being analyzed separately rather than guessed from its apparent behavior.
+`EDD3..EDDF` is **13 zero bytes** and is deliberately classified as data rather than code. It is not included in the 1,250-byte staging total.
+
+The staging representation remains address-named where semantics are not proven. The INT 8 saved-vector path is represented as a chain result rather than modernized into a host timer, and the 48 wrappers preserve their encoded event ordering without assigning speculative event names.
+
+## Active continuation
+
+The next active routine starts at `EDE7`. Its larger formatted-output/runtime control flow and calls into `F007`/`F2E9` are being treated as separate dependency work. The immediate integration task is also to fold the 1,250 staged bytes into `Code1.cpp`, after which they can enter the official coverage count and the temporary staging file can be removed.
 
 ## Larger-batch policy
 
@@ -62,6 +59,6 @@ The working target remains approximately **4,000 newly verified bytes per substa
 
 ## Unresolved queue
 
-Fold the 763 staged bytes into `Code1.cpp`; translate/account the 480-byte `EBF3..EDD2` wrapper block; analyze the `EDE7` runtime routine and its `F007`/`F2E9` dependencies; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
+Fold the 1,250 staged bytes into `Code1.cpp`; analyze `EDE7` and its `F007`/`F2E9` dependencies; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
