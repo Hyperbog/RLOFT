@@ -41,3 +41,5 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 `D280..D2CC` (77 bytes) is now integrated. `D2CD..D312` (70 bytes) remains staged because AH=2F returns a DTA address whose DS/ES selector use in the two REP MOVSB directions must be represented exactly. The integrated wrappers retain pre/post shuttle calls as explicit machine-boundary callbacks; no flat-memory assumption was introduced.
 
 - `F750..F7B2 integrated`: 99-byte source reader directly disassembled; bit 0 selects the guest-memory copy path, otherwise the encoded D85F/D5AD/D85F seek-read-position sequence is retained.
+
+- `F7B8..F8BC integrated`: 261-byte resource image-size parser directly disassembled; preserves header offset 3Ch, two-byte signature check against DGROUP+038Ch, 0ACh header read, 18h-byte record walk, and encoded close behavior.

@@ -46,7 +46,7 @@ void*function_d1e8(void*dst,const void*src,u32 n)noexcept{return std::memmove(ds
 
 struct DosAttrResult{u16 ax=0;u16 cx=0;bool carry=false;};
 struct DosHandleResult{u16 ax=0;bool carry=false;};
-struct FileBoundaries{DosAttrResult(*dos_get_attr)(u32)=nullptr;u32(*call_103c3)(u32)=nullptr;u32(*call_10397)(u32)=nullptr;u32*(*call_103b7)()=nullptr;s32(*call_10314)(u16)=nullptr;u32(*call_1042d)()=nullptr;void(*call_1046f)()=nullptr;s32(*dos_read)(u16,void*,u32)=nullptr;s32(*dos_write)(u16,const void*,u32)=nullptr;s32(*dos_seek)(u16,s32,u8)=nullptr;s32(*dos_delete)(const char*)=nullptr;bool(*dos_close)(u16)=nullptr;DosHandleResult(*dos_open_raw)(u32,u8)=nullptr;DosHandleResult(*dos_create_raw)(u32,u16)=nullptr;DosHandleResult(*dos_close_raw)(u16)=nullptr;DosHandleResult(*dos_write_zero_raw)(u16)=nullptr;u8(*read_guest8)(u32)=nullptr;u32(*read_dgroup32)(u32)=nullptr;void(*set_fd_state_10415)(u32,u32)=nullptr;bool(*ioctl_get_mode)(u16,u8&)=nullptr;bool(*ioctl_set_mode)(u16,u8)=nullptr;u32(*open_core_d332)(u32,u32,u32,u32)=nullptr;DosAttrResult(*dos_find_first)(u32,u16,u32)=nullptr;DosAttrResult(*dos_find_next)(u32)=nullptr;void(*dta_pre_find_next)(u32)=nullptr;void(*dta_post_find)(u32)=nullptr;};
+struct FileBoundaries{DosAttrResult(*dos_get_attr)(u32)=nullptr;u32(*call_103c3)(u32)=nullptr;u32(*call_10397)(u32)=nullptr;u32*(*call_103b7)()=nullptr;s32(*call_10314)(u16)=nullptr;u32(*call_1042d)()=nullptr;void(*call_1046f)()=nullptr;s32(*dos_read)(u16,void*,u32)=nullptr;s32(*dos_write)(u16,const void*,u32)=nullptr;s32(*dos_seek)(u16,s32,u8)=nullptr;s32(*dos_delete)(const char*)=nullptr;bool(*dos_close)(u16)=nullptr;DosHandleResult(*dos_open_raw)(u32,u8)=nullptr;DosHandleResult(*dos_create_raw)(u32,u16)=nullptr;DosHandleResult(*dos_close_raw)(u16)=nullptr;DosHandleResult(*dos_write_zero_raw)(u16)=nullptr;u8(*read_guest8)(u32)=nullptr;u32(*read_dgroup32)(u32)=nullptr;void(*set_fd_state_10415)(u32,u32)=nullptr;bool(*ioctl_get_mode)(u16,u8&)=nullptr;bool(*ioctl_set_mode)(u16,u8)=nullptr;u32(*open_core_d332)(u32,u32,u32,u32)=nullptr;DosAttrResult(*dos_find_first)(u32,u16,u32)=nullptr;DosAttrResult(*dos_find_next)(u32)=nullptr;void(*dta_pre_find_next)(u32)=nullptr;void(*dta_post_find)(u32)=nullptr;s32(*compare_guest_string)(const char*,u32)=nullptr;};
 // D23A..D27C: INT 21h/AH=43h attribute query. Caller flag bit 1 plus returned CX bit 0 synthesizes DOS error 6; 102D4/102EC/10314 reduce CF to 0 on success or mapped -1 on failure.
 [[nodiscard]]s32 function_d23a(FileBoundaries&b,u32 path,u32 flags)noexcept{DosAttrResult r=b.dos_get_attr?b.dos_get_attr(path):DosAttrResult{1,0,true};if(!r.carry&&(flags&2u)&&(r.cx&1u)){r.ax=0x0600u;r.carry=true;}if(!r.carry)return 0;return b.call_10314?b.call_10314(r.ax):-1;}
 static_assert(0xD27Du-0xD23Au==67u);
@@ -108,6 +108,20 @@ static_assert(0xD5ADu-0xD573u==58u);
  return static_cast<u32>(function_d85f(b,static_cast<u16>(source),0,1u));
 }
 static_assert(0xF7B3u-0xF750u==99u);
+
+// F7B8..F8BC: determine required resource image size. The two-byte signature is read at the header-supplied offset and compared with the DGROUP string at 038Ch; each 24-byte record contributes its first dword.
+[[nodiscard]]u32 function_f7b8(FileBoundaries&b,u32 source,u32 flags)noexcept{
+ u32 h=source;if((flags&1u)==0u){h=function_d313(b,source,0x200u,0u);if(h==0xffffffffu)return 0u;}
+ u8 offbuf[4]{}; (void)function_f750(b,h,0x3cu,flags,offbuf,4u); const u32 header=load_le32(offbuf);
+ char sig[4]={' ',' ',0,0}; (void)function_f750(b,h,header,flags,reinterpret_cast<u8*>(sig),2u);
+ const s32 mismatch=b.compare_guest_string?b.compare_guest_string(sig,0x38cu):1;
+ if(mismatch!=0){(void)function_d573(b,h);return 0u;}
+ u8 hdr[0xacu]{}; (void)function_f750(b,h,header,flags,hdr,0xacu);
+ u32 pos=header+load_le32(hdr+0x40u); const u32 records=load_le32(hdr+0x44u); u32 total=0u;
+ for(u32 i=0;i<records;++i){u8 rec[0x18u]{};pos=function_f750(b,h,pos,flags,rec,0x18u);total+=load_le32(rec);}
+ if((flags&1u)==0u)(void)function_d573(b,h);return total+0x0fu;
+}
+static_assert(0xF8BDu-0xF7B8u==261u);
 
 struct DirectoryBoundaries{s32(*map_error)(u16)=nullptr;s32(*get_current_directory)(u8 drive,char*out)=nullptr;u8(*get_current_drive)()=nullptr;s32(*set_current_drive)(u8 drive,u8*count)=nullptr;s32(*change_directory)(const char*)=nullptr;s32(*make_directory)(const char*)=nullptr;};
 [[nodiscard]]u16 function_d8d0(DirectoryBoundaries&b,u32*out)noexcept{const u8 drive=b.get_current_drive?b.get_current_drive():0;if(out)*out=static_cast<u32>(drive)+1u;return 0;}
@@ -377,6 +391,6 @@ static_assert(0xE2C3u-0xE280u==67u);
 [[nodiscard]]u32 function_e360(const u8*data,u32 text)noexcept{u32 p=text;auto cls=[&](u8 c)noexcept->u8{return data[0x3b4u+static_cast<u32>(static_cast<u8>(c+1u))];};while((cls(data[p])&0x02u)!=0)++p;const u8 sign=data[p];if(sign==0x2bu||sign==0x2du)++p;u32 v=0;while((cls(data[p])&0x20u)!=0){v=v*10u+static_cast<u32>(data[p]);++p;v-=0x30u;}if(sign==0x2du)v=0u-v;return v;}
 static_assert(0xE3B3u-0xE360u==83u);
 
-constexpr u32 kVerifiedTranslatedBytes=9765u;
+constexpr u32 kVerifiedTranslatedBytes=10026u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 } // namespace code1
