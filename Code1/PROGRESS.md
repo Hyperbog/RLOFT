@@ -12,7 +12,7 @@ The percentage is the conservative coverage floor: instruction-accounted transla
 
 Current verified translated bytes: **33,000**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **46.8737%**, displayed as **41.03%**.
+Raw coverage: **46.8737%**, displayed as **46.87%**.
 
 ## Immutable source identity
 
