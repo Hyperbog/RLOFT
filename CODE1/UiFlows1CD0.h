@@ -17,9 +17,15 @@ struct UiFlowCharacterState {
     std::array<std::uint32_t, 2> dword6907{};
 
     std::int32_t selectedCharacter4CC = -1;
-    std::int32_t mode4D0 = 0;
-    std::uintptr_t handle95C = 0;
-    std::uintptr_t handle960 = 0;
+
+    // DS:04D0 is modified by 32-bit INC/DEC. Unsigned storage preserves the
+    // original modulo-2^32 behavior without signed-overflow UB in C++.
+    std::uint32_t mode4D0 = 0;
+
+    // DS:095C/0960 are original 32-bit handle values. They must not widen to
+    // host uintptr_t merely because the reconstruction is built for 64-bit.
+    std::uint32_t handle95C = 0;
+    std::uint32_t handle960 = 0;
 };
 
 struct UiFlowOps1CD0 {
@@ -31,7 +37,7 @@ struct UiFlowOps1CD0 {
     std::function<void()> call1BD4;
     std::function<void(std::int32_t, std::int32_t,
                        std::int32_t, std::int32_t)> call15B0;
-    std::function<void(std::uintptr_t)> call7830;
+    std::function<void(std::uint32_t)> call7830;
 };
 
 class UiFlow1CD0 {
