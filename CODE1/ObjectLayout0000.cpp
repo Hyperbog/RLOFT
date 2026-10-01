@@ -30,11 +30,10 @@ struct ObjectStartOps0000 {
     }
 }
 
-// 0x0003..0x000F are alignment/fill instructions in the original byte stream:
-// 0003 8D 40 00       lea eax,[eax+0]
-// 0006 8D 40 00       lea eax,[eax+0]
-// 0009 8D 40 00       lea eax,[eax+0]
-// 000C 8D 40 00       lea eax,[eax+0]
+// 0x0003..0x000F are thirteen one-byte NOPs in the original byte stream:
+// 0003 90             nop
+// 0004 90             nop
+// ...
 // 000F 90             nop
 // They have no externally observable effect and lead directly to 0x0010.
 //
