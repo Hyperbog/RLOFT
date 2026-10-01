@@ -42,22 +42,30 @@ Total integrated verified translated bytes: **8,089**.
 
 ## Startup continuation under reconciliation
 
-`StartupNext.staging.cpp` now contains **747 instruction-bounded candidate code bytes** from the startup gap immediately preceding the already integrated `D08C` routines. They remain uncounted pending final reconciliation.
+`StartupNext.staging.cpp` contains **747 instruction-bounded candidate code bytes** immediately preceding the already integrated `D08C` routines. They remain uncounted pending final reconciliation.
 
-- `CD97..CEBF`: **297 bytes** — PSP command-tail/environment processing, `no87=` detection, runtime initialization and the common process-exit/fatal continuation.
+- `CD97..CEBF`: **297 bytes** — PSP command-tail/environment processing, `no87=` detection, runtime initialization and common process-exit/fatal continuation.
 - `CEC0..CEC7`: **8 bytes** — CS-relative saved-DS restore helper.
-- `CEC8..CEE8`: **33 bytes** — FEFC register adapter; its four stack arguments map to ESI/EDI/EDX/EBX and it returns dword `[third_argument]` after FEFC.
-- `CEF0..CF40`: **81 bytes** — descriptor/register-image setup for the CEC8 service-31h adapter.
+- `CEC8..CEE8`: **33 bytes** — FEFC register adapter; four dword arguments map to ESI/EDI/EDX/EBX and the wrapper returns dword `[third_argument]` after FEFC.
+- `CEF0..CF40`: **81 bytes** — service-31h register-image/far-cell setup.
 - `CF44..CF97`: **84 bytes** — 8A28 structure setup and status test.
 - `CF98..D08B`: **244 bytes** — mouse initialization plus encoded no-mouse terminal fallback.
 
-Boundary correction from direct CODE.1 disassembly: `CEE9..CEEF` is **7 zero bytes**, and `CF41..CF43` is a three-byte `LEA EAX,[EAX+0]` alignment NOP. The earlier 750-byte staging count incorrectly included that alignment NOP as functional candidate code; the candidate count is therefore corrected to 747 without affecting official coverage.
+`CEE9..CEEF` is **7 zero bytes**. `CF41..CF43` is `LEA EAX,[EAX+0]`, a three-byte alignment NOP. Neither is counted as functional candidate code.
 
-The startup model was also corrected in two important ways. First, `FC98` is not treated as an ordinary returning initializer: it computes runtime stack placement, initializes runtime state, calls `508C`, then tail-jumps to `CBF0`, which eventually jumps into the common `CE8B` exit continuation. Second, the no-mouse `CF98` branch now preserves the encoded unconditional `[2AA0]+8` dereference instead of adding a non-existent null guard.
+### Reconciliation findings
+
+The PSP command-tail lift was corrected after literal reconciliation of `CDB2..CDE3`. `REPZ SCASB` consumes the first non-space byte as well as the preceding spaces: EDI advances and ECX decrements for that comparison. The following `LEA ESI,[EDI-1]` points back to that consumed byte, and `INC ECX` restores it to the subsequent `REP MOVSB` count. The earlier structural lift failed to advance over the mismatch and was non-faithful.
+
+`CEC8` was cross-checked against `FEFC..FF56` and independent call sites at `526E`, `7173`, and `DA3B`. Its argument-to-register mapping is confirmed as ESI/EDI/EDX/EBX, and the post-FEFC return load is from `[EDX]` in the restored data selector. The staging boundary now carries the actual DS selector instead of using selector zero.
+
+`CEF0` was rechecked byte-for-byte. `84A0` clears a 12-byte local far cell; the register image is seeded with EAX=`0300h`, EBX=`33h`, ECX=0, and the caller pointer at image offset `14h`. The far cell receives the current DS selector. CEC8 is then invoked with service `31h`, EDI=EDX=register-image address and EBX=far-cell address. The prior staging path that supplied selector zero to CEF0 was corrected.
+
+`FC98` remains a non-returning runtime-launch path: it computes runtime stack placement, calls `10D1C`, invokes `508C`, then tail-jumps to `CBF0`. The `CF98` no-mouse branch likewise preserves its encoded unconditional `[2AA0]+8` dereference and terminal `8424; PUSH 1; JMP CBF0` path.
 
 ## Active continuation
 
-Continue hardening `CD97..D08B`, especially the `FEFC/FF33` register-image contract, CEF0 guest-stack/far-cell layout, DOS exit/fatal path, and the terminal `CBF0 -> CE8B` relationship. Fold only after instruction-level reconciliation. Then continue through independent remaining startup/CRT gaps rather than stopping on an isolated runtime dependency.
+Finish the DOS `CE8B..CEBD` exit/fatal boundary and the exact `CBF0 -> CE8B` stack relationship, then determine whether the reconciled startup subranges can be folded independently rather than waiting on the entire 747-byte block. Continue through independent remaining CRT/runtime gaps in parallel.
 
 ## Larger-batch policy
 
