@@ -59,11 +59,19 @@ A direct register-flow audit corrected the AH=48/AH=4A failure outputs. In `DA48
 - `D154..D178`: **37 bytes** — if `84D0` is active, repeatedly obtains the pointer from `D0B4`, calls `8960`, and tests the preserved pointer's first word until it becomes zero.
 - `D17C..D1E7`: **108 bytes** — drains the same loop, then coordinates repeated `82A4`, `D0B4`, and `8960` calls. A nonzero final `82A4` invokes `82EC` then `8304`; the inactive `84D0` path calls `82C0`.
 
-The staging preserves the important call multiplicity: the encoded routine calls `82A4` again at `D1B6` after leaving the preceding poll loop rather than reusing an earlier result.
+## D23A..D5AC DOS/CRT continuation under reconciliation
+
+`DosCrtNext.staging.cpp` now covers the complete address gap from the end of the integrated overlap-copy helper to the beginning of the integrated file read/write/seek/delete block. The raw span is **883 bytes**; `D27D..D27F` is three zero bytes, leaving **880 instruction-bounded functional bytes** staged and uncounted.
+
+Direct disassembly established these boundaries: `D23A..D27C` attribute/status wrapper; `D280..D2AC` find-first; `D2AD..D2CC` find-next; `D2CD..D312` mode-9 DTA shuttles; `D313..D331` variadic open front-end; `D332..D4F1` open/create/truncate/descriptor-state machine; `D4F2..D55D` descriptor/IOCTL mode setup; `D55E..D572` open wrapper; `D573..D5AC` close wrapper.
+
+Important verified details include the RCL/ROR carry-to-sign encoding used after DOS calls, the explicit AX+CF contract of `10384`, the create-on-error-2 path, the zero-length AH=40 truncation path, descriptor state assembly through `103C3/10397/10415`, and the close failure behavior that stores runtime errno 4 rather than passing DOS AX through `10314`.
+
+The large `D332..D4F1` routine remains structural staging rather than counted translation until its descriptor-table representation is reconciled against `103C3..1042C`; no host `open()`/`fopen()` semantics have been substituted.
 
 ## Active continuation
 
-Continue reconciling the startup batch and the now-corrected 186-byte DOS-memory bridge. The new 145-byte mouse/event-pump gap is bounded by already integrated code on both sides and can be hardened independently. Continue through `D23A..D5AC` CRT/DOS helpers as another substantial contiguous candidate region while preserving carry-derived status encodings and code/data boundaries.
+Harden the now-mapped `D23A..D5AC` block against the exact descriptor helpers at `10397..1042C`, then fold independently proven subranges instead of waiting for the entire 448-byte open state machine if it remains blocked. In parallel continue startup, mouse-pump, and DOS-memory reconciliation. Current uncounted instruction-bounded staging totals 1,958 bytes across these four work streams; none affects the official percentage until physically integrated and syntax checked.
 
 ## Larger-batch policy
 
