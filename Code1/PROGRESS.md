@@ -54,7 +54,18 @@ Established routine boundaries and sizes:
 
 These boundaries account for **801 candidate code bytes**. They are not counted yet because the fidelity rule requires the lifted C++ to be checked before coverage changes.
 
-The dependency trace also now reaches `EA0B..EBF2`. In particular, `EBB6..EBF2` atomically clears the per-slot pending flag at `5296`, releases an assigned timer handle from `5256` when present, and dispatches event `68h` through the common `E3E0` dispatcher. This resolves the main dependency used by `E6EA` without assigning higher-level game semantics that the bytes do not prove.
+## Dispatcher/control continuation EA0B..EBF2
+
+The dependency trace now has exact instruction-level behavior through `EBF2`:
+
+- `EA0B..EA99` (143): scan the 16 dword entries at `5216` for a free slot. The supplied structure is accepted only when dword `+4` equals literal `79706F43h` (`"Copy"` in little-endian bytes). Its first dword is installed into the free slot, `EAC8` is called for that slot, and the result is accepted only when the first dword returned by that call is unsigned-`<= [52E8]`; otherwise return `FFFFFFFFh`.
+- `EA9A..EAC7` (46): if index `<16`, clear the corresponding `5216` entry while preserving interrupt-enable state.
+- `EAC8..EAE6` (31): dispatch event `64h` through `E3E0`, passing the slot index and callback/address `E9F2`.
+- `EAE7..EAF0` (10): tail-dispatch event `65h` through `E3E0`.
+- `EAF1..EBB5` (197): validate index `<16`, initialize `[52E2]` to `FFFFFFFFh`, obtain the slot object via `EAC8`, inspect its dword at `+20h`, optionally locate event `67h` through `E3B4`, allocate a timer via `E759`, store the returned timer index in `5256` and `52E2`, program it via `E97A`, dispatch event `66h` with five original arguments, set the slot pending flag at `5296` to one, and if a timer was allocated change it from state 1 to state 2 via `E87B`.
+- `EBB6..EBF2` (61): reject index `>=16`; atomically exchange the slot pending dword at `5296` with zero; if it had been nonzero, release the timer index stored at `5256` unless it is `FFFFFFFFh`, then tail-dispatch event `68h` through `E3E0`.
+
+This continuation contributes another **488 instruction-bounded candidate bytes** (`EA0B..EBF2`). Together with `E6EA..EA0A`, **1,289 candidate bytes** of the post-`E6E9` timer/dispatcher subsystem are now bounded and dependency-traced. They remain outside verified coverage until their C++ forms are checked against these instructions.
 
 ## Larger-batch policy
 
@@ -62,6 +73,6 @@ The working target remains approximately **4,000 newly verified bytes per substa
 
 ## Unresolved queue
 
-The C++ lifting/check of `E6EA..EA0A`, common dispatcher routines `E3B4..E4C6`, continuation `EA0B..EBF2`, allocator bodies at `DAD9`/`DB5B`, the candidate compressed-data routine at `DB80`, transformation routine at `DC90`, uncertain entry at `DE6F`, startup successor work, and remaining address-named CRT helpers remain queued.
+The C++ lifting/check of `E6EA..EBF2`, common dispatcher routines `E3B4..E4C6`, allocator bodies at `DAD9`/`DB5B`, the candidate compressed-data routine at `DB80`, transformation routine at `DC90`, uncertain entry at `DE6F`, startup successor work, and remaining address-named CRT helpers remain queued.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
