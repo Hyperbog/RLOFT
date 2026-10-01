@@ -1,148 +1,157 @@
 #include "CharacterVariant2A64.h"
 
 #include <array>
-#include <cstddef>
 #include <cstdint>
 
 namespace ravenloft::game {
 namespace {
 
-UiHitTestState035C hitState(const CharacterVariantState2A64& state) {
-    UiHitTestState035C h{};
-    h.mode4D0 = state.mode4D0;
-    h.panelX = state.x87C;
-    h.panelY = state.y880;
-    h.specialX8E4 = state.specialX8E4;
-    h.specialY8A0 = state.specialY8A0;
-    return h;
+std::uint32_t add32(std::uint32_t a, std::uint32_t b) { return a + b; }
+std::uint32_t mul32(std::uint32_t a, std::uint32_t b) { return a * b; }
+
+std::uint8_t frameEnabled(const std::array<std::uint8_t, 6>& enabled,
+                          std::int32_t selection,
+                          const CharacterVariantOps2A64& ops) {
+    // Assembly address is BYTE PTR [EBP + selection - 0x25].
+    // Selections 1..6 address the six initialized bytes [EBP-24..EBP-1F].
+    if (selection >= 1 && selection <= 6)
+        return enabled[static_cast<std::size_t>(selection - 1)];
+    return ops.readFrameByte(selection - 0x25);
 }
 
-void drawHover(std::int32_t selection,
-               std::int32_t baseOffset,
-               std::uint8_t category,
-               const std::array<std::uint8_t, 6>& enabled,
-               const CharacterVariantState2A64& state,
-               const CharacterVariantOps2A64& ops) {
-    if (selection <= 0 || selection == 0xFF || selection > 6) return;
-    const auto index = static_cast<std::size_t>(selection - 1);
-    if (enabled[index] == 0) return;
-
-    const std::int32_t x = state.x87C[index];
-    const std::int32_t y = state.y880[index];
-    ops.draw.call6C60(0, x, y, 0x14, 7);
-    const std::int32_t resource = state.global713C +
-        static_cast<std::int32_t>(category) * 0x17 +
-        baseOffset + static_cast<std::int32_t>(index);
-    ops.draw.call6EB0(0, x + 0x15, y, resource, 1, 0x5AF8);
-    ops.call55DC(state.buffer7138, x + 0x15, y, 0x50, 0x30);
-}
+std::int32_t sx32(std::uint32_t v) { return static_cast<std::int32_t>(v); }
 
 } // namespace
 
-void CharacterVariant2A64::run(
-    CharacterVariantState2A64& state,
-    const CharacterVariantOps2A64& ops) {
-    bool firstPage = true;
-    std::int32_t baseOffset = 0;
-    std::int32_t exitState = 0;
+void CharacterVariant2A64::run(CharacterVariantState2A64&,
+                                const CharacterVariantOps2A64& ops) {
+    std::int32_t firstPage = 1;                 // [EBP-1C]
+    std::uint32_t baseOffset = 0;               // [EBP-14]
+    std::int32_t exitState = 0;                 // EDI
 
-    const auto selected = static_cast<std::size_t>(state.selectedCharacter4CC);
-    const std::uint8_t category = state.characters[selected].field680B;
+    const std::uint32_t selected = ops.readDword(0x04CC);
+    const std::uint32_t selectedScaled = mul32(selected, 0x248u);
+    const std::uint32_t category = ops.readByte(add32(selectedScaled, 0x680Bu)); // [EBP-18]
 
-    while (exitState == 0) {
-        ops.call6588(state.buffer7138);
+    while (exitState == 0) {                    // 2A91
+        ops.call6588(ops.readByte(0x7138));
 
-        if (!firstPage) {
-            for (std::size_t i = 0; i < 6; ++i) {
-                state.previous8F4[i] = state.current8F8[i];
+        if (firstPage == 0) {
+            for (std::uint32_t eax = 0; eax < 6; ++eax) {
+                const std::uint32_t stride = mul32(eax, 8u);
+                const std::uint32_t v = ops.readDword(add32(0x08F8u, stride));
+                ops.writeDword(add32(0x08F4u, stride), v);
             }
         }
 
-        std::array<std::uint8_t, 6> enabled{};
-        std::array<std::int32_t, 9> slots{
-            -1,-1,-1,-1,-1,-1,-1,-1,-1
-        };
+        std::array<std::uint8_t, 6> enabled{};  // [EBP-24..EBP-1F]
+        std::array<std::int32_t, 9> slots{};
 
-        const auto other = static_cast<std::size_t>(state.selectedCharacter4CC ^ 1);
-        for (std::int32_t i = 0; i < 6; ++i) {
-            const auto index = static_cast<std::size_t>(i);
-            const std::int32_t candidate = baseOffset + i;
-
-            const bool duplicateOther =
-                state.characters[other].field680B == category &&
-                state.characters[other].active4C4 &&
-                static_cast<std::int32_t>(state.characters[other].field680A) == candidate;
-
-            if (duplicateOther || candidate == 0x11) {
-                slots[index] = 0x15;
-                enabled[index] = 0;
+        for (std::uint32_t eax = 0; eax < 6; ++eax) {
+            std::uint32_t ebx = ops.readDword(0x04CC);
+            // 2ACD XOR BL,1: only the low byte changes; upper 24 bits survive.
+            ebx = (ebx & 0xFFFFFF00u) | ((ebx ^ 1u) & 0xFFu);
+            const std::uint32_t edx = mul32(ebx, 0x248u);
+            const std::uint32_t otherCategory = ops.readByte(add32(edx, 0x680Bu));
+            bool blocked = false;
+            if (otherCategory == category && ops.readByte(add32(ebx, 0x04C4u)) != 0) {
+                const auto otherVariant = static_cast<std::int8_t>(ops.readByte(add32(edx, 0x680Au)));
+                const std::uint32_t candidate = add32(baseOffset, eax);
+                blocked = static_cast<std::int32_t>(otherVariant) == sx32(candidate);
+            }
+            const std::uint32_t candidate = add32(baseOffset, eax);
+            if (blocked || candidate == 0x11u) {
+                slots[eax] = 0x15;
+                ops.writeDword(add32(0x08F8u, mul32(eax, 8u)), 0x15u);
+                enabled[eax] = 0;
             } else {
-                slots[index] = state.global713C +
-                    static_cast<std::int32_t>(category) * 0x17 + candidate;
-                enabled[index] = 1;
+                const std::uint32_t resource = add32(
+                    add32(ops.readDword(0x713C), mul32(category, 0x17u)), candidate);
+                slots[eax] = sx32(resource);
+                ops.writeDword(add32(0x08F8u, mul32(eax, 8u)), resource);
+                enabled[eax] = 1;
             }
-            state.current8F8[index] = slots[index];
         }
 
-        if (firstPage) {
+        if (firstPage != 0) {
+            slots[6] = slots[7] = slots[8] = -1;
             ops.call1464(4, slots, 0x0D, 4, 0x2A);
-            state.previous8F4.fill(0x15);
-            state.current8F8 = slots;
-            firstPage = false;
+            firstPage = 0;
         } else {
             ops.call07E4(0, 6);
         }
 
         PointerSample043C pointer{};
-        do {
+        do { pointer = ops.pollPointer(); } while (pointer.buttons != 0);
+
+        exitState = 0;
+        std::int32_t previous = -1;             // ESI
+        for (;;) {                              // 2BB8
             pointer = ops.pollPointer();
-        } while (pointer.buttons != 0);
-
-        std::int32_t previousHover = -1;
-
-        for (;;) {
-            pointer = ops.pollPointer();
-            const auto h = hitState(state);
-
             if (pointer.buttons == 0) {
-                const std::int32_t hover =
-                    UiHitTest035C::hitTest(pointer.x, pointer.y, h);
-                if (hover == previousHover) continue;
+                const std::int32_t current = ops.call035C(pointer.x, pointer.y);
+                if (previous == current) continue;
+                ops.call6588(ops.readByte(0x7138));
 
-                ops.call6588(state.buffer7138);
-                drawHover(previousHover, baseOffset, category, enabled, state, ops);
-                drawHover(hover, baseOffset, category, enabled, state, ops);
-                previousHover = hover;
+                if (previous > 0 && previous != 0xFF && frameEnabled(enabled, previous, ops) != 0) {
+                    const std::uint32_t i = static_cast<std::uint32_t>(previous);
+                    const std::int32_t x = sx32(ops.readDword(add32(0x0874u, mul32(i, 8u))));
+                    const std::int32_t y = sx32(ops.readDword(add32(0x0878u, mul32(i, 8u))));
+                    ops.draw.call6C60(0, x, y, 0x14, 7);
+                    const std::uint32_t resource = add32(add32(add32(
+                        ops.readDword(0x713C), mul32(category, 0x17u)), i - 1u), baseOffset);
+                    ops.draw.call6EB0(0, x + 0x15, y, sx32(resource), 1, 0x5AF8);
+                    ops.call55DC(ops.readDword(0x7138), x + 0x15, y, 0x50, 0x30);
+                }
+
+                if (current > 0 && current != 0xFF && frameEnabled(enabled, current, ops) != 0) {
+                    const std::uint32_t i = static_cast<std::uint32_t>(current);
+                    const std::int32_t x = sx32(ops.readDword(add32(0x0874u, mul32(i, 8u))));
+                    const std::int32_t y = sx32(ops.readDword(add32(0x0878u, mul32(i, 8u))));
+                    ops.draw.call6C60(0, x, y, 0x14, 7);
+                    const std::uint32_t resource = add32(add32(add32(
+                        ops.readDword(0x713C), mul32(category, 0x17u)), i - 1u), baseOffset);
+                    // Original 2CC2..2CE9 calls 0x6C60 here, not 0x6EB0.
+                    ops.draw.call6C60(0, x + 0x15, y, sx32(resource), 1);
+                    ops.call55DC(ops.readDword(0x7138), x + 0x15, y, 0x50, 0x30);
+                }
+                previous = current;
                 continue;
             }
 
-            const std::int32_t selection =
-                UiHitTest035C::hitTest(pointer.x, pointer.y, h);
-            if (selection < 0) continue;
+            const std::int32_t selection = ops.call035C(pointer.x, pointer.y);
+            if (selection < 0) {
+                previous = -1;
+                continue;
+            }
 
-            if (selection > 0 && selection != 0xFF) {
-                if (selection > 6 || enabled[static_cast<std::size_t>(selection - 1)] == 0) {
-                    continue;
-                }
+            if (selection != 0 && selection != 0xFF) {
+                if (frameEnabled(enabled, selection, ops) == 0) continue;
 
-                state.characters[selected].field680A = static_cast<std::int8_t>(
-                    baseOffset + selection - 1);
+                const std::uint8_t dl = static_cast<std::uint8_t>(
+                    static_cast<std::uint8_t>(selection) - std::uint8_t{1});
+                const std::uint8_t bl = static_cast<std::uint8_t>(
+                    static_cast<std::uint8_t>(baseOffset) + dl);
+                const std::uint32_t cur = ops.readDword(0x04CC);
+                ops.writeByte(add32(mul32(cur, 0x248u), 0x680Au), bl);
                 ops.call15B0(selection - 1, 0x114, 0xD7, 5);
-                ++state.mode4D0;
                 exitState = 2;
+                ops.writeDword(0x04D0, ops.readDword(0x04D0) + 1u);
             } else if (selection == 0xFF) {
-                baseOffset = (baseOffset + 6) % 0x12;
+                const std::int32_t dividend = sx32(add32(baseOffset, 6u));
+                baseOffset = static_cast<std::uint32_t>(dividend % 0x12);
                 exitState = 1;
             } else {
+                ops.writeDword(0x04D0, ops.readDword(0x04D0) - 1u);
                 ops.call15B0(-1, -1, -1, -1);
-                --state.mode4D0;
                 exitState = 2;
             }
 
-            if (exitState != 0) break;
+            if (exitState != 0) {
+                --exitState;
+                break;
+            }
         }
-
-        --exitState;
     }
 }
 
