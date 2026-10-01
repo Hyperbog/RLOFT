@@ -123,6 +123,29 @@ static_assert(0xF7B3u-0xF750u==99u);
 }
 static_assert(0xF8BDu-0xF7B8u==261u);
 
+
+// F8C4..FC96: resource image loader/relocator. Allocated 32-bit guest addresses never become native pointers: the encoded F750 call whose destination is the loaded image and the final relocation dword store remain explicit guest-memory boundaries.
+struct ResourceLoadBoundaries{u32(*alloc_71c8)(u32)=nullptr;void(*zero_84a0)(u32,u32,u32)=nullptr;u32(*read_f750_guest)(u32,u32,u32,u32,u32)=nullptr;void(*write_guest32)(u32,u32)=nullptr;};
+[[nodiscard]]u32 function_f8c4(FileBoundaries&b,ResourceLoadBoundaries&lb,u32 source,u32 flags,u32 destination)noexcept{
+ u32 handle=source,chunk_count=0,cursor=0;u32 segment_base[64]{},chunk_base[144]{};
+ if((flags&1u)==0u){handle=function_d313(b,source,0x200u,0u);if(handle==0xffffffffu)return 0u;}
+ const u32 image_size=function_f7b8(b,source,flags);
+ if((flags&4u)!=0u){destination=lb.alloc_71c8?lb.alloc_71c8(image_size):0u;if(destination==0u){if((flags&1u)==0u)(void)function_d573(b,handle);return 0u;}}
+ if(lb.zero_84a0)lb.zero_84a0(destination,0u,image_size);
+ u32 header_off=0;cursor=function_f750(b,handle,0x3cu,flags,reinterpret_cast<u8*>(&header_off),4u);
+ char sig[4]={' ',' ',0,0};cursor=function_f750(b,handle,header_off,flags,reinterpret_cast<u8*>(sig),2u);
+ if((b.compare_guest_string?b.compare_guest_string(sig,0x38cu):1)!=0){if((flags&1u)==0u)(void)function_d573(b,handle);return 0u;}
+ u8 h[0xacu]{};cursor=function_f750(b,handle,header_off,flags,h,0xacu);
+ const u32 object_table_off=load_le32(h+0x40u),object_count=load_le32(h+0x44u),page_map_off=load_le32(h+0x48u),data_pages_off=load_le32(h+0x80u),fixup_page_off=load_le32(h+0x68u),fixup_record_off=load_le32(h+0x6cu),page_size=load_le32(h+0x28u),module_pages=load_le32(h+0x14u);const u8 page_shift=h[0x2cu];
+ cursor=header_off+object_table_off;
+ for(u32 object=0;object<object_count;++object){u8 rec[0x18u]{};cursor=function_f750(b,handle,cursor,flags,rec,0x18u);const u32 virtual_size=load_le32(rec),object_flags=load_le32(rec+8u),page_count=load_le32(rec+0x10u);u32 page_cursor=header_off+page_map_off;
+  for(u32 page=0;page<page_count;++page){u8 map[8]{};page_cursor=function_f750(b,handle,page_cursor,flags,map,8u);if(page==0u){if((object_flags&2u)!=0u&&(object_flags&1u)!=0u&&(destination&0xfu)!=0u)destination+=0x10u-(destination&0xfu);segment_base[object]=destination;}chunk_base[chunk_count++]=destination;const u32 used=destination-segment_base[object];const u32 remain=virtual_size-used;const u32 encoded=static_cast<u32>(load_le16(map+4u));const u32 bytes=remain<encoded?remain:encoded;const u32 data_off=(load_le32(map)<<page_shift)+data_pages_off;if(lb.read_f750_guest)(void)lb.read_f750_guest(handle,data_off,flags,destination,bytes);destination+=bytes;}cursor=page_cursor;}
+ u32 fix_cursor=header_off+fixup_page_off,previous=0;fix_cursor=function_f750(b,handle,fix_cursor,flags,reinterpret_cast<u8*>(&previous),4u);
+ for(u32 page=0;page<module_pages;++page){u32 next=0;const u32 after=function_f750(b,handle,fix_cursor,flags,reinterpret_cast<u8*>(&next),4u);fix_cursor=after;if(previous!=next){u32 rec_cursor=header_off+fixup_record_off+previous;do{u8 source_type=0,target_flags=0;rec_cursor=function_f750(b,handle,rec_cursor,flags,&source_type,1u);rec_cursor=function_f750(b,handle,rec_cursor,flags,&target_flags,1u);if((source_type&7u)==0u||((target_flags&4u)!=0u&&(target_flags&0x20u)==0u)||(source_type&0x20u)!=0u){if((flags&1u)==0u)(void)function_d573(b,handle);return 0u;}u8 offbuf[2]{},idx=0,addbuf[2]{};rec_cursor=function_f750(b,handle,rec_cursor,flags,offbuf,2u);rec_cursor=function_f750(b,handle,rec_cursor,flags,&idx,1u);rec_cursor=function_f750(b,handle,rec_cursor,flags,addbuf,2u);const u32 src_off=load_le16(offbuf);if(src_off<=page_size){const u32 patch=chunk_base[page]+src_off,value=segment_base[idx]+load_le16(addbuf);if(lb.write_guest32)lb.write_guest32(patch,value);}}while(rec_cursor<header_off+fixup_record_off+next);fix_cursor=after;}previous=next;}
+ if((flags&1u)==0u)(void)function_d573(b,handle);return destination;
+}
+static_assert(0xFC97u-0xF8C4u==979u);
+
 // FCE9..FD2A: execute unprocessed six-byte runtime records in 55E0..55F1 by ascending priority. Equal priorities select the later record because the encoded JA only rejects strictly larger values.
 struct RuntimeTailBoundaries{void(*call_guest_near)(u32)=nullptr;};
 void function_fce9(Machine&m,RuntimeTailBoundaries&b)noexcept{
@@ -419,6 +442,6 @@ static_assert(0xE2C3u-0xE280u==67u);
 [[nodiscard]]u32 function_e360(const u8*data,u32 text)noexcept{u32 p=text;auto cls=[&](u8 c)noexcept->u8{return data[0x3b4u+static_cast<u32>(static_cast<u8>(c+1u))];};while((cls(data[p])&0x02u)!=0)++p;const u8 sign=data[p];if(sign==0x2bu||sign==0x2du)++p;u32 v=0;while((cls(data[p])&0x20u)!=0){v=v*10u+static_cast<u32>(data[p]);++p;v-=0x30u;}if(sign==0x2du)v=0u-v;return v;}
 static_assert(0xE3B3u-0xE360u==83u);
 
-constexpr u32 kVerifiedTranslatedBytes=11146u;
+constexpr u32 kVerifiedTranslatedBytes=12125u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 } // namespace code1

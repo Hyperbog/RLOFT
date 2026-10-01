@@ -47,3 +47,5 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 - `FCE9..FD6D integrated`: 133 bytes of directly disassembled six-byte runtime-record dispatchers; lower range selects minimum priority, upper range maximum priority, both prefer later equal-priority records and mark each executed record state 2.
 - `FE21..FEFB integrated`: 219-byte directly disassembled command-line scanner, preserving whitespace, quote, backslash, in-place compaction, optional argv-output, and stopping-cursor behavior.
 - `FFD4..102D3 integrated`: complete 768-byte interrupt veneer table; all 256 entries are mechanically `INT imm8; RET` at `FFD4+3*vector`.
+
+- `F8C4..FC96 integrated`: 979-byte resource image loader/relocator directly disassembled; allocated guest addresses remain behind explicit F750-destination and relocation-write boundaries.
