@@ -16,40 +16,36 @@ extern char* function_e098(s32,char*,u32)noexcept;
 extern u32 function_d991(u32)noexcept;
 
 // F206..F2D1 (204): signed 16.16 fixed-point decimal materialization.
-// CODE.1 passes the HIGH word to DFFB for the integer portion. For each
-// fractional digit it clears that high word, multiplies the remaining low-word
-// fraction by ten, and emits bits 16..23 of the product. Rounding tests bit 15
-// of the retained fraction (byte [EBP-3], mask 80h). These overlapping accesses
-// are intentional and are represented explicitly rather than as host floating point.
+// The local dword at EBP-4 is deliberately accessed through overlapping words:
+// EBP-2 is the integer/high word, while each fractional iteration clears that
+// high word before multiplying the retained low 16-bit fraction by ten.
 void function_f206(char*out,s32 value,FormatState&s)noexcept{
- char*p=out; u32 fixed=static_cast<u32>(value);
+ char*p=out;u32 fixed=static_cast<u32>(value);
  if(value<0){fixed=0u-fixed;*p++='-';}
  if(s.precision==0xffffffffu)s.precision=4;
- const s16 integer_part=static_cast<s16>(fixed>>16);
- (void)function_dffb(static_cast<s32>(integer_part),p,10);
- char*integer_begin=p;while(*p)++p;
+ (void)function_dffb(static_cast<s32>(static_cast<u16>(fixed>>16)),p,10);
+ char*integer_begin=p;char*end=p;while(*end)++end;
  if(s.precision!=0){
-  *p++='.';
-  for(u32 i=0;i<s.precision;++i){
-   fixed&=0x0000ffffu; // mov word [ebp-2],0
-   fixed=static_cast<u32>(static_cast<s32>(fixed)*10); // imul edx,[ebp-4],10
-   *p++=static_cast<char>(static_cast<u8>(fixed>>16)+static_cast<u8>('0'));
-  }
-  *p='\0';
+  *end++='.';
+  for(u32 i=0;i<s.precision;++i){fixed&=0x0000ffffu;fixed*=10u;*end++=static_cast<char>(static_cast<u8>(fixed>>16)+static_cast<u8>('0'));}
+  *end='\0';
  }
+ // F27E tests bit 15 of the retained low word: remainder >= one half.
  if((fixed&0x00008000u)!=0){
+  char*q=end;
   for(;;){
-   if(p==integer_begin){
+   if(q==integer_begin){
+    // F288..F2B4 is the encoded carry-through-front rewrite. It inserts a
+    // leading '1', preserves a decimal point when present, and zeroes the
+    // carried digits before terminating the rewritten string.
     char*scan=integer_begin+1;*integer_begin='1';
     while(*scan=='0')++scan;
-    if(*scan=='.'){
-     *scan='0';char*after=scan+1;*after='.';scan=after+1;while(*scan=='0')++scan;
-    }
-    *scan='0';scan[1]='\0';break;
+    if(*scan=='.'){*scan='0';char*dot=scan+1;*dot='.';scan=dot+1;while(*scan=='0')++scan;}
+    *scan++='0';*scan='\0';break;
    }
-   --p;if(*p=='.')--p;
-   if(*p!='9'){++*p;break;}
-   *p='0';
+   --q;if(*q=='.')--q;
+   if(*q!='9'){++*q;break;}
+   *q='0';
   }
  }
 }
@@ -81,7 +77,7 @@ struct MaterializeResult{u32 source_offset=0;u16 source_selector=0;u32 accountin
 // `accounting_eax` deliberately models the EAX value reaching F695. For S this
 // is the first selector-qualified character value, not a conventional strlen.
 [[nodiscard]]MaterializeResult function_f2e9(FormatterBoundary&b,char*scratch,u32 scratch_guest,u32 cursor_cell,FormatState&s,u32 state_guest,u16 ds,u32 null_string_offset)noexcept{
- MaterializeResult r{scratch_guest,ds,0}; u32 numeric=0; bool sign_processing=true; const u8 conv=s.conversion;
+ MaterializeResult r{scratch_guest,ds,0};u32 numeric=0;u32 radix=10;bool sign_processing=true;const u8 conv=s.conversion;
  if(conv=='X'||conv=='o'||conv=='u'||conv=='x'){
   if(s.flags&0x20u)numeric=take32(b,cursor_cell);else if(s.flags&0x10u)numeric=take_u16_promoted(b,cursor_cell);else numeric=take32(b,cursor_cell);
   s.flags=static_cast<u8>(s.flags&0xf9u);
@@ -91,12 +87,31 @@ struct MaterializeResult{u32 source_offset=0;u16 source_selector=0;u32 accountin
  case 'E':case 'F':case 'G':case 'e':case 'f':case 'g':
   if((conv=='F'||conv=='f')&&(s.flags&0x10u)){function_f206(scratch,static_cast<s32>(take32(b,cursor_cell)),s);r.source_offset=scratch_guest;r.source_selector=ds;r.accounting_eax=cstrlen(scratch);}
   else{const FarReturn q=function_f2d2(b,scratch_guest,cursor_cell,state_guest);r.source_offset=q.offset;r.source_selector=q.selector;r.accounting_eax=bounded8(b,q.offset,q.selector,0xffffffffu);}break;
- case 'o':{char*digits=scratch;if(s.flags&1u)*digits++='0';(void)function_e098(static_cast<s32>(numeric),digits,8);r.source_offset=scratch_guest;r.source_selector=ds;if(s.precision==0&&digits[0]=='0')scratch[0]=0;r.accounting_eax=cstrlen(scratch);break;}
- case 'd':case 'i':{s32 value;if(s.flags&0x20u)value=static_cast<s32>(take32(b,cursor_cell));else if(s.flags&0x10u)value=take_s16_promoted(b,cursor_cell);else value=static_cast<s32>(take32(b,cursor_cell));if(s.flags&0x20u||(s.flags&0x10u))(void)function_e098(value,scratch,10);else(void)function_dffb(value,scratch,10);r.source_offset=scratch_guest;r.source_selector=ds;r.accounting_eax=cstrlen(scratch);break;}
+ case 'o':{
+  char*digits=scratch;if(s.flags&1u){*digits++='0';}
+  (void)function_e098(static_cast<s32>(numeric),digits,8);r.source_offset=scratch_guest;r.source_selector=ds;
+  // F493 compares the conversion start at ESI, but F4A1 writes through ES:EDI.
+  // EDI still names the original scratch start. With alternate form, precision
+  // zero and numeric zero therefore clear the prefix byte, not the digit byte.
+  if(s.precision==0&&digits[0]=='0')scratch[0]=0;
+  r.accounting_eax=cstrlen(scratch);break;}
+ case 'd':case 'i':{
+  s32 value;if(s.flags&0x20u)value=static_cast<s32>(take32(b,cursor_cell));else if(s.flags&0x10u)value=take_s16_promoted(b,cursor_cell);else value=static_cast<s32>(take32(b,cursor_cell));
+  if(s.flags&0x20u||(s.flags&0x10u))(void)function_e098(value,scratch,10);else(void)function_dffb(value,scratch,10);
+  r.source_offset=scratch_guest;r.source_selector=ds;r.accounting_eax=cstrlen(scratch);break;}
  case 'u':(void)function_e050(numeric,scratch,10);r.source_offset=scratch_guest;r.source_selector=ds;if(s.precision==0&&scratch[0]=='0')scratch[0]=0;r.accounting_eax=cstrlen(scratch);break;
  case 'x':case 'X':if((s.flags&1u)&&numeric!=0){s.prefix[0]='0';s.prefix[1]=conv;s.prefix[2]=0;}(void)function_e050(numeric,scratch,16);if(conv=='X')uppercase(scratch);r.source_offset=scratch_guest;r.source_selector=ds;if(s.precision==0&&scratch[0]=='0')scratch[0]=0;r.accounting_eax=cstrlen(scratch);break;
- case 's':case 'S':{u32 p;u16 sel=ds;if(s.flags&0x80u){const u32 next=get32(b,cursor_cell)+8u;put32(b,cursor_cell,next);p=get32(b,next-8u);sel=b.read_linear16?b.read_linear16(next-4u):0;if(p==0&&sel==0){p=null_string_offset;sel=ds;}}else{p=take32(b,cursor_cell);if(p==0)p=null_string_offset;}r.source_offset=p;r.source_selector=sel;s.flags=static_cast<u8>(s.flags&0xf9u);sign_processing=false;if(conv=='S'){if(s.flags&0x20u){r.accounting_eax=b.read_selector16?b.read_selector16(sel,p):0;r.source_offset=p+2u;}else{r.accounting_eax=b.read_selector8?b.read_selector8(sel,p):0;r.source_offset=p+1u;}}else r.accounting_eax=(s.flags&0x20u)?bounded16(b,p,sel,s.precision):bounded8(b,p,sel,s.precision);break;}
- case 'p':case 'P':{if(s.width==0)s.width=(s.flags&0x80u)?13u:8u;s.flags=static_cast<u8>(s.flags&0xf9u);const u32 off=take32(b,cursor_cell);if(s.flags&0x80u){const u16 sel=take_u16_promoted(b,cursor_cell);hexpad(sel,scratch,4);scratch[4]=':';hexpad(off,scratch+5,8);}else hexpad(off,scratch,8);if(conv=='P')uppercase(scratch);r.source_offset=scratch_guest;r.source_selector=ds;r.accounting_eax=cstrlen(scratch);break;}
+ case 's':case 'S':{
+  u32 p;u16 sel=ds;
+  if(s.flags&0x80u){const u32 next=get32(b,cursor_cell)+8u;put32(b,cursor_cell,next);p=get32(b,next-8u);sel=b.read_linear16?b.read_linear16(next-4u):0;if(p==0&&sel==0){p=null_string_offset;sel=ds;}}
+  else{p=take32(b,cursor_cell);if(p==0)p=null_string_offset;sel=ds;}
+  r.source_offset=p;r.source_selector=sel;s.flags=static_cast<u8>(s.flags&0xf9u);sign_processing=false;
+  if(conv=='S'){if(s.flags&0x20u){r.accounting_eax=b.read_selector16?b.read_selector16(sel,p):0;r.source_offset=p+2u;}else{r.accounting_eax=b.read_selector8?b.read_selector8(sel,p):0;r.source_offset=p+1u;}}
+  else r.accounting_eax=(s.flags&0x20u)?bounded16(b,p,sel,s.precision):bounded8(b,p,sel,s.precision);break;}
+ case 'p':case 'P':{
+  if(s.width==0)s.width=(s.flags&0x80u)?13u:8u;s.flags=static_cast<u8>(s.flags&0xf9u);const u32 off=take32(b,cursor_cell);
+  if(s.flags&0x80u){const u16 sel=take_u16_promoted(b,cursor_cell);hexpad(sel,scratch,4);scratch[4]=':';hexpad(off,scratch+5,8);}else hexpad(off,scratch,8);
+  if(conv=='P')uppercase(scratch);r.source_offset=scratch_guest;r.source_selector=ds;r.accounting_eax=cstrlen(scratch);break;}
  case 'c':scratch[0]=static_cast<char>(take32(b,cursor_cell));scratch[1]=0;sign_processing=false;s.precision=1;s.flags=static_cast<u8>(s.flags&0xf9u);r.accounting_eax=1;break;
  default:s.width=0;scratch[0]=static_cast<char>(conv);scratch[1]=0;sign_processing=false;s.precision=1;s.flags=static_cast<u8>(s.flags&0xf9u);r.accounting_eax=1;break;
  }
