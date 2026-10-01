@@ -1,12 +1,11 @@
 /* CODE.1 next-region verification staging.
  * Immutable authority: CODE.1 SHA-256
  * fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed
- * Instruction-bounded ranges represented here:
+ * Verified instruction-accounted ranges:
  *   DAD9..DB7F = 167 bytes
  *   DB80..DC8C = 269 bytes
  *   DC90..DDD7 = 328 bytes
- * These bytes are NOT added to the official coverage until final reconciliation
- * and fold into Code1.cpp.
+ * These bytes remain excluded from official coverage until fold into Code1.cpp.
  */
 #include <cstdint>
 #include <cstring>
@@ -38,12 +37,11 @@ struct AllocBoundary{
 void function_db5b(AllocBoundary&b,u32 pointer)noexcept{if(b.call_10590)b.call_10590(pointer,b.ds,0x30b8u);if(b.write_linear8)b.write_linear8(0x8e78u,0);}
 void function_db4b(AllocBoundary&b,u32 pointer)noexcept{function_db5b(b,pointer);}
 
-// DB80..DC8C. Exact 4096-byte ring dictionary walk. 7360 supplies one input
-// byte; 738C consumes one output byte. The dictionary is initialized to FEh,
-// write index FEEh. SI is shifted before testing the 0100h refill marker;
-// literal tokens test bit 0, while back-references combine two input bytes as
-// ((second & F0h)<<4)|first and copy (second&0Fh)+3 bytes (encoded loop uses
-// DI=(low nibble)+2 and executes while counter <= DI).
+// DB80..DC8C. Exact 4096-byte ring dictionary walk. 7360 returns a
+// zero-extended input byte; 738C consumes one output byte. The dictionary is
+// initialized to FEh, write index FEEh. SI is shifted before testing the 0100h
+// refill marker. Back-references combine two bytes as
+// ((second & F0h)<<4)|first and copy (second&0Fh)+3 bytes.
 struct DecodeBoundary{u8(*input_7360)()=nullptr;void(*output_738c)(u8)=nullptr;u8(*read_linear8)(u32)=nullptr;};
 void function_db80(DecodeBoundary&b)noexcept{
  u8 dict[4096];std::memset(dict,0xfe,sizeof(dict));u16 write_index=0x0feeu;u16 si=0;
@@ -62,10 +60,10 @@ void function_db80(DecodeBoundary&b)noexcept{
 }
 
 // DC90..DDD7. The routine operates only when header word +4 == 1. It builds
-// a word permutation table in the same 30E8h workspace used by DB80, then
-// repeatedly swaps one row-sized byte span and copies the selected span into
-// the advancing destination. Arithmetic below follows the encoded 32-bit MUL,
-// quotient/remainder-by-four address decomposition, and final header rewrite.
+// a word permutation table in workspace 30E8h, then uses REPNE SCASW to find
+// the current index in the remaining suffix. SCASW compares the initial EDI
+// element before advancing EDI; after the instruction the encoded SUB EDI,2
+// restores EDI to the matched element (or final examined element on failure).
 struct TransformBoundary{u16(*read16)(u32)=nullptr;u8(*read8)(u32)=nullptr;void(*write16)(u32,u16)=nullptr;void(*write8)(u32,u8)=nullptr;};
 static u16 tr16(TransformBoundary&b,u32 a)noexcept{return b.read16?b.read16(a):0;}static u8 tr8(TransformBoundary&b,u32 a)noexcept{return b.read8?b.read8(a):0;}static void tw16(TransformBoundary&b,u32 a,u16 v)noexcept{if(b.write16)b.write16(a,v);}static void tw8(TransformBoundary&b,u32 a,u8 v)noexcept{if(b.write8)b.write8(a,v);}
 void function_dc90(TransformBoundary&b,u32 base)noexcept{
@@ -73,11 +71,16 @@ void function_dc90(TransformBoundary&b,u32 base)noexcept{
  const u32 row=tr16(b,base);const u32 stride=static_cast<u32>(tr8(b,base+6u))<<1;u32 remaining=4u*tr16(b,base+2u);const u32 table_words=remaining;const u32 wrap=remaining<<1;
  u32 bx=0,eax=0;for(u32 ecx=table_words;ecx!=0;--ecx){tw16(b,0x30e8u+bx,static_cast<u16>(eax));bx+=8u;++eax;if(bx>=wrap){bx-=wrap;bx+=2u;}}
  --remaining;dst+=stride;u32 index=1;
- while(remaining!=0){u32 edi=0x30e8u+(index<<1);u16 bxv=tr16(b,edi);u32 scan=remaining;u32 p=edi;if(scan!=0){do{p+=2u;--scan;}while(scan!=0&&tr16(b,p)!=static_cast<u16>(index));p-=2u;}const u16 ax=tr16(b,p);tw16(b,p,bxv);const u32 mapped=(p-0x30e8u)>>1;tw16(b,edi,ax);
-  u32 a=source_base+(index>>2)*row+(index&3u)*stride;u32 s=source_base+(mapped>>2)*row+(mapped&3u)*stride;const u32 saved=a;for(u32 n=stride;n!=0;--n){const u8 av=tr8(b,a),sv=tr8(b,s);tw8(b,a,sv);tw8(b,s,av);++a;++s;}for(u32 n=0;n<stride;++n)tw8(b,dst+n,tr8(b,saved+n));++index;dst+=stride;--remaining;
+ while(remaining!=0){
+  const u32 table_entry=0x30e8u+(index<<1);const u16 saved_table_value=tr16(b,table_entry);u32 scan=remaining;u32 after=table_entry;
+  if(scan!=0){do{const u16 examined=tr16(b,after);after+=2u;--scan;if(examined==static_cast<u16>(index))break;}while(scan!=0);}
+  const u32 match=after-2u;const u16 displaced=tr16(b,match);tw16(b,match,saved_table_value);const u32 mapped=(match-0x30e8u)>>1;tw16(b,table_entry,displaced);
+  u32 a=source_base+(index>>2)*row+(index&3u)*stride;u32 s=source_base+(mapped>>2)*row+(mapped&3u)*stride;const u32 saved=a;
+  for(u32 n=stride;n!=0;--n){const u8 av=tr8(b,a),sv=tr8(b,s);tw8(b,a,sv);tw8(b,s,av);++a;++s;}
+  for(u32 n=0;n<stride;++n)tw8(b,dst+n,tr8(b,saved+n));++index;dst+=stride;--remaining;
  }
  const u16 old_count=tr16(b,base+2u);tw16(b,base+4u,old_count);tw16(b,base+2u,1);const u16 product=static_cast<u16>(static_cast<u16>(old_count)*static_cast<u16>(static_cast<u16>(tr8(b,base+6u))<<3));tw16(b,base,product);
 }
 static_assert(0xDB80u-0xDAD9u==167u);static_assert(0xDC8Du-0xDB80u==269u);static_assert(0xDDD8u-0xDC90u==328u);
-constexpr u32 kInstructionBoundedStagedBytes=764u;
+constexpr u32 kVerifiedStagedBytes=764u;
 } // namespace code1_runtime_next
