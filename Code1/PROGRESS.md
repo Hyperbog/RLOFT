@@ -41,22 +41,29 @@ Total integrated verified translated bytes: **5,473**.
 
 ## Current formatter continuation staging
 
-`FormatterContinuation.staging.cpp` carries **227 newly instruction-accounted bytes** from the original binary. They remain excluded from the percentage until folded into `Code1.cpp`.
+`FormatterContinuation.staging.cpp` contains **227 verified instruction-accounted bytes**, still excluded from the official percentage until fold-in:
 
-- `F206..F2D1`: **204 bytes** — fixed-point decimal materialization, default precision assignment, decimal-point emission, repeated multiply-by-ten digit generation, and the encoded carry/rounding walk across the generated string.
-- `F2D2..F2E8`: **23 bytes** — exact three-argument indirect thunk through the function pointer stored at DGROUP `55C4h`.
+- `F206..F2D1`: **204 bytes** — fixed-point decimal materialization and encoded rounding walk.
+- `F2D2..F2E8`: **23 bytes** — exact three-argument indirect thunk through DGROUP `55C4h`.
 
-## Materializer verification
+`F2E9..F721` (**1,081 bytes**) is now represented as a structural C++ lift under verification, but remains explicitly **uncounted**.
 
-`F2E9..F721` (**1,081 bytes**) has now been re-disassembled and recorded in `FormatterMaterializer.map.md` as an instruction-derived branch ledger. This map is deliberately not counted as translation. It records the exact entry state, conversion-family branch ranges, common accounting tail, and the memory-model constraints that must survive the C++ lift.
+## Materializer hardening completed this pass
 
-The hardened map specifically preserves these non-host semantics before code generation: selector+offset far pointers; in-memory mutation of the vararg cursor; EAX+DX offset/selector return from `F2D2`; the two-component far-null test; ES:EDI use in the common sign/accounting tail; and in-place mutation of width, precision, prefix and zero-fill fields.
+The complete `F2E9..F721` disassembly was re-run directly from immutable CODE.1. The staging representation was then changed so original addresses are no longer converted to host pointers:
 
-This verification replaces the earlier unsafe temptation to flatten formatter addresses into host pointers. No additional materializer bytes are counted until the C++ representation satisfies these constraints.
+- the argument-list cursor is represented as an original 32-bit address stored in a guest cursor cell;
+- encoded `add dword ptr [eax],4/8` mutations now update that guest cursor cell explicitly;
+- near argument reads go through linear-memory boundaries;
+- far string reads remain selector+offset operations;
+- the `F2D2` call receives the original scratch address, cursor-cell address, and state address rather than host object addresses;
+- the two-component far-null case remains distinct from a near null pointer.
+
+The common `F695..F721` accounting tail is intentionally still marked for exact verification against `F163`/`F18C`; the 1,081-byte materializer will not be promoted into the verified byte count until that check is complete.
 
 ## Active continuation
 
-Lift `F2E9..F721` against the new selector/cursor ledger, then fold `F206..F721` into `Code1.cpp`. After the materializer is integrated, translate `EDE7..F006` against the proven helper set.
+Finish the exact `F695..F721` source-length/prefix/precision/width accounting and the `F2D2` EAX:DX return semantics, then fold the verified `F206..F721` subset into `Code1.cpp`. After that, translate `EDE7..F006` against the proven formatter helpers.
 
 ## Larger-batch policy
 
@@ -64,6 +71,6 @@ The working target remains approximately **4,000 newly verified bytes per substa
 
 ## Unresolved queue
 
-Fold the verified 227-byte formatter continuation; lift `F2E9..F721` and then `EDE7..F006`; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
+Fold the verified 227-byte formatter continuation; complete and verify `F2E9..F721`; translate `EDE7..F006`; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
