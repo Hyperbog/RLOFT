@@ -36,13 +36,15 @@ struct CharacterPanelCacheState1A04 {
 struct CharacterPanelCacheOps1A04 {
     UiTextDrawOps00EC draw;
 
+    // 0x7830/0x7868/0x67C8 exchange original 32-bit handle values in this
+    // routine.  Do not widen them to host pointer width.
     std::function<void(std::uint32_t)> call7830;
     std::function<void(std::uint32_t)> call6588;
-    std::function<std::uintptr_t(std::int32_t, std::int32_t,
-                                 std::int32_t, std::int32_t,
-                                 std::int32_t)> call7868;
+    std::function<std::uint32_t(std::int32_t, std::int32_t,
+                                std::int32_t, std::int32_t,
+                                std::int32_t)> call7868;
     std::function<void(std::int32_t, std::int32_t,
-                       std::int32_t, std::uintptr_t)> call67C8;
+                       std::int32_t, std::uint32_t)> call67C8;
 
     // Exact CODE.1 calls used by the flag==0 branches.  0x004C decodes
     // record zero into the caller-owned DS:55F8 buffer, then 0x00EC consumes
