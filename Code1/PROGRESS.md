@@ -43,30 +43,26 @@ Total integrated verified translated bytes: **5,473**.
 
 `FormatterContinuation.staging.cpp` contains **227 verified instruction-accounted bytes**, still excluded from the official percentage until fold-in:
 
-- `F206..F2D1`: **204 bytes** — fixed-point decimal materialization and encoded rounding walk.
-- `F2D2..F2E8`: **23 bytes** — indirect thunk through DGROUP `55C4h`.
+- `F206..F2D1`: **204 bytes** — signed 16.16 fixed-point decimal materialization and encoded rounding walk.
+- `F2D2..F2E8`: **23 bytes** — indirect thunk through DGROUP `55C4h` preserving the EAX:DX offset/selector return pair.
 
 `F2E9..F721` (**1,081 bytes**) remains a structural C++ lift under verification and is explicitly **uncounted**.
 
-## Materializer correction pass
+## Fixed-point verification completed this pass
 
-The immutable CODE.1 bytes for the complete `F2E9..F721` region were disassembled again before editing the structural lift. The staging model now preserves several register-level behaviors that a conventional formatter abstraction would lose:
+`F206..F2D1` was re-disassembled directly from the immutable object bytes and its overlapping stack-word behavior is now represented exactly rather than approximated as an ordinary integer/fraction formatter:
 
-- `F2D2` is represented as an **EAX:DX far return pair** (`offset`, `selector`) rather than an EAX-only callback result.
-- The unsigned pre-read at `F30D..F36D` is limited to `X/o/u/x`; `d/i` consume signed arguments later at `F4BA`.
-- `F/f` with flag `10h` is the path that invokes `F206`; the other floating conversions use the `F2D2` callback path.
-- `d/i` preserve the encoded distinction between `E098` for the `20h`/`10h` length forms and `DFFB` for the default form.
-- The `S` path now carries the selector-qualified character value in live EAX into the common tail, rather than inventing a string length. Its returned source offset is advanced by one or two bytes exactly as encoded.
-- Common-tail precision comparisons are modeled as signed `CMP/Jcc` relationships where the original uses signed conditions.
-- Guest offsets/selectors remain guest addresses; none are reinterpreted as host pointers.
+- The input is a signed **16.16 fixed-point** value. After sign normalization, `MOVZX EAX,WORD PTR [EBP-2]` passes the high 16-bit integer portion to `DFFB`.
+- Each fractional digit executes `MOV WORD PTR [EBP-2],0`, multiplies the remaining low-word fraction by ten, and emits byte `[EBP-2]` (bits 16..23 of the product) plus `'0'`.
+- Rounding tests bit 15 of the retained fraction via `TEST BYTE PTR [EBP-3],80h`.
+- The carry walk across trailing `9` digits, decimal point relocation, and leading carry insertion are retained explicitly.
+- No host floating-point type or libc formatting operation is used.
 
-A stale `DispatcherWrappers.staging.cpp` duplicate was also removed because `EBF3..EDE6` is already integrated and counted in `Code1.cpp`; leaving it present risked future double-accounting.
-
-The materializer is still withheld from the verified count. The octal alternate-form/zero-precision path around `F477..F4A4` and the fixed-point helper's retained-word arithmetic are the next byte-level checks before promotion.
+The octal `F477..F4A4` path was also checked: EDI is initialized to the original scratch address at `F310`, while alternate-form octal may advance ESI before conversion. With zero precision and a generated zero digit, the ES:EDI store therefore clears the **original first scratch byte**, suppressing even the alternate-form prefix. The staging model now reflects this encoded behavior rather than standard printf expectations.
 
 ## Active continuation
 
-Finish the remaining `F2E9..F721` byte-level checks, fold verified `F206..F721` into `Code1.cpp`, then translate `EDE7..F006` against the proven formatter helpers.
+Continue byte-level verification of `F2E9..F721`, then fold verified `F206..F721` into `Code1.cpp`. After that, translate `EDE7..F006` against the proven formatter helpers.
 
 ## Larger-batch policy
 
