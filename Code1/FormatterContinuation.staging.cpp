@@ -15,14 +15,43 @@ extern char* function_e050(u32,char*,u32)noexcept;
 extern char* function_e098(s32,char*,u32)noexcept;
 extern u32 function_d991(u32)noexcept;
 
-// F206..F2D1 (204): fixed-point decimal materialization and encoded rounding pass.
+// F206..F2D1 (204): signed 16.16 fixed-point decimal materialization.
+// CODE.1 passes the HIGH word to DFFB for the integer portion. For each
+// fractional digit it clears that high word, multiplies the remaining low-word
+// fraction by ten, and emits bits 16..23 of the product. Rounding tests bit 15
+// of the retained fraction (byte [EBP-3], mask 80h). These overlapping accesses
+// are intentional and are represented explicitly rather than as host floating point.
 void function_f206(char*out,s32 value,FormatState&s)noexcept{
- char*p=out; s32 magnitude=value; if(magnitude<0){magnitude=-magnitude;*p++='-';}
+ char*p=out; u32 fixed=static_cast<u32>(value);
+ if(value<0){fixed=0u-fixed;*p++='-';}
  if(s.precision==0xffffffffu)s.precision=4;
- (void)function_dffb(static_cast<s32>(static_cast<u16>(magnitude)),p,10);
- char*integer_begin=p; while(*p)++p;
- if(s.precision!=0){*p++='.';for(u32 i=0;i<s.precision;++i){magnitude*=10;*p++=static_cast<char>(static_cast<u8>(static_cast<u16>(magnitude)>>8)+static_cast<u8>('0'));}*p='\0';}
- if((static_cast<u16>(magnitude)>>8)&0x80u){if(p==integer_begin){*integer_begin='1';}else{--p;if(*p=='.')--p;for(;;){if(*p!='9'){++*p;break;}*p='0';if(p==integer_begin){*p='1';break;}--p;if(*p=='.')--p;}}}
+ const s16 integer_part=static_cast<s16>(fixed>>16);
+ (void)function_dffb(static_cast<s32>(integer_part),p,10);
+ char*integer_begin=p;while(*p)++p;
+ if(s.precision!=0){
+  *p++='.';
+  for(u32 i=0;i<s.precision;++i){
+   fixed&=0x0000ffffu; // mov word [ebp-2],0
+   fixed=static_cast<u32>(static_cast<s32>(fixed)*10); // imul edx,[ebp-4],10
+   *p++=static_cast<char>(static_cast<u8>(fixed>>16)+static_cast<u8>('0'));
+  }
+  *p='\0';
+ }
+ if((fixed&0x00008000u)!=0){
+  for(;;){
+   if(p==integer_begin){
+    char*scan=integer_begin+1;*integer_begin='1';
+    while(*scan=='0')++scan;
+    if(*scan=='.'){
+     *scan='0';char*after=scan+1;*after='.';scan=after+1;while(*scan=='0')++scan;
+    }
+    *scan='0';scan[1]='\0';break;
+   }
+   --p;if(*p=='.')--p;
+   if(*p!='9'){++*p;break;}
+   *p='0';
+  }
+ }
 }
 
 // F2D2..F2E8 (23): indirect thunk. The callee returns an offset in EAX and
@@ -52,76 +81,30 @@ struct MaterializeResult{u32 source_offset=0;u16 source_selector=0;u32 accountin
 // `accounting_eax` deliberately models the EAX value reaching F695. For S this
 // is the first selector-qualified character value, not a conventional strlen.
 [[nodiscard]]MaterializeResult function_f2e9(FormatterBoundary&b,char*scratch,u32 scratch_guest,u32 cursor_cell,FormatState&s,u32 state_guest,u16 ds,u32 null_string_offset)noexcept{
- MaterializeResult r{scratch_guest,ds,0}; u32 numeric=0; u32 radix=10; bool sign_processing=true; const u8 conv=s.conversion;
-
- // F30D..F36D: only X/o/u/x pre-read the unsigned integer. d/i branch directly
- // to F36E and consume their signed value later at F4BA.
+ MaterializeResult r{scratch_guest,ds,0}; u32 numeric=0; bool sign_processing=true; const u8 conv=s.conversion;
  if(conv=='X'||conv=='o'||conv=='u'||conv=='x'){
   if(s.flags&0x20u)numeric=take32(b,cursor_cell);else if(s.flags&0x10u)numeric=take_u16_promoted(b,cursor_cell);else numeric=take32(b,cursor_cell);
   s.flags=static_cast<u8>(s.flags&0xf9u);
  }
  if(s.precision!=0xffffffffu&&(conv=='X'||conv=='d'||conv=='i'||conv=='o'||conv=='u'||conv=='x'))s.pad=' ';
-
  switch(conv){
  case 'E':case 'F':case 'G':case 'e':case 'f':case 'g':
-  if((conv=='F'||conv=='f')&&(s.flags&0x10u)){
-   function_f206(scratch,static_cast<s32>(take32(b,cursor_cell)),s);r.source_offset=scratch_guest;r.source_selector=ds;r.accounting_eax=cstrlen(scratch);
-  }else{
-   const FarReturn q=function_f2d2(b,scratch_guest,cursor_cell,state_guest);r.source_offset=q.offset;r.source_selector=q.selector;
-   r.accounting_eax=bounded8(b,q.offset,q.selector,0xffffffffu);
-  }
-  break;
- case 'o':{
-  char*digits=scratch;u32 digits_guest=scratch_guest;if(s.flags&1u){*digits++='0';++digits_guest;}
-  (void)function_e098(static_cast<s32>(numeric),digits,8);r.source_offset=scratch_guest;r.source_selector=ds;
-  if(s.precision==0&&digits[0]=='0')digits[0]=0;r.accounting_eax=cstrlen(scratch);break;}
- case 'd':case 'i':{
-  s32 value;if(s.flags&0x20u)value=static_cast<s32>(take32(b,cursor_cell));else if(s.flags&0x10u)value=take_s16_promoted(b,cursor_cell);else value=static_cast<s32>(take32(b,cursor_cell));
-  if(s.flags&0x20u||(s.flags&0x10u))(void)function_e098(value,scratch,10);else(void)function_dffb(value,scratch,10);
-  r.source_offset=scratch_guest;r.source_selector=ds;r.accounting_eax=cstrlen(scratch);break;}
- case 'u':
-  (void)function_e050(numeric,scratch,10);r.source_offset=scratch_guest;r.source_selector=ds;if(s.precision==0&&scratch[0]=='0')scratch[0]=0;r.accounting_eax=cstrlen(scratch);break;
- case 'x':case 'X':
-  if((s.flags&1u)&&numeric!=0){s.prefix[0]='0';s.prefix[1]=conv;s.prefix[2]=0;}
-  (void)function_e050(numeric,scratch,16);if(conv=='X')uppercase(scratch);r.source_offset=scratch_guest;r.source_selector=ds;
-  if(s.precision==0&&scratch[0]=='0')scratch[0]=0;r.accounting_eax=cstrlen(scratch);break;
- case 's':case 'S':{
-  u32 p;u16 sel=ds;
-  if(s.flags&0x80u){const u32 next=get32(b,cursor_cell)+8u;put32(b,cursor_cell,next);p=get32(b,next-8u);sel=b.read_linear16?b.read_linear16(next-4u):0;if(p==0&&sel==0){p=null_string_offset;sel=ds;}}
-  else{p=take32(b,cursor_cell);if(p==0)p=null_string_offset;}
-  r.source_offset=p;r.source_selector=sel;s.flags=static_cast<u8>(s.flags&0xf9u);sign_processing=false;
-  if(conv=='S'){
-   if(s.flags&0x20u){r.accounting_eax=b.read_selector16?b.read_selector16(sel,p):0;r.source_offset=p+2u;}
-   else{r.accounting_eax=b.read_selector8?b.read_selector8(sel,p):0;r.source_offset=p+1u;}
-  }else r.accounting_eax=(s.flags&0x20u)?bounded16(b,p,sel,s.precision):bounded8(b,p,sel,s.precision);
-  break;}
- case 'p':case 'P':{
-  if(s.width==0)s.width=(s.flags&0x80u)?13u:8u;s.flags=static_cast<u8>(s.flags&0xf9u);const u32 off=take32(b,cursor_cell);
-  if(s.flags&0x80u){const u16 sel=take_u16_promoted(b,cursor_cell);hexpad(sel,scratch,4);scratch[4]=':';hexpad(off,scratch+5,8);}else hexpad(off,scratch,8);
-  if(conv=='P')uppercase(scratch);r.source_offset=scratch_guest;r.source_selector=ds;r.accounting_eax=cstrlen(scratch);break;}
+  if((conv=='F'||conv=='f')&&(s.flags&0x10u)){function_f206(scratch,static_cast<s32>(take32(b,cursor_cell)),s);r.source_offset=scratch_guest;r.source_selector=ds;r.accounting_eax=cstrlen(scratch);}
+  else{const FarReturn q=function_f2d2(b,scratch_guest,cursor_cell,state_guest);r.source_offset=q.offset;r.source_selector=q.selector;r.accounting_eax=bounded8(b,q.offset,q.selector,0xffffffffu);}break;
+ case 'o':{char*digits=scratch;if(s.flags&1u)*digits++='0';(void)function_e098(static_cast<s32>(numeric),digits,8);r.source_offset=scratch_guest;r.source_selector=ds;if(s.precision==0&&digits[0]=='0')scratch[0]=0;r.accounting_eax=cstrlen(scratch);break;}
+ case 'd':case 'i':{s32 value;if(s.flags&0x20u)value=static_cast<s32>(take32(b,cursor_cell));else if(s.flags&0x10u)value=take_s16_promoted(b,cursor_cell);else value=static_cast<s32>(take32(b,cursor_cell));if(s.flags&0x20u||(s.flags&0x10u))(void)function_e098(value,scratch,10);else(void)function_dffb(value,scratch,10);r.source_offset=scratch_guest;r.source_selector=ds;r.accounting_eax=cstrlen(scratch);break;}
+ case 'u':(void)function_e050(numeric,scratch,10);r.source_offset=scratch_guest;r.source_selector=ds;if(s.precision==0&&scratch[0]=='0')scratch[0]=0;r.accounting_eax=cstrlen(scratch);break;
+ case 'x':case 'X':if((s.flags&1u)&&numeric!=0){s.prefix[0]='0';s.prefix[1]=conv;s.prefix[2]=0;}(void)function_e050(numeric,scratch,16);if(conv=='X')uppercase(scratch);r.source_offset=scratch_guest;r.source_selector=ds;if(s.precision==0&&scratch[0]=='0')scratch[0]=0;r.accounting_eax=cstrlen(scratch);break;
+ case 's':case 'S':{u32 p;u16 sel=ds;if(s.flags&0x80u){const u32 next=get32(b,cursor_cell)+8u;put32(b,cursor_cell,next);p=get32(b,next-8u);sel=b.read_linear16?b.read_linear16(next-4u):0;if(p==0&&sel==0){p=null_string_offset;sel=ds;}}else{p=take32(b,cursor_cell);if(p==0)p=null_string_offset;}r.source_offset=p;r.source_selector=sel;s.flags=static_cast<u8>(s.flags&0xf9u);sign_processing=false;if(conv=='S'){if(s.flags&0x20u){r.accounting_eax=b.read_selector16?b.read_selector16(sel,p):0;r.source_offset=p+2u;}else{r.accounting_eax=b.read_selector8?b.read_selector8(sel,p):0;r.source_offset=p+1u;}}else r.accounting_eax=(s.flags&0x20u)?bounded16(b,p,sel,s.precision):bounded8(b,p,sel,s.precision);break;}
+ case 'p':case 'P':{if(s.width==0)s.width=(s.flags&0x80u)?13u:8u;s.flags=static_cast<u8>(s.flags&0xf9u);const u32 off=take32(b,cursor_cell);if(s.flags&0x80u){const u16 sel=take_u16_promoted(b,cursor_cell);hexpad(sel,scratch,4);scratch[4]=':';hexpad(off,scratch+5,8);}else hexpad(off,scratch,8);if(conv=='P')uppercase(scratch);r.source_offset=scratch_guest;r.source_selector=ds;r.accounting_eax=cstrlen(scratch);break;}
  case 'c':scratch[0]=static_cast<char>(take32(b,cursor_cell));scratch[1]=0;sign_processing=false;s.precision=1;s.flags=static_cast<u8>(s.flags&0xf9u);r.accounting_eax=1;break;
  default:s.width=0;scratch[0]=static_cast<char>(conv);scratch[1]=0;sign_processing=false;s.precision=1;s.flags=static_cast<u8>(s.flags&0xf9u);r.accounting_eax=1;break;
  }
-
- // F695..F6D7. EAX is live state, not an abstract length variable. This matters
- // for S, which deliberately enters here with the first character value in EAX.
- if(sign_processing){
-  const u8 first=b.read_selector8?b.read_selector8(r.source_selector,r.source_offset):0;
-  if(first=='-'){--r.accounting_eax;s.prefix[0]='-';s.prefix[1]=0;++r.source_offset;}
-  else if(s.flags&0x02u){s.prefix[0]=' ';s.prefix[1]=0;}
-  else if(s.flags&0x04u){s.prefix[0]='+';s.prefix[1]=0;}
-  if(static_cast<s32>(r.accounting_eax)>static_cast<s32>(s.precision))s.precision=r.accounting_eax;else s.zero_count=s.precision-r.accounting_eax;
- }
+ if(sign_processing){const u8 first=b.read_selector8?b.read_selector8(r.source_selector,r.source_offset):0;if(first=='-'){--r.accounting_eax;s.prefix[0]='-';s.prefix[1]=0;++r.source_offset;}else if(s.flags&0x02u){s.prefix[0]=' ';s.prefix[1]=0;}else if(s.flags&0x04u){s.prefix[0]='+';s.prefix[1]=0;}if(static_cast<s32>(r.accounting_eax)>static_cast<s32>(s.precision))s.precision=r.accounting_eax;else s.zero_count=s.precision-r.accounting_eax;}
  if(s.pad=='*'){s.prefix[0]=0;s.flags=static_cast<u8>(s.flags&0xf9u);}
  if((s.precision==0xffffffffu||static_cast<s32>(r.accounting_eax)<static_cast<s32>(s.precision))&&conv!='c')s.precision=r.accounting_eax;
- const u32 occupied=cstrlen(reinterpret_cast<const char*>(s.prefix))+s.precision+s.zero_count;
- s.width-=occupied;
- return r;
+ const u32 occupied=cstrlen(reinterpret_cast<const char*>(s.prefix))+s.precision+s.zero_count;s.width-=occupied;return r;
 }
-
-static_assert(0xF2D2u-0xF206u==204u);
-static_assert(0xF2E9u-0xF2D2u==23u);
-static_assert(0xF722u-0xF2E9u==1081u);
-constexpr u32 kVerifiedStagedBytes=227u;
-constexpr u32 kStructuralUncountedBytes=1081u;
+static_assert(0xF2D2u-0xF206u==204u);static_assert(0xF2E9u-0xF2D2u==23u);static_assert(0xF722u-0xF2E9u==1081u);
+constexpr u32 kVerifiedStagedBytes=227u;constexpr u32 kStructuralUncountedBytes=1081u;
 } // namespace code1_formatter_continuation
