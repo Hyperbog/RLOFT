@@ -12,7 +12,6 @@ void CharacterFlags28E4::build(
     out.fill(1);
 
     if (fields680D[0] == 1u) {
-        // 0x2912..0x2928: memset 24 bytes to zero, then restore DWORD 0 to 1.
         out.fill(0);
         out[0] = 1;
         return;
@@ -32,39 +31,61 @@ void CharacterFlags28E4::build(
 void CharacterFlagChoice2994::run(
     CharacterFlagChoiceState2994& state,
     const CharacterFlagChoiceOps2994& ops) {
-    std::array<std::int32_t, 6> flags{};
-    CharacterFlags28E4::build(flags, state.fields680D);
+    // 0x2998 reserves exactly 24 bytes: these six DWORDs are the entire local
+    // option array at EBP-1C..EBP-08. 0x28E4 initializes all six.
+    std::array<std::int32_t, 6> slots{};
+    CharacterFlags28E4::build(slots, state.fields680D);
 
-    std::array<std::int32_t, 9> slots{
-        -1,-1,-1,-1,-1,-1,-1,-1,-1
-    };
-    for (std::size_t i = 0; i < 6; ++i) {
-        slots[i] = flags[i] != 0 ? static_cast<std::int32_t>(i) + 0x0E : 0x15;
+    // 0x29A7..0x29CC converts nonzero flags in-place to resources 0E..13 and
+    // zero flags to 15. Arithmetic/indexing is exactly six iterations.
+    for (std::uint32_t edx = 0; edx != 6u; ++edx) {
+        slots[edx] = slots[edx] != 0
+            ? static_cast<std::int32_t>(edx + 0x0Eu)
+            : 0x15;
     }
 
-    ops.call1464(3, slots, 0x0C, -1, 0x29);
+    // 0x29CE..0x29F9 pushes the six local DWORDs plus three literal -1 slots.
+    std::array<std::int32_t, 9> menu{
+        slots[0], slots[1], slots[2], slots[3], slots[4], slots[5], -1, -1, -1
+    };
+    ops.call1464(3, menu, 0x0C, -1, 0x29);
 
     for (;;) {
+        // 0x29FE..0x2A03: EDX and ECX receive the full EAX return from 0x043C.
         const std::int32_t selection = ops.call043C();
+
         if (selection == 0) {
-            // DEC DWORD DS:04D0: preserve 32-bit wrap rather than signed C++ UB.
+            // 0x2A3C..0x2A52.
             state.mode4D0 = static_cast<std::int32_t>(
                 static_cast<std::uint32_t>(state.mode4D0) - 1u);
             ops.call15B0(-1, -1, -1, -1);
             return;
         }
 
-        // 0x2A0B indexes [EBP+EAX*4-20] directly. CODE.1 has no 1..6 or
-        // 0xFF guard here; do not invent one. Shipped hit-test values address
-        // the six option DWORDs, while any other EAX retains original raw-stack
-        // indexing semantics rather than a sanitized rejection path.
-        const auto rawIndex = static_cast<std::uint32_t>(selection) - 1u;
-        if (*(slots.data() + rawIndex) == 0x15) continue;
+        // 0x2A0B: CMP DWORD [EBP+EAX*4-20],15. There is deliberately no
+        // bounds check. EAX 1..6 maps to locals EBP-1C..EBP-08. Everything
+        // else is an original-machine frame read supplied by the embedding.
+        std::uint32_t compared;
+        if (selection >= 1 && selection <= 6) {
+            compared = static_cast<std::uint32_t>(
+                slots[static_cast<std::size_t>(selection - 1)]);
+        } else {
+            compared = ops.readUncheckedFrameDword(selection);
+        }
+        if (compared == 0x15u) continue;
 
-        state.field6812 = static_cast<std::uint8_t>(selection - 1);
+        // 0x2A12..0x2A20 only modifies BL: low byte of ECX minus one.
+        state.field6812 = static_cast<std::uint8_t>(
+            static_cast<std::uint8_t>(selection) - std::uint8_t{1});
+
+        // INC DWORD DS:04D0 wraps modulo 2^32.
         state.mode4D0 = static_cast<std::int32_t>(
             static_cast<std::uint32_t>(state.mode4D0) + 1u);
-        ops.call15B0(selection - 1, 0x114, 0xA2, 4);
+
+        // EDX still holds the full 0x043C return and DEC EDX precedes PUSH.
+        const std::int32_t arg0 = static_cast<std::int32_t>(
+            static_cast<std::uint32_t>(selection) - 1u);
+        ops.call15B0(arg0, 0x114, 0xA2, 4);
         return;
     }
 }
