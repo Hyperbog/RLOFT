@@ -27,13 +27,17 @@ struct CharacterFlagChoiceOps2994 {
     std::function<std::int32_t()> call043C;
     std::function<void(std::int32_t, std::int32_t,
                        std::int32_t, std::int32_t)> call15B0;
+
+    // CODE.1 0x2A0B reads DWORD [EBP + EAX*4 - 0x20] with no range check.
+    // EAX 1..6 addresses the six local option DWORDs. Other values address
+    // the original caller/frame/stack image; the embedding layer supplies that
+    // DWORD rather than letting host C++ perform an out-of-bounds access.
+    std::function<std::uint32_t(std::int32_t eax)> readUncheckedFrameDword;
 };
 
 class CharacterFlagChoice2994 {
 public:
-    // Candidate reconstruction of CODE.1 0x2994..0x2A60. Verification is held
-    // at 0x2993 until 0x2A0B's unchecked EAX-indexed stack read is represented
-    // without introducing a C++ bounds check or host undefined behavior.
+    // Fidelity reconstruction of CODE.1 0x2994..0x2A60.
     static void run(CharacterFlagChoiceState2994& state,
                     const CharacterFlagChoiceOps2994& ops);
 };
