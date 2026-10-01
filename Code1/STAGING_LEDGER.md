@@ -64,3 +64,5 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 - Active staging is now 904 bytes: startup 747 + E2C3..E35F 157.
 - `04B0..0648` and `064C..07E1` renderer push-order contracts were reconciled and their 815 bytes are integrated/counted.
 - FCE8 boundary correction adds the previously omitted PUSH ESI byte; FCE7 is zero alignment.
+
+- Integrated directly from authoritative disassembly: `1464..15AD`, `1A04..1EE0`, `1EE4..1EFE` = **1,597 bytes**. Alignment at `15AE..15AF`, `1BD1..1BD3`, `1E62..1E63`, `1EE1..1EE3`, `1EFF` excluded; `1F00..1F23` classified as jump-table data.

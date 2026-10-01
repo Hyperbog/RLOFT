@@ -189,3 +189,7 @@ Verified total is 16,261 bytes (23.10%). `10C6F..11301` is integrated after dire
 - Active staging: **904 bytes** = startup 747 + E2C3..E35F 157.
 - Early renderer translations `04B0..0648` and `064C..07E1` are integrated/countable after direct push-order reconciliation of 6EB0/6C60/7D80/67C8/00EC call sites.
 - Next high-output target: reconcile those renderer ABIs, then continue through the early-game address range instead of stopping at selector-sensitive runtime edges.
+
+
+## 2026-10-01 mid-UI batch 03
+Verified total is now **19,557 / 70,402 = 27.78%**. Newly integrated: `1464..15AD`, `1A04..1EE0`, `1EE4..1EFE` (1,597 bytes). `1F00..1F23` is the nine-entry CS jump table used by the following routine and must remain data. Continue independently at `07E4..10A1`, `10A4..1461`, `15B0..1A00`, or from the function beginning at `1F24`; do not count alignment bytes.
