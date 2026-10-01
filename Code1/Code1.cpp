@@ -18,7 +18,7 @@ constexpr u32 kEntryFileOffset=0x39340u,kWatcomRuntimeTextFileOffset=0x39342u,kR
 constexpr void store_le16(u8*p,u16 v)noexcept{p[0]=static_cast<u8>(v);p[1]=static_cast<u8>(v>>8);} constexpr void store_le32(u8*p,u32 v)noexcept{p[0]=static_cast<u8>(v);p[1]=static_cast<u8>(v>>8);p[2]=static_cast<u8>(v>>16);p[3]=static_cast<u8>(v>>24);}
 struct DgroupOffset{u32 value;}; struct LinearAddress{u32 value;}; struct SelectorOffset{u16 selector;u32 offset;};
 [[nodiscard]] constexpr DgroupOffset dgroup(u32 v)noexcept{return{v};} [[nodiscard]] constexpr LinearAddress linear(u32 v)noexcept{return{v};} [[nodiscard]] constexpr SelectorOffset selector_offset(u16 s,u32 o)noexcept{return{s,o};}
-struct CpuState{u32 eax=0,ebx=0,ecx=0,edx=0,esi=0,edi=0,ebp=0,esp=0;u16 ds=0,es=0,gs=0;bool interrupt_enable=false;};
+struct CpuState{u32 eax=0,ebx=0,ecx=0,edx=0,esi=0,edi=0,ebp=0,esp=0;u16 cs=0,ds=0,es=0,ss=0,fs=0,gs=0;bool interrupt_enable=false;};
 struct Machine; using ProtectedModeInterrupt=void(*)(Machine&,u8); using LinearRead16=u16(*)(Machine&,LinearAddress); using LinearRead32=u32(*)(Machine&,LinearAddress); using SelectorRead16=u16(*)(Machine&,SelectorOffset);
 struct Machine{CpuState cpu{};u8*data=nullptr;ProtectedModeInterrupt protected_interrupt=nullptr;LinearRead16 read_linear16=nullptr;LinearRead32 read_linear32=nullptr;SelectorRead16 read_selector16=nullptr;};
 [[nodiscard]] u8*dgroup_ptr(Machine&m,DgroupOffset o)noexcept{return m.data+o.value;} void interrupt(Machine&m,u8 v)noexcept{if(m.protected_interrupt)m.protected_interrupt(m,v);} [[nodiscard]]u16 read16(Machine&m,LinearAddress a)noexcept{return m.read_linear16?m.read_linear16(m,a):0;} [[nodiscard]]u32 read32(Machine&m,LinearAddress a)noexcept{return m.read_linear32?m.read_linear32(m,a):0;} [[nodiscard]]u16 read16(Machine&m,SelectorOffset a)noexcept{return m.read_selector16?m.read_selector16(m,a):0;}
@@ -47,6 +47,58 @@ void*function_d1e8(void*dst,const void*src,u32 n)noexcept{return std::memmove(ds
 struct DosAttrResult{u16 ax=0;u16 cx=0;bool carry=false;};
 struct DosHandleResult{u16 ax=0;bool carry=false;};
 struct FileBoundaries{DosAttrResult(*dos_get_attr)(u32)=nullptr;u32(*call_103c3)(u32)=nullptr;u32(*call_10397)(u32)=nullptr;u32*(*call_103b7)()=nullptr;s32(*call_10314)(u16)=nullptr;u32(*call_1042d)()=nullptr;void(*call_1046f)()=nullptr;s32(*dos_read)(u16,void*,u32)=nullptr;s32(*dos_write)(u16,const void*,u32)=nullptr;s32(*dos_seek)(u16,s32,u8)=nullptr;s32(*dos_delete)(const char*)=nullptr;bool(*dos_close)(u16)=nullptr;DosHandleResult(*dos_open_raw)(u32,u8)=nullptr;DosHandleResult(*dos_create_raw)(u32,u16)=nullptr;DosHandleResult(*dos_close_raw)(u16)=nullptr;DosHandleResult(*dos_write_zero_raw)(u16)=nullptr;u8(*read_guest8)(u32)=nullptr;u32(*read_dgroup32)(u32)=nullptr;void(*set_fd_state_10415)(u32,u32)=nullptr;bool(*ioctl_get_mode)(u16,u8&)=nullptr;bool(*ioctl_set_mode)(u16,u8)=nullptr;u32(*open_core_d332)(u32,u32,u32,u32)=nullptr;DosAttrResult(*dos_find_first)(u32,u16,u32)=nullptr;DosAttrResult(*dos_find_next)(u32)=nullptr;void(*dta_pre_find_next)(u32)=nullptr;void(*dta_post_find)(u32)=nullptr;s32(*compare_guest_string)(const char*,u32)=nullptr;};
+
+
+// 102D4..104DD: directly disassembled CRT error/descriptor/stack/selector helpers.
+// 102D4 and 102EC conditionally forward the encoded error word; the second argument is only a gate.
+[[nodiscard]]s32 function_102ec(FileBoundaries&b,u32 error,u32 gate)noexcept{return gate?(b.call_10314?b.call_10314(static_cast<u16>(error)):-1):static_cast<s32>(error);}
+[[nodiscard]]s32 function_102d4(FileBoundaries&b,u32 error,u32 gate)noexcept{return gate?function_102ec(b,error,gate):static_cast<s32>(error);}
+static_assert(0x10303u-0x102D4u==47u);
+// 10303..10313: set runtime errno 9 and return -1.
+[[nodiscard]]s32 function_10303(FileBoundaries&b)noexcept{if(b.call_103b7)if(u32*p=b.call_103b7())*p=9u;return -1;}
+static_assert(0x10314u-0x10303u==17u);
+// 10314..10383: DOS/runtime error mapper. 8-bit errors use the encoded 20-entry signed table at 532C after DOS-version remapping; >=100h errors use bits 8..15 directly. The original error byte is also stored at 8E6C.
+[[nodiscard]]s32 function_10314(Machine&m,u32 error)noexcept{
+ const u8 original=static_cast<u8>(error);store_le32(dgroup_ptr(m,dgroup(0x8e6cu)),static_cast<u32>(original));u32 mapped=0;
+ if(error<0x100u){u8 e=original;if(*dgroup_ptr(m,dgroup(0x5326u))>=3u){if(e==0x50u)e=0x0eu;else if(e>=0x22u)e=0x13u;else if(e>=0x20u)e=5u;}if(e>0x13u)e=0x13u;mapped=static_cast<u32>(static_cast<s32>(static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(0x532cu+e)))));}
+ else mapped=(error>>8)&0xffu;store_le32(dgroup_ptr(m,dgroup(0x8e68u)),mapped);return -1;
+}
+static_assert(0x10384u-0x10314u==112u);
+// 10384..10396: carry-sensitive DOS result reducer: success returns zero, failure maps low AX.
+[[nodiscard]]s32 function_10384(Machine&m,bool carry,u32 eax)noexcept{return carry?function_10314(m,eax&0xffffu):0;}
+static_assert(0x10397u-0x10384u==19u);
+struct RuntimeIoctlBoundary{struct Result{u32 edx=0;bool carry=false;};Result(*ioctl_get)(u16)=nullptr;};
+// 10397..103B6: INT 21h AX=4400h device query; the RCL/ROR pair materializes CF into EDX bit 31, and SETNE tests DL bit 7 exactly as encoded.
+[[nodiscard]]u32 function_10397(RuntimeIoctlBoundary&b,u16 handle)noexcept{const auto r=b.ioctl_get?b.ioctl_get(handle):RuntimeIoctlBoundary::Result{};u32 edx=r.edx;edx=(edx<<1)|(r.carry?1u:0u);edx=(edx>>1)|(edx<<31);return (static_cast<u8>(edx)&0x80u)?1u:0u;}
+static_assert(0x103B7u-0x10397u==32u);
+[[nodiscard]]constexpr u32 function_103b7()noexcept{return 0x8e68u;}[[nodiscard]]constexpr u32 function_103bd()noexcept{return 0x8e6cu;}
+static_assert(0x103C3u-0x103B7u==12u);
+// 103C3..10414: fetch descriptor state from table 5398, lazily tagging handles 0..5 with 40h and 20h when the encoded device query succeeds.
+[[nodiscard]]u32 function_103c3(Machine&m,RuntimeIoctlBoundary&b,u32 h)noexcept{const u32 n=load_le32(dgroup_ptr(m,dgroup(0x5344u)));if(h>=n)return 0u;const u32 table=load_le32(dgroup_ptr(m,dgroup(0x5398u)));if(h<=5u){u8*entry=dgroup_ptr(m,dgroup(table+h*4u));if((entry[1]&0x40u)==0){entry[1]|=0x40u;if(function_10397(b,static_cast<u16>(h)))entry[1]|=0x20u;}}return load_le32(dgroup_ptr(m,dgroup(table+h*4u)));}
+static_assert(0x10415u-0x103C3u==82u);
+// 10415..1042C: store descriptor state after forcing DH bit 6.
+void function_10415(Machine&m,u32 h,u32 state)noexcept{const u32 table=load_le32(dgroup_ptr(m,dgroup(0x5398u)));state|=0x00400000u;store_le32(dgroup_ptr(m,dgroup(table+h*4u)),state);}
+static_assert(0x1042Du-0x10415u==24u);
+// 1042D..10435: return ESP minus the runtime stack-base global at 5300.
+[[nodiscard]]u32 function_1042d(Machine&m)noexcept{return m.cpu.esp-load_le32(dgroup_ptr(m,dgroup(0x5300u)));}
+static_assert(0x10436u-0x1042Du==9u);
+// 10436..10437 are two zero bytes and are data/alignment, not translated code.
+// 10438..1043E: capture SS at 55B0.
+void function_10438(Machine&m)noexcept{store_le16(dgroup_ptr(m,dgroup(0x55b0u)),m.cpu.ss);}
+static_assert(0x1043Fu-0x10438u==7u);
+struct StackGuardBoundary{void(*fatal_ce8e)(u32,u32)=nullptr;};
+// 1043F..1044E exchanges EAX with the caller stack argument, calls 10452, restores EAX from that slot, then RET 4. 1044F is the encoded RET 4 alternate entry.
+void function_10452(Machine&m,StackGuardBoundary&b,u32 probe)noexcept{bool ok=false;if(probe<m.cpu.esp){const u32 distance=m.cpu.esp-probe;if(distance<=load_le32(dgroup_ptr(m,dgroup(0x5300u))))ok=true;}if(!ok&&m.cpu.ss==load_le16(dgroup_ptr(m,dgroup(0x55b0u)))){if(b.fatal_ce8e)b.fatal_ce8e(0x55b2u,1u);}}
+void function_1043f(Machine&m,StackGuardBoundary&b,u32 argument)noexcept{const u32 incoming_eax=m.cpu.eax;m.cpu.eax=argument;function_10452(m,b,incoming_eax);m.cpu.eax=incoming_eax;}
+void function_1044f()noexcept{}
+static_assert(0x10452u-0x1043Fu==19u);static_assert(0x1047Eu-0x10452u==44u);
+// 1047E..104B0: bounded copy followed by zero padding; returns the original destination.
+[[nodiscard]]u8*function_1047e(u8*dst,const u8*src,u32 count)noexcept{u8*out=dst;while(count&&*src){--count;*dst++=*src++;}while(count){--count;*dst++=0;}return out;}
+static_assert(0x104B1u-0x1047Eu==51u);
+// 104B1..104DD: capture ES,CS,SS,DS,FS,GS in the exact encoded field order.
+void function_104b1(Machine&m,u8*out)noexcept{store_le16(out+0,m.cpu.es);store_le16(out+2,m.cpu.cs);store_le16(out+4,m.cpu.ss);store_le16(out+6,m.cpu.ds);store_le16(out+8,m.cpu.fs);store_le16(out+10,m.cpu.gs);}
+static_assert(0x104DEu-0x104B1u==45u);
+// 104DE..104DF are two zero bytes and are data/alignment, not translated code.
 // D23A..D27C: INT 21h/AH=43h attribute query. Caller flag bit 1 plus returned CX bit 0 synthesizes DOS error 6; 102D4/102EC/10314 reduce CF to 0 on success or mapped -1 on failure.
 [[nodiscard]]s32 function_d23a(FileBoundaries&b,u32 path,u32 flags)noexcept{DosAttrResult r=b.dos_get_attr?b.dos_get_attr(path):DosAttrResult{1,0,true};if(!r.carry&&(flags&2u)&&(r.cx&1u)){r.ax=0x0600u;r.carry=true;}if(!r.carry)return 0;return b.call_10314?b.call_10314(r.ax):-1;}
 static_assert(0xD27Du-0xD23Au==67u);
@@ -442,6 +494,6 @@ static_assert(0xE2C3u-0xE280u==67u);
 [[nodiscard]]u32 function_e360(const u8*data,u32 text)noexcept{u32 p=text;auto cls=[&](u8 c)noexcept->u8{return data[0x3b4u+static_cast<u32>(static_cast<u8>(c+1u))];};while((cls(data[p])&0x02u)!=0)++p;const u8 sign=data[p];if(sign==0x2bu||sign==0x2du)++p;u32 v=0;while((cls(data[p])&0x20u)!=0){v=v*10u+static_cast<u32>(data[p]);++p;v-=0x30u;}if(sign==0x2du)v=0u-v;return v;}
 static_assert(0xE3B3u-0xE360u==83u);
 
-constexpr u32 kVerifiedTranslatedBytes=12125u;
+constexpr u32 kVerifiedTranslatedBytes=12645u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 } // namespace code1
