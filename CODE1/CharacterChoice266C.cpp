@@ -10,7 +10,7 @@
 namespace ravenloft::game {
 
 void CharacterChoice266C::run(CharacterChoiceState266C& state,
-                                   const CharacterChoiceOps266C& ops) {
+                              const CharacterChoiceOps266C& ops) {
     std::int32_t lastSelection = 0;
     std::int32_t modeDelta = 0;
     bool pageInitialized = false;
@@ -21,32 +21,23 @@ void CharacterChoice266C::run(CharacterChoiceState266C& state,
     std::int32_t stage = 0;
 
     for (;;) {
-        if (stage >= 3 || modeDelta == -1 || advanceState != 0) {
-            break;
-        }
+        if (stage >= 3 || modeDelta == -1 || advanceState != 0) break;
 
         std::array<std::int32_t, 6> optionFlags{};
         const CharacterOptionState2198 optionState{
             state.field680C, state.fields680D[0], state.fields680D[1]
         };
-        if (!CharacterOptions2198::build(optionFlags, stage, optionState)) {
-            break;
-        }
+        if (!CharacterOptions2198::build(optionFlags, stage, optionState)) break;
 
         std::array<std::int32_t, 9> slots{
             -1, -1, -1, -1, -1, -1, -1, -1, -1
         };
         for (std::size_t i = 0; i < 6; ++i) {
-            slots[i] = optionFlags[i] != 0
-                ? static_cast<std::int32_t>(i) + 6
-                : 0x15;
+            slots[i] = optionFlags[i] != 0 ? static_cast<std::int32_t>(i) + 6 : 0x15;
         }
 
         if (pageInitialized) {
-            if (stage != 0) {
-                ops.call24D4(lastSelection - 1, 0x114, 0x6D);
-            }
-
+            if (stage != 0) ops.call24D4(lastSelection - 1, 0x114, 0x6D);
             for (std::size_t i = 0; i < 6; ++i) {
                 if (slots[i] != 0x15) {
                     if (stage == 0) {
@@ -61,7 +52,6 @@ void CharacterChoice266C::run(CharacterChoiceState266C& state,
                     state.current8F8[i] = 0x15;
                 }
             }
-
             ops.call6588(state.buffer7138);
             ops.call86C4(0xC8, 0, 0x19, 7);
             ops.call04B0(3);
@@ -75,14 +65,12 @@ void CharacterChoice266C::run(CharacterChoiceState266C& state,
             pageInitialized = true;
         }
 
-        while (ops.call53B4() != 0) {
-        }
+        while (ops.call53B4() != 0) {}
 
         advanceState = 0;
         while (advanceState == 0) {
             const std::int32_t selection = ops.call043C();
             lastSelection = selection;
-
             if (selection != 0 && selection != 0xFF) {
                 if (selection >= 1 && selection <= 6 &&
                     slots[static_cast<std::size_t>(selection - 1)] != 0x15) {
@@ -93,13 +81,11 @@ void CharacterChoice266C::run(CharacterChoiceState266C& state,
                 }
                 continue;
             }
-
             if (selection == 0xFF && stage != 0) {
                 modeDelta = 1;
                 advanceState = 2;
                 continue;
             }
-
             if (selection == 0) {
                 if (stage != 0) {
                     state.fields680D.fill(0xFFu);
@@ -110,20 +96,21 @@ void CharacterChoice266C::run(CharacterChoiceState266C& state,
                 advanceState = 1;
             }
         }
-
         --advanceState;
         ++stage;
     }
 
+    std::uint32_t post15B0Edx;
     if (lastSelection != 0 && lastSelection != 0xFF) {
-        ops.call15B0(lastSelection - 1, 0x114, 0x6D, 3);
+        post15B0Edx = ops.call15B0(lastSelection - 1, 0x114, 0x6D, 3);
     } else {
-        ops.call15B0(-1, -1, -1, -1);
+        post15B0Edx = ops.call15B0(-1, -1, -1, -1);
     }
 
     state.mode4D0 += modeDelta;
     if (modeDelta == 1) {
-        CharacterTriple1F24::normalize(state.fields680D);
+        CharacterTriple1F24::normalize(
+            state.fields680D, static_cast<std::uint8_t>(post15B0Edx));
     }
 }
 
