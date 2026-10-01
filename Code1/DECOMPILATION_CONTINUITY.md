@@ -170,3 +170,7 @@ A future conversation can be started with:
 > Continue the faithful CODE.1 decompilation in `Hyperbog/RLOFT` on branch `code1-decompilation`. First read `Code1/DECOMPILATION_CONTINUITY.md` and `Code1/PROGRESS.md`, then inspect the current `Code1.cpp` and branch head. Treat the immutable CODE.1 binary as the ultimate authority, regenerate disassembly for every region you work on, preserve instruction-level semantics exactly, do not guess, keep uncertain work uncounted in staging, and fold/count only fully verified code. Follow the ~4 KB batch target without stopping at isolated blockers. Perform substantive analysis and commit work before reporting. When CODE.1 is eventually complete, use the CODE.2 transition procedure in the continuity file and apply the same fidelity standard independently to CODE.2.
 
 Update this continuity file whenever the methodology changes or a newly discovered pitfall would materially help a future conversation preserve fidelity.
+
+
+## Latest heap-growth checkpoint
+Verified total is 14,578 bytes (20.70%). `1083F..10973` and `109C1..10C45` are integrated after direct disassembly. Preserve DPMI 0501/0503 linear-address+handle results, DOS segment allocation/free, mode-9 AX=80004800 allocation, and the 10DD7 break-extension boundary as distinct mechanisms. Active staging remains 974 bytes.
