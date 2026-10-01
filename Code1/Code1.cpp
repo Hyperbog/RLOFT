@@ -302,6 +302,12 @@ void function_dc90(TransformBoundary&b,u32 base)noexcept{
 static_assert(0xDB80u-0xDAD9u==167u); static_assert(0xDC8Du-0xDB80u==269u); static_assert(0xDDD8u-0xDC90u==328u);
 static_assert(0xE4C7u-0xE3B4u==275u); static_assert(0xF007u-0xEDE7u==544u); static_assert(0xEBF3u-0xEA0Bu==488u); static_assert(0xEDD3u-0xEBF3u==480u); static_assert(0xEDE7u-0xEDE0u==7u);
 static_assert(0xF110u-0xF007u==265u); static_assert(0xF163u-0xF110u==83u); static_assert(0xF18Cu-0xF163u==41u); static_assert(0xF1B3u-0xF18Cu==39u); static_assert(0xF206u-0xF1B3u==83u); static_assert(0xF2D2u-0xF206u==204u); static_assert(0xF2E9u-0xF2D2u==23u); static_assert(0xF722u-0xF2E9u==1081u); static_assert(0xF742u-0xF722u==32u);
+// E0D0..E173: allocate and clone the encoded variable-size object. Source object pointer is the unaligned dword at arg1+5.
+// The 28-byte fixed prefix is copied exactly (eleven words, one dword, two bytes); payload length is source[16h]-1 and 6304 receives (dst+1Ch,count,arg2).
+struct RuntimeCloneBoundary{u32(*alloc_71c8)(u32)=nullptr;u16(*read16)(u32)=nullptr;u32(*read32)(u32)=nullptr;u8(*read8)(u32)=nullptr;void(*write16)(u32,u16)=nullptr;void(*write32)(u32,u32)=nullptr;void(*write8)(u32,u8)=nullptr;void(*call_6304)(u32,u32,u32)=nullptr;};
+[[nodiscard]]u32 function_e0d0(RuntimeCloneBoundary&b,u32 arg1,u32 payload)noexcept{const u32 src=b.read32?b.read32(arg1+5u):0u;const u32 n=b.read32?b.read32(src+0x16u):0u;const u32 dst=b.alloc_71c8?b.alloc_71c8(0x1bu+n):0u;if(b.read16&&b.write16)for(u32 o=0;o<=0x14u;o+=2u)b.write16(dst+o,b.read16(src+o));if(b.read32&&b.write32)b.write32(dst+0x16u,b.read32(src+0x16u));if(b.read8&&b.write8){b.write8(dst+0x1au,b.read8(src+0x1au));b.write8(dst+0x1bu,b.read8(src+0x1bu));}if(b.call_6304)b.call_6304(dst+0x1cu,n-1u,payload);return dst;}
+static_assert(0xE174u-0xE0D0u==164u);
+
 // E174..E186, E1F4..E206, E26C..E27E: three address-distinct wrappers with identical encoded bodies.
 // Each establishes EBP, forwards its sole dword argument to 7240, discards the pushed argument, and returns EAX unchanged.
 struct Runtime7240Boundary{u32(*call_7240)(u32)=nullptr;};
@@ -322,6 +328,6 @@ static_assert(0xE1F1u-0xE190u==97u); static_assert(0xE269u-0xE208u==97u);
 [[nodiscard]]u32 function_e360(const u8*data,u32 text)noexcept{u32 p=text;auto cls=[&](u8 c)noexcept->u8{return data[0x3b4u+static_cast<u32>(static_cast<u8>(c+1u))];};while((cls(data[p])&0x02u)!=0)++p;const u8 sign=data[p];if(sign==0x2bu||sign==0x2du)++p;u32 v=0;while((cls(data[p])&0x20u)!=0){v=v*10u+static_cast<u32>(data[p]);++p;v-=0x30u;}if(sign==0x2du)v=0u-v;return v;}
 static_assert(0xE3B3u-0xE360u==83u);
 
-constexpr u32 kVerifiedTranslatedBytes=8910u;
+constexpr u32 kVerifiedTranslatedBytes=9074u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 } // namespace code1
