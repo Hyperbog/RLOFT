@@ -12,6 +12,7 @@ struct FormatState{u8 opaque0[4];u32 width;u32 precision;u32 zero_count;u8 opaqu
 static_assert(sizeof(FormatState)==0x1c);
 extern char* function_dffb(s32,char*,u32)noexcept;
 extern char* function_e050(u32,char*,u32)noexcept;
+extern char* function_e098(s32,char*,u32)noexcept;
 extern u32 function_d991(u32)noexcept;
 
 // F206..F2D1 (204): fixed-point decimal materialization and encoded rounding pass.
@@ -70,12 +71,14 @@ struct MaterializeResult{u32 source_offset=0;u16 source_selector=0;u32 accountin
    r.accounting_eax=bounded8(b,q.offset,q.selector,0xffffffffu);
   }
   break;
- case 'o':
-  radix=8;if(s.flags&1u){*scratch++='0';++scratch_guest;} (void)function_e050(numeric,scratch,radix);r.source_offset=scratch_guest;r.source_selector=ds;
-  if(s.precision==0&&scratch[0]=='0')scratch[0]=0;r.accounting_eax=cstrlen(scratch);break;
+ case 'o':{
+  char*digits=scratch;u32 digits_guest=scratch_guest;if(s.flags&1u){*digits++='0';++digits_guest;}
+  (void)function_e098(static_cast<s32>(numeric),digits,8);r.source_offset=scratch_guest;r.source_selector=ds;
+  if(s.precision==0&&digits[0]=='0')digits[0]=0;r.accounting_eax=cstrlen(scratch);break;}
  case 'd':case 'i':{
   s32 value;if(s.flags&0x20u)value=static_cast<s32>(take32(b,cursor_cell));else if(s.flags&0x10u)value=take_s16_promoted(b,cursor_cell);else value=static_cast<s32>(take32(b,cursor_cell));
-  (void)function_dffb(value,scratch,10);r.source_offset=scratch_guest;r.source_selector=ds;r.accounting_eax=cstrlen(scratch);break;}
+  if(s.flags&0x20u||(s.flags&0x10u))(void)function_e098(value,scratch,10);else(void)function_dffb(value,scratch,10);
+  r.source_offset=scratch_guest;r.source_selector=ds;r.accounting_eax=cstrlen(scratch);break;}
  case 'u':
   (void)function_e050(numeric,scratch,10);r.source_offset=scratch_guest;r.source_selector=ds;if(s.precision==0&&scratch[0]=='0')scratch[0]=0;r.accounting_eax=cstrlen(scratch);break;
  case 'x':case 'X':
