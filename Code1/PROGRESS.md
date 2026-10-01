@@ -8,7 +8,7 @@
 
 ## Measurement rule
 
-The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
+The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, draft lifts, and unintegrated translations do not count.
 
 Current verified translated bytes: **5,473**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
@@ -39,18 +39,24 @@ Total integrated verified translated bytes: **5,473**.
 
 `EDD3..EDDF` is **13 zero bytes** classified as data and is not counted as translated code.
 
-## Current formatter continuation staging
+## Current formatter continuation
 
-`FormatterContinuation.staging.cpp` now carries **227 newly instruction-accounted bytes** from the original binary. They remain excluded from the percentage until folded into `Code1.cpp`.
+`FormatterContinuation.staging.cpp` contains the verified **227-byte** helper continuation plus a first structural lift of the complete **1,081-byte `F2E9..F721` conversion materializer**.
 
-- `F206..F2D1`: **204 bytes** — fixed-point decimal materialization, default precision assignment, decimal-point emission, repeated multiply-by-ten digit generation, and the encoded carry/rounding walk across the generated string.
-- `F2D2..F2E8`: **23 bytes** — exact three-argument indirect thunk through the function pointer stored at DGROUP `55C4h`.
+Verified but not yet integrated:
 
-The original disassembly was re-run directly from the immutable CODE.1 object-1 bytes before this lift. The unusual overlapping word accesses in `F206` are intentionally represented conservatively rather than being relabeled as a standard floating-point formatter.
+- `F206..F2D1`: **204 bytes** — fixed-point decimal materialization and encoded rounding walk.
+- `F2D2..F2E8`: **23 bytes** — exact three-argument indirect thunk through DGROUP `55C4h`.
+
+Newly traced/lifted, but deliberately **not yet counted**:
+
+- `F2E9..F721`: **1,081 bytes** — complete conversion switch and common tail, including integer argument-width handling, precision/pad interaction, floating-helper dispatch, octal/hex prefixes, selector-qualified `s`/`S`, near/far pointer rendering, `c`, unknown-conversion fallback, sign-prefix extraction, and final width/precision accounting.
+
+The entire `F2E9..F721` range was re-disassembled directly from the immutable CODE.1 object bytes in this pass. Its C++ is still marked as a structural lift because the exact emulated argument-pointer and selector-memory representation must be reconciled with `Code1.cpp` before it can be called instruction-accounted and integrated. This prevents the percentage from being inflated by a convenient but unproven host-pointer model.
 
 ## Active continuation
 
-The next active dependency is `F2E9..F721`, the 1,081-byte conversion materializer. Its control flow is now split into concrete conversion families: signed/unsigned integer bases, `s`/`S` selector-aware strings, pointer formatting, character/default conversion, prefix/sign handling, precision accounting, and the indirect `F2D2` numeric path. After that dependency is lifted, `EDE7..F006` can be translated against proven helpers.
+Next work is to harden `F2E9..F721` against the exact instruction stream, replace host-pointer shortcuts with the same explicit memory model used by the integrated reconstruction, syntax-check it, and fold `F206..F721` into `Code1.cpp`. Once that dependency is integrated, `EDE7..F006` can be lifted against proven formatter helpers.
 
 ## Larger-batch policy
 
@@ -58,6 +64,6 @@ The working target remains approximately **4,000 newly verified bytes per substa
 
 ## Unresolved queue
 
-Fold the new 227-byte formatter continuation after verification; lift `F2E9..F721` and then `EDE7..F006`; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
+Harden and integrate `F206..F721`; lift `EDE7..F006`; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
