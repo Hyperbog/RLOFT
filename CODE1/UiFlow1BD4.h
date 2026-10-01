@@ -15,14 +15,17 @@ struct UiFlowState1BD4 {
     std::int32_t selectedCharacter4CC = 0;
     std::array<std::uint16_t, 2> word6808{};
     std::array<std::uint8_t, 2> flags4C4{};
-    std::uint8_t buffer7138 = 0;
+
+    // DS:7138 is DWORD storage. 0x1C0C reads only its low byte for 0x6588,
+    // 0x1C37 pushes the complete DWORD to 0x550C, and 0x1C45 XORs only byte 0.
+    std::uint32_t buffer7138 = 0;
 };
 
 struct UiFlowOps1BD4 {
     std::function<void(std::int32_t, std::int32_t)> call07E4;
     std::function<void(std::uint8_t)> call6588;
     std::function<void(std::int32_t)> call04B0;
-    std::function<void(std::uint8_t, std::int32_t, std::int32_t,
+    std::function<void(std::uint32_t, std::int32_t, std::int32_t,
                        std::int32_t, std::int32_t)> call550C;
     std::function<std::int32_t()> call043C;
     std::function<void()> call1A04;
@@ -30,7 +33,7 @@ struct UiFlowOps1BD4 {
 
 class UiFlow1BD4 {
 public:
-    // Direct reconstruction of CODE.1 0x1BD4..0x1CCF.
+    // Direct-binary-verified reconstruction of CODE.1 0x1BD4..0x1CCF.
     static void run(UiFlowState1BD4& state,
                     const UiFlowOps1BD4& ops);
 };
