@@ -45,11 +45,14 @@ void function_d17c(Machine&m,NativeBoundaries&b)noexcept{if(b.call_84d0&&b.call_
 void*function_d1e8(void*dst,const void*src,u32 n)noexcept{return std::memmove(dst,src,static_cast<std::size_t>(n));}
 
 struct DosAttrResult{u16 ax=0;u16 cx=0;bool carry=false;};
-struct FileBoundaries{DosAttrResult(*dos_get_attr)(u32)=nullptr;u32(*call_103c3)(u32)=nullptr;u32*(*call_103b7)()=nullptr;s32(*call_10314)(u16)=nullptr;u32(*call_1042d)()=nullptr;void(*call_1046f)()=nullptr;s32(*dos_read)(u16,void*,u32)=nullptr;s32(*dos_write)(u16,const void*,u32)=nullptr;s32(*dos_seek)(u16,s32,u8)=nullptr;s32(*dos_delete)(const char*)=nullptr;bool(*dos_close)(u16)=nullptr;void(*set_fd_state_10415)(u32,u32)=nullptr;};
+struct FileBoundaries{DosAttrResult(*dos_get_attr)(u32)=nullptr;u32(*call_103c3)(u32)=nullptr;u32*(*call_103b7)()=nullptr;s32(*call_10314)(u16)=nullptr;u32(*call_1042d)()=nullptr;void(*call_1046f)()=nullptr;s32(*dos_read)(u16,void*,u32)=nullptr;s32(*dos_write)(u16,const void*,u32)=nullptr;s32(*dos_seek)(u16,s32,u8)=nullptr;s32(*dos_delete)(const char*)=nullptr;bool(*dos_close)(u16)=nullptr;void(*set_fd_state_10415)(u32,u32)=nullptr;bool(*ioctl_get_mode)(u16,u8&)=nullptr;bool(*ioctl_set_mode)(u16,u8)=nullptr;};
 // D23A..D27C: INT 21h/AH=43h attribute query. Caller flag bit 1 plus returned CX bit 0 synthesizes DOS error 6; 102D4/102EC/10314 reduce CF to 0 on success or mapped -1 on failure.
 [[nodiscard]]s32 function_d23a(FileBoundaries&b,u32 path,u32 flags)noexcept{DosAttrResult r=b.dos_get_attr?b.dos_get_attr(path):DosAttrResult{1,0,true};if(!r.carry&&(flags&2u)&&(r.cx&1u)){r.ax=0x0600u;r.carry=true;}if(!r.carry)return 0;return b.call_10314?b.call_10314(r.ax):-1;}
 static_assert(0xD27Du-0xD23Au==67u);
 static void set_runtime_error(FileBoundaries&b,u32 v)noexcept{if(b.call_103b7){if(u32*p=b.call_103b7())*p=v;}} static s32 map_dos_error(FileBoundaries&b,s32 v)noexcept{return b.call_10314?b.call_10314(static_cast<u16>(v)):v;}
+// D4F2..D55D: commit descriptor state with AL|40h; for device descriptors perform INT 21h/AH=44h get/set, mapping the encoded DX error word through 10314.
+[[nodiscard]]s32 function_d4f2(FileBoundaries&b,u32 h)noexcept{u32 state=b.call_103c3?b.call_103c3(h):0;state=(state&~0xffu)|static_cast<u8>(state|0x40u);if(b.set_fd_state_10415)b.set_fd_state_10415(h,state);if((state&0x2000u)==0)return 0;u8 mode=0;if(!b.ioctl_get_mode||b.ioctl_get_mode(static_cast<u16>(h),mode)){return b.call_10314?b.call_10314(mode):-1;}mode=static_cast<u8>(mode|0x20u);if(!b.ioctl_set_mode||b.ioctl_set_mode(static_cast<u16>(h),mode)){return b.call_10314?b.call_10314(mode):-1;}return 0;}
+static_assert(0xD55Eu-0xD4F2u==108u);
 // D573..D5AC: AH=3Eh close. RCL/ROR materializes CF in EAX sign; success clears descriptor state, failure stores runtime errno 4.
 [[nodiscard]]u32 function_d573(FileBoundaries&b,u32 h)noexcept{const bool carry=b.dos_close?b.dos_close(static_cast<u16>(h)):true;if(!carry){if(b.set_fd_state_10415)b.set_fd_state_10415(h,0);return 0;}set_runtime_error(b,4);return 0xffffffffu;}
 static_assert(0xD5ADu-0xD573u==58u);
@@ -293,6 +296,6 @@ void function_dc90(TransformBoundary&b,u32 base)noexcept{
 static_assert(0xDB80u-0xDAD9u==167u); static_assert(0xDC8Du-0xDB80u==269u); static_assert(0xDDD8u-0xDC90u==328u);
 static_assert(0xE4C7u-0xE3B4u==275u); static_assert(0xF007u-0xEDE7u==544u); static_assert(0xEBF3u-0xEA0Bu==488u); static_assert(0xEDD3u-0xEBF3u==480u); static_assert(0xEDE7u-0xEDE0u==7u);
 static_assert(0xF110u-0xF007u==265u); static_assert(0xF163u-0xF110u==83u); static_assert(0xF18Cu-0xF163u==41u); static_assert(0xF1B3u-0xF18Cu==39u); static_assert(0xF206u-0xF1B3u==83u); static_assert(0xF2D2u-0xF206u==204u); static_assert(0xF2E9u-0xF2D2u==23u); static_assert(0xF722u-0xF2E9u==1081u); static_assert(0xF742u-0xF722u==32u);
-constexpr u32 kVerifiedTranslatedBytes=8416u;
+constexpr u32 kVerifiedTranslatedBytes=8524u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 } // namespace code1
