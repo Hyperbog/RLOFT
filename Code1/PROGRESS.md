@@ -39,15 +39,18 @@ Total integrated verified translated bytes: **5,473**.
 
 `EDD3..EDDF` is **13 zero bytes** classified as data and is not counted as translated code.
 
-## Staging status
+## Current formatter continuation staging
 
-The temporary dispatcher/timer and formatter-helper staging files have been folded into `Code1.cpp` and removed. There are currently **no counted bytes residing only in staging files**.
+`FormatterContinuation.staging.cpp` now carries **227 newly instruction-accounted bytes** from the original binary. They remain excluded from the percentage until folded into `Code1.cpp`.
 
-During fold-in, `E514` was also corrected to preserve the pre-existing high 16 bits of EDX when `mov dx,es` is modeled before the dword store to DGROUP `5206h`; this matches the encoded register-width behavior and does not change coverage.
+- `F206..F2D1`: **204 bytes** — fixed-point decimal materialization, default precision assignment, decimal-point emission, repeated multiply-by-ten digit generation, and the encoded carry/rounding walk across the generated string.
+- `F2D2..F2E8`: **23 bytes** — exact three-argument indirect thunk through the function pointer stored at DGROUP `55C4h`.
+
+The original disassembly was re-run directly from the immutable CODE.1 object-1 bytes before this lift. The unusual overlapping word accesses in `F206` are intentionally represented conservatively rather than being relabeled as a standard floating-point formatter.
 
 ## Active continuation
 
-The next formatter work remains `EDE7..F006` plus the unresolved `F206..F721` dependency region, especially the conversion materializer beginning at `F2E9`. These ranges stay outside the percentage until their behavior is lifted without substituting guessed libc formatting semantics.
+The next active dependency is `F2E9..F721`, the 1,081-byte conversion materializer. Its control flow is now split into concrete conversion families: signed/unsigned integer bases, `s`/`S` selector-aware strings, pointer formatting, character/default conversion, prefix/sign handling, precision accounting, and the indirect `F2D2` numeric path. After that dependency is lifted, `EDE7..F006` can be translated against proven helpers.
 
 ## Larger-batch policy
 
@@ -55,6 +58,6 @@ The working target remains approximately **4,000 newly verified bytes per substa
 
 ## Unresolved queue
 
-Lift `F206..F721` and then `EDE7..F006`; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
+Fold the new 227-byte formatter continuation after verification; lift `F2E9..F721` and then `EDE7..F006`; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
