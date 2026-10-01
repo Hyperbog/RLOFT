@@ -1,26 +1,29 @@
 #pragma once
 
-#include "RuntimeRng618A.h"
-
-#include <array>
 #include <cstdint>
+#include <functional>
 
 namespace ravenloft::game {
 
-struct CharacterRollState334C {
-    // Character-record offsets 0x14..0x17 (DS:680C..680F).
-    std::uint8_t field680C = 0;
-    std::array<std::uint8_t, 3> fields680D{{0xFFu, 0xFFu, 0xFFu}};
+struct CharacterRollOps334C {
+    std::function<std::uint8_t(std::uint32_t)> readByte;
+    std::function<std::uint32_t(std::uint32_t)> readDword;
+    std::function<void(std::uint32_t, std::uint8_t)> writeByte;
 
-    // Character-record offsets 0x32..0x3F (DS:682A..6837).
-    std::array<std::uint8_t, 14> bytes682A{};
+    // CODE.1 0x0010. Arguments are the four pushed DWORD values in source
+    // order; the returned DWORD is the original EAX bit pattern.
+    std::function<std::uint32_t(std::uint32_t, std::uint32_t,
+                                std::uint32_t, std::uint32_t)> call0010;
+
+    // CODE.1 0x84A0: destination, fill byte/value, count.
+    std::function<void(std::uint32_t, std::uint32_t, std::uint32_t)> call84A0;
 };
 
 class CharacterRolls334C {
 public:
-    // Direct reconstruction of CODE.1 0x334C..0x3403.
-    static void initialize(CharacterRollState334C& state,
-                           RuntimeRng618A& rng) noexcept;
+    // Direct reconstruction of CODE.1 0x334C..0x3403. Character and table
+    // accesses remain raw and 32-bit wrapping is preserved.
+    static void initialize(const CharacterRollOps334C& ops);
 };
 
 } // namespace ravenloft::game
