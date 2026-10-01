@@ -34,7 +34,7 @@ Total integrated verified translated bytes: **3,680**.
 
 ## Current instruction-checked staging
 
-`DispatcherTimer.staging.cpp` now contains **1,250 instruction-accounted code bytes** awaiting fold-in to the single `Code1.cpp` reconstruction. They remain excluded from the percentage until integration.
+`DispatcherTimer.staging.cpp` contains **1,250 instruction-accounted code bytes** awaiting fold-in to the single `Code1.cpp` reconstruction. They remain excluded from the percentage until integration.
 
 - `E3B4..E4C6`: **275 bytes** — callback lookup, common dispatcher, INT 8 handler, PIC EOI path, and saved-vector chain behavior.
 - `EA0B..EBF2`: **488 bytes** — descriptor/slot registration and clearing, events `64h`/`65h`, timer-backed event setup, pending-state release, and event `68h` dispatch.
@@ -47,11 +47,23 @@ The 48 wrapper event constants, in address order, are:
 
 `EDD3..EDDF` is **13 zero bytes** and is deliberately classified as data rather than code. It is not included in the 1,250-byte staging total.
 
-The staging representation remains address-named where semantics are not proven. The INT 8 saved-vector path is represented as a chain result rather than modernized into a host timer, and the 48 wrappers preserve their encoded event ordering without assigning speculative event names.
+## Newly traced continuation: EDE7..F006
+
+The complete next routine is now instruction-bounded at **544 bytes** (`EDE7..F006`). It is not yet counted as translated code.
+
+The routine is a formatted-output control core: it keeps a 0x50-byte local frame, walks a format string, sends literal bytes through an indirect output callback, invokes `F007` when `%` is encountered to parse conversion state, handles `%n` storage in near/far and word/dword forms according to flag bits, invokes `F2E9` to materialize a conversion into the local buffer, emits left/right padding, and has separate byte-step and two-byte-step output paths for `s`/`S`. The return value comes from the local counter at `[EBP-18h]`.
+
+Important fidelity points established directly from CODE.1:
+
+- `%n` storage distinguishes flag `20h`, `10h`, `80h`, and `40h`; far-pointer forms use `LES` and ES-qualified stores.
+- The `%n` paths consume either four or eight bytes from the argument cursor exactly as encoded.
+- Literal output and padding call the function pointer supplied in the routine's fifth incoming argument.
+- Conversion formatting depends on `F2E9`; conversion-state parsing depends on `F007`. Those dependencies must be lifted before `EDE7..F006` can be counted without replacing original behavior with a guessed libc formatter.
+- The `s`/`S` branch advances the formatted source by one byte normally and two bytes when flag `20h` is set.
 
 ## Active continuation
 
-The next active routine starts at `EDE7`. Its larger formatted-output/runtime control flow and calls into `F007`/`F2E9` are being treated as separate dependency work. The immediate integration task is also to fold the 1,250 staged bytes into `Code1.cpp`, after which they can enter the official coverage count and the temporary staging file can be removed.
+Next dependency work is `F007` followed by `F2E9`, then lifting `EDE7..F006` against those proven helpers. In parallel, the 1,250 staged bytes remain queued for fold-in to `Code1.cpp`; they will enter the official percentage only after that integration and verification.
 
 ## Larger-batch policy
 
@@ -59,6 +71,6 @@ The working target remains approximately **4,000 newly verified bytes per substa
 
 ## Unresolved queue
 
-Fold the 1,250 staged bytes into `Code1.cpp`; analyze `EDE7` and its `F007`/`F2E9` dependencies; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
+Fold the 1,250 staged bytes into `Code1.cpp`; lift `F007`, `F2E9`, and then `EDE7..F006`; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
