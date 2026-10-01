@@ -1,0 +1,9 @@
+name: Integrate D573
+on: workflow_dispatch
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 Code1/integrate_d573.py
+      - run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
