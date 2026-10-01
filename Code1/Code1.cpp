@@ -47,26 +47,54 @@ static void set_runtime_error(FileBoundaries&b,u32 v)noexcept{if(b.call_103b7){i
 
 // D8D0..DA1B: independently verified DOS/CRT utility routines.
 struct DirectoryBoundaries{s32(*map_error)(u16)=nullptr;s32(*get_current_directory)(u8 drive,char*out)=nullptr;u8(*get_current_drive)()=nullptr;s32(*set_current_drive)(u8 drive,u8*count)=nullptr;s32(*change_directory)(const char*)=nullptr;s32(*make_directory)(const char*)=nullptr;};
-// D8D0..D8E7 (24): DOS AH=19h returns zero-based drive; original stores one-based value.
 [[nodiscard]]u16 function_d8d0(DirectoryBoundaries&b,u32*out)noexcept{const u8 drive=b.get_current_drive?b.get_current_drive():0;if(out)*out=static_cast<u32>(drive)+1u;return 0;}
-// D8E8..D905 (30): DOS AH=0Eh consumes one-based drive after decrement and stores AL result count.
 [[nodiscard]]u32 function_d8e8(DirectoryBoundaries&b,u32 drive,u32*out)noexcept{u8 count=0;const s32 r=b.set_current_drive?b.set_current_drive(static_cast<u8>(drive-1u),&count):0;if(out)*out=count;(void)r;return 0;}
-// D906..D990 (139): construct "X:\\" + current directory, allocating output only when caller supplied null.
 struct CurrentDirBoundaries:DirectoryBoundaries{char*(*allocate)(u32)=nullptr;u32(*string_length)(const char*)=nullptr;void(*copy_string)(char*,const char*)=nullptr;};
 [[nodiscard]]char* function_d906(CurrentDirBoundaries&b,char*out)noexcept{char tail[112]{};if(b.get_current_directory&&b.get_current_directory(0,tail)<0)return nullptr;char prefix[3]={static_cast<char>((b.get_current_drive?b.get_current_drive():0)+'A'),':','\\'};u32 tail_len=b.string_length?b.string_length(tail):static_cast<u32>(std::strlen(tail));char*dst=out;if(!dst){dst=b.allocate?b.allocate(tail_len+4u):nullptr;if(!dst)return nullptr;}dst[0]=prefix[0];dst[1]=prefix[1];dst[2]=prefix[2];if(b.copy_string)b.copy_string(dst+3,tail);else std::memcpy(dst+3,tail,tail_len+1u);return dst;}
-// D991..D9A5 (21): ASCII lowercase-to-uppercase helper.
 [[nodiscard]]u32 function_d991(u32 ch)noexcept{return(ch>=0x61u&&ch<=0x7au)?ch-0x20u:ch;}
-// D9A6..D9C9 (36) and D9CA..D9ED (36): DOS chdir/mkdir with the existing error mapper.
 [[nodiscard]]s32 function_d9a6(DirectoryBoundaries&b,const char*path)noexcept{const s32 r=b.change_directory?b.change_directory(path):-1;return r<0?(b.map_error?b.map_error(static_cast<u16>(-r)):r):0;}
 [[nodiscard]]s32 function_d9ca(DirectoryBoundaries&b,const char*path)noexcept{const s32 r=b.make_directory?b.make_directory(path):-1;return r<0?(b.map_error?b.map_error(static_cast<u16>(-r)):r):0;}
-// D9EE..DA17 (42): exact memcpy-like forward copy; unlike D1E8 this has no overlap branch.
 void* function_d9ee(void*dst,const void*src,u32 count)noexcept{return std::memcpy(dst,src,static_cast<std::size_t>(count));}
-// DA18..DA19 and DA1A..DA1B: direct interrupt-flag wrappers.
 void function_da18(Machine&m)noexcept{m.cpu.interrupt_enable=false;} void function_da1a(Machine&m)noexcept{m.cpu.interrupt_enable=true;}
 
-// New verified ranges this pass: D8D0..D8E7=24, D8E8..D905=30, D906..D990=139,
-// D991..D9A5=21, D9A6..D9C9=36, D9CA..D9ED=36, D9EE..DA17=42,
-// DA18..DA19=2, DA1A..DA1B=2. Total new = 332 bytes.
-constexpr u32 kVerifiedTranslatedBytes=1666u;
+// 10384..10396 (19): common carry/error normalizer used by DOS memory services.
+struct DosMemResult{bool carry=false;u16 ax=0;u16 bx=0;};
+struct LowLevelBoundaries{DosMemResult(*allocate_paragraphs)(u16)=nullptr;DosMemResult(*free_segment)(u16)=nullptr;DosMemResult(*resize_segment)(u16,u16)=nullptr;u8(*in8)(u16)=nullptr;void(*out8)(u16,u8)=nullptr;void(*set_vector_legacy)(u8,u16,u32)=nullptr;void(*set_vector_2504)(u8,u16,u32)=nullptr;void(*get_vector_legacy)(u8,u16*,u32*)=nullptr;void(*get_vector_2502)(u8,u16*,u32*)=nullptr;s32(*map_dos_error)(u16)=nullptr;};
+[[nodiscard]]s32 function_10384(LowLevelBoundaries&b,const DosMemResult&r)noexcept{return r.carry?(b.map_dos_error?b.map_dos_error(r.ax):-1):0;}
+// DA48..DAA5: DOS AH=48h/49h/4Ah wrappers. DA45..DA47 are alignment bytes and are not counted.
+[[nodiscard]]s32 function_da48(LowLevelBoundaries&b,u32 paragraphs,u32*out_value)noexcept{const DosMemResult r=b.allocate_paragraphs?b.allocate_paragraphs(static_cast<u16>(paragraphs)):DosMemResult{true,1,0};if(out_value)*out_value=r.carry?static_cast<u32>(r.bx):static_cast<u32>(r.ax);return function_10384(b,r);}
+[[nodiscard]]s32 function_da6c(LowLevelBoundaries&b,u32 segment)noexcept{const DosMemResult r=b.free_segment?b.free_segment(static_cast<u16>(segment)):DosMemResult{true,1,0};return function_10384(b,r);}
+[[nodiscard]]s32 function_da7e(LowLevelBoundaries&b,u32 paragraphs,u32 segment,u32*out_max)noexcept{const DosMemResult r=b.resize_segment?b.resize_segment(static_cast<u16>(segment),static_cast<u16>(paragraphs)):DosMemResult{true,1,0};if(r.carry&&out_max)*out_max=r.bx;return function_10384(b,r);}
+// DAA6..DAC8: traverse allocator list rooted at DGROUP:30DC and return largest (block_size-4).
+[[nodiscard]]u32 function_daa6(Machine&m)noexcept{u32 node=load_le32(dgroup_ptr(m,dgroup(0x30dc))),largest=0;while(node!=0x30d4u){const u32 size=load_le32(dgroup_ptr(m,dgroup(node)))-4u;if(size>largest)largest=size;node=load_le32(dgroup_ptr(m,dgroup(node+8u)));}return largest;}
+
+// DDE0..DDFD: no-op plus byte port I/O wrappers.
+void function_dde0()noexcept{}
+[[nodiscard]]u8 function_dde7(LowLevelBoundaries&b,u32 port)noexcept{return b.in8?b.in8(static_cast<u16>(port)):0;}
+void function_ddf2(LowLevelBoundaries&b,u32 port,u32 value)noexcept{if(b.out8)b.out8(static_cast<u16>(port),static_cast<u8>(value));}
+// DDFE..DE6E: DOS interrupt-vector wrappers; extender modes 2..8 use AX=2504/2502 paths.
+void function_ddfe(LowLevelBoundaries&b,u8 extender_mode,u32 vector,u32 offset,u16 selector)noexcept{if(extender_mode>=2&&extender_mode<=8){if(b.set_vector_2504)b.set_vector_2504(static_cast<u8>(vector),selector,offset);}else if(b.set_vector_legacy)b.set_vector_legacy(static_cast<u8>(vector),selector,offset);}
+struct VectorAddress{u32 offset=0;u16 selector=0;};
+[[nodiscard]]VectorAddress function_de35(LowLevelBoundaries&b,u8 extender_mode,u32 vector)noexcept{VectorAddress r{};if(extender_mode>=2&&extender_mode<=8){if(b.get_vector_2502)b.get_vector_2502(static_cast<u8>(vector),&r.selector,&r.offset);}else if(b.get_vector_legacy)b.get_vector_legacy(static_cast<u8>(vector),&r.selector,&r.offset);return r;}
+// DE6F..DEA0 is deliberately not counted: its true entry boundary has not yet been proven.
+// DEA7..DF12: dword-pattern fill helper, entered with EAX=destination, EDX=pattern, ECX=dword count.
+[[nodiscard]]u8* function_dea7(u8*dst,u32 pattern,u32 dword_count)noexcept{u8*p=dst;while(dword_count&&((reinterpret_cast<std::uintptr_t>(p)&31u)!=0)){store_le32(p,pattern);p+=4;--dword_count;}while(dword_count>=8){for(unsigned i=0;i<8;++i)store_le32(p+i*4u,pattern);p+=32;dword_count-=8;}while(dword_count){store_le32(p,pattern);p+=4;--dword_count;}return p;}
+// DF13..DF8D: PIT channel-2 / PC-speaker programming.
+void function_df13(LowLevelBoundaries&b,u32 divisor_source)noexcept{if(divisor_source<=0x12u)return;u32 divisor=0x1234dcu/divisor_source;u8 gate=function_dde7(b,0x61);if((gate&3u)==0){function_ddf2(b,0x61,static_cast<u8>(gate|3u));function_ddf2(b,0x43,0xb6);}function_ddf2(b,0x42,divisor);function_ddf2(b,0x42,divisor>>8);}
+void function_df73(LowLevelBoundaries&b)noexcept{function_ddf2(b,0x61,static_cast<u8>(function_dde7(b,0x61)&0xfcu));}
+
+// DF8E..DFB2 and E02B..E04F are identical digit alphabets (data, not counted as code).
+constexpr char kRadixDigits[]="0123456789abcdefghijklmnopqrstuvwxyz";
+static char* convert_unsigned(u32 value,char*out,u32 radix)noexcept{char tmp[40]{};char*p=tmp+1;do{const u32 q=value/radix;const u32 rem=value%radix;*p++=kRadixDigits[rem];value=q;}while(value);char*d=out;do{*d++=*--p;}while(p!=tmp);return out;}
+// DFB3..DFFA and E050..E097 are two independently encoded unsigned conversion implementations.
+[[nodiscard]]char* function_dfb3(u32 value,char*out,u32 radix)noexcept{return convert_unsigned(value,out,radix);}
+[[nodiscard]]char* function_e050(u32 value,char*out,u32 radix)noexcept{return convert_unsigned(value,out,radix);}
+// DFFB..E02A and E098..E0C7: signed wrappers; decimal negatives receive a leading '-'.
+static char* convert_signed(s32 value,char*out,u32 radix,bool second)noexcept{char*digits=out;u32 magnitude=static_cast<u32>(value);if(radix==10u&&value<0){*digits++='-';magnitude=0u-magnitude;}if(second)(void)function_e050(magnitude,digits,radix);else(void)function_dfb3(magnitude,digits,radix);return out;}
+[[nodiscard]]char* function_dffb(s32 value,char*out,u32 radix)noexcept{return convert_signed(value,out,radix,false);}
+[[nodiscard]]char* function_e098(s32 value,char*out,u32 radix)noexcept{return convert_signed(value,out,radix,true);}
+
+// This pass adds 19+36+18+40+35+7+11+12+55+58+108+27+72+48+72+48 = 666 verified code bytes.
+constexpr u32 kVerifiedTranslatedBytes=2332u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 } // namespace code1
