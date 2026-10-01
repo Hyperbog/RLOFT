@@ -21,3 +21,4 @@ jobs:
           git add Code1/Code1.cpp Code1/PROGRESS.md Code1/STAGING_LEDGER.md Code1/DECOMPILATION_CONTINUITY.md
           git commit -m "Integrate CODE.1 heap growth"
           git push origin code1-decompilation
+# retry after syntax guard correction
