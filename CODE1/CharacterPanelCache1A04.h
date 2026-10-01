@@ -8,9 +8,10 @@
 namespace ravenloft::game {
 
 struct CharacterPanelCacheState1A04 {
-    // DS:095C / DS:0960 are the two cached handles owned by this routine.
-    std::uintptr_t handle95C = 0;
-    std::uintptr_t handle960 = 0;
+    // DS:095C / DS:0960 are original 32-bit cached handle values.
+    // Keep their storage width independent of the host pointer width.
+    std::uint32_t handle95C = 0;
+    std::uint32_t handle960 = 0;
 
     // DS:7138 is DWORD storage.  0x1A4A deliberately reads only its low byte
     // before passing the zero-extended value to 0x6588.
@@ -35,7 +36,7 @@ struct CharacterPanelCacheState1A04 {
 struct CharacterPanelCacheOps1A04 {
     UiTextDrawOps00EC draw;
 
-    std::function<void(std::uintptr_t)> call7830;
+    std::function<void(std::uint32_t)> call7830;
     std::function<void(std::uint32_t)> call6588;
     std::function<std::uintptr_t(std::int32_t, std::int32_t,
                                  std::int32_t, std::int32_t,
