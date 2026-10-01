@@ -44,25 +44,28 @@ Total integrated verified translated bytes: **5,473**.
 `FormatterContinuation.staging.cpp` contains **227 verified instruction-accounted bytes**, still excluded from the official percentage until fold-in:
 
 - `F206..F2D1`: **204 bytes** — fixed-point decimal materialization and encoded rounding walk.
-- `F2D2..F2E8`: **23 bytes** — exact three-argument indirect thunk through DGROUP `55C4h`.
+- `F2D2..F2E8`: **23 bytes** — three-argument indirect thunk through DGROUP `55C4h`.
 
 `F2E9..F721` (**1,081 bytes**) remains a structural C++ lift under verification and is explicitly **uncounted**.
 
-## Materializer verification completed this pass
+## Materializer fidelity corrections from the latest binary pass
 
-The immutable CODE.1 bytes for `F2E9..F741` were disassembled again and compared against the staging control flow. The formerly unresolved `F695..F721` common tail is now represented instruction-for-instruction at the state-transition level:
+The immutable bytes were re-disassembled again through `F2E9..F741`. Two control-flow details that would have made the current structural lift inaccurate were isolated and recorded in `FormatterMaterializer.map.md` before promotion:
 
-- `F695..F6C5`: a leading minus is removed from the source span and transferred to the state prefix; otherwise the blank/plus flags can synthesize the prefix;
-- `F6C6..F6D7`: source length is compared with precision and the encoded zero-count field receives `precision - length` when required;
-- `F6D8..F6E5`: `'*'` padding clears the prefix and masks flag bits `02h/04h` exactly through `AND F9h`;
-- `F6E6..F6F9`: for non-`c` conversions, unset or overlong precision is replaced by actual source length according to the original branches;
-- `F6FA..F721`: prefix length + precision + zero-count is subtracted from width before returning the source offset and saved selector.
+- `F32B -> F327` deliberately jumps into a shared `JE` instruction while retaining flags from `cmp dl,6Fh`. Consequently the initial unsigned pre-read applies to `X/o/u/x`; `d/i` do not pre-read there and consume their signed argument later at `F4BA`. A normal structured reading of the nearby `cmp dl,78h` gives the wrong answer for `o`.
+- `S` does not take the ordinary string-length path. After pointer selection, `F553..F576` loads one selector-qualified word or byte into EAX, advances EDI by 2 or 1, and jumps directly to the common accounting block at `F695`.
 
-Guest argument cursors and selector-qualified source reads remain explicit; no guest address has been promoted to a host pointer. The materializer is still withheld from the verified count because the `F2D2` callback's EAX:DX result contract and several conversion-family entry states must be checked before promotion.
+Additional width/register corrections now pinned by the ledger:
+
+- `AND F9h` clears flag bits `02h` and `04h`, not bit `01h`.
+- The `F2D2` callback contract must preserve both **EAX offset and DX selector**; returning only EAX is insufficient.
+- `F71B..F721` returns EDI in EAX while DX is restored from the saved selector before the common epilogue.
+
+These findings are why the 1,081-byte materializer has not been promoted merely to increase the percentage. The existing structural staging must be corrected against these exact edges first.
 
 ## Active continuation
 
-Verify the `F2D2` callback EAX:DX contract and conversion-family entry states, then promote/fold `F206..F721` into `Code1.cpp`. After that, translate `EDE7..F006` against the proven formatter helpers.
+Correct the `F2E9..F721` structural C++ for the shared-flags octal edge, exact `S` path, and EAX:DX callback/return contracts; then promote/fold `F206..F721` into `Code1.cpp`. After that, translate `EDE7..F006` against the proven formatter helpers.
 
 ## Larger-batch policy
 
