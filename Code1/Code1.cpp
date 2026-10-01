@@ -32,7 +32,6 @@ enum class Cd17Path:u32{BranchCd50=0xcd50,JumpCd97=0xcd97};
 [[nodiscard]]Cd17Path translate_cd17_cd4f(Machine&m)noexcept{if(low16(m.cpu.eax)!=0x4243)return Cd17Path::BranchCd50;store_le32(dgroup_ptr(m,dgroup(0x3094)),m.cpu.edx);m.cpu.esi=m.cpu.edx;m.cpu.edx=read32(m,linear(m.cpu.esi+0x1c));m.cpu.ebx=m.cpu.esp-m.cpu.edx;set_high8(m.cpu.eax,0x4a);interrupt(m,0x21);set_low16(m.cpu.ebx,m.cpu.ds);store_le16(dgroup_ptr(m,dgroup(0x52fc)),m.cpu.ds);m.cpu.eax=read32(m,linear(m.cpu.esi+0x10));m.cpu.edi+=m.cpu.eax;m.cpu.esi=0;set_low16(m.cpu.esi,read16(m,linear(m.cpu.eax+0x2c)));m.cpu.esi<<=4;set_low16(m.cpu.ecx,m.cpu.ds);set_low8(m.cpu.eax,9);return Cd17Path::JumpCd97;}
 [[nodiscard]]u32 translate_cd50_cd96(Machine&m)noexcept{set_low16(m.cpu.edx,0x78);set_low16(m.cpu.eax,0xff00);interrupt(m,0x21);if(low8(m.cpu.eax)){set_low16(m.cpu.eax,m.cpu.gs);if(low16(m.cpu.eax))store_le16(dgroup_ptr(m,dgroup(0x3098)),low16(m.cpu.eax));set_low8(m.cpu.eax,1);set_low16(m.cpu.ebx,m.cpu.ds);store_le16(dgroup_ptr(m,dgroup(0x52fc)),m.cpu.es);set_low16(m.cpu.ecx,read16(m,selector_offset(m.cpu.es,0x2c)));return 0xcd97;}set_low16(m.cpu.edx,m.cpu.ds);set_low16(m.cpu.ecx,0x24);m.cpu.ds=low16(m.cpu.ecx);set_low16(m.cpu.ecx,read16(m,selector_offset(m.cpu.ds,0x2c)));m.cpu.ds=low16(m.cpu.edx);set_low16(m.cpu.ebx,0x17);set_low8(m.cpu.eax,0);return 0xcd97;}
 
-// D08C..D153 and D1E8..D239: proven native lifts.
 struct MouseRegs{u16 ax=0,bx=0,cx=0,dx=0;}; struct MouseSnapshot{u16 buttons;u16 reserved1;s16 x_half;u16 y;}; static_assert(sizeof(MouseSnapshot)==8);
 struct NativeBoundaries{bool(*call_84d0)()=nullptr;void(*mouse_int33)(MouseRegs&)=nullptr;};
 void function_d08c(NativeBoundaries&b,u32 a,u32 c)noexcept{if(!b.call_84d0||!b.call_84d0())return;MouseRegs r{};r.ax=4;r.dx=static_cast<u16>(a);r.cx=static_cast<u16>(c<<1);if(b.mouse_int33)b.mouse_int33(r);}
@@ -40,55 +39,34 @@ void function_d08c(NativeBoundaries&b,u32 a,u32 c)noexcept{if(!b.call_84d0||!b.c
 void function_d10c(NativeBoundaries&b,u32 a,u32 c)noexcept{if(!b.call_84d0||!b.call_84d0())return;MouseRegs r{};r.ax=7;r.cx=static_cast<u16>(a);r.dx=static_cast<u16>(c);if(b.mouse_int33)b.mouse_int33(r);} void function_d130(NativeBoundaries&b,u32 a,u32 c)noexcept{if(!b.call_84d0||!b.call_84d0())return;MouseRegs r{};r.ax=8;r.cx=static_cast<u16>(a);r.dx=static_cast<u16>(c);if(b.mouse_int33)b.mouse_int33(r);}
 void*function_d1e8(void*dst,const void*src,u32 n)noexcept{return std::memmove(dst,src,static_cast<std::size_t>(n));}
 
-// D5AD..D8CD: structured Watcom/DOS file-I/O lifts. The address-named runtime
-// callbacks are intentionally not renamed until their exact CRT contracts are independently proven.
-struct FileBoundaries{
- u32(*call_103c3)(u32)=nullptr; u32*(*call_103b7)()=nullptr; s32(*call_10314)(u16)=nullptr;
- u32(*call_1042d)()=nullptr; void(*call_1046f)()=nullptr;
- s32(*dos_read)(u16,void*,u32)=nullptr; s32(*dos_write)(u16,const void*,u32)=nullptr;
- s32(*dos_seek)(u16,s32,u8)=nullptr; s32(*dos_delete)(const char*)=nullptr;
-};
-static void set_runtime_error(FileBoundaries&b,u32 v)noexcept{if(b.call_103b7){if(u32*p=b.call_103b7())*p=v;}}
-static s32 map_dos_error(FileBoundaries&b,s32 v)noexcept{return b.call_10314?b.call_10314(static_cast<u16>(v)):v;}
+struct FileBoundaries{u32(*call_103c3)(u32)=nullptr;u32*(*call_103b7)()=nullptr;s32(*call_10314)(u16)=nullptr;u32(*call_1042d)()=nullptr;void(*call_1046f)()=nullptr;s32(*dos_read)(u16,void*,u32)=nullptr;s32(*dos_write)(u16,const void*,u32)=nullptr;s32(*dos_seek)(u16,s32,u8)=nullptr;s32(*dos_delete)(const char*)=nullptr;};
+static void set_runtime_error(FileBoundaries&b,u32 v)noexcept{if(b.call_103b7){if(u32*p=b.call_103b7())*p=v;}} static s32 map_dos_error(FileBoundaries&b,s32 v)noexcept{return b.call_10314?b.call_10314(static_cast<u16>(v)):v;}
+[[nodiscard]]s32 function_d5ad(FileBoundaries&b,u16 handle,u8*dst,u32 count)noexcept{const u32 flags=b.call_103c3?b.call_103c3(handle):0;if(flags==0){set_runtime_error(b,4);return -1;}if((flags&1u)==0){set_runtime_error(b,6);return -1;}if(flags&0x40u){const s32 n=b.dos_read?b.dos_read(handle,dst,count):-1;return n<0?map_dos_error(b,n):n;}u32 total=0,remaining=count;u8*writep=dst;while(remaining){const s32 n=b.dos_read?b.dos_read(handle,writep,remaining):-1;if(n<0)return map_dos_error(b,n);if(n==0)break;const u8*src=writep;const u8*end=writep+static_cast<u32>(n);u32 kept=0;while(src<end){const u8 ch=*src++;if(ch==0x1a){total+=kept;return static_cast<s32>(total);}if(ch==0x0d)continue;writep[kept++]=ch;}total+=kept;remaining-=kept;writep+=kept;if(flags&0x2000u)break;}return static_cast<s32>(total);}
+[[nodiscard]]s32 function_d686(FileBoundaries&b,u16 handle,const u8*src,u32 count)noexcept{const u32 flags=b.call_103c3?b.call_103c3(handle):0;if(flags==0){set_runtime_error(b,4);return -1;}if((flags&2u)==0){set_runtime_error(b,6);return -1;}if(flags&0x80u){const s32 pos=b.dos_seek?b.dos_seek(handle,0,2):-1;if(pos<0)return map_dos_error(b,pos);}if(flags&0x40u){const s32 n=b.dos_write?b.dos_write(handle,src,count):-1;if(n<0)return map_dos_error(b,n);if(static_cast<u32>(n)!=count)set_runtime_error(b,12);return n;}const u32 version=b.call_1042d?b.call_1042d():0;if(version<0xb0u&&b.call_1046f)b.call_1046f();const u32 cap=version<0x230u?0x80u:0x200u;u8 temp[0x200]{};u32 consumed=0,last_flushed_input=0,fill=0;auto flush=[&](u32 amount)->s32{const s32 n=b.dos_write?b.dos_write(handle,temp,amount):-1;if(n<0)return map_dos_error(b,n);if(static_cast<u32>(n)!=amount){set_runtime_error(b,12);return static_cast<s32>(last_flushed_input+static_cast<u32>(n));}last_flushed_input=consumed;fill=0;return -0x40000000;};while(consumed<count){const u8 ch=src[consumed];if(ch==0x0a){temp[fill++]=0x0d;if(fill==cap){const s32 r=flush(cap);if(r!=-0x40000000)return r;}}temp[fill++]=ch;++consumed;if(fill==cap){const s32 r=flush(cap);if(r!=-0x40000000)return r;}}if(fill){const s32 n=b.dos_write?b.dos_write(handle,temp,fill):-1;if(n<0)return map_dos_error(b,n);if(static_cast<u32>(n)!=fill){set_runtime_error(b,12);return static_cast<s32>(last_flushed_input+static_cast<u32>(n));}}return static_cast<s32>(count);}
+[[nodiscard]]s32 function_d85f(FileBoundaries&b,u16 handle,s32 offset,u8 origin)noexcept{const s32 r=b.dos_seek?b.dos_seek(handle,offset,origin):-1;return r<0?map_dos_error(b,r):r;} [[nodiscard]]s32 function_d8aa(FileBoundaries&b,const char*path)noexcept{const s32 r=b.dos_delete?b.dos_delete(path):-1;return r<0?map_dos_error(b,r):0;}
 
-// D5AD..D685 (217 bytes): read. Bit 40h is binary/direct mode; otherwise CR
-// bytes are discarded and 1Ah terminates text input, exactly as the loop encodes.
-[[nodiscard]]s32 function_d5ad(FileBoundaries&b,u16 handle,u8*dst,u32 count)noexcept{
- const u32 flags=b.call_103c3?b.call_103c3(handle):0;
- if(flags==0){set_runtime_error(b,4);return -1;} if((flags&1u)==0){set_runtime_error(b,6);return -1;}
- if(flags&0x40u){const s32 n=b.dos_read?b.dos_read(handle,dst,count):-1;return n<0?map_dos_error(b,n):n;}
- u32 total=0,remaining=count;u8*writep=dst;
- while(remaining){const s32 n=b.dos_read?b.dos_read(handle,writep,remaining):-1;if(n<0)return map_dos_error(b,n);if(n==0)break;
-  const u8*src=writep;const u8*end=writep+static_cast<u32>(n);u32 kept=0;
-  while(src<end){const u8 ch=*src++;if(ch==0x1a){total+=kept;return static_cast<s32>(total);}if(ch==0x0d)continue;writep[kept++]=ch;}
-  total+=kept;remaining-=kept;writep+=kept;if(flags&0x2000u)break;
- }
- return static_cast<s32>(total);
-}
+// D8D0..DA1B: independently verified DOS/CRT utility routines.
+struct DirectoryBoundaries{s32(*map_error)(u16)=nullptr;s32(*get_current_directory)(u8 drive,char*out)=nullptr;u8(*get_current_drive)()=nullptr;s32(*set_current_drive)(u8 drive,u8*count)=nullptr;s32(*change_directory)(const char*)=nullptr;s32(*make_directory)(const char*)=nullptr;};
+// D8D0..D8E7 (24): DOS AH=19h returns zero-based drive; original stores one-based value.
+[[nodiscard]]u16 function_d8d0(DirectoryBoundaries&b,u32*out)noexcept{const u8 drive=b.get_current_drive?b.get_current_drive():0;if(out)*out=static_cast<u32>(drive)+1u;return 0;}
+// D8E8..D905 (30): DOS AH=0Eh consumes one-based drive after decrement and stores AL result count.
+[[nodiscard]]u32 function_d8e8(DirectoryBoundaries&b,u32 drive,u32*out)noexcept{u8 count=0;const s32 r=b.set_current_drive?b.set_current_drive(static_cast<u8>(drive-1u),&count):0;if(out)*out=count;(void)r;return 0;}
+// D906..D990 (139): construct "X:\\" + current directory, allocating output only when caller supplied null.
+struct CurrentDirBoundaries:DirectoryBoundaries{char*(*allocate)(u32)=nullptr;u32(*string_length)(const char*)=nullptr;void(*copy_string)(char*,const char*)=nullptr;};
+[[nodiscard]]char* function_d906(CurrentDirBoundaries&b,char*out)noexcept{char tail[112]{};if(b.get_current_directory&&b.get_current_directory(0,tail)<0)return nullptr;char prefix[3]={static_cast<char>((b.get_current_drive?b.get_current_drive():0)+'A'),':','\\'};u32 tail_len=b.string_length?b.string_length(tail):static_cast<u32>(std::strlen(tail));char*dst=out;if(!dst){dst=b.allocate?b.allocate(tail_len+4u):nullptr;if(!dst)return nullptr;}dst[0]=prefix[0];dst[1]=prefix[1];dst[2]=prefix[2];if(b.copy_string)b.copy_string(dst+3,tail);else std::memcpy(dst+3,tail,tail_len+1u);return dst;}
+// D991..D9A5 (21): ASCII lowercase-to-uppercase helper.
+[[nodiscard]]u32 function_d991(u32 ch)noexcept{return(ch>=0x61u&&ch<=0x7au)?ch-0x20u:ch;}
+// D9A6..D9C9 (36) and D9CA..D9ED (36): DOS chdir/mkdir with the existing error mapper.
+[[nodiscard]]s32 function_d9a6(DirectoryBoundaries&b,const char*path)noexcept{const s32 r=b.change_directory?b.change_directory(path):-1;return r<0?(b.map_error?b.map_error(static_cast<u16>(-r)):r):0;}
+[[nodiscard]]s32 function_d9ca(DirectoryBoundaries&b,const char*path)noexcept{const s32 r=b.make_directory?b.make_directory(path):-1;return r<0?(b.map_error?b.map_error(static_cast<u16>(-r)):r):0;}
+// D9EE..DA17 (42): exact memcpy-like forward copy; unlike D1E8 this has no overlap branch.
+void* function_d9ee(void*dst,const void*src,u32 count)noexcept{return std::memcpy(dst,src,static_cast<std::size_t>(count));}
+// DA18..DA19 and DA1A..DA1B: direct interrupt-flag wrappers.
+void function_da18(Machine&m)noexcept{m.cpu.interrupt_enable=false;} void function_da1a(Machine&m)noexcept{m.cpu.interrupt_enable=true;}
 
-// D686..D85E (473 bytes): write. Binary mode writes directly. Text mode
-// expands LF to CR/LF and flushes a 0x80/0x200-byte temporary buffer; short
-// writes set runtime error 12 while preserving the original routine's return accounting.
-[[nodiscard]]s32 function_d686(FileBoundaries&b,u16 handle,const u8*src,u32 count)noexcept{
- const u32 flags=b.call_103c3?b.call_103c3(handle):0;
- if(flags==0){set_runtime_error(b,4);return -1;} if((flags&2u)==0){set_runtime_error(b,6);return -1;}
- if(flags&0x80u){const s32 pos=b.dos_seek?b.dos_seek(handle,0,2):-1;if(pos<0)return map_dos_error(b,pos);}
- if(flags&0x40u){const s32 n=b.dos_write?b.dos_write(handle,src,count):-1;if(n<0)return map_dos_error(b,n);if(static_cast<u32>(n)!=count)set_runtime_error(b,12);return n;}
- const u32 version=b.call_1042d?b.call_1042d():0;if(version<0xb0u&&b.call_1046f)b.call_1046f();const u32 cap=version<0x230u?0x80u:0x200u;
- u8 temp[0x200]{};u32 consumed=0,last_flushed_input=0,fill=0;
- auto flush=[&](u32 amount)->s32{const s32 n=b.dos_write?b.dos_write(handle,temp,amount):-1;if(n<0)return map_dos_error(b,n);if(static_cast<u32>(n)!=amount){set_runtime_error(b,12);return static_cast<s32>(last_flushed_input+static_cast<u32>(n));}last_flushed_input=consumed;fill=0;return -0x40000000;};
- while(consumed<count){const u8 ch=src[consumed];if(ch==0x0a){temp[fill++]=0x0d;if(fill==cap){const s32 r=flush(cap);if(r!=-0x40000000)return r;}}
-  temp[fill++]=ch;++consumed;if(fill==cap){const s32 r=flush(cap);if(r!=-0x40000000)return r;}}
- if(fill){const s32 n=b.dos_write?b.dos_write(handle,temp,fill):-1;if(n<0)return map_dos_error(b,n);if(static_cast<u32>(n)!=fill){set_runtime_error(b,12);return static_cast<s32>(last_flushed_input+static_cast<u32>(n));}}
- return static_cast<s32>(count);
-}
-
-// D85F..D8A9 (75 bytes): DOS seek (AH=42h). D8AA..D8CD (36 bytes): delete (AH=41h).
-[[nodiscard]]s32 function_d85f(FileBoundaries&b,u16 handle,s32 offset,u8 origin)noexcept{const s32 r=b.dos_seek?b.dos_seek(handle,offset,origin):-1;return r<0?map_dos_error(b,r):r;}
-[[nodiscard]]s32 function_d8aa(FileBoundaries&b,const char*path)noexcept{const s32 r=b.dos_delete?b.dos_delete(path):-1;return r<0?map_dos_error(b,r):0;}
-
-// Newly counted in this batch: D5AD..D685=217, D686..D85E=473,
-// D85F..D8A9=75, D8AA..D8CD=36: 801 additional verified bytes.
-constexpr u32 kVerifiedTranslatedBytes=1334u;
+// New verified ranges this pass: D8D0..D8E7=24, D8E8..D905=30, D906..D990=139,
+// D991..D9A5=21, D9A6..D9C9=36, D9CA..D9ED=36, D9EE..DA17=42,
+// DA18..DA19=2, DA1A..DA1B=2. Total new = 332 bytes.
+constexpr u32 kVerifiedTranslatedBytes=1666u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 } // namespace code1
