@@ -43,26 +43,25 @@ Total integrated verified translated bytes: **5,473**.
 
 `FormatterContinuation.staging.cpp` contains **227 verified instruction-accounted bytes**, still excluded from the official percentage until fold-in:
 
-- `F206..F2D1`: **204 bytes** — signed 16.16 fixed-point decimal materialization and encoded rounding walk.
-- `F2D2..F2E8`: **23 bytes** — indirect thunk through DGROUP `55C4h` preserving the EAX:DX offset/selector return pair.
+- `F206..F2D1`: **204 bytes** — signed 16.16 fixed-point decimal materialization and encoded rounding/carry walk.
+- `F2D2..F2E8`: **23 bytes** — indirect thunk through DGROUP `55C4h`, preserving the EAX:DX far-return contract.
 
 `F2E9..F721` (**1,081 bytes**) remains a structural C++ lift under verification and is explicitly **uncounted**.
 
-## Fixed-point verification completed this pass
+## Formatter register-alias verification pass
 
-`F206..F2D1` was re-disassembled directly from the immutable object bytes and its overlapping stack-word behavior is now represented exactly rather than approximated as an ordinary integer/fraction formatter:
+A fresh disassembly of the complete `F206..F721` region was checked directly against the immutable CODE.1 bytes. This pass resolved two aliasing cases where a conventional source-level formatter reconstruction gives the wrong result:
 
-- The input is a signed **16.16 fixed-point** value. After sign normalization, `MOVZX EAX,WORD PTR [EBP-2]` passes the high 16-bit integer portion to `DFFB`.
-- Each fractional digit executes `MOV WORD PTR [EBP-2],0`, multiplies the remaining low-word fraction by ten, and emits byte `[EBP-2]` (bits 16..23 of the product) plus `'0'`.
-- Rounding tests bit 15 of the retained fraction via `TEST BYTE PTR [EBP-3],80h`.
-- The carry walk across trailing `9` digits, decimal point relocation, and leading carry insertion are retained explicitly.
-- No host floating-point type or libc formatting operation is used.
+- `F206` stores the absolute input as one dword at `[EBP-4]`, passes **WORD `[EBP-2]`** to `DFFB`, then repeatedly zeroes that same high word before `IMUL value,10`. The helper is therefore operating on signed **16.16 fixed-point** state. Fractional digits are the successive high-word values after multiplying the retained low 16-bit fraction by ten. `TEST BYTE [EBP-3],80h` is exactly a test of bit 15 of the final retained fraction for rounding. The carry-through-front path at `F284..F2B4` is now represented explicitly rather than replaced by host numeric formatting.
+- `F477..F4A4` deliberately aliases two output cursors. ESI advances past an alternate-form octal `0`, while EDI remains at the original scratch start. The zero-precision test examines `[ESI]`, but the suppressing NUL is written through `ES:EDI`. Thus alternate-form octal zero clears the original prefix byte; the staging model now preserves that encoded behavior.
+- `F4FC..F548` was rechecked for null far strings: `{offset=0,selector=0}` falls back to the caller-supplied null string **and resets the active selector to DS** at `F545`. A non-null far pointer retains its supplied selector.
+- The previously corrected EAX:DX callback return, `S` one-character/two-byte-character path, signed precision comparisons, and `AND F9h` flag masks remain consistent with the new disassembly.
 
-The octal `F477..F4A4` path was also checked: EDI is initialized to the original scratch address at `F310`, while alternate-form octal may advance ESI before conversion. With zero precision and a generated zero digit, the ES:EDI store therefore clears the **original first scratch byte**, suppressing even the alternate-form prefix. The staging model now reflects this encoded behavior rather than standard printf expectations.
+No libc `printf`, host floating-point conversion, or flat-pointer substitution is used in these paths.
 
 ## Active continuation
 
-Continue byte-level verification of `F2E9..F721`, then fold verified `F206..F721` into `Code1.cpp`. After that, translate `EDE7..F006` against the proven formatter helpers.
+Continue the remaining instruction-level review of `F2E9..F721`, with particular attention to the pointer path and common-tail live-register values. Once all branches are reconciled, fold `F206..F721` into `Code1.cpp`; then translate `EDE7..F006` against the proven formatter helpers.
 
 ## Larger-batch policy
 
