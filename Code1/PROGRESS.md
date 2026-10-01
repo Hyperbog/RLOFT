@@ -26,6 +26,7 @@ Raw coverage: **11.7766%**, displayed conservatively as **11.77%**.
 - Structured mouse-facing routines `D08C..D153`, verified mouse/event pump `D154..D1E7`, plus overlap-safe copy `D1E8..D239`: **419 bytes**.
 - File read/write/seek/delete `D5AD..D8CD`: **801 bytes**.
 - DOS/CRT directory and utility routines `D8D0..DA1B`: **332 bytes**.
+- Allocator wrapper `DAC9..DAD8`: **16 bytes**.
 - Runtime allocator/decoder/transform `DAD9..DDD7`: **764 bytes**.
 - Low-level/runtime regions through `E0C7`: **666 bytes**.
 - Dispatcher and INT 8 paths `E3B4..E4C6`: **275 bytes**.
@@ -85,3 +86,7 @@ After comparing all active staging against `Code1.cpp`, DA48..DAA6 and DEA7..E0C
 The working target remains approximately **4,000 newly verified bytes per substantial batch**, with fidelity controlling. Analysis continues past individual dependency edges rather than treating them as stopping points.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
+
+## Integration placement audit
+
+A physical-file audit confirmed that `DAD9..DDD7` was still present in `Code1.cpp`, but appended near the footer rather than in address order. The first attempted DAC9 fold therefore placed the wrapper before `AllocBoundary` and correctly failed syntax checking without committing. The integration was corrected to insert `DAC9..DAD8` adjacent to the existing DAD9 runtime definition. Preservation assertions now check existing verified-region sentinels before every one-shot fold.
