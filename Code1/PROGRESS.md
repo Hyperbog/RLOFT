@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-11.85%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-11.95%25-red)
 
-**Verified conversion:** 11.85%  
-**Remaining:** 88.15%  
+**Verified conversion:** 11.95%  
+**Remaining:** 88.05%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **8,349**.  
+Current verified translated bytes: **8,416**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **11.8589%**, displayed conservatively as **11.85%**.
+Raw coverage: **11.9542%**, displayed conservatively as **11.95%**.
 
 ## Immutable source identity
 
@@ -24,6 +24,7 @@ Raw coverage: **11.8589%**, displayed conservatively as **11.85%**.
 
 - Startup/recovery regions through `CD96`: **259 bytes**.
 - Structured mouse-facing routines `D08C..D153`, verified mouse/event pump `D154..D1E7`, plus overlap-safe copy `D1E8..D239`: **419 bytes**.
+- Attribute/status wrapper `D23A..D27C`: **67 bytes**.
 - Close wrapper `D573..D5AC`: **58 bytes**.
 - File read/write/seek/delete `D5AD..D8CD`: **801 bytes**.
 - DOS/CRT directory and utility routines `D8D0..DA1B`: **332 bytes**.
@@ -40,7 +41,7 @@ Raw coverage: **11.8589%**, displayed conservatively as **11.85%**.
 - Frame no-op `EDE0..EDE6`: **7 bytes**.
 - Complete formatter driver/parser/materializer `EDE7..F741`: **2,395 bytes**.
 
-Total integrated verified translated bytes: **8,349**.
+Total integrated verified translated bytes: **8,416**.
 
 `DA45..DA47` is three zero bytes. `EDD3..EDDF` is **13 zero bytes**. Both are classified as data/alignment and are not counted as translated code.
 
@@ -60,7 +61,7 @@ The PSP command-tail `REPZ SCASB` mismatch behavior, environment executable-path
 
 ## D23A..D5AC DOS/CRT continuation under reconciliation
 
-`DosCrtNext.staging.cpp` originally covered **880 functional instruction bytes** in `D23A..D5AC`; `D573..D5AC` is now integrated, leaving **822 unique unintegrated bytes** in that staging span; `D27D..D27F` is three zero bytes and excluded. It maps attribute/status, find-first/find-next, DTA shuttles, open/create/truncate, descriptor/IOCTL setup, open wrapper, and close wrapper. `D332..D4F1` remains structural staging until descriptor-table representation is reconciled against `103C3..1042C`.
+`DosCrtNext.staging.cpp` originally covered **880 functional instruction bytes** in `D23A..D5AC`; `D573..D5AC` is now integrated, leaving **755 unique unintegrated bytes** in that staging span; `D27D..D27F` is three zero bytes and excluded. It maps attribute/status, find-first/find-next, DTA shuttles, open/create/truncate, descriptor/IOCTL setup, open wrapper, and close wrapper. `D332..D4F1` remains structural staging until descriptor-table representation is reconciled against `103C3..1042C`.
 
 ## DE6F..E0C7 accounting audit
 
@@ -72,7 +73,7 @@ The prior `RuntimeGapDE6F.staging.cpp` candidate was compared against the unifie
 
 ## Active continuation
 
-The unique unintegrated instruction-bounded staging pool is **2,291 bytes**: 747 startup + 822 remaining DOS/CRT + 722 E0D0..E3B2. `DE6F..DEA0` is an unresolved boundary and is deliberately outside that staging total. Continue hardening independently provable subranges and fold them only after exact call-contract reconciliation, preservation checks, and unified syntax checking.
+The unique unintegrated instruction-bounded staging pool is **2,224 bytes**: 747 startup + 755 remaining DOS/CRT + 722 E0D0..E3B2. `DE6F..DEA0` is an unresolved boundary and is deliberately outside that staging total. Continue hardening independently provable subranges and fold them only after exact call-contract reconciliation, preservation checks, and unified syntax checking.
 
 ## Integration placement audit
 
