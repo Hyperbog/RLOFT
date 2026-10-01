@@ -1,47 +1,22 @@
 /*
- * Ravenloft: Strahd's Possession - CODE.1 reconstruction
+ * Ravenloft: Strahd's Possession - CODE.1 faithful reconstruction
  *
- * Source artifact:
+ * Immutable source:
  *   CODE.1
  *   277,787 bytes
  *   SHA-256 fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed
  *
- * PURPOSE
- * -------
- * This translation unit is the evidence-first C++ reconstruction of CODE.1.
- * It is intentionally NOT a modernization.  Original machine-code behavior
- * takes precedence over readability, contemporary idioms, or inferred design.
- *
- * ACCOUNTABILITY RULE
- * -------------------
- * No game routine is represented as reconstructed until its original byte
- * range, instruction decoding, control flow, and externally visible effects
- * have been established.  Unknowns stay unknown rather than being filled by
- * assumptions.  Original file/runtime addresses will accompany reconstructed
- * blocks as the executable mapping is proven.
- *
- * CURRENT STATE
- * -------------
- * The protected-mode application image is still being mapped.  Consequently
- * this file currently records only verified binary/toolchain facts and the
- * low-level representation types that later translated blocks will require.
- * No application instructions are claimed converted yet; PROGRESS.md remains
- * at 0% until the first complete application region passes verification.
+ * This file is intentionally a reconstruction, not a modernization.  Every
+ * translated region must remain traceable to original CODE.1 bytes.  Unknown
+ * semantics remain unknown rather than being replaced with guesses.
  */
 
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-#include <type_traits>
 
 namespace code1 {
 
-// --------------------------------------------------------------------------
-// Fixed-width machine types
-// --------------------------------------------------------------------------
-// CODE.1 contains 16-bit real-mode/extender material and 32-bit protected-mode
-// material.  Fixed-width types are mandatory here: host C++ `int`/`long`
-// widths must never silently redefine an original x86 operation.
 using u8  = std::uint8_t;
 using s8  = std::int8_t;
 using u16 = std::uint16_t;
@@ -49,104 +24,128 @@ using s16 = std::int16_t;
 using u32 = std::uint32_t;
 using s32 = std::int32_t;
 
-static_assert(sizeof(u8)  == 1);
+static_assert(sizeof(u8) == 1);
 static_assert(sizeof(u16) == 2);
 static_assert(sizeof(u32) == 4);
-static_assert(std::numeric_limits<u8>::digits  == 8);
+static_assert(std::numeric_limits<u8>::digits == 8);
 static_assert(std::numeric_limits<u16>::digits == 16);
 static_assert(std::numeric_limits<u32>::digits == 32);
 
 // --------------------------------------------------------------------------
-// Immutable source identity
+// Exact source identity
 // --------------------------------------------------------------------------
-// These values identify the exact artifact against which every reconstruction
-// decision is checked.  They are metadata, not values recovered from program
-// variables in the original executable.
 constexpr std::size_t kSourceFileSize = 277787u;
 constexpr char kSourceSha256[] =
     "fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed";
 
 // --------------------------------------------------------------------------
-// Verified file offsets discovered during initial executable mapping
+// Bound executable layout - verified directly from CODE.1
 // --------------------------------------------------------------------------
-// IMPORTANT: these are FILE offsets only.  They must not be treated as runtime
-// linear addresses until the DOS/4G/DOS16M load mapping has been established.
-constexpr u32 kDosMzHeaderFileOffset       = 0x00000000u;
-constexpr u32 kBoundBwHeaderFileOffset     = 0x0000F444u;
+// 0x00000000 begins the outer MZ executable.
+// 0x0000F444 begins the structured BW image named 4GWPRO.EXP.  This belongs
+// to the bound DOS/4G environment and is not being mistaken for game code.
+//
+// At 0x00025D24 another MZ image begins.  Its MZ size fields identify a
+// 7,864-byte DOS stub.  Immediately after that stub, at 0x00027BDC, is the
+// LE (Linear Executable) header for the 32-bit protected-mode application.
+constexpr u32 kOuterMzFileOffset          = 0x00000000u;
+constexpr u32 kBoundBwFileOffset          = 0x0000F444u;
+constexpr u32 kApplicationMzFileOffset    = 0x00025D24u;
+constexpr u32 kApplicationLeFileOffset    = 0x00027BDCu;
+constexpr u32 kApplicationDataFileOffset  = 0x0002C724u;
+
+constexpr u8 kMzSignature0 = 0x4Du; // 'M'
+constexpr u8 kMzSignature1 = 0x5Au; // 'Z'
+constexpr u8 kBwSignature0 = 0x42u; // 'B'
+constexpr u8 kBwSignature1 = 0x57u; // 'W'
+constexpr u8 kLeSignature0 = 0x4Cu; // 'L'
+constexpr u8 kLeSignature1 = 0x45u; // 'E'
+
+// --------------------------------------------------------------------------
+// Verified LE header values
+// --------------------------------------------------------------------------
+// These fields are decoded from the LE header at file offset 0x27BDC.
+// The executable declares an Intel 80386 target and DOS operating system,
+// contains 24 pages, and has two load objects.
+constexpr u16 kLeCpuType       = 0x0002u; // 80386 in the LE specification.
+constexpr u16 kLeOsType        = 0x0001u; // OS/2 field value used for DOS target.
+constexpr u32 kLeModuleFlags   = 0x00000200u;
+constexpr u32 kLeModulePages   = 24u;
+constexpr u32 kLePageSize      = 0x00001000u;
+constexpr u32 kLeObjectCount   = 2u;
+
+// LE entry state.  Object numbering in the file is one-based.
+constexpr u32 kEntryObject     = 1u;
+constexpr u32 kEntryOffset     = 0x0000CC1Cu;
+constexpr u32 kStackObject     = 2u;
+constexpr u32 kInitialEsp      = 0x00009E90u;
+constexpr u32 kAutoDataObject  = 2u;
+
+// Object 1: executable/readable code object.  It begins at logical address
+// zero, has virtual size 0x11302, and occupies LE pages 1 through 18.
+constexpr u32 kCodeObjectVirtualSize = 0x00011302u;
+constexpr u32 kCodeObjectBase        = 0x00010000u;
+constexpr u32 kCodeObjectFlags       = 0x00002005u;
+constexpr u32 kCodeObjectFirstPage   = 1u;
+constexpr u32 kCodeObjectPageCount   = 18u;
+
+// Object 2: writable data/stack object.  It occupies pages 19 through 24.
+constexpr u32 kDataObjectVirtualSize = 0x00009E90u;
+constexpr u32 kDataObjectBase        = 0x00030000u;
+constexpr u32 kDataObjectFlags       = 0x00002003u;
+constexpr u32 kDataObjectFirstPage   = 19u;
+constexpr u32 kDataObjectPageCount   = 6u;
+
+// The LE data-page offset is 0x6A00 relative to the embedded application MZ,
+// giving absolute CODE.1 file offset 0x2C724.  With 24 pages and the final
+// partial-page byte count 0x5F7, the page data ends exactly at EOF.  This is
+// an independent consistency check on the recovered application-image base.
+constexpr u32 kLeDataPagesRelativeToAppMz = 0x00006A00u;
+constexpr u32 kFinalPageBytes              = 0x000005F7u;
+constexpr u32 kApplicationPageDataBytes =
+    (kLeModulePages - 1u) * kLePageSize + kFinalPageBytes;
+static_assert(kApplicationMzFileOffset + kLeDataPagesRelativeToAppMz ==
+              kApplicationDataFileOffset);
+static_assert(kApplicationDataFileOffset + kApplicationPageDataBytes ==
+              kSourceFileSize);
+
+// --------------------------------------------------------------------------
+// File <-> code-object address mapping
+// --------------------------------------------------------------------------
+// Object 1 uses the first LE data page, so a logical offset in object 1 maps
+// directly to kApplicationDataFileOffset + logical_offset.  This mapping is
+// valid only for offsets inside the recovered object-1 virtual extent.
+[[nodiscard]] constexpr bool is_code_object_offset(u32 offset) noexcept {
+    return offset < kCodeObjectVirtualSize;
+}
+
+[[nodiscard]] constexpr u32 code_offset_to_file_offset(u32 offset) noexcept {
+    return kApplicationDataFileOffset + offset;
+}
+
+static_assert(code_offset_to_file_offset(kEntryOffset) == 0x00039340u);
+
+// The first instruction at logical 0000:CC1C is EB 78, a short jump to CC96.
+// Bytes CC1E..CC95 are therefore not executed by normal entry flow.  They
+// contain the embedded Watcom run-time identification text and adjacent data.
+constexpr u32 kEntryFileOffset             = 0x00039340u;
+constexpr u32 kEntryJumpTarget             = 0x0000CC96u;
 constexpr u32 kWatcomRuntimeTextFileOffset = 0x00039342u;
 constexpr u32 kRavenloftTextFileOffset     = 0x0003E7ACu;
 
-// The first two bytes are verified as the conventional DOS MZ signature.
-constexpr u8 kMzSignature0 = 0x4Du; // 'M'
-constexpr u8 kMzSignature1 = 0x5Au; // 'Z'
-
-// A BW signature occurs at 0xF444 in a structured region adjacent to the
-// embedded name "4GWPRO.EXP".  Its complete field interpretation is withheld
-// here until each header field is mapped against the loader format.
-constexpr u8 kBwSignature0 = 0x42u; // 'B'
-constexpr u8 kBwSignature1 = 0x57u; // 'W'
-
 // --------------------------------------------------------------------------
-// x86 arithmetic helpers
+// Explicit little-endian memory operations
 // --------------------------------------------------------------------------
-// Later reconstruction must preserve modulo-2^N integer behavior where the
-// original instruction does so.  Unsigned fixed-width C++ arithmetic gives us
-// a defined representation for that wrapping behavior without depending on
-// host signed-overflow rules.
-[[nodiscard]] constexpr u8 wrap8(u32 value) noexcept {
-    return static_cast<u8>(value);
-}
-
-[[nodiscard]] constexpr u16 wrap16(u32 value) noexcept {
-    return static_cast<u16>(value);
-}
-
-[[nodiscard]] constexpr u32 add32(u32 lhs, u32 rhs) noexcept {
-    return lhs + rhs;
-}
-
-[[nodiscard]] constexpr u32 sub32(u32 lhs, u32 rhs) noexcept {
-    return lhs - rhs;
-}
-
-// Rotate helpers model the value transformation only.  They do NOT claim to
-// reproduce EFLAGS.  Any translated instruction sequence whose subsequent
-// behavior depends on flags must model the required flags explicitly.
-[[nodiscard]] constexpr u32 rol32(u32 value, unsigned count) noexcept {
-    count &= 31u;
-    if (count == 0u) {
-        return value;
-    }
-    return static_cast<u32>((value << count) | (value >> (32u - count)));
-}
-
-[[nodiscard]] constexpr u32 ror32(u32 value, unsigned count) noexcept {
-    count &= 31u;
-    if (count == 0u) {
-        return value;
-    }
-    return static_cast<u32>((value >> count) | (value << (32u - count)));
-}
-
-// --------------------------------------------------------------------------
-// Explicit little-endian memory access
-// --------------------------------------------------------------------------
-// x86 stores multi-byte scalar values little-endian.  Directly casting a byte
-// pointer to u16/u32 would introduce host alignment and aliasing assumptions,
-// so reconstruction code uses byte-wise helpers when operating on emulated or
-// image-backed memory.
 [[nodiscard]] constexpr u16 load_le16(const u8* p) noexcept {
-    return static_cast<u16>(
-        static_cast<u16>(p[0]) |
-        static_cast<u16>(static_cast<u16>(p[1]) << 8u));
+    return static_cast<u16>(static_cast<u16>(p[0]) |
+                            (static_cast<u16>(p[1]) << 8u));
 }
 
 [[nodiscard]] constexpr u32 load_le32(const u8* p) noexcept {
-    return static_cast<u32>(
-        static_cast<u32>(p[0]) |
-        (static_cast<u32>(p[1]) << 8u) |
-        (static_cast<u32>(p[2]) << 16u) |
-        (static_cast<u32>(p[3]) << 24u));
+    return static_cast<u32>(static_cast<u32>(p[0]) |
+                            (static_cast<u32>(p[1]) << 8u) |
+                            (static_cast<u32>(p[2]) << 16u) |
+                            (static_cast<u32>(p[3]) << 24u));
 }
 
 constexpr void store_le16(u8* p, u16 value) noexcept {
@@ -162,11 +161,16 @@ constexpr void store_le32(u8* p, u32 value) noexcept {
 }
 
 // --------------------------------------------------------------------------
-// Minimal x86 condition state
+// x86-width arithmetic and tracked condition flags
 // --------------------------------------------------------------------------
-// This is deliberately not yet a complete CPU emulator.  It is a place to
-// represent only flags that a verified translated block actually consumes.
-// Fields will be added only when required by original instructions.
+[[nodiscard]] constexpr u32 add32(u32 lhs, u32 rhs) noexcept {
+    return lhs + rhs;
+}
+
+[[nodiscard]] constexpr u32 sub32(u32 lhs, u32 rhs) noexcept {
+    return lhs - rhs;
+}
+
 struct ConditionFlags {
     bool carry = false;
     bool zero = false;
@@ -174,38 +178,42 @@ struct ConditionFlags {
     bool overflow = false;
 };
 
-// Compute the subset of ADD flags above for a 32-bit operation.  Keeping flag
-// derivation explicit prevents a later C++ expression from accidentally losing
-// a branch condition that existed in the original x86 sequence.
 [[nodiscard]] constexpr ConditionFlags add32_flags(u32 lhs, u32 rhs) noexcept {
     const u32 result = add32(lhs, rhs);
-
-    ConditionFlags flags{};
-    flags.carry = result < lhs;
-    flags.zero = (result == 0u);
-    flags.sign = (result & 0x80000000u) != 0u;
-    flags.overflow = ((~(lhs ^ rhs) & (lhs ^ result)) & 0x80000000u) != 0u;
-    return flags;
+    return {
+        result < lhs,
+        result == 0u,
+        (result & 0x80000000u) != 0u,
+        ((~(lhs ^ rhs) & (lhs ^ result)) & 0x80000000u) != 0u
+    };
 }
 
-// Compute the same tracked subset for 32-bit SUB/CMP semantics.
 [[nodiscard]] constexpr ConditionFlags sub32_flags(u32 lhs, u32 rhs) noexcept {
     const u32 result = sub32(lhs, rhs);
-
-    ConditionFlags flags{};
-    flags.carry = lhs < rhs; // x86 borrow indication for SUB/CMP.
-    flags.zero = (result == 0u);
-    flags.sign = (result & 0x80000000u) != 0u;
-    flags.overflow = (((lhs ^ rhs) & (lhs ^ result)) & 0x80000000u) != 0u;
-    return flags;
+    return {
+        lhs < rhs,
+        result == 0u,
+        (result & 0x80000000u) != 0u,
+        (((lhs ^ rhs) & (lhs ^ result)) & 0x80000000u) != 0u
+    };
 }
 
 // --------------------------------------------------------------------------
-// Reconstruction boundary
+// First recovered control-flow boundary
 // --------------------------------------------------------------------------
-// No application function is declared below this point yet.  The next phase
-// must first establish the protected-mode image's segment/object mapping and
-// entry point.  Adding guessed function boundaries here would violate the
-// one-to-one, evidence-first requirement of this project.
+// Entry execution is now proven to begin at object-1 offset CC1C/file 39340:
+//
+//   CC1C  EB 78    jmp CC96
+//
+// CC96 begins the Watcom run-time startup sequence.  That sequence aligns ESP,
+// records initial run-time state, performs DOS INT 21h environment/version and
+// memory-management calls, copies command/environment material, initializes
+// run-time subsystems, and ultimately terminates through INT 21h/AH=4Ch.
+//
+// It is deliberately NOT translated into a high-level function in this commit.
+// The exact INT 21h side effects, segment-register state, and Watcom start-up
+// calling contract are being accounted for instruction-by-instruction first.
+// Promoting this block prematurely would conceal machine state and violate the
+// project's one-to-one requirement.
 
 } // namespace code1
