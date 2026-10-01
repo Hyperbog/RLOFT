@@ -16,4 +16,5 @@ assert old in s;s=s.replace(old,new)
 old='s32 wrote=b.write_handle?b.write_handle(handle,buffer,count):-1;if(wrote<0)return -1;return wrote;'
 new='s32 wrote=b.write_handle?b.write_handle(handle,buffer,count):-1;if(wrote<0)return -1;if(static_cast<u32>(wrote)!=count&&f.call_103b7)if(u32*p=f.call_103b7())*p=12u;return wrote;'
 assert old in s;s=s.replace(old,new)
+s=s.replace('RuntimeTailBoundaries','RuntimeIoBoundaries')
 p.write_text(s)
