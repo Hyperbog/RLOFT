@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-0.75%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-1.89%25-red)
 
-**Verified conversion:** 0.75%  
-**Remaining:** 99.25%  
+**Verified conversion:** 1.89%  
+**Remaining:** 98.11%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
-The percentage is a conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unverified translations do not count.
+The percentage remains the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unverified translations do not count.
 
-Current verified translated bytes: **533**.  
+Current verified translated bytes: **1,334**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **0.7571%**, displayed conservatively as **0.75%**.
+Raw coverage: **1.8948%**, displayed conservatively as **1.89%**.
 
 ## Immutable source identity
 
@@ -20,42 +20,41 @@ Raw coverage: **0.7571%**, displayed conservatively as **0.75%**.
 - Size: `277,787` bytes (`0x43D1B`)
 - SHA-256: `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed`
 
-## Verified executable mapping
+## Verified translation inventory
 
-- Outer MZ: `0x00000000`.
-- Bound Rational/Tenberry BW image: `0x0000F444`; embedded name `4GWPRO.EXP`.
-- BW `next_header_offset = 0x25D24`, locating the application MZ.
-- Application MZ: `0x00025D24`; LE header: `0x00027BDC`; LE page data: `0x0002C724`.
-- Object 1: executable/readable, virtual size `0x11302`, base `0x10000`, flags `0x2005`, pages 1-18.
-- Object 2: writable data/stack, virtual size `0x9E90`, base `0x30000`, flags `0x2003`, pages 19-24.
-- Entry: object 1 `0xCC1C` / file `0x39340`; initial stack object 2 `0x9E90`.
+- Startup/recovery regions through `CD96`: **259 bytes**.
+- Structured mouse-facing routines `D08C..D153` plus overlap-safe copy `D1E8..D239`: **274 bytes**.
+- Structured file read `D5AD..D685`: **217 bytes**.
+- Structured file write `D686..D85E`: **473 bytes**.
+- Structured file seek `D85F..D8A9`: **75 bytes**.
+- Structured file delete `D8AA..D8CD`: **36 bytes**.
 
-## Verified translation
+Total verified translated bytes: **1,334**.
 
-Previously verified startup regions remain **259 bytes** through `CD96`.
+## Larger-batch policy
 
-### Structured lift — D08C..D153 and D1E8..D239
+The working target is approximately **4,000 newly verified bytes per batch**, but an obstacle in one region no longer terminates the batch. Unresolved call edges are recorded and translation continues in other independently provable regions. Fidelity remains the hard constraint: no byte is counted merely to satisfy the target.
 
-An additional **274 bytes** are now instruction-accounted as ordinary structured C++, rather than extending the startup CPU-state scaffold:
+This checkpoint adds **801 verified bytes** beyond the previous 533-byte total. The newly lifted region is particularly useful because it is ordinary structured C++ rather than CPU-state emulation: the original DOS file read/write/seek/delete behavior is represented behind explicit native boundaries, while still-unproven Watcom runtime helpers remain address-named (`10314`, `103B7`, `103C3`, `1042D`, `1046F`).
 
-- `D08C..D0B0`: 37-byte gated INT 33h wrapper, preserving AX=4 and original argument/register placement.
-- `D0B4..D108`: 85-byte mouse-state query. Preserves INT 33h AX=3 and the exact stores at DGROUP `8A60`, `8A64`, and `8A66`, including the signed arithmetic shift of CX.
-- `D10C..D12E`: 35-byte gated INT 33h AX=7 wrapper.
-- `D130..D152`: 35-byte gated INT 33h AX=8 wrapper.
-- `D1E8..D239`: 82-byte overlap-safe copy routine. Its forward/backward overlap tests and copy behavior establish the semantic contract of `memmove`, so the structured C++ uses `std::memmove` rather than simulated registers.
+### File-read fidelity (`D5AD..D685`)
 
-Open Watcom's DOS/4GW programming documentation explicitly documents protected-mode support for Microsoft-standard interrupt `33h`, corroborating the mouse boundary while CODE.1 remains the controlling evidence.
+The reconstruction preserves the original handle-flag tests, direct/binary read path, text-mode CR removal, `1Ah` termination behavior, repeated reads, and runtime error boundaries.
 
-## Fidelity stop
+### File-write fidelity (`D686..D85E`)
 
-The ~4,000-byte batch target is intentionally not a quota. This batch stopped after **274 new verified bytes** because the next nearby routines depend on calls at `84D0`, `8960`, `82A4`, and related targets whose semantics have not yet been established. They remain address-named boundaries rather than receiving guessed subsystem names.
+The reconstruction preserves append seeking, direct/binary writes, text-mode LF-to-CR/LF expansion, the original `0x80`/`0x200` temporary-buffer selection, short-write error handling, and the original return-accounting behavior.
 
-This is also the first checkpoint implementing the agreed hybrid approach: low-level state remains only where needed for startup recovery, while independently proven routines are lifted directly into structured native C++.
+### Seek/delete (`D85F..D8CD`)
 
-Total verified translated bytes: **533**.
+The DOS `AH=42h` seek and `AH=41h` delete routines are lifted behind explicit file-system boundaries, retaining the original runtime error-conversion boundary rather than inventing host errno behavior.
+
+## Unresolved queue
+
+Nearby unresolved dependencies such as `84D0`, `8960`, `82A4`, and the address-named CRT helpers remain queued. They do **not** prevent work on independent regions.
 
 ## Next checkpoint
 
-Resolve the call graph around `84D0`/`8960` and the startup successor at `CD97`, then continue toward the ~4,000-byte batch target wherever control-flow and data semantics remain provable.
+Continue the same batch strategy toward approximately 4,000 additional verified bytes, moving among independently provable regions rather than stopping at the first unresolved edge.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
