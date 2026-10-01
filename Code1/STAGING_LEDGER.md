@@ -55,3 +55,5 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 - `104E0..1083E`, `10974..109C0`, `10C46..10C6C` integrated: 979 verified heap/runtime bytes. Guest heap addresses and DPMI/DOS release operations remain explicit boundaries; no host allocator substitution.
 
 - `1083F..10973`, `109C1..10C45` integrated: 954 verified heap-growth bytes. DPMI 0501/0503, DOS AH=48/49, segment-base conversion, mode-9 allocation, and break-extension remain explicit boundaries.
+
+- `10C6F..11301` integrated: 1,683 verified runtime-tail bytes. `10C6D..10C6E` are zero alignment and excluded. Program-break OS calls remain explicit boundaries; stream-list/buffer state is guest-address based.

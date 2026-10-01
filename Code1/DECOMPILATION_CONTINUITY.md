@@ -174,3 +174,7 @@ Update this continuity file whenever the methodology changes or a newly discover
 
 ## Latest heap-growth checkpoint
 Verified total is 14,578 bytes (20.70%). `1083F..10973` and `109C1..10C45` are integrated after direct disassembly. Preserve DPMI 0501/0503 linear-address+handle results, DOS segment allocation/free, mode-9 AX=80004800 allocation, and the 10DD7 break-extension boundary as distinct mechanisms. Active staging remains 974 bytes.
+
+
+## Runtime-tail checkpoint
+Verified total is 16,261 bytes (23.10%). `10C6F..11301` is integrated after direct disassembly; `10C6D..10C6E` are alignment zeros and excluded. This reaches the end of object 1. Preserve 10DD7 mode-0 versus nonzero DOS/extender resize boundaries, 8E84 active-stream list, 8E70 recycled-node list, and the 26-byte stream-record layout. Active staging remains 974 bytes.
