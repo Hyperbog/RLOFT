@@ -44,28 +44,29 @@ Total integrated verified translated bytes: **5,473**.
 `FormatterContinuation.staging.cpp` contains **227 verified instruction-accounted bytes**, still excluded from the official percentage until fold-in:
 
 - `F206..F2D1`: **204 bytes** — fixed-point decimal materialization and encoded rounding walk.
-- `F2D2..F2E8`: **23 bytes** — three-argument indirect thunk through DGROUP `55C4h`.
+- `F2D2..F2E8`: **23 bytes** — indirect thunk through DGROUP `55C4h`.
 
 `F2E9..F721` (**1,081 bytes**) remains a structural C++ lift under verification and is explicitly **uncounted**.
 
-## Materializer fidelity corrections from the latest binary pass
+## Materializer correction pass
 
-The immutable bytes were re-disassembled again through `F2E9..F741`. Two control-flow details that would have made the current structural lift inaccurate were isolated and recorded in `FormatterMaterializer.map.md` before promotion:
+The immutable CODE.1 bytes for the complete `F2E9..F721` region were disassembled again before editing the structural lift. The staging model now preserves several register-level behaviors that a conventional formatter abstraction would lose:
 
-- `F32B -> F327` deliberately jumps into a shared `JE` instruction while retaining flags from `cmp dl,6Fh`. Consequently the initial unsigned pre-read applies to `X/o/u/x`; `d/i` do not pre-read there and consume their signed argument later at `F4BA`. A normal structured reading of the nearby `cmp dl,78h` gives the wrong answer for `o`.
-- `S` does not take the ordinary string-length path. After pointer selection, `F553..F576` loads one selector-qualified word or byte into EAX, advances EDI by 2 or 1, and jumps directly to the common accounting block at `F695`.
+- `F2D2` is represented as an **EAX:DX far return pair** (`offset`, `selector`) rather than an EAX-only callback result.
+- The unsigned pre-read at `F30D..F36D` is limited to `X/o/u/x`; `d/i` consume signed arguments later at `F4BA`.
+- `F/f` with flag `10h` is the path that invokes `F206`; the other floating conversions use the `F2D2` callback path.
+- `d/i` preserve the encoded distinction between `E098` for the `20h`/`10h` length forms and `DFFB` for the default form.
+- The `S` path now carries the selector-qualified character value in live EAX into the common tail, rather than inventing a string length. Its returned source offset is advanced by one or two bytes exactly as encoded.
+- Common-tail precision comparisons are modeled as signed `CMP/Jcc` relationships where the original uses signed conditions.
+- Guest offsets/selectors remain guest addresses; none are reinterpreted as host pointers.
 
-Additional width/register corrections now pinned by the ledger:
+A stale `DispatcherWrappers.staging.cpp` duplicate was also removed because `EBF3..EDE6` is already integrated and counted in `Code1.cpp`; leaving it present risked future double-accounting.
 
-- `AND F9h` clears flag bits `02h` and `04h`, not bit `01h`.
-- The `F2D2` callback contract must preserve both **EAX offset and DX selector**; returning only EAX is insufficient.
-- `F71B..F721` returns EDI in EAX while DX is restored from the saved selector before the common epilogue.
-
-These findings are why the 1,081-byte materializer has not been promoted merely to increase the percentage. The existing structural staging must be corrected against these exact edges first.
+The materializer is still withheld from the verified count. The octal alternate-form/zero-precision path around `F477..F4A4` and the fixed-point helper's retained-word arithmetic are the next byte-level checks before promotion.
 
 ## Active continuation
 
-Correct the `F2E9..F721` structural C++ for the shared-flags octal edge, exact `S` path, and EAX:DX callback/return contracts; then promote/fold `F206..F721` into `Code1.cpp`. After that, translate `EDE7..F006` against the proven formatter helpers.
+Finish the remaining `F2E9..F721` byte-level checks, fold verified `F206..F721` into `Code1.cpp`, then translate `EDE7..F006` against the proven formatter helpers.
 
 ## Larger-batch policy
 
