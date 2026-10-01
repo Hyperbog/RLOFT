@@ -42,30 +42,28 @@ Total integrated verified translated bytes: **8,089**.
 
 ## Startup continuation under reconciliation
 
-`StartupNext.staging.cpp` contains **747 instruction-bounded candidate code bytes** from the startup gap immediately preceding the already integrated `D08C` routines. They remain uncounted pending final reconciliation.
+`StartupNext.staging.cpp` contains **747 instruction-bounded candidate code bytes** from `CD97..D08B`, excluding the seven zero bytes at `CEE9..CEEF` and the three-byte alignment NOP at `CF41..CF43`. They remain uncounted pending final reconciliation.
 
-- `CD97..CEBF`: **297 bytes** — PSP command-tail/environment processing, `no87=` detection, runtime initialization and the common process-exit/fatal continuation.
-- `CEC0..CEC7`: **8 bytes** — CS-relative saved-DS restore helper.
-- `CEC8..CEE8`: **33 bytes** — FEFC register adapter; its four stack arguments map to ESI/EDI/EDX/EBX and it returns dword `[third_argument]` after FEFC.
-- `CEF0..CF40`: **81 bytes** — descriptor/register-image setup for the CEC8 service-31h adapter.
-- `CF44..CF97`: **84 bytes** — 8A28 structure setup and status test.
-- `CF98..D08B`: **244 bytes** — mouse initialization plus encoded no-mouse terminal fallback.
+The PSP command-tail `REPZ SCASB` mismatch behavior, environment executable-path `ESI += 3` transition, FEFC/FF33 adapter mapping, `FC98` non-returning launch path, no-mouse unconditional dereference, and `CBF0 -> CE8B` termination stack relationship have all been reconciled directly against CODE.1. `StartupExit.reconciled.cpp` retains the detailed exit-path evidence.
 
-Boundary correction from direct CODE.1 disassembly: `CEE9..CEEF` is **7 zero bytes**, and `CF41..CF43` is a three-byte `LEA EAX,[EAX+0]` alignment NOP. Neither is counted as functional translated code.
+Remaining startup hardening is concentrated in the `CEF0..D08B` descriptor/mouse-runtime contracts before physical fold-in.
 
-### Newly reconciled startup details
+## DOS/runtime-memory continuation under reconciliation
 
-Direct re-disassembly found and fixed another environment-tail fidelity error. At `CE11`, ESI points at the second NUL terminating the environment block. `CE16 LODSB` consumes that NUL and `CE17/CE18` increment ESI twice more, so the executable-path source begins **three bytes** beyond the second NUL. The earlier staging expression advanced only two bytes despite its comment saying +3. `StartupExit.reconciled.cpp` records the corrected `ESI += 3` behavior and the exact terminating-NUL copy semantics of `CE19..CE1D`.
+`DosMemoryNext.staging.cpp` now closes the address gap immediately between the integrated `D8D0..DA1B` helpers and integrated `DAD9` allocator path. It contains **186 functional instruction-bounded bytes**; `DA45..DA47` is three zero bytes classified as data/alignment and is excluded.
 
-The `CBF0 -> CE8B` termination relationship is now resolved from the bytes. Callers including `FCE2`, `D07C`, `97E0`, `5085`, and `50A4` push an exit value and JMP to `CBF0`. `CBF0` runs the callback chain, re-pushes `[EBP+4]`, creates its second frame, runs the second callback chain, pushes the same exit value again, and JMPs to `CE8B`. Thus `CE8B POP EAX` retrieves the original exit value exactly. It preserves that value around `FD2B`, executes `MOV AH,4Ch`, and terminates through INT 21h with AL as the status.
+- `DA1C..DA44`: **41 bytes** — initializes the 12-byte `104B1` adapter cell and calls the already cross-checked `CEC8` FEFC adapter.
+- `DA48..DA6B`: **36 bytes** — DOS INT 21h/AH=48 allocation wrapper. Success writes returned AX through arg2 and returns zero; failure preserves the requested paragraph count for the output and enters `10384` with carry set.
+- `DA6C..DA7D`: **18 bytes** — DOS AH=49 free wrapper followed by unconditional `10384` while the DOS carry state is live.
+- `DA7E..DAA5`: **40 bytes** — DOS AH=4A resize wrapper; on carry only it writes the requested paragraph count through arg3, then calls `10384` with the unchanged carry state.
+- `DAA6..DAC8`: **35 bytes** — unsigned maximum scan of the arena list rooted at `[30DC]`, ending at sentinel `30D4`, using `dword[node]-4` and `node=[node+8]` exactly.
+- `DAC9..DAD8`: **16 bytes** — ordinary wrapper into the already integrated `DAD9` allocator.
 
-The alternate fatal entry at `CE8E` is also reconciled. `10C4D` proves its stack order with `PUSH 1; PUSH 390h; JMP CE8E`: the top value is the message pointer and the next value is the exit status. `CE8E` opens `CC92` (`"con"`) with AX=3D01h, scans the supplied NUL-terminated message, writes exactly `strlen(message)` bytes using AH=40h, restores the exit value, and falls into the common `CEB3..CEBC` cleanup/termination tail. `10479` reaches the same fatal entry through the stack-check trampoline.
-
-`FC98` remains correctly classified as non-returning in the normal startup path: it computes runtime stack placement, initializes runtime state, calls `508C`, pushes EAX and tail-jumps to `CBF0`.
+Direct inspection of `10384` confirmed that it begins with `JAE`: the carry flag produced by the preceding DOS interrupt is an explicit input to that helper. The staging boundary therefore carries both AX and CF rather than reducing the helper to an AX-only error mapper.
 
 ## Active continuation
 
-Fold the newly proved environment-tail and exit-path corrections back into the main startup staging, then finish the remaining `CEF0..D08B` guest-stack/descriptor and mouse-runtime call-contract reconciliation. `CEC0..CEC7`, `CEC8..CEE8`, and the termination stack relationship now have direct cross-call evidence. Continue into independent CRT/runtime gaps if a remaining startup edge blocks; do not relax the instruction-level standard.
+Continue hardening the 747-byte startup batch, while independently reconciling the new 186-byte `DA1C..DAD8` bridge. The latter is structurally contiguous with already integrated code on both sides and is a strong near-term integration candidate once `104B1` and the DOS carry/error boundary are fully reconciled. Continue through other independent CRT/runtime gaps instead of stopping on isolated dependencies.
 
 ## Larger-batch policy
 
