@@ -6,8 +6,8 @@
  *   277,787 bytes
  *   SHA-256 fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed
  *
- * This file is intentionally a reconstruction, not a modernization.  Every
- * translated region must remain traceable to original CODE.1 bytes.  Unknown
+ * This file is intentionally a reconstruction, not a modernization. Every
+ * translated region must remain traceable to original CODE.1 bytes. Unknown
  * semantics remain unknown rather than being replaced with guesses.
  */
 
@@ -41,13 +41,6 @@ constexpr char kSourceSha256[] =
 // --------------------------------------------------------------------------
 // Bound executable layout - verified directly from CODE.1
 // --------------------------------------------------------------------------
-// 0x00000000 begins the outer MZ executable.
-// 0x0000F444 begins the structured BW image named 4GWPRO.EXP.  This belongs
-// to the bound DOS/4G environment and is not being mistaken for game code.
-//
-// At 0x00025D24 another MZ image begins.  Its MZ size fields identify a
-// 7,864-byte DOS stub.  Immediately after that stub, at 0x00027BDC, is the
-// LE (Linear Executable) header for the 32-bit protected-mode application.
 constexpr u32 kOuterMzFileOffset          = 0x00000000u;
 constexpr u32 kBoundBwFileOffset          = 0x0000F444u;
 constexpr u32 kApplicationMzFileOffset    = 0x00025D24u;
@@ -64,42 +57,33 @@ constexpr u8 kLeSignature1 = 0x45u; // 'E'
 // --------------------------------------------------------------------------
 // Verified LE header values
 // --------------------------------------------------------------------------
-// These fields are decoded from the LE header at file offset 0x27BDC.
-// The executable declares an Intel 80386 target and DOS operating system,
-// contains 24 pages, and has two load objects.
-constexpr u16 kLeCpuType       = 0x0002u; // 80386 in the LE specification.
-constexpr u16 kLeOsType        = 0x0001u; // OS/2 field value used for DOS target.
+constexpr u16 kLeCpuType       = 0x0002u;
+constexpr u16 kLeOsType        = 0x0001u;
 constexpr u32 kLeModuleFlags   = 0x00000200u;
 constexpr u32 kLeModulePages   = 24u;
 constexpr u32 kLePageSize      = 0x00001000u;
 constexpr u32 kLeObjectCount   = 2u;
 
-// LE entry state.  Object numbering in the file is one-based.
 constexpr u32 kEntryObject     = 1u;
 constexpr u32 kEntryOffset     = 0x0000CC1Cu;
 constexpr u32 kStackObject     = 2u;
 constexpr u32 kInitialEsp      = 0x00009E90u;
 constexpr u32 kAutoDataObject  = 2u;
 
-// Object 1: executable/readable code object.  It begins at logical address
-// zero, has virtual size 0x11302, and occupies LE pages 1 through 18.
+// Object 1 is executable/readable and occupies LE pages 1 through 18.
 constexpr u32 kCodeObjectVirtualSize = 0x00011302u;
 constexpr u32 kCodeObjectBase        = 0x00010000u;
 constexpr u32 kCodeObjectFlags       = 0x00002005u;
 constexpr u32 kCodeObjectFirstPage   = 1u;
 constexpr u32 kCodeObjectPageCount   = 18u;
 
-// Object 2: writable data/stack object.  It occupies pages 19 through 24.
+// Object 2 is writable data/stack and occupies LE pages 19 through 24.
 constexpr u32 kDataObjectVirtualSize = 0x00009E90u;
 constexpr u32 kDataObjectBase        = 0x00030000u;
 constexpr u32 kDataObjectFlags       = 0x00002003u;
 constexpr u32 kDataObjectFirstPage   = 19u;
 constexpr u32 kDataObjectPageCount   = 6u;
 
-// The LE data-page offset is 0x6A00 relative to the embedded application MZ,
-// giving absolute CODE.1 file offset 0x2C724.  With 24 pages and the final
-// partial-page byte count 0x5F7, the page data ends exactly at EOF.  This is
-// an independent consistency check on the recovered application-image base.
 constexpr u32 kLeDataPagesRelativeToAppMz = 0x00006A00u;
 constexpr u32 kFinalPageBytes              = 0x000005F7u;
 constexpr u32 kApplicationPageDataBytes =
@@ -112,9 +96,6 @@ static_assert(kApplicationDataFileOffset + kApplicationPageDataBytes ==
 // --------------------------------------------------------------------------
 // File <-> code-object address mapping
 // --------------------------------------------------------------------------
-// Object 1 uses the first LE data page, so a logical offset in object 1 maps
-// directly to kApplicationDataFileOffset + logical_offset.  This mapping is
-// valid only for offsets inside the recovered object-1 virtual extent.
 [[nodiscard]] constexpr bool is_code_object_offset(u32 offset) noexcept {
     return offset < kCodeObjectVirtualSize;
 }
@@ -125,9 +106,6 @@ static_assert(kApplicationDataFileOffset + kApplicationPageDataBytes ==
 
 static_assert(code_offset_to_file_offset(kEntryOffset) == 0x00039340u);
 
-// The first instruction at logical 0000:CC1C is EB 78, a short jump to CC96.
-// Bytes CC1E..CC95 are therefore not executed by normal entry flow.  They
-// contain the embedded Watcom run-time identification text and adjacent data.
 constexpr u32 kEntryFileOffset             = 0x00039340u;
 constexpr u32 kEntryJumpTarget             = 0x0000CC96u;
 constexpr u32 kWatcomRuntimeTextFileOffset = 0x00039342u;
@@ -163,13 +141,8 @@ constexpr void store_le32(u8* p, u32 value) noexcept {
 // --------------------------------------------------------------------------
 // x86-width arithmetic and tracked condition flags
 // --------------------------------------------------------------------------
-[[nodiscard]] constexpr u32 add32(u32 lhs, u32 rhs) noexcept {
-    return lhs + rhs;
-}
-
-[[nodiscard]] constexpr u32 sub32(u32 lhs, u32 rhs) noexcept {
-    return lhs - rhs;
-}
+[[nodiscard]] constexpr u32 add32(u32 lhs, u32 rhs) noexcept { return lhs + rhs; }
+[[nodiscard]] constexpr u32 sub32(u32 lhs, u32 rhs) noexcept { return lhs - rhs; }
 
 struct ConditionFlags {
     bool carry = false;
@@ -180,40 +153,144 @@ struct ConditionFlags {
 
 [[nodiscard]] constexpr ConditionFlags add32_flags(u32 lhs, u32 rhs) noexcept {
     const u32 result = add32(lhs, rhs);
-    return {
-        result < lhs,
-        result == 0u,
-        (result & 0x80000000u) != 0u,
-        ((~(lhs ^ rhs) & (lhs ^ result)) & 0x80000000u) != 0u
-    };
+    return {result < lhs, result == 0u, (result & 0x80000000u) != 0u,
+            ((~(lhs ^ rhs) & (lhs ^ result)) & 0x80000000u) != 0u};
 }
 
 [[nodiscard]] constexpr ConditionFlags sub32_flags(u32 lhs, u32 rhs) noexcept {
     const u32 result = sub32(lhs, rhs);
-    return {
-        lhs < rhs,
-        result == 0u,
-        (result & 0x80000000u) != 0u,
-        (((lhs ^ rhs) & (lhs ^ result)) & 0x80000000u) != 0u
-    };
+    return {lhs < rhs, result == 0u, (result & 0x80000000u) != 0u,
+            (((lhs ^ rhs) & (lhs ^ result)) & 0x80000000u) != 0u};
 }
 
 // --------------------------------------------------------------------------
-// First recovered control-flow boundary
+// Minimal machine interface used by instruction-accountable translations
 // --------------------------------------------------------------------------
-// Entry execution is now proven to begin at object-1 offset CC1C/file 39340:
+// This is deliberately not an emulator. It exposes only state touched by a
+// translated block. DOS services remain an injected boundary because replacing
+// INT 21h with guessed host behavior would no longer be a faithful conversion.
+struct CpuState {
+    u32 eax = 0;
+    u32 ebx = 0;
+    u32 ecx = 0;
+    u32 edx = 0;
+    u32 esi = 0;
+    u32 edi = 0;
+    u32 ebp = 0;
+    u32 esp = 0;
+    u16 ds = 0;
+    u16 es = 0;
+    bool interrupt_enable = false;
+};
+
+struct Machine {
+    CpuState cpu{};
+    u8* data = nullptr; // logical object-2/DGROUP byte 0 is data[0]
+    void (*int21)(Machine&) = nullptr;
+};
+
+[[nodiscard]] constexpr u8 low8(u32 value) noexcept {
+    return static_cast<u8>(value);
+}
+[[nodiscard]] constexpr u8 high8(u32 value) noexcept {
+    return static_cast<u8>(value >> 8u);
+}
+[[nodiscard]] constexpr u16 low16(u32 value) noexcept {
+    return static_cast<u16>(value);
+}
+constexpr void set_low16(u32& value, u16 low) noexcept {
+    value = (value & 0xFFFF0000u) | static_cast<u32>(low);
+}
+constexpr void set_high8(u32& value, u8 high) noexcept {
+    value = (value & 0xFFFF00FFu) | (static_cast<u32>(high) << 8u);
+}
+
+// --------------------------------------------------------------------------
+// Verified translation 1: protected-mode entry and first startup decision
+// --------------------------------------------------------------------------
+// Original object-1/file mapping:
+//   CC1C / 39340: EB 78                    jmp CC96
+//   CC1E..CC95:                            embedded runtime text/data
+//   CC96 / 393BA: FB                       sti
+//   CC97 / 393BB: 83 E4 FC                 and esp,-4
+//   CC9A / 393BE: 8B DC                    mov ebx,esp
+//   CC9C / 393C0: 89 1D 04 53 00 00        mov [5304],ebx
+//   CCA2 / 393C6: 89 1D F0 52 00 00        mov [52F0],ebx
+//   CCA8 / 393CC: 66 B8 24 00              mov ax,24h
+//   CCAC / 393D0: 66 A3 FC 52 00 00        mov [52FC],ax
+//   CCB2 / 393D6: BB 52 41 48 50           mov ebx,50484152h
+//   CCB7 / 393DB: 2B C0                    sub eax,eax
+//   CCB9 / 393DD: B4 30                    mov ah,30h
+//   CCBB / 393DF: CD 21                    int 21h
+//   CCBD / 393E1: A2 26 53 00 00           mov [5326],al
+//   CCC2 / 393E6: 88 25 27 53 00 00        mov [5327],ah
+//   CCC8 / 393EC: 8B C8                    mov ecx,eax
+//   CCCA / 393EE: 2B F6                    sub esi,esi
+//   CCCC / 393F0: BF 81 00 00 00           mov edi,81h
+//   CCD1 / 393F5: C1 E8 10                 shr eax,10h
+//   CCD4 / 393F8: 66 3D 58 44              cmp ax,4458h
+//   CCD8 / 393FC: 0F 85 39 00 00 00        jne CD17
 //
-//   CC1C  EB 78    jmp CC96
-//
-// CC96 begins the Watcom run-time startup sequence.  That sequence aligns ESP,
-// records initial run-time state, performs DOS INT 21h environment/version and
-// memory-management calls, copies command/environment material, initializes
-// run-time subsystems, and ultimately terminates through INT 21h/AH=4Ch.
-//
-// It is deliberately NOT translated into a high-level function in this commit.
-// The exact INT 21h side effects, segment-register state, and Watcom start-up
-// calling contract are being accounted for instruction-by-instruction first.
-// Promoting this block prematurely would conceal machine state and violate the
-// project's one-to-one requirement.
+// The bytes skipped by EB 78 are intentionally not translated as instructions.
+// The first bytes are the literal "WATCOM C/C++32 Run-Time system..." string.
+// Treating them as x86 would create false code.
+enum class StartupPath : u32 {
+    FallThroughCcde = 0x0000CCDEu,
+    BranchCd17      = 0x0000CD17u,
+};
+
+[[nodiscard]] StartupPath translate_cc1c_ccdd(Machine& m) noexcept {
+    // CC1C: JMP CC96. No architectural state changes other than EIP; control
+    // therefore enters this C++ block directly at the translated CC96 state.
+
+    // CC96: STI
+    m.cpu.interrupt_enable = true;
+
+    // CC97: AND ESP,FFFFFFFCh
+    m.cpu.esp &= 0xFFFFFFFCu;
+
+    // CC9A..CCA2: preserve aligned startup stack in EBX and two DGROUP slots.
+    m.cpu.ebx = m.cpu.esp;
+    store_le32(m.data + 0x5304u, m.cpu.ebx);
+    store_le32(m.data + 0x52F0u, m.cpu.ebx);
+
+    // CCA8..CCAC: AX=24h, then save AX at DGROUP:52FC.
+    set_low16(m.cpu.eax, 0x0024u);
+    store_le16(m.data + 0x52FCu, low16(m.cpu.eax));
+
+    // CCB2: EBX receives the literal 50484152h (ASCII bytes "RAHP" in the
+    // register's numeric representation). No semantic name is assigned.
+    m.cpu.ebx = 0x50484152u;
+
+    // CCB7..CCBB: EAX=0; AH=30h; INT 21h. DOS function 30h obtains the DOS
+    // version. The interrupt boundary is injected so exact DOS register side
+    // effects are preserved by the caller rather than approximated here.
+    m.cpu.eax = 0u;
+    set_high8(m.cpu.eax, 0x30u);
+    if (m.int21 != nullptr) {
+        m.int21(m);
+    }
+
+    // CCBD..CCC8: save returned AL/AH and preserve full returned EAX in ECX.
+    m.data[0x5326u] = low8(m.cpu.eax);
+    m.data[0x5327u] = high8(m.cpu.eax);
+    m.cpu.ecx = m.cpu.eax;
+
+    // CCCA..CCCC: zero ESI and set EDI=81h.
+    m.cpu.esi = 0u;
+    m.cpu.edi = 0x00000081u;
+
+    // CCD1..CCD8: inspect the original high word of returned EAX. The compare
+    // is exactly AX==4458h after SHR EAX,16. Non-equality branches to CD17.
+    m.cpu.eax >>= 16u;
+    return low16(m.cpu.eax) != 0x4458u
+        ? StartupPath::BranchCd17
+        : StartupPath::FallThroughCcde;
+}
+
+// 74 original bytes are now instruction-accounted: the 2-byte entry jump plus
+// 72 bytes at CC96..CCDD. The intervening 120 bytes are verified data and are
+// excluded rather than falsely counted as translated instructions.
+constexpr u32 kVerifiedTranslatedBytes = 74u;
 
 } // namespace code1
