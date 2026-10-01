@@ -1,6 +1,8 @@
 name: Integrate CODE.1 formatter
 on:
-  workflow_dispatch:
+  push:
+    branches: [code1-decompilation]
+    paths: ['.github/workflows/integrate-code1-formatter.yml']
 permissions:
   contents: write
 jobs:
