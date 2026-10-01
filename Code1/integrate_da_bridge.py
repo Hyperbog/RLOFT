@@ -8,7 +8,7 @@ s=s.replace(needle,insert+needle,1)
 needle2='void function_db4b(AllocBoundary&b,u32 pointer)noexcept{function_db5b(b,pointer);}\n'
 assert needle2 in s
 s=s.replace(needle2,needle2+'// DAC9..DAD8: exact 16-byte frame wrapper around DAD9.\n[[nodiscard]]u32 function_dac9(AllocBoundary&b,u32 request)noexcept{return function_dad9(b,request);}\n',1)
-s=s.replace('constexpr u32 kVerifiedTranslatedBytes=8234u;','constexpr u32 kVerifiedTranslatedBytes=8291u;')
+s=s.replace('constexpr u32 kVerifiedTranslatedBytes=8089u;','constexpr u32 kVerifiedTranslatedBytes=8291u;')
 assert 'kVerifiedTranslatedBytes=8291u' in s
 p.write_text(s)
 
