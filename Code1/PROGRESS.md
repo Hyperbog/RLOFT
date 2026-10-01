@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-12.18%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-12.29%25-red)
 
-**Verified conversion:** 12.18%  
-**Remaining:** 87.82%  
+**Verified conversion:** 12.29%  
+**Remaining:** 87.71%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **8,576**.  
+Current verified translated bytes: **8,659**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **12.1815%**, displayed conservatively as **12.18%**.
+Raw coverage: **12.2993%**, displayed conservatively as **12.29%**.
 
 ## Immutable source identity
 
@@ -41,9 +41,10 @@ Raw coverage: **12.1815%**, displayed conservatively as **12.18%**.
 - Registration/event subsystem `EA0B..EBF2`: **488 bytes**.
 - 48 exact dispatcher wrappers `EBF3..EDD2`: **480 bytes**.
 - Frame no-op `EDE0..EDE6`: **7 bytes**.
+- Signed decimal parser `E360..E3B2`: **83 bytes**.
 - Complete formatter driver/parser/materializer `EDE7..F741`: **2,395 bytes**.
 
-Total integrated verified translated bytes: **8,576**.
+Total integrated verified translated bytes: **8,659**.
 
 `DA45..DA47` is three zero bytes. `EDD3..EDDF` is **13 zero bytes**. Both are classified as data/alignment and are not counted as translated code.
 
@@ -71,11 +72,11 @@ The prior `RuntimeGapDE6F.staging.cpp` candidate was compared against the unifie
 
 ## E0D0..E3B2 runtime/interrupt continuation under reconciliation
 
-`RuntimeGapE0D0.staging.cpp` contains **722 functional instruction bytes** between the integrated low-level/runtime block ending at `E0C7` and the integrated dispatcher block beginning at `E3B4`. It includes allocation/copy helpers, wrappers, constructor-like chains, INT 24h installation, the full IRET trampoline, and signed decimal parsing. The interrupt trampoline remains explicitly machine-boundary staging.
+`RuntimeGapE0D0.staging.cpp` originally contains **722 functional instruction bytes**; `E360..E3B2` is now integrated, leaving **639 unique unintegrated bytes** between the integrated low-level/runtime block ending at `E0C7` and the integrated dispatcher block beginning at `E3B4`. It includes allocation/copy helpers, wrappers, constructor-like chains, INT 24h installation, the full IRET trampoline, and signed decimal parsing. The interrupt trampoline remains explicitly machine-boundary staging.
 
 ## Active continuation
 
-The unique unintegrated instruction-bounded staging pool is **2,064 bytes**: 747 startup + 595 remaining DOS/CRT + 722 E0D0..E3B2. `DE6F..DEA0` is an unresolved boundary and is deliberately outside that staging total. Continue hardening independently provable subranges and fold them only after exact call-contract reconciliation, preservation checks, and unified syntax checking.
+The unique unintegrated instruction-bounded staging pool is **1,981 bytes**: 747 startup + 595 remaining DOS/CRT + 639 remaining E0D0..E35F. `DE6F..DEA0` is an unresolved boundary and is deliberately outside that staging total. Continue hardening independently provable subranges and fold them only after exact call-contract reconciliation, preservation checks, and unified syntax checking.
 
 ## Integration placement audit
 
