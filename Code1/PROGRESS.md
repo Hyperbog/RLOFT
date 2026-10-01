@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-11.48%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-11.69%25-red)
 
-**Verified conversion:** 11.48%  
-**Remaining:** 88.52%  
+**Verified conversion:** 11.69%  
+**Remaining:** 88.31%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **8,089**.  
+Current verified translated bytes: **8,234**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **11.4897%**, displayed conservatively as **11.48%**.
+Raw coverage: **11.6957%**, displayed conservatively as **11.69%**.
 
 ## Immutable source identity
 
@@ -23,7 +23,7 @@ Raw coverage: **11.4897%**, displayed conservatively as **11.48%**.
 ## Integrated verified translation inventory
 
 - Startup/recovery regions through `CD96`: **259 bytes**.
-- Structured mouse-facing routines `D08C..D153` plus overlap-safe copy `D1E8..D239`: **274 bytes**.
+- Structured mouse-facing routines `D08C..D153`, verified mouse/event pump `D154..D1E7`, plus overlap-safe copy `D1E8..D239`: **419 bytes**.
 - File read/write/seek/delete `D5AD..D8CD`: **801 bytes**.
 - DOS/CRT directory and utility routines `D8D0..DA1B`: **332 bytes**.
 - Runtime allocator/decoder/transform `DAD9..DDD7`: **764 bytes**.
@@ -36,7 +36,7 @@ Raw coverage: **11.4897%**, displayed conservatively as **11.48%**.
 - Frame no-op `EDE0..EDE6`: **7 bytes**.
 - Complete formatter driver/parser/materializer `EDE7..F741`: **2,395 bytes**.
 
-Total integrated verified translated bytes: **8,089**.
+Total integrated verified translated bytes: **8,234**.
 
 `EDD3..EDDF` is **13 zero bytes** classified as data and is not counted as translated code.
 
@@ -50,9 +50,9 @@ The PSP command-tail `REPZ SCASB` mismatch behavior, environment executable-path
 
 `DosMemoryNext.staging.cpp` contains **186 functional instruction-bounded bytes** from `DA1C..DAD8`; `DA45..DA47` is three zero bytes and excluded. AH=48/AH=4A failure outputs use DOS-returned BX, and `10384` consumes live AX+CF.
 
-## Mouse/event-pump continuation under reconciliation
+## Mouse/event-pump integration
 
-`MousePumpNext.staging.cpp` adds **145 instruction-bounded functional bytes** between the already integrated `D08C..D153` and `D1E8..D239` regions. `D179..D17B` is an alignment NOP and excluded.
+`D154..D178` and `D17C..D1E7` are now physically integrated in `Code1.cpp` after direct byte-for-byte disassembly reconciliation. The three-byte `D179..D17B` alignment LEA remains excluded. This adds **145 verified translated bytes**. The repeated `82A4` call at `D1B6` and the preserved pointer test after `8960` are represented explicitly.
 
 ## D23A..D5AC DOS/CRT continuation under reconciliation
 
@@ -75,6 +75,10 @@ The fill routines remain staging until the exact pointer/address representation 
 ## Active continuation
 
 Harden independently provable staged subranges and fold them only after exact call-contract reconciliation and unified syntax checking. Current uncounted instruction-bounded staging totals **3,201 bytes** across startup, DOS-memory, mouse-pump, DOS/CRT, DE6F..E0C7, and E0D0..E3B2 work streams. Continue past isolated blockers toward the approximately 4 KB batch target without relaxing fidelity.
+
+## Integration accounting audit
+
+After comparing all active staging against `Code1.cpp`, DA48..DAA6 and DEA7..E0C7 were found already integrated and are not new work. `DE6F..DEA0` is not accepted as a proven function boundary: direct disassembly begins with bytes that do not form a justified ordinary entry, so it returns to the unresolved queue. After the 145-byte mouse fold, unique uncounted staged code is **2,406 bytes** (747 startup + 57 genuinely missing DA1C/DAC9 bridge bytes + 880 D23A..D5AC + 722 E0D0..E3B2).
 
 ## Larger-batch policy
 
