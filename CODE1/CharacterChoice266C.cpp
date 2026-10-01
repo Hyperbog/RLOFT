@@ -28,8 +28,8 @@ void CharacterChoice266C::run(CharacterChoiceState266C& state,
             state.field680C, state.fields680D[0], state.fields680D[1]
         };
         const CharacterOptionOps2198 optionOps{ops.readDsS8};
-        // This caller only invokes 0x2198 with stage 0..2. All three paths
-        // explicitly define EDX before returning, so inherited EDX is dead here.
+        // stage is constrained by 0x2889..0x2895 to 0..2, and all three of
+        // those 0x2198 paths define EDX before returning.
         if (CharacterOptions2198::build(optionFlags, stage, optionState, 0, optionOps) == 0) break;
 
         std::array<std::int32_t, 9> slots{
@@ -62,9 +62,9 @@ void CharacterChoice266C::run(CharacterChoiceState266C& state,
             state.text948 = 3;
             ops.call07E4(0, 6);
         } else {
+            // 0x27B2..0x27E0 only calls 0x1464 and sets the initialized flag;
+            // it does not synthesize an 8F4 fill here.
             ops.call1464(3, slots, 0x0A, -1, 0x28);
-            state.previous8F4.fill(0x15);
-            state.current8F8 = slots;
             pageInitialized = true;
         }
 
@@ -75,8 +75,11 @@ void CharacterChoice266C::run(CharacterChoiceState266C& state,
             const std::int32_t selection = ops.call043C();
             lastSelection = selection;
             if (selection != 0 && selection != 0xFF) {
-                if (selection >= 1 && selection <= 6 &&
-                    slots[static_cast<std::size_t>(selection - 1)] != 0x15) {
+                // 0x2807 performs the stack lookup directly with EAX; there is
+                // no explicit 1..6 guard in CODE.1. The UI hit-test contract is
+                // the source of the normal six-option range.
+                const auto rawIndex = static_cast<std::uint32_t>(selection) - 1u;
+                if (*(slots.data() + rawIndex) != 0x15) {
                     state.fields680D[static_cast<std::size_t>(stage)] =
                         static_cast<std::uint8_t>(selection - 1);
                     modeDelta = 1;
@@ -110,7 +113,10 @@ void CharacterChoice266C::run(CharacterChoiceState266C& state,
         post15B0Edx = ops.call15B0(-1, -1, -1, -1);
     }
 
-    state.mode4D0 += modeDelta;
+    // ADD DWORD DS:04D0,EDI wraps modulo 2^32.
+    state.mode4D0 = static_cast<std::int32_t>(
+        static_cast<std::uint32_t>(state.mode4D0) +
+        static_cast<std::uint32_t>(modeDelta));
     if (modeDelta == 1) {
         CharacterTriple1F24::normalize(
             state.fields680D, static_cast<std::uint8_t>(post15B0Edx));
