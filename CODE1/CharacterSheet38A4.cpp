@@ -1,145 +1,75 @@
 #include "CharacterSheet38A4.h"
 
-#include "RuntimeDecimal88D8.h"
-#include "RuntimeStrcatB01A.h"
-
-#include <array>
-#include <cstddef>
+#include <bit>
 #include <cstdint>
-#include <cstdio>
-#include <string>
 
 namespace ravenloft::game {
 namespace {
-
-// Exact signed-byte table at CODE.1 data DS:083F. The renderer indexes this
-// with record byte 0x34 (DS:682C).
-constexpr std::array<std::int8_t, 20> kModifier083F{{
-    6,5,5,4,3,2,1,0,0,0,0,0,0,0,0,-1,-2,-3,-4,-4
-}};
-
-std::string formatTwo(std::uint8_t value) {
-    char buffer[16]{};
-    std::snprintf(buffer, sizeof(buffer), "%02d", static_cast<int>(value));
-    return buffer;
+constexpr std::uint32_t add32(std::uint32_t a,std::uint32_t b) noexcept{return a+b;}
+constexpr std::uint32_t mul32(std::uint32_t a,std::uint32_t b) noexcept{return a*b;}
+constexpr std::uint32_t u32(std::int32_t v) noexcept{return std::bit_cast<std::uint32_t>(v);}
+constexpr std::int32_t sx8(std::uint8_t v) noexcept{return static_cast<std::int8_t>(v);}
+constexpr std::int32_t sx16(std::uint16_t v) noexcept{return static_cast<std::int16_t>(v);}
+constexpr std::uint32_t base(const CharacterSheetOps38A4&o) noexcept{return mul32(o.readDword(0x4CCu),0x248u);}
 }
 
-std::string formatExceptional(std::uint8_t value, std::uint8_t percentile) {
-    char buffer[24]{};
-    const int remainder = static_cast<int>(percentile) % 100;
-    std::snprintf(buffer, sizeof(buffer), "%02d/%02d",
-                  static_cast<int>(value), remainder);
-    return buffer;
-}
-
-void setHighlight(CharacterSheetState38A4& state,
-                  const CharacterSheetOps38A4& ops,
-                  bool enabled) {
-    if (enabled) {
-        state.control59F8[8] = 0x5A;
-        ops.call7DF4(state.control59F8.data());
-    } else {
-        state.control59F8[8] = 0x08;
-        ops.call7DF4(nullptr);
-    }
-}
-
-} // namespace
-
-void CharacterSheet38A4::draw(
-    std::int32_t x,
-    std::int32_t y,
-    CharacterSheetState38A4& state,
-    const TextDatabase& text,
-    const CharacterSheetOps38A4& ops) {
-    // 0x38A9..0x38BF.
-    ops.call6C60(0, x, y, 0x14, 7);
-    x += 4;
-
-    // 0x38C3..0x39AF: six alternating ability-score fields.
-    for (std::int32_t row = 0; row < 6; ++row) {
-        const bool highlighted = row == state.selectedRow7124;
-        if (highlighted) setHighlight(state, ops, true);
-
-        const auto& label = text.at(static_cast<std::size_t>(row + 0x2F));
-        ops.call7E44(x, y + 1, label, 0);
-
-        const auto value = state.bytes682A[static_cast<std::size_t>(row) * 2u];
-        std::string rendered;
-        if (row == 0 && state.bytes682A[12] != 0u) {
-            rendered = formatExceptional(value, state.bytes682A[12]);
-        } else {
-            rendered = formatTwo(value);
-        }
-        ops.call7E04(x, y + 0x2F, rendered, 0);
-
-        if (highlighted) setHighlight(state, ops, false);
-        x += 0x0A;
+void CharacterSheet38A4::draw(std::uint32_t x,std::uint32_t y,const CharacterSheetOps38A4&o){
+    o.call6C60(0u,x,y,0x14u,7u); x+=4u;
+    std::uint32_t ebx=0;
+    for(;ebx<6u;++ebx,x+=0x0Au){
+        if(ebx==o.readDword(0x7124u)){o.writeByte(0x5A00u,0x5Au);o.call7DF4(0x59F8u);}
+        o.call004C(0x55F8u,ebx+0x2Fu);
+        o.call7E44(x,y+1u,0x55F8u,0u);
+        const std::uint32_t b=base(o), a=add32(b,ebx*2u);
+        if(ebx==0u && o.readByte(add32(b,0x6836u))!=0u){
+            const std::uint32_t pct=o.readByte(add32(b,0x6836u));
+            const std::uint32_t rem=static_cast<std::uint32_t>(static_cast<std::int32_t>(pct)%100);
+            o.callAFEE4(0x55F8u,0x54u,o.readByte(add32(a,0x682Au)),rem);
+        }else o.callAFEE3(0x55F8u,0x4Cu,o.readByte(add32(a,0x682Au)));
+        o.call7E04(x,y+0x2Fu,0x55F8u,0u);
+        if(ebx==o.readDword(0x7124u)){o.writeByte(0x5A00u,8u);o.call7DF4(0u);}
     }
 
-    // 0x39B5..0x3A0F: record 0x35 and signed WORD 6810.
-    x += 0x0A;
-    ops.call7E44(x, y + 1, text.at(0x35), 0);
-    ops.call7E04(
-        x, y + 0x2F,
-        RuntimeDecimal88D8::convert(
-            static_cast<std::int16_t>(state.word6810)),
-        0);
+    x+=0x0Au;
+    o.call004C(0x55F8u,ebx+0x2Fu);
+    o.call7E44(x,y+1u,0x55F8u,0u);
+    o.call7E04(x,y+0x2Fu,o.call88D8(u32(sx16(o.readWord(add32(base(o),0x6810u))))),0u);
 
-    // 0x3A12..0x3A7D: record 0x36 and 6813 + DS:083F[682C].
-    x += 0x0A;
-    ops.call7E44(x, y + 1, text.at(0x36), 0);
-    const auto modifierIndex =
-        static_cast<std::size_t>(state.bytes682A[2]);
-    const std::int32_t derived =
-        static_cast<std::int8_t>(state.field6813) +
-        static_cast<std::int32_t>(kModifier083F[modifierIndex]);
-    ops.call7E04(
-        x, y + 0x2F,
-        RuntimeDecimal88D8::convert(derived),
-        0);
-
-    // 0x3A80..0x3BB6: label 0x37 for one class, 0x38 for multiple classes,
-    // followed by slash-separated signed WORD levels.
-    x += 0x0A;
-    const bool hasSecond =
-        static_cast<std::int8_t>(state.fields680D[1]) != -1;
-    const bool hasThird =
-        static_cast<std::int8_t>(state.fields680D[2]) != -1;
-    ops.call7E44(x, y + 1, text.at(hasSecond ? 0x38 : 0x37), 0);
-
-    std::string levels =
-        RuntimeDecimal88D8::convert(
-            static_cast<std::int16_t>(state.words6818[0]));
-    if (hasSecond) {
-        RuntimeStrcatB01A::append(levels, "/");
-        RuntimeStrcatB01A::append(
-            levels,
-            RuntimeDecimal88D8::convert(
-                static_cast<std::int16_t>(state.words6818[1])));
+    x+=0x0Au;
+    const std::uint32_t label36=ebx+0x30u; ++ebx;
+    o.call004C(0x55F8u,label36);
+    o.call7E44(x,y+1u,0x55F8u,0u);
+    {
+        const std::uint32_t b=base(o);
+        const std::uint32_t idx=o.readByte(add32(b,0x682Cu));
+        const std::int32_t mod=sx8(o.readByte(add32(0x083Fu,idx)));
+        const std::int32_t f=sx8(o.readByte(add32(b,0x6813u)));
+        o.call7E04(x,y+0x2Fu,o.call88D8(u32(f)+u32(mod)),0u);
     }
-    if (hasThird) {
-        RuntimeStrcatB01A::append(levels, "/");
-        RuntimeStrcatB01A::append(
-            levels,
-            RuntimeDecimal88D8::convert(
-                static_cast<std::int16_t>(state.words6818[2])));
+
+    x+=0x0Au;
+    const std::uint32_t label37=ebx+0x30u; ebx+=2u;
+    o.call004C(0x55F8u,label37);
+    if(sx8(o.readByte(add32(base(o),0x680Eu)))!=-1)o.call004C(0x55F8u,ebx+0x2Fu);
+    o.call7E44(x,y+1u,0x55F8u,0u);
+    o.call72A0(0x55F8u,o.call88D8(u32(sx16(o.readWord(add32(base(o),0x6818u))))));
+    if(sx8(o.readByte(add32(base(o),0x680Eu)))!=-1){
+        o.callB01A(0x55F8u,0x60u);
+        o.callB01A(0x55F8u,o.call88D8(u32(sx16(o.readWord(add32(base(o),0x681Au))))));
     }
-    ops.call7E04(x, y + 0x2F, levels, 0);
+    if(sx8(o.readByte(add32(base(o),0x680Fu)))!=-1){
+        o.callB01A(0x55F8u,0x60u);
+        o.callB01A(0x55F8u,o.call88D8(u32(sx16(o.readWord(add32(base(o),0x681Cu))))));
+    }
+    o.call7E04(x,y+0x2Fu,0x55F8u,0u);
 
-    // 0x3BB9..0x3C4E: record 0x39 and signed WORD 6816.
-    x += 0x0A;
-    const bool finalHighlighted = state.selectedRow7124 == 0x0A;
-    if (finalHighlighted) setHighlight(state, ops, true);
-
-    ops.call7E44(x, y + 1, text.at(0x39), 0);
-    ops.call7E04(
-        x, y + 0x2F,
-        RuntimeDecimal88D8::convert(
-            static_cast<std::int16_t>(state.word6816)),
-        0);
-
-    if (finalHighlighted) setHighlight(state, ops, false);
+    x+=0x0Au; ++ebx;
+    if(o.readDword(0x7124u)==0x0Au){o.writeByte(0x5A00u,0x5Au);o.call7DF4(0x59F8u);}
+    ebx+=0x2Fu;
+    o.call004C(0x55F8u,ebx);
+    o.call7E44(x,y+1u,0x55F8u,0u);
+    o.call7E04(x,y+0x2Fu,o.call88D8(u32(sx16(o.readWord(add32(base(o),0x6816u))))),0u);
+    if(o.readDword(0x7124u)==0x0Au){o.writeByte(0x5A00u,8u);o.call7DF4(0u);}
 }
 
 } // namespace ravenloft::game
