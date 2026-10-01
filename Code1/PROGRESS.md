@@ -34,48 +34,37 @@ Total integrated verified translated bytes: **3,680**.
 
 ## Current instruction-checked staging
 
-`DispatcherTimer.staging.cpp` contains **1,250 instruction-accounted code bytes** awaiting fold-in to the single `Code1.cpp` reconstruction. They remain excluded from the percentage until integration.
+`DispatcherTimer.staging.cpp` contains **1,250 instruction-accounted code bytes** awaiting fold-in to the single `Code1.cpp` reconstruction.
 
 - `E3B4..E4C6`: **275 bytes** — callback lookup, common dispatcher, INT 8 handler, PIC EOI path, and saved-vector chain behavior.
 - `EA0B..EBF2`: **488 bytes** — descriptor/slot registration and clearing, events `64h`/`65h`, timer-backed event setup, pending-state release, and event `68h` dispatch.
-- `EBF3..EDD2`: **480 bytes** — exactly 48 consecutive ten-byte wrappers, each encoded as `mov eax,<event>; jmp E3E0`.
+- `EBF3..EDD2`: **480 bytes** — 48 consecutive ten-byte dispatcher wrappers.
 - `EDE0..EDE6`: **7 bytes** — exact no-op-style frame routine.
 
-The 48 wrapper event constants, in address order, are:
+`FormatterHelpers.staging.cpp` now adds **543 instruction-accounted translated bytes**:
 
-`78,79,86,7A,7B,85,7C,7D,7E,7F,80,81,82,83,84,96,97,98,99,9A,9B,9C,9D,9E,9F,AA,AB,AD,AE,AF,B0,B1,B2,B3,B4,B5,B6,B7,B9,BA,BB,BC,BD,BE,BF,C0,C1,C2` (hex).
+- `F007..F10F`: **265 bytes** — format flags, width, precision, `*` argument consumption, and encoded length-modifier parsing.
+- `F110..F162`: **83 bytes** — `-`, `#`, `+`, space, and `0` flag scanner.
+- `F163..F18B`: **41 bytes** — selector-qualified bounded byte-string scan.
+- `F18C..F1B2`: **39 bytes** — selector-qualified bounded two-byte-string scan.
+- `F1B3..F205`: **83 bytes** — hexadecimal conversion followed by left zero-padding.
+- `F722..F741`: **32 bytes** — in-place uppercase helper through the already identified `D991` ASCII transform.
 
-`EDD3..EDDF` is **13 zero bytes** and is deliberately classified as data rather than code. It is not included in the 1,250-byte staging total.
+Total translated staging is now **1,793 bytes**. These remain excluded from the official percentage until folded into `Code1.cpp`.
 
-## Formatted-output dependency trace
+`EDD3..EDDF` is **13 zero bytes** and remains classified as data rather than code.
 
-The formatted-output routine `EDE7..F006` is instruction-bounded at **544 bytes**. Its formerly blocking helper chain is now bounded through `F741`, adding **1,851 dependency bytes** of exact instruction coverage for analysis. These bytes are not yet counted as translated code.
+## Formatter continuation
 
-Dependency boundaries established directly from CODE.1:
+The complete formatter dependency region `F007..F741` remains bounded at **1,851 bytes**. Of that region, **543 bytes are now lifted into instruction-accounted C++ staging**. The remaining principal body is `F206..F721`, including the conversion materializer beginning at `F2E9`.
 
-- `F007..F162`: **348 bytes** — conversion-specification parser. `F110..F162` is its flag parser for `-`, `#`, `+`, space, and `0`. `F007` parses width, `*`, precision, and modifier bytes `N`, `l`/`w`, `h`, `F`, and `L` into the conversion-state record.
-- `F163..F18B`: **41 bytes** — selector:offset byte-string bounded-length scan; stops on NUL or supplied count.
-- `F18C..F1B2`: **39 bytes** — selector:offset word-string bounded-length scan; advances two bytes per element and stops on zero word or count.
-- `F1B3..F205`: **83 bytes** — hexadecimal conversion followed by left zero-padding to a requested field length.
-- `F206..F2D1`: **204 bytes** — decimal/fixed conversion helper with precision handling and an encoded rounding/carry path. No floating-point semantic name is assigned yet.
-- `F2D2..F2E8`: **23 bytes** — three-argument indirect thunk through dword `[55C4]`.
-- `F2E9..F721`: **1,081 bytes** — main conversion materializer used by `EDE7`. It dispatches on conversion byte and length flags, consumes the argument cursor, calls the integer/radix helpers and the indirect thunk, handles `c`, `s`/`S`, signed/unsigned decimal, octal, hexadecimal, pointer-style forms, and the `E/F/G` family, then normalizes sign/prefix/precision fields in the conversion-state record.
-- `F722..F741`: **32 bytes** — in-place uppercase pass using `D991` until NUL.
+`EDE7..F006` remains a separately bounded **544-byte** formatted-output core. It will not be counted until its helper behavior is represented without substituting libc formatting semantics.
 
-Total newly bounded helper chain `F007..F741`: **1,851 bytes**. Together with `EDE7..F006`, the formatter subsystem currently has **2,395 bytes** of exact bounded code under active lifting, in addition to the separate 1,250-byte dispatcher/timer staging unit.
-
-Important fidelity points:
-
-- `F007` consumes `*` width and precision by incrementing the argument cursor by exactly four bytes and reading the just-consumed dword.
-- Negative `*` width is negated and sets flag `08h`; negative `*` precision is replaced with `FFFFFFFFh`.
-- `F163` and `F18C` preserve explicit selectors and therefore must not be collapsed into ordinary host `strlen`/wide-string calls.
-- `F2E9` contains multiple far-pointer/selector paths and conversion-specific argument widths; lifting must preserve those rather than imposing a modern ABI.
-- `F206` has nontrivial byte/word aliasing and rounding behavior, so it remains address-named until the exact numeric representation is proven.
-- `F2D2` is deliberately kept as an indirect boundary until the target stored at `[55C4]` is established.
+Important fidelity details retained in the new staging include signed handling of `*` width and precision, exact flag-bit mutations, one-dword argument-cursor consumption for each `*`, selector-qualified string reads, and the distinct byte/two-byte scan increments.
 
 ## Active continuation
 
-Lift the now-bounded `F007..F741` helper chain into instruction-accountable C++, then lift `EDE7..F006` against those helpers. The separate 1,250 staged dispatcher/timer bytes remain queued for fold-in to `Code1.cpp`; neither group enters the official percentage until integration and verification.
+Continue lifting `F206..F721`, especially `F2E9`, then lift `EDE7..F006` against those helpers. The dispatcher/timer and formatter staging will be folded into `Code1.cpp` only after the combined representation is rechecked.
 
 ## Larger-batch policy
 
@@ -83,6 +72,6 @@ The working target remains approximately **4,000 newly verified bytes per substa
 
 ## Unresolved queue
 
-Fold the 1,250 staged bytes into `Code1.cpp`; lift `F007..F741` and `EDE7..F006`; identify the `[55C4]` indirect target contract; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
+Fold the 1,793 staged bytes into `Code1.cpp`; lift `F206..F721` and then `EDE7..F006`; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
