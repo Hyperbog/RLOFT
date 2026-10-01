@@ -324,10 +324,16 @@ struct RuntimeConstructBoundary{u16(*read_word_6304)(u32)=nullptr;u32(*alloc_71c
 [[nodiscard]]u32 function_e208(RuntimeConstructBoundary&b,u32 /*unused_arg1*/,u32 source)noexcept{return runtime_construct_e190_body(b,source);}
 static_assert(0xE1F1u-0xE190u==97u); static_assert(0xE269u-0xE208u==97u);
 
+// E280..E2C2: install the E2C3 INT 24h trampoline while preserving the caller-supplied far callback at 5102:5106.
+// Runtime modes 2..4 use the extender-specific INT 21h AX=2506h, CL=24h form; all other modes use AH=25h, AL=24h. The encoded routine returns EAX=0.
+struct Int24InstallBoundary{void(*store_callback)(u32,u16)=nullptr;u8(*runtime_mode)()=nullptr;void(*install_extender_vector)(u8,u32)=nullptr;void(*install_dos_vector)(u8,u32)=nullptr;};
+[[nodiscard]]u32 function_e280(Int24InstallBoundary&b,u32 callback_offset,u32 callback_selector)noexcept{if(b.store_callback)b.store_callback(callback_offset,static_cast<u16>(callback_selector));const u8 mode=b.runtime_mode?b.runtime_mode():0u;if(mode>=2u&&mode<=4u){if(b.install_extender_vector)b.install_extender_vector(0x24u,0xE2C3u);}else if(b.install_dos_vector)b.install_dos_vector(0x24u,0xE2C3u);return 0u;}
+static_assert(0xE2C3u-0xE280u==67u);
+
 // E360..E3B2: signed decimal parser. Character classes are indexed by unsigned byte+1 at DGROUP+03B4; bit 02h skips leading class, bit 20h accepts digits.
 [[nodiscard]]u32 function_e360(const u8*data,u32 text)noexcept{u32 p=text;auto cls=[&](u8 c)noexcept->u8{return data[0x3b4u+static_cast<u32>(static_cast<u8>(c+1u))];};while((cls(data[p])&0x02u)!=0)++p;const u8 sign=data[p];if(sign==0x2bu||sign==0x2du)++p;u32 v=0;while((cls(data[p])&0x20u)!=0){v=v*10u+static_cast<u32>(data[p]);++p;v-=0x30u;}if(sign==0x2du)v=0u-v;return v;}
 static_assert(0xE3B3u-0xE360u==83u);
 
-constexpr u32 kVerifiedTranslatedBytes=9074u;
+constexpr u32 kVerifiedTranslatedBytes=9141u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 } // namespace code1

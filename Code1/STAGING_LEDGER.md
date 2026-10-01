@@ -10,9 +10,9 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 |---|---:|---:|---|
 | `StartupNext.staging.cpp` + `StartupExit.reconciled.cpp` | `CD97..D08B` excluding proven padding/data | 747 | PSP/environment scanning and much of startup are understood, but integration still depends on exact selector/stack provenance around `CE21`, the `CEC8 -> FEFC` register-image contract, and preserving the nonreturning/shared exit paths. Re-disassemble each subrange before folding. |
 | `DosCrtNext.staging.cpp` | `D280..D312`, `D332..D4F1` | 595 | `D280..D312` performs DOS DTA get/set and 0x2B-byte copies whose DS/ES direction must be represented exactly. `D332..D4F1` is the open/create/truncate descriptor-state machine; its DOS carry/error encoding and `10397/103C3/10415` interactions are mapped but the placeholder staged C++ is not integration quality. `D313..D331`, `D4F2..D55D`, `D55E..D572`, and `D573..D5AC` are already integrated and must not be counted here. |
-| `RuntimeGapE0D0.staging.cpp` | `E280..E35F` excluding padding and integrated ranges | 224 | `E280` installs INT 24h with extender-specific behavior. `E2C3..E35F` is an IRET trampoline and must remain a machine/interrupt boundary, never an ordinary host callback. `E0D0..E173` is now directly reconciled and integrated, along with the constructors, three 7240 wrappers, and `E360..E3B2`. |
+| `RuntimeGapE0D0.staging.cpp` | `E2C3..E35F` | 157 | Full interrupt trampoline: saves ES/DS and the complete general-register image, calls CEC0, switches SS:ESP to the runtime interrupt stack, far-calls the callback saved at 5102:5106, restores the prior stack with LSS, restores runtime stack metadata and registers, then IRET. It must remain a machine/interrupt boundary, never an ordinary host callback. `E280..E2C2` is now directly reconciled and integrated as the vector installer. |
 
-**Active unique staged bytes: 1,566.**
+**Active unique staged bytes: 1,499.**
 
 ## Resolved / rejected staging facts that must not regress
 
