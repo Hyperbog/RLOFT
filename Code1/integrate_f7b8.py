@@ -1,11 +1,7 @@
 from pathlib import Path
 p=Path('Code1/Code1.cpp'); s=p.read_text()
-# Correct the F750 memory-source path: source is a 32-bit guest address, never a host pointer.
-old='if((flags&1u)!=0u){std::memmove(dst,reinterpret_cast<const void*>(static_cast<std::uintptr_t>(source+offset)),static_cast<std::size_t>(count));return offset+count;}'
-new='if((flags&1u)!=0u){for(u32 i=0;i<count;++i)dst[i]=b.read_guest8?b.read_guest8(source+offset+i):0u;return offset+count;}'
-assert old in s
-s=s.replace(old,new)
-# Add an explicit guest-string comparison boundary for 10C70; do not reinterpret DGROUP offsets as host pointers.
+# F750 is already guest-address-safe; require that invariant before extending its parser chain.
+assert 'if((flags&1u)!=0u){for(u32 i=0;i<count;++i)dst[i]=b.read_guest8?b.read_guest8(source+offset+i):0u;return offset+count;}' in s
 oldfb='void(*dta_post_find)(u32)=nullptr;};'
 newfb='void(*dta_post_find)(u32)=nullptr;s32(*compare_guest_string)(const char*,u32)=nullptr;};'
 assert oldfb in s
@@ -26,5 +22,5 @@ assert inv in t
 t=t.replace(inv,inv+'\n- Resource image-size parser `F7B8..F8BC`: **261 bytes**.')
 q.write_text(t)
 r=Path('Code1/STAGING_LEDGER.md'); u=r.read_text()
-if 'F7B8..F8BC integrated' not in u:u+='\n- `F7B8..F8BC integrated`: 261-byte resource image-size parser directly disassembled; preserves header offset 3Ch, two-byte signature check against DGROUP+038Ch, 0ACh header read, 18h-byte record walk, and encoded close behavior. F750 memory-source handling was simultaneously corrected to use the guest-address boundary rather than a host-pointer cast.\n'
+if 'F7B8..F8BC integrated' not in u:u+='\n- `F7B8..F8BC integrated`: 261-byte resource image-size parser directly disassembled; preserves header offset 3Ch, two-byte signature check against DGROUP+038Ch, 0ACh header read, 18h-byte record walk, and encoded close behavior.\n'
 r.write_text(u)
