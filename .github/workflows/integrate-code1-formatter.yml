@@ -16,5 +16,5 @@ jobs:
       - run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: Integrate verified CODE.1 formatter materializer
+          commit_message: Integrate verified CODE.1 formatter driver
           branch: code1-decompilation
