@@ -310,10 +310,18 @@ struct Runtime7240Boundary{u32(*call_7240)(u32)=nullptr;};
 [[nodiscard]]u32 function_e26c(Runtime7240Boundary&b,u32 a)noexcept{return b.call_7240?b.call_7240(a):0u;}
 static_assert(0xE187u-0xE174u==19u); static_assert(0xE207u-0xE1F4u==19u); static_assert(0xE27Fu-0xE26Cu==19u);
 
+// E190..E1F0 and E208..E268: address-distinct constructor-like readers. The first stack dword is encoded but unused.
+// 6304 is the read wrapper: these bodies request exactly two bytes from source into [EBP-8], zero-extend that word, allocate len+2, store len, set 2904 through 72D0, run 72E0, then call 746C(0,0,dst+2,len,0).
+struct RuntimeConstructBoundary{u16(*read_word_6304)(u32)=nullptr;u32(*alloc_71c8)(u32)=nullptr;void(*write16)(u32,u16)=nullptr;void(*call_72d0)(u32)=nullptr;void(*call_72e0)()=nullptr;void(*call_746c)(u32,u32,u32,u32,u32)=nullptr;};
+[[nodiscard]]u32 runtime_construct_e190_body(RuntimeConstructBoundary&b,u32 source)noexcept{const u16 len=b.read_word_6304?b.read_word_6304(source):0u;const u32 dst=b.alloc_71c8?b.alloc_71c8(static_cast<u32>(len)+2u):0u;if(b.write16)b.write16(dst,len);if(b.call_72d0)b.call_72d0(source);if(b.call_72e0)b.call_72e0();if(b.call_746c)b.call_746c(0u,0u,dst+2u,static_cast<u32>(len),0u);return dst;}
+[[nodiscard]]u32 function_e190(RuntimeConstructBoundary&b,u32 /*unused_arg1*/,u32 source)noexcept{return runtime_construct_e190_body(b,source);}
+[[nodiscard]]u32 function_e208(RuntimeConstructBoundary&b,u32 /*unused_arg1*/,u32 source)noexcept{return runtime_construct_e190_body(b,source);}
+static_assert(0xE1F1u-0xE190u==97u); static_assert(0xE269u-0xE208u==97u);
+
 // E360..E3B2: signed decimal parser. Character classes are indexed by unsigned byte+1 at DGROUP+03B4; bit 02h skips leading class, bit 20h accepts digits.
 [[nodiscard]]u32 function_e360(const u8*data,u32 text)noexcept{u32 p=text;auto cls=[&](u8 c)noexcept->u8{return data[0x3b4u+static_cast<u32>(static_cast<u8>(c+1u))];};while((cls(data[p])&0x02u)!=0)++p;const u8 sign=data[p];if(sign==0x2bu||sign==0x2du)++p;u32 v=0;while((cls(data[p])&0x20u)!=0){v=v*10u+static_cast<u32>(data[p]);++p;v-=0x30u;}if(sign==0x2du)v=0u-v;return v;}
 static_assert(0xE3B3u-0xE360u==83u);
 
-constexpr u32 kVerifiedTranslatedBytes=8716u;
+constexpr u32 kVerifiedTranslatedBytes=8910u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 } // namespace code1
