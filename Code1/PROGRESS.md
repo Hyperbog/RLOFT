@@ -61,17 +61,21 @@ A direct register-flow audit corrected the AH=48/AH=4A failure outputs. In `DA48
 
 ## D23A..D5AC DOS/CRT continuation under reconciliation
 
-`DosCrtNext.staging.cpp` now covers the complete address gap from the end of the integrated overlap-copy helper to the beginning of the integrated file read/write/seek/delete block. The raw span is **883 bytes**; `D27D..D27F` is three zero bytes, leaving **880 instruction-bounded functional bytes** staged and uncounted.
+`DosCrtNext.staging.cpp` covers **880 functional instruction bytes** in `D23A..D5AC`; `D27D..D27F` is three zero bytes and excluded. It maps the attribute/status wrapper, find-first/find-next, DTA shuttles, variadic open front-end, open/create/truncate state machine, descriptor/IOCTL setup, open wrapper, and close wrapper. The large `D332..D4F1` routine remains structural staging until its descriptor-table representation is reconciled against `103C3..1042C`.
 
-Direct disassembly established these boundaries: `D23A..D27C` attribute/status wrapper; `D280..D2AC` find-first; `D2AD..D2CC` find-next; `D2CD..D312` mode-9 DTA shuttles; `D313..D331` variadic open front-end; `D332..D4F1` open/create/truncate/descriptor-state machine; `D4F2..D55D` descriptor/IOCTL mode setup; `D55E..D572` open wrapper; `D573..D5AC` close wrapper.
+## E0D0..E3B2 runtime/interrupt continuation under reconciliation
 
-Important verified details include the RCL/ROR carry-to-sign encoding used after DOS calls, the explicit AX+CF contract of `10384`, the create-on-error-2 path, the zero-length AH=40 truncation path, descriptor state assembly through `103C3/10397/10415`, and the close failure behavior that stores runtime errno 4 rather than passing DOS AX through `10314`.
+`RuntimeGapE0D0.staging.cpp` adds **722 functional instruction bytes** between the integrated low-level/runtime block ending at `E0C7` and the integrated dispatcher block beginning at `E3B4`.
 
-The large `D332..D4F1` routine remains structural staging rather than counted translation until its descriptor-table representation is reconciled against `103C3..1042C`; no host `open()`/`fopen()` semantics have been substituted.
+Direct binary boundaries are: `E0D0..E173` 164 bytes; `E174..E186` 19; `E190..E1F0` 97; `E1F4..E206` 19; `E208..E268` 97; `E26C..E27E` 19; `E280..E2C2` 67; `E2C3..E35F` 157; and `E360..E3B2` 83. Excluded are eight zeros at `E0C8..E0CF`, nine zeros at `E187..E18F`, alignment LEAs at `E1F1..E1F3` and `E269..E26B`, the single NOP at `E207`, and the zero byte at `E27F`.
+
+The first routine copies an encoded variable-sized object after allocating `0x1B + dword[src+16h]`; three address-distinct wrappers call `7240`; two 97-byte constructor-like routines read a 16-bit length, allocate length+2 and invoke the `72D0/72E0/746C` chain. `E280` installs the INT 24h handler using the extender-specific AX=2506h/CL=24h form only for runtime modes 2..4. `E2C3` is an IRET trampoline that saves the full register/segment image, switches to the runtime stack, far-calls the saved callback, restores SS:ESP with LSS, and IRETs. `E360` is the 83-byte signed decimal parser using class-table bits 02h and 20h at `03B4`.
+
+The interrupt trampoline remains explicitly machine-boundary staging; it will not be collapsed into an ordinary host callback.
 
 ## Active continuation
 
-Harden the now-mapped `D23A..D5AC` block against the exact descriptor helpers at `10397..1042C`, then fold independently proven subranges instead of waiting for the entire 448-byte open state machine if it remains blocked. In parallel continue startup, mouse-pump, and DOS-memory reconciliation. Current uncounted instruction-bounded staging totals 1,958 bytes across these four work streams; none affects the official percentage until physically integrated and syntax checked.
+Harden independently provable staged subranges and fold them only after exact call-contract reconciliation and unified syntax checking. Current uncounted instruction-bounded staging totals **2,680 bytes** across startup, DOS-memory, mouse-pump, DOS/CRT, and E0D0..E3B2 runtime/interrupt work streams. Continue past isolated blockers toward the approximately 4 KB batch target without relaxing fidelity.
 
 ## Larger-batch policy
 
