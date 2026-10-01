@@ -39,17 +39,23 @@ Total integrated verified translated bytes: **7,325**.
 
 `EDD3..EDDF` is **13 zero bytes** classified as data and is not counted as translated code.
 
+## Next runtime staging batch
+
+`RuntimeNext.staging.cpp` now carries **764 instruction-bounded bytes** regenerated directly from the immutable object-1 bytes. These remain deliberately excluded from the verified percentage until final instruction-level reconciliation and fold-in.
+
+- `DAD9..DB7F`: **167 bytes** — allocator wrapper/retry path and the `DB5B` free-core wrapper. Calls to `104E0`, `10AA9`, `10C46`, and `10590` remain address-named until their surrounding runtime contracts are fully integrated.
+- `DB80..DC8C`: **269 bytes** — 4096-byte `FEh`-initialized ring-dictionary decoder. The staging lift preserves the `FEEh` write index, 9-bit flag refill behavior, literal path, 12-bit back-reference construction, `(low nibble)+3` copy length, and the encoded `89CEh` termination checks.
+- `DC90..DDD7`: **328 bytes** — header-gated transformation/permutation routine using the shared `30E8h` workspace. The lift retains the permutation-table construction, word search/swap, quotient/remainder-by-four source addressing, byte-span swaps/copies, and final header rewrite.
+
+The `DC90` search loop is still under exact REPNE-SCAS reconciliation, so none of this 764-byte batch is counted early. `DE6F` remains unclassified; disassembly from that byte does not establish a valid routine entry, while the coherent fill path begins immediately afterward.
+
 ## Formatter fully integrated
 
-Both cleared staging ranges are now physically folded into `Code1.cpp`: `EDE7..F006` (**544 bytes**) and `F206..F721` (**1,308 bytes**). With the previously integrated helpers, the contiguous formatter region `EDE7..F741` accounts for **2,395 verified bytes**.
-
-The fold preserves the corrected post-`%` parser pointer, `%n` near/far word and dword stores, callback-owned output count, post-decrement padding/precision behavior, selector-qualified payload reads, two-byte `s/S` stride, signed 16.16 conversion, EAX:DX far-return contract, and the original shared `F001` epilogue relationship.
-
-The staging files are removed after the syntax-checked fold so no verified bytes can be double-counted.
+The contiguous formatter region `EDE7..F741` accounts for **2,395 verified bytes**, including the corrected post-`%` parser pointer, `%n` near/far stores, callback-owned output count, selector-qualified payload reads, signed 16.16 conversion, and the original shared `F001` epilogue relationship.
 
 ## Active continuation
 
-Advance to the next independent CODE.1 regions: allocator bodies at `DAD9`/`DB5B`, candidate compressed-data routine `DB80`, transformation routine `DC90`, uncertain entry at `DE6F`, startup successors, and remaining address-named CRT helpers.
+Reconcile the staged `DAD9..DDD7` ranges instruction-by-instruction, especially `DC90`'s `REPNE SCASW` state and allocator retry contracts; fold only proven ranges into `Code1.cpp`. Continue past any isolated dependency into startup successors and remaining address-named CRT helpers to approach the larger-batch target without relaxing fidelity.
 
 ## Larger-batch policy
 
