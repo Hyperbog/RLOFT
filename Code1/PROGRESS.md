@@ -41,28 +41,27 @@ Total integrated verified translated bytes: **5,473**.
 
 ## Formatter continuation cleared for integration
 
-`FormatterContinuation.staging.cpp` now contains **1,308 verified instruction-accounted bytes** covering the complete `F206..F721` continuation. They remain excluded from the official percentage only because they have not yet been folded into `Code1.cpp`.
+`FormatterContinuation.staging.cpp` contains **1,308 verified instruction-accounted bytes** covering `F206..F721`. They remain excluded from the official percentage only until folded into `Code1.cpp`.
 
 - `F206..F2D1`: **204 bytes** — signed 16.16 fixed-point decimal materialization and exact rounding/carry walk.
 - `F2D2..F2E8`: **23 bytes** — indirect thunk through DGROUP `55C4h`, preserving the EAX:DX far-return contract.
-- `F2E9..F721`: **1,081 bytes** — conversion materializer, now cleared after complete instruction-level review.
+- `F2E9..F721`: **1,081 bytes** — complete conversion materializer, cleared after instruction-level review.
 
-If folded without further changes, the integrated verified total becomes **6,781 bytes**, or raw coverage **9.6318%** (conservative display **9.63%**).
+Once folded, the integrated verified total becomes **6,781 bytes**, raw coverage **9.6318%** (conservative display **9.63%**).
 
-## Final materializer clearance pass
+## Formatter driver structural lift
 
-The complete `F2E9..F721` instruction stream was regenerated directly from the immutable CODE.1 object-1 bytes and reviewed from entry through the shared jump to `F001`. The final pass resolved two remaining translation defects:
+`FormatterDriver.staging.cpp` now carries the complete **544-byte `EDE7..F006`** formatter driver as a structural, deliberately uncounted lift. The range was regenerated directly from the immutable CODE.1 object bytes before translation.
 
-- `F303` explicitly zeros state offset `+0Ch` on every entry. The structural lift now resets `zero_count` before dispatch instead of relying on caller state.
-- `F69B` reads the first payload byte through `ES:EDI`. For locally generated numeric/fixed/pointer text, EDI denotes the local scratch buffer. The staging representation keeps that buffer host-local while separately carrying its guest offset, so the sign test must read `scratch[0]` for the local DS/scratch case. Routing that address through the external selector callback could miss a generated `'-'` and lose the encoded sign extraction. External/far payloads continue to use the selector-qualified boundary.
+The lift preserves the stack-resident formatter-state layout, literal-character callback path, `%n` word/dword and near/far stores, the encoded but operationally redundant `40h` tests, the call into `F2E9`, both right-alignment padding phases, prefix emission, zero fill, selector-qualified payload reads, the two-byte source stride for `s/S` with flag `20h`, left-alignment trailing spaces, and the returned count at `F001`.
 
-The following paths were rechecked and match the encoded control flow: unsigned pre-read for `X/o/u/x`; signed `d/i` late consumption; explicit-precision pad selection; `F/f` fixed-point versus indirect floating callback; octal alternate-form ESI/EDI aliasing; signed and unsigned zero-precision suppression; `s/S` near/far/null selector handling; one-byte/two-byte `S` advancement; `p/P` 8- versus 13-character pointer materialization; `c` and default conversions; sign/space/plus extraction; signed precision comparisons; `'*'` pad handling; prefix length, precision, zero-count and width accounting; and the final EAX=EDI / DX=selector state entering the shared `F001` epilogue.
+The original `F2E9` routine jumps into this driver's `F001` epilogue rather than returning through an independent epilogue. The staging source documents that shared-tail relationship explicitly and models it as a normal materializer return so the two verified regions can later be folded into one coherent C++ representation.
 
-No host `printf`, host floating-point conversion, flat-pointer substitution, or guessed source-level formatter behavior is used. `F206..F721` is therefore **cleared for integration**.
+`EDE7..F006` is not yet included in the verified byte count. The next pass is an instruction-by-instruction reconciliation of the lift, especially the callback-owned count at state `+10h`, post-decrement loop state, and `%n` guest-memory writes.
 
 ## Active continuation
 
-Fold the verified 1,308-byte `F206..F721` continuation into `Code1.cpp`, update integrated coverage to 9.63%, then translate `EDE7..F006` against the now-proven materializer and helper contracts.
+Integrate the cleared `F206..F721` materializer into `Code1.cpp`; simultaneously harden `EDE7..F006` against its exact instruction stream. Once both are integrated, the formatter dependency region `EDE7..F741` will be contiguous except for already classified `EDD3..EDDF` data immediately before it.
 
 ## Larger-batch policy
 
@@ -70,6 +69,6 @@ The working target remains approximately **4,000 newly verified bytes per substa
 
 ## Unresolved queue
 
-Integrate `F206..F721`; translate `EDE7..F006`; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
+Integrate `F206..F721`; verify/integrate `EDE7..F006`; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
