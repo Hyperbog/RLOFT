@@ -36,22 +36,26 @@ constexpr void store_le16(u8* p,u16 v) noexcept { p[0]=static_cast<u8>(v); p[1]=
 constexpr void store_le32(u8* p,u32 v) noexcept { p[0]=static_cast<u8>(v); p[1]=static_cast<u8>(v>>8u); p[2]=static_cast<u8>(v>>16u); p[3]=static_cast<u8>(v>>24u); }
 
 // Explicit address-space types prevent DGROUP offsets from being confused with
-// register-derived/relocated linear addresses as reconstruction expands.
+// register-derived/relocated linear addresses or selector-relative addresses.
 struct DgroupOffset { u32 value; };
 struct LinearAddress { u32 value; };
+struct SelectorOffset { u16 selector; u32 offset; };
 [[nodiscard]] constexpr DgroupOffset dgroup(u32 value) noexcept { return {value}; }
 [[nodiscard]] constexpr LinearAddress linear(u32 value) noexcept { return {value}; }
+[[nodiscard]] constexpr SelectorOffset selector_offset(u16 selector,u32 offset) noexcept { return {selector,offset}; }
 
 struct CpuState { u32 eax=0,ebx=0,ecx=0,edx=0,esi=0,edi=0,ebp=0,esp=0; u16 ds=0,es=0,gs=0; bool interrupt_enable=false; };
 struct Machine;
 using ProtectedModeInterrupt=void (*)(Machine&,u8);
 using LinearRead16=u16 (*)(Machine&,LinearAddress);
 using LinearRead32=u32 (*)(Machine&,LinearAddress);
-struct Machine { CpuState cpu{}; u8* data=nullptr; ProtectedModeInterrupt protected_interrupt=nullptr; LinearRead16 read_linear16=nullptr; LinearRead32 read_linear32=nullptr; };
+using SelectorRead16=u16 (*)(Machine&,SelectorOffset);
+struct Machine { CpuState cpu{}; u8* data=nullptr; ProtectedModeInterrupt protected_interrupt=nullptr; LinearRead16 read_linear16=nullptr; LinearRead32 read_linear32=nullptr; SelectorRead16 read_selector16=nullptr; };
 [[nodiscard]] u8* dgroup_ptr(Machine& m,DgroupOffset o) noexcept { return m.data+o.value; }
 void interrupt(Machine& m,u8 vector) noexcept { if(m.protected_interrupt) m.protected_interrupt(m,vector); }
 [[nodiscard]] u16 read16(Machine& m,LinearAddress a) noexcept { return m.read_linear16?m.read_linear16(m,a):0u; }
 [[nodiscard]] u32 read32(Machine& m,LinearAddress a) noexcept { return m.read_linear32?m.read_linear32(m,a):0u; }
+[[nodiscard]] u16 read16(Machine& m,SelectorOffset a) noexcept { return m.read_selector16?m.read_selector16(m,a):0u; }
 [[nodiscard]] constexpr u8 low8(u32 v) noexcept { return static_cast<u8>(v); }
 [[nodiscard]] constexpr u8 high8(u32 v) noexcept { return static_cast<u8>(v>>8u); }
 [[nodiscard]] constexpr u16 low16(u32 v) noexcept { return static_cast<u16>(v); }
@@ -92,18 +96,47 @@ enum class Cd17Path:u32 { BranchCd50=0xCD50u, JumpCd97=0xCD97u };
     store_le32(dgroup_ptr(m,dgroup(0x3094u)),m.cpu.edx); m.cpu.esi=m.cpu.edx;
     m.cpu.edx=read32(m,linear(m.cpu.esi+0x1Cu)); m.cpu.ebx=m.cpu.esp; m.cpu.ebx-=m.cpu.edx;
     set_high8(m.cpu.eax,0x4Au); interrupt(m,0x21u);
-    // 8C DB / 8C D9 target 32-bit GPRs. Because the declared target is 80386,
-    // do not assume later-CPU zero-extension of the upper 16 bits: only the
-    // architecturally supplied selector word is committed here.
+    // 8C DB / 8C D9 target 32-bit GPRs. On the declared 80386 target the
+    // upper half is not treated as a proven zero-extension; retain it.
     set_low16(m.cpu.ebx,m.cpu.ds); store_le16(dgroup_ptr(m,dgroup(0x52FCu)),m.cpu.ds);
     m.cpu.eax=read32(m,linear(m.cpu.esi+0x10u)); m.cpu.edi+=m.cpu.eax; m.cpu.esi=0u;
     set_low16(m.cpu.esi,read16(m,linear(m.cpu.eax+0x2Cu))); m.cpu.esi<<=4u;
     set_low16(m.cpu.ecx,m.cpu.ds); set_low8(m.cpu.eax,0x09u); return Cd17Path::JumpCd97;
 }
 
+// CD50..CD96: non-equal-signature path to the common CD97 successor (71 bytes).
+// CD50 66BA7800 mov dx,0078h; CD54 66B800FF mov ax,FF00h; CD58 int 21h.
+// AL!=0 path obtains GS, conditionally saves nonzero GS at [3098], sets AL=1,
+// copies DS to BX, stores ES at [52FC], and loads CX from ES:[2C].
+// AL==0 path saves DS in DX, temporarily loads DS=0024h, loads CX from DS:[2C],
+// restores DS, sets BX=0017h and AL=0. Both paths arrive at CD97.
+[[nodiscard]] u32 translate_cd50_cd96(Machine& m) noexcept {
+    set_low16(m.cpu.edx,0x0078u);                      // CD50 mov dx,78h
+    set_low16(m.cpu.eax,0xFF00u);                      // CD54 mov ax,FF00h
+    interrupt(m,0x21u);                                // CD58 int 21h
+    if(low8(m.cpu.eax)!=0u) {                          // CD5A cmp al,0 / CD5C je CD80
+        set_low16(m.cpu.eax,m.cpu.gs);                 // CD5E mov eax,gs (selector word)
+        if(low16(m.cpu.eax)!=0u)                       // CD60..CD64
+            store_le16(dgroup_ptr(m,dgroup(0x3098u)),low16(m.cpu.eax)); // CD66
+        set_low8(m.cpu.eax,0x01u);                     // CD6C mov al,1
+        set_low16(m.cpu.ebx,m.cpu.ds);                 // CD6E mov ebx,ds
+        store_le16(dgroup_ptr(m,dgroup(0x52FCu)),m.cpu.es); // CD70 mov [52FC],es
+        set_low16(m.cpu.ecx,read16(m,selector_offset(m.cpu.es,0x2Cu))); // CD76
+        return 0x0000CD97u;                            // CD7E jmp CD97
+    }
+    set_low16(m.cpu.edx,m.cpu.ds);                     // CD80 mov edx,ds
+    set_low16(m.cpu.ecx,0x0024u);                      // CD82 mov cx,24h
+    m.cpu.ds=low16(m.cpu.ecx);                         // CD86 mov ds,cx
+    set_low16(m.cpu.ecx,read16(m,selector_offset(m.cpu.ds,0x2Cu))); // CD88
+    m.cpu.ds=low16(m.cpu.edx);                         // CD8F mov ds,dx
+    set_low16(m.cpu.ebx,0x0017u);                      // CD91 mov bx,17h
+    set_low8(m.cpu.eax,0x00u);                         // CD95 mov al,0
+    return 0x0000CD97u;
+}
+
 // An earlier checkpoint note incorrectly named CD4E as CD1B's branch target.
 // Direct decoding of CODE.1 proves the displacement targets CD50; corrected
 // before translation of the target block.
-constexpr u32 kVerifiedTranslatedBytes=188u;
+constexpr u32 kVerifiedTranslatedBytes=259u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 } // namespace code1
