@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-10.40%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-11.48%25-red)
 
-**Verified conversion:** 10.40%  
-**Remaining:** 89.60%  
+**Verified conversion:** 11.48%  
+**Remaining:** 88.52%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **7,325**.  
+Current verified translated bytes: **8,089**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **10.4045%**, displayed conservatively as **10.40%**.
+Raw coverage: **11.4897%**, displayed conservatively as **11.48%**.
 
 ## Immutable source identity
 
@@ -34,8 +34,9 @@ Raw coverage: **10.4045%**, displayed conservatively as **10.40%**.
 - 48 exact dispatcher wrappers `EBF3..EDD2`: **480 bytes**.
 - Frame no-op `EDE0..EDE6`: **7 bytes**.
 - Complete formatter driver/parser/materializer `EDE7..F741`: **2,395 bytes**.
+- Runtime allocator/decoder/transform `DAD9..DDD7`: **764 bytes**.
 
-Total integrated verified translated bytes: **7,325**.
+Total integrated verified translated bytes: **8,089**.
 
 `EDD3..EDDF` is **13 zero bytes** classified as data and is not counted as translated code.
 
