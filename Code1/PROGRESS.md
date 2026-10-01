@@ -8,7 +8,7 @@
 
 ## Measurement rule
 
-The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unverified translations do not count.
+The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, staging files, and unintegrated translations do not count.
 
 Current verified translated bytes: **3,680**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
@@ -30,30 +30,31 @@ Raw coverage: **5.2271%**, displayed conservatively as **5.22%**.
 - Timer/PIT setup and state management `E4C7..E6E9`: **547 bytes**.
 - Timer slot/control continuation `E6EA..EA0A`: **801 bytes**.
 
-Total verified translated bytes: **3,680**.
+Total integrated verified translated bytes: **3,680**.
 
-## Current verified checkpoint: E6EA..EA0A
+## Current instruction-checked staging
 
-This checkpoint adds **801 bytes** translated directly from CODE.1 after checking the complete instruction ranges against the extracted object-1 disassembly.
+`DispatcherTimer.staging.cpp` now contains **763 instruction-accounted bytes** awaiting fold-in to the single `Code1.cpp` reconstruction. They are deliberately excluded from the percentage until integration.
 
-- `E6EA..E758` (111): iterate all 16 callback slots under CLI, release assigned timer handles, invoke the still-address-named `EBB6` boundary, and perform all-slot timer cleanup.
-- `E759..E808` (176): allocate one of 16 timer slots, initialize its state/value/period entries, and execute the first-allocation initialization sequence that installs INT 8 and initializes special slot 16.
-- `E809..E855` (77): release one timer slot and, when the active count reaches zero, program PIT reload zero and restore the saved INT 8 vector.
-- `E856..E87A` (37): release slots 15 down through 0.
-- `E87B..E8AA` (48), `E8AB..E8CF` (37): transition state `1 -> 2` for one slot or all 16 slots.
-- `E8D0..E8FF` (48), `E900..E924` (37): transition state `2 -> 1` for one slot or all 16 slots.
-- `E925..E979` (85): temporarily force a slot active, replace its period, clear its accumulated counter, recalculate the global minimum, then restore the original state word.
-- `E97A..E9AC` (51): compute unsigned `1,000,000 / divisor` and apply it through `E925`; the original division-by-zero behavior remains unguarded.
-- `E9AD..E9F1` (69): use `D68Dh` for zero, otherwise compute unsigned `(2710h * value) / 2E9Ch`, then apply it through `E925`.
-- `E9F2..EA0A` (25): return the stored PIT reload value at `5212` while preserving interrupt-enable state.
+- `E3B4..E3DF` (44): callback-table lookup for one of 16 slots.
+- `E3E0..E3F1` (18): common event lookup and indirect tail-dispatch.
+- `E3F2..E4C6` (213): INT 8 handler, including reentrancy handling, 17 timer states, accumulator/period update, callback invocation, local PIC EOI path, and saved-vector chain path.
+- `EA0B..EA99` (143): free-slot scan, literal `79706F43h` (`Copy`) descriptor check, slot installation, EAC8 call, and unsigned returned-record bound check against `52E8h`.
+- `EA9A..EAC7` (46): slot-table clear for indices below 16.
+- `EAC8..EAE6` (31): event `64h` dispatch with original `{slot,E9F2h}` stack arguments.
+- `EAE7..EAF0` (10): event `65h` tail-dispatch wrapper.
+- `EAF1..EBB5` (197): slot setup/control, event `67h` timer callback lookup, timer allocation/rate setup, event `66h` five-argument dispatch, pending-state set, and timer enable.
+- `EBB6..EBF2` (61): pending-state exchange/clear, timer release, and event `68h` tail-dispatch.
 
-The C++ retains the original data-group offsets, unsigned arithmetic, slot ordering, sentinel values, and interrupt save/CLI/restore behavior. `E6EA`'s call into `EBB6` remains an explicit address-named boundary rather than assigning an unproven higher-level meaning.
+The staging representation remains address-named where semantics are not proven. In particular, the INT 8 saved-vector path is represented as a chain result rather than being modernized into a host timer.
 
-A previously misleading local name in `D686` was also corrected: helper `1042D` returns a stack-distance value, not a version number. This correction changes no verified-byte count.
+## Newly bounded continuation
 
-## Next analyzed continuation
+`EBF3..EDD2` is a contiguous **480-byte** block of exactly **48 ten-byte tail-dispatch wrappers**. Each is `mov eax,<event>; jmp E3E0`. The encoded event constants, in address order, are:
 
-`EA0B..EBF2` is already instruction-bounded as **488 candidate bytes**. It remains outside the verified percentage until its C++ lifting is checked. The common callback dispatcher/INT 8 path at `E3B4..E4C6` is also queued because it resolves dependencies used by this timer subsystem.
+`78,79,86,7A,7B,85,7C,7D,7E,7F,80,81,82,83,84,96,97,98,99,9A,9B,9C,9D,9E,9F,AA,AB,AD,AE,AF,B0,B1,B2,B3,B4,B5,B6,B7,B9,BA,BB,BC,BD,BE,BF,C0,C1,C2` (hex).
+
+`EDD3..EDDF` is **13 zero bytes** and is therefore not being treated as executable code. `EDE0..EDE6` is a separate 7-byte no-op-style routine (`push ebp; mov ebp,esp; mov esp,ebp; pop ebp; ret`). `EDE7` begins a substantially larger formatted-output/runtime routine and is being analyzed separately rather than guessed from its apparent behavior.
 
 ## Larger-batch policy
 
@@ -61,6 +62,6 @@ The working target remains approximately **4,000 newly verified bytes per substa
 
 ## Unresolved queue
 
-`EA0B..EBF2`, common dispatcher/INT 8 routines `E3B4..E4C6`, allocator bodies at `DAD9`/`DB5B`, candidate compressed-data routine `DB80`, transformation routine `DC90`, uncertain entry at `DE6F`, startup successor work, and remaining address-named CRT helpers remain queued.
+Fold the 763 staged bytes into `Code1.cpp`; translate/account the 480-byte `EBF3..EDD2` wrapper block; analyze the `EDE7` runtime routine and its `F007`/`F2E9` dependencies; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
