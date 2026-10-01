@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-41.03%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-46.87%25-red)
 
-**Verified conversion:** 41.03%  
-**Remaining:** 58.97%  
+**Verified conversion:** 46.87%  
+**Remaining:** 53.13%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **28,889**.  
+Current verified translated bytes: **33,000**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **41.0343%**, displayed as **41.03%**.
+Raw coverage: **46.8737%**, displayed as **41.03%**.
 
 ## Immutable source identity
 
@@ -29,6 +29,7 @@ Raw coverage: **41.0343%**, displayed as **41.03%**.
 - Actor generation/editor/stat routines `2A64..2DF8`, `2DFC..301F`, `3020..3134`, `3138..3204`, `3208..32F3`, `32F4..3349`, `334C..3403`, `3404..37BD`, `37C0..3881`, `3884..38A3`: **3,633 bytes**.
 - Actor normalization/render/choice routines `1F24..2196`, `24D4..266B`, `28E4..2990`, `2994..2A60`: **1,413 bytes**.
 - Actor stat/presentation routines `38A4..3C54`, `3C58..40FA`, `40FC..44E0`, `44E4..451E`, `4520..45EE`, `45FC..4976`: **4,286 bytes**.
+- Post-generation/palette/resource/cursor/tree routines `4978..4A09`, `4A0C..4AFF`, `4B00..4B16`, `4B18..4C7E`, `4C80..4CAF`, `4CB0..4D50`, `4D54..4DC3`, `4DC4..4EED`, `4EF0..5013`, `5014..5089`, `508C..50BF`, `50C0..522E`, `5230..5279`, `527C..52A9`, `52AC..538B`, `538C..53B0`, `53B4..53E1`, `53E4..5450`, `5454..550A`, `550C..55DA`, `55DC..56DB`, `56DC..577C`, `5780..57DA`, `57DC..5878`, `5880..59AB`: **4,111 bytes**.
 - Startup/recovery regions through `CD96`: **259 bytes**.
 - Structured mouse-facing routines `D08C..D153`, verified mouse/event pump `D154..D1E7`, plus overlap-safe copy `D1E8..D239`: **419 bytes**.
 - Attribute/status wrapper `D23A..D27C`: **67 bytes**.
@@ -71,7 +72,7 @@ Raw coverage: **41.0343%**, displayed as **41.03%**.
 - Runtime heap-extension driver `10AA9..10C45`: **413 bytes**.
 - Runtime tail helpers `10C46..10C6C`: **39 bytes**.
 
-Total integrated verified translated bytes: **28,889**.
+Total integrated verified translated bytes: **33,000**.
 
 `DA45..DA47` is three zero bytes. `EDD3..EDDF` is **13 zero bytes**. Both are classified as data/alignment and are not counted as translated code.
 

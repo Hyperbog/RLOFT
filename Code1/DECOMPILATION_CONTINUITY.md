@@ -205,3 +205,7 @@ Verified total **24,603 / 70,402 = 34.95%**. Added **3,633 bytes** across `2A64.
 
 ## 2026-10-01 actor stat/presentation batch 06
 Verified total **28,889 / 70,402 = 41.03%**. Added **4,286 bytes** at `38A4..3C54`, `3C58..40FA`, `40FC..44E0`, `44E4..451E`, `4520..45EE`, `45FC..4976`. `45EF..45F8` is proven lookup data (`678456789:`); adjacent LEA/NOP alignment is excluded. 3C58 preserves event 7/8/9 stat-edit behavior and the `4D4` bit-0 alternate set/inc/dec semantics. 40FC preserves its EBX three-state control flow. 45FC preserves the 10-frame then 25-frame loops for each of two groups, including 44E4 paired-counter wrapping. Active staging is unchanged.
+
+
+## 2026-10-01 post-generation batch 07
+Verified total **33,000 / 70,402 = 46.87%**. Added **4,111** instruction-accounted bytes from `4978..59AB`, excluding enumerated alignment/data. This batch covers the character-generation controller, 5x256 palette remap construction, resource 6C/74/78/94 setup, actor finalization, shutdown wrapper, cursor callback/page state (`50C0..5878`), and first 9-byte palette search-tree insertion (`5880..59AB`). Preserve 0101h tree sentinel, 9-byte record stride, cursor depth at 73EC, page byte 73EE, 400-byte backing pages at 73EF, and the encoded zero-count resource-78 no-close behavior. Active staging remains **904 bytes**.
