@@ -1,16 +1,20 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-0%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-0.10%25-red)
 
-**Verified conversion:** 0%  
-**Remaining:** 100%  
+**Verified conversion:** 0.10%  
+**Remaining:** 99.90%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
-The percentage measures instruction-accountable C++ conversion of the protected-mode application code recovered from the original `CODE.1`. Executable mapping, disassembly, research, scaffolding, speculative pseudocode, and unverified translations do **not** count as converted code.
+The percentage is a conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). This deliberately keeps embedded data in the denominator until code/data separation is proven, so discovery cannot inflate progress. Executable mapping, research, scaffolding, speculative pseudocode, and unverified translations do **not** count.
 
 A region counts only after its original byte range and decoded x86 instructions are established and the corresponding C++ accounts for their observable behavior. If evidence is insufficient, the item remains unresolved instead of being guessed.
+
+Current verified translated bytes: **74**.  
+Current conservative denominator: **70,402 (`0x11302`) bytes**.  
+Raw coverage: **0.1051%**, displayed as **0.10%**.
 
 ## Immutable source identity
 
@@ -22,29 +26,43 @@ A region counts only after its original byte range and decoded x86 instructions 
 
 - Outer DOS MZ image begins at file offset `0x00000000`.
 - Bound Rational/Tenberry `BW` image begins at `0x0000F444`; embedded name is `4GWPRO.EXP`.
+- The BW `next_header_offset` is `0x25D24`, exactly locating the protected-mode application's embedded MZ.
 - The protected-mode application's embedded MZ begins at `0x00025D24`.
 - Its LE header begins at `0x00027BDC`.
 - LE target CPU field is `2` (80386); the module has 24 pages and 2 objects.
 - LE data pages begin at absolute CODE.1 offset `0x0002C724`.
-- Object 1 is the code object: virtual size `0x11302`, base `0x10000`, flags `0x2005`, pages 1-18.
-- Object 2 is data/stack: virtual size `0x9E90`, base `0x30000`, flags `0x2003`, pages 19-24.
+- Object 1 is the executable/readable object: virtual size `0x11302`, base `0x10000`, flags `0x2005`, pages 1-18.
+- Object 2 is writable data/stack: virtual size `0x9E90`, base `0x30000`, flags `0x2003`, pages 19-24.
 - Entry point is object 1 offset `0xCC1C`, mapping exactly to file offset `0x00039340`.
 - Initial stack is object 2 offset `0x9E90`; automatic data object is object 2.
-- Entry bytes are `EB 78`, jumping from `CC1C` to `CC96` over the embedded Watcom run-time identification/data block.
-- The LE page-data extent, including the final `0x5F7`-byte partial page, ends exactly at CODE.1 EOF (`0x43D1B`). This independently validates the recovered application image base.
+- Entry bytes are `EB 78`, jumping from `CC1C` to `CC96` over embedded Watcom run-time identification/data.
+- The LE page-data extent, including the final `0x5F7`-byte partial page, ends exactly at CODE.1 EOF (`0x43D1B`).
 
-## Current checkpoint
+## Verified C++ translation
 
-Executable/container mapping is sufficiently established to begin instruction-accountable conversion. The first live entry/startup block has been disassembled, but it is **not counted yet** because its DOS INT 21h effects, segment-register state, and Watcom start-up contract still need to be represented faithfully in C++.
+### Region 1 — entry/startup prefix
 
-Next conversion target: object 1 entry/startup beginning at logical `0xCC1C` / file `0x39340`.
+- Entry jump: object-1 `CC1C..CC1D`, file `39340..39341` — **2 bytes**.
+- Startup block: object-1 `CC96..CCDD`, file `393BA..39401` — **72 bytes**.
+- Total counted: **74 bytes**.
+- `CC1E..CC95` is deliberately excluded: entry control flow jumps over it and it contains the Watcom run-time identification/data block.
+- The translation preserves register-width operations, stack alignment, DGROUP stores, `STI`, the DOS `INT 21h` boundary, returned DOS-version bytes, and the exact `AX == 0x4458` branch decision after `EAX >> 16`.
+- DOS interrupt behavior is injected through the machine boundary rather than replaced by host-side assumptions.
+
+## Next checkpoint
+
+Continue both successors of the first verified branch:
+
+1. fall-through at object-1 `0xCCDE`, and
+2. branch target object-1 `0xCD17`.
+
+They will not count until both machine-state effects and their rejoin/control-flow behavior are established.
 
 ## Primary technical references
 
-- Open Watcom Programmer's Guide: DOS/4GW uses the LE linear executable format and a 32-bit 386 flat-address-space runtime.
-- IBM OS/2 16/32-bit Object Module Format (preserved by Open Watcom): LE/LX header, object, page, entry, and fixup definitions.
-- Watcom/Open Watcom linker documentation: `SYSTEM dos4g` selects a 32-bit DOS/4GW executable target.
-- Rational/Tenberry DOS/4G documentation preserved with Open Watcom for DOS extender behavior.
+- Open Watcom source/documentation for DOS/4G and LE executable structures.
+- Rational/Tenberry DOS/4G documentation preserved with Open Watcom.
 - Intel x86 architectural documentation for instruction semantics.
+- DOS interrupt documentation only where it can be tied to the actual interrupt/function encoded by CODE.1.
 
 `CODE.1` itself remains the controlling evidence whenever documentation and the actual bytes differ.
