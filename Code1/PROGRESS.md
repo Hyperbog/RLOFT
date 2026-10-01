@@ -46,24 +46,23 @@ Total integrated verified translated bytes: **5,473**.
 - `F206..F2D1`: **204 bytes** — fixed-point decimal materialization and encoded rounding walk.
 - `F2D2..F2E8`: **23 bytes** — exact three-argument indirect thunk through DGROUP `55C4h`.
 
-`F2E9..F721` (**1,081 bytes**) is now represented as a structural C++ lift under verification, but remains explicitly **uncounted**.
+`F2E9..F721` (**1,081 bytes**) remains a structural C++ lift under verification and is explicitly **uncounted**.
 
-## Materializer hardening completed this pass
+## Materializer verification completed this pass
 
-The complete `F2E9..F721` disassembly was re-run directly from immutable CODE.1. The staging representation was then changed so original addresses are no longer converted to host pointers:
+The immutable CODE.1 bytes for `F2E9..F741` were disassembled again and compared against the staging control flow. The formerly unresolved `F695..F721` common tail is now represented instruction-for-instruction at the state-transition level:
 
-- the argument-list cursor is represented as an original 32-bit address stored in a guest cursor cell;
-- encoded `add dword ptr [eax],4/8` mutations now update that guest cursor cell explicitly;
-- near argument reads go through linear-memory boundaries;
-- far string reads remain selector+offset operations;
-- the `F2D2` call receives the original scratch address, cursor-cell address, and state address rather than host object addresses;
-- the two-component far-null case remains distinct from a near null pointer.
+- `F695..F6C5`: a leading minus is removed from the source span and transferred to the state prefix; otherwise the blank/plus flags can synthesize the prefix;
+- `F6C6..F6D7`: source length is compared with precision and the encoded zero-count field receives `precision - length` when required;
+- `F6D8..F6E5`: `'*'` padding clears the prefix and masks flag bits `02h/04h` exactly through `AND F9h`;
+- `F6E6..F6F9`: for non-`c` conversions, unset or overlong precision is replaced by actual source length according to the original branches;
+- `F6FA..F721`: prefix length + precision + zero-count is subtracted from width before returning the source offset and saved selector.
 
-The common `F695..F721` accounting tail is intentionally still marked for exact verification against `F163`/`F18C`; the 1,081-byte materializer will not be promoted into the verified byte count until that check is complete.
+Guest argument cursors and selector-qualified source reads remain explicit; no guest address has been promoted to a host pointer. The materializer is still withheld from the verified count because the `F2D2` callback's EAX:DX result contract and several conversion-family entry states must be checked before promotion.
 
 ## Active continuation
 
-Finish the exact `F695..F721` source-length/prefix/precision/width accounting and the `F2D2` EAX:DX return semantics, then fold the verified `F206..F721` subset into `Code1.cpp`. After that, translate `EDE7..F006` against the proven formatter helpers.
+Verify the `F2D2` callback EAX:DX contract and conversion-family entry states, then promote/fold `F206..F721` into `Code1.cpp`. After that, translate `EDE7..F006` against the proven formatter helpers.
 
 ## Larger-batch policy
 
