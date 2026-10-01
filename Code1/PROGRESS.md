@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-0.27%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-0.36%25-red)
 
-**Verified conversion:** 0.27%  
-**Remaining:** 99.73%  
+**Verified conversion:** 0.36%  
+**Remaining:** 99.64%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is a conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unverified translations do not count.
 
-Current verified translated bytes: **188**.  
+Current verified translated bytes: **259**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **0.2670%**, displayed as **0.27%**.
+Raw coverage: **0.3679%**, displayed conservatively as **0.36%**.
 
 ## Immutable source identity
 
@@ -34,40 +34,37 @@ Raw coverage: **0.2670%**, displayed as **0.27%**.
 
 ## Preventative architecture checkpoint
 
-The early review concerns were addressed before expanding translation:
+- Protected-mode interrupts cross an explicit boundary; translated blocks do not silently assume ordinary DOS semantics.
+- DGROUP offsets, register-derived linear addresses, and selector-relative addresses are distinct address spaces.
+- Selector-relative reads now cross their own resolver boundary, required by the newly translated `ES:[2C]` and temporary-`DS:[2C]` accesses.
+- Segment-register moves into 32-bit GPRs are treated conservatively for the declared 80386 target without assuming later-processor upper-word zero extension.
 
-- `INT 21h` is no longer modeled as a callback whose name implies ordinary DOS semantics. It crosses an explicit protected-mode interrupt boundary carrying the machine state and interrupt vector. No DOS/4GW behavior is guessed inside the translated block.
-- DGROUP-relative offsets and register-derived linear addresses are represented by distinct address types. Linear reads cross an explicit resolver boundary instead of silently indexing the Object-2 byte array.
-- Existing translated DGROUP accesses were converted to the typed DGROUP boundary without changing their recovered offsets.
-- Segment-register moves into 32-bit GPRs are treated conservatively for the declared 80386 target: the selector word is written without assuming later-processor upper-word zero extension.
-
-This refactor adds **zero** progress by itself; only newly instruction-accounted CODE.1 bytes affect the percentage.
+These architectural safeguards add zero progress by themselves.
 
 ## Verified C++ translation
 
 ### Region 1 — entry/startup prefix
-- `CC1C..CC1D`: 2-byte entry jump.
-- `CC96..CCDD`: 72-byte startup block.
-- Counted: **74 bytes**.
+- `CC1C..CC1D` plus `CC96..CCDD`: **74 bytes**.
 
 ### Region 2 — CCDE fall-through path
 - `CCDE..CD16`: **57 bytes**.
-- Preserves partial-register behavior, stack-saved EAX, selector operations, 4-KiB rounding, DGROUP stores, and the protected-mode `INT 21h` boundary.
 
 ### Region 3 — CD17 alternate successor/equal path
 - `CD17..CD4F`: **57 bytes**.
-- `CMP AX,4243h` / `JNE` is decoded with target **CD50**.
-- The equal path preserves `[3094]=EDX`, register-derived reads at `[ESI+1C]`, `[ESI+10]`, and `[EAX+2C]`, `AH=4Ah / INT 21h`, selector stores, `EDI`/`ESI` arithmetic, `AL=09h`, and the final jump to `CD97`.
-- Register-derived memory reads use the new linear-address resolver boundary and are not assumed to be DGROUP offsets.
+- `CMP AX,4243h` / `JNE` target is verified as **CD50**.
+- The equal path reaches the common successor at `CD97`.
 
-Total verified translated bytes: **188**.
+### Region 4 — CD50 non-equal-signature path
+- `CD50..CD96`: **71 bytes**.
+- Preserves `DX=0078h`, `AX=FF00h`, the protected-mode `INT 21h`, and the subsequent branch on returned `AL`.
+- The nonzero-AL path preserves the GS selector test/store, `AL=1`, DS/ES selector transfers, and `ES:[2C]` read.
+- The zero-AL path preserves DS in DX, temporarily loads `DS=0024h`, reads `DS:[2C]`, restores DS, then sets `BX=0017h` and `AL=0`.
+- Both paths converge at `CD97`.
 
-## Correction caught before downstream expansion
-
-An earlier checkpoint comment described the `CD1B` conditional branch as targeting `CD4E`. Direct decoding of the original bytes (`0F 85 2F 00 00 00`) establishes the target as **`CD50`**. `Code1.cpp` and this progress record now use the corrected edge before the target block is translated.
+Total verified translated bytes: **259**.
 
 ## Next checkpoint
 
-Translate the `CD50` alternate path and establish its convergence at `CD97`. The new address/interrupt boundaries stay in place as invariants for subsequent reconstruction.
+Continue from the common startup successor at `CD97`. The low-level machine representation remains recovery scaffolding; proven application routines will be lifted into structured C++ rather than extending this into a general x86 emulator.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
