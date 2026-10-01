@@ -8,7 +8,8 @@ namespace ravenloft::game {
 
 class CharacterFlags28E4 {
 public:
-    // Direct reconstruction of CODE.1 0x28E4..0x2990.
+    // Fidelity-verified reconstruction of CODE.1 0x28E4..0x2990.
+    // 0x2991..0x2993 is alignment LEA EAX,[EAX+0].
     static void build(std::array<std::int32_t, 6>& out,
                       const std::array<std::uint8_t, 3>& fields680D) noexcept;
 };
@@ -30,7 +31,9 @@ struct CharacterFlagChoiceOps2994 {
 
 class CharacterFlagChoice2994 {
 public:
-    // Direct reconstruction of CODE.1 0x2994..0x2A60.
+    // Candidate reconstruction of CODE.1 0x2994..0x2A60. Verification is held
+    // at 0x2993 until 0x2A0B's unchecked EAX-indexed stack read is represented
+    // without introducing a C++ bounds check or host undefined behavior.
     static void run(CharacterFlagChoiceState2994& state,
                     const CharacterFlagChoiceOps2994& ops);
 };
