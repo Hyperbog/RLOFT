@@ -26,6 +26,7 @@ Raw coverage: **11.4897%**, displayed conservatively as **11.48%**.
 - Structured mouse-facing routines `D08C..D153` plus overlap-safe copy `D1E8..D239`: **274 bytes**.
 - File read/write/seek/delete `D5AD..D8CD`: **801 bytes**.
 - DOS/CRT directory and utility routines `D8D0..DA1B`: **332 bytes**.
+- Runtime allocator/decoder/transform `DAD9..DDD7`: **764 bytes**.
 - Low-level/runtime regions through `E0C7`: **666 bytes**.
 - Dispatcher and INT 8 paths `E3B4..E4C6`: **275 bytes**.
 - Timer/PIT setup and state management `E4C7..E6E9`: **547 bytes**.
@@ -34,34 +35,38 @@ Raw coverage: **11.4897%**, displayed conservatively as **11.48%**.
 - 48 exact dispatcher wrappers `EBF3..EDD2`: **480 bytes**.
 - Frame no-op `EDE0..EDE6`: **7 bytes**.
 - Complete formatter driver/parser/materializer `EDE7..F741`: **2,395 bytes**.
-- Runtime allocator/decoder/transform `DAD9..DDD7`: **764 bytes**.
 
 Total integrated verified translated bytes: **8,089**.
 
 `EDD3..EDDF` is **13 zero bytes** classified as data and is not counted as translated code.
 
-## Runtime staging cleared for integration
+## Current startup continuation staging
 
-`RuntimeNext.staging.cpp` contains **764 verified instruction-accounted bytes**, now cleared for physical fold into `Code1.cpp` but still excluded from the official percentage until that fold occurs.
+`StartupNext.staging.cpp` now structurally covers **750 instruction-bounded candidate code bytes**, all explicitly **uncounted** pending instruction-level reconciliation:
 
-- `DAD9..DB7F`: **167 bytes** — allocator wrapper/retry path and `DB5B` free-core wrapper. The retry flag exactly models the encoded one-time `10AA9` attempt followed by `10C46` gating; successful or terminal exits clear byte `8E78h`.
-- `DB80..DC8C`: **269 bytes** — 4096-byte `FEh`-initialized ring-dictionary decoder. Direct inspection of `7360` confirms it returns the input byte zero-extended in EAX, validating the staged 12-bit back-reference construction and flag refill semantics.
-- `DC90..DDD7`: **328 bytes** — header-gated permutation/transformation routine. The final discrepancy was the `REPNE SCASW` model: the instruction compares the word at the initial EDI before advancing it, decrements ECX for every examined word, and leaves EDI one word past the match/final examined element. The following encoded `SUB EDI,2` therefore selects exactly that examined table entry. Staging now reproduces this state transition explicitly.
+- `CD97..CEBF`: **297 bytes** — continuation of startup state capture, PSP command-tail copying, environment scan including the case-insensitive `no87=` test, executable-path copy, DGROUP clearing, runtime initializer calls, and encoded DOS fatal/exit path.
+- `CEC0..CEC7`: **8 bytes** — restore-DS helper using the saved word at `CS:CC90`.
+- `CEC8..CEE8`: **33 bytes** — register-adapter wrapper around `FEFC`, returning the dword addressed by its third stack argument.
+- `CEF0..D08B`: **412 bytes** — descriptor/service setup followed by mouse/runtime initialization and the no-mouse fallback/shutdown path.
 
-The three ranges total **764 bytes**. After physical integration the verified total will become **8,089 / 70,402 = 11.4897%**, displayed conservatively as **11.48%**.
+`CEE9..CEEF` is **7 zero bytes** and is currently treated as an alignment/data candidate rather than code.
 
-`DE6F` remains unclassified; no function boundary is inferred from an invalid-looking entry byte sequence.
+The new staging is not yet eligible for the official percentage. The next hardening pass must reconcile the exact `84A0`, `FEFC`, `FCE8`, `FC98`, `FD2B`, `6F10`, `6F74`, and terminal `CBF0` call contracts; PSP/environment selector provenance; the `CE21` ESP capture; and the exact far/selector representation. No higher-level replacement is permitted where the encoded register/selector behavior matters.
 
-## Formatter fully integrated
+## Recent integrated runtime batch
 
-The contiguous formatter region `EDE7..F741` accounts for **2,395 verified bytes**, including the corrected post-`%` parser pointer, `%n` near/far stores, callback-owned output count, selector-qualified payload reads, signed 16.16 conversion, and the original shared `F001` epilogue relationship.
+`DAD9..DDD7` is now physically integrated into `Code1.cpp` and counted. The final `DC90` correction models `REPNE SCASW` literally: compare at the initial EDI, advance EDI and decrement ECX per examined word, then apply the encoded `SUB EDI,2` to select the matched/final examined entry.
 
 ## Active continuation
 
-Physically fold the cleared `DAD9..DDD7` runtime staging into `Code1.cpp`, syntax-check the unified translation unit, remove the staging file, and update integrated coverage to 11.48%. Then continue into independently provable startup successors and remaining address-named CRT helpers.
+Harden `CD97..D08B` instruction-by-instruction against fresh CODE.1 disassembly, clearing independently provable subranges rather than stopping on the first unresolved runtime call. Fold only fully reconciled code into `Code1.cpp`. Continue through the remaining startup/CRT gaps toward the existing `D08C` mouse routines and later untranslated regions.
 
 ## Larger-batch policy
 
 The working target remains approximately **4,000 newly verified bytes per substantial batch**, with fidelity controlling. Analysis continues past individual dependency edges rather than treating them as stopping points.
+
+## Continuity
+
+Future conversations must read `Code1/DECOMPILATION_CONTINUITY.md` before resuming. It records the immutable-source rules, extraction/disassembly procedure, verification standard, GitHub integration process, primary documentation policy, and CODE.2 transition method.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
