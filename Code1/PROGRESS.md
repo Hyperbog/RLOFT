@@ -40,33 +40,27 @@ Total integrated verified translated bytes: **8,089**.
 
 `EDD3..EDDF` is **13 zero bytes** classified as data and is not counted as translated code.
 
-## Current startup continuation staging
+## Startup continuation under reconciliation
 
-`StartupNext.staging.cpp` now structurally covers **750 instruction-bounded candidate code bytes**, all explicitly **uncounted** pending instruction-level reconciliation:
+`StartupNext.staging.cpp` now contains **747 instruction-bounded candidate code bytes** from the startup gap immediately preceding the already integrated `D08C` routines. They remain uncounted pending final reconciliation.
 
-- `CD97..CEBF`: **297 bytes** — continuation of startup state capture, PSP command-tail copying, environment scan including the case-insensitive `no87=` test, executable-path copy, DGROUP clearing, runtime initializer calls, and encoded DOS fatal/exit path.
-- `CEC0..CEC7`: **8 bytes** — restore-DS helper using the saved word at `CS:CC90`.
-- `CEC8..CEE8`: **33 bytes** — register-adapter wrapper around `FEFC`, returning the dword addressed by its third stack argument.
-- `CEF0..D08B`: **412 bytes** — descriptor/service setup followed by mouse/runtime initialization and the no-mouse fallback/shutdown path.
+- `CD97..CEBF`: **297 bytes** — PSP command-tail/environment processing, `no87=` detection, runtime initialization and the common process-exit/fatal continuation.
+- `CEC0..CEC7`: **8 bytes** — CS-relative saved-DS restore helper.
+- `CEC8..CEE8`: **33 bytes** — FEFC register adapter; its four stack arguments map to ESI/EDI/EDX/EBX and it returns dword `[third_argument]` after FEFC.
+- `CEF0..CF40`: **81 bytes** — descriptor/register-image setup for the CEC8 service-31h adapter.
+- `CF44..CF97`: **84 bytes** — 8A28 structure setup and status test.
+- `CF98..D08B`: **244 bytes** — mouse initialization plus encoded no-mouse terminal fallback.
 
-`CEE9..CEEF` is **7 zero bytes** and is currently treated as an alignment/data candidate rather than code.
+Boundary correction from direct CODE.1 disassembly: `CEE9..CEEF` is **7 zero bytes**, and `CF41..CF43` is a three-byte `LEA EAX,[EAX+0]` alignment NOP. The earlier 750-byte staging count incorrectly included that alignment NOP as functional candidate code; the candidate count is therefore corrected to 747 without affecting official coverage.
 
-The new staging is not yet eligible for the official percentage. The next hardening pass must reconcile the exact `84A0`, `FEFC`, `FCE8`, `FC98`, `FD2B`, `6F10`, `6F74`, and terminal `CBF0` call contracts; PSP/environment selector provenance; the `CE21` ESP capture; and the exact far/selector representation. No higher-level replacement is permitted where the encoded register/selector behavior matters.
-
-## Recent integrated runtime batch
-
-`DAD9..DDD7` is now physically integrated into `Code1.cpp` and counted. The final `DC90` correction models `REPNE SCASW` literally: compare at the initial EDI, advance EDI and decrement ECX per examined word, then apply the encoded `SUB EDI,2` to select the matched/final examined entry.
+The startup model was also corrected in two important ways. First, `FC98` is not treated as an ordinary returning initializer: it computes runtime stack placement, initializes runtime state, calls `508C`, then tail-jumps to `CBF0`, which eventually jumps into the common `CE8B` exit continuation. Second, the no-mouse `CF98` branch now preserves the encoded unconditional `[2AA0]+8` dereference instead of adding a non-existent null guard.
 
 ## Active continuation
 
-Harden `CD97..D08B` instruction-by-instruction against fresh CODE.1 disassembly, clearing independently provable subranges rather than stopping on the first unresolved runtime call. Fold only fully reconciled code into `Code1.cpp`. Continue through the remaining startup/CRT gaps toward the existing `D08C` mouse routines and later untranslated regions.
+Continue hardening `CD97..D08B`, especially the `FEFC/FF33` register-image contract, CEF0 guest-stack/far-cell layout, DOS exit/fatal path, and the terminal `CBF0 -> CE8B` relationship. Fold only after instruction-level reconciliation. Then continue through independent remaining startup/CRT gaps rather than stopping on an isolated runtime dependency.
 
 ## Larger-batch policy
 
 The working target remains approximately **4,000 newly verified bytes per substantial batch**, with fidelity controlling. Analysis continues past individual dependency edges rather than treating them as stopping points.
-
-## Continuity
-
-Future conversations must read `Code1/DECOMPILATION_CONTINUITY.md` before resuming. It records the immutable-source rules, extraction/disassembly procedure, verification standard, GitHub integration process, primary documentation policy, and CODE.2 transition method.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
