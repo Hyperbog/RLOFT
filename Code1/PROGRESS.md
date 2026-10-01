@@ -48,34 +48,33 @@ The PSP command-tail `REPZ SCASB` mismatch behavior, environment executable-path
 
 ## DOS/runtime-memory continuation under reconciliation
 
-`DosMemoryNext.staging.cpp` contains **186 functional instruction-bounded bytes** from `DA1C..DAD8`; `DA45..DA47` is three zero bytes and excluded.
-
-A direct register-flow audit corrected the AH=48/AH=4A failure outputs. In `DA48`, DOS receives the request in BX, then `XCHG EDX,EBX` after INT 21h transfers the DOS-returned BX to EDX while restoring the output pointer to EBX. Therefore on carry the output is DOS's returned BX (largest available block), not the original request. `DA7E` likewise executes `MOV EDX,EBX` immediately after AH=4A and stores that returned BX through arg3 on carry. `10384` consumes the still-live AX+CF state.
+`DosMemoryNext.staging.cpp` contains **186 functional instruction-bounded bytes** from `DA1C..DAD8`; `DA45..DA47` is three zero bytes and excluded. AH=48/AH=4A failure outputs use DOS-returned BX, and `10384` consumes live AX+CF.
 
 ## Mouse/event-pump continuation under reconciliation
 
-`MousePumpNext.staging.cpp` adds **145 instruction-bounded functional bytes** between the already integrated `D08C..D153` and `D1E8..D239` regions. `D179..D17B` is the three-byte `LEA EAX,[EAX+0]` alignment NOP and is excluded.
-
-- `D154..D178`: **37 bytes** — if `84D0` is active, repeatedly obtains the pointer from `D0B4`, calls `8960`, and tests the preserved pointer's first word until it becomes zero.
-- `D17C..D1E7`: **108 bytes** — drains the same loop, then coordinates repeated `82A4`, `D0B4`, and `8960` calls. A nonzero final `82A4` invokes `82EC` then `8304`; the inactive `84D0` path calls `82C0`.
+`MousePumpNext.staging.cpp` adds **145 instruction-bounded functional bytes** between the already integrated `D08C..D153` and `D1E8..D239` regions. `D179..D17B` is an alignment NOP and excluded.
 
 ## D23A..D5AC DOS/CRT continuation under reconciliation
 
-`DosCrtNext.staging.cpp` covers **880 functional instruction bytes** in `D23A..D5AC`; `D27D..D27F` is three zero bytes and excluded. It maps the attribute/status wrapper, find-first/find-next, DTA shuttles, variadic open front-end, open/create/truncate state machine, descriptor/IOCTL setup, open wrapper, and close wrapper. The large `D332..D4F1` routine remains structural staging until its descriptor-table representation is reconciled against `103C3..1042C`.
+`DosCrtNext.staging.cpp` covers **880 functional instruction bytes** in `D23A..D5AC`; `D27D..D27F` is three zero bytes and excluded. It maps attribute/status, find-first/find-next, DTA shuttles, open/create/truncate, descriptor/IOCTL setup, open wrapper, and close wrapper. `D332..D4F1` remains structural staging until descriptor-table representation is reconciled against `103C3..1042C`.
+
+## DE6F..E0C7 low-level/runtime continuation under reconciliation
+
+`RuntimeGapDE6F.staging.cpp` adds **521 functional instruction bytes** immediately after the already mapped vector helpers. Direct disassembly separates the following functional ranges: `DE6F..DEA0` 50 bytes, `DEA7..DF12` 108, `DF13..DF72` 96, `DF73..DF8D` 27, `DFB3..DFFA` 72, `DFFB..E02A` 48, `E050..E097` 72, and `E098..E0C7` 48.
+
+`DEA1..DEA6` is six NOP bytes. `DF8E..DFB2` and `E02B..E04F` are separate 37-byte digit tables (`0123456789abcdefghijklmnopqrstuvwxyz\0`) referenced through CS overrides by the conversion routines and are classified as data rather than translated code.
+
+`DE6F` is an optimized fill front-end: it byte-aligns EAX while rotating EDX, delegates whole dwords to `DEA7`, and emits a 0..3 byte tail. `DEA7` is the 32-byte-unrolled dword fill core. `DF13` programs PIT channel 2 from divisor `0x1234DC / arg` and enables speaker/gate bits at port 61h when required; `DF73` clears those low two bits. The two conversion pairs implement unsigned and decimal-signed integer-to-string behavior with explicit base arguments and CS-relative digit tables.
+
+The fill routines remain staging until the exact pointer/address representation can be folded without host-alignment assumptions; the I/O routines remain bounded through explicit port callbacks.
 
 ## E0D0..E3B2 runtime/interrupt continuation under reconciliation
 
-`RuntimeGapE0D0.staging.cpp` adds **722 functional instruction bytes** between the integrated low-level/runtime block ending at `E0C7` and the integrated dispatcher block beginning at `E3B4`.
-
-Direct binary boundaries are: `E0D0..E173` 164 bytes; `E174..E186` 19; `E190..E1F0` 97; `E1F4..E206` 19; `E208..E268` 97; `E26C..E27E` 19; `E280..E2C2` 67; `E2C3..E35F` 157; and `E360..E3B2` 83. Excluded are eight zeros at `E0C8..E0CF`, nine zeros at `E187..E18F`, alignment LEAs at `E1F1..E1F3` and `E269..E26B`, the single NOP at `E207`, and the zero byte at `E27F`.
-
-The first routine copies an encoded variable-sized object after allocating `0x1B + dword[src+16h]`; three address-distinct wrappers call `7240`; two 97-byte constructor-like routines read a 16-bit length, allocate length+2 and invoke the `72D0/72E0/746C` chain. `E280` installs the INT 24h handler using the extender-specific AX=2506h/CL=24h form only for runtime modes 2..4. `E2C3` is an IRET trampoline that saves the full register/segment image, switches to the runtime stack, far-calls the saved callback, restores SS:ESP with LSS, and IRETs. `E360` is the 83-byte signed decimal parser using class-table bits 02h and 20h at `03B4`.
-
-The interrupt trampoline remains explicitly machine-boundary staging; it will not be collapsed into an ordinary host callback.
+`RuntimeGapE0D0.staging.cpp` adds **722 functional instruction bytes** between the integrated low-level/runtime block ending at `E0C7` and the integrated dispatcher block beginning at `E3B4`. It includes allocation/copy helpers, wrappers, constructor-like chains, INT 24h installation, the full IRET trampoline, and signed decimal parsing. The interrupt trampoline remains explicitly machine-boundary staging.
 
 ## Active continuation
 
-Harden independently provable staged subranges and fold them only after exact call-contract reconciliation and unified syntax checking. Current uncounted instruction-bounded staging totals **2,680 bytes** across startup, DOS-memory, mouse-pump, DOS/CRT, and E0D0..E3B2 runtime/interrupt work streams. Continue past isolated blockers toward the approximately 4 KB batch target without relaxing fidelity.
+Harden independently provable staged subranges and fold them only after exact call-contract reconciliation and unified syntax checking. Current uncounted instruction-bounded staging totals **3,201 bytes** across startup, DOS-memory, mouse-pump, DOS/CRT, DE6F..E0C7, and E0D0..E3B2 work streams. Continue past isolated blockers toward the approximately 4 KB batch target without relaxing fidelity.
 
 ## Larger-batch policy
 
