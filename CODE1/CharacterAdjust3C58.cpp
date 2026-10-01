@@ -1,228 +1,105 @@
 #include "CharacterAdjust3C58.h"
 
-#include "CharacterNormalize3404.h"
-#include "CharacterSheet38A4.h"
-
-#include <cstddef>
+#include <bit>
 #include <cstdint>
 
 namespace ravenloft::game {
 namespace {
-
-void normalize(CharacterAdjustState3C58& state) {
-    CharacterNormalizeState3404 n{};
-    n.field680C = state.field680C;
-    n.fields680D = state.fields680D;
-    n.field6813 = state.field6813;
-    n.word6816 = state.word6816;
-    n.words6818 = state.words6818;
-    n.bytes682A = state.bytes682A;
-    n.global7118 = state.global7118;
-    n.global711C = state.global711C;
-    CharacterNormalize3404::apply(n);
-    state.field6813 = n.field6813;
-    state.word6816 = n.word6816;
-    state.bytes682A = n.bytes682A;
-    state.global7118 = n.global7118;
-    state.global711C = n.global711C;
+constexpr std::uint32_t add32(std::uint32_t a,std::uint32_t b) noexcept{return a+b;}
+constexpr std::uint32_t mul32(std::uint32_t a,std::uint32_t b) noexcept{return a*b;}
+constexpr std::int32_t s32(std::uint32_t v) noexcept{return std::bit_cast<std::int32_t>(v);}
+constexpr std::uint32_t u32(std::int32_t v) noexcept{return std::bit_cast<std::uint32_t>(v);}
+constexpr std::int32_t sx16(std::uint16_t v) noexcept{return static_cast<std::int16_t>(v);}
+constexpr std::uint32_t base(const CharacterAdjustOps3C58&o) noexcept{return mul32(o.readDword(0x4CCu),0x248u);}
+void redraw(const CharacterAdjustOps3C58&o){
+    o.call6588(o.readByte(0x7138u));
+    CharacterSheet38A4::draw(0x5Bu,0x88u,o.sheet);
+    o.call55DC(o.readDword(0x7138u),0x5Bu,0x88u,0x7Au,0x30u);
+    while(o.call53B4()!=0u){}
+}
 }
 
-void drawSheet(std::int32_t x,
-               std::int32_t y,
-               CharacterAdjustState3C58& state,
-               const TextDatabase& text,
-               const CharacterAdjustOps3C58& ops) {
-    CharacterSheetState38A4 sheet{};
-    sheet.fields680D = state.fields680D;
-    sheet.word6810 = state.word6810;
-    sheet.field6813 = state.field6813;
-    sheet.word6816 = state.word6816;
-    sheet.words6818 = state.words6818;
-    sheet.bytes682A = state.bytes682A;
-    sheet.selectedRow7124 = state.selectedRow7124;
-    sheet.control59F8 = state.control59F8;
+void CharacterAdjust3C58::run(const CharacterAdjustOps3C58&o){
+    o.writeDword(0x924u,o.readDword(0x928u));
+    o.writeDword(0x92Cu,o.readDword(0x930u));
+    o.writeDword(0x934u,o.readDword(0x938u));
+    o.writeDword(0x928u,0x2Cu); o.writeDword(0x938u,0x2Du); o.writeDword(0x940u,3u);
+    o.call07E4(6u,9u); o.call56DC();
+    o.writeDword(0x7124u,0xFFFFFFFFu);
 
-    CharacterSheet38A4::draw(x, y, sheet, text, ops.sheet);
-    state.control59F8 = sheet.control59F8;
-}
+    bool finished=false;
+    while(!finished){
+        const std::uint32_t selection=o.call043C();
+        if(selection==0u){finished=true;continue;}
+        const std::uint32_t row=o.readDword(0x7124u);
+        const std::uint32_t rowAddr=add32(base(o),row*2u);
 
-void redrawAndWait(CharacterAdjustState3C58& state,
-                   const TextDatabase& text,
-                   const CharacterAdjustOps3C58& ops) {
-    ops.call6588(state.buffer7138);
-    drawSheet(0x5B, 0x88, state, text, ops);
-    ops.call55DC(state.buffer7138, 0x5B, 0x88, 0x7A, 0x30);
-    while (ops.call53B4() != 0) {
-    }
-}
-
-bool primaryAllowsExceptional(
-    const CharacterAdjustState3C58& state) noexcept {
-    return state.fields680D[0] == 0u ||
-           state.fields680D[0] == 1u ||
-           state.fields680D[0] == 2u;
-}
-
-void increaseSelected(CharacterAdjustState3C58& state,
-                      std::int32_t mouseButtons) {
-    const std::int32_t row = state.selectedRow7124;
-
-    if (row < 6) {
-        auto& value = state.bytes682A[static_cast<std::size_t>(row) * 2u];
-
-        if (row == 0) {
-            if ((mouseButtons & 1) != 0) {
-                if (value == 0x12u) {
-                    if (primaryAllowsExceptional(state)) {
-                        ++state.bytes682A[12];
+        if(selection==7u){
+            if(row==0xFFFFFFFFu)continue;
+            if(s32(row)<6){
+                if(row==0u){
+                    if((o.readByte(0x4D4u)&1u)!=0u){
+                        if(o.readByte(add32(rowAddr,0x682Au))==0x12u){
+                            const std::uint8_t c=o.readByte(add32(base(o),0x680Du));
+                            if(c==1u||c==2u||c==0u){const auto a=add32(base(o),0x6836u);o.writeByte(a,static_cast<std::uint8_t>(o.readByte(a)+1u));}
+                        }else{const auto a=add32(rowAddr,0x682Au);o.writeByte(a,static_cast<std::uint8_t>(o.readByte(a)+1u));}
+                    }else{
+                        o.writeByte(add32(base(o),0x682Au+row*2u),0x14u);
+                        o.writeByte(add32(base(o),0x6836u),0x64u);
                     }
-                } else {
-                    ++value;
-                }
-            } else {
-                value = 0x14u;
-                state.bytes682A[12] = 0x64u;
+                }else if((o.readByte(0x4D4u)&1u)!=0u){const auto a=add32(rowAddr,0x682Au);o.writeByte(a,static_cast<std::uint8_t>(o.readByte(a)+1u));}
+                else o.writeByte(add32(rowAddr,0x682Au),0x14u);
+            }else if(row==0x0Au){
+                const auto a=add32(base(o),0x6816u);
+                if((o.readByte(0x4D4u)&1u)!=0u)o.writeWord(a,static_cast<std::uint16_t>(o.readWord(a)+1u));
+                else o.writeWord(a,0x03E8u);
             }
-        } else {
-            if ((mouseButtons & 1) != 0) {
-                ++value;
-            } else {
-                value = 0x14u;
+            CharacterNormalize3404::apply(o.normalize); redraw(o); continue;
+        }
+
+        if(selection==8u){
+            const std::int32_t dx=sx16(o.readWord(0x73E6u))-0x60;
+            const std::int32_t r=dx/10;
+            o.writeDword(0x7124u,((r>=0&&r<6)||r==10)?u32(r):0xFFFFFFFFu);
+            redraw(o); continue;
+        }
+
+        if(selection==9u){
+            if(row==0xFFFFFFFFu)continue;
+            if(s32(row)<6){
+                if(row==0u){
+                    if((o.readByte(0x4D4u)&1u)!=0u){
+                        const auto value=add32(rowAddr,0x682Au),extra=add32(base(o),0x6836u);
+                        if(o.readByte(value)==0x12u && o.readByte(extra)!=1u)o.writeByte(extra,static_cast<std::uint8_t>(o.readByte(extra)-1u));
+                        else o.writeByte(value,static_cast<std::uint8_t>(o.readByte(value)-1u));
+                    }else{o.writeByte(add32(rowAddr,0x682Au),0u);o.writeByte(add32(base(o),0x6836u),0u);}
+                }else if((o.readByte(0x4D4u)&1u)!=0u){const auto a=add32(rowAddr,0x682Au);o.writeByte(a,static_cast<std::uint8_t>(o.readByte(a)-1u));}
+                else o.writeByte(add32(rowAddr,0x682Au),0u);
+            }else if(row==0x0Au){
+                const auto a=add32(base(o),0x6816u);
+                if((o.readByte(0x4D4u)&1u)!=0u)o.writeWord(a,static_cast<std::uint16_t>(o.readWord(a)-1u));
+                else o.writeWord(a,0u);
             }
-        }
-    } else if (row == 0x0A) {
-        if ((mouseButtons & 1) != 0) {
-            ++state.word6816;
-        } else {
-            state.word6816 = 0x03E8u;
-        }
-    }
-}
-
-void decreaseSelected(CharacterAdjustState3C58& state,
-                      std::int32_t mouseButtons) {
-    const std::int32_t row = state.selectedRow7124;
-
-    if (row < 6) {
-        auto& value = state.bytes682A[static_cast<std::size_t>(row) * 2u];
-
-        if (row == 0) {
-            if ((mouseButtons & 1) != 0) {
-                if (value == 0x12u && state.bytes682A[12] != 1u) {
-                    --state.bytes682A[12];
-                } else {
-                    --value;
-                }
-            } else {
-                value = 0u;
-                state.bytes682A[12] = 0u;
-            }
-        } else {
-            if ((mouseButtons & 1) != 0) {
-                --value;
-            } else {
-                value = 0u;
-            }
-        }
-    } else if (row == 0x0A) {
-        if ((mouseButtons & 1) != 0) {
-            --state.word6816;
-        } else {
-            state.word6816 = 0u;
-        }
-    }
-}
-
-} // namespace
-
-void CharacterAdjust3C58::run(
-    CharacterAdjustState3C58& state,
-    const TextDatabase& text,
-    const CharacterAdjustOps3C58& ops) {
-    // 0x3C5D..0x3CA5: transition into the adjustment page.
-    state.value924 = state.value928;
-    state.value92C = state.value930;
-    state.value934 = state.value938;
-    state.value928 = 0x2C;
-    state.value938 = 0x2D;
-    state.value940 = 3;
-    ops.call07E4(6, 9);
-    ops.call56DC();
-
-    state.selectedRow7124 = -1;
-    bool finished = false;
-
-    while (!finished) {
-        const AdjustmentInput3C58 input = ops.call043C();
-        const std::int32_t selection = input.selection;
-
-        if (selection == 0) {
-            finished = true;
-            continue;
-        }
-
-        if (selection == 7) {
-            if (state.selectedRow7124 == -1) continue;
-            increaseSelected(state, input.mouseButtons4D4);
-            normalize(state);
-            redrawAndWait(state, text, ops);
-            continue;
-        }
-
-        if (selection == 8) {
-            const std::int32_t row =
-                (static_cast<std::int32_t>(input.mouseX73E6) - 0x60) / 10;
-            if ((row >= 0 && row < 6) || row == 0x0A) {
-                state.selectedRow7124 = row;
-            } else {
-                state.selectedRow7124 = -1;
-            }
-            redrawAndWait(state, text, ops);
-            continue;
-        }
-
-        if (selection == 9) {
-            if (state.selectedRow7124 == -1) continue;
-            decreaseSelected(state, input.mouseButtons4D4);
-            normalize(state);
-            redrawAndWait(state, text, ops);
-            continue;
+            CharacterNormalize3404::apply(o.normalize); redraw(o);
         }
     }
 
-    // 0x3FCC..0x40A9: rebuild the two cached 122x48 sheet images while
-    // preserving/restoring the original pixels underneath the scratch area.
-    state.selectedRow7124 = -1;
-    ops.call6588(state.buffer7138);
+    o.writeDword(0x7124u,0xFFFFFFFFu);
+    o.call6588(o.readByte(0x7138u));
+    const std::uint32_t saved=o.call7868(0u,0u,0x7Au,0x30u,0xFFu);
+    o.call9EB0(0u,0u,0x7Au,0x30u,0xFEu);
+    CharacterSheet38A4::draw(0u,0u,o.sheet);
+    if(o.readDword(0x954u)!=0u){o.call7830(o.readDword(0x954u));o.writeDword(0x954u,0u);}
+    if(o.readDword(0x958u)!=0u){o.call7830(o.readDword(0x958u));o.writeDword(0x958u,0u);}
+    o.writeDword(0x958u,o.call7868(0u,0u,0x7Au,0x30u,0xFFu));
+    o.writeDword(0x954u,o.call7868(0u,0u,0x7Au,0x30u,0xFFu));
+    o.call67C8(0u,0u,0u,saved); o.call7830(saved);
 
-    const std::uintptr_t saved =
-        ops.call7868(0, 0, 0x7A, 0x30, 0xFF);
-    ops.call9EB0(0, 0, 0x7A, 0x30, 0xFE);
-    drawSheet(0, 0, state, text, ops);
-
-    if (state.handle954 != 0) {
-        ops.call7830(state.handle954);
-        state.handle954 = 0;
-    }
-    if (state.handle958 != 0) {
-        ops.call7830(state.handle958);
-        state.handle958 = 0;
-    }
-
-    state.handle958 = ops.call7868(0, 0, 0x7A, 0x30, 0xFF);
-    state.handle954 = ops.call7868(0, 0, 0x7A, 0x30, 0xFF);
-
-    ops.call67C8(0, 0, 0, saved);
-    ops.call7830(saved);
-
-    // 0x40AC..0x40F1: transition back to the normal final-sheet page.
-    state.value924 = state.value928;
-    state.value92C = state.value930;
-    state.value934 = state.value938;
-    state.value928 = 0x16;
-    state.value938 = 0x2E;
-    state.value940 = 0x0E;
-    ops.call07E4(6, 9);
+    o.writeDword(0x924u,o.readDword(0x928u));
+    o.writeDword(0x92Cu,o.readDword(0x930u));
+    o.writeDword(0x934u,o.readDword(0x938u));
+    o.writeDword(0x928u,0x16u);o.writeDword(0x938u,0x2Eu);o.writeDword(0x940u,0x0Eu);
+    o.call07E4(6u,9u);
 }
 
 } // namespace ravenloft::game
