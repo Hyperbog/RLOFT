@@ -30,8 +30,12 @@ struct CharacterChoiceOps266C {
                        std::int32_t, std::int32_t, std::int32_t)> call1464;
     std::function<std::int32_t()> call53B4;
     std::function<std::int32_t()> call043C;
-    std::function<void(std::int32_t, std::int32_t,
-                       std::int32_t, std::int32_t)> call15B0;
+
+    // 0x28C2 CALL 0x15B0 is immediately followed by a conditional CALL 0x1F24.
+    // CODE.1 does not establish EDX between those calls. Return the post-call
+    // EDX snapshot so its low byte can be preserved as 0x1F24's inherited DL.
+    std::function<std::uint32_t(std::int32_t, std::int32_t,
+                                std::int32_t, std::int32_t)> call15B0;
 };
 
 class CharacterChoice266C {
