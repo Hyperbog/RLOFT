@@ -1,146 +1,100 @@
 /* CODE.1 startup/runtime continuation staging.
  * Immutable authority: CODE.1 SHA-256
  * fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed
- * Instruction-bounded candidate code: CD97..CEBF, CEC0..CEC7,
- * CEC8..CEE8, CEF0..D08B = 750 bytes. NOT COUNTED until reconciled.
- * CEE9..CEEF = seven zero bytes / alignment-data candidate, excluded here.
+ * Candidate code: CD97..CEBF, CEC0..CEC7, CEC8..CEE8,
+ * CEF0..CF40, CF44..CF97, CF98..D08B = 747 bytes. NOT COUNTED.
+ * CEE9..CEEF = 7 zero bytes; CF41..CF43 = 3-byte alignment NOP.
  */
 #include <cstdint>
-#include <cstddef>
 namespace code1_startup_next {
-using u8=std::uint8_t; using u16=std::uint16_t; using u32=std::uint32_t; using s32=std::int32_t;
-
-/* The boundary deliberately exposes DOS/selector/runtime operations rather than
- * replacing them with host-library behavior. The next verification pass must
- * reconcile register preservation and every callback contract before fold-in. */
+using u8=std::uint8_t; using u16=std::uint16_t; using u32=std::uint32_t;
 struct Boundary {
-    u8* dgroup=nullptr;
-    u8 (*read_selector8)(u16,u32)=nullptr;
-    u16 (*read_selector16)(u16,u32)=nullptr;
-    u32 (*read_selector32)(u16,u32)=nullptr;
-    void (*write_selector8)(u16,u32,u8)=nullptr;
-    void (*write_selector16)(u16,u32,u16)=nullptr;
-    void (*write_selector32)(u16,u32,u32)=nullptr;
-    void (*dos_int21)(u32& eax,u32& ebx,u32& ecx,u32& edx,u16& ds,u16& es)=nullptr;
-    void (*mouse_int33)(u32& eax,u32& ebx,u32& ecx,u32& edx)=nullptr;
-    void (*call_void)(u32 address)=nullptr;
-    u32 (*call_u32)(u32 address,u32 a,u32 b,u32 c)=nullptr;
+ u8* dgroup=nullptr;
+ u8(*read8)(u16,u32)=nullptr; u16(*read16)(u16,u32)=nullptr; u32(*read32)(u16,u32)=nullptr;
+ void(*write8)(u16,u32,u8)=nullptr; void(*write16)(u16,u32,u16)=nullptr; void(*write32)(u16,u32,u32)=nullptr;
+ void(*runtime_call)(u32)=nullptr;
+ void(*int33)(u32&,u32&,u32&,u32&)=nullptr;
+ u32(*call3)(u32,u32,u32,u32)=nullptr;
 };
-static u16 get16(const u8*p) noexcept { return static_cast<u16>(p[0]|(static_cast<u16>(p[1])<<8)); }
-static u32 get32(const u8*p) noexcept { return static_cast<u32>(p[0]|(static_cast<u32>(p[1])<<8)|(static_cast<u32>(p[2])<<16)|(static_cast<u32>(p[3])<<24)); }
-static void put16(u8*p,u16 v) noexcept { p[0]=static_cast<u8>(v); p[1]=static_cast<u8>(v>>8); }
-static void put32(u8*p,u32 v) noexcept { p[0]=static_cast<u8>(v); p[1]=static_cast<u8>(v>>8); p[2]=static_cast<u8>(v>>16); p[3]=static_cast<u8>(v>>24); }
+static u16 g16(const u8*p)noexcept{return static_cast<u16>(p[0]|(static_cast<u16>(p[1])<<8));}
+static u32 g32(const u8*p)noexcept{return static_cast<u32>(p[0]|(u32(p[1])<<8)|(u32(p[2])<<16)|(u32(p[3])<<24));}
+static void p16(u8*p,u16 v)noexcept{p[0]=u8(v);p[1]=u8(v>>8);} static void p32(u8*p,u32 v)noexcept{p[0]=u8(v);p[1]=u8(v>>8);p[2]=u8(v>>16);p[3]=u8(v>>24);}
 
-/* CD97..CEBF (297 bytes): startup continuation.
- * CD97 records startup registers/selector state. CDB2..CDE9 copies the PSP
- * command tail after its leading spaces into the aligned DGROUP area at 8E8C.
- * CDED..CE1F walks the environment strings, detects case-insensitive `no87=`,
- * skips the double-NUL trailer metadata, and copies the executable path.
- * CE21..CE79 records resulting pointers and clears 55F8..8E8C (capped at 1000h
- * when startup byte 531Eh == 1). CE7F/CE86 call runtime initializers FCE8/FC98.
- * CE8E..CEBC is the encoded fatal/exit path: optionally open CC92, write the
- * supplied NUL-terminated message, call FD2B, then terminate via INT 21h/4Ch.
- * This staging routine keeps the register-derived inputs explicit; it is not
- * yet counted because the FCE8/FC98/FD2B contracts and PSP selector source are
- * still being reconciled. */
-struct StartupRegs { u32 eax=0,ebx=0,ecx=0,edx=0,esi=0,edi=0,ebp=0; u16 ds=0,es=0; };
-void function_cd97_cebf(Boundary&b,StartupRegs&r) noexcept {
-    if(!b.dgroup) return;
-    b.dgroup[0x531e]=static_cast<u8>(r.eax);
-    r.es=static_cast<u16>(r.ebx);
-    if(b.write_selector16) b.write_selector16(r.es,0xcc90,r.ds);
-    put32(b.dgroup+0x5320,r.esi); put16(b.dgroup+0x5324,static_cast<u16>(r.ecx));
-    const u32 saved_esi=r.esi;
-    r.es=get16(b.dgroup+0x52fc);
-    r.edx=(0x8e8cu+0x0fu)&~0x0fu;
-    r.ecx=b.read_selector8?b.read_selector8(r.es,r.edi-1u):0;
-    /* CDBA..CDCF: REPZ SCASB for leading ASCII spaces. */
-    while(r.ecx!=0 && b.read_selector8 && b.read_selector8(r.es,r.edi)==0x20u){++r.edi;--r.ecx;}
-    r.esi=r.edi-1u; r.edi=r.edx;
-    if(r.ecx!=0){++r.ecx; while(r.ecx--!=0){const u8 v=b.read_selector8?b.read_selector8(r.es,r.esi):0; b.dgroup[r.edi++]=v; ++r.esi;}}
-    b.dgroup[r.edi++]=0; b.dgroup[r.edi++]=0;
-    r.esi=saved_esi; --r.edi;
-    /* CDED switches DS to the saved environment selector. */
-    const u16 env_sel=get16(b.dgroup+0x5324); r.ebp=0;
-    for(;;){
-        const u32 first=b.read_selector32?b.read_selector32(env_sel,r.esi):0;
-        if((first|0x20202020u)==0x37386f6eu && b.read_selector8 && b.read_selector8(env_sel,r.esi+4u)==static_cast<u8>('=')) ++r.ebp;
-        while(b.read_selector8 && b.read_selector8(env_sel,r.esi)!=0) ++r.esi;
-        ++r.esi;
-        if(!b.read_selector8 || b.read_selector8(env_sel,r.esi)==0) break;
-    }
-    ++r.esi; ++r.esi; /* CE16 LODSB followed by two INC ESI: net +3 from second NUL. */
-    while(b.read_selector8){const u8 v=b.read_selector8(env_sel,r.esi++); b.dgroup[r.edi++]=v; if(v==0) break;}
-    put16(b.dgroup+0x531c,static_cast<u16>(r.ebp)); put32(b.dgroup+0x5300,r.edi);
-    /* CE21 records current ESP in 52EC; caller supplies it in EBX for staging. */
-    put32(b.dgroup+0x52ec,r.ebx);
-    u32 clear_count=0x8e8cu-0x55f8u; if(b.dgroup[0x531e]==1u && clear_count>0x1000u) clear_count=0x1000u;
-    for(u32 i=0;i<clear_count;++i)b.dgroup[0x55f8u+i]=0;
-    put32(b.dgroup+0x52f4,(0x8e8cu+0x0fu)&~0x0fu); put32(b.dgroup+0x52f8,r.esi);
-    if(b.call_void){b.call_void(0xfce8); b.call_void(0xfc98);}
+struct StartupRegs{u32 eax=0,ebx=0,ecx=0,edx=0,esi=0,edi=0,ebp=0,esp=0;u16 ds=0,es=0;};
+
+/* CD97..CE8A is the startup path. It is not a normal leaf routine: FC98 is
+ * the runtime-launch path and eventually tail-jumps through CBF0 back to CE8B.
+ * CE8B..CEBD is therefore the common process-exit continuation. */
+void function_cd97_start(Boundary&b,StartupRegs&r)noexcept{
+ if(!b.dgroup)return;
+ b.dgroup[0x531e]=u8(r.eax); r.es=u16(r.ebx); if(b.write16)b.write16(r.es,0xcc90,r.ds);
+ p32(b.dgroup+0x5320,r.esi); p16(b.dgroup+0x5324,u16(r.ecx)); const u32 saved_esi=r.esi;
+ r.es=g16(b.dgroup+0x52fc); r.edx=0x8e8c+0x0f; r.edx=(r.edx&~0xffu)|((r.edx&0xffu)&0xf0u); // CDC1 AND DL,F0
+ r.ecx=b.read8?b.read8(r.es,r.edi-1):0;
+ while(r.ecx!=0&&b.read8&&b.read8(r.es,r.edi)==0x20){++r.edi;--r.ecx;}
+ r.esi=r.edi-1; r.edi=r.edx; const u16 psp_sel=r.es; r.es=r.ds;
+ if(r.ecx!=0){++r.ecx;while(r.ecx--!=0){const u8 v=b.read8?b.read8(psp_sel,r.esi):0;b.dgroup[r.edi++]=v;++r.esi;}}
+ b.dgroup[r.edi++]=0;b.dgroup[r.edi++]=0;r.esi=saved_esi;--r.edi;
+ const u16 env=g16(b.dgroup+0x5324);r.ebp=0;
+ for(;;){u32 first=b.read32?b.read32(env,r.esi):0;if((first|0x20202020u)==0x37386f6eu&&b.read8&&b.read8(env,r.esi+4)=='=')++r.ebp;
+  while(b.read8&&b.read8(env,r.esi)!=0)++r.esi;++r.esi;if(!b.read8||b.read8(env,r.esi)==0)break;}
+ ++r.esi;++r.esi; // CE16 LODSB consumes one, CE17/18 add two: net +3.
+ while(b.read8){const u8 v=b.read8(env,r.esi++);b.dgroup[r.edi++]=v;if(v==0)break;}
+ p16(b.dgroup+0x531c,u16(r.ebp));p32(b.dgroup+0x5300,r.edi);p32(b.dgroup+0x52ec,r.esp);
+ u32 n=0x8e8c-0x55f8;if(b.dgroup[0x531e]==1&&n>0x1000)n=0x1000;for(u32 i=0;i<n;++i)b.dgroup[0x55f8+i]=0;
+ u32 aligned=0x8e8c+0x0f;aligned=(aligned&~0xffu)|((aligned&0xffu)&0xf0u);p32(b.dgroup+0x52f4,aligned);p32(b.dgroup+0x52f8,r.esi);
+ if(b.runtime_call)b.runtime_call(0xfce8);
+ /* CE84 clears EBP before FC98. FC98 does not return normally: it computes
+  * runtime stack placement, initializes runtime state, invokes 508C and then
+  * tail-jumps to CBF0. CBF0 ultimately jumps to CE8B with the exit code. */
+ r.ebp=0;if(b.runtime_call)b.runtime_call(0xfc98);
 }
 
-/* CEC0..CEC7 (8 bytes): restore DS from the word stored in CS:CC90 and return. */
-[[nodiscard]] u16 function_cec0(u16 saved_ds) noexcept { return saved_ds; }
+/* CE8B..CEBF: common exit/fatal continuation. CE8E is an alternate entry
+ * reached with an error message and exit value on the stack. The exact DOS
+ * write/open calls remain boundary-owned until integrated with the existing
+ * INT 21h model. */
+void function_ce8b_exit(Boundary&b,u32 exit_value)noexcept{if(b.runtime_call)b.runtime_call(0xfd2b);(void)exit_value;}
 
-/* CEC8..CEE8 (33 bytes): register-adapter wrapper around FEFC.
- * ESI/EDI/EDX/EBX receive the four stack arguments; FEFC is called; EAX is
- * then loaded from the dword pointed to by the third argument. */
-[[nodiscard]] u32 function_cec8(Boundary&b,u32 a,u32 c,u32 d,u32 e) noexcept {
-    (void)a; (void)c; (void)e; if(b.call_void)b.call_void(0xfefc);
-    return b.read_selector32?b.read_selector32(0,d):0;
+/* CEC0..CEC7: CS-relative saved-DS restore and RET. */
+[[nodiscard]]u16 function_cec0(u16 cs_saved_ds)noexcept{return cs_saved_ds;}
+
+/* CEC8..CEE8: exact register adapter around FEFC. Four dword arguments are
+ * loaded into ESI,EDI,EDX,EBX respectively. FEFC dispatches through FF33 and
+ * writes the resulting register image; CEC8 returns dword [third_argument]. */
+struct AdapterArgs{u32 esi,edi,edx,ebx;};
+[[nodiscard]]u32 function_cec8(Boundary&b,const AdapterArgs&a)noexcept{
+ if(b.runtime_call)b.runtime_call(0xfefc);return b.read32?b.read32(0,a.edx):0;
 }
 
-/* CEF0..CF40 (81 bytes): build a 0x300/0x33 descriptor-shaped local block,
- * seed its pointer/selector fields from the caller, and invoke the CEC8 adapter
- * with service 31h. The exact 84A0 and FEFC interfaces remain boundary-owned. */
-void function_cef0(Boundary&b,u32 caller_ptr,u16 ds) noexcept {
-    u32 local_desc[10]{}; local_desc[0]=0x300; local_desc[1]=0x33; local_desc[2]=0;
-    u32 far_cell[3]{}; far_cell[2]=caller_ptr; reinterpret_cast<u16*>(far_cell)[0]=ds;
-    if(b.call_u32)(void)b.call_u32(0x84a0,reinterpret_cast<u32>(far_cell),0,12);
-    (void)function_cec8(b,0x31,reinterpret_cast<u32>(local_desc),reinterpret_cast<u32>(local_desc),reinterpret_cast<u32>(far_cell));
+/* CEF0..CF40: genuine entry begins at CEF0 (55 = PUSH EBP). The seven bytes
+ * CEE9..CEEF are zero data/alignment and must not be decoded into this routine.
+ * 84A0 first clears the 12-byte far-cell local. The 0x300/0x33 register image
+ * is then passed to CEC8 with service 31h. Guest stack addresses remain
+ * abstract here; no host-pointer-to-u32 cast is used. */
+struct Cef0Locals{u32 regs[10]{};u8 far_cell[12]{};};
+void function_cef0(Boundary&b,u32 caller_ptr,u16 ds,Cef0Locals&l,u32 regs_guest,u32 far_guest)noexcept{
+ if(b.call3)(void)b.call3(0x84a0,far_guest,0,12);l.regs[0]=0x300;l.regs[1]=0x33;l.regs[2]=0;l.regs[5]=caller_ptr;p16(l.far_cell,ds);
+ AdapterArgs a{0x31,regs_guest,regs_guest,far_guest};(void)function_cec8(b,a);
 }
 
-/* CF44..CF97 (84 bytes): initialize the 8A28 structure, derive the high word
- * of 30A8 into 8A4A, invoke CEF0, and return whether 8A44 became 1. */
-[[nodiscard]] bool function_cf44(Boundary&b) noexcept {
-    if(!b.dgroup)return false;
-    if(b.call_u32)(void)b.call_u32(0x84a0,0x8a28,0,0x32);
-    put32(b.dgroup+0x8a44,0x53c1); put16(b.dgroup+0x8a4a,static_cast<u16>(get32(b.dgroup+0x30a8)>>16)); put32(b.dgroup+0x8a3c,0);
-    function_cef0(b,0x8a28,0); return get32(b.dgroup+0x8a44)==1u;
+/* CF41..CF43 is LEA EAX,[EAX+0], a three-byte alignment NOP, not counted. */
+
+/* CF44..CF97: clear 8A28[0..31h], seed fields, invoke CEF0, return 8A44==1. */
+[[nodiscard]]bool function_cf44(Boundary&b,Cef0Locals&l,u32 regs_guest,u32 far_guest)noexcept{
+ if(!b.dgroup)return false;if(b.call3)(void)b.call3(0x84a0,0x8a28,0,0x32);p32(b.dgroup+0x8a44,0x53c1);p16(b.dgroup+0x8a4a,u16(g32(b.dgroup+0x30a8)>>16));p32(b.dgroup+0x8a3c,0);function_cef0(b,0x8a28,0,l,regs_guest,far_guest);return g32(b.dgroup+0x8a44)==1;
 }
 
-/* CF98..D08B (244 bytes): mouse/runtime startup and fallback shutdown path.
- * INT 33h function 0 stores AX/BX at 8A5A/8A5C and clears 8A5E. If a mouse is
- * present, 6F10 allocates/obtains a block recorded at 30A4 and CF44 may expose
- * its first byte as 8A5E; otherwise 6F74 receives word 30AC. If no mouse is
- * present, the encoded fallback calls 61D0, conditionally C4A0/B430/E6EA,
- * then 8424 and tail-jumps to CBF0 with argument 1. This remains staging until
- * those call contracts and the exact terminal/tail-call representation are
- * reconciled. */
-struct MouseInitResult { u16 ax=0,bx=0,flag=0; u32 pointer=0; bool terminal_fallback=false; };
-[[nodiscard]] MouseInitResult function_cf98_d08b(Boundary&b) noexcept {
-    MouseInitResult out{}; if(!b.dgroup)return out;
-    u32 eax=0,ebx=0,ecx=0,edx=0; if(b.mouse_int33)b.mouse_int33(eax,ebx,ecx,edx);
-    out.ax=static_cast<u16>(eax); out.bx=static_cast<u16>(ebx); put16(b.dgroup+0x8a5a,out.ax); put16(b.dgroup+0x8a5c,out.bx); put16(b.dgroup+0x8a5e,0);
-    if(out.ax!=0){
-        if(b.call_u32)out.pointer=b.call_u32(0x6f10,0x40,get32(b.dgroup+0x30a8),get32(b.dgroup+0x30ac));
-        put32(b.dgroup+0x30a4,out.pointer);
-        if(out.pointer==0)return out;
-        if(function_cf44(b)){out.flag=b.dgroup[out.pointer];put16(b.dgroup+0x8a5e,out.flag);}
-        if(get16(b.dgroup+0x8a5e)==0 && b.call_u32)(void)b.call_u32(0x6f74,get16(b.dgroup+0x30ac),0,0);
-    } else {
-        if(b.call_u32)(void)b.call_u32(0x61d0,0x350,0,0);
-        const u32 p=get32(b.dgroup+0x2aa0); const u32 pending=get32(b.dgroup+0x2b84)|get32(b.dgroup+0x2f48);
-        if(p!=0 && get16(b.dgroup+p+8u)!=0x71u){if(get16(b.dgroup+p+0x14u)!=0 && b.call_void)b.call_void(0xc4a0); if(b.call_void)b.call_void(0xb430); if(pending!=0 && b.call_u32)(void)b.call_u32(0xe6ea,0,0,0);}
-        if(b.call_void)b.call_void(0x8424); out.terminal_fallback=true;
-    }
-    out.flag=get16(b.dgroup+0x8a5e); return out;
+/* CF98..D08B: mouse initialization. The no-mouse branch deliberately does
+ * NOT guard [2AA0] against zero: D04D dereferences EAX+8 exactly as encoded.
+ * Its terminal path calls 8424, pushes 1 and tail-jumps to CBF0. */
+struct MouseResult{u16 ax=0,bx=0,flag=0;u32 pointer=0;bool tail_to_cbf0=false;};
+[[nodiscard]]MouseResult function_cf98_d08b(Boundary&b,Cef0Locals&l,u32 regs_guest,u32 far_guest)noexcept{
+ MouseResult o{};if(!b.dgroup)return o;u32 eax=0,ebx=0,ecx=0,edx=0;if(b.int33)b.int33(eax,ebx,ecx,edx);o.ax=u16(eax);o.bx=u16(ebx);p16(b.dgroup+0x8a5a,o.ax);p16(b.dgroup+0x8a5c,o.bx);p16(b.dgroup+0x8a5e,0);
+ if(o.ax!=0){if(b.call3)o.pointer=b.call3(0x6f10,0x40,0x30a8,0x30ac);p32(b.dgroup+0x30a4,o.pointer);if(o.pointer==0)goto done;if(function_cf44(b,l,regs_guest,far_guest)){o.flag=b.dgroup[o.pointer];p16(b.dgroup+0x8a5e,o.flag);}if(g16(b.dgroup+0x8a5e)==0&&b.call3)(void)b.call3(0x6f74,g16(b.dgroup+0x30ac),0,0);}
+ else{if(b.call3)(void)b.call3(0x61d0,0x350,0,0);const u32 p=g32(b.dgroup+0x2aa0);const u32 pending=g32(b.dgroup+0x2b84)|g32(b.dgroup+0x2f48);if(g16(b.dgroup+p+8)!=0x71){if(g16(b.dgroup+p+0x14)!=0&&b.runtime_call)b.runtime_call(0xc4a0);if(b.runtime_call)b.runtime_call(0xb430);if(pending!=0&&b.call3)(void)b.call3(0xe6ea,0,0,0);}if(b.runtime_call)b.runtime_call(0x8424);o.tail_to_cbf0=true;return o;}
+ done:o.flag=g16(b.dgroup+0x8a5e);return o;
 }
-
-static_assert(0xCEC0u-0xCD97u==297u);
-static_assert(0xCEC8u-0xCEC0u==8u);
-static_assert(0xCEE9u-0xCEC8u==33u);
-static_assert(0xD08Cu-0xCEF0u==412u);
-constexpr u32 kInstructionBoundedStagedBytes=750u;
+static_assert(0xCEC0u-0xCD97u==297u);static_assert(0xCEC8u-0xCEC0u==8u);static_assert(0xCEE9u-0xCEC8u==33u);static_assert(0xCF41u-0xCEF0u==81u);static_assert(0xCF98u-0xCF44u==84u);static_assert(0xD08Cu-0xCF98u==244u);
+constexpr u32 kInstructionBoundedStagedBytes=747u;
 } // namespace code1_startup_next
