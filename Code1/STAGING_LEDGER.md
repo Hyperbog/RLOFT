@@ -43,3 +43,7 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 - `F750..F7B2 integrated`: 99-byte source reader directly disassembled; bit 0 selects the guest-memory copy path, otherwise the encoded D85F/D5AD/D85F seek-read-position sequence is retained.
 
 - `F7B8..F8BC integrated`: 261-byte resource image-size parser directly disassembled; preserves header offset 3Ch, two-byte signature check against DGROUP+038Ch, 0ACh header read, 18h-byte record walk, and encoded close behavior.
+
+- `FCE9..FD6D integrated`: 133 bytes of directly disassembled six-byte runtime-record dispatchers; lower range selects minimum priority, upper range maximum priority, both prefer later equal-priority records and mark each executed record state 2.
+- `FE21..FEFB integrated`: 219-byte directly disassembled command-line scanner, preserving whitespace, quote, backslash, in-place compaction, optional argv-output, and stopping-cursor behavior.
+- `FFD4..102D3 integrated`: complete 768-byte interrupt veneer table; all 256 entries are mechanically `INT imm8; RET` at `FFD4+3*vector`.
