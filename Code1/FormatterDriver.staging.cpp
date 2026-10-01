@@ -1,7 +1,7 @@
 /* CODE.1 formatter driver verification staging.
  * Immutable authority: CODE.1 SHA-256
  * fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed
- * Range: EDE7..F006 = 544 bytes. Structural lift; NOT counted yet.
+ * Verified range: EDE7..F006 = 544 instruction-accounted bytes.
  *
  * This routine owns the stack-resident FormatState consumed by F007/F2E9.
  * F2E9 returns through the shared F001 epilogue in the original instruction
@@ -30,17 +30,17 @@ static void output(Boundary&b,FormatState&s,u8 ch)noexcept{if(b.emit)b.emit(s,ch
 
 // EDE7..F006. format is the byte stream initially loaded from [EBP+1C].
 // cursor_cell models [EBP+20], a pointer to the caller's advancing argument
-// cursor. null/context input is the dword copied from [EBP+18] to state+00.
+// cursor. initial_context is the dword copied from [EBP+18] to state+00.
 [[nodiscard]]u32 function_ede7(Boundary&b,u32 initial_context,const u8*format,u32 cursor_cell,u32 scratch_guest,u32 state_guest)noexcept{
  FormatState s{};s.context=initial_context;s.count=0;const u8*p=format;
  for(;;){
   if(*p==0)return s.count;
   if(*p!='%'){output(b,s,*p++);continue;}
 
-  // EE10..EE2E: F007 returns the conversion-byte address. ESI is advanced
-  // once past it and that post-conversion address becomes the next format p.
+  // EE72 loads ESI=p, EE75 increments EAX to p+1, and EE79 branches to EE10
+  // with that incremented EAX. Therefore F007 receives the byte AFTER '%'.
   if(!b.parse_f007)return s.count;
-  const u8*conversion=b.parse_f007(p,cursor_cell,s);
+  const u8*conversion=b.parse_f007(p+1,cursor_cell,s);
   s.conversion=*conversion;p=conversion+1;
   if(s.conversion==0)return s.count;
 
@@ -67,26 +67,20 @@ static void output(Boundary&b,FormatState&s,u8 ch)noexcept{if(b.emit)b.emit(s,ch
 
   // EEE9..EF0C: right-aligned space padding before prefix.
   if((s.flags&0x08u)==0&&s.pad==' '){while(static_cast<s32>(--s.width)>=0)output(b,s,s.pad);}
-
   // EF0E..EF2C: prefix at state+17, NUL terminated.
   for(u32 i=0;i<3u&&s.prefix[i]!=0;++i)output(b,s,s.prefix[i]);
-
-  // EF2E..EF43: precision-derived zero fill. The post-decrement loop emits
-  // exactly the pre-loop zero_count value and leaves the field wrapped/decremented.
+  // EF2E..EF43: post-decrement zero fill, preserving the wrapped field.
   for(;;){const u32 old=s.zero_count--;if(old==0)break;output(b,s,'0');}
-
   // EF45..EF68: non-space pad is emitted here for right alignment.
   if((s.flags&0x08u)==0&&s.pad!=' '){while(static_cast<s32>(--s.width)>=0)output(b,s,s.pad);}
-
-  // EF6A..EFCD: payload length is state.precision. s/S with flag 20h advances
-  // the selector-qualified source by two bytes per emitted low byte; all other
-  // payload paths advance by one byte.
+  // EF6A..EFCD: state.precision is the payload count. s/S with flag 20h
+  // advances ESI by two while still emitting the low byte at ES:ESI.
   for(;;){const u32 old=s.precision--;if(old==0)break;const u8 ch=b.read_selector8?b.read_selector8(selector,source):0;output(b,s,ch);source+=((s.conversion=='s'||s.conversion=='S')&&(s.flags&0x20u))?2u:1u;}
-
-  // EFCF..EFFC: left alignment emits trailing spaces only while width > 0.
+  // EFCF..EFFC: left alignment emits trailing spaces while width remains >0.
   if(s.flags&0x08u){while(static_cast<s32>(s.width)>0){const u32 old=s.width--;if(old==0)break;output(b,s,' ');}}
  }
 }
 static_assert(0xF007u-0xEDE7u==544u);
-constexpr u32 kStructuralUncountedBytes=544u;
+constexpr u32 kVerifiedStagedBytes=544u;
+constexpr u32 kStructuralUncountedBytes=0u;
 } // namespace code1_formatter_driver
