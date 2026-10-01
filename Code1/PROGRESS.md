@@ -46,24 +46,24 @@ Total integrated verified translated bytes: **8,089**.
 
 The PSP command-tail `REPZ SCASB` mismatch behavior, environment executable-path `ESI += 3` transition, FEFC/FF33 adapter mapping, `FC98` non-returning launch path, no-mouse unconditional dereference, and `CBF0 -> CE8B` termination stack relationship have all been reconciled directly against CODE.1. `StartupExit.reconciled.cpp` retains the detailed exit-path evidence.
 
-Remaining startup hardening is concentrated in the `CEF0..D08B` descriptor/mouse-runtime contracts before physical fold-in.
-
 ## DOS/runtime-memory continuation under reconciliation
 
-`DosMemoryNext.staging.cpp` now closes the address gap immediately between the integrated `D8D0..DA1B` helpers and integrated `DAD9` allocator path. It contains **186 functional instruction-bounded bytes**; `DA45..DA47` is three zero bytes classified as data/alignment and is excluded.
+`DosMemoryNext.staging.cpp` contains **186 functional instruction-bounded bytes** from `DA1C..DAD8`; `DA45..DA47` is three zero bytes and excluded.
 
-- `DA1C..DA44`: **41 bytes** — initializes the 12-byte `104B1` adapter cell and calls the already cross-checked `CEC8` FEFC adapter.
-- `DA48..DA6B`: **36 bytes** — DOS INT 21h/AH=48 allocation wrapper. Success writes returned AX through arg2 and returns zero; failure preserves the requested paragraph count for the output and enters `10384` with carry set.
-- `DA6C..DA7D`: **18 bytes** — DOS AH=49 free wrapper followed by unconditional `10384` while the DOS carry state is live.
-- `DA7E..DAA5`: **40 bytes** — DOS AH=4A resize wrapper; on carry only it writes the requested paragraph count through arg3, then calls `10384` with the unchanged carry state.
-- `DAA6..DAC8`: **35 bytes** — unsigned maximum scan of the arena list rooted at `[30DC]`, ending at sentinel `30D4`, using `dword[node]-4` and `node=[node+8]` exactly.
-- `DAC9..DAD8`: **16 bytes** — ordinary wrapper into the already integrated `DAD9` allocator.
+A direct register-flow audit corrected the AH=48/AH=4A failure outputs. In `DA48`, DOS receives the request in BX, then `XCHG EDX,EBX` after INT 21h transfers the DOS-returned BX to EDX while restoring the output pointer to EBX. Therefore on carry the output is DOS's returned BX (largest available block), not the original request. `DA7E` likewise executes `MOV EDX,EBX` immediately after AH=4A and stores that returned BX through arg3 on carry. `10384` consumes the still-live AX+CF state.
 
-Direct inspection of `10384` confirmed that it begins with `JAE`: the carry flag produced by the preceding DOS interrupt is an explicit input to that helper. The staging boundary therefore carries both AX and CF rather than reducing the helper to an AX-only error mapper.
+## Mouse/event-pump continuation under reconciliation
+
+`MousePumpNext.staging.cpp` adds **145 instruction-bounded functional bytes** between the already integrated `D08C..D153` and `D1E8..D239` regions. `D179..D17B` is the three-byte `LEA EAX,[EAX+0]` alignment NOP and is excluded.
+
+- `D154..D178`: **37 bytes** — if `84D0` is active, repeatedly obtains the pointer from `D0B4`, calls `8960`, and tests the preserved pointer's first word until it becomes zero.
+- `D17C..D1E7`: **108 bytes** — drains the same loop, then coordinates repeated `82A4`, `D0B4`, and `8960` calls. A nonzero final `82A4` invokes `82EC` then `8304`; the inactive `84D0` path calls `82C0`.
+
+The staging preserves the important call multiplicity: the encoded routine calls `82A4` again at `D1B6` after leaving the preceding poll loop rather than reusing an earlier result.
 
 ## Active continuation
 
-Continue hardening the 747-byte startup batch, while independently reconciling the new 186-byte `DA1C..DAD8` bridge. The latter is structurally contiguous with already integrated code on both sides and is a strong near-term integration candidate once `104B1` and the DOS carry/error boundary are fully reconciled. Continue through other independent CRT/runtime gaps instead of stopping on isolated dependencies.
+Continue reconciling the startup batch and the now-corrected 186-byte DOS-memory bridge. The new 145-byte mouse/event-pump gap is bounded by already integrated code on both sides and can be hardened independently. Continue through `D23A..D5AC` CRT/DOS helpers as another substantial contiguous candidate region while preserving carry-derived status encodings and code/data boundaries.
 
 ## Larger-batch policy
 
