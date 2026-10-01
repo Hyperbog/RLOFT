@@ -39,36 +39,25 @@ Total integrated verified translated bytes: **5,473**.
 
 `EDD3..EDDF` is **13 zero bytes** classified as data and is not counted as translated code.
 
-## Formatter continuation cleared for integration
+## Formatter staging cleared for integration
 
-`FormatterContinuation.staging.cpp` contains **1,308 verified instruction-accounted bytes** covering `F206..F721`. They remain excluded from the official percentage only until folded into `Code1.cpp`.
+Both remaining formatter staging files are now instruction-accounted and cleared:
 
-- `F206..F2D1`: **204 bytes** — signed 16.16 fixed-point decimal materialization and exact rounding/carry walk.
-- `F2D2..F2E8`: **23 bytes** — indirect thunk through DGROUP `55C4h`, preserving the EAX:DX far-return contract.
-- `F2E9..F721`: **1,081 bytes** — complete conversion materializer, cleared after instruction-level review.
+- `FormatterDriver.staging.cpp`, `EDE7..F006`: **544 verified bytes**.
+- `FormatterContinuation.staging.cpp`, `F206..F721`: **1,308 verified bytes**.
 
-Once folded, the integrated verified total becomes **6,781 bytes**, raw coverage **9.6318%** (conservative display **9.63%**).
+The final driver reconciliation found one structural-lift defect before clearance: at `EE75`, EAX is incremented before the `%` branch reaches `EE10`, so `F007` receives the byte immediately **after** `%`. The staging source previously passed the `%` address itself. This is corrected. The `%n` near/far word/dword stores, callback-owned count, pre/post padding loops, prefix and zero emission, selector-qualified payload reads, two-byte `s/S` stride, and shared `F001` epilogue were then rechecked against the immutable instruction stream.
 
-## Formatter driver structural lift
+Together these staged ranges add **1,852 verified bytes**. Folding them into `Code1.cpp` will make the complete formatter region `EDE7..F741` contiguous at **2,395 verified bytes** and raise the integrated total to **7,325 / 70,402 = 10.4045%**, displayed conservatively as **10.40%**.
 
-`FormatterDriver.staging.cpp` now carries the complete **544-byte `EDE7..F006`** formatter driver as a structural, deliberately uncounted lift. The range was regenerated directly from the immutable CODE.1 object bytes before translation.
-
-The lift preserves the stack-resident formatter-state layout, literal-character callback path, `%n` word/dword and near/far stores, the encoded but operationally redundant `40h` tests, the call into `F2E9`, both right-alignment padding phases, prefix emission, zero fill, selector-qualified payload reads, the two-byte source stride for `s/S` with flag `20h`, left-alignment trailing spaces, and the returned count at `F001`.
-
-The original `F2E9` routine jumps into this driver's `F001` epilogue rather than returning through an independent epilogue. The staging source documents that shared-tail relationship explicitly and models it as a normal materializer return so the two verified regions can later be folded into one coherent C++ representation.
-
-`EDE7..F006` is not yet included in the verified byte count. The next pass is an instruction-by-instruction reconciliation of the lift, especially the callback-owned count at state `+10h`, post-decrement loop state, and `%n` guest-memory writes.
+The official percentage remains 7.77% until the physical fold is committed; verified-but-staged bytes are never counted early.
 
 ## Active continuation
 
-Integrate the cleared `F206..F721` materializer into `Code1.cpp`; simultaneously harden `EDE7..F006` against its exact instruction stream. Once both are integrated, the formatter dependency region `EDE7..F741` will be contiguous except for already classified `EDD3..EDDF` data immediately before it.
+Physically fold the two cleared formatter staging files into `Code1.cpp`, update the unified `FormatState` layout and verified-byte constant, syntax-check the resulting C++17 translation unit, remove the staging files, and then advance to the next independent CODE.1 regions.
 
 ## Larger-batch policy
 
 The working target remains approximately **4,000 newly verified bytes per substantial batch**, with fidelity controlling. Analysis continues past individual dependency edges rather than treating them as stopping points.
-
-## Unresolved queue
-
-Integrate `F206..F721`; verify/integrate `EDE7..F006`; allocator bodies at `DAD9`/`DB5B`; candidate compressed-data routine `DB80`; transformation routine `DC90`; uncertain entry at `DE6F`; startup successor work; remaining address-named CRT helpers.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
