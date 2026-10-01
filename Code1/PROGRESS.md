@@ -48,20 +48,17 @@ Total integrated verified translated bytes: **5,473**.
 
 `F2E9..F721` (**1,081 bytes**) remains a structural C++ lift under verification and is explicitly **uncounted**.
 
-## Formatter register-alias verification pass
+## Latest materializer verification
 
-A fresh disassembly of the complete `F206..F721` region was checked directly against the immutable CODE.1 bytes. This pass resolved two aliasing cases where a conventional source-level formatter reconstruction gives the wrong result:
+A new full disassembly of `F2E9..F721` exposed and corrected another shared-tail detail. Both signed-decimal exits (`F4D2` after `E098` and `F4FA` after `DFFB`) jump to `F490`, then execute the same `F493..F4A4` precision-zero suppression used by the unsigned conversion families. The staging translation had measured `d/i` immediately and therefore missed suppression of a positive generated `"0"` when precision is zero. That path is now explicit. A negative result is not suppressed because the encoded comparison examines the first byte at ESI, which is `'-'`.
 
-- `F206` stores the absolute input as one dword at `[EBP-4]`, passes **WORD `[EBP-2]`** to `DFFB`, then repeatedly zeroes that same high word before `IMUL value,10`. The helper is therefore operating on signed **16.16 fixed-point** state. Fractional digits are the successive high-word values after multiplying the retained low 16-bit fraction by ten. `TEST BYTE [EBP-3],80h` is exactly a test of bit 15 of the final retained fraction for rounding. The carry-through-front path at `F284..F2B4` is now represented explicitly rather than replaced by host numeric formatting.
-- `F477..F4A4` deliberately aliases two output cursors. ESI advances past an alternate-form octal `0`, while EDI remains at the original scratch start. The zero-precision test examines `[ESI]`, but the suppressing NUL is written through `ES:EDI`. Thus alternate-form octal zero clears the original prefix byte; the staging model now preserves that encoded behavior.
-- `F4FC..F548` was rechecked for null far strings: `{offset=0,selector=0}` falls back to the caller-supplied null string **and resets the active selector to DS** at `F545`. A non-null far pointer retains its supplied selector.
-- The previously corrected EAX:DX callback return, `S` one-character/two-byte-character path, signed precision comparisons, and `AND F9h` flag masks remain consistent with the new disassembly.
+The pointer path `F5E4..F660` was also rechecked: `AND F9h` occurs before the `80h` far-pointer test but preserves bit `80h`, so the existing far/near branch is valid. The first dword is retained at local `-14h`; far form consumes the second dword, masks it to 16 bits for the four-digit selector, writes `':'`, and emits the retained first dword as eight hex digits.
 
-No libc `printf`, host floating-point conversion, or flat-pointer substitution is used in these paths.
+The materializer remains uncounted until the remaining live-register and source-selector paths have been reconciled.
 
 ## Active continuation
 
-Continue the remaining instruction-level review of `F2E9..F721`, with particular attention to the pointer path and common-tail live-register values. Once all branches are reconciled, fold `F206..F721` into `Code1.cpp`; then translate `EDE7..F006` against the proven formatter helpers.
+Finish the instruction-level review of `F2E9..F721`, then fold `F206..F721` into `Code1.cpp`; translate `EDE7..F006` immediately afterward against the proven formatter helpers.
 
 ## Larger-batch policy
 
