@@ -51,3 +51,5 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 - `F8C4..FC96 integrated`: 979-byte resource image loader/relocator directly disassembled; allocated guest addresses remain behind explicit F750-destination and relocation-write boundaries.
 
 - `102D4..104DD integrated`: 520 functional bytes directly disassembled; four zero bytes at 10436..10437 and 104DE..104DF excluded. Error mapping, descriptor-table state, stack guard, bounded copy/pad, and selector capture are explicit.
+
+- `104E0..1083E`, `10974..109C0`, `10C46..10C6C` integrated: 979 verified heap/runtime bytes. Guest heap addresses and DPMI/DOS release operations remain explicit boundaries; no host allocator substitution.

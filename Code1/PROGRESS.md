@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-17.96%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-19.35%25-red)
 
-**Verified conversion:** 17.96%  
-**Remaining:** 82.04%  
+**Verified conversion:** 19.35%  
+**Remaining:** 80.65%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **12,645**.  
+Current verified translated bytes: **13,624**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **17.9611%**, displayed as **17.96%**.
+Raw coverage: **19.3517%**, displayed as **19.35%**.
 
 ## Immutable source identity
 
@@ -54,8 +54,11 @@ Raw coverage: **17.9611%**, displayed as **17.96%**.
 - Command-line token scanner `FE21..FEFB`: **219 bytes**.
 - Complete interrupt veneer table `FFD4..102D3`: **768 bytes**.
 - CRT error/descriptor/stack/selector helpers `102D4..104DD` excluding four zero alignment bytes: **520 bytes**.
+- Guest heap allocator/free-list core `104E0..1083E`: **863 bytes**.
+- Heap extent query `10974..109C0`: **77 bytes**.
+- Runtime tail helpers `10C46..10C6C`: **39 bytes**.
 
-Total integrated verified translated bytes: **12,645**.
+Total integrated verified translated bytes: **13,624**.
 
 `DA45..DA47` is three zero bytes. `EDD3..EDDF` is **13 zero bytes**. Both are classified as data/alignment and are not counted as translated code.
 
