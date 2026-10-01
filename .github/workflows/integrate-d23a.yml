@@ -19,13 +19,13 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           p=Path('Code1/Code1.cpp');s=p.read_text()
+          mark='// 2A64..3883: actor-generation/editor logic.'
+          s=s.replace(mark,'struct EarlyGameBoundaries; [[nodiscard]]s32 function_0010(EarlyGameBoundaries&,s32,s32,s32,s32)noexcept;\n'+mark)
           s=s.replace('void function_32f4(Machine&m)noexcept','void function_32f4(Machine&m,EarlyGameBoundaries&rng)noexcept')
           s=s.replace('void function_334c(Machine&m)noexcept','void function_334c(Machine&m,EarlyGameBoundaries&rng)noexcept')
           s=s.replace('void function_37c0(Machine&m)noexcept','void function_37c0(Machine&m,EarlyGameBoundaries&rng)noexcept')
           s=s.replace('void function_3884(Machine&m)noexcept{function_3208(m);function_32f4(m);function_334c(m);function_37c0(m);function_3404(m);}', 'void function_3884(Machine&m,EarlyGameBoundaries&rng)noexcept{function_3208(m);function_32f4(m,rng);function_334c(m,rng);function_37c0(m,rng);function_3404(m);}')
-          start=s.index('// 32F4..3349:')
-          end=s.index('// CC1C..CD96:')
-          a=s[:start];b=s[start:end].replace('function_0010(m,','function_0010(rng,');s=a+b+s[end:]
+          start=s.index('// 32F4..3349:');end=s.index('// CC1C..CD96:');s=s[:start]+s[start:end].replace('function_0010(m,','function_0010(rng,')+s[end:]
           p.write_text(s)
           PY
       - run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
