@@ -1,6 +1,8 @@
 #include "CharacterVariant2A64.h"
 
 #include <array>
+#include <bit>
+#include <cstddef>
 #include <cstdint>
 
 namespace ravenloft::game {
@@ -8,18 +10,19 @@ namespace {
 
 std::uint32_t add32(std::uint32_t a, std::uint32_t b) { return a + b; }
 std::uint32_t mul32(std::uint32_t a, std::uint32_t b) { return a * b; }
+std::int32_t sx32(std::uint32_t v) { return std::bit_cast<std::int32_t>(v); }
+std::int32_t sx8(std::uint8_t v) {
+    return (v & 0x80u) ? static_cast<std::int32_t>(v) - 0x100
+                       : static_cast<std::int32_t>(v);
+}
 
 std::uint8_t frameEnabled(const std::array<std::uint8_t, 6>& enabled,
                           std::int32_t selection,
                           const CharacterVariantOps2A64& ops) {
-    // Assembly address is BYTE PTR [EBP + selection - 0x25].
-    // Selections 1..6 address the six initialized bytes [EBP-24..EBP-1F].
     if (selection >= 1 && selection <= 6)
         return enabled[static_cast<std::size_t>(selection - 1)];
     return ops.readFrameByte(selection - 0x25);
 }
-
-std::int32_t sx32(std::uint32_t v) { return static_cast<std::int32_t>(v); }
 
 } // namespace
 
@@ -31,7 +34,7 @@ void CharacterVariant2A64::run(CharacterVariantState2A64&,
 
     const std::uint32_t selected = ops.readDword(0x04CC);
     const std::uint32_t selectedScaled = mul32(selected, 0x248u);
-    const std::uint32_t category = ops.readByte(add32(selectedScaled, 0x680Bu)); // [EBP-18]
+    const std::uint32_t category = ops.readByte(add32(selectedScaled, 0x680Bu));
 
     while (exitState == 0) {                    // 2A91
         ops.call6588(ops.readByte(0x7138));
@@ -49,15 +52,15 @@ void CharacterVariant2A64::run(CharacterVariantState2A64&,
 
         for (std::uint32_t eax = 0; eax < 6; ++eax) {
             std::uint32_t ebx = ops.readDword(0x04CC);
-            // 2ACD XOR BL,1: only the low byte changes; upper 24 bits survive.
+            // XOR BL,1 changes only the low byte; upper 24 bits survive.
             ebx = (ebx & 0xFFFFFF00u) | ((ebx ^ 1u) & 0xFFu);
             const std::uint32_t edx = mul32(ebx, 0x248u);
             const std::uint32_t otherCategory = ops.readByte(add32(edx, 0x680Bu));
             bool blocked = false;
             if (otherCategory == category && ops.readByte(add32(ebx, 0x04C4u)) != 0) {
-                const auto otherVariant = static_cast<std::int8_t>(ops.readByte(add32(edx, 0x680Au)));
+                const std::int32_t otherVariant = sx8(ops.readByte(add32(edx, 0x680Au)));
                 const std::uint32_t candidate = add32(baseOffset, eax);
-                blocked = static_cast<std::int32_t>(otherVariant) == sx32(candidate);
+                blocked = otherVariant == sx32(candidate);
             }
             const std::uint32_t candidate = add32(baseOffset, eax);
             if (blocked || candidate == 0x11u) {
@@ -95,25 +98,29 @@ void CharacterVariant2A64::run(CharacterVariantState2A64&,
 
                 if (previous > 0 && previous != 0xFF && frameEnabled(enabled, previous, ops) != 0) {
                     const std::uint32_t i = static_cast<std::uint32_t>(previous);
-                    const std::int32_t x = sx32(ops.readDword(add32(0x0874u, mul32(i, 8u))));
+                    const std::uint32_t xBits = ops.readDword(add32(0x0874u, mul32(i, 8u)));
+                    const std::int32_t x = sx32(xBits);
                     const std::int32_t y = sx32(ops.readDword(add32(0x0878u, mul32(i, 8u))));
                     ops.draw.call6C60(0, x, y, 0x14, 7);
                     const std::uint32_t resource = add32(add32(add32(
                         ops.readDword(0x713C), mul32(category, 0x17u)), i - 1u), baseOffset);
-                    ops.draw.call6EB0(0, x + 0x15, y, sx32(resource), 1, 0x5AF8);
-                    ops.call55DC(ops.readDword(0x7138), x + 0x15, y, 0x50, 0x30);
+                    const std::int32_t x15 = sx32(add32(xBits, 0x15u));
+                    ops.draw.call6EB0(0, x15, y, sx32(resource), 1, 0x5AF8);
+                    ops.call55DC(ops.readDword(0x7138), x15, y, 0x50, 0x30);
                 }
 
                 if (current > 0 && current != 0xFF && frameEnabled(enabled, current, ops) != 0) {
                     const std::uint32_t i = static_cast<std::uint32_t>(current);
-                    const std::int32_t x = sx32(ops.readDword(add32(0x0874u, mul32(i, 8u))));
+                    const std::uint32_t xBits = ops.readDword(add32(0x0874u, mul32(i, 8u)));
+                    const std::int32_t x = sx32(xBits);
                     const std::int32_t y = sx32(ops.readDword(add32(0x0878u, mul32(i, 8u))));
                     ops.draw.call6C60(0, x, y, 0x14, 7);
                     const std::uint32_t resource = add32(add32(add32(
                         ops.readDword(0x713C), mul32(category, 0x17u)), i - 1u), baseOffset);
+                    const std::int32_t x15 = sx32(add32(xBits, 0x15u));
                     // Original 2CC2..2CE9 calls 0x6C60 here, not 0x6EB0.
-                    ops.draw.call6C60(0, x + 0x15, y, sx32(resource), 1);
-                    ops.call55DC(ops.readDword(0x7138), x + 0x15, y, 0x50, 0x30);
+                    ops.draw.call6C60(0, x15, y, sx32(resource), 1);
+                    ops.call55DC(ops.readDword(0x7138), x15, y, 0x50, 0x30);
                 }
                 previous = current;
                 continue;
