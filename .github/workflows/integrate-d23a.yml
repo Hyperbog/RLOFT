@@ -1,4 +1,4 @@
-name: Integrate heap growth
+name: Integrate runtime tail
 on:
   push:
     branches: [code1-decompilation]
@@ -13,12 +13,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
+      - run: python3 Code1/fix_tail_script.py
       - run: python3 Code1/integrate_heap_growth.py
       - run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
       - run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add Code1/Code1.cpp Code1/PROGRESS.md Code1/STAGING_LEDGER.md Code1/DECOMPILATION_CONTINUITY.md
-          git commit -m "Integrate CODE.1 heap growth"
+          git add Code1/Code1.cpp Code1/PROGRESS.md Code1/STAGING_LEDGER.md Code1/DECOMPILATION_CONTINUITY.md Code1/integrate_heap_growth.py
+          git commit -m "Integrate CODE.1 runtime tail"
           git push origin code1-decompilation
-# retry 2
