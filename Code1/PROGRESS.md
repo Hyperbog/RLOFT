@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-4.08%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-5.22%25-red)
 
-**Verified conversion:** 4.08%  
-**Remaining:** 95.92%  
+**Verified conversion:** 5.22%  
+**Remaining:** 94.78%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unverified translations do not count.
 
-Current verified translated bytes: **2,879**.  
+Current verified translated bytes: **3,680**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **4.0894%**, displayed conservatively as **4.08%**.
+Raw coverage: **5.2271%**, displayed conservatively as **5.22%**.
 
 ## Immutable source identity
 
@@ -28,44 +28,32 @@ Raw coverage: **4.0894%**, displayed conservatively as **4.08%**.
 - DOS/CRT directory and utility routines `D8D0..DA1B`: **332 bytes**.
 - Low-level/runtime regions through `E0C7`: **666 bytes**.
 - Timer/PIT setup and state management `E4C7..E6E9`: **547 bytes**.
+- Timer slot/control continuation `E6EA..EA0A`: **801 bytes**.
 
-Total verified translated bytes: **2,879**.
+Total verified translated bytes: **3,680**.
 
-## Current verified checkpoint: E4C7..E6E9
+## Current verified checkpoint: E6EA..EA0A
 
-This checkpoint translates **547 bytes** directly from CODE.1: timer-array initialization, INT 8 vector save/install/restore, PIT channel-0 programming, period conversion, minimum-period recalculation, and initialization of the 16-entry callback/state arrays. The original interrupt-enable preservation remains explicit.
+This checkpoint adds **801 bytes** translated directly from CODE.1 after checking the complete instruction ranges against the extracted object-1 disassembly.
 
-## Continuation analysis after E6E9
-
-The next contiguous timer/control region has now been instruction-bounded through `EA0A`. These bytes are deliberately **not** included in the verified percentage until their C++ lifting and instruction check are complete.
-
-Established routine boundaries and sizes:
-
-- `E6EA..E758` (111): iterate 16 callback slots under CLI; release any assigned timer handle through `E809`, dispatch through `EBB6`, then call the all-slot cleanup at `E856`.
-- `E759..E808` (176): allocate one of 16 timer slots. It scans the word state table at `5154`, installs the supplied callback at `5110`, initializes `51BA`, increments the active count at `510C`, and on the first allocation performs the timer initialization / INT 8 installation / slot-16 setup sequence.
-- `E809..E855` (77): release one timer slot; when the active count reaches zero it programs PIT reload zero and restores the saved INT 8 vector.
+- `E6EA..E758` (111): iterate all 16 callback slots under CLI, release assigned timer handles, invoke the still-address-named `EBB6` boundary, and perform all-slot timer cleanup.
+- `E759..E808` (176): allocate one of 16 timer slots, initialize its state/value/period entries, and execute the first-allocation initialization sequence that installs INT 8 and initializes special slot 16.
+- `E809..E855` (77): release one timer slot and, when the active count reaches zero, program PIT reload zero and restore the saved INT 8 vector.
 - `E856..E87A` (37): release slots 15 down through 0.
-- `E87B..E8AA` (48) and `E8AB..E8CF` (37): change state `1 -> 2` for one slot or all 16 slots.
-- `E8D0..E8FF` (48) and `E900..E924` (37): change state `2 -> 1` for one slot or all 16 slots.
-- `E925..E979` (85): temporarily force a slot active, replace its period at `51BA`, clear its accumulated count at `5176`, recalculate the global minimum via `E5FA`, then restore the prior slot state.
-- `E97A..E9AC` (51): convert `1,000,000 / argument` and pass the result to `E925`.
-- `E9AD..E9F1` (69): alternate period conversion; zero selects `D68Dh`, otherwise computes `(2710h * argument) / 2E9Ch`, then calls `E925`.
-- `E9F2..EA0A` (25): return the current PIT reload value stored at `5212` while preserving the interrupt-enable state.
+- `E87B..E8AA` (48), `E8AB..E8CF` (37): transition state `1 -> 2` for one slot or all 16 slots.
+- `E8D0..E8FF` (48), `E900..E924` (37): transition state `2 -> 1` for one slot or all 16 slots.
+- `E925..E979` (85): temporarily force a slot active, replace its period, clear its accumulated counter, recalculate the global minimum, then restore the original state word.
+- `E97A..E9AC` (51): compute unsigned `1,000,000 / divisor` and apply it through `E925`; the original division-by-zero behavior remains unguarded.
+- `E9AD..E9F1` (69): use `D68Dh` for zero, otherwise compute unsigned `(2710h * value) / 2E9Ch`, then apply it through `E925`.
+- `E9F2..EA0A` (25): return the stored PIT reload value at `5212` while preserving interrupt-enable state.
 
-These boundaries account for **801 candidate code bytes**. They are not counted yet because the fidelity rule requires the lifted C++ to be checked before coverage changes.
+The C++ retains the original data-group offsets, unsigned arithmetic, slot ordering, sentinel values, and interrupt save/CLI/restore behavior. `E6EA`'s call into `EBB6` remains an explicit address-named boundary rather than assigning an unproven higher-level meaning.
 
-## Dispatcher/control continuation EA0B..EBF2
+A previously misleading local name in `D686` was also corrected: helper `1042D` returns a stack-distance value, not a version number. This correction changes no verified-byte count.
 
-The dependency trace now has exact instruction-level behavior through `EBF2`:
+## Next analyzed continuation
 
-- `EA0B..EA99` (143): scan the 16 dword entries at `5216` for a free slot. The supplied structure is accepted only when dword `+4` equals literal `79706F43h` (`"Copy"` in little-endian bytes). Its first dword is installed into the free slot, `EAC8` is called for that slot, and the result is accepted only when the first dword returned by that call is unsigned-`<= [52E8]`; otherwise return `FFFFFFFFh`.
-- `EA9A..EAC7` (46): if index `<16`, clear the corresponding `5216` entry while preserving interrupt-enable state.
-- `EAC8..EAE6` (31): dispatch event `64h` through `E3E0`, passing the slot index and callback/address `E9F2`.
-- `EAE7..EAF0` (10): tail-dispatch event `65h` through `E3E0`.
-- `EAF1..EBB5` (197): validate index `<16`, initialize `[52E2]` to `FFFFFFFFh`, obtain the slot object via `EAC8`, inspect its dword at `+20h`, optionally locate event `67h` through `E3B4`, allocate a timer via `E759`, store the returned timer index in `5256` and `52E2`, program it via `E97A`, dispatch event `66h` with five original arguments, set the slot pending flag at `5296` to one, and if a timer was allocated change it from state 1 to state 2 via `E87B`.
-- `EBB6..EBF2` (61): reject index `>=16`; atomically exchange the slot pending dword at `5296` with zero; if it had been nonzero, release the timer index stored at `5256` unless it is `FFFFFFFFh`, then tail-dispatch event `68h` through `E3E0`.
-
-This continuation contributes another **488 instruction-bounded candidate bytes** (`EA0B..EBF2`). Together with `E6EA..EA0A`, **1,289 candidate bytes** of the post-`E6E9` timer/dispatcher subsystem are now bounded and dependency-traced. They remain outside verified coverage until their C++ forms are checked against these instructions.
+`EA0B..EBF2` is already instruction-bounded as **488 candidate bytes**. It remains outside the verified percentage until its C++ lifting is checked. The common callback dispatcher/INT 8 path at `E3B4..E4C6` is also queued because it resolves dependencies used by this timer subsystem.
 
 ## Larger-batch policy
 
@@ -73,6 +61,6 @@ The working target remains approximately **4,000 newly verified bytes per substa
 
 ## Unresolved queue
 
-The C++ lifting/check of `E6EA..EBF2`, common dispatcher routines `E3B4..E4C6`, allocator bodies at `DAD9`/`DB5B`, the candidate compressed-data routine at `DB80`, transformation routine at `DC90`, uncertain entry at `DE6F`, startup successor work, and remaining address-named CRT helpers remain queued.
+`EA0B..EBF2`, common dispatcher/INT 8 routines `E3B4..E4C6`, allocator bodies at `DAD9`/`DB5B`, candidate compressed-data routine `DB80`, transformation routine `DC90`, uncertain entry at `DE6F`, startup successor work, and remaining address-named CRT helpers remain queued.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
