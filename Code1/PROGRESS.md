@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-27.78%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-29.79%25-red)
 
-**Verified conversion:** 27.78%  
-**Remaining:** 72.22%  
+**Verified conversion:** 29.79%  
+**Remaining:** 70.21%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **19,557**.  
+Current verified translated bytes: **20,970**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **27.7790%**, displayed as **25.51%**.
+Raw coverage: **29.7861%**, displayed as **25.51%**.
 
 ## Immutable source identity
 
@@ -26,6 +26,7 @@ Raw coverage: **27.7790%**, displayed as **25.51%**.
 - Early-game hit-test/input routines `035C..043A` and `043C..04AF`: **339 bytes**.
 - Early-game staged UI renderers `04B0..0648` and `064C..07E1`: **815 bytes**.
 - Mid-game UI configuration/selection routines `1464..15AD`, `1A04..1EE0`, and byte-swap helper `1EE4..1EFE`: **1,597 bytes**.
+- Actor normalization/render/choice routines `1F24..2196`, `24D4..266B`, `28E4..2990`, `2994..2A60`: **1,413 bytes**.
 - Startup/recovery regions through `CD96`: **259 bytes**.
 - Structured mouse-facing routines `D08C..D153`, verified mouse/event pump `D154..D1E7`, plus overlap-safe copy `D1E8..D239`: **419 bytes**.
 - Attribute/status wrapper `D23A..D27C`: **67 bytes**.
@@ -68,7 +69,7 @@ Raw coverage: **27.7790%**, displayed as **25.51%**.
 - Runtime heap-extension driver `10AA9..10C45`: **413 bytes**.
 - Runtime tail helpers `10C46..10C6C`: **39 bytes**.
 
-Total integrated verified translated bytes: **19,557**.
+Total integrated verified translated bytes: **20,970**.
 
 `DA45..DA47` is three zero bytes. `EDD3..EDDF` is **13 zero bytes**. Both are classified as data/alignment and are not counted as translated code.
 

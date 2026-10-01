@@ -193,3 +193,7 @@ Verified total is 16,261 bytes (23.10%). `10C6F..11301` is integrated after dire
 
 ## 2026-10-01 mid-UI batch 03
 Verified total is now **19,557 / 70,402 = 27.78%**. Newly integrated: `1464..15AD`, `1A04..1EE0`, `1EE4..1EFE` (1,597 bytes). `1F00..1F23` is the nine-entry CS jump table used by the following routine and must remain data. Continue independently at `07E4..10A1`, `10A4..1461`, `15B0..1A00`, or from the function beginning at `1F24`; do not count alignment bytes.
+
+
+## 2026-10-01 actor/UI batch 04
+Verified total **20,970 / 70,402 = 29.79%**. Added 1,413 bytes at `1F24..2196`, `24D4..266B`, `28E4..2990`, `2994..2A60`. 1F24 preserves incoming DL until the encoded decision tree assigns it and resolves the 1F00 jump-table targets. 24D4 preserves guest scratch handles and nine-frame page alternation. Alignment bytes excluded. Active staging unchanged.

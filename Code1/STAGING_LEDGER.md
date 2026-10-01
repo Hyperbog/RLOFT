@@ -66,3 +66,5 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 - FCE8 boundary correction adds the previously omitted PUSH ESI byte; FCE7 is zero alignment.
 
 - Integrated directly from authoritative disassembly: `1464..15AD`, `1A04..1EE0`, `1EE4..1EFE` = **1,597 bytes**. Alignment at `15AE..15AF`, `1BD1..1BD3`, `1E62..1E63`, `1EE1..1EE3`, `1EFF` excluded; `1F00..1F23` classified as jump-table data.
+
+- Integrated directly from authoritative disassembly: `1F24..2196`, `24D4..266B`, `28E4..2990`, `2994..2A60` = **1,413 bytes**. `2197`, `2991..2993`, and `2A61..2A63` are alignment and excluded. The 1F00 jump table remains data.
