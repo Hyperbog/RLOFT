@@ -1,7 +1,0 @@
-#include "ConfigSliders62AC.h"
-namespace ravenloft::game {
-static int q10(int y,int hi){int q=(y-0x90)/10;if(q<0)q=0;if(q>hi)q=hi;return q;}
-void ConfigSliders62AC::ten(ConfigSliders62ACState&s,const ConfigSliders62ACOps&o){while(o.input1A1F4()){int v=q10(o.mouseY9E33(),9);if(v==s.c025)continue;s.c025=std::uint8_t(v);o.call291B0(std::uint8_t(s.c050));o.call2A380(s.surface12B30,0x78,0x0f,0);o.call2975C(1,0x0f,v*10+0x78,s.resource258DC+0x40,0);o.call1A8C8(s.c050,0x0f,0x78,0x19,0xc8);}}
-void ConfigSliders62AC::fifteen(ConfigSliders62ACState&s,const ConfigSliders62ACOps&o){while(o.input1A1F4()){int v=q10(o.mouseY9E33(),14);if(v==s.c02e)continue;s.c02e=std::uint8_t(v);o.call291B0(std::uint8_t(s.c050));o.call2A380(s.surface12B50,0x78,0xff,0);o.call2975C(1,0xff,v*10+0x78,s.resource258DC+0x40,0);o.call1A8C8(s.c050,0xff,0x78,0x19,0xc8);if(s.f050)s.f050[0x6c]=s.c02e;o.call325B0(0xc054,0,int(s.c034),0x390,0x100);o.call29234(0xc054);}}
-void ConfigSliders62AC::analog(ConfigSliders62ACState&s,const ConfigSliders62ACOps&o){while(o.input1A1F4()){int v=int(o.mouseY9E33())-0x90;if(v<0)v=0;if(v>0x80)v=0x80;if(v==s.c02a)continue;s.c02a=std::uint8_t(v);o.call291B0(std::uint8_t(s.c050));o.call2A380(s.surface12B44,0x78,0xa5,0);o.call2975C(1,0xa5,v+0x78,s.resource258DC+0x40,0);o.call1A8C8(s.c050,0xa5,0x78,0x19,0xc8);}std::int32_t a=(0x80-s.value258B2)*s.c02a+0x40;a=(a+((a<0)?0x7f:0))>>7;s.c02d=std::uint8_t(0x80-a);}
-}
