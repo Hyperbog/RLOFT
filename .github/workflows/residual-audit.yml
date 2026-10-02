@@ -1,0 +1,44 @@
+name: CODE.1 residual audit
+on:
+  push:
+    branches: [code1-decompilation]
+    paths:
+      - '.github/workflows/residual-audit.yml'
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+      - name: Extract represented instruction intervals
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text=Path('Code1/Code1.cpp').read_text()
+          pat=re.compile(r'static_assert\(0x([0-9A-Fa-f]+)u-0x([0-9A-Fa-f]+)u==([0-9]+)u\)')
+          iv=[]
+          bad=[]
+          for end,start,n in pat.findall(text):
+              a=int(start,16); b=int(end,16); n=int(n)
+              if b-a!=n: bad.append((a,b,n))
+              if 0 <= a < b <= 0x11302: iv.append((a,b))
+          iv.sort()
+          merged=[]
+          for a,b in iv:
+              if merged and a<=merged[-1][1]: merged[-1][1]=max(merged[-1][1],b)
+              else: merged.append([a,b])
+          total=sum(b-a for a,b in merged)
+          gaps=[]; p=0
+          for a,b in merged:
+              if p<a:gaps.append((p,a))
+              p=max(p,b)
+          if p<0x11302:gaps.append((p,0x11302))
+          print('assert intervals:',len(iv),'merged:',len(merged),'unique bytes:',total)
+          print('bad asserts:',bad)
+          print('gaps:',len(gaps),'gap bytes:',sum(b-a for a,b in gaps))
+          for a,b in gaps: print(f'{a:05X}..{b-1:05X} {b-a}')
+          m=re.search(r'kVerifiedTranslatedBytes=(\d+)u',text)
+          print('kVerifiedTranslatedBytes:',m.group(1) if m else 'missing')
+          PY
