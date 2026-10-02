@@ -11,62 +11,52 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Map final residual candidates
+      - name: Inspect batch 08 gap evidence
         run: |
           python3 - <<'PY'
           import re
           from pathlib import Path
-          text=Path('Code1/Code1.cpp').read_text()
-          ledger=Path('Code1/RESIDUAL_LEDGER.md').read_text()
-          sa=re.compile(r'static_assert\(0x([0-9A-Fa-f]+)u-0x([0-9A-Fa-f]+)u==([0-9]+)u\)')
-          iv=[]
-          for end,start,n in sa.findall(text):
-              a,b,n=int(start,16),int(end,16),int(n)
-              if b-a==n and 0<=a<b<=0x11302:iv.append((a,b))
-          iv.sort(); merged=[]
-          for a,b in iv:
-              if merged and a<=merged[-1][1]:merged[-1][1]=max(merged[-1][1],b)
-              else:merged.append([a,b])
-          gaps=[]; p=0
-          for a,b in merged:
-              if p<a:gaps.append((p,a))
-              p=max(p,b)
-          if p<0x11302:gaps.append((p,0x11302))
-          lm=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)\n<!-- RESIDUAL-RANGES-END -->',ledger,re.S);assert lm
-          classified=[]
-          for line in lm.group(1).splitlines():
-              m=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \|',line)
-              if m:classified.append((int(m.group(1),16),int(m.group(2),16)+1))
-          def subtract(parts,cuts):
-              out=[]
-              for a,b in parts:
-                  cur=[(a,b)]
-                  for c,d in cuts:
-                      nxt=[]
-                      for x,y in cur:
-                          if d<=x or c>=y:nxt.append((x,y));continue
-                          if x<c:nxt.append((x,c))
-                          if d<y:nxt.append((d,y))
-                      cur=nxt
-                  out.extend(cur)
-              return out
-          rem=subtract(gaps,classified)
-          small=[(a,b) for a,b in rem if b-a<=20]
-          print('UNCLASSIFIED ASSERT-GAP ISLANDS <=20 BYTES')
-          print('count',len(small),'bytes',sum(b-a for a,b in small))
-          for a,b in small:print(f'{a:05X}..{b-1:05X} {b-a:3d}')
-          print('\nCURRENT SOURCE REFERENCES')
-          lines=text.splitlines()
-          for a,b in small:
+          s=Path('Code1/integrate_mid_runtime_batch_08.py').read_text()
+          targets=[
+            (0x6054,0x605f),(0x631f,0x631f),(0x633b,0x633b),(0x6357,0x6357),
+            (0x63a2,0x63a3),(0x63b7,0x63b7),(0x63d5,0x63d7),(0x63f1,0x63f3),
+            (0x6409,0x640b),(0x648d,0x648f),(0x6632,0x6633),(0x6672,0x6673),
+            (0x66a7,0x66a7),(0x6743,0x6743),(0x67c7,0x67c7),(0x67f2,0x67f3),
+            (0x6823,0x6823)]
+          lines=s.splitlines()
+          print('BATCH08 TARGET REFERENCES')
+          for a,b in targets:
               hits=[]
-              vals={a,b-1}
               for no,line in enumerate(lines,1):
                   up=line.upper()
-                  ok=False
-                  for v in vals:
-                      forms={f'{v:X}',f'{v:04X}',f'{v:05X}'}
-                      if any(re.search(r'(?<![0-9A-F])'+re.escape(f)+r'(?![0-9A-F])',up) for f in forms):ok=True;break
-                  if ok:hits.append((no,line.strip()))
-              print(f'[{a:05X}..{b-1:05X}]')
-              for no,line in hits[:10]:print(f'  {no}: {line[:1000]}')
+                  forms=[]
+                  for v in {a,b}:
+                      forms += [f'{v:X}',f'{v:04X}',f'{v:05X}']
+                  if any(re.search(r'(?<![0-9A-F])'+re.escape(f)+r'(?![0-9A-F])',up) for f in forms):
+                      hits.append((no,line.strip()))
+              print(f'[{a:05X}..{b:05X}]')
+              for no,line in hits[:12]: print(f'  {no}: {line[:1200]}')
+          print('\nALL EXPLICIT ALIGNMENT/ZERO/PADDING LINES')
+          for no,line in enumerate(lines,1):
+              low=line.lower()
+              if any(k in low for k in ('alignment',' padding','nop','zero byte','zero/alignment')):
+                  print(f'{no}: {line[:1200]}')
+          # Show exact code asserts and complements only for 6184..6851, without
+          # treating the stale aggregate prose total as evidence.
+          sa=re.compile(r'static_assert\(0x([0-9A-Fa-f]+)u-0x([0-9A-Fa-f]+)u==([0-9]+)u\)')
+          code=[]
+          for end,start,n in sa.findall(s):
+              a,b,n=int(start,16),int(end,16),int(n)
+              if b-a==n and 0x6184<=a and b<=0x6852: code.append((a,b))
+          merged=[]
+          for a,b in sorted(code):
+              if merged and a<=merged[-1][1]:merged[-1][1]=max(merged[-1][1],b)
+              else:merged.append([a,b])
+          print('\n6184..6851 span',0x6852-0x6184,'asserted',sum(b-a for a,b in merged),'complement',(0x6852-0x6184)-sum(b-a for a,b in merged))
+          comp=[];p=0x6184
+          for a,b in merged:
+              if p<a:comp.append((p,a))
+              p=max(p,b)
+          if p<0x6852:comp.append((p,0x6852))
+          for a,b in comp:print(f' complement {a:05X}..{b-1:05X} {b-a}')
           PY
