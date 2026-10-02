@@ -13,6 +13,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
+      - name: Repair batch 15 C++ lift details
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('Code1/integrate_batch15.py')
+          s=p.read_text()
+          s=s.replace('static s32 div8_after_plus4(s32 v)noexcept{return static_cast<s32>(static_cast<s64>(v)+4)/8;}', 'static s32 div8_after_plus4(s32 v)noexcept{const s32 w=static_cast<s32>(static_cast<u32>(v)+4u);return w/8;}')
+          s=s.replace('const s32 n=step+1;px[page]=x0+div8_after_plus4((target_x-x0)*n);py[page]=y0+div8_after_plus4((target_y-y0)*n);', 'const s32 n=step+1;const s32 dxn=static_cast<s32>(static_cast<u32>(target_x-x0)*static_cast<u32>(n));const s32 dyn=static_cast<s32>(static_cast<u32>(target_y-y0)*static_cast<u32>(n));px[page]=x0+div8_after_plus4(dxn);py[page]=y0+div8_after_plus4(dyn);')
+          s=s.replace('if(mode!=2u)return incoming_edx;for(u32&i:*reinterpret_cast<u32(*)[6]>(out))i=0u;', 'if(mode!=2u)return incoming_edx;for(u32 i=0;i<6u;++i)out[i]=0u;')
+          p.write_text(s)
+          PY
       - run: python3 Code1/integrate_batch15.py
       - run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
       - run: |
