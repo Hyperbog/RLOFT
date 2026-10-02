@@ -12,28 +12,44 @@ jobs:
         with:
           ref: code1-decompilation
           fetch-depth: 0
-      - name: Decode integration-script evidence around unresolved boundaries
+      - name: Extract preserved exclusion comments and residual matches
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re,zlib,base64
-          targets=['6054','6060','9BD7','9BE0','BE61','BE70','DDD8','DDE0','F742','F750','F7B3','F7B8','F8BD','F8C4','FC97','FC98']
+          residual=[
+            (0x000EB,0x000EC),(0x007E2,0x007E4),(0x01462,0x01464),(0x04977,0x04978),
+            (0x06054,0x06060),(0x080BA,0x080BC),(0x0826E,0x08270),(0x08336,0x08338),
+            (0x087C2,0x087C4),(0x08E1F,0x08E20),(0x09BD7,0x09BE0),(0x09C98,0x09CA0),
+            (0x09E89,0x09E8C),(0x09EAE,0x09EB0),(0x0A00E,0x0A010),(0x0A059,0x0A05C),
+            (0x0A21A,0x0A21C),(0x0A5C6,0x0A5C8),(0x0A675,0x0A678),(0x0AE0B,0x0AE0C),
+            (0x0BE61,0x0BE70),(0x0CC19,0x0CC1C),(0x0D8CE,0x0D8D0),(0x0DC8D,0x0DC90),
+            (0x0DDD8,0x0DDE0),(0x0E3B3,0x0E3B4),(0x0F742,0x0F750),(0x0F7B3,0x0F7B8),
+            (0x0F8BD,0x0F8C4),(0x0FC97,0x0FC98)]
           def decoded(p):
               s=p.read_text(errors='ignore')
               m=re.fullmatch(r"import zlib,base64\s*\nexec\(zlib\.decompress\(base64\.b85decode\('(.+)'\)\)\)\s*",s,re.S)
               if m:
                   try:return zlib.decompress(base64.b85decode(m.group(1))).decode('utf-8','replace')
-                  except Exception as e:
-                      print('DECODE_FAIL',p,e);return s
+                  except Exception:return s
               return s
-          hits=0
+          pat=re.compile(r'(?i)(align|padding|zero(?:-fill)?|data island|data/alignment|alignment/data|excluded|non-?code|nop)')
+          ar=re.compile(r'(?i)\b([0-9A-F]{3,5})(?:\.\.([0-9A-F]{3,5}))?\b')
           for p in sorted(Path('Code1').glob('*.py')):
-              s=decoded(p); lines=s.splitlines()
+              lines=decoded(p).splitlines()
               for i,line in enumerate(lines):
-                  up=line.upper()
-                  if not any(re.search(r'(?<![0-9A-F])'+t+r'(?![0-9A-F])',up) for t in targets): continue
-                  hits+=1
-                  print(f'\n=== {p} line {i+1} ===')
-                  for q in lines[max(0,i-5):min(len(lines),i+6)]: print(q[:1800])
-          print('\nTOTAL_CONTEXT_HITS',hits)
+                  if not pat.search(line):continue
+                  ranges=[]
+                  for a,b in ar.findall(line):
+                      try:
+                          x=int(a,16);y=int(b or a,16)+1
+                      except:continue
+                      if 0<=x<0x11302 and x<y:ranges.append((x,y))
+                  overlaps=[]
+                  for x,y in ranges:
+                      for a,b in residual:
+                          if x<b and a<y:overlaps.append((a,b))
+                  if overlaps:
+                      print(f'\nMATCH {p}:{i+1} residual={[(f"{a:05X}",f"{b-1:05X}") for a,b in overlaps]}')
+                      for q in lines[max(0,i-2):min(len(lines),i+3)]:print(q[:1800])
           PY
