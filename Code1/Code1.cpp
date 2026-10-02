@@ -1908,7 +1908,7 @@ void function_bd84(Machine&m,LowGraphics13Boundary&b,u32 value)noexcept{if(load_
 [[nodiscard]]u32 function_be34(Machine&m)noexcept{return load_le32(dgroup_ptr(m,dgroup(0x2c3cu)));}static_assert(0xBE40u-0xBE34u==12u);
 void function_be40(Machine&m,LowGraphics13Boundary&b,u32 enabled)noexcept{*dgroup_ptr(m,dgroup(0x2c44u))=static_cast<u8>(enabled);if(load_le32(dgroup_ptr(m,dgroup(0x2b84u)))!=0u&&static_cast<u8>(enabled)==0u)function_ba98(m,b);}static_assert(0xBE61u-0xBE40u==33u);
 
-constexpr u32 kVerifiedTranslatedBytes=69436u;
+constexpr u32 kVerifiedTranslatedBytes=69485u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 
 
@@ -2180,5 +2180,40 @@ static void b18_scaled7(Machine&m,LowGraphics13Boundary&b,u32 outer_num,u32 oute
 }
 void function_c9d4(Machine&m,LowGraphics13Boundary&b,u32 outer_num,u32 outer_den,u32 inner_num,u32 inner_den,u32 image,u32 a,u32 c)noexcept{b18_scaled7(m,b,outer_num,outer_den,inner_num,inner_den,image,a,c,false);}static_assert(0xCACAu-0xC9D4u==246u);
 void function_cacc(Machine&m,LowGraphics13Boundary&b,u32 outer_num,u32 outer_den,u32 inner_num,u32 inner_den,u32 image,u32 a,u32 c)noexcept{b18_scaled7(m,b,outer_num,outer_den,inner_num,inner_den,image,a,c,true);}static_assert(0xCBD1u-0xCACCu==261u);
+
+
+
+// Batch 19: DE70..DEA0 is the byte-aligning front end to the already integrated DEA7 dword fill core.
+// 84A0 constructs EDX as four copies of the caller byte before entering this routine.
+// The initial destination-byte read at DE74 is retained as an explicit touch even though TEST AL,3 overwrites its flags.
+struct FillDe70Boundary{
+ u8(*read8)(u32)=nullptr;
+ void(*write8)(u32,u8)=nullptr;
+ u32(*call_dea7)(u32,u32,u32)=nullptr;
+};
+[[nodiscard]]u32 function_de70(FillDe70Boundary&b,u32 dst,u32 pattern,u32 count)noexcept{
+ if(count==0u)return dst;
+ if(b.read8)(void)b.read8(dst);
+ while((dst&3u)!=0u&&count!=0u){
+  if(b.write8)b.write8(dst,static_cast<u8>(pattern));
+  ++dst;
+  pattern=(pattern>>8)|(pattern<<24);
+  --count;
+ }
+ const u32 saved=count;
+ const u32 dwords=count>>2;
+ if(b.call_dea7)dst=b.call_dea7(dst,pattern,dwords);
+ else dst+=dwords*4u;
+ count=saved&3u;
+ if(count==0u)return dst;
+ if(b.write8)b.write8(dst,static_cast<u8>(pattern));
+ if(--count==0u)return dst;
+ if(b.write8)b.write8(dst+1u,static_cast<u8>(pattern>>8));
+ if(--count==0u)return dst;
+ if(b.write8)b.write8(dst+2u,static_cast<u8>(pattern));
+ return dst;
+}
+static_assert(0xDEA1u-0xDE70u==49u);
+// DE6F is the zero byte immediately preceding the call target; DEA1..DEA6 are six NOP alignment bytes.
 
 } // namespace code1

@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-98.63%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-98.70%25-red)
 
-**Verified conversion:** 98.63%  
-**Remaining:** 1.37%  
+**Verified conversion:** 98.70%  
+**Remaining:** 1.30%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **69,436**.  
+Current verified translated bytes: **69,485**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **98.6279%**, displayed as **98.63%**.
+Raw coverage: **98.6975%**, displayed as **98.70%**.
 
 - Mid UI/resource/font/input/vector/render routines `71C8..729F`, selected `767C..80B9`, `8270..8335`, `8398..848F`, `84A0..87C1` with alignment/data/interrupt islands excluded: **3,941 bytes**.
 - Mid asset/input lifecycle routines selected from `87C4..8E1E`, `91D8..95A7`, and `95BC..9BD6` with address-table/alignment islands excluded: **4,116 bytes**.
@@ -23,6 +23,7 @@ Raw coverage: **98.6279%**, displayed as **98.63%**.
 - Batch 16 transition renderer / interrupt / startup exit: `07E4..10A1`, `7F5C..7F89`, `80BC..826D`, `8338..8397`, `CE8B..CEBF`: **2,867 bytes**.
 - Batch 17 line/sprite graphics: `A05C..A219`, `A8F4..AA1F`, `AA20..AC0E`, `AC10..AE0A`: **1,748 bytes**.
 - Batch 18 self-modifying scaled VGA blitters: `C7A0..C8C0`, `C8C4..C9D1`, `C9D4..CAC9`, `CACC..CBD0`, with alignment islands excluded: **1,066 bytes**.
+- Batch 19 fill front end `DE70..DEA0`: **49 bytes**. `DE6F` is a preceding zero byte and `DEA1..DEA6` are alignment NOPs.
 
 ## Immutable source identity
 
@@ -83,7 +84,7 @@ Raw coverage: **98.6279%**, displayed as **98.63%**.
 - Runtime heap-extension driver `10AA9..10C45`: **413 bytes**.
 - Runtime tail helpers `10C46..10C6C`: **39 bytes**.
 
-Total integrated verified translated bytes: **69,436**.
+Total integrated verified translated bytes: **69,485**.
 
 `DA45..DA47` is three zero bytes. `EDD3..EDDF` is **13 zero bytes**. Both are classified as data/alignment and are not counted as translated code.
 
@@ -107,7 +108,7 @@ The PSP command-tail `REPZ SCASB` mismatch behavior, environment executable-path
 
 ## DE6F..E0C7 accounting audit
 
-The prior `RuntimeGapDE6F.staging.cpp` candidate was compared against the unified file. `DEA7..E0C7` is already represented in `Code1.cpp` and therefore is not new staging. `DE6F..DEA0` is not accepted as a proven ordinary function boundary and remains on the unresolved-boundary queue. It is not counted or treated as integration-ready.
+The prior `RuntimeGapDE6F.staging.cpp` candidate was compared against the unified file. `DEA7..E0C7` is already represented in `Code1.cpp` and therefore is not new staging. `DE70..DEA0` is now proven by the direct call at `84B8` and integrated. `DE6F` is not part of the entry; it is the preceding zero byte. `DEA1..DEA6` are alignment NOPs.
 
 ## E0D0..E3B2 runtime/interrupt continuation under reconciliation
 
@@ -115,7 +116,7 @@ The prior `RuntimeGapDE6F.staging.cpp` candidate was compared against the unifie
 
 ## Active continuation
 
-The unique instruction-bounded staging pool from the former startup/E2C3 work is now **0 bytes**; those ranges have been integrated. `D280..D2CC` is integrated while its calls into `D2CD/D2F0` remain explicit selector-sensitive boundaries. `DE6F..DEA0` is an unresolved boundary and is deliberately outside that staging total. Continue hardening independently provable subranges and fold them only after exact call-contract reconciliation, preservation checks, and unified syntax checking.
+The unique instruction-bounded staging pool from the former startup/E2C3 work is now **0 bytes**; those ranges have been integrated. `D280..D2CC` is integrated while its calls into `D2CD/D2F0` remain explicit selector-sensitive boundaries. `DE70..DEA0` is integrated; `DE6F` and `DEA1..DEA6` are classified non-code bytes. Continue hardening independently provable subranges and fold them only after exact call-contract reconciliation, preservation checks, and unified syntax checking.
 
 ## Integration placement audit
 

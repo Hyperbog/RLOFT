@@ -254,3 +254,7 @@ Integrated **1,748 verified bytes** from `A05C..A219`, `A8F4..AA1F`, `AA20..AC0E
 
 ## Batch 18 integration checkpoint
 Integrated **1,066 verified bytes** from the four call-targeted self-modifying VGA blitters `C7A0..C8C0`, `C8C4..C9D1`, `C9D4..CAC9`, and `CACC..CBD0`; alignment islands remain excluded. Runtime writes into instruction immediates are represented as explicit variables: destination plane masks, 8.8-style scale increments retaining the literal low byte `0x78`, source-plane strides, key bytes, and source wrap corrections. The translation-table variants preserve the binary distinction that `C7A0` compares the translated byte against the key while `CACC` writes every translated byte. Verified total: **69,436 / 70,402 = 98.63%**.
+
+
+## Batch 19 integration checkpoint
+Resolved the old DE6F ambiguity: the real direct-call entry is **DE70**, reached by `84B8`; `DE6F` is the preceding zero byte. Integrated `DE70..DEA0` (**49 bytes**) as the byte-aligning front end to the existing `DEA7` dword-fill core, preserving the initial destination read, 32-bit pattern rotation during alignment, exact dword-count handoff, and 1/2/3-byte tail. `DEA1..DEA6` are alignment NOPs. Verified total: **69,485 / 70,402 = 98.70%**.
