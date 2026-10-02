@@ -21,3 +21,4 @@ jobs:
           git add Code1/PROGRESS.md Code1/STAGING_LEDGER.md Code1/DECOMPILATION_CONTINUITY.md Code1/RESIDUAL_LEDGER.md Code1/update_residual_checkpoint.py
           git commit -m "Record CODE.1 residual classification checkpoint"
           git push origin code1-decompilation
+# residual checkpoint retry 2
