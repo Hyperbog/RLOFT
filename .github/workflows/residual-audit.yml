@@ -11,24 +11,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-          fetch-depth: 0
-      - name: Trace pre-batch-06 progress changes
+      - name: Reconcile exact batch 05 byte count
         run: |
           python3 - <<'PY'
-          import re,subprocess
-          commits=subprocess.check_output(['git','rev-list','--reverse','code1-decompilation','--','Code1/PROGRESS.md'],text=True).split()
-          pats=[re.compile(r'Current verified translated bytes:\s*\*\*([0-9,]+)\*\*'),re.compile(r'Total integrated verified translated bytes:\s*\*\*([0-9,]+)\*\*')]
-          prev=None
-          for sha in commits:
-              try: body=subprocess.check_output(['git','show',f'{sha}:Code1/PROGRESS.md'],text=True,errors='ignore')
-              except subprocess.CalledProcessError: continue
-              m=next((p.search(body) for p in pats if p.search(body)),None)
-              if not m: continue
-              val=int(m.group(1).replace(',',''))
-              if val==prev: continue
-              subj=subprocess.check_output(['git','show','-s','--format=%s',sha],text=True).strip()
-              delta=None if prev is None else val-prev
-              if val<=28889:
-                  print(f'{sha[:12]} value={val} delta={"initial" if delta is None else delta:+} subject={subj}' if delta is not None else f'{sha[:12]} value={val} delta=initial subject={subj}')
-              prev=val
+          ranges=[
+            (0x2A64,0x2DF9),(0x2DFC,0x3020),(0x3020,0x3135),
+            (0x3138,0x3205),(0x3208,0x32F4),(0x32F4,0x334A),
+            (0x334C,0x3404),(0x3404,0x37BE),(0x37C0,0x3882),
+            (0x3884,0x38A4)]
+          exact=sum(b-a for a,b in ranges)
+          print('batch05 exact verified bytes:',exact)
+          print('batch05 historical progress delta:',3633)
+          for a,b in ranges: print(f'{a:05X}..{b-1:05X} {b-a}')
+          assert exact==3633
           PY
