@@ -37,14 +37,53 @@ jobs:
           print('bad asserts:',bad)
           print('gaps:',len(gaps),'gap bytes:',sum(b-a for a,b in gaps))
           m=re.search(r'kVerifiedTranslatedBytes=(\d+)u',text)
-          print('kVerifiedTranslatedBytes:',m.group(1) if m else 'missing')
+          verified=int(m.group(1)) if m else 0
+          print('kVerifiedTranslatedBytes:',verified)
+          print('conservative residual:',0x11302-verified)
           print('\nRESIDUAL GAP MAP')
           for a,b in gaps:
               print(f'{a:05X}..{b-1:05X}  {b-a:4d} bytes')
-          print('\nNONCODE CANDIDATE COMMENTS')
-          keys=('align','nop','zero','table','data','padding','xchg','mov eax,eax','lea ')
-          for no,line in enumerate(text.splitlines(),1):
-              low=line.lower()
-              if line.lstrip().startswith('//') and any(k in low for k in keys) and re.search(r'\b[0-9A-Fa-f]{4,5}\b',line):
-                  print(f'{no}: {line.strip()}')
+
+          # Extract only comments/ledger lines that explicitly describe bytes as
+          # alignment/padding/NOP/zero/data/table. This is a candidate set for
+          # manual review, not an automatic classification decision.
+          sources=[('Code1.cpp',text),('STAGING_LEDGER.md',Path('Code1/STAGING_LEDGER.md').read_text())]
+          range_re=re.compile(r'(?<![0-9A-Fa-f])([0-9A-Fa-f]{4,5})\.\.([0-9A-Fa-f]{4,5})(?![0-9A-Fa-f])')
+          single_re=re.compile(r'(?<![0-9A-Fa-f])([0-9A-Fa-f]{4,5})(?![0-9A-Fa-f])')
+          strong=('alignment','padding',' nop','nop ','zero byte','zero/alignment','data/alignment',' is data','table and is data','address table','jump table')
+          candidates=[]
+          print('\nEXPLICIT NONCODE CANDIDATE LINES')
+          for name,body in sources:
+              for no,line in enumerate(body.splitlines(),1):
+                  low=line.lower()
+                  if not any(k in low for k in strong):
+                      continue
+                  ranges=[]; spans=[]
+                  for mm in range_re.finditer(line):
+                      a=int(mm.group(1),16); b=int(mm.group(2),16)
+                      if 0<=a<=b<0x11302:
+                          ranges.append((a,b+1)); spans.append(mm.span())
+                  # A single leading address is accepted only for explicit
+                  # one-byte NOP/zero/alignment statements.
+                  if any(k in low for k in (' is nop',' nop.',' is zero',' zero alignment',' one-byte nop')):
+                      for mm in single_re.finditer(line):
+                          if any(s<=mm.start()<e for s,e in spans):
+                              continue
+                          a=int(mm.group(1),16)
+                          if 0<=a<0x11302:
+                              ranges.append((a,a+1))
+                  if ranges:
+                      print(f'{name}:{no}: {line.strip()}')
+                      for a,b in ranges:
+                          print(f'  candidate {a:05X}..{b-1:05X} {b-a} bytes')
+                          candidates.append((a,b,name,no))
+          raw=sorted((a,b) for a,b,_,__ in candidates)
+          merged_nc=[]
+          for a,b in raw:
+              if merged_nc and a<=merged_nc[-1][1]: merged_nc[-1][1]=max(merged_nc[-1][1],b)
+              else: merged_nc.append([a,b])
+          print('\nCANDIDATE NONCODE UNION')
+          print('intervals:',len(raw),'merged:',len(merged_nc),'unique bytes:',sum(b-a for a,b in merged_nc))
+          for a,b in merged_nc:
+              print(f'{a:05X}..{b-1:05X}  {b-a:4d} bytes')
           PY
