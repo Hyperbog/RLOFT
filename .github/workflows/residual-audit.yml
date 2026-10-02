@@ -12,37 +12,39 @@ jobs:
         with:
           ref: code1-decompilation
           fetch-depth: 0
-      - name: Mine final residual history evidence
+      - name: Trace verified counter history
         run: |
           python3 - <<'PY'
           import re,subprocess
-          targets=[
-           (0x000EB,0x000EB),(0x007E2,0x007E3),(0x01462,0x01463),(0x04977,0x04977),(0x06054,0x0605F),(0x060B2,0x060B3),(0x06101,0x06103),
-           (0x0631F,0x0631F),(0x0633B,0x0633B),(0x06357,0x06357),(0x063A2,0x063A3),(0x063B7,0x063B7),(0x063D5,0x063D7),(0x063F1,0x063F3),(0x06409,0x0640B),(0x0648D,0x0648F),
-           (0x06632,0x06633),(0x06672,0x06673),(0x066A7,0x066A7),(0x06743,0x06743),(0x067C7,0x067C7),(0x067F2,0x067F3),(0x06823,0x06823),
-           (0x080BA,0x080BB),(0x0826E,0x0826F),(0x08336,0x08337),(0x087C2,0x087C3),(0x08E1F,0x08E1F),(0x09BD7,0x09BDF),
-           (0x09C98,0x09C9F),(0x09E89,0x09E8B),(0x09EAE,0x09EAF),(0x0A00E,0x0A00F),(0x0A059,0x0A05B),(0x0A21A,0x0A21B),(0x0A5C6,0x0A5C7),(0x0A675,0x0A677),
-           (0x0AC0F,0x0AC0F),(0x0AE0B,0x0AE0B),(0x0BE61,0x0BE6F),(0x0DC8D,0x0DC8F),(0x0E3B3,0x0E3B3),(0x0F742,0x0F74F),(0x0F7B3,0x0F7B7),(0x0F8BD,0x0F8C3),(0x0FC97,0x0FC97)]
-          hist=subprocess.check_output(['git','log','--all','--format=@@COMMIT %H','-p','--','Code1'],text=True,errors='ignore')
-          strong=('align','padding',' nop','nop ','zero byte','zero bytes','zero/alignment','data/alignment',' is data','table','excluded','not counted','non-code','noncode','gap')
-          current='';hits={t:[] for t in targets}
-          for line in hist.splitlines():
-            if line.startswith('@@COMMIT '):current=line.split()[1];continue
-            low=line.lower()
-            if not any(k in low for k in strong):continue
-            for t in targets:
-              matched=False
-              for v in set(t):
-                forms={f'{v:X}',f'{v:04X}',f'{v:05X}',f'{v:x}',f'{v:04x}',f'{v:05x}'}
-                if any(re.search(r'(?<![0-9A-Fa-f])'+re.escape(f)+r'(?![0-9A-Fa-f])',line) for f in forms):matched=True;break
-              if matched:
-                item=(current,line.strip())
-                if item not in hits[t] and len(hits[t])<12:hits[t].append(item)
-          total=0
-          for t,items in hits.items():
-            if not items:continue
-            total+=t[1]-t[0]+1
-            print(f'[{t[0]:05X}..{t[1]:05X} {t[1]-t[0]+1}]')
-            for sha,line in items:print(f'  {sha[:12]}: {line[:1100]}')
-          print('ranges with strong historical hits:',sum(bool(v) for v in hits.values()),'target bytes represented:',total)
+          commits=subprocess.check_output(['git','rev-list','--reverse','code1-decompilation','--','Code1/Code1.cpp'],text=True).split()
+          pat=re.compile(r'kVerifiedTranslatedBytes\s*=\s*([0-9]+)u')
+          prev=None
+          rows=[]
+          for sha in commits:
+              try:
+                  body=subprocess.check_output(['git','show',f'{sha}:Code1/Code1.cpp'],text=True,errors='ignore')
+              except subprocess.CalledProcessError:
+                  continue
+              m=pat.search(body)
+              if not m:continue
+              val=int(m.group(1))
+              if val!=prev:
+                  subj=subprocess.check_output(['git','show','-s','--format=%s',sha],text=True).strip()
+                  rows.append((sha,val,None if prev is None else val-prev,subj))
+                  prev=val
+          print('VERIFIED COUNTER CHANGES')
+          for sha,val,delta,subj in rows:
+              if val>=28000 or any(k in subj.lower() for k in ('batch 07','batch 08','batch 09','batch 10','batch 11','batch 12','account','audit')):
+                  ds='initial' if delta is None else f'{delta:+d}'
+                  print(f'{sha[:12]}  {val:6d}  {ds:>8}  {subj}')
+          print('\nDECREASES / CORRECTIONS')
+          for sha,val,delta,subj in rows:
+              if delta is not None and delta<0:
+                  print(f'{sha[:12]}  {val:6d}  {delta:+d}  {subj}')
+          print('\nBATCH08 ANCHOR')
+          for sha,val,delta,subj in rows:
+              if 'batch 08' in subj.lower() or (36000<=val<=37000):
+                  ds='initial' if delta is None else f'{delta:+d}'
+                  print(f'{sha[:12]}  {val:6d}  {ds:>8}  {subj}')
+          print('\nCURRENT',rows[-1][1] if rows else 'missing')
           PY
