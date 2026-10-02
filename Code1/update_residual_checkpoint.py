@@ -25,7 +25,7 @@ for previous, current in zip(ranges, ranges[1:]):
     assert previous[1] <= current[0], f'overlap: {previous} vs {current}'
 
 total = sum(end - start for start, end, _ in ranges)
-assert len(ranges) == 116, len(ranges)
+assert len(ranges) == 117, len(ranges)
 assert total == 448, total
 assert by_category == {'alignment': 330, 'table': 118}, by_category
 
@@ -46,14 +46,14 @@ progress_path.write_text(progress)
 
 continuity_path = Path('Code1/DECOMPILATION_CONTINUITY.md')
 continuity = continuity_path.read_text()
-continuity_section = '''\n\n## 2026-10-02 final residual-classification checkpoint\n\nVerified translated code remains **69,652 / 70,402 = 98.93%**. The new `Code1/RESIDUAL_LEDGER.md` is the authoritative curated residual-classification ledger for already-established non-code bytes. It contains **116 non-overlapping ranges totaling 448 bytes**: **118 table bytes** plus **330 alignment/zero/padding bytes**. Because the conservative residual before classification is 750 bytes, **302 bytes remain to classify or translate**.\n\nDo not derive remaining coverage from `static_assert` gaps. A repository audit found 64,729 unique bytes enclosed by current range asserts and 5,673 bytes outside them, but many verified regions intentionally lack one assert per machine interval. Use the verified counter plus `RESIDUAL_LEDGER.md`, and investigate the remaining 302 bytes individually. The next priority is to classify undocumented inter-function gaps (especially the small gaps around the already-integrated self-modifying blitters and the F7xx/F8xx resource helpers), then sweep the remaining one-to-three-byte islands. Never promote a gap merely because it resembles compiler alignment; require current direct evidence or preserved authoritative disassembly evidence.\n'''
+continuity_section = '''\n\n## 2026-10-02 final residual-classification checkpoint\n\nVerified translated code remains **69,652 / 70,402 = 98.93%**. The new `Code1/RESIDUAL_LEDGER.md` is the authoritative curated residual-classification ledger for already-established non-code bytes. It contains **117 non-overlapping ranges totaling 448 bytes**: **118 table bytes** plus **330 alignment/zero/padding bytes**. Because the conservative residual before classification is 750 bytes, **302 bytes remain to classify or translate**.\n\nDo not derive remaining coverage from `static_assert` gaps. A repository audit found 64,729 unique bytes enclosed by current range asserts and 5,673 bytes outside them, but many verified regions intentionally lack one assert per machine interval. Use the verified counter plus `RESIDUAL_LEDGER.md`, and investigate the remaining 302 bytes individually. The next priority is to classify undocumented inter-function gaps (especially the small gaps around the already-integrated self-modifying blitters and the F7xx/F8xx resource helpers), then sweep the remaining one-to-three-byte islands. Never promote a gap merely because it resembles compiler alignment; require current direct evidence or preserved authoritative disassembly evidence.\n'''
 if '## 2026-10-02 final residual-classification checkpoint' not in continuity:
     continuity += continuity_section
 continuity_path.write_text(continuity)
 
 staging_path = Path('Code1/STAGING_LEDGER.md')
 staging = staging_path.read_text()
-staging_section = '''\n\n## Residual-classification checkpoint\n`RESIDUAL_LEDGER.md` now preserves 448 explicitly classified non-code bytes (118 table + 330 alignment/zero/padding). This is classification only, not translated coverage. Verified code remains 69,652 bytes and 302 conservative residual bytes still require classification or translation. The active staging pool remains zero.\n'''
+staging_section = '''\n\n## Residual-classification checkpoint\n`RESIDUAL_LEDGER.md` now preserves 448 explicitly classified non-code bytes across 117 non-overlapping ranges (118 table + 330 alignment/zero/padding). This is classification only, not translated coverage. Verified code remains 69,652 bytes and 302 conservative residual bytes still require classification or translation. The active staging pool remains zero.\n'''
 if '## Residual-classification checkpoint' not in staging:
     staging += staging_section
 staging_path.write_text(staging)
