@@ -222,3 +222,8 @@ All **11 bytes** are recorded as generic proven non-code because preserved evide
 The preserved batch-12 integrator closes **5 additional bytes** by exact arithmetic. Its complete `A558..A6EF` image-helper family contains **408 bytes**. The four exact translated intervals `A558..A57B` (**36**), `A57C..A5C5` (**74**), `A5C8..A674` (**173**), and `A678..A6EF` (**120**) total **403 bytes**, proving `A5C6..A5C7` and `A675..A677` are the complete five-byte exclusion. They are recorded conservatively as generic proven non-code because the preserved evidence does not uniquely recover padding-vs-data subtype.
 
 Classified residual rises from **932** to **937 bytes**; unresolved residual falls from **110 bytes / 25 islands** to **105 bytes / 23 islands**. Verified translated code remains **69,360 / 70,402 = 98.52%** and the badge remains red.
+
+
+## 2026-10-02 residual classification pass 42
+
+Repository-wide history recovery found exact address-level padding annotations in the older uppercase `CODE1/` direct-reconstruction tree. Individually named ranges totaling **59 bytes** are now classified without using alignment appearance as inference: `1462..1463`, `6054..605F`, `9BD7..9BDF`, `9C98..9C9F`, `9E89..9E8B`, `9EAE..9EAF`, `A00E..A00F`, `A059..A05B`, `A21A..A21B`, `AE0B`, and `BE61..BE6F`. Classified non-code is **996 bytes** and **46 bytes / 12 islands remain unresolved**. Verified translated code is unchanged at **69,360 / 70,402 = 98.52%**; badge remains red. Only exact range annotations were accepted; broad historical claims remain insufficient.

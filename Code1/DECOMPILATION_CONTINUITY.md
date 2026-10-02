@@ -391,3 +391,8 @@ A repository-wide scan traversed every historical textual `Code1` blob reachable
 The audit also found a concrete reason not to arithmetic-close the older recovery batch `9BE0..9EA2` from its broad prose description alone: that historical lift treated the complement of its selected code as data/alignment, but later direct reconciliation proved `9E10..9E11` are executable code. Therefore `9C98..9C9F`, `9E89..9E8B`, and the other surviving separators remain unresolved unless independent byte-level evidence is preserved in the repository.
 
 Authoritative accounting is unchanged: **69,360 translated + 937 classified non-code + 105 unresolved = 70,402 bytes**. The translated-code metric remains **98.52%**, and the badge remains red.
+
+
+## 2026-10-02 residual classification pass 42
+
+Repository-wide history recovery found exact address-level padding annotations in the older uppercase `CODE1/` direct-reconstruction tree. Individually named ranges totaling **59 bytes** are now classified without using alignment appearance as inference: `1462..1463`, `6054..605F`, `9BD7..9BDF`, `9C98..9C9F`, `9E89..9E8B`, `9EAE..9EAF`, `A00E..A00F`, `A059..A05B`, `A21A..A21B`, `AE0B`, and `BE61..BE6F`. Classified non-code is **996 bytes** and **46 bytes / 12 islands remain unresolved**. Verified translated code is unchanged at **69,360 / 70,402 = 98.52%**; badge remains red. Only exact range annotations were accepted; broad historical claims remain insufficient.

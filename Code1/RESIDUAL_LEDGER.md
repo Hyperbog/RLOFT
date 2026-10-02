@@ -6,11 +6,11 @@ It does **not** change `kVerifiedTranslatedBytes`. The conservative denominator 
 
 - verified translated code: **69,360 bytes**
 - conservative residual: **1,042 bytes**
-- explicitly classified residual below: **937 bytes**
+- explicitly classified residual below: **996 bytes**
   - embedded tables: **196 bytes**
-  - alignment/zero/padding: **479 bytes**
+  - alignment/zero/padding: **538 bytes**
   - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **262 bytes**
-- residual still requiring classification: **105 bytes**
+- residual still requiring classification: **46 bytes**
 
 The `static_assert` interval audit is diagnostic only. Many verified regions are represented without one assert per machine range, so the 5,673-byte assert-gap total is **not** the untranslated-code total.
 
@@ -25,6 +25,7 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 00649..0064B | alignment | 3
 007E2..007E3 | noncode | 2
 010A2..010A3 | alignment | 2
+01462..01463 | alignment | 2
 015AE..015AF | alignment | 2
 01A01..01A03 | alignment | 3
 01BD1..01BD3 | alignment | 3
@@ -68,6 +69,7 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 05879..0587F | alignment | 7
 05D8F..05D8F | alignment | 1
 05F4A..05F4B | alignment | 2
+06054..0605F | alignment | 12
 060B2..060B3 | noncode | 2
 06101..06103 | noncode | 3
 061BF..061BF | alignment | 1
@@ -192,9 +194,16 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 09AC2..09AC3 | alignment | 2
 09AD2..09AD3 | alignment | 2
 09BC2..09BC3 | alignment | 2
+09BD7..09BDF | alignment | 9
+09C98..09C9F | alignment | 8
 09E0F..09E0F | alignment | 1
 09E12..09E13 | alignment | 2
+09E89..09E8B | alignment | 3
 09EA3..09EA6 | table | 4
+09EAE..09EAF | alignment | 2
+0A00E..0A00F | alignment | 2
+0A059..0A05B | alignment | 3
+0A21A..0A21B | alignment | 2
 0A2AE..0A2AF | alignment | 2
 0A359..0A35B | alignment | 3
 0A36A..0A36B | alignment | 2
@@ -206,6 +215,7 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 0A5C6..0A5C7 | noncode | 2
 0A675..0A677 | noncode | 3
 0AC0F..0AC0F | noncode | 1
+0AE0B..0AE0B | alignment | 1
 0AE5A..0AE5B | alignment | 2
 0AEA6..0AEA7 | alignment | 2
 0AF05..0AF07 | alignment | 3
@@ -230,6 +240,7 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 0BCB3..0BCB3 | noncode | 1
 0BD83..0BD83 | noncode | 1
 0BE26..0BE27 | noncode | 2
+0BE61..0BE6F | alignment | 15
 0BF35..0BF37 | noncode | 3
 0BFDF..0BFDF | noncode | 1
 0C079..0C07B | noncode | 3
@@ -350,6 +361,32 @@ The repository-wide code/non-code union now leaves exactly **105 bytes in 23 isl
 - `0A21A..0A21B`: **2 bytes**.
 - `0AE0B..0AE0B`: **1 byte**.
 - `0BE61..0BE6F`: **15 bytes**.
+- `0CC19..0CC1B`: **3 bytes**.
+- `0D8CE..0D8CF`: **2 bytes**.
+- `0DDD8..0DDDF`: **8 bytes**.
+- `0E3B3..0E3B3`: **1 byte**.
+- `0F742..0F74F`: **14 bytes**.
+- `0F7B3..0F7B7`: **5 bytes**.
+- `0F8BD..0F8C3`: **7 bytes**.
+- `0FC97..0FC97`: **1 byte**.
+
+
+## 2026-10-02 residual classification pass 42
+
+A repository-wide history scan recovered the older uppercase `CODE1/` reconstruction tree, which contains exact address-specific padding annotations derived during its direct CODE.1 reconstruction. Unlike broad batch prose, these annotations name the residual bytes themselves. Pass 42 therefore classifies **59 bytes** as alignment/zero/data padding: `1462..1463` (explicit `MOV EAX,EAX` padding), `6054..605F` (twelve zero bytes), `9BD7..9BDF` and `9C98..9C9F` (zero/data padding), `9E89..9E8B`, `9EAE..9EAF`, `A00E..A00F`, `A059..A05B`, `A21A..A21B`, `AE0B` (explicit alignment), and `BE61..BE6F` (zero/data padding).
+
+The supporting historical blobs are `cbae45e9c4e3dd5350797f67090a4438326e9eea`, `089a32e37d448c797f7cbabe24ff140f6c08b021`, `e1ad914147727192a8449520139129654477b96a`, `c0c5025b20873cc1c6b1b81557827e55e95d569c`, `4ec435c37f31bfe89a8e711ef6a709848ff3a5bf`, `c8e3c403350b386b21fbbbc9c17517cd0fdc7cfc`, and `4dc22f8546cbd2d02c6b8070be1040a18008c74c`. Their boundaries agree with the currently integrated routines. This does not resurrect the discredited blanket assumption that every old recovery-batch gap is padding; only individually named ranges are accepted.
+
+Classified residual rises from **937** to **996 bytes** (196 table, 538 alignment/zero/padding, 262 generic proven non-code), leaving **46 bytes in 12 islands** unresolved. Verified translated code remains **69,360 / 70,402 = 98.52%** and the badge remains red.
+
+## Remaining exact unresolved islands after pass 42
+
+The repository-wide code/non-code union now leaves exactly **46 bytes in 12 islands**. These remain unresolved rather than being labeled from alignment appearance alone:
+
+- `000EB..000EB`: **1 byte**.
+- `04977..04977`: **1 byte**.
+- `087C2..087C3`: **2 bytes**.
+- `08E1F..08E1F`: **1 byte**.
 - `0CC19..0CC1B`: **3 bytes**.
 - `0D8CE..0D8CF`: **2 bytes**.
 - `0DDD8..0DDDF`: **8 bytes**.
