@@ -162,3 +162,7 @@ Small batch-08 checkpoint 2: classified `63B7` and `63D5..63D7` as alignment. `R
 
 ## Accounting pass 30
 Batch-08 exact-range reconciliation corrected the global verified counter by **-287 bytes**. Verified translated code is **69,365**; classified residual remains **686 bytes**; corrected conservative unresolved residual is **351 bytes**. Active staging remains zero.
+
+
+## Residual pass 31
+Small batch-08 checkpoint 3: classified `63F1..63F3` and `6409..640B` as alignment. `RESIDUAL_LEDGER.md` now holds 692 classified bytes; 345 conservative residual bytes remain. Verified translated code stays 69,365 and active staging remains zero.

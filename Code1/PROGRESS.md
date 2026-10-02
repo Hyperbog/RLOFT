@@ -189,3 +189,8 @@ Verified translated code remains **69,652 / 70,402 = 98.93%**. The second small 
 ## 2026-10-02 accounting correction pass 30
 
 A preserved-integrator audit found a historical batch-08 scalar overcount. `integrate_mid_runtime_batch_08.py` contains **47 exact non-overlapping translated ranges totaling 3,384 bytes**, while its progress update added **3,671 bytes**. Its own checkpoint text also states that `6060..6183` remained deliberately uncounted, so no hidden translated range justifies the extra 287 bytes. Batches 02 through 07 reconcile exactly to their recorded increments, and batches 09 through 12 were separately reconciled in the residual audit. The verified counter is therefore corrected by **-287**, from **69,652** to **69,365 / 70,402 = 98.5270% (98.53%)**. This pass changes accounting only; no C++ translation semantics or residual classifications are altered.
+
+
+## 2026-10-02 residual classification pass 31
+
+Verified translated code remains **69,365 / 70,402 = 98.53%**. The next small batch-08 inter-function cluster is classified: `63F1..63F3` and `6409..640B` are alignment bytes between exact asserted endpoints and the next aligned entries. This adds **6 classified bytes**. The ledger now classifies **692 bytes**, leaving **345 bytes unresolved**.
