@@ -11,7 +11,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Target unclassified residual islands
+      - name: Mine preserved residual classifications
         run: |
           python3 - <<'PY'
           import re
@@ -52,20 +52,29 @@ jobs:
               return out
           remaining=subtract(gaps,classified)
           small=[(a,b) for a,b in remaining if b-a<=32]
-          print('assert-gap bytes after classified subtraction:',sum(b-a for a,b in remaining))
-          print('small candidate islands <=32 bytes:',len(small),'bytes:',sum(b-a for a,b in small))
-          print('\nSMALL UNCLASSIFIED ASSERT-GAP ISLANDS')
+          print('small unclassified assert-gap islands:',len(small),'bytes:',sum(b-a for a,b in small))
+          strong=('align','padding',' nop','nop ','zero byte','zero bytes','zero/alignment','data/alignment',' is data','jump table','address table','lookup table','excluded')
+          files=[]
+          for p in Path('Code1').rglob('*'):
+              if not p.is_file(): continue
+              try: body=p.read_text()
+              except UnicodeDecodeError: continue
+              files.append((p,body.splitlines()))
+          print('\nPRESERVED STRONG-EVIDENCE HITS')
+          hit_ranges=[]
           for a,b in small:
-              print(f'{a:05X}..{b-1:05X} {b-a:3d}')
-          print('\nSOURCE LINES MENTIONING SMALL-ISLAND ADDRESSES')
-          lines=text.splitlines()
-          for a,b in small:
-              keys={f'{a:X}',f'{b-1:X}',f'{a:04X}',f'{b-1:04X}',f'{a:05X}',f'{b-1:05X}'}
+              addr_forms=set()
+              for v in {a,b-1}:
+                  addr_forms.update({f'{v:X}',f'{v:04X}',f'{v:05X}',f'{v:x}',f'{v:04x}',f'{v:05x}'})
               hits=[]
-              for no,line in enumerate(lines,1):
-                  up=line.upper()
-                  if any(k in up for k in keys): hits.append((no,line.strip()))
+              for p,lines in files:
+                  for no,line in enumerate(lines,1):
+                      low=line.lower()
+                      if not any(k in low for k in strong): continue
+                      if any(form in line for form in addr_forms): hits.append((str(p),no,line.strip()))
               if hits:
-                  print(f'[{a:05X}..{b-1:05X}]')
-                  for no,line in hits[:8]: print(f'  {no}: {line}')
+                  hit_ranges.append((a,b))
+                  print(f'[{a:05X}..{b-1:05X} {b-a} bytes]')
+                  for p,no,line in hits[:12]: print(f'  {p}:{no}: {line}')
+          print('\nstrong-evidence candidate ranges:',len(hit_ranges),'bytes:',sum(b-a for a,b in hit_ranges))
           PY
