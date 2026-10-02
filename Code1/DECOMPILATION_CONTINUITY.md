@@ -382,3 +382,12 @@ All **11 bytes** are recorded as generic proven non-code because preserved evide
 The preserved batch-12 integrator closes **5 additional bytes** by exact arithmetic. Its complete `A558..A6EF` image-helper family contains **408 bytes**. The four exact translated intervals `A558..A57B` (**36**), `A57C..A5C5` (**74**), `A5C8..A674` (**173**), and `A678..A6EF` (**120**) total **403 bytes**, proving `A5C6..A5C7` and `A675..A677` are the complete five-byte exclusion. They are recorded conservatively as generic proven non-code because the preserved evidence does not uniquely recover padding-vs-data subtype.
 
 Classified residual rises from **932** to **937 bytes**; unresolved residual falls from **110 bytes / 25 islands** to **105 bytes / 23 islands**. Verified translated code remains **69,360 / 70,402 = 98.52%** and the badge remains red.
+
+
+## 2026-10-02 decoded full-history residual audit after pass 41
+
+A repository-wide scan traversed every historical textual `Code1` blob reachable from Git history and decoded the compressed Python integration wrappers before searching the **23 remaining residual islands** and their adjacent entry markers. The scan did **not** recover an additional explicit classification strong enough to move any of the remaining **105 bytes** into translated code or proven non-code. In particular, the largest separators `6054..605F`, `BE61..BE6F`, and `F742..F74F` remain boundary-shaped but unclassified; adjacency/alignment appearance is not proof.
+
+The audit also found a concrete reason not to arithmetic-close the older recovery batch `9BE0..9EA2` from its broad prose description alone: that historical lift treated the complement of its selected code as data/alignment, but later direct reconciliation proved `9E10..9E11` are executable code. Therefore `9C98..9C9F`, `9E89..9E8B`, and the other surviving separators remain unresolved unless independent byte-level evidence is preserved in the repository.
+
+Authoritative accounting is unchanged: **69,360 translated + 937 classified non-code + 105 unresolved = 70,402 bytes**. The translated-code metric remains **98.52%**, and the badge remains red.
