@@ -6,11 +6,11 @@ It does **not** change `kVerifiedTranslatedBytes`. The conservative denominator 
 
 - verified translated code: **69,360 bytes**
 - conservative residual: **1,042 bytes**
-- explicitly classified residual below: **996 bytes**
+- explicitly classified residual below: **997 bytes**
   - embedded tables: **196 bytes**
-  - alignment/zero/padding: **538 bytes**
+  - alignment/zero/padding: **539 bytes**
   - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **262 bytes**
-- residual still requiring classification: **46 bytes**
+- residual still requiring classification: **45 bytes**
 
 The `static_assert` interval audit is diagnostic only. Many verified regions are represented without one assert per machine range, so the 5,673-byte assert-gap total is **not** the untranslated-code total.
 
@@ -21,6 +21,7 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 <!-- RESIDUAL-RANGES-BEGIN -->
 00003..0000F | alignment | 13
 00049..0004B | alignment | 3
+000EB..000EB | alignment | 1
 0043B..0043B | alignment | 1
 00649..0064B | alignment | 3
 007E2..007E3 | noncode | 2
@@ -384,6 +385,27 @@ Classified residual rises from **937** to **996 bytes** (196 table, 538 alignmen
 The repository-wide code/non-code union now leaves exactly **46 bytes in 12 islands**. These remain unresolved rather than being labeled from alignment appearance alone:
 
 - `000EB..000EB`: **1 byte**.
+- `04977..04977`: **1 byte**.
+- `087C2..087C3`: **2 bytes**.
+- `08E1F..08E1F`: **1 byte**.
+- `0CC19..0CC1B`: **3 bytes**.
+- `0D8CE..0D8CF`: **2 bytes**.
+- `0DDD8..0DDDF`: **8 bytes**.
+- `0E3B3..0E3B3`: **1 byte**.
+- `0F742..0F74F`: **14 bytes**.
+- `0F7B3..0F7B7`: **5 bytes**.
+- `0F8BD..0F8C3`: **7 bytes**.
+- `0FC97..0FC97`: **1 byte**.
+
+
+## 2026-10-02 residual classification pass 43
+
+A normalized historical-address sweep recovered one exact residual annotation that the earlier literal-string scan could miss because of address formatting: historical `CODE1/ObjectLayout0000.cpp` explicitly records `0x00EB is NOP alignment` after the directly reconstructed `004C..00EA` text-record routine. Pass 43 therefore classifies **1 byte**, `000EB`, as alignment. No other remaining island received an exact target-specific code/data/padding annotation in the normalized historical `CODE1/` sweep; broad runtime-tail labels are not sufficient to classify individual bytes.
+
+Classified residual rises from **996** to **997 bytes** (196 table, 539 alignment/zero/padding, 262 generic proven non-code), leaving **45 bytes in 11 islands** unresolved. Verified translated code remains **69,360 / 70,402 = 98.52%** and the badge remains red.
+
+## Remaining exact unresolved islands after pass 43
+
 - `04977..04977`: **1 byte**.
 - `087C2..087C3`: **2 bytes**.
 - `08E1F..08E1F`: **1 byte**.

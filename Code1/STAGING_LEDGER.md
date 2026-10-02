@@ -227,3 +227,7 @@ Classified residual rises from **932** to **937 bytes**; unresolved residual fal
 ## 2026-10-02 residual classification pass 42
 
 Repository-wide history recovery found exact address-level padding annotations in the older uppercase `CODE1/` direct-reconstruction tree. Individually named ranges totaling **59 bytes** are now classified without using alignment appearance as inference: `1462..1463`, `6054..605F`, `9BD7..9BDF`, `9C98..9C9F`, `9E89..9E8B`, `9EAE..9EAF`, `A00E..A00F`, `A059..A05B`, `A21A..A21B`, `AE0B`, and `BE61..BE6F`. Classified non-code is **996 bytes** and **46 bytes / 12 islands remain unresolved**. Verified translated code is unchanged at **69,360 / 70,402 = 98.52%**; badge remains red. Only exact range annotations were accepted; broad historical claims remain insufficient.
+
+
+## Residual pass 43
+Historical `CODE1/ObjectLayout0000.cpp` explicitly labels `000EB` as NOP alignment. One byte is newly classified; translated code remains 69,360 bytes and active staging remains zero. The residual queue is now 45 bytes in 11 islands.
