@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-98.53%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-98.52%25-red)
 
-**Verified conversion:** 98.53%  
-**Remaining:** 1.47%  
+**Verified conversion:** 98.52%  
+**Remaining:** 1.48%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **69,365**.  
+Current verified translated bytes: **69,360**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **98.5270%**, displayed as **98.53%**.
+Raw coverage: **98.5199%**, displayed as **98.52%**.
 
 - Mid UI/resource/font/input/vector/render routines `71C8..729F`, selected `767C..80B9`, `8270..8335`, `8398..848F`, `84A0..87C1` with alignment/data/interrupt islands excluded: **3,941 bytes**.
 - Mid asset/input lifecycle routines selected from `87C4..8E1E`, `91D8..95A7`, and `95BC..9BD6` with address-table/alignment islands excluded: **4,116 bytes**.
@@ -24,7 +24,7 @@ Raw coverage: **98.5270%**, displayed as **98.53%**.
 - Batch 17 line/sprite graphics: `A05C..A219`, `A8F4..AA1F`, `AA20..AC0E`, `AC10..AE0A`: **1,748 bytes**.
 - Batch 18 self-modifying scaled VGA blitters: `C7A0..C8C0`, `C8C4..C9D1`, `C9D4..CAC9`, `CACC..CBD0`, with alignment islands excluded: **1,066 bytes**.
 - Batch 19 fill front end `DE70..DEA0`: **49 bytes**. `DE6F` is a preceding zero byte and `DEA1..DEA6` are alignment NOPs.
-- Batch 20 residual/accounting audit: newly represented/accounted `0000..0002`, `7F50..7F5B`, `95A8..95BA`, `9E10..9E11`, shared `9EA7..9EAD`, `1058B..1058F`, `CBEF`, `CBF0..CC18`, plus previously translated-but-omitted `DF13..DF72`: **186 unique bytes**; corrected the historical duplicate count of `10384..10396` (**-19**), net **+167 bytes**.
+- Batch 20 residual/accounting audit: its listed ranges cover **186 address bytes**, but `1058B..1058F` had already been included in the earlier **863-byte** heap-core scalar for `104E0..1083E`; therefore only **181 bytes** were newly unique. After the `10384..10396` duplicate correction (**-19**), the corrected net increase is **+162 bytes**.
 
 ## Immutable source identity
 
@@ -86,7 +86,7 @@ Raw coverage: **98.5270%**, displayed as **98.53%**.
 - Runtime heap-extension driver `10AA9..10C45`: **413 bytes**.
 - Runtime tail helpers `10C46..10C6C`: **39 bytes**.
 
-Total integrated verified translated bytes: **69,365**.
+Total integrated verified translated bytes: **69,360**.
 
 `DA45..DA47` is three zero bytes. `EDD3..EDDF` is **13 zero bytes**. Both are classified as data/alignment and are not counted as translated code.
 
@@ -234,3 +234,10 @@ Historical integration evidence closes **194 additional non-code bytes** without
 Commit `c6fa0ed1974736c6c124b3f600f2b7d36fc2ed94` explicitly identifies `DF8E..DFB2` and `E02B..E04F` as two identical embedded radix digit alphabets, **37 bytes each**. Together with the already-classified `DE6F` and `DEA1..DEA6`, these **74 data bytes** close the full `DDE0..E0C7` inventory exactly: **663 translated + 81 non-code = 744 bytes**.
 
 Classified residual therefore rises from **727** to **921 bytes** (479 alignment/zero/padding, 196 table/lookup data, 246 generic proven non-code), leaving **116 bytes unresolved**. Verified translated code remains **69,365 / 70,402 = 98.53%** and the badge remains red.
+
+
+## 2026-10-02 accounting correction pass 39
+
+A full address-union audit exposed a second historical duplicate: `integrate_heap_core.py` had already credited the entire `104E0..1083E` heap core as **863 bytes**. Its explicit subrange asserts total 858 bytes because the five-byte shared jump `1058B..1058F` is represented by the early-exit semantics around `function_10590`, but those five bytes are part of the original 863-byte scalar increment. Batch 20 later credited `1058B..1058F` again as if newly unique.
+
+The verified scalar is corrected by **-5 bytes**, from **69,365** to **69,360 / 70,402 = 98.5199% (98.52%)**. Batch 20's corrected contribution is **181 newly unique bytes - 19 duplicate bytes = +162**, not +167. Classified non-code remains **921 bytes**. The conservative residual becomes **1,042 bytes**, leaving **121 bytes unresolved**. No translated semantics are removed; this is accounting-only. The badge remains red.

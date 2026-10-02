@@ -4,13 +4,13 @@ This ledger tracks object-1 bytes that are explicitly classified as **non-transl
 
 It does **not** change `kVerifiedTranslatedBytes`. The conservative denominator remains the full object-1 extent (`0x11302` = 70,402 bytes) until all residual bytes are classified. At the checkpoint that created this ledger:
 
-- verified translated code: **69,365 bytes**
-- conservative residual: **1,037 bytes**
+- verified translated code: **69,360 bytes**
+- conservative residual: **1,042 bytes**
 - explicitly classified residual below: **921 bytes**
   - embedded tables: **196 bytes**
   - alignment/zero/padding: **479 bytes**
   - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **246 bytes**
-- residual still requiring classification: **116 bytes**
+- residual still requiring classification: **121 bytes**
 
 The `static_assert` interval audit is diagnostic only. Many verified regions are represented without one assert per machine range, so the 5,673-byte assert-gap total is **not** the untranslated-code total.
 
@@ -290,4 +290,4 @@ The table category consists of the following already-established data islands:
 
 ## Accounting rule
 
-Do not add these 921 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 116 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
+Do not add these 921 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 121 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.

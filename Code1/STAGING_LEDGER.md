@@ -201,3 +201,10 @@ Historical integration evidence closes **194 additional non-code bytes** without
 Commit `c6fa0ed1974736c6c124b3f600f2b7d36fc2ed94` explicitly identifies `DF8E..DFB2` and `E02B..E04F` as two identical embedded radix digit alphabets, **37 bytes each**. Together with the already-classified `DE6F` and `DEA1..DEA6`, these **74 data bytes** close the full `DDE0..E0C7` inventory exactly: **663 translated + 81 non-code = 744 bytes**.
 
 Classified residual therefore rises from **727** to **921 bytes** (479 alignment/zero/padding, 196 table/lookup data, 246 generic proven non-code), leaving **116 bytes unresolved**. Verified translated code remains **69,365 / 70,402 = 98.53%** and the badge remains red.
+
+
+## 2026-10-02 accounting correction pass 39
+
+A full address-union audit exposed a second historical duplicate: `integrate_heap_core.py` had already credited the entire `104E0..1083E` heap core as **863 bytes**. Its explicit subrange asserts total 858 bytes because the five-byte shared jump `1058B..1058F` is represented by the early-exit semantics around `function_10590`, but those five bytes are part of the original 863-byte scalar increment. Batch 20 later credited `1058B..1058F` again as if newly unique.
+
+The verified scalar is corrected by **-5 bytes**, from **69,365** to **69,360 / 70,402 = 98.5199% (98.52%)**. Batch 20's corrected contribution is **181 newly unique bytes - 19 duplicate bytes = +162**, not +167. Classified non-code remains **921 bytes**. The conservative residual becomes **1,042 bytes**, leaving **121 bytes unresolved**. No translated semantics are removed; this is accounting-only. The badge remains red.
