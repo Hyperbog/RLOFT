@@ -12,25 +12,28 @@ jobs:
         with:
           ref: code1-decompilation
           fetch-depth: 0
-      - name: Inspect historical context around large residual boundaries
+      - name: Decode integration-script evidence around unresolved boundaries
         run: |
           python3 - <<'PY'
-          import re,subprocess
+          from pathlib import Path
+          import re,zlib,base64
           targets=['6054','6060','9BD7','9BE0','BE61','BE70','DDD8','DDE0','F742','F750','F7B3','F7B8','F8BD','F8C4','FC97','FC98']
-          history=subprocess.check_output(['git','log','--all','--format=@@COMMIT %H %s','-p','--','Code1'],text=True,errors='ignore').splitlines()
-          current='unknown'
-          seen=set()
-          for i,line in enumerate(history):
-              if line.startswith('@@COMMIT '): current=line
-              up=line.upper()
-              if not any(re.search(r'(?<![0-9A-F])'+t+r'(?![0-9A-F])',up) for t in targets): continue
-              # Skip enormous compressed payload lines; they cannot provide readable neighborhood evidence.
-              if len(line)>3000: continue
-              key=(current,i)
-              if key in seen: continue
-              seen.add(key)
-              lo=max(0,i-4); hi=min(len(history),i+5)
-              print('\n===',current,'===')
-              for j in range(lo,hi):
-                  if len(history[j])<=3000: print(history[j][:2000])
+          def decoded(p):
+              s=p.read_text(errors='ignore')
+              m=re.fullmatch(r"import zlib,base64\s*\nexec\(zlib\.decompress\(base64\.b85decode\('(.+)'\)\)\)\s*",s,re.S)
+              if m:
+                  try:return zlib.decompress(base64.b85decode(m.group(1))).decode('utf-8','replace')
+                  except Exception as e:
+                      print('DECODE_FAIL',p,e);return s
+              return s
+          hits=0
+          for p in sorted(Path('Code1').glob('*.py')):
+              s=decoded(p); lines=s.splitlines()
+              for i,line in enumerate(lines):
+                  up=line.upper()
+                  if not any(re.search(r'(?<![0-9A-F])'+t+r'(?![0-9A-F])',up) for t in targets): continue
+                  hits+=1
+                  print(f'\n=== {p} line {i+1} ===')
+                  for q in lines[max(0,i-5):min(len(lines),i+6)]: print(q[:1800])
+          print('\nTOTAL_CONTEXT_HITS',hits)
           PY
