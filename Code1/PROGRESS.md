@@ -174,3 +174,8 @@ Verified translated code remains **69,652 / 70,402 = 98.93%**. The preserved bat
 ## 2026-10-02 residual classification pass 27
 
 Verified translated code remains **69,652 / 70,402 = 98.93%**. Batch-10 reconciliation uses its exact asserted intervals rather than the imprecise prose endpoint around `8490..8491`. In selected span `767C..80B9`, batch 10 asserted **2,518 code bytes** and excluded alignment/data/interrupt islands. Later verification accounts for `7F50..7F5B` (batch 20) and `7F5C..7F89` (batch 16) as code. Subtracting those later code bytes and all existing ledger classifications leaves exactly **`7D67` and `7F8A..7F8B` (3 bytes)** as the batch-10 excluded non-code complement. The ledger now classifies **677 bytes**, leaving **73 bytes unresolved**.
+
+
+## 2026-10-02 residual classification pass 28
+
+Verified translated code remains **69,652 / 70,402 = 98.93%**. The first small batch-08 inter-function cluster is now classified from preserved integration evidence: `631F`, `633B`, `6357`, and `63A2..63A3` are the alignment bytes between exact asserted function endpoints and the next 4-byte-aligned entries. This adds **5 classified bytes** without changing translated-code coverage. `RESIDUAL_LEDGER.md` now classifies **682 bytes**, leaving **68 bytes unresolved**.

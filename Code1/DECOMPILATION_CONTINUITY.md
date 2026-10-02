@@ -303,3 +303,8 @@ Batch 09 is arithmetic-closed from its preserved integrator: 3,390 selected byte
 ## 2026-10-02 residual pass 27 checkpoint
 
 Corrected batch-10 arithmetic proves `7D67` and `7F8A..7F8B` as excluded non-code after subtracting later verified code `7F50..7F89` and all already-classified alignment/data islands. The exact batch-10 asserts, not its slightly short prose endpoint at `848F`, control the reconciliation. Classified non-code is now **677 bytes** and **73 conservative residual bytes remain**; verified translated code remains **69,652 bytes (98.93%)**. Batch-12's six remaining local gaps (20 bytes total) still lack explicit exclusion evidence and remain unresolved.
+
+
+## 2026-10-02 residual pass 28 checkpoint
+
+Small-checkpoint policy applied. Batch-08 preserved function boundaries plus its explicit `alignment excluded` integration note classify `631F`, `633B`, `6357`, and `63A2..63A3` as alignment (**5 bytes**). Classified residual is now **682 bytes** and **68 bytes remain unresolved**. Verified translated code remains **69,652 bytes (98.93%)**.

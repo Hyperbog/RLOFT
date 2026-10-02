@@ -150,3 +150,7 @@ The batch-09 preserved integrator proves a 66-byte non-code complement. `RESIDUA
 
 ## Residual pass 27
 Corrected batch-10 arithmetic classifies `7D67` and `7F8A..7F8B` as non-code. `RESIDUAL_LEDGER.md` now holds 677 classified bytes; 73 conservative residual bytes remain. Verified translated code stays 69,652 and active staging remains zero.
+
+
+## Residual pass 28
+Small batch-08 checkpoint: classified `631F`, `633B`, `6357`, and `63A2..63A3` as alignment from preserved exact function boundaries and the batch's `alignment excluded` note. `RESIDUAL_LEDGER.md` now holds 682 classified bytes; 68 conservative residual bytes remain. Verified translated code stays 69,652 and active staging remains zero.
