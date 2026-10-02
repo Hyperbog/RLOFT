@@ -6,11 +6,11 @@ It does **not** change `kVerifiedTranslatedBytes`. The conservative denominator 
 
 - verified translated code: **69,360 bytes**
 - conservative residual: **1,042 bytes**
-- explicitly classified residual below: **921 bytes**
+- explicitly classified residual below: **932 bytes**
   - embedded tables: **196 bytes**
   - alignment/zero/padding: **479 bytes**
-  - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **246 bytes**
-- residual still requiring classification: **121 bytes**
+  - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **257 bytes**
+- residual still requiring classification: **110 bytes**
 
 The `static_assert` interval audit is diagnostic only. Many verified regions are represented without one assert per machine range, so the 5,673-byte assert-gap total is **not** the untranslated-code total.
 
@@ -23,6 +23,7 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 00049..0004B | alignment | 3
 0043B..0043B | alignment | 1
 00649..0064B | alignment | 3
+007E2..007E3 | noncode | 2
 010A2..010A3 | alignment | 2
 015AE..015AF | alignment | 2
 01A01..01A03 | alignment | 3
@@ -142,11 +143,14 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 07FA5..07FA7 | alignment | 3
 08029..0802B | alignment | 3
 0808A..0808B | alignment | 2
+080BA..080BB | noncode | 2
+0826E..0826F | noncode | 2
 08277..08277 | alignment | 1
 08289..0828B | alignment | 3
 082A1..082A3 | alignment | 3
 082BD..082BF | alignment | 3
 08301..08303 | alignment | 3
+08336..08337 | noncode | 2
 08421..08423 | alignment | 3
 08483..08483 | alignment | 1
 08492..0849F | alignment | 14
@@ -255,6 +259,7 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 0D179..0D17B | alignment | 3
 0D27D..0D27F | alignment | 3
 0DA45..0DA47 | alignment | 3
+0DC8D..0DC8F | noncode | 3
 0DE6F..0DE6F | alignment | 1
 0DEA1..0DEA6 | alignment | 6
 0DF8E..0DFB2 | table | 37
@@ -290,4 +295,35 @@ The table category consists of the following already-established data islands:
 
 ## Accounting rule
 
-Do not add these 921 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 121 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
+Do not add these 932 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 110 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
+
+
+## Remaining exact unresolved islands after pass 40
+
+The repository-wide code/non-code union now leaves exactly **110 bytes in 25 islands**. These remain unresolved rather than being labeled from alignment appearance alone:
+
+- `000EB..000EB`: **1 byte**.
+- `01462..01463`: **2 bytes**.
+- `04977..04977`: **1 byte**.
+- `06054..0605F`: **12 bytes**.
+- `087C2..087C3`: **2 bytes**.
+- `08E1F..08E1F`: **1 byte**.
+- `09BD7..09BDF`: **9 bytes**.
+- `09C98..09C9F`: **8 bytes**.
+- `09E89..09E8B`: **3 bytes**.
+- `09EAE..09EAF`: **2 bytes**.
+- `0A00E..0A00F`: **2 bytes**.
+- `0A059..0A05B`: **3 bytes**.
+- `0A21A..0A21B`: **2 bytes**.
+- `0A5C6..0A5C7`: **2 bytes**.
+- `0A675..0A677`: **3 bytes**.
+- `0AE0B..0AE0B`: **1 byte**.
+- `0BE61..0BE6F`: **15 bytes**.
+- `0CC19..0CC1B`: **3 bytes**.
+- `0D8CE..0D8CF`: **2 bytes**.
+- `0DDD8..0DDDF`: **8 bytes**.
+- `0E3B3..0E3B3`: **1 byte**.
+- `0F742..0F74F`: **14 bytes**.
+- `0F7B3..0F7B7`: **5 bytes**.
+- `0F8BD..0F8C3`: **7 bytes**.
+- `0FC97..0FC97`: **1 byte**.
