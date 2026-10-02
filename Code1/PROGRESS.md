@@ -154,3 +154,8 @@ No translated-code coverage was added: the verified counter remains **69,652 / 7
 ## 2026-10-02 residual classification pass 23
 
 Verified translated code remains **69,652 / 70,402 = 98.93%**. Preserved repository evidence explicitly classifies **38 additional residual bytes** as non-code: batch-13 excluded islands `AEA6..AEA7`, `AF4B`, `AF63`, `B4D2..B4D3`, `B51B`, `B596..B597`, `B5E1..B5E3`, `B6BE..B6BF`, `B6EB`, `B75B`, `B76B`; startup `CEE9..CEEF` seven zero bytes and `CF41..CF43` alignment NOP; runtime staging `E187..E18F` nine zero bytes, `E207` single NOP, and `E27F` zero. `RESIDUAL_LEDGER.md` now classifies **500 bytes** (118 table + 382 alignment/zero/padding), leaving **250 bytes** unresolved. No code byte was promoted and the badge remains red.
+
+
+## 2026-10-02 residual classification pass 24
+
+Verified translated code remains **69,652 / 70,402 = 98.93%**. Full Git-history reconciliation recovered a batch-12 note explicitly identifying `9EA3..9EA7` as lookup data at that checkpoint. Batch 20 later verified `9EA7..9EAD` as code, so only the still-unaccounted prefix **`9EA3..9EA6` (4 bytes)** is classified as table data. The curated non-code ledger is now **504 bytes** (122 table + 382 alignment/zero/padding), leaving **246 bytes** unresolved. `C79F` remains deliberately unclassified because its only historical hit is the stale pre-batch-18 exclusion of the formerly unresolved self-modifying blitter cluster.

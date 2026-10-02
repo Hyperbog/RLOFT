@@ -134,3 +134,7 @@ Fourteen explicitly commented one-byte alignment islands were added to `RESIDUAL
 
 ## Residual pass 23
 Preserved batch/staging evidence classified 38 additional non-code bytes. `RESIDUAL_LEDGER.md` now holds 500 classified bytes; 250 conservative residual bytes remain. Verified translated code stays 69,652 and active staging remains zero.
+
+
+## Residual pass 24
+Historical batch-12 evidence classifies `9EA3..9EA6` as lookup-table data after excluding the later-verified `9EA7..9EAD` code. `RESIDUAL_LEDGER.md` now holds 504 classified bytes; 246 conservative residual bytes remain. Verified translated code stays 69,652 and active staging remains zero.

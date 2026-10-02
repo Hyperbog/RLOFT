@@ -283,3 +283,8 @@ Fourteen current-source one-byte alignment comments were missing from the curate
 ## 2026-10-02 residual pass 23 checkpoint
 
 Preserved batch/staging records supplied explicit non-code evidence for 38 more bytes: `AEA6..AEA7`, `AF4B`, `AF63`, `B4D2..B4D3`, `B51B`, `B596..B597`, `B5E1..B5E3`, `B6BE..B6BF`, `B6EB`, `B75B`, `B76B`, `CEE9..CEEF`, `CF41..CF43`, `E187..E18F`, `E207`, and `E27F`. Classified non-code is now **500 bytes**; **250 conservative residual bytes remain**. Verified translated code remains **69,652 bytes (98.93%)**. `C79F` was deliberately not classified in this pass because the older exclusion record describes the formerly unresolved self-modifying cluster, not the exact semantic role of that one byte after batch 18.
+
+
+## 2026-10-02 residual pass 24 checkpoint
+
+Historical batch-12 evidence proves `9EA3..9EA7` was lookup data at that stage, while batch 20 later verified `9EA7..9EAD` as code. Therefore only `9EA3..9EA6` is newly classified as table data. Classified non-code is **504 bytes** and **246 conservative residual bytes remain**; verified translated code remains **69,652 bytes (98.93%)**. Continue by reconciling preserved integration scripts and their exclusion lists, not by assuming that every small inter-function gap is padding.
