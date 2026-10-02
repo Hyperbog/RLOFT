@@ -1,0 +1,87 @@
+name: CODE.1 normalized all-history residual scan
+on:
+  push:
+    branches: [code1-decompilation]
+    paths:
+      - '.github/workflows/residual-normalized-all-history.yml'
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+          fetch-depth: 0
+      - name: Scan all historical text blobs with normalized addresses
+        run: |
+          python3 - <<'PY' > code1-normalized-all-history.txt
+          import subprocess,re,zlib,base64
+          targets=[0x04977,0x087C2,0x08E1F,0x0CC19,0x0D8CE,0x0DDD8,0x0E3B3,0x0F742,0x0F7B3,0x0F8BD,0x0FC97]
+          file_base=0x2C724
+          aliases={t:{t,file_base+t} for t in targets}
+          wrap=re.compile(r"\s*import zlib,base64\s*\nexec\(zlib\.decompress\(base64\.b85decode\('(.+)'\)\)\)\s*",re.S)
+          # numeric address forms: 0x00ABC, 00ABC, 3ABCD, 0000F742:, etc.
+          pref=re.compile(r'(?<![0-9A-Fa-f])0[xX]([0-9A-Fa-f]{1,8})(?![0-9A-Fa-f])')
+          bare=re.compile(r'(?<![0-9A-Fa-f])([0-9A-Fa-f]{4,8})(?![0-9A-Fa-f])')
+          rng=re.compile(r'(?<![0-9A-Fa-f])(?:0[xX])?([0-9A-Fa-f]{1,8})\.\.(?:0[xX])?([0-9A-Fa-f]{1,8})(?![0-9A-Fa-f])')
+          objs=subprocess.check_output(['git','rev-list','--objects','--all'],text=True,errors='replace').splitlines()
+          seen=set(); findings={t:[] for t in targets}; keys={t:set() for t in targets}
+          for rec in objs:
+              sha,*rest=rec.split(' ',1); path=rest[0] if rest else ''
+              if sha in seen or not path: continue
+              seen.add(sha)
+              try:
+                  if subprocess.check_output(['git','cat-file','-t',sha],text=True).strip()!='blob': continue
+                  raw=subprocess.check_output(['git','cat-file','-p',sha])
+              except subprocess.CalledProcessError: continue
+              if len(raw)>4_000_000 or b'\x00' in raw[:8192]: continue
+              try:s=raw.decode('utf-8')
+              except UnicodeDecodeError: continue
+              m=wrap.fullmatch(s)
+              if m:
+                  try:s=zlib.decompress(base64.b85decode(m.group(1))).decode('utf-8','replace')
+                  except Exception: pass
+              lines=s.splitlines()
+              for i,line in enumerate(lines):
+                  vals=[]
+                  for m in pref.finditer(line):
+                      try: vals.append((int(m.group(1),16),'exact'))
+                      except ValueError: pass
+                  for m in bare.finditer(line):
+                      tok=m.group(1)
+                      # bare token must look address-like: at least one A-F or >=5 chars
+                      if len(tok)>=5 or any(c in 'ABCDEFabcdef' for c in tok):
+                          try: vals.append((int(tok,16),'exact'))
+                          except ValueError: pass
+                  spans=[]
+                  for m in rng.finditer(line):
+                      try:a,b=int(m.group(1),16),int(m.group(2),16)
+                      except ValueError: continue
+                      if a<=b: spans.append((a,b))
+                  for t in targets:
+                      aset=aliases[t]
+                      exact=any(v in aset for v,_ in vals)
+                      shortspan=False
+                      for a,b in spans:
+                          for q in aset:
+                              # accept endpoint matches or contained ranges <= 256 bytes
+                              if q in (a,b) or (a<=q<=b and b-a<=0x100): shortspan=True
+                      if not exact and not shortspan: continue
+                      ctx='\n'.join(lines[max(0,i-5):min(len(lines),i+6)]).strip()
+                      key=(path,ctx)
+                      if key in keys[t]: continue
+                      keys[t].add(key)
+                      findings[t].append((0 if exact else 1,path,sha,i+1,ctx))
+          for t in targets:
+              print(f'\n===== {t:05X} file={file_base+t:05X} =====')
+              vals=findings[t]; vals.sort(key=lambda v:(v[0],v[1],v[3],v[2]))
+              for kind,path,sha,lineno,ctx in vals:
+                  print(('EXACT' if kind==0 else 'SHORT_RANGE')+f' BLOB {sha} PATH {path}:{lineno}')
+                  print(ctx); print('---')
+              print('UNIQUE_CONTEXTS',len(vals))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: code1-normalized-all-history
+          path: code1-normalized-all-history.txt
+          retention-days: 7
