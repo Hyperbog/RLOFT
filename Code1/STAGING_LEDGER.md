@@ -215,3 +215,10 @@ The verified scalar is corrected by **-5 bytes**, from **69,365** to **69,360 / 
 A repository-history/reference audit closed **11 additional bytes** using arithmetic-bounded regions that were explicitly preserved before their later translations. The batch-14 continuation named `07E2..10A1` as the remaining early-game candidate; batch 16 subsequently verified `07E4..10A1`, leaving `07E2..07E3` outside instructions. Batch 10 bounded the deferred second interrupt/state-machine block as `80BA..826F`; batch 16 verified `80BC..826D`, leaving `80BA..80BB` and `826E..826F`. Batch 10 likewise bounded `8336..8397`; batch 16 verified `8338..8397`, leaving `8336..8337`. Finally, the declared `DAD9..DDD7` allocator/decoder/transform family spans 767 bytes while its three exact verified assertions total 764, proving `DC8D..DC8F` is the only excluded island.
 
 All **11 bytes** are recorded as generic proven non-code because preserved evidence closes them arithmetically but does not uniquely identify their narrower padding/data subtype. Classified residual rises from **921** to **932 bytes**; unresolved residual falls from **121** to **110 bytes**. Verified translated code remains **69,360 / 70,402 = 98.52%** and the badge remains red.
+
+
+## 2026-10-02 residual classification pass 41
+
+The preserved batch-12 integrator closes **5 additional bytes** by exact arithmetic. Its complete `A558..A6EF` image-helper family contains **408 bytes**. The four exact translated intervals `A558..A57B` (**36**), `A57C..A5C5` (**74**), `A5C8..A674` (**173**), and `A678..A6EF` (**120**) total **403 bytes**, proving `A5C6..A5C7` and `A675..A677` are the complete five-byte exclusion. They are recorded conservatively as generic proven non-code because the preserved evidence does not uniquely recover padding-vs-data subtype.
+
+Classified residual rises from **932** to **937 bytes**; unresolved residual falls from **110 bytes / 25 islands** to **105 bytes / 23 islands**. Verified translated code remains **69,360 / 70,402 = 98.52%** and the badge remains red.
