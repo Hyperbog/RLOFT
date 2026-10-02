@@ -6,11 +6,11 @@ It does **not** change `kVerifiedTranslatedBytes`. The conservative denominator 
 
 - verified translated code: **69,365 bytes**
 - conservative residual: **1,037 bytes**
-- explicitly classified residual below: **727 bytes**
-  - embedded tables: **122 bytes**
+- explicitly classified residual below: **921 bytes**
+  - embedded tables: **196 bytes**
   - alignment/zero/padding: **479 bytes**
-  - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **126 bytes**
-- residual still requiring classification: **310 bytes**
+  - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **246 bytes**
+- residual still requiring classification: **116 bytes**
 
 The `static_assert` interval audit is diagnostic only. Many verified regions are represented without one assert per machine range, so the 5,673-byte assert-gap total is **not** the untranslated-code total.
 
@@ -245,6 +245,7 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 0C9D2..0C9D3 | alignment | 2
 0CACA..0CACB | alignment | 2
 0CBD1..0CBD3 | alignment | 3
+0CC1E..0CC95 | noncode | 120
 0CEE9..0CEEF | alignment | 7
 0CF41..0CF43 | alignment | 3
 0D0B1..0D0B3 | noncode | 3
@@ -256,6 +257,8 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 0DA45..0DA47 | alignment | 3
 0DE6F..0DE6F | alignment | 1
 0DEA1..0DEA6 | alignment | 6
+0DF8E..0DFB2 | table | 37
+0E02B..0E04F | table | 37
 0E0C8..0E0CF | alignment | 8
 0E187..0E18F | alignment | 9
 0E1F1..0E1F3 | alignment | 3
@@ -279,9 +282,12 @@ The table category consists of the following already-established data islands:
 - `08E20..08E3B`: address table used by the asset dispatcher.
 - `091BC..091D7`: address table.
 - `09EA3..09EA6`: preserved four-byte prefix of the batch-12 lookup data island; `09EA7` and following bytes were subsequently verified as code and are not classified here.
+- `0DF8E..0DFB2` and `0E02B..0E04F`: two independently embedded 37-byte radix digit alphabets used by the conversion helpers.
+
+`0CC1E..0CC95` is the 120-byte embedded Watcom run-time identification text/data block skipped by the encoded `CC1C` entry jump.
 
 `noncode` rows are arithmetic-closed batch exclusions whose exact non-code status is proven but whose narrower padding-vs-data subtype is not explicit in preserved evidence. All `alignment` rows are NOP/LEA/MOV-self padding or explicitly documented zero/data-alignment bytes.
 
 ## Accounting rule
 
-Do not add these 727 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 310 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
+Do not add these 921 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 116 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.

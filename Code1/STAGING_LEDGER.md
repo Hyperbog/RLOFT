@@ -192,3 +192,12 @@ Historical commit `e825575221e2c2af5489201e18bfab21dc7f8c9d` introduced the stru
 ## 2026-10-02 residual classification pass 37
 
 Two preserved integration folds close six additional residual bytes by exact arithmetic without assuming an alignment subtype. Batch 12's `6060..6183` span contains **292 bytes**; its three exact translated intervals `6060..60B1` (**82**), `60B4..6100` (**77**), and `6104..6183` (**128**) total **287**, proving `60B2..60B3` and `6101..6103` (**5 bytes**) were outside translated instructions. Batch 17's contiguous sprite family `A8F4..AE0A` contains **1,303 bytes**; its exact translated ranges `A8F4..AA1F` (**300**), `AA20..AC0E` (**495**), and `AC10..AE0A` (**507**) total **1,302**, proving `AC0F` is the sole excluded byte. All six are classified conservatively as generic non-code because the preserved repository evidence does not uniquely recover a padding-vs-data subtype. Classified non-code rises from **721** to **727 bytes** and unresolved residual falls from **316** to **310 bytes**. Verified translated code remains **69,365 / 70,402 = 98.53%**; no translated coverage is added or double-counted.
+
+
+## 2026-10-02 residual classification pass 38
+
+Historical integration evidence closes **194 additional non-code bytes** without promoting any unverified instructions. Commit `bcb06766a868cec3bf7c8b93eda2faa128088046` records the encoded `CC1C` short jump to `CC96` and explicitly identifies `CC1E..CC95` as **120 bytes of embedded Watcom run-time text/data**, not executable instructions. This exactly reconciles the startup inventory: `CC1C..CD96` is 379 bytes total, partitioned into **259 translated bytes** (`CC1C..CC1D` plus `CC96..CD96`) and **120 data bytes**.
+
+Commit `c6fa0ed1974736c6c124b3f600f2b7d36fc2ed94` explicitly identifies `DF8E..DFB2` and `E02B..E04F` as two identical embedded radix digit alphabets, **37 bytes each**. Together with the already-classified `DE6F` and `DEA1..DEA6`, these **74 data bytes** close the full `DDE0..E0C7` inventory exactly: **663 translated + 81 non-code = 744 bytes**.
+
+Classified residual therefore rises from **727** to **921 bytes** (479 alignment/zero/padding, 196 table/lookup data, 246 generic proven non-code), leaving **116 bytes unresolved**. Verified translated code remains **69,365 / 70,402 = 98.53%** and the badge remains red.
