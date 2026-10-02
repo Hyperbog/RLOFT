@@ -6,11 +6,11 @@ It does **not** change `kVerifiedTranslatedBytes`. The conservative denominator 
 
 - verified translated code: **69,365 bytes**
 - conservative residual: **1,037 bytes**
-- explicitly classified residual below: **713 bytes**
+- explicitly classified residual below: **721 bytes**
   - embedded tables: **122 bytes**
   - alignment/zero/padding: **479 bytes**
-  - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **112 bytes**
-- residual still requiring classification: **324 bytes**
+  - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **120 bytes**
+- residual still requiring classification: **316 bytes**
 
 The `static_assert` interval audit is diagnostic only. Many verified regions are represented without one assert per machine range, so the 5,673-byte assert-gap total is **not** the untranslated-code total.
 
@@ -244,6 +244,10 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 0CBD1..0CBD3 | alignment | 3
 0CEE9..0CEEF | alignment | 7
 0CF41..0CF43 | alignment | 3
+0D0B1..0D0B3 | noncode | 3
+0D109..0D10B | noncode | 3
+0D12F..0D12F | noncode | 1
+0D153..0D153 | noncode | 1
 0D179..0D17B | alignment | 3
 0D27D..0D27F | alignment | 3
 0DA45..0DA47 | alignment | 3

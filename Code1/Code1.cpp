@@ -966,14 +966,24 @@ void function_064c(Machine&m,EarlyUiBoundaries&b,EarlyGameBoundaries&io)noexcept
 struct MouseRegs{u16 ax=0,bx=0,cx=0,dx=0;}; struct MouseSnapshot{u16 buttons;u16 reserved1;s16 x_half;u16 y;}; static_assert(sizeof(MouseSnapshot)==8);
 struct NativeBoundaries{bool(*call_84d0)()=nullptr;void(*mouse_int33)(MouseRegs&)=nullptr;void(*call_8960)()=nullptr;u32(*call_82a4)()=nullptr;void(*call_82ec)()=nullptr;void(*call_8304)()=nullptr;void(*call_82c0)()=nullptr;};
 void function_d08c(NativeBoundaries&b,u32 a,u32 c)noexcept{if(!b.call_84d0||!b.call_84d0())return;MouseRegs r{};r.ax=4;r.dx=static_cast<u16>(a);r.cx=static_cast<u16>(c<<1);if(b.mouse_int33)b.mouse_int33(r);}
+static_assert(0xD0B1u-0xD08Cu==37u);
+// D0B1..D0B3: excluded by the original 274-byte structured-mouse fold; exact non-code subtype is not preserved.
 [[nodiscard]]MouseSnapshot*function_d0b4(NativeBoundaries&b,u8*d)noexcept{auto*out=reinterpret_cast<MouseSnapshot*>(d+0x8a60);if(!b.call_84d0||!b.call_84d0())return out;MouseRegs r{};r.ax=3;if(b.mouse_int33)b.mouse_int33(r);out->buttons=r.bx;out->y=r.dx;out->x_half=static_cast<s16>(static_cast<s16>(r.cx)>>1);return out;}
-void function_d10c(NativeBoundaries&b,u32 a,u32 c)noexcept{if(!b.call_84d0||!b.call_84d0())return;MouseRegs r{};r.ax=7;r.cx=static_cast<u16>(a);r.dx=static_cast<u16>(c);if(b.mouse_int33)b.mouse_int33(r);} void function_d130(NativeBoundaries&b,u32 a,u32 c)noexcept{if(!b.call_84d0||!b.call_84d0())return;MouseRegs r{};r.ax=8;r.cx=static_cast<u16>(a);r.dx=static_cast<u16>(c);if(b.mouse_int33)b.mouse_int33(r);}
+static_assert(0xD109u-0xD0B4u==85u);
+// D109..D10B: excluded by the original 274-byte structured-mouse fold; exact non-code subtype is not preserved.
+void function_d10c(NativeBoundaries&b,u32 a,u32 c)noexcept{if(!b.call_84d0||!b.call_84d0())return;MouseRegs r{};r.ax=7;r.cx=static_cast<u16>(a);r.dx=static_cast<u16>(c);if(b.mouse_int33)b.mouse_int33(r);}
+static_assert(0xD12Fu-0xD10Cu==35u);
+// D12F: excluded by the original 274-byte structured-mouse fold; exact non-code subtype is not preserved.
+void function_d130(NativeBoundaries&b,u32 a,u32 c)noexcept{if(!b.call_84d0||!b.call_84d0())return;MouseRegs r{};r.ax=8;r.cx=static_cast<u16>(a);r.dx=static_cast<u16>(c);if(b.mouse_int33)b.mouse_int33(r);}
+static_assert(0xD153u-0xD130u==35u);
+// D153: excluded by the original 274-byte structured-mouse fold; exact non-code subtype is not preserved.
 // D154..D178: drain mouse snapshots while the first returned word remains nonzero.
 void function_d154(Machine&m,NativeBoundaries&b)noexcept{if(!b.call_84d0||!b.call_84d0())return;for(;;){MouseSnapshot*p=function_d0b4(b,m.data);if(b.call_8960)b.call_8960();if(p->buttons==0)return;}}
 // D179..D17B is LEA EAX,[EAX+0] alignment padding and is intentionally not translated.
 // D17C..D1E7: exact repeated 82A4/D0B4/8960 polling sequence; D1B6 calls 82A4 again.
 void function_d17c(Machine&m,NativeBoundaries&b)noexcept{if(b.call_84d0&&b.call_84d0()){for(;;){MouseSnapshot*p=function_d0b4(b,m.data);if(b.call_8960)b.call_8960();if(p->buttons==0)break;}for(;;){const u32 ready=b.call_82a4?b.call_82a4():0;if(ready!=0)break;MouseSnapshot*p=function_d0b4(b,m.data);if(p->buttons!=0)break;if(b.call_8960)b.call_8960();}const u32 ready=b.call_82a4?b.call_82a4():0;if(ready!=0){if(b.call_82ec)b.call_82ec();if(b.call_8304)b.call_8304();}else{for(;;){if(b.call_8960)b.call_8960();MouseSnapshot*p=function_d0b4(b,m.data);if(p->buttons==0)break;}}}else if(b.call_82c0)b.call_82c0();}
 void*function_d1e8(void*dst,const void*src,u32 n)noexcept{return std::memmove(dst,src,static_cast<std::size_t>(n));}
+static_assert(0xD23Au-0xD1E8u==82u);
 
 
 // Batch 12: directly reconciled CODE.1 runtime/startup/asset-dispatch regions.

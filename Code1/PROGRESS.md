@@ -215,3 +215,8 @@ Verified translated code remains **69,365 / 70,402 = 98.53%**. The final batch-0
 ## 2026-10-02 residual classification pass 35
 
 Preserved `RuntimeGapE0D0.staging.cpp` evidence explicitly identifies `E0C8..E0CF` as **eight zero bytes**. They are now classified as alignment/zero-fill residual, increasing classified non-code from **705** to **713 bytes** and reducing unresolved residual from **332** to **324 bytes**. Verified translated code remains **69,365 / 70,402 = 98.53%**. The same audit confirmed that the three 19-byte 7240 wrappers at `E174..E186`, `E1F4..E206`, and `E26C..E27E` were already integrated and historically counted (+57), so no duplicate coverage credit was added; their inventory row is restored for clarity.
+
+
+## 2026-10-02 residual classification pass 36
+
+Historical commit `e825575221e2c2af5489201e18bfab21dc7f8c9d` introduced the structured mouse/copy fold with five explicit translated ranges: `D08C..D0B0` (**37**), `D0B4..D108` (**85**), `D10C..D12E` (**35**), `D130..D152` (**35**), and `D1E8..D239` (**82**), totaling the preserved **274 translated bytes**. The complementary bytes inside `D08C..D153` are therefore exactly `D0B1..D0B3`, `D109..D10B`, `D12F`, and `D153` (**8 bytes**). Because preserved evidence does not identify their narrower padding/data subtype, they are conservatively classified as generic non-code. Exact `static_assert` boundaries are now restored beside the existing C++ functions. Classified non-code rises from **713** to **721 bytes** and unresolved residual falls from **324** to **316 bytes**. Verified translated code remains **69,365 / 70,402 = 98.53%**; no already-counted code is credited twice.
