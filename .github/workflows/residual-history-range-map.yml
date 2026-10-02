@@ -1,4 +1,4 @@
-name: CODE.1 historical reconstruction range map
+name: CODE.1 normalized residual history scan
 on:
   push:
     branches: [code1-decompilation]
@@ -12,15 +12,17 @@ jobs:
         with:
           ref: code1-decompilation
           fetch-depth: 0
-      - name: Build historical CODE1 range map
+      - name: Scan normalized residual addresses in historical CODE1 text
         run: |
-          python3 - <<'PY' > code1-historical-range-map.txt
+          python3 - <<'PY' > code1-normalized-residual-history.txt
           import subprocess,re,zlib,base64
           targets=[0x000EB,0x04977,0x087C2,0x08E1F,0x0CC19,0x0D8CE,0x0DDD8,0x0E3B3,0x0F742,0x0F7B3,0x0F8BD,0x0FC97]
           wrap=re.compile(r"\s*import zlib,base64\s*\nexec\(zlib\.decompress\(base64\.b85decode\('(.+)'\)\)\)\s*",re.S)
-          range_re=re.compile(r'(?:CODE\.1\s*)?(?:0x)?([0-9A-Fa-f]{3,5})\.\.(?:0x)?([0-9A-Fa-f]{3,5})')
-          seen=set(); rows=[]
+          hex_token=re.compile(r'(?<![0-9A-Fa-f])0[xX]0*([0-9A-Fa-f]{1,5})(?![0-9A-Fa-f])')
+          bare_token=re.compile(r'(?<![0-9A-Fa-f])([0-9A-Fa-f]{4,5})(?![0-9A-Fa-f])')
+          range_re=re.compile(r'(?<![0-9A-Fa-f])(?:0[xX])?0*([0-9A-Fa-f]{1,5})\.\.(?:0[xX])?0*([0-9A-Fa-f]{1,5})(?![0-9A-Fa-f])')
           objs=subprocess.check_output(['git','rev-list','--objects','--all','--','CODE1'],text=True,errors='replace').splitlines()
+          seen=set(); findings={t:[] for t in targets}; keys={t:set() for t in targets}
           for rec in objs:
               sha,*rest=rec.split(' ',1); path=rest[0] if rest else ''
               if sha in seen or not path: continue
@@ -36,32 +38,36 @@ jobs:
               if m:
                   try:s=zlib.decompress(base64.b85decode(m.group(1))).decode('utf-8','replace')
                   except Exception: pass
-              for lineno,line in enumerate(s.splitlines(),1):
+              lines=s.splitlines()
+              for i,line in enumerate(lines):
+                  vals=set()
+                  for m in hex_token.finditer(line): vals.add(int(m.group(1),16))
+                  # bare addresses only when token contains A-F, avoiding ordinary decimal literals
+                  for m in bare_token.finditer(line):
+                      tok=m.group(1)
+                      if any(c in 'ABCDEFabcdef' for c in tok): vals.add(int(tok,16))
+                  spans=[]
                   for m in range_re.finditer(line):
-                      a,b=int(m.group(1),16),int(m.group(2),16)
-                      if a>b or b>0x11301: continue
-                      rows.append((a,b,path,sha,lineno,line.strip()))
-          # deduplicate identical semantic lines across duplicate historical copies
-          uniq=[]; keys=set()
-          for r in rows:
-              key=(r[0],r[1],r[2],r[5])
-              if key in keys: continue
-              keys.add(key); uniq.append(r)
+                      try:a,b=int(m.group(1),16),int(m.group(2),16)
+                      except ValueError:continue
+                      if a<=b<=0x11301: spans.append((a,b))
+                  for t in targets:
+                      if t not in vals and not any(a<=t<=b for a,b in spans): continue
+                      ctx='\n'.join(lines[max(0,i-4):min(len(lines),i+5)]).strip()
+                      key=(path,ctx)
+                      if key in keys[t]: continue
+                      keys[t].add(key); findings[t].append((path,sha,i+1,ctx))
           for t in targets:
               print(f'\n===== {t:05X} =====')
-              near=[r for r in uniq if r[0] <= t+0x40 and r[1] >= max(0,t-0x40)]
-              near.sort(key=lambda r:(0 if (r[0]<=t<=r[1]) else 1, min(abs(t-r[0]),abs(t-r[1])), r[0],r[1],r[2]))
-              for a,b,path,sha,lineno,line in near[:120]:
-                  print(f'{a:05X}..{b:05X} | {path}:{lineno} | {sha} | {line}')
-              prev=[r for r in uniq if r[1] < t]
-              nxt=[r for r in uniq if r[0] > t]
-              if prev:
-                  r=max(prev,key=lambda x:x[1]); print(f'PREV_NEAREST {r[0]:05X}..{r[1]:05X} | {r[2]}:{r[4]} | {r[3]} | {r[5]}')
-              if nxt:
-                  r=min(nxt,key=lambda x:x[0]); print(f'NEXT_NEAREST {r[0]:05X}..{r[1]:05X} | {r[2]}:{r[4]} | {r[3]} | {r[5]}')
+              vals=findings[t]
+              vals.sort(key=lambda v:(v[0],v[2],v[1]))
+              for path,sha,lineno,ctx in vals:
+                  print(f'BLOB {sha} PATH {path}:{lineno}')
+                  print(ctx); print('---')
+              print('UNIQUE_CONTEXTS',len(vals))
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: code1-historical-range-map
-          path: code1-historical-range-map.txt
+          name: code1-normalized-residual-history
+          path: code1-normalized-residual-history.txt
           retention-days: 7
