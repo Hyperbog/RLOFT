@@ -1,4 +1,4 @@
-name: Integrate CODE.1 mid asset batch 11
+name: Integrate CODE.1 runtime/startup batch 12
 on:
   push:
     branches: [code1-decompilation]
@@ -13,11 +13,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - run: python3 Code1/integrate_mid_asset_batch_11.py
+      - run: python3 Code1/integrate_runtime_startup_batch_12.py
       - run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
       - run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add Code1/Code1.cpp Code1/PROGRESS.md Code1/STAGING_LEDGER.md Code1/DECOMPILATION_CONTINUITY.md Code1/integrate_mid_asset_batch_11.py
-          git commit -m "Integrate CODE.1 mid asset batch 11"
+          git add Code1/Code1.cpp Code1/PROGRESS.md Code1/STAGING_LEDGER.md Code1/DECOMPILATION_CONTINUITY.md Code1/integrate_runtime_startup_batch_12.py
+          git commit -m "Integrate CODE.1 runtime startup batch 12"
           git push origin code1-decompilation
