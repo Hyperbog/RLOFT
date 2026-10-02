@@ -1909,7 +1909,7 @@ void function_bd84(Machine&m,LowGraphics13Boundary&b,u32 value)noexcept{if(load_
 [[nodiscard]]u32 function_be34(Machine&m)noexcept{return load_le32(dgroup_ptr(m,dgroup(0x2c3cu)));}static_assert(0xBE40u-0xBE34u==12u);
 void function_be40(Machine&m,LowGraphics13Boundary&b,u32 enabled)noexcept{*dgroup_ptr(m,dgroup(0x2c44u))=static_cast<u8>(enabled);if(load_le32(dgroup_ptr(m,dgroup(0x2b84u)))!=0u&&static_cast<u8>(enabled)==0u)function_ba98(m,b);}static_assert(0xBE61u-0xBE40u==33u);
 
-constexpr u32 kVerifiedTranslatedBytes=69652u;
+constexpr u32 kVerifiedTranslatedBytes=69365u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 
 

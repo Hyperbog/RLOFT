@@ -313,3 +313,8 @@ Small-checkpoint policy applied. Batch-08 preserved function boundaries plus its
 ## 2026-10-02 residual pass 29 checkpoint
 
 Batch-08 alignment checkpoint 2: `63B7` and `63D5..63D7` (**4 bytes**) are classified from preserved exact function boundaries and the batch's `alignment excluded` note. Classified residual is now **686 bytes**; **64 bytes remain unresolved**. Verified translated code remains **69,652 bytes (98.93%)**.
+
+
+## 2026-10-02 accounting pass 30 checkpoint
+
+Batch-08 accounting was re-audited from `integrate_mid_runtime_batch_08.py`. Its 47 exact asserted translated intervals total **3,384 bytes**, not the **3,671** historically added to the progress scalar. The integrator explicitly leaves `6060..6183` uncounted, so the **287-byte difference is an overcount**, not omitted batch-08 code. Batches 02-07 reconcile exactly to their historical deltas; batches 09-12 have independent exact reconciliations. Current verified translated coverage is corrected to **69,365 / 70,402 = 98.53%**. The conservative residual is now **1,037 bytes**; with **686 bytes classified non-code**, **351 bytes remain unresolved**. No translation semantics changed in this accounting-only pass.

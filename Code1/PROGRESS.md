@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-98.93%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-98.53%25-red)
 
-**Verified conversion:** 98.93%  
-**Remaining:** 1.07%  
+**Verified conversion:** 98.53%  
+**Remaining:** 1.47%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **69,652**.  
+Current verified translated bytes: **69,365**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **98.9347%**, displayed as **98.93%**.
+Raw coverage: **98.5270%**, displayed as **98.53%**.
 
 - Mid UI/resource/font/input/vector/render routines `71C8..729F`, selected `767C..80B9`, `8270..8335`, `8398..848F`, `84A0..87C1` with alignment/data/interrupt islands excluded: **3,941 bytes**.
 - Mid asset/input lifecycle routines selected from `87C4..8E1E`, `91D8..95A7`, and `95BC..9BD6` with address-table/alignment islands excluded: **4,116 bytes**.
@@ -42,7 +42,7 @@ Raw coverage: **98.9347%**, displayed as **98.93%**.
 - Actor normalization/render/choice routines `1F24..2196`, `24D4..266B`, `28E4..2990`, `2994..2A60`: **1,413 bytes**.
 - Actor stat/presentation routines `38A4..3C54`, `3C58..40FA`, `40FC..44E0`, `44E4..451E`, `4520..45EE`, `45FC..4976`: **4,286 bytes**.
 - Post-generation/palette/resource/cursor/tree routines `4978..4A09`, `4A0C..4AFF`, `4B00..4B16`, `4B18..4C7E`, `4C80..4CAF`, `4CB0..4D50`, `4D54..4DC3`, `4DC4..4EED`, `4EF0..5013`, `5014..5089`, `508C..50BF`, `50C0..522E`, `5230..5279`, `527C..52A9`, `52AC..538B`, `538C..53B0`, `53B4..53E1`, `53E4..5450`, `5454..550A`, `550C..55DA`, `55DC..56DB`, `56DC..577C`, `5780..57DA`, `57DC..5878`, `5880..59AB`: **4,111 bytes**.
-- Palette/tree, actor-table, RNG/DOS/display wrapper routines `59AC..6053`, `6184..6653`, and clipped display wrappers `6654..6851` (alignment excluded): **3,671 bytes**.
+- Palette/tree, actor-table, RNG/DOS/display wrapper routines `59AC..6053`, `6184..6653`, and clipped display wrappers `6654..6851` (alignment excluded): **3,384 bytes**.
 - Startup/recovery regions through `CD96`: **259 bytes**.
 - Structured mouse-facing routines `D08C..D153`, verified mouse/event pump `D154..D1E7`, plus overlap-safe copy `D1E8..D239`: **419 bytes**.
 - Attribute/status wrapper `D23A..D27C`: **67 bytes**.
@@ -85,7 +85,7 @@ Raw coverage: **98.9347%**, displayed as **98.93%**.
 - Runtime heap-extension driver `10AA9..10C45`: **413 bytes**.
 - Runtime tail helpers `10C46..10C6C`: **39 bytes**.
 
-Total integrated verified translated bytes: **69,652**.
+Total integrated verified translated bytes: **69,365**.
 
 `DA45..DA47` is three zero bytes. `EDD3..EDDF` is **13 zero bytes**. Both are classified as data/alignment and are not counted as translated code.
 
@@ -184,3 +184,8 @@ Verified translated code remains **69,652 / 70,402 = 98.93%**. The first small b
 ## 2026-10-02 residual classification pass 29
 
 Verified translated code remains **69,652 / 70,402 = 98.93%**. The second small batch-08 inter-function cluster is classified: `63B7` and `63D5..63D7` are alignment bytes between exact asserted endpoints and the next aligned entries. This adds **4 classified bytes**. The ledger now classifies **686 bytes**, leaving **64 bytes unresolved**.
+
+
+## 2026-10-02 accounting correction pass 30
+
+A preserved-integrator audit found a historical batch-08 scalar overcount. `integrate_mid_runtime_batch_08.py` contains **47 exact non-overlapping translated ranges totaling 3,384 bytes**, while its progress update added **3,671 bytes**. Its own checkpoint text also states that `6060..6183` remained deliberately uncounted, so no hidden translated range justifies the extra 287 bytes. Batches 02 through 07 reconcile exactly to their recorded increments, and batches 09 through 12 were separately reconciled in the residual audit. The verified counter is therefore corrected by **-287**, from **69,652** to **69,365 / 70,402 = 98.5270% (98.53%)**. This pass changes accounting only; no C++ translation semantics or residual classifications are altered.

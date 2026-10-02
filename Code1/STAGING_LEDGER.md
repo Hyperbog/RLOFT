@@ -74,7 +74,7 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 
 - Integrated directly from authoritative disassembly: post-generation/palette/resource/cursor/tree span `4978..59AB` with verified code subranges totaling **4,111 bytes**. Alignment/data excluded: `4A0A..4A0B`, `4B17`, `4C7F`, `4D51..4D53`, `4EEE..4EEF`, `508A..508B`, `522F`, `527A..527B`, `52AA..52AB`, `53B1..53B3`, `53E2..53E3`, `5451..5453`, `550B`, `55DB`, `577D..577F`, `57DB`, and seven zero bytes `5879..587F`. Active staging unchanged.
 
-- Batch 08 integrated **3,671 bytes**: `59AC..6053`, `6184..6653`, `6654..6851`, excluding documented alignment. `6060..6183` remains unresolved hardware/interrupt machinery and is not counted.
+- Batch 08 contains **3,384 verified translated bytes** across `59AC..6053`, `6184..6653`, `6654..6851`, excluding documented alignment. The earlier 3,671 scalar was corrected in accounting pass 30. `6060..6183` remains unresolved hardware/interrupt machinery and is not counted.
 
 ## Batch 09 fold
 `6854..71C7` selected verified graphics/DPMI wrappers and `72A0..7669` selected byte-copy/buffered-stream helpers are integrated/countable. `71C8..729F` remains unresolved/unintegrated; alignment/data islands remain excluded.
@@ -158,3 +158,7 @@ Small batch-08 checkpoint: classified `631F`, `633B`, `6357`, and `63A2..63A3` a
 
 ## Residual pass 29
 Small batch-08 checkpoint 2: classified `63B7` and `63D5..63D7` as alignment. `RESIDUAL_LEDGER.md` now holds 686 classified bytes; 64 conservative residual bytes remain. Verified translated code stays 69,652 and active staging remains zero.
+
+
+## Accounting pass 30
+Batch-08 exact-range reconciliation corrected the global verified counter by **-287 bytes**. Verified translated code is **69,365**; classified residual remains **686 bytes**; corrected conservative unresolved residual is **351 bytes**. Active staging remains zero.
