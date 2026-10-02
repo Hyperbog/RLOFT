@@ -12,31 +12,42 @@ jobs:
         with:
           ref: code1-decompilation
           fetch-depth: 0
-      - name: Trace large residual boundaries through commit diffs
+      - name: Trace final residual boundaries through commit diffs
         run: |
-          python3 - <<'PY'
+          python3 - <<'PY' > residual-history-audit.txt
           import subprocess,re
           groups=[
-            ('6054..605F','6054|6060|60B2|6184'),
-            ('9BD7..9BDF','9BD7|9BE0'),
-            ('9C98..9C9F','9C98|9CA0'),
-            ('BE61..BE6F','BE61|BE70'),
-            ('DDD8..DDDF','DDD8|DDE0'),
-            ('F742..F74F','F742|F750'),
-            ('F7B3..F7B7','F7B3|F7B8'),
-            ('F8BD..F8C3','F8BD|F8C4')]
+            ('000EB..000EB','000EB|000EC'),('01462..01463','01462|01464'),
+            ('04977..04977','04977|04978'),('06054..0605F','06054|06060|060B2|06184'),
+            ('087C2..087C3','087C2|087C4'),('08E1F..08E1F','08E1F|08E20'),
+            ('09BD7..09BDF','09BD7|09BE0'),('09C98..09C9F','09C98|09CA0'),
+            ('09E89..09E8B','09E89|09E8C'),('09EAE..09EAF','09EAE|09EB0'),
+            ('0A00E..0A00F','0A00E|0A010'),('0A059..0A05B','0A059|0A05C'),
+            ('0A21A..0A21B','0A21A|0A21C'),('0A5C6..0A5C7','0A5C6|0A5C8'),
+            ('0A675..0A677','0A675|0A678'),('0AE0B..0AE0B','0AE0B|0AE0C'),
+            ('0BE61..0BE6F','0BE61|0BE70'),('0CC19..0CC1B','0CC19|0CC1C'),
+            ('0D8CE..0D8CF','0D8CE|0D8D0'),('0DDD8..0DDDF','0DDD8|0DDE0'),
+            ('0E3B3..0E3B3','0E3B3|0E3B4'),('0F742..0F74F','0F742|0F750'),
+            ('0F7B3..0F7B7','0F7B3|0F7B8'),('0F8BD..0F8C3','0F8BD|0F8C4'),
+            ('0FC97..0FC97','0FC97|0FC98')]
           for label,pat in groups:
             print('\n===== '+label+' =====')
             cmd=['git','log','--all','--date-order','--format=COMMIT %H %s','-p','-G',pat,'--','Code1']
             try:s=subprocess.check_output(cmd,text=True,errors='replace')
             except subprocess.CalledProcessError as e:s=e.output or ''
-            # Keep only hunks containing a boundary token plus nearby lines.
-            lines=s.splitlines(); out=[]
+            lines=s.splitlines(); out=[]; seen=set()
             for i,line in enumerate(lines):
               if re.search(pat,line,re.I):
-                lo=max(0,i-6);hi=min(len(lines),i+10)
+                lo=max(0,i-10);hi=min(len(lines),i+18)
                 chunk='\n'.join(lines[lo:hi])
-                if chunk not in out: out.append(chunk)
-            for chunk in out[:18]: print(chunk+'\n---')
+                if chunk not in seen:
+                  seen.add(chunk); out.append(chunk)
+            for chunk in out[:30]: print(chunk+'\n---')
             print('MATCHING_CONTEXTS',len(out))
           PY
+      - name: Upload residual history audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: code1-residual-history-audit
+          path: residual-history-audit.txt
+          retention-days: 7
