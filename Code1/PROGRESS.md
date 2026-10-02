@@ -1,22 +1,23 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-73.60%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-79.47%25-red)
 
-**Verified conversion:** 73.60%  
-**Remaining:** 26.40%  
+**Verified conversion:** 79.47%  
+**Remaining:** 20.53%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **51,819**.  
+Current verified translated bytes: **55,948**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **73.6044%**, displayed as **73.60%**.
+Raw coverage: **79.4693%**, displayed as **79.47%**.
 
 - Mid UI/resource/font/input/vector/render routines `71C8..729F`, selected `767C..80B9`, `8270..8335`, `8398..848F`, `84A0..87C1` with alignment/data/interrupt islands excluded: **3,941 bytes**.
 - Mid asset/input lifecycle routines selected from `87C4..8E1E`, `91D8..95A7`, and `95BC..9BD6` with address-table/alignment islands excluded: **4,116 bytes**.
 - Batch 12 asset dispatch/startup/interrupt/VGA/image helpers: `6060..6183`, `8E3C..91BB`, `9BE0..A058` selected code, `A558..A6EF`, startup `CD97..D08B` selected code, `E2C3..E35F`, `FEFC..FFD3`: **3,767 bytes**.
+- Batch 13 low graphics/resource/audio state routines selected from `AE0C..BE60`, excluding eleven zero bytes and documented alignment islands: **4,129 bytes**.
 
 ## Immutable source identity
 

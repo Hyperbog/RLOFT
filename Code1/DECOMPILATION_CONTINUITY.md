@@ -227,3 +227,7 @@ Verified total is now 48,052 / 70,402 bytes = 68.25%. Batch 11 integrated 4,116 
 
 ## Batch 12 checkpoint
 Verified total **51,819 / 70,402 = 73.60%**. Batch 12 added 3,767 directly reconciled bytes spanning VGA state save/restore and interrupt wrapper (`6060..6183`), the seven-way asset dispatcher (`8E3C..91BB`), selected video/image helpers (`9BE0..A058`, `A558..A6EF`), startup/register bridge (`CD97..CE8A`, `CEC0..CEE8`, `CEF0..D08B`, `FEFC..FFD3`), and the INT24 trampoline (`E2C3..E35F`). `CE8B..CEBF` remains staged; do not count it.
+
+
+## Batch 13 checkpoint
+Verified total **55,948 / 70,402 = 79.47%**. Added 4,129 instruction-accounted bytes from `AE0C..BE60` excluding explicit zero/alignment islands. Preserve AE5C register-input ESI/EDX semantics, AEA8 register-result address/plane calculation, AEDC EAX-preserving side effect, AF34/AF4C retrace loops, and the resource/audio globals 2B84/2B90/2B98/2B9C/2C08/2C28/2C30/2C34/2C38/2C3C/2C40/2C44. CE8B..CEBF remains the only active startup staging.

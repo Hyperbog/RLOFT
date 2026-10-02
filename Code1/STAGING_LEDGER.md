@@ -89,3 +89,6 @@ Integrated and counted 4,116 bytes from selected `87C4..8E1E`, `91D8..95A7`, and
 
 ## Batch 12 integration
 Re-disassembled and integrated **3,767 bytes**: `6060..6183`, `8E3C..91BB`, selected `9BE0..A058`, `A558..A6EF`, startup `CD97..CE8A`, `CEC0..CEE8`, `CEF0..D08B`, `E2C3..E35F`, and `FEFC..FFD3`. `CE8B..CEBF` remains the only active startup staging range (53 bytes). Address table `8E20..8E3B` remains data.
+
+## Batch 13 integration
+Integrated **4,129 bytes** across instruction-bounded low graphics and resource/audio state routines `AE0C..BE60`. Excluded zero/data/alignment islands: `AE5A..AE5B`, `AEA6..AEA7`, `AF05..AF07`, `AF4B`, `AF63`, `B055..B05F`, `B0F6..B0F7`, `B4D2..B4D3`, `B51B`, `B596..B597`, `B5E1..B5E3`, `B6BE..B6BF`, `B6EB`, `B75B`, `B76B`, `B821..B823`, `B8F3`, `BA01..BA03`, `BA97`, `BBE9..BBEB`, `BC1A..BC1B`. Active staging remains the 53-byte `CE8B..CEBF` exit path only.
