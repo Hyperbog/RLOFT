@@ -1908,7 +1908,7 @@ void function_bd84(Machine&m,LowGraphics13Boundary&b,u32 value)noexcept{if(load_
 [[nodiscard]]u32 function_be34(Machine&m)noexcept{return load_le32(dgroup_ptr(m,dgroup(0x2c3cu)));}static_assert(0xBE40u-0xBE34u==12u);
 void function_be40(Machine&m,LowGraphics13Boundary&b,u32 enabled)noexcept{*dgroup_ptr(m,dgroup(0x2c44u))=static_cast<u8>(enabled);if(load_le32(dgroup_ptr(m,dgroup(0x2b84u)))!=0u&&static_cast<u8>(enabled)==0u)function_ba98(m,b);}static_assert(0xBE61u-0xBE40u==33u);
 
-constexpr u32 kVerifiedTranslatedBytes=66622u;
+constexpr u32 kVerifiedTranslatedBytes=68370u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 
 
@@ -2120,5 +2120,42 @@ struct StartupExit16Boundary{u32(*open_3d01)(u32)=nullptr;u8(*read8)(u32)=nullpt
 [[noreturn]] void function_ce8b_exit(StartupExit16Boundary&b,u32 exit_code){if(b.call_fd2b)b.call_fd2b(exit_code);if(b.terminate_4c)b.terminate_4c(static_cast<u8>(exit_code));for(;;){}}
 [[noreturn]] void function_ce8e_exit(StartupExit16Boundary&b,u32 message,u32 exit_code){const u32 h=b.open_3d01?b.open_3d01(0xcc92u):0u;u32 p=message;while((b.read8?b.read8(p):0u)!=0u)++p;if(b.write_40)b.write_40(h,message,p-message);function_ce8b_exit(b,exit_code);}
 static_assert(0xCEC0u-0xCE8Bu==53u);
+
+
+
+// Batch 17: exact line rasterization plus translated/clipped planar sprite families.
+static u8 b17_rol1(u8 v)noexcept{return static_cast<u8>((v<<1)|(v>>7));}
+static void b17_mask(LowGraphics13Boundary&b,u8 mask)noexcept{if(b.out16)b.out16(0x3c4u,static_cast<u16>(0x0002u|(static_cast<u16>(mask)<<8)));}
+static void b17_put(LowGraphics13Boundary&b,u32 addr,u8 value)noexcept{(void)lg13r8(b,addr);lg13w8(b,addr,value);}
+
+void function_a05c(Machine&m,LowGraphics13Boundary&b,s32 a0,s32 b0,s32 a1,s32 b1,u32 color)noexcept{
+ if(b.out16)b.out16(0x3ceu,static_cast<u16>(0x0003u|(static_cast<u16>(*dgroup_ptr(m,dgroup(0x2b28u)))<<8)));
+ u32 pitch=load_le32(dgroup_ptr(m,dgroup(0x2b41u)));s32 db=b1-b0;const u8 c=static_cast<u8>(color);
+ if(db==0){s32 lo=a0,hi=a1;if(hi<lo){const s32 t=lo;lo=hi;hi=t;}const PlanarAddress13 p=function_aea8(m,static_cast<u32>(lo),static_cast<u32>(b0));u32 addr=p.ebx;b17_mask(b,static_cast<u8>(1u<<(p.ecx&3u)));for(s32 n=hi-lo+1;n>0;--n){b17_put(b,addr,c);addr+=pitch;}if(b.out16)b.out16(0x3ceu,0x0003u);return;}
+ if(db<0){db=-db;{const s32 t=b0;b0=b1;b1=t;}{const s32 t=a0;a0=a1;a1=t;}}s32 da=a1-a0;if(da==0){const PlanarAddress13 p=function_aea8(m,static_cast<u32>(a0),static_cast<u32>(b0));u32 addr=p.ebx;u8 mask=static_cast<u8>(1u<<(p.ecx&3u));for(s32 n=db+1;n>0;--n){b17_mask(b,mask);b17_put(b,addr,c);const bool carry=(mask&0x80u)!=0u;mask=b17_rol1(mask);if(carry)++addr;}if(b.out16)b.out16(0x3ceu,0x0003u);return;}
+ if(da<0){da=-da;pitch=0u-pitch;}const bool a_major=da>db;const s32 major=a_major?da:db,minor=a_major?db:da;const s32 twice_minor=minor*2;const s32 step_diag=twice_minor-major*2; s32 err=twice_minor-major;
+ const PlanarAddress13 p=function_aea8(m,static_cast<u32>(a0),static_cast<u32>(b0));u32 addr=p.ebx;u8 mask=static_cast<u8>(1u<<(p.ecx&3u));b17_mask(b,mask);
+ for(s32 n=major+1;n>0;--n){b17_put(b,addr,c);if(a_major){addr+=pitch;if(err<0)err+=twice_minor;else{err+=step_diag;const bool carry=(mask&0x80u)!=0u;mask=b17_rol1(mask);if(carry)++addr;b17_mask(b,mask);}}else{const bool carry=(mask&0x80u)!=0u;mask=b17_rol1(mask);if(carry)++addr;b17_mask(b,mask);if(err<0)err+=twice_minor;else{err+=step_diag;addr+=pitch;}}}
+ if(b.out16)b.out16(0x3ceu,0x0003u);
+}
+static_assert(0xA21Au-0xA05Cu==446u);
+
+static void b17_table_sprite(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 image,u32 table)noexcept{
+ const PlanarAddress13 p=function_aea8(m,y,x);u32 dst0=p.ebx;u8 mask=static_cast<u8>(0x11u<<(p.ecx&3u));const u32 width=lg13r16(b,image+4u),rows=lg13r8(b,image+6u),flags=lg13r8(b,image+7u);u32 src=image+8u+lg13r16(b,image)*frame;const u32 rowbytes=width*2u,skip=load_le32(dgroup_ptr(m,dgroup(0x2b41u)))-rowbytes;
+ if((flags&0x80u)==0u){for(u32 plane=0;plane<4u;++plane){b17_mask(b,mask);u32 dst=dst0;for(u32 yy=0;yy<rows;++yy){for(u32 i=0;i<rowbytes;++i){const u8 v=lg13r8(b,src++);lg13w8(b,dst++,lg13r8(b,table+v));}dst+=skip;}const bool carry=(mask&0x80u)!=0u;mask=b17_rol1(mask);if(carry)++dst0;}}
+ else{const u8 key=lg13r8(b,src++);for(u32 plane=0;plane<4u;++plane){b17_mask(b,mask);u32 dst=dst0;for(u32 yy=0;yy<rows;++yy){for(u32 i=0;i<rowbytes;++i){const u8 v=lg13r8(b,src++);if(v!=key)lg13w8(b,dst,lg13r8(b,table+v));++dst;}dst+=skip;}const bool carry=(mask&0x80u)!=0u;mask=b17_rol1(mask);if(carry)++dst0;}}
+}
+void function_a8f4(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 image,u32 table)noexcept{b17_table_sprite(m,b,frame,y,x,image,table);}static_assert(0xAA20u-0xA8F4u==300u);
+
+static void b17_clipped_sprite(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 clip,u32 image,u8 delta,bool subtract)noexcept{
+ auto w=[&](u32 o,u32 v){store_le32(dgroup_ptr(m,dgroup(o)),v);};auto r=[&](u32 o){return load_le32(dgroup_ptr(m,dgroup(o)));};
+ w(0x2b71u,0u);w(0x2b75u,0u);w(0x2b55u,lg13r32(b,clip)>>2);w(0x2b59u,lg13r32(b,clip+4u)>>2);w(0x2b5du,lg13r32(b,clip+8u));w(0x2b61u,(lg13r32(b,clip+0x0cu)+3u)>>2);
+ u32 q=lg13r32(b,clip+0x10u);w(0x2b6du,q&3u);if(q!=0u){w(0x2b71u,1u);q>>=2;}w(0x2b65u,q);q=(lg13r32(b,clip+0x14u)+r(0x2b6du))>>2;if(q==0u){q=1u;if(r(0x2b71u)!=1u){w(0x2b75u,4u-lg13r32(b,clip+0x14u));w(0x2b61u,r(0x2b61u)-1u);}}w(0x2b69u,q);w(0x2b6du,lg13r32(b,clip+0x0cu)&3u);
+ const PlanarAddress13 p=function_aea8(m,y,x);u32 dst0=p.ebx;u8 mask=0x11u;for(u32 i=0;i<((p.ecx+4u-r(0x2b6du))&3u);++i)mask=b17_rol1(mask);u32 src=image+8u+lg13r16(b,image)*frame;u8 key=0xffu;if((lg13r8(b,image+7u)&0x80u)!=0u){key=lg13r8(b,src);++src;}u32 planes=4u;const u32 plane_stride=lg13r16(b,image)>>2;
+ for(u32 skip=0;skip<r(0x2b75u)&&planes!=0u;++skip){src+=plane_stride;--planes;mask=b17_rol1(mask);}w(0x2b79u,planes);u32 dst_skip=load_le32(dgroup_ptr(m,dgroup(0x2b41u)))-r(0x2b69u)-r(0x2b65u);b17_mask(b,mask);
+ while(planes!=0u){u32 dst=dst0;u32 rows=r(0x2b5du);while(rows--!=0u){src+=r(0x2b55u);src+=r(0x2b61u);u32 n=r(0x2b69u);while(n--!=0u){u8 v=lg13r8(b,src++);if(v!=key){if(subtract)v=static_cast<u8>(v-delta);lg13w8(b,dst,v);}++dst;}const u32 tail=r(0x2b65u);dst+=tail;src+=tail;dst+=dst_skip;}src+=r(0x2b59u);--planes;w(0x2b79u,planes);if(planes==0u)break;const bool carry=(mask&0x80u)!=0u;mask=b17_rol1(mask);if(carry){++dst0;if(r(0x2b61u)!=0u){w(0x2b61u,r(0x2b61u)-1u);--dst_skip;--dst0;if(r(0x2b71u)!=0u)w(0x2b65u,r(0x2b65u)+1u);else w(0x2b69u,r(0x2b69u)+1u);}else if(r(0x2b71u)!=0u){w(0x2b65u,r(0x2b65u)+1u);w(0x2b69u,r(0x2b69u)-1u);if(r(0x2b69u)==0u)break;}}b17_mask(b,mask);}
+}
+void function_aa20(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 clip,u32 image)noexcept{b17_clipped_sprite(m,b,frame,y,x,clip,image,0u,false);}static_assert(0xAC0Fu-0xAA20u==495u);
+void function_ac10(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 clip,u32 image,u32 delta)noexcept{b17_clipped_sprite(m,b,frame,y,x,clip,image,static_cast<u8>(delta),true);}static_assert(0xAE0Bu-0xAC10u==507u);
 
 } // namespace code1

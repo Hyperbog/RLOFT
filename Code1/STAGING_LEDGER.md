@@ -102,3 +102,7 @@ Integrated **3,886 verified bytes** from `15B0..1A00`, `2198..24D0`, `266C..28E1
 
 ## Batch 16 integration checkpoint
 Integrated **2,867 verified bytes**: the full `07E4..10A1` staggered transition renderer, interrupt handlers `7F5C..7F89`, `80BC..826D`, `8338..8397`, and shared startup exit tail `CE8B..CEBF`. The startup staging pool is now empty. Hardware frame entry/IRET and DOS termination remain explicit machine-boundary callbacks rather than host substitutions. Verified total: **66,622 / 70,402 = 94.63%**.
+
+
+## Batch 17 integration checkpoint
+Integrated **1,748 verified bytes** from `A05C..A219`, `A8F4..AA1F`, `AA20..AC0E`, and `AC10..AE0A`. The line rasterizer preserves the encoded endpoint normalization, major-axis decision, error-step tie behavior, VGA map-mask rotation, and graphics-controller mode setup/restore. The sprite family preserves frame offsets, four-plane rotation, explicit/default transparency keys, translation-table mapping, clipping scratch globals `2B55..2B79`, and the self-patched subtraction immediate as an explicit byte parameter. Verified total: **68,370 / 70,402 = 97.11%**. The next high-priority unresolved code is the call-targeted self-modifying blitter family `C7A0..CBD0`; its patched immediates are to be modeled as explicit fixed-point/runtime parameters before counting.
