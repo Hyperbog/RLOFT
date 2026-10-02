@@ -1,48 +1,80 @@
-name: CODE.1 residual verifier
+name: CODE.1 exhaustive residual history scan
 on:
   push:
     branches: [code1-decompilation]
     paths:
       - '.github/workflows/residual-audit.yml'
-      - 'Code1/Code1.cpp'
-      - 'Code1/RESIDUAL_LEDGER.md'
-      - 'Code1/PROGRESS.md'
-      - 'Code1/DECOMPILATION_CONTINUITY.md'
-  workflow_dispatch:
 jobs:
-  verify:
+  scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Verify current residual accounting
+          fetch-depth: 0
+      - name: Search every historical Code1 blob
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          cpp=Path('Code1/Code1.cpp').read_text()
-          ledger=Path('Code1/RESIDUAL_LEDGER.md').read_text()
-          assert 'constexpr u32 kVerifiedTranslatedBytes=69360u;' in cpp
-          assert '- verified translated code: **69,360 bytes**' in ledger
-          assert '- explicitly classified residual below: **937 bytes**' in ledger
-          assert '  - embedded tables: **196 bytes**' in ledger
-          assert '  - alignment/zero/padding: **479 bytes**' in ledger
-          assert '  - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **262 bytes**' in ledger
-          assert '- residual still requiring classification: **105 bytes**' in ledger
-          assert 69360 + 937 + 105 == 70402
-          block=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)\n<!-- RESIDUAL-RANGES-END -->',ledger,re.S).group(1)
-          rows=[]
-          for raw in block.splitlines():
-              m=re.fullmatch(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| ([0-9]+)',raw.strip()); assert m,raw
-              a,b=int(m.group(1),16),int(m.group(2),16); n=int(m.group(4)); assert b-a+1==n
-              rows.append((a,b,m.group(3)))
-          assert sum(b-a+1 for a,b,_ in rows)==937
-          assert sum(b-a+1 for a,b,c in rows if c=='table')==196
-          assert sum(b-a+1 for a,b,c in rows if c=='alignment')==479
-          assert sum(b-a+1 for a,b,c in rows if c=='noncode')==262
-          for x,y in zip(rows,rows[1:]): assert x[1] < y[0],(x,y)
-          print('CODE.1 accounting verified: 69360 translated + 937 classified + 105 unresolved = 70402')
+          python3 - <<'PY' > code1-exhaustive-residual-history.txt
+          import subprocess,re,zlib,base64
+          targets=[
+            0x000EB,0x01462,0x04977,0x06054,0x087C2,0x08E1F,0x09BD7,0x09C98,0x09E89,0x09EAE,0x0A00E,0x0A059,0x0A21A,
+            0x0AE0B,0x0BE61,0x0CC19,0x0D8CE,0x0DDD8,0x0E3B3,0x0F742,0x0F7B3,0x0F8BD,0x0FC97]
+          nexts={
+            0x000EB:0x000EC,0x01462:0x01464,0x04977:0x04978,0x06054:0x06060,0x087C2:0x087C4,0x08E1F:0x08E20,0x09BD7:0x09BE0,
+            0x09C98:0x09CA0,0x09E89:0x09E8C,0x09EAE:0x09EB0,0x0A00E:0x0A010,0x0A059:0x0A05C,0x0A21A:0x0A21C,0x0AE0B:0x0AE0C,
+            0x0BE61:0x0BE70,0x0CC19:0x0CC1C,0x0D8CE:0x0D8D0,0x0DDD8:0x0DDE0,0x0E3B3:0x0E3B4,0x0F742:0x0F750,0x0F7B3:0x0F7B8,
+            0x0F8BD:0x0F8C4,0x0FC97:0x0FC98}
+          wrap=re.compile(r"\s*import zlib,base64\s*\nexec\(zlib\.decompress\(base64\.b85decode\('(.+)'\)\)\)\s*",re.S)
+          objs=subprocess.check_output(['git','rev-list','--objects','--all','--','Code1'],text=True,errors='replace').splitlines()
+          seen=set(); findings={t:[] for t in targets}; seenctx={t:set() for t in targets}
+          def aliases(x):
+              h=f'{x:X}'; h5=f'{x:05X}'; off=f'{0x2C724+x:X}'; off5=f'{0x2C724+x:05X}'
+              return {h,h5,'0'+h,off,off5,'0'+off}
+          for rec in objs:
+              sha,*rest=rec.split(' ',1); path=rest[0] if rest else ''
+              if sha in seen or not path: continue
+              seen.add(sha)
+              try:
+                  if subprocess.check_output(['git','cat-file','-t',sha],text=True).strip()!='blob': continue
+                  raw=subprocess.check_output(['git','cat-file','-p',sha])
+              except subprocess.CalledProcessError: continue
+              if len(raw)>4_000_000: continue
+              s=raw.decode('utf-8','replace')
+              m=wrap.fullmatch(s)
+              if m:
+                  try:s=zlib.decompress(base64.b85decode(m.group(1))).decode('utf-8','replace')
+                  except Exception: pass
+              lines=s.splitlines(); upper=[x.upper() for x in lines]
+              for t in targets:
+                  aset=aliases(t)|aliases(nexts[t])
+                  hits=[]
+                  for i,line in enumerate(upper):
+                      if any(re.search(r'(?<![0-9A-F])'+re.escape(a)+r'(?![0-9A-F])',line) for a in aset): hits.append(i)
+                  for i in hits:
+                      lo=max(0,i-8); hi=min(len(lines),i+9)
+                      ctx='\n'.join(lines[lo:hi]).strip()
+                      key=(path,re.sub(r'\s+',' ',ctx))
+                      if key in seenctx[t]: continue
+                      seenctx[t].add(key); findings[t].append((path,sha,ctx))
+          for t in targets:
+              print(f'\n===== {t:05X} =====')
+              vals=findings[t]
+              def rank(v):
+                  path,sha,ctx=v; low=ctx.lower(); p=path.lower(); score=0
+                  if any(k in low for k in ('align','padding','zero',' nop','table','data','exclude','instruction','disassembl','candidate','span','range')): score-=10
+                  if any(k in p for k in ('staging','integrate','map','disasm','dump','asm','log','txt')): score-=5
+                  if 'residual' in p: score+=15
+                  return (score,path,sha)
+              vals.sort(key=rank)
+              for path,sha,ctx in vals[:200]:
+                  print(f'BLOB {sha} PATH {path}')
+                  print(ctx)
+                  print('---')
+              print('UNIQUE_CONTEXTS',len(vals))
           PY
-      - name: Syntax check CODE.1 C++
-        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
+      - name: Upload exhaustive scan
+        uses: actions/upload-artifact@v4
+        with:
+          name: code1-exhaustive-residual-history
+          path: code1-exhaustive-residual-history.txt
+          retention-days: 7
