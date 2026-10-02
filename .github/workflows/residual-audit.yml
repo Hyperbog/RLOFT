@@ -12,37 +12,25 @@ jobs:
         with:
           ref: code1-decompilation
           fetch-depth: 0
-      - name: Mine all remaining residual history
+      - name: Inspect historical context around large residual boundaries
         run: |
           python3 - <<'PY'
           import re,subprocess
-          targets=[
-            ('000EB','000EB'),('007E2','007E3'),('01462','01463'),('04977','04977'),
-            ('06054','0605F'),('080BA','080BB'),('0826E','0826F'),('08336','08337'),
-            ('087C2','087C3'),('08E1F','08E1F'),('09BD7','09BDF'),('09C98','09C9F'),
-            ('09E89','09E8B'),('09EAE','09EAF'),('0A00E','0A00F'),('0A059','0A05B'),
-            ('0A21A','0A21B'),('0A5C6','0A5C7'),('0A675','0A677'),('0AE0B','0AE0B'),
-            ('0BE61','0BE6F'),('0CC19','0CC1B'),('0D8CE','0D8CF'),('0DC8D','0DC8F'),
-            ('0DDD8','0DDDF'),('0E3B3','0E3B3'),('0F742','0F74F'),('0F7B3','0F7B7'),
-            ('0F8BD','0F8C3'),('0FC97','0FC97')]
-          history=subprocess.check_output(['git','log','--all','--format=@@COMMIT %H','-p','--','Code1'],text=True,errors='ignore')
-          current='unknown'; hits={t:[] for t in targets}
-          strong=('align','padding','zero','nop','data','table','excluded','not counted','non-code','noncode','gap','island','unused','fill','text')
-          for line in history.splitlines():
-              if line.startswith('@@COMMIT '): current=line.split()[1]; continue
-              low=line.lower()
-              if not any(k in low for k in strong): continue
-              for t in targets:
-                  matched=False
-                  for v in t:
-                      vv=v.lstrip('0') or '0'
-                      forms={v,v.lower(),vv,vv.lower()}
-                      if any(re.search(r'(?<![0-9A-Fa-f])'+re.escape(f)+r'(?![0-9A-Fa-f])',line) for f in forms):
-                          matched=True; break
-                  if matched:
-                      item=(current,line.strip())
-                      if item not in hits[t] and len(hits[t])<30: hits[t].append(item)
-          for t,items in hits.items():
-              print(f'[{t[0]}..{t[1]}] hits={len(items)}')
-              for sha,line in items: print(f'  {sha[:12]}: {line[:1200]}')
+          targets=['6054','6060','9BD7','9BE0','BE61','BE70','DDD8','DDE0','F742','F750','F7B3','F7B8','F8BD','F8C4','FC97','FC98']
+          history=subprocess.check_output(['git','log','--all','--format=@@COMMIT %H %s','-p','--','Code1'],text=True,errors='ignore').splitlines()
+          current='unknown'
+          seen=set()
+          for i,line in enumerate(history):
+              if line.startswith('@@COMMIT '): current=line
+              up=line.upper()
+              if not any(re.search(r'(?<![0-9A-F])'+t+r'(?![0-9A-F])',up) for t in targets): continue
+              # Skip enormous compressed payload lines; they cannot provide readable neighborhood evidence.
+              if len(line)>3000: continue
+              key=(current,i)
+              if key in seen: continue
+              seen.add(key)
+              lo=max(0,i-4); hi=min(len(history),i+5)
+              print('\n===',current,'===')
+              for j in range(lo,hi):
+                  if len(history[j])<=3000: print(history[j][:2000])
           PY
