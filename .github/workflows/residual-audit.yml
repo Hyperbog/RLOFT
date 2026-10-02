@@ -11,32 +11,69 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-          fetch-depth: 0
-      - name: Mine batch 12 gap history
+      - name: Reconcile batch 10 residual complement
         run: |
           python3 - <<'PY'
-          import re,subprocess
-          targets=[
-            ('09C98','09C9F'),('09E89','09E8B'),('09EAE','09EAF'),
-            ('0A00E','0A00F'),('0A5C6','0A5C7'),('0A675','0A677')]
-          history=subprocess.check_output(['git','log','--all','--format=@@COMMIT %H','-p','--','Code1'],text=True,errors='ignore')
-          current='unknown'; hits={t:[] for t in targets}
-          strong=('align','padding','zero','nop','data','table','excluded','not counted','non-code','noncode','gap','island')
-          for line in history.splitlines():
-              if line.startswith('@@COMMIT '): current=line.split()[1]; continue
-              low=line.lower()
-              if not any(k in low for k in strong): continue
-              for t in targets:
-                  matched=False
-                  for v in t:
-                      vv=v.lstrip('0') or '0'
-                      forms={v,v.lower(),vv,vv.lower()}
-                      if any(re.search(r'(?<![0-9A-Fa-f])'+re.escape(f)+r'(?![0-9A-Fa-f])',line) for f in forms):
-                          matched=True;break
-                  if matched:
-                      item=(current,line.strip())
-                      if item not in hits[t] and len(hits[t])<20:hits[t].append(item)
-          for t,items in hits.items():
-              print(f'[{t[0]}..{t[1]}] hits={len(items)}')
-              for sha,line in items:print(f'  {sha[:12]}: {line[:1000]}')
+          import re
+          from pathlib import Path
+          script=Path('Code1/integrate_mid_ui_batch_10.py').read_text()
+          ledger=Path('Code1/RESIDUAL_LEDGER.md').read_text()
+          sa=re.compile(r'static_assert\(0x([0-9A-Fa-f]+)u-0x([0-9A-Fa-f]+)u==([0-9]+)u\)')
+          code=[]
+          for end,start,n in sa.findall(script):
+              a,b,n=int(start,16),int(end,16),int(n)
+              if b-a==n:code.append((a,b))
+          selected=[(0x071C8,0x072A0),(0x0767C,0x080BA),(0x08270,0x08336),(0x08398,0x08490),(0x084A0,0x087C2)]
+          inside=[(a,b) for a,b in code if any(x<=a and b<=y for x,y in selected)]
+          merged=[]
+          for a,b in sorted(inside):
+              if merged and a<=merged[-1][1]:merged[-1][1]=max(merged[-1][1],b)
+              else:merged.append([a,b])
+          assert sum(b-a for a,b in merged)==3941
+          assert sum(y-x for x,y in selected)==4086
+          comp=[]
+          for x,y in selected:
+              p=x
+              for a,b in merged:
+                  if b<=x or a>=y:continue
+                  aa=max(a,x);bb=min(b,y)
+                  if p<aa:comp.append((p,aa))
+                  p=max(p,bb)
+              if p<y:comp.append((p,y))
+          assert sum(b-a for a,b in comp)==145
+          # Batch 16 later integrated the only interrupt body lying inside these
+          # selected batch-10 spans: 7F5C..7F89 inclusive (46 bytes).
+          later_code=[(0x07F5C,0x07F8A)]
+          def subtract(parts,cuts):
+              out=[]
+              for a,b in parts:
+                  cur=[(a,b)]
+                  for c,d in cuts:
+                      nxt=[]
+                      for x,y in cur:
+                          if d<=x or c>=y:nxt.append((x,y));continue
+                          if x<c:nxt.append((x,c))
+                          if d<y:nxt.append((d,y))
+                      cur=nxt
+                  out.extend(cur)
+              return out
+          noncode=subtract(comp,later_code)
+          assert sum(b-a for a,b in noncode)==99
+          lm=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)\n<!-- RESIDUAL-RANGES-END -->',ledger,re.S);assert lm
+          classified=[]
+          for line in lm.group(1).splitlines():
+              m=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \|',line)
+              if m:classified.append((int(m.group(1),16),int(m.group(2),16)+1))
+          novel=subtract(noncode,classified)
+          print('selected span bytes:',4086)
+          print('batch10 exact asserted code:',3941)
+          print('raw complement:',145)
+          print('later batch16 code removed:',46)
+          print('proven noncode complement:',99)
+          print('already classified overlap:',99-sum(b-a for a,b in novel))
+          print('new classifiable bytes:',sum(b-a for a,b in novel))
+          print('\nRAW COMPLEMENT')
+          for a,b in comp:print(f'{a:05X}..{b-1:05X} {b-a:3d}')
+          print('\nNOVEL NONCODE')
+          for a,b in novel:print(f'{a:05X}..{b-1:05X} {b-a:3d}')
           PY
