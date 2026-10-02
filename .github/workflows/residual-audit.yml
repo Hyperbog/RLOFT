@@ -11,10 +11,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Mine preserved residual classifications
+          fetch-depth: 0
+      - name: Mine historical residual annotations
         run: |
           python3 - <<'PY'
-          import re
+          import re, subprocess
           from pathlib import Path
           text=Path('Code1/Code1.cpp').read_text()
           ledger=Path('Code1/RESIDUAL_LEDGER.md').read_text()
@@ -53,28 +54,30 @@ jobs:
           remaining=subtract(gaps,classified)
           small=[(a,b) for a,b in remaining if b-a<=32]
           print('small unclassified assert-gap islands:',len(small),'bytes:',sum(b-a for a,b in small))
-          strong=('align','padding',' nop','nop ','zero byte','zero bytes','zero/alignment','data/alignment',' is data','jump table','address table','lookup table','excluded')
-          files=[]
-          for p in Path('Code1').rglob('*'):
-              if not p.is_file(): continue
-              try: body=p.read_text()
-              except UnicodeDecodeError: continue
-              files.append((p,body.splitlines()))
-          print('\nPRESERVED STRONG-EVIDENCE HITS')
-          hit_ranges=[]
-          for a,b in small:
-              addr_forms=set()
-              for v in {a,b-1}:
-                  addr_forms.update({f'{v:X}',f'{v:04X}',f'{v:05X}',f'{v:x}',f'{v:04x}',f'{v:05x}'})
-              hits=[]
-              for p,lines in files:
-                  for no,line in enumerate(lines,1):
-                      low=line.lower()
-                      if not any(k in low for k in strong): continue
-                      if any(form in line for form in addr_forms): hits.append((str(p),no,line.strip()))
-              if hits:
-                  hit_ranges.append((a,b))
-                  print(f'[{a:05X}..{b-1:05X} {b-a} bytes]')
-                  for p,no,line in hits[:12]: print(f'  {p}:{no}: {line}')
-          print('\nstrong-evidence candidate ranges:',len(hit_ranges),'bytes:',sum(b-a for a,b in hit_ranges))
+          history=subprocess.check_output(['git','log','--all','--format=@@COMMIT %H','-p','--','Code1'],text=True,errors='ignore')
+          strong=('align','padding',' nop','nop ','zero byte','zero bytes','zero/alignment','data/alignment',' is data','jump table','address table','lookup table','excluded','not counted','non-code','noncode')
+          current='unknown'; hits={}
+          for line in history.splitlines():
+              if line.startswith('@@COMMIT '):
+                  current=line.split()[1]; continue
+              low=line.lower()
+              if not any(k in low for k in strong): continue
+              for a,b in small:
+                  matched=False
+                  for v in {a,b-1}:
+                      forms=(f'{v:04X}',f'{v:05X}',f'{v:04x}',f'{v:05x}')
+                      for form in forms:
+                          if re.search(r'(?<![0-9A-Fa-f])'+re.escape(form)+r'(?![0-9A-Fa-f])',line):
+                              matched=True; break
+                      if matched: break
+                  if matched:
+                      key=(a,b)
+                      bucket=hits.setdefault(key,[])
+                      item=(current,line.strip())
+                      if item not in bucket and len(bucket)<10: bucket.append(item)
+          print('\nHISTORICAL STRONG-EVIDENCE HITS')
+          for (a,b),items in sorted(hits.items()):
+              print(f'[{a:05X}..{b-1:05X} {b-a} bytes]')
+              for sha,line in items: print(f'  {sha[:12]}: {line}')
+          print('\nhistorical strong-evidence candidate ranges:',len(hits),'bytes:',sum(b-a for a,b in hits))
           PY
