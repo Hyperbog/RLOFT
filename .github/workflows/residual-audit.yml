@@ -11,85 +11,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Reconstruct trusted translated/non-code union
+          fetch-depth: 0
+      - name: Trace mouse/copy fold history
         run: |
-          python3 - <<'PY'
-          import re
-          from pathlib import Path
-          END=0x11302
-          cpp=Path('Code1/Code1.cpp').read_text()
-          progress=Path('Code1/PROGRESS.md').read_text()
-          ledger=Path('Code1/RESIDUAL_LEDGER.md').read_text()
-
-          def merge(iv):
-            out=[]
-            for a,b in sorted(iv):
-              if not out or a>out[-1][1]: out.append([a,b])
-              else: out[-1][1]=max(out[-1][1],b)
-            return [(a,b) for a,b in out]
-          def subtract(iv,cuts):
-            out=[]
-            for a,b in iv:
-              cur=[(a,b)]
-              for c,d in cuts:
-                nxt=[]
-                for x,y in cur:
-                  if d<=x or c>=y:nxt.append((x,y));continue
-                  if x<c:nxt.append((x,c))
-                  if d<y:nxt.append((d,y))
-                cur=nxt
-              out.extend(cur)
-            return out
-          def size(iv): return sum(b-a for a,b in merge(iv))
-
-          lm=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)\n<!-- RESIDUAL-RANGES-END -->',ledger,re.S);assert lm
-          non=[]
-          for line in lm.group(1).splitlines():
-            m=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \|',line)
-            if m: non.append((int(m.group(1),16),int(m.group(2),16)+1))
-          non=merge(non)
-          assert size(non)==713
-
-          code=[]
-          sa=re.compile(r'static_assert\(0x([0-9A-Fa-f]+)u-0x([0-9A-Fa-f]+)u==([0-9]+)u\)')
-          for e,s,n in sa.findall(cpp):
-            a,b,n=int(s,16),int(e,16),int(n)
-            if b-a==n and 0<=a<b<=END: code.append((a,b))
-
-          range_re=re.compile(r'`([0-9A-Fa-f]{3,5})\.\.([0-9A-Fa-f]{3,5})`')
-          count_re=re.compile(r'\*\*([0-9,]+)(?: unique)? bytes\*\*')
-          accepted=[]
-          for no,line in enumerate(progress.splitlines(),1):
-            if not line.lstrip().startswith('-'): continue
-            rs=[(int(a,16),int(b,16)+1) for a,b in range_re.findall(line)]
-            cm=count_re.search(line)
-            if not rs or not cm: continue
-            declared=int(cm.group(1).replace(',',''))
-            span=merge(rs)
-            candidate=subtract(span,non)
-            if size(candidate)==declared:
-              code.extend(candidate)
-              accepted.append((no,declared,line.strip()))
-
-          code=merge(code)
-          conflicts=[]
-          for a,b in code:
-            for c,d in non:
-              if a<d and c<b: conflicts.append((max(a,c),min(b,d)))
-          print('static/assert + arithmetic-closed progress translated union:',size(code))
-          print('classified non-code union:',size(non))
-          print('code/non-code conflicts:',conflicts)
-          print('accepted progress inventory rows:',len(accepted))
-          for x in accepted: print('  line',x[0],'bytes',x[1],x[2])
-
-          accounted=merge(code+non)
-          gaps=[];p=0
-          for a,b in accounted:
-            if p<a:gaps.append((p,a))
-            p=max(p,b)
-          if p<END:gaps.append((p,END))
-          print('trusted accounted union:',size(accounted),'of',END)
-          print('remaining map gaps:',len(gaps),'bytes',sum(b-a for a,b in gaps))
-          for a,b in gaps: print(f'  {a:05X}..{b-1:05X} {b-a}')
-          print('verified scalar:',69365,'classified scalar:',713,'expected unresolved:',324)
-          PY
+          echo '=== introduction of function_d08c ==='
+          git log --all --reverse -S'function_d08c' --format='COMMIT %H %s' -p -- Code1/Code1.cpp | head -n 500
+          echo '=== introduction of function_d1e8 ==='
+          git log --all --reverse -S'function_d1e8' --format='COMMIT %H %s' -p -- Code1/Code1.cpp | head -n 500
+          echo '=== files/history mentions D08C D153 D1E8 D239 ==='
+          git log --all --format='COMMIT %H %s' -p -- Code1 | grep -Ei -B4 -A8 'D08C|D153|D1E8|D239' | head -n 1200 || true
