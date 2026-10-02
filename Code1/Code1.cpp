@@ -1908,7 +1908,7 @@ void function_bd84(Machine&m,LowGraphics13Boundary&b,u32 value)noexcept{if(load_
 [[nodiscard]]u32 function_be34(Machine&m)noexcept{return load_le32(dgroup_ptr(m,dgroup(0x2c3cu)));}static_assert(0xBE40u-0xBE34u==12u);
 void function_be40(Machine&m,LowGraphics13Boundary&b,u32 enabled)noexcept{*dgroup_ptr(m,dgroup(0x2c44u))=static_cast<u8>(enabled);if(load_le32(dgroup_ptr(m,dgroup(0x2b84u)))!=0u&&static_cast<u8>(enabled)==0u)function_ba98(m,b);}static_assert(0xBE61u-0xBE40u==33u);
 
-constexpr u32 kVerifiedTranslatedBytes=68370u;
+constexpr u32 kVerifiedTranslatedBytes=69436u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 
 
@@ -2157,5 +2157,28 @@ static void b17_clipped_sprite(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y
 }
 void function_aa20(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 clip,u32 image)noexcept{b17_clipped_sprite(m,b,frame,y,x,clip,image,0u,false);}static_assert(0xAC0Fu-0xAA20u==495u);
 void function_ac10(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 clip,u32 image,u32 delta)noexcept{b17_clipped_sprite(m,b,frame,y,x,clip,image,static_cast<u8>(delta),true);}static_assert(0xAE0Bu-0xAC10u==507u);
+
+
+
+// Batch 18: self-modifying scaled VGA blitters represented with explicit patched runtime fields.
+static u8 b18_rol1(u8 v)noexcept{return static_cast<u8>((v<<1)|(v>>7));}
+static u8 b18_rol(u8 v,u32 n)noexcept{for(u32 i=0;i<(n&7u);++i)v=b18_rol1(v);return v;}
+static void b18_mask(LowGraphics13Boundary&b,u8 mask)noexcept{if(b.out16)b.out16(0x3c4u,static_cast<u16>(0x0002u|(static_cast<u16>(mask)<<8)));}
+
+static void b18_scaled5(Machine&m,LowGraphics13Boundary&b,u32 num,u32 den,u32 image,u32 a,u32 c,bool translate)noexcept{
+ const PlanarAddress13 p=function_aea8(m,a,c);u32 dst_base=p.ebx;u8 draw_mask=b18_rol(0x11u,p.ecx),outer_mask=0x11u;u32 src_base=image+9u;const u16 h=lg13r8(b,image+6u),h2=static_cast<u16>(h*2u),outer_total=static_cast<u16>(h2*4u);const u16 h8p1=static_cast<u16>(outer_total+1u),h8m1=static_cast<u16>(outer_total-1u);const u32 src_frac=(static_cast<u32>(h2)<<8)|0x78u;const u32 scale_step=(static_cast<u32>(static_cast<u16>(num))<<8)|0x78u;const u32 inner_total=lg13r16(b,image+2u);const u8 key=lg13r8(b,image+8u);u32 outer_acc=den>>1;
+ for(u32 outer=outer_total;outer!=0u;--outer){const u32 outer_src=src_base;outer_acc+=scale_step;while(outer_acc>=den){outer_acc-=den;u32 src=outer_src,dst=dst_base,inner_acc=den>>1;b18_mask(b,draw_mask);for(u32 n=inner_total;n!=0u;--n){inner_acc+=scale_step;if(inner_acc>=den){u8 v=lg13r8(b,src);if(translate)v=*dgroup_ptr(m,dgroup(0x2f88u+v));do{if(v!=key)lg13w8(b,dst,v);dst+=0x50u;inner_acc-=den;}while(inner_acc>=den);}src+=h8p1;}const bool carry=(draw_mask&0x80u)!=0u;draw_mask=b18_rol1(draw_mask);if(carry)++dst_base;}src_base=outer_src+src_frac;const bool carry=(outer_mask&0x80u)!=0u;outer_mask=b18_rol1(outer_mask);if(carry)src_base-=h8m1;}
+ if(b.out16)b.out16(0x3c4u,0xff02u);
+}
+void function_c7a0(Machine&m,LowGraphics13Boundary&b,u32 num,u32 den,u32 image,u32 a,u32 c)noexcept{b18_scaled5(m,b,num,den,image,a,c,true);}static_assert(0xC8C1u-0xC7A0u==289u);
+void function_c8c4(Machine&m,LowGraphics13Boundary&b,u32 num,u32 den,u32 image,u32 a,u32 c)noexcept{b18_scaled5(m,b,num,den,image,a,c,false);}static_assert(0xC9D2u-0xC8C4u==270u);
+
+static void b18_scaled7(Machine&m,LowGraphics13Boundary&b,u32 outer_num,u32 outer_den,u32 inner_num,u32 inner_den,u32 image,u32 a,u32 c,bool translate)noexcept{
+ const PlanarAddress13 p=function_aea8(m,a,c);u32 dst_base=p.ebx;u8 draw_mask=b18_rol(0x11u,p.ecx),outer_mask=0x11u;const u8 h=lg13r8(b,image+6u);const u16 h2=static_cast<u16>(static_cast<u16>(h)*2u),outer_total=static_cast<u16>(h2*4u);const u16 frame=lg13r16(b,image),frame_m1=static_cast<u16>(frame-1u),plane_step=static_cast<u16>(frame>>2);const u32 inner_total=lg13r16(b,image+4u);const u8 key=lg13r8(b,image+8u);u32 src_base=image+9u,outer_acc=outer_den>>1;
+ for(u32 outer=outer_total;outer!=0u;--outer){const u32 outer_src=src_base;outer_acc+=outer_num;while(outer_acc>=outer_den){outer_acc-=outer_den;u32 src=outer_src,dst=dst_base,inner_acc=inner_den>>1;b18_mask(b,draw_mask);for(u32 n=inner_total;n!=0u;--n){inner_acc+=inner_num;if(inner_acc>=inner_den){const u8 raw=lg13r8(b,src);const u8 v=translate?*dgroup_ptr(m,dgroup(0x2f88u+raw)):raw;do{if(translate||v!=key)lg13w8(b,dst,v);dst+=0x50u;inner_acc-=inner_den;}while(inner_acc>=inner_den);}src+=h2;}const bool carry=(draw_mask&0x80u)!=0u;draw_mask=b18_rol1(draw_mask);if(carry)++dst_base;}src_base=outer_src+plane_step;const bool carry=(outer_mask&0x80u)!=0u;outer_mask=b18_rol1(outer_mask);if(carry)src_base-=frame_m1;}
+ if(b.out16)b.out16(0x3c4u,0xff02u);
+}
+void function_c9d4(Machine&m,LowGraphics13Boundary&b,u32 outer_num,u32 outer_den,u32 inner_num,u32 inner_den,u32 image,u32 a,u32 c)noexcept{b18_scaled7(m,b,outer_num,outer_den,inner_num,inner_den,image,a,c,false);}static_assert(0xCACAu-0xC9D4u==246u);
+void function_cacc(Machine&m,LowGraphics13Boundary&b,u32 outer_num,u32 outer_den,u32 inner_num,u32 inner_den,u32 image,u32 a,u32 c)noexcept{b18_scaled7(m,b,outer_num,outer_den,inner_num,inner_den,image,a,c,true);}static_assert(0xCBD1u-0xCACCu==261u);
 
 } // namespace code1

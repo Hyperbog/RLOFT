@@ -250,3 +250,7 @@ Integrated **2,867 verified bytes**: the full `07E4..10A1` staggered transition 
 
 ## Batch 17 integration checkpoint
 Integrated **1,748 verified bytes** from `A05C..A219`, `A8F4..AA1F`, `AA20..AC0E`, and `AC10..AE0A`. The line rasterizer preserves the encoded endpoint normalization, major-axis decision, error-step tie behavior, VGA map-mask rotation, and graphics-controller mode setup/restore. The sprite family preserves frame offsets, four-plane rotation, explicit/default transparency keys, translation-table mapping, clipping scratch globals `2B55..2B79`, and the self-patched subtraction immediate as an explicit byte parameter. Verified total: **68,370 / 70,402 = 97.11%**. The next high-priority unresolved code is the call-targeted self-modifying blitter family `C7A0..CBD0`; its patched immediates are to be modeled as explicit fixed-point/runtime parameters before counting.
+
+
+## Batch 18 integration checkpoint
+Integrated **1,066 verified bytes** from the four call-targeted self-modifying VGA blitters `C7A0..C8C0`, `C8C4..C9D1`, `C9D4..CAC9`, and `CACC..CBD0`; alignment islands remain excluded. Runtime writes into instruction immediates are represented as explicit variables: destination plane masks, 8.8-style scale increments retaining the literal low byte `0x78`, source-plane strides, key bytes, and source wrap corrections. The translation-table variants preserve the binary distinction that `C7A0` compares the translated byte against the key while `CACC` writes every translated byte. Verified total: **69,436 / 70,402 = 98.63%**.
