@@ -258,3 +258,7 @@ Integrated **1,066 verified bytes** from the four call-targeted self-modifying V
 
 ## Batch 19 integration checkpoint
 Resolved the old DE6F ambiguity: the real direct-call entry is **DE70**, reached by `84B8`; `DE6F` is the preceding zero byte. Integrated `DE70..DEA0` (**49 bytes**) as the byte-aligning front end to the existing `DEA7` dword-fill core, preserving the initial destination read, 32-bit pattern rotation during alignment, exact dword-count handoff, and 1/2/3-byte tail. `DEA1..DEA6` are alignment NOPs. Verified total: **69,485 / 70,402 = 98.70%**.
+
+
+## Batch 20 integration checkpoint
+Residual-code and historical-accounting audit: added/accounted **186 unique machine-code bytes** at `0000..0002`, `7F50..7F5B`, `95A8..95BA`, `9E10..9E11`, shared `9EA7..9EAD`, `1058B..1058F`, `CBEF`, `CBF0..CC18`, and the previously translated-but-omitted `DF13..DF72`. Removed a **19-byte duplicate historical count** for `10384..10396` by renaming the older DOS-memory result helper so the actual machine address has one canonical representation. Net verified-accounting increase: **167 bytes**, to **69,652 / 70,402 = 98.93%**. The badge remains red pending complete classification of the remaining object bytes.

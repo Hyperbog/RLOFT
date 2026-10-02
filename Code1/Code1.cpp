@@ -1452,10 +1452,10 @@ void function_da18(Machine&m)noexcept{m.cpu.interrupt_enable=false;} void functi
 
 struct DosMemResult{bool carry=false;u16 ax=0;u16 bx=0;};
 struct LowLevelBoundaries{DosMemResult(*allocate_paragraphs)(u16)=nullptr;DosMemResult(*free_segment)(u16)=nullptr;DosMemResult(*resize_segment)(u16,u16)=nullptr;u8(*in8)(u16)=nullptr;void(*out8)(u16,u8)=nullptr;void(*set_vector_legacy)(u8,u16,u32)=nullptr;void(*set_vector_2504)(u8,u16,u32)=nullptr;void(*get_vector_legacy)(u8,u16*,u32*)=nullptr;void(*get_vector_2502)(u8,u16*,u32*)=nullptr;s32(*map_dos_error)(u16)=nullptr;};
-[[nodiscard]]s32 function_10384(LowLevelBoundaries&b,const DosMemResult&r)noexcept{return r.carry?(b.map_dos_error?b.map_dos_error(r.ax):-1):0;}
-[[nodiscard]]s32 function_da48(LowLevelBoundaries&b,u32 paragraphs,u32*out_value)noexcept{const DosMemResult r=b.allocate_paragraphs?b.allocate_paragraphs(static_cast<u16>(paragraphs)):DosMemResult{true,1,0};if(out_value)*out_value=r.carry?static_cast<u32>(r.bx):static_cast<u32>(r.ax);return function_10384(b,r);}
-[[nodiscard]]s32 function_da6c(LowLevelBoundaries&b,u32 segment)noexcept{const DosMemResult r=b.free_segment?b.free_segment(static_cast<u16>(segment)):DosMemResult{true,1,0};return function_10384(b,r);}
-[[nodiscard]]s32 function_da7e(LowLevelBoundaries&b,u32 paragraphs,u32 segment,u32*out_max)noexcept{const DosMemResult r=b.resize_segment?b.resize_segment(static_cast<u16>(segment),static_cast<u16>(paragraphs)):DosMemResult{true,1,0};if(r.carry&&out_max)*out_max=r.bx;return function_10384(b,r);}
+[[nodiscard]]s32 dos_mem_result_status(LowLevelBoundaries&b,const DosMemResult&r)noexcept{return r.carry?(b.map_dos_error?b.map_dos_error(r.ax):-1):0;}
+[[nodiscard]]s32 function_da48(LowLevelBoundaries&b,u32 paragraphs,u32*out_value)noexcept{const DosMemResult r=b.allocate_paragraphs?b.allocate_paragraphs(static_cast<u16>(paragraphs)):DosMemResult{true,1,0};if(out_value)*out_value=r.carry?static_cast<u32>(r.bx):static_cast<u32>(r.ax);return dos_mem_result_status(b,r);}
+[[nodiscard]]s32 function_da6c(LowLevelBoundaries&b,u32 segment)noexcept{const DosMemResult r=b.free_segment?b.free_segment(static_cast<u16>(segment)):DosMemResult{true,1,0};return dos_mem_result_status(b,r);}
+[[nodiscard]]s32 function_da7e(LowLevelBoundaries&b,u32 paragraphs,u32 segment,u32*out_max)noexcept{const DosMemResult r=b.resize_segment?b.resize_segment(static_cast<u16>(segment),static_cast<u16>(paragraphs)):DosMemResult{true,1,0};if(r.carry&&out_max)*out_max=r.bx;return dos_mem_result_status(b,r);}
 [[nodiscard]]u32 function_daa6(Machine&m)noexcept{u32 node=load_le32(dgroup_ptr(m,dgroup(0x30dc))),largest=0;while(node!=0x30d4u){const u32 size=load_le32(dgroup_ptr(m,dgroup(node)))-4u;if(size>largest)largest=size;node=load_le32(dgroup_ptr(m,dgroup(node+8u)));}return largest;}
 void function_dde0()noexcept{}
 [[nodiscard]]u8 function_dde7(LowLevelBoundaries&b,u32 port)noexcept{return b.in8?b.in8(static_cast<u16>(port)):0;}
@@ -1465,6 +1465,7 @@ struct VectorAddress{u32 offset=0;u16 selector=0;};
 [[nodiscard]]VectorAddress function_de35(LowLevelBoundaries&b,u8 extender_mode,u32 vector)noexcept{VectorAddress r{};if(extender_mode>=2&&extender_mode<=8){if(b.get_vector_2502)b.get_vector_2502(static_cast<u8>(vector),&r.selector,&r.offset);}else if(b.get_vector_legacy)b.get_vector_legacy(static_cast<u8>(vector),&r.selector,&r.offset);return r;}
 [[nodiscard]]u8* function_dea7(u8*dst,u32 pattern,u32 dword_count)noexcept{u8*p=dst;while(dword_count&&((reinterpret_cast<std::uintptr_t>(p)&31u)!=0)){store_le32(p,pattern);p+=4;--dword_count;}while(dword_count>=8){for(unsigned i=0;i<8;++i)store_le32(p+i*4u,pattern);p+=32;dword_count-=8;}while(dword_count){store_le32(p,pattern);p+=4;--dword_count;}return p;}
 void function_df13(LowLevelBoundaries&b,u32 divisor_source)noexcept{if(divisor_source<=0x12u)return;u32 divisor=0x1234dcu/divisor_source;u8 gate=function_dde7(b,0x61);if((gate&3u)==0){function_ddf2(b,0x61,static_cast<u8>(gate|3u));function_ddf2(b,0x43,0xb6);}function_ddf2(b,0x42,divisor);function_ddf2(b,0x42,divisor>>8);}
+static_assert(0xDF73u-0xDF13u==96u);
 void function_df73(LowLevelBoundaries&b)noexcept{function_ddf2(b,0x61,static_cast<u8>(function_dde7(b,0x61)&0xfcu));}
 constexpr char kRadixDigits[]="0123456789abcdefghijklmnopqrstuvwxyz";
 static char* convert_unsigned(u32 value,char*out,u32 radix)noexcept{char tmp[40]{};char*p=tmp+1;do{const u32 q=value/radix;const u32 rem=value%radix;*p++=kRadixDigits[rem];value=q;}while(value);char*d=out;do{*d++=*--p;}while(p!=tmp);return out;}
@@ -1908,7 +1909,7 @@ void function_bd84(Machine&m,LowGraphics13Boundary&b,u32 value)noexcept{if(load_
 [[nodiscard]]u32 function_be34(Machine&m)noexcept{return load_le32(dgroup_ptr(m,dgroup(0x2c3cu)));}static_assert(0xBE40u-0xBE34u==12u);
 void function_be40(Machine&m,LowGraphics13Boundary&b,u32 enabled)noexcept{*dgroup_ptr(m,dgroup(0x2c44u))=static_cast<u8>(enabled);if(load_le32(dgroup_ptr(m,dgroup(0x2b84u)))!=0u&&static_cast<u8>(enabled)==0u)function_ba98(m,b);}static_assert(0xBE61u-0xBE40u==33u);
 
-constexpr u32 kVerifiedTranslatedBytes=69485u;
+constexpr u32 kVerifiedTranslatedBytes=69652u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 
 
@@ -2215,5 +2216,46 @@ struct FillDe70Boundary{
 }
 static_assert(0xDEA1u-0xDE70u==49u);
 // DE6F is the zero byte immediately preceding the call target; DEA1..DEA6 are six NOP alignment bytes.
+
+
+
+// Batch 20: final residual-code/accounting audit.
+// 0000..0002 is the encoded INT3; JMP 0000 trap loop. 0003..000F are NOP alignment.
+struct TrapStub20Boundary{void(*int3)()=nullptr;};
+[[noreturn]] void function_0000(TrapStub20Boundary&b)noexcept{for(;;){if(b.int3)b.int3();}}
+static_assert(0x0003u-0x0000u==3u);
+
+// 7F50..7F5B: direct-call tick getter immediately before the INT 8 handler.
+[[nodiscard]]u32 function_7f50(Machine&m)noexcept{return load_le32(dgroup_ptr(m,dgroup(0x2934u)));}
+static_assert(0x7F5Cu-0x7F50u==12u);
+
+// 95A8..95BA: far callback installed by 95E9/E280. INC/DEC EBP bracket the far frame;
+// the dword at encoded [EBP+10h] is copied to 23D0 and EAX is cleared before RETF.
+[[nodiscard]]u32 function_95a8(Machine&m,u32 stack_dword_10)noexcept{store_le32(dgroup_ptr(m,dgroup(0x23d0u)),stack_dword_10);return 0u;}
+static_assert(0x95BBu-0x95A8u==19u);
+// 95BB is alignment NOP.
+
+// 9E10..9E11: two-byte JMP 9E8C tail alias; 9E0F and 9E12..9E13 are alignment.
+void function_9e10(Machine&m,u32 index)noexcept{function_9e8c(m,index);}
+static_assert(0x9E12u-0x9E10u==2u);
+// 9EA7..9EAD is the shared register-pop/LEAVE/RET path used by the nonpositive
+// width/height exits of 9EB0; those edges are already represented by its early return.
+static_assert(0x9EAEu-0x9EA7u==7u);
+
+// 1058B..1058F is the five-byte JMP 10696 shared early-exit edge from the heap free path.
+// The high-level early return in function_10590 already represents the edge; account its bytes here.
+static_assert(0x10590u-0x1058Bu==5u);
+
+// CBEF is a one-byte RET callback referenced by three dwords in the original image.
+void function_cbef()noexcept{}
+static_assert(0xCBF0u-0xCBEFu==1u);
+
+// CBF0..CC18: shared non-returning termination chain reached by JMP from application/runtime exits.
+// The exit code remains the caller-pushed dword at [EBP+4] across both encoded frames.
+struct Termination20Boundary{void(*call_3088)()=nullptr;void(*call_308c)()=nullptr;void(*call_3090)()=nullptr;void(*tail_ce8b)(u32)=nullptr;};
+[[noreturn]] static void function_cc02(Termination20Boundary&b,u32 exit_code)noexcept{if(b.call_308c)b.call_308c();if(b.call_3090)b.call_3090();if(b.tail_ce8b)b.tail_ce8b(exit_code);for(;;){}}
+static_assert(0xCC19u-0xCC02u==23u);
+[[noreturn]] void function_cbf0(Termination20Boundary&b,u32 exit_code)noexcept{if(b.call_3088)b.call_3088();if(b.call_308c)b.call_308c();function_cc02(b,exit_code);}
+static_assert(0xCC02u-0xCBF0u==18u);
 
 } // namespace code1

@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-98.70%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-98.93%25-red)
 
-**Verified conversion:** 98.70%  
-**Remaining:** 1.30%  
+**Verified conversion:** 98.93%  
+**Remaining:** 1.07%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **69,485**.  
+Current verified translated bytes: **69,652**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **98.6975%**, displayed as **98.70%**.
+Raw coverage: **98.9347%**, displayed as **98.93%**.
 
 - Mid UI/resource/font/input/vector/render routines `71C8..729F`, selected `767C..80B9`, `8270..8335`, `8398..848F`, `84A0..87C1` with alignment/data/interrupt islands excluded: **3,941 bytes**.
 - Mid asset/input lifecycle routines selected from `87C4..8E1E`, `91D8..95A7`, and `95BC..9BD6` with address-table/alignment islands excluded: **4,116 bytes**.
@@ -24,6 +24,7 @@ Raw coverage: **98.6975%**, displayed as **98.70%**.
 - Batch 17 line/sprite graphics: `A05C..A219`, `A8F4..AA1F`, `AA20..AC0E`, `AC10..AE0A`: **1,748 bytes**.
 - Batch 18 self-modifying scaled VGA blitters: `C7A0..C8C0`, `C8C4..C9D1`, `C9D4..CAC9`, `CACC..CBD0`, with alignment islands excluded: **1,066 bytes**.
 - Batch 19 fill front end `DE70..DEA0`: **49 bytes**. `DE6F` is a preceding zero byte and `DEA1..DEA6` are alignment NOPs.
+- Batch 20 residual/accounting audit: newly represented/accounted `0000..0002`, `7F50..7F5B`, `95A8..95BA`, `9E10..9E11`, shared `9EA7..9EAD`, `1058B..1058F`, `CBEF`, `CBF0..CC18`, plus previously translated-but-omitted `DF13..DF72`: **186 unique bytes**; corrected the historical duplicate count of `10384..10396` (**-19**), net **+167 bytes**.
 
 ## Immutable source identity
 
@@ -56,7 +57,7 @@ Raw coverage: **98.6975%**, displayed as **98.70%**.
 - DOS memory helpers `DA48..DAC8`: **129 bytes**.
 - Allocator wrapper `DAC9..DAD8`: **16 bytes**.
 - Runtime allocator/decoder/transform `DAD9..DDD7`: **764 bytes**.
-- Low-level/runtime regions through `E0C7`: **666 bytes**.
+- Low-level/runtime port/vector/fill/PIT/conversion routines `DDE0..E0C7`, excluding embedded digit tables and alignment: **663 unique bytes**; batch 20 corrects the previously omitted `DF13..DF72` accounting and removes the duplicate `10384..10396` count.
 - Dispatcher and INT 8 paths `E3B4..E4C6`: **275 bytes**.
 - Timer/PIT setup and state management `E4C7..E6E9`: **547 bytes**.
 - Timer slot/control continuation `E6EA..EA0A`: **801 bytes**.
@@ -84,7 +85,7 @@ Raw coverage: **98.6975%**, displayed as **98.70%**.
 - Runtime heap-extension driver `10AA9..10C45`: **413 bytes**.
 - Runtime tail helpers `10C46..10C6C`: **39 bytes**.
 
-Total integrated verified translated bytes: **69,485**.
+Total integrated verified translated bytes: **69,652**.
 
 `DA45..DA47` is three zero bytes. `EDD3..EDDF` is **13 zero bytes**. Both are classified as data/alignment and are not counted as translated code.
 
