@@ -118,3 +118,7 @@ Resolved the old DE6F ambiguity: the real direct-call entry is **DE70**, reached
 
 ## Batch 20 integration checkpoint
 Residual-code and historical-accounting audit: added/accounted **186 unique machine-code bytes** at `0000..0002`, `7F50..7F5B`, `95A8..95BA`, `9E10..9E11`, shared `9EA7..9EAD`, `1058B..1058F`, `CBEF`, `CBF0..CC18`, and the previously translated-but-omitted `DF13..DF72`. Removed a **19-byte duplicate historical count** for `10384..10396` by renaming the older DOS-memory result helper so the actual machine address has one canonical representation. Net verified-accounting increase: **167 bytes**, to **69,652 / 70,402 = 98.93%**. The badge remains red pending complete classification of the remaining object bytes.
+
+
+## 2026-10-02 integrity repair: 95BC
+A post-interruption audit re-disassembled `95BC..9723` directly from immutable CODE.1 and found four semantic discrepancies in the older batch-11 lift. The integrated C++ now preserves the encoded `E280(95A8, CS)` callback installation before `8398`, calls `64B0(0)` rather than `64DC(0)`, passes `argv[1]` from the guest argv table at `30A0` to `E360`, and preserves the cdecl argument order of the `D10C(0,27E)` and `D130(0,C7)` calls. This changes no coverage count because all affected bytes were already counted; it is a fidelity correction only.

@@ -133,3 +133,7 @@ The working target remains approximately **4,000 newly verified bytes per substa
 
 ## 2026-10-01 mid UI batch 10
 Added **3,941 verified bytes**, bringing the conservative total to **43,936 / 70,402 = 62.4073% (62.41%)**. Integrated the guarded 71C8 allocator/free pair, image/resource constructors, font metrics/text drawing state, ordered input queue helpers, vector install/restore wrappers, rectangle/frame helpers, and repeated-object render loops through 87C1. Explicitly excluded 766A..767B jump-table/alignment, interrupt-handler bodies 7F5C..7F89 / 80BC..826D / 8338..8397, and all documented alignment/data islands.
+
+
+## 2026-10-02 integrity repair: 95BC
+A post-interruption audit re-disassembled `95BC..9723` directly from immutable CODE.1 and found four semantic discrepancies in the older batch-11 lift. The integrated C++ now preserves the encoded `E280(95A8, CS)` callback installation before `8398`, calls `64B0(0)` rather than `64DC(0)`, passes `argv[1]` from the guest argv table at `30A0` to `E360`, and preserves the cdecl argument order of the `D10C(0,27E)` and `D130(0,C7)` calls. This changes no coverage count because all affected bytes were already counted; it is a fidelity correction only.
