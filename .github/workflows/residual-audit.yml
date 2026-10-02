@@ -12,7 +12,7 @@ jobs:
         with:
           ref: code1-decompilation
           fetch-depth: 0
-      - name: Extract preserved exclusion comments and residual matches
+      - name: Find preserved references into unresolved islands
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -33,23 +33,21 @@ jobs:
                   try:return zlib.decompress(base64.b85decode(m.group(1))).decode('utf-8','replace')
                   except Exception:return s
               return s
-          pat=re.compile(r'(?i)(align|padding|zero(?:-fill)?|data island|data/alignment|alignment/data|excluded|non-?code|nop)')
-          ar=re.compile(r'(?i)\b([0-9A-F]{3,5})(?:\.\.([0-9A-F]{3,5}))?\b')
-          for p in sorted(Path('Code1').glob('*.py')):
-              lines=decoded(p).splitlines()
-              for i,line in enumerate(lines):
-                  if not pat.search(line):continue
-                  ranges=[]
-                  for a,b in ar.findall(line):
-                      try:
-                          x=int(a,16);y=int(b or a,16)+1
-                      except:continue
-                      if 0<=x<0x11302 and x<y:ranges.append((x,y))
-                  overlaps=[]
-                  for x,y in ranges:
-                      for a,b in residual:
-                          if x<b and a<y:overlaps.append((a,b))
-                  if overlaps:
-                      print(f'\nMATCH {p}:{i+1} residual={[(f"{a:05X}",f"{b-1:05X}") for a,b in overlaps]}')
-                      for q in lines[max(0,i-2):min(len(lines),i+3)]:print(q[:1800])
+          files=[]
+          for p in sorted(Path('Code1').glob('*')):
+              if p.suffix not in ('.py','.cpp','.md'):continue
+              if p.name.startswith(('fix_residual_pass','fix_accounting_pass')):continue
+              files.append((p,decoded(p) if p.suffix=='.py' else p.read_text(errors='ignore')))
+          for a,b in residual:
+              vals=[]
+              # Search every address in each small island; require a hex-ish token boundary.
+              for v in range(a,b):
+                  h=f'{v:X}'
+                  rx=re.compile(r'(?i)(?<![0-9A-F])0?'+re.escape(h)+r'(?![0-9A-F])')
+                  for p,s in files:
+                      for i,line in enumerate(s.splitlines(),1):
+                          if rx.search(line):
+                              vals.append((v,p.name,i,line.strip()[:700]))
+              print(f'\n[{a:05X}..{b-1:05X}] refs={len(vals)}')
+              for v,name,i,line in vals[:20]:print(f'  {v:05X} {name}:{i}: {line}')
           PY
