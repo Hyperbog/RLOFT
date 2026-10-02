@@ -82,3 +82,7 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 
 ## Batch 10 integration note
 `71C8..729F` is no longer unresolved/staged: the guarded allocation ownership contract and magic values are integrated. Interrupt-handler bodies at `7F5C..7F89`, `80BC..826D`, and `8338..8397` remain uncounted; only their install/restore plumbing is integrated. Existing startup/E2C3 staging remains unchanged.
+
+## Batch 11 integration
+
+Integrated and counted 4,116 bytes from selected `87C4..8E1E`, `91D8..95A7`, and `95BC..9BD6`. Excluded `8E20..8E3B` and `91BC..91D7` address tables, `8E3C..91BB` dispatch body pending separate reconciliation, and alignment bytes.

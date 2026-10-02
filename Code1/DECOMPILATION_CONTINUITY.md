@@ -220,3 +220,7 @@ Verified total **39,995 / 70,402 = 56.81%** after adding **3,324 bytes** from se
 
 ## 2026-10-01 mid UI batch 10 checkpoint
 Verified total **43,936 / 70,402 = 62.41%**. Added 3,941 bytes across the resolved `71C8..729F` allocator pair and selected `767C..87C1` UI/resource/font/input/vector/render helpers. Preserve the 766C four-entry CS jump table as data, the explicit incoming high EDX dependency in 7844, the uninitialized local-byte dependency in 79C8, signed-vs-unsigned glyph indexing differences, and the interrupt queue globals 2919/291A/2930. Interrupt bodies 7F5C, 80BC, and 8338 remain uncounted and must be modeled with their full saved-register/segment/IRET frames before integration.
+
+## Batch 11 checkpoint
+
+Verified total is now 48,052 / 70,402 bytes = 68.25%. Batch 11 integrated 4,116 instruction-accounted bytes from the asset/input lifecycle regions. Keep `8E3C..91BB` unresolved until its seven-way CS table dispatch is reconciled; do not count the tables at `8E20..8E3B` or `91BC..91D7`.
