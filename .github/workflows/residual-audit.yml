@@ -12,84 +12,13 @@ jobs:
         with:
           ref: code1-decompilation
           fetch-depth: 0
-      - name: Reconcile preserved batch complements
+      - name: Trace legacy startup and low-level accounting
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          DEN=0x11302
-          root=Path('Code1')
-          sa=re.compile(r'static_assert\(0x([0-9A-Fa-f]+)u-0x([0-9A-Fa-f]+)u==([0-9]+)u\)')
-          by_file={}
-          for p in [root/'Code1.cpp', *sorted(root.glob('*.py')), *sorted(root.glob('*.cpp'))]:
-              if not p.exists(): continue
-              local=[]
-              for end,start,n in sa.findall(p.read_text(errors='ignore')):
-                  a,b,n=int(start,16),int(end,16),int(n)
-                  if 0 <= a <= b <= DEN and b-a==n: local.append((a,b))
-              if local: by_file[p.name]=local
-
-          def merge(rs):
-              out=[]
-              for a,b in sorted(rs):
-                  if a==b: continue
-                  if out and a<=out[-1][1]: out[-1][1]=max(out[-1][1],b)
-                  else: out.append([a,b])
-              return out
-          def subtract(parts,cuts):
-              out=[]
-              for a,b in parts:
-                  cur=[(a,b)]
-                  for c,d in cuts:
-                      nxt=[]
-                      for x,y in cur:
-                          if d<=x or c>=y: nxt.append((x,y)); continue
-                          if x<c: nxt.append((x,c))
-                          if d<y: nxt.append((d,y))
-                      cur=nxt
-                  out.extend(cur)
-              return out
-          def intersect(rs,spans):
-              out=[]
-              for a,b in rs:
-                  for c,d in spans:
-                      x,y=max(a,c),min(b,d)
-                      if x<y: out.append((x,y))
-              return merge(out)
-          def total(rs): return sum(b-a for a,b in rs)
-
-          all_exact=merge(r for rs in by_file.values() for r in rs)
-          ledger=(root/'RESIDUAL_LEDGER.md').read_text()
-          lm=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)\n<!-- RESIDUAL-RANGES-END -->',ledger,re.S); assert lm
-          ledger_ranges=[]
-          for raw in lm.group(1).splitlines():
-              m=re.fullmatch(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| ([0-9]+)',raw.strip()); assert m,raw
-              a,b=int(m.group(1),16),int(m.group(2),16)+1; assert b-a==int(m.group(4)); ledger_ranges.append((a,b))
-          ledger_union=merge(ledger_ranges)
-
-          batches={
-            '08':('integrate_mid_runtime_batch_08.py',3384,[(0x059AC,0x06054),(0x06184,0x06654),(0x06654,0x06852)]),
-            '09':('integrate_mid_graphics_batch_09.py',3324,[(0x06854,0x071C8),(0x072A0,0x0766A)]),
-            '10':('integrate_mid_ui_batch_10.py',3941,[(0x071C8,0x072A0),(0x0767C,0x080BA),(0x08270,0x08336),(0x08398,0x08490),(0x084A0,0x087C2)]),
-            '11':('integrate_mid_asset_batch_11.py',4116,[(0x087C4,0x08E1F),(0x091D8,0x095A8),(0x095BC,0x09BD7)]),
-            '12':('integrate_runtime_startup_batch_12.py',3767,[(0x06060,0x06184),(0x08E3C,0x091BC),(0x09BE0,0x0A059),(0x0A558,0x0A6F0),(0x0CD97,0x0D08C),(0x0E2C3,0x0E360),(0x0FEFC,0x0FFD4)]),
-            '13':('integrate_low_graphics_batch_13.py',4129,[(0x0AE0C,0x0BE61)]),
-            '14':('integrate_batch14.py',3921,[(0x000EC,0x0035C),(0x010A4,0x01462),(0x0BE70,0x0C79F),(0x0CBD4,0x0CBEF)]),
-            '15':('integrate_batch15.py',3886,[(0x015B0,0x01A01),(0x02198,0x024D1),(0x0266C,0x028E2),(0x0A21C,0x0A555),(0x0A6F0,0x0A8F4)]),
-            '16':('integrate_batch16.py',2867,[(0x007E4,0x010A2),(0x07F5C,0x07F8A),(0x080BC,0x0826E),(0x08338,0x08398),(0x0CE8B,0x0CEC0)]),
-            '17':('integrate_batch17.py',1748,[(0x0A05C,0x0A21A),(0x0A8F4,0x0AE0B)]),
-            '18':('integrate_batch18.py',1066,[(0x0C7A0,0x0C8C1),(0x0C8C4,0x0C9D2),(0x0C9D4,0x0CACA),(0x0CACC,0x0CBD1)]),
-          }
-
-          print('GLOBAL exact',total(all_exact),'ledger',total(ledger_union),'scalar',69365,'unresolved',310)
-          for name,(fn,recorded,spans) in batches.items():
-              own=intersect(merge(by_file.get(fn,[])),spans)
-              span_bytes=total(spans)
-              own_bytes=total(own)
-              # Anything already proven as code by any batch or classified in the ledger is removed.
-              candidate=subtract(spans,merge(all_exact+ledger_union))
-              print(f'BATCH {name} file={fn} recorded={recorded} own_assert={own_bytes} span={span_bytes} complement={span_bytes-own_bytes} novel={total(candidate)}')
-              if candidate:
-                  print('  NOVEL',' '.join(f'{a:05X}..{b-1:05X}({b-a})' for a,b in candidate))
-          PY
+          echo '=== startup introduction ==='
+          git log --all --reverse -S'translate_cc1c_ccdd' --format='COMMIT %H %s' -p -- Code1/Code1.cpp Code1/PROGRESS.md Code1/STAGING_LEDGER.md | head -n 1200
+          echo '=== startup inventory 259 history ==='
+          git log --all --reverse -S'Startup/recovery regions through `CD96`: **259 bytes**' --format='COMMIT %H %s' -p -- Code1/PROGRESS.md | head -n 1200
+          echo '=== low-level introduction ==='
+          git log --all --reverse -S'function_dde0' --format='COMMIT %H %s' -p -- Code1/Code1.cpp Code1/PROGRESS.md Code1/STAGING_LEDGER.md | head -n 1600
+          echo '=== low-level 663 inventory history ==='
+          git log --all --reverse -S'Low-level/runtime port/vector/fill/PIT/conversion routines' --format='COMMIT %H %s' -p -- Code1/PROGRESS.md | head -n 1200
