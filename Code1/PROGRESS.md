@@ -1,18 +1,20 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-56.81%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-62.41%25-red)
 
-**Verified conversion:** 56.81%  
-**Remaining:** 43.19%  
+**Verified conversion:** 62.41%  
+**Remaining:** 37.59%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **39,995**.  
+Current verified translated bytes: **43,936**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **56.8095%**, displayed as **56.81%**.
+Raw coverage: **62.4073%**, displayed as **62.41%**.
+
+- Mid UI/resource/font/input/vector/render routines `71C8..729F`, selected `767C..80B9`, `8270..8335`, `8398..848F`, `84A0..87C1` with alignment/data/interrupt islands excluded: **3,941 bytes**.
 
 ## Immutable source identity
 
@@ -118,3 +120,6 @@ The working target remains approximately **4,000 newly verified bytes per substa
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
 
 - Mid-graphics/DPMI/stream batch `6854..71C7` (selected instruction ranges; allocator `71C8..729F` excluded) plus `72A0..7669` buffered/string helpers with alignment/data excluded: **3,324 bytes**.
+
+## 2026-10-01 mid UI batch 10
+Added **3,941 verified bytes**, bringing the conservative total to **43,936 / 70,402 = 62.4073% (62.41%)**. Integrated the guarded 71C8 allocator/free pair, image/resource constructors, font metrics/text drawing state, ordered input queue helpers, vector install/restore wrappers, rectangle/frame helpers, and repeated-object render loops through 87C1. Explicitly excluded 766A..767B jump-table/alignment, interrupt-handler bodies 7F5C..7F89 / 80BC..826D / 8338..8397, and all documented alignment/data islands.

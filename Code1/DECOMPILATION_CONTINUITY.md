@@ -217,3 +217,6 @@ Verified total **36,671 / 70,402 = 52.09%**. Added **3,671 bytes** across palett
 
 ## 2026-10-01 mid-graphics batch 09
 Verified total **39,995 / 70,402 = 56.81%** after adding **3,324 bytes** from selected instruction-bounded ranges in `6854..71C7` and `72A0..7669`. `71C8..729F` remains unresolved and uncounted. Preserve the clipped-image output structure at `240C + depth*18h`, DPMI guest-address boundaries, and buffered stream state globals `2870/2874/2878/287C`.
+
+## 2026-10-01 mid UI batch 10 checkpoint
+Verified total **43,936 / 70,402 = 62.41%**. Added 3,941 bytes across the resolved `71C8..729F` allocator pair and selected `767C..87C1` UI/resource/font/input/vector/render helpers. Preserve the 766C four-entry CS jump table as data, the explicit incoming high EDX dependency in 7844, the uninitialized local-byte dependency in 79C8, signed-vs-unsigned glyph indexing differences, and the interrupt queue globals 2919/291A/2930. Interrupt bodies 7F5C, 80BC, and 8338 remain uncounted and must be modeled with their full saved-register/segment/IRET frames before integration.

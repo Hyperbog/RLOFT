@@ -79,3 +79,6 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 
 ## Batch 09 fold
 `6854..71C7` selected verified graphics/DPMI wrappers and `72A0..7669` selected byte-copy/buffered-stream helpers are integrated/countable. `71C8..729F` remains unresolved/unintegrated; alignment/data islands remain excluded.
+
+## Batch 10 integration note
+`71C8..729F` is no longer unresolved/staged: the guarded allocation ownership contract and magic values are integrated. Interrupt-handler bodies at `7F5C..7F89`, `80BC..826D`, and `8338..8397` remain uncounted; only their install/restore plumbing is integrated. Existing startup/E2C3 staging remains unchanged.
