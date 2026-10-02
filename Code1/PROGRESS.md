@@ -194,3 +194,8 @@ A preserved-integrator audit found a historical batch-08 scalar overcount. `inte
 ## 2026-10-02 residual classification pass 31
 
 Verified translated code remains **69,365 / 70,402 = 98.53%**. The next small batch-08 inter-function cluster is classified: `63F1..63F3` and `6409..640B` are alignment bytes between exact asserted endpoints and the next aligned entries. This adds **6 classified bytes**. The ledger now classifies **692 bytes**, leaving **345 bytes unresolved**.
+
+
+## 2026-10-02 residual classification pass 32
+
+Verified translated code remains **69,365 / 70,402 = 98.53%**. The next small batch-08 inter-function cluster is classified: `648D..648F` and `6632..6633` are alignment bytes between exact asserted endpoints and the next aligned entries. This adds **5 classified bytes**. The ledger now classifies **697 bytes**, leaving **340 bytes unresolved**.

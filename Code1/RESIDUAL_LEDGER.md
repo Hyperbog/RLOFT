@@ -6,11 +6,11 @@ It does **not** change `kVerifiedTranslatedBytes`. The conservative denominator 
 
 - verified translated code: **69,365 bytes**
 - conservative residual: **1,037 bytes**
-- explicitly classified residual below: **692 bytes**
+- explicitly classified residual below: **697 bytes**
   - embedded tables: **122 bytes**
-  - alignment/zero/padding: **458 bytes**
+  - alignment/zero/padding: **463 bytes**
   - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **112 bytes**
-- residual still requiring classification: **345 bytes**
+- residual still requiring classification: **340 bytes**
 
 The `static_assert` interval audit is diagnostic only. Many verified regions are represented without one assert per machine range, so the 5,673-byte assert-gap total is **not** the untranslated-code total.
 
@@ -81,9 +81,11 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 063F1..063F3 | alignment | 3
 06409..0640B | alignment | 3
 06422..06423 | alignment | 2
+0648D..0648F | alignment | 3
 064A3..064AF | alignment | 13
 064D9..064DB | alignment | 3
 06616..06617 | alignment | 2
+06632..06633 | alignment | 2
 066BD..066BF | alignment | 3
 06852..06853 | alignment | 2
 06A03..06A03 | noncode | 1
@@ -268,4 +270,4 @@ The table category consists of the following already-established data islands:
 
 ## Accounting rule
 
-Do not add these 692 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 345 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
+Do not add these 697 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 340 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.

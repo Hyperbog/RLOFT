@@ -166,3 +166,7 @@ Batch-08 exact-range reconciliation corrected the global verified counter by **-
 
 ## Residual pass 31
 Small batch-08 checkpoint 3: classified `63F1..63F3` and `6409..640B` as alignment. `RESIDUAL_LEDGER.md` now holds 692 classified bytes; 345 conservative residual bytes remain. Verified translated code stays 69,365 and active staging remains zero.
+
+
+## Residual pass 32
+Small batch-08 checkpoint 4: classified `648D..648F` and `6632..6633` as alignment. `RESIDUAL_LEDGER.md` now holds 697 classified bytes; 340 conservative residual bytes remain. Verified translated code stays 69,365 and active staging remains zero.
