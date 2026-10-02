@@ -231,3 +231,11 @@ Verified total **51,819 / 70,402 = 73.60%**. Batch 12 added 3,767 directly recon
 
 ## Batch 13 checkpoint
 Verified total **55,948 / 70,402 = 79.47%**. Added 4,129 instruction-accounted bytes from `AE0C..BE60` excluding explicit zero/alignment islands. Preserve AE5C register-input ESI/EDX semantics, AEA8 register-result address/plane calculation, AEDC EAX-preserving side effect, AF34/AF4C retrace loops, and the resource/audio globals 2B84/2B90/2B98/2B9C/2C08/2C28/2C30/2C34/2C38/2C3C/2C40/2C44. CE8B..CEBF remains the only active startup staging.
+
+
+## Batch 14 checkpoint
+- Verified total after this fold: **59,869 / 70,402 = 85.0388% (85.04%)**.
+- Newly integrated: **3,921 bytes**: `00EC..035B` (624), `10A4..1461` (958), selected `BE70..C79E` plus `CBD4..CBEE` (2,339).
+- `C79F..CBD0` is a self-modifying VGA blitter cluster: encoded immediates are patched through stores into instruction bytes. Do **not** lift it as ordinary immutable C++ control flow. Re-disassemble and model its patch points explicitly before counting.
+- Batch 14 preserves guest pointers through callback boundaries; the `C5B0` four-byte stack-local read remains an explicit `call_6304_local32` boundary rather than an invented guest address.
+- Next high-output candidates: the unresolved `C79F..CBD0` cluster only after a self-modifying-code model, plus remaining early-game gaps (`07E2..10A1`, `15B0..1A03`, `2197..24D3`, `266C..28E3`) that can be harvested independently.

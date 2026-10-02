@@ -92,3 +92,7 @@ Re-disassembled and integrated **3,767 bytes**: `6060..6183`, `8E3C..91BB`, sele
 
 ## Batch 13 integration
 Integrated **4,129 bytes** across instruction-bounded low graphics and resource/audio state routines `AE0C..BE60`. Excluded zero/data/alignment islands: `AE5A..AE5B`, `AEA6..AEA7`, `AF05..AF07`, `AF4B`, `AF63`, `B055..B05F`, `B0F6..B0F7`, `B4D2..B4D3`, `B51B`, `B596..B597`, `B5E1..B5E3`, `B6BE..B6BF`, `B6EB`, `B75B`, `B76B`, `B821..B823`, `B8F3`, `BA01..BA03`, `BA97`, `BBE9..BBEB`, `BC1A..BC1B`. Active staging remains the 53-byte `CE8B..CEBF` exit path only.
+
+
+## Batch 14 integration checkpoint
+Integrated **3,921 verified instruction bytes** from `00EC..035B`, `10A4..1461`, selected `BE70..C79E`, and `CBD4..CBEE`. Alignment/data islands are excluded. `C79F..CBD0` is explicitly retained on the unresolved queue because it is position-dependent self-modifying VGA code; it is not staging and is not counted. No previously staged startup/interrupt bytes are double-counted.
