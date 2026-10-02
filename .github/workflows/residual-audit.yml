@@ -12,42 +12,46 @@ jobs:
         with:
           ref: code1-decompilation
           fetch-depth: 0
-      - name: Trace final residual boundaries through commit diffs
+      - name: Extract residual integration evidence
         run: |
-          python3 - <<'PY' > residual-history-audit.txt
-          import subprocess,re
-          groups=[
-            ('000EB..000EB','000EB|000EC'),('01462..01463','01462|01464'),
-            ('04977..04977','04977|04978'),('06054..0605F','06054|06060|060B2|06184'),
-            ('087C2..087C3','087C2|087C4'),('08E1F..08E1F','08E1F|08E20'),
-            ('09BD7..09BDF','09BD7|09BE0'),('09C98..09C9F','09C98|09CA0'),
-            ('09E89..09E8B','09E89|09E8C'),('09EAE..09EAF','09EAE|09EB0'),
-            ('0A00E..0A00F','0A00E|0A010'),('0A059..0A05B','0A059|0A05C'),
-            ('0A21A..0A21B','0A21A|0A21C'),('0A5C6..0A5C7','0A5C6|0A5C8'),
-            ('0A675..0A677','0A675|0A678'),('0AE0B..0AE0B','0AE0B|0AE0C'),
-            ('0BE61..0BE6F','0BE61|0BE70'),('0CC19..0CC1B','0CC19|0CC1C'),
-            ('0D8CE..0D8CF','0D8CE|0D8D0'),('0DDD8..0DDDF','0DDD8|0DDE0'),
-            ('0E3B3..0E3B3','0E3B3|0E3B4'),('0F742..0F74F','0F742|0F750'),
-            ('0F7B3..0F7B7','0F7B3|0F7B8'),('0F8BD..0F8C3','0F8BD|0F8C4'),
-            ('0FC97..0FC97','0FC97|0FC98')]
-          for label,pat in groups:
-            print('\n===== '+label+' =====')
-            cmd=['git','log','--all','--date-order','--format=COMMIT %H %s','-p','-G',pat,'--','Code1']
-            try:s=subprocess.check_output(cmd,text=True,errors='replace')
-            except subprocess.CalledProcessError as e:s=e.output or ''
-            lines=s.splitlines(); out=[]; seen=set()
+          mkdir -p residual-evidence
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,zlib,base64
+          names=[
+            'integrate_runtime_startup_batch_12.py','integrate_low_graphics_batch_13.py','integrate_batch14.py',
+            'integrate_batch16.py','integrate_batch17.py','integrate_f750.py','integrate_f7b8.py','integrate_f8c4.py',
+            'integrate_mid_runtime_batch_08.py','integrate_mid_asset_batch_11.py','integrate_mid_ui_batch_10.py',
+            'integrate_runtime_tail_batch.py','fix_tail_script.py']
+          wrap=re.compile(r"import zlib,base64\s*\nexec\(zlib\.decompress\(base64\.b85decode\('(.+)'\)\)\)\s*",re.S)
+          for name in names:
+            p=Path('Code1')/name
+            if not p.exists(): continue
+            s=p.read_text()
+            m=wrap.fullmatch(s)
+            if m:
+              s=zlib.decompress(base64.b85decode(m.group(1))).decode('utf-8','replace')
+            (Path('residual-evidence')/name).write_text(s)
+          cpp=Path('Code1/Code1.cpp').read_text()
+          targets=[0x000EB,0x01462,0x04977,0x06054,0x087C2,0x08E1F,0x09BD7,0x09C98,0x09E89,0x09EAE,0x0A00E,0x0A059,0x0A21A,0x0A5C6,0x0A675,0x0AE0B,0x0BE61,0x0CC19,0x0D8CE,0x0DDD8,0x0E3B3,0x0F742,0x0F7B3,0x0F8BD,0x0FC97]
+          out=[]
+          lines=cpp.splitlines()
+          for t in targets:
+            out.append(f'===== {t:05X} =====')
+            pats=(f'{t:X}',f'{t+1:X}',f'{t-1:X}')
+            hits=[]
             for i,line in enumerate(lines):
-              if re.search(pat,line,re.I):
-                lo=max(0,i-10);hi=min(len(lines),i+18)
-                chunk='\n'.join(lines[lo:hi])
-                if chunk not in seen:
-                  seen.add(chunk); out.append(chunk)
-            for chunk in out[:30]: print(chunk+'\n---')
-            print('MATCHING_CONTEXTS',len(out))
+              up=line.upper()
+              if any(re.search(r'(?<![0-9A-F])0?'+re.escape(x)+r'(?![0-9A-F])',up) for x in pats):
+                hits.append((i,line))
+            for i,_ in hits[:8]:
+              out.extend(lines[max(0,i-3):min(len(lines),i+4)])
+              out.append('---')
+          Path('residual-evidence/code1-neighbors.txt').write_text('\n'.join(out))
           PY
-      - name: Upload residual history audit
+      - name: Upload residual integration evidence
         uses: actions/upload-artifact@v4
         with:
-          name: code1-residual-history-audit
-          path: residual-history-audit.txt
+          name: code1-residual-integration-evidence
+          path: residual-evidence
           retention-days: 7
