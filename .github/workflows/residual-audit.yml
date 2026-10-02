@@ -25,8 +25,8 @@ jobs:
               if 0<=a<=b<=DEN and b-a==n: code.append((a,b))
 
           # Verified legacy ranges represented in C++ but historically not decorated with
-          # per-range static_asserts. Each interval comes from the current PROGRESS inventory
-          # or the preserved batch-20 accounting record.
+          # per-range static_asserts. 1058B..1058F is intentionally absent here: batch 20
+          # supplies its current assert, while pass 39 removed the later duplicate scalar credit.
           manual=[
             (0x00000,0x00003),
             (0x07F50,0x07F5C),
@@ -43,7 +43,6 @@ jobs:
             (0x0DF73,0x0DF8E),(0x0DFB3,0x0E02B),(0x0E050,0x0E098),(0x0E098,0x0E0C8),
             (0x0E4C7,0x0E6EA),(0x0E6EA,0x0EA0B),
             (0x0FFD4,0x102D4),
-            (0x1058B,0x10590),
           ]
           code.extend(manual)
 
@@ -71,7 +70,6 @@ jobs:
 
           cu=merge(code)
           print('CODE_UNION',total(cu),'intervals',len(cu))
-
           ledger=Path('Code1/RESIDUAL_LEDGER.md').read_text()
           lm=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)\n<!-- RESIDUAL-RANGES-END -->',ledger,re.S);assert lm
           nr=[]
@@ -85,10 +83,8 @@ jobs:
           gaps=subtract([(0,DEN)],merge(cu+nu))
           print('UNRESOLVED',total(gaps),'intervals',len(gaps))
           for a,b in gaps: print(f'RESIDUAL {a:05X}..{b-1:05X} {b-a}')
-          if total(cu)!=69365:
-              print('CODE_SCALAR_DELTA',69365-total(cu))
           assert total(nu)==921
           assert overlap==0
-          assert total(cu)==69365
-          assert total(gaps)==116
+          assert total(cu)==69360
+          assert total(gaps)==121
           PY
