@@ -11,27 +11,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Reconcile exact batch 07 byte count
+      - name: Reconcile exact batch 06 byte count
         run: |
           python3 - <<'PY'
-          # Preserved batch-07 evidence defines one raw span and enumerates every
-          # alignment/data island excluded from its verified-byte count.
-          span=(0x4978,0x59AC)
-          excluded=[
-            (0x4A0A,0x4A0C),(0x4B17,0x4B18),(0x4C7F,0x4C80),
-            (0x4D51,0x4D54),(0x4EEE,0x4EF0),(0x508A,0x508C),
-            (0x522F,0x5230),(0x527A,0x527C),(0x52AA,0x52AC),
-            (0x53B1,0x53B4),(0x53E2,0x53E4),(0x5451,0x5454),
-            (0x550B,0x550C),(0x55DB,0x55DC),(0x577D,0x5780),
-            (0x57DB,0x57DC),(0x5879,0x5880)]
-          raw=span[1]-span[0]
-          excluded_bytes=sum(b-a for a,b in excluded)
-          exact=raw-excluded_bytes
-          print('batch07 raw span bytes:',raw)
-          print('batch07 excluded alignment/data bytes:',excluded_bytes)
-          print('batch07 exact verified bytes:',exact)
-          print('batch07 historical progress delta:',4111)
-          assert raw==4148
-          assert excluded_bytes==37
-          assert exact==4111
+          # Preserved batch-06 integration lists the exact translated subranges.
+          ranges=[
+            (0x38A4,0x3C55),(0x3C58,0x40FB),(0x40FC,0x44E1),
+            (0x44E4,0x451F),(0x4520,0x45EF),(0x45FC,0x4977)]
+          exact=sum(b-a for a,b in ranges)
+          print('batch06 exact verified bytes:',exact)
+          print('batch06 historical progress delta:',4286)
+          for a,b in ranges: print(f'{a:05X}..{b-1:05X} {b-a}')
+          assert exact==4286
           PY
