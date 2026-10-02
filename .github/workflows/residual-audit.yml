@@ -1,68 +1,57 @@
-name: CODE.1 repository-wide residual history scan
+name: CODE.1 residual pass 42
 on:
   push:
     branches: [code1-decompilation]
     paths:
       - '.github/workflows/residual-audit.yml'
+permissions:
+  contents: write
 jobs:
-  scan:
+  apply:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-          fetch-depth: 0
-      - name: Search all historical text blobs
+      - name: Apply pass 42
+        run: python3 Code1/fix_residual_pass42.py
+      - name: Syntax check CODE.1 C++
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
+      - name: Verify pass 42 accounting
         run: |
-          python3 - <<'PY' > code1-repository-wide-residual-history.txt
-          import subprocess,re,zlib,base64
-          targets=[0x000EB,0x01462,0x04977,0x06054,0x087C2,0x08E1F,0x09BD7,0x09C98,0x09E89,0x09EAE,0x0A00E,0x0A059,0x0A21A,0x0AE0B,0x0BE61,0x0CC19,0x0D8CE,0x0DDD8,0x0E3B3,0x0F742,0x0F7B3,0x0F8BD,0x0FC97]
-          nexts={0x000EB:0x000EC,0x01462:0x01464,0x04977:0x04978,0x06054:0x06060,0x087C2:0x087C4,0x08E1F:0x08E20,0x09BD7:0x09BE0,0x09C98:0x09CA0,0x09E89:0x09E8C,0x09EAE:0x09EB0,0x0A00E:0x0A010,0x0A059:0x0A05C,0x0A21A:0x0A21C,0x0AE0B:0x0AE0C,0x0BE61:0x0BE70,0x0CC19:0x0CC1C,0x0D8CE:0x0D8D0,0x0DDD8:0x0DDE0,0x0E3B3:0x0E3B4,0x0F742:0x0F750,0x0F7B3:0x0F7B8,0x0F8BD:0x0F8C4,0x0FC97:0x0FC98}
-          wrap=re.compile(r"\s*import zlib,base64\s*\nexec\(zlib\.decompress\(base64\.b85decode\('(.+)'\)\)\)\s*",re.S)
-          objs=subprocess.check_output(['git','rev-list','--objects','--all'],text=True,errors='replace').splitlines()
-          seen=set(); findings={t:[] for t in targets}; seenctx={t:set() for t in targets}
-          def aliases(x):
-              vals={x,0x2C724+x}
-              out=set()
-              for v in vals:
-                  h=f'{v:X}'; out|={h,f'{v:05X}','0'+h,'0x'+h,'0X'+h}
-              return out
-          for rec in objs:
-              sha,*rest=rec.split(' ',1); path=rest[0] if rest else ''
-              if sha in seen or not path: continue
-              seen.add(sha)
-              try:
-                  if subprocess.check_output(['git','cat-file','-t',sha],text=True).strip()!='blob': continue
-                  raw=subprocess.check_output(['git','cat-file','-p',sha])
-              except subprocess.CalledProcessError: continue
-              if len(raw)>4_000_000 or b'\x00' in raw[:4096]: continue
-              try:s=raw.decode('utf-8')
-              except UnicodeDecodeError: continue
-              m=wrap.fullmatch(s)
-              if m:
-                  try:s=zlib.decompress(base64.b85decode(m.group(1))).decode('utf-8','replace')
-                  except Exception: pass
-              lines=s.splitlines(); upper=[x.upper() for x in lines]
-              for t in targets:
-                  aset={a.upper() for a in aliases(t)|aliases(nexts[t])}
-                  for i,line in enumerate(upper):
-                      if not any(re.search(r'(?<![0-9A-F])'+re.escape(a)+r'(?![0-9A-F])',line) for a in aset): continue
-                      ctx='\n'.join(lines[max(0,i-10):min(len(lines),i+11)]).strip()
-                      key=(path,re.sub(r'\s+',' ',ctx))
-                      if key in seenctx[t]: continue
-                      seenctx[t].add(key); findings[t].append((path,sha,ctx))
-          for t in targets:
-              print(f'\n===== {t:05X} =====')
-              vals=findings[t]
-              vals.sort(key=lambda v:(0 if not v[0].startswith('Code1/') else 1,v[0],v[1]))
-              for path,sha,ctx in vals[:250]:
-                  print(f'BLOB {sha} PATH {path}')
-                  print(ctx); print('---')
-              print('UNIQUE_CONTEXTS',len(vals))
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          cpp=Path('Code1/Code1.cpp').read_text()
+          ledger=Path('Code1/RESIDUAL_LEDGER.md').read_text()
+          assert 'constexpr u32 kVerifiedTranslatedBytes=69360u;' in cpp
+          assert '- explicitly classified residual below: **996 bytes**' in ledger
+          assert '  - embedded tables: **196 bytes**' in ledger
+          assert '  - alignment/zero/padding: **538 bytes**' in ledger
+          assert '  - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **262 bytes**' in ledger
+          assert '- residual still requiring classification: **46 bytes**' in ledger
+          assert '## Remaining exact unresolved islands after pass 42' in ledger
+          block=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)\n<!-- RESIDUAL-RANGES-END -->',ledger,re.S).group(1)
+          rows=[]
+          for raw in block.splitlines():
+              m=re.fullmatch(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| ([0-9]+)',raw.strip()); assert m,raw
+              a,b=int(m.group(1),16),int(m.group(2),16); n=int(m.group(4)); assert b-a+1==n
+              rows.append((a,b,m.group(3)))
+          assert sum(b-a+1 for a,b,_ in rows)==996
+          assert sum(b-a+1 for a,b,c in rows if c=='alignment')==538
+          assert sum(b-a+1 for a,b,c in rows if c=='table')==196
+          assert sum(b-a+1 for a,b,c in rows if c=='noncode')==262
+          assert 69360 + 996 + 46 == 70402
+          for r in [(0x1462,0x1463),(0x6054,0x605f),(0x9bd7,0x9bdf),(0x9c98,0x9c9f),(0x9e89,0x9e8b),(0x9eae,0x9eaf),(0xa00e,0xa00f),(0xa059,0xa05b),(0xa21a,0xa21b),(0xae0b,0xae0b),(0xbe61,0xbe6f)]:
+              assert any(a==r[0] and b==r[1] and c=='alignment' for a,b,c in rows),r
+          print('pass42 verified: 69360 translated + 996 classified + 46 unresolved = 70402')
           PY
-      - name: Upload repository-wide scan
-        uses: actions/upload-artifact@v4
-        with:
-          name: code1-repository-wide-residual-history
-          path: code1-repository-wide-residual-history.txt
-          retention-days: 7
+      - name: Commit pass 42
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm Code1/fix_residual_pass42.py
+          git add Code1/RESIDUAL_LEDGER.md Code1/PROGRESS.md Code1/STAGING_LEDGER.md Code1/DECOMPILATION_CONTINUITY.md
+          git diff --cached --check
+          git commit -m "Classify CODE.1 residual pass 42"
+          git push origin HEAD:code1-decompilation
