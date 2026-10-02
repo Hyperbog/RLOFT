@@ -6,11 +6,11 @@ It does **not** change `kVerifiedTranslatedBytes`. The conservative denominator 
 
 - verified translated code: **69,365 bytes**
 - conservative residual: **1,037 bytes**
-- explicitly classified residual below: **721 bytes**
+- explicitly classified residual below: **727 bytes**
   - embedded tables: **122 bytes**
   - alignment/zero/padding: **479 bytes**
-  - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **120 bytes**
-- residual still requiring classification: **316 bytes**
+  - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **126 bytes**
+- residual still requiring classification: **310 bytes**
 
 The `static_assert` interval audit is diagnostic only. Many verified regions are represented without one assert per machine range, so the 5,673-byte assert-gap total is **not** the untranslated-code total.
 
@@ -67,6 +67,8 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 05879..0587F | alignment | 7
 05D8F..05D8F | alignment | 1
 05F4A..05F4B | alignment | 2
+060B2..060B3 | noncode | 2
+06101..06103 | noncode | 3
 061BF..061BF | alignment | 1
 061CE..061CF | alignment | 2
 061FD..061FF | alignment | 3
@@ -197,6 +199,7 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 0A473..0A473 | alignment | 1
 0A4E7..0A4E7 | alignment | 1
 0A555..0A557 | alignment | 3
+0AC0F..0AC0F | noncode | 1
 0AE5A..0AE5B | alignment | 2
 0AEA6..0AEA7 | alignment | 2
 0AF05..0AF07 | alignment | 3
@@ -281,4 +284,4 @@ The table category consists of the following already-established data islands:
 
 ## Accounting rule
 
-Do not add these 713 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 324 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
+Do not add these 727 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 310 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
