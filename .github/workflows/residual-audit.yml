@@ -11,7 +11,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Decode batch 12 integrator as text
+      - name: Inspect decoded batch 12 local gaps
         run: |
           python3 - <<'PY'
           import ast,base64,zlib,re
@@ -19,48 +19,19 @@ jobs:
           src=Path('Code1/integrate_runtime_startup_batch_12.py').read_text()
           tree=ast.parse(src)
           strings=[n.value for n in ast.walk(tree) if isinstance(n,ast.Constant) and isinstance(n.value,str)]
-          payload=max(strings,key=len)
-          decoded=zlib.decompress(base64.b85decode(payload)).decode()
-          print('decoded chars:',len(decoded))
-          sa=re.compile(r'static_assert\(0x([0-9A-Fa-f]+)u-0x([0-9A-Fa-f]+)u==([0-9]+)u\)')
-          ranges=[]
-          for end,start,n in sa.findall(decoded):
-              a,b,n=int(start,16),int(end,16),int(n)
-              if b-a==n:ranges.append((a,b))
-          merged=[]
-          for a,b in sorted(ranges):
-              if merged and a<=merged[-1][1]:merged[-1][1]=max(merged[-1][1],b)
-              else:merged.append([a,b])
-          print('assert intervals:',len(ranges),'merged:',len(merged),'bytes:',sum(b-a for a,b in merged))
-          print('intervals:')
-          for a,b in merged:print(f' {a:05X}..{b-1:05X} {b-a}')
-          print('\nRELEVANT DECODED LINES')
-          keys=('align','padding','zero','table','data','excluded','excluding','verified','integrated','9be0','a058','a558','a6ef')
-          for no,line in enumerate(decoded.splitlines(),1):
-              low=line.lower()
-              if any(k in low for k in keys):
-                  print(f'{no}: {line[:700]}')
-          # Focus on the two selected batch-12 spans from the preserved checkpoint.
-          selected=[(0x09BE0,0x0A059),(0x0A558,0x0A6F0)]
-          inside=[]
-          for a,b in ranges:
-              if any(x<=a and b<=y for x,y in selected):inside.append((a,b))
-          mi=[]
-          for a,b in sorted(inside):
-              if mi and a<=mi[-1][1]:mi[-1][1]=max(mi[-1][1],b)
-              else:mi.append([a,b])
-          print('\nSELECTED SPAN RECONCILIATION')
-          print('selected bytes:',sum(y-x for x,y in selected))
-          print('asserted bytes in selected:',sum(b-a for a,b in mi))
-          comp=[]
-          for x,y in selected:
-              p=x
-              for a,b in mi:
-                  if b<=x or a>=y:continue
-                  aa=max(a,x);bb=min(b,y)
-                  if p<aa:comp.append((p,aa))
-                  p=max(p,bb)
-              if p<y:comp.append((p,y))
-          print('complement bytes:',sum(b-a for a,b in comp))
-          for a,b in comp:print(f' complement {a:05X}..{b-1:05X} {b-a}')
+          decoded=zlib.decompress(base64.b85decode(max(strings,key=len))).decode()
+          lines=decoded.splitlines()
+          print('DECODED LINES 60..82')
+          for no in range(60,83):
+              if no<=len(lines):print(f'{no}: {lines[no-1]}')
+          print('\nCURRENT REPOSITORY HITS FOR UNRESOLVED BATCH12 GAP ADDRESSES')
+          targets=['9C98','9C9F','9E89','9E8B','9EAE','9EAF','A00E','A00F','A5C6','A5C7','A675','A677']
+          for p in Path('Code1').rglob('*'):
+              if not p.is_file():continue
+              try:body=p.read_text()
+              except UnicodeDecodeError:continue
+              for no,line in enumerate(body.splitlines(),1):
+                  up=line.upper()
+                  if any(re.search(r'(?<![0-9A-F])'+t+r'(?![0-9A-F])',up) for t in targets):
+                      print(f'{p}:{no}: {line[:900]}')
           PY
