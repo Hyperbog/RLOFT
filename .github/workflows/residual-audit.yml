@@ -12,39 +12,35 @@ jobs:
         with:
           ref: code1-decompilation
           fetch-depth: 0
-      - name: Trace verified counter history
+      - name: Trace progress ledger totals
         run: |
           python3 - <<'PY'
           import re,subprocess
-          commits=subprocess.check_output(['git','rev-list','--reverse','code1-decompilation','--','Code1/Code1.cpp'],text=True).split()
-          pat=re.compile(r'kVerifiedTranslatedBytes\s*=\s*([0-9]+)u')
-          prev=None
-          rows=[]
+          commits=subprocess.check_output(['git','rev-list','--reverse','code1-decompilation','--','Code1/PROGRESS.md'],text=True).split()
+          cur_pat=re.compile(r'Current verified translated bytes:\s*\*\*([0-9,]+)\*\*')
+          total_pat=re.compile(r'Total integrated verified translated bytes:\s*\*\*([0-9,]+)\*\*')
+          prev=None; rows=[]
           for sha in commits:
-              try:
-                  body=subprocess.check_output(['git','show',f'{sha}:Code1/Code1.cpp'],text=True,errors='ignore')
-              except subprocess.CalledProcessError:
-                  continue
-              m=pat.search(body)
-              if not m:continue
-              val=int(m.group(1))
+              try: body=subprocess.check_output(['git','show',f'{sha}:Code1/PROGRESS.md'],text=True,errors='ignore')
+              except subprocess.CalledProcessError: continue
+              m=cur_pat.search(body) or total_pat.search(body)
+              if not m: continue
+              val=int(m.group(1).replace(',',''))
               if val!=prev:
                   subj=subprocess.check_output(['git','show','-s','--format=%s',sha],text=True).strip()
                   rows.append((sha,val,None if prev is None else val-prev,subj))
                   prev=val
-          print('VERIFIED COUNTER CHANGES')
+          print('PROGRESS LEDGER CHANGES >= 28k')
           for sha,val,delta,subj in rows:
-              if val>=28000 or any(k in subj.lower() for k in ('batch 07','batch 08','batch 09','batch 10','batch 11','batch 12','account','audit')):
+              if val>=28000:
                   ds='initial' if delta is None else f'{delta:+d}'
-                  print(f'{sha[:12]}  {val:6d}  {ds:>8}  {subj}')
-          print('\nDECREASES / CORRECTIONS')
+                  print(f'{sha[:12]} {val:6d} {ds:>8} {subj}')
+          print('\nDECREASES')
           for sha,val,delta,subj in rows:
-              if delta is not None and delta<0:
-                  print(f'{sha[:12]}  {val:6d}  {delta:+d}  {subj}')
-          print('\nBATCH08 ANCHOR')
+              if delta is not None and delta<0: print(f'{sha[:12]} {val:6d} {delta:+d} {subj}')
+          print('\nVALUES 32k..45k')
           for sha,val,delta,subj in rows:
-              if 'batch 08' in subj.lower() or (36000<=val<=37000):
+              if 32000<=val<=45000:
                   ds='initial' if delta is None else f'{delta:+d}'
-                  print(f'{sha[:12]}  {val:6d}  {ds:>8}  {subj}')
-          print('\nCURRENT',rows[-1][1] if rows else 'missing')
+                  print(f'{sha[:12]} {val:6d} {ds:>8} {subj}')
           PY
