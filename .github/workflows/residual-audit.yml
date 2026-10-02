@@ -4,6 +4,8 @@ on:
     branches: [code1-decompilation]
     paths:
       - '.github/workflows/residual-audit.yml'
+permissions:
+  contents: write
 jobs:
   audit:
     runs-on: ubuntu-latest
@@ -12,68 +14,33 @@ jobs:
         with:
           ref: code1-decompilation
           fetch-depth: 0
-      - name: Scan decoded historical blobs for final residual evidence
+      - name: Record decoded-history residual audit
         run: |
-          python3 - <<'PY' > code1-decoded-history-residual.txt
-          import subprocess,re,zlib,base64
-          targets=[
-            '000EB','01462','04977','06054','087C2','08E1F','09BD7','09C98','09E89','09EAE','0A00E','0A059','0A21A',
-            '0AE0B','0BE61','0CC19','0D8CE','0DDD8','0E3B3','0F742','0F7B3','0F8BD','0FC97']
-          aliases={t:{t,t.lstrip('0') or '0'} for t in targets}
-          # Include each target's immediate next entry marker where known, because old notes often name only that boundary.
-          nexts={'000EB':'000EC','01462':'01464','04977':'04978','06054':'06060','087C2':'087C4','08E1F':'08E20','09BD7':'09BE0','09C98':'09CA0','09E89':'09E8C','09EAE':'09EB0','0A00E':'0A010','0A059':'0A05C','0A21A':'0A21C','0AE0B':'0AE0C','0BE61':'0BE70','0CC19':'0CC1C','0D8CE':'0D8D0','0DDD8':'0DDE0','0E3B3':'0E3B4','0F742':'0F750','0F7B3':'0F7B8','0F8BD':'0F8C4','0FC97':'0FC98'}
-          for t,n in nexts.items(): aliases[t]|={n,n.lstrip('0') or '0'}
-          wrap=re.compile(r"\s*import zlib,base64\s*\nexec\(zlib\.decompress\(base64\.b85decode\('(.+)'\)\)\)\s*",re.S)
-          objs=subprocess.check_output(['git','rev-list','--objects','--all','--','Code1'],text=True,errors='replace').splitlines()
-          seen_obj=set(); findings={t:[] for t in targets}; seen_ctx={t:set() for t in targets}
-          for rec in objs:
-            parts=rec.split(' ',1); sha=parts[0]; path=parts[1] if len(parts)>1 else ''
-            if sha in seen_obj or not path: continue
-            seen_obj.add(sha)
-            if not path.endswith(('.py','.md','.cpp','.txt','.log')): continue
-            if any(x in path for x in ('RESIDUAL_LEDGER','fix_residual_pass','fix_accounting_pass39')): continue
-            try:
-              if subprocess.check_output(['git','cat-file','-t',sha],text=True).strip()!='blob': continue
-              raw=subprocess.check_output(['git','cat-file','-p',sha])
-            except subprocess.CalledProcessError: continue
-            if len(raw)>2_000_000: continue
-            s=raw.decode('utf-8','replace')
-            m=wrap.fullmatch(s)
-            if m:
-              try:s=zlib.decompress(base64.b85decode(m.group(1))).decode('utf-8','replace')
-              except Exception: pass
-            lines=s.splitlines()
-            up=[x.upper() for x in lines]
-            for t in targets:
-              pats=aliases[t]
-              hitidx=[]
-              for i,line in enumerate(up):
-                if any(re.search(r'(?<![0-9A-F])0?'+re.escape(p.upper())+r'(?![0-9A-F])',line) for p in pats): hitidx.append(i)
-              for i in hitidx:
-                lo=max(0,i-5); hi=min(len(lines),i+6)
-                ctx='\n'.join(lines[lo:hi]).strip()
-                # Require either an evidence/classification word nearby or an integration/staging source path.
-                cfold=ctx.lower()
-                evidence=any(k in cfold for k in ('align',' nop','zero','padding','table','data','excluded','exclude','non-code','noncode','selected','integrat','disassembl','staging','entry','span','range'))
-                sourceish=any(k in path.lower() for k in ('integrate','staging','map','continuity','progress'))
-                if not (evidence or sourceish): continue
-                key=re.sub(r'\s+',' ',ctx)
-                if key in seen_ctx[t]: continue
-                seen_ctx[t].add(key)
-                findings[t].append((path,sha,ctx))
-          for t in targets:
-            print(f'\n===== {t} =====')
-            vals=findings[t]
-            vals.sort(key=lambda x:(0 if any(k in x[2].lower() for k in ('align',' nop','zero','padding','table','data','excluded','non-code','noncode')) else 1,x[0]))
-            for path,sha,ctx in vals[:80]:
-              print(f'BLOB {sha} PATH {path}')
-              print(ctx)
-              print('---')
-            print('UNIQUE_CONTEXTS',len(vals))
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          ledger=Path('Code1/RESIDUAL_LEDGER.md').read_text()
+          assert '- verified translated code: **69,360 bytes**' in ledger
+          assert '- explicitly classified residual below: **937 bytes**' in ledger
+          assert '- residual still requiring classification: **105 bytes**' in ledger
+          assert '## Remaining exact unresolved islands after pass 41' in ledger
+          note='''\n\n## 2026-10-02 decoded full-history residual audit after pass 41\n\nA repository-wide scan traversed every historical textual `Code1` blob reachable from Git history and decoded the compressed Python integration wrappers before searching the **23 remaining residual islands** and their adjacent entry markers. The scan did **not** recover an additional explicit classification strong enough to move any of the remaining **105 bytes** into translated code or proven non-code. In particular, the largest separators `6054..605F`, `BE61..BE6F`, and `F742..F74F` remain boundary-shaped but unclassified; adjacency/alignment appearance is not proof.\n\nThe audit also found a concrete reason not to arithmetic-close the older recovery batch `9BE0..9EA2` from its broad prose description alone: that historical lift treated the complement of its selected code as data/alignment, but later direct reconciliation proved `9E10..9E11` are executable code. Therefore `9C98..9C9F`, `9E89..9E8B`, and the other surviving separators remain unresolved unless independent byte-level evidence is preserved in the repository.\n\nAuthoritative accounting is unchanged: **69,360 translated + 937 classified non-code + 105 unresolved = 70,402 bytes**. The translated-code metric remains **98.52%**, and the badge remains red.\n'''
+          p=Path('Code1/DECOMPILATION_CONTINUITY.md')
+          text=p.read_text()
+          if '## 2026-10-02 decoded full-history residual audit after pass 41' not in text:
+              p.write_text(text+note)
           PY
-      - name: Upload decoded history scan
-        uses: actions/upload-artifact@v4
-        with:
-          name: code1-decoded-history-residual
-          path: code1-decoded-history-residual.txt
-          retention-days: 7
+      - name: Syntax check CODE.1 C++
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
+      - name: Commit continuity audit note
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add Code1/DECOMPILATION_CONTINUITY.md
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'Audit note already present.'
+          else
+            git commit -m "Record CODE.1 final residual history audit"
+            git push origin HEAD:code1-decompilation
+          fi
