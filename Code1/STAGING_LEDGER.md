@@ -76,3 +76,6 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 - Integrated directly from authoritative disassembly: post-generation/palette/resource/cursor/tree span `4978..59AB` with verified code subranges totaling **4,111 bytes**. Alignment/data excluded: `4A0A..4A0B`, `4B17`, `4C7F`, `4D51..4D53`, `4EEE..4EEF`, `508A..508B`, `522F`, `527A..527B`, `52AA..52AB`, `53B1..53B3`, `53E2..53E3`, `5451..5453`, `550B`, `55DB`, `577D..577F`, `57DB`, and seven zero bytes `5879..587F`. Active staging unchanged.
 
 - Batch 08 integrated **3,671 bytes**: `59AC..6053`, `6184..6653`, `6654..6851`, excluding documented alignment. `6060..6183` remains unresolved hardware/interrupt machinery and is not counted.
+
+## Batch 09 fold
+`6854..71C7` selected verified graphics/DPMI wrappers and `72A0..7669` selected byte-copy/buffered-stream helpers are integrated/countable. `71C8..729F` remains unresolved/unintegrated; alignment/data islands remain excluded.

@@ -213,3 +213,7 @@ Verified total **33,000 / 70,402 = 46.87%**. Added **4,111** instruction-account
 
 ## 2026-10-01 mid-runtime batch 08
 Verified total **36,671 / 70,402 = 52.09%**. Added **3,671 bytes** across palette nearest/tree construction/search (`59AC..5D8E`), actor class/table population (`5D90..6053`), RNG/DOS wrappers and display initialization (`6184..6653`), and clipped display wrappers (`6654..6851`). Preserve the AX-only MOVZX aliasing in 59AC, BL-as-input behavior in 5D90, explicit 16-bit tree stack/sentinels in 5B64, and guest/global address semantics. `6060..6183` is deliberately uncounted pending exact hardware/interrupt stack-register modeling.
+
+
+## 2026-10-01 mid-graphics batch 09
+Verified total **39,995 / 70,402 = 56.81%** after adding **3,324 bytes** from selected instruction-bounded ranges in `6854..71C7` and `72A0..7669`. `71C8..729F` remains unresolved and uncounted. Preserve the clipped-image output structure at `240C + depth*18h`, DPMI guest-address boundaries, and buffered stream state globals `2870/2874/2878/287C`.

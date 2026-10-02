@@ -1,18 +1,18 @@
 # CODE.1 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/verified%20conversion-52.09%25-red)
+![Progress](https://img.shields.io/badge/verified%20conversion-56.81%25-red)
 
-**Verified conversion:** 52.09%  
-**Remaining:** 47.91%  
+**Verified conversion:** 56.81%  
+**Remaining:** 43.19%  
 **Status color:** RED until verified conversion reaches exactly 100%; GREEN only at 100%.
 
 ## Measurement rule
 
 The percentage is the conservative coverage floor: instruction-accounted translated bytes divided by the complete object-1 executable extent (`0x11302` bytes). Embedded data remains in the denominator until code/data separation is proven. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated bytes: **36,671**.  
+Current verified translated bytes: **39,995**.  
 Current conservative denominator: **70,402 (`0x11302`) bytes**.  
-Raw coverage: **52.0880%**, displayed as **52.09%**.
+Raw coverage: **56.8095%**, displayed as **56.81%**.
 
 ## Immutable source identity
 
@@ -73,7 +73,7 @@ Raw coverage: **52.0880%**, displayed as **52.09%**.
 - Runtime heap-extension driver `10AA9..10C45`: **413 bytes**.
 - Runtime tail helpers `10C46..10C6C`: **39 bytes**.
 
-Total integrated verified translated bytes: **36,671**.
+Total integrated verified translated bytes: **39,995**.
 
 `DA45..DA47` is three zero bytes. `EDD3..EDDF` is **13 zero bytes**. Both are classified as data/alignment and are not counted as translated code.
 
@@ -116,3 +116,5 @@ A physical-file audit confirmed that `DAD9..DDD7` was present in `Code1.cpp` but
 The working target remains approximately **4,000 newly verified bytes per substantial batch**, with fidelity controlling. Analysis continues past individual dependency edges rather than treating them as stopping points.
 
 `CODE.1` remains controlling evidence whenever documentation and the actual bytes differ.
+
+- Mid-graphics/DPMI/stream batch `6854..71C7` (selected instruction ranges; allocator `71C8..729F` excluded) plus `72A0..7669` buffered/string helpers with alignment/data excluded: **3,324 bytes**.
