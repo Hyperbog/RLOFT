@@ -126,3 +126,7 @@ A post-interruption audit re-disassembled `95BC..9723` directly from immutable C
 
 ## Residual-classification checkpoint
 `RESIDUAL_LEDGER.md` now preserves 448 explicitly classified non-code bytes across 117 non-overlapping ranges (118 table + 330 alignment/zero/padding). This is classification only, not translated coverage. Verified code remains 69,652 bytes and 302 conservative residual bytes still require classification or translation. The active staging pool remains zero.
+
+
+## Residual pass 22
+Fourteen explicitly commented one-byte alignment islands were added to `RESIDUAL_LEDGER.md`. Classified non-code is 462 bytes; unresolved conservative residual is 288 bytes. Verified translated code remains 69,652 bytes and active staging remains zero.

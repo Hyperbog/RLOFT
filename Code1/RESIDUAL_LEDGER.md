@@ -6,10 +6,10 @@ It does **not** change `kVerifiedTranslatedBytes`. The conservative denominator 
 
 - verified translated code: **69,652 bytes**
 - conservative residual: **750 bytes**
-- explicitly classified residual below: **448 bytes**
+- explicitly classified residual below: **462 bytes**
   - embedded tables: **118 bytes**
-  - alignment/zero/padding: **330 bytes**
-- residual still requiring classification: **302 bytes**
+  - alignment/zero/padding: **344 bytes**
+- residual still requiring classification: **288 bytes**
 
 The `static_assert` interval audit is diagnostic only. Many verified regions are represented without one assert per machine range, so the 5,673-byte assert-gap total is **not** the untranslated-code total.
 
@@ -48,15 +48,21 @@ Format: `START..END | category | inclusive byte count`.
 045EF..045F8 | table | 10
 045F9..045FB | alignment | 3
 04A0A..04A0B | alignment | 2
+04B17..04B17 | alignment | 1
+04C7F..04C7F | alignment | 1
 04D51..04D53 | alignment | 3
 04EEE..04EEF | alignment | 2
 0508A..0508B | alignment | 2
+0522F..0522F | alignment | 1
 0527A..0527B | alignment | 2
 052AA..052AB | alignment | 2
 053B1..053B3 | alignment | 3
 053E2..053E3 | alignment | 2
 05451..05453 | alignment | 3
+0550B..0550B | alignment | 1
+055DB..055DB | alignment | 1
 0577D..0577F | alignment | 3
+057DB..057DB | alignment | 1
 05879..0587F | alignment | 7
 05D8F..05D8F | alignment | 1
 05F4A..05F4B | alignment | 2
@@ -64,6 +70,7 @@ Format: `START..END | category | inclusive byte count`.
 061CE..061CF | alignment | 2
 061FD..061FF | alignment | 3
 0626F..0626F | alignment | 1
+06303..06303 | alignment | 1
 06422..06423 | alignment | 2
 064A3..064AF | alignment | 13
 064D9..064DB | alignment | 3
@@ -73,11 +80,18 @@ Format: `START..END | category | inclusive byte count`.
 0723D..0723F | alignment | 3
 0766A..0766B | alignment | 2
 0766C..0767B | table | 16
+0782F..0782F | alignment | 1
+07843..07843 | alignment | 1
 07942..07943 | alignment | 2
 079C6..079C7 | alignment | 2
 07A61..07A63 | alignment | 3
 07AB1..07AB3 | alignment | 3
+07B73..07B73 | alignment | 1
 07C09..07C0B | alignment | 3
+07D7F..07D7F | alignment | 1
+07E03..07E03 | alignment | 1
+07E43..07E43 | alignment | 1
+07E6B..07E6B | alignment | 1
 07F41..07F4F | alignment | 15
 07FA5..07FA7 | alignment | 3
 08029..0802B | alignment | 3
@@ -151,4 +165,4 @@ All other ranges in the machine-readable block are alignment, NOP/LEA/MOV-self p
 
 ## Accounting rule
 
-Do not add these 448 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 302 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
+Do not add these 462 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 288 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
