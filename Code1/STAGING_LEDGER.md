@@ -9,7 +9,6 @@ Authority: CODE.1 SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f
 | Staging source | Active ranges | Functional bytes | Why staged / next proof required |
 |---|---:|---:|---|
 | `StartupNext.staging.cpp` + `StartupExit.reconciled.cpp` | `CE8B..CEBF` only | 53 | The rest of startup staging was re-disassembled and integrated in batch 12. The common exit/fatal continuation remains excluded because its alternate DOS-write entry and shared nonreturning tail still require exact fold. |
-| `DosCrtNext.staging.cpp` | `D280..D312` | 147 | `D280..D312` performs DOS DTA get/set and 0x2B-byte copies whose DS/ES direction must be represented exactly. `D332..D4F1` is the open/create/truncate descriptor-state machine; its DOS carry/error encoding and `10397/103C3/10415` interactions are mapped but the placeholder staged C++ is not integration quality. `D313..D331`, `D4F2..D55D`, `D55E..D572`, and `D573..D5AC` are already integrated and must not be counted here. |
 | `RuntimeGapE0D0.staging.cpp` | none | 0 | `E2C3..E35F` was re-disassembled and folded in batch 12 as an explicit interrupt-frame/SS:ESP boundary. |
 
 **Active unique staged bytes: 53.**
@@ -96,3 +95,6 @@ Integrated **4,129 bytes** across instruction-bounded low graphics and resource/
 
 ## Batch 14 integration checkpoint
 Integrated **3,921 verified instruction bytes** from `00EC..035B`, `10A4..1461`, selected `BE70..C79E`, and `CBD4..CBEE`. Alignment/data islands are excluded. `C79F..CBD0` is explicitly retained on the unresolved queue because it is position-dependent self-modifying VGA code; it is not staging and is not counted. No previously staged startup/interrupt bytes are double-counted.
+
+## Batch 15 integration
+Integrated **3,886 verified bytes** from `15B0..1A00`, `2198..24D0`, `266C..28E1`, functional `A21C..A554`, and `A6F0..A8F3`. Alignment `1A01..1A03`, `24D1..24D3`, `28E2..28E3`, `A2AE..A2AF`, `A359..A35B`, `A36A..A36B`, `A38D..A38F`, `A3E5..A3E7`, `A473`, `A4E7`, `A555..A557` is excluded. The self-modifying subtract-byte behavior of `A7E8` is represented as an explicit per-call byte because both encoded immediates are overwritten on every entry. Active staging remains only `CE8B..CEBF` (53 bytes).

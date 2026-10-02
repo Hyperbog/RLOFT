@@ -23,7 +23,7 @@ struct Batch15EarlyBoundary{
  void(*call_1464)(u32,const u32*,s32)=nullptr;u32(*call_53b4)()=nullptr;s32(*call_43c)()=nullptr;
  void(*call_15b0)(s32,s32,s32,s32)=nullptr;void(*call_1f24)()=nullptr;
 };
-static s32 div8_after_plus4(s32 v)noexcept{return static_cast<s32>(static_cast<s64>(v)+4)/8;}
+static s32 div8_after_plus4(s32 v)noexcept{const s32 w=static_cast<s32>(static_cast<u32>(v)+4u);return w/8;}
 
 // 15B0..1A00: five-frame slot dissolve followed by optional nine-frame movement of the selected slot.
 // 7138 is byte-toggled, but the encoded 53E4/5454 calls push the full dword beginning at 7138.
@@ -66,7 +66,7 @@ void function_15b0(Machine&m,Batch15EarlyBoundary&b,s32 selected,s32 target_x,s3
   if(b.call_66c0)b.call_66c0(scratch[page],px[page],py[page],0x7au,0x30u);
   const s32 id=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x08f8u+static_cast<u32>(selected)*8u))));const s32 base=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x713cu))));
   if(id>=base&&id<base+0x2e){const u32 r0=b.call_954c?b.call_954c(0x14u,7u):0u;if(b.call_67c8)b.call_67c8(r0,px[page],py[page],0u);const u32 r1=b.call_954c?b.call_954c(static_cast<u32>(id),1u):0u;if(b.call_67c8)b.call_67c8(r1,px[page]+0x15,py[page],0u);}else{const u32 r=b.call_954c?b.call_954c(static_cast<u32>(id),7u):0u;if(b.call_67c8)b.call_67c8(r,px[page],py[page],0u);}
-  const s32 n=step+1;px[page]=x0+div8_after_plus4((target_x-x0)*n);py[page]=y0+div8_after_plus4((target_y-y0)*n);
+  const s32 n=step+1;const s32 dxn=static_cast<s32>(static_cast<u32>(target_x-x0)*static_cast<u32>(n));const s32 dyn=static_cast<s32>(static_cast<u32>(target_y-y0)*static_cast<u32>(n));px[page]=x0+div8_after_plus4(dxn);py[page]=y0+div8_after_plus4(dyn);
   if(b.call_53e4)b.call_53e4(load_le32(dgroup_ptr(m,dgroup(0x7138u))));*dgroup_ptr(m,dgroup(0x7138u))^=1u;
  }
  if(b.call_7240){b.call_7240(scratch0);b.call_7240(scratch1);}if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));if(b.call_86c4)b.call_86c4(0xc8,0,0x19,7u);if(b.call_4b0)b.call_4b0(static_cast<u32>(final_mode));if(b.call_5454)b.call_5454(load_le32(dgroup_ptr(m,dgroup(0x7138u))));*dgroup_ptr(m,dgroup(0x7138u))^=1u;
@@ -79,7 +79,7 @@ static_assert(0x1A01u-0x15B0u==1105u);
  const u32 actor=load_le32(dgroup_ptr(m,dgroup(0x04ccu)))*0x248u;
  if(mode==0u){u32 any=0;const u32 cls=*dgroup_ptr(m,dgroup(actor+0x680cu));for(u32 i=0;i<6u;++i){const s32 v=static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(0x06d8u+cls*6u+i)));out[i]=static_cast<u32>(v);if(v!=0)any=1u;}return any;}
  if(mode==1u){u32 any=0;const u32 cls=*dgroup_ptr(m,dgroup(actor+0x680cu));const s32 sub=static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(actor+0x680du)));const s32 off=static_cast<s32>(cls*36u)+sub*6;for(u32 i=0;i<6u;++i){const s32 v=static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(static_cast<u32>(0x06fcu+off+static_cast<s32>(i)))));out[i]=static_cast<u32>(v);if(v!=0)any=1u;}return any;}
- if(mode!=2u)return incoming_edx;for(u32&i:*reinterpret_cast<u32(*)[6]>(out))i=0u;const u8 c=*dgroup_ptr(m,dgroup(actor+0x680cu)),d=*dgroup_ptr(m,dgroup(actor+0x680du)),e=*dgroup_ptr(m,dgroup(actor+0x680eu));
+ if(mode!=2u)return incoming_edx;for(u32 i=0;i<6u;++i)out[i]=0u;const u8 c=*dgroup_ptr(m,dgroup(actor+0x680cu)),d=*dgroup_ptr(m,dgroup(actor+0x680du)),e=*dgroup_ptr(m,dgroup(actor+0x680eu));
  if(c==5u){if(d==0u){if(e==4u)out[5]=1u;if(e==5u)out[4]=1u;}if(d==4u){if(e==0u)out[5]=1u;if(e==5u)out[0]=1u;}if(d==5u&&e==4u)out[0]=1u;}
  else if(c==1u){if(d==0u){if(e==4u){out[5]=1u;out[3]=1u;}if(e==5u||e==3u)out[4]=1u;}if(d==4u){if(e==0u){out[5]=1u;out[3]=1u;}if(e==5u||e==3u)out[0]=1u;}if(d==5u){if(e==4u)out[0]=1u;if(e==0u){out[4]=1u;out[3]=1u;}}if(d==3u){if(e==4u)out[0]=1u;if(e==0u)out[4]=1u;}}
  u32 any=0;for(u32 i=0;i<6u;++i)if(out[i]!=0u)any=1u;return any;
