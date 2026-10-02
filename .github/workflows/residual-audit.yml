@@ -11,7 +11,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Extract represented instruction intervals and non-code candidates
+      - name: Extract represented instruction intervals and residual gaps
         run: |
           python3 - <<'PY'
           import re
@@ -38,6 +38,9 @@ jobs:
           print('gaps:',len(gaps),'gap bytes:',sum(b-a for a,b in gaps))
           m=re.search(r'kVerifiedTranslatedBytes=(\d+)u',text)
           print('kVerifiedTranslatedBytes:',m.group(1) if m else 'missing')
+          print('\nRESIDUAL GAP MAP')
+          for a,b in gaps:
+              print(f'{a:05X}..{b-1:05X}  {b-a:4d} bytes')
           print('\nNONCODE CANDIDATE COMMENTS')
           keys=('align','nop','zero','table','data','padding','xchg','mov eax,eax','lea ')
           for no,line in enumerate(text.splitlines(),1):
