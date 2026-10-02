@@ -1,46 +1,48 @@
-name: CODE.1 residual audit
+name: CODE.1 residual verifier
 on:
   push:
     branches: [code1-decompilation]
     paths:
       - '.github/workflows/residual-audit.yml'
-permissions:
-  contents: write
+      - 'Code1/Code1.cpp'
+      - 'Code1/RESIDUAL_LEDGER.md'
+      - 'Code1/PROGRESS.md'
+      - 'Code1/DECOMPILATION_CONTINUITY.md'
+  workflow_dispatch:
 jobs:
-  audit:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-          fetch-depth: 0
-      - name: Record decoded-history residual audit
+      - name: Verify current residual accounting
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
+          cpp=Path('Code1/Code1.cpp').read_text()
           ledger=Path('Code1/RESIDUAL_LEDGER.md').read_text()
+          assert 'constexpr u32 kVerifiedTranslatedBytes=69360u;' in cpp
           assert '- verified translated code: **69,360 bytes**' in ledger
           assert '- explicitly classified residual below: **937 bytes**' in ledger
+          assert '  - embedded tables: **196 bytes**' in ledger
+          assert '  - alignment/zero/padding: **479 bytes**' in ledger
+          assert '  - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **262 bytes**' in ledger
           assert '- residual still requiring classification: **105 bytes**' in ledger
-          assert '## Remaining exact unresolved islands after pass 41' in ledger
-          note='''\n\n## 2026-10-02 decoded full-history residual audit after pass 41\n\nA repository-wide scan traversed every historical textual `Code1` blob reachable from Git history and decoded the compressed Python integration wrappers before searching the **23 remaining residual islands** and their adjacent entry markers. The scan did **not** recover an additional explicit classification strong enough to move any of the remaining **105 bytes** into translated code or proven non-code. In particular, the largest separators `6054..605F`, `BE61..BE6F`, and `F742..F74F` remain boundary-shaped but unclassified; adjacency/alignment appearance is not proof.\n\nThe audit also found a concrete reason not to arithmetic-close the older recovery batch `9BE0..9EA2` from its broad prose description alone: that historical lift treated the complement of its selected code as data/alignment, but later direct reconciliation proved `9E10..9E11` are executable code. Therefore `9C98..9C9F`, `9E89..9E8B`, and the other surviving separators remain unresolved unless independent byte-level evidence is preserved in the repository.\n\nAuthoritative accounting is unchanged: **69,360 translated + 937 classified non-code + 105 unresolved = 70,402 bytes**. The translated-code metric remains **98.52%**, and the badge remains red.\n'''
-          p=Path('Code1/DECOMPILATION_CONTINUITY.md')
-          text=p.read_text()
-          if '## 2026-10-02 decoded full-history residual audit after pass 41' not in text:
-              p.write_text(text+note)
+          assert 69360 + 937 + 105 == 70402
+          block=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)\n<!-- RESIDUAL-RANGES-END -->',ledger,re.S).group(1)
+          rows=[]
+          for raw in block.splitlines():
+              m=re.fullmatch(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| ([0-9]+)',raw.strip()); assert m,raw
+              a,b=int(m.group(1),16),int(m.group(2),16); n=int(m.group(4)); assert b-a+1==n
+              rows.append((a,b,m.group(3)))
+          assert sum(b-a+1 for a,b,_ in rows)==937
+          assert sum(b-a+1 for a,b,c in rows if c=='table')==196
+          assert sum(b-a+1 for a,b,c in rows if c=='alignment')==479
+          assert sum(b-a+1 for a,b,c in rows if c=='noncode')==262
+          for x,y in zip(rows,rows[1:]): assert x[1] < y[0],(x,y)
+          print('CODE.1 accounting verified: 69360 translated + 937 classified + 105 unresolved = 70402')
           PY
       - name: Syntax check CODE.1 C++
         run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
-      - name: Commit continuity audit note
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add Code1/DECOMPILATION_CONTINUITY.md
-          git diff --cached --check
-          if git diff --cached --quiet; then
-            echo 'Audit note already present.'
-          else
-            git commit -m "Record CODE.1 final residual history audit"
-            git push origin HEAD:code1-decompilation
-          fi
