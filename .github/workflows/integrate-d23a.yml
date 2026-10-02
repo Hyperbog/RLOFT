@@ -14,10 +14,12 @@ jobs:
         with:
           ref: code1-decompilation
       - run: python3 Code1/integrate_mid_runtime_batch_08.py
+      - run: python3 Code1/fix_mid_runtime_batch_08.py
       - run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
       - run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add Code1/Code1.cpp Code1/PROGRESS.md Code1/STAGING_LEDGER.md Code1/DECOMPILATION_CONTINUITY.md Code1/integrate_mid_runtime_batch_08.py
+          git add Code1/Code1.cpp Code1/PROGRESS.md Code1/STAGING_LEDGER.md Code1/DECOMPILATION_CONTINUITY.md Code1/integrate_mid_runtime_batch_08.py Code1/fix_mid_runtime_batch_08.py
           git commit -m "Integrate CODE.1 mid-runtime batch 08"
           git push origin code1-decompilation
+# retry batch 08 fidelity fixes
