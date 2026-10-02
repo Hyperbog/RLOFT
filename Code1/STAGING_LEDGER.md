@@ -178,3 +178,7 @@ Small batch-08 checkpoint 5: classified `6672..6673`, `66A7`, `6743`, and `67C7`
 
 ## Residual pass 34
 Final batch-08 checkpoint: classified `67F2..67F3` and `6823` as alignment. The batch-08 advertised spans are now fully partitioned into 3,384 translated bytes and 62 classified non-code/alignment bytes. `RESIDUAL_LEDGER.md` now holds 705 classified bytes; 332 conservative residual bytes remain. Verified translated code stays 69,365 and active staging remains zero.
+
+
+## Residual pass 35
+Preserved `RuntimeGapE0D0.staging.cpp` proves `E0C8..E0CF` are eight zero bytes; they are now classified non-code. Classified residual is **713 bytes** and **324 bytes remain unresolved**. Verified translated code remains **69,365 bytes (98.53%)**. The audit also confirmed that `E174..E186`, `E1F4..E206`, and `E26C..E27E` were already integrated/countable in the historical +57 wrapper fold, preventing a duplicate count.

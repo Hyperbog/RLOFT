@@ -65,6 +65,7 @@ Raw coverage: **98.5270%**, displayed as **98.53%**.
 - 48 exact dispatcher wrappers `EBF3..EDD2`: **480 bytes**.
 - Frame no-op `EDE0..EDE6`: **7 bytes**.
 - Runtime object clone `E0D0..E173`: **164 bytes**.
+- Runtime 7240 forwarding wrappers `E174..E186`, `E1F4..E206`, `E26C..E27E`: **57 bytes** (already included in the verified scalar).
 - INT 24h trampoline installer `E280..E2C2`: **67 bytes**.
 - Runtime constructor readers `E190..E1F0` and `E208..E268`: **194 bytes**.
 - Signed decimal parser `E360..E3B2`: **83 bytes**.
@@ -209,3 +210,8 @@ Verified translated code remains **69,365 / 70,402 = 98.53%**. The next small ba
 ## 2026-10-02 residual classification pass 34
 
 Verified translated code remains **69,365 / 70,402 = 98.53%**. The final batch-08 inter-function complement bytes are classified: `67F2..67F3` and `6823` are alignment between exact asserted endpoints and the next aligned entries. This adds **3 classified bytes**. All **62 bytes** in batch 08 outside its 47 exact asserted code intervals are now classified non-code/alignment. The global residual ledger now classifies **705 bytes**, leaving **332 bytes unresolved**.
+
+
+## 2026-10-02 residual classification pass 35
+
+Preserved `RuntimeGapE0D0.staging.cpp` evidence explicitly identifies `E0C8..E0CF` as **eight zero bytes**. They are now classified as alignment/zero-fill residual, increasing classified non-code from **705** to **713 bytes** and reducing unresolved residual from **332** to **324 bytes**. Verified translated code remains **69,365 / 70,402 = 98.53%**. The same audit confirmed that the three 19-byte 7240 wrappers at `E174..E186`, `E1F4..E206`, and `E26C..E27E` were already integrated and historically counted (+57), so no duplicate coverage credit was added; their inventory row is restored for clarity.

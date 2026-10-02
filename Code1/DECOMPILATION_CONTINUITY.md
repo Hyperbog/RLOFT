@@ -338,3 +338,7 @@ Batch-08 alignment checkpoint 5: `6672..6673`, `66A7`, `6743`, and `67C7` (**5 b
 ## 2026-10-02 residual pass 34 checkpoint
 
 Batch-08 alignment checkpoint 6 closes the batch: `67F2..67F3` and `6823` (**3 bytes**) are classified from preserved exact function boundaries and the batch's `alignment excluded` note. All 62 complement bytes inside batch 08's advertised spans are now classified. Global classified residual is **705 bytes**; **332 bytes remain unresolved**. Verified translated code remains **69,365 bytes (98.53%)**.
+
+
+## 2026-10-02 residual pass 35 checkpoint
+Preserved `RuntimeGapE0D0.staging.cpp` proves `E0C8..E0CF` are eight zero bytes; they are now classified non-code. Classified residual is **713 bytes** and **324 bytes remain unresolved**. Verified translated code remains **69,365 bytes (98.53%)**. The audit also confirmed that `E174..E186`, `E1F4..E206`, and `E26C..E27E` were already integrated/countable in the historical +57 wrapper fold, preventing a duplicate count.

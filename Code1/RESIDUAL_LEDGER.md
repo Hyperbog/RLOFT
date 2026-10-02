@@ -6,11 +6,11 @@ It does **not** change `kVerifiedTranslatedBytes`. The conservative denominator 
 
 - verified translated code: **69,365 bytes**
 - conservative residual: **1,037 bytes**
-- explicitly classified residual below: **705 bytes**
+- explicitly classified residual below: **713 bytes**
   - embedded tables: **122 bytes**
-  - alignment/zero/padding: **471 bytes**
+  - alignment/zero/padding: **479 bytes**
   - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **112 bytes**
-- residual still requiring classification: **332 bytes**
+- residual still requiring classification: **324 bytes**
 
 The `static_assert` interval audit is diagnostic only. Many verified regions are represented without one assert per machine range, so the 5,673-byte assert-gap total is **not** the untranslated-code total.
 
@@ -249,6 +249,7 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 0DA45..0DA47 | alignment | 3
 0DE6F..0DE6F | alignment | 1
 0DEA1..0DEA6 | alignment | 6
+0E0C8..0E0CF | alignment | 8
 0E187..0E18F | alignment | 9
 0E1F1..0E1F3 | alignment | 3
 0E207..0E207 | alignment | 1
@@ -276,4 +277,4 @@ The table category consists of the following already-established data islands:
 
 ## Accounting rule
 
-Do not add these 705 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 332 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
+Do not add these 713 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 324 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
