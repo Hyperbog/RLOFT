@@ -6,11 +6,11 @@ It does **not** change `kVerifiedTranslatedBytes`. The conservative denominator 
 
 - verified translated code: **69,365 bytes**
 - conservative residual: **1,037 bytes**
-- explicitly classified residual below: **702 bytes**
+- explicitly classified residual below: **705 bytes**
   - embedded tables: **122 bytes**
-  - alignment/zero/padding: **468 bytes**
+  - alignment/zero/padding: **471 bytes**
   - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **112 bytes**
-- residual still requiring classification: **335 bytes**
+- residual still requiring classification: **332 bytes**
 
 The `static_assert` interval audit is diagnostic only. Many verified regions are represented without one assert per machine range, so the 5,673-byte assert-gap total is **not** the untranslated-code total.
 
@@ -91,6 +91,8 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 066BD..066BF | alignment | 3
 06743..06743 | alignment | 1
 067C7..067C7 | alignment | 1
+067F2..067F3 | alignment | 2
+06823..06823 | alignment | 1
 06852..06853 | alignment | 2
 06A03..06A03 | noncode | 1
 06BBD..06BBF | noncode | 3
@@ -274,4 +276,4 @@ The table category consists of the following already-established data islands:
 
 ## Accounting rule
 
-Do not add these 702 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 335 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
+Do not add these 705 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 332 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.

@@ -204,3 +204,8 @@ Verified translated code remains **69,365 / 70,402 = 98.53%**. The next small ba
 ## 2026-10-02 residual classification pass 33
 
 Verified translated code remains **69,365 / 70,402 = 98.53%**. The next small batch-08 inter-function cluster is classified: `6672..6673`, `66A7`, `6743`, and `67C7` are alignment bytes between exact asserted endpoints and the next aligned entries. This adds **5 classified bytes**. The ledger now classifies **702 bytes**, leaving **335 bytes unresolved**.
+
+
+## 2026-10-02 residual classification pass 34
+
+Verified translated code remains **69,365 / 70,402 = 98.53%**. The final batch-08 inter-function complement bytes are classified: `67F2..67F3` and `6823` are alignment between exact asserted endpoints and the next aligned entries. This adds **3 classified bytes**. All **62 bytes** in batch 08 outside its 47 exact asserted code intervals are now classified non-code/alignment. The global residual ledger now classifies **705 bytes**, leaving **332 bytes unresolved**.
