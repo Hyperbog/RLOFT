@@ -11,13 +11,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Find explicit non-code comments missing from ledger
+          fetch-depth: 0
+      - name: Find preserved exclusion evidence missing from ledger
         run: |
           python3 - <<'PY'
           import re
           from pathlib import Path
 
-          cpp=Path('Code1/Code1.cpp').read_text()
           ledger=Path('Code1/RESIDUAL_LEDGER.md').read_text()
           lm=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)\n<!-- RESIDUAL-RANGES-END -->',ledger,re.S);assert lm
           covered=[]
@@ -35,41 +35,33 @@ jobs:
               parts=out
             return parts
 
-          rows=[]
           range_re=re.compile(r'\b([0-9A-Fa-f]{3,5})\.\.([0-9A-Fa-f]{3,5})\b')
-          single_re=re.compile(r'(?<![0-9A-Fa-f])([0-9A-Fa-f]{3,5})(?![0-9A-Fa-f])')
-          keywords=('align','padding',' nop','nop.','zero byte','zero bytes','zero/alignment','lookup table','jump table','address table',' is data',' remains data')
-          for no,line in enumerate(cpp.splitlines(),1):
-            s=line.strip()
-            if not s.startswith('//'): continue
-            low=' '+s.lower()
-            if not any(k in low for k in keywords): continue
-            matched=False
-            for m in range_re.finditer(s):
-              a,b=int(m.group(1),16),int(m.group(2),16)+1
-              if not (0<=a<b<=0x11302): continue
-              u=uncovered(a,b)
-              if u:
-                rows.append((no,s,a,b,u)); matched=True
-            if matched: continue
-            # Single-address comments are accepted only for explicit NOP/alignment wording.
-            if any(k in low for k in (' nop','alignment','padding')):
-              vals=[]
-              for m in single_re.finditer(s):
-                v=int(m.group(1),16)
-                if 0<=v<0x11302: vals.append(v)
-              for v in vals[:1]:
-                u=uncovered(v,v+1)
-                if u: rows.append((no,s,v,v+1,u))
+          evidence=('alignment','align','padding','zero byte','zero bytes','zero-fill','nop','lookup table','jump table','address table','table data','classified as data','remains data','is data','excluded')
+          candidates={}
+          for p in sorted(Path('Code1').rglob('*')):
+            if not p.is_file() or p.suffix.lower() not in {'.md','.cpp','.py','.txt'}: continue
+            try: lines=p.read_text(errors='ignore').splitlines()
+            except Exception: continue
+            for no,line in enumerate(lines,1):
+              low=line.lower()
+              if not any(k in low for k in evidence): continue
+              for m in range_re.finditer(line):
+                a,b=int(m.group(1),16),int(m.group(2),16)+1
+                if not (0<=a<b<=0x11302): continue
+                u=uncovered(a,b)
+                if not u: continue
+                key=(a,b)
+                candidates.setdefault(key,[]).append((str(p),no,line.strip(),u))
 
-          seen=set(); total=0
-          print('EXPLICIT CURRENT-SOURCE NONCODE COMMENTS NOT FULLY LEDGERED')
-          for no,s,a,b,u in rows:
-            key=(a,b,tuple(u))
-            if key in seen: continue
-            seen.add(key)
-            n=sum(y-x for x,y in u); total+=n
-            print(f'line {no}: {s}')
-            print('  source range',f'{a:05X}..{b-1:05X}','uncovered',','.join(f'{x:05X}..{y-1:05X}' for x,y in u),'bytes',n)
-          print('candidate uncovered bytes:',total)
+          print('PRESERVED EXCLUSION-RANGE CANDIDATES NOT FULLY LEDGERED')
+          total=0
+          for (a,b),hits in sorted(candidates.items()):
+            # Prefer small exact ranges; broad narrative ranges are printed but not counted as safe.
+            u=hits[0][3]; n=sum(y-x for x,y in u)
+            exact=(b-a)<=64
+            if exact: total+=n
+            print(f'[{a:05X}..{b-1:05X}] span={b-a} uncovered={n} exact={exact}')
+            print('  uncovered:',','.join(f'{x:05X}..{y-1:05X}' for x,y in u))
+            for p,no,line,_ in hits[:6]: print(f'  {p}:{no}: {line[:1200]}')
+          print('small/exact candidate uncovered bytes (overlaps possible):',total)
           PY
