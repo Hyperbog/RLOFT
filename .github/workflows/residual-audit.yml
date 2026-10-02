@@ -12,11 +12,88 @@ jobs:
         with:
           ref: code1-decompilation
           fetch-depth: 0
-      - name: Trace mouse/copy fold history
+      - name: Reconcile preserved exact ranges
         run: |
-          echo '=== introduction of function_d08c ==='
-          git log --all --reverse -S'function_d08c' --format='COMMIT %H %s' -p -- Code1/Code1.cpp | head -n 500
-          echo '=== introduction of function_d1e8 ==='
-          git log --all --reverse -S'function_d1e8' --format='COMMIT %H %s' -p -- Code1/Code1.cpp | head -n 500
-          echo '=== files/history mentions D08C D153 D1E8 D239 ==='
-          git log --all --format='COMMIT %H %s' -p -- Code1 | grep -Ei -B4 -A8 'D08C|D153|D1E8|D239' | head -n 1200 || true
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          DEN=0x11302
+          root=Path('Code1')
+          sa=re.compile(r'static_assert\(0x([0-9A-Fa-f]+)u-0x([0-9A-Fa-f]+)u==([0-9]+)u\)')
+          exact=[]
+          by_file={}
+          for p in [root/'Code1.cpp', *sorted(root.glob('*.py')), *sorted(root.glob('*.cpp'))]:
+              if not p.exists(): continue
+              text=p.read_text(errors='ignore')
+              local=[]
+              for end,start,n in sa.findall(text):
+                  a,b,n=int(start,16),int(end,16),int(n)
+                  if 0 <= a <= b <= DEN and b-a==n:
+                      local.append((a,b))
+                      exact.append((a,b,p.name))
+              if local: by_file[p.name]=local
+
+          def merge(rs):
+              out=[]
+              for a,b in sorted(rs):
+                  if a==b: continue
+                  if out and a<=out[-1][1]: out[-1][1]=max(out[-1][1],b)
+                  else: out.append([a,b])
+              return out
+          def subtract(parts,cuts):
+              out=[]
+              for a,b in parts:
+                  cur=[(a,b)]
+                  for c,d in cuts:
+                      nxt=[]
+                      for x,y in cur:
+                          if d<=x or c>=y: nxt.append((x,y)); continue
+                          if x<c: nxt.append((x,c))
+                          if d<y: nxt.append((d,y))
+                      cur=nxt
+                  out.extend(cur)
+              return out
+
+          exact_union=merge((a,b) for a,b,_ in exact)
+          exact_bytes=sum(b-a for a,b in exact_union)
+          print('EXACT_UNION_BYTES',exact_bytes)
+          print('EXACT_UNION_INTERVALS',len(exact_union))
+
+          ledger=(root/'RESIDUAL_LEDGER.md').read_text()
+          lm=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)\n<!-- RESIDUAL-RANGES-END -->',ledger,re.S)
+          assert lm
+          lr=[]
+          for raw in lm.group(1).splitlines():
+              m=re.fullmatch(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| ([0-9]+)',raw.strip())
+              assert m,raw
+              a,b=int(m.group(1),16),int(m.group(2),16)+1
+              assert b-a==int(m.group(4))
+              lr.append((a,b))
+          ledger_union=merge(lr)
+          ledger_bytes=sum(b-a for a,b in ledger_union)
+          print('LEDGER_BYTES',ledger_bytes)
+
+          accounted=merge([(a,b) for a,b in exact_union]+[(a,b) for a,b in ledger_union])
+          gaps=subtract([(0,DEN)],accounted)
+          print('GAPS_AFTER_ALL_PRESERVED_ASSERTS_PLUS_LEDGER',sum(b-a for a,b in gaps),len(gaps))
+          for a,b in gaps:
+              print(f'GAP {a:05X}..{b-1:05X} {b-a}')
+
+          # Batch-08 proof: all 62 complement bytes should already be in ledger.
+          b8=by_file.get('integrate_mid_runtime_batch_08.py',[])
+          b8u=merge(b8)
+          spans=[(0x059AC,0x06054),(0x06184,0x06654),(0x06654,0x06852)]
+          b8comp=subtract(spans,b8u)
+          b8novel=subtract(b8comp,ledger_union)
+          print('BATCH08_ASSERT_BYTES',sum(b-a for a,b in b8u))
+          print('BATCH08_COMPLEMENT_BYTES',sum(b-a for a,b in b8comp))
+          print('BATCH08_COMPLEMENT_NOT_LEDGERED',sum(b-a for a,b in b8novel),b8novel)
+
+          # Show files that contribute exact ranges not present in current Code1.cpp asserts.
+          current=merge(by_file.get('Code1.cpp',[]))
+          extra=subtract(exact_union,current)
+          print('PRESERVED_SCRIPT_ASSERT_BYTES_OUTSIDE_CURRENT_CPP_ASSERTS',sum(b-a for a,b in extra))
+          for a,b in extra:
+              print(f'EXTRA {a:05X}..{b-1:05X} {b-a}')
+          PY
