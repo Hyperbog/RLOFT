@@ -146,3 +146,7 @@ Arithmetic-closed integrator evidence classified 104 additional non-code bytes f
 
 ## Residual pass 26
 The batch-09 preserved integrator proves a 66-byte non-code complement. `RESIDUAL_LEDGER.md` now holds 674 classified bytes; 76 conservative residual bytes remain. Verified translated code stays 69,652 and active staging remains zero.
+
+
+## Residual pass 27
+Corrected batch-10 arithmetic classifies `7D67` and `7F8A..7F8B` as non-code. `RESIDUAL_LEDGER.md` now holds 677 classified bytes; 73 conservative residual bytes remain. Verified translated code stays 69,652 and active staging remains zero.

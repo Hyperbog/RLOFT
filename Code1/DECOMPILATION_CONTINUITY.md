@@ -298,3 +298,8 @@ Integrator arithmetic, not padding inference, classified **104 more bytes**. Bat
 ## 2026-10-02 residual pass 26 checkpoint
 
 Batch 09 is arithmetic-closed from its preserved integrator: 3,390 selected bytes = 3,324 exact asserted verified code + 66 explicitly excluded alignment/data bytes. Those 66 bytes are now `noncode` in `RESIDUAL_LEDGER.md`. Classified residual is **674 bytes**, leaving **76 conservative residual bytes**; verified translated code remains **69,652 bytes (98.93%)**. Next priority is batch-12 reconciliation: decode its preserved compressed integrator as text only (do not execute it), verify its exact asserted intervals and exclusion language, and classify only an arithmetic-closed complement.
+
+
+## 2026-10-02 residual pass 27 checkpoint
+
+Corrected batch-10 arithmetic proves `7D67` and `7F8A..7F8B` as excluded non-code after subtracting later verified code `7F50..7F89` and all already-classified alignment/data islands. The exact batch-10 asserts, not its slightly short prose endpoint at `848F`, control the reconciliation. Classified non-code is now **677 bytes** and **73 conservative residual bytes remain**; verified translated code remains **69,652 bytes (98.93%)**. Batch-12's six remaining local gaps (20 bytes total) still lack explicit exclusion evidence and remain unresolved.

@@ -169,3 +169,8 @@ Verified translated code remains **69,652 / 70,402 = 98.93%**. Exact integrator 
 ## 2026-10-02 residual classification pass 26
 
 Verified translated code remains **69,652 / 70,402 = 98.93%**. The preserved batch-09 integrator closes exactly: its two selected spans (`6854..71C7` and `72A0..7669`) contain **3,390 bytes**, its exact static-assert intervals contain the declared **3,324 verified code bytes**, and its preserved checkpoint explicitly states that alignment/data islands were excluded. The **66-byte complement** is therefore classified as conservative non-code. No complement byte was previously present in the residual ledger. `RESIDUAL_LEDGER.md` now classifies **674 bytes** (122 table + 443 alignment/zero/padding + 109 generic non-code), leaving **76 bytes unresolved**. No translated-code coverage was added.
+
+
+## 2026-10-02 residual classification pass 27
+
+Verified translated code remains **69,652 / 70,402 = 98.93%**. Batch-10 reconciliation uses its exact asserted intervals rather than the imprecise prose endpoint around `8490..8491`. In selected span `767C..80B9`, batch 10 asserted **2,518 code bytes** and excluded alignment/data/interrupt islands. Later verification accounts for `7F50..7F5B` (batch 20) and `7F5C..7F89` (batch 16) as code. Subtracting those later code bytes and all existing ledger classifications leaves exactly **`7D67` and `7F8A..7F8B` (3 bytes)** as the batch-10 excluded non-code complement. The ledger now classifies **677 bytes**, leaving **73 bytes unresolved**.
