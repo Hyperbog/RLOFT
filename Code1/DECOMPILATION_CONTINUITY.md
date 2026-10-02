@@ -224,3 +224,6 @@ Verified total **43,936 / 70,402 = 62.41%**. Added 3,941 bytes across the resolv
 ## Batch 11 checkpoint
 
 Verified total is now 48,052 / 70,402 bytes = 68.25%. Batch 11 integrated 4,116 instruction-accounted bytes from the asset/input lifecycle regions. Keep `8E3C..91BB` unresolved until its seven-way CS table dispatch is reconciled; do not count the tables at `8E20..8E3B` or `91BC..91D7`.
+
+## Batch 12 checkpoint
+Verified total **51,819 / 70,402 = 73.60%**. Batch 12 added 3,767 directly reconciled bytes spanning VGA state save/restore and interrupt wrapper (`6060..6183`), the seven-way asset dispatcher (`8E3C..91BB`), selected video/image helpers (`9BE0..A058`, `A558..A6EF`), startup/register bridge (`CD97..CE8A`, `CEC0..CEE8`, `CEF0..D08B`, `FEFC..FFD3`), and the INT24 trampoline (`E2C3..E35F`). `CE8B..CEBF` remains staged; do not count it.
