@@ -209,3 +209,7 @@ Verified total **28,889 / 70,402 = 41.03%**. Added **4,286 bytes** at `38A4..3C5
 
 ## 2026-10-01 post-generation batch 07
 Verified total **33,000 / 70,402 = 46.87%**. Added **4,111** instruction-accounted bytes from `4978..59AB`, excluding enumerated alignment/data. This batch covers the character-generation controller, 5x256 palette remap construction, resource 6C/74/78/94 setup, actor finalization, shutdown wrapper, cursor callback/page state (`50C0..5878`), and first 9-byte palette search-tree insertion (`5880..59AB`). Preserve 0101h tree sentinel, 9-byte record stride, cursor depth at 73EC, page byte 73EE, 400-byte backing pages at 73EF, and the encoded zero-count resource-78 no-close behavior. Active staging remains **904 bytes**.
+
+
+## 2026-10-01 mid-runtime batch 08
+Verified total **36,671 / 70,402 = 52.09%**. Added **3,671 bytes** across palette nearest/tree construction/search (`59AC..5D8E`), actor class/table population (`5D90..6053`), RNG/DOS wrappers and display initialization (`6184..6653`), and clipped display wrappers (`6654..6851`). Preserve the AX-only MOVZX aliasing in 59AC, BL-as-input behavior in 5D90, explicit 16-bit tree stack/sentinels in 5B64, and guest/global address semantics. `6060..6183` is deliberately uncounted pending exact hardware/interrupt stack-register modeling.
