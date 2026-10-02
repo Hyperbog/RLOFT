@@ -159,3 +159,8 @@ Verified translated code remains **69,652 / 70,402 = 98.93%**. Preserved reposit
 ## 2026-10-02 residual classification pass 24
 
 Verified translated code remains **69,652 / 70,402 = 98.93%**. Full Git-history reconciliation recovered a batch-12 note explicitly identifying `9EA3..9EA7` as lookup data at that checkpoint. Batch 20 later verified `9EA7..9EAD` as code, so only the still-unaccounted prefix **`9EA3..9EA6` (4 bytes)** is classified as table data. The curated non-code ledger is now **504 bytes** (122 table + 382 alignment/zero/padding), leaving **246 bytes** unresolved. `C79F` remains deliberately unclassified because its only historical hit is the stale pre-batch-18 exclusion of the formerly unresolved self-modifying blitter cluster.
+
+
+## 2026-10-02 residual classification pass 25
+
+Verified translated code remains **69,652 / 70,402 = 98.93%**. Exact integrator arithmetic closed four preserved batches without assuming instruction bytes. Batch 13 proves 4 additional non-code bytes (`BCB3`, `BD83`, `BE26..BE27`); batch 14 proves 39 alignment/data bytes between its exact asserted low-continuation subranges; batch 18 proves 11 alignment bytes (`C79F`, `C8C1..C8C3`, `C9D2..C9D3`, `CACA..CACB`, `CBD1..CBD3`); and batch 11 proves 50 alignment bytes because its exact asserted intervals total the full declared 4,116 verified bytes across three 4,166-byte selected spans. `RESIDUAL_LEDGER.md` now classifies **608 bytes** (122 table + 443 alignment/zero/padding + 43 conservative generic non-code), leaving **142 bytes unresolved**. No translated-code count was increased.

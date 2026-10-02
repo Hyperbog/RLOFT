@@ -6,16 +6,17 @@ It does **not** change `kVerifiedTranslatedBytes`. The conservative denominator 
 
 - verified translated code: **69,652 bytes**
 - conservative residual: **750 bytes**
-- explicitly classified residual below: **504 bytes**
+- explicitly classified residual below: **608 bytes**
   - embedded tables: **122 bytes**
-  - alignment/zero/padding: **382 bytes**
-- residual still requiring classification: **246 bytes**
+  - alignment/zero/padding: **443 bytes**
+  - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **43 bytes**
+- residual still requiring classification: **142 bytes**
 
 The `static_assert` interval audit is diagnostic only. Many verified regions are represented without one assert per machine range, so the 5,673-byte assert-gap total is **not** the untranslated-code total.
 
 ## Machine-readable classified ranges
 
-Format: `START..END | category | inclusive byte count`.
+Format: `START..END | category | inclusive byte count`. Categories are `alignment`, `table`, and conservative `noncode` where preserved batch arithmetic proves exclusion but does not uniquely recover the padding-vs-data subtype.
 
 <!-- RESIDUAL-RANGES-BEGIN -->
 00003..0000F | alignment | 13
@@ -114,9 +115,34 @@ Format: `START..END | category | inclusive byte count`.
 08717..08717 | alignment | 1
 0873F..0873F | alignment | 1
 08787..08787 | alignment | 1
+087D5..087D7 | alignment | 3
+088D5..088D7 | alignment | 3
+088F7..088F7 | alignment | 1
+08917..08917 | alignment | 1
+0893F..0893F | alignment | 1
+0894F..0894F | alignment | 1
+0895F..0895F | alignment | 1
+08976..08977 | alignment | 2
+08A01..08A03 | alignment | 3
+08B93..08B93 | alignment | 1
+08BE3..08BE3 | alignment | 1
+08C3D..08C3F | alignment | 3
+08DED..08DEF | alignment | 3
+08E06..08E07 | alignment | 2
 08E20..08E3B | table | 28
 091BC..091D7 | table | 28
+09377..09377 | alignment | 1
+0943E..0943F | alignment | 2
+0951D..0951F | alignment | 3
 095BB..095BB | alignment | 1
+09777..09777 | alignment | 1
+097E5..097E7 | alignment | 3
+09811..09813 | alignment | 3
+09871..09873 | alignment | 3
+09AB2..09AB3 | alignment | 2
+09AC2..09AC3 | alignment | 2
+09AD2..09AD3 | alignment | 2
+09BC2..09BC3 | alignment | 2
 09E0F..09E0F | alignment | 1
 09E12..09E13 | alignment | 2
 09EA3..09EA6 | table | 4
@@ -149,6 +175,30 @@ Format: `START..END | category | inclusive byte count`.
 0BA97..0BA97 | alignment | 1
 0BBE9..0BBEB | alignment | 3
 0BC1A..0BC1B | alignment | 2
+0BCB3..0BCB3 | noncode | 1
+0BD83..0BD83 | noncode | 1
+0BE26..0BE27 | noncode | 2
+0BF35..0BF37 | noncode | 3
+0BFDF..0BFDF | noncode | 1
+0C079..0C07B | noncode | 3
+0C10F..0C10F | noncode | 1
+0C17B..0C17B | noncode | 1
+0C1AF..0C1AF | noncode | 1
+0C227..0C227 | noncode | 1
+0C2C3..0C2CF | noncode | 13
+0C49D..0C49F | noncode | 3
+0C57B..0C57B | noncode | 1
+0C62A..0C62B | noncode | 2
+0C64D..0C64F | noncode | 3
+0C65F..0C65F | noncode | 1
+0C68E..0C68F | noncode | 2
+0C6EE..0C6EF | noncode | 2
+0C6F7..0C6F7 | noncode | 1
+0C79F..0C79F | alignment | 1
+0C8C1..0C8C3 | alignment | 3
+0C9D2..0C9D3 | alignment | 2
+0CACA..0CACB | alignment | 2
+0CBD1..0CBD3 | alignment | 3
 0CEE9..0CEEF | alignment | 7
 0CF41..0CF43 | alignment | 3
 0D179..0D17B | alignment | 3
@@ -179,8 +229,8 @@ The table category consists of the following already-established data islands:
 - `091BC..091D7`: address table.
 - `09EA3..09EA6`: preserved four-byte prefix of the batch-12 lookup data island; `09EA7` and following bytes were subsequently verified as code and are not classified here.
 
-All other ranges in the machine-readable block are alignment, NOP/LEA/MOV-self padding, or explicitly documented zero/data-alignment bytes.
+`noncode` rows are arithmetic-closed batch exclusions whose exact non-code status is proven but whose narrower padding-vs-data subtype is not explicit in preserved evidence. All `alignment` rows are NOP/LEA/MOV-self padding or explicitly documented zero/data-alignment bytes.
 
 ## Accounting rule
 
-Do not add these 504 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 246 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
+Do not add these 608 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 142 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.

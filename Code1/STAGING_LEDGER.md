@@ -138,3 +138,7 @@ Preserved batch/staging evidence classified 38 additional non-code bytes. `RESID
 
 ## Residual pass 24
 Historical batch-12 evidence classifies `9EA3..9EA6` as lookup-table data after excluding the later-verified `9EA7..9EAD` code. `RESIDUAL_LEDGER.md` now holds 504 classified bytes; 246 conservative residual bytes remain. Verified translated code stays 69,652 and active staging remains zero.
+
+
+## Residual pass 25
+Arithmetic-closed integrator evidence classified 104 additional non-code bytes from batches 11, 13, 14, and 18. `RESIDUAL_LEDGER.md` now holds 608 classified bytes; 142 conservative residual bytes remain. Verified translated code stays 69,652 and active staging remains zero. The stale batch-08 prose total is not accepted as classification evidence.
