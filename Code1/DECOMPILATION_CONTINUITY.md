@@ -293,3 +293,8 @@ Historical batch-12 evidence proves `9EA3..9EA7` was lookup data at that stage, 
 ## 2026-10-02 residual pass 25 checkpoint
 
 Integrator arithmetic, not padding inference, classified **104 more bytes**. Batch 11 contributes 50 alignment bytes; batch 13 contributes 4 generic non-code bytes omitted from its prose list but forced by its 4,181-byte span minus 4,129 verified bytes; batch 14 contributes 39 generic alignment/data bytes because its exact asserted low-continuation ranges sum to the declared code total; batch 18 contributes 11 alignment bytes as the complement of its four exact 1,066-byte code ranges inside `C79F..CBD3`. Classified non-code is now **608 bytes**, leaving **142 conservative residual bytes**. Verified translated code remains **69,652 bytes (98.93%)**. Do not use the stale batch-08 3,671-byte prose total for arithmetic classification; its named ranges do not reconcile to that number.
+
+
+## 2026-10-02 residual pass 26 checkpoint
+
+Batch 09 is arithmetic-closed from its preserved integrator: 3,390 selected bytes = 3,324 exact asserted verified code + 66 explicitly excluded alignment/data bytes. Those 66 bytes are now `noncode` in `RESIDUAL_LEDGER.md`. Classified residual is **674 bytes**, leaving **76 conservative residual bytes**; verified translated code remains **69,652 bytes (98.93%)**. Next priority is batch-12 reconciliation: decode its preserved compressed integrator as text only (do not execute it), verify its exact asserted intervals and exclusion language, and classify only an arithmetic-closed complement.

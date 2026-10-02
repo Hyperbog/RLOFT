@@ -164,3 +164,8 @@ Verified translated code remains **69,652 / 70,402 = 98.93%**. Full Git-history 
 ## 2026-10-02 residual classification pass 25
 
 Verified translated code remains **69,652 / 70,402 = 98.93%**. Exact integrator arithmetic closed four preserved batches without assuming instruction bytes. Batch 13 proves 4 additional non-code bytes (`BCB3`, `BD83`, `BE26..BE27`); batch 14 proves 39 alignment/data bytes between its exact asserted low-continuation subranges; batch 18 proves 11 alignment bytes (`C79F`, `C8C1..C8C3`, `C9D2..C9D3`, `CACA..CACB`, `CBD1..CBD3`); and batch 11 proves 50 alignment bytes because its exact asserted intervals total the full declared 4,116 verified bytes across three 4,166-byte selected spans. `RESIDUAL_LEDGER.md` now classifies **608 bytes** (122 table + 443 alignment/zero/padding + 43 conservative generic non-code), leaving **142 bytes unresolved**. No translated-code count was increased.
+
+
+## 2026-10-02 residual classification pass 26
+
+Verified translated code remains **69,652 / 70,402 = 98.93%**. The preserved batch-09 integrator closes exactly: its two selected spans (`6854..71C7` and `72A0..7669`) contain **3,390 bytes**, its exact static-assert intervals contain the declared **3,324 verified code bytes**, and its preserved checkpoint explicitly states that alignment/data islands were excluded. The **66-byte complement** is therefore classified as conservative non-code. No complement byte was previously present in the residual ledger. `RESIDUAL_LEDGER.md` now classifies **674 bytes** (122 table + 443 alignment/zero/padding + 109 generic non-code), leaving **76 bytes unresolved**. No translated-code coverage was added.
