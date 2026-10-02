@@ -11,47 +11,77 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Map next residual candidates
+          fetch-depth: 0
+      - name: Audit remaining small residual islands
         run: |
           python3 - <<'PY'
-          import re
+          import re, subprocess
           from pathlib import Path
-          text=Path('Code1/Code1.cpp').read_text()
-          ledger=Path('Code1/RESIDUAL_LEDGER.md').read_text()
+
+          targets=[
+            (0x000EB,0x000EC),(0x007E2,0x007E4),(0x01462,0x01464),(0x04977,0x04978),
+            (0x06054,0x06060),(0x060B2,0x060B4),(0x06101,0x06104),(0x080BA,0x080BC),
+            (0x0826E,0x08270),(0x08336,0x08338),(0x087C2,0x087C4),(0x08E1F,0x08E20),
+            (0x09BD7,0x09BE0),(0x09C98,0x09CA0),(0x09E89,0x09E8C),(0x09EAE,0x09EB0),
+            (0x0A00E,0x0A010),(0x0A059,0x0A05C),(0x0A21A,0x0A21C),(0x0A5C6,0x0A5C8),
+            (0x0A675,0x0A678),(0x0AC0F,0x0AC10),(0x0AE0B,0x0AE0C),(0x0BE61,0x0BE70),
+            (0x0DC8D,0x0DC90),(0x0E3B3,0x0E3B4),(0x0F742,0x0F750),(0x0F7B3,0x0F7B8),
+            (0x0F8BD,0x0F8C4),(0x0FC97,0x0FC98),
+          ]
+          assert len(targets)==30 and sum(b-a for a,b in targets)==114
+
+          files=[]
+          for p in Path('Code1').rglob('*'):
+            if p.is_file() and p.suffix in {'.py','.md','.cpp','.txt'}:
+              try: files.append((p,p.read_text(errors='ignore').splitlines()))
+              except Exception: pass
+
+          def addr_forms(v):
+            return {f'{v:X}',f'{v:04X}',f'{v:05X}',f'{v:x}',f'{v:04x}',f'{v:05x}'}
+          def line_has_addr(line,v):
+            return any(re.search(r'(?<![0-9A-Fa-f])'+re.escape(x)+r'(?![0-9A-Fa-f])',line) for x in addr_forms(v))
+
+          strong=('align','padding','zero','table','data','excluded','not counted','non-code','noncode','gap','deliberately uncounted')
+          print('=== CURRENT REPOSITORY EVIDENCE ===')
+          for a,b in targets:
+            print(f'[{a:05X}..{b-1:05X} {b-a}]')
+            hits=[]
+            for p,lines in files:
+              for no,line in enumerate(lines,1):
+                if line_has_addr(line,a) or line_has_addr(line,b-1):
+                  lo=max(0,no-2); hi=min(len(lines),no+1)
+                  context=' | '.join(x.strip() for x in lines[lo:hi])
+                  rank=0 if any(k in context.lower() for k in strong) else 1
+                  hits.append((rank,str(p),no,context[:1300]))
+            for rank,p,no,ctx in sorted(hits)[:10]: print(f'  {p}:{no}: {ctx}')
+
+          print('\n=== EXACT STATIC_ASSERT NEIGHBORS IN CURRENT Code1.cpp ===')
+          cpp=Path('Code1/Code1.cpp').read_text()
           sa=re.compile(r'static_assert\(0x([0-9A-Fa-f]+)u-0x([0-9A-Fa-f]+)u==([0-9]+)u\)')
-          code=[]
-          for end,start,n in sa.findall(text):
-              a,b,n=int(start,16),int(end,16),int(n)
-              if b-a==n and 0<=a<b<=0x11302:code.append((a,b))
-          code.sort();merged=[]
-          for a,b in code:
-              if merged and a<=merged[-1][1]:merged[-1][1]=max(merged[-1][1],b)
-              else:merged.append([a,b])
-          gaps=[];p=0
-          for a,b in merged:
-              if p<a:gaps.append((p,a))
-              p=max(p,b)
-          if p<0x11302:gaps.append((p,0x11302))
-          lm=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)\n<!-- RESIDUAL-RANGES-END -->',ledger,re.S);assert lm
-          classified=[]
-          for line in lm.group(1).splitlines():
-              m=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \|',line)
-              if m:classified.append((int(m.group(1),16),int(m.group(2),16)+1))
-          def subtract(parts,cuts):
-              out=[]
-              for a,b in parts:
-                  cur=[(a,b)]
-                  for c,d in cuts:
-                      nxt=[]
-                      for x,y in cur:
-                          if d<=x or c>=y:nxt.append((x,y));continue
-                          if x<c:nxt.append((x,c))
-                          if d<y:nxt.append((d,y))
-                      cur=nxt
-                  out.extend(cur)
-              return out
-          rem=subtract(gaps,classified)
-          small=[(a,b) for a,b in rem if b-a<=20]
-          print('remaining unclassified assert-gap islands <=20 bytes:',len(small),'bytes',sum(b-a for a,b in small))
-          for a,b in small:print(f'{a:05X}..{b-1:05X} {b-a}')
+          iv=[]
+          for end,start,n in sa.findall(cpp):
+            s,e,n=int(start,16),int(end,16),int(n)
+            if e-s==n: iv.append((s,e))
+          iv.sort()
+          for a,b in targets:
+            prev=max((x for x in iv if x[1]<=a),default=None,key=lambda x:x[1])
+            nxt=min((x for x in iv if x[0]>=b),default=None,key=lambda x:x[0])
+            print(f'{a:05X}..{b-1:05X}: prev={prev} next={nxt}')
+
+          print('\n=== STRONG FULL-HISTORY HITS ===')
+          hist=subprocess.check_output(['git','log','--all','--format=@@COMMIT %H','-p','--','Code1'],text=True,errors='ignore')
+          current=''; hh={t:[] for t in targets}
+          for line in hist.splitlines():
+            if line.startswith('@@COMMIT '): current=line.split()[1]; continue
+            if not any(k in line.lower() for k in strong): continue
+            for t in targets:
+              a,b=t
+              if line_has_addr(line,a) or line_has_addr(line,b-1):
+                item=(current,line.strip())
+                if item not in hh[t] and len(hh[t])<8: hh[t].append(item)
+          for t,items in hh.items():
+            if not items: continue
+            a,b=t; print(f'[{a:05X}..{b-1:05X} {b-a}]')
+            for sha,line in items: print(f'  {sha[:12]}: {line[:1200]}')
+          print('strong-hit islands:',sum(bool(v) for v in hh.values()),'of',len(targets))
           PY
