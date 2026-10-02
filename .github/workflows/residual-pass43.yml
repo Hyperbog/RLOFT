@@ -50,7 +50,7 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git rm Code1/fix_residual_pass43.py
-          git add Code1/RESIDUAL_LEDGER.md Code1/PROGRESS.md Code1/STAGING_LEDGER.md Code1/DECOMPILATION_CONTINUITY.md .github/workflows/residual-audit.yml
+          git add Code1/RESIDUAL_LEDGER.md Code1/PROGRESS.md Code1/STAGING_LEDGER.md Code1/DECOMPILATION_CONTINUITY.md
           git diff --cached --check
           git commit -m "Classify CODE.1 residual pass 43"
           git push origin HEAD:code1-decompilation
