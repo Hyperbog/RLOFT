@@ -4,6 +4,8 @@ on:
     branches: [code1-decompilation]
     paths:
       - '.github/workflows/residual-audit.yml'
+permissions:
+  contents: write
 jobs:
   audit:
     runs-on: ubuntu-latest
@@ -12,46 +14,35 @@ jobs:
         with:
           ref: code1-decompilation
           fetch-depth: 0
-      - name: Extract residual integration evidence
+      - name: Apply residual pass 41
+        run: python3 Code1/fix_residual_pass41.py
+      - name: Syntax check CODE.1 C++
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
+      - name: Verify pass 41 accounting
         run: |
-          mkdir -p residual-evidence
           python3 - <<'PY'
           from pathlib import Path
-          import re,zlib,base64
-          names=[
-            'integrate_runtime_startup_batch_12.py','integrate_low_graphics_batch_13.py','integrate_batch14.py',
-            'integrate_batch16.py','integrate_batch17.py','integrate_f750.py','integrate_f7b8.py','integrate_f8c4.py',
-            'integrate_mid_runtime_batch_08.py','integrate_mid_asset_batch_11.py','integrate_mid_ui_batch_10.py',
-            'integrate_runtime_tail_batch.py','fix_tail_script.py']
-          wrap=re.compile(r"import zlib,base64\s*\nexec\(zlib\.decompress\(base64\.b85decode\('(.+)'\)\)\)\s*",re.S)
-          for name in names:
-            p=Path('Code1')/name
-            if not p.exists(): continue
-            s=p.read_text()
-            m=wrap.fullmatch(s)
-            if m:
-              s=zlib.decompress(base64.b85decode(m.group(1))).decode('utf-8','replace')
-            (Path('residual-evidence')/name).write_text(s)
-          cpp=Path('Code1/Code1.cpp').read_text()
-          targets=[0x000EB,0x01462,0x04977,0x06054,0x087C2,0x08E1F,0x09BD7,0x09C98,0x09E89,0x09EAE,0x0A00E,0x0A059,0x0A21A,0x0A5C6,0x0A675,0x0AE0B,0x0BE61,0x0CC19,0x0D8CE,0x0DDD8,0x0E3B3,0x0F742,0x0F7B3,0x0F8BD,0x0FC97]
-          out=[]
-          lines=cpp.splitlines()
-          for t in targets:
-            out.append(f'===== {t:05X} =====')
-            pats=(f'{t:X}',f'{t+1:X}',f'{t-1:X}')
-            hits=[]
-            for i,line in enumerate(lines):
-              up=line.upper()
-              if any(re.search(r'(?<![0-9A-F])0?'+re.escape(x)+r'(?![0-9A-F])',up) for x in pats):
-                hits.append((i,line))
-            for i,_ in hits[:8]:
-              out.extend(lines[max(0,i-3):min(len(lines),i+4)])
-              out.append('---')
-          Path('residual-evidence/code1-neighbors.txt').write_text('\n'.join(out))
+          import re
+          ledger=Path('Code1/RESIDUAL_LEDGER.md').read_text()
+          assert '- explicitly classified residual below: **937 bytes**' in ledger
+          assert '- residual still requiring classification: **105 bytes**' in ledger
+          assert '## Remaining exact unresolved islands after pass 41' in ledger
+          block=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)\n<!-- RESIDUAL-RANGES-END -->',ledger,re.S).group(1)
+          rows=[]
+          for raw in block.splitlines():
+              m=re.fullmatch(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| ([0-9]+)',raw.strip()); assert m,raw
+              a,b=int(m.group(1),16),int(m.group(2),16); rows.append((a,b,m.group(3)))
+          assert sum(b-a+1 for a,b,_ in rows)==937
+          assert sum(b-a+1 for a,b,c in rows if c=='noncode')==262
+          assert any(a==0xA5C6 and b==0xA5C7 and c=='noncode' for a,b,c in rows)
+          assert any(a==0xA675 and b==0xA677 and c=='noncode' for a,b,c in rows)
+          print('pass41 accounting verified: classified=937 unresolved=105 translated=69360')
           PY
-      - name: Upload residual integration evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: code1-residual-integration-evidence
-          path: residual-evidence
-          retention-days: 7
+      - name: Commit pass 41 results
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add Code1/RESIDUAL_LEDGER.md Code1/PROGRESS.md Code1/STAGING_LEDGER.md Code1/DECOMPILATION_CONTINUITY.md
+          git diff --cached --check
+          git commit -m "Classify CODE.1 residual pass 41"
+          git push origin HEAD:code1-decompilation
