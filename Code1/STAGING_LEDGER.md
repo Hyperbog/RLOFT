@@ -231,3 +231,8 @@ Repository-wide history recovery found exact address-level padding annotations i
 
 ## Residual pass 43
 Historical `CODE1/ObjectLayout0000.cpp` explicitly labels `000EB` as NOP alignment. One byte is newly classified; translated code remains 69,360 bytes and active staging remains zero. The residual queue is now 45 bytes in 11 islands.
+
+
+## Final residual closure
+
+Direct inspection of the immutable original `CODE.1` closed the residual queue in pass 44. Object 1 is exactly reconciled at **69,361 translated instruction bytes + 1,041 proven non-code/data bytes = 70,402 bytes**. **Unresolved residual bytes: 0.** Active staging remains 0 bytes. Future work on CODE.1 is audit/correction only; any semantic discrepancy found during the final binary audit must be fixed without inventing new coverage.

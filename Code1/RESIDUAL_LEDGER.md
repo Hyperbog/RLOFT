@@ -4,13 +4,13 @@ This ledger tracks object-1 bytes that are explicitly classified as **non-transl
 
 It does **not** change `kVerifiedTranslatedBytes`. The conservative denominator remains the full object-1 extent (`0x11302` = 70,402 bytes) until all residual bytes are classified. At the checkpoint that created this ledger:
 
-- verified translated code: **69,360 bytes**
-- conservative residual: **1,042 bytes**
-- explicitly classified residual below: **997 bytes**
-  - embedded tables: **196 bytes**
-  - alignment/zero/padding: **539 bytes**
+- verified translated code: **69,361 bytes**
+- conservative residual: **1,041 bytes**
+- explicitly classified residual below: **1,041 bytes**
+  - embedded tables: **204 bytes**
+  - alignment/zero/padding: **575 bytes**
   - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **262 bytes**
-- residual still requiring classification: **45 bytes**
+- residual still requiring classification: **0 bytes**
 
 The `static_assert` interval audit is diagnostic only. Many verified regions are represented without one assert per machine range, so the 5,673-byte assert-gap total is **not** the untranslated-code total.
 
@@ -51,6 +51,7 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 0451F..0451F | alignment | 1
 045EF..045F8 | table | 10
 045F9..045FB | alignment | 3
+04977..04977 | alignment | 1
 04A0A..04A0B | alignment | 2
 04B17..04B17 | alignment | 1
 04C7F..04C7F | alignment | 1
@@ -167,6 +168,7 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 08717..08717 | alignment | 1
 0873F..0873F | alignment | 1
 08787..08787 | alignment | 1
+087C2..087C3 | alignment | 2
 087D5..087D7 | alignment | 3
 088D5..088D7 | alignment | 3
 088F7..088F7 | alignment | 1
@@ -181,6 +183,7 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 08C3D..08C3F | alignment | 3
 08DED..08DEF | alignment | 3
 08E06..08E07 | alignment | 2
+08E1F..08E1F | alignment | 1
 08E20..08E3B | table | 28
 091BC..091D7 | table | 28
 09377..09377 | alignment | 1
@@ -263,6 +266,7 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 0C9D2..0C9D3 | alignment | 2
 0CACA..0CACB | alignment | 2
 0CBD1..0CBD3 | alignment | 3
+0CC19..0CC1B | alignment | 3
 0CC1E..0CC95 | noncode | 120
 0CEE9..0CEEF | alignment | 7
 0CF41..0CF43 | alignment | 3
@@ -272,8 +276,10 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 0D153..0D153 | noncode | 1
 0D179..0D17B | alignment | 3
 0D27D..0D27F | alignment | 3
+0D8CE..0D8CF | alignment | 2
 0DA45..0DA47 | alignment | 3
 0DC8D..0DC8F | noncode | 3
+0DDD8..0DDDF | alignment | 8
 0DE6F..0DE6F | alignment | 1
 0DEA1..0DEA6 | alignment | 6
 0DF8E..0DFB2 | table | 37
@@ -284,7 +290,13 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 0E207..0E207 | alignment | 1
 0E269..0E26B | alignment | 3
 0E27F..0E27F | alignment | 1
+0E3B3..0E3B3 | alignment | 1
 0EDD3..0EDDF | alignment | 13
+0F742..0F74F | alignment | 14
+0F7B3..0F7B6 | table | 4
+0F7B7..0F7B7 | alignment | 1
+0F8BD..0F8C0 | table | 4
+0F8C1..0F8C3 | alignment | 3
 0FCE7..0FCE7 | alignment | 1
 10436..10437 | alignment | 2
 104DE..104DF | alignment | 2
@@ -309,8 +321,7 @@ The table category consists of the following already-established data islands:
 
 ## Accounting rule
 
-Do not add these 937 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 105 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
-
+Final object accounting is closed. Do not add the **1,041 classified non-code/data bytes** to `kVerifiedTranslatedBytes`; they are object bytes but not translated instructions. The verified translated-code scalar is **69,361 bytes**. Together they reconcile the complete object exactly: **69,361 + 1,041 = 70,402 (`0x11302`) bytes**, with **0 unresolved bytes**.
 
 ## Remaining exact unresolved islands after pass 40
 
@@ -417,3 +428,14 @@ Classified residual rises from **996** to **997 bytes** (196 table, 539 alignmen
 - `0F7B3..0F7B7`: **5 bytes**.
 - `0F8BD..0F8C3`: **7 bytes**.
 - `0FC97..0FC97`: **1 byte**.
+
+
+## 2026-10-02 direct-binary residual closure pass 44
+
+The immutable original `CODE.1` was re-verified at **277,787 bytes** with SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed`. Object 1 was extracted from file offset `0x2C724`, length `0x11302` (70,402 bytes), SHA-256 `c0bf2c313aa8a24c9a0c0a3ce498f87a1d09299bb826413acaeb844412007203`.
+
+Direct byte/disassembly evidence classifies **44** of the final **45** residual bytes as non-code/data: `4977` NOP; `87C2..87C3` MOV EAX,EAX; `8E1F` NOP; zero alignment at `CC19..CC1B`, `D8CE..D8CF`, `DDD8..DDDF`, `E3B3`, `F742..F74F`; embedded four-byte `20 20 00 00` signature literals at `F7B3..F7B6` and `F8BD..F8C0`; `F7B7` NOP; and `F8C1..F8C3` LEA EAX,[EAX+0] alignment.
+
+`FC97` is **not padding**. Its byte is `C3` (`RET`), and the original LE fixup record table contains the seven-byte internal fixup record `07 00 28 03 01 97 FC`: source type `07` is a 32-bit offset fixup, target object is `1`, and target offset is `FC97h`. It is therefore represented in `Code1.cpp` as the address-distinct one-byte no-op/RET callback `function_fc97`, increasing verified translated code by one byte.
+
+Final partition: **69,361 translated instruction bytes + 1,041 proven non-code/data bytes = 70,402 / 70,402 object bytes**, with no unresolved islands and no overlap.

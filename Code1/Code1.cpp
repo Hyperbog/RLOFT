@@ -1291,6 +1291,11 @@ struct ResourceLoadBoundaries{u32(*alloc_71c8)(u32)=nullptr;void(*zero_84a0)(u32
 }
 static_assert(0xFC97u-0xF8C4u==979u);
 
+// FC97: one-byte RET callback. The original LE fixup record table contains an
+// internal 32-bit offset relocation (07 00 28 03 01 97 FC) targeting object 1
+// offset FC97h, so this byte is executable code rather than alignment filler.
+void function_fc97()noexcept{}
+static_assert(0xFC98u-0xFC97u==1u);
 
 // FC98..FCE6: runtime launch wrapper. The stack-allocation address itself is represented by a boundary because host ESP is not guest linear memory; all encoded DGROUP updates and the non-returning CBF0 tail are explicit.
 struct LaunchBoundaries{u32(*stack_probe_1042d)()=nullptr;u32(*alloca_guest)(u32)=nullptr;void(*init_10d1c)()=nullptr;s32(*main_508c)(u32,u32)=nullptr;void(*exit_cbf0)(s32)=nullptr;};
@@ -1919,7 +1924,7 @@ void function_bd84(Machine&m,LowGraphics13Boundary&b,u32 value)noexcept{if(load_
 [[nodiscard]]u32 function_be34(Machine&m)noexcept{return load_le32(dgroup_ptr(m,dgroup(0x2c3cu)));}static_assert(0xBE40u-0xBE34u==12u);
 void function_be40(Machine&m,LowGraphics13Boundary&b,u32 enabled)noexcept{*dgroup_ptr(m,dgroup(0x2c44u))=static_cast<u8>(enabled);if(load_le32(dgroup_ptr(m,dgroup(0x2b84u)))!=0u&&static_cast<u8>(enabled)==0u)function_ba98(m,b);}static_assert(0xBE61u-0xBE40u==33u);
 
-constexpr u32 kVerifiedTranslatedBytes=69360u;
+constexpr u32 kVerifiedTranslatedBytes=69361u;
 constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 
 

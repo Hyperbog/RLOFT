@@ -401,3 +401,12 @@ Repository-wide history recovery found exact address-level padding annotations i
 ## 2026-10-02 residual pass 43 checkpoint
 
 A normalized scan of the historical uppercase `CODE1/` reconstruction recovered direct byte-level evidence for `000EB`: `ObjectLayout0000.cpp` records it as a NOP alignment byte immediately after reconstructed `004C..00EA`. This raises classified residual to **997 bytes** and leaves **45 bytes in 11 islands** unresolved. Verified translated code remains **69,360 bytes (98.52%)**. The same sweep found no target-specific classification for the other islands; do not infer their status from adjacency or alignment appearance.
+
+
+## 2026-10-02 direct CODE.1 residual closure (pass 44)
+
+The original binary is controlling evidence and was used directly. Verified identity: size **277,787** bytes; SHA-256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed`. Object 1 extracted at file `0x2C724`, length `0x11302`, has SHA-256 `c0bf2c313aa8a24c9a0c0a3ce498f87a1d09299bb826413acaeb844412007203`.
+
+The final 45-byte residual was resolved byte-for-byte. Forty-four bytes are proven padding/data; `FC97` is executable `RET`. The LE header at file `0x27BDC` gives fixup-page-table offset `0x15D` and fixup-record-table offset `0x1C1`. In the fixup record table, the record at table-relative `0x4757` (file `0x2C4F4`) is `07 00 28 03 01 97 FC`. Per the IBM/Open Watcom LX/LE format, source type `07` is a 32-bit offset fixup; flags `00` select an internal fixup with byte object number and word target offset. The record therefore targets object 1 offset `FC97h`, proving the one-byte RET is an address-distinct callback rather than filler.
+
+Final object partition after integration: **69,361 translated instruction bytes + 1,041 classified non-code/data bytes = 70,402 / 70,402 bytes**. Residual queue: **0 bytes**. The green badge denotes 100% object accounting, not a false claim that embedded data became translated C++. A full end-to-end semantic audit against the original binary remains the next CODE.1 activity; corrections discovered there do not increase coverage.
