@@ -1,0 +1,67 @@
+name: CODE.1 historical reconstruction range map
+on:
+  push:
+    branches: [code1-decompilation]
+    paths:
+      - '.github/workflows/residual-history-range-map.yml'
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+          fetch-depth: 0
+      - name: Build historical CODE1 range map
+        run: |
+          python3 - <<'PY' > code1-historical-range-map.txt
+          import subprocess,re,zlib,base64
+          targets=[0x000EB,0x04977,0x087C2,0x08E1F,0x0CC19,0x0D8CE,0x0DDD8,0x0E3B3,0x0F742,0x0F7B3,0x0F8BD,0x0FC97]
+          wrap=re.compile(r"\s*import zlib,base64\s*\nexec\(zlib\.decompress\(base64\.b85decode\('(.+)'\)\)\)\s*",re.S)
+          range_re=re.compile(r'(?:CODE\.1\s*)?(?:0x)?([0-9A-Fa-f]{3,5})\.\.(?:0x)?([0-9A-Fa-f]{3,5})')
+          seen=set(); rows=[]
+          objs=subprocess.check_output(['git','rev-list','--objects','--all','--','CODE1'],text=True,errors='replace').splitlines()
+          for rec in objs:
+              sha,*rest=rec.split(' ',1); path=rest[0] if rest else ''
+              if sha in seen or not path: continue
+              seen.add(sha)
+              try:
+                  if subprocess.check_output(['git','cat-file','-t',sha],text=True).strip()!='blob': continue
+                  raw=subprocess.check_output(['git','cat-file','-p',sha])
+              except subprocess.CalledProcessError: continue
+              if len(raw)>4_000_000 or b'\x00' in raw[:4096]: continue
+              try:s=raw.decode('utf-8')
+              except UnicodeDecodeError: continue
+              m=wrap.fullmatch(s)
+              if m:
+                  try:s=zlib.decompress(base64.b85decode(m.group(1))).decode('utf-8','replace')
+                  except Exception: pass
+              for lineno,line in enumerate(s.splitlines(),1):
+                  for m in range_re.finditer(line):
+                      a,b=int(m.group(1),16),int(m.group(2),16)
+                      if a>b or b>0x11301: continue
+                      rows.append((a,b,path,sha,lineno,line.strip()))
+          # deduplicate identical semantic lines across duplicate historical copies
+          uniq=[]; keys=set()
+          for r in rows:
+              key=(r[0],r[1],r[2],r[5])
+              if key in keys: continue
+              keys.add(key); uniq.append(r)
+          for t in targets:
+              print(f'\n===== {t:05X} =====')
+              near=[r for r in uniq if r[0] <= t+0x40 and r[1] >= max(0,t-0x40)]
+              near.sort(key=lambda r:(0 if (r[0]<=t<=r[1]) else 1, min(abs(t-r[0]),abs(t-r[1])), r[0],r[1],r[2]))
+              for a,b,path,sha,lineno,line in near[:120]:
+                  print(f'{a:05X}..{b:05X} | {path}:{lineno} | {sha} | {line}')
+              prev=[r for r in uniq if r[1] < t]
+              nxt=[r for r in uniq if r[0] > t]
+              if prev:
+                  r=max(prev,key=lambda x:x[1]); print(f'PREV_NEAREST {r[0]:05X}..{r[1]:05X} | {r[2]}:{r[4]} | {r[3]} | {r[5]}')
+              if nxt:
+                  r=min(nxt,key=lambda x:x[0]); print(f'NEXT_NEAREST {r[0]:05X}..{r[1]:05X} | {r[2]}:{r[4]} | {r[3]} | {r[5]}')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: code1-historical-range-map
+          path: code1-historical-range-map.txt
+          retention-days: 7
