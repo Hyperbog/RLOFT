@@ -6,11 +6,11 @@ It does **not** change `kVerifiedTranslatedBytes`. The conservative denominator 
 
 - verified translated code: **69,652 bytes**
 - conservative residual: **750 bytes**
-- explicitly classified residual below: **682 bytes**
+- explicitly classified residual below: **686 bytes**
   - embedded tables: **122 bytes**
-  - alignment/zero/padding: **448 bytes**
+  - alignment/zero/padding: **452 bytes**
   - proven generic non-code (alignment/data subtype not uniquely recoverable from preserved evidence): **112 bytes**
-- residual still requiring classification: **68 bytes**
+- residual still requiring classification: **64 bytes**
 
 The `static_assert` interval audit is diagnostic only. Many verified regions are represented without one assert per machine range, so the 5,673-byte assert-gap total is **not** the untranslated-code total.
 
@@ -76,6 +76,8 @@ Format: `START..END | category | inclusive byte count`. Categories are `alignmen
 0633B..0633B | alignment | 1
 06357..06357 | alignment | 1
 063A2..063A3 | alignment | 2
+063B7..063B7 | alignment | 1
+063D5..063D7 | alignment | 3
 06422..06423 | alignment | 2
 064A3..064AF | alignment | 13
 064D9..064DB | alignment | 3
@@ -264,4 +266,4 @@ The table category consists of the following already-established data islands:
 
 ## Accounting rule
 
-Do not add these 682 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 68 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
+Do not add these 686 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 64 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.

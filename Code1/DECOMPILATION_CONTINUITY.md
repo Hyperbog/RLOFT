@@ -308,3 +308,8 @@ Corrected batch-10 arithmetic proves `7D67` and `7F8A..7F8B` as excluded non-cod
 ## 2026-10-02 residual pass 28 checkpoint
 
 Small-checkpoint policy applied. Batch-08 preserved function boundaries plus its explicit `alignment excluded` integration note classify `631F`, `633B`, `6357`, and `63A2..63A3` as alignment (**5 bytes**). Classified residual is now **682 bytes** and **68 bytes remain unresolved**. Verified translated code remains **69,652 bytes (98.93%)**.
+
+
+## 2026-10-02 residual pass 29 checkpoint
+
+Batch-08 alignment checkpoint 2: `63B7` and `63D5..63D7` (**4 bytes**) are classified from preserved exact function boundaries and the batch's `alignment excluded` note. Classified residual is now **686 bytes**; **64 bytes remain unresolved**. Verified translated code remains **69,652 bytes (98.93%)**.

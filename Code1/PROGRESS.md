@@ -179,3 +179,8 @@ Verified translated code remains **69,652 / 70,402 = 98.93%**. Batch-10 reconcil
 ## 2026-10-02 residual classification pass 28
 
 Verified translated code remains **69,652 / 70,402 = 98.93%**. The first small batch-08 inter-function cluster is now classified from preserved integration evidence: `631F`, `633B`, `6357`, and `63A2..63A3` are the alignment bytes between exact asserted function endpoints and the next 4-byte-aligned entries. This adds **5 classified bytes** without changing translated-code coverage. `RESIDUAL_LEDGER.md` now classifies **682 bytes**, leaving **68 bytes unresolved**.
+
+
+## 2026-10-02 residual classification pass 29
+
+Verified translated code remains **69,652 / 70,402 = 98.93%**. The second small batch-08 inter-function cluster is classified: `63B7` and `63D5..63D7` are alignment bytes between exact asserted endpoints and the next aligned entries. This adds **4 classified bytes**. The ledger now classifies **686 bytes**, leaving **64 bytes unresolved**.

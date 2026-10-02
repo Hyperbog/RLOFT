@@ -154,3 +154,7 @@ Corrected batch-10 arithmetic classifies `7D67` and `7F8A..7F8B` as non-code. `R
 
 ## Residual pass 28
 Small batch-08 checkpoint: classified `631F`, `633B`, `6357`, and `63A2..63A3` as alignment from preserved exact function boundaries and the batch's `alignment excluded` note. `RESIDUAL_LEDGER.md` now holds 682 classified bytes; 68 conservative residual bytes remain. Verified translated code stays 69,652 and active staging remains zero.
+
+
+## Residual pass 29
+Small batch-08 checkpoint 2: classified `63B7` and `63D5..63D7` as alignment. `RESIDUAL_LEDGER.md` now holds 686 classified bytes; 64 conservative residual bytes remain. Verified translated code stays 69,652 and active staging remains zero.
