@@ -11,27 +11,32 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Inspect decoded batch 12 local gaps
+          fetch-depth: 0
+      - name: Mine batch 12 gap history
         run: |
           python3 - <<'PY'
-          import ast,base64,zlib,re
-          from pathlib import Path
-          src=Path('Code1/integrate_runtime_startup_batch_12.py').read_text()
-          tree=ast.parse(src)
-          strings=[n.value for n in ast.walk(tree) if isinstance(n,ast.Constant) and isinstance(n.value,str)]
-          decoded=zlib.decompress(base64.b85decode(max(strings,key=len))).decode()
-          lines=decoded.splitlines()
-          print('DECODED LINES 60..82')
-          for no in range(60,83):
-              if no<=len(lines):print(f'{no}: {lines[no-1]}')
-          print('\nCURRENT REPOSITORY HITS FOR UNRESOLVED BATCH12 GAP ADDRESSES')
-          targets=['9C98','9C9F','9E89','9E8B','9EAE','9EAF','A00E','A00F','A5C6','A5C7','A675','A677']
-          for p in Path('Code1').rglob('*'):
-              if not p.is_file():continue
-              try:body=p.read_text()
-              except UnicodeDecodeError:continue
-              for no,line in enumerate(body.splitlines(),1):
-                  up=line.upper()
-                  if any(re.search(r'(?<![0-9A-F])'+t+r'(?![0-9A-F])',up) for t in targets):
-                      print(f'{p}:{no}: {line[:900]}')
+          import re,subprocess
+          targets=[
+            ('09C98','09C9F'),('09E89','09E8B'),('09EAE','09EAF'),
+            ('0A00E','0A00F'),('0A5C6','0A5C7'),('0A675','0A677')]
+          history=subprocess.check_output(['git','log','--all','--format=@@COMMIT %H','-p','--','Code1'],text=True,errors='ignore')
+          current='unknown'; hits={t:[] for t in targets}
+          strong=('align','padding','zero','nop','data','table','excluded','not counted','non-code','noncode','gap','island')
+          for line in history.splitlines():
+              if line.startswith('@@COMMIT '): current=line.split()[1]; continue
+              low=line.lower()
+              if not any(k in low for k in strong): continue
+              for t in targets:
+                  matched=False
+                  for v in t:
+                      vv=v.lstrip('0') or '0'
+                      forms={v,v.lower(),vv,vv.lower()}
+                      if any(re.search(r'(?<![0-9A-Fa-f])'+re.escape(f)+r'(?![0-9A-Fa-f])',line) for f in forms):
+                          matched=True;break
+                  if matched:
+                      item=(current,line.strip())
+                      if item not in hits[t] and len(hits[t])<20:hits[t].append(item)
+          for t,items in hits.items():
+              print(f'[{t[0]}..{t[1]}] hits={len(items)}')
+              for sha,line in items:print(f'  {sha[:12]}: {line[:1000]}')
           PY
