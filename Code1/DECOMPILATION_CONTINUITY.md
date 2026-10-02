@@ -266,3 +266,10 @@ Residual-code and historical-accounting audit: added/accounted **186 unique mach
 
 ## 2026-10-02 integrity repair: 95BC
 A post-interruption audit re-disassembled `95BC..9723` directly from immutable CODE.1 and found four semantic discrepancies in the older batch-11 lift. The integrated C++ now preserves the encoded `E280(95A8, CS)` callback installation before `8398`, calls `64B0(0)` rather than `64DC(0)`, passes `argv[1]` from the guest argv table at `30A0` to `E360`, and preserves the cdecl argument order of the `D10C(0,27E)` and `D130(0,C7)` calls. This changes no coverage count because all affected bytes were already counted; it is a fidelity correction only.
+
+
+## 2026-10-02 final residual-classification checkpoint
+
+Verified translated code remains **69,652 / 70,402 = 98.93%**. The new `Code1/RESIDUAL_LEDGER.md` is the authoritative curated residual-classification ledger for already-established non-code bytes. It contains **117 non-overlapping ranges totaling 448 bytes**: **118 table bytes** plus **330 alignment/zero/padding bytes**. Because the conservative residual before classification is 750 bytes, **302 bytes remain to classify or translate**.
+
+Do not derive remaining coverage from `static_assert` gaps. A repository audit found 64,729 unique bytes enclosed by current range asserts and 5,673 bytes outside them, but many verified regions intentionally lack one assert per machine interval. Use the verified counter plus `RESIDUAL_LEDGER.md`, and investigate the remaining 302 bytes individually. The next priority is to classify undocumented inter-function gaps (especially the small gaps around the already-integrated self-modifying blitters and the F7xx/F8xx resource helpers), then sweep the remaining one-to-three-byte islands. Never promote a gap merely because it resembles compiler alignment; require current direct evidence or preserved authoritative disassembly evidence.

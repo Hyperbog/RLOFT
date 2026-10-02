@@ -137,3 +137,10 @@ Added **3,941 verified bytes**, bringing the conservative total to **43,936 / 70
 
 ## 2026-10-02 integrity repair: 95BC
 A post-interruption audit re-disassembled `95BC..9723` directly from immutable CODE.1 and found four semantic discrepancies in the older batch-11 lift. The integrated C++ now preserves the encoded `E280(95A8, CS)` callback installation before `8398`, calls `64B0(0)` rather than `64DC(0)`, passes `argv[1]` from the guest argv table at `30A0` to `E360`, and preserves the cdecl argument order of the `D10C(0,27E)` and `D130(0,C7)` calls. This changes no coverage count because all affected bytes were already counted; it is a fidelity correction only.
+
+
+## 2026-10-02 residual classification pass 21
+
+The verified translated-code counter remains **69,652 / 70,402 = 98.93%**; no unverified bytes were promoted to translated coverage in this pass. `RESIDUAL_LEDGER.md` now records **448 of the 750 conservative residual bytes** as explicitly established non-code from current repository evidence: **118 bytes of embedded jump/address/lookup tables** and **330 bytes of alignment, zero-fill, NOP/LEA/MOV-self padding**. This leaves **302 bytes** requiring individual classification or verified translation.
+
+The residual audit also proved that the raw `static_assert` interval gaps are not a coverage ledger: the unified C++ has **64,729 unique bytes represented by those asserts** and **5,673 bytes outside them**, while `kVerifiedTranslatedBytes` is 69,652 because several verified regions are represented without one range assert per machine interval. Do not treat the 5,673-byte diagnostic gap total as untranslated code. The badge stays red and the denominator remains 70,402 until the remaining 302 bytes are resolved without overlap or double-counting.
