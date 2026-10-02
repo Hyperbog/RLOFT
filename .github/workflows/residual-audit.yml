@@ -12,55 +12,31 @@ jobs:
         with:
           ref: code1-decompilation
           fetch-depth: 0
-      - name: Mine deleted and superseded residual evidence
+      - name: Trace large residual boundaries through commit diffs
         run: |
           python3 - <<'PY'
-          import subprocess,re,zlib,base64
-          targets=[
-            (0x000EB,0x000EC),(0x01462,0x01464),(0x04977,0x04978),(0x06054,0x06060),
-            (0x087C2,0x087C4),(0x08E1F,0x08E20),(0x09BD7,0x09BE0),(0x09C98,0x09CA0),
-            (0x09E89,0x09E8C),(0x09EAE,0x09EB0),(0x0A00E,0x0A010),(0x0A059,0x0A05C),
-            (0x0A21A,0x0A21C),(0x0A5C6,0x0A5C8),(0x0A675,0x0A678),(0x0AE0B,0x0AE0C),
-            (0x0BE61,0x0BE70),(0x0CC19,0x0CC1C),(0x0D8CE,0x0D8D0),(0x0DDD8,0x0DDE0),
-            (0x0E3B3,0x0E3B4),(0x0F742,0x0F750),(0x0F7B3,0x0F7B8),(0x0F8BD,0x0F8C4),
-            (0x0FC97,0x0FC98)]
-          commits=subprocess.check_output(['git','rev-list','--all','--reverse'],text=True).splitlines()
-          def decode(s):
-            m=re.fullmatch(r"import zlib,base64\s*\nexec\(zlib\.decompress\(base64\.b85decode\('(.+)'\)\)\)\s*",s,re.S)
-            if m:
-              try:return zlib.decompress(base64.b85decode(m.group(1))).decode('utf-8','replace')
-              except Exception:return s
-            return s
-          # Scan every historical Code1 text artifact, including deleted staging files.
-          hits={t:[] for t in targets}; seen={t:set() for t in targets}
-          for ci,c in enumerate(commits):
-            try:
-              files=subprocess.check_output(['git','ls-tree','-r','--name-only',c,'--','Code1'],text=True).splitlines()
-            except subprocess.CalledProcessError: continue
-            for path in files:
-              if not path.endswith(('.py','.cpp','.md','.txt','.asm','.inc')): continue
-              try:s=subprocess.check_output(['git','show',f'{c}:{path}'],text=True,errors='replace')
-              except subprocess.CalledProcessError: continue
-              if path.endswith('.py'): s=decode(s)
-              lines=s.splitlines()
-              for t in targets:
-                if len(hits[t])>=12: continue
-                a,b=t
-                tokens={f'{a:X}',f'{a:04X}',f'{a:05X}',f'{b:X}',f'{b:04X}',f'{b:05X}',f'{b-1:X}',f'{b-1:04X}',f'{b-1:05X}'}
-                for i,line in enumerate(lines):
-                  up=line.upper()
-                  if not any(re.search(r'(?<![0-9A-F])0?'+re.escape(tok)+r'(?![0-9A-F])',up) for tok in tokens): continue
-                  ctx='\n'.join(lines[max(0,i-3):min(len(lines),i+4)])[:5000]
-                  key=(path,ctx)
-                  if key in seen[t]: continue
-                  seen[t].add(key)
-                  msg=subprocess.check_output(['git','show','-s','--format=%s',c],text=True).strip()
-                  hits[t].append((c[:10],msg,path,i+1,ctx))
-                  if len(hits[t])>=12: break
-          for a,b in targets:
-            t=(a,b)
-            print(f'\n===== {a:05X}..{b-1:05X} -> {b:05X} ({b-a} bytes), historical contexts={len(hits[t])} =====')
-            for c,msg,path,line,ctx in hits[t]:
-              print(f'--- {c} {msg} :: {path}:{line}')
-              print(ctx)
+          import subprocess,re
+          groups=[
+            ('6054..605F','6054|6060|60B2|6184'),
+            ('9BD7..9BDF','9BD7|9BE0'),
+            ('9C98..9C9F','9C98|9CA0'),
+            ('BE61..BE6F','BE61|BE70'),
+            ('DDD8..DDDF','DDD8|DDE0'),
+            ('F742..F74F','F742|F750'),
+            ('F7B3..F7B7','F7B3|F7B8'),
+            ('F8BD..F8C3','F8BD|F8C4')]
+          for label,pat in groups:
+            print('\n===== '+label+' =====')
+            cmd=['git','log','--all','--date-order','--format=COMMIT %H %s','-p','-G',pat,'--','Code1']
+            try:s=subprocess.check_output(cmd,text=True,errors='replace')
+            except subprocess.CalledProcessError as e:s=e.output or ''
+            # Keep only hunks containing a boundary token plus nearby lines.
+            lines=s.splitlines(); out=[]
+            for i,line in enumerate(lines):
+              if re.search(pat,line,re.I):
+                lo=max(0,i-6);hi=min(len(lines),i+10)
+                chunk='\n'.join(lines[lo:hi])
+                if chunk not in out: out.append(chunk)
+            for chunk in out[:18]: print(chunk+'\n---')
+            print('MATCHING_CONTEXTS',len(out))
           PY
