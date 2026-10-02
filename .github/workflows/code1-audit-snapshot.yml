@@ -1,0 +1,25 @@
+name: CODE.1 final audit snapshot
+on:
+  push:
+    branches: [code1-decompilation]
+    paths:
+      - '.github/workflows/code1-audit-snapshot.yml'
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+      - uses: actions/upload-artifact@v4
+        with:
+          name: code1-final-audit-snapshot
+          path: |
+            Code1/Code1.cpp
+            Code1/PROGRESS.md
+            Code1/RESIDUAL_LEDGER.md
+            Code1/FINAL_BINARY_AUDIT.md
+          if-no-files-found: error
+          retention-days: 2
