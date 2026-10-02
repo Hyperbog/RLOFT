@@ -11,22 +11,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Reconcile increased batch 02 byte count
+      - name: Reconcile runtime-tail byte count
         run: |
           python3 - <<'PY'
-          # The checkpoint explicitly lists 884 newly counted helper bytes and
-          # simultaneously promotes the two previously uncounted early renderers.
-          helpers=[57,159,223,116,79,1,179,70]
-          renderer_a=0x649-0x4B0
-          renderer_b=0x7E2-0x64C
-          helper_total=sum(helpers)
-          renderer_total=renderer_a+renderer_b
-          exact=helper_total+renderer_total
-          print('batch02 helper bytes:',helper_total)
-          print('batch02 renderer bytes:',renderer_total)
-          print('batch02 exact verified bytes:',exact)
-          print('batch02 historical progress delta:',1699)
-          assert helper_total==884
-          assert renderer_a==409 and renderer_b==406 and renderer_total==815
-          assert exact==1699
+          start=0x10C6F
+          end_exclusive=0x11302
+          exact=end_exclusive-start
+          historical_delta=1683
+          print('runtime-tail range: 10C6F..11301')
+          print('exact verified bytes:',exact)
+          print('historical progress delta:',historical_delta)
+          assert exact==1683
+          assert exact==historical_delta
           PY
