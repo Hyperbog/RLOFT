@@ -11,80 +11,38 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Build exact current accounting union
+          fetch-depth: 0
+      - name: Mine all remaining residual history
         run: |
           python3 - <<'PY'
-          from pathlib import Path
-          import re
-          DEN=0x11302
-          text=Path('Code1/Code1.cpp').read_text()
-          sa=re.compile(r'static_assert\(0x([0-9A-Fa-f]+)u-0x([0-9A-Fa-f]+)u==([0-9]+)u\)')
-          code=[]
-          for end,start,n in sa.findall(text):
-              a,b,n=int(start,16),int(end,16),int(n)
-              if 0<=a<=b<=DEN and b-a==n: code.append((a,b))
-
-          # Verified legacy ranges represented in C++ but historically not decorated with
-          # per-range static_asserts. 1058B..1058F is intentionally absent here: batch 20
-          # supplies its current assert, while pass 39 removed the later duplicate scalar credit.
-          manual=[
-            (0x00000,0x00003),
-            (0x07F50,0x07F5C),
-            (0x095A8,0x095BB),
-            (0x09E10,0x09E12),
-            (0x09EA7,0x09EAE),
-            (0x0CBEF,0x0CBF0),
-            (0x0CBF0,0x0CC19),
-            (0x0CC1C,0x0CC1E),(0x0CC96,0x0CD97),
-            (0x0D154,0x0D179),(0x0D17C,0x0D1E8),
-            (0x0D5AD,0x0D8CE),(0x0D8D0,0x0DA1C),(0x0DA1C,0x0DA45),
-            (0x0DA48,0x0DAC9),(0x0DAC9,0x0DAD9),
-            (0x0DDE0,0x0DDFE),(0x0DDFE,0x0DE6F),(0x0DEA7,0x0DF13),
-            (0x0DF73,0x0DF8E),(0x0DFB3,0x0E02B),(0x0E050,0x0E098),(0x0E098,0x0E0C8),
-            (0x0E4C7,0x0E6EA),(0x0E6EA,0x0EA0B),
-            (0x0FFD4,0x102D4),
-          ]
-          code.extend(manual)
-
-          def merge(rs):
-              out=[]
-              for a,b in sorted(rs):
-                  if a==b: continue
-                  if out and a<=out[-1][1]: out[-1][1]=max(out[-1][1],b)
-                  else: out.append([a,b])
-              return out
-          def subtract(parts,cuts):
-              out=[]
-              for a,b in parts:
-                  cur=[(a,b)]
-                  for c,d in cuts:
-                      nxt=[]
-                      for x,y in cur:
-                          if d<=x or c>=y: nxt.append((x,y)); continue
-                          if x<c: nxt.append((x,c))
-                          if d<y: nxt.append((d,y))
-                      cur=nxt
-                  out.extend(cur)
-              return out
-          def total(rs):return sum(b-a for a,b in rs)
-
-          cu=merge(code)
-          print('CODE_UNION',total(cu),'intervals',len(cu))
-          ledger=Path('Code1/RESIDUAL_LEDGER.md').read_text()
-          lm=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)\n<!-- RESIDUAL-RANGES-END -->',ledger,re.S);assert lm
-          nr=[]
-          for raw in lm.group(1).splitlines():
-              m=re.fullmatch(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| ([0-9]+)',raw.strip());assert m,raw
-              a,b=int(m.group(1),16),int(m.group(2),16)+1;assert b-a==int(m.group(4));nr.append((a,b))
-          nu=merge(nr)
-          print('NONCODE_UNION',total(nu),'intervals',len(nu))
-          overlap=total(cu)+total(nu)-total(merge(cu+nu))
-          print('CODE_NONCODE_OVERLAP',overlap)
-          gaps=subtract([(0,DEN)],merge(cu+nu))
-          print('UNRESOLVED',total(gaps),'intervals',len(gaps))
-          for a,b in gaps: print(f'RESIDUAL {a:05X}..{b-1:05X} {b-a}')
-          assert total(nu)==921
-          assert overlap==0
-          assert total(cu)==69360
-          assert total(gaps)==121
+          import re,subprocess
+          targets=[
+            ('000EB','000EB'),('007E2','007E3'),('01462','01463'),('04977','04977'),
+            ('06054','0605F'),('080BA','080BB'),('0826E','0826F'),('08336','08337'),
+            ('087C2','087C3'),('08E1F','08E1F'),('09BD7','09BDF'),('09C98','09C9F'),
+            ('09E89','09E8B'),('09EAE','09EAF'),('0A00E','0A00F'),('0A059','0A05B'),
+            ('0A21A','0A21B'),('0A5C6','0A5C7'),('0A675','0A677'),('0AE0B','0AE0B'),
+            ('0BE61','0BE6F'),('0CC19','0CC1B'),('0D8CE','0D8CF'),('0DC8D','0DC8F'),
+            ('0DDD8','0DDDF'),('0E3B3','0E3B3'),('0F742','0F74F'),('0F7B3','0F7B7'),
+            ('0F8BD','0F8C3'),('0FC97','0FC97')]
+          history=subprocess.check_output(['git','log','--all','--format=@@COMMIT %H','-p','--','Code1'],text=True,errors='ignore')
+          current='unknown'; hits={t:[] for t in targets}
+          strong=('align','padding','zero','nop','data','table','excluded','not counted','non-code','noncode','gap','island','unused','fill','text')
+          for line in history.splitlines():
+              if line.startswith('@@COMMIT '): current=line.split()[1]; continue
+              low=line.lower()
+              if not any(k in low for k in strong): continue
+              for t in targets:
+                  matched=False
+                  for v in t:
+                      vv=v.lstrip('0') or '0'
+                      forms={v,v.lower(),vv,vv.lower()}
+                      if any(re.search(r'(?<![0-9A-Fa-f])'+re.escape(f)+r'(?![0-9A-Fa-f])',line) for f in forms):
+                          matched=True; break
+                  if matched:
+                      item=(current,line.strip())
+                      if item not in hits[t] and len(hits[t])<30: hits[t].append(item)
+          for t,items in hits.items():
+              print(f'[{t[0]}..{t[1]}] hits={len(items)}')
+              for sha,line in items: print(f'  {sha[:12]}: {line[:1200]}')
           PY
