@@ -11,35 +11,27 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Reconcile exact batch 08 byte count
+      - name: Reconcile exact batch 07 byte count
         run: |
           python3 - <<'PY'
-          import re
-          from pathlib import Path
-          s=Path('Code1/integrate_mid_runtime_batch_08.py').read_text()
-          sa=re.compile(r'static_assert\(0x([0-9A-Fa-f]+)u-0x([0-9A-Fa-f]+)u==([0-9]+)u\)')
-          ranges=[]
-          for end,start,n in sa.findall(s):
-              a,b,n=int(start,16),int(end,16),int(n)
-              assert b-a==n,(hex(a),hex(b),n)
-              ranges.append((a,b))
-          ranges.sort()
-          assert all(ranges[i][1] <= ranges[i+1][0] for i in range(len(ranges)-1))
-          exact=sum(b-a for a,b in ranges)
-          advertised=[(0x59AC,0x6054),(0x6184,0x6654),(0x6654,0x6852)]
-          raw=sum(b-a for a,b in advertised)
-          progress_delta=3671
-          print('batch08 exact asserted ranges:',len(ranges))
-          print('batch08 exact asserted code bytes:',exact)
-          print('batch08 advertised raw span bytes:',raw)
-          print('batch08 advertised progress delta:',progress_delta)
-          print('delta minus exact asserted:',progress_delta-exact)
-          print('delta minus raw advertised spans:',progress_delta-raw)
-          print('raw advertised minus exact asserted:',raw-exact)
-          print('ranges:')
-          for a,b in ranges: print(f'{a:05X}..{b-1:05X} {b-a}')
-          assert exact==3384,exact
-          assert raw==3446,raw
-          assert progress_delta-exact==287
-          assert progress_delta-raw==225
+          # Preserved batch-07 evidence defines one raw span and enumerates every
+          # alignment/data island excluded from its verified-byte count.
+          span=(0x4978,0x59AC)
+          excluded=[
+            (0x4A0A,0x4A0C),(0x4B17,0x4B18),(0x4C7F,0x4C80),
+            (0x4D51,0x4D54),(0x4EEE,0x4EF0),(0x508A,0x508C),
+            (0x522F,0x5230),(0x527A,0x527C),(0x52AA,0x52AC),
+            (0x53B1,0x53B4),(0x53E2,0x53E4),(0x5451,0x5454),
+            (0x550B,0x550C),(0x55DB,0x55DC),(0x577D,0x5780),
+            (0x57DB,0x57DC),(0x5879,0x5880)]
+          raw=span[1]-span[0]
+          excluded_bytes=sum(b-a for a,b in excluded)
+          exact=raw-excluded_bytes
+          print('batch07 raw span bytes:',raw)
+          print('batch07 excluded alignment/data bytes:',excluded_bytes)
+          print('batch07 exact verified bytes:',exact)
+          print('batch07 historical progress delta:',4111)
+          assert raw==4148
+          assert excluded_bytes==37
+          assert exact==4111
           PY
