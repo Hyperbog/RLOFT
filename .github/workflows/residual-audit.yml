@@ -11,52 +11,38 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Inspect batch 08 gap evidence
+          fetch-depth: 0
+      - name: Mine final residual history evidence
         run: |
           python3 - <<'PY'
-          import re
-          from pathlib import Path
-          s=Path('Code1/integrate_mid_runtime_batch_08.py').read_text()
+          import re,subprocess
           targets=[
-            (0x6054,0x605f),(0x631f,0x631f),(0x633b,0x633b),(0x6357,0x6357),
-            (0x63a2,0x63a3),(0x63b7,0x63b7),(0x63d5,0x63d7),(0x63f1,0x63f3),
-            (0x6409,0x640b),(0x648d,0x648f),(0x6632,0x6633),(0x6672,0x6673),
-            (0x66a7,0x66a7),(0x6743,0x6743),(0x67c7,0x67c7),(0x67f2,0x67f3),
-            (0x6823,0x6823)]
-          lines=s.splitlines()
-          print('BATCH08 TARGET REFERENCES')
-          for a,b in targets:
-              hits=[]
-              for no,line in enumerate(lines,1):
-                  up=line.upper()
-                  forms=[]
-                  for v in {a,b}:
-                      forms += [f'{v:X}',f'{v:04X}',f'{v:05X}']
-                  if any(re.search(r'(?<![0-9A-F])'+re.escape(f)+r'(?![0-9A-F])',up) for f in forms):
-                      hits.append((no,line.strip()))
-              print(f'[{a:05X}..{b:05X}]')
-              for no,line in hits[:12]: print(f'  {no}: {line[:1200]}')
-          print('\nALL EXPLICIT ALIGNMENT/ZERO/PADDING LINES')
-          for no,line in enumerate(lines,1):
-              low=line.lower()
-              if any(k in low for k in ('alignment',' padding','nop','zero byte','zero/alignment')):
-                  print(f'{no}: {line[:1200]}')
-          # Show exact code asserts and complements only for 6184..6851, without
-          # treating the stale aggregate prose total as evidence.
-          sa=re.compile(r'static_assert\(0x([0-9A-Fa-f]+)u-0x([0-9A-Fa-f]+)u==([0-9]+)u\)')
-          code=[]
-          for end,start,n in sa.findall(s):
-              a,b,n=int(start,16),int(end,16),int(n)
-              if b-a==n and 0x6184<=a and b<=0x6852: code.append((a,b))
-          merged=[]
-          for a,b in sorted(code):
-              if merged and a<=merged[-1][1]:merged[-1][1]=max(merged[-1][1],b)
-              else:merged.append([a,b])
-          print('\n6184..6851 span',0x6852-0x6184,'asserted',sum(b-a for a,b in merged),'complement',(0x6852-0x6184)-sum(b-a for a,b in merged))
-          comp=[];p=0x6184
-          for a,b in merged:
-              if p<a:comp.append((p,a))
-              p=max(p,b)
-          if p<0x6852:comp.append((p,0x6852))
-          for a,b in comp:print(f' complement {a:05X}..{b-1:05X} {b-a}')
+           (0x000EB,0x000EB),(0x007E2,0x007E3),(0x01462,0x01463),(0x04977,0x04977),(0x06054,0x0605F),(0x060B2,0x060B3),(0x06101,0x06103),
+           (0x0631F,0x0631F),(0x0633B,0x0633B),(0x06357,0x06357),(0x063A2,0x063A3),(0x063B7,0x063B7),(0x063D5,0x063D7),(0x063F1,0x063F3),(0x06409,0x0640B),(0x0648D,0x0648F),
+           (0x06632,0x06633),(0x06672,0x06673),(0x066A7,0x066A7),(0x06743,0x06743),(0x067C7,0x067C7),(0x067F2,0x067F3),(0x06823,0x06823),
+           (0x080BA,0x080BB),(0x0826E,0x0826F),(0x08336,0x08337),(0x087C2,0x087C3),(0x08E1F,0x08E1F),(0x09BD7,0x09BDF),
+           (0x09C98,0x09C9F),(0x09E89,0x09E8B),(0x09EAE,0x09EAF),(0x0A00E,0x0A00F),(0x0A059,0x0A05B),(0x0A21A,0x0A21B),(0x0A5C6,0x0A5C7),(0x0A675,0x0A677),
+           (0x0AC0F,0x0AC0F),(0x0AE0B,0x0AE0B),(0x0BE61,0x0BE6F),(0x0DC8D,0x0DC8F),(0x0E3B3,0x0E3B3),(0x0F742,0x0F74F),(0x0F7B3,0x0F7B7),(0x0F8BD,0x0F8C3),(0x0FC97,0x0FC97)]
+          hist=subprocess.check_output(['git','log','--all','--format=@@COMMIT %H','-p','--','Code1'],text=True,errors='ignore')
+          strong=('align','padding',' nop','nop ','zero byte','zero bytes','zero/alignment','data/alignment',' is data','table','excluded','not counted','non-code','noncode','gap')
+          current='';hits={t:[] for t in targets}
+          for line in hist.splitlines():
+            if line.startswith('@@COMMIT '):current=line.split()[1];continue
+            low=line.lower()
+            if not any(k in low for k in strong):continue
+            for t in targets:
+              matched=False
+              for v in set(t):
+                forms={f'{v:X}',f'{v:04X}',f'{v:05X}',f'{v:x}',f'{v:04x}',f'{v:05x}'}
+                if any(re.search(r'(?<![0-9A-Fa-f])'+re.escape(f)+r'(?![0-9A-Fa-f])',line) for f in forms):matched=True;break
+              if matched:
+                item=(current,line.strip())
+                if item not in hits[t] and len(hits[t])<12:hits[t].append(item)
+          total=0
+          for t,items in hits.items():
+            if not items:continue
+            total+=t[1]-t[0]+1
+            print(f'[{t[0]:05X}..{t[1]:05X} {t[1]-t[0]+1}]')
+            for sha,line in items:print(f'  {sha[:12]}: {line[:1100]}')
+          print('ranges with strong historical hits:',sum(bool(v) for v in hits.values()),'target bytes represented:',total)
           PY
