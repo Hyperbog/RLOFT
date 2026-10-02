@@ -170,3 +170,7 @@ Small batch-08 checkpoint 3: classified `63F1..63F3` and `6409..640B` as alignme
 
 ## Residual pass 32
 Small batch-08 checkpoint 4: classified `648D..648F` and `6632..6633` as alignment. `RESIDUAL_LEDGER.md` now holds 697 classified bytes; 340 conservative residual bytes remain. Verified translated code stays 69,365 and active staging remains zero.
+
+
+## Residual pass 33
+Small batch-08 checkpoint 5: classified `6672..6673`, `66A7`, `6743`, and `67C7` as alignment. `RESIDUAL_LEDGER.md` now holds 702 classified bytes; 335 conservative residual bytes remain. Verified translated code stays 69,365 and active staging remains zero.

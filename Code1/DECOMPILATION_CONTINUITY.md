@@ -328,3 +328,8 @@ Batch-08 alignment checkpoint 3: `63F1..63F3` and `6409..640B` (**6 bytes**) are
 ## 2026-10-02 residual pass 32 checkpoint
 
 Batch-08 alignment checkpoint 4: `648D..648F` and `6632..6633` (**5 bytes**) are classified from preserved exact function boundaries and the batch's `alignment excluded` note. Classified residual is now **697 bytes**; **340 bytes remain unresolved**. Verified translated code remains **69,365 bytes (98.53%)**.
+
+
+## 2026-10-02 residual pass 33 checkpoint
+
+Batch-08 alignment checkpoint 5: `6672..6673`, `66A7`, `6743`, and `67C7` (**5 bytes**) are classified from preserved exact function boundaries and the batch's `alignment excluded` note. Classified residual is now **702 bytes**; **335 bytes remain unresolved**. Verified translated code remains **69,365 bytes (98.53%)**.
