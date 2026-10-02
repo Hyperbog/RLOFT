@@ -98,3 +98,7 @@ Integrated **3,921 verified instruction bytes** from `00EC..035B`, `10A4..1461`,
 
 ## Batch 15 integration
 Integrated **3,886 verified bytes** from `15B0..1A00`, `2198..24D0`, `266C..28E1`, functional `A21C..A554`, and `A6F0..A8F3`. Alignment `1A01..1A03`, `24D1..24D3`, `28E2..28E3`, `A2AE..A2AF`, `A359..A35B`, `A36A..A36B`, `A38D..A38F`, `A3E5..A3E7`, `A473`, `A4E7`, `A555..A557` is excluded. The self-modifying subtract-byte behavior of `A7E8` is represented as an explicit per-call byte because both encoded immediates are overwritten on every entry. Active staging remains only `CE8B..CEBF` (53 bytes).
+
+
+## Batch 16 integration checkpoint
+Integrated **2,867 verified bytes**: the full `07E4..10A1` staggered transition renderer, interrupt handlers `7F5C..7F89`, `80BC..826D`, `8338..8397`, and shared startup exit tail `CE8B..CEBF`. The startup staging pool is now empty. Hardware frame entry/IRET and DOS termination remain explicit machine-boundary callbacks rather than host substitutions. Verified total: **66,622 / 70,402 = 94.63%**.

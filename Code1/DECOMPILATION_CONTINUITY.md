@@ -242,3 +242,7 @@ Verified total **55,948 / 70,402 = 79.47%**. Added 4,129 instruction-accounted b
 
 ## Batch 15 checkpoint
 Verified coverage is **63,755 / 70,402 = 90.56%**. Batch 15 integrated `15B0..1A00`, `2198..24D0`, `266C..28E1`, functional `A21C..A554`, and `A6F0..A8F3` for **3,886 bytes** after direct CODE.1 disassembly. Preserve these specific facts: `2198` invalid modes return the incoming EDX value; `15B0` byte-toggles 7138 but pushes the full dword at 7138 to 53E4/5454; `A21C/A2B0` select copy direction from signed CX/DX while negating the full 32-bit register; `A7E8` patches two subtraction immediates on every entry, so its C++ delta is per-call rather than persistent hidden state. `07E4..10A1`, `C79F..CBD0`, interrupt-handler islands, `CE8B..CEBF`, and `DE6F..DEA0` remain high-priority unresolved/accounting candidates.
+
+
+## Batch 16 integration checkpoint
+Integrated **2,867 verified bytes**: the full `07E4..10A1` staggered transition renderer, interrupt handlers `7F5C..7F89`, `80BC..826D`, `8338..8397`, and shared startup exit tail `CE8B..CEBF`. The startup staging pool is now empty. Hardware frame entry/IRET and DOS termination remain explicit machine-boundary callbacks rather than host substitutions. Verified total: **66,622 / 70,402 = 94.63%**.
