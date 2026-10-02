@@ -21,3 +21,4 @@ jobs:
           git add Code1/Code1.cpp Code1/PROGRESS.md Code1/STAGING_LEDGER.md Code1/DECOMPILATION_CONTINUITY.md Code1/integrate_low_graphics_batch_13.py
           git commit -m "Integrate CODE.1 low graphics batch 13"
           git push origin code1-decompilation
+# retry compile and local-copy fidelity fixes
