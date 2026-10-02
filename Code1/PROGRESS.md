@@ -149,3 +149,8 @@ The residual audit also proved that the raw `static_assert` interval gaps are no
 ## 2026-10-02 residual classification pass 22
 
 No translated-code coverage was added: the verified counter remains **69,652 / 70,402 = 98.93%**. Fourteen one-byte islands already had explicit current-source alignment comments but were absent from `RESIDUAL_LEDGER.md`: `4B17`, `4C7F`, `522F`, `550B`, `55DB`, `57DB`, `6303`, `782F`, `7843`, `7B73`, `7D7F`, `7E03`, `7E43`, and `7E6B`. They are now classified as alignment. The curated non-code ledger therefore increases from **448 to 462 bytes** (118 table + 344 alignment/zero/padding), reducing the conservative unresolved residual from **302 to 288 bytes**. The progress badge remains red because translated coverage is unchanged and the remaining bytes still require proof.
+
+
+## 2026-10-02 residual classification pass 23
+
+Verified translated code remains **69,652 / 70,402 = 98.93%**. Preserved repository evidence explicitly classifies **38 additional residual bytes** as non-code: batch-13 excluded islands `AEA6..AEA7`, `AF4B`, `AF63`, `B4D2..B4D3`, `B51B`, `B596..B597`, `B5E1..B5E3`, `B6BE..B6BF`, `B6EB`, `B75B`, `B76B`; startup `CEE9..CEEF` seven zero bytes and `CF41..CF43` alignment NOP; runtime staging `E187..E18F` nine zero bytes, `E207` single NOP, and `E27F` zero. `RESIDUAL_LEDGER.md` now classifies **500 bytes** (118 table + 382 alignment/zero/padding), leaving **250 bytes** unresolved. No code byte was promoted and the badge remains red.

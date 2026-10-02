@@ -130,3 +130,7 @@ A post-interruption audit re-disassembled `95BC..9723` directly from immutable C
 
 ## Residual pass 22
 Fourteen explicitly commented one-byte alignment islands were added to `RESIDUAL_LEDGER.md`. Classified non-code is 462 bytes; unresolved conservative residual is 288 bytes. Verified translated code remains 69,652 bytes and active staging remains zero.
+
+
+## Residual pass 23
+Preserved batch/staging evidence classified 38 additional non-code bytes. `RESIDUAL_LEDGER.md` now holds 500 classified bytes; 250 conservative residual bytes remain. Verified translated code stays 69,652 and active staging remains zero.

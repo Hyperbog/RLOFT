@@ -278,3 +278,8 @@ Do not derive remaining coverage from `static_assert` gaps. A repository audit f
 ## 2026-10-02 residual pass 22 checkpoint
 
 Fourteen current-source one-byte alignment comments were missing from the curated residual ledger and are now recorded: `4B17`, `4C7F`, `522F`, `550B`, `55DB`, `57DB`, `6303`, `782F`, `7843`, `7B73`, `7D7F`, `7E03`, `7E43`, `7E6B`. Classified non-code is now **462 bytes** and the unresolved conservative residual is **288 bytes**. Verified translated code remains **69,652 bytes (98.93%)**. Continue from repository evidence only; do not infer padding for the remaining islands without an explicit current or preserved integration record.
+
+
+## 2026-10-02 residual pass 23 checkpoint
+
+Preserved batch/staging records supplied explicit non-code evidence for 38 more bytes: `AEA6..AEA7`, `AF4B`, `AF63`, `B4D2..B4D3`, `B51B`, `B596..B597`, `B5E1..B5E3`, `B6BE..B6BF`, `B6EB`, `B75B`, `B76B`, `CEE9..CEEF`, `CF41..CF43`, `E187..E18F`, `E207`, and `E27F`. Classified non-code is now **500 bytes**; **250 conservative residual bytes remain**. Verified translated code remains **69,652 bytes (98.93%)**. `C79F` was deliberately not classified in this pass because the older exclusion record describes the formerly unresolved self-modifying cluster, not the exact semantic role of that one byte after batch 18.

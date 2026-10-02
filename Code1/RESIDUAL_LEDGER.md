@@ -6,10 +6,10 @@ It does **not** change `kVerifiedTranslatedBytes`. The conservative denominator 
 
 - verified translated code: **69,652 bytes**
 - conservative residual: **750 bytes**
-- explicitly classified residual below: **462 bytes**
+- explicitly classified residual below: **500 bytes**
   - embedded tables: **118 bytes**
-  - alignment/zero/padding: **344 bytes**
-- residual still requiring classification: **288 bytes**
+  - alignment/zero/padding: **382 bytes**
+- residual still requiring classification: **250 bytes**
 
 The `static_assert` interval audit is diagnostic only. Many verified regions are represented without one assert per machine range, so the 5,673-byte assert-gap total is **not** the untranslated-code total.
 
@@ -128,22 +128,38 @@ Format: `START..END | category | inclusive byte count`.
 0A4E7..0A4E7 | alignment | 1
 0A555..0A557 | alignment | 3
 0AE5A..0AE5B | alignment | 2
+0AEA6..0AEA7 | alignment | 2
 0AF05..0AF07 | alignment | 3
+0AF4B..0AF4B | alignment | 1
+0AF63..0AF63 | alignment | 1
 0B055..0B05F | alignment | 11
 0B0F6..0B0F7 | alignment | 2
+0B4D2..0B4D3 | alignment | 2
+0B51B..0B51B | alignment | 1
+0B596..0B597 | alignment | 2
+0B5E1..0B5E3 | alignment | 3
+0B6BE..0B6BF | alignment | 2
+0B6EB..0B6EB | alignment | 1
+0B75B..0B75B | alignment | 1
+0B76B..0B76B | alignment | 1
 0B821..0B823 | alignment | 3
 0B8F3..0B8F3 | alignment | 1
 0BA01..0BA03 | alignment | 3
 0BA97..0BA97 | alignment | 1
 0BBE9..0BBEB | alignment | 3
 0BC1A..0BC1B | alignment | 2
+0CEE9..0CEEF | alignment | 7
+0CF41..0CF43 | alignment | 3
 0D179..0D17B | alignment | 3
 0D27D..0D27F | alignment | 3
 0DA45..0DA47 | alignment | 3
 0DE6F..0DE6F | alignment | 1
 0DEA1..0DEA6 | alignment | 6
+0E187..0E18F | alignment | 9
 0E1F1..0E1F3 | alignment | 3
+0E207..0E207 | alignment | 1
 0E269..0E26B | alignment | 3
+0E27F..0E27F | alignment | 1
 0EDD3..0EDDF | alignment | 13
 0FCE7..0FCE7 | alignment | 1
 10436..10437 | alignment | 2
@@ -165,4 +181,4 @@ All other ranges in the machine-readable block are alignment, NOP/LEA/MOV-self p
 
 ## Accounting rule
 
-Do not add these 462 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 288 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
+Do not add these 500 bytes to `kVerifiedTranslatedBytes`: they are classified residual bytes, not translated application instructions. Do not reduce the denominator merely to improve the displayed percentage. Completion requires the remaining 250 bytes to be individually classified or translated and all accounting reconciled without overlap or double-counting.
