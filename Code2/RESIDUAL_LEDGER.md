@@ -78,9 +78,13 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 095BD..095BF | alignment | 3
 0978D..0978F | alignment | 3
 09B4A..09B4B | alignment | 2
+09D8F..09D8F | alignment | 1
+0A609..0A60B | alignment | 3
+0A667..0A667 | alignment | 1
+0A791..0A793 | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **456 bytes**.
+**Total proven non-code/data:** **464 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -109,3 +113,6 @@ Batch 13 evidence: `08CD8..08CF3` is the seven-entry CS table consumed by the in
 
 
 Batch 14 evidence: `095BD..095BF` and `0978D..0978F` decode as `LEA EAX,[EAX+0]`; `09B4A..09B4B` decodes as `MOV EAX,EAX`. Each lies between directly reconstructed routine boundaries, and a full object-1 direct relative branch/call-target scan found no incoming target to any byte in these ranges. The known zero islands remain unresolved.
+
+
+Batch 15 evidence: `09D8F` and `0A667` decode as explicit `NOP`; `0A609..0A60B` and `0A791..0A793` decode as `LEA EAX,[EAX+0]`. Each lies between directly reconstructed function boundaries, and a full object-1 direct relative branch/call-target scan found no incoming target to any byte in these ranges. The known zero islands remain unresolved.

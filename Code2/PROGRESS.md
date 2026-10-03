@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-19.48%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-20.79%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **46,240**
-**Proven non-code/data bytes:** **456**
-**Reconciled object bytes:** **46,696 / 239,698 = 19.4812% (19.48%)**
-**Unresolved object bytes:** **193,002**
+**Verified translated instruction bytes:** **49,376**
+**Proven non-code/data bytes:** **464**
+**Reconciled object bytes:** **49,840 / 239,698 = 20.7928% (20.79%)**
+**Unresolved object bytes:** **189,858**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -435,3 +435,21 @@ Added **1,636 verified translated instruction bytes**:
 Added **8 directly proven alignment bytes** at `095BD..095BF`, `0978D..0978F`, and `09B4A..09B4B`. Full-object direct relative branch/call-target scanning found no incoming target to any separator byte.
 
 Cumulative accounting: **46,240 translated + 456 proven non-code/data = 46,696 / 239,698 = 19.4812% (19.48%)**. Next sequential frontier: `09B4C`.
+
+
+## Batch 15 — party-effect animation, resolver, and modal apply flow
+
+Added **3,136 verified translated instruction bytes**:
+
+- `09B4C..09D8E` — **579 bytes**: descriptor-driven party-panel animation, including the all-party mode and visual-5 second draw.
+- `09D90..0A253` — **1,220 bytes**: type-specific effect resolver with signed 16-bit current/max comparisons, message-only failure exits, partial-word status-bit clears, and the encoded `7Bh` recovery path.
+- `0A254..0A5BB` — **872 bytes**: modal four-party target/apply loop preserving its positional eight-argument interface, eligibility tests, optional animation, timer installation, resolver fallback, and input-state restoration.
+- `0A5BC..0A608` — **77 bytes**: save/suppress `D681`/`D682` while dirtying all four party panels.
+- `0A60C..0A666` — **91 bytes**: restore/normalize saved input-state bytes and dirty all four panels.
+- `0A668..0A790` — **297 bytes**: global party animation plus `21A14` bit-20 / `21A6A` timer installation for non-`8000h` party slots.
+
+Added **8 directly proven alignment bytes** at `09D8F`, `0A609..0A60B`, `0A667`, and `0A791..0A793`. Full-object direct relative branch/call-target scanning found no incoming target to any separator byte.
+
+Fidelity notes: `09D90` compares the wrapped 16-bit current/max words as signed 16-bit values; the `7Bh` branch has three distinct message-failure exits and a byte-width `21917` decrement; `0A254` preserves the two-phase input poll, effect-specific target eligibility, and the split between direct status/timer installation and `09D90` fallback.
+
+Cumulative accounting: **49,376 translated + 464 proven non-code/data = 49,840 / 239,698 = 20.7928% (20.79%)**. Next sequential frontier: **`0A794`**.
