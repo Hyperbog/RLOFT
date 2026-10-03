@@ -22,6 +22,8 @@ jobs:
           import re
           cpp=Path('Code1/Code1.cpp').read_text();led=Path('Code1/RESIDUAL_LEDGER.md').read_text();audit=Path('Code1/FINAL_BINARY_AUDIT.md').read_text()
           assert 'constexpr u32 kVerifiedTranslatedBytes=69361u;' in cpp
+          assert 'void function_b430(Machine&m,LowGraphics13Boundary&b)noexcept{' in cpp
+          assert '[[nodiscard]]s32 function_b598(Machine&m,LowGraphics13Boundary&b)noexcept{' in cpp
           b5=cpp[cpp.index('void function_b5e4'):cpp.index('static_assert(0xB6BEu-0xB5E4u==218u);')]
           assert 'if(rec==0u)return' in b5 and 'load_le32(dgroup_ptr(m,dgroup(0x2c08u+slot*4u)))' in b5
           b76=cpp[cpp.index('void function_b76c'):cpp.index('static_assert(0xB821u-0xB76Cu==181u);')]
@@ -48,3 +50,4 @@ jobs:
           git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/fix_semantic_audit_checkpoint10f.py
           git diff --cached --check
           if git diff --cached --quiet; then echo 'Checkpoint 10f already applied.'; else git commit -m "Correct CODE.1 semantic audit checkpoint 10f" && git push origin HEAD:code1-decompilation; fi
+# retry after definition-scoped patch targeting
