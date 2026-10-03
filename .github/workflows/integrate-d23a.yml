@@ -1,37 +1,57 @@
-name: CODE.1 object verifier
+name: CODE.1 semantic audit checkpoint 10k
 on:
   push:
     branches: [code1-decompilation]
     paths:
       - '.github/workflows/integrate-d23a.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
-  verify:
+  integrate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Verify closed object accounting
+      - name: Apply semantic audit checkpoint 10k
+        run: python3 Code1/fix_semantic_audit_checkpoint10k.py
+      - name: Verify checkpoint 10k and closed accounting
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
-          cpp=Path('Code1/Code1.cpp').read_text()
-          led=Path('Code1/RESIDUAL_LEDGER.md').read_text()
+          cpp=Path('Code1/Code1.cpp').read_text();led=Path('Code1/RESIDUAL_LEDGER.md').read_text();audit=Path('Code1/FINAL_BINARY_AUDIT.md').read_text()
           assert 'constexpr u32 kVerifiedTranslatedBytes=69361u;' in cpp
-          m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S)
-          assert m
+          e3=cpp[cpp.index('[[nodiscard]]u32 function_e3e0('):cpp.index('// E4C7..EA0A:')]
+          assert 'if(count==0)return 0' not in e3
+          assert 'function_e4a7(Machine&m)' in e3
+          irq=e3[e3.index('function_e3f2('):e3.index('function_e4a7(')]
+          assert 'if(load_le16(m.data+0x510e)!=0){if(b.out8)b.out8(0x20,0x20);return{};}' in irq
+          assert 'ChainSavedVector' not in irq
+          ea=cpp[cpp.index('[[nodiscard]]u32 function_ea0b('):cpp.index('void function_ea9a')]
+          assert 'store_le32(m.data+0x52dau,0u)' in ea
+          assert 'store_le32(m.data+0x52dau,slot+1u)' in ea
+          assert 'result=load_le32(m.data+0x52dau)' in ea
+          wrappers=re.findall(r'function_([0-9a-f]+)\(Machine&m,DispatcherBoundary&b,const u32\*args,u32 count\)noexcept\{return function_e3e0',cpp)
+          fixed=[x for x in wrappers if 0xebf3 <= int(x,16) <= 0xedc9]
+          assert len(fixed)==48,len(fixed)
+          assert 'static_assert(0xEDD3u-0xEBF3u==480u);' in cpp
+          assert 'static_assert(0xEDE7u-0xEDE0u==7u);' in cpp
+          assert 'Semantic audit checkpoint 10k' in audit and '`E3B4..EDE6`' in audit
+          m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S);assert m
           total=0
           for line in m.group(1).strip().splitlines():
-              a,b,cat,n=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| (\d+)',line).groups()
-              a=int(a,16); b=int(b,16); n=int(n)
-              assert b-a+1==n
-              total += n
-          assert total==1041,total
-          assert 69361+total==70402
-          print('CODE.1 object accounting verified: 69361 + 1041 = 70402')
+              a,b,cat,n=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| (\d+)',line).groups();a=int(a,16);b=int(b,16);n=int(n);assert b-a+1==n;total+=n
+          assert total==1041,total;assert 69361+total==70402
+          print('semantic checkpoint 10k verified: 69361 + 1041 = 70402')
           PY
       - name: Syntax check CODE.1 C++
         run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
+      - name: Commit semantic corrections
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+Hyperbog@users.noreply.github.com
+          rm -f Code1/fix_semantic_audit_checkpoint10k.py
+          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/fix_semantic_audit_checkpoint10k.py
+          git diff --cached --check
+          if git diff --cached --quiet; then echo 'Checkpoint 10k already applied.'; else git commit -m "Correct CODE.1 semantic audit checkpoint 10k" && git push origin HEAD:code1-decompilation; fi
