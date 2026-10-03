@@ -32,15 +32,15 @@ jobs:
           assert 'static_cast<s32>(n)<static_cast<s32>(count)' in c1 and '&31u' in c1
           rot=cpp[cpp.index('void function_c1b0'):cpp.index('static_assert(0xC227u-0xC1B0u==119u);')]
           assert 'static_cast<s32>(run)<=1' in rot and 'copy_d9ee(p,p+3u,bytes)' in rot
-          c2=cpp[cpp.index('void function_c2d0'):cpp.index('static_assert(0xC49Du-0xC2D0u==461u);')]
+          c2=cpp[cpp.index('void function_c2d0(Machine&m,LowContinuation14Boundary&b,u32 path'):cpp.index('static_assert(0xC49Du-0xC2D0u==461u);')]
           assert 'const u32 alloc_size=' in c2 and 'const u32 read_size=' in c2
           assert c2.count('b.call_627c?b.call_627c(path):0u')==2
           sysfail=c2[c2.index('if(sys==0xffffffffu)'):c2.index('const u32 info=')]
           assert sysfail.index('call_6f74') < sysfail.index('call_e6ea')
           assert 'b.call_eae7(load_le32(dgroup_ptr(m,dgroup(0x2f74u)))' in c2
-          c4=cpp[cpp.index('void function_c4e0'):cpp.index('static_assert(0xC57Bu-0xC4E0u==155u);')]
+          c4=cpp[cpp.index('void function_c4e0(Machine&m,LowContinuation14Boundary&b,u32 id)noexcept{'):cpp.index('static_assert(0xC57Bu-0xC4E0u==155u);')]
           assert 'const u32 sys=' not in c4 and c4.count('dgroup(0x2f74u)')>=3 and c4.count('dgroup(0x2f68u)')>=3
-          c57=cpp[cpp.index('void function_c57c'):cpp.index('static_assert(0xC5B0u-0xC57Cu==52u);')]
+          c57=cpp[cpp.index('void function_c57c(Machine&m,LowContinuation14Boundary&b)noexcept{'):cpp.index('static_assert(0xC5B0u-0xC57Cu==52u);')]
           assert c57.count('dgroup(0x2f74u)')>=2
           assert 'Semantic audit checkpoint 10g' in audit and '`BE70..C79E`' in audit
           m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S);assert m
@@ -60,3 +60,4 @@ jobs:
           git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/fix_semantic_audit_checkpoint10g.py
           git diff --cached --check
           if git diff --cached --quiet; then echo 'Checkpoint 10g already applied.'; else git commit -m "Correct CODE.1 semantic audit checkpoint 10g" && git push origin HEAD:code1-decompilation; fi
+# verifier slices exact C4E0/C57C definitions
