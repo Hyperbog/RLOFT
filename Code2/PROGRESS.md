@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-30.38%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-31.91%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **71,409**
-**Proven non-code/data bytes:** **1,411**
-**Reconciled object bytes:** **72,820 / 239,698 = 30.3799% (30.38%)**
-**Unresolved object bytes:** **166,878**
+**Verified translated instruction bytes:** **75,071**
+**Proven non-code/data bytes:** **1,417**
+**Reconciled object bytes:** **76,488 / 239,698 = 31.9102% (31.91%)**
+**Unresolved object bytes:** **163,210**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -528,3 +528,10 @@ The sequential code frontier is now `0F66C`. This batch reconstructs the `0E5F0`
 Batch 21 adds **2,743 translated instruction bytes** plus **53 directly proven non-code/data bytes**. Cumulative accounting is **71,409 translated + 1,411 non-code = 72,820 / 239,698 = 30.3799% (30.38%)**; unresolved is **166,878 bytes**.
 
 The sequential code frontier is now `10158`; `10156..10157` is proven alignment. This batch preserves `0F790`'s ten-way item-type table split, detailed-description gates, recursive container weight and odd half-unit suffix, `0FD84/0FE44` inventory burden and rank threshold behavior, the character-panel status/HP presentation in `0FF3C`, and the `100C8/10108` wrappers' `A7..C9` BF44 override plus `C050` page toggle.
+
+
+## Batch 22 — character-sheet presentation and equipment rendering (`10158..10FA8`)
+
+Batch 22 adds **3,662 translated instruction bytes** plus **6 directly proven alignment bytes**. Cumulative accounting is **75,071 translated + 1,417 non-code = 76,488 / 239,698 = 31.9102% (31.91%)**; unresolved is **163,210 bytes**.
+
+The sequential code frontier is now `10FAC`. This batch reconstructs the large `10158` character-sheet presentation routine, `10A70`'s mode-dependent equipment grid, and `10BBC`'s side-aware equipped-item renderer. Preserve the paired six-row state lists, packed three-track class/XP/level layout, signed HP ratio and divide-error edge, mode-3 table-derived grid geometry, and the mirrored item sprite flip/unflip sequence.

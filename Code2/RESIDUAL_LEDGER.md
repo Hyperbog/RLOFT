@@ -145,9 +145,11 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 100C5..100C7 | alignment | 3
 10106..10107 | alignment | 2
 10156..10157 | alignment | 2
+10A6D..10A6F | alignment | 3
+10FA9..10FAB | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **1,411 bytes**.
+**Total proven non-code/data:** **1,417 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -197,3 +199,6 @@ Batch 20 evidence: `0E5CC..0E5EF` is the exact nine-entry CS dword jump table co
 
 
 Batch 21 evidence: `0F768..0F78F` is the exact ten-entry CS dword table consumed by the indirect item-type dispatcher in `0F790`; entries 0..2 target `0FA85`, entries 3..6 target `0FB3D`, and entries 7..9 target `0F8D4`. `0F767`, `0FDE3`, `0FE42..0FE43`, `0FECF`, `0FF3B`, `100C5..100C7`, `10106..10107`, and `10156..10157` are bounded compiler separator/alignment bytes between directly reconstructed routines. A full object-1 direct relative control-flow target scan found no incoming call/jump target to any Batch 21 residual byte. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+Batch 22 evidence: `10A6D..10A6F` and `10FA9..10FAB` both decode as `LEA EAX,[EAX+0]` compiler separators between directly reconstructed routine boundaries. A full object-1 direct relative control-flow target scan found no incoming target to either separator. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
