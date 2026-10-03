@@ -164,9 +164,26 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 1246F..1246F | alignment | 1
 12723..12723 | alignment | 1
 12986..12987 | alignment | 2
+12C1D..12C1F | alignment | 3
+12E6F..12E6F | alignment | 1
+1309F..1309F | alignment | 1
+131CD..131CF | noncode | 3
+131D0..131DA | noncode | 11
+131DB..131DB | alignment | 1
+13245..13247 | alignment | 3
+13266..13267 | alignment | 2
+13282..13283 | alignment | 2
+1329A..1329B | alignment | 2
+132B1..132B3 | alignment | 3
+132DB..132DB | alignment | 1
+133CB..133CB | alignment | 1
+13599..1359B | alignment | 3
+1359C..135C3 | table | 40
+13832..13833 | alignment | 2
+139AB..139AB | alignment | 1
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **1,499 bytes**.
+**Total proven non-code/data:** **1,579 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -225,3 +242,6 @@ Batch 23 evidence: `1118B` is `NOP`; `112EA..112EB`, `113F2..113F3`, and `1162E.
 
 
 Batch 24 evidence: `11FAE..11FAF`, `1202A..1202B`, and `12986..12987` decode as `MOV EAX,EAX`; `12097`, `120BB`, `1246F`, and `12723` are explicit `NOP` separators; `12125..12127` and `12165..12167` decode as `LEA EAX,[EAX+0]`. A full object-1 direct relative control-flow target scan found no incoming target to any Batch 24 separator. `12168..1217F` is the exact six-entry CS dword table consumed at `121ED`, with targets `121F5,1220C,122B0,12282,12299,1226B` for item types `3..8`. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+Batch 25 evidence: `131D0..131DA` is the exact NUL-terminated `CINE00.ANM` literal referenced by the next routine at `139B8`; `131CD..131CF` is the three-byte zero pad immediately before that referenced object. `1359C..135C3` is the exact ten-entry CS dword table consumed by the indirect jump at `13625`, targeting `1362D,1364B,13689,1369C,136B6,136DA,13752,137C0,136C0,1379F`. All other Batch 25 residual ranges decode as bounded `NOP`, `LEA EAX,[EAX+0]`, or `MOV EAX,EAX` compiler separators. A full object-1 direct relative control-flow target scan found no incoming target to any Batch 25 residual byte. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
