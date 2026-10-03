@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-11.60%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-13.15%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **27,622**
-**Proven non-code/data bytes:** **193**
-**Reconciled object bytes:** **27,815 / 239,698 = 11.6042% (11.60%)**
-**Unresolved object bytes:** **211,883**
+**Verified translated instruction bytes:** **31,278**
+**Proven non-code/data bytes:** **246**
+**Reconciled object bytes:** **31,524 / 239,698 = 13.1515% (13.15%)**
+**Unresolved object bytes:** **208,174**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -278,5 +278,40 @@ The zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unres
 ### Next high-value targets
 
 1. Continue the sequential application path at `0518C`.
+2. Reconcile startup at `353A0` as a CODE.2-specific path.
+3. Continue harvesting independently proved relocated CODE.1 runtime families.
+
+## Batch 08 — party/status UI buffers, interaction loops, settings, and status icons
+
+Source identity and object-1 SHA-256 were reverified before this batch. Added **3,656 translated instruction bytes** and **53 directly proven non-code/data bytes**, bringing cumulative accounting to **31,278 translated + 246 non-code = 31,524 / 239,698 = 13.1515% (13.15%)**.
+
+### Newly translated ranges
+
+- `0518C..05577` — **1,004 bytes**: six-row party/status buffer construction, palette remap setup, cell rendering, and page handoff.
+- `05578..05694` — **285 bytes**: status-panel palette/identity restoration.
+- `05698..05982` — **747 bytes**: mouse hit-test and quantity mutation over six rows, including signed row-byte accumulation and immediate return on decrementing an already-zero quantity.
+- `05984..05A10` — **141 bytes**: panel-open path and page flip.
+- `05A14..05AA2` — **143 bytes**: panel-close path with three-byte local state forwarding.
+- `05AA4..05BDB` — **312 bytes**: six-buffer allocation, pointer-driven editor loop, row-selection quotient/remainder gate, cleanup, and selected-row return.
+- `05BDC..05C80` — **165 bytes**: eight-byte capacity preparation and mode-dependent augmentation/zeroing.
+- `05C84..05D33` — **176 bytes**: mode-0 selection loop; continuation preserves the signed record-type gate held in ESI.
+- `05D34..05DCF` — **156 bytes**: mode-1 selection loop with its distinct continuation rule and optional `620A` shift.
+- `05DD0..05E37` — **104 bytes**: settings/resource replace-write path.
+- `05E38..05EC2` — **139 bytes**: settings/resource read path plus redraw and two propagated byte settings.
+- `05EEC..06007` — **284 bytes**: ten-way status-icon renderer driven by the CS jump table at `05EC4..05EEB`.
+
+### Newly proven non-code/data
+
+`05695..05697`, `05983`, `05A11..05A13`, `05AA3`, `05C81..05C83`, `05DCF`, and `05EC3` are explicit compiler no-op separators with no incoming direct branch/call target. `05EC4..05EEB` is a **40-byte, ten-entry CS jump table** consumed by the indirect jump at `05F34`; its targets are `05F3B`, `05F54`, `05F65`, `05F76`, `05F84`, `05F92`, `05FA5`, `05FB3`, `05FC1`, and `05FD7`. These ranges total **53 bytes**.
+
+The known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+### Fidelity notes
+
+`05698` sums quantity bytes with **signed byte promotion** before comparing against the unsigned row limit. `05C84` does not simply rerun `050DC` as a loop predicate: after the first pass, ESI contains the signed record-type byte and that value controls the next continuation test. `05D34` has a different continuation shape and therefore remains separate. The three-byte values passed to `32468` are modeled as local byte arrays, preserving that the binary passes a pointer to three stack-local bytes rather than a packed integer.
+
+### Next high-value targets
+
+1. Continue the sequential application path at `06008`.
 2. Reconcile startup at `353A0` as a CODE.2-specific path.
 3. Continue harvesting independently proved relocated CODE.1 runtime families.

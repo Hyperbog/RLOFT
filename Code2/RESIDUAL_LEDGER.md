@@ -43,9 +43,17 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 044CF..044CF | alignment | 1
 0461A..0461B | alignment | 2
 050D9..050DB | alignment | 3
+05695..05697 | alignment | 3
+05983..05983 | alignment | 1
+05A11..05A13 | alignment | 3
+05AA3..05AA3 | alignment | 1
+05C81..05C83 | alignment | 3
+05DCF..05DCF | alignment | 1
+05EC3..05EC3 | alignment | 1
+05EC4..05EEB | table | 40
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **193 bytes**.
+**Total proven non-code/data:** **246 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -58,3 +66,5 @@ Batch 05 evidence: the eight alignment ranges decode as explicit compiler no-op 
 Batch 06 evidence: the added ranges decode as explicit compiler no-op alignment instructions between directly reconstructed function boundaries; a full object-1 direct relative control-flow target scan found no incoming target to any byte in these ranges. The zero islands `0380D..0380F` and `03A64..03A77` remain unresolved, as does `006B9..006BF`.
 
 Batch 07 evidence: `050D9..050DB` decodes as `LEA EAX,[EAX]` between the `0461C` RET and the `050DC` entry. A full object-1 direct relative branch/call target scan found no incoming target to the separator. The known zero islands remain unresolved.
+
+Batch 08 evidence: the seven alignment ranges decode as explicit NOP/LEA no-op separators and a full object-1 direct relative control-flow scan found no incoming target to any byte in those ranges. `05EC4..05EEB` is the ten-entry CS jump table indexed by `ESI` at `05F34`; all ten dword targets were decoded and reconciled in `function_05eec`. The known zero islands remain unresolved.
