@@ -14,7 +14,17 @@ jobs:
         with:
           ref: code1-decompilation
       - name: Apply semantic audit checkpoint 10a
-        run: python3 Code1/fix_semantic_audit_checkpoint10a.py
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('Code1/fix_semantic_audit_checkpoint10a.py')
+          s=p.read_text()
+          old="pat=re.compile(r'(?:static u8 sar8_exact_9eb0.*?\\n)?(?:\\[\\[nodiscard\\]\\])?(?:void|u8|u32) '+re.escape(name)+r'\\(.*?'+re.escape(end_assert),re.S)"
+          new="pat=re.compile(r'(?:\\[\\[nodiscard\\]\\])?(?:void|u8|u32) '+re.escape(name)+r'\\(.*?'+re.escape(end_assert),re.S)"
+          assert old in s
+          p.write_text(s.replace(old,new))
+          PY
+          python3 Code1/fix_semantic_audit_checkpoint10a.py
       - name: Verify checkpoint 10a and closed accounting
         run: |
           python3 - <<'PY'
