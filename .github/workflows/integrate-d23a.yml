@@ -56,3 +56,4 @@ jobs:
             git commit -m "Correct CODE.1 semantic audit checkpoint 7"
             git push origin HEAD:code1-decompilation
           fi
+# retry after repairing staging payload
