@@ -1,19 +1,21 @@
-name: CODE.1 object verifier
+name: CODE.1 semantic audit checkpoint 8b
 on:
   push:
     branches: [code1-decompilation]
     paths:
       - '.github/workflows/integrate-d23a.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
-  verify:
+  integrate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Verify closed object accounting
+      - name: Apply semantic audit checkpoint 8b
+        run: python3 Code1/fix_semantic_audit_checkpoint8b.py
+      - name: Verify checkpoint 8b and closed accounting
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -21,6 +23,14 @@ jobs:
           cpp=Path('Code1/Code1.cpp').read_text()
           led=Path('Code1/RESIDUAL_LEDGER.md').read_text()
           assert 'constexpr u32 kVerifiedTranslatedBytes=69361u;' in cpp
+          assert 'open_local_62a8' in cpp
+          assert 'fatal_local_9814' in cpp
+          block=cpp[cpp.index('void function_8a04'):cpp.index('void function_91d8',cpp.index('void function_8a04')+1)]
+          assert 'ma_local_append_guest_string(b,path,prefix)' in block
+          assert 'b.open_local_62a8?b.open_local_62a8(path)' in block
+          assert 'function_9488(m,b,static_cast<u32>(i),gu);function_91d8' in block
+          assert 'if(b.free_7240)b.free_7240(table)' in block
+          assert 'ma_local_append_guest_string(b,msg,function_88f8(b,kind))' in block
           m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S)
           assert m
           total=0
@@ -28,10 +38,23 @@ jobs:
               a,b,cat,n=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| (\d+)',line).groups()
               a=int(a,16); b=int(b,16); n=int(n)
               assert b-a+1==n
-              total += n
+              total+=n
           assert total==1041,total
           assert 69361+total==70402
-          print('CODE.1 object accounting verified: 69361 + 1041 = 70402')
+          print('semantic checkpoint 8b verified: 69361 + 1041 = 70402')
           PY
       - name: Syntax check CODE.1 C++
         run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
+      - name: Commit semantic corrections
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          rm -f Code1/fix_semantic_audit_checkpoint8b.py
+          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/fix_semantic_audit_checkpoint8b.py
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'Checkpoint 8b already applied.'
+          else
+            git commit -m "Correct CODE.1 semantic audit checkpoint 8b"
+            git push origin HEAD:code1-decompilation
+          fi
