@@ -1084,11 +1084,25 @@ void function_a010(Batch12Boundaries&b,u32 src,u32 first,u32 count)noexcept{if(b
 // A558..A57B: encoded image storage size, with one transparency byte per frame when key != FFh.
 [[nodiscard]]u32 function_a558(u32 frames,u32 rows,u32 bytes_per_row,u32,u32 key)noexcept{u32 v=rows*bytes_per_row;v*=frames;v<<=3;if(key!=0xffu)v+=frames;return v;} static_assert(0xA57Cu-0xA558u==36u);
 // A57C..A5C5: transpose four interleaved plane bytes into one encoded frame.
-void function_a57c(Batch12Boundaries&b,u32 frame,u32 count,u32 src,u32 desc,u32 key)noexcept{u32 dst=desc+8u+static_cast<u32>(b12r16(b,desc))*frame;if(static_cast<u8>(key)!=0xffu)b12w8(b,dst++,static_cast<u8>(key));u32 groups=count>>2;if(groups==0)return;u32 step=groups-1u;u32 s=src;for(u32 i=0;i<groups;++i){u32 base=dst+i;for(u32 plane=0;plane<4u;++plane){b12w8(b,base+plane*groups,b12r8(b,s++));}dst=base+1u;(void)step;}} static_assert(0xA5C6u-0xA57Cu==74u);
+void function_a57c(Batch12Boundaries&b,u32 frame,u32 count,u32 src,u32 desc,u32 key)noexcept{
+ u32 dst=desc+8u+static_cast<u32>(b12r16(b,desc))*frame;if(static_cast<u8>(key)!=0xffu)b12w8(b,dst++,static_cast<u8>(key));const u32 groups=count>>2;u32 left=groups,s=src;
+ do{const u32 base=dst;b12w8(b,base,b12r8(b,s++));b12w8(b,base+groups,b12r8(b,s++));b12w8(b,base+groups*2u,b12r8(b,s++));b12w8(b,base+groups*3u,b12r8(b,s++));dst=base+1u;}while(--left!=0u);
+}
+static_assert(0xA5C6u-0xA57Cu==74u);
 // A5C8..A674: in-place vertical reversal of each plane in one frame, preserving optional key byte.
-void function_a5c8(Batch12Boundaries&b,u32 frame,u32 desc)noexcept{u32 payload=desc+8u+static_cast<u32>(b12r16(b,desc))*frame;u16 rows=b12r16(b,desc+4u);u16 plane_bytes=static_cast<u16>(static_cast<u16>(b12r8(b,desc+6u))<<1);u8 flags=b12r8(b,desc+7u);if(flags&0x80u)++payload;u16 span=static_cast<u16>(rows*plane_bytes);u32 half=span;for(u32 pass=0;pass<2u;++pass){u32 lo=payload+pass*span;u32 hi=lo+static_cast<u32>(span)*3u+static_cast<u32>(plane_bytes-1u);for(u16 r=0;r<rows;++r){for(u16 c=0;c<plane_bytes;++c){u8 a=b12r8(b,lo);u8 z=b12r8(b,hi);b12w8(b,lo,z);b12w8(b,hi,a);++lo;--hi;}hi=lo+static_cast<u32>(span)*3u+static_cast<u32>(plane_bytes-1u);}half=span;(void)half;}} static_assert(0xA675u-0xA5C8u==173u);
-// A678..A6EF: horizontal byte-pair reversal for all four planes of a frame.
-void function_a678(Batch12Boundaries&b,u32 frame,u32 desc)noexcept{u32 p=desc+8u+static_cast<u32>(b12r16(b,desc))*frame;u32 rows=b12r16(b,desc+4u),width=b12r8(b,desc+6u);if(b12r8(b,desc+7u)&0x80u)++p;if(width==0||rows==0)return;for(u32 plane=0;plane<4u;++plane){u32 plane_base=p+plane*rows*width;for(u32 r=0;r<rows;++r){u32 l=plane_base+r*width,rr=l+width-1u;for(u32 c=0;c<(width>>1);++c){u8 a=b12r8(b,l+c),z=b12r8(b,rr-c);b12w8(b,l+c,z);b12w8(b,rr-c,a);}}}} static_assert(0xA6F0u-0xA678u==120u);
+void function_a5c8(Batch12Boundaries&b,u32 frame,u32 desc)noexcept{
+ u32 payload=desc+8u+static_cast<u32>(b12r16(b,desc))*frame;const u16 rows=b12r16(b,desc+4u);const u16 plane_bytes=static_cast<u8>(static_cast<u8>(b12r8(b,desc+6u))<<1);if((b12r8(b,desc+7u)&0x80u)!=0u)++payload;const u16 span=static_cast<u16>(rows*plane_bytes);
+ auto swap_rows=[&](u32 lo,u16 offset){u16 rr=rows;do{u32 hi=lo+static_cast<u32>(offset);u16 cc=plane_bytes;do{const u8 v=b12r8(b,lo);const u8 z=b12r8(b,hi);b12w8(b,lo,z);b12w8(b,hi,v);++lo;--hi;}while(--cc!=0u);}while(--rr!=0u);};
+ u16 off0=span;off0=static_cast<u16>(off0<<1);off0=static_cast<u16>(off0+span);u16 tail=plane_bytes;--tail;off0=static_cast<u16>(off0+tail);swap_rows(payload,off0);
+ u16 off1=span;tail=plane_bytes;--tail;off1=static_cast<u16>(off1+tail);swap_rows(payload+static_cast<u32>(span),off1);
+}
+static_assert(0xA675u-0xA5C8u==173u);
+// A678..A6EF: vertical row reversal within each of the four planes of a frame.
+void function_a678(Batch12Boundaries&b,u32 frame,u32 desc)noexcept{
+ u32 src=desc+8u+static_cast<u32>(b12r16(b,desc))*frame;const u32 rows=b12r16(b,desc+4u),width=b12r8(b,desc+6u);if((b12r8(b,desc+7u)&0x80u)!=0u)++src;u32 bottom=(rows-1u)*width;bottom<<=1;const u32 rowbytes=width<<1;
+ u32 planes=4u;do{const u32 plane_start=src;u32 lo=src,hi=src+bottom;u32 pairs=rows>>1;do{u32 cc=rowbytes;do{const u8 v=b12r8(b,lo);const u8 z=b12r8(b,hi);b12w8(b,lo,z);b12w8(b,hi,v);++lo;++hi;}while(--cc!=0u);hi-=rowbytes;hi-=rowbytes;}while(--pairs!=0u);src=plane_start+bottom+rowbytes;}while(--planes!=0u);
+}
+static_assert(0xA6F0u-0xA678u==120u);
 
 struct DosAttrResult{u16 ax=0;u16 cx=0;bool carry=false;};
 struct DosHandleResult{u16 ax=0;bool carry=false;};
@@ -2052,7 +2066,16 @@ static_assert(0xA2AEu-0xA21Cu==146u);
 // A2AE..A2AF alignment.
 
 // A2B0..A358: vertical planar copy. DX sign selects forward versus backward direction.
-void function_a2b0(Machine&m,LowGraphics13Boundary&b,u32 x,u32 raw_y)noexcept{const u32 pitch=load_le32(dgroup_ptr(m,dgroup(0x2b41u)));if(static_cast<s16>(raw_y&0xffffu)>=0){const PlanarAddress13 s=function_aea8(m,raw_y,x);const u32 count=x*pitch,dst=load_le32(dgroup_ptr(m,dgroup(0x2b49u)));batch15_vga_copy_mode(b,true);if(b.out16)b.out16(0x3c4u,0x0f02u);batch15_copy(b,dst,s.ebx,count);batch15_vga_copy_mode(b,false);}else{const u32 y=0u-raw_y;u32 src=function_aea8(m,y,x).ebx,dst=function_aea8(m,load_le32(dgroup_ptr(m,dgroup(0x2b45u))),0u).ebx;--src;--dst;const u32 count=x*pitch;batch15_vga_copy_mode(b,true);if(b.out16)b.out16(0x3c4u,0x0f02u);batch15_copy(b,dst,src,count,true);batch15_vga_copy_mode(b,false);}}
+void function_a2b0(Machine&m,LowGraphics13Boundary&b,u32 x,u32 raw_y)noexcept{
+ const u32 pitch=load_le32(dgroup_ptr(m,dgroup(0x2b41u)));
+ if(static_cast<s16>(raw_y&0xffffu)>=0){
+  const PlanarAddress13 s=function_aea8(m,raw_y,0u);const u32 count=x*pitch,dst=load_le32(dgroup_ptr(m,dgroup(0x2b49u)));
+  batch15_vga_copy_mode(b,true);if(b.out16)b.out16(0x3c4u,0x0f02u);batch15_copy(b,dst,s.ebx,count);batch15_vga_copy_mode(b,false);
+ }else{
+  const u32 y=0u-raw_y;u32 src=function_aea8(m,y,0u).ebx,dst=function_aea8(m,load_le32(dgroup_ptr(m,dgroup(0x2b45u))),0u).ebx;--src;--dst;const u32 count=x*pitch;
+  batch15_vga_copy_mode(b,true);if(b.out16)b.out16(0x3c4u,0x0f02u);batch15_copy(b,dst,src,count,true);batch15_vga_copy_mode(b,false);
+ }
+}
 static_assert(0xA359u-0xA2B0u==169u);
 // A359..A35B alignment.
 void function_a35c(Machine&m,LowGraphics13Boundary&b,u32 page)noexcept{function_aedc(m,page);}static_assert(0xA36Au-0xA35Cu==14u);
@@ -2061,14 +2084,27 @@ void function_a36c(Machine&m,LowGraphics13Boundary&b,u32 v)noexcept{const u32 q=
 // A38D..A38F alignment.
 void function_a390(Machine&m,LowGraphics13Boundary&b,u32 page)noexcept{const u32 pitch=load_le32(dgroup_ptr(m,dgroup(0x2b4du)));const u32 dst=((page*pitch)+0xa000u)<<4,src=load_le32(dgroup_ptr(m,dgroup(0x2b49u)));const u32 count=(pitch&0xffff0000u)|((pitch<<4)&0xffffu);batch15_vga_copy_mode(b,true);if(b.out16)b.out16(0x3c4u,0x0f02u);batch15_copy(b,dst,src,count);batch15_vga_copy_mode(b,false);}static_assert(0xA3E5u-0xA390u==85u);
 // A3E5..A3E7 alignment.
-void function_a3e8(Machine&m,LowGraphics13Boundary&b,u32 source_page,u32 sy,u32 sx,u32 dy,u32 dx,u32 height,u32 width)noexcept{const u8 saved=*dgroup_ptr(m,dgroup(0x2b31u));function_aedc(m,(source_page&0xffu)|(static_cast<u32>(saved)<<8));const PlanarAddress13 s=function_aea8(m,sy,sx);width+=s.ecx;const u32 pitch=load_le32(dgroup_ptr(m,dgroup(0x2b41u)));function_aedc(m,saved);const PlanarAddress13 d=function_aea8(m,dy,dx);u32 src=s.ebx,dst=d.ebx;const u32 row=(width+3u)>>2,skip=pitch-row;batch15_vga_copy_mode(b,true);if(b.out16)b.out16(0x3c4u,0x0f02u);for(u32 y=0;y<height;++y){batch15_copy(b,dst,src,row);dst+=row+skip;src+=row+skip;}batch15_vga_copy_mode(b,false);}static_assert(0xA473u-0xA3E8u==139u);
+void function_a3e8(Machine&m,LowGraphics13Boundary&b,u32 source_page,u32 sy,u32 sx,u32 dy,u32 dx,u32 height,u32 width)noexcept{
+ const u8 saved=*dgroup_ptr(m,dgroup(0x2b31u));function_aedc(m,(source_page&0xffu)|(static_cast<u32>(saved)<<8));const PlanarAddress13 s=function_aea8(m,sy,sx);width+=s.ecx;const u32 pitch=load_le32(dgroup_ptr(m,dgroup(0x2b41u)));function_aedc(m,saved);const PlanarAddress13 d=function_aea8(m,dy,dx);u32 src=s.ebx,dst=d.ebx;const u32 row=(width+3u)>>2,skip=pitch-row;
+ batch15_vga_copy_mode(b,true);if(b.out16)b.out16(0x3c4u,0x0f02u);u32 rows=height;do{batch15_copy(b,dst,src,row);dst+=row+skip;src+=row+skip;}while(--rows!=0u);batch15_vga_copy_mode(b,false);
+}
+static_assert(0xA473u-0xA3E8u==139u);
 // A473 NOP.
 void function_a474(Machine&m,LowGraphics13Boundary&b,u32 v)noexcept{function_af80(m,b,v);}static_assert(0xA484u-0xA474u==16u);
 // A484..A4E6: read four VGA planes into consecutive host/guest bytes using GC read-map select 0..3.
-void function_a484(Machine&m,LowGraphics13Boundary&b,u32 dst,u32 y,u32 x,u32 height,u32 width)noexcept{const PlanarAddress13 p=function_aea8(m,y,x);const u32 row=(width+p.ecx+3u)>>2,skip=load_le32(dgroup_ptr(m,dgroup(0x2b41u)))-row;u32 out=dst;for(u32 plane=0;plane<4u;++plane){if(b.out16)b.out16(0x3ceu,static_cast<u16>(0x0004u|(plane<<8)));u32 src=p.ebx;for(u32 yy=0;yy<height;++yy){for(u32 i=0;i<row;++i)lg13w8(b,out++,lg13r8(b,src+i));src+=row+skip;}}}static_assert(0xA4E7u-0xA484u==99u);
+void function_a484(Machine&m,LowGraphics13Boundary&b,u32 dst,u32 y,u32 x,u32 height,u32 width)noexcept{
+ const PlanarAddress13 p0=function_aea8(m,y,x);const u32 row=(width+p0.ecx+3u)>>2,skip=load_le32(dgroup_ptr(m,dgroup(0x2b41u)))-row;u32 out=dst;
+ for(u32 plane=0;plane<4u;++plane){if(b.out16)b.out16(0x3ceu,static_cast<u16>(0x0004u|(plane<<8)));u32 src=p0.ebx,rows=height;do{batch15_copy(b,out,src,row);out+=row;src+=row+skip;}while(--rows!=0u);}
+}
+static_assert(0xA4E7u-0xA484u==99u);
 // A4E7 NOP.
 // A4E8..A554: write consecutive source bytes into four VGA planes using sequencer masks 1,2,4,8, then restore FF02h.
-void function_a4e8(Machine&m,LowGraphics13Boundary&b,u32 src,u32 y,u32 x,u32 height,u32 width)noexcept{const PlanarAddress13 p=function_aea8(m,y,x);const u32 row=(width+p.ecx+3u)>>2,skip=load_le32(dgroup_ptr(m,dgroup(0x2b41u)))-row;u32 in=src;for(u32 plane=0,mask=1u;plane<4u;++plane,mask<<=1){if(b.out16)b.out16(0x3c4u,static_cast<u16>(0x0002u|(mask<<8)));u32 dst=p.ebx;for(u32 yy=0;yy<height;++yy){for(u32 i=0;i<row;++i)lg13w8(b,dst+i,lg13r8(b,in++));dst+=row+skip;}}if(b.out16)b.out16(0x3c4u,0xff02u);}static_assert(0xA555u-0xA4E8u==109u);
+void function_a4e8(Machine&m,LowGraphics13Boundary&b,u32 src,u32 y,u32 x,u32 height,u32 width)noexcept{
+ const PlanarAddress13 p0=function_aea8(m,y,x);const u32 row=(width+p0.ecx+3u)>>2,skip=load_le32(dgroup_ptr(m,dgroup(0x2b41u)))-row;u32 in=src;
+ for(u32 plane=0,mask=1u;plane<4u;++plane,mask<<=1){if(b.out16)b.out16(0x3c4u,static_cast<u16>(0x0002u|(mask<<8)));u32 dst=p0.ebx,rows=height;do{batch15_copy(b,dst,in,row);in+=row;dst+=row+skip;}while(--rows!=0u);}
+ if(b.out16)b.out16(0x3c4u,0xff02u);
+}
+static_assert(0xA555u-0xA4E8u==109u);
 // A555..A557 alignment.
 
 static u8 rol8_1(u8 v)noexcept{return static_cast<u8>((v<<1)|(v>>7));}
