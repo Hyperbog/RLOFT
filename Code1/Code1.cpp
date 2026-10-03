@@ -35,7 +35,8 @@ struct MidUiBoundaries{
  void(*call_6588)(u32)=nullptr; void(*call_6c60)(s32,s32,s32,s32,u32)=nullptr;
  void(*call_7d80)(s32,s32,u32,u32,u32)=nullptr; void(*call_67c8)(u32,s32,s32,u32)=nullptr;
  s32(*call_43c)(Machine&)=nullptr; void(*call_15b0)(s32,s32,s32,s32)=nullptr;
- void(*call_550c)(u32,s32,s32,s32,s32)=nullptr;
+ void(*call_550c)(u32,s32,s32,s32,s32)=nullptr; void(*call_4b0)(u32)=nullptr;
+ void(*call_ec)(s32,s32,s32,u32,u32,u32,u32)=nullptr;
 };
 void function_1464(Machine&m,MidUiBoundaries&b,u32 arg0,const u32 slots[11],s32 label)noexcept{
  for(u32 i=0;i<11u;++i)store_le32(dgroup_ptr(m,dgroup(0x08f4u+i*8u)),0x15u);
@@ -44,7 +45,7 @@ void function_1464(Machine&m,MidUiBoundaries&b,u32 arg0,const u32 slots[11],s32 
  else if(label==0x2b){if(b.call_72a0)b.call_72a0(0x7140u,load_le32(dgroup_ptr(m,dgroup(0x04b8u))));}
  else if(b.call_4c)b.call_4c(0x7140u,static_cast<u32>(label));
  if(b.call_10a4)b.call_10a4(arg0);
- for(u32 i=0;i<9u;++i){const s32 v=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x08f8u+i*8u))));if(v==-1||v<=10)continue;const s32 base=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x713cu))));if(b.call_954c)(void)b.call_954c((v>=base&&v<base+0x2e)?1u:7u,static_cast<u32>(v));}
+ for(u32 i=0;i<9u;++i){const s32 v=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x08f8u+i*8u))));if(v==-1||v<=10)continue;const s32 base=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x713cu))));if(b.call_954c)(void)b.call_954c(static_cast<u32>(v),(v>=base&&v<base+0x2e)?1u:7u);}
  const s32 mode=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x04d0u))));if(mode<2){if(b.call_7e4)b.call_7e4(2,4);}else if(mode==6){if(b.call_7e4)b.call_7e4(6,9);}else if(b.call_7e4)b.call_7e4(0,6);
 }
 static_assert(0x15AEu-0x1464u==330u);
@@ -56,13 +57,13 @@ void function_1a04(Machine&m,MidUiBoundaries&b)noexcept{
  for(u32 cell:{0x095cu,0x0960u}){const u32 h=load_le32(dgroup_ptr(m,dgroup(cell)));if(h&&b.call_7830)b.call_7830(h);store_le32(dgroup_ptr(m,dgroup(cell)),0u);}
  if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));
  const u32 first=b.call_7868?b.call_7868(0,0,0x7a,0x30,0xff):0u;
- if(*dgroup_ptr(m,dgroup(0x04c4u))==0){if(b.call_4c)b.call_4c(0x55f8u,0u);}
- else{if(b.call_6c60){b.call_6c60(0,0,0x14,7,0);const s32 x=static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(0x680au)))+static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x713cu))))+static_cast<s32>(*dgroup_ptr(m,dgroup(0x680bu)))*0x17;b.call_6c60(0,0x15,x,1,0);}if(b.call_7d80)b.call_7d80(2,0,0x30,0x67f8u,0);}
+ if(*dgroup_ptr(m,dgroup(0x04c4u))==0){if(b.call_4c)b.call_4c(0x55f8u,0u);if(b.call_ec)b.call_ec(0,0,0x7a,0x30,0x55f8u,0,0x5ff8u);}
+ else{if(b.call_6c60){b.call_6c60(0,0,0,0x14,7);const s32 id=static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(0x680au)))+static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x713cu))))+static_cast<s32>(*dgroup_ptr(m,dgroup(0x680bu)))*0x17;b.call_6c60(0,0x15,0,id,1);}if(b.call_7d80)b.call_7d80(2,0,0x30,0x67f8u,0);}
  store_le32(dgroup_ptr(m,dgroup(0x095cu)),b.call_7868?b.call_7868(0,0,0x7a,0x30,0xff):0u);
- if(*dgroup_ptr(m,dgroup(0x04c5u))==0){if(b.call_4c)b.call_4c(0x55f8u,0u);}
- else{if(b.call_6c60){b.call_6c60(0,0,0x14,7,0);const s32 x=static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(0x6a52u)))+static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x713cu))))+static_cast<s32>(*dgroup_ptr(m,dgroup(0x6a53u)))*0x17;b.call_6c60(0,0x15,x,1,0);}if(b.call_7d80)b.call_7d80(2,0,0x30,0x6a40u,0);}
+ if(*dgroup_ptr(m,dgroup(0x04c5u))==0){if(b.call_4c)b.call_4c(0x55f8u,0u);if(b.call_ec)b.call_ec(0,0,0x7a,0x30,0x55f8u,0,0x5ff8u);}
+ else{if(b.call_6c60){b.call_6c60(0,0,0,0x14,7);const s32 id=static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(0x6a52u)))+static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x713cu))))+static_cast<s32>(*dgroup_ptr(m,dgroup(0x6a53u)))*0x17;b.call_6c60(0,0x15,0,id,1);}if(b.call_7d80)b.call_7d80(2,0,0x30,0x6a40u,0);}
  store_le32(dgroup_ptr(m,dgroup(0x0960u)),b.call_7868?b.call_7868(0,0,0x7a,0x30,0xff):0u);
- if(b.call_67c8)b.call_67c8(first,0,0,0);if(b.call_7830)b.call_7830(first);
+ if(b.call_67c8)b.call_67c8(0,0,0,first);if(b.call_7830)b.call_7830(first);
 }
 static_assert(0x1BD1u-0x1A04u==461u);
 // 1BD1..1BD3 is LEA alignment padding.
@@ -71,7 +72,7 @@ static_assert(0x1BD1u-0x1A04u==461u);
 // event 4 additionally clears the selected actor flag and writes 0x8000 at actor+6808.
 void function_1bd4(Machine&m,MidUiBoundaries&b)noexcept{
  store_le32(dgroup_ptr(m,dgroup(0x0904u)),load_le32(dgroup_ptr(m,dgroup(0x0908u))));store_le32(dgroup_ptr(m,dgroup(0x090cu)),load_le32(dgroup_ptr(m,dgroup(0x0910u))));store_le32(dgroup_ptr(m,dgroup(0x0908u)),0x2fu);store_le32(dgroup_ptr(m,dgroup(0x0910u)),0x30u);
- if(b.call_7e4)b.call_7e4(0,6);if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));if(b.call_550c)b.call_550c(*dgroup_ptr(m,dgroup(0x7138u)),0xc8,0,0xc8,0x140);
+ if(b.call_7e4)b.call_7e4(0,6);if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));if(b.call_4b0)b.call_4b0(6u);if(b.call_550c)b.call_550c(load_le32(dgroup_ptr(m,dgroup(0x7138u))),0xc8,0,0xc8,0x140);*dgroup_ptr(m,dgroup(0x7138u))^=1u;
  for(;;){const s32 e=b.call_43c?b.call_43c(m):0;if(e==3)break;if(e==4){const u32 actor=load_le32(dgroup_ptr(m,dgroup(0x04ccu)));const u32 base=actor*0x248u;store_le16(dgroup_ptr(m,dgroup(base+0x6808u)),0x8000u);*dgroup_ptr(m,dgroup(actor+0x04c4u))=0;store_le32(dgroup_ptr(m,dgroup(0x0940u)),2u);break;}}
  store_le32(dgroup_ptr(m,dgroup(0x0904u)),load_le32(dgroup_ptr(m,dgroup(0x0908u))));store_le32(dgroup_ptr(m,dgroup(0x090cu)),load_le32(dgroup_ptr(m,dgroup(0x0910u))));store_le32(dgroup_ptr(m,dgroup(0x0908u)),1u);store_le32(dgroup_ptr(m,dgroup(0x0910u)),1u);function_1a04(m,b);if(b.call_7e4)b.call_7e4(0,6);
 }
@@ -80,19 +81,19 @@ static_assert(0x1CD0u-0x1BD4u==252u);
 // 1CD0..1DD7: actor-choice loop. 0 exits with actor=-1; 3/4 select actor 0/1. An already-present actor enters 1BD4;
 // otherwise 15B0 is called and the two per-actor dwords at 6903/6907 are cleared.
 void function_1cd0(Machine&m,MidUiBoundaries&b)noexcept{
- function_1a04(m,b);const u32 setup[11]={0xffffffffu,0xffffffffu,1u,1u,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu};function_1464(m,b,0,setup,(*dgroup_ptr(m,dgroup(0x04c4u))&&*dgroup_ptr(m,dgroup(0x04c5u)))?1:2);
- for(;;){const s32 e=b.call_43c?b.call_43c(m):0;if(e<=0){store_le32(dgroup_ptr(m,dgroup(0x04ccu)),0xffffffffu);break;}if(e==3||e==4){const u32 actor=static_cast<u32>(e-3);store_le32(dgroup_ptr(m,dgroup(0x04ccu)),actor);if(*dgroup_ptr(m,dgroup(0x04c4u+actor))!=0){function_1bd4(m,b);continue;}if(b.call_15b0)b.call_15b0(-1,-1,-1,-1);store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))+1u);const u32 base=actor*0x248u;store_le32(dgroup_ptr(m,dgroup(base+0x6903u)),0u);store_le32(dgroup_ptr(m,dgroup(base+0x6907u)),0u);break;}}
+ function_1a04(m,b);const u32 setup[11]={0xffffffffu,0xffffffffu,1u,1u,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,(*dgroup_ptr(m,dgroup(0x04c4u))&&*dgroup_ptr(m,dgroup(0x04c5u)))?1u:2u,0xffffffffu};function_1464(m,b,0,setup,-1);
+ for(;;){const s32 e=b.call_43c?b.call_43c(m):0;if(e==0){store_le32(dgroup_ptr(m,dgroup(0x04ccu)),0xffffffffu);break;}if(e==3||e==4){const u32 actor=static_cast<u32>(e-3);store_le32(dgroup_ptr(m,dgroup(0x04ccu)),actor);if(*dgroup_ptr(m,dgroup(0x04c4u+actor))!=0){function_1bd4(m,b);continue;}if(b.call_15b0)b.call_15b0(-1,-1,-1,-1);store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))+1u);const u32 base=actor*0x248u;store_le32(dgroup_ptr(m,dgroup(base+0x6903u)),0u);store_le32(dgroup_ptr(m,dgroup(base+0x6907u)),0u);break;}}
  for(u32 cell:{0x095cu,0x0960u}){const u32 h=load_le32(dgroup_ptr(m,dgroup(cell)));if(h&&b.call_7830)b.call_7830(h);store_le32(dgroup_ptr(m,dgroup(cell)),0u);}
 }
 static_assert(0x1DD8u-0x1CD0u==264u);
 
 // 1DD8..1E61: choose actor submode (events 3/4) or cancel (event 0); selected byte 680B receives event-3.
-void function_1dd8(Machine&m,MidUiBoundaries&b)noexcept{const u32 slots[11]={0xffffffffu,0xffffffffu,0x0cu,0x0du,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,8u,0xffffffffu,0x26u};function_1464(m,b,0,slots,-1);for(;;){const s32 e=b.call_43c?b.call_43c(m):0;if(e<=0){store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))-1u);if(b.call_15b0)b.call_15b0(-1,-1,-1,-1);return;}if(e==3||e==4){const u32 base=load_le32(dgroup_ptr(m,dgroup(0x04ccu)))*0x248u;*dgroup_ptr(m,dgroup(base+0x680bu))=static_cast<u8>(e-3);store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))+1u);if(b.call_15b0)b.call_15b0(e-1,0x114,3,1);return;}}}
+void function_1dd8(Machine&m,MidUiBoundaries&b)noexcept{const u32 slots[11]={0xffffffffu,0xffffffffu,0x0cu,0x0du,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,8u,0xffffffffu};function_1464(m,b,0,slots,0x26);for(;;){const s32 e=b.call_43c?b.call_43c(m):0;if(e==0){store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))-1u);if(b.call_15b0)b.call_15b0(-1,-1,-1,-1);return;}if(e==3||e==4){const u32 base=load_le32(dgroup_ptr(m,dgroup(0x04ccu)))*0x248u;*dgroup_ptr(m,dgroup(base+0x680bu))=static_cast<u8>(e-3);store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))+1u);if(b.call_15b0)b.call_15b0(e-1,0x114,3,1);return;}}}
 static_assert(0x1E62u-0x1DD8u==138u);
 // 1E62..1E63 is LEA alignment padding.
 
 // 1E64..1EE0: choose one of five byte values for actor+680C; event 0 cancels and decrements mode.
-void function_1e64(Machine&m,MidUiBoundaries&b)noexcept{const u32 slots[11]={0u,1u,2u,3u,4u,5u,0xffffffffu,0xffffffffu,9u,0xffffffffu,0x27u};function_1464(m,b,1,slots,-1);const s32 e=b.call_43c?b.call_43c(m):0;if(e==0){store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))-1u);if(b.call_15b0)b.call_15b0(-1,-1,-1,-1);return;}const u32 base=load_le32(dgroup_ptr(m,dgroup(0x04ccu)))*0x248u;*dgroup_ptr(m,dgroup(base+0x680cu))=static_cast<u8>(e-1);store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))+1u);if(b.call_15b0)b.call_15b0(e-1,0x114,0x38,2);}
+void function_1e64(Machine&m,MidUiBoundaries&b)noexcept{const u32 slots[11]={0u,1u,2u,3u,4u,5u,0xffffffffu,0xffffffffu,0xffffffffu,9u,0xffffffffu};function_1464(m,b,1,slots,0x27);const s32 e=b.call_43c?b.call_43c(m):0;if(e==0){store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))-1u);if(b.call_15b0)b.call_15b0(-1,-1,-1,-1);return;}const u32 base=load_le32(dgroup_ptr(m,dgroup(0x04ccu)))*0x248u;*dgroup_ptr(m,dgroup(base+0x680cu))=static_cast<u8>(e-1);store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))+1u);if(b.call_15b0)b.call_15b0(e-1,0x114,0x38,2);}
 static_assert(0x1EE1u-0x1E64u==125u);
 // 1EE1..1EE3 is LEA alignment padding.
 
@@ -133,11 +134,12 @@ struct ActorRenderBoundaries{
 // 24D4..266B: animate the selected slot toward (target_x,target_y) over nine frames. Two
 // 0x1E80 scratch surfaces are alternated with 7138 exactly as in the original loop.
 void function_24d4(Machine&m,ActorRenderBoundaries&b,u32 slot,s32 target_x,s32 target_y)noexcept{
- if(b.call_56dc)b.call_56dc();const u32 a=b.call_71c8?b.call_71c8(0x1e80u):0u;const u32 c=b.call_71c8?b.call_71c8(0x1e80u):0u;
+ if(b.call_56dc)b.call_56dc();const u32 scratch[2]={b.call_71c8?b.call_71c8(0x1e80u):0u,b.call_71c8?b.call_71c8(0x1e80u):0u};
  if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));const s32 x0=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x087cu+slot*8u)))),y0=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x0880u+slot*8u))));
- if(b.call_6c60)b.call_6c60(0,x0,y0,static_cast<s32>(slot+0x1eu),7u);if(b.call_66c0){b.call_66c0(a,x0,y0,0x7au,0x30u);b.call_66c0(c,x0,y0,0x7au,0x30u);}s32 x=x0,y=y0;const s32 dx=(target_x-x0)/8,dy=(target_y-y0)/8;
- for(u32 frame=0;frame<=8u;++frame){const u32 page=*dgroup_ptr(m,dgroup(0x7138u));if(b.call_6588)b.call_6588(page);const u32 src=page?c:a;if(b.call_6744)b.call_6744(src,x,y,0x7au,0x30u);if(b.call_66c0)b.call_66c0(src,x,y,0x7au,0x30u);const u32 image=b.call_954c?b.call_954c(7u,load_le32(dgroup_ptr(m,dgroup(0x08f8u+slot*8u)))):0u;if(b.call_67c8)b.call_67c8(image,x,y,0);x+=dx;y+=dy;if(b.call_53e4)b.call_53e4(page);*dgroup_ptr(m,dgroup(0x7138u))^=1u;}
- if(b.call_7240){b.call_7240(a);b.call_7240(c);}
+ if(b.call_6c60)b.call_6c60(0,x0,y0,static_cast<s32>(slot+0x1eu),7u);if(b.call_66c0){b.call_66c0(scratch[0],x0,y0,0x7au,0x30u);b.call_66c0(scratch[1],x0,y0,0x7au,0x30u);}
+ s32 old_x[2]={x0,x0},old_y[2]={y0,y0};s32 x=x0,y=y0;const s32 dx=static_cast<s32>(static_cast<u32>(target_x)-static_cast<u32>(x0))/8,dy=static_cast<s32>(static_cast<u32>(target_y)-static_cast<u32>(y0))/8;
+ for(u32 frame=0;frame<=8u;++frame){const u32 page=load_le32(dgroup_ptr(m,dgroup(0x7138u)));if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));if(b.call_6744)b.call_6744(scratch[page],old_x[page],old_y[page],0x7au,0x30u);old_x[page]=x;old_y[page]=y;if(b.call_66c0)b.call_66c0(scratch[page],x,y,0x7au,0x30u);const u32 image=b.call_954c?b.call_954c(load_le32(dgroup_ptr(m,dgroup(0x08f8u+slot*8u))),7u):0u;if(b.call_67c8)b.call_67c8(0u,x,y,image);x=static_cast<s32>(static_cast<u32>(x)+static_cast<u32>(dx));y=static_cast<s32>(static_cast<u32>(y)+static_cast<u32>(dy));if(b.call_53e4)b.call_53e4(load_le32(dgroup_ptr(m,dgroup(0x7138u))));*dgroup_ptr(m,dgroup(0x7138u))^=1u;}
+ if(b.call_7240){b.call_7240(scratch[0]);b.call_7240(scratch[1]);}
 }
 static_assert(0x266Cu-0x24D4u==408u);
 
@@ -154,6 +156,7 @@ static_assert(0x2A61u-0x2994u==205u);
 
 
 struct EarlyGameBoundaries; [[nodiscard]]s32 function_0010(EarlyGameBoundaries&,s32,s32,s32,s32)noexcept;
+[[nodiscard]]s32 function_035c(Machine&,s32,s32)noexcept;
 // 2A64..3883: actor-generation/editor logic.  All actor records remain dgroup-backed guest data.
 struct ActorGenerationBoundaries{
  void(*call_6588)(u32)=nullptr;void(*call_6c60)(s32,s32,s32,s32,u32)=nullptr;void(*call_6eb0)(s32,s32,s32,u32,u32,u32)=nullptr;
@@ -167,28 +170,40 @@ static u32 actor_base(Machine&m)noexcept{return load_le32(dgroup_ptr(m,dgroup(0x
 // 2A64..2DF8: six-choice class/order editor.  The six local enable bytes mirror the original
 // EBP-relative byte array; hover redraw and the wrap-at-0xFF path are kept separate from selection.
 void function_2a64(Machine&m,MidUiBoundaries&ui,ActorGenerationBoundaries&b)noexcept{
- s32 first=1,phase=0,hover=-1;u8 enabled[6]{};const u32 actor=load_le32(dgroup_ptr(m,dgroup(0x04ccu)));const u32 ab=actor*0x248u;const s32 order=*dgroup_ptr(m,dgroup(ab+0x680bu));
- for(;;){if(phase)return;if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));
-  if(!first)for(u32 i=0;i<6;i++)store_le32(dgroup_ptr(m,dgroup(0x08f4u+i*8u)),load_le32(dgroup_ptr(m,dgroup(0x08f8u+i*8u))));
-  for(s32 i=0;i<6;i++){const u32 other=actor^1u;const u32 ob=other*0x248u;const s32 pos=phase+i;if(*dgroup_ptr(m,dgroup(other+0x04c4u))&&*dgroup_ptr(m,dgroup(ob+0x680bu))==order&&static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(ob+0x680au)))==pos){store_le32(dgroup_ptr(m,dgroup(0x08f8u+i*8u)),0x15u);enabled[i]=0;}else if(pos==0x11){store_le32(dgroup_ptr(m,dgroup(0x08f8u+i*8u)),0x15u);enabled[i]=0;}else{store_le32(dgroup_ptr(m,dgroup(0x08f8u+i*8u)),load_le32(dgroup_ptr(m,dgroup(0x713cu)))+order*0x17u+pos);enabled[i]=1;}}
-  if(first){const u32 slots[11]={load_le32(dgroup_ptr(m,dgroup(0x08f8u))),load_le32(dgroup_ptr(m,dgroup(0x0900u))),load_le32(dgroup_ptr(m,dgroup(0x0908u))),load_le32(dgroup_ptr(m,dgroup(0x0910u))),load_le32(dgroup_ptr(m,dgroup(0x0918u))),load_le32(dgroup_ptr(m,dgroup(0x0920u))),0xffffffffu,0xffffffffu,0xffffffffu,4u,0x2au};function_1464(m,ui,4u,slots,0x2a);first=0;}else if(ui.call_7e4)ui.call_7e4(0,6);
-  while(b.call_53b4&&b.call_53b4()){} hover=-1;
-  for(;;){if(b.call_53b4&&b.call_53b4())break;const s32 now=ui.call_43c?ui.call_43c(m):0;if(now==hover)continue;if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));hover=now;}
-  const s32 e=ui.call_43c?ui.call_43c(m):0;if(e<0)continue;if(e>0&&e!=0xff&&e<=6&&enabled[e-1]){*dgroup_ptr(m,dgroup(ab+0x680au))=static_cast<u8>(phase+e-1);if(b.call_15b0)b.call_15b0(e-1,0x114,0xd7,5);phase=2;store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))+1u);}else if(e==0xff){phase=(phase+6)%18;first=1;}else if(e==0){store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))-1u);if(b.call_15b0)b.call_15b0(-1,-1,-1,-1);phase=2;}}
+ s32 first=1,phase=0;u8 enabled[6]{};const u32 actor=load_le32(dgroup_ptr(m,dgroup(0x04ccu)));const u32 ab=actor*0x248u;const u32 order=*dgroup_ptr(m,dgroup(ab+0x680bu));
+ for(;;){if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));
+  if(!first)for(u32 i=0;i<6u;++i)store_le32(dgroup_ptr(m,dgroup(0x08f4u+i*8u)),load_le32(dgroup_ptr(m,dgroup(0x08f8u+i*8u))));
+  for(s32 i=0;i<6;++i){const u32 other=actor^1u,ob=other*0x248u;const s32 pos=phase+i;if(*dgroup_ptr(m,dgroup(other+0x04c4u))!=0u&&*dgroup_ptr(m,dgroup(ob+0x680bu))==order&&static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(ob+0x680au)))==pos){store_le32(dgroup_ptr(m,dgroup(0x08f8u+static_cast<u32>(i)*8u)),0x15u);enabled[i]=0;}else if(pos==0x11){store_le32(dgroup_ptr(m,dgroup(0x08f8u+static_cast<u32>(i)*8u)),0x15u);enabled[i]=0;}else{const u32 id=load_le32(dgroup_ptr(m,dgroup(0x713cu)))+order*0x17u+static_cast<u32>(i)+static_cast<u32>(phase);store_le32(dgroup_ptr(m,dgroup(0x08f8u+static_cast<u32>(i)*8u)),id);enabled[i]=1;}}
+  if(first){const u32 slots[11]={load_le32(dgroup_ptr(m,dgroup(0x08f8u))),load_le32(dgroup_ptr(m,dgroup(0x0900u))),load_le32(dgroup_ptr(m,dgroup(0x0908u))),load_le32(dgroup_ptr(m,dgroup(0x0910u))),load_le32(dgroup_ptr(m,dgroup(0x0918u))),load_le32(dgroup_ptr(m,dgroup(0x0920u))),0xffffffffu,0xffffffffu,0xffffffffu,0x0du,4u};function_1464(m,ui,4u,slots,0x2a);first=0;}else if(ui.call_7e4)ui.call_7e4(0,6);
+  while((b.call_53b4?b.call_53b4():0u)!=0u){}
+  s32 hover=-1;
+  for(;;){if((b.call_53b4?b.call_53b4():0u)!=0u)break;const s32 mx=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x73e6u)))),my=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x73e8u))));const s32 now=function_035c(m,mx,my);if(now==hover)continue;if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));
+   auto redraw=[&](s32 hit,bool old){if(hit<=0||hit==0xff||hit>6||enabled[static_cast<u32>(hit-1)]==0u)return;const u32 idx=static_cast<u32>(hit-1);const s32 x=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x087cu+idx*8u)))),y=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x0880u+idx*8u))));if(b.call_6c60)b.call_6c60(0,x,y,0x14,7);const u32 id=load_le32(dgroup_ptr(m,dgroup(0x713cu)))+order*0x17u+static_cast<u32>(hit-1)+static_cast<u32>(phase);if(old){if(b.call_6eb0)b.call_6eb0(0,x+0x15,y,id,1,0x5af8u);}else if(b.call_6c60)b.call_6c60(0,x+0x15,y,static_cast<s32>(id),1);if(b.call_55dc)b.call_55dc(load_le32(dgroup_ptr(m,dgroup(0x7138u))),x+0x15,y,0x50,0x30);};
+   redraw(hover,true);redraw(now,false);hover=now;
+  }
+  const s32 mx=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x73e6u)))),my=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x73e8u))));const s32 e=function_035c(m,mx,my);if(e<0)continue;if(e>0&&e!=0xff&&e<=6){if(enabled[static_cast<u32>(e-1)]==0u)continue;const u8 picked=static_cast<u8>(static_cast<u8>(phase)+static_cast<u8>(e-1));*dgroup_ptr(m,dgroup(ab+0x680au))=picked;if(b.call_15b0)b.call_15b0(e-1,0x114,0xd7,5);store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))+1u);return;}if(e==0xff){const s32 dividend=static_cast<s32>(static_cast<u32>(phase)+6u);phase=dividend%0x12;first=1;continue;}if(e==0){store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))-1u);if(b.call_15b0)b.call_15b0(-1,-1,-1,-1);return;}}
 }
 static_assert(0x2DF9u-0x2A64u==917u); // 2DF9..2DFB alignment
 // 2DFC..301F: bounded actor-name editor.  Input accepts A-Z, space, and digits; backspace is 8.
-void function_2dfc(Machine&m,ActorGenerationBoundaries&b,u32 x,u32 limit)noexcept{u32 blink=1,ch=0,len=0;if(b.call_7f50)b.call_7f50();const u32 ab=actor_base(m);if(b.call_84a0)b.call_84a0(ab+0x67f8u,0,0x10);*dgroup_ptr(m,dgroup(ab+0x67f8u))=0;if(b.call_7d68)b.call_7d68(x,0xa0);while(ch!=0x0d){if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));ch=b.call_7de8?b.call_7de8():0;if(b.call_9eb0)b.call_9eb0(x,ch,0x0a,1,0);u32 deadline=(b.call_7f50_value?b.call_7f50_value():0)+9u;if(b.call_550c)b.call_550c(*dgroup_ptr(m,dgroup(0x7138u)),x,0x88,0x0a,0x30);*dgroup_ptr(m,dgroup(0x7138u))^=1u;while(!(b.call_831c&&b.call_831c())){const u32 now=b.call_7f50_value?b.call_7f50_value():deadline;if(now<deadline)continue;deadline=now+9u;blink^=1u;if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));if(b.call_9eb0)b.call_9eb0(x,ch,0x0a,1,blink?0:0x5f);if(b.call_53e4)b.call_53e4(*dgroup_ptr(m,dgroup(0x7138u)));*dgroup_ptr(m,dgroup(0x7138u))^=1u;}
-  if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));if(b.call_9eb0)b.call_9eb0(x,ch,0x0a,1,0x5f);ch=b.call_82c0?b.call_82c0():0;if(ch==8){if(len){--len;*dgroup_ptr(m,dgroup(ab+0x67f8u+len))=0;}}else if(((ch>='A'&&ch<='Z')||ch==' '||(ch>='0'&&ch<='9'))&&len<limit){const u32 w0=b.call_7ab4?b.call_7ab4(ab+0x67f8u,0):0,w1=b.call_7b50?b.call_7b50(static_cast<s32>(ch),0):0;if(w0+w1<0x30){*dgroup_ptr(m,dgroup(ab+0x67f8u+len))=static_cast<u8>(ch);++len;}}if(b.call_9eb0)b.call_9eb0(x,0x88,0x0a,0x30,0x5f);if(b.call_7d80)b.call_7d80(x,0x88,0x30,ab+0x67f8u,0);}}
+void function_2dfc(Machine&m,ActorGenerationBoundaries&b,u32 x,u32 limit)noexcept{
+ u32 blink=1,ch=0,len=0;if(b.call_7f50)b.call_7f50();const u32 ab=actor_base(m);if(b.call_84a0)b.call_84a0(ab+0x67f8u,0,0x10);*dgroup_ptr(m,dgroup(ab+0x67f8u))=0;if(b.call_7d68)b.call_7d68(x,0xa0);
+ while(ch!=0x0du){if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));ch=b.call_7de8?b.call_7de8():0;if(b.call_9eb0)b.call_9eb0(x,ch,0x0a,1,0);u32 deadline=(b.call_7f50_value?b.call_7f50_value():0u)+9u;if(b.call_550c)b.call_550c(load_le32(dgroup_ptr(m,dgroup(0x7138u))),x,0x88,0x0a,0x30);*dgroup_ptr(m,dgroup(0x7138u))^=1u;
+  while((b.call_831c?b.call_831c():0u)==0u){const u32 now=b.call_7f50_value?b.call_7f50_value():deadline;if(deadline>=now)continue;deadline=(b.call_7f50_value?b.call_7f50_value():now)+9u;blink^=1u;if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));if(b.call_9eb0)b.call_9eb0(x,ch,0x0a,1,blink?0u:0x5fu);if(b.call_53e4)b.call_53e4(load_le32(dgroup_ptr(m,dgroup(0x7138u))));*dgroup_ptr(m,dgroup(0x7138u))^=1u;}
+  if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));blink=0;if(b.call_9eb0)b.call_9eb0(x,ch,0x0a,1,0x5f);ch=b.call_82c0?b.call_82c0():0;
+  if(ch==8u){if(len){if(b.call_9eb0)b.call_9eb0(x,0x88,0x0a,0x30,0x5f);--len;*dgroup_ptr(m,dgroup(ab+0x67f8u+len))=0;}}
+  else{const s32 key=static_cast<s32>(ch);if(((key>='A'&&key<='Z')||key==' '||(key>='0'&&key<='9'))&&len<limit){const s32 w0=static_cast<s32>(b.call_7ab4?b.call_7ab4(ab+0x67f8u,0):0u),w1=static_cast<s32>(b.call_7b50?b.call_7b50(static_cast<s32>(static_cast<std::int8_t>(low8(ch))),0):0u);if(static_cast<s32>(static_cast<u32>(w0)+static_cast<u32>(w1))<0x30){*dgroup_ptr(m,dgroup(ab+0x67f8u+len))=low8(ch);++len;}}}
+  if(b.call_9eb0)b.call_9eb0(x,0x88,0x0a,0x30,0x5f);if(b.call_7d80)b.call_7d80(static_cast<s32>(x),0x88,0x30,ab+0x67f8u,0);
+ }
+}
 static_assert(0x3020u-0x2DFCu==548u);
 // 3020..3134: name-entry presentation and captured-image refresh.
-void function_3020(Machine&m,MidUiBoundaries&ui,ActorGenerationBoundaries&b)noexcept{const u32 slots[11]={0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0x2eu};function_1464(m,ui,6,slots,0x14);if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));if(b.call_6c60)b.call_6c60(0,0x5b,0x88,0x14,7);if(b.call_53e4)b.call_53e4(*dgroup_ptr(m,dgroup(0x7138u)));*dgroup_ptr(m,dgroup(0x7138u))^=1u;function_2dfc(m,b,0x93,0x0f);const u32 old=load_le32(dgroup_ptr(m,dgroup(0x0958u)));if(old&&b.call_7830)b.call_7830(old);if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));if(b.call_6c60)b.call_6c60(0,0x5b,0x88,0x14,7);if(b.call_7d80)b.call_7d80(0x93,0x88,0x30,actor_base(m)+0x67f8u,0);store_le32(dgroup_ptr(m,dgroup(0x0958u)),0u);store_le32(dgroup_ptr(m,dgroup(0x092cu)),0);store_le32(dgroup_ptr(m,dgroup(0x0930u)),1);if(b.call_15b0)b.call_15b0(-1,-1,-1,-1);}
+void function_3020(Machine&m,MidUiBoundaries&ui,ActorGenerationBoundaries&b)noexcept{const u32 slots[11]={0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0x14u,0xffffffffu,0xffffffffu,0xffffffffu};function_1464(m,ui,6,slots,0x2e);if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));if(b.call_6c60)b.call_6c60(0,0x5b,0x88,0x14,7);if(b.call_53e4)b.call_53e4(load_le32(dgroup_ptr(m,dgroup(0x7138u))));*dgroup_ptr(m,dgroup(0x7138u))^=1u;function_2dfc(m,b,0x93,0x0f);const u32 old=load_le32(dgroup_ptr(m,dgroup(0x0958u)));if(old&&b.call_7830)b.call_7830(old);if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));if(b.call_6c60)b.call_6c60(0,0x5b,0x88,0x14,7);if(b.call_7d80)b.call_7d80(0x93,0x88,0x30,actor_base(m)+0x67f8u,0);store_le32(dgroup_ptr(m,dgroup(0x0958u)),ui.call_7868?ui.call_7868(0x5b,0x88,0x7a,0x30,0xff):0u);store_le32(dgroup_ptr(m,dgroup(0x092cu)),0);store_le32(dgroup_ptr(m,dgroup(0x0930u)),1);if(b.call_15b0)b.call_15b0(-1,-1,-1,-1);}
 static_assert(0x3135u-0x3020u==277u); // 3135..3137 alignment
 // 3138..3204: final accept/delete decision for the selected actor.
-void function_3138(Machine&m,MidUiBoundaries&ui,ActorGenerationBoundaries&b)noexcept{const u32 slots[11]={0xffffffffu,0xffffffffu,0x2fu,0x30u,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0x2du};store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))+1u);function_1464(m,ui,6,slots,-1);store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))-1u);for(;;){const u32 saved=load_le32(dgroup_ptr(m,dgroup(0x04d0u)));store_le32(dgroup_ptr(m,dgroup(0x04d0u)),0);const s32 e=ui.call_43c?ui.call_43c(m):0;store_le32(dgroup_ptr(m,dgroup(0x04d0u)),saved);if(e==3){if(b.call_15b0)b.call_15b0(-1,-1,-1,-1);function_3020(m,ui,b);const u32 a=load_le32(dgroup_ptr(m,dgroup(0x04ccu)));*dgroup_ptr(m,dgroup(a+0x04c4u))=1;store_le16(dgroup_ptr(m,dgroup(a*0x248u+0x6808u)),0);return;}if(e==4){if(b.call_15b0)b.call_15b0(-1,-1,-1,-1);const u32 a=load_le32(dgroup_ptr(m,dgroup(0x04ccu)));*dgroup_ptr(m,dgroup(a+0x04c4u))=0;*dgroup_ptr(m,dgroup(a*0x248u+0x6809u))|=0x80u;return;}}}
+void function_3138(Machine&m,MidUiBoundaries&ui,ActorGenerationBoundaries&b)noexcept{const u32 slots[11]={0xffffffffu,0xffffffffu,0x2fu,0x30u,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu};store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))+1u);function_1464(m,ui,6,slots,0x2d);store_le32(dgroup_ptr(m,dgroup(0x04d0u)),load_le32(dgroup_ptr(m,dgroup(0x04d0u)))-1u);for(;;){const u32 saved=load_le32(dgroup_ptr(m,dgroup(0x04d0u)));store_le32(dgroup_ptr(m,dgroup(0x04d0u)),0);const s32 e=ui.call_43c?ui.call_43c(m):0;store_le32(dgroup_ptr(m,dgroup(0x04d0u)),saved);if(e==3){if(b.call_15b0)b.call_15b0(-1,-1,-1,-1);function_3020(m,ui,b);const u32 a=load_le32(dgroup_ptr(m,dgroup(0x04ccu)));*dgroup_ptr(m,dgroup(a+0x04c4u))=1;store_le16(dgroup_ptr(m,dgroup(a*0x248u+0x6808u)),0);return;}if(e==4){if(b.call_15b0)b.call_15b0(-1,-1,-1,-1);const u32 a=load_le32(dgroup_ptr(m,dgroup(0x04ccu)));*dgroup_ptr(m,dgroup(a+0x04c4u))=0;*dgroup_ptr(m,dgroup(a*0x248u+0x6809u))|=0x80u;return;}}}
 static_assert(0x3205u-0x3138u==205u); // 3205..3207 alignment
 // 3208..32F3: derive per-class progression counts from the 057C word table.
-void function_3208(Machine&m)noexcept{const u32 ab=actor_base(m);s32 count=1;if(static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(ab+0x680eu)))!=-1)count=2;if(static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(ab+0x680fu)))!=-1)++count;for(s32 i=0;i<count;i++){const s32 cls=static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(ab+0x680du+i)));const u32 quota=0x88bcu/static_cast<u32>(count);u32 n=0;while(n<20u&&quota/static_cast<u32>(1000)>=load_le16(dgroup_ptr(m,dgroup(0x057cu+cls*40u+n*2u))))++n;store_le16(dgroup_ptr(m,dgroup(ab+0x6818u+i*2u)),static_cast<u16>(n));}}
+void function_3208(Machine&m)noexcept{const u32 ab=actor_base(m);s32 count=1;if(static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(ab+0x680eu)))!=-1)count=2;if(static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(ab+0x680fu)))!=-1)++count;for(s32 i=0;i<count;i++){const s32 cls=static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(ab+0x680du+i)));const s32 signed_quota=0x88bc/count;const u32 quota=static_cast<u32>(signed_quota);u32 n=0;while(n<20u&&quota/1000u>=load_le16(dgroup_ptr(m,dgroup(0x057cu+static_cast<u32>(cls*40)+n*2u))))++n;store_le16(dgroup_ptr(m,dgroup(ab+0x6818u+static_cast<u32>(i)*2u)),static_cast<u16>(n));}}
 static_assert(0x32F4u-0x3208u==236u);
 // 32F4..3349: base value at 6810 plus one encoded random contribution from table 082E.
 void function_32f4(Machine&m,EarlyGameBoundaries&rng)noexcept{const u32 ab=actor_base(m);const u32 k=*dgroup_ptr(m,dgroup(ab+0x680cu))*3u;u16 v=*dgroup_ptr(m,dgroup(0x082eu+k));v=static_cast<u16>(v+function_0010(rng,*dgroup_ptr(m,dgroup(0x082fu+k)),*dgroup_ptr(m,dgroup(0x0830u+k)),0,0));store_le16(dgroup_ptr(m,dgroup(ab+0x6810u)),v);}
@@ -200,7 +215,7 @@ static_assert(0x3404u-0x334Cu==184u);
 void function_3404(Machine&m)noexcept{const u32 ab=actor_base(m);const u32 race=*dgroup_ptr(m,dgroup(ab+0x680cu));for(u32 i=0;i<6u;i++){const s32 bonus=static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(0x06b4u+race*6u+i)));u8&v=*dgroup_ptr(m,dgroup(ab+0x682au+i*2u));const s32 lo=*dgroup_ptr(m,dgroup(0x066cu+race*12u+i*2u))+bonus,hi=*dgroup_ptr(m,dgroup(0x066du+race*12u+i*2u))+bonus;if(static_cast<s32>(v)<lo)v=static_cast<u8>(lo);if(static_cast<s32>(v)>hi)v=static_cast<u8>(hi);}if(*dgroup_ptr(m,dgroup(ab+0x682au))==0x12u&&!*dgroup_ptr(m,dgroup(ab+0x6836u)))++*dgroup_ptr(m,dgroup(ab+0x6836u));const u8 c0=*dgroup_ptr(m,dgroup(ab+0x680du)),c1=*dgroup_ptr(m,dgroup(ab+0x680eu)),c2=*dgroup_ptr(m,dgroup(ab+0x680fu));if(*dgroup_ptr(m,dgroup(ab+0x682au))<0x12u||((c0!=1&&c0!=2&&c1!=2&&c2!=2&&c0!=0&&c1!=0&&c2!=0))) *dgroup_ptr(m,dgroup(ab+0x6836u))=0;
  for(u32 stat=0;stat<6u;stat++)for(u32 j=0;j<3u;j++){const s32 cls=static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(ab+0x680du+j)));if(cls<0)continue;const u8 minv=*dgroup_ptr(m,dgroup(0x07d4u+stat*15u+static_cast<u32>(cls)));u8&v=*dgroup_ptr(m,dgroup(ab+0x682au+stat*2u));if(v<minv)v=minv;}
  s32 classes=1;if(static_cast<std::int8_t>(c1)!=-1)classes=2;if(static_cast<std::int8_t>(c2)!=-1)++classes;store_le32(dgroup_ptr(m,dgroup(0x711cu)),0);store_le32(dgroup_ptr(m,dgroup(0x7118u)),0x63);for(s32 i=0;i<classes;i++){const s32 cls=static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(ab+0x680du+i)));const s32 levels=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(ab+0x6818u+i*2u))));s32 sum=0;for(s32 n=0;n<levels;n++){s32 q=static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(0x0853u+static_cast<u32>(cls))));if(q<1)q=1;sum+=q;}store_le32(dgroup_ptr(m,dgroup(0x711cu)),load_le32(dgroup_ptr(m,dgroup(0x711cu)))+static_cast<u32>(sum));if(levels<static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x7118u)))))store_le32(dgroup_ptr(m,dgroup(0x7118u)),static_cast<u32>(levels));}
- s32 maxlevel=0;for(s32 i=0;i<classes;i++){const s32 q=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(ab+0x6818u+i*2u))));if(q>maxlevel)maxlevel=q;}s32 cls=static_cast<std::int8_t>(c0);if(c1==2)cls=2;store_le32(dgroup_ptr(m,dgroup(0x711cu)),load_le32(dgroup_ptr(m,dgroup(0x711cu)))/static_cast<u32>(classes));const u32 variant=*dgroup_ptr(m,dgroup(ab+0x682eu));s32 extra=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x04d4u+(cls/3)*0x4cu+variant*4u))));if(extra<0)extra=0;store_le32(dgroup_ptr(m,dgroup(0x711cu)),load_le32(dgroup_ptr(m,dgroup(0x711cu)))+static_cast<u32>(extra*maxlevel));store_le32(dgroup_ptr(m,dgroup(0x7118u)),load_le32(dgroup_ptr(m,dgroup(0x7118u)))+static_cast<u32>(extra*maxlevel));*dgroup_ptr(m,dgroup(ab+0x6813u))=10;u32 lo=load_le32(dgroup_ptr(m,dgroup(0x7118u))),hi=load_le32(dgroup_ptr(m,dgroup(0x711cu)));if(hi<lo)hi=lo;store_le32(dgroup_ptr(m,dgroup(0x711cu)),hi);s32 hp=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(ab+0x6816u))));if(hp<static_cast<s32>(lo))hp=static_cast<s32>(lo);if(hp>static_cast<s32>(hi))hp=static_cast<s32>(hi);if(hp==0)hp=1;store_le16(dgroup_ptr(m,dgroup(ab+0x6816u)),static_cast<u16>(hp));if(*dgroup_ptr(m,dgroup(ab+0x6836u))>100)*dgroup_ptr(m,dgroup(ab+0x6836u))=100;}
+ s32 maxlevel=0;for(s32 i=0;i<classes;i++){const s32 q=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(ab+0x6818u+i*2u))));if(q>maxlevel)maxlevel=q;}s32 cls=static_cast<std::int8_t>(c0);if(c1==2)cls=2;const s32 average=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x711cu))))/classes;store_le32(dgroup_ptr(m,dgroup(0x711cu)),static_cast<u32>(average));const u32 variant=*dgroup_ptr(m,dgroup(ab+0x682eu));s32 extra=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x04d4u+(cls/3)*0x4cu+variant*4u))));if(extra<0)extra=0;const u32 scaled=static_cast<u32>(extra)*static_cast<u32>(maxlevel);store_le32(dgroup_ptr(m,dgroup(0x711cu)),load_le32(dgroup_ptr(m,dgroup(0x711cu)))+scaled);store_le32(dgroup_ptr(m,dgroup(0x7118u)),load_le32(dgroup_ptr(m,dgroup(0x7118u)))+scaled);*dgroup_ptr(m,dgroup(ab+0x6813u))=10;s32 lo=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x7118u)))),hi=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x711cu))));if(hi<lo)hi=lo;store_le32(dgroup_ptr(m,dgroup(0x711cu)),static_cast<u32>(hi));s32 hp=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(ab+0x6816u))));if(hp<lo)hp=static_cast<s16>(static_cast<u16>(lo));if(hp>hi)hp=static_cast<s16>(static_cast<u16>(hi));if(hp==0)hp=1;store_le16(dgroup_ptr(m,dgroup(ab+0x6816u)),static_cast<u16>(hp));if(*dgroup_ptr(m,dgroup(ab+0x6836u))>100)*dgroup_ptr(m,dgroup(ab+0x6836u))=100;}
 static_assert(0x37BEu-0x3404u==954u); // 37BE..37BF alignment
 // 37C0..3881: recompute 6816 from per-class random rolls and the class/variant table.
 void function_37c0(Machine&m,EarlyGameBoundaries&rng)noexcept{const u32 ab=actor_base(m);s32 classes=1;if(static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(ab+0x680eu)))!=-1)classes=2;if(static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(ab+0x680fu)))!=-1)++classes;s32 total=0,last_cls=0;for(s32 i=0;i<classes;i++){last_cls=static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(ab+0x680du+i)));const s32 sides=static_cast<std::int8_t>(*dgroup_ptr(m,dgroup(0x0853u+last_cls)));const s32 n=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(ab+0x6818u+i*2u))));total+=static_cast<s32>(function_0010(rng,n,sides,0,0));}s32 hp=total/classes;const u32 variant=*dgroup_ptr(m,dgroup(ab+0x682eu));hp+=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x04d4u+(last_cls/3)*0x4cu+variant*4u))));store_le16(dgroup_ptr(m,dgroup(ab+0x6816u)),static_cast<u16>(hp));}
@@ -1930,13 +1945,12 @@ constexpr u32 kCoverageDenominator=kCodeObjectVirtualSize;
 
 // Batch 15: remaining actor-choice/animation logic plus independently bounded planar VGA helpers.
 // Every range below was re-disassembled directly from immutable CODE.1 before this fold.
-struct Batch15Pair{u32 ebx=0,esi=0;};
 struct Batch15EarlyBoundary{
  void(*call_56dc)()=nullptr;void(*call_6588)(u32)=nullptr;
- void(*call_6824)(u32,u32,u32,u32,u32)=nullptr;void(*call_6eb0)(u32,u32,u32,u32,u32,u32)=nullptr;
+ void(*call_6824)(u32,u32,u32,u32,u32)=nullptr;void(*call_6eb0)(u32,u32,u32,u32,u32,u32)=nullptr;void(*call_6c60)(s32,s32,s32,s32,u32)=nullptr;
  u32(*call_954c)(u32,u32)=nullptr;void(*call_53e4)(u32)=nullptr;void(*call_5454)(u32)=nullptr;
  u32(*call_71c8)(u32)=nullptr;void(*call_66c0)(u32,s32,s32,u32,u32)=nullptr;
- Batch15Pair(*call_6744)(u32,s32,s32,u32,u32)=nullptr;void(*call_67c8)(u32,s32,s32,u32)=nullptr;
+ void(*call_6744)(u32,s32,s32,u32,u32)=nullptr;void(*call_67c8)(u32,s32,s32,u32)=nullptr;
  void(*call_7240)(u32)=nullptr;void(*call_86c4)(s32,s32,s32,u32)=nullptr;void(*call_4b0)(u32)=nullptr;
  void(*call_24d4)(u32,s32,s32)=nullptr;void(*call_7e4)(s32,s32)=nullptr;
  void(*call_1464)(u32,const u32*,s32)=nullptr;u32(*call_53b4)()=nullptr;s32(*call_43c)()=nullptr;
@@ -1950,45 +1964,15 @@ void function_15b0(Machine&m,Batch15EarlyBoundary&b,s32 selected,s32 target_x,s3
  if(b.call_56dc)b.call_56dc();
  for(u32 frame=0;frame<5u;++frame){
   if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));
-  for(u32 slot=0;slot<9u;++slot){
-   if(static_cast<s32>(slot)==selected)continue;
-   const s32 id=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x08f8u+slot*8u))));if(id==-1)continue;
-   const u32 dst=0x5ff8u+(frame<<8);const s32 x=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x087cu+slot*8u))));const s32 y=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x0880u+slot*8u))));
-   const s32 mode=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x04d0u))));
-   if(mode==0){if(b.call_6824)b.call_6824(0u,static_cast<u32>(x),static_cast<u32>(y),load_le32(dgroup_ptr(m,dgroup(0x0954u+slot*4u))),dst);continue;}
-   if(slot==7u){if(b.call_6824)b.call_6824(0u,static_cast<u32>(x),static_cast<u32>(y),load_le32(dgroup_ptr(m,dgroup(0x0958u))),dst);continue;}
-   const s32 base=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x713cu))));
-   if(id>=base&&id<base+0x2e){
-    if(b.call_6eb0)b.call_6eb0(0u,static_cast<u32>(x),static_cast<u32>(y),0x14u,7u,dst);
-    const u32 rec=b.call_954c?b.call_954c(static_cast<u32>(id),1u):0u;
-    if(b.call_6824)b.call_6824(0u,static_cast<u32>(x+0x15),static_cast<u32>(y),rec,0x5af8u+(frame<<8));
-   }else if(b.call_6eb0)b.call_6eb0(0u,static_cast<u32>(x),static_cast<u32>(y),static_cast<u32>(id),7u,dst);
-  }
+  for(u32 slot=0;slot<9u;++slot){if(static_cast<s32>(slot)==selected)continue;const s32 id=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x08f8u+slot*8u))));if(id==-1)continue;const u32 dst=0x5ff8u+(frame<<8);const s32 x=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x087cu+slot*8u)))),y=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x0880u+slot*8u))));const s32 mode=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x04d0u))));if(mode==0){if(b.call_6824)b.call_6824(0u,static_cast<u32>(x),static_cast<u32>(y),load_le32(dgroup_ptr(m,dgroup(0x0954u+slot*4u))),dst);continue;}if(slot==7u){if(b.call_6824)b.call_6824(0u,static_cast<u32>(x),static_cast<u32>(y),load_le32(dgroup_ptr(m,dgroup(0x0958u))),dst);continue;}const s32 base=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x713cu))));if(id>=base&&id<base+0x2e){if(b.call_6eb0)b.call_6eb0(0u,static_cast<u32>(x),static_cast<u32>(y),0x14u,7u,dst);const u32 rec=b.call_954c?b.call_954c(static_cast<u32>(id),1u):0u;if(b.call_6824)b.call_6824(0u,static_cast<u32>(x+0x15),static_cast<u32>(y),rec,0x5af8u+(frame<<8));}else if(b.call_6eb0)b.call_6eb0(0u,static_cast<u32>(x),static_cast<u32>(y),static_cast<u32>(id),7u,dst);}
   if(b.call_53e4)b.call_53e4(load_le32(dgroup_ptr(m,dgroup(0x7138u))));*dgroup_ptr(m,dgroup(0x7138u))^=1u;
  }
- for(s32 frame=4;frame>=0;--frame){
-  if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));
-  for(u32 slot=0;slot<9u;++slot){if(static_cast<s32>(slot)==selected)continue;const s32 id=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x08f8u+slot*8u))));if(id==-1)continue;const s32 x=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x087cu+slot*8u))));const s32 y=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x0880u+slot*8u))));if(b.call_6eb0)b.call_6eb0(0u,static_cast<u32>(x),static_cast<u32>(y),slot+0x1eu,7u,0x5ff8u+(static_cast<u32>(frame)<<8));}
-  if(frame==0){if(b.call_5454)b.call_5454(load_le32(dgroup_ptr(m,dgroup(0x7138u))));}else if(b.call_53e4)b.call_53e4(load_le32(dgroup_ptr(m,dgroup(0x7138u))));
-  *dgroup_ptr(m,dgroup(0x7138u))^=1u;
- }
+ for(s32 frame=4;frame>=0;--frame){if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));for(u32 slot=0;slot<9u;++slot){if(static_cast<s32>(slot)==selected)continue;const s32 id=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x08f8u+slot*8u))));if(id==-1)continue;const s32 x=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x087cu+slot*8u)))),y=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x0880u+slot*8u))));if(b.call_6eb0)b.call_6eb0(0u,static_cast<u32>(x),static_cast<u32>(y),slot+0x1eu,7u,0x5ff8u+(static_cast<u32>(frame)<<8));}if(frame==0){if(b.call_5454)b.call_5454(load_le32(dgroup_ptr(m,dgroup(0x7138u))));}else if(b.call_53e4)b.call_53e4(load_le32(dgroup_ptr(m,dgroup(0x7138u))));*dgroup_ptr(m,dgroup(0x7138u))^=1u;}
  if(selected==-1)return;
- const u32 scratch0=b.call_71c8?b.call_71c8(0x1e80u):0u,scratch1=b.call_71c8?b.call_71c8(0x1e80u):0u;
- if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));
- const s32 x0=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x087cu+static_cast<u32>(selected)*8u))));const s32 y0=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x0880u+static_cast<u32>(selected)*8u))));
- if(b.call_6eb0)b.call_6eb0(0u,static_cast<u32>(x0),static_cast<u32>(y0),static_cast<u32>(selected+0x1e),7u,0u);
- if(b.call_66c0){b.call_66c0(scratch0,x0,y0,0x7au,0x30u);b.call_66c0(scratch1,x0,y0,0x7au,0x30u);}
- s32 px[2]={x0,x0},py[2]={y0,y0};const u32 scratch[2]={scratch0,scratch1};
- for(s32 step=0;step<=8;++step){
-  const u32 page=*dgroup_ptr(m,dgroup(0x7138u))&1u;if(b.call_6588)b.call_6588(page);
-  Batch15Pair q{static_cast<u32>(px[page]),static_cast<u32>(py[page])};if(b.call_6744)q=b.call_6744(scratch[page],px[page],py[page],0x7au,0x30u);px[page]=static_cast<s32>(q.ebx);py[page]=static_cast<s32>(q.esi);
-  if(b.call_66c0)b.call_66c0(scratch[page],px[page],py[page],0x7au,0x30u);
-  const s32 id=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x08f8u+static_cast<u32>(selected)*8u))));const s32 base=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x713cu))));
-  if(id>=base&&id<base+0x2e){const u32 r0=b.call_954c?b.call_954c(0x14u,7u):0u;if(b.call_67c8)b.call_67c8(r0,px[page],py[page],0u);const u32 r1=b.call_954c?b.call_954c(static_cast<u32>(id),1u):0u;if(b.call_67c8)b.call_67c8(r1,px[page]+0x15,py[page],0u);}else{const u32 r=b.call_954c?b.call_954c(static_cast<u32>(id),7u):0u;if(b.call_67c8)b.call_67c8(r,px[page],py[page],0u);}
-  const s32 n=step+1;const s32 dxn=static_cast<s32>(static_cast<u32>(target_x-x0)*static_cast<u32>(n));const s32 dyn=static_cast<s32>(static_cast<u32>(target_y-y0)*static_cast<u32>(n));px[page]=x0+div8_after_plus4(dxn);py[page]=y0+div8_after_plus4(dyn);
-  if(b.call_53e4)b.call_53e4(load_le32(dgroup_ptr(m,dgroup(0x7138u))));*dgroup_ptr(m,dgroup(0x7138u))^=1u;
- }
- if(b.call_7240){b.call_7240(scratch0);b.call_7240(scratch1);}if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));if(b.call_86c4)b.call_86c4(0xc8,0,0x19,7u);if(b.call_4b0)b.call_4b0(static_cast<u32>(final_mode));if(b.call_5454)b.call_5454(load_le32(dgroup_ptr(m,dgroup(0x7138u))));*dgroup_ptr(m,dgroup(0x7138u))^=1u;
+ const u32 scratch[2]={b.call_71c8?b.call_71c8(0x1e80u):0u,b.call_71c8?b.call_71c8(0x1e80u):0u};if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));const s32 x0=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x087cu+static_cast<u32>(selected)*8u)))),y0=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x0880u+static_cast<u32>(selected)*8u))));if(b.call_6c60)b.call_6c60(0,x0,y0,selected+0x1e,7);if(b.call_66c0){b.call_66c0(scratch[0],x0,y0,0x7au,0x30u);b.call_66c0(scratch[1],x0,y0,0x7au,0x30u);}
+ s32 old_x[2]={x0,x0},old_y[2]={y0,y0};s32 x=x0,y=y0;
+ for(s32 step=0;step<=8;++step){const u32 page=load_le32(dgroup_ptr(m,dgroup(0x7138u)));if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));if(b.call_6744)b.call_6744(scratch[page],old_x[page],old_y[page],0x7au,0x30u);old_x[page]=x;old_y[page]=y;if(b.call_66c0)b.call_66c0(scratch[page],x,y,0x7au,0x30u);const s32 id=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x08f8u+static_cast<u32>(selected)*8u))));const s32 base=static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x713cu))));if(id>=base&&id<base+0x2e){const u32 r0=b.call_954c?b.call_954c(0x14u,7u):0u;if(b.call_67c8)b.call_67c8(0u,x,y,r0);const u32 r1=b.call_954c?b.call_954c(static_cast<u32>(id),1u):0u;if(b.call_67c8)b.call_67c8(0u,x+0x15,y,r1);}else{const u32 r=b.call_954c?b.call_954c(static_cast<u32>(id),7u):0u;if(b.call_67c8)b.call_67c8(0u,x,y,r);}const s32 n=step+1;const u32 dxn=(static_cast<u32>(target_x)-static_cast<u32>(x0))*static_cast<u32>(n),dyn=(static_cast<u32>(target_y)-static_cast<u32>(y0))*static_cast<u32>(n);x=static_cast<s32>(static_cast<u32>(x0)+static_cast<u32>(div8_after_plus4(static_cast<s32>(dxn))));y=static_cast<s32>(static_cast<u32>(y0)+static_cast<u32>(div8_after_plus4(static_cast<s32>(dyn))));if(b.call_53e4)b.call_53e4(load_le32(dgroup_ptr(m,dgroup(0x7138u))));*dgroup_ptr(m,dgroup(0x7138u))^=1u;}
+ if(b.call_7240){b.call_7240(scratch[0]);b.call_7240(scratch[1]);}if(b.call_6588)b.call_6588(*dgroup_ptr(m,dgroup(0x7138u)));if(b.call_86c4)b.call_86c4(0xc8,0,0x19,7u);if(b.call_4b0)b.call_4b0(static_cast<u32>(final_mode));if(b.call_5454)b.call_5454(load_le32(dgroup_ptr(m,dgroup(0x7138u))));*dgroup_ptr(m,dgroup(0x7138u))^=1u;
 }
 static_assert(0x1A01u-0x15B0u==1105u);
 // 1A01..1A03 is LEA alignment.

@@ -58,3 +58,10 @@ Instruction-accounted routines checked: trap stub `0000..0002`, accumulation hel
 The audit rechecked direct call targets and argument order, signed comparisons/divisions, modulo/overflow behavior, DGROUP widths and offsets, the `831C` double-poll path, the reverse XOR record loop, the transition counter termination at `[last-1] == 0Bh`, `9C44` slide-call argument order, and the signed interpolation arithmetic in `10A4`. No semantic discrepancy was found.
 
 Directly reverified non-code in this region: `0003..000F` NOPs, `0049..004B` LEA alignment, `00EB` NOP, `043B` NOP, `0649..064B` LEA alignment, `07E2..07E3` MOV EAX,EAX, `10A2..10A3` MOV EAX,EAX, and `1462..1463` MOV EAX,EAX. Coverage/accounting is unchanged by this semantic audit.
+
+
+## Semantic audit checkpoint 2 — `1464..38A3`
+
+Direct re-disassembly from the immutable original `CODE.1` found and corrected semantic mismatches in the already-counted C++ without changing byte coverage. Corrections include: encoded `954C` argument order in `1464`; exact `1464` caller slot/label placement in `1CD0`, `1DD8`, `1E64`, `2A64`, `3020`, and `3138`; the missing `00EC` materialization and corrected renderer argument order in `1A04`; the missing `04B0`/page flip sequence in `1BD4`; two-page animation state, renderer targets, and call argument order in `15B0` and `24D4`; direct hit-test/hover paths in `2A64`; timing/input details in `2DFC`; the missing `7868` recapture in `3020`; signed `IDIV` semantics in `3208`/`3404`; and the 16-bit store/reload truncation points in the `3404` HP clamps.
+
+The remaining routines in this checkpoint, including `1F24`, `2198`, `266C`, `28E4`, `2994`, `32F4`, `334C`, `37C0`, and `3884`, were rechecked against fresh disassembly and required no correction in this pass. Object accounting remains **69,361 translated instruction bytes + 1,041 proven non-code/data bytes = 70,402 / 70,402**, with **0 unresolved bytes**. This checkpoint changes semantics only; it does not increase coverage.
