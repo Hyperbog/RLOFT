@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-8.69%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-10.38%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **20,666**
-**Proven non-code/data bytes:** **172**
-**Reconciled object bytes:** **20,838 / 239,698 = 8.6934% (8.69%)**
-**Unresolved object bytes:** **218,860**
+**Verified translated instruction bytes:** **24,697**
+**Proven non-code/data bytes:** **190**
+**Reconciled object bytes:** **24,887 / 239,698 = 10.3826% (10.38%)**
+**Unresolved object bytes:** **214,811**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -216,5 +216,42 @@ The control-panel rectangle sentinel is entry 12, while action 11 deliberately u
 ### Next high-value targets
 
 1. Continue the application path at `03634`.
+2. Reconcile startup at `353A0` as a CODE.2-specific path.
+3. Continue harvesting independently proved relocated CODE.1 runtime families.
+
+## Batch 06 — map-mode setup, resource tables, nibble grids, and proximity helpers
+
+Source identity and object-1 SHA-256 were reverified before this batch. Added **4,031 translated instruction bytes** and **18 directly proven alignment bytes**, bringing cumulative accounting to **24,697 translated + 190 non-code = 24,887 / 239,698 = 10.3826% (10.38%)**.
+
+### Newly translated ranges
+
+- `03634..0380C` — **473 bytes**: map-mode setup/teardown loop, including the exact `759C[i]=i` 256-byte initialization, viewport clamps, map rebuild/redraw, page toggles, and owned-buffer cleanup.
+- `03810..0381E` — **15 bytes**: release the `608C` allocation.
+- `03820..03835` — **22 bytes**: linear bump allocator over `608C + 6094`.
+- `03838..03A63` — **556 bytes**: resource/table loader, allocation layout, scalar/table reads, variable sub-block reads, and final handle close.
+- `03A78..03C02` — **395 bytes**: running low/high-nibble clamp over the `2194A` grid.
+- `03C04..03DE2` — **479 bytes**: companion clamp over `2199A`, including type-dependent `219A1/219A2` initialization.
+- `03DE4..03EA3` — **192 bytes**: `62B0`-controlled nibble enable/disable sweep.
+- `03EA4..03F74` — **209 bytes**: `6350`-controlled companion sweep.
+- `03F78..0403F` — **200 bytes**: modal two-line prompt/input-release cycle and page restore.
+- `04040..040FE` — **191 bytes**: 360-direction fixed-point probe using full coordinates for `2C8E4`.
+- `04100..04224` — **293 bytes**: special-level/proximity gate over active records and tile flags.
+- `04228..043F0` — **457 bytes**: three-type distant-record relocation search with exact four candidate coordinate mutations/restoration.
+- `043F4..044CE` — **219 bytes**: nibble deficit accounting across two 8x10 grids.
+- `044D0..04619` — **330 bytes**: capacity-driven nibble consumption across four slots, including repeated same-slot consumption and output publication.
+
+### Newly proven non-code/data
+
+`0381F`, `03836..03837`, `03C03`, `03DE3`, `03F75..03F77`, `040FF`, `04225..04227`, `043F1..043F3`, `044CF`, and `0461A..0461B` total **18 bytes** of decoded compiler no-op alignment. A full object-1 direct branch/call target scan found no incoming target to these bytes.
+
+The zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved; they are not counted from appearance alone.
+
+### Fidelity notes
+
+`0363E..0364C` writes each byte's own index into `759C`; it is not a zero fill. `04040` passes the evolving full 16.16 coordinate dwords to `2C8E4`. `044D0` loops within a slot and may consume multiple high-nibble units before advancing; reducing it to one unit per slot changes behavior.
+
+### Next high-value targets
+
+1. Continue the sequential application path at `0461C`.
 2. Reconcile startup at `353A0` as a CODE.2-specific path.
 3. Continue harvesting independently proved relocated CODE.1 runtime families.
