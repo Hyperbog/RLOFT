@@ -1,4 +1,4 @@
-name: CODE.1 semantic audit checkpoint 10a
+name: CODE.1 semantic audit checkpoint 10b
 on:
   push:
     branches: [code1-decompilation]
@@ -13,38 +13,32 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Apply semantic audit checkpoint 10a
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('Code1/fix_semantic_audit_checkpoint10a.py')
-          s=p.read_text()
-          old="pat=re.compile(r'(?:static u8 sar8_exact_9eb0.*?\\n)?(?:\\[\\[nodiscard\\]\\])?(?:void|u8|u32) '+re.escape(name)+r'\\(.*?'+re.escape(end_assert),re.S)"
-          new="pat=re.compile(r'(?:\\[\\[nodiscard\\]\\])?(?:void|u8|u32) '+re.escape(name)+r'\\(.*?'+re.escape(end_assert),re.S)"
-          assert old in s
-          p.write_text(s.replace(old,new))
-          PY
-          python3 Code1/fix_semantic_audit_checkpoint10a.py
-      - name: Verify checkpoint 10a and closed accounting
+      - name: Apply semantic audit checkpoint 10b
+        run: python3 Code1/fix_semantic_audit_checkpoint10b.py
+      - name: Verify checkpoint 10b and closed accounting
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
           cpp=Path('Code1/Code1.cpp').read_text();led=Path('Code1/RESIDUAL_LEDGER.md').read_text()
           assert 'constexpr u32 kVerifiedTranslatedBytes=69361u;' in cpp
-          assert 'u8(*read_code8)(u32)=nullptr' in cpp
-          assert '(void)b12r8(b,p);b12w8(b,p,value)' in cpp
-          assert 'function_9e8c(Machine&m,Batch12Boundaries&b,u32 index)' in cpp
-          block=cpp[cpp.index('function_9eb0'):cpp.index('static_assert(0xA00Eu-0x9EB0u==350u);')]
-          assert 'sar8_exact_9eb0' in block and 'set_low16(stride' in block and 'work<=phase' in block
-          block2=cpp[cpp.index('function_a010'):cpp.index('static_assert(0xA059u-0xA010u==73u);')]
-          assert 'sync_af34)b.sync_af34(n)' in block2 and 'static_cast<s32>(n)>0xc0' in block2
+          assert 'static bool b17_neg32(u32 v)' in cpp
+          assert 'static bool b17_sgt32(u32 a,u32 b)' in cpp
+          assert 'static void b17_step_plane4' in cpp
+          block=cpp[cpp.index('void function_a05c'):cpp.index('static_assert(0xA21Au-0xA05Cu==446u);')]
+          assert 'u32 dc=c1-c0' in block and 'if(b17_neg32(dc))' in block
+          assert 'right=static_cast<u8>(right&left)' in block
+          assert 'b17_mask(b,0xffu)' in block
+          assert 'const bool row_major=b17_sgt32(dr,dc)' in block
+          assert 'b17_step_plane4(b,mask,addr)' in block
+          assert 'dgroup(0x2b51u)' in block
+          assert 'while(--count!=0u)' in block
           m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S);assert m
           total=0
           for line in m.group(1).strip().splitlines():
               a,b,cat,n=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| (\d+)',line).groups();a=int(a,16);b=int(b,16);n=int(n);assert b-a+1==n;total+=n
           assert total==1041,total;assert 69361+total==70402
-          print('semantic checkpoint 10a verified: 69361 + 1041 = 70402')
+          print('semantic checkpoint 10b verified: 69361 + 1041 = 70402')
           PY
       - name: Syntax check CODE.1 C++
         run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
@@ -52,7 +46,7 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          rm -f Code1/fix_semantic_audit_checkpoint10a.py
-          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/fix_semantic_audit_checkpoint10a.py
+          rm -f Code1/fix_semantic_audit_checkpoint10b.py
+          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/fix_semantic_audit_checkpoint10b.py
           git diff --cached --check
-          if git diff --cached --quiet; then echo 'Checkpoint 10a already applied.'; else git commit -m "Correct CODE.1 semantic audit checkpoint 10a" && git push origin HEAD:code1-decompilation; fi
+          if git diff --cached --quiet; then echo 'Checkpoint 10b already applied.'; else git commit -m "Correct CODE.1 semantic audit checkpoint 10b" && git push origin HEAD:code1-decompilation; fi
