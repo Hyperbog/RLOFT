@@ -192,9 +192,24 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 14309..1430B | alignment | 3
 146D9..146DB | alignment | 3
 148EE..148EF | alignment | 2
+14A5E..14A5F | alignment | 2
+14AB2..14AB3 | alignment | 2
+14AB4..14ADB | table | 40
+14BDE..14BDF | alignment | 2
+14C3D..14C3F | alignment | 3
+14CA3..14CA3 | alignment | 1
+14E99..14E9B | alignment | 3
+14FBE..14FBF | alignment | 2
+1504D..1504F | alignment | 3
+15143..15143 | alignment | 1
+1520B..1520B | alignment | 1
+1527D..1527F | alignment | 3
+1531F..1531F | alignment | 1
+1538B..1538B | alignment | 1
+153F9..153FB | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **1,650 bytes**.
+**Total proven non-code/data:** **1,718 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -259,3 +274,6 @@ Batch 25 evidence: `131D0..131DA` is the exact NUL-terminated `CINE00.ANM` liter
 
 
 Batch 26 evidence: `13C64..13C87` is the exact nine-entry CS dword table consumed by the indirect jump at `13D06`, with targets `13D0E,13D1D,13D1D,13D1D,13D1D,13D69,13DB5,13E33,13E17`. `13F61..13F6F` is a fifteen-byte zero pad bounded by the directly reconstructed return at `13F60` and next entry at `13F70`; it has no data reference and no incoming direct relative control-flow target. All other Batch 26 residual ranges decode as bounded `NOP`, `LEA EAX,[EAX+0]`, or `MOV EAX,EAX` compiler separators. A full object-1 direct relative control-flow target scan found no incoming target to any Batch 26 residual byte other than the explicit table reference at `13D06`. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+Batch 27 evidence: `14AB4..14ADB` is the exact ten-entry CS dword table consumed by the indirect jump at `14B71`, targeting `14B79,14B87,14B95,14BA3,14BDA,14BDA,14BB1,14BDA,14BDA,14BBF`. The remaining Batch 27 ranges decode as bounded `MOV EAX,EAX`, `LEA EAX,[EAX+0]`, or `NOP` compiler separators between directly reconstructed routine boundaries. A full object-1 direct relative CALL/JMP/conditional-branch target scan found no incoming target to any Batch 27 separator byte. The next unresolved ownership unit begins with table/data at `1548C`; it is deliberately deferred to the dispatcher beginning at `15534`. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
