@@ -1,19 +1,21 @@
-name: CODE.1 object verifier
+name: CODE.1 semantic audit checkpoint 5
 on:
   push:
     branches: [code1-decompilation]
     paths:
       - '.github/workflows/integrate-d23a.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
-  verify:
+  integrate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Verify closed object accounting
+      - name: Apply semantic audit checkpoint 5
+        run: python3 Code1/fix_semantic_audit_checkpoint5.py
+      - name: Verify checkpoint 5 and closed accounting
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -21,6 +23,15 @@ jobs:
           cpp=Path('Code1/Code1.cpp').read_text()
           led=Path('Code1/RESIDUAL_LEDGER.md').read_text()
           assert 'constexpr u32 kVerifiedTranslatedBytes=69361u;' in cpp
+          assert 'void(*call_50c0)(u32,u32,u32,u32,u32)=nullptr' in cpp
+          assert 'b.call_50c0(eax,ebx,ecx,edx,(esi&0xffffu)<<4)' in cpp
+          assert 'function_6270(Machine&m,u32 incoming_eax)' in cpp
+          assert 'call_d906_guest(0x892fu,0x50u)' in cpp
+          assert 'const s32 neg=static_cast<s32>(0u-static_cast<u32>(n))' in cpp
+          assert 'const s32 xw=static_cast<s32>(static_cast<u32>(x)+static_cast<u32>(w))' in cpp
+          # Earlier audit corrections must remain intact.
+          assert 'family0=function_5d90(m,0,2u)' in cpp
+          assert 'void function_5880(Machine&m,u32 slot0,u32 slot1,u32 slot2,s32 index_slot)' in cpp
           m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S)
           assert m
           total=0
@@ -31,7 +42,20 @@ jobs:
               total += n
           assert total==1041,total
           assert 69361+total==70402
-          print('CODE.1 object accounting verified: 69361 + 1041 = 70402')
+          print('semantic checkpoint 5 verified: 69361 + 1041 = 70402')
           PY
       - name: Syntax check CODE.1 C++
         run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
+      - name: Commit semantic corrections
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          rm -f Code1/fix_semantic_audit_checkpoint5.py
+          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/DECOMPILATION_CONTINUITY.md Code1/fix_semantic_audit_checkpoint5.py
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'Checkpoint 5 already applied.'
+          else
+            git commit -m "Correct CODE.1 semantic audit checkpoint 5"
+            git push origin HEAD:code1-decompilation
+          fi
