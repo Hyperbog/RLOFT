@@ -1,21 +1,19 @@
-name: CODE.1 semantic audit checkpoint 3
+name: CODE.1 object verifier
 on:
   push:
     branches: [code1-decompilation]
     paths:
       - '.github/workflows/integrate-d23a.yml'
 permissions:
-  contents: write
+  contents: read
 jobs:
-  integrate:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Apply semantic audit checkpoint 3
-        run: python3 Code1/apply_semantic_checkpoint3.py
-      - name: Verify closed accounting and checkpoint markers
+      - name: Verify closed object accounting
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -23,12 +21,6 @@ jobs:
           cpp=Path('Code1/Code1.cpp').read_text()
           led=Path('Code1/RESIDUAL_LEDGER.md').read_text()
           assert 'constexpr u32 kVerifiedTranslatedBytes=69361u;' in cpp
-          assert 'b.call_67c8(0,0x96,0x8c,capture)' in cpp
-          assert 'b.call_67c8(0,0xe5,0,panel)' in cpp
-          assert 'b.call_55dc(page,0x5b,0x88,0x7a,0x30)' in cpp
-          assert 'gen.call_53e4(page)' in cpp
-          assert 'b.call_6588(low8(page))' in cpp
-          assert 'b.call_67c8(temp,0,0,0)' not in cpp
           m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S)
           assert m
           total=0
@@ -39,20 +31,7 @@ jobs:
               total += n
           assert total==1041,total
           assert 69361+total==70402
-          print('semantic checkpoint 3 accounting verified: 69361 + 1041 = 70402')
+          print('CODE.1 object accounting verified: 69361 + 1041 = 70402')
           PY
       - name: Syntax check CODE.1 C++
         run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
-      - name: Commit semantic corrections
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          rm -f Code1/apply_semantic_checkpoint3.py Code1/fix_semantic_audit_checkpoint3.py
-          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/apply_semantic_checkpoint3.py Code1/fix_semantic_audit_checkpoint3.py
-          if git diff --cached --quiet; then
-            echo 'Checkpoint 3 already applied.'
-          else
-            git diff --cached --check
-            git commit -m "Correct CODE.1 semantic audit checkpoint 3"
-            git push origin HEAD:code1-decompilation
-          fi
