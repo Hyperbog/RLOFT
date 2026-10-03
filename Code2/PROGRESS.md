@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-6.52%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-8.69%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **15,532**
-**Proven non-code/data bytes:** **94**
-**Reconciled object bytes:** **15,626 / 239,698 = 6.5190% (6.52%)**
-**Unresolved object bytes:** **224,072**
+**Verified translated instruction bytes:** **20,666**
+**Proven non-code/data bytes:** **172**
+**Reconciled object bytes:** **20,838 / 239,698 = 8.6934% (8.69%)**
+**Unresolved object bytes:** **218,860**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -184,5 +184,37 @@ This batch preserves global reloads of `258DC` and map dimensions across opaque 
 ### Next high-value targets
 
 1. Continue the application/UI path at `021D8`.
+2. Reconcile startup at `353A0` as a CODE.2-specific path.
+3. Continue harvesting independently proved relocated CODE.1 runtime families.
+
+## Batch 05 — modal text deletion, map export/load, and control panel
+
+Source identity and object-1 SHA-256 were reverified before this batch. Added **5,134 translated instruction bytes** and **78 directly proven non-code/data bytes**, bringing cumulative accounting to **20,666 translated + 172 non-code = 20,838 / 239,698 = 8.6934% (8.69%)**.
+
+### Newly translated ranges
+
+- `021D8..02352` — **379 bytes**: mouse-driven packed-text hit testing and deletion; preserves strict rectangle tests and the encoded forward-copy/clear arithmetic.
+- `02354..023B5` — **98 bytes**: 17h status-frame predicate with exact bit acceptance.
+- `023B8..02472` — **187 bytes**: packed-record coordinate lookup and two-byte A..Z/A.. label generation.
+- `02474..026E5` — **626 bytes**: fixed-width packed-text serializer in character and block-write modes.
+- `026E8..02A33` — **844 bytes**: three-plane ASCII map exporter plus packed-text append/flush behavior.
+- `02A34..02AE4` — **177 bytes**: numbered export-name preparation/open/export/close path.
+- `02AE8..02D6E` — **647 bytes**: numbered map/resource loader, live-level packed-text preservation, record-table allocation, map/text reads, and cleanup.
+- `02DB0..034AE` — **1,791 bytes**: sixteen-way control-panel dispatcher driven by the CS table at `02D70`; includes text add/delete actions, level cycling, export, toggle, and exit paths.
+- `034B0..03630` — **385 bytes**: priority-ordered viewport navigation bits, signed clamps, redraw, and page flip.
+
+### Newly proven non-code/data
+
+`02353`, `023B6..023B7`, `02473`, `026E6..026E7`, `02AE5..02AE7`, `02D6F`, `034AF`, and `03631..03633` are decoded compiler alignment forms with no incoming direct branch/call target. `02D70..02DAF` is a **64-byte sixteen-entry CS jump table** used by `02DB0`; every target was reconciled. These ranges total **78 bytes**.
+
+`006B9..006BF` remains unresolved.
+
+### Fidelity notes
+
+The control-panel rectangle sentinel is entry 12, while action 11 deliberately uses entry 11 coordinates. Actions 12..15 are not duplicate cases: they synthesize navigation-mask bits 10h..80h from the first four rectangles. The map loader preserves the current packed-text buffer only for the live level, and its signed `< 7FFh` final-size test is retained.
+
+### Next high-value targets
+
+1. Continue the application path at `03634`.
 2. Reconcile startup at `353A0` as a CODE.2-specific path.
 3. Continue harvesting independently proved relocated CODE.1 runtime families.
