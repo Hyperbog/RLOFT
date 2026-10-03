@@ -28,7 +28,7 @@ jobs:
           irq=e3[e3.index('function_e3f2('):e3.index('function_e4a7(')]
           assert 'if(load_le16(m.data+0x510e)!=0){if(b.out8)b.out8(0x20,0x20);return{};}' in irq
           assert 'ChainSavedVector' not in irq
-          ea=cpp[cpp.index('[[nodiscard]]u32 function_ea0b('):cpp.index('void function_ea9a')]
+          ea=cpp[cpp.index('[[nodiscard]]u32 function_ea0b('):cpp.index('[[nodiscard]]u32 function_eae7(')]
           assert 'store_le32(m.data+0x52dau,0u)' in ea
           assert 'store_le32(m.data+0x52dau,slot+1u)' in ea
           assert 'result=load_le32(m.data+0x52dau)' in ea
