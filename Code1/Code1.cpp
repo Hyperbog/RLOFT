@@ -1835,7 +1835,7 @@ struct LowContinuation14Boundary{
  u8(*read8)(u32)=nullptr;u16(*read16)(u32)=nullptr;u32(*read32)(u32)=nullptr;void(*write8)(u32,u8)=nullptr;void(*write32)(u32,u32)=nullptr;
  void(*divide_error)()=nullptr;void(*copy_d9ee)(u32,u32,u32)=nullptr;void(*call_6618)(u32)=nullptr;void(*call_9ab4)()=nullptr;void(*call_9ac4)()=nullptr;
  u32(*call_62a8)(u32)=nullptr;u32(*call_627c)(u32)=nullptr;void(*call_62f0)(u32)=nullptr;void(*call_6304)(u32,u32,u32)=nullptr;u32(*call_6304_local32)(u32)=nullptr;void(*call_633c)(u32,u32,u32)=nullptr;void(*call_9814)(u32)=nullptr;
- u32(*call_6f10)(u32,u32,u32)=nullptr;void(*call_6f74)(u32)=nullptr;u32(*call_71c8)(u32)=nullptr;void(*call_7240)(u32)=nullptr;u32(*call_f8c4)(u32,u32,u32)=nullptr;
+ u32(*call_6f10)(u32,u32,u32)=nullptr;u32(*call_6f74)(u32)=nullptr;u32(*call_71c8)(u32)=nullptr;void(*call_7240)(u32)=nullptr;u32(*call_f8c4)(u32,u32,u32)=nullptr;
  void(*call_e680)()=nullptr;void(*call_e6ea)(u32)=nullptr;u32(*call_ea0b)(u32)=nullptr;u32(*call_eac8)(u32)=nullptr;u32(*call_eae7)(u32,u32,u32,u32,u32)=nullptr;void(*call_eaf1)(u32,u32,u32,u32,u32)=nullptr;void(*call_ea9a)(u32)=nullptr;
  u32(*call_954c)(u32,u32)=nullptr;void(*call_ec25)(u32,u32,u32,u32)=nullptr;void(*call_ec1b)(u32,u32,u32,u32,u32)=nullptr;void(*call_ec39)(u32)=nullptr;u32(*call_ec2f)(u32)=nullptr;void(*call_ec43)(u32)=nullptr;
 };
@@ -1885,15 +1885,15 @@ struct LowGraphics13Boundary{
  void(*clear_video)(u32,u32)=nullptr;
  u32(*call_627c_record)(const u8*)=nullptr;u32(*call_62a8_record)(const u8*)=nullptr;
  u32(*call_627c_guest)(u32)=nullptr;u32(*call_62a8_guest)(u32)=nullptr;void(*call_62f0)(u32)=nullptr;void(*call_6304)(u32,u32,u32)=nullptr;u32(*call_6304_local32)(u32)=nullptr;
- u32(*call_6f10)(u32,u32,u32)=nullptr;void(*call_6f74)(u32)=nullptr;u32(*call_71c8)(u32)=nullptr;void(*call_7240)(u32)=nullptr;
- u32(*call_f8c4)(u32,u32,u32)=nullptr;void(*call_e680)()=nullptr;void(*call_e6ea)(u32)=nullptr;
+ u32(*call_6f10)(u32,u32,u32)=nullptr;u32(*call_6f74)(u32)=nullptr;u32(*call_71c8)(u32)=nullptr;void(*call_7240)(u32)=nullptr;
+ u32(*call_f8c4)(u32,u32,u32)=nullptr;void(*call_e680)()=nullptr;u32(*call_e6ea)(u32)=nullptr;
  u32(*call_ea0b)(u32)=nullptr;u32(*call_eac8)(u32)=nullptr;u32(*call_eae7)(u32,u32,u32,u32,u32)=nullptr;void(*call_eaf1)(u32,u32,u32,u32,u32)=nullptr;
  u32(*call_ec89)(u32)=nullptr;u32(*call_eca7)(u32)=nullptr;void(*call_ecb1)(u32,u32,u32)=nullptr;void(*call_ea9a)(u32)=nullptr;
  u32(*call_ec93)(u32,u32,u32,u32,u32)=nullptr;u16(*call_ecbb)(u32,u32)=nullptr;void(*call_ecc5)(u32,u32,u32,u32)=nullptr;
  void(*call_ec9d)(u32,u32)=nullptr;u32(*call_ed0b)(u32,u32)=nullptr;void(*call_ecf7)(u32,u32)=nullptr;void(*call_ed01)(u32,u32)=nullptr;
  u32(*call_ed15)(u32,u32)=nullptr;void(*call_ed29)(u32,u32,u32,u32)=nullptr;void(*call_ed33)(u32,u32,u32,u32)=nullptr;void(*call_eced)(u32,u32)=nullptr;
  u32(*call_954c)(u32,u32)=nullptr;void(*copy_d1e8)(u32,u32,u32)=nullptr;
- u32(*format_ede7)(u32,u32,u32)=nullptr;
+ u32(*format_ede7)(u32,u32,u32)=nullptr;void(*call_9814_local)(const char*)=nullptr;
 };
 static u8 lg13r8(LowGraphics13Boundary&b,u32 a)noexcept{return b.read8?b.read8(a):0u;}static u16 lg13r16(LowGraphics13Boundary&b,u32 a)noexcept{return b.read16?b.read16(a):0u;}static u32 lg13r32(LowGraphics13Boundary&b,u32 a)noexcept{return b.read32?b.read32(a):0u;}
 static void lg13w8(LowGraphics13Boundary&b,u32 a,u8 v)noexcept{if(b.write8)b.write8(a,v);}static void lg13w16(LowGraphics13Boundary&b,u32 a,u16 v)noexcept{if(b.write16)b.write16(a,v);}static void lg13w32(LowGraphics13Boundary&b,u32 a,u32 v)noexcept{if(b.write32)b.write32(a,v);}
@@ -1907,25 +1907,32 @@ void function_ae0c(LowGraphics13Boundary&b,u32 frame,u32 table,u32 image)noexcep
 void function_ae5c(LowGraphics13Boundary&b,u32 esi_image,u32 edx_frame,u8 delta)noexcept{u32 count=lg13r16(b,esi_image);u32 p=esi_image+8u+static_cast<u32>(lg13r16(b,esi_image))*edx_frame;if((lg13r8(b,esi_image+7u)&0x80u)!=0u){const u8 key=lg13r8(b,p++);do{const u8 v=lg13r8(b,p);if(v!=key)lg13w8(b,p,static_cast<u8>(v-delta));++p;}while(--count!=0u);}else do{lg13w8(b,p,static_cast<u8>(lg13r8(b,p)-delta));++p;}while(--count!=0u);}static_assert(0xAEA6u-0xAE5Cu==74u);
 // AEA8..AEDB: register helper. EDX is row, ECX is x; output is EBX linear address and ECX plane 0..3.
 struct PlanarAddress13{u32 ebx=0,ecx=0;};
-[[nodiscard]]PlanarAddress13 function_aea8(Machine&m,u32 edx,u32 ecx)noexcept{const u32 shift1=load_le32(dgroup_ptr(m,dgroup(0x2b35u))),shift2=load_le32(dgroup_ptr(m,dgroup(0x2b39u)));const u32 first=edx<<static_cast<u8>(shift1);const u32 second=first<<static_cast<u8>(shift2);return{first+second+(ecx>>2)+load_le32(dgroup_ptr(m,dgroup(0x2b49u))),ecx&3u};}static_assert(0xAEDCu-0xAEA8u==52u);
+[[nodiscard]]PlanarAddress13 function_aea8(Machine&m,u32 edx,u32 ecx)noexcept{const u32 shift1=load_le32(dgroup_ptr(m,dgroup(0x2b35u)))&31u,shift2=load_le32(dgroup_ptr(m,dgroup(0x2b39u)))&31u;const u32 first=edx<<shift1;const u32 second=first<<shift2;return{first+second+(ecx>>2)+load_le32(dgroup_ptr(m,dgroup(0x2b49u))),ecx&3u};}static_assert(0xAEDCu-0xAEA8u==52u);
 // AEDC..AF04: change active page; EAX is saved/restored, so only globals change.
 void function_aedc(Machine&m,u32 incoming_eax)noexcept{const u32 page=incoming_eax&0xffu;store_le32(dgroup_ptr(m,dgroup(0x2b31u)),page);u32 v=page*load_le32(dgroup_ptr(m,dgroup(0x2b4du)));v=(v+0xa000u)<<4;store_le32(dgroup_ptr(m,dgroup(0x2b49u)),v);}static_assert(0xAF05u-0xAEDCu==41u);
 // AF05..AF07 alignment.
 void function_af08(Machine&m,LowGraphics13Boundary&b)noexcept{if(load_le32(dgroup_ptr(m,dgroup(0x2b29u)))!=0u)return;if(b.out16)b.out16(0x3c4u,0x0f02u);if(b.clear_video)b.clear_video(0xa0000u,0x10000u);}static_assert(0xAF34u-0xAF08u==44u);
 void function_af34(LowGraphics13Boundary&b)noexcept{if(!b.in8)return;while((b.in8(0x3dau)&8u)!=0u){}while((b.in8(0x3dau)&8u)==0u){}}static_assert(0xAF4Bu-0xAF34u==23u);
 void function_af4c(LowGraphics13Boundary&b)noexcept{if(!b.in8)return;while((b.in8(0x3dau)&8u)==0u){}while((b.in8(0x3dau)&8u)!=0u){}}static_assert(0xAF63u-0xAF4Cu==23u);
-void function_af64(LowGraphics13Boundary&b,u32 ebx)noexcept{if(b.out16){b.out16(0x3d4u,static_cast<u16>(0x0cu|(static_cast<u16>((ebx>>8)&0xffu)<<8)));b.out16(0x3d4u,static_cast<u16>(0x0du|(static_cast<u16>(ebx&0xffu)<<8)));}function_af34(b);}static_assert(0xAF80u-0xAF64u==28u);
+void function_af64(Machine&m,LowGraphics13Boundary&b,u32 ebx)noexcept{m.cpu.interrupt_enable=false;if(b.out16){b.out16(0x3d4u,static_cast<u16>(0x0cu|(static_cast<u16>((ebx>>8)&0xffu)<<8)));b.out16(0x3d4u,static_cast<u16>(0x0du|(static_cast<u16>(ebx&0xffu)<<8)));}m.cpu.interrupt_enable=true;function_af34(b);}static_assert(0xAF80u-0xAF64u==28u);
 void function_af80(Machine&m,LowGraphics13Boundary&b,u32 ecx)noexcept{store_le32(dgroup_ptr(m,dgroup(0x2b3du)),ecx);function_af34(b);u16 ax=static_cast<u16>(ecx);ax=static_cast<u16>(ax<<1);u8 bh=static_cast<u8>(ax>>8),bl=bh;u16 bx=static_cast<u16>((static_cast<u16>(bh)<<8)|bl);bx=static_cast<u16>(bx&0x0201u);bx=static_cast<u16>(bx<<4);bh=static_cast<u8>((bx>>8)<<1);if(b.out16)b.out16(0x3d4u,static_cast<u16>(0x18u|(static_cast<u16>(static_cast<u8>(ax))<<8)));u8 v=0;if(b.out8)b.out8(0x3d4u,7u);if(b.in8)v=b.in8(0x3d5u);if(b.out16)b.out16(0x3d4u,static_cast<u16>(7u|(static_cast<u16>((v&0xefu)|static_cast<u8>(bx))<<8)));if(b.out8)b.out8(0x3d4u,9u);if(b.in8)v=b.in8(0x3d5u);if(b.out16)b.out16(0x3d4u,static_cast<u16>(9u|(static_cast<u16>((v&0xbfu)|bh)<<8)));}static_assert(0xAFD8u-0xAF80u==88u);
 // AFD8..AFED: byte sink used by the formatter; record+0 is cursor, record+10h is count.
 void function_afd8(LowGraphics13Boundary&b,u32 rec,u8 value)noexcept{const u32 p=lg13r32(b,rec);lg13w32(b,rec,p+1u);lg13w8(b,p,value);lg13w32(b,rec+0x10u,lg13r32(b,rec+0x10u)+1u);}static_assert(0xAFEEu-0xAFD8u==22u);
 // AFEE..B019: formatter wrapper. EDE7 returns emitted count; NUL is stored at dst+count.
 void function_afee(LowGraphics13Boundary&b,u32 dst,u32 fmt,u32 vararg_cursor)noexcept{const u32 n=b.format_ede7?b.format_ede7(dst,fmt,vararg_cursor):0u;lg13w8(b,dst+n,0u);}static_assert(0xB01Au-0xAFEEu==44u);
 // B01A..B054: append NUL-terminated source to destination, copying words exactly but semantically equivalent byte-for-byte.
-[[nodiscard]]u32 function_b01a(LowGraphics13Boundary&b,u32 dst,u32 src)noexcept{u32 end=dst;while(lg13r8(b,end)!=0u)++end;for(;;){const u8 lo=lg13r8(b,src++);lg13w8(b,end++,lo);if(lo==0u)break;const u8 hi=lg13r8(b,src++);lg13w8(b,end++,hi);if(hi==0u)break;}return dst;}static_assert(0xB055u-0xB01Au==59u);
+[[nodiscard]]u32 function_b01a(LowGraphics13Boundary&b,u32 dst,u32 src)noexcept{u32 end=dst;while(lg13r8(b,end)!=0u)++end;for(;;){const u16 ax=lg13r16(b,src);src+=2u;if(static_cast<u8>(ax)==0u)break;lg13w16(b,end,ax);end+=2u;if(static_cast<u8>(ax>>8)==0u)break;}return dst;}static_assert(0xB055u-0xB01Au==59u);
 // B055..B05F are eleven zero bytes.
 
 // B060..B0F5: load the fixed 10-byte path descriptor at 030Ch into 2B98.
-void function_b060(Machine&m,LowGraphics13Boundary&b)noexcept{u8 rec[10];for(u32 i=0;i<10u;++i)rec[i]=*dgroup_ptr(m,dgroup(0x30cu+i));const u32 size=b.call_627c_record?b.call_627c_record(rec):0u;const u32 dst=b.call_71c8?b.call_71c8(size):0u;store_le32(dgroup_ptr(m,dgroup(0x2b98u)),dst);const u32 h=b.call_62a8_record?b.call_62a8_record(rec):0xffffffffu;if(h==0xffffffffu)return;if(b.call_6304)b.call_6304(dst,size,h);if(b.call_62f0)b.call_62f0(h);*dgroup_ptr(m,dgroup(0x2b94u))=1u;}static_assert(0xB0F6u-0xB060u==150u);
+void function_b060(Machine&m,LowGraphics13Boundary&b)noexcept{
+ u8 rec[10];for(u32 i=0;i<10u;++i)rec[i]=*dgroup_ptr(m,dgroup(0x30cu+i));
+ const u32 size=b.call_627c_record?b.call_627c_record(rec):0u;const u32 dst=b.call_71c8?b.call_71c8(size):0u;store_le32(dgroup_ptr(m,dgroup(0x2b98u)),dst);
+ const u32 h=b.call_62a8_record?b.call_62a8_record(rec):0xffffffffu;
+ if(h==0xffffffffu){char msg[0x100]{};u32 n=0;const char prefix[]="Timber file \"";for(char c:prefix){if(c==0)break;msg[n++]=c;}for(u32 i=0;i<10u&&rec[i]!=0u;++i)msg[n++]=static_cast<char>(rec[i]);const char suffix[]="\" not found";for(char c:suffix){if(c==0)break;msg[n++]=c;}msg[n++]=static_cast<char>(10);msg[n]=0;if(b.call_9814_local)b.call_9814_local(msg);}
+ if(b.call_6304)b.call_6304(dst,size,h);if(b.call_62f0)b.call_62f0(h);*dgroup_ptr(m,dgroup(0x2b94u))=1u;
+}
+static_assert(0xB0F6u-0xB060u==150u);
 // B0F6..B0F7 MOV EAX,EAX alignment.
 
 // B0F8..B42F: initialize the external resource/audio subsystem. Every failure path closes the same selector/guest allocations encoded by the binary.
@@ -1939,7 +1946,7 @@ void function_b0f8(Machine&m,LowGraphics13Boundary&b,u32 path,u32 p2,u32 p3,u32 
  auto fail=[&](){if(load_le32(dgroup_ptr(m,dgroup(0x2f48u)))==0u&&b.call_e6ea)b.call_e6ea(0u);if(b.call_6f74)b.call_6f74(load_le16(dgroup_ptr(m,dgroup(0x2ba4u))));};
  if(sys==0xffffffffu){fail();return;}const u32 info=b.call_eac8?b.call_eac8(sys):0u;if(lg13r32(b,info+4u)!=3u){fail();return;}if((b.call_eae7?b.call_eae7(sys,p2,p3,p4,p5):0u)==0u){fail();return;}if(b.call_eaf1)b.call_eaf1(sys,p2,p3,p4,p5);
  const u32 pool=b.call_ec89?b.call_ec89(sys):0u;store_le32(dgroup_ptr(m,dgroup(0x2c04u)),pool);if(pool!=0u){for(u32 i=0;i<8u;++i){const u32 q=b.call_6f10?b.call_6f10(pool,0x2bc8u+i*4u,0x2be8u+i*2u):0u;store_le32(dgroup_ptr(m,dgroup(0x2ba8u+i*4u)),q);if(q==0u){for(u32 j=0;j<i;++j)if(b.call_6f74)b.call_6f74(load_le16(dgroup_ptr(m,dgroup(0x2be8u+j*2u))));if(b.call_6f74)b.call_6f74(load_le16(dgroup_ptr(m,dgroup(0x2ba4u))));return;}}}
- const u32 aux=b.call_eca7?b.call_eca7(sys):0u;store_le32(dgroup_ptr(m,dgroup(0x2b8cu)),aux);if(aux!=0u){const u32 q=b.call_6f10?b.call_6f10(aux,0x2bfcu,0x2c00u):0u;store_le32(dgroup_ptr(m,dgroup(0x2bf8u)),q);if(q==0u){for(u32 i=0;i<8u;++i)if(b.call_6f74)b.call_6f74(load_le16(dgroup_ptr(m,dgroup(0x2be8u+i*2u))));if(b.call_6f74)b.call_6f74(load_le16(dgroup_ptr(m,dgroup(0x2ba4u))));return;}if(b.call_ecb1)b.call_ecb1(sys,q,aux);}
+ const u32 aux=b.call_eca7?b.call_eca7(sys):0u;store_le32(dgroup_ptr(m,dgroup(0x2b8cu)),aux);if(aux!=0u){const u32 q=b.call_6f10?b.call_6f10(aux,0x2bfcu,0x2c00u):0u;store_le32(dgroup_ptr(m,dgroup(0x2bf8u)),q);if(q==0u){u32 eax=q;if(load_le32(dgroup_ptr(m,dgroup(0x2f48u)))==0u&&b.call_e6ea)eax=b.call_e6ea(eax);for(u32 ebx=0;ebx<8u;++ebx){const u16 sel=load_le16(dgroup_ptr(m,dgroup(0x2be8u+eax*2u)));if(b.call_6f74)eax=b.call_6f74(sel);}if(b.call_6f74)(void)b.call_6f74(load_le16(dgroup_ptr(m,dgroup(0x2ba4u))));return;}if(b.call_ecb1)b.call_ecb1(sys,q,aux);}
  const u32 actor=load_le32(dgroup_ptr(m,dgroup(0x2aa0u)));store_le32(dgroup_ptr(m,dgroup(0x8a18u)),actor);const u16 kind=lg13r16(b,actor+0x32u);if(kind!=0u&&kind!=3u)function_b060(m,b);store_le32(dgroup_ptr(m,dgroup(0x2b84u)),1u);
 }
 static_assert(0xB430u-0xB0F8u==824u);
@@ -1948,7 +1955,7 @@ void function_b6ec(Machine&m,LowGraphics13Boundary&b)noexcept;void function_ba98
 // B430..B4D1: subsystem shutdown, releasing all selector/guest resources in encoded order.
 void function_b430(Machine&m,LowGraphics13Boundary&b)noexcept{if(load_le32(dgroup_ptr(m,dgroup(0x2b84u)))==0u)return;function_ba98(m,b);function_b6ec(m,b);if(b.call_ea9a)b.call_ea9a(load_le32(dgroup_ptr(m,dgroup(0x2b90u))));if(load_le32(dgroup_ptr(m,dgroup(0x2b8cu)))!=0u&&b.call_6f74)b.call_6f74(load_le16(dgroup_ptr(m,dgroup(0x2c00u))));if(load_le32(dgroup_ptr(m,dgroup(0x2c04u)))!=0u)for(u32 i=0;i<8u;++i)if(b.call_6f74)b.call_6f74(load_le16(dgroup_ptr(m,dgroup(0x2be8u+i*2u))));if(b.call_6f74)b.call_6f74(load_le16(dgroup_ptr(m,dgroup(0x2ba4u))));if(*dgroup_ptr(m,dgroup(0x2b94u))!=0u){if(b.call_7240)b.call_7240(load_le32(dgroup_ptr(m,dgroup(0x2b98u))));*dgroup_ptr(m,dgroup(0x2b94u))=0u;}store_le32(dgroup_ptr(m,dgroup(0x2b84u)),0u);}static_assert(0xB4D2u-0xB430u==162u);
 // B4D4..B51A: search six-byte records in 2B98; byte+1 == FFh terminates.
-[[nodiscard]]u32 function_b4d4(Machine&m,LowGraphics13Boundary&b,u16 id,u16 sub)noexcept{const u32 base=load_le32(dgroup_ptr(m,dgroup(0x2b98u)));for(u32 i=0;;++i){const u32 rec=base+i*6u;const std::int8_t marker=static_cast<std::int8_t>(lg13r8(b,rec+1u));if(marker==-1)return 0u;if(static_cast<u16>(static_cast<s16>(marker))==id&&static_cast<u16>(static_cast<std::int8_t>(lg13r8(b,rec)))==sub)return base+lg13r32(b,rec+2u);}}static_assert(0xB51Bu-0xB4D4u==71u);
+[[nodiscard]]u32 function_b4d4(Machine&m,LowGraphics13Boundary&b,u16 id,u16 sub)noexcept{const u32 base=load_le32(dgroup_ptr(m,dgroup(0x2b98u)));for(u32 i=0;;++i){const u32 rec=base+i*6u;const u32 marker=static_cast<u32>(static_cast<s32>(static_cast<std::int8_t>(lg13r8(b,rec+1u))));if(marker==0xffffffffu)return 0u;const u32 kind=static_cast<u32>(static_cast<s32>(static_cast<std::int8_t>(lg13r8(b,rec))));if(marker==static_cast<u32>(id)&&kind==static_cast<u32>(sub))return base+lg13r32(b,rec+2u);}}static_assert(0xB51Bu-0xB4D4u==71u);
 // B51C..B573: load length-prefixed resource only while subsystem is active.
 [[nodiscard]]u32 function_b51c(Machine&m,LowGraphics13Boundary&b,u32,u32 source)noexcept{if(load_le32(dgroup_ptr(m,dgroup(0x2b84u)))==0u)return 0u;const u32 len=b.call_6304_local32?b.call_6304_local32(source):0u;const u32 out=b.call_71c8?b.call_71c8(len+4u):0u;lg13w32(b,out,len);if(b.call_6304)b.call_6304(out+4u,len,source);return out;}static_assert(0xB574u-0xB51Cu==88u);
 void function_b574(Machine&m,LowGraphics13Boundary&b,u32 p)noexcept{if(load_le32(dgroup_ptr(m,dgroup(0x2b84u)))!=0u&&p!=0u&&b.call_7240)b.call_7240(p);}static_assert(0xB596u-0xB574u==34u);
@@ -2082,7 +2089,7 @@ static_assert(0xA359u-0xA2B0u==169u);
 // A359..A35B alignment.
 void function_a35c(Machine&m,LowGraphics13Boundary&b,u32 page)noexcept{function_aedc(m,page);}static_assert(0xA36Au-0xA35Cu==14u);
 // A36A..A36B alignment.
-void function_a36c(Machine&m,LowGraphics13Boundary&b,u32 v)noexcept{const u32 q=v*(load_le32(dgroup_ptr(m,dgroup(0x2b4du)))>>4);function_af64(b,static_cast<u32>(static_cast<u8>(q))<<8);}static_assert(0xA38Du-0xA36Cu==33u);
+void function_a36c(Machine&m,LowGraphics13Boundary&b,u32 v)noexcept{const u32 q=v*(load_le32(dgroup_ptr(m,dgroup(0x2b4du)))>>4);function_af64(m,b,static_cast<u32>(static_cast<u8>(q))<<8);}static_assert(0xA38Du-0xA36Cu==33u);
 // A38D..A38F alignment.
 void function_a390(Machine&m,LowGraphics13Boundary&b,u32 page)noexcept{const u32 pitch=load_le32(dgroup_ptr(m,dgroup(0x2b4du)));const u32 dst=((page*pitch)+0xa000u)<<4,src=load_le32(dgroup_ptr(m,dgroup(0x2b49u)));const u32 count=(pitch&0xffff0000u)|((pitch<<4)&0xffffu);batch15_vga_copy_mode(b,true);if(b.out16)b.out16(0x3c4u,0x0f02u);batch15_copy(b,dst,src,count);batch15_vga_copy_mode(b,false);}static_assert(0xA3E5u-0xA390u==85u);
 // A3E5..A3E7 alignment.
