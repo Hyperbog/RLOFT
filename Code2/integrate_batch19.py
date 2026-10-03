@@ -26,12 +26,12 @@ cpp_p.write_text(cpp)
 
 led=led_p.read_text()
 assert '**Total proven non-code/data:** **1,147 bytes**.' in led
-insert='''DBD3..DBD3 | alignment | 1\nDC64..DC7B | table | 24\nDDA1..DDA3 | alignment | 3\nE008..E027 | table | 32\nE0F5..E0F7 | alignment | 3\nE282..E283 | alignment | 2\n'''
+insert='''0DBD3..0DBD3 | alignment | 1\n0DC64..0DC7B | table | 24\n0DDA1..0DDA3 | alignment | 3\n0E008..0E027 | table | 32\n0E0F5..0E0F7 | alignment | 3\n0E282..0E283 | alignment | 2\n'''
 needle='<!-- RESIDUAL-RANGES-END -->'
 assert needle in led
 led=led.replace(needle,insert+needle,1)
 led=led.replace('**Total proven non-code/data:** **1,147 bytes**.','**Total proven non-code/data:** **1,212 bytes**.',1)
-led += '''\n\nBatch 19 evidence: `DBD3` is a one-byte `NOP`; `DDA1..DDA3` and `E0F5..E0F7` decode as `LEA EAX,[EAX+0]`; `E282..E283` decodes as `MOV EAX,EAX`. A full object-1 direct relative control-flow target scan found no incoming target to any of these separator bytes. `DC64..DC7B` is the exact six-entry CS table consumed at `DCFE`, with targets `DD06, DD06, DD06, DD27, DD17, DD32`. `E008..E027` is the exact eight-entry CS table consumed at `E083`, with targets `E08A, E08E, E090, E094, E096, E09A, E0A0, E09E`. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.\n'''
+led += '''\n\nBatch 19 evidence: `0DBD3` is a one-byte `NOP`; `0DDA1..0DDA3` and `0E0F5..0E0F7` decode as `LEA EAX,[EAX+0]`; `0E282..0E283` decodes as `MOV EAX,EAX`. A full object-1 direct relative control-flow target scan found no incoming target to any of these separator bytes. `0DC64..0DC7B` is the exact six-entry CS table consumed at `0DCFE`, with targets `0DD06, 0DD06, 0DD06, 0DD27, 0DD17, 0DD32`. `0E008..0E027` is the exact eight-entry CS table consumed at `0E083`, with targets `0E08A, 0E08E, 0E090, 0E094, 0E096, 0E09A, 0E0A0, 0E09E`. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.\n'''
 led_p.write_text(led)
 
 prog=prog_p.read_text()
@@ -49,5 +49,5 @@ prog += '''\n\n## Batch 19 — record/effect resolution and party progression (`
 prog_p.write_text(prog)
 
 add=add_p.read_text()
-add += '''\n\n## CODE.2 Batch 19 checkpoint\n\nBatch 19 added **4,071 translated bytes** plus **65 proven non-code/data bytes**. Cumulative accounting is **64,472 translated + 1,212 non-code = 65,684 / 239,698 = 27.4028% (27.40%)**; unresolved is **174,014 bytes**.\n\nThe sequential frontier now reaches `0E577`; next code begins at `0E578`. Preserve `0D550`'s shared error/sound tails and its three-argument entry contract, `0DDA4`'s separate track-indexed experience/class/level fields, the six-entry `DC64` and eight-entry `E008` CS tables, `0E0F8`'s three-attempt placement rule, and `0E284`'s five-argument stack contract plus its type-18 early revival return. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.\n'''
+add += '''\n\n## CODE.2 Batch 19 checkpoint\n\nBatch 19 added **4,071 translated bytes** plus **65 proven non-code/data bytes**. Cumulative accounting is **64,472 translated + 1,212 non-code = 65,684 / 239,698 = 27.4028% (27.40%)**; unresolved is **174,014 bytes**.\n\nThe sequential frontier now reaches `0E577`; next code begins at `0E578`. Preserve `0D550`'s shared error/sound tails and its three-argument entry contract, `0DDA4`'s separate track-indexed experience/class/level fields, the six-entry `0DC64` and eight-entry `0E008` CS tables, `0E0F8`'s three-attempt placement rule, and `0E284`'s five-argument stack contract plus its type-18 early revival return. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.\n'''
 add_p.write_text(add)
