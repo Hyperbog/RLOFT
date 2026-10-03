@@ -14,7 +14,7 @@ jobs:
         with:
           ref: code1-decompilation
       - name: Apply semantic audit checkpoint 3
-        run: python3 Code1/fix_semantic_audit_checkpoint3.py
+        run: python3 Code1/apply_semantic_checkpoint3.py
       - name: Verify closed accounting and checkpoint markers
         run: |
           python3 - <<'PY'
@@ -24,8 +24,11 @@ jobs:
           led=Path('Code1/RESIDUAL_LEDGER.md').read_text()
           assert 'constexpr u32 kVerifiedTranslatedBytes=69361u;' in cpp
           assert 'b.call_67c8(0,0x96,0x8c,capture)' in cpp
-          assert 'b.call_55dc(page_dword,0x5b,0x88,0x7a,0x30)' in cpp
-          assert 'gen.call_53e4(page_dword)' in cpp
+          assert 'b.call_67c8(0,0xe5,0,panel)' in cpp
+          assert 'b.call_55dc(page,0x5b,0x88,0x7a,0x30)' in cpp
+          assert 'gen.call_53e4(page)' in cpp
+          assert 'b.call_6588(low8(page))' in cpp
+          assert 'b.call_67c8(temp,0,0,0)' not in cpp
           m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S)
           assert m
           total=0
@@ -44,10 +47,12 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/DECOMPILATION_CONTINUITY.md
+          rm -f Code1/apply_semantic_checkpoint3.py Code1/fix_semantic_audit_checkpoint3.py
+          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/apply_semantic_checkpoint3.py Code1/fix_semantic_audit_checkpoint3.py
           if git diff --cached --quiet; then
             echo 'Checkpoint 3 already applied.'
           else
+            git diff --cached --check
             git commit -m "Correct CODE.1 semantic audit checkpoint 3"
             git push origin HEAD:code1-decompilation
           fi
