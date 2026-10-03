@@ -1,5 +1,5 @@
 name: Integrate CODE.2 batch 02
-# retry after cumulative static-assert fix
+# retry after progress whitespace fix
 on:
   push:
     branches: [code1-decompilation]
