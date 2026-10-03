@@ -7,6 +7,8 @@ assert 'constexpr u32 kVerifiedTranslatedBytes = 20666u;' in s
 assert 'constexpr u32 kVerifiedNonCodeBytes = 172u;' in s
 assert 'void function_03634' not in s
 frag=Path('Code2/batch06_part1.inc').read_text()+Path('Code2/batch06_part2.inc').read_text()
+frag=frag.replace('    void (*call_1c40c)(u32,u32,u32,u32,u32)=nullptr;','    void (*call_1c40c)(u32,u32,u32,u32,u32)=nullptr;\n    void (*call_1a5b0)(u32,u32,u32)=nullptr;')
+frag=frag.replace('a4.call_1a5b0','b.call_1a5b0')
 marker='\n} // namespace code2\n'
 assert s.count(marker)==1
 s=s.replace('constexpr u32 kVerifiedTranslatedBytes = 20666u;','constexpr u32 kVerifiedTranslatedBytes = 24697u;')
