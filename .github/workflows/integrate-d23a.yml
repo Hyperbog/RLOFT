@@ -14,7 +14,9 @@ jobs:
         with:
           ref: code1-decompilation
       - name: Apply post-closure semantic hardening 10o
-        run: python3 Code1/fix_semantic_audit_checkpoint10o.py
+        run: |
+          python3 Code1/fix_semantic_audit_checkpoint10o.py
+          python3 Code1/fix_semantic_audit_checkpoint10o_whitespace.py
       - name: Verify hardening 10o and closed accounting
         run: |
           python3 - <<'PY'
@@ -70,7 +72,7 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+Hyperbog@users.noreply.github.com
-          rm -f Code1/fix_semantic_audit_checkpoint10m.py Code1/fix_semantic_audit_checkpoint10o.py
-          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/PROGRESS.md Code1/DECOMPILATION_CONTINUITY.md Code1/fix_semantic_audit_checkpoint10m.py Code1/fix_semantic_audit_checkpoint10o.py
+          rm -f Code1/fix_semantic_audit_checkpoint10m.py Code1/fix_semantic_audit_checkpoint10o.py Code1/fix_semantic_audit_checkpoint10o_whitespace.py
+          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/PROGRESS.md Code1/DECOMPILATION_CONTINUITY.md Code1/fix_semantic_audit_checkpoint10m.py Code1/fix_semantic_audit_checkpoint10o.py Code1/fix_semantic_audit_checkpoint10o_whitespace.py
           git diff --cached --check
           if git diff --cached --quiet; then echo 'Hardening 10o already applied.'; else git commit -m "Harden CODE.1 final semantic audit" && git push origin HEAD:code1-decompilation; fi
