@@ -2,7 +2,7 @@
 
 This directory is the canonical workspace for the faithful C++ reconstruction of Ravenloft: Strahd's Possession `CODE.2`.
 
-`Code2/DECOMPILATION_CONTINUITY.md` is a CODE.2-adapted carry-forward of the CODE.1 continuity/playbook so none of the methodology or critical lessons are lost. The complete append-only CODE.1 historical log remains at `Code1/DECOMPILATION_CONTINUITY.md`. For current CODE.2 state, always read this file and `Code2/PROGRESS.md` after the continuity playbook.
+`Code2/DECOMPILATION_CONTINUITY.md` is an exact copy of the completed CODE.1 continuity/playbook so none of the methodology or historical lessons are lost. `Code2/CODE2_CONTINUITY_ADDENDUM.md` contains the CODE.2-specific operating instructions. For current CODE.2 state, read both of those files plus `Code2/PROGRESS.md`.
 
 ## Immutable CODE.2 identity
 
