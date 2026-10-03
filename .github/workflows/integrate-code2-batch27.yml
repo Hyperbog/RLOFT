@@ -1,0 +1,56 @@
+name: Integrate CODE.2 batch 27
+on:
+  push:
+    paths:
+      - '.github/workflows/integrate-code2-batch27.yml'
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+      - name: Apply batch 27
+        run: python .staging/integrate_code2_batch27.py
+      - name: Verify CODE.2 accounting and semantic anchors
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          cpp=Path('Code2/Code2.cpp').read_text()
+          progress=Path('Code2/PROGRESS.md').read_text()
+          ledger=Path('Code2/RESIDUAL_LEDGER.md').read_text()
+          cont=Path('Code2/CODE2_CONTINUITY_ADDENDUM.md').read_text()
+          assert 'kVerifiedTranslatedBytes = 92402u' in cpp
+          assert 'kVerifiedNonCodeBytes = 1718u' in cpp
+          assert '94,120 / 239,698 = 39.2661% (39.27%)' in progress
+          assert '## CODE.2 Batch 27 checkpoint' in cont
+          for s in ['function_148f0','function_14adc','function_14e9c','function_15050','function_15280','function_153fc']:
+              assert s in cpp,s
+          body=ledger.split('<!-- RESIDUAL-RANGES-BEGIN -->',1)[1].split('<!-- RESIDUAL-RANGES-END -->',1)[0]
+          total=0
+          for line in body.splitlines():
+              m=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| [^|]+ \| (\d+)$',line.strip())
+              if m:
+                  a,b,n=int(m.group(1),16),int(m.group(2),16),int(m.group(3))
+                  assert b-a+1==n,line
+                  total+=n
+          assert total==1718,total
+          assert 92402+1718==94120
+          assert 239698-94120==145578
+          PY
+      - name: Syntax check CODE.2 C++
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+      - name: Clean staging and diff check
+        run: |
+          rm -f .staging/code2_batch27_cpp.z .staging/integrate_code2_batch27.py .github/workflows/integrate-code2-batch27.yml
+          git diff --check
+      - name: Commit integrated batch
+        run: |
+          git config user.name "Hyperbog"
+          git config user.email "47282882+Hyperbog@users.noreply.github.com"
+          git add -A
+          git commit -m "Integrate CODE.2 decompilation batch 27"
+          git push origin HEAD:code1-decompilation
