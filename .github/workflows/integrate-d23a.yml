@@ -14,7 +14,21 @@ jobs:
         with:
           ref: code1-decompilation
       - name: Apply semantic audit checkpoint 10d
-        run: python3 Code1/fix_semantic_audit_checkpoint10d.py
+        run: |
+          python3 Code1/fix_semantic_audit_checkpoint10d.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('Code1/Code1.cpp');s=p.read_text()
+          marker='// A6F0..A7E7: exact four-plane sprite copy.'
+          helper='''static u8 batch15_sprite_rol1(u8 v)noexcept{return static_cast<u8>((v<<1)|(v>>7));}\nstatic void batch15_sprite_mask(LowGraphics13Boundary&b,u8 mask)noexcept{if(b.out16)b.out16(0x3c4u,static_cast<u16>(0x0002u|(static_cast<u16>(mask)<<8)));}\n'''
+          assert marker in s
+          s=s.replace(marker,helper+marker,1)
+          a=s.index('void function_a6f0');z=s.index('static_assert(0xA8F4u-0xA7E8u==268u);',a)
+          block=s[a:z]
+          block=block.replace('b17_mask(b,mask)','batch15_sprite_mask(b,mask)').replace('b17_rol1(mask)','batch15_sprite_rol1(mask)')
+          s=s[:a]+block+s[z:]
+          p.write_text(s)
+          PY
       - name: Verify checkpoint 10d and closed accounting
         run: |
           python3 - <<'PY'
@@ -28,6 +42,7 @@ jobs:
           assert 'lg13w16(b,dst,v)' in a6
           assert 'store_le32(dgroup_ptr(m,dgroup(0x2b51u)),rows)' in a6
           assert 'static_cast<u32>(static_cast<u8>(doubled))<<1' in a6
+          assert 'batch15_sprite_mask' in a6 and 'batch15_sprite_rol1' in a6
           a8=cpp[cpp.index('void function_a8f4'):cpp.index('static_assert(0xAA20u-0xA8F4u==300u);')]
           assert 'u16 rc=rows' in a8 and 'table+v' in a8
           cl=cpp[cpp.index('static void b17_clipped_sprite'):cpp.index('static_assert(0xAE0Bu-0xAC10u==507u);')]
