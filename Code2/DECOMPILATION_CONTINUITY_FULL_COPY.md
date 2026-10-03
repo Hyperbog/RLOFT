@@ -1,1 +1,0 @@
-This file is intentionally unused. See DECOMPILATION_CONTINUITY.md and CODE2_CONTINUITY_ADDENDUM.md.
