@@ -560,7 +560,7 @@ struct PaletteTreeBoundaries{
  u32(*call_d313)(u32,u32)=nullptr; u32(*call_d55e)(u32,u32)=nullptr; u32(*call_d573)(u32)=nullptr;
  s32(*call_d5ad)(u32,void*,u32)=nullptr; s32(*call_d686)(u32,const void*,u32)=nullptr; s32(*call_d85f)(u32,s32,u32)=nullptr;
  s32(*call_d8aa)(const char*)=nullptr; u32(*call_d8e8)(u32,u32*)=nullptr; u32(*call_d8d0)(u32*)=nullptr;
- u32(*call_d906_guest)(u32)=nullptr; u32(*call_d991)(u32)=nullptr; s32(*call_d9a6)(const char*)=nullptr; s32(*call_d9ca)(const char*)=nullptr;
+ u32(*call_d906_guest)(u32,u32)=nullptr; u32(*call_d991)(u32)=nullptr; s32(*call_d9a6)(const char*)=nullptr; s32(*call_d9ca)(const char*)=nullptr;
  void(*call_a2b0)(s32,s32)=nullptr; void(*call_a21c)(s32)=nullptr; void(*call_a484)(u32,s32,s32,s32,s32)=nullptr;
  void(*call_a4e8)(u32,s32,s32,s32,s32)=nullptr; void(*call_a6f0)(u32,s32,s32,u32)=nullptr;
  void(*call_a7e8)(u32,s32,s32,u32,u8)=nullptr; void(*call_a8f4)(u32,s32,s32,u32,u32)=nullptr; void(*call_8960)()=nullptr;
@@ -638,8 +638,8 @@ static_assert(0x6054u-0x5F4Cu==264u);
 
 // 6184..6189 and 618A..61AB: RNG state address and MS-compatible LCG step.
 [[nodiscard]]u32 function_6184()noexcept{return 0x23ccu;} static_assert(0x618Au-0x6184u==6u);
-[[nodiscard]]u32 function_618a(Machine&m)noexcept{u32 v=load_le32(dgroup_ptr(m,dgroup(0x23ccu)));v=v*0x41c64e6du+0x3039u;store_le32(dgroup_ptr(m,dgroup(0x23ccu)),v);return(v>>16)&0x7fffu;} static_assert(0x61ACu-0x618Au==34u);
-void function_61ac(Machine&m,u32 seed)noexcept{store_le32(dgroup_ptr(m,dgroup(0x23ccu)),seed);} static_assert(0x61BFu-0x61ACu==19u);
+[[nodiscard]]u32 function_618a(Machine&m)noexcept{const u32 state=function_6184();if(state==0u)return 0u;u32 v=load_le32(dgroup_ptr(m,dgroup(state)));v=v*0x41c64e6du+0x3039u;store_le32(dgroup_ptr(m,dgroup(state)),v);return(v>>16)&0x7fffu;} static_assert(0x61ACu-0x618Au==34u);
+void function_61ac(Machine&m,u32 seed)noexcept{const u32 state=function_6184();if(state!=0u)store_le32(dgroup_ptr(m,dgroup(state)),seed);} static_assert(0x61BFu-0x61ACu==19u);
 // 61BF is zero alignment.
 [[nodiscard]]u32 function_61c0(Machine&m)noexcept{return load_le32(dgroup_ptr(m,dgroup(0x46cu)));} static_assert(0x61CEu-0x61C0u==14u);
 // 61CE..61CF is alignment.
@@ -647,11 +647,11 @@ void function_61ac(Machine&m,u32 seed)noexcept{store_le32(dgroup_ptr(m,dgroup(0x
 // 61D0..61FC: DOS AH=09 string printer; embedded '$' bytes are changed to '*' and the terminating NUL is temporarily changed to '$'.
 void function_61d0(PaletteTreeBoundaries&b,u32 s)noexcept{u32 p=s;for(;;){const u8 ch=b.read_guest8?b.read_guest8(p):0u;if(ch==0u)break;if(ch=='$'&&b.write_guest8)b.write_guest8(p,'*');++p;}if(b.write_guest8)b.write_guest8(p,'$');if(b.dos_print_dollar_guest)b.dos_print_dollar_guest(s);if(b.write_guest8)b.write_guest8(p,0u);} static_assert(0x61FDu-0x61D0u==45u);
 // 61FD..61FF alignment.
-[[nodiscard]]u32 function_6200(PaletteTreeBoundaries&b,u32 path,u16 flags)noexcept{return(b.call_d23a?b.call_d23a(path,flags):-1)==0?1u:0u;} static_assert(0x6220u-0x6200u==32u);
-[[nodiscard]]u32 function_6220(PaletteTreeBoundaries&b,u32 path,u16 attr)noexcept{return(b.call_d280&&b.call_d280(path,attr,0x8904u)==0)?0x8922u:0u;} static_assert(0x624Cu-0x6220u==44u);
+[[nodiscard]]u32 function_6200(PaletteTreeBoundaries&b,u32 path,u32 flags_slot)noexcept{return(b.call_d23a?b.call_d23a(path,static_cast<u16>(flags_slot)):-1)==0?1u:0u;} static_assert(0x6220u-0x6200u==32u);
+[[nodiscard]]u32 function_6220(PaletteTreeBoundaries&b,u32 path,u32 attr_slot)noexcept{return(b.call_d280&&b.call_d280(path,static_cast<u16>(attr_slot),0x8904u)==0)?0x8922u:0u;} static_assert(0x624Cu-0x6220u==44u);
 [[nodiscard]]u32 function_624c(PaletteTreeBoundaries&b)noexcept{return(b.call_d2ad&&b.call_d2ad(0x8904u)==0)?0x8922u:0u;} static_assert(0x626Fu-0x624Cu==35u);
 // 626F is NOP alignment.
-[[nodiscard]]u8 function_6270(Machine&m)noexcept{return*dgroup_ptr(m,dgroup(0x8919u));} static_assert(0x627Cu-0x6270u==12u);
+[[nodiscard]]u32 function_6270(Machine&m,u32 incoming_eax)noexcept{set_low8(incoming_eax,*dgroup_ptr(m,dgroup(0x8919u)));return incoming_eax;} static_assert(0x627Cu-0x6270u==12u);
 [[nodiscard]]s32 function_627c(PaletteTreeBoundaries&b,u32 path)noexcept{if(b.call_d280&&b.call_d280(path,0u,0x8904u)==0)return static_cast<s32>(b.read_dgroup32?b.read_dgroup32(0x891eu):0u);return -1;} // patched below: guest 891E is supplied by caller boundary
 static_assert(0x62A8u-0x627Cu==44u);
 [[nodiscard]]u32 function_62a8(PaletteTreeBoundaries&b,u32 path)noexcept{return b.call_d313?b.call_d313(path,0x200u):0xffffffffu;} static_assert(0x62C0u-0x62A8u==24u);
@@ -667,9 +667,9 @@ void function_6358(PaletteTreeBoundaries&b,u32 index,u32 h)noexcept{(void)functi
 [[nodiscard]]u32 function_63b8(PaletteTreeBoundaries&b,u32 drive)noexcept{u32 n=0;if(b.call_d8e8)(void)b.call_d8e8(drive,&n);return n;} static_assert(0x63D5u-0x63B8u==29u);
 [[nodiscard]]u32 function_63d8(PaletteTreeBoundaries&b)noexcept{u32 d=0;if(b.call_d8d0)(void)b.call_d8d0(&d);return d;} static_assert(0x63F1u-0x63D8u==25u);
 [[nodiscard]]u32 function_63f4(PaletteTreeBoundaries&b)noexcept{const u32 d=function_63d8(b);return function_63b8(b,d);} static_assert(0x6409u-0x63F4u==21u);
-[[nodiscard]]u32 function_640c(PaletteTreeBoundaries&b)noexcept{return b.call_d906_guest?b.call_d906_guest(0x892fu):0u;} static_assert(0x6422u-0x640Cu==22u);
+[[nodiscard]]u32 function_640c(PaletteTreeBoundaries&b)noexcept{return b.call_d906_guest?b.call_d906_guest(0x892fu,0x50u):0u;} static_assert(0x6422u-0x640Cu==22u);
 // 6422..6423 alignment.
-[[nodiscard]]s32 function_6424(PaletteTreeBoundaries&b,char*path)noexcept{const u32 saved=function_63d8(b);if(path[1]==':'){const u32 upper=b.call_d991?b.call_d991(static_cast<u8>(path[0])):static_cast<u8>(path[0]);const s32 drive=static_cast<s32>(upper)-0x41;function_63b8(b,static_cast<u32>(drive));if(static_cast<s32>(function_63d8(b))!=drive)return -1;path+=2;}const s32 r=b.call_d9a6?b.call_d9a6(path):-1;if(r==-1)function_63b8(b,saved);return r;} static_assert(0x648Du-0x6424u==105u);
+[[nodiscard]]s32 function_6424(PaletteTreeBoundaries&b,char*path)noexcept{const u32 saved=function_63d8(b);if(path[1]==':'){const u32 ch=static_cast<u32>(static_cast<s32>(static_cast<std::int8_t>(static_cast<u8>(path[0]))));const u32 upper=b.call_d991?b.call_d991(ch):ch;const u32 drive=upper-0x41u;(void)function_63b8(b,drive);if(function_63d8(b)!=drive)return -1;path+=2;}const s32 r=b.call_d9a6?b.call_d9a6(path):-1;if(r==-1)(void)function_63b8(b,saved);return r;} static_assert(0x648Du-0x6424u==105u);
 [[nodiscard]]s32 function_6490(PaletteTreeBoundaries&b,const char*path)noexcept{return b.call_d9ca?b.call_d9ca(path):-1;} static_assert(0x64A3u-0x6490u==19u);
 // 64A3..64AF are zero/alignment bytes.
 [[nodiscard]]u32 function_64b0(Machine&m,u32 arg)noexcept{if(static_cast<u16>(arg)==0u)arg=static_cast<u32>(load_le16(dgroup_ptr(m,dgroup(0x46cu))));function_61ac(m,static_cast<u16>(arg));return arg;} static_assert(0x64D9u-0x64B0u==41u);
@@ -680,20 +680,20 @@ struct DisplayInitBoundaries{u8(*call_9ca0)(u8,u32)=nullptr;void(*call_9df4)()=n
 void function_64dc(Machine&m,DisplayInitBoundaries&b,u32 mode)noexcept{if(mode==0xffu){if(b.call_9df4)b.call_9df4();*dgroup_ptr(m,dgroup(0x23d4u))=0xffu;return;}const u8 caps=b.call_9ca0?b.call_9ca0(static_cast<u8>(mode),0x23d4u):0u;store_le16(dgroup_ptr(m,dgroup(0x23dbu)),0x100u);store_le16(dgroup_ptr(m,dgroup(0x23ddu)),(caps&4u)?1u:0u);if(static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x23dfu))))<0xff&&b.call_a474)b.call_a474(0xffu);*dgroup_ptr(m,dgroup(0x23e6u))=0;*dgroup_ptr(m,dgroup(0x23e5u))=0;if(b.call_a35c)b.call_a35c(0);if(b.call_a36c)b.call_a36c(0);if(b.call_6bc0)b.call_6bc0(0,0,static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x23d7u))))-1,static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x23d9u))))-1);*dgroup_ptr(m,dgroup(0x23d4u))=static_cast<u8>(mode)&0x7fu;} static_assert(0x6588u-0x64DCu==172u);
 void function_6588(Machine&m,DisplayInitBoundaries&b,u8 page)noexcept{if(b.call_a35c)b.call_a35c(page);*dgroup_ptr(m,dgroup(0x23e5u))=page;} static_assert(0x65A4u-0x6588u==28u);
 void function_65a4(Machine&m,DisplayInitBoundaries&b,u8 page)noexcept{if(b.call_a36c)b.call_a36c(page);*dgroup_ptr(m,dgroup(0x23e6u))=page;} static_assert(0x65C0u-0x65A4u==28u);
-void function_65c0(DisplayInitBoundaries&b,s32 x,s32 y,s32 width,u8 color)noexcept{if(b.call_a05c)b.call_a05c(x,y,x,y+width-1,color);} static_assert(0x65E8u-0x65C0u==40u);
-void function_65e8(DisplayInitBoundaries&b,s32 x,s32 y,s32 width,u8 color)noexcept{if(width!=0&&b.call_a05c)b.call_a05c(x,y,x+width-1,y,color);} static_assert(0x6616u-0x65E8u==46u);
+void function_65c0(DisplayInitBoundaries&b,s32 x,s32 y,s32 width,u8 color)noexcept{const s32 y2=static_cast<s32>(static_cast<u32>(y)+static_cast<u32>(width)-1u);if(b.call_a05c)b.call_a05c(x,y,x,y2,color);} static_assert(0x65E8u-0x65C0u==40u);
+void function_65e8(DisplayInitBoundaries&b,s32 x,s32 y,s32 width,u8 color)noexcept{const s32 x2=static_cast<s32>(static_cast<u32>(x)+static_cast<u32>(width)-1u);if(width!=0&&b.call_a05c)b.call_a05c(x,y,x2,y,color);} static_assert(0x6616u-0x65E8u==46u);
 // 6616..6617 alignment.
 void function_6618(DisplayInitBoundaries&b,u32 dst)noexcept{if(b.call_a010)b.call_a010(dst,0u,0x300u);} static_assert(0x6632u-0x6618u==26u);
 void function_6634(DisplayInitBoundaries&b,u32 a,u32 count,u32 dst)noexcept{if(b.call_a010)b.call_a010(dst,a,count*3u);} static_assert(0x6654u-0x6634u==32u);
 
 // 6654..6851: clipped display wrappers. Width/height clipping follows the encoded signed comparisons exactly.
 struct DisplayClipBoundaries{void(*a2b0)(s32,s32)=nullptr;void(*a21c)(s32)=nullptr;void(*a484)(u32,s32,s32,s32,s32)=nullptr;void(*a4e8)(u32,s32,s32,s32,s32)=nullptr;void(*a6f0)(u32,s32,s32,u32)=nullptr;void(*a7e8)(u32,s32,s32,u32,u8)=nullptr;void(*a8f4)(u32,s32,s32,u32,u32)=nullptr;void(*flush_8960)()=nullptr;};
-void function_6654(Machine&m,DisplayClipBoundaries&b,s32 n)noexcept{if(b.a2b0)b.a2b0(static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x23d7u))))-n,n);} static_assert(0x6672u-0x6654u==30u);
-void function_6674(Machine&m,DisplayClipBoundaries&b,s32 n)noexcept{const s32 w=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x23d7u))));if(b.a2b0)b.a2b0(w-n,n-w);} static_assert(0x6694u-0x6674u==32u);
+void function_6654(Machine&m,DisplayClipBoundaries&b,s32 n)noexcept{const s32 w=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x23d7u))));const s32 left=static_cast<s32>(static_cast<u32>(w)-static_cast<u32>(n));if(b.a2b0)b.a2b0(left,n);} static_assert(0x6672u-0x6654u==30u);
+void function_6674(Machine&m,DisplayClipBoundaries&b,s32 n)noexcept{const s32 w=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x23d7u))));const s32 left=static_cast<s32>(static_cast<u32>(w)-static_cast<u32>(n)),right=static_cast<s32>(static_cast<u32>(n)-static_cast<u32>(w));if(b.a2b0)b.a2b0(left,right);} static_assert(0x6694u-0x6674u==32u);
 void function_6694(DisplayClipBoundaries&b,s32 n)noexcept{if(b.a21c)b.a21c(n);} static_assert(0x66A7u-0x6694u==19u);
-void function_66a8(DisplayClipBoundaries&b,s32 n)noexcept{if(b.a21c)b.a21c(-n);} static_assert(0x66BDu-0x66A8u==21u);
+void function_66a8(DisplayClipBoundaries&b,s32 n)noexcept{const s32 neg=static_cast<s32>(0u-static_cast<u32>(n));if(b.a21c)b.a21c(neg);} static_assert(0x66BDu-0x66A8u==21u);
 // 66BD..66BF alignment.
-static void clip_rect_dims(Machine&m,s32&x,s32&y,s32&w,s32&h)noexcept{if(x<0){w+=x;x=0;}if(y<0){h+=y;y=0;}const s32 sw=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x23d7u)))),sh=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x23d9u))));if(x+w>sw)w=sw-x;if(y+h>sh)h=sh-y;}
+static void clip_rect_dims(Machine&m,s32&x,s32&y,s32&w,s32&h)noexcept{if(x<0){w=static_cast<s32>(static_cast<u32>(w)+static_cast<u32>(x));x=0;}if(y<0){h=static_cast<s32>(static_cast<u32>(h)+static_cast<u32>(y));y=0;}const s32 sw=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x23d7u)))),sh=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x23d9u))));const s32 xw=static_cast<s32>(static_cast<u32>(x)+static_cast<u32>(w)),yh=static_cast<s32>(static_cast<u32>(y)+static_cast<u32>(h));if(xw>sw)w=static_cast<s32>(static_cast<u32>(sw)-static_cast<u32>(x));if(yh>sh)h=static_cast<s32>(static_cast<u32>(sh)-static_cast<u32>(y));}
 void function_66c0(Machine&m,DisplayClipBoundaries&b,u32 p,s32 x,s32 y,s32 w,s32 h)noexcept{clip_rect_dims(m,x,y,w,h);if(w>0&&h>0&&b.a484)b.a484(p,x,y,w,h);} static_assert(0x6743u-0x66C0u==131u);
 void function_6744(Machine&m,DisplayClipBoundaries&b,u32 p,s32 x,s32 y,s32 w,s32 h)noexcept{clip_rect_dims(m,x,y,w,h);if(w>0&&h>=0&&b.a4e8)b.a4e8(p,x,y,w,h);} static_assert(0x67C7u-0x6744u==131u);
 void function_67c8(DisplayClipBoundaries&b,u32 p,s32 x,s32 y,u32 n)noexcept{if(n!=0u){if(b.a6f0)b.a6f0(p,x,y,n);if(b.flush_8960)b.flush_8960();}} static_assert(0x67F2u-0x67C8u==42u);
@@ -1039,9 +1039,9 @@ static void b12w8(Batch12Boundaries&b,u32 a,u8 v)noexcept{if(b.write8)b.write8(a
 void function_6060(Machine&m,Batch12Boundaries&b)noexcept{for(s32 i=0x54;i>=0;--i)*dgroup_ptr(m,dgroup(0x136eu+static_cast<u32>(i)))=*dgroup_ptr(m,dgroup(0x2b28u+static_cast<u32>(i)));auto in=[&](u16 p){return b.in8?b.in8(p):0u;};auto out=[&](u16 p,u8 v){if(b.out8)b.out8(p,v);};*dgroup_ptr(m,dgroup(0x136au))=in(0x3c4);out(0x3c4,2);*dgroup_ptr(m,dgroup(0x1369u))=in(0x3c5);*dgroup_ptr(m,dgroup(0x136cu))=in(0x3ce);out(0x3ce,5);*dgroup_ptr(m,dgroup(0x136bu))=in(0x3cf);out(0x3ce,4);*dgroup_ptr(m,dgroup(0x136du))=in(0x3cf);} static_assert(0x60B2u-0x6060u==82u);
 // 60B4..6100: exact inverse restore sequence.
 void function_60b4(Machine&m,Batch12Boundaries&b)noexcept{for(s32 i=0x54;i>=0;--i)*dgroup_ptr(m,dgroup(0x2b28u+static_cast<u32>(i)))=*dgroup_ptr(m,dgroup(0x136eu+static_cast<u32>(i)));if(b.out16)b.out16(0x3c4,static_cast<u16>(2u|(u16(*dgroup_ptr(m,dgroup(0x1369u)))<<8)));if(b.out8)b.out8(0x3c4,*dgroup_ptr(m,dgroup(0x136au)));if(b.out16){b.out16(0x3ce,static_cast<u16>(5u|(u16(*dgroup_ptr(m,dgroup(0x136bu)))<<8)));b.out16(0x3ce,static_cast<u16>(4u|(u16(*dgroup_ptr(m,dgroup(0x136du)))<<8)));}if(b.out8)b.out8(0x3ce,*dgroup_ptr(m,dgroup(0x136cu)));} static_assert(0x6101u-0x60B4u==77u);
-struct Interrupt6104Boundary{u16(*restore_ds_cec0)()=nullptr;void(*call_50c0)(u32,u32,u32,u32,u32,u32)=nullptr;u16 current_ss=0;u32 current_esp=0;};
+struct Interrupt6104Boundary{u16(*restore_ds_cec0)()=nullptr;void(*call_50c0)(u32,u32,u32,u32,u32)=nullptr;u16 current_ss=0,current_ds=0,current_es=0;u32 current_esp=0;bool interrupt_enable=true;};
 // 6104..6183: far interrupt wrapper. Host stack switching is represented explicitly by saved SS:ESP fields.
-void function_6104(Machine&m,Batch12Boundaries&v,Interrupt6104Boundary&b,u32 eax,u32 ebx,u32 ecx,u32 edx,u32 esi)noexcept{if(*dgroup_ptr(m,dgroup(0x1368u))!=0u)return;*dgroup_ptr(m,dgroup(0x1368u))=1;store_le16(dgroup_ptr(m,dgroup(0x23c3u)),b.current_ss);store_le32(dgroup_ptr(m,dgroup(0x23c5u)),b.current_esp);const u16 ds=b.restore_ds_cec0?b.restore_ds_cec0():0u;(void)ds;store_le32(dgroup_ptr(m,dgroup(0x136eu)),eax);function_6060(m,v);if(b.call_50c0)b.call_50c0(eax,ebx,ecx,edx,(esi&0xffffu)<<4,0x23bfu);function_60b4(m,v);b.current_esp=load_le32(dgroup_ptr(m,dgroup(0x23c5u)));b.current_ss=load_le16(dgroup_ptr(m,dgroup(0x23c3u)));*dgroup_ptr(m,dgroup(0x1368u))=0;} static_assert(0x6184u-0x6104u==128u);
+void function_6104(Machine&m,Batch12Boundaries&v,Interrupt6104Boundary&b,u32 eax,u32 ebx,u32 ecx,u32 edx,u32 esi)noexcept{const u16 saved_ds=b.current_ds,saved_es=b.current_es;const bool saved_if=b.interrupt_enable;const u16 ds=b.restore_ds_cec0?b.restore_ds_cec0():b.current_ds;b.current_ds=ds;b.current_es=ds;if(*dgroup_ptr(m,dgroup(0x1368u))!=0u){b.current_ds=saved_ds;b.current_es=saved_es;return;}*dgroup_ptr(m,dgroup(0x1368u))=1;store_le16(dgroup_ptr(m,dgroup(0x23c3u)),b.current_ss);store_le32(dgroup_ptr(m,dgroup(0x23c5u)),b.current_esp);b.interrupt_enable=false;store_le32(dgroup_ptr(m,dgroup(0x136eu)),eax);b.current_ss=ds;b.current_esp=0x23bfu;function_6060(m,v);if(b.call_50c0)b.call_50c0(eax,ebx,ecx,edx,(esi&0xffffu)<<4);function_60b4(m,v);b.current_esp=load_le32(dgroup_ptr(m,dgroup(0x23c5u)));b.current_ss=load_le16(dgroup_ptr(m,dgroup(0x23c3u)));*dgroup_ptr(m,dgroup(0x1368u))=0;b.interrupt_enable=saved_if;b.current_ds=saved_ds;b.current_es=saved_es;} static_assert(0x6184u-0x6104u==128u);
 
 struct Startup12Boundary{u16 ds=0;u8(*read8)(u16,u32)=nullptr;u16(*read16)(u16,u32)=nullptr;u32(*read32)(u16,u32)=nullptr;void(*write16)(u16,u32,u16)=nullptr;void(*runtime_call)(u32)=nullptr;void(*int33)(u32&,u32&,u32&,u32&)=nullptr;u32(*call3)(u32,u32,u32,u32)=nullptr;};
 struct StartupRegs12{u32 eax=0,ebx=0,ecx=0,edx=0,esi=0,edi=0,ebp=0,esp=0;u16 ds=0,es=0;};
