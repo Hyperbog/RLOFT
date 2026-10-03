@@ -90,9 +90,28 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 0B6F1..0B6F3 | alignment | 3
 0B73D..0B73F | alignment | 3
 0B740..0B94F | table | 528
+0C6D7..0C6DF | alignment | 9
+0C6E0..0C703 | table | 36
+0C7C1..0C7C3 | alignment | 3
+0C80B..0C80B | alignment | 1
+0C90D..0C90F | alignment | 3
+0C99F..0C99F | alignment | 1
+0CA36..0CA37 | alignment | 2
+0CADA..0CADB | alignment | 2
+0CBC6..0CBC7 | alignment | 2
+0CCF1..0CCF3 | alignment | 3
+0CD41..0CD43 | alignment | 3
+0CF2A..0CF2B | alignment | 2
+0CF6D..0CF6F | alignment | 3
+0CF70..0CF87 | table | 24
+0D097..0D097 | alignment | 1
+0D098..0D0AF | table | 24
+0D1DF..0D1DF | alignment | 1
+0D53E..0D53F | alignment | 2
+0D540..0D54F | table | 16
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **1,009 bytes**.
+**Total proven non-code/data:** **1,147 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -130,3 +149,6 @@ Batch 16 evidence: `0AA2D..0AA2F` and `0AE2D..0AE2F` decode as compiler `LEA EAX
 
 
 Batch 17 evidence: `0B6F1..0B6F3` and `0B73D..0B73F` decode as `LEA EAX,[EAX+0]` compiler separators between directly reconstructed routine boundaries. A full object-1 direct relative branch/call-target scan found no incoming target to either separator. `0B740..0B94F` is the exact 132-entry CS dword table selected by command values `00h..83h` at `0B988`; all 132 entries were decoded and reconciled, comprising 65 explicit handler targets and the shared default target `0C6C2`. `0C6D7..0C703` remains unresolved rather than being classified from appearance alone.
+
+
+Batch 18 evidence: `0C6E0..0C703` is the exact nine-dword source copied by `REP MOVSD` at `0CBD5`, with values `0,1,0,1,0,2,3,4,5`; the preceding zero bytes `0C6D7..0C6DF` lie between the directly reconstructed `0B950` return and that consumed data object. `0CF70..0CF87` is the six-entry CS table selected at `0D025` with targets `0D02C,0D02C,0D02C,0D04A,0D03B,0D053`. `0D098..0D0AF` is the six-entry CS table selected at `0D127`, targeting `0D12E,0D12E,0D12E,0D152,0D142,0D15D`. `0D540..0D54F` is the four-entry CS table consumed at `0D69A`, targeting alternating `0D6AF/0D6A2`. All other Batch 18 ranges are explicit compiler NOP/LEA/MOV-EAX,EAX separators between directly reconstructed routines. A full object-1 direct relative control-flow scan found no incoming target to any Batch 18 separator or table byte.

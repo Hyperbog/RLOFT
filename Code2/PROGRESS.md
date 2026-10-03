@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-24.13%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-25.68%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **56,834**
-**Proven non-code/data bytes:** **1,009**
-**Reconciled object bytes:** **57,843 / 239,698 = 24.1316% (24.13%)**
-**Unresolved object bytes:** **181,855**
+**Verified translated instruction bytes:** **60,401**
+**Proven non-code/data bytes:** **1,147**
+**Reconciled object bytes:** **61,548 / 239,698 = 25.6773% (25.68%)**
+**Unresolved object bytes:** **178,150**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -500,3 +500,10 @@ Source identity and object-1 SHA-256 were reverified before this batch. Added **
 Direct audit also corrected an older Batch 16 boundary model: the call to `1C77C` at `0AD15` receives `(token, 0320h)`, not only `token`; Batch 17's `1Eh` handler likewise calls it as `(slot, 031Dh)`. This correction changes no byte accounting.
 
 The sequential accounting frontier is now `0C6D7`. Bytes `0C6D7..0C703` remain deliberately unresolved; the next directly decoded routine begins at `0C704`. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` also remain unresolved.
+
+
+## Batch 18 — party/stat checks, transition support, damage and level rollback
+
+Batch 18 adds **3,567 translated instruction bytes** plus **138 directly proven non-code/data bytes**. Cumulative accounting is **60,401 translated + 1,147 non-code = 61,548 / 239,698 = 25.6773% (25.68%)**; unresolved is **178,150 bytes**.
+
+The sequential code frontier is now `0D550`. This batch closes `0C704..0D53D` and proves the intervening compiler separators plus the data/jump tables at `0C6E0..0C703`, `0CF70..0CF87`, `0D098..0D0AF`, and `0D540..0D54F`. Preserve `0CD44`'s non-consuming `219F7` countdown before the two consuming damage buffers, `0CF88`'s three-track average and encoded divide-error edge, `0D0B0`'s class-indexed six-way table, and `0D1E0`'s tie-preserving random track selection (only a strict unique maximum overrides the initial random track). The next directly decoded routine begins at `0D550`. Known earlier zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
