@@ -61,9 +61,14 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 07376..07377 | alignment | 2
 0739D..0739F | alignment | 3
 075C9..075CB | alignment | 3
+0779F..0779F | alignment | 1
+07871..07873 | alignment | 3
+07D43..07D43 | alignment | 1
+0808B..0808B | alignment | 1
+0808C..080AB | table | 32
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **305 bytes**.
+**Total proven non-code/data:** **343 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -82,3 +87,5 @@ Batch 08 evidence: the seven alignment ranges decode as explicit NOP/LEA no-op s
 Batch 09 evidence: the five alignment ranges decode as explicit compiler no-op separators and a full object-1 direct relative control-flow target scan found no incoming target to any of them. `06520..06547` is the ten-entry CS jump table selected by `JMP DWORD PTR CS:[EBX*4+6520h]` at `065B1`; all ten table destinations were directly disassembled and reconciled. The known zero islands remain unresolved.
 
 Batch 10 evidence: `0706E..0706F`, `07376..07377`, `0739D..0739F`, and `075C9..075CB` decode as explicit compiler no-op alignment between directly reconstructed routine boundaries. A full object-1 direct relative branch/call target scan found no incoming target to any of these bytes. The known zero islands remain unresolved.
+
+Batch 11 evidence: `0779F`, `07871..07873`, `07D43`, and `0808B` decode as explicit compiler no-op separators between directly reconciled boundaries, and a full object-1 direct relative branch/call scan found no incoming target to any separator byte. `0808C..080AB` is the eight-entry CS dword table used by the indirect dispatcher at `08392`; its decoded targets are `0839A`, `083AD`, `08472`, `08537`, `0854D`, `08587`, `085DD`, and `085FE`. The known zero islands remain unresolved.

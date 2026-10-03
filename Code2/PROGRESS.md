@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-15.55%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-16.64%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **36,959**
-**Proven non-code/data bytes:** **305**
-**Reconciled object bytes:** **37,264 / 239,698 = 15.5462% (15.55%)**
-**Unresolved object bytes:** **202,434**
+**Verified translated instruction bytes:** **39,537**
+**Proven non-code/data bytes:** **343**
+**Reconciled object bytes:** **39,880 / 239,698 = 16.6376% (16.64%)**
+**Unresolved object bytes:** **199,818**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -375,3 +375,18 @@ The zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unres
 1. Continue the sequential application path at `075CC`.
 2. Reconcile startup at `353A0` as a CODE.2-specific path.
 3. Continue harvesting independently proved relocated CODE.1 runtime families.
+
+## Batch 11 — save/load slot UI and confirmation workflows
+
+Added **2,578 translated instruction bytes** plus **38 proven non-code/data bytes**. The sequential application frontier now reaches `0808A`; `0808B` is a one-byte compiler separator and `0808C..080AB` is an eight-entry CS dispatch table consumed by the next routine at `080AC`.
+
+Translated ranges:
+- `075CC..0779E` — 467 bytes: 49-character filename editor with first-edit semantics.
+- `077A0..07870` — 209 bytes: live-game save-to-slot-00 workflow.
+- `07874..07937` — 196 bytes: slot-00 load preparation and fall-through into `07938`.
+- `079E0..07B93` — 436 bytes: interactive save-slot selector.
+- `07B94..07D42` — 431 bytes: interactive load-slot selector.
+- `07D44..0803B` — 760 bytes: randomized two-choice confirmation UI.
+- `0803C..0808A` — 79 bytes: modal message helper.
+
+Fidelity notes: `077A0` clears `A79D` before `171FC` and sets it to one immediately before serialization; `07874` is modeled as a side-effect wrapper because its early exits do not establish a meaningful return; both slot selectors intentionally leak the ten panel handles on the encoded right-click return-2 path; `07D44` accepts x coordinates inclusively from `C8h` through `E0h`.
