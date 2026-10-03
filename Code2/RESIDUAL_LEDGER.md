@@ -75,9 +75,12 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 0934A..0934B | alignment | 2
 0934C..09367 | table | 28
 094DD..094DF | alignment | 3
+095BD..095BF | alignment | 3
+0978D..0978F | alignment | 3
+09B4A..09B4B | alignment | 2
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **448 bytes**.
+**Total proven non-code/data:** **456 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -103,3 +106,6 @@ Batch 12 evidence: `0869F` is the single zero/alignment byte between the `080AC`
 
 
 Batch 13 evidence: `08CD8..08CF3` is the seven-entry CS table consumed by the indirect jump at `08E50`, with targets `08E58`, `08E77`, `08E94`, `08EAD`, `08EC5`, `08EDE`, `08EDE`. `0934C..09367` is the seven-entry CS table consumed at `093AB`, with targets `093B3`, `093BA`, `093CD`, `093CD`, `093C1`, `093CD`, `093C8`. `0906D..0906F` and `094DD..094DF` decode as `LEA EAX,[EAX+0]`; `0934A..0934B` decodes as `MOV EAX,EAX`. A full object-1 direct relative branch/call-target scan found no incoming target to any of these separator bytes. The known zero islands remain unresolved.
+
+
+Batch 14 evidence: `095BD..095BF` and `0978D..0978F` decode as `LEA EAX,[EAX+0]`; `09B4A..09B4B` decodes as `MOV EAX,EAX`. Each lies between directly reconstructed routine boundaries, and a full object-1 direct relative branch/call-target scan found no incoming target to any byte in these ranges. The known zero islands remain unresolved.
