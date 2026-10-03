@@ -6,7 +6,7 @@ s=p.read_text()
 
 def replace_func(name, end_assert, new):
     global s
-    pat=re.compile(r'(?:\[\[nodiscard\]\])?(?:s32|u32|void) '+re.escape(name)+r'\(.*?'+re.escape(end_assert)+r';', re.S)
+    pat=re.compile(r'(?:\[\[nodiscard\]\]\s*)?(?:s32|u32|void)\s+'+re.escape(name)+r'\([^)]*\)noexcept\{.*?'+re.escape(end_assert)+r';', re.S)
     s2,n=pat.subn(new,s,1)
     assert n==1,(name,n)
     s=s2
@@ -37,6 +37,8 @@ replace_func('function_bd20','static_assert(0xBD83u-0xBD20u==99u)',r'''void func
 
 replace_func('function_bde4','static_assert(0xBE26u-0xBDE4u==66u)',r'''[[nodiscard]]u32 function_bde4(Machine&m,LowGraphics13Boundary&b)noexcept{if(load_le32(dgroup_ptr(m,dgroup(0x2b84u)))==0u||load_le32(dgroup_ptr(m,dgroup(0x2c38u)))==0xffffffffu)return 0u;const u32 st=b.call_ed0b?b.call_ed0b(load_le32(dgroup_ptr(m,dgroup(0x2b90u))),load_le32(dgroup_ptr(m,dgroup(0x2c30u)))):0u;return(st==0u||st==2u)?1u:st;}static_assert(0xBE26u-0xBDE4u==66u);''')
 
+assert 'void function_b430(Machine&m,LowGraphics13Boundary&b)noexcept{' in s
+assert '[[nodiscard]]s32 function_b598(Machine&m,LowGraphics13Boundary&b)noexcept{' in s
 p.write_text(s)
 
 a=Path('Code1/FINAL_BINARY_AUDIT.md')
