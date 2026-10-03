@@ -29,7 +29,6 @@ jobs:
           assert 'void(*insert_5880)(u32,u32,u32,s32)=nullptr;' in cpp
           assert 'const u32 da=a-31u,db=c1-31u,dc=c2-31u;' in cpp
           assert 'static_cast<u32>(c1)|(static_cast<u32>(c0)<<8)' in cpp
-          # Preserve the earlier checkpoint-4 corrections too.
           assert 'family0=function_5d90(m,0,2u)' in cpp
           assert 'set_low16(result,load_le16' in cpp[cpp.index('function_5b64'):cpp.index('static_assert(0x5D8Fu-0x5B64u')]
           m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S)
@@ -59,3 +58,4 @@ jobs:
             git commit -m "Correct CODE.1 semantic audit checkpoint 4b"
             git push origin HEAD:code1-decompilation
           fi
+# retry after replacing truncated staging wrapper with plain Python
