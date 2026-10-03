@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 85661u;
-constexpr u32 kVerifiedNonCodeBytes = 1579u;
+constexpr u32 kVerifiedTranslatedBytes = 89498u;
+constexpr u32 kVerifiedNonCodeBytes = 1650u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -539,16 +539,13 @@ static_assert(0x39526u-0x391F2u==820u);
 static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
-static_assert(kVerifiedTranslatedBytes == 81609u +
-              (0x12C1Du-0x12988u) + (0x12E6Fu-0x12C20u) +
-              (0x1309Fu-0x12E70u) + (0x13118u-0x130A0u) +
-              (0x131CDu-0x13118u) + (0x13245u-0x131DCu) +
-              (0x13266u-0x13248u) + (0x13282u-0x13268u) +
-              (0x1329Au-0x13284u) + (0x132B1u-0x1329Cu) +
-              (0x132DBu-0x132B4u) + (0x1330Cu-0x132DCu) +
-              (0x133CBu-0x1330Cu) + (0x13488u-0x133CCu) +
-              (0x13599u-0x13488u) + (0x13832u-0x135C4u) +
-              (0x139ABu-0x13834u));
+static_assert(kVerifiedTranslatedBytes == 85661u +
+              (0x13AD5u-0x139ACu) + (0x13C62u-0x13AD8u) +
+              (0x13EF6u-0x13C88u) + (0x13F61u-0x13EF8u) +
+              (0x13FD4u-0x13F70u) + (0x14116u-0x13FD4u) +
+              (0x141B6u-0x14118u) + (0x14217u-0x141B8u) +
+              (0x14309u-0x14218u) + (0x146B8u-0x1430Cu) +
+              (0x146D9u-0x146B8u) + (0x148EEu-0x146DCu));
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -8997,5 +8994,474 @@ static_assert(0x13832u-0x135C4u==622u);
     }
 }
 static_assert(0x139ABu-0x13834u==375u);
+
+// -----------------------------------------------------------------------------
+// Batch 26: 139AC..148ED cinematic file/state setup, wrapped text rendering,
+// four-choice preprocessing/presentation, script condition selection, and
+// interactive cinematic choice preview.  The CS table at 13C64 and compiler
+// separators/padding are non-code/data in RESIDUAL_LEDGER.md.
+// -----------------------------------------------------------------------------
+
+struct Application26Boundary {
+    Application25Boundary* app25=nullptr;
+    s32 (*call_312a0)(u32)=nullptr;
+    void (*call_325b0)(u32,u32,u32,u32,u32)=nullptr;
+    void (*call_2f580)(u32)=nullptr;
+    u32 (*call_29048)()=nullptr;
+    s32 (*call_29050)()=nullptr;
+    u32 (*call_29098)()=nullptr;
+    u32 (*call_290a0)()=nullptr;
+    void (*call_1aacc)()=nullptr;
+    u32 (*call_3104c)(u32)=nullptr;
+    u32 (*read_13ad8_stale_local)(u32)=nullptr;
+    void (*call_312dc)(u32)=nullptr;
+    void (*call_ec1c)()=nullptr;
+    void (*call_20294)()=nullptr;
+    void (*call_27ff0)()=nullptr;
+    void (*call_28ce8)()=nullptr;
+    void (*call_1a288)()=nullptr;
+    void (*call_1c124)(u32)=nullptr;
+    void (*call_181b4)(u32)=nullptr;
+    void (*call_15050)(u32)=nullptr;
+    u32 (*call_1c1dc)(u32)=nullptr;
+    s32 (*call_30318)(u32,u32)=nullptr;
+    void (*call_3059c)(u32)=nullptr;
+    void (*call_30354)(u32,u32)=nullptr;
+    u32 (*call_2ec74)(u32)=nullptr;
+    void (*call_31334)(u32,u32)=nullptr;
+    void (*call_280dc)(u32)=nullptr;
+    void (*call_27f24)(u32)=nullptr;
+    u32 (*call_280e8)()=nullptr;
+    void (*call_16034)()=nullptr;
+};
+
+static void app26_copy_cstr(Machine& m,u32 dst,u32 src) noexcept {
+    for(;;){const u8 c=*dg(m,src++);*dg(m,dst++)=c;if(c==0u)break;}
+}
+static void app26_append_cstr(Machine& m,u32 dst,u32 src) noexcept {
+    while(*dg(m,dst)!=0u)++dst;
+    app26_copy_cstr(m,dst,src);
+}
+
+[[nodiscard]] s32 function_139ac(Machine& m,Application26Boundary& b,s32 number) noexcept {
+    u8 name[11]{};
+    for(u32 i=0u;i<11u;++i)name[i]=*dg(m,0x131D0u+i);
+    const s32 q=number/10;
+    const s32 r=number%10;
+    name[4]=static_cast<u8>(q+0x30);
+    name[5]=static_cast<u8>(r+0x30);
+
+    app26_copy_cstr(m,0x759Cu,0xF061u);
+    app26_append_cstr(m,0x759Cu,0x650u);
+    u32 end=0x759Cu; while(*dg(m,end)!=0u)++end;
+    for(u32 i=0u;i<11u;++i){*dg(m,end+i)=name[i];if(name[i]==0u)break;}
+
+    s32 handle=b.call_312a0?b.call_312a0(0x759Cu):-1;
+    if(handle==-1) {
+        if(b.call_325b0)b.call_325b0(0xC054u,0u,0u,0x654u,0x100u);
+        if(b.app25&&b.app25->call_29234)b.app25->call_29234(0xC054u);
+        app26_append_cstr(m,0x759Cu,load_le32(dg(m,0x7F74u)));
+        if(b.call_2f580)b.call_2f580(0x759Cu);
+    }
+    if(b.app25&&b.app25->call_3131c)(void)b.app25->call_3131c(0u,0u,static_cast<u32>(handle));
+    return handle;
+}
+static_assert(0x13AD5u-0x139ACu==297u);
+
+void function_13ad8(Machine& m,Application26Boundary& b,u32* mode_io,
+                     u32* saved_29050,u32* saved_29048,u32* saved_29098,u32* saved_290a0) noexcept {
+    u32 mode=*mode_io;
+    if(b.app25&&b.app25->call_19ccc)b.app25->call_19ccc(0u);
+
+    u32 v29048=0u,v29050=0u,v29098=0u,v290a0=0u;
+    if(mode!=0x0Cu) {
+        v29048=b.call_29048?b.call_29048():0u;
+        v29050=static_cast<u32>(b.call_29050?b.call_29050():0);
+        v29098=b.call_29098?b.call_29098():0u;
+        v290a0=b.call_290a0?b.call_290a0():0u;
+        if(b.app25&&b.app25->call_28dcc)b.app25->call_28dcc(0x9C4u);
+        store_le32(dg(m,0x12C10u),6u);
+    } else {
+        // The encoded routine leaves all four locals uninitialized on mode 0Ch
+        // and later copies those stale stack dwords to the caller's outputs.
+        if(b.read_13ad8_stale_local) {
+            v29098=b.read_13ad8_stale_local(0u);
+            v290a0=b.read_13ad8_stale_local(1u);
+            v29050=b.read_13ad8_stale_local(2u);
+            v29048=b.read_13ad8_stale_local(3u);
+        }
+        store_le32(dg(m,0x12C10u),2u);
+    }
+    if(b.call_1aacc)b.call_1aacc();
+
+    if(mode==2u) {
+        s32 count=0;
+        for(u32 actor=0u;actor<0x920u;actor+=0x248u)
+            if((load_le16(dg(m,0x218F0u+actor))&0x8000u)==0u)++count;
+        mode=static_cast<u32>(static_cast<s32>(mode)+count-1);
+    }
+    if(mode==0x0Au) {
+        s32 count=0;
+        for(u32 actor=0u;actor<0x920u;actor+=0x248u) {
+            const u16 state=load_le16(dg(m,0x218F0u+actor));
+            if(state<0x4000u&&(state&0x0080u)==0u)++count;
+        }
+        if(count==0)mode=0x0Bu;
+    }
+
+    store_le32(dg(m,0x7F78u),mode);
+    const s32 handle=function_139ac(m,b,static_cast<s32>(mode));
+    store_le32(dg(m,0x7F88u),0x1F400u);
+    *dg(m,0x7F8Cu)=0u;
+    store_le32(dg(m,0x7F94u),1u);
+    store_le32(dg(m,0x7F98u),0u);
+    store_le32(dg(m,0x7FA4u),0u);
+    store_le32(dg(m,0x7F9Cu),0u);
+    store_le32(dg(m,0x7FA0u),0u);
+    store_le32(dg(m,0x7FB0u),0u);
+    const u32 stream=b.app25&&b.app25->call_3131c?
+        b.app25->call_3131c(0u,1u,static_cast<u32>(handle)):0u;
+    store_le32(dg(m,0x7F7Cu),static_cast<u32>(handle));
+    store_le32(dg(m,0x7FACu),stream);
+    store_le32(dg(m,0x7F84u),b.call_3104c?b.call_3104c(0x1F400u):0u);
+
+    *mode_io=mode;
+    *saved_29050=v29050;
+    *saved_29048=v29048;
+    *saved_29098=v29098;
+    *saved_290a0=v290a0;
+}
+static_assert(0x13C62u-0x13AD8u==394u);
+
+void function_13c88(Machine& m,Application26Boundary& b,u32 mode,s32 saved_29050,
+                     u32 saved_29048,u32 saved_29098,u32 saved_290a0) noexcept {
+    if(b.app25&&b.app25->call_310b0)b.app25->call_310b0(load_le32(dg(m,0x7F84u)));
+    if(b.call_312dc)b.call_312dc(load_le32(dg(m,0x7F7Cu)));
+    if((mode==0x0Au||mode==0x0Bu)&&b.call_ec1c)b.call_ec1c();
+    if(b.call_27ff0)b.call_27ff0();
+    if(b.app25&&b.app25->call_28dcc)b.app25->call_28dcc(0x9C4u);
+    if(b.call_20294)b.call_20294();
+    if(b.app25&&b.app25->call_30d30)b.app25->call_30d30(0xC054u,0u,0x300u);
+    if(b.app25&&b.app25->call_29234)b.app25->call_29234(0xC054u);
+    if(b.call_1a288)b.call_1a288();
+
+    s32 restore=saved_29050;
+    switch(mode) {
+        case 1u:
+            if(b.call_1c124)b.call_1c124(0x2Bu);
+            break;
+        case 2u: case 3u: case 4u: case 5u:
+            store_le16(dg(m,0x255D2u),0x16u); store_le16(dg(m,0x255D6u),0x0Du);
+            store_le16(dg(m,0x255D4u),0x8000u); store_le16(dg(m,0x255D0u),0x8000u);
+            store_le32(dg(m,0xC658u),0u);
+            if(b.app25&&b.app25->call_28ef0)b.app25->call_28ef0();
+            if(b.call_28ce8)b.call_28ce8();
+            restore=-2;
+            if(b.call_181b4)b.call_181b4(0x0Cu);
+            break;
+        case 6u:
+            store_le16(dg(m,0x255D2u),0x17u); store_le16(dg(m,0x255D6u),0x17u);
+            store_le16(dg(m,0x255D4u),0x8000u); store_le16(dg(m,0x255D0u),0x8000u);
+            store_le32(dg(m,0xC658u),0x10Eu);
+            if(b.app25&&b.app25->call_28ef0)b.app25->call_28ef0();
+            if(b.call_28ce8)b.call_28ce8();
+            restore=-2;
+            if(b.call_181b4)b.call_181b4(0x0Cu);
+            break;
+        case 7u:
+            store_le16(dg(m,0x255D2u),2u); store_le16(dg(m,0x255D6u),0x41u);
+            store_le16(dg(m,0x255D4u),0x8000u); store_le16(dg(m,0x255D0u),0x8000u);
+            store_le32(dg(m,0xC658u),0x10Eu);
+            if(b.app25&&b.app25->call_28ef0)b.app25->call_28ef0();
+            if(b.call_28ce8)b.call_28ce8();
+            if(b.call_181b4)b.call_181b4(0x0Bu);
+            if(b.call_1c124)b.call_1c124(0x25u);
+            if(b.call_15050)b.call_15050(0x6Eu);
+            restore=-2;
+            if(b.app25)function_131dc(m,*b.app25);
+            break;
+        case 9u:
+            store_le16(dg(m,0x255D2u),0x15u); store_le16(dg(m,0x255D6u),0x2Bu);
+            store_le32(dg(m,0xC658u),0xB4u);
+            break;
+        default: break;
+    }
+
+    if(mode==0u||mode==0x0Cu) {
+        if((b.call_29050?b.call_29050():-1)!=-1) {
+            if(b.app25&&b.app25->call_28dcc)b.app25->call_28dcc(0x9C4u);
+            if(b.app25&&b.app25->call_28ef0)b.app25->call_28ef0();
+        }
+        if(b.app25&&b.app25->call_19cf4)b.app25->call_19cf4();
+        return;
+    }
+
+    if(b.call_325b0)b.call_325b0(0xC054u,0u,load_le32(dg(m,0xC034u)),0x654u,0x100u);
+    if(b.app25&&b.app25->call_29234)b.app25->call_29234(0xC054u);
+    if(restore!=-2&&(b.call_29050?b.call_29050():-1)!=-1) {
+        if(b.app25&&b.app25->call_28dcc)b.app25->call_28dcc(0x9C4u);
+        if(b.app25&&b.app25->call_28ef0)b.app25->call_28ef0();
+    }
+    if(restore!=-1) {
+        if(b.call_28ce8)b.call_28ce8();
+        if(b.app25&&b.app25->call_29008)b.app25->call_29008(saved_29098);
+        if(b.app25&&b.app25->call_28f58)b.app25->call_28f58(saved_290a0);
+        if(b.app25&&b.app25->call_28e58)b.app25->call_28e58(restore,static_cast<s32>(saved_29048),0x9C4u);
+    }
+    if(b.app25&&b.app25->call_1f8fc)b.app25->call_1f8fc();
+    if(b.app25&&b.app25->call_19cf4)b.app25->call_19cf4();
+}
+static_assert(0x13EF6u-0x13C88u==622u);
+
+[[nodiscard]] u32 function_13ef8(Machine& m,Application26Boundary& b,u32 mode) noexcept {
+    if(mode==7u&&b.call_1c1dc&&b.call_1c1dc(0x25u)==1u)return 0u;
+    u32 saved50=0u,saved48=0u,saved98=0u,saveda0=0u;
+    function_13ad8(m,b,&mode,&saved50,&saved48,&saved98,&saveda0);
+    const u32 result=b.app25?function_13834(m,*b.app25):0u;
+    function_13c88(m,b,mode,static_cast<s32>(saved50),saved48,saved98,saveda0);
+    return result;
+}
+static_assert(0x13F61u-0x13EF8u==105u);
+
+void function_13f70(Machine& m,Application26Boundary& b,u32 offset) noexcept {
+    const u32 handle=b.call_2ec74?b.call_2ec74(9u):0u;
+    const u32 address=load_le32(dg(m,0x258CCu))+offset+load_le32(dg(m,0x7FCCu));
+    if(b.call_31334)b.call_31334(address,handle);
+    const u32 words=b.app25&&b.app25->read_312ec_value?b.app25->read_312ec_value(handle,2u):0u;
+    if(b.app25&&b.app25->call_312ec)b.app25->call_312ec(0x13020u,words*2u,handle);
+    store_le32(dg(m,0x7FECu),0u);
+}
+static_assert(0x13FD4u-0x13F70u==100u);
+
+[[nodiscard]] u32 function_13fd4(Machine& m,Application26Boundary& b,u32 mode,s32 y,s32 x,
+                                  s32 line_step,s32 max_width,u32 text,u32 font) noexcept {
+    u32 lines=0u;
+    s32 carry_width=0;
+    u32 line=text;
+    if(*dg(m,line)==0u)return 0u;
+    u32 cut=line;
+    bool emit=false;
+    for(;;) {
+        if(emit) {
+            const u8 saved=*dg(m,cut);
+            *dg(m,cut)=0u;
+            if(mode==1u) {
+                if(b.app25&&b.app25->call_30508)b.app25->call_30508(static_cast<u32>(y),0u,0x140u,line,font);
+            } else if(b.app25&&b.app25->call_3060c) {
+                b.app25->call_3060c(static_cast<u32>(y),static_cast<u32>(x),line,font);
+            }
+            ++lines;
+            if(saved==0u)return lines;
+            y+=line_step;
+            emit=false;
+            carry_width=0;
+            line=cut+1u;
+            *dg(m,cut)=saved;
+            while(static_cast<s8>(*dg(m,line))==0x20)++line;
+        }
+
+        s32 word_width=0;
+        u32 p=line;
+        s32 prior_width=0;
+        for(;;) {
+            prior_width+=word_width;
+            cut=p;
+            word_width=carry_width;
+            while(static_cast<s8>(*dg(m,p))!=0x20&&*dg(m,p)!=0u&&*dg(m,p)!=1u) {
+                const s32 ch=static_cast<s8>(*dg(m,p++));
+                word_width+=b.call_30318?b.call_30318(static_cast<u32>(ch),font):0;
+            }
+            if(prior_width+word_width>max_width) {
+                --cut;
+                emit=true;
+                break;
+            }
+            if(*dg(m,p)==0u||*dg(m,p)==1u) {
+                cut=p;
+                emit=true;
+                break;
+            }
+            carry_width=b.call_30318?b.call_30318(0x20u,font):0;
+            ++p;
+        }
+    }
+}
+static_assert(0x14116u-0x13FD4u==322u);
+
+void function_14118(Machine& m,Application26Boundary& b,u32 src,u32 dst,u32 size) noexcept {
+    if(b.app25&&b.app25->call_30d30)b.app25->call_30d30(dst,0u,size);
+    u32 active=0u;
+    for(u32 actor=0u;actor<0x920u;actor+=0x248u)
+        if((load_le16(dg(m,0x218F0u+actor))&0xC000u)==0u)++active;
+    while(*dg(m,src)!=0u) {
+        if(*dg(m,src)!='[') { *dg(m,dst++)=*dg(m,src++); continue; }
+        ++src;
+        if(active==1u) {
+            while(*dg(m,src)!='|')++src;
+            ++src;
+            while(*dg(m,src)!=']')*dg(m,dst++)=*dg(m,src++);
+            ++src;
+        } else {
+            while(*dg(m,src)!='|')*dg(m,dst++)=*dg(m,src++);
+            ++src;
+            while(*dg(m,src)!=']')++src;
+            ++src;
+        }
+    }
+}
+static_assert(0x141B6u-0x14118u==158u);
+
+void function_141b8(Machine& m,Application26Boundary& b) noexcept {
+    store_le32(dg(m,0x7FE8u),0u);
+    for(u32 i=0u;i<4u;++i) {
+        const u16 id=load_le16(dg(m,0x7FD8u+i*4u));
+        if(id==0xFFFFu)continue;
+        if(b.app25&&b.app25->call_1c368)b.app25->call_1c368(0x759Cu,static_cast<u32>(id)+load_le32(dg(m,0x7FF4u)));
+        store_le32(dg(m,0x7FE8u),load_le32(dg(m,0x7FE8u))+1u);
+        function_14118(m,b,0x759Cu,0x12C20u+i*0x100u,0x100u);
+    }
+}
+static_assert(0x14217u-0x141B8u==95u);
+
+void function_14218(Machine& m,Application26Boundary& b,s32 selected,u32 show_all) noexcept {
+    if(b.app25)app25_select_page(m,*b.app25);
+    if(selected==-1&&b.app25&&b.app25->call_2e510)
+        b.app25->call_2e510(0x1Eu,0xACu,load_le32(dg(m,0x258CCu))+3u,9u);
+    if(b.app25&&b.app25->call_2e510)
+        b.app25->call_2e510(0xDCu,0u,load_le32(dg(m,0x258CCu))+2u,9u);
+
+    for(s32 i=0;i<4;++i) {
+        if(load_le16(dg(m,0x7FD8u+static_cast<u32>(i)*4u))==0xFFFFu)continue;
+        if(b.call_3059c)b.call_3059c(i==selected?0x8000u:0u);
+        if(i!=selected&&show_all==0u)continue;
+        const u32 y=static_cast<u32>(0xDD+i*0x16);
+        const u32 number=b.app25&&b.app25->call_2e6f0?b.app25->call_2e6f0(i+1):0u;
+        if(b.app25&&b.app25->call_3060c)b.app25->call_3060c(y,0x17u,number,1u);
+        if(b.call_30354)b.call_30354(0x3Au,1u);
+        (void)function_13fd4(m,b,0u,static_cast<s32>(y),0x1F,0x0A,0x10A,
+                             0x12C20u+static_cast<u32>(i)*0x100u,1u);
+    }
+    if(b.call_3059c)b.call_3059c(0u);
+}
+static_assert(0x14309u-0x14218u==241u);
+
+[[nodiscard]] u32 function_1430c(Machine& m) noexcept {
+    u32 index=load_le32(dg(m,0x7FECu));
+    const u32 actor=0x218E0u+load_le32(dg(m,0x7FFCu))*0x248u;
+    bool chosen=false;
+    u16 value=0u;
+    for(;;) {
+        const u32 rec=0x13020u+index*2u;
+        const u16 code=load_le16(dg(m,rec));
+        if(code==0x21u) {
+            if(!chosen)value=load_le16(dg(m,rec+2u));
+            index+=2u;
+            store_le32(dg(m,0x7FECu),index);
+            return value;
+        }
+        bool match=false;
+        switch(code) {
+            case 0x00u: match=*dg(m,actor+0x1Au)==0u; break;
+            case 0x01u: match=*dg(m,actor+0x1Au)==2u; break;
+            case 0x02u: match=*dg(m,actor+0x1Au)==4u; break;
+            case 0x03u: match=*dg(m,actor+0x1Au)==1u; break;
+            case 0x04u: match=*dg(m,actor+0x1Au)==3u; break;
+            case 0x05u: match=*dg(m,actor+0x1Au)==5u; break;
+            case 0x06u: match=*dg(m,actor+0x3Du)>0x10u; break;
+            case 0x07u: match=*dg(m,actor+0x3Du)<0x0Au; break;
+            case 0x08u: match=*dg(m,actor+0x33u)>0x10u; break;
+            case 0x09u: match=*dg(m,actor+0x33u)<0x0Au; break;
+            case 0x0Au: match=*dg(m,actor+0x39u)>0x10u; break;
+            case 0x0Bu: match=*dg(m,actor+0x39u)<0x0Au; break;
+            case 0x0Cu: match=*dg(m,actor+0x35u)>0x10u; break;
+            case 0x0Du: match=*dg(m,actor+0x35u)<0x0Au; break;
+            case 0x0Eu: match=*dg(m,actor+0x37u)>0x10u; break;
+            case 0x0Fu: match=*dg(m,actor+0x37u)<0x0Au; break;
+            case 0x10u: match=*dg(m,actor+0x3Bu)>0x10u; break;
+            case 0x11u: match=*dg(m,actor+0x3Bu)<0x0Au; break;
+            case 0x12u: match=*dg(m,actor+0x14u)==0u; break;
+            case 0x13u: match=*dg(m,actor+0x14u)==5u; break;
+            case 0x14u: match=*dg(m,actor+0x14u)==1u; break;
+            case 0x15u: match=*dg(m,actor+0x14u)==4u; break;
+            case 0x16u: match=*dg(m,actor+0x14u)==3u; break;
+            case 0x17u: match=*dg(m,actor+0x14u)==2u; break;
+            case 0x18u: { const u8 v=*dg(m,actor+0x14u); match=v>=2u&&v<=5u; break; }
+            case 0x19u: match=*dg(m,actor+0x15u)==0u||*dg(m,actor+0x16u)==0u||*dg(m,actor+0x17u)==0u; break;
+            case 0x1Au: match=static_cast<s8>(*dg(m,actor+0x15u))==2||static_cast<s8>(*dg(m,actor+0x16u))==2||static_cast<s8>(*dg(m,actor+0x17u))==2; break;
+            case 0x1Bu: match=static_cast<s8>(*dg(m,actor+0x15u))==1||static_cast<s8>(*dg(m,actor+0x16u))==1||static_cast<s8>(*dg(m,actor+0x17u))==1; break;
+            case 0x1Cu: match=static_cast<s8>(*dg(m,actor+0x15u))==4||static_cast<s8>(*dg(m,actor+0x16u))==4||static_cast<s8>(*dg(m,actor+0x17u))==4; break;
+            case 0x1Du: match=static_cast<s8>(*dg(m,actor+0x15u))==3||static_cast<s8>(*dg(m,actor+0x16u))==3||static_cast<s8>(*dg(m,actor+0x17u))==3; break;
+            case 0x1Eu: match=static_cast<s8>(*dg(m,actor+0x15u))==5||static_cast<s8>(*dg(m,actor+0x16u))==5||static_cast<s8>(*dg(m,actor+0x17u))==5; break;
+            case 0x1Fu: match=*dg(m,actor+0x13u)==0u; break;
+            case 0x20u: match=*dg(m,actor+0x13u)==1u; break;
+            default: break;
+        }
+        if(match&&!chosen){chosen=true;value=load_le16(dg(m,rec+2u));}
+        index+=2u;
+    }
+}
+static_assert(0x146B8u-0x1430Cu==940u);
+
+void function_146b8(Application26Boundary& b,u32 value) noexcept {
+    if(b.call_280dc)b.call_280dc(0x0Au);
+    if(b.call_27f24)b.call_27f24(value);
+    if(b.call_280dc)b.call_280dc(6u);
+}
+static_assert(0x146D9u-0x146B8u==33u);
+
+void function_146dc(Machine& m,Application26Boundary& b) noexcept {
+    u32 stream_index=load_le32(dg(m,0x7FECu))+1u;
+    const u16 token=load_le16(dg(m,0x1301Eu+stream_index*2u));
+    store_le32(dg(m,0x7FECu),stream_index);
+    u32 resource=function_1430c(m);
+    if(b.app25)app25_select_page(m,*b.app25);
+    if(b.app25&&b.app25->call_2e510)
+        b.app25->call_2e510(0x1Eu,0xACu,load_le32(dg(m,0x258CCu))+3u,9u);
+    resource+=load_le32(dg(m,0x7FF4u));
+    if(b.app25&&b.app25->call_1c368)b.app25->call_1c368(0x759Cu,resource);
+    (void)function_13fd4(m,b,0u,0x20,0xAF,0x0C,0x7B,0x759Cu,1u);
+
+    const auto clear=[&]() noexcept {
+        if(b.app25&&b.app25->call_1a8c8)
+            b.app25->call_1a8c8(load_le32(dg(m,0xC050u)),8u,0xA0u,0xD2u,0xA0u);
+    };
+    const auto wait_release=[&]() noexcept {
+        while(b.app25&&b.app25->call_1a1f4&&b.app25->call_1a1f4()!=0u)
+            if(b.call_16034)b.call_16034();
+    };
+    const auto wait_press_or_device=[&]() noexcept {
+        while(b.app25&&b.app25->call_1a1f4&&b.app25->call_1a1f4()==0u) {
+            if(!b.call_280e8||b.call_280e8()==0u)break;
+            if(b.call_16034)b.call_16034();
+        }
+    };
+
+    if(token==0xFFFFu||*dg(m,0xC02Bu)==0u||load_le32(dg(m,0xEE40u))==0u) {
+        clear();
+        wait_release();
+        while(b.app25&&b.app25->call_1a1f4&&b.app25->call_1a1f4()==0u)
+            if(b.call_16034)b.call_16034();
+        clear();
+        return;
+    }
+
+    function_146b8(b,load_le32(dg(m,0x25614u))+load_le32(dg(m,0x7FF8u))+token);
+    clear();
+    wait_release();
+    wait_press_or_device();
+    if(b.call_27ff0)b.call_27ff0();
+
+    u16 follow=0xFFFFu;
+    if(load_le32(dg(m,0x7FD4u))==9u&&token==2u)follow=0x0Au;
+    else if(load_le32(dg(m,0x7FD4u))==0x17u&&token==0u)follow=2u;
+    if(follow!=0xFFFFu) {
+        function_146b8(b,load_le32(dg(m,0x25614u))+load_le32(dg(m,0x7FF8u))+follow);
+        wait_release();
+        wait_press_or_device();
+        if(b.call_27ff0)b.call_27ff0();
+    }
+    clear();
+}
+static_assert(0x148EEu-0x146DCu==530u);
 
 } // namespace code2

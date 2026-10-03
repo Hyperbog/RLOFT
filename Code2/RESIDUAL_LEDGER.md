@@ -181,9 +181,20 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 1359C..135C3 | table | 40
 13832..13833 | alignment | 2
 139AB..139AB | alignment | 1
+13AD5..13AD7 | alignment | 3
+13C62..13C63 | alignment | 2
+13C64..13C87 | table | 36
+13EF6..13EF7 | alignment | 2
+13F61..13F6F | noncode | 15
+14116..14117 | alignment | 2
+141B6..141B7 | alignment | 2
+14217..14217 | alignment | 1
+14309..1430B | alignment | 3
+146D9..146DB | alignment | 3
+148EE..148EF | alignment | 2
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **1,579 bytes**.
+**Total proven non-code/data:** **1,650 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -245,3 +256,6 @@ Batch 24 evidence: `11FAE..11FAF`, `1202A..1202B`, and `12986..12987` decode as 
 
 
 Batch 25 evidence: `131D0..131DA` is the exact NUL-terminated `CINE00.ANM` literal referenced by the next routine at `139B8`; `131CD..131CF` is the three-byte zero pad immediately before that referenced object. `1359C..135C3` is the exact ten-entry CS dword table consumed by the indirect jump at `13625`, targeting `1362D,1364B,13689,1369C,136B6,136DA,13752,137C0,136C0,1379F`. All other Batch 25 residual ranges decode as bounded `NOP`, `LEA EAX,[EAX+0]`, or `MOV EAX,EAX` compiler separators. A full object-1 direct relative control-flow target scan found no incoming target to any Batch 25 residual byte. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+Batch 26 evidence: `13C64..13C87` is the exact nine-entry CS dword table consumed by the indirect jump at `13D06`, with targets `13D0E,13D1D,13D1D,13D1D,13D1D,13D69,13DB5,13E33,13E17`. `13F61..13F6F` is a fifteen-byte zero pad bounded by the directly reconstructed return at `13F60` and next entry at `13F70`; it has no data reference and no incoming direct relative control-flow target. All other Batch 26 residual ranges decode as bounded `NOP`, `LEA EAX,[EAX+0]`, or `MOV EAX,EAX` compiler separators. A full object-1 direct relative control-flow target scan found no incoming target to any Batch 26 residual byte other than the explicit table reference at `13D06`. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
