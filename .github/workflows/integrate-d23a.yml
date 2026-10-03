@@ -1,37 +1,76 @@
-name: CODE.1 object verifier
+name: CODE.1 post-closure semantic hardening 10o
 on:
   push:
     branches: [code1-decompilation]
     paths:
       - '.github/workflows/integrate-d23a.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
-  verify:
+  integrate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Verify closed object accounting
+      - name: Apply post-closure semantic hardening 10o
+        run: python3 Code1/fix_semantic_audit_checkpoint10o.py
+      - name: Verify hardening 10o and closed accounting
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
           cpp=Path('Code1/Code1.cpp').read_text()
           led=Path('Code1/RESIDUAL_LEDGER.md').read_text()
+          audit=Path('Code1/FINAL_BINARY_AUDIT.md').read_text()
+          progress=Path('Code1/PROGRESS.md').read_text()
+          continuity=Path('Code1/DECOMPILATION_CONTINUITY.md').read_text()
           assert 'constexpr u32 kVerifiedTranslatedBytes=69361u;' in cpp
+          assert 'state|=0x00004000u;' in cpp and 'state|=0x00400000u;' not in cpp
+          a=cpp[cpp.index('[[nodiscard]]u32 function_1083f('):cpp.index('static_assert(0x10974u-0x1083Fu==309u);')]
+          assert 'return r.carry?0u:new_arena+0x24u;' in a
+          q=cpp[cpp.index('[[nodiscard]]u32 function_10974(Machine&m'):cpp.index('static_assert(0x109C1u-0x10974u==77u);')]
+          assert 'b.selector_limit(m.cpu.ds)+1u' in q
+          acq=cpp[cpp.index('[[nodiscard]]u32 function_109c1('):cpp.index('static_assert(0x10AA9u-0x109C1u==232u);')]
+          assert 'if(!linear)' not in acq
+          grow=cpp[cpp.index('[[nodiscard]]u32 function_10aa9('):cpp.index('static_assert(0x10C46u-0x10AA9u==413u);')]
+          assert 'raw=acquired+8u' in grow and 'function_10974(m,hb)' in grow
+          brk=cpp[cpp.index('[[nodiscard]]u32 function_10dd7('):cpp.index('static_assert(0x10E81u-0x10DD7u==170u);')]
+          assert 'u32 pages=(requested+0xfffu)>>12' in brk and 'resize_break_other(pages)' in brk
+          close=cpp[cpp.index('[[nodiscard]]s32 function_10ee0('):cpp.index('static_assert(0x10F2Eu-0x10EE0u==78u);')]
+          assert 'if(forced||stream>=threshold)' in close
+          hexer=cpp[cpp.index('[[nodiscard]]u8 function_1106e('):cpp.index('static_assert(0x11081u-0x1106Eu==19u);')]
+          assert 'static_cast<s32>(c)>0x39' in hexer
+          cdrv=cpp[cpp.index('[[nodiscard]]s32 function_11100('):cpp.index('static_assert(0x1119Eu-0x11100u==158u);')]
+          assert 'function_d85f(f' in cdrv and 'function_11275(f,name)' in cdrv
+          unlink=cpp[cpp.index('[[nodiscard]]s32 function_11275('):cpp.index('static_assert(0x11285u-0x11275u==16u);')]
+          assert 'FileBoundaries&f' in unlink and 'function_d8aa(f,path)' in unlink
+          low=cpp[cpp.index('[[nodiscard]]s32 function_11285('):cpp.index('static_assert(0x11302u-0x11285u==125u);')]
+          assert 'f.call_103c3?f.call_103c3(handle):0u' in low
+          assert 'map_dos_error(f,wrote)' in low and 'b.fd_flags' not in low
+          assert 'Post-closure semantic hardening checkpoint 10o' in audit
+          assert 'semantic%20audit-100.00%25-brightgreen' in progress
+          assert 'Total integrated verified translated bytes: **69,361**.' in progress
+          assert 'CODE.1 semantic closure / next phase' in continuity
           m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S)
           assert m
           total=0
           for line in m.group(1).strip().splitlines():
-              a,b,cat,n=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| (\d+)',line).groups()
-              a=int(a,16); b=int(b,16); n=int(n)
-              assert b-a+1==n
+              x,y,cat,n=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| (\d+)',line).groups()
+              x=int(x,16); y=int(y,16); n=int(n)
+              assert y-x+1==n
               total += n
           assert total==1041,total
           assert 69361+total==70402
-          print('CODE.1 object accounting verified: 69361 + 1041 = 70402')
+          print('CODE.1 semantic hardening 10o verified: 69361 + 1041 = 70402')
           PY
       - name: Syntax check CODE.1 C++
         run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
+      - name: Commit post-closure hardening
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+Hyperbog@users.noreply.github.com
+          rm -f Code1/fix_semantic_audit_checkpoint10m.py Code1/fix_semantic_audit_checkpoint10o.py
+          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/PROGRESS.md Code1/DECOMPILATION_CONTINUITY.md Code1/fix_semantic_audit_checkpoint10m.py Code1/fix_semantic_audit_checkpoint10o.py
+          git diff --cached --check
+          if git diff --cached --quiet; then echo 'Hardening 10o already applied.'; else git commit -m "Harden CODE.1 final semantic audit" && git push origin HEAD:code1-decompilation; fi
