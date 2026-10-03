@@ -1899,10 +1899,12 @@ static u8 lg13r8(LowGraphics13Boundary&b,u32 a)noexcept{return b.read8?b.read8(a
 static void lg13w8(LowGraphics13Boundary&b,u32 a,u8 v)noexcept{if(b.write8)b.write8(a,v);}static void lg13w16(LowGraphics13Boundary&b,u32 a,u16 v)noexcept{if(b.write16)b.write16(a,v);}static void lg13w32(LowGraphics13Boundary&b,u32 a,u32 v)noexcept{if(b.write32)b.write32(a,v);}
 
 // AE0C..AE59: translate one frame through a 256-byte XLAT table; transparent key byte is preserved when flag 80h is set.
-void function_ae0c(LowGraphics13Boundary&b,u32 frame,u32 table,u32 image)noexcept{const u32 count=lg13r16(b,image);u32 p=image+8u+count*frame;if((lg13r8(b,image+7u)&0x80u)!=0u){const u8 key=lg13r8(b,p++);for(u32 n=count;n;--n,++p){const u8 v=lg13r8(b,p);if(v!=key)lg13w8(b,p,lg13r8(b,table+v));}}else for(u32 n=count;n;--n,++p){const u8 v=lg13r8(b,p);lg13w8(b,p,lg13r8(b,table+v));}}static_assert(0xAE5Au-0xAE0Cu==78u);
+// AE0C..AE59: translate one frame through a 256-byte XLAT table; transparent key byte is preserved when flag 80h is set.
+void function_ae0c(LowGraphics13Boundary&b,u32 frame,u32 table,u32 image)noexcept{u32 count=lg13r16(b,image);u32 p=image+8u+static_cast<u32>(lg13r16(b,image))*frame;if((lg13r8(b,image+7u)&0x80u)!=0u){const u8 key=lg13r8(b,p++);do{const u8 v=lg13r8(b,p);if(v!=key)lg13w8(b,p,lg13r8(b,table+v));++p;}while(--count!=0u);}else do{const u8 v=lg13r8(b,p);lg13w8(b,p,lg13r8(b,table+v));++p;}while(--count!=0u);}static_assert(0xAE5Au-0xAE0Cu==78u);
 // AE5A..AE5B XCHG EBX,EBX alignment.
 // AE5C..AEA5: register-input variant; ESI=image and EDX=frame are live on entry, BL is the subtraction delta.
-void function_ae5c(LowGraphics13Boundary&b,u32 esi_image,u32 edx_frame,u8 delta)noexcept{const u32 count=lg13r16(b,esi_image);u32 p=esi_image+8u+count*edx_frame;if((lg13r8(b,esi_image+7u)&0x80u)!=0u){const u8 key=lg13r8(b,p++);for(u32 n=count;n;--n,++p){const u8 v=lg13r8(b,p);if(v!=key)lg13w8(b,p,static_cast<u8>(v-delta));}}else for(u32 n=count;n;--n,++p)lg13w8(b,p,static_cast<u8>(lg13r8(b,p)-delta));}static_assert(0xAEA6u-0xAE5Cu==74u);
+// AE5C..AEA5: register-input variant; ESI=image and EDX=frame are live on entry, BL is the subtraction delta.
+void function_ae5c(LowGraphics13Boundary&b,u32 esi_image,u32 edx_frame,u8 delta)noexcept{u32 count=lg13r16(b,esi_image);u32 p=esi_image+8u+static_cast<u32>(lg13r16(b,esi_image))*edx_frame;if((lg13r8(b,esi_image+7u)&0x80u)!=0u){const u8 key=lg13r8(b,p++);do{const u8 v=lg13r8(b,p);if(v!=key)lg13w8(b,p,static_cast<u8>(v-delta));++p;}while(--count!=0u);}else do{lg13w8(b,p,static_cast<u8>(lg13r8(b,p)-delta));++p;}while(--count!=0u);}static_assert(0xAEA6u-0xAE5Cu==74u);
 // AEA8..AEDB: register helper. EDX is row, ECX is x; output is EBX linear address and ECX plane 0..3.
 struct PlanarAddress13{u32 ebx=0,ecx=0;};
 [[nodiscard]]PlanarAddress13 function_aea8(Machine&m,u32 edx,u32 ecx)noexcept{const u32 shift1=load_le32(dgroup_ptr(m,dgroup(0x2b35u))),shift2=load_le32(dgroup_ptr(m,dgroup(0x2b39u)));const u32 first=edx<<static_cast<u8>(shift1);const u32 second=first<<static_cast<u8>(shift2);return{first+second+(ecx>>2)+load_le32(dgroup_ptr(m,dgroup(0x2b49u))),ecx&3u};}static_assert(0xAEDCu-0xAEA8u==52u);
@@ -2107,12 +2109,37 @@ void function_a4e8(Machine&m,LowGraphics13Boundary&b,u32 src,u32 y,u32 x,u32 hei
 static_assert(0xA555u-0xA4E8u==109u);
 // A555..A557 alignment.
 
-static u8 rol8_1(u8 v)noexcept{return static_cast<u8>((v<<1)|(v>>7));}
-static void batch15_sprite_core(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 image,u8 delta,bool subtract)noexcept{const PlanarAddress13 p=function_aea8(m,y,x);u32 dst0=p.ebx;u8 mask=static_cast<u8>(0x11u<<p.ecx);const u32 width=lg13r16(b,image+4u),rows=lg13r8(b,image+6u),flags=lg13r8(b,image+7u);u32 src=image+8u+lg13r16(b,image)*frame;const u32 rowbytes=width*2u,skip=load_le32(dgroup_ptr(m,dgroup(0x2b41u)))-rowbytes;if((flags&0x80u)==0u){for(u32 plane=0;plane<4u;++plane){if(b.out16)b.out16(0x3c4u,static_cast<u16>(0x0002u|(static_cast<u16>(mask)<<8)));u32 dst=dst0;for(u32 yy=0;yy<rows;++yy){for(u32 i=0;i<rowbytes;++i){u8 v=lg13r8(b,src++);if(subtract)v=static_cast<u8>(v-delta);lg13w8(b,dst++,v);}dst+=skip;}const bool carry=(mask&0x80u)!=0u;mask=rol8_1(mask);if(carry)++dst0;}}else{const u8 key=lg13r8(b,src++);for(u32 plane=0;plane<4u;++plane){if(b.out16)b.out16(0x3c4u,static_cast<u16>(0x0002u|(static_cast<u16>(mask)<<8)));u32 dst=dst0;for(u32 yy=0;yy<rows;++yy){for(u32 i=0;i<rowbytes;++i){u8 v=lg13r8(b,src++);if(v!=key){if(subtract)v=static_cast<u8>(v-delta);lg13w8(b,dst,v);}++dst;}dst+=skip;}const bool carry=(mask&0x80u)!=0u;mask=rol8_1(mask);if(carry)++dst0;}}}
-// A6F0..A7E7: planar sprite draw. Transparent images skip key-colored bytes; nontransparent images copy all four planes.
-void function_a6f0(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 image)noexcept{batch15_sprite_core(m,b,frame,y,x,image,0u,false);}static_assert(0xA7E8u-0xA6F0u==248u);
-// A7E8..A8F3: same draw with the caller byte subtracted from every emitted non-key pixel. The original writes that byte into two immediates in its own code on every entry.
-void function_a7e8(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 image,u32 delta)noexcept{batch15_sprite_core(m,b,frame,y,x,image,static_cast<u8>(delta),true);}static_assert(0xA8F4u-0xA7E8u==268u);
+static u8 batch15_sprite_rol1(u8 v)noexcept{return static_cast<u8>((v<<1)|(v>>7));}
+static void batch15_sprite_mask(LowGraphics13Boundary&b,u8 mask)noexcept{if(b.out16)b.out16(0x3c4u,static_cast<u16>(0x0002u|(static_cast<u16>(mask)<<8)));}
+// A6F0..A7E7: exact four-plane sprite copy.  +4 is the 16-bit row counter;
+// +6 is the byte field used to derive each scanline transfer width.
+void function_a6f0(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 image)noexcept{
+ const PlanarAddress13 p=function_aea8(m,y,x);u32 dst0=p.ebx;u8 mask=static_cast<u8>(0x11u<<p.ecx);
+ const u16 rows=lg13r16(b,image+4u);const u8 half=lg13r8(b,image+6u),flags=lg13r8(b,image+7u);u32 src=image+8u+static_cast<u32>(lg13r16(b,image))*frame;
+ const u32 doubled=static_cast<u32>(half)<<1,skip=load_le32(dgroup_ptr(m,dgroup(0x2b41u)))-doubled;
+ if((flags&0x80u)==0u){
+  for(u32 plane=0;plane<4u;++plane){batch15_sprite_mask(b,mask);u32 dst=dst0,rc=rows;do{u32 wc=half;while(wc--!=0u){const u16 v=lg13r16(b,src);lg13w16(b,dst,v);src+=2u;dst+=2u;}dst+=skip;}while(--rc!=0u);if(plane!=3u){const bool carry=(mask&0x80u)!=0u;mask=batch15_sprite_rol1(mask);if(carry)++dst0;}}
+ }else{
+  const u8 key=lg13r8(b,src++);store_le32(dgroup_ptr(m,dgroup(0x2b51u)),rows);const u32 bytes=static_cast<u8>(doubled);
+  for(u32 plane=0;plane<4u;++plane){batch15_sprite_mask(b,mask);u32 dst=dst0;u16 rc=rows;do{u32 n=bytes;do{const u8 v=lg13r8(b,src++);if(v!=key)lg13w8(b,dst,v);++dst;}while(--n!=0u);dst+=skip;}while(--rc!=0u);if(plane!=3u){const bool carry=(mask&0x80u)!=0u;mask=batch15_sprite_rol1(mask);if(carry)++dst0;}}
+ }
+}
+static_assert(0xA7E8u-0xA6F0u==248u);
+// A7E8..A8F3: subtracting variant.  The nontransparent byte loop doubles the
+// low byte of the already-doubled +6 field; the transparent path does not.
+void function_a7e8(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 image,u32 delta)noexcept{
+ const PlanarAddress13 p=function_aea8(m,y,x);u32 dst0=p.ebx;u8 mask=static_cast<u8>(0x11u<<p.ecx);const u8 sub=static_cast<u8>(delta);
+ const u16 rows=lg13r16(b,image+4u);const u8 half=lg13r8(b,image+6u),flags=lg13r8(b,image+7u);u32 src=image+8u+static_cast<u32>(lg13r16(b,image))*frame;
+ const u32 doubled=static_cast<u32>(half)<<1,skip=load_le32(dgroup_ptr(m,dgroup(0x2b41u)))-doubled;
+ if((flags&0x80u)==0u){
+  const u32 bytes=static_cast<u32>(static_cast<u8>(doubled))<<1;
+  for(u32 plane=0;plane<4u;++plane){batch15_sprite_mask(b,mask);u32 dst=dst0,rc=rows;do{u32 n=bytes;do{lg13w8(b,dst++,static_cast<u8>(lg13r8(b,src++)-sub));}while(--n!=0u);dst+=skip;}while(--rc!=0u);if(plane!=3u){const bool carry=(mask&0x80u)!=0u;mask=batch15_sprite_rol1(mask);if(carry)++dst0;}}
+ }else{
+  const u8 key=lg13r8(b,src++);store_le32(dgroup_ptr(m,dgroup(0x2b51u)),rows);const u32 bytes=static_cast<u8>(doubled);
+  for(u32 plane=0;plane<4u;++plane){batch15_sprite_mask(b,mask);u32 dst=dst0,rc=rows;do{u32 n=bytes;do{const u8 v=lg13r8(b,src++);if(v!=key)lg13w8(b,dst,static_cast<u8>(v-sub));++dst;}while(--n!=0u);dst+=skip;}while(--rc!=0u);if(plane!=3u){const bool carry=(mask&0x80u)!=0u;mask=batch15_sprite_rol1(mask);if(carry)++dst0;}}
+ }
+}
+static_assert(0xA8F4u-0xA7E8u==268u);
 
 
 
@@ -2245,20 +2272,37 @@ void function_a05c(Machine&m,LowGraphics13Boundary&b,s32 a0,s32 b0,s32 a1,s32 b1
 }
 static_assert(0xA21Au-0xA05Cu==446u);
 
-static void b17_table_sprite(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 image,u32 table)noexcept{
- const PlanarAddress13 p=function_aea8(m,y,x);u32 dst0=p.ebx;u8 mask=static_cast<u8>(0x11u<<(p.ecx&3u));const u32 width=lg13r16(b,image+4u),rows=lg13r8(b,image+6u),flags=lg13r8(b,image+7u);u32 src=image+8u+lg13r16(b,image)*frame;const u32 rowbytes=width*2u,skip=load_le32(dgroup_ptr(m,dgroup(0x2b41u)))-rowbytes;
- if((flags&0x80u)==0u){for(u32 plane=0;plane<4u;++plane){b17_mask(b,mask);u32 dst=dst0;for(u32 yy=0;yy<rows;++yy){for(u32 i=0;i<rowbytes;++i){const u8 v=lg13r8(b,src++);lg13w8(b,dst++,lg13r8(b,table+v));}dst+=skip;}const bool carry=(mask&0x80u)!=0u;mask=b17_rol1(mask);if(carry)++dst0;}}
- else{const u8 key=lg13r8(b,src++);for(u32 plane=0;plane<4u;++plane){b17_mask(b,mask);u32 dst=dst0;for(u32 yy=0;yy<rows;++yy){for(u32 i=0;i<rowbytes;++i){const u8 v=lg13r8(b,src++);if(v!=key)lg13w8(b,dst,lg13r8(b,table+v));++dst;}dst+=skip;}const bool carry=(mask&0x80u)!=0u;mask=b17_rol1(mask);if(carry)++dst0;}}
+// A8F4..AA1F: table-translating sprite renderer; the table address is the
+// semantic form of the two self-modified XLAT displacement immediates.
+void function_a8f4(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 image,u32 table)noexcept{
+ const PlanarAddress13 p=function_aea8(m,y,x);u32 dst0=p.ebx;u8 mask=static_cast<u8>(0x11u<<(p.ecx&3u));
+ const u16 rows=lg13r16(b,image+4u);const u8 half=lg13r8(b,image+6u),flags=lg13r8(b,image+7u);u32 src=image+8u+static_cast<u32>(lg13r16(b,image))*frame;
+ const u32 doubled=static_cast<u32>(half)<<1,skip=load_le32(dgroup_ptr(m,dgroup(0x2b41u)))-doubled;
+ if((flags&0x80u)==0u){
+  const u32 bytes=static_cast<u32>(static_cast<u8>(doubled))<<1;
+  for(u32 plane=0;plane<4u;++plane){b17_mask(b,mask);u32 dst=dst0,rc=rows;do{u32 n=bytes;do{const u8 v=lg13r8(b,src++);lg13w8(b,dst++,lg13r8(b,table+v));}while(--n!=0u);dst+=skip;}while(--rc!=0u);if(plane!=3u){const bool carry=(mask&0x80u)!=0u;mask=b17_rol1(mask);if(carry)++dst0;}}
+ }else{
+  const u8 key=lg13r8(b,src++);store_le32(dgroup_ptr(m,dgroup(0x2b51u)),rows);const u32 bytes=static_cast<u8>(doubled);
+  for(u32 plane=0;plane<4u;++plane){b17_mask(b,mask);u32 dst=dst0;u16 rc=rows;do{u32 n=bytes;do{const u8 v=lg13r8(b,src++);if(v!=key)lg13w8(b,dst,lg13r8(b,table+v));++dst;}while(--n!=0u);dst+=skip;}while(--rc!=0u);if(plane!=3u){const bool carry=(mask&0x80u)!=0u;mask=b17_rol1(mask);if(carry)++dst0;}}
+ }
 }
-void function_a8f4(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 image,u32 table)noexcept{b17_table_sprite(m,b,frame,y,x,image,table);}static_assert(0xAA20u-0xA8F4u==300u);
+static_assert(0xAA20u-0xA8F4u==300u);
 
 static void b17_clipped_sprite(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 clip,u32 image,u8 delta,bool subtract)noexcept{
  auto w=[&](u32 o,u32 v){store_le32(dgroup_ptr(m,dgroup(o)),v);};auto r=[&](u32 o){return load_le32(dgroup_ptr(m,dgroup(o)));};
  w(0x2b71u,0u);w(0x2b75u,0u);w(0x2b55u,lg13r32(b,clip)>>2);w(0x2b59u,lg13r32(b,clip+4u)>>2);w(0x2b5du,lg13r32(b,clip+8u));w(0x2b61u,(lg13r32(b,clip+0x0cu)+3u)>>2);
  u32 q=lg13r32(b,clip+0x10u);w(0x2b6du,q&3u);if(q!=0u){w(0x2b71u,1u);q>>=2;}w(0x2b65u,q);q=(lg13r32(b,clip+0x14u)+r(0x2b6du))>>2;if(q==0u){q=1u;if(r(0x2b71u)!=1u){w(0x2b75u,4u-lg13r32(b,clip+0x14u));w(0x2b61u,r(0x2b61u)-1u);}}w(0x2b69u,q);w(0x2b6du,lg13r32(b,clip+0x0cu)&3u);
- const PlanarAddress13 p=function_aea8(m,y,x);u32 dst0=p.ebx;u8 mask=0x11u;for(u32 i=0;i<((p.ecx+4u-r(0x2b6du))&3u);++i)mask=b17_rol1(mask);u32 src=image+8u+lg13r16(b,image)*frame;u8 key=0xffu;if((lg13r8(b,image+7u)&0x80u)!=0u){key=lg13r8(b,src);++src;}u32 planes=4u;const u32 plane_stride=lg13r16(b,image)>>2;
- for(u32 skip=0;skip<r(0x2b75u)&&planes!=0u;++skip){src+=plane_stride;--planes;mask=b17_rol1(mask);}w(0x2b79u,planes);u32 dst_skip=load_le32(dgroup_ptr(m,dgroup(0x2b41u)))-r(0x2b69u)-r(0x2b65u);b17_mask(b,mask);
- while(planes!=0u){u32 dst=dst0;u32 rows=r(0x2b5du);while(rows--!=0u){src+=r(0x2b55u);src+=r(0x2b61u);u32 n=r(0x2b69u);while(n--!=0u){u8 v=lg13r8(b,src++);if(v!=key){if(subtract)v=static_cast<u8>(v-delta);lg13w8(b,dst,v);}++dst;}const u32 tail=r(0x2b65u);dst+=tail;src+=tail;dst+=dst_skip;}src+=r(0x2b59u);--planes;w(0x2b79u,planes);if(planes==0u)break;const bool carry=(mask&0x80u)!=0u;mask=b17_rol1(mask);if(carry){++dst0;if(r(0x2b61u)!=0u){w(0x2b61u,r(0x2b61u)-1u);--dst_skip;--dst0;if(r(0x2b71u)!=0u)w(0x2b65u,r(0x2b65u)+1u);else w(0x2b69u,r(0x2b69u)+1u);}else if(r(0x2b71u)!=0u){w(0x2b65u,r(0x2b65u)+1u);w(0x2b69u,r(0x2b69u)-1u);if(r(0x2b69u)==0u)break;}}b17_mask(b,mask);}
+ const PlanarAddress13 p=function_aea8(m,y,x);u32 dst0=p.ebx;const u32 rot=(p.ecx+4u-r(0x2b6du))&3u;u8 mask=0x11u;if(subtract)mask=static_cast<u8>(mask<<rot);else for(u32 i=0;i<rot;++i)mask=b17_rol1(mask);
+ u32 src=image+8u+static_cast<u32>(lg13r16(b,image))*frame;const u8 key=(lg13r8(b,image+7u)&0x80u)?lg13r8(b,src++):0xffu;const u32 plane_stride=static_cast<u32>(lg13r16(b,image))>>2;
+ u32 planes=4u,lead=r(0x2b75u);if(subtract){if(lead!=0u){src+=plane_stride;--planes;mask=b17_rol1(mask);}}else{while(lead!=0u){src+=plane_stride;--lead;--planes;mask=b17_rol1(mask);}}
+ w(0x2b79u,planes);u32 dst_skip=load_le32(dgroup_ptr(m,dgroup(0x2b41u)))-r(0x2b69u)-r(0x2b65u);b17_mask(b,mask);store_le32(dgroup_ptr(m,dgroup(0x2b51u)),r(0x2b5du));
+ for(;;){
+  u32 dst=dst0;u32 rows=subtract?static_cast<u16>(r(0x2b5du)):r(0x2b5du);
+  do{src+=r(0x2b55u);src+=r(0x2b61u);u32 n=r(0x2b69u);do{const u8 v=lg13r8(b,src++);if(v!=key)lg13w8(b,dst,subtract?static_cast<u8>(v-delta):v);++dst;}while(--n!=0u);const u32 tail=r(0x2b65u);dst+=tail;src+=tail;dst+=dst_skip;}while(--rows!=0u);
+  src+=r(0x2b59u);--planes;w(0x2b79u,planes);if(planes==0u)break;const bool carry=(mask&0x80u)!=0u;mask=b17_rol1(mask);
+  if(carry){++dst0;if(r(0x2b61u)!=0u){w(0x2b61u,r(0x2b61u)-1u);--dst_skip;--dst0;if(r(0x2b71u)!=0u)w(0x2b65u,r(0x2b65u)+1u);else w(0x2b69u,r(0x2b69u)+1u);}else if(r(0x2b71u)!=0u){w(0x2b65u,r(0x2b65u)+1u);w(0x2b69u,r(0x2b69u)-1u);if(r(0x2b69u)==0u)break;}}
+  b17_mask(b,mask);
+ }
 }
 void function_aa20(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 clip,u32 image)noexcept{b17_clipped_sprite(m,b,frame,y,x,clip,image,0u,false);}static_assert(0xAC0Fu-0xAA20u==495u);
 void function_ac10(Machine&m,LowGraphics13Boundary&b,u32 frame,u32 y,u32 x,u32 clip,u32 image,u32 delta)noexcept{b17_clipped_sprite(m,b,frame,y,x,clip,image,static_cast<u8>(delta),true);}static_assert(0xAE0Bu-0xAC10u==507u);
