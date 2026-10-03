@@ -70,9 +70,14 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 086A0..086C3 | table | 36
 0871B..0871B | alignment | 1
 08A7D..08A7F | alignment | 3
+08CD8..08CF3 | table | 28
+0906D..0906F | alignment | 3
+0934A..0934B | alignment | 2
+0934C..09367 | table | 28
+094DD..094DF | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **384 bytes**.
+**Total proven non-code/data:** **448 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -95,3 +100,6 @@ Batch 10 evidence: `0706E..0706F`, `07376..07377`, `0739D..0739F`, and `075C9..0
 Batch 11 evidence: `0779F`, `07871..07873`, `07D43`, and `0808B` decode as explicit compiler no-op separators between directly reconciled boundaries, and a full object-1 direct relative branch/call scan found no incoming target to any separator byte. `0808C..080AB` is the eight-entry CS dword table used by the indirect dispatcher at `08392`; its decoded targets are `0839A`, `083AD`, `08472`, `08537`, `0854D`, `08587`, `085DD`, and `085FE`. The known zero islands remain unresolved.
 
 Batch 12 evidence: `0869F` is the single zero/alignment byte between the `080AC` dispatcher return and the directly consumed nine-dword table at `086A0`; `0871B` is an explicit `NOP`; and `08A7D..08A7F` is `LEA EAX,[EAX+0]`. A full object-1 direct relative branch/call-target scan found no incoming target to these separator bytes. `086A0..086C3` is the exact nine-dword table copied by `08A80` with values `1B,36,2B,0D,1D,3A,38,38,1B`. The seven-entry table beginning at `08CD8` remains unresolved for the next owning dispatcher.
+
+
+Batch 13 evidence: `08CD8..08CF3` is the seven-entry CS table consumed by the indirect jump at `08E50`, with targets `08E58`, `08E77`, `08E94`, `08EAD`, `08EC5`, `08EDE`, `08EDE`. `0934C..09367` is the seven-entry CS table consumed at `093AB`, with targets `093B3`, `093BA`, `093CD`, `093CD`, `093C1`, `093CD`, `093C8`. `0906D..0906F` and `094DD..094DF` decode as `LEA EAX,[EAX+0]`; `0934A..0934B` decodes as `MOV EAX,EAX`. A full object-1 direct relative branch/call-target scan found no incoming target to any of these separator bytes. The known zero islands remain unresolved.
