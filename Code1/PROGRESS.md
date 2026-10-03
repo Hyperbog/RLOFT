@@ -1,18 +1,21 @@
 # CODE.1 faithful decompilation progress
 
 ![Progress](https://img.shields.io/badge/object%20accounting-100.00%25-brightgreen)
+![Semantic audit](https://img.shields.io/badge/semantic%20audit-100.00%25-brightgreen)
 
-**Verified object accounting:** 100.00%  
-**Unresolved object bytes:** 0  
+**Verified object accounting:** 100.00%
+**Unresolved object bytes:** 0
+**Sequential semantic audit:** **70,402 / 70,402 address bytes = 100.00%**
+**Semantic frontier:** **`11301` (object end)**
 **Status color:** GREEN — all object-1 bytes are now translated instructions or directly proven non-code/data.
 
 ## Measurement rule
 
 The completion badge measures exact reconciliation of the complete object-1 extent: instruction-accounted translated code plus explicitly proven non-code/data, divided by `0x11302` (70,402) bytes. The translated-instruction fraction remains a separate scalar and is never inflated by counting embedded data as C++ instructions. Mapping, research, scaffolding, pseudocode, and unintegrated translations do not count.
 
-Current verified translated instruction bytes: **69,361**.  
-Current proven non-code/data bytes: **1,041**.  
-Current reconciled object bytes: **70,402 / 70,402 = 100.00%**.  
+Current verified translated instruction bytes: **69,361**.
+Current proven non-code/data bytes: **1,041**.
+Current reconciled object bytes: **70,402 / 70,402 = 100.00%**.
 Translated-instruction fraction of the object: **98.5213%**.
 
 - Mid UI/resource/font/input/vector/render routines `71C8..729F`, selected `767C..80B9`, `8270..8335`, `8398..848F`, `84A0..87C1` with alignment/data/interrupt islands excluded: **3,941 bytes**.
@@ -88,7 +91,7 @@ Translated-instruction fraction of the object: **98.5213%**.
 - Runtime heap-extension driver `10AA9..10C45`: **413 bytes**.
 - Runtime tail helpers `10C46..10C6C`: **39 bytes**.
 
-Total integrated verified translated bytes: **69,360**.
+Total integrated verified translated bytes: **69,361**.
 
 `DA45..DA47` is three zero bytes. `EDD3..EDDF` is **13 zero bytes**. Both are classified as data/alignment and are not counted as translated code.
 
