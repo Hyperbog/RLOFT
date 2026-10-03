@@ -1060,9 +1060,16 @@ void function_cef0(Startup12Boundary&b,RegisterBridge12Boundary&rb,u32 caller,Ce
 [[nodiscard]]u32 function_cf98(Machine&m,Startup12Boundary&b,RegisterBridge12Boundary&rb,Cef0Locals12&l,u32 regs_guest,u32 far_guest)noexcept{u32 eax=0,ebx=0,ecx=0,edx=0;if(b.int33)b.int33(eax,ebx,ecx,edx);store_le16(dgroup_ptr(m,dgroup(0x8a5au)),static_cast<u16>(eax));store_le16(dgroup_ptr(m,dgroup(0x8a5cu)),static_cast<u16>(ebx));store_le16(dgroup_ptr(m,dgroup(0x8a5eu)),0);if(static_cast<u16>(eax)!=0u){u32 p=b.call3?b.call3(0x6f10u,0x40u,0x30a8u,0x30acu):0u;store_le32(dgroup_ptr(m,dgroup(0x30a4u)),p);if(p!=0u){if(function_cf44(m,b,rb,l,regs_guest,far_guest)){u16 f=b.read8?b.read8(b.ds,p):0u;store_le16(dgroup_ptr(m,dgroup(0x8a5eu)),f);}if(load_le16(dgroup_ptr(m,dgroup(0x8a5eu)))==0u&&b.call3)(void)b.call3(0x6f74u,load_le16(dgroup_ptr(m,dgroup(0x30acu))),0,0);}}else{if(b.call3)(void)b.call3(0x61d0u,0x350u,0,0);u32 p=load_le32(dgroup_ptr(m,dgroup(0x2aa0u)));u32 pending=load_le32(dgroup_ptr(m,dgroup(0x2b84u)))|load_le32(dgroup_ptr(m,dgroup(0x2f48u)));if(load_le16(dgroup_ptr(m,dgroup(p+8u)))!=0x71u){if(load_le16(dgroup_ptr(m,dgroup(p+0x14u)))!=0u&&b.runtime_call)b.runtime_call(0xc4a0u);if(b.runtime_call)b.runtime_call(0xb430u);if(pending&&b.call3)(void)b.call3(0xe6eau,0,0,0);}if(b.runtime_call)b.runtime_call(0x8424u);if(b.runtime_call)b.runtime_call(0xcbf0u);}return 0x8a5au;} static_assert(0xD08Cu-0xCF98u==244u);
 
 struct Int24Frame12{u32 eax=0,ebx=0,ecx=0,edx=0,esi=0,edi=0,ebp=0;u16 ds=0,es=0,ss=0;u32 esp=0;};
-struct Int24Boundary12{u16(*restore_ds_cec0)()=nullptr;u32(*far_callback)(u32,u32,u32,u32,u16)=nullptr;};
-// E2C3..E35F: IRET trampoline represented as an interrupt frame, including SS:ESP swap and far callback selector choice.
-void function_e2c3(Machine&m,Int24Boundary12&b,Int24Frame12&f)noexcept{f.ds=b.restore_ds_cec0?b.restore_ds_cec0():f.ds;f.es=f.ds;store_le32(dgroup_ptr(m,dgroup(0x50fcu)),f.esp);store_le16(dgroup_ptr(m,dgroup(0x5100u)),f.ss);u32 old_top=load_le32(dgroup_ptr(m,dgroup(0x5300u)));store_le32(dgroup_ptr(m,dgroup(0x5108u)),old_top);store_le32(dgroup_ptr(m,dgroup(0x5300u)),0x8a68u);f.ss=f.ds;f.esp=0x8e68u;u32 linear=((f.ebp&0xffffu)<<4);linear=(linear&0xffff0000u)|static_cast<u16>(static_cast<u16>(linear)+static_cast<u16>(f.esi));u16 sel=0x34u;u8 mode=*dgroup_ptr(m,dgroup(0x531eu));if(mode==1u)sel=f.ds;else if(mode>=2u&&mode<=4u)sel=0x34u;u32 ret=b.far_callback?b.far_callback(f.edx&0xffffu,f.edi&0xffffu,linear,f.eax&0xffffu,sel):0u;f.eax=ret;f.esp=load_le32(dgroup_ptr(m,dgroup(0x50fcu)));f.ss=load_le16(dgroup_ptr(m,dgroup(0x5100u)));store_le32(dgroup_ptr(m,dgroup(0x5300u)),load_le32(dgroup_ptr(m,dgroup(0x5108u))));} static_assert(0xE360u-0xE2C3u==157u);
+struct Int24Boundary12{u16(*restore_ds_cec0)()=nullptr;u32(*far_callback)(u32,u32,u32,u32)=nullptr;};
+// E2C3..E35F: IRET trampoline represented as an interrupt frame. The far callback receives the four encoded cdecl dwords: low16(saved EAX), low16(saved EDI), the BP:SI linearized address, and the selected segment value. Original DS/ES are restored by the final POPs.
+void function_e2c3(Machine&m,Int24Boundary12&b,Int24Frame12&f)noexcept{
+ const u16 incoming_ds=f.ds,incoming_es=f.es;const u16 work_ds=b.restore_ds_cec0?b.restore_ds_cec0():f.ds;f.ds=work_ds;f.es=work_ds;
+ store_le32(dgroup_ptr(m,dgroup(0x50fcu)),f.esp);store_le16(dgroup_ptr(m,dgroup(0x5100u)),f.ss);const u32 old_top=load_le32(dgroup_ptr(m,dgroup(0x5300u)));store_le32(dgroup_ptr(m,dgroup(0x5108u)),old_top);store_le32(dgroup_ptr(m,dgroup(0x5300u)),0x8a68u);f.ss=work_ds;f.esp=0x8e68u;
+ u32 linear=(f.ebp&0xffffu)<<4;linear=(linear&0xffff0000u)|static_cast<u16>(static_cast<u16>(linear)+static_cast<u16>(f.esi));
+ const u8 mode=*dgroup_ptr(m,dgroup(0x531eu));u16 sel=0x34u;if(mode==1u)sel=work_ds;
+ const u32 ret=b.far_callback?b.far_callback(f.eax&0xffffu,f.edi&0xffffu,linear,static_cast<u32>(sel)):0u;f.eax=ret;
+ f.esp=load_le32(dgroup_ptr(m,dgroup(0x50fcu)));f.ss=load_le16(dgroup_ptr(m,dgroup(0x5100u)));store_le32(dgroup_ptr(m,dgroup(0x5300u)),load_le32(dgroup_ptr(m,dgroup(0x5108u))));f.ds=incoming_ds;f.es=incoming_es;
+} static_assert(0xE360u-0xE2C3u==157u);
 
 // 8E3C..91BB: seven-way asset loader dispatch through table 8E20; table bytes remain data and are not counted.
 void function_8e3c(Machine&m,Batch12Boundaries&b,s32 index,u32 group)noexcept{u32 groups=load_le32(dgroup_ptr(m,dgroup(0x2b08u)));u32 gr=groups+(group<<4);if(index<0||index>=static_cast<s32>(b12r32(b,gr+8u))){if(b.asset_bad_index)b.asset_bad_index(index,group);}u32 ent=b12r32(b,gr+0x0cu)+static_cast<u32>(index)*9u;if(b12r8(b,ent+2u)!=0u){u32 t=b.tick_7f50?b.tick_7f50():0u;b12w16(b,ent+3u,static_cast<u16>(t>>5));return;}u32 cb=load_le32(dgroup_ptr(m,dgroup(0x2b1cu)));if(cb&&b.asset_preload)b.asset_preload(index,group);u8 local[0x18]{};if(b.asset_header_8d0c)b.asset_header_8d0c(local,index,b12r32(b,gr),group);u8 type=local[2];u32 result=0;if(type>=1u&&type<=7u){auto fn=b.asset_load[type-1u];if(fn)result=fn(local,b12r32(b,gr));}else if(b.fatal_9814)b.fatal_9814(0x2d4u);b12w32(b,ent+5u,result);b12w8(b,ent+2u,1u);const u16 typed=static_cast<u16>((b12r8(b,ent)&0xf0u)|(type&0x0fu));b12w16(b,ent,typed);b12w8(b,ent,static_cast<u8>(b12r8(b,ent)&0xefu));u32 temp=load_le32(local+5);if(temp&&b.free_7240)b.free_7240(temp);b12w32(b,gr+4u,b12r32(b,gr+4u)+1u);u32 t=b.tick_7f50?b.tick_7f50():0u;b12w16(b,ent+3u,static_cast<u16>(t>>5));} static_assert(0x91BCu-0x8E3Cu==896u);
@@ -1552,7 +1559,20 @@ void function_ddf2(LowLevelBoundaries&b,u32 port,u32 value)noexcept{if(b.out8)b.
 void function_ddfe(LowLevelBoundaries&b,u8 extender_mode,u32 vector,u32 offset,u16 selector)noexcept{if(extender_mode>=2&&extender_mode<=8){if(b.set_vector_2504)b.set_vector_2504(static_cast<u8>(vector),selector,offset);}else if(b.set_vector_legacy)b.set_vector_legacy(static_cast<u8>(vector),selector,offset);}
 struct VectorAddress{u32 offset=0;u16 selector=0;};
 [[nodiscard]]VectorAddress function_de35(LowLevelBoundaries&b,u8 extender_mode,u32 vector)noexcept{VectorAddress r{};if(extender_mode>=2&&extender_mode<=8){if(b.get_vector_2502)b.get_vector_2502(static_cast<u8>(vector),&r.selector,&r.offset);}else if(b.get_vector_legacy)b.get_vector_legacy(static_cast<u8>(vector),&r.selector,&r.offset);return r;}
-[[nodiscard]]u8* function_dea7(u8*dst,u32 pattern,u32 dword_count)noexcept{u8*p=dst;while(dword_count&&((reinterpret_cast<std::uintptr_t>(p)&31u)!=0)){store_le32(p,pattern);p+=4;--dword_count;}while(dword_count>=8){for(unsigned i=0;i<8;++i)store_le32(p+i*4u,pattern);p+=32;dword_count-=8;}while(dword_count){store_le32(p,pattern);p+=4;--dword_count;}return p;}
+[[nodiscard]]u8* function_dea7(u8*dst,u32 pattern,u32 dword_count)noexcept{
+ u8*p=dst;
+ if(dword_count==0u)return p;
+ while((reinterpret_cast<std::uintptr_t>(p)&31u)!=0u){store_le32(p,pattern);p+=4u;if(--dword_count==0u)return p;}
+ const u32 saved=dword_count;const u32 groups=dword_count>>2;
+ for(u32 group=0;group<groups;++group){
+  // DECE performs a discarded CMP [EAX+20h],DL while filling each odd
+  // 16-byte group when another group remains. Preserve that memory touch.
+  if((group&1u)!=0u&&group+1u<groups){const volatile u8 prefetched=*reinterpret_cast<volatile const u8*>(p+0x10u);(void)prefetched;}
+  store_le32(p+0u,pattern);store_le32(p+4u,pattern);store_le32(p+8u,pattern);store_le32(p+12u,pattern);p+=0x10u;
+ }
+ u32 tail=saved&3u;while(tail!=0u){store_le32(p,pattern);p+=4u;--tail;}return p;
+}
+static_assert(0xDF13u-0xDEA7u==108u);
 void function_df13(LowLevelBoundaries&b,u32 divisor_source)noexcept{if(divisor_source<=0x12u)return;u32 divisor=0x1234dcu/divisor_source;u8 gate=function_dde7(b,0x61);if((gate&3u)==0){function_ddf2(b,0x61,static_cast<u8>(gate|3u));function_ddf2(b,0x43,0xb6);}function_ddf2(b,0x42,divisor);function_ddf2(b,0x42,divisor>>8);}
 static_assert(0xDF73u-0xDF13u==96u);
 void function_df73(LowLevelBoundaries&b)noexcept{function_ddf2(b,0x61,static_cast<u8>(function_dde7(b,0x61)&0xfcu));}
