@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-13.15%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-14.50%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **31,278**
-**Proven non-code/data bytes:** **246**
-**Reconciled object bytes:** **31,524 / 239,698 = 13.1515% (13.15%)**
-**Unresolved object bytes:** **208,174**
+**Verified translated instruction bytes:** **34,466**
+**Proven non-code/data bytes:** **295**
+**Reconciled object bytes:** **34,761 / 239,698 = 14.5020% (14.50%)**
+**Unresolved object bytes:** **204,937**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -313,5 +313,35 @@ The known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain
 ### Next high-value targets
 
 1. Continue the sequential application path at `06008`.
+2. Reconcile startup at `353A0` as a CODE.2-specific path.
+3. Continue harvesting independently proved relocated CODE.1 runtime families.
+
+## Batch 09 — settings panel, interaction dispatcher, save serializer, and tile probe
+
+Source identity and object-1 SHA-256 were reverified before this batch. Added **3,188 translated instruction bytes** and **49 directly proven non-code/data bytes**, bringing cumulative accounting to **34,466 translated + 295 non-code = 34,761 / 239,698 = 14.5020% (14.50%)**.
+
+### Newly translated ranges
+
+- `06008..062AA` — **675 bytes**: full settings-panel background/border construction, static labels, ten retained subimage buffers, initial render/page flip.
+- `062AC..06351` — **166 bytes**: 0..9 mouse-driven selector with the original shared epilogue behavior represented semantically.
+- `06354..06440` — **237 bytes**: 0..14 selector, record byte publication through `F050+6C`, and dependent redraw calls.
+- `06444..0651F` — **220 bytes**: 0..128 slider plus the encoded signed divide-by-128 truncation used to derive `C02D`.
+- `06548..066E5` — **414 bytes**: ten-way settings interaction dispatcher and nine-handle teardown.
+- `066E8..06C66` — **1,407 bytes**: ordered save serializer with exact short-write aborts, dynamic record blocks, 62 variable descriptor payloads, and final close/result path.
+- `06C68..06CAC` — **69 bytes**: position record probe publishing the `CF6C` boolean.
+
+### Newly proven non-code/data
+
+`062AB`, `06352..06353`, `06441..06443`, `066E6..066E7`, and `06C67` are explicit compiler no-op separators with no incoming direct relative branch/call target. `06520..06547` is the **40-byte ten-entry CS jump table** consumed by the indirect dispatcher at `065B1`; its targets are `065B9`, `065C3`, `065DB`, `065F3`, `0660B`, `06623`, `0662D`, `06652`, `06693`, and `0669A`.
+
+The zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+### Fidelity notes
+
+`062AC` and `06354` branch into shared epilogue bytes belonging to adjacent address ranges; their C++ entries preserve the resulting return semantics without double-counting those bytes. In `06548`, rows above `78h` and the five-pixel inter-column gutter return directly to input polling, while an out-of-range signed quotient still takes the redraw/page-flip path. The exit teardown releases only handles `12B30..12B50`; the tenth handle at `12B54` is deliberately not folded into that loop. The save serializer preserves every short-write failure as close-and-return-1 and models the `30700` value as a stack-local write through a distinct boundary form.
+
+### Next high-value targets
+
+1. Continue the sequential application path at `06CAD`.
 2. Reconcile startup at `353A0` as a CODE.2-specific path.
 3. Continue harvesting independently proved relocated CODE.1 runtime families.
