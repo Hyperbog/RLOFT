@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-3.63%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-4.79%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **8,632**
-**Proven non-code/data bytes:** **58**
-**Reconciled object bytes:** **8,690 / 239,698 = 3.6254% (3.63%)**
-**Unresolved object bytes:** **231,008**
+**Verified translated instruction bytes:** **11,405**
+**Proven non-code/data bytes:** **77**
+**Reconciled object bytes:** **11,482 / 239,698 = 4.7902% (4.79%)**
+**Unresolved object bytes:** **228,216**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -121,3 +121,34 @@ The graphics/image/sprite families were compared against the completed CODE.1 ob
 1. Continue application analysis at `006C0` while keeping `006B9..006BF` unresolved until independently classified.
 2. Reconcile startup at `353A0` against CODE.1 startup only where CODE.2 bytes prove the relationship.
 3. Continue harvesting exact/relocated CODE.1 runtime anchors to accelerate coverage without weakening the evidence standard.
+
+
+## Batch 03 — map/search/render application block
+
+Source identity and object-1 SHA-256 were reverified before this batch. Added **2,773 translated instruction bytes** and **19 directly proven alignment bytes**, bringing cumulative accounting to **11,405 translated + 77 non-code = 11,482 / 239,698 = 4.7902% (4.79%)**.
+
+### Newly translated ranges
+
+- `006C0..006FC` — **61 bytes**: signed camera-relative coordinate derivation; stored values clamp at `-40`, while EAX retains the unclamped second coordinate.
+- `00700..00791` — **146 bytes**: dual primary/alternate 22-byte-record search selected by `5FCB`, with signed comparisons and exact `6048` snapshot/writeback.
+- `00794..007E1` — **78 bytes**: gated search over the `1761A/1761E` record set.
+- `007E4..00838` — **85 bytes**: type-`54h` primary-record search.
+- `0083C..00930` — **245 bytes**: filtered search through `2ACDC`, `F03C/F03E`, table-bit `40h`, and the encoded +/-10 coordinate test.
+- `00934..009AF` — **124 bytes**: alternate `2AD18`/`2ADE0` predicate search.
+- `009B0..00B6B` — **444 bytes**: four-neighbor tile-shape classifier. Direct audit corrected a tempting normalization: kinds 2/3/4 fall back to the raw neighbor mask; only kind 1 and the ordinary kind-5 path consult `5FF0`.
+- `00B6C..00BF9` — **142 bytes**: tile draw helper with partial-BX palette index semantics and temporary `764D/7651` palette-byte installation/restoration.
+- `00BFC..00CAF` — **180 bytes**: fixed-point eight-step marker/line helper feeding the already-integrated `29CEC` line rasterizer.
+- `00CB0..010C2` — **1,043 bytes**: multi-family map-record renderer. It preserves live `5FCB` layout selection, address-distinct search families, repeated `258DC` reloads across opaque draws, and the asymmetric alternate-record type tests encoded by the binary.
+- `010C4..011A4` — **225 bytes**: eight-call fixed UI-frame decoration routine with `258DC` reloaded before every draw.
+
+### Newly proven non-code/data
+
+The explicit no-op separators `006FD..006FF`, `00792..00793`, `007E2..007E3`, `00839..0083B`, `00931..00933`, `00BFA..00BFB`, `010C3`, and `011A5..011A7` total **19 bytes**. Their instruction forms were decoded directly and a full-object direct branch/call target scan found no incoming control-flow references. They are recorded in `Code2/RESIDUAL_LEDGER.md`.
+
+`006B9..006BF` remains unresolved: it is still only a zero-filled island, not proven alignment/data.
+
+### Next high-value targets
+
+1. Continue the application path at `011A8`.
+2. Reconcile startup at `353A0` as a CODE.2-specific path.
+3. Continue independently proving relocated CODE.1 runtime/graphics families where complete CODE.2 boundaries are available.

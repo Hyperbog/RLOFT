@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 8632u;
-constexpr u32 kVerifiedNonCodeBytes = 58u;
+constexpr u32 kVerifiedTranslatedBytes = 11405u;
+constexpr u32 kVerifiedNonCodeBytes = 77u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -549,7 +549,13 @@ static_assert(kVerifiedTranslatedBytes == 4017u +
               (0x2A305u-0x2A258u) + (0x2A380u-0x2A308u) +
               (0x2A478u-0x2A380u) + (0x2A584u-0x2A478u) +
               (0x2A6B0u-0x2A584u) + (0x2A89Fu-0x2A6B0u) +
-              (0x2AA9Bu-0x2A8A0u));
+              (0x2AA9Bu-0x2A8A0u) +
+              (0x006FDu-0x006C0u) + (0x00792u-0x00700u) +
+              (0x007E2u-0x00794u) + (0x00839u-0x007E4u) +
+              (0x00931u-0x0083Cu) + (0x009B0u-0x00934u) +
+              (0x00B6Cu-0x009B0u) + (0x00BFAu-0x00B6Cu) +
+              (0x00CB0u-0x00BFCu) + (0x010C3u-0x00CB0u) +
+              (0x011A5u-0x010C4u));
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -902,5 +908,348 @@ void function_2a6b0(Machine& m,Graphics2Boundary& b,u32 frame,u32 y,u32 x,u32 cl
 static_assert(0x2A89Fu-0x2A6B0u==495u);
 void function_2a8a0(Machine& m,Graphics2Boundary& b,u32 frame,u32 y,u32 x,u32 clip,u32 image,u32 delta) noexcept {g2_clipped_sprite(m,b,frame,y,x,clip,image,static_cast<u8>(delta),true);}
 static_assert(0x2AA9Bu-0x2A8A0u==507u);
+
+// -----------------------------------------------------------------------------
+// Batch 03: 006C0..011A4 application map/search/render helpers.
+// -----------------------------------------------------------------------------
+
+struct Application03Boundary {
+    u32 (*call_2acdc)(u32)=nullptr;
+    u32 (*call_2ad18)(u32)=nullptr;
+    u32 (*call_2ade0)(u32)=nullptr;
+    void (*call_2975c)(u32,u32,u32,u32,u32)=nullptr;
+    void (*call_2df2c)(u32*,u32*,u32,u32)=nullptr;
+};
+
+// 006C0..006FC: derive the two signed camera-relative coordinates and clamp
+// each stored coordinate to -40. EAX's unclamped second value is not used by
+// any known caller, so only the encoded memory side effects are exposed.
+[[nodiscard]] u32 function_006c0(Machine& m) noexcept {
+    s32 x=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x255D2u))))-0x18;
+    const s32 y=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x255D6u))))-0x18;
+    store_le32(dg(m,0x12740u),static_cast<u32>(y));
+    if(x<-40)x=-40;
+    if(static_cast<s32>(load_le32(dg(m,0x12740u)))<-40)
+        store_le32(dg(m,0x12740u),static_cast<u32>(-40));
+    store_le32(dg(m,0x12744u),static_cast<u32>(x));
+    return static_cast<u32>(y);
+}
+static_assert(0x006FDu-0x006C0u==61u);
+
+// 00700..00791: search either the primary 2223A/2223E record set or the
+// alternate list rooted at 6048, selected by byte 5FCB. The 6048 base is
+// snapshotted and written back on every return path exactly as encoded.
+[[nodiscard]] s32 function_00700(Machine& m,s32 key6,s32 key2,s32 start) noexcept {
+    const u32 base=load_le32(dg(m,0x6048u));
+    s32 i=start;
+    if(*dg(m,0x5FCBu)!=0u) {
+        u32 off=static_cast<u32>(i)*0x16u;
+        while(i<static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x258A6u))))) {
+            if(static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x2223Eu+off))))==key6 &&
+               static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x2223Au+off))))==key2) {
+                store_le32(dg(m,0x6048u),base);
+                return i;
+            }
+            off+=0x16u;
+            ++i;
+        }
+    } else {
+        u32 off=static_cast<u32>(i)*0x16u;
+        while(i<static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x604Cu))))) {
+            const u32 p=base+off;
+            if(static_cast<s32>(static_cast<s16>(load_le16(dg(m,p+6u))))==key6 &&
+               static_cast<s32>(static_cast<s16>(load_le16(dg(m,p+2u))))==key2) {
+                store_le32(dg(m,0x6048u),base);
+                return i;
+            }
+            off+=0x16u;
+            ++i;
+        }
+    }
+    store_le32(dg(m,0x6048u),base);
+    return -1;
+}
+static_assert(0x00792u-0x00700u==146u);
+
+// 00794..007E1: when 5FCB is set, search the 1761A/1761E 22-byte record set.
+[[nodiscard]] s32 function_00794(Machine& m,s32 key1e,s32 key1a,s32 start) noexcept {
+    if(*dg(m,0x5FCBu)==0u)return -1;
+    s32 i=start;
+    u32 off=static_cast<u32>(i)*0x16u;
+    while(i<static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x258A4u))))) {
+        if(static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x1761Eu+off))))==key1e &&
+           static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x1761Au+off))))==key1a)
+            return i;
+        off+=0x16u;
+        ++i;
+    }
+    return -1;
+}
+static_assert(0x007E2u-0x00794u==78u);
+
+// 007E4..00838: search type-54h records in the primary 2223A/2223E table.
+[[nodiscard]] s32 function_007e4(Machine& m,s32 key3e,s32 key3a,s32 start) noexcept {
+    s32 i=start;
+    u32 off=static_cast<u32>(i)*0x16u;
+    while(i<static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x258A6u))))) {
+        if(load_le16(dg(m,0x22246u+off))==0x54u &&
+           static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x2223Eu+off))))==key3e &&
+           static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x2223Au+off))))==key3a)
+            return i;
+        off+=0x16u;
+        ++i;
+    }
+    return -1;
+}
+static_assert(0x00839u-0x007E4u==85u);
+
+// 0083C..00930: filtered type search. Admission is controlled by 2ACDC and
+// F03C/F03E, then by table bit 40h plus the encoded +/-10 coordinate test.
+[[nodiscard]] s32 function_0083c(Machine& m,Application03Boundary& b,s32 key86,s32 key82,s32 start) noexcept {
+    s32 i=start;
+    u32 off=static_cast<u32>(i)*0x16u;
+    while(i<static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x258A2u))))) {
+        bool found=false;
+        if((*dg(m,0x14D8Bu+off)&2u)==0u) {
+            const u32 type=load_le16(dg(m,0x14D8Eu+off));
+            if((b.call_2acdc?b.call_2acdc(type):0u)!=0u &&
+               static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x14D86u+off))))==key86 &&
+               static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x14D82u+off))))==key82) {
+                if(load_le16(dg(m,0xF03Eu))!=0u) {
+                    found=true;
+                } else if(load_le16(dg(m,0xF03Cu))!=0u) {
+                    const u32 p=load_le32(dg(m,0x22230u))+type*0x45u;
+                    found=(*dg(m,p+0x3Au)&0x20u)!=0u;
+                } else if((*dg(m,0x198E0u+static_cast<u32>(load_le16(dg(m,0x14D8Cu+off)))*2u)&0x40u)!=0u) {
+                    s32 dx=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x14D86u+off))))-
+                           static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x255D2u))));
+                    if(dx<0)dx=-dx;
+                    s32 dy=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x14D82u+off))))-
+                           static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x255D6u))));
+                    if(dy<0)dy=-dy;
+                    found=dx<=10&&dy<=10;
+                }
+            }
+        }
+        if(found)return i;
+        off+=0x16u;
+        ++i;
+    }
+    return -1;
+}
+static_assert(0x00931u-0x0083Cu==245u);
+
+// 00934..009AF: alternate type-predicate record search using 2AD18/2ADE0.
+[[nodiscard]] s32 function_00934(Machine& m,Application03Boundary& b,s32 key86,s32 key82,s32 start) noexcept {
+    s32 i=start;
+    u32 off=static_cast<u32>(i)*0x16u;
+    while(i<static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x258A2u))))) {
+        if((*dg(m,0x14D8Bu+off)&2u)==0u) {
+            const u32 type=load_le16(dg(m,0x14D8Eu+off));
+            const bool admitted=(b.call_2ad18&&b.call_2ad18(type)!=0u)||
+                                (b.call_2ade0&&b.call_2ade0(type)!=0u);
+            if(admitted &&
+               static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x14D86u+off))))==key86 &&
+               static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x14D82u+off))))==key82)
+                return i;
+        }
+        off+=0x16u;
+        ++i;
+    }
+    return -1;
+}
+static_assert(0x009B0u-0x00934u==124u);
+
+// 009B0..00B6B: classify a grid cell from the four orthogonal neighbors.
+// EAX tracks neighbors below 20h, EDX tracks 2Eh/2Fh neighbors; the current
+// cell byte selects special return codes or the dword table at 5FF0.
+[[nodiscard]] u32 function_009b0(Machine& m,u32 cell,s32 col,s32 row) noexcept {
+    u32 low_mask=0u;
+    u32 slash_mask=0u;
+    if(col!=0) {
+        const u8 v=*dg(m,cell+0x175Fu);
+        if(v<0x20u)low_mask=1u;
+        if(v==0x2Fu||v==0x2Eu)slash_mask=1u;
+    }
+    const s32 width=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x12756u))));
+    if(width-1>col) {
+        const u8 v=*dg(m,cell+0x1761u);
+        if(v<0x20u)low_mask+=8u;
+        if(v==0x2Fu||v==0x2Eu)slash_mask+=8u;
+    }
+    if(row!=0) {
+        const u32 p=cell-static_cast<u32>(width);
+        const u8 v=*dg(m,p+0x1760u);
+        if(v<0x20u)low_mask+=2u;
+        if(v==0x2Fu||v==0x2Eu)slash_mask+=2u;
+    }
+    const s32 height=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x12754u))));
+    if(height-1>row) {
+        const u8 v=*dg(m,cell+static_cast<u32>(width)+0x1760u);
+        if(v<0x20u)low_mask+=4u;
+        if(v==0x2Fu||v==0x2Eu)slash_mask+=4u;
+    }
+    const u8 kind=*dg(m,cell+0x1760u);
+    if(kind==1u)return load_le32(dg(m,0x5FF0u+low_mask*4u));
+    if(kind==2u) {
+        if(low_mask==6u)return 0x29u;
+        if(low_mask==9u)return 0x2Bu;
+        return low_mask;
+    }
+    if(kind==3u) {
+        if(slash_mask==1u)return 0x21u;
+        if(slash_mask==2u)return 0x23u;
+        if(slash_mask==4u)return 0x22u;
+        if(slash_mask==8u)return 0x20u;
+        if((slash_mask&9u)!=0u)return 0x20u;
+        if((slash_mask&6u)!=0u)return 0x22u;
+        return low_mask;
+    }
+    if(kind==4u) {
+        if(low_mask==6u)return 0x28u;
+        if(low_mask==9u)return 0x2Au;
+        return low_mask;
+    }
+    if(kind==5u) {
+        if((slash_mask&6u)==6u||(slash_mask&9u)==9u)return 0x33u;
+        return load_le32(dg(m,0x5FF0u+low_mask*4u));
+    }
+    return low_mask;
+}
+static_assert(0x00B6Cu-0x009B0u==444u);
+
+// 00B6C..00BF9: derive a tile graphic code, temporarily install its two
+// palette bytes at 764D/7651, draw it through 2975C, then restore B1h/B5h.
+void function_00b6c(Machine& m,Application03Boundary& b,s32 col,s32 row,s32 draw0,s32 draw1) noexcept {
+    const s32 width=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x12756u))));
+    const u32 cell=static_cast<u32>(col)+static_cast<u32>(width)*static_cast<u32>(row);
+    u32 code=*dg(m,cell+0x1760u);
+    if(code==0xFFu)return;
+    if(code<0x20u)code=function_009b0(m,cell,col,row);
+    const u8 palette_index=static_cast<u8>(load_le16(dg(m,0x198E0u+cell*2u)))&0x3Fu;
+    *dg(m,0x764Du)=*dg(m,0x25822u+static_cast<u32>(palette_index)*2u);
+    *dg(m,0x7651u)=*dg(m,0x25823u+static_cast<u32>(palette_index)*2u);
+    if(b.call_2975c)b.call_2975c(code,static_cast<u32>(draw0),static_cast<u32>(draw1),load_le32(dg(m,0x258DCu))+0x34u,0u);
+    *dg(m,0x764Du)=0xB1u;
+    *dg(m,0x7651u)=0xB5u;
+}
+static_assert(0x00BFAu-0x00B6Cu==142u);
+
+// 00BFC..00CAF: draw marker 34h, obtain two fixed-point deltas from 2DF2C,
+// advance both accumulators eight times, then draw a line to the signed-word
+// endpoints when the encoded lower/upper-bound tests pass.
+void function_00bfc(Machine& m,Application03Boundary& b,Graphics2Boundary& g,s32 a0,s32 a1) noexcept {
+    if(b.call_2975c)b.call_2975c(0x34u,static_cast<u32>(a0)-2u,static_cast<u32>(a1),load_le32(dg(m,0x258DCu))+0x34u,0u);
+    u32 step0=0u,step4=0u;
+    if(b.call_2df2c)b.call_2df2c(&step4,&step0,0x10000u,load_le32(dg(m,0xC658u)));
+    u32 acc8=static_cast<u32>(static_cast<u16>(a1))<<16;
+    u32 accc=static_cast<u32>(static_cast<u16>(a0))<<16;
+    for(u32 i=0;i<8u;++i){accc+=step4;acc8+=step0;}
+    const s32 end0=static_cast<s32>(static_cast<s16>(accc>>16));
+    const s32 end1=static_cast<s32>(static_cast<s16>(acc8>>16));
+    if(end0<0||end1<0||end0>0x18F)return;
+    function_29cec(m,g,a0,a1,end0,end1,0xFFu);
+}
+static_assert(0x00CB0u-0x00BFCu==180u);
+
+static s32 application03_div3333(u16 v) noexcept { return static_cast<s32>(v)/0x3333; }
+static s32 application03_div2000(u16 v) noexcept { return static_cast<s32>(v)/0x2000; }
+static s32 application03_add_wrap(s32 a,s32 b) noexcept { return static_cast<s32>(static_cast<u32>(a)+static_cast<u32>(b)); }
+
+// 00CB0..010C2: render all record families occupying one map coordinate. The
+// four search families retain distinct sprite codes and record layouts; every
+// 2975C call reloads 258DC, matching the binary across opaque draw calls.
+void function_00cb0(Machine& m,Application03Boundary& b,Graphics2Boundary& g,s32 key6,s32 key2,s32 base_coord,s32 add_coord) noexcept {
+    const s32 width=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x12756u))));
+    const u32 cell=static_cast<u32>(key6)+static_cast<u32>(width)*static_cast<u32>(key2);
+    const s32 base_minus1=static_cast<s32>(static_cast<u32>(base_coord)-1u);
+    if(*dg(m,cell+0x1760u)==0xFFu)return;
+    auto draw=[&](u32 sprite,s32 p0,s32 p1) noexcept {
+        if(b.call_2975c)b.call_2975c(sprite,static_cast<u32>(p0),static_cast<u32>(p1),load_le32(dg(m,0x258DCu))+0x34u,0u);
+    };
+    s32 i=function_00700(m,key6,key2,0);
+    while(i!=-1) {
+        const u32 off=static_cast<u32>(i)*0x16u;
+        u32 sprite=0x38u;
+        s32 p0=0,p1=0;
+        if(*dg(m,0x5FCBu)!=0u) {
+            const u32 type=load_le16(dg(m,0x22246u+off));
+            if(type>=0x3Cu&&type<=0x43u)sprite=0x35u;
+            else if(type==0xADu)sprite=0x31u;
+            p0=application03_add_wrap(application03_div3333(load_le16(dg(m,0x22238u+off))),add_coord);
+            p1=application03_add_wrap(application03_div2000(load_le16(dg(m,0x2223Cu+off))),base_minus1);
+        } else {
+            const u32 p=load_le32(dg(m,0x6048u))+off;
+            const u32 alt_type=load_le16(dg(m,p+0x0Eu));
+            if(alt_type>=0x3Cu&&alt_type<=0x43u)sprite=0x35u;
+            else if(load_le16(dg(m,0x22246u+off))==0xADu)sprite=0x31u;
+            p0=application03_add_wrap(application03_div3333(load_le16(dg(m,p))),add_coord);
+            p1=application03_add_wrap(application03_div2000(load_le16(dg(m,p+4u))),base_minus1);
+        }
+        draw(sprite,p1,p0);
+        i=function_00700(m,key6,key2,i+1);
+    }
+    if(*dg(m,0x5FCBu)!=0u) {
+        i=function_00794(m,key6,key2,0);
+        while(i!=-1) {
+            const u32 off=static_cast<u32>(i)*0x16u;
+            const s32 p0=application03_add_wrap(application03_div3333(load_le16(dg(m,0x14D80u+off))),add_coord);
+            const s32 p1=application03_add_wrap(application03_div2000(load_le16(dg(m,0x14D84u+off))),base_minus1);
+            draw(0x32u,p1,p0);
+            i=function_00794(m,key6,key2,i+1);
+        }
+        i=function_007e4(m,key6,key2,0);
+        while(i!=-1) {
+            const u32 off=static_cast<u32>(i)*0x16u;
+            const s32 p0=application03_add_wrap(application03_div3333(load_le16(dg(m,0x22238u+off))),add_coord);
+            const s32 p1=application03_add_wrap(application03_div2000(load_le16(dg(m,0x2223Cu+off))),base_minus1);
+            draw(0x30u,p1,p0);
+            i=function_007e4(m,key6,key2,i+1);
+        }
+    }
+    i=function_00934(m,b,key6,key2,0);
+    while(i!=-1) {
+        const u32 off=static_cast<u32>(i)*0x16u;
+        const s32 p0=application03_add_wrap(application03_div3333(load_le16(dg(m,0x14D80u+off))),add_coord);
+        const s32 p1=application03_add_wrap(application03_div2000(load_le16(dg(m,0x14D84u+off))),base_minus1);
+        draw(0x37u,p1,p0);
+        i=function_00934(m,b,key6,key2,i+1);
+    }
+    if(*dg(m,0x5FCBu)!=0u) {
+        i=function_0083c(m,b,key6,key2,0);
+        while(i!=-1) {
+            const u32 off=static_cast<u32>(i)*0x16u;
+            const s32 p0=application03_add_wrap(application03_div3333(load_le16(dg(m,0x14D80u+off))),add_coord);
+            const s32 p1=application03_add_wrap(application03_div2000(load_le16(dg(m,0x14D84u+off))),base_minus1);
+            draw(0x36u,p1,p0);
+            i=function_0083c(m,b,key6,key2,i+1);
+        }
+        if(static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x255D2u))))==key6 &&
+           static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x255D6u))))==key2) {
+            const s32 p0=application03_add_wrap(application03_div3333(load_le16(dg(m,0x255D4u))),add_coord);
+            const s32 p1=application03_add_wrap(application03_div2000(load_le16(dg(m,0x255D0u))),base_coord);
+            function_00bfc(m,b,g,p1,p0);
+        }
+    }
+}
+static_assert(0x010C3u-0x00CB0u==1043u);
+
+// 010C4..011A4: fixed frame-decoration draw list. 258DC is deliberately
+// reloaded before each opaque 2975C call.
+void function_010c4(Machine& m,Application03Boundary& b) noexcept {
+    auto draw=[&](u32 a0,u32 a1,u32 a2,u32 offset) noexcept {
+        if(b.call_2975c)b.call_2975c(a0,a1,a2,load_le32(dg(m,0x258DCu))+offset,0u);
+    };
+    draw(0u,0u,0x67u,0x3Cu);
+    draw(1u,0x170u,0x67u,0x3Cu);
+    draw(0u,0xA4u,0u,0x3Du);
+    draw(1u,0xA4u,0xE4u,0x3Du);
+    draw(0u,8u,0x75u,0x36u);
+    draw(1u,0x17Au,0x75u,0x36u);
+    draw(2u,0xC0u,4u,0x36u);
+    draw(3u,0xC0u,0xE9u,0x36u);
+}
+static_assert(0x011A5u-0x010C4u==225u);
+
 
 } // namespace code2
