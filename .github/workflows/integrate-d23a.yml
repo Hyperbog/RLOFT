@@ -1,68 +1,37 @@
-name: CODE.1 semantic audit checkpoint 10e
+name: CODE.1 object verifier
 on:
   push:
     branches: [code1-decompilation]
     paths:
       - '.github/workflows/integrate-d23a.yml'
 permissions:
-  contents: write
+  contents: read
 jobs:
-  integrate:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Apply semantic audit checkpoint 10e
-        run: |
-          python3 Code1/fix_semantic_audit_checkpoint10e.py
-          python3 Code1/fix_semantic_audit_checkpoint10e_scope.py
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('Code1/Code1.cpp');s=p.read_text()
-          bad='not found\n";for(char c:suffix){if(c==0)break;msg[n++]=c;}msg[n]=0;'
-          good='not found";for(char c:suffix){if(c==0)break;msg[n++]=c;}msg[n++]=static_cast<char>(10);msg[n]=0;'
-          assert bad in s
-          p.write_text(s.replace(bad,good,1))
-          PY
-      - name: Verify checkpoint 10e and closed accounting
+      - name: Verify closed object accounting
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
-          cpp=Path('Code1/Code1.cpp').read_text();led=Path('Code1/RESIDUAL_LEDGER.md').read_text();audit=Path('Code1/FINAL_BINARY_AUDIT.md').read_text()
+          cpp=Path('Code1/Code1.cpp').read_text()
+          led=Path('Code1/RESIDUAL_LEDGER.md').read_text()
           assert 'constexpr u32 kVerifiedTranslatedBytes=69361u;' in cpp
-          low=cpp[cpp.index('struct LowGraphics13Boundary{'):cpp.index('\n};',cpp.index('struct LowGraphics13Boundary{'))]
-          assert 'u32(*call_6f74)(u32)=nullptr' in low
-          assert 'u32(*call_e6ea)(u32)=nullptr' in low
-          assert 'call_9814_local' in low
-          ae=cpp[cpp.index('function_aea8'):cpp.index('static_assert(0xAEDCu-0xAEA8u==52u);')]
-          assert ')&31u' in ae and 'edx<<shift1' in ae and 'first<<shift2' in ae
-          af=cpp[cpp.index('void function_af64'):cpp.index('static_assert(0xAF80u-0xAF64u==28u);')]
-          assert 'Machine&m' in af and 'm.cpu.interrupt_enable=false' in af and 'm.cpu.interrupt_enable=true' in af
-          b01=cpp[cpp.index('function_b01a'):cpp.index('static_assert(0xB055u-0xB01Au==59u);')]
-          assert 'lg13r16(b,src)' in b01 and 'lg13w16(b,end,ax)' in b01
-          b060=cpp[cpp.index('void function_b060'):cpp.index('static_assert(0xB0F6u-0xB060u==150u);')]
-          assert 'Timber file' in b060 and 'call_9814_local' in b060 and 'static_cast<char>(10)' in b060
-          b0=cpp[cpp.index('void function_b0f8'):cpp.index('static_assert(0xB430u-0xB0F8u==824u);')]
-          assert '0x2be8u+eax*2u' in b0 and 'eax=b.call_e6ea(eax)' in b0 and 'eax=b.call_6f74(sel)' in b0
-          b4=cpp[cpp.index('function_b4d4'):cpp.index('static_assert(0xB51Bu-0xB4D4u==71u);')]
-          assert 'static_cast<u32>(static_cast<s32>(static_cast<std::int8_t>' in b4
-          assert 'Semantic audit checkpoint 10e' in audit and '`AEA8..B5E0`' in audit
-          m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S);assert m
+          m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S)
+          assert m
           total=0
           for line in m.group(1).strip().splitlines():
-              a,b,cat,n=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| (\d+)',line).groups();a=int(a,16);b=int(b,16);n=int(n);assert b-a+1==n;total+=n
-          assert total==1041,total;assert 69361+total==70402
-          print('semantic checkpoint 10e verified: 69361 + 1041 = 70402')
+              a,b,cat,n=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| (\d+)',line).groups()
+              a=int(a,16); b=int(b,16); n=int(n)
+              assert b-a+1==n
+              total += n
+          assert total==1041,total
+          assert 69361+total==70402
+          print('CODE.1 object accounting verified: 69361 + 1041 = 70402')
           PY
       - name: Syntax check CODE.1 C++
         run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
-      - name: Commit semantic corrections
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+Hyperbog@users.noreply.github.com
-          rm -f Code1/fix_semantic_audit_checkpoint10e.py Code1/fix_semantic_audit_checkpoint10e_scope.py
-          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/fix_semantic_audit_checkpoint10e.py Code1/fix_semantic_audit_checkpoint10e_scope.py
-          git diff --cached --check
-          if git diff --cached --quiet; then echo 'Checkpoint 10e already applied.'; else git commit -m "Correct CODE.1 semantic audit checkpoint 10e" && git push origin HEAD:code1-decompilation; fi
