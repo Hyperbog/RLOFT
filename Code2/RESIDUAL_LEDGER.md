@@ -154,9 +154,19 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 113F4..11403 | table | 16
 1162E..1162F | alignment | 2
 11C2C..11C3B | table | 16
+11FAE..11FAF | alignment | 2
+1202A..1202B | alignment | 2
+12097..12097 | alignment | 1
+120BB..120BB | alignment | 1
+12125..12127 | alignment | 3
+12165..12167 | alignment | 3
+12168..1217F | table | 24
+1246F..1246F | alignment | 1
+12723..12723 | alignment | 1
+12986..12987 | alignment | 2
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **1,459 bytes**.
+**Total proven non-code/data:** **1,499 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -212,3 +222,6 @@ Batch 22 evidence: `10A6D..10A6F` and `10FA9..10FAB` both decode as `LEA EAX,[EA
 
 
 Batch 23 evidence: `1118B` is `NOP`; `112EA..112EB`, `113F2..113F3`, and `1162E..1162F` decode as `MOV EAX,EAX`; `113A9..113AB` decodes as `LEA EAX,[EAX+0]`. A full object-1 direct relative control-flow target scan found no incoming target to any of these separator bytes. `113F4..11403` is the exact four-entry CS table consumed at `1145E`, targeting `11466,11474,11482,11490`. `11C2C..11C3B` is the exact four-entry CS table consumed at `11CD4`, targeting `11CDC,11CF1,11D06,11D1B`. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+Batch 24 evidence: `11FAE..11FAF`, `1202A..1202B`, and `12986..12987` decode as `MOV EAX,EAX`; `12097`, `120BB`, `1246F`, and `12723` are explicit `NOP` separators; `12125..12127` and `12165..12167` decode as `LEA EAX,[EAX+0]`. A full object-1 direct relative control-flow target scan found no incoming target to any Batch 24 separator. `12168..1217F` is the exact six-entry CS dword table consumed at `121ED`, with targets `121F5,1220C,122B0,12282,12299,1226B` for item types `3..8`. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
