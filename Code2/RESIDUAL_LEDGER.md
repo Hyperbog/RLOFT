@@ -147,9 +147,16 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 10156..10157 | alignment | 2
 10A6D..10A6F | alignment | 3
 10FA9..10FAB | alignment | 3
+1118B..1118B | alignment | 1
+112EA..112EB | alignment | 2
+113A9..113AB | alignment | 3
+113F2..113F3 | alignment | 2
+113F4..11403 | table | 16
+1162E..1162F | alignment | 2
+11C2C..11C3B | table | 16
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **1,417 bytes**.
+**Total proven non-code/data:** **1,459 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -202,3 +209,6 @@ Batch 21 evidence: `0F768..0F78F` is the exact ten-entry CS dword table consumed
 
 
 Batch 22 evidence: `10A6D..10A6F` and `10FA9..10FAB` both decode as `LEA EAX,[EAX+0]` compiler separators between directly reconstructed routine boundaries. A full object-1 direct relative control-flow target scan found no incoming target to either separator. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+Batch 23 evidence: `1118B` is `NOP`; `112EA..112EB`, `113F2..113F3`, and `1162E..1162F` decode as `MOV EAX,EAX`; `113A9..113AB` decodes as `LEA EAX,[EAX+0]`. A full object-1 direct relative control-flow target scan found no incoming target to any of these separator bytes. `113F4..11403` is the exact four-entry CS table consumed at `1145E`, targeting `11466,11474,11482,11490`. `11C2C..11C3B` is the exact four-entry CS table consumed at `11CD4`, targeting `11CDC,11CF1,11D06,11D1B`. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
