@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 68666u;
-constexpr u32 kVerifiedNonCodeBytes = 1358u;
+constexpr u32 kVerifiedTranslatedBytes = 71409u;
+constexpr u32 kVerifiedNonCodeBytes = 1411u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -539,20 +539,12 @@ static_assert(0x39526u-0x391F2u==820u);
 static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
-static_assert(kVerifiedTranslatedBytes == 64472u +
-              (0x0E5CCu-0x0E578u) + (0x0EA82u-0x0E5F0u) +
-              (0x0EABBu-0x0EA90u) + (0x0EAD8u-0x0EABCu) +
-              (0x0EB3Bu-0x0EAD8u) + (0x0EC19u-0x0EB3Cu) +
-              (0x0EEA5u-0x0EC1Cu) + (0x0EF14u-0x0EEE0u) +
-              (0x0EF32u-0x0EF14u) + (0x0EF6Du-0x0EF34u) +
-              (0x0EF9Du-0x0EF70u) + (0x0F167u-0x0EFA0u) +
-              (0x0F216u-0x0F168u) + (0x0F236u-0x0F218u) +
-              (0x0F271u-0x0F238u) + (0x0F290u-0x0F274u) +
-              (0x0F2B2u-0x0F290u) + (0x0F2D1u-0x0F2B4u) +
-              (0x0F305u-0x0F2D4u) + (0x0F368u-0x0F308u) +
-              (0x0F38Fu-0x0F368u) + (0x0F40Cu-0x0F390u) +
-              (0x0F4ADu-0x0F40Cu) + (0x0F53Du-0x0F4B0u) +
-              (0x0F5F7u-0x0F540u) + (0x0F66Cu-0x0F5F8u));
+static_assert(kVerifiedTranslatedBytes == 68666u +
+              (0x0F767u-0x0F66Cu) + (0x0FD84u-0x0F790u) +
+              (0x0FDE3u-0x0FD84u) + (0x0FE42u-0x0FDE4u) +
+              (0x0FECFu-0x0FE44u) + (0x0FF3Bu-0x0FED0u) +
+              (0x100C5u-0x0FF3Cu) + (0x10106u-0x100C8u) +
+              (0x10156u-0x10108u));
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -7292,5 +7284,219 @@ static_assert(0x0F5F7u-0x0F540u==183u);
     return static_cast<u16>(total);
 }
 static_assert(0x0F66Cu-0x0F5F8u==116u);
+
+// -----------------------------------------------------------------------------
+// Batch 21: 0F66C..10155 item-description presentation, inventory burden/rank
+// helpers, character panel rendering, and page-display wrappers.
+// The ten-entry CS table at 0F768 is data in RESIDUAL_LEDGER.md.
+// -----------------------------------------------------------------------------
+
+struct Application21Boundary {
+    Application20Boundary* app20=nullptr;
+    u32 (*call_30288)(u32,u32)=nullptr;
+    u32 (*call_30ca2)()=nullptr;
+    void (*call_3975c)(u32,u32,u32,u32,u32)=nullptr;
+    void (*call_40508)(u32,u32,u32,u32,u32)=nullptr;
+    void (*call_3932c)(u32,u32,u32,u32,u32)=nullptr;
+    void (*call_2c368)(u32,u32)=nullptr;
+    u32 (*call_3e6f0)(s32)=nullptr;
+    u32 (*call_3e70c)(s32)=nullptr;
+    void (*call_40cc4)(u32)=nullptr;
+    u32 (*call_40700)()=nullptr;
+    void (*call_3e510)(u32,u32,u32,u32)=nullptr;
+    u32 (*call_2f3fc)(u32)=nullptr;
+    void (*call_398f0)(u32,u32,u32,u32,u32,u32)=nullptr;
+    void (*call_39b40)(u32,u32,u32,u32,u32)=nullptr;
+    void (*call_2a5b0)(u32,s32,u32)=nullptr;
+    void (*call_2a724)(u32,s32,u32,u32,u32,u32,u32)=nullptr;
+};
+
+static void app21_copy_cstr(Machine& m,u32 dst,u32 src) noexcept {
+    for(;;){const u8 c=*dg(m,src++);*dg(m,dst++)=c;if(c==0u)break;}
+}
+static u32 app21_end(Machine& m,u32 dst) noexcept {
+    while(*dg(m,dst)!=0u)++dst;
+    return dst;
+}
+static void app21_append_cstr(Machine& m,u32 dst,u32 src) noexcept {
+    app21_copy_cstr(m,app21_end(m,dst),src);
+}
+static void app21_resource(Machine& m,Application21Boundary& b,u32 dst,u32 id) noexcept {
+    if(b.call_2c368)b.call_2c368(app21_end(m,dst),id);
+}
+static void app21_number(Machine& m,Application21Boundary& b,u32 dst,s32 value) noexcept {
+    if(b.call_3e6f0)app21_append_cstr(m,dst,b.call_3e6f0(value));
+}
+static void app21_weight(Machine& m,Application21Boundary& b,u32 dst,s32 value) noexcept {
+    if(b.call_3e70c)app21_append_cstr(m,dst,b.call_3e70c(value));
+}
+
+void function_0f66c(Machine& m,Application21Boundary& b,u32 text) noexcept {
+    const s32 width=b.call_30288?static_cast<s32>(b.call_30288(text,1u)):0;
+    s32 left=0xA0-(((width+0x10)/2+3)&~3);
+    if(((left+4)%8)==0)left-=4;
+    if(((left+4)%0x50)==0)left-=8;
+    const s32 right=0x140-left, limit=0x138-left; s32 inner=left+4;
+    for(s32 x=left;x<right;x+=8) {
+        u32 tile;
+        if(x==left)tile=0u;
+        else if(x>=limit)tile=5u;
+        else if((inner%0x50)==0)tile=1u;
+        else tile=2u+((b.call_30ca2?b.call_30ca2():0u)*3u>>15u);
+        if(b.call_3975c)b.call_3975c(tile,0x62u,static_cast<u32>(x),3u,2u);
+        inner+=8;
+    }
+    if(b.call_40508)b.call_40508(0x65u,0u,0x140u,text,1u);
+}
+static_assert(0x0F767u-0x0F66Cu==251u);
+
+void function_0f790(Machine& m,Application21Boundary& b,s32 item,u32 detailed) noexcept {
+    if(b.call_3932c)b.call_3932c(load_le32(dg(m,0x7F68u)),0x62u,0u,0x10u,0x140u);
+    if(*dg(m,0x6DACu)!=0u){function_0f66c(m,b,0x759Cu);return;}
+    if(item==-1)return;
+    const u32 rec=load_le32(dg(m,0x255D8u))+static_cast<u32>(item)*65u;
+    app21_copy_cstr(m,0x759Cu,rec);
+    if(*dg(m,rec+0x37u)!=0u&&detailed!=0u){
+        app21_append_cstr(m,0x759Cu,0x610u);
+        app21_number(m,b,0x759Cu,*dg(m,rec+0x37u));
+    }
+    app21_append_cstr(m,0x759Cu,0x614u);
+    const u32 type=*dg(m,rec+0x2Fu);
+    if(type>=9u&&type<=11u){
+        const u32 a=*dg(m,rec+0x38u), c=*dg(m,rec+0x39u), d=*dg(m,rec+0x3Au);
+        app21_resource(m,b,0x759Cu,0x3Eu); app21_append_cstr(m,0x759Cu,0x618u);
+        app21_number(m,b,0x759Cu,static_cast<s32>(a+d)); app21_append_cstr(m,0x759Cu,0x61Cu);
+        app21_number(m,b,0x759Cu,static_cast<s32>(a*c+d));
+        const u32 a2=*dg(m,rec+0x3Bu), c2=*dg(m,rec+0x3Cu), d2=*dg(m,rec+0x3Du);
+        app21_append_cstr(m,0x759Cu,0x620u); app21_number(m,b,0x759Cu,static_cast<s32>(a2+d2));
+        app21_append_cstr(m,0x759Cu,0x61Cu); app21_number(m,b,0x759Cu,static_cast<s32>(a2*c2+d2));
+        app21_append_cstr(m,0x759Cu,0x614u);
+    } else if(type>=2u&&type<=4u){
+        app21_resource(m,b,0x759Cu,0x40u); app21_append_cstr(m,0x759Cu,0x618u);
+        app21_number(m,b,0x759Cu,-static_cast<s32>(static_cast<s8>(*dg(m,rec+0x34u))));
+        app21_append_cstr(m,0x759Cu,0x614u);
+    }
+
+    app21_resource(m,b,0x759Cu,0x3Du);
+    u16 total=*dg(m,rec+0x30u);
+    if(type==1u)total=static_cast<u16>(total+function_0f5f8(m,static_cast<u32>(static_cast<s8>(*dg(m,rec+0x31u)))));
+    app21_weight(m,b,0x759Cu,static_cast<s32>(total/2u));
+    if((total&1u)!=0u)app21_append_cstr(m,0x759Cu,0x624u);
+
+    if(type==1u){
+        const u32 g=static_cast<u32>(static_cast<s8>(*dg(m,rec+0x31u)))*10u;
+        const u32 v=*dg(m,0x7332u+g);
+        if(v!=0x7Fu){
+            app21_append_cstr(m,0x759Cu,0x614u); app21_resource(m,b,0x759Cu,0x41u);
+            app21_append_cstr(m,0x759Cu,0x618u); app21_number(m,b,0x759Cu,static_cast<s32>(v));
+        }
+    } else if((*dg(m,rec+0x31u)!=0u||item==0x4A)&&detailed!=0u){
+        app21_append_cstr(m,0x759Cu,load_le32(dg(m,0x6D98u)));
+        app21_number(m,b,0x759Cu,*dg(m,0x67ECu+static_cast<u32>(static_cast<s8>(*dg(m,rec+0x31u)))));
+    }
+    if(b.call_40cc4)b.call_40cc4(static_cast<u32>(item));
+    function_0f66c(m,b,0x759Cu);
+    const u32 token=b.call_40700?b.call_40700():0u;
+    if(b.call_40cc4)b.call_40cc4(token);
+}
+static_assert(0x0FD84u-0x0F790u==1524u);
+
+[[nodiscard]] u32 function_0fd84(Machine& m,u32 slot) noexcept {
+    const u32 base=slot*0x248u; u32 sum=0u;
+    for(u32 off=0u;off<0x2Au;off+=2u){
+        const s32 item=static_cast<s16>(load_le16(dg(m,0x21920u+base+off)));
+        if(item==-1)continue;
+        const u32 rec=load_le32(dg(m,0x255D8u))+static_cast<u32>(item)*65u;
+        sum+=*dg(m,rec+0x30u);
+        if(*dg(m,rec+0x2Fu)==1u)sum+=function_0f5f8(m,static_cast<u32>(static_cast<s8>(*dg(m,rec+0x31u))));
+    }
+    return sum/2u;
+}
+static_assert(0x0FDE3u-0x0FD84u==95u);
+
+[[nodiscard]] u32 function_0fde4(Machine& m,u32 slot) noexcept {
+    const u32 base=slot*0x248u; s32 index=*dg(m,0x21912u+base); const u32 meter=*dg(m,0x2191Eu+base);
+    if(meter>=1u&&meter<=0x32u)index+=1;
+    if(meter>=0x33u&&meter<=0x4Bu)index+=2;
+    if(meter>=0x4Cu&&meter<=0x5Au)index+=3;
+    if(meter>=0x5Bu&&meter<=0x63u)index+=4;
+    if(meter==0x64u)index+=5;
+    index-=2;
+    return load_le16(dg(m,0x7E94u+static_cast<u32>(index*10)));
+}
+static_assert(0x0FE42u-0x0FDE4u==94u);
+
+[[nodiscard]] u32 function_0fe44(Machine& m,u32 slot) noexcept {
+    const u32 base=slot*0x248u; s32 state=*dg(m,0x21913u+base);
+    if(state==0x12){
+        const u32 meter=*dg(m,0x2191Fu+base);
+        if(meter>=1u&&meter<=0x32u)state+=1;
+        if(meter>=0x33u&&meter<=0x4Bu)state+=2;
+        if(meter>=0x4Cu&&meter<=0x5Au)state+=3;
+        if(meter>=0x5Bu&&meter<=0x63u)state+=4;
+        if(meter==0x64u)state+=5;
+    }
+    const u32 burden=function_0fd84(m,slot); const s32 row=state-2;
+    for(u32 level=0;level<5u;++level)
+        if(static_cast<s32>(burden)<=static_cast<s32>(load_le16(dg(m,0x7E8Cu+static_cast<u32>(row*10)+level*2u))))return level;
+    return 4u;
+}
+static_assert(0x0FECFu-0x0FE44u==139u);
+
+void function_0fed0(Machine& m,Application21Boundary& b,u32 slot) noexcept {
+    const u32 rank=function_0fe44(m,slot);
+    if(b.call_3975c)b.call_3975c(rank,0x10u,load_le32(dg(m,0x7F6Cu))+0x44u,0x11u,2u);
+    if(b.call_3975c)b.call_3975c(0u,0x10u,load_le32(dg(m,0x7F6Cu))+0x38u,0x10u,2u);
+    s32 value=0;
+    if(b.app20)value=function_0efa0(m,*b.app20,slot);
+    const u32 text=b.call_3e6f0?b.call_3e6f0(value):0u;
+    if(b.call_40508)b.call_40508(0x16u,load_le32(dg(m,0x7F6Cu))+0x38u,0x0Eu,text,0u);
+}
+static_assert(0x0FF3Bu-0x0FED0u==107u);
+
+void function_0ff3c(Machine& m,Application21Boundary& b,u32 slot) noexcept {
+    const u32 base=slot*0x248u;
+    if(b.call_3e510)b.call_3e510(0u,load_le32(dg(m,0x7F6Cu)),0u,2u);
+    if(b.call_40508)b.call_40508(2u,load_le32(dg(m,0x7F6Cu)),0x50u,0x218E0u+base,1u);
+    const u32 portrait=b.call_2f3fc?b.call_2f3fc(slot):0u;
+    s32 graphic=static_cast<s8>(*dg(m,0x218F2u+base))+
+                static_cast<s32>(*dg(m,0x218F3u+base))*0x17+
+                static_cast<s32>(load_le32(dg(m,0x258E4u)));
+    if((load_le16(dg(m,0x218F0u+base))&0x0100u)!=0u)graphic+=0x2E;
+    if(b.call_398f0)b.call_398f0(0u,0x10u,static_cast<u32>(graphic),1u,
+                                 load_le32(dg(m,0x7F6Cu))+3u,0xCF70u+(portrait<<8u));
+    if((load_le16(dg(m,0x218F0u+base))&0x4000u)==0u){
+        const s32 hp=function_0ef14(m,slot);
+        const s32 maxhp=static_cast<s16>(load_le16(dg(m,0x218FEu+base)));
+        if(maxhp!=0){
+            const s32 amount=(hp*80+maxhp/2)/maxhp;
+            const u32 dst=load_le32(dg(m,0x7F6Cu))+0x2Fu;
+            if(amount>0x50){if(b.call_39b40)b.call_39b40(0x10u,dst,0x50u,4u,0x1Bu);}
+            else {
+                const u32 color=amount>0x14?0x43u:0x57u;
+                if(b.call_39b40)b.call_39b40(static_cast<u32>(0x60-amount),dst,static_cast<u32>(amount),4u,color);
+            }
+        }
+    }
+    function_0fed0(m,b,slot);
+    if(load_le32(dg(m,0x21A12u+base))!=0u&&b.call_3975c)
+        b.call_3975c(0u,0x2Au,load_le32(dg(m,0x7F6Cu))+0x44u,0x13u,2u);
+    if((load_le16(dg(m,0x218F0u+base))&0x1F00u)!=0u&&b.call_3975c)
+        b.call_3975c(0u,0x2Au,load_le32(dg(m,0x7F6Cu))+0x38u,0x12u,2u);
+}
+static_assert(0x100C5u-0x0FF3Cu==393u);
+
+void function_100c8(Machine& m,Application21Boundary& b,s32 id,u32 mode) noexcept {
+    if(id>=0xA7&&id<=0xC9)store_le32(dg(m,0xBF44u),0x3Au);
+    if(b.call_2a5b0)b.call_2a5b0(load_le32(dg(m,0xC050u)),static_cast<s16>(id),static_cast<u8>(mode));
+    *dg(m,0xC050u)^=1u;
+}
+static_assert(0x10106u-0x100C8u==62u);
+void function_10108(Machine& m,Application21Boundary& b,s32 id,u32 mode,u32 a,u32 c,u32 d,u32 e) noexcept {
+    if(id>=0xA7&&id<=0xC9)store_le32(dg(m,0xBF44u),0x3Au);
+    if(b.call_2a724)b.call_2a724(load_le32(dg(m,0xC050u)),static_cast<s16>(id),static_cast<u8>(mode),a,c,d,e);
+    *dg(m,0xC050u)^=1u;
+}
+static_assert(0x10156u-0x10108u==78u);
 
 } // namespace code2

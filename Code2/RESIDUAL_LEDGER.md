@@ -136,9 +136,18 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 0F4AD..0F4AF | alignment | 3
 0F53D..0F53F | alignment | 3
 0F5F7..0F5F7 | alignment | 1
+0F767..0F767 | alignment | 1
+0F768..0F78F | table | 40
+0FDE3..0FDE3 | alignment | 1
+0FE42..0FE43 | alignment | 2
+0FECF..0FECF | alignment | 1
+0FF3B..0FF3B | alignment | 1
+100C5..100C7 | alignment | 3
+10106..10107 | alignment | 2
+10156..10157 | alignment | 2
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **1,358 bytes**.
+**Total proven non-code/data:** **1,411 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -185,3 +194,6 @@ Batch 19 evidence: `0DBD3` is a one-byte `NOP`; `0DDA1..0DDA3` and `0E0F5..0E0F7
 
 
 Batch 20 evidence: `0E5CC..0E5EF` is the exact nine-entry CS dword jump table consumed at `0E79B`, with targets `0E7EA,0E845,0E802,0E7A3,0E7AE,0E7CC,0E815,0E7F5,0E83D`. `0EEB0..0EEDF` is the exact twelve-dword data block copied by `REP MOVSD` at `11642`, with values `AD,A7,B3,AE,BD,B4,C1,BE,C3,C2,C9,C4`. `0EA82..0EA8F` and `0EEA5..0EEAF` are zero padding bounded by directly reconstructed return/entry points; neither is referenced as data and a full object-1 direct relative control-flow scan found no incoming target to either range. All remaining Batch 20 ranges are explicit `NOP`, `LEA EAX,[EAX+0]`, or `MOV EAX,EAX` compiler separators with no direct incoming control-flow targets. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+Batch 21 evidence: `0F768..0F78F` is the exact ten-entry CS dword table consumed by the indirect item-type dispatcher in `0F790`; entries 0..2 target `0FA85`, entries 3..6 target `0FB3D`, and entries 7..9 target `0F8D4`. `0F767`, `0FDE3`, `0FE42..0FE43`, `0FECF`, `0FF3B`, `100C5..100C7`, `10106..10107`, and `10156..10157` are bounded compiler separator/alignment bytes between directly reconstructed routines. A full object-1 direct relative control-flow target scan found no incoming call/jump target to any Batch 21 residual byte. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
