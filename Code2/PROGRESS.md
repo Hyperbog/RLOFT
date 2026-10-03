@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-16.64%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-17.94%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **39,537**
-**Proven non-code/data bytes:** **343**
-**Reconciled object bytes:** **39,880 / 239,698 = 16.6376% (16.64%)**
-**Unresolved object bytes:** **199,818**
+**Verified translated instruction bytes:** **42,612**
+**Proven non-code/data bytes:** **384**
+**Reconciled object bytes:** **42,996 / 239,698 = 17.9376% (17.94%)**
+**Unresolved object bytes:** **196,702**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -390,3 +390,18 @@ Translated ranges:
 - `0803C..0808A` — 79 bytes: modal message helper.
 
 Fidelity notes: `077A0` clears `A79D` before `171FC` and sets it to one immediately before serialization; `07874` is modeled as a side-effect wrapper because its early exits do not establish a meaningful return; both slot selectors intentionally leak the ten panel handles on the encoded right-click return-2 path; `07D44` accepts x coordinates inclusively from `C8h` through `E0h`.
+
+## Batch 12 — left-panel dispatcher + timed status/moving-record core
+
+Added **3,075 verified translated instruction bytes**:
+
+- `080AC..0869E` — **1,523 bytes**: eight-way left-panel dispatcher using the already decoded `0808C` CS table; preserves signed row `IDIV`, the two-poll press gate, ESI-selected-row lifetime, case-specific capture refresh, save/load/settings actions, and exit restoration.
+- `086C4..0871A` — **87 bytes**: dual per-slot table-word match and `24A9C` notifications.
+- `0871C..0893B` — **544 bytes**: 26-bit timed-status expiration/message path with bit-specific counters, global flags, and signed/byte-width side effects.
+- `0893C..08A7C` — **321 bytes**: four-slot deadline sweeper for nine event deadlines, the `21ACE` refresh timer, and 26 status deadlines.
+- `08A80..08C87` — **520 bytes**: moving-record constructor/collision loop, including high-word packed-coordinate tile arithmetic, copied nine-dword sound-offset table, owner bits, angle/orientation update, and collision recovery.
+- `08C88..08CD7` — **80 bytes**: 16h-byte record compaction; invalid signed indices report through `2F580` but deliberately continue.
+
+Added **41 directly proven non-code/data bytes**: `0869F`, the 36-byte nine-dword table `086A0..086C3`, `0871B`, and `08A7D..08A7F`.
+
+Cumulative accounting: **42,612 translated + 384 proven non-code/data = 42,996 / 239,698 = 17.9376% (17.94%)**. The next unresolved table begins at `08CD8`; its owning dispatcher is intentionally deferred to Batch 13.

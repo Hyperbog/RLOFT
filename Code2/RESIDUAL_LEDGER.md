@@ -66,9 +66,13 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 07D43..07D43 | alignment | 1
 0808B..0808B | alignment | 1
 0808C..080AB | table | 32
+0869F..0869F | alignment | 1
+086A0..086C3 | table | 36
+0871B..0871B | alignment | 1
+08A7D..08A7F | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **343 bytes**.
+**Total proven non-code/data:** **384 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -89,3 +93,5 @@ Batch 09 evidence: the five alignment ranges decode as explicit compiler no-op s
 Batch 10 evidence: `0706E..0706F`, `07376..07377`, `0739D..0739F`, and `075C9..075CB` decode as explicit compiler no-op alignment between directly reconstructed routine boundaries. A full object-1 direct relative branch/call target scan found no incoming target to any of these bytes. The known zero islands remain unresolved.
 
 Batch 11 evidence: `0779F`, `07871..07873`, `07D43`, and `0808B` decode as explicit compiler no-op separators between directly reconciled boundaries, and a full object-1 direct relative branch/call scan found no incoming target to any separator byte. `0808C..080AB` is the eight-entry CS dword table used by the indirect dispatcher at `08392`; its decoded targets are `0839A`, `083AD`, `08472`, `08537`, `0854D`, `08587`, `085DD`, and `085FE`. The known zero islands remain unresolved.
+
+Batch 12 evidence: `0869F` is the single zero/alignment byte between the `080AC` dispatcher return and the directly consumed nine-dword table at `086A0`; `0871B` is an explicit `NOP`; and `08A7D..08A7F` is `LEA EAX,[EAX+0]`. A full object-1 direct relative branch/call-target scan found no incoming target to these separator bytes. `086A0..086C3` is the exact nine-dword table copied by `08A80` with values `1B,36,2B,0D,1D,3A,38,38,1B`. The seven-entry table beginning at `08CD8` remains unresolved for the next owning dispatcher.
