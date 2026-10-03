@@ -477,15 +477,18 @@ static_assert(0x50C0u-0x508Cu==52u);
 // 50C0..522E: cursor-aware rectangle update. Optional 84E0 scaling rewrites the X/Y arguments;
 // when the mouse depth is active and coordinates change, the four 2401/03/05/07 words are saved,
 // a full-screen rectangle cycle is performed, and those words are restored.
-void function_50c0(Machine&m,PostActorBoundaries&b,u32, u16 tag,s32 y,s32 x,const s16 point[2])noexcept{
- y>>=1;if(b.call_84e0&&b.call_84e0()!=0u){x=static_cast<s32>((static_cast<std::int64_t>(point[1]+0x1fc0)*399+0x1fa0)/0x3f40);y=static_cast<s32>((static_cast<std::int64_t>(point[0]+0x1fc0)*319+0x1fa0)/0x3f40);}
- if(load_le16(dgroup_ptr(m,dgroup(0x73ecu)))>=1u&&load_le32(dgroup_ptr(m,dgroup(0x097cu)))==0u){if(static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x73e6u))))!=x||static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x73e8u))))!=y){store_le16(dgroup_ptr(m,dgroup(0x71d8u)),static_cast<u16>(x));store_le16(dgroup_ptr(m,dgroup(0x71d6u)),static_cast<u16>(y));store_le16(dgroup_ptr(m,dgroup(0x71d4u)),tag);for(u32 i=0;i<4u;++i)store_le16(dgroup_ptr(m,dgroup(0x7188u+i*2u)),load_le16(dgroup_ptr(m,dgroup(0x2401u+i*2u))));if(b.call_6c44)b.call_6c44(0x7178u);if(b.call_6bc0)b.call_6bc0(0,0,0x18f,0x13f);if(b.call_5780)b.call_5780();if(b.call_57dc)b.call_57dc();if(b.call_6bc0)b.call_6bc0(static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x7178u)))),static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x7180u)))),static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x717cu)))),static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x7184u)))));for(u32 i=0;i<4u;++i)store_le16(dgroup_ptr(m,dgroup(0x2401u+i*2u)),load_le16(dgroup_ptr(m,dgroup(0x7188u+i*2u))));}}
+void function_50c0(Machine&m,PostActorBoundaries&b,u32,u32 tag_slot,s32 y,s32 x,u32 point_linear)noexcept{
+ // 6104 supplies five 32-bit stack slots. The fifth is (ESI & 0xffff) << 4, a guest-linear address, not a native pointer.
+ const u32 yu=static_cast<u32>(y);y=static_cast<s32>((yu>>1)|(yu&0x80000000u));
+ if(b.call_84e0&&b.call_84e0()!=0u){const s32 px=static_cast<s16>(read16(m,linear(point_linear+2u))),py=static_cast<s16>(read16(m,linear(point_linear)));x=static_cast<s32>((static_cast<std::int64_t>(px+0x1fc0)*399+0x1fa0)/0x3f40);y=static_cast<s32>((static_cast<std::int64_t>(py+0x1fc0)*319+0x1fa0)/0x3f40);}
+ const u16 tag=static_cast<u16>(tag_slot);
+ if(static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x73ecu))))>=1&&load_le32(dgroup_ptr(m,dgroup(0x097cu)))==0u){if(static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x73e6u))))!=x||static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x73e8u))))!=y){store_le16(dgroup_ptr(m,dgroup(0x71d8u)),static_cast<u16>(x));store_le16(dgroup_ptr(m,dgroup(0x71d6u)),static_cast<u16>(y));store_le16(dgroup_ptr(m,dgroup(0x71d4u)),tag);for(u32 i=0;i<4u;++i)store_le16(dgroup_ptr(m,dgroup(0x7188u+i*2u)),load_le16(dgroup_ptr(m,dgroup(0x2401u+i*2u))));if(b.call_6c44)b.call_6c44(0x7178u);if(b.call_6bc0)b.call_6bc0(0,0,0x18f,0x13f);if(b.call_5780)b.call_5780();if(b.call_57dc)b.call_57dc();if(b.call_6bc0)b.call_6bc0(static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x7178u)))),static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x7180u)))),static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x717cu)))),static_cast<s32>(load_le32(dgroup_ptr(m,dgroup(0x7184u)))));for(u32 i=0;i<4u;++i)store_le16(dgroup_ptr(m,dgroup(0x2401u+i*2u)),load_le16(dgroup_ptr(m,dgroup(0x7188u+i*2u))));}}
  store_le16(dgroup_ptr(m,dgroup(0x71d4u)),tag);
 }
 static_assert(0x522Fu-0x50C0u==367u); // 522F NOP alignment.
 
 // 5230..5279: build the 33h callback descriptor at 71AC/71B4/71B8/71C8 and invoke CEC8.
-void function_5230(Machine&m,PostActorBoundaries&b,u16 value)noexcept{store_le16(dgroup_ptr(m,dgroup(0x71acu)),0x0cu);store_le16(dgroup_ptr(m,dgroup(0x71b4u)),value);store_le32(dgroup_ptr(m,dgroup(0x71b8u)),0x6104u);store_le16(dgroup_ptr(m,dgroup(0x71c8u)),m.cpu.cs);if(b.call_cec8)b.call_cec8(0x33u,0x71acu,0x7190u,0x71c8u);}
+void function_5230(Machine&m,PostActorBoundaries&b,u32 value_slot)noexcept{store_le16(dgroup_ptr(m,dgroup(0x71acu)),0x0cu);store_le16(dgroup_ptr(m,dgroup(0x71b4u)),static_cast<u16>(value_slot));store_le32(dgroup_ptr(m,dgroup(0x71b8u)),0x6104u);store_le16(dgroup_ptr(m,dgroup(0x71c8u)),m.cpu.cs);if(b.call_cec8)b.call_cec8(0x33u,0x71acu,0x7190u,0x71c8u);}
 static_assert(0x527Au-0x5230u==74u); // 527A..527B MOV EAX,EAX alignment.
 
 // 527C..52A9: copy cursor X/Y/tag globals to three caller-supplied guest words.
@@ -538,14 +541,19 @@ static_assert(0x5879u-0x57DCu==157u);
 // 5879..587F are seven zero bytes and are data/alignment.
 
 // 5880..59AB: insert one 9-byte palette-search record into the binary tree rooted through
-// record zero. Components rotate 0->1->2 while descending; word links +5/+7 use 0101h as sentinel.
-void function_5880(Machine&m,const u8 packed[9],s16 index)noexcept{const s32 idx=index;const u32 rec=0x7ff0u+static_cast<u32>(idx*9);*dgroup_ptr(m,dgroup(rec+1u))=packed[1];*dgroup_ptr(m,dgroup(rec))=packed[0];*dgroup_ptr(m,dgroup(rec+2u))=packed[2];store_le16(dgroup_ptr(m,dgroup(rec+3u)),load_le16(packed+3));store_le16(dgroup_ptr(m,dgroup(rec+7u)),0x0101u);store_le16(dgroup_ptr(m,dgroup(rec+5u)),0x0101u);s16 node=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x7ff7u)))),parent=0,component=-1;bool right=true;while(node!=0x0101){parent=node;component=(component==2)?0:static_cast<s16>(component+1);right=false;const u32 base=0x7ff0u+static_cast<u32>(static_cast<s32>(node)*9);if(packed[component]>=*dgroup_ptr(m,dgroup(base+static_cast<u32>(component)))){node=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(base+7u))));right=true;}else node=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(base+5u))));}const u32 pbase=0x7ff0u+static_cast<u32>(static_cast<s32>(parent)*9);store_le16(dgroup_ptr(m,dgroup(pbase+(right?7u:5u))),static_cast<u16>(index));}
+// record zero. The compiler passes the 9-byte record by value in three 32-bit stack slots, followed by
+// a fourth 32-bit slot containing the destination tree-record index. 5880 reads bytes 0..4 only, including
+// the source palette index straddling slot0 byte 3 / slot1 byte 0; slot2 is consumed but otherwise unread.
+void function_5880(Machine&m,u32 slot0,u32 slot1,u32 slot2,s32 index_slot)noexcept{
+ (void)slot2;const u8 key[3]={low8(slot0),static_cast<u8>(slot0>>8),static_cast<u8>(slot0>>16)};const u16 source_index=static_cast<u16>((slot0>>24)|((slot1&0xffu)<<8));const s16 index=static_cast<s16>(static_cast<u16>(index_slot));const u32 rec=0x7ff0u+static_cast<u32>(static_cast<s32>(index)*9);
+ *dgroup_ptr(m,dgroup(rec))=key[0];*dgroup_ptr(m,dgroup(rec+1u))=key[1];*dgroup_ptr(m,dgroup(rec+2u))=key[2];store_le16(dgroup_ptr(m,dgroup(rec+3u)),source_index);store_le16(dgroup_ptr(m,dgroup(rec+7u)),0x0101u);store_le16(dgroup_ptr(m,dgroup(rec+5u)),0x0101u);
+ s16 node=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x7ff7u)))),parent=0,component=-1;bool right=true;while(node!=0x0101){parent=node;component=(component==2)?0:static_cast<s16>(component+1);right=false;const u32 base=0x7ff0u+static_cast<u32>(static_cast<s32>(node)*9);if(key[component]>=*dgroup_ptr(m,dgroup(base+static_cast<u32>(component)))){node=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(base+7u))));right=true;}else node=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(base+5u))));}const u32 pbase=0x7ff0u+static_cast<u32>(static_cast<s32>(parent)*9);store_le16(dgroup_ptr(m,dgroup(pbase+(right?7u:5u))),static_cast<u16>(index_slot));}
 static_assert(0x59ACu-0x5880u==300u);
 
 
 struct PaletteTreeBoundaries{
  u32(*read_dgroup32)(u32)=nullptr;
- void(*insert_5880)(u8,u8,u8,u16,s32)=nullptr;
+ void(*insert_5880)(u32,u32,u32,s32)=nullptr;
  u8(*read_guest8)(u32)=nullptr; void(*write_guest8)(u32,u8)=nullptr;
  void(*dos_print_dollar_guest)(u32)=nullptr;
  s32(*call_d23a)(u32,u16)=nullptr; s32(*call_d280)(u32,u16,u32)=nullptr; s32(*call_d2ad)(u32)=nullptr;
@@ -562,13 +570,15 @@ struct PaletteTreeBoundaries{
 // MOVZX targets AX, not EAX: the upper 16 bits of the incoming guest address survive each byte load.
 [[nodiscard]]s32 function_59ac(PaletteTreeBoundaries&b,u32 src)noexcept{
  s32 best_index=0; s16 best=0x200; s32 bx=0; const u32 high=src&0xffff0000u;
- while(static_cast<s16>(bx)<0x300){const s32 off=static_cast<s16>(bx);const u32 a=high|(b.read_guest8?b.read_guest8(src+static_cast<u32>(off)):0u);const u32 c1=high|(b.read_guest8?b.read_guest8(src+static_cast<u32>(off+1)):0u);const u32 c2=high|(b.read_guest8?b.read_guest8(src+static_cast<u32>(off+2)):0u);const s32 da=static_cast<s32>(a)-31,db=static_cast<s32>(c1)-31,dc=static_cast<s32>(c2)-31;const s32 dist=da*da+db*db+dc*dc;if(static_cast<s16>(dist)<best){best=static_cast<s16>(dist);best_index=off/3;}bx+=3;}return best_index;
+ while(static_cast<s16>(bx)<0x300){const s32 off=static_cast<s16>(bx);const u32 a=high|(b.read_guest8?b.read_guest8(src+static_cast<u32>(off)):0u);const u32 c1=high|(b.read_guest8?b.read_guest8(src+static_cast<u32>(off+1)):0u);const u32 c2=high|(b.read_guest8?b.read_guest8(src+static_cast<u32>(off+2)):0u);const u32 da=a-31u,db=c1-31u,dc=c2-31u;u32 dist=da*da;dist+=db*db;dist+=dc*dc;const s16 dist16=static_cast<s16>(static_cast<u16>(dist));if(dist16<best){best=dist16;best_index=off/3;}bx+=3;}return best_index;
 }
 static_assert(0x5A34u-0x59ACu==136u);
 
 // 5A34..5B63: initialize sentinels, choose the closest palette entry, then insert downward and upward.
 void function_5a34(Machine&m,PaletteTreeBoundaries&b,u32 src)noexcept{
- store_le16(dgroup_ptr(m,dgroup(0x7ff3u)),0xffffu);store_le16(dgroup_ptr(m,dgroup(0x7ff5u)),0x0101u);store_le16(dgroup_ptr(m,dgroup(0x7ff7u)),0x0101u);store_le16(dgroup_ptr(m,dgroup(0x88fcu)),0xffffu);store_le16(dgroup_ptr(m,dgroup(0x88feu)),0x0101u);store_le16(dgroup_ptr(m,dgroup(0x8900u)),0x0101u);s32 serial=1;const s32 lo=function_59ac(b,src);s32 hi=lo+1;auto ins=[&](s32 idx){const u32 o=static_cast<u32>(idx*3);if(b.insert_5880)b.insert_5880(b.read_guest8?b.read_guest8(src+o):0u,b.read_guest8?b.read_guest8(src+o+1u):0u,b.read_guest8?b.read_guest8(src+o+2u):0u,static_cast<u16>(idx),serial);++serial;};for(s32 i=lo;i>-1;--i)ins(i);while(static_cast<s16>(hi)<0x100){ins(hi);++hi;}store_le16(dgroup_ptr(m,dgroup(0x982u)),1u);
+ store_le16(dgroup_ptr(m,dgroup(0x7ff3u)),0xffffu);store_le16(dgroup_ptr(m,dgroup(0x7ff5u)),0x0101u);store_le16(dgroup_ptr(m,dgroup(0x7ff7u)),0x0101u);store_le16(dgroup_ptr(m,dgroup(0x88fcu)),0xffffu);store_le16(dgroup_ptr(m,dgroup(0x88feu)),0x0101u);store_le16(dgroup_ptr(m,dgroup(0x8900u)),0x0101u);s32 serial=1;const s32 lo=function_59ac(b,src);s32 hi=lo+1;
+ auto ins=[&](s32 idx){const u32 o=static_cast<u32>(idx*3);const u8 c0=b.read_guest8?b.read_guest8(src+o):0u,c1=b.read_guest8?b.read_guest8(src+o+1u):0u,c2=b.read_guest8?b.read_guest8(src+o+2u):0u;const u16 source_index=static_cast<u16>(idx);const u32 slot0=static_cast<u32>(c1)|(static_cast<u32>(c0)<<8)|(static_cast<u32>(c2)<<16)|(static_cast<u32>(source_index&0xffu)<<24);const u32 slot1=static_cast<u32>(source_index>>8);const u32 slot2=0u;if(b.insert_5880)b.insert_5880(slot0,slot1,slot2,serial);++serial;};
+ for(s32 i=lo;i>-1;--i)ins(i);while(static_cast<s16>(hi)<0x100){ins(hi);++hi;}store_le16(dgroup_ptr(m,dgroup(0x982u)),1u);
 }
 static_assert(0x5B64u-0x5A34u==304u);
 
