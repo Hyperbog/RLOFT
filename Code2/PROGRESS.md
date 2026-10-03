@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-10.38%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-11.60%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **24,697**
-**Proven non-code/data bytes:** **190**
-**Reconciled object bytes:** **24,887 / 239,698 = 10.3826% (10.38%)**
-**Unresolved object bytes:** **214,811**
+**Verified translated instruction bytes:** **27,622**
+**Proven non-code/data bytes:** **193**
+**Reconciled object bytes:** **27,815 / 239,698 = 11.6042% (11.60%)**
+**Unresolved object bytes:** **211,883**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -253,5 +253,30 @@ The zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unres
 ### Next high-value targets
 
 1. Continue the sequential application path at `0461C`.
+2. Reconcile startup at `353A0` as a CODE.2-specific path.
+3. Continue harvesting independently proved relocated CODE.1 runtime families.
+
+## Batch 07 — four-party simulation/update loop and slot classifier
+
+Source identity and object-1 SHA-256 were reverified before this batch. Added **2,925 translated instruction bytes** and **3 directly proven alignment bytes**, bringing cumulative accounting to **27,622 translated + 193 non-code = 27,815 / 239,698 = 11.6042% (11.60%)**.
+
+### Newly translated ranges
+
+- `0461C..050D8` — **2,749 bytes**: four-party state reconciliation/update loop, including nibble normalization, pending/deficit accounting, timed progression, special-resource checks, escape polling, message construction, and exact normal-vs-hard cleanup paths.
+- `050DC..0518B` — **176 bytes**: slot classifier with exact `F240h` exclusion mask, mode-dependent signed byte tests, and the signed `>= 9` word gate.
+
+### Newly proven non-code/data
+
+`050D9..050DB` is the explicit three-byte `LEA EAX,[EAX]` compiler separator between the two routines. A full object-1 direct branch/call target scan found no incoming target to these bytes.
+
+### Fidelity notes
+
+The `04100` early-message path returns directly after output and does **not** execute the `1E74C` cleanup. By contrast, the random `04228` abort and the two party-zero `7D44` aborts jump directly to `1E74C` and skip the normal key-drain, elapsed-time formatting, and D681/D682 publication epilogue. The odd initial special-resource predicate intentionally reuses the `2199B` low nibble while testing the `219B8/219C2/219CC` alternatives.
+
+The zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+### Next high-value targets
+
+1. Continue the sequential application path at `0518C`.
 2. Reconcile startup at `353A0` as a CODE.2-specific path.
 3. Continue harvesting independently proved relocated CODE.1 runtime families.
