@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-20.79%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-22.24%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **49,376**
-**Proven non-code/data bytes:** **464**
-**Reconciled object bytes:** **49,840 / 239,698 = 20.7928% (20.79%)**
-**Unresolved object bytes:** **189,858**
+**Verified translated instruction bytes:** **52,825**
+**Proven non-code/data bytes:** **475**
+**Reconciled object bytes:** **53,300 / 239,698 = 22.2363% (22.24%)**
+**Unresolved object bytes:** **186,398**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -453,3 +453,25 @@ Added **8 directly proven alignment bytes** at `09D8F`, `0A609..0A60B`, `0A667`,
 Fidelity notes: `09D90` compares the wrapped 16-bit current/max words as signed 16-bit values; the `7Bh` branch has three distinct message-failure exits and a byte-width `21917` decrement; `0A254` preserves the two-phase input poll, effect-specific target eligibility, and the split between direct status/timer installation and `09D90` fallback.
 
 Cumulative accounting: **49,376 translated + 464 proven non-code/data = 49,840 / 239,698 = 20.7928% (20.79%)**. Next sequential frontier: **`0A794`**.
+
+
+## Batch 16 — timed status wrappers, object interactions, and projectile/world-record effects
+
+Added **3,449 verified translated instruction bytes**:
+
+- `0A794..0A89F` — **268 bytes**: one-slot animation wrapper and four-party bit-20 status propagation.
+- `0A8A0..0AA2C` — **397 bytes**: timed bit-10 status installation with class-dependent cap and `1202C` result capture.
+- `0AA30..0ABC3` — **404 bytes**: timed bit-20 status installation with class-dependent cap and byte-width stat increment.
+- `0ABC4..0AC2B` — **104 bytes**: table-coordinate signed remainder helper and object flag set.
+- `0AC2C..0AD23` — **248 bytes**: type-1/type-4 object interaction, including temporary bit-2 mutation and the `002A8` dispatch path.
+- `0AD24..0AE2C` — **265 bytes**: selected/all-party status and event cancellation with `0871C`, `086C4`, and final `0893C` sweep.
+- `0AE30..0AED6` — **167 bytes**: fixed-point probe loop with restoration of the saved global position.
+- `0AED8..0B02B` — **340 bytes**: clipped 2x2 nearby-world-record effect processor with signed budget exhaustion.
+- `0B02C..0B40D` — **994 bytes**: projectile/moving-record spawner, map collision scan, world-record effects, sound/redraw sequence, and type-wide cleanup.
+- `0B410..0B515` — **262 bytes**: world-record to temporary moving-record conversion and exact redraw/page-flip sequence.
+
+Added **11 directly proven alignment bytes** at `0AA2D..0AA2F`, `0AE2D..0AE2F`, `0AED7`, `0B40E..0B40F`, and `0B516..0B517`.
+
+Fidelity notes: `0B02C` restores `C02F` and returns immediately if the first collision-cleared fixed-point position is already beyond the encoded high-word map bounds, thereby skipping its later sound/redraw cleanup. Its world-record scan is inclusive through `258A2`, the `0Bh` moving type has a distinct type-8 decrement/effect path, and guarded records force only the coordinate low words to `8000h`. `0B410` performs exactly two redraw pairs after sound `+21h`, followed by one final `28168` page flip before compacting the temporary record.
+
+Cumulative accounting: **52,825 translated + 475 proven non-code/data = 53,300 / 239,698 = 22.2363% (22.24%)**. Next sequential frontier: **`0B518`**.

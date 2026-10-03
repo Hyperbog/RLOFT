@@ -82,9 +82,14 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 0A609..0A60B | alignment | 3
 0A667..0A667 | alignment | 1
 0A791..0A793 | alignment | 3
+0AA2D..0AA2F | alignment | 3
+0AE2D..0AE2F | alignment | 3
+0AED7..0AED7 | alignment | 1
+0B40E..0B40F | alignment | 2
+0B516..0B517 | alignment | 2
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **464 bytes**.
+**Total proven non-code/data:** **475 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -116,3 +121,6 @@ Batch 14 evidence: `095BD..095BF` and `0978D..0978F` decode as `LEA EAX,[EAX+0]`
 
 
 Batch 15 evidence: `09D8F` and `0A667` decode as explicit `NOP`; `0A609..0A60B` and `0A791..0A793` decode as `LEA EAX,[EAX+0]`. Each lies between directly reconstructed function boundaries, and a full object-1 direct relative branch/call-target scan found no incoming target to any byte in these ranges. The known zero islands remain unresolved.
+
+
+Batch 16 evidence: `0AA2D..0AA2F` and `0AE2D..0AE2F` decode as compiler `LEA EAX,[EAX+0]` separators, `0AED7` is a one-byte `NOP`, and `0B40E..0B40F` / `0B516..0B517` decode as `MOV EAX,EAX`. A full object-1 direct relative branch/call-target scan found no incoming target to any byte in these separator ranges. The known zero islands remain unresolved.
