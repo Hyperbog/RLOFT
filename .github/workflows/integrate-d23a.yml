@@ -1,37 +1,59 @@
-name: CODE.1 object verifier
+name: CODE.1 semantic audit checkpoint 10i
 on:
   push:
     branches: [code1-decompilation]
     paths:
       - '.github/workflows/integrate-d23a.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
-  verify:
+  integrate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Verify closed object accounting
+      - name: Apply semantic audit checkpoint 10i
+        run: python3 Code1/fix_semantic_audit_checkpoint10i.py
+      - name: Verify checkpoint 10i and closed accounting
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
-          cpp=Path('Code1/Code1.cpp').read_text()
-          led=Path('Code1/RESIDUAL_LEDGER.md').read_text()
+          cpp=Path('Code1/Code1.cpp').read_text();led=Path('Code1/RESIDUAL_LEDGER.md').read_text();audit=Path('Code1/FINAL_BINARY_AUDIT.md').read_text()
           assert 'constexpr u32 kVerifiedTranslatedBytes=69361u;' in cpp
-          m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S)
-          assert m
+          assert 'void function_cec0(Machine&m,u16 cs_cc90_ds)noexcept{m.cpu.ds=cs_cc90_ds;}' in cpp
+          cf=cpp[cpp.index('[[nodiscard]]u32 function_cf98('):cpp.index('static_assert(0xD08Cu-0xCF98u==244u);')]
+          assert 'return 0x8a5au;' in cf
+          assert 'struct DosIoctlResult{u16 dx=0;bool carry=false;};' in cpp
+          d4=cpp[cpp.index('[[nodiscard]]s32 function_d4f2('):cpp.index('static_assert(0xD55Eu-0xD4F2u==108u);')]
+          assert 'got.dx' in d4 and 'set.dx' in d4 and 'got.carry' in d4 and 'set.carry' in d4
+          d5=cpp[cpp.index('[[nodiscard]]s32 function_d5ad('):cpp.index('[[nodiscard]]s32 function_d686(')]
+          assert 'if(ch==0x1a)break;' in d5 and 'if(ch==0x1a){total+=kept;return' not in d5
+          d9=cpp[cpp.index('struct CurrentDirBoundaries'):cpp.index('[[nodiscard]]u32 function_d991')]
+          assert 'function_d906(CurrentDirBoundaries&b,char*out,u32 count)' in d9
+          assert 'set_current_dir_error(b,1u)' in d9 and 'set_current_dir_error(b,5u)' in d9 and 'count=need' in d9
+          cp=cpp[cpp.index('void* function_d9ee'):cpp.index('void function_da18')]
+          assert 'for(u32 i=0;i<count;++i)d[i]=sp[i]' in cp and 'std::memcpy' not in cp
+          da=cpp[cpp.index('[[nodiscard]]u32 function_dad9'):cpp.index('void function_db5b')]
+          assert da.count('retried_10aa9=false;')>=2
+          dc=cpp[cpp.index('void function_dc90'):cpp.index('static_assert(0xDB80u-0xDAD9u==167u)')]
+          assert 'while(--ecx!=0u)' in dc and 'while(--n!=0u)' in dc
+          assert 'Semantic audit checkpoint 10i' in audit and '`CEC0..DDD7`' in audit
+          m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S);assert m
           total=0
           for line in m.group(1).strip().splitlines():
-              a,b,cat,n=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| (\d+)',line).groups()
-              a=int(a,16); b=int(b,16); n=int(n)
-              assert b-a+1==n
-              total += n
-          assert total==1041,total
-          assert 69361+total==70402
-          print('CODE.1 object accounting verified: 69361 + 1041 = 70402')
+              a,b,cat,n=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| (\d+)',line).groups();a=int(a,16);b=int(b,16);n=int(n);assert b-a+1==n;total+=n
+          assert total==1041,total;assert 69361+total==70402
+          print('semantic checkpoint 10i verified: 69361 + 1041 = 70402')
           PY
       - name: Syntax check CODE.1 C++
         run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
+      - name: Commit semantic corrections
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+Hyperbog@users.noreply.github.com
+          rm -f Code1/fix_semantic_audit_checkpoint10i.py
+          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/fix_semantic_audit_checkpoint10i.py
+          git diff --cached --check
+          if git diff --cached --quiet; then echo 'Checkpoint 10i already applied.'; else git commit -m "Correct CODE.1 semantic audit checkpoint 10i" && git push origin HEAD:code1-decompilation; fi
