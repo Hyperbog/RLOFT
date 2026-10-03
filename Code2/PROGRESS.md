@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-25.68%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-27.40%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **60,401**
-**Proven non-code/data bytes:** **1,147**
-**Reconciled object bytes:** **61,548 / 239,698 = 25.6773% (25.68%)**
-**Unresolved object bytes:** **178,150**
+**Verified translated instruction bytes:** **64,472**
+**Proven non-code/data bytes:** **1,212**
+**Reconciled object bytes:** **65,684 / 239,698 = 27.4028% (27.40%)**
+**Unresolved object bytes:** **174,014**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -507,3 +507,10 @@ The sequential accounting frontier is now `0C6D7`. Bytes `0C6D7..0C703` remain d
 Batch 18 adds **3,567 translated instruction bytes** plus **138 directly proven non-code/data bytes**. Cumulative accounting is **60,401 translated + 1,147 non-code = 61,548 / 239,698 = 25.6773% (25.68%)**; unresolved is **178,150 bytes**.
 
 The sequential code frontier is now `0D550`. This batch closes `0C704..0D53D` and proves the intervening compiler separators plus the data/jump tables at `0C6E0..0C703`, `0CF70..0CF87`, `0D098..0D0AF`, and `0D540..0D54F`. Preserve `0CD44`'s non-consuming `219F7` countdown before the two consuming damage buffers, `0CF88`'s three-track average and encoded divide-error edge, `0D0B0`'s class-indexed six-way table, and `0D1E0`'s tie-preserving random track selection (only a strict unique maximum overrides the initial random track). The next directly decoded routine begins at `0D550`. Known earlier zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+## Batch 19 — record/effect resolution and party progression (`0D550..0E577`)
+
+Batch 19 adds **4,071 translated instruction bytes** plus **65 directly proven non-code/data bytes**. Cumulative accounting is **64,472 translated + 1,212 non-code = 65,684 / 239,698 = 27.4028% (27.40%)**; unresolved is **174,014 bytes**.
+
+The sequential code frontier is now `0E578`. This batch reconstructs `0D550`'s large record/effect dispatcher with its shared late tails, the `0DACC` selection scan and fallback wrapper, per-track progression/stat helpers through `0DDA4`, directional map-cell clearing at `0E028`, random world-record placement at `0E0F8`, and the five-argument record damage/death path at `0E284`. Preserve `0DDA4`'s distinct per-track experience/class/level strides, the encoded `50DC(0,slot)` argument order, `0D550`'s selected-target damage suppression rule, and `0E284`'s type-specific early-return versus common cleanup/sound/XP paths.

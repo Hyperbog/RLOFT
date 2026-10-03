@@ -109,9 +109,15 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 0D1DF..0D1DF | alignment | 1
 0D53E..0D53F | alignment | 2
 0D540..0D54F | table | 16
+0DBD3..0DBD3 | alignment | 1
+0DC64..0DC7B | table | 24
+0DDA1..0DDA3 | alignment | 3
+0E008..0E027 | table | 32
+0E0F5..0E0F7 | alignment | 3
+0E282..0E283 | alignment | 2
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **1,147 bytes**.
+**Total proven non-code/data:** **1,212 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -152,3 +158,6 @@ Batch 17 evidence: `0B6F1..0B6F3` and `0B73D..0B73F` decode as `LEA EAX,[EAX+0]`
 
 
 Batch 18 evidence: `0C6E0..0C703` is the exact nine-dword source copied by `REP MOVSD` at `0CBD5`, with values `0,1,0,1,0,2,3,4,5`; the preceding zero bytes `0C6D7..0C6DF` lie between the directly reconstructed `0B950` return and that consumed data object. `0CF70..0CF87` is the six-entry CS table selected at `0D025` with targets `0D02C,0D02C,0D02C,0D04A,0D03B,0D053`. `0D098..0D0AF` is the six-entry CS table selected at `0D127`, targeting `0D12E,0D12E,0D12E,0D152,0D142,0D15D`. `0D540..0D54F` is the four-entry CS table consumed at `0D69A`, targeting alternating `0D6AF/0D6A2`. All other Batch 18 ranges are explicit compiler NOP/LEA/MOV-EAX,EAX separators between directly reconstructed routines. A full object-1 direct relative control-flow scan found no incoming target to any Batch 18 separator or table byte.
+
+
+Batch 19 evidence: `0DBD3` is a one-byte `NOP`; `0DDA1..0DDA3` and `0E0F5..0E0F7` decode as `LEA EAX,[EAX+0]`; `0E282..0E283` decodes as `MOV EAX,EAX`. A full object-1 direct relative control-flow target scan found no incoming target to any of these separator bytes. `0DC64..0DC7B` is the exact six-entry CS table consumed at `0DCFE`, with targets `0DD06, 0DD06, 0DD06, 0DD27, 0DD17, 0DD32`. `0E008..0E027` is the exact eight-entry CS table consumed at `0E083`, with targets `0E08A, 0E08E, 0E090, 0E094, 0E096, 0E09A, 0E0A0, 0E09E`. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
