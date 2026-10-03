@@ -23,7 +23,7 @@ jobs:
           cpp=Path('Code1/Code1.cpp').read_text();led=Path('Code1/RESIDUAL_LEDGER.md').read_text();audit=Path('Code1/FINAL_BINARY_AUDIT.md').read_text()
           assert 'constexpr u32 kVerifiedTranslatedBytes=69361u;' in cpp
           de=cpp[cpp.index('[[nodiscard]]u8* function_dea7('):cpp.index('void function_df13')]
-          assert 'volatile const u8 prefetched' in de and 'p+0x10u' in de
+          assert 'const volatile u8 prefetched' in de and 'p+0x10u' in de
           assert 'static_assert(0xDF13u-0xDEA7u==108u);' in de
           e2=cpp[cpp.index('struct Int24Frame12{'):cpp.index('// 8E3C..91BB')]
           assert 'u32(*far_callback)(u32,u32,u32,u32)=nullptr;' in e2
