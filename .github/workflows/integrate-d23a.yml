@@ -1,50 +1,37 @@
-name: CODE.1 semantic audit checkpoint 10j
+name: CODE.1 object verifier
 on:
   push:
     branches: [code1-decompilation]
     paths:
       - '.github/workflows/integrate-d23a.yml'
 permissions:
-  contents: write
+  contents: read
 jobs:
-  integrate:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Apply semantic audit checkpoint 10j
-        run: python3 Code1/fix_semantic_audit_checkpoint10j.py
-      - name: Verify checkpoint 10j and closed accounting
+      - name: Verify closed object accounting
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
-          cpp=Path('Code1/Code1.cpp').read_text();led=Path('Code1/RESIDUAL_LEDGER.md').read_text();audit=Path('Code1/FINAL_BINARY_AUDIT.md').read_text()
+          cpp=Path('Code1/Code1.cpp').read_text()
+          led=Path('Code1/RESIDUAL_LEDGER.md').read_text()
           assert 'constexpr u32 kVerifiedTranslatedBytes=69361u;' in cpp
-          de=cpp[cpp.index('[[nodiscard]]u8* function_dea7('):cpp.index('void function_df13')]
-          assert 'const volatile u8 prefetched' in de and 'p+0x10u' in de
-          assert 'static_assert(0xDF13u-0xDEA7u==108u);' in de
-          e2=cpp[cpp.index('struct Int24Frame12{'):cpp.index('// 8E3C..91BB')]
-          assert 'u32(*far_callback)(u32,u32,u32,u32)=nullptr;' in e2
-          assert 'incoming_ds=f.ds,incoming_es=f.es' in e2
-          assert 'b.far_callback(f.eax&0xffffu,f.edi&0xffffu,linear,static_cast<u32>(sel))' in e2
-          assert 'f.ds=incoming_ds;f.es=incoming_es;' in e2
-          assert 'Semantic audit checkpoint 10j' in audit and '`DDE0..E3B2`' in audit
-          m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S);assert m
+          m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S)
+          assert m
           total=0
           for line in m.group(1).strip().splitlines():
-              a,b,cat,n=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| (\d+)',line).groups();a=int(a,16);b=int(b,16);n=int(n);assert b-a+1==n;total+=n
-          assert total==1041,total;assert 69361+total==70402
-          print('semantic checkpoint 10j verified: 69361 + 1041 = 70402')
+              a,b,cat,n=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| (\d+)',line).groups()
+              a=int(a,16); b=int(b,16); n=int(n)
+              assert b-a+1==n
+              total += n
+          assert total==1041,total
+          assert 69361+total==70402
+          print('CODE.1 object accounting verified: 69361 + 1041 = 70402')
           PY
       - name: Syntax check CODE.1 C++
         run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
-      - name: Commit semantic corrections
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+Hyperbog@users.noreply.github.com
-          rm -f Code1/fix_semantic_audit_checkpoint10j.py
-          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/fix_semantic_audit_checkpoint10j.py
-          git diff --cached --check
-          if git diff --cached --quiet; then echo 'Checkpoint 10j already applied.'; else git commit -m "Correct CODE.1 semantic audit checkpoint 10j" && git push origin HEAD:code1-decompilation; fi
