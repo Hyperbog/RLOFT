@@ -3,6 +3,27 @@ cpp_path=Path('Code2/Code2.cpp'); progress_path=Path('Code2/PROGRESS.md'); add_p
 cpp=cpp_path.read_text(); block=block_path.read_text().rstrip()+"\n"
 assert 'constexpr u32 kVerifiedTranslatedBytes = 4017u;' in cpp and 'void function_002a8(' not in cpp
 cpp=cpp.replace('constexpr u32 kVerifiedTranslatedBytes = 4017u;','constexpr u32 kVerifiedTranslatedBytes = 7139u;',1)
+old_account='''static_assert(kVerifiedTranslatedBytes ==
+              (0x00073u-0x00010u) + (0x000B8u-0x00074u) +
+              (0x001FAu-0x000B8u) + (0x00271u-0x001FCu) +
+              (0x369A7u-0x35F88u) + (0x39526u-0x391F2u));'''
+new_account='''static_assert(kVerifiedTranslatedBytes ==
+              (0x00073u-0x00010u) + (0x000B8u-0x00074u) +
+              (0x001FAu-0x000B8u) + (0x00271u-0x001FCu) +
+              (0x369A7u-0x35F88u) + (0x39526u-0x391F2u) +
+              (0x006B9u-0x002A8u) + (0x006FDu-0x006C0u) +
+              (0x00792u-0x00700u) + (0x007E2u-0x00794u) +
+              (0x00839u-0x007E4u) + (0x00931u-0x0083Cu) +
+              (0x009B0u-0x00934u) +
+              (0x29A84u-0x29930u) + (0x29A9Fu-0x29A84u) +
+              (0x29AA2u-0x29AA0u) + (0x29AF0u-0x29AA4u) +
+              (0x29B19u-0x29AF0u) + (0x29B33u-0x29B1Cu) +
+              (0x29B3Eu-0x29B37u) + (0x29C9Eu-0x29B40u) +
+              (0x29CE9u-0x29CA0u) +
+              (0x2A20Cu-0x2A1E8u) + (0x2A256u-0x2A20Cu) +
+              (0x2A305u-0x2A258u) + (0x2A380u-0x2A308u));'''
+assert old_account in cpp
+cpp=cpp.replace(old_account,new_account,1)
 needle='\n} // namespace code2\n'; assert cpp.count(needle)==1; cpp=cpp.replace(needle,'\n'+block+needle,1); cpp_path.write_text(cpp)
 p=progress_path.read_text()
 for a,b in {
