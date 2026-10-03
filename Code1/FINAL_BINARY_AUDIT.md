@@ -48,3 +48,13 @@ Interpreted using the IBM/Open Watcom LX/LE fixup record definition: `07` is a *
 - Total: **70,402 / 70,402 bytes**
 
 This closes byte classification. It does not replace the separate final semantic audit of every translated instruction range against the original binary.
+
+## End-to-end semantic audit checkpoint 1 — `00000..01463`
+
+The first final-audit region was regenerated directly from the immutable object with `objdump -D -b binary -m i386 -M intel` and reconciled against the current `Code1.cpp`. The complete `0x1464`-byte span closes as **5,193 translated instruction bytes + 27 alignment bytes = 5,220 bytes**, with no gaps or overlaps.
+
+Instruction-accounted routines checked: trap stub `0000..0002`, accumulation helper `0010..0048`, indexed record reader `004C..00EA`, text/layout primitive `00EC..035B`, hit-test `035C..043A`, input/event poller `043C..04AF`, UI painter `04B0..0648`, slot renderer `064C..07E1`, transition renderer `07E4..10A1`, and presentation routine `10A4..1461`.
+
+The audit rechecked direct call targets and argument order, signed comparisons/divisions, modulo/overflow behavior, DGROUP widths and offsets, the `831C` double-poll path, the reverse XOR record loop, the transition counter termination at `[last-1] == 0Bh`, `9C44` slide-call argument order, and the signed interpolation arithmetic in `10A4`. No semantic discrepancy was found.
+
+Directly reverified non-code in this region: `0003..000F` NOPs, `0049..004B` LEA alignment, `00EB` NOP, `043B` NOP, `0649..064B` LEA alignment, `07E2..07E3` MOV EAX,EAX, `10A2..10A3` MOV EAX,EAX, and `1462..1463` MOV EAX,EAX. Coverage/accounting is unchanged by this semantic audit.
