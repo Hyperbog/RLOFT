@@ -1,0 +1,62 @@
+name: Integrate CODE.2 batch 19
+on:
+  push:
+    branches: [code1-decompilation]
+    paths:
+      - '.github/workflows/integrate-code2-batch19.yml'
+permissions:
+  contents: write
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+      - name: Apply batch 19
+        run: python3 Code2/integrate_batch19.py
+      - name: Verify CODE.2 accounting and semantic anchors
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          cpp=Path('Code2/Code2.cpp').read_text()
+          led=Path('Code2/RESIDUAL_LEDGER.md').read_text()
+          prog=Path('Code2/PROGRESS.md').read_text()
+          assert 'constexpr u32 kVerifiedTranslatedBytes = 64472u;' in cpp
+          assert 'constexpr u32 kVerifiedNonCodeBytes = 1212u;' in cpp
+          assert 'static_assert(0x0DACCu-0x0D550u==1404u);' in cpp
+          assert 'static_assert(0x0E578u-0x0E284u==756u);' in cpp
+          assert 'const u32 xp_off=0x21906u+base+track_u*4u;' in cpp
+          assert 'const s32 cls=static_cast<s8>(*dg(m,0x218F5u+base+track_u));' in cpp
+          assert 'b.call_50dc(0u,slot)' in cpp
+          assert 'function_0e284(m,b,record,descriptor,world_index,random,0u);' in cpp
+          assert 'if(type==0x18u)' in cpp
+          m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S)
+          assert m
+          total=0
+          for line in m.group(1).strip().splitlines():
+              a,z,cat,n=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| (\d+)',line).groups()
+              a=int(a,16); z=int(z,16); n=int(n)
+              assert z-a+1==n,(line,z-a+1,n)
+              total+=n
+          assert total==1212,total
+          assert 64472+total==65684
+          assert 239698-65684==174014
+          assert '**65,684 / 239,698 = 27.4028% (27.40%)**' in prog
+          print('CODE.2 batch 19 accounting verified: 64472 + 1212 = 65684')
+          PY
+      - name: Syntax check CODE.2 C++
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+      - name: Clean staging and diff check
+        run: |
+          rm Code2/batch19.zb64 Code2/integrate_batch19.py .github/workflows/integrate-code2-batch19.yml
+          git diff --check
+      - name: Commit integrated batch
+        run: |
+          git config user.name 'Hyperbog'
+          git config user.email '47282882+Hyperbog@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Integrate CODE.2 decompilation batch 19'
+          git push origin code1-decompilation
