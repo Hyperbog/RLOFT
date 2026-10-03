@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-27.40%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-29.21%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **64,472**
-**Proven non-code/data bytes:** **1,212**
-**Reconciled object bytes:** **65,684 / 239,698 = 27.4028% (27.40%)**
-**Unresolved object bytes:** **174,014**
+**Verified translated instruction bytes:** **68,666**
+**Proven non-code/data bytes:** **1,358**
+**Reconciled object bytes:** **70,024 / 239,698 = 29.2134% (29.21%)**
+**Unresolved object bytes:** **169,674**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -514,3 +514,10 @@ The sequential code frontier is now `0D550`. This batch closes `0C704..0D53D` an
 Batch 19 adds **4,071 translated instruction bytes** plus **65 directly proven non-code/data bytes**. Cumulative accounting is **64,472 translated + 1,212 non-code = 65,684 / 239,698 = 27.4028% (27.40%)**; unresolved is **174,014 bytes**.
 
 The sequential code frontier is now `0E578`. This batch reconstructs `0D550`'s large record/effect dispatcher with its shared late tails, the `0DACC` selection scan and fallback wrapper, per-track progression/stat helpers through `0DDA4`, directional map-cell clearing at `0E028`, random world-record placement at `0E0F8`, and the five-argument record damage/death path at `0E284`. Preserve `0DDA4`'s distinct per-track experience/class/level strides, the encoded `50DC(0,slot)` argument order, `0D550`'s selected-target damage suppression rule, and `0E284`'s type-specific early-return versus common cleanup/sound/XP paths.
+
+
+## Batch 20 — effect resolver, modal text UI, and nested item helpers (`0E578..0F66B`)
+
+Batch 20 adds **4,194 translated instruction bytes** plus **146 directly proven non-code/data bytes**. Cumulative accounting is **68,666 translated + 1,358 non-code = 70,024 / 239,698 = 29.2134% (29.21%)**; unresolved is **169,674 bytes**.
+
+The sequential code frontier is now `0F66C`. This batch reconstructs the `0E5F0` effect resolver and its nine-way CS table, the 17-buffer modal text subsystem through `0EC1C`, equipment/stat aggregation at `0EFA0`, bitfield helpers, and recursive nested-item membership/removal/value routines through `0F5F8`. Preserve `0E5F0`'s distinct success code `14h` branches, zero-vs-one sound tail arguments, two-stage duration halving, and `7Fh` amount persistence; preserve `0EC1C`'s byte-vs-dword `C050` accesses and `0F5F8`'s final 16-bit truncation. Next code begins at `0F66C`.

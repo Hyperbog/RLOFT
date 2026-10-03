@@ -115,9 +115,30 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 0E008..0E027 | table | 32
 0E0F5..0E0F7 | alignment | 3
 0E282..0E283 | alignment | 2
+0E5CC..0E5EF | table | 36
+0EA82..0EA8F | noncode | 14
+0EABB..0EABB | alignment | 1
+0EB3B..0EB3B | alignment | 1
+0EC19..0EC1B | alignment | 3
+0EEA5..0EEAF | noncode | 11
+0EEB0..0EEDF | table | 48
+0EF32..0EF33 | alignment | 2
+0EF6D..0EF6F | alignment | 3
+0EF9D..0EF9F | alignment | 3
+0F167..0F167 | alignment | 1
+0F216..0F217 | alignment | 2
+0F236..0F237 | alignment | 2
+0F271..0F273 | alignment | 3
+0F2B2..0F2B3 | alignment | 2
+0F2D1..0F2D3 | alignment | 3
+0F305..0F307 | alignment | 3
+0F38F..0F38F | alignment | 1
+0F4AD..0F4AF | alignment | 3
+0F53D..0F53F | alignment | 3
+0F5F7..0F5F7 | alignment | 1
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **1,212 bytes**.
+**Total proven non-code/data:** **1,358 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -161,3 +182,6 @@ Batch 18 evidence: `0C6E0..0C703` is the exact nine-dword source copied by `REP 
 
 
 Batch 19 evidence: `0DBD3` is a one-byte `NOP`; `0DDA1..0DDA3` and `0E0F5..0E0F7` decode as `LEA EAX,[EAX+0]`; `0E282..0E283` decodes as `MOV EAX,EAX`. A full object-1 direct relative control-flow target scan found no incoming target to any of these separator bytes. `0DC64..0DC7B` is the exact six-entry CS table consumed at `0DCFE`, with targets `0DD06, 0DD06, 0DD06, 0DD27, 0DD17, 0DD32`. `0E008..0E027` is the exact eight-entry CS table consumed at `0E083`, with targets `0E08A, 0E08E, 0E090, 0E094, 0E096, 0E09A, 0E0A0, 0E09E`. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+Batch 20 evidence: `0E5CC..0E5EF` is the exact nine-entry CS dword jump table consumed at `0E79B`, with targets `0E7EA,0E845,0E802,0E7A3,0E7AE,0E7CC,0E815,0E7F5,0E83D`. `0EEB0..0EEDF` is the exact twelve-dword data block copied by `REP MOVSD` at `11642`, with values `AD,A7,B3,AE,BD,B4,C1,BE,C3,C2,C9,C4`. `0EA82..0EA8F` and `0EEA5..0EEAF` are zero padding bounded by directly reconstructed return/entry points; neither is referenced as data and a full object-1 direct relative control-flow scan found no incoming target to either range. All remaining Batch 20 ranges are explicit `NOP`, `LEA EAX,[EAX+0]`, or `MOV EAX,EAX` compiler separators with no direct incoming control-flow targets. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
