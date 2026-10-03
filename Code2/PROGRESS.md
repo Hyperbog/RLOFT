@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-1.68%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-3.63%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **4,017**  
-**Proven non-code/data bytes:** **0**  
-**Reconciled object bytes:** **4,017 / 239,698 = 1.6759% (1.68%)**  
-**Unresolved object bytes:** **235,681**  
+**Verified translated instruction bytes:** **8,632**
+**Proven non-code/data bytes:** **58**
+**Reconciled object bytes:** **8,690 / 239,698 = 3.6254% (3.63%)**
+**Unresolved object bytes:** **231,008**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -73,3 +73,51 @@ g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
 ```
 
 passed with no diagnostics.
+
+
+## Batch 02 — 13-way application dispatcher + relocated graphics families
+
+Source identity and object-1 SHA-256 were reverified before this batch. Added **4,615 translated instruction bytes** and **58 directly proven non-code/data bytes**.
+
+### Newly translated ranges
+
+- `002A8..006B8` — **1,041 bytes**: thirteen-way five-byte command dispatcher. The table at `00274..002A7` was decoded target-by-target; preserved behavior includes temporary bit-2 masking/restoration around `20C0C`, the opcode-2 type-dependent toggles, signed `IDIV` remainder use for opcode 3, packed `8000h` coordinate values, the long page/input sequence for opcode 7, live-EBX input to `1C160`, and the opcode-11 stop path.
+- `29930..29A83` — **340 bytes**: mode-13/VGA initialization.
+- `29A84..29A9E` — **27 bytes**: mode restore.
+- `29AA4..29AEF` — **76 bytes**: planar pixel write.
+- `29AF0..29B18` — **41 bytes**: planar pixel read.
+- `29B40..29C9D` — **350 bytes**: planar rectangle fill.
+- `29CA0..29CE8` — **73 bytes**: DAC palette stream.
+- `29CEC..29EA9` — **446 bytes**: line rasterizer.
+- `2A1E8..2A20B` — **36 bytes**: image storage-size helper.
+- `2A20C..2A255` — **74 bytes**: four-plane transpose.
+- `2A258..2A304` — **173 bytes**: in-place plane reversal helper.
+- `2A308..2A37F` — **120 bytes**: vertical reversal in four planes.
+- `2A380..2A477` — **248 bytes**: four-plane sprite copy.
+- `2A478..2A583` — **268 bytes**: subtracting sprite variant.
+- `2A584..2A6AF` — **300 bytes**: XLAT/table-translating sprite renderer.
+- `2A6B0..2A89E` — **495 bytes**: clipped sprite renderer.
+- `2A8A0..2AA9A` — **507 bytes**: clipped subtracting sprite renderer.
+
+### Newly proven non-code/data
+
+- `00073` — **1 byte**, NOP alignment.
+- `001FA..001FB` — **2 bytes**, `MOV EAX,EAX` alignment.
+- `00271..00273` — **3 bytes**, `LEA EAX,[EAX]` alignment.
+- `00274..002A7` — **52 bytes**, thirteen-entry CS jump table for `002A8`.
+
+These 58 bytes are recorded in `Code2/RESIDUAL_LEDGER.md`.
+
+### Cross-binary proof
+
+The graphics/image/sprite families were compared against the completed CODE.1 object instruction-by-instruction. CODE.2 uses a fixed code-address shift of `+0x1FC90` and a graphics DGROUP-state shift of `+0xC4B8`. For every integrated corresponding range, instruction counts and instruction boundaries match; all byte differences are relocated operands/self-patch addresses. No opcode/control-flow divergence was found. The C++ nevertheless uses CODE.2 addresses and was syntax-checked independently.
+
+### Deliberately unresolved
+
+`006B9..006BF` remains unresolved. It is a seven-byte zero island before the next apparent routine, but adjacency/appearance alone is not accepted as classification evidence.
+
+## Next high-value targets
+
+1. Continue application analysis at `006C0` while keeping `006B9..006BF` unresolved until independently classified.
+2. Reconcile startup at `353A0` against CODE.1 startup only where CODE.2 bytes prove the relationship.
+3. Continue harvesting exact/relocated CODE.1 runtime anchors to accelerate coverage without weakening the evidence standard.
