@@ -15,10 +15,20 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 00BFA..00BFB | alignment | 2
 010C3..010C3 | alignment | 1
 011A5..011A7 | alignment | 3
+01227..01227 | alignment | 1
+01399..0139B | alignment | 3
+01557..01557 | alignment | 1
+01831..01833 | alignment | 3
+01C4D..01C4F | alignment | 3
+01CE2..01CE3 | alignment | 2
+01F6B..01F6B | alignment | 1
+02079..0207B | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **77 bytes**.
+**Total proven non-code/data:** **94 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
 Batch 03 evidence: each added range decodes as an explicit compiler no-op separator between directly reconstructed functions. A full CODE.2 object-1 scan of direct relative `CALL`/`JMP`/conditional-branch targets found no incoming target to any of these separator instructions. `006B9..006BF` remains unresolved.
+
+Batch 04 evidence: the eight added ranges decode as compiler no-op alignment forms between directly reconciled routine boundaries. A full object-1 direct branch/call-target scan found no incoming target to any byte in these ranges. `006B9..006BF` remains unresolved.
