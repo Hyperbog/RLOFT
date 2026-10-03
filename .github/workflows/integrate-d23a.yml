@@ -14,7 +14,9 @@ jobs:
         with:
           ref: code1-decompilation
       - name: Apply semantic audit checkpoint 10n
-        run: python3 Code1/fix_semantic_audit_checkpoint10n.py
+        run: |
+          python3 Code1/fix_semantic_audit_checkpoint10n.py
+          python3 Code1/fix_semantic_audit_checkpoint10n_order.py
       - name: Verify checkpoint 10n and closed accounting
         run: |
           python3 - <<'PY'
@@ -37,6 +39,7 @@ jobs:
           assert 'function_10ffc(m,b);' in close
           newstream=cpp[cpp.index('[[nodiscard]]u32 function_10f2e('):cpp.index('static_assert(0x10FC9u-0x10F2Eu==155u);')]
           assert newstream.count('dgroup(0x8e68u)),5u')==2
+          assert '[[nodiscard]]s32 function_10c59(FileBoundaries&,u32)noexcept;' in cpp
           flush=cpp[cpp.index('[[nodiscard]]s32 function_111a4('):cpp.index('static_assert(0x11241u-0x111A4u==157u);')]
           assert 'function_11285(f,b' in flush and 'function_d85f(f' in flush
           pos=cpp[cpp.index('[[nodiscard]]s32 function_11241('):cpp.index('static_assert(0x11275u-0x11241u==52u);')]
@@ -57,7 +60,7 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+Hyperbog@users.noreply.github.com
-          rm -f Code1/fix_semantic_audit_checkpoint10n.py
-          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/fix_semantic_audit_checkpoint10n.py
+          rm -f Code1/fix_semantic_audit_checkpoint10n.py Code1/fix_semantic_audit_checkpoint10n_order.py
+          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/fix_semantic_audit_checkpoint10n.py Code1/fix_semantic_audit_checkpoint10n_order.py
           git diff --cached --check
           if git diff --cached --quiet; then echo 'Checkpoint 10n already applied.'; else git commit -m "Correct CODE.1 semantic audit checkpoint 10n" && git push origin HEAD:code1-decompilation; fi
