@@ -1,4 +1,4 @@
-name: CODE.1 semantic audit checkpoint 10m
+name: CODE.1 semantic audit checkpoint 10n
 on:
   push:
     branches: [code1-decompilation]
@@ -13,32 +13,43 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: code1-decompilation
-      - name: Apply semantic audit checkpoint 10m
-        run: python3 Code1/fix_semantic_audit_checkpoint10m.py
-      - name: Verify checkpoint 10m and closed accounting
+      - name: Apply semantic audit checkpoint 10n
+        run: python3 Code1/fix_semantic_audit_checkpoint10n.py
+      - name: Verify checkpoint 10n and closed accounting
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
           cpp=Path('Code1/Code1.cpp').read_text();led=Path('Code1/RESIDUAL_LEDGER.md').read_text();audit=Path('Code1/FINAL_BINARY_AUDIT.md').read_text()
           assert 'constexpr u32 kVerifiedTranslatedBytes=69361u;' in cpp
-          c103=cpp[cpp.index('[[nodiscard]]u32 function_103c3('):cpp.index('static_assert(0x10415u-0x103C3u==82u);')]
-          assert 'const bool signed_le_five=(h&0x80000000u)!=0u||h<=5u;' in c103
-          c104=cpp[cpp.index('void function_10452('):cpp.index('void function_1044f()')]
-          assert 'bool check_fatal=probe>=m.cpu.esp' in c104
-          assert 'distance<=load_le32(dgroup_ptr(m,dgroup(0x5300u)))' in c104
-          assert 'function_10452(m,b,argument);' in c104
-          h=cpp[cpp.index('[[nodiscard]]u32 function_104e0('):cpp.index('static_assert(0x1058Bu-0x104E0u==171u);')]
-          assert 'if(size>largest)largest=size;' in h
-          assert 'hwrite(b,arena+0x10u,largest)' in h
-          assert 'scan=scan-size' not in h
-          assert 'Semantic audit checkpoint 10m' in audit and '`FC98..1083E`' in audit
+          assert 'u32(*selector_limit)(u16)=nullptr;' in cpp
+          a=cpp[cpp.index('[[nodiscard]]u32 function_1083f('):cpp.index('static_assert(0x10974u-0x1083Fu==309u);')]
+          assert 'return r.carry?0u:r.linear;' in a and 'freep=function_1069b' not in a
+          q=cpp[cpp.index('[[nodiscard]]u32 function_10974(Machine&m'):cpp.index('static_assert(0x109C1u-0x10974u==77u);')]
+          assert 'b.selector_limit(m.cpu.ds)+1u' in q and '0x531fu' in q
+          acq=cpp[cpp.index('[[nodiscard]]u32 function_109c1('):cpp.index('static_assert(0x10AA9u-0x109C1u==232u);')]
+          assert acq.index('got_requested=') < acq.index('gb.dos_free_49(probe)') < acq.index('if(!got_requested)return 0u')
+          grow=cpp[cpp.index('[[nodiscard]]u32 function_10aa9('):cpp.index('static_assert(0x10C46u-0x10AA9u==413u);')]
+          assert 'function_10974(m,hb)' in grow and 'raw=acquired+8u' in grow and 'hb.selector_limit(m.cpu.ds)+1u' in grow
+          init=cpp[cpp.index('void function_10e81('):cpp.index('static_assert(0x10EC6u-0x10E81u==69u);')]
+          assert 'if(!node)break' not in init
+          close=cpp[cpp.index('void function_10ec6('):cpp.index('static_assert(0x10ED5u-0x10EC6u==15u);')]
+          assert 'function_10ffc(m,b);' in close
+          newstream=cpp[cpp.index('[[nodiscard]]u32 function_10f2e('):cpp.index('static_assert(0x10FC9u-0x10F2Eu==155u);')]
+          assert newstream.count('dgroup(0x8e68u)),5u')==2
+          flush=cpp[cpp.index('[[nodiscard]]s32 function_111a4('):cpp.index('static_assert(0x11241u-0x111A4u==157u);')]
+          assert 'function_11285(f,b' in flush and 'function_d85f(f' in flush
+          pos=cpp[cpp.index('[[nodiscard]]s32 function_11241('):cpp.index('static_assert(0x11275u-0x11241u==52u);')]
+          assert 'function_10c59(f' in pos and 'out+buffered:out-buffered' in pos
+          low=cpp[cpp.index('[[nodiscard]]s32 function_11285('):cpp.index('static_assert(0x11302u-0x11285u==125u);')]
+          assert 'f.call_103c3?f.call_103c3(handle)' in low and 'function_d85f(f' in low
+          assert 'Semantic audit checkpoint 10n' in audit and '`1083F..11301`' in audit
           m=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S);assert m
           total=0
           for line in m.group(1).strip().splitlines():
-              a,b,cat,n=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| (\d+)',line).groups();a=int(a,16);b=int(b,16);n=int(n);assert b-a+1==n;total+=n
+              x,y,cat,n=re.match(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| (alignment|table|noncode) \| (\d+)',line).groups();x=int(x,16);y=int(y,16);n=int(n);assert y-x+1==n;total+=n
           assert total==1041,total;assert 69361+total==70402
-          print('semantic checkpoint 10m verified: 69361 + 1041 = 70402')
+          print('semantic checkpoint 10n verified to object end: 69361 + 1041 = 70402')
           PY
       - name: Syntax check CODE.1 C++
         run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code1/Code1.cpp
@@ -46,7 +57,7 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+Hyperbog@users.noreply.github.com
-          rm -f Code1/fix_semantic_audit_checkpoint10m.py
-          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/fix_semantic_audit_checkpoint10m.py
+          rm -f Code1/fix_semantic_audit_checkpoint10n.py
+          git add -A Code1/Code1.cpp Code1/FINAL_BINARY_AUDIT.md Code1/fix_semantic_audit_checkpoint10n.py
           git diff --cached --check
-          if git diff --cached --quiet; then echo 'Checkpoint 10m already applied.'; else git commit -m "Correct CODE.1 semantic audit checkpoint 10m" && git push origin HEAD:code1-decompilation; fi
+          if git diff --cached --quiet; then echo 'Checkpoint 10n already applied.'; else git commit -m "Correct CODE.1 semantic audit checkpoint 10n" && git push origin HEAD:code1-decompilation; fi
