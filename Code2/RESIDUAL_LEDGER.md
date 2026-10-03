@@ -87,9 +87,12 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 0AED7..0AED7 | alignment | 1
 0B40E..0B40F | alignment | 2
 0B516..0B517 | alignment | 2
+0B6F1..0B6F3 | alignment | 3
+0B73D..0B73F | alignment | 3
+0B740..0B94F | table | 528
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **475 bytes**.
+**Total proven non-code/data:** **1,009 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -124,3 +127,6 @@ Batch 15 evidence: `09D8F` and `0A667` decode as explicit `NOP`; `0A609..0A60B` 
 
 
 Batch 16 evidence: `0AA2D..0AA2F` and `0AE2D..0AE2F` decode as compiler `LEA EAX,[EAX+0]` separators, `0AED7` is a one-byte `NOP`, and `0B40E..0B40F` / `0B516..0B517` decode as `MOV EAX,EAX`. A full object-1 direct relative branch/call-target scan found no incoming target to any byte in these separator ranges. The known zero islands remain unresolved.
+
+
+Batch 17 evidence: `0B6F1..0B6F3` and `0B73D..0B73F` decode as `LEA EAX,[EAX+0]` compiler separators between directly reconstructed routine boundaries. A full object-1 direct relative branch/call-target scan found no incoming target to either separator. `0B740..0B94F` is the exact 132-entry CS dword table selected by command values `00h..83h` at `0B988`; all 132 entries were decoded and reconciled, comprising 65 explicit handler targets and the shared default target `0C6C2`. `0C6D7..0C703` remains unresolved rather than being classified from appearance alone.

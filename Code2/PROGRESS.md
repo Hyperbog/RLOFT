@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-22.24%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-24.13%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **52,825**
-**Proven non-code/data bytes:** **475**
-**Reconciled object bytes:** **53,300 / 239,698 = 22.2363% (22.24%)**
-**Unresolved object bytes:** **186,398**
+**Verified translated instruction bytes:** **56,834**
+**Proven non-code/data bytes:** **1,009**
+**Reconciled object bytes:** **57,843 / 239,698 = 24.1316% (24.13%)**
+**Unresolved object bytes:** **181,855**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -475,3 +475,28 @@ Added **11 directly proven alignment bytes** at `0AA2D..0AA2F`, `0AE2D..0AE2F`, 
 Fidelity notes: `0B02C` restores `C02F` and returns immediately if the first collision-cleared fixed-point position is already beyond the encoded high-word map bounds, thereby skipping its later sound/redraw cleanup. Its world-record scan is inclusive through `258A2`, the `0Bh` moving type has a distinct type-8 decrement/effect path, and guarded records force only the coordinate low words to `8000h`. `0B410` performs exactly two redraw pairs after sound `+21h`, followed by one final `28168` page flip before compacting the temporary record.
 
 Cumulative accounting: **52,825 translated + 475 proven non-code/data = 53,300 / 239,698 = 22.2363% (22.24%)**. Next sequential frontier: **`0B518`**.
+
+
+## Batch 17 — nearby-world effects and 132-way effect dispatcher
+
+Source identity and object-1 SHA-256 were reverified before this batch. Added **4,009 translated instruction bytes** and **534 directly proven non-code/data bytes**, bringing cumulative accounting to **56,834 translated + 1,009 non-code = 57,843 / 239,698 = 24.1316% (24.13%)**; unresolved is **181,855 bytes**.
+
+### Newly translated ranges
+
+- `0B518..0B6F0` — **473 bytes**: nearby-world effect scan with the exact rank-indexed stack alias, signed two's-complement distance behavior, descriptor gates, mutable threshold/offset/counter aliases, and `E284` counter argument.
+- `0B6F4..0B73C` — **73 bytes**: world-record descriptor-marking pass with signed record count and explicit restoration of `22230`.
+- `0B950..0C6D6` — **3,463 bytes**: complete command/effect dispatcher for command values through `83h`, including all 65 explicit handlers, the shared default tail, modal selection exits, timed-status installation, projectile launch variants, and the `58h` call back into `0B518`.
+
+### Newly proven non-code/data
+
+- `0B6F1..0B6F3` — **3 bytes**, `LEA EAX,[EAX+0]` alignment.
+- `0B73D..0B73F` — **3 bytes**, `LEA EAX,[EAX+0]` alignment.
+- `0B740..0B94F` — **528 bytes**, 132-entry CS dword jump table indexed at `0B988`; every entry was decoded and reconciled.
+
+### Fidelity notes
+
+`0B518` preserves the encoded rank-indexed write aliases: ranks 6, 7, and 8 can overwrite the loop counter, table offset, and threshold respectively; rank zero aliases the stale dword immediately below the local array. The x86 absolute-value sequence is modeled in 32-bit two's-complement form so `INT_MIN` retains its encoded signed-compare behavior. `0B950` preserves the command-`18h/19h/1Ah/29h/5Ch` no-selection result of `FFFFFFFFh`, the distinct command-`7Ah` zero result, and command `58h`'s forced `FFFFFFFEh` result.
+
+Direct audit also corrected an older Batch 16 boundary model: the call to `1C77C` at `0AD15` receives `(token, 0320h)`, not only `token`; Batch 17's `1Eh` handler likewise calls it as `(slot, 031Dh)`. This correction changes no byte accounting.
+
+The sequential accounting frontier is now `0C6D7`. Bytes `0C6D7..0C703` remain deliberately unresolved; the next directly decoded routine begins at `0C704`. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` also remain unresolved.
