@@ -575,6 +575,7 @@ static_assert(0x5B64u-0x5A34u==304u);
 static s16 tree_word(Machine&m,s16 node,u32 off)noexcept{return static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x7ff0u+static_cast<u32>(static_cast<s32>(node)*9)+off))));}
 static u8 tree_byte(Machine&m,s16 node,u32 off)noexcept{return *dgroup_ptr(m,dgroup(0x7ff0u+static_cast<u32>(static_cast<s32>(node)*9)+off));}
 // 5B64..5D8E: exact iterative nearest-tree search. The explicit 16-bit stack/count globals and 0x101 sentinel are retained.
+// Final audit: the return deliberately overwrites AX only, preserving EAX upper bits from the sign-extended node index.
 [[nodiscard]]s32 function_5b64(Machine&m,u8 r,u8 g,u8 bl,u32 radius)noexcept{
  s32 best_dist=0x2e83; s16 best_node=0x0101;
  if(load_le16(dgroup_ptr(m,dgroup(0x982u)))==0u)return -1;
@@ -596,7 +597,7 @@ static u8 tree_byte(Machine&m,s16 node,u32 off)noexcept{return *dgroup_ptr(m,dgr
    node=tree_word(m,node,5u);
   }
  }
- return static_cast<s16>(tree_word(m,best_node,3u));
+ u32 result=static_cast<u32>(static_cast<s32>(best_node));set_low16(result,load_le16(dgroup_ptr(m,dgroup(0x7ff0u+static_cast<u32>(static_cast<s32>(best_node)*9)+3u))));return static_cast<s32>(result);
 }
 static_assert(0x5D8Fu-0x5B64u==555u);
 // 5D8F is zero alignment; 5D90 is the true next entry.
@@ -618,9 +619,10 @@ static_assert(0x5F4Au-0x5D90u==442u);
 // 5F4A..5F4B is alignment.
 
 // 5F4C..6053: populate both actor runtime tables from class-family/class-index records and invalidate conflicting 6A80 entries.
+// Final audit: the second family probe inherits BL=2, then the first family result; negative 6A80 words are not prefiltered.
 void function_5f4c(Machine&m,PaletteTreeBoundaries&b)noexcept{
  for(u32 actor=0;actor<2u;++actor){const u8 family=function_5d90(m,actor,static_cast<u8>(actor));const u32 abase=actor*0x248u;const u8 cls=*dgroup_ptr(m,dgroup(abase+0x680cu));const u32 rec=static_cast<u32>(family)*0xa8u+static_cast<u32>(cls)*0x1cu;const u32 q4[4]={0x98cu,0x98eu,0x98au,0x988u};for(u32 j=0;j<4u;++j)store_le16(dgroup_ptr(m,dgroup(abase+0x6854u+j*2u)),load_le16(dgroup_ptr(m,dgroup(rec+q4[j]))));for(u32 j=0;j<10u;++j)store_le16(dgroup_ptr(m,dgroup(abase+0x6838u+j*2u)),load_le16(dgroup_ptr(m,dgroup(rec+0x990u+j*2u))));}
- if(function_5d90(m,0,0u)==function_5d90(m,1,1u)&&*dgroup_ptr(m,dgroup(0x680cu))==*dgroup_ptr(m,dgroup(0x6a54u))){for(u32 i=0;i<10u;++i){const s16 v=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x6a80u+i*2u))));if(v<0)continue;const u32 q=load_le32(dgroup_ptr(m,dgroup(0x7128u)))+static_cast<u32>(v)*65u+0x2fu;if(b.read_guest8&&b.read_guest8(q)==1u)store_le16(dgroup_ptr(m,dgroup(0x6a80u+i*2u)),0xffffu);}}
+ {const u8 family0=function_5d90(m,0,2u);const u8 family1=function_5d90(m,1,family0);if(family0==family1&&*dgroup_ptr(m,dgroup(0x680cu))==*dgroup_ptr(m,dgroup(0x6a54u))){for(u32 i=0;i<10u;++i){const s16 v=static_cast<s16>(load_le16(dgroup_ptr(m,dgroup(0x6a80u+i*2u))));const u32 q=load_le32(dgroup_ptr(m,dgroup(0x7128u)))+static_cast<u32>(v)*65u+0x2fu;if(b.read_guest8&&b.read_guest8(q)==1u)store_le16(dgroup_ptr(m,dgroup(0x6a80u+i*2u)),0xffffu);}}}
 }
 static_assert(0x6054u-0x5F4Cu==264u);
 
