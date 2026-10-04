@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-69.96%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-71.16%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **164,226**
-**Proven non-code/data bytes:** **3,457**
-**Reconciled object bytes:** **167,683 / 239,698 = 69.9559% (69.96%)**
-**Unresolved object bytes:** **72,015**
+**Verified translated instruction bytes:** **167,023**
+**Proven non-code/data bytes:** **3,537**
+**Reconciled object bytes:** **170,560 / 239,698 = 71.1562% (71.16%)**
+**Unresolved object bytes:** **69,138**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -644,3 +644,10 @@ The sequential frontier now reaches `25DFB`; the next object begins at `25DFC` w
 Batch 53 adds **5,071 translated instruction bytes** plus **540 proven table bytes**, bringing cumulative accounting to **164,226 translated + 3,457 non-code = 167,683 / 239,698 = 69.9559% (69.96%)**; unresolved is **72,015 bytes**.
 
 The sequential frontier now reaches `273E6`. `25DFC..26017` is the exact 135-entry CS dword table owned by `26018`; `273E7..273EF` remains unresolved and the next independently decoded routine begins at `273F0`. Preserve `26018`'s cooldown early-return that skips `19CF4`, the load-before-`-1` item-kind override, category-`0Eh` table ownership, AL-only peer-slot XORs, live global reloads after opaque group-effect calls, low-word fixed-field extraction used for `9*x` delays, the partial-word status test at item `42h`, and item `73h`'s ten-argument pre-pushed `B02C` frame. Semantic audit remains not started.
+
+
+## CODE.2 Batch 54 checkpoint
+
+Batch 54 added **2,797 translated instruction bytes** plus **80 directly proven alignment/padding bytes**, reconciling the prior nine-byte frontier gap and the complete low-level block `273F0..27F22`. Cumulative accounting is **167,023 translated + 3,537 non-code = 170,560 / 239,698 = 71.1562% (71.16%)**; unresolved is **69,138 bytes**.
+
+The sequential frontier now reaches `27F23`; `27F23` is proven `NOP` alignment and the next instruction-owned routine begins at `27F24` with its nonstandard register-save prologue. Preserve `273F0`'s plane-mask rotation plus ADC-driven VGA-byte advance, `274A4`'s unsigned multiply/divide followed by signed-16 wrap, `27580/275E4/27638/27694`'s exact read-map/write-mask widths, `2773C`'s sparse mode overlays, the `27894` interrupt frame's SS/ESP swap and reentry latch, `279D0`'s DOS error-50h filename retry, `27AEC/27BD8`'s encoded stream-cursor ownership, `27C70`'s dword-at-a-time zero detection, and `27D20/27ECC`'s one-time multimedia init/teardown state. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved. Semantic audit remains not started.

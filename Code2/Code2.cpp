@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 164226u;
-constexpr u32 kVerifiedNonCodeBytes = 3457u;
+constexpr u32 kVerifiedTranslatedBytes = 167023u;
+constexpr u32 kVerifiedNonCodeBytes = 3537u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u));
+    (0x273E7u-0x26018u) + 2797u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -18381,5 +18381,371 @@ void function_26018(Machine& m,Application52Boundary& b,Application53Boundary& x
     app53_finish(x);
 }
 static_assert(0x273E7u-0x26018u==5071u);
+
+
+// -----------------------------------------------------------------------------
+// Batch 54: 273F0..27F22 low-level VGA/page conversion, interrupt-safe mouse
+// hook, screenshot/export helpers, streamed planar loaders, strcmp runtime,
+// and the one-time multimedia/resource initialization + teardown pair.
+// -----------------------------------------------------------------------------
+
+struct Application54Boundary {
+    u8 (*in8)(u16)=nullptr;
+    void (*out8)(u16,u8)=nullptr;
+    void (*out16)(u16,u16)=nullptr;
+    u8 (*phys_read8)(u32)=nullptr;
+    void (*phys_write8)(u32,u8)=nullptr;
+
+    u32 (*call_3566c)()=nullptr;
+    u32 (*call_19d18)(u32,u32,u32,u32,u32)=nullptr;
+
+    s32 (*dos_create_new)(u32,u16*)=nullptr;
+    s32 (*dos_write)(u32,u32,u32)=nullptr;
+    void (*dos_close)(u32)=nullptr;
+    void (*bios_palette_load)(u32,u32,u32)=nullptr;
+
+    u32 (*call_30d80)(u32,u32,u32)=nullptr;
+    u32 (*call_312a0)(u32)=nullptr;
+    u32 (*call_30de8)(u32)=nullptr;
+    u32 (*call_3127c)(u32)=nullptr;
+    u32 (*call_3104c)(u32)=nullptr;
+    u32 (*call_312ec)(u32,u32,u32)=nullptr;
+    u32 (*call_312dc)(u32)=nullptr;
+    u32 (*call_35a0c)(u32,u32,u32)=nullptr;
+    u32 (*call_310b0)(u32)=nullptr;
+    u32 (*call_36254)()=nullptr;
+    u32 (*call_365df)(u32)=nullptr;
+    u32 (*call_362be)(u32)=nullptr;
+    u32 (*call_3669c)(u32)=nullptr;
+    u32 (*call_366bb)(u32,u32,u32,u32,u32)=nullptr;
+    u32 (*call_366c5)(u32,u32,u32,u32,u32)=nullptr;
+    u32 (*call_36803)(u32)=nullptr;
+    u32 (*call_36817)(u32)=nullptr;
+    u32 (*call_3666e)(u32)=nullptr;
+};
+
+static void app54_out16(Application54Boundary& b,u16 port,u16 value) noexcept {
+    if(b.out16)b.out16(port,value);
+    else if(b.out8){b.out8(port,static_cast<u8>(value));b.out8(static_cast<u16>(port+1u),static_cast<u8>(value>>8));}
+}
+static u8 app54_phys_read(Application54Boundary& b,u32 addr) noexcept { return b.phys_read8?b.phys_read8(addr):0u; }
+static void app54_phys_write(Application54Boundary& b,u32 addr,u8 value) noexcept { if(b.phys_write8)b.phys_write8(addr,value); }
+static u32 app54_vga_page(u32 page) noexcept { return 0xA0000u + (page<<15u); }
+
+void function_273f0(Machine& m,Application54Boundary& b) noexcept {
+    u32 edi=load_le32(dg(m,0xFDBC)); edi+=0x5663u;
+    u8 bh=0x11u, bl=0u; u32 esi=0xD8E8u;
+    app54_out16(b,0x3CEu,0x4005u);
+    for(u32 outer=0;outer<0x28u;++outer){
+        app54_out16(b,0x3C4u,static_cast<u16>((static_cast<u16>(bh)<<8)|0x02u));
+        app54_out16(b,0x3CEu,static_cast<u16>((static_cast<u16>(bl)<<8)|0x04u));
+        const u8 v=*dg(m,esi);
+        if(v!=0u){
+            u32 p=edi;
+            if(v==8u){
+                app54_phys_write(b,p,0x0Du); p+=0x50u;
+                app54_phys_write(b,p,0x50u); p+=0x50u;
+                for(u32 i=0;i<10u;++i){app54_phys_write(b,p,static_cast<u8>(app54_phys_read(b,p)-v));p+=0x50u;}
+                app54_phys_write(b,p,0x50u); p+=0x50u; app54_phys_write(b,p,0x0Du);
+            } else if(v==6u){
+                app54_phys_write(b,p,0x50u); p+=0x50u;
+                for(u32 i=0;i<12u;++i){app54_phys_write(b,p,static_cast<u8>(app54_phys_read(b,p)-v));p+=0x50u;}
+                app54_phys_write(b,p,0x50u);
+            } else {
+                for(u32 i=0;i<14u;++i){app54_phys_write(b,p,static_cast<u8>(app54_phys_read(b,p)-v));p+=0x50u;}
+            }
+        }
+        bl=static_cast<u8>((bl+1u)&3u);
+        const u8 old=bh; bh=static_cast<u8>((bh<<1u)|(bh>>7u));
+        if((old&0x80u)!=0u)++edi; // ROL BH,1 followed by ADC EDI,0.
+        ++esi;
+    }
+}
+static_assert(0x274A2u-0x273F0u==178u);
+
+void function_274a4(Machine& m,Application52Boundary& a,Application54Boundary& b) noexcept {
+    const u64 n=static_cast<u64>(load_le32(dg(m,0xC658u)))*0xC0u+0xB4u;
+    const u32 q=static_cast<u32>(n/0x168u);
+    s32 x=static_cast<s16>(static_cast<u16>(0x8Cu-q));
+    if(x<=0x13)x+=0xC0;
+    if(x>0xD3)x-=0xC0;
+    const u32 slot=*dg(m,0xEF4Du);
+    if(load_le32(dg(m,0xD8E0u+slot*4u))==static_cast<u32>(x))return;
+    store_le32(dg(m,0xD8E0u+slot*4u),static_cast<u32>(x));
+    if(a.call_296c0)(void)a.call_296c0(0x114u,0x8Eu,0x121u,0xB1u);
+    const u32 h=a.call_2f29c?a.call_2f29c(load_le32(dg(m,0x258DCu))+0x2Cu,0u):0u;
+    if(a.call_29804)(void)a.call_29804(0u,0x114u,static_cast<u32>(0xA0-x),h);
+    if(a.call_29804)(void)a.call_29804(0u,0x114u,static_cast<u32>(0x160-x),h);
+    function_273f0(m,b);
+    if(a.call_296c0)(void)a.call_296c0(0u,0u,0x18Fu,0x13Fu);
+}
+static_assert(0x2757Eu-0x274A4u==218u);
+
+void function_27580(Machine& m,Application54Boundary& b,u32 dst,u32 page,u32 x) noexcept {
+    u32 edi=app54_vga_page(page)+x*2u, esi=dst;
+    app54_out16(b,0x3CEu,0x4005u);
+    for(u32 row=0;row<0x190u;++row){
+        u16 bx=4u;
+        for(u32 plane=0;plane<4u;++plane){
+            app54_out16(b,0x3CEu,bx);
+            *dg(m,esi)=app54_phys_read(b,edi); *dg(m,esi+4u)=app54_phys_read(b,edi+1u);
+            ++esi; bx=static_cast<u16>(bx+0x100u);
+        }
+        esi+=4u; edi+=0x50u;
+    }
+    app54_out16(b,0x3CEu,0x4005u);
+}
+static_assert(0x275E2u-0x27580u==98u);
+
+void function_275e4(Machine& m,Application54Boundary& b,u32 dst,u32 page,u32 x) noexcept {
+    u32 edi=app54_vga_page(page)+(x>>2u), esi=dst;
+    app54_out16(b,0x3CEu,0x4005u);
+    app54_out16(b,0x3CEu,static_cast<u16>(((x&3u)<<8u)|4u));
+    for(u32 row=0;row<0x190u;++row){*dg(m,esi++)=app54_phys_read(b,edi);edi+=0x50u;}
+    app54_out16(b,0x3CEu,0x4005u);
+}
+static_assert(0x27635u-0x275E4u==81u);
+
+void function_27638(Machine& m,Application54Boundary& b,u32 src,u32 page,u32 x) noexcept {
+    u32 edi=app54_vga_page(page)+x*2u, esi=src;
+    for(u32 row=0;row<0x190u;++row){
+        u16 bx=0x0102u;
+        for(u32 plane=0;plane<4u;++plane){
+            app54_out16(b,0x3C4u,bx);
+            app54_phys_write(b,edi,*dg(m,esi)); app54_phys_write(b,edi+1u,*dg(m,esi+4u));
+            ++esi; bx=static_cast<u16>(bx<<1u);
+        }
+        esi+=4u; edi+=0x50u;
+    }
+    app54_out16(b,0x3C4u,0xFF02u);
+}
+static_assert(0x27694u-0x27638u==92u);
+
+void function_27694(Machine& m,Application54Boundary& b,u32 src,u32 page,u32 count,u32 x) noexcept {
+    app54_out16(b,0x3C4u,static_cast<u16>((1u<<(x&3u))<<8u|2u));
+    app54_out16(b,0x3CEu,0x4005u);
+    app54_out16(b,0x3CEu,static_cast<u16>(((x&3u)<<8u)|4u));
+    u32 dst=app54_vga_page(page)+(x<<2u);
+    u32 other=app54_vga_page(page^1u)+(x>>2u);
+    u32 n=count;
+    while(n!=0u){app54_phys_write(b,dst,app54_phys_read(b,other));other+=0x50u;dst+=0x50u;--n;}
+    u32 p=src; n=0x190u-count;
+    while(n!=0u){app54_phys_write(b,dst,*dg(m,p++));dst+=0x50u;--n;}
+    app54_out16(b,0x3C4u,0xFF02u); app54_out16(b,0x3CEu,0x4005u);
+}
+static_assert(0x27739u-0x27694u==165u);
+
+void function_2773c(Machine& m,u32 src,u32 dst,u32 base,u32 mode) noexcept {
+    for(u32 i=0;i<0xC80u;++i)*dg(m,dst+i)=*dg(m,base+i);
+    if(mode==0u){for(u32 i=0;i<0xC80u;++i)*dg(m,dst+i)=*dg(m,src+i);return;}
+    for(u32 row=0;row<0x190u;++row){
+        const u32 s=src+row*8u,d=dst+row*8u;
+        if(mode==1u){const u32 si[6]={0,1,3,4,6,7};for(u32 i=0;i<6u;++i)*dg(m,d+1u+i)=*dg(m,s+si[i]);}
+        else if(mode==2u){const u32 si[4]={0,3,4,7};for(u32 i=0;i<4u;++i)*dg(m,d+2u+i)=*dg(m,s+si[i]);}
+        else if(mode==3u){*dg(m,d+3u)=*dg(m,s);*dg(m,d+4u)=*dg(m,s+7u);}
+    }
+}
+static_assert(0x277E2u-0x2773Cu==166u);
+
+void function_277f0(Machine& m,Application54Boundary& b) noexcept {
+    for(s32 i=0x54;i>=0;--i)*dg(m,0xD916u+static_cast<u32>(i))=*dg(m,0xEFE0u+static_cast<u32>(i));
+    if(b.in8)*dg(m,0xD912u)=b.in8(0x3C4u);
+    if(b.out8)b.out8(0x3C4u,2u);
+    if(b.in8)*dg(m,0xD911u)=b.in8(0x3C5u);
+    if(b.in8)*dg(m,0xD914u)=b.in8(0x3CEu);
+    if(b.out8)b.out8(0x3CEu,5u);
+    if(b.in8)*dg(m,0xD913u)=b.in8(0x3CFu);
+    if(b.out8)b.out8(0x3CEu,4u);
+    if(b.in8)*dg(m,0xD915u)=b.in8(0x3CFu);
+}
+static_assert(0x27842u-0x277F0u==82u);
+
+void function_27844(Machine& m,Application54Boundary& b) noexcept {
+    for(s32 i=0x54;i>=0;--i)*dg(m,0xEFE0u+static_cast<u32>(i))=*dg(m,0xD916u+static_cast<u32>(i));
+    app54_out16(b,0x3C4u,static_cast<u16>((static_cast<u16>(*dg(m,0xD911u))<<8u)|2u));
+    if(b.out8)b.out8(0x3C4u,*dg(m,0xD912u));
+    app54_out16(b,0x3CEu,static_cast<u16>((static_cast<u16>(*dg(m,0xD913u))<<8u)|5u));
+    app54_out16(b,0x3CEu,static_cast<u16>((static_cast<u16>(*dg(m,0xD915u))<<8u)|4u));
+    if(b.out8)b.out8(0x3CEu,*dg(m,0xD914u));
+}
+static_assert(0x27891u-0x27844u==77u);
+
+void function_27894(Machine& m,Application54Boundary& b) noexcept {
+    const CpuState saved=m.cpu;
+    if(b.call_3566c)(void)b.call_3566c();
+    m.cpu.es=m.cpu.ds;
+    if(*dg(m,0xD910u)==0u){
+        *dg(m,0xD910u)=1u; store_le16(dg(m,0xE96Bu),m.cpu.ss); store_le32(dg(m,0xE96Du),m.cpu.esp);
+        store_le32(dg(m,0xD916u),saved.eax); m.cpu.ss=m.cpu.ds; m.cpu.esp=0xE967u;
+        const u32 linear_esi=(saved.esi&0xFFFFu)<<4u;
+        function_277f0(m,b);
+        if(b.call_19d18)(void)b.call_19d18(saved.eax,saved.ebx,saved.ecx,saved.edx,linear_esi);
+        function_27844(m,b);
+        m.cpu.esp=load_le32(dg(m,0xE96Du)); m.cpu.ss=load_le16(dg(m,0xE96Bu)); *dg(m,0xD910u)=0u;
+    }
+    m.cpu=saved; // PUSHF/PUSHAD/segment saves and RETF restore the incoming frame.
+}
+static_assert(0x27913u-0x27894u==127u);
+
+void function_27920(Machine& m) noexcept { for(u32 i=0;i<0x300u;++i)*dg(m,0xEB29u+i)=static_cast<u8>(*dg(m,0xEB29u+i)<<2u); }
+static_assert(0x27938u-0x27920u==24u);
+
+void function_27938(Machine& m,Application54Boundary& b,u32 handle) noexcept {
+    store_le32(dg(m,0xE9B1u),handle); store_le32(dg(m,0xE9B5u),0x190u);
+    if(b.dos_write&&b.dos_write(handle,0xEAF9u,0x338u)<0)return;
+    app54_out16(b,0x3CEu,0x4105u);
+    u32 src=load_le32(dg(m,0xEE31u));
+    for(u32 row=0;row<0x190u;++row){
+        u16 sel=4u;
+        for(u32 plane=0;plane<4u;++plane){
+            app54_out16(b,0x3CEu,sel); sel=static_cast<u16>(sel+0x100u);
+            for(u32 x=0;x<0x50u;++x)*dg(m,0xE9B9u+plane+x*4u)=app54_phys_read(b,src+x);
+        }
+        if(b.dos_write)(void)b.dos_write(handle,0xE9B9u,0x140u);
+        src+=0x50u;
+    }
+    app54_out16(b,0x3CEu,0x4005u);
+}
+static_assert(0x279CEu-0x27938u==150u);
+
+static void app54_increment_filename(Machine& m) noexcept {
+    u8& lo=*dg(m,0xE9ABu); lo=static_cast<u8>(lo+1u); if(lo==0x3Au){u8& hi=*dg(m,0xE9AAu);hi=static_cast<u8>(hi+1u);lo=0x30u;}
+}
+void function_279d0(Machine& m,Application54Boundary& b,u32 framebuffer) noexcept {
+    store_le32(dg(m,0xEE31u),framebuffer);
+    for(;;){
+        u16 error=0u; const s32 h=b.dos_create_new?b.dos_create_new(0xE9A4u,&error):-1;
+        if(h<0){if(error==0x50u){app54_increment_filename(m);continue;}return;}
+        if(b.bios_palette_load)b.bios_palette_load(0xEB29u,0u,0x100u);
+        function_27920(m); function_27938(m,b,static_cast<u32>(h));
+        if(b.dos_close)b.dos_close(load_le32(dg(m,0xE9B1u)));
+        app54_increment_filename(m); return;
+    }
+}
+static_assert(0x27A54u-0x279D0u==132u);
+
+[[nodiscard]] u32 function_27a60(Machine& m) noexcept { const u32 p=load_le32(dg(m,0x7F84u))+load_le32(dg(m,0x7F88u)); const u32 v=*dg(m,p); store_le32(dg(m,0x7F88u),load_le32(dg(m,0x7F88u))+1u); return v; }
+static_assert(0x27A75u-0x27A60u==21u);
+[[nodiscard]] u32 function_27a78(Machine& m) noexcept { const u32 p=load_le32(dg(m,0x7F84u))+load_le32(dg(m,0x7F88u)); const u32 v=load_le16(dg(m,p)); store_le32(dg(m,0x7F88u),load_le32(dg(m,0x7F88u))+2u); return v; }
+static_assert(0x27A8Eu-0x27A78u==22u);
+
+void function_27a90(Machine& m,Application54Boundary& b,u32 src,u32 row,u32 col,u32 width,u32 page) noexcept {
+    u32 dst=app54_vga_page(page)+row*0x50u+col*4u; u32 s=src; u8 mask=0x11u;
+    for(u32 plane=0;plane<4u;++plane){
+        app54_out16(b,0x3C4u,static_cast<u16>((static_cast<u16>(mask)<<8u)|2u));
+        u32 d=dst,p=s; for(u32 i=0;i<width;++i){app54_phys_write(b,d,*dg(m,p));++d;p+=4u;}
+        ++s; mask=static_cast<u8>((mask<<1u)|(mask>>7u));
+    }
+    app54_out16(b,0x3C4u,0xFF02u);
+}
+static_assert(0x27AECu-0x27A90u==92u);
+
+void function_27aec(Machine& m,Application54Boundary& b,u32 page) noexcept {
+    u32 x=0u; u32 outer=function_27a78(m);
+    while(outer!=0u){
+        x+=function_27a78(m); u32 runs=function_27a78(m);
+        app54_out16(b,0x3C4u,static_cast<u16>((static_cast<u16>(0x11u<<(x&3u))<<8u)|2u));
+        u32 y=0u;
+        while(runs!=0u){
+            y+=function_27a78(m); u32 n=function_27a78(m);
+            u32 dst=app54_vga_page(page)+y*0x50u+(x>>2u);
+            while(n!=0u){app54_phys_write(b,dst,static_cast<u8>(function_27a60(m)));dst+=0x50u;++y;--n;}
+            --runs;
+        }
+        --outer;
+    }
+    app54_out16(b,0x3C4u,0xFF02u);
+}
+static_assert(0x27B83u-0x27AECu==151u);
+
+void function_27b84(Machine& m,Application54Boundary& b,u32 page) noexcept {
+    u32 src=load_le32(dg(m,0x7F84u)); const u32 base=app54_vga_page(page)+0x0FF0u;
+    for(u32 plane=0;plane<4u;++plane){app54_out16(b,0x3C4u,static_cast<u16>(((1u<<plane)<<8u)|2u));for(u32 i=0;i<0x5000u;++i)app54_phys_write(b,base+i,*dg(m,src++));}
+}
+static_assert(0x27BD8u-0x27B84u==84u);
+
+void function_27bd8(Machine& m,Application54Boundary& b,u32 page) noexcept {
+    for(u32 row=0;row<0x190u;++row){
+        u32 out=0u;
+        while(out<0x140u){
+            const u32 p=load_le32(dg(m,0x7F84u))+load_le32(dg(m,0x7F88u));
+            const u8 token=*dg(m,p); store_le32(dg(m,0x7F88u),load_le32(dg(m,0x7F88u))+1u);
+            if((token&0x80u)==0u){
+                const u32 n=static_cast<u32>(token)+1u; const u32 s=load_le32(dg(m,0x7F84u))+load_le32(dg(m,0x7F88u));
+                for(u32 i=0;i<n;++i)*dg(m,0x759Cu+out+i)=*dg(m,s+i);
+                out+=n; store_le32(dg(m,0x7F88u),load_le32(dg(m,0x7F88u))+n);
+            } else {
+                const u32 n=0x101u-static_cast<u32>(token); const u32 s=load_le32(dg(m,0x7F84u))+load_le32(dg(m,0x7F88u)); const u8 v=*dg(m,s);
+                store_le32(dg(m,0x7F88u),load_le32(dg(m,0x7F88u))+1u); for(u32 i=0;i<n;++i)*dg(m,0x759Cu+out+i)=v; out+=n;
+            }
+        }
+        function_27a90(m,b,0x759Cu,row,0u,0x50u,page);
+    }
+}
+static_assert(0x27C6Eu-0x27BD8u==150u);
+
+[[nodiscard]] s32 function_27c70(Machine& m,u32 lhs,u32 rhs) noexcept {
+    u32 a=lhs,b=rhs;
+    for(;;){
+        for(u32 off=0;off<16u;off+=4u){
+            const u32 x=load_le32(dg(m,a+off));
+            const u32 y=load_le32(dg(m,b+off));
+            if(x!=y){
+                for(u32 k=0;k<4u;++k){
+                    const u8 xb=static_cast<u8>(x>>(k*8u)), yb=static_cast<u8>(y>>(k*8u));
+                    if(xb!=yb)return xb<yb?-1:1;
+                    if(xb==0u)return 0;
+                }
+            }
+            const u32 z=(x+0xFEFEFEFFu)&~y&0x80808080u;
+            if(z!=0u)return 0;
+        }
+        a+=16u; b+=16u;
+    }
+}
+static_assert(0x27D1Cu-0x27C70u==172u);
+
+void function_27d20(Machine& m,Application54Boundary& b,u32 name,u32 a2,u32 a3,u32 a4,u32 a5) noexcept {
+    if(load_le32(dg(m,0xEE40u))!=0u)return;
+    const u32 root=b.call_30d80?b.call_30d80(0x61E68u,0xEE64u,0xEE68u):0u; store_le32(dg(m,0xEE60u),root); if(root==0u)return;
+    const s32 h=b.call_312a0?static_cast<s32>(b.call_312a0(name)):-1;
+    if(h==-1){if(b.call_30de8)(void)b.call_30de8(load_le16(dg(m,0xEE68u)));return;}
+    const u32 size=b.call_3127c?b.call_3127c(name):0u; const u32 buf=b.call_3104c?b.call_3104c(size):0u;
+    if(buf==0u){if(b.call_30de8)(void)b.call_30de8(load_le16(dg(m,0xEE68u)));return;}
+    if(b.call_312ec)(void)b.call_312ec(buf,b.call_3127c?b.call_3127c(name):size,static_cast<u32>(h));
+    if(b.call_312dc)(void)b.call_312dc(static_cast<u32>(h));
+    const u32 obj=b.call_35a0c?b.call_35a0c(buf,5u,0u):0u;
+    if(obj==0u){if(b.call_30de8)(void)b.call_30de8(load_le16(dg(m,0xEE68u)));if(b.call_310b0)(void)b.call_310b0(buf);return;}
+    if(b.call_310b0)(void)b.call_310b0(buf);
+    if(b.call_36254)(void)b.call_36254();
+    const s32 dev=b.call_365df?static_cast<s32>(b.call_365df(obj)):-1; store_le32(dg(m,0xEE6Cu),static_cast<u32>(dev));
+    if(dev==-1){if(b.call_30de8)(void)b.call_30de8(load_le16(dg(m,0xEE68u)));if(b.call_362be)(void)b.call_362be(0u);return;}
+    const u32 desc=b.call_3669c?b.call_3669c(static_cast<u32>(dev)):0u;
+    if(load_le32(dg(m,desc+4u))!=2u){if(b.call_362be)(void)b.call_362be(0u);if(b.call_30de8)(void)b.call_30de8(load_le16(dg(m,0xEE68u)));return;}
+    const u32 ok=b.call_366bb?b.call_366bb(static_cast<u32>(dev),a2,a3,a4,a5):0u;
+    if(ok==0u){if(b.call_362be)(void)b.call_362be(0u);if(b.call_30de8)(void)b.call_30de8(load_le16(dg(m,0xEE68u)));return;}
+    if(b.call_366c5)(void)b.call_366c5(static_cast<u32>(dev),a2,a3,a4,a5);
+    store_le32(dg(m,0xEE40u),1u);
+}
+static_assert(0x27ECCu-0x27D20u==428u);
+
+void function_27ecc(Machine& m,Application54Boundary& b) noexcept {
+    if(load_le32(dg(m,0xEE40u))==0u)return;
+    const u32 dev=load_le32(dg(m,0xEE6Cu));
+    if(b.call_36803&&b.call_36803(dev)==2u&&b.call_36817)(void)b.call_36817(dev);
+    if(b.call_3666e)(void)b.call_3666e(dev);
+    if(b.call_30de8)(void)b.call_30de8(load_le16(dg(m,0xEE68u)));
+    store_le32(dg(m,0xEE40u),0u);
+}
+static_assert(0x27F23u-0x27ECCu==87u);
+
+static_assert((0x274A2u-0x273F0u)+(0x2757Eu-0x274A4u)+(0x275E2u-0x27580u)+
+              (0x27635u-0x275E4u)+(0x27694u-0x27638u)+(0x27739u-0x27694u)+
+              (0x277E2u-0x2773Cu)+(0x27842u-0x277F0u)+(0x27891u-0x27844u)+
+              (0x27913u-0x27894u)+(0x27938u-0x27920u)+(0x279CEu-0x27938u)+
+              (0x27A54u-0x279D0u)+(0x27A75u-0x27A60u)+(0x27A8Eu-0x27A78u)+
+              (0x27AECu-0x27A90u)+(0x27B83u-0x27AECu)+(0x27BD8u-0x27B84u)+
+              (0x27C6Eu-0x27BD8u)+(0x27D1Cu-0x27C70u)+(0x27ECCu-0x27D20u)+
+              (0x27F23u-0x27ECCu)==2797u);
 
 } // namespace code2

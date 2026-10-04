@@ -382,3 +382,7 @@ Corrected Batch 52 adds **4,937 translated bytes** and **23 proven alignment byt
 
 ## CODE.2 Batch 53 checkpoint
 Batch 53 adds **5,071 translated bytes** and **540 proven table bytes**, bringing cumulative accounting to **164,226 translated + 3,457 non-code = 167,683 / 239,698 = 69.9559% (69.96%)**. The sequential frontier reaches `273E7`; the nine bytes through `273EF` remain unresolved and the next independently decoded routine begins at `273F0`. Preserve the exact 135-entry `25DFC` table, `26018` cooldown early-return, load-before-`-1` kind override, AL-only peer-slot XORs, post-call global reloads, partial-word status test, and the item-`73h` pre-pushed `B02C` frame.
+
+
+## CODE.2 Batch 54 checkpoint
+Batch 54 adds **2,797 translated bytes** and **80 proven alignment/padding bytes**, bringing cumulative accounting to **167,023 translated + 3,537 non-code = 170,560 / 239,698 = 71.1562% (71.16%)**. The resume-overlap hashes from Batch 53 were reproduced exactly before any forward accounting. The sequential frontier is `27F24`; preserve the low-level VGA plane/register ordering, `27894` interrupt stack/selector swap, screenshot filename retry semantics, stream cursor/RLE ownership, `27C70` dword zero-detect loads, and `27D20/27ECC` multimedia state lifecycle.
