@@ -1,0 +1,78 @@
+name: Integrate CODE.2 Batch 67
+
+on:
+  push:
+    branches: [code1-decompilation]
+    paths:
+      - '.github/workflows/integrate-code2-batch67.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "CODE.2 Decompilation Bot"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Verify staged fragment
+        run: |
+          test "$(git hash-object Code2/.batch67.fragment.cpp)" = "7cbc050a1c8e97e66cac0d4217b9e88fb39558f3"
+          grep -F '// Batch 67: 2DF2C..2E7EE' Code2/.batch67.fragment.cpp
+          grep -F '==2161u);' Code2/.batch67.fragment.cpp
+          grep -F 'kApp67DirectionJumpTable[8]' Code2/.batch67.fragment.cpp
+
+      - name: Integrate Batch 67
+        run: python Code2/.batch67_integrate.py integrate
+
+      - name: Verify accounting
+        run: python Code2/.batch67_integrate.py verify
+
+      - name: Syntax check
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+
+      - name: Guard fidelity anchors
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          cpp=Path('Code2/Code2.cpp').read_text()
+          led=Path('Code2/RESIDUAL_LEDGER.md').read_text()
+          prog=Path('Code2/PROGRESS.md').read_text()
+          assert all(x in cpp for x in ['function_2df2c','function_2e120','function_2e590','function_2e5d4','function_2e614','function_2e768'])
+          assert 'static constexpr u32 kApp67DirectionJumpTable[8]' in cpp
+          assert 'if(hi>=0 && hi==0 && static_cast<u16>(raw_distance)>=0xB000u)' in cpp
+          assert 'low=static_cast<u16>(0u-low); // NEG WORD, then MOVSX.' in cpp
+          assert '*dg(m,0x2B644u+static_cast<u32>(depth))=*dg(m,0xEF4Du);' in cpp
+          assert '2DFEC..2E00B | table | 32' in led
+          assert '2E339..2E33F | padding | 7' in led
+          assert '197,388 / 239,698 = 82.3486% (82.35%)' in prog
+          PY
+          git diff --check
+
+      - name: Commit substantive Batch 67
+        run: |
+          cp Code2/.batch67_integrate.py /tmp/batch67_integrate.py
+          rm -f Code2/.batch67.fragment.cpp Code2/.batch67_integrate.py .github/workflows/integrate-code2-batch67.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "Integrate CODE.2 decompilation batch 67"
+          git push origin HEAD:code1-decompilation
+          echo "BATCH_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Refresh durable resume checkpoint
+        run: |
+          BATCH_SHA="$BATCH_SHA" python /tmp/batch67_integrate.py checkpoint
+          grep -F "$BATCH_SHA" Code2/RESUME_CHECKPOINT.md
+          grep -F 'Next independently decoded instruction boundary: **`2E7F0`**.' Code2/RESUME_CHECKPOINT.md
+          git add Code2/RESUME_CHECKPOINT.md
+          git diff --cached --check
+          git commit -m "Refresh CODE.2 resume checkpoint after batch 67"
+          git push origin HEAD:code1-decompilation
