@@ -347,9 +347,10 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 25C36..25C37 | alignment | 2
 25CAA..25CAB | alignment | 2
 25DFA..25DFB | alignment | 2
+25DFC..26017 | table | 540
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **2,917 bytes**.
+**Total proven non-code/data:** **3,457 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -476,3 +477,5 @@ Batch 50 evidence: `22E8D..22E8F`, `23021..23023`, `231BE..231BF`, `233A5..233A7
 Batch 51 evidence: `240A5..240A7` decodes as `LEA EAX,[EAX+0]` between the directly reconstructed `24060` return and the `240A8` entry; `243DE..243DF` decodes as `MOV EAX,EAX` between the `240A8` return and the `243E0` entry. A full object-1 direct relative CALL/JMP/Jcc target scan found no incoming target to either separator. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
 
 Batch 52 integrity-repair evidence: the prior Batch 52 mistakenly analyzed object offsets `14A60..1548B` while labeling them `24A60..2548B`; fresh disassembly of immutable CODE.2 object 1 confirms that `24478` continues through its RET at `24A9B` and `24A9C` is the true next entry. The invalid shifted source and all sixteen associated residual-ledger classifications have been removed. `24B46..24B47`, `24BF1..24BF3`, `24F5E..24F5F`, `2519F`, `253F6..253F7`, `254D3`, `258F7`, `25A0D..25A0F`, `25ACA..25ACB`, `25C36..25C37`, `25CAA..25CAB`, and `25DFA..25DFB` decode as explicit Watcom NOP/LEA/MOV-EAX,EAX separators between directly reconstructed routines. A full object-1 direct relative CALL/JMP/Jcc target scan found no incoming target to any of these separator bytes. The object at `25DFC` begins a CS dword dispatch table and remains unresolved with its owning dispatcher for the next fold. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+Batch 53 evidence: `25DFC..26017` is the exact 135-entry CS dword jump table selected by `function_26018`. The dispatcher subtracts `A7h`, rejects unsigned indices above `86h`, and jumps through `JMP DWORD PTR CS:[EBP*4+25DFCh]`, proving an exact 135-dword ownership span. All table entries were decoded from immutable CODE.2 and retained verbatim in `kApp53Table25dfc`; they resolve to the address-distinct item handlers, four special resource/item handlers, or the shared `273DA` cleanup. The nine bytes `273E7..273EF` are deliberately left unresolved; the next independently decoded routine begins at `273F0`. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.

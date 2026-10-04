@@ -373,3 +373,6 @@ The prior Batch 52 was removed because it analyzed object offsets beginning at `
 
 ## CODE.2 Batch 52 checkpoint
 Corrected Batch 52 adds **4,937 translated bytes** and **23 proven alignment bytes**, bringing cumulative accounting to **159,155 translated + 2,917 non-code = 162,072 / 239,698 = 67.6151% (67.62%)**. The sequential frontier is now `25DFC`, whose CS dword dispatch table remains with its owning dispatcher for the next fold. Preserve the signed clipping/page-capture behavior, byte-only page toggles, display/resource restoration order, inventory-group ownership, record compaction, resource gates, and low-word add/clamp behavior described in `PROGRESS.md`.
+
+## CODE.2 Batch 53 checkpoint
+Batch 53 adds **5,071 translated bytes** and **540 proven table bytes**, bringing cumulative accounting to **164,226 translated + 3,457 non-code = 167,683 / 239,698 = 69.9559% (69.96%)**. The sequential frontier reaches `273E7`; the nine bytes through `273EF` remain unresolved and the next independently decoded routine begins at `273F0`. Preserve the exact 135-entry `25DFC` table, `26018` cooldown early-return, load-before-`-1` kind override, AL-only peer-slot XORs, post-call global reloads, partial-word status test, and the item-`73h` pre-pushed `B02C` frame.
