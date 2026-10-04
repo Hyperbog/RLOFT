@@ -287,9 +287,16 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 1F3FA..1F3FB | alignment | 2
 1F493..1F493 | alignment | 1
 1F7F6..1F7F7 | alignment | 2
+1F809..1F80B | alignment | 3
+1F81E..1F81F | alignment | 2
+1F857..1F857 | alignment | 1
+1F858..1F86B | table | 20
+1F8FB..1F8FB | alignment | 1
+1FC12..1FC13 | alignment | 2
+202ED..202EF | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **2,602 bytes**.
+**Total proven non-code/data:** **2,634 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -398,3 +405,5 @@ Batch 41 evidence: `1C9A0..1CA2B` is the exact 35-entry CS dword table selected 
 Batch 43 evidence: `1E533`, `1E592..1E593`, `1E74A..1E74B`, `1E75B`, `1E99F`, and `1EA8E..1EA8F` decode as explicit compiler NOP/MOV-EAX-EAX separators between directly reconstructed routine boundaries. A full object-1 direct relative CALL/JMP/conditional-branch target scan found no incoming target to any separator byte.
 
 Batch 44 evidence: `1EEFC..1EF7B` is the exact 32-dword CS dispatch table consumed by the bounded `C6C8 <= 1Fh` indirect jump at `1EFAC`; decoded targets are `1F041,1F025,1F02F,1F07B,1F08D,1F0E0,1F0CC,1F106,1F053,1EFBB,1F106,1EFF3,1F09C,1F09C,1F09C,1F106,1F0F4,1F0F4,1F106,1F106,1F106,1F106,1EFB4,1EFBB,1EFBB,1EFBB,1EFBB,1F106,1F0B4,1F0B4,1F106,1EFBB`. `1EEFB`, `1F11F`, `1F1C6..1F1C7`, `1F3FA..1F3FB`, `1F493`, and `1F7F6..1F7F7` decode as explicit NOP/MOV-EAX-EAX separators. A full object-1 direct relative CALL/JMP/conditional target scan, excluding the table bytes' meaningless linear disassembly, found no incoming code target into any of these 137 bytes.
+
+Batch 45 evidence: `1F858..1F86B` is the exact five-dword CS table consumed by the `C018 <= 4` indirect jump at `1F88B`; entries 0..4 target `1F8C5,1F8BB,1F8B1,1F8A7,1F893`, respectively. `1F809..1F80B`, `1F81E..1F81F`, `1F857`, `1F8FB`, `1FC12..1FC13`, and `202ED..202EF` decode as explicit LEA/MOV-EAX-EAX/NOP compiler separators. A full object-1 direct relative CALL/JMP/conditional target scan found no incoming code target into any of these 32 bytes.

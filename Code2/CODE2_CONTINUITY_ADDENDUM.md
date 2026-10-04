@@ -340,3 +340,10 @@ The sequential frontier now reaches `1EDAB`; the next routine begins at `1EDAC`.
 Batch 44 added **2,499 translated bytes** plus **137 proven non-code/data bytes**. Cumulative accounting is **133,354 translated + 2,602 non-code = 135,956 / 239,698 = 56.7197% (56.72%)**; unresolved is **103,742 bytes**.
 
 The sequential frontier now reaches `1F7F7`; the next routine begins at `1F7F8`. The exact 32-entry table at `1EEFC..1EF7B` belongs to `1EF7C`. Preserve `1EDAC`'s one-replacement-per-lane mapping behavior, `1EF7C`'s phase-dependent random sound ranges, `1F120`'s repeated live `29048` calls, `1F1C8`'s signed truncation and asymmetric presentation paths, `1F3FC`'s flag-priority order, and `1F494`'s dead/high-bit direct jump that bypasses the common actor-status refresh. Direct inspection of `2E6F0` (`PUSH arg; CALL 373BF`) proves it has one cdecl input; Batch 43's boundary signature was corrected accordingly while retaining the encoded pre-pushed zero as `30508`'s fifth argument. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved. Semantic audit remains not started.
+
+
+## CODE.2 Batch 45 checkpoint
+
+Batch 45 added **2,776 translated bytes** plus **32 proven non-code/data bytes**. Cumulative accounting is **136,130 translated + 2,634 non-code = 138,764 / 239,698 = 57.8912% (57.89%)**; unresolved is **100,934 bytes**.
+
+The sequential frontier now reaches `202EF`; the next routine begins at `202F0`. Preserve the five-entry `1F858..1F86B` table, `1F86C` state-4 fall-through through scripts `2Dh..31h`, `1F8E0`'s backward shared-RET / forward fall-through ownership, `1FB80`'s release-then-press polling, and `1FC14`'s non-returning main loop. In `1FC14`, only `258FC` is initialized at entry; `258FE` remains live, key dispatch compares AX, damping is skipped for the selected axis when direction*value >= 0, and the `C6E8/C6EC` scaling uses low-32 IMUL + logical SHR + CWDE semantics. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved. Semantic audit remains not started.

@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-56.72%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-57.89%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **133,354**
-**Proven non-code/data bytes:** **2,602**
-**Reconciled object bytes:** **135,956 / 239,698 = 56.7197% (56.72%)**
-**Unresolved object bytes:** **103,742**
+**Verified translated instruction bytes:** **136,130**
+**Proven non-code/data bytes:** **2,634**
+**Reconciled object bytes:** **138,764 / 239,698 = 57.8912% (57.89%)**
+**Unresolved object bytes:** **100,934**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -584,3 +584,9 @@ Fidelity notes: the original large unsigned compare tree over `BF44` is expresse
 Added **2,499 translated instruction bytes** plus **137 directly proven table/alignment bytes**, reconciling `1EDAC..1F7F7`. The `1EEFC..1EF7B` region is the exact 32-entry CS table owned by `1EF7C`; the next routine begins at `1F7F8`.
 
 Fidelity notes: `1EDAC` performs at most one mapping replacement per lane before cycling the two `242h..244h` / `245h..247h` triplets. `1EF7C` retains unsigned selector bounds and low-32 random scaling. `1F1C8` keeps the truncation-toward-zero signed divisions used to derive `FF50` and the asymmetric `C026/C027/C028` update paths. `1F494` preserves the high-bit actor path's direct jump to `1F745` (skipping `22F40` and both `1EA90` calls), signed HP-bar `IDIV`, and the pre-pushed zero that becomes `30508`'s fifth argument. The same stack pattern proves the Batch-43 `2E6F0` boundary takes one argument; that signature is corrected here without changing byte accounting.
+
+## Batch 45 — movement state, modal input, and main game loop
+
+Added **2,776 translated instruction bytes** plus **32 directly proven table/alignment bytes**, reconciling `1F7F8..202EF`. The five-entry CS table at `1F858..1F86B` belongs to `1F86C`; the next routine begins at `202F0`.
+
+Fidelity notes: `1F86C` preserves signed tick expiry and state-4's `2Dh` call / `C018=-1` / fall-through `2Eh..31h` ordering. `1F8E0` uses the prior routine's shared `RET` when the mode is unchanged and otherwise falls directly into `1F8FC`. `1FC14` leaves `258FE` live at entry, dispatches on AX only, keeps the partial-EDX/low-word movement arithmetic, preserves the selected-axis decay exemption when direction*value is nonnegative, and models the `IMUL; SHR 3; CWDE` fixed-point conversions exactly. The loop has no encoded return.
