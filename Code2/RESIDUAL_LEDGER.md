@@ -319,9 +319,23 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 229A4..229CB | table | 40
 22D8B..22D8B | alignment | 1
 22E3E..22E3F | padding | 2
+22E8D..22E8F | alignment | 3
+23021..23023 | alignment | 3
+231BE..231BF | alignment | 2
+233A5..233A7 | alignment | 3
+23435..23437 | alignment | 3
+237E3..237E3 | alignment | 1
+23B35..23B37 | alignment | 3
+23DE5..23DEF | padding | 11
+23E1B..23E1B | alignment | 1
+23E56..23E57 | alignment | 2
+23EAA..23EAB | alignment | 2
+23F33..23F33 | alignment | 1
+23F4E..23F4F | alignment | 2
+23FC1..23FC3 | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **2,849 bytes**.
+**Total proven non-code/data:** **2,889 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -442,3 +456,5 @@ Batch 47 evidence: `210AF` decodes as a one-byte `NOP` between the directly reco
 Batch 48 evidence: `21B24..21B43` is the exact eight-entry CS dword jump table consumed by `JMP DWORD PTR CS:[EAX*4+21B24h]` at `21B83`; its targets are `21B8B,21B9B,21BAB,21BEA,21BEA,21BBB,21BEA,21BCB`. `2195B`, `21ADB`, `21BEF`, `21DB1..21DB3`, `21F19..21F1B`, `21F6E..21F6F`, and `223F1..223F3` decode as explicit compiler NOP/LEA/MOV-EAX,EAX separators between directly reconstructed boundaries. A full object-1 direct relative call/jump target scan found no incoming target to any separator byte. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
 
 Batch 49 evidence: `22950..229A3` is the exact 21-entry CS dword table consumed by the bounded `ECX <= 14h` indirect jump at `22A2B`; its entries are `22A33,22C02,22C28,22C48,22C6E,22C02,22C28,22C48,22C6E,22C02,22C28,22C48,22C6E,22C02,22C28,22C48,22C6E,22C94,22CB4,22CD4,22B95`. `229A4..229CB` is the exact ten-entry CS table consumed at `22B34` after the record-type byte is decremented and bounded to `0..9`; its targets are `22B3C,22BA6,22BF5,22BC1,22BF5,22BF5,22BF5,22BF5,22BF5,22BE3`. `22891..22893` and `2294D..2294F` decode as `LEA EAX,[EAX+0]`, `22D8B` is `NOP`, and `22E3E..22E3F` is the two-byte zero pad between the directly reconstructed `22D8C` return and the independent `22E40` entry. A full object-1 direct relative CALL/JMP/Jcc target scan found no incoming target to any separator or pad byte. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+Batch 50 evidence: `22E8D..22E8F`, `23021..23023`, `231BE..231BF`, `233A5..233A7`, `23435..23437`, `237E3`, `23B35..23B37`, `23E1B`, `23E56..23E57`, `23EAA..23EAB`, `23F33`, `23F4E..23F4F`, and `23FC1..23FC3` decode as explicit Watcom NOP/LEA/MOV-EAX,EAX separators between directly reconstructed routine boundaries. `23DE5..23DEF` is the exact eleven-byte zero pad between the `23D84` return at `23DE4` and the independently decoded `23DF0` entry; a full object-1 direct relative CALL/JMP/Jcc target scan found no incoming target to any Batch 50 residual byte, and a full little-endian absolute-address scan found no direct reference to any byte of the zero pad. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.

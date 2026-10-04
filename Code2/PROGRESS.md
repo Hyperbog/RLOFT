@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-62.52%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-64.39%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **147,003**
-**Proven non-code/data bytes:** **2,849**
-**Reconciled object bytes:** **149,852 / 239,698 = 62.5170% (62.52%)**
-**Unresolved object bytes:** **89,846**
+**Verified translated instruction bytes:** **151,447**
+**Proven non-code/data bytes:** **2,889**
+**Reconciled object bytes:** **154,336 / 239,698 = 64.3877% (64.39%)**
+**Unresolved object bytes:** **85,362**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -616,3 +616,9 @@ The sequential frontier now reaches `223F3`; the next routine begins at `223F4`.
 Batch 49 added **2,503 translated instruction bytes** plus **133 proven non-code/data bytes**. Cumulative accounting is **147,003 translated + 2,849 non-code = 149,852 / 239,698 = 62.5170% (62.52%)**; unresolved is **89,846 bytes**.
 
 The sequential frontier now reaches `22E3F`; the next routine begins at `22E40`. `22950..229A3` and `229A4..229CB` are the exact CS tables owned by `229CC`. Preserve `223F4`'s AL/CL/DL-only page toggle and its one-past-count record pointer when an ordinal is not found, `229CC`'s persistent `EBX -= 20h` mutation after a failed `223F4` probe, `22894`'s signed `IDIV` quotient/remainder and truncation-toward-zero scale arithmetic, and the queued-input ring's head advance before dispatch. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved. Semantic audit remains not started.
+
+## CODE.2 Batch 50 checkpoint
+
+Batch 50 added **4,444 translated instruction bytes** plus **40 proven non-code/data bytes**. Cumulative accounting is **151,447 translated + 2,889 non-code = 154,336 / 239,698 = 64.3877% (64.39%)**; unresolved is **85,362 bytes**.
+
+The sequential frontier now reaches `23FC3`; the next routine begins at `23FC4`. Preserve `23024`'s equality-only six-row termination (not an `>=` precheck), `231C0`'s two packed-nibble list passes and DEC/JNE ownership, `23438`'s signed panel arithmetic plus high-nibble wrap decrement, `2388C`'s signed quotient/remainder angle path and record rollback, and `23B38`'s stale-record read/modify/write flag behavior plus collision retry loop. `23DE5..23DEF` is proven padding; the older zero islands remain unresolved. Semantic audit remains not started.

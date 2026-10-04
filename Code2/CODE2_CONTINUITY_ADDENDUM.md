@@ -361,3 +361,6 @@ Batch 48 adds **3,266 translated bytes** and **46 proven non-code/data bytes**, 
 
 ## CODE.2 Batch 49 checkpoint
 Batch 49 adds **2,503 translated bytes** and **133 proven non-code/data bytes**, bringing cumulative accounting to **147,003 translated + 2,849 non-code = 149,852 / 239,698 = 62.5170% (62.52%)**. The sequential frontier is now `22E40`. Preserve the partial-register page toggle and one-past-count ownership in `223F4`, both exact `229CC` CS tables, the failed-probe `EBX -= 20h` carry-forward, `22894`'s signed division behavior, and the queue head update before `229CC`/`12E70`/`02DB0` dispatch.
+
+## CODE.2 Batch 50 checkpoint
+Batch 50 adds **4,444 translated bytes** and **40 proven non-code/data bytes**, bringing cumulative accounting to **151,447 translated + 2,889 non-code = 154,336 / 239,698 = 64.3877% (64.39%)**. The sequential frontier is now `23FC4`. Preserve `23024`'s equality-only list stop, `231C0`'s packed-nibble DEC/JNE loops, `23438`'s signed panel arithmetic and nibble wrap decrement, `2388C`'s rollback/angle/timer paths, and `23B38`'s partial flag writes and collision retry loop.
