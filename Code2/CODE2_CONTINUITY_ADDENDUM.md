@@ -434,3 +434,7 @@ Batch 65 adds **3,418 translated bytes** and **22 proven alignment bytes**, brin
 ## CODE.2 Batch 66 checkpoint
 
 Batch 66 adds **3,862 translated bytes** and **18 proven alignment bytes**, bringing cumulative accounting to **191,324 translated + 3,820 non-code = 195,144 / 239,698 = 81.4124% (81.41%)**; unresolved is **44,554 bytes**. The sequential frontier is now `2DF2C`. Preserve the signed versus unsigned comparisons in `2D3D8`/`2D5D0`, the `2D004` saved-but-not-restored coordinate locals, AX-only acceptance tests in `2DBAC`, the first-qualifying-tile early return in `2DA7C`, and the word/byte-specific tile-code mutations around `198E0`.
+
+## CODE.2 Batch 67 checkpoint
+
+Batch 67 adds **2,161 translated bytes** and **83 proven non-code/data bytes**, bringing cumulative accounting to **193,485 translated + 3,903 non-code = 197,388 / 239,698 = 82.3486% (82.35%)**; unresolved is **42,310 bytes**. The sequential frontier is now `2E7F0`. Preserve the exact `2DFEC` eight-entry CS table owned by `2DF2C`, the signed-high-word-only distance clamp, `2E120`'s word-sized negation before sign extension, page-stack state in `2E590/2E5D4`, and `2E614`'s intentionally dead post-mask return branch.

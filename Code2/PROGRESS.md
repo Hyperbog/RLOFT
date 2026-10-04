@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-81.41%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-82.35%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **191,324**
-**Proven non-code/data bytes:** **3,820**
-**Reconciled object bytes:** **195,144 / 239,698 = 81.4124% (81.41%)**
-**Unresolved object bytes:** **44,554**
+**Verified translated instruction bytes:** **193,485**
+**Proven non-code/data bytes:** **3,903**
+**Reconciled object bytes:** **197,388 / 239,698 = 82.3486% (82.35%)**
+**Unresolved object bytes:** **42,310**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -730,3 +730,9 @@ Instruction ownership spans `2C294..2C7F6`, `2C800..2C8E1`, `2C8E4..2C9D8`, `2C9
 Batch 66 added **3,862 translated instruction bytes** plus **18 directly proven alignment bytes**, reconciling through `2DF2B`. Cumulative accounting is **191,324 translated + 3,820 non-code = 195,144 / 239,698 = 81.4124% (81.41%)**; unresolved is **44,554 bytes**.
 
 Instruction ownership spans `2D004..2D232`, `2D234..2D2F0`, `2D2F4..2D3C2`, `2D3C4..2D3D4`, `2D3D8..2D5CC`, `2D5D0..2D9F8`, `2D9FC..2DA7A`, `2DA7C..2DBAA`, and `2DBAC..2DF29`. Preserve `2D004`'s signed 25622 range checks and IDIV remainder update, `2D5D0`'s high-word fixed-point window extraction plus AX-only return consumption, `2DA7C`'s doubled-offset tile probe and early outer exit, and `2DBAC`'s low-word tile-code edits and fallback move ordering. The next independent routine begins at `2DF2C`.
+
+## CODE.2 Batch 67 checkpoint
+
+Batch 67 added **2,161 translated instruction bytes** plus **83 directly proven non-code/data bytes**, reconciling through `2E7EF`. Cumulative accounting is **193,485 translated + 3,903 non-code = 197,388 / 239,698 = 82.3486% (82.35%)**; unresolved is **42,310 bytes**.
+
+Instruction ownership spans `2DF2C..2DFE8`, `2E00C..2E0E2`, `2E0E4..2E11C`, `2E120..2E338`, `2E340..2E348`, `2E34C..2E35E`, `2E360..2E372`, `2E374..2E434`, `2E438..2E4A0`, `2E4A4..2E50C`, `2E510..2E535`, `2E538..2E560`, `2E564..2E58C`, `2E590..2E5D2`, `2E5D4..2E612`, `2E614..2E6ED`, `2E6F0..2E708`, `2E70C..2E724`, `2E728..2E749`, `2E74C..2E755`, `2E758..2E7EE`. Preserve `2DF2C`'s signed-high-word clamp condition and exact eight-entry CS table, `2E120`'s 16-bit NEG/MOVSX movement path, nested page-state semantics in `2E590/2E5D4`, and `2E614`'s encoded dead `0x1F0` branch after BL bit 2 is cleared. The next independent routine begins at `2E7F0`.
