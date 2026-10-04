@@ -355,3 +355,6 @@ Batch 46 adds **2,807 translated bytes** and **33 proven non-code/data bytes**, 
 
 ## CODE.2 Batch 47 checkpoint
 Batch 47 adds **2,297 translated bytes** and **3 proven alignment bytes**, bringing cumulative accounting to **141,234 translated + 2,670 non-code = 143,904 / 239,698 = 60.0355% (60.04%)**. The sequential frontier is now `21704`. Preserve the impossible `210B0` word-sentinel comparison exactly, `211D8`'s environment-list fallback order, and `214B8`'s saved current-environment values versus the explicit post-callback reload of `255D8`.
+
+## CODE.2 Batch 48 checkpoint
+Batch 48 adds **3,266 translated bytes** and **46 proven non-code/data bytes**, bringing cumulative accounting to **144,500 translated + 2,716 non-code = 147,216 / 239,698 = 61.4173% (61.42%)**. The sequential frontier is now `223F4`. Preserve `2195C`'s low-word fixed-point overwrite, the mixed raw-SAR versus truncation-toward-zero arithmetic in `21BF0`, the exact eight-entry `21B24` table, and the intentionally dead constant-nonzero branch in `21F70`.

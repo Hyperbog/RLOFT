@@ -305,9 +305,17 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 20D7B..20D7B | alignment | 1
 210AF..210AF | alignment | 1
 21702..21703 | alignment | 2
+2195B..2195B | alignment | 1
+21ADB..21ADB | alignment | 1
+21B24..21B43 | table | 32
+21BEF..21BEF | alignment | 1
+21DB1..21DB3 | alignment | 3
+21F19..21F1B | alignment | 3
+21F6E..21F6F | alignment | 2
+223F1..223F3 | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **2,670 bytes**.
+**Total proven non-code/data:** **2,716 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -424,3 +432,5 @@ Batch 46 evidence: `2043E..2043F`, `2084E..2084F`, and `20A22..20A23` decode as 
 
 
 Batch 47 evidence: `210AF` decodes as a one-byte `NOP` between the directly reconstructed `20E08` return and the `210B0` entry; `21702..21703` decodes as `MOV EAX,EAX` between the `214B8` return and the `21704` entry. A full object-1 direct relative CALL/JMP/conditional-branch target scan found no incoming target to either separator. The encoded `210B0` `MOVZX word` / `CMP -1` pair is intentionally not treated as a table terminator.
+
+Batch 48 evidence: `21B24..21B43` is the exact eight-entry CS dword jump table consumed by `JMP DWORD PTR CS:[EAX*4+21B24h]` at `21B83`; its targets are `21B8B,21B9B,21BAB,21BEA,21BEA,21BBB,21BEA,21BCB`. `2195B`, `21ADB`, `21BEF`, `21DB1..21DB3`, `21F19..21F1B`, `21F6E..21F6F`, and `223F1..223F3` decode as explicit compiler NOP/LEA/MOV-EAX,EAX separators between directly reconstructed boundaries. A full object-1 direct relative call/jump target scan found no incoming target to any separator byte. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.

@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-60.04%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-61.42%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **141,234**
-**Proven non-code/data bytes:** **2,670**
-**Reconciled object bytes:** **143,904 / 239,698 = 60.0355% (60.04%)**
-**Unresolved object bytes:** **95,794**
+**Verified translated instruction bytes:** **144,500**
+**Proven non-code/data bytes:** **2,716**
+**Reconciled object bytes:** **147,216 / 239,698 = 61.4173% (61.42%)**
+**Unresolved object bytes:** **92,482**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -604,3 +604,9 @@ The sequential frontier now reaches `20E07`; the next routine begins at `20E08`.
 Batch 47 added **2,297 translated instruction bytes** plus **3 proven alignment bytes**. Cumulative accounting is **141,234 translated + 2,670 non-code = 143,904 / 239,698 = 60.0355% (60.04%)**; unresolved is **95,794 bytes**.
 
 The sequential application frontier now reaches `21703`; the next routine begins at `21704`. Preserve `20E08`'s two-stage `1C328` decision and saved `20D7C` outputs, the deliberately non-terminating `210B0` `MOVZX word`/`CMP -1` table scan, `211D8`'s type-0Dh/type-0Fh list insertion fallbacks, and `214B8`'s saved `8600/8602` values across opaque calls while reloading `255D8` before the post-callback type/subtype read. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved. Semantic audit remains not started.
+
+## CODE.2 Batch 48 checkpoint
+
+Batch 48 added **3,266 translated bytes** plus **46 proven non-code/data bytes**. Cumulative accounting is **144,500 translated + 2,716 non-code = 147,216 / 239,698 = 61.4173% (61.42%)**; unresolved is **92,482 bytes**.
+
+The sequential frontier now reaches `223F3`; the next routine begins at `223F4`. `21B24..21B43` is the exact eight-entry CS jump table owned by `21B44`. Preserve `2195C`'s low-word-only `8000h` fixed-point overwrite, `21BF0`'s raw arithmetic `SAR` before later truncation-toward-zero division idioms, and `21F70`'s constant-nonzero `280E8h` test that makes the encoded `28110` branch dead. The long `21F70` orientation loops also retain their encoded unreachable inner arms instead of being normalized into a cleaner angle helper. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved. Semantic audit remains not started.
