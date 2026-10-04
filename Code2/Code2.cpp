@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 128548u;
-constexpr u32 kVerifiedNonCodeBytes = 2456u;
+constexpr u32 kVerifiedTranslatedBytes = 130855u;
+constexpr u32 kVerifiedNonCodeBytes = 2465u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -539,8 +539,13 @@ static_assert(0x39526u-0x391F2u==820u);
 static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
-static_assert(kVerifiedTranslatedBytes == 122860u +
-              (0x1E4A0u-0x1CE68u));
+static_assert(kVerifiedTranslatedBytes == 128548u +
+              (0x1E533u-0x1E4A0u) + (0x1E592u-0x1E534u) +
+              (0x1E74Au-0x1E594u) + (0x1E75Bu-0x1E74Cu) +
+              (0x1E8C8u-0x1E75Cu) + (0x1E930u-0x1E8C8u) +
+              (0x1E99Fu-0x1E930u) + (0x1EA04u-0x1E9A0u) +
+              (0x1EA78u-0x1EA04u) + (0x1EA8Eu-0x1EA78u) +
+              (0x1EDACu-0x1EA90u));
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -14223,4 +14228,366 @@ void function_1ce68(Machine& m,Application42Boundary& b) noexcept {
 }
 static_assert(0x1E4A0u-0x1CE68u==5688u);
 
+// -----------------------------------------------------------------------------
+// Batch 43: 1E4A0..1EDAB timer/status expiry, periodic party effects,
+// map-cell lookup helpers, panel refresh, and hand/item status rendering.
+// Six compiler separators totaling nine bytes are ledgered separately.
+// The next routine begins at 1EDAC.
+// -----------------------------------------------------------------------------
+
+struct Application43Boundary {
+    u32 (*call_19cc4)()=nullptr;
+    void (*call_cd44)(u32,u32)=nullptr;
+    u32 (*call_30700)()=nullptr;
+    void (*call_31f94)()=nullptr;
+    u32 (*call_f2d4)(u32,u32)=nullptr;
+    void (*call_2939c)(u32,u32,u32,u32)=nullptr;
+    u32 (*call_2f29c)(u32,u32)=nullptr;
+    void (*call_1a510)(u32)=nullptr;
+    void (*call_29b40)(u32,u32,u32,u32,u32)=nullptr;
+    u32 (*call_24478)(u32,u32)=nullptr;
+    void (*call_2a258)(u32,u32)=nullptr;
+    void (*call_298f0)(u32,u32,u32,u32,u32,u32)=nullptr;
+    void (*call_2e374)(u32,u32,u32,u32,u32)=nullptr;
+    void (*call_2975c)(u32,u32,u32,u32,u32)=nullptr;
+    u32 (*call_2e6f0)(u32,u32)=nullptr;
+    void (*call_30508)(u32,u32,u32,u32,u32)=nullptr;
+    void (*divide_error)()=nullptr;
+};
+
+static void app43_copy_z(Machine& m,u32 dst,u32 src) noexcept {
+    for(;;++dst,++src) {
+        const u8 c=*dg(m,src);
+        *dg(m,dst)=c;
+        if(c==0u)return;
+    }
+}
+static void app43_append_z(Machine& m,u32 dst,u32 src) noexcept {
+    while(*dg(m,dst)!=0u)++dst;
+    app43_copy_z(m,dst,src);
+}
+static void app43_emit_text(Machine& m,Application43Boundary& b,u32 src) noexcept {
+    const u32 now=b.call_30700?b.call_30700():0u;
+    store_le32(dg(m,0xCF54u),now+0x5Au);
+    app43_copy_z(m,0x14580u,src);
+    *dg(m,0xCF59u)=1u;
+}
+static bool app43_idiv(Application43Boundary& b,s32 n,s32 d,s32& q,s32& r) noexcept {
+    if(d==0||(n==static_cast<s32>(0x80000000u)&&d==-1)) {
+        if(b.divide_error)b.divide_error();
+        q=0; r=0;
+        return false;
+    }
+    q=n/d;
+    r=n%d;
+    return true;
+}
+
+void function_1e4a0(Machine& m,Application43Boundary& b) noexcept {
+    const u32 now=b.call_19cc4?b.call_19cc4():0u;
+    for(u32 slot=0u;slot<4u;++slot) {
+        const u32 base=slot*0x248u;
+        if((load_le16(dg(m,0x218F0u+base))&0x8000u)!=0u)continue;
+        for(u32 i=0u;i<2u;++i) {
+            const u32 addr=0x219EBu+base+i*4u;
+            const u32 deadline=load_le32(dg(m,addr));
+            if(deadline!=0u&&now>=deadline) {
+                *dg(m,0xCF5Au+slot)=1u;
+                store_le32(dg(m,addr),0u);
+            }
+        }
+        for(u32 i=0u;i<3u;++i) {
+            const u32 addr=0x21A7Eu+base+i*4u;
+            const u32 deadline=load_le32(dg(m,addr));
+            if(deadline!=0u&&now>=deadline) {
+                *dg(m,0xCF5Au+slot)=1u;
+                store_le32(dg(m,addr),0u);
+            }
+        }
+    }
+}
+static_assert(0x1E533u-0x1E4A0u==147u);
+
+void function_1e534(Machine& m,Application43Boundary& b) noexcept {
+    const u32 now=b.call_19cc4?b.call_19cc4():0u;
+    const u32 first=load_le32(dg(m,0xD8B8u));
+    if(first!=0u&&now>=first) {
+        store_le32(dg(m,0xD8B8u),0u);
+        if(*dg(m,0xD681u)!=0u)*dg(m,0xD681u)=2u;
+    }
+    const u32 second=load_le32(dg(m,0xD8BCu));
+    if(second!=0u&&now>=second) {
+        store_le32(dg(m,0xD8BCu),0u);
+        if(*dg(m,0xD682u)!=0u)*dg(m,0xD682u)=2u;
+    }
+}
+static_assert(0x1E592u-0x1E534u==94u);
+
+void function_1e594(Machine& m,Application43Boundary& b,u32 raw_phase) noexcept {
+    const s32 phase=static_cast<s32>(raw_phase)%4;
+    for(u32 slot=0u;slot<4u;++slot) {
+        const u32 base=slot*0x248u;
+        const u16 flags=load_le16(dg(m,0x218F0u+base));
+        if((flags&0xC000u)!=0u)continue;
+
+        if((flags&0x0800u)!=0u) {
+            if((*dg(m,0x21A14u+base)&1u)!=0u&&phase!=0)return;
+            if(b.call_cd44)b.call_cd44(slot,1u);
+            app43_copy_z(m,0x759Cu,0x218E0u+base);
+            app43_append_z(m,0x759Cu,load_le32(dg(m,0xBED8u)));
+            app43_emit_text(m,b,0x759Cu);
+        }
+
+        if((flags&0x0400u)!=0u) {
+            if(b.call_cd44)b.call_cd44(slot,3u);
+            app43_copy_z(m,0x759Cu,0x218E0u+base);
+            app43_append_z(m,0x759Cu,load_le32(dg(m,0xBEDCu)));
+            app43_emit_text(m,b,0x759Cu);
+        }
+    }
+}
+static_assert(0x1E74Au-0x1E594u==438u);
+
+void function_1e74c(Machine& m,u32 tick) noexcept {
+    store_le32(dg(m,0xA7E4u),tick);
+    store_le32(dg(m,0xBF50u),tick);
+}
+static_assert(0x1E75Bu-0x1E74Cu==15u);
+
+void function_1e75c(Machine& m,Application43Boundary& b) noexcept {
+    if(load_le32(dg(m,0xBF58u))==0xFFFFFFFFu) {
+        const u32 now=load_le32(dg(m,0xA7E4u));
+        store_le32(dg(m,0xBF58u),0u);
+        store_le32(dg(m,0xBF50u),now);
+        store_le32(dg(m,0xBF54u),now);
+    }
+
+    s32 elapsed=static_cast<s32>(load_le32(dg(m,0xA7E4u))-load_le32(dg(m,0xBF50u)));
+    if(elapsed>=0x438) {
+        s32 remaining=elapsed;
+        store_le32(dg(m,0xBF50u),load_le32(dg(m,0xA7E4u)));
+        do {
+            store_le16(dg(m,0xCF4Eu),static_cast<u16>(load_le16(dg(m,0xCF4Eu))+1u));
+            if(b.call_31f94)b.call_31f94();
+            remaining-=0x438;
+
+            if(load_le16(dg(m,0xCF4Eu))==0u) {
+                for(u32 slot=0u;slot<4u;++slot) {
+                    const u32 base=slot*0x248u;
+                    if(load_le16(dg(m,0x218F0u+base))>=0x4000u)continue;
+                    if(static_cast<s8>(*dg(m,0x218F5u+base))==1)
+                        *dg(m,0x219A1u+base)=0x11u;
+                    const s16 hp=static_cast<s16>(load_le16(dg(m,0x218FCu+base)));
+                    const s16 max_hp=static_cast<s16>(load_le16(dg(m,0x218FEu+base)));
+                    if(hp<max_hp) {
+                        *dg(m,0xCF5Au+slot)=1u;
+                        store_le16(dg(m,0x218FCu+base),
+                                   static_cast<u16>(load_le16(dg(m,0x218FCu+base))+1u));
+                    }
+                }
+            }
+
+            for(u32 slot=0u;slot<4u;++slot) {
+                const u32 base=slot*0x248u;
+                if(load_le16(dg(m,0x218F0u+base))>=0x4000u&&*dg(m,0x218F4u+base)==5u)
+                    continue;
+                const u32 active=b.call_f2d4?b.call_f2d4(slot,0x47u):0u;
+                if(active==0u)continue;
+                const s16 hp=static_cast<s16>(load_le16(dg(m,0x218FCu+base)));
+                const s16 max_hp=static_cast<s16>(load_le16(dg(m,0x218FEu+base)));
+                if(hp<max_hp) {
+                    *dg(m,0xCF5Au+slot)=1u;
+                    store_le16(dg(m,0x218FCu+base),
+                               static_cast<u16>(load_le16(dg(m,0x218FCu+base))+1u));
+                }
+            }
+        } while(remaining>=0x438);
+    }
+
+    const s32 short_elapsed=static_cast<s32>(load_le32(dg(m,0xA7E4u))-load_le32(dg(m,0xBF54u)));
+    if(short_elapsed>0x21C) {
+        store_le32(dg(m,0xBF54u),load_le32(dg(m,0xA7E4u)));
+        function_1e594(m,b,load_le32(dg(m,0xBF58u)));
+        const s32 next=static_cast<s32>(load_le32(dg(m,0xBF58u))+1u);
+        store_le32(dg(m,0xBF58u),static_cast<u32>(next%4));
+    }
+}
+static_assert(0x1E8C8u-0x1E75Cu==364u);
+
+[[nodiscard]] u32 function_1e8c8(Machine& m,u32 raw_x,u32 raw_y) noexcept {
+    const s32 x=static_cast<s32>(raw_x);
+    const s32 y=static_cast<s32>(raw_y);
+    if(x>=static_cast<s16>(load_le16(dg(m,0x25619u)))||
+       y>=static_cast<s16>(load_le16(dg(m,0x2561Bu))))return 0u;
+
+    u32 ptr=load_le32(dg(m,0xCB3Cu+raw_x*4u));
+    if(ptr!=0u) {
+        for(;;ptr+=0x0Au) {
+            if(*dg(m,ptr)==0u&&(*dg(m,ptr+1u)&0x10u)==0u)break;
+            if(static_cast<u32>(*dg(m,ptr+4u))==raw_y)return ptr;
+        }
+    }
+
+    ptr=load_le32(dg(m,0xCD3Cu+raw_x*4u));
+    if(ptr==0u||*dg(m,ptr)==0u)return 0u;
+    for(;;ptr+=0x0Au) {
+        if(static_cast<u32>(*dg(m,ptr+4u))==raw_y)return ptr;
+        if(*dg(m,ptr+0x0Au)==0u)return 0u;
+    }
+}
+static_assert(0x1E930u-0x1E8C8u==104u);
+
+[[nodiscard]] u32 function_1e930(Machine& m,Application43Boundary& b,u32 raw_index) noexcept {
+    const s32 width=static_cast<s16>(load_le16(dg(m,0x25619u)));
+    s32 q=0,r=0;
+    if(!app43_idiv(b,static_cast<s32>(raw_index),width,q,r))return 0u;
+    if(r>=width)return 0u;
+    if(q>=static_cast<s16>(load_le16(dg(m,0x2561Bu))))return 0u;
+
+    u32 ptr=load_le32(dg(m,0xCD3Cu+static_cast<u32>(r)*4u));
+    if(ptr==0u||*dg(m,ptr)==0u)return 0x8000u;
+    for(;;ptr+=0x0Au) {
+        if(static_cast<u32>(*dg(m,ptr+4u))==static_cast<u32>(q)) {
+            // MOVZX AX,byte preserves EAX[31:16] from the record pointer.
+            const u32 eax=(ptr&0xFFFF0000u)|static_cast<u32>(*dg(m,ptr+6u));
+            return eax<<12u;
+        }
+        if(*dg(m,ptr+0x0Au)==0u)return 0x8000u;
+    }
+}
+static_assert(0x1E99Fu-0x1E930u==111u);
+
+[[nodiscard]] u32 function_1e9a0(Machine& m,Application43Boundary& b,u32 raw_index) noexcept {
+    const s32 width=static_cast<s16>(load_le16(dg(m,0x25619u)));
+    s32 q=0,r=0;
+    if(!app43_idiv(b,static_cast<s32>(raw_index),width,q,r))return 0u;
+    if(r>=width||q>=static_cast<s16>(load_le16(dg(m,0x2561Bu))))return 0u;
+
+    u32 ptr=load_le32(dg(m,0xCB3Cu+static_cast<u32>(r)*4u));
+    if(ptr==0u)return 0u;
+    for(;;ptr+=0x0Au) {
+        if(*dg(m,ptr)==0u&&(*dg(m,ptr+1u)&0x10u)==0u)return 0u;
+        if(static_cast<u32>(*dg(m,ptr+4u))==static_cast<u32>(q)) {
+            // MOV AL; AND AL,3; MOVZX AX,AL leaves EAX[31:16] untouched.
+            return (ptr&0xFFFF0000u)|static_cast<u32>(*dg(m,ptr+1u)&3u);
+        }
+    }
+}
+static_assert(0x1EA04u-0x1E9A0u==100u);
+
+void function_1ea04(Machine& m,Application43Boundary& b) noexcept {
+    if(b.call_2939c) {
+        b.call_2939c(0u,0u,0x20u,load_le32(dg(m,0xBF48u)));
+        b.call_2939c(0u,0x104u,0x20u,load_le32(dg(m,0xBF4Cu)));
+    }
+    for(u32 i=0u;i<12u;++i) {
+        const u32 graphic=load_le32(dg(m,0x258DCu))+3u+load_le32(dg(m,0xC034u))*3u;
+        const u32 sprite=b.call_2f29c?b.call_2f29c(graphic,0u):0u;
+        if(b.call_2939c)
+            b.call_2939c(i,load_le32(dg(m,0xBF5Cu+i*4u)),
+                          load_le32(dg(m,0xBF8Cu+i*4u)),sprite);
+    }
+}
+static_assert(0x1EA78u-0x1EA04u==116u);
+
+void function_1ea78(Machine& m,Application43Boundary& b) noexcept {
+    if(b.call_1a510)b.call_1a510(load_le32(dg(m,0xC050u)));
+    *dg(m,0xC050u)^=1u;
+}
+static_assert(0x1EA8Eu-0x1EA78u==22u);
+
+void function_1ea90(Machine& m,Application43Boundary& b,
+                     u32 raw_slot,u32 side,u32 raw_state) noexcept {
+    const s32 slot_s=static_cast<s32>(raw_slot);
+    const s32 half=slot_s/2;
+    const s32 parity=slot_s%2;
+    const u32 pos=side*33u+4u+static_cast<u32>(parity*0x35)+
+                  static_cast<u32>(half*0xD3);
+    if(b.call_29b40)b.call_29b40(0x114u,pos,0x20u,0x10u,0u);
+
+    u32 state=raw_state;
+    const u32 actor_base=raw_slot*0x248u;
+    if(state==0xFFFFFFFFu) {
+        state=2u;
+        if(load_le32(dg(m,0x219EBu+actor_base+side*4u))!=0u||
+           (load_le16(dg(m,0x218F0u+actor_base))&0xF240u)!=0u) {
+            state=0u;
+        } else if((load_le16(dg(m,0x218F0u+actor_base))&0x2000u)!=0u) {
+            state=1u;
+        }
+    }
+
+    if(load_le16(dg(m,0x6DAEu))!=0u) {
+        const s32 item=static_cast<s16>(load_le16(dg(m,0x2193Cu+actor_base+side*2u)));
+        if(item!=-1) {
+            const u32 desc=load_le32(dg(m,0x255D8u))+static_cast<u32>(item*0x41);
+            if(*dg(m,desc+0x37u)!=0u)state=5u;
+            if(load_le16(dg(m,desc+0x32u))!=0u)state=5u;
+        }
+    }
+
+    const u32 allowed=b.call_24478?b.call_24478(raw_slot,side):0u;
+    if(allowed==0u)state=0u;
+
+    const s32 item=static_cast<s16>(load_le16(dg(m,0x2193Cu+actor_base+side*2u)));
+    const u32 state_ptr=0xCF70u+(state<<8u);
+    if(item!=-1) {
+        const u32 desc=load_le32(dg(m,0x255D8u))+static_cast<u32>(item*0x41);
+        const u32 graphic=static_cast<u32>(static_cast<s32>(static_cast<s16>(load_le16(dg(m,desc+0x2Du)))));
+        const bool special=side==0u&&static_cast<u32>(item)>=0x7Eu&&static_cast<u32>(item)<0x86u;
+        if(special) {
+            const u32 sprite=b.call_2f29c?b.call_2f29c(graphic,1u):0u;
+            if(b.call_2a258)b.call_2a258(side,sprite);
+        }
+        if(b.call_298f0)b.call_298f0(0u,0x114u,pos,graphic,1u,state_ptr);
+        if(special) {
+            const u32 sprite=b.call_2f29c?b.call_2f29c(graphic,1u):0u;
+            if(b.call_2a258)b.call_2a258(side,sprite);
+        }
+    } else {
+        const u32 cls=static_cast<u32>(*dg(m,0x218F3u+actor_base));
+        const s32 bit=static_cast<s8>(*dg(m,0x218F2u+actor_base));
+        const u32 mask=1u<<(static_cast<u32>(bit)&31u);
+        const u32 available=(load_le32(dg(m,0xCF60u+cls*4u))&mask)!=0u?1u:0u;
+        const u32 graphic=load_le32(dg(m,0x258DCu))+0x2Du;
+        if(side==1u) {
+            const u32 sprite=b.call_2f29c?b.call_2f29c(graphic,0u):0u;
+            if(b.call_2a258)b.call_2a258(available,sprite);
+        }
+        if(b.call_298f0)b.call_298f0(available,0x114u,pos,graphic,0u,state_ptr);
+        if(side==1u) {
+            const u32 sprite=b.call_2f29c?b.call_2f29c(graphic,0u):0u;
+            if(b.call_2a258)b.call_2a258(available,sprite);
+        }
+    }
+
+    const u32 selected=*dg(m,0xCF68u);
+    if(selected/2u==raw_slot&&selected%2u==side) {
+        if(b.call_2e374)b.call_2e374(0x114u,pos,0x20u,0x10u,0x43u);
+    }
+
+    const u32 timer_off=actor_base+side*4u;
+    const u32 deadline=load_le32(dg(m,0x21A7Eu+timer_off));
+    if(deadline!=0u) {
+        const u32 now=b.call_19cc4?b.call_19cc4():0u;
+        if(static_cast<s32>(now)>static_cast<s32>(deadline)) {
+            store_le32(dg(m,0x21A7Eu+timer_off),0u);
+        } else {
+            const u32 graphic=load_le32(dg(m,0x258DCu))+0x5Cu;
+            if(b.call_2975c)b.call_2975c(0u,0x114u,pos,graphic,0u);
+            const u32 text=b.call_2e6f0?b.call_2e6f0(load_le32(dg(m,0x21A8Au+timer_off)),0u):0u;
+            // The caller removes only the first 2E6F0 argument; its pushed zero
+            // remains as the fifth 30508 argument.
+            if(b.call_30508)b.call_30508(0x120u,pos,0x10u,text,0u);
+        }
+    }
+}
+static_assert(0x1EDACu-0x1EA90u==796u);
+
+static_assert((0x1E533u-0x1E4A0u)+(0x1E592u-0x1E534u)+
+              (0x1E74Au-0x1E594u)+(0x1E75Bu-0x1E74Cu)+
+              (0x1E8C8u-0x1E75Cu)+(0x1E930u-0x1E8C8u)+
+              (0x1E99Fu-0x1E930u)+(0x1EA04u-0x1E9A0u)+
+              (0x1EA78u-0x1EA04u)+(0x1EA8Eu-0x1EA78u)+
+              (0x1EDACu-0x1EA90u)==2307u);
 } // namespace code2

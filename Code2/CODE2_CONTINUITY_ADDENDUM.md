@@ -326,3 +326,10 @@ The sequential frontier now reaches `1CE67`; the next routine begins at `1CE68`,
 Batch 42 intentionally exceeds the nominal 2–3 KB target because `1CE68..1E49F` is one compiler-owned command dispatcher with a shared selector tail at `1E488`; splitting it would create false ownership boundaries. It added **5,688 translated bytes** and no new non-code/data bytes. Cumulative accounting is **128,548 translated + 2,456 non-code = 131,004 / 239,698 = 54.6538% (54.65%)**; unresolved is **108,694 bytes**.
 
 The sequential frontier now reaches `1E49F`; the next routine begins directly at `1E4A0`. Preserve the selector-call ordering, live `BF44` reread in the `11h/12h` path, direct byte event mutations (`22211h|=04h`, `22213h|=10h`, `22217h|=01h`), command `2Ch`'s second criterion of zero, inventory-test ordering in `2Fh`, and random text calculation `(r+r)>>15 + 6Fh`. Semantic audit remains not started.
+
+
+## CODE.2 Batch 43 checkpoint
+
+Batch 43 added **2,307 translated bytes** plus **9 proven non-code/data bytes**. Cumulative accounting is **130,855 translated + 2,465 non-code = 133,320 / 239,698 = 55.6200% (55.62%)**; unresolved is **106,378 bytes**.
+
+The sequential frontier now reaches `1EDAB`; the next routine begins at `1EDAC`. Preserve `1E4A0/1E534`'s unsigned timer expiry tests, `1E594`'s phase-gated early return and dual timed-text damage paths, `1E75C`'s signed tick-delta comparisons and 438h/21Ch cadence, `1E930/1E9A0`'s partial-register return values that retain pointer high words, and `1EA90`'s status/item renderer including the stack-carried zero that becomes `30508`'s fifth argument. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.

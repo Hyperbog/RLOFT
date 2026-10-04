@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-54.65%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-55.62%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **128,548**
-**Proven non-code/data bytes:** **2,456**
-**Reconciled object bytes:** **131,004 / 239,698 = 54.6538% (54.65%)**
-**Unresolved object bytes:** **108,694**
+**Verified translated instruction bytes:** **130,855**
+**Proven non-code/data bytes:** **2,465**
+**Reconciled object bytes:** **133,320 / 239,698 = 55.6200% (55.62%)**
+**Unresolved object bytes:** **106,378**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
