@@ -1,0 +1,72 @@
+name: Integrate CODE.2 batch 60
+on:
+  push:
+    paths:
+      - '.github/workflows/integrate-code2-batch60.yml'
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+          fetch-depth: 0
+      - name: Verify staged payload
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64,zlib,hashlib
+          raw=zlib.decompress(base64.b64decode(Path('Code2/batch60.zb64').read_text()))
+          assert hashlib.sha256(raw).hexdigest() == '628e79bdafe48cf4e2494bb3a0b18e1dd84965d45dfc0bab62f3b082fe9db985'
+          t=raw.decode(); assert 'function_2a114' in t and 'function_2a584' in t and '==1427u);' in t
+          print('batch60 payload OK',len(raw))
+          PY
+      - name: Apply Batch 60
+        run: python Code2/integrate_batch60.py
+      - name: Verify accounting and fidelity anchors
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          c=Path('Code2/Code2.cpp').read_text(); l=Path('Code2/RESIDUAL_LEDGER.md').read_text(); p=Path('Code2/PROGRESS.md').read_text(); a=Path('Code2/CODE2_CONTINUITY_ADDENDUM.md').read_text()
+          assert 'constexpr u32 kVerifiedTranslatedBytes = 176964u;' in c
+          assert 'constexpr u32 kVerifiedNonCodeBytes = 3720u;' in c
+          assert '+ 1048u + 1427u);' in c
+          assert 'static_assert(0x2A177u-0x2A114u==99u);' in c
+          assert 'static_assert(0x2A6B0u-0x2A584u==300u);' in c
+          assert '==1427u);' in c
+          assert '*dg(m,0x2A4F6u)=d;' in c and 'store_le32(dg(m,0x2A60Bu),table);' in c
+          assert '2A1E5..2A1E7 | alignment | 3' in l and '2A305..2A307 | alignment | 3' in l
+          assert '**180,684 / 239,698 = 75.3799% (75.38%)**' in p
+          assert '**59,014**' in p and 'frontier is now `2A6B0`' in p
+          assert '## CODE.2 Batch 60 checkpoint' in a
+          block=l.split('<!-- RESIDUAL-RANGES-BEGIN -->',1)[1].split('<!-- RESIDUAL-RANGES-END -->',1)[0]
+          total=0
+          for line in block.splitlines():
+              line=line.strip()
+              if not line: continue
+              m=re.fullmatch(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| [^|]+ \| (\d+)',line); assert m,line
+              x,z,n=int(m.group(1),16),int(m.group(2),16),int(m.group(3)); assert z-x+1==n,(line,z-x+1); total+=n
+          assert total==3720,total
+          print('batch60 accounting/fidelity anchors OK')
+          PY
+      - name: Syntax check CODE.2 C++
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+      - name: Clean temporary staging files
+        run: |
+          rm -f Code2/batch60.zb64 Code2/integrate_batch60.py .github/workflows/integrate-code2-batch60.yml
+          python - <<'PY'
+          from pathlib import Path
+          for name in ('Code2/CODE2_CONTINUITY_ADDENDUM.md','Code2/PROGRESS.md','Code2/RESIDUAL_LEDGER.md'):
+              p=Path(name); p.write_text(p.read_text().rstrip('\n')+'\n')
+          PY
+          git diff --check
+      - name: Commit Batch 60
+        run: |
+          git config user.name 'Hyperbog'
+          git config user.email '47282882+Hyperbog@users.noreply.github.com'
+          git add -A
+          git commit -m 'Integrate CODE.2 decompilation batch 60'
+          git push origin HEAD:code1-decompilation
