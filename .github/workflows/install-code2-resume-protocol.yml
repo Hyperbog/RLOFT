@@ -1,0 +1,40 @@
+name: Install CODE.2 resume protocol reference
+on:
+  push:
+    paths:
+      - '.github/workflows/install-code2-resume-protocol.yml'
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+          fetch-depth: 0
+      - name: Install continuity reference
+        run: python Code2/install_resume_protocol_reference.py
+      - name: Verify protocol anchors
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          a=Path('Code2/CODE2_CONTINUITY_ADDENDUM.md').read_text()
+          r=Path('Code2/INTERRUPTION_RESUME_PROTOCOL.md').read_text()
+          c=Path('Code2/RESUME_CHECKPOINT.md').read_text()
+          assert '## Mandatory interruption/resume safety protocol' in a
+          assert 'mandatory overlap disassembly' in r.lower()
+          assert '9209e78cd9ac389ed79c1de349f5c425ac4bf83dce69802d376ba8d27366a6e2' in c
+          assert 'UNCOUNTED / NOT COMMITTED' in c
+          PY
+      - name: Clean staging files
+        run: |
+          rm -f Code2/install_resume_protocol_reference.py .github/workflows/install-code2-resume-protocol.yml
+          git diff --check
+      - name: Commit continuity safety update
+        run: |
+          git config user.name 'Hyperbog'
+          git config user.email '47282882+Hyperbog@users.noreply.github.com'
+          git add -A
+          git commit -m 'Make CODE.2 interruption resume protocol mandatory'
+          git push origin HEAD:code1-decompilation
