@@ -252,9 +252,16 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 1AACA..1AACB | alignment | 2
 1AC16..1AC17 | alignment | 2
 1AC18..1AC37 | table | 32
+1AF85..1AF8F | padding | 11
+1B1C2..1B1C3 | alignment | 2
+1B392..1B393 | alignment | 2
+1B3F5..1B3F7 | alignment | 3
+1B6EB..1B6EB | alignment | 1
+1B75E..1B75F | alignment | 2
+1BBD5..1BBD7 | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **2,246 bytes**.
+**Total proven non-code/data:** **2,270 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -346,3 +353,6 @@ Batch 34 evidence: `19C72..19C7F` is fourteen zero bytes bounded by the directly
 
 
 Batch 35 evidence: `1AC18..1AC37` is the exact eight-entry CS dword table consumed by the indirect jump at `1ADB3`, with targets `1ADBB,1ADCB,1ADD0,1ADC6,1ADDB,1ADE0,1ADED,1AE00`. `1A285..1A287`, `1A342..1A343`, `1A3B7`, `1A50D..1A50F`, `1A5AF`, `1AACA..1AACB`, and `1AC16..1AC17` are bounded NOP/LEA/MOV-EAX,EAX compiler separators between directly reconstructed ownership blocks. A full object-1 direct relative control-flow target scan found no incoming call/jump target to any Batch 35 residual byte. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+Batch 36 evidence: `1AF85..1AF8F` is eleven zero bytes bounded by the directly reconstructed `1AE30` return and the `1AF90` entry; a full object-1 direct relative control-flow target scan found no incoming target to the range. `1B1C2..1B1C3`, `1B392..1B393`, and `1B75E..1B75F` decode as `MOV EAX,EAX`; `1B3F5..1B3F7` and `1BBD5..1BBD7` decode as `LEA EAX,[EAX+0]`; `1B6EB` is `NOP`. All are bounded compiler separators with no incoming direct relative call/jump target. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
