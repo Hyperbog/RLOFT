@@ -390,3 +390,7 @@ Batch 54 adds **2,797 translated bytes** and **80 proven alignment/padding bytes
 
 ## CODE.2 Batch 55 checkpoint
 Batch 55 adds **2,032 translated bytes** and **40 proven alignment/padding bytes**, bringing cumulative accounting to **169,055 translated + 3,577 non-code = 172,632 / 239,698 = 72.0206% (72.02%)**. The sequential frontier is `2873C`. Preserve `27F24` REP-copy remainder semantics, signed queue priority arbitration, the `28210` stack-copy/error fall-through, `282BC`'s four-argument stack walk into `366BB/366C5`, its stale/live ESI behavior and repeated-close oddity at `28564`, and `28670`'s explicit `EE8C` reload on the match path.
+
+
+## CODE.2 Batch 56 checkpoint
+Batch 56 adds **3,214 translated bytes** and **74 proven alignment/padding bytes**, bringing cumulative accounting to **172,269 translated + 3,651 non-code = 175,920 / 239,698 = 73.3924% (73.39%)**. The mandatory Batch-55 overlap hashes were reproduced exactly before forward work. The sequential frontier is `29414`; preserve `2878C`'s zero-map early exit, `28AE0`'s encoded current-slot guard interaction, `29058`'s non-boolean live-state return, BX-only/high-half behavior in `290D0`, `290F4`'s partial-width state updates, signed clipping distinctions, and the shared earlier RET/tail transfer in the final graphics wrappers.

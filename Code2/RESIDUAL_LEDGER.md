@@ -379,9 +379,37 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 286C1..286C3 | alignment | 3
 2871A..2871B | alignment | 2
 28739..2873B | alignment | 3
+28789..2878B | alignment | 3
+2885B..2885B | alignment | 1
+28881..28883 | alignment | 3
+288E2..288E3 | alignment | 2
+288EE..288EF | alignment | 2
+288FA..288FB | alignment | 2
+289E3..289E3 | alignment | 1
+28C51..28C53 | alignment | 3
+28CE5..28CE7 | alignment | 3
+28DC9..28DCB | alignment | 3
+28E2E..28E2F | alignment | 2
+28EED..28EEF | alignment | 3
+28F55..28F57 | alignment | 3
+29007..29007 | alignment | 1
+29045..29047 | alignment | 3
+2904E..2904F | alignment | 2
+29056..29057 | alignment | 2
+29095..29097 | alignment | 3
+2909E..2909F | alignment | 2
+290A6..290A7 | alignment | 2
+290C3..290CF | padding | 13
+290F2..290F3 | alignment | 2
+29205..29207 | alignment | 3
+2927D..2927F | alignment | 3
+292A9..292AB | alignment | 3
+2932B..2932B | alignment | 1
+2939B..2939B | alignment | 1
+293EA..293EB | alignment | 2
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **3,457 bytes**.
+**Total proven non-code/data:** **3,651 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -520,3 +548,8 @@ The translated `273F0..27F22` ownership units are instruction-bounded directly f
 Batch 55 evidence: `27FEE..27FEF`, `2801D..2801F`, `28076..28077`, `28095..28097`, `280DB`, `280E6..280E7`, `2810F`, `28165..28167`, `282BA..282BB`, `286C1..286C3`, `2871A..2871B`, and `28739..2873B` decode as explicit Watcom MOV-EAX,EAX / LEA-EAX,[EAX+0] / NOP separators between independently decoded routines. `28203..2820F` is a thirteen-byte zero-fill separator after the RET at `28202` and before the register-save prologue at `28210`. A fresh full-object direct-control-flow scan found no CALL/JMP/Jcc target into any listed byte, and a raw scan found no dword reference to any listed object-relative or `+10000h` virtual address.
 
 The translated `27F24..28738` ownership units are instruction-bounded directly from immutable CODE.2. Preserve `27F24`'s REP-MOVSD/low-CL remainder copy, the signed priority arbitration in `28110/28168`, `28210`'s ten-byte stack filename copy and error fall-through, `282BC`'s repeated stack-slot argument walk, the live/stale ESI behavior around `EEF8`, the encoded `28564` repeated close from one selector address, the explicit `EE8C` global reload in `28670`, and the stack-local length reads in `28020/286C4`.
+
+
+Batch 56 evidence: the mandatory Batch-55 overlap `286E0..287C0` and narrow window `28720..28780` reproduced their recorded SHA-256 anchors exactly before forward accounting. The translated ownership units `2873C..29413` are instruction-bounded directly from immutable CODE.2. Each listed separator was checked against a full object-1 direct relative `CALL`/`JMP`/conditional-branch target scan and a raw object-relative/+10000h absolute dword-reference scan; none has an incoming target or reference. `290C3..290CF` is therefore counted as a 13-byte zero-fill pad on direct evidence, not appearance.
+
+Preserve `2873C`'s wrapped signed-IDIV scaling path, `2878C`'s immediate return on a zero mapping without setting the active byte, the current-slot guard oddity in `28AE0`/`289E4`, exact state values returned by `29058`, BX-only testing and high-half preservation in `290D0`, partial-byte mode storage in `290F4`, signed clipping differences between `292BC` and `2932C`, and the shared earlier RET plus tail transfer through `2E758` in `2939C/293C0/293EC`. The known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
