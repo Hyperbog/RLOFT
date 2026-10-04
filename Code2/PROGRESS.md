@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-50.49%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-50.82%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **118,743**
-**Proven non-code/data bytes:** **2,273**
-**Reconciled object bytes:** **121,016 / 239,698 = 50.4869% (50.49%)**
-**Unresolved object bytes:** **118,682**
+**Verified translated instruction bytes:** **119,524**
+**Proven non-code/data bytes:** **2,296**
+**Reconciled object bytes:** **121,820 / 239,698 = 50.8223% (50.82%)**
+**Unresolved object bytes:** **117,878**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -548,3 +548,9 @@ The sequential code frontier is now `11C3C`; `11C2C..11C3B` is the proven four-e
 Added **449 translated instruction bytes** plus **3 directly proven alignment bytes**. The sequential frontier now reaches `1BD9B`; the next ownership unit begins with the four-entry table at `1BD9C` and its routine at `1BDAC`.
 
 Fidelity notes: `1BBD8` preserves the type-9 low-word tile arithmetic, the encoded impossible duplicate `JE` as its effective fall-through semantics, descriptor-driven displacement, low-word fixed-point tile indexing, divide-by-zero fault boundary, type-8 failure state, and exactly three movement retries through `1B760`.
+
+## Batch 38 — small checkpoint: world/record animation update
+
+Added **781 translated instruction bytes** plus **23 directly proven non-code/data bytes**. The sequential frontier now reaches `1C0BF`; the next routine begins at `1C0C0`.
+
+Fidelity notes: `1BDAC` owns the exact four-entry animation-state table at `1BD9C`; state 1 calls the `0D550` effect path before reloading descriptor timer `+25h`, state 2 uses timer 7 (tripled under record bit 80h), and state 3 clears the state bits before falling into the state-0 movement path. The three record-array passes preserve signed count reloads, in-place compaction with `DEC ESI` retry, the encoded always-equal `CMP EDI,EDI` artifact, and dword divide faults when metadata divisor byte `+5` is zero.

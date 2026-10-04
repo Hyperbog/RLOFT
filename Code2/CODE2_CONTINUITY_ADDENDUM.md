@@ -296,3 +296,9 @@ The sequential frontier now reaches `1BBD7`; the next routine begins at `1BBD8`.
 Using the smaller checkpoint cadence, Batch 37 added **449 translated bytes** plus **3 proven alignment bytes**. Cumulative accounting is **118,743 translated + 2,273 non-code = 121,016 / 239,698 = 50.4869% (50.49%)**; unresolved is **118,682 bytes**.
 
 The sequential frontier is `1BD9B`. The next ownership unit begins at the four-entry table `1BD9C..1BDAB`, with code entry `1BDAC`. Preserve the `1BBD8` retry count, type-9 word-width arithmetic, movement descriptor radius/divisor reads, and the success-path orientation increment.
+
+## CODE.2 Batch 38 checkpoint
+
+Batch 38 continues the smaller checkpoint cadence. It added **781 translated bytes** plus **23 proven non-code/data bytes**. Cumulative accounting is **119,524 translated + 2,296 non-code = 121,820 / 239,698 = 50.8223% (50.82%)**; unresolved is **117,878 bytes**.
+
+The sequential frontier now reaches `1C0BF`; the next routine begins at `1C0C0`. Preserve the `1BD9C` four-entry state table, descriptor timer reload after the `0D550` call, signed live count reloads for all three record arrays, compaction retry via pre-increment `DEC ESI`, the encoded `CMP EDI,EDI` artifact in the type-8 path, and zero-divisor x86 divide faults in the metadata-driven orientation updates. Continue with similarly small checkpoints.
