@@ -236,9 +236,17 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 19453..19453 | alignment | 1
 19454..19463 | table | 16
 19886..19887 | alignment | 2
+19C72..19C7F | padding | 14
+19CC3..19CC3 | alignment | 1
+19CCA..19CCB | alignment | 2
+19D16..19D17 | alignment | 2
+1A0AE..1A0AF | alignment | 2
+1A1CE..1A1CF | alignment | 2
+1A1F2..1A1F3 | alignment | 2
+1A21D..1A21F | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **2,172 bytes**.
+**Total proven non-code/data:** **2,200 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -324,3 +332,6 @@ Batch 32 evidence: `18D8C..18D8F` is the four-byte zero-filled gap after the dir
 
 
 Batch 33 evidence: `191BE..191BF`, `19375..19377`, `1942B`, `19453`, and `19886..19887` decode as explicit compiler no-op separators between directly reconstructed routine boundaries; a full object-1 direct relative branch/call target scan found no incoming target to any separator byte. `19454..19463` is the exact four-dword CS jump table indexed by `EDI` at `194AD`, with decoded targets `194B5`, `19529`, `19644`, and `19688`. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+Batch 34 evidence: `19C72..19C7F` is fourteen zero bytes bounded by the directly reconstructed `19888` return and the `19C80` entry; a full object-1 direct relative control-flow scan found no incoming target and no absolute data reference into the range. `19CC3` is `NOP`; `19CCA..19CCB`, `19D16..19D17`, `1A0AE..1A0AF`, `1A1CE..1A1CF`, and `1A1F2..1A1F3` decode as `MOV EAX,EAX`; `1A21D..1A21F` decodes as `LEA EAX,[EAX+0]`. None has an incoming direct relative control-flow target. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
