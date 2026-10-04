@@ -23,7 +23,7 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 122860u;
+constexpr u32 kVerifiedTranslatedBytes = 128548u;
 constexpr u32 kVerifiedNonCodeBytes = 2456u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
@@ -539,9 +539,8 @@ static_assert(0x39526u-0x391F2u==820u);
 static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
-static_assert(kVerifiedTranslatedBytes == 121232u +
-              (0x1C924u-0x1C77Cu) + (0x1C99Fu-0x1C924u) +
-              (0x1CD47u-0x1CA2Cu) + (0x1CE66u-0x1CD48u));
+static_assert(kVerifiedTranslatedBytes == 122860u +
+              (0x1E4A0u-0x1CE68u));
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -13850,5 +13849,378 @@ void function_1cd48(Machine& m,Application41Boundary& b,
 static_assert(0x1CE66u-0x1CD48u==286u);
 static_assert((0x1C924u-0x1C77Cu)+(0x1C99Fu-0x1C924u)+
               (0x1CD47u-0x1CA2Cu)+(0x1CE66u-0x1CD48u)==1628u);
+
+// -----------------------------------------------------------------------------
+// Batch 42: 1CE68..1E49F command/event dispatcher.
+// The binary implements the command selection as a large compare tree with
+// shared tails; this reconstruction keeps the exact per-command side effects
+// and 1CD48 call ordering while expressing the tree as a switch. The next
+// routine begins directly at 1E4A0.
+// -----------------------------------------------------------------------------
+
+struct Application42Boundary {
+    Application41Boundary* app41=nullptr;
+    u32 (*call_14a60)(u32)=nullptr;
+    void (*call_2d9fc)()=nullptr;
+    u32 (*call_0f4b0)(u32)=nullptr;
+};
+
+static bool app42_bit(Machine& m,u32 bit) noexcept {
+    return function_1c1dc(m,bit)!=0u;
+}
+static void app42_set_bit(Machine& m,u32 bit) noexcept {
+    function_1c124(m,bit);
+}
+static u32 app42_item_test(Application42Boundary& b,u32 item) noexcept {
+    return b.call_0f4b0?b.call_0f4b0(item):0u;
+}
+static u32 app42_random_text(Application42Boundary& b) noexcept {
+    const u32 r=b.app41&&b.app41->call_30ca2?b.app41->call_30ca2():0u;
+    return 0x6Fu+((r+r)>>15u); // encoded ADD EAX,EAX then logical SHR 15.
+}
+static void app42_select(Machine& m,Application42Boundary& b,
+                         u32 latch,u32 c0,u32 t0,
+                         u32 c1=0xFFFFFFFFu,u32 t1=0xFFFFFFFFu,
+                         u32 c2=0xFFFFFFFFu,u32 t2=0xFFFFFFFFu,
+                         u32 c3=0xFFFFFFFFu,u32 t3=0xFFFFFFFFu) noexcept {
+    if(b.app41)function_1cd48(m,*b.app41,latch,c0,t0,c1,t1,c2,t2,c3,t3);
+}
+
+void function_1ce68(Machine& m,Application42Boundary& b) noexcept {
+    const u32 command=load_le32(dg(m,0xBF44u));
+    constexpr u32 F=0xFFFFFFFFu;
+
+    switch(command) {
+        case 0x01u:
+            app42_select(m,b,0x01u,0x1Du,0x03u,0x00u,0x04u,0x1Cu,0x05u,0x21u,0x06u);
+            break;
+        case 0x04u:
+            if(!app42_bit(m,0x84u)) {
+                app42_select(m,b,0x04u,0x21u,0x08u);
+                app42_select(m,b,F,0x21u,0x09u);
+            }
+            break;
+        case 0x05u:
+            app42_select(m,b,0x05u,0x1Eu,0x0Au,0x21u,0x0Bu);
+            break;
+        case 0x07u:
+            app42_select(m,b,F,0x08u,0x0Fu,0x19u,0x10u,0x21u,0x11u);
+            break;
+        case 0x08u:
+            app42_select(m,b,0x08u,0x1Au,0x12u,0x13u,0x13u);
+            break;
+        case 0x09u:
+            app42_select(m,b,0x09u,0x21u,0x14u);
+            break;
+        case 0x0Au:
+            if(app42_bit(m,0x4Bu))app42_select(m,b,0x0Au,0x1Au,0x15u);
+            // Encoded as OR BYTE PTR [22211h],4 (global event bit 8Ah).
+            *dg(m,0x22211u)=static_cast<u8>(*dg(m,0x22211u)|0x04u);
+            break;
+        case 0x0Cu:
+            app42_select(m,b,0x0Cu,0x1Bu,0x1Au,0x00u,0x1Au);
+            break;
+        case 0x0Du:
+            app42_select(m,b,0x0Du,0x1Du,0x1Bu);
+            break;
+        case 0x0Eu:
+            app42_select(m,b,0x0Eu,0x1Du,0x1Cu,0x1Bu,0x1Cu,0x21u,0x1Du);
+            break;
+        case 0x0Fu:
+            app42_select(m,b,0x0Fu,0x0Au,0x1Eu);
+            break;
+        case 0x10u:
+            app42_select(m,b,0x10u,0x1Bu,0x1Fu,0x00u,0x1Fu,0x1Au,0x21u,0x21u,0x20u);
+            app42_select(m,b,0x11u,0x1Cu,0x22u,0x13u,0x23u,0x15u,0x24u);
+            break;
+        case 0x11u:
+        case 0x12u:
+            if(!app42_bit(m,0x92u)) {
+                app42_select(m,b,0x12u,0x21u,0x25u);
+                // The binary rereads BF44 after the first selector call.
+                if(load_le32(dg(m,0xBF44u))!=0x12u)
+                    app42_select(m,b,F,0x21u,0x26u);
+            }
+            break;
+        case 0x13u:
+            app42_select(m,b,0x13u,0x15u,0x27u,0x21u,0x28u);
+            break;
+        case 0x14u:
+            app42_set_bit(m,0x55u);
+            if(app42_bit(m,0x4Cu)&&!app42_bit(m,0x30u))
+                app42_select(m,b,0x14u,0x21u,0x29u);
+            break;
+        case 0x15u:
+            app42_select(m,b,F,0x21u,app42_bit(m,0x49u)?0x2Bu:0x2Au);
+            break;
+        case 0x16u:
+            app42_select(m,b,F,0x21u,0x2Cu);
+            break;
+        case 0x17u:
+            app42_select(m,b,0x17u,0x21u,0x2Du);
+            break;
+        case 0x18u:
+            app42_select(m,b,0x18u,0x21u,0x2Eu);
+            break;
+        case 0x19u:
+            app42_select(m,b,F,0x21u,0x2Fu);
+            break;
+        case 0x1Au:
+            app42_select(m,b,F,0x21u,0x30u);
+            break;
+        case 0x1Cu:
+            if(app42_bit(m,0x4Bu))app42_select(m,b,0x1Cu,0x21u,0x36u);
+            // Encoded as OR BYTE PTR [22213h],10h (global event bit 9Ch).
+            *dg(m,0x22213u)=static_cast<u8>(*dg(m,0x22213u)|0x10u);
+            break;
+        case 0x1Du:
+            app42_select(m,b,0x1Du,0x21u,0x37u);
+            break;
+        case 0x20u:
+            if(b.call_2d9fc)b.call_2d9fc();
+            break;
+        case 0x24u:
+            app42_select(m,b,0x24u,0x19u,0x3Fu);
+            break;
+        case 0x25u:
+            app42_select(m,b,0x25u,0x1Du,0x40u);
+            break;
+        case 0x26u:
+            app42_select(m,b,0x26u,0x21u,0x41u);
+            break;
+        case 0x27u:
+            app42_select(m,b,0x27u,0x21u,0x42u);
+            break;
+        case 0x29u:
+            app42_select(m,b,0x29u,0x21u,app42_bit(m,0x4Du)?0x44u:0x45u);
+            break;
+        case 0x2Au:
+            app42_select(m,b,0x2Au,0x21u,0x46u);
+            break;
+        case 0x2Bu:
+            app42_select(m,b,0x2Bu,0x22u,0x47u);
+            break;
+        case 0x2Cu:
+            if(!app42_bit(m,0xACu)) {
+                const bool any1b=function_1ca2c(m,0x1Bu)!=F;
+                // ESI contains the shifted value of bit ACh here; this path is
+                // taken only when it is zero, so the encoded PUSH ESI tests 0.
+                const bool any0=any1b?false:(function_1ca2c(m,0u)!=F);
+                if(any1b||any0) {
+                    app42_select(m,b,0x2Cu,0x1Bu,0x48u,0x00u,0x48u);
+                    app42_select(m,b,F,0x21u,0x49u);
+                }
+            }
+            break;
+        case 0x2Du:
+            app42_select(m,b,0x2Du,0x21u,0x4Au);
+            app42_select(m,b,F,0x21u,0x4Bu);
+            break;
+        case 0x2Eu:
+            if(!app42_bit(m,0x3Eu))
+                app42_select(m,b,F,0x21u,app42_bit(m,0x4Eu)?0x4Cu:0x8Du);
+            break;
+        case 0x2Fu:
+            if(!app42_bit(m,0xAFu)) {
+                app42_select(m,b,0x2Fu,0x21u,0x4Eu);
+                const bool all_items=
+                    app42_item_test(b,0x74u)!=0u&&app42_item_test(b,0x5Cu)!=0u&&
+                    app42_item_test(b,0x76u)!=0u&&app42_item_test(b,0x8Bu)!=0u&&
+                    app42_item_test(b,0x77u)!=0u;
+                app42_select(m,b,F,0x21u,all_items?0x4Fu:0x50u);
+            }
+            break;
+        case 0x30u:
+            app42_select(m,b,0x30u,0x21u,0x51u);
+            break;
+        case 0x31u:
+            app42_select(m,b,0x31u,0x21u,0x52u);
+            break;
+        case 0x32u:
+            app42_select(m,b,0x32u,0x15u,0x53u);
+            break;
+        case 0x33u: {
+            const u32 slot=b.call_14a60?b.call_14a60(0x111Cu):0u;
+            if(b.app41)function_1c77c(m,*b.app41,slot,0x2E6u);
+            break;
+        }
+        case 0x34u:
+            app42_select(m,b,0x34u,0x0Au,0x55u);
+            break;
+        case 0x35u:
+            app42_select(m,b,F,0x21u,0x56u);
+            break;
+        case 0x36u:
+            app42_select(m,b,0x36u,0x1Bu,0x57u,0x19u,0x57u,0x1Au,0x57u);
+            break;
+        case 0x37u:
+            app42_select(m,b,0x37u,0x13u,0x58u);
+            break;
+        case 0x38u:
+            if(app42_bit(m,0x2Bu)&&!app42_bit(m,0x4Au))
+                app42_select(m,b,0x38u,0x21u,0x59u);
+            else if(app42_bit(m,0x4Au))
+                app42_select(m,b,0x38u,0x21u,0x5Au);
+            // Encoded as OR BYTE PTR [22217h],1 (global event bit B8h).
+            *dg(m,0x22217u)=static_cast<u8>(*dg(m,0x22217u)|0x01u);
+            break;
+        case 0x39u:
+            app42_select(m,b,0x39u,0x13u,0x5Bu);
+            break;
+        case 0x3Au:
+            app42_select(m,b,0x3Au,0x21u,0x5Cu);
+            break;
+        case 0x3Bu:
+            if(app42_bit(m,0x38u))app42_select(m,b,0x3Bu,0x21u,0x5Du);
+            break;
+        case 0x3Cu:
+            if(app42_bit(m,0x4Au))app42_select(m,b,0x3Cu,0x21u,0x5Fu);
+            else app42_select(m,b,0x3Cu,0x1Eu,0x5Eu);
+            break;
+        case 0x3Du:
+            if(!app42_bit(m,0xBDu)) {
+                app42_select(m,b,0x3Du,0x21u,0x60u);
+                // 3Dh falls into the same second selector block used by 68h.
+                app42_select(m,b,F,0x21u,0x89u);
+            }
+            break;
+        case 0x3Eu:
+            app42_select(m,b,F,0x21u,0x61u);
+            break;
+        case 0x3Fu:
+            app42_select(m,b,F,0x1Eu,0x62u,0x21u,0x62u);
+            break;
+        case 0x40u:
+            app42_select(m,b,F,0x1Eu,0x63u,0x21u,0x63u);
+            break;
+        case 0x41u:
+            app42_select(m,b,F,0x1Eu,0x64u,0x21u,0x64u);
+            break;
+        case 0x42u:
+            app42_select(m,b,0x42u,0x21u,0x65u);
+            break;
+        case 0x43u:
+            app42_select(m,b,0x43u,0x21u,0x66u);
+            break;
+        case 0x44u: case 0x45u: case 0x46u: case 0x47u: case 0x48u:
+            app42_select(m,b,command,0x21u,0x67u);
+            break;
+        case 0x49u:
+            app42_select(m,b,F,0x21u,0x68u);
+            break;
+        case 0x4Au:
+            if(app42_bit(m,0x09u)) {
+                app42_set_bit(m,0xCAu);
+            } else {
+                app42_select(m,b,0x4Au,0x21u,app42_bit(m,0x50u)?0x6Bu:0x6Au);
+            }
+            break;
+        case 0x4Bu:
+            app42_select(m,b,0x4Bu,0x21u,0x6Cu);
+            break;
+        case 0x4Cu: {
+            const u32 text=app42_random_text(b);
+            app42_select(m,b,0x4Cu,0x1Bu,0x6Du,0x13u,0x6Eu,0x21u,text);
+            break;
+        }
+        case 0x4Du:
+            if(app42_bit(m,0x17u))
+                app42_select(m,b,0x4Du,0x1Bu,0x71u,0x00u,0x71u,0x21u,0x72u);
+            break;
+        case 0x4Eu:
+            app42_select(m,b,0x4Eu,0x21u,0x73u);
+            break;
+        case 0x4Fu:
+            if(app42_item_test(b,0x72u)!=0u)app42_set_bit(m,0xCFu);
+            else app42_select(m,b,0x4Fu,0x21u,0x74u);
+            break;
+        case 0x50u:
+            if(app42_item_test(b,0x72u)!=0u)app42_select(m,b,0x50u,0x21u,0x75u);
+            break;
+        case 0x51u:
+            if(!app42_bit(m,0xD1u))app42_select(m,b,F,0x21u,0x76u);
+            break;
+        case 0x54u:
+            // The binary manually extracts bit 28h and, when set, redundantly
+            // calls 1C1DCh for the same bit before taking the common exit.
+            if(!app42_bit(m,0x28u))app42_select(m,b,0x54u,0x21u,0x7Cu);
+            break;
+        case 0x55u:
+            app42_select(m,b,0x55u,0x21u,0x7Du);
+            break;
+        case 0x56u:
+            app42_select(m,b,0x56u,0x21u,0x7Eu);
+            break;
+        case 0x57u:
+            app42_select(m,b,0x57u,0x21u,0x7Fu);
+            break;
+        case 0x58u:
+            app42_select(m,b,0x58u,0x21u,0x80u);
+            break;
+        case 0x59u:
+            app42_select(m,b,0x59u,0x21u,0x81u);
+            break;
+        case 0x5Au:
+            app42_select(m,b,0x5Au,0x21u,0x82u);
+            break;
+        case 0x5Bu:
+            app42_select(m,b,0x5Bu,0x21u,0x83u);
+            break;
+        case 0x5Cu:
+            app42_select(m,b,0x5Cu,0x21u,0x84u);
+            break;
+        case 0x5Du:
+            app42_select(m,b,0x5Du,0x21u,0x85u);
+            break;
+        case 0x5Fu:
+            app42_select(m,b,F,0x21u,0x87u);
+            break;
+        case 0x60u: {
+            const u32 text=app42_random_text(b);
+            app42_select(m,b,0x60u,0x13u,0x6Eu,0x21u,text);
+            break;
+        }
+        case 0x61u:
+            app42_select(m,b,0x61u,0x21u,app42_random_text(b));
+            break;
+        case 0x62u:
+            app42_select(m,b,0x62u,0x21u,app42_random_text(b));
+            break;
+        case 0x64u:
+            app42_select(m,b,0x64u,0x21u,0x16u);
+            break;
+        case 0x65u:
+            app42_select(m,b,0x65u,0x21u,0x17u);
+            break;
+        case 0x66u:
+            app42_select(m,b,0x66u,0x21u,0x18u);
+            break;
+        case 0x67u:
+            app42_select(m,b,0x67u,0x21u,0x19u);
+            break;
+        case 0x68u:
+            app42_select(m,b,F,0x21u,0x89u);
+            break;
+        case 0x69u:
+            app42_select(m,b,F,0x21u,0x8Fu);
+            break;
+        case 0x6Au:
+            app42_select(m,b,F,0x21u,0x90u);
+            break;
+        case 0x6Bu:
+            app42_select(m,b,0x6Bu,0x21u,0x91u);
+            break;
+        case 0x270Fu:
+            app42_select(m,b,0x00u,0x1Au,0x00u,0x13u,0x01u,0x21u,0x02u);
+            break;
+        default:
+            // 00h,02h,03h,06h,0Bh,1Bh,1Eh,1Fh,21h..23h,28h,
+            // 52h,53h,5Eh,63h and all out-of-range values only clear BF44.
+            break;
+    }
+
+    store_le32(dg(m,0xBF44u),0u);
+}
+static_assert(0x1E4A0u-0x1CE68u==5688u);
 
 } // namespace code2
