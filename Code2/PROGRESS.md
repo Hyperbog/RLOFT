@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-75.38%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-76.00%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **176,964**
-**Proven non-code/data bytes:** **3,720**
-**Reconciled object bytes:** **180,684 / 239,698 = 75.3799% (75.38%)**
-**Unresolved object bytes:** **59,014**
+**Verified translated instruction bytes:** **178,417**
+**Proven non-code/data bytes:** **3,755**
+**Reconciled object bytes:** **182,172 / 239,698 = 76.0006% (76.00%)**
+**Unresolved object bytes:** **57,526**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -693,3 +693,10 @@ The sequential frontier is now `2A114`. Preserve `29CEC`'s line-drawing fast pat
 Batch 60 added **1,427 translated instruction bytes** plus **9 directly proven alignment bytes**, reconciling through `2A6AF`. Cumulative accounting is **176,964 translated + 3,720 non-code = 180,684 / 239,698 = 75.3799% (75.38%)**; unresolved is **59,014 bytes**.
 
 The sequential frontier is now `2A6B0`, the next independent clipped blitter. Preserve plane-major transfer ownership, partial-register loop counts, and the writable-code immediates/displacements in `2A478` and `2A584`.
+
+
+## CODE.2 Batch 61 checkpoint
+
+Batch 61 added **1,453 translated instruction bytes** plus **35 directly proven alignment/padding/table bytes**, reconciling through `2AC7F`. Cumulative accounting is **178,417 translated + 3,755 non-code = 182,172 / 239,698 = 76.0006% (76.00%)**; unresolved is **57,526 bytes**.
+
+The sequential frontier is now `2AC80`, the next independent application predicate. Preserve `2A6B0/2A8A0` clipped-plane asymmetries and writable-code bytes, `2AAEC`'s register ABI, the direct `2AC70` table ownership, and low-level VGA/retrace/CRTC ordering.

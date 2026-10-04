@@ -434,6 +434,15 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 2A1E5..2A1E7 | alignment | 3
 2A256..2A257 | alignment | 2
 2A305..2A307 | alignment | 3
+2A89F..2A89F | alignment | 1
+2AA9B..2AA9B | alignment | 1
+2AAEA..2AAEB | alignment | 2
+2AB36..2AB37 | alignment | 2
+2AB95..2AB97 | alignment | 3
+2ABDB..2ABDB | alignment | 1
+2ABF3..2ABF3 | alignment | 1
+2AC68..2AC6F | padding | 8
+2AC70..2AC7F | table | 16
 <!-- RESIDUAL-RANGES-END -->
 
 **Total proven non-code/data:** **3,651 bytes**.
@@ -592,3 +601,6 @@ Batch 59 evidence: the Batch-58 overlap `29C80..29D60` and narrow window `29CC0.
 
 
 Batch 60 evidence: the mandatory Batch-59 overlap `2A0B0..2A190` and its narrow window were regenerated from immutable CODE.2 and matched the checkpoint hashes before forward accounting. Instruction ownership covers nine complete routines at `2A114..2A6AF`; the four listed separator ranges are Watcom NOP/XCHG alignment with no incoming branch/call target. Preserve the plane-major read/write asymmetry in `2A114/2A178`, 16-bit swap-counter wrap in `2A258`, self-modifying immediate bytes `2A4F6/2A54F` in `2A478`, self-modifying table displacements `2A60B/2A672` in `2A584`, and BL-only transparent row-byte counts in the blitter family.
+
+
+Batch 61 evidence: the mandatory Batch-60 overlap `2A650..2A730` and narrow window were regenerated from immutable CODE.2 and matched the checkpoint hashes before forward accounting. Instruction ownership covers `2A6B0..2AC67`. `2AC70..2AC7F` is a directly proven 16-byte table: `2C2A8` loads its exact address and copies four dwords. Only `2AC68..2AC6F` is zero-fill padding; the remaining listed bytes are Watcom NOP/XCHG separators with no incoming control-flow target. Preserve writable-code transparency/subtraction immediates at `2A816`, `2AA0D`, and `2AA12`, the ROL-vs-SHL mask distinction and DX-only row count in `2A8A0`, the register-ABI ownership of `2AAEC`, VGA page-base arithmetic in `2AB6C`, and retrace/CRTC register ordering through `2AC10`.

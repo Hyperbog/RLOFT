@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 176964u;
-constexpr u32 kVerifiedNonCodeBytes = 3720u;
+constexpr u32 kVerifiedTranslatedBytes = 178417u;
+constexpr u32 kVerifiedNonCodeBytes = 3755u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -863,36 +863,6 @@ void function_2a584(Machine& m,Graphics2Boundary& b,u32 frame,u32 y,u32 x,u32 im
 }
 static_assert(0x2A6B0u-0x2A584u==300u);
 
-static void g2_clipped_sprite(Machine& m,Graphics2Boundary& b,u32 frame,u32 y,u32 x,u32 clip,u32 image,u8 delta,bool subtract) noexcept {
-    auto w=[&](u32 o,u32 v){store_le32(dg(m,o),v);};auto r=[&](u32 o){return load_le32(dg(m,o));};
-    w(0xF029u,0u);w(0xF02Du,0u);w(0xF00Du,g2r32(b,clip)>>2);w(0xF011u,g2r32(b,clip+4u)>>2);w(0xF015u,g2r32(b,clip+8u));w(0xF019u,(g2r32(b,clip+0x0Cu)+3u)>>2);
-    u32 q=g2r32(b,clip+0x10u);w(0xF025u,q&3u);if(q!=0u){w(0xF029u,1u);q>>=2;}w(0xF01Du,q);
-    q=(g2r32(b,clip+0x14u)+r(0xF025u))>>2;
-    if(q==0u){q=1u;if(r(0xF029u)!=1u){w(0xF02Du,4u-g2r32(b,clip+0x14u));w(0xF019u,r(0xF019u)-1u);}}
-    w(0xF021u,q);w(0xF025u,g2r32(b,clip+0x0Cu)&3u);
-    const Planar2 p=g2planar(b,y,x);u32 dst0=p.addr;const u32 rot=(p.plane+4u-r(0xF025u))&3u;u8 mask=0x11u;
-    if(subtract)mask=static_cast<u8>(mask<<rot);else for(u32 i=0;i<rot;++i)mask=g2rol1(mask);
-    u32 src=image+8u+static_cast<u32>(g2r16(b,image))*frame;const u8 key=(g2r8(b,image+7u)&0x80u)?g2r8(b,src++):0xFFu;const u32 plane_stride=static_cast<u32>(g2r16(b,image))>>2;
-    u32 planes=4u,lead=r(0xF02Du);
-    if(subtract){if(lead!=0u){src+=plane_stride;--planes;mask=g2rol1(mask);}}
-    else{while(lead!=0u){src+=plane_stride;--lead;--planes;mask=g2rol1(mask);}}
-    w(0xF031u,planes);u32 dst_skip=load_le32(dg(m,0xEFF9u))-r(0xF021u)-r(0xF01Du);g2mask(b,mask);store_le32(dg(m,0xF009u),r(0xF015u));
-    for(;;){
-        u32 dst=dst0;u32 rows=subtract?static_cast<u16>(r(0xF015u)):r(0xF015u);
-        do{src+=r(0xF00Du);src+=r(0xF019u);u32 n=r(0xF021u);do{const u8 v=g2r8(b,src++);if(v!=key)g2w8(b,dst,subtract?static_cast<u8>(v-delta):v);++dst;}while(--n!=0u);const u32 tail=r(0xF01Du);dst+=tail;src+=tail;dst+=dst_skip;}while(--rows!=0u);
-        src+=r(0xF011u);--planes;w(0xF031u,planes);if(planes==0u)break;const bool carry=(mask&0x80u)!=0u;mask=g2rol1(mask);
-        if(carry){
-            ++dst0;
-            if(r(0xF019u)!=0u){w(0xF019u,r(0xF019u)-1u);--dst_skip;--dst0;if(r(0xF029u)!=0u)w(0xF01Du,r(0xF01Du)+1u);else w(0xF021u,r(0xF021u)+1u);}
-            else if(r(0xF029u)!=0u){w(0xF01Du,r(0xF01Du)+1u);w(0xF021u,r(0xF021u)-1u);if(r(0xF021u)==0u)break;}
-        }
-        g2mask(b,mask);
-    }
-}
-void function_2a6b0(Machine& m,Graphics2Boundary& b,u32 frame,u32 y,u32 x,u32 clip,u32 image) noexcept {g2_clipped_sprite(m,b,frame,y,x,clip,image,0u,false);}
-static_assert(0x2A89Fu-0x2A6B0u==495u);
-void function_2a8a0(Machine& m,Graphics2Boundary& b,u32 frame,u32 y,u32 x,u32 clip,u32 image,u32 delta) noexcept {g2_clipped_sprite(m,b,frame,y,x,clip,image,static_cast<u8>(delta),true);}
-static_assert(0x2AA9Bu-0x2A8A0u==507u);
 
 // -----------------------------------------------------------------------------
 // Batch 03: 006C0..011A4 application map/search/render helpers.
@@ -20530,5 +20500,343 @@ static_assert(0x2A6B0u-0x2A584u==300u);
 static_assert((0x2A177u-0x2A114u)+(0x2A1E5u-0x2A178u)+(0x2A20Cu-0x2A1E8u)+
               (0x2A256u-0x2A20Cu)+(0x2A305u-0x2A258u)+(0x2A380u-0x2A308u)+
               (0x2A478u-0x2A380u)+(0x2A584u-0x2A478u)+(0x2A6B0u-0x2A584u)==1427u);
+
+
+// -----------------------------------------------------------------------------
+// Batch 61: 2A6B0..2AC67 clipped planar blitters, image palette transforms,
+// VGA address/page/retrace helpers, and CRTC start/vertical controls.
+// All addresses are CODE.2 object-relative.
+// -----------------------------------------------------------------------------
+
+struct Application61Boundary {
+    u8 (*in8)(u16)=nullptr;
+    void (*out8)(u16,u8)=nullptr;
+    void (*out16)(u16,u16)=nullptr;
+    u8 (*vga_read8)(u32)=nullptr;
+    void (*vga_write8)(u32,u8)=nullptr;
+};
+
+static u8 app61_in8(Application61Boundary& b,u16 port) noexcept { return b.in8?b.in8(port):0u; }
+static void app61_out8(Application61Boundary& b,u16 port,u8 v) noexcept { if(b.out8)b.out8(port,v); }
+static void app61_out16(Application61Boundary& b,u16 port,u16 v) noexcept { if(b.out16)b.out16(port,v); }
+static u8 app61_vga_read(Application61Boundary& b,u32 a) noexcept { return b.vga_read8?b.vga_read8(a):0u; }
+static void app61_vga_write(Application61Boundary& b,u32 a,u8 v) noexcept { if(b.vga_write8)b.vga_write8(a,v); }
+
+[[nodiscard]] App60Map function_2ab38(Machine& m,u32 row,u32 x) noexcept;
+
+static u8 app61_rol8(u8 v,u32 count) noexcept {
+    const u32 c=count&7u;
+    if(c==0u)return v;
+    return static_cast<u8>((static_cast<u32>(v)<<c)|(static_cast<u32>(v)>>(8u-c)));
+}
+static u8 app61_shl8(u8 v,u32 count) noexcept {
+    const u32 c=count&31u;
+    return c>=8u?0u:static_cast<u8>(static_cast<u32>(v)<<c);
+}
+
+// 2A6B0 clips a transparent planar image against a caller-built six-dword
+// descriptor. The binary stores the selected transparent byte directly into
+// the immediate operand at 2A816, so retain that writable-code side effect.
+void function_2a6b0(Machine& m,Application61Boundary& b,u32 record_index,u32 row,u32 x,u32 clip,u32 image) noexcept {
+    store_le32(dg(m,0xF029u),0u);
+    store_le32(dg(m,0xF02Du),0u);
+    store_le32(dg(m,0xF00Du),load_le32(dg(m,clip+0u))>>2u);
+    store_le32(dg(m,0xF011u),load_le32(dg(m,clip+4u))>>2u);
+    store_le32(dg(m,0xF015u),load_le32(dg(m,clip+8u)));
+    store_le32(dg(m,0xF019u),(load_le32(dg(m,clip+0x0Cu))+3u)>>2u);
+
+    u32 start_plane=load_le32(dg(m,clip+0x10u))&3u;
+    store_le32(dg(m,0xF025u),start_plane);
+    u32 left_bytes=load_le32(dg(m,clip+0x10u));
+    if(left_bytes!=0u){store_le32(dg(m,0xF029u),1u);left_bytes>>=2u;}
+    store_le32(dg(m,0xF01Du),left_bytes);
+
+    u32 body=(load_le32(dg(m,clip+0x14u))+start_plane)>>2u;
+    if(body==0u){
+        body=1u;
+        if(load_le32(dg(m,0xF029u))!=1u){
+            store_le32(dg(m,0xF02Du),4u-load_le32(dg(m,clip+0x14u)));
+            store_le32(dg(m,0xF019u),load_le32(dg(m,0xF019u))-1u);
+            body=1u;
+        }
+    }
+    store_le32(dg(m,0xF021u),body);
+    store_le32(dg(m,0xF025u),load_le32(dg(m,clip+0x0Cu))&3u);
+
+    App60Map mapped=function_2ab38(m,row,x);
+    u32 plane_dst=mapped.addr;
+    u8 mask=app61_rol8(0x11u,(mapped.plane+4u-load_le32(dg(m,0xF025u)))&3u);
+
+    const u32 stride=load_le16(dg(m,image));
+    u32 src=image+8u+app60_mul_lo(stride,record_index);
+    const u8 flags=*dg(m,image+7u);
+    u8 transparent=0xFFu;
+    if((flags&0x80u)!=0u){transparent=*dg(m,src);++src;}
+    *dg(m,0x2A816u)=transparent;
+
+    u32 planes_left=4u;
+    const u32 plane_span=stride>>2u;
+    u32 skip_planes=load_le32(dg(m,0xF02Du));
+    while(skip_planes!=0u){
+        src+=plane_span;
+        --skip_planes;
+        --planes_left;
+        bool carry=false;mask=app60_rol8_1(mask,carry);
+    }
+    store_le32(dg(m,0xF031u),planes_left);
+
+    u32 dst_gap=load_le32(dg(m,0xEFF9u))-load_le32(dg(m,0xF021u))-load_le32(dg(m,0xF01Du));
+    for(;;){
+        app61_out16(b,0x03C4u,static_cast<u16>((static_cast<u16>(mask)<<8u)|0x02u));
+        store_le32(dg(m,0xF009u),load_le32(dg(m,0xF015u)));
+        u32 dst=plane_dst;
+        u32 rows_left=load_le32(dg(m,0xF015u));
+        src+=load_le32(dg(m,0xF00Du));
+        do {
+            src+=load_le32(dg(m,0xF019u));
+            u32 n=load_le32(dg(m,0xF021u));
+            do {
+                const u8 v=*dg(m,src++);
+                if(v!=*dg(m,0x2A816u))app61_vga_write(b,dst,v);
+                ++dst;
+            } while(--n!=0u);
+            const u32 right=load_le32(dg(m,0xF01Du));
+            dst+=right; src+=right; dst+=dst_gap;
+        } while(--rows_left!=0u);
+
+        src+=load_le32(dg(m,0xF011u));
+        if(--planes_left==0u)break;
+        bool carry=false;mask=app60_rol8_1(mask,carry);
+        if(carry){
+            ++plane_dst;
+            if(load_le32(dg(m,0xF019u))!=0u){
+                store_le32(dg(m,0xF019u),load_le32(dg(m,0xF019u))-1u);
+                --dst_gap;
+                --plane_dst;
+                if(load_le32(dg(m,0xF029u))!=0u)
+                    store_le32(dg(m,0xF01Du),load_le32(dg(m,0xF01Du))+1u);
+                else
+                    store_le32(dg(m,0xF021u),load_le32(dg(m,0xF021u))+1u);
+            } else if(load_le32(dg(m,0xF029u))!=0u){
+                store_le32(dg(m,0xF01Du),load_le32(dg(m,0xF01Du))+1u);
+                const u32 next=load_le32(dg(m,0xF021u))-1u;
+                store_le32(dg(m,0xF021u),next);
+                if(next==0u)break;
+            }
+        }
+    }
+}
+static_assert(0x2A89Fu-0x2A6B0u==495u);
+
+// 2A8A0 is the subtracting clipped variant. It differs materially from 2A6B0:
+// the initial mask is SHL rather than ROL, F02D performs only one source-plane
+// adjustment, and each row count is loaded through DX (low 16 bits only).
+void function_2a8a0(Machine& m,Application61Boundary& b,u32 record_index,u32 row,u32 x,u32 clip,u32 image,u32 delta) noexcept {
+    *dg(m,0x2AA12u)=static_cast<u8>(delta); // SUB AL,imm8 immediate
+    store_le32(dg(m,0xF029u),0u);
+    store_le32(dg(m,0xF02Du),0u);
+    store_le32(dg(m,0xF00Du),load_le32(dg(m,clip+0u))>>2u);
+    store_le32(dg(m,0xF011u),load_le32(dg(m,clip+4u))>>2u);
+    store_le32(dg(m,0xF015u),load_le32(dg(m,clip+8u)));
+    store_le32(dg(m,0xF019u),(load_le32(dg(m,clip+0x0Cu))+3u)>>2u);
+
+    u32 start_plane=load_le32(dg(m,clip+0x10u))&3u;
+    store_le32(dg(m,0xF025u),start_plane);
+    u32 left_bytes=load_le32(dg(m,clip+0x10u));
+    if(left_bytes!=0u){store_le32(dg(m,0xF029u),1u);left_bytes>>=2u;}
+    store_le32(dg(m,0xF01Du),left_bytes);
+
+    u32 body=(load_le32(dg(m,clip+0x14u))+start_plane)>>2u;
+    if(body==0u){
+        body=1u;
+        if(load_le32(dg(m,0xF029u))!=1u){
+            store_le32(dg(m,0xF02Du),4u-load_le32(dg(m,clip+0x14u)));
+            store_le32(dg(m,0xF019u),load_le32(dg(m,0xF019u))-1u);
+            body=1u;
+        }
+    }
+    store_le32(dg(m,0xF021u),body);
+    store_le32(dg(m,0xF025u),load_le32(dg(m,clip+0x0Cu))&3u);
+
+    App60Map mapped=function_2ab38(m,row,x);
+    u32 plane_dst=mapped.addr;
+    u8 mask=app61_shl8(0x11u,(mapped.plane+4u-load_le32(dg(m,0xF025u)))&3u);
+
+    const u32 stride=load_le16(dg(m,image));
+    u32 src=image+8u+app60_mul_lo(stride,record_index);
+    const u8 flags=*dg(m,image+7u);
+    u8 transparent=0xFFu;
+    if((flags&0x80u)!=0u){transparent=*dg(m,src);++src;}
+    *dg(m,0x2AA0Du)=transparent; // CMP BYTE [ESI],imm8 immediate
+
+    u32 planes_left=4u;
+    const u32 plane_span=stride>>2u;
+    u32 skip_planes=load_le32(dg(m,0xF02Du));
+    if(skip_planes!=0u){
+        src+=plane_span;
+        --skip_planes; // EDX is decremented but not looped back in this variant
+        --planes_left;
+        bool carry=false;mask=app60_rol8_1(mask,carry);
+    }
+    store_le32(dg(m,0xF031u),planes_left);
+
+    u32 dst_gap=load_le32(dg(m,0xEFF9u))-load_le32(dg(m,0xF021u))-load_le32(dg(m,0xF01Du));
+    for(;;){
+        app61_out16(b,0x03C4u,static_cast<u16>((static_cast<u16>(mask)<<8u)|0x02u));
+        store_le32(dg(m,0xF009u),load_le32(dg(m,0xF015u)));
+        u32 dst=plane_dst;
+        u32 rows_left=static_cast<u16>(load_le32(dg(m,0xF015u))); // MOV DX,CX
+        src+=load_le32(dg(m,0xF00Du));
+        do {
+            src+=load_le32(dg(m,0xF019u));
+            u32 n=load_le32(dg(m,0xF021u));
+            do {
+                const u8 v=*dg(m,src++);
+                if(v!=*dg(m,0x2AA0Du))app61_vga_write(b,dst,static_cast<u8>(v-*dg(m,0x2AA12u)));
+                ++dst;
+            } while(--n!=0u);
+            const u32 right=load_le32(dg(m,0xF01Du));
+            dst+=right; src+=right; dst+=dst_gap;
+        } while(--rows_left!=0u);
+
+        src+=load_le32(dg(m,0xF011u));
+        if(--planes_left==0u)break;
+        bool carry=false;mask=app60_rol8_1(mask,carry);
+        if(carry){
+            ++plane_dst;
+            if(load_le32(dg(m,0xF019u))!=0u){
+                store_le32(dg(m,0xF019u),load_le32(dg(m,0xF019u))-1u);
+                --dst_gap;
+                --plane_dst;
+                if(load_le32(dg(m,0xF029u))!=0u)
+                    store_le32(dg(m,0xF01Du),load_le32(dg(m,0xF01Du))+1u);
+                else
+                    store_le32(dg(m,0xF021u),load_le32(dg(m,0xF021u))+1u);
+            } else if(load_le32(dg(m,0xF029u))!=0u){
+                store_le32(dg(m,0xF01Du),load_le32(dg(m,0xF01Du))+1u);
+                const u32 next=load_le32(dg(m,0xF021u))-1u;
+                store_le32(dg(m,0xF021u),next);
+                if(next==0u)break;
+            }
+        }
+    }
+}
+static_assert(0x2AA9Bu-0x2A8A0u==507u);
+
+// In-place palette translation of one image record. The transparent record
+// form consumes its key byte first but still runs the original ECX count.
+void function_2aa9c(Machine& m,u32 record_index,u32 table,u32 image) noexcept {
+    const u32 stride=load_le16(dg(m,image));
+    u32 p=image+8u+app60_mul_lo(stride,record_index);
+    u32 n=stride;
+    if((*dg(m,image+7u)&0x80u)!=0u){
+        const u8 transparent=*dg(m,p++);
+        do {u8 v=*dg(m,p);if(v!=transparent)*dg(m,p)=*dg(m,table+static_cast<u32>(v));++p;} while(--n!=0u);
+    } else {
+        do {const u8 v=*dg(m,p);*dg(m,p)=*dg(m,table+static_cast<u32>(v));++p;} while(--n!=0u);
+    }
+}
+static_assert(0x2AAEAu-0x2AA9Cu==78u);
+
+// 2AAEC is an address-distinct register-ABI transform: EDX supplies the record
+// index and ESI supplies the image base; only the subtraction byte is stacked.
+void function_2aaec(Machine& m,u32 incoming_edx,u32 delta,u32 incoming_esi) noexcept {
+    const u32 image=incoming_esi;
+    const u32 stride=load_le16(dg(m,image));
+    u32 p=image+8u+app60_mul_lo(stride,incoming_edx);
+    u32 n=stride;
+    const u8 d=static_cast<u8>(delta);
+    if((*dg(m,image+7u)&0x80u)!=0u){
+        const u8 transparent=*dg(m,p++);
+        do {const u8 v=*dg(m,p);if(v!=transparent)*dg(m,p)=static_cast<u8>(v-d);++p;} while(--n!=0u);
+    } else {
+        do {*dg(m,p)=static_cast<u8>(*dg(m,p)-d);++p;} while(--n!=0u);
+    }
+}
+static_assert(0x2AB36u-0x2AAECu==74u);
+
+[[nodiscard]] App60Map function_2ab38(Machine& m,u32 row,u32 x) noexcept {
+    u32 a=row << (load_le32(dg(m,0xEFEDu))&31u);
+    const u32 base=a;
+    a=base+(base << (load_le32(dg(m,0xEFF1u))&31u));
+    a+=(x>>2u);
+    a+=load_le32(dg(m,0xF001u));
+    return {a,x&3u};
+}
+static_assert(0x2AB6Cu-0x2AB38u==52u);
+
+// Register-ABI page selector. The original preserves incoming EAX/EDX after
+// updating EFE9/F001, so no value is returned from the semantic adapter.
+void function_2ab6c(Machine& m,u32 incoming_eax) noexcept {
+    const u32 page=incoming_eax&0xFFu;
+    store_le32(dg(m,0xEFE9u),page);
+    u32 a=app60_mul_lo(page,load_le32(dg(m,0xF005u)));
+    a+=0xA000u;
+    a<<=4u;
+    store_le32(dg(m,0xF001u),a);
+}
+static_assert(0x2AB95u-0x2AB6Cu==41u);
+
+void function_2ab98(Machine& m,Application61Boundary& b) noexcept {
+    if(load_le32(dg(m,0xEFE1u))!=0u)return;
+    app61_out16(b,0x03C4u,0x0F02u);
+    for(u32 i=0;i<0x10000u;++i)app61_vga_write(b,0xA0000u+i,0u);
+}
+static_assert(0x2ABC4u-0x2AB98u==44u);
+
+void function_2abc4(Application61Boundary& b) noexcept {
+    if(!b.in8)return;
+    while((app61_in8(b,0x03DAu)&0x08u)!=0u){}
+    while((app61_in8(b,0x03DAu)&0x08u)==0u){}
+}
+static_assert(0x2ABDBu-0x2ABC4u==23u);
+
+void function_2abdc(Application61Boundary& b) noexcept {
+    if(!b.in8)return;
+    while((app61_in8(b,0x03DAu)&0x08u)==0u){}
+    while((app61_in8(b,0x03DAu)&0x08u)!=0u){}
+}
+static_assert(0x2ABF3u-0x2ABDCu==23u);
+
+// Incoming EBX carries the CRTC display-start word. CLI/STI bracket the two
+// register writes in the binary; the host boundary preserves their ordering.
+void function_2abf4(Application61Boundary& b,u32 incoming_ebx) noexcept {
+    app61_out16(b,0x03D4u,static_cast<u16>((static_cast<u16>((incoming_ebx>>8u)&0xFFu)<<8u)|0x0Cu));
+    app61_out16(b,0x03D4u,static_cast<u16>((static_cast<u16>(incoming_ebx&0xFFu)<<8u)|0x0Du));
+    function_2abc4(b);
+}
+static_assert(0x2AC10u-0x2ABF4u==28u);
+
+// Incoming ECX is both retained in EFF5 and decomposed through 16-bit AX/BX
+// partial-register operations to program CRTC registers 18h, 07h, and 09h.
+void function_2ac10(Machine& m,Application61Boundary& b,u32 incoming_ecx) noexcept {
+    store_le32(dg(m,0xEFF5u),incoming_ecx);
+    function_2abc4(b);
+    u16 ax=static_cast<u16>(incoming_ecx);
+    ax=static_cast<u16>(ax<<1u);
+    const u8 shifted_al=static_cast<u8>(ax);
+    const u8 shifted_ah=static_cast<u8>(ax>>8u);
+    u16 bx=static_cast<u16>((static_cast<u16>(shifted_ah)<<8u)|shifted_ah);
+    bx=static_cast<u16>(bx&0x0201u);
+    bx=static_cast<u16>(bx<<4u);
+    const u8 bl=static_cast<u8>(bx);
+    const u8 bh=static_cast<u8>(static_cast<u8>(bx>>8u)<<1u);
+
+    app61_out16(b,0x03D4u,static_cast<u16>((static_cast<u16>(shifted_al)<<8u)|0x18u));
+    app61_out8(b,0x03D4u,0x07u);
+    u8 v=app61_in8(b,0x03D5u);
+    v=static_cast<u8>((v&0xEFu)|bl);
+    app61_out16(b,0x03D4u,static_cast<u16>((static_cast<u16>(v)<<8u)|0x07u));
+    app61_out8(b,0x03D4u,0x09u);
+    v=app61_in8(b,0x03D5u);
+    v=static_cast<u8>((v&0xBFu)|bh);
+    app61_out16(b,0x03D4u,static_cast<u16>((static_cast<u16>(v)<<8u)|0x09u));
+}
+static_assert(0x2AC68u-0x2AC10u==88u);
+
+static_assert((0x2A89Fu-0x2A6B0u)+(0x2AA9Bu-0x2A8A0u)+(0x2AAEAu-0x2AA9Cu)+
+              (0x2AB36u-0x2AAECu)+(0x2AB6Cu-0x2AB38u)+(0x2AB95u-0x2AB6Cu)+
+              (0x2ABC4u-0x2AB98u)+(0x2ABDBu-0x2ABC4u)+(0x2ABF3u-0x2ABDCu)+
+              (0x2AC10u-0x2ABF4u)+(0x2AC68u-0x2AC10u)==1453u);
 
 } // namespace code2

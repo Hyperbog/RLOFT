@@ -410,3 +410,7 @@ Batch 59 adds **1,048 translated bytes** and **16 proven alignment bytes**, brin
 
 ## CODE.2 Batch 60 checkpoint
 Batch 60 adds **1,427 translated bytes** and **9 proven alignment bytes**, bringing cumulative accounting to **176,964 translated + 3,720 non-code = 180,684 / 239,698 = 75.3799% (75.38%)**. The sequential frontier is `2A6B0`; preserve the plane-major `2A114/2A178` asymmetry, 16-bit wrap in `2A258`, transparent BL-only byte counts, and self-modifying code operands at `2A4F6`, `2A54F`, `2A60B`, and `2A672`.
+
+
+## CODE.2 Batch 61 checkpoint
+Batch 61 adds **1,453 translated bytes** and **35 proven alignment/padding/table bytes**, bringing cumulative accounting to **178,417 translated + 3,755 non-code = 182,172 / 239,698 = 76.0006% (76.00%)**. The sequential frontier is `2AC80`; preserve the self-modifying bytes at `2A816`, `2AA0D`, and `2AA12`, the ROL/SHL and 32-/16-bit clipped-blitter asymmetries, `2AAEC`'s register ABI, the directly referenced `2AC70` table, and VGA retrace/CRTC ordering.
