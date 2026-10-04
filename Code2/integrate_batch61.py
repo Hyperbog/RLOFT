@@ -5,6 +5,12 @@ cpp=root/'Code2/Code2.cpp'; ledger=root/'Code2/RESIDUAL_LEDGER.md'; progress=roo
 c=cpp.read_text()
 assert 'constexpr u32 kVerifiedTranslatedBytes = 176964u;' in c
 assert 'constexpr u32 kVerifiedNonCodeBytes = 3720u;' in c
+legacy_start='\nstatic void g2_clipped_sprite('
+legacy_end='static_assert(0x2AA9Bu-0x2A8A0u==507u);\n'
+assert c.count(legacy_start)==1 and c.count(legacy_end)==1
+start=c.index(legacy_start)
+end=c.index(legacy_end,start)+len(legacy_end)
+c=c[:start]+'\n'+c[end:]
 assert not re.search(r'^void function_2a6b0\(',c,re.M)
 append=zlib.decompress(base64.b64decode(payload.read_text())).decode()
 assert 'function_2a6b0' in append and 'function_2ac10' in append and '==1453u);' in append
