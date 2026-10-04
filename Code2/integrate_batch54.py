@@ -40,9 +40,10 @@ rows='''273E7..273EF | alignment | 9
 27D1C..27D1F | alignment | 4
 27F23..27F23 | alignment | 1'''
 l=ledger.read_text()
-assert '273E7..273EF' not in l
 marker='<!-- RESIDUAL-RANGES-END -->'
 assert l.count(marker)==1
+block=l.split('<!-- RESIDUAL-RANGES-BEGIN -->',1)[1].split(marker,1)[0]
+assert '273E7..273EF |' not in block
 l=l.replace(marker,rows+'\n'+marker,1)
 l += '''\n\nBatch 54 evidence: the mandatory overlap revalidation reproduced the recorded `273A0..27480` and `273E0..27420` SHA-256 anchors exactly, proving Batch 53 ends at the `RET` at `273E6`. `273E7..273EF` is nine zero bytes with no incoming branch/call target and no absolute dword reference anywhere in object 1. The remaining Batch-54 separator rows decode as Watcom `XCHG EBX,EBX`, `NOP`, or zero-fill alignment between independently called routines; a full-object target/reference scan found no incoming target or embedded absolute reference to any listed separator byte.\n\nThe translated `273F0..27F22` ownership units are instruction-bounded directly from immutable CODE.2. Preserve the VGA register width/port ordering, plane-mask rotations, `27694` opposite-page copy split, `2773C` mode-specific sparse byte overlays, interrupt-frame SS/ESP swap in `27894`, filename retry on DOS error `50h`, stream cursor increments in `27A60/27A78`, PackBits-style row expansion in `27BD8`, the four-dword-at-a-time zero-detect behavior of `27C70`, and the one-time multimedia setup/teardown state at `EE40/EE6C/EE68`.\n'''
 ledger.write_text(l.rstrip()+'\n')
