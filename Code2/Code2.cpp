@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 172269u;
-constexpr u32 kVerifiedNonCodeBytes = 3651u;
+constexpr u32 kVerifiedTranslatedBytes = 173550u;
+constexpr u32 kVerifiedNonCodeBytes = 3678u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -19578,5 +19578,244 @@ static_assert(
     (0x293C0u-0x2939Cu) +
     (0x293EAu-0x293C0u) +
     (0x29414u-0x293ECu) == 3214u);
+
+
+// -----------------------------------------------------------------------------
+// Batch 57: 29414..29921 clipped planar draw dispatchers and wrappers.
+// All addresses are CODE.2 object-relative.
+// -----------------------------------------------------------------------------
+
+struct Application57Boundary {
+    u32 (*call_2e758)()=nullptr;
+    u32 (*call_2a380)(u32,u32,u32,u32)=nullptr;
+    u32 (*call_2a6b0)(u32,u32,u32,u32,u32)=nullptr;
+    u32 (*call_2a478)(u32,u32,u32,u32,u32)=nullptr;
+    u32 (*call_2a8a0)(u32,u32,u32,u32,u32,u32)=nullptr;
+    u32 (*call_2f29c)(u32,u32)=nullptr;
+    u32 (*call_2e488)(u32,u32,u32)=nullptr;
+    u32 (*call_2a584)(u32,u32,u32,u32,u32)=nullptr;
+};
+
+static s32 app57_sub_s32(u32 a,u32 b) noexcept { return static_cast<s32>(a-b); }
+static u32 app57_mul_low32(u32 a,u32 b) noexcept { return static_cast<u32>(static_cast<u64>(a)*b); }
+
+static void app57_store_clip_globals(Machine& m,u32 x,u32 y,u32 clip) noexcept {
+    store_le16(dg(m,0xEF69u),static_cast<u16>(x));
+    store_le16(dg(m,0xEF6Bu),static_cast<u16>(y));
+    store_le16(dg(m,0xEF6Du),load_le16(dg(m,clip+8u)));
+    store_le16(dg(m,0xEF6Fu),load_le16(dg(m,clip+0x14u)));
+}
+
+[[nodiscard]] u32 function_29414(Machine& m,Application57Boundary& b,u32 a1,u32 x,u32 y,u32 image,u32 clip) noexcept {
+    if(b.call_2e758)(void)b.call_2e758();
+    if(image==0u)return 0u;
+
+    const u32 original_major=load_le16(dg(m,image+4u));
+    const u32 original_minor8=static_cast<u32>(*dg(m,image+6u))*8u;
+    store_le32(dg(m,clip+8u),original_major);
+    store_le32(dg(m,clip+0u),0u);
+    store_le32(dg(m,clip+4u),0u);
+
+    s32 d=app57_sub_s32(load_le32(dg(m,0xEF55u)),x);
+    if(d>0){
+        store_le32(dg(m,clip+8u),load_le32(dg(m,clip+8u))-static_cast<u32>(d));
+        store_le32(dg(m,clip+0u),app57_mul_low32(static_cast<u32>(d),original_minor8));
+        x=load_le32(dg(m,0xEF55u));
+    }
+    d=static_cast<s32>(load_le32(dg(m,clip+8u))+x-1u-load_le32(dg(m,0xEF59u)));
+    if(d>0){
+        store_le32(dg(m,clip+8u),load_le32(dg(m,clip+8u))-static_cast<u32>(d));
+        store_le32(dg(m,clip+4u),app57_mul_low32(static_cast<u32>(d),original_minor8));
+    }
+
+    store_le32(dg(m,clip+0x14u),original_minor8);
+    store_le32(dg(m,clip+0x0Cu),0u);
+    store_le32(dg(m,clip+0x10u),0u);
+    d=app57_sub_s32(load_le32(dg(m,0xEF5Du)),y);
+    if(d>0){
+        store_le32(dg(m,clip+0x0Cu),static_cast<u32>(d));
+        store_le32(dg(m,clip+0x14u),load_le32(dg(m,clip+0x14u))-static_cast<u32>(d));
+        y=load_le32(dg(m,0xEF5Du));
+    }
+    d=static_cast<s32>(y+load_le32(dg(m,clip+0x14u))-1u-load_le32(dg(m,0xEF61u)));
+    if(d>0){
+        store_le32(dg(m,clip+0x10u),static_cast<u32>(d));
+        store_le32(dg(m,clip+0x14u),load_le32(dg(m,clip+0x14u))-static_cast<u32>(d));
+    }
+
+    app57_store_clip_globals(m,x,y,clip);
+    if(original_major==load_le32(dg(m,clip+8u)) && original_minor8==load_le32(dg(m,clip+0x14u))){
+        if(b.call_2a380)(void)b.call_2a380(a1,x,y,image);
+        return 2u;
+    }
+    if(static_cast<s32>(load_le32(dg(m,clip+8u)))>0 && static_cast<s32>(load_le32(dg(m,clip+0x14u)))>0){
+        if(b.call_2a6b0)(void)b.call_2a6b0(a1,x,y,clip,image);
+        return 1u;
+    }
+    return 0u;
+}
+static_assert(0x29563u-0x29414u==335u);
+
+[[nodiscard]] u32 function_29564(Machine& m,Application57Boundary& b,u32 a1,u32 x,u32 y,u32 image,u32 mode,u32 clip) noexcept {
+    if(b.call_2e758)(void)b.call_2e758();
+    if(image==0u)return 0u;
+
+    const u32 original_major=load_le16(dg(m,image+4u));
+    const u32 original_minor8=static_cast<u32>(*dg(m,image+6u))*8u;
+    store_le32(dg(m,clip+8u),original_major);
+    store_le32(dg(m,clip+0u),0u);
+    store_le32(dg(m,clip+4u),0u);
+
+    s32 d=app57_sub_s32(load_le32(dg(m,0xEF55u)),x);
+    if(d>0){
+        store_le32(dg(m,clip+8u),load_le32(dg(m,clip+8u))-static_cast<u32>(d));
+        store_le32(dg(m,clip+0u),app57_mul_low32(static_cast<u32>(d),original_minor8));
+        x=load_le32(dg(m,0xEF55u));
+    }
+    d=static_cast<s32>(load_le32(dg(m,clip+8u))+x-1u-load_le32(dg(m,0xEF59u)));
+    if(d>0){
+        store_le32(dg(m,clip+8u),load_le32(dg(m,clip+8u))-static_cast<u32>(d));
+        store_le32(dg(m,clip+4u),app57_mul_low32(static_cast<u32>(d),original_minor8));
+    }
+
+    store_le32(dg(m,clip+0x14u),original_minor8);
+    store_le32(dg(m,clip+0x0Cu),0u);
+    store_le32(dg(m,clip+0x10u),0u);
+    d=app57_sub_s32(load_le32(dg(m,0xEF5Du)),y);
+    if(d>0){
+        store_le32(dg(m,clip+0x0Cu),static_cast<u32>(d));
+        store_le32(dg(m,clip+0x14u),load_le32(dg(m,clip+0x14u))-static_cast<u32>(d));
+        y=load_le32(dg(m,0xEF5Du));
+    }
+    d=static_cast<s32>(y+load_le32(dg(m,clip+0x14u))-1u-load_le32(dg(m,0xEF61u)));
+    if(d>0){
+        store_le32(dg(m,clip+0x10u),static_cast<u32>(d));
+        store_le32(dg(m,clip+0x14u),load_le32(dg(m,clip+0x14u))-static_cast<u32>(d));
+    }
+
+    app57_store_clip_globals(m,x,y,clip);
+    const u32 byte_mode=static_cast<u32>(static_cast<u8>(mode));
+    if(original_major==load_le32(dg(m,clip+8u)) && original_minor8==load_le32(dg(m,clip+0x14u))){
+        if(b.call_2a478)(void)b.call_2a478(a1,x,y,image,byte_mode);
+        return 2u;
+    }
+    if(static_cast<s32>(load_le32(dg(m,clip+8u)))>0 && static_cast<s32>(load_le32(dg(m,clip+0x14u)))>0){
+        if(b.call_2a8a0)(void)b.call_2a8a0(a1,x,y,clip,image,byte_mode);
+        return 1u;
+    }
+    return 0u;
+}
+static_assert(0x296BFu-0x29564u==347u);
+
+void function_296c0(Machine& m,s32 a1,s32 a2,s32 a3,s32 a4) noexcept {
+    if(a1<0)a1=0;
+    if(a2<0)a2=0;
+    const s32 max3=static_cast<s16>(load_le16(dg(m,0xEF3Fu)));
+    if(a3>=max3)a3=max3-1;
+    const s32 max4=static_cast<s16>(load_le16(dg(m,0xEF41u)));
+    if(a4>=max4)a4=max4-1;
+    const s32 q=a4/4; // CDQ/SBB/SAR sequence: signed truncation toward zero.
+    const u32 rounded4=static_cast<u32>(q*4);
+    store_le32(dg(m,0xEF59u),static_cast<u32>(a3));
+    store_le32(dg(m,0xEF5Du),static_cast<u32>(a2)&~3u); // encoded as AND BL,FCh.
+    store_le32(dg(m,0xEF61u),rounded4+3u);
+    store_le32(dg(m,0xEF55u),static_cast<u32>(a1));
+}
+static_assert(0x29735u-0x296C0u==117u);
+
+void function_29738(Machine& m,u32 out) noexcept {
+    for(u32 i=0;i<16u;++i)*dg(m,out+i)=*dg(m,0xEF55u+i);
+}
+static_assert(0x2975Bu-0x29738u==35u);
+
+[[nodiscard]] u32 function_2975c(Application57Boundary& b,u32 a1,u32 a2,u32 key,u32 set) noexcept {
+    const u32 image=b.call_2f29c?b.call_2f29c(key,set):0u;
+    if(image==0u)return 0u;
+    if(b.call_2a380)(void)b.call_2a380(a1,a2,key,image);
+    return b.call_2e758?b.call_2e758():0u; // encoded tail JMP
+}
+static_assert(0x2978Au-0x2975Cu==46u);
+
+[[nodiscard]] u32 function_2978c(Machine& m,Application57Boundary& b,u32 a1,u32 a2,u32 a3,u32 key,u32 set) noexcept {
+    const u32 depth=load_le32(dg(m,0xEFD4u));
+    const u32 clip=0xEF74u+depth*0x18u;
+    store_le32(dg(m,0xEFD4u),depth+1u);
+    const u32 image=b.call_2f29c?b.call_2f29c(key,set):0u;
+    const u32 r=function_29414(m,b,a1,a2,a3,image,clip);
+    store_le32(dg(m,0xEFD4u),load_le32(dg(m,0xEFD4u))-1u);
+    return r;
+}
+static_assert(0x297CEu-0x2978Cu==66u);
+
+[[nodiscard]] u32 function_297d0(Machine& m,Application57Boundary& b,u32 a1,u32 key,u32 set) noexcept {
+    const u32 image=b.call_2f29c?b.call_2f29c(key,set):0u;
+    if(image==0u)return 0u;
+    store_le32(dg(m,0xEFD4u),load_le32(dg(m,0xEFD4u))+1u);
+    const u32 r=b.call_2e488?b.call_2e488(a1,key,image):0u;
+    store_le32(dg(m,0xEFD4u),load_le32(dg(m,0xEFD4u))-1u);
+    return r;
+}
+static_assert(0x29802u-0x297D0u==50u);
+
+[[nodiscard]] u32 function_29804(Machine& m,Application57Boundary& b,u32 a1,u32 a2,u32 a3,u32 a4) noexcept {
+    const u32 depth=load_le32(dg(m,0xEFD4u));
+    const u32 clip=0xEF74u+depth*0x18u;
+    store_le32(dg(m,0xEFD4u),depth+1u);
+    const u32 r=function_29414(m,b,a1,a2,a3,a4,clip);
+    store_le32(dg(m,0xEFD4u),load_le32(dg(m,0xEFD4u))-1u);
+    return r;
+}
+static_assert(0x29838u-0x29804u==52u);
+
+[[nodiscard]] u32 function_29838(Application57Boundary& b,u32 a1,u32 a2,u32 key,u32 set,u32 mode) noexcept {
+    const u32 image=b.call_2f29c?b.call_2f29c(key,set):0u;
+    if(image==0u)return 0u;
+    if(b.call_2a478)(void)b.call_2a478(a1,a2,key,image,static_cast<u32>(static_cast<u8>(mode)));
+    return b.call_2e758?b.call_2e758():0u;
+}
+static_assert(0x2986Cu-0x29838u==52u);
+
+[[nodiscard]] u32 function_2986c(Machine& m,Application57Boundary& b,u32 a1,u32 a2,u32 a3,u32 key,u32 set,u32 mode) noexcept {
+    const u32 depth=load_le32(dg(m,0xEFD4u));
+    const u32 clip=0xEF74u+depth*0x18u;
+    store_le32(dg(m,0xEFD4u),depth+1u);
+    const u32 image=b.call_2f29c?b.call_2f29c(key,set):0u;
+    const u32 r=function_29564(m,b,a1,a2,a3,image,mode,clip);
+    store_le32(dg(m,0xEFD4u),load_le32(dg(m,0xEFD4u))-1u);
+    return r;
+}
+static_assert(0x298B4u-0x2986Cu==72u);
+
+[[nodiscard]] u32 function_298b4(Machine& m,Application57Boundary& b,u32 a1,u32 a2,u32 a3,u32 image,u32 mode) noexcept {
+    const u32 depth=load_le32(dg(m,0xEFD4u));
+    const u32 clip=0xEF74u+depth*0x18u;
+    store_le32(dg(m,0xEFD4u),depth+1u);
+    const u32 r=function_29564(m,b,a1,a2,a3,image,mode,clip);
+    store_le32(dg(m,0xEFD4u),load_le32(dg(m,0xEFD4u))-1u);
+    return r;
+}
+static_assert(0x298EFu-0x298B4u==59u);
+
+[[nodiscard]] u32 function_298f0(Application57Boundary& b,u32 a1,u32 a2,u32 key,u32 set,u32 a5) noexcept {
+    const u32 image=b.call_2f29c?b.call_2f29c(key,set):0u;
+    if(image==0u)return 0u;
+    if(b.call_2a584)(void)b.call_2a584(a1,a2,key,image,a5);
+    return b.call_2e758?b.call_2e758():0u; // encoded tail JMP
+}
+static_assert(0x29922u-0x298F0u==50u);
+
+static_assert(
+    (0x29563u-0x29414u) +
+    (0x296BFu-0x29564u) +
+    (0x29735u-0x296C0u) +
+    (0x2975Bu-0x29738u) +
+    (0x2978Au-0x2975Cu) +
+    (0x297CEu-0x2978Cu) +
+    (0x29802u-0x297D0u) +
+    (0x29838u-0x29804u) +
+    (0x2986Cu-0x29838u) +
+    (0x298B4u-0x2986Cu) +
+    (0x298EFu-0x298B4u) +
+    (0x29922u-0x298F0u) == 1281u);
 
 } // namespace code2

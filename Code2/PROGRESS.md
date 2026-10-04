@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-73.39%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-73.94%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **172,269**
-**Proven non-code/data bytes:** **3,651**
-**Reconciled object bytes:** **175,920 / 239,698 = 73.3924% (73.39%)**
-**Unresolved object bytes:** **63,778**
+**Verified translated instruction bytes:** **173,550**
+**Proven non-code/data bytes:** **3,678**
+**Reconciled object bytes:** **177,228 / 239,698 = 73.9380% (73.94%)**
+**Unresolved object bytes:** **62,470**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -665,3 +665,10 @@ The sequential frontier is now `2873C`. Preserve `27F24`'s count-preserving REP 
 Batch 56 added **3,214 translated instruction bytes** plus **74 directly proven alignment/padding bytes**, covering the complete ownership fold `2873C..29413`. Cumulative accounting is **172,269 translated + 3,651 non-code = 175,920 / 239,698 = 73.3924% (73.39%)**; unresolved is **63,778 bytes**.
 
 The sequential frontier is now **`29414`**. Preserve the mode-3 wrapped signed scaling in `2873C`, `2878C`'s zero-mapping early exit, current-slot suppression in `28AE0`, state-value behavior in `29058`, BX-only/high-half semantics in `290D0`, `290F4`'s byte/word side effects, the clipping asymmetry of `292BC` versus `2932C`, and the shared-RET/tail-transfer ownership of `2939C/293C0/293EC`. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved. Semantic audit remains not started.
+
+
+## CODE.2 Batch 57 checkpoint
+
+Batch 57 added **1,281 translated instruction bytes** plus **27 directly proven alignment/padding bytes**, reconciling `29414..2992F`. Cumulative accounting is **173,550 translated + 3,678 non-code = 177,228 / 239,698 = 73.9380% (73.94%)**; unresolved is **62,470 bytes**.
+
+The sequential frontier is now `29930`, the independent VGA mode/setup prologue. Preserve `29414/29564` clipping globals `EF69..EF6F`, their full-vs-clipped return codes 2/1/0, `296C0`'s signed truncation-to-zero quartering and BL-only alignment effect, `29738`'s exact 16-byte copy, and the EFD4 nested scratch-record ownership in `2978C/29804/2986C/298B4`.

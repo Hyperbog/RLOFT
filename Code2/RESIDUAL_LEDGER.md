@@ -407,6 +407,15 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 2932B..2932B | alignment | 1
 2939B..2939B | alignment | 1
 293EA..293EB | alignment | 2
+29563..29563 | alignment | 1
+296BF..296BF | alignment | 1
+29735..29737 | alignment | 3
+2975B..2975B | alignment | 1
+2978A..2978B | alignment | 2
+297CE..297CF | alignment | 2
+29802..29803 | alignment | 2
+298EF..298EF | alignment | 1
+29922..2992F | padding | 14
 <!-- RESIDUAL-RANGES-END -->
 
 **Total proven non-code/data:** **3,651 bytes**.
@@ -553,3 +562,6 @@ The translated `27F24..28738` ownership units are instruction-bounded directly f
 Batch 56 evidence: the mandatory Batch-55 overlap `286E0..287C0` and narrow window `28720..28780` reproduced their recorded SHA-256 anchors exactly before forward accounting. The translated ownership units `2873C..29413` are instruction-bounded directly from immutable CODE.2. Each listed separator was checked against a full object-1 direct relative `CALL`/`JMP`/conditional-branch target scan and a raw object-relative/+10000h absolute dword-reference scan; none has an incoming target or reference. `290C3..290CF` is therefore counted as a 13-byte zero-fill pad on direct evidence, not appearance.
 
 Preserve `2873C`'s wrapped signed-IDIV scaling path, `2878C`'s immediate return on a zero mapping without setting the active byte, the current-slot guard oddity in `28AE0`/`289E4`, exact state values returned by `29058`, BX-only testing and high-half preservation in `290D0`, partial-byte mode storage in `290F4`, signed clipping differences between `292BC` and `2932C`, and the shared earlier RET plus tail transfer through `2E758` in `2939C/293C0/293EC`. The known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+Batch 57 evidence: mandatory Batch-56 overlap hashes were reproduced from immutable CODE.2 before forward work. The instruction-owned fold is `29414..29921`. The eight short inter-routine separators decode as NOP, MOV EAX,EAX, or LEA EAX,[EAX]; `29922..2992F` is fourteen zero bytes. A full object-1 direct branch/call-target scan plus exact dword scan for both object-relative and +10000h virtual addresses found no incoming target or absolute reference into any of these 27 bytes. Preserve the two clip paths' partial-register/global side effects, signed clipping tests, `296C0` signed truncation-to-zero division-by-four sequence, the 16-byte `29738` REP copy, and EFD4 scratch-depth increment/decrement ownership in the wrapper family.
