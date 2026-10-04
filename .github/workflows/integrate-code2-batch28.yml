@@ -1,0 +1,60 @@
+name: Integrate CODE.2 batch 28
+on:
+  push:
+    branches: [code1-decompilation]
+    paths: [.github/workflows/integrate-code2-batch28.yml]
+permissions:
+  contents: write
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+          fetch-depth: 0
+      - name: Apply batch 28
+        run: python Code2/.integrate_batch28.py
+      - name: Verify CODE.2 accounting and semantic anchors
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          cpp=Path('Code2/Code2.cpp').read_text()
+          progress=Path('Code2/PROGRESS.md').read_text()
+          ledger=Path('Code2/RESIDUAL_LEDGER.md').read_text()
+          assert 'constexpr u32 kVerifiedTranslatedBytes = 94703u;' in cpp
+          assert 'constexpr u32 kVerifiedNonCodeBytes = 1893u;' in cpp
+          assert 'static_assert(0x15DF5u-0x15534u==2241u);' in cpp
+          assert 'static_assert(0x15E21u-0x15DF8u==41u);' in cpp
+          assert 'static_assert(0x15E37u-0x15E24u==19u);' in cpp
+          assert 'b.app27->call_1c160(resource,m.cpu.ebx);' in cpp
+          assert 'take=function_0f4b0(m,static_cast<s32>(item))!=0u;' in cpp
+          assert 'const s32 item=static_cast<s32>(app28_stream_word(m));' in cpp
+          assert 'while(function_15534(m,b)==0u){}' in cpp
+          assert 'return 3u;' in cpp
+          assert '**94,703**' in progress and '**1,893**' in progress and '**96,596 / 239,698 = 40.2990% (40.30%)**' in progress
+          block=ledger.split('<!-- RESIDUAL-RANGES-BEGIN -->',1)[1].split('<!-- RESIDUAL-RANGES-END -->',1)[0]
+          total=0
+          for line in block.splitlines():
+              m=re.match(r'^[0-9A-F]{5}\.\.[0-9A-F]{5} \| [^|]+ \| (\d+)$',line.strip())
+              if m: total+=int(m.group(1))
+          assert total==1893,total
+          assert 94703+1893==96596
+          assert 239698-96596==143102
+          print('Batch 28 accounting and semantic anchors verified')
+          PY
+      - name: Syntax check CODE.2 C++
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+      - name: Clean staging and diff check
+        run: |
+          rm Code2/.batch28_source.b64 Code2/.integrate_batch28.py .github/workflows/integrate-code2-batch28.yml
+          git diff --check
+      - name: Commit integrated batch
+        run: |
+          git config user.name Hyperbog
+          git config user.email 47282882+Hyperbog@users.noreply.github.com
+          git add -A
+          git commit -m 'Integrate CODE.2 decompilation batch 28'
+          git push origin HEAD:code1-decompilation
