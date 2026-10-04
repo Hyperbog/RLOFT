@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-55.62%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-56.72%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **130,855**
-**Proven non-code/data bytes:** **2,465**
-**Reconciled object bytes:** **133,320 / 239,698 = 55.6200% (55.62%)**
-**Unresolved object bytes:** **106,378**
+**Verified translated instruction bytes:** **133,354**
+**Proven non-code/data bytes:** **2,602**
+**Reconciled object bytes:** **135,956 / 239,698 = 56.7197% (56.72%)**
+**Unresolved object bytes:** **103,742**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -578,3 +578,9 @@ Fidelity notes: `1C77C` preserves byte-only `C050` page toggles while passing th
 Added **5,688 translated instruction bytes** and no new non-code/data bytes. The complete `1CE68..1E49F` owner is reconciled; the next routine begins directly at `1E4A0`.
 
 Fidelity notes: the original large unsigned compare tree over `BF44` is expressed as a switch without changing command behavior. All `1CD48` selector argument tuples and ordering are retained, including the live `BF44` reread on commands `11h/12h`, event-bit gates and mutations, command `2Ch`'s zero-valued live-ESI fallback criterion, command `33h`'s `14A60(111Ch)` modal actor selection, item predicates in `2Fh/4Fh/50h`, and the low-32 `ADD EAX,EAX` random text choice used by `4Ch/60h/61h/62h`. The special command `270Fh` is also preserved.
+
+## Batch 44 — terrain cycling, encounter selection, and party-panel refresh
+
+Added **2,499 translated instruction bytes** plus **137 directly proven table/alignment bytes**, reconciling `1EDAC..1F7F7`. The `1EEFC..1EF7B` region is the exact 32-entry CS table owned by `1EF7C`; the next routine begins at `1F7F8`.
+
+Fidelity notes: `1EDAC` performs at most one mapping replacement per lane before cycling the two `242h..244h` / `245h..247h` triplets. `1EF7C` retains unsigned selector bounds and low-32 random scaling. `1F1C8` keeps the truncation-toward-zero signed divisions used to derive `FF50` and the asymmetric `C026/C027/C028` update paths. `1F494` preserves the high-bit actor path's direct jump to `1F745` (skipping `22F40` and both `1EA90` calls), signed HP-bar `IDIV`, and the pre-pushed zero that becomes `30508`'s fifth argument. The same stack pattern proves the Batch-43 `2E6F0` boundary takes one argument; that signature is corrected here without changing byte accounting.
