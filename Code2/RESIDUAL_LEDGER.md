@@ -462,9 +462,18 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 2CC85..2CC87 | alignment | 3
 2CEB6..2CEB7 | alignment | 2
 2D002..2D003 | alignment | 2
+2D233..2D233 | alignment | 1
+2D2F1..2D2F3 | alignment | 3
+2D3C3..2D3C3 | alignment | 1
+2D3D5..2D3D7 | alignment | 3
+2D5CD..2D5CF | alignment | 3
+2D9F9..2D9FB | alignment | 3
+2DA7B..2DA7B | alignment | 1
+2DBAB..2DBAB | alignment | 1
+2DF2A..2DF2B | alignment | 2
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **3,802 bytes**.
+**Total proven non-code/data:** **3,820 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -631,3 +640,5 @@ Batch 63 evidence: `2B186..2B187` and `2B1BA..2B1BB` decode as `MOV EAX,EAX`; `2
 Batch 64 evidence: the mandatory Batch-63 overlap `2B650..2B72F` and narrow window were regenerated from immutable CODE.2 and matched the checkpoint hashes before forward accounting. `2BB9F` and `2C22F` decode as one-byte NOP separators, `2BDF1..2BDF3` as `LEA EAX,[EAX+0]`, and `2BFEA..2BFEB` as `MOV EAX,EAX`. Each lies between directly reconstructed routine boundaries. A full object-1 direct relative branch/call target scan found no incoming target to any of these seven bytes, and an exact 32-bit absolute-address scan of object 1 found no reference to any of them.
 
 Batch 65 evidence: the mandatory Batch-64 overlap `2C210..2C2EF` and narrow window `2C250..2C2AF` were regenerated from immutable CODE.2 and matched the recorded checkpoint SHA-256 values exactly before forward accounting. `2C7F7..2C7FF` is a nine-byte zero-fill separator; `2C8E2..2C8E3`, `2CEB6..2CEB7`, and `2D002..2D003` decode as `MOV EAX,EAX`; `2C9D9..2C9DB` and `2CC85..2CC87` decode as `LEA EAX,[EAX+0]`; `2CAD3` is `NOP`. A full object-1 direct relative CALL/JMP/Jcc target scan found no incoming target to any of these 22 bytes, and exact 32-bit object-relative absolute-address scans found no reference to any of them.
+
+Batch 66 evidence: the mandatory Batch-65 overlap `2CFF0..2D0CF` and narrow window `2D000..2D05F` were regenerated from immutable CODE.2 and matched the checkpoint SHA-256 values before forward accounting. The nine excluded separators decode as NOP, `LEA EAX,[EAX+0]`, or `MOV EAX,EAX` between complete routine boundaries. A full object-1 direct CALL/JMP/Jcc target scan found no incoming target into any of the 18 bytes. Two raw little-endian dword matches inside object 1 were investigated individually and proved to be relative CALL displacement fields at object offsets `0C36` and `38EF`, not absolute references to `2D2F2` or `2D9F9`; no decoded address operand references any separator byte.

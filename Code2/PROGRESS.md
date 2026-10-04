@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-79.79%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-81.41%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **187,462**
-**Proven non-code/data bytes:** **3,802**
-**Reconciled object bytes:** **191,264 / 239,698 = 79.7937% (79.79%)**
-**Unresolved object bytes:** **48,434**
+**Verified translated instruction bytes:** **191,324**
+**Proven non-code/data bytes:** **3,820**
+**Reconciled object bytes:** **195,144 / 239,698 = 81.4124% (81.41%)**
+**Unresolved object bytes:** **44,554**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -724,3 +724,9 @@ Instruction ownership spans `2B6D0..2BB9E`, `2BBA0..2BDF0`, `2BDF4..2BFE9`, `2BF
 Batch 65 added **3,418 translated instruction bytes** plus **22 directly proven alignment bytes**, reconciling through `2D003`. Cumulative accounting is **187,462 translated + 3,802 non-code = 191,264 / 239,698 = 79.7937% (79.79%)**; unresolved is **48,434 bytes**.
 
 Instruction ownership spans `2C294..2C7F6`, `2C800..2C8E1`, `2C8E4..2C9D8`, `2C9DC..2CA5B`, `2CA5C..2CAD2`, `2CAD4..2CC84`, `2CC88..2CEB5`, and `2CEB8..2D001`. Preserve `2C294`'s dynamic `F03C/F03E` clip tests and compiler-order rectangle restore, callback-sensitive target/source reloads, `2CAD4`'s independent party-slot branches, and `2CEB8`'s low-word-only `255D4 -> 255D0` transition copy plus post-callback `258EC` reload. The next independent routine begins at `2D004`.
+
+## CODE.2 Batch 66 checkpoint
+
+Batch 66 added **3,862 translated instruction bytes** plus **18 directly proven alignment bytes**, reconciling through `2DF2B`. Cumulative accounting is **191,324 translated + 3,820 non-code = 195,144 / 239,698 = 81.4124% (81.41%)**; unresolved is **44,554 bytes**.
+
+Instruction ownership spans `2D004..2D232`, `2D234..2D2F0`, `2D2F4..2D3C2`, `2D3C4..2D3D4`, `2D3D8..2D5CC`, `2D5D0..2D9F8`, `2D9FC..2DA7A`, `2DA7C..2DBAA`, and `2DBAC..2DF29`. Preserve `2D004`'s signed 25622 range checks and IDIV remainder update, `2D5D0`'s high-word fixed-point window extraction plus AX-only return consumption, `2DA7C`'s doubled-offset tile probe and early outer exit, and `2DBAC`'s low-word tile-code edits and fallback move ordering. The next independent routine begins at `2DF2C`.
