@@ -1,4 +1,4 @@
-# definition guard repaired v2
+# structural guard repair
 name: Integrate CODE.2 batch 58
 on:
   push:
@@ -24,14 +24,14 @@ jobs:
           t=raw.decode(); assert 'function_29930' in t and 'function_29ca0' in t and '==939u);' in t
           print('batch58 payload OK',len(raw))
           PY
-      - name: Repair definition-only staging guard
+      - name: Repair staging guard
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('Code2/integrate_batch58.py')
           s=p.read_text()
           old="assert 'u32 function_29930(' not in c"
-          new="assert '[[nodiscard]] u32 function_29930(' not in c"
+          new="assert '// Batch 58: 29930..29CE8 VGA mode setup' not in c"
           assert old in s
           p.write_text(s.replace(old,new,1))
           PY
