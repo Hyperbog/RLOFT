@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-74.78%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-75.38%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **175,537**
-**Proven non-code/data bytes:** **3,711**
-**Reconciled object bytes:** **179,248 / 239,698 = 74.7808% (74.78%)**
-**Unresolved object bytes:** **60,450**
+**Verified translated instruction bytes:** **176,964**
+**Proven non-code/data bytes:** **3,720**
+**Reconciled object bytes:** **180,684 / 239,698 = 75.3799% (75.38%)**
+**Unresolved object bytes:** **59,014**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -686,3 +686,10 @@ The sequential frontier is now `29CEC`, the next independent raster primitive. P
 Batch 59 added **1,048 translated instruction bytes** plus **16 directly proven alignment bytes**, reconciling through `2A113`. Cumulative accounting is **175,537 translated + 3,711 non-code = 179,248 / 239,698 = 74.7808% (74.78%)**; unresolved is **60,450 bytes**.
 
 The sequential frontier is now `2A114`. Preserve `29CEC`'s line-drawing fast paths and plane-mask/error rotations, `29EAC/29F40` low-word sign tests with full-register arithmetic, `2A020`'s CX-only count shift, and `2A078`'s page save/select/restore before mode-1 planar copies.
+
+
+## CODE.2 Batch 60 checkpoint
+
+Batch 60 added **1,427 translated instruction bytes** plus **9 directly proven alignment bytes**, reconciling through `2A6AF`. Cumulative accounting is **176,964 translated + 3,720 non-code = 180,684 / 239,698 = 75.3799% (75.38%)**; unresolved is **59,014 bytes**.
+
+The sequential frontier is now `2A6B0`, the next independent clipped blitter. Preserve plane-major transfer ownership, partial-register loop counts, and the writable-code immediates/displacements in `2A478` and `2A584`.

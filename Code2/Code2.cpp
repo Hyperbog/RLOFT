@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 175537u;
-constexpr u32 kVerifiedNonCodeBytes = 3711u;
+constexpr u32 kVerifiedTranslatedBytes = 176964u;
+constexpr u32 kVerifiedNonCodeBytes = 3720u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -20274,5 +20274,261 @@ static_assert(0x2A114u-0x2A104u==16u);
 static_assert((0x29EAAu-0x29CECu)+(0x29F3Eu-0x29EACu)+(0x29FE9u-0x29F40u)+
               (0x29FFAu-0x29FECu)+(0x2A01Du-0x29FFCu)+(0x2A075u-0x2A020u)+
               (0x2A103u-0x2A078u)+(0x2A114u-0x2A104u)==1048u);
+
+
+// -----------------------------------------------------------------------------
+// Batch 60: 2A114..2A6AF planar buffer transfers, image transposes/flips, and
+// address-distinct direct/subtract/table planar blitters. All addresses are
+// CODE.2 object-relative.
+// -----------------------------------------------------------------------------
+
+struct App60Map { u32 addr=0; u32 plane=0; };
+struct Application60Boundary {
+    void (*out16)(u16,u16)=nullptr;
+    u8 (*vga_read8)(u32)=nullptr;
+    void (*vga_write8)(u32,u8)=nullptr;
+    App60Map (*call_2ab38)(Machine&,u32,u32)=nullptr;
+};
+
+static void app60_out16(Application60Boundary& b,u16 port,u16 value) noexcept {
+    if(b.out16)b.out16(port,value);
+}
+static u8 app60_vga_read(Application60Boundary& b,u32 a) noexcept {
+    return b.vga_read8?b.vga_read8(a):0u;
+}
+static void app60_vga_write(Application60Boundary& b,u32 a,u8 v) noexcept {
+    if(b.vga_write8)b.vga_write8(a,v);
+}
+static u32 app60_mul_lo(u32 a,u32 b) noexcept {
+    return static_cast<u32>(static_cast<u64>(a)*static_cast<u64>(b));
+}
+static App60Map app60_map(Machine& m,Application60Boundary& b,u32 row,u32 x) noexcept {
+    if(b.call_2ab38)return b.call_2ab38(m,row,x);
+    u32 t=row << (load_le32(dg(m,0xEFEDu))&31u);
+    u32 a=t+(t << (load_le32(dg(m,0xEFF1u))&31u));
+    a+=(x>>2u);
+    a+=load_le32(dg(m,0xF001u));
+    return {a,x&3u};
+}
+static u8 app60_rol8_1(u8 v,bool& carry) noexcept {
+    carry=(v&0x80u)!=0u;
+    return static_cast<u8>((static_cast<u8>(v<<1u))|(carry?1u:0u));
+}
+
+// 2A114 reads the same rectangle from each VGA read plane into a packed
+// plane-major host buffer.  The width rounding includes the starting plane.
+void function_2a114(Machine& m,Application60Boundary& b,u32 dst,u32 row,u32 x,u32 rows,u32 pixels) noexcept {
+    const App60Map p=app60_map(m,b,row,x); // encoded CALL 2AB38
+    const u32 bytes=(pixels+p.plane+3u)>>2u;
+    const u32 gap=load_le32(dg(m,0xEFF9u))-bytes;
+    for(u32 plane=0;plane<4u;++plane){
+        app60_out16(b,0x03CEu,static_cast<u16>((plane<<8u)|0x04u));
+        u32 src=p.addr;
+        u32 r=rows;
+        do {
+            u32 n=bytes;
+            while(n--!=0u)*dg(m,dst++)=app60_vga_read(b,src++);
+            src+=gap;
+        } while(--r!=0u);
+    }
+}
+static_assert(0x2A177u-0x2A114u==99u);
+
+// 2A178 is the inverse plane-major upload.  Source bytes continue across all
+// four plane passes while EDI is restored to the mapped destination each pass.
+void function_2a178(Machine& m,Application60Boundary& b,u32 src,u32 row,u32 x,u32 rows,u32 pixels) noexcept {
+    const App60Map p=app60_map(m,b,row,x); // encoded CALL 2AB38
+    const u32 bytes=(pixels+p.plane+3u)>>2u;
+    const u32 gap=load_le32(dg(m,0xEFF9u))-bytes;
+    u8 mask=1u;
+    for(u32 plane=0;plane<4u;++plane){
+        app60_out16(b,0x03C4u,static_cast<u16>((static_cast<u16>(mask)<<8u)|0x02u));
+        u32 dst=p.addr;
+        u32 r=rows;
+        do {
+            u32 n=bytes;
+            while(n--!=0u)app60_vga_write(b,dst++,*dg(m,src++));
+            dst+=gap;
+        } while(--r!=0u);
+        mask=static_cast<u8>(mask<<1u);
+    }
+    app60_out16(b,0x03C4u,0xFF02u);
+}
+static_assert(0x2A1E5u-0x2A178u==109u);
+
+// 2A1E8..2A20B is the same low-32 multiply/shift helper already reconstructed
+// earlier in this file. Batch 60 makes these bytes instruction-accounted but
+// deliberately reuses that address-identical definition instead of duplicating it.
+static_assert(0x2A20Cu-0x2A1E8u==36u);
+
+// 2A20C transposes groups of four source bytes into four plane runs.  When
+// tag!=FFh the tag byte occupies the first byte of the selected image record.
+void function_2a20c(Machine& m,u32 record_index,u32 source_bytes,u32 src,u32 image,u32 tag) noexcept {
+    const u32 record_stride=load_le16(dg(m,image));
+    u32 dst=image+8u+app60_mul_lo(record_stride,record_index);
+    if(static_cast<u8>(tag)!=0xFFu)*dg(m,dst++)=static_cast<u8>(tag);
+    u32 groups=source_bytes>>2u;
+    const u32 plane_span=groups-1u;
+    do {
+        const u32 base=dst;
+        *dg(m,dst++)=*dg(m,src++); dst+=plane_span;
+        *dg(m,dst++)=*dg(m,src++); dst+=plane_span;
+        *dg(m,dst++)=*dg(m,src++); dst+=plane_span;
+        *dg(m,dst++)=*dg(m,src++); dst+=plane_span;
+        dst=base+1u;
+    } while(--groups!=0u);
+}
+static_assert(0x2A256u-0x2A20Cu==74u);
+
+// 2A258 performs two 16-bit-indexed in-place reversal passes.  BX/CX/DX are
+// intentionally modeled as 16-bit counters/offsets so their wrap is retained.
+void function_2a258(Machine& m,u32 record_index,u32 image) noexcept {
+    const u32 stride=load_le16(dg(m,image));
+    u32 src=image+8u+app60_mul_lo(stride,record_index);
+    const u16 rows=load_le16(dg(m,image+4u));
+    const u16 span=static_cast<u16>(static_cast<u16>(*dg(m,image+6u))<<1u);
+    if((*dg(m,image+7u)&0x80u)!=0u)++src;
+    const u16 product=static_cast<u16>(static_cast<u32>(rows)*static_cast<u32>(span));
+    const u32 start=src;
+
+    u16 bx=product;
+    const u16 original_product=bx;
+    bx=static_cast<u16>(static_cast<u16>(bx<<1u)+original_product);
+    bx=static_cast<u16>(bx+static_cast<u16>(span-1u));
+    u16 outer=rows;
+    do {
+        u32 dst=src+static_cast<u32>(bx);
+        u16 n=span;
+        do {
+            const u8 t=*dg(m,src); *dg(m,src)=*dg(m,dst); *dg(m,dst)=t;
+            --dst; ++src;
+        } while(--n!=0u);
+    } while(--outer!=0u);
+
+    src=start+static_cast<u32>(product);
+    bx=static_cast<u16>(product+static_cast<u16>(span-1u));
+    outer=rows;
+    do {
+        u32 dst=src+static_cast<u32>(bx);
+        u16 n=span;
+        do {
+            const u8 t=*dg(m,src); *dg(m,src)=*dg(m,dst); *dg(m,dst)=t;
+            --dst; ++src;
+        } while(--n!=0u);
+    } while(--outer!=0u);
+}
+static_assert(0x2A305u-0x2A258u==173u);
+
+// 2A308 swaps horizontal byte runs for four consecutive planes.  The outer
+// width/2 loop is a 32-bit DEC/JNE loop exactly as emitted.
+void function_2a308(Machine& m,u32 record_index,u32 image) noexcept {
+    const u32 stride=load_le16(dg(m,image));
+    u32 src=image+8u+app60_mul_lo(stride,record_index);
+    const u32 width=load_le16(dg(m,image+4u));
+    const u32 halfrow=static_cast<u32>(*dg(m,image+6u));
+    if((*dg(m,image+7u)&0x80u)!=0u)++src;
+    const u32 mirror=app60_mul_lo(width-1u,halfrow)<<1u;
+    const u32 run=halfrow<<1u;
+    for(u32 plane=0;plane<4u;++plane){
+        const u32 plane_start=src;
+        u32 columns=width>>1u;
+        u32 dst=src+mirror;
+        do {
+            u32 n=run;
+            do {
+                const u8 t=*dg(m,src); *dg(m,src)=*dg(m,dst); *dg(m,dst)=t;
+                ++src; ++dst;
+            } while(--n!=0u);
+            dst-=run; dst-=run;
+        } while(--columns!=0u);
+        src=plane_start+mirror+run;
+    }
+}
+static_assert(0x2A380u-0x2A308u==120u);
+
+enum class App60BlitKind:u8 { Direct, Subtract, Translate };
+static u8 app60_transform(Machine& m,App60BlitKind kind,u32 operand,u8 v) noexcept {
+    if(kind==App60BlitKind::Subtract)return static_cast<u8>(v-static_cast<u8>(operand));
+    if(kind==App60BlitKind::Translate)return *dg(m,operand+static_cast<u32>(v));
+    return v;
+}
+
+static void app60_blit(Machine& m,Application60Boundary& b,u32 record_index,u32 row,u32 x,u32 image,
+                       App60BlitKind kind,u32 operand) noexcept {
+    const App60Map p=app60_map(m,b,row,x); // encoded CALL 2AB38
+    u32 src=image+8u+app60_mul_lo(load_le16(dg(m,image)),record_index);
+    const u32 rows=load_le16(dg(m,image+4u));
+    const u32 units=static_cast<u32>(*dg(m,image+6u));
+    const u8 flags=*dg(m,image+7u);
+    u8 mask=static_cast<u8>(static_cast<u8>(0x11u)<<static_cast<u8>(p.plane));
+    u32 plane_dst=p.addr;
+
+    if((flags&0x80u)==0u){
+        const u32 full_row=units<<1u;
+        const u32 dst_gap=load_le32(dg(m,0xEFF9u))-full_row;
+        for(u32 plane=0;plane<4u;++plane){
+            app60_out16(b,0x03C4u,static_cast<u16>((static_cast<u16>(mask)<<8u)|0x02u));
+            u32 dst=plane_dst;
+            u32 r=rows;
+            do {
+                u32 n=full_row;
+                while(n--!=0u)app60_vga_write(b,dst++,app60_transform(m,kind,operand,*dg(m,src++)));
+                dst+=dst_gap;
+            } while(--r!=0u);
+            bool carry=false; mask=app60_rol8_1(mask,carry); if(carry)++plane_dst;
+        }
+        return;
+    }
+
+    // These transparent branches bypass the CLD present only on the opaque
+    // direct/table paths in the original.  The project Machine has no DF bit;
+    // byte order therefore follows the ordinary Watcom/C-runtime DF=0 contract.
+    const u8 transparent=*dg(m,src++);
+    const u32 full_row=units<<1u;
+    const u32 byte_count=static_cast<u8>(full_row); // BL-only count in binary
+    const u32 dst_gap=load_le32(dg(m,0xEFF9u))-full_row;
+    for(u32 plane=0;plane<4u;++plane){
+        app60_out16(b,0x03C4u,static_cast<u16>((static_cast<u16>(mask)<<8u)|0x02u));
+        u32 dst=plane_dst;
+        u32 r=rows;
+        do {
+            u32 n=byte_count;
+            do {
+                const u8 v=*dg(m,src++);
+                if(v!=transparent)app60_vga_write(b,dst,app60_transform(m,kind,operand,v));
+                ++dst;
+            } while(--n!=0u);
+            dst+=dst_gap;
+        } while(--r!=0u);
+        bool carry=false; mask=app60_rol8_1(mask,carry); if(carry)++plane_dst;
+    }
+}
+
+void function_2a380(Machine& m,Application60Boundary& b,u32 record_index,u32 row,u32 x,u32 image) noexcept {
+    app60_blit(m,b,record_index,row,x,image,App60BlitKind::Direct,0u);
+}
+static_assert(0x2A478u-0x2A380u==248u);
+
+void function_2a478(Machine& m,Application60Boundary& b,u32 record_index,u32 row,u32 x,u32 image,u32 delta) noexcept {
+    const u8 d=static_cast<u8>(delta);
+    // Encoded stores patch the immediate bytes of SUB AL,imm8 at 2A4F5/2A54E.
+    *dg(m,0x2A4F6u)=d;
+    *dg(m,0x2A54Fu)=d;
+    app60_blit(m,b,record_index,row,x,image,App60BlitKind::Subtract,d);
+}
+static_assert(0x2A584u-0x2A478u==268u);
+
+void function_2a584(Machine& m,Application60Boundary& b,u32 record_index,u32 row,u32 x,u32 image,u32 table) noexcept {
+    // Encoded stores patch both absolute displacements used by the XLAT-like
+    // table loads, so retain the writable-code side effect as well as meaning.
+    store_le32(dg(m,0x2A60Bu),table);
+    store_le32(dg(m,0x2A672u),table);
+    app60_blit(m,b,record_index,row,x,image,App60BlitKind::Translate,table);
+}
+static_assert(0x2A6B0u-0x2A584u==300u);
+
+static_assert((0x2A177u-0x2A114u)+(0x2A1E5u-0x2A178u)+(0x2A20Cu-0x2A1E8u)+
+              (0x2A256u-0x2A20Cu)+(0x2A305u-0x2A258u)+(0x2A380u-0x2A308u)+
+              (0x2A478u-0x2A380u)+(0x2A584u-0x2A478u)+(0x2A6B0u-0x2A584u)==1427u);
 
 } // namespace code2

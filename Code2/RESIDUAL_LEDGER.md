@@ -430,6 +430,10 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 2A01D..2A01F | alignment | 3
 2A075..2A077 | alignment | 3
 2A103..2A103 | alignment | 1
+2A177..2A177 | alignment | 1
+2A1E5..2A1E7 | alignment | 3
+2A256..2A257 | alignment | 2
+2A305..2A307 | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
 **Total proven non-code/data:** **3,651 bytes**.
@@ -585,3 +589,6 @@ Batch 58 evidence: Batch-57 overlap at `298D0..299B0` was regenerated from immut
 
 
 Batch 59 evidence: the Batch-58 overlap `29C80..29D60` and narrow window `29CC0..29D20` were regenerated from immutable CODE.2 and matched the committed checkpoint hashes before forward accounting. Instruction-owned units cover `29CEC..2A113`. The seven listed gaps are exact Watcom XCHG/NOP separators; a full-object direct branch/call-target scan found no incoming target into them, and the apparent dword match for `29FE9` is only the displacement bytes of the unrelated near jump at `17EED`, not an absolute reference. Preserve `29CEC`'s partial-register plane-mask rotation and signed error path, the low-16 sign tests in `29EAC/29F40`, the CX-only shift in `2A020`, and `2A078`'s save/select/restore page sequence before planar mode-1 copying.
+
+
+Batch 60 evidence: the mandatory Batch-59 overlap `2A0B0..2A190` and its narrow window were regenerated from immutable CODE.2 and matched the checkpoint hashes before forward accounting. Instruction ownership covers nine complete routines at `2A114..2A6AF`; the four listed separator ranges are Watcom NOP/XCHG alignment with no incoming branch/call target. Preserve the plane-major read/write asymmetry in `2A114/2A178`, 16-bit swap-counter wrap in `2A258`, self-modifying immediate bytes `2A4F6/2A54F` in `2A478`, self-modifying table displacements `2A60B/2A672` in `2A584`, and BL-only transparent row-byte counts in the blitter family.
