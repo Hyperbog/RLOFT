@@ -418,3 +418,7 @@ Batch 61 adds **1,453 translated bytes** and **35 proven alignment/padding/table
 ## Batch 62 checkpoint
 
 Batch 62 adds **1,022 translated bytes** and **10 proven non-code/alignment bytes**, bringing cumulative accounting to **179,439 translated + 3,765 non-code = 183,204 / 239,698 = 76.4312% (76.43%)**. The sequential frontier is now `2B088`. Preserve the signed DWORD comparisons in `2ACDC`/`2AD18`/`2ADE0`, the two real resource-state calls from `2AD18`, the `C050` low-bit page toggle, the entry-stable record base but per-iteration count reload in `2AE30`, the second load of record word `+8` after rectangle acceptance, and the address-distinct inline predicate copies at `2AEBD` and `2B01D`.
+
+## Batch 63 checkpoint
+
+Batch 63 adds **1,600 translated bytes** and **8 proven alignment bytes**, bringing cumulative accounting to **181,039 translated + 3,773 non-code = 184,812 / 239,698 = 77.1020% (77.10%)**. The sequential frontier is now `2B6D0`. Preserve `2B088`'s cross-entry carried value and signed neighborhood tables, `2B1BC`'s signed comparison after the runtime-style absolute value and `+8000h` rounding, and `2B2F4`'s mutable `2B608` cache, signed `IDIV` quotient/remainders, heading normalization loops, low-word additions, and final `27100 + mode*2` word adjustment.

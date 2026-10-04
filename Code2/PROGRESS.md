@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-76.43%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-77.10%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **179,439**
-**Proven non-code/data bytes:** **3,765**
-**Reconciled object bytes:** **183,204 / 239,698 = 76.4312% (76.43%)**
-**Unresolved object bytes:** **56,494**
+**Verified translated instruction bytes:** **181,039**
+**Proven non-code/data bytes:** **3,773**
+**Reconciled object bytes:** **184,812 / 239,698 = 77.1020% (77.10%)**
+**Unresolved object bytes:** **54,886**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -706,3 +706,9 @@ The sequential frontier is now `2AC80`, the next independent application predica
 Batch 62 added **1,022 translated instruction bytes** plus **10 directly proven alignment bytes**, reconciling through `2B087`. Cumulative accounting is **179,439 translated + 3,765 non-code = 183,204 / 239,698 = 76.4312% (76.43%)**; unresolved is **56,494 bytes**.
 
 Instruction ownership spans `2AC80..2ACD9`, `2ACDC..2AD14`, `2AD18..2ADDC`, `2ADE0..2AE2F`, and `2AE30..2B085`. The four compiler separators total ten bytes and have no direct incoming control-flow target. `2AE30` retains the entry-time opposite-page record base but reloads the `C050`-selected 16-bit count on every loop test, including after the opaque `1C1DC` probes reached through `2AD18`. The next independent routine begins at `2B088`.
+
+## CODE.2 Batch 63 checkpoint
+
+Batch 63 added **1,600 translated instruction bytes** plus **8 directly proven alignment bytes**, reconciling through `2B6CF`. Cumulative accounting is **181,039 translated + 3,773 non-code = 184,812 / 239,698 = 77.1020% (77.10%)**; unresolved is **54,886 bytes**.
+
+The fold owns `2B088..2B185`, `2B188..2B1B9`, `2B1BC..2B2F2`, and `2B2F4..2B6CC`. Preserve grouped-key value propagation in `2B088`, signed range tests in `2B188`, the signed max-distance rounding in `2B1BC`, and `2B2F4`'s signed IDIV quotient/remainder behavior, mutable `2B608` word cache, partial-register heading extraction, and mode-indexed `27100` tail addition. The next independent routine begins at `2B6D0`.

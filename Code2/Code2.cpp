@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 179439u;
-constexpr u32 kVerifiedNonCodeBytes = 3765u;
+constexpr u32 kVerifiedTranslatedBytes = 181039u;
+constexpr u32 kVerifiedNonCodeBytes = 3773u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -20953,5 +20953,171 @@ static_assert(0x2B086u-0x2AE30u==598u);
 
 static_assert((0x2ACDAu-0x2AC80u)+(0x2AD15u-0x2ACDCu)+(0x2ADDDu-0x2AD18u)+
               (0x2AE30u-0x2ADE0u)+(0x2B086u-0x2AE30u)==1022u);
+
+// -----------------------------------------------------------------------------
+// Batch 63: 2B088..2B6CC grouped-value propagation, range predicate,
+// proximity scan, and heading/phase adjustment. Addresses are object-relative.
+// -----------------------------------------------------------------------------
+
+// 2B088 propagates one accumulated value across contiguous 1Ch-byte entries
+// sharing the same key. The two signed-word neighborhoods add extra increments
+// for step sizes 2/3 exactly as encoded.
+[[nodiscard]] u32 function_2b088(Machine& m,u32 raw_step,u32 base_key) noexcept {
+    s32 previous=-1;
+    u32 value=0u; // binary stack slot is first defined on the first key change; table invariant supplies one.
+    for(s32 i=0;i<0x100;++i) {
+        const u32 entry=0x15A2Cu+static_cast<u32>(i)*0x1Cu;
+        const s32 key=static_cast<s32>(load_le32(dg(m,entry)));
+        if(key!=previous) {
+            previous=key;
+            value=load_le32(dg(m,entry+4u));
+            if(static_cast<u32>(key)==base_key) {
+                value+=raw_step;
+            } else {
+                if(static_cast<s32>(raw_step)>1) {
+                    for(s32 j=0;j<8;++j) {
+                        const s32 delta=static_cast<s16>(load_le16(dg(m,0x27108u+static_cast<u32>(j)*2u)));
+                        if(base_key+static_cast<u32>(delta)==static_cast<u32>(key)) {
+                            value+=raw_step-1u;
+                            break;
+                        }
+                    }
+                }
+                if(raw_step==3u) {
+                    for(s32 j=0;j<16;++j) {
+                        const s32 delta=static_cast<s16>(load_le16(dg(m,0x27128u+static_cast<u32>(j)*2u)));
+                        if(base_key+static_cast<u32>(delta)==static_cast<u32>(key)) {
+                            ++value;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        store_le32(dg(m,entry+4u),value);
+    }
+    return 0xFFu; // final MOV EAX,index occurs before the terminating increment.
+}
+static_assert(0x2B186u-0x2B088u==254u);
+
+[[nodiscard]] u32 function_2b188(u32 raw_code) noexcept {
+    const s32 code=static_cast<s32>(raw_code);
+    return (code>=0x3C && code<=0x43)?1u:0u;
+}
+static_assert(0x2B1BAu-0x2B188u==50u);
+
+static u32 app63_abs32(u32 raw) noexcept {
+    return static_cast<s32>(raw)<0 ? 0u-raw : raw;
+}
+
+// Return the nearest eligible primary record in rounded 16.16 tile units,
+// capped at the encoded initial value 15. The source count is reloaded on each
+// loop test and the inline low/50h predicate remains duplicated.
+[[nodiscard]] u32 function_2b1bc(Machine& m) noexcept {
+    s32 best=0x0F;
+    s32 index=0;
+    for(;;++index) {
+        const s32 count=static_cast<s16>(load_le16(dg(m,0x258A2u)));
+        if(index>=count)break;
+        const u32 rec=static_cast<u32>(index)*0x16u;
+        if((*dg(m,0x14D8Bu+rec)&0x02u)!=0u)continue;
+        const u32 type=load_le16(dg(m,0x14D8Eu+rec));
+        if(type==8u)continue;
+        if(!(static_cast<s32>(type)<0x22 || type==0x50u))continue;
+
+        const u32 dx=app63_abs32(load_le32(dg(m,0x14D84u+rec))-load_le32(dg(m,0x255D0u)));
+        const u32 dy=app63_abs32(load_le32(dg(m,0x14D80u+rec))-load_le32(dg(m,0x255D4u)));
+        const u32 chosen=static_cast<s32>(dx)<=static_cast<s32>(dy)?dy:dx;
+        const s32 rounded=static_cast<s32>(chosen+0x8000u)>>16;
+        if(rounded<best)best=rounded;
+    }
+    return static_cast<u32>(best);
+}
+static_assert(0x2B2F3u-0x2B1BCu==311u);
+
+static s32 app63_normalize_heading(s32 v) noexcept {
+    while(v>=0x168)v-=0x168;
+    while(v<0)v+=0x168;
+    return v;
+}
+static u16 app63_heading_bits(u16 flags) noexcept {
+    return static_cast<u16>((flags>>3u)&7u);
+}
+static void app63_add_word(Machine& m,u32 addr,s32 delta) noexcept {
+    store_le16(dg(m,addr),static_cast<u16>(load_le16(dg(m,addr))+static_cast<u16>(delta)));
+}
+
+// 2B2F4 adjusts target word +4 from world heading, source flags, mode, and a
+// caller-supplied divisor. Signed IDIV quotient/remainder behavior and the
+// mutable 2B608 signed-word cache are preserved.
+[[nodiscard]] u32 function_2b2f4(Machine& m,u32 source,u32 target,u32 raw_mode,u32 raw_code,u32 raw_divisor) noexcept {
+    const s32 code_minus2=static_cast<s32>(raw_code-2u);
+    const s32 q=code_minus2/3;
+    const s32 r=code_minus2%3;
+    const bool q_valid=(q>=0 && q<10);
+
+    s32 heading=0;
+    if(raw_mode==1u && q_valid && r>0) {
+        const s32 cached=static_cast<s16>(load_le16(dg(m,0x2B608u+static_cast<u32>(q)*2u)));
+        heading=static_cast<s32>(load_le32(dg(m,0xC6D0u))-static_cast<u32>(cached));
+        heading/=8;
+        heading=static_cast<s32>(static_cast<u32>(heading)+load_le32(dg(m,0xC658u)));
+        const s32 type_index=static_cast<s16>(load_le16(dg(m,0x2B61Cu+static_cast<u32>(q)*2u)));
+        const u16 flags=load_le16(dg(m,0x2224Cu+static_cast<u32>(type_index*0x16)));
+        heading=static_cast<s32>(static_cast<u32>(heading)-0xB4u+static_cast<u32>(app63_heading_bits(flags))*0x2Du);
+    } else {
+        heading=static_cast<s32>(load_le32(dg(m,0xC6D0u))-static_cast<u32>(load_le16(dg(m,target))));
+        heading/=8;
+        heading=static_cast<s32>(static_cast<u32>(heading)+load_le32(dg(m,0xC658u)));
+        const u16 flags=load_le16(dg(m,source+0x14u));
+        heading=static_cast<s32>(static_cast<u32>(heading)-0xB4u+static_cast<u32>(app63_heading_bits(flags))*0x2Du);
+    }
+
+    if(raw_mode==1u && q_valid && r==0)
+        store_le16(dg(m,0x2B608u+static_cast<u32>(q)*2u),load_le16(dg(m,target)));
+
+    const s32 divisor=static_cast<s32>(raw_divisor);
+    if(raw_divisor==0x10u) {
+        heading=static_cast<s32>(static_cast<u32>(heading)+0x16u);
+        heading-= (0x10/divisor)*0x0B;
+        heading=app63_normalize_heading(heading);
+        const s32 bucket=((heading*10)/0xE1)%0x10;
+        if(raw_mode==1u && function_2b188(raw_code)!=0u) {
+            const s32 rem=bucket%8;
+            app63_add_word(m,target+4u,bucket<8?rem:7-rem);
+        } else {
+            app63_add_word(m,target+4u,bucket%8);
+        }
+    } else if(raw_divisor==2u) {
+        heading=app63_normalize_heading(static_cast<s32>(static_cast<u32>(heading)+0x16u));
+        const s32 phase=(heading/0x2D)%8;
+        app63_add_word(m,target+4u,phase%2);
+    } else {
+        heading=static_cast<s32>(static_cast<u32>(heading)+0x2Cu);
+        heading-= (8/divisor)*0x16;
+        heading=app63_normalize_heading(heading);
+        const s32 phase=(heading/0x2D)%8;
+        const u16 flags=load_le16(dg(m,source+0x14u));
+        const u16 cls=static_cast<u16>(flags&0x0006u);
+        if(cls==2u || cls==4u) {
+            if(!(raw_mode==0u && load_le16(dg(m,source+0x0Eu))==0x21u)) {
+                const s32 scaled=phase/(8/divisor);
+                const s32 rem5=scaled%5;
+                app63_add_word(m,target+4u,rem5%3);
+            }
+        } else if((static_cast<u8>(flags)&0x06u)==0u) {
+            const s32 scaled=phase/(8/divisor);
+            app63_add_word(m,target+4u,scaled);
+        }
+    }
+
+    const u16 mode_delta=load_le16(dg(m,0x27100u+raw_mode*2u));
+    store_le16(dg(m,target+4u),static_cast<u16>(load_le16(dg(m,target+4u))+mode_delta));
+    return target;
+}
+static_assert(0x2B6CDu-0x2B2F4u==985u);
+
+static_assert((0x2B186u-0x2B088u)+(0x2B1BAu-0x2B188u)+(0x2B2F3u-0x2B1BCu)+
+              (0x2B6CDu-0x2B2F4u)==1600u);
 
 } // namespace code2
