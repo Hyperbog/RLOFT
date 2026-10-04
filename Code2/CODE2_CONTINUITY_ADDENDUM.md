@@ -426,3 +426,7 @@ Batch 63 adds **1,600 translated bytes** and **8 proven alignment bytes**, bring
 ## CODE.2 Batch 64 checkpoint
 
 Batch 64 adds **3,005 translated bytes** and **7 proven alignment bytes**, bringing cumulative accounting to **184,044 translated + 3,780 non-code = 187,824 / 239,698 = 78.3586% (78.36%)**; unresolved is **51,874 bytes**. The sequential frontier is now `2C294`. Preserve per-loop signed count reloads in the four record-population passes, the exact descriptor families (`22230`, `255DC`, `255D8`, `22234`), callback-sensitive metadata reloads, `2B2F4` mode ownership, the `7D00h`/`20h` temporary rectangle transformation, and the encoded signed-division sequence in `2C230`.
+
+## CODE.2 Batch 65 checkpoint
+
+Batch 65 adds **3,418 translated bytes** and **22 proven alignment bytes**, bringing cumulative accounting to **187,462 translated + 3,802 non-code = 191,264 / 239,698 = 79.7937% (79.79%)**; unresolved is **48,434 bytes**. The sequential frontier is now `2D004`. Preserve `2C294`'s non-linear saved-rectangle restore order, its dynamically re-read clip globals and render-kind fields, the callback-sensitive metadata/source reloads in `2C8E4`, independent transition branches in `2CAD4`, and `2CEB8`'s word-only transition writes and explicit `258EC` reload after `2E510`.
