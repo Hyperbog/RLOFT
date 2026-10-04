@@ -422,3 +422,7 @@ Batch 62 adds **1,022 translated bytes** and **10 proven non-code/alignment byte
 ## Batch 63 checkpoint
 
 Batch 63 adds **1,600 translated bytes** and **8 proven alignment bytes**, bringing cumulative accounting to **181,039 translated + 3,773 non-code = 184,812 / 239,698 = 77.1020% (77.10%)**. The sequential frontier is now `2B6D0`. Preserve `2B088`'s cross-entry carried value and signed neighborhood tables, `2B1BC`'s signed comparison after the runtime-style absolute value and `+8000h` rounding, and `2B2F4`'s mutable `2B608` cache, signed `IDIV` quotient/remainders, heading normalization loops, low-word additions, and final `27100 + mode*2` word adjustment.
+
+## CODE.2 Batch 64 checkpoint
+
+Batch 64 adds **3,005 translated bytes** and **7 proven alignment bytes**, bringing cumulative accounting to **184,044 translated + 3,780 non-code = 187,824 / 239,698 = 78.3586% (78.36%)**; unresolved is **51,874 bytes**. The sequential frontier is now `2C294`. Preserve per-loop signed count reloads in the four record-population passes, the exact descriptor families (`22230`, `255DC`, `255D8`, `22234`), callback-sensitive metadata reloads, `2B2F4` mode ownership, the `7D00h`/`20h` temporary rectangle transformation, and the encoded signed-division sequence in `2C230`.

@@ -451,9 +451,13 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 2B1BA..2B1BB | alignment | 2
 2B2F3..2B2F3 | alignment | 1
 2B6CD..2B6CF | alignment | 3
+2BB9F..2BB9F | alignment | 1
+2BDF1..2BDF3 | alignment | 3
+2BFEA..2BFEB | alignment | 2
+2C22F..2C22F | alignment | 1
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **3,773 bytes**.
+**Total proven non-code/data:** **3,780 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -616,3 +620,5 @@ Batch 61 evidence: the mandatory Batch-60 overlap `2A650..2A730` and narrow wind
 Batch 62 evidence: `2ACDA..2ACDB` and `2B086..2B087` decode as `MOV EAX,EAX`; `2AD15..2AD17` and `2ADDD..2ADDF` decode as `LEA EAX,[EAX+0]`. Each lies between directly reconstructed routine boundaries. A fresh full-object direct relative `CALL`/`JMP`/conditional-branch target scan found no incoming target to any of these ten bytes. Instruction ownership is `2AC80..2ACD9`, `2ACDC..2AD14`, `2AD18..2ADDC`, `2ADE0..2AE2F`, and `2AE30..2B085`; the next independent routine begins at `2B088`.
 
 Batch 63 evidence: `2B186..2B187` and `2B1BA..2B1BB` decode as `MOV EAX,EAX`; `2B2F3` is `NOP`; `2B6CD..2B6CF` is `LEA EAX,[EAX+0]`. Each lies between directly reconstructed routine boundaries. Fresh full-object scans found no direct relative `CALL`/`JMP`/conditional-branch target and no raw absolute dword reference to any of these eight separator bytes. Instruction ownership is `2B088..2B185`, `2B188..2B1B9`, `2B1BC..2B2F2`, and `2B2F4..2B6CC`; the next independent routine begins at `2B6D0`.
+
+Batch 64 evidence: the mandatory Batch-63 overlap `2B650..2B72F` and narrow window were regenerated from immutable CODE.2 and matched the checkpoint hashes before forward accounting. `2BB9F` and `2C22F` decode as one-byte NOP separators, `2BDF1..2BDF3` as `LEA EAX,[EAX+0]`, and `2BFEA..2BFEB` as `MOV EAX,EAX`. Each lies between directly reconstructed routine boundaries. A full object-1 direct relative branch/call target scan found no incoming target to any of these seven bytes, and an exact 32-bit absolute-address scan of object 1 found no reference to any of them.

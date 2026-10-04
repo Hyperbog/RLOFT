@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-77.10%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-78.36%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **181,039**
-**Proven non-code/data bytes:** **3,773**
-**Reconciled object bytes:** **184,812 / 239,698 = 77.1020% (77.10%)**
-**Unresolved object bytes:** **54,886**
+**Verified translated instruction bytes:** **184,044**
+**Proven non-code/data bytes:** **3,780**
+**Reconciled object bytes:** **187,824 / 239,698 = 78.3586% (78.36%)**
+**Unresolved object bytes:** **51,874**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -712,3 +712,9 @@ Instruction ownership spans `2AC80..2ACD9`, `2ACDC..2AD14`, `2AD18..2ADDC`, `2AD
 Batch 63 added **1,600 translated instruction bytes** plus **8 directly proven alignment bytes**, reconciling through `2B6CF`. Cumulative accounting is **181,039 translated + 3,773 non-code = 184,812 / 239,698 = 77.1020% (77.10%)**; unresolved is **54,886 bytes**.
 
 The fold owns `2B088..2B185`, `2B188..2B1B9`, `2B1BC..2B2F2`, and `2B2F4..2B6CC`. Preserve grouped-key value propagation in `2B088`, signed range tests in `2B188`, the signed max-distance rounding in `2B1BC`, and `2B2F4`'s signed IDIV quotient/remainder behavior, mutable `2B608` word cache, partial-register heading extraction, and mode-indexed `27100` tail addition. The next independent routine begins at `2B6D0`.
+
+## CODE.2 Batch 64 checkpoint
+
+Batch 64 added **3,005 translated instruction bytes** plus **7 directly proven alignment bytes**, reconciling through `2C293`. Cumulative accounting is **184,044 translated + 3,780 non-code = 187,824 / 239,698 = 78.3586% (78.36%)**; unresolved is **51,874 bytes**.
+
+Instruction ownership spans `2B6D0..2BB9E`, `2BBA0..2BDF0`, `2BDF4..2BFE9`, `2BFEC..2C22E`, and `2C230..2C293`. Preserve the per-iteration signed record-count reloads, the `190h` target-cursor cap, descriptor/metadata reloads after the encoded opaque/random calls, the temporary `7D00h` screen-space shifts around `21BF0`, and the compiler's signed truncation-toward-zero division sequence in `2C230`. The next independent routine begins at `2C294`.

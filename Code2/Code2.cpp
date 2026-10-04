@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 181039u;
-constexpr u32 kVerifiedNonCodeBytes = 3773u;
+constexpr u32 kVerifiedTranslatedBytes = 184044u;
+constexpr u32 kVerifiedNonCodeBytes = 3780u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -21119,5 +21119,280 @@ static_assert(0x2B6CDu-0x2B2F4u==985u);
 
 static_assert((0x2B186u-0x2B088u)+(0x2B1BAu-0x2B188u)+(0x2B2F3u-0x2B1BCu)+
               (0x2B6CDu-0x2B2F4u)==1600u);
+
+// -----------------------------------------------------------------------------
+// Batch 64: 2B6D0..2C293 four record-population passes plus the signed layout
+// scalar helper. All addresses are CODE.2 object-relative.
+// -----------------------------------------------------------------------------
+
+struct Application64Boundary {
+    u32 (*call_30ca2)()=nullptr;
+    void (*call_30cc4)(u32)=nullptr;
+    u32 (*call_30700)()=nullptr;
+    void (*call_35798)(u32,u32,u32,u32)=nullptr;
+    void (*call_21bf0)(u32,u32)=nullptr;
+};
+
+static u32 app64_bits6_8(u16 flags) noexcept { return (static_cast<u32>(flags)>>6u)&7u; }
+static u32 app64_state1_2(u16 flags) noexcept { return (static_cast<u32>(flags)>>1u)&3u; }
+static u32 app64_rand2(u32 raw) noexcept { return static_cast<u32>(raw*2u)>>15u; }
+static void app64_add_word(Machine& m,u32 addr,u32 delta) noexcept {
+    store_le16(dg(m,addr),static_cast<u16>(load_le16(dg(m,addr))+static_cast<u16>(delta)));
+}
+static void app64_zero_rect(Machine& m,u32 target) noexcept {
+    store_le16(dg(m,target+0x0Eu),0u);
+    store_le16(dg(m,target+0x10u),0u);
+    store_le16(dg(m,target+0x12u),0u);
+    store_le16(dg(m,target+0x14u),0u);
+}
+static void app64_shift_rect(Machine& m,Application64Boundary& b,u32 target) noexcept {
+    *dg(m,target+3u)=static_cast<u8>(*dg(m,target+3u)+0x7Du);
+    if(b.call_21bf0)b.call_21bf0(target,0x28u);
+    app64_add_word(m,target+0x12u,0x20u);
+    app64_add_word(m,target+0x14u,0x20u);
+    store_le16(dg(m,target+2u),static_cast<u16>(load_le16(dg(m,target+2u))-0x7D00u));
+}
+static u32 app64_target(Machine& m,u32 cursor) noexcept {
+    return 0x27148u+load_le32(dg(m,0xC050u))*0x2260u+cursor*0x16u;
+}
+static bool app64_visible_tile(Machine& m,u32 source) noexcept {
+    return (*dg(m,0x198E0u+static_cast<u32>(load_le16(dg(m,source+0x0Cu)))*2u)&0x40u)!=0u;
+}
+static bool app64_above_horizon(Machine& m,u32 target) noexcept {
+    const u32 y=load_le16(dg(m,target+2u));
+    const u32 horizon=*dg(m,0xC02Du);
+    return static_cast<s32>(y)>static_cast<s32>(horizon);
+}
+
+// Primary 14D80 records use the 45h-byte descriptor family at 22230. The
+// target cursor advances only after 35798 produces a nonzero point below the
+// C02D horizon. Descriptor/source fields are deliberately reloaded after
+// opaque callbacks wherever the binary reloads them.
+[[nodiscard]] u32 function_2b6d0(Machine& m,Application64Boundary& b,u32 cursor) noexcept {
+    for(s32 index=0;;++index) {
+        const s32 count=static_cast<s16>(load_le16(dg(m,0x258A2u)));
+        if(index>=count)return cursor;
+        const u32 source=0x14D80u+static_cast<u32>(index)*0x16u;
+        if((*dg(m,source+0x0Bu)&0x02u)!=0u)continue;
+
+        const u32 target=app64_target(m,cursor);
+        const u32 type0=load_le16(dg(m,source+0x0Eu));
+        const u32 desc=load_le32(dg(m,0x22230u))+type0*0x45u;
+        if(!app64_visible_tile(m,source))continue;
+
+        store_le16(dg(m,target+4u),load_le16(dg(m,desc+0x14u)));
+        u16 flags=load_le16(dg(m,source+0x14u));
+        if(type0==8u) {
+            if((flags&0xC000u)==0xC000u) {
+                app64_add_word(m,target+4u,0x0Cu+app64_bits6_8(flags));
+            } else {
+                const u32 state=app64_state1_2(flags);
+                if(state==3u) {
+                    const u32 r=b.call_30ca2?b.call_30ca2():0u;
+                    app64_add_word(m,target+4u,0x0Au+app64_rand2(r));
+                } else if(state==1u || state==2u) {
+                    app64_add_word(m,target+4u,((static_cast<u32>(flags)>>14u)&3u)*2u+4u+(state-1u));
+                } else if(state==0u) {
+                    app64_add_word(m,target+4u,app64_bits6_8(flags));
+                }
+            }
+        } else if((flags&0x0006u)==0x0006u) {
+            const u16 base=static_cast<u16>(static_cast<u16>(*dg(m,desc+0x19u))*static_cast<u16>(*dg(m,desc+0x18u)));
+            app64_add_word(m,target+4u,base);
+            if(b.call_30cc4)b.call_30cc4(static_cast<u32>(index));
+            const u32 r=b.call_30ca2?b.call_30ca2():0u;
+            const u32 random_step=app64_rand2(r);
+            app64_add_word(m,target+4u,random_step*(static_cast<u32>(*dg(m,desc+0x1Au))+1u));
+            app64_add_word(m,target+4u,*dg(m,desc+0x1Au));
+            app64_add_word(m,target+4u,load_le16(dg(m,0x27100u)));
+            const u32 stamp=b.call_30700?b.call_30700():0u;
+            if(b.call_30cc4)b.call_30cc4(stamp);
+        } else if((flags&0x0006u)!=0u) {
+            const u16 base=static_cast<u16>(static_cast<u16>(*dg(m,desc+0x19u))*static_cast<u16>(*dg(m,desc+0x18u)));
+            app64_add_word(m,target+4u,base);
+            const u32 span=static_cast<u32>(*dg(m,desc+0x1Au))+static_cast<u32>(*dg(m,desc+0x1Cu));
+            app64_add_word(m,target+4u,span*(app64_state1_2(flags)-1u));
+        } else if((*dg(m,source+0x0Bu)&0x08u)!=0u) {
+            const u32 amount=*dg(m,desc+0x29u+app64_bits6_8(flags));
+            app64_add_word(m,target+4u,amount*static_cast<u32>(*dg(m,desc+0x18u)));
+        } else if((*dg(m,source+0x0Bu)&0x04u)!=0u) {
+            if(type0==0x51u) {
+                const u32 amount=static_cast<u32>(*dg(m,desc+0x19u))*((static_cast<u32>(flags)>>14u)&3u)+app64_bits6_8(flags);
+                app64_add_word(m,target+4u,amount);
+            } else {
+                app64_add_word(m,target+4u,static_cast<u32>(*dg(m,desc+0x18u))*app64_bits6_8(flags));
+            }
+        } else {
+            app64_add_word(m,target+4u,static_cast<u32>(*dg(m,desc+0x18u))*app64_bits6_8(flags));
+        }
+
+        if(b.call_35798)b.call_35798(load_le32(dg(m,source)),load_le32(dg(m,source+4u)),target,target+2u);
+        app64_zero_rect(m,target);
+        if(!app64_above_horizon(m,target))continue;
+
+        // The second clear is encoded after the horizon test even though the
+        // same four words were just cleared before it.
+        app64_zero_rect(m,target);
+        store_le16(dg(m,target+0x0Cu),load_le16(dg(m,desc+0x27u)));
+        if(load_le16(dg(m,target+2u))==0u)continue;
+        if(cursor!=0x190u)++cursor;
+
+        flags=load_le16(dg(m,source+0x14u));
+        if((flags&0x0006u)!=0x0006u) {
+            const u32 type=load_le16(dg(m,source+0x0Eu));
+            (void)function_2b2f4(m,source,target,0u,type,*dg(m,desc+0x18u));
+        }
+        if(*dg(m,desc+0x1Bu)!=0u)
+            (void)function_2b088(m,*dg(m,desc+0x1Bu),load_le16(dg(m,source+0x0Cu)));
+        store_le16(dg(m,target+8u),0u);
+        store_le16(dg(m,target+6u),static_cast<u16>(index));
+        app64_shift_rect(m,b,target);
+    }
+}
+static_assert(0x2BB9Fu-0x2B6D0u==1231u);
+
+// Secondary 22238 records use seven-byte metadata at 255DC. Four exact type
+// codes receive the temporary 7D00h screen-space shift before mode-1 heading
+// adjustment; the predicate remains inline as in the binary.
+[[nodiscard]] u32 function_2bba0(Machine& m,Application64Boundary& b,u32 cursor) noexcept {
+    for(s32 index=0;;++index) {
+        const s32 count=static_cast<s16>(load_le16(dg(m,0x258A6u)));
+        if(index>=count)return cursor;
+        const u32 source=0x22238u+static_cast<u32>(index)*0x16u;
+        const u32 target=app64_target(m,cursor);
+        if(!app64_visible_tile(m,source))continue;
+
+        const u32 type0=load_le16(dg(m,source+0x0Eu));
+        const u32 meta0=load_le32(dg(m,0x255DCu))+type0*7u;
+        const u16 flags0=load_le16(dg(m,source+0x14u));
+        store_le16(dg(m,target+4u),static_cast<u16>(static_cast<u32>(*dg(m,meta0+4u))*app64_bits6_8(flags0)));
+        app64_add_word(m,target+4u,load_le16(dg(m,meta0)));
+        store_le16(dg(m,target+0x0Cu),0u);
+        if(b.call_35798)b.call_35798(load_le32(dg(m,source)),load_le32(dg(m,source+4u)),target,target+2u);
+        app64_zero_rect(m,target);
+        if(load_le16(dg(m,target+2u))==0u || !app64_above_horizon(m,target))continue;
+
+        const u32 special_type=load_le16(dg(m,source+0x0Eu));
+        if(special_type==0x52u || special_type==0x71u || special_type==0x6Eu || special_type==0x91u)
+            app64_shift_rect(m,b,target);
+        if(cursor!=0x190u)++cursor;
+
+        const u32 type=load_le16(dg(m,source+0x0Eu));
+        const u32 meta=load_le32(dg(m,0x255DCu))+type*7u;
+        (void)function_2b2f4(m,source,target,1u,type,*dg(m,meta+4u));
+        const u32 type_after=load_le16(dg(m,source+0x0Eu));
+        const u32 meta_after=load_le32(dg(m,0x255DCu))+type_after*7u;
+        if(*dg(m,meta_after+6u)!=0u)
+            (void)function_2b088(m,*dg(m,meta_after+6u),load_le16(dg(m,source+0x0Cu)));
+        store_le16(dg(m,target+8u),1u);
+        store_le16(dg(m,target+6u),static_cast<u16>(index));
+    }
+}
+static_assert(0x2BDF1u-0x2BBA0u==593u);
+
+// 17618 records use 41h-byte item metadata at the pointer in 255D8. Accepted
+// entries are always shifted through 21BF0 after mode-2 heading adjustment.
+[[nodiscard]] u32 function_2bdf4(Machine& m,Application64Boundary& b,u32 cursor) noexcept {
+    for(s32 index=0;;++index) {
+        const s32 count=static_cast<s16>(load_le16(dg(m,0x258A4u)));
+        if(index>=count)return cursor;
+        const u32 source=0x17618u+static_cast<u32>(index)*0x16u;
+        const u32 target=app64_target(m,cursor);
+        if(!app64_visible_tile(m,source))continue;
+
+        const u32 type0=load_le16(dg(m,source+0x0Eu));
+        const u32 meta0=load_le32(dg(m,0x255D8u))+type0*0x41u;
+        const u16 flags0=load_le16(dg(m,source+0x14u));
+        store_le16(dg(m,target+4u),static_cast<u16>(static_cast<u32>(*dg(m,meta0+0x2Au))*app64_bits6_8(flags0)));
+        app64_add_word(m,target+4u,load_le16(dg(m,meta0+0x28u)));
+        store_le16(dg(m,target+0x0Cu),0u);
+        if(b.call_35798)b.call_35798(load_le32(dg(m,source)),load_le32(dg(m,source+4u)),target,target+2u);
+        app64_zero_rect(m,target);
+        if(load_le16(dg(m,target+2u))==0u || !app64_above_horizon(m,target))continue;
+        if(cursor!=0x190u)++cursor;
+
+        const u32 type=load_le16(dg(m,source+0x0Eu));
+        const u32 meta=load_le32(dg(m,0x255D8u))+type*0x41u;
+        (void)function_2b2f4(m,source,target,2u,type,*dg(m,meta+0x2Au));
+        const u32 type_after=load_le16(dg(m,source+0x0Eu));
+        const u32 meta_after=load_le32(dg(m,0x255D8u))+type_after*0x41u;
+        if(*dg(m,meta_after+0x2Bu)!=0u)
+            (void)function_2b088(m,*dg(m,meta_after+0x2Bu),load_le16(dg(m,source+0x0Cu)));
+        store_le16(dg(m,target+8u),2u);
+        store_le16(dg(m,target+6u),static_cast<u16>(index));
+        app64_shift_rect(m,b,target);
+    }
+}
+static_assert(0x2BFEAu-0x2BDF4u==502u);
+
+// The C038-counted 248ECh family uses seven-byte metadata at the pointer in
+// 22234. Unlike the preceding passes, 35798's rectangle words are retained.
+[[nodiscard]] u32 function_2bfec(Machine& m,Application64Boundary& b,u32 cursor) noexcept {
+    for(s32 index=0;;++index) {
+        const s32 count=static_cast<s32>(load_le32(dg(m,0xC038u)));
+        if(index>=count)return cursor;
+        const u32 source=0x248ECu+static_cast<u32>(index)*0x16u;
+        const u32 target=app64_target(m,cursor);
+        if(!app64_visible_tile(m,source))continue;
+
+        const u32 type0=load_le16(dg(m,source+0x0Eu));
+        const u32 meta0=load_le32(dg(m,0x22234u))+type0*7u;
+        const u16 flags0=load_le16(dg(m,source+0x14u));
+        store_le16(dg(m,target+4u),static_cast<u16>(static_cast<u32>(*dg(m,meta0+4u))*app64_bits6_8(flags0)));
+        app64_add_word(m,target+4u,load_le16(dg(m,meta0)));
+        store_le16(dg(m,target+0x0Cu),0u);
+        if(b.call_35798)b.call_35798(load_le32(dg(m,source)),load_le32(dg(m,source+4u)),target,target+2u);
+        if(load_le16(dg(m,target+2u))==0u || !app64_above_horizon(m,target))continue;
+        if(cursor!=0x190u)++cursor;
+
+        const u32 type_for_call=load_le16(dg(m,source+0x0Eu));
+        const u32 meta_for_call=load_le32(dg(m,0x22234u))+type_for_call*7u;
+        (void)function_2b2f4(m,source,target,3u,type_for_call,*dg(m,meta_for_call+4u));
+
+        const u32 type=load_le16(dg(m,source+0x0Eu));
+        const u32 meta=load_le32(dg(m,0x22234u))+type*7u;
+        if(type==0u || type==3u || type==4u || type==7u) {
+            const s32 base=static_cast<s32>(load_le16(dg(m,meta)))+
+                           static_cast<s16>(load_le16(dg(m,0x27106u)));
+            if(load_le16(dg(m,target+4u))==static_cast<u16>(base+4)) {
+                const u32 r0=b.call_30ca2?b.call_30ca2():0u;
+                const u32 gate=static_cast<u32>(r0*10u)>>15u;
+                if(static_cast<s32>(gate)>5) {
+                    const u32 type_after=load_le16(dg(m,source+0x0Eu));
+                    const u32 meta_after=load_le32(dg(m,0x22234u))+type_after*7u;
+                    const s32 base_after=static_cast<s32>(load_le16(dg(m,meta_after)))+
+                                         static_cast<s16>(load_le16(dg(m,0x27106u)));
+                    const u32 r1=b.call_30ca2?b.call_30ca2():0u;
+                    store_le16(dg(m,target+4u),static_cast<u16>(base_after+8+static_cast<s32>(app64_rand2(r1))));
+                }
+            }
+        }
+
+        // Reload metadata after possible opaque random callbacks, matching the
+        // repeated type/base loads at 2C1CB.
+        const u32 type1=load_le16(dg(m,source+0x0Eu));
+        const u32 meta1=load_le32(dg(m,0x22234u))+type1*7u;
+        if(*dg(m,meta1+6u)!=0u)
+            (void)function_2b088(m,*dg(m,meta1+6u),load_le16(dg(m,source+0x0Cu)));
+        store_le16(dg(m,target+8u),3u);
+        store_le16(dg(m,target+6u),static_cast<u16>(index));
+    }
+}
+static_assert(0x2C22Fu-0x2BFECu==579u);
+
+// Signed truncation-toward-zero divisions are deliberately kept in the same
+// sequence as the compiler, even though the two half terms algebraically cancel.
+[[nodiscard]] u32 function_2c230(u32 raw_value) noexcept {
+    const s32 half=static_cast<s32>(raw_value)/2;
+    const s32 quarter=half/2;
+    s32 result=static_cast<s32>(0x84)-quarter;
+    result+=half/8;
+    result+=half/2;
+    return static_cast<u32>(result);
+}
+static_assert(0x2C294u-0x2C230u==100u);
+
+static_assert((0x2BB9Fu-0x2B6D0u)+(0x2BDF1u-0x2BBA0u)+(0x2BFEAu-0x2BDF4u)+
+              (0x2C22Fu-0x2BFECu)+(0x2C294u-0x2C230u)==3005u);
 
 } // namespace code2
