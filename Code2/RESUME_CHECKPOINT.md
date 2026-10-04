@@ -4,13 +4,13 @@ This file is a durable handoff anchor. Read it together with `INTERRUPTION_RESUM
 
 ## Last committed substantive decompilation state
 
-- Last substantive batch commit: `435048740e3afb3d891f51e4e7f6f4df9149a917` — `Integrate CODE.2 decompilation batch 66`.
-- Verified translated instruction bytes: **191,324**.
-- Proven non-code/data bytes: **3,820**.
-- Reconciled object bytes: **195,144 / 239,698 = 81.4124% (81.41%)**.
-- Unresolved object bytes: **44,554**.
-- Last integrated instruction ownership fold: `2D004..2DF2B` (instructions through `2DF29`, proven separator through `2DF2B`).
-- Next independently decoded instruction boundary: **`2DF2C`**.
+- Last substantive batch commit: `a5b586d11e21cc65cdd20b1bf87aa83f548c3a6f` — `Integrate CODE.2 decompilation batch 67`.
+- Verified translated instruction bytes: **193,485**.
+- Proven non-code/data bytes: **3,903**.
+- Reconciled object bytes: **197,388 / 239,698 = 82.3486% (82.35%)**.
+- Unresolved object bytes: **42,310**.
+- Last integrated ownership fold: `2DF2C..2E7EF` (instructions through `2E7EE`, proven table/separators through `2E7EF`).
+- Next independently decoded instruction boundary: **`2E7F0`**.
 
 ## Immutable identity
 
@@ -22,21 +22,21 @@ This file is a durable handoff anchor. Read it together with `INTERRUPTION_RESUM
 
 ## Mandatory overlap anchor for next resume
 
-Re-disassemble at minimum `2DEB0..2DF8F` from freshly regenerated object 1 before doing new work.
+Re-disassemble at minimum `2E770..2E84F` from freshly regenerated object 1 before doing new work.
 
-- Window: object-relative `[0x2DEB0, 0x2DF90)` — 224 bytes.
-- SHA-256: `07f0e398efd79f069d5371169da63fb67872e5739207737645659f7c1a6a0dbf`.
-- Narrow boundary window: `[0x2DF00, 0x2DF60)` — 96 bytes.
-- Narrow SHA-256: `07a999e7a1b9ecd567aeec17ae3b1e5120572bda82eec45d11fb5c3e74297126`.
+- Window: object-relative `[0x2E770, 0x2E850)` — 224 bytes.
+- SHA-256: `9d5cef77c3b7cd4983ef3c39500b7bd8dc6498a99156197bedb6c6d4c9764716`.
+- Narrow boundary window: `[0x2E7C0, 0x2E820)` — 96 bytes.
+- Narrow SHA-256: `e0b7a0a835e3dcd5df5595e990fe55768c3149b5d24263a4610dcbdd418c266d`.
 - Narrow boundary bytes:
-  `000089d0c1fa1ff7fb891558c60000eb0ac7056ccf000001000000c70548f0000000000000c95f5e5bc38bc05356575589e581ec08000000817d20680100007c0781452098feffff837d20007d0781452068010000803d2fc00000000f85aa00`
+  `8d44240850e8222b000083c40c530fbf442404506861f00000e80e2b000083c40c53e8f52a000083c40483c4045bc3905356575583ec54e86cffffff8b44246cc1e00450e84328000083c404a3b8f000008b44246cc744245000000000a3b4f0`
 
-Interpretation to re-prove on resume, not merely trust: `2DF29` is the final Batch-66 `RET`; `2DF2A..2DF2B` is the `MOV EAX,EAX` compiler separator; `2DF2C` begins the next independent four-register-prologue routine with an 8-byte local frame and normalizes argument `+20h` into the `[0,167h]` range before checking `C02F`.
+Interpretation to re-prove on resume, not merely trust: `2E7EE` is the final Batch-67 `RET`; `2E7EF` is a `NOP` separator; `2E7F0` begins the next independent routine with `PUSH EBX/ESI/EDI/EBP`, a `54h` stack frame, calls `2E768`, allocates `arg*16` bytes via `3104C`, and stores the result at `F0B8`.
 
 ## Interrupted/in-progress state
 
-**UNCOUNTED / NOT COMMITTED:** no Batch 67 bytes are authorized by this checkpoint. Any analysis at or beyond `2DF2C` must be revalidated against the overlap before counting.
+**UNCOUNTED / NOT COMMITTED:** no Batch 68 bytes are authorized by this checkpoint. Any analysis at or beyond `2E7F0` must be revalidated against the overlap before counting.
 
 ## Resume rule
 
-Do not rework Batch 66 merely because the overlap is re-disassembled. Verify the overlap, immutable hashes, live accounting, and branch head; then proceed strictly forward from `2DF2C`. If any overlap/hash/accounting mismatch appears, freeze forward progress and repair the prior batch first.
+Do not rework Batch 67 merely because the overlap is re-disassembled. Verify the overlap, immutable hashes, live accounting, and branch head; then proceed strictly forward from `2E7F0`. If any overlap/hash/accounting mismatch appears, freeze forward progress and repair the prior batch first.
