@@ -364,3 +364,6 @@ Batch 49 adds **2,503 translated bytes** and **133 proven non-code/data bytes**,
 
 ## CODE.2 Batch 50 checkpoint
 Batch 50 adds **4,444 translated bytes** and **40 proven non-code/data bytes**, bringing cumulative accounting to **151,447 translated + 2,889 non-code = 154,336 / 239,698 = 64.3877% (64.39%)**. The sequential frontier is now `23FC4`. Preserve `23024`'s equality-only list stop, `231C0`'s packed-nibble DEC/JNE loops, `23438`'s signed panel arithmetic and nibble wrap decrement, `2388C`'s rollback/angle/timer paths, and `23B38`'s partial flag writes and collision retry loop.
+
+## CODE.2 Batch 51 checkpoint
+Batch 51 adds **2,771 translated bytes** and **5 proven alignment bytes**, bringing cumulative accounting to **154,218 translated + 2,894 non-code = 157,112 / 239,698 = 65.5458% (65.55%)**. The sequential frontier is now `24A9C`. Preserve `240A8` role-dependent admissibility, `243E0` empty-slot gating, and `24478` asymmetric class/rank arbitration plus per-side cooldown and selector-0/1 return ownership.

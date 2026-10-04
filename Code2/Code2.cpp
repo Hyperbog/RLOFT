@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 151447u;
-constexpr u32 kVerifiedNonCodeBytes = 2889u;
+constexpr u32 kVerifiedTranslatedBytes = 154218u;
+constexpr u32 kVerifiedNonCodeBytes = 2894u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -539,16 +539,11 @@ static_assert(0x39526u-0x391F2u==820u);
 static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
-static_assert(kVerifiedTranslatedBytes == 147003u +
-              (0x22E8Du-0x22E40u) + (0x22F40u-0x22E90u) +
-              (0x23021u-0x22F40u) + (0x231BEu-0x23024u) +
-              (0x233A5u-0x231C0u) + (0x23435u-0x233A8u) +
-              (0x237E3u-0x23438u) + (0x2388Cu-0x237E4u) +
-              (0x23B35u-0x2388Cu) + (0x23D84u-0x23B38u) +
-              (0x23DE5u-0x23D84u) + (0x23E1Bu-0x23DF0u) +
-              (0x23E56u-0x23E1Cu) + (0x23EAAu-0x23E58u) +
-              (0x23EE4u-0x23EACu) + (0x23F33u-0x23EE4u) +
-              (0x23F4Eu-0x23F34u) + (0x23FC1u-0x23F50u));
+static_assert(kVerifiedTranslatedBytes == 151447u +
+              (0x240A5u-0x23FC4u) +
+              (0x243DEu-0x240A8u) +
+              (0x24478u-0x243E0u) +
+              (0x24A9Cu-0x24478u));
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -17280,5 +17275,212 @@ static_assert((0x22E8Du-0x22E40u)+(0x22F40u-0x22E90u)+(0x23021u-0x22F40u)+
               (0x23D84u-0x23B38u)+(0x23DE5u-0x23D84u)+(0x23E1Bu-0x23DF0u)+
               (0x23E56u-0x23E1Cu)+(0x23EAAu-0x23E58u)+(0x23EE4u-0x23EACu)+
               (0x23F33u-0x23EE4u)+(0x23F4Eu-0x23F34u)+(0x23FC1u-0x23F50u)==4444u);
+
+// -----------------------------------------------------------------------------
+// Batch 51: 23FC4..24A9B item admissibility, actor/slot compatibility, and
+// paired-hand arbitration. Watcom alignment at 240A5..240A7 and 243DE..243DF
+// is ledgered separately. The next routine begins at 24A9C.
+// -----------------------------------------------------------------------------
+
+static bool app51_pair_gate(Machine& m,s32 actor) noexcept {
+    if(*dg(m,0x258A8u)!=0xFFu)return true;
+    if(actor<2)return true;
+    if(load_le16(dg(m,0x218F0u))<0x4000u)return false;
+    if(load_le16(dg(m,0x21B38u))<0x4000u)return false;
+    return true;
+}
+static u32 app51_env_record(Machine& m,s32 item) noexcept {
+    const u32 env=load_le32(dg(m,0x255D8u));
+    return env+static_cast<u32>(item)*65u;
+}
+static u32 app51_low_pair_class(Machine& m,s32 item) noexcept {
+    return static_cast<u32>(load_le16(dg(m,app51_env_record(m,item)+0x35u))&3u);
+}
+static u32 app51_rank(Machine& m,s32 item) noexcept {
+    return static_cast<u32>(*dg(m,app51_env_record(m,item)+0x30u));
+}
+static bool app51_actor_pair_role(Machine& m,s32 actor) noexcept {
+    return function_23eac(m,actor,0)!=0u || function_23eac(m,actor,2)!=0u ||
+           function_23eac(m,actor,5)!=0u || function_23eac(m,actor,1)!=0u;
+}
+
+[[nodiscard]] u32 function_23fc4(Machine& m,s32 item) noexcept {
+    const u32 raw=static_cast<u32>(item);
+    if(raw>=0x7Eu&&raw<=0x86u)return 1u;
+    if(function_23f50(m,raw)!=0u)return 1u;
+    if(function_23ee4(raw)!=0u)return 1u;
+    switch(raw){
+        case 0x30u: case 0x29u: case 0xFEu: case 0xFFu:
+        case 0x28u: case 0xFCu: case 0xFDu: case 0x27u:
+        case 0xFAu: case 0xFBu: case 0x26u: case 0xF8u:
+        case 0xF9u: return 1u;
+        default: return 0u;
+    }
+}
+static_assert(0x24060u-0x23FC4u==156u);
+
+[[nodiscard]] u32 function_24060(Machine& m,s32 item) noexcept {
+    const u32 raw=static_cast<u32>(item);
+    if(raw>=0x7Eu&&raw<=0x86u)return 1u;
+    if(function_23ee4(raw)!=0u)return 1u;
+    return (raw==0x31u||raw==0x5Bu||raw==0x26u||raw==0xF8u||raw==0xF9u)?1u:0u;
+}
+static_assert(0x240A5u-0x24060u==69u);
+
+[[nodiscard]] u32 function_240a8(Machine& m,s32 actor,s32 item,u32* classification) noexcept {
+    u32 kind=function_23e58(m,static_cast<u32>(item));
+    if(kind==0u)kind=function_23f50(m,static_cast<u32>(item));
+    if(classification!=nullptr)*classification=kind;
+    u32 allowed=1u;
+
+    if(kind==1u){
+        if(item!=-1){
+            if(function_23eac(m,actor,4)!=0u){
+                if(function_23eac(m,actor,0)==0u&&function_23eac(m,actor,5)==0u&&
+                   function_23eac(m,actor,1)==0u)
+                    allowed=function_24060(m,item);
+                if(function_23eac(m,actor,5)!=0u&&function_23eac(m,actor,0)==0u&&
+                   function_23eac(m,actor,1)==0u)
+                    allowed=function_24060(m,item)|function_23fc4(m,item);
+            } else if(function_23eac(m,actor,5)!=0u&&function_23eac(m,actor,0)==0u&&
+                      function_23eac(m,actor,1)==0u&&function_23eac(m,actor,3)==0u){
+                allowed=function_23fc4(m,item);
+            }
+            if(function_23eac(m,actor,3)!=0u){
+                const u32 rec=app51_env_record(m,item);
+                if(*dg(m,rec+0x2Fu)==0x0Au)allowed=0u;
+            }
+        }
+
+        // Encoded late global gate is reached only for kind==1.
+        if(*dg(m,0x258A8u)!=0xFFu||actor<2)return allowed;
+        if(load_le16(dg(m,0x218F0u))==0x8000u&&load_le16(dg(m,0x21B38u))==0x8000u)
+            return allowed;
+        if(item==-1)return 0u;
+        if(app51_low_pair_class(m,item)==2u)return allowed;
+        if(function_23f50(m,static_cast<u32>(item))!=0u)return allowed;
+        return 0u;
+    }
+
+    const u32 off=static_cast<u32>(actor)*0x248u;
+    if(item>=0xA7&&item<=0xC9){
+        const s32 r0=static_cast<s8>(*dg(m,0x218F5u+off));
+        const s32 r1=static_cast<s8>(*dg(m,0x218F6u+off));
+        const s32 r2=static_cast<s8>(*dg(m,0x218F7u+off));
+        if(r0==4||r1==4||r2==4)return allowed;
+        if(r0==5&&static_cast<s16>(load_le16(dg(m,0x21900u+off)))>=10)return allowed;
+        if(r1==5&&static_cast<s16>(load_le16(dg(m,0x21902u+off)))>=10)return allowed;
+        if(r2==5&&static_cast<s16>(load_le16(dg(m,0x21904u+off)))>=10)return allowed;
+        return 0u;
+    }
+    if((item>=0xCA&&item<=0xE4)||item==0x12D){
+        const s32 r0=static_cast<s8>(*dg(m,0x218F5u+off));
+        const s32 r1=static_cast<s8>(*dg(m,0x218F6u+off));
+        const s32 r2=static_cast<s8>(*dg(m,0x218F7u+off));
+        if(r0==3||r1==3||r2==3)return allowed;
+        if(r0==5&&static_cast<s16>(load_le16(dg(m,0x21900u+off)))>=10)return allowed;
+        if(r1==5&&static_cast<s16>(load_le16(dg(m,0x21902u+off)))>=10)return allowed;
+        if(r2==5&&static_cast<s16>(load_le16(dg(m,0x21904u+off)))>=10)return allowed;
+        return 0u;
+    }
+    return allowed;
+}
+static_assert(0x243DEu-0x240A8u==822u);
+
+[[nodiscard]] u32 function_243e0(Machine& m,s32 actor,u32 slot) noexcept {
+    const u32 off=static_cast<u32>(actor)*0x248u;
+    const s32 item=static_cast<s16>(load_le16(dg(m,0x2193Cu+off+slot*2u)));
+    u32 ok=function_23e58(m,static_cast<u32>(item));
+    if(ok==0u)ok=function_23f50(m,static_cast<u32>(item));
+    if(ok==0u&&item>=0x7E&&item<=0x86)ok=1u;
+    if(ok!=0u)return ok;
+    if(item!=-1)return 0u;
+    return app51_pair_gate(m,actor)?1u:0u;
+}
+static_assert(0x24478u-0x243E0u==152u);
+
+[[nodiscard]] u32 function_24478(Machine& m,s32 actor,u32 side) noexcept {
+    const u32 off=static_cast<u32>(actor)*0x248u;
+    s32 left=static_cast<s16>(load_le16(dg(m,0x2193Cu+off)));
+    s32 right=static_cast<s16>(load_le16(dg(m,0x2193Eu+off)));
+    u32 left_kind=0u,right_kind=0u;
+    u32 left_ok=function_240a8(m,actor,left,&left_kind);
+    u32 right_ok=function_240a8(m,actor,right,&right_kind);
+    const bool pair_gate=app51_pair_gate(m,actor);
+
+    if(left==-1&&right==-1){
+        if(!pair_gate){left_ok=0u;right_ok=0u;}
+        goto final_checks;
+    }
+    if(left>=0x7E&&left<=0x86&&function_23f34(static_cast<u32>(right))!=0u){
+        left_ok=1u; right_ok=1u;
+        if(!pair_gate){left_ok=0u;right_ok=0u;}
+        goto final_checks;
+    }
+
+    if((load_le16(dg(m,0x218F0u+off))&0x7240u)!=0u){left_ok=0u;right_ok=0u;}
+    if(left==-1&&!pair_gate)left_ok=0u;
+    if(right==-1&&!pair_gate)right_ok=0u;
+    if(left>=0x7E&&left<=0x86)left_ok=pair_gate?1u:0u;
+    if(right>=0x7E&&right<=0x86)right_ok=pair_gate?1u:0u;
+
+    if(left_kind!=0u&&right_kind!=0u){
+        const u32 left_class=app51_low_pair_class(m,left);
+        const u32 right_class=app51_low_pair_class(m,right);
+        if(left_class==right_class){
+            if(right_class==2u){left_ok=0u;right_ok=0u;}
+            else {
+                const bool role=app51_actor_pair_role(m,actor);
+                const bool preserve=role&&function_23ee4(static_cast<u32>(left))!=0u&&
+                                    function_23ee4(static_cast<u32>(right))!=0u;
+                if(!preserve){
+                    const u32 lr=app51_rank(m,left), rr=app51_rank(m,right);
+                    if(rr>=lr)right_ok=0u; else left_ok=0u;
+                }
+            }
+        } else if(left_class>right_class){
+            if(left_class==2u||right_class==2u){left_ok=0u;right_ok=0u;}
+            else {
+                const bool role=app51_actor_pair_role(m,actor);
+                const bool preserve=role&&function_23ee4(static_cast<u32>(left))!=0u&&
+                                    function_23ee4(static_cast<u32>(right))!=0u;
+                if(!preserve){
+                    const u32 lr=app51_rank(m,left), rr=app51_rank(m,right);
+                    if(role){if(rr>=lr)right_ok=0u;}
+                    else {if(rr>=lr)right_ok=0u; else left_ok=0u;}
+                }
+            }
+        } else {
+            if(left_class==2u||right_class==2u){left_ok=0u;right_ok=0u;}
+            else {
+                const bool role=app51_actor_pair_role(m,actor);
+                const bool preserve=role&&function_23ee4(static_cast<u32>(left))!=0u&&
+                                    function_23ee4(static_cast<u32>(right))!=0u;
+                if(!preserve){
+                    const u32 lr=app51_rank(m,left), rr=app51_rank(m,right);
+                    if(role){if(lr==rr)left_ok=0u;}
+                    else {if(rr>=lr)right_ok=0u; else left_ok=0u;}
+                }
+            }
+        }
+    } else if(left_kind!=0u){
+        if(app51_low_pair_class(m,left)==2u)right_ok=0u;
+    } else if(right_kind!=0u){
+        if(app51_low_pair_class(m,right)==2u)left_ok=0u;
+    }
+
+final_checks:
+    if(load_le32(dg(m,0x219EBu+off))!=0u)left_ok=0u;
+    if(load_le32(dg(m,0x219EFu+off))!=0u)right_ok=0u;
+    if(side==0u)return left_ok;
+    if(side==1u)return right_ok;
+    // The encoded routine leaves its return stack slot uninitialized for other
+    // selectors; all reconstructed callers use only 0/1.
+    return 0u;
+}
+static_assert(0x24A9Cu-0x24478u==1572u);
+
+static_assert((0x240A5u-0x23FC4u)+(0x243DEu-0x240A8u)+
+              (0x24478u-0x243E0u)+(0x24A9Cu-0x24478u)==2771u);
 
 } // namespace code2

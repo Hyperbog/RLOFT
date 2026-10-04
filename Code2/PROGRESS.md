@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-64.39%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-65.55%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **151,447**
-**Proven non-code/data bytes:** **2,889**
-**Reconciled object bytes:** **154,336 / 239,698 = 64.3877% (64.39%)**
-**Unresolved object bytes:** **85,362**
+**Verified translated instruction bytes:** **154,218**
+**Proven non-code/data bytes:** **2,894**
+**Reconciled object bytes:** **157,112 / 239,698 = 65.5458% (65.55%)**
+**Unresolved object bytes:** **82,586**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -622,3 +622,9 @@ The sequential frontier now reaches `22E3F`; the next routine begins at `22E40`.
 Batch 50 added **4,444 translated instruction bytes** plus **40 proven non-code/data bytes**. Cumulative accounting is **151,447 translated + 2,889 non-code = 154,336 / 239,698 = 64.3877% (64.39%)**; unresolved is **85,362 bytes**.
 
 The sequential frontier now reaches `23FC3`; the next routine begins at `23FC4`. Preserve `23024`'s equality-only six-row termination (not an `>=` precheck), `231C0`'s two packed-nibble list passes and DEC/JNE ownership, `23438`'s signed panel arithmetic plus high-nibble wrap decrement, `2388C`'s signed quotient/remainder angle path and record rollback, and `23B38`'s stale-record read/modify/write flag behavior plus collision retry loop. `23DE5..23DEF` is proven padding; the older zero islands remain unresolved. Semantic audit remains not started.
+
+## CODE.2 Batch 51 checkpoint
+
+Batch 51 added **2,771 translated instruction bytes** plus **5 proven alignment bytes**. Cumulative accounting is **154,218 translated + 2,894 non-code = 157,112 / 239,698 = 65.5458% (65.55%)**; unresolved is **82,586 bytes**.
+
+The sequential frontier now reaches `24A9B`; the next routine begins at `24A9C`. Preserve `240A8`'s role-dependent admissibility and default-one behavior, `243E0`'s empty-slot global gate, and `24478`'s asymmetric class/rank arbitration, repeated actor-role predicates, low-two-bit item class tests, per-side cooldown dword gates, and selector-0/1 return ownership. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved. Semantic audit remains not started.
