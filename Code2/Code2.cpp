@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 103537u;
-constexpr u32 kVerifiedNonCodeBytes = 2143u;
+constexpr u32 kVerifiedTranslatedBytes = 106569u;
+constexpr u32 kVerifiedNonCodeBytes = 2147u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -539,9 +539,8 @@ static_assert(0x39526u-0x391F2u==820u);
 static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
-static_assert(kVerifiedTranslatedBytes == 99711u +
-              (0x17838u-0x171FCu) + (0x179A2u-0x17838u) +
-              (0x181B4u-0x17A68u));
+static_assert(kVerifiedTranslatedBytes == 103537u +
+              (0x18D8Cu-0x181B4u));
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -11109,5 +11108,375 @@ void function_17a68(Machine& m,Application31Boundary& b) noexcept {
     }
 }
 static_assert(0x181B4u-0x17A68u==1868u);
+
+// -----------------------------------------------------------------------------
+// Batch 32: 181B4..18D8B level/save restore path. 18D8C..18D8F is proven
+// zero padding before the next routine at 18D90.
+// -----------------------------------------------------------------------------
+
+struct Application32Boundary {
+    Application31Boundary* app31=nullptr;
+    EarlyBoundaries* early=nullptr;
+    void (*call_1c124)(u32)=nullptr;
+    void (*call_19ccc)(u32)=nullptr;
+    u32 (*call_312a0)(u32)=nullptr;
+    u32 (*call_312a0_local)(const u8*)=nullptr;
+    u32 (*call_3131c)(u32,u32,u32)=nullptr;
+    u32 (*call_312ec)(u32,u32,u32)=nullptr;
+    u32 (*call_312ec_local)(u8*,u32,u32)=nullptr;
+    void (*call_312dc)(u32)=nullptr;
+    void (*call_2f580)(u32)=nullptr;
+    u32 (*call_29050)()=nullptr;
+    u32 (*call_29048)()=nullptr;
+    void (*call_28dcc)(u32)=nullptr;
+    void (*call_30d30)(u32,u32,u32)=nullptr;
+    void (*call_310b0)(u32)=nullptr;
+    u32 (*call_3104c)(u32)=nullptr;
+    void (*call_20850)()=nullptr;
+    void (*call_31edc)(u32)=nullptr;
+    void (*call_31f38)(u32)=nullptr;
+    void (*call_31f94)()=nullptr;
+    void (*call_19cf4)()=nullptr;
+    void (*call_28ef0)()=nullptr;
+    void (*call_28e58)(s32,s32,u32)=nullptr;
+    void (*call_1f8e0)(u32)=nullptr;
+    void (*call_0ccf4)()=nullptr;
+};
+
+static void app32_copy_local_to_guest(Machine& m,u32 dst,const u8* src,u32 count) noexcept {
+    for(u32 i=0u;i<count;++i)*dg(m,dst+i)=src[i];
+}
+static void app32_copy_guest_to_guest(Machine& m,u32 dst,u32 src,u32 count) noexcept {
+    for(u32 i=0u;i<count;++i)*dg(m,dst+i)=*dg(m,src+i);
+}
+static u16 app32_local16(const u8* p) noexcept {
+    return static_cast<u16>(p[0] | (static_cast<u16>(p[1])<<8u));
+}
+static u32 app32_local32(const u8* p) noexcept {
+    return static_cast<u32>(p[0] | (static_cast<u32>(p[1])<<8u) |
+                            (static_cast<u32>(p[2])<<16u) | (static_cast<u32>(p[3])<<24u));
+}
+static void app32_read_local(Application32Boundary& b,u8* dst,u32 count,u32 handle) noexcept {
+    if(b.call_312ec_local)(void)b.call_312ec_local(dst,count,handle);
+}
+static void app32_read_guest(Application32Boundary& b,u32 dst,u32 count,u32 handle) noexcept {
+    if(b.call_312ec)(void)b.call_312ec(dst,count,handle);
+}
+
+void function_181b4(Machine& m,Application32Boundary& b,s32 target_level) noexcept {
+    u8 levels_name[11]{};
+    for(u32 i=0u;i<11u;++i)levels_name[i]=*dg(m,0x170A0u+i);
+
+    if(target_level==0x1A&&b.call_1c124)b.call_1c124(0x1Du);
+    if(target_level==0x0B&&b.call_1c124)b.call_1c124(0x1Eu);
+
+    const s32 old_level=static_cast<s32>(load_le32(dg(m,0xC6C8u)));
+    if(old_level==target_level)return;
+
+    if(b.app31)function_171fc(m,*b.app31,old_level);
+    if(b.call_19ccc)b.call_19ccc(0u);
+    const u8 saved_bf38=*dg(m,0xBF38u);
+
+    const s32 hundreds=target_level/100;
+    const s32 remainder=target_level-hundreds*100;
+    *dg(m,0x81A4u)=static_cast<u8>(hundreds+0x30);
+    *dg(m,0x81A6u)=static_cast<u8>((target_level%10)+0x30);
+    *dg(m,0x81A5u)=static_cast<u8>((remainder/10)+0x30);
+    *dg(m,0xBF38u)=0u;
+
+    u32 handle=b.call_312a0?b.call_312a0(0x819Cu):0xFFFFFFFFu;
+    bool legacy=false;
+    if(handle!=0xFFFFFFFFu) {
+        if(b.call_3131c)(void)b.call_3131c(0x1Du,0u,handle);
+    } else {
+        handle=b.call_312a0_local?b.call_312a0_local(levels_name):0xFFFFFFFFu;
+        if(handle==0xFFFFFFFFu&&b.call_2f580)b.call_2f580(load_le32(dg(m,0x8198u)));
+        const u32 table_off=static_cast<u32>(target_level)*4u+4u;
+        if(b.call_3131c)(void)b.call_3131c(table_off,0u,handle);
+        u8 off_bytes[4]={0u,0u,0u,0u};
+        app32_read_local(b,off_bytes,4u,handle);
+        const u32 level_off=app32_local32(off_bytes);
+        if(b.call_3131c)(void)b.call_3131c(level_off+0x1Du,0u,handle);
+        legacy=true;
+    }
+
+    app32_read_guest(b,0x25618u,0x2A4u,handle);
+    store_le32(dg(m,0xC6C8u),static_cast<u32>(target_level));
+
+    const u32 saved_graphic=*dg(m,0x258B4u);
+    const u32 current_graphic=b.call_29050?b.call_29050():0u;
+    if(current_graphic!=saved_graphic||(b.call_29048?b.call_29048():0u)!=1u)
+        if(b.call_28dcc)b.call_28dcc(0x9C4u);
+
+    function_170ac(m);
+    if(b.call_30d30)b.call_30d30(0x198E0u,0u,0x8000u);
+    for(s32 row=0;;++row) {
+        const s32 height=static_cast<s16>(load_le16(dg(m,0x2561Bu)));
+        if(row>=height)break;
+        const s32 width=static_cast<s16>(load_le16(dg(m,0x25619u)));
+        app32_read_guest(b,static_cast<u32>(0x198E0 + row*width*2),
+                         static_cast<u32>(width*2),handle);
+    }
+
+    for(u32 i=0u;i<0x80u;++i) {
+        const u32 p=load_le32(dg(m,0xCB3Cu+i*4u));
+        if(p!=0u) {
+            if(b.call_310b0)b.call_310b0(p);
+            store_le32(dg(m,0xCB3Cu+i*4u),0u);
+        }
+    }
+    if(b.call_30d30) {
+        const s32 width=static_cast<s16>(load_le16(dg(m,0x25619u)));
+        b.call_30d30(0xCB3Cu,0u,static_cast<u32>(width*4));
+    }
+    for(u32 i=0u;i<0x80u;++i) {
+        const u32 p=load_le32(dg(m,0xCD3Cu+i*4u));
+        if(p!=0u) {
+            if(b.call_310b0)b.call_310b0(p);
+            store_le32(dg(m,0xCD3Cu+i*4u),0u);
+        }
+    }
+    if(b.call_30d30) {
+        const s32 width=static_cast<s16>(load_le16(dg(m,0x25619u)));
+        b.call_30d30(0xCD3Cu,0u,static_cast<u32>(width*4));
+    }
+    const u32 old_cf44=load_le32(dg(m,0xCF44u));
+    if(old_cf44!=0u) {
+        if(b.call_310b0)b.call_310b0(old_cf44);
+        store_le32(dg(m,0xCF44u),0u);
+    }
+
+    u32 live_ebx=0u;
+    if(legacy) {
+        const u32 temp=b.call_3104c?b.call_3104c(0x2BCu):0u;
+        s32 deferred=0;
+        for(s32 slot=0;;++slot) {
+            const s32 width=static_cast<s16>(load_le16(dg(m,0x25619u)));
+            if(slot>=width)break;
+            u8 count_bytes[2]={0u,0u};
+            app32_read_local(b,count_bytes,2u,handle);
+            const s32 count=static_cast<s16>(app32_local16(count_bytes));
+            if(count==0)continue;
+            const u32 alloc_bytes=static_cast<u32>((count+1)*10);
+            const u32 list=b.call_3104c?b.call_3104c(alloc_bytes):0u;
+            store_le32(dg(m,0xCB3Cu+static_cast<u32>(slot)*4u),list);
+            if(b.call_30d30)b.call_30d30(list,0u,alloc_bytes);
+            u32 normal_off=0u;
+            for(s32 i=0;i<count;++i) {
+                u8 rec10[10]{};
+                app32_read_local(b,rec10,10u,handle);
+                if(rec10[0]==1u) {
+                    app32_copy_local_to_guest(m,temp+static_cast<u32>(deferred)*10u,rec10,10u);
+                    ++deferred;
+                } else {
+                    app32_copy_local_to_guest(m,list+normal_off,rec10,10u);
+                    normal_off+=10u;
+                }
+            }
+        }
+
+        for(s32 slot=0;;++slot) {
+            const s32 width=static_cast<s16>(load_le16(dg(m,0x25619u)));
+            if(slot>=width)break;
+            s32 match_count=0;
+            for(s32 i=0;i<deferred;++i)
+                if(*dg(m,temp+static_cast<u32>(i)*10u+5u)==static_cast<u8>(slot))++match_count;
+            if(match_count==0)continue;
+            const u32 alloc_bytes=static_cast<u32>((match_count+1)*10);
+            const u32 list=b.call_3104c?b.call_3104c(alloc_bytes):0u;
+            store_le32(dg(m,0xCD3Cu+static_cast<u32>(slot)*4u),list);
+            if(b.call_30d30)b.call_30d30(list,0u,alloc_bytes);
+            u32 dst_off=0u;
+            for(s32 i=0;i<deferred;++i) {
+                const u32 src=temp+static_cast<u32>(i)*10u;
+                if(*dg(m,src+5u)!=static_cast<u8>(slot))continue;
+                app32_copy_guest_to_guest(m,list+dst_off,src,10u);
+                dst_off+=10u;
+            }
+        }
+        if(b.call_310b0)b.call_310b0(temp);
+
+        for(s32 index=0;;++index) {
+            const s32 count=static_cast<s16>(load_le16(dg(m,0x258A2u)));
+            if(index>=count)break;
+            u8 r[11]{};
+            app32_read_local(b,r,11u,handle);
+            const u32 rec=0x14D80u+static_cast<u32>(index)*0x16u;
+            store_le16(dg(m,rec+0x06u),app32_local16(r+2));
+            store_le16(dg(m,rec+0x04u),app32_local16(r+4));
+            store_le16(dg(m,rec+0x02u),app32_local16(r+6));
+            store_le16(dg(m,rec+0x00u),app32_local16(r+8));
+            const u16 type=app32_local16(r+0);
+            store_le16(dg(m,rec+0x0Eu),type);
+            const u32 desc=load_le32(dg(m,0x22230u))+static_cast<u32>(type)*0x45u;
+            store_le32(dg(m,rec+0x08u),load_le32(dg(m,desc+0x35u)));
+            *dg(m,rec+0x14u)=static_cast<u8>(*dg(m,rec+0x14u)&0xC7u);
+            store_le16(dg(m,rec+0x14u),static_cast<u16>(load_le16(dg(m,rec+0x14u)) |
+                         (static_cast<u16>(r[10]&7u)<<3u)));
+            u16 pos=static_cast<u16>(static_cast<u16>(load_le16(dg(m,rec+0x02u))) *
+                                     load_le16(dg(m,0x25619u)));
+            store_le16(dg(m,rec+0x10u),0u);
+            store_le16(dg(m,rec+0x14u),static_cast<u16>(load_le16(dg(m,rec+0x14u))&0x3E39u));
+            pos=static_cast<u16>(pos+load_le16(dg(m,rec+0x06u)));
+            store_le16(dg(m,rec+0x0Cu),pos);
+            if((*dg(m,rec+0x0Bu)&0x30u)!=0u) {
+                const u32 rank=*dg(m,desc+0x1Du);
+                const u32 rolled=b.app31&&b.app31->call_1c328?b.app31->call_1c328(rank,8u,0u,0u):0u;
+                store_le16(dg(m,rec+0x12u),static_cast<u16>(rolled));
+            } else store_le16(dg(m,rec+0x12u),0u);
+            if(type==8u)store_le16(dg(m,rec+0x12u),0x37u);
+        }
+
+        live_ebx=3u;
+        for(s32 index=0;;++index) {
+            const s32 count=static_cast<s16>(load_le16(dg(m,0x258A6u)));
+            if(index>=count)break;
+            u8 r[11]{};
+            app32_read_local(b,r,11u,handle);
+            const u32 rec=0x22238u+static_cast<u32>(index)*0x16u;
+            store_le16(dg(m,rec+0x06u),app32_local16(r+2));
+            store_le16(dg(m,rec+0x04u),app32_local16(r+4));
+            store_le16(dg(m,rec+0x02u),app32_local16(r+6));
+            store_le16(dg(m,rec+0x00u),app32_local16(r+8));
+            const u16 type=app32_local16(r+0);
+            store_le16(dg(m,rec+0x0Eu),type);
+            store_le16(dg(m,rec+0x10u),0u);
+            *dg(m,rec+0x14u)=static_cast<u8>(*dg(m,rec+0x14u)&0xC7u);
+            store_le16(dg(m,rec+0x14u),static_cast<u16>(load_le16(dg(m,rec+0x14u)) |
+                         (static_cast<u16>(r[10]&7u)<<3u)));
+            store_le16(dg(m,rec+0x14u),static_cast<u16>(load_le16(dg(m,rec+0x14u))&0xFE3Fu));
+            const s32 q=(static_cast<s16>(type)-2)/3;
+            if(q>=0&&q<10)store_le16(dg(m,0x2B61Cu+static_cast<u32>(q)*2u),static_cast<u16>(index));
+            u16 pos=static_cast<u16>(load_le16(dg(m,rec+0x02u))*load_le16(dg(m,0x25619u)));
+            pos=static_cast<u16>(pos+load_le16(dg(m,rec+0x06u)));
+            store_le16(dg(m,rec+0x0Cu),pos);
+        }
+
+        for(s32 index=0;;++index) {
+            const s32 count=static_cast<s16>(load_le16(dg(m,0x258A4u)));
+            if(index>=count)break;
+            u8 r[11]{};
+            app32_read_local(b,r,11u,handle);
+            if(static_cast<s16>(app32_local16(r))==0x54) { r[0]=0x58u; r[1]=0u; }
+            const u32 rec=0x17618u+static_cast<u32>(index)*0x16u;
+            store_le16(dg(m,rec+0x06u),app32_local16(r+2));
+            store_le16(dg(m,rec+0x04u),app32_local16(r+4));
+            store_le16(dg(m,rec+0x02u),app32_local16(r+6));
+            store_le16(dg(m,rec+0x00u),app32_local16(r+8));
+            store_le16(dg(m,rec+0x0Eu),app32_local16(r+0));
+            u16 pos=static_cast<u16>(load_le16(dg(m,rec+0x02u))*load_le16(dg(m,0x25619u)));
+            store_le16(dg(m,rec+0x10u),0u);
+            store_le16(dg(m,rec+0x14u),static_cast<u16>(load_le16(dg(m,rec+0x14u))&0xFE07u));
+            pos=static_cast<u16>(pos+load_le16(dg(m,rec+0x06u)));
+            store_le16(dg(m,rec+0x0Cu),pos);
+        }
+    } else {
+        for(s32 slot=0;;++slot) {
+            const s32 width=static_cast<s16>(load_le16(dg(m,0x25619u)));
+            if(slot>=width)break;
+            u8 cb[2]={0u,0u}; app32_read_local(b,cb,2u,handle);
+            const s32 count=static_cast<s16>(app32_local16(cb));
+            if(count==0)continue;
+            const u32 alloc_bytes=static_cast<u32>((count+1)*10);
+            const u32 list=b.call_3104c?b.call_3104c(alloc_bytes):0u;
+            store_le32(dg(m,0xCB3Cu+static_cast<u32>(slot)*4u),list);
+            if(b.call_30d30)b.call_30d30(list,0u,alloc_bytes);
+            app32_read_guest(b,list,static_cast<u32>(count*10),handle);
+        }
+        app32_read_guest(b,0xCF50u,1u,handle);
+        for(s32 slot=0;;++slot) {
+            const s32 width=static_cast<s16>(load_le16(dg(m,0x25619u)));
+            if(slot>=width)break;
+            u8 cb[2]={0u,0u}; app32_read_local(b,cb,2u,handle);
+            const s32 count=static_cast<s16>(app32_local16(cb));
+            if(count==0)continue;
+            const u32 alloc_bytes=static_cast<u32>((count+1)*10);
+            const u32 list=b.call_3104c?b.call_3104c(alloc_bytes):0u;
+            store_le32(dg(m,0xCD3Cu+static_cast<u32>(slot)*4u),list);
+            if(b.call_30d30)b.call_30d30(list,0u,alloc_bytes);
+            app32_read_guest(b,list,static_cast<u32>(count*10),handle);
+        }
+        const s32 moving=static_cast<s16>(load_le16(dg(m,0x258A2u)));
+        app32_read_guest(b,0x14D80u,static_cast<u32>(moving*0x16),handle);
+        u8 ignored_count[2]={0u,0u};
+        app32_read_local(b,ignored_count,2u,handle); // encoded disk count is consumed but header count drives the read.
+        const s32 primary=static_cast<s16>(load_le16(dg(m,0x258A6u)));
+        app32_read_guest(b,0x22238u,static_cast<u32>(primary*0x16),handle);
+        const s32 alternate=static_cast<s16>(load_le16(dg(m,0x258A4u)));
+        app32_read_guest(b,0x17618u,static_cast<u32>(alternate*0x16),handle);
+    }
+
+    if(b.app31)function_17a68(m,*b.app31);
+    if(*dg(m,0xC02Fu)!=0u&&b.call_20850)b.call_20850();
+    const u32 map_state=b.call_3104c?b.call_3104c(0x514u):0u;
+    store_le32(dg(m,0xCF44u),map_state);
+    app32_read_guest(b,map_state,0x514u,handle);
+    if(b.call_3131c)(void)b.call_3131c(4u,1u,handle);
+    const s32 map_width=static_cast<s16>(load_le16(dg(m,0x25619u)));
+    const s32 map_height=static_cast<s16>(load_le16(dg(m,0x2561Bu)));
+    app32_read_guest(b,0x1760u,static_cast<u32>(map_width*map_height),handle);
+    u8 text_count_bytes[4]={0u,0u,0u,0u};
+    app32_read_local(b,text_count_bytes,4u,handle);
+    const u32 text_count=app32_local32(text_count_bytes);
+    if(b.call_30d30)b.call_30d30(0x5760u,0u,0x800u);
+    if(static_cast<s32>(text_count)<0x7FF)
+        app32_read_guest(b,0x5760u,text_count,handle);
+    if(b.call_312dc)b.call_312dc(handle);
+
+    if(*dg(m,0x258A8u)==0xFFu) {
+        const u32 slot=static_cast<u32>(target_level)*3u;
+        if(b.call_31edc)b.call_31edc(*dg(m,0x81ADu+slot));
+        if(b.call_31f38)b.call_31f38(*dg(m,0x81AEu+slot));
+    }
+    store_le32(dg(m,0xF9CCu),0xFFFFFFFFu);
+    if(b.call_31f94)b.call_31f94();
+    if(b.call_19cf4)b.call_19cf4();
+    store_le32(dg(m,0xC038u),0u);
+    if(load_le16(dg(m,0x258B2u))==0u)store_le16(dg(m,0x258B2u),1u);
+
+    const s32 scale_base=0x80-static_cast<s16>(load_le16(dg(m,0x258B2u)));
+    const u32 raw=static_cast<u32>(scale_base)*static_cast<u32>(*dg(m,0xC02Au))+0x40u;
+    const s32 quotient=static_cast<s32>(raw)/0x80;
+    *dg(m,0xC02Du)=static_cast<u8>(0x80-quotient);
+
+    const u32 saved_graphic2=*dg(m,0x258B4u);
+    if((b.call_29050?b.call_29050():0u)!=saved_graphic2||
+       (b.call_29048?b.call_29048():0u)!=1u) {
+        if(b.call_28ef0)b.call_28ef0();
+        if(b.call_28e58)b.call_28e58(static_cast<s32>(saved_graphic2),1,0x9C4u);
+    }
+
+    const u32 meta=static_cast<u32>(target_level)*3u;
+    if(*dg(m,0x81ACu+meta)==0u&&load_le32(dg(m,0xC034u))==0u)
+        store_le32(dg(m,0xC034u),0xFFFFFFFFu);
+    if(b.call_1f8e0)b.call_1f8e0(*dg(m,0x81ACu+meta));
+
+    if(target_level==0x17)store_le32(dg(m,0xBF44u),4u);
+    if(target_level==0x15)store_le32(dg(m,0xBF44u),0x0Cu);
+    if(target_level==0x0B)store_le32(dg(m,0xBF44u),0x3Du);
+    *dg(m,0xBF38u)=saved_bf38;
+
+    if(target_level==8&&b.app31&&b.app31->call_1c1dc&&b.app31->call_1c1dc(0x20u)!=0u) {
+        if(b.early)(void)function_000b8(m,*b.early);
+        if(b.early&&b.early->call_1c160)(void)b.early->call_1c160(0x20u,live_ebx);
+    }
+
+    if(old_level==6) {
+        if(target_level==0x0A) {
+            if(b.call_1c124)b.call_1c124(0xC2u);
+            (void)function_00010(m,0x31,0x5E);
+        }
+        if(function_153fc(m)!=0u) {
+            if(b.call_1c124)b.call_1c124(0xD1u);
+        } else store_le32(dg(m,0xBF44u),0x51u);
+    }
+    if(target_level==0x0C)store_le32(dg(m,0xBF44u),0x0Eu);
+
+    for(u32 i=0u;i<4u;++i)*dg(m,0xCF5Au+i)=1u;
+    store_le32(dg(m,0xC018u),0u);
+    store_le32(dg(m,0xC01Cu),0u);
+    if(b.call_0ccf4)b.call_0ccf4();
+}
+static_assert(0x18D8Cu-0x181B4u==3032u);
 
 } // namespace code2
