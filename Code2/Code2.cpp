@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 99711u;
-constexpr u32 kVerifiedNonCodeBytes = 1945u;
+constexpr u32 kVerifiedTranslatedBytes = 103537u;
+constexpr u32 kVerifiedNonCodeBytes = 2143u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -539,10 +539,9 @@ static_assert(0x39526u-0x391F2u==820u);
 static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
-static_assert(kVerifiedTranslatedBytes == 97832u +
-              (0x16ADCu-0x16A88u) + (0x16CCDu-0x16ADCu) +
-              (0x16D03u-0x16CD0u) + (0x17097u-0x16D04u) +
-              (0x171CFu-0x170ACu) + (0x171F9u-0x171D0u));
+static_assert(kVerifiedTranslatedBytes == 99711u +
+              (0x17838u-0x171FCu) + (0x179A2u-0x17838u) +
+              (0x181B4u-0x17A68u));
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -10757,5 +10756,358 @@ void function_171d0(Machine& m,Application30Boundary& b,u32 src,u32 count,u32 ha
     if(wrote!=count&&b.call_2f580)b.call_2f580(load_le32(dg(m,0x8190u)));
 }
 static_assert(0x171F9u-0x171D0u==41u);
+
+// -----------------------------------------------------------------------------
+// Batch 31: 171FC..181B3 save serialization, actor state normalization, and
+// the 49-way world-record resource gate. 179A2..17A67 is ledgered as the
+// compiler separator plus the exact 49-entry CS dispatch table used at 17C50.
+// -----------------------------------------------------------------------------
+
+struct Application31Boundary {
+    Application04Boundary* app04=nullptr;
+    void (*call_31380)(u32)=nullptr;
+    u32 (*call_312c8)(u32)=nullptr;
+    u32 (*call_312b4)(u32)=nullptr;
+    u32 (*call_3131c)(u32,u32,u32)=nullptr;
+    u32 (*call_31304)(u32,u32,u32)=nullptr;
+    u32 (*call_31304_local)(const u8*,u32,u32)=nullptr;
+    void (*call_312dc)(u32)=nullptr;
+    void (*call_2f580)(u32)=nullptr;
+    u32 (*call_30ca2)()=nullptr;
+    u32 (*call_1c1dc)(u32)=nullptr;
+    void (*call_1c77c)(u32,u32)=nullptr;
+    u32 (*call_2acdc)(u32)=nullptr;
+    u32 (*call_1c328)(u32,u32,u32,u32)=nullptr;
+};
+
+static void app31_write_error(Machine& m,Application31Boundary& b) noexcept {
+    if(b.call_2f580)b.call_2f580(load_le32(dg(m,0x8190u)));
+}
+static void app31_write_global(Machine& m,Application31Boundary& b,
+                               u32 src,u32 count,u32 handle) noexcept {
+    const u32 wrote=b.call_31304?b.call_31304(src,count,handle):0u;
+    if(wrote!=count)app31_write_error(m,b);
+}
+static void app31_write_local16(Machine& m,Application31Boundary& b,
+                                u16 value,u32 handle) noexcept {
+    const u8 bytes[2]={static_cast<u8>(value),static_cast<u8>(value>>8)};
+    const u32 wrote=b.call_31304_local?b.call_31304_local(bytes,2u,handle):0u;
+    if(wrote!=2u)app31_write_error(m,b);
+}
+static void app31_write_local32(Machine& m,Application31Boundary& b,
+                                u32 value,u32 handle) noexcept {
+    const u8 bytes[4]={static_cast<u8>(value),static_cast<u8>(value>>8),
+                       static_cast<u8>(value>>16),static_cast<u8>(value>>24)};
+    const u32 wrote=b.call_31304_local?b.call_31304_local(bytes,4u,handle):0u;
+    if(wrote!=4u)app31_write_error(m,b);
+}
+
+void function_171fc(Machine& m,Application31Boundary& b,s32 save_number) noexcept {
+    if(save_number==-1||*dg(m,0xA79Du)!=0u)return;
+
+    // The encoded filename digit extraction uses signed IDIV, so negative
+    // values other than the -1 sentinel deliberately produce non-digit bytes.
+    const s32 hundreds=save_number/100;
+    const s32 ones=save_number%10;
+    const s32 remainder=save_number-hundreds*100;
+    const s32 tens=remainder/10;
+    *dg(m,0x81A4u)=static_cast<u8>(hundreds+0x30);
+    *dg(m,0x81A5u)=static_cast<u8>(tens+0x30);
+    *dg(m,0x81A6u)=static_cast<u8>(ones+0x30);
+
+    if(b.call_31380)b.call_31380(0x819Cu);
+    const u32 old_handle=b.call_312c8?b.call_312c8(0x819Cu):0u;
+    if(b.call_312dc)b.call_312dc(old_handle);
+    const u32 handle=b.call_312b4?b.call_312b4(0x819Cu):0xFFFFFFFFu;
+    if(handle==0xFFFFFFFFu&&b.call_2f580)b.call_2f580(load_le32(dg(m,0x8194u)));
+
+    const u32 h0=0x1Du;
+    if(b.call_3131c)(void)b.call_3131c(h0,0u,handle);
+    app31_write_global(m,b,0x25618u,0x2A4u,handle);
+
+    u32 h1=h0+0x2A4u;
+    for(s32 row=0;;++row) {
+        const s32 height=static_cast<s16>(load_le16(dg(m,0x2561Bu)));
+        if(row>=height)break;
+        const s32 width_for_src=static_cast<s16>(load_le16(dg(m,0x25619u)));
+        const u32 src=static_cast<u32>(0x198E0 + row*width_for_src*2);
+        const s32 width_for_write=static_cast<s16>(load_le16(dg(m,0x25619u)));
+        const u32 bytes=static_cast<u32>(width_for_write*2);
+        app31_write_global(m,b,src,bytes,handle);
+        const s32 width_for_offset=static_cast<s16>(load_le16(dg(m,0x25619u)));
+        h1+=static_cast<u32>(width_for_offset*2);
+    }
+
+    u32 h2=h1;
+    for(s32 index=0;;++index) {
+        const s32 width=static_cast<s16>(load_le16(dg(m,0x25619u)));
+        if(index>=width)break;
+        const u32 ptr=load_le32(dg(m,0xCB3Cu+static_cast<u32>(index)*4u));
+        u32 count=0u;
+        if(ptr!=0u) {
+            for(u32 off=0u;;off+=0x0Au) {
+                const u8 a=*dg(m,ptr+off);
+                const u8 flags=*dg(m,ptr+off+1u);
+                if(a==0u&&(flags&0x10u)==0u)break;
+                ++count;
+            }
+        }
+        app31_write_local16(m,b,static_cast<u16>(count),handle);
+        h2+=2u;
+        if(count!=0u) {
+            const u32 bytes=count*0x0Au;
+            app31_write_global(m,b,ptr,bytes,handle);
+            h2+=bytes;
+        }
+    }
+
+    app31_write_global(m,b,0xCF50u,1u,handle);
+    ++h2;
+
+    for(s32 index=0;;++index) {
+        const s32 width=static_cast<s16>(load_le16(dg(m,0x25619u)));
+        if(index>=width)break;
+        const u32 ptr=load_le32(dg(m,0xCD3Cu+static_cast<u32>(index)*4u));
+        u32 count=0u;
+        if(ptr!=0u) {
+            for(u32 off=0u;*dg(m,ptr+off)!=0u;off+=0x0Au)++count;
+        }
+        app31_write_local16(m,b,static_cast<u16>(count),handle);
+        h2+=2u;
+        if(count!=0u) {
+            const u32 bytes=count*0x0Au;
+            app31_write_global(m,b,ptr,bytes,handle);
+            h2+=bytes;
+        }
+    }
+
+    const s32 world_count_write=static_cast<s16>(load_le16(dg(m,0x258A2u)));
+    app31_write_global(m,b,0x14D80u,static_cast<u32>(world_count_write*0x16),handle);
+    const s32 world_count_offset=static_cast<s16>(load_le16(dg(m,0x258A2u)));
+    const u32 h3=h2+static_cast<u32>(world_count_offset*0x16);
+
+    app31_write_global(m,b,0x258A6u,2u,handle);
+    const s32 primary_count=static_cast<s16>(load_le16(dg(m,0x258A6u)));
+    app31_write_global(m,b,0x22238u,static_cast<u32>(primary_count*0x16),handle);
+    const s32 primary_count_offset=static_cast<s16>(load_le16(dg(m,0x258A6u)));
+    const u32 h4=h3+2u+static_cast<u32>(primary_count_offset*0x16);
+
+    const s32 secondary_count=static_cast<s16>(load_le16(dg(m,0x258A4u)));
+    const u32 secondary_bytes=static_cast<u32>(secondary_count*0x16);
+    app31_write_global(m,b,0x17618u,secondary_bytes,handle);
+    const u32 h5=h4+secondary_bytes;
+
+    const u32 cf44=load_le32(dg(m,0xCF44u));
+    app31_write_global(m,b,cf44,0x514u,handle);
+    const u32 h6=h5+0x514u;
+
+    app31_write_global(m,b,0x25619u,2u,handle);
+    app31_write_global(m,b,0x2561Bu,2u,handle);
+    if(b.app04)function_01558(m,*b.app04);
+    const s32 map_width=static_cast<s16>(load_le16(dg(m,0x25619u)));
+    const s32 map_height=static_cast<s16>(load_le16(dg(m,0x2561Bu)));
+    app31_write_global(m,b,0x1760u,static_cast<u32>(map_width*map_height),handle);
+
+    const u32 text_bytes=function_01c28(m);
+    app31_write_local32(m,b,text_bytes,handle);
+    app31_write_global(m,b,0x5760u,text_bytes,handle);
+
+    if(b.call_3131c)(void)b.call_3131c(1u,0u,handle);
+    app31_write_local32(m,b,h0,handle);
+    app31_write_local32(m,b,h1,handle);
+    app31_write_local32(m,b,h2,handle);
+    app31_write_local32(m,b,h3,handle);
+    app31_write_local32(m,b,h4,handle);
+    app31_write_local32(m,b,h5,handle);
+    app31_write_local32(m,b,h6,handle);
+    if(b.call_312dc)b.call_312dc(handle);
+}
+static_assert(0x17838u-0x171FCu==1596u);
+
+void function_17838(Machine& m,Application31Boundary& b) noexcept {
+    for(u32 slot=0u,actor=0u;slot<4u;++slot,actor+=0x248u) {
+        const u16 state=load_le16(dg(m,0x218F0u+actor));
+        if((state&0x8000u)!=0u||(state&0x0100u)==0u)continue;
+        *dg(m,0x218F0u+actor)=static_cast<u8>(*dg(m,0x218F0u+actor)&0xBFu);
+        const bool r37=(b.call_1c1dc?b.call_1c1dc(0x37u):0u)!=0u;
+        const u32 level=load_le32(dg(m,0xC6C8u));
+        bool excluded=false;
+        if(r37) {
+            switch(level) {
+                case 0x15u: case 0x14u: case 0x0Au: case 0x0Bu: case 0x06u:
+                case 0x07u: case 0x12u: case 0x08u: case 0x0Fu: excluded=true; break;
+                default: break;
+            }
+        } else {
+            switch(level) {
+                case 0x15u: case 0x14u: case 0x0Au: case 0x0Bu: case 0x0Cu:
+                case 0x18u: case 0x05u: case 0x12u: case 0x08u: case 0x0Fu:
+                    excluded=true; break;
+                default: break;
+            }
+        }
+        if(excluded)continue;
+        const u32 random=b.call_30ca2?b.call_30ca2():0u;
+        const u32 scaled=(random*4u)>>15u;
+        store_le32(dg(m,0xBF2Cu),scaled+0x32u);
+        if(b.call_1c77c)b.call_1c77c(slot,scaled+0x15Fu);
+        *dg(m,0x218F0u+actor)=static_cast<u8>(*dg(m,0x218F0u+actor)|0x40u);
+    }
+}
+static_assert(0x179A2u-0x17838u==362u);
+
+static constexpr u32 kFunction17a68Dispatch[49]={
+    0x17C58u,0x18191u,0x17C72u,0x18191u,0x17C8Cu,0x17CB7u,0x17CF5u,
+    0x17D32u,0x17F6Au,0x18191u,0x17D4Cu,0x17D89u,0x17DC7u,0x17E05u,
+    0x17E42u,0x17E80u,0x18191u,0x17EBEu,0x17ED8u,0x17EF2u,0x17F0Cu,
+    0x17F36u,0x18191u,0x17F50u,0x17F6Au,0x18191u,0x18191u,0x17F81u,
+    0x18191u,0x17FACu,0x17FEAu,0x18191u,0x18015u,0x1802Cu,0x18069u,
+    0x180A6u,0x180E3u,0x180FAu,0x18191u,0x18191u,0x18191u,0x18191u,
+    0x18191u,0x18191u,0x18121u,0x18191u,0x18191u,0x18191u,0x1816Eu
+};
+static_assert(sizeof(kFunction17a68Dispatch)/sizeof(kFunction17a68Dispatch[0])==49u);
+
+static u32 app31_resource(Application31Boundary& b,u32 id) noexcept {
+    return b.call_1c1dc?b.call_1c1dc(id):0u;
+}
+
+void function_17a68(Machine& m,Application31Boundary& b) noexcept {
+    function_17838(m,b);
+    for(s32 index=0;;++index) {
+        const s32 count=static_cast<s16>(load_le16(dg(m,0x258A2u)));
+        if(index>=count)break;
+        const u32 rec=0x14D80u+static_cast<u32>(index)*0x16u;
+        u16 type=load_le16(dg(m,rec+0x0Eu));
+        *dg(m,rec+0x0Bu)=static_cast<u8>(*dg(m,rec+0x0Bu)&0xFDu);
+
+        bool mark=false;
+        if((b.call_2acdc?b.call_2acdc(type):0u)!=0u&&
+           static_cast<s16>(load_le16(dg(m,rec+0x12u)))<=0)mark=true;
+
+        const u32 high=load_le32(dg(m,0xCF4Cu))>>16u;
+        const u32 level=load_le32(dg(m,0xC6C8u));
+        switch(type) {
+            case 0x00u:
+                if((level==0x12u||level==0x1Fu)&&high>4u&&high<0x15u)mark=true;
+                break;
+            case 0x06u:
+                if((level==0x19u||level==0x1Au)&&high>4u&&high<0x15u)mark=true;
+                break;
+            case 0x08u:
+                if(app31_resource(b,0x3Au)==0u)mark=true;
+                break;
+            case 0x0Fu:
+                if(app31_resource(b,0x28u)!=0u&&app31_resource(b,0x29u)!=0u)mark=true;
+                break;
+            case 0x11u:
+                if(level==0x12u&&high>4u&&high<0x15u)mark=true;
+                break;
+            case 0x15u: case 0x50u:
+                if(level==0x18u&&high>4u&&high<0x15u)mark=true;
+                break;
+            case 0x18u: case 0x1Au:
+                if(level==0x0Bu&&high>4u&&high<0x15u)mark=true;
+                break;
+            default: break;
+        }
+
+        if(type>=0x22u&&type<=0x52u&&type!=0x50u) {
+            switch(type) {
+                case 0x22u: if(app31_resource(b,0x1Du)==1u)mark=true; break;
+                case 0x24u: if(app31_resource(b,0x1Eu)==1u)mark=true; break;
+                case 0x26u:
+                    if(app31_resource(b,0x08u)==1u||app31_resource(b,0x13u)==1u)mark=true;
+                    break;
+                case 0x27u:
+                    if(app31_resource(b,0x0Eu)==1u||app31_resource(b,0x0Du)==1u||
+                       app31_resource(b,0x18u)==1u)mark=true;
+                    break;
+                case 0x28u:
+                    if(app31_resource(b,0x0Eu)==0u||app31_resource(b,0x0Du)==1u||
+                       app31_resource(b,0x18u)==1u)mark=true;
+                    break;
+                case 0x29u: if(app31_resource(b,0x2Cu)==1u)mark=true; break;
+                case 0x2Au: if(app31_resource(b,0x2Cu)==0u)mark=true; break;
+                case 0x2Cu:
+                    if(app31_resource(b,0x06u)==1u||app31_resource(b,0x11u)==1u||
+                       app31_resource(b,0x30u)==0u)mark=true;
+                    break;
+                case 0x2Du:
+                    if(app31_resource(b,0x04u)==1u||app31_resource(b,0x0Fu)==1u||
+                       app31_resource(b,0x19u)==1u)mark=true;
+                    break;
+                case 0x2Eu:
+                    if(app31_resource(b,0x07u)==1u||app31_resource(b,0x12u)==1u||
+                       app31_resource(b,0x1Bu)==1u)mark=true;
+                    break;
+                case 0x2Fu:
+                    if(app31_resource(b,0x07u)==1u||app31_resource(b,0x12u)==1u||
+                       app31_resource(b,0x1Bu)==0u)mark=true;
+                    break;
+                case 0x30u:
+                    if(app31_resource(b,0x09u)==1u||app31_resource(b,0x45u)==1u||
+                       app31_resource(b,0x14u)==1u)mark=true;
+                    break;
+                case 0x31u:
+                    if(app31_resource(b,0x0Au)==1u||app31_resource(b,0x15u)==1u||
+                       app31_resource(b,0x23u)==1u)mark=true;
+                    break;
+                case 0x33u: if(app31_resource(b,0x2Du)==1u)mark=true; break;
+                case 0x34u: if(app31_resource(b,0x2Fu)==1u)mark=true; break;
+                case 0x35u: if(app31_resource(b,0x2Eu)==1u)mark=true; break;
+                case 0x36u:
+                    if(app31_resource(b,0x2Fu)==1u||app31_resource(b,0x39u)==0u)mark=true;
+                    break;
+                case 0x37u: if(app31_resource(b,0x27u)==1u)mark=true; break;
+                case 0x39u: if(app31_resource(b,0x2Cu)==1u)mark=true; break;
+                case 0x3Au: if(app31_resource(b,0x2Cu)==0u)mark=true; break;
+                case 0x3Du:
+                    if(app31_resource(b,0x0Cu)==1u||app31_resource(b,0x17u)==1u)mark=true;
+                    break;
+                case 0x3Fu:
+                    if(app31_resource(b,0x05u)==1u||app31_resource(b,0x10u)==1u||
+                       app31_resource(b,0x1Cu)==1u)mark=true;
+                    break;
+                case 0x40u:
+                    if(app31_resource(b,0x0Bu)==1u||app31_resource(b,0x16u)==1u)mark=true;
+                    break;
+                case 0x42u: if(app31_resource(b,0x1Eu)==0u)mark=true; break;
+                case 0x43u:
+                    if(app31_resource(b,0x04u)==1u||app31_resource(b,0x0Fu)==1u||
+                       app31_resource(b,0x19u)==0u)mark=true;
+                    break;
+                case 0x44u:
+                    if(app31_resource(b,0x0Au)==1u||app31_resource(b,0x15u)==1u||
+                       app31_resource(b,0x23u)==0u)mark=true;
+                    break;
+                case 0x45u:
+                    if(app31_resource(b,0x05u)==1u||app31_resource(b,0x10u)==1u||
+                       app31_resource(b,0x1Cu)==0u)mark=true;
+                    break;
+                case 0x46u: if(app31_resource(b,0x1Du)==0u)mark=true; break;
+                case 0x47u:
+                    if(app31_resource(b,0x2Fu)==1u||app31_resource(b,0x39u)==0u)mark=true;
+                    break;
+                case 0x4Eu:
+                    if(app31_resource(b,0x25u)!=0u) {
+                        type=1u;
+                        store_le16(dg(m,rec+0x0Eu),type);
+                        store_le32(dg(m,rec+0x08u),0x10000000u);
+                        const u32 desc=load_le32(dg(m,0x22230u))+0x45u;
+                        const u32 rank=*dg(m,desc+0x1Du);
+                        const u32 roll=b.call_1c328?b.call_1c328(rank,8u,0u,0u):0u;
+                        store_le16(dg(m,rec+0x12u),static_cast<u16>(roll));
+                    }
+                    break;
+                case 0x52u:
+                    if(app31_resource(b,0x14u)==1u||app31_resource(b,0x09u)==1u)mark=true;
+                    break;
+                default: break;
+            }
+        }
+        if(mark)*dg(m,rec+0x0Bu)=static_cast<u8>(*dg(m,rec+0x0Bu)|2u);
+    }
+}
+static_assert(0x181B4u-0x17A68u==1868u);
 
 } // namespace code2
