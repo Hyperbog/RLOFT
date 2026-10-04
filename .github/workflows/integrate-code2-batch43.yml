@@ -1,4 +1,5 @@
 name: Integrate CODE.2 batch 43
+# retry after namespace splice
 on:
   push:
     paths:
