@@ -1,0 +1,134 @@
+name: Integrate CODE.2 batch 55
+on:
+  push:
+    paths:
+      - '.github/workflows/integrate-code2-batch55.yml'
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+          fetch-depth: 0
+      - name: Verify staged payload
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64,zlib,hashlib
+          raw=zlib.decompress(base64.b64decode(Path('Code2/batch55.zb64').read_text()))
+          assert hashlib.sha256(raw).hexdigest() == '48c6dec9ff52f3aff5c8332efa35033e8304e31a583fcfc059b828b7b3af73c0'
+          text=raw.decode()
+          assert 'function_27f24' in text and 'function_2871c' in text and '== 2032u);' in text
+          print('batch55 payload OK',len(raw))
+          PY
+      - name: Apply Batch 55
+        run: python Code2/integrate_batch55.py
+      - name: Verify accounting and fidelity anchors
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          c=Path('Code2/Code2.cpp').read_text()
+          l=Path('Code2/RESIDUAL_LEDGER.md').read_text()
+          p=Path('Code2/PROGRESS.md').read_text()
+          a=Path('Code2/CODE2_CONTINUITY_ADDENDUM.md').read_text()
+          assert 'constexpr u32 kVerifiedTranslatedBytes = 169055u;' in c
+          assert 'constexpr u32 kVerifiedNonCodeBytes = 3577u;' in c
+          assert '(0x273E7u-0x26018u) + 2797u + 2032u);' in c
+          assert 'static_assert(0x27FEEu-0x27F24u==202u);' in c
+          assert 'static_assert(0x28739u-0x2871Cu==29u);' in c
+          assert '== 2032u);' in c
+          assert '28203..2820F | alignment | 13' in l
+          assert '28739..2873B | alignment | 3' in l
+          assert '**172,632 / 239,698 = 72.0206% (72.02%)**' in p
+          assert '**67,066**' in p
+          assert 'The sequential frontier is now `2873C`' in p
+          assert '## CODE.2 Batch 55 checkpoint' in a
+          block=l.split('<!-- RESIDUAL-RANGES-BEGIN -->',1)[1].split('<!-- RESIDUAL-RANGES-END -->',1)[0]
+          total=0
+          for line in block.splitlines():
+              line=line.strip()
+              if not line: continue
+              m=re.fullmatch(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| [^|]+ \| (\d+)',line)
+              assert m,line
+              x,z,n=int(m.group(1),16),int(m.group(2),16),int(m.group(3))
+              assert z-x+1==n,(line,z-x+1)
+              total+=n
+          assert total==3577,total
+          print('batch55 accounting/fidelity anchors OK')
+          PY
+      - name: Syntax check CODE.2 C++
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+      - name: Clean temporary staging files
+        run: |
+          rm -f Code2/batch55.zb64 Code2/integrate_batch55.py .github/workflows/integrate-code2-batch55.yml
+          python - <<'PY'
+          from pathlib import Path
+          for name in ('Code2/CODE2_CONTINUITY_ADDENDUM.md','Code2/PROGRESS.md','Code2/RESIDUAL_LEDGER.md'):
+              p=Path(name); p.write_text(p.read_text().rstrip('\n')+'\n')
+          PY
+          git diff --check
+      - name: Commit Batch 55 and refresh checkpoint
+        run: |
+          git config user.name 'Hyperbog'
+          git config user.email '47282882+Hyperbog@users.noreply.github.com'
+          git add -A
+          git commit -m 'Integrate CODE.2 decompilation batch 55'
+          BATCH_SHA=$(git rev-parse HEAD)
+          git push origin HEAD:code1-decompilation
+          python - "$BATCH_SHA" <<'PY'
+          from pathlib import Path
+          import sys
+          batch=sys.argv[1]
+          text=f'''# CODE.2 resume checkpoint
+
+This file is a durable handoff anchor. Read it together with `INTERRUPTION_RESUME_PROTOCOL.md`, `PROGRESS.md`, `RESIDUAL_LEDGER.md`, and the live `Code2.cpp`. If anything here disagrees with live repository/binary evidence, live evidence wins and this file must be corrected before forward accounting.
+
+## Last committed substantive decompilation state
+
+- Last substantive batch commit: `{batch}` — `Integrate CODE.2 decompilation batch 55`.
+- Verified translated instruction bytes: **169,055**.
+- Proven non-code/data bytes: **3,577**.
+- Reconciled object bytes: **172,632 / 239,698 = 72.0206% (72.02%)**.
+- Unresolved object bytes: **67,066**.
+- Last integrated instruction ownership unit: `27F24..28738`.
+- Inter-routine separators through `2873B` are directly proven non-code/data and counted in the residual ledger.
+- Next independently decoded instruction boundary: **`2873C`**.
+
+## Immutable identity
+
+- `CODE.2` SHA-256: `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
+- Object-1 SHA-256: `014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3`.
+- Object-1 file start: `0x3AF24`.
+- Object-1 length: `0x3A852`.
+- Address convention: all reconstruction addresses are object-relative offsets. For extracted-object `objdump -b binary`, use the tracked address directly; do not add `0x10000`.
+
+## Mandatory overlap anchor for next resume
+
+Re-disassemble at minimum `286E0..287C0` from freshly regenerated object 1 before doing new work.
+
+- Window: object-relative `[0x286E0, 0x287C0)` — 224 bytes.
+- SHA-256: `4436200b17d9af911eca06990cd06bd7471ebf2a45400b62c19eeb564c0a1c51`.
+- Narrow boundary window: `[0x28720, 0x28780)` — 96 bytes.
+- Narrow SHA-256: `0a58164a2fd55bb5378f1f4852a9ebf67e066999cd43c2458430d4a13af8597d`.
+- Narrow boundary bytes:
+  `0000007413837c240400740cff742404e87b89000083c404c38d400083ec04a150f00000a3f07002000fbf403283f803752e8b1530ef00008d04950000000029d001c089c2c1e00429d08d5032c704246400000089d0c1fa1ff73c2483c404c3`
+
+Interpretation to re-prove on resume, not merely trust: `2871C` is the last Batch-55 free helper and returns at `28738`; `28739..2873B` is LEA alignment; `2873C` begins the next routine with `SUB ESP,4`.
+
+## Interrupted/in-progress state
+
+**UNCOUNTED / NOT COMMITTED:** no Batch 56 bytes are authorized by this checkpoint. Any analysis beyond `2873B` must be revalidated against the overlap before counting.
+
+## Resume rule
+
+Do not rework Batch 55 merely because the overlap is re-disassembled. Verify the overlap and accounting, then proceed strictly forward from `2873C`. If any overlap/hash/accounting mismatch appears, freeze forward progress and repair the prior batch first.
+'''
+          Path('Code2/RESUME_CHECKPOINT.md').write_text(text)
+          PY
+          git add Code2/RESUME_CHECKPOINT.md
+          git commit -m 'Refresh CODE.2 resume checkpoint after batch 55'
+          git push origin HEAD:code1-decompilation
