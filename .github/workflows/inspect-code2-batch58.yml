@@ -1,0 +1,27 @@
+name: Inspect CODE.2 batch 58
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-code2-batch58.yml'
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+      - name: Decode staged payload
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64,zlib,hashlib,re
+          raw=zlib.decompress(base64.b64decode(Path('Code2/batch58.zb64').read_text()))
+          print('SHA256',hashlib.sha256(raw).hexdigest())
+          print('LENGTH',len(raw))
+          text=raw.decode()
+          print('---BEGIN PAYLOAD---')
+          print(text)
+          print('---END PAYLOAD---')
+          print('FUNCTIONS',re.findall(r'function_([0-9a-f]+)',text))
+          print('ASSERTS',re.findall(r'static_assert\(([^\n]+)',text))
+          PY
