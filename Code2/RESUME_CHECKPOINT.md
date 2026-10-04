@@ -4,14 +4,14 @@ This file is a durable handoff anchor. Read it together with `INTERRUPTION_RESUM
 
 ## Last committed substantive decompilation state
 
-- Last substantive batch commit: `30f78b3b634fc20791cb70dde28cff59f5e97143` — `Integrate CODE.2 decompilation batch 57`.
-- Verified translated instruction bytes: **173,550**.
-- Proven non-code/data bytes: **3,678**.
-- Reconciled object bytes: **177,228 / 239,698 = 73.9380% (73.94%)**.
-- Unresolved object bytes: **62,470**.
-- Last integrated instruction ownership fold: `29414..29921`.
-- Batch-57 inter-routine separators plus the directly proven zero-fill pad `29922..2992F` are counted in the residual ledger.
-- Next independently decoded instruction boundary: **`29930`**.
+- Last substantive batch commit: `6e1f7cc360f07ece2cc0971f465801afe4edb050` — `Integrate CODE.2 decompilation batch 58`.
+- Verified translated instruction bytes: **174,489**.
+- Proven non-code/data bytes: **3,695**.
+- Reconciled object bytes: **178,184 / 239,698 = 74.3369% (74.34%)**.
+- Unresolved object bytes: **61,514**.
+- Last integrated instruction ownership fold: `29930..29CE8`, including the address-distinct `29AA0` tail wrapper and shared executable epilogue `29B37..29B3D`.
+- Batch-58 separators through `29CEB`, including direct CS table `29B33..29B36`, are counted in the residual ledger.
+- Next independently decoded instruction boundary: **`29CEC`**.
 
 ## Immutable identity
 
@@ -23,21 +23,21 @@ This file is a durable handoff anchor. Read it together with `INTERRUPTION_RESUM
 
 ## Mandatory overlap anchor for next resume
 
-Re-disassemble at minimum `298D0..299B0` from freshly regenerated object 1 before doing new work.
+Re-disassemble at minimum `29C80..29D60` from freshly regenerated object 1 before doing new work.
 
-- Window: object-relative `[0x298D0, 0x299B0)` — 224 bytes.
-- SHA-256: `a4973ee51c1d36e76d3903af9a3bf2a1cf8c9e358fbf40469bd73fb88c53653e`.
-- Narrow boundary window: `[0x29910, 0x29970)` — 96 bytes.
-- Narrow SHA-256: `b29683c503d3a4965eb6ffc3e75b4d73b18b31cedccbb2f1fa78c044331eb397`.
+- Window: object-relative `[0x29C80, 0x29D60)` — 224 bytes.
+- SHA-256: `ee20a696989333268c61ba4dd7394cb79a4d455ddf6347240b2ee1d221d8e02a`.
+- Narrow boundary window: `[0x29CC0, 0x29D20)` — 96 bytes.
+- Narrow SHA-256: `fff066b0c7769e7f9a41f0774b52dfcbd7a9801234f44cdd6f98f1c2d514cd52`.
 - Narrow boundary bytes:
-  `14ff742414e86a0c000083c414e9364e00000000000000000000000000000000c800000056575251538b4508a3e1ef00008125e1ef00008000000083e07fa3e5ef0000c705f5ef0000c8000000c705f9ef000050000000c70501f0000000000a`
+  `000081fbc00000007e0fb9c0000000f36e81ebc0000000ebe483fb0074048bcbf36e5b595a5f5ec9c387db90c80c0000565752515366bace038a25e0ef0000b00366ef8b35f9ef00008b4d142b4d0c74737914f7d98b5d14875d0c895d148b5d`
 
-Interpretation to re-prove on resume, not merely trust: `298F0` is the last Batch-57 lookup wrapper; after its `2A584` call it tail-jumps to `2E758` at `2991D`. Its instruction ownership ends at `29921`; `29922..2992F` is directly proven zero-fill padding. `29930` begins the next independent routine with `ENTER 0,0`, followed by `PUSH ESI / PUSH EDI / PUSH EDX / PUSH ECX / PUSH EBX`.
+Interpretation to re-prove on resume, not merely trust: `29CA0` is the final Batch-58 palette streamer and returns at `29CE8`; `29CE9..29CEB` is the proven `XCHG EBX,EBX / NOP` separator; `29CEC` begins the next independent routine with `ENTER 0Ch,0`, followed by `PUSH ESI / PUSH EDI / PUSH EDX / PUSH ECX / PUSH EBX` and graphics-controller setup.
 
 ## Interrupted/in-progress state
 
-**UNCOUNTED / NOT COMMITTED:** no Batch 58 bytes are authorized by this checkpoint. Any analysis at or beyond `29930` must be revalidated against the overlap before counting.
+**UNCOUNTED / NOT COMMITTED:** no Batch 59 bytes are authorized by this checkpoint. Any analysis at or beyond `29CEC` must be revalidated against the overlap before counting.
 
 ## Resume rule
 
-Do not rework Batch 57 merely because the overlap is re-disassembled. Verify the overlap, immutable hashes, live accounting, and branch head; then proceed strictly forward from `29930`. If any overlap/hash/accounting mismatch appears, freeze forward progress and repair the prior batch first.
+Do not rework Batch 58 merely because the overlap is re-disassembled. Verify the overlap, immutable hashes, live accounting, and branch head; then proceed strictly forward from `29CEC`. If any overlap/hash/accounting mismatch appears, freeze forward progress and repair the prior batch first.
