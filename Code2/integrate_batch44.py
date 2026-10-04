@@ -13,11 +13,14 @@ assert 'constexpr u32 kVerifiedNonCodeBytes = 2465u;' in code
 
 # Batch-43 boundary correction discovered while decoding the identical stack
 # pattern at 1F6D6: 2E6F0 reads one cdecl argument. The preceding pushed zero
-# survives the call and becomes 30508's fifth argument.
+# survives the call and becomes 30508's fifth argument. Older boundary structs
+# contain the same textual two-argument declaration, so patch only the latest
+# occurrence, which is Application43Boundary.
 old_sig='u32 (*call_2e6f0)(u32,u32)=nullptr;'
 new_sig='u32 (*call_2e6f0)(u32)=nullptr;'
-assert code.count(old_sig)==1
-code=code.replace(old_sig,new_sig,1)
+sig_pos=code.rfind(old_sig)
+assert sig_pos>=0
+code=code[:sig_pos]+new_sig+code[sig_pos+len(old_sig):]
 old_call='''const u32 text=b.call_2e6f0?b.call_2e6f0(load_le32(dg(m,0x21A8Au+timer_off)),0u):0u;\n            // The caller removes only the first 2E6F0 argument; its pushed zero\n            // remains as the fifth 30508 argument.'''
 new_call='''const u32 text=b.call_2e6f0?b.call_2e6f0(load_le32(dg(m,0x21A8Au+timer_off))):0u;\n            // The encoded pre-pushed zero is not a 2E6F0 argument; it survives\n            // the call as the fifth 30508 argument.'''
 assert old_call in code
