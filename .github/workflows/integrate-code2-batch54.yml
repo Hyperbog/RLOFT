@@ -1,4 +1,4 @@
-# retrigger after cumulative-assert fix
+# retrigger after cumulative-assert regex fix
 name: Integrate CODE.2 batch 54
 on:
   push:
@@ -31,14 +31,15 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           p=Path('Code2/Code2.cpp')
           s=p.read_text()
-          old='''static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u));'''
-          new='''static_assert(kVerifiedTranslatedBytes == 159155u +
+          pat=r'static_assert\(kVerifiedTranslatedBytes == 159155u \+\s*\(0x273E7u-0x26018u\)\);'
+          repl='''static_assert(kVerifiedTranslatedBytes == 159155u +
               (0x273E7u-0x26018u) + 2797u);'''
-          assert old in s
-          p.write_text(s.replace(old,new,1))
+          s,n=re.subn(pat,repl,s,count=1)
+          assert n==1,n
+          p.write_text(s)
           PY
       - name: Verify accounting and fidelity anchors
         run: |
