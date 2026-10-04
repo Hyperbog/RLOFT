@@ -65,7 +65,7 @@ def update_ledger():
     led=led.replace(end,ROWS+end,1)
     led,n=re.subn(r'\*\*Total proven non-code/data:\*\* \*\*[0-9,]+ bytes\*\*\.', '**Total proven non-code/data:** **3,780 bytes**.', led, count=1)
     assert n==1
-    led=led.rstrip()+EVIDENCE+'\n'
+    led=led.rstrip()+EVIDENCE.rstrip()+'\n'
     LED.write_text(led)
 
 def update_progress():
@@ -76,12 +76,12 @@ def update_progress():
     p=one_replace(p,'**Proven non-code/data bytes:** **3,773**','**Proven non-code/data bytes:** **3,780**','progress noncode')
     p=one_replace(p,'**Reconciled object bytes:** **184,812 / 239,698 = 77.1020% (77.10%)**','**Reconciled object bytes:** **187,824 / 239,698 = 78.3586% (78.36%)**','progress reconciled')
     p=one_replace(p,'**Unresolved object bytes:** **54,886**','**Unresolved object bytes:** **51,874**','progress unresolved')
-    PROG.write_text(p.rstrip()+PROGRESS_BLOCK+'\n')
+    PROG.write_text(p.rstrip()+PROGRESS_BLOCK.rstrip()+'\n')
 
 def update_addendum():
     a=ADD.read_text()
     assert '## CODE.2 Batch 64 checkpoint' not in a
-    ADD.write_text(a.rstrip()+ADD_BLOCK+'\n')
+    ADD.write_text(a.rstrip()+ADD_BLOCK.rstrip()+'\n')
 
 def verify():
     cpp=CPP.read_text(); led=LED.read_text(); p=PROG.read_text(); a=ADD.read_text()
