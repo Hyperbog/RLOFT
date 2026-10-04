@@ -294,9 +294,18 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 1F8FB..1F8FB | alignment | 1
 1FC12..1FC13 | alignment | 2
 202ED..202EF | alignment | 3
+2043E..2043F | alignment | 2
+20607..20607 | alignment | 1
+207D1..207DF | padding | 15
+207E0..207E7 | table | 8
+2084E..2084F | alignment | 2
+20993..20993 | alignment | 1
+20A22..20A23 | alignment | 2
+20CF3..20CF3 | alignment | 1
+20D7B..20D7B | alignment | 1
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **2,634 bytes**.
+**Total proven non-code/data:** **2,667 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -407,3 +416,6 @@ Batch 43 evidence: `1E533`, `1E592..1E593`, `1E74A..1E74B`, `1E75B`, `1E99F`, an
 Batch 44 evidence: `1EEFC..1EF7B` is the exact 32-dword CS dispatch table consumed by the bounded `C6C8 <= 1Fh` indirect jump at `1EFAC`; decoded targets are `1F041,1F025,1F02F,1F07B,1F08D,1F0E0,1F0CC,1F106,1F053,1EFBB,1F106,1EFF3,1F09C,1F09C,1F09C,1F106,1F0F4,1F0F4,1F106,1F106,1F106,1F106,1EFB4,1EFBB,1EFBB,1EFBB,1EFBB,1F106,1F0B4,1F0B4,1F106,1EFBB`. `1EEFB`, `1F11F`, `1F1C6..1F1C7`, `1F3FA..1F3FB`, `1F493`, and `1F7F6..1F7F7` decode as explicit NOP/MOV-EAX-EAX separators. A full object-1 direct relative CALL/JMP/conditional target scan, excluding the table bytes' meaningless linear disassembly, found no incoming code target into any of these 137 bytes.
 
 Batch 45 evidence: `1F858..1F86B` is the exact five-dword CS table consumed by the `C018 <= 4` indirect jump at `1F88B`; entries 0..4 target `1F8C5,1F8BB,1F8B1,1F8A7,1F893`, respectively. `1F809..1F80B`, `1F81E..1F81F`, `1F857`, `1F8FB`, `1FC12..1FC13`, and `202ED..202EF` decode as explicit LEA/MOV-EAX-EAX/NOP compiler separators. A full object-1 direct relative CALL/JMP/conditional target scan found no incoming code target into any of these 32 bytes.
+
+
+Batch 46 evidence: `2043E..2043F`, `2084E..2084F`, and `20A22..20A23` decode as `MOV EAX,EAX`; `20607`, `20993`, `20CF3`, and `20D7B` are explicit `NOP` separators. `207D1..207DF` is a fifteen-byte zero pad between the directly reconstructed `20608` return and the next consumed data object. `207E0..207E7` is the exact eight-byte direction/script table referenced by the later routine at `2188C` (direct absolute reference `0x207E0`). A full direct relative control-flow target scan found no incoming target to any Batch 46 residual byte. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
