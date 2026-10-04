@@ -423,6 +423,13 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 29B3E..29B3F | alignment | 2
 29C9E..29C9F | alignment | 2
 29CE9..29CEB | alignment | 3
+29EAA..29EAB | alignment | 2
+29F3E..29F3F | alignment | 2
+29FE9..29FEB | alignment | 3
+29FFA..29FFB | alignment | 2
+2A01D..2A01F | alignment | 3
+2A075..2A077 | alignment | 3
+2A103..2A103 | alignment | 1
 <!-- RESIDUAL-RANGES-END -->
 
 **Total proven non-code/data:** **3,651 bytes**.
@@ -575,3 +582,6 @@ Batch 57 evidence: mandatory Batch-56 overlap hashes were reproduced from immuta
 
 
 Batch 58 evidence: Batch-57 overlap at `298D0..299B0` was regenerated from immutable CODE.2 and matched the checkpoint hashes before forward accounting. The instruction-owned units cover `29930..29CE8`, including the address-distinct two-byte tail wrapper at `29AA0` and shared executable epilogue `29B37..29B3D`. `29B33..29B36` is the exact four-byte CS table referenced directly by `29B24`; the remaining listed bytes are Watcom NOP/XCHG alignment with no incoming target or independent absolute reference. Preserve VGA latch reads before masked writes, `DEC DI` low-word-only stride semantics in `29B40`, its AL-only middle-byte counter in the nonzero raster-op path, and the 192-byte retrace-bounded palette chunks in `29CA0`.
+
+
+Batch 59 evidence: the Batch-58 overlap `29C80..29D60` and narrow window `29CC0..29D20` were regenerated from immutable CODE.2 and matched the committed checkpoint hashes before forward accounting. Instruction-owned units cover `29CEC..2A113`. The seven listed gaps are exact Watcom XCHG/NOP separators; a full-object direct branch/call-target scan found no incoming target into them, and the apparent dword match for `29FE9` is only the displacement bytes of the unrelated near jump at `17EED`, not an absolute reference. Preserve `29CEC`'s partial-register plane-mask rotation and signed error path, the low-16 sign tests in `29EAC/29F40`, the CX-only shift in `2A020`, and `2A078`'s save/select/restore page sequence before planar mode-1 copying.

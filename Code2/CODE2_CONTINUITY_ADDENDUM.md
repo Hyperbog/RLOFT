@@ -402,3 +402,7 @@ Batch 57 adds **1,281 translated bytes** and **27 proven alignment/padding bytes
 
 ## CODE.2 Batch 58 checkpoint
 Batch 58 adds **939 translated bytes** and **17 proven alignment/table bytes**, bringing cumulative accounting to **174,489 translated + 3,695 non-code = 178,184 / 239,698 = 74.3369% (74.34%)**. The sequential frontier is `29CEC`; preserve the VGA register/BIOS ordering, `29B33` direct CS table, `29B40` latch/mask and partial-register behavior, and `29CA0` retrace-bounded DAC streaming.
+
+
+## CODE.2 Batch 59 checkpoint
+Batch 59 adds **1,048 translated bytes** and **16 proven alignment bytes**, bringing cumulative accounting to **175,537 translated + 3,711 non-code = 179,248 / 239,698 = 74.7808% (74.78%)**. The sequential frontier is `2A114`; preserve the partial-register plane-mask and signed Bresenham paths in `29CEC`, low-word sign gates in `29EAC/29F40`, CX-only shift semantics in `2A020`, and page save/select/restore behavior in `2A078`.

@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-74.34%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-74.78%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **174,489**
-**Proven non-code/data bytes:** **3,695**
-**Reconciled object bytes:** **178,184 / 239,698 = 74.3369% (74.34%)**
-**Unresolved object bytes:** **61,514**
+**Verified translated instruction bytes:** **175,537**
+**Proven non-code/data bytes:** **3,711**
+**Reconciled object bytes:** **179,248 / 239,698 = 74.7808% (74.78%)**
+**Unresolved object bytes:** **60,450**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -679,3 +679,10 @@ The sequential frontier is now `29930`, the independent VGA mode/setup prologue.
 Batch 58 added **939 translated instruction bytes** plus **17 directly proven alignment/table bytes**, reconciling through `29CEB`. Cumulative accounting is **174,489 translated + 3,695 non-code = 178,184 / 239,698 = 74.3369% (74.34%)**; unresolved is **61,514 bytes**.
 
 The sequential frontier is now `29CEC`, the next independent raster primitive. Preserve `29930`'s BIOS/VGA register ordering and descriptor writes, the direct `29AA0 -> 29B1C` wrapper, the unbounded CS-byte lookup at `29B33`, `29B40`'s shared `29B37` epilogue plus partial-register mask/counter behavior, and `29CA0`'s retrace wait before every <=192-byte DAC chunk.
+
+
+## CODE.2 Batch 59 checkpoint
+
+Batch 59 added **1,048 translated instruction bytes** plus **16 directly proven alignment bytes**, reconciling through `2A113`. Cumulative accounting is **175,537 translated + 3,711 non-code = 179,248 / 239,698 = 74.7808% (74.78%)**; unresolved is **60,450 bytes**.
+
+The sequential frontier is now `2A114`. Preserve `29CEC`'s line-drawing fast paths and plane-mask/error rotations, `29EAC/29F40` low-word sign tests with full-register arithmetic, `2A020`'s CX-only count shift, and `2A078`'s page save/select/restore before mode-1 planar copies.
