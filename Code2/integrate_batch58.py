@@ -5,7 +5,7 @@ cpp=root/'Code2/Code2.cpp'; ledger=root/'Code2/RESIDUAL_LEDGER.md'; progress=roo
 c=cpp.read_text()
 assert 'constexpr u32 kVerifiedTranslatedBytes = 173550u;' in c
 assert 'constexpr u32 kVerifiedNonCodeBytes = 3678u;' in c
-assert 'function_29930' not in c
+assert 'u32 function_29930(' not in c
 append=zlib.decompress(base64.b64decode(payload.read_text())).decode()
 assert 'function_29930' in append and 'function_29ca0' in append and '==939u);' in append
 c=c.replace('constexpr u32 kVerifiedTranslatedBytes = 173550u;','constexpr u32 kVerifiedTranslatedBytes = 174489u;',1)
