@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 167023u;
-constexpr u32 kVerifiedNonCodeBytes = 3537u;
+constexpr u32 kVerifiedTranslatedBytes = 169055u;
+constexpr u32 kVerifiedNonCodeBytes = 3577u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-    (0x273E7u-0x26018u) + 2797u);
+              (0x273E7u-0x26018u) + 2797u + 2032u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -18747,5 +18747,334 @@ static_assert((0x274A2u-0x273F0u)+(0x2757Eu-0x274A4u)+(0x275E2u-0x27580u)+
               (0x27AECu-0x27A90u)+(0x27B83u-0x27AECu)+(0x27BD8u-0x27B84u)+
               (0x27C6Eu-0x27BD8u)+(0x27D1Cu-0x27C70u)+(0x27ECCu-0x27D20u)+
               (0x27F23u-0x27ECCu)==2797u);
+
+
+
+// -----------------------------------------------------------------------------
+// Batch 55: 27F24..28738 multimedia queue, resource-backed device state, and
+// length-prefixed stream helpers.  All addresses are CODE.2 object-relative.
+// -----------------------------------------------------------------------------
+
+struct Application55Boundary {
+    u32 (*call_2f29c)(u32,u32)=nullptr;
+    u32 (*call_367ef)(u32,u32,u32,u32,u32)=nullptr;
+    u32 (*call_367f9)(u32,u32,u32,u32)=nullptr;
+    u32 (*call_36803)(u32)=nullptr;
+    u32 (*call_3680d)(u32)=nullptr;
+    u32 (*call_36817)(u32)=nullptr;
+    u32 (*call_312ec)(u32,u32,u32)=nullptr;
+    u32 (*call_312ec_stack4)(u32*,u32)=nullptr; // same 312EC entry with a host-modeled stack local
+    u32 (*call_3104c)(u32)=nullptr;
+    u32 (*call_310b0)(u32)=nullptr;
+    u32 (*call_3127c)(u32)=nullptr;
+    u32 (*call_312a0)(u32)=nullptr;
+    u32 (*call_312dc)(u32)=nullptr;
+    u32 (*call_3210f_stack)(u32,u32)=nullptr; // first target arg is a stack-local output buffer
+    u32 (*call_2f580_stack)()=nullptr;         // consumes that same stack-local buffer
+    u32 (*call_30d80)(u32,u32,u32)=nullptr;
+    u32 (*call_30de8)(u32)=nullptr;
+    u32 (*call_35a0c)(u32,u32,u32)=nullptr;
+    u32 (*call_36254)()=nullptr;
+    u32 (*call_365df)(u32)=nullptr;
+    u32 (*call_362be)(u32)=nullptr;
+    u32 (*call_3669c)(u32)=nullptr;
+    u32 (*call_366bb)(u32,u32,u32,u32,u32)=nullptr;
+    u32 (*call_366c5)(u32,u32,u32,u32,u32)=nullptr;
+    u32 (*call_3685d)(u32)=nullptr;
+    u32 (*call_3687b)(u32)=nullptr;
+    u32 (*call_36885)(u32,u32,u32)=nullptr;
+    u32 (*call_3666e)(u32)=nullptr;
+    u32 (*call_28ce8)()=nullptr;
+    u32 (*call_28884)()=nullptr;
+};
+
+static void app55_stop_if_playing(Machine& m,Application55Boundary& b) noexcept {
+    if(load_le32(dg(m,0xEE40u))==0u)return;
+    const u32 s=b.call_36803?b.call_36803(load_le32(dg(m,0xEE6Cu))):0u;
+    if(s==2u && b.call_36817)(void)b.call_36817(load_le32(dg(m,0xEE6Cu)));
+}
+
+void function_27f24(Machine& m,Application55Boundary& b,u32 id) noexcept {
+    if(load_le32(dg(m,0xEE40u))==0u || *dg(m,0xEE70u)==0u)return;
+    const u32 packet=b.call_2f29c?b.call_2f29c(id,load_le32(dg(m,0xEE44u))):0u;
+    const u32 count=load_le32(dg(m,packet));
+    u32 src=packet+4u, dst=load_le32(dg(m,0xEE60u));
+    app55_stop_if_playing(m,b);
+    // 27F89..27F98 is REPNE MOVSD followed by CL=original-low-byte & 3
+    // and REPNE MOVSB.  This is exactly a byte copy of ECX bytes, including
+    // the zero-count wrap/alias behavior of the source and destination values.
+    for(u32 i=0;i<count;++i)*dg(m,dst+i)=*dg(m,src+i);
+    const u32 dev=load_le32(dg(m,0xEE6Cu));
+    const u32 ds=static_cast<u32>(m.cpu.ds);
+    if(b.call_367f9)(void)b.call_367f9(dev,dst,ds,0xFFFFFFFFu);
+    if(b.call_367ef)(void)b.call_367ef(dev,dst,ds,load_le32(dg(m,0xEE64u)),0xFFFFFFFFu);
+    if(b.call_3680d)(void)b.call_3680d(dev);
+}
+static_assert(0x27FEEu-0x27F24u==202u);
+
+void function_27ff0(Machine& m,Application55Boundary& b) noexcept {
+    app55_stop_if_playing(m,b);
+}
+static_assert(0x2801Du-0x27FF0u==45u);
+
+[[nodiscard]] u32 function_28020(Machine& m,Application55Boundary& b,u32 stream) noexcept {
+    if(load_le32(dg(m,0xEE40u))==0u)return 0u;
+    u32 len=0u;
+    // 312EC receives &stack_len,4,stream; keep the output value distinct from
+    // 312EC's own return value by using the stack-local boundary adapter.
+    if(b.call_312ec_stack4)(void)b.call_312ec_stack4(&len,stream);
+    const u32 p=b.call_3104c?b.call_3104c(len+4u):0u;
+    store_le32(dg(m,p),len);
+    if(b.call_312ec)(void)b.call_312ec(p+4u,len,stream);
+    return p;
+}
+static_assert(0x28076u-0x28020u==86u);
+
+void function_28078(Machine& m,Application55Boundary& b,u32 p) noexcept {
+    if(load_le32(dg(m,0xEE40u))!=0u && p!=0u && b.call_310b0)(void)b.call_310b0(p);
+}
+static_assert(0x28095u-0x28078u==29u);
+
+void function_28098(Machine& m,Application55Boundary& b,u32 enabled) noexcept {
+    *dg(m,0xEE70u)=static_cast<u8>(enabled);
+    if(load_le32(dg(m,0xEE40u))!=0u && static_cast<u8>(enabled)==0u)
+        app55_stop_if_playing(m,b);
+}
+static_assert(0x280DBu-0x28098u==67u);
+
+void function_280dc(Machine& m,u32 value) noexcept {
+    store_le32(dg(m,0xEE44u),value);
+}
+static_assert(0x280E6u-0x280DCu==10u);
+
+[[nodiscard]] u32 function_280e8(Machine& m,Application55Boundary& b) noexcept {
+    if(load_le32(dg(m,0xEE40u))==0u)return 0u;
+    return (b.call_36803?b.call_36803(load_le32(dg(m,0xEE6Cu))):0u)==2u?1u:0u;
+}
+static_assert(0x2810Fu-0x280E8u==39u);
+
+void function_28110(Machine& m,u32 handle,u32 aux,u32 slot,u32 priority) noexcept {
+    if(load_le32(dg(m,0xEE40u))==0u)return;
+    const u32 off=slot*12u;
+    bool accept=true;
+    if(load_le32(dg(m,0xEE48u+off))!=0xFFFFFFFFu){
+        const s32 old_priority=static_cast<s32>(load_le32(dg(m,0xEE50u+off)));
+        accept=old_priority>=static_cast<s32>(priority);
+    }
+    if(!accept)return;
+    store_le32(dg(m,0xEE48u+off),handle);
+    store_le32(dg(m,0xEE4Cu+off),aux);
+    store_le32(dg(m,0xEE50u+off),priority);
+}
+static_assert(0x28165u-0x28110u==85u);
+
+void function_28168(Machine& m,Application55Boundary& b) noexcept {
+    if(load_le32(dg(m,0xEE40u))==0u)return;
+    const bool a=load_le32(dg(m,0xEE48u))!=0xFFFFFFFFu;
+    const bool c=load_le32(dg(m,0xEE54u))!=0xFFFFFFFFu;
+    if(a && c){
+        const s32 p0=static_cast<s32>(load_le32(dg(m,0xEE50u)));
+        const s32 p1=static_cast<s32>(load_le32(dg(m,0xEE5Cu)));
+        function_27f24(m,b,p0<p1?load_le32(dg(m,0xEE48u)):load_le32(dg(m,0xEE54u)));
+        store_le32(dg(m,0xEE54u),0xFFFFFFFFu);
+        store_le32(dg(m,0xEE48u),0xFFFFFFFFu);
+        return;
+    }
+    if(a){
+        function_27f24(m,b,load_le32(dg(m,0xEE48u)));
+        store_le32(dg(m,0xEE48u),0xFFFFFFFFu);
+        return;
+    }
+    if(c){
+        function_27f24(m,b,load_le32(dg(m,0xEE54u)));
+        store_le32(dg(m,0xEE54u),0xFFFFFFFFu);
+    }
+}
+static_assert(0x28203u-0x28168u==155u);
+
+void function_28210(Machine& m,Application55Boundary& b) noexcept {
+    // 2821B..28233 copies exactly ten bytes from DS:1310 to a 0x124-byte
+    // stack frame (two MOVSD + one MOVSW).  The copied name is never mutated,
+    // so the semantic boundary can use the original target address 1310h.
+    const u32 name=0x1310u;
+    const u32 size=b.call_3127c?b.call_3127c(name):0u;
+    const u32 buffer=b.call_3104c?b.call_3104c(size):0u;
+    store_le32(dg(m,0xEE8Cu),buffer);
+    const s32 h=b.call_312a0?static_cast<s32>(b.call_312a0(name)):-1;
+    if(h==-1){
+        // The binary formats through a stack-local output at 28277 and passes
+        // that same local to 2F580, then falls through with EBX still -1.
+        if(b.call_3210f_stack)(void)b.call_3210f_stack(0x131Cu,name);
+        if(b.call_2f580_stack)(void)b.call_2f580_stack();
+    }
+    if(b.call_312ec)(void)b.call_312ec(buffer,size,static_cast<u32>(h));
+    if(b.call_312dc)(void)b.call_312dc(static_cast<u32>(h));
+    *dg(m,0xEE88u)=1u;
+}
+static_assert(0x282BAu-0x28210u==170u);
+
+static void app55_close_selector(Application55Boundary& b,u16 sel) noexcept {
+    if(b.call_30de8)(void)b.call_30de8(static_cast<u32>(sel));
+}
+static void app55_backend_fail(Machine& m,Application55Boundary& b) noexcept {
+    if(load_le32(dg(m,0xEE40u))==0u && b.call_362be)(void)b.call_362be(0u);
+    app55_close_selector(b,load_le16(dg(m,0xEE98u)));
+}
+
+void function_282bc(Machine& m,Application55Boundary& b,u32 name,u32 a2,u32 a3,u32 a4,u32 a5) noexcept {
+    if(load_le32(dg(m,0xEE78u))!=0u)return;
+    const u32 root=b.call_30d80?b.call_30d80(0xC800u,0xEE94u,0xEE98u):0u;
+    store_le32(dg(m,0xEE90u),root);
+    if(root==0u)return;
+
+    const s32 h=b.call_312a0?static_cast<s32>(b.call_312a0(name)):-1;
+    if(h==-1){app55_close_selector(b,load_le16(dg(m,0xEE98u)));return;}
+
+    const u32 size=b.call_3127c?b.call_3127c(name):0u;
+    const u32 filebuf=b.call_3104c?b.call_3104c(size):0u;
+    if(filebuf==0u){app55_close_selector(b,load_le16(dg(m,0xEE98u)));return;}
+    if(b.call_312ec)(void)b.call_312ec(filebuf,b.call_3127c?b.call_3127c(name):size,static_cast<u32>(h));
+    if(b.call_312dc)(void)b.call_312dc(static_cast<u32>(h));
+
+    const u32 obj=b.call_35a0c?b.call_35a0c(filebuf,5u,0u):0u;
+    if(obj==0u){
+        app55_close_selector(b,load_le16(dg(m,0xEE98u)));
+        if(b.call_310b0)(void)b.call_310b0(filebuf);
+        return;
+    }
+    if(b.call_310b0)(void)b.call_310b0(filebuf);
+
+    if(load_le32(dg(m,0xEE40u))==0u && b.call_36254)(void)b.call_36254();
+    const s32 dev=b.call_365df?static_cast<s32>(b.call_365df(obj)):-1;
+    store_le32(dg(m,0xEE84u),static_cast<u32>(dev));
+    if(dev==-1){app55_backend_fail(m,b);return;}
+
+    const u32 desc=b.call_3669c?b.call_3669c(static_cast<u32>(dev)):0u;
+    if(load_le32(dg(m,desc+4u))!=3u){app55_backend_fail(m,b);return;}
+
+    const u32 ok=b.call_366bb?b.call_366bb(static_cast<u32>(dev),a2,a3,a4,a5):0u;
+    if(ok==0u){app55_backend_fail(m,b);return;}
+    if(b.call_366c5)(void)b.call_366c5(static_cast<u32>(dev),a2,a3,a4,a5);
+
+    u32 esi_live=filebuf; // ESI is deliberately stale until 284AA if EEF8==0.
+    const u32 frame=b.call_3685d?b.call_3685d(static_cast<u32>(dev)):0u;
+    store_le32(dg(m,0xEEF8u),frame);
+    if(frame!=0u){
+        esi_live=0u;
+        u32 out_dword=0xEEBCu;
+        u32 out_word=0xEEDCu;
+        for(;;){
+            const u32 p=b.call_30d80?b.call_30d80(frame,out_dword,out_word):0u;
+            store_le32(dg(m,0xEE9Cu+esi_live*4u),p);
+            if(p==0u){
+                if(load_le32(dg(m,0xEE40u))==0u && b.call_362be)(void)b.call_362be(0u);
+                if(static_cast<s32>(esi_live)>0){
+                    const u32 limit=esi_live*2u;
+                    for(u32 off=0;off<limit;off+=2u)
+                        app55_close_selector(b,load_le16(dg(m,0xEEDCu+off)));
+                }
+                app55_close_selector(b,load_le16(dg(m,0xEE98u)));
+                return;
+            }
+            out_dword+=4u; out_word+=2u; ++esi_live;
+            if(static_cast<s32>(esi_live)>=8)break;
+        }
+    }
+
+    const u32 second=b.call_3687b?b.call_3687b(static_cast<u32>(dev)):0u;
+    store_le32(dg(m,0xEE80u),second);
+    if(second!=0u){
+        const u32 p=b.call_30d80?b.call_30d80(second,0xEEF0u,0xEEF4u):0u;
+        store_le32(dg(m,0xEEECu),p);
+        if(p==0u){
+            if(load_le32(dg(m,0xEE40u))==0u && b.call_362be)(void)b.call_362be(0u);
+            // Encoded oddity at 28564: ESI is doubled once, then the same word
+            // [EEDC+ESI] is closed eight times; ESI is not advanced in the loop.
+            esi_live*=2u;
+            for(u32 n=0;n<8u;++n)
+                app55_close_selector(b,load_le16(dg(m,0xEEDCu+esi_live)));
+            app55_close_selector(b,load_le16(dg(m,0xEE98u)));
+            return;
+        }
+        if(b.call_36885)(void)b.call_36885(static_cast<u32>(dev),p,second);
+    }
+
+    const u32 f=load_le32(dg(m,0xF050u));
+    store_le32(dg(m,0x270F0u),f);
+    const s32 mode=static_cast<s16>(load_le16(dg(m,f+0x32u)));
+    if(mode!=0 && mode!=3)function_28210(m,b);
+    store_le32(dg(m,0xEE78u),1u);
+}
+static_assert(0x285D4u-0x282BCu==792u);
+
+void function_285d4(Machine& m,Application55Boundary& b) noexcept {
+    if(load_le32(dg(m,0xEE78u))==0u)return;
+    if(b.call_28ce8)(void)b.call_28ce8();
+    if(b.call_28884)(void)b.call_28884();
+    if(b.call_3666e)(void)b.call_3666e(load_le32(dg(m,0xEE84u)));
+    if(load_le32(dg(m,0xEE80u))!=0u)
+        app55_close_selector(b,load_le16(dg(m,0xEEF4u)));
+    if(load_le32(dg(m,0xEEF8u))!=0u){
+        for(u32 off=0;off!=0x10u;off+=2u)
+            app55_close_selector(b,load_le16(dg(m,0xEEDCu+off)));
+    }
+    app55_close_selector(b,load_le16(dg(m,0xEE98u)));
+    if(*dg(m,0xEE88u)!=0u){
+        if(b.call_310b0)(void)b.call_310b0(load_le32(dg(m,0xEE8Cu)));
+        *dg(m,0xEE88u)=0u;
+    }
+    store_le32(dg(m,0xEE78u),0u);
+}
+static_assert(0x28670u-0x285D4u==156u);
+
+[[nodiscard]] u32 function_28670(Machine& m,s32 key1,s32 key0) noexcept {
+    u32 p=load_le32(dg(m,0xEE8Cu));
+    for(;;){
+        const s32 k1=static_cast<s8>(*dg(m,p+1u));
+        if(k1==-1)return 0u;
+        if(k1==static_cast<s32>(static_cast<u16>(key1))){
+            const s32 k0=static_cast<s8>(*dg(m,p));
+            if(k0==static_cast<s32>(static_cast<u16>(key0))){
+                const u32 base=load_le32(dg(m,0xEE8Cu)); // explicit global reload at 286A0
+                return base+load_le32(dg(m,p+2u));
+            }
+        }
+        p+=6u;
+    }
+}
+static_assert(0x286C1u-0x28670u==81u);
+
+[[nodiscard]] u32 function_286c4(Machine& m,Application55Boundary& b,u32 stream) noexcept {
+    if(load_le32(dg(m,0xEE78u))==0u)return 0u;
+    u32 len=0u;
+    if(b.call_312ec_stack4)(void)b.call_312ec_stack4(&len,stream);
+    const u32 p=b.call_3104c?b.call_3104c(len+4u):0u;
+    store_le32(dg(m,p),len);
+    if(b.call_312ec)(void)b.call_312ec(p+4u,len,stream);
+    return p;
+}
+static_assert(0x2871Au-0x286C4u==86u);
+
+void function_2871c(Machine& m,Application55Boundary& b,u32 p) noexcept {
+    if(load_le32(dg(m,0xEE78u))!=0u && p!=0u && b.call_310b0)(void)b.call_310b0(p);
+}
+static_assert(0x28739u-0x2871Cu==29u);
+
+static_assert(
+    (0x27FEEu-0x27F24u) +
+    (0x2801Du-0x27FF0u) +
+    (0x28076u-0x28020u) +
+    (0x28095u-0x28078u) +
+    (0x280DBu-0x28098u) +
+    (0x280E6u-0x280DCu) +
+    (0x2810Fu-0x280E8u) +
+    (0x28165u-0x28110u) +
+    (0x28203u-0x28168u) +
+    (0x282BAu-0x28210u) +
+    (0x285D4u-0x282BCu) +
+    (0x28670u-0x285D4u) +
+    (0x286C1u-0x28670u) +
+    (0x2871Au-0x286C4u) +
+    (0x28739u-0x2871Cu) == 2032u);
 
 } // namespace code2

@@ -386,3 +386,7 @@ Batch 53 adds **5,071 translated bytes** and **540 proven table bytes**, bringin
 
 ## CODE.2 Batch 54 checkpoint
 Batch 54 adds **2,797 translated bytes** and **80 proven alignment/padding bytes**, bringing cumulative accounting to **167,023 translated + 3,537 non-code = 170,560 / 239,698 = 71.1562% (71.16%)**. The resume-overlap hashes from Batch 53 were reproduced exactly before any forward accounting. The sequential frontier is `27F24`; preserve the low-level VGA plane/register ordering, `27894` interrupt stack/selector swap, screenshot filename retry semantics, stream cursor/RLE ownership, `27C70` dword zero-detect loads, and `27D20/27ECC` multimedia state lifecycle.
+
+
+## CODE.2 Batch 55 checkpoint
+Batch 55 adds **2,032 translated bytes** and **40 proven alignment/padding bytes**, bringing cumulative accounting to **169,055 translated + 3,577 non-code = 172,632 / 239,698 = 72.0206% (72.02%)**. The sequential frontier is `2873C`. Preserve `27F24` REP-copy remainder semantics, signed queue priority arbitration, the `28210` stack-copy/error fall-through, `282BC`'s four-argument stack walk into `366BB/366C5`, its stale/live ESI behavior and repeated-close oddity at `28564`, and `28670`'s explicit `EE8C` reload on the match path.

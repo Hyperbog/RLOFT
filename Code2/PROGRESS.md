@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-71.16%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-72.02%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **167,023**
-**Proven non-code/data bytes:** **3,537**
-**Reconciled object bytes:** **170,560 / 239,698 = 71.1562% (71.16%)**
-**Unresolved object bytes:** **69,138**
+**Verified translated instruction bytes:** **169,055**
+**Proven non-code/data bytes:** **3,577**
+**Reconciled object bytes:** **172,632 / 239,698 = 72.0206% (72.02%)**
+**Unresolved object bytes:** **67,066**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -651,3 +651,10 @@ The sequential frontier now reaches `273E6`. `25DFC..26017` is the exact 135-ent
 Batch 54 added **2,797 translated instruction bytes** plus **80 directly proven alignment/padding bytes**, reconciling the prior nine-byte frontier gap and the complete low-level block `273F0..27F22`. Cumulative accounting is **167,023 translated + 3,537 non-code = 170,560 / 239,698 = 71.1562% (71.16%)**; unresolved is **69,138 bytes**.
 
 The sequential frontier now reaches `27F23`; `27F23` is proven `NOP` alignment and the next instruction-owned routine begins at `27F24` with its nonstandard register-save prologue. Preserve `273F0`'s plane-mask rotation plus ADC-driven VGA-byte advance, `274A4`'s unsigned multiply/divide followed by signed-16 wrap, `27580/275E4/27638/27694`'s exact read-map/write-mask widths, `2773C`'s sparse mode overlays, the `27894` interrupt frame's SS/ESP swap and reentry latch, `279D0`'s DOS error-50h filename retry, `27AEC/27BD8`'s encoded stream-cursor ownership, `27C70`'s dword-at-a-time zero detection, and `27D20/27ECC`'s one-time multimedia init/teardown state. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved. Semantic audit remains not started.
+
+
+## CODE.2 Batch 55 checkpoint
+
+Batch 55 added **2,032 translated instruction bytes** plus **40 directly proven alignment/padding bytes**, covering the complete multimedia queue/resource family `27F24..28738` and its inter-routine separators through `2873B`. Cumulative accounting is **169,055 translated + 3,577 non-code = 172,632 / 239,698 = 72.0206% (72.02%)**; unresolved is **67,066 bytes**.
+
+The sequential frontier is now `2873C`. Preserve `27F24`'s count-preserving REP copy and DS selector arguments, `28110`'s signed existing-vs-incoming priority comparison and `28168`'s tie-to-second-slot selection, `28210`'s exact ten-byte stack filename copy plus fall-through after the error formatter, and `282BC`'s device-type-3 setup. In particular, do not normalize its live ESI behavior: when `EEF8` is zero, ESI still holds the freed file buffer; when the later `EE80` allocation fails, `28564` doubles that live ESI once and closes the same word at `[EEDC+ESI]` eight times. `28670` reloads the `EE8C` base only on a match before adding the record dword. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved. Semantic audit remains not started.

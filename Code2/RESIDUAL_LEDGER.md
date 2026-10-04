@@ -366,6 +366,19 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 27C6E..27C6F | alignment | 2
 27D1C..27D1F | alignment | 4
 27F23..27F23 | alignment | 1
+27FEE..27FEF | alignment | 2
+2801D..2801F | alignment | 3
+28076..28077 | alignment | 2
+28095..28097 | alignment | 3
+280DB..280DB | alignment | 1
+280E6..280E7 | alignment | 2
+2810F..2810F | alignment | 1
+28165..28167 | alignment | 3
+28203..2820F | alignment | 13
+282BA..282BB | alignment | 2
+286C1..286C3 | alignment | 3
+2871A..2871B | alignment | 2
+28739..2873B | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
 **Total proven non-code/data:** **3,457 bytes**.
@@ -502,3 +515,8 @@ Batch 53 evidence: `25DFC..26017` is the exact 135-entry CS dword jump table sel
 Batch 54 evidence: the mandatory overlap revalidation reproduced the recorded `273A0..27480` and `273E0..27420` SHA-256 anchors exactly, proving Batch 53 ends at the `RET` at `273E6`. `273E7..273EF` is nine zero bytes with no incoming branch/call target and no absolute dword reference anywhere in object 1. The remaining Batch-54 separator rows decode as Watcom `XCHG EBX,EBX`, `NOP`, or zero-fill alignment between independently called routines; a full-object target/reference scan found no incoming target or embedded absolute reference to any listed separator byte.
 
 The translated `273F0..27F22` ownership units are instruction-bounded directly from immutable CODE.2. Preserve the VGA register width/port ordering, plane-mask rotations, `27694` opposite-page copy split, `2773C` mode-specific sparse byte overlays, interrupt-frame SS/ESP swap in `27894`, filename retry on DOS error `50h`, stream cursor increments in `27A60/27A78`, PackBits-style row expansion in `27BD8`, the four-dword-at-a-time zero-detect behavior of `27C70`, and the one-time multimedia setup/teardown state at `EE40/EE6C/EE68`.
+
+
+Batch 55 evidence: `27FEE..27FEF`, `2801D..2801F`, `28076..28077`, `28095..28097`, `280DB`, `280E6..280E7`, `2810F`, `28165..28167`, `282BA..282BB`, `286C1..286C3`, `2871A..2871B`, and `28739..2873B` decode as explicit Watcom MOV-EAX,EAX / LEA-EAX,[EAX+0] / NOP separators between independently decoded routines. `28203..2820F` is a thirteen-byte zero-fill separator after the RET at `28202` and before the register-save prologue at `28210`. A fresh full-object direct-control-flow scan found no CALL/JMP/Jcc target into any listed byte, and a raw scan found no dword reference to any listed object-relative or `+10000h` virtual address.
+
+The translated `27F24..28738` ownership units are instruction-bounded directly from immutable CODE.2. Preserve `27F24`'s REP-MOVSD/low-CL remainder copy, the signed priority arbitration in `28110/28168`, `28210`'s ten-byte stack filename copy and error fall-through, `282BC`'s repeated stack-slot argument walk, the live/stale ESI behavior around `EEF8`, the encoded `28564` repeated close from one selector address, the explicit `EE8C` global reload in `28670`, and the stack-local length reads in `28020/286C4`.
