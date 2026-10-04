@@ -270,9 +270,13 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 1C366..1C367 | alignment | 2
 1C409..1C40B | alignment | 3
 1C77B..1C77B | alignment | 1
+1C99F..1C99F | alignment | 1
+1C9A0..1CA2B | table | 140
+1CD47..1CD47 | alignment | 1
+1CE66..1CE67 | alignment | 2
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **2,312 bytes**.
+**Total proven non-code/data:** **2,456 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -375,3 +379,5 @@ Batch 38 evidence: `1BD9C..1BDAB` is the exact four-entry CS dword table consume
 Batch 39 evidence: `1C121..1C123`, `1C19E..1C19F`, `1C21A..1C21B`, `1C2C2..1C2C3`, `1C327`, `1C366..1C367`, and `1C409..1C40B` decode as explicit NOP/LEA/MOV-EAX,EAX compiler separators between directly reconstructed routines. A full object-1 direct relative control-flow target scan found no incoming CALL/JMP/Jcc target to any of these bytes. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
 
 Batch 40 evidence: `1C77B` decodes as a single `NOP` between the directly reconstructed `1C40C` return at `1C77A` and the next routine entry at `1C77C`. A full object-1 direct relative control-flow target scan found no incoming call/jump target to `1C77B`. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+Batch 41 evidence: `1C9A0..1CA2B` is the exact 35-entry CS dword table selected by criterion `00h..22h` and consumed by the indirect jump at `1CA73`; all 35 destinations are reconciled in `function_1ca2c`. `1C99F` and `1CD47` decode as `NOP`, while `1CE66..1CE67` decodes as `MOV EAX,EAX`; a full object-1 direct relative CALL/JMP/Jcc target scan found no incoming target to those separator bytes. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.

@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-51.54%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-52.28%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **121,232**
-**Proven non-code/data bytes:** **2,312**
-**Reconciled object bytes:** **123,544 / 239,698 = 51.5415% (51.54%)**
-**Unresolved object bytes:** **116,154**
+**Verified translated instruction bytes:** **122,860**
+**Proven non-code/data bytes:** **2,456**
+**Reconciled object bytes:** **125,316 / 239,698 = 52.2808% (52.28%)**
+**Unresolved object bytes:** **114,382**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -566,3 +566,9 @@ Fidelity notes: `1C0C0` keeps both signed IDIV stages before the 90-degree scale
 Added **879 translated instruction bytes** plus **1 directly proven alignment byte**. The sequential frontier now reaches `1C77B`; the next routine begins at `1C77C`.
 
 Fidelity notes: `1C40C` preserves the encoded signed minimum-size tests, the low-byte-only `AND AL,E0h/F0h` rounding after addition, signed truncation-toward-zero half-offset arithmetic, random edge/corner tile selection, signed loop comparisons, and the final `2E5D4` page-release call.
+
+## Batch 41 — enlarged checkpoint: actor modal + selector family
+
+Added **1,628 translated instruction bytes** plus **144 directly proven non-code/data bytes**. The sequential frontier now reaches `1CE67`; the next routine begins at `1CE68`.
+
+Fidelity notes: `1C77C` preserves byte-only `C050` page toggles while passing the full dword to page/render callbacks, the actor graphic index combines signed byte `+12`, unsigned byte `+13 * 17h`, global `258E4`, and optional `+2Eh` from flag `0100h`, and the input wait remains release/press/release. `1C924` performs a random-start four-slot search that rejects `0080h` and `F240h`, then falls back to an unbounded `F240h`-only search. `1CA2C` owns the exact 35-entry criterion table and retains signed tests for bytes `+15..+17` only where the binary uses MOVSX. `1CD48` preserves the criterion-21h pushed-text stack reuse when it calls `1C924` and then `1C77C`, and always latches `arg0+80h` when arg0 is not `FFFFFFFFh`.

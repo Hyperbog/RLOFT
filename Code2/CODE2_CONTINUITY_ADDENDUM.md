@@ -314,3 +314,9 @@ The sequential frontier now reaches `1C40B`; the next routine begins at `1C40C`.
 Batch 40 added **879 translated bytes** plus **1 proven non-code/data byte**. Cumulative accounting is **121,232 translated + 2,312 non-code = 123,544 / 239,698 = 51.5415% (51.54%)**; unresolved is **116,154 bytes**.
 
 The sequential frontier now reaches `1C77B`; the next routine begins at `1C77C`. Preserve `1C40C`'s partial-register size rounding (`AND AL,E0h` / `AND AL,F0h`), x86 signed half-offset calculation, separate random edge families, and signed loop termination. Continue with the requested small checkpoint cadence.
+
+## CODE.2 Batch 41 checkpoint
+
+Batch 41 increases the checkpoint size while retaining clean ownership boundaries. It added **1,628 translated bytes** plus **144 proven non-code/data bytes**. Cumulative accounting is **122,860 translated + 2,456 non-code = 125,316 / 239,698 = 52.2808% (52.28%)**; unresolved is **114,382 bytes**.
+
+The sequential frontier now reaches `1CE67`; the next routine begins at `1CE68`, a much larger command dispatcher and should remain intact for the next ownership pass. Preserve `1C77C`'s full-dword versus low-byte `C050` asymmetry, `1C924`'s two-phase slot search, the exact 35-entry table at `1C9A0..1CA2B`, and `1CD48`'s criterion-21h stack reuse/latch behavior.
