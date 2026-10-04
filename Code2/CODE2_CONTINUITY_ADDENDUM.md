@@ -302,3 +302,9 @@ The sequential frontier is `1BD9B`. The next ownership unit begins at the four-e
 Batch 38 continues the smaller checkpoint cadence. It added **781 translated bytes** plus **23 proven non-code/data bytes**. Cumulative accounting is **119,524 translated + 2,296 non-code = 121,820 / 239,698 = 50.8223% (50.82%)**; unresolved is **117,878 bytes**.
 
 The sequential frontier now reaches `1C0BF`; the next routine begins at `1C0C0`. Preserve the `1BD9C` four-entry state table, descriptor timer reload after the `0D550` call, signed live count reloads for all three record arrays, compaction retry via pre-increment `DEC ESI`, the encoded `CMP EDI,EDI` artifact in the type-8 path, and zero-divisor x86 divide faults in the metadata-driven orientation updates. Continue with similarly small checkpoints.
+
+## CODE.2 Batch 39 checkpoint
+
+Batch 39 continues the smaller checkpoint cadence. It added **829 translated bytes** plus **15 proven non-code/data bytes**. Cumulative accounting is **120,353 translated + 2,311 non-code = 122,664 / 239,698 = 51.1744% (51.17%)**; unresolved is **117,034 bytes**.
+
+The sequential frontier now reaches `1C40B`; the next routine begins at `1C40C`. Preserve `1C0C0`'s signed two-stage division, the bitset helpers' negative-index/remainder shift behavior and bit-31 SAR result, the unsigned timeout test in `1C2C4`, `1C328`'s low-32 multiply/wrap arithmetic, and `1C368`'s repeated handle reloads plus backward `DCh` decode. Continue with similarly small checkpoints.

@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-50.82%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-51.17%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **119,524**
-**Proven non-code/data bytes:** **2,296**
-**Reconciled object bytes:** **121,820 / 239,698 = 50.8223% (50.82%)**
-**Unresolved object bytes:** **117,878**
+**Verified translated instruction bytes:** **120,353**
+**Proven non-code/data bytes:** **2,311**
+**Reconciled object bytes:** **122,664 / 239,698 = 51.1744% (51.17%)**
+**Unresolved object bytes:** **117,034**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -554,3 +554,9 @@ Fidelity notes: `1BBD8` preserves the type-9 low-word tile arithmetic, the encod
 Added **781 translated instruction bytes** plus **23 directly proven non-code/data bytes**. The sequential frontier now reaches `1C0BF`; the next routine begins at `1C0C0`.
 
 Fidelity notes: `1BDAC` owns the exact four-entry animation-state table at `1BD9C`; state 1 calls the `0D550` effect path before reloading descriptor timer `+25h`, state 2 uses timer 7 (tripled under record bit 80h), and state 3 clears the state bits before falling into the state-0 movement path. The three record-array passes preserve signed count reloads, in-place compaction with `DEC ESI` retry, the encoded always-equal `CMP EDI,EDI` artifact, and dword divide faults when metadata divisor byte `+5` is zero.
+
+## Batch 39 — small checkpoint: bitset/text/dice/file helpers
+
+Added **829 translated instruction bytes** plus **15 directly proven alignment bytes**. The sequential frontier now reaches `1C40B`; the next routine begins at `1C40C`.
+
+Fidelity notes: `1C0C0` keeps both signed IDIV stages before the 90-degree scale; `1C124/1C160/1C1A0/1C1DC` preserve signed divide-by-32 remainder shift counts, including `1C1DC` returning `FFFFFFFFh` when selected bit 31 is arithmetically shifted back; `1C2C4` uses the encoded unsigned deadline comparison; `1C328` keeps low-32 IMUL/logical-shift dice scaling and wrapped additions; `1C368` reloads handle `22224` for each seek/read and XOR-decodes the payload backward with a 16-bit decrement loop.

@@ -262,9 +262,16 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 1BD99..1BD9B | alignment | 3
 1BD9C..1BDAB | table | 16
 1C0B9..1C0BF | padding | 7
+1C121..1C123 | alignment | 3
+1C19E..1C19F | alignment | 2
+1C21A..1C21B | alignment | 2
+1C2C2..1C2C3 | alignment | 2
+1C327..1C327 | alignment | 1
+1C366..1C367 | alignment | 2
+1C409..1C40B | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **2,296 bytes**.
+**Total proven non-code/data:** **2,311 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -363,3 +370,5 @@ Batch 36 evidence: `1AF85..1AF8F` is eleven zero bytes bounded by the directly r
 Batch 37 evidence: `1BD99..1BD9B` decodes as `LEA EAX,[EAX+0]` between the reconstructed `1BBD8` return and the next ownership unit's table at `1BD9C`. A full object-1 direct relative control-flow scan found no incoming target to the separator. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
 
 Batch 38 evidence: `1BD9C..1BDAB` is the exact four-entry CS dword table consumed by the indirect jump at `1BE11`, with targets `1BE70,1BE19,1BE4A,1BE6C`. `1C0B9..1C0BF` is seven zero bytes bounded by the `1BDAC` return at `1C0B8` and the next routine entry at `1C0C0`. A full object-1 direct relative control-flow target scan found no incoming target to either residual range. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+Batch 39 evidence: `1C121..1C123`, `1C19E..1C19F`, `1C21A..1C21B`, `1C2C2..1C2C3`, `1C327`, `1C366..1C367`, and `1C409..1C40B` decode as explicit NOP/LEA/MOV-EAX,EAX compiler separators between directly reconstructed routines. A full object-1 direct relative control-flow target scan found no incoming CALL/JMP/Jcc target to any of these bytes. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
