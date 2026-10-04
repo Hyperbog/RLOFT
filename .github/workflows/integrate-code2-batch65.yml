@@ -60,7 +60,7 @@ jobs:
           assert 'store_le16(dg(m,0x255D0u),load_le16(dg(m,0x255D4u)));' in cpp
           assert cpp.count('app65_clip_active(m)') >= 3
           assert '2D002..2D003 | alignment | 2' in led
-          assert '191,262 / 239,698 = 79.7929% (79.79%)' in prog
+          assert '191,264 / 239,698 = 79.7937% (79.79%)' in prog
           PY
           git diff --check
 
