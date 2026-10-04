@@ -1,4 +1,4 @@
-# payload staged after initial trigger
+# retrigger after replacing legacy clipped-sprite anchors
 name: Integrate CODE.2 batch 61
 on:
   push:
