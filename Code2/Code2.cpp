@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 173550u;
-constexpr u32 kVerifiedNonCodeBytes = 3678u;
+constexpr u32 kVerifiedTranslatedBytes = 174489u;
+constexpr u32 kVerifiedNonCodeBytes = 3695u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -19817,5 +19817,227 @@ static_assert(
     (0x298B4u-0x2986Cu) +
     (0x298EFu-0x298B4u) +
     (0x29922u-0x298F0u) == 1281u);
+
+
+// -----------------------------------------------------------------------------
+// Batch 58: 29930..29CE8 VGA mode setup, primitive pixel/rectangle access,
+// the 29B33 four-byte CS raster-op table, and DAC palette streaming.
+// All addresses are CODE.2 object-relative.
+// -----------------------------------------------------------------------------
+
+struct Application58Boundary {
+    u8 (*in8)(u16)=nullptr;
+    void (*out8)(u16,u8)=nullptr;
+    void (*out16)(u16,u16)=nullptr;
+    u16 (*bios_int10)(u16)=nullptr; // host adapter returns AX
+    u8 (*vga_read8)(u32)=nullptr;
+    void (*vga_write8)(u32,u8)=nullptr;
+    u8 (*code_read8)(u32)=nullptr;
+    void (*call_2ab98)()=nullptr;
+    void (*call_2abf4)(u32)=nullptr; // incoming EBX adapter
+    void (*call_2ac10)(u32)=nullptr; // incoming ECX adapter
+    void (*call_2abc4)()=nullptr;
+};
+
+static u8 app58_in8(Application58Boundary& b,u16 port) noexcept { return b.in8?b.in8(port):0u; }
+static void app58_out8(Application58Boundary& b,u16 port,u8 v) noexcept { if(b.out8)b.out8(port,v); }
+static void app58_out16(Application58Boundary& b,u16 port,u16 v) noexcept { if(b.out16)b.out16(port,v); }
+static u8 app58_vram_read(Application58Boundary& b,u32 a) noexcept { return b.vga_read8?b.vga_read8(a):0u; }
+static void app58_vram_write(Application58Boundary& b,u32 a,u8 v) noexcept { if(b.vga_write8)b.vga_write8(a,v); }
+static u32 app58_dec_low16(u32 v) noexcept { return (v&0xFFFF0000u)|static_cast<u16>(static_cast<u16>(v)-1u); }
+static u8 app58_sar8(u8 v,u8 n) noexcept {
+    const u8 c=static_cast<u8>(n&31u);
+    if(c==0u)return v;
+    if(c>=8u)return (v&0x80u)?0xFFu:0u;
+    const s8 sv=static_cast<s8>(v);
+    return static_cast<u8>(static_cast<s8>(sv>>c));
+}
+struct App58Map { u32 addr=0; u8 plane=0; };
+static App58Map app58_map(Machine& m,u32 row,u32 x) noexcept {
+    u32 t=row << (load_le32(dg(m,0xEFEDu))&31u);
+    u32 addr=t + (t << (load_le32(dg(m,0xEFF1u))&31u));
+    addr += (x>>2u);
+    addr += load_le32(dg(m,0xF001u));
+    return {addr,static_cast<u8>(x&3u)};
+}
+
+[[nodiscard]] u32 function_29930(Machine& m,Application58Boundary& b,u32 mode,u32 out_desc) noexcept {
+    store_le32(dg(m,0xEFE1u),mode&0x80u);
+    store_le32(dg(m,0xEFE5u),mode&0x7Fu);
+    store_le32(dg(m,0xEFF5u),0xC8u);
+    store_le32(dg(m,0xEFF9u),0x50u);
+    store_le32(dg(m,0xF001u),0xA0000u);
+    store_le32(dg(m,0xEFE9u),0u);
+    *dg(m,0xEFE0u)=0u;
+    store_le32(dg(m,0xF005u),0x400u);
+    store_le32(dg(m,0xEFEDu),4u);
+    store_le32(dg(m,0xEFF1u),2u);
+    if(b.call_2ab98)b.call_2ab98();
+    if(load_le32(dg(m,0xEFE5u))==3u)store_le32(dg(m,0xF005u),0x800u);
+
+    u16 ax=b.bios_int10?b.bios_int10(0x0F00u):0x0013u;
+    if(static_cast<u8>(ax)!=0x13u && b.bios_int10)(void)b.bios_int10(0x0013u);
+
+    app58_out16(b,0x03CEu,static_cast<u16>((static_cast<u16>(*dg(m,0xEFE0u))<<8)|0x03u));
+    app58_out8(b,0x03C4u,0x04u);
+    u8 al=app58_in8(b,0x03C5u); al=static_cast<u8>((al&0xF7u)|0x04u); app58_out8(b,0x03C5u,al);
+    app58_out8(b,0x03CEu,0x05u); al=app58_in8(b,0x03CFu); app58_out8(b,0x03CFu,static_cast<u8>(al&0xEFu));
+    app58_out8(b,0x03CEu,0x06u); al=app58_in8(b,0x03CFu); app58_out8(b,0x03CFu,static_cast<u8>(al&0xFDu));
+    if(b.call_2ab98)b.call_2ab98();
+
+    app58_out8(b,0x03D4u,0x09u); al=app58_in8(b,0x03D5u);
+    al=(load_le32(dg(m,0xEFE5u))==3u)?static_cast<u8>(al&0xE0u):0x41u; app58_out8(b,0x03D5u,al);
+    app58_out8(b,0x03D4u,0x14u); al=app58_in8(b,0x03D5u); app58_out8(b,0x03D5u,static_cast<u8>(al&0xBFu));
+    app58_out8(b,0x03D4u,0x17u); al=app58_in8(b,0x03D5u); app58_out8(b,0x03D5u,static_cast<u8>(al|0x40u));
+
+    if(b.call_2abf4)b.call_2abf4(0u);
+    if(b.call_2ac10)b.call_2ac10(0xFFu);
+    u32 rows=0xC8u;
+    const u32 cols=0x140u;
+    if(load_le32(dg(m,0xEFE5u))==3u)rows<<=1u;
+    store_le32(dg(m,0xEFFDu),rows);
+    store_le32(dg(m,0xEFE1u),0u);
+    *dg(m,out_desc+1u)=0x02u;
+    store_le16(dg(m,out_desc+3u),static_cast<u16>(rows));
+    store_le16(dg(m,out_desc+5u),static_cast<u16>(cols));
+    return 0x0Du;
+}
+static_assert(0x29A84u-0x29930u==340u);
+
+void function_29a84(Application58Boundary& b) noexcept {
+    if(b.call_2ab98)b.call_2ab98();
+    if(b.bios_int10)(void)b.bios_int10(0x0003u);
+}
+static_assert(0x29A9Fu-0x29A84u==27u);
+
+void function_29b1c(Machine& m,Application58Boundary& b,u32 index) noexcept;
+void function_29aa0(Machine& m,Application58Boundary& b,u32 index) noexcept { function_29b1c(m,b,index); }
+static_assert(0x29AA2u-0x29AA0u==2u);
+
+void function_29aa4(Machine& m,Application58Boundary& b,u32 row,u32 x,u32 value) noexcept {
+    const App58Map p=app58_map(m,row,x);
+    app58_out16(b,0x03CEu,static_cast<u16>((static_cast<u16>(p.plane)<<8)|0x04u));
+    app58_out16(b,0x03C4u,static_cast<u16>((static_cast<u16>(static_cast<u8>(1u<<p.plane))<<8)|0x02u));
+    app58_out16(b,0x03CEu,static_cast<u16>((static_cast<u16>(*dg(m,0xEFE0u))<<8)|0x03u));
+    (void)app58_vram_read(b,p.addr); // latch load is architecturally visible to VGA write logic
+    app58_vram_write(b,p.addr,static_cast<u8>(value));
+    app58_out16(b,0x03CEu,0x0003u);
+}
+static_assert(0x29AF0u-0x29AA4u==76u);
+
+[[nodiscard]] u32 function_29af0(Machine& m,Application58Boundary& b,u32 row,u32 x) noexcept {
+    const App58Map p=app58_map(m,row,x);
+    app58_out16(b,0x03CEu,static_cast<u16>((static_cast<u16>(p.plane)<<8)|0x04u));
+    return static_cast<u32>(app58_vram_read(b,p.addr));
+}
+static_assert(0x29B19u-0x29AF0u==41u);
+
+void function_29b1c(Machine& m,Application58Boundary& b,u32 index) noexcept {
+    u8 v=0u;
+    if(b.code_read8)v=b.code_read8(0x29B33u+index);
+    else {
+        static constexpr u8 table[4]={0x00u,0x08u,0x10u,0x18u};
+        if(index<4u)v=table[index];
+    }
+    *dg(m,0xEFE0u)=v;
+}
+static_assert(0x29B33u-0x29B1Cu==23u);
+
+// 29B37..29B3D is an address-distinct shared epilogue reached by 29B40's two
+// nonpositive-size tests.  It remains code-owned even though C++ returns directly.
+static_assert(0x29B3Eu-0x29B37u==7u);
+
+void function_29b40(Machine& m,Application58Boundary& b,s32 row,s32 x,s32 rows,s32 pixels,u32 color) noexcept {
+    if(rows<=0 || pixels<=0)return; // encoded branches land on the shared 29B37 epilogue
+    const App58Map p=app58_map(m,static_cast<u32>(row),static_cast<u32>(x));
+    u32 addr=p.addr;
+    u8 first=static_cast<u8>(0x0Fu << p.plane);
+    u32 middle=static_cast<u32>(pixels)-1u;
+    const u32 initial_tail=static_cast<u32>(p.plane^3u);
+    const bool narrow=middle<=initial_tail;
+    middle-=initial_tail; // preserve unsigned SUB result even on the JBE path
+    u8 last=0u;
+    if(!narrow){
+        --middle;
+        u8 r=static_cast<u8>(middle&3u);
+        middle-=static_cast<u32>(r);
+        r=static_cast<u8>(r^3u);
+        last=static_cast<u8>(~app58_sar8(0xF0u,r));
+        middle>>=2u;
+    } else {
+        middle+=3u;
+        u8 r=static_cast<u8>(middle);
+        r=static_cast<u8>(r^3u);
+        const u8 mask=static_cast<u8>(~app58_sar8(0xF0u,r));
+        first=static_cast<u8>(first&mask);
+        last=0u;
+        middle=0u;
+    }
+    u32 stride=load_le32(dg(m,0xEFF9u))-middle-1u;
+    if(last!=0u)stride=app58_dec_low16(stride); // encoded DEC DI, not DEC EDI
+
+    app58_out16(b,0x03CEu,static_cast<u16>((static_cast<u16>(*dg(m,0xEFE0u))<<8)|0x03u));
+    const u8 c=static_cast<u8>(color);
+    if(*dg(m,0xEFE0u)!=0u){
+        u32 remaining_rows=static_cast<u32>(rows);
+        do {
+            app58_out16(b,0x03C4u,static_cast<u16>((static_cast<u16>(first)<<8)|0x02u));
+            (void)app58_vram_read(b,addr); app58_vram_write(b,addr,c); ++addr;
+            if(middle!=0u){
+                app58_out16(b,0x03C4u,0xFF02u);
+                u8 n=static_cast<u8>(middle);
+                do { (void)app58_vram_read(b,addr); app58_vram_write(b,addr,c); ++addr; n=static_cast<u8>(n-1u); } while(n!=0u);
+            }
+            if(last!=0u){
+                app58_out16(b,0x03C4u,static_cast<u16>((static_cast<u16>(last)<<8)|0x02u));
+                (void)app58_vram_read(b,addr); app58_vram_write(b,addr,c); ++addr;
+            }
+            addr+=stride;
+            --remaining_rows;
+        } while(remaining_rows!=0u);
+        app58_out16(b,0x03CEu,0x0003u);
+        return;
+    }
+
+    const u16 repeated=static_cast<u16>(static_cast<u16>(c)|(static_cast<u16>(c)<<8));
+    u32 remaining_rows=static_cast<u32>(rows);
+    if(stride==0u && first==0x0Fu && last==0x0Fu){
+        app58_out16(b,0x03C4u,0xFF02u);
+        const u32 total=static_cast<u32>(static_cast<u64>(load_le32(dg(m,0xEFF9u)))*remaining_rows);
+        u32 words=total>>1u;
+        while(words--!=0u){ app58_vram_write(b,addr++,static_cast<u8>(repeated)); app58_vram_write(b,addr++,static_cast<u8>(repeated>>8)); }
+        return;
+    }
+    do {
+        app58_out16(b,0x03C4u,static_cast<u16>((static_cast<u16>(first)<<8)|0x02u));
+        app58_vram_write(b,addr++,c);
+        app58_out16(b,0x03C4u,0xFF02u);
+        u32 n=middle;
+        while(n>=2u){app58_vram_write(b,addr++,static_cast<u8>(repeated));app58_vram_write(b,addr++,static_cast<u8>(repeated>>8));n-=2u;}
+        if(n!=0u)app58_vram_write(b,addr++,c);
+        if(last!=0u){app58_out16(b,0x03C4u,static_cast<u16>((static_cast<u16>(last)<<8)|0x02u));app58_vram_write(b,addr++,c);}
+        addr+=stride;
+        --remaining_rows;
+    } while(remaining_rows!=0u);
+}
+static_assert(0x29C9Eu-0x29B40u==350u);
+
+void function_29ca0(Machine& m,Application58Boundary& b,u32 source,u32 first_index,u32 count) noexcept {
+    app58_out8(b,0x03C8u,static_cast<u8>(first_index));
+    u32 left=count;
+    u32 src=source;
+    for(;;){
+        if(b.call_2abc4)b.call_2abc4();
+        const u32 chunk=left>0xC0u?0xC0u:left;
+        for(u32 i=0;i<chunk;++i)app58_out8(b,0x03C9u,*dg(m,src++));
+        left-=chunk;
+        if(left==0u)break;
+    }
+}
+static_assert(0x29CE9u-0x29CA0u==73u);
+
+static_assert((0x29A84u-0x29930u)+(0x29A9Fu-0x29A84u)+(0x29AA2u-0x29AA0u)+
+              (0x29AF0u-0x29AA4u)+(0x29B19u-0x29AF0u)+(0x29B33u-0x29B1Cu)+
+              (0x29B3Eu-0x29B37u)+(0x29C9Eu-0x29B40u)+(0x29CE9u-0x29CA0u)==939u);
 
 } // namespace code2

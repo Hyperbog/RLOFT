@@ -416,6 +416,13 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 29802..29803 | alignment | 2
 298EF..298EF | alignment | 1
 29922..2992F | padding | 14
+29A9F..29A9F | alignment | 1
+29AA2..29AA3 | alignment | 2
+29B19..29B1B | alignment | 3
+29B33..29B36 | table | 4
+29B3E..29B3F | alignment | 2
+29C9E..29C9F | alignment | 2
+29CE9..29CEB | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
 **Total proven non-code/data:** **3,651 bytes**.
@@ -565,3 +572,6 @@ Preserve `2873C`'s wrapped signed-IDIV scaling path, `2878C`'s immediate return 
 
 
 Batch 57 evidence: mandatory Batch-56 overlap hashes were reproduced from immutable CODE.2 before forward work. The instruction-owned fold is `29414..29921`. The eight short inter-routine separators decode as NOP, MOV EAX,EAX, or LEA EAX,[EAX]; `29922..2992F` is fourteen zero bytes. A full object-1 direct branch/call-target scan plus exact dword scan for both object-relative and +10000h virtual addresses found no incoming target or absolute reference into any of these 27 bytes. Preserve the two clip paths' partial-register/global side effects, signed clipping tests, `296C0` signed truncation-to-zero division-by-four sequence, the 16-byte `29738` REP copy, and EFD4 scratch-depth increment/decrement ownership in the wrapper family.
+
+
+Batch 58 evidence: Batch-57 overlap at `298D0..299B0` was regenerated from immutable CODE.2 and matched the checkpoint hashes before forward accounting. The instruction-owned units cover `29930..29CE8`, including the address-distinct two-byte tail wrapper at `29AA0` and shared executable epilogue `29B37..29B3D`. `29B33..29B36` is the exact four-byte CS table referenced directly by `29B24`; the remaining listed bytes are Watcom NOP/XCHG alignment with no incoming target or independent absolute reference. Preserve VGA latch reads before masked writes, `DEC DI` low-word-only stride semantics in `29B40`, its AL-only middle-byte counter in the nonzero raster-op path, and the 192-byte retrace-bounded palette chunks in `29CA0`.

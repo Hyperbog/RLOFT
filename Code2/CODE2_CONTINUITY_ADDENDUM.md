@@ -398,3 +398,7 @@ Batch 56 adds **3,214 translated bytes** and **74 proven alignment/padding bytes
 
 ## CODE.2 Batch 57 checkpoint
 Batch 57 adds **1,281 translated bytes** and **27 proven alignment/padding bytes**, bringing cumulative accounting to **173,550 translated + 3,678 non-code = 177,228 / 239,698 = 73.9380% (73.94%)**. The sequential frontier is `29930`; preserve the clipped/full renderer distinction, `EF69..EF6F` low-word global writes, `296C0` signed division behavior, and EFD4 scratch-depth balancing.
+
+
+## CODE.2 Batch 58 checkpoint
+Batch 58 adds **939 translated bytes** and **17 proven alignment/table bytes**, bringing cumulative accounting to **174,489 translated + 3,695 non-code = 178,184 / 239,698 = 74.3369% (74.34%)**. The sequential frontier is `29CEC`; preserve the VGA register/BIOS ordering, `29B33` direct CS table, `29B40` latch/mask and partial-register behavior, and `29CA0` retrace-bounded DAC streaming.

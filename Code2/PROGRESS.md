@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-73.94%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-74.34%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **173,550**
-**Proven non-code/data bytes:** **3,678**
-**Reconciled object bytes:** **177,228 / 239,698 = 73.9380% (73.94%)**
-**Unresolved object bytes:** **62,470**
+**Verified translated instruction bytes:** **174,489**
+**Proven non-code/data bytes:** **3,695**
+**Reconciled object bytes:** **178,184 / 239,698 = 74.3369% (74.34%)**
+**Unresolved object bytes:** **61,514**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -672,3 +672,10 @@ The sequential frontier is now **`29414`**. Preserve the mode-3 wrapped signed s
 Batch 57 added **1,281 translated instruction bytes** plus **27 directly proven alignment/padding bytes**, reconciling `29414..2992F`. Cumulative accounting is **173,550 translated + 3,678 non-code = 177,228 / 239,698 = 73.9380% (73.94%)**; unresolved is **62,470 bytes**.
 
 The sequential frontier is now `29930`, the independent VGA mode/setup prologue. Preserve `29414/29564` clipping globals `EF69..EF6F`, their full-vs-clipped return codes 2/1/0, `296C0`'s signed truncation-to-zero quartering and BL-only alignment effect, `29738`'s exact 16-byte copy, and the EFD4 nested scratch-record ownership in `2978C/29804/2986C/298B4`.
+
+
+## CODE.2 Batch 58 checkpoint
+
+Batch 58 added **939 translated instruction bytes** plus **17 directly proven alignment/table bytes**, reconciling through `29CEB`. Cumulative accounting is **174,489 translated + 3,695 non-code = 178,184 / 239,698 = 74.3369% (74.34%)**; unresolved is **61,514 bytes**.
+
+The sequential frontier is now `29CEC`, the next independent raster primitive. Preserve `29930`'s BIOS/VGA register ordering and descriptor writes, the direct `29AA0 -> 29B1C` wrapper, the unbounded CS-byte lookup at `29B33`, `29B40`'s shared `29B37` epilogue plus partial-register mask/counter behavior, and `29CA0`'s retrace wait before every <=192-byte DAC chunk.
