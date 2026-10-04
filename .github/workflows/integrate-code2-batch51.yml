@@ -1,5 +1,5 @@
 name: Integrate CODE.2 batch 51
-# payload transport repaired
+# payload transport and predicate signature repaired
 on:
   push:
     paths:
