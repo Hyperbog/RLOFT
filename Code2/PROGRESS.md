@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-59.08%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-60.04%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **138,937**
-**Proven non-code/data bytes:** **2,667**
-**Reconciled object bytes:** **141,604 / 239,698 = 59.0760% (59.08%)**
-**Unresolved object bytes:** **98,094**
+**Verified translated instruction bytes:** **141,234**
+**Proven non-code/data bytes:** **2,670**
+**Reconciled object bytes:** **143,904 / 239,698 = 60.0355% (60.04%)**
+**Unresolved object bytes:** **95,794**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -597,3 +597,10 @@ Fidelity notes: `1F86C` preserves signed tick expiry and state-4's `2Dh` call / 
 Batch 46 added **2,807 translated bytes** plus **33 proven non-code/data bytes**. Cumulative accounting is **138,937 translated + 2,667 non-code = 141,604 / 239,698 = 59.0760% (59.08%)**; unresolved is **98,094 bytes**.
 
 The sequential frontier now reaches `20E07`; the next routine begins at `20E08`. Preserve `20850`'s two-pass actor update, including the reused stack argument slots that become the pointer pair for `207E8`; `20994`'s signed `IDIV`/remainder path before the 90-degree scaling; `20B40`'s byte-wrap effect timers and second cleanup pass only when the active count reaches zero; and `20C0C`'s packed `8000h:word` fixed-point arguments plus type-1/type-2 activation differences. `207E0..207E7` is an eight-byte table referenced later at `2188C`; the preceding fifteen zero bytes are proven padding. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved. Semantic audit remains not started.
+
+
+## CODE.2 Batch 47 checkpoint
+
+Batch 47 added **2,297 translated instruction bytes** plus **3 proven alignment bytes**. Cumulative accounting is **141,234 translated + 2,670 non-code = 143,904 / 239,698 = 60.0355% (60.04%)**; unresolved is **95,794 bytes**.
+
+The sequential application frontier now reaches `21703`; the next routine begins at `21704`. Preserve `20E08`'s two-stage `1C328` decision and saved `20D7C` outputs, the deliberately non-terminating `210B0` `MOVZX word`/`CMP -1` table scan, `211D8`'s type-0Dh/type-0Fh list insertion fallbacks, and `214B8`'s saved `8600/8602` values across opaque calls while reloading `255D8` before the post-callback type/subtype read. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved. Semantic audit remains not started.

@@ -303,9 +303,11 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 20A22..20A23 | alignment | 2
 20CF3..20CF3 | alignment | 1
 20D7B..20D7B | alignment | 1
+210AF..210AF | alignment | 1
+21702..21703 | alignment | 2
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **2,667 bytes**.
+**Total proven non-code/data:** **2,670 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -419,3 +421,6 @@ Batch 45 evidence: `1F858..1F86B` is the exact five-dword CS table consumed by t
 
 
 Batch 46 evidence: `2043E..2043F`, `2084E..2084F`, and `20A22..20A23` decode as `MOV EAX,EAX`; `20607`, `20993`, `20CF3`, and `20D7B` are explicit `NOP` separators. `207D1..207DF` is a fifteen-byte zero pad between the directly reconstructed `20608` return and the next consumed data object. `207E0..207E7` is the exact eight-byte direction/script table referenced by the later routine at `2188C` (direct absolute reference `0x207E0`). A full direct relative control-flow target scan found no incoming target to any Batch 46 residual byte. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+Batch 47 evidence: `210AF` decodes as a one-byte `NOP` between the directly reconstructed `20E08` return and the `210B0` entry; `21702..21703` decodes as `MOV EAX,EAX` between the `214B8` return and the `21704` entry. A full object-1 direct relative CALL/JMP/conditional-branch target scan found no incoming target to either separator. The encoded `210B0` `MOVZX word` / `CMP -1` pair is intentionally not treated as a table terminator.

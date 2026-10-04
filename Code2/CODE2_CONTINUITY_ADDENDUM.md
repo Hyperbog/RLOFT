@@ -351,3 +351,7 @@ The sequential frontier now reaches `202EF`; the next routine begins at `202F0`.
 
 ## CODE.2 Batch 46 checkpoint
 Batch 46 adds **2,807 translated bytes** and **33 proven non-code/data bytes**, bringing cumulative accounting to **138,937 translated + 2,667 non-code = 141,604 / 239,698 = 59.0760% (59.08%)**. The sequential frontier is now `20E08`. Preserve the stack-slot reuse in `20850`/`207E8`, signed quotient/remainder behavior in `20994`, byte-wrap timer semantics in `20B40`, and packed fixed-point argument construction in `20C0C`.
+
+
+## CODE.2 Batch 47 checkpoint
+Batch 47 adds **2,297 translated bytes** and **3 proven alignment bytes**, bringing cumulative accounting to **141,234 translated + 2,670 non-code = 143,904 / 239,698 = 60.0355% (60.04%)**. The sequential frontier is now `21704`. Preserve the impossible `210B0` word-sentinel comparison exactly, `211D8`'s environment-list fallback order, and `214B8`'s saved current-environment values versus the explicit post-callback reload of `255D8`.
