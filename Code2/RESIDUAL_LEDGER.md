@@ -211,9 +211,18 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 15DF5..15DF7 | alignment | 3
 15E21..15E23 | alignment | 3
 15E37..15E37 | alignment | 1
+1608A..1608B | alignment | 2
+1624B..1624B | alignment | 1
+16806..1680F | noncode | 10
+1686B..1686B | alignment | 1
+168C7..168C7 | alignment | 1
+16931..16933 | alignment | 3
+1698F..1698F | alignment | 1
+16A57..16A57 | alignment | 1
+16A85..16A87 | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **1,893 bytes**.
+**Total proven non-code/data:** **1,916 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -284,3 +293,6 @@ Batch 27 evidence: `14AB4..14ADB` is the exact ten-entry CS dword table consumed
 
 
 Batch 28 evidence: `1548C..15533` is the exact 42-entry CS dword table indexed by the indirect jump at `1556D`; all opcode targets `00h..29h` were decoded and reconciled in `function_15534`. `15DF5..15DF7` and `15E21..15E23` decode as `LEA EAX,[EAX+0]`, and `15E37` is `NOP`; a full object-1 direct relative branch/call target scan found no incoming target to any separator byte. The known zero islands remain unresolved.
+
+
+Batch 29 evidence: `1608A..1608B`, `1624B`, `1686B`, `168C7`, `16931..16933`, `1698F`, `16A57`, and `16A85..16A87` decode as explicit Watcom no-op separators between directly reconstructed routine boundaries. `16806..1680F` is an exact ten-byte zero-filled gap bounded by the `16524` return at `16805` and the directly decoded `16810` entry; a full object-1 textual reference scan found no direct relative control-flow target or absolute memory/immediate reference to any byte in the gap. No Batch 29 residual byte is counted from appearance alone. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
