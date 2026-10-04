@@ -18,8 +18,12 @@ code=code.replace('constexpr u32 kVerifiedTranslatedBytes = 128548u;',
 code=code.replace('constexpr u32 kVerifiedNonCodeBytes = 2456u;',
                   'constexpr u32 kVerifiedNonCodeBytes = 2465u;',1)
 code=code.replace(old,new,1)
+assert code.rstrip().endswith('} // namespace code2')
+body=code.rsplit('} // namespace code2',1)[0]
+if not body.endswith('\n'): body+='\n'
+code=body+frag
 if not code.endswith('\n'): code+='\n'
-code+=frag
+code+='} // namespace code2\n'
 code_p.write_text(code)
 
 ledger=ledger_p.read_text()
