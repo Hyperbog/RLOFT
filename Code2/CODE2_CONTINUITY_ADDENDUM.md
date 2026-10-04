@@ -414,3 +414,7 @@ Batch 60 adds **1,427 translated bytes** and **9 proven alignment bytes**, bring
 
 ## CODE.2 Batch 61 checkpoint
 Batch 61 adds **1,453 translated bytes** and **35 proven alignment/padding/table bytes**, bringing cumulative accounting to **178,417 translated + 3,755 non-code = 182,172 / 239,698 = 76.0006% (76.00%)**. The sequential frontier is `2AC80`; preserve the self-modifying bytes at `2A816`, `2AA0D`, and `2AA12`, the ROL/SHL and 32-/16-bit clipped-blitter asymmetries, `2AAEC`'s register ABI, the directly referenced `2AC70` table, and VGA retrace/CRTC ordering.
+
+## Batch 62 checkpoint
+
+Batch 62 adds **1,022 translated bytes** and **10 proven non-code/alignment bytes**, bringing cumulative accounting to **179,439 translated + 3,765 non-code = 183,204 / 239,698 = 76.4312% (76.43%)**. The sequential frontier is now `2B088`. Preserve the signed DWORD comparisons in `2ACDC`/`2AD18`/`2ADE0`, the two real resource-state calls from `2AD18`, the `C050` low-bit page toggle, the entry-stable record base but per-iteration count reload in `2AE30`, the second load of record word `+8` after rectangle acceptance, and the address-distinct inline predicate copies at `2AEBD` and `2B01D`.

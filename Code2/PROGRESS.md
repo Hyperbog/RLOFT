@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-76.00%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-76.43%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **178,417**
-**Proven non-code/data bytes:** **3,755**
-**Reconciled object bytes:** **182,172 / 239,698 = 76.0006% (76.00%)**
-**Unresolved object bytes:** **57,526**
+**Verified translated instruction bytes:** **179,439**
+**Proven non-code/data bytes:** **3,765**
+**Reconciled object bytes:** **183,204 / 239,698 = 76.4312% (76.43%)**
+**Unresolved object bytes:** **56,494**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -700,3 +700,9 @@ The sequential frontier is now `2A6B0`, the next independent clipped blitter. Pr
 Batch 61 added **1,453 translated instruction bytes** plus **35 directly proven alignment/padding/table bytes**, reconciling through `2AC7F`. Cumulative accounting is **178,417 translated + 3,755 non-code = 182,172 / 239,698 = 76.0006% (76.00%)**; unresolved is **57,526 bytes**.
 
 The sequential frontier is now `2AC80`, the next independent application predicate. Preserve `2A6B0/2A8A0` clipped-plane asymmetries and writable-code bytes, `2AAEC`'s register ABI, the direct `2AC70` table ownership, and low-level VGA/retrace/CRTC ordering.
+
+## CODE.2 Batch 62 checkpoint
+
+Batch 62 added **1,022 translated instruction bytes** plus **10 directly proven alignment bytes**, reconciling through `2B087`. Cumulative accounting is **179,439 translated + 3,765 non-code = 183,204 / 239,698 = 76.4312% (76.43%)**; unresolved is **56,494 bytes**.
+
+Instruction ownership spans `2AC80..2ACD9`, `2ACDC..2AD14`, `2AD18..2ADDC`, `2ADE0..2AE2F`, and `2AE30..2B085`. The four compiler separators total ten bytes and have no direct incoming control-flow target. `2AE30` retains the entry-time opposite-page record base but reloads the `C050`-selected 16-bit count on every loop test, including after the opaque `1C1DC` probes reached through `2AD18`. The next independent routine begins at `2B088`.

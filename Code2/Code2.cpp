@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 178417u;
-constexpr u32 kVerifiedNonCodeBytes = 3755u;
+constexpr u32 kVerifiedTranslatedBytes = 179439u;
+constexpr u32 kVerifiedNonCodeBytes = 3765u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -20838,5 +20838,120 @@ static_assert((0x2A89Fu-0x2A6B0u)+(0x2AA9Bu-0x2A8A0u)+(0x2AAEAu-0x2AA9Cu)+
               (0x2AB36u-0x2AAECu)+(0x2AB6Cu-0x2AB38u)+(0x2AB95u-0x2AB6Cu)+
               (0x2ABC4u-0x2AB98u)+(0x2ABDBu-0x2ABC4u)+(0x2ABF3u-0x2ABDCu)+
               (0x2AC10u-0x2ABF4u)+(0x2AC68u-0x2AC10u)==1453u);
+
+// -----------------------------------------------------------------------------
+// Batch 62: 2AC80..2B085 type predicates and the double-buffered cursor/
+// rectangle classifier. All addresses are CODE.2 object-relative.
+// -----------------------------------------------------------------------------
+
+struct Application62Boundary {
+    u32 (*call_1c1dc)(u32)=nullptr;
+};
+
+// 2AC80 recognizes four exact type codes. The compiler emits the same test
+// inline again in 2AE30; that duplicate remains explicit below.
+[[nodiscard]] u32 function_2ac80(u32 raw_type) noexcept {
+    return (raw_type==0x52u || raw_type==0x71u || raw_type==0x6Eu || raw_type==0x91u)?1u:0u;
+}
+static_assert(0x2ACDAu-0x2AC80u==90u);
+
+// Signed DWORD comparison is intentional: the caller normally supplies a
+// zero-extended word, but the predicate itself is encoded with JGE.
+[[nodiscard]] u32 function_2acdc(u32 raw_type) noexcept {
+    const s32 type=static_cast<s32>(raw_type);
+    return (type<0x22 || type==0x50)?1u:0u;
+}
+static_assert(0x2AD15u-0x2ACDCu==57u);
+
+// 3Bh/3Ch are conditional on resource-state probes; all other accepted values
+// follow the exact signed range/equality tests in the binary.
+[[nodiscard]] u32 function_2ad18(Application62Boundary& b,u32 raw_type) noexcept {
+    const s32 type=static_cast<s32>(raw_type);
+    if(type==0x3B) {
+        if((b.call_1c1dc?b.call_1c1dc(0x48u):0u)!=0u)return 0u;
+        return (b.call_1c1dc?b.call_1c1dc(0x35u):0u)!=0u?1u:0u;
+    }
+    if(type==0x3C) {
+        if((b.call_1c1dc?b.call_1c1dc(0x48u):0u)!=0u)return 0u;
+        return (b.call_1c1dc?b.call_1c1dc(0x36u):0u)!=0u?1u:0u;
+    }
+    if(type==0x3A)return 0u;
+    if(type>=0x22 && type<=0x46)return 1u;
+    return type==0x52?1u:0u;
+}
+static_assert(0x2ADDDu-0x2AD18u==197u);
+
+[[nodiscard]] u32 function_2ade0(u32 raw_type) noexcept {
+    const s32 type=static_cast<s32>(raw_type);
+    if(type>=0x48 && type<=0x4A)return 1u;
+    return (type==0x4D || type==0x4F)?1u:0u;
+}
+static_assert(0x2AE30u-0x2ADE0u==80u);
+
+static s32 app62_sar3(s32 value) noexcept {
+    if(value>=0)return value/8;
+    const u32 magnitude=static_cast<u32>(-value);
+    return -static_cast<s32>((magnitude+7u)/8u);
+}
+
+// Select the opposite display page using the encoded XOR AL,1 behavior, scan
+// its 16-bit-counted 16h-byte records, and classify the first rectangle hit.
+// Result 2 marks an actionable/special hit, 1 marks the low/50h family, and 0
+// means no accepted hit. The repeated predicates at 2AEBd and 2B01d are inline
+// compiler copies, not calls to 2ACDC/2AC80.
+[[nodiscard]] u32 function_2ae30(Machine& m,Application62Boundary& b,u32 raw_x,u32 raw_y) noexcept {
+    if(*dg(m,0xD680u)!=0u)return 0u;
+
+    const u32 opposite_page=load_le32(dg(m,0xC050u))^1u; // XOR AL,1; only bit 0 changes.
+    const u32 base=0x27148u+opposite_page*0x2260u;
+    const s32 x=static_cast<s32>(raw_x);
+    const s32 y=static_cast<s32>(raw_y);
+
+    for(s32 index=0;;++index) {
+        // The loop header reloads C050 every iteration. This matters after the
+        // opaque 1C1DC probes in 2AD18; only the record base is entry-stable.
+        const u32 count_page=load_le32(dg(m,0xC050u))^1u;
+        const s32 count=static_cast<s32>(load_le16(dg(m,0xF038u+count_page*2u)));
+        if(count<=index)return 0u;
+
+        const u32 rec=base+static_cast<u32>(index)*0x16u;
+        if(load_le16(dg(m,rec+8u))==0u) {
+            const u32 linked=load_le16(dg(m,rec+6u));
+            const u32 type=load_le16(dg(m,0x14D8Eu+linked*0x16u));
+            const s32 stype=static_cast<s32>(type);
+            if(stype<0x22 || stype==0x50) {
+                const s32 scaled=app62_sar3(static_cast<s32>(load_le16(dg(m,rec+2u)))-0x7D00);
+                if(scaled<0x39)continue;
+            }
+        }
+
+        if(static_cast<s32>(load_le16(dg(m,rec+0x0Eu)))>x ||
+           static_cast<s32>(load_le16(dg(m,rec+0x10u)))<x ||
+           static_cast<s32>(load_le16(dg(m,rec+0x12u)))>y ||
+           static_cast<s32>(load_le16(dg(m,rec+0x14u)))<y)
+            continue;
+
+        const u16 hit_state=load_le16(dg(m,rec+8u)); // encoded second load at 2AF4E
+        if(hit_state==0u) {
+            const u32 linked=load_le16(dg(m,rec+6u));
+            const u32 type=load_le16(dg(m,0x14D8Eu+linked*0x16u));
+            if(function_2ad18(b,type)!=0u || function_2ade0(type)!=0u)return 2u;
+
+            const s32 stype=static_cast<s32>(type); // inline 2ACDC-equivalent test.
+            if(stype<0x22 || stype==0x50)return 1u;
+            continue;
+        }
+
+        if(hit_state!=1u)continue;
+        const u32 linked=load_le16(dg(m,rec+6u));
+        const u32 type=load_le16(dg(m,0x22246u+linked*0x16u));
+        if(type==0x52u || type==0x71u || type==0x6Eu || type==0x91u)return 2u;
+    }
+    return 0u;
+}
+static_assert(0x2B086u-0x2AE30u==598u);
+
+static_assert((0x2ACDAu-0x2AC80u)+(0x2AD15u-0x2ACDCu)+(0x2ADDDu-0x2AD18u)+
+              (0x2AE30u-0x2ADE0u)+(0x2B086u-0x2AE30u)==1022u);
 
 } // namespace code2
