@@ -220,9 +220,16 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 1698F..1698F | alignment | 1
 16A57..16A57 | alignment | 1
 16A85..16A87 | alignment | 3
+16CCD..16CCF | alignment | 3
+16D03..16D03 | alignment | 1
+17097..1709F | noncode | 9
+170A0..170AA | noncode | 11
+170AB..170AB | alignment | 1
+171CF..171CF | alignment | 1
+171F9..171FB | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **1,916 bytes**.
+**Total proven non-code/data:** **1,945 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -296,3 +303,6 @@ Batch 28 evidence: `1548C..15533` is the exact 42-entry CS dword table indexed b
 
 
 Batch 29 evidence: `1608A..1608B`, `1624B`, `1686B`, `168C7`, `16931..16933`, `1698F`, `16A57`, and `16A85..16A87` decode as explicit Watcom no-op separators between directly reconstructed routine boundaries. `16806..1680F` is an exact ten-byte zero-filled gap bounded by the `16524` return at `16805` and the directly decoded `16810` entry; a full object-1 textual reference scan found no direct relative control-flow target or absolute memory/immediate reference to any byte in the gap. No Batch 29 residual byte is counted from appearance alone. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+Batch 30 evidence: `16CCD..16CCF`, `16D03`, `170AB`, `171CF`, and `171F9..171FB` are explicit compiler NOP/LEA separators between directly decoded routine boundaries; a full object-1 direct relative control-flow scan found no incoming target to those separator bytes. `170A0..170AA` is the exact `levels.dat\0` string copied from address `170A0` by the routine beginning at `181B4`; `17097..1709F` is the nine-byte zero pad immediately preceding that referenced string, with no direct code/data reference into the pad. The long save-file writer begins directly at `171FC` and is deliberately left for the next batch. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
