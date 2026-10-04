@@ -1,3 +1,4 @@
+# duplicate 2A1E8 helper definition removed; reuse existing address-identical anchor
 name: Integrate CODE.2 batch 60
 on:
   push:
@@ -19,8 +20,9 @@ jobs:
           from pathlib import Path
           import base64,zlib,hashlib
           raw=zlib.decompress(base64.b64decode(Path('Code2/batch60.zb64').read_text()))
-          assert hashlib.sha256(raw).hexdigest() == '628e79bdafe48cf4e2494bb3a0b18e1dd84965d45dfc0bab62f3b082fe9db985'
+          assert hashlib.sha256(raw).hexdigest() == '5b2fd391109dada75992caeb1e035c24098b63692a52a2d8c9d406af094e9174'
           t=raw.decode(); assert 'function_2a114' in t and 'function_2a584' in t and '==1427u);' in t
+          assert 'static_assert(0x2A20Cu-0x2A1E8u==36u);' in t
           print('batch60 payload OK',len(raw))
           PY
       - name: Apply Batch 60
@@ -35,8 +37,10 @@ jobs:
           assert 'constexpr u32 kVerifiedNonCodeBytes = 3720u;' in c
           assert '+ 1048u + 1427u);' in c
           assert 'static_assert(0x2A177u-0x2A114u==99u);' in c
+          assert 'static_assert(0x2A20Cu-0x2A1E8u==36u);' in c
           assert 'static_assert(0x2A6B0u-0x2A584u==300u);' in c
           assert '==1427u);' in c
+          assert c.count('function_2a1e8(')==1
           assert '*dg(m,0x2A4F6u)=d;' in c and 'store_le32(dg(m,0x2A60Bu),table);' in c
           assert '2A1E5..2A1E7 | alignment | 3' in l and '2A305..2A307 | alignment | 3' in l
           assert '**180,684 / 239,698 = 75.3799% (75.38%)**' in p
