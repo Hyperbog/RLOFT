@@ -230,9 +230,15 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 179A2..179A3 | alignment | 2
 179A4..17A67 | table | 196
 18D8C..18D8F | noncode | 4
+191BE..191BF | alignment | 2
+19375..19377 | alignment | 3
+1942B..1942B | alignment | 1
+19453..19453 | alignment | 1
+19454..19463 | table | 16
+19886..19887 | alignment | 2
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **2,147 bytes**.
+**Total proven non-code/data:** **2,172 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -315,3 +321,6 @@ Batch 31 evidence: `179A2..179A3` decodes as the explicit `MOV EAX,EAX` compiler
 
 
 Batch 32 evidence: `18D8C..18D8F` is the four-byte zero-filled gap after the directly reconstructed `181B4..18D8B` loader return and before the independently decoded `18D90` entry. A full object-1 direct relative CALL/JMP/conditional-branch target scan found no incoming target to any byte in the gap. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+Batch 33 evidence: `191BE..191BF`, `19375..19377`, `1942B`, `19453`, and `19886..19887` decode as explicit compiler no-op separators between directly reconstructed routine boundaries; a full object-1 direct relative branch/call target scan found no incoming target to any separator byte. `19454..19463` is the exact four-dword CS jump table indexed by `EDI` at `194AD`, with decoded targets `194B5`, `19529`, `19644`, and `19688`. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
