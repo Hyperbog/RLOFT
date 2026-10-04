@@ -1,0 +1,79 @@
+name: Integrate CODE.2 Batch 68
+
+on:
+  push:
+    branches: [code1-decompilation]
+    paths:
+      - '.github/workflows/integrate-code2-batch68.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "CODE.2 Decompilation Bot"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Verify staged fragment
+        run: |
+          test "$(git hash-object Code2/.batch68.fragment.cpp)" = "86957b9d2fabcd3f24f8028a2ab3cf0cc0537713"
+          grep -F '// Batch 68: 2E7F0..2F0B1' Code2/.batch68.fragment.cpp
+          grep -F '==2173u);' Code2/.batch68.fragment.cpp
+          grep -F 'kApp68LoadJumpTable[7]' Code2/.batch68.fragment.cpp
+          grep -F 'kApp68FreeJumpTable[7]' Code2/.batch68.fragment.cpp
+
+      - name: Integrate Batch 68
+        run: python Code2/.batch68_integrate.py integrate
+
+      - name: Verify accounting
+        run: python Code2/.batch68_integrate.py verify
+
+      - name: Syntax check
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+
+      - name: Guard fidelity anchors
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          cpp=Path('Code2/Code2.cpp').read_text()
+          led=Path('Code2/RESIDUAL_LEDGER.md').read_text()
+          prog=Path('Code2/PROGRESS.md').read_text()
+          assert all(x in cpp for x in ['function_2e7f0','function_2e9cc','function_2ea9c','function_2eb60','function_2ecb4','function_2efd0'])
+          assert 'function_28020(Machine& m,Application55Boundary& b,u32 /*ignored*/,u32 stream)' in cpp
+          assert 'function_286c4(Machine& m,Application55Boundary& b,u32 /*ignored*/,u32 stream)' in cpp
+          assert '(*dg(m,p)&0xE0u)|0x0Fu' in cpp
+          assert 'kApp68LoadJumpTable[7]' in cpp and 'kApp68FreeJumpTable[7]' in cpp
+          assert '2EC98..2ECB3 | table | 28' in led
+          assert '2EFB4..2EFCF | table | 28' in led
+          assert '199,632 / 239,698 = 83.2848% (83.28%)' in prog
+          PY
+          git diff --check
+
+      - name: Commit substantive Batch 68
+        run: |
+          cp Code2/.batch68_integrate.py /tmp/batch68_integrate.py
+          rm -f Code2/.batch68.fragment.cpp Code2/.batch68_integrate.py .github/workflows/integrate-code2-batch68.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "Integrate CODE.2 decompilation batch 68"
+          git push origin HEAD:code1-decompilation
+          echo "BATCH_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Refresh durable resume checkpoint
+        run: |
+          BATCH_SHA="$BATCH_SHA" python /tmp/batch68_integrate.py checkpoint
+          grep -F "$BATCH_SHA" Code2/RESUME_CHECKPOINT.md
+          grep -F 'Next independently decoded instruction boundary: **`2F0B4`**.' Code2/RESUME_CHECKPOINT.md
+          git add Code2/RESUME_CHECKPOINT.md
+          git diff --cached --check
+          git commit -m "Refresh CODE.2 resume checkpoint after batch 68"
+          git push origin HEAD:code1-decompilation
