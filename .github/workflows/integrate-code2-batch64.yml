@@ -1,4 +1,5 @@
 name: Integrate CODE.2 Batch 64
+# retrigger after Markdown EOF guard correction
 
 on:
   push:
