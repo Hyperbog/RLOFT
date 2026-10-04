@@ -25,14 +25,14 @@ jobs:
           assert 'function_24a60' not in raw
           print('batch52 repair payload OK',len(raw))
           PY
-      - name: Normalize repair guard to live source formatting
+      - name: Make repair scalar guard structural
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('Code2/integrate_batch52_repair.py')
           s=p.read_text()
-          old='''              (0x2527Du-0x2520Cu) +\n              (0x2531Fu-0x25280u) + (0x2538Bu-0x25320u) +'''
-          new='''              (0x2527Du-0x2520Cu) + (0x2531Fu-0x25280u) +\n              (0x2538Bu-0x25320u) +'''
+          old="assert old51 in c\nc=c.replace(old51,newagg,1)"
+          new="""bad_scalar=re.compile(r'static_assert\\(kVerifiedTranslatedBytes == 154156u \\+.*?\\(0x2548Cu-0x253FCu\\)\\);',re.S)\nm=bad_scalar.search(c)\nassert m is not None\nc=c[:m.start()]+newagg+c[m.end():]"""
           assert old in s
           p.write_text(s.replace(old,new,1))
           PY
