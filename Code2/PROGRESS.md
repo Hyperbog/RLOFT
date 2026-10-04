@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-65.55%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-66.61%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **154,218**
-**Proven non-code/data bytes:** **2,894**
-**Reconciled object bytes:** **157,112 / 239,698 = 65.5458% (65.55%)**
-**Unresolved object bytes:** **82,586**
+**Verified translated instruction bytes:** **156,694**
+**Proven non-code/data bytes:** **2,962**
+**Reconciled object bytes:** **159,656 / 239,698 = 66.6071% (66.61%)**
+**Unresolved object bytes:** **80,042**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -625,6 +625,12 @@ The sequential frontier now reaches `23FC3`; the next routine begins at `23FC4`.
 
 ## CODE.2 Batch 51 checkpoint
 
-Batch 51 added **2,771 translated instruction bytes** plus **5 proven alignment bytes**. Cumulative accounting is **154,218 translated + 2,894 non-code = 157,112 / 239,698 = 65.5458% (65.55%)**; unresolved is **82,586 bytes**.
+Batch 51 is corrected to **2,709 translated instruction bytes** plus **7 proven alignment bytes**. Its corrected cumulative accounting is **154,156 translated + 2,896 non-code = 157,052 / 239,698 = 65.5208% (65.52%)**; unresolved at that checkpoint is **82,646 bytes**.
 
-The sequential frontier now reaches `24A9B`; the next routine begins at `24A9C`. Preserve `240A8`'s role-dependent admissibility and default-one behavior, `243E0`'s empty-slot global gate, and `24478`'s asymmetric class/rank arbitration, repeated actor-role predicates, low-two-bit item class tests, per-side cooldown dword gates, and selector-0/1 return ownership. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved. Semantic audit remains not started.
+The corrected sequential frontier reaches `24A5F`; the next routine begins at `24A60`. The repair follows direct control flow: `24478` returns at `24A5D`, `24A5E..24A5F` is alignment, and `24A60` is a separate routine. Preserve `240A8`'s role-dependent admissibility and default-one behavior, `243E0`'s empty-slot global gate, and `24478`'s asymmetric class/rank arbitration, repeated actor-role predicates, low-two-bit item class tests, per-side cooldown dword gates, and selector-0/1 return ownership. Known zero islands remain unresolved. Semantic audit remains not started.
+
+## CODE.2 Batch 52 checkpoint
+
+Batch 52 adds **2,538 translated instruction bytes** plus **66 proven table/alignment bytes** after the Batch-51 boundary repair. Cumulative accounting is **156,694 translated + 2,962 non-code = 159,656 / 239,698 = 66.6071% (66.61%)**; unresolved is **80,042 bytes**.
+
+The sequential frontier now reaches `2548B`; the next object is the **42-entry CS dispatch table at `2548C`**, retained with its owning `25534` dispatcher. Preserve `24A60`'s independent actor search and its tail through `24AB1`, the exact ten-entry `24AB4` table, `24CA4`'s release-then-press selection loop and AL-only page toggle, `24E9C`'s bit extraction using the encoded shift count, `25168`'s cursor increment/read ordering, `25280`'s signed live record-count reloads, and recursive `2538C` counting. Known zero islands remain unresolved. Semantic audit remains not started.
