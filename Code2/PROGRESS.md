@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-51.17%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-51.54%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **120,353**
-**Proven non-code/data bytes:** **2,311**
-**Reconciled object bytes:** **122,664 / 239,698 = 51.1744% (51.17%)**
-**Unresolved object bytes:** **117,034**
+**Verified translated instruction bytes:** **121,232**
+**Proven non-code/data bytes:** **2,312**
+**Reconciled object bytes:** **123,544 / 239,698 = 51.5415% (51.54%)**
+**Unresolved object bytes:** **116,154**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -560,3 +560,9 @@ Fidelity notes: `1BDAC` owns the exact four-entry animation-state table at `1BD9
 Added **829 translated instruction bytes** plus **15 directly proven alignment bytes**. The sequential frontier now reaches `1C40B`; the next routine begins at `1C40C`.
 
 Fidelity notes: `1C0C0` keeps both signed IDIV stages before the 90-degree scale; `1C124/1C160/1C1A0/1C1DC` preserve signed divide-by-32 remainder shift counts, including `1C1DC` returning `FFFFFFFFh` when selected bit 31 is arithmetically shifted back; `1C2C4` uses the encoded unsigned deadline comparison; `1C328` keeps low-32 IMUL/logical-shift dice scaling and wrapped additions; `1C368` reloads handle `22224` for each seek/read and XOR-decodes the payload backward with a 16-bit decrement loop.
+
+## Batch 40 — small checkpoint: framed/tiled panel renderer
+
+Added **879 translated instruction bytes** plus **1 directly proven alignment byte**. The sequential frontier now reaches `1C77B`; the next routine begins at `1C77C`.
+
+Fidelity notes: `1C40C` preserves the encoded signed minimum-size tests, the low-byte-only `AND AL,E0h/F0h` rounding after addition, signed truncation-toward-zero half-offset arithmetic, random edge/corner tile selection, signed loop comparisons, and the final `2E5D4` page-release call.

@@ -269,9 +269,10 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 1C327..1C327 | alignment | 1
 1C366..1C367 | alignment | 2
 1C409..1C40B | alignment | 3
+1C77B..1C77B | alignment | 1
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **2,311 bytes**.
+**Total proven non-code/data:** **2,312 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -372,3 +373,5 @@ Batch 37 evidence: `1BD99..1BD9B` decodes as `LEA EAX,[EAX+0]` between the recon
 Batch 38 evidence: `1BD9C..1BDAB` is the exact four-entry CS dword table consumed by the indirect jump at `1BE11`, with targets `1BE70,1BE19,1BE4A,1BE6C`. `1C0B9..1C0BF` is seven zero bytes bounded by the `1BDAC` return at `1C0B8` and the next routine entry at `1C0C0`. A full object-1 direct relative control-flow target scan found no incoming target to either residual range. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
 
 Batch 39 evidence: `1C121..1C123`, `1C19E..1C19F`, `1C21A..1C21B`, `1C2C2..1C2C3`, `1C327`, `1C366..1C367`, and `1C409..1C40B` decode as explicit NOP/LEA/MOV-EAX,EAX compiler separators between directly reconstructed routines. A full object-1 direct relative control-flow target scan found no incoming CALL/JMP/Jcc target to any of these bytes. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+Batch 40 evidence: `1C77B` decodes as a single `NOP` between the directly reconstructed `1C40C` return at `1C77A` and the next routine entry at `1C77C`. A full object-1 direct relative control-flow target scan found no incoming call/jump target to `1C77B`. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.

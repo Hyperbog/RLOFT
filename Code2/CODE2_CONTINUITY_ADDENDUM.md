@@ -308,3 +308,9 @@ The sequential frontier now reaches `1C0BF`; the next routine begins at `1C0C0`.
 Batch 39 continues the smaller checkpoint cadence. It added **829 translated bytes** plus **15 proven non-code/data bytes**. Cumulative accounting is **120,353 translated + 2,311 non-code = 122,664 / 239,698 = 51.1744% (51.17%)**; unresolved is **117,034 bytes**.
 
 The sequential frontier now reaches `1C40B`; the next routine begins at `1C40C`. Preserve `1C0C0`'s signed two-stage division, the bitset helpers' negative-index/remainder shift behavior and bit-31 SAR result, the unsigned timeout test in `1C2C4`, `1C328`'s low-32 multiply/wrap arithmetic, and `1C368`'s repeated handle reloads plus backward `DCh` decode. Continue with similarly small checkpoints.
+
+## CODE.2 Batch 40 checkpoint
+
+Batch 40 added **879 translated bytes** plus **1 proven non-code/data byte**. Cumulative accounting is **121,232 translated + 2,312 non-code = 123,544 / 239,698 = 51.5415% (51.54%)**; unresolved is **116,154 bytes**.
+
+The sequential frontier now reaches `1C77B`; the next routine begins at `1C77C`. Preserve `1C40C`'s partial-register size rounding (`AND AL,E0h` / `AND AL,F0h`), x86 signed half-offset calculation, separate random edge families, and signed loop termination. Continue with the requested small checkpoint cadence.
