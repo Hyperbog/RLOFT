@@ -493,9 +493,20 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 2E74A..2E74B | alignment | 2
 2E756..2E757 | alignment | 2
 2E7EF..2E7EF | alignment | 1
+2E9CB..2E9CB | alignment | 1
+2EA27..2EA27 | alignment | 1
+2EA9A..2EA9B | alignment | 2
+2EB26..2EB27 | alignment | 2
+2EB5E..2EB5F | alignment | 2
+2EC73..2EC73 | alignment | 1
+2EC95..2EC97 | alignment | 3
+2EC98..2ECB3 | table | 28
+2EFB3..2EFB3 | alignment | 1
+2EFB4..2EFCF | table | 28
+2F0B2..2F0B3 | alignment | 2
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **3,903 bytes**.
+**Total proven non-code/data:** **3,974 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -666,3 +677,5 @@ Batch 65 evidence: the mandatory Batch-64 overlap `2C210..2C2EF` and narrow wind
 Batch 66 evidence: the mandatory Batch-65 overlap `2CFF0..2D0CF` and narrow window `2D000..2D05F` were regenerated from immutable CODE.2 and matched the checkpoint SHA-256 values before forward accounting. The nine excluded separators decode as NOP, `LEA EAX,[EAX+0]`, or `MOV EAX,EAX` between complete routine boundaries. A full object-1 direct CALL/JMP/Jcc target scan found no incoming target into any of the 18 bytes. Two raw little-endian dword matches inside object 1 were investigated individually and proved to be relative CALL displacement fields at object offsets `0C36` and `38EF`, not absolute references to `2D2F2` or `2D9F9`; no decoded address operand references any separator byte.
 
 Batch 67 evidence: the mandatory Batch-66 overlap `2DEB0..2DF8F` and narrow window `2DF00..2DF5F` were regenerated from immutable CODE.2 and matched the checkpoint SHA-256 values exactly before forward accounting. `2DFEC..2E00B` is the exact eight-entry CS dword table consumed by the bounded indirect jump at `2E033`. The remaining classified bytes decode as compiler separators (`LEA EAX,[EAX+0]`, `MOV EAX,EAX`, `NOP`) except the seven zero bytes at `2E339..2E33F`. A full object-1 direct relative CALL/JMP/Jcc target scan found no incoming target to any classified separator/padding byte; direct absolute-address checks found no owned data reference except the proven `2DFEC` table reference from its dispatcher.
+
+Batch 68 evidence: the mandatory Batch-67 overlap `2E770..2E84F` and narrow window `2E7C0..2E81F` were regenerated from immutable CODE.2 and matched the recorded checkpoint hashes before forward accounting. `2EC98..2ECB3` is the exact seven-entry CS dword table consumed by the bounded indirect jump at `2EDF8`; `2EFB4..2EFCF` is the exact seven-entry table consumed by the bounded indirect jump at `2F019`. The remaining classified bytes decode as compiler `NOP`, `MOV EAX,EAX`, or `LEA EAX,[EAX+0]` separators. A full object-1 direct relative CALL/JMP/Jcc target scan found no incoming target to any separator byte, and no classified separator address occurs as a 32-bit absolute pointer in object 1. Direct disassembly of `28020` and `286C4` independently proves both routines read their stream from stack argument two while ignoring argument one; the source signatures were repaired without changing byte accounting.

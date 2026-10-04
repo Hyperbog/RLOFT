@@ -438,3 +438,7 @@ Batch 66 adds **3,862 translated bytes** and **18 proven alignment bytes**, brin
 ## CODE.2 Batch 67 checkpoint
 
 Batch 67 adds **2,161 translated bytes** and **83 proven non-code/data bytes**, bringing cumulative accounting to **193,485 translated + 3,903 non-code = 197,388 / 239,698 = 82.3486% (82.35%)**; unresolved is **42,310 bytes**. The sequential frontier is now `2E7F0`. Preserve the exact `2DFEC` eight-entry CS table owned by `2DF2C`, the signed-high-word-only distance clamp, `2E120`'s word-sized negation before sign extension, page-stack state in `2E590/2E5D4`, and `2E614`'s intentionally dead post-mask return branch.
+
+## CODE.2 Batch 68 checkpoint
+
+Batch 68 adds **2,173 translated bytes** and **71 proven non-code/data bytes**, bringing cumulative accounting to **195,658 translated + 3,974 non-code = 199,632 / 239,698 = 83.2848% (83.28%)**; unresolved is **40,066 bytes**. The sequential frontier is now `2F0B4`. Preserve the two exact seven-entry CS tables, `2E7F0`'s partial initialization of the nine-byte item records, `2ECB4`'s continue-after-error indexing and selector dispatch, and `2EFD0`'s low-nibble cleanup routing. Proven earlier ABI signatures at `28020` and `286C4` were corrected to retain the ignored first argument and stream-valued second argument.
