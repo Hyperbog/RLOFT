@@ -29,7 +29,9 @@ jobs:
           from pathlib import Path
           import hashlib
           raw=Path('Code2/.batch65.fragment.cpp').read_bytes()
-          assert hashlib.sha256(raw).hexdigest() == '9d2d248a59fb7945e026c75ce55e85cb7680f3fc05a94222aec6404561228a5d'
+          actual=hashlib.sha256(raw).hexdigest()
+          print('staged-payload-sha256='+actual)
+          assert actual == '9d2d248a59fb7945e026c75ce55e85cb7680f3fc05a94222aec6404561228a5d'
           text=raw.decode()
           assert '// Batch 65: 2C294..2D001' in text
           assert '==3418u);' in text
