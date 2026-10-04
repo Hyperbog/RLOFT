@@ -4,15 +4,13 @@ This file is a durable handoff anchor. Read it together with `INTERRUPTION_RESUM
 
 ## Last committed substantive decompilation state
 
-- Last substantive batch commit: `d0e36dd24ba9e529523f7360244495be14b2194c` — `Integrate CODE.2 decompilation batch 65`.
-- Verified translated instruction bytes: **187,462**.
-- Proven non-code/data bytes: **3,802**.
-- Reconciled object bytes: **191,264 / 239,698 = 79.7937% (79.79%)**.
-- Unresolved object bytes: **48,434**.
-- Last integrated instruction ownership fold: `2C294..2D003` (instructions through `2D001`, proven separator through `2D003`).
-- Batch-65 compiler separators `2C7F7..2C7FF`, `2C8E2..2C8E3`, `2C9D9..2C9DB`, `2CAD3`, `2CC85..2CC87`, `2CEB6..2CEB7`, and `2D002..2D003` are directly proven alignment and counted in the residual ledger.
-- Preserve `2C294`'s dynamic clip/global reloads and compiler-order rectangle restore, `2CAD4`'s independent party branches, and `2CEB8`'s low-word transition copy plus post-callback `258EC` reload.
-- Next independently decoded instruction boundary: **`2D004`**.
+- Last substantive batch commit: `435048740e3afb3d891f51e4e7f6f4df9149a917` — `Integrate CODE.2 decompilation batch 66`.
+- Verified translated instruction bytes: **191,324**.
+- Proven non-code/data bytes: **3,820**.
+- Reconciled object bytes: **195,144 / 239,698 = 81.4124% (81.41%)**.
+- Unresolved object bytes: **44,554**.
+- Last integrated instruction ownership fold: `2D004..2DF2B` (instructions through `2DF29`, proven separator through `2DF2B`).
+- Next independently decoded instruction boundary: **`2DF2C`**.
 
 ## Immutable identity
 
@@ -24,21 +22,21 @@ This file is a durable handoff anchor. Read it together with `INTERRUPTION_RESUM
 
 ## Mandatory overlap anchor for next resume
 
-Re-disassemble at minimum `2CFF0..2D0CF` from freshly regenerated object 1 before doing new work.
+Re-disassemble at minimum `2DEB0..2DF8F` from freshly regenerated object 1 before doing new work.
 
-- Window: object-relative `[0x2CFF0, 0x2D0D0)` — 224 bytes.
-- SHA-256: `9f68d05e36bfe5d05de60305f4e46354216dc65453c4d631fc38e1d78bc43796`.
-- Narrow boundary window: `[0x2D000, 0x2D060)` — 96 bytes.
-- Narrow SHA-256: `f45147203dc64635216a67d07a730ad3cfb44f12803e208f987fff1c976d115d`.
+- Window: object-relative `[0x2DEB0, 0x2DF90)` — 224 bytes.
+- SHA-256: `07f0e398efd79f069d5371169da63fb67872e5739207737645659f7c1a6a0dbf`.
+- Narrow boundary window: `[0x2DF00, 0x2DF60)` — 96 bytes.
+- Narrow SHA-256: `07a999e7a1b9ecd567aeec17ae3b1e5120572bda82eec45d11fb5c3e74297126`.
 - Narrow boundary bytes:
-  `5bc38bc05356575589e581ec100000006a3ee8c5f1feff83c40485c00f84e00000008b451401c00fbf80225602003d420200007c138b451401c00fbf80225602003d470200007e05e9b0000000833dc8c60000087409833dc8c60000127502eb`
+  `000089d0c1fa1ff7fb891558c60000eb0ac7056ccf000001000000c70548f0000000000000c95f5e5bc38bc05356575589e581ec08000000817d20680100007c0781452098feffff837d20007d0781452068010000803d2fc00000000f85aa00`
 
-Interpretation to re-prove on resume, not merely trust: `2D001` is the final Batch-65 `RET`; `2D002..2D003` is a `MOV EAX,EAX` compiler separator; `2D004` begins the next independent routine with the four-register prologue, a `10h` local frame, and `PUSH 3Eh / CALL 1C1DCh` before routing on `[25622 + argument*2]` and `C6C8`.
+Interpretation to re-prove on resume, not merely trust: `2DF29` is the final Batch-66 `RET`; `2DF2A..2DF2B` is the `MOV EAX,EAX` compiler separator; `2DF2C` begins the next independent four-register-prologue routine with an 8-byte local frame and normalizes argument `+20h` into the `[0,167h]` range before checking `C02F`.
 
 ## Interrupted/in-progress state
 
-**UNCOUNTED / NOT COMMITTED:** no Batch 66 bytes are authorized by this checkpoint. Any analysis at or beyond `2D004` must be revalidated against the overlap before counting.
+**UNCOUNTED / NOT COMMITTED:** no Batch 67 bytes are authorized by this checkpoint. Any analysis at or beyond `2DF2C` must be revalidated against the overlap before counting.
 
 ## Resume rule
 
-Do not rework Batch 65 merely because the overlap is re-disassembled. Verify the overlap, immutable hashes, live accounting, and branch head; then proceed strictly forward from `2D004`. If any overlap/hash/accounting mismatch appears, freeze forward progress and repair the prior batch first.
+Do not rework Batch 66 merely because the overlap is re-disassembled. Verify the overlap, immutable hashes, live accounting, and branch head; then proceed strictly forward from `2DF2C`. If any overlap/hash/accounting mismatch appears, freeze forward progress and repair the prior batch first.
