@@ -1,12 +1,11 @@
 from pathlib import Path
-import base64,zlib,hashlib,re
+import zlib,hashlib,re
 
 root=Path('.')
 cpp=root/'Code2/Code2.cpp'
 prog=root/'Code2/PROGRESS.md'
 ledger=root/'Code2/RESIDUAL_LEDGER.md'
 cont=root/'Code2/CODE2_CONTINUITY_ADDENDUM.md'
-payload=root/'Code2/batch48.zb64'
 
 c=cpp.read_text()
 p=prog.read_text()
@@ -18,7 +17,11 @@ assert 'constexpr u32 kVerifiedNonCodeBytes = 2670u;' in c
 assert 'static_assert(0x21702u-0x214B8u==586u);' in c
 assert 'void function_21704(' not in c
 
-src=zlib.decompress(base64.b64decode(payload.read_text().strip())).decode()
+hex_payload=''.join((root/f'Code2/batch48_{i}.hex').read_text().strip() for i in range(6))
+packed=bytes.fromhex(hex_payload)
+assert len(packed)==4078
+assert hashlib.sha256(packed).hexdigest()=='43ff3f9901fd5b51d8bb67670624261eeeb55d25b36660332212df7d972825d9'
+src=zlib.decompress(packed).decode()
 assert hashlib.sha256(src.encode()).hexdigest()=='275871f20eb28bb95b834bc94eb3b954d8e30cec1d04a5a5f21015f6563dff42'
 assert 'static_assert(0x223F1u-0x21F70u==1153u);' in src
 assert src.count('function_21f70')==1
