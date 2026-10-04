@@ -1,0 +1,69 @@
+name: Integrate CODE.2 batch 36
+
+on:
+  push:
+    branches: [code1-decompilation]
+    paths:
+      - '.github/workflows/integrate-code2-batch36.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+          fetch-depth: 0
+      - name: Apply batch 36
+        run: python Code2/.integrate_batch36.py
+      - name: Verify CODE.2 accounting and semantic anchors
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          code=Path('Code2/Code2.cpp').read_text()
+          ledger=Path('Code2/RESIDUAL_LEDGER.md').read_text()
+          progress=Path('Code2/PROGRESS.md').read_text()
+          assert 'constexpr u32 kVerifiedTranslatedBytes = 118294u;' in code
+          assert 'constexpr u32 kVerifiedNonCodeBytes = 2270u;' in code
+          assert '**118,294**' in progress and '**2,270**' in progress
+          assert '**120,564 / 239,698 = 50.2983% (50.30%)**' in progress
+          assert 'void function_1ae30(Machine& m,Application36Boundary& b) noexcept' in code
+          assert '[[nodiscard]] u32 function_1af90' in code
+          assert 'const u16 tile=static_cast<u16>(static_cast<u16>(new0>>16u)*load_le16(dg(m,0x25619u))+' in code
+          assert 'return any_status20!=0u||qualifying==active?1u:0u;' in code
+          assert 'if(type==0x21u)' in code
+          assert 'static_assert((0x1BBD8u-0x1AE30u)-24u==3472u);' in code
+          assert '1AF85..1AF8F | padding | 11' in ledger
+          assert '1BBD5..1BBD7 | alignment | 3' in ledger
+          block=ledger.split('<!-- RESIDUAL-RANGES-BEGIN -->',1)[1].split('<!-- RESIDUAL-RANGES-END -->',1)[0]
+          total=0
+          for line in block.splitlines():
+              line=line.strip()
+              if not line: continue
+              m=re.fullmatch(r'([0-9A-F]{5})\.\.([0-9A-F]{5}) \| [^|]+ \| (\d+)',line)
+              assert m,line
+              a,z,n=int(m.group(1),16),int(m.group(2),16),int(m.group(3))
+              assert z-a+1==n,(line,z-a+1)
+              total+=n
+          assert total==2270,total
+          assert 118294+2270==120564
+          assert 239698-120564==119134
+          PY
+      - name: Syntax check CODE.2 C++
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+      - name: Clean staging and diff check
+        run: |
+          rm Code2/.batch36_fragment.cpp.gz.b64 Code2/.integrate_batch36.py .github/workflows/integrate-code2-batch36.yml
+          git diff --check
+          test -n "$(git status --porcelain)"
+      - name: Commit integrated batch
+        run: |
+          git config user.name Hyperbog
+          git config user.email 47282882+Hyperbog@users.noreply.github.com
+          git add -A
+          git commit -m "Integrate CODE.2 decompilation batch 36"
+          git push origin HEAD:code1-decompilation
