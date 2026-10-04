@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-50.30%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-50.49%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
-**Verified translated instruction bytes:** **118,294**
-**Proven non-code/data bytes:** **2,270**
-**Reconciled object bytes:** **120,564 / 239,698 = 50.2983% (50.30%)**
-**Unresolved object bytes:** **119,134**
+**Verified translated instruction bytes:** **118,743**
+**Proven non-code/data bytes:** **2,273**
+**Reconciled object bytes:** **121,016 / 239,698 = 50.4869% (50.49%)**
+**Unresolved object bytes:** **118,682**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -542,3 +542,9 @@ The sequential code frontier is now `10FAC`. This batch reconstructs the large `
 Batch 23 adds **3,174 translated instruction bytes** plus **42 directly proven alignment/table bytes**. Cumulative accounting is **78,245 translated + 1,459 non-code = 79,704 / 239,698 = 33.2518% (33.25%)**; unresolved is **159,994 bytes**.
 
 The sequential code frontier is now `11C3C`; `11C2C..11C3B` is the proven four-entry CS table owned by that next routine. Preserve the four-page `C050` draw/toggle sequences in `10FAC/110B4`, `11404`'s raw shifted variant-byte write, the `EEB0` range copy and stale-offset boundary in `11630`, and `117A0`'s store-before-`0F238` ordering, nested-placement early returns, repeated `50DC` call, and forced zero variant when the old item is `-1`. `11AD8` deliberately toggles only `DI` on the all-panel path and only the low byte on the single-panel path.
+
+## Batch 37 — small checkpoint: moving-record step/retry wrapper
+
+Added **449 translated instruction bytes** plus **3 directly proven alignment bytes**. The sequential frontier now reaches `1BD9B`; the next ownership unit begins with the four-entry table at `1BD9C` and its routine at `1BDAC`.
+
+Fidelity notes: `1BBD8` preserves the type-9 low-word tile arithmetic, the encoded impossible duplicate `JE` as its effective fall-through semantics, descriptor-driven displacement, low-word fixed-point tile indexing, divide-by-zero fault boundary, type-8 failure state, and exactly three movement retries through `1B760`.
