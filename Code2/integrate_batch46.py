@@ -1,0 +1,45 @@
+from pathlib import Path
+import base64,zlib,re
+
+ROOT=Path(__file__).resolve().parent
+cpp=ROOT/'Code2.cpp'
+progress=ROOT/'PROGRESS.md'
+ledger=ROOT/'RESIDUAL_LEDGER.md'
+addendum=ROOT/'CODE2_CONTINUITY_ADDENDUM.md'
+
+payload='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'
+fragment=zlib.decompress(base64.b64decode(payload)).decode()
+
+c=cpp.read_text()
+assert 'constexpr u32 kVerifiedTranslatedBytes = 136130u;' in c
+assert 'constexpr u32 kVerifiedNonCodeBytes = 2634u;' in c
+assert c.rstrip().endswith('} // namespace code2')
+c=c.replace('constexpr u32 kVerifiedTranslatedBytes = 136130u;','constexpr u32 kVerifiedTranslatedBytes = 138937u;',1)
+c=c.replace('constexpr u32 kVerifiedNonCodeBytes = 2634u;','constexpr u32 kVerifiedNonCodeBytes = 2667u;',1)
+pat=re.compile(r'static_assert\(kVerifiedTranslatedBytes == 133354u \+\n(?:.*\n){1,12}?\s*\(0x202EDu-0x20294u\)\);')
+repl='''static_assert(kVerifiedTranslatedBytes == 136130u +\n              (0x2043Eu-0x202F0u) + (0x205B4u-0x20440u) +\n              (0x20607u-0x205B4u) + (0x207D1u-0x20608u) +\n              (0x2084Eu-0x207E8u) + (0x20993u-0x20850u) +\n              (0x20A22u-0x20994u) + (0x20B40u-0x20A24u) +\n              (0x20C0Cu-0x20B40u) + (0x20CF3u-0x20C0Cu) +\n              (0x20D7Bu-0x20CF4u) + (0x20E08u-0x20D7Cu));'''
+c,n=pat.subn(repl,c,count=1); assert n==1,n
+c=c.rstrip()[:-len('} // namespace code2')].rstrip()+fragment+'\n\n} // namespace code2\n'
+cpp.write_text(c)
+
+l=ledger.read_text()
+insert='''2043E..2043F | alignment | 2\n20607..20607 | alignment | 1\n207D1..207DF | padding | 15\n207E0..207E7 | table | 8\n2084E..2084F | alignment | 2\n20993..20993 | alignment | 1\n20A22..20A23 | alignment | 2\n20CF3..20CF3 | alignment | 1\n20D7B..20D7B | alignment | 1\n'''
+assert '<!-- RESIDUAL-RANGES-END -->' in l
+l=l.replace('<!-- RESIDUAL-RANGES-END -->',insert+'<!-- RESIDUAL-RANGES-END -->',1)
+l=l.replace('**Total proven non-code/data:** **2,634 bytes**.','**Total proven non-code/data:** **2,667 bytes**.',1)
+l += '''\n\nBatch 46 evidence: `2043E..2043F`, `2084E..2084F`, and `20A22..20A23` decode as `MOV EAX,EAX`; `20607`, `20993`, `20CF3`, and `20D7B` are explicit `NOP` separators. `207D1..207DF` is a fifteen-byte zero pad between the directly reconstructed `20608` return and the next consumed data object. `207E0..207E7` is the exact eight-byte direction/script table referenced by the later routine at `2188C` (direct absolute reference `0x207E0`). A full direct relative control-flow target scan found no incoming target to any Batch 46 residual byte. The older zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.\n'''
+ledger.write_text(l)
+
+p=progress.read_text()
+p=p.replace('object%20accounting-57.89%25-red','object%20accounting-59.08%25-red',1)
+p=p.replace('**Verified translated instruction bytes:** **136,130**','**Verified translated instruction bytes:** **138,937**',1)
+p=p.replace('**Proven non-code/data bytes:** **2,634**','**Proven non-code/data bytes:** **2,667**',1)
+p=p.replace('**Reconciled object bytes:** **138,764 / 239,698 = 57.8912% (57.89%)**','**Reconciled object bytes:** **141,604 / 239,698 = 59.0760% (59.08%)**',1)
+p=p.replace('**Unresolved object bytes:** **100,934**','**Unresolved object bytes:** **98,094**',1)
+p += '''\n\n## CODE.2 Batch 46 checkpoint\n\nBatch 46 added **2,807 translated bytes** plus **33 proven non-code/data bytes**. Cumulative accounting is **138,937 translated + 2,667 non-code = 141,604 / 239,698 = 59.0760% (59.08%)**; unresolved is **98,094 bytes**.\n\nThe sequential frontier now reaches `20E07`; the next routine begins at `20E08`. Preserve `20850`'s two-pass actor update, including the reused stack argument slots that become the pointer pair for `207E8`; `20994`'s signed `IDIV`/remainder path before the 90-degree scaling; `20B40`'s byte-wrap effect timers and second cleanup pass only when the active count reaches zero; and `20C0C`'s packed `8000h:word` fixed-point arguments plus type-1/type-2 activation differences. `207E0..207E7` is an eight-byte table referenced later at `2188C`; the preceding fifteen zero bytes are proven padding. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved. Semantic audit remains not started.\n'''
+progress.write_text(p)
+
+if addendum.exists():
+    a=addendum.read_text()
+    a += '''\n\n## CODE.2 Batch 46 checkpoint\nBatch 46 adds **2,807 translated bytes** and **33 proven non-code/data bytes**, bringing cumulative accounting to **138,937 translated + 2,667 non-code = 141,604 / 239,698 = 59.0760% (59.08%)**. The sequential frontier is now `20E08`. Preserve the stack-slot reuse in `20850`/`207E8`, signed quotient/remainder behavior in `20994`, byte-wrap timer semantics in `20B40`, and packed fixed-point argument construction in `20C0C`.\n'''
+    addendum.write_text(a)
