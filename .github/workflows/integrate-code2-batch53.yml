@@ -1,5 +1,5 @@
 name: Integrate CODE.2 batch 53
-# payload transport repaired
+# payload transport repaired; cleanup normalizes trailing whitespace
 on:
   push:
     paths:
@@ -76,7 +76,8 @@ jobs:
           from pathlib import Path
           for name in ('Code2/CODE2_CONTINUITY_ADDENDUM.md','Code2/PROGRESS.md','Code2/RESIDUAL_LEDGER.md'):
               p=Path(name)
-              p.write_text(p.read_text().rstrip('\n')+'\n')
+              text='\n'.join(line.rstrip() for line in p.read_text().splitlines()).rstrip('\n')+'\n'
+              p.write_text(text)
           PY
           git diff --check
       - name: Commit integrated batch
