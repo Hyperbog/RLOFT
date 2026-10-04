@@ -244,9 +244,17 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 1A1CE..1A1CF | alignment | 2
 1A1F2..1A1F3 | alignment | 2
 1A21D..1A21F | alignment | 3
+1A285..1A287 | alignment | 3
+1A342..1A343 | alignment | 2
+1A3B7..1A3B7 | alignment | 1
+1A50D..1A50F | alignment | 3
+1A5AF..1A5AF | alignment | 1
+1AACA..1AACB | alignment | 2
+1AC16..1AC17 | alignment | 2
+1AC18..1AC37 | table | 32
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **2,200 bytes**.
+**Total proven non-code/data:** **2,246 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -335,3 +343,6 @@ Batch 33 evidence: `191BE..191BF`, `19375..19377`, `1942B`, `19453`, and `19886.
 
 
 Batch 34 evidence: `19C72..19C7F` is fourteen zero bytes bounded by the directly reconstructed `19888` return and the `19C80` entry; a full object-1 direct relative control-flow scan found no incoming target and no absolute data reference into the range. `19CC3` is `NOP`; `19CCA..19CCB`, `19D16..19D17`, `1A0AE..1A0AF`, `1A1CE..1A1CF`, and `1A1F2..1A1F3` decode as `MOV EAX,EAX`; `1A21D..1A21F` decodes as `LEA EAX,[EAX+0]`. None has an incoming direct relative control-flow target. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
+
+
+Batch 35 evidence: `1AC18..1AC37` is the exact eight-entry CS dword table consumed by the indirect jump at `1ADB3`, with targets `1ADBB,1ADCB,1ADD0,1ADC6,1ADDB,1ADE0,1ADED,1AE00`. `1A285..1A287`, `1A342..1A343`, `1A3B7`, `1A50D..1A50F`, `1A5AF`, `1AACA..1AACB`, and `1AC16..1AC17` are bounded NOP/LEA/MOV-EAX,EAX compiler separators between directly reconstructed ownership blocks. A full object-1 direct relative control-flow target scan found no incoming call/jump target to any Batch 35 residual byte. Known zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` remain unresolved.
