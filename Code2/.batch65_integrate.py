@@ -12,10 +12,10 @@ CHK=ROOT/'Code2/RESUME_CHECKPOINT.md'
 OLD_T=184044
 NEW_T=187462
 OLD_N=3780
-NEW_N=3800
-NEW_R=191262
+NEW_N=3802
+NEW_R=191264
 DEN=239698
-NEW_U=48436
+NEW_U=48434
 
 ROWS='''2C7F7..2C7FF | alignment | 9
 2C8E2..2C8E3 | alignment | 2
@@ -28,17 +28,17 @@ ROWS='''2C7F7..2C7FF | alignment | 9
 
 PROGRESS_BLOCK='''## CODE.2 Batch 65 checkpoint
 
-Batch 65 added **3,418 translated instruction bytes** plus **20 directly proven alignment bytes**, reconciling through `2D003`. Cumulative accounting is **187,462 translated + 3,800 non-code = 191,262 / 239,698 = 79.7929% (79.79%)**; unresolved is **48,436 bytes**.
+Batch 65 added **3,418 translated instruction bytes** plus **22 directly proven alignment bytes**, reconciling through `2D003`. Cumulative accounting is **187,462 translated + 3,802 non-code = 191,264 / 239,698 = 79.7937% (79.79%)**; unresolved is **48,434 bytes**.
 
 Instruction ownership spans `2C294..2C7F6`, `2C800..2C8E1`, `2C8E4..2C9D8`, `2C9DC..2CA5B`, `2CA5C..2CAD2`, `2CAD4..2CC84`, `2CC88..2CEB5`, and `2CEB8..2D001`. Preserve `2C294`'s dynamic `F03C/F03E` clip tests and compiler-order rectangle restore, callback-sensitive target/source reloads, `2CAD4`'s independent party-slot branches, and `2CEB8`'s low-word-only `255D4 -> 255D0` transition copy plus post-callback `258EC` reload. The next independent routine begins at `2D004`.
 '''
 
 ADD_BLOCK='''## CODE.2 Batch 65 checkpoint
 
-Batch 65 adds **3,418 translated bytes** and **20 proven alignment bytes**, bringing cumulative accounting to **187,462 translated + 3,800 non-code = 191,262 / 239,698 = 79.7929% (79.79%)**; unresolved is **48,436 bytes**. The sequential frontier is now `2D004`. Preserve `2C294`'s non-linear saved-rectangle restore order, its dynamically re-read clip globals and render-kind fields, the callback-sensitive metadata/source reloads in `2C8E4`, independent transition branches in `2CAD4`, and `2CEB8`'s word-only transition writes and explicit `258EC` reload after `2E510`.
+Batch 65 adds **3,418 translated bytes** and **22 proven alignment bytes**, bringing cumulative accounting to **187,462 translated + 3,802 non-code = 191,264 / 239,698 = 79.7937% (79.79%)**; unresolved is **48,434 bytes**. The sequential frontier is now `2D004`. Preserve `2C294`'s non-linear saved-rectangle restore order, its dynamically re-read clip globals and render-kind fields, the callback-sensitive metadata/source reloads in `2C8E4`, independent transition branches in `2CAD4`, and `2CEB8`'s word-only transition writes and explicit `258EC` reload after `2E510`.
 '''
 
-EVIDENCE='''Batch 65 evidence: the mandatory Batch-64 overlap `2C210..2C2EF` and narrow window `2C250..2C2AF` were regenerated from immutable CODE.2 and matched the recorded checkpoint SHA-256 values exactly before forward accounting. `2C7F7..2C7FF` is a nine-byte zero-fill separator; `2C8E2..2C8E3`, `2CEB6..2CEB7`, and `2D002..2D003` decode as `MOV EAX,EAX`; `2C9D9..2C9DB` and `2CC85..2CC87` decode as `LEA EAX,[EAX+0]`; `2CAD3` is `NOP`. A full object-1 direct relative CALL/JMP/Jcc target scan found no incoming target to any of these 20 bytes, and exact 32-bit object-relative absolute-address scans found no reference to any of them.
+EVIDENCE='''Batch 65 evidence: the mandatory Batch-64 overlap `2C210..2C2EF` and narrow window `2C250..2C2AF` were regenerated from immutable CODE.2 and matched the recorded checkpoint SHA-256 values exactly before forward accounting. `2C7F7..2C7FF` is a nine-byte zero-fill separator; `2C8E2..2C8E3`, `2CEB6..2CEB7`, and `2D002..2D003` decode as `MOV EAX,EAX`; `2C9D9..2C9DB` and `2CC85..2CC87` decode as `LEA EAX,[EAX+0]`; `2CAD3` is `NOP`. A full object-1 direct relative CALL/JMP/Jcc target scan found no incoming target to any of these 22 bytes, and exact 32-bit object-relative absolute-address scans found no reference to any of them.
 '''
 
 def write1(path:Path,text:str):
@@ -83,7 +83,7 @@ def update_ledger():
     end='<!-- RESIDUAL-RANGES-END -->'
     assert led.count(end)==1
     led=led.replace(end,ROWS+end,1)
-    led,n=re.subn(r'\*\*Total proven non-code/data:\*\* \*\*[0-9,]+ bytes\*\*\.', '**Total proven non-code/data:** **3,800 bytes**.',led,count=1)
+    led,n=re.subn(r'\*\*Total proven non-code/data:\*\* \*\*[0-9,]+ bytes\*\*\.', '**Total proven non-code/data:** **3,802 bytes**.',led,count=1)
     assert n==1
     led=append_section(led,EVIDENCE)
     write1(LED,led)
@@ -93,9 +93,9 @@ def update_progress():
     assert '## CODE.2 Batch 65 checkpoint' not in p
     p=one_replace(p,'object%20accounting-78.36%25-red','object%20accounting-79.79%25-red','badge')
     p=one_replace(p,'**Verified translated instruction bytes:** **184,044**','**Verified translated instruction bytes:** **187,462**','progress translated')
-    p=one_replace(p,'**Proven non-code/data bytes:** **3,780**','**Proven non-code/data bytes:** **3,800**','progress noncode')
-    p=one_replace(p,'**Reconciled object bytes:** **187,824 / 239,698 = 78.3586% (78.36%)**','**Reconciled object bytes:** **191,262 / 239,698 = 79.7929% (79.79%)**','progress reconciled')
-    p=one_replace(p,'**Unresolved object bytes:** **51,874**','**Unresolved object bytes:** **48,436**','progress unresolved')
+    p=one_replace(p,'**Proven non-code/data bytes:** **3,780**','**Proven non-code/data bytes:** **3,802**','progress noncode')
+    p=one_replace(p,'**Reconciled object bytes:** **187,824 / 239,698 = 78.3586% (78.36%)**','**Reconciled object bytes:** **191,264 / 239,698 = 79.7937% (79.79%)**','progress reconciled')
+    p=one_replace(p,'**Unresolved object bytes:** **51,874**','**Unresolved object bytes:** **48,434**','progress unresolved')
     write1(PROG,append_section(p,PROGRESS_BLOCK))
 
 def update_addendum():
@@ -114,7 +114,7 @@ def verify():
     m=re.search(r'static_assert\(kVerifiedTranslatedBytes ==(.*?)\);',cpp,re.S)
     assert m and '3418u' in m.group(1)
     assert all(row in led for row in ROWS.strip().splitlines())
-    assert '**Total proven non-code/data:** **3,800 bytes**.' in led
+    assert '**Total proven non-code/data:** **3,802 bytes**.' in led
     rm=re.search(r'<!-- RESIDUAL-RANGES-BEGIN -->\n(.*?)<!-- RESIDUAL-RANGES-END -->',led,re.S)
     assert rm
     total=0
@@ -125,7 +125,7 @@ def verify():
         assert len(fields)==3,line
         total+=int(fields[2])
     assert total==NEW_N,total
-    assert '191,262 / 239,698 = 79.7929% (79.79%)' in p
+    assert '191,264 / 239,698 = 79.7937% (79.79%)' in p
     assert '## CODE.2 Batch 65 checkpoint' in p and '## CODE.2 Batch 65 checkpoint' in a
 
 def integrate():
@@ -141,9 +141,9 @@ This file is a durable handoff anchor. Read it together with `INTERRUPTION_RESUM
 
 - Last substantive batch commit: `{batch}` — `Integrate CODE.2 decompilation batch 65`.
 - Verified translated instruction bytes: **187,462**.
-- Proven non-code/data bytes: **3,800**.
-- Reconciled object bytes: **191,262 / 239,698 = 79.7929% (79.79%)**.
-- Unresolved object bytes: **48,436**.
+- Proven non-code/data bytes: **3,802**.
+- Reconciled object bytes: **191,264 / 239,698 = 79.7937% (79.79%)**.
+- Unresolved object bytes: **48,434**.
 - Last integrated instruction ownership fold: `2C294..2D003` (instructions through `2D001`, proven separator through `2D003`).
 - Batch-65 compiler separators `2C7F7..2C7FF`, `2C8E2..2C8E3`, `2C9D9..2C9DB`, `2CAD3`, `2CC85..2CC87`, `2CEB6..2CEB7`, and `2D002..2D003` are directly proven alignment and counted in the residual ledger.
 - Preserve `2C294`'s dynamic clip/global reloads and compiler-order rectangle restore, `2CAD4`'s independent party branches, and `2CEB8`'s low-word transition copy plus post-callback `258EC` reload.
