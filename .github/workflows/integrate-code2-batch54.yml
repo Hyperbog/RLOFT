@@ -1,4 +1,4 @@
-# retrigger after ledger-range guard fix
+# retrigger after cumulative-assert fix
 name: Integrate CODE.2 batch 54
 on:
   push:
@@ -27,6 +27,19 @@ jobs:
           PY
       - name: Apply Batch 54
         run: python Code2/integrate_batch54.py
+      - name: Advance cumulative translated assertion
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('Code2/Code2.cpp')
+          s=p.read_text()
+          old='''static_assert(kVerifiedTranslatedBytes == 159155u +
+              (0x273E7u-0x26018u));'''
+          new='''static_assert(kVerifiedTranslatedBytes == 159155u +
+              (0x273E7u-0x26018u) + 2797u);'''
+          assert old in s
+          p.write_text(s.replace(old,new,1))
+          PY
       - name: Verify accounting and fidelity anchors
         run: |
           python - <<'PY'
@@ -38,6 +51,7 @@ jobs:
           a=Path('Code2/CODE2_CONTINUITY_ADDENDUM.md').read_text()
           assert 'constexpr u32 kVerifiedTranslatedBytes = 167023u;' in c
           assert 'constexpr u32 kVerifiedNonCodeBytes = 3537u;' in c
+          assert '(0x273E7u-0x26018u) + 2797u);' in c
           assert 'static_assert(0x274A2u-0x273F0u==178u);' in c
           assert 'static_assert(0x27F23u-0x27ECCu==87u);' in c
           assert '==2797u);' in c
