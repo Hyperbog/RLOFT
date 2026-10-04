@@ -4,15 +4,16 @@ This file is a durable handoff anchor. Read it together with `INTERRUPTION_RESUM
 
 ## Last committed substantive decompilation state
 
-- Last substantive batch commit: `738ad19b49f41de6e84d755c1a181c8cd6656007` — `Integrate CODE.2 decompilation batch 60`.
-- Verified translated instruction bytes: **176,964**.
-- Proven non-code/data bytes: **3,720**.
-- Reconciled object bytes: **180,684 / 239,698 = 75.3799% (75.38%)**.
-- Unresolved object bytes: **59,014**.
-- Last integrated instruction ownership fold: `2A114..2A6AF`.
-- Batch-60 separators `2A177`, `2A1E5..2A1E7`, `2A256..2A257`, and `2A305..2A307` are directly proven non-code/data and counted in the residual ledger.
-- `2A1E8..2A20B` is now instruction-accounted by Batch 60 but reuses the pre-existing address-identical reconstruction of `function_2a1e8` rather than duplicating its C++ definition.
-- Next independently decoded instruction boundary: **`2A6B0`**.
+- Last substantive batch commit: `c1abe4e8fcfdca9308a58f8c42444363c723a8d6` — `Integrate CODE.2 decompilation batch 61`.
+- Verified translated instruction bytes: **178,417**.
+- Proven non-code/data bytes: **3,755**.
+- Reconciled object bytes: **182,172 / 239,698 = 76.0006% (76.00%)**.
+- Unresolved object bytes: **57,526**.
+- Last integrated instruction ownership fold: `2A6B0..2AC67`.
+- Batch-61 compiler separators at `2A89F`, `2AA9B`, `2AAEA..2AAEB`, `2AB36..2AB37`, `2AB95..2AB97`, `2ABDB`, and `2ABF3` are directly proven non-code/data and counted in the residual ledger.
+- `2AC68..2AC6F` is directly proven zero padding; `2AC70..2AC7F` is the directly referenced 16-byte table loaded by `2C2A8` and copied as four dwords.
+- The prior uncounted `2A6B0/2A8A0` graphics anchor was replaced, not duplicated, by the Batch-61 instruction-accounted reconstruction so the writable-code operands at `2A816`, `2AA0D`, and `2AA12` remain explicit.
+- Next independently decoded instruction boundary: **`2AC80`**.
 
 ## Immutable identity
 
@@ -24,21 +25,21 @@ This file is a durable handoff anchor. Read it together with `INTERRUPTION_RESUM
 
 ## Mandatory overlap anchor for next resume
 
-Re-disassemble at minimum `2A650..2A730` from freshly regenerated object 1 before doing new work.
+Re-disassemble at minimum `2AC10..2ACEF` from freshly regenerated object 1 before doing new work.
 
-- Window: object-relative `[0x2A650, 0x2A730)` — 224 bytes.
-- SHA-256: `d68f06359d49788d9c0c2a3454b7a48057bf48f53ad5425e0e4c64d78a2d1436`.
-- Narrow boundary window: `[0x2A690, 0x2A6F0)` — 96 bytes.
-- Narrow SHA-256: `dca857861f566dce8a6c1d0d1e9c3d1f616bae9508f8f8ee9d0ca599cff90792`.
+- Window: object-relative `[0x2AC10, 0x2ACF0)` — 224 bytes.
+- SHA-256: `94182cf6e72c432b09e29cca6b1943de7322fa8d77c93aa3a6f2c5d743bd7273`.
+- Narrow boundary window: `[0x2AC50, 0x2ACB0)` — 96 bytes.
+- Narrow SHA-256: `ff5b518b301c3a11b13d416a31f2e7a9e1619023f45d868edfb3bc31bc233371`.
 - Narrow boundary bytes:
-  `59665a664a7411d0c483d7005266bac403b00266ef5aebb35d5b595a5f5ec9c3c800000056575251538b7d148b7518c70529f0000000000000c7052df00000000000008b07c1e802a30df000008b4704c1e802a311f000008b4708a315f00000`
+  `efb009ee6642ec664a8ae080e4bf0ae7b00966ef5b595ac30000000000000000000000000000000000000000000000005356575589e581ec04000000837d14527509c745fc01000000eb37837d14717509c745fc01000000eb28837d146e7509`
 
-Interpretation to re-prove on resume, not merely trust: the final Batch-60 table-translation blitter restores registers and returns at `2A6AF`; its self-modified table displacement and plane-stepping loop remain code-owned. `2A6B0` begins the next independent clipped blitter with `ENTER 0,0`, the five-register save sequence, clip-structure pointer loads, and initialization of `F029/F02D`.
+Interpretation to re-prove on resume, not merely trust: `2AC10..2AC67` is the final Batch-61 retrace/CRTC helper and returns at `2AC67`; `2AC68..2AC6F` is eight zero-fill bytes and `2AC70..2AC7F` is the directly referenced 16-byte table. `2AC80` begins the next independent predicate with the four-register prologue/local allocation and comparisons against `52h`, `71h`, `6Eh`, and `91h`.
 
 ## Interrupted/in-progress state
 
-**UNCOUNTED / NOT COMMITTED:** no Batch 61 bytes are authorized by this checkpoint. Any analysis at or beyond `2A6B0` must be revalidated against the overlap before counting.
+**UNCOUNTED / NOT COMMITTED:** no Batch 62 bytes are authorized by this checkpoint. Any analysis at or beyond `2AC80` must be revalidated against the overlap before counting.
 
 ## Resume rule
 
-Do not rework Batch 60 merely because the overlap is re-disassembled. Verify the overlap, immutable hashes, live accounting, and branch head; then proceed strictly forward from `2A6B0`. If any overlap/hash/accounting mismatch appears, freeze forward progress and repair the prior batch first.
+Do not rework Batch 61 merely because the overlap is re-disassembled. Verify the overlap, immutable hashes, live accounting, and branch head; then proceed strictly forward from `2AC80`. If any overlap/hash/accounting mismatch appears, freeze forward progress and repair the prior batch first.
