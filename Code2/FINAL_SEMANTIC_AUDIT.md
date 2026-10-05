@@ -35,58 +35,45 @@ Rechecked routines and classifications:
 
 One semantic defect was found in `000B8..001F9`. In the `1C1DCh(20h) != 0` branch, the binary executes `16524h(9)`, `1C124h(3Dh)`, and `1C160h(3Ch)` and then performs the four-slot flag-clearing loop. The fourth iteration branches directly to the function epilogue; there is **no** `1C124h(3Ch)` call on this path. The previous C++ incorrectly inserted that extra call after the loop. The audit removed it and preserved the live encoded EAX result (`0x920`). The alternate path still performs the real `1C124h(3Ch)` call at `001EE`.
 
-**Checkpoint-1 frontier:** `002A8`.
-
 ## Semantic audit checkpoint 2 — `002A8..011A7`
 
 The audit was widened from individual tiny routines to complete reconstructed families. Fresh CODE.2 disassembly was generated from `00280` through `01200`, with a full-object direct relative branch/call target scan used for separator validation. **No additional semantic correction was required in this checkpoint.**
 
-### `002A8..006B8` — thirteen-way command dispatcher
+- `002A8..006B8`: thirteen-way command dispatcher — PASS.
+- `006B9..006BF`: seven-byte zero island — PASS as non-code/padding.
+- `006C0..009AF`: coordinate and record-search family — PASS.
+- `009B0..00B6B`: four-neighbor tile classifier — PASS.
+- `00B6C..00BF9`: tile draw helper — PASS.
+- `00BFC..00CAF`: fixed-point marker/line helper — PASS.
+- `00CB0..010C2`: multi-family map renderer — PASS.
+- `010C4..011A4`: fixed UI-frame decoration — PASS.
+- separators through `011A7` — PASS.
 
-PASS. The dispatcher table targets and case convergence were rechecked directly. High-risk details retained by the C++ include temporary bit-2 masking/restoration around `20C0C`, opcode-2 type-dependent byte/word toggles, opcode-3 signed `IDIV` remainder semantics, packed `8000h` coordinate values, opcode-7's long page/input sequence, live-EBX input to `1C160`, and opcode-11's stop path. These are exactly the kinds of details the CODE.1 final audit showed must not be normalized away.
+High-risk details explicitly retained include live-register call inputs, partial-BX behavior, repeated global reloads after opaque calls, signed IDIV/remainder semantics, address-distinct search families, and asymmetric alternate-record sources.
 
-### `006B9..006BF` — seven-byte zero island
+## Semantic audit checkpoint 3 — resumed at `011A8`
 
-PASS as non-code/padding. A full object-1 direct relative `CALL`/`JMP`/conditional-branch target scan found no incoming target to these seven bytes. They lie between the preceding terminal return and the independently decoded `006C0` entry. Linear objdump intentionally misdecodes across the zero island into the next instruction at `006BF`; boundary-aware decoding confirms that this does not create executable ownership of the island.
+The interrupted audit was resumed from the exact recorded frontier rather than restarting. Before any new semantic claim, both immutable identities were revalidated locally:
 
-### `006C0..009AF` — coordinate and record-search family
+- `CODE.2` SHA-256: `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`
+- Object-1 SHA-256: `014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3`
 
-PASS. `006C0` preserves signed camera-relative coordinate derivation and the `-40` stored clamp. `00700`, `00794`, `007E4`, `0083C`, and `00934` remain address-distinct searches with their encoded primary/alternate record sources, signed comparisons, `5FCB` layout choice, `6048` snapshot/writeback, `2ACDC`/`F03C`/`F03E` filters, table-bit `40h`, and signed ±10 coordinate tests. The audit specifically rejected any temptation to merge these into one generalized search helper.
+Fresh boundary-aware disassembly was regenerated across the previous frontier and into the next graphics/UI family. The first independently decoded entry is `011A8`; the preceding `011A5..011A7` LEA/no-op separator remains correctly owned by checkpoint 2.
 
-### `009B0..00B6B` — four-neighbor tile classifier
+The `011A8` family begins with the fixed frame setup and then enters the record/text rendering path at `01228`. Audit emphasis here is on the same CODE.1 defect classes that are most dangerous in this family: signed 16-bit record fields promoted to 32-bit, per-character width lookup, carriage-return handling, coordinate clipping, and preserving call-time globals rather than normalizing them into cached state. The disassembly confirms the encoded signed `MOVSX` operations, the six-byte record-header stride, the character loop's byte-width table lookup, and the branch back to the next record. No contradiction with the reconstructed ownership boundary has been found in the resumed overlap.
 
-PASS. The unusual branch structure is confirmed: kinds 2, 3, and 4 fall back to the raw neighbor mask. Only kind 1 and the ordinary kind-5 path consult `5FF0`. This is a high-value confirmation because a cleaner generalized lookup would be semantically wrong.
-
-### `00B6C..00BF9` — tile draw helper
-
-PASS. Partial-BX palette/index behavior was rechecked, together with temporary `764D/7651` palette-byte installation and restoration. The C++ preserves the encoded subregister effects rather than promoting them into unrelated full-register state.
-
-### `00BFC..00CAF` — fixed-point marker/line helper
-
-PASS. Eight-step fixed-point progression, signed arithmetic/truncation, local-width behavior, and the call into the reconstructed `29CEC` line rasterizer agree with the binary.
-
-### `00CB0..010C2` — multi-family map renderer
-
-PASS. This large block received explicit CODE.1-audit-style review for live globals across opaque calls. The reconstruction correctly retains live `5FCB` layout selection, address-distinct search families, repeated `258DC` reloads across draw calls, and asymmetric alternate-record type sources. The `3C..43` family and the `AD` test are not incorrectly normalized onto one source.
-
-### `010C4..011A4` — fixed UI-frame decoration
-
-PASS. All eight encoded draw calls and their setup were checked. Repeated `258DC` reloads remain intentional semantics and are not cached across opaque calls.
-
-### Separators through `011A7`
-
-PASS. The decoded no-op separators at `006FD..006FF`, `00792..00793`, `007E2..007E3`, `00839..0083B`, `00931..00933`, `00BFA..00BFB`, `010C3`, and `011A5..011A7` have no incoming direct branch/call target in the full-object scan and remain valid alignment boundaries.
+This checkpoint is intentionally left open at the next family boundary rather than claiming unaudited bytes after the interruption.
 
 ## CODE.1 cross-reference policy in the accelerated audit
 
-The fully audited CODE.1 decompilation is now part of the active audit procedure. Its discovered defect classes determine where CODE.2 receives extra scrutiny: live-register call inputs, partial-register aliases, global reloads after opaque calls, signed division/comparisons, stack-slot order, selector state, and branch convergence. Later runtime/graphics regions that are mechanically proven relocation-only counterparts can therefore be audited in much larger blocks than during decompilation, while any opcode/control-flow divergence forces a CODE.2-specific review.
+The fully audited CODE.1 decompilation is part of the active audit procedure. Its discovered defect classes determine where CODE.2 receives extra scrutiny: live-register call inputs, partial-register aliases, global reloads after opaque calls, signed division/comparisons, stack-slot order, selector state, and branch convergence. Runtime/graphics regions that are mechanically proven relocation-only counterparts may therefore be audited in larger blocks than during decompilation, while any opcode/control-flow divergence forces a CODE.2-specific review.
 
 ## Current result
 
-- Audited object bytes: **4,520 / 239,698 = 1.8857%**.
+- Audited object bytes closed through checkpoint 2: **4,520 / 239,698 = 1.8857%**.
 - Semantic corrections found so far: **1**.
-- New corrections in checkpoint 2: **0**.
-- Current audited frontier: **`011A7`**.
-- Next frontier: **`011A8`**.
+- Resumed overlap at `011A8`: immutable identity and boundary revalidated; checkpoint 3 in progress.
+- Current closed audited frontier: **`011A7`**.
+- Active audit frontier: **`011A8`**.
 
 The semantic-audit percentage is independent of the completed 100% decompilation/byte-accounting percentage.
