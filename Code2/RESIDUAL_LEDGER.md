@@ -873,3 +873,12 @@ Batch 124 adds **37** proven non-code/data bytes; cumulative proven non-code/dat
 - `375EF` — 1 explicit NOP separator before `375F0`; no incoming direct relative control-flow target.
 
 Batch 125 adds **22 proven non-code/alignment bytes**, bringing the cumulative non-code/data total to **4,624**.
+
+
+## Batch 126 additions
+- `375FD` — 1 zero separator byte before `375FE`.
+- `376E9..376EF` — 7 zero separator bytes before address-taken `376F0`.
+- `376F1..376FF` — 15 zero separator bytes before directly called `37700`.
+- `3780D..3780F` — 3-byte `XCHG EBX,EBX; NOP` alignment before `37810`.
+
+Batch 126 adds **26 proven non-code/alignment bytes**, cumulative **4,650**.

@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-95.95%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-96.17%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **225,364**
-**Proven non-code/data bytes:** **4,624**
-**Reconciled object bytes:** **229,988 / 239,698 = 95.9491% (95.95%)**
-**Unresolved object bytes:** **9,710**
+**Verified translated instruction bytes:** **225,869**
+**Proven non-code/data bytes:** **4,650**
+**Reconciled object bytes:** **230,519 / 239,698 = 96.1706% (96.17%)**
+**Unresolved object bytes:** **9,179**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -1024,3 +1024,8 @@ Fresh overlap `[3732D,37560)` SHA-256: `fb03d884626319eb3660df9b273a8fa25074d61e
 ## Batch 125 — allocation/read helper family
 
 Added **277 translated instruction bytes** and **22 directly proven alignment bytes** across `374D2..375FD`. `374E0..3757B` clones a 28-byte header from the descriptor-selected source, allocates `length+0x1B`, then reads `length-1` bytes into offset `+0x1C`; `3757C..37588` is its free wrapper. `37590..375EE` reads a two-byte length, allocates `length+2`, stores the length prefix, performs the `2F960`/`2F96C` setup, and fills the payload through `2FB04`; `375F0..375FC` is the second free wrapper. Zero/alignment islands `374D2..374DF` and `37589..3758F`, plus NOP `375EF`, are directly target-scanned and have no incoming direct relative control-flow targets. Next independent instruction boundary: **`375FE`**. Accounting: **225,364 translated + 4,624 non-code/data = 229,988 / 239,698 = 95.9491% (95.95%)**, leaving **9,710 unresolved bytes**.
+
+
+## Batch 126 — INT 24h bridge and dictionary decoder
+
+Added **505 translated instruction bytes** and **26 proven alignment bytes** across `375FD..3780F`. `375FE..37641` installs the critical-error bridge with the encoded extender-mode split; `37642..376E8` is the interrupt bridge with saved SS:ESP, private-stack switch, BP:SI linearization, far callback, LSS restoration, and IRET. `376F0` is an address-taken one-byte RET stub. `37700..3780C` is the 4 KiB ring-dictionary decoder; only the first `0xFEE` dictionary bytes are initialized to `FEh`, exactly matching the encoded `REP STOSB`. Proven separators are `375FD`, `376E9..376EF`, `376F1..376FF`, and `3780D..3780F`. Next boundary: **`37810`**. Accounting: **225,869 translated + 4,650 non-code/data = 230,519 / 239,698 = 96.1706% (96.17%)**, leaving **9,179 unresolved bytes**.

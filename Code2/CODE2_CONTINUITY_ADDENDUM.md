@@ -650,3 +650,7 @@ Batch 122 reconciles `36B9C..36CEB`: **328 translated + 8 alignment bytes**. Pre
 ## CODE.2 Batch 125 checkpoint
 
 Batch 125 reconciles `374D2..375FD`: **277 translated + 22 alignment bytes**. Coverage is **229,988 / 239,698 = 95.9491% (95.95%)**, with **9,710 unresolved bytes**. `374E0` clones the fixed 28-byte header and reads the variable tail; `37590` is the length-prefixed allocation/fill path. Preserve the encoded `count+0x1B` allocation versus `count-1` tail read and the distinct two-byte length prefix. Next boundary is `375FE`; the earlier `36CEC..372F5` helper remains unresolved.
+
+
+## CODE.2 Batch 126 checkpoint
+Batch 126 reconciles `375FD..3780F`: **505 translated + 26 alignment bytes**. Coverage is **230,519 / 239,698 = 96.1706% (96.17%)**, with **9,179 unresolved bytes**. Preserve the interrupt bridge private-stack/LSS/IRET behavior and the decoder's partial `0xFEE`-byte dictionary initialization plus 16-bit ring arithmetic. Next boundary is `37810`; `36CEC..372F5` remains unresolved.
