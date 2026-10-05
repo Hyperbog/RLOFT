@@ -1,0 +1,52 @@
+name: Correct CODE.2 Batch 80 Fidelity
+on:
+  push:
+    branches: [code1-decompilation]
+    paths: ['.github/workflows/correct-code2-batch80-fidelity.yml']
+permissions: {contents: write}
+jobs:
+  correct:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: code1-decompilation, fetch-depth: 0}
+      - run: |
+          git config user.name "CODE.2 Decompilation Bot"
+          git config user.email "actions@users.noreply.github.com"
+      - name: Verify staged correction
+        run: |
+          test "$(git hash-object Code2/.batch80_fidelity_fix.py)" = "300b6c8ce156f47676a88700bdb8bedd03c79c6f"
+          grep -F "old='function_32468(m,0xF9D0u,start,count,factor,3u,target);'" Code2/.batch80_fidelity_fix.py
+      - name: Apply fidelity correction
+        run: python Code2/.batch80_fidelity_fix.py patch
+      - name: Verify correction
+        run: python Code2/.batch80_fidelity_fix.py verify
+      - name: Syntax check
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+      - name: Fidelity guards
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          c=Path('Code2/Code2.cpp').read_text()
+          assert c.count('function_32468(m,0xF9D0u,start,end,factor,3u,target);') == 2
+          assert 'function_32468(m,0xF9D0u,start,count,factor,3u,target);' not in c
+          assert 'constexpr u32 kVerifiedTranslatedBytes = 208723u;' in c
+          assert 'constexpr u32 kVerifiedNonCodeBytes = 4245u;' in c
+          PY
+          git diff --check
+      - name: Commit fidelity correction
+        run: |
+          cp Code2/.batch80_fidelity_fix.py /tmp/batch80_fidelity_fix.py
+          rm -f Code2/.batch80_fidelity_fix.py .github/workflows/correct-code2-batch80-fidelity.yml
+          git add -A && git diff --cached --check
+          git commit -m "Correct CODE.2 batch 80 interpolation count fidelity"
+          git push origin HEAD:code1-decompilation
+          echo "CORRECTION_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Refresh durable resume checkpoint
+        run: |
+          CORRECTION_SHA="$CORRECTION_SHA" python /tmp/batch80_fidelity_fix.py checkpoint
+          grep -F "$CORRECTION_SHA" Code2/RESUME_CHECKPOINT.md
+          grep -F 'Next independently decoded instruction boundary: **`324CC`**.' Code2/RESUME_CHECKPOINT.md
+          git add Code2/RESUME_CHECKPOINT.md && git diff --cached --check
+          git commit -m "Refresh CODE.2 checkpoint after batch 80 fidelity correction"
+          git push origin HEAD:code1-decompilation
