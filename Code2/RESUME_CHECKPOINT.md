@@ -3,21 +3,21 @@
 Durable handoff anchor; live repository/binary evidence wins.
 
 ## Last committed substantive decompilation state
-- Last substantive batch commit: `bbfff3f9b9949e81fbb372f7199c605dec246940` — `Integrate CODE.2 decompilation batch 115`.
-- Verified translated instruction bytes: **221,820**.
-- Proven non-code/data bytes: **4,468**.
-- Reconciled object bytes: **226,288 / 239,698 = 94.4055% (94.41%)**.
-- Unresolved object bytes: **13,410**.
-- Last integrated ownership fold: `35878..358D3`.
-- Next independently decoded instruction boundary: **`358D4`**.
+- Last substantive batch commit: `79d1a849e01c3d1ecf0466a14e69f256665288d9` — `Integrate CODE.2 decompilation batch 116`.
+- Verified translated instruction bytes: **222,129**.
+- Proven non-code/data bytes: **4,471**.
+- Reconciled object bytes: **226,600 / 239,698 = 94.5356% (94.54%)**.
+- Unresolved object bytes: **13,098**.
+- Last integrated ownership fold: `358D4..35A0B`.
+- Next independently decoded instruction boundary: **`35A0C`**.
 
 ## Immutable identity
 - `CODE.2` SHA-256: `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
 - Object-1 SHA-256: `014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3`.
 
 ## Mandatory overlap anchor for next resume
-- Window `[0x35870,0x35950)` — 224 bytes; SHA-256 `47bb1fa97187d5a3b11f020a3c0567e35ab9a9ff135ca8780fc9587e42213a0b`.
-- Narrow `[0x358C0,0x35920)` — 96 bytes; SHA-256 `eada8f8c1b1484303fc1478ed3bb2f86b5d497154163e3310838d790b78efc25`.
-- Narrow bytes: `000083c40c56e8b13d000083c4045f5ec38d400056575581eccc000000a17058030031ff898424c8000000f68424e00000000174098bac24dc000000eb226800020000ffb424e0000000e86825000083c40889c583f8ff750731c0e9df000000`.
+- Window `[0x35990,0x35A70)` — 224 bytes; SHA-256 `4470ab5305088033d53eca6b57aa66c2ea04bc2eecbd1688058daf896f2aafaa`.
+- Narrow `[0x359D0,0x35A30)` — 96 bytes; SHA-256 `8e6b572c5e9d26585f64d832de919ce5fef1636cedc4ca1475266494a6534108`.
+- Narrow bytes: `005055e8a0feffff83c4144603bc24ac0000003b74244472d7f68424e000000001750955e8ff26000083c4048d470f81c4cc0000005d5f5ec38d400056575581ecd00200008b9c24e0020000a174580300c78424b4020000000000008984249c`.
 
-Interpretation: `35878..358D0` is the translated selector-aware copy/file-I/O helper and `358D1..358D3` is proven alignment. `358D4` begins an independently called loader routine.
+Interpretation: `358D4..35A08` is the translated compact loader and `35A09..35A0B` is proven alignment. Batch 115's alternate I/O path is documented correctly as seek-read-tell. `35A0C` begins a larger independently called loader.
