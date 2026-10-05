@@ -3,21 +3,21 @@
 Durable handoff anchor; live repository/binary evidence wins.
 
 ## Last committed substantive decompilation state
-- Last substantive batch commit: `bccdd9e3dd86b3836b4bde28470751833d8165bf` — `Integrate CODE.2 decompilation batch 95`.
-- Verified translated instruction bytes: **214,028**.
+- Last substantive batch commit: `ad8c9041c01753b996adfa373bc92f9c60c49799` — `Integrate CODE.2 decompilation batch 96`.
+- Verified translated instruction bytes: **214,178**.
 - Proven non-code/data bytes: **4,274**.
-- Reconciled object bytes: **218,302 / 239,698 = 91.0738% (91.07%)**.
-- Unresolved object bytes: **21,396**.
-- Last integrated ownership fold: `3395C..339A1`.
-- Next independently decoded instruction boundary: **`339A2`**.
+- Reconciled object bytes: **218,452 / 239,698 = 91.1363% (91.14%)**.
+- Unresolved object bytes: **21,246**.
+- Last integrated ownership fold: `339A2..33A37`.
+- Next independently decoded instruction boundary: **`33A38`**.
 
 ## Immutable identity
 - `CODE.2` SHA-256: `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
 - Object-1 SHA-256: `014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3`.
 
 ## Mandatory overlap anchor for next resume
-- Window `[0x33960,0x33A40)` — 224 bytes; SHA-256 `7f2e8b802fd8b354ee95c06de55156364eadf9e3ec41c3b79a76c26b042435db`.
-- Narrow `[0x339A0,0x33A00)` — 96 bytes; SHA-256 `82b52b929b46d678db6fc7bbb5823db5d8d1e4385c83fe991a3773052cf45dfe`.
-- Narrow bytes: `5bc353528b44240c8b5424108b5c241451505289dab41acd21595ab44ecd21e8c856000089dae827000000595a5bc38b4424045289c2b41acd21e836000000b44fcd21e8a4560000e8050000005ac331c0c3803d622601000975195053515657`.
+- Window `[0x339F0,0x33AD0)` — 224 bytes; SHA-256 `665b94b19505c57589c07ac86e3db0ab9e06b374ce7955ac47b2755f40009c4b`.
+- Narrow `[0x33A10,0x33A70)` — 96 bytes; SHA-256 `b5e553d2d2c0d3cc3ff6944e8245c42794009c2edcf89586d5d42db21fba3ea6`.
+- Narrow bytes: `5e595b58c3803d622601000975195053515657b42fcd2189df89d6b92b000000f3a45f5e595b58c38b542404b439cd21d1d0d1c885c07d0f25ffff000050e88456000083c404c331c0c38b542404b43bcd21d1d0d1c885c07d0f25ffff000050`.
 
-Interpretation: `33970` and `339A1` are independent RETs for the two Batch-95 helpers; there are no separator bytes; `339A2` begins the DOS DTA/find-first wrapper. No Batch 96 bytes are counted.
+Interpretation: `33A37` is the final RET of the mode-9 pre-find DTA shuttle; `33A38` begins the independently called DOS mkdir wrapper. No Batch 97 bytes are counted.
