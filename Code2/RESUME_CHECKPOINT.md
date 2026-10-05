@@ -3,21 +3,21 @@
 Durable handoff anchor; live repository/binary evidence wins.
 
 ## Last committed substantive decompilation state
-- Last substantive batch commit: `e839f18d938c6093ac2699c7545eea36d79b6a38` — `Integrate CODE.2 decompilation batch 82`.
-- Verified translated instruction bytes: **209,081**.
-- Proven non-code/data bytes: **4,255**.
-- Reconciled object bytes: **213,336 / 239,698 = 89.0020% (89.00%)**.
-- Unresolved object bytes: **26,362**.
-- Last integrated ownership fold: `32620..3263B`.
-- Next independently decoded instruction boundary: **`3263C`**.
+- Last substantive batch commit: `3ae7bac67814974f31591a2e4847c6e42232c27f` — `Integrate CODE.2 decompilation batch 83`.
+- Verified translated instruction bytes: **209,871**.
+- Proven non-code/data bytes: **4,257**.
+- Reconciled object bytes: **214,128 / 239,698 = 89.3324% (89.33%)**.
+- Unresolved object bytes: **25,570**.
+- Last integrated ownership fold: `3263C..32953`.
+- Next independently decoded instruction boundary: **`32954`**.
 
 ## Immutable identity
 - `CODE.2` SHA-256: `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
 - Object-1 SHA-256: `014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3`.
 
 ## Mandatory overlap anchor for next resume
-- Window `[0x325C0,0x326A0)` — 224 bytes; SHA-256 `a534e48e9656d36516cb1902b47027267867e21df02a515f8808b2200f277aec`.
-- Narrow `[0x32600,0x32660)` — 96 bytes; SHA-256 `d2a96041dc424aa6a0627db05640c0ba97ddb89e536b8b3afd93417f356202b6`.
-- Narrow bytes: `ffff83c40cff742408e842fbffff83c40453e8c5ecffff83c4045bc300000000c80000005657518b7d0c8b4d108b35e4550200ff5508595f5ec9c390c82c0000535657813d00c70000930000000f84fa020000b8000800000fb6154def0000f7`.
+- Window `[0x328D0,0x329B0)` — 224 bytes; SHA-256 `a99a89b476a127cc5ad6cb006537b2696ee0ef37076cc9c3d0941ae167b0bac5`.
+- Narrow `[0x32920,0x32980)` — 96 bytes; SHA-256 `d3e658d4448c48d94f3448772defa2b81ef338b273975edc8ee4d2a1b387e54d`.
+- Narrow bytes: `fcffff83c40cff45f88aa6a8c6000080fc007419b00266bac40366efff75f0ff75f8ff75fce8d6fcffff83c40c5f5e5bc9c387dbc8000000c705e8fc0000ffffffffc705ecfc0000ffffffff833d50cf0000007527a158c60000390504fd0000`.
 
-Interpretation: `3263A` is the final RET; `3263B` is an unreferenced NOP; `3263C` begins the next independent renderer routine. No Batch 83 bytes are counted.
+Interpretation: `32951` is the final RET; `32952..32953` is unreferenced XCHG EBX,EBX alignment; `32954` begins the next independent routine. No Batch 84 bytes are counted.
