@@ -26,7 +26,7 @@ jobs:
       - name: Verify staged Batch 71
         run: |
           test "$(git hash-object Code2/.batch71.fragment.cpp)" = "1b13aced47183a837abbb969835e53e9558310e9"
-          test "$(git hash-object Code2/.batch71_integrate.py)" = "3246812ba1f4918a5dc2eb448e7f192f73df016d"
+          test "$(git hash-object Code2/.batch71_integrate.py)" = "1150bf34d72a54242ffe5f82f2b9f3afb9af42fa"
           python - <<'PY'
           from pathlib import Path
           text=Path('Code2/.batch71.fragment.cpp').read_text()
