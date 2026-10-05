@@ -698,3 +698,7 @@ Independent formatter-adjacent helpers `38A0A..38A2F`, `38A61..38AC2`, `38AC3..3
 
 ### Batch 138
 `39589..3968D` is now instruction-accounted: runtime scratch-stack/startup forwarding, two stateful six-byte-record callback dispatchers, and the seek-to-end wrapper. The callback tables preserve byte state/threshold fields and dword callback addresses; callback invocation remains an explicit boundary.
+
+
+### Batch 139
+`3968E..39836` is now instruction-accounted. The startup helper duplicates the command line, allocates the contiguous text/argv block, prefixes argv with the published program-name pointer, and publishes argc/argv. `39752` preserves quoted-token parsing plus the encoded backslash escape distinctions and in-place compaction. `39837` is deliberately left unowned.

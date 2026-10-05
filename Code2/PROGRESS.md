@@ -1108,7 +1108,7 @@ Cumulative accounting: **231,371 translated + 4,672 non-code = 236,043 / 239,698
 - `3914A..39225`: 220 translated bytes — generic interrupt register-image bridge/save-restore machinery.
 - `39226..39525`: 768 translated bytes — 256 executable `INT imm8; RET` stubs, exactly 3 bytes each.
 - `39526..39588`: 99 translated bytes — bounded ASCII case-insensitive byte-string compare.
-- Batch total: 1,274 translated + 3 non-code = 1,277 reconciled bytes. Reconciled: **237,581 / 239,698 = 99.1168% (99.12%)**; unresolved: **2,117**.
+- Batch total: 1,274 translated + 3 non-code = 1,277 reconciled bytes. Reconciled: **238,006 / 239,698 = 99.2941% (99.29%)**; unresolved: **1,692**.
 
 
 ## Batch 138
@@ -1116,4 +1116,10 @@ Cumulative accounting: **231,371 translated + 4,672 non-code = 236,043 / 239,698
 - `395E2..3962C`: 75 translated bytes — four-record low-threshold callback dispatcher.
 - `3962D..3967B`: 79 translated bytes — upper-threshold callback dispatcher.
 - `3967C..3968D`: 18 translated bytes — seek-to-end forwarding wrapper.
-- Batch total: 261 translated bytes. Reconciled: **237,581 / 239,698 = 99.1168% (99.12%)**; unresolved: **2,117**.
+- Batch total: 261 translated bytes. Reconciled: **238,006 / 239,698 = 99.2941% (99.29%)**; unresolved: **1,692**.
+
+
+## Batch 139
+- `3968E..39751`: 196 translated bytes — command-line duplication/argv publication helper.
+- `39752..39836`: 229 translated bytes — quoted/unquoted command-line tokenizer with in-place compaction.
+- Batch total: 425 translated bytes. `39837` remains unowned. Reconciled: **238,006 / 239,698 = 99.2941% (99.29%)**; unresolved: **1,692**.
