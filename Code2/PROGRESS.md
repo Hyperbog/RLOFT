@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-97.13%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-97.52%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **228,141**
+**Verified translated instruction bytes:** **229,073**
 **Proven non-code/data bytes:** **4,672**
-**Reconciled object bytes:** **232,813 / 239,698 = 97.1276% (97.13%)**
-**Unresolved object bytes:** **6,885**
+**Reconciled object bytes:** **233,745 / 239,698 = 97.5165% (97.52%)**
+**Unresolved object bytes:** **5,953**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -1054,3 +1054,13 @@ Added **468 translated instruction bytes** across `37CA3..37E76`. `37CA3..37CDF`
 ## Batch 131 — DOS open/create descriptor state machine
 
 Added **655 translated instruction bytes** across `37E77..38105`. `37E77..37E98` is the variadic/open forwarding wrapper. `37E99..38074` preserves the DOS open-first/create-on-demand path, leading-space skip, mode/share folding, device rejection/truncation behavior, DOS error translation, create/reopen fallback, and descriptor flag publication. `38075..380E0` publishes descriptor state and performs the device IOCTL bit-20h update. `380E1..380F7` is the encoded mode-62h create/open wrapper; `380F8..38105` forwards descriptor close. No non-code bytes claimed. Next boundary: **`38106`**. Accounting: **228,141 translated + 4,672 non-code/data = 232,813 / 239,698 = 97.1276% (97.13%)**, leaving **6,885 unresolved bytes**.
+
+## Batch 132 — DOS read/write/seek/delete and drive wrappers
+
+Source identity and Batch 131 overlap were reverified before integration. Added **932 translated instruction bytes** across `38106..384A9`; no new non-code bytes are claimed.
+
+- `38106..3821E` — descriptor read path: descriptor validation, direct binary/device reads, text CR removal, Ctrl-Z EOF/seek-back, bit-20h single-read behavior.
+- `3821F..383EC` — descriptor write path: append seek, direct binary/device write, DOS-version-dependent 80h/200h staging, LF->CRLF expansion, short-write error 12h.
+- `383ED..38451` — seek wrappers; `38452..38473` — unlink/delete; `38474..384A9` — current/default drive wrappers.
+
+Cumulative accounting: **229,073 translated + 4,672 non-code = 233,745 / 239,698 = 97.5165% (97.52%)**; **5,953 unresolved bytes**. Next instruction boundary: `384AA`.
