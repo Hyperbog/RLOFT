@@ -58,3 +58,17 @@ Durable handoff anchor; live repository/binary evidence wins.
 - Mandatory overlap `[0x3966E,0x396EE)` SHA-256: `fa45f1826f22bebbbe2dd92b2837aaf1b2eb9760f4806e0433f91291bc9f25d0`.
 - Next independent boundary: `3968E`.
 - `385B0..38866` and `36CEC..372F5` remain unresolved.
+
+
+## Batch 139 handoff
+- Last substantive batch commit: `b50507bab2cd9e9a61f51d2695d958f1a85ce7d7` — `Integrate CODE.2 decompilation batch 139`.
+- Verified translated instruction bytes: **233,331**.
+- Proven non-code/data bytes: **4,675**.
+- Reconciled: **238,006 / 239,698 = 99.2941% (99.29%)**.
+- Unresolved: **1,692**.
+- Owned fold: `3968E..39836` (425 translated bytes).
+- Batch-owned SHA-256: `9361cfa6660db35e1f38bafff110a3fe1c64336808c941e5b7d7e2ed2cf458fd`.
+- Mandatory overlap `[0x397F7,0x398B7)` SHA-256: `38dec662da86650cbf9cfc26e2d0f65fb608879a5aedf711fc4c76ecf1557128`.
+- Mandatory overlap `[0x39817,0x39897)` SHA-256: `e99dd5778c0474da4d54ca658eaa8e664f9473eadec59b57408973c629e529a0`.
+- Next independent boundary: `39838`; byte `39837` remains unowned.
+- `385B0..38866` and `36CEC..372F5` remain unresolved.
