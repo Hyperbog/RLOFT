@@ -1,26 +1,23 @@
 
 // Batch 138: verified CODE.2 39589..3968D runtime-startup/handler helpers.
 struct Runtime138Boundary {
-    u32 (*stack_available)()=nullptr;          // 3A165
-    void (*runtime_prepare)()=nullptr;         // 3A38A
+    u32 (*stack_available)()=nullptr;
+    void (*runtime_prepare)()=nullptr;
     u32 (*call_20608)(u32,u32)=nullptr;
     void (*call_352be)(u32)=nullptr;
-    void (*invoke_handler)(u32,u32)=nullptr;   // address, pushed dword argument
-    s32 (*seek)(u32,s32,u8)=nullptr;           // 38407
+    void (*invoke_handler)(u32,u32)=nullptr;
+    s32 (*seek)(u32,s32,u8)=nullptr;
 };
 
 // 39589..395E1: establish the runtime scratch-stack watermark, perform runtime
 // preparation, then forward the published 2BD00/2BD04 pair through 20608 and
-// pass its result to 352BE.  The original only subtracts the aligned 1264C
-// amount from ESP when it is strictly below 3A165's available-stack result.
+// pass its result to 352BE. The original subtracts the aligned 1264C amount
+// from ESP only when it is strictly below 3A165's available-stack result.
 void function_39589(Machine& m,Runtime138Boundary& b) noexcept {
     const u32 raw=load_le32(dg(m,0x1264Cu));
     const u32 aligned=(raw+3u)&0xFFFFFFFCu;
     const u32 available=b.stack_available?b.stack_available():0u;
     const u32 scratch=(aligned<available)?aligned:0u;
-    // 12650 receives ESP-after-optional-subtraction + the unrounded 1264C.
-    // The portable reconstruction exposes the same displacement from the
-    // caller's current abstract ESP without manufacturing a host stack pointer.
     store_le32(dg(m,0x12650u),m.cpu.esp-scratch+raw);
     if(b.runtime_prepare)b.runtime_prepare();
     const u32 a=load_le32(dg(m,0x2BD00u));
@@ -30,9 +27,9 @@ void function_39589(Machine& m,Runtime138Boundary& b) noexcept {
 }
 static_assert(0x395E2u-0x39589u==89u);
 
-// 395E2..3962C: repeatedly choose the highest-threshold non-state-2 record in
-// the four 6-byte records [12720,12738), invoke its callback with the original
-// EAX dword, then mark that record state 2.  Selection is threshold <= AL.
+// 395E2..3962C: repeatedly choose the lowest-threshold non-state-2 record
+// whose threshold is <= incoming AL from the four records [12720,12738), call
+// its callback with the original EAX dword, then mark that record state 2.
 void function_395e2(Machine& m,Runtime138Boundary& b,u32 eax) noexcept {
     const u8 limit=static_cast<u8>(eax);
     for(;;){
@@ -51,10 +48,10 @@ void function_395e2(Machine& m,Runtime138Boundary& b,u32 eax) noexcept {
 }
 static_assert(0x3962Du-0x395E2u==75u);
 
-// 3962D..3967B: analogous one-record upper-threshold dispatcher over
-// [12738,1273E).  DL is replaced by incoming AL and DH by incoming DL before
-// the callback argument is pushed; the callback is suppressed when the chosen
-// threshold is above the original DL bound.  The record is still marked 2.
+// 3962D..3967B: upper-threshold dispatcher over [12738,1273E). DL becomes
+// incoming AL and DH becomes incoming DL before the callback argument is
+// pushed. Selection walks upward from AL; callbacks above the original DL
+// bound are suppressed, but the selected record is still marked state 2.
 void function_3962d(Machine& m,Runtime138Boundary& b,u32 eax,u32 edx) noexcept {
     const u8 low=static_cast<u8>(eax);
     const u8 high=static_cast<u8>(edx);
