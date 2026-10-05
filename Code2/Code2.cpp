@@ -7385,7 +7385,9 @@ static_assert(0x0F66Cu-0x0F5F8u==116u);
 struct Application21Boundary {
     Application20Boundary* app20=nullptr;
     u32 (*call_30288)(u32,u32)=nullptr;
-    u32 (*call_30ca2)()=nullptr;
+    // At 0F715..0F736 four eventual 2975Ch arguments are already live on
+    // the cdecl stack when 30CA2h is called. Preserve those consumed slots.
+    u32 (*call_30ca2)(u32,u32,u32,u32)=nullptr;
     void (*call_3975c)(u32,u32,u32,u32,u32)=nullptr;
     void (*call_40508)(u32,u32,u32,u32,u32)=nullptr;
     void (*call_3932c)(u32,u32,u32,u32,u32)=nullptr;
@@ -7433,7 +7435,7 @@ void function_0f66c(Machine& m,Application21Boundary& b,u32 text) noexcept {
         if(x==left)tile=0u;
         else if(x>=limit)tile=5u;
         else if((inner%0x50)==0)tile=1u;
-        else tile=2u+((b.call_30ca2?b.call_30ca2():0u)*3u>>15u);
+        else tile=2u+((b.call_30ca2?b.call_30ca2(0x62u,static_cast<u32>(x),3u,2u):0u)*3u>>15u);
         if(b.call_3975c)b.call_3975c(tile,0x62u,static_cast<u32>(x),3u,2u);
         inner+=8;
     }

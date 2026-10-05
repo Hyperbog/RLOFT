@@ -166,3 +166,12 @@ Durable handoff anchor; live repository/binary evidence wins.
 - Span `0E578..0F166` SHA-256: `54d15727c287a998ed5e4d163dce62533489eb5a658c5bc8a1afad926be3a110`.
 - Mandatory overlap `[0x0E538,0x0E638)` SHA-256: `7a9a3da4ebbc8913a710c160374b20b1e24bfb2cb85420d9a1600380db7e4243`.
 - Next semantic-audit frontier: **`0F167`**.
+
+
+## Semantic audit checkpoint 13 handoff
+- Object accounting remains **239,698 / 239,698**.
+- Semantic audit: **65,864 / 239,698 = 27.4779%**, closed through **`10157`**.
+- Semantic defect classes remain **6**; checkpoint 13 corrected another instance of the existing cdecl live-stack argument defect in `0F66C`.
+- Span `0F167..10157` SHA-256: `38351153807a25bb65b40217cceaf3774d10e27409adc20e7bc2e7e5899e5bf9`.
+- Mandatory overlap `[0x0F127,0x0F227)` SHA-256: `769c85a2b667ab8b09d4c9dc98453f0531181b05d2017163d06c2117887f4ff0`.
+- Next semantic-audit frontier: **`10158`**.
