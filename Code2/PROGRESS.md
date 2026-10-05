@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-87.13%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-87.56%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **204,632**
-**Proven non-code/data bytes:** **4,212**
-**Reconciled object bytes:** **208,844 / 239,698 = 87.1280% (87.13%)**
-**Unresolved object bytes:** **30,854**
+**Verified translated instruction bytes:** **205,657**
+**Proven non-code/data bytes:** **4,215**
+**Reconciled object bytes:** **209,872 / 239,698 = 87.5568% (87.56%)**
+**Unresolved object bytes:** **29,826**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -796,3 +796,10 @@ Added **1,852 translated instruction bytes** and **68 directly proven non-code/d
 Instruction ownership spans `30D30..30DE6`, `30DE8..30E2E`, `30E30..30E62`, `30E64..30F88`, `30F8C..30FC8`, `30FCC..31012`, `31014..31048`, `3104C..311D4`, `311E0..31232`, `31234..31271`, `31274..31279`, `3127C..3129E`, `312A0..312B1`, `312B4..312C5`, `312C8..312D9`, `312DC..312E8`, `312EC..31300`, `31304..31318`, `3131C..31330`, `31334..3137C`, `31380..3138C`, `31390..313A8`, `313AC..313C0`, `313C4..313EA`, `313EC..31482`, and `31484..314AA`. All 68 intervening bytes are direct NOP/MOV-EAX-EAX/LEA alignment or zero padding; a full object-1 direct CALL/JMP/Jcc scan found no incoming target into any of them.
 
 Fidelity notes: `30D80` and `30E64` retain signed truncation-toward-zero paragraph arithmetic after 32-bit wrap; `31274` preserves the incoming upper 24 EAX bits while replacing AL; `312EC`, `31304`, and `3131C` retain the binary's stack-induced `(third, first, second)` forwarding order; `3104C` keeps its one-byte recovery stage and repeats stage 2 indefinitely after it is reached; `31107` keeps byte-sized stream flag updates while testing the full dword at +0C; and `313FC` restores the saved drive only when pathname open fails. The next independent application routine begins at **`314B0`**.
+## Batch 73 — perspective-row renderer
+
+Added **1,025 translated instruction bytes** and **3 directly proven alignment bytes**, bringing cumulative accounting to **205,657 translated + 4,215 non-code = 209,872 / 239,698 = 87.5568% (87.56%)**. Unresolved is **29,826 bytes**.
+
+Instruction ownership is `314B0..318B0`; `318B1..318B3` is the compiler LEA alignment before the next independent routine. A full object-1 direct CALL/JMP/Jcc target scan found no incoming target into those three bytes.
+
+Fidelity notes: record zero is processed unconditionally while later records terminate on word0==0; the random decoration prepass reuses the two arguments left on the cdecl stack by `30CA2`, yielding the exact effective `29838(0,4,sprite,random_set,8)` call; the initial and post-prepass RNG seeds are `C658` and the live tick from `30700`; signed projection uses the encoded `(delta<<7)+12h` then signed divide by 24h; and failed visibility tests try +168h wrap, then -168h wrap without a final visibility rejection. The next independent routine begins at **`318B4`**.

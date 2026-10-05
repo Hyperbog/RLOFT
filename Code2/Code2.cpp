@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 204632u;
-constexpr u32 kVerifiedNonCodeBytes = 4212u;
+constexpr u32 kVerifiedTranslatedBytes = 205657u;
+constexpr u32 kVerifiedNonCodeBytes = 4215u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -24193,5 +24193,80 @@ static_assert(
     (0x3137Du-0x31334u)+(0x3138Du-0x31380u)+(0x313A9u-0x31390u)+
     (0x313C1u-0x313ACu)+(0x313EBu-0x313C4u)+(0x313FCu-0x313ECu)+
     (0x31483u-0x313FCu)+(0x31491u-0x31484u)+(0x314ABu-0x31491u)==1852u);
+
+
+// -----------------------------------------------------------------------------
+// Batch 73: 314B0..318B0 perspective-row renderer. All addresses are CODE.2
+// object-relative; CODE.2 bytes are controlling evidence.
+// -----------------------------------------------------------------------------
+struct Application73Boundary {
+    Application57Boundary* app57=nullptr;
+};
+
+[[nodiscard]] static s32 app73_scaled_x(s32 delta) noexcept {
+    const u32 shifted=static_cast<u32>(delta)<<7;
+    const s32 numerator=static_cast<s32>(shifted+0x12u);
+    return numerator/0x24;
+}
+
+// 314B0..318B0: draw one view's row list. A mode-dependent 32-sprite random
+// prepass is followed by per-record wrapped horizontal projection. Record zero
+// is always processed; later records stop at the first zero word0 sentinel.
+void function_314b0(Machine& m,Application73Boundary& b,u32 view) noexcept {
+    const s32 key_base=static_cast<s16>(load_le16(dg(m,0x2B750u+view*2u)));
+    const u32 rows=load_le32(dg(m,load_le32(dg(m,0x2B764u))+view*4u));
+
+    function_296c0(m,4,0x20,0x83,0x11F);
+    function_30cc4(m,load_le32(dg(m,0xC658u)));
+
+    const u32 mode=*dg(m,0xF918u);
+    if(mode<=10u){
+        s32 set_bias=0;
+        if(mode==9u)set_bias=8;
+        else if(mode==10u)set_bias=16;
+        for(u32 i=0;i<0x20u;++i){
+            const u32 random_set=((function_30ca2(m)*7u)>>15)+static_cast<u32>(key_base+set_bias);
+            if(b.app57)(void)function_29838(*b.app57,0u,4u,i*8u+0x20u,random_set,8u);
+        }
+    }
+
+    function_30cc4(m,function_30700(m));
+
+    for(u32 i=0;;++i){
+        const u32 rec=rows+i*8u;
+        if(i!=0u && load_le16(dg(m,rec))==0u)break;
+
+        s32 shade=static_cast<s32>(*dg(m,0xF918u));
+        if(shade>8)shade=8;
+        if(i==0u){
+            shade=static_cast<s32>(*dg(m,0xF918u))/2;
+            if(static_cast<s16>(load_le16(dg(m,rec)))!=0x18)shade=0;
+        }
+
+        s32 key=static_cast<s16>(load_le16(dg(m,rec)));
+        if(key>=8)key+=key_base;
+        const s32 y=static_cast<s16>(load_le16(dg(m,rec+6u)));
+        const s32 width=static_cast<s16>(load_le16(dg(m,rec+4u)));
+        const s32 world_x=static_cast<s16>(load_le16(dg(m,rec+2u)));
+        const s32 camera=static_cast<s32>(load_le32(dg(m,0xC658u)));
+
+        auto screen_for=[&](s32 wrap) noexcept {
+            const s32 delta=static_cast<s32>(static_cast<u32>(world_x)-static_cast<u32>(camera)+static_cast<u32>(wrap));
+            return static_cast<s32>(0xA0-app73_scaled_x(delta)-width/2);
+        };
+        auto visible=[&](s32 x) noexcept { return x<0x120 && x+width>=0x20; };
+
+        s32 x=screen_for(0);
+        if(!visible(x)){
+            x=screen_for(0x168);
+            if(!visible(x))x=screen_for(-0x168);
+        }
+        if(b.app57)(void)function_2986c(m,*b.app57,0u,static_cast<u32>(y),static_cast<u32>(x),static_cast<u32>(key),8u,static_cast<u32>(static_cast<u8>(shade)));
+    }
+
+    function_296c0(m,0,0,0x18F,0x13F);
+}
+static_assert(0x318B1u-0x314B0u==1025u);
+// 318B1..318B3 is LEA alignment with no incoming direct control-flow target.
 
 } // namespace code2

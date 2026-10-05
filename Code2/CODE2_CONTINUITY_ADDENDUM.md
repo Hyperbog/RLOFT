@@ -452,3 +452,8 @@ The fold covers text layout through `306F7`, the tick/keyboard interrupt and que
 Batch 72 added **1,852 translated instruction bytes** plus **68 directly proven non-code/data bytes**, reconciling through `314AF`. Cumulative accounting is **204,632 translated + 4,212 non-code = 208,844 / 239,698 = 87.1280% (87.13%)**; unresolved is **30,854 bytes**.
 
 The fold covers the `30D30` fill primitive, DPMI/memory wrappers through `31012`, allocator recovery and checked free logic, buffered byte output, DOS/string and handle wrappers, and drive-aware pathname opening through `314AA`. Preserve signed paragraph division, partial-AL return at `31274`, the argument permutation in the three I/O forwarding thunks, the staged allocator-recovery loop, byte-vs-dword stream flags, and failure-only drive restoration. The next independent application routine begins at `314B0`.
+## CODE.2 Batch 73 checkpoint
+
+Batch 73 added **1,025 translated instruction bytes** plus **3 directly proven alignment bytes**, reconciling through `318B3`. Cumulative accounting is **205,657 translated + 4,215 non-code = 209,872 / 239,698 = 87.5568% (87.56%)**; unresolved is **29,826 bytes**.
+
+The fold is the complete `314B0..318B0` perspective-row renderer. Preserve unconditional record-zero processing, the zero-word sentinel only on later records, cdecl stack reuse around `30CA2`/`29838`, RNG reseeding, signed wrapped projection arithmetic, and the three-position horizontal wrap search. The next independent routine begins at `318B4`.
