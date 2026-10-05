@@ -1,0 +1,24 @@
+name: Integrate CODE.2 Batch 126
+on:
+  push:
+    branches: [code1-decompilation]
+    paths: ['.github/workflows/integrate-code2-batch126.yml']
+permissions:
+  contents: write
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+          fetch-depth: 0
+      - run: python Code2/.batch126_integrate.py integrate
+      - run: python Code2/.batch126_integrate.py verify
+      - run: |
+          g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+          git diff --check
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Integrate CODE.2 decompilation batch 126
+          file_pattern: 'Code2/Code2.cpp Code2/PROGRESS.md Code2/RESIDUAL_LEDGER.md Code2/CODE2_CONTINUITY_ADDENDUM.md'
