@@ -1,14 +1,14 @@
 # CODE.2 faithful decompilation progress
 
 ![Progress](https://img.shields.io/badge/object%20accounting-100.00%25-brightgreen)
-![Semantic audit](https://img.shields.io/badge/semantic%20audit-80.90%25-yellow)
+![Semantic audit](https://img.shields.io/badge/semantic%20audit-85.04%25-yellow)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
 **Verified translated instruction bytes:** **235,022**
 **Proven non-code/data bytes:** **4,676**
 **Reconciled object bytes:** **239,698 / 239,698 = 100.0000% (100.00%)**
 **Unresolved object bytes:** **0**
-**Semantic audit:** **193,904 / 239,698 = 80.8951%**, closed through object offset `0x2F57F`; **6 semantic defect classes** found so far.
+**Semantic audit:** **203,848 / 239,698 = 85.0437%**, closed through object offset `0x31C57`; **6 semantic defect classes** found so far.
 **Status color:** GREEN — complete object-1 byte accounting. Semantic audit remains a separate follow-up phase.
 
 ## Immutable source identity
