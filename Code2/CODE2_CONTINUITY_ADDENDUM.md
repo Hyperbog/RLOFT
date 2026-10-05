@@ -485,3 +485,6 @@ Batch 80 reconciles `32220..324CB`: **680 translated + 4 alignment bytes**. Cove
 ## CODE.2 Batch 80 post-commit fidelity correction
 
 Direct stack tracing at the `32468` call sites proved that `32220` and `322EC` pass the raw third argument as the interpolation count, while their restore copies use the separately computed inclusive `(end-start+1)` span. The reconstruction now preserves this asymmetry. Accounting remains **208,723 translated + 4,245 non-code = 212,968 / 239,698 = 88.8485% (88.85%)** and the next frontier remains `324CC`.
+## CODE.2 Batch 81 checkpoint
+
+Batch 81 reconciles `324CC..3261F`: **331 translated + 9 non-code bytes**. Coverage is **213,308 / 239,698 = 88.9903% (88.99%)**, with **26,390 unresolved bytes**. Preserve the forward overlapping triple shift in `324F8`, resource-wrapper argument permutation, row offset encoding `((row*3)<<8)+1`, and the post-read `32150` palette rescale. Next frontier is `32620`.
