@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-91.07%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-91.14%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **214,028**
+**Verified translated instruction bytes:** **214,178**
 **Proven non-code/data bytes:** **4,274**
-**Reconciled object bytes:** **218,302 / 239,698 = 91.0738% (91.07%)**
-**Unresolved object bytes:** **21,396**
+**Reconciled object bytes:** **218,452 / 239,698 = 91.1363% (91.14%)**
+**Unresolved object bytes:** **21,246**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -884,3 +884,6 @@ Added **146 translated instruction bytes** and **2 alignment bytes**, bringing a
 ## Batch 95 — VGA map-mask and bounded string copy
 
 Added **70 translated instruction bytes**, bringing accounting to **214,028 translated + 4,274 non-code = 218,302 / 239,698 = 91.0738% (91.07%)**. `3395C` emits the exact 16-bit VGA sequencer write `(mask.low8 << 8) | 02h` to port `03C4h` through an explicit hardware boundary. `33971` preserves the encoded bounded string-copy behavior: copy nonzero source bytes while count remains, then zero-fill every remaining destination byte and return the original destination. Next frontier: **`339A2`**.
+## Batch 96 — DOS find/DTA wrapper family
+
+Added **150 translated instruction bytes**, bringing accounting to **214,178 translated + 4,274 non-code = 218,452 / 239,698 = 91.1363% (91.14%)**. `339A2` and `339CF` preserve the encoded `INT 21h` DTA setup plus find-first/find-next ordering. The common `3908C` carry consumer is modeled exactly: on carry it invokes the `390D7` error side effect but then restores and returns the original zero-extended 16-bit DOS error code; carry-clear returns zero. `339F2/33A15` retain the version-9-only AH=2F shuttles as selector-qualified `REP MOVSB` boundaries in the encoded DS:source -> ES:destination directions instead of flattening them into host memory. Next frontier: **`33A38`**.

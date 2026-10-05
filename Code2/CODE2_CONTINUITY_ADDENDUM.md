@@ -530,3 +530,6 @@ Batch 94 reconciles `338C8..3395B`: **146 translated + 2 alignment bytes**. Cove
 ## CODE.2 Batch 95 checkpoint
 
 Batch 95 reconciles `3395C..339A1`: **70 translated bytes** and no separator bytes. Coverage is **218,302 / 239,698 = 91.0738% (91.07%)**, with **21,396 unresolved bytes**. Preserve the single 16-bit `OUT DX,AX` value/port at `3395C`, and for `33971` preserve the no-source-advance/no-count-decrement behavior when the NUL terminator is first observed before the zero-fill loop. Next frontier is `339A2`.
+## CODE.2 Batch 96 checkpoint
+
+Batch 96 reconciles `339A2..33A37`: **150 translated bytes** and no separator bytes. Coverage is **218,452 / 239,698 = 91.1363% (91.14%)**, with **21,246 unresolved bytes**. Preserve `339A2` argument reshuffling into DS:DX path/CX attributes after AH=1A, `339CF`'s pre-find `33A15` shuttle, post-find `339F2` shuttle on both success and failure, `3908C`'s carry-sensitive error-side-effect/return-code distinction, the `12662 == 9` gate, and the exact DS/ES directions of both 43-byte REP MOVSB operations. Next frontier is `33A38`.
