@@ -17,7 +17,7 @@ jobs:
         run: |
           git merge-base --is-ancestor 4db69e6fc6e7fce357fc77364d6f92ae6e25f503 HEAD
           test "$(git hash-object Code2/.batch89.fragment.cpp)" = "af48553353aa749f3432cd9a6ee042ad068aa6e3"
-          test "$(git hash-object Code2/.batch89_integrate.py)" = "9b4eb3f79f8a6a7c10f6fd728d622242ecc9bdd5"
+          test "$(git hash-object Code2/.batch89_integrate.py)" = "7fc06fc0e3c0efb79d5b2bd33c008e7ce8244305"
           grep -F 'static_assert(0x334C2u-0x333BCu==262u);' Code2/.batch89.fragment.cpp
       - name: Integrate Batch 89
         run: python Code2/.batch89_integrate.py integrate
@@ -52,3 +52,4 @@ jobs:
           git add Code2/RESUME_CHECKPOINT.md && git diff --cached --check
           git commit -m "Refresh CODE.2 resume checkpoint after batch 89"
           git push origin HEAD:code1-decompilation
+# rerun after duplicate-size guard correction
