@@ -3,22 +3,21 @@
 Durable handoff anchor; live repository/binary evidence wins on disagreement.
 
 ## Last committed substantive decompilation state
-- Last substantive batch commit: `80fddbfdd37663387bdf8a1b25887e40fbbbcd9b` — `Integrate CODE.2 decompilation batch 77`.
-- Verified translated instruction bytes: **207,762**.
-- Proven non-code/data bytes: **4,226**.
-- Reconciled object bytes: **211,988 / 239,698 = 88.4396% (88.44%)**.
-- Unresolved object bytes: **27,710**.
-- Last integrated ownership fold: `31F94..320F7`.
-- Next independently decoded instruction boundary: **`320F8`**.
+- Last substantive batch commit: `6569106a2a6f6b98f39aa1e629e8f4467b58f6f2` — `Integrate CODE.2 decompilation batch 78`.
+- Verified translated instruction bytes: **207,836**.
+- Proven non-code/data bytes: **4,240**.
+- Reconciled object bytes: **212,076 / 239,698 = 88.4763% (88.48%)**.
+- Unresolved object bytes: **27,622**.
+- Last integrated ownership fold: `320F8..3214F`.
+- Next independently decoded instruction boundary: **`32150`**.
 
 ## Immutable identity
 - `CODE.2` SHA-256: `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
 - Object-1 SHA-256: `014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3`.
-- Object-1 file start `0x3AF24`, length `0x3A852`.
 
 ## Mandatory overlap anchor for next resume
-- Window `[0x32070,0x32150)` — 224 bytes; SHA-256 `7a8892428b345013bdff25696746c94b4bd43cb50781935d3bdc55d54a4e15b2`.
-- Narrow `[0x320C0,0x32120)` — 96 bytes; SHA-256 `742245f950f9ad3b4b5070b9873e5d769927ee2be3a0d7a7e9326b5bcca49aef`.
-- Narrow bytes: `45fc01c00fbf8024f90000a320f90000e89ffdffff03051cf9000050ff3520f90000e82df9ffff83c4080fb745fca3ccf90000c95f5e5bc3538b4424088b108d5a0189188a5c240c881aff40105bc35383ec048d44241468f820030089442404`.
+- Window `[0x320D0,0x321B0)` — 224 bytes; SHA-256 `37ab4e55928af5efc10bd4661abff639b716850bbf1084c2d2718e8a23654fb9`.
+- Narrow `[0x32100,0x32160)` — 96 bytes; SHA-256 `7e2e5f194b0ebc34875052d68c50e22e7a5f10bf0a04060b64198d1c4b68a4f1`.
+- Narrow bytes: `5a0189188a5c240c881aff40105bc35383ec048d44241468f8200300894424048d442404508b542418528b5c241853e87c64000089da83c410c604020083c4045bc300000000000000000000000000005356575583ec0ca150f000000fb6406c`.
 
-Interpretation: `320F7` is the final RET; `320F8` immediately begins the next independent byte-output callback. No Batch 78 bytes are counted.
+Interpretation: `32141` is the final RET; `32142..3214F` is fourteen zero bytes with no incoming direct reference; `32150` begins the next independent routine. No Batch 79 bytes are counted.
