@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-91.39%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-91.53%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **214,774**
-**Proven non-code/data bytes:** **4,278**
-**Reconciled object bytes:** **219,052 / 239,698 = 91.3867% (91.39%)**
-**Unresolved object bytes:** **20,646**
+**Verified translated instruction bytes:** **215,095**
+**Proven non-code/data bytes:** **4,293**
+**Reconciled object bytes:** **219,388 / 239,698 = 91.5268% (91.53%)**
+**Unresolved object bytes:** **20,310**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -899,3 +899,6 @@ Added **161 translated instruction bytes** and **3 alignment bytes**, bringing a
 ## Batch 100 — mouse/runtime initialization and DOS-memory probe
 
 Added **332 translated instruction bytes**, bringing accounting to **214,774 translated + 4,278 non-code = 219,052 / 239,698 = 91.3867% (91.39%)**. `33B44` first executes the native protected-mode INT 33h reset and publishes its low AX/BX words at `2B7A2/2B7A4` while clearing `2B7A6`. If a mouse driver is present it allocates 40h bytes of DOS memory through `30D80`, builds the same 32h-byte real-mode frame used by Batch 99, simulates INT 33h through `33AA0`, copies the first DOS-memory byte to `2B7A6` only when returned frame EAX equals one, and frees the DOS selector only when that probe word remains zero. If the native reset reports no driver, the encoded `311E8`/device cleanup/reporting path is preserved, including the `71h` device-kind bypass and cached `EE78|EE40` cleanup mask. The function returns the address `2B7A2`, not its contents. Next frontier: **`33C90`**.
+## Batch 101 — mouse position/range and drain helpers
+
+Added **321 translated instruction bytes** and **15 alignment bytes**, bringing accounting to **215,095 translated + 4,293 non-code = 219,388 / 239,698 = 91.5268% (91.53%)**. `33C90` emits mouse function 4 with the encoded doubled second coordinate; `33CB0` preserves post-`2E340` BX/CX/DX residue on entry to function 3, publishes low BX/DX, and stores an arithmetic-halved signed CX at `2B7AC`; `33D18/33D38` issue functions 7/8. `33D58` and `33D78` preserve their distinct polling/drain loops and return-register sources, including the disabled-path `30AEC` call and the `30AD8` recheck before `30B1C/30B2C`. All intervening NOP/LEA/MOV alignment and the three zeros before `33DE0` have no direct or raw references. Next frontier: **`33DE0`**.

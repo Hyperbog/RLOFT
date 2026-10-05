@@ -545,3 +545,6 @@ Batch 99 reconciles `33AA0..33B43`: **161 translated + 3 alignment bytes**. Cove
 ## CODE.2 Batch 100 checkpoint
 
 Batch 100 reconciles `33B44..33C8F`: **332 translated bytes** and no separator bytes. Coverage is **219,052 / 239,698 = 91.3867% (91.39%)**, with **20,646 unresolved bytes**. Preserve low-word AX/BX publication from the direct INT 33h reset, the `30D80(40h,&FD14,&FD18)` allocation contract, retained allocation on a nonzero probe byte, selector-only `30DE8` free on a zero probe, the inlined real-mode frame construction rather than replacing it with the address-distinct `33AF4` helper, and the reset-failure cleanup ordering through `311E8`, `27ECC`, `285D4`, `362BE`, `30C38`, and `352BE`. Next frontier is `33C90`.
+## CODE.2 Batch 101 checkpoint
+
+Batch 101 reconciles `33C90..33DDF`: **321 translated + 15 alignment bytes**. Coverage is **219,388 / 239,698 = 91.5268% (91.53%)**, with **20,310 unresolved bytes**. Preserve post-`2E340` register residue for `33CB0`, signed arithmetic halving of low CX, the second-coordinate doubling in function 4, and the exact multi-stage polling structure/return EAX behavior of `33D58` and `33D78`. Alignment islands are `33CAF`, `33D15..17`, `33D35..37`, `33D55..57`, `33D76..77`, and `33DDD..DDF`. Next frontier is `33DE0`.
