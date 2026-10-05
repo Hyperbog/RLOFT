@@ -491,3 +491,6 @@ Batch 81 reconciles `324CC..3261F`: **331 translated + 9 non-code bytes**. Cover
 ## CODE.2 Batch 82 checkpoint
 
 Batch 82 reconciles `32620..3263B`: **27 translated + 1 alignment byte**. Coverage is **213,336 / 239,698 = 89.0020% (89.00%)**, with **26,362 unresolved bytes**. Preserve the register-call ABI: target from arg1, ESI=`[255E4]`, EDI=arg2, ECX=arg3, callback EAX returned. Next frontier is `3263C`.
+## CODE.2 Batch 83 checkpoint
+
+Batch 83 reconciles `3263C..32953`: **790 translated + 2 alignment bytes**. Coverage is **214,128 / 239,698 = 89.3324% (89.33%)** with **25,570 unresolved bytes**. Preserve the original unaligned extent separately from the callback-table index, signed byte clamping of the packed shade components, x86-style MUL/IDIV row shift, explicit code-byte patch/restore, VGA sequencer map-mask writes, and optional second/third plane passes. Next frontier is `32954`.
