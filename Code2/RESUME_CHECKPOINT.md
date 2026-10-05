@@ -3,21 +3,21 @@
 Durable handoff anchor; live repository/binary evidence wins.
 
 ## Last committed substantive decompilation state
-- Last substantive batch commit: `f0d773e3fe455b85d0e6b59f639a8ebc79ebe79a` — `Integrate CODE.2 decompilation batch 84`.
-- Verified translated instruction bytes: **211,397**.
-- Proven non-code/data bytes: **4,259**.
-- Reconciled object bytes: **215,656 / 239,698 = 89.9699% (89.97%)**.
-- Unresolved object bytes: **24,042**.
-- Last integrated ownership fold: `32954..32F4B`.
-- Next independently decoded instruction boundary: **`32F4C`**.
+- Last substantive batch commit: `3ee867dc4bd2bcca929f0ed4a4a5f8dca2b7285d` — `Integrate CODE.2 decompilation batch 85`.
+- Verified translated instruction bytes: **211,460**.
+- Proven non-code/data bytes: **4,260**.
+- Reconciled object bytes: **215,720 / 239,698 = 89.9966% (90.00%)**.
+- Unresolved object bytes: **23,978**.
+- Last integrated ownership fold: `32F4C..32F8B`.
+- Next independently decoded instruction boundary: **`32F8C`**.
 
 ## Immutable identity
 - `CODE.2` SHA-256: `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
 - Object-1 SHA-256: `014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3`.
 
 ## Mandatory overlap anchor for next resume
-- Window `[0x32EC0,0x32FA0)` — 224 bytes; SHA-256 `4b32e9af1a5996bbd7577c4ff66cb7ac8d2445f921fe7d2f16ec4072f9004a97`.
-- Narrow `[0x32F20,0x32F80)` — 96 bytes; SHA-256 `367439d0111ea61333ffc433b4b1b5f4368573639edd7bcf5c4840fca1c86754`.
-- Narrow bytes: `f0550200a1e848020066b80080a3e8550200e8850400000fbf0df25502000fbf1dea550200e968faffff87db506b05fcc600001c05185a0100c70000000000c7400493000000c7400893000000c7400c00000000c7401000000000c740140000`.
+- Window `[0x32F00,0x32FE0)` — 224 bytes; SHA-256 `4efbcc0572a56d61918b6fc51eb9878e9fb3bafb16299aaa2600f13aeb99af33`.
+- Narrow `[0x32F50,0x32FB0)` — 96 bytes; SHA-256 `8e447082e3576aa4d1435e728db88a83f71fca81fa3cda596cee73e05b0f1542`.
+- Narrow bytes: `c600001c05185a0100c70000000000c7400493000000c7400893000000c7400c00000000c7401000000000c7401400000000c740180000000058c390c8100000535657a1e8550200c1e80425c00f00008bf08975fc813d105602000000ffff75`.
 
-Interpretation: `32F45..32F49` is the final Batch-84 jump back into shared sweep/outer control flow; `32F4A..32F4B` is unreferenced `XCHG EBX,EBX` alignment; `32F4C` begins the next independent helper. No Batch 85 bytes are counted.
+Interpretation: `32F8A` is the final RET; `32F8B` is an unreferenced NOP; `32F8C` begins the next independent routine. No Batch 86 bytes are counted.
