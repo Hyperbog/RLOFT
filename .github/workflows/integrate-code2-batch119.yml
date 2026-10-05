@@ -1,5 +1,5 @@
 name: Integrate CODE.2 Batch 119
-# registered; trigger integration
+# registered; retry after Batch 118 constant repair
 on:
   push:
     branches: [code1-decompilation]
@@ -27,6 +27,7 @@ jobs:
           grep -F 'function_39526' Code2/Code2.cpp
           grep -F 'function_3962d' Code2/Code2.cpp
           grep -F 'constexpr u32 kVerifiedTranslatedBytes = 223874u;' Code2/Code2.cpp
+          grep -F 'constexpr u32 kVerifiedNonCodeBytes = 4502u;' Code2/Code2.cpp
           grep -F '228,376 / 239,698 = 95.2766% (95.28%)' Code2/PROGRESS.md
       - name: Commit substantive Batch 119
         run: |
