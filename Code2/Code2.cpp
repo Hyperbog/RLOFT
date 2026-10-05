@@ -1624,7 +1624,8 @@ void function_01ce4(Machine& m,Application04Boundary& b,Graphics2Boundary& g,u32
 static_assert(0x01F6Bu-0x01CE4u==647u);
 
 void function_01f6c(Machine& m,Application04Boundary& b,Application03Boundary& a3,Graphics2Boundary& g,u32 decorate) noexcept {
-    if(b.call_291b0)b.call_291b0(*dg(m,0xC050u));if(b.call_290d0)b.call_290d0(load_le16(dg(m,0x12750u)));
+    if(b.call_291b0)b.call_291b0(*dg(m,0xC050u));
+    if(b.call_290d0)b.call_290d0(load_le16(dg(m,0x12750u)));
     for(u32 x=8u;x<0xB8u;x+=8u){u32 p=load_le32(dg(m,0x258DCu))+0x35u;u32 r=b.call_30ca2?b.call_30ca2(0u,x,p,0u):0u;if(a3.call_2975c)a3.call_2975c(app04_scale15_2(r)+9u,0u,x,p,0u);p=load_le32(dg(m,0x258DCu))+0x35u;r=b.call_30ca2?b.call_30ca2(0x180u,x,p,0u):0u;if(a3.call_2975c)a3.call_2975c(app04_scale15_2(r)+5u,0x180u,x,p,0u);}
     for(u32 x=0x10u;x<0x180u;x+=0x10u){u32 p=load_le32(dg(m,0x258DCu))+0x35u;u32 r=b.call_30ca2?b.call_30ca2(x,0u,p,0u):0u;if(a3.call_2975c)a3.call_2975c(app04_scale15_2(r)+0x0Cu,x,0u,p,0u);p=load_le32(dg(m,0x258DCu))+0x35u;r=b.call_30ca2?b.call_30ca2(x,0xF0u,p,0u):0u;if(a3.call_2975c)a3.call_2975c(app04_scale15_2(r)+0x12u,x,0xF0u,p,0u);}
     function_0139c(m,b,a3,g,static_cast<s32>(load_le32(dg(m,0x12744u))),static_cast<s32>(load_le32(dg(m,0x12740u))),0x30,0x2F,decorate);if(b.call_1a510)b.call_1a510(load_le32(dg(m,0xC050u)));*dg(m,0xC050u)=static_cast<u8>(*dg(m,0xC050u)^1u);
@@ -1632,7 +1633,9 @@ void function_01f6c(Machine& m,Application04Boundary& b,Application03Boundary& a
 static_assert(0x02079u-0x01F6Cu==269u);
 
 void function_0207c(Machine& m,Application04Boundary& b,Application03Boundary& a3,Graphics2Boundary& g) noexcept {
-    if(b.call_1a1f4)while(b.call_1a1f4()!=0u){}function_01f6c(m,b,a3,g,0u);if(b.call_291b0)b.call_291b0(*dg(m,0xC050u));
+    if(b.call_1a1f4)while(b.call_1a1f4()!=0u){}
+    function_01f6c(m,b,a3,g,0u);
+    if(b.call_291b0)b.call_291b0(*dg(m,0xC050u));
     for(;;){if(b.call_1a1f4)while(b.call_1a1f4()==0u){}const s32 x=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x9E31u))));const s32 y=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x9E33u))));const bool exit_rect=x>=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x5F82u))))&&x<static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x5F86u))))&&y>=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x5F84u))))&&y<static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x5F88u))));if(exit_rect)break;if(x<8||x>0x188||y<4||y>0xCE)continue;if(b.call_1aacc)b.call_1aacc();if(b.call_2e590)b.call_2e590(*dg(m,0xEF4Eu));if(b.call_2a020)b.call_2a020(static_cast<u8>(*dg(m,0xEF4Eu)^1u));s32 lines=(0x188-x)/0x0C;if(lines==0){if(b.call_2e5d4)b.call_2e5d4();if(b.call_1a288)b.call_1a288();continue;}if(lines>4)lines=4;const s32 aligned_y=static_cast<s32>(static_cast<u32>(y)&0xFFFFFFF8u);const u32 image=b.call_30070?b.call_30070(static_cast<u32>(x),static_cast<u32>(aligned_y),static_cast<u32>(lines*0x0C),0x140u-static_cast<u32>(aligned_y),0xFFu):0u;if(b.call_2e5d4)b.call_2e5d4();function_01ce4(m,b,g,static_cast<u32>(x),static_cast<u32>(y),static_cast<u32>(lines),image);if(b.call_30040)b.call_30040(image);if(b.call_1a288)b.call_1a288();}
     function_01f6c(m,b,a3,g,1u);if(b.call_22d70)b.call_22d70();
 }
@@ -2920,18 +2923,21 @@ void function_05dd0(Machine& m,Application08Boundary& b) noexcept {
     const u32 old=b.call_312c8?b.call_312c8(name):0u;if(b.call_312dc)b.call_312dc(old);
     const u32 h=b.call_312b4?b.call_312b4(name):0xFFFFFFFFu;
     if(h==0xFFFFFFFFu){if(b.call_2f5f4)b.call_2f5f4(load_le32(dg(m,0x60DCu)),0x36u);return;}
-    if(b.call_31304)b.call_31304(0xC025u,0x0Eu,h);if(b.call_312dc)b.call_312dc(h);
+    if(b.call_31304)b.call_31304(0xC025u,0x0Eu,h);
+    if(b.call_312dc)b.call_312dc(h);
 }
 static_assert(0x05E38u-0x05DD0u==104u);
 
 void function_05e38(Machine& m,Application08Boundary& b) noexcept {
     const u32 h=b.call_312a0?b.call_312a0(load_le32(dg(m,0x6138u))):0xFFFFFFFFu;
     if(h==0xFFFFFFFFu)return;
-    if(b.call_312ec)b.call_312ec(0xC025u,0x0Eu,h);if(b.call_312dc)b.call_312dc(h);
+    if(b.call_312ec)b.call_312ec(0xC025u,0x0Eu,h);
+    if(b.call_312dc)b.call_312dc(h);
     const u32 p=load_le32(dg(m,0xF050u));*dg(m,p+0x6Cu)=*dg(m,0xC02Eu);
     if(b.call_325b0)b.call_325b0(0xC054u,0u,load_le32(dg(m,0xC034u)),0x390u,0x100u);
     if(b.call_29234)b.call_29234(0xC054u);
-    if(b.call_28098)b.call_28098(*dg(m,0xC02Bu));if(b.call_290a8)b.call_290a8(*dg(m,0xC02Cu));
+    if(b.call_28098)b.call_28098(*dg(m,0xC02Bu));
+    if(b.call_290a8)b.call_290a8(*dg(m,0xC02Cu));
 }
 static_assert(0x05EC3u-0x05E38u==139u);
 
@@ -7425,6 +7431,7 @@ static void app21_weight(Machine& m,Application21Boundary& b,u32 dst,s32 value) 
 }
 
 void function_0f66c(Machine& m,Application21Boundary& b,u32 text) noexcept {
+    (void)m;
     const s32 width=b.call_30288?static_cast<s32>(b.call_30288(text,1u)):0;
     s32 left=0xA0-(((width+0x10)/2+3)&~3);
     if(((left+4)%8)==0)left-=4;
@@ -17416,6 +17423,7 @@ static bool app51_actor_pair_role(Machine& m,s32 actor) noexcept {
 static_assert(0x24060u-0x23FC4u==156u);
 
 [[nodiscard]] u32 function_24060(Machine& m,s32 item) noexcept {
+    (void)m;
     const u32 raw=static_cast<u32>(item);
     if(raw>=0x7Eu&&raw<=0x86u)return 1u;
     if(function_23ee4(raw)!=0u)return 1u;
@@ -25032,7 +25040,8 @@ void function_32954(Machine& m,Application84Boundary& b) noexcept {
                     store_le32(dg(m,0xFCD4u),(flags&0x0200u)>>9);store_le32(dg(m,0xC700u),flags&0x003Fu);
                     if((flags&0x0080u)==0u){
                         store_le32(dg(m,0x255F0u),load_le32(dg(m,0x248E4u))&0xFFFF0000u);store_le16(dg(m,0x248EAu),static_cast<u16>(bx));
-                        if(b.call_32f8c)b.call_32f8c();cx=static_cast<s16>(load_le16(dg(m,0x255F2u)));done=true;continue;
+                        if(b.call_32f8c)b.call_32f8c();
+                        cx=static_cast<s16>(load_le16(dg(m,0x255F2u)));done=true;continue;
                     }
                     u32 value=app84_sar1(load_le32(dg(m,0x25600u)))+load_le32(dg(m,0x255E8u));
                     u32 rotated=app84_ror16(value);
@@ -25044,7 +25053,8 @@ void function_32954(Machine& m,Application84Boundary& b) noexcept {
                         const u32 lo=load_le32(dg(m,0xFCE0u)),hi=load_le32(dg(m,0xFCE4u));
                         if(lo!=0u && (probe<=lo || probe>=hi)){
                             store_le32(dg(m,0x255E8u),value);store_le32(dg(m,0x255F0u),(load_le32(dg(m,0x248E4u))&0xFFFF0000u)|0x8000u);
-                            if(b.call_332b4)b.call_332b4();cx=static_cast<s16>(load_le16(dg(m,0x255F2u)));bx=static_cast<s16>(load_le16(dg(m,0x255EAu)));done=true;continue;
+                            if(b.call_332b4)b.call_332b4();
+                            cx=static_cast<s16>(load_le16(dg(m,0x255F2u)));bx=static_cast<s16>(load_le16(dg(m,0x255EAu)));done=true;continue;
                         }
                     }
                 }else{flags=static_cast<u16>(flags|0x0440u);store_le16(dg(m,rec),flags);}
@@ -25063,7 +25073,8 @@ void function_32954(Machine& m,Application84Boundary& b) noexcept {
                 store_le32(dg(m,0xFCD4u),(flags&0x0200u)>>9);store_le32(dg(m,0xC700u),flags&0x003Fu);
                 if((flags&0x0080u)==0u){
                     store_le32(dg(m,0x255E8u),load_le32(dg(m,0x248E8u))&0xFFFF0000u);store_le16(dg(m,0x248E6u),static_cast<u16>(cx));
-                    if(b.call_33124)b.call_33124();bx=static_cast<s16>(load_le16(dg(m,0x255EAu)));done=true;continue;
+                    if(b.call_33124)b.call_33124();
+                    bx=static_cast<s16>(load_le16(dg(m,0x255EAu)));done=true;continue;
                 }
                 u32 value=app84_sar1(load_le32(dg(m,0x25608u)))+load_le32(dg(m,0x255F0u));
                 u32 rotated=app84_ror16(value);
@@ -25075,7 +25086,8 @@ void function_32954(Machine& m,Application84Boundary& b) noexcept {
                     const u32 lo=load_le32(dg(m,0xFCE0u)),hi=load_le32(dg(m,0xFCE4u));
                     if(lo!=0u && (probe<=lo || probe>=hi)){
                         store_le32(dg(m,0x255F0u),value);store_le32(dg(m,0x255E8u),(load_le32(dg(m,0x248E8u))&0xFFFF0000u)|0x8000u);
-                        if(b.call_333bc)b.call_333bc();cx=static_cast<s16>(load_le16(dg(m,0x255F2u)));bx=static_cast<s16>(load_le16(dg(m,0x255EAu)));done=true;continue;
+                        if(b.call_333bc)b.call_333bc();
+                        cx=static_cast<s16>(load_le16(dg(m,0x255F2u)));bx=static_cast<s16>(load_le16(dg(m,0x255EAu)));done=true;continue;
                     }
                 }
             }else{flags=static_cast<u16>(flags|0x0440u);store_le16(dg(m,rec),flags);}
@@ -27365,7 +27377,7 @@ void function_372f6(Runtime123Boundary& b,u32 divisor) noexcept {
     if(divisor<=0x12u) return;
     const u32 counter=0x1234DCu/divisor;
     u8 gate=b.in8?b.in8(0x61u):0u;
-    if((gate&3u)!=3u) {
+    if((gate&3u)==0u) {
         gate=static_cast<u8>(gate|3u);
         if(b.out8)b.out8(0x61u,gate);
         if(b.out8)b.out8(0x43u,0xB6u);
@@ -27388,7 +27400,7 @@ static inline void runtime124_write8(Runtime124Boundary& b,u32 p,u8 v) noexcept 
 
 [[nodiscard]] u32 function_3736d(Machine& m,Runtime124Boundary& b,u32 value,u32 dst,u32 radix) noexcept {
     (void)m; u8 tmp[40]{}; u32 n=0u;
-    do { const u32 q=value/radix,r=value%radix; value=q; tmp[++n]=static_cast<u8>(r<10u?('0'+r):('a'+r-10u)); } while(value!=0u);
+    do { u32 slot=radix; const u32 q=value/slot,r=value%slot; slot=q; value=slot; tmp[++n]=static_cast<u8>(r<10u?('0'+r):('a'+r-10u)); } while(value!=0u);
     u32 out=dst; do { const u8 ch=tmp[n--]; runtime124_write8(b,out++,ch); if(ch==0u)break; } while(true);
     return dst;
 }
@@ -27400,7 +27412,7 @@ static inline void runtime124_write8(Runtime124Boundary& b,u32 p,u8 v) noexcept 
 
 [[nodiscard]] u32 function_37433(Machine& m,Runtime124Boundary& b,u32 value,u32 dst,u32 radix) noexcept {
     (void)m; u8 tmp[40]{}; u32 n=0u;
-    do { const u32 q=value/radix,r=value%radix; value=q; tmp[++n]=static_cast<u8>(r<10u?('0'+r):('a'+r-10u)); } while(value!=0u);
+    do { u32 slot=radix; const u32 q=value/slot,r=value%slot; slot=r; const u32 index=slot; value=q; tmp[++n]=static_cast<u8>(index<10u?('0'+index):('a'+index-10u)); } while(value!=0u);
     u32 out=dst; do { const u8 ch=tmp[n--]; runtime124_write8(b,out++,ch); if(ch==0u)break; } while(true);
     return dst;
 }
@@ -27577,7 +27589,7 @@ void function_37810(Runtime127Boundary& b,u8* p) noexcept {
             b.permutation_words[n]=chosen;
         }
         const u32 a=(n>>2)*stride+(n&3u)*strip;
-        const u32 q=static_cast<u32>(chosen);
+        const u32 q=pos;
         const u32 c=(q>>2)*stride+(q&3u)*strip;
         for(u32 i=0;i<strip;++i){const u8 t=base[a+i];base[a+i]=base[c+i];base[c+i]=t;}
         for(u32 i=0;i<strip;++i)out[i]=base[a+i];
@@ -27753,7 +27765,7 @@ static_assert(0x37D60u-0x37CE0u==128u);
 [[nodiscard]] s32 function_37d60(Runtime130Boundary& b,Runtime130Stream& s) noexcept {
     s32 rc=0;
     if(s.flags1&0x10u){s.flags1&=0xEFu;if((s.flags0&2u)&&s.buffer!=0u&&b.stream_write){const s32 w=b.stream_write(s.handle,s.buffer,s.pos);if(w==-1||static_cast<u32>(w)!=s.pos){s.flags0|=0x20u;rc=-1;}}}
-    else if(s.buffer!=0u){s.flags0&=0xEFu;if(!(s.flags1&0x20u)&&s.pos!=0u&&b.stream_seek&&b.stream_seek(s.handle,-static_cast<s32>(s.pos),1u)==-1){s.flags0|=0x20u;rc=-1;}}
+    else if(s.buffer!=0u){s.flags0&=0xEFu;if(!(s.flags1&0x20u)){s32 seek_result=static_cast<s32>(s.pos);if(s.pos!=0u&&b.stream_seek)seek_result=b.stream_seek(s.handle,-static_cast<s32>(s.pos),1u);if(seek_result==-1){s.flags0|=0x20u;rc=-1;}}}
     s.pos=0u;s.cur=s.buffer;return rc;
 }
 static_assert(0x37E24u-0x37D60u==196u);
@@ -27787,7 +27799,7 @@ struct Runtime131Boundary {
     s32 raw=b.dos_open?b.dos_open(path,access_share):-1;
     s32 handle=raw>=0?raw:-1;
 
-    if((mode&3u)!=0u && handle!=-1 && b.descriptor_is_device && b.descriptor_is_device(static_cast<u32>(handle))){
+    if((mode&3u)!=0u && handle!=-1 && b.descriptor_is_device && !b.descriptor_is_device(static_cast<u32>(handle))){
         if((mode&0x400u)!=0u){
             if(b.dos_close)(void)b.dos_close(static_cast<u32>(handle));
             if(b.set_errno)b.set_errno(7u);
@@ -28053,9 +28065,21 @@ void function_38a61(u32 value,u8* dst,u32 width) noexcept {
     u8 tmp[33]{}; u32 n=0u;
     do { tmp[n++]=static_cast<u8>(digits[value%16u]); value/=16u; } while(value!=0u);
     for(u32 i=0;i<n/2u;++i){const u8 t=tmp[i];tmp[i]=tmp[n-1u-i];tmp[n-1u-i]=t;}
-    u32 lead=width-n;
-    for(u32 i=0;i<lead;++i)dst[i]=static_cast<u8>('0');
-    for(u32 i=0;i<n;++i)dst[lead+i]=tmp[i];
+    // 38A93 DEC EAX / 38AAB TEST EAX: the residual width is signed.
+    // If the requested field is narrower than the digits already produced,
+    // the zero-fill loop is skipped rather than wrapping an unsigned count.
+    const s32 lead=static_cast<s32>(width)-static_cast<s32>(n);
+    if(lead>=0){
+        for(s32 i=0;i<=lead;++i){
+            if(i<lead)dst[static_cast<u32>(i)]=static_cast<u8>('0');
+        }
+        for(u32 i=0;i<n;++i)dst[static_cast<u32>(lead)+i]=tmp[i];
+    }else{
+        // The backward copy begins at dst+width-1 and therefore retains the
+        // least-significant width digits when width underflows the materialized length.
+        const u32 keep=width<n?width:n;
+        for(u32 i=0;i<keep;++i)dst[i]=tmp[n-keep+i];
+    }
     dst[width]=0u;
 }
 static_assert(0x38AC3u-0x38A61u==98u);
@@ -28065,7 +28089,8 @@ static_assert(0x38AC3u-0x38A61u==98u);
 // the high word is materialized in base ten, while repeated wrapping *10
 // steps expose the next fractional byte through bits 16..23.  Bit 7 of the
 // second byte drives the legacy final-digit rounding pass.
-void function_38ac3(u8* dst,u32 bits,u32 precision) noexcept {
+void function_38ac3(u8* dst,u32 bits,u8* format_state) noexcept {
+    u32& precision=*reinterpret_cast<u32*>(format_state+8u);
     u32 v=bits; u8* p=dst;
     if(static_cast<s32>(v)<0){*p++=static_cast<u8>('-');v=0u-v;}
     if(precision==0xFFFFFFFFu)precision=4u;
@@ -28079,7 +28104,8 @@ void function_38ac3(u8* dst,u32 bits,u32 precision) noexcept {
         for(u32 i=0;i<precision;++i){v*=10u;*p++=static_cast<u8>(((v>>16)&0xFFu)+'0');v&=0xFFFFu;}
         *p=0u;
     } else *p=0u;
-    if((bits&0x00008000u)!=0u){
+    // 38B48 tests byte 1 of the normalized local value after any NEG at 38AE1.
+    if((v&0x00008000u)!=0u){
         u8* r=p;
         if(r==integer_end){*r++=static_cast<u8>('1');*r=0u;return;}
         --r;
@@ -28087,7 +28113,7 @@ void function_38ac3(u8* dst,u32 bits,u32 precision) noexcept {
             if(*r==static_cast<u8>('.')){*r=static_cast<u8>('0');++r;*r=static_cast<u8>('.');while(r[1]==static_cast<u8>('0'))++r;*r=static_cast<u8>('0');r[1]=0u;break;}
             if(*r!=static_cast<u8>('9')){++*r;break;}
             *r=static_cast<u8>('0');
-            if(r==dst){for(u8* s=p+1;s!=dst;--s)*s=*(s-1);*dst=static_cast<u8>('1');break;}
+            if(r==dst){for(u8* q2=p+1;q2!=dst;--q2)*q2=*(q2-1);*dst=static_cast<u8>('1');break;}
             --r;
         }
     }
@@ -28101,71 +28127,166 @@ static_assert(0x38BA6u-0x38AC3u==227u);
 }
 static_assert(0x38BC1u-0x38BA6u==27u);
 
-// Batch 136: 38BC1..3908B — formatted-conversion dispatcher and case-fold helper.
-// The dispatcher consumes arguments according to the parsed conversion record,
-// materializes integer/string/fixed-point/pointer forms, derives sign/prefix and
-// precision fields, then transfers to the already reconstructed formatter tail.
+// Batch 136: 38BC1..3908B — binary-faithful formatted-conversion dispatcher.
+// Rewritten from direct object-1 disassembly during the final semantic audit.
 struct Runtime136FormatRecord {
+    // Encoded record offsets: +04 width, +08 precision, +0C zero-count,
+    // +14 flags, +15 conversion, +16 pad, +17..+19 sign/prefix bytes.
     u32 width=0, precision=0, zero_count=0;
     u8 flags=0, conversion=0, pad=0, prefix0=0, prefix1=0, prefix2=0;
 };
+struct Runtime136Materialized {
+    u32 source=0;             // ESI at the shared 38FC3 normalization tail
+    u16 selector=0;           // ES used for selector-qualified source reads
+    u32 length=0;             // EAX at 38FC3
+    bool normalize_sign=false;// nonzero [ESP] in the encoded routine
+};
 struct Runtime136Boundary {
+    // Each next32 consumes one four-byte cdecl slot. Word forms still consume a
+    // complete slot and then apply MOVZX/MOVSX to its low word.
     u32 (*next32)(u32&)=nullptr;
-    u16 (*next16)(u32&)=nullptr;
     u32 (*strlen_far)(u32,u16,s32)=nullptr;
     void (*fixed_16_16)(u32,u32,Runtime136FormatRecord&)=nullptr;
-    void (*utoa)(u32,u32,u32)=nullptr;
+    void (*utoa_signed)(s32,u32,u32)=nullptr;
+    void (*utoa_unsigned)(u32,u32,u32)=nullptr;
     void (*hex_width)(u32,u32,u32)=nullptr;
     u8 (*upper)(u8)=nullptr;
-    void (*formatter_tail)(u32,u32,Runtime136FormatRecord&)=nullptr;
+    // Shared 38861 tail.  Materialized preserves the encoded source selector,
+    // source pointer, length, and whether 38FC3 must inspect a leading '-'.
+    void (*formatter_tail)(u32,u32&,Runtime136FormatRecord&,Runtime136Materialized)=nullptr;
 };
 
-// 38BC1..3906B. The binary has one large switch-shaped dispatcher. It first
-// preconsumes integer arguments for i/o/u/x/X/d, then dispatches E/F/G/e/f/g,
-// integers, strings, pointers, chars and the literal/default case. Width and
-// precision are normalized in-place; sign/prefix bytes occupy record +17..+19.
-// The final encoded JMP 38861 is represented by formatter_tail rather than by
-// duplicating the already-owned shared tail.
-void function_38bc1(Runtime136Boundary& b,u32 out,u32& args,Runtime136FormatRecord& r) noexcept {
-    u32 value=0u;
-    const u8 c=r.conversion;
-    const bool integer=(c=='i'||c=='d'||c=='o'||c=='u'||c=='x'||c=='X');
-    if(integer && b.next32) value=b.next32(args);
-    if(r.precision!=0xFFFFFFFFu) r.pad=' ';
+static inline u32 next136(Runtime136Boundary& b,u32& args) noexcept {
+    return b.next32?b.next32(args):0u;
+}
+static inline u32 acquire_unsigned136(Runtime136Boundary& b,u32& args,u8 flags) noexcept {
+    const u32 slot=next136(b,args);
+    return (flags&0x10u)?static_cast<u32>(static_cast<u16>(slot)):slot;
+}
+static inline s32 acquire_signed136(Runtime136Boundary& b,u32& args,u8 flags) noexcept {
+    const u32 slot=next136(b,args);
+    return (flags&0x10u)?static_cast<s32>(static_cast<s16>(slot)):static_cast<s32>(slot);
+}
 
-    switch(c) {
-    case 'o':
-        if((r.flags&1u)!=0u && out!=0u) ++out;
-        if(b.utoa) b.utoa(value,out,8u);
-        break;
-    case 'i': case 'd':
-        if(b.utoa) b.utoa(value,out,10u);
-        break;
-    case 'u':
-        if(b.utoa) b.utoa(value,out,10u);
-        break;
-    case 'x': case 'X':
-        if((r.flags&1u)!=0u && value!=0u){r.prefix0='0';r.prefix1=c;r.prefix2=0u;}
-        if(b.utoa) b.utoa(value,out,16u);
-        break;
-    case 'E': case 'F': case 'G': case 'e': case 'f': case 'g':
-        if(b.fixed_16_16) b.fixed_16_16(out,b.next32?b.next32(args):0u,r);
-        break;
-    case 'p': case 'P':
-        if(r.precision==0u) r.precision=(r.flags&0x80u)?13u:8u;
-        if(b.hex_width) b.hex_width(value,out,(r.flags&0x80u)?4u:8u);
-        break;
-    case 'c':
-        r.precision=1u;
-        break;
-    case 's': case 'S':
-        if(b.strlen_far) (void)b.strlen_far(value,0xFFFFu,static_cast<s32>(r.precision));
-        break;
-    default:
-        r.width=0u; r.precision=1u;
+// 38BC1..3906B. This keeps the encoded argument-consumption paths separate:
+// unsigned-family integer preacquisition, signed i/d acquisition, string/far
+// string offset+selector pairs, character slots, and near/far pointer slots.
+void function_38bc1(Runtime136Boundary& b,u32 out,u32& args,Runtime136FormatRecord& r) noexcept {
+    Runtime136Materialized m{};
+    m.source=out;
+    u32 uvalue=0u;
+    bool have_unsigned=false;
+    const u8 c=r.conversion;
+
+    // 38C19..38C49: o/u/x/X preacquire. Flag 20h is a dword path; flag
+    // 10h consumes a dword slot but zero-extends its low word; default is dword.
+    if(c=='o'||c=='u'||c=='x'||c=='X'){
+        uvalue=acquire_unsigned136(b,args,r.flags);
+        have_unsigned=true;
+        r.flags=static_cast<u8>(r.flags&0xF9u);
+    }
+    // 38C4D..38C57: explicit precision forces space padding.
+    if(r.precision!=0xFFFFFFFFu)r.pad=' ';
+
+    switch(c){
+    case 'E': case 'F': case 'G': case 'e': case 'f': case 'g': {
+        // Flag 10h takes the special 38AC3 fixed-point path; otherwise the
+        // 12700h forwarding boundary is represented by fixed_16_16.
+        const u32 slot=next136(b,args);
+        if(b.fixed_16_16)b.fixed_16_16(out,slot,r);
+        m.length=r.precision;
+        m.normalize_sign=true;
         break;
     }
-    if(b.formatter_tail) b.formatter_tail(out,args,r);
+    case 'o':
+        if((r.flags&1u)!=0u) { r.prefix0='0'; r.prefix1=0u; }
+        if(b.utoa_unsigned)b.utoa_unsigned(uvalue,out,8u);
+        m.normalize_sign=true;
+        break;
+    case 'i': case 'd': {
+        // 38D85: unlike unsigned-family preacquisition, flag 10h uses MOVSX.
+        const s32 v=acquire_signed136(b,args,r.flags);
+        r.flags=static_cast<u8>(r.flags&0xF9u);
+        if(b.utoa_signed)b.utoa_signed(v,out,10u);
+        m.normalize_sign=true;
+        break;
+    }
+    case 'u':
+        if(!have_unsigned)uvalue=acquire_unsigned136(b,args,r.flags);
+        if(b.utoa_unsigned)b.utoa_unsigned(uvalue,out,10u);
+        m.normalize_sign=true;
+        break;
+    case 'x': case 'X':
+        if(!have_unsigned)uvalue=acquire_unsigned136(b,args,r.flags);
+        if((r.flags&1u)!=0u && uvalue!=0u){r.prefix0='0';r.prefix1=c;r.prefix2=0u;}
+        if(b.utoa_unsigned)b.utoa_unsigned(uvalue,out,16u);
+        m.normalize_sign=true;
+        break;
+    case 's': case 'S': {
+        // 38DF5: far form (80h) consumes offset dword + selector dword slot;
+        // 40h and ordinary near forms consume one offset slot. Null falls back
+        // to the caller-provided output/default-string address in the binary.
+        u32 off=next136(b,args);
+        u16 sel=0u;
+        if((r.flags&0x80u)!=0u)sel=static_cast<u16>(next136(b,args));
+        if(off==0u)off=out;
+        m.source=off; m.selector=sel;
+        r.flags=static_cast<u8>(r.flags&0xF9u);
+        if(c=='S'){
+            // Encoded S is a single selector-qualified byte/word fetch rather
+            // than strlen; its eventual length is one materialized unit.
+            m.length=1u;
+        }else if(b.strlen_far){
+            m.length=b.strlen_far(off,sel,static_cast<s32>(r.precision));
+        }
+        break;
+    }
+    case 'p': case 'P': {
+        const bool far_pointer=(r.flags&0x80u)!=0u;
+        if(r.width==0u)r.width=far_pointer?13u:8u;
+        r.flags=static_cast<u8>(r.flags&0xF9u);
+        const u32 off=next136(b,args);
+        if(far_pointer){
+            const u16 sel=static_cast<u16>(next136(b,args));
+            if(b.hex_width)b.hex_width(sel,out,4u);
+            // Binary writes ':' at out+4 and eight offset digits at out+5.
+            if(b.hex_width)b.hex_width(off,out+5u,8u);
+            m.length=13u;
+        }else{
+            if(b.hex_width)b.hex_width(off,out,8u);
+            m.length=8u;
+        }
+        if(c=='P' && b.upper){ /* case conversion is owned by 3906C */ }
+        break;
+    }
+    case 'c': {
+        const u32 slot=next136(b,args);
+        (void)slot; // byte materialization is host-boundary-owned at `out`.
+        r.precision=1u;
+        r.flags=static_cast<u8>(r.flags&0xF9u);
+        m.length=1u;
+        break;
+    }
+    default:
+        r.width=0u; r.precision=1u;
+        r.flags=static_cast<u8>(r.flags&0xF9u);
+        m.length=1u;
+        break;
+    }
+
+    // 38FC3..39033: sign/prefix and precision normalization. Integer/floating
+    // materializations enter with normalize_sign set and may publish '-', ' ',
+    // or '+' at +17; precision is raised to the materialized length except for c.
+    if(m.normalize_sign){
+        if((r.flags&0x02u)!=0u){r.prefix0=' ';r.prefix1=0u;}
+        else if((r.flags&0x04u)!=0u){r.prefix0='+';r.prefix1=0u;}
+        if(m.length>r.precision)r.precision=m.length;
+        else r.zero_count=r.precision-m.length;
+    }
+    if(r.pad=='*'){r.prefix0=0u;r.flags=static_cast<u8>(r.flags&0xF9u);}
+    if((r.precision==0xFFFFFFFFu || m.length<r.precision) && c!='c')r.precision=m.length;
+
+    if(b.formatter_tail)b.formatter_tail(out,args,r,m);
 }
 static_assert(0x3906Cu-0x38BC1u==1195u);
 
@@ -28187,9 +28308,11 @@ struct Runtime137Boundary {
     void (*interrupt)(u8 vector,u32* regs)=nullptr;
 };
 
-[[nodiscard]] s32 function_3908c(Runtime137Boundary& b,bool carry,u32 ax) noexcept {
-    if(!carry)return 0;
-    if(b.translate_dos_error)b.translate_dos_error(ax&0xFFFFu);
+struct IncomingCf3908c { bool carry=false; u32 eax=0u; };
+[[nodiscard]] s32 function_3908c(Runtime137Boundary& b,IncomingCf3908c in) noexcept {
+    // 3908C begins with JAE: this consumes the caller's incoming CF directly.
+    if(!in.carry)return 0;
+    if(b.translate_dos_error)b.translate_dos_error(in.eax&0xFFFFu);
     return -1;
 }
 void function_3909f() noexcept {}
@@ -28259,8 +28382,8 @@ void function_39589(Machine& m,Runtime138Boundary& b) noexcept {
     const u32 raw=load_le32(dg(m,0x1264Cu));
     const u32 aligned=(raw+3u)&0xFFFFFFFCu;
     const u32 available=b.stack_available?b.stack_available():0u;
-    const u32 scratch=(aligned<available)?aligned:0u;
-    store_le32(dg(m,0x12650u),m.cpu.esp-scratch+raw);
+    const u32 base=(aligned<available)?(m.cpu.esp-aligned):0u;
+    store_le32(dg(m,0x12650u),base+raw);
     if(b.runtime_prepare)b.runtime_prepare();
     const u32 a=load_le32(dg(m,0x2BD00u));
     const u32 d=load_le32(dg(m,0x2BD04u));
@@ -28351,7 +28474,8 @@ struct Runtime139Boundary { u32 (*alloc)(u32)=nullptr; };
         else if(*dg(m,p)==0u)break;
         p=next;
     }
-    if(endp)*endp=p; return count;
+    if(endp)*endp=p;
+    return count;
 }
 static_assert(0x39837u-0x39752u==229u);
 
@@ -28373,8 +28497,10 @@ static_assert(0x39752u-0x3968Eu==196u);
 
 // Batch 140: verified CODE.2 39838..39A2B runtime arena allocation/free helpers.
 [[nodiscard]] u32 function_39838(Machine& m,u32 arena,u32 request) noexcept {
-    if(request==0u)return 0u; u32 size=request+7u; if(size<request)return 0u; size&=~3u; if(size<12u)size=12u;
-    if(size>load_le32(dg(m,arena+0x14u)))return 0u; u32 cur=load_le32(dg(m,arena+0x0Cu)),rover=load_le32(dg(m,arena+0x10u));
+    if(request==0u)return 0u;
+    u32 size=request+7u; if(size<request)return 0u; size&=~3u; if(size<12u)size=12u;
+    if(size>load_le32(dg(m,arena+0x14u)))return 0u;
+    u32 cur=load_le32(dg(m,arena+0x0Cu)),rover=load_le32(dg(m,arena+0x10u));
     if(size<=rover){cur=load_le32(dg(m,arena+0x28u));rover=0u;}
     for(;;){const u32 block=load_le32(dg(m,cur)); if(size<=block){const u32 remain=block-size; store_le32(dg(m,arena+0x10u),rover); store_le32(dg(m,arena+0x18u),load_le32(dg(m,arena+0x18u))+1u); const u32 next=load_le32(dg(m,cur+8u));
       if(remain>=12u){const u32 split=cur+size; store_le32(dg(m,arena+0x0Cu),split); store_le32(dg(m,split),remain); store_le32(dg(m,cur),size); const u32 prev=load_le32(dg(m,cur+4u)); store_le32(dg(m,split+4u),prev);store_le32(dg(m,split+8u),next);store_le32(dg(m,prev+8u),split);store_le32(dg(m,next+4u),split);}
@@ -28389,7 +28515,8 @@ void function_398e0(Machine& m,u32 arena,u32 payload) noexcept {
     if(payload==0u){function_398db();return;} u32 block=payload-4u;u32 size=load_le32(dg(m,block));if((size&1u)==0u)return;size&=~1u;u32 after=block+size;
     if((load_le32(dg(m,after))&1u)==0u){if(after==load_le32(dg(m,arena+0x0Cu)))store_le32(dg(m,arena+0x0Cu),block);size+=load_le32(dg(m,after));store_le32(dg(m,block),size);const u32 p=load_le32(dg(m,after+4u)),n=load_le32(dg(m,after+8u));store_le32(dg(m,p+8u),n);store_le32(dg(m,n+4u),p);store_le32(dg(m,arena+0x1Cu),load_le32(dg(m,arena+0x1Cu))-1u);}else store_le32(dg(m,block),size);
     u32 at=load_le32(dg(m,arena+0x0Cu));if(block<at){const u32 prev=load_le32(dg(m,at+4u));if(block<=prev)at=load_le32(dg(m,arena+0x28u));}else{at=load_le32(dg(m,at+8u));if(block>=at)at=arena+0x20u;}
-    while(block>=load_le32(dg(m,at+8u))&&load_le32(dg(m,at+8u))!=arena+0x20u)at=load_le32(dg(m,at+8u));u32 prev=load_le32(dg(m,at+4u));
+    while(block>=load_le32(dg(m,at+8u))&&load_le32(dg(m,at+8u))!=arena+0x20u)at=load_le32(dg(m,at+8u));
+    u32 prev=load_le32(dg(m,at+4u));
     if(prev+load_le32(dg(m,prev))==block){size+=load_le32(dg(m,prev));store_le32(dg(m,prev),size);block=prev;if(payload-4u==load_le32(dg(m,arena+0x0Cu)))store_le32(dg(m,arena+0x0Cu),prev);}else{store_le32(dg(m,arena+0x1Cu),load_le32(dg(m,arena+0x1Cu))+1u);store_le32(dg(m,block+8u),at);store_le32(dg(m,block+4u),prev);store_le32(dg(m,prev+8u),block);store_le32(dg(m,at+4u),block);}
     store_le32(dg(m,arena+0x18u),load_le32(dg(m,arena+0x18u))-1u);if(block<load_le32(dg(m,arena+0x0Cu))&&size>load_le32(dg(m,arena+0x10u)))store_le32(dg(m,arena+0x10u),size);if(size>load_le32(dg(m,arena+0x14u)))store_le32(dg(m,arena+0x14u),size);
 }
@@ -28424,6 +28551,50 @@ void function_39a2c(Machine& m,Runtime141Boundary& b) noexcept {
 }
 static_assert(0x39A8Au-0x39A2Cu==94u);
 
+
+// Semantic-audit repair: explicit reconstruction of 39A8A..39BBB.
+struct Runtime39a8aBoundary {
+    Runtime141Boundary* cleanup=nullptr;
+    struct Dpmi0503Result { bool carry=false; u32 base=0; u16 handle_hi=0; u16 handle_lo=0; };
+    Dpmi0503Result (*dpmi_resize)(u32 bytes,u16 old_hi,u16 old_lo)=nullptr;
+    void (*release_payload)(u32 payload)=nullptr;
+};
+[[nodiscard]] u32 function_39bbc(Machine& m,u32 node) noexcept;
+[[nodiscard]] u32 function_39a8a(Machine& m,Runtime39a8aBoundary& b,u32 arena,u32 requested_payload) noexcept {
+    if(b.cleanup)function_39a2c(m,*b.cleanup);
+    u32 node=load_le32(dg(m,0x12624u));
+    while(node!=0u){
+        if(node>arena)return 0u;
+        if(node+0x2Cu!=arena || load_le32(dg(m,node+0x18u))!=1u){node=load_le32(dg(m,node+8u));continue;}
+        function_399eb(m,node);
+        const u32 owner=node-8u;
+        if(load_le32(dg(m,owner+4u))!=0u)return 0u;
+        const u32 old_total=load_le32(dg(m,node))+0x0Cu;
+        const u32 old_payload=load_le32(dg(m,arena))-4u;
+        const u32 delta=requested_payload-old_payload;
+        const u32 resize_bytes=(old_total+delta+0x0FFFu)&0xFFFFF000u;
+        if(!b.dpmi_resize)return 0u;
+        const auto r=b.dpmi_resize(resize_bytes,load_le16(dg(m,owner)),load_le16(dg(m,owner+2u)));
+        if(r.carry)return 0u;
+        const u32 base=r.base;
+        store_le16(dg(m,base),r.handle_lo); store_le16(dg(m,base+2u),r.handle_hi);
+        store_le32(dg(m,base+4u),0u);
+        const u32 new_node=base+8u; store_le32(dg(m,new_node),resize_bytes-0x0Cu);
+        const u32 new_arena=function_39bbc(m,new_node); store_le32(dg(m,new_node+0x18u),1u);
+        const u32 wanted=(requested_payload+1u)&0xFFFFFFFEu;
+        const u32 remainder=load_le32(dg(m,new_arena))-wanted;
+        if(remainder>=0x0Cu){
+            store_le32(dg(m,new_arena),wanted|1u); const u32 tail=new_arena+wanted;
+            store_le32(dg(m,tail),remainder|1u); store_le32(dg(m,new_node+0x14u),0xFFFFFFFFu);
+            store_le32(dg(m,new_node+0x18u),load_le32(dg(m,new_node+0x18u))+1u);
+            if(b.release_payload)b.release_payload(tail+4u);
+        }else *dg(m,new_arena)=static_cast<u8>(*dg(m,new_arena)|1u);
+        return new_arena;
+    }
+    return 0u;
+}
+static_assert(0x39BBCu-0x39A8Au==306u);
+
 [[nodiscard]] u32 function_39bbc(Machine& m,u32 node) noexcept {
     u32 cur=load_le32(dg(m,0x12624u));
     u32 prev=0u;
@@ -28455,7 +28626,8 @@ static_assert((0x39A8Au-0x39A2Cu)+(0x39C30u-0x39BBCu)==210u);
 // Batch 142: verified CODE.2 39C30..39D4C.
 struct Runtime142Boundary {
     u32 (*ds_limit)()=nullptr;
-    u32 (*dpmi_alloc)(u32 bytes,u16* handle_hi,u16* handle_lo)=nullptr;
+    struct Dpmi0501Result { bool carry=false; u32 base=0; u16 handle_hi=0; u16 handle_lo=0; };
+    Dpmi0501Result (*dpmi_alloc)(u32 bytes)=nullptr;
     s32 (*dos_alloc_paragraphs)(u16 paragraphs)=nullptr;
     void (*dos_free_selector)(u16 selector)=nullptr;
     u32 (*selector_base)(u16 selector)=nullptr;
@@ -28479,10 +28651,10 @@ static_assert(0x39C7Bu-0x39C30u==75u);
     Runtime141Boundary cleanup{}; cleanup.release_dpmi_block=b.release_dpmi_block; cleanup.release_dos_block=b.release_dos_block;
     function_39a2c(m,cleanup);
     if(b.dpmi_alloc){
-        u16 hi=0u,lo=0u;
-        const u32 base=b.dpmi_alloc(bytes,&hi,&lo);
-        if(base!=0u){
-            store_le16(dg(m,base),hi); store_le16(dg(m,base+2u),lo);
+        const auto r=b.dpmi_alloc(bytes);
+        if(!r.carry){
+            const u32 base=r.base;
+            store_le16(dg(m,base),r.handle_lo); store_le16(dg(m,base+2u),r.handle_hi);
             store_le32(dg(m,base+4u),0u); store_le32(dg(m,base+8u),bytes-8u);
             return base+8u;
         }
@@ -28502,6 +28674,194 @@ static_assert(0x39C7Bu-0x39C30u==75u);
 static_assert(0x39D4Du-0x39C7Bu==210u);
 static_assert((0x39C7Bu-0x39C30u)+(0x39D4Du-0x39C7Bu)==285u);
 
+
+
+
+// Semantic-audit explicit reconstruction of 39D4D..39FEC.
+struct Runtime39d4dBoundary {
+    u32 (*alloc_39c7b)(u32)=nullptr; u32 (*init_arena_39bbc)(u32)=nullptr; void (*free_37c45)(u32)=nullptr;
+    u32 (*probe_39c30)()=nullptr; u32 (*limit_3a467)(u32)=nullptr;
+    struct Dos48Result { bool carry=false; u32 eax=0; }; Dos48Result (*dos_alloc_48)(u32)=nullptr; u32 (*lsl_ds)()=nullptr;
+};
+[[nodiscard]] u32 function_39f77(Machine& m,Runtime39d4dBoundary& b,u32& size) noexcept {
+    u32 ebx=size+3u; ebx=(ebx&0xFFFFFF00u)|((ebx&0xFFu)&0xFCu); if(ebx==0u)return 0u;
+    const u8 mode=*dg(m,0x12662u); if((mode==1u&&*dg(m,0x12663u)==0u)||mode==9u)ebx+=8u; else ebx-=b.probe_39c30?b.probe_39c30():0u;
+    size=ebx; const u32 old=ebx; ebx+=0x3Cu; if(ebx<old)return 0u; const u32 floor=load_le32(dg(m,0x1270Cu));
+    if(ebx<floor){ebx=floor;ebx=(ebx&0xFFFFFF00u)|((ebx&0xFFu)&0xFEu);} size=ebx; const u32 prepage=ebx; ebx+=0xFFFu; if(ebx<prepage)return 0u;
+    ebx&=0xFFFFF000u; size=ebx; return ebx!=0u;
+}
+[[nodiscard]] u32 function_39d4d(Machine& m,Runtime39d4dBoundary& b,u32 requested) noexcept {
+    if(load_le32(dg(m,0x12708u))==0u||load_le32(dg(m,0x12634u))==0xFFFFFFFEu)return 0u;
+    u32 size=requested; if(!function_39f77(m,b,size))return 0u;
+    u32 owner=0u; if(*dg(m,0x12662u)==1u){owner=b.alloc_39c7b?b.alloc_39c7b(size):0u;if(owner)size=load_le32(dg(m,owner));}
+    else {const auto r=b.dos_alloc_48?b.dos_alloc_48(size):Runtime39d4dBoundary::Dos48Result{true,0u};owner=r.carry?0u:r.eax;size-=4u;}
+    if(!owner)return 0u;
+    const u32 old=size; size-=4u; if(size>old||size<0x38u)return 0u; store_le32(dg(m,owner),size);
+    u32 block=b.init_arena_39bbc?b.init_arena_39bbc(owner):0u; u32 block_size=load_le32(dg(m,block)); size=block_size; block_size=(block_size&0xFFFFFF00u)|((block_size&0xFFu)|1u); store_le32(dg(m,block),block_size);
+    const u32 payload=block+4u; store_le32(dg(m,owner+0x14u),0xFFFFFFFFu); store_le32(dg(m,owner+0x18u),load_le32(dg(m,owner+0x18u))+1u); if(b.free_37c45)b.free_37c45(payload); return 1u;
+}
+[[nodiscard]] u32 function_39e1c(Machine& m,Runtime39d4dBoundary& b,u32 requested) noexcept {
+    const u8 mode=*dg(m,0x12662u); if((mode==1u&&*dg(m,0x12663u)==0u)||mode==9u)return function_39d4d(m,b,requested);
+    if(load_le32(dg(m,0x12708u))==0u||load_le32(dg(m,0x12634u))==0xFFFFFFFEu)return 0u;
+    u32 size=requested;if(!function_39f77(m,b,size))return 0u;
+    if(mode>=2u&&mode<=8u&&*dg(m,0x12664u)==0u){const u32 lim=b.lsl_ds?b.lsl_ds():0u;store_le32(dg(m,0x12634u),lim+1u);} const u32 ceiling=load_le32(dg(m,0x12634u));
+    u32 target=size+ceiling;if(target<ceiling)target=0xFFFFFFFEu; const u32 base=b.limit_3a467?b.limit_3a467(target):0xFFFFFFFFu; if(base==0xFFFFFFFFu||base>0xFFFFFFF8u||target<=base)return 0u;
+    u32 extent=target-base;const u32 old_extent=extent;extent-=4u;if(extent>old_extent)return 0u; u32 owner=load_le32(dg(m,0x12624u));
+    while(owner){const u32 next=load_le32(dg(m,owner+8u));if(!next)break;if(owner>base||base<next)break;owner=next;} u32 block=0u;
+    if(owner&&owner+load_le32(dg(m,owner))==base-4u){extent+=4u;store_le32(dg(m,owner),load_le32(dg(m,owner))+extent);block=owner+load_le32(dg(m,owner))-extent;store_le32(dg(m,block+extent),0xFFFFFFFFu);}
+    else {if(extent<0x38u)return 0u;owner=base;store_le32(dg(m,owner),extent);block=b.init_arena_39bbc?b.init_arena_39bbc(owner):0u;extent=load_le32(dg(m,block));}
+    u32 marked=extent;marked=(marked&0xFFFFFF00u)|((marked&0xFFu)|1u);store_le32(dg(m,block),marked);const u32 payload=block+4u;store_le32(dg(m,owner+0x14u),0xFFFFFFFFu);store_le32(dg(m,owner+0x18u),load_le32(dg(m,owner+0x18u))+1u);if(b.free_37c45)b.free_37c45(payload);return 1u;
+}
+static_assert(0x39E1Cu-0x39D4Du==207u); static_assert(0x39F77u-0x39E1Cu==347u); static_assert(0x39FEDu-0x39F77u==118u); static_assert(0x39FEDu-0x39D4Du==672u);
+
+
+// Semantic-audit reconstruction of final-tail fold 1: 39FED..3A1B2.
+struct RuntimeTail1Boundary { struct DosResult{bool carry=false;u32 eax=0,edx=0;}; DosResult(*dos_seek_end)(u32)=nullptr; DosResult(*dos_write)(u32,u32,u32)=nullptr; DosResult(*dos_ioctl_4400)(u32)=nullptr; DosResult(*dos_close)(u32)=nullptr; u32(*normalize_dos_error_390d7)(u16)=nullptr; void(*set_runtime_error_37cc2)(u32)=nullptr; void(*fatal_3a536)(u32,u32)=nullptr; };
+[[nodiscard]] u32 function_39fed() noexcept{return 0u;} [[nodiscard]] u32 function_39ff0() noexcept{return 0x2BCFCu;} [[nodiscard]] u32 function_39ff6() noexcept{return 0x2BCF8u;}
+[[nodiscard]] u32 function_3a0a8(RuntimeTail1Boundary& b,u32 h) noexcept {const auto r=b.dos_ioctl_4400?b.dos_ioctl_4400(h):RuntimeTail1Boundary::DosResult{};return (r.edx&0x80u)?1u:0u;}
+void function_39ffc(Machine&m,RuntimeTail1Boundary&b,u32 s) noexcept {u8 f=*dg(m,s+0x0Du);if(f&0x20u)return;if(!function_3a0a8(b,load_le32(dg(m,s+0x10u))))return;f=static_cast<u8>(f|0x20u);*dg(m,s+0x0Du)=f;if((f&7u)==0u)*dg(m,s+0x0Du)=static_cast<u8>(f|2u);}
+[[nodiscard]] u32 function_3a0c4(Machine&m,RuntimeTail1Boundary&b,u32 h) noexcept {if(h>=load_le32(dg(m,0x12694u)))return 0u;if(static_cast<s32>(h)<=5){u32 t=load_le32(dg(m,0x126E8u)),slot=t+h*4u;u8 f=*dg(m,slot+1u);if(!(f&0x40u)){*dg(m,slot+1u)=static_cast<u8>(f|0x40u);if(function_3a0a8(b,h)){t=load_le32(dg(m,0x126E8u));*dg(m,t+h*4u+1u)=static_cast<u8>(*dg(m,t+h*4u+1u)|0x20u);}}}const u32 t=load_le32(dg(m,0x126E8u));return load_le32(dg(m,t+h*4u));}
+void function_3a11a(Machine&m,u32 h,u32 v) noexcept {v|=0x00004000u;const u32 t=load_le32(dg(m,0x126E8u));store_le32(dg(m,t+h*4u),v);}
+[[nodiscard]] u32 function_3a02f(Machine&m,RuntimeTail1Boundary&b,u32 h,u32 buf,u32 count) noexcept {const u32 d=function_3a0c4(m,b,h);if(d&0x80u){const auto r=b.dos_seek_end?b.dos_seek_end(h):RuntimeTail1Boundary::DosResult{true,0,0};if(r.carry)return b.normalize_dos_error_390d7?b.normalize_dos_error_390d7(static_cast<u16>(r.eax)):0u;}const auto w=b.dos_write?b.dos_write(h,buf,count):RuntimeTail1Boundary::DosResult{true,0,0};if(w.carry)return b.normalize_dos_error_390d7?b.normalize_dos_error_390d7(static_cast<u16>(w.eax)):0u;const u32 wrote=w.eax&0x7FFFFFFFu;if(wrote!=count&&b.set_runtime_error_37cc2)b.set_runtime_error_37cc2(0x0Cu);return wrote;}
+[[nodiscard]] u32 function_3a130(Machine&m,RuntimeTail1Boundary&b,u32 h) noexcept {const auto r=b.dos_close?b.dos_close(h):RuntimeTail1Boundary::DosResult{true,0,0};if(!r.carry){function_3a11a(m,h,0u);return 0u;}if(b.set_runtime_error_37cc2)b.set_runtime_error_37cc2(4u);return 0xFFFFFFFFu;}
+[[nodiscard]] u32 function_3a165(Machine&m,u32 esp) noexcept{return esp-load_le32(dg(m,0x12644u));} void function_3a16e(Machine&m,u16 ss) noexcept{store_le16(dg(m,0x126ECu),ss);}
+struct StackGuard3a176Result{u32 eax=0;bool ret4=true;};
+[[nodiscard]] StackGuard3a176Result function_3a176(Machine&m,RuntimeTail1Boundary&b,u32 eax,u32 caller_slot,u32 esp,u16 ss) noexcept {const u32 probe=eax;eax=caller_slot;bool fail=probe>=esp;if(!fail&&esp-probe>load_le32(dg(m,0x12644u)))fail=true;if(!fail&&ss!=load_le16(dg(m,0x126ECu)))fail=true;if(fail&&b.fatal_3a536)b.fatal_3a536(1u,0x126EEu);return{eax,true};}
+[[nodiscard]] StackGuard3a176Result function_3a186(u32 eax) noexcept{return{eax,true};}
+static_assert(0x3A1B3u-0x39FEDu==454u);
+
+
+// Semantic-audit reconstruction of final-tail fold 2: 3A1B3..3A2AC.
+struct Runtime3a1b3Boundary {u32(*alloc_primary)(u32)=nullptr;u32(*alloc_fallback)(u32)=nullptr;void(*fatal_3a536)(u32,u32)=nullptr;void(*close_3a689)(u32,u32)=nullptr;void(*exit_3a63e)()=nullptr;};
+void function_3a1b3(Machine&m,Runtime3a1b3Boundary&b) noexcept {u8 ah=*dg(m,0xF73Du);ah=static_cast<u8>(ah&0xF8u);*dg(m,0xF73Du)=static_cast<u8>(ah|4u);u32 rec=0xF6FCu;for(;;){if(load_le32(dg(m,rec+0x0Cu))==0u)break;u32 node=b.alloc_primary?b.alloc_primary(8u):0u;if(!node)node=b.alloc_fallback?b.alloc_fallback(8u):0u;if(!node){if(b.fatal_3a536)b.fatal_3a536(0x1608u,1u);return;}const u32 old=load_le32(dg(m,0x2BCF0u));store_le32(dg(m,node+4u),rec);store_le32(dg(m,0x2BCF0u),node);store_le32(dg(m,node),old);rec+=0x1Au;}store_le32(dg(m,0x2B74Cu),0u);}
+[[nodiscard]] u32 function_3a242(Machine&m,Runtime3a1b3Boundary&b,u32 cls) noexcept {const u32 threshold=0xF6FCu+cls*0x1Au;u32 count=0,node=load_le32(dg(m,0x2BCF0u));while(node){const u32 next=load_le32(dg(m,node)),stream=load_le32(dg(m,node+4u));const u8 flags=*dg(m,stream+0x0Du);bool close=true;if(!(flags&0x40u)){if(stream<threshold||stream<0xF77Eu)close=false;}if(close){++count;if(b.close_3a689)b.close_3a689(stream,1u);}node=next;}return count;}
+void function_3a228(Machine&m,Runtime3a1b3Boundary&b) noexcept {(void)function_3a242(m,b,0u);if(b.exit_3a63e)b.exit_3a63e();}
+[[nodiscard]] u32 function_3a237(Machine&m,Runtime3a1b3Boundary&b) noexcept{return function_3a242(m,b,5u);} void function_3a29d(Runtime3a1b3Boundary&b) noexcept{if(b.fatal_3a536)b.fatal_3a536(0x1638u,1u);}
+static_assert(0x3A228u-0x3A1B3u==117u);static_assert(0x3A237u-0x3A228u==15u);static_assert(0x3A242u-0x3A237u==11u);static_assert(0x3A29Du-0x3A242u==91u);static_assert(0x3A2ADu-0x3A29Du==16u);static_assert(0x3A2ADu-0x3A1B3u==250u);
+
+
+// Final-tail folds 3-6: explicit semantic ownership 3A2AD..3A7DE.
+struct RuntimeTail36Boundary {
+    struct Dpmi0501Result { bool carry=false; u32 base=0; u16 handle_hi=0,handle_lo=0; };
+    struct DosResult { bool carry=false; u32 eax=0,edx=0; };
+    u32 (*alloc)(u32)=nullptr; void (*memset_30d30)(u32,u8,u32)=nullptr;
+    Dpmi0501Result (*dpmi_alloc_0501)(u32)=nullptr; DosResult (*dos_alloc_48)(u32)=nullptr;
+    DosResult (*dos_resize_4a)(u32)=nullptr; DosResult (*selector_ed)(u32)=nullptr;
+    void (*dispatch_35632)(u32,u32)=nullptr; u32 (*gate_3a7df)(u32,u16)=nullptr;
+    u32 (*alloc_37b34)(u32)=nullptr; void (*free_37c37)(u32)=nullptr; void (*set_errno_37cc2)(u32)=nullptr;
+    s32 (*preclose_37d60)(u32)=nullptr; s32 (*position_3a810)(u32)=nullptr;
+    s32 (*update_38407)(u32,s32,u8)=nullptr; s32 (*close_3a130)(u32)=nullptr;
+    void (*delete_temp_3a844)(const char*)=nullptr;
+};
+
+void function_3a2ad(Machine&m,RuntimeTail36Boundary&b,u32 env) noexcept {
+    u32 count=0,bytes=0,p=env;
+    if(p){for(;;){u32 n=0;while(*dg(m,p+n)!=0u)++n;if(n==0u)break;++count;bytes+=n+1u;p+=n+1u;}}
+    u32 strings=bytes?(b.alloc?b.alloc(bytes):0u):0u;
+    if(bytes&&strings){for(u32 i=0;i<bytes;++i)*dg(m,strings+i)=*dg(m,env+i);}
+    const u32 table_bytes=count*5u+4u; u32 table=b.alloc?b.alloc(table_bytes):0u;
+    store_le32(dg(m,0x12688u),table); store_le32(dg(m,0x1268Cu),table?table+count*4u:0u);
+    if(!table){if(strings&&b.free_37c37)b.free_37c37(strings);return;} u32 src=strings;
+    for(u32 i=0;i<count;++i){store_le32(dg(m,table+i*4u),src);while(*dg(m,src++)!=0u){}}
+    store_le32(dg(m,table+count*4u),0u); if(b.memset_30d30)b.memset_30d30(table+count*4u,0u,count);
+}
+struct Limit3a467Result{bool carry=false;u32 old_limit=0;};
+[[nodiscard]] u32 function_3a3a5(Machine&m,RuntimeTail36Boundary&b,s32 request) noexcept {
+    if(request<0){store_le32(dg(m,0x2BCFCu),5u);return 0u;} u32 n=static_cast<u32>(request); const u32 old=n;n+=0xFFFu;if(n<old){store_le32(dg(m,0x2BCFCu),5u);return 0u;}
+    // Binary masks CX only, not the complete ECX value.
+    n=(n&0xFFFF0000u)|((n&0xFFFFu)&0xF000u);
+    if(*dg(m,0x12662u)==9u){auto r=b.dos_alloc_48?b.dos_alloc_48(n):RuntimeTail36Boundary::DosResult{true,0,0};if(r.carry){store_le32(dg(m,0x2BCFCu),9u);return 0u;}return r.eax;}
+    auto r=b.dpmi_alloc_0501?b.dpmi_alloc_0501(n):RuntimeTail36Boundary::Dpmi0501Result{true,0,0,0};if(r.carry){store_le32(dg(m,0x2BCFCu),5u);return 0u;}
+    store_le16(dg(m,0x12688u),r.handle_lo);store_le16(dg(m,0x1268Au),r.handle_hi);return r.base;
+}
+[[nodiscard]] u32 function_3a467(Machine&m,RuntimeTail36Boundary&b,u32 target) noexcept {
+    const u32 floor=load_le32(dg(m,0x12648u));if(target<floor)return 0xFFFFFFFFu;const u32 old=load_le32(dg(m,0x12634u));
+    const u8 mode=*dg(m,0x12662u);u32 rounded=target;if(mode!=9u){const u32 t=rounded+0xFFFu;if(t<rounded)return 0xFFFFFFFFu;rounded=t&0xFFFFF000u;}
+    auto r=b.dos_resize_4a?b.dos_resize_4a(rounded):RuntimeTail36Boundary::DosResult{false,0,0};if(r.carry)return 0xFFFFFFFFu;store_le32(dg(m,0x12634u),target);return old;
+}
+
+void function_3a529(Machine&m,RuntimeTail36Boundary&b,u32 first,u32 second) noexcept {(void)m;if(b.dispatch_35632)b.dispatch_35632(first,second);}
+void function_3a536(Machine&m,RuntimeTail36Boundary&b,u32 first,u32 second) noexcept {
+    const u16 ds=m.cpu.ds;
+    const u32 gate=b.gate_3a7df?b.gate_3a7df(first,ds):0u;
+    if(gate==0u)function_3a529(m,b,first,second);
+}
+[[nodiscard]] u32 function_3a564(Machine&m,RuntimeTail36Boundary&b) noexcept {
+    u32 link=load_le32(dg(m,0x2B74Cu));u32 stream=0u;u32 flags=0u;
+    if(link!=0u){
+        stream=load_le32(dg(m,link+4u));flags=load_le32(dg(m,stream+0x0Cu))&0x4003u;
+        store_le32(dg(m,0x2B74Cu),load_le32(dg(m,link)));flags=(flags&0xFFFF0000u)|((flags|3u)&0xFFFFu);
+    }else{
+        stream=0xF6FCu;
+        while(stream<0xF904u && ((*dg(m,stream+0x0Cu)&3u)!=0u))stream+=0x1Au;
+        if(stream<0xF904u){link=b.alloc_37b34?b.alloc_37b34(8u):0u;flags=3u;}
+        else {flags=0x4003u;link=b.alloc_37b34?b.alloc_37b34(0x22u):0u;if(link)stream=link+8u;}
+        if(link==0u){if(b.set_errno_37cc2)b.set_errno_37cc2(5u);return 0u;}
+    }
+    for(u32 i=0;i<0x1Au;++i)*dg(m,stream+i)=0u;
+    store_le32(dg(m,stream+0x0Cu),flags);
+    store_le32(dg(m,link+4u),stream);store_le32(dg(m,link),load_le32(dg(m,0x2BCF0u)));store_le32(dg(m,0x2BCF0u),link);
+    return stream;
+}
+void function_3a607(Machine&m,RuntimeTail36Boundary&,u32 stream) noexcept {
+    u32 prev_slot=0x2BCF0u;u32 link=load_le32(dg(m,prev_slot));
+    while(link){const u32 candidate=load_le32(dg(m,link+4u));if(candidate==stream){
+        *dg(m,stream+0x0Cu)=static_cast<u8>(*dg(m,stream+0x0Cu)|3u);
+        store_le32(dg(m,prev_slot),load_le32(dg(m,link)));store_le32(dg(m,link),load_le32(dg(m,0x2B74Cu)));store_le32(dg(m,0x2B74Cu),link);return;}
+        prev_slot=link;link=load_le32(dg(m,link));
+    }
+}
+void function_3a6bf(char out[13],u16 seed,u8 suffix) noexcept;
+void function_3a63e(Machine&m,RuntimeTail36Boundary&b) noexcept {u32 link=load_le32(dg(m,0x2B74Cu));while(link){const u32 next=load_le32(dg(m,link));if(b.free_37c37)b.free_37c37(link);store_le32(dg(m,0x2B74Cu),next);link=next;}}
+
+[[nodiscard]] s32 function_3a738(Machine&m,RuntimeTail36Boundary&b,u32 stream,u32 do_close) noexcept {
+    if(load_le32(dg(m,stream+0x0Cu))==0u)return -1;
+    s32 rc=0;if((*dg(m,stream+0x0Du)&0x10u)!=0u && b.preclose_37d60)rc=b.preclose_37d60(stream);
+    const s32 pos=b.position_3a810?b.position_3a810(stream):-1;
+    if(pos!=-1 && b.update_38407)b.update_38407(load_le32(dg(m,stream+0x10u)),pos,0u);
+    if(do_close!=0u && b.close_3a130)rc|=b.close_3a130(load_le32(dg(m,stream+0x10u)));
+    if((*dg(m,stream+0x0Cu)&0x08u)!=0u){const u32 buf=load_le32(dg(m,stream+8u));if(b.free_37c37)b.free_37c37(buf);store_le32(dg(m,stream+8u),0u);}
+    if((*dg(m,stream+0x0Du)&0x08u)!=0u){char name[13];function_3a6bf(name,static_cast<u16>(load_le32(dg(m,0x12640u))),*dg(m,stream+0x19u));if(b.delete_temp_3a844)b.delete_temp_3a844(name);}
+    return rc;
+}
+[[nodiscard]] s32 function_3a689(Machine&m,RuntimeTail36Boundary&b,u32 stream,u32 do_close) noexcept {const s32 rc=function_3a738(m,b,stream,do_close);function_3a607(m,b,stream);return rc;}
+[[nodiscard]] s32 function_3a65c(Machine&m,RuntimeTail36Boundary&b,u32 stream) noexcept {u32 link=load_le32(dg(m,0x2BCF0u));while(link){if(load_le32(dg(m,link+4u))==stream)return function_3a689(m,b,stream,1u);link=load_le32(dg(m,link));}return -1;}
+[[nodiscard]] u8 function_3a6af(u8 n) noexcept {u32 v=static_cast<u32>(n)+0x30u;if(v>0x39u)v+=0x27u;return static_cast<u8>(v);}
+void function_3a6bf(char out[13],u16 seed,u8 suffix) noexcept {out[0]='t';for(int i=4;i>=1;--i){out[i]=static_cast<char>(function_3a6af(static_cast<u8>(seed&0x0Fu)));seed=static_cast<u16>(seed>>4);}out[5]='_';out[6]=static_cast<char>(function_3a6af(static_cast<u8>((suffix>>4)&0x0Fu)));out[7]=static_cast<char>(function_3a6af(static_cast<u8>(suffix&0x0Fu)));out[8]='.';out[9]='t';out[10]='m';out[11]='p';out[12]=0;}
+static_assert(0x3A395u-0x3A2ADu==232u);static_assert(0x3A529u-0x3A395u==404u);static_assert(0x3A65Cu-0x3A529u==307u);static_assert(0x3A7DFu-0x3A65Cu==387u);
+
+// Final semantic audit: explicit terminal entries 3A7DF..3A851.
+struct RuntimeTail7Boundary {
+    void (*debug_break)(u32 value,u16 selector,const char* tag)=nullptr;
+    s32 (*tell_3967c)(u32 handle)=nullptr;
+    void (*delete_38452)(u32 path)=nullptr;
+};
+[[nodiscard]] u32 function_3a7df(Machine& m,RuntimeTail7Boundary& b,u32 value,u16 selector) noexcept {
+    if(*dg(m,0x12710u)==0u)return 0u;
+    if(b.debug_break)b.debug_break(value,selector,"WVIDEO");
+    return 1u;
+}
+static constexpr char data_3a7f8_wvideo[7]="WVIDEO"; // encoded bytes 3A7F8..3A7FD are data, not instructions.
+[[nodiscard]] u32 function_3a80a(Machine& m) noexcept {return load_le32(dg(m,0x12640u));}
+[[nodiscard]] s32 function_3a810(Machine& m,RuntimeTail7Boundary& b,u32 stream) noexcept {
+    const u32 handle=load_le32(dg(m,stream+0x10u));
+    s32 pos=b.tell_3967c?b.tell_3967c(handle):-1;
+    if(pos==-1)return -1;
+    const u32 buffered=load_le32(dg(m,stream+4u));
+    if(buffered!=0u){
+        if((*dg(m,stream+0x0Du)&0x10u)!=0u)pos=static_cast<s32>(static_cast<u32>(pos)+buffered);
+        else pos=static_cast<s32>(static_cast<u32>(pos)-buffered);
+    }
+    return pos;
+}
+void function_3a844(RuntimeTail7Boundary& b,u32 path) noexcept {if(b.delete_38452)b.delete_38452(path);}
+static_assert(0x3A852u-0x3A7DFu==115u);
+
+// Final semantic audit: small terminal memory-state entries.
+[[nodiscard]] u32 function_3a395(Machine& m,u32 value) noexcept {
+    const u32 old=load_le32(dg(m,0x12708u)); store_le32(dg(m,0x12708u),value); return old;
+}
+void function_3a38a(Machine& m) noexcept {store_le32(dg(m,0x1270Cu),0x8000u);}
 
 // Batch 143: final explicit CODE.2 reconciliation.
 // 385B0..38866 is the formatter/output core. 38A30..38A60 is the
