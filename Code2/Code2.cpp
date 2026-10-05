@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 207762u;
-constexpr u32 kVerifiedNonCodeBytes = 4226u;
+constexpr u32 kVerifiedTranslatedBytes = 207836u;
+constexpr u32 kVerifiedNonCodeBytes = 4240u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -24485,5 +24485,35 @@ void function_31f94(Machine& m) noexcept {
 }
 static_assert(0x320F8u-0x31F94u==356u);
 // 320F8 begins the next independent byte-output callback; no separator bytes.
+
+
+// Batch 78: 320F8..32141 formatter byte-emitter and sprintf-style wrapper.
+struct Application78Boundary {
+    u32 (*linear_load32)(u32)=nullptr;
+    void (*linear_store32)(u32,u32)=nullptr;
+    void (*linear_store8)(u32,u8)=nullptr;
+    u32 (*call_385b0)(u32,u32,const u32*,u32)=nullptr;
+};
+
+// 320F8 callback: state+0 is the output cursor and state+10h is emitted count.
+[[nodiscard]] u32 function_320f8(Application78Boundary& b,u32 state,u32 ch) noexcept {
+    const u32 cursor=b.linear_load32?b.linear_load32(state):0u;
+    if(b.linear_store32)b.linear_store32(state,cursor+1u);
+    if(b.linear_store8)b.linear_store8(cursor,static_cast<u8>(ch));
+    const u32 count=b.linear_load32?b.linear_load32(state+0x10u):0u;
+    if(b.linear_store32)b.linear_store32(state+0x10u,count+1u);
+    return state;
+}
+static_assert(0x3210Fu-0x320F8u==23u);
+
+// 3210F wrapper: the reconstruction surface supplies the encoded varargs cursor
+// explicitly; 385B0 receives destination, format, that cursor, and callback 320F8.
+[[nodiscard]] u32 function_3210f(Machine& m,Application78Boundary& b,u32 dst,u32 format,const u32* varargs) noexcept {
+    const u32 count=b.call_385b0?b.call_385b0(dst,format,varargs,0x320F8u):0u;
+    *dg(m,dst+count)=0u;
+    return count;
+}
+static_assert(0x32142u-0x3210Fu==51u);
+// 32142..3214F is fourteen zero padding bytes with no incoming direct control-flow target.
 
 } // namespace code2

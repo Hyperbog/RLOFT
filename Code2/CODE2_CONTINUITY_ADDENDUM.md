@@ -473,3 +473,6 @@ Batch 76 reconciles `31E74..31F93`: **282 translated + 6 alignment bytes**. Cumu
 ## CODE.2 Batch 77 checkpoint
 
 Batch 77 reconciles `31F94..320F7`: **356 translated bytes**, no new non-code. Cumulative accounting is **211,988 / 239,698 = 88.4396% (88.44%)**; unresolved is **27,710 bytes**. Preserve the 24-way high-word normalization, phase-change early return, `258A8 == FFh` bypass, signed 8-way remainder update, and phase-indexed record/shading writes. Next frontier is `320F8`.
+## CODE.2 Batch 78 checkpoint
+
+Batch 78 reconciles `320F8..3214F`: **74 translated + 14 zero-padding bytes**. Cumulative coverage is **212,076 / 239,698 = 88.4763% (88.48%)**; unresolved is **27,622 bytes**. The formatter boundary retains the encoded 320F8 callback identity and explicit varargs cursor. Next frontier is `32150`.
