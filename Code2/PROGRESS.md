@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-94.16%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-94.37%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **221,243**
-**Proven non-code/data bytes:** **4,449**
-**Reconciled object bytes:** **225,692 / 239,698 = 94.1568% (94.16%)**
-**Unresolved object bytes:** **14,006**
+**Verified translated instruction bytes:** **221,731**
+**Proven non-code/data bytes:** **4,465**
+**Reconciled object bytes:** **226,196 / 239,698 = 94.3671% (94.37%)**
+**Unresolved object bytes:** **13,502**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -942,3 +942,10 @@ Added **535 translated instruction bytes** (`35418..3562E`), bringing accounting
 Batch 113 reconciles `3562F..3567F`: **70 translated instruction bytes + 11 proven non-code/data bytes**. Cumulative accounting is **221,243 translated + 4,449 non-code = 225,692 / 239,698 = 94.1568% (94.16%)**; **14,006 bytes** remain unresolved.
 
 `3562F` is the stack-sharing termination continuation (`POP EAX; JMP 35655`). `35632` is the separately entered console-output path used by `3A529`; it opens the embedded `"con"` name at `35414`, scans the caller message to NUL, writes it through DOS AH=40h, and joins the same AH=4Ch termination tail. `3566C` restores DS from the CS-qualified saved word at `35675`. `35675..35676` is runtime data written by Batch 112, and `35677..3567F` is zero alignment with no direct/raw references. The next independently called routine begins at `35680`.
+
+
+## CODE.2 Batch 114 checkpoint
+
+Batch 114 reconciles `35680..35877`: **488 translated instruction bytes + 16 proven non-code/data bytes**. Cumulative accounting is **221,731 translated + 4,465 non-code = 226,196 / 239,698 = 94.3671% (94.37%)**; **13,502 bytes** remain unresolved.
+
+`35680` and `356D8` preserve the encoded 16-bit multiply/carry/sign machinery; `35730` builds the bounded divisor used by the projection path; `35798` preserves PUSHA/POPA register ownership and only publishes its two word outputs. `35797` is an unreferenced NOP separator. `35869..3586F` is zero alignment and `35870..35877` holds two referenced `00002020h` constants. `35878` is independently called from seventeen sites and starts the next runtime copy/I/O family.

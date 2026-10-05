@@ -585,3 +585,7 @@ Batch 112 translates `35418..3562E`: **535 instruction bytes**, with no new non-
 ## CODE.2 Batch 113 checkpoint
 
 Batch 113 reconciles `3562F..3567F`: **70 translated + 11 proven non-code/data bytes**, bringing cumulative accounting to **225,692 / 239,698 = 94.1568% (94.16%)** with **14,006 unresolved bytes**. Preserve the three address-distinct runtime entries: `3562F` stack-sharing termination, `35632` DOS console-output/termination, and `3566C` CS-qualified DS restore. `35675..35676` is the saved DS word and `35677..3567F` is proven zero alignment. Next frontier: `35680`.
+
+## CODE.2 Batch 114 checkpoint
+
+Batch 114 reconciles `35680..35877`: **488 translated + 16 proven non-code/data bytes**, bringing cumulative accounting to **226,196 / 239,698 = 94.3671% (94.37%)** with **13,502 unresolved bytes**. The two multiply helpers retain their asymmetric factor-sign handling; `35730` retains the signed clamp followed by unsigned DIV; `35798` retains PUSHA/POPA register restoration and its two word-only outputs. Next frontier: `35878`.

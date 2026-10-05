@@ -629,9 +629,12 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 353A2..35417 | noncode | 118
 35675..35676 | runtime-data | 2
 35677..3567F | alignment | 9
+35797..35797 | alignment | 1
+35869..3586F | alignment | 7
+35870..35877 | data | 8
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **4,449 bytes**.
+**Total proven non-code/data:** **4,465 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -809,3 +812,5 @@ Batch 68 evidence: the mandatory Batch-67 overlap `2E770..2E84F` and narrow wind
 Batch 69 evidence: `2F183`, `2F1B1..2F1B3`, `2F1E1..2F1E3`, `2F25E..2F25F`, `2F29B`, `2F465..2F467`, `2F53F`, `2F552..2F553`, and `2F57D..2F57F` are decoded NOP/LEA/MOV-self compiler separators between complete routines. A full object-1 direct CALL/JMP/Jcc target scan and absolute-dword reference scan found no incoming reference to any byte in these ranges.
 
 Batch 113 evidence: `3553A` writes DS to selector-qualified offset `35675`, while `3566C` reads that same word through CS; this proves `35675..35676` is runtime data. Fresh whole-object target/address scans find no control-flow or raw-address reference to `35677..3567F`; those nine bytes are all zero and sit immediately before the independently called `ENTER 0,0` routine at `35680`, proving alignment ownership.
+
+Batch 114 evidence: `35797` is a standalone NOP with no incoming direct/raw reference between independently bounded functions. `35869..3586F` is a seven-byte zero alignment island; `35870` and `35874` are separately referenced as dword constants by `358DD` and `35A1C`, proving `35870..35877` as data. `35878` has seventeen independent direct callers.
