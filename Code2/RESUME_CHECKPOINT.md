@@ -134,8 +134,8 @@ Durable handoff anchor; live repository/binary evidence wins.
 
 ## Semantic audit checkpoint 8 handoff
 - Object accounting remains **239,698 / 239,698**.
-- Semantic audit: **32,940 / 239,698 = 13.7423%**, closed through **`080AB`**.
+- Semantic audit: **42,881 / 239,698 = 17.8896%**, closed through **`080AB`**.
 - Semantic defect classes: **6**. Checkpoint 8 added two classes and corrected further instances of the existing cdecl-slot defect.
 - Span `06CAD..080AB` SHA-256: `983c5eb95aad3e3f2eb30fa7f9aa876f0f79df7e787a54b499dd38f700a5bc6e`.
 - Overlap `[0x06C6D,0x06D2D)` SHA-256: `88ee2bc0bca3930a22167507f4e76441ea240cd18ed9e755e59a05a0d09ed475`.
-- Next semantic-audit frontier: **`080AC`**.
+- Next semantic-audit frontier: **`0A791`**.
