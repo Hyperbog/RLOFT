@@ -2966,7 +2966,7 @@ static_assert(0x06008u-0x05EECu==284u);
 
 struct Application09Boundary {
     void (*call_291b0)(u32)=nullptr;
-    u32 (*call_30ca2)()=nullptr;
+    u32 (*call_30ca2)(u32,u32,u32,u32)=nullptr;
     void (*call_2975c)(u32,u32,u32,u32,u32)=nullptr;
     void (*call_2e374)(u32,u32,u32,u32,u32)=nullptr;
     void (*call_3060c)(u32,u32,u32,u32)=nullptr;
@@ -3005,30 +3005,35 @@ static void app09_append_cstr(Machine& m,u32 dst,u32 src) noexcept {
 
 void function_06008(Machine& m,Application09Boundary& b) noexcept {
     if(b.call_291b0)b.call_291b0(*dg(m,0xC050u));
-    const u32 image=load_le32(dg(m,0x258DCu))+0x35u;
+    auto image=[&]() noexcept {return load_le32(dg(m,0x258DCu))+0x35u;};
     for(u32 y=0u;y<0x190u;y+=0x10u) {
         for(u32 x=0u;x<0x140u;x+=8u) {
-            const u32 r=b.call_30ca2?b.call_30ca2():0u;
-            if(b.call_2975c)b.call_2975c((r*4u)>>15,y,x,image,0u);
+            const u32 p=image();
+            const u32 r=b.call_30ca2?b.call_30ca2(y,x,p,0u):0u;
+            if(b.call_2975c)b.call_2975c((r*4u)>>15,y,x,p,0u);
         }
     }
     for(u32 x=8u;x<0x138u;x+=8u) {
-        u32 r=b.call_30ca2?b.call_30ca2():0u;
-        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+9u,0u,x,image,0u);
-        r=b.call_30ca2?b.call_30ca2():0u;
-        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+5u,0x180u,x,image,0u);
+        u32 p=image();
+        u32 r=b.call_30ca2?b.call_30ca2(0u,x,p,0u):0u;
+        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+9u,0u,x,p,0u);
+        p=image();
+        r=b.call_30ca2?b.call_30ca2(0x180u,x,p,0u):0u;
+        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+5u,0x180u,x,p,0u);
     }
     for(u32 y=0x10u;y<0x180u;y+=0x10u) {
-        u32 r=b.call_30ca2?b.call_30ca2():0u;
-        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+0x0Cu,y,0u,image,0u);
-        r=b.call_30ca2?b.call_30ca2():0u;
-        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+0x0Eu,y,0x138u,image,0u);
+        u32 p=image();
+        u32 r=b.call_30ca2?b.call_30ca2(y,0u,p,0u):0u;
+        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+0x0Cu,y,0u,p,0u);
+        p=image();
+        r=b.call_30ca2?b.call_30ca2(y,0x138u,p,0u):0u;
+        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+0x0Eu,y,0x138u,p,0u);
     }
     if(b.call_2975c){
-        b.call_2975c(8u,0u,0u,image,0u);
-        b.call_2975c(0x0Bu,0u,0x138u,image,0u);
-        b.call_2975c(4u,0x180u,0u,image,0u);
-        b.call_2975c(7u,0x180u,0x138u,image,0u);
+        b.call_2975c(8u,0u,0u,image(),0u);
+        b.call_2975c(0x0Bu,0u,0x138u,image(),0u);
+        b.call_2975c(4u,0x180u,0u,image(),0u);
+        b.call_2975c(7u,0x180u,0x138u,image(),0u);
     }
     if(b.call_2e374){
         b.call_2e374(0x0Fu,0x78u,0x18u,0x89u,0x3Du);
@@ -3242,7 +3247,7 @@ struct Application10Boundary {
     void (*call_2975c)(u32,u32,u32,u32,u32)=nullptr;
     void (*call_3060c)(u32,u32,u32,u32)=nullptr;
     void (*call_30040)(u32)=nullptr;
-    u32 (*call_30ca2)()=nullptr;
+    u32 (*call_30ca2)(u32,u32,u32,u32)=nullptr;
     void (*call_291b0)(u32)=nullptr;
     void (*call_1a510)(u32)=nullptr;
     void (*call_1a9f8)()=nullptr;
@@ -3378,29 +3383,35 @@ static_assert(0x071B8u-0x0719Cu==28u);
 
 void function_071b8(Machine& m,Application10Boundary& b,u32 image) noexcept {
     if(b.call_291b0)b.call_291b0(*dg(m,0xC050u));
+    auto bg=[&]() noexcept {return load_le32(dg(m,0x258DCu))+0x35u;};
     for(u32 x=0u;x<0x190u;x+=0x10u){
         for(u32 y=0u;y<0x140u;y+=8u){
-            const u32 r=b.call_30ca2?b.call_30ca2():0u;
-            if(b.call_2975c)b.call_2975c((r*4u)>>15,x,y,image+0x35u,0u);
+            const u32 p=bg();
+            const u32 r=b.call_30ca2?b.call_30ca2(x,y,p,0u):0u;
+            if(b.call_2975c)b.call_2975c((r*4u)>>15,x,y,p,0u);
         }
     }
     for(u32 y=8u;y<0x138u;y+=8u){
-        u32 r=b.call_30ca2?b.call_30ca2():0u;
-        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+9u,0u,y,image+0x35u,0u);
-        r=b.call_30ca2?b.call_30ca2():0u;
-        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+5u,0x180u,y,image+0x35u,0u);
+        u32 p=bg();
+        u32 r=b.call_30ca2?b.call_30ca2(0u,y,p,0u):0u;
+        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+9u,0u,y,p,0u);
+        p=bg();
+        r=b.call_30ca2?b.call_30ca2(0x180u,y,p,0u):0u;
+        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+5u,0x180u,y,p,0u);
     }
     for(u32 x=0x10u;x<0x180u;x+=0x10u){
-        u32 r=b.call_30ca2?b.call_30ca2():0u;
-        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+0x0Cu,x,0u,image+0x35u,0u);
-        r=b.call_30ca2?b.call_30ca2():0u;
-        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+0x0Eu,x,0x138u,image+0x35u,0u);
+        u32 p=bg();
+        u32 r=b.call_30ca2?b.call_30ca2(x,0u,p,0u):0u;
+        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+0x0Cu,x,0u,p,0u);
+        p=bg();
+        r=b.call_30ca2?b.call_30ca2(x,0x138u,p,0u):0u;
+        if(b.call_2975c)b.call_2975c(((r*2u)>>15)+0x0Eu,x,0x138u,p,0u);
     }
     if(b.call_2975c){
-        b.call_2975c(8u,0u,0u,image+0x35u,0u);
-        b.call_2975c(0x0Bu,0u,0x138u,image+0x35u,0u);
-        b.call_2975c(4u,0x180u,0u,image+0x35u,0u);
-        b.call_2975c(7u,0x180u,0x138u,image+0x35u,0u);
+        b.call_2975c(8u,0u,0u,bg(),0u);
+        b.call_2975c(0x0Bu,0u,0x138u,bg(),0u);
+        b.call_2975c(4u,0x180u,0u,bg(),0u);
+        b.call_2975c(7u,0x180u,0x138u,bg(),0u);
     }
     function_07070(m,b,image);
     if(b.call_1a510)b.call_1a510(load_le32(dg(m,0xC050u)));
@@ -3498,7 +3509,7 @@ static void app11_slot_digits(Machine& m,u32 one_based) noexcept {
 
 // Edit one 49-character slot label in the global 12760h scratch buffer.
 // The first accepted printable key clears the inherited label; backspace or an
-// invalid first key consumes that first-edit state without clearing it.
+// invalid first printable-path key clears first, then consumes first-edit state.
 [[nodiscard]] u32 function_075cc(Machine& m,Application11Boundary& b,Application09Boundary& a9,
                                   u32 text,u32 slot) noexcept {
     if(a9.call_291b0)a9.call_291b0(*dg(m,0xC050u));
@@ -3525,13 +3536,13 @@ static void app11_slot_digits(Machine& m,u32 one_based) noexcept {
             if(n<0x31u) {
                 const s32 width=b.call_30288?b.call_30288(0x12760u,1u):0;
                 if(width<0xD2) {
+                    if(first_edit) {
+                        if(b.call_30d30)b.call_30d30(0x12760u,0u,0x50u);
+                        else for(u32 i=0;i<0x50u;++i)*dg(m,0x12760u+i)=0u;
+                    }
                     const u8 idx=static_cast<u8>(static_cast<u8>(key)+1u);
                     const u8 cls=*dg(m,0x165Cu+idx);
                     if((cls&0xE0u)!=0u||(cls&2u)!=0u||(cls&4u)!=0u) {
-                        if(first_edit) {
-                            if(b.call_30d30)b.call_30d30(0x12760u,0u,0x50u);
-                            else for(u32 i=0;i<0x50u;++i)*dg(m,0x12760u+i)=0u;
-                        }
                         const u32 end=app11_strlen(m,0x12760u);
                         *dg(m,0x12760u+end)=static_cast<u8>(key);
                         redraw=true;
@@ -3659,7 +3670,9 @@ static_assert(0x07B94u-0x079E0u==436u);
 }
 static_assert(0x07D43u-0x07B94u==431u);
 
-static u32 app11_random(Application09Boundary& a9) noexcept {return a9.call_30ca2?a9.call_30ca2():0u;}
+static u32 app11_random(Application09Boundary& a9,u32 a0,u32 a1,u32 a2,u32 a3) noexcept {
+    return a9.call_30ca2?a9.call_30ca2(a0,a1,a2,a3):0u;
+}
 static void app11_choice_finish(Machine& m,Application09Boundary& a9,u32 sprite,u32 y) noexcept {
     if(a9.call_2975c)a9.call_2975c(sprite,0xC8u,y,load_le32(dg(m,0x258DCu))+0x63u,0u);
     if(a9.call_1a510)a9.call_1a510(load_le32(dg(m,0xC050u)));
@@ -3671,20 +3684,26 @@ static void app11_choice_finish(Machine& m,Application09Boundary& a9,u32 sprite,
 // returns 1. X accepts both C8h and E0h endpoints, while Y uses half-open ranges.
 [[nodiscard]] u32 function_07d44(Machine& m,Application11Boundary& b,Application09Boundary& a9,u32 text) noexcept {
     if(a9.call_291b0)a9.call_291b0(*dg(m,0xC050u));
-    const u32 image=load_le32(dg(m,0x258DCu))+0x35u;
-    for(u32 y=0xA0u;y<0xF0u;y+=0x10u)for(u32 x=0x20u;x<0x120u;x+=8u)
-        if(a9.call_2975c)a9.call_2975c((app11_random(a9)*4u)>>15,y,x,image,0u);
+    auto image=[&]() noexcept {return load_le32(dg(m,0x258DCu))+0x35u;};
+    for(u32 y=0xA0u;y<0xF0u;y+=0x10u)for(u32 x=0x20u;x<0x120u;x+=8u){
+        const u32 p=image();
+        if(a9.call_2975c)a9.call_2975c((app11_random(a9,y,x,p,0u)*4u)>>15,y,x,p,0u);
+    }
     for(u32 x=0x20u;x<0x118u;x+=8u){
-        if(a9.call_2975c)a9.call_2975c(((app11_random(a9)*2u)>>15)+9u,0xA0u,x,image,0u);
-        if(a9.call_2975c)a9.call_2975c(((app11_random(a9)*2u)>>15)+5u,0xE0u,x,image,0u);
+        u32 p=image();
+        if(a9.call_2975c)a9.call_2975c(((app11_random(a9,0xA0u,x,p,0u)*2u)>>15)+9u,0xA0u,x,p,0u);
+        p=image();
+        if(a9.call_2975c)a9.call_2975c(((app11_random(a9,0xE0u,x,p,0u)*2u)>>15)+5u,0xE0u,x,p,0u);
     }
     for(u32 y=0xB0u;y<0xE0u;y+=0x10u){
-        if(a9.call_2975c)a9.call_2975c(((app11_random(a9)*2u)>>15)+0x0Cu,y,0x20u,image,0u);
-        if(a9.call_2975c)a9.call_2975c(((app11_random(a9)*2u)>>15)+0x0Eu,y,0x118u,image,0u);
+        u32 p=image();
+        if(a9.call_2975c)a9.call_2975c(((app11_random(a9,y,0x20u,p,0u)*2u)>>15)+0x0Cu,y,0x20u,p,0u);
+        p=image();
+        if(a9.call_2975c)a9.call_2975c(((app11_random(a9,y,0x118u,p,0u)*2u)>>15)+0x0Eu,y,0x118u,p,0u);
     }
     if(a9.call_2975c){
-        a9.call_2975c(8u,0xA0u,0x20u,image,0u);a9.call_2975c(0x0Bu,0xA0u,0x118u,image,0u);
-        a9.call_2975c(4u,0xE0u,0x20u,image,0u);a9.call_2975c(7u,0xE0u,0x118u,image,0u);
+        a9.call_2975c(8u,0xA0u,0x20u,image(),0u);a9.call_2975c(0x0Bu,0xA0u,0x118u,image(),0u);
+        a9.call_2975c(4u,0xE0u,0x20u,image(),0u);a9.call_2975c(7u,0xE0u,0x118u,image(),0u);
     }
     if(b.call_30508)b.call_30508(0xAAu,0x20u,0x100u,text,1u);
     const u32 buttons=load_le32(dg(m,0x258DCu))+0x63u;

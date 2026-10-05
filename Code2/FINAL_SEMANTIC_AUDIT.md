@@ -89,16 +89,26 @@ The settings family was checked through its complete dispatch. The `06520..06547
 
 The full `066E8` serializer was audited through every short-write failure tail. The 50-byte slot label, fixed state blocks, runtime-state local dword, 0x920-byte party block, record-count-scaled `0x248EC` block, 62 descriptor payloads, and final `F920/F91C/67EC/A808/6FA0` blocks all preserve encoded order and exact lengths. Each failed write closes the handle and returns 1; the success path closes it and returns 0. The special `slot == FFFFFFFFh` path intentionally copies only five bytes from `03A8h` into the 50-byte output buffer before writing the full 50 bytes; this odd partial overwrite is preserved rather than normalized. `06C68` retains signed coordinate loads and the exact type/flag/nonzero predicate before setting `CF6Ch`. `06CAD` is the next shared load tail and is not counted here.
 
+## Checkpoint 8 — `06CAD..080AB`
+
+**5,119 bytes.** Fresh immutable-object disassembly closed the backward-entered save-load tail, resource-panel construction/destruction, randomized background renderer, FCB delete wrapper, wildcard file copier, slot-label editor, save/load slot workflows, randomized confirmation dialog, modal message helper, and the `0808C..080AB` CS dispatch table. Span SHA-256: `983c5eb95aad3e3f2eb30fa7f9aa876f0f79df7e787a54b499dd38f700a5bc6e`. Mandatory overlap `[0x06C6D,0x06D2D)` SHA-256: `88ee2bc0bca3930a22167507f4e76441ea240cd18ed9e755e59a05a0d09ed475`.
+
+Two correction groups were integrated. First, the randomized background families at `06008`, `071B8`, and `07D44` had repeated the previously identified cdecl live-stack defect: four draw arguments are pushed before `30CA2h`, remain live across that call, and then the scaled random result is pushed as argument 0 to `2975Ch`. The reconstruction called `30CA2h` with no arguments. This pass restores the four live arguments. The same review exposed a separate global-reload/source defect: `258DCh+35h` is reloaded before each randomized draw. `06008` and `07D44` had cached it, while `071B8` incorrectly derived the background image from its incoming resource argument. All three now preserve the encoded reload/source behavior. The `06008` portion is a retroactive correction to checkpoint 7; byte coverage is unchanged.
+
+Second, `075CC` had the first-edit clear on the wrong side of the character-class test. On the printable-key path, after length and width checks, binary `76FE..7711` clears the inherited 50h-byte label whenever first-edit is still set, and only then classifies the key at `7713..772A`. Thus an invalid first key that reaches this path still clears the inherited label before first-edit is consumed. The reconstruction cleared only after a key passed classification. The clear was moved to its encoded position.
+
+The remaining region passed the semantic audit. `06CAD` preserves the backward shared-tail entry, exact read ordering and widths, signed/byte party-state repairs, descriptor payload loop, temporary 248h-byte block copying, handle closure, post-load global resets, and final `181B4`/`06C68` restoration. `073A0` retains the exact 2Ch-byte DOS find block and filename at +1Eh, source/destination construction, early error exits, and per-file allocation/free ordering. Save/load slot workflows preserve their asymmetric failure reporting and intentional handle leaks on right-click exits. The confirmation hit boxes retain inclusive X and half-open Y bounds. `0808C` begins the next dispatch table ownership family; the table through `080AB` is audited as data and `080AC` is the next executable frontier.
+
 ## CODE.1 cross-reference policy
 
 The fully audited CODE.1 decompilation remains part of the active procedure. Its discovered defect classes determine where CODE.2 receives extra scrutiny: cdecl slot order, live-register call inputs, byte/word aliases, signed/unsigned branch drift, modulo-32-bit arithmetic, encoded loop entry, selector/interrupt preservation, global reloads, address-distinct thunks, self-modifying immediates, and DOS/runtime wrappers. Mechanically similar regions may be audited in larger coherent families, but any opcode/control-flow divergence is resolved from CODE.2 itself.
 
 ## Current result
 
-- Audited object bytes: **27,821 / 239,698 = 11.6067%**.
-- Semantic corrections found so far: **4 defect classes**.
-- New corrections in checkpoint 7: **0**.
-- Current closed audited frontier: **`06CAC`**.
-- Next frontier: **`06CAD`**.
+- Audited object bytes: **32,940 / 239,698 = 13.7423%**.
+- Semantic corrections found so far: **6 defect classes**.
+- New defect classes in checkpoint 8: **2** (plus repeated instances of the existing cdecl-slot defect).
+- Current closed audited frontier: **`080AB`**.
+- Next frontier: **`080AC`**.
 
 The semantic-audit percentage is independent of the completed 100% decompilation/byte-accounting percentage.
