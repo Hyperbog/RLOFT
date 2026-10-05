@@ -1523,7 +1523,7 @@ void function_01834(Machine& m,Application04Boundary& b,Application03Boundary& a
     for(u32 y=0xF0u;y<0x140u;y+=8u)for(u32 x=0u;x<0x190u;x+=0x10u) {
         const u32 p=load_le32(dg(m,0x258DCu))+0x35u;
         const u32 r=b.call_30ca2?b.call_30ca2(x,y,p,0u):0u;
-        if(a3.call_2975c)a3.call_2975c(x,y,p,0u,app04_scale15_4(r));
+        if(a3.call_2975c)a3.call_2975c(app04_scale15_4(r),x,y,p,0u);
     }
     u32 y=0x1Au,label=0xE2u;
     for(u32 i=0u;i<0x0Du;++i,++label) {
@@ -1540,21 +1540,21 @@ void function_01834(Machine& m,Application04Boundary& b,Application03Boundary& a
     for(u32 x=8u;x<0x138u;x+=8u) {
         u32 p=load_le32(dg(m,0x258DCu))+0x35u;
         u32 r=b.call_30ca2?b.call_30ca2(0u,x,p,0u):0u;
-        if(a3.call_2975c)a3.call_2975c(0u,x,p,0u,app04_scale15_2(r)+9u);
+        if(a3.call_2975c)a3.call_2975c(app04_scale15_2(r)+9u,0u,x,p,0u);
         p=load_le32(dg(m,0x258DCu))+0x35u;
         r=b.call_30ca2?b.call_30ca2(0x180u,x,p,0u):0u;
-        if(a3.call_2975c)a3.call_2975c(0x180u,x,p,0u,app04_scale15_2(r)+5u);
+        if(a3.call_2975c)a3.call_2975c(app04_scale15_2(r)+5u,0x180u,x,p,0u);
     }
     for(u32 x=0x10u;x<0x180u;x+=0x10u) {
         u32 p=load_le32(dg(m,0x258DCu))+0x35u;
         u32 r=b.call_30ca2?b.call_30ca2(x,0u,p,0u):0u;
-        if(a3.call_2975c)a3.call_2975c(x,0u,p,0u,app04_scale15_2(r)+0x0Cu);
+        if(a3.call_2975c)a3.call_2975c(app04_scale15_2(r)+0x0Cu,x,0u,p,0u);
         p=load_le32(dg(m,0x258DCu))+0x35u;
         r=b.call_30ca2?b.call_30ca2(x,0xF0u,p,0u):0u;
-        if(a3.call_2975c)a3.call_2975c(x,0xF0u,p,0u,app04_scale15_2(r)+0x12u);
+        if(a3.call_2975c)a3.call_2975c(app04_scale15_2(r)+0x12u,x,0xF0u,p,0u);
         p=load_le32(dg(m,0x258DCu))+0x35u;
         r=b.call_30ca2?b.call_30ca2(x,0x138u,p,0u):0u;
-        if(a3.call_2975c)a3.call_2975c(x,0x138u,p,0u,app04_scale15_2(r)+0x0Eu);
+        if(a3.call_2975c)a3.call_2975c(app04_scale15_2(r)+0x0Eu,x,0x138u,p,0u);
     }
     auto draw=[&](u32 a0,u32 a1,u32 a2,u32 off) noexcept {if(a3.call_2975c)a3.call_2975c(a0,a1,a2,load_le32(dg(m,0x258DCu))+off,0u);};
     draw(8u,0u,0u,0x35u); draw(0x0Bu,0u,0x138u,0x35u); draw(4u,0x180u,0u,0x35u); draw(7u,0x180u,0x138u,0x35u);
@@ -1625,8 +1625,8 @@ static_assert(0x01F6Bu-0x01CE4u==647u);
 
 void function_01f6c(Machine& m,Application04Boundary& b,Application03Boundary& a3,Graphics2Boundary& g,u32 decorate) noexcept {
     if(b.call_291b0)b.call_291b0(*dg(m,0xC050u));if(b.call_290d0)b.call_290d0(load_le16(dg(m,0x12750u)));
-    for(u32 x=8u;x<0xB8u;x+=8u){u32 p=load_le32(dg(m,0x258DCu))+0x35u;u32 r=b.call_30ca2?b.call_30ca2(0u,x,p,0u):0u;if(a3.call_2975c)a3.call_2975c(0u,x,p,0u,app04_scale15_2(r)+9u);p=load_le32(dg(m,0x258DCu))+0x35u;r=b.call_30ca2?b.call_30ca2(0x180u,x,p,0u):0u;if(a3.call_2975c)a3.call_2975c(0x180u,x,p,0u,app04_scale15_2(r)+5u);}
-    for(u32 x=0x10u;x<0x180u;x+=0x10u){u32 p=load_le32(dg(m,0x258DCu))+0x35u;u32 r=b.call_30ca2?b.call_30ca2(x,0u,p,0u):0u;if(a3.call_2975c)a3.call_2975c(x,0u,p,0u,app04_scale15_2(r)+0x0Cu);p=load_le32(dg(m,0x258DCu))+0x35u;r=b.call_30ca2?b.call_30ca2(x,0xF0u,p,0u):0u;if(a3.call_2975c)a3.call_2975c(x,0xF0u,p,0u,app04_scale15_2(r)+0x12u);}
+    for(u32 x=8u;x<0xB8u;x+=8u){u32 p=load_le32(dg(m,0x258DCu))+0x35u;u32 r=b.call_30ca2?b.call_30ca2(0u,x,p,0u):0u;if(a3.call_2975c)a3.call_2975c(app04_scale15_2(r)+9u,0u,x,p,0u);p=load_le32(dg(m,0x258DCu))+0x35u;r=b.call_30ca2?b.call_30ca2(0x180u,x,p,0u):0u;if(a3.call_2975c)a3.call_2975c(app04_scale15_2(r)+5u,0x180u,x,p,0u);}
+    for(u32 x=0x10u;x<0x180u;x+=0x10u){u32 p=load_le32(dg(m,0x258DCu))+0x35u;u32 r=b.call_30ca2?b.call_30ca2(x,0u,p,0u):0u;if(a3.call_2975c)a3.call_2975c(app04_scale15_2(r)+0x0Cu,x,0u,p,0u);p=load_le32(dg(m,0x258DCu))+0x35u;r=b.call_30ca2?b.call_30ca2(x,0xF0u,p,0u):0u;if(a3.call_2975c)a3.call_2975c(app04_scale15_2(r)+0x12u,x,0xF0u,p,0u);}
     function_0139c(m,b,a3,g,static_cast<s32>(load_le32(dg(m,0x12744u))),static_cast<s32>(load_le32(dg(m,0x12740u))),0x30,0x2F,decorate);if(b.call_1a510)b.call_1a510(load_le32(dg(m,0xC050u)));*dg(m,0xC050u)=static_cast<u8>(*dg(m,0xC050u)^1u);
 }
 static_assert(0x02079u-0x01F6Cu==269u);

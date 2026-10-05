@@ -27,7 +27,7 @@ Every closed checkpoint is regenerated from the immutable object and checked for
 
 Fresh disassembly was regenerated from the immutable object after the interrupted audit was resumed. Immutable hashes matched exactly. Closed span: **2,725 bytes (`0xAA5`)**. Span SHA-256: `07c14c3cccd8062c5fec56fcb70fa96d7cd88e7b51b959afef5dcb6bb701f867`.
 
-PASS with no new semantic correction.
+A later cdecl-stack-order review in checkpoint 4 found one repeated semantic defect in this already-closed span: the `30CA2h` result is pushed on top of four still-live arguments before `2975Ch`, so that result is **argument 0** to `2975Ch`, not argument 4. The affected scaled-border calls in `01834..01C07` were corrected during checkpoint 4.
 
 ### `011A8..01226` — frame/background setup
 
@@ -55,16 +55,24 @@ Two short address-distinct helpers walk the record list rooted at `5760h`, addin
 
 The next bytes `01C4D..` begin alignment and a new family and are intentionally not counted in this checkpoint.
 
+## Checkpoint 4 — `01C4D..02D6F`
+
+**4,403 bytes.** Fresh immutable-object disassembly covered the text editor, border redraw, mouse-driven editor loops, packed-record deletion, status-frame query, cell-label generation, text serialization, three-plane map export, numbered resource load, and the `02D70` data-table boundary. Immutable source hashes matched exactly.
+
+One repeated cdecl argument-order defect was found while applying the CODE.1 call-stack checklist. At `018B1..018CB` and the analogous `01F94..0203B` border loops, four arguments for `30CA2h` remain on the stack; after `30CA2h` returns, the scaled result is pushed and `2975Ch` is called without first removing those four slots. Therefore the scaled result is `2975Ch` argument 0, followed by the four pre-existing slots. The reconstruction had represented these calls in the opposite order, placing the scaled result in argument 4. All ten affected calls in `01834` and `01F6C` were corrected. This is one defect class with ten call sites.
+
+The newly closed `01C4D..02D6F` region otherwise passes the semantic audit. Particular checks included signed text-length traversal, CR handling, signed mouse-coordinate bounds, IDIV-based line count, record deletion copy lengths, the 17h status-frame bit predicate, signed `/8` and `/5` label coordinate arithmetic, A..Z / space-A label rollover, CR/LF serialization, overlay precedence in block mode, signed map dimensions, allocation/free paths, numbered filename decimal construction, and stream read ordering. `02D70` begins an address table and is the next independent ownership family.
+
 ## CODE.1 cross-reference policy
 
 The fully audited CODE.1 decompilation remains part of the active procedure. Its discovered defect classes determine where CODE.2 receives extra scrutiny: cdecl slot order, live-register call inputs, byte/word aliases, signed/unsigned branch drift, modulo-32-bit arithmetic, encoded loop entry, selector/interrupt preservation, global reloads, address-distinct thunks, self-modifying immediates, and DOS/runtime wrappers. Mechanically similar regions may be audited in larger coherent families, but any opcode/control-flow divergence is resolved from CODE.2 itself.
 
 ## Current result
 
-- Audited object bytes: **7,245 / 239,698 = 3.0226%**.
-- Semantic corrections found so far: **1**.
-- New corrections in checkpoint 3: **0**.
-- Current closed audited frontier: **`01C4C`**.
-- Next frontier: **`01C4D`**.
+- Audited object bytes: **11,632 / 239,698 = 4.8528%**.
+- Semantic corrections found so far: **2 defect classes**.
+- New correction in checkpoint 4: **1 repeated cdecl argument-order defect affecting 10 call sites**.
+- Current closed audited frontier: **`02D6F`**.
+- Next frontier: **`02D70`**.
 
 The semantic-audit percentage is independent of the completed 100% decompilation/byte-accounting percentage.
