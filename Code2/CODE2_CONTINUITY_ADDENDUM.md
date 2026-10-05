@@ -617,3 +617,8 @@ Batch 119 reconciles the late runtime island `39526..3967B`: **342 translated by
 ## CODE.2 Batch 120 checkpoint
 
 Batch 120 reconciles `369A7..369D7`: **35 translated + 14 proven non-code bytes**. Preserve `369A7`'s modular `NEG` behavior, including `INT32_MIN`, and `369C0`'s non-cdecl register handoff (`ECX/ESI/EDI`) before the indirect call. `369B2..369BF` is directly proven zero non-code with no incoming direct relative target. Accounting is **228,425 / 239,698 = 95.2970% (95.30%)**; unresolved is **11,273 bytes**. `369D8` begins the next independently bounded runtime renderer.
+
+
+## CODE.2 Batch 121 checkpoint
+
+Batch 121 reconciles `369D8..36B9B`: **448 translated + 4 proven alignment bytes**. Preserve `369D8`'s signed six-byte record fields, temporary `C3h` callback-image patch and exact byte restoration, phase-derived three-plane mask dispatch, and `369C0` register-call ABI. Preserve `36B14`'s full-dword AL/AH swap and its entry-before-decrement multi-pass loop, including restoration of `105E3/105DF`. Accounting is **228,877 / 239,698 = 95.4856% (95.49%)**; unresolved is **10,821 bytes**. `36B9C` begins the next independently called runtime helper.

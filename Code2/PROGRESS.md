@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-95.30%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-95.49%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **223,909**
-**Proven non-code/data bytes:** **4,516**
-**Reconciled object bytes:** **228,425 / 239,698 = 95.2970% (95.30%)**
-**Unresolved object bytes:** **11,273**
+**Verified translated instruction bytes:** **224,357**
+**Proven non-code/data bytes:** **4,520**
+**Reconciled object bytes:** **228,877 / 239,698 = 95.4856% (95.49%)**
+**Unresolved object bytes:** **10,821**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -987,3 +987,8 @@ Batch 119 adds **342 translated instruction bytes** across four independently bo
 ## Batch 120 — first post-timer runtime island `369A7..369D7`
 
 Batch 120 adds **35 translated instruction bytes** and **14 proven non-code bytes**. `369A7..369B1` is the wrap-preserving 32-bit absolute-value helper: negative values execute `NEG EAX`, so `80000000h` remains `80000000h`. `369B2..369BF` is fourteen zero bytes between the helper's RET and the independently framed `369C0`; a full object-1 direct relative branch/call target scan found no incoming target into the island. `369C0..369D7` is an ENTER-framed register-call adapter: it loads caller arguments into `ECX`, `ESI`, and `EDI`, then performs `CALL [EBP+8]`, preserving its address-distinct register ABI rather than normalizing it into cdecl. Cumulative accounting is **223,909 translated + 4,516 non-code = 228,425 / 239,698 = 95.2970% (95.30%)**; unresolved is **11,273 bytes**. Next independent boundary: **`369D8`**.
+
+
+## Batch 121 — runtime callback renderer and multi-pass wrapper `369D8..36B9B`
+
+Batch 121 adds **448 translated instruction bytes** and **4 proven alignment bytes**. `369D8..36B12` derives the VGA destination from the current page/row/phase globals, loads three map masks from the phase table, walks six-byte signed callback records, temporarily patches each callback-image entry byte to `C3h`, resolves the address-distinct callback target, and invokes it through the `369C0` register adapter for one to three planes before restoring the exact saved byte. `36B14..36B98` either renders once and swaps only AL/AH in the packed `105E7` dword, or temporarily forces `105DF=1`, iterates the saved count with parity-controlled AL/AH swapping, advances `105E3`, then restores both globals. The do/while decrement semantics are retained rather than normalized into a zero-safe counted loop. `36B13` and `36B99..36B9B` are decoded no-op separators with no incoming direct relative target. Cumulative accounting is **224,357 translated + 4,520 non-code = 228,877 / 239,698 = 95.4856% (95.49%)**; unresolved is **10,821 bytes**. Next independent boundary: **`36B9C`**.

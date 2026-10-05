@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 223909u;
-constexpr u32 kVerifiedNonCodeBytes = 4516u;
+constexpr u32 kVerifiedTranslatedBytes = 224357u;
+constexpr u32 kVerifiedNonCodeBytes = 4520u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -643,7 +643,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -27204,5 +27204,89 @@ void function_369c0(Runtime120Boundary& b,u32 target,u32 ecx,u32 esi,u32 edi) no
     if(b.call_register_guest)b.call_register_guest(target,ecx,esi,edi);
 }
 static_assert(0x369D8u-0x369C0u==24u);
+
+
+// Batch 121: runtime renderer and multi-pass wrapper, 369D8..36B98.
+struct Runtime121Boundary {
+    u8 (*read_u8)(u32)=nullptr;
+    u16 (*read_u16)(u32)=nullptr;
+    u32 (*read_u32)(u32)=nullptr;
+    void (*write_u8)(u32,u8)=nullptr;
+    void (*write_u32)(u32,u32)=nullptr;
+    void (*set_map_mask)(u8)=nullptr;
+    void (*call_register_guest)(u32,u32,u32,u32)=nullptr; // target, ECX, ESI, EDI
+};
+
+static u32 batch121_swap_al_ah(u32 value) noexcept {
+    return (value & 0xFFFF0000u) | ((value & 0xFFu) << 8) | ((value >> 8) & 0xFFu);
+}
+
+void function_369d8(Runtime121Boundary& b,u32 coordinate,u32 callback_ecx) noexcept {
+    const auto r8=[&](u32 a)->u8{return b.read_u8?b.read_u8(a):0u;};
+    const auto r16=[&](u32 a)->u16{return b.read_u16?b.read_u16(a):0u;};
+    const auto r32=[&](u32 a)->u32{return b.read_u32?b.read_u32(a):0u;};
+    const auto w8=[&](u32 a,u8 v){if(b.write_u8)b.write_u8(a,v);};
+    u32 destination=((0x800u*static_cast<u32>(r8(0x0EF4Du)))+0xA000u)<<4;
+    destination += r32(0x10450u)*0x50u + r32(0x0C6E0u) + static_cast<u32>(static_cast<s32>(r32(0x105E3u))>>2);
+    const u32 phase_index=((r32(0x105E3u)&3u)<<3)+r32(0x105DFu);
+    const u8 mask0=r8(0x0C668u+phase_index);
+    const u8 mask1=r8(0x0C688u+phase_index);
+    const u8 mask2=r8(0x0C6A8u+phase_index);
+    u32 record=r32(0x105DBu);
+    const u32 callback_image=r32(0x105D7u);
+    for(;;){
+        const s32 patch_index=static_cast<s16>(r16(record));
+        if(patch_index==0)break;
+        const u32 patch_offset=static_cast<u32>(r16(callback_image+static_cast<u32>(patch_index)));
+        const u32 patch_address=callback_image+patch_offset;
+        const u8 saved=r8(patch_address);
+        w8(patch_address,0xC3u);
+        const s32 callback_index=static_cast<s16>(r16(record+4u));
+        const u32 target=callback_image+static_cast<u32>(r16(callback_image+static_cast<u32>(callback_index)));
+        const u32 callback_esi=coordinate+static_cast<u32>(static_cast<s32>(static_cast<s16>(r16(record+2u))));
+        record+=6u;
+        if(b.set_map_mask)b.set_map_mask(mask0);
+        if(b.call_register_guest)b.call_register_guest(target,callback_ecx,callback_esi,destination);
+        if(mask1!=0u){
+            if(b.set_map_mask)b.set_map_mask(mask1);
+            if(b.call_register_guest)b.call_register_guest(target,callback_ecx,callback_esi,destination+1u);
+        }
+        if(mask2!=0u){
+            if(b.set_map_mask)b.set_map_mask(mask2);
+            if(b.call_register_guest)b.call_register_guest(target,callback_ecx,callback_esi,destination+2u);
+        }
+        w8(patch_address,saved);
+    }
+}
+static_assert(0x36B13u-0x369D8u==315u);
+
+// 36B13 is an unreferenced NOP separator.
+void function_36b14(Runtime121Boundary& b,u32 coordinate) noexcept {
+    const auto r8=[&](u32 a)->u8{return b.read_u8?b.read_u8(a):0u;};
+    const auto r32=[&](u32 a)->u32{return b.read_u32?b.read_u32(a):0u;};
+    const auto w32=[&](u32 a,u32 v){if(b.write_u32)b.write_u32(a,v);};
+    if(r8(0x0C029u)==0u){
+        function_369d8(b,coordinate,r32(0x105E7u));
+        w32(0x105E7u,batch121_swap_al_ah(r32(0x105E7u)));
+        return;
+    }
+    const u32 saved_phase=r32(0x105E3u);
+    const u32 saved_count=r32(0x105DFu);
+    const u32 packed=r32(0x105E7u);
+    u32 remaining=saved_count;
+    w32(0x105DFu,1u);
+    do {
+        u32 callback_ecx=packed;
+        if((r32(0x105E3u)&1u)!=0u)callback_ecx=batch121_swap_al_ah(callback_ecx);
+        function_369d8(b,coordinate,callback_ecx);
+        w32(0x105E3u,r32(0x105E3u)+1u);
+        --remaining;
+    } while(remaining!=0u);
+    w32(0x105E3u,saved_phase);
+    w32(0x105DFu,saved_count);
+}
+static_assert(0x36B99u-0x36B14u==133u);
+
+// 36B99..36B9B is unreferenced XCHG EBX,EBX; NOP alignment.
 
 } // namespace code2
