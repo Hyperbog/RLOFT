@@ -10,18 +10,23 @@ def integrate():
   marker='} // namespace code2'
   if marker not in s: raise SystemExit('namespace sentinel missing')
   s=s.replace(marker,f+'\n'+marker,1)
- s=s.replace('constexpr u32 kVerifiedTranslatedBytes = 233331u;','constexpr u32 kVerifiedTranslatedBytes = 233831u;')
- s=s.replace('constexpr u32 kVerifiedNonCodeBytes = 4675u;','constexpr u32 kVerifiedNonCodeBytes = 4676u;')
- # Append this batch exactly once to the translated accounting expression.
+ s,n=re.subn(r'constexpr u32 kVerifiedTranslatedBytes\s*=\s*233331u;', 'constexpr u32 kVerifiedTranslatedBytes = 233831u;',s,count=1)
+ if n!=1: raise SystemExit('translated constant sentinel missing')
+ s,n=re.subn(r'constexpr u32 kVerifiedNonCodeBytes\s*=\s*4675u;', 'constexpr u32 kVerifiedNonCodeBytes = 4676u;',s,count=1)
+ if n!=1: raise SystemExit('non-code constant sentinel missing')
  pat=r'(static_assert\(kVerifiedTranslatedBytes == .*?)(\);)'
  m=re.search(pat,s,re.S)
  if not m: raise SystemExit('translated static_assert missing')
  expr=m.group(1)
  if not expr.rstrip().endswith('+ 500u'):
-  expr=expr.rstrip()+' + 500u'
-  s=s[:m.start(1)]+expr+s[m.end(1):]
- # Non-code assertion is a scalar sum in current source; adjust the final literal deterministically.
- s=s.replace('static_assert(kVerifiedNonCodeBytes == 4675u);','static_assert(kVerifiedNonCodeBytes == 4676u);')
+  expr=expr.rstrip()+' + 500u'; s=s[:m.start(1)]+expr+s[m.end(1):]
+ # Preserve the historical non-code summands and append this one-byte separator.
+ pat2=r'(static_assert\(kVerifiedNonCodeBytes == .*?)(\);)'
+ m=re.search(pat2,s,re.S)
+ if not m: raise SystemExit('non-code static_assert missing')
+ expr=m.group(1)
+ if not expr.rstrip().endswith('+ 1u'):
+  expr=expr.rstrip()+' + 1u'; s=s[:m.start(1)]+expr+s[m.end(1):]
  cpp.write_text(s)
  block='''\n## Batch 140 — runtime arena allocation/free core\n\nBatch 140 reconciles **500 translated instruction bytes** at `39838..39A2B` plus the proven zero separator byte at `39837`. The fold contains the arena allocation splitter, arena free/coalescing path, and runtime arena-list unlink helper. Cumulative accounting is **233,831 translated + 4,676 non-code/data = 238,507 / 239,698 = 99.5031% (99.50%)**; unresolved is **1,191 bytes**. The next independent boundary is `39A2C`. `385B0..38866` and `36CEC..372F5` remain unresolved.\n'''
  for p in (progress,add):
