@@ -23,7 +23,7 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 232645u;
+constexpr u32 kVerifiedTranslatedBytes = 232906u;
 constexpr u32 kVerifiedNonCodeBytes = 4672u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
@@ -643,7 +643,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u + 320u + 277u + 505u + 433u + 293u + 423u + 468u + 655u + 932u + 262u + 419u + 390u + 1227u + 1274u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u + 320u + 277u + 505u + 433u + 293u + 423u + 468u + 655u + 932u + 262u + 419u + 390u + 1227u + 1274u + 261u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -28215,5 +28215,85 @@ static_assert(0x3914Au-0x39147u==3u);
 static_assert(0x39226u-0x3914Au==220u);
 static_assert(0x39526u-0x39226u==768u);
 static_assert(0x39589u-0x39526u==99u);
+
+
+// Batch 138: verified CODE.2 39589..3968D runtime-startup/handler helpers.
+struct Runtime138Boundary {
+    u32 (*stack_available)()=nullptr;
+    void (*runtime_prepare)()=nullptr;
+    u32 (*call_20608)(u32,u32)=nullptr;
+    void (*call_352be)(u32)=nullptr;
+    void (*invoke_handler)(u32,u32)=nullptr;
+    s32 (*seek)(u32,s32,u8)=nullptr;
+};
+
+// 39589..395E1: establish the runtime scratch-stack watermark, perform runtime
+// preparation, then forward the published 2BD00/2BD04 pair through 20608 and
+// pass its result to 352BE. The original subtracts the aligned 1264C amount
+// from ESP only when it is strictly below 3A165's available-stack result.
+void function_39589(Machine& m,Runtime138Boundary& b) noexcept {
+    const u32 raw=load_le32(dg(m,0x1264Cu));
+    const u32 aligned=(raw+3u)&0xFFFFFFFCu;
+    const u32 available=b.stack_available?b.stack_available():0u;
+    const u32 scratch=(aligned<available)?aligned:0u;
+    store_le32(dg(m,0x12650u),m.cpu.esp-scratch+raw);
+    if(b.runtime_prepare)b.runtime_prepare();
+    const u32 a=load_le32(dg(m,0x2BD00u));
+    const u32 d=load_le32(dg(m,0x2BD04u));
+    const u32 r=b.call_20608?b.call_20608(a,d):0u;
+    if(b.call_352be)b.call_352be(r);
+}
+static_assert(0x395E2u-0x39589u==89u);
+
+// 395E2..3962C: repeatedly choose the lowest-threshold non-state-2 record
+// whose threshold is <= incoming AL from the four records [12720,12738), call
+// its callback with the original EAX dword, then mark that record state 2.
+void function_395e2(Machine& m,Runtime138Boundary& b,u32 eax) noexcept {
+    const u8 limit=static_cast<u8>(eax);
+    for(;;){
+        u32 best=0x12738u;
+        u8 threshold=limit;
+        for(u32 p=0x12720u;p<0x12738u;p+=6u){
+            if(*dg(m,p)==2u)continue;
+            const u8 t=*dg(m,p+1u);
+            if(t<=threshold){best=p;threshold=t;}
+        }
+        if(best==0x12738u)break;
+        const u32 callback=load_le32(dg(m,best+2u));
+        if(callback!=0u&&b.invoke_handler)b.invoke_handler(callback,eax);
+        *dg(m,best)=2u;
+    }
+}
+static_assert(0x3962Du-0x395E2u==75u);
+
+// 3962D..3967B: upper-threshold dispatcher over [12738,1273E). DL becomes
+// incoming AL and DH becomes incoming DL before the callback argument is
+// pushed. Selection walks upward from AL; callbacks above the original DL
+// bound are suppressed, but the selected record is still marked state 2.
+void function_3962d(Machine& m,Runtime138Boundary& b,u32 eax,u32 edx) noexcept {
+    const u8 low=static_cast<u8>(eax);
+    const u8 high=static_cast<u8>(edx);
+    const u32 callback_arg=(edx&0xFFFF0000u)|(static_cast<u32>(high)<<8)|low;
+    for(;;){
+        u32 best=0x1273Eu;
+        u8 threshold=low;
+        for(u32 p=0x12738u;p<0x1273Eu;p+=6u){
+            if(*dg(m,p)==2u)continue;
+            const u8 t=*dg(m,p+1u);
+            if(threshold<=t){best=p;threshold=t;}
+        }
+        if(best==0x1273Eu)break;
+        const u32 callback=load_le32(dg(m,best+2u));
+        if(threshold<=high&&callback!=0u&&b.invoke_handler)b.invoke_handler(callback,callback_arg);
+        *dg(m,best)=2u;
+    }
+}
+static_assert(0x3967Cu-0x3962Du==79u);
+
+// 3967C..3968D: seek-to-end forwarding wrapper: 38407(handle,0,1).
+[[nodiscard]] s32 function_3967c(Runtime138Boundary& b,u32 handle) noexcept {
+    return b.seek?b.seek(handle,0,1u):-1;
+}
+static_assert(0x3968Eu-0x3967Cu==18u);
 
 } // namespace code2

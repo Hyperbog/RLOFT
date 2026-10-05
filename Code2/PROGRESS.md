@@ -1108,4 +1108,12 @@ Cumulative accounting: **231,371 translated + 4,672 non-code = 236,043 / 239,698
 - `3914A..39225`: 220 translated bytes — generic interrupt register-image bridge/save-restore machinery.
 - `39226..39525`: 768 translated bytes — 256 executable `INT imm8; RET` stubs, exactly 3 bytes each.
 - `39526..39588`: 99 translated bytes — bounded ASCII case-insensitive byte-string compare.
-- Batch total: 1,274 translated + 3 non-code = 1,277 reconciled bytes. Reconciled: **237,320 / 239,698 = 99.0079% (99.01%)**; unresolved: **2,378**.
+- Batch total: 1,274 translated + 3 non-code = 1,277 reconciled bytes. Reconciled: **237,581 / 239,698 = 99.1168% (99.12%)**; unresolved: **2,117**.
+
+
+## Batch 138
+- `39589..395E1`: 89 translated bytes — runtime scratch-stack watermark/startup forwarding helper.
+- `395E2..3962C`: 75 translated bytes — four-record low-threshold callback dispatcher.
+- `3962D..3967B`: 79 translated bytes — upper-threshold callback dispatcher.
+- `3967C..3968D`: 18 translated bytes — seek-to-end forwarding wrapper.
+- Batch total: 261 translated bytes. Reconciled: **237,581 / 239,698 = 99.1168% (99.12%)**; unresolved: **2,117**.
