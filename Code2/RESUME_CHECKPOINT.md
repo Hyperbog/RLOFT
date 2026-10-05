@@ -44,3 +44,17 @@ Durable handoff anchor; live repository/binary evidence wins.
 - Accounting: 232,645 translated + 4,675 non-code/data = 237,320 / 239,698 = 99.0079% (99.01%); unresolved 2,378.
 - Next independent boundary: `39589`.
 - `385B0..38866` and `36CEC..372F5` remain unresolved.
+
+
+## Batch 138 handoff
+- Last substantive batch commit: `4c40291c472f2417d81aa692a5d262e7b7074abf` — `Integrate CODE.2 decompilation batch 138`.
+- Verified translated instruction bytes: **232,906**.
+- Proven non-code/data bytes: **4,675**.
+- Reconciled: **237,581 / 239,698 = 99.1168% (99.12%)**.
+- Unresolved: **2,117**.
+- Owned fold: `39589..3968D` (261 translated bytes).
+- Batch-owned SHA-256: `753921c7dc798149f0f647667ee771115032702827972404a1749bf91d7735b7`.
+- Mandatory overlap `[0x3964E,0x3970E)` SHA-256: `d386cc964a16feca18cba8d61fb27cbb2fc22384883ba79f2440327b3bf57169`.
+- Mandatory overlap `[0x3966E,0x396EE)` SHA-256: `fa45f1826f22bebbbe2dd92b2837aaf1b2eb9760f4806e0433f91291bc9f25d0`.
+- Next independent boundary: `3968E`.
+- `385B0..38866` and `36CEC..372F5` remain unresolved.
