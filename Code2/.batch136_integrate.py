@@ -6,6 +6,7 @@ frag=root/'Code2/.batch136.fragment.cpp'
 def integrate():
  s=cpp.read_text(); f=frag.read_text()
  s=s.replace('constexpr u32 kVerifiedTranslatedBytes = 230144u;','constexpr u32 kVerifiedTranslatedBytes = 231371u;')
+ s=s.replace('+ 419u + 390u);','+ 419u + 390u + 1227u);')
  marker='\n} // namespace code2\n'
  if 'function_38bc1' not in s: s=s.replace(marker,f+marker)
  cpp.write_text(s)
@@ -18,6 +19,6 @@ def integrate():
  c += '\n\n## Batch 136 handoff\n- Owned fold: `38BC1..3908B` (1,227 translated bytes).\n- Next independent boundary: `3908C`.\n- `3908C..39146` begins DOS-error/carry translation helpers and is not counted by Batch 136.\n- `385B0..38866` and `36CEC..372F5` remain unresolved.\n'
  chk.write_text(c)
 def verify():
- s=cpp.read_text(); assert 'kVerifiedTranslatedBytes = 231371u' in s; assert 'function_38bc1' in s; assert 'function_3906c' in s
+ s=cpp.read_text(); assert 'kVerifiedTranslatedBytes = 231371u' in s; assert '+ 419u + 390u + 1227u);' in s; assert 'function_38bc1' in s; assert 'function_3906c' in s
  assert '236,043 / 239,698 = 98.4752% (98.48%)' in prog.read_text()
 if __name__=='__main__': (integrate if sys.argv[1]=='integrate' else verify)()
