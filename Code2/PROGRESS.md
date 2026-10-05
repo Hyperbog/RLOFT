@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-88.48%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-88.56%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **207,836**
-**Proven non-code/data bytes:** **4,240**
-**Reconciled object bytes:** **212,076 / 239,698 = 88.4763% (88.48%)**
-**Unresolved object bytes:** **27,622**
+**Verified translated instruction bytes:** **208,043**
+**Proven non-code/data bytes:** **4,241**
+**Reconciled object bytes:** **212,284 / 239,698 = 88.5631% (88.56%)**
+**Unresolved object bytes:** **27,414**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -830,3 +830,6 @@ The complete `31F94..320F7` routine normalizes the high word of `CF4C` to phase 
 ## Batch 78 — formatter byte-emitter and sprintf wrapper
 
 Added **74 translated instruction bytes** and **14 proven zero-padding bytes**, bringing accounting to **207,836 translated + 4,240 non-code = 212,076 / 239,698 = 88.4763% (88.48%)**. Unresolved is **27,622 bytes**. `320F8` is the `385B0` byte-emitter callback (cursor at state+0, count at +10h); `3210F` builds the formatter call and terminates destination[count]. `32142..3214F` is zero padding with no incoming direct target. Next frontier: **`32150`**.
+## Batch 79 — RGB palette rescaler
+
+Added **207 translated instruction bytes** and **1 alignment byte**, bringing accounting to **208,043 translated + 4,241 non-code = 212,284 / 239,698 = 88.5631% (88.56%)**. Unresolved is **27,414 bytes**. `32150..3221E` rescales all 256 RGB triples according to the clamped 0..63 strength byte at `[F050]+6C`, using the triple maximum, rounded signed division, and the encoded zero guards. `3221F` is an unreferenced NOP. Next frontier: **`32220`**.

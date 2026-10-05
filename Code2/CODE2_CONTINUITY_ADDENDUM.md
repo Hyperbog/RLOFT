@@ -476,3 +476,6 @@ Batch 77 reconciles `31F94..320F7`: **356 translated bytes**, no new non-code. C
 ## CODE.2 Batch 78 checkpoint
 
 Batch 78 reconciles `320F8..3214F`: **74 translated + 14 zero-padding bytes**. Cumulative coverage is **212,076 / 239,698 = 88.4763% (88.48%)**; unresolved is **27,622 bytes**. The formatter boundary retains the encoded 320F8 callback identity and explicit varargs cursor. Next frontier is `32150`.
+## CODE.2 Batch 79 checkpoint
+
+Batch 79 reconciles `32150..3221F`: **207 translated + 1 alignment byte**. Coverage is **212,284 / 239,698 = 88.5631% (88.56%)** with **27,414 unresolved bytes**. Preserve the 256 RGB triples, peak-channel scaling, signed rounded division, and zero guards. Next frontier is `32220`.
