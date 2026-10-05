@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 214246u;
-constexpr u32 kVerifiedNonCodeBytes = 4274u;
+constexpr u32 kVerifiedTranslatedBytes = 214281u;
+constexpr u32 kVerifiedNonCodeBytes = 4275u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -25555,5 +25555,22 @@ u32 function_33a5a(Runtime97Boundary& b,u32 path) noexcept {
 }
 
 static_assert(0x33A7Cu-0x33A38u==68u);
+
+
+// Batch 98: 33A7C..33A9E generic interrupt-frame adapter.
+struct Runtime98Boundary {
+    // 39148 owns selector/register-frame mechanics; keep it opaque and address-specific.
+    void (*call_39148)(u32,u32,u32,u32)=nullptr;
+    // 33A97 explicitly reloads EAX from dword [output_regs] after 39148 returns.
+    u32 (*read_output_eax)(u32)=nullptr;
+};
+
+u32 function_33a7c(Runtime98Boundary& b,u32 interrupt_number,u32 input_regs,
+                   u32 output_regs,u32 segment_regs) noexcept {
+    if(b.call_39148)b.call_39148(interrupt_number,input_regs,output_regs,segment_regs);
+    return b.read_output_eax?b.read_output_eax(output_regs):0u;
+}
+static_assert(0x33A9Fu-0x33A7Cu==35u);
+// 33A9F is an unreferenced zero alignment byte; 33AA0 is the next independent entry.
 
 } // namespace code2

@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-91.16%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-91.18%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **214,246**
-**Proven non-code/data bytes:** **4,274**
-**Reconciled object bytes:** **218,520 / 239,698 = 91.1647% (91.16%)**
-**Unresolved object bytes:** **21,178**
+**Verified translated instruction bytes:** **214,281**
+**Proven non-code/data bytes:** **4,275**
+**Reconciled object bytes:** **218,556 / 239,698 = 91.1797% (91.18%)**
+**Unresolved object bytes:** **21,142**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -890,3 +890,6 @@ Added **150 translated instruction bytes**, bringing accounting to **214,178 tra
 ## Batch 97 — DOS mkdir/chdir wrappers
 
 Added **68 translated instruction bytes**, bringing accounting to **214,246 translated + 4,274 non-code = 218,520 / 239,698 = 91.1647% (91.16%)**. `33A38` and `33A5A` are the DOS AH=39h/AH=3Bh path wrappers. The encoded `RCL EAX,1; ROR EAX,1; TEST EAX,EAX` sequence is preserved by its directly proven carry predicate: carry-clear returns zero, while carry-set zero-extends the low AX error for the `390D7` side effect and retains `390D7`'s `FFFFFFFFh` return. DS:DX path qualification remains explicit at the boundary. Next frontier: **`33A7C`**.
+## Batch 98 — generic interrupt-frame adapter
+
+Added **35 translated instruction bytes** and **1 alignment byte**, bringing accounting to **214,281 translated + 4,275 non-code = 218,556 / 239,698 = 91.1797% (91.18%)**. `33A7C` is the CODE.2 counterpart of CODE.1's address-named `CEC8` boundary: it places the four cdecl arguments into the exact `ESI/EDI/EDX/EBX` roles expected by `39148`, leaves the selector/register-frame mechanics opaque at that address-specific boundary, then explicitly reloads the first dword of the output-register block as its return value. `33A9F` is a one-byte unreferenced zero separator. Next frontier: **`33AA0`**.
