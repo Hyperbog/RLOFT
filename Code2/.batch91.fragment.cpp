@@ -9,11 +9,16 @@ void function_335dc(Machine& m,Application91Boundary& b) noexcept {
     const u32 record_size=0x1Cu;
     const auto rec=[&](u32 i) noexcept { return record_base+i*record_size; };
     const auto flush=[&]() noexcept { if(b.call_3263c)b.call_3263c(); };
-    const auto set_width=[&](u32 record,u32 value_field) noexcept {
+    const auto initial_width=[&](u32 record) noexcept {
+        store_le32(dg(m,0x255E4u),load_le32(dg(m,record+0x10u))<<1);
+        const u32 extra=(b.call_2f29c?b.call_2f29c(load_le32(dg(m,0xC700u)),4u):0u)+2u;
+        store_le32(dg(m,0x255E4u),load_le32(dg(m,0x255E4u))+extra);
+    };
+    const auto reset_width=[&](u32 record,u32 value_field) noexcept {
         store_le32(dg(m,0xC700u),load_le32(dg(m,record+value_field)));
-        u32 width=b.call_2f29c?b.call_2f29c(load_le32(dg(m,0xC700u)),4u):0u;
-        width+=2u;
-        store_le32(dg(m,0x255E4u),width+(load_le32(dg(m,record+0x10u))<<1));
+        const u32 base=(b.call_2f29c?b.call_2f29c(load_le32(dg(m,0xC700u)),4u):0u)+2u;
+        store_le32(dg(m,0x255E4u),base);
+        store_le32(dg(m,0x255E4u),load_le32(dg(m,0x255E4u))+(load_le32(dg(m,record+0x10u))<<1));
     };
 
     u32 index=0u;
@@ -33,7 +38,8 @@ void function_335dc(Machine& m,Application91Boundary& b) noexcept {
         u32 current=rec(index);
         store_le32(dg(m,0xC6F8u),index);
         store_le32(dg(m,0xFCF2u),load_le32(dg(m,current+0x18u)));
-        set_width(current,0x04u);
+        store_le32(dg(m,0xC700u),load_le32(dg(m,current+0x04u)));
+        initial_width(current);
         ++index;
 
         for(;;){
@@ -55,7 +61,7 @@ void function_335dc(Machine& m,Application91Boundary& b) noexcept {
                 store_le32(dg(m,0xC6F4u),1u);
                 store_le32(dg(m,0xC6F8u),index);
                 store_le32(dg(m,0xFCF2u),load_le32(dg(m,current+0x18u)));
-                set_width(current,0x04u);
+                reset_width(current,0x04u);
             }else{
                 store_le32(dg(m,0xC6F4u),load_le32(dg(m,0xC6F4u))+1u);
             }
@@ -71,7 +77,7 @@ first_pass_done:
     u32 current=rec(index);
     store_le32(dg(m,0xC700u),load_le32(dg(m,current+0x08u)));
     store_le32(dg(m,0xFCF2u),load_le32(dg(m,current+0x18u)));
-    set_width(current,0x08u);
+    initial_width(current);
 
     for(;;){
         ++index;
@@ -84,7 +90,7 @@ first_pass_done:
             store_le32(dg(m,0xC6F4u),1u);
             store_le32(dg(m,0xC6F8u),index);
             store_le32(dg(m,0xFCF2u),load_le32(dg(m,current+0x18u)));
-            set_width(current,0x08u);
+            reset_width(current,0x08u);
         }else{
             store_le32(dg(m,0xC6F4u),load_le32(dg(m,0xC6F4u))+1u);
         }
