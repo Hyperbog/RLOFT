@@ -1,15 +1,15 @@
 # CODE.2 faithful decompilation progress
 
 ![Progress](https://img.shields.io/badge/object%20accounting-100.00%25-brightgreen)
-![Semantic audit](https://img.shields.io/badge/semantic%20audit-88.17%25-yellow)
+![Semantic audit](https://img.shields.io/badge/semantic%20audit-100.00%25-brightgreen)
 
-**Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **235,022**
-**Proven non-code/data bytes:** **4,676**
-**Reconciled object bytes:** **239,698 / 239,698 = 100.0000% (100.00%)**
-**Unresolved object bytes:** **0**
-**Semantic audit:** **211,346 / 239,698 = 88.1722%**, closed through object offset `0x339A1`; **6 semantic defect classes** found so far.
-**Status color:** GREEN — complete object-1 byte accounting. Semantic audit remains a separate follow-up phase.
+**Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**  
+**Verified translated instruction bytes:** **235,022**  
+**Proven non-code/data bytes:** **4,676**  
+**Reconciled object bytes:** **239,698 / 239,698 = 100.0000% (100.00%)**  
+**Unresolved object bytes:** **0**  
+**Semantic audit:** **239,698 / 239,698 = 100.0000%**  
+**Status:** **CERTIFIED COMPLETE** — object-1 byte accounting and end-to-end semantic inspection are complete.
 
 ## Immutable source identity
 
@@ -25,6 +25,16 @@
 - Object-2 virtual size: `0x2DD10`
 - Object-2 physical start: `0x75F24`
 
-## Current phase
+## Certified source
 
-Object-1 byte ownership is complete. The active follow-up is the end-to-end semantic audit documented in `Code2/FINAL_SEMANTIC_AUDIT.md`. Audit checkpoints are regenerated from immutable `CODE.2`, with the fully audited CODE.1 reconstruction and `Code1/FINAL_BINARY_AUDIT.md` used as a cross-reference defect checklist.
+- Canonical reconstruction: `Code2/Code2.cpp`
+- File size: **1,304,770 bytes**
+- SHA-256: `b4ab60f12e0d5a3c986ef61ec3c2e5c6d68f0193a0e535ef35eb7af6f3aed4aa`
+- Git blob SHA: `c3f16122e79c3c464382e4511d9d932f6fcd694a`
+- Strict C++17 verification at certification: **0 errors, 0 warnings**
+
+## Final state
+
+Object-1 byte ownership and semantic inspection are complete. The accumulated semantic defect ledger was repaired in the canonical source, including the formatter/floating-format paths, incoming-CF behavior, rejected-stack behavior, explicit DPMI carry/register contracts, and final runtime-tail ownership through `0x3A851`.
+
+`Code2/FINAL_CERTIFICATION.md` is the authoritative certification record. `Code2/FINAL_SEMANTIC_AUDIT.md` retains the detailed audit provenance.
