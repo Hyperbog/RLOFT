@@ -44,6 +44,15 @@ jobs:
       - name: Syntax check
         run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
 
+      - name: Normalize generated markdown EOF
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for name in ['Code2/PROGRESS.md','Code2/CODE2_CONTINUITY_ADDENDUM.md']:
+              p=Path(name)
+              p.write_text(p.read_text().rstrip()+'\n')
+          PY
+
       - name: Guard fidelity anchors
         run: |
           python - <<'PY'
