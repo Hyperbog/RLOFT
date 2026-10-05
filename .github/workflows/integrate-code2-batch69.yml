@@ -46,6 +46,18 @@ jobs:
       - name: Integrate Batch 69
         run: python Code2/.batch69_integrate.py integrate
 
+      - name: Advance cumulative translated assertion
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('Code2/Code2.cpp')
+          s=p.read_text()
+          old=' + 3862u + 2161u + 2173u);'
+          new=' + 3862u + 2161u + 2173u + 1209u);'
+          assert s.count(old)==1
+          p.write_text(s.replace(old,new,1))
+          PY
+
       - name: Verify accounting
         run: python Code2/.batch69_integrate.py verify
 
@@ -64,6 +76,7 @@ jobs:
           assert 'if(static_cast<u32>(item)==saved_selected)continue;' in cpp
           assert 'b.call_375fe_far(0x2F2E0u,m.cpu.cs)' in cpp
           assert 'b.out8(static_cast<u16>(base_port+4),0x83u)' in cpp
+          assert ' + 3862u + 2161u + 2173u + 1209u);' in cpp
           assert '2F57D..2F57F | alignment | 3' in led
           assert '200,860 / 239,698 = 83.7971% (83.80%)' in prog
           PY
