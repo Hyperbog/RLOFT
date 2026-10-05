@@ -3,7 +3,8 @@
 struct Runtime125Boundary {
     u32 (*alloc)(u32)=nullptr;
     void (*free_block)(u32)=nullptr;
-    void (*read_block)(u32,u32,u32)=nullptr; // destination, count, stream/context
+    void (*read_block)(u32,u32,u32)=nullptr; // guest destination, count, stream/context
+    u16 (*read_word)(u32)=nullptr;           // exact two-byte stack-local read from stream/context
     void (*call_2f960)(u32)=nullptr;
     void (*call_2f96c)()=nullptr;
     void (*call_2fb04)(u32,u32,u32,u32,u32)=nullptr;
@@ -31,13 +32,7 @@ void function_3757c(Runtime125Boundary& b,u32 block) noexcept { if(b.free_block)
 static_assert(0x37589u-0x3757Cu==13u);
 
 [[nodiscard]] u32 function_37590(Runtime125Boundary& b,u32 stream,u32 setup_arg) noexcept {
-    u16 count=0u;
-    if(b.read_block){
-        // The original reads exactly two bytes into a stack word before allocation.
-        const u32 scratch=0xFFFFFFFFu;
-        b.read_block(scratch,2u,stream);
-        count=runtime125_read16(b,scratch);
-    }
+    const u16 count=b.read_word?b.read_word(stream):0u;
     const u32 dst=b.alloc?b.alloc(static_cast<u32>(count)+2u):0u;
     if(dst==0u)return 0u;
     runtime125_write16(b,dst,count);
