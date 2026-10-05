@@ -551,3 +551,6 @@ Batch 101 reconciles `33C90..33DDF`: **321 translated + 15 alignment bytes**. Co
 ## CODE.2 Batch 102 checkpoint
 
 Batch 102 reconciles `33DE0..33E6B`: **137 translated + 3 alignment bytes**. Coverage is **219,528 / 239,698 = 91.5852% (91.59%)**, with **20,170 unresolved bytes**. Preserve the single 16-bit VGA sequencer OUT in each routine, low-byte wrap of `input - FE94[EBX]`, entry-before-DEC 128-iteration loop shape, ES-qualified REP STOSB, and the encoded EDI post-REP stepping (`-90h` after the 40h-byte advance at `33DE0`, `+10h` after it at `33E28`). Alignment is `33E26..33E27` and `33E6B`. Next frontier is `33E6C`.
+## CODE.2 Batch 103 checkpoint
+
+Batch 103 reconciles `33E6C..33FB3`: **326 translated + 2 alignment bytes**. Coverage is **219,856 / 239,698 = 91.7221% (91.72%)**, with **19,842 unresolved bytes**. Preserve the DS:ESI -> ES:EDI `REP MOVSD` boundary, signed coordinate comparisons, exact `80000001h` initial maxima, address-distinct `3402C` edge setup calls, and both loop shapes—especially the unconditional first `34110`/`33FB4` iteration and CF-based exit. `33FB2..33FB3` is unreferenced alignment; `33FB4` is the next direct call target.

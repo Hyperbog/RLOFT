@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-91.59%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-91.72%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **215,232**
-**Proven non-code/data bytes:** **4,296**
-**Reconciled object bytes:** **219,528 / 239,698 = 91.5852% (91.59%)**
-**Unresolved object bytes:** **20,170**
+**Verified translated instruction bytes:** **215,558**
+**Proven non-code/data bytes:** **4,298**
+**Reconciled object bytes:** **219,856 / 239,698 = 91.7221% (91.72%)**
+**Unresolved object bytes:** **19,842**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -905,3 +905,6 @@ Added **321 translated instruction bytes** and **15 alignment bytes**, bringing 
 ## Batch 102 — planar VGA fill pair
 
 Added **137 translated instruction bytes** and **3 alignment bytes**, bringing accounting to **215,232 translated + 4,296 non-code = 219,528 / 239,698 = 91.5852% (91.59%)**. `33DE0` and `33E28` each issue the exact 16-bit sequencer write `0F02h` to port `03C4h`, then run 128 entry-before-decrement iterations using byte-width wrapped `input.low8 - FE94[EBX]`. The ES-qualified `REP STOSB` remains an explicit boundary rather than flat dgroup memory. `33DE0` starts at `[FDBC]+50F8h`; after each 40h-byte REP advance it subtracts 90h, for a net `-50h` row step. `33E28` starts at `[FDBC]+148h`; after the REP advance it adds 10h, for a net `+50h` row step. `33E26..33E27` (`XCHG EBX,EBX`) and `33E6B` (`NOP`) have no incoming direct or raw absolute references. Next frontier: **`33E6C`**.
+## Batch 103 — polygon/raster edge setup driver
+
+Added **326 translated instruction bytes** and **2 alignment bytes**, bringing accounting to **215,558 translated + 4,298 non-code = 219,856 / 239,698 = 91.7221% (91.72%)**. `33E6C` preserves the encoded selector-qualified eight-dword `REP MOVSD` into `FD2C`, scans four `(x,y)` pairs with signed comparisons and the exact `80000001h` maxima seed, publishes the min/max-y vertex indices at `FD28/FD24`, performs the four signed clip rejects, and seeds the two forward edge states at `FDC4/FDE8`. The pre-clip advancement loop runs only when signed `FDB0 > FD20`; the second loop remains entry-before-decrement and therefore executes once even when its initial unsigned count is zero. The carry returned by address-specific helper `33FB4` alone controls continuation of that second loop. Forward helpers `33FB4`, `3402C`, and `34110` remain explicit boundaries for their own subsequent instruction folds. `33FB2..33FB3` is unreferenced `XCHG EBX,EBX` alignment. Next frontier: **`33FB4`**.
