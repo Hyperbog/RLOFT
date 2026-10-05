@@ -677,3 +677,6 @@ Batch 131 reconciles `37E77..38105`: **655 translated instruction bytes**, no ne
 
 ### Batch 132 continuation
 `38106..384A9` is reconciled as the DOS descriptor read/write/seek/delete/current-drive/default-drive family. Preserve CR stripping, Ctrl-Z rewind/EOF, LF->CRLF expansion, short-write error 12h, descriptor bits 01h/02h/20h/40h/80h, and one-based public drive numbering. Next boundary `384AA`.
+
+### Batch 133 continuation
+`384AA..385AF` is reconciled as the DOS current-directory builder, ASCII uppercase pair, and masked stream-flush traversal. Preserve exact `X:\\` prefix construction, allocation size `strlen+1`, errors 1/5, ASCII-only case fold, linked-list count semantics, and state-bit 10h flush gate. Next boundary is `385B0`.

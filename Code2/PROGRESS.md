@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-97.52%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-97.63%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **229,073**
+**Verified translated instruction bytes:** **229,335**
 **Proven non-code/data bytes:** **4,672**
-**Reconciled object bytes:** **233,745 / 239,698 = 97.5165% (97.52%)**
-**Unresolved object bytes:** **5,953**
+**Reconciled object bytes:** **234,007 / 239,698 = 97.6258% (97.63%)**
+**Unresolved object bytes:** **5,691**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -1064,3 +1064,13 @@ Source identity and Batch 131 overlap were reverified before integration. Added 
 - `383ED..38451` — seek wrappers; `38452..38473` — unlink/delete; `38474..384A9` — current/default drive wrappers.
 
 Cumulative accounting: **229,073 translated + 4,672 non-code = 233,745 / 239,698 = 97.5165% (97.52%)**; **5,953 unresolved bytes**. Next instruction boundary: `384AA`.
+
+## Batch 133 — current-directory, ASCII uppercase, and stream-flush wrappers
+
+Source identity, Batch 132 ownership, and mandatory overlap hashes were reverified before integration. Added **262 translated instruction bytes** across `384AA..385AF`; no new non-code bytes are claimed.
+
+- `384AA..3854D` — DOS current-directory builder: AH=47h into a private buffer, prefixes current drive as `X:\`, optionally allocates exact `strlen+1`, reports runtime errors 1/5, then forwards through `33971` with the encoded capacity.
+- `3854E..3856D` — forwarding wrapper plus ASCII-only lowercase-to-uppercase helper.
+- `3856E..385AF` — all-stream wrapper and masked linked-stream traversal; matching streams are counted and state bit 10h gates the `37D60` flush call.
+
+Cumulative accounting: **229,335 translated + 4,672 non-code = 234,007 / 239,698 = 97.6258% (97.63%)**; **5,691 unresolved bytes**. Next instruction boundary: `385B0`.
