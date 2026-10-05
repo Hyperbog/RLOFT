@@ -23,7 +23,7 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 233831u;
+constexpr u32 kVerifiedTranslatedBytes = 234041u;
 constexpr u32 kVerifiedNonCodeBytes = 4676u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
@@ -643,7 +643,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u + 320u + 277u + 505u + 433u + 293u + 423u + 468u + 655u + 932u + 262u + 419u + 390u + 1227u + 1274u + 261u + 425u + 500u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u + 320u + 277u + 505u + 433u + 293u + 423u + 468u + 655u + 932u + 262u + 419u + 390u + 1227u + 1274u + 261u + 425u + 500u + 210u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -28373,5 +28373,58 @@ static_assert(0x399EBu-0x398E0u==267u);
 void function_399eb(Machine& m,u32 node) noexcept {if(node==load_le32(dg(m,0x12628u)))store_le32(dg(m,0x12628u),load_le32(dg(m,node+8u)));if(node==load_le32(dg(m,0x12624u)))store_le32(dg(m,0x12624u),load_le32(dg(m,node+8u)));const u32 prev=load_le32(dg(m,node+4u)),next=load_le32(dg(m,node+8u));if(prev)store_le32(dg(m,prev+8u),next);if(next)store_le32(dg(m,next+4u),prev);}
 static_assert(0x39A2Cu-0x399EBu==65u);
 static_assert((0x398DBu-0x39838u)+(0x398E0u-0x398DBu)+(0x399EBu-0x398E0u)+(0x39A2Cu-0x399EBu)==500u);
+
+
+// Batch 141: verified CODE.2 39A2C..39A89 and 39BBC..39C2F.
+// 39A8A..39BBB is deliberately not owned by this batch.
+struct Runtime141Boundary {
+    void (*release_dpmi_block)(u32 handle)=nullptr;
+    void (*release_dos_block)(u16 selector)=nullptr;
+};
+
+void function_39a2c(Machine& m,Runtime141Boundary& b) noexcept {
+    u32 node=load_le32(dg(m,0x12624u));
+    while(node!=0u){
+        const u32 descriptor=load_le32(dg(m,node+0x24u));
+        if(load_le32(dg(m,descriptor))+0x2Cu!=node){node=load_le32(dg(m,node+8u));continue;}
+        const u32 next=load_le32(dg(m,node+8u));
+        function_399eb(m,node);
+        const u32 owner=node-8u;
+        const u32 dos_selector=load_le32(dg(m,owner+4u));
+        if(dos_selector==0u){
+            const u32 handle=load_le32(dg(m,owner));
+            if(b.release_dpmi_block)b.release_dpmi_block(handle);
+        }else if(b.release_dos_block)b.release_dos_block(static_cast<u16>(dos_selector));
+        node=next;
+    }
+}
+static_assert(0x39A8Au-0x39A2Cu==94u);
+
+[[nodiscard]] u32 function_39bbc(Machine& m,u32 node) noexcept {
+    u32 cur=load_le32(dg(m,0x12624u));
+    u32 prev=0u;
+    while(cur!=0u && node>=cur){prev=cur;cur=load_le32(dg(m,cur+8u));}
+    store_le32(dg(m,node+4u),prev);
+    store_le32(dg(m,node+8u),cur);
+    if(prev!=0u)store_le32(dg(m,prev+8u),node);else store_le32(dg(m,0x12624u),node);
+    if(cur!=0u)store_le32(dg(m,cur+4u),node);
+
+    const u32 sentinel=node+0x20u;
+    const u32 arena=node+0x2Cu;
+    const u32 total=load_le32(dg(m,node));
+    store_le32(dg(m,node+0x20u),0u);
+    store_le32(dg(m,node+0x10u),0u);
+    store_le32(dg(m,node+0x18u),0u);
+    store_le32(dg(m,node+0x1Cu),0u);
+    store_le32(dg(m,node+0x24u),sentinel);
+    store_le32(dg(m,node+0x28u),sentinel);
+    store_le32(dg(m,node+0x0Cu),sentinel);
+    const u32 payload=total-0x2Cu;
+    store_le32(dg(m,arena),payload);
+    store_le32(dg(m,arena+payload),0xFFFFFFFFu);
+    return arena;
+}
+static_assert(0x39C30u-0x39BBCu==116u);
+static_assert((0x39A8Au-0x39A2Cu)+(0x39C30u-0x39BBCu)==210u);
 
 } // namespace code2

@@ -82,3 +82,14 @@ Durable handoff anchor; live repository/binary evidence wins.
 - Mandatory overlap `[0x39A0C,0x39A8C)` SHA-256: `76dbf5536b67442f881886f1f68c91cc9be1e2ccb6c54464c471ec40bcab6159`.
 - Next independent boundary: `39A2C`.
 - `385B0..38866` and `36CEC..372F5` remain unresolved.
+
+
+## Batch 141 handoff
+- Owned folds: `39A2C..39A89` (**94 translated bytes**) and `39BBC..39C2F` (**116 translated bytes**), total **210 translated bytes**.
+- `39A8A..39BBB` remains deliberately unowned.
+- Accounting: **234,041 translated + 4,676 non-code/data = 238,717 / 239,698 = 99.5907% (99.59%)**; unresolved **981**.
+- Owned hashes: `39A2C..39A89` = `451a5752be1bf4c604227216aa9ebfe58f9fb7d1e165a79b646669d652908cee`; `39BBC..39C2F` = `4912611d6dd6dc6e7dcad4f22ecb29896a60cfc5c7f988e95a6b24dc34339b4e`.
+- Mandatory overlap `[0x39BF0,0x39CB0)` SHA-256: `e4582468c6f6ce35e793943b3c01172300d5d5749873d32a894ba0031c89c5a8`.
+- Mandatory overlap `[0x39C10,0x39C90)` SHA-256: `39e834ab542dfc7cda72bc2512b3d551cc53085ce61da03780c0a57ac7bf62c5`.
+- Next independent boundary: `39C30`.
+- `385B0..38866`, `36CEC..372F5`, and `39A8A..39BBB` remain unresolved.

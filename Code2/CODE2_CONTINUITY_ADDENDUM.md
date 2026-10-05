@@ -706,3 +706,7 @@ Independent formatter-adjacent helpers `38A0A..38A2F`, `38A61..38AC2`, `38AC3..3
 ## Batch 140 — runtime arena allocation/free core
 
 Batch 140 reconciles **500 translated instruction bytes** at `39838..39A2B` plus the proven zero separator byte at `39837`. The fold contains the arena allocation splitter, arena free/coalescing path, and runtime arena-list unlink helper. Cumulative accounting is **233,831 translated + 4,676 non-code/data = 238,507 / 239,698 = 99.5031% (99.50%)**; unresolved is **1,191 bytes**. The next independent boundary is `39A2C`. `385B0..38866` and `36CEC..372F5` remain unresolved.
+
+## Batch 141 — arena cleanup and sorted arena initialization
+
+Batch 141 reconciles **210 translated instruction bytes** in two independent folds: `39A2C..39A89` and `39BBC..39C2F`. `39A2C` walks the runtime arena list, unlinks exhausted arena records, and releases their DPMI or DOS backing allocation according to the stored ownership field. `39BBC` inserts a new arena record into the address-sorted runtime list and initializes its sentinel/free-block header. The intervening `39A8A..39BBB` resize/grow helper remains deliberately unowned. Cumulative accounting is **234,041 translated + 4,676 non-code/data = 238,717 / 239,698 = 99.5907% (99.59%)**; unresolved is **981 bytes**. Next independent boundary is `39C30`.
