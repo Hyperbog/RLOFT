@@ -820,3 +820,10 @@ Batch 114 evidence: `35797` is a standalone NOP with no incoming direct/raw refe
 Batch 115 evidence: `358D1..358D3` decodes exactly as `LEA EAX,[EAX+0]`; fresh whole-object direct-control-flow and raw-address scans find no reference into those three bytes, while `358D4` has an independent direct caller from `35A65`.
 
 Batch 116 evidence: `35A09..35A0B` decodes exactly as `LEA EAX,[EAX+0]`; fresh whole-object direct-control-flow and raw-address scans find no incoming reference, while `35A0C` is independently called from `27DCA` and `28369`.
+
+
+## Batch 117 additions
+
+- `35F87..35F87` — **1 byte**, zero alignment separating the complete `35A0C..35F86` loader from the independently called `35F88` timer/event entry. Boundary is proven by fresh disassembly of both complete adjacent routines.
+
+Cumulative proven non-code/data: **4,472 bytes**.

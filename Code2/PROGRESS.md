@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-94.54%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-95.12%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **222,129**
-**Proven non-code/data bytes:** **4,471**
-**Reconciled object bytes:** **226,600 / 239,698 = 94.5356% (94.54%)**
-**Unresolved object bytes:** **13,098**
+**Verified translated instruction bytes:** **223,532**
+**Proven non-code/data bytes:** **4,472**
+**Reconciled object bytes:** **228,004 / 239,698 = 95.1214% (95.12%)**
+**Unresolved object bytes:** **11,694**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -963,3 +963,12 @@ Batch 115 reconciles `35878..358D3`: **89 translated instruction bytes + 3 prove
 Batch 116 reconciles `358D4..35A0B`: **309 translated instruction bytes + 3 proven alignment bytes**. Cumulative accounting is **222,129 translated + 4,471 non-code = 226,600 / 239,698 = 94.5356% (94.54%)**; **13,098 bytes** remain unresolved.
 
 `358D4` preserves the flag-bit-0 split between caller-provided/direct source and a `37E77(source,200h)` opened source. Its four `35878` calls retain their exact offsets and lengths: 4 bytes at `3Ch`, 2 bytes at the decoded table offset, `ACh` bytes at that same offset, then `18h` bytes per record. The 2-byte identifier is compared against runtime string `1604`; validation failure executes `380F8(handle)` even in direct-source mode. The record loop advances by `35878`'s returned next position and accumulates each record's first dword, returning total+0Fh. `35A09..35A0B` is an unreferenced LEA separator; `35A0C` has independent callers.
+
+
+## Batch 117 — 35A0C..35F87 large loader
+
+Batch 117 adds **1,403 translated instruction bytes** at `35A0C..35F86` plus the **1-byte proven alignment** at `35F87`. Cumulative accounting is **223,532 translated + 4,472 non-code = 228,004 / 239,698 = 95.1214% (95.12%)**; unresolved is **11,694 bytes**.
+
+The mandatory resume overlap `[35990,35A70)` re-hashed to `4470ab5305088033d53eca6b57aa66c2ea04bc2eecbd1688058daf896f2aafaa`, exactly matching the Batch 116 checkpoint. `35A0C` is therefore confirmed as the next independent entry. The loader preserves the raw `02D0h` Watcom frame because the binary deliberately aliases its byte/word/dword fields: notably `35A1C` seeds a dword from `35874`, while `35AE1` overwrites only its low word. It also preserves the flag-1 memory/file dual path in `35878`, optional flag-4 allocation, 16-byte destination alignment gate, the two local dword tables, and the encoded relocation record validation before guest dword stores.
+
+`35F87` is a single zero alignment byte and `35F88` remains the already integrated timer/event entry. The sequential runtime frontier is therefore closed through `35F87`; remaining work is in unresolved islands elsewhere in object 1.
