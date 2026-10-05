@@ -1,0 +1,54 @@
+name: Integrate CODE.2 Batch 89
+on:
+  push:
+    branches: [code1-decompilation]
+    paths: ['.github/workflows/integrate-code2-batch89.yml']
+permissions: {contents: write}
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: code1-decompilation, fetch-depth: 0}
+      - run: |
+          git config user.name "CODE.2 Decompilation Bot"
+          git config user.email "actions@users.noreply.github.com"
+      - name: Verify staged Batch 89
+        run: |
+          git merge-base --is-ancestor 4db69e6fc6e7fce357fc77364d6f92ae6e25f503 HEAD
+          test "$(git hash-object Code2/.batch89.fragment.cpp)" = "af48553353aa749f3432cd9a6ee042ad068aa6e3"
+          test "$(git hash-object Code2/.batch89_integrate.py)" = "9b4eb3f79f8a6a7c10f6fd728d622242ecc9bdd5"
+          grep -F 'static_assert(0x334C2u-0x333BCu==262u);' Code2/.batch89.fragment.cpp
+      - name: Integrate Batch 89
+        run: python Code2/.batch89_integrate.py integrate
+      - name: Verify accounting
+        run: python Code2/.batch89_integrate.py verify
+      - name: Syntax check
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+      - name: Fidelity guards
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          c=Path('Code2/Code2.cpp').read_text();l=Path('Code2/RESIDUAL_LEDGER.md').read_text();p=Path('Code2/PROGRESS.md').read_text()
+          for x in ['function_333bc','0xFCE4u','0x255F0u','0x256A2u+table_index','0x25622u+table_index']:
+              assert x in c,x
+          assert '334C2..334C3 | alignment | 2' in l
+          assert '217,056 / 239,698 = 90.5539% (90.55%)' in p
+          PY
+          git diff --check
+      - name: Commit substantive Batch 89
+        run: |
+          cp Code2/.batch89_integrate.py /tmp/batch89_integrate.py
+          rm -f Code2/.batch89.fragment.cpp Code2/.batch89_integrate.py .github/workflows/integrate-code2-batch89.yml
+          git add -A && git diff --cached --check
+          git commit -m "Integrate CODE.2 decompilation batch 89"
+          git push origin HEAD:code1-decompilation
+          echo "BATCH_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Refresh durable resume checkpoint
+        run: |
+          BATCH_SHA="$BATCH_SHA" python /tmp/batch89_integrate.py checkpoint
+          grep -F "$BATCH_SHA" Code2/RESUME_CHECKPOINT.md
+          grep -F 'Next independently decoded instruction boundary: **`334C4`**.' Code2/RESUME_CHECKPOINT.md
+          git add Code2/RESUME_CHECKPOINT.md && git diff --cached --check
+          git commit -m "Refresh CODE.2 resume checkpoint after batch 89"
+          git push origin HEAD:code1-decompilation
