@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-97.80%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-97.96%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **229,754**
+**Verified translated instruction bytes:** **230,144**
 **Proven non-code/data bytes:** **4,672**
-**Reconciled object bytes:** **234,426 / 239,698 = 97.8006% (97.80%)**
-**Unresolved object bytes:** **5,272**
+**Reconciled object bytes:** **234,816 / 239,698 = 97.9633% (97.96%)**
+**Unresolved object bytes:** **4,882**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -1083,3 +1083,14 @@ Source identity, Batch 133 ownership, and mandatory overlap hashes were reverifi
 - `389A7..38A09` — flag-prefix parser. Preserves `+` over space precedence, independent `#`/left flags, and the fact that `0` changes the pad byte to ASCII zero rather than setting another flag bit.
 
 Cumulative accounting: **229,754 translated + 4,672 non-code = 234,426 / 239,698 = 97.8006% (97.80%)**; **5,272 unresolved bytes**. Next independently decoded boundary: `38A0A`.
+
+## Batch 135 — formatter-adjacent string and numeric helpers
+
+Source identity, Batch 134 ownership, and mandatory overlap hashes were reverified before integration. Added **390 translated instruction bytes** in four independent ranges: `38A0A..38A2F`, `38A61..38AC2`, `38AC3..38BA5`, and `38BA6..38BC0`; no new non-code bytes are claimed. `38A30..38A60` remains unowned because its exits share the formatter tail at `38862`.
+
+- `38A0A..38A2F` — selector-qualified bounded byte-string length.
+- `38A61..38AC2` — base-16 conversion, right alignment, zero fill, and exact terminator placement.
+- `38AC3..38BA5` — legacy signed 16.16 decimal/fraction materializer with default precision and encoded rounding pass.
+- `38BA6..38BC0` — address-distinct three-argument forwarding wrapper through `[12700h]`.
+
+Cumulative accounting: **230,144 translated + 4,672 non-code = 234,816 / 239,698 = 97.9633% (97.96%)**; **4,882 unresolved bytes**. Next independent boundary: `38BC1`.

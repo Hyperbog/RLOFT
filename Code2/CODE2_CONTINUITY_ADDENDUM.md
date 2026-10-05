@@ -683,3 +683,6 @@ Batch 131 reconciles `37E77..38105`: **655 translated instruction bytes**, no ne
 
 ### Batch 134 continuation
 `38867..38A09` is reconciled as the formatted-output field parser and flag-prefix parser. Preserve 32-bit decimal wrap, cdecl `*` consumption, wrapping negative width, negative-star precision sentinel, exact modifier bits, `+` precedence over space, and zero-as-pad-byte behavior. `385B0..38866` remains unowned; next independent boundary is `38A0A`.
+
+### Batch 135 continuation
+Independent formatter-adjacent helpers `38A0A..38A2F`, `38A61..38AC2`, `38AC3..38BA5`, and `38BA6..38BC0` are reconciled. Keep `38A30..38A60` unowned because it jumps into shared formatter tail `38862`; the next independent boundary is `38BC1`.
