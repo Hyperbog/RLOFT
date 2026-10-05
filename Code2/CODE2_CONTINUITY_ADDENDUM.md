@@ -442,3 +442,8 @@ Batch 67 adds **2,161 translated bytes** and **83 proven non-code/data bytes**, 
 ## CODE.2 Batch 68 checkpoint
 
 Batch 68 adds **2,173 translated bytes** and **71 proven non-code/data bytes**, bringing cumulative accounting to **195,658 translated + 3,974 non-code = 199,632 / 239,698 = 83.2848% (83.28%)**; unresolved is **40,066 bytes**. The sequential frontier is now `2F0B4`. Preserve the two exact seven-entry CS tables, `2E7F0`'s partial initialization of the nine-byte item records, `2ECB4`'s continue-after-error indexing and selector dispatch, and `2EFD0`'s low-nibble cleanup routing. Proven earlier ABI signatures at `28020` and `286C4` were corrected to retain the ignored first argument and stream-valued second argument.
+## CODE.2 Batch 71 checkpoint
+
+Batch 71 added **1,843 translated instruction bytes** plus **85 directly proven non-code/data bytes**, reconciling through `30D2F`. Cumulative accounting is **202,780 translated + 4,144 non-code = 206,924 / 239,698 = 86.3270% (86.33%)**; unresolved is **32,774 bytes**.
+
+The fold covers text layout through `306F7`, the tick/keyboard interrupt and queue/vector family through `30C90`, RNG state through `30CD3`, and the overlap-safe move at `30CD4..30D25`. Preserve the signed-vs-unsigned glyph-index distinction, the keyboard handler's signed `80h` split and CODE.2-only `19h -> word [1457C]=1` branch, the exact `307C8` direction table, selector-bearing saved vectors, and overlap-copy direction. The next independent routine begins at `30D30`.

@@ -782,3 +782,10 @@ Added **4,070 translated instruction bytes** and **66 proven non-code/data bytes
 Proven separators/table bytes total **66**; a full object-1 disassembly reference scan found no incoming reference into any separator. The only reference into the non-code ranges is the expected indirect `CS:[2FD8C + index*4]` jump-table use by `2FD9C`.
 
 Sequential frontier: **`305A8`**. Semantic audit remains not started.
+## Batch 71 — text layout, keyboard/IRQ state, vector lifecycle, RNG, and memmove
+
+Added **1,843 translated instruction bytes** and **85 directly proven non-code/data bytes**, bringing cumulative accounting to **202,780 translated + 4,144 non-code = 206,924 / 239,698 = 86.3270% (86.33%)**. Unresolved is **32,774 bytes**.
+
+Instruction ownership spans `305A8..306F7`, `30700..30705`, `30708..30735`, `30738..30744`, `30748..307C7`, `307F0..308B8`, `308BC..308F4`, `308F8..30AB9`, `30ABC..30AD6`, `30AD8..30AEA`, `30AEC..30B18`, `30B1C..30B2A`, `30B2C..30B3D`, `30B40..30C36`, `30C38..30C90`, and `30C94..30D25`. The exact ten-entry CS direction table is `307C8..307EF`; all other newly proven non-code bytes are direct compiler alignment or zero padding with no incoming direct control-flow reference.
+
+Fidelity notes: `305A8` intentionally indexes glyph widths with signed characters while `30630` uses unsigned character indices; `308F8` keeps the encoded signed `JLE` split at scan code `80h` and the CODE.2-specific `19h` path that stores word `1` at `1457C`; `307F0` preserves the exact ten-way direction dispatch; vector install/uninstall retains saved offset/selector pairs; and `30CD4` preserves the backward-copy overlap condition and forward-copy behavior. The next independent routine begins at **`30D30`**.
