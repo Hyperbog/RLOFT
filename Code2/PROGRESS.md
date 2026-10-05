@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-89.33%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-89.97%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **209,871**
-**Proven non-code/data bytes:** **4,257**
-**Reconciled object bytes:** **214,128 / 239,698 = 89.3324% (89.33%)**
-**Unresolved object bytes:** **25,570**
+**Verified translated instruction bytes:** **211,397**
+**Proven non-code/data bytes:** **4,259**
+**Reconciled object bytes:** **215,656 / 239,698 = 89.9699% (89.97%)**
+**Unresolved object bytes:** **24,042**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -848,3 +848,6 @@ Added **27 translated instruction bytes** and **1 alignment byte**, bringing acc
 ## Batch 83 — VGA/callback renderer with explicit self-modifying path
 
 Added **790 translated instruction bytes** and **2 alignment bytes**, bringing accounting to **209,871 translated + 4,257 non-code = 214,128 / 239,698 = 89.3324% (89.33%)**. Unresolved is **25,570 bytes**. `3263C` derives the display address, packed shade word, callback-table entry, and three VGA map masks from the current phase. With `FCD0 != 0` it preserves the encoded self-modification: derive the patch offset from the callback image, save the byte, write `C3h`, resolve the clipped callback through `337C8`, draw up to three planes through `32620`, then restore the byte. The other path uses either `338C8` or the direct callback according to the unaligned extent versus `C730`. Next frontier: **`32954`**.
+## Batch 84 — world/grid sweep state machine
+
+Added **1,526 translated instruction bytes** and **2 proven alignment bytes**, bringing accounting to **211,397 translated + 4,259 non-code = 215,656 / 239,698 = 89.9699% (89.97%)**. Unresolved is **24,042 bytes**. `32954` preserves the four angular quadrant setups, the dynamically patched signed `JLE/JGE` sweep predicates at `32C1A` and `32D04`, the low-word-only `ADD AX` path, cached `1E930` bounds, and distinct left/right collision exits through `32F8C`, `33124`, `332B4`, and `333BC`. The shared sweep/outer control flow remains one ownership unit through `32F49`; `32F4A..32F4B` is unreferenced `XCHG EBX,EBX` alignment. Next frontier: **`32F4C`**.

@@ -494,3 +494,6 @@ Batch 82 reconciles `32620..3263B`: **27 translated + 1 alignment byte**. Covera
 ## CODE.2 Batch 83 checkpoint
 
 Batch 83 reconciles `3263C..32953`: **790 translated + 2 alignment bytes**. Coverage is **214,128 / 239,698 = 89.3324% (89.33%)** with **25,570 unresolved bytes**. Preserve the original unaligned extent separately from the callback-table index, signed byte clamping of the packed shade components, x86-style MUL/IDIV row shift, explicit code-byte patch/restore, VGA sequencer map-mask writes, and optional second/third plane passes. Next frontier is `32954`.
+## CODE.2 Batch 84 checkpoint
+
+Batch 84 reconciles `32954..32F4B`: **1,526 translated + 2 alignment bytes**. Coverage is **215,656 / 239,698 = 89.9699% (89.97%)**, with **24,042 unresolved bytes**. Preserve the four region-specific step vectors and `356D8` argument pairs, dynamic opcode writes at `32C1A`/`32D04`, unsigned range tests where encoded, low-word-only arithmetic at the right sweep, and the shared backward sweep/outer-loop edges. Next frontier is `32F4C`.
