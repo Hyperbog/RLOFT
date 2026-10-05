@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 221173u;
-constexpr u32 kVerifiedNonCodeBytes = 4438u;
+constexpr u32 kVerifiedTranslatedBytes = 221243u;
+constexpr u32 kVerifiedNonCodeBytes = 4449u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -26762,5 +26762,78 @@ void function_35418(Machine& m,Runtime112Boundary& b) noexcept {
     if(b.tail_3562f)b.tail_3562f(m);
 }
 static_assert(0x3562Fu-0x35418u==535u);
+
+// Batch 113: 3562F..35674 shared termination/console-output/DS-restore runtime family.
+struct Runtime113Boundary {
+    void (*int21)(Machine&)=nullptr;
+    void (*call_3962d)(Machine&)=nullptr;
+    // 3566C reads the saved DS word through CS, not DGROUP.
+    u16 (*read_segment16)(u16,u32)=nullptr;
+};
+
+static void app113_set_lo16(u32& r,u16 v) noexcept {
+    r=(r&0xFFFF0000u)|static_cast<u32>(v);
+}
+static void app113_set_hi8(u32& r,u8 v) noexcept {
+    r=(r&0xFFFF00FFu)|(static_cast<u32>(v)<<8);
+}
+
+// 35655..3566B: common process-termination tail. The PUSH/POP around 3962D
+// preserves the full incoming EAX; AH=4Ch then supplies the DOS terminate opcode
+// while AL remains the encoded exit status byte.
+static void app113_terminate(Machine& m,Runtime113Boundary& b,u32 status) noexcept {
+    const u32 saved_eax=status;
+    m.cpu.eax=0u;
+    m.cpu.edx=0x000000FFu;
+    if(b.call_3962d)b.call_3962d(m);
+    m.cpu.eax=saved_eax;
+    app113_set_hi8(m.cpu.eax,0x4Cu);
+    if(b.int21)b.int21(m);
+    // 3566A MOV EAX,EAX is an intentional two-byte no-op before the next entry.
+}
+
+// 3562F..35631: POP EAX; JMP 35655. `popped_eax` is the dword consumed by
+// the address-distinct stack-sharing entry (352E9 also jumps here).
+void function_3562f(Machine& m,Runtime113Boundary& b,u32 popped_eax) noexcept {
+    app113_terminate(m,b,popped_eax);
+}
+
+// 35632..3566B: open "con" for writing, emit the NUL-terminated message,
+// then terminate with the second incoming dword as the exit status.
+void function_35632(Machine& m,Runtime113Boundary& b,u32 message,u32 exit_code) noexcept {
+    const u32 saved_edx=m.cpu.edx=exit_code;             // PUSH EDX
+    const u32 saved_eax=m.cpu.eax=message;               // PUSH EAX
+    m.cpu.edx=0x00035414u;
+    app113_set_lo16(m.cpu.eax,0x3D01u);
+    if(b.int21)b.int21(m);                               // INT 21h / AX=3D01h
+    app113_set_lo16(m.cpu.ebx,static_cast<u16>(m.cpu.eax));
+
+    m.cpu.edx=saved_eax;                                 // POP EDX: message pointer
+    m.cpu.esi=m.cpu.edx;
+    u8 al=0u;
+    do {
+        al=*dg(m,m.cpu.esi++);                           // CLD / LODSB
+    } while(al!=0u);
+    m.cpu.eax=(m.cpu.eax&0xFFFFFF00u)|static_cast<u32>(al);
+    m.cpu.ecx=m.cpu.esi-m.cpu.edx;
+    --m.cpu.ecx;
+    app113_set_hi8(m.cpu.eax,0x40u);
+    if(b.int21)b.int21(m);                               // INT 21h / AH=40h
+
+    m.cpu.eax=saved_edx;                                 // POP EAX: exit status
+    app113_terminate(m,b,m.cpu.eax);
+}
+
+// 3566C..35674: restore DS from the word that Batch 112 stored through ES at
+// code offset 35675. The selector-qualified read is explicit because CS need
+// not equal DGROUP.
+void function_3566c(Machine& m,Runtime113Boundary& b) noexcept {
+    const u16 saved=b.read_segment16?b.read_segment16(m.cpu.cs,0x00035675u):0u;
+    m.cpu.ds=saved;
+}
+
+static_assert(0x35675u-0x3562Fu==70u);
+// 35675..35676 is the runtime saved-DS word; 35677..3567F is zero alignment.
+static_assert(0x35680u-0x35675u==11u);
 
 } // namespace code2

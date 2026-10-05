@@ -581,3 +581,7 @@ Batch 111 reconciles `35286..35417`: **284 translated + 118 proven non-code byte
 ## CODE.2 Batch 112 checkpoint
 
 Batch 112 translates `35418..3562E`: **535 instruction bytes**, with no new non-code claim. Coverage is **225,611 / 239,698 = 94.1230% (94.12%)**, leaving **14,087 unresolved bytes**. Preserve the startup stack alignment, byte/word register writes, DOS/extender branch distinctions, selector-backed PSP/environment memory, REPZ-SCAS zero-count ZF inheritance from `AND DL,F0`, balanced startup pushes/pops, `no87=` detection, environment/program-path terminators, and the capped mode-1 zero-fill. `3562F` is not owned by this batch: it is both the fall-through after `3562A` and an independent target from `352E9`.
+
+## CODE.2 Batch 113 checkpoint
+
+Batch 113 reconciles `3562F..3567F`: **70 translated + 11 proven non-code/data bytes**, bringing cumulative accounting to **225,692 / 239,698 = 94.1568% (94.16%)** with **14,006 unresolved bytes**. Preserve the three address-distinct runtime entries: `3562F` stack-sharing termination, `35632` DOS console-output/termination, and `3566C` CS-qualified DS restore. `35675..35676` is the saved DS word and `35677..3567F` is proven zero alignment. Next frontier: `35680`.

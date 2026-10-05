@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-94.12%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-94.16%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **221,173**
-**Proven non-code/data bytes:** **4,438**
-**Reconciled object bytes:** **225,611 / 239,698 = 94.1230% (94.12%)**
-**Unresolved object bytes:** **14,087**
+**Verified translated instruction bytes:** **221,243**
+**Proven non-code/data bytes:** **4,449**
+**Reconciled object bytes:** **225,692 / 239,698 = 94.1568% (94.16%)**
+**Unresolved object bytes:** **14,006**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -935,3 +935,10 @@ Added **284 translated instruction bytes** and **118 proven non-code bytes**, br
 ## Batch 112 — DOS/extender startup body
 
 Added **535 translated instruction bytes** (`35418..3562E`), bringing accounting to **221,173 translated + 4,438 non-code = 225,611 / 239,698 = 94.1230% (94.12%)**. `35418` preserves the aligned startup stack, DOS-version/extender probes, selector-sensitive PSP/environment access, command-tail trimming/copying, `no87=` environment detection, program-path copy, runtime zero-fill, and the exact register-width effects around the `395E2`/`39589` handoffs. Segment reads/writes outside DGROUP are explicit boundary operations rather than flattened guesses. The fold ends after `CALL 39589`; `3562F` remains a distinct shared-entry continuation because `352E9` jumps there independently. Next frontier: **`3562F`**.
+
+
+## CODE.2 Batch 113 checkpoint
+
+Batch 113 reconciles `3562F..3567F`: **70 translated instruction bytes + 11 proven non-code/data bytes**. Cumulative accounting is **221,243 translated + 4,449 non-code = 225,692 / 239,698 = 94.1568% (94.16%)**; **14,006 bytes** remain unresolved.
+
+`3562F` is the stack-sharing termination continuation (`POP EAX; JMP 35655`). `35632` is the separately entered console-output path used by `3A529`; it opens the embedded `"con"` name at `35414`, scans the caller message to NUL, writes it through DOS AH=40h, and joins the same AH=4Ch termination tail. `3566C` restores DS from the CS-qualified saved word at `35675`. `35675..35676` is runtime data written by Batch 112, and `35677..3567F` is zero alignment with no direct/raw references. The next independently called routine begins at `35680`.
