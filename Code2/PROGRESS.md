@@ -1,7 +1,7 @@
 # CODE.2 faithful decompilation progress
 
 ![Progress](https://img.shields.io/badge/object%20accounting-100.00%25-brightgreen)
-![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
+![Semantic audit](https://img.shields.io/badge/semantic%20audit-0.28%25-yellow)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
 **Verified translated instruction bytes:** **235,022**
