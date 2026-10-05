@@ -20,7 +20,7 @@ jobs:
           test "$(git hash-object Code2/.batch113_integrate.py)" = "e14b36f1f16edef268f98388a350762d1b8ad561"
           grep -F 'static_assert(0x35675u-0x3562Fu==70u);' Code2/.batch113.fragment.cpp
           grep -F 'static_assert(0x35680u-0x35675u==11u);' Code2/.batch113.fragment.cpp
-          grep -F 'CS-qualified saved word at `35675`' Code2/.batch113.fragment.cpp
+          grep -F 'code offset 35675' Code2/.batch113.fragment.cpp
       - name: Integrate Batch 113
         run: python Code2/.batch113_integrate.py integrate
       - name: Verify accounting
