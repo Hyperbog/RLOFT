@@ -554,3 +554,6 @@ Batch 102 reconciles `33DE0..33E6B`: **137 translated + 3 alignment bytes**. Cov
 ## CODE.2 Batch 103 checkpoint
 
 Batch 103 reconciles `33E6C..33FB3`: **326 translated + 2 alignment bytes**. Coverage is **219,856 / 239,698 = 91.7221% (91.72%)**, with **19,842 unresolved bytes**. Preserve the DS:ESI -> ES:EDI `REP MOVSD` boundary, signed coordinate comparisons, exact `80000001h` initial maxima, address-distinct `3402C` edge setup calls, and both loop shapes—especially the unconditional first `34110`/`33FB4` iteration and CF-based exit. `33FB2..33FB3` is unreferenced alignment; `33FB4` is the next direct call target.
+## CODE.2 Batch 104 checkpoint
+
+Batch 104 reconciles `33FB4..3426F`: **690 translated + 10 proven non-code bytes**. Coverage is **220,556 / 239,698 = 92.0141% (92.01%)**, with **19,142 unresolved bytes**. Preserve the carry contract of `33FB4/3402C`, the physical shared tail at `3410C..3410D`, the full signed32-times-65536 IDIV reconstruction (including the additional X-gradient pre-shift), machine-width clip/count wraparound, signed arithmetic shifts, in-place `FE10` scale mutation, and the exact VGA plane selector output. `3410E..3410F` is alignment and `34268..3426F` is proven padding. Next frontier is `34270`.

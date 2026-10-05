@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 215558u;
-constexpr u32 kVerifiedNonCodeBytes = 4298u;
+constexpr u32 kVerifiedTranslatedBytes = 216248u;
+constexpr u32 kVerifiedNonCodeBytes = 4308u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -25890,5 +25890,137 @@ void function_33e6c(Machine& m,Runtime103Boundary& b,u32 source) noexcept {
 
 static_assert(0x33FB2u-0x33E6Cu==326u);
 // 33FB2..33FB3 is unreferenced XCHG EBX,EBX alignment; 33FB4 is a direct call target.
+
+
+// Batch 104: 33FB4..34267 edge steppers, edge construction, and clipped raster writer.
+struct Runtime104Boundary {
+    void (*out16)(u16,u16)=nullptr;
+};
+
+static u32 app104_sar1(u32 v) noexcept {
+    return (v>>1)|(v&0x80000000u);
+}
+static u32 app104_sar16(u32 v) noexcept {
+    return (v>>16)|((v&0x80000000u)?0xFFFF0000u:0u);
+}
+// Reconstruct the encoded ROL/CWD/(ROL|SHL)/XCHG DX,AX + IDIV sequence.
+// It forms signed32(difference_bits)<<16 in EDX:EAX before signed division.
+// The binary traps if divisor_bits is zero; valid callers supply a nonzero encoded denominator.
+static u32 app104_idiv_shift16(u32 difference_bits,u32 divisor_bits) noexcept {
+    const s32 difference=static_cast<s32>(difference_bits);
+    const s32 divisor=static_cast<s32>(divisor_bits);
+    const long long numerator=static_cast<long long>(difference)*65536LL;
+    return static_cast<u32>(static_cast<s32>(numerator/static_cast<long long>(divisor)));
+}
+
+bool function_3402c(Machine& m,u32 vertex,u32 state) noexcept {
+    for(;;){
+        if(vertex==load_le32(dg(m,0xFD24u)))return false;
+        const u32 next=(vertex+load_le32(dg(m,state)))&3u;
+        const u32 next_off=next<<3;
+        const u32 cur_off=vertex<<3;
+        const u32 delta_y=load_le32(dg(m,0xFD30u+next_off))-load_le32(dg(m,0xFD30u+cur_off));
+        store_le32(dg(m,state+0x04u),delta_y);
+        if(delta_y==0u){vertex=next;continue;}
+
+        store_le32(dg(m,state+0x08u),next);
+        const u32 cur_a=load_le32(dg(m,0xFF18u+cur_off))<<16;
+        const u32 cur_b=load_le32(dg(m,0xFF14u+cur_off))<<16;
+        store_le32(dg(m,state+0x0Cu),cur_a);
+        store_le32(dg(m,state+0x10u),cur_b);
+        const u32 divisor=delta_y<<16;
+        const u32 next_a=load_le32(dg(m,0xFF18u+next_off))<<16;
+        const u32 next_b=load_le32(dg(m,0xFF14u+next_off))<<16;
+        store_le32(dg(m,state+0x14u),app104_idiv_shift16(next_a-cur_a,divisor));
+        store_le32(dg(m,state+0x18u),app104_idiv_shift16(next_b-cur_b,divisor));
+        const u32 cur_x=load_le32(dg(m,0xFD2Cu+cur_off));
+        store_le32(dg(m,state+0x1Cu),cur_x<<16);
+        const u32 delta_x=load_le32(dg(m,0xFD2Cu+next_off))-cur_x;
+        // 340F2 SHL EAX,16 occurs before the common divide idiom, so X keeps this explicit pre-shift.
+        store_le32(dg(m,state+0x20u),app104_idiv_shift16(delta_x<<16,divisor));
+        return true;
+    }
+}
+
+bool function_33fb4(Machine& m) noexcept {
+    u32 count=load_le32(dg(m,0xFDC8u))-1u;
+    store_le32(dg(m,0xFDC8u),count);
+    if(count==0u){
+        if(!function_3402c(m,load_le32(dg(m,0xFDCCu)),0xFDC4u))return false;
+    }else{
+        store_le32(dg(m,0xFDD0u),load_le32(dg(m,0xFDD0u))+load_le32(dg(m,0xFDD8u)));
+        store_le32(dg(m,0xFDD4u),load_le32(dg(m,0xFDD4u))+load_le32(dg(m,0xFDDCu)));
+        store_le32(dg(m,0xFDE0u),load_le32(dg(m,0xFDE0u))+load_le32(dg(m,0xFDE4u)));
+    }
+
+    count=load_le32(dg(m,0xFDECu))-1u;
+    store_le32(dg(m,0xFDECu),count);
+    if(count==0u)return function_3402c(m,load_le32(dg(m,0xFDF0u)),0xFDE8u);
+    store_le32(dg(m,0xFDF4u),load_le32(dg(m,0xFDF4u))+load_le32(dg(m,0xFDFCu)));
+    store_le32(dg(m,0xFDF8u),load_le32(dg(m,0xFDF8u))+load_le32(dg(m,0xFE00u)));
+    store_le32(dg(m,0xFE04u),load_le32(dg(m,0xFE04u))+load_le32(dg(m,0xFE08u)));
+    return true;
+}
+
+void function_34110(Machine& m,Runtime104Boundary& b) noexcept {
+    s32 first=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0xFDE2u))));
+    if(first>=static_cast<s32>(load_le32(dg(m,0xFDB4u))))return;
+    s32 last=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0xFE06u))));
+    if(last<=static_cast<s32>(load_le32(dg(m,0xFDB8u))))return;
+    const u32 span=static_cast<u32>(last)-static_cast<u32>(first)+1u;
+    if(span==0u)return;
+    const u32 divisor=span<<16;
+
+    const u32 step_u=app104_idiv_shift16(load_le32(dg(m,0xFDF4u))-load_le32(dg(m,0xFDD0u)),divisor);
+    store_le32(dg(m,0xFE0Cu),step_u);
+    u32 source_u=app104_sar1(step_u)+load_le32(dg(m,0xFDD0u));
+    const u32 step_v=app104_idiv_shift16(load_le32(dg(m,0xFDF8u))-load_le32(dg(m,0xFDD4u)),divisor);
+    store_le32(dg(m,0xFE10u),step_v);
+    u32 source_v=app104_sar1(step_v)+load_le32(dg(m,0xFDD4u));
+
+    const s32 right_clip=static_cast<s32>(load_le32(dg(m,0xFDB4u)));
+    if(last>right_clip)last=right_clip;
+    const s32 left_clip=static_cast<s32>(load_le32(dg(m,0xFDB8u)));
+    if(first<left_clip){
+        const u32 distance=static_cast<u32>(left_clip)-static_cast<u32>(first);
+        source_u+=step_u*distance;
+        source_v+=step_v*distance;
+        first=left_clip;
+    }
+
+    u32 edx=source_u;
+    u32 edi=source_v<<6;
+    const u32 scaled_step_v=step_v<<6;
+    store_le32(dg(m,0xFE10u),scaled_step_v);
+    u32 esi=app104_sar16((edi&0xFFC00000u)+edx)+load_le32(dg(m,0xFDC0u));
+    u32 ebx=static_cast<u32>(first)*0x50u;
+    ebx+=(load_le32(dg(m,0xFD20u))>>2)+load_le32(dg(m,0xFDBCu));
+
+    const u32 plane=load_le32(dg(m,0xFD20u))&3u;
+    const u16 sequencer=static_cast<u16>((static_cast<u16>(1u<<plane)<<8)|0x02u);
+    if(b.out16)b.out16(0x03C4u,sequencer);
+
+    u32 ecx=static_cast<u32>(last)-static_cast<u32>(first)+1u;
+    u32 row=static_cast<u32>(first);
+    do {
+        u8 al=*dg(m,esi);
+        al=static_cast<u8>(al-*dg(m,0xFE10u+row));
+        ++row;
+        *dg(m,ebx)=al;
+        edx+=load_le32(dg(m,0xFE0Cu));
+        edi+=load_le32(dg(m,0xFE10u));
+        esi=app104_sar16((edi&0xFFC00000u)+edx)+load_le32(dg(m,0xFDC0u));
+        ebx+=0x50u;
+        --ecx;
+    } while(ecx!=0u);
+}
+
+static_assert(0x3402Cu-0x33FB4u==120u);
+static_assert(0x3410Cu-0x3402Cu==224u);
+static_assert(0x3410Eu-0x3410Cu==2u);
+// 3410C..3410D is the physical shared LEAVE/RET tail targeted backward by 34110; its semantics are represented by the early returns above.
+// 3410E..3410F is unreferenced XCHG EBX,EBX alignment.
+static_assert(0x34268u-0x34110u==344u);
+// 34268..3426F is eight unreferenced zero padding bytes; 34270 has independent callers.
 
 } // namespace code2

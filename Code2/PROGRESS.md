@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-91.72%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-92.01%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **215,558**
-**Proven non-code/data bytes:** **4,298**
-**Reconciled object bytes:** **219,856 / 239,698 = 91.7221% (91.72%)**
-**Unresolved object bytes:** **19,842**
+**Verified translated instruction bytes:** **216,248**
+**Proven non-code/data bytes:** **4,308**
+**Reconciled object bytes:** **220,556 / 239,698 = 92.0141% (92.01%)**
+**Unresolved object bytes:** **19,142**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -908,3 +908,6 @@ Added **137 translated instruction bytes** and **3 alignment bytes**, bringing a
 ## Batch 103 — polygon/raster edge setup driver
 
 Added **326 translated instruction bytes** and **2 alignment bytes**, bringing accounting to **215,558 translated + 4,298 non-code = 219,856 / 239,698 = 91.7221% (91.72%)**. `33E6C` preserves the encoded selector-qualified eight-dword `REP MOVSD` into `FD2C`, scans four `(x,y)` pairs with signed comparisons and the exact `80000001h` maxima seed, publishes the min/max-y vertex indices at `FD28/FD24`, performs the four signed clip rejects, and seeds the two forward edge states at `FDC4/FDE8`. The pre-clip advancement loop runs only when signed `FDB0 > FD20`; the second loop remains entry-before-decrement and therefore executes once even when its initial unsigned count is zero. The carry returned by address-specific helper `33FB4` alone controls continuation of that second loop. Forward helpers `33FB4`, `3402C`, and `34110` remain explicit boundaries for their own subsequent instruction folds. `33FB2..33FB3` is unreferenced `XCHG EBX,EBX` alignment. Next frontier: **`33FB4`**.
+## Batch 104 — raster edge steppers and clipped writer
+
+Added **690 translated instruction bytes** and **10 proven non-code bytes**, bringing accounting to **216,248 translated + 4,308 non-code = 220,556 / 239,698 = 92.0141% (92.01%)**. `33FB4` preserves the two DEC-before-test edge counters and returns the exact carry produced by edge exhaustion/setup. `3402C` walks horizontal edges until a nonzero signed-height delta is found, retains the backward/forward state records at `FDC4/FDE8`, and reconstructs Watcom's `ROL/CWD/(ROL|SHL)/XCHG DX,AX/IDIV` idiom as a signed 32-bit numerator scaled by `2^16`; the X-gradient retains the extra encoded `SHL EAX,16` at `340F2`. `34110` keeps the physical `3410C..3410D` shared LEAVE/RET tail semantics, signed clip tests, exact fixed-point source stepping, low-32-bit multiply wrap, in-place `FE10 <<= 6`, VGA plane-mask OUT, and entry-before-decrement pixel loop. `3410E..3410F` is unreferenced `XCHG EBX,EBX`; `34268..3426F` is an eight-byte zero pad with no incoming direct/raw reference. Next frontier: **`34270`**.
