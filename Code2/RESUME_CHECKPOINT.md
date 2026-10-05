@@ -3,21 +3,21 @@
 Durable handoff anchor; live repository/binary evidence wins.
 
 ## Last committed substantive decompilation state
-- Last substantive batch commit: `a83c3afe1e6cd9e5795da9884fa4326c631378ff` — `Integrate CODE.2 decompilation batch 89`.
-- Verified translated instruction bytes: **212,789**.
+- Last substantive batch commit: `ef717e747d99dbc47754d2f1d6b4f384793e8453` — `Integrate CODE.2 decompilation batch 90`.
+- Verified translated instruction bytes: **213,069**.
 - Proven non-code/data bytes: **4,267**.
-- Reconciled object bytes: **217,056 / 239,698 = 90.5539% (90.55%)**.
-- Unresolved object bytes: **22,642**.
-- Last integrated ownership fold: `333BC..334C3`.
-- Next independently decoded instruction boundary: **`334C4`**.
+- Reconciled object bytes: **217,336 / 239,698 = 90.6708% (90.67%)**.
+- Unresolved object bytes: **22,362**.
+- Last integrated ownership fold: `334C4..335DB`.
+- Next independently decoded instruction boundary: **`335DC`**.
 
 ## Immutable identity
 - `CODE.2` SHA-256: `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
 - Object-1 SHA-256: `014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3`.
 
 ## Mandatory overlap anchor for next resume
-- Window `[0x33440,0x33520)` — 224 bytes; SHA-256 `d06e1c392a10f77f1c1951774868c8117d767670b9b3ac78ffdc015446ce0fe9`.
-- Narrow `[0x33480,0x334E0)` — 96 bytes; SHA-256 `278c34db2127df98a8ff4fd0e615012f0756d92de6841ad22b209071025a2f1d`.
-- Narrow bytes: `008987205a010081bf205a010093000000750ac70520220200000000008b87185a01003b05202202007d05a3202202003b0534bf00007e05a334bf00005f5e5bc9c387dbc80000005357560fb705195602000fb71d1b5602000fafc3a30cfd00`.
+- Window `[0x33550,0x33630)` — 224 bytes; SHA-256 `ce94eb1374ca36b57d7e3e093c2b67b6caca5ba251a652ff242505d1519a274d`.
+- Narrow `[0x33590,0x335F0)` — 96 bytes; SHA-256 `68ab7d0454918234d068d3050dc6338ee5c27aca8357b68a4e7ea35e078621af`.
+- Narrow bytes: `05ee550200a324c700000fbf05f6550200a320c700000fbf05d6550200a31cc700000fbf05d2550200a318c70000c7052cc70000ffffffffc7052022020000080000e87df3ffff5e5f5bc9c3c800000060be185a0100bf00000000c705d0fc00`.
 
-Interpretation: `334C1` is the final RET; `334C2..334C3` is unreferenced `XCHG EBX,EBX` alignment; `334C4` begins the next independent routine. No Batch 90 bytes are counted.
+Interpretation: `335DB` is the final RET and `335DC` begins the next independent routine with no separator bytes. No Batch 91 bytes are counted.
