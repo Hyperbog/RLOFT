@@ -79,16 +79,26 @@ Two new semantic defect classes were corrected. First, `043F4` had normalized `0
 
 The remainder passed the high-risk audit. Signed map offsets/dimensions, variable resource-table construction, nibble-width truncation, full 16.16 arguments to `2C8E4`, level/proximity predicates, ordered movement attempts, and redraw flags were retained. The large `0461C` loop preserves its three distinct cleanup paths, signed tick/deadline comparisons, 16-bit current/target fields, and repeated classifier calls. `050DC` was re-disassembled through its RET at `0518B` and returns exact indices 0/1/2 or `FFFFFFFFh`. `0518C` is the next independent routine.
 
+## Checkpoint 7 — `0518C..06CAC`
+
+**6,945 bytes.** The audit again used an expanded ownership-complete span, covering all of reconstruction batches 08 and 09: party/status UI buffer construction and interaction (`0518C..06007`), settings-panel drawing/interaction (`06008..066E5`), the CS jump table at `06520..06547`, save serialization (`066E8..06C66`), and the tile/record flag probe (`06C68..06CAC`). Fresh immutable-object span SHA-256: `21c33bde2993255fcbe994cef5122ec62fa2a859d6a318a9228ef04ed9a50dae`. Mandatory overlap `[0x0514C,0x0524C)` SHA-256: `4952dfc173872e6180dd638d23b25dd17ea26ee0576b0b03b44de6f52c17783d`.
+
+**PASS with no new semantic correction.** The audit specifically rechecked the CODE.1 high-risk classes rather than relying on the reconstruction structure. `0518C` preserves the five-entry party display (four records plus the synthetic fifth entry), exact classifier-index gating, six row resource buffers, signed byte quantities, nibble extraction, palette remap bytes, and the unusual dword read at `C050h` passed to `1A5B0h`. `05698` retains signed mouse hit tests and signed `IDIV 12`, uses the selected output-buffer pair rather than the source grid for the mutable quantity, and writes only the low nibble back to the grid. The `05AA4` interaction loop keeps the encoded signed coordinate divisions and classifier validity test.
+
+The settings family was checked through its complete dispatch. The `06520..06547` bytes are a ten-entry CS jump table, not executable fall-through; `06548` uses signed remainder rejection followed by the unsigned jump-table range test, which also rejects negative quotients. Toggle side effects (`28098`, `290A8`, conditional `28E58`) and page-flip ordering match the binary. The `06444` post-loop scaling retains signed `258B2h`, byte `C02Ah`, the compiler's signed divide-by-128 rounding sequence, and byte truncation into `C02Dh`.
+
+The full `066E8` serializer was audited through every short-write failure tail. The 50-byte slot label, fixed state blocks, runtime-state local dword, 0x920-byte party block, record-count-scaled `0x248EC` block, 62 descriptor payloads, and final `F920/F91C/67EC/A808/6FA0` blocks all preserve encoded order and exact lengths. Each failed write closes the handle and returns 1; the success path closes it and returns 0. The special `slot == FFFFFFFFh` path intentionally copies only five bytes from `03A8h` into the 50-byte output buffer before writing the full 50 bytes; this odd partial overwrite is preserved rather than normalized. `06C68` retains signed coordinate loads and the exact type/flag/nonzero predicate before setting `CF6Ch`. `06CAD` is the next shared load tail and is not counted here.
+
 ## CODE.1 cross-reference policy
 
 The fully audited CODE.1 decompilation remains part of the active procedure. Its discovered defect classes determine where CODE.2 receives extra scrutiny: cdecl slot order, live-register call inputs, byte/word aliases, signed/unsigned branch drift, modulo-32-bit arithmetic, encoded loop entry, selector/interrupt preservation, global reloads, address-distinct thunks, self-modifying immediates, and DOS/runtime wrappers. Mechanically similar regions may be audited in larger coherent families, but any opcode/control-flow divergence is resolved from CODE.2 itself.
 
 ## Current result
 
-- Audited object bytes: **20,876 / 239,698 = 8.7093%**.
+- Audited object bytes: **27,821 / 239,698 = 11.6067%**.
 - Semantic corrections found so far: **4 defect classes**.
-- New corrections in checkpoint 6: **2 defect classes**.
-- Current closed audited frontier: **`0518B`**.
-- Next frontier: **`0518C`**.
+- New corrections in checkpoint 7: **0**.
+- Current closed audited frontier: **`06CAC`**.
+- Next frontier: **`06CAD`**.
 
 The semantic-audit percentage is independent of the completed 100% decompilation/byte-accounting percentage.
