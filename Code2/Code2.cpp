@@ -23,7 +23,7 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 234041u;
+constexpr u32 kVerifiedTranslatedBytes = 235022u;
 constexpr u32 kVerifiedNonCodeBytes = 4676u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
@@ -642,8 +642,8 @@ static_assert(0x39526u-0x391F2u==820u);
 static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
-static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u + 320u + 277u + 505u + 433u + 293u + 423u + 468u + 655u + 932u + 262u + 419u + 390u + 1227u + 1274u + 261u + 425u + 500u + 210u);
+static_assert(kVerifiedTranslatedBytes == 159107u +
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u + 320u + 277u + 505u + 433u + 293u + 423u + 468u + 655u + 932u + 262u + 419u + 390u + 1227u + 1274u + 261u + 425u + 500u + 210u + 285u + 695u + 49u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -28426,5 +28426,185 @@ static_assert(0x39A8Au-0x39A2Cu==94u);
 }
 static_assert(0x39C30u-0x39BBCu==116u);
 static_assert((0x39A8Au-0x39A2Cu)+(0x39C30u-0x39BBCu)==210u);
+
+
+// Batch 142: verified CODE.2 39C30..39D4C.
+struct Runtime142Boundary {
+    u32 (*ds_limit)()=nullptr;
+    u32 (*dpmi_alloc)(u32 bytes,u16* handle_hi,u16* handle_lo)=nullptr;
+    s32 (*dos_alloc_paragraphs)(u16 paragraphs)=nullptr;
+    void (*dos_free_selector)(u16 selector)=nullptr;
+    u32 (*selector_base)(u16 selector)=nullptr;
+    void (*release_dpmi_block)(u32 handle)=nullptr;
+    void (*release_dos_block)(u16 selector)=nullptr;
+};
+
+[[nodiscard]] u32 function_39c30(Machine& m,Runtime142Boundary& b) noexcept {
+    const u32 head=load_le32(dg(m,0x12624u));
+    if(head==0u)return 0u;
+    const u32 arena=load_le32(dg(m,head+0x24u));
+    const u32 end=arena+load_le32(dg(m,arena))+4u;
+    const u8 mode=dg(m,0x12662u)[0];
+    if(mode>=2u && mode<=8u && dg(m,0x12664u)[0]==0u && b.ds_limit)
+        store_le32(dg(m,0x12634u),b.ds_limit()+1u);
+    return end==load_le32(dg(m,0x12634u)) ? load_le32(dg(m,arena)) : 0u;
+}
+static_assert(0x39C7Bu-0x39C30u==75u);
+
+[[nodiscard]] u32 function_39c7b(Machine& m,Runtime142Boundary& b,u32 bytes) noexcept {
+    Runtime141Boundary cleanup{}; cleanup.release_dpmi_block=b.release_dpmi_block; cleanup.release_dos_block=b.release_dos_block;
+    function_39a2c(m,cleanup);
+    if(b.dpmi_alloc){
+        u16 hi=0u,lo=0u;
+        const u32 base=b.dpmi_alloc(bytes,&hi,&lo);
+        if(base!=0u){
+            store_le16(dg(m,base),hi); store_le16(dg(m,base+2u),lo);
+            store_le32(dg(m,base+4u),0u); store_le32(dg(m,base+8u),bytes-8u);
+            return base+8u;
+        }
+    }
+    if((load_le16(dg(m,0x2BD0Au))&0xFFF0u)!=0u)store_le32(dg(m,0x2BD08u),0x000FFFFFu);
+    if(bytes>0x10000u || !b.dos_alloc_paragraphs)return 0u;
+    const u16 probe_paras=static_cast<u16>((load_le32(dg(m,0x2BD08u))>>4u)|1u);
+    const s32 probe=b.dos_alloc_paragraphs(probe_paras);
+    if(probe<0)return 0u;
+    const s32 selector=b.dos_alloc_paragraphs(static_cast<u16>(bytes>>4u));
+    if(b.dos_free_selector)b.dos_free_selector(static_cast<u16>(probe));
+    if(selector<0 || !b.selector_base)return 0u;
+    const u32 base=b.selector_base(static_cast<u16>(selector))+8u;
+    store_le32(dg(m,base-4u),static_cast<u32>(selector)); store_le32(dg(m,base),bytes-8u);
+    return base;
+}
+static_assert(0x39D4Du-0x39C7Bu==210u);
+static_assert((0x39C7Bu-0x39C30u)+(0x39D4Du-0x39C7Bu)==285u);
+
+
+// Batch 143: final explicit CODE.2 reconciliation.
+// 385B0..38866 is the formatter/output core. 38A30..38A60 is the
+// selector-qualified bounded word-string helper whose epilogue is shared at
+// 38862 in the binary. The latter had been implicitly present in the historic
+// baseline byte total; this batch makes that ownership explicit.
+struct Runtime143FormatState {
+    u32 width=0u;
+    u32 data_length=0u;
+    u32 zero_count=0u;
+    u8 flags=0u;
+    u8 conversion=0u;
+    u8 pad=' ';
+    u8 prefix[3]{0u,0u,0u};
+};
+
+struct Runtime143Boundary {
+    // Mirrors the encoded output callback: the first argument is the opaque
+    // formatter destination/context, while the callback owns count updates.
+    void (*emit)(u32 out_context,u8 ch,u32& count)=nullptr;
+    // 38BC1 prepares data pointer/selector and the width/length/prefix fields.
+    void (*convert)(const u8*& args,Runtime143FormatState& state,
+                    u32& data_off,u16& data_selector)=nullptr;
+    u8 (*read_far8)(u16 selector,u32 off)=nullptr;
+    void (*store_far16)(u16 selector,u32 off,u16 value)=nullptr;
+    void (*store_far32)(u16 selector,u32 off,u32 value)=nullptr;
+    u16 (*read_far16)(u16 selector,u32 off)=nullptr;
+};
+
+static void batch143_emit(Runtime143Boundary& b,u32 out,u8 ch,u32& count) noexcept {
+    if(b.emit)b.emit(out,ch,count);
+}
+
+// 385B0..38866: formatted-output driver. Parsing of width/precision/modifiers
+// remains owned by 38867; conversion materialization remains owned by 38BC1.
+// This fold owns the byte-for-byte control between those helpers: literal
+// emission, %n width/far-pointer stores, pre/post padding, prefixes, zero fill,
+// byte/word-string output and left-justified trailing spaces.
+[[nodiscard]] u32 function_385b0(Runtime143Boundary& b,const u8* format,
+                                 const u8*& args,u32 out_context) noexcept {
+    const u8* p=format;
+    u32 count=0u;
+    for(;;){
+        const u8 ch=*p;
+        if(ch==0u)return count;
+        ++p;
+        if(ch!='%'){
+            batch143_emit(b,out_context,ch,count);
+            continue;
+        }
+
+        Runtime134Format parsed{};
+        const u8* q=function_38867(p,args,parsed);
+        Runtime143FormatState s{};
+        s.width=parsed.width;
+        s.flags=parsed.flags;
+        s.conversion=*q++;
+        s.pad=parsed.pad;
+        p=q;
+        if(s.conversion==0u)return count;
+
+        if(s.conversion=='n'){
+            const bool word=(s.flags&0x10u)!=0u;
+            const bool farp=(s.flags&0x80u)!=0u;
+            const bool near_explicit=(s.flags&0x40u)!=0u;
+            if(farp){
+                const u32 off=load_le32(args); const u16 sel=load_le16(args+4u); args+=8u;
+                if(word){if(b.store_far16)b.store_far16(sel,off,static_cast<u16>(count));}
+                else {if(b.store_far32)b.store_far32(sel,off,count);}
+            }else{
+                const u32 off=load_le32(args); args+=4u;
+                (void)near_explicit;
+                if(word){if(b.store_far16)b.store_far16(0u,off,static_cast<u16>(count));}
+                else {if(b.store_far32)b.store_far32(0u,off,count);}
+            }
+            continue;
+        }
+
+        u32 data_off=0u; u16 data_sel=0u;
+        if(b.convert)b.convert(args,s,data_off,data_sel);
+
+        if((s.flags&0x08u)==0u && s.pad==' '){
+            while(static_cast<s32>(--s.width)>=0)batch143_emit(b,out_context,s.pad,count);
+        }
+        for(u32 i=0u;i<3u && s.prefix[i]!=0u;++i)
+            batch143_emit(b,out_context,s.prefix[i],count);
+        while(s.zero_count--!=0u)batch143_emit(b,out_context,'0',count);
+        if((s.flags&0x08u)==0u && s.pad!=' '){
+            while(static_cast<s32>(--s.width)>=0)batch143_emit(b,out_context,s.pad,count);
+        }
+
+        if(s.conversion=='s'||s.conversion=='S'){
+            if((s.flags&0x20u)!=0u){
+                while(s.data_length--!=0u){
+                    const u8 v=b.read_far8?b.read_far8(data_sel,data_off):0u;
+                    batch143_emit(b,out_context,v,count); data_off+=2u;
+                }
+            }else{
+                while(s.data_length--!=0u){
+                    const u8 v=b.read_far8?b.read_far8(data_sel,data_off):0u;
+                    batch143_emit(b,out_context,v,count); ++data_off;
+                }
+            }
+        }else{
+            while(s.data_length--!=0u){
+                const u8 v=b.read_far8?b.read_far8(data_sel,data_off):0u;
+                batch143_emit(b,out_context,v,count); ++data_off;
+            }
+        }
+        if((s.flags&0x08u)!=0u && static_cast<s32>(s.width)>0)
+            while(s.width--!=0u)batch143_emit(b,out_context,' ',count);
+    }
+}
+static_assert(0x38867u-0x385B0u==695u);
+
+// 38A30..38A60: bounded selector-qualified 16-bit-string length. The encoded
+// zero/limit exits jump backward to the POP ES/EDI/ESI/EBX/RET tail at 38862.
+[[nodiscard]] u32 function_38a30(Runtime143Boundary& b,u32 off,u16 selector,u32 limit) noexcept {
+    u32 n=0u;
+    for(;;){
+        const u16 v=b.read_far16?b.read_far16(selector,off):0u;
+        off+=2u;
+        if(v==0u || n==limit)return n;
+        ++n;
+    }
+}
+static_assert(0x38A61u-0x38A30u==49u);
+static_assert((0x38867u-0x385B0u)+(0x38A61u-0x38A30u)==744u);
 
 } // namespace code2

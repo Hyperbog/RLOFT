@@ -93,3 +93,13 @@ Durable handoff anchor; live repository/binary evidence wins.
 - Mandatory overlap `[0x39C10,0x39C90)` SHA-256: `39e834ab542dfc7cda72bc2512b3d551cc53085ce61da03780c0a57ac7bf62c5`.
 - Next independent boundary: `39C30`.
 - `385B0..38866`, `36CEC..372F5`, and `39A8A..39BBB` remain unresolved.
+
+
+## Batch 143 final handoff
+- CODE.2 object-1 accounting is closed: **235,022 translated + 4,676 proven non-code/data = 239,698 / 239,698 = 100.0000%**.
+- Unresolved bytes: **0**.
+- Final explicit folds: pending Batch 142 `39C30..39D4C` (285 bytes), formatter `385B0..38866` (695 bytes), and shared-tail word-string helper `38A30..38A60` (49 bytes).
+- Historical baseline correction: `159155 -> 159107` removes 48 implicitly credited bytes now owned explicitly by `38A30..38A60`; the 49-byte explicit fold contributes net +1 byte.
+- Immutable CODE.2 SHA-256: `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
+- Immutable object-1 SHA-256: `014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3`.
+- This checkpoint supersedes stale earlier notes describing `36CEC..372F5`, `38A30..38A60`, or `39A8A..39BBB` as accounting-unresolved; those notes predated the aggregate-baseline reconciliation.
