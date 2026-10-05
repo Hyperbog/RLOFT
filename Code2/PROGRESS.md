@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-88.17%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-88.29%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **207,124**
-**Proven non-code/data bytes:** **4,220**
-**Reconciled object bytes:** **211,344 / 239,698 = 88.1709% (88.17%)**
-**Unresolved object bytes:** **28,354**
+**Verified translated instruction bytes:** **207,406**
+**Proven non-code/data bytes:** **4,226**
+**Reconciled object bytes:** **211,632 / 239,698 = 88.2911% (88.29%)**
+**Unresolved object bytes:** **28,066**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -817,3 +817,8 @@ Added **538 translated instruction bytes** and **2 directly proven alignment byt
 Instruction ownership is `31C58..31E71`; `31E72..31E73` is the compiler `MOV EAX,EAX` alignment. A full object-1 direct CALL/JMP/Jcc target scan found no incoming target into those two bytes.
 
 Fidelity notes: the first phase uses fixed shade/period values 3/4 with argument-dependent left/right widths, captures the signed `IDIV` quotient through AL before clamping, applies the same parity/high-byte rules as the adjacent generators, and publishes its final packed word to `FCFA`. The second phase rebuilds the 128-byte mirrored `FE94/FE14` bands with fixed 15/45 edge widths and the encoded rounded 7/69 interpolation. The next independent routine begins at **`31E74`**.
+## Batch 76 — active-party shade helper and paired clamp/setters
+
+Added **282 translated instruction bytes** and **6 directly proven alignment bytes**, bringing cumulative accounting to **207,406 translated + 4,226 non-code = 211,632 / 239,698 = 88.2911% (88.29%)**. Unresolved is **28,066 bytes**.
+
+Instruction ownership is `31E74..31F34` and `31F38..31F90`; the two three-byte LEA separators have no incoming direct branch target. The helper returns 8 when any of four qualifying actor slots has mask 0402h set, otherwise 0. The paired setters clamp `F920` to 0..10 or `F91C` to 0..8, add the helper result to `F91C`, then regenerate shading through `31A14`. Next frontier: **`31F94`**.

@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 207124u;
-constexpr u32 kVerifiedNonCodeBytes = 4220u;
+constexpr u32 kVerifiedTranslatedBytes = 207406u;
+constexpr u32 kVerifiedNonCodeBytes = 4226u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -24415,5 +24415,39 @@ void function_31c58(Machine& m,s32 arg) noexcept {
 }
 static_assert(0x31E72u-0x31C58u==538u);
 // 31E72..31E73 is MOV EAX,EAX alignment with no incoming direct control-flow target.
+
+
+// Batch 76: 31E74..31F90 active-party shade helper and paired clamp/setters.
+[[nodiscard]] u32 function_31e74(Machine& m) noexcept {
+    u32 result=0u;
+    for(s32 slot=0;slot<4;++slot){
+        const u32 off=static_cast<u32>(slot)*0x248u;
+        const u32 flags=load_le16(dg(m,0x218F0u+off));
+        if(static_cast<s32>(flags)>=0x4000)continue;
+        if((load_le16(dg(m,0x21A12u+off))&0x0402u)!=0u)result=8u;
+    }
+    return result;
+}
+static_assert(0x31EDCu-0x31E74u==104u);
+
+void function_31edc(Machine& m,s32 value) noexcept {
+    store_le32(dg(m,0xF920u),static_cast<u32>(value));
+    if(static_cast<s32>(load_le32(dg(m,0xF920u)))>10)store_le32(dg(m,0xF920u),10u);
+    if(static_cast<s32>(load_le32(dg(m,0xF920u)))<0)store_le32(dg(m,0xF920u),0u);
+    const s32 fade=app74_wrap_add(static_cast<s32>(function_31e74(m)),static_cast<s32>(load_le32(dg(m,0xF91Cu))));
+    function_31a14(m,static_cast<s32>(load_le32(dg(m,0xF920u))),fade);
+}
+static_assert(0x31F35u-0x31EDCu==89u);
+// 31F35..31F37 is LEA alignment.
+
+void function_31f38(Machine& m,s32 value) noexcept {
+    store_le32(dg(m,0xF91Cu),static_cast<u32>(value));
+    if(static_cast<s32>(load_le32(dg(m,0xF91Cu)))>8)store_le32(dg(m,0xF91Cu),8u);
+    if(static_cast<s32>(load_le32(dg(m,0xF91Cu)))<0)store_le32(dg(m,0xF91Cu),0u);
+    const s32 fade=app74_wrap_add(static_cast<s32>(function_31e74(m)),static_cast<s32>(load_le32(dg(m,0xF91Cu))));
+    function_31a14(m,static_cast<s32>(load_le32(dg(m,0xF920u))),fade);
+}
+static_assert(0x31F91u-0x31F38u==89u);
+// 31F91..31F93 is LEA alignment. 31F94 begins the next independent routine.
 
 } // namespace code2
