@@ -457,3 +457,8 @@ The fold covers the `30D30` fill primitive, DPMI/memory wrappers through `31012`
 Batch 73 added **1,025 translated instruction bytes** plus **3 directly proven alignment bytes**, reconciling through `318B3`. Cumulative accounting is **205,657 translated + 4,215 non-code = 209,872 / 239,698 = 87.5568% (87.56%)**; unresolved is **29,826 bytes**.
 
 The fold is the complete `314B0..318B0` perspective-row renderer. Preserve unconditional record-zero processing, the zero-word sentinel only on later records, cdecl stack reuse around `30CA2`/`29838`, RNG reseeding, signed wrapped projection arithmetic, and the three-position horizontal wrap search. The next independent routine begins at `318B4`.
+## CODE.2 Batch 74 checkpoint
+
+Batch 74 added **929 translated instruction bytes** plus **3 directly proven alignment bytes**, reconciling through `31C57`. Cumulative accounting is **206,586 translated + 4,218 non-code = 210,804 / 239,698 = 87.9457% (87.95%)**; unresolved is **28,894 bytes**.
+
+The fold covers the paired packed shading/lookup generators `318B4..31A11` and `31A14..31C56`. Preserve signed division, arithmetic-shift half rounding, AL-sized quotient capture, parity-driven high-byte decrement, byte-width fade subtraction, `F954` scaling, and the exact lookup-band ranges. The next independent routine begins at `31C58`.

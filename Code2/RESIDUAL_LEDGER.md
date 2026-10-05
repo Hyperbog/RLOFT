@@ -583,9 +583,11 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 31483..31483 | alignment | 1
 314AB..314AF | padding | 5
 318B1..318B3 | alignment | 3
+31A12..31A13 | alignment | 2
+31C57..31C57 | alignment | 1
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **4,215 bytes**.
+**Total proven non-code/data:** **4,218 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 

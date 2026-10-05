@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-87.56%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-87.95%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **205,657**
-**Proven non-code/data bytes:** **4,215**
-**Reconciled object bytes:** **209,872 / 239,698 = 87.5568% (87.56%)**
-**Unresolved object bytes:** **29,826**
+**Verified translated instruction bytes:** **206,586**
+**Proven non-code/data bytes:** **4,218**
+**Reconciled object bytes:** **210,804 / 239,698 = 87.9457% (87.95%)**
+**Unresolved object bytes:** **28,894**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -803,3 +803,10 @@ Added **1,025 translated instruction bytes** and **3 directly proven alignment b
 Instruction ownership is `314B0..318B0`; `318B1..318B3` is the compiler LEA alignment before the next independent routine. A full object-1 direct CALL/JMP/Jcc target scan found no incoming target into those three bytes.
 
 Fidelity notes: record zero is processed unconditionally while later records terminate on word0==0; the random decoration prepass reuses the two arguments left on the cdecl stack by `30CA2`, yielding the exact effective `29838(0,4,sprite,random_set,8)` call; the initial and post-prepass RNG seeds are `C658` and the live tick from `30700`; signed projection uses the encoded `(delta<<7)+12h` then signed divide by 24h; and failed visibility tests try +168h wrap, then -168h wrap without a final visibility rejection. The next independent routine begins at **`318B4`**.
+## Batch 74 — packed shading lookup generators
+
+Added **929 translated instruction bytes** and **3 directly proven alignment bytes**, bringing cumulative accounting to **206,586 translated + 4,218 non-code = 210,804 / 239,698 = 87.9457% (87.95%)**. Unresolved is **28,894 bytes**.
+
+Instruction ownership is `318B4..31A11` and `31A14..31C56`; `31A12..31A13` is the compiler `MOV EAX,EAX` alignment and `31C57` is a NOP. A full object-1 direct CALL/JMP/Jcc target scan found no incoming target into either separator.
+
+Fidelity notes: both generators retain signed `IDIV` behavior and arithmetic-right-shift rounding, write only the low byte of intermediate quotients into signed-byte temporaries, apply the parity decrement before the low-intensity and 8/9 collapse rules, and pack the two signed bytes into the published word table. `318B4` mirrors the capped low byte into `FE14/FE94`; `31A14` preserves byte-width subtraction of the fade adjustment, its `F954` per-argument scale divisor, and the two bounded lookup-band writes. The next independent routine begins at **`31C58`**.
