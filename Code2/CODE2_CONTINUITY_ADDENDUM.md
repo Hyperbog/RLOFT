@@ -500,3 +500,6 @@ Batch 84 reconciles `32954..32F4B`: **1,526 translated + 2 alignment bytes**. Co
 ## CODE.2 Batch 85 checkpoint
 
 Batch 85 reconciles `32F4C..32F8B`: **63 translated + 1 alignment byte**. Coverage is **215,720 / 239,698 = 89.9966% (90.00%)**; unresolved is **23,978 bytes**. Next frontier is `32F8C`.
+## CODE.2 Batch 86 checkpoint
+
+Batch 86 reconciles `32F8C..33123`: **406 translated + 2 alignment bytes**. Coverage is **216,128 / 239,698 = 90.1668% (90.17%)**, with **23,570 unresolved bytes**. Preserve the modular signed-word multiply used to locate the alternate cell, high-class push/pop lifetime, conditional `1E9A0` low-word extra, record table choice `257A2/25722`, and signed min/max comparisons. Next frontier is `33124`.
