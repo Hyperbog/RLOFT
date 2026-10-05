@@ -462,3 +462,8 @@ The fold is the complete `314B0..318B0` perspective-row renderer. Preserve uncon
 Batch 74 added **929 translated instruction bytes** plus **3 directly proven alignment bytes**, reconciling through `31C57`. Cumulative accounting is **206,586 translated + 4,218 non-code = 210,804 / 239,698 = 87.9457% (87.95%)**; unresolved is **28,894 bytes**.
 
 The fold covers the paired packed shading/lookup generators `318B4..31A11` and `31A14..31C56`. Preserve signed division, arithmetic-shift half rounding, AL-sized quotient capture, parity-driven high-byte decrement, byte-width fade subtraction, `F954` scaling, and the exact lookup-band ranges. The next independent routine begins at `31C58`.
+## CODE.2 Batch 75 checkpoint
+
+Batch 75 added **538 translated instruction bytes** plus **2 directly proven alignment bytes**, reconciling through `31E73`. Cumulative accounting is **207,124 translated + 4,220 non-code = 211,344 / 239,698 = 88.1709% (88.17%)**; unresolved is **28,354 bytes**.
+
+The fold is the complete two-phase packed lookup generator `31C58..31E71`. Preserve its AL-sized quotient capture, signed division and arithmetic half-rounding, parity-driven high-byte decrement, argument-dependent first-phase widths, and fixed mirrored 128-byte second phase. The next independent routine begins at `31E74`.

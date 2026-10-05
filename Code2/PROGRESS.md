@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-87.95%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-88.17%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **206,586**
-**Proven non-code/data bytes:** **4,218**
-**Reconciled object bytes:** **210,804 / 239,698 = 87.9457% (87.95%)**
-**Unresolved object bytes:** **28,894**
+**Verified translated instruction bytes:** **207,124**
+**Proven non-code/data bytes:** **4,220**
+**Reconciled object bytes:** **211,344 / 239,698 = 88.1709% (88.17%)**
+**Unresolved object bytes:** **28,354**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -810,3 +810,10 @@ Added **929 translated instruction bytes** and **3 directly proven alignment byt
 Instruction ownership is `318B4..31A11` and `31A14..31C56`; `31A12..31A13` is the compiler `MOV EAX,EAX` alignment and `31C57` is a NOP. A full object-1 direct CALL/JMP/Jcc target scan found no incoming target into either separator.
 
 Fidelity notes: both generators retain signed `IDIV` behavior and arithmetic-right-shift rounding, write only the low byte of intermediate quotients into signed-byte temporaries, apply the parity decrement before the low-intensity and 8/9 collapse rules, and pack the two signed bytes into the published word table. `318B4` mirrors the capped low byte into `FE14/FE94`; `31A14` preserves byte-width subtraction of the fade adjustment, its `F954` per-argument scale divisor, and the two bounded lookup-band writes. The next independent routine begins at **`31C58`**.
+## Batch 75 — two-phase packed shading/lookup generator
+
+Added **538 translated instruction bytes** and **2 directly proven alignment bytes**, bringing cumulative accounting to **207,124 translated + 4,220 non-code = 211,344 / 239,698 = 88.1709% (88.17%)**. Unresolved is **28,354 bytes**.
+
+Instruction ownership is `31C58..31E71`; `31E72..31E73` is the compiler `MOV EAX,EAX` alignment. A full object-1 direct CALL/JMP/Jcc target scan found no incoming target into those two bytes.
+
+Fidelity notes: the first phase uses fixed shade/period values 3/4 with argument-dependent left/right widths, captures the signed `IDIV` quotient through AL before clamping, applies the same parity/high-byte rules as the adjacent generators, and publishes its final packed word to `FCFA`. The second phase rebuilds the 128-byte mirrored `FE94/FE14` bands with fixed 15/45 edge widths and the encoded rounded 7/69 interpolation. The next independent routine begins at **`31E74`**.
