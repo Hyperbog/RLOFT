@@ -3,7 +3,8 @@ struct Runtime101MouseRegs {
     u32 eax=0u,ebx=0u,ecx=0u,edx=0u;
 };
 struct Runtime101Boundary {
-    u32 (*call_2e340)()=nullptr;
+    // Preserve caller-saved register residue from 2E340; 33CB0 overwrites only EAX before INT 33h.
+    Runtime101MouseRegs (*call_2e340)()=nullptr;
     Runtime101MouseRegs (*int33)(u32,u32,u32,u32)=nullptr;
     u32 (*call_2e758)()=nullptr;
     u32 (*call_30ad8)()=nullptr;
@@ -17,16 +18,16 @@ static s32 app101_sar1_s16(u16 value) noexcept {
 }
 
 u32 function_33c90(Runtime101Boundary& b,u32 first,u32 second) noexcept {
-    const u32 gate=b.call_2e340?b.call_2e340():0u;
-    if(gate==0u)return gate;
+    const Runtime101MouseRegs gate=b.call_2e340?b.call_2e340():Runtime101MouseRegs{};
+    if(gate.eax==0u)return gate.eax;
     const Runtime101MouseRegs r=b.int33?b.int33(4u,0u,second+second,first):Runtime101MouseRegs{};
     return r.eax;
 }
 
 u32 function_33cb0(Machine& m,Runtime101Boundary& b) noexcept {
-    const u32 gate=b.call_2e340?b.call_2e340():0u;
-    if(gate!=0u){
-        const Runtime101MouseRegs r=b.int33?b.int33(3u,0u,0u,0u):Runtime101MouseRegs{};
+    const Runtime101MouseRegs gate=b.call_2e340?b.call_2e340():Runtime101MouseRegs{};
+    if(gate.eax!=0u){
+        const Runtime101MouseRegs r=b.int33?b.int33(3u,gate.ebx,gate.ecx,gate.edx):Runtime101MouseRegs{};
         store_le16(dg(m,0x2B7A8u),static_cast<u16>(r.ebx));
         store_le16(dg(m,0x2B7AEu),static_cast<u16>(r.edx));
         const s32 half_x=app101_sar1_s16(static_cast<u16>(r.ecx));
@@ -36,22 +37,22 @@ u32 function_33cb0(Machine& m,Runtime101Boundary& b) noexcept {
 }
 
 u32 function_33d18(Runtime101Boundary& b,u32 minimum,u32 maximum) noexcept {
-    const u32 gate=b.call_2e340?b.call_2e340():0u;
-    if(gate==0u)return gate;
+    const Runtime101MouseRegs gate=b.call_2e340?b.call_2e340():Runtime101MouseRegs{};
+    if(gate.eax==0u)return gate.eax;
     const Runtime101MouseRegs r=b.int33?b.int33(7u,0u,minimum,maximum):Runtime101MouseRegs{};
     return r.eax;
 }
 
 u32 function_33d38(Runtime101Boundary& b,u32 minimum,u32 maximum) noexcept {
-    const u32 gate=b.call_2e340?b.call_2e340():0u;
-    if(gate==0u)return gate;
+    const Runtime101MouseRegs gate=b.call_2e340?b.call_2e340():Runtime101MouseRegs{};
+    if(gate.eax==0u)return gate.eax;
     const Runtime101MouseRegs r=b.int33?b.int33(8u,0u,minimum,maximum):Runtime101MouseRegs{};
     return r.eax;
 }
 
 u32 function_33d58(Machine& m,Runtime101Boundary& b) noexcept {
-    const u32 gate=b.call_2e340?b.call_2e340():0u;
-    if(gate==0u)return gate;
+    const Runtime101MouseRegs gate=b.call_2e340?b.call_2e340():Runtime101MouseRegs{};
+    if(gate.eax==0u)return gate.eax;
     for(;;){
         const u32 state=function_33cb0(m,b);
         const u32 eax=b.call_2e758?b.call_2e758():0u;
@@ -60,8 +61,8 @@ u32 function_33d58(Machine& m,Runtime101Boundary& b) noexcept {
 }
 
 u32 function_33d78(Machine& m,Runtime101Boundary& b) noexcept {
-    const u32 gate=b.call_2e340?b.call_2e340():0u;
-    if(gate==0u)return b.call_30aec?b.call_30aec():0u;
+    const Runtime101MouseRegs gate=b.call_2e340?b.call_2e340():Runtime101MouseRegs{};
+    if(gate.eax==0u)return b.call_30aec?b.call_30aec():0u;
 
     for(;;){
         const u32 state=function_33cb0(m,b);
