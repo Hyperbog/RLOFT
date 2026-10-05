@@ -32,6 +32,10 @@ def integrate():
     frag=FRAG.read_text()
     cpp=cpp.replace('constexpr u32 kVerifiedTranslatedBytes = 200937u;','constexpr u32 kVerifiedTranslatedBytes = 202780u;',1)
     cpp=cpp.replace('constexpr u32 kVerifiedNonCodeBytes = 4059u;','constexpr u32 kVerifiedNonCodeBytes = 4144u;',1)
+    old_assert='(0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u);'
+    new_assert=old_assert[:-2]+' + 1843u);'
+    assert old_assert in cpp
+    cpp=cpp.replace(old_assert,new_assert,1)
     marker='\n} // namespace code2\n'
     assert cpp.endswith(marker)
     cpp=cpp[:-len(marker)]+'\n\n'+frag.rstrip()+marker
@@ -55,6 +59,7 @@ def verify():
     assert 'else if(code==0x19u){store_le16(dg(m,0x1457Cu),1u);' in cpp
     assert 'static_cast<s32>(scan)>0x80' in cpp
     assert '==1843u);' in cpp
+    assert '+ 4070u + 1843u);' in cpp
     for line in ledger_lines.strip().splitlines(): assert line in led,line
     assert '**Total proven non-code/data:** **4,144 bytes**.' in led
     assert '206,924 / 239,698 = 86.3270% (86.33%)' in prog
