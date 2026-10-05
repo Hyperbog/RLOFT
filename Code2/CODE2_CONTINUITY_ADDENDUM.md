@@ -578,3 +578,6 @@ Batch 110 reconciles `34DE8..35285`: **1,182 translated instruction bytes**, no 
 ## CODE.2 Batch 111 checkpoint
 
 Batch 111 reconciles `35286..35417`: **284 translated + 118 proven non-code bytes**. Coverage is **225,076 / 239,698 = 93.8998% (93.90%)**, with **14,622 unresolved bytes**. Preserve the AH=36h register/output-width contract, the separate `352BE/352D8` callback sequences, environment prefix-plus-`=` test, wrapped ctype `(byte+1)` lookup, 32-bit decimal wrap/negation, and `353A0`'s jump over the embedded runtime-data block. `353A2..35417` is non-code; `35418` begins the startup body.
+## CODE.2 Batch 112 checkpoint
+
+Batch 112 translates `35418..3562E`: **535 instruction bytes**, with no new non-code claim. Coverage is **225,611 / 239,698 = 94.1230% (94.12%)**, leaving **14,087 unresolved bytes**. Preserve the startup stack alignment, byte/word register writes, DOS/extender branch distinctions, selector-backed PSP/environment memory, REPZ-SCAS zero-count ZF inheritance from `AND DL,F0`, balanced startup pushes/pops, `no87=` detection, environment/program-path terminators, and the capped mode-1 zero-fill. `3562F` is not owned by this batch: it is both the fall-through after `3562A` and an independent target from `352E9`.

@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-93.90%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-94.12%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **220,638**
+**Verified translated instruction bytes:** **221,173**
 **Proven non-code/data bytes:** **4,438**
-**Reconciled object bytes:** **225,076 / 239,698 = 93.8998% (93.90%)**
-**Unresolved object bytes:** **14,622**
+**Reconciled object bytes:** **225,611 / 239,698 = 94.1230% (94.12%)**
+**Unresolved object bytes:** **14,087**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -932,3 +932,6 @@ Added **1,182 translated instruction bytes** with no new non-code, bringing acco
 ## Batch 111 — DOS/runtime helpers and embedded startup data
 
 Added **284 translated instruction bytes** and **118 proven non-code bytes**, bringing accounting to **220,638 translated + 4,438 non-code = 225,076 / 239,698 = 93.8998% (93.90%)**. `35286` preserves the DOS `INT 21h/AH=36h` disk-space register contract and only writes the four output words when returned AX is not `FFFFh`; `352BD` is the encoded one-byte RET stub. `352BE/352D8` retain their distinct indirect-callback order and the tail handoff to `3562F`. `352EE` walks the `12688` environment-pointer list, performs the length-bounded `39526` comparison, requires an immediate `=` byte, and returns the value pointer. `35349` preserves the Watcom ctype-table indexing through wrapped `(byte+1)`, sign handling, and 32-bit decimal accumulation. `353A0` jumps over `353A2..35417`; those **118 bytes** are embedded runtime data, including the Watcom runtime copyright text and the independently referenced `con` string at `35414`. No external direct relative control-flow target enters the data. Next frontier: **`35418`**.
+## Batch 112 — DOS/extender startup body
+
+Added **535 translated instruction bytes** (`35418..3562E`), bringing accounting to **221,173 translated + 4,438 non-code = 225,611 / 239,698 = 94.1230% (94.12%)**. `35418` preserves the aligned startup stack, DOS-version/extender probes, selector-sensitive PSP/environment access, command-tail trimming/copying, `no87=` environment detection, program-path copy, runtime zero-fill, and the exact register-width effects around the `395E2`/`39589` handoffs. Segment reads/writes outside DGROUP are explicit boundary operations rather than flattened guesses. The fold ends after `CALL 39589`; `3562F` remains a distinct shared-entry continuation because `352E9` jumps there independently. Next frontier: **`3562F`**.
