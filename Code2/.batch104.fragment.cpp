@@ -10,11 +10,12 @@ static u32 app104_sar16(u32 v) noexcept {
     return (v>>16)|((v&0x80000000u)?0xFFFF0000u:0u);
 }
 // Reconstruct the encoded ROL/CWD/(ROL|SHL)/XCHG DX,AX + IDIV sequence.
+// It forms signed32(difference_bits)<<16 in EDX:EAX before signed division.
 // The binary traps if divisor_bits is zero; valid callers supply a nonzero encoded denominator.
-static u32 app104_idiv_highword_fixed(u32 difference_bits,u32 divisor_bits) noexcept {
-    const s32 high=static_cast<s32>(static_cast<s16>(static_cast<u16>(difference_bits>>16)));
+static u32 app104_idiv_shift16(u32 difference_bits,u32 divisor_bits) noexcept {
+    const s32 difference=static_cast<s32>(difference_bits);
     const s32 divisor=static_cast<s32>(divisor_bits);
-    const long long numerator=static_cast<long long>(high)*4294967296LL;
+    const long long numerator=static_cast<long long>(difference)*65536LL;
     return static_cast<u32>(static_cast<s32>(numerator/static_cast<long long>(divisor)));
 }
 
@@ -36,12 +37,12 @@ bool function_3402c(Machine& m,u32 vertex,u32 state) noexcept {
         const u32 divisor=delta_y<<16;
         const u32 next_a=load_le32(dg(m,0xFF18u+next_off))<<16;
         const u32 next_b=load_le32(dg(m,0xFF14u+next_off))<<16;
-        store_le32(dg(m,state+0x14u),app104_idiv_highword_fixed(next_a-cur_a,divisor));
-        store_le32(dg(m,state+0x18u),app104_idiv_highword_fixed(next_b-cur_b,divisor));
+        store_le32(dg(m,state+0x14u),app104_idiv_shift16(next_a-cur_a,divisor));
+        store_le32(dg(m,state+0x18u),app104_idiv_shift16(next_b-cur_b,divisor));
         const u32 cur_x=load_le32(dg(m,0xFD2Cu+cur_off));
         store_le32(dg(m,state+0x1Cu),cur_x<<16);
         const u32 delta_x=load_le32(dg(m,0xFD2Cu+next_off))-cur_x;
-        store_le32(dg(m,state+0x20u),app104_idiv_highword_fixed(delta_x<<16,divisor));
+        store_le32(dg(m,state+0x20u),app104_idiv_shift16(delta_x<<16,divisor));
         return true;
     }
 }
@@ -75,10 +76,10 @@ void function_34110(Machine& m,Runtime104Boundary& b) noexcept {
     if(span==0u)return;
     const u32 divisor=span<<16;
 
-    const u32 step_u=app104_idiv_highword_fixed(load_le32(dg(m,0xFDF4u))-load_le32(dg(m,0xFDD0u)),divisor);
+    const u32 step_u=app104_idiv_shift16(load_le32(dg(m,0xFDF4u))-load_le32(dg(m,0xFDD0u)),divisor);
     store_le32(dg(m,0xFE0Cu),step_u);
     u32 source_u=app104_sar1(step_u)+load_le32(dg(m,0xFDD0u));
-    const u32 step_v=app104_idiv_highword_fixed(load_le32(dg(m,0xFDF8u))-load_le32(dg(m,0xFDD4u)),divisor);
+    const u32 step_v=app104_idiv_shift16(load_le32(dg(m,0xFDF8u))-load_le32(dg(m,0xFDD4u)),divisor);
     store_le32(dg(m,0xFE10u),step_v);
     u32 source_v=app104_sar1(step_v)+load_le32(dg(m,0xFDD4u));
 
