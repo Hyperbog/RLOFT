@@ -470,3 +470,6 @@ The fold is the complete two-phase packed lookup generator `31C58..31E71`. Prese
 ## CODE.2 Batch 76 checkpoint
 
 Batch 76 reconciles `31E74..31F93`: **282 translated + 6 alignment bytes**. Cumulative accounting is **211,632 / 239,698 = 88.2911% (88.29%)** with **28,066 unresolved bytes**. Preserve the four-slot mask scan and the distinct clamp ranges. Next frontier is `31F94`.
+## CODE.2 Batch 77 checkpoint
+
+Batch 77 reconciles `31F94..320F7`: **356 translated bytes**, no new non-code. Cumulative accounting is **211,988 / 239,698 = 88.4396% (88.44%)**; unresolved is **27,710 bytes**. Preserve the 24-way high-word normalization, phase-change early return, `258A8 == FFh` bypass, signed 8-way remainder update, and phase-indexed record/shading writes. Next frontier is `320F8`.

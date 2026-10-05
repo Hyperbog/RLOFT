@@ -23,7 +23,7 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 207406u;
+constexpr u32 kVerifiedTranslatedBytes = 207762u;
 constexpr u32 kVerifiedNonCodeBytes = 4226u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -24449,5 +24449,41 @@ void function_31f38(Machine& m,s32 value) noexcept {
 }
 static_assert(0x31F91u-0x31F38u==89u);
 // 31F91..31F93 is LEA alignment. 31F94 begins the next independent routine.
+
+
+// Batch 77: 31F94..320F7 phase-change view record/shading updater.
+void function_31f94(Machine& m) noexcept {
+    u32 packed=load_le32(dg(m,0xCF4Cu));
+    u16 phase=static_cast<u16>(packed>>16);
+    if(phase==0xFFFFu)phase=0x17u;
+    phase=static_cast<u16>(phase%0x18u);
+    store_le32(dg(m,0xCF4Cu),(static_cast<u32>(phase)<<16)|(packed&0xFFFFu));
+    if(static_cast<u32>(phase)==load_le32(dg(m,0xF9CCu)))return;
+
+    const u8 view=*dg(m,0x258A8u);
+    if(view!=0xFFu){
+        const u32 rec=load_le32(dg(m,load_le32(dg(m,0x2B764u))+static_cast<u32>(view)*4u));
+        const s32 shade=static_cast<s16>(load_le16(dg(m,0xF924u+static_cast<u32>(phase)*2u)));
+        if(shade<10){
+            store_le16(dg(m,rec),0x18u);
+            store_le32(dg(m,0xF910u),0xFFFFFFFFu);
+        } else if(load_le32(dg(m,0xF910u))==0xFFFFFFFFu){
+            function_30cc4(m,function_30700(m));
+            const u32 selection=load_le32(dg(m,0xF914u));
+            store_le32(dg(m,0xF910u),selection);
+            store_le16(dg(m,rec),static_cast<u16>(selection));
+            const s32 next=app74_wrap_add(static_cast<s32>(selection),1);
+            store_le32(dg(m,0xF914u),static_cast<u32>(next%8));
+        }
+        store_le16(dg(m,rec+2u),load_le16(dg(m,0xF99Au+static_cast<u32>(phase)*2u)));
+        store_le16(dg(m,rec+6u),load_le16(dg(m,0xF96Au+static_cast<u32>(phase)*2u)));
+        store_le32(dg(m,0xF920u),static_cast<u32>(shade));
+        const s32 fade=app74_wrap_add(static_cast<s32>(function_31e74(m)),static_cast<s32>(load_le32(dg(m,0xF91Cu))));
+        function_31a14(m,static_cast<s32>(load_le32(dg(m,0xF920u))),fade);
+    }
+    store_le32(dg(m,0xF9CCu),static_cast<u32>(phase));
+}
+static_assert(0x320F8u-0x31F94u==356u);
+// 320F8 begins the next independent byte-output callback; no separator bytes.
 
 } // namespace code2

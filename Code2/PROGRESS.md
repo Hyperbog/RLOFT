@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-88.29%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-88.44%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **207,406**
+**Verified translated instruction bytes:** **207,762**
 **Proven non-code/data bytes:** **4,226**
-**Reconciled object bytes:** **211,632 / 239,698 = 88.2911% (88.29%)**
-**Unresolved object bytes:** **28,066**
+**Reconciled object bytes:** **211,988 / 239,698 = 88.4396% (88.44%)**
+**Unresolved object bytes:** **27,710**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -822,3 +822,8 @@ Fidelity notes: the first phase uses fixed shade/period values 3/4 with argument
 Added **282 translated instruction bytes** and **6 directly proven alignment bytes**, bringing cumulative accounting to **207,406 translated + 4,226 non-code = 211,632 / 239,698 = 88.2911% (88.29%)**. Unresolved is **28,066 bytes**.
 
 Instruction ownership is `31E74..31F34` and `31F38..31F90`; the two three-byte LEA separators have no incoming direct branch target. The helper returns 8 when any of four qualifying actor slots has mask 0402h set, otherwise 0. The paired setters clamp `F920` to 0..10 or `F91C` to 0..8, add the helper result to `F91C`, then regenerate shading through `31A14`. Next frontier: **`31F94`**.
+## Batch 77 — phase-change view record/shading updater
+
+Added **356 translated instruction bytes** and no new non-code bytes, bringing cumulative accounting to **207,762 translated + 4,226 non-code = 211,988 / 239,698 = 88.4396% (88.44%)**. Unresolved is **27,710 bytes**.
+
+The complete `31F94..320F7` routine normalizes the high word of `CF4C` to phase 0..23, skips work when the phase matches `F9CC`, updates the active view record when `258A8 != FFh`, rotates the RNG-backed selection only on the sentinel state, copies phase-indexed words from `F99A/F96A`, and regenerates shading. Next frontier: **`320F8`**.
