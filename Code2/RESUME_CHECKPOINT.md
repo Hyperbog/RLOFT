@@ -3,21 +3,21 @@
 Durable handoff anchor; live repository/binary evidence wins.
 
 ## Last committed substantive decompilation state
-- Last substantive batch commit: `e1386f04654dad377a961479574e504c3b1ad74c` — `Integrate CODE.2 decompilation batch 108`.
-- Verified translated instruction bytes: **218,605**.
-- Proven non-code/data bytes: **4,319**.
-- Reconciled object bytes: **222,924 / 239,698 = 93.0020% (93.00%)**.
-- Unresolved object bytes: **16,774**.
-- Last integrated ownership fold: `34A74..34BAF`.
-- Next independently decoded instruction boundary: **`34BB0`**.
+- Last substantive batch commit: `1bfc60f055b00518f104684410ccc7eeff6c26ca` — `Integrate CODE.2 decompilation batch 109`.
+- Verified translated instruction bytes: **219,172**.
+- Proven non-code/data bytes: **4,320**.
+- Reconciled object bytes: **223,492 / 239,698 = 93.2390% (93.24%)**.
+- Unresolved object bytes: **16,206**.
+- Last integrated ownership fold: `34BB0..34DE7`.
+- Next independently decoded instruction boundary: **`34DE8`**.
 
 ## Immutable identity
 - `CODE.2` SHA-256: `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
 - Object-1 SHA-256: `014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3`.
 
 ## Mandatory overlap anchor for next resume
-- Window `[0x34B60,0x34C40)` — 224 bytes; SHA-256 `3a732f6a6dbe15a2a6484c6b4a41a7d93bf2713fd56dce40fcc8a5a5d5cce6ec`.
-- Narrow `[0x34B80,0x34BE0)` — 96 bytes; SHA-256 `d50a9fa33350273aaafdaaded3722efcb3e36d46372e76a578d4c8cd0bc65394`.
-- Narrow bytes: `03d35052e8cbfdffff5e5f592b3d4cff000083c606a144ff0000010540ff00008a07a2774b03004975ab61c9c30000005356575589e581ec4c000000c745f400000000837df4047c0de96f0100008b45f4ff45f4ebed8b45f48d048500000000`.
+- Window `[0x34D90,0x34E70)` — 224 bytes; SHA-256 `2b5c55b74f092f6004d88d2d7306013649306b4c1ed8b27a9c8492b4b0372beb`.
+- Narrow `[0x34DC0,0x34E20)` — 96 bytes; SHA-256 `9d1b8717c5be48625d41181b24587fdb1f8dc1a5d9706c69482cd6fedc25011c`.
+- Narrow bytes: `0002c705b8fd000004000000c705b4fd0000830000008d45d450e88df0ffff83c404c95f5e5bc3905356575589e581ec4c00000068800000006a00b8f0b7020050e82abfffff83c40c68800000006a00b870b8020050e815bfffff83c40c6a20`.
 
-Interpretation: `34BAC` is the Batch-108 RET; `34BAD..34BAF` is unreferenced zero padding; `34BB0` begins the next independently called routine. No Batch 109 bytes are counted.
+Interpretation: `34DE6` is the Batch-109 RET; `34DE7` is an unreferenced NOP separator; `34DE8` begins the next independently called routine. No Batch 110 bytes are counted.
