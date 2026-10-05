@@ -658,3 +658,7 @@ Batch 126 reconciles `375FD..3780F`: **505 translated + 26 alignment bytes**. Co
 
 ## CODE.2 Batch 127 checkpoint
 Batch 127 reconciles `37810..379CF`: **433 translated + 15 separator bytes**. Coverage is **230,967 / 239,698 = 96.3575% (96.36%)**, with **8,731 unresolved bytes**. Preserve the `37810` scratch-table permutation and the DOS vector wrappers' extender-mode 2..8 split. Next boundary is `379D0`; `36CEC..372F5` remains unresolved.
+
+
+## CODE.2 Batch 128 checkpoint
+Batch 128 reconciles `379D0..37AFB`: **293 translated + 7 alignment/separator bytes**. Coverage is **231,267 / 239,698 = 96.4827% (96.48%)**, with **8,431 unresolved bytes**. Preserve the fill entry's EDX byte rotation/alignment and the DOS memory wrappers' failure outputs. Next boundary is `37AFC`; `36CEC..372F5` remains unresolved.

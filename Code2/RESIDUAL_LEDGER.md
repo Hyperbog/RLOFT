@@ -888,3 +888,10 @@ Batch 126 adds **26 proven non-code/alignment bytes**, cumulative **4,650**.
 - `379C1..379CF` — 15 zero separator bytes between the DOS vector wrapper and the independently decoded routine at `379D0`.
 
 Batch 127 adds **15 proven non-code/alignment bytes**, cumulative **4,665**.
+
+
+## Batch 128 additions
+- `37A01..37A06` — six NOP alignment bytes between the byte-count and dword-count fill entries.
+- `37A9D` — one zero separator byte before the DOS allocation wrapper.
+
+Batch 128 adds **7 proven non-code/alignment bytes**, cumulative **4,672**.

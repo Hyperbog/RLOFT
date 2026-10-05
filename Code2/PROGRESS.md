@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-96.36%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-96.48%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **226,302**
-**Proven non-code/data bytes:** **4,665**
-**Reconciled object bytes:** **230,967 / 239,698 = 96.3575% (96.36%)**
-**Unresolved object bytes:** **8,731**
+**Verified translated instruction bytes:** **226,595**
+**Proven non-code/data bytes:** **4,672**
+**Reconciled object bytes:** **231,267 / 239,698 = 96.4827% (96.48%)**
+**Unresolved object bytes:** **8,431**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -1034,3 +1034,8 @@ Added **505 translated instruction bytes** and **26 proven alignment bytes** acr
 ## Batch 127 — planar permutation and DOS vector wrappers
 
 Added **433 translated instruction bytes** and **15 proven zero separator bytes** across `37810..379CF`. `37810..37957` is the type-1 planar payload permutation/conversion helper using the scratch permutation table at `10610h`; it preserves the optional header-byte skip, four-way index mapping, in-place strip swaps, and header collapse. `37958..3798C` and `3798D..379C0` are DOS set/get interrupt-vector wrappers with the encoded extender-mode 2..8 split. `379C1..379CF` is a 15-byte zero separator before the next routine at `379D0`. Accounting: **226,302 translated + 4,665 non-code/data = 230,967 / 239,698 = 96.3575% (96.36%)**, leaving **8,731 unresolved bytes**.
+
+
+## Batch 128 — optimized fills, selector snapshot, and DOS memory wrappers
+
+Added **293 translated instruction bytes** and **7 proven alignment/separator bytes** across `379D0..37AFB`. `379D0..37A00` is the byte-count fill entry with byte alignment, EDX rotation, aligned dword helper call, and 0..3 byte tail; `37A07..37A72` is its unrolled dword-count fill helper. `37A73..37A9C` snapshots ES/CS/SS/DS/FS/GS. `37A9E..37AFB` comprises DOS AH=48h allocation, AH=49h free, and AH=4Ah resize wrappers, preserving success/failure output conventions. Proven separators are six NOPs at `37A01..37A06` and one zero byte at `37A9D`. Next boundary: **`37AFC`**. Accounting: **226,595 translated + 4,672 non-code/data = 231,267 / 239,698 = 96.4827% (96.48%)**, leaving **8,431 unresolved bytes**.
