@@ -55,7 +55,7 @@ jobs:
               'kApp70DecodeJumpTable[4]={0x2FEBCu,0x2FF32u,0x2FFA4u,0x2FFABu}',
               'eax=(eax&0xFFFF0000u)|static_cast<u16>(prod);',
               'static_cast<s32>(count)<=static_cast<s32>(avail)',
-              'void function_3012c(Machine& m,Application70Boundary& b,u32 image,u32 header_word,s32 x,s32 y,s32 w,s32 h,u32 tag)',
+              'u32 function_3012c(Machine& m,Application70Boundary& b,u32 image,u32 header_word,s32 x,s32 y,s32 w,s32 h,u32 tag)',
               'function_2f868(m,b);',
               '==4070u);'
           ]
