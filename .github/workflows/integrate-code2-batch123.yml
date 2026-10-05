@@ -40,4 +40,4 @@ jobs:
           git add Code2/RESUME_CHECKPOINT.md && git diff --cached --check
           git commit -m "Refresh CODE.2 resume checkpoint after batch 123"
           git push origin HEAD:code1-decompilation
-# trigger
+# retrigger after accounting assertion fix
