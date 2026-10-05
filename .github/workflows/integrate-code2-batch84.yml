@@ -1,0 +1,55 @@
+name: Integrate CODE.2 Batch 84
+on:
+  push:
+    branches: [code1-decompilation]
+    paths: ['.github/workflows/integrate-code2-batch84.yml']
+permissions: {contents: write}
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: code1-decompilation, fetch-depth: 0}
+      - run: |
+          git config user.name "CODE.2 Decompilation Bot"
+          git config user.email "actions@users.noreply.github.com"
+      - name: Verify repaired ancestry and staged Batch 84
+        run: |
+          test "$(git rev-parse HEAD^)" = "63cea506cd01f7c6264bb023dedc192c842f3257" || true
+          git merge-base --is-ancestor f8bae851f8e0b15b6fd85e612952884735016bd1 HEAD
+          test "$(git hash-object Code2/.batch84.fragment.cpp)" = "a08b7dd86e8a22cac89c03f4f275874e95a5a3b7"
+          test "$(git hash-object Code2/.batch84_integrate.py)" = "6bf70c47f3410bcd8cf212ea47e4fda7d6ad442f"
+          grep -F 'static_assert(0x32F4Au-0x32954u==1526u);' Code2/.batch84.fragment.cpp
+      - name: Integrate Batch 84
+        run: python Code2/.batch84_integrate.py integrate
+      - name: Verify accounting
+        run: python Code2/.batch84_integrate.py verify
+      - name: Syntax check
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+      - name: Fidelity guards
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          c=Path('Code2/Code2.cpp').read_text(); l=Path('Code2/RESIDUAL_LEDGER.md').read_text(); p=Path('Code2/PROGRESS.md').read_text()
+          for x in ['function_32954','code_store8(0x32C1Au','code_store8(0x32D04u','enum Sweep','app84_add_ax','app84_ror16','call_32f8c','call_33124','call_332b4','call_333bc']:
+              assert x in c,x
+          assert '32F4A..32F4B | alignment | 2' in l
+          assert '215,656 / 239,698 = 89.9699% (89.97%)' in p
+          PY
+          git diff --check
+      - name: Commit substantive Batch 84
+        run: |
+          cp Code2/.batch84_integrate.py /tmp/batch84_integrate.py
+          rm -f Code2/.batch84.fragment.cpp Code2/.batch84_integrate.py .github/workflows/integrate-code2-batch84.yml
+          git add -A && git diff --cached --check
+          git commit -m "Integrate CODE.2 decompilation batch 84"
+          git push origin HEAD:code1-decompilation
+          echo "BATCH_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Refresh durable resume checkpoint
+        run: |
+          BATCH_SHA="$BATCH_SHA" python /tmp/batch84_integrate.py checkpoint
+          grep -F "$BATCH_SHA" Code2/RESUME_CHECKPOINT.md
+          grep -F 'Next independently decoded instruction boundary: **`32F4C`**.' Code2/RESUME_CHECKPOINT.md
+          git add Code2/RESUME_CHECKPOINT.md && git diff --cached --check
+          git commit -m "Refresh CODE.2 resume checkpoint after batch 84"
+          git push origin HEAD:code1-decompilation
