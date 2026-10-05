@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 224767u;
-constexpr u32 kVerifiedNonCodeBytes = 4565u;
+constexpr u32 kVerifiedTranslatedBytes = 225087u;
+constexpr u32 kVerifiedNonCodeBytes = 4602u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -643,7 +643,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u + 320u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -27356,5 +27356,37 @@ void function_37339(Runtime123Boundary& b) noexcept {
     if(b.out8)b.out8(0x61u,gate);
 }
 static_assert(0x37348u-0x37339u==15u);
+
+
+// Batch 124: 3736D..3740D and 37433..374D1 radix conversion helpers.
+struct Runtime124Boundary { void (*write8)(u32,u8)=nullptr; };
+static inline void runtime124_write8(Runtime124Boundary& b,u32 p,u8 v) noexcept { if(b.write8)b.write8(p,v); }
+
+[[nodiscard]] u32 function_3736d(Machine& m,Runtime124Boundary& b,u32 value,u32 dst,u32 radix) noexcept {
+    (void)m; u8 tmp[40]{}; u32 n=0u;
+    do { const u32 q=value/radix,r=value%radix; value=q; tmp[++n]=static_cast<u8>(r<10u?('0'+r):('a'+r-10u)); } while(value!=0u);
+    u32 out=dst; do { const u8 ch=tmp[n--]; runtime124_write8(b,out++,ch); if(ch==0u)break; } while(true);
+    return dst;
+}
+[[nodiscard]] u32 function_373bf(Machine& m,Runtime124Boundary& b,s32 value,u32 dst,u32 radix) noexcept {
+    u32 out=dst,bits=static_cast<u32>(value); if(radix==10u&&value<0){bits=0u-bits;runtime124_write8(b,out++,static_cast<u8>('-'));}
+    (void)function_3736d(m,b,bits,out,radix); return dst;
+}
+[[nodiscard]] u32 function_373f4(Machine& m,Runtime124Boundary& b,s32 value,u32 dst,u32 radix) noexcept { return function_373bf(m,b,value,dst,radix); }
+
+[[nodiscard]] u32 function_37433(Machine& m,Runtime124Boundary& b,u32 value,u32 dst,u32 radix) noexcept {
+    (void)m; u8 tmp[40]{}; u32 n=0u;
+    do { const u32 q=value/radix,r=value%radix; value=q; tmp[++n]=static_cast<u8>(r<10u?('0'+r):('a'+r-10u)); } while(value!=0u);
+    u32 out=dst; do { const u8 ch=tmp[n--]; runtime124_write8(b,out++,ch); if(ch==0u)break; } while(true);
+    return dst;
+}
+[[nodiscard]] u32 function_37483(Machine& m,Runtime124Boundary& b,s32 value,u32 dst,u32 radix) noexcept {
+    u32 out=dst,bits=static_cast<u32>(value); if(radix==10u&&value<0){bits=0u-bits;runtime124_write8(b,out++,static_cast<u8>('-'));}
+    (void)function_37433(m,b,bits,out,radix); return dst;
+}
+[[nodiscard]] u32 function_374b8(Machine& m,Runtime124Boundary& b,s32 value,u32 dst,u32 radix) noexcept { return function_37483(m,b,value,dst,radix); }
+
+static_assert(0x3740Eu-0x3736Du==161u);
+static_assert(0x374D2u-0x37433u==159u);
 
 } // namespace code2

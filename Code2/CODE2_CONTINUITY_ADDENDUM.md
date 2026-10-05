@@ -636,3 +636,12 @@ Batch 122 reconciles `36B9C..36CEB`: **328 translated + 8 alignment bytes**. Pre
 - Accounting: **224,767 translated + 4,565 non-code = 229,332 / 239,698 = 95.6754% (95.68%)**; **10,366 unresolved**.
 - Fresh overlap `[372B6,373C8)` SHA-256 `cccc69f3ea9f01660fc5a5fcb3022d991e7243bb42ca2d26199ca71f989bc417`.
 - `3736D` is the next independently decoded instruction boundary; the large `36CEC..372F5` helper remains unresolved.
+
+
+## CODE.2 Batch 124 checkpoint
+
+- Integrated `3736D..3740D` and `37433..374D1`: paired integer/radix conversion families, **320 translated bytes**.
+- Classified `3740E..37432`: second 37-byte lowercase radix alphabet, directly indexed by `37460`.
+- Accounting: **225,087 translated + 4,602 non-code = 229,689 / 239,698 = 95.8243% (95.82%)**; **10,009 unresolved**.
+- Fresh overlap `[3732D,37560)` SHA-256 `fb03d884626319eb3660df9b273a8fa25074d61efbed16ea3b8b77d00cf2ff6a`; batch-owned `[3736D,374E0)` SHA-256 `f3a491f2e6135bce5c6ed930471e07a9b85a43be572f539af57c1862afe97104`.
+- `374D2..374DF` is still-unclassified zero fill; next independent routine begins at `374E0`.

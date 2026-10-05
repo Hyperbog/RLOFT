@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-95.68%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-95.82%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **224,767**
-**Proven non-code/data bytes:** **4,565**
-**Reconciled object bytes:** **229,332 / 239,698 = 95.6754% (95.68%)**
-**Unresolved object bytes:** **10,366**
+**Verified translated instruction bytes:** **225,087**
+**Proven non-code/data bytes:** **4,602**
+**Reconciled object bytes:** **229,689 / 239,698 = 95.8243% (95.82%)**
+**Unresolved object bytes:** **10,009**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -1008,3 +1008,14 @@ Added **82 translated instruction bytes** and **37 directly proven data bytes**.
 - `37348..3736C` — **37 bytes data**: NUL-terminated lowercase radix digit alphabet `0123456789abcdefghijklmnopqrstuvwxyz`; directly referenced with a CS override by the independently bounded conversion helper beginning at `3736D`.
 
 Fresh overlap window `[372B6,373C8)` SHA-256: `cccc69f3ea9f01660fc5a5fcb3022d991e7243bb42ca2d26199ca71f989bc417`. The pre-`372F6` bytes belong to the still-unresolved large helper ending at `372F5` and were verification only.
+
+
+## Batch 124 — paired integer/radix conversion families
+
+Added **320 translated instruction bytes** and **37 directly proven data bytes**.
+
+- `3736D..3740D` — **161 bytes**: unsigned radix conversion, signed base-10 sign wrapper, and forwarding wrapper. The converter repeatedly divides by the requested radix, indexes the Batch-123 alphabet with the remainder, then reverse-copies through the local NUL sentinel.
+- `3740E..37432` — **37 bytes data**: second NUL-terminated lowercase radix alphabet, directly indexed via `CS:[EDX+3740Eh]` at `37460`.
+- `37433..374D1` — **159 bytes**: second independently emitted unsigned/signed/wrapper conversion family. Signed negation is preserved as 32-bit wraparound, including `INT_MIN`; a minus sign is emitted only for radix 10.
+
+Fresh overlap `[3732D,37560)` SHA-256: `fb03d884626319eb3660df9b273a8fa25074d61efbed16ea3b8b77d00cf2ff6a`. Batch-owned `[3736D,374E0)` SHA-256: `f3a491f2e6135bce5c6ed930471e07a9b85a43be572f539af57c1862afe97104`. `374D2..374DF` remains unresolved zero fill; appearance alone is not used as proof.
