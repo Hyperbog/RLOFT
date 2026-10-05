@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-83.80%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-85.52%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **196,867**
-**Proven non-code/data bytes:** **3,993**
-**Reconciled object bytes:** **200,860 / 239,698 = 83.7971% (83.80%)**
-**Unresolved object bytes:** **38,838**
+**Verified translated instruction bytes:** **200,937**
+**Proven non-code/data bytes:** **4,059**
+**Reconciled object bytes:** **204,996 / 239,698 = 85.5226% (85.52%)**
+**Unresolved object bytes:** **34,702**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -766,3 +766,19 @@ Source identity and the Batch-68 overlap were reverified before this batch. Adde
 `2F0B4` chooses the minimum unsigned 16-bit age among matching unlocked records and reloads the signed slot/item counts exactly as encoded. `2F2EC` preserves signed 16-bit device fields and low-16-bit I/O port behavior, and treats the `2F2E0` callback as a far-return boundary rather than a normal near callback. `2F1E4` intentionally exempts the same global item index in every slot, rather than interpreting `F0C0` as a slot-qualified pair.
 
 The next independent routine begins at **`2F580`**.
+
+## Batch 70 — expanded presentation, buffered resource decode, image materialization, and text helpers
+
+Added **4,070 translated instruction bytes** and **66 proven non-code/data bytes**, bringing cumulative accounting to **200,937 translated + 4,059 non-code = 204,996 / 239,698 = 85.5226% (85.52%)**.
+
+- `2F580..2F5F0` — presentation/error wrapper around the interactive prompt path and backend restore.
+- `2F5F4..2F838` — centered prompt/input presenter, including the encoded incoming-ESI return on delay-only mode, page restoration, and mode-5 auxiliary state.
+- `2F83C..2F95F` — presentation flags plus deferred prompt construction; `2F860` deliberately falls through into the independently callable `2F868`.
+- `2F960..2FD89` — 1 KiB buffered stream reader, byte/RLE reader, callback-driven row assembly, and raw/RLE planar loaders.
+- `2FD8C..2FD9B` — exact four-entry CS jump table owned by `2FD9C`: `2FEBC,2FF32,2FFA4,2FFAB`.
+- `2FD9C..30248` — image loader/materializer and capture/descriptor wrappers, preserving signed `IDIV`, low-word allocation truncation in `30070`, and `30050`'s upper-EAX preservation across AX-only multiply.
+- `3024C..305A5` — text mutation, metrics, character/string rendering, cursor state, centering, and optional masked draw path. `303C8` and `30458` retain the binary's shared-return behavior semantically without double-counting the earlier tail bytes.
+
+Proven separators/table bytes total **66**; a full object-1 disassembly reference scan found no incoming reference into any separator. The only reference into the non-code ranges is the expected indirect `CS:[2FD8C + index*4]` jump-table use by `2FD9C`.
+
+Sequential frontier: **`305A8`**. Semantic audit remains not started.
