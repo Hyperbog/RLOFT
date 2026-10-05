@@ -560,3 +560,6 @@ Batch 104 reconciles `33FB4..3426F`: **690 translated + 10 proven non-code bytes
 ## CODE.2 Batch 105 checkpoint
 
 Batch 105 reconciles `34270..342E3`: **114 translated + 2 alignment bytes**. Coverage is **220,672 / 239,698 = 92.0625% (92.06%)**, with **19,026 unresolved bytes**. Preserve the separate `34270` and `34275` entry semantics, repeated negative normalization versus single high-side subtraction, word-width table load with dword stride, and 32-bit negation in quadrants 2/3. `342E2..342E3` is alignment; `342E4` is independently called and begins the stack-sharing renderer.
+## CODE.2 Batch 106 checkpoint
+
+Batch 106 reconciles `342E4..34997`: **1,710 translated + 6 alignment bytes**. Coverage is **222,388 / 239,698 = 92.7784% (92.78%)**, with **17,310 unresolved bytes**. Preserve the stack-sharing return-token behavior at `10258`, address-distinct `342E4/34954` plane-mask sequences, the exact 64-pixel `34350` sampler, pre-sample EAX/EDX additions, two-stage SHLD index formation, byte-width AL/AH subtraction with EAX.low8 rewrite, per-pixel `FF54` reload, and ES-qualified STOSB/EDI advance. Separator islands are `34951..34953` and `34995..34997`. Next frontier is `34998`.

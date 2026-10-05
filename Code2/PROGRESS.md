@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-92.06%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-92.78%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **216,362**
-**Proven non-code/data bytes:** **4,310**
-**Reconciled object bytes:** **220,672 / 239,698 = 92.0625% (92.06%)**
-**Unresolved object bytes:** **19,026**
+**Verified translated instruction bytes:** **218,072**
+**Proven non-code/data bytes:** **4,316**
+**Reconciled object bytes:** **222,388 / 239,698 = 92.7784% (92.78%)**
+**Unresolved object bytes:** **17,310**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -914,3 +914,6 @@ Added **690 translated instruction bytes** and **10 proven non-code bytes**, bri
 ## Batch 105 — dual-entry angle/table helper
 
 Added **114 translated instruction bytes** and **2 alignment bytes**, bringing accounting to **216,362 translated + 4,310 non-code = 220,672 / 239,698 = 92.0625% (92.06%)**. `34270` and `34275` are distinct callable entries into one shared body: `34270` first subtracts `10Eh`, while callers at `349CB/349F3` enter at `34275` and skip that subtraction. Negative values are normalized by repeated `+168h`; nonnegative values at or above `168h` receive only the single encoded subtraction. The body folds the angle into a 0..90-style table index using the encoded 5Ah/B4h/10Eh quadrant tests, reads only the low word at `[EBX + EDI*4]`, applies `(value+1)>>2`, and negates the 32-bit result only for quadrants with bit 1 set. `342E2..342E3` is unreferenced `XCHG EBX,EBX` alignment. Next frontier: **`342E4`**.
+## Batch 106 — stack-sharing planar renderers
+
+Added **1,710 translated instruction bytes** and **6 alignment bytes**, bringing accounting to **218,072 translated + 4,316 non-code = 222,388 / 239,698 = 92.7784% (92.78%)**. `342E4` and `34954` preserve the binary's stack-sharing ABI by making the saved return token and POP-consumed raster pairs explicit inputs while still recording the temporary return token at `10258`. `34350..34950` is the exact shared 64-pixel unrolled sampler: each pixel advances EDX/EAX first, builds a 12-bit source index through the two `SHLD ...,6` operations, reloads the source base from `FF54`, performs byte-width `LODS AL; SUB AL,AH`, rewrites EAX.low8, and emits one ES-qualified byte while incrementing EDI. `342E4` runs masks `0802/0402/0202/0102`; `34954` runs `0C02/0302`. `34951..34953` and `34995..34997` are unreferenced `XCHG EBX,EBX + NOP` separators. Next frontier: **`34998`**.
