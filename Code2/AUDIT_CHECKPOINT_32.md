@@ -32,8 +32,12 @@ Checkpoint span:
 Next-frontier overlap:
 
 - `[0x33962,0x33A22)` = 192 bytes
-- SHA-256: `9439f44a8c3bb0656f1edffefca7ab474c87436f02e18c7238f30dfb08d4f0c4b`
-- confirms the `3395C` wrapper/return boundary, alignment at `339A0..339A1`, and independent routine entry at `339A2`.
+- SHA-256: `812a92cb21c279b4704ded95b14ac8e1a4572ae692c1b6b04afd8346f9d12b8d`
+- confirms the `3395C` wrapper/return boundary, the `33971` bounded copy/zero-fill helper through `339A1`, and independent routine entry at `339A2`.
+
+### Resume-hash correction
+
+The checkpoint was originally committed with next-frontier overlap hash `9439f44a8c3bb0656f1edffefca7ab474c87436f02e18c7238f30dfb08d4f0c4b`. On the Part 8 resume, the mandatory interruption protocol re-extracted object 1 from immutable `CODE.2`; both immutable source hashes reproduced exactly, but the stated 192-byte overlap hash did not. Direct hashing of the exact documented window `[0x33962,0x33A22)` from the reverified object gives `812a92cb21c279b4704ded95b14ac8e1a4572ae692c1b6b04afd8346f9d12b8d`. The prior value was therefore a checkpoint-documentation error, not a binary or ownership change. Forward semantic-audit progress was frozen until this anchor was repaired. Coverage, semantic frontier, and defect counts are unchanged.
 
 ## Ownership families reviewed
 
@@ -55,7 +59,7 @@ Preserved address-distinct wrappers and encoded control flow. Rechecked repeated
 
 ### `335DC..339A1` — transformation/wrapper tail family
 
-Rechecked narrow loads/stores, wrapped arithmetic, stack ordering, and alignment ownership. The final wrapper returns before the two-byte alignment at `339A0..339A1`; `339A2` is independently owned by the next routine.
+Rechecked narrow loads/stores, wrapped arithmetic, stack ordering, and alignment ownership. `3395C..33970` is the 16-bit VGA sequencer output wrapper and `33971..339A1` is the bounded byte-copy/zero-fill helper; `339A2` is independently owned by the next routine.
 
 ## CODE.1 cross-reference defect checklist
 
@@ -74,4 +78,4 @@ No new CODE.2 mismatch was established.
 
 ## Result
 
-Checkpoint 32 establishes semantic closure through object offset **`0x339A1`**. No reconstruction edit is required from this pass. The next independent semantic frontier is **`0x339A2`**.
+Checkpoint 32 establishes semantic closure through object offset **`0x339A1`**. No reconstruction edit is required from this pass. The next independent semantic frontier remains **`0x339A2`**.
