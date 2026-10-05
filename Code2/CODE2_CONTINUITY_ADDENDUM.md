@@ -509,3 +509,6 @@ Batch 87 reconciles `33124..332B3`: **399 translated + 1 alignment byte**. Cover
 ## CODE.2 Batch 88 checkpoint
 
 Batch 88 reconciles `332B4..333BB`: **262 translated + 2 alignment bytes**. Coverage is **216,792 / 239,698 = 90.4438% (90.44%)**, with **22,906 unresolved bytes**. Preserve the low-word unsigned comparison at `255E8`, modular `FCE4-8000h` bias arithmetic on the full dword source, `0FC0h` mask after the shift, high-class extraction, and direct `256A2/25622` table writes. Next frontier is `333BC`.
+## CODE.2 Batch 89 checkpoint
+
+Batch 89 reconciles `333BC..334C3`: **262 translated + 2 alignment bytes**. Coverage is **217,056 / 239,698 = 90.5539% (90.55%)**, with **22,642 unresolved bytes**. Preserve the `255F0` source distinction from Batch 88, low-word unsigned comparison, full-dword modular bias arithmetic, `0FC0h` quantization, and direct record writes. Next frontier is `334C4`.
