@@ -882,3 +882,9 @@ Batch 125 adds **22 proven non-code/alignment bytes**, bringing the cumulative n
 - `3780D..3780F` — 3-byte `XCHG EBX,EBX; NOP` alignment before `37810`.
 
 Batch 126 adds **26 proven non-code/alignment bytes**, cumulative **4,650**.
+
+
+## Batch 127 additions
+- `379C1..379CF` — 15 zero separator bytes between the DOS vector wrapper and the independently decoded routine at `379D0`.
+
+Batch 127 adds **15 proven non-code/alignment bytes**, cumulative **4,665**.

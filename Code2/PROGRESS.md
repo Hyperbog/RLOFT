@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-96.17%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-96.36%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **225,869**
-**Proven non-code/data bytes:** **4,650**
-**Reconciled object bytes:** **230,519 / 239,698 = 96.1706% (96.17%)**
-**Unresolved object bytes:** **9,179**
+**Verified translated instruction bytes:** **226,302**
+**Proven non-code/data bytes:** **4,665**
+**Reconciled object bytes:** **230,967 / 239,698 = 96.3575% (96.36%)**
+**Unresolved object bytes:** **8,731**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -1029,3 +1029,8 @@ Added **277 translated instruction bytes** and **22 directly proven alignment by
 ## Batch 126 — INT 24h bridge and dictionary decoder
 
 Added **505 translated instruction bytes** and **26 proven alignment bytes** across `375FD..3780F`. `375FE..37641` installs the critical-error bridge with the encoded extender-mode split; `37642..376E8` is the interrupt bridge with saved SS:ESP, private-stack switch, BP:SI linearization, far callback, LSS restoration, and IRET. `376F0` is an address-taken one-byte RET stub. `37700..3780C` is the 4 KiB ring-dictionary decoder; only the first `0xFEE` dictionary bytes are initialized to `FEh`, exactly matching the encoded `REP STOSB`. Proven separators are `375FD`, `376E9..376EF`, `376F1..376FF`, and `3780D..3780F`. Next boundary: **`37810`**. Accounting: **225,869 translated + 4,650 non-code/data = 230,519 / 239,698 = 96.1706% (96.17%)**, leaving **9,179 unresolved bytes**.
+
+
+## Batch 127 — planar permutation and DOS vector wrappers
+
+Added **433 translated instruction bytes** and **15 proven zero separator bytes** across `37810..379CF`. `37810..37957` is the type-1 planar payload permutation/conversion helper using the scratch permutation table at `10610h`; it preserves the optional header-byte skip, four-way index mapping, in-place strip swaps, and header collapse. `37958..3798C` and `3798D..379C0` are DOS set/get interrupt-vector wrappers with the encoded extender-mode 2..8 split. `379C1..379CF` is a 15-byte zero separator before the next routine at `379D0`. Accounting: **226,302 translated + 4,665 non-code/data = 230,967 / 239,698 = 96.3575% (96.36%)**, leaving **8,731 unresolved bytes**.

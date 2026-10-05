@@ -654,3 +654,7 @@ Batch 125 reconciles `374D2..375FD`: **277 translated + 22 alignment bytes**. Co
 
 ## CODE.2 Batch 126 checkpoint
 Batch 126 reconciles `375FD..3780F`: **505 translated + 26 alignment bytes**. Coverage is **230,519 / 239,698 = 96.1706% (96.17%)**, with **9,179 unresolved bytes**. Preserve the interrupt bridge private-stack/LSS/IRET behavior and the decoder's partial `0xFEE`-byte dictionary initialization plus 16-bit ring arithmetic. Next boundary is `37810`; `36CEC..372F5` remains unresolved.
+
+
+## CODE.2 Batch 127 checkpoint
+Batch 127 reconciles `37810..379CF`: **433 translated + 15 separator bytes**. Coverage is **230,967 / 239,698 = 96.3575% (96.36%)**, with **8,731 unresolved bytes**. Preserve the `37810` scratch-table permutation and the DOS vector wrappers' extender-mode 2..8 split. Next boundary is `379D0`; `36CEC..372F5` remains unresolved.
