@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 212265u;
-constexpr u32 kVerifiedNonCodeBytes = 4263u;
+constexpr u32 kVerifiedTranslatedBytes = 212527u;
+constexpr u32 kVerifiedNonCodeBytes = 4265u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -25097,5 +25097,39 @@ void function_33124(Machine& m,Application86Boundary& b) noexcept {
 }
 static_assert(0x332B3u-0x33124u==399u);
 // 332B3 is an unreferenced NOP alignment byte.
+
+
+// Batch 88: 332B4..333B9 offset-biased record materialization.
+void function_332b4(Machine& m,Application86Boundary& b) noexcept {
+    const u32 source=load_le32(dg(m,0x255E8u));
+    const u32 bias=static_cast<u32>(load_le16(dg(m,0xFCE4u)))-0x8000u;
+    u32 adjusted=source+bias;
+    if(load_le16(dg(m,0x255E8u))>=0x8000u)adjusted=source-bias;
+    const u32 record_offset=(adjusted>>4)&0x0FC0u;
+
+    const u32 index2=load_le32(dg(m,0xFCDCu))*2u;
+    const u32 flags_addr=0x198E0u+index2;
+    const u16 flags=static_cast<u16>(load_le16(dg(m,flags_addr))|0x0440u);
+    store_le16(dg(m,flags_addr),flags);
+    const u32 high_class=(static_cast<u32>(flags)&0xC000u)>>14;
+    const u32 depth=b.call_35730?b.call_35730():0u;
+
+    const u32 rec=0x15A18u+load_le32(dg(m,0xC6FCu))*0x1Cu;
+    store_le32(dg(m,rec+0x00u),depth);
+    store_le32(dg(m,rec+0x18u),high_class);
+    store_le32(dg(m,rec+0x10u),record_offset);
+    store_le32(dg(m,rec+0x0Cu),load_le32(dg(m,0xFCD4u)));
+    store_le32(dg(m,rec+0x14u),load_le32(dg(m,0xFCDCu)));
+    const u32 table_index=load_le32(dg(m,0xC700u))*2u;
+    store_le32(dg(m,rec+0x04u),static_cast<u32>(load_le16(dg(m,0x256A2u+table_index))));
+    store_le32(dg(m,rec+0x08u),static_cast<u32>(load_le16(dg(m,0x25622u+table_index))));
+
+    if(load_le32(dg(m,rec+0x08u))==0x93u)store_le32(dg(m,0x22220u),0u);
+    const s32 signed_depth=static_cast<s32>(depth);
+    if(signed_depth<static_cast<s32>(load_le32(dg(m,0x22220u))))store_le32(dg(m,0x22220u),depth);
+    if(signed_depth>static_cast<s32>(load_le32(dg(m,0xBF34u))))store_le32(dg(m,0xBF34u),depth);
+}
+static_assert(0x333BAu-0x332B4u==262u);
+// 333BA..333BB is XCHG EBX,EBX alignment with no incoming direct control-flow target.
 
 } // namespace code2

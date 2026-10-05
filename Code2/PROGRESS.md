@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-90.33%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-90.44%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **212,265**
-**Proven non-code/data bytes:** **4,263**
-**Reconciled object bytes:** **216,528 / 239,698 = 90.3337% (90.33%)**
-**Unresolved object bytes:** **23,170**
+**Verified translated instruction bytes:** **212,527**
+**Proven non-code/data bytes:** **4,265**
+**Reconciled object bytes:** **216,792 / 239,698 = 90.4438% (90.44%)**
+**Unresolved object bytes:** **22,906**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -860,3 +860,6 @@ Added **406 translated instruction bytes** and **2 alignment bytes**, bringing a
 ## Batch 87 — right-sweep record materialization
 
 Added **399 translated instruction bytes** and **1 alignment byte**, bringing accounting to **212,265 translated + 4,263 non-code = 216,528 / 239,698 = 90.3337% (90.33%)**. `33124` is the right-sweep counterpart to `32F8C`, retaining its distinct `25604` mirroring rule, `s16(25606)*2` alternate displacement, `248E6` snapshot, and `256A2/25622` tables. Next frontier: **`332B4`**.
+## Batch 88 — offset-biased record materialization
+
+Added **262 translated instruction bytes** and **2 alignment bytes**, bringing accounting to **212,527 translated + 4,265 non-code = 216,792 / 239,698 = 90.4438% (90.44%)**. `332B4` adjusts the `255E8` source around the unsigned `FCE4-8000h` bias according to bit 15 of `255E8`, quantizes the result to the `0FC0h` record offset, preserves current-cell high-class bits, and populates the `256A2/25622` record fields without the alternate-cell/extra path used by Batches 86–87. Next frontier: **`333BC`**.

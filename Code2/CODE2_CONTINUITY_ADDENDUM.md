@@ -506,3 +506,6 @@ Batch 86 reconciles `32F8C..33123`: **406 translated + 2 alignment bytes**. Cove
 ## CODE.2 Batch 87 checkpoint
 
 Batch 87 reconciles `33124..332B3`: **399 translated + 1 alignment byte**. Coverage is **216,528 / 239,698 = 90.3337% (90.33%)**, with **23,170 unresolved bytes**. Preserve its asymmetries versus Batch 86: negative `25604` increments `255EA` without offset mirroring, the alternate-cell displacement is `s16(25606)*2`, and the table pair is `256A2/25622`. Next frontier is `332B4`.
+## CODE.2 Batch 88 checkpoint
+
+Batch 88 reconciles `332B4..333BB`: **262 translated + 2 alignment bytes**. Coverage is **216,792 / 239,698 = 90.4438% (90.44%)**, with **22,906 unresolved bytes**. Preserve the low-word unsigned comparison at `255E8`, modular `FCE4-8000h` bias arithmetic on the full dword source, `0FC0h` mask after the shift, high-class extraction, and direct `256A2/25622` table writes. Next frontier is `333BC`.
