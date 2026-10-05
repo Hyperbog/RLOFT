@@ -518,3 +518,6 @@ Batch 90 reconciles `334C4..335DB`: **280 translated bytes** and no separator by
 ## CODE.2 Batch 91 checkpoint
 
 Batch 91 reconciles `335DC..337C7`: **491 translated + 1 alignment byte**. Coverage is **217,828 / 239,698 = 90.8760% (90.88%)**, with **21,870 unresolved bytes**. Preserve the first-pass `+0Ch == 1` search/restart semantics, signed `JGE` exit after search, run grouping on record fields `+0/+10h`, the first-pass `+4` versus second-pass `+8` source for `C700`, unconditional second-pass record-zero initialization, and the binary's distinct initial-run versus changed-run ordering around `255E4` and `2F29C`. Next frontier is `337C8`.
+## CODE.2 Batch 92 checkpoint
+
+Batch 92 reconciles `337C8..33807`: **63 translated + 1 alignment byte**. Coverage is **217,892 / 239,698 = 90.9027% (90.90%)**, with **21,806 unresolved bytes**. Preserve signed-byte slot initialization, 16-bit wrapping `CX` accumulation, signed `CMP ECX,EDX / JGE`, the signed loop test after the first `SUB EBX,2`, and the separate unsigned-borrow test after the second subtraction. Next frontier is `33808`.

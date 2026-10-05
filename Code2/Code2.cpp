@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 213560u;
-constexpr u32 kVerifiedNonCodeBytes = 4268u;
+constexpr u32 kVerifiedTranslatedBytes = 213623u;
+constexpr u32 kVerifiedNonCodeBytes = 4269u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -25318,5 +25318,26 @@ first_pass_done:
 }
 static_assert(0x337C7u-0x335DCu==491u);
 // 337C7 is an unreferenced NOP alignment byte.
+
+
+// Batch 92: 337C8..33806 weighted-word lookup with signed starting slot.
+u32 function_337c8(Machine& m,u32 table,u32 target) noexcept {
+    u32 cx=0u;
+    u32 slot=static_cast<u32>(static_cast<s32>(static_cast<signed char>(*dg(m,0x25621u))));
+    slot<<=1;
+    for(;;){
+        cx=static_cast<u16>(static_cast<u16>(cx)+load_le16(dg(m,table+slot+0x102u)));
+        if(static_cast<s32>(cx)>=static_cast<s32>(target))break;
+        slot-=2u;
+        if(static_cast<s32>(slot)>=0)continue;
+        break;
+    }
+    const bool no_borrow=slot>=2u;
+    slot-=2u;
+    if(!no_borrow)slot=0u;
+    return static_cast<u32>(load_le16(dg(m,table+slot)));
+}
+static_assert(0x33807u-0x337C8u==63u);
+// 33807 is an unreferenced NOP alignment byte.
 
 } // namespace code2
