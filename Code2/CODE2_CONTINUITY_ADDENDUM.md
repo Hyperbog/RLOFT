@@ -542,3 +542,6 @@ Batch 98 reconciles `33A7C..33A9F`: **35 translated + 1 alignment byte**. Covera
 ## CODE.2 Batch 99 checkpoint
 
 Batch 99 reconciles `33AA0..33B43`: **161 translated + 3 alignment bytes**. Coverage is **218,720 / 239,698 = 91.2482% (91.25%)**, with **20,978 unresolved bytes**. Preserve `33AA0`'s raw local frame offsets and exact four-argument call to `33A7C` rather than replacing it with a host DPMI API; preserve the 32h-byte zeroing at `2B770`, `53C1h` at `+1Ch`, high-word extraction from `FD14` into word `+22h`, and the post-call equality test at `33AF4`. `33AF3` and `33B42..33B43` are unreferenced alignment. Next frontier is `33B44`.
+## CODE.2 Batch 100 checkpoint
+
+Batch 100 reconciles `33B44..33C8F`: **332 translated bytes** and no separator bytes. Coverage is **219,052 / 239,698 = 91.3867% (91.39%)**, with **20,646 unresolved bytes**. Preserve low-word AX/BX publication from the direct INT 33h reset, the `30D80(40h,&FD14,&FD18)` allocation contract, retained allocation on a nonzero probe byte, selector-only `30DE8` free on a zero probe, the inlined real-mode frame construction rather than replacing it with the address-distinct `33AF4` helper, and the reset-failure cleanup ordering through `311E8`, `27ECC`, `285D4`, `362BE`, `30C38`, and `352BE`. Next frontier is `33C90`.

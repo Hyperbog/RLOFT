@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-91.25%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-91.39%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **214,442**
+**Verified translated instruction bytes:** **214,774**
 **Proven non-code/data bytes:** **4,278**
-**Reconciled object bytes:** **218,720 / 239,698 = 91.2482% (91.25%)**
-**Unresolved object bytes:** **20,978**
+**Reconciled object bytes:** **219,052 / 239,698 = 91.3867% (91.39%)**
+**Unresolved object bytes:** **20,646**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -896,3 +896,6 @@ Added **35 translated instruction bytes** and **1 alignment byte**, bringing acc
 ## Batch 99 — DPMI real-mode INT 33h simulation wrapper
 
 Added **161 translated instruction bytes** and **3 alignment bytes**, bringing accounting to **214,442 translated + 4,278 non-code = 218,720 / 239,698 = 91.2482% (91.25%)**. `33AA0` constructs the binary's exact 1Ch-byte input/output register block and 0Ch-byte segment block for DPMI function `0300h`, placing `33h` in the second dword, zero in the third, the caller's real-mode frame pointer at local `+14h`, and DS in segment word zero before invoking the already translated `33A7C` adapter for INT `31h`. `33AF4` clears the full 32h-byte frame at `2B770`, seeds its `+1Ch` dword with `53C1h`, stores the high word of `FD14` into frame word `+22h`, simulates INT 33h, and returns whether the returned `+1Ch` dword equals one. Next frontier: **`33B44`**.
+## Batch 100 — mouse/runtime initialization and DOS-memory probe
+
+Added **332 translated instruction bytes**, bringing accounting to **214,774 translated + 4,278 non-code = 219,052 / 239,698 = 91.3867% (91.39%)**. `33B44` first executes the native protected-mode INT 33h reset and publishes its low AX/BX words at `2B7A2/2B7A4` while clearing `2B7A6`. If a mouse driver is present it allocates 40h bytes of DOS memory through `30D80`, builds the same 32h-byte real-mode frame used by Batch 99, simulates INT 33h through `33AA0`, copies the first DOS-memory byte to `2B7A6` only when returned frame EAX equals one, and frees the DOS selector only when that probe word remains zero. If the native reset reports no driver, the encoded `311E8`/device cleanup/reporting path is preserved, including the `71h` device-kind bypass and cached `EE78|EE40` cleanup mask. The function returns the address `2B7A2`, not its contents. Next frontier: **`33C90`**.

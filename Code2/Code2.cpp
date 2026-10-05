@@ -23,7 +23,7 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 214442u;
+constexpr u32 kVerifiedTranslatedBytes = 214774u;
 constexpr u32 kVerifiedNonCodeBytes = 4278u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -25608,5 +25608,69 @@ static_assert(0x33AF3u-0x33AA0u==83u);
 // 33AF3 is an unreferenced NOP alignment byte.
 static_assert(0x33B42u-0x33AF4u==78u);
 // 33B42..33B43 is unreferenced MOV EAX,EAX alignment; 33B44 has independent callers.
+
+
+// Batch 100: 33B44..33C8F mouse/runtime initialization with DOS-memory probe fallback.
+struct Runtime100MouseResetResult {
+    u32 eax=0u;
+    u32 ebx=0u;
+};
+struct Runtime100Boundary {
+    Runtime100MouseResetResult (*int33_reset)()=nullptr;
+    u32 (*call_30d80)(u32,u32,u32)=nullptr;
+    u32 (*call_33aa0)(u32)=nullptr;
+    u32 (*call_30de8)(u32)=nullptr;
+    void (*call_311e8)(u32)=nullptr;
+    void (*call_27ecc)()=nullptr;
+    void (*call_285d4)()=nullptr;
+    void (*call_362be)(u32)=nullptr;
+    void (*call_30c38)()=nullptr;
+    void (*call_352be)(u32)=nullptr;
+};
+
+u32 function_33b44(Machine& m,Runtime100Boundary& b) noexcept {
+    const Runtime100MouseResetResult reset=b.int33_reset?b.int33_reset():Runtime100MouseResetResult{};
+    store_le16(dg(m,0x2B7A2u),static_cast<u16>(reset.eax));
+    store_le16(dg(m,0x2B7A6u),0u);
+    store_le16(dg(m,0x2B7A4u),static_cast<u16>(reset.ebx));
+
+    if(load_le16(dg(m,0x2B7A2u))!=0u){
+        const u32 linear=b.call_30d80?b.call_30d80(0x40u,0xFD14u,0xFD18u):0u;
+        store_le32(dg(m,0xFD10u),linear);
+        if(linear==0u)return 0x2B7A2u;
+
+        const u32 frame=0x2B770u;
+        for(u32 i=0u;i<0x32u;++i)*dg(m,frame+i)=0u;
+        store_le32(dg(m,frame+0x1Cu),0x000053C1u);
+        const u32 segment=load_le32(dg(m,0xFD14u))>>16;
+        store_le32(dg(m,frame+0x14u),0u);
+        store_le16(dg(m,frame+0x22u),static_cast<u16>(segment));
+        if(b.call_33aa0)(void)b.call_33aa0(frame);
+
+        if(load_le32(dg(m,frame+0x1Cu))==1u){
+            const u16 probe=static_cast<u16>(*dg(m,load_le32(dg(m,0xFD10u))));
+            store_le16(dg(m,0x2B7A6u),probe);
+        }
+        if(load_le16(dg(m,0x2B7A6u))==0u){
+            const u32 selector=static_cast<u32>(load_le16(dg(m,0xFD18u)));
+            if(b.call_30de8)(void)b.call_30de8(selector);
+        }
+        return 0x2B7A2u;
+    }
+
+    if(b.call_311e8)b.call_311e8(0x15C8u);
+    const u32 device=load_le32(dg(m,0xF050u));
+    const u32 cleanup_mask=load_le32(dg(m,0xEE78u))|load_le32(dg(m,0xEE40u));
+    const s16 device_kind=static_cast<s16>(load_le16(dg(m,device+0x08u)));
+    if(device_kind!=0x71){
+        if(load_le16(dg(m,device+0x14u))!=0u && b.call_27ecc)b.call_27ecc();
+        if(b.call_285d4)b.call_285d4();
+        if(cleanup_mask!=0u && b.call_362be)b.call_362be(0u);
+    }
+    if(b.call_30c38)b.call_30c38();
+    if(b.call_352be)b.call_352be(1u);
+    return 0x2B7A2u;
+}
+static_assert(0x33C90u-0x33B44u==332u);
 
 } // namespace code2
