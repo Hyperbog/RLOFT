@@ -14,9 +14,9 @@ jobs:
         with:
           ref: code1-decompilation
       - name: Integrate final CODE.2 fold
-        run: python3 Code2/.code2_final_integrate.py integrate
+        run: python3 Code2/.batch143_integrate.py integrate
       - name: Verify integration
-        run: python3 Code2/.code2_final_integrate.py verify
+        run: python3 Code2/.batch143_integrate.py verify
       - name: Syntax check CODE.2 C++
         run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
       - name: Diff check
