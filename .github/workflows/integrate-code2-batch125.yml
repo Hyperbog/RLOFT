@@ -1,0 +1,71 @@
+name: Integrate CODE.2 Batch 125
+on:
+  push:
+    branches: [code1-decompilation]
+    paths: ['.github/workflows/integrate-code2-batch125.yml']
+permissions:
+  contents: write
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+          fetch-depth: 0
+      - run: |
+          git config user.name "CODE.2 Decompilation Bot"
+          git config user.email "actions@users.noreply.github.com"
+      - run: python Code2/.batch125_integrate.py integrate
+      - run: python Code2/.batch125_integrate.py verify
+      - run: |
+          g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+          git diff --check
+      - name: Commit substantive batch
+        run: |
+          rm Code2/.batch125.fragment.cpp Code2/.batch125_integrate.py .github/workflows/integrate-code2-batch125.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "Integrate CODE.2 decompilation batch 125"
+          git push origin HEAD:code1-decompilation
+          echo "BATCH_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Refresh checkpoint
+        run: |
+          cat > Code2/RESUME_CHECKPOINT.md <<EOF
+          # CODE.2 resume checkpoint
+
+          Durable handoff anchor; live repository/binary evidence wins.
+
+          ## Last committed substantive decompilation state
+          - Last substantive batch commit: \`${BATCH_SHA}\` — \`Integrate CODE.2 decompilation batch 125\`.
+          - Verified translated instruction bytes: **225,364**.
+          - Proven non-code/data bytes: **4,624**.
+          - Reconciled object bytes: **229,988 / 239,698 = 95.9491% (95.95%)**.
+          - Unresolved object bytes: **9,710**.
+          - Last integrated ownership fold: \`374D2..375FD\`.
+          - Next independently decoded instruction boundary: **\`375FE\`**.
+          - The earlier large helper \`36CEC..372F5\` remains unresolved.
+
+          ## Immutable identity
+          - \`CODE.2\` SHA-256: \`853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314\`.
+          - Object-1 SHA-256: \`014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3\`.
+
+          ## Mandatory overlap anchor for next resume
+          - Window \`[0x375BE,0x37680)\` — overlap around the new frontier; recompute and verify directly from the immutable object before Batch 126 ownership.
+          - Batch-owned \`[0x374D2,0x375FE)\` must not be recounted.
+          - Overlap bytes are verification only.
+
+          ## Batch 125 interpretation
+          - \`374D2..374DF\`: 14 proven zero alignment bytes.
+          - \`374E0..3757B\`: 28-byte header clone plus variable-tail read helper.
+          - \`3757C..37588\`: free wrapper.
+          - \`37589..3758F\`: 7 proven zero alignment bytes.
+          - \`37590..375EE\`: two-byte length-prefixed allocation/fill helper.
+          - \`375EF\`: explicit NOP separator.
+          - \`375F0..375FC\`: second free wrapper.
+          - \`375FD\` remains outside translated ownership but is proven separator only if retained in ledger accounting; next instruction starts at \`375FE\`.
+          EOF
+          git add Code2/RESUME_CHECKPOINT.md
+          git diff --cached --check
+          git commit -m "Refresh CODE.2 resume checkpoint after batch 125"
+          git push origin HEAD:code1-decompilation
