@@ -1,5 +1,5 @@
 name: Retry CODE.2 Batch 140
-# final accounting-form retry
+# shared-jump accounting retry
 on:
   push:
     branches: [code1-decompilation]
