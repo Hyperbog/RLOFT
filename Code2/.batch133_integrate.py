@@ -10,7 +10,8 @@ def integrate():
   s=s[:pos]+f+s[pos:]
  s=re.sub(r'kVerifiedTranslatedBytes\s*=\s*229073u','kVerifiedTranslatedBytes = 229335u',s)
  m=re.search(r'(static_assert\(kVerifiedTranslatedBytes\s*==\s*)(.*?)(\);)',s,re.S)
- if m and '+ 262u' not in m.group(2): s=s[:m.start(2)]+m.group(2).rstrip()+' + 262u'+s[m.end(2):]
+ if m and not m.group(2).rstrip().endswith('+ 262u'):
+  s=s[:m.start(2)]+m.group(2).rstrip()+' + 262u'+s[m.end(2):]
  cpp.write_text(s)
  p=prog.read_text().replace('object%20accounting-97.52%25','object%20accounting-97.63%25').replace('**Verified translated instruction bytes:** **229,073**','**Verified translated instruction bytes:** **229,335**').replace('**Reconciled object bytes:** **233,745 / 239,698 = 97.5165% (97.52%)**','**Reconciled object bytes:** **234,007 / 239,698 = 97.6258% (97.63%)**').replace('**Unresolved object bytes:** **5,953**','**Unresolved object bytes:** **5,691**')
  if '## Batch 133 —' not in p:p+=note
