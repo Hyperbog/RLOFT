@@ -7,6 +7,9 @@ marker='// ---------------------------------------------------------------------
 assert marker in text
 text=text.replace('constexpr u32 kVerifiedTranslatedBytes = 222129u;','constexpr u32 kVerifiedTranslatedBytes = 223532u;',1)
 text=text.replace('constexpr u32 kVerifiedNonCodeBytes = 4471u;','constexpr u32 kVerifiedNonCodeBytes = 4472u;',1)
+old_tail='+ 488u + 89u + 309u);'
+assert old_tail in text
+text=text.replace(old_tail,'+ 488u + 89u + 309u + 1403u);',1)
 text=text.replace(marker,frag+'\n// 35F87 is the single zero alignment byte before 35F88.\nstatic_assert(0x35F88u-0x35F87u==1u);\n\n'+marker,1)
 cpp.write_text(text)
 
