@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-89.97%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-90.00%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **211,397**
-**Proven non-code/data bytes:** **4,259**
-**Reconciled object bytes:** **215,656 / 239,698 = 89.9699% (89.97%)**
-**Unresolved object bytes:** **24,042**
+**Verified translated instruction bytes:** **211,460**
+**Proven non-code/data bytes:** **4,260**
+**Reconciled object bytes:** **215,720 / 239,698 = 89.9966% (90.00%)**
+**Unresolved object bytes:** **23,978**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -851,3 +851,6 @@ Added **790 translated instruction bytes** and **2 alignment bytes**, bringing a
 ## Batch 84 — world/grid sweep state machine
 
 Added **1,526 translated instruction bytes** and **2 proven alignment bytes**, bringing accounting to **211,397 translated + 4,259 non-code = 215,656 / 239,698 = 89.9699% (89.97%)**. Unresolved is **24,042 bytes**. `32954` preserves the four angular quadrant setups, the dynamically patched signed `JLE/JGE` sweep predicates at `32C1A` and `32D04`, the low-word-only `ADD AX` path, cached `1E930` bounds, and distinct left/right collision exits through `32F8C`, `33124`, `332B4`, and `333BC`. The shared sweep/outer control flow remains one ownership unit through `32F49`; `32F4A..32F4B` is unreferenced `XCHG EBX,EBX` alignment. Next frontier: **`32F4C`**.
+## Batch 85 — current sweep-record initializer
+
+Added **63 translated instruction bytes** and **1 alignment byte**, bringing accounting to **211,460 translated + 4,260 non-code = 215,720 / 239,698 = 89.9966% (90.00%)**. `32F4C` initializes the current `1Ch`-byte record selected by `C6FC`; `32F8B` is an unreferenced NOP. Next frontier: **`32F8C`**.

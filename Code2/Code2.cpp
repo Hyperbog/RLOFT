@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 211397u;
-constexpr u32 kVerifiedNonCodeBytes = 4259u;
+constexpr u32 kVerifiedTranslatedBytes = 211460u;
+constexpr u32 kVerifiedNonCodeBytes = 4260u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -24961,5 +24961,20 @@ void function_32954(Machine& m,Application84Boundary& b) noexcept {
 }
 static_assert(0x32F4Au-0x32954u==1526u);
 // 32F4A..32F4B is XCHG EBX,EBX alignment with no incoming direct control-flow target.
+
+
+// Batch 85: 32F4C..32F8A initialize the current 1Ch-byte sweep record.
+void function_32f4c(Machine& m) noexcept {
+    const u32 rec=0x15A18u+load_le32(dg(m,0xC6FCu))*0x1Cu;
+    store_le32(dg(m,rec+0x00u),0u);
+    store_le32(dg(m,rec+0x04u),0x93u);
+    store_le32(dg(m,rec+0x08u),0x93u);
+    store_le32(dg(m,rec+0x0Cu),0u);
+    store_le32(dg(m,rec+0x10u),0u);
+    store_le32(dg(m,rec+0x14u),0u);
+    store_le32(dg(m,rec+0x18u),0u);
+}
+static_assert(0x32F8Bu-0x32F4Cu==63u);
+// 32F8B is an unreferenced NOP alignment byte.
 
 } // namespace code2

@@ -497,3 +497,6 @@ Batch 83 reconciles `3263C..32953`: **790 translated + 2 alignment bytes**. Cove
 ## CODE.2 Batch 84 checkpoint
 
 Batch 84 reconciles `32954..32F4B`: **1,526 translated + 2 alignment bytes**. Coverage is **215,656 / 239,698 = 89.9699% (89.97%)**, with **24,042 unresolved bytes**. Preserve the four region-specific step vectors and `356D8` argument pairs, dynamic opcode writes at `32C1A`/`32D04`, unsigned range tests where encoded, low-word-only arithmetic at the right sweep, and the shared backward sweep/outer-loop edges. Next frontier is `32F4C`.
+## CODE.2 Batch 85 checkpoint
+
+Batch 85 reconciles `32F4C..32F8B`: **63 translated + 1 alignment byte**. Coverage is **215,720 / 239,698 = 89.9966% (90.00%)**; unresolved is **23,978 bytes**. Next frontier is `32F8C`.
