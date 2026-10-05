@@ -1,0 +1,90 @@
+name: Integrate CODE.2 Batch 69
+
+on:
+  push:
+    branches: [code1-decompilation]
+    paths:
+      - '.github/workflows/integrate-code2-batch69.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "CODE.2 Decompilation Bot"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Verify and unpack staged bundle
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, io, tarfile
+          b64=''.join(Path(f'Code2/.batch69.bundle.{i}').read_text().strip() for i in range(3))
+          raw=base64.b64decode(b64)
+          assert hashlib.sha256(raw).hexdigest() == '7339236628746570222d816eaf76568e198273460a8647335dcd38cd7ada048a'
+          with tarfile.open(fileobj=io.BytesIO(raw),mode='r:gz') as tf:
+              names=set(tf.getnames())
+              assert names == {'Code2/.batch69.fragment.cpp','Code2/.batch69_integrate.py'}
+              tf.extractall('.')
+          frag=Path('Code2/.batch69.fragment.cpp').read_text()
+          integ=Path('Code2/.batch69_integrate.py').read_text()
+          assert hashlib.sha256(frag.encode()).hexdigest() == '14246e8eba941ecc833f6acb131fd10eb22dfc124ba1b64ab73868c68da156d8'
+          assert hashlib.sha256(integ.encode()).hexdigest() == 'c77f3bdf728c96442644765588acdcce72c0481248b24f3ac0c400dfeebf0e9b'
+          assert '// Batch 69: 2F0B4..2F57C' in frag
+          assert '==1209u);' in frag
+          PY
+
+      - name: Integrate Batch 69
+        run: python Code2/.batch69_integrate.py integrate
+
+      - name: Verify accounting
+        run: python Code2/.batch69_integrate.py verify
+
+      - name: Syntax check
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+
+      - name: Guard fidelity anchors
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          cpp=Path('Code2/Code2.cpp').read_text()
+          led=Path('Code2/RESIDUAL_LEDGER.md').read_text()
+          prog=Path('Code2/PROGRESS.md').read_text()
+          assert all(x in cpp for x in ['function_2f0b4','function_2f184','function_2f1b4','function_2f1e4','function_2f260','function_2f29c','function_2f2e0','function_2f2ec','function_2f468','function_2f4e0','function_2f540','function_2f554'])
+          assert 'if(best_item!=-1 && v>=best_value)continue;' in cpp
+          assert 'if(static_cast<u32>(item)==saved_selected)continue;' in cpp
+          assert 'b.call_375fe_far(0x2F2E0u,m.cpu.cs)' in cpp
+          assert 'b.out8(static_cast<u16>(base_port+4),0x83u)' in cpp
+          assert '2F57D..2F57F | alignment | 3' in led
+          assert '200,860 / 239,698 = 83.7971% (83.80%)' in prog
+          PY
+          git diff --check
+
+      - name: Commit substantive Batch 69
+        run: |
+          cp Code2/.batch69_integrate.py /tmp/batch69_integrate.py
+          rm -f Code2/.batch69.fragment.cpp Code2/.batch69_integrate.py Code2/.batch69.bundle.0 Code2/.batch69.bundle.1 Code2/.batch69.bundle.2 .github/workflows/integrate-code2-batch69.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "Integrate CODE.2 decompilation batch 69"
+          git push origin HEAD:code1-decompilation
+          echo "BATCH_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Refresh durable resume checkpoint
+        run: |
+          BATCH_SHA="$BATCH_SHA" python /tmp/batch69_integrate.py checkpoint
+          grep -F "$BATCH_SHA" Code2/RESUME_CHECKPOINT.md
+          grep -F 'Next independently decoded instruction boundary: **`2F580`**.' Code2/RESUME_CHECKPOINT.md
+          git add Code2/RESUME_CHECKPOINT.md
+          git diff --cached --check
+          git commit -m "Refresh CODE.2 resume checkpoint after batch 69"
+          git push origin HEAD:code1-decompilation
