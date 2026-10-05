@@ -686,3 +686,7 @@ Batch 131 reconciles `37E77..38105`: **655 translated instruction bytes**, no ne
 
 ### Batch 135 continuation
 Independent formatter-adjacent helpers `38A0A..38A2F`, `38A61..38AC2`, `38AC3..38BA5`, and `38BA6..38BC0` are reconciled. Keep `38A30..38A60` unowned because it jumps into shared formatter tail `38862`; the next independent boundary is `38BC1`.
+
+
+### Batch 136
+`38BC1..3908B` is now instruction-accounted: the large conversion dispatcher (`38BC1..3906B`) plus the uppercase helper (`3906C..3908B`). The dispatcher deliberately models its final `JMP 38861` as a boundary transfer so the already-owned formatter tail is not duplicated or recounted. The uppercase helper likewise returns through the semantics of the shared `38BBF` epilogue.

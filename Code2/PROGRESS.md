@@ -4,10 +4,10 @@
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **230,144**
+**Verified translated instruction bytes:** **231,371**
 **Proven non-code/data bytes:** **4,672**
-**Reconciled object bytes:** **234,816 / 239,698 = 97.9633% (97.96%)**
-**Unresolved object bytes:** **4,882**
+**Reconciled object bytes:** **236,043 / 239,698 = 98.4752% (98.48%)**
+**Unresolved object bytes:** **3,655**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -1093,4 +1093,10 @@ Source identity, Batch 134 ownership, and mandatory overlap hashes were reverifi
 - `38AC3..38BA5` — legacy signed 16.16 decimal/fraction materializer with default precision and encoded rounding pass.
 - `38BA6..38BC0` — address-distinct three-argument forwarding wrapper through `[12700h]`.
 
-Cumulative accounting: **230,144 translated + 4,672 non-code = 234,816 / 239,698 = 97.9633% (97.96%)**; **4,882 unresolved bytes**. Next independent boundary: `38BC1`.
+Cumulative accounting: **231,371 translated + 4,672 non-code = 236,043 / 239,698 = 98.4752% (98.48%)**; **3,655 unresolved bytes**. Next independent boundary: `38BC1`.
+
+
+## Batch 136
+- `38BC1..3906B`: 1,195 translated bytes — formatted-conversion dispatcher; consumes parsed arguments, handles integer/fixed/string/pointer/character forms, normalizes precision/sign/prefix state, and transfers to the previously reconstructed formatter shared tail.
+- `3906C..3908B`: 32 translated bytes — in-place NUL-terminated uppercase helper; its empty-string exit shares the earlier `38BBF` epilogue.
+- Batch total: 1,227 translated bytes. Reconciled: **236,043 / 239,698 = 98.4752% (98.48%)**; unresolved: **3,655**.

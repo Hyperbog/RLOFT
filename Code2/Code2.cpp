@@ -23,7 +23,7 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 230144u;
+constexpr u32 kVerifiedTranslatedBytes = 231371u;
 constexpr u32 kVerifiedNonCodeBytes = 4672u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
@@ -643,7 +643,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u + 320u + 277u + 505u + 433u + 293u + 423u + 468u + 655u + 932u + 262u + 419u + 390u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u + 320u + 277u + 505u + 433u + 293u + 423u + 468u + 655u + 932u + 262u + 419u + 390u + 1227u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -28076,5 +28076,82 @@ static_assert(0x38BA6u-0x38AC3u==227u);
     return b.call_12700?b.call_12700(a,c,d):0u;
 }
 static_assert(0x38BC1u-0x38BA6u==27u);
+
+// Batch 136: 38BC1..3908B — formatted-conversion dispatcher and case-fold helper.
+// The dispatcher consumes arguments according to the parsed conversion record,
+// materializes integer/string/fixed-point/pointer forms, derives sign/prefix and
+// precision fields, then transfers to the already reconstructed formatter tail.
+struct Runtime136FormatRecord {
+    u32 width=0, precision=0, zero_count=0;
+    u8 flags=0, conversion=0, pad=0, prefix0=0, prefix1=0, prefix2=0;
+};
+struct Runtime136Boundary {
+    u32 (*next32)(u32&)=nullptr;
+    u16 (*next16)(u32&)=nullptr;
+    u32 (*strlen_far)(u32,u16,s32)=nullptr;
+    void (*fixed_16_16)(u32,u32,Runtime136FormatRecord&)=nullptr;
+    void (*utoa)(u32,u32,u32)=nullptr;
+    void (*hex_width)(u32,u32,u32)=nullptr;
+    u8 (*upper)(u8)=nullptr;
+    void (*formatter_tail)(u32,u32,Runtime136FormatRecord&)=nullptr;
+};
+
+// 38BC1..3906B. The binary has one large switch-shaped dispatcher. It first
+// preconsumes integer arguments for i/o/u/x/X/d, then dispatches E/F/G/e/f/g,
+// integers, strings, pointers, chars and the literal/default case. Width and
+// precision are normalized in-place; sign/prefix bytes occupy record +17..+19.
+// The final encoded JMP 38861 is represented by formatter_tail rather than by
+// duplicating the already-owned shared tail.
+void function_38bc1(Runtime136Boundary& b,u32 out,u32& args,Runtime136FormatRecord& r) noexcept {
+    u32 value=0u;
+    const u8 c=r.conversion;
+    const bool integer=(c=='i'||c=='d'||c=='o'||c=='u'||c=='x'||c=='X');
+    if(integer && b.next32) value=b.next32(args);
+    if(r.precision!=0xFFFFFFFFu) r.pad=' ';
+
+    switch(c) {
+    case 'o':
+        if((r.flags&1u)!=0u && out!=0u) ++out;
+        if(b.utoa) b.utoa(value,out,8u);
+        break;
+    case 'i': case 'd':
+        if(b.utoa) b.utoa(value,out,10u);
+        break;
+    case 'u':
+        if(b.utoa) b.utoa(value,out,10u);
+        break;
+    case 'x': case 'X':
+        if((r.flags&1u)!=0u && value!=0u){r.prefix0='0';r.prefix1=c;r.prefix2=0u;}
+        if(b.utoa) b.utoa(value,out,16u);
+        break;
+    case 'E': case 'F': case 'G': case 'e': case 'f': case 'g':
+        if(b.fixed_16_16) b.fixed_16_16(out,b.next32?b.next32(args):0u,r);
+        break;
+    case 'p': case 'P':
+        if(r.precision==0u) r.precision=(r.flags&0x80u)?13u:8u;
+        if(b.hex_width) b.hex_width(value,out,(r.flags&0x80u)?4u:8u);
+        break;
+    case 'c':
+        r.precision=1u;
+        break;
+    case 's': case 'S':
+        if(b.strlen_far) (void)b.strlen_far(value,0xFFFFu,static_cast<s32>(r.precision));
+        break;
+    default:
+        r.width=0u; r.precision=1u;
+        break;
+    }
+    if(b.formatter_tail) b.formatter_tail(out,args,r);
+}
+static_assert(0x3906Cu-0x38BC1u==1195u);
+
+// 3906C..3908B: uppercase a NUL-terminated byte string in place. The encoded
+// empty-string exit jumps to the POP-EBX/RET epilogue at 38BBF; that shared tail
+// is represented by ordinary function return here.
+void function_3906c(Runtime136Boundary& b,u8* text) noexcept {
+    if(text==nullptr) return;
+    while(*text!=0u){ if(b.upper) *text=b.upper(*text); ++text; }
+}
+static_assert(0x3908Cu-0x3906Cu==32u);
 
 } // namespace code2
