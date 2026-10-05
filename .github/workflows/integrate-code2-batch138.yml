@@ -31,4 +31,4 @@ jobs:
           git rm Code2/.batch138.fragment.cpp Code2/.batch138_integrate.py .github/workflows/integrate-code2-batch138.yml
           git commit -m "Clean CODE.2 batch 138 staging"
           git push
-# retry after insertion-marker repair
+# retry unique sentinel
