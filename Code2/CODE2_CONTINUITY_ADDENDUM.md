@@ -563,3 +563,6 @@ Batch 105 reconciles `34270..342E3`: **114 translated + 2 alignment bytes**. Cov
 ## CODE.2 Batch 106 checkpoint
 
 Batch 106 reconciles `342E4..34997`: **1,710 translated + 6 alignment bytes**. Coverage is **222,388 / 239,698 = 92.7784% (92.78%)**, with **17,310 unresolved bytes**. Preserve the stack-sharing return-token behavior at `10258`, address-distinct `342E4/34954` plane-mask sequences, the exact 64-pixel `34350` sampler, pre-sample EAX/EDX additions, two-stage SHLD index formation, byte-width AL/AH subtraction with EAX.low8 rewrite, per-pixel `FF54` reload, and ES-qualified STOSB/EDI advance. Separator islands are `34951..34953` and `34995..34997`. Next frontier is `34998`.
+## CODE.2 Batch 107 checkpoint
+
+Batch 107 reconciles `34998..34A73`: **220 translated instruction bytes**, no new non-code. Coverage is **222,608 / 239,698 = 92.8702% (92.87%)**, with **17,090 unresolved bytes**. Preserve the four explicit self-modifying immediate patches, the distinct `34270/34275` entry semantics used to derive them, signed 16-bit multiply, exact `SHLD DX,AX,3` bit extraction, byte-vs-word destination widths, and the 128-entry loop strides. Next frontier is `34A74`.

@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-92.78%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-92.87%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **218,072**
+**Verified translated instruction bytes:** **218,292**
 **Proven non-code/data bytes:** **4,316**
-**Reconciled object bytes:** **222,388 / 239,698 = 92.7784% (92.78%)**
-**Unresolved object bytes:** **17,310**
+**Reconciled object bytes:** **222,608 / 239,698 = 92.8702% (92.87%)**
+**Unresolved object bytes:** **17,090**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -917,3 +917,6 @@ Added **114 translated instruction bytes** and **2 alignment bytes**, bringing a
 ## Batch 106 — stack-sharing planar renderers
 
 Added **1,710 translated instruction bytes** and **6 alignment bytes**, bringing accounting to **218,072 translated + 4,316 non-code = 222,388 / 239,698 = 92.7784% (92.78%)**. `342E4` and `34954` preserve the binary's stack-sharing ABI by making the saved return token and POP-consumed raster pairs explicit inputs while still recording the temporary return token at `10258`. `34350..34950` is the exact shared 64-pixel unrolled sampler: each pixel advances EDX/EAX first, builds a 12-bit source index through the two `SHLD ...,6` operations, reloads the source base from `FF54`, performs byte-width `LODS AL; SUB AL,AH`, rewrites EAX.low8, and emits one ES-qualified byte while incrementing EDI. `342E4` runs masks `0802/0402/0202/0102`; `34954` runs `0C02/0302`. `34951..34953` and `34995..34997` are unreferenced `XCHG EBX,EBX + NOP` separators. Next frontier: **`34998`**.
+## Batch 107 — self-modifying projection table initializer
+
+Added **220 translated instruction bytes**, bringing accounting to **218,292 translated + 4,316 non-code = 222,608 / 239,698 = 92.8702% (92.87%)**. `34998` computes four low-word lookup constants through the already-decoded dual-entry `34270/34275` helper, explicitly exposes the four code-word patches at `34A11/34A27/34A3D/34A54`, then executes the resulting constants over 128 source entries. The two 16-bit signed `IMUL` operations and `SHLD DX,AX,3` are represented bit-exactly as product bits 13..28; the first source table at `193E0` contributes the two byte fields at record offsets 5/4, while `19660` contributes the two word fields at offsets 2/0. The loop retains its exact 2-byte source and 6-byte destination strides. Next frontier: **`34A74`**.
