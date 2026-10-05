@@ -4,13 +4,13 @@ This file is a durable handoff anchor. Read it together with `INTERRUPTION_RESUM
 
 ## Last committed substantive decompilation state
 
-- Last substantive batch commit: `10918c14ed7498bd94feee2cb93af16584e42d5c` — `Integrate CODE.2 decompilation batch 72`.
-- Verified translated instruction bytes: **204,632**.
-- Proven non-code/data bytes: **4,212**.
-- Reconciled object bytes: **208,844 / 239,698 = 87.1280% (87.13%)**.
-- Unresolved object bytes: **30,854**.
-- Last integrated ownership fold: `30D30..314AF` (instructions through `314AA`, proven alignment/padding through `314AF`).
-- Next independently decoded instruction boundary: **`314B0`**.
+- Last substantive batch commit: `7fb9652da981e6cd397e8a09c728fb2f1b7333d1` — `Integrate CODE.2 decompilation batch 73`.
+- Verified translated instruction bytes: **205,657**.
+- Proven non-code/data bytes: **4,215**.
+- Reconciled object bytes: **209,872 / 239,698 = 87.5568% (87.56%)**.
+- Unresolved object bytes: **29,826**.
+- Last integrated ownership fold: `314B0..318B3` (instructions through `318B0`, proven alignment through `318B3`).
+- Next independently decoded instruction boundary: **`318B4`**.
 
 ## Immutable identity
 
@@ -22,21 +22,20 @@ This file is a durable handoff anchor. Read it together with `INTERRUPTION_RESUM
 
 ## Mandatory overlap anchor for next resume
 
-Re-disassemble at minimum `31430..3150F` from freshly regenerated object 1 before doing new work.
+Re-disassemble at minimum `31830..31913` from freshly regenerated object 1 before doing new work.
 
-- Window: object-relative `[0x31430, 0x31510)` — 224 bytes.
-- SHA-256: `6f4b9f178a7cf0c68848b214c1180280a1fa9b0d4dee32020529522bf87ae5e7`.
-- Narrow boundary window: `[0x31480, 0x314E0)` — 96 bytes.
-- Narrow SHA-256: `923273f978aafc806aa9a183c2a1ccea069c79d9b6beb434bb3561db55b8ba96`.
-- Narrow boundary bytes:
-  `5e5bc390ff742404e8ab25000083c404c38b54240485d27508e8d070000031c0c352e8b968000083c404c300000000005356575589e581ec200000008b451401c00fbf8050b702008945f48b55148d149500000000a164b7020001d08b008945`
+- Window: object-relative `[0x31830, 0x31914)` — 228 bytes.
+- SHA-256: `552f3c1e834ba1d24b05f7b63f7815a800515c1cc7517f0449789fbc31b509ec`.
+- Narrow boundary window: `[0x31880, 0x318E0)` — 96 bytes.
+- Narrow SHA-256: `5fa25dcd97e9ece17f701d2b370fd68c04f634a7c0fe129326b2becfaaa9ff46`.
+- Narrow boundary bytes: `45e8508b45e4506a00e8de7fffff83c418e99bfdffff683f010000688f0100006a006a00e8177effff83c410c95f5e5bc38d40005356575589e581ec18000000a138c700008945ec8b451483c0098945f48a4514a218f90000c745e800000000`.
 
-Interpretation to re-prove on resume: `314AA` is the final Batch-72 `RET`; `314AB..314AF` is five zero padding bytes with no incoming direct reference; `314B0` begins the next independent application routine.
+Interpretation to re-prove on resume: `318B0` is the final Batch-73 `RET`; `318B1..318B3` is three-byte LEA alignment with no incoming direct reference; `318B4` begins the next independent routine.
 
 ## Interrupted/in-progress state
 
-**UNCOUNTED / NOT COMMITTED:** no Batch 73 bytes are authorized by this checkpoint. Any analysis at or beyond `314B0` must be revalidated against the overlap before counting.
+**UNCOUNTED / NOT COMMITTED:** no Batch 74 bytes are authorized by this checkpoint. Any analysis at or beyond `318B4` must be revalidated against the overlap before counting.
 
 ## Resume rule
 
-Do not rework Batch 72 merely because the overlap is re-disassembled. Verify overlap, immutable hashes, live accounting, and branch head; then proceed strictly forward from `314B0`.
+Do not rework Batch 73 merely because the overlap is re-disassembled. Verify overlap, immutable hashes, live accounting, and branch head; then proceed strictly forward from `318B4`.
