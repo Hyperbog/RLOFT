@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-94.37%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-94.41%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **221,731**
-**Proven non-code/data bytes:** **4,465**
-**Reconciled object bytes:** **226,196 / 239,698 = 94.3671% (94.37%)**
-**Unresolved object bytes:** **13,502**
+**Verified translated instruction bytes:** **221,820**
+**Proven non-code/data bytes:** **4,468**
+**Reconciled object bytes:** **226,288 / 239,698 = 94.4055% (94.41%)**
+**Unresolved object bytes:** **13,410**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -949,3 +949,10 @@ Batch 113 reconciles `3562F..3567F`: **70 translated instruction bytes + 11 prov
 Batch 114 reconciles `35680..35877`: **488 translated instruction bytes + 16 proven non-code/data bytes**. Cumulative accounting is **221,731 translated + 4,465 non-code = 226,196 / 239,698 = 94.3671% (94.37%)**; **13,502 bytes** remain unresolved.
 
 `35680` and `356D8` preserve the encoded 16-bit multiply/carry/sign machinery; `35730` builds the bounded divisor used by the projection path; `35798` preserves PUSHA/POPA register ownership and only publishes its two word outputs. `35797` is an unreferenced NOP separator. `35869..3586F` is zero alignment and `35870..35877` holds two referenced `00002020h` constants. `35878` is independently called from seventeen sites and starts the next runtime copy/I/O family.
+
+
+## CODE.2 Batch 115 checkpoint
+
+Batch 115 reconciles `35878..358D3`: **89 translated instruction bytes + 3 proven alignment bytes**. Cumulative accounting is **221,820 translated + 4,468 non-code = 226,288 / 239,698 = 94.4055% (94.41%)**; **13,410 bytes** remain unresolved.
+
+`35878` preserves the selector-qualified `DS:source -> ES:destination` REP MOVS path when flag bit 0 is set; the alternate branch retains the encoded `38407(source,offset,0) -> 38106(source,destination,length) -> 3967C(source)` chain and returns the final close result. `358D1..358D3` is an unreferenced `LEA EAX,[EAX+0]` separator. `358D4` has an independent direct caller and begins the next loader routine.

@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 221731u;
-constexpr u32 kVerifiedNonCodeBytes = 4465u;
+constexpr u32 kVerifiedTranslatedBytes = 221820u;
+constexpr u32 kVerifiedNonCodeBytes = 4468u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -26925,5 +26925,33 @@ static_assert(0x35869u-0x35798u==209u);
 // 35797 is NOP alignment. 35869..3586F is zero alignment; 35870 and 35874
 // are separately referenced dwords containing 00002020h.
 static_assert(0x35878u-0x35869u==15u);
+
+// Batch 115: 35878..358D0 selector-aware copy/file-I/O helper.
+struct Runtime115Boundary {
+    // Encoded REP MOVS uses DS:source -> ES:destination.
+    void (*copy_ds_to_es)(u16,u32,u16,u32,u32)=nullptr;
+    u32 (*call_38407)(u32,u32,u32)=nullptr;
+    u32 (*call_38106)(u32,u32,u32)=nullptr;
+    u32 (*call_3967c)(u32)=nullptr;
+};
+
+[[nodiscard]] u32 function_35878(Machine& m,Runtime115Boundary& b,
+                                  u32 source,u32 offset,u32 flags,
+                                  u32 destination,u32 length) noexcept {
+    if((static_cast<u8>(flags)&1u)!=0u) {
+        // REPNE MOVSD/MOVSB is equivalent to REP for MOVS: ZF is ignored.
+        // The encoded dword-then-byte split still copies exactly `length` bytes.
+        if(b.copy_ds_to_es)
+            b.copy_ds_to_es(m.cpu.ds,source+offset,m.cpu.es,destination,length);
+        return offset+length;                            // LEA EAX,[EDX+EBX]
+    }
+
+    if(b.call_38407)(void)b.call_38407(source,offset,0u);
+    if(b.call_38106)(void)b.call_38106(source,destination,length);
+    return b.call_3967c?b.call_3967c(source):0u;
+}
+static_assert(0x358D1u-0x35878u==89u);
+// 358D1..358D3 is LEA EAX,[EAX+0] alignment before independent 358D4.
+static_assert(0x358D4u-0x358D1u==3u);
 
 } // namespace code2

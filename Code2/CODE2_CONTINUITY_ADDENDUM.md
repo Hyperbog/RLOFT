@@ -589,3 +589,7 @@ Batch 113 reconciles `3562F..3567F`: **70 translated + 11 proven non-code/data b
 ## CODE.2 Batch 114 checkpoint
 
 Batch 114 reconciles `35680..35877`: **488 translated + 16 proven non-code/data bytes**, bringing cumulative accounting to **226,196 / 239,698 = 94.3671% (94.37%)** with **13,502 unresolved bytes**. The two multiply helpers retain their asymmetric factor-sign handling; `35730` retains the signed clamp followed by unsigned DIV; `35798` retains PUSHA/POPA register restoration and its two word-only outputs. Next frontier: `35878`.
+
+## CODE.2 Batch 115 checkpoint
+
+Batch 115 reconciles `35878..358D3`: **89 translated + 3 proven alignment bytes**, bringing cumulative accounting to **226,288 / 239,698 = 94.4055% (94.41%)** with **13,410 unresolved bytes**. Preserve the direct path as selector-aware REP MOVS and the alternate `38407/38106/3967C` seek-read-close ordering. Next frontier: `358D4`.
