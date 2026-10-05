@@ -5,8 +5,10 @@ cpp=root/'Code2/Code2.cpp'; prog=root/'Code2/PROGRESS.md'; add=root/'Code2/CODE2
 def integrate():
  s=cpp.read_text(); f=frag.read_text()
  s=s.replace('constexpr u32 kVerifiedTranslatedBytes = 232645u;','constexpr u32 kVerifiedTranslatedBytes = 232906u;')
- marker='\n} // namespace code2\n'
- if 'function_39589' not in s: s=s.replace(marker,f+marker)
+ if 'function_39589' not in s:
+  pos=s.rfind('} // namespace code2')
+  assert pos>=0
+  s=s[:pos]+f+'\n'+s[pos:]
  cpp.write_text(s)
  p=prog.read_text().replace('232,645','232,906').replace('237,320 / 239,698 = 99.0079% (99.01%)','237,581 / 239,698 = 99.1168% (99.12%)').replace('2,378','2,117')
  p += '\n\n## Batch 138\n- `39589..395E1`: 89 translated bytes — runtime scratch-stack watermark/startup forwarding helper.\n- `395E2..3962C`: 75 translated bytes — four-record low-threshold callback dispatcher.\n- `3962D..3967B`: 79 translated bytes — upper-threshold callback dispatcher.\n- `3967C..3968D`: 18 translated bytes — seek-to-end forwarding wrapper.\n- Batch total: 261 translated bytes. Reconciled: **237,581 / 239,698 = 99.1168% (99.12%)**; unresolved: **2,117**.\n'
