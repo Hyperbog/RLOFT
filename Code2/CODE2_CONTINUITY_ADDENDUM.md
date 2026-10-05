@@ -557,3 +557,6 @@ Batch 103 reconciles `33E6C..33FB3`: **326 translated + 2 alignment bytes**. Cov
 ## CODE.2 Batch 104 checkpoint
 
 Batch 104 reconciles `33FB4..3426F`: **690 translated + 10 proven non-code bytes**. Coverage is **220,556 / 239,698 = 92.0141% (92.01%)**, with **19,142 unresolved bytes**. Preserve the carry contract of `33FB4/3402C`, the physical shared tail at `3410C..3410D`, the full signed32-times-65536 IDIV reconstruction (including the additional X-gradient pre-shift), machine-width clip/count wraparound, signed arithmetic shifts, in-place `FE10` scale mutation, and the exact VGA plane selector output. `3410E..3410F` is alignment and `34268..3426F` is proven padding. Next frontier is `34270`.
+## CODE.2 Batch 105 checkpoint
+
+Batch 105 reconciles `34270..342E3`: **114 translated + 2 alignment bytes**. Coverage is **220,672 / 239,698 = 92.0625% (92.06%)**, with **19,026 unresolved bytes**. Preserve the separate `34270` and `34275` entry semantics, repeated negative normalization versus single high-side subtraction, word-width table load with dword stride, and 32-bit negation in quadrants 2/3. `342E2..342E3` is alignment; `342E4` is independently called and begins the stack-sharing renderer.

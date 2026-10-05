@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-92.01%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-92.06%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **216,248**
-**Proven non-code/data bytes:** **4,308**
-**Reconciled object bytes:** **220,556 / 239,698 = 92.0141% (92.01%)**
-**Unresolved object bytes:** **19,142**
+**Verified translated instruction bytes:** **216,362**
+**Proven non-code/data bytes:** **4,310**
+**Reconciled object bytes:** **220,672 / 239,698 = 92.0625% (92.06%)**
+**Unresolved object bytes:** **19,026**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -911,3 +911,6 @@ Added **326 translated instruction bytes** and **2 alignment bytes**, bringing a
 ## Batch 104 — raster edge steppers and clipped writer
 
 Added **690 translated instruction bytes** and **10 proven non-code bytes**, bringing accounting to **216,248 translated + 4,308 non-code = 220,556 / 239,698 = 92.0141% (92.01%)**. `33FB4` preserves the two DEC-before-test edge counters and returns the exact carry produced by edge exhaustion/setup. `3402C` walks horizontal edges until a nonzero signed-height delta is found, retains the backward/forward state records at `FDC4/FDE8`, and reconstructs Watcom's `ROL/CWD/(ROL|SHL)/XCHG DX,AX/IDIV` idiom as a signed 32-bit numerator scaled by `2^16`; the X-gradient retains the extra encoded `SHL EAX,16` at `340F2`. `34110` keeps the physical `3410C..3410D` shared LEAVE/RET tail semantics, signed clip tests, exact fixed-point source stepping, low-32-bit multiply wrap, in-place `FE10 <<= 6`, VGA plane-mask OUT, and entry-before-decrement pixel loop. `3410E..3410F` is unreferenced `XCHG EBX,EBX`; `34268..3426F` is an eight-byte zero pad with no incoming direct/raw reference. Next frontier: **`34270`**.
+## Batch 105 — dual-entry angle/table helper
+
+Added **114 translated instruction bytes** and **2 alignment bytes**, bringing accounting to **216,362 translated + 4,310 non-code = 220,672 / 239,698 = 92.0625% (92.06%)**. `34270` and `34275` are distinct callable entries into one shared body: `34270` first subtracts `10Eh`, while callers at `349CB/349F3` enter at `34275` and skip that subtraction. Negative values are normalized by repeated `+168h`; nonnegative values at or above `168h` receive only the single encoded subtraction. The body folds the angle into a 0..90-style table index using the encoded 5Ah/B4h/10Eh quadrant tests, reads only the low word at `[EBX + EDI*4]`, applies `(value+1)>>2`, and negates the 32-bit result only for quadrants with bit 1 set. `342E2..342E3` is unreferenced `XCHG EBX,EBX` alignment. Next frontier: **`342E4`**.
