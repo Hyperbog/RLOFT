@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-97.63%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-97.80%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **229,335**
+**Verified translated instruction bytes:** **229,754**
 **Proven non-code/data bytes:** **4,672**
-**Reconciled object bytes:** **234,007 / 239,698 = 97.6258% (97.63%)**
-**Unresolved object bytes:** **5,691**
+**Reconciled object bytes:** **234,426 / 239,698 = 97.8006% (97.80%)**
+**Unresolved object bytes:** **5,272**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -1074,3 +1074,12 @@ Source identity, Batch 132 ownership, and mandatory overlap hashes were reverifi
 - `3856E..385AF` — all-stream wrapper and masked linked-stream traversal; matching streams are counted and state bit 10h gates the `37D60` flush call.
 
 Cumulative accounting: **229,335 translated + 4,672 non-code = 234,007 / 239,698 = 97.6258% (97.63%)**; **5,691 unresolved bytes**. Next instruction boundary: `385B0`.
+
+## Batch 134 — formatted-output field parser
+
+Source identity, Batch 133 ownership, and mandatory overlap hashes were reverified before integration. Added **419 translated instruction bytes** across `38867..38A09`; no new non-code bytes are claimed. `385B0..38866` remains deliberately unowned pending a full formatter-core reconstruction.
+
+- `38867..389A6` — width/precision/length parser. Decimal fields wrap at 32 bits; `*` consumes one cdecl dword; negative width uses wrapping negation and sets left-justify; negative `*` precision becomes `FFFFFFFFh`; encoded modifiers `h/l/w/L/N/F` set the exact runtime flag bits.
+- `389A7..38A09` — flag-prefix parser. Preserves `+` over space precedence, independent `#`/left flags, and the fact that `0` changes the pad byte to ASCII zero rather than setting another flag bit.
+
+Cumulative accounting: **229,754 translated + 4,672 non-code = 234,426 / 239,698 = 97.8006% (97.80%)**; **5,272 unresolved bytes**. Next independently decoded boundary: `38A0A`.

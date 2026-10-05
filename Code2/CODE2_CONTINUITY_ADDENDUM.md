@@ -680,3 +680,6 @@ Batch 131 reconciles `37E77..38105`: **655 translated instruction bytes**, no ne
 
 ### Batch 133 continuation
 `384AA..385AF` is reconciled as the DOS current-directory builder, ASCII uppercase pair, and masked stream-flush traversal. Preserve exact `X:\\` prefix construction, allocation size `strlen+1`, errors 1/5, ASCII-only case fold, linked-list count semantics, and state-bit 10h flush gate. Next boundary is `385B0`.
+
+### Batch 134 continuation
+`38867..38A09` is reconciled as the formatted-output field parser and flag-prefix parser. Preserve 32-bit decimal wrap, cdecl `*` consumption, wrapping negative width, negative-star precision sentinel, exact modifier bits, `+` precedence over space, and zero-as-pad-byte behavior. `385B0..38866` remains unowned; next independent boundary is `38A0A`.

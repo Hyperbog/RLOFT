@@ -23,7 +23,7 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 229335u;
+constexpr u32 kVerifiedTranslatedBytes = 229754u;
 constexpr u32 kVerifiedNonCodeBytes = 4672u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
@@ -643,7 +643,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u + 320u + 277u + 505u + 433u + 293u + 423u + 468u + 655u + 932u + 262u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u + 320u + 277u + 505u + 433u + 293u + 423u + 468u + 655u + 932u + 262u + 419u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -27917,5 +27917,87 @@ static u32 function_38579(Runtime133Boundary& rt, u32 mask) {
 }
 static u32 function_3856e(Runtime133Boundary& rt) { return function_38579(rt, 0xFFFFFFFFu); }
 static_assert(0x385B0u - 0x3856Eu == 66u);
+
+// Batch 134: 38867..38A09 -- printf field/precision/length parser.
+struct Runtime134Format {
+    u32 reserved0=0;
+    u32 width=0;
+    u32 precision=0xFFFFFFFFu;
+    u32 reserved_c=0;
+    u32 reserved_10=0;
+    u8 flags=0;          // encoded byte at +14h
+    u8 conversion=0;     // +15h, consumed by the formatter proper
+    u8 pad=' ';          // +16h
+    u8 reserved_17=0;    // +17h
+};
+static_assert(sizeof(Runtime134Format)==24u);
+
+// 389A7..38A09: consume the flag prefix.  '+' dominates space exactly as encoded;
+// '0' changes the pad byte without introducing a separate flag bit.
+[[nodiscard]] const u8* function_389a7(const u8* p,Runtime134Format& f) noexcept {
+    f.flags=0u;
+    for(;;){
+        const u8 ch=*p;
+        if(ch=='-'){f.flags=static_cast<u8>(f.flags|0x08u);++p;continue;}
+        if(ch=='#'){f.flags=static_cast<u8>(f.flags|0x01u);++p;continue;}
+        if(ch=='+'){
+            f.flags=static_cast<u8>((f.flags|0x04u)&0xFDu);
+            ++p;continue;
+        }
+        if(ch==' '){
+            if((f.flags&0x04u)==0u)f.flags=static_cast<u8>(f.flags|0x02u);
+            ++p;continue;
+        }
+        if(ch=='0'){f.pad='0';++p;continue;}
+        return p;
+    }
+}
+static_assert(0x38A0Au-0x389A7u==99u);
+
+// 38867..389A6: parse width, precision, and the compiler runtime's length/far
+// modifiers.  args points at the cdecl variable-argument byte stream and is
+// advanced by one 32-bit slot for each '*' consumed.
+[[nodiscard]] const u8* function_38867(const u8* p,const u8*& args,Runtime134Format& f) noexcept {
+    f.reserved_17=0u;
+    f.pad=' ';
+    p=function_389a7(p,f);
+    f.width=0u;
+    while(*p>='0' && *p<='9'){
+        f.width=f.width*10u+static_cast<u32>(*p-'0');
+        ++p;
+    }
+    if(*p=='*'){
+        const u32 raw=load_le32(args); args+=4;
+        f.width=raw;
+        if(static_cast<s32>(raw)<0){
+            f.width=0u-raw;
+            f.flags=static_cast<u8>(f.flags|0x08u);
+        }
+        ++p;
+    }
+    f.precision=0xFFFFFFFFu;
+    if(*p=='.'){
+        ++p;
+        f.precision=0u;
+        if(*p=='*'){
+            const u32 raw=load_le32(args); args+=4;
+            f.precision=(static_cast<s32>(raw)<0)?0xFFFFFFFFu:raw;
+            ++p;
+        }else{
+            while(*p>='0' && *p<='9'){
+                f.precision=f.precision*10u+static_cast<u32>(*p-'0');
+                ++p;
+            }
+        }
+    }
+    switch(*p){
+        case 'l': case 'w': f.flags=static_cast<u8>(f.flags|0x20u); return p+1;
+        case 'h': f.flags=static_cast<u8>(f.flags|0x10u); return p+1;
+        case 'L': case 'N': f.flags=static_cast<u8>(f.flags|0x40u); return p+1;
+        case 'F': f.flags=static_cast<u8>(f.flags|0x80u); return p+1;
+        default: return p;
+    }
+}
+static_assert(0x389A7u-0x38867u==320u);
 
 } // namespace code2
