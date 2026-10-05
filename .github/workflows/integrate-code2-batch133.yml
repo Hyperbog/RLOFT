@@ -31,3 +31,4 @@ jobs:
           git add -A
           git commit -m "Refresh CODE.2 resume checkpoint after batch 133"
           git push
+# retry after assertion-tail repair
