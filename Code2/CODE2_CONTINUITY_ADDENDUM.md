@@ -503,3 +503,6 @@ Batch 85 reconciles `32F4C..32F8B`: **63 translated + 1 alignment byte**. Covera
 ## CODE.2 Batch 86 checkpoint
 
 Batch 86 reconciles `32F8C..33123`: **406 translated + 2 alignment bytes**. Coverage is **216,128 / 239,698 = 90.1668% (90.17%)**, with **23,570 unresolved bytes**. Preserve the modular signed-word multiply used to locate the alternate cell, high-class push/pop lifetime, conditional `1E9A0` low-word extra, record table choice `257A2/25722`, and signed min/max comparisons. Next frontier is `33124`.
+## CODE.2 Batch 87 checkpoint
+
+Batch 87 reconciles `33124..332B3`: **399 translated + 1 alignment byte**. Coverage is **216,528 / 239,698 = 90.3337% (90.33%)**, with **23,170 unresolved bytes**. Preserve its asymmetries versus Batch 86: negative `25604` increments `255EA` without offset mirroring, the alternate-cell displacement is `s16(25606)*2`, and the table pair is `256A2/25622`. Next frontier is `332B4`.

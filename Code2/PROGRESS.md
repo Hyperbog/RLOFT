@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-90.17%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-90.33%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **211,866**
-**Proven non-code/data bytes:** **4,262**
-**Reconciled object bytes:** **216,128 / 239,698 = 90.1668% (90.17%)**
-**Unresolved object bytes:** **23,570**
+**Verified translated instruction bytes:** **212,265**
+**Proven non-code/data bytes:** **4,263**
+**Reconciled object bytes:** **216,528 / 239,698 = 90.3337% (90.33%)**
+**Unresolved object bytes:** **23,170**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -857,3 +857,6 @@ Added **63 translated instruction bytes** and **1 alignment byte**, bringing acc
 ## Batch 86 — left-sweep record materialization
 
 Added **406 translated instruction bytes** and **2 alignment bytes**, bringing accounting to **211,866 translated + 4,262 non-code = 216,128 / 239,698 = 90.1668% (90.17%)**. `32F8C` derives the display offset from `255E8`, preserves the current cell high-class bits, optionally probes the signed-offset alternate cell selected by `25612*25619`, incorporates the `1E9A0` extra only when needed, writes the current `1Ch`-byte record, and updates the signed depth minimum/maximum globals. Next frontier: **`33124`**.
+## Batch 87 — right-sweep record materialization
+
+Added **399 translated instruction bytes** and **1 alignment byte**, bringing accounting to **212,265 translated + 4,263 non-code = 216,528 / 239,698 = 90.3337% (90.33%)**. `33124` is the right-sweep counterpart to `32F8C`, retaining its distinct `25604` mirroring rule, `s16(25606)*2` alternate displacement, `248E6` snapshot, and `256A2/25622` tables. Next frontier: **`332B4`**.
