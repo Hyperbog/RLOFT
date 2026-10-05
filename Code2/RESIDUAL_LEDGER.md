@@ -897,3 +897,5 @@ Batch 127 adds **15 proven non-code/alignment bytes**, cumulative **4,665**.
 Batch 128 adds **7 proven non-code/alignment bytes**, cumulative **4,672**.
 
 - Batch 137: `39147..39149` — 3-byte proven separator (`00 55 06`) between completed routines.
+
+- `39837`: **1 byte**, proven zero separator between command-line parsing and arena allocation code (Batch 140).

@@ -702,3 +702,7 @@ Independent formatter-adjacent helpers `38A0A..38A2F`, `38A61..38AC2`, `38AC3..3
 
 ### Batch 139
 `3968E..39836` is now instruction-accounted. The startup helper duplicates the command line, allocates the contiguous text/argv block, prefixes argv with the published program-name pointer, and publishes argc/argv. `39752` preserves quoted-token parsing plus the encoded backslash escape distinctions and in-place compaction. `39837` is deliberately left unowned.
+
+## Batch 140 — runtime arena allocation/free core
+
+Batch 140 reconciles **500 translated instruction bytes** at `39838..39A2B` plus the proven zero separator byte at `39837`. The fold contains the arena allocation splitter, arena free/coalescing path, and runtime arena-list unlink helper. Cumulative accounting is **233,831 translated + 4,676 non-code/data = 238,507 / 239,698 = 99.5031% (99.50%)**; unresolved is **1,191 bytes**. The next independent boundary is `39A2C`. `385B0..38866` and `36CEC..372F5` remain unresolved.
