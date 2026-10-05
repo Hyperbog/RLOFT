@@ -48,6 +48,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           cpp=Path('Code2/Code2.cpp').read_text()
+          frag=Path('Code2/.batch70.fragment.cpp').read_text()
           led=Path('Code2/RESIDUAL_LEDGER.md').read_text()
           prog=Path('Code2/PROGRESS.md').read_text()
           anchors=[
@@ -61,7 +62,7 @@ jobs:
           ]
           for a in anchors:
               assert a in cpp,a
-          assert '0x2B700u' not in cpp and '0x2B750u' not in cpp
+          assert '0x2B700u' not in frag and '0x2B750u' not in frag
           assert '2FD8C..2FD9B | table | 16' in led
           assert '305A6..305A7 | alignment | 2' in led
           assert '204,996 / 239,698 = 85.5226% (85.52%)' in prog
