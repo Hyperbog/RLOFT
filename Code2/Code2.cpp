@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 221820u;
-constexpr u32 kVerifiedNonCodeBytes = 4468u;
+constexpr u32 kVerifiedTranslatedBytes = 222129u;
+constexpr u32 kVerifiedNonCodeBytes = 4471u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -26953,5 +26953,58 @@ struct Runtime115Boundary {
 static_assert(0x358D1u-0x35878u==89u);
 // 358D1..358D3 is LEA EAX,[EAX+0] alignment before independent 358D4.
 static_assert(0x358D4u-0x358D1u==3u);
+
+// Batch 116: 358D4..35A08 compact resource/file loader.
+struct Runtime116Boundary {
+    u32 (*call_37e77)(u32,u32)=nullptr;
+    // Address-specific 35878 bridge for SS/ES stack-local destinations that are
+    // intentionally not flattened into Machine::data/DGROUP.
+    u32 (*call_35878_stack)(Machine&,u32,u32,u32,u8*,u32)=nullptr;
+    s32 (*call_27c70_stack)(Machine&,const u8*,u32)=nullptr;
+    u32 (*call_380f8)(u32)=nullptr;
+};
+
+static u32 app116_read(Machine& m,Runtime116Boundary& b,u32 source,u32 offset,
+                       u32 flags,u8* destination,u32 length) noexcept {
+    if(b.call_35878_stack)
+        return b.call_35878_stack(m,source,offset,flags,destination,length);
+    return (static_cast<u8>(flags)&1u)!=0u ? offset+length : 0u;
+}
+
+[[nodiscard]] u32 function_358d4(Machine& m,Runtime116Boundary& b,u32 source,u32 flags) noexcept {
+    u8 local[0xCC]{};                                    // host backing for encoded stack locals
+    store_le32(local+0xC8u,0x00002020u);                // MOV EAX,[35870] / local C8
+    u32 total=0u;                                        // EDI
+
+    u32 handle=source;
+    if((static_cast<u8>(flags)&1u)==0u) {
+        handle=b.call_37e77?b.call_37e77(source,0x200u):0u;
+        if(handle==0xFFFFFFFFu)return 0u;
+    }
+
+    (void)app116_read(m,b,handle,0x3Cu,flags,local+0xC4u,4u);
+    const u32 table_offset=load_le32(local+0xC4u);
+    (void)app116_read(m,b,handle,table_offset,flags,local+0xC8u,2u);
+    const s32 signature_cmp=b.call_27c70_stack?b.call_27c70_stack(m,local+0xC8u,0x1604u):0;
+    if(signature_cmp!=0) {
+        if(b.call_380f8)(void)b.call_380f8(handle);      // encoded even for flag-bit-0 direct mode
+        return 0u;
+    }
+
+    (void)app116_read(m,b,handle,table_offset,flags,local,0xACu);
+    u32 offset=table_offset+load_le32(local+0x40u);
+    const u32 count=load_le32(local+0x44u);
+    for(u32 index=0u; index<count; ++index) {
+        offset=app116_read(m,b,handle,offset,flags,local+0xACu,0x18u);
+        total+=load_le32(local+0xACu);
+    }
+
+    if((static_cast<u8>(flags)&1u)==0u && b.call_380f8)
+        (void)b.call_380f8(handle);
+    return total+0x0Fu;
+}
+static_assert(0x35A09u-0x358D4u==309u);
+// 35A09..35A0B is LEA EAX,[EAX+0] alignment before independent 35A0C.
+static_assert(0x35A0Cu-0x35A09u==3u);
 
 } // namespace code2

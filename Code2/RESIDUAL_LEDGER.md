@@ -633,9 +633,10 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 35869..3586F | alignment | 7
 35870..35877 | data | 8
 358D1..358D3 | alignment | 3
+35A09..35A0B | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **4,468 bytes**.
+**Total proven non-code/data:** **4,471 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -817,3 +818,5 @@ Batch 113 evidence: `3553A` writes DS to selector-qualified offset `35675`, whil
 Batch 114 evidence: `35797` is a standalone NOP with no incoming direct/raw reference between independently bounded functions. `35869..3586F` is a seven-byte zero alignment island; `35870` and `35874` are separately referenced as dword constants by `358DD` and `35A1C`, proving `35870..35877` as data. `35878` has seventeen independent direct callers.
 
 Batch 115 evidence: `358D1..358D3` decodes exactly as `LEA EAX,[EAX+0]`; fresh whole-object direct-control-flow and raw-address scans find no reference into those three bytes, while `358D4` has an independent direct caller from `35A65`.
+
+Batch 116 evidence: `35A09..35A0B` decodes exactly as `LEA EAX,[EAX+0]`; fresh whole-object direct-control-flow and raw-address scans find no incoming reference, while `35A0C` is independently called from `27DCA` and `28369`.

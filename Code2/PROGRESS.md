@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-94.41%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-94.54%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **221,820**
-**Proven non-code/data bytes:** **4,468**
-**Reconciled object bytes:** **226,288 / 239,698 = 94.4055% (94.41%)**
-**Unresolved object bytes:** **13,410**
+**Verified translated instruction bytes:** **222,129**
+**Proven non-code/data bytes:** **4,471**
+**Reconciled object bytes:** **226,600 / 239,698 = 94.5356% (94.54%)**
+**Unresolved object bytes:** **13,098**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -955,4 +955,11 @@ Batch 114 reconciles `35680..35877`: **488 translated instruction bytes + 16 pro
 
 Batch 115 reconciles `35878..358D3`: **89 translated instruction bytes + 3 proven alignment bytes**. Cumulative accounting is **221,820 translated + 4,468 non-code = 226,288 / 239,698 = 94.4055% (94.41%)**; **13,410 bytes** remain unresolved.
 
-`35878` preserves the selector-qualified `DS:source -> ES:destination` REP MOVS path when flag bit 0 is set; the alternate branch retains the encoded `38407(source,offset,0) -> 38106(source,destination,length) -> 3967C(source)` chain and returns the final close result. `358D1..358D3` is an unreferenced `LEA EAX,[EAX+0]` separator. `358D4` has an independent direct caller and begins the next loader routine.
+`35878` preserves the selector-qualified `DS:source -> ES:destination` REP MOVS path when flag bit 0 is set; the alternate branch retains the encoded `38407(source,offset,0) -> 38106(source,destination,length) -> 3967C(source)` chain and returns the final current-position result. `358D1..358D3` is an unreferenced `LEA EAX,[EAX+0]` separator. `358D4` has an independent direct caller and begins the next loader routine.
+
+
+## CODE.2 Batch 116 checkpoint
+
+Batch 116 reconciles `358D4..35A0B`: **309 translated instruction bytes + 3 proven alignment bytes**. Cumulative accounting is **222,129 translated + 4,471 non-code = 226,600 / 239,698 = 94.5356% (94.54%)**; **13,098 bytes** remain unresolved.
+
+`358D4` preserves the flag-bit-0 split between caller-provided/direct source and a `37E77(source,200h)` opened source. Its four `35878` calls retain their exact offsets and lengths: 4 bytes at `3Ch`, 2 bytes at the decoded table offset, `ACh` bytes at that same offset, then `18h` bytes per record. The 2-byte identifier is compared against runtime string `1604`; validation failure executes `380F8(handle)` even in direct-source mode. The record loop advances by `35878`'s returned next position and accumulates each record's first dword, returning total+0Fh. `35A09..35A0B` is an unreferenced LEA separator; `35A0C` has independent callers.

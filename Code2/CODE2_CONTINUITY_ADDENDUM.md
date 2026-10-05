@@ -592,4 +592,8 @@ Batch 114 reconciles `35680..35877`: **488 translated + 16 proven non-code/data 
 
 ## CODE.2 Batch 115 checkpoint
 
-Batch 115 reconciles `35878..358D3`: **89 translated + 3 proven alignment bytes**, bringing cumulative accounting to **226,288 / 239,698 = 94.4055% (94.41%)** with **13,410 unresolved bytes**. Preserve the direct path as selector-aware REP MOVS and the alternate `38407/38106/3967C` seek-read-close ordering. Next frontier: `358D4`.
+Batch 115 reconciles `35878..358D3`: **89 translated + 3 proven alignment bytes**, bringing cumulative accounting to **226,288 / 239,698 = 94.4055% (94.41%)** with **13,410 unresolved bytes**. Preserve the direct path as selector-aware REP MOVS and the alternate `38407/38106/3967C` seek-read-tell ordering. Next frontier: `358D4`.
+
+## CODE.2 Batch 116 checkpoint
+
+Batch 116 reconciles `358D4..35A0B`: **309 translated + 3 proven alignment bytes**, bringing cumulative accounting to **226,600 / 239,698 = 94.5356% (94.54%)** with **13,098 unresolved bytes**. Preserve stack-local ownership for the four `35878` destinations rather than flattening SS/ES locals into DGROUP; preserve validation-failure cleanup even under direct-source mode and the unsigned record-count loop. Batch 115 documentation is corrected accounting-neutrally: `3967C` is current-position/tell, so that branch is seek-read-tell. Next frontier: `35A0C`.
