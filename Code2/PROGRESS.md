@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-93.00%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-93.24%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **218,605**
-**Proven non-code/data bytes:** **4,319**
-**Reconciled object bytes:** **222,924 / 239,698 = 93.0020% (93.00%)**
-**Unresolved object bytes:** **16,774**
+**Verified translated instruction bytes:** **219,172**
+**Proven non-code/data bytes:** **4,320**
+**Reconciled object bytes:** **223,492 / 239,698 = 93.2390% (93.24%)**
+**Unresolved object bytes:** **16,206**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -923,3 +923,6 @@ Added **220 translated instruction bytes**, bringing accounting to **218,292 tra
 ## Batch 108 — self-patched planar renderer driver
 
 Added **313 translated instruction bytes** and **3 padding bytes**, bringing accounting to **218,605 translated + 4,319 non-code = 222,924 / 239,698 = 93.0020% (93.00%)**. `34A74` explicitly preserves all six byte patch sites: `C044/C048` feed the two ADD-immediate pairs, while the shade byte from the `FE94` ramp patches `34B07` during the first phase and `34B77` for the remainder phase. `FF40` and `FF54` initialization, signed cap-at-50h behavior, machine-width `7Fh*FF4C` shade addressing, 6-byte `FF58` source records, and per-row `FF40 += FF44` are retained exactly. The first entry-before-decrement loop constructs four raster pairs and calls `342E4` in POP order `p3,p2,p1,p0`; the positive signed remainder constructs `p2,p0` for `34954`. Return-token mapping is explicit through the boundary because the called renderers store their popped guest return address at `10258`. `34BAD..34BAF` is an unreferenced three-byte zero pad. Next frontier: **`34BB0`**.
+## Batch 109 — indexed quad construction and conditional raster dispatch
+
+Added **567 translated instruction bytes** and **1 alignment byte**, bringing accounting to **219,172 translated + 4,320 non-code = 223,492 / 239,698 = 93.2390% (93.24%)**. `34BB0` mutates four caller-supplied index dwords with the encoded arithmetic `SAR 3`, applies the signed `C738` ceiling, and exits immediately on any resulting zero. Each nonzero index selects `15618[index]`; the later divide-by-8 and divide-by-2 sequences are preserved separately as bias-corrected truncation toward zero, producing two local four-vertex quads. The mirrored quad swaps only vertices 1 and 3 through the encoded low-byte `XOR AL,2`. Record flag bit `20h` selects which quad may render: `C026` uses clip columns `84h..103h`, while `C027` uses `04h..83h`; both resolve `258F8h + record[9]` through the existing `2F29C` contract, publish `FDC0 = result + 2`, and preserve the local-stack/selector boundary into decoded routine `33E6C`. `34DE7` is an unreferenced NOP. Next frontier: **`34DE8`**.

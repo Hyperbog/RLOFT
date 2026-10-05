@@ -569,3 +569,6 @@ Batch 107 reconciles `34998..34A73`: **220 translated instruction bytes**, no ne
 ## CODE.2 Batch 108 checkpoint
 
 Batch 108 reconciles `34A74..34BAF`: **313 translated + 3 padding bytes**. Coverage is **222,924 / 239,698 = 93.0020% (93.00%)**, with **16,774 unresolved bytes**. Preserve all byte patch sites, the signed 50h cap/remainder tests, entry-before-decrement first loop, exact raster-pair stack order into `342E4/34954`, 16-bit-to-16.16 record expansion, shade-ramp pointer stepping, FF40 row advance, and guest return-token translation. `34BAD..34BAF` is proven padding; `34BB0` is independently called.
+## CODE.2 Batch 109 checkpoint
+
+Batch 109 reconciles `34BB0..34DE7`: **567 translated + 1 alignment byte**. Coverage is **223,492 / 239,698 = 93.2390% (93.24%)**, with **16,206 unresolved bytes**. Preserve the in-place raw SAR-by-3 index mutation, signed `C738` clamp, early zero exit, distinct bias-corrected `/8` and `/2` truncation, odd-vertex 1<->3 mirror swap, record flag/`C026`/`C027` gating, exact `FDC0/FDB8/FDB4` writes, and the explicit stack-local selector boundary into `33E6C`. `34DE7` is alignment; `34DE8` is independently called.

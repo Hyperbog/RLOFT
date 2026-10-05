@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 218605u;
-constexpr u32 kVerifiedNonCodeBytes = 4319u;
+constexpr u32 kVerifiedTranslatedBytes = 219172u;
+constexpr u32 kVerifiedNonCodeBytes = 4320u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -26258,5 +26258,76 @@ void function_34a74(Machine& m,Runtime108Boundary& b,Runtime106Boundary& raster)
 
 static_assert(0x34BADu-0x34A74u==313u);
 // 34BAD..34BAF is three unreferenced zero padding bytes; 34BB0 has an independent caller.
+
+
+// Batch 109: 34BB0..34DE6 indexed quad construction and conditional raster dispatch.
+struct Runtime109Boundary {
+    // Existing resource-address helper: first argument is 258F8h + record byte 9, second is 4.
+    u32 (*call_2f29c)(u32,u32)=nullptr;
+    // Represents LEA of the local 8-dword stack quad followed by CALL 33E6C.
+    // Keeping this boundary explicit preserves the decoded DS:ESI/ES selector contract of 33E6C.
+    void (*call_33e6c_local_quad)(Machine&,Runtime103Boundary&,const u32*)=nullptr;
+};
+
+static u32 app109_sar3(u32 v) noexcept {
+    return (v>>3)|((v&0x80000000u)?0xE0000000u:0u);
+}
+static u32 app109_sar1(u32 v) noexcept {
+    return (v>>1)|(v&0x80000000u);
+}
+static u32 app109_div8_trunc(u32 v) noexcept {
+    return app109_sar3(v+((v&0x80000000u)?7u:0u));
+}
+static u32 app109_div2_trunc(u32 v) noexcept {
+    return app109_sar1(v+((v&0x80000000u)?1u:0u));
+}
+
+void function_34bb0(Machine& m,Runtime109Boundary& b,Runtime103Boundary& raster,
+                     const u32* coords,u32* indices,u32 record) noexcept {
+    u32 quad_a[8]{};
+    u32 quad_b[8]{};
+
+    for(u32 i=0;i<4u;++i){
+        // 34BE3 is a raw arithmetic SAR by 3, distinct from the bias-corrected divisions below.
+        indices[i]=app109_sar3(indices[i]);
+        const u32 limit=load_le32(dg(m,0xC738u));
+        if(static_cast<s32>(indices[i])>static_cast<s32>(limit))indices[i]=limit;
+        if(indices[i]==0u)return;
+
+        const u32 width=load_le32(dg(m,0x15618u+indices[i]*4u));
+        const u32 center=app109_div8_trunc(width)+0x80u;
+        const u32 j=(i&1u)?(i^2u):i; // odd vertices 1 and 3 exchange places in the mirrored quad.
+
+        quad_a[i*2u+1u]=coords[i];
+        quad_b[j*2u+1u]=coords[i];
+        const u32 half=app109_div2_trunc(width);
+        quad_a[i*2u]=center+half;
+        quad_b[j*2u]=center-half;
+    }
+
+    const bool alternate=((*dg(m,record+1u))&0x20u)!=0u;
+    const u8 resource_index=*dg(m,record+9u);
+    if(!alternate){
+        if(*dg(m,0xC026u)==0u)return;
+        const u32 resource=b.call_2f29c?b.call_2f29c(0x258F8u+resource_index,4u):0u;
+        store_le32(dg(m,0xFDC0u),resource);
+        store_le32(dg(m,0xFDC0u),load_le32(dg(m,0xFDC0u))+2u);
+        store_le32(dg(m,0xFDB8u),0x84u);
+        store_le32(dg(m,0xFDB4u),0x103u);
+        if(b.call_33e6c_local_quad)b.call_33e6c_local_quad(m,raster,quad_a);
+        return;
+    }
+
+    if(*dg(m,0xC027u)==0u)return;
+    const u32 resource=b.call_2f29c?b.call_2f29c(0x258F8u+resource_index,4u):0u;
+    store_le32(dg(m,0xFDC0u),resource);
+    store_le32(dg(m,0xFDC0u),load_le32(dg(m,0xFDC0u))+2u);
+    store_le32(dg(m,0xFDB8u),0x04u);
+    store_le32(dg(m,0xFDB4u),0x83u);
+    if(b.call_33e6c_local_quad)b.call_33e6c_local_quad(m,raster,quad_b);
+}
+
+static_assert(0x34DE7u-0x34BB0u==567u);
+// 34DE7 is an unreferenced NOP separator; 34DE8 has an independent direct caller.
 
 } // namespace code2
