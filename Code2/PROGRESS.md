@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-90.98%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-91.04%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **213,812**
-**Proven non-code/data bytes:** **4,272**
-**Reconciled object bytes:** **218,084 / 239,698 = 90.9828% (90.98%)**
-**Unresolved object bytes:** **21,614**
+**Verified translated instruction bytes:** **213,958**
+**Proven non-code/data bytes:** **4,274**
+**Reconciled object bytes:** **218,232 / 239,698 = 91.0446% (91.04%)**
+**Unresolved object bytes:** **21,466**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -878,3 +878,6 @@ Added **63 translated instruction bytes** and **1 alignment byte**, bringing acc
 ## Batch 93 — record decomposition and weighted bucket selection
 
 Added **189 translated instruction bytes** and **3 alignment bytes**, bringing accounting to **213,812 translated + 4,272 non-code = 218,084 / 239,698 = 90.9828% (90.98%)**. `33808` decomposes one `15A18` record into caller outputs, including the unsigned `DIV` whose divisor is a sign-extended `25619` word, initializes only the low word of the bucket output to `FFFFh`, then optionally searches up to 128 word weights selected by `15618/18FE0`. The search keeps the signed threshold comparison on `sum + (84h + shape/8 - shape/2)`. Next frontier: **`338C8`**.
+## Batch 94 — fixed-point column scaler
+
+Added **146 translated instruction bytes** and **2 alignment bytes**, bringing accounting to **213,958 translated + 4,274 non-code = 218,232 / 239,698 = 91.0446% (91.04%)**. `338C8` derives a signed 16.16-style source step from `800000h / scale`, clips the destination start/count around 256 rows, samples source bytes from the high word of the phase accumulator, alternates the two bytes of its first argument as subtraction terms, and advances destination rows by `50h`. The binary reads local `[EBP-8]` without defining it on the nonnegative-start path; the translation exposes that persistent stack-slot residue through `Application94Boundary` rather than inventing a value. Next frontier: **`3395C`**.

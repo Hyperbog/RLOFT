@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 213812u;
-constexpr u32 kVerifiedNonCodeBytes = 4272u;
+constexpr u32 kVerifiedTranslatedBytes = 213958u;
+constexpr u32 kVerifiedNonCodeBytes = 4274u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -25375,5 +25375,57 @@ void function_33808(Machine& m,u32 table_index,u32 threshold,u32 record_index,
 }
 static_assert(0x338C5u-0x33808u==189u);
 // 338C5..338C7 is XCHG EBX,EBX plus NOP alignment with no incoming direct target.
+
+
+// Batch 94: 338C8..33959 fixed-point column scaler.
+struct Application94Boundary {
+    // Callee [EBP-8] is read without a defining write on the nonnegative-start path.
+    // The stack slot can persist across repeated calls at the same depth, so seed this
+    // from the incoming stack residue and carry forward writes made by this routine.
+    u32 stack_local_8_residue;
+    explicit Application94Boundary(u32 initial_residue) noexcept
+        : stack_local_8_residue(initial_residue) {}
+};
+
+void function_338c8(Machine& m,Application94Boundary& b,u32 subtract_pair,
+                    u32 scale,u32 source,u32 destination) noexcept {
+    const s32 divisor=static_cast<s32>(scale);
+    const s32 signed_step=static_cast<s32>(0x00800000u)/divisor;
+    const u32 step=static_cast<u32>(signed_step);
+
+    u32 count=scale;
+    u32 start=static_cast<u32>(static_cast<s32>(0x100u-scale)>>1);
+    start+=static_cast<u32>(static_cast<s32>(scale)>>3);
+    u32 phase=b.stack_local_8_residue;
+    if(static_cast<s32>(start)<0){
+        const u32 magnitude=0u-start;
+        phase=step*magnitude;
+        b.stack_local_8_residue=phase;
+        start=0u;
+        count=0x100u;
+    }
+
+    destination+=0x50u*start;
+    u32 combined=count+start;
+    if(static_cast<s32>(combined)>0x100){
+        combined-=0x100u;
+        count-=combined;
+    }
+
+    u32 iterations=count&0xFFu;
+    if(iterations==0u)iterations=0x100u;
+    const u32 low_subtract=subtract_pair&0xFFu;
+    const u32 high_subtract=(subtract_pair>>8)&0xFFu;
+    for(u32 i=0u;i<iterations;++i){
+        const u32 source_index=phase>>16;
+        const u32 sample=static_cast<u32>(*dg(m,source+source_index));
+        const u32 subtract_byte=(i&1u)?high_subtract:low_subtract;
+        *dg(m,destination)=static_cast<u8>(sample-subtract_byte);
+        destination+=0x50u;
+        phase+=step;
+    }
+}
+static_assert(0x3395Au-0x338C8u==146u);
+// 3395A..3395B is XCHG EBX,EBX alignment with no incoming direct target.
 
 } // namespace code2

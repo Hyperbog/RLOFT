@@ -524,3 +524,6 @@ Batch 92 reconciles `337C8..33807`: **63 translated + 1 alignment byte**. Covera
 ## CODE.2 Batch 93 checkpoint
 
 Batch 93 reconciles `33808..338C7`: **189 translated + 3 alignment bytes**. Coverage is **218,084 / 239,698 = 90.9828% (90.98%)**, with **21,614 unresolved bytes**. Preserve unsigned record-index multiplication, logical `SHR` operations, unsigned `DIV` by the sign-extended word value, the partial-word `FFFFh` initialization of the bucket output, unsigned `JAE` table bound, and signed threshold comparison inside the 128-entry word-weight search. Next frontier is `338C8`.
+## CODE.2 Batch 94 checkpoint
+
+Batch 94 reconciles `338C8..3395B`: **146 translated + 2 alignment bytes**. Coverage is **218,232 / 239,698 = 91.0446% (91.04%)**, with **21,466 unresolved bytes**. Preserve signed `IDIV` for the source step, arithmetic shifts in start clipping, low-byte loop-count semantics (`0` means 256 iterations after `DEC AH` wrapping), `SHLD 0,phase,16` source indexing, alternating `CL/CH` subtraction bytes, `50h` destination stride, and the persistent undefined-stack residue boundary for `[EBP-8]`. Next frontier is `3395C`.
