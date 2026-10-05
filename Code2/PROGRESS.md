@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-83.28%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-83.80%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **195,658**
-**Proven non-code/data bytes:** **3,974**
-**Reconciled object bytes:** **199,632 / 239,698 = 83.2848% (83.28%)**
-**Unresolved object bytes:** **40,066**
+**Verified translated instruction bytes:** **196,867**
+**Proven non-code/data bytes:** **3,993**
+**Reconciled object bytes:** **200,860 / 239,698 = 83.7971% (83.80%)**
+**Unresolved object bytes:** **38,838**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -742,3 +742,27 @@ Instruction ownership spans `2DF2C..2DFE8`, `2E00C..2E0E2`, `2E0E4..2E11C`, `2E1
 Batch 68 added **2,173 translated instruction bytes** plus **71 directly proven non-code/data bytes**, reconciling through `2F0B3`. Cumulative accounting is **195,658 translated + 3,974 non-code = 199,632 / 239,698 = 83.2848% (83.28%)**; unresolved is **40,066 bytes**.
 
 Instruction ownership spans `2E7F0..2E9CA`, `2E9CC..2EA26`, `2EA28..2EA99`, `2EA9C..2EB25`, `2EB28..2EB5D`, `2EB60..2EC72`, `2EC74..2EC83`, `2EC84..2EC94`, `2ECB4..2EFB2`, and `2EFD0..2F0B1`. The exact CS tables `2EC98..2ECB3` and `2EFB4..2EFCF` are owned by their adjacent dispatchers. Preserve uninitialized high bits when `2E7F0` initializes item byte 0, `2ECB4`'s out-of-range error path continuing into the indexed access, low-byte selector arithmetic, callback/global reloads, and `2EFD0`'s type-dependent release calls. This batch also repairs the proven ABI at `28020` and `286C4`: both ignore their first stack argument and consume the stream from the second. The next independent routine begins at `2F0B4`.
+
+
+## Batch 69 — resource-item locking and environment lifecycle
+
+Source identity and the Batch-68 overlap were reverified before this batch. Added **1,209 translated instruction bytes** and **19 directly proven alignment bytes**, bringing cumulative accounting to **196,867 translated + 3,993 non-code = 200,860 / 239,698 = 83.7971% (83.80%)**.
+
+### Newly translated ranges
+
+- `2F0B4..2F182` — 207 bytes: lowest-age matching item scan across all resource slots, followed by the address-distinct `2EFD0` release path.
+- `2F184..2F1B0` / `2F1B4..2F1E0` — 45 bytes each: set/clear item lock bit `10h` only for populated item records.
+- `2F1E4..2F25D` — 122 bytes: clear lock bit from every populated item except the globally selected record index, preserving the compiler's final writes back to `F0B8/F0C0`.
+- `2F260..2F29A` — 59 bytes: rebuild current slot-0 item then lock it.
+- `2F29C..2F2DF` — 68 bytes: load an item/slot pair and return payload only for selector/type byte 1.
+- `2F2E0..2F2EB` — 12 bytes: far callback body that stores the encoded stack `+0Ch` value into `F6F8` and returns zero via RETF.
+- `2F2EC..2F464` — 377 bytes: environment/bootstrap routine, including far callback installation, backend setup, configuration loading, direct port writes for mode `79h`, graphics/audio backend initialization, and optional resource-slot initialization.
+- `2F468..2F4DF` — 120 bytes: switch the current slot-0 item, clear/set lock bits, and publish `F0BC/F0C4`.
+- `2F4E0..2F53E` — 95 bytes: ordered backend/resource teardown.
+- `2F540..2F551` / `2F554..2F57C` — 18/41 bytes: backend restore wrapper and full shutdown wrapper.
+
+### Fidelity notes
+
+`2F0B4` chooses the minimum unsigned 16-bit age among matching unlocked records and reloads the signed slot/item counts exactly as encoded. `2F2EC` preserves signed 16-bit device fields and low-16-bit I/O port behavior, and treats the `2F2E0` callback as a far-return boundary rather than a normal near callback. `2F1E4` intentionally exempts the same global item index in every slot, rather than interpreting `F0C0` as a slot-qualified pair.
+
+The next independent routine begins at **`2F580`**.

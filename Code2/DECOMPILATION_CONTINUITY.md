@@ -437,3 +437,8 @@ Fresh direct disassembly of the immutable original `CODE.1` reconciled the VGA s
 CODE.1 object-1 byte classification is closed at 70,402 / 70,402 bytes, and the sequential semantic audit has reconciled the complete logical address span `00000..11301`. Post-closure checkpoint 10o performed an additional hardening pass over the final CRT/heap/stream runtime and corrected residual normalized behavior without changing byte accounting. There is no remaining CODE.1 sequential audit frontier.
 
 Future CODE.1 work should therefore be evidence-driven backtracking only if new contradictory binary evidence appears. The next major decompilation phase is CODE.2, using the same immutable-source, exact-width/signedness, selector/far-pointer, register-alias, stack-slot, shared-tail, and syntax-verification rules documented above.
+
+
+## CODE.2 Batch 69 checkpoint
+
+Batch 69 adds **1,209 translated bytes** and **19 proven non-code bytes**, bringing cumulative accounting to **196,867 translated + 3,993 non-code = 200,860 / 239,698 = 83.7971% (83.80%)**. Sequential frontier: `2F580`. Preserve `2F0B4`'s minimum-u16 selection rule, the slot-independent `F0C0` exemption in `2F1E4`, `2F2E0`'s far-return callback semantics, and `2F2EC`'s signed-word/low-port behavior.

@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 195658u;
-constexpr u32 kVerifiedNonCodeBytes = 3974u;
+constexpr u32 kVerifiedTranslatedBytes = 196867u;
+constexpr u32 kVerifiedNonCodeBytes = 3993u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -22766,5 +22766,243 @@ static_assert(
     (0x2EB26u-0x2EA9Cu)+(0x2EB5Eu-0x2EB28u)+(0x2EC73u-0x2EB60u)+
     (0x2EC84u-0x2EC74u)+(0x2EC95u-0x2EC84u)+(0x2EFB3u-0x2ECB4u)+
     (0x2F0B2u-0x2EFD0u)==2173u);
+
+// -----------------------------------------------------------------------------
+// Batch 69: 2F0B4..2F57C resource-item selection/locking, graphics/audio
+// environment initialization and teardown. All addresses are CODE.2 object-relative.
+// -----------------------------------------------------------------------------
+
+struct Application69Boundary {
+    Application68Boundary* app68=nullptr;
+    Application55Boundary* app55=nullptr;
+    Application56Boundary* app56=nullptr;
+    Application54Boundary* app54=nullptr;
+
+    void (*call_375fe_far)(u32,u16)=nullptr;
+    void (*call_30bb4)()=nullptr;
+    u32 (*call_3104c)(u32)=nullptr;
+    void (*call_30d30)(u32,u32,u32)=nullptr;
+    u32 (*call_35349)(u32)=nullptr;
+    u32 (*call_312a0)(u32)=nullptr;
+    void (*call_312ec)(u32,u32,u32)=nullptr;
+    void (*call_312dc)(u32)=nullptr;
+    u32 (*call_33b44)()=nullptr;
+    void (*call_33d18)(u32,u32)=nullptr;
+    void (*call_33d38)(u32,u32)=nullptr;
+    void (*out8)(u16,u8)=nullptr;
+    void (*call_362be)(u32)=nullptr;
+    void (*call_30c38)()=nullptr;
+    void (*call_376f0)()=nullptr;
+    void (*call_352be)(u32)=nullptr;
+};
+
+static u32 app69_slot(Machine& m,u32 slot) noexcept {
+    return load_le32(dg(m,0xF0B8u))+slot*0x10u;
+}
+static u32 app69_item(Machine& m,u32 slot,u32 item) noexcept {
+    return load_le32(dg(m,app69_slot(m,slot)+0x0Cu))+item*9u;
+}
+
+[[nodiscard]] u32 function_2f0b4(Machine& m,Application69Boundary& b,u32 wanted_type) noexcept {
+    const u32 saved_base=load_le32(dg(m,0xF0B8u));
+    u32 best_value=0u;
+    s32 best_item=-1;
+    u32 best_slot=0u;
+
+    for(s32 slot=0;slot<static_cast<s32>(load_le32(dg(m,0xF0B4u)));++slot){
+        const u32 slot_rec=saved_base+static_cast<u32>(slot)*0x10u;
+        if(load_le32(dg(m,slot_rec+4u))==0u)continue;
+        const u32 items=load_le32(dg(m,slot_rec+0x0Cu));
+        for(s32 item=0;item<static_cast<s32>(load_le32(dg(m,slot_rec+8u)));++item){
+            const u32 p=items+static_cast<u32>(item)*9u;
+            if(static_cast<u32>(*dg(m,p+2u))!=wanted_type)continue;
+            if((*dg(m,p)&0x10u)!=0u)continue;
+            const u32 v=load_le16(dg(m,p+3u));
+            if(best_item!=-1 && v>=best_value)continue;
+            best_value=v;
+            best_item=item;
+            best_slot=static_cast<u32>(slot);
+        }
+    }
+
+    // Compiler writes the saved base back even though this routine has no call
+    // inside the scan that could have changed it.
+    store_le32(dg(m,0xF0B8u),saved_base);
+    if(best_item==-1)return 0u;
+    if(b.app68)function_2efd0(m,*b.app68,static_cast<u32>(best_item),best_slot);
+    return 1u;
+}
+static_assert(0x2F183u-0x2F0B4u==207u);
+
+void function_2f184(Machine& m,u32 item,u32 slot) noexcept {
+    const u32 p=app69_item(m,slot,item);
+    if(*dg(m,p+2u)!=0u)*dg(m,p)=static_cast<u8>(*dg(m,p)|0x10u);
+}
+static_assert(0x2F1B1u-0x2F184u==45u);
+
+void function_2f1b4(Machine& m,u32 item,u32 slot) noexcept {
+    const u32 p=app69_item(m,slot,item);
+    if(*dg(m,p+2u)!=0u)*dg(m,p)=static_cast<u8>(*dg(m,p)&0xEFu);
+}
+static_assert(0x2F1E1u-0x2F1B4u==45u);
+
+void function_2f1e4(Machine& m) noexcept {
+    const u32 saved_selected=load_le32(dg(m,0xF0C0u));
+    const u32 saved_base=load_le32(dg(m,0xF0B8u));
+    for(s32 slot=0;slot<static_cast<s32>(load_le32(dg(m,0xF0B4u)));++slot){
+        const u32 slot_rec=saved_base+static_cast<u32>(slot)*0x10u;
+        const u32 items=load_le32(dg(m,slot_rec+0x0Cu));
+        for(s32 item=0;item<static_cast<s32>(load_le32(dg(m,slot_rec+8u)));++item){
+            if(static_cast<u32>(item)==saved_selected)continue;
+            const u32 p=items+static_cast<u32>(item)*9u;
+            if(*dg(m,p+2u)!=0u)*dg(m,p)=static_cast<u8>(*dg(m,p)&0xEFu);
+        }
+    }
+    store_le32(dg(m,0xF0B8u),saved_base);
+    store_le32(dg(m,0xF0C0u),saved_selected);
+}
+static_assert(0x2F25Eu-0x2F1E4u==122u);
+
+void function_2f260(Machine& m,Application69Boundary& b) noexcept {
+    if(b.app68){
+        function_2e9cc(m,*b.app68);
+        function_2ecb4(m,*b.app68,load_le32(dg(m,0xF0C0u)),0u);
+    }
+    const u32 p=app69_item(m,0u,load_le32(dg(m,0xF0C0u)));
+    if(*dg(m,p+2u)!=0u)*dg(m,p)=static_cast<u8>(*dg(m,p)|0x10u);
+}
+static_assert(0x2F29Bu-0x2F260u==59u);
+
+[[nodiscard]] u32 function_2f29c(Machine& m,Application69Boundary& b,u32 item,u32 slot) noexcept {
+    if(b.app68)function_2ecb4(m,*b.app68,item,slot);
+    const u32 p=app69_item(m,slot,item);
+    if(*dg(m,p+2u)==1u)return load_le32(dg(m,p+5u));
+    return 0u;
+}
+static_assert(0x2F2E0u-0x2F29Cu==68u);
+
+// 2F2E0 is installed as a far callback by 2F2EC. The machine transfer ends in
+// RETF; the reconstruction exposes only the value read from encoded stack +0Ch.
+[[nodiscard]] u32 function_2f2e0(Machine& m,u32 stack_arg_c) noexcept {
+    store_le32(dg(m,0xF6F8u),stack_arg_c);
+    return 0u;
+}
+static_assert(0x2F2ECu-0x2F2E0u==12u);
+
+void function_2f2ec(Machine& m,Application69Boundary& b,u32 resource_base,u32 resource_count) noexcept {
+    store_le16(dg(m,0xEF53u),0x0182u);
+    *dg(m,0xEF3Eu)=0x0Cu;
+    *dg(m,0xEF68u)=1u;
+    *dg(m,0xEF3Cu)=0xFFu;
+    store_le32(dg(m,0xF0C0u),0xFFFFFFFFu);
+    if(b.call_375fe_far)b.call_375fe_far(0x2F2E0u,m.cpu.cs);
+    if(b.call_30bb4)b.call_30bb4();
+    if(b.app56)(void)function_290d0(m,*b.app56,0u);
+
+    u32 env=0u;
+    if(load_le32(dg(m,0x105FCu))!=2u){
+        env=b.call_3104c?b.call_3104c(0x100u):0u;
+        store_le32(dg(m,0xF050u),env);
+        if(b.call_30d30)b.call_30d30(env,0u,0x100u);
+    } else {
+        const u32 p=load_le32(dg(m,0x10600u));
+        env=b.call_35349?b.call_35349(load_le32(dg(m,p+4u))):0u;
+        store_le32(dg(m,0xF050u),env);
+    }
+
+    if(*dg(m,env+0x64u)==0u){
+        const u32 h=b.call_312a0?b.call_312a0(0x143Cu):0u;
+        if(b.call_312ec)b.call_312ec(env,0x3Bu,h);
+        if(b.call_312dc)b.call_312dc(h);
+        // EBX is explicitly reloaded from F050 before both stores.
+        env=load_le32(dg(m,0xF050u));
+        *dg(m,env+0x64u)=1u;
+        *dg(m,env+0x66u)=1u;
+    }
+
+    const u32 state=b.call_33b44?b.call_33b44():0u;
+    store_le32(dg(m,0xF04Cu),state);
+    env=load_le32(dg(m,0xF050u));
+    const s32 mode=static_cast<s16>(load_le16(dg(m,env+8u)));
+    if(mode!=0x71){
+        if(mode==0x79 && b.out8){
+            const s32 base_port=static_cast<s16>(load_le16(dg(m,env+0x0Au)));
+            b.out8(static_cast<u16>(base_port+4),0x83u);
+            b.out8(static_cast<u16>(base_port+5),0x0Bu);
+        }
+        if(load_le16(dg(m,env+0x14u))!=0u && b.app54){
+            function_27d20(m,*b.app54,env+0x24u,
+                           static_cast<u32>(static_cast<s32>(static_cast<s16>(load_le16(dg(m,env+0x0Au))))),
+                           static_cast<u32>(static_cast<s32>(static_cast<s16>(load_le16(dg(m,env+0x0Cu))))),
+                           static_cast<u32>(static_cast<s32>(static_cast<s16>(load_le16(dg(m,env+0x0Eu))))),
+                           static_cast<u32>(static_cast<s32>(static_cast<s16>(load_le16(dg(m,env+0x10u))))));
+        }
+        env=load_le32(dg(m,0xF050u));
+        if(b.app55){
+            function_282bc(m,*b.app55,env+0x16u,
+                           static_cast<u32>(static_cast<s32>(static_cast<s16>(load_le16(dg(m,env+0u))))),
+                           static_cast<u32>(static_cast<s32>(static_cast<s16>(load_le16(dg(m,env+2u))))),
+                           static_cast<u32>(static_cast<s32>(static_cast<s16>(load_le16(dg(m,env+4u))))),
+                           static_cast<u32>(static_cast<s32>(static_cast<s16>(load_le16(dg(m,env+6u))))));
+        }
+    }
+
+    if(b.call_33d18)b.call_33d18(0u,0x27Eu);
+    if(b.call_33d38)b.call_33d38(0u,0xC7u);
+    if(resource_base!=0u && b.app68)function_2e7f0(m,*b.app68,resource_base,resource_count);
+}
+static_assert(0x2F465u-0x2F2ECu==377u);
+
+void function_2f468(Machine& m,Application69Boundary& b,u32 context,u32 item,u32 display_byte) noexcept {
+    const u32 old=load_le32(dg(m,0xF0C0u));
+    if(old!=0xFFFFFFFFu){
+        const u32 p=app69_item(m,0u,old);
+        if(*dg(m,p+2u)!=0u)*dg(m,p)=static_cast<u8>(*dg(m,p)&0xEFu);
+    }
+
+    store_le32(dg(m,0xF0C0u),item);
+    if(b.app68)function_2ecb4(m,*b.app68,item,0u);
+    const u32 p=app69_item(m,0u,item);
+    if(*dg(m,p+2u)!=0u)*dg(m,p)=static_cast<u8>(*dg(m,p)|0x10u);
+    store_le32(dg(m,0xF0BCu),context);
+    *dg(m,0xF0C4u)=static_cast<u8>(display_byte);
+}
+static_assert(0x2F4E0u-0x2F468u==120u);
+
+void function_2f4e0(Machine& m,Application69Boundary& b) noexcept {
+    if(b.call_33b44)(void)b.call_33b44();
+    const u32 had_backend=load_le32(dg(m,0xEE78u))|load_le32(dg(m,0xEE40u));
+    const u32 env=load_le32(dg(m,0xF050u));
+    if(static_cast<s16>(load_le16(dg(m,env+8u)))!=0x71){
+        if(b.app55)function_285d4(m,*b.app55);
+        if(load_le16(dg(m,env+0x14u))!=0u && b.app54)function_27ecc(m,*b.app54);
+        if(had_backend!=0u && b.call_362be)b.call_362be(0u);
+    }
+    if(load_le32(dg(m,0xF0B8u))!=0u && b.app68)function_2ea9c(m,*b.app68);
+    if(b.call_30c38)b.call_30c38();
+}
+static_assert(0x2F53Fu-0x2F4E0u==95u);
+
+void function_2f540(Application69Boundary& b,u32 value) noexcept {
+    if(b.call_376f0)b.call_376f0();
+    if(b.call_352be)b.call_352be(value);
+}
+static_assert(0x2F552u-0x2F540u==18u);
+
+void function_2f554(Machine& m,Application69Boundary& b,u32 restore_backend) noexcept {
+    if(b.app56)function_290f4(m,*b.app56,0xFFu);
+    function_2f4e0(m,b);
+    if(restore_backend!=0u){
+        if(b.call_376f0)b.call_376f0();
+        if(b.call_352be)b.call_352be(1u);
+    }
+}
+static_assert(0x2F57Du-0x2F554u==41u);
+
+static_assert(
+    (0x2F183u-0x2F0B4u)+(0x2F1B1u-0x2F184u)+(0x2F1E1u-0x2F1B4u)+
+    (0x2F25Eu-0x2F1E4u)+(0x2F29Bu-0x2F260u)+(0x2F2E0u-0x2F29Cu)+
+    (0x2F2ECu-0x2F2E0u)+(0x2F465u-0x2F2ECu)+(0x2F4E0u-0x2F468u)+
+    (0x2F53Fu-0x2F4E0u)+(0x2F552u-0x2F540u)+(0x2F57Du-0x2F554u)==1209u);
 
 } // namespace code2
