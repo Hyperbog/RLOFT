@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 223874u;
-constexpr u32 kVerifiedNonCodeBytes = 4502u;
+constexpr u32 kVerifiedTranslatedBytes = 223909u;
+constexpr u32 kVerifiedNonCodeBytes = 4516u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -643,7 +643,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -27183,5 +27183,26 @@ void function_3962d(Machine& m,Runtime119Boundary& b,u32 eax,u32 edx) noexcept {
     }
 }
 static_assert(0x3967Cu-0x3962Du==79u);
+
+
+// Batch 120: first runtime island after the timer/event family, 369A7..369D7.
+struct Runtime120Boundary {
+    void (*call_register_guest)(u32,u32,u32,u32)=nullptr; // target, ECX, ESI, EDI
+};
+
+u32 function_369a7(u32 value) noexcept {
+    if(static_cast<s32>(value)<0)value=0u-value;
+    return value;
+}
+static_assert(0x369B2u-0x369A7u==11u);
+
+// 369B2..369BF is a fourteen-byte zero island between two complete RET-bounded helpers.
+
+void function_369c0(Runtime120Boundary& b,u32 target,u32 ecx,u32 esi,u32 edi) noexcept {
+    // The ENTER frame makes these four values available at [EBP+8,+0C,+10,+14].
+    // The binary then transfers the last three into ECX/ESI/EDI and performs CALL [EBP+8].
+    if(b.call_register_guest)b.call_register_guest(target,ecx,esi,edi);
+}
+static_assert(0x369D8u-0x369C0u==24u);
 
 } // namespace code2

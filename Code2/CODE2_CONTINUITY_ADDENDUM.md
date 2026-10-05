@@ -612,3 +612,8 @@ Batch 118 closes the three historical early-object zero islands without changing
 ## CODE.2 Batch 119 checkpoint
 
 Batch 119 reconciles the late runtime island `39526..3967B`: **342 translated bytes**. Preserve `39526`'s ASCII-only folding and unsigned-byte difference; `39589`'s strict unsigned stack-allocation threshold and `12650` update; and the packed six-byte callback-table selection/restart semantics in `395E2/3962D`, including the full EDX payload passed through indirect callbacks. The batch also repairs the accounting-neutral Batch 118 omission in `Code2.cpp`: `kVerifiedNonCodeBytes` now matches the already-proven/documented **4,502** bytes. Cumulative accounting is **223,874 translated + 4,502 non-code = 228,376 / 239,698 = 95.2766% (95.28%)**; unresolved is **11,322 bytes**. Continue from the residual complement rather than assuming sequential ownership after `3967B`, because `3967C` and later runtime helpers already have integrated ownership.
+
+
+## CODE.2 Batch 120 checkpoint
+
+Batch 120 reconciles `369A7..369D7`: **35 translated + 14 proven non-code bytes**. Preserve `369A7`'s modular `NEG` behavior, including `INT32_MIN`, and `369C0`'s non-cdecl register handoff (`ECX/ESI/EDI`) before the indirect call. `369B2..369BF` is directly proven zero non-code with no incoming direct relative target. Accounting is **228,425 / 239,698 = 95.2970% (95.30%)**; unresolved is **11,273 bytes**. `369D8` begins the next independently bounded runtime renderer.

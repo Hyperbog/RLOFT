@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-95.28%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-95.30%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **223,874**
-**Proven non-code/data bytes:** **4,502**
-**Reconciled object bytes:** **228,376 / 239,698 = 95.2766% (95.28%)**
-**Unresolved object bytes:** **11,322**
+**Verified translated instruction bytes:** **223,909**
+**Proven non-code/data bytes:** **4,516**
+**Reconciled object bytes:** **228,425 / 239,698 = 95.2970% (95.30%)**
+**Unresolved object bytes:** **11,273**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -982,3 +982,8 @@ Batch 118 adds no translated instructions; it directly proves **30 non-code/alig
 ## Batch 119 — late runtime helper island `39526..3967B`
 
 Batch 119 adds **342 translated instruction bytes** across four independently bounded runtime helpers: `39526..39588`, `39589..395E1`, `395E2..3962C`, and `3962D..3967B`. `39526` is the ASCII-only length-bounded case-insensitive comparator used by the environment lookup at `352EE`; it preserves unsigned byte subtraction and terminates on the second operand's NUL. `39589` preserves the rounded dynamic-stack request, strict unsigned allocation threshold, global `12650` update, and subsequent runtime callback chain. `395E2` and `3962D` preserve the packed six-byte callback records, priority selection/restart behavior, status-byte writeback, and callback EDX register payload. This batch also repairs the accounting-neutral Batch 118 omission in `Code2.cpp` by synchronizing `kVerifiedNonCodeBytes` from 4,472 to the already-proven/documented 4,502. Cumulative accounting is **223,874 translated + 4,502 non-code = 228,376 / 239,698 = 95.2766% (95.28%)**; unresolved is **11,322 bytes**.
+
+
+## Batch 120 — first post-timer runtime island `369A7..369D7`
+
+Batch 120 adds **35 translated instruction bytes** and **14 proven non-code bytes**. `369A7..369B1` is the wrap-preserving 32-bit absolute-value helper: negative values execute `NEG EAX`, so `80000000h` remains `80000000h`. `369B2..369BF` is fourteen zero bytes between the helper's RET and the independently framed `369C0`; a full object-1 direct relative branch/call target scan found no incoming target into the island. `369C0..369D7` is an ENTER-framed register-call adapter: it loads caller arguments into `ECX`, `ESI`, and `EDI`, then performs `CALL [EBP+8]`, preserving its address-distinct register ABI rather than normalizing it into cdecl. Cumulative accounting is **223,909 translated + 4,516 non-code = 228,425 / 239,698 = 95.2970% (95.30%)**; unresolved is **11,273 bytes**. Next independent boundary: **`369D8`**.
