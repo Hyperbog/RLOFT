@@ -666,3 +666,7 @@ Batch 128 reconciles `379D0..37AFB`: **293 translated + 7 alignment/separator by
 
 ## CODE.2 Batch 129 checkpoint
 Batch 129 reconciles `37AFC..37CA2`: **423 translated instruction bytes**, no newly classified non-code. Coverage is **231,690 / 239,698 = 96.6591% (96.66%)**, with **8,008 unresolved bytes**. Preserve the allocator's unsigned upper-bound test, four-byte rounding, 12-byte minimum, two distinct growth/retry paths, arena-chain traversal, and address-distinct forwarding wrappers. Next boundary is `37CA3`; `36CEC..372F5` remains unresolved.
+
+
+## CODE.2 Batch 130 checkpoint
+Batch 130 reconciles `37CA3..37E76`: **468 translated instruction bytes**, no new non-code. Coverage is **232,158 / 239,698 = 96.8544% (96.85%)**, with **7,540 unresolved bytes**. Preserve distinct errno domains, stream flag bits, capacity choices `86h`/`1`/`1000h`, embedded one-byte fallback, partial-write failure, unread-input backward seek, and DOS AH=43h attribute semantics. Next boundary `37E77`; `36CEC..372F5` remains unresolved.
