@@ -103,3 +103,12 @@ Durable handoff anchor; live repository/binary evidence wins.
 - Immutable CODE.2 SHA-256: `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
 - Immutable object-1 SHA-256: `014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3`.
 - This checkpoint supersedes stale earlier notes describing `36CEC..372F5`, `38A30..38A60`, or `39A8A..39BBB` as accounting-unresolved; those notes predated the aggregate-baseline reconciliation.
+
+
+## Semantic audit checkpoint 5 handoff
+- Object accounting remains closed at **235,022 translated + 4,676 proven non-code/data = 239,698 / 239,698**.
+- Semantic audit: **13,876 / 239,698 = 5.7890%**, closed through **`03633`**.
+- Semantic defect classes found so far: **2**; checkpoint 5 found no new correction.
+- Checkpoint-5 span `02D70..03633` SHA-256: `34d1aab387aaafb288749013481c975620f3d0ed2819a3cdb03d04b72a3ca373`.
+- Mandatory prior-frontier overlap `[0x02D30,0x02DF0)` SHA-256: `11b1b378f281c2685f0fad8f9046c8c7af5a83cfe35d2f3f8641c9fa2280171`.
+- Next semantic-audit frontier: **`03634`**.

@@ -63,16 +63,24 @@ One repeated cdecl argument-order defect was found while applying the CODE.1 cal
 
 The newly closed `01C4D..02D6F` region otherwise passes the semantic audit. Particular checks included signed text-length traversal, CR handling, signed mouse-coordinate bounds, IDIV-based line count, record deletion copy lengths, the 17h status-frame bit predicate, signed `/8` and `/5` label coordinate arithmetic, A..Z / space-A label rollover, CR/LF serialization, overlay precedence in block mode, signed map dimensions, allocation/free paths, numbered filename decimal construction, and stream read ordering. `02D70` begins an address table and is the next independent ownership family.
 
+## Checkpoint 5 — `02D70..03633`
+
+**2,244 bytes.** Fresh disassembly from the immutable object closed the 16-entry CS dispatch table, its `02DB0..034AE` control-panel dispatcher, the `034AF` separator, the `034B0..03630` navigation/redraw helper, and the three-byte `03631..03633` alignment. Span SHA-256: `34d1aab387aaafb288749013481c975620f3d0ed2819a3cdb03d04b72a3ca373`. The mandatory overlap was regenerated across the prior frontier; `[0x02D30,0x02DF0)` hashes to `11b1b378f281c2685f0fad8f9046c8c7af5a83cfe35d2f3f8641c9fa2280171`.
+
+PASS with no new semantic correction. The table entries were decoded directly as `2E59` x4, `2E82`, `2F5E`, `303A`, `3125`, `3210`, `32B4`, `337A`, `343D`, and `2E6C` x4. The dispatcher preserves inclusive rectangle bounds, the entry-12 sentinel behavior, the flag-2 remap of hits 0..3 to actions 12..15, and the encoded action-bit shifts. The modal actions retain their distinct `298F0`/`2975C` image offsets and copy dimensions, and the level-navigation paths keep signed clamps and the original page-flip/redraw ordering.
+
+The `034B0` helper was checked specifically for first-set-bit priority, signed `-40` / `-4` bounds, the asymmetric dimension-derived limits (`height-0x2B`, `width-0x2C`, `height-0x2F`, `width-0x30`), 32-bit wrapping arithmetic on the stored offsets, and reloads of `12740h/12744h` before the redraw call. No CODE.1 defect class reproduced here. `03634` is the next independent routine.
+
 ## CODE.1 cross-reference policy
 
 The fully audited CODE.1 decompilation remains part of the active procedure. Its discovered defect classes determine where CODE.2 receives extra scrutiny: cdecl slot order, live-register call inputs, byte/word aliases, signed/unsigned branch drift, modulo-32-bit arithmetic, encoded loop entry, selector/interrupt preservation, global reloads, address-distinct thunks, self-modifying immediates, and DOS/runtime wrappers. Mechanically similar regions may be audited in larger coherent families, but any opcode/control-flow divergence is resolved from CODE.2 itself.
 
 ## Current result
 
-- Audited object bytes: **11,632 / 239,698 = 4.8528%**.
+- Audited object bytes: **13,876 / 239,698 = 5.7890%**.
 - Semantic corrections found so far: **2 defect classes**.
-- New correction in checkpoint 4: **1 repeated cdecl argument-order defect affecting 10 call sites**.
-- Current closed audited frontier: **`02D6F`**.
-- Next frontier: **`02D70`**.
+- New corrections in checkpoint 5: **0**.
+- Current closed audited frontier: **`03633`**.
+- Next frontier: **`03634`**.
 
 The semantic-audit percentage is independent of the completed 100% decompilation/byte-accounting percentage.
