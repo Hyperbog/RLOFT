@@ -479,3 +479,6 @@ Batch 78 reconciles `320F8..3214F`: **74 translated + 14 zero-padding bytes**. C
 ## CODE.2 Batch 79 checkpoint
 
 Batch 79 reconciles `32150..3221F`: **207 translated + 1 alignment byte**. Coverage is **212,284 / 239,698 = 88.5631% (88.56%)** with **27,414 unresolved bytes**. Preserve the 256 RGB triples, peak-channel scaling, signed rounded division, and zero guards. Next frontier is `32220`.
+## CODE.2 Batch 80 checkpoint
+
+Batch 80 reconciles `32220..324CB`: **680 translated + 4 alignment bytes**. Coverage is **212,968 / 239,698 = 88.8485% (88.85%)** with **26,730 unresolved bytes**. Preserve forward-copy behavior, the 0x300-byte scratch palette, factor directions 7..0 and 1..8, low-byte RGB arguments, and x86-masked arithmetic shift in the interpolation primitive. Next frontier is `324CC`.

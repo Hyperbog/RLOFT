@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-88.56%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-88.85%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **208,043**
-**Proven non-code/data bytes:** **4,241**
-**Reconciled object bytes:** **212,284 / 239,698 = 88.5631% (88.56%)**
-**Unresolved object bytes:** **27,414**
+**Verified translated instruction bytes:** **208,723**
+**Proven non-code/data bytes:** **4,245**
+**Reconciled object bytes:** **212,968 / 239,698 = 88.8485% (88.85%)**
+**Unresolved object bytes:** **26,730**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -833,3 +833,6 @@ Added **74 translated instruction bytes** and **14 proven zero-padding bytes**, 
 ## Batch 79 — RGB palette rescaler
 
 Added **207 translated instruction bytes** and **1 alignment byte**, bringing accounting to **208,043 translated + 4,241 non-code = 212,284 / 239,698 = 88.5631% (88.56%)**. Unresolved is **27,414 bytes**. `32150..3221E` rescales all 256 RGB triples according to the clamped 0..63 strength byte at `[F050]+6C`, using the triple maximum, rounded signed division, and the encoded zero guards. `3221F` is an unreferenced NOP. Next frontier: **`32220`**.
+## Batch 80 — palette transition/copy/fill/interpolation subsystem
+
+Added **680 translated instruction bytes** and **4 alignment bytes**, bringing accounting to **208,723 translated + 4,245 non-code = 212,968 / 239,698 = 88.8485% (88.85%)**. Unresolved is **26,730 bytes**. The two transition routines copy the 0x300-byte palette into `F9D0`, interpolate only the requested triple range across factors 7..0 or 1..8, publish each frame through `29234`, then restore that slice. `323BC` copies triple records, `32404` fills triples, and `32468` performs signed arithmetic-shift interpolation. Next frontier: **`324CC`**.
