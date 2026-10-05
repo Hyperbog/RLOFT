@@ -1,8 +1,11 @@
 // Batch 94: 338C8..33959 fixed-point column scaler.
 struct Application94Boundary {
-    // Binary local [EBP-8] has no defining write on the nonnegative-start path.
-    // Supply the incoming stack residue explicitly rather than inventing a value.
-    u32 incoming_local_8=0u;
+    // Callee [EBP-8] is read without a defining write on the nonnegative-start path.
+    // The stack slot can persist across repeated calls at the same depth, so seed this
+    // from the incoming stack residue and carry forward writes made by this routine.
+    u32 stack_local_8_residue;
+    explicit Application94Boundary(u32 initial_residue) noexcept
+        : stack_local_8_residue(initial_residue) {}
 };
 
 void function_338c8(Machine& m,Application94Boundary& b,u32 subtract_pair,
@@ -14,10 +17,11 @@ void function_338c8(Machine& m,Application94Boundary& b,u32 subtract_pair,
     u32 count=scale;
     u32 start=static_cast<u32>(static_cast<s32>(0x100u-scale)>>1);
     start+=static_cast<u32>(static_cast<s32>(scale)>>3);
-    u32 phase=b.incoming_local_8;
+    u32 phase=b.stack_local_8_residue;
     if(static_cast<s32>(start)<0){
         const u32 magnitude=0u-start;
         phase=step*magnitude;
+        b.stack_local_8_residue=phase;
         start=0u;
         count=0x100u;
     }
@@ -31,15 +35,15 @@ void function_338c8(Machine& m,Application94Boundary& b,u32 subtract_pair,
 
     u32 iterations=count&0xFFu;
     if(iterations==0u)iterations=0x100u;
-    u32 subtract_byte=subtract_pair&0xFFu;
-    const u32 other_byte=(subtract_pair>>8)&0xFFu;
+    const u32 low_subtract=subtract_pair&0xFFu;
+    const u32 high_subtract=(subtract_pair>>8)&0xFFu;
     for(u32 i=0u;i<iterations;++i){
         const u32 source_index=phase>>16;
         const u32 sample=static_cast<u32>(*dg(m,source+source_index));
+        const u32 subtract_byte=(i&1u)?high_subtract:low_subtract;
         *dg(m,destination)=static_cast<u8>(sample-subtract_byte);
         destination+=0x50u;
         phase+=step;
-        subtract_byte=(subtract_byte==other_byte)?(subtract_pair&0xFFu):other_byte;
     }
 }
 static_assert(0x3395Au-0x338C8u==146u);
