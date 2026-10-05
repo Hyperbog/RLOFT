@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-91.18%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-91.25%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **214,281**
-**Proven non-code/data bytes:** **4,275**
-**Reconciled object bytes:** **218,556 / 239,698 = 91.1797% (91.18%)**
-**Unresolved object bytes:** **21,142**
+**Verified translated instruction bytes:** **214,442**
+**Proven non-code/data bytes:** **4,278**
+**Reconciled object bytes:** **218,720 / 239,698 = 91.2482% (91.25%)**
+**Unresolved object bytes:** **20,978**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -893,3 +893,6 @@ Added **68 translated instruction bytes**, bringing accounting to **214,246 tran
 ## Batch 98 — generic interrupt-frame adapter
 
 Added **35 translated instruction bytes** and **1 alignment byte**, bringing accounting to **214,281 translated + 4,275 non-code = 218,556 / 239,698 = 91.1797% (91.18%)**. `33A7C` is the CODE.2 counterpart of CODE.1's address-named `CEC8` boundary: it places the four cdecl arguments into the exact `ESI/EDI/EDX/EBX` roles expected by `39148`, leaves the selector/register-frame mechanics opaque at that address-specific boundary, then explicitly reloads the first dword of the output-register block as its return value. `33A9F` is a one-byte unreferenced zero separator. Next frontier: **`33AA0`**.
+## Batch 99 — DPMI real-mode INT 33h simulation wrapper
+
+Added **161 translated instruction bytes** and **3 alignment bytes**, bringing accounting to **214,442 translated + 4,278 non-code = 218,720 / 239,698 = 91.2482% (91.25%)**. `33AA0` constructs the binary's exact 1Ch-byte input/output register block and 0Ch-byte segment block for DPMI function `0300h`, placing `33h` in the second dword, zero in the third, the caller's real-mode frame pointer at local `+14h`, and DS in segment word zero before invoking the already translated `33A7C` adapter for INT `31h`. `33AF4` clears the full 32h-byte frame at `2B770`, seeds its `+1Ch` dword with `53C1h`, stores the high word of `FD14` into frame word `+22h`, simulates INT 33h, and returns whether the returned `+1Ch` dword equals one. Next frontier: **`33B44`**.

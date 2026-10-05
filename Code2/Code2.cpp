@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 214281u;
-constexpr u32 kVerifiedNonCodeBytes = 4275u;
+constexpr u32 kVerifiedTranslatedBytes = 214442u;
+constexpr u32 kVerifiedNonCodeBytes = 4278u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -25572,5 +25572,41 @@ u32 function_33a7c(Runtime98Boundary& b,u32 interrupt_number,u32 input_regs,
 }
 static_assert(0x33A9Fu-0x33A7Cu==35u);
 // 33A9F is an unreferenced zero alignment byte; 33AA0 is the next independent entry.
+
+
+// Batch 99: 33AA0..33B41 DPMI real-mode INT 33h simulation and probe.
+struct Runtime99Boundary {
+    u16 ds_selector=0u;
+    // Models the already translated 33A7C adapter while preserving its raw frame layout.
+    u32 (*call_33a7c)(u32,u32*,u32*,u16*)=nullptr;
+};
+
+u32 function_33aa0(Runtime99Boundary& b,u32 real_mode_frame) noexcept {
+    u32 regs[7]={};       // 1Ch-byte input/output register block at local +00h.
+    u16 segments[6]={};   // 0Ch-byte segment-register block at local +1Ch.
+    regs[0]=0x00000300u;
+    regs[1]=0x00000033u;
+    regs[2]=0u;
+    regs[5]=real_mode_frame; // Encoded dword at local +14h.
+    segments[0]=b.ds_selector; // Encoded word at segment block +00h.
+    if(b.call_33a7c)return b.call_33a7c(0x31u,regs,regs,segments);
+    return regs[0];
+}
+
+u32 function_33af4(Machine& m,Runtime99Boundary& b) noexcept {
+    const u32 frame=0x2B770u;
+    for(u32 i=0u;i<0x32u;++i)*dg(m,frame+i)=0u;
+    store_le32(dg(m,frame+0x1Cu),0x000053C1u);
+    const u32 segment=load_le32(dg(m,0xFD14u))>>16;
+    store_le32(dg(m,frame+0x14u),0u);
+    store_le16(dg(m,frame+0x22u),static_cast<u16>(segment));
+    (void)function_33aa0(b,frame);
+    return load_le32(dg(m,frame+0x1Cu))==1u?1u:0u;
+}
+
+static_assert(0x33AF3u-0x33AA0u==83u);
+// 33AF3 is an unreferenced NOP alignment byte.
+static_assert(0x33B42u-0x33AF4u==78u);
+// 33B42..33B43 is unreferenced MOV EAX,EAX alignment; 33B44 has independent callers.
 
 } // namespace code2

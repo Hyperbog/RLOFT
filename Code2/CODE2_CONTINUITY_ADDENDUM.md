@@ -539,3 +539,6 @@ Batch 97 reconciles `33A38..33A7B`: **68 translated bytes** and no separator byt
 ## CODE.2 Batch 98 checkpoint
 
 Batch 98 reconciles `33A7C..33A9F`: **35 translated + 1 alignment byte**. Coverage is **218,556 / 239,698 = 91.1797% (91.18%)**, with **21,142 unresolved bytes**. Preserve the `33A7C` argument roles (`ESI` interrupt number, `EDI` input-register block, `EDX` output-register block, `EBX` segment-register block), the opaque `39148` selector/register-frame boundary, and the post-call reload from `[output_regs+0]`; do not flatten `39148` into an ordinary host interrupt call. Next frontier is `33AA0`.
+## CODE.2 Batch 99 checkpoint
+
+Batch 99 reconciles `33AA0..33B43`: **161 translated + 3 alignment bytes**. Coverage is **218,720 / 239,698 = 91.2482% (91.25%)**, with **20,978 unresolved bytes**. Preserve `33AA0`'s raw local frame offsets and exact four-argument call to `33A7C` rather than replacing it with a host DPMI API; preserve the 32h-byte zeroing at `2B770`, `53C1h` at `+1Ch`, high-word extraction from `FD14` into word `+22h`, and the post-call equality test at `33AF4`. `33AF3` and `33B42..33B43` are unreferenced alignment. Next frontier is `33B44`.
