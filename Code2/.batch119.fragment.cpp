@@ -51,9 +51,10 @@ void function_395e2(Machine& m,Runtime119Boundary& b,u32 edx) noexcept {
 }
 static_assert(0x3962Du-0x395E2u==75u);
 
-void function_3962d(Machine& m,Runtime119Boundary& b,u8 al,u8 dl) noexcept {
-    const u8 ceiling=dl;
-    const u8 initial=al;
+void function_3962d(Machine& m,Runtime119Boundary& b,u32 eax,u32 edx) noexcept {
+    const u8 ceiling=static_cast<u8>(edx);
+    const u8 initial=static_cast<u8>(eax);
+    const u32 callback_edx=(edx&0xFFFF0000u)|(static_cast<u32>(ceiling)<<8)|initial;
     for(;;){
         u32 best=0x1273Eu;
         u8 selected=initial;
@@ -63,7 +64,7 @@ void function_3962d(Machine& m,Runtime119Boundary& b,u8 al,u8 dl) noexcept {
         if(best==0x1273Eu)return;
         if(selected<=ceiling){
             const u32 callback=load_le32(dg(m,best+2u));
-            if(callback!=0u&&b.call_guest)b.call_guest(callback,(static_cast<u32>(ceiling)<<8)|initial);
+            if(callback!=0u&&b.call_guest)b.call_guest(callback,callback_edx);
         }
         *dg(m,best)=2u;
     }
