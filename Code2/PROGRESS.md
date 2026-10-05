@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-85.52%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-87.13%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **200,937**
-**Proven non-code/data bytes:** **4,059**
-**Reconciled object bytes:** **204,996 / 239,698 = 85.5226% (85.52%)**
-**Unresolved object bytes:** **34,702**
+**Verified translated instruction bytes:** **204,632**
+**Proven non-code/data bytes:** **4,212**
+**Reconciled object bytes:** **208,844 / 239,698 = 87.1280% (87.13%)**
+**Unresolved object bytes:** **30,854**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -789,3 +789,10 @@ Added **1,843 translated instruction bytes** and **85 directly proven non-code/d
 Instruction ownership spans `305A8..306F7`, `30700..30705`, `30708..30735`, `30738..30744`, `30748..307C7`, `307F0..308B8`, `308BC..308F4`, `308F8..30AB9`, `30ABC..30AD6`, `30AD8..30AEA`, `30AEC..30B18`, `30B1C..30B2A`, `30B2C..30B3D`, `30B40..30C36`, `30C38..30C90`, and `30C94..30D25`. The exact ten-entry CS direction table is `307C8..307EF`; all other newly proven non-code bytes are direct compiler alignment or zero padding with no incoming direct control-flow reference.
 
 Fidelity notes: `305A8` intentionally indexes glyph widths with signed characters while `30630` uses unsigned character indices; `308F8` keeps the encoded signed `JLE` split at scan code `80h` and the CODE.2-specific `19h` path that stores word `1` at `1457C`; `307F0` preserves the exact ten-way direction dispatch; vector install/uninstall retains saved offset/selector pairs; and `30CD4` preserves the backward-copy overlap condition and forward-copy behavior. The next independent routine begins at **`30D30`**.
+## Batch 72 — DPMI/runtime memory wrappers, allocator recovery, buffered output, and handle helpers
+
+Added **1,852 translated instruction bytes** and **68 directly proven non-code/data bytes**, bringing cumulative accounting to **204,632 translated + 4,212 non-code = 208,844 / 239,698 = 87.1280% (87.13%)**. Unresolved is **30,854 bytes**.
+
+Instruction ownership spans `30D30..30DE6`, `30DE8..30E2E`, `30E30..30E62`, `30E64..30F88`, `30F8C..30FC8`, `30FCC..31012`, `31014..31048`, `3104C..311D4`, `311E0..31232`, `31234..31271`, `31274..31279`, `3127C..3129E`, `312A0..312B1`, `312B4..312C5`, `312C8..312D9`, `312DC..312E8`, `312EC..31300`, `31304..31318`, `3131C..31330`, `31334..3137C`, `31380..3138C`, `31390..313A8`, `313AC..313C0`, `313C4..313EA`, `313EC..31482`, and `31484..314AA`. All 68 intervening bytes are direct NOP/MOV-EAX-EAX/LEA alignment or zero padding; a full object-1 direct CALL/JMP/Jcc scan found no incoming target into any of them.
+
+Fidelity notes: `30D80` and `30E64` retain signed truncation-toward-zero paragraph arithmetic after 32-bit wrap; `31274` preserves the incoming upper 24 EAX bits while replacing AL; `312EC`, `31304`, and `3131C` retain the binary's stack-induced `(third, first, second)` forwarding order; `3104C` keeps its one-byte recovery stage and repeats stage 2 indefinitely after it is reached; `31107` keeps byte-sized stream flag updates while testing the full dword at +0C; and `313FC` restores the saved drive only when pathname open fails. The next independent application routine begins at **`314B0`**.

@@ -555,9 +555,36 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 30C37..30C37 | alignment | 1
 30C91..30C93 | alignment | 3
 30D26..30D2F | padding | 10
+30DE7..30DE7 | alignment | 1
+30E2F..30E2F | alignment | 1
+30E63..30E63 | alignment | 1
+30F89..30F8B | alignment | 3
+30FC9..30FCB | alignment | 3
+31013..31013 | alignment | 1
+31043..31043 | alignment | 1
+31049..3104B | alignment | 3
+311D5..311DF | padding | 11
+31233..31233 | alignment | 1
+31272..31273 | alignment | 2
+3127A..3127B | alignment | 2
+3129F..3129F | alignment | 1
+312B2..312B3 | alignment | 2
+312C6..312C7 | alignment | 2
+312DA..312DB | alignment | 2
+312E9..312EB | alignment | 3
+31301..31303 | alignment | 3
+31319..3131B | alignment | 3
+31331..31333 | alignment | 3
+3137D..3137F | alignment | 3
+3138D..3138F | alignment | 3
+313A9..313AB | alignment | 3
+313C1..313C3 | alignment | 3
+313EB..313EB | alignment | 1
+31483..31483 | alignment | 1
+314AB..314AF | padding | 5
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **4,144 bytes**.
+**Total proven non-code/data:** **4,212 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
