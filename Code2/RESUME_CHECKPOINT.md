@@ -72,3 +72,13 @@ Durable handoff anchor; live repository/binary evidence wins.
 - Mandatory overlap `[0x39817,0x39897)` SHA-256: `e99dd5778c0474da4d54ca658eaa8e664f9473eadec59b57408973c629e529a0`.
 - Next independent boundary: `39838`; byte `39837` remains unowned.
 - `385B0..38866` and `36CEC..372F5` remain unresolved.
+
+
+## Batch 140 handoff
+- Owned fold: `39838..39A2B` (**500 translated bytes**) plus `39837` (**1 proven non-code byte**).
+- Accounting: **233,831 translated + 4,676 non-code/data = 238,507 / 239,698 = 99.5031% (99.50%)**; unresolved **1,191**.
+- Batch-owned code SHA-256: `d47a1b4f97620485574578a3883bd31dd1dd3bbbd10c2010f24f0efdeaa6594c`.
+- Mandatory overlap `[0x399EC,0x39AAC)` SHA-256: `c8e7676423dd051bdc1f2f04843cca4241946102176c137f767b00a5ace53198`.
+- Mandatory overlap `[0x39A0C,0x39A8C)` SHA-256: `76dbf5536b67442f881886f1f68c91cc9be1e2ccb6c54464c471ec40bcab6159`.
+- Next independent boundary: `39A2C`.
+- `385B0..38866` and `36CEC..372F5` remain unresolved.
