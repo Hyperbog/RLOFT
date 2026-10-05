@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-93.73%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-93.90%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **220,354**
-**Proven non-code/data bytes:** **4,320**
-**Reconciled object bytes:** **224,674 / 239,698 = 93.7321% (93.73%)**
-**Unresolved object bytes:** **15,024**
+**Verified translated instruction bytes:** **220,638**
+**Proven non-code/data bytes:** **4,438**
+**Reconciled object bytes:** **225,076 / 239,698 = 93.8998% (93.90%)**
+**Unresolved object bytes:** **14,622**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -929,3 +929,6 @@ Added **567 translated instruction bytes** and **1 alignment byte**, bringing ac
 ## Batch 110 — scene-preparation scan and quad dispatch
 
 Added **1,182 translated instruction bytes** with no new non-code, bringing accounting to **220,354 translated + 4,320 non-code = 224,674 / 239,698 = 93.7321% (93.73%)**. `34DE8` clears the two 32-entry transform buffers and flag rows, clamps a 30x30 signed scan window around `255D2/255D6`, and walks it with an exact row-local active-run flag. Null records or records lacking flag `10h` clear that run; type `3` records lacking flag `08h` skip the cell without clearing it. The decoded `35798` boundary receives packed low-word-zero 16.16 coordinates and writes the A/B current/next corner pairs; each first word then receives the encoded 16-bit `+20h`, and the flag rows determine whether existing corners are reused. Only when all four second words are nonzero are the four sign-extended coordinates and four zero-extended indices assembled in `Acur,Anext,Bnext,Bcur` order and passed to decoded `34BB0`. At row end the B transform/flag rows are copied to A and B is cleared, exactly matching the two `30CD4` plus two `30D30` calls. Next frontier: **`35286`**.
+## Batch 111 — DOS/runtime helpers and embedded startup data
+
+Added **284 translated instruction bytes** and **118 proven non-code bytes**, bringing accounting to **220,638 translated + 4,438 non-code = 225,076 / 239,698 = 93.8998% (93.90%)**. `35286` preserves the DOS `INT 21h/AH=36h` disk-space register contract and only writes the four output words when returned AX is not `FFFFh`; `352BD` is the encoded one-byte RET stub. `352BE/352D8` retain their distinct indirect-callback order and the tail handoff to `3562F`. `352EE` walks the `12688` environment-pointer list, performs the length-bounded `39526` comparison, requires an immediate `=` byte, and returns the value pointer. `35349` preserves the Watcom ctype-table indexing through wrapped `(byte+1)`, sign handling, and 32-bit decimal accumulation. `353A0` jumps over `353A2..35417`; those **118 bytes** are embedded runtime data, including the Watcom runtime copyright text and the independently referenced `con` string at `35414`. No external direct relative control-flow target enters the data. Next frontier: **`35418`**.

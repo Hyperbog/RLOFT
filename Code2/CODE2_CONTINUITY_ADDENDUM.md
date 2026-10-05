@@ -575,3 +575,6 @@ Batch 109 reconciles `34BB0..34DE7`: **567 translated + 1 alignment byte**. Cove
 ## CODE.2 Batch 110 checkpoint
 
 Batch 110 reconciles `34DE8..35285`: **1,182 translated instruction bytes**, no new non-code. Coverage is **224,674 / 239,698 = 93.7321% (93.73%)**, with **15,024 unresolved bytes**. Preserve the half-open clamped scan bounds, active-run reset asymmetry, packed 16.16 `35798` inputs, 16-bit `+20h` corner adjustment, corner-flag reuse, exact `Acur,Anext,Bnext,Bcur` quad ordering, and row-end B-to-A copy/clear cycle. `35286` is the next independent DOS runtime entry.
+## CODE.2 Batch 111 checkpoint
+
+Batch 111 reconciles `35286..35417`: **284 translated + 118 proven non-code bytes**. Coverage is **225,076 / 239,698 = 93.8998% (93.90%)**, with **14,622 unresolved bytes**. Preserve the AH=36h register/output-width contract, the separate `352BE/352D8` callback sequences, environment prefix-plus-`=` test, wrapped ctype `(byte+1)` lookup, 32-bit decimal wrap/negation, and `353A0`'s jump over the embedded runtime-data block. `353A2..35417` is non-code; `35418` begins the startup body.
