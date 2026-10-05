@@ -1,4 +1,5 @@
 name: Integrate CODE.2 Batch 140
+# retry after deterministic non-code accounting repair
 on:
   push:
     branches: [code1-decompilation]
