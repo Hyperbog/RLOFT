@@ -3,21 +3,21 @@
 Durable handoff anchor; live repository/binary evidence wins.
 
 ## Last committed substantive decompilation state
-- Last substantive batch commit: `79d1a849e01c3d1ecf0466a14e69f256665288d9` — `Integrate CODE.2 decompilation batch 116`.
-- Verified translated instruction bytes: **222,129**.
-- Proven non-code/data bytes: **4,471**.
-- Reconciled object bytes: **226,600 / 239,698 = 94.5356% (94.54%)**.
-- Unresolved object bytes: **13,098**.
-- Last integrated ownership fold: `358D4..35A0B`.
-- Next independently decoded instruction boundary: **`35A0C`**.
+- Last substantive batch commit: `618468634dbf30a67766d67a51611879abed56a3` — `Integrate CODE.2 decompilation batch 117`.
+- Verified translated instruction bytes: **223,532**.
+- Proven non-code/data bytes: **4,472**.
+- Reconciled object bytes: **228,004 / 239,698 = 95.1214% (95.12%)**.
+- Unresolved object bytes: **11,694**.
+- Last integrated ownership fold: `35A0C..35F86`.
+- `35F87` is proven one-byte alignment; `35F88` begins the already integrated timer/event family.
+- The sequential runtime frontier now joins previously reconciled code. Continue by selecting the next range from the remaining unresolved islands; do not re-count `35F88+`.
 
 ## Immutable identity
 - `CODE.2` SHA-256: `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
 - Object-1 SHA-256: `014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3`.
 
 ## Mandatory overlap anchor for next resume
-- Window `[0x35990,0x35A70)` — 224 bytes; SHA-256 `4470ab5305088033d53eca6b57aa66c2ea04bc2eecbd1688058daf896f2aafaa`.
-- Narrow `[0x359D0,0x35A30)` — 96 bytes; SHA-256 `8e6b572c5e9d26585f64d832de919ce5fef1636cedc4ca1475266494a6534108`.
-- Narrow bytes: `005055e8a0feffff83c4144603bc24ac0000003b74244472d7f68424e000000001750955e8ff26000083c4048d470f81c4cc0000005d5f5ec38d400056575581ecd00200008b9c24e0020000a174580300c78424b4020000000000008984249c`.
+- Window `[0x35F40,0x35FC0)` — 128 bytes; SHA-256 `6087fade6f4d46311150e01d36440c6f30d845c897e0e4bd945dd652c3786628`.
+- Narrow `[0x35F70,0x35FD0)` — 96 bytes; SHA-256 `8fbabc4f61a242b137def96eefce4e8057502f6e19bb05d0eee9cc4b81b16788`.
 
-Interpretation: `358D4..35A08` is the translated compact loader and `35A09..35A0B` is proven alignment. Batch 115's alternate I/O path is documented correctly as seek-read-tell. `35A0C` begins a larger independently called loader.
+Interpretation: `35A0C..35F86` is the translated large loader, `35F87` is alignment, and `35F88` is already-owned timer/event code. Batch 117 preserved the loader's raw 02D0h frame aliasing, flag-1 memory/file split, flag-4 allocation path, 16-byte alignment rule, local dword tables, and relocation validation/store ordering. Any analysis beyond this committed accounting is `UNCOUNTED / NOT COMMITTED`.
