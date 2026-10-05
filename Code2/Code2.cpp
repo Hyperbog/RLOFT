@@ -26262,7 +26262,7 @@ static_assert(0x34BADu-0x34A74u==313u);
 
 // Batch 109: 34BB0..34DE6 indexed quad construction and conditional raster dispatch.
 struct Runtime109Boundary {
-    // Existing resource-address helper: first argument is 258F8h + record byte 9, second is 4.
+    // Existing resource-address helper: first argument is [258F8h] + record byte 9, second is 4.
     u32 (*call_2f29c)(u32,u32)=nullptr;
     // Represents LEA of the local 8-dword stack quad followed by CALL 33E6C.
     // Keeping this boundary explicit preserves the decoded DS:ESI/ES selector contract of 33E6C.
@@ -26307,9 +26307,10 @@ void function_34bb0(Machine& m,Runtime109Boundary& b,Runtime103Boundary& raster,
 
     const bool alternate=((*dg(m,record+1u))&0x20u)!=0u;
     const u8 resource_index=*dg(m,record+9u);
+    const u32 resource_id=load_le32(dg(m,0x258F8u))+static_cast<u32>(resource_index);
     if(!alternate){
         if(*dg(m,0xC026u)==0u)return;
-        const u32 resource=b.call_2f29c?b.call_2f29c(0x258F8u+resource_index,4u):0u;
+        const u32 resource=b.call_2f29c?b.call_2f29c(resource_id,4u):0u;
         store_le32(dg(m,0xFDC0u),resource);
         store_le32(dg(m,0xFDC0u),load_le32(dg(m,0xFDC0u))+2u);
         store_le32(dg(m,0xFDB8u),0x84u);
@@ -26319,7 +26320,7 @@ void function_34bb0(Machine& m,Runtime109Boundary& b,Runtime103Boundary& raster,
     }
 
     if(*dg(m,0xC027u)==0u)return;
-    const u32 resource=b.call_2f29c?b.call_2f29c(0x258F8u+resource_index,4u):0u;
+    const u32 resource=b.call_2f29c?b.call_2f29c(resource_id,4u):0u;
     store_le32(dg(m,0xFDC0u),resource);
     store_le32(dg(m,0xFDC0u),load_le32(dg(m,0xFDC0u))+2u);
     store_le32(dg(m,0xFDB8u),0x04u);
