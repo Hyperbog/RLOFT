@@ -128,7 +128,10 @@ static_assert(0x000B8u-0x00074u==68u);
             store_le16(dg(m,a),static_cast<u16>(load_le16(dg(m,a))&0xFEBFu));
             if(ebx>=4u) break;
         }
-        return b.call_1c124 ? b.call_1c124(0x3Cu) : record_off;
+        // Binary 00117 JGE branches directly to the epilogue at 001F6.
+        // No 1C124h(3Ch) call occurs on this branch; EAX is the live
+        // record offset after the fourth 248h stride (0920h).
+        return record_off;
     }
 
     eax=b.call_1c1dc?b.call_1c1dc(0x3Cu):0u;
