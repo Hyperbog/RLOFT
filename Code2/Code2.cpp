@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 209054u;
-constexpr u32 kVerifiedNonCodeBytes = 4254u;
+constexpr u32 kVerifiedTranslatedBytes = 209081u;
+constexpr u32 kVerifiedNonCodeBytes = 4255u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -24672,5 +24672,20 @@ static_assert(0x325ADu-0x32588u==37u);
 }
 static_assert(0x3261Cu-0x325B0u==108u);
 // 3261C..3261F is four zero padding bytes with no incoming direct control-flow target.
+
+
+// Batch 82: 32620..3263A register-call adapter.
+struct Application82Boundary {
+    u32 (*invoke_register_callback)(u32,u32,u32,u32)=nullptr;
+};
+
+// The target is the first stack argument. Before the indirect call the binary
+// loads ESI from 255E4, EDI from arg2, and ECX from arg3; EAX is the callback result.
+[[nodiscard]] u32 function_32620(Machine& m,Application82Boundary& b,u32 target,u32 edi_arg,u32 ecx_arg) noexcept {
+    const u32 esi_arg=load_le32(dg(m,0x255E4u));
+    return b.invoke_register_callback?b.invoke_register_callback(target,esi_arg,edi_arg,ecx_arg):0u;
+}
+static_assert(0x3263Bu-0x32620u==27u);
+// 3263B is an unreferenced NOP alignment byte.
 
 } // namespace code2

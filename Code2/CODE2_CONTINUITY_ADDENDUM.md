@@ -488,3 +488,6 @@ Direct stack tracing at the `32468` call sites proved that `32220` and `322EC` p
 ## CODE.2 Batch 81 checkpoint
 
 Batch 81 reconciles `324CC..3261F`: **331 translated + 9 non-code bytes**. Coverage is **213,308 / 239,698 = 88.9903% (88.99%)**, with **26,390 unresolved bytes**. Preserve the forward overlapping triple shift in `324F8`, resource-wrapper argument permutation, row offset encoding `((row*3)<<8)+1`, and the post-read `32150` palette rescale. Next frontier is `32620`.
+## CODE.2 Batch 82 checkpoint
+
+Batch 82 reconciles `32620..3263B`: **27 translated + 1 alignment byte**. Coverage is **213,336 / 239,698 = 89.0020% (89.00%)**, with **26,362 unresolved bytes**. Preserve the register-call ABI: target from arg1, ESI=`[255E4]`, EDI=arg2, ECX=arg3, callback EAX returned. Next frontier is `3263C`.

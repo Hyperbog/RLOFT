@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-88.99%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-89.00%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **209,054**
-**Proven non-code/data bytes:** **4,254**
-**Reconciled object bytes:** **213,308 / 239,698 = 88.9903% (88.99%)**
-**Unresolved object bytes:** **26,390**
+**Verified translated instruction bytes:** **209,081**
+**Proven non-code/data bytes:** **4,255**
+**Reconciled object bytes:** **213,336 / 239,698 = 89.0020% (89.00%)**
+**Unresolved object bytes:** **26,362**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -842,3 +842,6 @@ Fresh call-site reconciliation found that `32220` and `322EC` pass their raw thi
 ## Batch 81 — palette blanking, triple rotation, and resource palette load
 
 Added **331 translated instruction bytes** and **9 proven alignment/padding bytes**, bringing accounting to **209,054 translated + 4,254 non-code = 213,308 / 239,698 = 88.9903% (88.99%)**. Unresolved is **26,390 bytes**. `324CC` publishes an all-zero 256-entry palette and sets the presentation flag; `324F8` rotates one RGB triple to the end of its selected span using the encoded forward copy; `32588` opens a mode-0200h resource and reports error `15ACh` on handle `FFFFFFFFh`; `325B0` seeks to `((resource_row*3)<<8)+1`, reads `count*3` bytes into `palette+destination_first*3`, applies `32150`, and closes the handle. Next frontier: **`32620`**.
+## Batch 82 — register-call adapter
+
+Added **27 translated instruction bytes** and **1 alignment byte**, bringing accounting to **209,081 translated + 4,255 non-code = 213,336 / 239,698 = 89.0020% (89.00%)**. Unresolved is **26,362 bytes**. `32620` calls the address in its first argument after loading guest ESI from `255E4`, EDI from argument 2, and ECX from argument 3, and returns the callback EAX result. `3263B` is an unreferenced NOP. Next frontier: **`3263C`**.
