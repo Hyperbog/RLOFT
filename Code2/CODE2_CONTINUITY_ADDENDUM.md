@@ -566,3 +566,6 @@ Batch 106 reconciles `342E4..34997`: **1,710 translated + 6 alignment bytes**. C
 ## CODE.2 Batch 107 checkpoint
 
 Batch 107 reconciles `34998..34A73`: **220 translated instruction bytes**, no new non-code. Coverage is **222,608 / 239,698 = 92.8702% (92.87%)**, with **17,090 unresolved bytes**. Preserve the four explicit self-modifying immediate patches, the distinct `34270/34275` entry semantics used to derive them, signed 16-bit multiply, exact `SHLD DX,AX,3` bit extraction, byte-vs-word destination widths, and the 128-entry loop strides. Next frontier is `34A74`.
+## CODE.2 Batch 108 checkpoint
+
+Batch 108 reconciles `34A74..34BAF`: **313 translated + 3 padding bytes**. Coverage is **222,924 / 239,698 = 93.0020% (93.00%)**, with **16,774 unresolved bytes**. Preserve all byte patch sites, the signed 50h cap/remainder tests, entry-before-decrement first loop, exact raster-pair stack order into `342E4/34954`, 16-bit-to-16.16 record expansion, shade-ramp pointer stepping, FF40 row advance, and guest return-token translation. `34BAD..34BAF` is proven padding; `34BB0` is independently called.

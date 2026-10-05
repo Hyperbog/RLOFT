@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-92.87%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-93.00%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **218,292**
-**Proven non-code/data bytes:** **4,316**
-**Reconciled object bytes:** **222,608 / 239,698 = 92.8702% (92.87%)**
-**Unresolved object bytes:** **17,090**
+**Verified translated instruction bytes:** **218,605**
+**Proven non-code/data bytes:** **4,319**
+**Reconciled object bytes:** **222,924 / 239,698 = 93.0020% (93.00%)**
+**Unresolved object bytes:** **16,774**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -920,3 +920,6 @@ Added **1,710 translated instruction bytes** and **6 alignment bytes**, bringing
 ## Batch 107 — self-modifying projection table initializer
 
 Added **220 translated instruction bytes**, bringing accounting to **218,292 translated + 4,316 non-code = 222,608 / 239,698 = 92.8702% (92.87%)**. `34998` computes four low-word lookup constants through the already-decoded dual-entry `34270/34275` helper, explicitly exposes the four code-word patches at `34A11/34A27/34A3D/34A54`, then executes the resulting constants over 128 source entries. The two 16-bit signed `IMUL` operations and `SHLD DX,AX,3` are represented bit-exactly as product bits 13..28; the first source table at `193E0` contributes the two byte fields at record offsets 5/4, while `19660` contributes the two word fields at offsets 2/0. The loop retains its exact 2-byte source and 6-byte destination strides. Next frontier: **`34A74`**.
+## Batch 108 — self-patched planar renderer driver
+
+Added **313 translated instruction bytes** and **3 padding bytes**, bringing accounting to **218,605 translated + 4,319 non-code = 222,924 / 239,698 = 93.0020% (93.00%)**. `34A74` explicitly preserves all six byte patch sites: `C044/C048` feed the two ADD-immediate pairs, while the shade byte from the `FE94` ramp patches `34B07` during the first phase and `34B77` for the remainder phase. `FF40` and `FF54` initialization, signed cap-at-50h behavior, machine-width `7Fh*FF4C` shade addressing, 6-byte `FF58` source records, and per-row `FF40 += FF44` are retained exactly. The first entry-before-decrement loop constructs four raster pairs and calls `342E4` in POP order `p3,p2,p1,p0`; the positive signed remainder constructs `p2,p0` for `34954`. Return-token mapping is explicit through the boundary because the called renderers store their popped guest return address at `10258`. `34BAD..34BAF` is an unreferenced three-byte zero pad. Next frontier: **`34BB0`**.

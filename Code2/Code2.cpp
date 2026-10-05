@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 218292u;
-constexpr u32 kVerifiedNonCodeBytes = 4316u;
+constexpr u32 kVerifiedTranslatedBytes = 218605u;
+constexpr u32 kVerifiedNonCodeBytes = 4319u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -26170,5 +26170,93 @@ void function_34998(Machine& m,Runtime107Boundary& b) noexcept {
 }
 
 static_assert(0x34A74u-0x34998u==220u);
+
+
+// Batch 108: 34A74..34BAC renderer driver with self-patched byte immediates.
+struct Runtime108Boundary {
+    void (*patch_code8)(u32,u8)=nullptr;
+    // Translate an object-relative continuation into the guest return token stored by the stack-sharing renderer.
+    u32 (*encode_return)(u32)=nullptr;
+};
+static u32 app108_return(Runtime108Boundary& b,u32 object_offset) noexcept {
+    return b.encode_return?b.encode_return(object_offset):object_offset;
+}
+
+void function_34a74(Machine& m,Runtime108Boundary& b,Runtime106Boundary& raster) noexcept {
+    const u8 add_dl=*dg(m,0xC044u);
+    const u8 add_al=*dg(m,0xC048u);
+    if(b.patch_code8){
+        b.patch_code8(0x34AF9u,add_dl);
+        b.patch_code8(0x34B69u,add_dl);
+        b.patch_code8(0x34AF6u,add_al);
+        b.patch_code8(0x34B66u,add_al);
+    }
+
+    store_le32(dg(m,0xFF40u),load_le32(dg(m,0xFF48u))+load_le32(dg(m,0xFDBCu)));
+    store_le32(dg(m,0xFF54u),load_le32(dg(m,0xC040u))+2u);
+    u32 esi=0xFF58u;
+    u32 ecx=load_le32(dg(m,0xFF50u));
+    if(static_cast<s32>(ecx)>=0x50)ecx=0x50u;
+    u32 edi=0xFE94u+0x7Fu*load_le32(dg(m,0xFF4Cu));
+    u8 shade=*dg(m,edi);
+    if(b.patch_code8)b.patch_code8(0x34B07u,shade);
+
+    do {
+        const u32 saved_ecx=ecx;
+        const u32 saved_edi=edi;
+        const u32 saved_esi=esi;
+        const u32 ebp=static_cast<u32>(load_le16(dg(m,esi)))<<16;
+        const u32 ebx=static_cast<u32>(load_le16(dg(m,esi+2u)))<<16;
+        const u8 al=static_cast<u8>(*dg(m,esi+4u)+add_al);
+        const u8 dl=static_cast<u8>(*dg(m,esi+5u)+add_dl);
+        u32 eax=static_cast<u32>(al)<<24;
+        u32 edx=static_cast<u32>(dl)<<24;
+        eax|=static_cast<u32>(shade)<<8;
+        Raster106Pair p0{eax,edx};
+        eax+=ebp;edx+=ebx;Raster106Pair p1{eax,edx};
+        eax+=ebp;edx+=ebx;Raster106Pair p2{eax,edx};
+        eax+=ebp;edx+=ebx;Raster106Pair p3{eax,edx};
+        function_342e4(m,raster,app108_return(b,0x34B21u),ebp,ebx,p3,p2,p1,p0);
+        ecx=saved_ecx;edi=saved_edi;esi=saved_esi;
+        edi-=load_le32(dg(m,0xFF4Cu));
+        esi+=6u;
+        store_le32(dg(m,0xFF40u),load_le32(dg(m,0xFF40u))+load_le32(dg(m,0xFF44u)));
+        shade=*dg(m,edi);
+        if(b.patch_code8)b.patch_code8(0x34B07u,shade);
+        --ecx;
+    } while(ecx!=0u);
+
+    if(b.patch_code8)b.patch_code8(0x34B77u,shade);
+    ecx=load_le32(dg(m,0xFF50u))-0x50u;
+    if(static_cast<s32>(ecx)>0){
+        do {
+            const u32 saved_ecx=ecx;
+            const u32 saved_edi=edi;
+            const u32 saved_esi=esi;
+            const u32 ebp=static_cast<u32>(load_le16(dg(m,esi)))<<16;
+            const u32 ebx=static_cast<u32>(load_le16(dg(m,esi+2u)))<<16;
+            const u8 al=static_cast<u8>(*dg(m,esi+4u)+add_al);
+            const u8 dl=static_cast<u8>(*dg(m,esi+5u)+add_dl);
+            u32 eax=static_cast<u32>(al)<<24;
+            u32 edx=static_cast<u32>(dl)<<24;
+            eax|=static_cast<u32>(shade)<<8;
+            const Raster106Pair p0{eax,edx};
+            eax+=ebp;edx+=ebx;
+            eax+=ebp;edx+=ebx;
+            const Raster106Pair p2{eax,edx};
+            function_34954(m,raster,app108_return(b,0x34B89u),ebp,ebx,p2,p0);
+            ecx=saved_ecx;edi=saved_edi;esi=saved_esi;
+            edi-=load_le32(dg(m,0xFF4Cu));
+            esi+=6u;
+            store_le32(dg(m,0xFF40u),load_le32(dg(m,0xFF40u))+load_le32(dg(m,0xFF44u)));
+            shade=*dg(m,edi);
+            if(b.patch_code8)b.patch_code8(0x34B77u,shade);
+            --ecx;
+        } while(ecx!=0u);
+    }
+}
+
+static_assert(0x34BADu-0x34A74u==313u);
+// 34BAD..34BAF is three unreferenced zero padding bytes; 34BB0 has an independent caller.
 
 } // namespace code2
