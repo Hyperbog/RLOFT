@@ -1,0 +1,9 @@
+name: Integrate CODE.2 Batch 124
+on: workflow_dispatch
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python Code2/.batch124_integrate.py integrate
+      - run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
