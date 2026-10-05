@@ -662,3 +662,7 @@ Batch 127 reconciles `37810..379CF`: **433 translated + 15 separator bytes**. Co
 
 ## CODE.2 Batch 128 checkpoint
 Batch 128 reconciles `379D0..37AFB`: **293 translated + 7 alignment/separator bytes**. Coverage is **231,267 / 239,698 = 96.4827% (96.48%)**, with **8,431 unresolved bytes**. Preserve the fill entry's EDX byte rotation/alignment and the DOS memory wrappers' failure outputs. Next boundary is `37AFC`; `36CEC..372F5` remains unresolved.
+
+
+## CODE.2 Batch 129 checkpoint
+Batch 129 reconciles `37AFC..37CA2`: **423 translated instruction bytes**, no newly classified non-code. Coverage is **231,690 / 239,698 = 96.6591% (96.66%)**, with **8,008 unresolved bytes**. Preserve the allocator's unsigned upper-bound test, four-byte rounding, 12-byte minimum, two distinct growth/retry paths, arena-chain traversal, and address-distinct forwarding wrappers. Next boundary is `37CA3`; `36CEC..372F5` remains unresolved.

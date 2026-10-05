@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-96.48%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-96.66%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **226,595**
+**Verified translated instruction bytes:** **227,018**
 **Proven non-code/data bytes:** **4,672**
-**Reconciled object bytes:** **231,267 / 239,698 = 96.4827% (96.48%)**
-**Unresolved object bytes:** **8,431**
+**Reconciled object bytes:** **231,690 / 239,698 = 96.6591% (96.66%)**
+**Unresolved object bytes:** **8,008**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -1039,3 +1039,8 @@ Added **433 translated instruction bytes** and **15 proven zero separator bytes*
 ## Batch 128 — optimized fills, selector snapshot, and DOS memory wrappers
 
 Added **293 translated instruction bytes** and **7 proven alignment/separator bytes** across `379D0..37AFB`. `379D0..37A00` is the byte-count fill entry with byte alignment, EDX rotation, aligned dword helper call, and 0..3 byte tail; `37A07..37A72` is its unrolled dword-count fill helper. `37A73..37A9C` snapshots ES/CS/SS/DS/FS/GS. `37A9E..37AFB` comprises DOS AH=48h allocation, AH=49h free, and AH=4Ah resize wrappers, preserving success/failure output conventions. Proven separators are six NOPs at `37A01..37A06` and one zero byte at `37A9D`. Next boundary: **`37AFC`**. Accounting: **226,595 translated + 4,672 non-code/data = 231,267 / 239,698 = 96.4827% (96.48%)**, leaving **8,431 unresolved bytes**.
+
+
+## Batch 129 — heap arena query/allocation/free family
+
+Added **423 translated instruction bytes** across `37AFC..37CA2`. `37AFC..37B33` scans the runtime arena chain and computes the largest free payload with the encoded -4 adjustment. `37B34..37B41` forwards to the core allocator at `37B42..37C36`, which rejects zero and sizes above `FFFFFFD4h`, rounds to four bytes, enforces a 12-byte minimum, searches arenas, and retries through the two encoded heap-growth paths. `37C37..37C44` forwards to `37C45..37CA2`, which locates the owning arena, releases the pointer, updates cached largest-free state, and clears the heap-error byte. No non-code bytes are claimed in this batch. Next boundary: **`37CA3`**. Accounting: **227,018 translated + 4,672 non-code/data = 231,690 / 239,698 = 96.6591% (96.66%)**, leaving **8,008 unresolved bytes**.
