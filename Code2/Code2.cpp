@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 213623u;
-constexpr u32 kVerifiedNonCodeBytes = 4269u;
+constexpr u32 kVerifiedTranslatedBytes = 213812u;
+constexpr u32 kVerifiedNonCodeBytes = 4272u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -25339,5 +25339,41 @@ u32 function_337c8(Machine& m,u32 table,u32 target) noexcept {
 }
 static_assert(0x33807u-0x337C8u==63u);
 // 33807 is an unreferenced NOP alignment byte.
+
+
+// Batch 93: 33808..338C4 record decomposition and weighted bucket selection.
+void function_33808(Machine& m,u32 table_index,u32 threshold,u32 record_index,
+                    u32 out_value,u32 out_shifted,u32 out_bucket,
+                    u32 out_remainder,u32 out_quotient) noexcept {
+    const u32 record_offset=record_index*0x1Cu;
+    store_le32(dg(m,out_value),load_le32(dg(m,0x15A20u+record_offset)));
+    store_le32(dg(m,out_shifted),load_le32(dg(m,0x15A28u+record_offset))>>6);
+
+    const u32 numerator=load_le32(dg(m,0x15A2Cu+record_offset));
+    const u32 divisor=static_cast<u32>(static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x25619u)))));
+    const u32 quotient=numerator/divisor;
+    const u32 remainder=numerator%divisor;
+    store_le32(dg(m,out_remainder),remainder);
+    store_le32(dg(m,out_quotient),quotient);
+    store_le16(dg(m,out_bucket),0xFFFFu);
+
+    if(table_index>=load_le32(dg(m,0xC738u)))return;
+    const u32 shape=load_le32(dg(m,0x15618u+table_index*4u));
+    if(shape==0u)return;
+
+    const u32 weights=load_le32(dg(m,0x18FE0u+table_index*4u))-0x102u;
+    const u32 bias=(shape>>3)+0x84u-(shape>>1);
+    u32 sum=0u;
+    for(u32 bucket=0u;bucket<0x80u;++bucket){
+        sum+=static_cast<u32>(load_le16(dg(m,weights+bucket*2u)));
+        const u32 probe=sum+bias;
+        if(static_cast<s32>(probe)>=static_cast<s32>(threshold)){
+            store_le32(dg(m,out_bucket),bucket);
+            return;
+        }
+    }
+}
+static_assert(0x338C5u-0x33808u==189u);
+// 338C5..338C7 is XCHG EBX,EBX plus NOP alignment with no incoming direct target.
 
 } // namespace code2

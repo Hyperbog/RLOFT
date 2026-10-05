@@ -521,3 +521,6 @@ Batch 91 reconciles `335DC..337C7`: **491 translated + 1 alignment byte**. Cover
 ## CODE.2 Batch 92 checkpoint
 
 Batch 92 reconciles `337C8..33807`: **63 translated + 1 alignment byte**. Coverage is **217,892 / 239,698 = 90.9027% (90.90%)**, with **21,806 unresolved bytes**. Preserve signed-byte slot initialization, 16-bit wrapping `CX` accumulation, signed `CMP ECX,EDX / JGE`, the signed loop test after the first `SUB EBX,2`, and the separate unsigned-borrow test after the second subtraction. Next frontier is `33808`.
+## CODE.2 Batch 93 checkpoint
+
+Batch 93 reconciles `33808..338C7`: **189 translated + 3 alignment bytes**. Coverage is **218,084 / 239,698 = 90.9828% (90.98%)**, with **21,614 unresolved bytes**. Preserve unsigned record-index multiplication, logical `SHR` operations, unsigned `DIV` by the sign-extended word value, the partial-word `FFFFh` initialization of the bucket output, unsigned `JAE` table bound, and signed threshold comparison inside the 128-entry word-weight search. Next frontier is `338C8`.
