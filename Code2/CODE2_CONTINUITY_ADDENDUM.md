@@ -482,3 +482,6 @@ Batch 79 reconciles `32150..3221F`: **207 translated + 1 alignment byte**. Cover
 ## CODE.2 Batch 80 checkpoint
 
 Batch 80 reconciles `32220..324CB`: **680 translated + 4 alignment bytes**. Coverage is **212,968 / 239,698 = 88.8485% (88.85%)** with **26,730 unresolved bytes**. Preserve forward-copy behavior, the 0x300-byte scratch palette, factor directions 7..0 and 1..8, low-byte RGB arguments, and x86-masked arithmetic shift in the interpolation primitive. Next frontier is `324CC`.
+## CODE.2 Batch 80 post-commit fidelity correction
+
+Direct stack tracing at the `32468` call sites proved that `32220` and `322EC` pass the raw third argument as the interpolation count, while their restore copies use the separately computed inclusive `(end-start+1)` span. The reconstruction now preserves this asymmetry. Accounting remains **208,723 translated + 4,245 non-code = 212,968 / 239,698 = 88.8485% (88.85%)** and the next frontier remains `324CC`.

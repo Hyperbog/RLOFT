@@ -836,3 +836,6 @@ Added **207 translated instruction bytes** and **1 alignment byte**, bringing ac
 ## Batch 80 — palette transition/copy/fill/interpolation subsystem
 
 Added **680 translated instruction bytes** and **4 alignment bytes**, bringing accounting to **208,723 translated + 4,245 non-code = 212,968 / 239,698 = 88.8485% (88.85%)**. Unresolved is **26,730 bytes**. The two transition routines copy the 0x300-byte palette into `F9D0`, interpolate only the requested triple range across factors 7..0 or 1..8, publish each frame through `29234`, then restore that slice. `323BC` copies triple records, `32404` fills triples, and `32468` performs signed arithmetic-shift interpolation. Next frontier: **`324CC`**.
+## Batch 80 fidelity correction — raw interpolation count
+
+Fresh call-site reconciliation found that `32220` and `322EC` pass their raw third argument (`end`) as the third argument to `32468`, while the scratch-palette restore length remains the inclusive `(end-start+1)` span. The previously integrated C++ incorrectly passed that inclusive span to `32468`. Both calls now preserve the encoded asymmetry. Byte accounting and the `324CC` frontier are unchanged.

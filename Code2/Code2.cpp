@@ -24564,7 +24564,7 @@ void function_32220(Machine& m,Application56Boundary& b,u32 source,s32 start,s32
     const s32 count=app74_wrap_add(app74_wrap_add(end,static_cast<s32>(0u-static_cast<u32>(start))),1);
     for(u32 i=0;i<0x300u;++i)*dg(m,0xF9D0u+i)=*dg(m,source+i);
     for(s32 factor=7;factor>=0;--factor){
-        function_32468(m,0xF9D0u,start,count,factor,3u,target);
+        function_32468(m,0xF9D0u,start,end,factor,3u,target);
         function_29234(b,0xF9D0u);
         app80_restore_slice(m,0xF9D0u,source,start,count);
     }
@@ -24577,7 +24577,7 @@ void function_322ec(Machine& m,Application56Boundary& b,u32 source,s32 start,s32
     const s32 count=app74_wrap_add(app74_wrap_add(end,static_cast<s32>(0u-static_cast<u32>(start))),1);
     for(u32 i=0;i<0x300u;++i)*dg(m,0xF9D0u+i)=*dg(m,source+i);
     for(s32 factor=1;factor<=8;++factor){
-        function_32468(m,0xF9D0u,start,count,factor,3u,target);
+        function_32468(m,0xF9D0u,start,end,factor,3u,target);
         function_29234(b,0xF9D0u);
         app80_restore_slice(m,0xF9D0u,source,start,count);
     }
