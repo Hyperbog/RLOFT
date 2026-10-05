@@ -3,25 +3,26 @@
 Durable handoff anchor; live repository/binary evidence wins.
 
 ## Last committed substantive decompilation state
-- Last substantive batch commit: `618468634dbf30a67766d67a51611879abed56a3` — `Integrate CODE.2 decompilation batch 117`.
-- Verified translated instruction bytes: **223,532**.
+- Last substantive batch commit: `36a455faf4a0a27c97d227f6e492b77e60c09e13` — `Integrate CODE.2 decompilation batch 119`.
+- Verified translated instruction bytes: **223,874**.
 - Proven non-code/data bytes: **4,502**.
-- Reconciled object bytes: **228,034 / 239,698 = 95.1339% (95.13%)**.
-- Unresolved object bytes: **11,664**.
-- Last integrated ownership fold: `35A0C..35F86`.
-- `35F87` is proven one-byte alignment; `35F88` begins the already integrated timer/event family.
-- The sequential runtime frontier now joins previously reconciled code. Continue by selecting the next range from the remaining unresolved islands; do not re-count `35F88+`.
+- Reconciled object bytes: **228,376 / 239,698 = 95.2766% (95.28%)**.
+- Unresolved object bytes: **11,322**.
+- Last integrated ownership fold: `39526..3967B`.
+- Next work: select another independently proven range from the unresolved complement; `3967C` and later runtime helpers already have ownership.
 
 ## Immutable identity
 - `CODE.2` SHA-256: `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
 - Object-1 SHA-256: `014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3`.
 
 ## Mandatory overlap anchor for next resume
-- Window `[0x35F40,0x35FC0)` — 128 bytes; SHA-256 `6087fade6f4d46311150e01d36440c6f30d845c897e0e4bd945dd652c3786628`.
-- Narrow `[0x35F70,0x35FD0)` — 96 bytes; SHA-256 `8fbabc4f61a242b137def96eefce4e8057502f6e19bb05d0eee9cc4b81b16788`.
+- Window `[0x394E0,0x395B0)` — 208 bytes; SHA-256 `c9ac1da39ecdfe4cbde0e42bf05cc75bf1c3330e5a996e204e31beaadfd6bfce`.
+- Narrow `[0x39500,0x39590)` — 144 bytes; SHA-256 `cc29d7509bd62c692e4d2562e4f80f11f31a3c577eb50f02b5c5372ade3cfa3d`.
+- The overlap bytes are verification only and must not be recounted.
 
-Interpretation: `35A0C..35F86` is the translated large loader, `35F87` is alignment, and `35F88` is already-owned timer/event code. Batch 117 preserved the loader's raw 02D0h frame aliasing, flag-1 memory/file split, flag-4 allocation path, 16-byte alignment rule, local dword tables, and relocation validation/store ordering. Any analysis beyond this committed accounting is `UNCOUNTED / NOT COMMITTED`.
-
-
-## Batch 118 resume note
-The historical zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` are now proven non-code/alignment (**30 bytes total**) and must not be revisited. Translated coverage remains **223,532**; proven non-code is **4,502**; reconciled is **228,034 / 239,698 = 95.1339%**; unresolved is **11,664**.
+## Batch 119 interpretation
+- `39526..39588`: ASCII-only length-bounded case-insensitive comparator used by `352EE`.
+- `39589..395E1`: dynamic-stack/runtime initialization helper; strict unsigned threshold is preserved.
+- `395E2..3962C`: four-record packed callback-table drain, selecting the lowest eligible priority and restarting after status writeback.
+- `3962D..3967B`: one-record callback-table drain with lower/upper priority gating and preserved full EDX callback payload.
+- Batch 118's 30-byte non-code proof was already in the ledger/docs; Batch 119 synchronizes the previously stale `Code2.cpp` constant to 4,502.
