@@ -18,7 +18,8 @@ u32 function_35286(Runtime111Boundary& b,u32 drive,u16* out) noexcept {
         if(out){out[0]=dx;out[1]=bx;out[2]=ax;out[3]=cx;}
         return 0u;
     }
-    return b.call_37cb2?b.call_37cb2():0u;
+    if(b.call_37cb2)(void)b.call_37cb2();
+    return 0xFFFFFFFFu;
 }
 
 void function_352bd() noexcept {}
