@@ -1100,3 +1100,12 @@ Cumulative accounting: **231,371 translated + 4,672 non-code = 236,043 / 239,698
 - `38BC1..3906B`: 1,195 translated bytes — formatted-conversion dispatcher; consumes parsed arguments, handles integer/fixed/string/pointer/character forms, normalizes precision/sign/prefix state, and transfers to the previously reconstructed formatter shared tail.
 - `3906C..3908B`: 32 translated bytes — in-place NUL-terminated uppercase helper; its empty-string exit shares the earlier `38BBF` epilogue.
 - Batch total: 1,227 translated bytes. Reconciled: **236,043 / 239,698 = 98.4752% (98.48%)**; unresolved: **3,655**.
+
+
+## Batch 137
+- `3908C..39146`: 187 translated bytes — carry/error wrappers and DOS-error-to-runtime-errno normalization.
+- `39147..39149`: 3 proven non-code separator bytes (`00 55 06`) between the error helper and interrupt bridge.
+- `3914A..39225`: 220 translated bytes — generic interrupt register-image bridge/save-restore machinery.
+- `39226..39525`: 768 translated bytes — 256 executable `INT imm8; RET` stubs, exactly 3 bytes each.
+- `39526..39588`: 99 translated bytes — bounded ASCII case-insensitive byte-string compare.
+- Batch total: 1,274 translated + 3 non-code = 1,277 reconciled bytes. Reconciled: **237,320 / 239,698 = 99.0079% (99.01%)**; unresolved: **2,378**.

@@ -895,3 +895,5 @@ Batch 127 adds **15 proven non-code/alignment bytes**, cumulative **4,665**.
 - `37A9D` — one zero separator byte before the DOS allocation wrapper.
 
 Batch 128 adds **7 proven non-code/alignment bytes**, cumulative **4,672**.
+
+- Batch 137: `39147..39149` — 3-byte proven separator (`00 55 06`) between completed routines.

@@ -690,3 +690,7 @@ Independent formatter-adjacent helpers `38A0A..38A2F`, `38A61..38AC2`, `38AC3..3
 
 ### Batch 136
 `38BC1..3908B` is now instruction-accounted: the large conversion dispatcher (`38BC1..3906B`) plus the uppercase helper (`3906C..3908B`). The dispatcher deliberately models its final `JMP 38861` as a boundary transfer so the already-owned formatter tail is not duplicated or recounted. The uppercase helper likewise returns through the semantics of the shared `38BBF` epilogue.
+
+
+### Batch 137
+`3908C..39588` is reconciled. `39147..39149` is a three-byte separator; `39226..39525` is executable code, not data: a complete 256-entry `INT n; RET` dispatch table addressed as `39226 + vector*3` by the surrounding bridges. The reconstruction keeps interrupt execution behind a register-image boundary while preserving the table ownership and exact byte accounting.

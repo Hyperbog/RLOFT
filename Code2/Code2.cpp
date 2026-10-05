@@ -23,7 +23,7 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 231371u;
+constexpr u32 kVerifiedTranslatedBytes = 232645u;
 constexpr u32 kVerifiedNonCodeBytes = 4672u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
@@ -643,7 +643,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u + 320u + 277u + 505u + 433u + 293u + 423u + 468u + 655u + 932u + 262u + 419u + 390u + 1227u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u + 320u + 277u + 505u + 433u + 293u + 423u + 468u + 655u + 932u + 262u + 419u + 390u + 1227u + 1274u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -28153,5 +28153,67 @@ void function_3906c(Runtime136Boundary& b,u8* text) noexcept {
     while(*text!=0u){ if(b.upper) *text=b.upper(*text); ++text; }
 }
 static_assert(0x3908Cu-0x3906Cu==32u);
+
+// Batch 137: 3908C..39588. DOS error normalization plus generic interrupt-register bridges.
+struct Runtime137Boundary {
+    void (*translate_dos_error)(u32)=nullptr;
+    void (*set_errno)(u32)=nullptr;
+    // Execute interrupt `vector` with the supplied register image.  The boundary
+    // owns host/extender mechanics; the image preserves the encoded register set.
+    void (*interrupt)(u8 vector,u32* regs)=nullptr;
+};
+
+[[nodiscard]] s32 function_3908c(Runtime137Boundary& b,bool carry,u32 ax) noexcept {
+    if(!carry)return 0;
+    if(b.translate_dos_error)b.translate_dos_error(ax&0xFFFFu);
+    return -1;
+}
+void function_3909f() noexcept {}
+[[nodiscard]] u32 function_390a0(Runtime137Boundary& b,u32 value,u32 error) noexcept {
+    if(error==0u)return 0u;
+    if(b.translate_dos_error)b.translate_dos_error(value);
+    return 0xFFFFFFFFu;
+}
+[[nodiscard]] u32 function_390ba(Runtime137Boundary& b,u32 value,u32 error) noexcept {
+    if(error!=0u){if(b.translate_dos_error)b.translate_dos_error(value);return 0xFFFFFFFFu;}
+    return value;
+}
+[[nodiscard]] s32 function_390d7(Machine& m,Runtime137Boundary& b,u32 dos_error) noexcept {
+    u8 e=static_cast<u8>(dos_error);
+    // The helper first publishes the raw DOS error through 37CCE.
+    if(b.translate_dos_error)b.translate_dos_error(e);
+    u32 mapped;
+    if(dos_error<0x100u){
+        if(*dg(m,0x1266Bu)>=3u){if(e==0x50u)e=0x0Eu;else if(e>=0x22u)e=0x13u;else if(e>=0x20u)e=0x05u;}
+        if(e>0x13u)e=0x13u;
+        // 12671h is the historical signed-byte DOS->errno table. Keep table access exact.
+        mapped=static_cast<u32>(static_cast<s32>(static_cast<s8>(*dg(m,0x12671u+e*4u+3u))));
+    } else mapped=(dos_error>>8u)&0xFFu;
+    if(b.set_errno)b.set_errno(mapped);
+    return -1;
+}
+
+struct Interrupt137Regs {u32 eax=0,ebx=0,ecx=0,edx=0,esi=0,edi=0,ebp=0,flags=0;u16 ds=0,es=0,fs=0,gs=0;};
+void function_3914a(Runtime137Boundary& b,u8 vector,Interrupt137Regs& r) noexcept {
+    u32 image[12]={r.eax,r.ebx,r.ecx,r.edx,r.esi,r.edi,r.ebp,r.flags,r.ds,r.es,r.fs,r.gs};
+    if(b.interrupt)b.interrupt(vector,image);
+    r.eax=image[0];r.ebx=image[1];r.ecx=image[2];r.edx=image[3];r.esi=image[4];r.edi=image[5];r.ebp=image[6];r.flags=image[7];
+}
+void function_391a5(Runtime137Boundary& b,u8 vector,Interrupt137Regs& r) noexcept {function_3914a(b,vector,r);}
+
+// 39226..39525 is a dense 256-entry executable dispatch table: each entry is
+// exactly `INT imm8; RET` (3 bytes), indexed by vector*3 by both bridge paths.
+void function_39226(Runtime137Boundary& b,u8 vector,Interrupt137Regs& r) noexcept {function_3914a(b,vector,r);}
+
+[[nodiscard]] s32 function_39526(const u8* lhs,const u8* rhs,u32 count) noexcept {
+    if(count==0u)return 0;
+    while(count--){u8 a=*lhs++,c=*rhs++;if(a>='A'&&a<='Z')a=static_cast<u8>(a+0x20u);if(c>='A'&&c<='Z')c=static_cast<u8>(c+0x20u);if(a!=c)return static_cast<s32>(a)-static_cast<s32>(c);if(c==0u)return 0;}
+    return 0;
+}
+static_assert(0x39147u-0x3908Cu==187u);
+static_assert(0x3914Au-0x39147u==3u);
+static_assert(0x39226u-0x3914Au==220u);
+static_assert(0x39526u-0x39226u==768u);
+static_assert(0x39589u-0x39526u==99u);
 
 } // namespace code2
