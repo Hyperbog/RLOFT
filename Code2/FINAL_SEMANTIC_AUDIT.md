@@ -126,10 +126,20 @@ Batch 17 preserves `0B518`'s rank-indexed stack aliases, 32-bit two's-complement
 The Batch-18 portion through `0D54F` was rechecked for the high-risk arithmetic and class-selection paths. `0CD44` keeps countdown state distinct from its damage buffer, `0CF88` retains the encoded signed divide edge, `0D0B0` preserves class-table indexing, and `0D1E0` preserves random-tie behavior. The four dwords at `0D540..0D54F` are data owned by the next routine. No new normalization, signedness, partial-register, global-reload, or call-slot defect was found. The next executable frontier is `0D550`.
 
 
+
+## Checkpoint 11 — `0D550..0E577`
+
+**4,136 bytes.** Fresh immutable-object disassembly closes reconstruction Batch 19 as one ownership-complete semantic family. Span SHA-256: `1b4ee3a5f7408be3bacc636835222d8784dbb7b92e701a680103e7688c47565b`. Mandatory overlap `[0x0D510,0x0D610)` SHA-256: `139640a02784b4e05e87119fbe559947bfcb2c2f2556736eac74e91e9f3c53f8`.
+
+**PASS with no new semantic correction.** The CODE.1 defect checklist was applied to cdecl slot consumption, signed divisions/comparisons, partial-width party fields, table dispatch, shared error tails, and early-return state. `0D550` retains its three-argument entry contract and address-shared error/sound exits. `0DDA4` keeps the three track-indexed experience/class/level fields separate rather than collapsing them into one derived state. The six-entry table at `0DC64..0DC7B` and eight-entry table at `0E008..0E027` remain CS data owned by their dispatchers, with surrounding alignment retained exactly.
+
+`0E0F8` preserves the encoded three-attempt placement rule rather than an unbounded search or normalized retry loop. `0E284` preserves its five 32-bit argument slots, signed/width-sensitive party-record accesses, and the type-18 early revival return that bypasses the ordinary continuation. The audit also rechecked the intervening alignment/table islands recorded in the residual ledger (`0DBD3`, `0DC64..0DC7B`, `0DDA1..0DDA3`, `0E008..0E027`, `0E0F5..0E0F7`, and `0E282..0E283`) against fresh bytes. No new call-order, signedness, aliasing, wrap, or global-reload drift was found. Next executable frontier: `0E578`.
+
+
 ## Current result
 
-- Audited object bytes: **54,592 / 239,698 = 22.7753%**
-- Closed frontier: **`0D54F`**
-- Next frontier: **`0D550`**
+- Audited object bytes: **58,728 / 239,698 = 24.5008%**
+- Closed frontier: **`0E577`**
+- Next frontier: **`0E578`**
 - Semantic defect classes corrected so far: **6**
 - Object byte accounting remains **239,698 / 239,698 = 100.0000%** with **0 unresolved bytes**.
