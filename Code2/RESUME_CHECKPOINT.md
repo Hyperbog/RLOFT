@@ -36,3 +36,11 @@ Durable handoff anchor; live repository/binary evidence wins.
 - Next independent boundary: `3908C`.
 - `3908C..39146` begins DOS-error/carry translation helpers and is not counted by Batch 136.
 - `385B0..38866` and `36CEC..372F5` remain unresolved.
+
+
+## Batch 137 handoff
+- Substantive commit: `834feac5d18dd13d5a2c0817fc0f1c73ef74b43e`.
+- Owned fold: `3908C..39588` (1,274 translated + 3 proven non-code bytes).
+- Accounting: 232,645 translated + 4,675 non-code/data = 237,320 / 239,698 = 99.0079% (99.01%); unresolved 2,378.
+- Next independent boundary: `39589`.
+- `385B0..38866` and `36CEC..372F5` remain unresolved.
