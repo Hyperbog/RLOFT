@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-91.04%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-91.07%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **213,958**
+**Verified translated instruction bytes:** **214,028**
 **Proven non-code/data bytes:** **4,274**
-**Reconciled object bytes:** **218,232 / 239,698 = 91.0446% (91.04%)**
-**Unresolved object bytes:** **21,466**
+**Reconciled object bytes:** **218,302 / 239,698 = 91.0738% (91.07%)**
+**Unresolved object bytes:** **21,396**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -881,3 +881,6 @@ Added **189 translated instruction bytes** and **3 alignment bytes**, bringing a
 ## Batch 94 — fixed-point column scaler
 
 Added **146 translated instruction bytes** and **2 alignment bytes**, bringing accounting to **213,958 translated + 4,274 non-code = 218,232 / 239,698 = 91.0446% (91.04%)**. `338C8` derives a signed 16.16-style source step from `800000h / scale`, clips the destination start/count around 256 rows, samples source bytes from the high word of the phase accumulator, alternates the two bytes of its first argument as subtraction terms, and advances destination rows by `50h`. The binary reads local `[EBP-8]` without defining it on the nonnegative-start path; the translation exposes that persistent stack-slot residue through `Application94Boundary` rather than inventing a value. Next frontier: **`3395C`**.
+## Batch 95 — VGA map-mask and bounded string copy
+
+Added **70 translated instruction bytes**, bringing accounting to **214,028 translated + 4,274 non-code = 218,302 / 239,698 = 91.0738% (91.07%)**. `3395C` emits the exact 16-bit VGA sequencer write `(mask.low8 << 8) | 02h` to port `03C4h` through an explicit hardware boundary. `33971` preserves the encoded bounded string-copy behavior: copy nonzero source bytes while count remains, then zero-fill every remaining destination byte and return the original destination. Next frontier: **`339A2`**.

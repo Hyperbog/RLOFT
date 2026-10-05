@@ -527,3 +527,6 @@ Batch 93 reconciles `33808..338C7`: **189 translated + 3 alignment bytes**. Cove
 ## CODE.2 Batch 94 checkpoint
 
 Batch 94 reconciles `338C8..3395B`: **146 translated + 2 alignment bytes**. Coverage is **218,232 / 239,698 = 91.0446% (91.04%)**, with **21,466 unresolved bytes**. Preserve signed `IDIV` for the source step, arithmetic shifts in start clipping, low-byte loop-count semantics (`0` means 256 iterations after `DEC AH` wrapping), `SHLD 0,phase,16` source indexing, alternating `CL/CH` subtraction bytes, `50h` destination stride, and the persistent undefined-stack residue boundary for `[EBP-8]`. Next frontier is `3395C`.
+## CODE.2 Batch 95 checkpoint
+
+Batch 95 reconciles `3395C..339A1`: **70 translated bytes** and no separator bytes. Coverage is **218,302 / 239,698 = 91.0738% (91.07%)**, with **21,396 unresolved bytes**. Preserve the single 16-bit `OUT DX,AX` value/port at `3395C`, and for `33971` preserve the no-source-advance/no-count-decrement behavior when the NUL terminator is first observed before the zero-fill loop. Next frontier is `339A2`.
