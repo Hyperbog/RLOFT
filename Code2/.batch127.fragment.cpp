@@ -31,7 +31,7 @@ void function_37810(Runtime127Boundary& b,u8* p) noexcept {
         u16 chosen=b.permutation_words?b.permutation_words[n]:static_cast<u16>(n);
         u32 pos=n;
         if(b.permutation_words){
-            for(u32 i=n;i<=remaining+n;++i){if(b.permutation_words[i]==n){pos=i;break;}}
+            for(u32 i=n;i<n+remaining;++i){if(b.permutation_words[i]==n){pos=i;break;}}
             const u16 displaced=b.permutation_words[pos];
             b.permutation_words[pos]=chosen;
             chosen=displaced;
