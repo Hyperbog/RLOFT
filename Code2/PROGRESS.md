@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-91.53%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-91.59%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **215,095**
-**Proven non-code/data bytes:** **4,293**
-**Reconciled object bytes:** **219,388 / 239,698 = 91.5268% (91.53%)**
-**Unresolved object bytes:** **20,310**
+**Verified translated instruction bytes:** **215,232**
+**Proven non-code/data bytes:** **4,296**
+**Reconciled object bytes:** **219,528 / 239,698 = 91.5852% (91.59%)**
+**Unresolved object bytes:** **20,170**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -902,3 +902,6 @@ Added **332 translated instruction bytes**, bringing accounting to **214,774 tra
 ## Batch 101 — mouse position/range and drain helpers
 
 Added **321 translated instruction bytes** and **15 alignment bytes**, bringing accounting to **215,095 translated + 4,293 non-code = 219,388 / 239,698 = 91.5268% (91.53%)**. `33C90` emits mouse function 4 with the encoded doubled second coordinate; `33CB0` preserves post-`2E340` BX/CX/DX residue on entry to function 3, publishes low BX/DX, and stores an arithmetic-halved signed CX at `2B7AC`; `33D18/33D38` issue functions 7/8. `33D58` and `33D78` preserve their distinct polling/drain loops and return-register sources, including the disabled-path `30AEC` call and the `30AD8` recheck before `30B1C/30B2C`. All intervening NOP/LEA/MOV alignment and the three zeros before `33DE0` have no direct or raw references. Next frontier: **`33DE0`**.
+## Batch 102 — planar VGA fill pair
+
+Added **137 translated instruction bytes** and **3 alignment bytes**, bringing accounting to **215,232 translated + 4,296 non-code = 219,528 / 239,698 = 91.5852% (91.59%)**. `33DE0` and `33E28` each issue the exact 16-bit sequencer write `0F02h` to port `03C4h`, then run 128 entry-before-decrement iterations using byte-width wrapped `input.low8 - FE94[EBX]`. The ES-qualified `REP STOSB` remains an explicit boundary rather than flat dgroup memory. `33DE0` starts at `[FDBC]+50F8h`; after each 40h-byte REP advance it subtracts 90h, for a net `-50h` row step. `33E28` starts at `[FDBC]+148h`; after the REP advance it adds 10h, for a net `+50h` row step. `33E26..33E27` (`XCHG EBX,EBX`) and `33E6B` (`NOP`) have no incoming direct or raw absolute references. Next frontier: **`33E6C`**.

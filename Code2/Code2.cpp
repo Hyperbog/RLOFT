@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 215095u;
-constexpr u32 kVerifiedNonCodeBytes = 4293u;
+constexpr u32 kVerifiedTranslatedBytes = 215232u;
+constexpr u32 kVerifiedNonCodeBytes = 4296u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -540,7 +540,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -25779,5 +25779,45 @@ static_assert(0x33D76u-0x33D58u==30u);
 // 33D76..33D77 is unreferenced MOV EAX,EAX alignment.
 static_assert(0x33DDDu-0x33D78u==101u);
 // 33DDD..33DDF is three zero alignment bytes; 33DE0 is independently called.
+
+
+// Batch 102: 33DE0..33E6A planar VGA fill pair.
+struct Runtime102Boundary {
+    // 33DE0/33E28 emit one 16-bit OUT DX,AX to the VGA sequencer.
+    void (*out16)(u16,u16)=nullptr;
+    // Preserve ES-qualified REP STOSB semantics; caller advances EDI by count exactly as the instruction does.
+    void (*rep_stosb_es)(u32,u8,u32)=nullptr;
+};
+
+void function_33de0(Machine& m,Runtime102Boundary& b,u32 value) noexcept {
+    if(b.out16)b.out16(0x03C4u,0x0F02u);
+    u32 edi=load_le32(dg(m,0xFDBCu))+0x50F8u;
+    u32 ebx=0x80u;
+    do {
+        const u8 al=static_cast<u8>(static_cast<u8>(value)-*dg(m,0xFE94u+ebx));
+        if(b.rep_stosb_es)b.rep_stosb_es(edi,al,0x40u);
+        edi+=0x40u;
+        edi-=0x90u;
+        --ebx;
+    } while(ebx!=0u);
+}
+
+void function_33e28(Machine& m,Runtime102Boundary& b,u32 value) noexcept {
+    if(b.out16)b.out16(0x03C4u,0x0F02u);
+    u32 edi=load_le32(dg(m,0xFDBCu))+0x148u;
+    u32 ebx=0x80u;
+    do {
+        const u8 al=static_cast<u8>(static_cast<u8>(value)-*dg(m,0xFE94u+ebx));
+        if(b.rep_stosb_es)b.rep_stosb_es(edi,al,0x40u);
+        edi+=0x40u;
+        edi+=0x10u;
+        --ebx;
+    } while(ebx!=0u);
+}
+
+static_assert(0x33E26u-0x33DE0u==70u);
+// 33E26..33E27 is unreferenced XCHG EBX,EBX alignment.
+static_assert(0x33E6Bu-0x33E28u==67u);
+// 33E6B is an unreferenced NOP; 33E6C has independent callers.
 
 } // namespace code2

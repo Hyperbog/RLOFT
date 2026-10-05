@@ -548,3 +548,6 @@ Batch 100 reconciles `33B44..33C8F`: **332 translated bytes** and no separator b
 ## CODE.2 Batch 101 checkpoint
 
 Batch 101 reconciles `33C90..33DDF`: **321 translated + 15 alignment bytes**. Coverage is **219,388 / 239,698 = 91.5268% (91.53%)**, with **20,310 unresolved bytes**. Preserve post-`2E340` register residue for `33CB0`, signed arithmetic halving of low CX, the second-coordinate doubling in function 4, and the exact multi-stage polling structure/return EAX behavior of `33D58` and `33D78`. Alignment islands are `33CAF`, `33D15..17`, `33D35..37`, `33D55..57`, `33D76..77`, and `33DDD..DDF`. Next frontier is `33DE0`.
+## CODE.2 Batch 102 checkpoint
+
+Batch 102 reconciles `33DE0..33E6B`: **137 translated + 3 alignment bytes**. Coverage is **219,528 / 239,698 = 91.5852% (91.59%)**, with **20,170 unresolved bytes**. Preserve the single 16-bit VGA sequencer OUT in each routine, low-byte wrap of `input - FE94[EBX]`, entry-before-DEC 128-iteration loop shape, ES-qualified REP STOSB, and the encoded EDI post-REP stepping (`-90h` after the 40h-byte advance at `33DE0`, `+10h` after it at `33E28`). Alignment is `33E26..33E27` and `33E6B`. Next frontier is `33E6C`.
