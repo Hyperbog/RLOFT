@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 224357u;
-constexpr u32 kVerifiedNonCodeBytes = 4520u;
+constexpr u32 kVerifiedTranslatedBytes = 224685u;
+constexpr u32 kVerifiedNonCodeBytes = 4528u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -643,7 +643,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -27288,5 +27288,46 @@ void function_36b14(Runtime121Boundary& b,u32 coordinate) noexcept {
 static_assert(0x36B99u-0x36B14u==133u);
 
 // 36B99..36B9B is unreferenced XCHG EBX,EBX; NOP alignment.
+
+
+// Batch 122: runtime callback-table search/patch/restore helpers, 36B9C..36CEB.
+struct Runtime122Boundary { u8 saved_callback_bytes[128]{}; u16 saved_callback_words[128]{}; };
+
+s32 function_36b9c(const u8* image,s32 threshold) noexcept {
+    const u8* const table=image-0x102; u32 sum=0; s32 index=0x7f;
+    do { const u16 word=load_le16(table+index*2); sum=(sum&0xffff0000u)|static_cast<u16>(static_cast<u16>(sum)+word); if(static_cast<s32>(sum)>threshold)break; --index; } while(index>=0);
+    ++index; if(index>=0x7f)index=0x7f; return index;
+}
+static_assert(0x36BD8u-0x36B9Cu==60u);
+
+s32 function_36bd8(const u8* image,s32 threshold) noexcept {
+    const u8* const table=image-0x102; u32 sum=0; s32 index=0;
+    while(index<0x80) { const u16 word=load_le16(table+index*2); sum=(sum&0xffff0000u)|static_cast<u16>(static_cast<u16>(sum)+word); if(static_cast<s32>(sum)>threshold)break; ++index; }
+    return index;
+}
+static_assert(0x36C0Fu-0x36BD8u==55u);
+
+void function_36c10(Runtime122Boundary& b,u8* image,s32 first) noexcept {
+    u8* const table=image-0x204;
+    for(s32 i=first;i<0x80;++i) { const u16 off=load_le16(table+i*2); b.saved_callback_bytes[i]=table[off]; table[off]=0xc3; }
+}
+static_assert(0x36C44u-0x36C10u==52u);
+
+void function_36c44(Runtime122Boundary& b,u8* image,s32 count) noexcept {
+    u8* const table=image-0x204;
+    for(s32 i=0;i<count;++i) { const u16 off=load_le16(table+i*2); const u16 next=load_le16(table+(i+1)*2); b.saved_callback_words[i]=load_le16(table+off); const u16 delta=static_cast<u16>(next-off-2u); table[off]=0xeb; table[off+1]=static_cast<u8>(delta); }
+}
+static_assert(0x36C8Fu-0x36C44u==75u);
+
+void function_36c90(Runtime122Boundary& b,u8* image,s32 last) noexcept {
+    for(s32 i=0x7f;i>=last;--i) { const u16 off=load_le16(image+i*2); image[off]=b.saved_callback_bytes[i]; }
+}
+static_assert(0x36CB9u-0x36C90u==41u);
+
+void function_36cbc(Runtime122Boundary& b,u8* image,s32 count) noexcept {
+    for(s32 i=count-1;i>=0;--i) { const u16 off=load_le16(image+i*2); store_le16(image+off,b.saved_callback_words[i]); }
+}
+static_assert(0x36CE9u-0x36CBCu==45u);
+// 36C0F, 36C8F, 36CB9..36CBB, and 36CE9..36CEB are eight bytes of no-op alignment.
 
 } // namespace code2

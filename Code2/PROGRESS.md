@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-95.49%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-95.63%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **224,357**
-**Proven non-code/data bytes:** **4,520**
-**Reconciled object bytes:** **228,877 / 239,698 = 95.4856% (95.49%)**
-**Unresolved object bytes:** **10,821**
+**Verified translated instruction bytes:** **224,685**
+**Proven non-code/data bytes:** **4,528**
+**Reconciled object bytes:** **229,213 / 239,698 = 95.6257% (95.63%)**
+**Unresolved object bytes:** **10,485**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -992,3 +992,8 @@ Batch 120 adds **35 translated instruction bytes** and **14 proven non-code byte
 ## Batch 121 — runtime callback renderer and multi-pass wrapper `369D8..36B9B`
 
 Batch 121 adds **448 translated instruction bytes** and **4 proven alignment bytes**. `369D8..36B12` derives the VGA destination from the current page/row/phase globals, loads three map masks from the phase table, walks six-byte signed callback records, temporarily patches each callback-image entry byte to `C3h`, resolves the address-distinct callback target, and invokes it through the `369C0` register adapter for one to three planes before restoring the exact saved byte. `36B14..36B98` either renders once and swaps only AL/AH in the packed `105E7` dword, or temporarily forces `105DF=1`, iterates the saved count with parity-controlled AL/AH swapping, advances `105E3`, then restores both globals. The do/while decrement semantics are retained rather than normalized into a zero-safe counted loop. `36B13` and `36B99..36B9B` are decoded no-op separators with no incoming direct relative target. Cumulative accounting is **224,357 translated + 4,520 non-code = 228,877 / 239,698 = 95.4856% (95.49%)**; unresolved is **10,821 bytes**. Next independent boundary: **`36B9C`**.
+
+
+## Batch 122 — callback-table search/patch/restore family `36B9C..36CEB`
+
+Batch 122 adds **328 translated instruction bytes** and **8 proven alignment bytes**. `36B9C` and `36BD8` perform reverse/forward cumulative searches over the 128-entry word table using 16-bit AX accumulation and signed threshold comparison. `36C10` saves callback entry bytes to `10454h` and patches them to `RET`; `36C44` saves original words to `104D4h` and installs short jumps using the next table offset. `36C90` and `36CBC` restore those byte/word patches in reverse order. The isolated NOP/XCHG padding at `36C0F`, `36C8F`, `36CB9..36CBB`, and `36CE9..36CEB` totals eight bytes. Cumulative accounting is **224,685 translated + 4,528 non-code = 229,213 / 239,698 = 95.6257% (95.63%)**; unresolved is **10,485 bytes**. Next independent boundary: **`36CEC`**.

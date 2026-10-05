@@ -622,3 +622,8 @@ Batch 120 reconciles `369A7..369D7`: **35 translated + 14 proven non-code bytes*
 ## CODE.2 Batch 121 checkpoint
 
 Batch 121 reconciles `369D8..36B9B`: **448 translated + 4 proven alignment bytes**. Preserve `369D8`'s signed six-byte record fields, temporary `C3h` callback-image patch and exact byte restoration, phase-derived three-plane mask dispatch, and `369C0` register-call ABI. Preserve `36B14`'s full-dword AL/AH swap and its entry-before-decrement multi-pass loop, including restoration of `105E3/105DF`. Accounting is **228,877 / 239,698 = 95.4856% (95.49%)**; unresolved is **10,821 bytes**. `36B9C` begins the next independently called runtime helper.
+
+
+## CODE.2 Batch 122 checkpoint
+
+Batch 122 reconciles `36B9C..36CEB`: **328 translated + 8 alignment bytes**. Preserve the search helpers' 16-bit AX wrap semantics and signed threshold comparison, and the patch helpers' exact byte/word scratch regions (`10454h`, `104D4h`) plus reverse restoration order. Accounting is **229,213 / 239,698 = 95.6257% (95.63%)**; unresolved is **10,485 bytes**. `36CEC` begins the next large runtime helper.
