@@ -1,0 +1,54 @@
+name: Integrate CODE.2 Batch 105
+on:
+  push:
+    branches: [code1-decompilation]
+    paths: ['.github/workflows/integrate-code2-batch105.yml']
+permissions: {contents: write}
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: code1-decompilation, fetch-depth: 0}
+      - run: |
+          git config user.name "CODE.2 Decompilation Bot"
+          git config user.email "actions@users.noreply.github.com"
+      - name: Verify staged Batch 105
+        run: |
+          git merge-base --is-ancestor 49fb646163690307b519e773827ec552a2563c5e HEAD
+          test "$(git hash-object Code2/.batch105.fragment.cpp)" = "869028ab5cfddc476c6c3b4f93d7172af288a264"
+          test "$(git hash-object Code2/.batch105_integrate.py)" = "91bbe2b45b33a590f7ffd7eeb4ee7d3785418972"
+          grep -F 'static_assert(0x342E2u-0x34270u==114u);' Code2/.batch105.fragment.cpp
+      - name: Integrate Batch 105
+        run: python Code2/.batch105_integrate.py integrate
+      - name: Verify accounting
+        run: python Code2/.batch105_integrate.py verify
+      - name: Syntax check
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+      - name: Fidelity guards
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          c=Path('Code2/Code2.cpp').read_text();l=Path('Code2/RESIDUAL_LEDGER.md').read_text();p=Path('Code2/PROGRESS.md').read_text()
+          for x in ['function_34270','function_34275','app105_34275','while((eax&0x80000000u)!=0u)','load_le16(dg(m,ebx+edi*4u))','quadrant&2u']:
+              assert x in c,x
+          assert '342E2..342E3 | alignment | 2' in l
+          assert '220,672 / 239,698 = 92.0625% (92.06%)' in p
+          PY
+          git diff --check
+      - name: Commit substantive Batch 105
+        run: |
+          cp Code2/.batch105_integrate.py /tmp/batch105_integrate.py
+          rm -f Code2/.batch105.fragment.cpp Code2/.batch105_integrate.py .github/workflows/integrate-code2-batch105.yml
+          git add -A && git diff --cached --check
+          git commit -m "Integrate CODE.2 decompilation batch 105"
+          git push origin HEAD:code1-decompilation
+          echo "BATCH_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Refresh durable resume checkpoint
+        run: |
+          BATCH_SHA="$BATCH_SHA" python /tmp/batch105_integrate.py checkpoint
+          grep -F "$BATCH_SHA" Code2/RESUME_CHECKPOINT.md
+          grep -F 'Next independently decoded instruction boundary: **`342E4`**.' Code2/RESUME_CHECKPOINT.md
+          git add Code2/RESUME_CHECKPOINT.md && git diff --cached --check
+          git commit -m "Refresh CODE.2 resume checkpoint after batch 105"
+          git push origin HEAD:code1-decompilation
