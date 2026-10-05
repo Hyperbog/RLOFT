@@ -71,16 +71,24 @@ PASS with no new semantic correction. The table entries were decoded directly as
 
 The `034B0` helper was checked specifically for first-set-bit priority, signed `-40` / `-4` bounds, the asymmetric dimension-derived limits (`height-0x2B`, `width-0x2C`, `height-0x2F`, `width-0x30`), 32-bit wrapping arithmetic on the stored offsets, and reloads of `12740h/12744h` before the redraw call. No CODE.1 defect class reproduced here. `03634` is the next independent routine.
 
+## Checkpoint 6 — `03634..0518B`
+
+**7,000 bytes.** Expanded audit across two original reconstruction batches. Fresh immutable-object disassembly covered map-mode setup/resource loading/nibble-grid logic (`03634..0461B`) and the complete four-party simulation/update loop plus classifier (`0461C..0518B`). Span SHA-256: `8fb9e029a196bcfae47729e08ad90d08bfc26cd8671f5b7f006d74cf65abe9ae`. Mandatory overlap `[0x035F4,0x036F4)` SHA-256: `c0a5b070819dc0380fc634dc1f8445dd684f6e699958fad502ff9c1fa7962645`.
+
+Two new semantic defect classes were corrected. First, `043F4` had normalized `050DC` classifier indices into booleans. The binary compares the current row directly against each returned index, so the `+6A` grid is processed when `row != classifier(mode=1)` and `+BA` when `row != classifier(mode=0)`; `FFFFFFFFh` naturally excludes no row. Second, `044D0` incorrectly decremented `remaining` when a slot was already complete on entry. Binary equality at `4546..4554` jumps directly to the next slot; the decrement at `45F7..45FB` occurs only after the transfer-loop path reaches equality.
+
+The remainder passed the high-risk audit. Signed map offsets/dimensions, variable resource-table construction, nibble-width truncation, full 16.16 arguments to `2C8E4`, level/proximity predicates, ordered movement attempts, and redraw flags were retained. The large `0461C` loop preserves its three distinct cleanup paths, signed tick/deadline comparisons, 16-bit current/target fields, and repeated classifier calls. `050DC` was re-disassembled through its RET at `0518B` and returns exact indices 0/1/2 or `FFFFFFFFh`. `0518C` is the next independent routine.
+
 ## CODE.1 cross-reference policy
 
 The fully audited CODE.1 decompilation remains part of the active procedure. Its discovered defect classes determine where CODE.2 receives extra scrutiny: cdecl slot order, live-register call inputs, byte/word aliases, signed/unsigned branch drift, modulo-32-bit arithmetic, encoded loop entry, selector/interrupt preservation, global reloads, address-distinct thunks, self-modifying immediates, and DOS/runtime wrappers. Mechanically similar regions may be audited in larger coherent families, but any opcode/control-flow divergence is resolved from CODE.2 itself.
 
 ## Current result
 
-- Audited object bytes: **13,876 / 239,698 = 5.7890%**.
-- Semantic corrections found so far: **2 defect classes**.
-- New corrections in checkpoint 5: **0**.
-- Current closed audited frontier: **`03633`**.
-- Next frontier: **`03634`**.
+- Audited object bytes: **20,876 / 239,698 = 8.7093%**.
+- Semantic corrections found so far: **4 defect classes**.
+- New corrections in checkpoint 6: **2 defect classes**.
+- Current closed audited frontier: **`0518B`**.
+- Next frontier: **`0518C`**.
 
 The semantic-audit percentage is independent of the completed 100% decompilation/byte-accounting percentage.

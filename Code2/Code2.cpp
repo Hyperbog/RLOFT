@@ -2322,8 +2322,8 @@ static_assert(0x043F1u-0x04228u==457u);
 void function_043f4(Machine& m,Application06Boundary& b,u32 slot,s32* second,s32* first) noexcept {
     const u32 a=b.call_50dc?b.call_50dc(0u,slot):0u;const u32 c=b.call_50dc?b.call_50dc(1u,slot):0u;const u32 base=0x218E0u+slot*0x248u;
     for(u32 row=0;row<8u;++row)for(u32 i=0;i<10u;++i){
-        if(c!=0u){const u8 v=*dg(m,base+row*10u+i+0x6Au);const u8 lo=v&0x0Fu,hi=v>>4;if(lo!=0x0Fu&&hi!=lo&&hi<lo&&first)*first-=static_cast<s32>(lo-hi);}
-        if(a!=0u){const u8 v=*dg(m,base+row*10u+i+0xBAu);const u8 lo=v&0x0Fu,hi=v>>4;if(lo!=0x0Fu&&hi!=lo&&hi<lo&&second)--*second;}
+        if(row!=c){const u8 v=*dg(m,base+row*10u+i+0x6Au);const u8 lo=v&0x0Fu,hi=v>>4;if(lo!=0x0Fu&&hi!=lo&&hi<lo&&first)*first-=static_cast<s32>(lo-hi);}
+        if(row!=a){const u8 v=*dg(m,base+row*10u+i+0xBAu);const u8 lo=v&0x0Fu,hi=v>>4;if(lo!=0x0Fu&&hi!=lo&&hi<lo&&second)--*second;}
     }
 }
 static_assert(0x044CFu-0x043F4u==219u);
@@ -2335,7 +2335,7 @@ static_assert(0x044CFu-0x043F4u==219u);
     for(u32 s=0;s<4u;++s,slot_off+=0x248u){
         const u16 flags=load_le16(dg(m,0x218F0u+slot_off));
         if((flags&0xC000u)!=0u)continue;
-        if(load_le16(dg(m,0x218FCu+slot_off))==load_le16(dg(m,0x218FEu+slot_off))){if(remaining)--*remaining;continue;}
+        if(load_le16(dg(m,0x218FCu+slot_off))==load_le16(dg(m,0x218FEu+slot_off)))continue;
         while((*dg(m,cell)&0xF0u)!=0u&&
               static_cast<s16>(load_le16(dg(m,0x218FCu+slot_off)))<static_cast<s16>(load_le16(dg(m,0x218FEu+slot_off)))) {
             if(b.call_9d90)b.call_9d90(kind,s,slot);
