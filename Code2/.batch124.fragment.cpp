@@ -1,5 +1,5 @@
 // Batch 124: 3736D..3740D and 37433..374D1 radix conversion helpers.
-struct Runtime124Boundary { std::function<void(u32,u8)> write8; };
+struct Runtime124Boundary { void (*write8)(u32,u8)=nullptr; };
 static inline void runtime124_write8(Runtime124Boundary& b,u32 p,u8 v) noexcept { if(b.write8)b.write8(p,v); }
 
 [[nodiscard]] u32 function_3736d(Machine& m,Runtime124Boundary& b,u32 value,u32 dst,u32 radix) noexcept {
