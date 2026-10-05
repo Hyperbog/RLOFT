@@ -3,11 +3,11 @@
 Durable handoff anchor; live repository/binary evidence wins.
 
 ## Last committed substantive decompilation state
-- Last substantive batch commit: `02e2fcb08c56d6015e9be44706aa209753aa7e13` — `Integrate CODE.2 decompilation batch 135`.
-- Verified translated instruction bytes: **230,144**.
+- Last substantive batch commit: `dcb158916249aff5d401a108ca852f053ca0856e` — `Integrate CODE.2 decompilation batch 136`.
+- Verified translated instruction bytes: **231,371**.
 - Proven non-code/data bytes: **4,672**.
-- Reconciled object bytes: **234,816 / 239,698 = 97.9633% (97.96%)**.
-- Unresolved object bytes: **4,882**.
+- Reconciled object bytes: **236,043 / 239,698 = 98.4752% (98.48%)**.
+- Unresolved object bytes: **3,655**.
 - Batch 135 owned ranges: `38A0A..38A2F`, `38A61..38AC2`, `38AC3..38BA5`, `38BA6..38BC0`.
 - `38A30..38A60` remains unowned because it shares formatter tail `38862`.
 - Next independently decoded instruction boundary: **`38BC1`**.
@@ -29,3 +29,10 @@ Durable handoff anchor; live repository/binary evidence wins.
 - `38AC3..38BA5`: signed 16.16 decimal/fraction materializer and rounding path.
 - `38BA6..38BC0`: indirect three-argument forwarding wrapper through `[12700h]`.
 - `38BC1` begins the next large conversion/dispatch helper.
+
+
+## Batch 136 handoff
+- Owned fold: `38BC1..3908B` (1,227 translated bytes).
+- Next independent boundary: `3908C`.
+- `3908C..39146` begins DOS-error/carry translation helpers and is not counted by Batch 136.
+- `385B0..38866` and `36CEC..372F5` remain unresolved.
