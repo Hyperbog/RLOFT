@@ -572,3 +572,6 @@ Batch 108 reconciles `34A74..34BAF`: **313 translated + 3 padding bytes**. Cover
 ## CODE.2 Batch 109 checkpoint
 
 Batch 109 reconciles `34BB0..34DE7`: **567 translated + 1 alignment byte**. Coverage is **223,492 / 239,698 = 93.2390% (93.24%)**, with **16,206 unresolved bytes**. Preserve the in-place raw SAR-by-3 index mutation, signed `C738` clamp, early zero exit, distinct bias-corrected `/8` and `/2` truncation, odd-vertex 1<->3 mirror swap, record flag/`C026`/`C027` gating, exact `[258F8h] + record[9]` resource-id load, `FDC0/FDB8/FDB4` writes, and the explicit stack-local selector boundary into `33E6C`. `34DE7` is alignment; `34DE8` is independently called.
+## CODE.2 Batch 110 checkpoint
+
+Batch 110 reconciles `34DE8..35285`: **1,182 translated instruction bytes**, no new non-code. Coverage is **224,674 / 239,698 = 93.7321% (93.73%)**, with **15,024 unresolved bytes**. Preserve the half-open clamped scan bounds, active-run reset asymmetry, packed 16.16 `35798` inputs, 16-bit `+20h` corner adjustment, corner-flag reuse, exact `Acur,Anext,Bnext,Bcur` quad ordering, and row-end B-to-A copy/clear cycle. `35286` is the next independent DOS runtime entry.
