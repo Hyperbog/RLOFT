@@ -512,3 +512,6 @@ Batch 88 reconciles `332B4..333BB`: **262 translated + 2 alignment bytes**. Cove
 ## CODE.2 Batch 89 checkpoint
 
 Batch 89 reconciles `333BC..334C3`: **262 translated + 2 alignment bytes**. Coverage is **217,056 / 239,698 = 90.5539% (90.55%)**, with **22,642 unresolved bytes**. Preserve the `255F0` source distinction from Batch 88, low-word unsigned comparison, full-dword modular bias arithmetic, `0FC0h` quantization, and direct record writes. Next frontier is `334C4`.
+## CODE.2 Batch 90 checkpoint
+
+Batch 90 reconciles `334C4..335DB`: **280 translated bytes** and no separator bytes. Coverage is **217,336 / 239,698 = 90.6708% (90.67%)**, with **22,362 unresolved bytes**. Preserve the binary's do/while grid clear (including its zero-count wrap behavior), `C65C` dynamic table addressing, argument order for both `35680` calls, full result stores before low-word truncation/negation, and signed-word expansions from `255EE/255F6/255D6/255D2`. Next frontier is `335DC`.

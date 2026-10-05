@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-90.55%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-90.67%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **212,789**
+**Verified translated instruction bytes:** **213,069**
 **Proven non-code/data bytes:** **4,267**
-**Reconciled object bytes:** **217,056 / 239,698 = 90.5539% (90.55%)**
-**Unresolved object bytes:** **22,642**
+**Reconciled object bytes:** **217,336 / 239,698 = 90.6708% (90.67%)**
+**Unresolved object bytes:** **22,362**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -866,3 +866,6 @@ Added **262 translated instruction bytes** and **2 alignment bytes**, bringing a
 ## Batch 89 — offset-biased companion record materialization
 
 Added **262 translated instruction bytes** and **2 alignment bytes**, bringing accounting to **212,789 translated + 4,267 non-code = 217,056 / 239,698 = 90.5539% (90.55%)**. `333BC` is the `255F0` companion to Batch 88: it applies the same unsigned low-word branch around modular `FCE4-8000h` bias arithmetic, quantizes to `0FC0h`, preserves the current-cell high class, and writes the direct `256A2/25622` record fields. Next frontier: **`334C4`**.
+## Batch 90 — view/grid initialization
+
+Added **280 translated instruction bytes**, bringing accounting to **213,069 translated + 4,267 non-code = 217,336 / 239,698 = 90.6708% (90.67%)**. `334C4` derives the grid-cell count from `25619*2561B`, clears bit 6 in each low flag byte, selects the two view-table entries through `C65C/C658`, derives signed/low-word sweep step state through the two `35680` calls, initializes the four sign-extended edge globals, then transfers control to the already translated `32954` sweep. Next frontier: **`335DC`**.
