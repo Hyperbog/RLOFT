@@ -670,3 +670,7 @@ Batch 129 reconciles `37AFC..37CA2`: **423 translated instruction bytes**, no ne
 
 ## CODE.2 Batch 130 checkpoint
 Batch 130 reconciles `37CA3..37E76`: **468 translated instruction bytes**, no new non-code. Coverage is **232,158 / 239,698 = 96.8544% (96.85%)**, with **7,540 unresolved bytes**. Preserve distinct errno domains, stream flag bits, capacity choices `86h`/`1`/`1000h`, embedded one-byte fallback, partial-write failure, unread-input backward seek, and DOS AH=43h attribute semantics. Next boundary `37E77`; `36CEC..372F5` remains unresolved.
+
+
+## CODE.2 Batch 131 checkpoint
+Batch 131 reconciles `37E77..38105`: **655 translated instruction bytes**, no new non-code. Preserve the open/create fallback state machine, low-byte mode masking, BH device flag, DOS carry/error folding, IOCTL device-mode update, and address-distinct wrappers. Coverage is **232,813 / 239,698 = 97.1276% (97.13%)**, with **6,885 unresolved bytes**. Next boundary `38106`; `36CEC..372F5` remains unresolved.

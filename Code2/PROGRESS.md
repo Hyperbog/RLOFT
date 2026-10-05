@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-96.85%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-97.13%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **227,486**
+**Verified translated instruction bytes:** **228,141**
 **Proven non-code/data bytes:** **4,672**
-**Reconciled object bytes:** **232,158 / 239,698 = 96.8544% (96.85%)**
-**Unresolved object bytes:** **7,540**
+**Reconciled object bytes:** **232,813 / 239,698 = 97.1276% (97.13%)**
+**Unresolved object bytes:** **6,885**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -1049,3 +1049,8 @@ Added **423 translated instruction bytes** across `37AFC..37CA2`. `37AFC..37B33`
 ## Batch 130 — errno, stream-buffer, flush, and DOS attribute helpers
 
 Added **468 translated instruction bytes** across `37CA3..37E76`. `37CA3..37CDF` contains constant/common errno setters and the alternate errno-domain/indirect callback path. `37CE0..37D5F` initializes stream buffering with flag-selected capacities and the embedded one-byte fallback. `37D60..37E23` synchronizes buffered output/input, preserving write-length/error behavior and backward seek of unread input. `37E24..37E76` wraps DOS AH=43h attribute query and its writable/read-only rejection/error translation. No non-code bytes claimed. Next boundary: **`37E77`**. Accounting: **227,486 translated + 4,672 non-code/data = 232,158 / 239,698 = 96.8544% (96.85%)**, leaving **7,540 unresolved bytes**.
+
+
+## Batch 131 — DOS open/create descriptor state machine
+
+Added **655 translated instruction bytes** across `37E77..38105`. `37E77..37E98` is the variadic/open forwarding wrapper. `37E99..38074` preserves the DOS open-first/create-on-demand path, leading-space skip, mode/share folding, device rejection/truncation behavior, DOS error translation, create/reopen fallback, and descriptor flag publication. `38075..380E0` publishes descriptor state and performs the device IOCTL bit-20h update. `380E1..380F7` is the encoded mode-62h create/open wrapper; `380F8..38105` forwards descriptor close. No non-code bytes claimed. Next boundary: **`38106`**. Accounting: **228,141 translated + 4,672 non-code/data = 232,813 / 239,698 = 97.1276% (97.13%)**, leaving **6,885 unresolved bytes**.
