@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-91.14%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-91.16%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **214,178**
+**Verified translated instruction bytes:** **214,246**
 **Proven non-code/data bytes:** **4,274**
-**Reconciled object bytes:** **218,452 / 239,698 = 91.1363% (91.14%)**
-**Unresolved object bytes:** **21,246**
+**Reconciled object bytes:** **218,520 / 239,698 = 91.1647% (91.16%)**
+**Unresolved object bytes:** **21,178**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -887,3 +887,6 @@ Added **70 translated instruction bytes**, bringing accounting to **214,028 tran
 ## Batch 96 — DOS find/DTA wrapper family
 
 Added **150 translated instruction bytes**, bringing accounting to **214,178 translated + 4,274 non-code = 218,452 / 239,698 = 91.1363% (91.14%)**. `339A2` and `339CF` preserve the encoded `INT 21h` DTA setup plus find-first/find-next ordering. The common `3908C` carry consumer is modeled exactly: on carry it invokes the `390D7` error side effect but then restores and returns the original zero-extended 16-bit DOS error code; carry-clear returns zero. `339F2/33A15` retain the version-9-only AH=2F shuttles as selector-qualified `REP MOVSB` boundaries in the encoded DS:source -> ES:destination directions instead of flattening them into host memory. Next frontier: **`33A38`**.
+## Batch 97 — DOS mkdir/chdir wrappers
+
+Added **68 translated instruction bytes**, bringing accounting to **214,246 translated + 4,274 non-code = 218,520 / 239,698 = 91.1647% (91.16%)**. `33A38` and `33A5A` are the DOS AH=39h/AH=3Bh path wrappers. The encoded `RCL EAX,1; ROR EAX,1; TEST EAX,EAX` sequence is preserved by its directly proven carry predicate: carry-clear returns zero, while carry-set zero-extends the low AX error for the `390D7` side effect and retains `390D7`'s `FFFFFFFFh` return. DS:DX path qualification remains explicit at the boundary. Next frontier: **`33A7C`**.

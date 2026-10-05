@@ -533,3 +533,6 @@ Batch 95 reconciles `3395C..339A1`: **70 translated bytes** and no separator byt
 ## CODE.2 Batch 96 checkpoint
 
 Batch 96 reconciles `339A2..33A37`: **150 translated bytes** and no separator bytes. Coverage is **218,452 / 239,698 = 91.1363% (91.14%)**, with **21,246 unresolved bytes**. Preserve `339A2` argument reshuffling into DS:DX path/CX attributes after AH=1A, `339CF`'s pre-find `33A15` shuttle, post-find `339F2` shuttle on both success and failure, `3908C`'s carry-sensitive error-side-effect/return-code distinction, the `12662 == 9` gate, and the exact DS/ES directions of both 43-byte REP MOVSB operations. Next frontier is `33A38`.
+## CODE.2 Batch 97 checkpoint
+
+Batch 97 reconciles `33A38..33A7B`: **68 translated bytes** and no separator bytes. Coverage is **218,520 / 239,698 = 91.1647% (91.16%)**, with **21,178 unresolved bytes**. Preserve AH=39h versus AH=3Bh, DS:DX path qualification, the exact carry-to-sign meaning of the `RCL/ROR/TEST/JGE` sequence, low-16 error truncation before `390D7`, and the distinction from Batch 96: these wrappers return `FFFFFFFFh` on failure rather than the raw DOS error number. Next frontier is `33A7C`.
