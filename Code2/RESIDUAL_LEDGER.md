@@ -850,3 +850,10 @@ Cumulative proven non-code/data: **4,472 bytes**.
 Fresh object-1 disassembly was used for all four boundaries. A full direct relative CALL/JMP/Jcc target scan found no incoming control-flow target to any byte in these ranges, and a full disassembly text scan found no exact immediate/data reference to their starting addresses. These are the three historical zero islands repeatedly left unresolved in Batches 03..27; they are now directly closed.
 
 Cumulative proven non-code/data: **4,502 bytes**.
+
+
+## Batch 123 additions
+
+- `37348..3736C` — **37 bytes data**: NUL-terminated lowercase radix digit alphabet. The bytes are exactly `0123456789abcdefghijklmnopqrstuvwxyz\0`; `37398` loads from `CS:[EDX+37348h]` in the next independently bounded conversion routine, proving the range is data rather than linear code.
+
+Batch 123 adds **37** proven non-code/data bytes; cumulative proven non-code/data is **4,565 bytes**.

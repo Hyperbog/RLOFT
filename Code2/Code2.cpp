@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 224685u;
-constexpr u32 kVerifiedNonCodeBytes = 4528u;
+constexpr u32 kVerifiedTranslatedBytes = 224767u;
+constexpr u32 kVerifiedNonCodeBytes = 4565u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -643,7 +643,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -27329,5 +27329,32 @@ void function_36cbc(Runtime122Boundary& b,u8* image,s32 count) noexcept {
 }
 static_assert(0x36CE9u-0x36CBCu==45u);
 // 36C0F, 36C8F, 36CB9..36CBB, and 36CE9..36CEB are eight bytes of no-op alignment.
+
+
+// Batch 123: PC speaker PIT channel-2 programming, 372F6..37347.
+struct Runtime123Boundary {
+    u8 (*in8)(u16)=nullptr;
+    void (*out8)(u16,u8)=nullptr;
+};
+
+void function_372f6(Runtime123Boundary& b,u32 divisor) noexcept {
+    if(divisor<=0x12u) return;
+    const u32 counter=0x1234DCu/divisor;
+    u8 gate=b.in8?b.in8(0x61u):0u;
+    if((gate&3u)!=3u) {
+        gate=static_cast<u8>(gate|3u);
+        if(b.out8)b.out8(0x61u,gate);
+        if(b.out8)b.out8(0x43u,0xB6u);
+    }
+    if(b.out8)b.out8(0x42u,static_cast<u8>(counter));
+    if(b.out8)b.out8(0x42u,static_cast<u8>(counter>>8));
+}
+static_assert(0x37339u-0x372F6u==67u);
+
+void function_37339(Runtime123Boundary& b) noexcept {
+    const u8 gate=static_cast<u8>((b.in8?b.in8(0x61u):0u)&0xFCu);
+    if(b.out8)b.out8(0x61u,gate);
+}
+static_assert(0x37348u-0x37339u==15u);
 
 } // namespace code2

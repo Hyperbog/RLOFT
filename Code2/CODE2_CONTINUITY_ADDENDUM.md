@@ -627,3 +627,12 @@ Batch 121 reconciles `369D8..36B9B`: **448 translated + 4 proven alignment bytes
 ## CODE.2 Batch 122 checkpoint
 
 Batch 122 reconciles `36B9C..36CEB`: **328 translated + 8 alignment bytes**. Preserve the search helpers' 16-bit AX wrap semantics and signed threshold comparison, and the patch helpers' exact byte/word scratch regions (`10454h`, `104D4h`) plus reverse restoration order. Accounting is **229,213 / 239,698 = 95.6257% (95.63%)**; unresolved is **10,485 bytes**. `36CEC` begins the next large runtime helper.
+
+
+## CODE.2 Batch 123 checkpoint
+
+- Integrated `372F6..37347`: PC-speaker PIT channel-2 start/stop helpers, **82 translated bytes**.
+- Classified `37348..3736C`: 37-byte NUL-terminated lowercase radix alphabet, directly indexed by `37398` with a CS override.
+- Accounting: **224,767 translated + 4,565 non-code = 229,332 / 239,698 = 95.6754% (95.68%)**; **10,366 unresolved**.
+- Fresh overlap `[372B6,373C8)` SHA-256 `cccc69f3ea9f01660fc5a5fcb3022d991e7243bb42ca2d26199ca71f989bc417`.
+- `3736D` is the next independently decoded instruction boundary; the large `36CEC..372F5` helper remains unresolved.

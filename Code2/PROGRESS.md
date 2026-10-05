@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-95.63%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-95.68%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **224,685**
-**Proven non-code/data bytes:** **4,528**
-**Reconciled object bytes:** **229,213 / 239,698 = 95.6257% (95.63%)**
-**Unresolved object bytes:** **10,485**
+**Verified translated instruction bytes:** **224,767**
+**Proven non-code/data bytes:** **4,565**
+**Reconciled object bytes:** **229,332 / 239,698 = 95.6754% (95.68%)**
+**Unresolved object bytes:** **10,366**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -997,3 +997,14 @@ Batch 121 adds **448 translated instruction bytes** and **4 proven alignment byt
 ## Batch 122 — callback-table search/patch/restore family `36B9C..36CEB`
 
 Batch 122 adds **328 translated instruction bytes** and **8 proven alignment bytes**. `36B9C` and `36BD8` perform reverse/forward cumulative searches over the 128-entry word table using 16-bit AX accumulation and signed threshold comparison. `36C10` saves callback entry bytes to `10454h` and patches them to `RET`; `36C44` saves original words to `104D4h` and installs short jumps using the next table offset. `36C90` and `36CBC` restore those byte/word patches in reverse order. The isolated NOP/XCHG padding at `36C0F`, `36C8F`, `36CB9..36CBB`, and `36CE9..36CEB` totals eight bytes. Cumulative accounting is **224,685 translated + 4,528 non-code = 229,213 / 239,698 = 95.6257% (95.63%)**; unresolved is **10,485 bytes**. Next independent boundary: **`36CEC`**.
+
+
+## Batch 123 — PC speaker PIT helpers and radix digit table
+
+Added **82 translated instruction bytes** and **37 directly proven data bytes**.
+
+- `372F6..37338` — **67 bytes**: programs PIT channel 2 from `0x1234DC / divisor` when the requested divisor exceeds `0x12`; preserves the conditional port-61 gate enable and conditional `43h=B6h` control write before emitting the low/high counter bytes to port `42h`.
+- `37339..37347` — **15 bytes**: clears speaker gate bits 0..1 at port `61h`.
+- `37348..3736C` — **37 bytes data**: NUL-terminated lowercase radix digit alphabet `0123456789abcdefghijklmnopqrstuvwxyz`; directly referenced with a CS override by the independently bounded conversion helper beginning at `3736D`.
+
+Fresh overlap window `[372B6,373C8)` SHA-256: `cccc69f3ea9f01660fc5a5fcb3022d991e7243bb42ca2d26199ca71f989bc417`. The pre-`372F6` bytes belong to the still-unresolved large helper ending at `372F5` and were verification only.
