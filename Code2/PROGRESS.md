@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-95.13%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-95.28%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **223,532**
+**Verified translated instruction bytes:** **223,874**
 **Proven non-code/data bytes:** **4,502**
-**Reconciled object bytes:** **228,034 / 239,698 = 95.1339% (95.13%)**
-**Unresolved object bytes:** **11,664**
+**Reconciled object bytes:** **228,376 / 239,698 = 95.2766% (95.28%)**
+**Unresolved object bytes:** **11,322**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -977,3 +977,8 @@ The mandatory resume overlap `[35990,35A70)` re-hashed to `4470ab5305088033d53ec
 ## Batch 118 — historical zero-island closure
 
 Batch 118 adds no translated instructions; it directly proves **30 non-code/alignment bytes** in the three long-standing early-object islands: `006B9..006BF`, `0380D..0380F`, and `03A64..03A77`. Fresh CODE.2 object-1 disassembly proves the adjacent control-flow boundaries, and a full direct relative control-flow target scan found no incoming target into any classified byte. Cumulative accounting is **223,532 translated + 4,502 non-code = 228,034 / 239,698 = 95.1339% (95.13%)**; unresolved is **11,664 bytes**.
+
+
+## Batch 119 — late runtime helper island `39526..3967B`
+
+Batch 119 adds **342 translated instruction bytes** across four independently bounded runtime helpers: `39526..39588`, `39589..395E1`, `395E2..3962C`, and `3962D..3967B`. `39526` is the ASCII-only length-bounded case-insensitive comparator used by the environment lookup at `352EE`; it preserves unsigned byte subtraction and terminates on the second operand's NUL. `39589` preserves the rounded dynamic-stack request, strict unsigned allocation threshold, global `12650` update, and subsequent runtime callback chain. `395E2` and `3962D` preserve the packed six-byte callback records, priority selection/restart behavior, status-byte writeback, and callback EDX register payload. This batch also repairs the accounting-neutral Batch 118 omission in `Code2.cpp` by synchronizing `kVerifiedNonCodeBytes` from 4,472 to the already-proven/documented 4,502. Cumulative accounting is **223,874 translated + 4,502 non-code = 228,376 / 239,698 = 95.2766% (95.28%)**; unresolved is **11,322 bytes**.

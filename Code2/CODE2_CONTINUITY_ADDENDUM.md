@@ -607,3 +607,8 @@ Batch 117 integrated `35A0C..35F86` (**1,403 translated bytes**) and classified 
 ## CODE.2 Batch 118 checkpoint
 
 Batch 118 closes the three historical early-object zero islands without changing translated coverage: `006B9..006BF` (**7 zero-padding bytes**), `0380D..0380F` (**3 zero-padding bytes**), and `03A64..03A77` (**18 zero-padding + 2-byte MOV-EAX,EAX alignment**). Fresh object-1 disassembly and a full direct relative control-flow target scan prove the classifications. Cumulative accounting is **223,532 translated + 4,502 non-code = 228,034 / 239,698 = 95.1339% (95.13%)**; unresolved is **11,664 bytes**. Continue selecting unresolved islands from the residual complement; do not revisit these three historical gaps.
+
+
+## CODE.2 Batch 119 checkpoint
+
+Batch 119 reconciles the late runtime island `39526..3967B`: **342 translated bytes**. Preserve `39526`'s ASCII-only folding and unsigned-byte difference; `39589`'s strict unsigned stack-allocation threshold and `12650` update; and the packed six-byte callback-table selection/restart semantics in `395E2/3962D`, including the full EDX payload passed through indirect callbacks. The batch also repairs the accounting-neutral Batch 118 omission in `Code2.cpp`: `kVerifiedNonCodeBytes` now matches the already-proven/documented **4,502** bytes. Cumulative accounting is **223,874 translated + 4,502 non-code = 228,376 / 239,698 = 95.2766% (95.28%)**; unresolved is **11,322 bytes**. Continue from the residual complement rather than assuming sequential ownership after `3967B`, because `3967C` and later runtime helpers already have integrated ownership.

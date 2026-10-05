@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 223532u;
-constexpr u32 kVerifiedNonCodeBytes = 4472u;
+constexpr u32 kVerifiedTranslatedBytes = 223874u;
+constexpr u32 kVerifiedNonCodeBytes = 4502u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -643,7 +643,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -27109,5 +27109,79 @@ static u32 app116_read(Machine& m,Runtime116Boundary& b,u32 source,u32 offset,
 static_assert(0x35A09u-0x358D4u==309u);
 // 35A09..35A0B is LEA EAX,[EAX+0] alignment before independent 35A0C.
 static_assert(0x35A0Cu-0x35A09u==3u);
+
+
+// Batch 119: verified CODE.2 39526..3967B runtime helpers.
+struct Runtime119Boundary {
+    u32 (*call_3a165)()=nullptr;
+    u32 (*alloca_guest)(u32)=nullptr;
+    void (*call_3a38a)()=nullptr;
+    u32 (*call_20608)(u32,u32)=nullptr;
+    void (*call_352be)(u32)=nullptr;
+    void (*call_guest)(u32,u32)=nullptr;
+};
+
+s32 function_39526(Machine& m,u32 lhs,u32 rhs,u32 count) noexcept {
+    while(count!=0u){
+        u8 a=*dg(m,lhs), b=*dg(m,rhs);
+        if(a>=0x41u&&a<=0x5Au)a=static_cast<u8>(a+0x20u);
+        if(b>=0x41u&&b<=0x5Au)b=static_cast<u8>(b+0x20u);
+        if(a!=b)return static_cast<s32>(static_cast<u32>(a)-static_cast<u32>(b));
+        if(b==0u)return 0;
+        ++lhs;++rhs;--count;
+    }
+    return 0;
+}
+static_assert(0x39589u-0x39526u==99u);
+
+void function_39589(Machine& m,Runtime119Boundary& b) noexcept {
+    const u32 raw=load_le32(dg(m,0x1264Cu));
+    const u32 rounded=(raw+3u)&0xFFFFFFFCu;
+    const u32 available=b.call_3a165?b.call_3a165():0u;
+    u32 base=0u;
+    if(rounded<available)base=b.alloca_guest?b.alloca_guest(rounded):0u;
+    store_le32(dg(m,0x12650u),base+load_le32(dg(m,0x1264Cu)));
+    if(b.call_3a38a)b.call_3a38a();
+    const u32 arg0=load_le32(dg(m,0x2BD00u));
+    const u32 arg1=load_le32(dg(m,0x2BD04u));
+    const u32 value=b.call_20608?b.call_20608(arg0,arg1):0u;
+    if(b.call_352be)b.call_352be(value);
+}
+static_assert(0x395E2u-0x39589u==89u);
+
+void function_395e2(Machine& m,Runtime119Boundary& b,u32 edx) noexcept {
+    for(;;){
+        u32 best=0x12738u;
+        u8 limit=static_cast<u8>(edx);
+        for(u32 p=0x12720u;p<0x12738u;p+=6u){
+            if(*dg(m,p)!=2u && *dg(m,p+1u)<=limit){best=p;limit=*dg(m,p+1u);}
+        }
+        if(best==0x12738u)return;
+        const u32 callback=load_le32(dg(m,best+2u));
+        if(callback!=0u&&b.call_guest)b.call_guest(callback,edx);
+        *dg(m,best)=2u;
+    }
+}
+static_assert(0x3962Du-0x395E2u==75u);
+
+void function_3962d(Machine& m,Runtime119Boundary& b,u32 eax,u32 edx) noexcept {
+    const u8 ceiling=static_cast<u8>(edx);
+    const u8 initial=static_cast<u8>(eax);
+    const u32 callback_edx=(edx&0xFFFF0000u)|(static_cast<u32>(ceiling)<<8)|initial;
+    for(;;){
+        u32 best=0x1273Eu;
+        u8 selected=initial;
+        for(u32 p=0x12738u;p<0x1273Eu;p+=6u){
+            if(*dg(m,p)!=2u && selected<=*dg(m,p+1u)){best=p;selected=*dg(m,p+1u);}
+        }
+        if(best==0x1273Eu)return;
+        if(selected<=ceiling){
+            const u32 callback=load_le32(dg(m,best+2u));
+            if(callback!=0u&&b.call_guest)b.call_guest(callback,callback_edx);
+        }
+        *dg(m,best)=2u;
+    }
+}
+static_assert(0x3967Cu-0x3962Du==79u);
 
 } // namespace code2
