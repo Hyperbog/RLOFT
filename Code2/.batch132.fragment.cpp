@@ -1,179 +1,30 @@
 
 // Batch 132: object-relative 38106..384A9 (932 translated bytes).
 struct Runtime132Boundary {
-    u32 (*descriptor_flags)(u32) = nullptr;       // 3A0C4
-    void (*set_runtime_error)(u32) = nullptr;     // 37CC2
-    void (*translate_dos_error)(u16) = nullptr;   // 390D7
-    s32 (*dos_read)(u32,u32,u32) = nullptr;       // AH=3Fh, carry folded into sign
-    s32 (*dos_write)(u32,u32,u32) = nullptr;      // AH=40h, carry folded into sign
-    s32 (*dos_seek)(u32,s32,u8) = nullptr;        // AH=42h, signed error / 32-bit position
-    s32 (*dos_delete)(u32) = nullptr;             // AH=41h
-    u32 (*runtime_version)() = nullptr;            // 3A165
-    u32 (*runtime_version_old)() = nullptr;        // 3A1A7
-    u8 (*read8)(u32) = nullptr;
-    void (*write8)(u32,u8) = nullptr;
-    u8 (*get_default_drive)() = nullptr;           // AH=19h, zero-based
-    u8 (*set_default_drive)(u8) = nullptr;         // AH=0Eh, zero-based; returns drive count
+    u32 (*descriptor_flags)(u32)=nullptr; void (*set_runtime_error)(u32)=nullptr; void (*translate_dos_error)(u16)=nullptr;
+    s32 (*dos_read)(u32,u32,u32)=nullptr; s32 (*dos_write_mem)(u32,u32,u32)=nullptr; s32 (*dos_write_bytes)(u32,const u8*,u32)=nullptr;
+    s32 (*dos_seek)(u32,s32,u8)=nullptr; s32 (*dos_delete)(u32)=nullptr; u32 (*runtime_version)()=nullptr; u32 (*runtime_version_old)()=nullptr;
+    u8 (*read8)(u32)=nullptr; void (*write8)(u32,u8)=nullptr; u8 (*get_default_drive)()=nullptr; u8 (*set_default_drive)(u8)=nullptr;
 };
-
-static s32 function_38106(Runtime132Boundary& rt, u32 handle, u32 dst, u32 count) {
-    const u32 flags = rt.descriptor_flags ? rt.descriptor_flags(handle) : 0u;
-    if (flags == 0u) {
-        if (rt.set_runtime_error) rt.set_runtime_error(4u);
-        return -1;
-    }
-    if ((flags & 1u) == 0u) {
-        if (rt.set_runtime_error) rt.set_runtime_error(6u);
-        return -1;
-    }
-    if ((flags & 0x40u) != 0u) {
-        const s32 got = rt.dos_read ? rt.dos_read(handle, dst, count) : -1;
-        if (got < 0) {
-            if (rt.translate_dos_error) rt.translate_dos_error(static_cast<u16>(got));
-            return -1;
-        }
-        return got;
-    }
-
-    u32 remaining = count;
-    u32 out = dst;
-    s32 logical = 0;
-    while (remaining != 0u) {
-        const s32 got = rt.dos_read ? rt.dos_read(handle, out, remaining) : -1;
-        if (got < 0) {
-            if (rt.translate_dos_error) rt.translate_dos_error(static_cast<u16>(got));
-            return -1;
-        }
-        if (got == 0) break;
-
-        const u32 raw = static_cast<u32>(got);
-        u32 consumed = 0u;
-        u32 produced = 0u;
-        while (consumed < raw) {
-            const u8 ch = rt.read8 ? rt.read8(out + consumed) : 0u;
-            if (ch == 0x1Au) {
-                const s32 rewind = static_cast<s32>(consumed) - got + 1;
-                if (rt.dos_seek) (void)rt.dos_seek(handle, rewind, 1u);
-                return logical;
-            }
-            if (ch != 0x0Du) {
-                if (rt.write8) rt.write8(out + produced, ch);
-                ++produced;
-                ++logical;
-            }
-            ++consumed;
-        }
-        out += produced;
-        remaining -= produced;
-        if ((flags & 0x20u) != 0u) break;
-    }
-    return logical;
+static s32 function_38106(Runtime132Boundary& r,u32 h,u32 dst,u32 n){
+ u32 f=r.descriptor_flags?r.descriptor_flags(h):0u; if(!f){if(r.set_runtime_error)r.set_runtime_error(4);return -1;} if(!(f&1)){if(r.set_runtime_error)r.set_runtime_error(6);return -1;}
+ if(f&0x40){s32 q=r.dos_read?r.dos_read(h,dst,n):-1;if(q<0){if(r.translate_dos_error)r.translate_dos_error(static_cast<u16>(q));return -1;}return q;}
+ u32 rem=n,out=dst; s32 logical=0; while(rem){s32 q=r.dos_read?r.dos_read(h,out,rem):-1;if(q<0){if(r.translate_dos_error)r.translate_dos_error(static_cast<u16>(q));return -1;}if(!q)break;
+  u32 raw=static_cast<u32>(q),i=0,p=0; while(i<raw){u8 c=r.read8?r.read8(out+i):0;if(c==0x1a){s32 back=static_cast<s32>(i)-q+1;if(r.dos_seek)(void)r.dos_seek(h,back,1);return logical;}if(c!=0x0d){if(r.write8)r.write8(out+p,c);++p;++logical;}++i;} out+=p;rem-=p;if(f&0x20)break;}
+ return logical;
 }
-
-static s32 function_3821f(Runtime132Boundary& rt, u32 handle, u32 src, u32 count) {
-    const u32 flags = rt.descriptor_flags ? rt.descriptor_flags(handle) : 0u;
-    if (flags == 0u) {
-        if (rt.set_runtime_error) rt.set_runtime_error(4u);
-        return -1;
-    }
-    if ((flags & 2u) == 0u) {
-        if (rt.set_runtime_error) rt.set_runtime_error(6u);
-        return -1;
-    }
-
-    if ((flags & 0x80u) != 0u) {
-        const s32 end = rt.dos_seek ? rt.dos_seek(handle, 0, 2u) : -1;
-        if (end < 0) {
-            if (rt.translate_dos_error) rt.translate_dos_error(static_cast<u16>(end));
-            return -1;
-        }
-    }
-
-    if ((flags & 0x40u) != 0u) {
-        const s32 wrote = rt.dos_write ? rt.dos_write(handle, src, count) : -1;
-        if (wrote < 0) {
-            if (rt.translate_dos_error) rt.translate_dos_error(static_cast<u16>(wrote));
-            return -1;
-        }
-        if (static_cast<u32>(wrote) != count && rt.set_runtime_error) rt.set_runtime_error(12u);
-        return wrote;
-    }
-
-    u32 chunk = 0x200u;
-    const u32 ver = rt.runtime_version ? rt.runtime_version() : 0x230u;
-    if (ver < 0xB0u && rt.runtime_version_old) (void)rt.runtime_version_old();
-    if (ver < 0x230u) chunk = 0x80u;
-
-    u8 buffer[0x200]{};
-    u32 input_done = 0u;
-    u32 committed_input = 0u;
-    u32 buffered = 0u;
-    while (input_done < count) {
-        const u8 ch = rt.read8 ? rt.read8(src + input_done) : 0u;
-        if (ch == 0x0Au) {
-            buffer[buffered++] = 0x0Du;
-            if (buffered == chunk) {
-                const s32 wrote = rt.dos_write ? rt.dos_write(handle, 0u, chunk) : -1;
-                if (wrote < 0) { if (rt.translate_dos_error) rt.translate_dos_error(static_cast<u16>(wrote)); return -1; }
-                if (static_cast<u32>(wrote) != chunk) { if (rt.set_runtime_error) rt.set_runtime_error(12u); return static_cast<s32>(committed_input + static_cast<u32>(wrote)); }
-                committed_input = input_done;
-                buffered = 0u;
-            }
-        }
-        buffer[buffered++] = ch;
-        ++input_done;
-        if (buffered == chunk) {
-            const s32 wrote = rt.dos_write ? rt.dos_write(handle, 0u, chunk) : -1;
-            if (wrote < 0) { if (rt.translate_dos_error) rt.translate_dos_error(static_cast<u16>(wrote)); return -1; }
-            if (static_cast<u32>(wrote) != chunk) { if (rt.set_runtime_error) rt.set_runtime_error(12u); return static_cast<s32>(committed_input + static_cast<u32>(wrote)); }
-            committed_input = input_done;
-            buffered = 0u;
-        }
-    }
-    if (buffered != 0u) {
-        const s32 wrote = rt.dos_write ? rt.dos_write(handle, 0u, buffered) : -1;
-        if (wrote < 0) { if (rt.translate_dos_error) rt.translate_dos_error(static_cast<u16>(wrote)); return -1; }
-        if (static_cast<u32>(wrote) != buffered) { if (rt.set_runtime_error) rt.set_runtime_error(12u); return static_cast<s32>(committed_input + static_cast<u32>(wrote)); }
-    }
-    return static_cast<s32>(count);
+static s32 function_3821f(Runtime132Boundary& r,u32 h,u32 src,u32 n){
+ u32 f=r.descriptor_flags?r.descriptor_flags(h):0u;if(!f){if(r.set_runtime_error)r.set_runtime_error(4);return -1;}if(!(f&2)){if(r.set_runtime_error)r.set_runtime_error(6);return -1;}
+ if(f&0x80){s32 q=r.dos_seek?r.dos_seek(h,0,2):-1;if(q<0){if(r.translate_dos_error)r.translate_dos_error(static_cast<u16>(q));return -1;}}
+ if(f&0x40){s32 q=r.dos_write_mem?r.dos_write_mem(h,src,n):-1;if(q<0){if(r.translate_dos_error)r.translate_dos_error(static_cast<u16>(q));return -1;}if(static_cast<u32>(q)!=n&&r.set_runtime_error)r.set_runtime_error(12);return q;}
+ u32 chunk=0x200;u32 v=r.runtime_version?r.runtime_version():0x230;if(v<0xb0&&r.runtime_version_old)(void)r.runtime_version_old();if(v<0x230)chunk=0x80;
+ u8 b[0x200]{};u32 in=0,committed=0,used=0;auto flush=[&](u32 len)->s32{s32 q=r.dos_write_bytes?r.dos_write_bytes(h,b,len):-1;if(q<0){if(r.translate_dos_error)r.translate_dos_error(static_cast<u16>(q));return -1;}if(static_cast<u32>(q)!=len){if(r.set_runtime_error)r.set_runtime_error(12);return q;}return q;};
+ while(in<n){u8 c=r.read8?r.read8(src+in):0;if(c==0x0a){b[used++]=0x0d;if(used==chunk){s32 q=flush(chunk);if(q<0)return -1;if(static_cast<u32>(q)!=chunk)return static_cast<s32>(committed+static_cast<u32>(q));committed=in;used=0;}}
+  b[used++]=c;++in;if(used==chunk){s32 q=flush(chunk);if(q<0)return -1;if(static_cast<u32>(q)!=chunk)return static_cast<s32>(committed+static_cast<u32>(q));committed=in;used=0;}}
+ if(used){s32 q=flush(used);if(q<0)return -1;if(static_cast<u32>(q)!=used)return static_cast<s32>(committed+static_cast<u32>(q));}return static_cast<s32>(n);
 }
-
-static s32 function_383ed(Runtime132Boundary& rt, u32 handle, s32 offset, u32 origin) {
-    return rt.dos_seek ? rt.dos_seek(handle, offset, static_cast<u8>(origin)) : -1;
-}
-
-static s32 function_38407(Runtime132Boundary& rt, u32 handle, s32 offset, u8 origin) {
-    const s32 pos = rt.dos_seek ? rt.dos_seek(handle, offset, origin) : -1;
-    if (pos < 0) {
-        if (rt.translate_dos_error) rt.translate_dos_error(static_cast<u16>(pos));
-        return -1;
-    }
-    return pos;
-}
-
-static s32 function_38452(Runtime132Boundary& rt, u32 path) {
-    const s32 rc = rt.dos_delete ? rt.dos_delete(path) : -1;
-    if (rc < 0) {
-        if (rt.translate_dos_error) rt.translate_dos_error(static_cast<u16>(rc));
-        return rc;
-    }
-    return 0;
-}
-
-static u16 function_38474(Runtime132Boundary& rt, u32 out_drive) {
-    const u32 drive = static_cast<u32>(rt.get_default_drive ? rt.get_default_drive() : 0u) + 1u;
-    if (rt.write8) {
-        rt.write8(out_drive + 0u, static_cast<u8>(drive));
-        rt.write8(out_drive + 1u, 0u); rt.write8(out_drive + 2u, 0u); rt.write8(out_drive + 3u, 0u);
-    }
-    return 0u;
-}
-
-static u32 function_3848c(Runtime132Boundary& rt, u32 one_based_drive, u32 out_count) {
-    const u8 count = rt.set_default_drive ? rt.set_default_drive(static_cast<u8>(one_based_drive - 1u)) : 0u;
-    if (rt.write8) {
-        rt.write8(out_count + 0u, count);
-        rt.write8(out_count + 1u, 0u); rt.write8(out_count + 2u, 0u); rt.write8(out_count + 3u, 0u);
-    }
-    return 0u;
-}
+static s32 function_383ed(Runtime132Boundary&r,u32 h,s32 o,u32 w){return r.dos_seek?r.dos_seek(h,o,static_cast<u8>(w)):-1;}
+static s32 function_38407(Runtime132Boundary&r,u32 h,s32 o,u8 w){s32 q=r.dos_seek?r.dos_seek(h,o,w):-1;if(q<0){if(r.translate_dos_error)r.translate_dos_error(static_cast<u16>(q));return -1;}return q;}
+static s32 function_38452(Runtime132Boundary&r,u32 p){s32 q=r.dos_delete?r.dos_delete(p):-1;if(q<0){if(r.translate_dos_error)r.translate_dos_error(static_cast<u16>(q));return q;}return 0;}
+static u16 function_38474(Runtime132Boundary&r,u32 p){u32 d=static_cast<u32>(r.get_default_drive?r.get_default_drive():0)+1;if(r.write8){r.write8(p,static_cast<u8>(d));r.write8(p+1,0);r.write8(p+2,0);r.write8(p+3,0);}return 0;}
+static u32 function_3848c(Runtime132Boundary&r,u32 d,u32 p){u8 n=r.set_default_drive?r.set_default_drive(static_cast<u8>(d-1)):0;if(r.write8){r.write8(p,n);r.write8(p+1,0);r.write8(p+2,0);r.write8(p+3,0);}return 0;}
