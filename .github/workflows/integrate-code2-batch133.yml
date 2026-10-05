@@ -1,0 +1,33 @@
+name: Integrate CODE.2 Batch 133
+on:
+  push:
+    branches: [code1-decompilation]
+    paths: ['.github/workflows/integrate-code2-batch133.yml']
+permissions:
+  contents: write
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+      - run: |
+          git config user.name "CODE.2 Decompilation Bot"
+          git config user.email "actions@users.noreply.github.com"
+      - run: python Code2/.batch133_integrate.py integrate
+      - run: python Code2/.batch133_integrate.py verify
+      - run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+      - run: git diff --check
+      - name: Commit substantive batch
+        run: |
+          rm Code2/.batch133.fragment.cpp .github/workflows/integrate-code2-batch133.yml
+          git add -A
+          git commit -m "Integrate CODE.2 decompilation batch 133"
+          git push
+          SUB=$(git rev-parse HEAD)
+          python Code2/.batch133_integrate.py checkpoint "$SUB"
+          rm Code2/.batch133_integrate.py
+          git add -A
+          git commit -m "Refresh CODE.2 resume checkpoint after batch 133"
+          git push
