@@ -1,0 +1,30 @@
+name: CODE.2 semantic audit
+on:
+  push:
+    branches: [code1-decompilation]
+    paths:
+      - '.github/workflows/code2-semantic-audit.yml'
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+      - name: Apply audit correction
+        run: python3 Code2/.audit01_integrate.py integrate
+      - name: Verify audit correction
+        run: python3 Code2/.audit01_integrate.py verify
+      - name: Syntax check
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+      - name: Diff check
+        run: git diff --check
+      - name: Commit checkpoint
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add Code2/Code2.cpp Code2/FINAL_SEMANTIC_AUDIT.md
+          git commit -m 'Audit CODE.2 semantics through 002A7'
+          git push
