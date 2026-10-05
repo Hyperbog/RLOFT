@@ -139,3 +139,12 @@ Durable handoff anchor; live repository/binary evidence wins.
 - Span `06CAD..080AB` SHA-256: `983c5eb95aad3e3f2eb30fa7f9aa876f0f79df7e787a54b499dd38f700a5bc6e`.
 - Overlap `[0x06C6D,0x06D2D)` SHA-256: `88ee2bc0bca3930a22167507f4e76441ea240cd18ed9e755e59a05a0d09ed475`.
 - Next semantic-audit frontier: **`0A791`**.
+
+
+## Semantic audit checkpoint 10 handoff
+- Object accounting remains **239,698 / 239,698**.
+- Semantic audit: **54,592 / 239,698 = 22.7753%**, closed through **`0D54F`**.
+- Semantic defect classes remain **6**; checkpoint 10 found no new defect.
+- Span `0A791..0D54F` SHA-256: `d7be8e8c6d82f446f8c25b0e5a56f0bb20dd08974152b6ed0c8f09180a562262`.
+- Mandatory overlap `[0x0A751,0x0A851)` SHA-256: `a1c238a0b3e5eda7fce02986f0d8f76a61eabf7443fe4076242071c3df620311`.
+- Next semantic-audit frontier: **`0D550`**.
