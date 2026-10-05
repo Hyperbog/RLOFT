@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-95.82%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-95.95%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **225,087**
-**Proven non-code/data bytes:** **4,602**
-**Reconciled object bytes:** **229,689 / 239,698 = 95.8243% (95.82%)**
-**Unresolved object bytes:** **10,009**
+**Verified translated instruction bytes:** **225,364**
+**Proven non-code/data bytes:** **4,624**
+**Reconciled object bytes:** **229,988 / 239,698 = 95.9491% (95.95%)**
+**Unresolved object bytes:** **9,710**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -1019,3 +1019,8 @@ Added **320 translated instruction bytes** and **37 directly proven data bytes**
 - `37433..374D1` — **159 bytes**: second independently emitted unsigned/signed/wrapper conversion family. Signed negation is preserved as 32-bit wraparound, including `INT_MIN`; a minus sign is emitted only for radix 10.
 
 Fresh overlap `[3732D,37560)` SHA-256: `fb03d884626319eb3660df9b273a8fa25074d61efbed16ea3b8b77d00cf2ff6a`. Batch-owned `[3736D,374E0)` SHA-256: `f3a491f2e6135bce5c6ed930471e07a9b85a43be572f539af57c1862afe97104`. `374D2..374DF` remains unresolved zero fill; appearance alone is not used as proof.
+
+
+## Batch 125 — allocation/read helper family
+
+Added **277 translated instruction bytes** and **22 directly proven alignment bytes** across `374D2..375FD`. `374E0..3757B` clones a 28-byte header from the descriptor-selected source, allocates `length+0x1B`, then reads `length-1` bytes into offset `+0x1C`; `3757C..37588` is its free wrapper. `37590..375EE` reads a two-byte length, allocates `length+2`, stores the length prefix, performs the `2F960`/`2F96C` setup, and fills the payload through `2FB04`; `375F0..375FC` is the second free wrapper. Zero/alignment islands `374D2..374DF` and `37589..3758F`, plus NOP `375EF`, are directly target-scanned and have no incoming direct relative control-flow targets. Next independent instruction boundary: **`375FE`**. Accounting: **225,364 translated + 4,624 non-code/data = 229,988 / 239,698 = 95.9491% (95.95%)**, leaving **9,710 unresolved bytes**.

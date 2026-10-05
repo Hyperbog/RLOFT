@@ -23,8 +23,8 @@ constexpr u32 kObject1FileStart = 0x0003AF24u;
 constexpr u32 kObject1VirtualBase = 0x00010000u;
 constexpr u32 kObject1Length = 0x0003A852u;
 constexpr u32 kObject1EntryOffset = 0x000353A0u;
-constexpr u32 kVerifiedTranslatedBytes = 225087u;
-constexpr u32 kVerifiedNonCodeBytes = 4602u;
+constexpr u32 kVerifiedTranslatedBytes = 225364u;
+constexpr u32 kVerifiedNonCodeBytes = 4624u;
 
 constexpr u32 kObject2FileStart = 0x00075F24u;
 constexpr u32 kObject2VirtualBase = 0x00050000u;
@@ -643,7 +643,7 @@ static_assert(kObject1Length == 239698u);
 static_assert(kObject2FileStart + kObject2StoredBytes == 0x00088661u);
 static_assert(kVerifiedTranslatedBytes + kVerifiedNonCodeBytes <= kObject1Length);
 static_assert(kVerifiedTranslatedBytes == 159155u +
-              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u + 320u);
+              (0x273E7u-0x26018u) + 2797u + 2032u + 3214u + 1281u + 939u + 1048u + 1427u + 1453u + 1022u + 1600u + 3005u + 3418u + 3862u + 2161u + 2173u + 1209u + 4070u + 1843u + 1852u + 1025u + 929u + 538u + 282u + 356u + 74u + 207u + 680u + 331u + 27u + 790u + 1526u + 63u + 406u + 399u + 262u + 262u + 280u + 491u + 63u + 189u + 146u + 70u + 150u + 68u + 35u + 161u + 332u + 321u + 137u + 326u + 690u + 114u + 1710u + 220u + 313u + 567u + 1182u + 284u + 535u + 70u + 488u + 89u + 309u + 1403u + 342u + 35u + 448u + 328u + 82u + 320u + 277u);
 
 // -----------------------------------------------------------------------------
 // Batch 02: 002A8 dispatcher and CODE.1-audited VGA/image/sprite anchors.
@@ -27388,5 +27388,53 @@ static inline void runtime124_write8(Runtime124Boundary& b,u32 p,u8 v) noexcept 
 
 static_assert(0x3740Eu-0x3736Du==161u);
 static_assert(0x374D2u-0x37433u==159u);
+
+
+// Batch 125: runtime allocation/read helpers at 374E0..375FC.
+struct Runtime125Boundary {
+    u32 (*alloc)(u32)=nullptr;
+    void (*free_block)(u32)=nullptr;
+    void (*read_block)(u32,u32,u32)=nullptr; // guest destination, count, stream/context
+    u16 (*read_word)(u32)=nullptr;           // exact two-byte stack-local read from stream/context
+    void (*call_2f960)(u32)=nullptr;
+    void (*call_2f96c)()=nullptr;
+    void (*call_2fb04)(u32,u32,u32,u32,u32)=nullptr;
+    u8 (*read8)(u32)=nullptr;
+    void (*write8)(u32,u8)=nullptr;
+};
+static inline u8 runtime125_read8(Runtime125Boundary& b,u32 p) noexcept { return b.read8?b.read8(p):0u; }
+static inline void runtime125_write8(Runtime125Boundary& b,u32 p,u8 v) noexcept { if(b.write8)b.write8(p,v); }
+static inline u16 runtime125_read16(Runtime125Boundary& b,u32 p) noexcept { return static_cast<u16>(runtime125_read8(b,p)|static_cast<u16>(runtime125_read8(b,p+1u))<<8); }
+static inline u32 runtime125_read32(Runtime125Boundary& b,u32 p) noexcept { return static_cast<u32>(runtime125_read16(b,p))|(static_cast<u32>(runtime125_read16(b,p+2u))<<16); }
+static inline void runtime125_write16(Runtime125Boundary& b,u32 p,u16 v) noexcept { runtime125_write8(b,p,static_cast<u8>(v));runtime125_write8(b,p+1u,static_cast<u8>(v>>8)); }
+
+[[nodiscard]] u32 function_374e0(Runtime125Boundary& b,u32 descriptor,u32 stream) noexcept {
+    const u32 src=runtime125_read32(b,descriptor+5u);
+    const u32 count=runtime125_read32(b,src+0x16u);
+    const u32 dst=b.alloc?b.alloc(count+0x1Bu):0u;
+    if(dst==0u)return 0u;
+    for(u32 i=0;i<0x1Cu;++i)runtime125_write8(b,dst+i,runtime125_read8(b,src+i));
+    if(b.read_block)b.read_block(dst+0x1Cu,count-1u,stream);
+    return dst;
+}
+static_assert(0x3757Cu-0x374E0u==156u);
+
+void function_3757c(Runtime125Boundary& b,u32 block) noexcept { if(b.free_block)b.free_block(block); }
+static_assert(0x37589u-0x3757Cu==13u);
+
+[[nodiscard]] u32 function_37590(Runtime125Boundary& b,u32 stream,u32 setup_arg) noexcept {
+    const u16 count=b.read_word?b.read_word(stream):0u;
+    const u32 dst=b.alloc?b.alloc(static_cast<u32>(count)+2u):0u;
+    if(dst==0u)return 0u;
+    runtime125_write16(b,dst,count);
+    if(b.call_2f960)b.call_2f960(setup_arg);
+    if(b.call_2f96c)b.call_2f96c();
+    if(b.call_2fb04)b.call_2fb04(0u,0u,dst+2u,count,0u);
+    return dst;
+}
+static_assert(0x375EFu-0x37590u==95u);
+
+void function_375f0(Runtime125Boundary& b,u32 block) noexcept { if(b.free_block)b.free_block(block); }
+static_assert(0x375FDu-0x375F0u==13u);
 
 } // namespace code2

@@ -864,3 +864,12 @@ Batch 123 adds **37** proven non-code/data bytes; cumulative proven non-code/dat
 - `3740E..37432` — **37 bytes data**: second NUL-terminated lowercase radix alphabet `0123456789abcdefghijklmnopqrstuvwxyz\0`, directly indexed with a CS override at `37460`.
 
 Batch 124 adds **37** proven non-code/data bytes; cumulative proven non-code/data is **4,602 bytes**. `374D2..374DF` remains unresolved.
+
+
+## Batch 125 additions
+
+- `374D2..374DF` — 14 zero alignment bytes between the radix family and `374E0`; no incoming direct relative control-flow target in a full object-1 scan.
+- `37589..3758F` — 7 zero alignment bytes between the first free wrapper and `37590`; no incoming direct relative control-flow target.
+- `375EF` — 1 explicit NOP separator before `375F0`; no incoming direct relative control-flow target.
+
+Batch 125 adds **22 proven non-code/alignment bytes**, bringing the cumulative non-code/data total to **4,624**.
