@@ -4,6 +4,7 @@ Durable handoff anchor; live repository/binary evidence wins.
 
 ## Last committed substantive decompilation state
 - Last substantive batch commit: `7bd336d65a38f3638339b8bee762875a60af730f` — `Integrate CODE.2 decompilation batch 80`.
+- Post-batch fidelity correction: `df8be56264726392434c0b524f6c5be06d90ebb6` — preserve raw third-argument count in `32220`/`322EC` calls to `32468`.
 - Verified translated instruction bytes: **208,723**.
 - Proven non-code/data bytes: **4,245**.
 - Reconciled object bytes: **212,968 / 239,698 = 88.8485% (88.85%)**.
