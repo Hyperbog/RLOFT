@@ -1,0 +1,92 @@
+name: Integrate CODE.2 Batch 73
+
+on:
+  push:
+    branches: [code1-decompilation]
+    paths:
+      - '.github/workflows/integrate-code2-batch73.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code1-decompilation
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "CODE.2 Decompilation Bot"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Verify staged Batch 73
+        run: |
+          test "$(git hash-object Code2/.batch73.fragment.cpp)" = "de322f534a9d1056ac801686509a84ed4d636ff6"
+          test "$(git hash-object Code2/.batch73_patch.py)" = "9d29062a7426500dc33a07d9138ee325c0dce1a1"
+          test "$(git hash-object Code2/.batch73_integrate.py)" = "09fc9c69de9b4fc36e7f4ab239dd7e598d526ae6"
+          test "$(git hash-object Code2/.batch73_checkpoint_fix.py)" = "cfb395d3b989d85d0c53612da4428136a7aa42c1"
+          grep -F '// Batch 73: 314B0..318B0' Code2/.batch73.fragment.cpp
+
+      - name: Apply reconciled staging corrections
+        run: |
+          python Code2/.batch73_patch.py
+          grep -F 's32 key=static_cast<s16>(load_le16(dg(m,rec)));' Code2/.batch73.fragment.cpp
+          grep -F 'static_cast<u32>(world_x)-static_cast<u32>(camera)' Code2/.batch73.fragment.cpp
+
+      - name: Integrate Batch 73
+        run: python Code2/.batch73_integrate.py integrate
+
+      - name: Verify accounting
+        run: python Code2/.batch73_integrate.py verify
+
+      - name: Syntax check
+        run: g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+
+      - name: Guard fidelity anchors
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          cpp=Path('Code2/Code2.cpp').read_text()
+          led=Path('Code2/RESIDUAL_LEDGER.md').read_text()
+          prog=Path('Code2/PROGRESS.md').read_text()
+          anchors=[
+              'function_314b0',
+              'function_30cc4(m,function_30700(m))',
+              'i!=0u && load_le16(dg(m,rec))==0u',
+              'function_29838(*b.app57,0u,4u,i*8u+0x20u,random_set,8u)',
+              'screen_for(0x168)',
+              'screen_for(-0x168)',
+              'static_assert(0x318B1u-0x314B0u==1025u);'
+          ]
+          for a in anchors: assert a in cpp,a
+          assert '318B1..318B3 | alignment | 3' in led
+          assert '209,872 / 239,698 = 87.5568% (87.56%)' in prog
+          PY
+          git diff --check
+
+      - name: Commit substantive Batch 73
+        run: |
+          cp Code2/.batch73_integrate.py /tmp/batch73_integrate.py
+          cp Code2/.batch73_checkpoint_fix.py /tmp/batch73_checkpoint_fix.py
+          rm -f Code2/.batch73.fragment.cpp Code2/.batch73_patch.py Code2/.batch73_integrate.py Code2/.batch73_checkpoint_fix.py .github/workflows/integrate-code2-batch73.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "Integrate CODE.2 decompilation batch 73"
+          git push origin HEAD:code1-decompilation
+          echo "BATCH_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Refresh durable resume checkpoint
+        run: |
+          BATCH_SHA="$BATCH_SHA" python /tmp/batch73_integrate.py checkpoint
+          python /tmp/batch73_checkpoint_fix.py
+          grep -F "$BATCH_SHA" Code2/RESUME_CHECKPOINT.md
+          grep -F 'Next independently decoded instruction boundary: **`318B4`**.' Code2/RESUME_CHECKPOINT.md
+          grep -F '552f3c1e834ba1d24b05f7b63f7815a800515c1cc7517f0449789fbc31b509ec' Code2/RESUME_CHECKPOINT.md
+          git add Code2/RESUME_CHECKPOINT.md
+          git diff --cached --check
+          git commit -m "Refresh CODE.2 resume checkpoint after batch 73"
+          git push origin HEAD:code1-decompilation
