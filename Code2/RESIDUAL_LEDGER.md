@@ -7,6 +7,7 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 001FA..001FB | alignment | 2
 00271..00273 | alignment | 3
 00274..002A7 | table | 52
+006B9..006BF | padding | 7
 006FD..006FF | alignment | 3
 00792..00793 | alignment | 2
 007E2..007E3 | alignment | 2
@@ -32,8 +33,11 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 02D70..02DAF | table | 64
 034AF..034AF | alignment | 1
 03631..03633 | alignment | 3
+0380D..0380F | padding | 3
 0381F..0381F | alignment | 1
 03836..03837 | alignment | 2
+03A64..03A75 | padding | 18
+03A76..03A77 | alignment | 2
 03C03..03C03 | alignment | 1
 03DE3..03DE3 | alignment | 1
 03F75..03F77 | alignment | 3
@@ -636,7 +640,7 @@ This ledger records only CODE.2 object-1 bytes directly proven not to be executa
 35A09..35A0B | alignment | 3
 <!-- RESIDUAL-RANGES-END -->
 
-**Total proven non-code/data:** **4,471 bytes**.
+**Total proven non-code/data:** **4,502 bytes**.
 
 Batch 02 evidence: the first three ranges are explicit compiler alignment instructions between directly decoded function boundaries; `00274..002A7` is the thirteen-entry CS jump table whose targets were reconciled one-by-one in `function_002a8`.
 
@@ -827,3 +831,15 @@ Batch 116 evidence: `35A09..35A0B` decodes exactly as `LEA EAX,[EAX+0]`; fresh w
 - `35F87..35F87` — **1 byte**, zero alignment separating the complete `35A0C..35F86` loader from the independently called `35F88` timer/event entry. Boundary is proven by fresh disassembly of both complete adjacent routines.
 
 Cumulative proven non-code/data: **4,472 bytes**.
+
+
+## Batch 118 additions
+
+- `006B9..006BF` — **7 bytes**, zero padding between the directly reconstructed return at `006B8` and the independent entry at `006C0`.
+- `0380D..0380F` — **3 bytes**, zero padding between the unconditional transfer at `03808` and the independent entry at `03810`.
+- `03A64..03A75` — **18 bytes**, zero padding after the directly reconstructed return at `03A63`.
+- `03A76..03A77` — **2 bytes**, encoded `MOV EAX,EAX` alignment immediately before the independent `03A78` entry.
+
+Fresh object-1 disassembly was used for all four boundaries. A full direct relative CALL/JMP/Jcc target scan found no incoming control-flow target to any byte in these ranges, and a full disassembly text scan found no exact immediate/data reference to their starting addresses. These are the three historical zero islands repeatedly left unresolved in Batches 03..27; they are now directly closed.
+
+Cumulative proven non-code/data: **4,502 bytes**.

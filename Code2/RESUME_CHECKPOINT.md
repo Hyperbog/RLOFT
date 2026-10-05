@@ -5,9 +5,9 @@ Durable handoff anchor; live repository/binary evidence wins.
 ## Last committed substantive decompilation state
 - Last substantive batch commit: `618468634dbf30a67766d67a51611879abed56a3` — `Integrate CODE.2 decompilation batch 117`.
 - Verified translated instruction bytes: **223,532**.
-- Proven non-code/data bytes: **4,472**.
-- Reconciled object bytes: **228,004 / 239,698 = 95.1214% (95.12%)**.
-- Unresolved object bytes: **11,694**.
+- Proven non-code/data bytes: **4,502**.
+- Reconciled object bytes: **228,034 / 239,698 = 95.1339% (95.13%)**.
+- Unresolved object bytes: **11,664**.
 - Last integrated ownership fold: `35A0C..35F86`.
 - `35F87` is proven one-byte alignment; `35F88` begins the already integrated timer/event family.
 - The sequential runtime frontier now joins previously reconciled code. Continue by selecting the next range from the remaining unresolved islands; do not re-count `35F88+`.
@@ -21,3 +21,7 @@ Durable handoff anchor; live repository/binary evidence wins.
 - Narrow `[0x35F70,0x35FD0)` — 96 bytes; SHA-256 `8fbabc4f61a242b137def96eefce4e8057502f6e19bb05d0eee9cc4b81b16788`.
 
 Interpretation: `35A0C..35F86` is the translated large loader, `35F87` is alignment, and `35F88` is already-owned timer/event code. Batch 117 preserved the loader's raw 02D0h frame aliasing, flag-1 memory/file split, flag-4 allocation path, 16-byte alignment rule, local dword tables, and relocation validation/store ordering. Any analysis beyond this committed accounting is `UNCOUNTED / NOT COMMITTED`.
+
+
+## Batch 118 resume note
+The historical zero islands `006B9..006BF`, `0380D..0380F`, and `03A64..03A77` are now proven non-code/alignment (**30 bytes total**) and must not be revisited. Translated coverage remains **223,532**; proven non-code is **4,502**; reconciled is **228,034 / 239,698 = 95.1339%**; unresolved is **11,664**.

@@ -602,3 +602,8 @@ Batch 116 reconciles `358D4..35A0B`: **309 translated + 3 proven alignment bytes
 ## CODE.2 Batch 117 checkpoint
 
 Batch 117 integrated `35A0C..35F86` (**1,403 translated bytes**) and classified `35F87` as **1 byte of alignment**. Cumulative accounting is **223,532 translated + 4,472 non-code = 228,004 / 239,698 = 95.1214% (95.12%)**; unresolved is **11,694 bytes**. The Batch 116 overlap hash matched exactly before forward work. Preserve the large loader's raw-frame aliasing, flag-1 memory/file split, flag-4 allocation path, 16-byte alignment rule, local base tables, and relocation validation/store ordering. `35F88` is already integrated; continue by closing remaining unresolved islands rather than double-counting the runtime tail.
+
+
+## CODE.2 Batch 118 checkpoint
+
+Batch 118 closes the three historical early-object zero islands without changing translated coverage: `006B9..006BF` (**7 zero-padding bytes**), `0380D..0380F` (**3 zero-padding bytes**), and `03A64..03A77` (**18 zero-padding + 2-byte MOV-EAX,EAX alignment**). Fresh object-1 disassembly and a full direct relative control-flow target scan prove the classifications. Cumulative accounting is **223,532 translated + 4,502 non-code = 228,034 / 239,698 = 95.1339% (95.13%)**; unresolved is **11,664 bytes**. Continue selecting unresolved islands from the residual complement; do not revisit these three historical gaps.

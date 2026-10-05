@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-95.12%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-95.13%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
 **Verified translated instruction bytes:** **223,532**
-**Proven non-code/data bytes:** **4,472**
-**Reconciled object bytes:** **228,004 / 239,698 = 95.1214% (95.12%)**
-**Unresolved object bytes:** **11,694**
+**Proven non-code/data bytes:** **4,502**
+**Reconciled object bytes:** **228,034 / 239,698 = 95.1339% (95.13%)**
+**Unresolved object bytes:** **11,664**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -972,3 +972,8 @@ Batch 117 adds **1,403 translated instruction bytes** at `35A0C..35F86` plus the
 The mandatory resume overlap `[35990,35A70)` re-hashed to `4470ab5305088033d53eca6b57aa66c2ea04bc2eecbd1688058daf896f2aafaa`, exactly matching the Batch 116 checkpoint. `35A0C` is therefore confirmed as the next independent entry. The loader preserves the raw `02D0h` Watcom frame because the binary deliberately aliases its byte/word/dword fields: notably `35A1C` seeds a dword from `35874`, while `35AE1` overwrites only its low word. It also preserves the flag-1 memory/file dual path in `35878`, optional flag-4 allocation, 16-byte destination alignment gate, the two local dword tables, and the encoded relocation record validation before guest dword stores.
 
 `35F87` is a single zero alignment byte and `35F88` remains the already integrated timer/event entry. The sequential runtime frontier is therefore closed through `35F87`; remaining work is in unresolved islands elsewhere in object 1.
+
+
+## Batch 118 — historical zero-island closure
+
+Batch 118 adds no translated instructions; it directly proves **30 non-code/alignment bytes** in the three long-standing early-object islands: `006B9..006BF`, `0380D..0380F`, and `03A64..03A77`. Fresh CODE.2 object-1 disassembly proves the adjacent control-flow boundaries, and a full direct relative control-flow target scan found no incoming target into any classified byte. Cumulative accounting is **223,532 translated + 4,502 non-code = 228,034 / 239,698 = 95.1339% (95.13%)**; unresolved is **11,664 bytes**.
