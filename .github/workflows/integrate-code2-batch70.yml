@@ -25,14 +25,11 @@ jobs:
 
       - name: Verify staged Batch 70
         run: |
+          test "$(git hash-object Code2/.batch70.fragment.cpp)" = "c358400dae39ac3ce38fecfc11e7800eb0b6263c"
+          test "$(git hash-object Code2/.batch70_integrate.py)" = "2e0b60474ca170b512fc35893690afd8231da6ef"
           python - <<'PY'
           from pathlib import Path
-          import hashlib
-          frag=Path('Code2/.batch70.fragment.cpp').read_bytes()
-          integ=Path('Code2/.batch70_integrate.py').read_bytes()
-          assert hashlib.sha256(frag).hexdigest() == '058f98e35a6a42d69de471102c8a00ba374eb5161601002f1c6c2af9551c076f'
-          assert hashlib.sha256(integ).hexdigest() == '26ade6f4b4a6f4ac1510afc3455f862455b0d66ce8672e106d79e0b45e8469cf'
-          text=frag.decode()
+          text=Path('Code2/.batch70.fragment.cpp').read_text()
           assert '// Batch 70: 2F580..305A5' in text
           assert '==4070u);' in text
           PY
