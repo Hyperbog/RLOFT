@@ -17,6 +17,8 @@ jobs:
           git config user.name "CODE.2 Decompilation Bot"
           git config user.email "actions@users.noreply.github.com"
       - run: python Code2/.batch125_integrate.py integrate
+      - name: Repair cumulative translated assertion
+        run: sed -i 's/+ 82u + 320u);/+ 82u + 320u + 277u);/' Code2/Code2.cpp
       - run: python Code2/.batch125_integrate.py verify
       - run: |
           g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
@@ -42,7 +44,7 @@ jobs:
           - Proven non-code/data bytes: **4,624**.
           - Reconciled object bytes: **229,988 / 239,698 = 95.9491% (95.95%)**.
           - Unresolved object bytes: **9,710**.
-          - Last integrated ownership fold: \`374D2..375FD\`.
+          - Last integrated translated/alignment pieces extend through \`375FC\`; byte \`375FD\` remains unresolved.
           - Next independently decoded instruction boundary: **\`375FE\`**.
           - The earlier large helper \`36CEC..372F5\` remains unresolved.
 
@@ -51,9 +53,8 @@ jobs:
           - Object-1 SHA-256: \`014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3\`.
 
           ## Mandatory overlap anchor for next resume
-          - Window \`[0x375BE,0x37680)\` — overlap around the new frontier; recompute and verify directly from the immutable object before Batch 126 ownership.
-          - Batch-owned \`[0x374D2,0x375FE)\` must not be recounted.
-          - Overlap bytes are verification only.
+          - Window \`[0x375BE,0x37680)\` — 194 bytes; SHA-256 \`b7d8fd0dd4201b0fd0ec96304b97b027adb2d9d5a8c7d641ce4be754bbef9ee2\`.
+          - Overlap bytes are verification only and must not be recounted.
 
           ## Batch 125 interpretation
           - \`374D2..374DF\`: 14 proven zero alignment bytes.
@@ -63,7 +64,7 @@ jobs:
           - \`37590..375EE\`: two-byte length-prefixed allocation/fill helper.
           - \`375EF\`: explicit NOP separator.
           - \`375F0..375FC\`: second free wrapper.
-          - \`375FD\` remains outside translated ownership but is proven separator only if retained in ledger accounting; next instruction starts at \`375FE\`.
+          - \`375FD\` remains unresolved; \`375FE\` begins the next decoded routine.
           EOF
           git add Code2/RESUME_CHECKPOINT.md
           git diff --cached --check
