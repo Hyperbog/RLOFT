@@ -1,13 +1,13 @@
 # CODE.2 faithful decompilation progress
 
-![Progress](https://img.shields.io/badge/object%20accounting-90.67%25-red)
+![Progress](https://img.shields.io/badge/object%20accounting-90.88%25-red)
 ![Semantic audit](https://img.shields.io/badge/semantic%20audit-not%20started-lightgrey)
 
 **Executable object-1 denominator:** **239,698 bytes (`0x3A852`)**
-**Verified translated instruction bytes:** **213,069**
-**Proven non-code/data bytes:** **4,267**
-**Reconciled object bytes:** **217,336 / 239,698 = 90.6708% (90.67%)**
-**Unresolved object bytes:** **22,362**
+**Verified translated instruction bytes:** **213,560**
+**Proven non-code/data bytes:** **4,268**
+**Reconciled object bytes:** **217,828 / 239,698 = 90.8760% (90.88%)**
+**Unresolved object bytes:** **21,870**
 **Status color:** RED until the entire executable object is instruction-accounted or directly proven non-code/data.
 
 ## Immutable source identity
@@ -869,3 +869,6 @@ Added **262 translated instruction bytes** and **2 alignment bytes**, bringing a
 ## Batch 90 — view/grid initialization
 
 Added **280 translated instruction bytes**, bringing accounting to **213,069 translated + 4,267 non-code = 217,336 / 239,698 = 90.6708% (90.67%)**. `334C4` derives the grid-cell count from `25619*2561B`, clears bit 6 in each low flag byte, selects the two view-table entries through `C65C/C658`, derives signed/low-word sweep step state through the two `35680` calls, initializes the four sign-extended edge globals, then transfers control to the already translated `32954` sweep. Next frontier: **`335DC`**.
+## Batch 91 — two-pass record-run coalescing
+
+Added **491 translated instruction bytes** and **1 alignment byte**, bringing accounting to **213,560 translated + 4,268 non-code = 217,828 / 239,698 = 90.8760% (90.88%)**. `335DC` performs two run-coalescing traversals over the `15A18` record array. The first pass only starts runs on records whose `+0Ch` field equals `1`, flushes through `3263C` on nonmatching records or key changes, and restarts its search without advancing the rejected record first. The second pass starts unconditionally at record zero and groups on the same `record[0]/record[10h]` key while sourcing `C700` from `+8` instead of `+4`. The initial-run and changed-run `255E4`/`2F29C` update orderings remain distinct. Next frontier: **`337C8`**.
