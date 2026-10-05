@@ -42,6 +42,7 @@ bool function_3402c(Machine& m,u32 vertex,u32 state) noexcept {
         const u32 cur_x=load_le32(dg(m,0xFD2Cu+cur_off));
         store_le32(dg(m,state+0x1Cu),cur_x<<16);
         const u32 delta_x=load_le32(dg(m,0xFD2Cu+next_off))-cur_x;
+        // 340F2 SHL EAX,16 occurs before the common divide idiom, so X keeps this explicit pre-shift.
         store_le32(dg(m,state+0x20u),app104_idiv_shift16(delta_x<<16,divisor));
         return true;
     }
@@ -72,7 +73,7 @@ void function_34110(Machine& m,Runtime104Boundary& b) noexcept {
     if(first>=static_cast<s32>(load_le32(dg(m,0xFDB4u))))return;
     s32 last=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0xFE06u))));
     if(last<=static_cast<s32>(load_le32(dg(m,0xFDB8u))))return;
-    const u32 span=static_cast<u32>(last-first+1);
+    const u32 span=static_cast<u32>(last)-static_cast<u32>(first)+1u;
     if(span==0u)return;
     const u32 divisor=span<<16;
 
@@ -87,7 +88,7 @@ void function_34110(Machine& m,Runtime104Boundary& b) noexcept {
     if(last>right_clip)last=right_clip;
     const s32 left_clip=static_cast<s32>(load_le32(dg(m,0xFDB8u)));
     if(first<left_clip){
-        const u32 distance=static_cast<u32>(left_clip-first);
+        const u32 distance=static_cast<u32>(left_clip)-static_cast<u32>(first);
         source_u+=step_u*distance;
         source_v+=step_v*distance;
         first=left_clip;
@@ -105,11 +106,11 @@ void function_34110(Machine& m,Runtime104Boundary& b) noexcept {
     const u16 sequencer=static_cast<u16>((static_cast<u16>(1u<<plane)<<8)|0x02u);
     if(b.out16)b.out16(0x03C4u,sequencer);
 
-    u32 ecx=static_cast<u32>(last-first+1);
-    s32 row=first;
+    u32 ecx=static_cast<u32>(last)-static_cast<u32>(first)+1u;
+    u32 row=static_cast<u32>(first);
     do {
         u8 al=*dg(m,esi);
-        al=static_cast<u8>(al-*dg(m,0xFE10u+static_cast<u32>(row)));
+        al=static_cast<u8>(al-*dg(m,0xFE10u+row));
         ++row;
         *dg(m,ebx)=al;
         edx+=load_le32(dg(m,0xFE0Cu));
@@ -122,6 +123,7 @@ void function_34110(Machine& m,Runtime104Boundary& b) noexcept {
 
 static_assert(0x3402Cu-0x33FB4u==120u);
 static_assert(0x3410Cu-0x3402Cu==224u);
+static_assert(0x3410Eu-0x3410Cu==2u);
 // 3410C..3410D is the physical shared LEAVE/RET tail targeted backward by 34110; its semantics are represented by the early returns above.
 // 3410E..3410F is unreferenced XCHG EBX,EBX alignment.
 static_assert(0x34268u-0x34110u==344u);
