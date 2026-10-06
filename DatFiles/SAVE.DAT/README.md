@@ -1,6 +1,6 @@
 # SAVE.DAT
 
-Status: **high-effort audited late-stage reconstruction.** Serializer/deserializer order is certified; the shared `0x248` character image is substantially reconstructed; variable-length global layout, three saved timing domains, persistent container state, renderer controls, cursor-held item state, shipped spell catalogues, all 26 primary-effect identities/text labels, named character conditions, and trailing container-UI contexts are behaviorally mapped.
+Status: **ARCHIVAL-COMPLETE for the supplied Ravenloft build, with bounded opaque/legacy fields explicitly preserved.** Serializer/deserializer order, variable-length geometry, the shared `0x248` character image, identity/portrait/age semantics, three saved timing domains, transient/moving-effect records, persistent container state, renderer controls, cursor-held item state, shipped spell catalogues, all 26 primary-effect identities/text labels, named character conditions, and trailing container-UI contexts are executable/resource-backed.
 
 - Supplied fixture size: 9,288 bytes (`0x2448`)
 - Supplied fixture SHA-256: `f898cb92fca6447954f5e0b2bf6f8ad2435e4a64ae3b9de74f8bf75e0ed10d5d`
