@@ -24,6 +24,7 @@ class DumpOptions:
     graphics_indices: bool = True
     graphics_metadata: bool = True
     graphics_masks: bool = False
+    graphics_native: bool = False
     audio_format: str = "FLAC (lossless)"
     music_format: str = "Both XMI + MIDI"
     cinematic_frame_format: str = "PNG"
@@ -182,7 +183,7 @@ def dump_all(
         destination / "graphics",
         options.graphics_format,
         palette_index=options.graphics_palette,
-        preserve_native=options.preserve_native,
+        preserve_native=options.graphics_native,
         progress=_stage_progress(progress, "graphics"),
         export_indices=options.graphics_indices,
         export_metadata=options.graphics_metadata,
@@ -228,7 +229,7 @@ def dump_all(
         "lossless_defaults": {
             "graphics": options.graphics_format,
             "graphics_extras": {
-                "native_eh": options.preserve_native,
+                "native_eh": options.graphics_native,
                 "decoded_indices": options.graphics_indices,
                 "metadata_shape_data": options.graphics_metadata,
                 "transparency_masks": options.graphics_masks,
