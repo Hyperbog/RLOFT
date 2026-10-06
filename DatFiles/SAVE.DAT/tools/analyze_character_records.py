@@ -11,7 +11,8 @@ PARTY_OFFSET, PARTY_COUNT = 0x77, 4
 ROSTER_OFFSET, ROSTER_COUNT = 0xD68, 10
 ITEM_OFFSET, ITEM_COUNT = 0x48, 21
 POST_START, POST_END = 0x72, 0x248
-STATE_OFFSET = 0x13A
+PACKED_NIBBLE_OFFSET = 0x0C2
+STATE_FLAGS_OFFSET = 0x13A
 
 
 def u16(r: bytes, off: int) -> int:
@@ -42,6 +43,7 @@ def sparse_post(r: bytes) -> str:
 
 
 def show(label: str, index: int, base: int, r: bytes) -> None:
+    packed = r[PACKED_NIBBLE_OFFSET]
     print(f"{label}[{index:02d}] file=0x{base:04X} name={name16(r)!r}")
     print(f"  meta10_17 : {r[0x10:0x18].hex(' ')}")
     print(f"  status    : 0x{u16(r, 0x18):04X}")
@@ -50,7 +52,8 @@ def show(label: str, index: int, base: int, r: bytes) -> None:
     print("  pairs32   : " + ", ".join(f"{r[o]}/{r[o+1]}" for o in range(0x32, 0x40, 2)))
     print("  words40   : " + ", ".join(str(s16(r, o)) for o in range(0x40, 0x48, 2)))
     print("  item[21]  : " + ", ".join(str(s16(r, ITEM_OFFSET + i * 2)) for i in range(ITEM_COUNT)))
-    print(f"  state13A  : 0x{r[STATE_OFFSET]:02X}")
+    print(f"  packed0C2 : 0x{packed:02X} (hi={packed >> 4:X}, lo={packed & 0x0F:X})")
+    print(f"  flags13A  : 0x{u32(r, STATE_FLAGS_OFFSET):08X}")
     print(f"  post!=fill: {sparse_post(r)}")
 
 
