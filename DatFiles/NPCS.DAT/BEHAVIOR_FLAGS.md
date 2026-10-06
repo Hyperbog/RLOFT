@@ -1,6 +1,6 @@
 # NPCS.DAT behavior/capability flags
 
-Status: **nine individual capability/effect bits are now behaviorally decoded from certified CODE.2. The remaining bits stay raw until their exact effect/AI consumers are closed.**
+Status: **twelve individual capability/effect bits are now behaviorally decoded from certified CODE.2. The remaining bits stay raw until their exact effect/AI consumers are closed.**
 
 This document extends `FORMAT.md`. The relevant physical fields are:
 
@@ -167,7 +167,7 @@ AFCE   test byte  +0x31 bit 0x80 in an area/effect path
 B6B0   test byte  +0x31 bit 0x04 while computing an undead-turning threshold
 ```
 
-Three bits in this field are now individually decoded. See `EFFECT_IMMUNITIES.md` for the full call-site and spell-dispatch evidence.
+Six bits in this field are now individually decoded. See `EFFECT_IMMUNITIES.md` for the common/fire/cold family and `HOLD_IMMUNITIES.md` for the status-specific hold family.
 
 ### `0x00000100` — common spell-effect immunity
 
@@ -176,7 +176,7 @@ Three bits in this field are now individually decoded. See `EFFECT_IMMUNITIES.md
 ```text
 fire effects   0x2100 = 0x2000 | 0x0100
 cold effects   0x0900 = 0x0800 | 0x0100
-status family  0x0102 / 0x0108 / 0x0110
+hold family    0x0102 / 0x0108 / 0x0110
 ```
 
 It therefore acts as a common immunity gate shared across multiple spell/effect families. The name is deliberately scoped to the observed spell/effect dispatcher and does not claim universal immunity to every magical subsystem.
@@ -191,6 +191,50 @@ LIVING WALL
 ```
 
 Safe alias: `common_spell_effect_immunity`.
+
+### `0x00000002` — Hold Undead effect immunity/exclusion
+
+Mage effect id `26`, independently identified by serialized object `186` (`MAGE SCROLL OF 'HOLD UNDEAD'`), dispatches to logical `0xC179` and tests:
+
+```text
+test word [npc + 0x31], 0x0102
+```
+
+The common component is `0x0100`; therefore `0x0002` is the Hold Undead-specific exclusion gate. Targets which pass the test enter the same live held-state bit used by the other hold spells.
+
+25 supplied definitions carry the bit.
+
+Safe behavioral alias: `hold_undead_effect_immunity`.
+
+### `0x00000008` — Hold Person effect immunity/exclusion
+
+Mage Hold Person (effect id `25`, serialized object `185`) tests `0x0108` at logical `0xC23C`.
+
+Priest Hold Person independently uses effect id `92` (serialized object `211`) and tests the same `0x0108` mask at logical `0xC2AF`.
+
+This independent mage/priest convergence makes the low component unambiguous:
+
+```text
+0x0108 = common_spell_effect_immunity | hold_person_effect_immunity
+```
+
+31 supplied definitions carry the bit.
+
+Safe behavioral alias: `hold_person_effect_immunity`.
+
+### `0x00000010` — Hold Monster effect immunity/exclusion
+
+Mage effect id `41`, serialized object `195` (`MAGE SCROLL OF 'HOLD MONSTER'`), tests `0x0110` at logical `0xC317`.
+
+Thus:
+
+```text
+0x0110 = common_spell_effect_immunity | hold_monster_effect_immunity
+```
+
+24 supplied definitions carry the bit.
+
+Safe behavioral alias: `hold_monster_effect_immunity`.
 
 ### `0x00000800` — cold-effect immunity
 
@@ -238,17 +282,11 @@ Safe alias: `fire_effect_immunity`.
 
 The original rule book independently describes Pyre Elementals as immune to fire-based spells/attacks and Wights/Wraiths as immune to cold-based spells, corroborating these executable-derived identities.
 
-### Remaining status-specific immunity bits
+### Shared held runtime state
 
-The low components of:
+All four hold implementations—mage Hold Person, mage Hold Undead, priest Hold Person, and mage Hold Monster—set the same low live family-A runtime flag bit `0x08` and install a duration/countdown in live word `+0x10`.
 
-```text
-0x0102
-0x0108
-0x0110
-```
-
-remain unnamed. Their handlers set timed live-NPC state, but the exact source-level conditions represented by `0x0002`, `0x0008`, and `0x0010` have not yet been independently closed.
+The immediately preceding Slow effect instead tests only `0x0100` and sets a different live runtime bit (`0x80`). This independently establishes that bits `0x0002/0x0008/0x0010` belong specifically to the hold family rather than generic timed-status immunity.
 
 ## Supplied bit distributions
 
@@ -277,6 +315,9 @@ Bits absent from the supplied database remain representable raw data and must no
 A high-level model may expose these proved aliases while retaining the original raw fields:
 
 ```text
+behavior_flags & 0x00000002  hold_undead_effect_immunity
+behavior_flags & 0x00000008  hold_person_effect_immunity
+behavior_flags & 0x00000010  hold_monster_effect_immunity
 behavior_flags & 0x00000100  common_spell_effect_immunity
 behavior_flags & 0x00000800  cold_effect_immunity
 behavior_flags & 0x00002000  fire_effect_immunity
