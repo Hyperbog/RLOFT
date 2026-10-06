@@ -96,8 +96,8 @@ class RavenloftExtractorGui(tk.Tk):
     def _apply_widget_palette(self, strahd: bool) -> None:
         style = self.style
         if strahd:
-            root_bg = "#160f0e"
-            panel = "#2b1c18"
+            root_bg = "#1b1110"
+            panel = "#1b1110"
             panel_alt = "#35231d"
             field = "#171110"
             text = "#eadfc9"
@@ -578,15 +578,35 @@ class RavenloftExtractorGui(tk.Tk):
         top_h = 18
         bottom_h = 18
         rail_w = 32
-        top = frame.crop((0, 0, frame.width, top_h))
-        bottom = frame.crop((0, frame.height - bottom_h, frame.width, frame.height))
+        top_left = frame.crop((0, 0, rail_w, top_h))
+        top_mid = frame.crop((rail_w, 0, frame.width - rail_w, top_h))
+        top_right = frame.crop((frame.width - rail_w, 0, frame.width, top_h))
+        bottom_left = frame.crop((0, frame.height - bottom_h, rail_w, frame.height))
+        bottom_mid = frame.crop(
+            (rail_w, frame.height - bottom_h, frame.width - rail_w, frame.height)
+        )
+        bottom_right = frame.crop(
+            (frame.width - rail_w, frame.height - bottom_h, frame.width, frame.height)
+        )
         left = frame.crop((0, 18, rail_w, 18 + min(height - 36, frame.height - 36)))
         right = frame.crop(
             (frame.width - rail_w, 18, frame.width, 18 + min(height - 36, frame.height - 36))
         )
 
-        self._tile_strip(bg, top, 0)
-        self._tile_strip(bg, bottom, height - bottom_h)
+        bg.paste(top_left, (0, 0))
+        bg.paste(top_right, (width - rail_w, 0))
+        bg.paste(bottom_left, (0, height - bottom_h))
+        bg.paste(bottom_right, (width - rail_w, height - bottom_h))
+
+        x = rail_w
+        while x < width - rail_w:
+            take = min(top_mid.width, width - rail_w - x)
+            bg.paste(top_mid.crop((0, 0, take, top_h)), (x, 0))
+            bg.paste(
+                bottom_mid.crop((0, 0, take, bottom_h)),
+                (x, height - bottom_h),
+            )
+            x += top_mid.width
 
         # Side rails are cropped from the original 320x200 frame. They are
         # repeated vertically at native pixel size rather than scaled.
