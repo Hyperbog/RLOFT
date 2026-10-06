@@ -377,8 +377,8 @@ Important definition fields:
 
 ```text
 name[40]
-world_sprite_base
-world_heading_stride
+local_shape_base
+shape_stride
 scene_influence_step
 ui_graphic_index
 item_category
