@@ -356,12 +356,15 @@ class RavenloftExtractorGui(tk.Tk):
         try:
             if theme_assets is None:
                 raise RuntimeError("theme asset module unavailable")
-            self._theme_data = theme_assets.StrahdThemeAssets.load()
-            self.status.set("Strahd's Possession theme enabled.")
+            source = Path(self.source_dir.get())
+            if not source.is_dir():
+                raise RuntimeError("choose the certified Ravenloft source folder to load the original RES artwork")
+            self._theme_data = theme_assets.StrahdThemeAssets.load(source)
+            self.status.set("Strahd's Possession theme loaded from original RES0/COLORS artwork.")
             self._schedule_banner()
         except Exception as exc:
             self._theme_data = None
-            self.status.set(f"Strahd theme styling enabled; bundled artwork unavailable: {exc}")
+            self.status.set(f"Strahd theme styling enabled; original artwork unavailable: {exc}")
 
     def _schedule_banner(self) -> None:
         if self._banner_job:
@@ -392,6 +395,8 @@ class RavenloftExtractorGui(tk.Tk):
             self.source_dir.set(value)
             self._auto_destinations(Path(value))
             self._validate_source()
+            if self.theme.get() == "Strahd's Possession":
+                self.apply_theme()
 
     def _choose_single_anm(self) -> None:
         value = filedialog.askopenfilename(
