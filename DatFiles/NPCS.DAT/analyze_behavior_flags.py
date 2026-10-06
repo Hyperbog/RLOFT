@@ -10,12 +10,22 @@ from pathlib import Path
 RECORD_SIZE = 0x45
 
 PROVEN = (
-    ("behavior_flags_3A", 0x20, "undead_classification"),
-    ("behavior_flags_3A", 0x02, "level_drain_attack"),
-    ("behavior_flags_3A", 0x04, "strength_drain_attack"),
+    ("behavior_flags", 0x00000002, "hold_undead_effect_immunity"),
+    ("behavior_flags", 0x00000008, "hold_person_effect_immunity"),
+    ("behavior_flags", 0x00000010, "hold_monster_effect_immunity"),
+    ("behavior_flags", 0x00000100, "common_spell_effect_immunity"),
+    ("behavior_flags", 0x00000800, "cold_effect_immunity"),
+    ("behavior_flags", 0x00002000, "fire_effect_immunity"),
+    ("behavior_flags", 0x00004000, "weapon_category10_damage_floor_one"),
+    ("behavior_flags", 0x00008000, "weapon_category9_damage_floor_one"),
+    ("behavior_flags_39", 0x01, "poison_attack"),
     ("behavior_flags_39", 0x20, "paralysis_attack"),
     ("behavior_flags_39", 0x40, "dynamic_barrier_activation"),
     ("behavior_flags_39", 0x80, "obstacle_passthrough"),
+    ("behavior_flags_3A", 0x02, "level_drain_attack"),
+    ("behavior_flags_3A", 0x04, "strength_drain_attack"),
+    ("behavior_flags_3A", 0x10, "disease_attack"),
+    ("behavior_flags_3A", 0x20, "undead_classification"),
 )
 
 
