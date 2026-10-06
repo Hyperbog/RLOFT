@@ -325,125 +325,44 @@ class RavenloftExtractorGui(tk.Tk):
         self._resize_wraps_for_width(width)
         self._schedule_banner()
 
-    def _load_banner_assets(self) -> tuple[Image.Image, Image.Image, Image.Image]:
-        if self._banner_assets is not None:
-            return self._banner_assets
-
-        required = (
-            "assets/strahd_frame_main.png",
-            "assets/strahd_parchment.png",
-            "assets/strahd_title_logo.png",
-        )
-        images: list[Image.Image] = []
-        for relative in required:
-            path = runtime_paths.bundled_path(relative)
-            if path is None:
-                raise RuntimeError(f"baked Strahd GUI asset is missing: {relative}")
-            with Image.open(path) as source:
-                images.append(source.copy())
-
-        frame = images[0].convert("RGB")
-        parchment = images[1].convert("RGB")
-
-        # Keep the crest at its original 240x114 pixel size. The source PNG is
-        # paletted; index 160 is the flat surrounding field used by the game.
-        logo_indexed = images[2]
-        logo = logo_indexed.convert("RGBA")
-        if logo_indexed.mode == "P":
-            alpha = logo_indexed.point(
-                lambda value: 0 if value == 160 else 255,
-                mode="L",
-            )
-            logo.putalpha(alpha)
-
-        self._banner_assets = (frame, parchment, logo)
-        return self._banner_assets
-
-    @staticmethod
-    def _tile_native(source: Image.Image, width: int, height: int) -> Image.Image:
-        target = Image.new("RGB", (width, height), BG)
-        for y in range(0, height, source.height):
-            for x in range(0, width, source.width):
-                tile = source.crop(
-                    (0, 0, min(source.width, width - x), min(source.height, height - y))
-                )
-                target.paste(tile, (x, y))
-        return target
+    def _load_banner_source(self) -> Image.Image:
+        if self._banner_source is not None:
+            return self._banner_source
+        path = runtime_paths.bundled_path("assets/strahd_banner.webp")
+        if path is None:
+            raise RuntimeError("baked Strahd banner asset is missing")
+        with Image.open(path) as source:
+            self._banner_source = source.convert("RGB")
+        return self._banner_source
 
     def _schedule_banner(self) -> None:
         if self._banner_job:
-            self.after_cancel(self._banner_job)
-        self._banner_job = self.after(50, self._render_banner)
+            try:
+                self.after_cancel(self._banner_job)
+            except tk.TclError:
+                pass
+        self._banner_job = self.after(45, self._render_banner)
 
     def _render_banner(self) -> None:
         self._banner_job = None
+        source = self._load_banner_source()
         width = max(1, self.banner.winfo_width())
-        height = 150
-        frame, parchment, logo = self._load_banner_assets()
+        height = max(1, int(float(self.banner.cget("height"))))
 
-        # Reproduce the earlier RES-art banner: native parchment fill, original
-        # gothic frame rails/corners, and the corrected Ravenloft crest. No
-        # source artwork is stretched.
-        image = self._tile_native(parchment, width, height)
-        # Match the former build's darker parchment banner treatment.
-        image = Image.blend(image, Image.new("RGB", image.size, "#211311"), 0.48)
+        # Scale the completed banner as one image. This preserves the former
+        # build's exact composition and keeps its aspect ratio; no element is
+        # independently stretched.
+        scale = min(width / source.width, height / source.height)
+        draw_w = max(1, round(source.width * scale))
+        draw_h = max(1, round(source.height * scale))
+        rendered = source.resize((draw_w, draw_h), Image.Resampling.NEAREST)
 
-        rail_w = min(32, frame.width // 4)
-        top_h = min(18, frame.height // 4)
-        bottom_h = top_h
+        canvas = Image.new("RGB", (width, height), BG)
+        x = (width - draw_w) // 2
+        y = (height - draw_h) // 2
+        canvas.paste(rendered, (x, y))
 
-        top_left = frame.crop((0, 0, rail_w, top_h))
-        top_mid = frame.crop((rail_w, 0, frame.width - rail_w, top_h))
-        top_right = frame.crop((frame.width - rail_w, 0, frame.width, top_h))
-        bottom_left = frame.crop((0, frame.height - bottom_h, rail_w, frame.height))
-        bottom_mid = frame.crop(
-            (rail_w, frame.height - bottom_h, frame.width - rail_w, frame.height)
-        )
-        bottom_right = frame.crop(
-            (frame.width - rail_w, frame.height - bottom_h, frame.width, frame.height)
-        )
-
-        side_available = max(1, frame.height - top_h - bottom_h)
-        side_h = min(height - top_h - bottom_h, side_available)
-        left = frame.crop((0, top_h, rail_w, top_h + side_h))
-        right = frame.crop(
-            (frame.width - rail_w, top_h, frame.width, top_h + side_h)
-        )
-
-        image.paste(top_left, (0, 0))
-        image.paste(top_right, (max(0, width - rail_w), 0))
-        image.paste(bottom_left, (0, height - bottom_h))
-        image.paste(bottom_right, (max(0, width - rail_w), height - bottom_h))
-
-        x = rail_w
-        while x < max(rail_w, width - rail_w):
-            take = min(top_mid.width, width - rail_w - x)
-            if take <= 0:
-                break
-            image.paste(top_mid.crop((0, 0, take, top_h)), (x, 0))
-            image.paste(
-                bottom_mid.crop((0, 0, take, bottom_h)),
-                (x, height - bottom_h),
-            )
-            x += top_mid.width
-
-        y = top_h
-        while y < height - bottom_h:
-            take = min(left.height, height - bottom_h - y)
-            if take <= 0:
-                break
-            image.paste(left.crop((0, 0, rail_w, take)), (0, y))
-            image.paste(
-                right.crop((0, 0, rail_w, take)),
-                (max(0, width - rail_w), y),
-            )
-            y += left.height
-
-        lx = (width - logo.width) // 2
-        ly = (height - logo.height) // 2
-        image.paste(logo, (lx, ly), logo)
-
-        self._banner_photo = ImageTk.PhotoImage(image)
+        self._banner_photo = ImageTk.PhotoImage(canvas)
         self.banner.delete("all")
         self.banner.create_image(0, 0, anchor="nw", image=self._banner_photo)
 
