@@ -59,6 +59,7 @@ def main() -> None:
     nonzero_levels = 0
     max_level_c = 0
     all_c_in_bounds = True
+    legacy_0x54_records: list[tuple[int, int, int, int]] = []
 
     for level_id, record_off in enumerate(offsets):
         b0, b1, b2, b3, b4, b5, b6 = struct.unpack_from('<7I', levels, record_off + 1)
@@ -78,9 +79,11 @@ def main() -> None:
             nonzero_levels += 1
             max_level_c = max(max_level_c, count_c)
 
-        for typ, x, xf, y, yf, flags in compact_records(levels, record_off + b4, count_c):
+        for record_index, (typ, x, xf, y, yf, flags) in enumerate(compact_records(levels, record_off + b4, count_c)):
             c_types[typ] += 1
             c_flags[flags] += 1
+            if typ == 0x54:
+                legacy_0x54_records.append((level_id, record_index, x, y))
             if not (0 <= x < width and 0 <= y < height):
                 all_c_in_bounds = False
 
@@ -101,7 +104,13 @@ def main() -> None:
     print(f'family_c_out_of_object_database={out_of_db}')
     print(f'family_b_records={total_b} unique_types={len(b_types)} type_range={min(b_types)}..{max(b_types)}')
     print(f'family_b_flags={dict(sorted(b_flags.items()))}')
-    print(f'legacy_type_0x54_count={c_types[0x54]} runtime_remap_target=0x58')
+    source_name = names[0x54] if len(names) > 0x54 else '<out-of-range>'
+    target_name = names[0x58] if len(names) > 0x58 else '<out-of-range>'
+    print(
+        f'legacy_type_0x54_count={c_types[0x54]} source_current_name={source_name!r} '
+        f'runtime_remap_target=0x58 target_name={target_name!r}'
+    )
+    print(f'legacy_type_0x54_locations={legacy_0x54_records}')
     print('top_family_c_types:')
     for typ, count in c_types.most_common(args.top):
         name = names[typ] if typ < len(names) else '<out-of-range>'
