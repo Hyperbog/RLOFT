@@ -134,8 +134,15 @@ def decode_type1(resource: EhResource, font: bool = False) -> tuple[Type1Raster,
             raise AssetError("type-1 header is shorter than 8 bytes")
         widths, desc = None, header[:8]
     count, height, width_units, _f5, compression, _f7 = struct.unpack("<HhBBBB", desc)
+    # The certified RES12 alternate bank contains five intentional empty
+    # type-1 records: count=0, valid geometry fields, and no payload. The
+    # original dumper incorrectly treated these as malformed rasters.
+    if count == 0 and height > 0 and width_units > 0 and not resource.payload:
+        return Type1Raster(0, width_units * 8, height, b""), widths
     if count <= 0 or height <= 0 or width_units <= 0:
-        raise AssetError("invalid raster dimensions")
+        raise AssetError(
+            f"invalid raster dimensions (count={count}, height={height}, width_units={width_units})"
+        )
     width = width_units * 8
     expected = count * height * width
     if compression == 0:
