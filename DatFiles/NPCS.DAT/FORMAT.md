@@ -1,6 +1,6 @@
 # NPCS.DAT format reconstruction
 
-Status: **container and fixed 0x45-byte record layout proven; name, scene/render parameters, core combat statistics, XP, runtime-state templates, and sound fields are behaviorally anchored in certified CODE.2. Flag bits remain raw unless independently decoded.**
+Status: **container and fixed 0x45-byte record layout proven; name, scene/render parameters, core combat statistics, XP, runtime-state templates, sound fields, and six behavior/capability bits are behaviorally anchored in certified CODE.2. Unknown flag bits remain raw.**
 
 ## Controlling evidence
 
@@ -60,7 +60,7 @@ CODE.2 `16810` independently reads the dword count, computes `count * 0x45`, all
 +0x43  uint16  death_sound_id
 ```
 
-The names above are behavioral. In particular, the various flag fields are kept broad until individual bit semantics are proved.
+The flag-field names are physical/behavioral. Individual aliases are exposed only where independent consumers prove them.
 
 ## `+0x00`: fixed 20-byte name
 
@@ -193,7 +193,7 @@ CODE.2:
 - tests the unaligned word at `+0x31` with masks such as `0x0102`, `0x0108`, and `0x0110`;
 - loads the complete unaligned dword at `+0x31` and intersects it with requested effect/behavior masks.
 
-Therefore these four bytes are modeled physically as one raw `uint32 behavior_flags`, while documentation may later expose proved bit aliases.
+Therefore these four bytes remain physically modeled as one raw `uint32 behavior_flags`. The field is a generalized effect/capability/immunity mask family, but most individual bits are not yet safely named.
 
 ### `+0x35..+0x38`
 
@@ -201,11 +201,41 @@ NPC creation/reset code copies the complete dword at `+0x35` verbatim into live 
 
 This overlapping dword interpretation is controlling: byte `+0x38` is the high byte of the initial runtime template and must not be independently normalized.
 
-### `+0x39/+0x3A`
+### `+0x39`
 
-These are additional behavior/capability flag bytes. Multiple systems test individual bits, including `0x01/0x20/0x40/0x80` in `+0x39` and `0x02/0x04/0x10/0x20` in `+0x3A`.
+Three aliases are executable-proved:
 
-Bit-level gameplay names remain a later semantic pass.
+```text
+0x20  paralysis_attack
+0x40  dynamic_barrier_activation
+0x80  obstacle_passthrough
+```
+
+- `D8A5` enters the paralysis/status path for `0x20`; the target-protection checks include `RING OF FREE ACTION`.
+- `2D767` allows an NPC carrying `0x40` to activate the already-decoded dynamic barrier/door record family during navigation.
+- `2CE8A` and `2D7FB` use `0x80` to suppress blocking by placed/special obstacle collision cases.
+
+Bit `0x01` enters a separate attack-status path at `D947`; only DARKLING carries it, but the exact condition name is still unresolved.
+
+### `+0x3A`
+
+Three aliases are executable-proved:
+
+```text
+0x02  level_drain_attack
+0x04  strength_drain_attack
+0x20  undead_classification
+```
+
+Evidence:
+
+- `D7B3` routes `0x02` to `D1E0`, which decrements one of the character's class-level words and updates progression state.
+- `D7E8` routes `0x04` to `1202C(actor,-1)`; that helper adjusts the Strength byte and has the explicit `STONE GIANT GAUNTLETS` exception.
+- turning/detection/combat paths at `B5C7`, `B717`, `D52D`, `D78B`, and elsewhere consistently filter `0x20` as the undead class.
+
+Bit `0x10` sets live party status bit `0x04` after an effect check and is absent for one explicitly immune character-class value. Its exact named condition remains unresolved.
+
+See `BEHAVIOR_FLAGS.md` for the full executable ledger and supplied-record sets.
 
 `+0x3B/+0x3C` are zero in all supplied records and no stronger role is assigned yet. They remain preserved raw bytes.
 
@@ -236,6 +266,7 @@ A faithful reader/editor may expose the fields above while retaining every origi
 - preserve all animation fields even for noncombat/story NPCs;
 - expose hit dice, melee damage, armor class, THAC0 and XP as proved stat fields;
 - retain `behavior_flags` and `initial_runtime_flags` with their exact unaligned/overlapping access semantics;
+- expose only the six proved behavior aliases while preserving all other bits raw;
 - do not split the initial-runtime-flags dword into invented combat stats;
 - preserve unresolved `+0x3B/+0x3C` and all unknown flag bits;
 - preserve sound IDs as 16-bit values.
