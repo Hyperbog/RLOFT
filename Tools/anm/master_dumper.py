@@ -156,6 +156,7 @@ def dump_all(
     result["music"] = asset_dumper.dump_music(
         source_dir,
         destination / "music",
+        preserve_native=options.preserve_native,
         progress=_stage_progress(progress, "music"),
     )
     result["cinematics"] = dump_cinematics(
