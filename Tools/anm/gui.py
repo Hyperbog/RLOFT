@@ -140,16 +140,15 @@ class RavenloftExtractorGui(tk.Tk):
         self.option_add("*TCombobox*Listbox.selectBackground", ACCENT)
         self.option_add("*TCombobox*Listbox.selectForeground", "#fff4d4")
 
-    @staticmethod
-    def _font(size: int, bold: bool = False) -> ImageFont.ImageFont:
-        candidates = [
-            Path("C:/Windows/Fonts/georgiab.ttf" if bold else "C:/Windows/Fonts/georgia.ttf"),
-            Path("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf"),
-        ]
-        for path in candidates:
-            if path.is_file():
-                return ImageFont.truetype(str(path), size)
-        return ImageFont.load_default()
+    def _load_banner_source(self) -> Image.Image:
+        if self._banner_source is not None:
+            return self._banner_source
+        path = runtime_paths.bundled_path("assets/strahd_banner.png")
+        if path is None:
+            raise RuntimeError("baked Strahd banner asset is missing")
+        with Image.open(path) as source:
+            self._banner_source = source.convert("RGB")
+        return self._banner_source
 
     def _schedule_banner(self) -> None:
         if self._banner_job:
@@ -159,29 +158,24 @@ class RavenloftExtractorGui(tk.Tk):
     def _render_banner(self) -> None:
         self._banner_job = None
         width = max(1, self.banner.winfo_width())
-        height = 142
-        image = Image.new("RGB", (width, height), BG)
-        draw = ImageDraw.Draw(image)
-        for y in range(height):
-            tone = 22 + ((y * 7) % 9)
-            draw.line((0, y, width, y), fill=(tone + 7, tone, max(0, tone - 1)))
-        draw.rectangle((1, 1, width - 2, height - 2), outline="#9a7547", width=2)
-        draw.rectangle((7, 7, width - 8, height - 8), outline="#482b22", width=3)
-        for x in range(16, width - 16, 34):
-            draw.polygon([(x, 8), (x + 10, 20), (x, 32), (x - 10, 20)], outline="#7b5c3d", fill="#2a1715")
-            draw.line((x - 7, 20, x + 7, 20), fill="#a22d27", width=2)
-        title_font = self._font(34, True)
-        sub_font = self._font(13, True)
-        title = "RAVENLOFT"
-        subtitle = "STRAHD'S POSSESSION  •  ASSET EXTRACTION SUITE"
-        bbox = draw.textbbox((0, 0), title, font=title_font, stroke_width=1)
-        tx = (width - (bbox[2] - bbox[0])) // 2
-        ty = 43
-        draw.text((tx + 2, ty + 3), title, font=title_font, fill="#250706")
-        draw.text((tx, ty), title, font=title_font, fill="#c8b7a0", stroke_width=1, stroke_fill="#6d1717")
-        sb = draw.textbbox((0, 0), subtitle, font=sub_font)
-        sx = (width - (sb[2] - sb[0])) // 2
-        draw.text((sx, 92), subtitle, font=sub_font, fill="#d0aa60")
+        height = 150
+        source = self._load_banner_source()
+
+        # The desired banner is a fixed native-resolution composition. Never
+        # stretch it. Wide windows receive themed side margins; narrow windows
+        # receive a centered crop.
+        if width >= source.width:
+            image = Image.new("RGB", (width, height), BG)
+            y = max(0, (height - source.height) // 2)
+            image.paste(source, ((width - source.width) // 2, y))
+        else:
+            left = max(0, (source.width - width) // 2)
+            image = source.crop((left, 0, left + width, min(source.height, height)))
+            if image.height < height:
+                padded = Image.new("RGB", (width, height), BG)
+                padded.paste(image, (0, (height - image.height) // 2))
+                image = padded
+
         self._banner_photo = ImageTk.PhotoImage(image)
         self.banner.delete("all")
         self.banner.create_image(0, 0, anchor="nw", image=self._banner_photo)
@@ -192,7 +186,7 @@ class RavenloftExtractorGui(tk.Tk):
         self.header = ttk.Frame(self, padding=(16, 10))
         self.header.grid(row=0, column=0, sticky="ew")
         ttk.Label(self.header, text="Ravenloft Asset Extraction Suite", style="Title.TLabel").grid(row=0, column=0, sticky="w")
-        self.banner = tk.Canvas(self, height=142, background=BG, highlightthickness=0)
+        self.banner = tk.Canvas(self, height=150, background=BG, highlightthickness=0)
         self.banner.grid(row=1, column=0, sticky="ew")
         self.banner.bind("<Configure>", lambda _e: self._schedule_banner())
 
