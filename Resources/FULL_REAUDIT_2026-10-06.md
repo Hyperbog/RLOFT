@@ -327,9 +327,33 @@ The corrective maintenance pass has now been integrated:
 
 The withdrawn R-AUDIT-002 remains withdrawn; `TYPE7_SOURCE_BANKS.md` now records the proved transient/moving-effect identity.
 
-At this point the only audit action that cannot be executed from the repository alone is the post-fix run over the original 33 binary resources. No substitute bytes should be used for that certification.
+That post-fix canonical-corpus run has now been completed against the original 33 supplied resource/support binaries. All 33 matched the canonical size/SHA-256 manifest exactly. The corrected partial-history LZSS model decoded all 11,174 shipped LZSS streams (1,478 type 1, 15 type 2, 1,319 type 6, 8,362 type 7) with zero reads from undefined dictionary bytes and zero trailing compressed bytes. R-AUDIT-004 is therefore fully closed for the supplied Ravenloft corpus.
 
 
 ### Certification-runner exit semantics
 
 Post-commit verification found and closed one additional tooling edge: `analyze_res.py` historically reported semantic failures in its anomaly list but exited zero. It now exits nonzero for every unexpected anomaly. The only non-failing anomalies are the two exact documented malformed VOC records at `RES11:4877` and `RES12:430`; their archive/index, signature, declared length `0x11669`, and stored length `0x1669` must all match before they are treated as expected shipped anomalies. The CI self-test includes a synthetic malformed RES record and requires a nonzero analyzer exit.
+
+
+## 18. Final post-fix canonical corpus run
+
+The original `RES+OTHER.zip` and `ANM+OTHER.zip` source archives were re-supplied and checked directly after the corrective validator changes.
+
+Results:
+
+```text
+canonical files checked                 33 / 33
+size mismatches                         0
+SHA-256 mismatches                      0
+strict LZSS streams                 11,174
+  type 1                            1,478
+  type 2                               15
+  type 6                            1,319
+  type 7                            8,362
+undefined-tail history reads             0
+compressed-stream trailing-byte failures 0
+```
+
+The strict decoder models CODE.2 routine `37700` exactly at initialization time: dictionary bytes `0x000..0xFED` begin as `0xFE`, while `0xFEE..0xFFF` remain undefined until written. Every shipped compressed stream completes without observing an undefined byte.
+
+This closes the last empirical qualifier introduced by the 2026-10-06 re-audit. The resource workstream is now **audit-clean for the supplied canonical Ravenloft corpus**, subject only to the intentionally bounded historical/vendor unknowns listed above.

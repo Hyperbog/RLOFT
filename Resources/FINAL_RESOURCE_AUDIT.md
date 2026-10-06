@@ -387,4 +387,21 @@ Future work in this directory should require new primary evidence or should be c
 
 A fresh adversarial re-audit preserved the architectural certification but corrected two low-level runtime details. CODE.2 sign-extends the EH header-size word and the type-1/type-2 raster `count`/`height` words. CODE.2 LZSS routine `37700` initializes only history bytes `0x000..0xFED` to `0xFE`, leaving `0xFEE..0xFFF` untouched by that routine before starting at cursor `0xFEE`.
 
-The committed validators now model the signed fields and the partial dictionary initialization explicitly; an attempted read of an as-yet-undefined tail byte is a certification failure rather than being silently normalized to `0xFE`. The original RES binaries are not stored in this repository, so the stricter LZSS edge requires a post-fix canonical-corpus run before that specific decoder detail is re-certified. See `FULL_REAUDIT_2026-10-06.md` and `verify_resources.py`.
+The committed validators now model the signed fields and the partial dictionary initialization explicitly; an attempted read of an as-yet-undefined tail byte is a certification failure rather than being silently normalized to `0xFE`. The stricter LZSS edge was subsequently re-run against the original canonical RES binaries: all 11,174 shipped LZSS streams completed with zero undefined-tail history reads and zero compressed-stream trailing-byte failures. See `FULL_REAUDIT_2026-10-06.md` and `verify_resources.py`.
+
+
+## Final post-fix certification result
+
+The original 33-file resource/support corpus was re-supplied after the validator corrections and matched the canonical manifest exactly: **33/33 size and SHA-256 identities passed**.
+
+The corrected CODE.2-faithful LZSS initialization model was then exercised over every shipped compressed resource:
+
+- type 1: 1,478 streams;
+- type 2: 15 streams;
+- type 6: 1,319 streams;
+- type 7: 8,362 streams;
+- total: **11,174 streams**.
+
+No stream read any of the 18 dictionary bytes left uninitialized by CODE.2 before those bytes had been defined, and no stream left trailing compressed bytes.
+
+Therefore the resource workstream is **audit-clean for the supplied canonical Ravenloft runtime/data set**. Remaining unknowns are historical, alternate-build, or third-party-driver questions and do not block faithful reconstruction of the supplied build.
