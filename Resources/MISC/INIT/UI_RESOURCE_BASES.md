@@ -76,15 +76,15 @@ record +0x14  uint8 race
 
 Thus the safe field name for INIT `+0x04` is **`res1_character_face_base`**.
 
-The gameplay meaning of status bit `0x0100` remains deliberately unnamed here. Its resource behavior is exact: it selects the second 46-slot portrait bank.
+Independent SAVE/story analysis now proves status bit `0x0100` as the **vengeful-spirit/GHOST possession state**. Its exact resource effect is to select the second 46-slot portrait bank. See `DatFiles/SAVE.DAT/STATUS_POSSESSION.md`.
 
 ## RES1 portrait-bank closure
 
 The 92 archive slots from 336 through 427 divide exactly into two 46-slot banks:
 
 ```text
-normal status bank      RES1 336..381
-status bit 0x0100 bank  RES1 382..427
+normal portrait bank      RES1 336..381
+possessed portrait bank   RES1 382..427
 ```
 
 Within either bank the local selector is:
@@ -102,15 +102,15 @@ sex 1 / FEMALE  face 21     -> zero-length archive slot
 sex 1 / FEMALE  face 22     -> raw 4-byte 60 00 00 00 marker
 ```
 
-The same final empty/raw pair repeats in the alternate bank:
+The same final empty/raw pair repeats in the possessed bank:
 
 ```text
-normal bank      face slots 44/45 -> RES1:380 empty, RES1:381 60 00 00 00
-alternate bank   face slots 44/45 -> RES1:426 empty, RES1:427 60 00 00 00
+normal bank     face slots 44/45 -> RES1:380 empty, RES1:381 60 00 00 00
+possessed bank  face slots 44/45 -> RES1:426 empty, RES1:427 60 00 00 00
 ```
 
 Every valid portrait resource in these banks uses the same type-1 descriptor (`count=80`, `height=1`, `width_units=6`, method 3), for 3,840 decoded bytes per graphic.
 
 This explains the *placement* of the two raw RES1 markers. It does **not** reveal why the producer serialized literal `0x00000060` rather than another invalid-slot marker; that historical producer detail remains `UNKNOWN`.
 
-See `Resources/RES/RES1_PORTRAITS.md` and `Resources/RES/RES1_SENTINELS.md`.
+See `Resources/RES/RES1_PORTRAITS.md`, `Resources/RES/RES1_SENTINELS.md`, and `DatFiles/SAVE.DAT/STATUS_POSSESSION.md`.
