@@ -1,6 +1,6 @@
 # OBJECTS.DAT
 
-Status: **fixed 336 × 0x41 record format proven; major rendering, UI, category, weight, combat, range, mutable-state, container, charge, magic-aura, and renderer-auxiliary semantics reconstructed; lossless parse/encode verified.**
+Status: **fixed 336 × 0x41 record format proven; major rendering, UI, category, weight, combat, range, mutable-state, container, charge, magic-aura, renderer-auxiliary, and equipment-slot semantics reconstructed; lossless parse/encode verified.**
 
 - Size: 21,844 bytes
 - SHA-256: `f23f0e7c1856904aa0156b0bf174cab794a41a327352b6ca00c3591ae5f2eed0`
@@ -140,6 +140,39 @@ marker 1 : 137
 
 Do not merge `+0x32` and `+0x37` into a single `is_magic` value.
 
+## Equipment-slot routing
+
+CODE.2 `12180..1246E` maps item categories to equipment slots in the character item array at `0x21920 + character*0x248 + slot*2`.
+
+```text
+slot 12  ring_A
+slot 13  ring_B
+slot 14  hand_A
+slot 15  hand_B
+slot 16  torso/body garment
+slot 17  head
+slot 18  dedicated accessory
+slot 19  quiver
+slot 20  bracer/gauntlet
+```
+
+Dedicated category routing is:
+
+```text
+category 3 -> slot 17
+category 4 -> slot 16
+category 5 -> slot 12 or 13
+category 6 -> slot 18
+category 7 -> slot 20
+category 8 -> slot 16
+```
+
+All remaining categories use the two generic hand slots unless an explicit object-ID exception applies. The hard-coded exception predicate at `0F168` contains thirteen object IDs; every one is a category-1 `QUIVER`, proving slot 19 as the dedicated quiver slot.
+
+Category-4 body armor has exact class-code restrictions, including a five-object executable whitelist for characters carrying class code 5. Transient spell/touch pseudo-items `0x7E..0x86` are protected from ordinary swapping.
+
+See `EQUIPMENT_SLOTS.md` and `analyze_equipment_slots.py`.
+
 ## Supplied-corpus validation
 
 Current tools validate:
@@ -158,6 +191,9 @@ charged state-slot mappings           PASS
 charged duplicate definitions differ  only at +0x31
 intrinsic-magic marker values          0/1 only
 SAVE initial charge vector             unique at +0x0D59
+quiver equipment exceptions            13 / 13 resolve to QUIVER
+class-code-5 armor whitelist            5 / 5 category-4 records
+transient touch-item guard              9 / 9 category-0 pseudo-items
 ```
 
 ## Documentation and tools
@@ -166,16 +202,18 @@ SAVE initial charge vector             unique at +0x0D59
 - `CATEGORY_SEMANTICS.md` — mutable state index, charge counters and intrinsic-magic marker.
 - `CONTAINER_STATE.md` — 10-byte container descriptor and compatibility rules.
 - `RENDER_AUX.md` — scene influence byte `+0x2B` and unresolved byte `+0x2C`.
+- `EQUIPMENT_SLOTS.md` — exact equipment-slot/category routing and hard-coded restrictions.
 - `inspect_objects.py` — lossless parser/encoder and basic corpus audit.
 - `analyze_categories.py` — category/state/magic analysis plus optional SAVE charge-vector verification.
 - `analyze_render_aux.py` — corpus audit for `+0x2B/+0x2C`.
+- `analyze_equipment_slots.py` — equipment category, quiver, armor-whitelist and transient-item audit.
 
 ## Current frontier
 
-The static object format is now close to semantic closure. Highest-value remaining OBJECTS work:
+The static object format is now very close to semantic closure. Highest-value remaining OBJECTS work:
 
-1. map item categories to exact equipment slots and use restrictions;
-2. refine remaining `attack_profile` low-two-bit modes where CODE.2 proves reusable semantics;
-3. determine whether stronger source-level names exist for the scene influence accumulator without overclaiming renderer intent.
+1. refine the remaining `attack_profile` low-two-bit modes where CODE.2 proves reusable semantics;
+2. determine whether stronger source-level names exist for the scene influence accumulator without overclaiming renderer intent;
+3. keep `+0x2C` explicitly unresolved unless a real consumer is found.
 
-`+0x2C` remains explicitly unresolved and preserved. The mutable charge/container state belongs in SAVE/runtime reconstruction rather than in static OBJECTS records.
+None of these remaining questions block a lossless OBJECTS reader/editor or faithful equipment-slot implementation. The next database-level target after the packed attack-mode pass is `NPCS.DAT`.
