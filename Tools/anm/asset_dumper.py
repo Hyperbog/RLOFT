@@ -58,11 +58,14 @@ def _save_indexed(pixels: bytes, size: tuple[int, int], palette: bytes,
 
 def dump_graphics(game_dir: Path, destination: Path, fmt: str,
                   palette_index: int = 0, preserve_native: bool = True,
-                  progress: ProgressCallback | None = None) -> dict:
+                  progress: ProgressCallback | None = None,
+                  archives: set[int] | None = None) -> dict:
     if fmt not in GRAPHICS_FORMATS:
         raise ra.AssetError(f"unsupported graphics format: {fmt}")
     resources = [
-        r for archive in ra.discover_archives(game_dir) for r in archive.resources()
+        r for archive in ra.discover_archives(game_dir)
+        if archives is None or archive.archive_number in archives
+        for r in archive.resources()
         if r.resource_type in (1, 2, 6, 7)
     ]
     palette = ra.palette_from_colors(Path(game_dir) / "COLORS", palette_index)
@@ -128,7 +131,12 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
         if progress:
             progress(ordinal, len(resources), f"Graphics: {stem}")
 
-    manifest = {"palette_bank": palette_index, "format": fmt, "assets": records}
+    manifest = {
+        "palette_bank": palette_index,
+        "format": fmt,
+        "archives": sorted(archives) if archives is not None else "all",
+        "assets": records,
+    }
     (destination / "graphics_manifest.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )
@@ -156,6 +164,7 @@ def _convert_voc(voc: bytes, output: Path, fmt: str) -> None:
              "-i", str(source), "-map_metadata", "-1", "-c:a", codec,
              str(output.with_suffix(suffix))],
             capture_output=True, text=True,
+            **runtime_paths.silent_subprocess_kwargs(),
         )
         if result.returncode:
             raise ra.AssetError(f"FFmpeg failed: {result.stderr.strip()}")
@@ -163,10 +172,16 @@ def _convert_voc(voc: bytes, output: Path, fmt: str) -> None:
 
 def dump_audio(game_dir: Path, destination: Path, fmt: str,
                preserve_native: bool = True,
-               progress: ProgressCallback | None = None) -> dict:
+               progress: ProgressCallback | None = None,
+               archives: set[int] | None = None) -> dict:
     if fmt not in AUDIO_FORMATS:
         raise ra.AssetError(f"unsupported audio format: {fmt}")
-    resources = [r for a in ra.discover_archives(game_dir) for r in a.resources() if r.resource_type == 4]
+    resources = [
+        r for a in ra.discover_archives(game_dir)
+        if archives is None or a.archive_number in archives
+        for r in a.resources()
+        if r.resource_type == 4
+    ]
     destination.mkdir(parents=True, exist_ok=True)
     records = []
     for ordinal, r in enumerate(resources, 1):
@@ -183,7 +198,11 @@ def dump_audio(game_dir: Path, destination: Path, fmt: str,
                         "length_matches": declared == len(voc)})
         if progress:
             progress(ordinal, len(resources), f"Audio: {stem}")
-    manifest = {"format": fmt, "assets": records}
+    manifest = {
+        "format": fmt,
+        "archives": sorted(archives) if archives is not None else "all",
+        "assets": records,
+    }
     (destination / "audio_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     return manifest
 
@@ -191,12 +210,14 @@ def dump_audio(game_dir: Path, destination: Path, fmt: str,
 def dump_music(game_dir: Path, destination: Path,
                fmt: str = "Both XMI + MIDI",
                preserve_native: bool = True,
-               progress: ProgressCallback | None = None) -> dict:
+               progress: ProgressCallback | None = None,
+               archives: set[int] | None = None) -> dict:
     if fmt not in MUSIC_FORMATS:
         raise ra.AssetError(f"unsupported music format: {fmt}")
 
     resources = [
         r for a in ra.discover_archives(game_dir)
+        if archives is None or a.archive_number in archives
         for r in a.resources()
         if r.resource_type == 3
     ]
@@ -245,6 +266,7 @@ def dump_music(game_dir: Path, destination: Path,
 
     manifest = {
         "format": fmt,
+        "archives": sorted(archives) if archives is not None else "all",
         "timing": (
             "SMF derivatives use SMPTE -30 fps with 4 ticks/frame, exactly "
             "120 ticks/second. AIL loop controllers are retained as CC events; "
