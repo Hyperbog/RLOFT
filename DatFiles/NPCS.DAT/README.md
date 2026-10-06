@@ -1,6 +1,6 @@
 # NPCS.DAT
 
-Status: **fixed 83 × 0x45 record format proven; scene/render parameters, collision extent, core combat statistics, XP, action delay, runtime-state templates and creature sound IDs reconstructed; fourteen behavior/effect bits decoded; lossless parse/encode verified.**
+Status: **fixed 83 × 0x45 record format proven; scene/render parameters, collision extent, core combat statistics, XP, action delay, runtime-state templates and creature sound IDs reconstructed; sixteen behavior/effect bits decoded; lossless parse/encode verified.**
 
 - Size: 5,731 bytes
 - SHA-256: `f2dd1175bf42e8291b95952282dfc0cfb84455aaa532987cdd7380094c8eb30b`
@@ -104,9 +104,11 @@ Two access-width boundaries remain controlling:
 0x00000100  common_spell_effect_immunity
 0x00000800  cold_effect_immunity
 0x00002000  fire_effect_immunity
+0x00004000  weapon_category10_damage_floor_one
+0x00008000  weapon_category9_damage_floor_one
 ```
 
-CODE.2 constructs these compound masks:
+CODE.2 constructs these compound spell masks:
 
 ```text
 Hold Undead    0x0102 = 0x0100 | 0x0002
@@ -117,6 +119,8 @@ cold effects   0x0900 = 0x0100 | 0x0800
 ```
 
 Mage and priest Hold Person independently use `0x0108`; the Hold variants share the same live held-state bit. Elemental aliases are additionally consistent with the game's bestiary descriptions.
+
+The two weapon-category gates come from CODE.2 `0xC910..0xC99E`. Before testing them, the engine reroutes every nonzero-enchantment OBJECTS definition to category 11. An unenchanted category-10 hit against `0x00004000`, or an unenchanted/category-fallback-9 hit against `0x00008000`, is zeroed and then clamped by the same routine to **one damage minimum**. They are damage-floor/resistance behaviors, not zero-damage immunity. See `WEAPON_DAMAGE_FLAGS.md`.
 
 ### Proved `behavior_flags_39` aliases
 
@@ -144,7 +148,7 @@ The disease identity is executable-closed: the attack sets party status bit `0x0
 
 The level-drain path decrements character class levels/progression; the Strength-drain path calls the Strength-adjustment helper with `-1`; turning, detection and combat paths independently use `0x20` as the undead classification.
 
-The three cure/status controls now line up exactly:
+The three cure/status controls line up exactly:
 
 ```text
 status 0x04  code 0x64  Cure Disease
@@ -187,20 +191,22 @@ unresolved +0x3C nonzero       0
 Flag analyzers verify:
 
 ```text
-hold_undead_effect_immunity   25
-hold_person_effect_immunity   31
-hold_monster_effect_immunity  24
-common_spell_effect_immunity   4
-cold_effect_immunity          12
-fire_effect_immunity           6
-poison_attack                   1
-disease_attack                  3
-undead_classification          17
-level_drain_attack              5
-strength_drain_attack           2
-paralysis_attack                6
-dynamic_barrier_activation      4
-obstacle_passthrough            5
+hold_undead_effect_immunity           25
+hold_person_effect_immunity           31
+hold_monster_effect_immunity          24
+common_spell_effect_immunity           4
+cold_effect_immunity                  12
+fire_effect_immunity                   6
+weapon_category10_damage_floor_one    16
+weapon_category9_damage_floor_one     14
+poison_attack                           1
+disease_attack                          3
+undead_classification                  17
+level_drain_attack                      5
+strength_drain_attack                   2
+paralysis_attack                        6
+dynamic_barrier_activation              4
+obstacle_passthrough                    5
 ```
 
 ## Documentation and tools
@@ -210,18 +216,21 @@ obstacle_passthrough            5
 - `EFFECT_IMMUNITIES.md` — common/fire/cold spell-effect immunity mechanics.
 - `HOLD_IMMUNITIES.md` — Hold Undead/Person/Monster immunity masks and shared live held state.
 - `STATUS_ATTACKS.md` — poison/disease/paralysis party-status mapping and cure-dispatch proof.
+- `WEAPON_DAMAGE_FLAGS.md` — category-9/category-10 one-damage gates and unresolved category-11 branch behavior.
 - `inspect_npcs.py` — lossless parser/encoder and corpus audit.
 - `analyze_behavior_flags.py` — raw bit distribution and proved semantic-set audit.
 - `analyze_effect_immunities.py` — common/fire/cold immunity validation.
 - `analyze_hold_immunities.py` — NPCS/OBJECTS/CODE.2 hold-family validation.
 - `analyze_status_attacks.py` — NPC status setters, cure handlers and spell-name validation.
+- `analyze_weapon_damage_flags.py` — NPC/OBJECTS category sets and exact CODE.2 damage-gate signatures.
 
 ## Current frontier
 
 The remaining NPCS work is narrower:
 
-1. resolve additional high `behavior_flags` capability/immunity bits through spell/effect callers;
-2. tighten the exact role of `+0x41` and `render_aux_27`;
-3. document story-NPC-specific animation meanings only where code proves them.
+1. resolve the transient-effect immunity bit `0x00000200` by identifying moving-effect type 1;
+2. resolve additional raw `behavior_flags` bits through spell/effect/AI callers, including the effect-51 `0x00000080` gate;
+3. tighten the exact role of `+0x41` and `render_aux_27`;
+4. document story-NPC-specific animation meanings only where code proves them.
 
 The current schema supports a lossless reader/editor and faithful reproduction of the creature stat/render/effect database while preserving every unresolved bit verbatim.
