@@ -1,119 +1,106 @@
-# SAVE.DAT early/core character fields (`+0x010..+0x047`)
+# SAVE.DAT early/core character fields
 
-Status: **active executable reconstruction. This note separates certified early-record mechanics from still-unresolved identity/stat semantics.**
+Status: **active executable reconstruction. The earlier runtime-to-file offset translation in this note was corrected by direct comparison against the serialized fixture.**
 
-Runtime base for active character 0 is DGROUP `0x218D8`; character `n` is `0x218D8 + n*0x248`.
+## Correct runtime/file relationship
 
-## `+0x018..+0x019`: status word also supplies the record-active predicate
+The active character runtime image begins at DGROUP `0x218E0`, with character `n` at `0x218E0 + n*0x248`. The previous `0x218D8` base was eight bytes early and therefore shifted runtime-derived record offsets by `+8` in the documentation.
 
-The 16-bit field at runtime `0x218F0` is already certified as the character status word. A further executable audit establishes an important structural use of its sign/high bit.
+This correction is independently checked against SAVE.DAT values and executable consumers. In particular runtime words `0x218FC` and `0x218FE` map to serialized `+0x01C` and `+0x01E`; the supplied records contain plausible current/max hit-point pairs at exactly those offsets.
 
-Party/UI iteration at physical `0x51349..0x51355` performs:
+## Certified core partition
 
 ```text
-load uint16 status at 0x218F0 + character*0x248
-compare status with 0x8000
-if status >= 0x8000, skip the populated-character path
++0x000..+0x00F  fixed 16-byte name storage
++0x010..+0x014  identity/appearance metadata; semantics still under audit
++0x015..+0x017  int8 class_code[3]
++0x018..+0x019  status word
++0x01A..+0x01B  unresolved core field
++0x01C..+0x01D  int16 current_hp
++0x01E..+0x01F  int16 max_hp
++0x020..+0x025  int16 class_level[3]
++0x026..+0x031  int32 class_progress[3]
++0x032..+0x03F  ability-score/effect region; exact remaining names under audit
++0x040..+0x069  int16 item[21]
++0x06A..+0x0B9  spell matrix A, 8 x 10 packed cells
++0x0BA..+0x109  spell matrix B, 8 x 10 packed cells
 ```
 
-The supplied unused active-party records contain `0xFFFF` at `+0x018`, whereas populated records contain nonnegative status values. Thus the original executable has a usable record-activity discriminator: the status word's high bit separates inactive/unused record images from ordinary populated characters in this path.
+## `+0x015..+0x017`: class slots
 
-This supersedes the earlier statement that no executable occupancy predicate was known. It remains unsafe to use an all-zero test.
-
-Portable compatibility predicate for the audited path:
+The executable treats these as three signed class-code slots. Later slots use `-1` for absence:
 
 ```c
-bool record_is_active = ((status_word & 0x8000u) == 0);
+int8_t class_code[3];
 ```
 
-This is an executable behavior, not a claim that every possible caller uses exactly the same predicate.
+The fixture agrees: single-class characters have `-1` in slots 1 and 2, while multiclass records populate additional slots.
 
-Known high-byte condition masks remain:
+## `+0x01C/+0x01E`: hit points
 
-```text
-0x0400 disease
-0x0800 poison
-0x1000 paralysis
-```
-
-Other status bits remain under semantic audit.
-
-## `+0x01D..+0x01F`: three signed class-code slots
-
-Runtime bytes:
-
-```text
-+0x01D -> 0x218F5
-+0x01E -> 0x218F6
-+0x01F -> 0x218F7
-```
-
-These are now structurally certified as three class-code slots rather than a single class discriminator plus unknown neighbors.
-
-The helper beginning at physical `0x48AF8` reads the second and third bytes as signed values and compares each against `-1`. Its logic is:
-
-```text
-class_count = 1
-if class_code[1] != -1: class_count = 2
-if class_code[2] != -1: class_count += 1
-```
-
-Many other CODE.2 paths independently inspect all three bytes. Character/spell initialization at physical `0x51AFC` onward tests them against class codes used by the casting subsystems.
-
-Portable representation:
+The two signed words are current and maximum hit points:
 
 ```c
-int8_t class_code[3]; // +0x01D..+0x01F; -1 marks an absent later class slot
+int16_t current_hp; // +0x01C
+int16_t max_hp;     // +0x01E
 ```
 
-The supplied fixture agrees: single-class characters use `-1` in slots 1 and 2; multiclass characters populate the additional slots.
-
-Exact player-facing class names for every numeric code remain a separate mapping problem and are not assigned here without independent evidence.
-
-## `+0x032..+0x03D`: six paired ability-shaped bytes
-
-Fixture geometry shows six consecutive two-byte pairs before the already certified exceptional-Strength and equipment-related state. Direct executable consumers independently certify:
+Reference fixture examples:
 
 ```text
-+0x03A  Strength base/reference
-+0x03B  Strength current/effective
-+0x03D  Dexterity current/effective
+EHLIANNA     38 / 38
+ANVIL DAWN   55 / 55
+GLORIANNA    15 / 15
+VELIKA       27 / 27
+MISCHA        1 / 32
+ANSHELM      43 / 51
+FHALKEN      25 / 34
 ```
 
-The surrounding pairs have the same base/current fixture shape, but the exact identities of `+0x032..+0x039`, and the base byte paired with Dexterity at `+0x03C`, are not promoted to canonical names solely from AD&D stat ordering. They remain a focused target for UI/combat consumer tracing.
+The non-full records are important evidence that these are current/max state rather than duplicated constants.
 
-Safe current geometry:
+## `+0x020..+0x025`: per-class levels
+
+The executable indexes the three words in parallel with the three class slots. Portable representation:
+
+```c
+int16_t class_level[3];
+```
+
+Absent class slots contain `-1` in the supplied records. Examples include EHLIANNA `[5,4,-1]`, ANVIL DAWN `[5,5,-1]`, and VELIKA `[4,4,5]`.
+
+## `+0x026..+0x031`: per-class experience/progression
+
+The three dwords align one-for-one with `class_code[]` and `class_level[]`:
+
+```c
+int32_t class_progress[3];
+```
+
+Absent slots use `-1`. Advancement logic modifies these values and derives levels through class-indexed progression thresholds, establishing them as per-class experience/progression accumulators. Fixture examples include GLORIANNA `[24000,-1,-1]`, VUKO `[41000,-1,-1]`, and VLADISLAV `[65000,-1,-1]`.
+
+Until every advancement table is semantically catalogued, `class_progress` is preferred over claiming an original source-variable name; in native gameplay terms these are experience-point style quantities.
+
+## Status/activity caution
+
+The earlier note associated runtime `0x218F0` with serialized `+0x018`; that association was a consequence of the incorrect base. Runtime addresses must now be translated from `0x218E0`. Any previously documented early-record status-bit semantics are to be revalidated before canonical use.
+
+## Offset-normalization consequence
+
+Every character field whose serialized offset was inferred solely as `runtime_address - 0x218D8` must be shifted eight bytes earlier and rechecked. Examples:
 
 ```text
-+0x032/+0x033  paired byte field A
-+0x034/+0x035  paired byte field B
-+0x036/+0x037  paired byte field C
-+0x038/+0x039  paired byte field D
-+0x03A/+0x03B  Strength base/current
-+0x03C/+0x03D  paired field; current byte is Dexterity-related
+inventory             old +0x048 -> corrected +0x040
+spell matrix A        old +0x072 -> corrected +0x06A
+spell matrix B        old +0x0C2 -> corrected +0x0BA
 ```
 
-## Direct-reference audit caution
+The `0x248` record stride and top-level SAVE.DAT record boundaries are unaffected.
 
-Searching CODE.2 for little-endian runtime addresses is useful for finding consumers, but an address byte sequence inside instruction immediates, relative-call displacements, or data tables is not itself evidence of a field access. Candidate hits are only accepted after instruction-aligned disassembly confirms the operand.
+## Compatibility rule
 
-This matters especially in the early record, where several apparent hits inside the `0x29xxx` data/table area are false positives.
-
-## Current early-record boundary
-
-```text
-+0x010..+0x017  identity/appearance metadata unresolved
-+0x018..+0x019  status word; high bit participates in inactive-record filtering
-+0x01A..+0x01C  unresolved core/identity fields
-+0x01D..+0x01F  int8 class_code[3], -1 absent sentinel
-+0x020..+0x031  class/progression-related region; exact partition still under audit
-+0x032..+0x039  four paired ability-shaped fields, identities pending
-+0x03A/+0x03B  Strength base/current
-+0x03C/+0x03D  paired field; +0x03D Dexterity current/effective
-+0x03E..+0x045  unresolved paired/word state
-+0x046/+0x047  exceptional Strength base/current percentile
-```
+Do not implement a native structure from the pre-correction offset tables. Normalize all character-record documentation against runtime base `0x218E0`, then re-run fixture and executable cross-checks before treating an offset as canonical.
 
 ## Next target
 
-Trace the class/progression region `+0x020..+0x031` from its executable consumers and close the remaining ability-pair identities through actual UI/combat references rather than assumed AD&D field order.
+Perform the repository-wide SAVE.DAT character-offset normalization pass, beginning with `CHARACTER_RECORD.md`, spell-matrix documentation, post-inventory state, effect/timer documents, and analyzers. Semantic identities already proved by executable behavior should be retained, but their serialized offsets must be corrected independently.
