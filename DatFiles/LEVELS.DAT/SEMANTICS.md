@@ -1,17 +1,17 @@
 # LEVELS.DAT / LEVnnn.DAT semantic reconstruction
 
-Status: **container, cell-state, 10-byte control, compact-family expansion, automap-cache, dynamic-door, and annotation-tail semantics substantially reconstructed from certified CODE.2 and supplied DAT files.**
+Status: **container, cell-state, 10-byte control, compact-family expansion, fixed event-script table, automap-cache, dynamic-door, and annotation-tail semantics substantially reconstructed from certified CODE.2 and supplied DAT files.**
 
 The immutable CODE.2 bytes remain controlling evidence. Names are assigned only where executable behavior or a directly loaded database proves them.
 
 ## Primary CODE.2 evidence
 
+- level event interpreter: `002A8..006B8`
 - level loader: `181B4..18D8B`
 - standalone writer: `171FC..17837`
 - 10-byte lookup helpers: `1E8C8..1EA03`
 - legacy 11->22 conversions: `1866B..18918`
 - dynamic 10-byte records: `20B40..20CF2`
-- 10-byte interaction dispatcher: around `22B09`
 - automap cache rebuild: `01558..01830`
 - automap SAVE/export: `026E8..02A33`
 - annotation lookup/legend: `23B8`, `2474`
@@ -40,8 +40,6 @@ The first four 64-word banks feed first-person resource/render selection and are
 ## 16-bit cell layer
 
 Immediately after the header is a row-major `width * height` array at runtime `0x198E0`.
-
-Proved split:
 
 ```text
 0x003F  six-bit cell code
@@ -93,7 +91,7 @@ Important proved byte-1 roles:
 Kind-specific proof includes:
 
 - kind 1: dynamic barrier/door record; `+6` position, `+7` signed animation delta;
-- kind 2: persistent two-state interaction; signed `+2` dispatched through common event/script routine;
+- kind 2: persistent two-state interaction; signed `+2` dispatched through the level event-script interpreter;
 - kind 4: conditional interaction/event path; signed `+2` dispatched on successful action and `+6` consumed as a kind-specific accepted-ID field;
 - kind 10: byte `+9` is passed as a resource/mode argument.
 
@@ -136,21 +134,11 @@ Family A directly indexes the table loaded from `NPCS.DAT`:
 
 Family A is therefore an NPC/creature type family, in addition to the previously proved runtime world-record behavior.
 
-The expansion also imports metadata dword `NPC[type].+0x35`, maps compact low-three flags to runtime bits 3..5, masks runtime flags with `0x3E39`, and derives runtime `+0x12` through metadata-dependent logic.
-
 ### Family B — count 0x258A6
 
 Family B expands to runtime `0x22238`; its type word is runtime `+0x0E` at `0x22246`. Level 22's 110 archive family-B records reproduce all 110 supplied direct-save records byte-for-byte after the proved expansion.
 
-The family is strongly tied to the `OBJECTS.DAT` namespace:
-
-- CODE.2 `168C8` loads `OBJECTS.DAT` as `count * 0x41` records to pointer `0x255D8`;
-- supplied `OBJECTS.DAT` contains 336 entries;
-- all 4,324 family-B records use IDs `0..174`;
-- family-B consumers test IDs that map to concrete item/key entries, including `0x9B = BLOOD KEY`;
-- the automap placed-record overlay singles out family-B IDs `0x3C..0x41`, which are six potion/oil entries in the supplied object table.
-
-This supports the safe description **placed object/item record family**. The precise distinction from family C is still unresolved.
+The family is strongly tied to the `OBJECTS.DAT` namespace. Supplied `OBJECTS.DAT` contains 336 entries, all 4,324 family-B records use IDs `0..174`, and the automap placed-record overlay treats this family as placed object/item records.
 
 ### Family C — count 0x258A4
 
@@ -158,18 +146,59 @@ Family C preserves the common coordinates, maps compact type `0x54` to runtime `
 
 Its supplied type IDs range `0..335`, also within the 336-entry `OBJECTS.DAT` namespace. The exact semantic distinction between family B and family C remains open.
 
+## Fixed 0x514 level event-script table
+
+The formerly unresolved fixed block is now structurally and behaviorally identified.
+
+CODE.2 allocates exactly `0x514` bytes and stores its pointer at DGROUP `0xCF44`. Interpreter `002A8` selects:
+
+```text
+slot = event_table + script_index * 26
+```
+
+The block is therefore exactly 50 slots of 26 bytes:
+
+```text
+slot +0x00  uint8 active_command_count
+slot +0x01  command[0]  // 5 bytes
+slot +0x06  command[1]
+slot +0x0B  command[2]
+slot +0x10  command[3]
+slot +0x15  command[4]
+```
+
+Each command is `opcode + four raw argument bytes`. The interpreter supports opcodes `0..12` through a 13-entry CS jump table and executes only the first `active_command_count` commands.
+
+Archive-wide:
+
+```text
+physical slots   1,600
+active slots       394
+active commands     555
+max active count      5
+```
+
+One supplied slot proves inactive bytes are persistent: level 20 slot 1 has count 4 but a nonzero fifth command. Repackers must preserve all 26 bytes.
+
+Most useful opcode semantics now proved:
+
+- opcodes 0/1: coordinate-based cell-record action variants;
+- opcode 2: toggle cell-record state;
+- opcode 3: create a transient/moving effect record at a cell with quantized orientation;
+- opcode 4: replace only the six-bit cell code at `(row,column)`;
+- opcode 5: invoke the sound/resource path through `28110` using the encoded unaligned dword parameter;
+- opcode 6: resource/audio transition path;
+- opcodes 8/9/10: pass command byte `+3` to three distinct routines;
+- opcode 11: special subcommand dispatcher, with a generic branch that stops the current script;
+- opcode 12: assign command byte `+3` to global `0xBF44`.
+
+Opcodes 7, 9 and 10 are executable-supported but absent from the supplied archive. See `EVENT_SCRIPTS.md` for instruction-level details and `analyze_event_scripts.py` for validation.
+
 ## Automap cache and overlays
 
 The common-tail `width * height` byte array is a generated automap/display cache. The standalone writer calls `01558` immediately before serializing it.
 
-The cache encodes explored floor, connected boundary/wall, dynamic door-capable states, inset states, and special hidden/secret-marker behavior. The exporter converts resolved states to the documented CP437 wall/floor/door/inset bytes.
-
-The SAVE/export path then overlays:
-
-1. placed family-B records (`'*'` for object IDs `0x3C..0x41`, literal `0xFE` otherwise);
-2. automap annotation labels generated from the final variable-length annotation blob.
-
-Annotation labels have precedence over placed-record symbols in the merged output. See `AUTOMAP.md` and `AUTOMAP_OVERLAYS.md`.
+The SAVE/export path overlays placed family-B object/item records and automap annotation labels after the base cache conversion. Annotation labels have final precedence. See `AUTOMAP.md` and `AUTOMAP_OVERLAYS.md`.
 
 ## Common annotation tail
 
@@ -200,12 +229,10 @@ Archive record 22 and `LEV022.DAT` are both 30x15 with family counts A/B/C = `1 
 ```text
 0x2A4 header:        1 differing byte (+0x29A)
 16-bit cell layer:  626 differing bytes / 900
-0x514 block:         byte-identical
+0x514 event table:  byte-identical; all zero
 final byte cache:   320 differing bytes / 450
 family B expansion: 110 / 110 records byte-identical
 ```
-
-The final cache contains the separately documented 40-cell replay discrepancy and must not be treated as a fresh exact `01558` oracle for this sample.
 
 ## Current semantic boundary
 
@@ -217,7 +244,8 @@ Safe to expose semantically now:
 - dynamic open/closed group-2 state;
 - compact record coordinates/type IDs and family-specific conversion rules;
 - family A as NPC/creature records and family B as placed object/item records;
+- fixed 50-slot level event-script table and its proved command behaviors;
 - generated automap cache, base export, placed-object overlay, and annotation overlay;
 - annotation-list tail.
 
-The next major unresolved structure is the fixed `0x514` block, followed by remaining header fields, family-C identity, and still-unnamed control bits/overlay glyph values.
+Remaining high-value LEVELS work is the still-unnamed header tail/control fields, family-C identity, unresolved event-opcode callees, and remaining cell/control-bit names.
