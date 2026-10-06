@@ -42,15 +42,18 @@ class AssetCoreTests(unittest.TestCase):
         self.assertEqual(raster.pixels, b"")
 
     def test_type7_native_raster_reuses_duplicate_column_source(self) -> None:
-        # width=4, x=0..2. x0/x1 share one descriptor pointer and therefore
-        # intentionally share the same packed source texels.
+        # Valid native width=64, x=0..2. x0/x1 share one descriptor pointer
+        # and therefore intentionally share the same packed source texels.
         header = struct.pack("<Hhhhh", 64, 0, 2, 0, 2)
         table_end = 10 + 3 * 2
         source = bytes([10, 11, 20])
+        source_offset = table_end
         p1 = table_end + len(source)
-        list1 = struct.pack("<HhHH", 4, 0, 0, 0)
+        # x0/x1 draw y=0..1 from source_offset+0/+1.
+        list1 = struct.pack("<HhHH", 4, source_offset, 0, 0)
         p2 = p1 + len(list1)
-        list2 = struct.pack("<HhHH", 4, 0, 2, 0)
+        # x2 draws y=1 from source_offset+2, so adjustment+y == 18.
+        list2 = struct.pack("<HhHH", 4, source_offset + 1, 2, 0)
         body = header + struct.pack("<HHH", p1, p1, p2) + source + list1 + list2
 
         raster = res_assets.decode_type7_raster(body)
