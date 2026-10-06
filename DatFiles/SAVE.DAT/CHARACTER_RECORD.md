@@ -13,12 +13,13 @@ The same `0x248`-byte image is serialized for the four active-party slots and te
 | `+0x019` | byte within status word | condition flags | `0x04=disease`, `0x08=poison`, `0x10=paralysis` are executable-proved. |
 | `+0x01D` | 1 | class-related discriminator | Runtime `0x218F5`; value `1` is an explicit disease-effect exemption. |
 | `+0x03A` | 1 | Strength base/reference byte | Runtime `0x21912`; Strength tables and exceptional-Strength calculation consume it. |
-| `+0x03B` | 1 | current/effective Strength byte | Runtime `0x21913`; melee/damage paths consume it; the Stone Giant Gauntlets path substitutes/restores it and caps adjustment at 20. |
-| `+0x03D` | 1 | Dexterity-related current/effective byte | Runtime `0x21915`; Gauntlets of Dexterity equipment transitions alter exactly this byte. |
-| `+0x046` | 1 | exceptional-Strength base/reference percentile | Runtime `0x2191E`; Strength table logic interprets ranges `1..50`, `51..75`, `76..90`, `91..99`, `100`. |
-| `+0x047` | 1 | exceptional-Strength current/effective percentile | Runtime `0x2191F`; current Strength calculations and UI/combat consumers use it. |
+| `+0x03B` | 1 | current/effective Strength byte | Runtime `0x21913`; melee/damage paths consume it; Stone Giant Gauntlets logic substitutes/restores it. |
+| `+0x03D` | 1 | Dexterity-related current/effective byte | Runtime `0x21915`; Gauntlets of Dexterity equipment transitions alter this byte. |
+| `+0x046` | 1 | exceptional-Strength base/reference percentile | Runtime `0x2191E`; Strength table logic interprets AD&D percentile bands. |
+| `+0x047` | 1 | exceptional-Strength current/effective percentile | Runtime `0x2191F`; current Strength calculations consume it. |
 | `+0x048` | `0x2A` | `int16_le item[21]` | Runtime `0x21920`; slots `0..11` inventory and `12..20` equipment. |
-| `+0x13A` | at least 1 byte | character state/flags | Runtime `0x21A12`; audited CODE.2 performs direct tests/clears here. |
+| `+0x0C2` | array anchor | packed 4-bit values | Runtime `0x2199A`; CODE.2 independently extracts/rewrites high and low nibbles with `0xF0/0x0F`. Exact array extent/meaning pending. |
+| `+0x13A` | 4 | 32-bit character state/flags | Runtime `0x21A12`; CODE.2 performs byte, word, and dword mask operations here. |
 
 Address arithmetic:
 
@@ -32,25 +33,16 @@ Dexterity-related current   0x21915 = +0x3D
 exceptional STR base        0x2191E = +0x46
 exceptional STR current     0x2191F = +0x47
 item array                  0x21920 = +0x48
-state/flags                 0x21A12 = +0x13A
+packed-nibble state anchor  0x2199A = +0xC2
+state/flags dword           0x21A12 = +0x13A
 next character              base + 0x248
 ```
 
-## Correction to the initial fixture-only inference
+## Core-stat correction and proof
 
-The earlier fixture pass treated `+0x32..+0x3F` as seven adjacent ability-score pairs and tentatively treated `+0x3E/+0x3F` as exceptional Strength. Direct executable consumers disprove that interpretation.
+Fixture visual pairing alone is not sufficient to assign gameplay semantics. Direct executable consumers place Strength at `+0x3A/+0x3B` and exceptional Strength at `+0x46/+0x47`. CODE.2 combines these values and recognizes percentile ranges `1..50`, `51..75`, `76..90`, `91..99`, and `100`.
 
-Exceptional Strength is actually stored at `+0x46/+0x47`: CODE.2 combines runtime `0x21912` Strength with `0x2191E` percentile and explicitly recognizes percentile bands `1..50`, `51..75`, `76..90`, `91..99`, and `100`. Parallel current-value consumers use `0x21913` with `0x2191F`.
-
-This is an important reconstruction rule: visual pairing in one SAVE fixture is not sufficient to assign gameplay semantics. Executable consumers remain controlling evidence.
-
-## Strength equipment and combat proof
-
-The helper beginning at CODE.2 physical `0x4CF50` indexes the character by `0x248`, checks equipped object ID `0x54`, and otherwise adjusts byte `0x21913` with a cap of 20. OBJECTS/RES cross-links identify object `0x54` as `STONE GIANT GAUNTLETS`. A companion getter returns either the gauntlet-backed value or `0x21913`.
-
-The transition helper at physical `0x4CFE0` moves values between `0x21913` and a per-character auxiliary dword when object `0x54` is equipped/removed. The same helper recognizes object `0x53` (`GAUNTLETS OF DEXTERITY`) and adjusts byte `0x21915`, independently anchoring that byte to the Dexterity effect family.
-
-Combat/weapon paths at physical `0x5E9DD` and `0x5EB69` multiply damage-like words by current/effective `0x21913` and divide by 18. This independently confirms that `+0x3B` is the effective Strength byte rather than an arbitrary paired statistic.
+The helper beginning at physical `0x4CF50` checks equipped object ID `0x54` (`STONE GIANT GAUNTLETS`) and adjusts current/effective Strength. A companion transition helper recognizes object `0x53` (`GAUNTLETS OF DEXTERITY`) and alters `+0x3D`, independently anchoring that byte to the Dexterity effect family.
 
 ## Core region: current safe boundary map
 
@@ -97,6 +89,12 @@ For active party slot 0 (`EHLIANNA`), the 21 words are:
 -1, -256, -1, 0, -256
 ```
 
+## Post-inventory certified anchors
+
+`+0x0C2` is consumed as packed nibbles: CODE.2 masks/shifts the low/high halves independently and preserves one nibble while rewriting the other. The exact array extent and gameplay meaning remain under audit.
+
+`+0x13A..+0x13D` is a 32-bit flag field, correcting the earlier conservative byte-only description. Proved masks include bits `0x1`, `0x2`, `0x10`, `0x20`, `0x40`, `0x200`, `0x400`, and `0x01000000`; dynamic bit masks are also used. See `POST_INVENTORY_STATE.md` for instruction-level evidence.
+
 ## Empty-record representation
 
 Unused active-party records are not zero-filled. In the reference fixture most bytes are `0xFF`, while `+0x10..+0x11` are `00 80`. Occupancy must therefore not be inferred from an all-zero test; preserve the complete raw image until the executable occupancy predicate is certified.
@@ -105,15 +103,16 @@ Unused active-party records are not zero-filled. In the reference fixture most b
 
 ```text
 +0x000 .. +0x017   identity/core metadata
-+0x018 .. +0x047   status/stats/class region; several fields now executable-linked
++0x018 .. +0x047   status/stats/class region; several fields executable-linked
 +0x048 .. +0x071   item[21]
-+0x072 .. +0x139   unresolved character arrays/state
-+0x13A             executable-referenced state/flags byte
-+0x13B .. +0x247   unresolved spell/effect/auxiliary state
++0x072 .. +0x0C1   unresolved character arrays/state
++0x0C2 ..          packed-nibble state array anchor; extent pending
++0x13A .. +0x13D   uint32_le character state/flags
++0x13E .. +0x247   unresolved spell/effect/auxiliary state
 ```
 
 A native implementation should continue to use an explicit legacy decoder rather than memory-mapping this image into a modern packed struct.
 
 ## Next target
 
-Resolve the remaining paired bytes at `+0x32..+0x39` and `+0x3E/+0x3F`, identify the three dwords at `+0x26/+0x2A/+0x2E`, then audit the post-inventory array shapes from `+0x72` toward the hard `+0x13A` anchor.
+Determine the exact packed-nibble array extent and semantics, then map the individual `+0x13A` flag bits to their gameplay effects. Continue afterward with candidate runtime anchors `0x219E2` (`+0x10A`) and `0x21A09` (`+0x131`).
