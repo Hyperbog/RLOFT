@@ -70,6 +70,26 @@ def format_time_of_day(value: int) -> str:
     return f"0x{value:08X} (hour={hour}, fractional_hour=0x{fraction:04X}, approx={hour:02d}:{minute_fraction:05.2f})"
 
 
+def live_effect_summary(data: bytes, offset: int) -> str:
+    coord_b = u32(data, offset)
+    coord_a = u32(data, offset + 4)
+    heading = u32(data, offset + 8)
+    cell = u16(data, offset + 0x0C)
+    effect_type = u16(data, offset + 0x0E)
+    aux10 = u16(data, offset + 0x10)
+    aux12 = u16(data, offset + 0x12)
+    state = u16(data, offset + 0x14)
+    movement = (state >> 1) & 0x03
+    direction = (state >> 3) & 0x07
+    frame = (state >> 6) & 0x07
+    source = (state >> 11) & 0x07
+    return (
+        f"coordB=0x{coord_b:08X} coordA=0x{coord_a:08X} heading=0x{heading:08X} "
+        f"cell={cell} type={effect_type} aux10=0x{aux10:04X} aux12=0x{aux12:04X} "
+        f"state=0x{state:04X}[move={movement},dir={direction},frame={frame},source={source}]"
+    )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("save", type=Path)
@@ -107,7 +127,7 @@ def main() -> int:
         raise SystemExit(f"invalid live transient-effect count {world_count}; executable limit is {WORLD_OBJECT_LIMIT}")
     world_start = MIDDLE_OFFSET + 4
     world_end = world_start + world_count * WORLD_OBJECT_SIZE
-    require(data, world_end, "world objects")
+    require(data, world_end, "live transient effects")
 
     spell_ui_off = world_end
     gameplay_ticks_off = spell_ui_off + 8
@@ -117,6 +137,9 @@ def main() -> int:
     print(f"  live transient-effect count       : {world_count}")
     if world_count:
         print(f"  live transient-effect array       : 0x{world_start:04X}-0x{world_end - 1:04X}")
+        for i in range(world_count):
+            offset = world_start + i * WORLD_OBJECT_SIZE
+            print(f"    effect[{i:03d}] @ 0x{offset:04X}: {live_effect_summary(data, offset)}")
     else:
         print(f"  live transient-effect array       : empty at 0x{world_start:04X}")
     print(
