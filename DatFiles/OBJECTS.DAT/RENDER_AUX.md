@@ -13,7 +13,7 @@ The shipped OBJECTS.DAT stores zero in both fields for all 336 object definition
 
 ## `+0x2B`: scene-cell influence propagation step
 
-Family-C loose-item scene emission in CODE.2 `2BDF4..2BFDC` does the following after selecting the object's normal world sprite/orientation data:
+Family-C loose-item scene emission in CODE.2 `2BDF4..2BFDC` does the following after selecting the object's class-2 scene-shape subrange:
 
 ```text
 if object_def[+0x2B] != 0:
