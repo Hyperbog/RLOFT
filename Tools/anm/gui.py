@@ -46,6 +46,7 @@ class RavenloftExtractorGui(tk.Tk):
         self.audio_native = tk.BooleanVar(value=True)
         self.audio_dest = tk.StringVar()
         self.dump_music_var = tk.BooleanVar(value=True)
+        self.music_format = tk.StringVar(value="Both XMI + MIDI")
         self.dump_opl_var = tk.BooleanVar(value=True)
         self.dump_aria_var = tk.BooleanVar(value=True)
 
@@ -264,9 +265,13 @@ class RavenloftExtractorGui(tk.Tk):
         ttk.Checkbutton(
             box, text="Preserve original VOC and native EH carriers", variable=self.audio_native
         ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(8, 0))
-        ttk.Checkbutton(box, text="Extract all XMIDI/XDIR sequences", variable=self.dump_music_var).grid(
-            row=2, column=0, columnspan=3, sticky="w", pady=(8, 0)
+        ttk.Checkbutton(box, text="Extract all XMIDI/XDIR music", variable=self.dump_music_var).grid(
+            row=2, column=0, sticky="w", pady=(8, 0)
         )
+        ttk.Combobox(
+            box, textvariable=self.music_format,
+            values=asset_dumper.MUSIC_FORMATS, state="readonly", width=34
+        ).grid(row=2, column=1, sticky="w", padx=8, pady=(8, 0))
         ttk.Checkbutton(box, text="Extract SAMPLE.AD OPL2 timbres", variable=self.dump_opl_var).grid(
             row=3, column=0, columnspan=3, sticky="w", pady=(8, 0)
         )
@@ -277,8 +282,9 @@ class RavenloftExtractorGui(tk.Tk):
         self._note(
             tab, 1,
             "FLAC and WAV/PCM are lossless derivatives of the original VOC streams. "
-            "XMIDI is preserved exactly; Standard MIDI output stays disabled until an "
-            "authoritative XMIDI event/timing conversion is implemented."
+            "MIDI export uses exact 120 Hz SMPTE timing derived from Miles' original AIL "
+            "writer/runtime behavior. Original XMI remains canonical because AIL loop/control "
+            "flow cannot be represented losslessly by a linear Standard MIDI file."
         )
         button = ttk.Button(tab, text="Extract Audio & Music", command=self._start_audio)
         button.grid(row=2, column=0, sticky="e", pady=(12, 0))
@@ -513,7 +519,10 @@ class RavenloftExtractorGui(tk.Tk):
             )}
             if self.dump_music_var.get():
                 result["music"] = asset_dumper.dump_music(
-                    root, dest / "xmidi", self.audio_native.get(), self._progress
+                    root, dest / "music",
+                    fmt=self.music_format.get(),
+                    preserve_native=self.audio_native.get(),
+                    progress=self._progress,
                 )
             if self.dump_opl_var.get():
                 result["opl2"] = support_dumper.dump_sample_ad(root, dest / "opl2")
@@ -632,6 +641,7 @@ class RavenloftExtractorGui(tk.Tk):
             graphics_format=self.graphics_format.get(),
             graphics_palette=int(self.graphics_palette.get()),
             audio_format=self.audio_format.get(),
+            music_format=self.music_format.get(),
             cinematic_frame_format=self.cin_frame_format.get(),
             cinematic_video_format="MKV (FFV1 lossless)",
             cinematic_fps=float(self.cin_fps.get()),
