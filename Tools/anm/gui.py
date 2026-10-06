@@ -437,7 +437,35 @@ class RavenloftExtractorGui(tk.Tk):
             label.configure(wraplength=width)
 
     def _update_timing_state(self) -> None:
-        self.cin_fps_entry.configure(state="normal" if self.cin_timing_mode.get() == "Custom FPS" else "disabled")
+        self.cin_fps_entry.configure(
+            state="normal" if self.cin_timing_mode.get() == "Custom FPS" else "disabled"
+        )
+        self._refresh_native_timing_text()
+
+    def _update_video_state(self) -> None:
+        self.cin_sync_check.configure(state="normal" if self.cin_video.get() else "disabled")
+
+    def _refresh_native_timing_text(self) -> None:
+        timer = exporter.PIT_HZ
+        ordinary = timer / exporter.ORDINARY_IMAGE_WAIT
+        cine12 = timer / exporter.CINE12_IMAGE_WAIT
+        selected = set(self._list_values(self.cin_list)) if hasattr(self, "cin_list") else set()
+
+        if selected == {"CINE12.ANM"}:
+            cadence = f"CINE12 visual frames: {cine12:.4f} FPS"
+        elif selected and "CINE12.ANM" not in selected:
+            cadence = f"visual frames: {ordinary:.4f} FPS"
+        else:
+            cadence = (
+                f"normal visual frames: {ordinary:.4f} FPS; "
+                f"CINE12 visual frames: {cine12:.4f} FPS"
+            )
+
+        self.native_timing_text.set(
+            f"Native VFR — engine timer {timer:.4f} Hz; {cadence}. "
+            f"Command frames may use one tick ({timer:.4f} FPS) or zero wait. "
+            "Per-cinematic average FPS is written to the manifest/timeline."
+        )
 
     def _choose_source_dir(self) -> None:
         value = filedialog.askdirectory(title="Choose Ravenloft resource folder")
@@ -460,6 +488,7 @@ class RavenloftExtractorGui(tk.Tk):
             (self.support_dest, base / "support"),
             (self.cin_frames_dest, base / "cinematics" / "frames"),
             (self.cin_video_dest, base / "cinematics" / "video"),
+            (self.cin_meta_dest, base / "cinematics"),
             (self.all_dest, base),
         ):
             if not variable.get():
@@ -529,7 +558,21 @@ class RavenloftExtractorGui(tk.Tk):
         except Exception as exc:
             messagebox.showerror("Cannot extract", str(exc))
             return
-        self._run("Extracting selected graphics…", lambda: asset_dumper.dump_graphics(root, dest, self.graphics_format.get(), palette, self.graphics_native.get(), self._progress, archives=selected))
+        self._run(
+            "Extracting selected graphics…",
+            lambda: asset_dumper.dump_graphics(
+                root,
+                dest,
+                self.graphics_format.get(),
+                palette,
+                self.graphics_native.get(),
+                self._progress,
+                archives=selected,
+                export_indices=self.graphics_indices.get(),
+                export_metadata=self.graphics_metadata.get(),
+                export_masks=self.graphics_masks.get(),
+            ),
+        )
 
     def _start_audio(self) -> None:
         try:
@@ -593,10 +636,13 @@ class RavenloftExtractorGui(tk.Tk):
                 raise RuntimeError("Choose a frame destination.")
             if self.cin_video.get() and not self.cin_video_dest.get():
                 raise RuntimeError("Choose a video destination.")
+            if not self.cin_meta_dest.get():
+                raise RuntimeError("Choose a metadata/original destination.")
+            meta_root = Path(self.cin_meta_dest.get())
         except Exception as exc:
             messagebox.showerror("Cannot extract", str(exc))
             return
-        base = frame_root or video_root or root / "RLOFT_DUMP" / "cinematics"
+        base = meta_root
         options = master_dumper.DumpOptions(
             cinematic_frame_format=self.cin_frame_format.get(),
             cinematic_video_format=self.cin_video_format.get(),
@@ -607,7 +653,19 @@ class RavenloftExtractorGui(tk.Tk):
             cinematic_timeline=self.cin_timeline.get(),
             preserve_native=self.cin_native.get(),
         )
-        self._run("Extracting selected cinematics…", lambda: master_dumper.dump_cinematics(root, base, options, self._master_progress, frame_root, video_root, base / "timelines", names=names))
+        self._run(
+            "Extracting selected cinematics…",
+            lambda: master_dumper.dump_cinematics(
+                root,
+                base,
+                options,
+                self._master_progress,
+                frame_root,
+                video_root,
+                base / "timelines",
+                names=names,
+            ),
+        )
 
     def _start_all(self) -> None:
         try:
@@ -621,6 +679,9 @@ class RavenloftExtractorGui(tk.Tk):
         options = master_dumper.DumpOptions(
             graphics_format=self.graphics_format.get(),
             graphics_palette=int(self.graphics_palette.get()),
+            graphics_indices=self.graphics_indices.get(),
+            graphics_metadata=self.graphics_metadata.get(),
+            graphics_masks=self.graphics_masks.get(),
             audio_format=self.audio_format.get(),
             music_format=self.music_format.get(),
             cinematic_frame_format=self.cin_frame_format.get(),
