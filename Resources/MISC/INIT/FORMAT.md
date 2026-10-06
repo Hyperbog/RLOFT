@@ -1,6 +1,6 @@
 # INIT format reconstruction
 
-Status: **the supplied 1,879-byte `INIT` file is structurally reconstructed end-to-end.** CODE.2 consumes an 18-word fixed header, two variable-count 7-byte scene-descriptor tables, and two environment-profile backdrop/panorama tables. `analyze_init.py` parses every byte and reserializes the file byte-identically.
+Status: **the supplied 1,879-byte `INIT` file is structurally reconstructed end-to-end and its fixed header is substantially behaviorally mapped.** CODE.2 consumes an 18-word fixed header, two variable-count 7-byte scene-descriptor tables, and two environment-profile backdrop/panorama tables. `analyze_init.py` parses every byte and reserializes the file byte-identically.
 
 ## Top-level layout
 
@@ -19,46 +19,61 @@ No bytes remain outside those structures in the supplied file.
 
 ## Fixed 0x24-byte initialization table
 
-The supplied header contains:
+The supplied words are:
 
 ```text
-offset  value
-+00      15
-+02     168
-+04     336
-+06       0
-+08    2169
-+0A    3316
-+0C    4158
-+0E     600
-+10      49
-+12      49
-+14      69
-+16     166
-+18     192
-+1A     266
-+1C      32
-+1E     103
-+20      48
-+22     414
+offset  value   CODE.2 destination / proved role
++00      15     0x258DC  RES0 type-1/raster graphics base
++02     168     0x258D8  RES1 OBJECTS inventory/UI graphics base
++04     336     0x258E4  RES1 character portrait base
++06       0     0x27100  RES3 source-class-0 base
++08    2169     0x27102  RES3 source-class-1 base
++0A    3316     0x27104  RES3 source-class-2 base
++0C    4158     0x27106  RES3 source-class-3 base
++0E     600     0x258F8  RES4 secondary/narrow texture-bank base
++10      49     -> music subsystem  alternate RES5/XMIDI bank offset
++12      49     0x258D0  RES6 sampled-SFX namespace base/boundary
++14      69     0x258C0  RES6 sampled-SFX namespace base/boundary
++16     166     0x258BC  RES6 sampled-SFX namespace base/boundary
++18     192     0x258D4  RES6 sampled-SFX namespace base/boundary
++1A     266     0x258C8  RES6 end / latent direct-SFX namespace base
++1C      32     0x258EC  archive-9 graphics/resource base
++1E     103     0x258CC  archive-9 interaction-resource base
++20      48     0x25614  archive-10 interaction voice/SFX base
++22     414     0x7FCC   archive-9 wordcode-bank displacement
 ```
 
-CODE.2 `16D04..17049` opens `INIT` and reads these words individually from offsets `0x00,0x02,...,0x22` into engine globals.
-
-## `+0x06..+0x0C`: complete RES3 scene-shape bank partition
-
-Four consecutive words become the source-bank table at DGROUP `0x27100..0x27106`:
+CODE.2 `16D04..17049` reads these words individually. The destination mapping above follows the actual instruction sequence; it supersedes the earlier mistaken note that assigned `+0x1C` to `0x258C8`. The immutable object proves:
 
 ```text
-INIT +0x06 =    0 -> source class 0 RES3 base
-INIT +0x08 = 2169 -> source class 1 RES3 base
-INIT +0x0A = 3316 -> source class 2 RES3 base
-INIT +0x0C = 4158 -> source class 3 RES3 base
+16F70..16F9D  read INIT +0x1A -> DGROUP 0x258C8
+16FA2..16FCA  read INIT +0x1C -> DGROUP 0x258EC
+16FCF..16FF2  read INIT +0x1E -> DGROUP 0x258CC
 ```
 
-Common helper `2B2F4` adds the source-class-selected base to the bank-local shape ID before geometry/render consumers request archive 3 through `2F29C`.
+### `+0x00 = 15`: RES0 raster base
 
-The 4,234-entry supplied RES3 archive is partitioned exactly:
+RES0 contains exactly 15 type-2 fonts at entries `0..14` followed by 126 type-1 raster resources at `15..140`. Graphics paths add local image IDs to `0x258DC` before archive-0 drawing. Thus `15` is the exact first raster-resource index.
+
+### `+0x02 = 168`: RES1 OBJECTS UI base
+
+Inventory/equipment paths read `OBJECTS.DAT +0x2D`, add global `0x258D8`, and load archive 1. All 336 supplied objects store local UI indexes `0..167`, resolving exactly to `RES1:168..335`.
+
+### `+0x04 = 336`: RES1 portrait base
+
+Character presentation computes:
+
+```text
+portrait_id = 336 + 23 * sex_index + int8(face_index)
+if (status_word & 0x0100)
+    portrait_id += 46
+```
+
+The two resulting 46-slot ranges are `RES1:336..381` and `RES1:382..427`. Each consists of 44 typed portrait resources, one empty entry, and a terminal raw `0x00000060` record. `T[27]/T[28]` prove the selector at character `+0x13` is MALE/FEMALE; `T[15..20]` prove `+0x14` is the six-value race selector. See `Resources/RES/RES0_RES1_NAMESPACES.md`.
+
+### `+0x06..+0x0C`: complete RES3 scene-shape partition
+
+The four bases are indexed by source class through common helper `2B2F4`:
 
 ```text
 class 0     RES3 0..2168       2169 entries
@@ -69,42 +84,85 @@ class 3     RES3 4158..4233      76 entries
                                    4234
 ```
 
-The proved source families are:
+Proved source families:
 
 ```text
 class 0  LEVELS family A / NPCS.DAT NPC-creature scene shapes
-class 1  LEVELS family B / first INIT 7-byte scene-descriptor family
-class 2  LEVELS family C loose/pickable items / OBJECTS.DAT definitions
-class 3  second INIT 7-byte transient/moving-effect descriptor family
+class 1  LEVELS family B / first INIT scene-descriptor family
+class 2  LEVELS family C loose/pickable OBJECTS family
+class 3  transient/moving-effect descriptor family
 ```
 
-See `Resources/RES/TYPE7_SOURCE_BANKS.md` for the detailed renderer mapping.
+### `+0x0E = 600`: RES4 type-6 texture split
+
+CODE.2 adds `0x258F8` to local selectors before archive-4 loads. The supplied RES4 archive contains exactly:
+
+```text
+RES4:0..599    600 type-6 resources decoding to 8192 bytes = 64 x 128 texels
+RES4:600..666   67 type-6 resources decoding to 4096 bytes = 32 x 128 texels
+```
+
+Thus `600` is the exact base of the secondary/narrow 32-column texture namespace.
+
+### `+0x10 = 49`: alternate RES5/XMIDI bank offset
+
+During initialization this value is passed to `288F0` and retained by the music subsystem. Music loaders `28C54` and `28E58` add it to the sequence ID for specific driver modes before loading archive 5. RES5 contains 98 type-3/XDIR resources, so `49` divides it exactly into two 49-entry banks. A driver-facing source name is intentionally not invented.
+
+### `+0x12..+0x1A`: RES6 sampled-SFX namespace boundaries
+
+Initialization stores these values as:
+
+```text
++12  49  -> 0x258D0
++14  69  -> 0x258C0
++16 166  -> 0x258BC
++18 192  -> 0x258D4
++1A 266  -> 0x258C8
+```
+
+Consumers add local sound IDs and route them through direct/queued sampled-audio playback (`27F24`, `28110`, `28164`). The sound subsystem is configured for archive 6, whose supplied corpus is exactly 266 type-4/VOC resources (`0..265`). These values therefore define SFX namespace bases/boundaries inside that archive; `266` equals the archive count and is one-past-end for this supplied set.
+
+The executable-supported wordcode opcode `0x1C` adds its operand to `0x258C8`; no supplied active wordcode program uses that opcode. Therefore `+0x1A=266` is preserved as a latent direct-SFX namespace base/end boundary rather than assumed to identify an extant RES6 resource.
+
+### `+0x1C = 32`: archive-9 graphics/resource base
+
+Global `0x258EC` is used with archive 9 by UI/display paths such as `1FB1E`, `2CF24`, and `2D1AD`. The supplied RES9 entries before the wordcode bank are type-1 graphics, so this is safely an archive-9 graphics/resource base. A narrower historical subsystem name remains open.
+
+### `+0x1E = 103` and `+0x22 = 414`: active interaction/wordcode bases
+
+Wordcode graphics use `0x258CC` as the archive-9 interaction-resource base. Raw wordcode loader `13F70` seeks:
+
+```text
+0x258CC + 0x7FCC + program_id
+= 103 + 414 + program_id
+= RES9:517 + program_id
+```
+
+This proves active program IDs `0..37` are exactly `RES9:517..554`.
+
+### `+0x20 = 48`: archive-10 interaction voice/SFX base
+
+Dialog/audio paths compute `48 + program_sound_subbase + local_sound_id`, temporarily select archive 10 via `280DC(10)`, and play through `27F24`. RES10 contains 219 type-4/VOC resources. Thus this word is the archive-10 interaction voice/sampled-audio base.
 
 ## Scene-descriptor tables
 
-After the fixed header, CODE.2 continues reading from the same open INIT stream.
+After the fixed header CODE.2 continues reading from the same open stream.
 
 ### Source-class-1 table
-
-Routine `1686C` reads:
 
 ```text
 INIT +0x0024  uint16 descriptor_count = 175
 INIT +0x0026  descriptor[175]          // 7 bytes each
 ```
 
-The table occupies `0x0026..0x04EE`, and its count matches family-B type IDs `0..174`.
-
 ### Source-class-3 table
-
-Routine `16934` then reads:
 
 ```text
 INIT +0x04EF  uint16 descriptor_count = 12
 INIT +0x04F1  descriptor[12]           // 7 bytes each
 ```
 
-Both tables use the same physical descriptor:
+Shared physical descriptor:
 
 ```text
 +0x00 uint16 local_shape_base
@@ -114,152 +172,5 @@ Both tables use the same physical descriptor:
 +0x06 uint8  scene_influence_step
 ```
 
-Executable evidence:
-
-- class-1 emitter `2BC0A..2BC53` and class-3 emitter `2C055..2C09D` compute `local_shape_base + live_variant * shape_stride`;
-- both pass `shape_stride` and source class to `2B2F4` for view/state-dependent subframe selection and RES3 base translation;
-- update paths `1BF05..1BF36` and `1C07D..1C0A3` increment the live three-bit selector modulo `variant_count`;
-- both scene emitters pass byte `+0x06` to common spatial-influence routine `2B088` when nonzero;
-- class-1 collision/selection code consumes `+0x02` as a symmetric spatial extent when greater than one. Its historical/editor label remains conservative.
-
-Corpus closure is exact:
-
-```text
-class 1 max(local_shape_base + shape_stride * variant_count) = 1147
-class 3 max(local_shape_base + shape_stride * variant_count) =   76
-```
-
-These exactly match the two RES3 bank sizes derived independently from the fixed header.
-
-## RES interaction/audio fields
-
-```text
-INIT +0x1C = 32  -> global 0x258C8
-INIT +0x1E = 103 -> global 0x258CC
-INIT +0x20 = 48  -> global 0x25614
-INIT +0x22 = 414 -> global 0x7FCC
-```
-
-### `+0x1E`: archive-9 interaction-resource base
-
-Wordcode drawing paths use `0x258CC` as the base for typed archive-9 resources. The supplied value is 103, so the interaction resource region begins at `RES9:103`.
-
-### `+0x22`: archive-9 wordcode displacement
-
-Raw loader `13F70` seeks archive-9 entry:
-
-```text
-0x258CC + 0x7FCC + program_id
-```
-
-With the supplied values:
-
-```text
-103 + 414 = 517
-```
-
-which exactly equals the first active non-EH program at `RES9:517`.
-
-### `+0x1C`: sound-effect base
-
-Wordcode opcode `0x1C` adds its encoded sound ID to `0x258C8` before direct playback through `27F24`. The supplied base is 32.
-
-### `+0x20`: second sound/index base
-
-A dialog/audio path adds the program sound sub-base and local sound ID to `0x25614` before playback. The supplied value is 48. A stronger historical source name remains deferred.
-
-## Environment-profile tables at `+0x0545`
-
-Routine `16990` consumes the remainder of INIT as:
-
-```text
-uint16 profile_count
-repeat profile_count:
-    uint16 res8_base
-    uint16 stored_record_count
-    placement placement[stored_record_count]
-
-placement:
-    int16 resource_selector
-    int16 azimuth_degrees
-    int16 draw_width_pixels
-    int16 screen_y
-```
-
-The supplied file stores exactly two profiles:
-
-```text
-profile 0: res8_base=8,  stored_record_count=38
-profile 1: res8_base=45, stored_record_count=27
-```
-
-Every list ends in one all-zero placement record and contains no earlier zero selector. Renderer `314B0` terminates on that zero selector even though `16990` also uses the serialized count for allocation/read size.
-
-### Link to LEVELS.DAT
-
-`LEVELS.DAT` fixed header byte `+0x290` is loaded to DGROUP `0x258A8` and has only values `0`, `1`, or `0xFF` in the shipped archive.
-
-At `1F2B1`, any non-`0xFF` value is passed directly to `314B0(profile_id)`, which indexes the two INIT profile arrays loaded by `16990`. Thus profile IDs 0 and 1 correspond exactly to these two serialized environment-profile groups; `0xFF` takes the alternate/default level path.
-
-### Link to RES8
-
-`314B0` calls graphics helper `2986C`, which calls `2F29C` with archive number **8**.
-
-For placement resources:
-
-```text
-if resource_selector >= 8:
-    absolute_RES8_id = res8_base + resource_selector
-else:
-    absolute_RES8_id = resource_selector
-```
-
-All supplied active placement selectors are >=24. Resolved IDs are:
-
-```text
-profile 0 -> RES8 {32,33,35,36,37,38,39,40,41,42,43}
-profile 1 -> RES8 {69,70,71,72}
-```
-
-All are valid inside the 73-entry supplied RES8 archive.
-
-The same `res8_base` also selects the profile's phase-dependent backdrop resources before the placement walk, proving that it is the base of a profile-specific RES8 environment graphics range.
-
-### Placement semantics
-
-`resource_selector` is the archive-8 graphic selector described above. Zero is the list terminator.
-
-`azimuth_degrees` is direct world/view angular placement: `314B0` subtracts current view angle `0xC658`, applies Â±360-degree wrap, and converts the difference to screen X with the encoded projection arithmetic.
-
-`draw_width_pixels` is halved for centering and used in horizontal clipping tests, directly proving a pixel width.
-
-`screen_y` is passed directly as the draw helper's vertical coordinate.
-
-See `ENVIRONMENT_PROFILES.md` for the full behavioral reconstruction.
-
-## Structural closure and reproducibility
-
-`analyze_init.py` validates that the supplied file has:
-
-```text
-18 fixed header words
-175 class-1 descriptors
-12 class-3 descriptors
-2 environment profiles
-38 / 27 stored environment records
-EOF immediately after profile 1
-```
-
-It also reserializes the parsed representation byte-for-byte and can verify all resolved placement IDs against RES8.
-
-## Safe implementation boundary
-
-A faithful reader/repacker may expose:
-
-- all 18 fixed header words while retaining conservative names for unresolved words;
-- the four RES3 source-bank starts;
-- the two 7-byte scene-descriptor tables and their proven shape/variant fields;
-- the interaction/audio bases at `+0x1C..+0x22`;
-- the two environment-profile groups and their RES8 base, angular placements, widths, and Y coordinates.
-
-Do not convert bank-local scene-shape bases stored in INIT/NPCS/OBJECTS into absolute RES3 IDs on disk; the source-bank addition is a runtime translation. Preserve serialized list counts and terminal zero placement records exactly.
+Executable evidence establishes base+variant¥ÍÑÉ¥‘”Í•±•Ñ¥½¸°µ½‘Õ±¼µÙ…É¥…¹Ñ}½Õ¹Ñ€ÕÁ‘…Ñ•Ì°…¹Í•¹”µ¥¹™±Õ•¹”¡…¹‘±¥¹œ¸Q¡”€¬ÁàÀÉ€¡¥ÍÑ½É¥…°Í½ÕÉ”¹…µ”É•µ…¥¹Ì½¹Í•ÉÙ…Ñ¥Ù”¸()½ÉÁÕÌ±½ÍÕÉ”è()Ñ•áĞ)±…ÍÌ€Äµ…à¡±½…±}Í¡…Á•}‰…Í”€¬Í¡…Á•}ÍÑÉ¥‘”€¨Ù…É¥…¹Ñ}½Õ¹Ğ¤€ô€ÄÄĞÜ)±…ÍÌ€Ìµ…à¡±½…±}Í¡…Á•}‰…Í”€¬Í¡…Á•}ÍÑÉ¥‘”€¨Ù…É¥…¹Ñ}½Õ¹Ğ¤€ô€€€ÜØ)€()Q¡•Í”•á…Ñ±äµ…Ñ Ñ¡”½ÉÉ•ÍÁ½¹‘¥¹œILÌ‰…¹¬Í¥é•Ì¸((ŒŒ¹Ù¥É½¹µ•¹ĞµÁÉ½™¥±”Ñ…‰±•Ì…Ğ€¬ÁàÀÔĞÕ€()I½ÕÑ¥¹”€ÄØääÁ€½¹ÍÕµ•ÌÑ¡”É•µ…¥¹‘•È…Ìè()Ñ•áĞ)Õ¥¹ĞÄØÁÉ½™¥±•}½Õ¹Ğ)É•Á•…ĞÁÉ½™¥±•}½Õ¹Ğè(€€€Õ¥¹ĞÄØÉ•Ìá}‰…Í”(€€€Õ¥¹ĞÄØÍÑ½É•‘}É•½É‘}½Õ¹Ğ(€€€Á±…•µ•¹ĞÁ±…•µ•¹ÑmÍÑ½É•‘}É•½É‘}½Õ¹Ñt()Á±…•µ•¹Ğè(€€€¥¹ĞÄØÉ•Í½ÕÉ•}Í•±•Ñ½È(€€€¥¹ĞÄØ…é¥µÕÑ¡}‘•É••Ì(€€€¥¹ĞÄØ‘É…İ}İ¥‘Ñ¡}Á¥á•±Ì(€€€¥¹ĞÄØÍÉ••¹}ä)€()MÕÁÁ±¥•ÁÉ½™¥±•Ìè()Ñ•áĞ)ÁÉ½™¥±”€ÀèÉ•Ìá}‰…Í”ôà°€ÍÑ½É•‘}É•½É‘}½Õ¹ĞôÌà)ÁÉ½™¥±”€ÄèÉ•Ìá}‰…Í”ôĞÔ°ÍÑ½É•‘}É•½É‘}½Õ¹ĞôÈÜ)€()… ±¥ÍĞ•¹‘Ì¥¸½¹”…±°µé•É¼Á±…•µ•¹ĞÉ•½É¸I•¹‘•É•È€ÌÄÑÁ€İ…±­ÌÕ¹Ñ¥°É•Í½ÕÉ•}Í•±•Ñ½È€ôô€Á€°İ¡¥±”Ñ¡”±½…‘•ÈÉ•Ñ…¥¹ÌÑ¡”Í•É¥…±¥é•½Õ¹Ğ™½È…±±½…Ñ¥½¸½É•…Í¥é”¸()1Y1L¹P¡•…‘•È€¬ÁàÈäÁ€Í•±•ÑÌÁÉ½™¥±”€À½È€Ä‘¥É•Ñ±äì€Áá€Ñ…­•ÌÑ¡”…±Ñ•É¹…Ñ”½‘•™…Õ±ĞÁ…Ñ ¸€ÌÄÑÁ€É•Í½±Ù•ÌÉ•Í½ÕÉ•ÌÑ¡É½Õ …É¡¥Ù”€à°ÁÉ½©•ÑÌ…é¥µÕÑ¡}‘•É••Í€……¥¹ÍĞÑ¡”ÕÉÉ•¹ĞÙ¥•Ü…¹±”İ¥Ñ ƒ
+ÄÌØÀİÉ…ÁÁ¥¹œ°ÕÍ•Ì‘É…İ}İ¥‘Ñ¡}Á¥á•±Í€™½È•¹Ñ•É¥¹œ½±¥ÁÁ¥¹œ°…¹Á…ÍÍ•ÌÍÉ••¹}å€‘¥É•Ñ±äÑ¼Ñ¡”‘É…ÜÁ…Ñ ¸()M•”9Y%I=959Q}AI=%1L¹µ‘€™½ÈÑ¡”‘•Ñ…¥±•É•¹‘•É•È•Ù¥‘•¹”¸((ŒŒMÑÉÕÑÕÉ…°±½ÍÕÉ”…¹É•ÁÉ½‘Õ¥‰¥±¥Ñä()…¹…±åé•}¥¹¥Ğ¹Áå€Ù…±¥‘…Ñ•ÌÍÑÉÕÑÕÉ…°Á…ÉÍ¥¹œ½É½Õ¹µÑÉ¥À™½È…±°€Ä°àÜä‰åÑ•Ì¸…¹…±åé•}É•Í½ÕÉ•}‰…Í•Ì¹Áå€¥¹‘•Á•¹‘•¹Ñ±äÙ…±¥‘…Ñ•ÌÑ¡”™¥á•µİ½ÉÉ•Í½ÕÉ”¹…µ•ÍÁ…”É•±…Ñ¥½¹Í¡¥ÁÌ……¥¹ÍĞÑ¡”¥µµÕÑ…‰±”ILÀ¼Ä¼Ğ¼Ô¼Ø¼ä¼ÄÀ°=	)QL¹P°P°…¹MY¹P½ÉÁÕÌ¸((ŒŒM…™”¥µÁ±•µ•¹Ñ…Ñ¥½¸‰½Õ¹‘…Éä()™…¥Ñ¡™Õ°É•…‘•È½É•Á…­•Èµ…ä•áÁ½Í”Ñ¡”ÁÉ½Ù•É•Í½ÕÉ”‰…Í•Ì…¹Í•¹”½•¹Ù¥É½¹µ•¹ĞÍÑÉÕÑÕÉ•Ìİ¡¥±”ÁÉ•Í•ÉÙ¥¹œ•Ù•ÉäÍ•É¥…±¥é•Ù…±Õ”•á…Ñ±ä¸%¸Á…ÉÑ¥Õ±…Èè((´‘¼¹½ĞÉ•İÉ¥Ñ”±½…°=	)QL°9A°Á½ÉÑÉ…¥Ğ°½ÈÍ•¹”µÍ¡…Á”¥¹‘•á•ÌÑ¼…‰Í½±ÕÑ”…É¡¥Ù”%Ì½¸‘¥Í¬ì(´ÁÉ•Í•ÉÙ”é•É¼µ±•¹Ñ …É¡¥Ù”Í±½ÑÌÑ¡…Ğ…É”Á…ÉĞ½˜™¥á•¹…µ•ÍÁ…•Ìì(´ÁÉ•Í•ÉÙ”Ñ¡”É…ÜILÄÁ½ÉÑÉ…¥Ğµ‰…¹¬Ñ•Éµ¥¹…°µ…É­•ÉÌ•Ù•¸Ñ¡½Õ Ñ¡¥Ì=¸È‘½•Ì¹½Ğ½¹ÍÕµ”Ñ¡•´ì(´­••À¡¥ÍÑ½É¥…°½•‘¥Ñ½È¹…µ•Ì½¹Í•ÉÙ…Ñ¥Ù”İ¡•É”½¹±äÉÕ¹Ñ¥µ”¹…µ•ÍÁ…”‰•¡…Ù¥½È¥ÌÁÉ½Ù•¸(

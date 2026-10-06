@@ -18,22 +18,25 @@ Its serialized sections are:
 0x0545..0x0756    2 environment-profile backdrop/panorama tables
 ```
 
-Confirmed fixed-header relationships now include:
+The fixed header is now substantially behaviorally mapped. Confirmed resource relationships include:
 
-- `+0x00 = 15`: RES0 UI-graphics base; entries `0..14` are the 15 type-2 fonts and UI/raster consumers use archive 0 relative to this base;
-- `+0x02 = 168`: RES1 object/inventory UI base; `OBJECTS.DAT +0x2D` values `0..167` map exactly to `RES1:168..335`;
-- `+0x04 = 336`: RES1 character-face base; CODE.2 uses `face_index + sex*23` and adds 46 when status bit `0x0100` selects the alternate portrait bank;
-- four RES3/type-7 source-bank starts at `+0x06..+0x0C`;
-- archive-9 sound/resource/wordcode bases at `+0x1C..+0x22`;
-- class-1 and class-3 scene shape descriptor tables;
-- two environment-profile tables selected directly by `LEVELS.DAT header +0x290` values `0` and `1`;
-- environment graphics resolved through archive 8 / `RES8` with azimuth-anchored placement records.
+- `+0x00 = 15`: first RES0 type-1/raster graphic, immediately after all 15 fonts;
+- `+0x02 = 168`: RES1 OBJECTS inventory/UI graphic base;
+- `+0x04 = 336`: RES1 character portrait base;
+- `+0x06..+0x0C`: four RES3/type-7 source-bank starts;
+- `+0x0E = 600`: RES4 secondary/narrow type-6 texture-bank base (600 64-column textures followed by 67 32-column textures);
+- `+0x10 = 49`: alternate RES5/XMIDI resource-bank offset used by the music loader for specific driver modes;
+- `+0x12/+0x14/+0x16/+0x18/+0x1A = 49/69/166/192/266`: RES6 sampled-SFX namespace boundaries/bases, with 266 equal to the supplied RES6 entry count and used only by an executable-supported but uninstantiated wordcode direct-SFX path;
+- `+0x1C = 32`: archive-9 graphics/resource base at DGROUP `0x258EC`;
+- `+0x1E = 103`: archive-9 interaction-resource base at DGROUP `0x258CC`;
+- `+0x20 = 48`: archive-10 interaction voice/SFX base;
+- `+0x22 = 414`: displacement from archive-9 interaction base to the active wordcode bank.
+
+This corrects an earlier documentation slip that associated `+0x1C` with DGROUP `0x258C8`: immutable CODE.2 loads **`+0x1A` into `0x258C8`** and **`+0x1C` into `0x258EC`**.
 
 See:
 
 - `FORMAT.md` for the complete serialized grammar and fixed-header relationships;
-- `UI_RESOURCE_BASES.md` for the first three INIT words and RES0/RES1 UI/portrait mappings;
-- `ENVIRONMENT_PROFILES.md` for the final two profile tables and renderer semantics;
-- `analyze_init.py` for reproducible parsing/round-trip validation.
-
-Some fixed-header words still lack historical source/editor names. Structural closure does not justify inventing labels for fields whose runtime meaning remains only partially characterized.
+- `ENVIRONMENT_PROFILES.md` for the final two profile tables and their renderer semantics;
+- `analyze_init.py` for byte-exact structural validation;
+- `analyze_resource_bases.py` for cross-archive validation of the fixed-header namespace bases.

@@ -9,45 +9,24 @@ RES1 is structurally covered by the common RES archive parser/round-trip tooling
 
 The archive contains 405 typed `EH` resources, 21 intentional zero-length entries, and two raw four-byte records.
 
-## Executable-backed namespaces
-
-INIT and CODE.2 now prove two important RES1 base relationships:
+Executable/corpus cross-linking now establishes two major INIT-driven namespaces:
 
 ```text
-INIT +0x02 = 168  object/inventory UI graphic base
-INIT +0x04 = 336  character-face graphic base
+RES1:168..335  OBJECTS.DAT inventory/UI graphics
+RES1:336..381  character portrait namespace A (46 slots)
+RES1:382..427  character portrait namespace B (46 slots; status bit 0x0100)
 ```
 
-Every supplied `OBJECTS.DAT +0x2D` UI graphic index lies in `0..167`, so object/UI graphics resolve into archive slots `168..335` exactly.
-
-Character portraits occupy the remaining 92 slots `336..427` as two 46-slot banks. CODE.2 selects:
+The portrait namespaces each end with one empty slot followed by the same raw marker:
 
 ```text
-local = face_index + sex * 23
-id    = 336 + local
-if status_word & 0x0100:
-    id += 46
+RES1:380 empty   RES1:381 60 00 00 00
+RES1:426 empty   RES1:427 60 00 00 00
 ```
 
-`sex` is independently proved as `0=MALE`, `1=FEMALE` through the T text archive. See `../RES1_PORTRAITS.md`.
-
-## Terminal raw records
-
-The portrait-bank ends contain:
-
-```text
-RES1:380  empty
-RES1:381  60 00 00 00
-RES1:426  empty
-RES1:427  60 00 00 00
-```
-
-These correspond to female face slots 21 and 22 in the two parallel 46-slot banks. All male face slots 0..22 and female face slots 0..20 contain normal typed portrait graphics.
-
-The raw slots cannot pass the normal `EH` loader, and archive 1 has no direct raw-handle consumer in the certified CODE.2 object. Their runtime slot role is therefore resolved as invalid/reserved portrait positions, while the historical reason for the literal marker value `0x00000060` remains unknown.
+The raw marker's historical producer meaning remains unknown. CODE.2 cannot consume it through the normal `EH` loader and has no raw archive-1 access path, so it remains preserved as inactive serialized metadata/marker data rather than assigned a synthetic resource type.
 
 See:
 
-- `../RES1_PORTRAITS.md` for portrait indexing and character-field evidence;
-- `../RES1_SENTINELS.md` for loader reachability and preservation rules;
-- `../../MISC/INIT/UI_RESOURCE_BASES.md` for INIT base-field cross-links.
+- `../RES0_RES1_NAMESPACES.md` for the INIT/object/portrait namespace mapping;
+- `../RES1_SENTINELS.md` for marker reachability and preservation evidence.
