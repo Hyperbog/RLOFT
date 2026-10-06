@@ -21,7 +21,7 @@ SPECIAL = {
     "XMIDI music": "Extract Miles XMIDI/XDIR music from the selected music archives.",
     "SAMPLE.AD OPL2 timbres": "Extract the game's Miles AIL YM3812/OPL2 instrument definitions.",
     "GM1.BNK / GM2.BNK ARIA banks": "Preserve the original ARIA General MIDI support banks and identification metadata.",
-    "Extract Audio & Music": "Extract the enabled audio/music categories and selected source archives.",
+    "Extract Selected Audio & Music": "Extract the enabled audio/music categories from only the selected source archives.",
     "Extract Selected Support Assets": "Extract only the checked standalone support-data categories.",
     "Cinematic frame sequences": "Include every cinematic as individual lossless frame images in Dump All.",
     "Also render native-timed FFV1/MKV movies": "Also create lossless movies using reconstructed native variable frame timing.",
@@ -29,14 +29,18 @@ SPECIAL = {
     "Standalone support assets": "Include palettes, text/subtitles, OPL2 timbres, ARIA banks, INIT mappings, and SINTAB data.",
     "Dump Everything": "Extract the complete audited media/resource corpus using the options selected in the other tabs.",
     "Canonical palette-index bytes (.indices)": "Recommended for a faithful modern port. Keeps the original 8-bit palette indices independently of the preview palette.",
-    "Metadata / compiled-shape data": "Write JSON metadata and the decoded type-7 compiled-shape body used to reconstruct scene sprites.",
-    "Transparency mask PNGs": "Write a separate 8-bit alpha mask for scene-shape images. Usually unnecessary when using PNG/TIFF/WebP with alpha.",
+    "Decoded indices (.indices)": "Recommended for a faithful modern port. Keeps the original 8-bit palette indices independently of the preview palette.",
+    "Metadata / compiled-shape data": "Write JSON metadata plus decoded type-7 shape data used to reconstruct NPCs, monsters, objects, items, and effects.",
+    "Metadata / shape data (.json/.bin)": "Write JSON metadata plus decoded type-7 shape data used to reconstruct NPCs, monsters, objects, items, and effects.",
+    "Transparency mask PNGs": "Write a separate 8-bit alpha mask for scene-shape images. Optional when the chosen image format already carries alpha.",
+    "Transparency masks (.mask.png)": "Write a separate 8-bit alpha mask for scene-shape images. Optional when the chosen image format already carries alpha.",
     "Native RES/EH records": "Archival option. Preserve each original typed RES record beside the decoded asset.",
+    "Original EH records (.eh)": "Archival option. Preserve each original typed RES record beside the decoded asset.",
 }
 
 
 class HoverTip:
-    def __init__(self, widget: tk.Widget, text: str, delay_ms: int = 750):
+    def __init__(self, widget: tk.Widget, text: str, delay_ms: int = 800):
         self.widget = widget
         self.text = text
         self.delay_ms = delay_ms
@@ -45,6 +49,7 @@ class HoverTip:
         widget.bind("<Enter>", self._schedule, add="+")
         widget.bind("<Leave>", self._hide, add="+")
         widget.bind("<ButtonPress>", self._hide, add="+")
+        widget.bind("<Destroy>", self._hide, add="+")
 
     def _schedule(self, _event=None) -> None:
         self._cancel()
