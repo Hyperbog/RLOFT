@@ -31,7 +31,7 @@ CODE.2 independently reads the dword count, computes `count * 0x45`, allocates e
 
 ```text
 +0x00  char    name[20]
-+0x14  uint16  scene_sprite_base
++0x14  uint16  local_shape_base
 +0x16  uint16  collision_half_extent
 +0x18  uint8   scene_frame_stride
 +0x19  uint8   animation_cycle_divisor
@@ -64,9 +64,9 @@ The flag-field names are physical/behavioral. Individual aliases are exposed onl
 
 ## Fixed name and scene fields
 
-The first 20 bytes are a NUL-terminated fixed display-name field. All 83 supplied records terminate within the field; the longest name is 18 characters.
+The first 20 bytes are a NUL-terminated fixed display-name field. All 83 supplied records terminate within the field; the longest name is 18 characters. Twenty records contain nonzero residual bytes after the first NUL terminator, including `0x0D` bytes and stale text fragments. Runtime C-string consumers stop at the first NUL, but a preservation-grade serializer must retain the remaining physical bytes unchanged unless an intentional raw-field edit is made.
 
-First-person family-A scene emission uses `+0x14` as the base sprite/resource. `+0x16` is loaded as a 16-bit fixed-point collision half-extent and added/subtracted from live NPC coordinates to form bounding boxes. Supplied encodings are:
+First-person family-A scene emission uses `+0x14` as the class-0 bank-local compiled-shape base. The class-0 bank is `RES3:0..2168`, so the bank translation is numerically invisible in this build (`absolute_RES3_id = 0 + local_shape_id`). `+0x16` is loaded as a 16-bit fixed-point collision half-extent and added/subtracted from live NPC coordinates to form bounding boxes. Supplied encodings are:
 
 ```text
 0x8000 : 76
