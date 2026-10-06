@@ -1,142 +1,110 @@
-# CODE.1 / CODE.2 Linear-Executable Object Map
+# CODE.1 / CODE.2 Application Object Map
 
-Status: **CONFIRMED STRUCTURAL BASELINE**
+Status: **CORRECTED / CONFIRMED AGAINST CANONICAL DECOMPILATION BASELINES**
 
-This checkpoint reconstructs the protected-mode image map needed to convert raw file offsets into runtime addresses. It supersedes the earlier caution that the `CHARS` file offsets could not yet be translated safely.
+This document records the physical-to-logical mapping required for runtime/data xref work. It supersedes the earlier revision of this file, which incorrectly treated the LE `data-pages offset` as the physical start of object 1. The canonical CODE.1/CODE.2 decompilation records already contain the certified application extraction boundaries and remain controlling evidence.
 
-## 1. Bound-image chain
+## 1. Bound-image structure
 
-Both shipped files begin with the same DOS/4G binding/runtime prefix. The outer MZ header reports `e_cblp = 0x0044` and `e_cp = 0x007B`, placing the end of the first MZ image at file offset:
+Both shipped files are DOS/4G-bound executables containing the protected-mode Ravenloft application after the extender/binding material. The application metadata describes two objects: executable object 1 and data object 2.
 
-`(0x7B - 1) * 0x200 + 0x44 = 0xF444`
+The important rule is that a raw file offset cannot be converted by subtracting the LE-header-relative data-pages field alone. The physical page stream must be interpreted using the executable's actual page organization. The project's already-certified extraction baselines provide the authoritative object starts.
 
-At exactly `0xF444`, both files contain the Rational `BW` signature. This explains the previous `file(1)` classification as a `BW collection for MS-DOS`.
+## 2. CODE.1 certified map
 
-The actual Ravenloft protected-mode application image is a later **LE (Linear Executable)** image. In both files the unique structurally valid LE header begins at:
+Canonical CODE.1 records establish:
 
-- `LE header file offset = 0x27BDC`
-- signature = `LE`
-- byte order = little-endian
-- CPU = `2` (386)
-- target OS = `1` (OS/2-compatible LE encoding used by the extender)
-- object count = `2`
+- file size: `0x43D1B`
+- object-1 virtual/executable extent: `0x11302`
+- object-1 file start: `0x2C724`
+- object-1 virtual base used by the application map: `0x10000`
+- object 1 occupies 18 x `0x1000` physical page slots
+- object-2 virtual base: `0x30000`
 
-The LE header location is independently supported by the header fields and by a complete, internally consistent object/page map; it is not inferred from the incidental ASCII letters `LE` elsewhere in the binaries.
+Therefore object 2 begins physically at:
 
-## 2. CODE.1 LE map
-
-LE header: `0x27BDC`
-
-Header fields relevant to mapping:
-
-| Field | Value |
-|---|---:|
-| Module pages | `0x18` (24) |
-| Initial EIP object | `1` |
-| Initial EIP | `0xCC1C` |
-| Initial ESP object | `2` |
-| Initial ESP | `0x9E90` |
-| Page size | `0x1000` |
-| Object table offset | `0xC4` |
-| Object count | `2` |
-| Object page-map offset | `0xF4` |
-| Data-pages offset | `0x6A00` |
-
-The data-pages offset is relative to the LE header, giving:
-
-`0x27BDC + 0x6A00 = 0x2E5DC`
-
-Objects:
-
-| Object | Virtual size | Relocation base | Flags | First page | Pages |
-|---|---:|---:|---:|---:|---:|
-| 1 | `0x11302` | `0x10000` | `0x2005` | 1 | 18 |
-| 2 | `0x09E90` | `0x30000` | `0x2003` | 19 | 6 |
-
-The 24 LE page-map entries are sequential physical pages 1 through 24. Therefore an address in stored page `n` maps through the owning object's relocation base plus its object-relative page index and in-page displacement.
+`0x2C724 + (18 * 0x1000) = 0x3E724`
 
 ### CODE.1 `CHARS`
 
-The certified string occurs at file offset `0x3E7B8`.
+`CHARS` occurs at file offset `0x3E7B8`.
 
-Relative to the first stored data page:
+Object-2 displacement:
 
-`0x3E7B8 - 0x2E5DC = 0x101DC`
+`0x3E7B8 - 0x3E724 = 0x94`
 
-This is object 1, zero-based object page 16, displacement `0x1DC`.
+Correct mapped address:
 
-Therefore:
+**CODE.1 `CHARS` = object 2 + `0x94` = linear `0x30094`.**
 
-**CODE.1 `CHARS` runtime linear address = `0x201DC`.**
+The previous value `0x201DC` was incorrect and must not be used for xref work.
 
-This address is now suitable for machine-code/data-reference xref work.
+## 3. CODE.2 certified map
 
-## 3. CODE.2 LE map
+Canonical CODE.2 records establish:
 
-LE header: `0x27BDC`
+- file size: `0x88661`
+- object-1 virtual size: `0x3A852`
+- object-1 file start: `0x3AF24`
+- object-1 virtual base: `0x10000`
+- object 1 occupies 59 x `0x1000` physical page slots
+- object-2 file start: `0x75F24`
+- object-2 virtual base: `0x50000`
+- object-2 virtual size: `0x2DD10`
 
-| Field | Value |
-|---|---:|
-| Module pages | `0x4E` (78) |
-| Initial EIP object | `1` |
-| Initial EIP | `0x353A0` |
-| Initial ESP object | `2` |
-| Initial ESP | `0x2DD10` |
-| Page size | `0x1000` |
-| Object table offset | `0xC4` |
-| Object count | `2` |
-| Object page-map offset | `0xF4` |
-| Data-pages offset | `0x15200` |
+The object-2 physical start is independently reproduced by:
 
-Stored data begins at:
+`0x3AF24 + (59 * 0x1000) = 0x75F24`
 
-`0x27BDC + 0x15200 = 0x3CDDC`
+### CODE.2 `CHARS` #1
 
-Objects:
+File offset: `0x76634`
 
-| Object | Virtual size | Relocation base | Flags | First page | Pages |
-|---|---:|---:|---:|---:|---:|
-| 1 | `0x3A852` | `0x10000` | `0x2005` | 1 | 59 |
-| 2 | `0x2DD10` | `0x50000` | `0x2003` | 60 | 19 |
+Object-2 displacement:
 
-All 78 page-map entries are sequential physical pages 1 through 78.
+`0x76634 - 0x75F24 = 0x710`
 
-### CODE.2 `CHARS` occurrences
+Correct mapped address:
 
-First occurrence, file `0x76634`:
+**CODE.2 `CHARS` #1 = linear `0x50710`.**
 
-`0x76634 - 0x3CDDC = 0x39858`
+### CODE.2 `CHARS` #2
 
-This is object 1 page index 57 with displacement `0x858`, giving:
+File offset: `0x77064`
 
-**runtime linear address `0x49858`.**
+Object-2 displacement:
 
-Second occurrence, file `0x77064`:
+`0x77064 - 0x75F24 = 0x1140`
 
-`0x77064 - 0x3CDDC = 0x3A288`
+Correct mapped address:
 
-This is object 1 page index 58 with displacement `0x288`, giving:
+**CODE.2 `CHARS` #2 = linear `0x51140`.**
 
-**runtime linear address `0x4A288`.**
+The previous values `0x49858` and `0x4A288` were incorrect and must not be used for xref work.
 
-Both values fall inside object 1's declared virtual extent (`0x10000` through `0x4A851` inclusive), providing an additional consistency check.
+## 4. Why the correction matters
 
-## 4. Architectural consequence
+The erroneous mapping placed all three strings in executable object 1. The corrected map places all three in **data object 2**, which is exactly the expected location for filename/string data referenced by application code.
 
-The CODE binaries are not opaque flat byte streams. They are bound DOS/4G executables containing a shared DOS/extender prefix followed by a two-object 386 LE application image. For Ravenloft reverse engineering, raw application file offsets must therefore be translated through the LE page map before they are compared with runtime/decompiler addresses.
+This also explains why a search of the executable instruction stream for the former absolute addresses produced no valid references.
 
-For the current handoff investigation the three certified anchors are now:
+## 5. Certified xref anchors
 
-- CODE.1 `CHARS`: `file 0x3E7B8` -> `linear 0x201DC`
-- CODE.2 `CHARS` #1: `file 0x76634` -> `linear 0x49858`
-- CODE.2 `CHARS` #2: `file 0x77064` -> `linear 0x4A288`
+Use only these values going forward:
 
-## 5. Validation notes
+- CODE.1 `CHARS`: file `0x3E7B8` -> object-2 `+0x94` -> linear `0x30094`
+- CODE.2 `CHARS` #1: file `0x76634` -> object-2 `+0x710` -> linear `0x50710`
+- CODE.2 `CHARS` #2: file `0x77064` -> object-2 `+0x1140` -> linear `0x51140`
 
-The mapping was reconstructed directly from the shipped LE headers, object table, and page map. RetroLinker's open implementation of Rational BW parsing was used only to corroborate the structure of the preceding bound `BW` image; the Ravenloft LE values above come from the game binaries themselves.
+## 6. Evidence hierarchy
 
-This also explains why generic GNU `objdump` was not a safe basis for the earlier xref attempt: the relevant application image is embedded behind the DOS/4G binding layer.
+The correction was made by reconciling the shipped binaries against the project's certified decompilation baselines rather than extending an unverified header interpretation:
+
+- `Code1/DECOMPILATION_CONTINUITY.md`: object-1 file start `0x2C724`, extent `0x11302`
+- `Code2/README.md` / `FINAL_CERTIFICATION.md`: object-1 file start `0x3AF24`, object-2 file start `0x75F24`, object-1 extent `0x3A852`
+
+The shipped CODE bytes remain controlling evidence.
 
 ## Next checkpoint
 
-Use linear addresses `0x201DC`, `0x49858`, and `0x4A288` as certified data anchors; enumerate immediate/pointer references to those addresses in the reconstructed application objects; classify the surrounding functions as open/read/write/create/test operations; then correlate those paths with the launcher return-status producers.
+Search the executable object-1 streams for references/fixups resolving to data-object offsets `0x94`, `0x710`, and `0x1140`; classify each reference by operation and function; then correlate the resulting paths with launcher return statuses 10 and 12.
