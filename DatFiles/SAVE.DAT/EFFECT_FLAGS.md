@@ -1,6 +1,6 @@
 # SAVE.DAT timed character effects
 
-Status: **executable-certified structure, normalized to runtime character base DGROUP `0x218E0`; individual gameplay names remain under reconstruction.**
+Status: **high-effort executable-audited structure, normalized to runtime character base DGROUP `0x218E0`; individual player-facing effect names remain under reconstruction.**
 
 Each `0x248` character record contains a persistent 26-entry timed-effect subsystem:
 
@@ -30,39 +30,49 @@ The handler maps the effect index directly to the common `T` archive:
 expiration message T index = 0x24C + effect_index
 ```
 
-Thus effect 0 uses `T[588]` and effect 25 uses `T[613]`. Decoding those records remains the preferred route to exact player-facing effect identities.
+Thus effect 0 uses `T[588]` and effect 25 uses `T[613]`. Decoding those records remains the preferred route to exact player-facing identities.
 
-## Effect-specific expiration side effects
+## Re-audited expiration dispatch
 
-Corrected serialized offsets below are derived from runtime addresses using `record_offset = runtime_address - 0x218E0`:
+A high-effort instruction-by-instruction recheck of physical `0x436EF..0x4385A` corrected an earlier index-10/index-11 transcription error. The executable dispatch is:
 
 ```text
-index  1  -> invokes a shared external-state update
-index  6  -> decrements character dword at runtime 0x21AD2 / record +0x1F2
-index 10  -> clears character dword at runtime 0x21ACA / record +0x1EA
-index 11  -> expiration branch participates in Strength-effect cleanup; see producer audit before assigning identity
-index 12  -> reverses the Strength adjustment stored at runtime 0x21A03 / record +0x123 through helper 0x4CF50
-index 13  -> subtracts low byte of runtime 0x21A07 / record +0x127 from Dexterity current/effective at record +0x35
+index  1  -> invokes shared external-state update via 0x6CE5C(0xF91C)
+index  6  -> decrements runtime 0x21AD2 / record +0x1F2
+index 10  -> invokes the same shared external-state update as index 1
+index 11  -> clears runtime 0x21ACA / record +0x1EA
+index 12  -> reverses Strength adjustment at runtime 0x21A03 / record +0x123 through 0x4CF50
+index 13  -> subtracts low byte of runtime 0x21A07 / record +0x127 from current Dexterity at +0x035
 index 17  -> decrements global dword 0xFD08
 index 18  -> decrements global word 0xF03C
 index 20  -> decrements global word 0x6DAE and dirties all four party display slots
 index 21  -> clears the corresponding shared effect state across all four party records and dirties all four display slots
-index 23  -> reverses the modifier at runtime 0x21A9E / record +0x1BE through helper 0x4CF50
+index 23  -> reverses modifier at runtime 0x21A9E / record +0x1BE through 0x4CF50
 index 25  -> decrements global word 0xF03E
 ```
 
-The earlier documentation associated the `0x21A03` Strength modifier with record `+0x12B`; that was the obsolete `0x218D8` base. Its corrected serialized offset is `+0x123`, while its executable runtime address is unchanged.
+Indexes not listed still receive the common bit-clear, timer-clear, message, and refresh processing.
 
-Indexes not listed still receive common bit/timer/message expiration processing.
+### Correction history
 
-## Producer-side evidence
+An earlier revision incorrectly assigned the `0x21ACA` clear to effect index 10 and described index 11 as Strength-related cleanup. Direct branch decoding proves instead that indexes 1 and 10 converge on the same external-state update at physical `0x4376C`, while index 11 branches to physical `0x4378A` and clears `0x21ACA`. That older interpretation is superseded.
 
-The generic effect-application path at physical `0x45394` ORs a caller-supplied mask into `active_effect_bits`. When duration is nonzero it computes an absolute expiration and stores it in the timer array selected by the same effect/mask path.
+The prior offset-base correction remains valid: runtime `0x21A03` is serialized `+0x123`, not the obsolete `+0x12B` derived from base `0x218D8`.
 
-A separate direct producer at physical `0x46A61` sets bit `0x00000002` and stores a computed absolute timer at runtime `0x21A1A`, independently confirming bit-index/timer-index pairing.
+## Producer-side cross-checks
 
-Producer-side audits also establish primary effect index 12 as the effect using the reversible Strength adjustment at runtime `0x21A03` / record `+0x123`, and index 23 as the effect using runtime `0x21A9E` / record `+0x1BE`.
+The generic application path around physical `0x45394` ORs a caller-supplied mask into `active_effect_bits`, computes the absolute expiry, and stores it in the matching timer slot.
+
+Producer behavior independently confirms several dispatch identities:
+
+- mask `0x00000040` / index 6 accumulates state at runtime `0x21AD2` / `+0x1F2`;
+- mask `0x00000800` / index 11 accumulates state at runtime `0x21ACA` / `+0x1EA`, matching the index-11 expiration clear;
+- physical `0x458B9..0x45940` sets overall bit 12, timer index 12, and stores the reversible Strength adjustment at `0x21A03` / `+0x123`;
+- physical `0x45A49..0x45AD7` sets overall bit 13, timer index 13, stores the Dexterity adjustment at `0x21A07` / `+0x127`, and applies it to current Dexterity `0x21915` / `+0x035`;
+- physical `0x61FEB..0x62002` stores a Strength adjustment at `0x21A9E` / `+0x1BE`, sets overall bit 23, and schedules timer index 23.
+
+A separate producer at physical `0x46A61` sets bit `0x00000002` and the corresponding timer at runtime `0x21A1A`, independently confirming bit/timer index pairing.
 
 ## Reconstruction rule
 
-A native port must preserve all 26 timers exactly, including inactive or unusual values. Cancellation/expiration must synchronize the bit and timer and reproduce effect-specific reversal behavior. Runtime addresses are the executable anchors; all serialized offsets in this document use the corrected character base `0x218E0`.
+A native port must preserve all 26 timers exactly, including inactive or unusual values. Cancellation and expiration must synchronize the bit and timer and reproduce index-specific reversal/cleanup behavior. Runtime addresses are the executable anchors; all serialized offsets here use corrected character base `0x218E0`.
