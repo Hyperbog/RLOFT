@@ -1,6 +1,6 @@
 # NPCS.DAT
 
-Status: **practical format/semantic closure for faithful parsing and runtime reproduction. The fixed 83 × 0x45 record layout is proven; scene/render fields, collision extent, core combat statistics, XP, action delay, renderer scale bias, runtime-state templates, all four creature sound contexts, and twenty behavior/effect aliases are decoded; lossless parse/encode is verified. Remaining populated flag bits are explicitly partitioned as raw residual capacity or exact-but-intent-unknown executable behavior.**
+Status: **ARCHIVAL-COMPLETE FOR THE SUPPLIED BUILD. Fixed 83 × 0x45 geometry, scene-shape/resource linkage, combat/status/audio semantics, raw residual flag preservation, and byte-exact semantic decode→encode are certified.**
 
 - Size: 5,731 bytes
 - SHA-256: `f2dd1175bf42e8291b95952282dfc0cfb84455aaa532987cdd7380094c8eb30b`
@@ -220,18 +220,14 @@ unresolved +0x3C nonzero              0
 - `WEAPON_DAMAGE_FLAGS.md` — physical weapon gates and category-11 anomaly.
 - `SOUND_FIELDS.md` — all four sound contexts.
 - `RENDER_AUX_27.md` — type-7 projected-scale lookup bias.
-- `inspect_npcs.py` — lossless parser/encoder.
+- `FINAL_AUDIT_2026-10-06.md` — final archival certification and cross-workstream consistency audit.
+- `inspect_npcs.py` — lossless semantic parser/encoder.
 - `analyze_behavior_flags.py` — aggregate bit audit.
 - `analyze_residual_flags.py` — residual masks plus full-dword CODE.2 consumer verification.
 - specialized analyzers accompany each semantic module.
 
 ## Current frontier
 
-NPCS.DAT is at **practical preservation-grade closure**. Remaining questions are non-blocking and explicitly bounded:
+The supplied-build NPCS reconstruction is archival-complete. Remaining questions are bounded historical/source-name enrichment only: unresolved flag labels, category-11 source terminology, exact editor names for several renderer/spatial quantities, and possible cross-version meaning for `+0x3B/+0x3C`.
 
-1. six populated main-dword bits and four `+0x39` bits have no proved semantic consumer and remain raw;
-2. category-11 bits `0x20000/0x40000` have exact executable behavior but unresolved intended source-level names;
-3. `+0x3B/+0x3C` are zero in all supplied definitions but are preserved rather than declared mandatory padding;
-4. story-NPC-specific animation interpretation may be documented later only if code proves stronger names.
-
-None of these prevents a faithful reader/editor, creature database implementation, combat model, renderer linkage, or effect/status system. The next major DAT reverse-engineering target is `SAVE.DAT`.
+None prevents faithful parsing, editing, byte-exact serialization, scene rendering, combat/status behavior, audio routing, or LEVELS linkage. See `FINAL_AUDIT_2026-10-06.md`. The next DAT format requiring the same formal final certification is `INFO.DAT`.
