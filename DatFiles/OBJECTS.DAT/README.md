@@ -27,8 +27,8 @@ Exact size equation:
 
 ```text
 +0x00  char   name[40]
-+0x28  uint16 world_sprite_base
-+0x2A  uint8  world_heading_stride
++0x28  uint16 local_shape_base
++0x2A  uint8  shape_stride
 +0x2B  uint8  scene_influence_step
 +0x2C  uint8  unresolved_2C
 +0x2D  uint16 ui_graphic_index
@@ -55,14 +55,17 @@ bits 2..5  weapon_speed_factor
 
 Pair class 2 is proved **paired-hand-exclusive**. Values 0 and 1 remain distinct pairable compatibility classes pending stronger source-level labels.
 
-The family-C renderer proves:
+Family-C scene emission treats these as **RES3 class-2 bank-local shape coordinates**:
 
 ```text
-world_sprite_frame = world_sprite_base
-                   + heading_index * world_heading_stride
+variant_subrange_base = local_shape_base
+                      + scene_variant * shape_stride
+absolute_RES3_base    = 3316 + variant_subrange_base
 ```
 
-LEVELS family B and C both address this database by object type ID.
+The common scene helper may then choose a view/state-dependent subframe inside the selected stride. The three-bit live selector is therefore a scene/state **variant selector**, not universally a heading. Normal family-C level loading and thrown-item creation clear that selector initially, and no class-2 periodic variant-cycle path has been proved.
+
+The supplied class-2 bank is exactly 842 resources (`RES3:3316..4157`); every OBJECTS base/stride window is in range and the largest supplied endpoint is exactly `834 + 8 = 842`. LEVELS family B and C both address this database by object type ID.
 
 ## `+0x2B`: scene influence propagation
 
