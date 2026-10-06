@@ -1,6 +1,6 @@
 # LEVELS.DAT
 
-Status: **archive/record structure proven; first cell-state and automap semantics proven; remaining field reconstruction in progress**.
+Status: **archive/record structure proven; cell-state and core automap classifier/export semantics substantially reconstructed; remaining field reconstruction in progress**.
 
 - Size: 499,878 bytes
 - SHA-256: `50d0b1d13f81733a1ac55296d00fcba9aef002202bc00341f1062c37fd017d91`
@@ -28,6 +28,7 @@ Every boundary equation and final record length validates for all 32 levels with
 - `FORMAT.md` — byte-level archive/direct-save structure.
 - `SEMANTICS.md` — proved header, list-record, and 11->22-byte record semantics.
 - `CELL_WORD.md` — 16-bit cell code/flag model, visibility/exploration behavior, renderer consumers, and final automap byte-cache relationship.
+- `AUTOMAP.md` — exact CODE.2 cache classifier, dynamic-record states, connected-map resolver, five 64-word header lookup tables, and automap SAVE byte conversion.
 - `CACHE_REBUILD_AUDIT.md` — instruction-level replay of CODE.2 `01558`, the `0x25622` animator trace, and the isolated 40-cell `LEV022.DAT` cache discrepancy.
 - `inspect_levels.py` — structural and coordinate validator plus archive/direct correlation.
 - `analyze_cells.py` — archive-wide cell-flag statistics and direct-save exploration/cache correlation.
@@ -35,8 +36,12 @@ Every boundary equation and final record length validates for all 32 levels with
 
 ## Current semantic frontier
 
-The six-bit cell code, transient current-view mark (`0x0040`), persistent automap explored/revealed mark (`0x0400`), and the derived nature of the final byte grid are established from CODE.2. Several other cell bits have proven renderer behaviors but intentionally retain behavioral names pending exact geometry/interaction identification.
+The six-bit cell code, transient current-view mark (`0x0040`), persistent automap explored/revealed mark (`0x0400`), and the generated nature of the final byte grid are established from CODE.2.
+
+The automap pipeline is now traced through export: ordinary connected walls, the four inset directions, two dynamic door-capable states, floor classes, and the special `0xB2` hidden/secret marker path can be followed from internal cache state to exported CP437 bytes. The exact open/closed assignment of the two door states and the full gameplay identity of the associated `0x0080`/`0x0800` flags remain deliberately unresolved.
+
+The fixed header also contains five consecutive 64-word cell-code lookup tables beginning at header `+0x00A`. The fifth table is consumed by automap rendering; all **2,048** supplied archive entries in that table are exactly `0xB5B1`, an archive-wide observation rather than a format constraint.
 
 The earlier hypothesis that Level 22's saved cache could be explained by live animation of the `0x25622` lookup table has been disproved: `1EDAC` does not alter `0x0093`, and exact serialized-state replay differs only for 40 unexplored code-1 cells. Preserve the certified CODE.2 branch as authoritative while keeping that save-artifact discrepancy explicit.
 
-Next work should close the remaining cell flags and internal byte-map classes, then continue into the `0x514` block and still-unnamed header fields. Lossless extraction/repacking should preserve every unresolved bit and byte until its meaning is independently proved.
+Next work should close the remaining door/inset dynamic-state transitions and exporter overlays, then continue into the `0x514` block and still-unnamed header fields. Lossless extraction/repacking should preserve every unresolved bit and byte until its meaning is independently proved.
