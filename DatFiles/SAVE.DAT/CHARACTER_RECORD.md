@@ -1,45 +1,57 @@
 # SAVE.DAT `0x248` character record
 
-Status: **consolidated executable-certified reconstruction. The record is structurally bounded; remaining unknowns are isolated and must be preserved losslessly.**
+Status: **offset-normalized executable-certified reconstruction.** A later cross-check against hit points, class levels, inventory, and fixture bytes proved that the runtime character base is DGROUP `0x218E0`, not the earlier `0x218D8`. This document uses the corrected serialized offsets throughout.
 
-The same `0x248`-byte legacy image is serialized for four active-party slots and ten saved-roster slots. Runtime party-record base is DGROUP `0x218D8`; addresses below are relative to `record_base + character_index * 0x248`.
+The same `0x248`-byte legacy image is serialized for four active-party slots and ten saved-roster slots. Runtime character `n` begins at `0x218E0 + n*0x248`.
+
+## Offset-correction note
+
+Earlier SAVE notes derived record offsets from an incorrect base of `0x218D8`. For runtime-address-derived fields, those old offsets were eight bytes too high. The `0x248` record stride and the top-level SAVE.DAT record boundaries were always correct.
+
+The correction is independently anchored by executable and fixture data: runtime `0x218FC/0x218FE` are current/max HP and map to serialized `+0x01C/+0x01E`; runtime `0x21900..0x21904` are the three class levels and map to `+0x020..+0x024`; runtime item storage `0x21920` maps to `+0x040`.
 
 ## Current authoritative partition
 
 ```text
 +0x000..+0x00F   fixed 16-byte name storage
-+0x010..+0x017   identity/class metadata; partially unresolved
-+0x018..+0x019   status word; high-byte disease/poison/paralysis bits certified
-+0x01A..+0x025   core fields; partially resolved
-+0x026..+0x031   three uint32 slots; 0xFFFFFFFF absent sentinel, semantics pending
-+0x032..+0x039   four byte pairs; semantics pending
-+0x03A/+0x03B   Strength base / current-effective
-+0x03C/+0x03D   paired field; +0x03D Dexterity current-effective
-+0x03E/+0x03F   paired field unresolved
-+0x040..+0x045   three uint16 fields unresolved
-+0x046/+0x047   exceptional-Strength base / current-effective percentile
-+0x048..+0x071   int16 item[21]
-+0x072..+0x0C1   spell matrix A: 8 x 10 packed cells; scribeable spellbook family
-+0x0C2..+0x111   spell matrix B: 8 x 10 packed cells; second casting family
-+0x112..+0x12A   unresolved persistent state
-+0x12B..+0x12E   executable-accessed dword; semantics unresolved
-+0x12F..+0x132   auxiliary dword; low byte participates in reversible Dexterity adjustment
-+0x133..+0x136   uint32 item known/identified bits; bits 0..20 map item[0..20]
-+0x137..+0x138   executable-accessed bytes; semantics unresolved
-+0x139           class/casting capability selector/mask
-+0x13A..+0x13D   uint32 primary active-effect bits
-+0x13E..+0x1A5   uint32 primary_effect_expiry[26]
-+0x1A6..+0x1B1   uint32 timed_slot_deadline[3]
-+0x1B2..+0x1BD   uint32 timed_slot_aux[3]
-+0x1BE..+0x1C1   Stone Giant Gauntlets displaced/effective Strength auxiliary
-+0x1C2..+0x1C5   serialized dword; no direct CODE.2 reference found
-+0x1C6..+0x1C9   reversible modifier for primary effect index 23
-+0x1CA..+0x1CD   uint32 temporary-hand-effect bits
-+0x1CE..+0x1F1   uint32 temporary_hand_effect_expiry[9]
-+0x1F2..+0x1F5   consumable/additive persistent gameplay pool
-+0x1F6..+0x1F9   recurring Strength-recovery deadline
-+0x1FA..+0x1FD   accumulated state associated with primary effect index 6
-+0x1FE..+0x247   reserved/unreferenced serialized tail in current executable audit
++0x010..+0x011   status word; high bit participates in inactive-record filtering
++0x012..+0x014   identity/core metadata; semantics pending
++0x015..+0x017   int8 class_code[3]; -1 absent later class
++0x018..+0x01B   core/identity fields; semantics pending
++0x01C..+0x01D   int16 current_hp
++0x01E..+0x01F   int16 max_hp
++0x020..+0x025   int16 class_level[3]
++0x026..+0x031   int32 class_progress[3]; -1 absent sentinel
++0x032..+0x039   four paired ability-shaped byte fields; exact identities pending
++0x03A..+0x03F   three uint16/core fields; semantics pending
++0x040..+0x069   int16 item[21]
++0x06A..+0x0B9   spell matrix A: 8 x 10 packed cells; scribeable spellbook family
++0x0BA..+0x109   spell matrix B: 8 x 10 packed cells; second casting family
++0x10A           class/level-derived base attack target
++0x10B..+0x112   uint32 hand_ready_deadline[2]
++0x113..+0x116   Vampiric Touch absorption pool
++0x117..+0x11A   primary-effect-0 absorption pool
++0x11B..+0x122   reserved/unreferenced serialized bytes in current audit
++0x123..+0x126   reversible Strength modifier for primary effect index 12
++0x127..+0x12A   auxiliary dword; low byte participates in reversible Dexterity adjustment
++0x12B..+0x12E   uint32 item_known_bits; bits 0..20 map item[0..20]
++0x12F           selected spell bank
++0x130           spell-list scroll position
++0x131           class/casting capability selector/mask
++0x132..+0x135   uint32 primary active-effect bits
++0x136..+0x19D   uint32 primary_effect_expiry[26]
++0x19E..+0x1A9   uint32 timed_slot_deadline[3]
++0x1AA..+0x1B5   uint32 timed_slot_aux[3]
++0x1B6..+0x1B9   Stone Giant Gauntlets displaced/effective Strength auxiliary
++0x1BA..+0x1BD   serialized dword; no direct CODE.2 reference found
++0x1BE..+0x1C1   reversible modifier for primary effect index 23
++0x1C2..+0x1C5   uint32 temporary_hand_effect_bits
++0x1C6..+0x1E9   uint32 temporary_hand_effect_expiry[9]
++0x1EA..+0x1ED   consumable/additive persistent gameplay pool
++0x1EE..+0x1F1   recurring Strength-recovery deadline
++0x1F2..+0x1F5   accumulated state associated with primary effect index 6
++0x1F6..+0x23F   reserved/unreferenced runtime tail in current direct-address audit
++0x240..+0x247   serialized terminal extension; preserve losslessly
 ```
 
 ## Certified core fields
@@ -47,17 +59,36 @@ The same `0x248`-byte legacy image is serialized for four active-party slots and
 | Offset | Size | Meaning |
 |---|---:|---|
 | `+0x000` | `0x10` | character name storage |
-| `+0x018` | 2 | status word |
-| `+0x019` | 1 | condition bits: `0x04` disease, `0x08` poison, `0x10` paralysis |
-| `+0x01D` | 1 | class-related discriminator |
-| `+0x03A` | 1 | Strength base/reference |
-| `+0x03B` | 1 | Strength current/effective |
-| `+0x03D` | 1 | Dexterity current/effective |
-| `+0x046` | 1 | exceptional Strength base percentile |
-| `+0x047` | 1 | exceptional Strength current percentile |
-| `+0x048` | `0x2A` | signed `int16_le item[21]` |
+| `+0x010` | 2 | status word; high bit distinguishes inactive records in audited party/UI path |
+| `+0x015` | 3 | signed `class_code[3]`; `-1` marks absent later slots |
+| `+0x01C` | 2 | current hit points |
+| `+0x01E` | 2 | maximum hit points |
+| `+0x020` | 6 | signed/legacy `class_level[3]` words |
+| `+0x026` | 12 | `class_progress[3]` dwords; `0xFFFFFFFF` absent sentinel |
+| `+0x032` | 1 | Strength base/reference |
+| `+0x033` | 1 | Strength current/effective |
+| `+0x035` | 1 | Dexterity current/effective |
+| `+0x03E` | 1 | exceptional Strength base percentile |
+| `+0x03F` | 1 | exceptional Strength current percentile |
+| `+0x040` | `0x2A` | signed `int16_le item[21]` |
 
-Direct executable consumers, rather than fixture visual pairing, control these assignments. Strength logic recognizes AD&D exceptional-percentile ranges `1..50`, `51..75`, `76..90`, `91..99`, and `100`.
+Strength logic recognizes AD&D exceptional-percentile ranges `1..50`, `51..75`, `76..90`, `91..99`, and `100`.
+
+## Record activity
+
+The status word is runtime `0x218F0`, therefore corrected serialized `+0x010`. Party/UI iteration compares it against `0x8000`; the audited populated-character path is skipped when the unsigned word is `>= 0x8000`.
+
+```c
+bool record_is_active = ((status_word & 0x8000u) == 0);
+```
+
+This matches unused fixture records, which contain `00 80` at `+0x010..+0x011`. Do not use an all-zero occupancy test.
+
+Known status masks remain disease `0x0400`, poison `0x0800`, and paralysis `0x1000`.
+
+## Class progression
+
+The three signed class-code bytes are followed by three level words and three progression dwords. CODE.2 counts class slots using `-1` as the absent class-code sentinel, selects class levels for combat progression, and updates the corresponding progression dwords through class-indexed advancement logic. Player-facing names for every numeric class code remain a separate mapping target.
 
 ## Inventory
 
@@ -82,135 +113,88 @@ Both matrices are 80-byte arrays with identical packed-cell geometry:
 
 ```text
 cell = matrix[bank * 10 + entry]
-bank  = 0..7       // displayed spell level = bank + 1
+bank  = 0..7
 entry = 0..9
-
 selected/planned = cell & 0x0F
 ready/current    = cell >> 4
 unavailable      = ((cell & 0x0F) == 0x0F)
 ```
 
-A successful spell use decrements only the high nibble. Management paths separately account for selected and ready counts and enforce availability/capacity constraints.
-
-Matrix A at `+0x072` is independently tied to the scribeable spellbook family. Matrix B at `+0x0C2` is the parallel second casting family. Resource expansion maps them to the indexed `T` archive as:
+Matrix A is at corrected `+0x06A`; matrix B is at corrected `+0x0BA`. Resource expansion remains:
 
 ```text
 matrix A T index = 0x42 + bank*10 + entry
 matrix B T index = 0x92 + bank*10 + entry
 ```
 
-See `SPELL_MATRIX.md`, `SPELL_FAMILIES.md`, and `SPELL_RESOURCE_LOOKUP.md` for executable evidence and the conservative family-label policy.
+## Post-spell combat state
 
-## Item known/identified state
-
-`+0x133..+0x136` is a 32-bit bitset. Bits `0..20` correspond one-for-one to `item[0..20]`.
-
-CODE.2 reads and writes a selected slot bit, transfers that bit with an item during inventory movement, clears it when the item leaves a slot, can bulk-mark all occupied slots, and passes the state into item rendering. This establishes persistent item-instance known/identified state rather than a generic character flag field.
-
-Portable model:
+Corrected runtime mapping gives:
 
 ```c
-uint32_t item_known_bits;
+uint8_t  base_attack_target;                 // +0x10A
+uint32_t hand_ready_deadline[2];             // +0x10B
+int32_t  vampiric_touch_absorption_pool;     // +0x113
+int32_t  primary_effect_0_absorption_pool;   // +0x117
+uint8_t  reserved_11B_122[8];                // +0x11B
+int32_t  primary_effect_12_strength_adjustment; // +0x123
 ```
 
-When an item moves, its known bit must move with it.
+The attack-target byte is class/level-derived (`20 - progression`) and is the engine's THAC0-style descending attack target. The two hand deadlines are absolute game-clock readiness values. The two following dwords are layered damage-absorption pools; the first is directly produced by VAMPIRIC TOUCH, while the second is tied to primary timed effect index 0.
+
+## Item-known and spell-UI state
+
+`+0x12B..+0x12E` is the 32-bit item-known/identified bitset. Bits `0..20` correspond one-for-one to `item[0..20]` and move with item instances during inventory transfer.
+
+`+0x12F` is the selected zero-based spell bank. `+0x130` is the spell-list scroll state; navigation changes it by six rows and bank changes reset it to zero. `+0x131` is the class/casting capability selector/mask.
 
 ## Primary timed effects
 
-The field at `+0x13A` is not merely an undifferentiated flag dword. It heads a 26-entry timed-effect subsystem:
-
 ```c
-uint32_t primary_effect_bits;       // +0x13A
-uint32_t primary_effect_expiry[26]; // +0x13E
+uint32_t primary_effect_bits;       // +0x132
+uint32_t primary_effect_expiry[26]; // +0x136
 ```
 
-Bit `i` corresponds to `primary_effect_expiry[i]`. Positive timer values are absolute game-clock deadlines. Expiration clears/toggles the associated state and dispatches effect-specific cleanup.
-
-The expiration handler maps effect indexes directly to `T` resource records:
-
-```text
-effect 0  -> T[588]
-...
-effect 25 -> T[613]
-```
-
-Several effects have additional persistent auxiliary fields later in the record. See `EFFECT_FLAGS.md`.
+Bit `i` corresponds to `primary_effect_expiry[i]`. The expiration handler maps indexes directly to `T[588]..T[613]`.
 
 ## Three paired timed slots
 
-Immediately after the primary timer table are three independent paired states:
+```c
+uint32_t timed_slot_deadline[3]; // +0x19E
+uint32_t timed_slot_aux[3];      // +0x1AA
+```
+
+These are independent from both primary effects and temporary hand effects.
+
+## Late character state
+
+`+0x1B6` is directly tied to OBJECTS.DAT object `0x54`, `STONE GIANT GAUNTLETS`, preserving displaced Strength while the gauntlets force effective Strength to 20.
+
+`+0x1C2` and `+0x1C6` form the temporary spell-created hand-effect subsystem:
 
 ```c
-uint32_t timed_slot_deadline[3]; // +0x1A6
-uint32_t timed_slot_aux[3];      // +0x1B2
+uint32_t temporary_hand_effect_bits;       // +0x1C2
+uint32_t temporary_hand_effect_expiry[9];  // +0x1C6
 ```
 
-Each deadline is an absolute game-clock value paired with the auxiliary value at the same index. This subsystem is distinct from both effect tables.
+Indexes map to objects `0x7E..0x86`: CHILL TOUCH, VAMPIRIC TOUCH, CLAWS OF THE UMBER HULK, CAUSE LIGHT WOUNDS, CAUSE SERIOUS WOUNDS, CAUSE CRITICAL WOUNDS, HARM, FLAME BLADE, and LICH TOUCH.
 
-## Stone Giant Gauntlets state
+`+0x1EE` is the recurring Strength-recovery deadline. `+0x1EA` is a persistent additive/consumable gameplay pool whose exact player-facing name remains unresolved. `+0x1F2` is accumulated state associated with primary effect index 6.
 
-`+0x1BE` is directly tied to OBJECTS.DAT object `0x54`, `STONE GIANT GAUNTLETS`. Equipment-transition logic preserves displaced Strength here while the gauntlets force effective Strength to 20, then restores the saved value when appropriate.
+## Terminal bytes
 
-This proves that equipment-derived state cannot always be reconstructed from inventory alone after load.
-
-## Temporary spell-created hand effects
-
-`+0x1CA` and `+0x1CE` form a second, semantically closed timer subsystem:
-
-```c
-uint32_t temporary_hand_effect_bits;
-uint32_t temporary_hand_effect_expiry[9];
-```
-
-Exact index mapping:
-
-```text
-0  object 0x007E  CHILL TOUCH
-1  object 0x007F  VAMPIRIC TOUCH
-2  object 0x0080  CLAWS OF THE UMBER HULK
-3  object 0x0081  CAUSE LIGHT WOUNDS
-4  object 0x0082  CAUSE SERIOUS WOUNDS
-5  object 0x0083  CAUSE CRITICAL WOUNDS
-6  object 0x0084  HARM
-7  object 0x0085  FLAME BLADE
-8  object 0x0086  LICH TOUCH
-```
-
-Expiration removes the matching temporary object from either hand if it remains equipped. These nine states must not be merged with the primary 26-effect system.
-
-## Strength recovery and terminal state
-
-`+0x1F6` is an independent recurring Strength-recovery deadline. When due, CODE.2 restores one Strength point, compares current/effective Strength against base Strength, and schedules another recovery deadline when further restoration is required.
-
-The final 74 bytes `+0x1FE..+0x247` have no direct CODE.2 references in the current exhaustive address audit and are zero in every populated character in the supplied quick-start SAVE. They are therefore classified conservatively as **reserved/unreferenced serialized tail**, not disposable padding. Preserve them exactly because indirect/computed access cannot be categorically excluded.
-
-Likewise, `+0x1C2..+0x1C5` is serialized state with no direct reference found and must remain opaque.
-
-## Empty-record representation
-
-Unused active-party records are not zero-filled. In the supplied fixture most bytes are `0xFF`, while `+0x10..+0x11` are `00 80`. Occupancy must not be inferred with an all-zero test.
+The corrected runtime range corresponding to old `+0x1FE..+0x247` is `+0x1F6..+0x23F`. The final serialized eight bytes `+0x240..+0x247` lie beyond the previously assumed runtime endpoint and require independent serializer/runtime auditing. Until then, both regions must be preserved losslessly; neither is disposable padding.
 
 ## Native-port rule
 
-Do not memory-map the legacy image onto a modern packed C/C++ structure. Decode explicitly into typed native state, retain a raw/opaque representation for unresolved bytes, and serialize fields at their exact legacy offsets. In particular preserve:
-
-- signed item IDs and unusual negative values;
-- both spell matrices byte-for-byte;
-- item known bits with item movement;
-- all absolute effect deadlines;
-- Stone Giant Gauntlets displaced Strength;
-- temporary hand-effect timers;
-- unresolved/reserved regions losslessly.
+Do not memory-map the legacy image onto a modern packed C/C++ structure. Decode explicitly into typed native state and serialize at exact legacy offsets. Preserve opaque/reserved bytes verbatim.
 
 ## Remaining semantic targets
 
-The character record is now structurally bounded. Remaining work is semantic closure of isolated fields rather than discovery of major arrays:
+1. `+0x012..+0x014` and `+0x018..+0x01B` identity/core metadata;
+2. exact identities of the remaining ability/core fields in `+0x034..+0x03D`;
+3. exact player-facing identities for the 26 primary effects and three paired timed slots;
+4. exact meanings of `+0x1BA`, `+0x1EA`, and `+0x1F2`;
+5. independent audit of serialized terminal extension `+0x240..+0x247`.
 
-1. `+0x010..+0x017` identity/class metadata;
-2. `+0x01A..+0x045` unresolved core-stat/class fields, including the three sentinel dwords;
-3. `+0x112..+0x12E` persistent post-spell state;
-4. `+0x137..+0x138` auxiliary bytes;
-5. exact gameplay identities for the primary 26 effect indexes and the three paired timed slots;
-6. exact meanings of `+0x1C2`, `+0x1F2`, and `+0x1FA` where current behavior is structural but the player-facing name is not yet certified.
-
-Supporting executable evidence is maintained in `POST_INVENTORY_STATE.md`, `EFFECT_FLAGS.md`, `TIMED_SLOTS.md`, and `CHARACTER_TAIL.md`.
+Supporting evidence is maintained in the focused SAVE.DAT notes. Any note still carrying the old `0x218D8` base or pre-correction offsets is historical until normalized.
