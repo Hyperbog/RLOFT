@@ -1,8 +1,8 @@
 # NPCS.DAT behavior/capability flags
 
-Status: **twelve individual capability/effect bits are now behaviorally decoded from certified CODE.2. The remaining bits stay raw until their exact effect/AI consumers are closed.**
+Status: **fourteen individual capability/effect bits are now behaviorally decoded from certified CODE.2. Remaining bits stay raw until their exact consumers are closed.**
 
-This document extends `FORMAT.md`. The relevant physical fields are:
+The physical fields are:
 
 ```text
 +0x31..+0x34  uint32 behavior_flags     // also accessed by byte/unaligned word
@@ -10,92 +10,61 @@ This document extends `FORMAT.md`. The relevant physical fields are:
 +0x3A         uint8  behavior_flags_3A
 ```
 
-The executable remains controlling evidence. Creature-name correlations below are validation, not the source of the semantic names.
+The executable is controlling evidence. Creature names and serialized spell names are cross-checks, not the source of semantic assignments.
 
-## Proven `+0x3A` flags
+## Proved aliases
 
-### `0x20` — undead classification
-
-This bit is consumed by several independent CODE.2 systems.
-
-At logical `B5C7` and `B717`, the engine filters family-A NPCs on `npc[+0x3A] & 0x20` in the party's turning/repulsion-style effect path. The same path reads `hit_dice_count` and compares it to party/class progression before applying the effect. Other combat/detection paths at `D52D`, `D78B`, and `1B72B` test the same bit.
-
-The supplied database marks exactly 17 definitions:
+### `behavior_flags` (`+0x31..+0x34`)
 
 ```text
-ZOMBIE
-SKELETON
-SKELETAL BAT
-SHADOW
-ZOMBIE LORD
-VAMPIRE
-GHAST
-GHOUL
-GHOUL LORD
-INQUISITOR
-SPECTRE
-WRAITH
-BONE GOLEM
-REVENANT
-SHADOW FIEND
-WIGHT
-ZOMBIE GOLEM
+0x00000002  hold_undead_effect_immunity
+0x00000008  hold_person_effect_immunity
+0x00000010  hold_monster_effect_immunity
+0x00000100  common_spell_effect_immunity
+0x00000800  cold_effect_immunity
+0x00002000  fire_effect_immunity
 ```
 
-Safe semantic name: `undead_classification`.
-
-### `0x02` — level-drain attack
-
-The main NPC attack routine tests this bit at logical `D7B3`. When the target is not protected, it calls `D1E0`.
-
-`D1E0` selects one of the character's class-level words at runtime `0x21900/+2/+4`, decrements the selected level and updates the associated progression/experience state. This directly proves a level-drain special attack.
-
-Marked definitions:
+CODE.2 combines the common spell-effect gate with effect-specific bits:
 
 ```text
-STRAHD
-VAMPIRE
-SPECTRE
-WRAITH
-WIGHT
+Hold Undead   0x0102 = 0x0100 | 0x0002
+Hold Person   0x0108 = 0x0100 | 0x0008
+Hold Monster  0x0110 = 0x0100 | 0x0010
+cold effects  0x0900 = 0x0100 | 0x0800
+fire effects  0x2100 = 0x0100 | 0x2000
 ```
 
-Safe name: `level_drain_attack`.
+Mage and priest Hold Person independently use `0x0108`. All Hold variants that apply set the same live NPC held-state bit; Slow uses only `0x0100` and a different live state. See `HOLD_IMMUNITIES.md`.
 
-### `0x04` — Strength-drain attack
+The common area/effect routine skips an NPC whenever its raw dword intersects the caller's immunity mask. Fire/cold spell dispatch and the original bestiary descriptions independently support the elemental aliases. See `EFFECT_IMMUNITIES.md`.
 
-The attack routine tests this bit at logical `D7E8` and eventually invokes `1202C(actor,-1)` on an unprotected target.
+These names are intentionally behavioral. In particular, the low Hold bits can encode target exclusion as well as intrinsic resistance, so they are not creature-taxonomy enums.
 
-`1202C` adjusts the character byte at `0x21913`, clamps it to 20, and contains the explicit equipped-item exception for object `0x54` (`STONE GIANT GAUNTLETS`). The same helper is used to restore/read that ability value. This identifies the affected statistic as Strength.
-
-Marked definitions:
+### `behavior_flags_39` (`+0x39`)
 
 ```text
-SHADOW
-INQUISITOR
+0x01  poison_attack
+0x20  paralysis_attack
+0x40  dynamic_barrier_activation
+0x80  obstacle_passthrough
 ```
 
-Safe name: `strength_drain_attack`.
+#### `0x01` — poison attack
 
-### `0x10` — unresolved status attack
+The NPC attack path tests `npc[+0x39] & 0x01` at logical `0xD947`. If the effect passes the common resistance/save check, it sets party status byte bit `0x08` at `0xD960`.
 
-This bit is used by the attack routine at logical `D967`; on an unprotected target it sets live party status bit `0x04`. One character-class value (`+0x218F5 == 1`) is explicitly immune before the saving/effect test.
-
-Only these supplied definitions carry the bit:
+The character-effect dispatcher handles internal code `0x71` by clearing that exact bit. Cleric effect ID `113` supplies code `0x71`, and serialized `OBJECTS.DAT` object 223 is:
 
 ```text
-ZOMBIE LORD
-GHOUL LORD
-INQUISITOR
+CLERIC SCROLL OF 'NEUTRALIZE POISON'
 ```
 
-The exact named condition is not yet executable-proved, so the bit remains unresolved rather than being labeled from AD&D expectations.
+Therefore `0x01` is safely `poison_attack`. Only `DARKLING` carries it in the supplied NPC table. See `STATUS_ATTACKS.md`.
 
-## Proven `+0x39` flags
+#### `0x20` — paralysis attack
 
-### `0x20` — paralysis attack
-
-The main attack routine tests this bit at logical `D8A5`. Before applying the condition it checks for the relevant target protection, including equipped object `0x45`, `RING OF FREE ACTION`. Successful application enters the live immobilizing/status path.
+The main attack path tests this bit and the protection path explicitly honors `RING OF FREE ACTION`. Successful application sets the paralysis status. The cleric Remove Paralysis path independently clears the same party-status bit.
 
 Marked definitions:
 
@@ -108,11 +77,9 @@ BONE GOLEM
 REVENANT
 ```
 
-The Free Action protection plus the attack/status consumer make `paralysis_attack` a safe project name.
+#### `0x40` — dynamic barrier activation
 
-### `0x40` — dynamic-barrier activation capability
-
-NPC navigation tests this bit at logical `2D767` after the cell collision path resolves a dynamic barrier record. If the bit is present, the NPC may invoke the already-decoded 10-byte dynamic-barrier activation routine rather than simply treating the barrier as permanently blocking.
+NPC navigation checks this bit when movement resolves a dynamic barrier/door record. Flagged NPCs may invoke the decoded barrier activation routine rather than always treating the barrier as blocking.
 
 Marked definitions:
 
@@ -123,15 +90,11 @@ SKELETON
 BRIGAND
 ```
 
-Safe behavioral name: `dynamic_barrier_activation`.
+The project name is deliberately narrower than an assumed original `opens_doors` flag.
 
-This is deliberately narrower than a source-level name such as `opens_doors`: the proved operation is interaction with the dynamic barrier/door record family.
+#### `0x80` — obstacle passthrough
 
-### `0x80` — obstacle/special-collision passthrough
-
-Collision handling at logical `2CE8A` tests this bit after a placed-object collision candidate has been found. When set, the function changes the collision result to nonblocking. A second navigation path at `2D7FB` uses the same bit to suppress blocking for another special-obstacle case.
-
-Marked definitions:
+Collision/navigation code uses this bit to suppress blocking from placed/special obstacles. Marked definitions are:
 
 ```text
 SKELETAL BAT
@@ -141,156 +104,94 @@ ATMOSPHERE RAT
 ATMOSPHERE CROW
 ```
 
-Safe behavioral name: `obstacle_passthrough`.
+Do not rename it `flying`; the encoded behavior is collision-specific and includes `ATMOSPHERE RAT`.
 
-Do not rename this bit `flying`; the supplied `ATMOSPHERE RAT` record demonstrates that the encoded behavior is collision-related rather than a universal locomotion taxonomy.
-
-### `0x01` — unresolved status attack
-
-At logical `D947`, this bit gates an attack effect which sets live party status bit `0x08` after an effect/saving check. Only `DARKLING` carries it in the supplied database. The exact named status remains unresolved.
-
-## `+0x31..+0x34`: generalized effect/immunity mask family
-
-The four bytes beginning at `+0x31` must remain one aliased 32-bit field physically.
-
-CODE.2 uses it in several forms:
+### `behavior_flags_3A` (`+0x3A`)
 
 ```text
-B2FB   load dword +0x31 and intersect with a caller-supplied effect mask
-B477   test byte  +0x32 with mask 0x21
-C15F   test byte  +0x32 with mask 0x01
-C1B4   test word  +0x31 with mask 0x0102
-C23C   test word  +0x31 with mask 0x0108
-C2AF   test word  +0x31 with mask 0x0108
-C317   test word  +0x31 with mask 0x0110
-AFCE   test byte  +0x31 bit 0x80 in an area/effect path
-B6B0   test byte  +0x31 bit 0x04 while computing an undead-turning threshold
+0x02  level_drain_attack
+0x04  strength_drain_attack
+0x10  disease_attack
+0x20  undead_classification
 ```
 
-Six bits in this field are now individually decoded. See `EFFECT_IMMUNITIES.md` for the common/fire/cold family and `HOLD_IMMUNITIES.md` for the status-specific hold family.
+#### `0x02` — level drain
 
-### `0x00000100` — common spell-effect immunity
+The attack path calls the routine that decrements one of the target character's class-level words and updates associated progression/experience state.
 
-`B02C` skips an NPC entirely whenever the caller's effect-immunity mask intersects the NPC's `behavior_flags` dword. Bit `0x0100` is included in both proved elemental masks and in several targeted status-effect masks:
-
-```text
-fire effects   0x2100 = 0x2000 | 0x0100
-cold effects   0x0900 = 0x0800 | 0x0100
-hold family    0x0102 / 0x0108 / 0x0110
-```
-
-It therefore acts as a common immunity gate shared across multiple spell/effect families. The name is deliberately scoped to the observed spell/effect dispatcher and does not claim universal immunity to every magical subsystem.
-
-Supplied definitions:
+Marked definitions:
 
 ```text
-DOOM GUARD
-BANSHEE
-ZOMBIE GOLEM
-LIVING WALL
-```
-
-Safe alias: `common_spell_effect_immunity`.
-
-### `0x00000002` — Hold Undead effect immunity/exclusion
-
-Mage effect id `26`, independently identified by serialized object `186` (`MAGE SCROLL OF 'HOLD UNDEAD'`), dispatches to logical `0xC179` and tests:
-
-```text
-test word [npc + 0x31], 0x0102
-```
-
-The common component is `0x0100`; therefore `0x0002` is the Hold Undead-specific exclusion gate. Targets which pass the test enter the same live held-state bit used by the other hold spells.
-
-25 supplied definitions carry the bit.
-
-Safe behavioral alias: `hold_undead_effect_immunity`.
-
-### `0x00000008` — Hold Person effect immunity/exclusion
-
-Mage Hold Person (effect id `25`, serialized object `185`) tests `0x0108` at logical `0xC23C`.
-
-Priest Hold Person independently uses effect id `92` (serialized object `211`) and tests the same `0x0108` mask at logical `0xC2AF`.
-
-This independent mage/priest convergence makes the low component unambiguous:
-
-```text
-0x0108 = common_spell_effect_immunity | hold_person_effect_immunity
-```
-
-31 supplied definitions carry the bit.
-
-Safe behavioral alias: `hold_person_effect_immunity`.
-
-### `0x00000010` — Hold Monster effect immunity/exclusion
-
-Mage effect id `41`, serialized object `195` (`MAGE SCROLL OF 'HOLD MONSTER'`), tests `0x0110` at logical `0xC317`.
-
-Thus:
-
-```text
-0x0110 = common_spell_effect_immunity | hold_monster_effect_immunity
-```
-
-24 supplied definitions carry the bit.
-
-Safe behavioral alias: `hold_monster_effect_immunity`.
-
-### `0x00000800` — cold-effect immunity
-
-CODE.2 uses compound mask `0x0900` in the area/effect paths corresponding to the mage cold-spell family, including effect id 31 (the spell-table position and `3d10` behavior corresponding to Ice Storm) and effect id 53 (the position corresponding to Otiluke's Freezing Sphere).
-
-The element-specific portion is therefore `0x0800`.
-
-Supplied definitions:
-
-```text
-ZOMBIE
-SKELETON
 STRAHD
-SHADOW
-ZOMBIE LORD
 VAMPIRE
-BANSHEE
 SPECTRE
 WRAITH
-SHADOW FIEND
 WIGHT
-LIVING WALL
 ```
 
-Safe alias: `cold_effect_immunity`.
+#### `0x04` — Strength drain
 
-### `0x00002000` — fire-effect immunity
+The attack path calls the character Strength-adjustment routine with `-1`. That helper contains the explicit `STONE GIANT GAUNTLETS` exception.
 
-CODE.2 uses compound mask `0x2100` for multiple fire-oriented effects, including effect id 1 whose damage is `2 * caster_level + 1d3` and effect id 10 whose attack path uses `3d6`. Their spell-table positions and behavior correspond to Burning Hands and Agannazer's Scorcher respectively.
-
-The element-specific portion is therefore `0x2000`.
-
-Supplied definitions:
+Marked definitions:
 
 ```text
-PYRE ELEMENTAL
-HELLHOUND
-BANSHEE
-SHADOW FIEND
-ZOMBIE GOLEM
-LIVING WALL
+SHADOW
+INQUISITOR
 ```
 
-Safe alias: `fire_effect_immunity`.
+#### `0x10` — disease attack
 
-The original rule book independently describes Pyre Elementals as immune to fire-based spells/attacks and Wights/Wraiths as immune to cold-based spells, corroborating these executable-derived identities.
+The NPC attack path tests `npc[+0x3A] & 0x10` at logical `0xD967`; after its class exemption and common resistance/save check it sets party status byte bit `0x04` at `0xD98C`.
 
-### Shared held runtime state
+The character-effect dispatcher handles internal code `0x64` by clearing exactly that bit. Cleric effect ID `100` supplies code `0x64`, and serialized `OBJECTS.DAT` object 215 is:
 
-All four hold implementations—mage Hold Person, mage Hold Undead, priest Hold Person, and mage Hold Monster—set the same low live family-A runtime flag bit `0x08` and install a duration/countdown in live word `+0x10`.
+```text
+CLERIC SCROLL OF 'CURE DISEASE'
+```
 
-The immediately preceding Slow effect instead tests only `0x0100` and sets a different live runtime bit (`0x80`). This independently establishes that bits `0x0002/0x0008/0x0010` belong specifically to the hold family rather than generic timed-status immunity.
+Therefore the safe alias is `disease_attack`. Supplied definitions are:
+
+```text
+ZOMBIE LORD
+GHOUL LORD
+INQUISITOR
+```
+
+See `STATUS_ATTACKS.md`.
+
+#### `0x20` — undead classification
+
+Turning/repulsion, detection and combat paths independently filter this bit as the undead class. Seventeen supplied definitions carry it.
+
+## Cure/status control mapping
+
+The status-removal dispatcher gives an independent three-condition control set:
+
+```text
+party status 0x04  internal code 0x64  Cure Disease
+party status 0x08  internal code 0x71  Neutralize Poison
+party status 0x10  internal code 0x68  Remove Paralysis
+```
+
+The corresponding cleric dispatcher IDs are `100`, `113`, and `104`; the serialized scroll definitions are OBJECTS IDs `215`, `223`, and `219` respectively.
+
+This mapping is the controlling evidence for the poison/disease names rather than monster-name inference.
+
+## Remaining `behavior_flags` dword
+
+CODE.2 also reads `+0x31..+0x34` using overlapping widths. Examples include:
+
+```text
+B2FB  dword +0x31 intersect caller effect mask
+B477  byte  +0x32 & 0x21
+AFCE  byte  +0x31 & 0x80
+B6B0  byte  +0x31 & 0x04
+```
+
+Many raw bits therefore remain a generalized effect/capability/immunity family. Preserve the complete dword and do not flatten aliases into an enum.
 
 ## Supplied bit distributions
-
-Across all 83 definitions:
 
 ```text
 behavior_flags (+0x31 dword)
@@ -308,11 +209,9 @@ behavior_flags_3A
 0x02 5   0x04 2   0x10 3   0x20 17
 ```
 
-Bits absent from the supplied database remain representable raw data and must not be normalized.
-
 ## Safe implementation boundary
 
-A high-level model may expose these proved aliases while retaining the original raw fields:
+A high-level model may expose these aliases while retaining the exact raw fields:
 
 ```text
 behavior_flags & 0x00000002  hold_undead_effect_immunity
@@ -322,13 +221,15 @@ behavior_flags & 0x00000100  common_spell_effect_immunity
 behavior_flags & 0x00000800  cold_effect_immunity
 behavior_flags & 0x00002000  fire_effect_immunity
 
-behavior_flags_3A & 0x20      undead_classification
-behavior_flags_3A & 0x02      level_drain_attack
-behavior_flags_3A & 0x04      strength_drain_attack
-
+behavior_flags_39 & 0x01      poison_attack
 behavior_flags_39 & 0x20      paralysis_attack
 behavior_flags_39 & 0x40      dynamic_barrier_activation
 behavior_flags_39 & 0x80      obstacle_passthrough
+
+behavior_flags_3A & 0x02      level_drain_attack
+behavior_flags_3A & 0x04      strength_drain_attack
+behavior_flags_3A & 0x10      disease_attack
+behavior_flags_3A & 0x20      undead_classification
 ```
 
-Keep all remaining bits, `+0x39 & 0x01`, and `+0x3A & 0x10` available as raw flags until their exact executable semantics are closed.
+All remaining bits stay raw until their executable semantics are independently closed.
