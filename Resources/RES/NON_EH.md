@@ -1,8 +1,8 @@
 # Non-EH RES records
 
-Status: **the 75 non-EH records in `RES9`/`RES12` are structurally identified as interaction/display wordcode containers. The active 38-entry `RES9` bank has an executable-proved loader and a completely recovered 42-opcode instruction grammar with corpus-wide control-flow validation. The two four-byte `RES1` records remain unresolved sentinels.**
+Status: **the active RES9 interaction/display wordcode bank is structurally and behaviorally reconstructed; the RES12 bank is an ID-aligned incompatible alternate; and the two RES1 four-byte records are proved inactive/unconsumed by the supplied CODE.2 resource paths. The serialized zero companion bank in every wordcode container is likewise not consumed by this executable and remains producer-side `UNKNOWN`.**
 
-The immutable archives, `INIT`, and original CODE.2 bytes are controlling evidence.
+The immutable archives, `INIT`, and certified original CODE.2 object are controlling evidence.
 
 ## Corpus
 
@@ -10,13 +10,29 @@ The 77 non-empty entries that do not begin with `EH` are:
 
 - `RES1:381` and `RES1:427`: four bytes `60 00 00 00`;
 - `RES9:517..554`: 38 active wordcode containers;
-- `RES12:370..406`: 37 wordcode-shaped containers.
+- `RES12:370..406`: 37 wordcode-shaped alternate containers.
 
-The two `RES1` records are each immediately preceded by a zero-length archive entry. No direct consumer has yet been proved, so they remain preserved as four-byte sentinels rather than being assigned a speculative type.
+## RES1 raw four-byte records
 
-## `RES9` / `RES12` container shape
+The two RES1 records are each immediately preceded by a zero-length entry:
 
-All 75 larger records have exactly:
+```text
+RES1:380  empty
+RES1:381  60 00 00 00
+...
+RES1:426  empty
+RES1:427  60 00 00 00   // final archive entry
+```
+
+They cannot be consumed by normal typed resource loader `2EB60`, because that path requires a five-byte-or-longer `EH` envelope before dispatching types 1..7.
+
+A direct call-target scan of the complete certified CODE.2 object finds exactly one call to raw-archive-handle helper `2EC74`: `13F76`, inside the active wordcode loader, with archive number 9. There is no raw archive-1 request.
+
+Therefore these two serialized `0x00000060` records are **inactive/unconsumed by the supplied CODE.2 resource paths**. Their historical producer/tool meaning remains unknown and must not be invented. See `RES1_SENTINELS.md`.
+
+## RES9 / RES12 container shape
+
+All 75 larger raw records have exactly:
 
 ```text
 uint16 word_count
@@ -35,8 +51,6 @@ Every supplied `zero_bank` word is zero.
 - `RES9`: 38 records, 29..606 program words, 11,396 program words total;
 - `RES12`: 37 records, 22..375 program words, 4,820 program words total.
 
-The zero companion bank is **not read** by the proved active RES9 loader. Its intended serialization/runtime lifecycle remains unresolved and it must be preserved verbatim.
-
 ## Direct CODE.2 loader for active RES9 wordcode
 
 Routine `13F70` bypasses the normal `EH` loader:
@@ -45,7 +59,7 @@ Routine `13F70` bypasses the normal `EH` loader:
 2. computes an entry index from two `INIT`-derived values plus program ID;
 3. seeks that raw RES entry through `31334`;
 4. reads `word_count`;
-5. reads exactly `word_count * 2` bytes into VM word buffer `0x13020`;
+5. reads **exactly `word_count * 2` bytes** into VM word buffer `0x13020`;
 6. resets word instruction pointer `0x7FEC` to zero.
 
 The supplied `INIT` proves:
@@ -60,11 +74,28 @@ entry = 103 + 414 + program_id
 
 Therefore `RES9:517..554` are exactly wordcode program IDs `0..37`.
 
-## Wordcode VM is now structurally reconstructed
+## Zero companion bank: executable-negative closure
+
+The on-disk zero bank begins immediately after the first `word_count` words, but the active loader stops after step 5 above. It does not seek across, copy, initialize from, compare, or write the companion bank.
+
+The stronger whole-object raw-access audit matters here: `13F76 -> 2EC74(9)` is the **only** direct raw-handle request in the certified CODE.2 object. No second raw reader exists that could reopen these same records and consume their trailing halves through another archive path.
+
+Consequently, for the supplied executable:
+
+```text
+program_words   runtime-consumed by 13F70
+zero_bank       serialized but not runtime-consumed
+```
+
+This closes the executable-side question. It does **not** establish why DreamForge's producer pipeline wrote a second equal-length zero word array, nor whether another build/editor used it. The correct evidence classification for its historical purpose is therefore `UNKNOWN`.
+
+Preservation/repacker rule: retain the full second bank verbatim and require its stored length to match `word_count`; do not omit it merely because this executable ignores it.
+
+## Wordcode VM
 
 CODE.2 `15534` dispatches 16-bit opcode words `0x00..0x29` through the 42-entry table at logical `1548C`.
 
-`WORDCODE_VM.md` now documents:
+`WORDCODE_VM.md` documents:
 
 - all 42 opcode handlers;
 - exact operand consumption for every opcode;
@@ -79,11 +110,9 @@ CODE.2 `15534` dispatches 16-bit opcode words `0x00..0x29` through the 42-entry 
 - NPC suppression operations;
 - archive-9 graphics/text/sound sub-bases;
 - sound, music and cinematic operations;
-- conservative behavior labels for the remaining renderer draw variants.
+- conservative behavior labels for remaining renderer draw variants.
 
-`analyze_wordcode.py` parses and validates the supplied active bank directly from `RES9` and `INIT`.
-
-Supplied-corpus result:
+`analyze_wordcode.py` validates the supplied active bank directly from RES9 and INIT:
 
 ```text
 programs                         38
@@ -106,28 +135,44 @@ Five executable-supported opcodes are absent from the shipped active bank but re
 1C  direct sound-effect playback
 ```
 
-See `WORDCODE_VM.md` for the full opcode specification and `analyze_wordcode.py` for reproducible validation/disassembly.
+## Higher-level role and named programs
 
-## Higher-level role
+Routine `16524(program_id)` initializes interaction/display state, loads the requested raw RES9 program, draws resources, runs the VM, manages choices/timers/audio, and restores surrounding display/music state.
 
-Routine `16524(program_id)` initializes interaction/display state, loads the requested raw RES9 program, draws resources, runs the VM, manages choices/timers/audio, and later restores surrounding display/music state.
+The active bank maps directly to NPC definitions:
 
-Its callers include fixed story/gameplay IDs and world-object-derived IDs. `21B11`, for example, maps one eligible interactive world-record type to program `0x25` and otherwise converts eligible types using `type - 0x22` before invoking `16524`.
+```text
+NPC types 34..70 -> programs 0..36
+NPC type 82      -> program 37
+```
 
-The safe class name remains **interaction/display wordcode** rather than NPC animation or generic scripting.
+`WORDCODE_PROGRAM_INDEX.md` records the complete mapping and each program's resource/text/sound/music relationships.
 
-## `RES12` relationship
+The safe class name is **interaction/display wordcode** rather than NPC animation or a universal gameplay scripting language.
 
-`RES12:370..406` has the identical count/program/zero-bank structure. The 37 shared ordinal positions also have matching early opcode-`0x19` text-base operands relative to the RES9 programs.
+## RES12 relationship
 
-The proved active loader explicitly opens archive **9**. No corresponding active archive-12 raw-wordcode loader has yet been established. Therefore RES12 remains an **ID-aligned alternate wordcode bank**, not an asserted runtime-selected bank.
+`RES12:370..406` has the identical outer count/program/zero-bank shape, and shared ordinals preserve multiple interaction identities/text bases. However, its internal dialect is not compatible with the active RES9 VM: among other differences, its party-character operation embeds inline character records/names/stats where active CODE.2 expects a one-word template ID.
 
-## Remaining work
+The whole-object raw-access audit also proves no direct archive-12 raw-handle request exists in this CODE.2 object.
 
-The RES9 instruction grammar/control flow is closed. The remaining non-EH frontier is now:
+Therefore RES12 remains an **ID-aligned alternate/incompatible interaction-wordcode bank**. No provenance label such as floppy/CD/prototype/localized is asserted without a matching executable or documentary source. See `RES12_WORDCODE.md`.
 
-- determine the intended purpose of the serialized zero companion bank;
-- trace RES12 selection or establish that it is alternate/unused data for this executable;
-- resolve the two `RES1` four-byte sentinels;
-- map individual program IDs to named story/interactions where caller/level evidence makes those identities provable;
-- continue deeper naming of renderer draw variants only when CODE.2 evidence supports stronger names.
+## Closed versus intentionally unknown
+
+Closed for the supplied executable:
+
+- active RES9 bank location and program IDs;
+- complete active VM instruction grammar/control flow;
+- named NPC/program mapping;
+- RES12 is not selected by the certified CODE.2 raw loader;
+- the serialized zero companion banks are not runtime-consumed;
+- RES1 raw records are not reachable through established CODE.2 resource paths.
+
+Intentionally unresolved historical/producer questions:
+
+- why the wordcode producer serialized a same-length zero bank;
+- what tool/build originally used the two RES1 `0x00000060` markers;
+- exact provenance/build identity of RES12.
+
+Those are preservation `UNKNOWN`s, not blockers for a faithful reconstruction of this executable's runtime behavior.
