@@ -1,56 +1,147 @@
 # Ravenloft Runtime / Executable Reconstruction
 
-Status: **ACTIVE — Phase 1 inventory and classification**
+Status: **AUDITED — core runtime protocol certified; optional installer/hardware-driver work deferred.**
 
-This tree preserves the executable-side reconstruction of *Ravenloft: Strahd's Possession* separately from `Code1`, `Code2`, `DatFiles`, and `Resources`.
+This tree preserves executable-side reconstruction separately from `Code1`, `Code2`, `DatFiles`, and `Resources`.
 
 ## Evidence policy
 
-The project's existing preservation rule remains controlling: shipped Ravenloft bytes are primary evidence. Toolchain/platform documentation explains mechanisms only after those mechanisms are observed in the binaries. Third-party libraries are identified and documented before deciding whether full decompilation is necessary.
+Shipped Ravenloft bytes are controlling evidence. Platform/toolchain documentation explains mechanisms only after those mechanisms are observed in the binaries. Historical checkpoint documents record the investigation sequence; where a checkpoint conflicts with a later corrected/canonical document, the later corrected/canonical document controls.
 
-## Current source set
+## Canonical current documents
 
-### Executables
-- `R.EXE` — main game launcher/runtime; **highest-priority reverse-engineering target**.
-- `INSTALL.EXE` — Ravenloft installer; contains the shipped-file manifest and DreamForge identification strings.
-- `SINSTALL.EXE` — SSI sound installer/configurator; DOS/4GW/Watcom executable.
-- `LOADPATS.EXE` — Gravis UltraSound patch loader; LZEXE 0.91-compressed DOS executable.
+- `STATE_TRANSITION_PROTOCOL.md` — canonical R.EXE / CODE.1 / CODE.2 / CHARS state machine.
+- `CODE_OBJECT_MAP.md` — corrected application object/file mappings.
+- `CHARS_XREF_RECONSTRUCTION.md` — producer/consumer/existence-gate proof.
+- `CODE1_STATUS10_PROPAGATION.md` — CODE.1 status-10 handoff proof.
+- `CODE2_STATUS12_OWNERSHIP.md` — corrected live status-12 taxonomy.
+- `STATUS12_PARTY_WIPE_PRODUCER.md` — party-wipe/no-active-party cause.
+- `STATUS12_23DF0_REACHABILITY_AUDIT.md` and corrected `STATUS12_FINAL_PRODUCER_XREF.md` — unreferenced duplicate finale routine.
+- `CINE10_CINE11_VARIANT_PREDICATE.md` — corrected unsigned predicate and record offsets.
+- `CHARACTER_STATUS_4000_DEATH_STATE.md`, `CHARACTER_STATUS_0080_8000_OWNERSHIP.md`, `FINALE_CHARACTER_CLASSIFICATION.md` — certified status semantics.
+- `AUDIO_INTERFACE_DEPENDENCY_AUDIT.md` — CODE-side 59-byte `SOUND.CFG` contract and driver boundary.
+- `OPTIONAL_EXECUTABLE_DRIVER_TRIAGE.md` — installer/audio-driver deferral decision.
 
-### Runtime scripts/configuration
-- `RLOFT.BAT` — game launch wrapper and Gravis UltraSound environment handling.
-- `SOUND.BAT` — sound-installer wrapper and Gravis UltraSound environment handling.
-- `MAKSAV.BAT` — save bootstrap: creates `SAVE01`, copies `LEV022.DAT` and `SAVE.DAT`, then removes the working copies.
-- `README.BAT` — displays `README.TXT` through `MORE`.
-- `PATCHES.INI` — UltraSound `LOADPATS.EXE` patch-selection table for AIL 32.
-- `README.TXT` — shipped release/readme documentation.
-- `SAMPLE.AD` — **confirmed Miles AIL 2.x YM3812/OPL2 Global Timbre Library (GTL)**. Its canonical resource-format reconstruction lives at `Resources/MISC/SAMPLE.AD/`; duplicate runtime/media copies are the same middleware asset and do not create a second workstream.
+## Certified runtime architecture
 
-### Audio DLLs
-18 supplied DLLs have been identified as 32-bit Intel LX-format DLLs. Embedded copyright/device strings identify the family as Miles Design audio drivers (with the two GUS drivers additionally crediting Advanced Gravis and Forte Technologies). These are initially treated as third-party runtime dependencies, not DreamForge gameplay code.
+`R.EXE` is a small 16-bit Borland DOS launcher/supervisor, not the protected-mode game engine and not an embedded DOS/4GW protected-mode payload.
 
-Driver set:
+Its shipped binary is:
 
-`A32ADLIB.DLL`, `A32ALGDG.DLL`, `A32ALGFM.DLL`, `A32ARDG.DLL`, `A32ARXM.DLL`, `A32MT32.DLL`, `A32PASDG.DLL`, `A32PASFM.DLL`, `A32PASOP.DLL`, `A32SBDG.DLL`, `A32SBFM.DLL`, `A32SBPDG.DLL`, `A32SP1FM.DLL`, `A32SP2FM.DLL`, `A32SPKR.DLL`, `A32TANDY.DLL`, `GUSDIG32.DLL`, `GUSMID32.DLL`.
+- size `12,368` bytes (`0x3050`);
+- SHA-256 `a6d5874dc91fb068a3ed0a07290547c310ee7f4f50be4d8176c4788f251631b0`;
+- MZ image size exactly equals file size;
+- contains the DOS/4GW 1.96 banner/environment strings used while launching the protected-mode CODE children.
 
-The Resources track has additionally confirmed that shipped `GM1.BNK` / `GM2.BNK` are Sierra Semiconductor ARIA General MIDI banks associated with the ARIA XMIDI path; Ravenloft's corresponding 32-bit driver is `A32ARXM.DLL`. Their inner bank grammar remains a Runtime/driver-side question rather than a DreamForge resource-format requirement.
+Certified control flow:
 
-## Confirmed initial findings
+```text
+RLOFT.BAT
+    -> R.EXE
+         -> create WORK / AUTOMAPS
+         -> launch CODE.2
+         -> if CODE.2 returns 10: launch CODE.1
+         -> if CODE.2 returns 12: delete CHARS, normalize to 10
+         -> while result == 10: repeat
+         -> final CHARS cleanup
+```
 
-1. `R.EXE` is an MZ DOS executable containing the DOS/4GW Professional Protected Mode Runtime 1.96 and explicit references to both `code.1` and `code.2`. This directly confirms that the executable is part of the CODE-module loading/runtime chain and warrants full structural analysis.
-2. `INSTALL.EXE` is an MZ DOS executable and contains a Borland C++ 1991 runtime/compiler identification string. Its embedded shipped-file names include `CODE.1`, `CODE.2`, `LEVELS.DAT`, `NPCS.DAT`, `OBJECTS.DAT`, `INFO.DAT`, `LEV022.DAT`, `SAVE.DAT`, the audio DLL set, and the sound-launch infrastructure.
-3. `SINSTALL.EXE` is a DOS/4G-bound Watcom program. Embedded strings identify it as `SSI Sound Flat Model Installer for Ravenloft 4.2.6b` and expose configuration for MIDI/digital devices including Sound Blaster variants, AdLib, Roland/MPU-401, Gravis UltraSound, Aria, Soundscape, PAS, and PC speaker.
-4. `LOADPATS.EXE` is LZEXE v0.91 compressed. `PATCHES.INI` explicitly describes itself as the default UltraSound patch table used by `LOADPATS.EXE` for `AIL 32`.
-5. `RLOFT.BAT` and `SOUND.BAT` are authored/revisioned scripts (Ralph Thomas; revision history dated 1994-01-24 and 1994-02-07) that test `ULTRADIR`, handle obsolete Gravis software revisions, and ultimately invoke `R.EXE` or `SINSTALL.EXE`.
+Canonical protocol meanings:
 
-## Reverse-engineering priority
+```text
+status 10 = CONTINUE_MODULE_CYCLE
+status 12 = RESTART_CODE_CYCLE_WITHOUT_CHARS
+```
 
-1. **R.EXE** — full header/extender map, entry path, CODE.1/CODE.2 loader, memory/file/runtime services, boundary with reconstructed modules.
-2. **SINSTALL.EXE** — recover `SOUND.CFG` format and exact driver-selection/configuration contract needed for faithful compatibility.
-3. **INSTALL.EXE** — reconstruct installation/file-layout behavior where it contributes preservation evidence.
-4. **LOADPATS.EXE** — unpack and document its Gravis/AIL contract; decompile only to the depth needed for faithful runtime behavior.
-5. **Audio DLLs** — document format, driver identity, interface/exports and call contract. Full source-level decompilation is deferred unless Ravenloft depends on undocumented behavior that a source port must reproduce. `A32ARXM.DLL` is the specific future source of truth if byte-level GM1/GM2 ARIA bank semantics become necessary.
-6. **BAT/INI/TXT files** — preserve verbatim and annotate; no decompilation is required.
+## CHARS contract
 
-## Next checkpoint
+`CHARS` is a transient cross-process party-state image:
 
-Phase 1 continues with a byte-level structural map of `R.EXE`: DOS header, extender/bound executable structure, entry point, embedded runtime regions, strings/file references, and the first proven loader relationships to `CODE.1` and `CODE.2`.
+```text
+4 records * 0x248 bytes = 0x920 bytes
+```
+
+- CODE.1 produces/writes it before the normal status-10 handoff.
+- CODE.2 tests for it, reads exactly `0x920` bytes into active-party storage at runtime `0x218E0`, then performs post-load processing.
+- R.EXE deletes it on status 12 and final shutdown.
+
+It is not an ordinary persistent save file.
+
+## Status-12 causes
+
+Two live gameplay causes are certified:
+
+1. **Party wipe / no active party** -> terminal presentation -> status 12.
+2. **Five-artifact quest completion** -> event 10 -> `CINE10.ANM` or `CINE11.ANM` -> status 12.
+
+The standalone finale routine at CODE.2 `0x23DF0` is real executable code but has no certified incoming static application edge and is preserved as an **unreferenced duplicate finale helper**, not a third live trigger.
+
+## Finale character predicate
+
+Active-party base/stride:
+
+```text
+base          0x218E0
+record stride 0x248
+status word   +0x10 / runtime 0x218F0
+current HP    +0x1C / runtime 0x218FC
+```
+
+Event 10 uses:
+
+```c
+status < 0x4000u && (status & 0x0080u) == 0
+```
+
+Certified meanings:
+
+```text
+0x0080  recruited/template-character provenance
+0x4000  zero-HP death state; revival clears it
+0x8000  empty/unoccupied party slot
+```
+
+Thus `CINE10` requires at least one living original/non-recruited party character; otherwise `CINE11` is selected.
+
+## Runtime scripts/configuration
+
+- `MAKSAV.BAT` creates `SAVE01`, copies `LEV022.DAT` and `SAVE.DAT`, then deletes the working copies.
+- `README.BAT` displays `README.TXT` through `MORE`.
+- `PATCHES.INI` is the UltraSound LOADPATS patch-selection table for AIL 32.
+- `RLOFT.BAT` and `SOUND.BAT` test Gravis-related environment state and run `R.EXE` / `SINSTALL.EXE`.
+
+Important audit note: although both batch files contain comments describing a LOADPATS failure/revision test, the supplied scripts **do not actually invoke `LOADPATS.EXE`** before testing `ERRORLEVEL`. The exact historical LOADPATS activation path remains optional archival work.
+
+## Audio boundary
+
+Both CODE modules are directly proven to open `sound.cfg` and transfer exactly `0x3B` bytes into their audio configuration blocks.
+
+The supplied `SOUND.CFG` sample is 59 bytes and contains `a32mt32.dll` at `+0x16` and `a32sbpdg.dll` at `+0x24`. CODE then consumes two distinct numeric/driver configuration groups matching Music versus Digital Sound Effects.
+
+The 18 A32/GUS DLLs are third-party hardware/middleware backends. No evidence currently places missing Ravenloft gameplay logic inside them.
+
+## Current reverse-engineering priority
+
+```text
+DONE / CORE
+    R.EXE supervisor structure
+    CODE handoff protocol
+    CHARS transfer contract
+    status 10 / status 12 semantics
+    live status-12 causes
+    finale variant predicate
+
+REQUIRED FOR FAITHFUL AUDIO, BOUNDED
+    CODE-side audio API behavior
+    remaining SOUND.CFG numeric-field semantics
+    game-visible audio timing/status behavior if any
+
+DEFERRED / END-OF-PROJECT
+    full SINSTALL.EXE decompilation
+    full INSTALL.EXE decompilation
+    LOADPATS exact activation/patch-loading behavior
+    A32/GUS driver internals
+    exact original ISA/DMA/IRQ hardware implementation
+```
+
+The core runtime/executable reconstruction is no longer a Phase-1 inventory task; it is architecturally closed unless contradictory shipped-byte evidence appears.
