@@ -1,6 +1,6 @@
 # NPCS.DAT format reconstruction
 
-Status: **container and fixed 0x45-byte record layout proven; name, scene/render parameters, core combat statistics, XP, runtime-state templates, renderer scale bias, all four sound contexts, and twenty behavior/effect aliases are behaviorally anchored in certified CODE.2. Remaining populated flag capacity is explicitly audited and preserved raw.**
+Status: **ARCHIVAL-COMPLETE FOR THE SUPPLIED BUILD. All 69 physical bytes are accounted for; certified CODE.2 behavior, LEVELS linkage, RES3 class-0 shape identity, audio routing, raw residual flags, and byte-exact semantic decode→encode are reconciled.**
 
 ## Controlling evidence
 
@@ -223,4 +223,4 @@ A faithful reader/editor may expose the proved fields and aliases while retainin
 - preserve `+0x3B/+0x3C`;
 - preserve all sound IDs as 16-bit values and their separate resource bases.
 
-The lossless parser/encoder is `inspect_npcs.py`; semantic analyzers and evidence modules are indexed from `README.md`.
+The lossless semantic parser/encoder is `inspect_npcs.py`; semantic analyzers and evidence modules are indexed from `README.md`. Final certification is recorded in `FINAL_AUDIT_2026-10-06.md`.
