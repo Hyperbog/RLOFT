@@ -9,13 +9,15 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
-from PIL import Image, ImageDraw, ImageFont, ImageTk
+from PIL import Image, ImageTk
 
 import asset_dumper
 import exporter
 import master_dumper
 import media_inventory
+import runtime_paths
 import support_dumper
+import tooltips
 
 
 BG = "#170e0d"
@@ -40,7 +42,7 @@ class RavenloftExtractorGui(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("Ravenloft Asset Extraction Suite")
-        self.geometry("1180x820")
+        self.geometry("1120x820")
         self.minsize(820, 620)
         self.resizable(True, True)
         self.configure(background=BG)
@@ -52,7 +54,10 @@ class RavenloftExtractorGui(tk.Tk):
 
         self.graphics_format = tk.StringVar(value="PNG (lossless indexed)")
         self.graphics_palette = tk.IntVar(value=0)
-        self.graphics_native = tk.BooleanVar(value=True)
+        self.graphics_indices = tk.BooleanVar(value=True)
+        self.graphics_metadata = tk.BooleanVar(value=True)
+        self.graphics_masks = tk.BooleanVar(value=False)
+        self.graphics_native = tk.BooleanVar(value=False)
         self.graphics_dest = tk.StringVar()
 
         self.audio_format = tk.StringVar(value="FLAC (lossless)")
@@ -70,7 +75,9 @@ class RavenloftExtractorGui(tk.Tk):
         self.cin_video = tk.BooleanVar(value=False)
         self.cin_video_format = tk.StringVar(value="MKV (FFV1 lossless)")
         self.cin_video_dest = tk.StringVar()
+        self.cin_meta_dest = tk.StringVar()
         self.cin_timing_mode = tk.StringVar(value="Native engine timing")
+        self.native_timing_text = tk.StringVar()
         self.cin_fps = tk.StringVar(value="15")
         self.cin_sync_audio = tk.BooleanVar(value=True)
         self.cin_timeline = tk.BooleanVar(value=True)
@@ -94,10 +101,14 @@ class RavenloftExtractorGui(tk.Tk):
         self._action_buttons: list[ttk.Button] = []
         self._wrap_labels: list[ttk.Label] = []
         self._banner_photo: ImageTk.PhotoImage | None = None
+        self._banner_source: Image.Image | None = None
         self._banner_job: str | None = None
+        self._tooltips: list[object] = []
 
         self._build_styles()
         self._build_ui()
+        self._refresh_native_timing_text()
+        self._tooltips = tooltips.install(self)
         self.after(100, self._poll_events)
 
     def _build_styles(self) -> None:
