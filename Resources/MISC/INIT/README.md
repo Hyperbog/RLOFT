@@ -7,7 +7,7 @@
 
 ## Current reconstruction status
 
-The supplied `INIT` file is now **structurally closed end-to-end** against CODE.2. `analyze_init.py` parses and byte-identically reserializes all 1,879 bytes.
+The supplied `INIT` file is **structurally closed end-to-end** against CODE.2. `analyze_init.py` parses and byte-identically reserializes all 1,879 bytes.
 
 Its serialized sections are:
 
@@ -18,8 +18,11 @@ Its serialized sections are:
 0x0545..0x0756    2 environment-profile backdrop/panorama tables
 ```
 
-Confirmed relationships include:
+Confirmed fixed-header relationships now include:
 
+- `+0x00 = 15`: RES0 UI-graphics base; entries `0..14` are the 15 type-2 fonts and UI/raster consumers use archive 0 relative to this base;
+- `+0x02 = 168`: RES1 object/inventory UI base; `OBJECTS.DAT +0x2D` values `0..167` map exactly to `RES1:168..335`;
+- `+0x04 = 336`: RES1 character-face base; CODE.2 uses `face_index + sex*23` and adds 46 when status bit `0x0100` selects the alternate portrait bank;
 - four RES3/type-7 source-bank starts at `+0x06..+0x0C`;
 - archive-9 sound/resource/wordcode bases at `+0x1C..+0x22`;
 - class-1 and class-3 scene shape descriptor tables;
@@ -29,7 +32,8 @@ Confirmed relationships include:
 See:
 
 - `FORMAT.md` for the complete serialized grammar and fixed-header relationships;
-- `ENVIRONMENT_PROFILES.md` for the final two profile tables and their renderer semantics;
+- `UI_RESOURCE_BASES.md` for the first three INIT words and RES0/RES1 UI/portrait mappings;
+- `ENVIRONMENT_PROFILES.md` for the final two profile tables and renderer semantics;
 - `analyze_init.py` for reproducible parsing/round-trip validation.
 
-Some individual fixed-header words still lack historical source/editor names. Structural closure does not justify inventing labels for fields whose runtime meaning remains only partially characterized.
+Some fixed-header words still lack historical source/editor names. Structural closure does not justify inventing labels for fields whose runtime meaning remains only partially characterized.

@@ -1,66 +1,89 @@
-# RES1 raw four-byte sentinel entries
+# RES1 raw four-byte portrait-slot markers
 
-Status: **preserved but inactive/unconsumed in the supplied CODE.2 resource paths.** Their exact historical producer-side meaning remains unknown.
+Status: **runtime placement resolved; literal producer-side marker meaning still unknown.** `RES1:381` and `RES1:427` occupy the final reserved/invalid character-face slot in each of the two RES1 portrait banks. They are not consumable typed graphics in the supplied CODE.2 runtime.
 
 ## Physical records
 
-`RES1` contains two non-empty entries that do not begin with the normal `EH` resource envelope:
-
 ```text
-RES1:381  60 00 00 00
-RES1:427  60 00 00 00
-```
-
-Each is immediately preceded by a zero-length entry:
-
-```text
-RES1:380  empty
+RES1:380  zero-length
 RES1:381  60 00 00 00
 ...
-RES1:426  empty
+RES1:426  zero-length
 RES1:427  60 00 00 00
 ```
 
 `RES1:427` is the final archive entry.
 
-The remaining non-empty RES1 entries are ordinary typed resources, overwhelmingly type-1 graphics. This makes the two four-byte records intentional archive anomalies/markers rather than evidence that RES1 is generally a mixed raw-data archive.
+The remaining non-empty entries in the surrounding portrait ranges are ordinary type-1 graphics.
 
-## Why the normal loader cannot consume them
+## Portrait-bank placement
 
-CODE.2 `2EB60` is the common typed-entry reader. It reads the five-byte envelope and requires the first word to equal `"EH"` before dispatching resource types 1..7.
+INIT `+0x04` supplies character-face base 336. CODE.2 computes:
 
-These entries are only four bytes long and begin with `60 00`, not `45 48`. Passing either through the normal typed path would therefore fail the envelope test and enter the resource-error path rather than produce a valid object.
+```text
+local = face_index + sex * 23
+id    = 336 + local
+
+if (status_word & 0x0100)
+    id += 46
+```
+
+`sex` is directly proved by the indexed T reader (`0 -> MALE`, `1 -> FEMALE`). The archive therefore divides as:
+
+```text
+RES1 336..381   normal 46-slot face bank
+RES1 382..427   status-0x0100 46-slot face bank
+```
+
+Within both banks:
+
+```text
+sex 0 / MALE    face 0..22 -> all 23 slots contain valid type-1 graphics
+sex 1 / FEMALE  face 0..20 -> 21 valid type-1 graphics
+sex 1 / FEMALE  face 21    -> zero-length slot
+sex 1 / FEMALE  face 22    -> raw 60 00 00 00 slot
+```
+
+Thus entries 381 and 427 are the same terminal local face slot in the two parallel banks. Their immediately preceding empty entries are the preceding local face slot.
+
+See `RES1_PORTRAITS.md` for the complete executable/resource proof.
+
+## Why the normal loader cannot consume the raw slots
+
+CODE.2 `2EB60` is the common typed-entry reader. It requires the first word to equal `"EH"` before dispatching types 1..7.
+
+The raw marker entries are only four bytes and begin `60 00`, not `45 48`, so attempting to load either through the normal path enters the resource-error path rather than returning a graphic.
+
+The preceding zero-length entries do not create valid aliases: because their duplicate offsets point directly at the following raw bytes, a typed read from those slots encounters the same invalid marker rather than an `EH` envelope.
 
 ## Raw archive access audit
 
-CODE.2 helper `2EC74(archive)` exposes a raw archive handle. A direct call-target scan of the complete certified CODE.2 object finds exactly one call to `2EC74`:
+Helper `2EC74(archive)` exposes raw archive handles. A direct call-target scan of the complete certified CODE.2 object finds exactly one call:
 
 ```text
 13F76: call 2EC74
 ```
 
-That caller pushes archive number **9** and is the already reconstructed interaction-wordcode loader `13F70`.
+That caller is the active interaction-wordcode loader and hardcodes archive 9. There is no direct archive-1 raw-handle request.
 
-There is no direct CODE.2 raw-handle request for archive 1.
+Therefore established CODE.2 paths provide no alternate interpretation of the marker bytes.
 
-Therefore the two RES1 raw entries are not reachable through either of the executable's established resource paths:
+## Preservation boundary
 
-- typed `EH` loader: incompatible envelope;
-- raw archive loader: archive 1 is never requested.
-
-This is negative evidence about the supplied executable, not proof that no other DreamForge tool/build ever used the records.
-
-## Safe preservation rule
-
-Do not delete, rewrite, convert, or reinterpret the values as graphics merely because they occur inside RES1.
-
-For this Ravenloft executable they should be modeled as:
+The following is now proved:
 
 ```text
-raw 4-byte archive records
+serialized location = terminal invalid/reserved female face slot in each portrait bank
+normal typed consumer = none; invalid EH envelope
+raw archive-1 consumer = none in certified CODE.2
 serialized value = 0x00000060
-runtime consumer = not established / inactive in supplied CODE.2
-historical producer-side meaning = UNKNOWN
 ```
 
-Round-trip tools must preserve the preceding empty entries and the four raw bytes exactly.
+The following remains unknown:
+
+```text
+why the producer chose literal 0x00000060
+whether another DreamForge editor/build gave that value a special meaning
+```
+
+Do not delete, normalize, convert, or replace these records. Round-trip tools must preserve the preceding duplicate offsets and the four raw bytes exactly.
