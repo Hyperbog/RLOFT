@@ -1,6 +1,6 @@
 # LEVELS.DAT / LEVnnn.DAT semantic reconstruction
 
-Status: **container, cell-state, 10-byte control, compact-family expansion, fixed event-script table, active header-tail, automap-cache, dynamic-door, loose-item, and annotation-tail semantics substantially reconstructed from certified CODE.2 and supplied DAT files.**
+Status: **container, cell-state, 10-byte control, compact-family expansion, fixed event-script table, event-callee, active header-tail/music, automap-cache, dynamic-door, loose-item, and annotation-tail semantics substantially reconstructed from certified CODE.2 and supplied DAT files.**
 
 The immutable CODE.2 bytes remain controlling evidence. Names are assigned only where executable behavior or a directly loaded database proves them.
 
@@ -9,6 +9,11 @@ The immutable CODE.2 bytes remain controlling evidence. Names are assigned only 
 - level event interpreter: `002A8..006B8`
 - level loader: `181B4..18D8B`
 - standalone writer: `171FC..17837`
+- persistent event flags: `1C124..1C219`
+- indexed text reader: `1C368..1C408`
+- numbered interactive event runner: `139AC`, `13AD8`, `13EF8`
+- sound-effect request queue: `28110..28164`
+- music-sequence subsystem: `28C54..290C2`
 - 10-byte lookup helpers: `1E8C8..1EA03`
 - legacy 11->22 conversions: `1866B..18918`
 - family-C pickup/removal: `21704`
@@ -40,12 +45,16 @@ The header is loaded to DGROUP `0x25618` and written verbatim.
 +0x298  uint8 renderer_fill_base_A
 +0x299  uint8 renderer_fill_base_B
 +0x29A  int16 render_threshold_floor
-+0x29C  uint8 resource_set_id
++0x29C  uint8 level_music_sequence_id
 ```
 
 The first four 64-word banks feed first-person resource/render selection and are mutable at runtime. The fifth is consumed by automap rendering.
 
-The active header tail is behaviorally decoded in `HEADER_TAIL.md`. In particular, `+0x29A` is normalized from zero to one immediately after load, exactly explaining the sole fixed-header byte difference between archive level 22 and supplied `LEV022.DAT`. Byte `+0x291` and bytes `+0x29D..+0x2A3` have no direct absolute CODE.2 consumers found and are zero in all supplied archive records, but remain raw preserved bytes rather than format-mandated padding.
+The active header tail is behaviorally decoded in `HEADER_TAIL.md`. In particular, `+0x29A` is normalized from zero to one immediately after load, exactly explaining the sole fixed-header byte difference between archive level 22 and supplied `LEV022.DAT`.
+
+Header `+0x29C` is now proved to be the default **level music-sequence ID**. Every direct CODE.2 consumer compares or routes it through the `0x28C54..0x290C2` music/sequence subsystem; the adjacent options controls separately route sound effects through `0x280xx` and music through `0x290xx`.
+
+Byte `+0x291` and bytes `+0x29D..+0x2A3` have no direct absolute CODE.2 consumers found and are zero in all supplied archive records, but remain raw preserved bytes rather than format-mandated padding.
 
 ## 16-bit cell layer
 
@@ -176,21 +185,17 @@ object ID range      0..335
 compact flags             0 for all 622 supplied records
 ```
 
-All family-C IDs are valid in the 336-entry supplied OBJECTS.DAT. The most common types include `STONE`, `ARROW`, `SLING BULLET`, potions and `BAROVIAN COIN`.
-
-The exact historical reason for the family-C-only legacy migration `0x54 -> 0x58` remains open. See `FAMILY_C.md` and `analyze_family_c.py`.
+All family-C IDs are valid in the 336-entry supplied OBJECTS.DAT. The exact historical reason for the family-C-only legacy migration `0x54 -> 0x58` remains open. See `FAMILY_C.md` and `analyze_family_c.py`.
 
 ## Fixed 0x514 level event-script table
 
-The formerly unresolved fixed block is structurally and behaviorally identified.
-
-CODE.2 allocates exactly `0x514` bytes and stores its pointer at DGROUP `0xCF44`. Interpreter `002A8` selects:
+The fixed block is structurally and behaviorally identified. CODE.2 allocates exactly `0x514` bytes and stores its pointer at DGROUP `0xCF44`. Interpreter `002A8` selects:
 
 ```text
 slot = event_table + script_index * 26
 ```
 
-The block is therefore exactly 50 slots of 26 bytes:
+The block is exactly 50 slots of 26 bytes:
 
 ```text
 slot +0x00  uint8 active_command_count
@@ -201,7 +206,7 @@ slot +0x10  command[3]
 slot +0x15  command[4]
 ```
 
-Each command is `opcode + four raw argument bytes`. The interpreter supports opcodes `0..12` through a 13-entry CS jump table and executes only the first `active_command_count` commands.
+Each command is `opcode + four raw argument bytes`. The interpreter supports opcodes `0..12` and executes only the first `active_command_count` commands.
 
 Archive-wide:
 
@@ -214,19 +219,28 @@ max active count      5
 
 One supplied slot proves inactive bytes are persistent: level 20 slot 1 has count 4 but a nonzero fifth command. Repackers must preserve all 26 bytes.
 
-Most useful opcode semantics now proved:
+Proved opcode semantics now include:
 
 - opcodes 0/1: coordinate-based cell-record action variants;
 - opcode 2: toggle cell-record state;
 - opcode 3: create a transient/moving effect record at a cell with quantized orientation;
 - opcode 4: replace only the six-bit cell code at `(row,column)`;
-- opcode 5: invoke the sound/resource path through `28110` using the encoded unaligned dword parameter;
-- opcode 6: resource/audio transition path;
-- opcodes 8/9/10: pass command byte `+3` to three distinct routines;
-- opcode 11: special subcommand dispatcher, with a generic branch that stops the current script;
+- opcode 5: queue sound-effect request ID through `28110` with channel 0, aux `0xFF`, priority 0;
+- opcode 6: timed transition from the current music sequence to the sequence ID encoded at command byte `+3`;
+- opcode 7: modal indexed-text display; `1C368` resolves an offset table, reads a length-prefixed string, and XOR-decodes it with `0xDC`;
+- opcode 8: set persistent global event flag `arg3`;
+- opcode 9: clear persistent global event flag `arg3`;
+- opcode 10: toggle persistent global event flag `arg3`;
+- opcode 11: reserved special action for IDs `0x0B..0x0D`, otherwise run a numbered interactive event resource selected by `arg3` and stop the current event slot;
 - opcode 12: assign command byte `+3` to global `0xBF44`.
 
-Opcodes 7, 9 and 10 are executable-supported but absent from the supplied archive. See `EVENT_SCRIPTS.md` for instruction-level details and `analyze_event_scripts.py` for validation.
+The persistent event-flag vector begins at `0x22200`; SAVE.DAT writes and reads exactly `0x20` bytes from that address, proving a persistent 256-bit game/event-state vector. Only opcode 8 occurs in the supplied archive, setting flags `0x52`, `0x55`, `0x56`, and `0x57`.
+
+Opcode 11's default numbered-resource path cross-links INFO.DAT. CODE.2 reads a 13-byte digit configuration vector followed by a signed 16-bit path length and path bytes; the supplied path is `D:`. Routine `139AC` constructs `<path>\\NN`, so numbered event 7 resolves to `D:\\07` in the supplied install image.
+
+Opcode 5 uses the separate sound-effect subsystem, while opcode 6 and header `+0x29C` use the music/sequence subsystem. The two supplied opcode-6 instances select music IDs `0x2F` and `0x2E`.
+
+See `EVENT_SCRIPTS.md`, `EVENT_CALLEES.md`, `analyze_event_scripts.py`, and `analyze_event_callees.py`.
 
 ## Automap cache and overlays
 
@@ -272,15 +286,15 @@ family B expansion: 110 / 110 records byte-identical
 
 Safe to expose semantically now:
 
-- dimensions, five header lookup banks, and active header-tail renderer/profile/resource controls;
+- dimensions, five header lookup banks, active header-tail renderer/profile controls, and default level music sequence;
 - packed cell-code/visibility/exploration fields and behavioral flags;
 - 10-byte record kind, coordinates, proved control bits, and kind-specific fields;
 - dynamic open/closed group-2 state;
 - family A as NPC/creature records;
 - family B as placed object/item map records;
 - family C as loose/pickable item records with dropped/thrown runtime motion state;
-- fixed 50-slot level event-script table and its proved command behaviors;
+- fixed 50-slot level event-script table including sound, music, indexed-message, persistent-flag, numbered-event, cell mutation, and global-state actions;
 - generated automap cache, base export, placed-object overlay, and annotation overlay;
 - annotation-list tail.
 
-Remaining high-value LEVELS work is the unresolved event-opcode callees where they materially improve semantics, the few still-behavioral cell/control-bit names, and the historical reason for the family-C `0x54 -> 0x58` legacy migration. After that, the next value is in cross-linking the remaining DAT databases rather than reopening already proved container structure.
+Remaining high-value LEVELS work is the few still-behavioral cell/control-bit names, reusable semantics in the three story-specific opcode-11 branches if any, and the historical reason for the family-C `0x54 -> 0x58` legacy migration. After that, the next value is in fully reconstructing the other DAT databases using the cross-links already proved here.
