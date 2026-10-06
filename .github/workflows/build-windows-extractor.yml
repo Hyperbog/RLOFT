@@ -12,6 +12,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: windows-extractor-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-windows-x64:
     runs-on: windows-latest
@@ -133,6 +137,8 @@ jobs:
             Write-Host "Windows distribution is already current."
           } else {
             git commit -m "tools: publish Windows 11 executable [skip ci]"
+            git fetch origin code1-decompilation
+            git rebase origin/code1-decompilation
             git push origin HEAD:code1-decompilation
           }
 
