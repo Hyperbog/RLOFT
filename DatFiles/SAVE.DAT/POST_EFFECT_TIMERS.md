@@ -24,7 +24,7 @@ uint32_t timed_slot_aux[3];      // +0x1AA..+0x1B5
 
 ## Producer evidence
 
-Physical CODE.2 `0x49959..0x49980` obtains current game time, computes a future value, and writes through a slot index scaled by four. The same slot indexes the parallel auxiliary array. Surrounding combat/object logic derives duration and modifies it in the presence of selected primary effect bits.
+Physical CODE.2 `0x49959..0x49980` obtains the pausable gameplay tick counter, computes a future value, and writes through a slot index scaled by four. The same slot indexes the parallel auxiliary array. Surrounding combat/object logic derives duration and modifies it in the presence of selected primary effect bits.
 
 ## Initialization and expiration
 
@@ -44,7 +44,7 @@ deadline[2] <-> aux[2]
 
 ## Reconstruction rule
 
-Zero deadline means inactive; nonzero values are absolute game-clock deadlines. Preserve both arrays exactly and do not merge them with the adjacent primary effect system:
+Zero deadline means inactive; nonzero values are absolute gameplay-tick deadlines. Preserve both arrays exactly and do not merge them with the adjacent primary effect system:
 
 ```text
 primary effect bits       +0x132..+0x135
