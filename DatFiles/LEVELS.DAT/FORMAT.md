@@ -1,6 +1,6 @@
 # LEVELS.DAT / LEVnnn.DAT structural reconstruction
 
-Status: **structural layout proven against CODE.2 loader/writer and all available sample bytes; common tail annotation blob identified.**
+Status: **structural layout proven against CODE.2 loader/writer and all available sample bytes; fixed event-script block and common annotation tail identified.**
 
 This document records facts established by the audited CODE.2 binary and supplied data files. Unnamed gameplay fields remain intentionally unresolved.
 
@@ -10,6 +10,7 @@ This document records facts established by the audited CODE.2 binary and supplie
 - `LEV022.DAT`: 6,028 bytes, SHA-256 `f88b033ff4cdafdd89620e0fac51ff2fb81bce103a6d31a26b91464532c9f51e`
 - CODE.2 loader: logical `181B4..18D8B`
 - CODE.2 standalone writer: logical `171FC..17837`
+- CODE.2 level event interpreter: logical `002A8..006B8`
 
 CODE.2 `181B4` first tries the standalone level file. If absent it opens `levels.dat`, seeks to `4 + level_id*4`, reads one dword, then seeks to `record_offset + 0x1D`. This proves the archive directory and common 29-byte per-record preamble.
 
@@ -33,7 +34,7 @@ The first offset is exactly `0x84 = 4 + 32*4`. All offsets are strictly increasi
 +0x0D  uint32 boundary_3 = end family A
 +0x11  uint32 boundary_4 = end family B
 +0x15  uint32 boundary_5 = end family C
-+0x19  uint32 boundary_6 = end fixed 0x514 block
++0x19  uint32 boundary_6 = end fixed 0x514 event-script table
 ```
 
 The loader does not consume byte `+0x00`. The writer seeks directly to `0x1D` for payload output and later writes the seven boundary dwords beginning at file offset `+0x01`. Archived records have marker `0x00`; supplied `LEV022.DAT` has `0xDF`. Its meaning remains unresolved.
@@ -103,6 +104,33 @@ boundary_5..boundary_6 : exactly 0x514 bytes
 
 `LEV022.DAT` validates every relationship.
 
+## Fixed 0x514 event-script table
+
+CODE.2 allocates exactly `0x514` bytes, stores the pointer at DGROUP `0xCF44`, and reads/writes this block unchanged. Interpreter `002A8` proves the internal structure:
+
+```text
+0x514 bytes = 50 slots * 26 bytes
+
+slot +0x00  uint8 active_command_count   // 0..5
+slot +0x01  command[0]                   // 5 bytes
+slot +0x06  command[1]
+slot +0x0B  command[2]
+slot +0x10  command[3]
+slot +0x15  command[4]
+
+command +0  uint8 opcode
+command +1  uint8 arg1
+command +2  uint8 arg2
+command +3  uint8 arg3
+command +4  uint8 arg4
+```
+
+The interpreter selects `event_table + script_index * 26` and executes only the active prefix. Inactive command bytes are persistent raw data and are not required to be zero: supplied level 20 slot 1 has count 4 while retaining a nonzero fifth command.
+
+Across all supplied archive records there are 1,600 physical slots, 394 active slots and 555 active commands. No active count exceeds 5 and no active opcode exceeds the interpreter's supported range `0..12`.
+
+See `EVENT_SCRIPTS.md` and `analyze_event_scripts.py` for the opcode dispatcher and archive-wide validation.
+
 ## Common tail
 
 Both forms end with:
@@ -146,8 +174,8 @@ B = 110
 C = 0
 ```
 
-The size difference is explained by compact 11-byte archive records versus expanded 22-byte direct-save records, plus the second 10-byte-record group and its one-byte animation-count state.
+The size difference is explained by compact 11-byte archive records versus expanded 22-byte direct-save records, plus the second 10-byte-record group and its one-byte animation-count state. The fixed event-script table is all zero in both supplied level-22 forms.
 
 ## Current boundary
 
-The archive/direct container, section boundaries, mutable/direct representation split, generated automap-cache tail, and annotation blob are structurally decoded. Semantic work continues in `SEMANTICS.md`, `CELL_RECORDS.md`, `CELL_WORD.md`, `AUTOMAP.md`, and the still-unresolved `0x514` block.
+The archive/direct container, section boundaries, mutable/direct representation split, fixed event-script table, generated automap-cache tail, and annotation blob are structurally decoded. Semantic work continues in `SEMANTICS.md`, `EVENT_SCRIPTS.md`, `CELL_RECORDS.md`, `CELL_WORD.md`, and `AUTOMAP.md`.
