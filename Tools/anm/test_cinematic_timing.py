@@ -2,9 +2,13 @@
 """Regression tests for reconstructed ANM timing and sampled-SFX mapping."""
 from __future__ import annotations
 
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 import exporter
+import master_dumper
 import rloft_anm as anm
 
 
@@ -70,6 +74,34 @@ class CinematicTimingTests(unittest.TestCase):
         self.assertEqual(events[0].archive, 10)
         self.assertEqual(events[0].resource_index, 42)
         self.assertEqual(events[0].command, 9)
+
+    def test_timeline_and_original_anm_can_export_together(self) -> None:
+        # Minimal valid ANM: one logical frame with zero chunks.
+        source_bytes = b"\x01\x00\x01\x00\x00\x00"
+        with tempfile.TemporaryDirectory() as temp_name:
+            root = Path(temp_name)
+            source = root / "CINE00.ANM"
+            source.write_bytes(source_bytes)
+            destination = root / "out"
+            options = master_dumper.DumpOptions(
+                cinematic_frames=False,
+                cinematic_videos=False,
+                cinematic_timeline=True,
+                preserve_native=True,
+            )
+            result = master_dumper.dump_cinematics(
+                root,
+                destination,
+                options,
+                names=("CINE00.ANM",),
+            )
+            copied = destination / "original_anm" / "CINE00.ANM"
+            timeline = destination / "timelines" / "CINE00.json"
+            self.assertEqual(copied.read_bytes(), source_bytes)
+            self.assertTrue(timeline.is_file())
+            manifest = json.loads(timeline.read_text(encoding="utf-8"))
+            self.assertEqual(manifest["source"], "CINE00.ANM")
+            self.assertEqual(result["cinematics"][0]["source"], "CINE00.ANM")
 
 
 if __name__ == "__main__":
