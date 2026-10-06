@@ -5,6 +5,7 @@ enable_testing()
 
 add_library(rloft_boot_flow
     src/boot_flow.cpp
+    src/character_creation_presenter.cpp
     src/game_source.cpp
     src/resource_assets.cpp
     src/startup_presenter.cpp
