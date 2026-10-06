@@ -1,11 +1,11 @@
 # SAVE.DAT spell-preparation matrix
 
-Status: **executable-certified structure and nibble semantics; bank numbering and the shipped memorization UI's visible bank range are now mapped.**
+Status: **executable-certified structure and nibble semantics, normalized to corrected runtime character base DGROUP `0x218E0`.**
 
-The persistent character spell state occupies record `+0x0C2..+0x111` (`DGROUP 0x2199A..0x219E9`):
+Each character has two parallel 80-byte matrices. The matrix audited here is the second family at record `+0x0BA..+0x109` / runtime `0x2199A..0x219E9`. The first family is immediately before it at `+0x06A..+0x0B9` / runtime `0x2194A..0x21999`.
 
 ```text
-cell = record[0x0C2 + bank * 10 + entry]
+cell = matrix[bank * 10 + entry]
 bank = 0..7
 entry storage capacity = 0..9
 
@@ -16,14 +16,9 @@ low nibble 0xF = unavailable / non-selectable sentinel
 
 ## Bank identity: one-based spell-level tiers
 
-The memorization UI provides the missing bank-label proof. In the rendering loop at physical CODE.2 `0x401DB..0x40353`, the zero-based bank counter at `[ebp-0x14]` is:
+The memorization UI provides the bank-label proof. In CODE.2 physical `0x401DB..0x40353`, the zero-based bank counter is multiplied by ten to select the bank, incremented by one for display, advanced once per rendered bank, and stopped after six visible banks.
 
-1. multiplied by `10` at `0x401ED` to select the corresponding ten-byte matrix bank;
-2. incremented by one at `0x401F4..0x401FA` before being passed to the UI text-formatting path;
-3. advanced once per rendered bank at `0x40348`;
-4. terminated by the shipped UI after six visible banks at `0x4034F` (`bank < 6`).
-
-This establishes the matrix bank convention as **zero-based storage for one-based spell-level tiers**:
+Therefore storage is zero-based while player-facing spell level is one-based:
 
 ```text
 bank 0 -> spell level 1
@@ -36,32 +31,21 @@ bank 6 -> spell level 7 storage
 bank 7 -> spell level 8 storage
 ```
 
-The executable allocates and maintains eight banks, while this memorization UI path renders only the first six. Therefore the last two banks are real legacy/runtime capacity even though they are outside this shipped screen's visible range. Do not truncate the serialized matrix to six banks.
+The executable maintains all eight banks even though this shipped UI path displays six. Do not truncate either serialized matrix.
 
 ## Entry-count table behavior
 
-The same UI does not assume all ten entries in a bank are valid. At physical `0x40330`, its entry loop compares the current entry index against a per-bank dword table addressed from DGROUP `0x6420`, with a four-byte stride per bank. Matrix-management routines at `0x3ED4D..0x3EDB1` and `0x3EE2B..0x3EE81` use the same per-bank counts while enabling/disabling cells.
+At physical `0x40330`, the UI compares the entry index against a per-bank dword table based at DGROUP `0x6420`, four-byte stride per bank. Matrix-management routines `0x3ED4D..0x3EDB1` and `0x3EE2B..0x3EE81` use the same counts while enabling/disabling cells.
 
-Consequently:
-
-```text
-10 bytes per bank = serialized storage capacity
-per-bank table     = number of meaningful spell entries in that bank
-```
-
-The exact numeric table contents should not be copied from raw CODE.2 file offsets without reconstructing the LE object's initialized data and relocation state. `Runtime/CODE_OBJECT_MAP.md` establishes that CODE.2 is a bound DOS/4G LE image rather than a flat binary. Instruction references remain valid evidence for table identity and stride; raw-file reads at the apparent DGROUP offset are not canonical table extraction.
+Thus ten bytes per bank is storage capacity; the table supplies the number of meaningful spell entries for each bank.
 
 ## Slot-limit calculation
 
-Routine physical `0x40B00` constructs an eight-byte working vector at DGROUP `0x6208`. Its caller supplies character index, a class-level-derived index, and one of two class-dependent table families (`0x62B0` or `0x6350`). The routine clears eight bytes, copies an eight-byte row selected by level, and applies additional character-dependent adjustments.
+Physical routine `0x40B00` constructs an eight-byte working vector at DGROUP `0x6208`. Its caller supplies character index, a class-level-derived index, and one of two class-dependent table families (`0x62B0` or `0x6350`). It clears eight bytes, copies an eight-byte level-selected row, and applies character-dependent adjustments.
 
-The normalization routine at `0x3EB28..0x3ECF9` then compares both selected and ready totals for each matrix bank against `0x6208[bank]`, clamping counts when necessary.
-
-Thus `0x6208[0..7]` is an executable working vector of **per-spell-level preparation-slot limits** for the current character/context. Its values are derived from class/level tables rather than stored directly in SAVE.DAT.
+Normalization at `0x3EB28..0x3ECF9` compares selected and ready totals for each bank against `0x6208[bank]`, clamping when necessary. `0x6208[0..7]` is therefore the per-spell-level preparation-slot limit vector for the current character/context.
 
 ## Native-port rule
-
-Preserve all eight banks and ten bytes per bank exactly in the legacy SAVE decoder. Treat the visible spell level as `bank + 1`, but keep UI visibility separate from storage capacity:
 
 ```cpp
 constexpr std::size_t kSpellLevelBanks = 8;
@@ -73,8 +57,11 @@ uint8_t selected_count(uint8_t cell) { return cell & 0x0F; }
 bool unavailable(uint8_t cell)       { return selected_count(cell) == 0x0F; }
 ```
 
-Do not model the last two banks as padding merely because the audited UI loop stops after spell level 6.
+Preserve both matrices byte-for-byte:
 
-## Next target
+```text
+family A  +0x06A..+0x0B9
+family B  +0x0BA..+0x109
+```
 
-Reconstruct the initialized LE data tables behind DGROUP `0x6420`, `0x62B0`, and `0x6350` with relocation-aware tooling, then identify the per-level spell-entry counts and class/level slot-progression rows exactly. In parallel, continue semantic tracing of the `+0x13A` character-state flags.
+Earlier revisions documented these as `+0x072..+0x0C1` and `+0x0C2..+0x111`; those offsets were based on the obsolete `0x218D8` runtime base and are superseded.
