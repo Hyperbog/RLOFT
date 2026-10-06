@@ -252,7 +252,7 @@ Certified CODE.2 reads only the first word array. A whole-object scan finds exac
 
 Therefore the second equal-length bank is **serialized but not consumed by the supplied CODE.2 runtime**. Its historical producer/editor purpose remains `UNKNOWN`; round-trip tools must preserve it verbatim.
 
-`RES12:370..406` is an ID-aligned alternate/incompatible interaction bank. Its inner dialect is not bytecode-compatible with the active VM, and certified CODE.2 has no raw archive-12 loader. Exact edition/build provenance remains unknown.
+`RES12:370..406` is a legacy generation of the active interaction/display VM. Its apparent incompatibilities were inline operand data: legacy opcode `0x05` consumes a 141-word compact character template, while active RES9 consumes a one-word static-template ID. All 37 legacy programs parse under that recovered grammar with zero invalid direct targets. Certified CODE.2 has no raw archive-12 loader, and supplied CODE.1 likewise initializes only 11 indexed RES groups. The exact older producer/consumer executable remains unknown.
 
 Canonical evidence: `RES/NON_EH.md`, `RES/WORDCODE_VM.md`, `RES/WORDCODE_PROGRAM_INDEX.md`, `RES/RES12_WORDCODE.md`, `RES/analyze_wordcode.py`.
 

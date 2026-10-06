@@ -10,7 +10,7 @@ The 77 non-empty entries that do not begin with `EH` are:
 
 - `RES1:381` and `RES1:427`: four bytes `60 00 00 00`;
 - `RES9:517..554`: 38 active wordcode containers;
-- `RES12:370..406`: 37 wordcode-shaped alternate containers.
+- `RES12:370..406`: 37 legacy interaction/display wordcode containers.
 
 ## RES1 raw four-byte records
 

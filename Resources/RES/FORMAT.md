@@ -346,11 +346,31 @@ Every zero-bank word is zero, but the active loader stops after `program_words`.
 
 Thus it is serialized-but-runtime-unread in this executable. Its historical producer/editor purpose remains `UNKNOWN` and it must be preserved verbatim.
 
-### RES12 alternate bank
+### RES12 legacy interaction bank
 
-RES12 has the same outer count/program/zero-bank container but an incompatible internal dialect, including inline character-template data where active CODE.2 expects a one-word template ID. No archive-12 raw-handle loader exists in the certified CODE.2 object.
+RES12 has the same outer count/program/zero-bank container as active RES9 and is now grammar-closed as a legacy generation of the **same** interaction/display VM.
 
-Safe classification: **ID-aligned alternate/incompatible interaction-wordcode bank physically shipped on the same supplied CD**. The disc provenance is now known; no floppy/localization/prototype label or intended executable/build role is asserted without matching evidence.
+The former apparent opcode incompatibilities were values inside legacy opcode `0x05` operands. The recovered difference is:
+
+```text
+active RES9   opcode 05 -> 1 word: template_id
+legacy RES12  opcode 05 -> 141 words: inline compact character template
+```
+
+All other recovered fixed-arity/variable-list rules use the active `0x00..0x29` grammar. With the 141-word legacy operand:
+
+```text
+programs                    37 / 37 parse to EOF
+program words                4,820
+decoded instructions         1,079
+invalid direct targets           0
+```
+
+The inline template deterministically maps into CODE.2's later centralized `0x248` character-template representation. Certified CODE.2 still has no archive-12 raw-handle loader, and certified CODE.1 initializes only 11 indexed RES groups.
+
+Safe classification: **legacy/pre-split interaction composite physically retained on the supplied CD, historically related to active RES9 but inactive in the supplied executable pair**. The exact older executable/editor that produced or consumed this generation remains unknown.
+
+See `NON_EH.md`, `WORDCODE_VM.md`, `WORDCODE_PROGRAM_INDEX.md`, `RES12_WORDCODE.md`, `RES11_RES12_LINEAGE.md`, and `RES1_SENTINELS.md`.
 
 ### RES1 raw markers
 
@@ -382,7 +402,7 @@ No supplied Ravenloft RES entry remains structurally unparsed.
 The intentional open questions are narrower:
 
 - original producer/editor meaning of the unused wordcode zero bank;
-- intended executable/build role of the CD-shipped RES12 alternate set;
+- exact historical executable/editor/build that consumed or produced the legacy/pre-split RES11/RES12 generation;
 - historical meaning of the two inactive RES1 `0x00000060` markers;
 - source-level names for conservative type-1 descriptor fields `+0x05/+0x07`;
 - semantic field names for executable-only type 5, which has no Ravenloft sample.

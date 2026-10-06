@@ -367,8 +367,9 @@ The corrected evidence boundary is:
 
 - **known:** `RES11` and `RES12` are physically present on the same supplied CD image;
 - **known:** certified CODE.2's active indexed archive setup is still `RES0..RES10`;
-- **known:** `RES12` contains an ID-aligned but incompatible wordcode-shaped bank and no direct archive-12 raw loader has been found in certified CODE.2;
-- **unknown:** the exact intended executable/build/installation path that consumes or selected the extra CD-shipped material.
+- **known:** `RES12` contains a legacy generation of the same interaction/display VM, with a 141-word opcode-`0x05` inline-template operand replacing the final one-word template ID;
+- **known:** no direct archive-12 raw loader exists in certified CODE.2, and supplied CODE.1 also initializes only 11 indexed RES groups;
+- **unknown:** the exact older executable/editor/build that produced or consumed the legacy composite generation.
 
 Thus their **disc provenance is closed** while their **runtime/build role remains bounded UNKNOWN**.
 

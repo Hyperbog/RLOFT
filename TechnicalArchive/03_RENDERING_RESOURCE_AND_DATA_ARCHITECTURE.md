@@ -584,22 +584,29 @@ Certified CODE.2 reads only `program_words`. No companion-array consumer exists 
 
 Programs map to NPC identities, use `T` dialogue bases, draw typed RES9 graphics, and dispatch sound/music/cinematic operations. The VM is therefore part of the resource architecture as well as the gameplay/dialogue architecture.
 
-## 18. Alternate/unselected RES11 and RES12 data
+## 18. Legacy/pre-split RES11 and RES12 generations
 
-Claim: RES11/RES12 are supplied related resource sets but are not opened by the certified CODE.2 indexed RES0..RES10 subsystem.
+Claim: RES11/RES12 are CD-shipped historical predecessors of later active split-resource families, but are not opened by the supplied CODE.1/CODE.2 indexed RES0..RES10 subsystem.
 
-Class: **CONFIRMED for active-path exclusion; RECONSTRUCTED for relationship**
+Class: **CONFIRMED for active-path exclusion and byte relationships; RECONSTRUCTED / HIGH CONFIDENCE for historical pre-split role**
 
 Evidence:
-- INFO loader normalizes 13 selectors but indexed RES initialization passes count 11.
-- No proved selector-11/12 CODE.2 resource-loader consumer exists.
-- RES12 contains an ID-aligned alternate wordcode bank whose instruction dialect is incompatible with the active RES9 VM at specific records.
-- RES11/RES12 share substantial resource content with active archives.
+
+- both CODE.1 and CODE.2 read all 13 INFO selector bytes but initialize only 11 indexed RES groups;
+- RES11 partitions into type-7 / type-6 / XMIDI / VOC banks mirroring the later RES3 / RES4 / RES5 / RES6 family order;
+- 2,402 legacy type-7 entries, 609 legacy type-6 entries, and 236 legacy VOC entries have exact descendants in those later active archives;
+- RES11 and RES12 share the same 260-entry legacy VOC bank byte-for-byte;
+- RES12 graphics have direct sequence alignment into RES9, including legacy interaction-base anchor 51 -> final INIT base 103;
+- RES12's 37 raw programs use the same 0x00..0x29 VM grammar once legacy opcode 0x05 is decoded as a 141-word inline compact character template;
+- all 37 legacy programs parse to EOF with 1,079 instructions and zero invalid direct targets;
+- those inline templates map deterministically into CODE.2's later centralized static character-template table.
 
 Safe treatment:
-- preserve and document them as supplied alternate/unselected resource material;
-- CD provenance is now explicit: both are present in the same supplied CD image. Do not further label them floppy/localization/prototype or assign an intended executable/build role without independent evidence;
-- do not silently merge them into the active RES namespace.
+
+- preserve RES11/RES12 as **legacy/pre-split composite resource generations retained on the CD**;
+- preserve their exact archive identity and do not merge them into active RES0..RES10 indexes;
+- do not assign a precise retail patch/build or old consuming executable without matching primary evidence;
+- use `Resources/RES/RES11_RES12_LINEAGE.md` and `analyze_legacy_archives.py` as the canonical lineage record.
 
 ## 19. Renderer pipeline summary
 
@@ -644,7 +651,7 @@ A native reconstruction may replace low-level implementation mechanisms with saf
 4. **Generated-rasterizer behavior.** Portable code may replace self-modifying x86 at runtime, but must reproduce the encoded draw semantics.
 5. **Archive routing.** INFO's local/alternate path distinction and active RES0..RES10 boundary are part of the shipped installation architecture.
 6. **Vendor/game boundary.** Miles GTL/ARIA assets and drivers should remain distinguishable from DreamForge-native resource formats.
-7. **Evidence-bounded unknowns.** RES11/12 disc provenance is known (same supplied CD); their intended executable/build role remains unresolved. Type-5 source semantics, inactive wordcode companion arrays, and historical producer marker meanings remain unknown where the supplied runtime does not decide them.
+7. **Evidence-bounded unknowns.** RES11/12 disc provenance and legacy/pre-split lineage are now reconstructed; the exact older executable/editor/build that produced or consumed them remains unresolved. Type-5 source semantics, inactive wordcode companion arrays, and historical producer marker meanings remain unknown where the supplied runtime does not decide them.
 
 ## 21. Canonical evidence
 
@@ -675,13 +682,3 @@ Primary repository evidence for this unit:
 `TechnicalArchive/04_WORLD_STATE_LEVELS_AND_SIMULATION_ARCHITECTURE.md`
 
 The next unit should integrate the now-deep `LEVELS.DAT`, `LEV022.DAT`, `NPCS.DAT`, `OBJECTS.DAT`, and SAVE cross-references into the world-state and simulation model: fixed level headers, cell words/flags, world record families, object/NPC runtime records, level transition/save behavior, automap state, events, and the boundary between persistent serialized state and generated renderer state.
-
-## Legacy/pre-split composite archives
-
-CD-shipped RES11 and RES12 are not active indexed archives in the supplied executable pair, but later preservation analysis proves they are historically integral to the resource architecture.
-
-RES11 is a legacy composite containing predecessor type-7, type-6, XMIDI, and VOC families later split principally across RES3..RES6.
-
-RES12 is a legacy interaction composite whose graphics and same-VM wordcode lineage principally continue in RES9. Its legacy opcode 0x05 stores a 141-word compact character template inline; the active generation replaces this with a static template ID into CODE.2.
-
-See Resources/RES/RES11_RES12_LINEAGE.md. The exact older consumer/producer executable remains unknown.

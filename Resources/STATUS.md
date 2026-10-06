@@ -146,7 +146,7 @@ NPC program identities and text/audio/cinematic sub-bases are mapped.
 
 The serialized equal-length zero bank is proved **unread by the supplied CODE.2**. Its producer/editor purpose remains `UNKNOWN` but does not block runtime fidelity.
 
-RES12 contains an ID-aligned alternate/incompatible interaction bank. No raw archive-12 loader exists in certified CODE.2; exact edition/build provenance remains intentionally unknown.
+RES12 preserves a legacy generation of the same interaction/display VM. Its opcode set and control-flow grammar match active RES9; legacy opcode `0x05` carries a 141-word inline compact character template where the final active format uses a one-word template ID. No raw archive-12 loader exists in certified CODE.2, and supplied CODE.1 likewise initializes only 11 indexed RES groups.
 
 ## RES1 raw records
 
