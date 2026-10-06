@@ -1,6 +1,6 @@
 # SAVE.DAT early/core character fields
 
-Status: **high-effort executable/fixture reconstruction using corrected runtime character base DGROUP `0x218E0`.** Sex, race, class, alignment, base Armor Class, and the six standard ability pairs are now cross-certified against executable text lookups, the supplied SAVE fixture, and published game documentation. Age remains a strongly supported serialized identity field.
+Status: **high-effort executable/fixture reconstruction using corrected runtime character base DGROUP `0x218E0`.** Sex, race, class, alignment, portrait partitioning, age generation/display, base Armor Class, and the six standard ability pairs are now executable-backed and cross-certified against the supplied SAVE fixture and published game documentation.
 
 ## Runtime/file relationship
 
