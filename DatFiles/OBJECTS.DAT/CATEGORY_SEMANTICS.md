@@ -1,21 +1,19 @@
 # OBJECTS.DAT category-dependent semantics
 
-Status: **the category split and the two shipped nontrivial roles of record byte `+0x31` are now resolved; word `+0x32` remains a deliberately conservative special-property marker rather than a generic enchantment flag.**
+Status: **the shipped nontrivial roles of record byte `+0x31` are now closed as container-state and persistent charge-state selectors; word `+0x32` is behaviorally identified as an intrinsic magic/aura marker independent from numerical enchantment.**
 
-This document extends `FORMAT.md`. The fixed record size is `0x41` bytes and the relevant fields are:
+This document extends `FORMAT.md`. Relevant fields are:
 
 ```text
-+0x2F  uint8 item_category
-+0x31  int8  category_specific_index
-+0x32  uint16 special_property_marker
-+0x37  uint8 enchantment_bonus
++0x2F  uint8  item_category
++0x31  int8   state_index                  // category/object-family specific
++0x32  uint16 intrinsic_magic_marker
++0x37  uint8  enchantment_bonus
 ```
 
-The immutable CODE.2 reconstruction remains controlling evidence. Corpus correlations are used only where they agree with the executable's category-specific consumers.
+The immutable CODE.2 reconstruction remains controlling evidence. Corpus correlations are used only where they agree with executable consumers.
 
 ## Category families
-
-CODE.2 item-presentation/equipment logic dispatches categories `2..11` through a ten-entry table. The certified semantic audit preserves the grouped behaviors `2..4`, `5..8`, and `9..11` rather than flattening them into one generic item path.
 
 The supplied database contains:
 
@@ -38,101 +36,157 @@ The supplied database contains:
 15 :  3   arrows
 ```
 
-The labels above describe supplied content plus the executable's category groupings; they are not claimed as original source-enum names.
+CODE.2 item-presentation/equipment logic groups categories `2..4`, `5..8`, and `9..11` in several paths. The labels above describe supplied content plus those executable groupings; they are not claimed as original source-enum names.
 
-## `+0x31`: category-specific index
+## `+0x31`: mutable-state selector
 
-The byte is signed in CODE.2 and must remain signed in a faithful reconstruction. The supplied database shows exactly two nontrivial uses.
+The byte is read as signed throughout CODE.2. The common semantic principle is now clear: object definitions use it to select **mutable state stored outside OBJECTS.DAT**.
 
-### Category 1: container inventory/list index
+It must not be globally interpreted as one particular state type.
 
-CODE.2 burden routine `0F5F8` treats category `1` specially. It reads signed byte `+0x31`, selects that container's stored item list, and recursively includes the contents when computing total carried weight.
+### Category 1: container-state index
 
-All 62 supplied category-1 records have distinct indexes. The observed set is:
+For `item_category == 1`, CODE.2 multiplies `+0x31` by ten and indexes the runtime container descriptor table at DGROUP `0x7330`.
+
+That descriptor holds slot count, UI layout, weight capacity, container subtype, a pointer to the actual contents array, and per-slot state bits. Burden/search routines recurse through those contents, and the transfer code updates them directly.
+
+All 62 supplied category-1 object definitions have distinct state indexes. The observed referenced set is:
 
 ```text
 0..60 except 61, plus 62
 ```
 
-The physical object type is therefore not itself the container-content slot; `+0x31` provides the indirection.
+See `CONTAINER_STATE.md` for the exact 10-byte descriptor layout and subtype compatibility rules.
 
-### Category 0: wand/device runtime-state slot
+### Charge-bearing rods/wands: persistent charge-counter index
 
-The only nonzero category-0 values occur on exactly 11 wand definitions:
+The same physical byte selects a different state pool for charged magic devices.
+
+CODE.2 item-use handlers for object IDs `0x4A..0x4F` and duplicate wand definitions `0x14A..0x14F`:
+
+1. load signed object byte `+0x31`;
+2. index the byte vector at DGROUP `0x67EC`;
+3. reject use if the selected byte is zero;
+4. decrement the selected byte on successful use;
+5. invoke the item depletion/removal path when the counter reaches zero.
+
+The runtime vector is exactly **15 bytes**. In the certified supplied CODE.2 data image every byte initializes to `12`.
+
+SAVE serialization independently proves persistence: the writer writes `0x0F` bytes from `0x67EC`, and the loader restores the same `0x0F` bytes.
+
+The supplied item definitions map as follows:
 
 ```text
-object  75  WAND OF ENEMY DETECTION     -> 1
-object  76  WAND OF FIREBALLS           -> 2
-object 330  WAND OF FIREBALLS           -> 3
-object 331  WAND OF FIREBALLS           -> 4
-object 332  WAND OF FIREBALLS           -> 5
-object 333  WAND OF FIREBALLS           -> 6
-object  77  WAND OF FROST               -> 7
-object 334  WAND OF FROST               -> 8
-object 335  WAND OF FROST               -> 9
-object  78  WAND OF MAGIC MISSILES      -> 10
-object  79  WAND OF PARALYZATION        -> 11
+ID  74  ROD OF SMITING             -> charge slot 0
+ID  75  WAND OF ENEMY DETECTION    -> charge slot 1
+ID  76  WAND OF FIREBALLS           -> charge slot 2
+ID 330  WAND OF FIREBALLS           -> charge slot 3
+ID 331  WAND OF FIREBALLS           -> charge slot 4
+ID 332  WAND OF FIREBALLS           -> charge slot 5
+ID 333  WAND OF FIREBALLS           -> charge slot 6
+ID  77  WAND OF FROST               -> charge slot 7
+ID 334  WAND OF FROST               -> charge slot 8
+ID 335  WAND OF FROST               -> charge slot 9
+ID  78  WAND OF MAGIC MISSILES      -> charge slot 10
+ID  79  WAND OF PARALYZATION        -> charge slot 11
 ```
 
-Thus the shipped wand slots are exactly `1..11`.
+ROD OF SMITING stores zero and therefore selects charge slot zero. The item-description code has an explicit object-ID `0x4A` exception so its charge value is displayed even though `+0x31 == 0`.
 
-This is not a spell/type discriminator. The duplicated FIREBALL definitions `76,330,331,332,333` are byte-identical except for byte `+0x31`; likewise FROST definitions `77,334,335` differ only at `+0x31`. CODE.2's item-description/use family preserves signed subtype/state indexing. The safe interpretation is therefore a **wand/device runtime-state slot index**, allowing otherwise identical object definitions to address independent mutable state.
+The otherwise-identical duplicate FIREBALL/FROST definitions differ at `+0x31`, giving separate physical wand definitions independent persistent charge counters.
 
-The exact contents of the pointed-to runtime state (for example charge count versus other wand state) should be documented only when that state table's serializer/consumers are independently closed.
+Slots 12..14 exist in the serialized charge vector but are not selected by the supplied OBJECTS records.
 
-### All other categories
+### Remaining categories
 
 Every supplied record in categories `2..15` has `+0x31 == 0`.
 
-Therefore `+0x31` must remain a polymorphic/category-specific field. It must not be globally renamed `container_index`, `wand_charges`, or `spell_id`.
+The only nonzero category-0 values are the eleven wand definitions listed above. Thus the safe generic physical name is `state_index`, with category/object-specific semantic views:
 
-## `+0x32`: special-property marker, not enchantment
+```text
+category 1           -> container_state_index
+charged device       -> charge_counter_index
+other shipped object -> zero / raw state_index
+```
 
-CODE.2 tests the 16-bit word at `+0x32` in item presentation/use logic. The supplied database contains only:
+## `+0x32`: intrinsic magic/aura marker
+
+The earlier neutral `special_property_marker` label can now be tightened from direct executable behavior.
+
+While global magic-reveal state at DGROUP `0x6DAE` is active, two independent item presentation paths test this same condition:
+
+```text
+enchantment_bonus != 0
+    OR
+word(+0x32) != 0
+```
+
+- `0F308..0F367` selects the highlighted item-draw path when the condition is true.
+- `1EB39..1EB9B` assigns the corresponding highlighted render/palette state for equipped items under the same condition.
+
+The `0x6DAE` value is maintained by a timed character-status/spell path. Regardless of the original spell name, the OBJECTS-side meaning is direct: `+0x32` causes the item to present as magical under the engine's magic-reveal mode even when its numerical enchantment bonus is zero.
+
+The supplied database contains only:
 
 ```text
 0 : 199 records
 1 : 137 records
 ```
 
-The marker is strongly associated with items requiring special identity/effect handling, but it is **not equivalent to magical/enhanted**.
+The corpus agrees with this interpretation:
 
-Useful corpus contrasts:
+- all rings (category 5) are marked;
+- both category-6 magical accessories are marked;
+- all three category-7 special bracer/gauntlet items are marked;
+- all 66 spell-scroll variants are marked;
+- named potions, wands, artifacts, holy symbols, magic stones, special weapons and BAG OF HOLDING are marked;
+- ordinary `+1/+2` weapons and armor may leave `+0x32` zero because `enchantment_bonus` independently satisfies the same magic-reveal predicate.
 
-- all categories 5, 6, 7, 11 and 14 have marker `1`;
-- all category-12 keys have marker `0`;
-- all category-9 blunt/staff weapons have marker `0`, including `+1/+2` variants;
-- generic `+1/+2` shield, helmet, armor and edged-weapon variants frequently have nonzero `enchantment_bonus` while marker `+0x32` remains zero;
-- named/special weapons such as `BA'AL VERZI DAGGER`, `ANCIENT ELVEN SWORD`, `PALADIN'S SWORD` and `PALADIN'S DAGGER` use marker `1`;
-- all 66 spell-specific category-14 scroll records use marker `1`.
+The safe semantic name is therefore **`intrinsic_magic_marker`** or **`magic_aura_marker`**.
 
-Consequently `special_property_marker` remains the safe schema name. A reader/editor should expose it independently from `enchantment_bonus` and preserve the full 16-bit word even though the supplied corpus uses only 0/1.
+It is deliberately not flattened to `is_magic`: the executable models magic visibility as the OR of this serialized marker and the separate numerical enchantment field.
 
 ## `+0x37`: enchantment remains independent
 
-The separate byte `+0x37` is the numerical enchantment bonus used by combat/defense and displayed as `+N` where appropriate. Its independence from `+0x32` is important:
+`+0x37` is the numerical enchantment bonus used in combat/defense and item description formatting. A normal and important supplied combination is:
 
 ```text
-special_property_marker == 0, enchantment_bonus > 0
+intrinsic_magic_marker == 0
+enchantment_bonus      >  0
 ```
 
-is a normal combination in the supplied database.
+A faithful object model must preserve both fields independently.
 
-The two fields should therefore not be merged into one `magic` boolean.
+## Cross-file consequence for SAVE.DAT
+
+`OBJECTS.DAT` stores **which charge state slot** a charged device uses. The current charge values live outside the object database and are serialized in SAVE.DAT.
+
+For the supplied quick-start save, the 15 initialized charge bytes (`0x0C` each) occur uniquely at:
+
+```text
+SAVE.DAT +0x0D59 .. +0x0D67
+```
+
+This byte match is consistent with the certified serializer writing the 15-byte runtime vector at `0x67EC`.
+
+The architectural split is therefore:
+
+```text
+OBJECTS.DAT  static definition -> charge_counter_index
+SAVE.DAT     mutable state      -> current charge_counter[15]
+```
 
 ## Safe implementation boundary
 
-A high-level object model may now expose category-dependent views:
+A high-level object model may expose:
 
 ```text
-category == 1:
-    +0x31 -> container_contents_slot
++0x31  state_index
+        container_state_index for category 1
+        charge_counter_index for proved charged devices
 
-category == 0 and +0x31 != 0:
-    +0x31 -> wand_device_state_slot
-
-otherwise:
-    +0x31 -> raw category_specific_index
++0x32  intrinsic_magic_marker
++0x37  enchantment_bonus
 ```
 
-For `+0x32`, retain the neutral name `special_property_marker` until the remaining presentation/use predicates are semantically closed. Lossless encoding must always preserve the raw record bytes as the authority.
+while retaining the exact raw bytes. Do not merge duplicated object definitions solely because their visible names/graphics match, and do not merge the intrinsic-magic marker with the numerical enchantment byte.
