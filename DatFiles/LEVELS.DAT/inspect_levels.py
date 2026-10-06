@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Structural validator for Ravenloft LEVELS.DAT and standalone LEVnnn.DAT files.
+"""Structural/semantic validator for Ravenloft LEVELS.DAT and LEVnnn.DAT.
 
-Field semantics are intentionally conservative. Names tied to CODE.2 DGROUP addresses
-remain address-based until their gameplay meaning is separately proved.
+Only relationships proved from the certified CODE.2 loader/writer and source bytes
+are named here. Unknown gameplay fields remain address/offset based.
 """
 from __future__ import annotations
 
@@ -18,6 +18,11 @@ BASE_HEADER_SIZE = 0x2A4
 TAIL_BLOB_SIZE = 0x514
 LEGACY_RECORD_SIZE = 0x0B
 DIRECT_RECORD_SIZE = 0x16
+LIST_RECORD_SIZE = 0x0A
+
+
+def u16(buf: bytes, off: int) -> int:
+    return struct.unpack_from("<H", buf, off)[0]
 
 
 def u32(buf: bytes, off: int) -> int:
@@ -35,6 +40,8 @@ class CoreHeader:
     count_258a2: int
     count_258a4: int
     count_258a6: int
+    field_258b2: int
+    mode_258b4: int
 
 
 @dataclass(frozen=True)
@@ -43,6 +50,24 @@ class RecordLayout:
     bounds: Tuple[int, int, int, int, int, int, int]
     core: CoreHeader
     tail_text_length: int
+
+
+@dataclass(frozen=True)
+class LegacyCompactRecord:
+    type_id: int
+    x_cell: int
+    x_fraction: int
+    y_cell: int
+    y_fraction: int
+    flags_byte: int
+
+    @property
+    def x_fixed_u32(self) -> int:
+        return ((self.x_cell & 0xFFFF) << 16) | self.x_fraction
+
+    @property
+    def y_fixed_u32(self) -> int:
+        return ((self.y_cell & 0xFFFF) << 16) | self.y_fraction
 
 
 def parse_preamble(record: bytes) -> Tuple[int, Tuple[int, ...]]:
@@ -68,6 +93,8 @@ def parse_core(record: bytes, start: int) -> CoreHeader:
         count_258a2=s16(h, 0x28A),
         count_258a4=s16(h, 0x28C),
         count_258a6=s16(h, 0x28E),
+        field_258b2=u16(h, 0x29A),
+        mode_258b4=h[0x29C],
     )
 
 
@@ -84,9 +111,12 @@ def require_nonnegative(core: CoreHeader) -> None:
             raise ValueError(f"negative {name}: {value}")
 
 
-def parse_column_lists(record: bytes, start: int, width: int) -> Tuple[int, List[int]]:
+def parse_column_lists(
+    record: bytes, start: int, width: int, height: int, *, validate_coordinates: bool
+) -> Tuple[int, List[int], int]:
     pos = start
     counts: List[int] = []
+    total_records = 0
     for column in range(width):
         if pos + 2 > len(record):
             raise ValueError(f"truncated column count at column {column}")
@@ -95,10 +125,73 @@ def parse_column_lists(record: bytes, start: int, width: int) -> Tuple[int, List
         if count < 0:
             raise ValueError(f"negative column count {count} at column {column}")
         counts.append(count)
-        pos += count * 10
-        if pos > len(record):
-            raise ValueError(f"column {column} records run past EOF")
-    return pos, counts
+        for item in range(count):
+            end = pos + LIST_RECORD_SIZE
+            if end > len(record):
+                raise ValueError(f"column {column} record {item} runs past EOF")
+            item_bytes = record[pos:end]
+            if validate_coordinates:
+                # CODE.2 1E8C8 indexes the list by column and compares byte +4 to row.
+                # The archive bytes additionally prove byte +5 duplicates the owning column.
+                row = item_bytes[4]
+                stored_column = item_bytes[5]
+                if row >= height:
+                    raise ValueError(
+                        f"column {column} record {item}: row byte {row} >= height {height}"
+                    )
+                if stored_column != column:
+                    raise ValueError(
+                        f"column {column} record {item}: byte +5 is {stored_column}"
+                    )
+            total_records += 1
+            pos = end
+    return pos, counts, total_records
+
+
+def decode_legacy_compact(buf: bytes, off: int) -> LegacyCompactRecord:
+    if off + LEGACY_RECORD_SIZE > len(buf):
+        raise ValueError("truncated 11-byte legacy compact record")
+    return LegacyCompactRecord(
+        type_id=u16(buf, off + 0),
+        x_cell=s16(buf, off + 2),
+        x_fraction=u16(buf, off + 4),
+        y_cell=s16(buf, off + 6),
+        y_fraction=u16(buf, off + 8),
+        flags_byte=buf[off + 10],
+    )
+
+
+def validate_legacy_family(
+    record: bytes, start: int, count: int, core: CoreHeader, family_name: str
+) -> None:
+    for i in range(count):
+        item = decode_legacy_compact(record, start + i * LEGACY_RECORD_SIZE)
+        if not (0 <= item.x_cell < core.width):
+            raise ValueError(
+                f"{family_name}[{i}] x_cell={item.x_cell} outside width {core.width}"
+            )
+        if not (0 <= item.y_cell < core.height):
+            raise ValueError(
+                f"{family_name}[{i}] y_cell={item.y_cell} outside height {core.height}"
+            )
+
+
+def expand_legacy_family_b(item: LegacyCompactRecord, width: int) -> bytes:
+    """Reproduce the fields CODE.2 explicitly constructs for archive family B.
+
+    The destination starts zeroed here. CODE.2 explicitly writes offsets 00..07,
+    0C..11 and 14..15. This is enough to reproduce all 110 family-B records in
+    the supplied LEVELS record 22 / LEV022 pair byte-for-byte.
+    """
+    out = bytearray(DIRECT_RECORD_SIZE)
+    struct.pack_into("<I", out, 0x00, item.y_fixed_u32)
+    struct.pack_into("<I", out, 0x04, item.x_fixed_u32)
+    struct.pack_into("<h", out, 0x0C, item.y_cell * width + item.x_cell)
+    struct.pack_into("<H", out, 0x0E, item.type_id)
+    struct.pack_into("<H", out, 0x10, 0)
+    flags = ((item.flags_byte & 0x07) << 3) & 0xFE3F
+    struct.pack_into("<H", out, 0x14, flags)
+    return bytes(out)
 
 
 def validate_tail(record: bytes, blob_end: int, core: CoreHeader) -> int:
@@ -134,7 +227,9 @@ def validate_legacy_record(record: bytes) -> RecordLayout:
         raise ValueError(
             f"grid boundary {bounds[1]:#x} != expected {expected_grid_end:#x}"
         )
-    dynamic_end, _ = parse_column_lists(record, bounds[1], core.width)
+    dynamic_end, _, _ = parse_column_lists(
+        record, bounds[1], core.width, core.height, validate_coordinates=True
+    )
     if dynamic_end != bounds[2]:
         raise ValueError(
             f"legacy dynamic-list end {dynamic_end:#x} != boundary {bounds[2]:#x}"
@@ -145,6 +240,9 @@ def validate_legacy_record(record: bytes) -> RecordLayout:
         raise ValueError("legacy family at 0x258A6 does not match 11-byte count")
     if bounds[5] - bounds[4] != core.count_258a4 * LEGACY_RECORD_SIZE:
         raise ValueError("legacy family at 0x258A4 does not match 11-byte count")
+    validate_legacy_family(record, bounds[2], core.count_258a2, core, "family_A")
+    validate_legacy_family(record, bounds[3], core.count_258a6, core, "family_B")
+    validate_legacy_family(record, bounds[4], core.count_258a4, core, "family_C")
     if bounds[6] - bounds[5] != TAIL_BLOB_SIZE:
         raise ValueError("legacy 0x514-byte block boundary mismatch")
     text_length = validate_tail(record, bounds[6], core)
@@ -160,11 +258,15 @@ def validate_direct_record(record: bytes) -> RecordLayout:
         raise ValueError(
             f"grid boundary {bounds[1]:#x} != expected {expected_grid_end:#x}"
         )
-    pos, _ = parse_column_lists(record, bounds[1], core.width)
+    pos, _, _ = parse_column_lists(
+        record, bounds[1], core.width, core.height, validate_coordinates=True
+    )
     if pos >= len(record):
         raise ValueError("missing direct-save single-byte field between column groups")
     pos += 1
-    pos, _ = parse_column_lists(record, pos, core.width)
+    pos, _, _ = parse_column_lists(
+        record, pos, core.width, core.height, validate_coordinates=True
+    )
     if pos != bounds[2]:
         raise ValueError(
             f"direct dynamic-list end {pos:#x} != boundary {bounds[2]:#x}"
@@ -187,8 +289,7 @@ def validate_direct_record(record: bytes) -> RecordLayout:
     return RecordLayout(marker, bounds, core, text_length)
 
 
-def inspect_archive(path: Path) -> None:
-    data = path.read_bytes()
+def archive_records(data: bytes) -> List[bytes]:
     if len(data) < 4:
         raise ValueError("archive too short")
     count = u32(data, 0)
@@ -204,21 +305,36 @@ def inspect_archive(path: Path) -> None:
         )
     if offsets != sorted(offsets) or len(set(offsets)) != len(offsets):
         raise ValueError("archive offsets are not strictly increasing")
+    return [
+        data[start : offsets[i + 1] if i + 1 < count else len(data)]
+        for i, start in enumerate(offsets)
+    ]
+
+
+def inspect_archive(path: Path) -> None:
+    data = path.read_bytes()
+    records = archive_records(data)
+    total_list_records = 0
+    total_compact_records = 0
     print(f"{path.name}: {len(data)} bytes, sha256={hashlib.sha256(data).hexdigest()}")
-    print(f"records={count}, directory_size={directory_end:#x}")
-    print("id  file_off  size    map      counts(258A2/258A6/258A4)  text")
-    for i, start in enumerate(offsets):
-        end = offsets[i + 1] if i + 1 < count else len(data)
-        record = data[start:end]
+    print(f"records={len(records)}, directory_size={4 + len(records) * 4:#x}")
+    print("id  size    map      counts(258A2/258A6/258A4)  mode  text")
+    for i, record in enumerate(records):
         layout = validate_legacy_record(record)
         c = layout.core
-        print(
-            f"{i:02d}  {start:08x}  {len(record):06x}  "
-            f"{c.width:02d}x{c.height:<2d}  "
-            f"{c.count_258a2:4d}/{c.count_258a6:4d}/{c.count_258a4:4d}"
-            f"                 {layout.tail_text_length}"
+        _, _, list_count = parse_column_lists(
+            record, layout.bounds[1], c.width, c.height, validate_coordinates=True
         )
-    print("archive structural validation: PASS")
+        total_list_records += list_count
+        total_compact_records += c.count_258a2 + c.count_258a6 + c.count_258a4
+        print(
+            f"{i:02d}  {len(record):06x}  {c.width:02d}x{c.height:<2d}  "
+            f"{c.count_258a2:4d}/{c.count_258a6:4d}/{c.count_258a4:4d}"
+            f"                 {c.mode_258b4:3d}  {layout.tail_text_length}"
+        )
+    print(f"10-byte list records coordinate-checked: {total_list_records}")
+    print(f"11-byte compact records coordinate-checked: {total_compact_records}")
+    print("archive structural+coordinate validation: PASS")
 
 
 def inspect_direct(path: Path) -> None:
@@ -231,9 +347,60 @@ def inspect_direct(path: Path) -> None:
     print(
         f"map={c.width}x{c.height}, counts(258A2/258A6/258A4)="
         f"{c.count_258a2}/{c.count_258a6}/{c.count_258a4}, "
+        f"field_258B2={c.field_258b2:#x}, mode_258B4={c.mode_258b4:#x}, "
         f"tail_text_length={layout.tail_text_length}"
     )
-    print("standalone structural validation: PASS")
+    print("standalone structural+coordinate validation: PASS")
+
+
+def correlate(archive_path: Path, direct_path: Path, level_id: int) -> None:
+    records = archive_records(archive_path.read_bytes())
+    if not (0 <= level_id < len(records)):
+        raise ValueError(f"level id {level_id} outside archive record range")
+    legacy = records[level_id]
+    direct = direct_path.read_bytes()
+    la = validate_legacy_record(legacy)
+    ld = validate_direct_record(direct)
+    if (la.core.width, la.core.height) != (ld.core.width, ld.core.height):
+        raise ValueError("archive/direct dimensions differ")
+
+    header_a = legacy[la.bounds[0] : la.bounds[0] + BASE_HEADER_SIZE]
+    header_d = direct[ld.bounds[0] : ld.bounds[0] + BASE_HEADER_SIZE]
+    header_diffs = [i for i, pair in enumerate(zip(header_a, header_d)) if pair[0] != pair[1]]
+
+    grid_a = legacy[la.bounds[0] + BASE_HEADER_SIZE : la.bounds[1]]
+    grid_d = direct[ld.bounds[0] + BASE_HEADER_SIZE : ld.bounds[1]]
+    grid_diff_bytes = sum(a != b for a, b in zip(grid_a, grid_d))
+
+    blob_a = legacy[la.bounds[5] : la.bounds[6]]
+    blob_d = direct[ld.bounds[5] : ld.bounds[6]]
+
+    cells = la.core.width * la.core.height
+    cell_a = legacy[la.bounds[6] + 4 : la.bounds[6] + 4 + cells]
+    cell_d = direct[ld.bounds[6] + 4 : ld.bounds[6] + 4 + cells]
+    cell_diff_bytes = sum(a != b for a, b in zip(cell_a, cell_d))
+
+    family_b_matches = None
+    if la.core.count_258a6 == ld.core.count_258a6:
+        family_b_matches = 0
+        for i in range(la.core.count_258a6):
+            compact = decode_legacy_compact(legacy, la.bounds[3] + i * LEGACY_RECORD_SIZE)
+            expanded = expand_legacy_family_b(compact, la.core.width)
+            direct_off = ld.bounds[3] + 2 + i * DIRECT_RECORD_SIZE
+            if expanded == direct[direct_off : direct_off + DIRECT_RECORD_SIZE]:
+                family_b_matches += 1
+
+    print(f"archive level {level_id} <-> {direct_path.name}")
+    print(f"dimensions={la.core.width}x{la.core.height}")
+    print(f"header differing bytes={len(header_diffs)}: " + ",".join(f"{i:#x}" for i in header_diffs))
+    print(f"16-bit cell-layer differing bytes={grid_diff_bytes}/{len(grid_a)}")
+    print(f"0x514 block byte-identical={blob_a == blob_d}")
+    print(f"final byte-layer differing bytes={cell_diff_bytes}/{len(cell_a)}")
+    if family_b_matches is not None:
+        print(
+            "legacy family-B deterministic expansion matches direct records="
+            f"{family_b_matches}/{la.core.count_258a6}"
+        )
 
 
 def main() -> None:
@@ -243,11 +410,17 @@ def main() -> None:
     p_archive.add_argument("path", type=Path)
     p_direct = sub.add_parser("direct", help="validate a standalone LEVnnn.DAT")
     p_direct.add_argument("path", type=Path)
+    p_corr = sub.add_parser("correlate", help="compare an archive record with a standalone save")
+    p_corr.add_argument("archive", type=Path)
+    p_corr.add_argument("direct", type=Path)
+    p_corr.add_argument("level_id", type=int)
     args = parser.parse_args()
     if args.mode == "archive":
         inspect_archive(args.path)
-    else:
+    elif args.mode == "direct":
         inspect_direct(args.path)
+    else:
+        correlate(args.archive, args.direct, args.level_id)
 
 
 if __name__ == "__main__":
