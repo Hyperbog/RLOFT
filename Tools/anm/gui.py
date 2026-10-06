@@ -481,6 +481,8 @@ class RavenloftExtractorGui(tk.Tk):
     def _start_graphics(self) -> None:
         try:
             root = self._source_path()
+            if not self.graphics_dest.get():
+                raise RuntimeError("Choose a graphics destination.")
             dest = Path(self.graphics_dest.get())
             fmt = self.graphics_format.get()
             palette = int(self.graphics_palette.get())
@@ -497,9 +499,9 @@ class RavenloftExtractorGui(tk.Tk):
     def _start_audio(self) -> None:
         try:
             root = self._source_path()
-            dest = Path(self.audio_dest.get())
-            if not str(dest):
+            if not self.audio_dest.get():
                 raise RuntimeError("Choose an audio/music destination.")
+            dest = Path(self.audio_dest.get())
         except Exception as exc:
             messagebox.showerror("Cannot extract", str(exc))
             return
@@ -524,6 +526,8 @@ class RavenloftExtractorGui(tk.Tk):
     def _start_support(self) -> None:
         try:
             root = self._source_path()
+            if not self.support_dest.get():
+                raise RuntimeError("Choose a support-asset destination.")
             dest = Path(self.support_dest.get())
         except Exception as exc:
             messagebox.showerror("Cannot extract", str(exc))
@@ -575,6 +579,7 @@ class RavenloftExtractorGui(tk.Tk):
                 cinematic_fps=fps,
                 cinematic_frames=self.cin_frames.get(),
                 cinematic_videos=self.cin_video.get(),
+                cinematic_timeline=self.cin_timeline.get(),
                 preserve_native=self.cin_native.get(),
             )
             self._run(
@@ -632,6 +637,7 @@ class RavenloftExtractorGui(tk.Tk):
             cinematic_fps=float(self.cin_fps.get()),
             cinematic_frames=self.all_frames.get(),
             cinematic_videos=self.all_videos.get(),
+            cinematic_timeline=True,
             preserve_native=True,
             export_support=self.all_support.get(),
         )
