@@ -11,9 +11,10 @@ PARTY_OFFSET, PARTY_COUNT = 0x77, 4
 ROSTER_OFFSET, ROSTER_COUNT = 0xD68, 10
 ITEM_OFFSET, ITEM_COUNT = 0x48, 21
 POST_START, POST_END = 0x72, 0x248
-SPELL_MATRIX_OFFSET = 0x0C2
+SPELL_MATRIX_A_OFFSET = 0x072
+SPELL_MATRIX_B_OFFSET = 0x0C2
 SPELL_BANKS, SPELL_BANK_SIZE = 8, 10
-SPELL_MATRIX_END = SPELL_MATRIX_OFFSET + SPELL_BANKS * SPELL_BANK_SIZE
+SPELL_MATRIX_SIZE = SPELL_BANKS * SPELL_BANK_SIZE
 AUX_DWORD_OFFSET = 0x12F
 STATE_FLAGS_OFFSET = 0x13A
 
@@ -45,19 +46,26 @@ def sparse_post(r: bytes) -> str:
     return ", ".join(f"+0x{off:03X}=0x{value:02X}" for off, value in cells)
 
 
-def spell_banks(r: bytes) -> list[str]:
-    """Render the executable-proved 8 x 10 spell-preparation matrix."""
+def spell_banks(r: bytes, matrix_offset: int) -> list[str]:
+    """Render one executable-proved 8 x 10 spell-preparation matrix."""
     rows: list[str] = []
     for bank in range(SPELL_BANKS):
-        start = SPELL_MATRIX_OFFSET + bank * SPELL_BANK_SIZE
+        start = matrix_offset + bank * SPELL_BANK_SIZE
         cells = []
         for entry, value in enumerate(r[start:start + SPELL_BANK_SIZE]):
             ready = value >> 4
             selected = value & 0x0F
             selected_text = "unavailable" if selected == 0x0F else str(selected)
             cells.append(f"{entry}:ready={ready},selected={selected_text}")
-        rows.append(f"bank{bank} " + " | ".join(cells))
+        rows.append(f"level{bank + 1} " + " | ".join(cells))
     return rows
+
+
+def show_spell_matrix(r: bytes, label: str, offset: int) -> None:
+    end = offset + SPELL_MATRIX_SIZE - 1
+    print(f"  {label:<10}: +0x{offset:03X}..+0x{end:03X} (8 levels x 10 entries; ready/selected counts)")
+    for row in spell_banks(r, offset):
+        print(f"    {row}")
 
 
 def show(label: str, index: int, base: int, r: bytes) -> None:
@@ -69,9 +77,8 @@ def show(label: str, index: int, base: int, r: bytes) -> None:
     print("  pairs32   : " + ", ".join(f"{r[o]}/{r[o+1]}" for o in range(0x32, 0x40, 2)))
     print("  words40   : " + ", ".join(str(s16(r, o)) for o in range(0x40, 0x48, 2)))
     print("  item[21]  : " + ", ".join(str(s16(r, ITEM_OFFSET + i * 2)) for i in range(ITEM_COUNT)))
-    print(f"  spells    : +0x{SPELL_MATRIX_OFFSET:03X}..+0x{SPELL_MATRIX_END - 1:03X} (8 banks x 10 bytes; ready/selected counts)")
-    for row in spell_banks(r):
-        print(f"    {row}")
+    show_spell_matrix(r, "spells_A", SPELL_MATRIX_A_OFFSET)
+    show_spell_matrix(r, "spells_B", SPELL_MATRIX_B_OFFSET)
     print(f"  aux12F    : 0x{u32(r, AUX_DWORD_OFFSET):08X}")
     print(f"  flags13A  : 0x{u32(r, STATE_FLAGS_OFFSET):08X}")
     print(f"  post!=fill: {sparse_post(r)}")
