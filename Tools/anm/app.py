@@ -46,6 +46,7 @@ def _self_test() -> int:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             timeout=15,
+            **runtime_paths.silent_subprocess_kwargs(),
         )
     except Exception:
         return 22
