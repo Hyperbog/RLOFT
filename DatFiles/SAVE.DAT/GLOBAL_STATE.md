@@ -1,6 +1,6 @@
 # SAVE.DAT global/non-character state
 
-Status: **serializer/deserializer-certified structural reconstruction.** SAVE files are variable-length: the supplied quick-start fixture is `0x2448` bytes because its live-world-object count is zero. The fixed prefix, persistent container bank, spell-UI selections, gameplay clock, renderer controls, cursor-held item state, and trailing `0x6FA0` contexts now have executable-backed behavioral identities.
+Status: **serializer/deserializer-certified structural reconstruction.** SAVE files are variable-length: the supplied quick-start fixture is `0x2448` bytes because its live transient-effect count is zero. The fixed prefix, dynamic class-3 transient/moving-effect array, persistent container bank, spell-UI selections, gameplay clock, renderer controls, cursor-held item state, and trailing `0x6FA0` contexts now have executable-backed behavioral identities.
 
 ## Serializer anchor
 
@@ -98,8 +98,8 @@ Exactly `0x920` bytes from runtime `0x218E0` (`4 * 0x248`).
 Immediately after the party image:
 
 ```text
-uint32 live_world_object_count;                  // DGROUP 0xC038
-WorldObject22 live_world_objects[count];         // runtime 0x248EC, 0x16 each
+uint32 live_effect_count;                       // DGROUP 0xC038
+LiveTransientEffect22 live_effects[count];       // runtime 0x248EC, 0x16 each
 uint32 spell_ui_selected_character[2];           // DGROUP 0xD8A8
 uint32 gameplay_tick_counter;                    // DGROUP 0xA7E4
 for container_state = 0..61:
@@ -110,7 +110,7 @@ uint32 level_light_adjustment;                   // DGROUP 0xF91C, clamped 0..8
 uint8 charged_item_counter[15];
 ```
 
-`DGROUP 0xC038` is a live-object count with executable limit `0x96` (150). Creation/removal code indexes a `0x16`-byte structure array at runtime `0x248EC`. The quick-start fixture count is zero, so every later fixture offset shifts by `live_world_object_count * 0x16` in saves containing live world objects.
+`DGROUP 0xC038` is the live transient-effect count with executable limit `0x96` (150). Creation/removal code indexes the `0x16`-byte array at runtime `0x248EC`. The quick-start fixture count is zero, so every later fixture offset shifts by `live_effect_count * 0x16` in saves containing active transient effects.
 
 ## Live transient/moving-effect array
 
