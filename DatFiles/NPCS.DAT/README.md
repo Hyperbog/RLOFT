@@ -1,6 +1,6 @@
 # NPCS.DAT
 
-Status: **fixed 83 × 0x45 record format proven; scene/render parameters, collision extent, core combat statistics, XP, action delay, runtime-state templates and creature sound IDs reconstructed; lossless parse/encode verified. Behavior-flag bits remain the main semantic frontier.**
+Status: **fixed 83 × 0x45 record format proven; scene/render parameters, collision extent, core combat statistics, XP, action delay, runtime-state templates and creature sound IDs reconstructed; six behavior/capability bits decoded; lossless parse/encode verified.**
 
 - Size: 5,731 bytes
 - SHA-256: `f2dd1175bf42e8291b95952282dfc0cfb84455aaa532987cdd7380094c8eb30b`
@@ -102,7 +102,7 @@ The base scene sprite is `+0x14`. `+0x18..+0x1A` drive frame/state arithmetic in
 
 ## Packed runtime flags
 
-Two important access-width boundaries are now explicit:
+Two important access-width boundaries remain controlling:
 
 ```text
 +0x31..+0x34  uint32 behavior_flags
@@ -113,7 +113,35 @@ Two important access-width boundaries are now explicit:
 
 Therefore byte `+0x38` is **not** an independent damage statistic despite its varied high-bit values; it is the high byte of the live-state template.
 
-`+0x39/+0x3A` are additional capability/behavior flag bytes and are the next major semantic target.
+### Proven `+0x3A` aliases
+
+```text
+0x02  level_drain_attack
+0x04  strength_drain_attack
+0x20  undead_classification
+```
+
+Executable consumers prove these independently:
+
+- `D7B3` invokes the class-level decrement/progression routine for `0x02`;
+- `D7E8` invokes the Strength-adjustment routine with `-1` for `0x04`;
+- turning, detection and combat paths repeatedly filter `0x20` as the undead classification.
+
+`+0x3A & 0x10` applies a separate party status effect, but its exact named condition remains unresolved.
+
+### Proven `+0x39` aliases
+
+```text
+0x20  paralysis_attack
+0x40  dynamic_barrier_activation
+0x80  obstacle_passthrough
+```
+
+The paralysis path explicitly honors `RING OF FREE ACTION`; navigation with `0x40` can activate the dynamic door/barrier record family; collision handling with `0x80` suppresses blocking from placed/special obstacles.
+
+`+0x39 & 0x01` applies another party status effect and remains unnamed until that status is independently identified.
+
+The dword at `+0x31` remains a generalized overlapping effect/capability mask. Individual bits are not globally named until each relevant effect path is proved. See `BEHAVIOR_FLAGS.md`.
 
 ## Sound fields
 
@@ -145,18 +173,31 @@ unresolved +0x3B nonzero       0
 unresolved +0x3C nonzero       0
 ```
 
+`analyze_behavior_flags.py` additionally verifies the proved flag sets:
+
+```text
+undead_classification       17
+level_drain_attack           5
+strength_drain_attack        2
+paralysis_attack             6
+dynamic_barrier_activation   4
+obstacle_passthrough         5
+```
+
 ## Documentation and tools
 
-- `FORMAT.md` — physical schema and first semantic reconstruction pass.
+- `FORMAT.md` — physical schema and semantic reconstruction.
+- `BEHAVIOR_FLAGS.md` — proved flag aliases, executable evidence and unresolved flag boundary.
 - `inspect_npcs.py` — lossless parser/encoder and corpus audit.
+- `analyze_behavior_flags.py` — archive-wide bit distribution and proved semantic-set audit.
 
 ## Current frontier
 
-The next NPCS work is to decode the packed behavior/capability masks without flattening their overlapping byte/word/dword accesses:
+The remaining NPCS work is narrower:
 
-1. `+0x31..+0x34` effect/immunity/AI behavior bits;
-2. `+0x39/+0x3A` attack/status/capability bits;
+1. decode individual `+0x31..+0x34` effect/immunity bits from their spell/effect consumers;
+2. identify the exact conditions represented by `+0x39 & 0x01` and `+0x3A & 0x10`;
 3. tighten the exact role of `+0x41` and `render_aux_27`;
-4. document any story-NPC-specific animation meanings only where code proves them.
+4. document story-NPC-specific animation meanings only where code proves them.
 
-The current schema already supports a lossless reader/editor and faithful reproduction of the core creature stat/render database.
+The current schema already supports a lossless reader/editor and faithful reproduction of the core creature stat/render database while retaining unresolved flags verbatim.
