@@ -29,7 +29,11 @@ For each format:
 
 ## Current status
 
-The supplied-build `SAVE.DAT` reconstruction is now archival-complete. Its final certification is recorded in `SAVE.DAT/FINAL_AUDIT_2026-10-06.md`; bounded opaque fields are preserved explicitly rather than assigned speculative semantics.
+The supplied-build `SAVE.DAT` reconstruction is archival-complete. Its final certification is recorded in `SAVE.DAT/FINAL_AUDIT_2026-10-06.md`.
+
+The supplied-build `LEVELS.DAT` master archive and `LEVnnn.DAT` standalone mutable form are also preservation-grade / archival reconstructed. Their combined certification is recorded in `LEVELS.DAT/FINAL_AUDIT_2026-10-06.md`. The known 40-cell LEV022 automap-cache discrepancy is retained as a bounded provenance issue rather than normalized away.
+
+In both cases, bounded opaque fields are preserved explicitly rather than assigned speculative semantics. These reconstruction-complete labels do not claim that independent byte-exact encoders are already implemented unless separate round-trip tests demonstrate that milestone.
 
 ## Initial priority
 
