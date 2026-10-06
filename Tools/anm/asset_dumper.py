@@ -215,10 +215,9 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
             try:
                 raster = ra.decode_type7_raster(body)
             except ra.AssetError as exc:
-                # RES11 is a retained legacy/pre-split bank and contains a
-                # small number of records whose source pixels are external to
-                # the decoded shape body. Preserve their structure rather than
-                # fabricating pixels. The active RES3 corpus renders fully.
+                # This is an unexpected per-resource decoder failure. Keep the
+                # structural record in the manifest so one bad asset never
+                # silently disappears from an archival dump.
                 rec.update(metadata)
                 rec.update(rendered=False, render_error=str(exc))
             else:
@@ -266,9 +265,10 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
         },
         "rendered_assets": rendered,
         "structural_only_type7": structural_only,
-        "active_res3_type7_note": (
-            "All active RES3 compiled scene shapes are reconstructed to native "
-            "1:1 raster images, including NPC/creature, object, item and effect banks."
+        "type7_note": (
+            "All supplied RES3 and RES11 compiled scene shapes are reconstructable "
+            "to native 1:1 transparent rasters. RES3 output is separated into "
+            "NPC/creature, placed-object, loose-item, and effect banks."
         ),
         "assets": records,
     }
