@@ -1,6 +1,6 @@
 # LEVELS.DAT
 
-Status: **archive/record structure proven; cell-state, 10-byte control, compact-family, fixed event-script, active header-tail/music, automap, dynamic-door, loose-item family, event-callee, and annotation-tail semantics substantially reconstructed. Remaining format-level unknowns are narrow and explicitly preserved.**
+Status: **preservation-grade reconstruction for the supplied build. Archive/direct-save geometry, cell state, 10-byte controls, all three world-record families, event scripts including reserved story branches, active header/music state, automap/cache behavior, and annotation tail are executable-backed. Remaining questions are bounded provenance/source-name issues and are explicitly preserved.**
 
 - Size: 499,878 bytes
 - SHA-256: `50d0b1d13f81733a1ac55296d00fcba9aef002202bc00341f1062c37fd017d91`
@@ -97,7 +97,7 @@ object ID range      0..335
 compact flag byte         0 for all 622 supplied records
 ```
 
-All family-C IDs are valid in the 336-entry supplied `OBJECTS.DAT`. The family-C-only legacy migration `0x54 -> 0x58` remains exact executable behavior; its historical reason is not yet known.
+All family-C IDs are valid in the 336-entry supplied `OBJECTS.DAT`. The family-C-only compact `0x54 -> 0x58` migration is now semantically closed: current ID `0x54` is `STONE GIANT GAUNTLETS`, while the loader intentionally converts the legacy value to current ID `0x58`, `ARROW OF SLAY UNDEAD`, before any runtime OBJECTS lookup. The exact historical database revision that necessitated the alias remains unknown.
 
 ### Event scripts and resolved callees
 
@@ -112,12 +112,12 @@ opcode 7   show indexed XOR-0xDC-decoded text/message
 opcode 8   set persistent global event flag
 opcode 9   clear persistent global event flag
 opcode 10  toggle persistent global event flag
-opcode 11  reserved special action or numbered interactive event resource
+opcode 11  three hard-coded story hooks or numbered interactive event resource
 ```
 
 Opcodes 8/9/10 operate on the same 32-byte / 256-bit vector at runtime `0x22200`; SAVE.DAT writes and reads exactly those 32 bytes, proving persistence.
 
-Opcode 11's default path uses the resource/install path loaded from INFO.DAT, appends a backslash and two decimal digits, opens that numbered resource, runs its interactive processor, applies the result, then stops the current event slot. The supplied INFO.DAT path is `D:`.
+Opcode 11's default path uses the resource/install path loaded from INFO.DAT, appends a backslash and two decimal digits, opens that numbered resource, runs its interactive processor, applies the result, then stops the current event slot. Its three reserved values are now closed: `0x0B` activates/reveals final Strahd state, `0x0C` runs the Vengeful-Spirit possession lifecycle, and `0x0D` is the hard-coded recruited-Irmgarde fixed-cell story trigger. The supplied INFO.DAT path is `D:`.
 
 Opcode 6 belongs to the separate music-sequence subsystem. The two supplied uses request sequence IDs `0x2F` and `0x2E` in level 29.
 
@@ -134,7 +134,7 @@ The 16-bit cell word is now substantially closed at the behavioral level:
 0x0400  persistent automap explored/revealed mark
 0x0800  secret/hidden-passage topology marker
 0x1000  10-byte-record state resource-offset enable
-0x2000  unresolved
+0x2000  preserved authoring/legacy marker; no direct runtime consumer proved
 0xC000  two-bit render shade/decrement level
 ```
 
@@ -148,7 +148,7 @@ The center/frame interpretation is independently supported by archive geometry: 
 
 `0xC000` is consumed as a 0..3 decrement applied to both byte lanes of a packed render value; only two supplied cells use a nonzero selector, both selector value 2.
 
-`0x2000` remains deliberately unresolved. It occurs only three times, at the same coordinate `(44,34)` in levels 12..14, as raw word `0x2400`.
+`0x2000` has reached a bounded negative result. Across all direct CODE.2 references to the cell-word array, no instruction isolates, sets, clears, or branches on it; the only three corpus instances remain `(44,34)` in levels 12..14 as raw `0x2400`. Preserve it as authoring/legacy state rather than assigning a speculative gameplay meaning.
 
 See `CELL_WORD.md`, `CELL_FLAG_LINKS.md`, and `analyze_cell_flag_links.py`.
 
@@ -156,13 +156,12 @@ See `CELL_WORD.md`, `CELL_FLAG_LINKS.md`, and `analyze_cell_flag_links.py`.
 
 The reusable archive/direct-save format is now at practical preservation-grade closure. LEV022 is no longer an opaque mutable sample: its exact `0x0440` exploration delta, unchanged 10-byte lists, mutable live Assassin record, deterministic family-B expansion, cache relation, and writer-unowned preamble byte are documented.
 
-Remaining issues are bounded:
+Remaining issues are bounded provenance/source-history questions:
 
-1. the historical schema reason for the family-C legacy numerical migration `0x54 -> 0x58`;
-2. the exact meaning of cell bit `0x2000`;
-3. story-specific opcode-11 branches `0x0B..0x0D` if reusable semantics can be proved;
-4. the known 40-cell LEV022 automap-cache provenance discrepancy.
+1. the exact historical object-table revision behind the now-identified legacy Arrow alias `0x54 -> 0x58`;
+2. the original editor/source name, if any, for cell bit `0x2000`, which has no direct runtime consumer in the supplied CODE.2;
+3. the known 40-cell LEV022 automap-cache provenance discrepancy, where the supplied save behaves as though one unexplored-cell shortcut differs from the certified executable.
 
-None blocks structural parsing, lossless preservation, direct-save restoration, or a high-level LEVELS/LEV reader-editor model. Linked `OBJECTS.DAT`, `NPCS.DAT`, and `SAVE.DAT` are already reconstructed far enough to support the current cross-file semantics.
+None blocks structural parsing, lossless preservation, direct-save restoration, or a high-level LEVELS/LEV reader-editor model. The three opcode-11 reserved branches are no longer open semantic work.
 
-Lossless tooling must preserve every bounded unknown byte/bit and every documented legacy migration verbatim.
+Lossless tooling must preserve every bounded unknown byte/bit, the serialized cache bytes, and every documented legacy migration verbatim.
