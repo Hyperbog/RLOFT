@@ -1,0 +1,50 @@
+#pragma once
+
+#include <array>
+#include <cstdint>
+#include <vector>
+
+#include "rloft/game_source.hpp"
+
+namespace rloft {
+
+struct Palette6 {
+    std::array<std::uint8_t, 768> rgb{};
+};
+
+struct Type1Raster {
+    int count{};
+    int width{};
+    int height{};
+    std::uint8_t transparent_index{0xFF};
+    std::vector<std::uint8_t> pixels;
+};
+
+class ResArchive final {
+public:
+    explicit ResArchive(std::vector<std::uint8_t> bytes);
+
+    [[nodiscard]] int entry_count() const noexcept;
+    [[nodiscard]] std::vector<std::uint8_t> entry(int index) const;
+    [[nodiscard]] Type1Raster decode_type1(int index) const;
+
+private:
+    std::vector<std::uint8_t> bytes_;
+    std::vector<std::uint32_t> offsets_;
+};
+
+class RavenloftBootAssets final {
+public:
+    explicit RavenloftBootAssets(GameSource source);
+
+    [[nodiscard]] const GameSource& source() const noexcept { return source_; }
+    [[nodiscard]] Type1Raster res0_type1(int index) const;
+    [[nodiscard]] Palette6 colors_palette(int index, int brightness = 0) const;
+
+private:
+    GameSource source_;
+    ResArchive res0_;
+    std::vector<std::uint8_t> colors_;
+};
+
+}  // namespace rloft
