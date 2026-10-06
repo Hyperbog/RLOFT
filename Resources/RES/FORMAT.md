@@ -1,12 +1,12 @@
 # RES format reconstruction
 
-Status: **outer archives are byte-exact round-trippable; supplied EH types 1, 2, 3, 4, 6 and 7 are structurally decoded from CODE.2 and exhaustively validated. Type 5 exists in the executable dispatcher but is absent from the supplied archives.**
+Status: **the supplied RES0..RES12 corpus is structurally reconstructed and byte-exact round-trippable. All supplied EH resource types are decoded/validated, type-6/type-7 renderer layouts are behaviorally mapped, the active non-EH wordcode bank is reconstructed, and executable-only type-1 method 1 / type-5 loader behavior is documented. Remaining unknowns are historical/producer semantics, not unparsed Ravenloft runtime data.**
 
-The immutable RES files and original CODE.2 bytes are controlling evidence. Community extraction tools are secondary references only.
+The immutable RES files and certified CODE.2 object are controlling evidence. Community tools and cross-title data are secondary only.
 
 ## Outer archive
 
-Every supplied `RES0`..`RES12` uses:
+Every supplied archive uses:
 
 ```text
 int32 entry_count
@@ -16,48 +16,59 @@ byte  entry_payloads[]
 
 Offsets are little-endian absolute file positions. `entry_offsets[0] == 4 + 4*entry_count`. Offsets are **non-decreasing**, not strictly increasing. Entry `i` occupies `[offset[i], offset[i+1])`; the final entry extends to EOF.
 
-`RES1` contains 21 adjacent duplicate offsets and therefore 21 valid zero-length entries. `analyze_res.py` reconstructs all 13 outer archives byte-for-byte, including these duplicates.
+Duplicate adjacent offsets are valid zero-length entries. `RES1` contains 21 of them. `analyze_res.py` reconstructs all 13 archives byte-for-byte, including those duplicates.
+
+Supplied corpus totals:
+
+```text
+archives             13
+bytes         99,663,006
+entries           12,562
+EH entries        12,464
+zero-length           21
+non-empty non-EH      77
+```
 
 ## EH envelope and CODE.2 dispatch
 
-CODE.2 `2EB60..2EC72` reads each resource envelope as:
+CODE.2 `2EB60..2EC72` reads the normal typed envelope as:
 
 ```text
-byte   magic[2]          // must be "EH" for normal typed resource path
+byte   magic[2]          // "EH"
 uint8  resource_type
 uint16 type_header_size
 byte   type_header[type_header_size]
-byte   payload[...]      // interpreted by selected loader
+byte   payload[...]
 ```
 
-The executable dispatch at `2EDDA..2EEF7`, using the seven-entry table at `2EC98..2ECB3`, maps types exactly as follows:
+The dispatcher at `2EDDA..2EEF7` maps types 1..7 exactly:
 
-| Type | CODE.2 loader | Supplied count | Confirmed supplied role |
+| Type | Loader | Supplied count | Role |
 |---:|---|---:|---|
-| 1 | `2FD9C` | 1,591 | image/sprite descriptor + raw or LZSS pixel data |
-| 2 | `301A8` | 15 | 128-entry glyph-width table + type-1-compatible font image descriptor |
-| 3 | `286C4` | 172 | length-prefixed `FORM` / `XDIR` XMIDI sequence data |
-| 4 | `28020` | 1,005 | length-prefixed Creative Voice File sampled-sound data |
-| 5 | `374E0` | 0 | executable-supported structured resource; no supplied instance, semantics unresolved |
-| 6 | `37590` | 1,319 | LZSS-compressed first-person column-major texture raster |
-| 7 | `37590` | 8,362 | LZSS-compressed structured renderer geometry/data record |
+| 1 | `2FD9C` | 1,591 | image/sprite raster resource |
+| 2 | `301A8` | 15 | font widths + type-1-compatible raster |
+| 3 | `286C4` | 172 | XMIDI/XDIR music sequence |
+| 4 | `28020` | 1,005 | Creative Voice File sampled sound |
+| 5 | `374E0` | 0 | executable-supported structured record; absent from corpus |
+| 6 | `37590` | 1,319 | first-person column-major texture raster |
+| 7 | `37590` | 8,362 | compiled scene-shape column display list |
 
-Types 6 and 7 intentionally share the same generic decompression loader; their higher-level interpretation comes from their archive/consumer paths rather than a different on-disk compression wrapper.
+Types 6 and 7 intentionally share the same generic LZSS loader; higher-level meaning is established by their archive/consumer paths.
 
-## Type 1: image/sprite resource
+## Type 1 — image/sprite raster
 
 All supplied type-1 resources use `type_header_size == 8`:
 
 ```text
 +0x00 uint16 count
 +0x02 int16  height
-+0x04 uint8  width_units       // decoded width contribution is width_units * 8 bytes
-+0x05 uint8  field_5           // semantic name not yet promoted
++0x04 uint8  width_units       // width contribution = width_units * 8 bytes
++0x05 uint8  field_5           // conservative physical name
 +0x06 uint8  compression
-+0x07 uint8  field_7           // semantic name not yet promoted
++0x07 uint8  field_7           // conservative physical name
 ```
 
-CODE.2 `2FD9C` computes decoded bytes per element as:
+CODE.2 computes decoded bytes per element as:
 
 ```text
 height * width_units * 8
@@ -65,20 +76,58 @@ height * width_units * 8
 
 and processes `count` elements.
 
-Supplied compression methods:
+Compression selectors:
 
-- method `0`: 113 resources; payload is uncompressed and its length equals `count * height * width_units * 8` exactly in every case;
-- method `3`: 1,478 resources; decoded by the CODE.2 `37700` LZSS family and consumes every compressed payload exactly;
-- method `1` is supported by CODE.2 (`2FF32` / `2FC48`) but does not occur in the supplied archives;
-- method `2` routes to the encoded error path at `2FFA4` and does not occur in the supplied archives.
+### Method 0 — raw
 
-The exact higher-level meaning of header bytes `+0x05` and `+0x07` remains deliberately unnamed until their renderer consumers are fully reconciled.
+113 supplied resources. Payload size equals:
 
-## Type 2: font resource
+```text
+count * height * width_units * 8
+```
 
-Every supplied type-2 resource uses `type_header_size == 136 (0x88)`.
+exactly in every instance.
 
-CODE.2 `301A8` proves that the header is:
+### Method 1 — signed-control RLE
+
+No supplied instance, but executable behavior is completely recovered from `2FF32` / `2FC48`:
+
+```text
+c = int8(read_u8())
+if c >= 0:
+    copy c + 1 literal bytes
+else:
+    repeat next byte 1 - c times
+```
+
+Important edge case: control `0x80` / `-128` repeats the next byte **129 times**. It is therefore not safe to substitute classic PackBits semantics, where `-128` is commonly a no-op.
+
+The decoder state is continuous across the type-1 loader's internal element boundaries rather than reset for each element.
+
+### Method 2 — error selector
+
+Dispatches to the encoded resource-error path at `2FFA4`. No decoder exists behind this selector in the certified CODE.2 object and no supplied resource uses it.
+
+### Method 3 — 4 KiB LZSS
+
+1,478 supplied type-1 resources. CODE.2 `37700` uses:
+
+- 4,096-byte history window;
+- fill byte `0xFE`;
+- initial history cursor `0xFEE`;
+- LSB-first flag bits;
+- literal when flag=1;
+- two-byte back-reference when flag=0;
+- offset `lo | ((hi & 0xF0) << 4)`;
+- length `(hi & 0x0F) + 3`.
+
+All supplied streams decode to the exact expected size and terminate at the exact payload boundary.
+
+See `EXECUTABLE_ONLY_FORMATS.md` for method-1 and method-2 preservation details.
+
+## Type 2 — font
+
+Every supplied type-2 resource uses `type_header_size == 136 (0x88)`:
 
 ```text
 +0x00 uint8 glyph_widths[128]
@@ -90,115 +139,175 @@ CODE.2 `301A8` proves that the header is:
 +0x87 uint8  field_7
 ```
 
-The final 8 bytes are not a separate unrelated font descriptor: `301A8` builds a temporary resource descriptor pointing at `header + 0x80` and calls the type-1 loader `2FD9C`. Thus the image body obeys the same decoded-size and compression rules as type 1, while the first 128 bytes remain attached as per-glyph width data.
+CODE.2 `301A8` copies/retains the 128 glyph widths, points a temporary type-1 descriptor at `header +0x80`, and calls `2FD9C`. Thus font image data obeys the same type-1 decoded-size and compression rules.
 
-All 15 supplied fonts have `count == 128`, `width_units == 1`, compression method `3`, and decode with exact compressed-stream exhaustion. Decoded bitmap sizes are 10,240 bytes (1 resource), 11,264 bytes (1), or 15,360 bytes (13), according to height.
+All 15 supplied fonts have `count == 128`, `width_units == 1`, compression method 3, and exact compressed-stream exhaustion.
 
-## Type 3: XMIDI/XDIR sequence resource
+## Type 3 — XMIDI/XDIR sequence
 
-All supplied type-3 resources have `type_header_size == 0` and use:
-
-```text
-uint32 blob_size
-byte   blob[blob_size]
-```
-
-CODE.2 `286C4` reads the 32-bit length, allocates storage, stores the length, and copies that many bytes. All 172 supplied records satisfy `stored blob bytes == blob_size` exactly and every blob begins:
-
-```text
-FORM .... XDIR
-```
-
-This class belongs to the music/sequence subsystem. Independent DAT work already ties the neighboring `28Exx/29xxx` family to level music-sequence IDs and transitions.
-
-## Type 4: Creative Voice File sampled sound
-
-Normal supplied type-4 resources have `type_header_size == 0` and the same loader envelope:
+All supplied type-3 resources use `type_header_size == 0`:
 
 ```text
 uint32 blob_size
 byte   blob[blob_size]
 ```
 
-CODE.2 `28020` reads the dword length, allocates `length + 4`, stores the length, then copies exactly `length` bytes. Every supplied blob starts with the literal `Creative Voice File\x1A` signature.
+All 172 records match the stored length exactly and begin with `FORM ... XDIR`. Loader `286C4` belongs to the same music/sequence subsystem independently mapped through LEVELS/ANM/wordcode work.
 
-1,003 of 1,005 resources have an exact declared/stored length match. Two byte-identical shipped resources are anomalous:
+## Type 4 — Creative Voice File
 
-- `RES11:4877`
-- `RES12:430`
-- entry SHA-256: `07db990a79ea8d02e89c150fec3d45a918a6efb563a99feb3a21f090315959eb`
-- declared length: `71,273 (0x11669)`
-- bytes physically stored after the length: `5,737 (0x1669)`
-- discrepancy: exactly `65,536 (0x10000)` bytes
+Normal supplied type-4 resources use `type_header_size == 0`:
 
-The executable reads the field as a full dword, so this discrepancy is preserved as a **shipped data anomaly**, not silently normalized to a 16-bit length. Its runtime consequence requires separate stream-boundary analysis.
+```text
+uint32 blob_size
+byte   blob[blob_size]
+```
 
-## Types 6 and 7: shared LZSS wrapper
+All 1,005 blobs carry the `Creative Voice File\x1A` signature.
 
-All supplied types 6 and 7 have `type_header_size == 0`:
+1,003 have exact declared/stored length equality. Two byte-identical shipped records preserve a genuine anomaly:
+
+```text
+RES11:4877
+RES12:430
+entry SHA-256 07db990a79ea8d02e89c150fec3d45a918a6efb563a99feb3a21f090315959eb
+stored length field   0x11669
+physical blob bytes   0x01669
+difference            0x10000
+```
+
+CODE.2 reads the field as a 32-bit value, so tools must preserve the original bytes rather than silently truncate/repair it.
+
+## Type 5 — executable-only structured record
+
+No supplied Ravenloft archive contains type 5. Loader `374E0` nevertheless gives an exact physical contract.
+
+It requires at least the following 28 header bytes:
+
+```text
++0x00..+0x14  eleven uint16 words
++0x16         uint32 tail_span
++0x1A         uint8  unknown_byte_1A
++0x1B         uint8  tail_first_byte
+```
+
+The returned object contains those 28 bytes followed by `tail_span - 1` bytes copied from the payload. Total returned size is:
+
+```text
+0x1B + tail_span
+```
+
+`tail_span` therefore counts the variable tail beginning with header byte `+0x1B`.
+
+A natural producer form would use `type_header_size == 28`, but because Ravenloft supplies no instance, only the loader's 28-byte minimum/read footprint is executable-proved. Field semantics remain `UNKNOWN`.
+
+See `EXECUTABLE_ONLY_FORMATS.md`.
+
+## Types 6 and 7 — shared LZSS wrapper
+
+All supplied types 6 and 7 use `type_header_size == 0`:
 
 ```text
 uint16 decoded_size
-byte   compressed_data[...]
+byte   compressed_data[]
 ```
 
-CODE.2 `37590` reads the size, allocates `decoded_size + 2`, stores the leading size word, initializes the compressed stream, and invokes the `37700` decompressor.
+Loader `37590` allocates `decoded_size + 2`, retains the size word, then invokes the same `37700` LZSS family described under type 1 method 3.
 
-The reconstructed LZSS grammar is:
-
-- 4,096-byte history window;
-- history initialized to `0xFE`;
-- initial history cursor `0xFEE`;
-- flag bits consumed least-significant-bit first;
-- flag 1: one literal byte;
-- flag 0: two-byte back-reference;
-- back-reference offset = `lo | ((hi & 0xF0) << 4)`;
-- back-reference length = `(hi & 0x0F) + 3`;
-- history cursor wraps modulo `0x1000`.
-
-Exhaustive validation:
-
-- all 1,319 type-6 streams decode to the declared size and consume their compressed payload exactly;
-- all 8,362 type-7 streams decode to the declared size and consume their compressed payload exactly.
-
-### Type 6: column-major first-person surface textures
-
-The supplied type-6 records decode only to 4,096 bytes (134 resources) or 8,192 bytes (1,185 resources). The exact layout is now executable-backed rather than inferred from those byte counts.
-
-CODE.2 `32F93..32FA0` computes renderer record field `+0x10` as `(0x255E8 >> 4) & 0x0FC0`, so the selector advances only in `0x40` units. Loader paths `33647..33664` and `336AF..336D4` double that field and add it to the archive-4 decoded-body pointer, producing an exact `0x80` / 128-byte source-column stride.
-
-Sampler `338C8` independently proves that each selected block is one vertical source column: it computes fixed-point step `0x800000 / output_height`, where `0x800000 == 128 << 16`, reads one source byte per resampled scanline, subtracts a color/shading bias, writes it to VGA memory, and advances destination by `0x50` / 80 bytes (one 320-pixel planar scanline).
-
-Therefore the supplied decoded bodies are exactly:
-
-- 4,096 bytes = **32 columns x 128 texels**;
-- 8,192 bytes = **64 columns x 128 texels**.
-
-Storage is column-major: each contiguous 128-byte block is a complete vertical texture column. The safe project classification is **column-major first-person surface/wall texture raster**. See `TYPE6_RENDERER.md` for the full instruction-level evidence.
-
-### Type 7 consumer evidence
-
-Every supplied type-7 decoded body is at least 10 bytes. Renderer paths `21C1D..21C55` and `36E94..36F04` request archive `3`, skip the leading decoded-size word, then consume the body as structured 16-bit data.
-
-The first five signed words are used as geometry:
+Exact validation:
 
 ```text
-word0: reference extent used by scaling/centering math
-word1, word2: ordered pair; renderer uses word2 - word1
-word3, word4: ordered pair; renderer uses word4 - word3
+type 6   1,319 / 1,319 streams exact
+type 7   8,362 / 8,362 streams exact
 ```
 
-Across all 8,362 supplied type-7 bodies, `word2 >= word1` and `word4 >= word3`. Further data contains word offsets/index structures used by the renderer (`36EF5..36F20`). The safe classification is **structured renderer geometry/data record**; a historical source-level name such as “sprite” is not asserted without stronger evidence.
+### Type 6 — column-major first-person texture
+
+Renderer evidence proves one contiguous 128-byte vertical source column per column index.
+
+Supplied decoded bodies are only:
+
+```text
+4,096 bytes = 32 columns * 128 texels
+8,192 bytes = 64 columns * 128 texels
+```
+
+CODE.2 generates the column selector in `0x40` units, doubles it to a `0x80` byte stride, and `338C8` vertically resamples exactly 128 source samples into VGA memory.
+
+See `TYPE6_RENDERER.md`.
+
+### Type 7 — compiled scene-shape column display list
+
+The supplied decoded body begins with a 10-byte geometry header:
+
+```text
++0x00 uint16 source_width      // supplied: 64, 96, or 128
++0x02 int16  x_min
++0x04 int16  x_max
++0x06 int16  y_min
++0x08 int16  y_max
+```
+
+Immediately following is one relative 16-bit pointer for every source column `x_min..x_max`:
+
+```text
+uint16 column_list_offset[x_max - x_min + 1]
+```
+
+Each pointer targets a terminated list of 6-byte draw descriptors:
+
+```text
+int16 raster_stop_selector
+int16 signed_adjustment
+int16 raster_entry_selector
+... repeated ...
+int16 0                      // terminator
+```
+
+The first and third descriptor words select offsets in SINTAB's scale-specific executable rasterizer code. CODE.2 temporarily patches a selected stop point to `RET`, invokes the corresponding micro-rasterizer span, then restores the byte.
+
+Corpus invariants across all 8,362 records:
+
+- widths only 64/96/128;
+- `x_min <= x_max < source_width`;
+- `0 <= y_min <= y_max <= 128`;
+- every column pointer starts after the header/table;
+- every referenced list terminates in-bounds;
+- selector fields collectively use all 129 even values `0x0000..0x0100`, exactly matching each SINTAB block's 129-entry code-offset table.
+
+The type therefore represents a **compiled scene shape/display list coupled to external scale-specific rasterizer microcode**, not an ordinary bitmap sprite.
+
+`INIT` partitions all 4,234 RES3 type-7 entries into four exact source banks:
+
+```text
+0..2168      NPC/creature family
+2169..3315  placed object/item family
+3316..4157  loose/pickable OBJECTS family
+4158..4233  transient/moving-effect family
+```
+
+See:
+
+- `TYPE7_RENDERER.md`
+- `TYPE7_SOURCE_BANKS.md`
+- `TYPE7_NPC_INDEX.md`
+- `TYPE7_OBJECT_INDEX.md`
+- `analyze_type7.py`
+- `analyze_type7_banks.py`
 
 ## Non-EH records
 
-There are 77 non-empty entries that do not begin with `EH`:
+There are 77 non-empty non-EH entries:
 
-- `RES1:381` and `RES1:427`: four-byte `60 00 00 00` sentinels, still semantically unresolved;
-- `RES9:517..554`: 38 executable-proved interaction/display wordcode containers;
-- `RES12:370..406`: 37 ID-aligned alternate wordcode-shaped containers whose selection by this executable is not yet proven.
+```text
+RES1:381,427     two raw 4-byte 0x00000060 records
+RES9:517..554    38 active interaction/display wordcode programs
+RES12:370..406   37 ID-aligned alternate/incompatible programs
+```
 
-All 75 larger records use the exact serialized shape:
+### Active RES9 wordcode
+
+Physical container:
 
 ```text
 uint16 word_count
@@ -206,34 +315,73 @@ uint16 program_words[word_count]
 uint16 zero_bank[word_count]
 ```
 
-Every supplied `zero_bank` word is zero. CODE.2 `13F70` bypasses the normal `EH` loader, opens archive 9 directly, seeks entry `0x258CC + 0x7FCC + program_id`, reads the leading count and exactly `count * 2` bytes of `program_words`, and does not read the zero bank. The supplied `INIT` loads `0x258CC = 103` from `+0x1E` and `0x7FCC = 414` from `+0x22`, so the runtime bank begins exactly at `103 + 414 = RES9:517` and covers program IDs 0..37.
+The active loader `13F70` obtains raw archive 9 via `2EC74(9)`, reads the count, then reads **only** the first `word_count * 2` bytes into the VM buffer.
 
-CODE.2 `15534` dispatches wordcode opcodes `0..0x29` through a 42-entry table. Proven operations include archive-9 drawing, absolute branches, text-base changes, sound playback, music transitions, interpreter state-bit operations, and cinematic invocation. The safe classification is therefore **interaction/display wordcode** rather than malformed resources.
+`INIT +0x1E == 103` and `INIT +0x22 == 414`, so:
 
-`RES12:370..406` has the identical count/program/zero-bank shape, and all 37 shared ordinal slots have the same early opcode-`0x19` text-base operand as the corresponding `RES9` programs. No equivalent raw archive-12 loader has yet been proven, so it remains an ID-aligned alternate bank rather than an asserted active runtime bank.
+```text
+103 + 414 + program_id = RES9:517 + program_id
+```
 
-See `NON_EH.md` for the detailed loader/interpreter evidence.
+Program IDs 0..37 are therefore exactly `RES9:517..554`.
 
-## Validation status
+The complete active 42-opcode (`0x00..0x29`) wordcode VM is reconstructed and validates:
 
-`analyze_res.py` now validates the complete supplied corpus:
+```text
+programs                         38
+program words                11,396
+decoded instructions          4,237
+parse errors                      0
+invalid direct control targets    0
+```
 
-- 13 outer archives; byte-identical parse/reassembly;
+NPC types 34..70 map to programs 0..36 and NPC type 82 maps to program 37.
+
+### Serialized zero bank
+
+Every zero-bank word is zero, but the active loader stops after `program_words`. A whole-object call scan proves `13F76 -> 2EC74(9)` is the **only** direct raw-archive-handle request in certified CODE.2. No second reader later consumes the companion bank.
+
+Thus it is serialized-but-runtime-unread in this executable. Its historical producer/editor purpose remains `UNKNOWN` and it must be preserved verbatim.
+
+### RES12 alternate bank
+
+RES12 has the same outer count/program/zero-bank container but an incompatible internal dialect, including inline character-template data where active CODE.2 expects a one-word template ID. No archive-12 raw-handle loader exists in the certified CODE.2 object.
+
+Safe classification: **ID-aligned alternate/incompatible interaction-wordcode bank**. No floppy/CD/prototype/localization provenance is asserted without a matching executable or documentary source.
+
+### RES1 raw markers
+
+`RES1:381` and `RES1:427` are four bytes `60 00 00 00`, each preceded by an empty entry. They cannot pass the normal EH loader, and the whole-object raw-handle audit finds no archive-1 raw reader. They are therefore inactive/unconsumed by established CODE.2 resource paths; historical producer meaning remains `UNKNOWN`.
+
+See `NON_EH.md`, `WORDCODE_VM.md`, `WORDCODE_PROGRAM_INDEX.md`, `RES12_WORDCODE.md`, and `RES1_SENTINELS.md`.
+
+## Validation ledger
+
+The committed tooling verifies:
+
+- 13 outer archives with byte-identical parse/reassembly;
 - 12,562 total entries;
 - 21 zero-length entries;
 - 77 non-EH entries;
-- 12,464 EH entries across types 1, 2, 3, 4, 6, and 7;
-- exact method-0 size checks for all 113 supplied type-1 raw resources;
-- exact method-3 LZSS stream exhaustion for all 1,478 type-1 and all 15 type-2 resources;
-- exact XDIR length/signature checks for all 172 type-3 resources;
-- exact VOC signature checks for all 1,005 type-4 resources, with the two documented shipped length anomalies;
-- exact LZSS stream exhaustion for all 9,681 type-6/type-7 resources.
+- 12,464 typed EH entries;
+- all 113 supplied type-1 method-0 resources by exact raw size;
+- all 1,478 supplied type-1 and all 15 type-2 method-3 streams by exact decode/stream exhaustion;
+- all 172 type-3 resources by XDIR length/signature;
+- all 1,005 type-4 resources by VOC signature and documented anomaly handling;
+- all 1,319 type-6 and 8,362 type-7 LZSS streams by exact decode/stream exhaustion;
+- all 8,362 type-7 display lists by geometry/pointer/list validation;
+- all 38 active wordcode programs by instruction-boundary and control-target validation.
 
-## Remaining work
+## Remaining evidence boundaries
 
-1. finish all 42 interaction/display wordcode opcode semantics and determine the purpose of the serialized zero companion bank;
-2. trace `RES12` alternate-bank selection or prove it unused by this executable, and resolve the two `RES1` sentinels;
-3. continue type-7 structure recovery beyond the confirmed leading geometry fields and offset tables;
-4. map RES texture/program/geometry indices back into LEVELS/OBJECTS/NPCS consumers and renderer resource codes;
-5. reconstruct CODE.2's method-1 type-1 decoder even though no supplied resource uses it, for complete engine preservation;
-6. keep type 5 explicitly unresolved until a sample or enough executable evidence establishes its format independently.
+No supplied Ravenloft RES entry remains structurally unparsed.
+
+The intentional open questions are narrower:
+
+- original producer/editor meaning of the unused wordcode zero bank;
+- provenance/build identity of the RES12 alternate set;
+- historical meaning of the two inactive RES1 `0x00000060` markers;
+- source-level names for conservative type-1 descriptor fields `+0x05/+0x07`;
+- semantic field names for executable-only type 5, which has no Ravenloft sample.
+
+These are preservation `UNKNOWN`s. They do not block faithful parsing/repacking of the supplied RES archives or reconstruction of the certified executable's active runtime behavior.
