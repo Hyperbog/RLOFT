@@ -1,104 +1,106 @@
 # Optional executable / audio-driver reverse-engineering triage
 
-Status: **TRIAGED — not required for the initial faithful gameplay decompilation.**
+Status: **AUDITED / DEFERRED — not required for the initial faithful gameplay decompilation.**
 
-This checkpoint decides whether `INSTALL.EXE`, `SINSTALL.EXE`, `LOADPATS.EXE`, and the shipped A32/GUS driver DLLs must be reverse engineered before the first faithful native reconstruction.
+This decision covers `INSTALL.EXE`, `SINSTALL.EXE`, `LOADPATS.EXE`, `PATCHES.INI`, the launch/configuration batch files, and the shipped A32/GUS driver DLLs.
 
 ## 1. Decision
 
-None of these binaries currently blocks reconstruction of Ravenloft's gameplay/runtime architecture. They should be preserved and documented, but full decompilation should be deferred until after the game-facing CODE/data/resource reconstruction unless a later unknown specifically points into their interfaces.
+No evidence found in this audit places missing Ravenloft gameplay, event, character, save, level, resource-decoding, or CODE.1/CODE.2 state-machine logic inside these optional binaries.
 
-The one exception is **interface-level sound-system reconstruction**: `sound.cfg`, driver selection, and the CODE-side audio API/configuration contract are relevant to faithful behavior. That does not require decompiling every hardware driver.
+The initial faithful reconstruction needs the **game-facing audio contract**, not complete hardware-driver implementations.
 
-## 2. INSTALL.EXE — archive / structural audit only
+## 2. INSTALL.EXE
 
-`INSTALL.EXE` is a 16-bit MZ installer. Its embedded inventory names Ravenloft's shipped payload, including `CODE.1`, `CODE.2`, `LEVELS.DAT`, `NPCS.DAT`, `OBJECTS.DAT`, `LEV022.DAT`, `SAVE.DAT`, `INFO.DAT`, `LOADPATS.EXE`, and the A32/GUS driver set.
+Observed shipped binary:
 
-This is useful provenance and installation-layout evidence, but it does not appear to contain gameplay logic missing from CODE.1/CODE.2. CODE itself emits `Cannot Find INFO.DAT, rerun INSTALL.EXE`, reinforcing INSTALL's setup role rather than runtime ownership.
+- 16-bit DOS MZ executable;
+- size `26,400` bytes;
+- SHA-256 `c14b38d43fe98ae7ba29afe4f70dea4a0bb1ac826d2276ca81637717305c8829`.
 
-**Initial port requirement:** no full decompilation.
+Its embedded inventory names the principal Ravenloft payload, including CODE/data files, `SOUND.BAT`, `SINSTALL.EXE`, `LOADPATS.EXE`, `PATCHES.INI`, and the audio drivers.
 
-Preserve: hashes, file-copy/layout behavior, generated/default files, command-line behavior, and any release/version checks.
+**Initial-port requirement:** none beyond preserving installation/layout provenance. Full decompilation is archival work unless a release-layout question later depends on it.
 
-## 3. SINSTALL.EXE — preserve configuration semantics, defer implementation RE
+## 3. SINSTALL.EXE
 
-`SINSTALL.EXE` is a DOS/4G sound installer and identifies itself as `SSI Sound Flat Model Installer for Ravenloft 4.2.6b`. Strings expose MIDI/digital hardware selection, detection/error paths, `sound.cfg`, and mappings to the shipped A32/GUS drivers.
+Observed shipped binary:
 
-This binary is important historically because it defines how original hardware choices were converted into runtime configuration. It is **not** necessary to reproduce its 1994 hardware probing/UI in a native port.
+- DOS/4G-bound executable;
+- size `381,660` bytes;
+- SHA-256 `dcb28a9a38c822ded4392f6ff0ae7213b0e5e9a76dc69aa56bd0d1d48fd1ba4a`;
+- identifies itself as `SSI Sound Flat Model Installer for Ravenloft 4.2.6b`.
 
-**Initial port requirement:** reconstruct the resulting `sound.cfg` schema and CODE-side interpretation, not the entire installer.
+Strings expose separate Music and Digital Sound Effects selection, address/IRQ/DMA prompts, `sound.cfg`, and mappings to the A32/GUS backends.
 
-Full RE becomes worthwhile only if configuration fields remain unexplained after CODE-side analysis.
+Both CODE modules are now independently proven to read exactly `0x3B` bytes from `sound.cfg`, so the correct reconstruction boundary is firmly on the CODE side.
 
-## 4. LOADPATS.EXE / PATCHES.INI — Gravis compatibility subsystem
+**Initial-port requirement:** reproduce configuration semantics actually consumed by CODE. Full SINSTALL UI/hardware detection is not required.
 
-`LOADPATS.EXE` is LZEXE 0.91-compressed and references `PATCHES`/GUS setup. `RLOFT.BAT`, `SOUND.BAT`, `PATCHES.INI`, and the two GUS drivers place it in the Gravis UltraSound native-mode compatibility path.
+## 4. LOADPATS.EXE / PATCHES.INI / Gravis path
 
-This is hardware-specific middleware support, not core Ravenloft gameplay. A modern native audio backend does not need to reproduce the loader internally.
+Observed `LOADPATS.EXE`:
 
-**Initial port requirement:** no decompilation. Preserve command/config semantics and document how the original GUS path was launched.
+- MZ executable compressed with LZEXE 0.91;
+- size `24,705` bytes;
+- SHA-256 `17f40351cf53e445dbb62a041ff90b18dd755f6e1f3a216354e14aaeaa50f8ea`.
 
-Only reverse engineer it if exact original-hardware emulation or historically exact GUS patch-loading behavior becomes a project goal.
+`PATCHES.INI` explicitly identifies itself as the default UltraSound LOADPATS configuration for AIL 32 and contains General MIDI/percussion patch mappings.
 
-## 5. A32*.DLL — Miles hardware drivers
+### Important audit correction
 
-The A32 DLLs identify themselves as Miles Design drivers and cover AdLib, Sound Blaster variants, Pro Audio Spectrum, Roland MT-32, speaker/Tandy, and related hardware. They are middleware hardware backends.
+`RLOFT.BAT` and `SOUND.BAT` contain comments describing a `LOADPATS` failure/revision check, but **neither supplied batch file actually invokes `LOADPATS.EXE`** before testing `ERRORLEVEL`.
 
-They should not be treated as DreamForge gameplay source. Reimplementing their low-level ISA/FM/MIDI/DSP behavior would add substantial work while contributing little to the first native Ravenloft reconstruction.
-
-**Initial port requirement:** no driver decompilation.
-
-Required instead: identify the CODE-side audio service calls, asset formats, channel/music semantics, and configuration mapping. Replace the hardware backend with a modern implementation while preserving game-visible timing/selection behavior where practical.
-
-## 6. GUSDIG32.DLL / GUSMID32.DLL
-
-These identify Miles plus Advanced Gravis/Forte Technologies authorship and explicitly describe UltraSound digital/MIDI playback. Their role is again device-specific middleware.
-
-**Initial port requirement:** no full decompilation.
-
-They are worth deeper study only for exact UltraSound emulation, patch-bank behavior, or if a CODE-side audio call cannot be understood without the driver ABI.
-
-## 7. Do these fill current CODE unknowns?
-
-At present, no evidence indicates that these installer/driver binaries contain missing gameplay routines, state-machine ownership, level logic, character logic, resource decoding, or unresolved CODE.1/CODE.2 control flow.
-
-The useful cross-boundary evidence is configuration/interface information:
+They do:
 
 ```text
-SINSTALL.EXE
-    -> chooses hardware / driver combination
-    -> writes sound.cfg
-
-CODE.1 / CODE.2
-    -> read sound.cfg
-    -> load/use selected audio middleware
-
-A32/GUS DLL
-    -> hardware-specific output implementation
+if ULTRADIR empty -> normal path
+goto GUS_LOAD
+:GUS_LOAD
+if errorlevel 1 -> OLD_REVISION
+...
+run r.exe / sinstall.exe
 ```
 
-Thus the correct reconstruction boundary is normally at the CODE-to-audio-middleware interface, not inside each driver.
+Therefore the batch files alone do not prove where or whether `LOADPATS.EXE` is executed in the shipped installation flow. Its association with UltraSound/AIL32 is clear from the executable/configuration set, but the exact activation path remains an archival question.
 
-## 8. Priority
+This is **not** a blocker for a native port.
+
+## 5. A32/GUS DLLs
+
+All 18 supplied driver files identify structurally as 32-bit LX/OS2-style DLL images used by the DOS/4G/Miles audio environment. Names and strings correspond to AdLib, Sound Blaster-family, Pro Audio Spectrum, MT-32, speaker/Tandy, and Gravis UltraSound hardware backends.
+
+No driver decompilation is required for the first native implementation unless a specific CODE-facing ABI behavior remains unresolved after tracing the game-side callers.
+
+## 6. What is required for faithful audio
+
+Required:
+
+1. the fixed 59-byte `SOUND.CFG` load contract;
+2. Music versus Digital Sound Effects configuration groups;
+3. CODE-side initialization/shutdown calls;
+4. sound/music asset triggering;
+5. any completion/status/timing behavior visible to gameplay.
+
+Deferred:
+
+- exact original card detection;
+- ISA port I/O;
+- IRQ/DMA setup;
+- FM/MPU/MT-32 driver internals;
+- exact Gravis patch-loading implementation;
+- complete installer UIs.
+
+## 7. Priority
 
 ```text
 P1  CODE.1 / CODE.2 / DAT / RES / gameplay formats     REQUIRED
-P1  sound.cfg schema + CODE-side audio contract        REQUIRED for faithful audio
-P2  R.EXE / batch launch protocol                      DONE / architecturally resolved
-P3  SINSTALL output/configuration semantics            useful preservation work
-P4  INSTALL.EXE installation-layout semantics          archival
-P5  LOADPATS + GUS exact patch loader                  optional hardware preservation
-P5  A32/GUS driver internals                           optional middleware preservation
+P1  CODE-side audio contract + SOUND.CFG semantics      REQUIRED for faithful audio
+P2  R.EXE supervisor/module protocol                    DONE
+P3  SINSTALL writer/configuration internals             optional targeted follow-up
+P4  INSTALL.EXE installation mechanics                  archival
+P5  LOADPATS exact launch/patch behavior                optional hardware preservation
+P5  A32/GUS driver internals                            optional middleware preservation
 ```
 
-## 9. Recommendation
-
-Save full installer/audio-driver reverse engineering for the end. Before a first faithful port, perform only a targeted audio-interface pass sufficient to answer:
-
-1. exact `sound.cfg` format and values;
-2. which CODE routines consume those values;
-3. how music vs digital sound drivers are selected/loaded;
-4. what game-visible calls and asset formats cross the middleware boundary;
-5. whether any timing/state behavior depends on driver return values.
-
-If those five items are resolved from CODE/configuration evidence, the original driver implementations serve preservation and hardware-emulation goals rather than being dependencies of the faithful gameplay decompilation.
+Full reverse engineering of this optional group should remain end-of-project work unless a concrete unresolved dependency crosses the CODE-to-middleware boundary.
