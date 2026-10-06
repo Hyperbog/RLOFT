@@ -69,7 +69,7 @@ Immediately after the header is a row-major `width * height` array at runtime `0
 0x0400  persistent automap explored/revealed mark
 0x0800  conditional pass-through / special automap behavior
 0x1000  per-cell lookup/render augmentation
-0x2000  unresolved
+0x2000  preserved authoring/legacy marker; no direct runtime consumer proved
 0xC000  two-bit render selector
 ```
 
@@ -244,7 +244,7 @@ Proved opcode semantics now include:
 - opcode 8: set persistent global event flag `arg3`;
 - opcode 9: clear persistent global event flag `arg3`;
 - opcode 10: toggle persistent global event flag `arg3`;
-- opcode 11: reserved special action for IDs `0x0B..0x0D`, otherwise run a numbered interactive event resource selected by `arg3` and stop the current event slot;
+- opcode 11: `0x0B` final-Strahd story activation, `0x0C` Vengeful-Spirit possession lifecycle, `0x0D` Irmgarde-dependent fixed-cell story trigger; other IDs run numbered interactive event resources and stop the current event slot;
 - opcode 12: assign command byte `+3` to global `0xBF44`.
 
 The persistent event-flag vector begins at `0x22200`; SAVE.DAT writes and reads exactly `0x20` bytes from that address, proving a persistent 256-bit game/event-state vector. Only opcode 8 occurs in the supplied archive, setting flags `0x52`, `0x55`, `0x56`, and `0x57`.
@@ -341,4 +341,4 @@ Safe to expose semantically now:
 - generated automap cache, base export, placed-object overlay, and annotation overlay;
 - annotation-list tail.
 
-Remaining high-value LEVELS work is the few still-behavioral cell/control-bit names, reusable semantics in the three story-specific opcode-11 branches if any, and the historical reason for the family-C `0x54 -> 0x58` legacy migration. After that, the next value is in fully reconstructing the other DAT databases using the cross-links already proved here.
+The supplied-build LEVELS/LEV structure and all format-critical runtime families are now semantically closed to an archival preservation boundary. Remaining questions are bounded provenance/source-name issues: the historical object-table revision behind the `0x54 -> 0x58` Arrow alias, the original editor/source name of raw cell bit `0x2000`, and the 40-cell LEV022 cache provenance discrepancy. None changes the certified parser, loader/writer behavior, or round-trip preservation rules.
