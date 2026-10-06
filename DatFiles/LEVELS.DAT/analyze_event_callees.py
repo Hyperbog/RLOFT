@@ -96,7 +96,10 @@ def analyze(levels_path: Path, info_path: Path | None) -> None:
         info = info_path.read_bytes()
         if len(info) < 15:
             raise ValueError("INFO.DAT shorter than 15-byte fixed prefix")
-        path_length = struct.unpack_from("<H", info, 13)[0]
+        # CODE.2 uses MOVSX when passing this length to the read routine.
+        path_length = struct.unpack_from("<h", info, 13)[0]
+        if path_length < 0:
+            raise ValueError(f"negative INFO.DAT resource path length {path_length}")
         path_bytes = info[15 : 15 + path_length]
         if len(path_bytes) != path_length:
             raise ValueError("INFO.DAT resource path is truncated")
