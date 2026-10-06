@@ -26,7 +26,7 @@ FLAG_FIELDS = (
     (0x0400, "automap_explored"),
     (0x0800, "conditional_passthrough"),
     (0x1000, "cell_lookup_augmentation"),
-    (0x2000, "unresolved_2000"),
+    (0x2000, "legacy_authoring_2000"),
     (0x4000, "render_selector_bit0"),
     (0x8000, "render_selector_bit1"),
 )
