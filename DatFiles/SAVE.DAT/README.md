@@ -175,16 +175,29 @@ The supplied raw `T` resource independently closes `T[588..613]`, and CODE.2 con
 
 The raw text range contains generic display labels—both Mage and priest Light are simply `Light`, for example—so producer tracing remains necessary for exact effect ownership. See `PRIMARY_EFFECT_CATALOGUE.md`, `EFFECT_FLAGS.md`, and `T_EFFECT_TEXT.md`.
 
-## Dynamic live-world-object section
+## Dynamic live transient/moving-effect section
 
 Immediately after the active party, CODE.2 writes `DGROUP 0xC038` as a 32-bit count followed by `count * 0x16` bytes from runtime `0x248EC`.
 
+Cross-file executable evidence now identifies these records as the RES3 source-class-3 **transient/moving-effect family**. LEVELS event opcode 3 and spell/item paths create them; the class-3 scene emitter consumes the same array.
+
 ```text
++0x00  int32  coordinate B, 16.16-style fixed point
++0x04  int32  coordinate A, 16.16-style fixed point
++0x08  int32  heading/orientation angle
++0x0C  uint16 cached map-cell index
++0x0E  uint16 transient-effect type
++0x10  uint16 auxiliary word; constructor initializes zero
++0x12  uint16 type-specific auxiliary; type 8 uses lifetime countdown
++0x14  uint16 packed movement/direction/frame/source state
+
 structure stride = 0x16
 maximum count    = 0x96 (150)
 ```
 
-A parser must follow the count rather than seek directly to the quick-start fixture's late offsets. This live-world-object record is now the largest remaining structural/semantic SAVE target.
+Packed state certifies direction bits 3..5, animation/variant bits 6..8, and source-actor/context bits 11..13; movement bits 1..2 are behaviorally consumed but their exact enum labels remain pending. The constructor only partially initializes some auxiliary/packed fields, so a faithful serializer must preserve raw values rather than normalize them.
+
+A parser must follow the count rather than seek directly to the quick-start fixture's late offsets. See `GLOBAL_STATE.md` for the constructor, movement, removal, INIT descriptor, and RES3 renderer evidence.
 
 ## Selected spell UI and gameplay ticks
 
@@ -261,10 +274,11 @@ Treat SAVE.DAT as an explicitly decoded little-endian legacy runtime image. Pres
 
 ## Remaining reconstruction targets
 
-1. Recover the exact producer/meaning of status bit `0x2000` and determine whether any currently unnamed low status bits have real runtime ownership.
-2. Complete the exact player-facing portrait-resource catalogue/subset behind `+0x012` and any remaining status-presentation details.
-3. Identify a stronger runtime consumer for serialized `age` if one exists.
-4. Deepen the `0x16` live-world-object record, now the principal remaining structural SAVE component.
-5. Run a final SAVE-wide consistency/stale-offset audit before declaring the format archival-complete.
+1. Complete the exact player-facing portrait-resource catalogue/subset behind `+0x012` and any remaining status-presentation details.
+2. Identify a stronger runtime consumer for serialized `age` if one exists.
+3. Finish the residual packed-state/auxiliary semantics of the now-identified `0x16` transient/moving-effect record where producer evidence permits.
+4. Run a final SAVE-wide consistency/stale-offset audit before declaring the format archival-complete.
+
+Status bit `0x2000` and low bits `0x0001..0x0020` have reached a bounded evidence result: the shipped runtime recognizes/preserves them, but the direct producer audit does not justify player-facing names. They remain compatibility-preserved raw state rather than open invitations to infer AD&D conditions.
 
 The remaining SAVE work is now predominantly **live-object semantics and final residual/audit closure**, not basic serializer geometry, spell cataloguing, or primary-effect discovery.
