@@ -1,6 +1,6 @@
 # LEVELS.DAT fixed-header tail controls
 
-Status: **the active fields at header `+0x290..+0x29C` are behaviorally decoded from immutable CODE.2 and checked against all 32 supplied archive records. Higher gameplay/editor names remain conservative where the executable proves only renderer/resource behavior.**
+Status: **the active fields at header `+0x290..+0x29C` are behaviorally decoded from immutable CODE.2 and checked against all 32 supplied archive records. Higher gameplay/editor names remain conservative where the executable proves only renderer behavior.**
 
 The fixed level header is loaded verbatim to DGROUP `0x25618`:
 
@@ -28,7 +28,7 @@ The immutable CODE.2 object-1 SHA-256 was reverified as `014952c4f003c548d928984
 +0x298  uint8  renderer_fill_base_A
 +0x299  uint8  renderer_fill_base_B
 +0x29A  int16  render_threshold_floor
-+0x29C  uint8  resource_set_id
++0x29C  uint8  level_music_sequence_id
 +0x29D..+0x2A3 unresolved; all zero in supplied archive
 ```
 
@@ -91,7 +91,7 @@ Routine `1F2B1` passes:
 
 Those certified graphics routines perform analogous VGA-memory fill operations. Each subtracts a per-row byte from table `FE94` and fills 64-byte spans in distinct framebuffer regions (`+0x148` and `+0x50F8`). The exact visual/editor-facing identities of the two planes remain unresolved, so `renderer_fill_base_A/B` is intentionally behavioral.
 
-The low byte also has a special `== 0x2C` branch in `1F2B1`; unlike the earlier provisional corpus note, `0x2C` **does occur** in the supplied archive and is the most common low-byte value (9/32 levels).
+The low byte also has a special `== 0x2C` branch in `1F2B1`; `0x2C` occurs in the supplied archive and is the most common low-byte value (9/32 levels).
 
 ## `+0x29A`: normalized render-threshold floor
 
@@ -132,15 +132,26 @@ Archive distribution:
 
 Every archived zero becomes one in live state after load.
 
-## `+0x29C`: resource-set identifier
+## `+0x29C`: default level music-sequence ID
 
-CODE.2 consumes byte `0x258B4` as a resource-set identifier:
+The earlier generic `resource_set_id` label is superseded by direct audio-subsystem evidence. Every direct CODE.2 reference to byte `0x258B4` routes through the music/sequence family:
 
-- `1831A` compares it against the current resource identifier (`29050`) immediately after the header load and reloads resources when current state does not match;
-- `18C13..18C4C` repeats the same comparison and invokes the resource-loading sequence with this byte;
-- `0E4B9` and options/control path `06681` pass it to the same resource-management family.
+- `1831A` loads the byte and compares it against `29050()`, which simply returns current music-sequence ID global `0xEF28`;
+- if the ID differs, level loading begins a timed transition through `28DCC(0x9C4)`;
+- `18C13..18C4C` waits/finalizes the current sequence and invokes `28E58(header_id, 1, 0x9C4)` to load/start the header-selected sequence;
+- `0E4B9` performs the same restoration to this header value after a temporary interaction sequence;
+- options path `06681` calls `28E58(header_id,1,0x9C4)` when the **music** toggle is enabled; the adjacent **sound** toggle goes to the separate `0x280xx` sound-effect subsystem.
 
-The supplied archive uses values `0..45` with substantial reuse. `resource_set_id` is a safe behavioral name; mapping those IDs to named RES content belongs in later resource-file reconstruction.
+The safe field name is therefore **`level_music_sequence_id`**.
+
+The supplied archive uses 24 distinct IDs:
+
+```text
+0,1,2,3,4,5,6,7,8,9,10,11,12,13,
+34,35,36,37,38,39,40,41,42,45
+```
+
+Event opcode 6 can temporarily transition to sequence IDs `0x2E` and `0x2F` (46 and 47), showing that event-selected music is not limited to the default IDs stored in level headers.
 
 ## Remaining seven bytes
 
@@ -154,4 +165,5 @@ A reader/repacker can expose these fields while preserving the full raw header. 
 - preserve the `0xFF` environment-profile sentinel exactly;
 - preserve all three signed NPC-filter words, including `-1`;
 - distinguish serialized archive state from loader-normalized live state for `+0x29A`;
+- expose `+0x29C` as the default level music-sequence ID;
 - do not zero currently unused/reserved bytes when round-tripping arbitrary inputs.
