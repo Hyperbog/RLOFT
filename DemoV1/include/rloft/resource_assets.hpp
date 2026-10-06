@@ -38,12 +38,15 @@ public:
     explicit RavenloftBootAssets(GameSource source);
 
     [[nodiscard]] const GameSource& source() const noexcept { return source_; }
+    [[nodiscard]] Type1Raster type1(int archive, int index) const;
     [[nodiscard]] Type1Raster res0_type1(int index) const;
     [[nodiscard]] Palette6 colors_palette(int index, int brightness = 0) const;
 
 private:
     GameSource source_;
     ResArchive res0_;
+    ResArchive res1_;
+    ResArchive res7_;
     std::vector<std::uint8_t> colors_;
 };
 
