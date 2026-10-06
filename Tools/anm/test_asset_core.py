@@ -24,6 +24,23 @@ class AssetCoreTests(unittest.TestCase):
         # LSB-first flag bits: three literal bytes.
         self.assertEqual(res_assets.lzss_4k(bytes([0x07, 0x41, 0x42, 0x43]), 3), b"ABC")
 
+    def test_empty_type1_record_is_valid(self) -> None:
+        # Certified RES12:74/153/154/156/157 use this exact empty-raster form.
+        resource = res_assets.EhResource(
+            archive=12,
+            index=74,
+            resource_type=1,
+            header=bytes.fromhex("0000010002fe0300"),
+            payload=b"",
+            raw=b"",
+        )
+        raster, widths = res_assets.decode_type1(resource)
+        self.assertIsNone(widths)
+        self.assertEqual(raster.count, 0)
+        self.assertEqual(raster.width, 16)
+        self.assertEqual(raster.element_height, 1)
+        self.assertEqual(raster.pixels, b"")
+
     def test_type7_metadata(self) -> None:
         body = struct.pack("<HhhhhH", 64, 0, 0, 0, 1, 12) + b"\x00\x00"
         metadata = res_assets.type7_metadata(body)
