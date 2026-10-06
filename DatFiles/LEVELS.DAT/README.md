@@ -28,11 +28,14 @@ Every boundary equation and final record length validates for all 32 levels with
 - `FORMAT.md` — byte-level archive/direct-save structure.
 - `SEMANTICS.md` — proved header, list-record, and 11->22-byte record semantics.
 - `CELL_WORD.md` — 16-bit cell code/flag model, visibility/exploration behavior, renderer consumers, and final automap byte-cache relationship.
+- `CACHE_REBUILD_AUDIT.md` — instruction-level replay of CODE.2 `01558`, the `0x25622` animator trace, and the isolated 40-cell `LEV022.DAT` cache discrepancy.
 - `inspect_levels.py` — structural and coordinate validator plus archive/direct correlation.
 - `analyze_cells.py` — archive-wide cell-flag statistics and direct-save exploration/cache correlation.
 
 ## Current semantic frontier
 
-The six-bit cell code, transient current-view mark (`0x0040`), persistent automap explored/revealed mark (`0x0400`), and the derived nature of the final byte grid are now established from CODE.2. Several other cell bits have proven renderer behaviors but intentionally retain behavioral names pending exact geometry/interaction identification.
+The six-bit cell code, transient current-view mark (`0x0040`), persistent automap explored/revealed mark (`0x0400`), and the derived nature of the final byte grid are established from CODE.2. Several other cell bits have proven renderer behaviors but intentionally retain behavioral names pending exact geometry/interaction identification.
 
-Next work should close those remaining cell flags and internal byte-map classes, then continue into the `0x514` block and still-unnamed header fields. Lossless extraction/repacking should preserve every unresolved bit and byte until its meaning is independently proved.
+The earlier hypothesis that Level 22's saved cache could be explained by live animation of the `0x25622` lookup table has been disproved: `1EDAC` does not alter `0x0093`, and exact serialized-state replay differs only for 40 unexplored code-1 cells. Preserve the certified CODE.2 branch as authoritative while keeping that save-artifact discrepancy explicit.
+
+Next work should close the remaining cell flags and internal byte-map classes, then continue into the `0x514` block and still-unnamed header fields. Lossless extraction/repacking should preserve every unresolved bit and byte until its meaning is independently proved.
