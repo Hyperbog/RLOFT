@@ -41,6 +41,29 @@ class AssetCoreTests(unittest.TestCase):
         self.assertEqual(raster.element_height, 1)
         self.assertEqual(raster.pixels, b"")
 
+    def test_type7_native_raster_reuses_duplicate_column_source(self) -> None:
+        # width=4, x=0..2. x0/x1 share one descriptor pointer and therefore
+        # intentionally share the same packed source texels.
+        header = struct.pack("<Hhhhh", 4, 0, 2, 0, 2)
+        table_end = 10 + 3 * 2
+        source = bytes([10, 11, 20])
+        p1 = table_end + len(source)
+        list1 = struct.pack("<HhHH", 4, 0, 0, 0)
+        p2 = p1 + len(list1)
+        list2 = struct.pack("<HhHH", 4, 0, 2, 0)
+        body = header + struct.pack("<HHH", p1, p1, p2) + source + list1 + list2
+
+        raster = res_assets.decode_type7_raster(body)
+        self.assertEqual((raster.width, raster.height), (4, 128))
+        self.assertEqual(raster.pixels[0 * 4 + 0], 10)
+        self.assertEqual(raster.pixels[1 * 4 + 0], 11)
+        self.assertEqual(raster.pixels[0 * 4 + 1], 10)
+        self.assertEqual(raster.pixels[1 * 4 + 1], 11)
+        self.assertEqual(raster.pixels[1 * 4 + 2], 20)
+        self.assertEqual(raster.mask[0 * 4 + 0], 255)
+        self.assertEqual(raster.mask[1 * 4 + 2], 255)
+        self.assertEqual(raster.mask[0 * 4 + 3], 0)
+
     def test_type7_metadata(self) -> None:
         body = struct.pack("<HhhhhH", 64, 0, 0, 0, 1, 12) + b"\x00\x00"
         metadata = res_assets.type7_metadata(body)
