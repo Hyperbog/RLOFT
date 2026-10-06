@@ -29,20 +29,30 @@ For each format:
 
 ## Current status
 
-The supplied-build `SAVE.DAT` reconstruction is archival-complete. Its final certification is recorded in `SAVE.DAT/FINAL_AUDIT_2026-10-06.md`.
+**Part 3 DAT File Reconstruction is 100% complete to the supplied evidence boundary.** The cross-format certification is recorded in `FINAL_AUDIT_2026-10-06.md`.
 
-The supplied-build `LEVELS.DAT` master archive and `LEVnnn.DAT` standalone mutable form are also preservation-grade / archival reconstructed. Their combined certification is recorded in `LEVELS.DAT/FINAL_AUDIT_2026-10-06.md`. The known 40-cell LEV022 automap-cache discrepancy is retained as a bounded provenance issue rather than normalized away.
+Final per-format certifications:
 
-The supplied-build `OBJECTS.DAT` static object/item database is now archival-complete as well. Its final certification is recorded in `OBJECTS.DAT/FINAL_AUDIT_2026-10-06.md`; unlike LEVELS, the supplied OBJECTS parser/encoder already passes byte-exact decode→encode round-trip testing.
+- `OBJECTS.DAT/FINAL_AUDIT_2026-10-06.md` — archival-complete; semantic byte-exact round-trip verified.
+- `NPCS.DAT/FINAL_AUDIT_2026-10-06.md` — archival-complete; semantic byte-exact round-trip verified, including post-NUL name residue.
+- `INFO.DAT/FINAL_AUDIT_2026-10-06.md` — archival-complete; active RES0..RES10 routing and historical slots 11..12 bounded; semantic byte-exact round-trip verified.
+- `SAVE.DAT/FINAL_AUDIT_2026-10-06.md` — archival-complete.
+- `LEVELS.DAT/FINAL_AUDIT_2026-10-06.md` — preservation-grade archival reconstruction complete for LEVELS and LEVnnn direct-save form.
+- `LEV022.DAT` — certified mutable level-save fixture covered by the combined LEVELS audit; the known 40-cell cache discrepancy remains a bounded provenance issue.
 
-The supplied-build `NPCS.DAT` creature/NPC definition database is also archival-complete. Its final certification is recorded in `NPCS.DAT/FINAL_AUDIT_2026-10-06.md`; its semantic serializer preserves unresolved flag capacity and nonzero post-NUL name-field residue while reproducing the original file byte-for-byte.
+Across all formats, bounded opaque, compatibility, and historical fields are preserved explicitly rather than assigned speculative semantics.
 
-Across completed formats, bounded opaque or historical fields are preserved explicitly rather than assigned speculative semantics. A reconstruction-complete label never implies a generic encoder unless separate round-trip tests demonstrate that milestone.
+Reconstruction completion and future authoring-tool completion remain separate milestones. Independent semantic byte-exact serializers are already verified for OBJECTS, NPCS, and INFO; additional general-purpose SAVE/LEVELS serializer/editor work is optional implementation follow-up, not a reconstruction blocker.
 
-## Initial priority
+## Post-reconstruction work
 
-All six uploaded `.DAT` files are worth preserving and reverse engineering, but they are data formats, not executable machine code. The correct analogue to CODE.1/CODE.2 is therefore **format reconstruction + parser/serializer + byte-exact round-trip verification**, not disassembly into C++ instructions.
+The original six-format reconstruction queue is closed.
 
-Recommended order: `LEVELS.DAT` + `LEV022.DAT` first (world/level loading), then `OBJECTS.DAT` and `NPCS.DAT` (gameplay databases), then `SAVE.DAT` (state serialization), with `INFO.DAT` handled opportunistically because it is only 17 bytes.
+Optional follow-up work is now limited to implementation or historical enrichment:
 
-Each child directory is reserved for its own format notes, parser/serializer, fixtures/manifests, and progress ledger.
+- generic authoring/serializer tooling where not already demonstrated;
+- compatibility-fix modes kept explicitly separate from faithful original behavior;
+- older/newer build comparisons;
+- recovery of original source/editor terminology or provenance.
+
+Each child directory remains the canonical home for format notes, parsers/serializers, fixtures/manifests, and archival evidence.
