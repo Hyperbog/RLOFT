@@ -1,6 +1,6 @@
 # NPCS.DAT format reconstruction
 
-Status: **container and fixed 0x45-byte record layout proven; name, scene/render parameters, core combat statistics, XP, runtime-state templates, sound fields, and eighteen behavior/effect aliases are behaviorally anchored in certified CODE.2. Unknown flag bits remain raw.**
+Status: **container and fixed 0x45-byte record layout proven; name, scene/render parameters, core combat statistics, XP, runtime-state templates, sound fields, and twenty behavior/effect aliases are behaviorally anchored in certified CODE.2. Unknown flag bits remain raw.**
 
 ## Controlling evidence
 
@@ -116,10 +116,12 @@ These fields are deliberately aliased across access widths.
 
 ### `+0x31..+0x34` — raw `uint32 behavior_flags`
 
-CODE.2 tests this storage as byte, unaligned word, and full dword. Ten aliases are currently proved:
+CODE.2 tests this storage as byte, unaligned word, and full dword. Twelve aliases are currently proved:
 
 ```text
+0x00000001  detect_undead_effect_exclusion
 0x00000002  hold_undead_effect_immunity
+0x00000004  turn_undead_roll_penalty_4
 0x00000008  hold_person_effect_immunity
 0x00000010  hold_monster_effect_immunity
 0x00000080  death_spell_effect_immunity
@@ -144,11 +146,15 @@ The executable constructs compound spell masks:
 
 The common area/effect path skips a target whenever its `behavior_flags` intersects the caller's mask. Mage and priest Hold Person both use `0x0108`; Hold variants share the same live held-state bit. Fire/cold dispatcher paths independently establish the elemental components.
 
-Lightning Bolt is independently closed through the serialized mage-scroll and moving-effect machinery. `OBJECTS.DAT` object 188 (`MAGE SCROLL OF 'LIGHTNING BOLT'`) maps to internal effect 28. Its handler creates moving-effect type 1; the type-1 NPC collision branch tests byte `npc+0x32` with mask `0x03`, which is dword mask `0x0300 = 0x0100 | 0x0200`. Thus `0x00000200` is a Lightning Bolt effect-immunity/exclusion bit in addition to the common `0x0100` gate.
+Lightning Bolt is closed through serialized object 188 and moving-effect type 1. The type-1 NPC collision branch tests byte `npc+0x32` with `0x03`, which is dword mask `0x0300 = 0x0100 | 0x0200`.
 
-Death Spell uses a separate dedicated bit. `OBJECTS.DAT` object 197 (`MAGE SCROLL OF 'DEATH SPELL'`) maps to internal effect 51, whose target-area routine tests byte `npc+0x31` with `0x80` and skips that target when set. Thus `0x00000080` is a Death Spell effect-immunity/exclusion bit rather than part of the common `0x0100` family.
+Death Spell is closed through serialized object 197 -> internal effect 51 -> target-area routine `0xAED8`; `0xAFCE` tests `npc+0x31` with `0x80` and skips the target when set.
 
-See `TARGETED_EFFECT_IMMUNITIES.md` and `analyze_targeted_effect_immunities.py` for both complete chains.
+Detect Undead is closed through serialized object 170 -> internal effect 3 -> active counter `0xF03C`. With the separate broader detection source inactive, the renderer tests `npc+0x31 & 0x01` and skips the Detect Undead marker when set.
+
+The turning routine first requires the independently proved `undead_classification` bit at `+0x3A & 0x20`; it then tests `behavior_flags & 0x00000004` and subtracts exactly four from the turning roll before its threshold comparison. No supplied definition combines the two flags, so this is an executable-supported latent capability rather than a shipped active resistance.
+
+See `TARGETED_EFFECT_IMMUNITIES.md`, `DETECTION_TURNING_FLAGS.md`, and their analyzers for the exact chains.
 
 The separate physical-attack gate at CODE.2 `0xC910..0xC99E` resolves OBJECTS.DAT category and enchantment before applying two high bits. Nonzero enchantment reroutes the item to category 11. On the remaining paths:
 
@@ -157,11 +163,11 @@ category 10 + 0x00004000 -> temporary damage 0 -> final minimum 1
 category  9 + 0x00008000 -> temporary damage 0 -> final minimum 1
 ```
 
-Thus these aliases are **one-damage floors**, not zero-damage immunities. The supplied category-9 content is mace/quarterstaff/warhammer; category 10 contains ordinary axe/sword/dagger/spear/halberd definitions and variants. The aliases stay category-based rather than claiming an original AD&D damage-type enum.
+Thus these aliases are **one-damage floors**, not zero-damage immunities.
 
-The same category-11 branch tests `0x00020000` and `0x00040000` around zero-extended enchantment loads and signed comparisons to `-2`. Their exact executable oddity is documented in `WEAPON_DAMAGE_FLAGS.md`; those bits remain raw rather than being assigned speculative source-level names.
+The same category-11 branch tests `0x00020000` and `0x00040000` around zero-extended enchantment loads and signed comparisons to `-2`. Their exact executable oddity is documented in `WEAPON_DAMAGE_FLAGS.md`; those bits remain raw because the intended source-level contract is not proved.
 
-Preserve the full raw dword; these aliases are not a replacement enum. See `EFFECT_IMMUNITIES.md`, `HOLD_IMMUNITIES.md`, `TARGETED_EFFECT_IMMUNITIES.md`, and `WEAPON_DAMAGE_FLAGS.md`.
+Preserve the full raw dword; these aliases are not a replacement enum.
 
 ### `+0x35..+0x38` — initial runtime flags
 
@@ -207,8 +213,6 @@ party status 0x08  internal code 0x71  Neutralize Poison
 party status 0x10  internal code 0x68  Remove Paralysis
 ```
 
-See `BEHAVIOR_FLAGS.md` and `STATUS_ATTACKS.md` for the complete executable ledger.
-
 `+0x3B/+0x3C` are zero in all supplied records and remain preserved raw bytes.
 
 ## Sound IDs: `+0x3D..+0x44`
@@ -233,7 +237,7 @@ A faithful reader/editor may expose the proved fields and aliases while retainin
 - preserve all animation/render fields even for noncombat/story definitions;
 - expose HD, melee damage, AC, THAC0 and XP as proved stats;
 - retain `behavior_flags` and `initial_runtime_flags` with their exact overlapping access semantics;
-- reproduce the weapon-gate order, including enchantment rerouting and final minimum-one clamp;
+- reproduce the detection/turning gate order and the weapon-gate order exactly;
 - expose only independently proved bit aliases and preserve every other bit raw;
 - preserve unresolved `+0x3B/+0x3C`;
 - preserve sound IDs as 16-bit values.
