@@ -29,6 +29,7 @@ Every boundary equation and final record length validates with no archive except
 - `FORMAT.md` — archive/direct-save structure, event-table layout, and annotation-tail serialization.
 - `SEMANTICS.md` — integrated semantic model.
 - `HEADER_TAIL.md` — active fixed-header tail fields at `+0x290..+0x29C`, including default level music and loader normalization.
+- `FAMILY_A.md` — complete live/direct-save NPC world-record layout and mutable Level-22 actor proof.
 - `FAMILY_C.md` — family C as loose/pickable item world records plus runtime dropped/thrown-item behavior.
 - `CELL_WORD.md` — packed 16-bit cell code/flag model.
 - `CELL_FLAG_LINKS.md` — executable/corpus proof for special-geometry, render-prepass, hidden-passage, record-state-resource, and shade/decrement flags.
@@ -79,7 +80,7 @@ Header byte `+0x291` and `+0x29D..+0x2A3` have no direct absolute CODE.2 consume
 
 ### Compact world-record families
 
-Family A is tied directly to `NPCS.DAT` and is the **NPC/creature world-record family**.
+Family A is tied directly to `NPCS.DAT` and is the **NPC/creature world-record family**. Its complete direct/live `0x16` record is now mapped as fixed-point position, mutable runtime flags, cached cell, NPC type, action-state countdown, current HP, and packed runtime state with facing in bits 3..5. The supplied LEV022 actor independently demonstrates live movement/facing/HP/countdown persistence.
 
 Family B is tied to `OBJECTS.DAT` and is the **placed object/item map-record family**. Its supplied compact records use IDs only `0..174`; their compact placement/orientation byte spans `0..7`, and family B supplies the placed-object automap overlay.
 
@@ -153,15 +154,15 @@ See `CELL_WORD.md`, `CELL_FLAG_LINKS.md`, and `analyze_cell_flag_links.py`.
 
 ## Remaining LEVELS work
 
-The reusable file-format semantics are now near closure. Remaining issues are narrow:
+The reusable archive/direct-save format is now at practical preservation-grade closure. LEV022 is no longer an opaque mutable sample: its exact `0x0440` exploration delta, unchanged 10-byte lists, mutable live Assassin record, deterministic family-B expansion, cache relation, and writer-unowned preamble byte are documented.
 
-1. the historical reason for the family-C legacy migration `0x54 -> 0x58`;
+Remaining issues are bounded:
+
+1. the historical schema reason for the family-C legacy numerical migration `0x54 -> 0x58`;
 2. the exact meaning of cell bit `0x2000`;
-3. story-specific opcode-11 branches `0x0B..0x0D` if they later matter outside their scripted scenes;
-4. the known 40-cell `LEV022.DAT` automap-cache provenance discrepancy.
+3. story-specific opcode-11 branches `0x0B..0x0D` if reusable semantics can be proved;
+4. the known 40-cell LEV022 automap-cache provenance discrepancy.
 
-None of those blocks structural parsing, lossless preservation, or a high-level LEVELS reader/editor model.
+None blocks structural parsing, lossless preservation, direct-save restoration, or a high-level LEVELS/LEV reader-editor model. Linked `OBJECTS.DAT`, `NPCS.DAT`, and `SAVE.DAT` are already reconstructed far enough to support the current cross-file semantics.
 
-The next major reverse-engineering value is in the linked databases, especially `OBJECTS.DAT`: both placed family B and loose family C already address its 336-entry `0x41` record table directly. `NPCS.DAT` is similarly linked to family A and should follow.
-
-Lossless tooling must preserve every unresolved byte and flag verbatim.
+Lossless tooling must preserve every bounded unknown byte/bit and every documented legacy migration verbatim.
