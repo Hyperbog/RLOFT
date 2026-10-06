@@ -190,13 +190,19 @@ Only opcode 8 appears in the supplied archive, setting flags `0x52`, `0x55`, `0x
 Reads `arg3`:
 
 ```text
-0x0B -> call 0x0074
-0x0C -> call 0x00B8
-0x0D -> call 0x01FC; if its result is nonzero and a cell record exists, clear that record's bit 0x04
-default -> call 13EF8(arg3), then stop the current script after this command
+0x0B -> final-Strahd story activation / reveal-enable
+0x0C -> Vengeful-Spirit possession lifecycle
+0x0D -> Irmgarde-dependent fixed-cell story trigger
+default -> run numbered interactive resource 13EF8(arg3), then stop this event slot
 ```
 
-The default callee is now materially identified. `13EF8` enters a numbered interactive-resource processor. Setup routine `13AD8` calls `139AC(number)`, which constructs:
+The three reserved branches are executable/resource-closed in `EVENT_CALLEES.md`:
+
+- `0x0B` invokes RES9 program 28 (**FINAL STRAHD**), sets persistent flag `0x3A`, and clears the runtime suppression bit from live NPC type 8 (**STRAHD**);
+- `0x0C` runs logical `000B8`, the independently reconstructed GHOST/Vengeful-Spirit possession onset/resolution routine;
+- `0x0D` requires recruited **IRMGARDE**, rejects her when paralyzed/dead, clears the six-bit code of hard-coded cell `row 18, column 54`, sets event flag `0x46`, and returns success so the interpreter can also clear command-cell interaction bit `0x04` when applicable.
+
+The default callee `13EF8` enters a numbered interactive-resource processor. Setup routine `13AD8` calls `139AC(number)`, which constructs:
 
 ```text
 <resource path loaded from INFO.DAT> + "\\" + two decimal digits
@@ -204,9 +210,18 @@ The default callee is now materially identified. `13EF8` enters a numbered inter
 
 CODE.2 `2E768..2E7EE` reads the supplied INFO.DAT as 13 configuration bytes, a 16-bit path length of 2, then path bytes `D:`. Thus numbered event 7 resolves to `D:\\07` for this installation image.
 
-After opening the numbered resource, `13EF8` initializes its state, runs the interactive processor at `13834`, applies/cleans up the result through `13C88`, and returns the result. The surrounding binary contains encounter/dialog/adventure terminology; the conservative format name remains **numbered interactive event resource** rather than an asserted original source-level function name.
+After opening the numbered resource, `13EF8` initializes its state, runs the interactive processor at `13834`, applies/cleans up the result through `13C88`, and returns the result.
 
-All six supplied opcode-11 commands use arg3 values `2, 7, 9, 11, 12, 13`. Values `2`, `7`, and `9` take the numbered-resource default branch; `11`, `12`, and `13` take the three reserved special branches.
+All six supplied opcode-11 commands are now classified:
+
+```text
+level  5 slot 23  arg3=13  Irmgarde fixed-cell story trigger
+level 10 slot  3  arg3=12  Vengeful-Spirit possession lifecycle
+level 12 slot 10  arg3= 7  numbered interactive resource
+level 13 slot  8  arg3= 9  numbered interactive resource
+level 29 slot 28  arg3=11  final-Strahd story activation
+level 31 slot  1  arg3= 2  numbered interactive resource
+```
 
 ### Opcode 12 — assign global state code
 
