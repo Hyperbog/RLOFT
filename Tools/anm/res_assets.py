@@ -29,6 +29,14 @@ class Type1Raster:
     pixels: bytes
 
 
+@dataclass(frozen=True)
+class Type7Raster:
+    width: int
+    height: int
+    pixels: bytes
+    mask: bytes
+
+
 class ResArchive:
     def __init__(self, path: Path, archive_number: int):
         self.path = Path(path)
@@ -179,3 +187,84 @@ def type7_metadata(body: bytes) -> dict[str, object]:
     pointers = list(struct.unpack_from(f"<{table_count}H", body, 10)) if table_count else []
     return {"source_width": source_width, "x_min": x_min, "x_max": x_max,
             "y_min": y_min, "y_max": y_max, "column_offsets": pointers}
+
+
+def decode_type7_raster(body: bytes) -> Type7Raster:
+    """Reconstruct a type-7 scene shape at its native 1:1 source scale.
+
+    CODE.2's type-7 descriptors select entry/stop offsets in SINTAB's
+    129-entry scale rasterizer table. At the 1:1 SINTAB scale block every
+    scale step is one source texel, so selector/2 is the source Y boundary.
+    The descriptor's signed adjustment is the source-base displacement used
+    by the generated rasterizer before reading [ESI + y].
+
+    This is fully valid for the active RES3 corpus. Some retained RES11 legacy
+    records reference source storage that is not embedded in the same body;
+    those are reported as non-renderable rather than guessed.
+    """
+    metadata = type7_metadata(body)
+    width = int(metadata["source_width"])
+    height = 128
+    x_min = int(metadata["x_min"])
+    pointers = metadata["column_offsets"]
+
+    if width not in (64, 96, 128):
+        raise AssetError(f"unsupported type-7 source width {width}")
+
+    pixels = bytearray(width * height)
+    mask = bytearray(width * height)
+
+    for column_index, pointer in enumerate(pointers):
+        x = x_min + column_index
+        if not 0 <= x < width:
+            raise AssetError(f"type-7 column x={x} outside source width {width}")
+        pos = int(pointer)
+        descriptor_guard = 0
+
+        while True:
+            if pos + 2 > len(body):
+                raise AssetError("type-7 column list terminator exceeds decoded body")
+            stop_selector = struct.unpack_from("<h", body, pos)[0]
+            pos += 2
+            if stop_selector == 0:
+                break
+
+            if pos + 4 > len(body):
+                raise AssetError("type-7 descriptor exceeds decoded body")
+            signed_adjustment, entry_selector = struct.unpack_from("<hh", body, pos)
+            pos += 4
+
+            if (
+                entry_selector < 0
+                or stop_selector < 0
+                or entry_selector > stop_selector
+                or stop_selector > 0x100
+                or (entry_selector & 1)
+                or (stop_selector & 1)
+            ):
+                raise AssetError(
+                    "invalid type-7 raster selectors "
+                    f"entry=0x{entry_selector & 0xFFFF:04X} "
+                    f"stop=0x{stop_selector & 0xFFFF:04X}"
+                )
+
+            y0 = entry_selector // 2
+            y1 = stop_selector // 2
+            source_start = signed_adjustment + y0
+            source_end = signed_adjustment + y1
+            if source_start < 0 or source_end > len(body):
+                raise AssetError(
+                    "type-7 descriptor references source pixels outside this "
+                    "decoded body (legacy/external source layout)"
+                )
+
+            for y in range(y0, y1):
+                target = y * width + x
+                pixels[target] = body[signed_adjustment + y]
+                mask[target] = 0xFF
+
+            descriptor_guard += 1
+            if descriptor_guard > 1024:
+                raise AssetError("type-7 column list exceeds descriptor sanity limit")
+
+    return Type7Raster(width, height, bytes(pixels), bytes(mask))
