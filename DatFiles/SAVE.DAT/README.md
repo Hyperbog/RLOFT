@@ -9,13 +9,13 @@ Status: **high-effort audited late-stage reconstruction.** Serializer/deserializ
 
 ## Serializer-certified top-level structure
 
-SAVE.DAT is **variable-length** because it serializes a counted array of live world objects:
+SAVE.DAT is **variable-length** because it serializes a counted array of live transient effects:
 
 ```text
 fixed 0x77-byte global prefix
 4 * 0x248 active-party character records
 uint32 live_world_object_count
-count * 0x16 live-world-object records
+count * 0x16 live transient/moving-effect records
 spell_ui_selected_character[2]
 gameplay_tick_counter
 62 variable-width persistent container-state records
@@ -32,7 +32,7 @@ The supplied quick-start fixture has `live_world_object_count == 0`, giving:
 |---|---:|---|
 | `0x0000–0x0076` | `0x77` | fixed global prefix |
 | `0x0077–0x0996` | `0x920` | active party: `4 × 0x248` |
-| `0x0997–0x099A` | 4 | live-world-object count = 0 |
+| `0x0997–0x099A` | 4 | live transient-effect count = 0 |
 | `0x099B–0x09A2` | 8 | selected spell-UI character indexes |
 | `0x09A3–0x09A6` | 4 | gameplay tick counter |
 | `0x09A7–0x0D50` | `0x3AA` | 62 persistent container-state records |
@@ -41,7 +41,7 @@ The supplied quick-start fixture has `live_world_object_count == 0`, giving:
 | `0x0D68–0x2437` | `0x16D0` | saved roster: `10 × 0x248` |
 | `0x2438–0x2447` | `0x10` | `party_container_ui_context[4]` |
 
-For `N` live world objects, every fixture offset from `0x099B` onward shifts by `N * 0x16`. Thus `0x0D59`, `0x0D68`, `0x2438`, and total size `0x2448` are fixture anchors, not universal format constants.
+For `N` live transient effects, every fixture offset from `0x099B` onward shifts by `N * 0x16`. Thus `0x0D59`, `0x0D68`, `0x2438`, and total size `0x2448` are fixture anchors, not universal format constants.
 
 See `GLOBAL_STATE.md` for the complete global/container reconstruction and `PREFIX_GLOBALS.md` for fixed-prefix evidence.
 
