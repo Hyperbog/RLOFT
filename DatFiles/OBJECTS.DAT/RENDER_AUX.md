@@ -2,7 +2,7 @@
 
 Status: **record byte `+0x2B` is behaviorally identified as a scene-cell influence propagation step used by the first-person scene builder; `+0x2C` has no OBJECTS-relative consumer in certified CODE.2 and is zero in all supplied records.**
 
-This document extends `FORMAT.md` for the two bytes between `world_heading_stride` and the unaligned UI graphic word:
+This document extends `FORMAT.md` for the two bytes between `shape_stride` and the unaligned UI graphic word:
 
 ```text
 +0x2B  uint8 scene_influence_step
