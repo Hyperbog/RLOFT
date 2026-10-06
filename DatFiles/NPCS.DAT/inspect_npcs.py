@@ -53,7 +53,7 @@ class NpcRecord:
     unresolved_3c: int
     ambient_sound_id: int
     attack_sound_id: int
-    sound_event_41_id: int
+    damage_reaction_sound_id: int
     death_sound_id: int
 
 
@@ -95,7 +95,7 @@ def parse_record(raw: bytes) -> NpcRecord:
         unresolved_3c=raw[0x3C],
         ambient_sound_id=u16(raw, 0x3D),
         attack_sound_id=u16(raw, 0x3F),
-        sound_event_41_id=u16(raw, 0x41),
+        damage_reaction_sound_id=u16(raw, 0x41),
         death_sound_id=u16(raw, 0x43),
     )
 
