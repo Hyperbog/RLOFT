@@ -7,13 +7,29 @@
 
 ## Current reconstruction status
 
-CODE.2 `16D04..17049` directly reads the leading `0x24` bytes as 18 little-endian 16-bit initialization values. Several of the final words are now tied to the RES interaction/display subsystem:
+The supplied `INIT` file is now **structurally closed end-to-end** against CODE.2. `analyze_init.py` parses and byte-identically reserializes all 1,879 bytes.
 
-- `INIT +0x1C = 32` -> sound-effect base global `0x258C8`;
-- `INIT +0x1E = 103` -> archive-9 interaction-resource base global `0x258CC`;
-- `INIT +0x20 = 48` -> secondary sound/index base global `0x25614`;
-- `INIT +0x22 = 414` -> archive-9 wordcode-bank displacement global `0x7FCC`.
+Its serialized sections are:
 
-The last two archive-9 values prove the raw wordcode bank begins at `103 + 414 = RES9:517`, matching the first non-`EH` program exactly.
+```text
+0x0000..0x0023  18 little-endian initialization words
+0x0024..0x04EE  175 source-class-1 scene descriptors (7 bytes each)
+0x04EF..0x0544   12 source-class-3 scene descriptors (7 bytes each)
+0x0545..0x0756    2 environment-profile backdrop/panorama tables
+```
 
-See `FORMAT.md` for the partial executable-backed reconstruction. The remainder of the 1,879-byte file is still under analysis and is preserved without speculative field names.
+Confirmed relationships include:
+
+- four RES3/type-7 source-bank starts at `+0x06..+0x0C`;
+- archive-9 sound/resource/wordcode bases at `+0x1C..+0x22`;
+- class-1 and class-3 scene shape descriptor tables;
+- two environment-profile tables selected directly by `LEVELS.DAT header +0x290` values `0` and `1`;
+- environment graphics resolved through archive 8 / `RES8` with azimuth-anchored placement records.
+
+See:
+
+- `FORMAT.md` for the complete serialized grammar and fixed-header relationships;
+- `ENVIRONMENT_PROFILES.md` for the final two profile tables and their renderer semantics;
+- `analyze_init.py` for reproducible parsing/round-trip validation.
+
+Some individual fixed-header words still lack historical source/editor names. Structural closure does not justify inventing labels for fields whose runtime meaning remains only partially characterized.
