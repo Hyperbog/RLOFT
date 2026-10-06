@@ -58,3 +58,22 @@
   extraction is complete while faithful portable rasterization remains a
   separate renderer task.
 - ARIA bank inner records remain opaque and are preserved byte-for-byte.
+
+
+## GUI fidelity and complete scene graphics
+
+- Restored the earlier original-art Ravenloft banner appearance as a baked,
+  resource-independent GUI composition.
+- Added delayed hover tooltips across interactive controls.
+- Added visible native VFR timing/cadence information to the Cinematics tab.
+- Added optional graphics sidecars: palette indices, type-7 metadata/shape
+  bodies, transparency masks, and original EH records.
+- Reconstructed all 4,234 active RES3 type-7 scene shapes to native-resolution
+  transparent imagery, including NPCs/monsters, placed objects, loose items,
+  and transient effects.
+- Corrected direct ANM type-9 sample routing to RES10 while queued type-6 SFX
+  continue to resolve through RES6.
+- Added independent diagnostics/regression coverage for sampled-SFX muxing,
+  Timeline JSON, and original-ANM preservation.
+- Kept FFmpeg/helper processes hidden on Windows so extraction does not steal
+  foreground focus.
