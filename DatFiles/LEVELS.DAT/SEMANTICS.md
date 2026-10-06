@@ -151,7 +151,20 @@ Family A directly indexes the table loaded from `NPCS.DAT`:
 - expansion `186B9` indexes that exact pointer with `type_id * 0x45`.
 - supplied `NPCS.DAT` contains 83 records, and all 1,258 family-A records use IDs `0..82`.
 
-Family A is therefore the NPC/creature type family, in addition to the previously proved runtime world-record behavior.
+Family A is therefore the NPC/creature type family. Its expanded/direct-save live record is now mapped:
+
+```text
++0x00  y_position_16_16
++0x04  x_position_16_16
++0x08  runtime_flags, initialized from NPCS.DAT +0x35
++0x0C  cached cell index
++0x0E  NPCS.DAT type ID
++0x10  action/state countdown
++0x12  current HP
++0x14  packed runtime state; bits 3..5 are facing/orientation
+```
+
+The supplied LEV022.DAT independently proves that these are mutable actor fields rather than only loader scratch: its sole ASSASSIN has moved from archive x-cell 13 to direct-save x-cell 18, changed facing 2 to 6, and stores current HP 15 plus action-state countdown 4. See `FAMILY_A.md` and `../LEV022.DAT/MUTABLE_DELTA.md`.
 
 ### Family B — placed object/item map records; count 0x258A6
 
@@ -274,13 +287,44 @@ All supplied archive records and `LEV022.DAT` have annotation length zero.
 
 Archive record 22 and `LEV022.DAT` are both 30x15 with family counts A/B/C = `1 / 110 / 0`.
 
+The byte-count comparison is now refined into semantic deltas:
+
 ```text
-0x2A4 header:        1 differing byte (+0x29A)
-16-bit cell layer:  626 differing bytes / 900
-0x514 event table:  byte-identical; all zero
-final byte cache:   320 differing bytes / 450
-family B expansion: 110 / 110 records byte-identical
+0x2A4 header:
+  exactly +0x29A changes 0 -> 1 (proved loader normalization)
+
+16-bit cell layer:
+  exactly 313 / 450 words change
+  every changed word has archive XOR direct == 0x0440
+  no topology/code/other cell flag changes
+
+10-byte lists:
+  archive/group-1 10 / 10 byte-identical
+  active animation count = 0
+  group 2 = empty
+
+family A:
+  one ASSASSIN moves x=13 -> 18
+  facing 2 -> 6
+  current HP = 15
+  action-state countdown = 4
+
+family B:
+  110 / 110 deterministic expansions byte-identical
+
+family C:
+  0 / empty in both
+
+0x514 event table:
+  byte-identical; all zero
+
+final byte cache:
+  archive all 0xFF
+  direct = 313*0x2E + 130*0xFF + 7*0x01
+  subject to the separately bounded 40-cell replay/provenance discrepancy
 ```
+
+The standalone preamble byte 0 is also now proved writer-unowned: the writer never writes offset 0. See `../LEV022.DAT/MUTABLE_DELTA.md`.
 
 ## Current semantic boundary
 
