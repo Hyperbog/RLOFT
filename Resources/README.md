@@ -2,7 +2,7 @@
 
 This tree is the canonical workspace for faithful analysis, extraction, format reconstruction, and round-trip tooling for the non-DAT resource files supplied from *Ravenloft: Strahd's Possession*.
 
-**Current checkpoint:** the supplied Ravenloft resource set is functionally reconstructed for the initial faithful engine/native-port foundation. See [`STATUS.md`](STATUS.md) for the completion ledger, validation coverage, and explicitly bounded optional/deferred work.
+**Current checkpoint:** the supplied Ravenloft resource set is functionally reconstructed for the initial faithful engine/native-port foundation. See [`FINAL_RESOURCE_AUDIT.md`](FINAL_RESOURCE_AUDIT.md) for the workstream certification and [`STATUS.md`](STATUS.md) for the completion ledger, validation coverage, and explicitly bounded optional/deferred work.
 
 ## Layout
 
@@ -45,8 +45,10 @@ The 2026-10-05 source set contains 33 files:
 - RES3 source-bank mapping tied to INIT/NPCS/OBJECTS/transient effects.
 - Active 38-program interaction/display wordcode VM reconstructed as a complete 42-opcode machine.
 - T text archive, SINTAB renderer microcode package, COLORS palette bank, and INIT file structurally closed.
+- RES1 portrait banks mapped to normal versus GHOST/vengeful-spirit possession state; terminal empty/raw slots are preserved as reserved/invalid content.
 - SAMPLE.AD identified/reconstructed as Miles AIL OPL2 GTL.
 - GM1.BNK / GM2.BNK identified as ARIA MIDI support banks; byte-level inner ARIA semantics deliberately deferred to the shipped third-party `A32ARXM.DLL` runtime-driver track.
 - Executable-only type-1 method-1 RLE and type-5 loader contract documented despite having no Ravenloft sample.
+- Wordcode companion arrays are proved unconsumed by certified CODE.2; their historical producer/editor purpose remains explicitly `UNKNOWN` rather than being mislabeled runtime state.
 
-See `STATUS.md` before starting new resource-format work; remaining questions there are intentionally classified as historical/alternate-build/vendor-driver follow-up rather than missing active Ravenloft resource behavior.
+See `FINAL_RESOURCE_AUDIT.md` and `STATUS.md` before starting new resource-format work; remaining questions there are intentionally classified as historical/alternate-build/vendor-driver follow-up rather than missing active Ravenloft resource behavior.
