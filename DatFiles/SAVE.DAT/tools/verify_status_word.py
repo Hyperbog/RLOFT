@@ -110,7 +110,7 @@ def verify_code2(path: Path) -> None:
     )
     require(
         data,
-        0x4DC3E,
+        0x4DC4B,
         bytes.fromhex("ff44240401db4681fb001000007e95"),
         "status-display index/mask loop",
     )
