@@ -1,6 +1,6 @@
 # LEVELS.DAT / LEVnnn.DAT semantic reconstruction
 
-Status: **container, cell-state, 10-byte control, compact-family expansion, fixed event-script table, automap-cache, dynamic-door, and annotation-tail semantics substantially reconstructed from certified CODE.2 and supplied DAT files.**
+Status: **container, cell-state, 10-byte control, compact-family expansion, fixed event-script table, active header-tail, automap-cache, dynamic-door, loose-item, and annotation-tail semantics substantially reconstructed from certified CODE.2 and supplied DAT files.**
 
 The immutable CODE.2 bytes remain controlling evidence. Names are assigned only where executable behavior or a directly loaded database proves them.
 
@@ -11,6 +11,10 @@ The immutable CODE.2 bytes remain controlling evidence. Names are assigned only 
 - standalone writer: `171FC..17837`
 - 10-byte lookup helpers: `1E8C8..1EA03`
 - legacy 11->22 conversions: `1866B..18918`
+- family-C pickup/removal: `21704`
+- family-C loose-item insertion: `2195C..21ADA`
+- family-C movement/collision: `2388C`, `23B38`
+- family-C scene emission: `2BDF4..2BFDC`
 - dynamic 10-byte records: `20B40..20CF2`
 - automap cache rebuild: `01558..01830`
 - automap SAVE/export: `026E8..02A33`
@@ -31,11 +35,17 @@ The header is loaded to DGROUP `0x25618` and written verbatim.
 +0x28A  int16 family_A_count   (0x258A2)
 +0x28C  int16 family_C_count   (0x258A4)
 +0x28E  int16 family_B_count   (0x258A6)
-+0x29A  uint16 field_258B2
-+0x29C  uint8 mode_258B4
++0x290  uint8 environment_profile_id_or_FF
++0x292  int16 special_npc_type[3]
++0x298  uint8 renderer_fill_base_A
++0x299  uint8 renderer_fill_base_B
++0x29A  int16 render_threshold_floor
++0x29C  uint8 resource_set_id
 ```
 
-The first four 64-word banks feed first-person resource/render selection and are mutable at runtime. The fifth is consumed by automap rendering. Additional header bytes remain unresolved.
+The first four 64-word banks feed first-person resource/render selection and are mutable at runtime. The fifth is consumed by automap rendering.
+
+The active header tail is behaviorally decoded in `HEADER_TAIL.md`. In particular, `+0x29A` is normalized from zero to one immediately after load, exactly explaining the sole fixed-header byte difference between archive level 22 and supplied `LEV022.DAT`. Byte `+0x291` and bytes `+0x29D..+0x2A3` have no direct absolute CODE.2 consumers found and are zero in all supplied archive records, but remain raw preserved bytes rather than format-mandated padding.
 
 ## 16-bit cell layer
 
@@ -124,7 +134,7 @@ runtime +0x10 = 0
 
 Across all supplied levels there are 6,204 compact records and every stored cell coordinate is in bounds.
 
-### Family A — count 0x258A2
+### Family A — NPC/creature world records; count 0x258A2
 
 Family A directly indexes the table loaded from `NPCS.DAT`:
 
@@ -132,23 +142,47 @@ Family A directly indexes the table loaded from `NPCS.DAT`:
 - expansion `186B9` indexes that exact pointer with `type_id * 0x45`.
 - supplied `NPCS.DAT` contains 83 records, and all 1,258 family-A records use IDs `0..82`.
 
-Family A is therefore an NPC/creature type family, in addition to the previously proved runtime world-record behavior.
+Family A is therefore the NPC/creature type family, in addition to the previously proved runtime world-record behavior.
 
-### Family B — count 0x258A6
+### Family B — placed object/item map records; count 0x258A6
 
 Family B expands to runtime `0x22238`; its type word is runtime `+0x0E` at `0x22246`. Level 22's 110 archive family-B records reproduce all 110 supplied direct-save records byte-for-byte after the proved expansion.
 
-The family is strongly tied to the `OBJECTS.DAT` namespace. Supplied `OBJECTS.DAT` contains 336 entries, all 4,324 family-B records use IDs `0..174`, and the automap placed-record overlay treats this family as placed object/item records.
+The family is tied to the `OBJECTS.DAT` namespace. Supplied `OBJECTS.DAT` contains 336 entries, all 4,324 family-B records use IDs `0..174`, and the automap placed-record overlay treats this family as placed object/item records. Its compact placement/orientation byte spans values `0..7` across the supplied archive.
 
-### Family C — count 0x258A4
+### Family C — loose/pickable item world records; count 0x258A4
 
-Family C preserves the common coordinates, maps compact type `0x54` to runtime `0x58`, zeros runtime `+0x10`, and masks runtime flags with `0xFE07` without importing compact byte `+0x0A` on this conversion path.
+Family C expands to runtime array `0x17618`. Loader `18878..18918` preserves the common fixed-point coordinates, maps compact type `0x54` to runtime `0x58`, zeros runtime `+0x10`, and masks runtime flags with `0xFE07` without importing compact byte `+0x0A`.
 
-Its supplied type IDs range `0..335`, also within the 336-entry `OBJECTS.DAT` namespace. The exact semantic distinction between family B and family C remains open.
+Direct CODE.2 consumers close its gameplay role:
+
+- `2195C..21ADA` appends a loose object instance with OBJECTS.DAT type and world position, increments `0x258A4`, and enforces a 300-record runtime ceiling by dropping the oldest record when full;
+- `224FA..22566` resolves a rendered scene entry of source class 2 to a family-C index and calls `21704`;
+- `21704` passes the selected record's type through the item/UI path, compacts the 22-byte array, and decrements `0x258A4`, proving pickup/removal behavior;
+- `2BDF4..2BFDC` walks visible family-C records, indexes OBJECTS.DAT with `type_id * 0x41`, and emits them as a distinct renderer source class;
+- `23B38` creates an active family-C item with heading/lifetime state, while `2388C` advances its position, collision-tests it and updates/clears active-motion state;
+- the periodic update path `1BF4D..1BFA0` scans and compacts those active moving items.
+
+The movement path special-cases recognizable throwable OBJECTS.DAT types including `0x57 AXE OF HURLING`, `0x58 ARROW OF SLAY UNDEAD`, `0x59 DAGGER OF THROWING`, and `0x5A JAVELIN OF LIGHTNING`. Thrown/projectile behavior is therefore runtime state on the loose-item family rather than a separate serialized family.
+
+Archive-wide family-C evidence:
+
+```text
+records                622
+levels containing C     26
+maximum in one level    90
+unique object IDs       200
+object ID range      0..335
+compact flags             0 for all 622 supplied records
+```
+
+All family-C IDs are valid in the 336-entry supplied OBJECTS.DAT. The most common types include `STONE`, `ARROW`, `SLING BULLET`, potions and `BAROVIAN COIN`.
+
+The exact historical reason for the family-C-only legacy migration `0x54 -> 0x58` remains open. See `FAMILY_C.md` and `analyze_family_c.py`.
 
 ## Fixed 0x514 level event-script table
 
-The formerly unresolved fixed block is now structurally and behaviorally identified.
+The formerly unresolved fixed block is structurally and behaviorally identified.
 
 CODE.2 allocates exactly `0x514` bytes and stores its pointer at DGROUP `0xCF44`. Interpreter `002A8` selects:
 
@@ -238,14 +272,15 @@ family B expansion: 110 / 110 records byte-identical
 
 Safe to expose semantically now:
 
-- dimensions and five header lookup banks;
+- dimensions, five header lookup banks, and active header-tail renderer/profile/resource controls;
 - packed cell-code/visibility/exploration fields and behavioral flags;
 - 10-byte record kind, coordinates, proved control bits, and kind-specific fields;
 - dynamic open/closed group-2 state;
-- compact record coordinates/type IDs and family-specific conversion rules;
-- family A as NPC/creature records and family B as placed object/item records;
+- family A as NPC/creature records;
+- family B as placed object/item map records;
+- family C as loose/pickable item records with dropped/thrown runtime motion state;
 - fixed 50-slot level event-script table and its proved command behaviors;
 - generated automap cache, base export, placed-object overlay, and annotation overlay;
 - annotation-list tail.
 
-Remaining high-value LEVELS work is the still-unnamed header tail/control fields, family-C identity, unresolved event-opcode callees, and remaining cell/control-bit names.
+Remaining high-value LEVELS work is the unresolved event-opcode callees where they materially improve semantics, the few still-behavioral cell/control-bit names, and the historical reason for the family-C `0x54 -> 0x58` legacy migration. After that, the next value is in cross-linking the remaining DAT databases rather than reopening already proved container structure.
