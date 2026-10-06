@@ -1,15 +1,31 @@
 # CODE.2 character-status `0x0080` / `0x8000` ownership
 
-Status: **BINARY-PROVEN STRUCTURAL SEMANTICS; source-pool gameplay identity remains pending.**
+Status: **CORRECTED / BINARY-PROVEN WITH LATER SEMANTIC PROMOTION.**
 
-This checkpoint continues the CINE10/CINE11 ending-predicate audit against the shipped `CODE.2` object-1 bytes.
+This document preserves the structural ownership proof while normalizing offsets to the certified active-party base `0x218E0` and incorporating the later RES9/NPC correlation.
 
-## 1. `0x8000` is an empty/unoccupied active-party-slot state
+## 1. Certified character geometry
 
-Routine `0x14FC0` scans the four active-party records (`4 * 0x248 = 0x920`). For each record it extracts high-byte bit `0x80`, i.e. word mask `0x8000`:
+Active-party record `n` begins at:
+
+```text
+0x218E0 + n * 0x248
+```
+
+The 16-bit status word is at runtime `0x218F0`, therefore serialized/record-relative offset:
+
+```text
++0x10
+```
+
+The earlier `+0x18` label was based on an obsolete character-base revision and must not be used.
+
+## 2. `0x8000` = empty/unoccupied active-party slot
+
+Routine `0x14FC0` scans all four active-party records and extracts word mask `0x8000`:
 
 ```asm
-14FC5  mov dx,[eax+218F0]
+14FC5  mov dx,[eax+218F0h]
 14FCC  xor dl,dl
 14FCE  and dh,80h
 14FD4  test edx,edx
@@ -18,71 +34,48 @@ Routine `0x14FC0` scans the four active-party records (`4 * 0x248 = 0x920`). For
 14FD9  call 148F0
 ```
 
-When the bit is set, the routine immediately calls `0x148F0` with that slot index. `0x148F0` replaces the slot with a complete `0x248`-byte character image and initializes it. Thus `0x8000` is not merely a generic high-order condition: in this party-management path it identifies a slot eligible to be populated/replaced.
+When set, the slot is populated/replaced by `0x148F0`. The same routine has a replacement path when no empty slot exists. This establishes `0x8000` as the empty/unoccupied active-party-slot state.
 
-This also explains why the finale predicate excludes all statuses `>= 0x4000`: an `0x8000` empty slot must never count as a qualifying party character.
-
-## 2. `0x148F0` is a complete party-record population path
+## 3. `0x148F0` installs a complete predefined party record
 
 `0x148F0(slot)`:
 
-1. obtains a source-record index through the table at `0x13020`;
-2. computes `source_index * 0x248`;
-3. copies exactly `0x248` bytes from the source pool rooted at `0xA808` into active-party record `slot * 0x248 + 0x218E0`;
-4. clears/reinitializes the trailing portion of the destination record;
-5. performs class/casting and inventory initialization;
-6. finally sets low-byte status bit `0x80` at `record + 0x18`:
+1. resolves a source template index;
+2. copies a complete `0x248` character image from the predefined source pool into `0x218E0 + slot*0x248`;
+3. performs class/casting/inventory initialization;
+4. sets low-byte status bit `0x80` at status offset `+0x10`:
 
 ```asm
 14A4D  imul esi,esi,248h
-14A53  or byte ptr [esi+218F0],80h
-14A5A  ...
-14A5D  ret
+14A53  or byte ptr [esi+218F0h],80h
 ```
 
-Therefore low-byte `0x0080` is a **proven provenance/population marker associated with characters installed through this source-pool-to-active-party path**.
+Later cross-subsystem reconstruction proves CODE.2 RES9 opcode `0x05` invokes this party-template installation flow from recruitable/NPC interaction scripts.
 
-The exact gameplay name of the source pool (`NPC`, recruit, pregenerated roster, etc.) is deliberately not frozen here until the `0xA808` pool is tied directly to its file/resource loader.
-
-## 3. Independent caller confirms slot filling
-
-`0x14FC0` first searches for an `0x8000` slot and fills it via `0x148F0`. If all four slots are already occupied, it selects a slot through `0x14CA4`, performs companion state handling, and again calls `0x148F0`:
-
-```asm
-14FF5  call 14CA4
-...
-15005  push ebx
-15006  call 148F0
-1500E  push ebx
-1500F  call 14E9C
-```
-
-This is direct structural evidence that `0x148F0` is character installation/replacement rather than ordinary per-frame character initialization.
-
-## 4. Finale semantics are now narrower
-
-The event-10 ending selector counts a party record only when:
-
-```c
-status < 0x4000 && !(status & 0x0080)
-```
-
-Combining the newly proven ownership:
-
-- `0x8000` records are empty/unoccupied party slots in the population path;
-- `0x0080` marks characters installed through `0x148F0`'s source-pool path;
-- CINE10 is retained if at least one occupied/normal-range party character lacks that population marker;
-- CINE11 is selected when no such character exists.
-
-The safe current interpretation is therefore:
+Certified semantic name:
 
 ```text
-CINE10: at least one qualifying active character NOT sourced through 0x148F0
-CINE11: no qualifying active character outside the 0x148F0-sourced class
+status & 0x0080 = PARTY_TEMPLATE / RECRUITED-CHARACTER PROVENANCE
 ```
 
-This is stronger than the previous generic status predicate, but it is still intentionally short of naming the two classes as player-created versus NPC/recruited characters.
+`PARTY_TEMPLATE` is the strict engine-level description; recruited NPC is the active gameplay use established by the RES9/NPC corpus.
 
-## 5. Next certification target
+## 4. Finale consequence
 
-Trace the source pool at `0xA808` back to its loader/resource and identify the table at `0x13020`. If the pool is proven to be the NPC/recruit roster, `0x0080` can be promoted to a stable semantic flag and the CINE10/CINE11 gameplay distinction can be named without inference.
+The event-10 ending predicate is:
+
+```c
+status < 0x4000u && (status & 0x0080u) == 0
+```
+
+Combined with independently certified status meanings:
+
+- `0x4000` = zero-HP/death state;
+- `0x8000` = empty/unoccupied slot;
+- `0x0080` = recruited/template provenance;
+
+`CINE10.ANM` is selected when at least one living original/non-recruited party character remains. `CINE11.ANM` is selected when none does.
+
+## 5. Preservation consequence
+
+Keep slot occupancy, life/death state, and character provenance as distinct concepts. In particular, do not reinterpret `0x0080` as an NPC-AI flag: once installed, the template character is an ordinary active party record carrying provenance metadata.
