@@ -1,6 +1,6 @@
 # SAVE.DAT global/non-character state
 
-Status: **serializer/deserializer-certified structural reconstruction.** SAVE files are variable-length: the supplied quick-start fixture is `0x2448` bytes because its live-world-object count is zero. The formerly generic 62-slot mutable bank is now identified as the persistent state backing OBJECTS.DAT category-1 container instances.
+Status: **serializer/deserializer-certified structural reconstruction.** SAVE files are variable-length: the supplied quick-start fixture is `0x2448` bytes because its live-world-object count is zero. The formerly generic 62-slot mutable bank is the persistent state backing OBJECTS.DAT category-1 container instances, and its individual record widths are now recovered from the executable descriptor table.
 
 ## Serializer anchor
 
@@ -31,49 +31,26 @@ All offsets after the world-object count can move when that count is nonzero.
 
 ## Fixed 0x77-byte prefix
 
-### `0x0000..0x0031`: save description
+`0x0000..0x0031` is the exact 50-byte save description. `0x0032..0x0051` is the 32-byte persistent 256-bit event/game-state vector manipulated by LEVELS event set/clear/toggle/test operations.
 
-Exactly 50 bytes. The supplied fixture begins `QUICK START PARTY; ELVEN F/M - DWARVEN F/C\0` and zero-fills the rest.
-
-### `0x0032..0x0051`: persistent event flags
-
-Exactly 32 bytes from DGROUP `0x22200`: the persistent 256-bit event/game-state vector manipulated by LEVELS event set/clear/toggle/test operations. The quick-start fixture contains all zeros.
-
-### `0x0052..0x0061`: level, position, orientation
+The remaining prefix is:
 
 ```text
 +0x52  uint32 DGROUP 0xC6C8   current level/map
 +0x56  uint32 DGROUP 0x255D0  coordinate A
 +0x5A  uint32 DGROUP 0x255D4  coordinate B
 +0x5E  uint32 DGROUP 0xC658   facing/orientation
-```
-
-Fixture: level 22, coordinates `0x00048000/0x00048000`, facing 270. Preserve the coordinate dwords in their native fixed-point/runtime representation.
-
-### `0x0062..0x006B`: shared timed/effect state
-
-```text
-+0x62  uint16 DGROUP 0xF03C
-+0x64  uint16 DGROUP 0xF03E
-+0x66  uint32 DGROUP 0xFD08
-+0x6A  uint16 DGROUP 0x6DAE
-```
-
-Primary-effect expiration paths touch these for effects 18, 25, 17 and 20 respectively. Exact player-facing names remain pending effect-catalogue closure. Fixture values are zero.
-
-### `0x006C..0x006F`: game clock
-
-The save routine calls the engine time source immediately before serializing this dword. Fixture value: 1899 (`0x76B`). Character hand/effect deadlines use the same clock domain.
-
-### `0x0070..0x0076`: remaining selectors
-
-```text
++0x62  uint16 DGROUP 0xF03C   shared primary-effect state
++0x64  uint16 DGROUP 0xF03E   shared primary-effect state
++0x66  uint32 DGROUP 0xFD08   shared primary-effect state
++0x6A  uint16 DGROUP 0x6DAE   shared primary-effect state
++0x6C  uint32 game-clock snapshot
 +0x70  uint32 DGROUP 0xCF4C
 +0x74  int16  DGROUP 0x8600
 +0x76  uint8  DGROUP 0x8602
 ```
 
-Fixture values: `0x000E0000`, `-1`, `0`. Exact names remain open.
+Quick-start values: level 22, coordinates `0x00048000/0x00048000`, facing 270, clock 1899 (`0x76B`), `CF4C=0x000E0000`, `8600=-1`, `8602=0`. Exact names for the final selectors remain open.
 
 ## Active-party image
 
@@ -96,29 +73,15 @@ uint32 global_state_f91c;
 uint8 charged_item_counter[15];
 ```
 
-### Live world objects
+`DGROUP 0xC038` is a live-object count with executable limit `0x96` (150). Creation/removal code indexes a `0x16`-byte structure array at runtime `0x248EC`. The quick-start fixture count is zero, so every later fixture offset shifts by `live_world_object_count * 0x16` in saves containing live world objects.
 
-`DGROUP 0xC038` is a live-object count with executable limit `0x96` (150). Creation/removal code indexes a `0x16`-byte structure array at runtime `0x248EC`. The quick-start fixture count is zero.
-
-Thus every later fixture offset shifts by `live_world_object_count * 0x16` in saves containing live world objects.
-
-### DGROUP `0xD8A8`
-
-Eight bytes follow the dynamic object array. Party/spell routines consume them as character/roster indices or links. Preserve both dwords; exact names remain open.
+Eight bytes at DGROUP `0xD8A8` follow the dynamic array. Party/spell routines consume them as character/roster indices or links. Preserve both dwords; exact names remain open.
 
 ## Persistent container-state bank
 
-The next dword is DGROUP `0xA7E4`, followed by **62 serialized container-state descriptors' mutable payloads**. This is not level-local state.
+The next dword is DGROUP `0xA7E4`, followed by 62 container mutable-state records. Category-1 `OBJECTS.DAT +0x31` is a signed `container_state_index` selecting a 10-byte runtime descriptor at DGROUP `0x7330 + index*10`.
 
-The identification is instruction-proven by the independent OBJECTS.DAT audit:
-
-- category-1 OBJECTS.DAT byte `+0x31` is a signed `container_state_index`;
-- the index selects a 10-byte runtime descriptor at DGROUP `0x7330 + index*10`;
-- all 62 shipped category-1 container definitions use distinct mutable-state identities;
-- container UI, recursive burden/search, insertion and removal code dereference descriptor `+5` as the live `int16` object-ID contents array;
-- descriptor byte `+9` is the per-slot state bitset.
-
-The descriptor itself is runtime metadata:
+Descriptor layout:
 
 ```text
 +0x00  uint8  slot_count
@@ -130,14 +93,7 @@ The descriptor itself is runtime metadata:
 +0x09  uint8  per_slot_state_bits
 ```
 
-The SAVE serializer does **not** write the 10-byte descriptors or their pointers. For each state index `0..61`, it writes only:
-
-```text
-2 * descriptor.slot_count bytes from descriptor.contents_pointer
-1 byte from descriptor +9
-```
-
-Therefore the persistent on-disk logical form is:
+The SAVE serializer writes only `2*slot_count` bytes from `contents_pointer`, then byte `+9`. The on-disk logical form is therefore:
 
 ```cpp
 struct SavedContainerState {
@@ -146,31 +102,140 @@ struct SavedContainerState {
 };
 ```
 
-`slot_count` is supplied by executable/static runtime metadata, so the 62 records are variable-width but their widths are fixed for this game build. In the quick-start fixture their concatenated payload is exactly `0x3AA` = 938 bytes.
+### Executable descriptor table and exact bank size
 
-This directly connects three previously separate reconstruction layers:
+The initialized descriptor table is present in supplied CODE.2 at physical file offset `0x7D254`. The first seven descriptors directly establish the common families:
 
 ```text
-OBJECTS.DAT category 1 +0x31
-        -> container_state_index
-        -> runtime descriptor 0x7330 + index*10
-        -> live contents pointer / state bits
-        -> SAVE persistent container payload
+family                    slots columns capacity ui_x subtype record bytes
+POUCH                         4      2       8     14      0        9
+SACK                          8      4      30      5      1       17
+CHEST                         8      4     100      5      2       17
+SLING POUCH                   8      4     127      5      3       17
+IVORY SCROLL CASE             6      3     127     14      4       13
+KEY RING                      6      3     127     14      5       13
+QUIVER                        8      4     127      5      6       17
 ```
 
-Container-state index 20 is BAG OF HOLDING. Specialized descriptor subtypes also cover sling pouches, scroll cases, key rings and quivers; see `DatFiles/OBJECTS.DAT/CONTAINER_STATE.md` for the certified descriptor semantics.
+BAG OF HOLDING uses the SACK-shaped 8-slot/subtype-1 descriptor with capacity 255.
 
-### Important index-62 boundary
+Across descriptors `0..61`, `slot_count` sums to exactly 438. Therefore the serialized bank is independently closed as:
 
-The supplied OBJECTS corpus contains one category-1 definition referencing state index 62, while the audited SAVE loop serializes indexes `0..61` (`62` iterations). The certified CODE.2 data image previously showed descriptor 62 zero-filled. This mismatch is preserved as an explicit compatibility edge case rather than silently extending the SAVE bank. A native implementation must reproduce the shipped serializer boundary unless further executable evidence proves a special path for index 62.
+```text
+438 object-ID words = 876 bytes
+62 state bytes       =  62 bytes
+                         ---
+                         938 bytes = 0x3AA
+```
+
+This proves the quick-start bank ends exactly at `0x0D50`, rather than merely inferring its size from the next known serializer field.
+
+### Exact state widths and quick-start offsets
+
+The state sequence below is derived from CODE.2 descriptor `slot_count`; names/OBJECTS IDs come from category-1 `OBJECTS.DAT +0x31`. Offsets are for the zero-live-object quick-start fixture.
+
+```text
+state OBJECTS family                    slots SAVE offset
+ 0      0    POUCH                        4   09A7
+ 1      1    SACK                         8   09B0
+ 2      2    CHEST                        8   09C1
+ 3      3    SLING POUCH                  8   09D2
+ 4      4    IVORY SCROLL CASE            6   09E3
+ 5      5    KEY RING                     6   09F0
+ 6      6    QUIVER                       8   09FD
+ 7    264    IVORY SCROLL CASE            6   0A0E
+ 8    265    QUIVER                       8   0A1B
+ 9    268    CHEST                        8   0A2C
+10    269    POUCH                        4   0A3D
+11    270    QUIVER                       8   0A46
+12    271    CHEST                        8   0A57
+13    272    KEY RING                     6   0A68
+14    273    CHEST                        8   0A75
+15    274    POUCH                        4   0A86
+16    278    CHEST                        8   0A8F
+17    279    POUCH                        4   0AA0
+18    280    CHEST                        8   0AA9
+19    281    SLING POUCH                  8   0ABA
+20     80    BAG OF HOLDING               8   0ACB
+21    282    CHEST                        8   0ADC
+22    283    CHEST                        8   0AED
+23    284    CHEST                        8   0AFE
+24    285    KEY RING                     6   0B0F
+25    288    QUIVER                       8   0B1C
+26    289    CHEST                        8   0B2D
+27    290    POUCH                        4   0B3E
+28    291    IVORY SCROLL CASE            6   0B47
+29    295    QUIVER                       8   0B54
+30    297    CHEST                        8   0B65
+31    298    CHEST                        8   0B76
+32    299    SACK                         8   0B87
+33    300    CHEST                        8   0B98
+34    302    SACK                         8   0BA9
+35    303    SLING POUCH                  8   0BBA
+36    304    SACK                         8   0BCB
+37    305    QUIVER                       8   0BDC
+38    306    POUCH                        4   0BED
+39    307    SACK                         8   0BF6
+40    308    QUIVER                       8   0C07
+41    309    QUIVER                       8   0C18
+42    310    POUCH                        4   0C29
+43    311    SLING POUCH                  8   0C32
+44    312    SLING POUCH                  8   0C43
+45    313    IVORY SCROLL CASE            6   0C54
+46    314    IVORY SCROLL CASE            6   0C61
+47    315    QUIVER                       8   0C6E
+48    316    SLING POUCH                  8   0C7F
+49    317    QUIVER                       8   0C90
+50    318    POUCH                        4   0CA1
+51    319    SLING POUCH                  8   0CAA
+52    320    SACK                         8   0CBB
+53    321    QUIVER                       8   0CCC
+54    322    IVORY SCROLL CASE            6   0CDD
+55    323    SLING POUCH                  8   0CEA
+56    324    POUCH                        4   0CFB
+57    325    IVORY SCROLL CASE            6   0D04
+58    326    QUIVER                       8   0D11
+59    327    QUIVER                       8   0D22
+60    328    IVORY SCROLL CASE            6   0D33
+61    none   QUIVER-shaped descriptor     8   0D40
+```
+
+For `N` live world objects add `N*0x16` to every offset in this table.
+
+### Index-61 / index-62 compatibility anomaly
+
+The shipped data contain a concrete boundary mismatch:
+
+- OBJECTS ID 329 (`QUIVER`) stores `container_state_index = 62`.
+- CODE.2 descriptor 61 is a fully initialized 8-slot subtype-6 QUIVER descriptor.
+- CODE.2 descriptor 62 is ten zero bytes.
+- SAVE loops exactly while state index `< 0x3E`, persisting indexes `0..61`; state 62 is never serialized by this loop.
+- quick-start state 61 contains eight object ID `57` entries, i.e. a full arrow-family quiver-shaped payload.
+
+This strongly suggests state 61 is the persistent state intended for the final quiver and that the static selector 62 is a shipped off-by-one/data anomaly. That interpretation is not yet promoted to an executable translation rule because no direct path mapping literal selector 62 to descriptor 61 has been proved. Preserve the shipped values; do not rewrite OBJECTS.DAT merely to normalize the discrepancy.
+
+### Quick-start contents
+
+The fixture parses exactly through all 62 descriptor-sized records. Forty-one records contain at least one non-empty object ID; 21 are empty. Every `per_slot_state_bits` byte is zero in this fixture.
+
+Representative contents:
+
+```text
+state 0   POUCH          [71, -1, -1, -1]
+state 1   SACK           [93, -1, 181, 182, 202, 223, -1, -1]
+state 2   CHEST          [47, 47, 47, 47, 3, 63, 60, 65]
+state 11  QUIVER         [57, 57, 57, 57, 57, 57, 57, 57]
+state 20  BAG OF HOLDING [164, 164, 164, 164, 164, 164, 164, 164]
+state 61  unreferenced   [57, 57, 57, 57, 57, 57, 57, 57]
+```
+
+Repeated IDs represent multiple item instances of the same object definition, not quantities.
 
 ### `0xF920` / `0xF91C`
 
 Two dwords follow the container-state bank. Consumers clamp `0xF920` to `0..10` and `0xF91C` to `0..8` in one UI/control path. Exact names remain pending.
 
 ## Quick-start middle offsets
-
-With `live_world_object_count == 0`:
 
 ```text
 0x0997..0x099A  uint32 live_world_object_count = 0
@@ -184,29 +249,10 @@ With `live_world_object_count == 0`:
 0x2438..0x2447  trailing 16-byte auxiliary state
 ```
 
-For `N` live world objects, every fixture offset from `0x099B` onward shifts by `N * 0x16`.
-
 ## Saved roster and trailing state
 
 After charges, CODE.2 writes `0x16D0` bytes from runtime `0xA808` (`10 * 0x248`). The final operation writes 16 bytes from DGROUP `0x6FA0`, indexed by gameplay code as four 4-byte party-local entries. The quick-start fixture stores `0xFF` in all 16 trailing bytes.
 
 ## Native parsing rule
 
-```text
-read fixed 0x77-byte prefix
-read 4 * 0x248 party records
-read live_world_object_count
-read count * 0x16 live-world-object records
-read DGROUP 0xD8A8[2]
-read DGROUP 0xA7E4
-for state_index 0..61:
-    obtain slot_count from the certified container descriptor catalogue
-    read slot_count signed 16-bit object IDs
-    read one per-slot-state byte
-read F920/F91C
-read 15 charge counters
-read 10 * 0x248 roster records
-read 16 trailing bytes
-```
-
-Do not model `0x0D59`, `0x0D68`, or total size `0x2448` as universal constants. Do not interpret the 938-byte bank as LEVELS.DAT mutable state: it is persistent container-instance contents/state.
+Read sequentially. After the dynamic live-world-object array and fixed middle globals, parse states `0..61` using the certified slot-count catalogue above, then F920/F91C, 15 charge counters, ten `0x248` roster records and the 16-byte tail. Do not model `0x0D59`, `0x0D68`, or total size `0x2448` as universal constants, and do not treat the 938-byte container bank as an anonymous blob in the logical model.
