@@ -1,6 +1,6 @@
 # SAVE.DAT character post-inventory state (`+0x072..+0x247`)
 
-Status: **active executable reconstruction; two adjacent 80-byte spell-preparation matrices are now executable-certified, followed by an executable-accessed dword at `+0x12F` and a 32-bit flag field at `+0x13A`.**
+Status: **active executable reconstruction; two adjacent 80-byte spell-preparation matrices are executable-certified, followed by auxiliary state including a slot-aligned item-instance bitset and a 32-bit character effect/state field.**
 
 This note isolates the 470 bytes after `item[21]` in each serialized `0x248` character image. Sparse quick-start data must not be mistaken for padding.
 
@@ -63,7 +63,7 @@ The UI paths currently traced render spell levels 1 through 6, while the persist
 
 ### Matrix-family naming boundary
 
-Both arrays are now certified as spell memorization/preparation state. Their exact family identities (for example, which one corresponds to each AD&D spellcasting tradition/class family) are **not yet canonicalized**. The separate table roots and class-dependent initialization prove distinct spell families, but the family labels must be tied to executable UI/spell-list data rather than inferred solely from rules knowledge.
+Matrix A has independently been tied to the scribeable spellbook family. Matrix B remains a distinct executable spell family; its exact display-family name is being kept conservative until its `T` resource records are decoded. See `SPELL_FAMILIES.md` and `SPELL_RESOURCE_LOOKUP.md`.
 
 ## Executable-accessed dword at `+0x12F..+0x132`
 
@@ -82,6 +82,29 @@ Reference values:
 EHLIANNA    +0x12F..+0x132 = 00 00 02 00 -> 0x00020000
 ANVIL DAWN +0x12F..+0x132 = 00 00 01 00 -> 0x00010000
 ```
+
+## Slot-aligned item-instance bitset at `+0x133..+0x136`
+
+Runtime `0x21A0B` is a 32-bit bitset whose low 21 bits map one-for-one to the character's `item[21]` array:
+
+```text
+bit N of record +0x133 dword <-> item[N]
+N = 0..20
+```
+
+CODE.2 helper physical `0x4A13C` computes `1 << slot`, masks the dword at `0x21A0B`, and returns that slot's bit. Companion helper `0x4A15C` first verifies that `item[slot] != -1`, then clears and rewrites exactly that slot bit from its caller-supplied boolean value.
+
+This is not generic character state. Inventory transfer paths move the bit together with the item instance: they read the source-slot bit, move the signed 16-bit item ID, write the old bit into the destination slot, and clear the source bit. The same mechanism is used for ordinary inventory and equipment slots; direct consumers query equipment slots 14 and 15 as well.
+
+Character initialization at physical `0x51AD4` zeros the complete bitset. Another executable path at physical `0x46E1C..0x46E2C` walks all 21 slots and attempts to set every occupied slot's bit to one. This strongly suggests an item knowledge/identification-style state, but the exact player-facing meaning remains deliberately unnamed until the responsible action/UI path is independently identified.
+
+Rendering/action code also passes the per-slot boolean onward with the item ID, so native code must treat it as persistent **item-instance metadata**, not a property derivable from OBJECTS.DAT.
+
+The supplied quick-start fixture has this dword equal to zero for both populated active characters.
+
+## Class/casting capability selector at `+0x139`
+
+Runtime `0x21A11` is initialized from class-related bytes and used as a whole-byte selector/mask by spell UI/setup paths. Setup code ORs `0x04` for class code 1, `0x01` for class code 3, and `0x02` when any class byte equals code 4. Exact class names remain tied to the separate class-ID reconstruction.
 
 ## Certified 32-bit state/flags field at `+0x13A`
 
@@ -104,7 +127,7 @@ The executable also ORs caller-supplied masks, XORs dynamically selected bits, t
 
 ## Reference-fixture consequence
 
-The two populated active characters are sparse, but both matrices must be preserved. In particular, the previously noted `+0x10A` byte is matrix B, bank 7, entry 2. The first matrix occupies the full region immediately after inventory even when most cells are `0x00`/`0xFF` in the quick-start fixture.
+The two populated active characters are sparse, but both matrices and the auxiliary fields must be preserved. In particular, the previously noted `+0x10A` byte is matrix B, bank 7, entry 2. The first matrix occupies the full region immediately after inventory even when most cells are `0x00`/`0xFF` in the quick-start fixture.
 
 All ten saved-roster records contain only `0x00`/`0xFF` values throughout much of this tail. That does not make the regions padding.
 
@@ -116,9 +139,11 @@ A native decoder should model at least:
 +0x072..+0x0C1   spell-preparation matrix A: 8 x 10 packed cells
 +0x0C2..+0x111   spell-preparation matrix B: 8 x 10 packed cells
 +0x112..+0x12E   unresolved
-+0x12F..+0x132   executable-accessed dword
-+0x133..+0x139   unresolved
-+0x13A..+0x13D   uint32 state/flags
++0x12F..+0x132   executable-accessed auxiliary dword
++0x133..+0x136   uint32 slot-aligned item-instance bitset; bits 0..20 used
++0x137..+0x138   unresolved bytes
++0x139           class/casting capability selector/mask
++0x13A..+0x13D   uint32 character state/effect flags
 +0x13E..+0x247   unresolved effect/auxiliary state
 ```
 
@@ -126,4 +151,4 @@ Preserve all unresolved bytes losslessly.
 
 ## Next target
 
-Tie matrix A and matrix B to their exact spell-family/UI identities using their distinct table roots and callers; then extract the relocation-aware progression/entry-count tables and assign individual `+0x13A` flag bits to gameplay effects.
+Identify the action/UI consumer that gives the `+0x133` per-item bit its exact player-facing meaning, then assign individual `+0x13A` character-state flag bits to gameplay effects.
