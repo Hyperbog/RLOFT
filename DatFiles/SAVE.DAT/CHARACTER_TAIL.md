@@ -9,12 +9,12 @@ Status: **high-effort executable reconstruction normalized to corrected runtime 
 +0x1AA..+0x1B5   uint32 timed_slot_aux[3]
 +0x1B6..+0x1B9   Stone Giant Gauntlets displaced/effective Strength auxiliary
 +0x1BA..+0x1BD   serialized dword; no direct CODE.2 reference found
-+0x1BE..+0x1C1   reversible modifier for primary effect index 23
++0x1BE..+0x1C1   Potion of Giant Strength reversible Strength modifier (primary effect 23)
 +0x1C2..+0x1C5   uint32 temporary_hand_effect_bits
 +0x1C6..+0x1E9   uint32 temporary_hand_effect_expiry[9]
-+0x1EA..+0x1ED   consumable additive/protection pool associated with primary effect 11
++0x1EA..+0x1ED   Aid temporary-hit-point/protection pool (primary effect 11)
 +0x1EE..+0x1F1   recurring Strength-recovery deadline
-+0x1F2..+0x1F5   accumulated state associated with primary effect index 6
++0x1F2..+0x1F5   Stoneskin remaining/accumulated state (primary effect 6)
 +0x1F6..+0x247   82-byte serialized reserved/unreferenced terminal region
 ```
 
@@ -28,7 +28,7 @@ The bracer/gauntlet equipment slot is item slot 20 at record `+0x068`, runtime `
 
 Runtime `0x21A9A` maps to `+0x1BA`. Direct-address audit found no executable operand referencing it or an interior byte. Preserve it as opaque serialized state; absence of literal references does not exclude computed access.
 
-## `+0x1BE..+0x1C1`: primary-effect-23 reversible modifier
+## `+0x1BE..+0x1C1`: Potion of Giant Strength reversible modifier
 
 Runtime `0x21A9E` maps to `+0x1BE`. The primary-effect expiration handler reads this dword for effect index 23, negates it, and passes it to Strength adjustment helper `0x4CF50`. Producer physical `0x61FEB..0x62002` stores the applied adjustment, sets overall effect bit 23, and schedules timer index 23.
 
@@ -59,21 +59,21 @@ The executable table maps indexes exactly to temporary hand objects:
 
 Expiration removes the matching temporary object from either hand if still equipped.
 
-## `+0x1EA..+0x1ED`: consumable additive/protection pool, effect 11
+## `+0x1EA..+0x1ED`: Aid protection pool, effect 11
 
 Runtime `0x21ACA` maps to `+0x1EA`. Producer physical `0x45401..0x45417` adds a generated positive quantity. Damage/value processing at `0x47CBC..0x47CE5` consumes the pool before continuing, either exhausting it or reducing the incoming quantity to zero.
 
 A high-effort re-audit of the primary effect dispatch corrected an older transcription error: **primary effect index 11**, not index 10, clears this dword on expiration at physical `0x4378A`. Generic producer logic also associates mask `0x00000800` (bit/index 11) with additions to `0x21ACA`, independently confirming the lifecycle relationship.
 
-The exact player-facing effect name remains unresolved pending `T[599]` / producer-call identity closure.
+Raw `T[599]` and the producer catalogue identify primary effect 11 as **Aid**. The field is therefore the persistent Aid temporary-hit-point/protection pool consumed before ordinary HP damage.
 
 ## `+0x1EE..+0x1F1`: recurring Strength-recovery deadline
 
 Runtime `0x21ACE` maps to `+0x1EE`. At expiry the engine applies `+1` through the Strength adjustment routine, clears the deadline, compares current Strength `+0x033` against base Strength `+0x032`, and reschedules if further recovery is needed.
 
-## `+0x1F2..+0x1F5`: accumulated effect-6 state
+## `+0x1F2..+0x1F5`: Stoneskin accumulated/remaining state
 
-Runtime `0x21AD2` maps to `+0x1F2`. Producer code adds a generated positive quantity for primary effect bit/index 6; expiration decrements this dword. Exact player-facing identity remains pending effect-resource closure.
+Runtime `0x21AD2` maps to `+0x1F2`. Producer code adds a generated positive quantity for primary effect bit/index 6; expiration decrements this dword. The closed primary-effect catalogue and raw text identify index 6 as **Stoneskin**, so this is the serialized Stoneskin accumulated/remaining-state quantity.
 
 ## `+0x1F6..+0x247`: terminal reserved/unreferenced region
 
