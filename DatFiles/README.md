@@ -27,6 +27,10 @@ For each format:
 | `SAVE.DAT` | 9,288 | `f898cb92fca6447954f5e0b2bf6f8ad2435e4a64ae3b9de74f8bf75e0ed10d5d` | Save-game/party state; starts with the human-readable party description `QUICK START PARTY; ELVEN F/M - DWARVEN F/C`. CODE.2 contains reconstructed save serialization logic, making this a strong format-recovery target. |
 | `LEVELS.DAT` | 499,878 | `50d0b1d13f81733a1ac55296d00fcba9aef002202bc00341f1062c37fd017d91` | Master level archive. Begins with a 32-bit `0x20`, followed by a monotonic little-endian offset table. CODE.2 explicitly contains a `levels.dat` fallback path, so this should be decoded alongside the level loader/save-state routines. |
 
+## Current status
+
+The supplied-build `SAVE.DAT` reconstruction is now archival-complete. Its final certification is recorded in `SAVE.DAT/FINAL_AUDIT_2026-10-06.md`; bounded opaque fields are preserved explicitly rather than assigned speculative semantics.
+
 ## Initial priority
 
 All six uploaded `.DAT` files are worth preserving and reverse engineering, but they are data formats, not executable machine code. The correct analogue to CODE.1/CODE.2 is therefore **format reconstruction + parser/serializer + byte-exact round-trip verification**, not disassembly into C++ instructions.
