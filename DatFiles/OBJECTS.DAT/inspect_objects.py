@@ -26,7 +26,7 @@ class ObjectRecord:
     name: str
     world_sprite_base: int
     world_heading_stride: int
-    world_aux_selector: int
+    scene_influence_step: int
     unknown_2c: int
     ui_graphic_index: int
     item_category: int
@@ -54,7 +54,11 @@ class ObjectRecord:
     def weapon_speed_factor(self) -> int:
         return (self.attack_profile >> 2) & 0xF
 
-    # Compatibility aliases for the earlier provisional schema names.
+    # Compatibility aliases for earlier provisional schema names.
+    @property
+    def world_aux_selector(self) -> int:
+        return self.scene_influence_step
+
     @property
     def aux_index(self) -> int:
         return self.state_index
@@ -79,7 +83,7 @@ def parse_record(raw: bytes) -> ObjectRecord:
         name=name,
         world_sprite_base=u16(raw, 0x28),
         world_heading_stride=raw[0x2A],
-        world_aux_selector=raw[0x2B],
+        scene_influence_step=raw[0x2B],
         unknown_2c=raw[0x2C],
         ui_graphic_index=u16(raw, 0x2D),
         item_category=raw[0x2F],
@@ -113,7 +117,7 @@ def encode_record(record: ObjectRecord) -> bytes:
 
     struct.pack_into("<H", out, 0x28, record.world_sprite_base)
     out[0x2A] = record.world_heading_stride
-    out[0x2B] = record.world_aux_selector
+    out[0x2B] = record.scene_influence_step
     out[0x2C] = record.unknown_2c
     struct.pack_into("<H", out, 0x2D, record.ui_graphic_index)
     out[0x2F] = record.item_category
@@ -176,7 +180,7 @@ def analyze(path: Path) -> None:
         print(label + "=" + " ".join(f"{key}:{value}" for key, value in sorted(counts.items())))
 
     counter_line("categories", (r.item_category for r in records))
-    counter_line("world_aux_selector", (r.world_aux_selector for r in records))
+    counter_line("scene_influence_step", (r.scene_influence_step for r in records))
     counter_line("unknown_2c", (r.unknown_2c for r in records))
     counter_line("intrinsic_magic_marker", (r.intrinsic_magic_marker for r in records))
     counter_line("attack_profiles", (r.attack_profile for r in records))
@@ -203,6 +207,7 @@ def analyze(path: Path) -> None:
             f"cat={r.item_category} weight={r.weight_half_pounds}/2lb "
             f"ui={r.ui_graphic_index} "
             f"world={r.world_sprite_base}+heading*{r.world_heading_stride} "
+            f"influence={r.scene_influence_step} "
             f"state={r.state_index} magic={r.intrinsic_magic_marker} "
             f"attack_mode={r.attack_mode} speed={r.weapon_speed_factor} "
             f"ench={r.enchantment_bonus} "
