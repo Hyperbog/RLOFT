@@ -34,7 +34,6 @@ def _self_test() -> int:
     import res_assets  # noqa: F401
     import rloft_anm  # noqa: F401
     import support_dumper  # noqa: F401
-    import theme_assets  # noqa: F401
     import xmidi  # noqa: F401
 
     ffmpeg = runtime_paths.bundled_path("ffmpeg.exe" if os.name == "nt" else "ffmpeg")
