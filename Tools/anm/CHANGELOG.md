@@ -1,33 +1,42 @@
-# ANM Tool Changelog
+# Asset Extraction Suite Changelog
 
-## Phase 1
+## ANM foundation
 
-- Added certified ANM container parser.
-- Added structural `inspect` command.
-- Added type 2 full-frame RLE decoder.
-- Added type 3 sparse planar delta application.
-- Added type 8 raw four-plane frame application.
-- Added palette and blackout/reset handling.
-- Added PNG frame extraction and JSON timeline export.
-- Added focused decoder unit tests.
+- Certified ANM parser and structural inspector.
+- Type-2 full-frame RLE, type-3 sparse delta, type-8 planar frame reconstruction.
+- Palette/reset handling, PNG frame extraction, timeline JSON.
+- Synthetic decoder tests for RLE, delta, planar mapping, and palette expansion.
 
-Validation checkpoint: five synthetic decoder tests pass for literal/repeat RLE, sparse deltas, planar mapping, and VGA palette expansion.
+## GUI and modern export
 
-## GUI / export foundation
+- Responsive Tk GUI.
+- Independent cinematic frame and movie destinations.
+- PNG/BMP/TIFF/JPEG/WebP frame outputs.
+- MP4/MKV/MOV/AVI/WebM/GIF video outputs.
+- Lossless FFV1/MKV option.
+- FFmpeg-backed video pipeline.
+- Optional Strahd's Possession GUI theme using original RES0/COLORS artwork.
 
-- Added Tk GUI entry point.
-- Added independently selectable frame and video outputs.
-- Added frame formats: PNG, BMP, TIFF, JPEG, WebP.
-- Added video formats: MP4/H.264, MKV/H.264, lossless MKV/FFV1, MOV/H.264, AVI/MPEG-4, WebM/VP9, GIF.
-- Added independent frame-folder and movie-file destination selectors.
-- Added configurable video frame rate and optional timeline output.
-- Added FFmpeg-backed video encoding service.
+## Master media extraction
 
-## Optional Strahd's Possession theme
+- Added certified 33-file source inventory with size/SHA-256 validation.
+- Added RES type-1 graphics, type-2 fonts, type-6 textures, and type-7 shape dumping.
+- Preserves native EH records and canonical decoded palette-index bytes.
+- Added Creative Voice File extraction and lossless WAV/FLAC conversion.
+- Added original XMIDI/XDIR extraction.
+- Added COLORS palette export.
+- Added all 1,073 T text/subtitle records.
+- Added all 233 SAMPLE.AD OPL2 timbres.
+- Added INIT mapping metadata.
+- Added SINTAB scale-block extraction.
+- Added exact GM1.BNK/GM2.BNK ARIA preservation and metadata.
+- Added complete Dump All orchestration and manifests.
 
-- Added runtime RES0/COLORS reader using the certified archive/type-1/LZSS/palette formats.
-- Added optional Strahd-themed GUI styling sourced from original Ravenloft UI graphics.
-- Theme artwork is decoded from the user's own game installation at runtime; extracted copyrighted assets are not stored in the repository.
-- Verified the decoder against the supplied certified RES0/COLORS files and added synthetic resource-decoder tests.
+## Fidelity boundaries
 
-Next validation checkpoint: run the GUI/export path over all 13 supplied ANMs, visually compare selected frames against original playback, and then add subtitle/audio reconstruction before calling rendered movies feature-complete.
+- Type-7 scene shapes are not mislabeled as ordinary bitmap sprites; structural
+  extraction is complete while faithful portable rasterization remains a
+  separate renderer task.
+- XMIDI-to-SMF conversion is not enabled until an authoritative Miles timing/
+  event translation is implemented.
+- ARIA bank inner records remain opaque and are preserved byte-for-byte.
