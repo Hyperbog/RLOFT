@@ -31,8 +31,8 @@ CODE.2 independently computes `(count << 6) + count`, allocates exactly that man
 
 ```text
 +0x00  char   name[40]
-+0x28  uint16 world_sprite_base
-+0x2A  uint8  world_heading_stride
++0x28  uint16 local_shape_base
++0x2A  uint8  shape_stride
 +0x2B  uint8  scene_influence_step
 +0x2C  uint8  unresolved_2C
 +0x2D  uint16 ui_graphic_index          // unaligned little-endian word
@@ -60,16 +60,19 @@ All bytes are physically accounted for. This does not imply that every field is 
 
 The first 40 bytes are a fixed NUL-padded display-name field. All supplied records contain a NUL inside the field and the longest supplied name is 39 characters. Sixteen valid records have empty display names; they must not be discarded.
 
-## World rendering: `+0x28`, `+0x2A`, `+0x2B`
+## Scene-shape rendering: `+0x28`, `+0x2A`, `+0x2B`
 
-Family-C loose-item rendering computes:
+Cross-checking the family-C emitter against the certified RES3 source-bank reconstruction tightens the first two names. OBJECTS definitions store class-2 **bank-local** scene-shape coordinates:
 
 ```text
-world_sprite_frame = world_sprite_base
-                   + heading_index * world_heading_stride
+variant_subrange_base = local_shape_base
+                      + scene_variant * shape_stride
+absolute_RES3_base    = 3316 + variant_subrange_base
 ```
 
-where `heading_index` is the live world record's three-bit heading.
+The common scene helper may then select a view/state-dependent subframe within that stride. The live three-bit selector is therefore not safely named a universal heading. Normal family-C loading and thrown-item construction initialize its variant bits to zero; no class-2 periodic variant-cycle path has been proved.
+
+The class-2 bank contains exactly 842 resources (`RES3:3316..4157`). Across all 336 definitions, every base/stride window is in range and the maximum supplied endpoint is exactly `834 + 8 = 842`.
 
 For nonzero `scene_influence_step`, CODE.2 passes the byte and the object's map-cell index to `2B088`, which propagates an accumulated scene-cell influence:
 
