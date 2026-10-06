@@ -131,7 +131,7 @@ CODE.2 `28020` reads the dword length, allocates `length + 4`, stores the length
 - bytes physically stored after the length: `5,737 (0x1669)`
 - discrepancy: exactly `65,536 (0x10000)` bytes
 
-The executable reads the field as a full dword, so this discrepancy is preserved as a **shipped data anomaly**, not silently normalized to a 16-bit length. Its runtime consequence requires separate stream-boundary analysis.
+The executable reads the field as a full dword, so this discrepancy is preserved as a **shipped data anomaly**, not silently normalized to a 16-bit length. Its runtime sequence requires separate stream-boundary analysis.
 
 ## Types 6 and 7: shared LZSS wrapper
 
@@ -167,7 +167,7 @@ The supplied type-6 records decode only to 4,096 bytes (134 resources) or 8,192 
 
 ### Type 7 consumer evidence
 
-Every supplied type-7 decoded body is at least 10 bytes. Renderer paths `21C1D..21C55` and `36E94..36F04` request archive `3a, skip the leading decoded-size word, then consume the body as structured 16-bit data.
+Every supplied type-7 decoded body is at least 10 bytes. Renderer paths `21C1D..21C55` and `36E94..36F04` request archive `3`, skip the leading decoded-size word, then consume the body as structured 16-bit data.
 
 The first five signed words are used as geometry:
 
