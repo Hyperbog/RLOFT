@@ -33,7 +33,9 @@ The supplied-build `SAVE.DAT` reconstruction is archival-complete. Its final cer
 
 The supplied-build `LEVELS.DAT` master archive and `LEVnnn.DAT` standalone mutable form are also preservation-grade / archival reconstructed. Their combined certification is recorded in `LEVELS.DAT/FINAL_AUDIT_2026-10-06.md`. The known 40-cell LEV022 automap-cache discrepancy is retained as a bounded provenance issue rather than normalized away.
 
-In both cases, bounded opaque fields are preserved explicitly rather than assigned speculative semantics. These reconstruction-complete labels do not claim that independent byte-exact encoders are already implemented unless separate round-trip tests demonstrate that milestone.
+The supplied-build `OBJECTS.DAT` static object/item database is now archival-complete as well. Its final certification is recorded in `OBJECTS.DAT/FINAL_AUDIT_2026-10-06.md`; unlike LEVELS, the supplied OBJECTS parser/encoder already passes byte-exact decode→encode round-trip testing.
+
+Across completed formats, bounded opaque or historical fields are preserved explicitly rather than assigned speculative semantics. A reconstruction-complete label never implies a generic encoder unless separate round-trip tests demonstrate that milestone.
 
 ## Initial priority
 
