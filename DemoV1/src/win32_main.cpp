@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "rloft/boot_flow.hpp"
+#include "rloft/character_creation_presenter.hpp"
 #include "rloft/game_source.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
@@ -449,16 +450,25 @@ int run(HINSTANCE instance) {
                 if (!fade_out(host, presenter, palette12)) return 0;
                 flow.supervisor_dispatch();
 
+                host.set_menu_mode(false);
+
+                rloft::CharacterCreationPresenter character_presenter(assets);
+                character_presenter.first_screen();
+                host.present(
+                    character_presenter.framebuffer(),
+                    character_presenter.palette());
+
                 SetWindowTextW(
                     host.hwnd(),
-                    L"Ravenloft Demo v1 — CODE.1 character creation transition reached");
-                MessageBoxW(
-                    host.hwnd(),
-                    L"Binary-faithful boot/menu flow reached CODE.1 character "
-                    L"creation.\n\nThe CODE.1 character-creation renderer is "
-                    L"the next implementation unit.",
-                    L"Demo Build v1 milestone",
-                    MB_OK | MB_ICONINFORMATION);
+                    L"Ravenloft: Strahd's Possession — Character Creation");
+
+                // Demo-v1 milestone: stay on CODE.1 state 0. The next unit
+                // restores the observable 0x45FC opening animation and then
+                // wires the original state-0 input/hover behavior.
+                while (host.pump()) {
+                    std::this_thread::sleep_for(
+                        std::chrono::milliseconds(1));
+                }
                 return 0;
             }
 
