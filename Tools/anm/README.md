@@ -71,10 +71,10 @@ ANM sampled-audio commands are synchronized when movie export has
 **Sync sampled SFX into video** enabled:
 
 - queued chunk 6 resolves through the certified RES6 cinematic/SFX base;
-- direct chunk 9 resolves directly into RES6;
+- direct chunk 9 follows the original archive switch and resolves directly into RES10;
 - ignored IDs from the original handler remain ignored.
 
-These Creative Voice File effects are decoded by FFmpeg, delayed to their ANM
+These RES6/RES10 Creative Voice File effects are decoded by FFmpeg, delayed to their ANM
 frame timestamps, mixed, and muxed with the rendered movie.
 
 ANM music commands are retained in the timeline and the suite's XMI/MIDI
