@@ -29,7 +29,7 @@ CODE.2 independently computes and reads the same `count * 0x45` allocation. `LEV
 
 ```text
 +0x00  char    name[20]
-+0x14  uint16  scene_sprite_base
++0x14  uint16  local_shape_base
 +0x16  uint16  collision_half_extent
 +0x18  uint8   scene_frame_stride
 +0x19  uint8   animation_cycle_divisor
@@ -58,7 +58,7 @@ CODE.2 independently computes and reads the same `count * 0x45` allocation. `LEV
 +0x43  uint16  death_sound_id
 ```
 
-`inspect_npcs.py` uses these field widths while retaining each original 69-byte record as the preservation authority.
+`inspect_npcs.py` uses these field widths while retaining each original 69-byte record as the preservation authority. Twenty supplied records contain nonzero bytes after the first NUL inside `name[20]`; the semantic encoder preserves that post-NUL residue rather than normalizing the entire field to zero padding.
 
 ## Core combat and spatial fields
 
@@ -82,7 +82,7 @@ PYRE ELEMENTAL  HD 12  AC 0  THAC0  9   3d8      XP 7000
 HELLHOUND       HD  7  AC 4  THAC0 13   1d10+4   XP 1000
 ```
 
-`+0x14` is the base first-person scene resource. `+0x16` is a fixed-point collision half-extent. `+0x18..+0x1A` drive animation arithmetic. `+0x1B` feeds scene-cell influence propagation. `+0x1C` gates the alternate damage/reaction animation state. `+0x25` initializes a live action/state countdown.
+`+0x14` is the class-0 bank-local base for the NPC's first-person compiled scene shapes. Because the class-0 RES3 bank begins at zero in this build, its local and absolute numeric IDs coincide. `+0x16` is a fixed-point collision half-extent. `+0x18..+0x1A` drive animation arithmetic. `+0x1B` feeds scene-cell influence propagation. `+0x1C` gates the alternate damage/reaction animation state. `+0x25` initializes a live action/state countdown.
 
 The former `render_aux_27` field is closed: `+0x27` is copied into generated scene-record `+0x0C` and then passed to type-7 renderer `36CEC`, where it is added to the projected-size-derived lookup index before table `0x258C4` is read. The safe name is therefore `render_scale_lookup_bias`. Only PYRE ELEMENTAL uses a nonzero supplied value (`3`). See `RENDER_AUX_27.md`.
 
