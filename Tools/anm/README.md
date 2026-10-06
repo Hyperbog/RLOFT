@@ -72,12 +72,17 @@ translated into a faithful portable renderer.
 - original VOC retention;
 - lossless FLAC (default) or WAV/PCM conversion through FFmpeg;
 - all type-3 XMIDI/XDIR sequences as original XMI;
+- optional Standard MIDI Format 0 derivatives using exact 120 Hz SMPTE timing;
 - all 233 `SAMPLE.AD` YM3812/OPL2 timbres;
 - exact `GM1.BNK` / `GM2.BNK` ARIA banks plus identification metadata.
 
-Standard MIDI File export is intentionally not guessed. It will be enabled only
-after an authoritative Miles XMIDI event/timing translation is implemented and
-checked against the MIDI Association SMF specification.
+Standard MIDI export is implemented from the original Miles Design MIDIFORM
+writer/runtime behavior and checked against the MIDI Association SMF model.
+The derivative uses SMPTE -30 fps with 4 ticks/frame, giving exactly 120
+ticks/second. Original XMI is always the preservation authority because AIL
+FOR/NEXT loop control flow cannot be represented losslessly by a linear SMF.
+The Ravenloft corpus contains 172 XMIDI resources / 350 sequences and uses
+infinite AIL loops extensively.
 
 ### Support Assets
 
