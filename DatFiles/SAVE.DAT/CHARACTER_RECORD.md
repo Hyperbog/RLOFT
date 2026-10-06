@@ -18,7 +18,10 @@ The same `0x248`-byte image is serialized for the four active-party slots and te
 | `+0x046` | 1 | exceptional-Strength base/reference percentile | Runtime `0x2191E`; Strength table logic interprets AD&D percentile bands. |
 | `+0x047` | 1 | exceptional-Strength current/effective percentile | Runtime `0x2191F`; current Strength calculations consume it. |
 | `+0x048` | `0x2A` | `int16_le item[21]` | Runtime `0x21920`; slots `0..11` inventory and `12..20` equipment. |
-| `+0x0C2` | `0x50` | packed 4-bit-value array, `8 x 10` bytes | Runtime `0x2199A`; CODE.2 uses eight banks, ten-byte bank stride, and independently manipulates both nibbles. Gameplay label pending. |
+| `+0x0C2` | `0x50` | spell-preparation/memorization matrix A, `8 x 10` packed bytes | Runtime `0x2199A`; CODE.2 uses eight banks, ten-byte stride, independently manipulates both nibbles, expands ready copies, and maps cells to spell/resource IDs `0x42 + bank*10 + entry`. |
+| `+0x12F` | 4 | auxiliary dword; low byte is reversible Dexterity adjustment | Runtime `0x21A07`; one transition adds its low byte to `+0x03D`, companion path subtracts it. Upper-byte semantics remain unresolved. |
+| `+0x133` | 4 | per-character dynamic bitfield | Runtime `0x21A0B`; CODE.2 extracts, clears, and sets dynamically selected bits. Exact gameplay labels remain unresolved. |
+| `+0x139` | 1 | class/casting capability mask | Runtime `0x21A11`; initialization derives bits from class codes and invokes the two spell-matrix initializers. Later UI code treats values `1..4` as capability/display selectors. |
 | `+0x13A` | 4 | 32-bit character state/flags | Runtime `0x21A12`; CODE.2 performs byte, word, and dword mask operations here. |
 
 Address arithmetic:
@@ -26,14 +29,19 @@ Address arithmetic:
 ```text
 record base                 0x218D8
 status word                 0x218F0 = +0x18
-class-related byte          0x218F5 = +0x1D
+class bytes                 0x218F5..0x218F7 = +0x1D..+0x1F
 Strength base               0x21912 = +0x3A
 Strength current            0x21913 = +0x3B
 Dexterity-related current   0x21915 = +0x3D
 exceptional STR base        0x2191E = +0x46
 exceptional STR current     0x2191F = +0x47
 item array                  0x21920 = +0x48
-packed-nibble array         0x2199A..0x219E9 = +0xC2..+0x111
+spell matrix A              0x2199A..0x219E9 = +0xC2..+0x111
+unresolved dword            0x21A03..0x21A06 = +0x12B..+0x12E
+Dex-adjustment aux dword    0x21A07..0x21A0A = +0x12F..+0x132
+dynamic bitfield            0x21A0B..0x21A0E = +0x133..+0x136
+aux bytes                   0x21A0F..0x21A10 = +0x137..+0x138
+class/casting capability    0x21A11 = +0x139
 state/flags dword           0x21A12 = +0x13A
 next character              base + 0x248
 ```
@@ -82,7 +90,7 @@ Entries are legacy signed 16-bit words. `-1 / 0xFFFF` is the ordinary empty sent
 
 ## Post-inventory certified structures
 
-### `+0x0C2..+0x111`: packed nibble array
+### `+0x0C2..+0x111`: spell-preparation/memorization matrix A
 
 CODE.2 proves the exact layout:
 
@@ -90,11 +98,34 @@ CODE.2 proves the exact layout:
 byte = record[0x0C2 + bank * 10 + entry]
 bank  = 0..7
 entry = 0..9
+spell/resource ID = 0x42 + bank * 10 + entry
 ```
 
-The outer executable loops terminate after eight banks and advance the array cursor by ten bytes per bank. Direct element access multiplies the bank index by ten. Each byte contains independently mutable high/low 4-bit values.
+The outer executable loops terminate after eight banks and advance the array cursor by ten bytes per bank. Direct element access multiplies the bank index by ten. Each byte contains independently mutable high/low 4-bit values. A low nibble of `0xF` is treated as unavailable/sentinel state; a nonzero high nibble represents one or more ready copies, and successful spell use decrements that high nibble by exactly one while preserving the low nibble.
 
-This also resolves the former candidate `+0x10A`: it is bank 7, entry 2 (`0x0C2 + 7*10 + 2`), not a separate field. The fixture has `0x0F` there for both populated active characters. The exact gameplay meaning of the banks and nibbles remains under audit.
+The common ready-spell expansion at physical `0x5E0E4..0x5E2C8` converts qualifying cells into runtime spell/action records and uses the formula above to address the indexed `T` resource archive. This establishes the subsystem as persistent spell preparation/memorization state without guessing the original source names of the two nibble quantities.
+
+The former candidate `+0x10A` is bank 7, entry 2 (`0x0C2 + 7*10 + 2`), not a separate field.
+
+### `+0x12F..+0x132`: auxiliary Dexterity-adjustment dword
+
+CODE.2 accesses the complete dword at runtime `0x21A07`. In one equipment/state transition the low byte is added to the certified Dexterity-related current/effective byte at `+0x03D`; a companion path subtracts the same low byte. This proves a reversible Dexterity-adjustment role for byte `+0x12F` while leaving the upper three bytes conservatively unnamed.
+
+### `+0x133..+0x136`: dynamic bitfield
+
+Runtime `0x21A0B` is a 32-bit per-character bitfield. The helper at physical `0x4A13C` returns an arbitrary selected bit. The companion helper at `0x4A15C` clears that selected bit and conditionally installs a replacement bit value when the corresponding item slot is occupied. Other paths copy and clear the whole dword. This is sufficient to certify width and bitfield behavior, but not individual gameplay meanings.
+
+### `+0x139`: class/casting capability mask
+
+Character initialization zeroes runtime byte `0x21A11` and derives its bits from the three class-code bytes:
+
+```text
+class code 1 in first class slot -> set 0x04; call spell initializer 0x3EDC8
+class code 3 in any class slot   -> set 0x01; call spell initializer 0x3ED08
+class code 4 in any class slot   -> set 0x02; grant object 0xA6 in item[0]
+```
+
+The `0x3ED08` and `0x3EDC8` routines initialize/update the persistent spell-preparation matrices from class/level-related values. UI code at physical `0x5DE64` then interprets whole-byte values `1`, `2`, `3`, and `4` as four display/capability selections. Thus `+0x139` is safely a class/casting capability mask/selector; exact original class names remain separate from this structural identification.
 
 ### `+0x13A..+0x13D`: state flags
 
@@ -111,8 +142,13 @@ Unused active-party records are not zero-filled. In the reference fixture most b
 +0x018 .. +0x047   status/stats/class region; several fields executable-linked
 +0x048 .. +0x071   item[21]
 +0x072 .. +0x0C1   unresolved character arrays/state
-+0x0C2 .. +0x111   packed-nibble array: 8 banks x 10 bytes
-+0x112 .. +0x139   unresolved character state
++0x0C2 .. +0x111   spell-preparation/memorization matrix A: 8 banks x 10 packed bytes
++0x112 .. +0x12A   unresolved character state
++0x12B .. +0x12E   executable-accessed dword; semantics unresolved
++0x12F .. +0x132   auxiliary dword; low byte is reversible Dexterity adjustment
++0x133 .. +0x136   dynamic per-character bitfield; individual meanings unresolved
++0x137 .. +0x138   executable-accessed bytes; semantics unresolved
++0x139             class/casting capability mask/selector
 +0x13A .. +0x13D   uint32_le character state/flags
 +0x13E .. +0x247   unresolved spell/effect/auxiliary state
 ```
@@ -121,4 +157,4 @@ A native implementation should continue to use an explicit legacy decoder rather
 
 ## Next target
 
-Trace the tables/callers that assign meaning to the eight packed banks, identify runtime `0x21A09` (`+0x131`), and map the individual `+0x13A` flag bits to gameplay effects. Then continue decoding the remaining post-inventory regions.
+Map the exact class identities behind capability bits at `+0x139`, trace `+0x133` dynamic bits back to their item/state owners, then assign gameplay identities to individual `+0x13A` flags. The spell-resource catalogue can be completed independently once the source `T` archive bytes are available.
