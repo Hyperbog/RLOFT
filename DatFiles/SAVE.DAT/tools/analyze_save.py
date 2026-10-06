@@ -63,6 +63,13 @@ def hex_preview(data: bytes, offset: int, size: int, limit: int = 32) -> str:
     return chunk.hex(" ") + (" ..." if size > limit else "")
 
 
+def format_time_of_day(value: int) -> str:
+    hour = (value >> 16) % 24
+    fraction = value & 0xFFFF
+    minute_fraction = fraction * 60.0 / 65536.0
+    return f"0x{value:08X} (hour={hour}, fractional_hour=0x{fraction:04X}, approx={hour:02d}:{minute_fraction:05.2f})"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("save", type=Path)
@@ -86,9 +93,9 @@ def main() -> int:
     print(f"  shared FD08      : {u32(data, 0x66)}")
     print(f"  shared 6DAE      : {u16(data, 0x6A)}")
     print(f"  interrupt ticks  : {u32(data, 0x6C)}")
-    print(f"  state CF4C       : 0x{u32(data, 0x70):08X}")
-    print(f"  state 8600       : {s16(data, 0x74)}")
-    print(f"  state 8602       : {data[0x76]}")
+    print(f"  time of day      : {format_time_of_day(u32(data, 0x70))}")
+    print(f"  cursor item ID   : {s16(data, 0x74)}")
+    print(f"  cursor item known: {data[0x76]}")
 
     print("\nActive party")
     for i in range(PARTY_COUNT):
