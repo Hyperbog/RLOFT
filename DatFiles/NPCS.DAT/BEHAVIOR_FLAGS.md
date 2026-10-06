@@ -1,6 +1,6 @@
 # NPCS.DAT behavior/capability flags
 
-Status: **fourteen individual capability/effect bits are now behaviorally decoded from certified CODE.2. Remaining bits stay raw until their exact consumers are closed.**
+Status: **sixteen individual capability/effect bits are now behaviorally decoded from certified CODE.2. Remaining bits stay raw until their exact consumers are closed.**
 
 The physical fields are:
 
@@ -23,6 +23,8 @@ The executable is controlling evidence. Creature names and serialized spell name
 0x00000100  common_spell_effect_immunity
 0x00000800  cold_effect_immunity
 0x00002000  fire_effect_immunity
+0x00004000  weapon_category10_damage_floor_one
+0x00008000  weapon_category9_damage_floor_one
 ```
 
 CODE.2 combines the common spell-effect gate with effect-specific bits:
@@ -40,6 +42,30 @@ Mage and priest Hold Person independently use `0x0108`. All Hold variants that a
 The common area/effect routine skips an NPC whenever its raw dword intersects the caller's immunity mask. Fire/cold spell dispatch and the original bestiary descriptions independently support the elemental aliases. See `EFFECT_IMMUNITIES.md`.
 
 These names are intentionally behavioral. In particular, the low Hold bits can encode target exclusion as well as intrinsic resistance, so they are not creature-taxonomy enums.
+
+#### `0x00004000` / `0x00008000` — weapon-category damage floors
+
+CODE.2 `0xC910..0xC99E` is called immediately before NPC damage application. It reads OBJECTS.DAT `item_category` (`+0x2F`) and `enchantment_bonus` (`+0x37`). Any nonzero enchantment is first rerouted to synthetic category 11; a weapon/object ID of `-1` is treated as category 9.
+
+For the remaining category paths:
+
+```text
+category 10 + behavior_flags 0x00004000 -> damage = 0
+category  9 + behavior_flags 0x00008000 -> damage = 0
+```
+
+The routine then unconditionally clamps any result below 1 back to 1. These flags therefore impose a **one-damage floor**, not zero-damage immunity.
+
+The supplied category-9 definitions are the mace/quarterstaff/warhammer family; category 10 contains the ordinary axe/sword/dagger/spear/halberd family and named variants. The project aliases remain category-based rather than asserting an original damage-type enum.
+
+Supplied counts:
+
+```text
+weapon_category10_damage_floor_one  16
+weapon_category9_damage_floor_one   14
+```
+
+See `WEAPON_DAMAGE_FLAGS.md` and `analyze_weapon_damage_flags.py` for the exact branch order, item sets, and the unresolved category-11 high-bit comparisons.
 
 ### `behavior_flags_39` (`+0x39`)
 
@@ -187,7 +213,11 @@ B2FB  dword +0x31 intersect caller effect mask
 B477  byte  +0x32 & 0x21
 AFCE  byte  +0x31 & 0x80
 B6B0  byte  +0x31 & 0x04
+C96D  dword +0x31 & 0x00020000 in category-11 weapon path
+C980  dword +0x31 & 0x00040000 in category-11 weapon path
 ```
+
+The category-11 tests at `C96D..C991` use zero-extended enchantment bytes followed by signed comparisons against `-2`. Their exact binary behavior is documented in `WEAPON_DAMAGE_FLAGS.md`, but the bits remain semantically raw because the comparison pattern is anomalous and the intended source-level contract is not proved.
 
 Many raw bits therefore remain a generalized effect/capability/immunity family. Preserve the complete dword and do not flatten aliases into an enum.
 
@@ -220,6 +250,8 @@ behavior_flags & 0x00000010  hold_monster_effect_immunity
 behavior_flags & 0x00000100  common_spell_effect_immunity
 behavior_flags & 0x00000800  cold_effect_immunity
 behavior_flags & 0x00002000  fire_effect_immunity
+behavior_flags & 0x00004000  weapon_category10_damage_floor_one
+behavior_flags & 0x00008000  weapon_category9_damage_floor_one
 
 behavior_flags_39 & 0x01      poison_attack
 behavior_flags_39 & 0x20      paralysis_attack
