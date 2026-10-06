@@ -130,7 +130,24 @@ def self_test() -> None:
 
     manifest = load_manifest()
     assert len({str(x["name"]) for x in manifest}) == 33
-    print("self-test OK: syntax, manifest cardinality, partial-LZSS sentinel, ANM domain, type-7 selector domain")
+
+    # The aggregate runner depends on analyze_res.py returning nonzero for
+    # semantic validation failures while allowing only the two byte-identical,
+    # documented malformed VOC records.
+    with tempfile.TemporaryDirectory(prefix="rloft-res-selftest-") as td:
+        bad = Path(td) / "RES0"
+        payload = b"EH" + bytes([3]) + b"\x00\x00" + b"\x00\x00\x00\x00"
+        bad.write_bytes(struct.pack("<ii", 1, 8) + payload)
+        proc = subprocess.run(
+            [sys.executable, str(REPO / "Resources/RES/analyze_res.py"), str(bad)],
+            cwd=REPO,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        assert proc.returncode != 0, proc.stdout
+
+    print("self-test OK: syntax, manifest cardinality, partial-LZSS sentinel, ANM domain, type-7 selector domain, RES failure exit")
 
 
 def link_or_copy(src: Path, dst: Path) -> None:

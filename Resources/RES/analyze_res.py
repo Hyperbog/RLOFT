@@ -124,8 +124,16 @@ def summarize(path: Path):
                 declared=struct.unpack_from("<I",e,5)[0]; stored=len(e)-9
                 sig=(e[9:13]==b"FORM" and e[17:21]==b"XDIR") if t==3 else e[9:].startswith(b"Creative Voice File\x1a")
                 if not sig or declared!=stored:
-                    anomalies.append(dict(index=idx,type=t,declared_bytes=declared,stored_bytes=stored,
-                                          declared_minus_stored=declared-stored,signature_ok=sig))
+                    rec=dict(index=idx,type=t,declared_bytes=declared,stored_bytes=stored,
+                             declared_minus_stored=declared-stored,signature_ok=sig)
+                    expected=(t==4 and sig and declared==0x11669 and stored==0x1669 and
+                              ((path.name=="RES11" and idx==4877) or
+                               (path.name=="RES12" and idx==430)))
+                    if expected:
+                        rec["expected_shipped_anomaly"]=True
+                    else:
+                        rec["error"]="unexpected length/signature mismatch"
+                    anomalies.append(rec)
                 else: vals["type3_xdir_exact" if t==3 else "type4_voc_exact"]+=1
             elif t in (6,7):
                 if len(e)<7: raise ValueError("short type6/7")
@@ -151,9 +159,13 @@ def summarize(path: Path):
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument("files",nargs="+",type=Path); ap.add_argument("--json",action="store_true"); a=ap.parse_args()
     reports=[summarize(p) for p in a.files]
+    unexpected=[(r["file"],x) for r in reports for x in r["anomalies"]
+                if not x.get("expected_shipped_anomaly")]
     if a.json: print(json.dumps(reports,indent=2))
     else:
         for r in reports: print(f"{r['file']}: entries={r['entry_count']} EH={r['eh_types']} duplicates={r['duplicate_adjacent_offsets']} anomalies={len(r['anomalies'])} roundtrip={r['roundtrip_identical']}")
-    return 0
+        if unexpected:
+            print(f"unexpected validation anomalies: {len(unexpected)}")
+    return 1 if unexpected else 0
 
 if __name__=="__main__": raise SystemExit(main())

@@ -328,3 +328,8 @@ The corrective maintenance pass has now been integrated:
 The withdrawn R-AUDIT-002 remains withdrawn; `TYPE7_SOURCE_BANKS.md` now records the proved transient/moving-effect identity.
 
 At this point the only audit action that cannot be executed from the repository alone is the post-fix run over the original 33 binary resources. No substitute bytes should be used for that certification.
+
+
+### Certification-runner exit semantics
+
+Post-commit verification found and closed one additional tooling edge: `analyze_res.py` historically reported semantic failures in its anomaly list but exited zero. It now exits nonzero for every unexpected anomaly. The only non-failing anomalies are the two exact documented malformed VOC records at `RES11:4877` and `RES12:430`; their archive/index, signature, declared length `0x11669`, and stored length `0x1669` must all match before they are treated as expected shipped anomalies. The CI self-test includes a synthetic malformed RES record and requires a nonzero analyzer exit.
