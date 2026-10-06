@@ -55,7 +55,7 @@ uint16_t status_word;
 bool record_is_active = ((status_word & 0x8000u) == 0);
 ```
 
-Known masks from executable consumers include disease `0x0400`, poison `0x0800`, and paralysis `0x1000`. Remaining bits require separate audit.
+The status audit now certifies recruited/template provenance `0x0080`, Vengeful-Spirit possession `0x0100`, Held `0x0200`, disease `0x0400`, poison `0x0800`, paralysis `0x1000`, death `0x4000`, and empty-slot `0x8000`, plus the separate Vengeful-Spirit warning/coercion state `0x0040`. Bit `0x2000` is consumed as an action/eligibility blocking tier but has no proved producer/player-facing identity in the supplied build; low bits `0x0001..0x0020` likewise remain raw. See `STATUS_WORD.md` for the bounded residual audit.
 
 ## `+0x012/+0x013`: portrait and sex
 
@@ -257,5 +257,5 @@ Decode and encode the legacy record explicitly. Preserve raw enum numbers at the
 ## Remaining early/core targets
 
 1. Catalogue the exact player-facing portrait resources behind `+0x012` and distinguish player-selectable faces from internal 23-entry bank capacity.
-2. Audit remaining `status_word` bits beyond disease/poison/paralysis/inactive.
-3. Identify any runtime consumer of `age` that provides stronger executable semantics than fixture/editor agreement.
+2. Identify any runtime consumer of `age` that provides stronger executable semantics than fixture/editor agreement.
+3. Preserve residual status bits exactly; reopen their semantics only if a concrete producer or resource identity is found.
