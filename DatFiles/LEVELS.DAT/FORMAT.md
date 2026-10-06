@@ -27,7 +27,7 @@ The first offset is exactly `0x84 = 4 + 32*4`. All offsets are strictly increasi
 ## Common 0x1D-byte preamble
 
 ```text
-+0x00  uint8  marker/unknown
++0x00  uint8  writer-unowned/raw byte (archive records store 0; supplied LEV022 stores 0xDF)
 +0x01  uint32 boundary_0 = 0x1D
 +0x05  uint32 boundary_1 = end fixed header + 16-bit grid
 +0x09  uint32 boundary_2 = end variable 10-byte lists
@@ -37,7 +37,7 @@ The first offset is exactly `0x84 = 4 + 32*4`. All offsets are strictly increasi
 +0x19  uint32 boundary_6 = end fixed 0x514 event-script table
 ```
 
-The loader does not consume byte `+0x00`. The writer seeks directly to `0x1D` for payload output and later writes the seven boundary dwords beginning at file offset `+0x01`. Archived records have marker `0x00`; supplied `LEV022.DAT` has `0xDF`. Its meaning remains unresolved.
+The loader does not consume byte `+0x00`. The standalone writer's ownership is now exact: after creating/reopening the file, physical `0x521CB` seeks directly to offset `0x1D` before the first payload write; after the payload/tail is complete, physical `0x52649` seeks to offset `1` and writes the seven boundary dwords. No writer operation writes file offset 0. Archived records store `0x00`; supplied `LEV022.DAT` stores `0xDF`. Treat this byte as writer-unowned/raw file residue rather than gameplay state; preserve it when round-tripping an existing artifact.
 
 ## Fixed header and 16-bit cell grid
 
@@ -103,6 +103,25 @@ boundary_5..boundary_6 : exactly 0x514 bytes
 ```
 
 `LEV022.DAT` validates every relationship.
+
+## Direct family-A live NPC record
+
+The standalone family-A block serializes the live 22-byte NPC/creature record at runtime array `0x14D80` directly:
+
+```text
++0x00  uint32 y_position_16_16
++0x04  uint32 x_position_16_16
++0x08  uint32 runtime_flags
++0x0C  uint16 cached_cell_index
++0x0E  uint16 npc_type_id
++0x10  uint16 action_state_countdown
++0x12  int16  current_hp
++0x14  uint16 packed_runtime_state
+```
+
+Archive expansion initializes the type/position, copies `NPCS.DAT +0x35 initial_runtime_flags` into `+0x08`, computes the cached cell, initializes action state, derives HP from `NPCS.DAT +0x1D hit_dice_count` where applicable, and places the compact orientation low three bits into packed-state bits 3..5.
+
+Standalone saves preserve the live result rather than regenerating it. See `FAMILY_A.md` and `../LEV022.DAT/MUTABLE_DELTA.md`.
 
 ## Fixed 0x514 event-script table
 
