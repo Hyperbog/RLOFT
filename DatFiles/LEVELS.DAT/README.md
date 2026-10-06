@@ -31,6 +31,7 @@ Every boundary equation and final record length validates for all 32 levels with
 - `CACHE_REBUILD_AUDIT.md` — instruction-level replay of CODE.2 `01558`, the `0x25622` animator trace, and the isolated 40-cell `LEV022.DAT` cache discrepancy.
 - `inspect_levels.py` — structural and coordinate validator plus archive/direct correlation.
 - `analyze_cells.py` — archive-wide cell-flag statistics and direct-save exploration/cache correlation.
+- `audit_cache_rebuild.py` — machine-checkable ordinary-cell replay of the certified `01558` branches plus the isolated diagnostic variant used to characterize the supplied Level 22 discrepancy.
 
 ## Current semantic frontier
 
