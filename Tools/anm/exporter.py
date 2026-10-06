@@ -346,10 +346,11 @@ def export_video(
                 filters.append(f"[{input_index}:a]adelay={delay_ms}:all=1[{label}]")
                 labels.append(f"[{label}]")
             if len(labels) == 1:
-                filters.append(f"{labels[0]}anull[aout]")
+                filters.append(f"{labels[0]}anull,apad[aout]")
             else:
                 filters.append(
-                    "".join(labels) + f"amix=inputs={len(labels)}:normalize=0[aout]"
+                    "".join(labels)
+                    + f"amix=inputs={len(labels)}:normalize=0,apad[aout]"
                 )
             command += ["-filter_complex", ";".join(filters), "-map", "[aout]"]
             command += _audio_codec_args(video_format)
