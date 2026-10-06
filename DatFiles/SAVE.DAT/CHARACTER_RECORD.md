@@ -18,7 +18,7 @@ The same `0x248`-byte image is serialized for the four active-party slots and te
 | `+0x046` | 1 | exceptional-Strength base/reference percentile | Runtime `0x2191E`; Strength table logic interprets AD&D percentile bands. |
 | `+0x047` | 1 | exceptional-Strength current/effective percentile | Runtime `0x2191F`; current Strength calculations consume it. |
 | `+0x048` | `0x2A` | `int16_le item[21]` | Runtime `0x21920`; slots `0..11` inventory and `12..20` equipment. |
-| `+0x0C2` | array anchor | packed 4-bit values | Runtime `0x2199A`; CODE.2 independently extracts/rewrites high and low nibbles with `0xF0/0x0F`. Exact array extent/meaning pending. |
+| `+0x0C2` | `0x50` | packed 4-bit-value array, `8 x 10` bytes | Runtime `0x2199A`; CODE.2 uses eight banks, ten-byte bank stride, and independently manipulates both nibbles. Gameplay label pending. |
 | `+0x13A` | 4 | 32-bit character state/flags | Runtime `0x21A12`; CODE.2 performs byte, word, and dword mask operations here. |
 
 Address arithmetic:
@@ -33,7 +33,7 @@ Dexterity-related current   0x21915 = +0x3D
 exceptional STR base        0x2191E = +0x46
 exceptional STR current     0x2191F = +0x47
 item array                  0x21920 = +0x48
-packed-nibble state anchor  0x2199A = +0xC2
+packed-nibble array         0x2199A..0x219E9 = +0xC2..+0x111
 state/flags dword           0x21A12 = +0x13A
 next character              base + 0x248
 ```
@@ -80,20 +80,25 @@ The three dwords at `+0x26`, `+0x2A`, and `+0x2E` contain `0xFFFFFFFF` sentinels
 
 Entries are legacy signed 16-bit words. `-1 / 0xFFFF` is the ordinary empty sentinel, but other negative values occur and must be preserved exactly.
 
-For active party slot 0 (`EHLIANNA`), the 21 words are:
+## Post-inventory certified structures
+
+### `+0x0C2..+0x111`: packed nibble array
+
+CODE.2 proves the exact layout:
 
 ```text
-321, 322, 81, 70,
--1, -1, -1, -1, -1, -1,
-252, -1, 10, -1, -1, -1,
--1, -256, -1, 0, -256
+byte = record[0x0C2 + bank * 10 + entry]
+bank  = 0..7
+entry = 0..9
 ```
 
-## Post-inventory certified anchors
+The outer executable loops terminate after eight banks and advance the array cursor by ten bytes per bank. Direct element access multiplies the bank index by ten. Each byte contains independently mutable high/low 4-bit values.
 
-`+0x0C2` is consumed as packed nibbles: CODE.2 masks/shifts the low/high halves independently and preserves one nibble while rewriting the other. The exact array extent and gameplay meaning remain under audit.
+This also resolves the former candidate `+0x10A`: it is bank 7, entry 2 (`0x0C2 + 7*10 + 2`), not a separate field. The fixture has `0x0F` there for both populated active characters. The exact gameplay meaning of the banks and nibbles remains under audit.
 
-`+0x13A..+0x13D` is a 32-bit flag field, correcting the earlier conservative byte-only description. Proved masks include bits `0x1`, `0x2`, `0x10`, `0x20`, `0x40`, `0x200`, `0x400`, and `0x01000000`; dynamic bit masks are also used. See `POST_INVENTORY_STATE.md` for instruction-level evidence.
+### `+0x13A..+0x13D`: state flags
+
+This is a 32-bit flag field. Proved masks include bits `0x1`, `0x2`, `0x10`, `0x20`, `0x40`, `0x200`, `0x400`, and `0x01000000`; dynamic bit masks are also used. See `POST_INVENTORY_STATE.md` for instruction-level evidence.
 
 ## Empty-record representation
 
@@ -106,7 +111,8 @@ Unused active-party records are not zero-filled. In the reference fixture most b
 +0x018 .. +0x047   status/stats/class region; several fields executable-linked
 +0x048 .. +0x071   item[21]
 +0x072 .. +0x0C1   unresolved character arrays/state
-+0x0C2 ..          packed-nibble state array anchor; extent pending
++0x0C2 .. +0x111   packed-nibble array: 8 banks x 10 bytes
++0x112 .. +0x139   unresolved character state
 +0x13A .. +0x13D   uint32_le character state/flags
 +0x13E .. +0x247   unresolved spell/effect/auxiliary state
 ```
@@ -115,4 +121,4 @@ A native implementation should continue to use an explicit legacy decoder rather
 
 ## Next target
 
-Determine the exact packed-nibble array extent and semantics, then map the individual `+0x13A` flag bits to their gameplay effects. Continue afterward with candidate runtime anchors `0x219E2` (`+0x10A`) and `0x21A09` (`+0x131`).
+Trace the tables/callers that assign meaning to the eight packed banks, identify runtime `0x21A09` (`+0x131`), and map the individual `+0x13A` flag bits to gameplay effects. Then continue decoding the remaining post-inventory regions.
