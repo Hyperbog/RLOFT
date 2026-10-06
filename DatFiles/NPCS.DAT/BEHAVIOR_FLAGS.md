@@ -1,6 +1,6 @@
 # NPCS.DAT behavior/capability flags
 
-Status: **sixteen individual capability/effect bits are now behaviorally decoded from certified CODE.2. Remaining bits stay raw until their exact consumers are closed.**
+Status: **eighteen individual capability/effect bits are now behaviorally decoded from certified CODE.2. Remaining bits stay raw until their exact consumers are closed.**
 
 The physical fields are:
 
@@ -20,7 +20,9 @@ The executable is controlling evidence. Creature names and serialized spell name
 0x00000002  hold_undead_effect_immunity
 0x00000008  hold_person_effect_immunity
 0x00000010  hold_monster_effect_immunity
+0x00000080  death_spell_effect_immunity
 0x00000100  common_spell_effect_immunity
+0x00000200  lightning_bolt_effect_immunity
 0x00000800  cold_effect_immunity
 0x00002000  fire_effect_immunity
 0x00004000  weapon_category10_damage_floor_one
@@ -30,18 +32,57 @@ The executable is controlling evidence. Creature names and serialized spell name
 CODE.2 combines the common spell-effect gate with effect-specific bits:
 
 ```text
-Hold Undead   0x0102 = 0x0100 | 0x0002
-Hold Person   0x0108 = 0x0100 | 0x0008
-Hold Monster  0x0110 = 0x0100 | 0x0010
-cold effects  0x0900 = 0x0100 | 0x0800
-fire effects  0x2100 = 0x0100 | 0x2000
+Hold Undead      0x0102 = 0x0100 | 0x0002
+Hold Person      0x0108 = 0x0100 | 0x0008
+Hold Monster     0x0110 = 0x0100 | 0x0010
+Lightning Bolt   0x0300 = 0x0100 | 0x0200
+cold effects     0x0900 = 0x0100 | 0x0800
+fire effects     0x2100 = 0x0100 | 0x2000
 ```
 
 Mage and priest Hold Person independently use `0x0108`. All Hold variants that apply set the same live NPC held-state bit; Slow uses only `0x0100` and a different live state. See `HOLD_IMMUNITIES.md`.
 
 The common area/effect routine skips an NPC whenever its raw dword intersects the caller's immunity mask. Fire/cold spell dispatch and the original bestiary descriptions independently support the elemental aliases. See `EFFECT_IMMUNITIES.md`.
 
+The Lightning Bolt and Death Spell aliases are closed through complete serialized-scroll -> internal-effect -> handler -> target-mask chains. See `TARGETED_EFFECT_IMMUNITIES.md` and `analyze_targeted_effect_immunities.py`.
+
 These names are intentionally behavioral. In particular, the low Hold bits can encode target exclusion as well as intrinsic resistance, so they are not creature-taxonomy enums.
+
+#### `0x00000080` — Death Spell effect immunity
+
+`OBJECTS.DAT` object 197 is `MAGE SCROLL OF 'DEATH SPELL'`. The scroll dispatcher maps it to internal effect 51; the spell jump table sends effect 51 to `0xC5EA`, which calls target-area routine `0xAED8`.
+
+For each eligible NPC, `0xAFCE` executes:
+
+```text
+test byte [npc_definition + 0x31], 0x80
+jne  skip_target
+```
+
+The bit therefore excludes the NPC from Death Spell's application path.
+
+Supplied count: **11**.
+
+#### `0x00000200` — Lightning Bolt effect immunity
+
+`OBJECTS.DAT` object 188 is `MAGE SCROLL OF 'LIGHTNING BOLT'`. The scroll dispatcher maps it to internal effect 28. Handler `0xC370` creates moving-effect type 1 through `0x8A80`; that constructor stores its first argument into transient-record word `+0x0E`.
+
+The type-1 collision branch at `0x8E77` tests:
+
+```text
+test byte [npc_definition + 0x32], 0x03
+```
+
+Because byte `+0x32` is the second byte of the dword beginning at `+0x31`, this is dword mask:
+
+```text
+0x0300 = 0x0100 common_spell_effect_immunity
+       | 0x0200 lightning_bolt_effect_immunity
+```
+
+A nonzero intersection skips the NPC effect/damage call.
+
+Supplied count: **5**.
 
 #### `0x00004000` / `0x00008000` — weapon-category damage floors
 
@@ -210,14 +251,12 @@ CODE.2 also reads `+0x31..+0x34` using overlapping widths. Examples include:
 
 ```text
 B2FB  dword +0x31 intersect caller effect mask
-B477  byte  +0x32 & 0x21
-AFCE  byte  +0x31 & 0x80
 B6B0  byte  +0x31 & 0x04
 C96D  dword +0x31 & 0x00020000 in category-11 weapon path
 C980  dword +0x31 & 0x00040000 in category-11 weapon path
 ```
 
-The category-11 tests at `C96D..C991` use zero-extended enchantment bytes followed by signed comparisons against `-2`. Their exact binary behavior is documented in `WEAPON_DAMAGE_FLAGS.md`, but the bits remain semantically raw because the comparison pattern is anomalous and the intended source-level contract is not proved.
+The category-11 tests at `C96D..C991` use zero-extended enchantment bytes followed by signed comparisons to `-2`. Their exact binary behavior is documented in `WEAPON_DAMAGE_FLAGS.md`, but the bits remain semantically raw because the comparison pattern is anomalous and the intended source-level contract is not proved.
 
 Many raw bits therefore remain a generalized effect/capability/immunity family. Preserve the complete dword and do not flatten aliases into an enum.
 
@@ -247,7 +286,9 @@ A high-level model may expose these aliases while retaining the exact raw fields
 behavior_flags & 0x00000002  hold_undead_effect_immunity
 behavior_flags & 0x00000008  hold_person_effect_immunity
 behavior_flags & 0x00000010  hold_monster_effect_immunity
+behavior_flags & 0x00000080  death_spell_effect_immunity
 behavior_flags & 0x00000100  common_spell_effect_immunity
+behavior_flags & 0x00000200  lightning_bolt_effect_immunity
 behavior_flags & 0x00000800  cold_effect_immunity
 behavior_flags & 0x00002000  fire_effect_immunity
 behavior_flags & 0x00004000  weapon_category10_damage_floor_one
