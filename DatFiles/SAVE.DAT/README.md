@@ -1,6 +1,6 @@
 # SAVE.DAT
 
-Status: **high-effort audited active reconstruction.** The serializer/deserializer order is certified; the shared `0x248` character image is substantially reconstructed; the variable-length global layout, persistent container bank, gameplay clock, renderer controls, and trailing container-UI contexts are now behaviorally mapped.
+Status: **high-effort audited active reconstruction.** The serializer/deserializer order is certified; the shared `0x248` character image is substantially reconstructed; the variable-length global layout, persistent container bank, three saved timing domains, renderer controls, cursor-held item state, and trailing container-UI contexts are behaviorally mapped.
 
 - Supplied fixture size: 9,288 bytes (`0x2448`)
 - Supplied fixture SHA-256: `f898cb92fca6447954f5e0b2bf6f8ad2435e4a64ae3b9de74f8bf75e0ed10d5d`
@@ -43,7 +43,7 @@ The supplied quick-start fixture has `live_world_object_count == 0`, so its late
 
 For a save containing `N` live world objects, every fixture offset from `0x099B` onward shifts by `N * 0x16`. Thus `0x0D59`, `0x0D68`, `0x2438`, and total size `0x2448` are fixture anchors, not universal format constants.
 
-See `GLOBAL_STATE.md` for the detailed executable evidence and full container-state catalogue.
+See `GLOBAL_STATE.md` for the detailed executable evidence and full container-state catalogue. See `PREFIX_GLOBALS.md` for the final fixed-prefix semantic closure.
 
 ## Fixed prefix
 
@@ -56,19 +56,35 @@ See `GLOBAL_STATE.md` for the detailed executable evidence and full container-st
 0x005E..0x0061  player facing/orientation
 0x0062..0x006B  four shared primary-effect counters/state values
 0x006C..0x006F  interrupt-driven engine tick-counter snapshot
-0x0070..0x0076  remaining global selectors/state
+0x0070..0x0073  24-hour 16.16 fixed-point time-of-day clock
+0x0074..0x0075  signed cursor-held OBJECTS.DAT object ID; -1 empty
+0x0076          cursor-held item known/identified flag
 ```
 
-The supplied fixture stores level/map `22`, coordinates `0x00048000/0x00048000`, facing `270`, and interrupt-tick value `1899`.
+The supplied fixture stores level/map `22`, coordinates `0x00048000/0x00048000`, facing `270`, interrupt-tick value `1899`, time-of-day `0x000E0000` = 14:00, cursor item `-1`, and cursor-known flag `0`.
 
-### Two distinct time domains
+### Three distinct saved time domains
 
-Earlier notes loosely called `+0x6C` the game clock. The executable distinguishes two saved counters:
+The executable distinguishes three independent saved timing concepts:
 
 - prefix `+0x6C` is DGROUP `0xF58C`, incremented by the engine interrupt handler and restored under `cli/sti`;
-- middle-state DGROUP `0xA7E4` is the **pausable gameplay tick counter** used to create and expire character effect/action deadlines and to drive periodic gameplay maintenance.
+- middle-state DGROUP `0xA7E4` is the **pausable gameplay tick counter** used to create/expire character effect/action deadlines and drive periodic gameplay maintenance;
+- prefix `+0x70` / DGROUP `0xCF4C` is a **24-hour 16.16 fixed-point world time-of-day clock**. Its high word is the hour modulo 24 and its low word preserves fractional-hour progression.
 
-This distinction is required for faithful timing behavior.
+`CF4C` is initialized to `0x000E0000`, world/environment logic compares its upper word with hour boundaries, the normalizer reduces the hour modulo 24 while retaining the low word, and time-advance code adds approximately one minute in fixed-point units.
+
+These domains must not be collapsed into one native clock.
+
+### Cursor-held item state
+
+`+0x74/+0x76` are the global cursor-held item pair:
+
+```cpp
+int16_t cursor_item_object_id; // OBJECTS.DAT ID; -1 = empty
+uint8_t cursor_item_known;     // zero unknown/unidentified; nonzero known
+```
+
+The held-item setter uses the object ID to select the OBJECTS.DAT record and its inventory/UI graphic, then rebuilds the cursor image. Inventory-transfer code moves `cursor_item_known` alongside the object in the same way character `item_known_bits` move with inventory instances. Item-description code reveals the OBJECTS `+0x37` enchantment suffix only when the known flag is nonzero. SAVE load restores the pair through the held-item setter rather than merely copying bytes.
 
 ## Character image
 
@@ -166,7 +182,7 @@ F920  environment_shading_level   clamped 0..10
 F91C  level_light_adjustment      clamped 0..8
 ```
 
-`F920` feeds palette/shading-table generation and, for levels with an active environment profile, is refreshed from a 24-entry time-of-day table using the hour-like high word of `CF4C` modulo 24. Levels using the `0xFF` profile fallback initialize it from a level-indexed table.
+`F920` feeds palette/shading-table generation and, for levels with an active environment profile, is refreshed from a 24-entry time-of-day table using the integer hour from `CF4C` modulo 24. Levels using the `0xFF` profile fallback initialize it from a level-indexed table.
 
 `F91C` is combined with a party-wide lighting override generated when primary effect 1 or 10 is active, then passed into the same shading-table generator. Exact original UI/editor terminology remains unknown, so the names are behavioral.
 
@@ -200,18 +216,17 @@ python DatFiles/SAVE.DAT/tools/analyze_save.py /path/to/SAVE.DAT
 python DatFiles/SAVE.DAT/tools/analyze_character_records.py /path/to/SAVE.DAT
 ```
 
-The top-level analyzer follows serializer order, parses all 62 container records using the executable slot-count catalogue, and derives late offsets dynamically.
+The top-level analyzer follows serializer order, decodes the fixed-prefix time/cursor fields, parses all 62 container records using the executable slot-count catalogue, and derives late offsets dynamically.
 
 ## Native-port compatibility rule
 
-Treat SAVE.DAT as an explicitly decoded little-endian legacy runtime image. Preserve legacy enum numbers, signed sentinels, unknown fields, the state-61/62 mismatch, and dynamic serializer ordering exactly unless an intentional compatibility-fix layer is separately enabled.
+Treat SAVE.DAT as an explicitly decoded little-endian legacy runtime image. Preserve legacy enum numbers, signed sentinels, full fixed-point time-of-day precision, unknown fields, the state-61/62 mismatch, and dynamic serializer ordering exactly unless an intentional compatibility-fix layer is separately enabled.
 
 ## Remaining reconstruction targets
 
-1. Resolve prefix globals `CF4C`, `8600`, and `8602` beyond their current behavioral anchors.
-2. Decode/catalogue `T[588..613]` for all 26 primary-effect names, including the lighting effects that feed the renderer override.
-3. Recover exact Mage/priest spell lists and per-level entry limits.
-4. Audit remaining character `status_word` bits and portrait/status presentation variants.
-5. Continue semantic recovery of live-world-object fields and any remaining global runtime state needed for a native SAVE implementation.
+1. Decode/catalogue `T[588..613]` for all 26 primary-effect names, including the lighting effects that feed the renderer override.
+2. Recover exact Mage/priest spell lists and per-level entry limits.
+3. Audit remaining character `status_word` bits and portrait/status presentation variants.
+4. Continue semantic recovery of live-world-object fields and any remaining global runtime state needed for a native SAVE implementation.
 
-The principal SAVE uncertainty is now **semantic naming of a small number of globals and effect/catalogue identities**, not byte ordering or container-bank structure.
+The fixed prefix, byte ordering, variable-length middle structure, container bank, and late UI state are now sufficiently resolved for an explicit native compatibility decoder. The remaining SAVE work is concentrated in effect/resource catalogues and live-world-object semantics.
