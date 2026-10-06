@@ -1,6 +1,6 @@
 # NPCS.DAT
 
-Status: **fixed 83 × 0x45 record format proven; scene/render parameters, collision extent, core combat statistics, XP, action delay, runtime-state templates and creature sound IDs reconstructed; sixteen behavior/effect bits decoded; lossless parse/encode verified.**
+Status: **fixed 83 × 0x45 record format proven; scene/render parameters, collision extent, core combat statistics, XP, action delay, runtime-state templates and creature sound IDs reconstructed; eighteen behavior/effect bits decoded; lossless parse/encode verified.**
 
 - Size: 5,731 bytes
 - SHA-256: `f2dd1175bf42e8291b95952282dfc0cfb84455aaa532987cdd7380094c8eb30b`
@@ -101,7 +101,9 @@ Two access-width boundaries remain controlling:
 0x00000002  hold_undead_effect_immunity
 0x00000008  hold_person_effect_immunity
 0x00000010  hold_monster_effect_immunity
+0x00000080  death_spell_effect_immunity
 0x00000100  common_spell_effect_immunity
+0x00000200  lightning_bolt_effect_immunity
 0x00000800  cold_effect_immunity
 0x00002000  fire_effect_immunity
 0x00004000  weapon_category10_damage_floor_one
@@ -111,14 +113,17 @@ Two access-width boundaries remain controlling:
 CODE.2 constructs these compound spell masks:
 
 ```text
-Hold Undead    0x0102 = 0x0100 | 0x0002
-Hold Person    0x0108 = 0x0100 | 0x0008
-Hold Monster   0x0110 = 0x0100 | 0x0010
-fire effects   0x2100 = 0x0100 | 0x2000
-cold effects   0x0900 = 0x0100 | 0x0800
+Hold Undead      0x0102 = 0x0100 | 0x0002
+Hold Person      0x0108 = 0x0100 | 0x0008
+Hold Monster     0x0110 = 0x0100 | 0x0010
+Lightning Bolt   0x0300 = 0x0100 | 0x0200
+fire effects     0x2100 = 0x0100 | 0x2000
+cold effects     0x0900 = 0x0100 | 0x0800
 ```
 
 Mage and priest Hold Person independently use `0x0108`; the Hold variants share the same live held-state bit. Elemental aliases are additionally consistent with the game's bestiary descriptions.
+
+Lightning Bolt is closed through `OBJECTS.DAT` object 188 -> effect 28 -> moving-effect type 1 -> NPC mask `0x0300`. Death Spell is closed through object 197 -> effect 51 -> target routine `AED8` -> direct `npc[+0x31] & 0x80` exclusion. See `TARGETED_EFFECT_IMMUNITIES.md`.
 
 The two weapon-category gates come from CODE.2 `0xC910..0xC99E`. Before testing them, the engine reroutes every nonzero-enchantment OBJECTS definition to category 11. An unenchanted category-10 hit against `0x00004000`, or an unenchanted/category-fallback-9 hit against `0x00008000`, is zeroed and then clamped by the same routine to **one damage minimum**. They are damage-floor/resistance behaviors, not zero-damage immunity. See `WEAPON_DAMAGE_FLAGS.md`.
 
@@ -144,7 +149,7 @@ Paralysis is independently anchored by `RING OF FREE ACTION` and the Remove Para
 0x20  undead_classification
 ```
 
-The disease identity is executable-closed: the attack sets party status bit `0x04`; internal cure code `0x64` clears it; cleric effect ID `100` supplies code `0x64`; OBJECTS.DAT object `215` is `CLERIC SCROLL OF 'CURE DISEASE'`.
+The disease identity is executable-closed: the attack sets party status bit `0x04`; internal cure code `0x64` clears it; cleric effect ID `100` supplies that code; OBJECTS.DAT object `215` is `CLERIC SCROLL OF 'CURE DISEASE'`.
 
 The level-drain path decrements character class levels/progression; the Strength-drain path calls the Strength-adjustment helper with `-1`; turning, detection and combat paths independently use `0x20` as the undead classification.
 
@@ -194,7 +199,9 @@ Flag analyzers verify:
 hold_undead_effect_immunity           25
 hold_person_effect_immunity           31
 hold_monster_effect_immunity          24
+death_spell_effect_immunity           11
 common_spell_effect_immunity           4
+lightning_bolt_effect_immunity         5
 cold_effect_immunity                  12
 fire_effect_immunity                   6
 weapon_category10_damage_floor_one    16
@@ -215,12 +222,14 @@ obstacle_passthrough                    5
 - `BEHAVIOR_FLAGS.md` — canonical proved flag ledger and unresolved boundary.
 - `EFFECT_IMMUNITIES.md` — common/fire/cold spell-effect immunity mechanics.
 - `HOLD_IMMUNITIES.md` — Hold Undead/Person/Monster immunity masks and shared live held state.
+- `TARGETED_EFFECT_IMMUNITIES.md` — Lightning Bolt and Death Spell exclusion chains.
 - `STATUS_ATTACKS.md` — poison/disease/paralysis party-status mapping and cure-dispatch proof.
 - `WEAPON_DAMAGE_FLAGS.md` — category-9/category-10 one-damage gates and unresolved category-11 branch behavior.
 - `inspect_npcs.py` — lossless parser/encoder and corpus audit.
 - `analyze_behavior_flags.py` — raw bit distribution and proved semantic-set audit.
 - `analyze_effect_immunities.py` — common/fire/cold immunity validation.
 - `analyze_hold_immunities.py` — NPCS/OBJECTS/CODE.2 hold-family validation.
+- `analyze_targeted_effect_immunities.py` — scroll/effect/moving-record/target-mask verification for Lightning Bolt and Death Spell.
 - `analyze_status_attacks.py` — NPC status setters, cure handlers and spell-name validation.
 - `analyze_weapon_damage_flags.py` — NPC/OBJECTS category sets and exact CODE.2 damage-gate signatures.
 
@@ -228,9 +237,9 @@ obstacle_passthrough                    5
 
 The remaining NPCS work is narrower:
 
-1. resolve the transient-effect immunity bit `0x00000200` by identifying moving-effect type 1;
-2. resolve additional raw `behavior_flags` bits through spell/effect/AI callers, including the effect-51 `0x00000080` gate;
-3. tighten the exact role of `+0x41` and `render_aux_27`;
-4. document story-NPC-specific animation meanings only where code proves them.
+1. resolve additional raw `behavior_flags` bits through spell/effect/AI callers, with `0x00000004` the strongest current candidate because it directly modifies undead-turning resolution;
+2. tighten the exact role of `+0x41` and `render_aux_27`;
+3. document story-NPC-specific animation meanings only where code proves them;
+4. preserve anomalous category-11 weapon-gate bits raw unless their intended source-level contract can be independently established.
 
 The current schema supports a lossless reader/editor and faithful reproduction of the creature stat/render/effect database while preserving every unresolved bit verbatim.
