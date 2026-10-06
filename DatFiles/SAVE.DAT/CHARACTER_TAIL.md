@@ -1,6 +1,6 @@
 # SAVE.DAT late character-record state (`+0x1BE..+0x247`)
 
-Status: **active executable reconstruction. Several late-record fields are now structurally or semantically certified.**
+Status: **active executable reconstruction. The nine-entry secondary timer subsystem is now identified as temporary spell-created hand-attack/item state.**
 
 This note continues the character-record reconstruction after the 26-entry timed-effect table and the three paired timed slots documented in `EFFECT_FLAGS.md` / `TIMED_SLOTS.md`.
 
@@ -23,8 +23,6 @@ When item slot 20 (`record +0x70`, runtime `0x21948`) contains object `0x54`, th
 
 Thus `+0x1BE` is persistent auxiliary state for the Stone Giant Gauntlets Strength override. Preserve the full dword exactly even though the transfer helper uses its low byte.
 
-A faithful native implementation should model the transition, not merely recompute Strength from inventory after load, because the original record preserves the displaced value.
-
 ## `+0x1C6`: reversible effect modifier
 
 Runtime `0x21A9E` equals record `+0x1C6`. The 26-effect expiration handler reads this dword for effect index 23, negates it, and passes it to the same character-adjustment helper at physical `0x4CF50`.
@@ -33,37 +31,56 @@ A producer at physical `0x61FEB` stores the return value of a `0x4CF50(character
 
 The exact player-facing effect name remains pending resource/caller identification.
 
-## `+0x1CA`: second active-effect bitset
+## `+0x1CA`: temporary hand-effect bitset
 
-Runtime `0x21AA2` equals record `+0x1CA`. CODE.2 treats it as a bitset with **nine** timer entries:
+Runtime `0x21AA2` equals record `+0x1CA`. CODE.2 treats it as a bitset with exactly **nine** timer entries:
 
 ```text
-+0x1CA..+0x1CD   uint32 secondary_effect_bits
-+0x1CE..+0x1F1   uint32 secondary_expiry[9]
++0x1CA..+0x1CD   uint32 temporary_hand_effect_bits
++0x1CE..+0x1F1   uint32 temporary_hand_effect_expiry[9]
 ```
 
-Maintenance routine physical `0x43860..0x438EE`:
-
-1. checks whether `secondary_effect_bits` is nonzero;
-2. iterates indexes 0 through 8;
-3. reads `secondary_expiry[index]` at runtime `0x21AA6 + index*4`;
-4. compares a nonzero deadline with current game time;
-5. clears the corresponding bit by XOR;
-6. clears that timer dword;
-7. calls expiration/action helper `0x435E8(character,index)`.
+Maintenance routine physical `0x43860..0x438EE` checks the bitset, iterates indexes 0 through 8, compares each nonzero absolute deadline against current game time, clears the matured bit/timer, and calls expiration helper `0x435E8(character,index)`.
 
 Producer physical `0x44A30..0x44A62` independently confirms the pairing: it ORs a caller-provided mask into `+0x1CA` and stores an absolute future game-clock value at `+0x1CE + index*4`.
 
-This is therefore a second persistent timed-effect subsystem, distinct from the 26-entry `+0x13A/+0x13E` system.
+### Exact index-to-object identity
 
-Portable representation:
+The expiration helper resolves the gameplay family. For the expiring index it reads a signed 16-bit object ID from executable table `0x67CA[index]`, compares that ID against both hand slots (`item[14]` and `item[15]`), and removes the matching hand object through `0x5F9C0`.
 
-```c
-uint32_t secondary_effect_bits;   // +0x1CA
-uint32_t secondary_expiry[9];     // +0x1CE
+The nine-entry table is physically present in CODE.2 at file `0x7C6EE` and is the contiguous sequence:
+
+```text
+0x007E 0x007F 0x0080 0x0081 0x0082 0x0083 0x0084 0x0085 0x0086
 ```
 
-Do not merge these nine states into the primary 26-effect table: the original executable uses separate masks, separate timer arrays, and a separate expiration helper.
+Cross-checking those IDs against OBJECTS.DAT gives the exact secondary-effect identities:
+
+```text
+index  bit mask    object   OBJECTS.DAT name
+0      0x000001    0x007E   CHILL TOUCH
+1      0x000002    0x007F   VAMPIRIC TOUCH
+2      0x000004    0x0080   CLAWS OF THE UMBER HULK
+3      0x000008    0x0081   CAUSE LIGHT WOUNDS
+4      0x000010    0x0082   CAUSE SERIOUS WOUNDS
+5      0x000020    0x0083   CAUSE CRITICAL WOUNDS
+6      0x000040    0x0084   HARM
+7      0x000080    0x0085   FLAME BLADE
+8      0x000100    0x0086   LICH TOUCH
+```
+
+This closes the semantic identity of the entire nine-entry subsystem: these timers track **temporary spell/effect-created hand attack objects**. When the associated duration expires, the engine removes the corresponding temporary object if it is still present in either hand.
+
+The equipment-placement routine immediately preceding the timer write provides independent support. It handles hand slots 14/15, recognizes the same object-ID range `0x7E..0x86`, installs special objects into one or both hands, clears their per-item known-state bits as appropriate, and only then schedules the secondary timer.
+
+A faithful native implementation should preserve the original separation between the temporary hand object itself and its duration state:
+
+```c
+uint32_t temporary_hand_effect_bits;       // +0x1CA
+uint32_t temporary_hand_effect_expiry[9];  // +0x1CE
+```
+
+Do not merge these nine states into the primary 26-effect table. They have separate masks, timers, creation/equipment behavior, and expiration cleanup.
 
 ## `+0x1F2`: persistent additive state
 
@@ -75,7 +92,7 @@ This certifies it as persistent gameplay state, not padding. Its exact gameplay 
 
 Runtime `0x21ACE` equals record `+0x1F6`. Maintenance code at physical `0x438EE..0x43954` compares this nonzero dword against current game time, clears it when due, applies a character adjustment, then may schedule a new future value. Another producer at `0x487C3` writes it directly.
 
-It is therefore an independent persistent deadline/state timestamp outside both the 26-entry and 9-entry effect arrays.
+It is therefore an independent persistent deadline/state timestamp outside both the 26-entry and nine-entry effect arrays.
 
 ## `+0x1FA`: persistent counter
 
@@ -89,8 +106,8 @@ Runtime `0x21AD2` equals record `+0x1FA`. The primary effect expiration handler 
 +0x1BE..+0x1C1   Stone Giant Gauntlets displaced/effective Strength auxiliary dword
 +0x1C2..+0x1C5   unresolved
 +0x1C6..+0x1C9   reversible modifier for primary effect index 23
-+0x1CA..+0x1CD   uint32 secondary_effect_bits
-+0x1CE..+0x1F1   uint32 secondary_expiry[9]
++0x1CA..+0x1CD   uint32 temporary_hand_effect_bits
++0x1CE..+0x1F1   uint32 temporary_hand_effect_expiry[9]
 +0x1F2..+0x1F5   persistent additive effect/gameplay state
 +0x1F6..+0x1F9   independent deadline/state timestamp
 +0x1FA..+0x1FD   persistent effect-associated counter
@@ -102,10 +119,12 @@ Runtime `0x21AD2` equals record `+0x1FA`. The primary effect expiration handler 
 A native loader must preserve every field above losslessly. In particular:
 
 - retain the Stone Giant Gauntlets displaced Strength state across save/load;
-- preserve the secondary nine-bit effect mask and all nine absolute deadlines;
+- preserve the temporary hand-effect mask and all nine absolute deadlines;
+- preserve the exact association between secondary index and object ID `0x7E..0x86`;
+- on expiration, remove the matching temporary hand object only when it is still present;
 - do not fold the independent `+0x1F6` deadline into either timer array;
 - preserve unresolved bytes unchanged until their executable consumers are certified.
 
 ## Next target
 
-Trace expiration helper `0x435E8` and the producers of `+0x1CA` to assign gameplay identities to the nine secondary effects, then continue through `+0x1FE..+0x247`.
+Resolve `+0x1C2..+0x1C5`, `+0x1F2..+0x1FD`, and determine whether the apparently unreferenced `+0x1FE..+0x247` tail contains computed-address arrays, reserved serialization state, or data consumed outside the direct-address patterns already traced.
