@@ -276,17 +276,12 @@ The final supplied-build re-audit is recorded in `FINAL_AUDIT_2026-10-06.md`. It
 
 Treat SAVE.DAT as an explicitly decoded little-endian legacy runtime image. Preserve legacy enum/index numbers, signed sentinels, fixed-point time precision, status bits, both fixed-size spell matrices, all 26 primary-effect bits/timers, unknown/reserved bytes, dynamic serializer ordering, and the container state-61/62 mismatch exactly unless an explicit compatibility-fix layer says otherwise.
 
-## Remaining reconstruction targets
+## Bounded archival enrichment
 
-The principal SAVE structure and character identity layer are now closed. CODE.1 proves the exact player portrait subset (`0..16`) versus predefined roster slots, and independently generates/displays serialized age from race-specific starting-age dice.
+The supplied-build SAVE format is certified. Remaining work is optional semantic enrichment:
 
-Remaining work is bounded:
+1. recover narrower historical/source-level names for transient-effect packed-state or auxiliary fields if new primary evidence appears;
+2. identify a producer for transient-effect descriptor types 5/7 if one exists outside the audited supplied paths;
+3. recover historical names for opaque character/effect fields such as `+0x1BA` without changing their preserved binary treatment.
 
-1. finish any defensible names for transient-effect packed-state/auxiliary fields and dormant types 5/7;
-2. retain opaque character/effect fields whose lifecycle is known but whose original source-level names are not;
-3. complete the SAVE-wide stale-offset/semantic consistency audit and validator/tooling synchronization;
-4. then mark the supplied-build SAVE format archival-complete if no contradiction remains.
-
-Status bit `0x2000` and low bits `0x0001..0x0020` have reached a bounded evidence result: the shipped runtime recognizes/preserves them, but the direct producer audit does not justify player-facing names. They remain compatibility-preserved raw state rather than open invitations to infer AD&D conditions.
-
-The remaining SAVE work is now predominantly **live-object semantics and final residual/audit closure**, not basic serializer geometry, spell cataloguing, or primary-effect discovery.
+Status bit `0x2000` and low bits `0x0001..0x0020` remain compatibility-preserved raw state because the direct producer audit does not justify player-facing names.
