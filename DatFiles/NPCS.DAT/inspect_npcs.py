@@ -201,11 +201,11 @@ def inspect(path: Path) -> None:
     print(f"combat_hit_dice_nonzero={sum(record.hit_dice_count != 0 for record in records)}")
     print(f"scene_influence_nonzero={sum(record.scene_influence_step != 0 for record in records)}")
     print(
-        "projected_scale_lookup_bias_nonzero="
+        "render_scale_lookup_bias_nonzero="
         f"{sum(record.render_scale_lookup_bias != 0 for record in records)}"
     )
-    print(f"reserved_3b_nonzero={sum(record.unresolved_3b != 0 for record in records)}")
-    print(f"reserved_3c_nonzero={sum(record.unresolved_3c != 0 for record in records)}")
+    print(f"unresolved_3b_nonzero={sum(record.unresolved_3b != 0 for record in records)}")
+    print(f"unresolved_3c_nonzero={sum(record.unresolved_3c != 0 for record in records)}")
 
     print("-- first definitions --")
     for index, record in enumerate(records[:12]):
