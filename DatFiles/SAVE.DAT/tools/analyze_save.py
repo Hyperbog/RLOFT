@@ -75,7 +75,7 @@ def main() -> int:
     ap.add_argument("save", type=Path)
     args = ap.parse_args()
     data = args.save.read_bytes()
-    require(data, MIDDLE_OFFSET + 4, "fixed prefix/party/world-object count")
+    require(data, MIDDLE_OFFSET + 4, "fixed prefix/party/live-effect count")
 
     print(f"file: {args.save}")
     print(f"size: {len(data)} bytes (0x{len(data):X})")
@@ -104,7 +104,7 @@ def main() -> int:
 
     world_count = u32(data, MIDDLE_OFFSET)
     if world_count > WORLD_OBJECT_LIMIT:
-        raise SystemExit(f"invalid live-world-object count {world_count}; executable limit is {WORLD_OBJECT_LIMIT}")
+        raise SystemExit(f"invalid live transient-effect count {world_count}; executable limit is {WORLD_OBJECT_LIMIT}")
     world_start = MIDDLE_OFFSET + 4
     world_end = world_start + world_count * WORLD_OBJECT_SIZE
     require(data, world_end, "world objects")
@@ -114,11 +114,11 @@ def main() -> int:
     container_bank_off = gameplay_ticks_off + 4
 
     print("\nDynamic middle state")
-    print(f"  live-world-object count       : {world_count}")
+    print(f"  live transient-effect count       : {world_count}")
     if world_count:
-        print(f"  live-world-object array       : 0x{world_start:04X}-0x{world_end - 1:04X}")
+        print(f"  live transient-effect array       : 0x{world_start:04X}-0x{world_end - 1:04X}")
     else:
-        print(f"  live-world-object array       : empty at 0x{world_start:04X}")
+        print(f"  live transient-effect array       : empty at 0x{world_start:04X}")
     print(
         "  spell UI selected characters : "
         f"[{u32(data, spell_ui_off)}, {u32(data, spell_ui_off + 4)}]"
