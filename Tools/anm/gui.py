@@ -37,6 +37,92 @@ AUDIO_ARCHIVES = ("RES6", "RES10", "RES11", "RES12")
 MUSIC_ARCHIVES = ("RES5", "RES11")
 TIMING_MODES = ("Native engine timing", "Custom FPS")
 
+# Effective average logical frame rates for the certified CINE00..CINE12 corpus
+# under the reconstructed CODE.2 native variable-timing path.
+NATIVE_AVG_FPS = {
+    "CINE00.ANM": 3.623409,
+    "CINE01.ANM": 3.295066,
+    "CINE02.ANM": 3.710882,
+    "CINE03.ANM": 3.710882,
+    "CINE04.ANM": 3.710882,
+    "CINE05.ANM": 3.710882,
+    "CINE06.ANM": 3.578044,
+    "CINE07.ANM": 3.337255,
+    "CINE08.ANM": 3.357229,
+    "CINE09.ANM": 3.444475,
+    "CINE10.ANM": 3.034419,
+    "CINE11.ANM": 3.034419,
+    "CINE12.ANM": 15.061751,
+}
+
+
+class ToolTip:
+    """Delayed, single-window hover help that stays out of the way."""
+
+    def __init__(self, widget: tk.Widget, text: str, delay_ms: int = 700) -> None:
+        self.widget = widget
+        self.text = text
+        self.delay_ms = delay_ms
+        self._after: str | None = None
+        self._window: tk.Toplevel | None = None
+        widget.bind("<Enter>", self._schedule, add="+")
+        widget.bind("<Leave>", self._hide, add="+")
+        widget.bind("<ButtonPress>", self._hide, add="+")
+        widget.bind("<Destroy>", self._hide, add="+")
+
+    def _schedule(self, _event=None) -> None:
+        self._cancel()
+        self._after = self.widget.after(self.delay_ms, self._show)
+
+    def _cancel(self) -> None:
+        if self._after is not None:
+            try:
+                self.widget.after_cancel(self._after)
+            except tk.TclError:
+                pass
+            self._after = None
+
+    def _show(self) -> None:
+        self._after = None
+        if self._window is not None or not self.text:
+            return
+        try:
+            x = self.widget.winfo_pointerx() + 14
+            y = self.widget.winfo_pointery() + 18
+        except tk.TclError:
+            return
+        top = tk.Toplevel(self.widget)
+        top.wm_overrideredirect(True)
+        try:
+            top.wm_attributes("-topmost", True)
+        except tk.TclError:
+            pass
+        label = tk.Label(
+            top,
+            text=self.text,
+            justify="left",
+            wraplength=360,
+            background="#ead9b5",
+            foreground="#1a100d",
+            relief="solid",
+            borderwidth=1,
+            padx=8,
+            pady=6,
+            font=("Segoe UI", 9),
+        )
+        label.pack()
+        top.wm_geometry(f"+{x}+{y}")
+        self._window = top
+
+    def _hide(self, _event=None) -> None:
+        self._cancel()
+        if self._window is not None:
+            try:
+                self._window.destroy()
+            except tk.TclError:
+                pass
+            self._window = None
+
 
 class RavenloftExtractorGui(tk.Tk):
     def __init__(self) -> None:
@@ -691,7 +777,7 @@ class RavenloftExtractorGui(tk.Tk):
             cinematic_frames=self.all_frames.get(),
             cinematic_videos=self.all_videos.get(),
             cinematic_timeline=True,
-            preserve_native=True,
+            preserve_native=self.graphics_native.get(),
             export_support=self.all_support.get(),
         )
         self._run("Dumping complete media corpus…", lambda: master_dumper.dump_all(root, dest, options, self._master_progress, True))
