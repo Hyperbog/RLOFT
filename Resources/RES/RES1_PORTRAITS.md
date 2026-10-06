@@ -102,6 +102,85 @@ No supplied SAVE character uses female face index 21 or 22. The active typed res
 
 A malformed/custom character record could still mathematically calculate those indexes. Therefore the preservation claim is **invalid/reserved slots in the supplied content/runtime contract**, not a claim that arbitrary memory corruption could never request them.
 
+## Player-selectable subset and predefined-NPC slots
+
+CODE.1 closes the distinction between the 23-slot runtime bank capacity and the portrait choices offered during character creation.
+
+The CODE.1 party image begins at runtime `0x67F8`, with the same `0x248` record geometry later transferred through `CHARS`. Therefore:
+
+```text
+CODE.1 character +0x12 = runtime 0x680A + character_index*0x248 = face_index
+CODE.1 character +0x13 = runtime 0x680B + character_index*0x248 = sex_code
+```
+
+The portrait-selection routine at physical `0x2F188..0x2F515` operates as follows:
+
+- records the current character's sex;
+- displays six portrait choices per page;
+- uses page bases `0`, `6`, and `12`;
+- wraps the page base by `(base + 6) mod 18`;
+- computes each displayed resource as `RES1_face_base + sex*23 + page_base + slot`;
+- explicitly disables `page_base + slot == 17`;
+- also disables a face already used by the other original player-created character when both characters have the same sex;
+- when a choice is accepted, stores `face_index = page_base + selected_slot`.
+
+Consequently the shipped character-creation UI exposes exactly:
+
+```text
+face_index 0..16  player-selectable
+face_index 17     deliberately displayed as disabled on the final page
+face_index 18..22 never reached by the creation-page cycle
+```
+
+The 17-choice boundary is executable behavior, not inferred from resource counts.
+
+### Roster/NPC portrait assignment
+
+The supplied SAVE roster independently explains the remaining valid bank slots:
+
+```text
+MALE predefined roster slots
+face 17  FHALKEN
+face 18  RYSZARD
+face 19  ANSHELM
+face 20  VUKO
+face 21  MISCHA
+face 22  VLADISLAV
+
+FEMALE predefined roster slots
+face 17  GLORIANNA
+face 18  TATIAN
+face 19  VELIKA
+face 20  IRMGARDE
+face 21  invalid/reserved
+face 22  invalid/reserved
+```
+
+This yields the exact normal-bank partition:
+
+```text
+336..352  male player-selectable faces 0..16
+353..358  male predefined-roster faces 17..22
+
+359..375  female player-selectable faces 0..16
+376..379  female predefined-roster faces 17..20
+380       female reserved slot 21: zero length
+381       female reserved slot 22: raw 0x00000060
+```
+
+and the possessed bank is the same partition shifted by 46:
+
+```text
+382..398  possessed male player faces 0..16
+399..404  possessed male predefined-roster faces 17..22
+405..421  possessed female player faces 0..16
+422..425  possessed female predefined-roster faces 17..20
+426       possessed female reserved slot 21
+427       possessed female reserved slot 22
+```
+
+The saved-roster records themselves do not carry the recruited/template provenance bit while stored in the roster pool; active-party installation is the separate path that sets `status 0x0080`. The portrait-slot classification above is therefore based on the roster record identities and CODE.1 creation exclusion boundary, not on that active-party status bit.
+
 ## Portrait resource homogeneity
 
 Every populated portrait slot is a type-1 resource with the same 8-byte descriptor:
