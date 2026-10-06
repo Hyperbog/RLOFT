@@ -11,7 +11,7 @@
 - Retained global Dump All.
 - Added reconstructed native ANM variable frame timing from the CODE.2 wait path.
 - Retained optional custom constant-FPS presentation export.
-- Added synchronized sampled-SFX muxing for proven ANM chunk-6/chunk-9 RES6 events.
+- Added synchronized sampled-SFX muxing: queued chunk 6 resolves through RES6 and direct chunk 9 through the original RES10 archive-switch path.
 - Music commands remain XMI/MIDI/timeline data rather than being rendered with an
   arbitrary soundfont.
 - Suppressed FFmpeg/helper console windows on Windows using no-console process flags.
