@@ -133,11 +133,29 @@ Party-slot population code scans for `0x8000`; when found it installs a complete
 
 Do not infer occupancy from zero-filled bytes: unused records retain many nonzero/`0xFF` values.
 
-## `0x2000`: intentionally unresolved
+## `0x2000`: engine-recognized but producer-unproven
 
-`0x2000` participates in engine eligibility logic—for example it is part of common aggregate mask `0xF240`, and at physical `0x47664` a status value at or above `0x2000` is excluded from one hand/action-selection path—but the named status display stops at `0x1000` and no direct setter/clearer has yet established its gameplay identity.
+A dedicated residual audit searched the certified CODE.2 image for direct status-word/high-byte writers and the literal masks needed to set or clear this bit. The direct-address status writers account for possession, Held-adjacent/story state, disease, poison, paralysis, death, revival, and empty/template ownership, but no direct `status |= 0x2000` / `status &= ~0x2000` lifecycle was found.
+
+The bit is nevertheless consumed by shipped code:
+
+- it is part of common aggregate mask `0xF240`;
+- physical `0x47664` excludes status values at or above `0x2000` from one hand/action-selection path;
+- other eligibility/action paths therefore reserve it as a higher-order blocking tier.
+
+The named character-status display stops at `0x1000`; raw `T` supplies no sixth contiguous player-facing condition name for `0x2000`. The supplied quick-start fixture also has no populated record carrying this bit.
+
+One physical path around `0x59A42` tests high-byte bit `0x20` only after an immediately preceding `status & 0xF240 == 0` gate. Since `0xF240` already contains `0x2000`, that branch cannot establish a distinct live meaning for the bit; it is best treated as redundant/dead legacy logic unless another producer is found.
+
+The archival classification is therefore **engine-recognized action/eligibility blocking state with no proved producer or player-facing identity in the supplied build**. A computed-pointer writer cannot be ruled out solely by the direct-address audit, so the bit remains preserved rather than declared unused.
 
 Do not label it `unconscious`, `petrified`, or another AD&D condition without producer evidence.
+
+## Low bits `0x0001..0x0020`
+
+The residual audit likewise found no defensible player-facing or lifecycle identity for status bits `0x0001`, `0x0002`, `0x0004`, `0x0008`, `0x0010`, or `0x0020`. They are outside the contiguous status-screen condition range and are not needed by the certified occupancy/provenance/possession/death mappings.
+
+This is an evidence boundary, not proof that the bits were historically padding. A compatibility implementation must round-trip them exactly.
 
 ## Aggregate masks
 
