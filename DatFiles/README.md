@@ -35,6 +35,8 @@ The supplied-build `LEVELS.DAT` master archive and `LEVnnn.DAT` standalone mutab
 
 The supplied-build `OBJECTS.DAT` static object/item database is now archival-complete as well. Its final certification is recorded in `OBJECTS.DAT/FINAL_AUDIT_2026-10-06.md`; unlike LEVELS, the supplied OBJECTS parser/encoder already passes byte-exact decode→encode round-trip testing.
 
+The supplied-build `NPCS.DAT` creature/NPC definition database is also archival-complete. Its final certification is recorded in `NPCS.DAT/FINAL_AUDIT_2026-10-06.md`; its semantic serializer preserves unresolved flag capacity and nonzero post-NUL name-field residue while reproducing the original file byte-for-byte.
+
 Across completed formats, bounded opaque or historical fields are preserved explicitly rather than assigned speculative semantics. A reconstruction-complete label never implies a generic encoder unless separate round-trip tests demonstrate that milestone.
 
 ## Initial priority
