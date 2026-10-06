@@ -139,3 +139,25 @@ Modern output integrations follow official project/specification sources
 (FFmpeg, Pillow, Xiph/RFC FLAC, and the MIDI Association).
 
 Unknown or middleware-specific structures are preserved instead of normalized.
+
+## Windows 11 executable
+
+A reproducible x64 Windows build is produced by
+`.github/workflows/build-windows-extractor.yml`.
+
+The build:
+
+- uses the Windows GitHub runner and Python 3.12 x64;
+- freezes `app.py` with PyInstaller into
+  `RavenloftAssetExtractor.exe`;
+- bundles Pillow/Tk and the extraction modules;
+- downloads the FFmpeg release-essentials Windows package linked from the
+  official FFmpeg download page;
+- verifies the published FFmpeg package SHA-256 before packaging;
+- bundles `ffmpeg.exe` inside the one-file application;
+- runs `RavenloftAssetExtractor.exe --self-test` after freezing;
+- publishes the EXE, SHA-256 sidecar, build information, and third-party
+  notices as a GitHub Actions artifact.
+
+The executable does not contain Ravenloft game data. Select the folder holding
+the certified 33-file corpus after launch.
