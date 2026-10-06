@@ -143,6 +143,64 @@ set flag 0x57
 
 Opcodes 9 and 10 remain valid executable-supported commands even though the supplied archive does not use them.
 
+## Opcode 11 reserved branches 0x0B..0x0D
+
+The three reserved values are now individually reconstructed. They are one-off story hooks, not general data-driven event operations.
+
+### arg3 = 0x0B — final-Strahd story activation
+
+Interpreter 004EF calls logical 00074.
+
+That routine:
+
+1. invokes RES9 wordcode program 28;
+2. the certified program index identifies program 28 as **FINAL STRAHD**;
+3. sets persistent global event flag 0x3A;
+4. scans every live family-A NPC record;
+5. for NPC type 8 (NPCS.DAT name **STRAHD**) clears runtime suppression byte +0x0B & 0x02;
+6. calls world/scene refresh path 1F1C8.
+
+Thus the reserved event is safely **final-Strahd story activation / Strahd reveal-enable**. It is used once in the supplied archive: level 29, event slot 28.
+
+### arg3 = 0x0C — Vengeful-Spirit possession lifecycle
+
+Interpreter 004FE calls logical 000B8.
+
+That routine is independently reconstructed by SAVE/status and RES9 evidence. It drives the **GHOST / Vengeful-Spirit possession story state**:
+
+- RES9 wordcode program 9 is GHOST;
+- persistent flags 0x20, 0x3C, and 0x3D select onset/resolution state;
+- onset selects an eligible party member and installs the possession state;
+- resolution clears possession/warning status from the party after the Ghoul Lord completion condition.
+
+See DatFiles/SAVE.DAT/STATUS_POSSESSION.md for the full character-status lifecycle.
+
+The supplied LEVELS archive uses this branch once: level 10, event slot 3.
+
+### arg3 = 0x0D — Irmgarde-dependent fixed-cell story trigger
+
+Interpreter 0050D calls logical 001FC and uses its boolean return.
+
+The routine first checks persistent flag 0x46; if already set, it returns false. Otherwise it calls 14A60 with DGROUP pointer 0x0004. The supplied data image at that address begins the NUL-terminated string IRMGARDE.
+
+14A60 scans the active party by character name and requires the recruited/template provenance bit 0x0080. The returned Irmgarde record is then rejected when status contains either paralysis 0x1000 or death 0x4000.
+
+On success 001FC performs:
+
+~~~text
+cell_index = 18 * map_width + 54
+cell[cell_index].low_byte &= 0xC0
+set persistent event flag 0x46
+BF44 = 0x33
+return 1
+~~~
+
+The cell operation clears its six-bit cell code while retaining low-byte bits 6..7. If no recruited Irmgarde is found the routine instead writes BF44 = 0x4A and returns false.
+
+After a true return, opcode 11 additionally clears control bit 0x04 on the already-resolved command cell record when one exists.
+
+The supplied archive uses this reserved branch once: level 5, event slot 23. The safe reusable description is **Irmgarde-dependent fixed-cell story trigger**, not a generic open-door opcode: its character name, destination cell, event flag, and state codes are all hard-coded.
+
 ## Opcode 11 default branch — numbered interactive event resource
 
 Opcode 11 reserves `arg3 = 0x0B`, `0x0C`, and `0x0D` for three address-distinct story/special routines. Any other value executes:
