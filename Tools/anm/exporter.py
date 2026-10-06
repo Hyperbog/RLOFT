@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -13,6 +14,7 @@ from typing import Callable, Iterable
 from PIL import Image
 
 import rloft_anm as anm
+import runtime_paths
 
 ProgressCallback = Callable[[int, int, str], None]
 
@@ -173,7 +175,11 @@ def export_video(
     ffmpeg_path: str | None = None,
     progress: ProgressCallback | None = None,
 ) -> None:
-    ffmpeg = ffmpeg_path or shutil.which("ffmpeg")
+    if ffmpeg_path:
+        ffmpeg = ffmpeg_path
+    else:
+        resolved = runtime_paths.bundled_path("ffmpeg.exe" if os.name == "nt" else "ffmpeg")
+        ffmpeg = str(resolved) if resolved else None
     if not ffmpeg:
         raise anm.AnmError(
             "FFmpeg was not found. Install FFmpeg and ensure 'ffmpeg' is on PATH."
