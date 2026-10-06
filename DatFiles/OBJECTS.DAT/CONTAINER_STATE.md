@@ -1,6 +1,6 @@
 # OBJECTS.DAT container-state indirection
 
-Status: **category-1 `+0x31` container-state indirection and the runtime 10-byte descriptor layout are instruction-proven from certified CODE.2.**
+Status: **category-1 `+0x31` container-state indirection and the runtime 10-byte descriptor layout are instruction-proven from certified CODE.2.** SAVE.DAT persistence of descriptors `0..61` is now cross-linked, including the shipped selector-62 mismatch.
 
 `OBJECTS.DAT` does not embed mutable container contents in its 65-byte object definitions. For `item_category == 1`, signed byte `+0x31` selects a mutable runtime descriptor in the table beginning at DGROUP `0x7330`.
 
@@ -98,7 +98,38 @@ Observed referenced state indexes are:
 
 Index 20 belongs to `BAG OF HOLDING`.
 
-The examined certified CODE.2 data image has a zero-filled descriptor at index 62 even though object ID 329 (`QUIVER`) references it. This is preserved as an evidence point, not normalized or silently repaired. Arbitrary tools must not infer descriptor validity solely from the numeric state-index range.
+## SAVE.DAT persistence
+
+The SAVE serializer loops exactly over descriptor indexes `0..61`. For each it writes:
+
+```text
+2 * descriptor.slot_count bytes from descriptor.contents_pointer
+1 byte from descriptor +9
+```
+
+The supplied executable descriptor table has 438 total slots across indexes `0..61`, so SAVE persists exactly:
+
+```text
+438 * 2 + 62 = 938 bytes = 0x3AA
+```
+
+See `DatFiles/SAVE.DAT/GLOBAL_STATE.md` for the complete per-index width/offset catalogue and quick-start contents.
+
+## Shipped state-61 / selector-62 mismatch
+
+The final shipped container definition exposes a real data/runtime mismatch:
+
+```text
+OBJECTS ID 329  QUIVER  +0x31 = 62
+CODE.2 descriptor 61    valid 8-slot subtype-6 QUIVER descriptor
+CODE.2 descriptor 62    10 zero bytes
+SAVE persistence        indexes 0..61 only
+quick-start state 61    eight arrow object IDs (57)
+```
+
+A follow-up direct-path audit found **no executable remap from selector 62 to descriptor 61**. Generic open-container code at physical CODE.2 `0x5C5B7` sign-extends OBJECTS `+0x31`, multiplies it by ten, and immediately reads descriptor `+4`; insertion/search/render paths use the same literal selector geometry. Thus object 329's stored selector reaches descriptor 62 as-is.
+
+The one-step mismatch is consistent with a shipped static-data/off-by-one error, but that interpretation is not a license to rewrite the original data. Faithful compatibility should preserve selector 62, the zero descriptor 62 behavior, and serialized state 61 unless an intentional compatibility-fix layer is separately documented and enabled.
 
 ## Safe implementation boundary
 
@@ -108,4 +139,4 @@ For category-1 objects, expose:
 OBJECTS.DAT +0x31 -> container_state_index
 ```
 
-and model the descriptor/content store as separate runtime/save state. Do not embed container contents into the static 0x41-byte OBJECTS record, and do not replace duplicated container definitions solely because their display names and graphics match.
+and model the descriptor/content store as separate runtime/save state. Do not embed container contents into the static `0x41`-byte OBJECTS record, do not replace duplicated container definitions solely because their display names/graphics match, and do not silently normalize the shipped state-61/selector-62 mismatch.
