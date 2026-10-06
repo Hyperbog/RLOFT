@@ -1,6 +1,6 @@
 # LEVELS.DAT
 
-Status: **archive/record structure proven; cell-state, 10-byte control, compact-family, fixed event-script, active header-tail, automap, dynamic-door, and annotation-tail semantics substantially reconstructed.**
+Status: **archive/record structure proven; cell-state, 10-byte control, compact-family, fixed event-script, active header-tail, automap, dynamic-door, loose-item family, and annotation-tail semantics substantially reconstructed.**
 
 - Size: 499,878 bytes
 - SHA-256: `50d0b1d13f81733a1ac55296d00fcba9aef002202bc00341f1062c37fd017d91`
@@ -29,6 +29,7 @@ Every boundary equation and final record length validates with no archive except
 - `FORMAT.md` — archive/direct-save structure, event-table layout, and annotation-tail serialization.
 - `SEMANTICS.md` — integrated semantic model.
 - `HEADER_TAIL.md` — active fixed-header tail fields at `+0x290..+0x29C`, including renderer/profile/resource controls and loader normalization.
+- `FAMILY_C.md` — family C as loose/pickable item world records plus runtime dropped/thrown-item behavior.
 - `CELL_WORD.md` — packed 16-bit cell code/flag model.
 - `CELL_RECORDS.md` — 10-byte record kinds, control bits, coordinates, and kind-specific fields.
 - `DYNAMIC_CELL_RECORDS.md` — group-2 animation state and open/closed collision behavior.
@@ -42,13 +43,14 @@ Every boundary equation and final record length validates with no archive except
 - `analyze_dynamic_records.py` — dynamic group-2 statistics.
 - `analyze_event_scripts.py` — fixed event-table slot/opcode validator.
 - `analyze_header_tail.py` — archive-wide distributions for the proved header-tail controls plus direct-save normalization check.
+- `analyze_family_c.py` — family-B/C corpus comparison and family-C OBJECTS.DAT validation.
 - `audit_cache_rebuild.py` — deterministic cache-replay validator.
 
 ## Current semantic frontier
 
 ### Fixed-header tail
 
-The active header tail at `+0x290..+0x29C` is now materially decoded from direct CODE.2 references.
+The active header tail at `+0x290..+0x29C` is materially decoded from direct CODE.2 references.
 
 ```text
 +0x290  uint8 environment/render profile selector; 0xFF selects alternate/default path
@@ -67,9 +69,34 @@ The two bytes at `+0x298/+0x299` must remain separate: CODE.2 passes them to two
 
 Most importantly, CODE.2 normalizes header `+0x29A` from zero to one immediately after level load. This exactly explains the sole fixed-header difference between archive level 22 (`0`) and supplied `LEV022.DAT` (`1`); the direct-save file contains the normalized live header, not an unexplained mutation. The supplied archive distribution for this field is 14 zeros, 12 ones, and six values of 50.
 
-Byte `+0x29C` is repeatedly compared with the active resource identifier and passed into the resource-load family, so `resource_set_id` is now supported terminology.
+Byte `+0x29C` is repeatedly compared with the active resource identifier and passed into the resource-load family, so `resource_set_id` is supported terminology.
 
 Header byte `+0x291` and `+0x29D..+0x2A3` have no direct absolute CODE.2 consumers found in the complete object scan and are zero in all supplied archive records. They remain raw preserved bytes rather than format-mandated padding.
+
+### Compact world-record families
+
+Family A is tied directly to `NPCS.DAT` and is the NPC/creature world-record family.
+
+Family B is tied to `OBJECTS.DAT` and is the **placed object/item map-record family**. Its supplied compact records use IDs only `0..174`; their compact placement/orientation byte spans `0..7`, and family B supplies the placed-object automap overlay.
+
+Family C is now behaviorally closed as the **loose/pickable item world-record family**. It expands to runtime array `0x17618`, is inserted by the loose-object spawn/drop path, is removed and compacted by the first-person pickup path, and is rendered as a distinct scene source class. The same 22-byte records acquire heading, lifetime and active-motion state when an item is thrown; CODE.2 `2388C` advances and collision-tests those moving records.
+
+Archive-wide family-C evidence:
+
+```text
+records                622
+levels containing C     26
+maximum in one level    90
+unique object IDs       200
+object ID range      0..335
+compact flag byte         0 for all 622 supplied records
+```
+
+All family-C type IDs are valid in the 336-entry supplied `OBJECTS.DAT`. Common entries include `STONE`, `ARROW`, `SLING BULLET`, potions and coins. Runtime motion code also special-cases recognizable throwable OBJECTS.DAT types such as `AXE OF HURLING`, `ARROW OF SLAY UNDEAD`, `DAGGER OF THROWING`, and `JAVELIN OF LIGHTNING`.
+
+The archive loader's family-C-only type migration `0x54 -> 0x58` remains exact executable behavior; its historical reason is not yet known.
+
+See `FAMILY_C.md` for the consumer-level proof and `analyze_family_c.py` for the reproducible corpus audit.
 
 ### Event scripts
 
@@ -90,15 +117,15 @@ One level retains nonzero bytes in an inactive fifth command while its count is 
 
 The six-bit cell code, visibility bit `0x0040`, explored bit `0x0400`, dynamic group-2 door/barrier state, generated automap cache, connected wall/inset/door resolver, placed-object overlay, and automap annotation list are all executable-backed.
 
-Family A is tied directly to `NPCS.DAT` and is the NPC/creature world-record family. Family B is tied to `OBJECTS.DAT` and is used as the placed object/item family. Family C remains within the object namespace but its exact B/C distinction is unresolved.
+The major world-record split is now established: family A = NPC/creature records, family B = placed object/item map records, and family C = loose/pickable item records with runtime dropped/thrown motion state.
 
 ## Next major targets
 
 The highest-value remaining LEVELS work is now:
 
-1. identify family C precisely and close its distinction from family B;
-2. resolve remaining event-opcode callees where they materially improve format semantics;
-3. tighten the few still-behavioral cell/control-bit names;
+1. resolve remaining event-opcode callees where they materially improve format semantics;
+2. tighten the few still-behavioral cell/control-bit names;
+3. investigate the historical purpose of the legacy family-C `0x54 -> 0x58` migration if evidence exists;
 4. then move into the other DAT databases while preserving the established cross-file links.
 
 Lossless tooling must preserve every unresolved byte and flag verbatim.
