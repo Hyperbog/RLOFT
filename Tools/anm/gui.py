@@ -88,13 +88,166 @@ class RavenloftExtractorGui(tk.Tk):
         self.after(100, self._poll_events)
 
     def _build_styles(self) -> None:
-        style = ttk.Style(self)
-        if "clam" in style.theme_names():
-            style.theme_use("clam")
-        style.configure("Title.TLabel", font=("TkDefaultFont", 17, "bold"))
-        style.configure("Strahd.TFrame", background="#111010")
-        style.configure("Strahd.TLabel", background="#111010", foreground="#d9d0bf")
-        style.configure("Strahd.Title.TLabel", background="#111010", foreground="#c9b98b", font=("TkDefaultFont", 17, "bold"))
+        self.style = ttk.Style(self)
+        if "clam" in self.style.theme_names():
+            self.style.theme_use("clam")
+        self._apply_widget_palette(False)
+
+    def _apply_widget_palette(self, strahd: bool) -> None:
+        style = self.style
+        if strahd:
+            root_bg = "#160f0e"
+            panel = "#2b1c18"
+            panel_alt = "#35231d"
+            field = "#171110"
+            text = "#eadfc9"
+            muted = "#c8b99d"
+            gold = "#d2b06a"
+            border = "#786044"
+            accent = "#7d1f1f"
+            accent_hot = "#a5322d"
+            disabled = "#6f665b"
+            trough = "#0e0a09"
+        else:
+            root_bg = "#f0f0f0"
+            panel = "#f0f0f0"
+            panel_alt = "#e6e6e6"
+            field = "#ffffff"
+            text = "#111111"
+            muted = "#333333"
+            gold = "#111111"
+            border = "#9a9a9a"
+            accent = "#0078d7"
+            accent_hot = "#198ce0"
+            disabled = "#7a7a7a"
+            trough = "#d6d6d6"
+
+        self.configure(background=root_bg)
+
+        style.configure("TFrame", background=root_bg)
+        style.configure("TLabel", background=root_bg, foreground=text)
+        style.configure(
+            "Title.TLabel",
+            background=root_bg,
+            foreground=gold,
+            font=("Georgia", 17, "bold") if strahd else ("TkDefaultFont", 17, "bold"),
+        )
+
+        style.configure(
+            "TLabelframe",
+            background=panel,
+            bordercolor=border,
+            lightcolor=border,
+            darkcolor=border,
+            relief="solid",
+        )
+        style.configure(
+            "TLabelframe.Label",
+            background=panel,
+            foreground=gold,
+            font=("Georgia", 10, "bold") if strahd else ("TkDefaultFont", 9, "bold"),
+        )
+
+        style.configure(
+            "TNotebook",
+            background=root_bg,
+            bordercolor=border,
+            lightcolor=border,
+            darkcolor=border,
+            tabmargins=(2, 2, 2, 0),
+        )
+        style.configure(
+            "TNotebook.Tab",
+            background=panel_alt,
+            foreground=muted,
+            bordercolor=border,
+            lightcolor=border,
+            darkcolor=border,
+            padding=(12, 7),
+        )
+        style.map(
+            "TNotebook.Tab",
+            background=[("selected", accent), ("active", panel)],
+            foreground=[("selected", "#fff2d2" if strahd else "#ffffff"), ("active", gold)],
+        )
+
+        style.configure(
+            "TButton",
+            background=panel_alt,
+            foreground=gold,
+            bordercolor=border,
+            lightcolor=border,
+            darkcolor="#120b09" if strahd else border,
+            padding=(10, 6),
+        )
+        style.map(
+            "TButton",
+            background=[("pressed", accent), ("active", accent_hot), ("disabled", panel)],
+            foreground=[("disabled", disabled), ("pressed", "#fff5dc")],
+        )
+
+        style.configure(
+            "TCheckbutton",
+            background=panel,
+            foreground=text,
+            indicatorcolor=field,
+            indicatorrelief="sunken",
+            bordercolor=border,
+        )
+        style.map(
+            "TCheckbutton",
+            background=[("active", panel)],
+            foreground=[("disabled", disabled), ("active", gold)],
+            indicatorcolor=[("selected", accent), ("disabled", panel_alt)],
+        )
+
+        for name in ("TEntry", "TSpinbox"):
+            style.configure(
+                name,
+                fieldbackground=field,
+                foreground=text,
+                insertcolor=text,
+                bordercolor=border,
+                lightcolor=border,
+                darkcolor=border,
+            )
+            style.map(
+                name,
+                fieldbackground=[("disabled", panel_alt)],
+                foreground=[("disabled", disabled)],
+            )
+
+        style.configure(
+            "TCombobox",
+            fieldbackground=field,
+            background=panel_alt,
+            foreground=text,
+            arrowcolor=gold,
+            bordercolor=border,
+            lightcolor=border,
+            darkcolor=border,
+        )
+        style.map(
+            "TCombobox",
+            fieldbackground=[("readonly", field), ("disabled", panel_alt)],
+            background=[("readonly", panel_alt), ("active", accent_hot)],
+            foreground=[("readonly", text), ("disabled", disabled)],
+            arrowcolor=[("readonly", gold), ("disabled", disabled)],
+        )
+
+        style.configure(
+            "Horizontal.TProgressbar",
+            background=accent,
+            troughcolor=trough,
+            bordercolor=border,
+            lightcolor=accent_hot,
+            darkcolor=accent,
+        )
+
+        self.option_add("*TCombobox*Listbox.background", field)
+        self.option_add("*TCombobox*Listbox.foreground", text)
+        self.option_add("*TCombobox*Listbox.selectBackground", accent)
+        self.option_add("*TCombobox*Listbox.selectForeground", "#fff5dc" if strahd else "#ffffff")
 
     def _build_ui(self) -> None:
         self.columnconfigure(0, weight=1)
@@ -347,48 +500,112 @@ class RavenloftExtractorGui(tk.Tk):
 
     def apply_theme(self) -> None:
         strahd = self.theme.get() == "Strahd's Possession"
+        self._apply_widget_palette(strahd)
+        self.title_label.configure(style="Title.TLabel")
+
         if not strahd:
-            self.configure(background="")
-            self.header.configure(style="TFrame")
-            self.title_label.configure(style="Title.TLabel")
-            self.banner.configure(height=0)
+            self.banner.configure(height=0, background="#f0f0f0")
             self._theme_data = None
             self._banner_photo = None
             return
 
-        self.header.configure(style="Strahd.TFrame")
-        self.title_label.configure(style="Strahd.Title.TLabel")
-        self.banner.configure(background="#111010", height=132)
+        self.banner.configure(background="#160f0e", height=150)
         try:
             if theme_assets is None:
                 raise RuntimeError("theme asset module unavailable")
             source = Path(self.source_dir.get())
             if not source.is_dir():
-                raise RuntimeError("choose the certified Ravenloft source folder to load the original RES artwork")
+                raise RuntimeError(
+                    "choose the certified Ravenloft source folder to load the original RES artwork"
+                )
             self._theme_data = theme_assets.StrahdThemeAssets.load(source)
-            self.status.set("Strahd's Possession theme loaded from original RES0/COLORS artwork.")
+            self.status.set(
+                "Strahd's Possession theme loaded from original RES0/COLORS artwork."
+            )
             self._schedule_banner()
         except Exception as exc:
             self._theme_data = None
-            self.status.set(f"Strahd theme styling enabled; original artwork unavailable: {exc}")
+            self.banner.delete("all")
+            self.status.set(
+                f"Strahd theme styling enabled; original artwork unavailable: {exc}"
+            )
 
     def _schedule_banner(self) -> None:
         if self._banner_job:
             self.after_cancel(self._banner_job)
         self._banner_job = self.after(60, self._render_banner)
 
+    @staticmethod
+    def _tile_image(source: Image.Image, width: int, height: int) -> Image.Image:
+        source = source.convert("RGB")
+        tiled = Image.new("RGB", (width, height))
+        for y in range(0, height, source.height):
+            for x in range(0, width, source.width):
+                tile = source.crop(
+                    (0, 0, min(source.width, width - x), min(source.height, height - y))
+                )
+                tiled.paste(tile, (x, y))
+        return tiled
+
+    @staticmethod
+    def _tile_strip(
+        canvas: Image.Image,
+        strip: Image.Image,
+        y: int,
+    ) -> None:
+        strip = strip.convert("RGB")
+        x = 0
+        while x < canvas.width:
+            piece = strip.crop((0, 0, min(strip.width, canvas.width - x), strip.height))
+            canvas.paste(piece, (x, y))
+            x += strip.width
+
     def _render_banner(self) -> None:
         self._banner_job = None
         if self.theme.get() != "Strahd's Possession" or self._theme_data is None:
             return
+
         width = max(1, self.banner.winfo_width())
-        height = 132
-        bg = self._theme_data.frame.resize((width, max(height, int(width * 0.25))), Image.Resampling.NEAREST)
-        bg = bg.crop((0, 0, width, height))
-        logo = self._theme_data.title_logo.copy()
-        scale = min(1.0, (width * 0.42) / logo.width, (height - 8) / logo.height)
-        logo = logo.resize((max(1, int(logo.width * scale)), max(1, int(logo.height * scale))), Image.Resampling.NEAREST)
-        bg.paste(logo, ((width - logo.width) // 2, (height - logo.height) // 2))
+        height = 150
+
+        # Use original texture at native scale and tile it. No UI artwork is
+        # stretched to fit the window.
+        bg = self._tile_image(self._theme_data.parchment, width, height)
+        shade = Image.new("RGB", bg.size, "#211311")
+        bg = Image.blend(bg, shade, 0.48)
+
+        frame = self._theme_data.frame.convert("RGB")
+        top_h = 18
+        bottom_h = 18
+        rail_w = 32
+        top = frame.crop((0, 0, frame.width, top_h))
+        bottom = frame.crop((0, frame.height - bottom_h, frame.width, frame.height))
+        left = frame.crop((0, 18, rail_w, 18 + min(height - 36, frame.height - 36)))
+        right = frame.crop(
+            (frame.width - rail_w, 18, frame.width, 18 + min(height - 36, frame.height - 36))
+        )
+
+        self._tile_strip(bg, top, 0)
+        self._tile_strip(bg, bottom, height - bottom_h)
+
+        # Side rails are cropped from the original 320x200 frame. They are
+        # repeated vertically at native pixel size rather than scaled.
+        inner_h = height - top_h - bottom_h
+        y = top_h
+        while y < top_h + inner_h:
+            take = min(left.height, top_h + inner_h - y)
+            bg.paste(left.crop((0, 0, rail_w, take)), (0, y))
+            bg.paste(right.crop((0, 0, rail_w, take)), (width - rail_w, y))
+            y += left.height
+
+        logo = self._theme_data.title_logo
+        logo_x = (width - logo.width) // 2
+        logo_y = (height - logo.height) // 2
+        if logo.mode == "RGBA":
+            bg.paste(logo, (logo_x, logo_y), logo)
+        else:
+            bg.paste(logo, (logo_x, logo_y))
+
         self._banner_photo = ImageTk.PhotoImage(bg)
         self.banner.delete("all")
         self.banner.create_image(0, 0, anchor="nw", image=self._banner_photo)
