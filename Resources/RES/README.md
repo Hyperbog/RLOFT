@@ -2,31 +2,25 @@
 
 This directory contains one analysis workspace per supplied `RES0` through `RES12` archive.
 
-## Confirmed outer container
+## Current reconstruction status
 
-All 13 supplied archives use the same directly verified little-endian container:
+The outer count/absolute-offset container is fully reconstructed and byte-exact round-trippable for all 13 archives. CODE.2's inner `EH` dispatcher has now been traced directly, and every supplied instance of types 1, 2, 3, 4, 6, and 7 has been structurally validated.
 
-```text
-int32 entry_count
-int32 entry_offsets[entry_count]
-byte  entry_payloads[...]
-```
+See:
 
-`entry_offsets[0] == 4 + 4 * entry_count`. Offsets are absolute file offsets and are **non-decreasing**, not necessarily strictly increasing. Entry `i` has size `offset[i+1] - offset[i]`; the last entry extends from its offset to EOF.
+- `FORMAT.md` — executable-backed inner/outer format specification and evidence;
+- `INVENTORY.md` — complete supplied-corpus counts, compression distribution, and anomalies;
+- `analyze_res.py` — lossless outer parser plus exhaustive confirmed-family validator.
 
-`RES1` proves the duplicate-offset case directly: it contains 21 zero-length entries represented by repeated adjacent offsets. Any faithful parser/serializer must preserve this possibility rather than rejecting duplicate offsets.
+## Evidence rules
 
-This agrees with the broad extraction/regeneration shape used by community `LoftRES`, but the Ravenloft files themselves are controlling evidence.
+The original RES bytes and original CODE.2 machine code control all claims. Certified `Code2/Code2.cpp`, current DAT analysis, and CODE.1 are primary cross-reference evidence. Community tools such as `LoftRES` are useful leads only and do not override the shipped bytes or executable behavior.
 
-## Inner resources
+Unknown or unsupported-in-corpus behavior remains explicit. In particular:
 
-Secondary tooling identifies many entry payloads as `EH`-prefixed resources, with type 1 used for image/sprite records and type 2 for font records, plus compression methods including 0, 1, and 3. Those inner semantics are useful leads but remain subject to direct verification against CODE.1/CODE.2 and the supplied entries before being promoted to confirmed format documentation.
+- executable type 5 has no supplied instance;
+- type-1 compression method 1 exists in CODE.2 but no supplied resource uses it;
+- 77 non-EH records are preserved but not yet semantically classified;
+- exact type-6 raster layout and the remainder of the type-7 structure are still under reconstruction.
 
-## Next work
-
-- inventory every entry in every RES archive, including zero-length entries;
-- classify `EH` and non-`EH` payload families;
-- map resource indices to CODE.2 loaders/renderers and DAT-derived resource codes;
-- verify image/font dimensions, palette selection, and compression algorithms;
-- build lossless extraction and manifest tooling;
-- require byte-identical reassembly before declaring RES generation faithful.
+No binary asset is silently repaired or normalized. The two duplicated type-4 resources whose declared dword length exceeds their stored archive entry by exactly `0x10000` are documented as shipped anomalies.
