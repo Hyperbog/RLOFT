@@ -21,7 +21,7 @@ For the supplied fixture:
 0x0074..0x0075  int16 cursor-held OBJECTS.DAT object ID
 0x0076          uint8 cursor-held item known/identified flag
 0x0077..0x0996  active party: 4 * 0x248
-0x0997..        live-world-object section and persistent container state
+0x0997..        live transient/moving-effect section and persistent container state
 ...             charged-item counters[15]
 ...             saved roster: 10 * 0x248
 ...             four 4-byte party container-UI contexts
@@ -547,6 +547,6 @@ Preserve the signed-byte representation and `-1` sentinel exactly.
 
 ## Native parsing rule
 
-Read sequentially. After the dynamic live-world-object array, read `spell_ui_selected_character[2]`, `gameplay_tick_counter`, states `0..61` using the certified slot-count catalogue, the two renderer controls, 15 charge counters, ten `0x248` roster records, and four 4-byte party container-UI contexts.
+Read sequentially. After the dynamic live transient/moving-effect array, read `spell_ui_selected_character[2]`, `gameplay_tick_counter`, states `0..61` using the certified slot-count catalogue, the two renderer controls, 15 charge counters, ten `0x248` roster records, and four 4-byte party container-UI contexts.
 
 Do not model `0x0D59`, `0x0D68`, `0x2438`, or total size `0x2448` as universal constants. Preserve the complete fixed-prefix time/cursor state and the state-61/62 mismatch rather than silently repairing shipped data.
