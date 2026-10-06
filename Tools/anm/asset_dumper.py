@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -12,6 +13,7 @@ from typing import Callable
 from PIL import Image
 
 import res_assets as ra
+import runtime_paths
 import xmidi
 
 ProgressCallback = Callable[[int, int, str], None]
@@ -134,10 +136,10 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
 
 
 def _ffmpeg() -> str:
-    executable = shutil.which("ffmpeg")
-    if not executable:
+    resolved = runtime_paths.bundled_path("ffmpeg.exe" if os.name == "nt" else "ffmpeg")
+    if resolved is None:
         raise ra.AssetError("FFmpeg is required for WAV/FLAC conversion")
-    return executable
+    return str(resolved)
 
 
 def _convert_voc(voc: bytes, output: Path, fmt: str) -> None:
