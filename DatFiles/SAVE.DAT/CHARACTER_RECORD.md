@@ -1,160 +1,216 @@
 # SAVE.DAT `0x248` character record
 
-Status: **active field reconstruction from the certified CODE.2 runtime layout, cross-checked byte-for-byte against the supplied SAVE.DAT fixture. Unknown bytes remain unnamed.**
+Status: **consolidated executable-certified reconstruction. The record is structurally bounded; remaining unknowns are isolated and must be preserved losslessly.**
 
-The same `0x248`-byte image is serialized for the four active-party slots and ten saved-roster slots. Runtime party-record base is DGROUP `0x218D8`; all addresses below use `character_index * 0x248`.
+The same `0x248`-byte legacy image is serialized for four active-party slots and ten saved-roster slots. Runtime party-record base is DGROUP `0x218D8`; addresses below are relative to `record_base + character_index * 0x248`.
 
-## Certified executable-linked fields
-
-| Record offset | Size | Meaning | Evidence |
-|---|---:|---|---|
-| `+0x000` | `0x10` fixture field | character name storage | Populated fixture names terminate inside `+0x00..+0x0F`; `+0x10` begins binary metadata. |
-| `+0x018` | 2 | character status word | Runtime `0x218F0`; attack/cure paths manipulate its high-byte condition bits. |
-| `+0x019` | byte within status word | condition flags | `0x04=disease`, `0x08=poison`, `0x10=paralysis` are executable-proved. |
-| `+0x01D` | 1 | class-related discriminator | Runtime `0x218F5`; value `1` is an explicit disease-effect exemption. |
-| `+0x03A` | 1 | Strength base/reference byte | Runtime `0x21912`; Strength tables and exceptional-Strength calculation consume it. |
-| `+0x03B` | 1 | current/effective Strength byte | Runtime `0x21913`; melee/damage paths consume it; Stone Giant Gauntlets logic substitutes/restores it. |
-| `+0x03D` | 1 | Dexterity-related current/effective byte | Runtime `0x21915`; Gauntlets of Dexterity equipment transitions alter this byte. |
-| `+0x046` | 1 | exceptional-Strength base/reference percentile | Runtime `0x2191E`; Strength table logic interprets AD&D percentile bands. |
-| `+0x047` | 1 | exceptional-Strength current/effective percentile | Runtime `0x2191F`; current Strength calculations consume it. |
-| `+0x048` | `0x2A` | `int16_le item[21]` | Runtime `0x21920`; slots `0..11` inventory and `12..20` equipment. |
-| `+0x0C2` | `0x50` | spell-preparation/memorization matrix A, `8 x 10` packed bytes | Runtime `0x2199A`; CODE.2 uses eight banks, ten-byte stride, independently manipulates both nibbles, expands ready copies, and maps cells to spell/resource IDs `0x42 + bank*10 + entry`. |
-| `+0x12F` | 4 | auxiliary dword; low byte is reversible Dexterity adjustment | Runtime `0x21A07`; one transition adds its low byte to `+0x03D`, companion path subtracts it. Upper-byte semantics remain unresolved. |
-| `+0x133` | 4 | per-character dynamic bitfield | Runtime `0x21A0B`; CODE.2 extracts, clears, and sets dynamically selected bits. Exact gameplay labels remain unresolved. |
-| `+0x139` | 1 | class/casting capability mask | Runtime `0x21A11`; initialization derives bits from class codes and invokes the two spell-matrix initializers. Later UI code treats values `1..4` as capability/display selectors. |
-| `+0x13A` | 4 | 32-bit character state/flags | Runtime `0x21A12`; CODE.2 performs byte, word, and dword mask operations here. |
-
-Address arithmetic:
+## Current authoritative partition
 
 ```text
-record base                 0x218D8
-status word                 0x218F0 = +0x18
-class bytes                 0x218F5..0x218F7 = +0x1D..+0x1F
-Strength base               0x21912 = +0x3A
-Strength current            0x21913 = +0x3B
-Dexterity-related current   0x21915 = +0x3D
-exceptional STR base        0x2191E = +0x46
-exceptional STR current     0x2191F = +0x47
-item array                  0x21920 = +0x48
-spell matrix A              0x2199A..0x219E9 = +0xC2..+0x111
-unresolved dword            0x21A03..0x21A06 = +0x12B..+0x12E
-Dex-adjustment aux dword    0x21A07..0x21A0A = +0x12F..+0x132
-dynamic bitfield            0x21A0B..0x21A0E = +0x133..+0x136
-aux bytes                   0x21A0F..0x21A10 = +0x137..+0x138
-class/casting capability    0x21A11 = +0x139
-state/flags dword           0x21A12 = +0x13A
-next character              base + 0x248
++0x000..+0x00F   fixed 16-byte name storage
++0x010..+0x017   identity/class metadata; partially unresolved
++0x018..+0x019   status word; high-byte disease/poison/paralysis bits certified
++0x01A..+0x025   core fields; partially resolved
++0x026..+0x031   three uint32 slots; 0xFFFFFFFF absent sentinel, semantics pending
++0x032..+0x039   four byte pairs; semantics pending
++0x03A/+0x03B   Strength base / current-effective
++0x03C/+0x03D   paired field; +0x03D Dexterity current-effective
++0x03E/+0x03F   paired field unresolved
++0x040..+0x045   three uint16 fields unresolved
++0x046/+0x047   exceptional-Strength base / current-effective percentile
++0x048..+0x071   int16 item[21]
++0x072..+0x0C1   spell matrix A: 8 x 10 packed cells; scribeable spellbook family
++0x0C2..+0x111   spell matrix B: 8 x 10 packed cells; second casting family
++0x112..+0x12A   unresolved persistent state
++0x12B..+0x12E   executable-accessed dword; semantics unresolved
++0x12F..+0x132   auxiliary dword; low byte participates in reversible Dexterity adjustment
++0x133..+0x136   uint32 item known/identified bits; bits 0..20 map item[0..20]
++0x137..+0x138   executable-accessed bytes; semantics unresolved
++0x139           class/casting capability selector/mask
++0x13A..+0x13D   uint32 primary active-effect bits
++0x13E..+0x1A5   uint32 primary_effect_expiry[26]
++0x1A6..+0x1B1   uint32 timed_slot_deadline[3]
++0x1B2..+0x1BD   uint32 timed_slot_aux[3]
++0x1BE..+0x1C1   Stone Giant Gauntlets displaced/effective Strength auxiliary
++0x1C2..+0x1C5   serialized dword; no direct CODE.2 reference found
++0x1C6..+0x1C9   reversible modifier for primary effect index 23
++0x1CA..+0x1CD   uint32 temporary-hand-effect bits
++0x1CE..+0x1F1   uint32 temporary_hand_effect_expiry[9]
++0x1F2..+0x1F5   consumable/additive persistent gameplay pool
++0x1F6..+0x1F9   recurring Strength-recovery deadline
++0x1FA..+0x1FD   accumulated state associated with primary effect index 6
++0x1FE..+0x247   reserved/unreferenced serialized tail in current executable audit
 ```
 
-## Core-stat correction and proof
+## Certified core fields
 
-Fixture visual pairing alone is not sufficient to assign gameplay semantics. Direct executable consumers place Strength at `+0x3A/+0x3B` and exceptional Strength at `+0x46/+0x47`. CODE.2 combines these values and recognizes percentile ranges `1..50`, `51..75`, `76..90`, `91..99`, and `100`.
+| Offset | Size | Meaning |
+|---|---:|---|
+| `+0x000` | `0x10` | character name storage |
+| `+0x018` | 2 | status word |
+| `+0x019` | 1 | condition bits: `0x04` disease, `0x08` poison, `0x10` paralysis |
+| `+0x01D` | 1 | class-related discriminator |
+| `+0x03A` | 1 | Strength base/reference |
+| `+0x03B` | 1 | Strength current/effective |
+| `+0x03D` | 1 | Dexterity current/effective |
+| `+0x046` | 1 | exceptional Strength base percentile |
+| `+0x047` | 1 | exceptional Strength current percentile |
+| `+0x048` | `0x2A` | signed `int16_le item[21]` |
 
-The helper beginning at physical `0x4CF50` checks equipped object ID `0x54` (`STONE GIANT GAUNTLETS`) and adjusts current/effective Strength. A companion transition helper recognizes object `0x53` (`GAUNTLETS OF DEXTERITY`) and alters `+0x3D`, independently anchoring that byte to the Dexterity effect family.
+Direct executable consumers, rather than fixture visual pairing, control these assignments. Strength logic recognizes AD&D exceptional-percentile ranges `1..50`, `51..75`, `76..90`, `91..99`, and `100`.
 
-## Core region: current safe boundary map
+## Inventory
 
 ```text
-+0x00..+0x0F  fixed 16-byte name storage in this fixture format
-+0x10..+0x17  identity/class metadata
-+0x18..+0x19  status word
-+0x1A..+0x25  core fields; partial semantics pending
-+0x26..+0x31  three 32-bit little-endian slots; sentinel structure proved
-+0x32..+0x39  four byte pairs; semantics unresolved
-+0x3A/+0x3B  Strength base/current
-+0x3C/+0x3D  paired field; +0x3D is Dexterity-related current/effective byte
-+0x3E/+0x3F  paired field; semantics unresolved
-+0x40..+0x45  three 16-bit words; semantics unresolved
-+0x46/+0x47  exceptional-Strength base/current percentile
-+0x48..+0x71  item[21]
+item[0..11]   ordinary inventory grid
+item[12]      ring A
+item[13]      ring B
+item[14]      hand A
+item[15]      hand B
+item[16]      torso/body garment
+item[17]      head
+item[18]      dedicated accessory
+item[19]      quiver
+item[20]      bracer/gauntlet
 ```
 
-The three dwords at `+0x26`, `+0x2A`, and `+0x2E` contain `0xFFFFFFFF` sentinels for absent entries and nonnegative values for present entries. Width and sentinel behavior are fixture-proved; class/experience semantics remain under executable audit.
+Entries are signed 16-bit values. `-1 / 0xFFFF` is the ordinary empty sentinel, but other negative values occur and must be preserved.
 
-## Item slots
+## Dual spell-preparation matrices
 
-```text
-+0x48 .. +0x5F  item[0..11]   ordinary inventory grid
-+0x60           item[12]      ring_A
-+0x62           item[13]      ring_B
-+0x64           item[14]      hand_A
-+0x66           item[15]      hand_B
-+0x68           item[16]      torso/body garment
-+0x6A           item[17]      head
-+0x6C           item[18]      dedicated accessory
-+0x6E           item[19]      quiver
-+0x70           item[20]      bracer/gauntlet
-```
-
-Entries are legacy signed 16-bit words. `-1 / 0xFFFF` is the ordinary empty sentinel, but other negative values occur and must be preserved exactly.
-
-## Post-inventory certified structures
-
-### `+0x0C2..+0x111`: spell-preparation/memorization matrix A
-
-CODE.2 proves the exact layout:
+Both matrices are 80-byte arrays with identical packed-cell geometry:
 
 ```text
-byte = record[0x0C2 + bank * 10 + entry]
-bank  = 0..7
+cell = matrix[bank * 10 + entry]
+bank  = 0..7       // displayed spell level = bank + 1
 entry = 0..9
-spell/resource ID = 0x42 + bank * 10 + entry
+
+selected/planned = cell & 0x0F
+ready/current    = cell >> 4
+unavailable      = ((cell & 0x0F) == 0x0F)
 ```
 
-The outer executable loops terminate after eight banks and advance the array cursor by ten bytes per bank. Direct element access multiplies the bank index by ten. Each byte contains independently mutable high/low 4-bit values. A low nibble of `0xF` is treated as unavailable/sentinel state; a nonzero high nibble represents one or more ready copies, and successful spell use decrements that high nibble by exactly one while preserving the low nibble.
+A successful spell use decrements only the high nibble. Management paths separately account for selected and ready counts and enforce availability/capacity constraints.
 
-The common ready-spell expansion at physical `0x5E0E4..0x5E2C8` converts qualifying cells into runtime spell/action records and uses the formula above to address the indexed `T` resource archive. This establishes the subsystem as persistent spell preparation/memorization state without guessing the original source names of the two nibble quantities.
-
-The former candidate `+0x10A` is bank 7, entry 2 (`0x0C2 + 7*10 + 2`), not a separate field.
-
-### `+0x12F..+0x132`: auxiliary Dexterity-adjustment dword
-
-CODE.2 accesses the complete dword at runtime `0x21A07`. In one equipment/state transition the low byte is added to the certified Dexterity-related current/effective byte at `+0x03D`; a companion path subtracts the same low byte. This proves a reversible Dexterity-adjustment role for byte `+0x12F` while leaving the upper three bytes conservatively unnamed.
-
-### `+0x133..+0x136`: dynamic bitfield
-
-Runtime `0x21A0B` is a 32-bit per-character bitfield. The helper at physical `0x4A13C` returns an arbitrary selected bit. The companion helper at `0x4A15C` clears that selected bit and conditionally installs a replacement bit value when the corresponding item slot is occupied. Other paths copy and clear the whole dword. This is sufficient to certify width and bitfield behavior, but not individual gameplay meanings.
-
-### `+0x139`: class/casting capability mask
-
-Character initialization zeroes runtime byte `0x21A11` and derives its bits from the three class-code bytes:
+Matrix A at `+0x072` is independently tied to the scribeable spellbook family. Matrix B at `+0x0C2` is the parallel second casting family. Resource expansion maps them to the indexed `T` archive as:
 
 ```text
-class code 1 in first class slot -> set 0x04; call spell initializer 0x3EDC8
-class code 3 in any class slot   -> set 0x01; call spell initializer 0x3ED08
-class code 4 in any class slot   -> set 0x02; grant object 0xA6 in item[0]
+matrix A T index = 0x42 + bank*10 + entry
+matrix B T index = 0x92 + bank*10 + entry
 ```
 
-The `0x3ED08` and `0x3EDC8` routines initialize/update the persistent spell-preparation matrices from class/level-related values. UI code at physical `0x5DE64` then interprets whole-byte values `1`, `2`, `3`, and `4` as four display/capability selections. Thus `+0x139` is safely a class/casting capability mask/selector; exact original class names remain separate from this structural identification.
+See `SPELL_MATRIX.md`, `SPELL_FAMILIES.md`, and `SPELL_RESOURCE_LOOKUP.md` for executable evidence and the conservative family-label policy.
 
-### `+0x13A..+0x13D`: state flags
+## Item known/identified state
 
-This is a 32-bit flag field. Proved masks include bits `0x1`, `0x2`, `0x10`, `0x20`, `0x40`, `0x200`, `0x400`, and `0x01000000`; dynamic bit masks are also used. See `POST_INVENTORY_STATE.md` for instruction-level evidence.
+`+0x133..+0x136` is a 32-bit bitset. Bits `0..20` correspond one-for-one to `item[0..20]`.
+
+CODE.2 reads and writes a selected slot bit, transfers that bit with an item during inventory movement, clears it when the item leaves a slot, can bulk-mark all occupied slots, and passes the state into item rendering. This establishes persistent item-instance known/identified state rather than a generic character flag field.
+
+Portable model:
+
+```c
+uint32_t item_known_bits;
+```
+
+When an item moves, its known bit must move with it.
+
+## Primary timed effects
+
+The field at `+0x13A` is not merely an undifferentiated flag dword. It heads a 26-entry timed-effect subsystem:
+
+```c
+uint32_t primary_effect_bits;       // +0x13A
+uint32_t primary_effect_expiry[26]; // +0x13E
+```
+
+Bit `i` corresponds to `primary_effect_expiry[i]`. Positive timer values are absolute game-clock deadlines. Expiration clears/toggles the associated state and dispatches effect-specific cleanup.
+
+The expiration handler maps effect indexes directly to `T` resource records:
+
+```text
+effect 0  -> T[588]
+...
+effect 25 -> T[613]
+```
+
+Several effects have additional persistent auxiliary fields later in the record. See `EFFECT_FLAGS.md`.
+
+## Three paired timed slots
+
+Immediately after the primary timer table are three independent paired states:
+
+```c
+uint32_t timed_slot_deadline[3]; // +0x1A6
+uint32_t timed_slot_aux[3];      // +0x1B2
+```
+
+Each deadline is an absolute game-clock value paired with the auxiliary value at the same index. This subsystem is distinct from both effect tables.
+
+## Stone Giant Gauntlets state
+
+`+0x1BE` is directly tied to OBJECTS.DAT object `0x54`, `STONE GIANT GAUNTLETS`. Equipment-transition logic preserves displaced Strength here while the gauntlets force effective Strength to 20, then restores the saved value when appropriate.
+
+This proves that equipment-derived state cannot always be reconstructed from inventory alone after load.
+
+## Temporary spell-created hand effects
+
+`+0x1CA` and `+0x1CE` form a second, semantically closed timer subsystem:
+
+```c
+uint32_t temporary_hand_effect_bits;
+uint32_t temporary_hand_effect_expiry[9];
+```
+
+Exact index mapping:
+
+```text
+0  object 0x007E  CHILL TOUCH
+1  object 0x007F  VAMPIRIC TOUCH
+2  object 0x0080  CLAWS OF THE UMBER HULK
+3  object 0x0081  CAUSE LIGHT WOUNDS
+4  object 0x0082  CAUSE SERIOUS WOUNDS
+5  object 0x0083  CAUSE CRITICAL WOUNDS
+6  object 0x0084  HARM
+7  object 0x0085  FLAME BLADE
+8  object 0x0086  LICH TOUCH
+```
+
+Expiration removes the matching temporary object from either hand if it remains equipped. These nine states must not be merged with the primary 26-effect system.
+
+## Strength recovery and terminal state
+
+`+0x1F6` is an independent recurring Strength-recovery deadline. When due, CODE.2 restores one Strength point, compares current/effective Strength against base Strength, and schedules another recovery deadline when further restoration is required.
+
+The final 74 bytes `+0x1FE..+0x247` have no direct CODE.2 references in the current exhaustive address audit and are zero in every populated character in the supplied quick-start SAVE. They are therefore classified conservatively as **reserved/unreferenced serialized tail**, not disposable padding. Preserve them exactly because indirect/computed access cannot be categorically excluded.
+
+Likewise, `+0x1C2..+0x1C5` is serialized state with no direct reference found and must remain opaque.
 
 ## Empty-record representation
 
-Unused active-party records are not zero-filled. In the reference fixture most bytes are `0xFF`, while `+0x10..+0x11` are `00 80`. Occupancy must therefore not be inferred from an all-zero test; preserve the complete raw image until the executable occupancy predicate is certified.
+Unused active-party records are not zero-filled. In the supplied fixture most bytes are `0xFF`, while `+0x10..+0x11` are `00 80`. Occupancy must not be inferred with an all-zero test.
 
-## Current record partition
+## Native-port rule
 
-```text
-+0x000 .. +0x017   identity/core metadata
-+0x018 .. +0x047   status/stats/class region; several fields executable-linked
-+0x048 .. +0x071   item[21]
-+0x072 .. +0x0C1   unresolved character arrays/state
-+0x0C2 .. +0x111   spell-preparation/memorization matrix A: 8 banks x 10 packed bytes
-+0x112 .. +0x12A   unresolved character state
-+0x12B .. +0x12E   executable-accessed dword; semantics unresolved
-+0x12F .. +0x132   auxiliary dword; low byte is reversible Dexterity adjustment
-+0x133 .. +0x136   dynamic per-character bitfield; individual meanings unresolved
-+0x137 .. +0x138   executable-accessed bytes; semantics unresolved
-+0x139             class/casting capability mask/selector
-+0x13A .. +0x13D   uint32_le character state/flags
-+0x13E .. +0x247   unresolved spell/effect/auxiliary state
-```
+Do not memory-map the legacy image onto a modern packed C/C++ structure. Decode explicitly into typed native state, retain a raw/opaque representation for unresolved bytes, and serialize fields at their exact legacy offsets. In particular preserve:
 
-A native implementation should continue to use an explicit legacy decoder rather than memory-mapping this image into a modern packed struct.
+- signed item IDs and unusual negative values;
+- both spell matrices byte-for-byte;
+- item known bits with item movement;
+- all absolute effect deadlines;
+- Stone Giant Gauntlets displaced Strength;
+- temporary hand-effect timers;
+- unresolved/reserved regions losslessly.
 
-## Next target
+## Remaining semantic targets
 
-Map the exact class identities behind capability bits at `+0x139`, trace `+0x133` dynamic bits back to their item/state owners, then assign gameplay identities to individual `+0x13A` flags. The spell-resource catalogue can be completed independently once the source `T` archive bytes are available.
+The character record is now structurally bounded. Remaining work is semantic closure of isolated fields rather than discovery of major arrays:
+
+1. `+0x010..+0x017` identity/class metadata;
+2. `+0x01A..+0x045` unresolved core-stat/class fields, including the three sentinel dwords;
+3. `+0x112..+0x12E` persistent post-spell state;
+4. `+0x137..+0x138` auxiliary bytes;
+5. exact gameplay identities for the primary 26 effect indexes and the three paired timed slots;
+6. exact meanings of `+0x1C2`, `+0x1F2`, and `+0x1FA` where current behavior is structural but the player-facing name is not yet certified.
+
+Supporting executable evidence is maintained in `POST_INVENTORY_STATE.md`, `EFFECT_FLAGS.md`, `TIMED_SLOTS.md`, and `CHARACTER_TAIL.md`.
