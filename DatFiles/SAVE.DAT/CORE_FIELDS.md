@@ -87,7 +87,23 @@ uint8_t portrait_index; // +0x012
 uint8_t sex_code;       // +0x013: 0 Male, 1 Female
 ```
 
-The engine presentation bank contains 23 slots per sex even though the shipped character-creation UI exposes a smaller player-selectable face subset.
+The complete engine bank reserves 23 indexes per sex, but CODE.1 closes the player-facing subset exactly. Its portrait-selection routine at physical `0x2F188..0x2F515` pages through bases 0, 6, and 12, six choices per page, wraps by modulo 18, and explicitly disables face index 17 on the last page. Accepted choices therefore store only:
+
+```text
+face_index 0..16  player-selectable
+face_index 17     displayed but deliberately disabled
+face_index 18..22 unreachable from player creation
+```
+
+The supplied saved roster accounts for the remaining valid slots:
+
+```text
+male   17 FHALKEN, 18 RYSZARD, 19 ANSHELM, 20 VUKO, 21 MISCHA, 22 VLADISLAV
+female 17 GLORIANNA, 18 TATIAN, 19 VELIKA, 20 IRMGARDE
+female 21..22 invalid/reserved resource slots
+```
+
+Thus `portrait_index` is both a runtime 23-slot bank selector and, for original player-created characters, a constrained 0..16 choice. See `Resources/RES/RES1_PORTRAITS.md` for the exact normal/possessed RES1 ranges.
 
 ## `+0x014`: race code
 
@@ -142,15 +158,29 @@ int8_t class_code[3]; // +0x015..+0x017
 
 ## `+0x018..+0x019`: age
 
-The fixture stores a little-endian 16-bit demographic value whose populated values include 25, 27, 30, 35, 36, 40, 45, 52, 66, 113, and 150. The values correlate with the certified race codes: the quick-start elf records carry 113/150, the dwarf carries 66, while Human/Half-Elf records occupy lower values.
+CODE.1 provides direct producer and display evidence for this field. Its party image begins at runtime `0x67F8`, so record `+0x018` is CODE.1 runtime `0x6810 + character_index*0x248`.
 
-A historical SAVE editor independently identifies the corresponding character field as Age and requires it when constructing a valid record. No contradictory executable use has been found.
+Character-generation routine physical `0x2FA18..0x2FA6D` indexes a three-byte table by `race_code`, stores the table's first byte into `+0x018`, rolls the encoded dice expression through the common random helper, and adds the returned value to the stored word.
 
-```c
-uint16_t age; // +0x018
+The six table rows are:
+
+```text
+race       base  dice
+Human        15  1d4
+Half-Elf     15  1d6
+Halfling     20  3d4
+Gnome        60  3d12
+Dwarf        40  5d6
+Elf         100  5d6
 ```
 
-Confidence is high from fixture/editor agreement, though unlike sex/race/class/alignment this field has not yet been tied to a direct literal-address `T` lookup.
+This is the game's starting-age generator. Physical `0x30112` later sign-extends the same stored word and sends it through the numeric text/render path on the character-information display, independently proving that it is retained as a displayed character value.
+
+The supplied fixture values—including elf ages 113/150 and dwarf age 66—fit this race-dependent model. Historical editor identification is therefore now only corroborating evidence rather than the basis for the name.
+
+```c
+uint16_t age; // +0x018, generated at character creation from race-specific starting-age dice
+```
 
 ## `+0x01A`: alignment code
 
@@ -256,6 +286,4 @@ Decode and encode the legacy record explicitly. Preserve raw enum numbers at the
 
 ## Remaining early/core targets
 
-1. Catalogue the exact player-facing portrait resources behind `+0x012` and distinguish player-selectable faces from internal 23-entry bank capacity.
-2. Identify any runtime consumer of `age` that provides stronger executable semantics than fixture/editor agreement.
-3. Preserve residual status bits exactly; reopen their semantics only if a concrete producer or resource identity is found.
+The early/core region has no remaining structural identity field requiring semantic discovery. Preserve residual status bits exactly; reopen them only if a concrete producer/resource identity appears during final audit.
