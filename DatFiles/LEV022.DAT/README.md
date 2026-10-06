@@ -1,6 +1,6 @@
 # LEV022.DAT
 
-Status: **standalone mutable level-save structure and exact Level-22 runtime delta proven against CODE.2 writer/loader and the LEVELS.DAT baseline.**
+Status: **standalone mutable level-save structure and Level-22 runtime delta are preservation-grade reconstructed against CODE.2 writer/loader and the LEVELS.DAT baseline. One 40-cell generated-cache provenance discrepancy is explicitly bounded and preserved.**
 
 - Size: 6,028 bytes (`0x178C`)
 - SHA-256: `f88b033ff4cdafdd89620e0fac51ff2fb81bce103a6d31a26b91464532c9f51e`
@@ -38,10 +38,10 @@ The exact Level-22 comparison is now closed at the mutable-state level:
 
 See `MUTABLE_DELTA.md` and `../LEVELS.DAT/FAMILY_A.md`.
 
-The entire `LEV022.DAT` file validates exactly against the audited CODE.2 writer `171FC..17837` and direct-load path in `181B4..18D8B`.
+The complete `LEV022.DAT` section geometry and serialized state ordering validate against writer `171FC..17837` and the direct-load path in `181B4..18D8B`. Recomputing the final cache through certified routine `01558` differs from the supplied cache at exactly 40 unexplored code-1 cells; this is retained as a provenance/production-path discrepancy rather than being hidden by changing the reconstructed writer.
 
 See `../LEVELS.DAT/FORMAT.md` and `../LEVELS.DAT/inspect_levels.py`.
 
 ## Current boundary
 
-LEV022.DAT now serves as a certified mutable-state fixture rather than an undecoded sample. Its structural form, direct family-A actor state, deterministic family-B expansion, cell exploration delta, generated cache relationship, and writer-unowned byte 0 are documented. Remaining LEVELS questions are the narrow shared issues tracked in `../LEVELS.DAT/README.md`, not an unidentified LEV022 record region.
+LEV022.DAT now serves as a certified mutable-state fixture rather than an undecoded sample. Its structural form, direct family-A actor state, deterministic family-B expansion, cell exploration delta, generated cache relationship, and writer-unowned byte 0 are documented. Remaining questions are bounded shared provenance/source-name issues tracked in `../LEVELS.DAT/README.md`; there is no unidentified LEV022 record region. See `../LEVELS.DAT/FINAL_AUDIT_2026-10-06.md` for the combined archive/direct-save certification.
