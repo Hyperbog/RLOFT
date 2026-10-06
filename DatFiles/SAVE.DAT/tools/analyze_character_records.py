@@ -37,6 +37,19 @@ SEX_NAMES = {0: "Male", 1: "Female"}
 RACE_NAMES = {0: "Human", 1: "Half-Elf", 2: "Halfling", 3: "Gnome", 4: "Dwarf", 5: "Elf"}
 CLASS_NAMES = {0: "Fighter", 1: "Paladin", 2: "Ranger", 3: "Cleric", 4: "Mage", 5: "Thief"}
 ALIGNMENT_NAMES = {0: "Lawful Good", 1: "Lawful Neutral", 2: "Neutral Good", 3: "True Neutral", 4: "Chaotic Good", 5: "Chaotic Neutral"}
+STATUS_BITS = (
+    (0x0040, "Vengeful-Spirit warning/coercion state"),
+    (0x0080, "recruited/template provenance"),
+    (0x0100, "Possessed"),
+    (0x0200, "Held"),
+    (0x0400, "Diseased"),
+    (0x0800, "Poisoned"),
+    (0x1000, "Paralyzed"),
+    (0x2000, "unresolved high-order blocking state"),
+    (0x4000, "Dead"),
+    (0x8000, "empty/unoccupied slot"),
+)
+KNOWN_STATUS_MASK = sum(mask for mask, _ in STATUS_BITS)
 PRIMARY_EFFECT_NAMES = (
     "Armor",
     "Mage Light",
@@ -82,6 +95,14 @@ def name16(r: bytes) -> str:
     raw = r[:0x10].split(b"\0", 1)[0]
     if not raw or all(b == 0xFF for b in raw): return "<unused/raw>"
     return raw.decode("cp437", errors="replace")
+
+
+def status_text(value: int) -> str:
+    labels = [label for mask, label in STATUS_BITS if value & mask]
+    unknown = value & ~KNOWN_STATUS_MASK
+    if unknown:
+        labels.append(f"unmapped-bits=0x{unknown:04X}")
+    return "<none>" if not labels else "; ".join(labels)
 
 
 def sparse_post(r: bytes) -> str:
@@ -131,8 +152,9 @@ def show(label: str, index: int, base: int, r: bytes) -> None:
     levels = [s16(r, LEVEL_OFFSET + i * 2) for i in range(LEVEL_COUNT)]
     progress = [s32(r, PROGRESS_OFFSET + i * 4) for i in range(PROGRESS_COUNT)]
     abilities = ", ".join(f"{ability}={r[off]}/{r[off+1]}" for ability, off in ABILITY_PAIRS)
+    status = u16(r, STATUS_OFFSET)
     print(f"{label}[{index:02d}] file=0x{base:04X} name={name16(r)!r}")
-    print(f"  status    : 0x{u16(r, STATUS_OFFSET):04X}")
+    print(f"  status    : 0x{status:04X} {status_text(status)}")
     print(f"  identity  : portrait={s8(r, PORTRAIT_OFFSET)} sex={enum_text(r[SEX_OFFSET], SEX_NAMES)} race={enum_text(r[RACE_OFFSET], RACE_NAMES)} age={u16(r, AGE_OFFSET)} alignment={enum_text(r[ALIGNMENT_OFFSET], ALIGNMENT_NAMES)} base_ac={s8(r, BASE_AC_OFFSET)}")
     print(f"  classes   : {classes} -> {class_text}")
     print(f"  hp        : {s16(r, CURRENT_HP_OFFSET)}/{s16(r, MAX_HP_OFFSET)}")
