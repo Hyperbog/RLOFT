@@ -112,6 +112,104 @@ uint8 charged_item_counter[15];
 
 `DGROUP 0xC038` is a live-object count with executable limit `0x96` (150). Creation/removal code indexes a `0x16`-byte structure array at runtime `0x248EC`. The quick-start fixture count is zero, so every later fixture offset shifts by `live_world_object_count * 0x16` in saves containing live world objects.
 
+## Live transient/moving-effect array
+
+The dynamic `0x16` records are now identified as the runtime **class-3 transient/moving-effect family**, not an unidentified generic world-object structure.
+
+Three independent paths establish the identity:
+
+1. constructor physical `0x439A4` appends records at `0x248EC + count*0x16`;
+2. LEVELS event opcode 3 calls that constructor;
+3. class-3 scene emitter physical `0x66F10..0x67152` walks the same array and uses record word `+0x0E` to index the 12-entry INIT class-3 descriptor table at runtime pointer `0x22234`.
+
+The certified field map is:
+
+```text
++0x00  int32  coord_B_16_16
++0x04  int32  coord_A_16_16
++0x08  int32  heading_angle
++0x0C  uint16 map_cell_index
++0x0E  uint16 effect_type
++0x10  uint16 auxiliary_10
++0x12  uint16 type_specific_aux_12
++0x14  uint16 packed_state
+```
+
+The A/B coordinate names intentionally match the fixed-prefix terminology instead of guessing Cartesian axis labels.
+
+### Coordinates and cached cell
+
+Common spell/item callers pass DGROUP `0x255D4` and `0x255D0`, which the constructor stores at `+0x00/+0x04`. Movement routine physical `0x5DDB4` updates those dwords and reads their high signed words at `+0x02/+0x06`, confirming 16.16-style fixed-point positions.
+
+Both creation and movement derive:
+
+```text
+map_cell_index =
+    high16(coord_B_16_16) * runtime_map_width
+  + high16(coord_A_16_16)
+
+runtime_map_width = word 0x25619
+```
+
+The scene emitter uses `+0x0C` to test the corresponding live map-cell word before emitting the effect.
+
+### Heading and direction
+
+Constructor argument 2 is stored at `+0x08`. Spell/action callers obtain this value from physical `0x4433C`; the constructor normalizes it into the engine's 0..359-degree domain and derives an eight-way direction sector.
+
+Packed-state bits `3..5` store that direction sector. Movement code also passes `+0x08` to the engine angle-to-motion helper.
+
+### Type and INIT/RES3 linkage
+
+`+0x0E` is a transient-effect type. The scene path uses:
+
+```text
+descriptor = class3_descriptor_table + effect_type * 7
+```
+
+where the 12 descriptors carry the already-certified local shape base, spatial field, shape stride, variant count, and scene-influence byte.
+
+The resulting class-3 bank-local shape is translated to RES3 with:
+
+```text
+absolute_RES3_id = 4158 + class3_bank_local_shape
+```
+
+Thus `+0x0E` is not an OBJECTS.DAT or NPCS.DAT object ID.
+
+### Auxiliary words
+
+The common constructor explicitly initializes `+0x10` to zero, but a narrower gameplay name is not yet justified.
+
+For `effect_type == 8`, it initializes `+0x12` to a pseudo-random value in `20..29`. Maintenance at physical `0x56F7A..0x56F9D` removes the record when the word reaches zero and otherwise decrements it. Therefore `+0x12` is a certified **type-8 lifetime/countdown**, but should remain a type-specific raw auxiliary for other types.
+
+Importantly, the common constructor does not initialize `+0x12` for every non-type-8 record. A compatibility implementation must not normalize that word to zero globally.
+
+### Packed state `+0x14`
+
+Certified subfields are:
+
+```text
+bits  1..2  movement/collision state; exact enum labels pending
+bits  3..5  direction sector 0..7
+bits  6..8  animation/variant frame 0..7
+bits 11..13  source-actor/context code 0..7
+other bits  preserved/raw pending stronger ownership evidence
+```
+
+Physical `0x56FA1..0x56FC7` advances bits 6..8 modulo the selected INIT descriptor's `variant_count`. The class-3 scene emitter extracts the same bits, multiplies them by descriptor `shape_stride`, and adds the descriptor local shape base.
+
+Constructor argument 3 is reduced to three bits and stored at bits 11..13. Normal spell/action callers pass the casting party-character index, while LEVELS event opcode 3 passes literal `4`. Physical `0x43F94` later extracts the field; values `0..3` can index active-party records while at least values 4 and 7 receive special handling. The safe name is therefore source-actor/context code rather than unconditional character index.
+
+### Partial initialization and removal
+
+The constructor does **not** clear the complete `0x16` slot. It writes the principal fields, initializes `+0x12` only for type 8, and changes selected masks within `+0x14` rather than replacing the complete word.
+
+Removal physical `0x43BAC` compacts later records with a byte move and decrements `0xC038`.
+
+This makes raw preservation significant: a faithful importer/exporter must retain auxiliary words and unknown packed-state bits exactly rather than treating them as disposable padding.
+
+
 ## `D8A8[2]`: selected spell-UI characters
 
 The two serialized dwords at DGROUP `0xD8A8` are character indexes retained by the two spell-interface groups.
