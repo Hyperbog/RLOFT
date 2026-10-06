@@ -142,30 +142,188 @@ class RavenloftExtractorGui(tk.Tk):
         self.style = ttk.Style(self)
         if "clam" in self.style.theme_names():
             self.style.theme_use("clam")
-        s = self.style
-        s.configure("TFrame", background=BG)
-        s.configure("TLabel", background=BG, foreground=TEXT)
-        s.configure("Title.TLabel", background=BG, foreground=GOLD, font=("Georgia", 18, "bold"))
-        s.configure("Subtle.TLabel", background=BG, foreground=MUTED)
-        s.configure("TLabelframe", background=PANEL, bordercolor=BORDER, lightcolor=BORDER, darkcolor="#0d0706", relief="solid")
-        s.configure("TLabelframe.Label", background=PANEL, foreground=GOLD, font=("Georgia", 10, "bold"))
-        s.configure("TNotebook", background=BG, bordercolor=BORDER, lightcolor=BORDER, darkcolor=BORDER, tabmargins=(2, 2, 2, 0))
-        s.configure("TNotebook.Tab", background=PANEL2, foreground=MUTED, bordercolor=BORDER, padding=(12, 7))
-        s.map("TNotebook.Tab", background=[("selected", ACCENT), ("active", PANEL)], foreground=[("selected", "#fff2d2"), ("active", GOLD)])
-        s.configure("TButton", background=PANEL2, foreground=GOLD, bordercolor=BORDER, lightcolor=BORDER, darkcolor="#0d0706", padding=(10, 6))
-        s.map("TButton", background=[("pressed", ACCENT), ("active", ACCENT_HOT), ("disabled", PANEL)], foreground=[("disabled", "#665c53"), ("pressed", "#fff4d4")])
-        s.configure("TCheckbutton", background=PANEL, foreground=TEXT, indicatorcolor=FIELD, bordercolor=BORDER)
-        s.map("TCheckbutton", background=[("active", PANEL)], foreground=[("active", GOLD), ("disabled", "#665c53")], indicatorcolor=[("selected", ACCENT), ("disabled", PANEL2)])
-        for name in ("TEntry", "TSpinbox"):
-            s.configure(name, fieldbackground=FIELD, foreground=TEXT, insertcolor=TEXT, bordercolor=BORDER, lightcolor=BORDER, darkcolor=BORDER)
-            s.map(name, fieldbackground=[("disabled", PANEL2)], foreground=[("disabled", "#665c53")])
-        s.configure("TCombobox", fieldbackground=FIELD, background=PANEL2, foreground=TEXT, arrowcolor=GOLD, bordercolor=BORDER)
-        s.map("TCombobox", fieldbackground=[("readonly", FIELD), ("disabled", PANEL2)], foreground=[("readonly", TEXT), ("disabled", "#665c53")], arrowcolor=[("readonly", GOLD)])
-        s.configure("Horizontal.TProgressbar", background=ACCENT, troughcolor=TROUGH, bordercolor=BORDER, lightcolor=ACCENT_HOT, darkcolor=ACCENT)
+
+        base = tkfont.nametofont("TkDefaultFont")
+        family = base.actual("family")
+        self._font_ui = tkfont.Font(self, family=family, size=9)
+        self._font_small = tkfont.Font(self, family=family, size=8)
+        self._font_title = tkfont.Font(self, family="Georgia", size=18, weight="bold")
+        self._font_heading = tkfont.Font(self, family="Georgia", size=10, weight="bold")
+        self._apply_style_metrics(self._ui_scale)
+
         self.option_add("*TCombobox*Listbox.background", FIELD)
         self.option_add("*TCombobox*Listbox.foreground", TEXT)
         self.option_add("*TCombobox*Listbox.selectBackground", ACCENT)
         self.option_add("*TCombobox*Listbox.selectForeground", "#fff4d4")
+
+    def _apply_style_metrics(self, scale: float) -> None:
+        normal = max(7, round(9 * scale))
+        small = max(7, round(8 * scale))
+        title = max(12, round(18 * scale))
+        heading = max(8, round(10 * scale))
+        self._font_ui.configure(size=normal)
+        self._font_small.configure(size=small)
+        self._font_title.configure(size=title)
+        self._font_heading.configure(size=heading)
+
+        px = lambda value: max(1, round(value * scale))
+        s = self.style
+        s.configure("TFrame", background=BG)
+        s.configure("TLabel", background=BG, foreground=TEXT, font=self._font_ui)
+        s.configure(
+            "Title.TLabel",
+            background=BG,
+            foreground=GOLD,
+            font=self._font_title,
+        )
+        s.configure(
+            "Subtle.TLabel",
+            background=BG,
+            foreground=MUTED,
+            font=self._font_small,
+        )
+        s.configure(
+            "TLabelframe",
+            background=PANEL,
+            bordercolor=BORDER,
+            lightcolor=BORDER,
+            darkcolor="#0d0706",
+            relief="solid",
+        )
+        s.configure(
+            "TLabelframe.Label",
+            background=PANEL,
+            foreground=GOLD,
+            font=self._font_heading,
+        )
+        s.configure(
+            "TNotebook",
+            background=BG,
+            bordercolor=BORDER,
+            lightcolor=BORDER,
+            darkcolor=BORDER,
+            tabmargins=(px(2), px(2), px(2), 0),
+        )
+        s.configure(
+            "TNotebook.Tab",
+            background=PANEL2,
+            foreground=MUTED,
+            bordercolor=BORDER,
+            padding=(px(12), px(7)),
+            font=self._font_ui,
+        )
+        s.map(
+            "TNotebook.Tab",
+            background=[("selected", ACCENT), ("active", PANEL)],
+            foreground=[("selected", "#fff2d2"), ("active", GOLD)],
+        )
+        s.configure(
+            "TButton",
+            background=PANEL2,
+            foreground=GOLD,
+            bordercolor=BORDER,
+            lightcolor=BORDER,
+            darkcolor="#0d0706",
+            padding=(px(10), px(6)),
+            font=self._font_ui,
+        )
+        s.map(
+            "TButton",
+            background=[("pressed", ACCENT), ("active", ACCENT_HOT), ("disabled", PANEL)],
+            foreground=[("disabled", "#665c53"), ("pressed", "#fff4d4")],
+        )
+        s.configure(
+            "TCheckbutton",
+            background=PANEL,
+            foreground=TEXT,
+            indicatorcolor=FIELD,
+            bordercolor=BORDER,
+            font=self._font_ui,
+        )
+        s.map(
+            "TCheckbutton",
+            background=[("active", PANEL)],
+            foreground=[("active", GOLD), ("disabled", "#665c53")],
+            indicatorcolor=[("selected", ACCENT), ("disabled", PANEL2)],
+        )
+        for name in ("TEntry", "TSpinbox"):
+            s.configure(
+                name,
+                fieldbackground=FIELD,
+                foreground=TEXT,
+                insertcolor=TEXT,
+                bordercolor=BORDER,
+                lightcolor=BORDER,
+                darkcolor=BORDER,
+                font=self._font_ui,
+            )
+            s.map(
+                name,
+                fieldbackground=[("disabled", PANEL2)],
+                foreground=[("disabled", "#665c53")],
+            )
+        s.configure(
+            "TCombobox",
+            fieldbackground=FIELD,
+            background=PANEL2,
+            foreground=TEXT,
+            arrowcolor=GOLD,
+            bordercolor=BORDER,
+            font=self._font_ui,
+        )
+        s.map(
+            "TCombobox",
+            fieldbackground=[("readonly", FIELD), ("disabled", PANEL2)],
+            foreground=[("readonly", TEXT), ("disabled", "#665c53")],
+            arrowcolor=[("readonly", GOLD)],
+        )
+        s.configure(
+            "Horizontal.TProgressbar",
+            background=ACCENT,
+            troughcolor=TROUGH,
+            bordercolor=BORDER,
+            lightcolor=ACCENT_HOT,
+            darkcolor=ACCENT,
+        )
+
+    def _schedule_ui_scale(self, event) -> None:
+        if event.widget is not self:
+            return
+        if self._scale_job:
+            try:
+                self.after_cancel(self._scale_job)
+            except tk.TclError:
+                pass
+        self._scale_job = self.after(70, self._apply_ui_scale)
+
+    def _apply_ui_scale(self) -> None:
+        self._scale_job = None
+        width = max(1, self.winfo_width())
+        height = max(1, self.winfo_height())
+        scale = min(width / BASE_WIDTH, height / BASE_HEIGHT)
+        scale = max(MIN_UI_SCALE, min(MAX_UI_SCALE, scale))
+        changed = abs(scale - self._ui_scale) >= 0.02
+        self._ui_scale = scale
+
+        if changed:
+            self._apply_style_metrics(scale)
+            for box, base_height in self._scalable_listboxes:
+                box.configure(
+                    font=self._font_ui,
+                    height=max(3, round(base_height * scale)),
+                )
+            for widget, base_padding in self._padding_widgets:
+                scaled = tuple(max(0, round(value * scale)) for value in base_padding)
+                try:
+                    widget.configure(padding=scaled)
+                except tk.TclError:
+                    pass
+
+        banner_height = max(90, round(BASE_BANNER_HEIGHT * scale))
+        if int(float(self.banner.cget("height"))) != banner_height:
+            self.banner.configure(height=banner_height)
+        self._resize_wraps_for_width(width)
+        self._schedule_banner()
 
     def _load_banner_assets(self) -> tuple[Image.Image, Image.Image, Image.Image]:
         if self._banner_assets is not None:
