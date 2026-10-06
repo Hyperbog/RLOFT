@@ -66,11 +66,25 @@ The MIDI Association is the authority for Standard MIDI File output:
 - https://midi.org/standard-midi-files
 - https://midi.org/standard-midi-files-specification
 
-Ravenloft's stored music resources are Miles XMIDI/XDIR, not SMF. The current
-extractor therefore preserves XMI/XDIR exactly. SMF/MID export must not be
-enabled until the XMIDI event/timing conversion is implemented from
-authoritative Miles behavior and checked against the Standard MIDI File
-specification.
+Ravenloft's stored music resources are Miles XMIDI/XDIR. XMI/XDIR is always
+preserved exactly.
+
+Standard MIDI derivatives are implemented from the original Miles Design
+`MIDIFORM.C` writer (John Miles, 1991/1992) and `XMIDI.ASM` runtime behavior,
+using The MIDI Association's Standard MIDI File rules for the output container.
+Miles' default XMIDI quantum is 120 Hz. The extractor encodes SMF timing with
+SMPTE division -30 fps and 4 ticks/frame, which is exactly 120 ticks/second and
+therefore avoids tempo-dependent rounding.
+
+Miles XMIDI FOR/NEXT controllers are retained as MIDI CC events. They remain
+AIL-specific control-flow semantics; Ravenloft uses infinite loops, so the
+original XMI is the canonical artifact for looping playback. The SMF output is
+an editable one-pass derivative for mapping/remixing rather than a replacement
+for the XMI program.
+
+Original Miles source release mirror used to inspect the vendor-authored files:
+- https://github.com/Tronix286/AIL2/blob/master/MIDIFORM.C
+- https://github.com/Tronix286/AIL2/blob/master/XMIDI.ASM
 
 ## Miles / ARIA historical middleware
 
