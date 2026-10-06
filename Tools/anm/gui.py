@@ -492,13 +492,20 @@ class RavenloftExtractorGui(tk.Tk):
 
         timing = ttk.Frame(out)
         timing.grid(row=5, column=0, columnspan=3, sticky="ew", pady=(7, 0))
-        ttk.Label(timing, text="Timing").pack(side="left")
-        combo = ttk.Combobox(timing, textvariable=self.cin_timing_mode, values=TIMING_MODES, state="readonly", width=22)
-        combo.pack(side="left", padx=(6, 10))
+        timing.columnconfigure(1, weight=1)
+        ttk.Label(timing, text="Timing").grid(row=0, column=0, sticky="w")
+        combo = ttk.Combobox(
+            timing,
+            textvariable=self.cin_timing_mode,
+            values=TIMING_MODES,
+            state="readonly",
+            width=22,
+        )
+        combo.grid(row=0, column=1, sticky="w", padx=(6, 12))
         combo.bind("<<ComboboxSelected>>", lambda _e: self._update_timing_state())
-        ttk.Label(timing, text="Custom FPS").pack(side="left")
+        ttk.Label(timing, text="Custom FPS").grid(row=0, column=2, sticky="w")
         self.cin_fps_entry = ttk.Entry(timing, textvariable=self.cin_fps, width=8)
-        self.cin_fps_entry.pack(side="left", padx=(6, 16))
+        self.cin_fps_entry.grid(row=0, column=3, sticky="w", padx=(6, 0))
         self.cin_fps_entry.bind(
             "<KeyRelease>",
             lambda _e: self._refresh_native_timing_text(),
@@ -509,14 +516,29 @@ class RavenloftExtractorGui(tk.Tk):
             text="Sync sampled SFX into video",
             variable=self.cin_sync_audio,
         )
-        self.cin_sync_check.pack(side="left")
+        self.cin_sync_check.grid(
+            row=1,
+            column=0,
+            columnspan=4,
+            sticky="w",
+            pady=(6, 0),
+        )
 
-        ttk.Label(
+        self.native_timing_label = ttk.Label(
             out,
             textvariable=self.native_timing_text,
             style="Subtle.TLabel",
             justify="left",
-        ).grid(row=6, column=0, columnspan=3, sticky="w", pady=(7, 0))
+            anchor="w",
+        )
+        self.native_timing_label.grid(
+            row=6,
+            column=0,
+            columnspan=3,
+            sticky="ew",
+            pady=(7, 0),
+        )
+        self._wrap_labels.append(self.native_timing_label)
 
         flags = ttk.Frame(out)
         flags.grid(row=7, column=0, columnspan=3, sticky="w", pady=(7, 0))
@@ -642,10 +664,16 @@ class RavenloftExtractorGui(tk.Tk):
         button.grid(row=1, column=0, sticky="e", pady=(12, 0))
         self._action_buttons.append(button)
 
-    def _resize_wraps(self, event) -> None:
-        width = max(400, event.width - 80)
+    def _resize_wraps_for_width(self, window_width: int) -> None:
+        # Keep explanatory text inside the current client area. The value is
+        # intentionally conservative because the notebook/tab/frame borders
+        # consume some horizontal space.
+        width = max(260, window_width - round(120 * self._ui_scale))
         for label in self._wrap_labels:
             label.configure(wraplength=width)
+
+    def _resize_wraps(self, event) -> None:
+        self._resize_wraps_for_width(event.width)
 
     def _update_timing_state(self) -> None:
         self.cin_fps_entry.configure(
