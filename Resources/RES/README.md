@@ -9,12 +9,14 @@ All 13 supplied archives use the same directly verified little-endian container:
 ```text
 int32 entry_count
 int32 entry_offsets[entry_count]
-byte  entry_payloads[...] 
+byte  entry_payloads[...]
 ```
 
-`entry_offsets[0] == 4 + 4 * entry_count`. Offsets are absolute file offsets and monotonically delimit entries. Entry `i` has size `offset[i+1] - offset[i]`; the last entry extends from its offset to EOF.
+`entry_offsets[0] == 4 + 4 * entry_count`. Offsets are absolute file offsets and are **non-decreasing**, not necessarily strictly increasing. Entry `i` has size `offset[i+1] - offset[i]`; the last entry extends from its offset to EOF.
 
-This agrees with the extraction/regeneration logic in the community `LoftRES` utility, but the Ravenloft files themselves are the controlling evidence.
+`RES1` proves the duplicate-offset case directly: it contains 21 zero-length entries represented by repeated adjacent offsets. Any faithful parser/serializer must preserve this possibility rather than rejecting duplicate offsets.
+
+This agrees with the broad extraction/regeneration shape used by community `LoftRES`, but the Ravenloft files themselves are controlling evidence.
 
 ## Inner resources
 
@@ -22,9 +24,9 @@ Secondary tooling identifies many entry payloads as `EH`-prefixed resources, wit
 
 ## Next work
 
-- inventory every entry in every RES archive;
+- inventory every entry in every RES archive, including zero-length entries;
 - classify `EH` and non-`EH` payload families;
-- map resource indices to CODE.2 loaders/renderers;
+- map resource indices to CODE.2 loaders/renderers and DAT-derived resource codes;
 - verify image/font dimensions, palette selection, and compression algorithms;
 - build lossless extraction and manifest tooling;
 - require byte-identical reassembly before declaring RES generation faithful.
