@@ -1,53 +1,80 @@
 # LEVELS.DAT
 
-Status: **archive/record structure proven; cell-state, automap, and dynamic door-state semantics substantially reconstructed; remaining field reconstruction in progress**.
+Status: **archive/record structure proven; cell-state, 10-byte control, compact-family, automap, dynamic-door, and annotation-tail semantics substantially reconstructed; fixed `0x514` block is the next major unresolved structure.**
 
 - Size: 499,878 bytes
 - SHA-256: `50d0b1d13f81733a1ac55296d00fcba9aef002202bc00341f1062c37fd017d91`
-- CODE.2 loader evidence: logical `181B4..18D8B`
-- CODE.2 standalone level writer evidence: logical `171FC..17837`
+- CODE.2 loader: logical `181B4..18D8B`
+- CODE.2 standalone writer: logical `171FC..17837`
 
 ## Proven structure
 
-`LEVELS.DAT` begins with a 32-bit count of **32**, followed by exactly 32 little-endian record offsets. The directory ends at `0x84`, which is also the first record offset. CODE.2 independently proves this indexing rule by seeking to `4 + level_id*4`, reading the dword record offset, then seeking to `record_offset + 0x1D`.
+`LEVELS.DAT` begins with a 32-bit count of **32** followed by 32 little-endian record offsets. The directory ends at `0x84`, exactly the first record offset. CODE.2 proves the indexing rule by seeking to `4 + level_id*4`, reading the record offset, then seeking to `record_offset + 0x1D`.
 
-All 32 archived records have been structurally validated against the loader. Each contains:
+Every one of the 32 archive records validates as:
 
-1. `0x1D`-byte preamble with seven section-boundary dwords beginning at byte 1.
-2. Fixed `0x2A4`-byte base header.
-3. `width * height` 16-bit packed cell-state grid.
-4. Width-indexed variable lists of 10-byte records.
-5. Three legacy compact record families stored as 11-byte records and expanded by CODE.2 into 22-byte runtime structures.
-6. Fixed `0x514`-byte block.
-7. Duplicated width/height words, generated `width * height` automap/display classification bytes, and a 32-bit length-prefixed tail.
+1. `0x1D`-byte preamble with seven boundary dwords beginning at byte 1;
+2. fixed `0x2A4` header;
+3. `width * height` packed 16-bit cell-state words;
+4. width-indexed lists of 10-byte cell records;
+5. three legacy 11-byte compact record families expanded to 22-byte runtime records;
+6. fixed `0x514` block;
+7. repeated width/height, generated `width * height` automap cache, and length-prefixed automap annotation blob.
 
-Every boundary equation and final record length validates for all 32 levels with no exceptions.
+Every boundary equation and final record length validates with no archive exceptions.
 
 ## Documentation and tools
 
-- `FORMAT.md` — byte-level archive/direct-save structure.
-- `SEMANTICS.md` — proved header, list-record, and 11->22-byte record semantics.
-- `CELL_WORD.md` — 16-bit cell code/flag model, visibility/exploration behavior, renderer consumers, and final automap byte-cache relationship.
-- `AUTOMAP.md` — exact CODE.2 cache classifier, connected-map resolver, dynamic door states, five 64-word header lookup tables, and automap SAVE byte conversion.
-- `DYNAMIC_CELL_RECORDS.md` — second 10-byte record-group animation state, open/closed endpoints, collision behavior, and automap class relationship.
-- `CACHE_REBUILD_AUDIT.md` — instruction-level replay of CODE.2 `01558`, the `0x25622` animator trace, and the isolated 40-cell `LEV022.DAT` cache discrepancy.
-- `inspect_levels.py` — structural and coordinate validator plus archive/direct correlation.
-- `analyze_cells.py` — archive-wide cell-flag statistics and direct-save exploration/cache correlation.
-- `analyze_dynamic_records.py` — archive/direct statistics for the proved dynamic 10-byte record fields.
-- `audit_cache_rebuild.py` — machine-checkable ordinary-cell replay of the certified `01558` branches plus the isolated diagnostic variant used to characterize the supplied Level 22 discrepancy.
+- `FORMAT.md` — archive/direct-save structure and annotation-tail serialization.
+- `SEMANTICS.md` — current integrated semantic model.
+- `CELL_WORD.md` — packed 16-bit cell code/flag model.
+- `CELL_RECORDS.md` — 10-byte record kinds, control bits, coordinates, and kind-specific fields.
+- `DYNAMIC_CELL_RECORDS.md` — group-2 animation state and open/closed collision behavior.
+- `AUTOMAP.md` — cache classifier, connected geometry, dynamic doors, CP437 base export, and overlay summary.
+- `AUTOMAP_OVERLAYS.md` — placed-object overlay, annotation labels, legend, merge precedence, and annotation serialization.
+- `CACHE_REBUILD_AUDIT.md` — exact `01558` replay and isolated 40-cell `LEV022.DAT` discrepancy.
+- `inspect_levels.py` — structural/coordinate validator and archive/direct correlation.
+- `analyze_cells.py` — cell-flag statistics and exploration/cache correlation.
+- `analyze_cell_records.py` — 10-byte kind/control distributions plus NPC/object database range checks.
+- `analyze_dynamic_records.py` — dynamic group-2 endpoint/delta statistics.
+- `audit_cache_rebuild.py` — deterministic cache-replay validator.
 
 ## Current semantic frontier
 
-The six-bit cell code, transient current-view mark (`0x0040`), persistent automap explored/revealed mark (`0x0400`), and the generated nature of the final byte grid are established from CODE.2.
+### Cell and automap state
 
-The automap pipeline is traced through export: ordinary connected walls, the four inset directions, dynamic door-capable states, floor classes, and the special `0xB2` hidden/secret marker path can be followed from internal cache state to exported CP437 bytes.
+The six-bit cell code, transient current-view bit `0x0040`, persistent explored bit `0x0400`, generated byte cache, connected wall/inset/door resolver, and base CP437 SAVE mapping are established from CODE.2.
 
-The dynamic second 10-byte record group is now materially decoded. Record byte `+6` is a position/state with stable endpoints **0 and 8**, byte `+7` is its signed animation delta, and `0xCF50` counts active animations. Collision code independently proves endpoint **0 = open/passable** and endpoint **8 = closed/blocking**; positions `1..7` are transitional and remain blocking on the traced movement path. For cells backed by such a record, automap class `0x04` is the fully closed endpoint and class `0x02` is the open/transitional branch. A missing group-2 record also yields class `0x04`, so that class is not globally synonymous with a closed door.
+The provided Level 22 save retains a documented 40-cell cache/header-state inconsistency; the certified CODE.2 algorithm remains authoritative and the sample cache is preserved rather than retroactively normalized.
 
-Across the supplied archive, **323 of 324** group-2 records begin stationary at endpoint 8 with low-two-bit mode 1; the single exception begins at endpoint 0. This is corroborating data-set evidence, not a format constraint.
+### 10-byte records
 
-The fixed header contains five consecutive 64-word cell-code lookup tables beginning at header `+0x00A`. The fifth table is consumed by automap rendering; all **2,048** supplied archive entries in that table are exactly `0xB5B1`, an archive-wide observation rather than a format constraint.
+All 1,659 archive records satisfy their proved row/column invariants. Byte `+1` now has several independent control roles:
 
-The earlier hypothesis that Level 22's saved cache could be explained by live animation of the `0x25622` lookup table has been disproved: `1EDAC` does not alter `0x0093`, and exact serialized-state replay differs only for 40 unexplored code-1 cells. Preserve the certified CODE.2 branch as authoritative while keeping that save-artifact discrepancy explicit.
+```text
+low 2 bits  small state/mode selector
+0x04        interaction eligibility
+0x08        kind-3 geometry inclusion modifier
+0x10        active continuation/render gate
+0x40        interaction suppression
+```
 
-Next work should close the remaining group-2 mode/eligibility bits and exporter overlays, then continue into the `0x514` block and still-unnamed header fields. Lossless extraction/repacking should preserve every unresolved bit and byte until its meaning is independently proved.
+Kind 1 is the dynamic group-2 barrier/door form. Byte `+6` has stable endpoints 0 and 8 and byte `+7` is its signed animation delta. Collision code proves **0 = open/passable** and **8 = closed/blocking**; positions 1..7 are transitional and blocking on the traced path.
+
+Kinds 2 and 4 have proved event/script behavior through signed byte `+2`; kind 10 passes byte `+9` as a resource/mode argument. Remaining bytes retain raw lossless representation.
+
+### Compact families and databases
+
+Family A directly indexes the table loaded from `NPCS.DAT` with the exact `0x45` stride. The supplied NPC database contains 83 records and all 1,258 archive family-A records use IDs `0..82`; family A is therefore an NPC/creature world-record family.
+
+Family B is strongly tied to the `OBJECTS.DAT` namespace and is used by the exporter as the placed object/item family. Its `0x3C..0x41` type range resolves in supplied `OBJECTS.DAT` to five potions plus Oil of Fiery Burning and is rendered as `'*'`; other placed family-B types use literal overlay byte `0xFE`. Family C also uses IDs within the 336-entry object database range, but the exact B/C distinction remains unresolved.
+
+### Annotation tail
+
+The final length-prefixed blob is now identified as the automap annotation/note list. Runtime records hold signed raw X/Y, a payload length, and payload bytes. The exporter scales coordinates by `/8` and `/5`, places sequential map labels, and emits a corresponding label/text legend. All supplied archive records and `LEV022.DAT` have zero annotation length.
+
+## Next major target
+
+The **fixed `0x514` block** is now the highest-value unresolved LEVELS structure. It should be traced from allocation/load at runtime `0xCF44` through every CODE.2 consumer, classified into substructures from access strides/offsets, and verified archive-wide before any semantic names are assigned.
+
+Lossless tooling must continue to preserve every unresolved byte and flag verbatim.
