@@ -2,55 +2,76 @@
 
 Status: **active field reconstruction from the certified CODE.2 runtime layout, cross-checked byte-for-byte against the supplied SAVE.DAT fixture. Unknown bytes remain unnamed.**
 
-The same `0x248`-byte image is serialized for the four active-party slots and the ten saved-roster slots. The runtime party-record base is DGROUP `0x218D8`: CODE.2 addresses the item array at `0x21920 + character_index*0x248`, record offset `+0x48`, and the independently decoded status word at `0x218F0 + character_index*0x248`, record offset `+0x18`.
+The same `0x248`-byte image is serialized for the four active-party slots and ten saved-roster slots. Runtime party-record base is DGROUP `0x218D8`; all addresses below use `character_index * 0x248`.
 
 ## Certified executable-linked fields
 
 | Record offset | Size | Meaning | Evidence |
 |---|---:|---|---|
-| `+0x000` | `0x10` fixture field | character name storage | Every populated fixture record contains its NUL-terminated name wholly inside `+0x00..+0x0F`; `+0x10` begins a distinct binary field in both populated and empty records. The exact original C declaration is not claimed yet. |
-| `+0x018` | 2 | character status word | Runtime `0x218F0 + actor`; high-byte bits are directly manipulated by NPC attacks and cure handlers. |
-| `+0x019` | byte within status word | condition flags | high-byte `0x04=disease`, `0x08=poison`, `0x10=paralysis` are independently proved by CODE.2 attack/cure paths. Other bits remain raw. |
-| `+0x01D` | 1 | class-related discriminator | Runtime `actor + 0x218F5`; CODE.2 tests value `1` as an exemption in the disease-attack path. Do not assign an AD&D class name yet. |
-| `+0x048` | `0x2A` | `int16_le item[21]` | Runtime item array `0x21920 + character*0x248 + slot*2`; slots `0..11` inventory, `12..20` equipment. `0xFFFF` is the ordinary empty-item sentinel. |
-| `+0x13A` | at least 1 byte | character state/flags field | Runtime `0x21A12 = base + 0x13A`; the final CODE.2 semantic audit records exact bit tests and byte clears at this address. Individual bit meanings remain to be named from their consumers. |
+| `+0x000` | `0x10` fixture field | character name storage | Populated fixture names terminate inside `+0x00..+0x0F`; `+0x10` begins binary metadata. |
+| `+0x018` | 2 | character status word | Runtime `0x218F0`; attack/cure paths manipulate its high-byte condition bits. |
+| `+0x019` | byte within status word | condition flags | `0x04=disease`, `0x08=poison`, `0x10=paralysis` are executable-proved. |
+| `+0x01D` | 1 | class-related discriminator | Runtime `0x218F5`; value `1` is an explicit disease-effect exemption. |
+| `+0x03A` | 1 | Strength base/reference byte | Runtime `0x21912`; Strength tables and exceptional-Strength calculation consume it. |
+| `+0x03B` | 1 | current/effective Strength byte | Runtime `0x21913`; melee/damage paths consume it; the Stone Giant Gauntlets path substitutes/restores it and caps adjustment at 20. |
+| `+0x03D` | 1 | Dexterity-related current/effective byte | Runtime `0x21915`; Gauntlets of Dexterity equipment transitions alter exactly this byte. |
+| `+0x046` | 1 | exceptional-Strength base/reference percentile | Runtime `0x2191E`; Strength table logic interprets ranges `1..50`, `51..75`, `76..90`, `91..99`, `100`. |
+| `+0x047` | 1 | exceptional-Strength current/effective percentile | Runtime `0x2191F`; current Strength calculations and UI/combat consumers use it. |
+| `+0x048` | `0x2A` | `int16_le item[21]` | Runtime `0x21920`; slots `0..11` inventory and `12..20` equipment. |
+| `+0x13A` | at least 1 byte | character state/flags | Runtime `0x21A12`; audited CODE.2 performs direct tests/clears here. |
 
-The address arithmetic is exact:
+Address arithmetic:
 
 ```text
-record runtime base       0x218D8
-status word               0x218F0 = base + 0x18
-class-related byte        0x218F5 = base + 0x1D
-item array                0x21920 = base + 0x48
-state/flags byte          0x21A12 = base + 0x13A
-next character            base + 0x248
+record base                 0x218D8
+status word                 0x218F0 = +0x18
+class-related byte          0x218F5 = +0x1D
+Strength base               0x21912 = +0x3A
+Strength current            0x21913 = +0x3B
+Dexterity-related current   0x21915 = +0x3D
+exceptional STR base        0x2191E = +0x46
+exceptional STR current     0x2191F = +0x47
+item array                  0x21920 = +0x48
+state/flags                 0x21A12 = +0x13A
+next character              base + 0x248
 ```
 
-## Core-stat region: fixture-proved field boundaries
+## Correction to the initial fixture-only inference
 
-The reference fixture exposes a highly regular core region before the item array. These boundaries are safe to parse even where the gameplay name is not yet executable-certified:
+The earlier fixture pass treated `+0x32..+0x3F` as seven adjacent ability-score pairs and tentatively treated `+0x3E/+0x3F` as exceptional Strength. Direct executable consumers disprove that interpretation.
+
+Exceptional Strength is actually stored at `+0x46/+0x47`: CODE.2 combines runtime `0x21912` Strength with `0x2191E` percentile and explicitly recognizes percentile bands `1..50`, `51..75`, `76..90`, `91..99`, and `100`. Parallel current-value consumers use `0x21913` with `0x2191F`.
+
+This is an important reconstruction rule: visual pairing in one SAVE fixture is not sufficient to assign gameplay semantics. Executable consumers remain controlling evidence.
+
+## Strength equipment and combat proof
+
+The helper beginning at CODE.2 physical `0x4CF50` indexes the character by `0x248`, checks equipped object ID `0x54`, and otherwise adjusts byte `0x21913` with a cap of 20. OBJECTS/RES cross-links identify object `0x54` as `STONE GIANT GAUNTLETS`. A companion getter returns either the gauntlet-backed value or `0x21913`.
+
+The transition helper at physical `0x4CFE0` moves values between `0x21913` and a per-character auxiliary dword when object `0x54` is equipped/removed. The same helper recognizes object `0x53` (`GAUNTLETS OF DEXTERITY`) and adjusts byte `0x21915`, independently anchoring that byte to the Dexterity effect family.
+
+Combat/weapon paths at physical `0x5E9DD` and `0x5EB69` multiply damage-like words by current/effective `0x21913` and divide by 18. This independently confirms that `+0x3B` is the effective Strength byte rather than an arbitrary paired statistic.
+
+## Core region: current safe boundary map
 
 ```text
-+0x00..+0x0F  fixed 16-byte name storage in this format
-+0x10..+0x17  eight bytes of identity/class metadata
++0x00..+0x0F  fixed 16-byte name storage in this fixture format
++0x10..+0x17  identity/class metadata
 +0x18..+0x19  status word
-+0x1A..+0x1B  two one-byte core fields
-+0x1C..+0x1D  16-bit value / two-byte field pair (semantic split under audit)
-+0x1E..+0x1F  16-bit value
-+0x20..+0x25  three 16-bit core values
-+0x26..+0x31  three 32-bit little-endian value slots
-+0x32..+0x3D  six adjacent byte pairs
-+0x3E..+0x3F  seventh byte pair
-+0x40..+0x47  four 16-bit words immediately preceding item[21]
++0x1A..+0x25  core fields; partial semantics pending
++0x26..+0x31  three 32-bit little-endian slots; sentinel structure proved
++0x32..+0x39  four byte pairs; semantics unresolved
++0x3A/+0x3B  Strength base/current
++0x3C/+0x3D  paired field; +0x3D is Dexterity-related current/effective byte
++0x3E/+0x3F  paired field; semantics unresolved
++0x40..+0x45  three 16-bit words; semantics unresolved
++0x46/+0x47  exceptional-Strength base/current percentile
++0x48..+0x71  item[21]
 ```
 
-The six pairs at `+0x32..+0x3D` have the numerical domain and duplicated current/base pattern expected of the six AD&D ability scores in the supplied characters (for example EHLIANNA: `17/17, 15/15, 15/15, 17/17, 12/12, 16/16`; ANVIL DAWN: `18/18, 14/14, 19/19, 11/11, 16/16, 13/13`). The following pair is `0/0` for EHLIANNA and `100/100` for ANVIL DAWN, strongly matching the exceptional-strength percentile representation. This is now a **high-confidence format inference**, but the exact STR/INT/WIS/DEX/CON/CHA ordering will remain provisional until each byte is tied to an executable consumer.
+The three dwords at `+0x26`, `+0x2A`, and `+0x2E` contain `0xFFFFFFFF` sentinels for absent entries and nonnegative values for present entries. Width and sentinel behavior are fixture-proved; class/experience semantics remain under executable audit.
 
-The three 32-bit slots at `+0x26`, `+0x2A`, and `+0x2E` show `0xFFFFFFFF` sentinels for absent entries and ordinary nonnegative values for present entries. Their width/sentinel structure is fixture-proved; experience/class association is not promoted to canonical semantics until CODE.2 consumers are traced.
-
-## Item slots inside the serialized record
-
-Because the item array begins at record `+0x48`, the executable-proved slot routing maps directly into SAVE.DAT:
+## Item slots
 
 ```text
 +0x48 .. +0x5F  item[0..11]   ordinary inventory grid
@@ -65,11 +86,9 @@ Because the item array begins at record `+0x48`, the executable-proved slot rout
 +0x70           item[20]      bracer/gauntlet
 ```
 
-All entries are little-endian signed 16-bit legacy words. `-1 / 0xFFFF` is the ordinary empty sentinel, but other negative values occur in the saved image and must not be normalized away.
+Entries are legacy signed 16-bit words. `-1 / 0xFFFF` is the ordinary empty sentinel, but other negative values occur and must be preserved exactly.
 
-### Corrected reference-fixture check
-
-For active party slot 0 (`EHLIANNA`, file record base `0x0077`), the 21 words beginning at record `+0x48` are exactly:
+For active party slot 0 (`EHLIANNA`), the 21 words are:
 
 ```text
 321, 322, 81, 70,
@@ -78,25 +97,23 @@ For active party slot 0 (`EHLIANNA`, file record base `0x0077`), the 21 words be
 -1, -256, -1, 0, -256
 ```
 
-This corrects the earlier hand-transcribed tail of the list. The non-`-1` negative values are part of the fixture and demonstrate why the legacy signed words must be preserved exactly rather than treated as a simple array of OBJECTS.DAT IDs.
-
 ## Empty-record representation
 
-The two unused active-party records are not zero-filled. In the reference fixture they contain `0xFF` throughout most of the record, while bytes `+0x10..+0x11` are `00 80`. Therefore record occupancy must not be inferred from an all-zero test. A parser should preserve the entire raw `0x248` image and use only an executable-proved occupancy predicate once identified.
+Unused active-party records are not zero-filled. In the reference fixture most bytes are `0xFF`, while `+0x10..+0x11` are `00 80`. Occupancy must therefore not be inferred from an all-zero test; preserve the complete raw image until the executable occupancy predicate is certified.
 
 ## Current record partition
 
 ```text
-+0x000 .. +0x017   identity/core metadata (name boundary now mapped)
-+0x018 .. +0x047   status/stats/class region (several boundaries mapped)
-+0x048 .. +0x071   item[21] (structure confirmed)
++0x000 .. +0x017   identity/core metadata
++0x018 .. +0x047   status/stats/class region; several fields now executable-linked
++0x048 .. +0x071   item[21]
 +0x072 .. +0x139   unresolved character arrays/state
 +0x13A             executable-referenced state/flags byte
 +0x13B .. +0x247   unresolved spell/effect/auxiliary state
 ```
 
-This is deliberately not yet represented as a packed C struct: doing so would falsely imply semantics for unresolved bytes. A native implementation should use an explicit legacy decoder until every field boundary is certified.
+A native implementation should continue to use an explicit legacy decoder rather than memory-mapping this image into a modern packed struct.
 
 ## Next target
 
-Resolve the six paired ability bytes against their individual CODE.2 consumers, identify the `+0x26/+0x2A/+0x2E` dwords and the `+0x40..+0x47` words, then audit the array shapes between `+0x72` and `+0x139`. The `+0x13A` state byte provides the next hard executable anchor for that post-inventory region.
+Resolve the remaining paired bytes at `+0x32..+0x39` and `+0x3E/+0x3F`, identify the three dwords at `+0x26/+0x2A/+0x2E`, then audit the post-inventory array shapes from `+0x72` toward the hard `+0x13A` anchor.
