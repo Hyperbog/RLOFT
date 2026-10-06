@@ -30,7 +30,30 @@ Loader `18878..18918` produces the common runtime position/type structure:
 
 The legacy conversion does **not** import compact byte `+0x0A`. All 622 supplied archive family-C records store zero there, so current archive evidence is consistent with runtime-only movement/orientation state. Lossless tooling must still preserve the byte.
 
-The loader also remaps compact type `0x54` to runtime type `0x58`. The supplied archive contains one such `0x54` family-C record. This is an executable-proved legacy migration rule; its historical design reason is not yet established.
+The loader also remaps compact type `0x54` to runtime type `0x58`. The supplied archive contains one such `0x54` family-C record.
+
+This migration's **semantic target is now closed**. In the current supplied OBJECTS.DAT:
+
+```text
+0x54  STONE GIANT GAUNTLETS
+0x58  ARROW OF SLAY UNDEAD
+```
+
+CODE.2 performs the conversion before storing runtime record `+0x0E`, so every later family-C renderer, pickup, OBJECTS lookup, and thrown-item consumer sees type `0x58`, not `0x54`. The rule is therefore a legacy serialized alias for **ARROW OF SLAY UNDEAD** in the current runtime object namespace; treating the compact value literally as Stone Giant Gauntlets would be incompatible with the executable.
+
+The sole legacy record is archive level 10 family-C record 28 at cell `(78,113)`. It forms a tight five-item cluster with the immediately preceding records:
+
+```text
+record 24  0x9E  PALADIN'S SWORD
+record 25  0x9F  PALADIN'S DAGGER
+record 26  0x1F  ADAMANTITE CHAIN HELM
+record 27  0x1B  CHAIN COIF
+record 28  0x54  legacy alias -> 0x58 ARROW OF SLAY UNDEAD
+```
+
+That spatial/content cluster independently supports the migrated identity rather than an accidental numeric substitution.
+
+The exact historical database revision that made compact ID `0x54` require migration to current ID `0x58` is still not recoverable from the supplied build. Preserve the explicit conversion rather than attempting a global ID renumbering.
 
 ## Direct behavioral proof
 
