@@ -1,6 +1,6 @@
 # INFO.DAT
 
-Status: **physical format, installation/resource path, and active RES0..RES10 location selectors are proven in the supplied CODE.1/CODE.2 pair; lossless parse/encode verified. The two trailing selector positions remain preserved historical slots with no active consumer in either certified module.**
+Status: **ARCHIVAL-COMPLETE FOR THE SUPPLIED BUILD. Physical layout, shared resource path, active RES0..RES10 location routing, historical selector slots 11..12, and byte-exact semantic decode→encode are certified.**
 
 - Size: 17 bytes
 - SHA-256: `4ffa6ac5d5b5afd103bd67d84d3a372b401b3b19407b0c68c44bb0dfd9e32c30`
@@ -80,6 +80,7 @@ The field is therefore a shared installation/resource path prefix, not an arbitr
 - `FORMAT.md` — executable-backed physical and semantic format.
 - `inspect_info.py` — lossless parser/encoder.
 - `analyze_info_config.py` — immutable CODE.2 signature and RES-routing verifier.
+- `FINAL_AUDIT_2026-10-06.md` — final archival certification and legacy-selector boundary.
 
 Validation against the supplied files:
 
@@ -93,7 +94,7 @@ CODE.2 SHA/signatures       PASS
 
 ## Current frontier
 
-INFO.DAT is at practical format closure. The only unresolved bytes are selector digits 11 and 12: they are structurally valid and must be preserved, but no runtime meaning is currently proved.
+The supplied-build INFO reconstruction is archival-complete. Selector positions 11 and 12 remain preserved historical slots with no active runtime consumer proved in the certified CODE.1/CODE.2 pair. Their exact older-build provenance is historical enrichment, not a supplied-format hole. See `FINAL_AUDIT_2026-10-06.md`.
 
 ## CODE.1 and legacy-archive context
 
