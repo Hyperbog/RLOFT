@@ -46,7 +46,8 @@ class CinematicTimingTests(unittest.TestCase):
         )
         events = exporter.cinematic_sfx_events(movie, "CINE00.ANM", None)
         self.assertEqual(len(events), 1)
-        self.assertEqual(events[0].res6_index, 53)
+        self.assertEqual(events[0].archive, 6)
+        self.assertEqual(events[0].resource_index, 53)
         self.assertEqual(events[0].command, 6)
 
     def test_ignored_queued_sfx_ids_are_not_emitted(self) -> None:
@@ -60,13 +61,14 @@ class CinematicTimingTests(unittest.TestCase):
             [],
         )
 
-    def test_direct_sfx_uses_raw_res6_index(self) -> None:
+    def test_direct_sfx_uses_res10_index(self) -> None:
         movie = anm.AnmFile(
             1, 1,
             (frame(0, anm.Chunk(9, (42).to_bytes(2, "little"))),),
         )
         events = exporter.cinematic_sfx_events(movie, "CINE00.ANM", None)
-        self.assertEqual(events[0].res6_index, 42)
+        self.assertEqual(events[0].archive, 10)
+        self.assertEqual(events[0].resource_index, 42)
         self.assertEqual(events[0].command, 9)
 
 
