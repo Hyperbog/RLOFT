@@ -1,6 +1,6 @@
 # SAVE.DAT
 
-Status: **high-effort audited active reconstruction.** Serializer/deserializer order is certified; the shared `0x248` character image is substantially reconstructed; variable-length global layout, three saved timing domains, persistent container state, renderer controls, cursor-held item state, all 26 primary-effect identities, and trailing container-UI contexts are behaviorally mapped.
+Status: **high-effort audited late-stage reconstruction.** Serializer/deserializer order is certified; the shared `0x248` character image is substantially reconstructed; variable-length global layout, three saved timing domains, persistent container state, renderer controls, cursor-held item state, shipped spell catalogues, all 26 primary-effect identities/text labels, named character conditions, and trailing container-UI contexts are behaviorally mapped.
 
 - Supplied fixture size: 9,288 bytes (`0x2448`)
 - Supplied fixture SHA-256: `f898cb92fca6447954f5e0b2bf6f8ad2435e4a64ae3b9de74f8bf75e0ed10d5d`
@@ -108,11 +108,48 @@ Major certified regions:
 +0x1F6..+0x247   82-byte serialized reserved/unreferenced terminal region
 ```
 
-See `CORE_FIELDS.md`, `CHARACTER_RECORD.md`, and the focused post-inventory/effect notes.
+See `CORE_FIELDS.md`, `CHARACTER_RECORD.md`, `STATUS_WORD.md`, and the focused post-inventory/effect notes.
 
-## Primary effect catalogue closed
+## Character status word
 
-Character `+0x132..+0x19D` is a 26-bit primary-effect set plus 26 corresponding expiry dwords. Application producers now identify every slot:
+Raw `T` plus the executable status-display loop closes the five player-facing condition bits:
+
+```text
+0x0100  POSSESSED
+0x0200  HELD
+0x0400  DISEASED
+0x0800  POISONED
+0x1000  PARALYZED
+```
+
+Other certified states include:
+
+```text
+0x0080  recruited/template-character provenance
+0x4000  dead / zero-HP death state
+0x8000  empty/unoccupied active-party slot
+```
+
+`0x0040` is a separate Vengeful-Spirit warning/coercion presentation/action-blocking state: the possession maintenance routine displays one of raw `T[351..354]` and then sets this bit. `0x2000` remains intentionally unnamed pending producer evidence. See `STATUS_WORD.md` and `STATUS_POSSESSION.md`.
+
+## Shipped spell catalogues closed
+
+Both serialized preparation families remain fixed `8 × 10` cell images, but CODE.2 count tables and raw `T` establish the active shipped entries:
+
+```text
+Mage counts by level:   [7, 6, 10, 4, 2, 6, 0, 0] -> 35 prepared entries
+priest counts by level: [7, 6,  5, 4, 4, 2, 0, 0] -> 28 prepared entries
+```
+
+The exact Mage and Cleric/Paladin spell labels, T indexes, and dispatch IDs are catalogued in `SPELL_CATALOGUE.md`.
+
+Two priest-family resource records, `LAY HANDS` and `TURN UNDEAD`, occupy T slots after the seven level-1 priest spell entries but lie beyond the executable preparation count; they share the priest action namespace without being matrix-B memorization cells.
+
+A shipped compatibility quirk is also documented: priest level-loss normalizer `0x3EB28` operates on matrix B but uses the Mage-shaped entry-count table `0x6440` rather than normal priest table `0x6420`.
+
+## Primary effect catalogue and original text closed
+
+Character `+0x132..+0x19D` is a 26-bit primary-effect set plus 26 corresponding expiry dwords. Application producers identify every slot:
 
 ```text
  0 Armor                             13 Draw Upon Holy Might - DEX
@@ -130,9 +167,13 @@ Character `+0x132..+0x19D` is a 26-bit primary-effect set plus 26 corresponding 
 12 Draw Upon Holy Might - STR        25 Wand of Enemy Detection
 ```
 
-This is not simply a spell-ID table: indexes 19 and 22–25 are item/equipment-derived, and several spell-derived slots have special removal conditions rather than ordinary positive expiries.
+The supplied raw `T` resource independently closes `T[588..613]`, and CODE.2 constructs ordinary expiry presentation as:
 
-Expiration text remains contiguous at `T[588..613]`, but those records are now needed for **exact original wording/corroboration**, not for discovering the effect identities themselves. See `PRIMARY_EFFECT_CATALOGUE.md` and `EFFECT_FLAGS.md`.
+```text
+"%s's " + T[588 + effect_index] + " wears off."
+```
+
+The raw text range contains generic display labels—both Mage and priest Light are simply `Light`, for example—so producer tracing remains necessary for exact effect ownership. See `PRIMARY_EFFECT_CATALOGUE.md`, `EFFECT_FLAGS.md`, and `T_EFFECT_TEXT.md`.
 
 ## Dynamic live-world-object section
 
@@ -143,7 +184,7 @@ structure stride = 0x16
 maximum count    = 0x96 (150)
 ```
 
-A parser must follow the count rather than seek directly to the quick-start fixture's late offsets.
+A parser must follow the count rather than seek directly to the quick-start fixture's late offsets. This live-world-object record is now the largest remaining structural/semantic SAVE target.
 
 ## Selected spell UI and gameplay ticks
 
@@ -209,19 +250,21 @@ Opening/closing transitions animate phase `0→3` and `3→0`; phase 3 is fully 
 ```bash
 python DatFiles/SAVE.DAT/tools/analyze_save.py /path/to/SAVE.DAT
 python DatFiles/SAVE.DAT/tools/analyze_character_records.py /path/to/SAVE.DAT
+python DatFiles/SAVE.DAT/tools/verify_spell_text_catalogues.py /path/to/T /path/to/CODE.2
 ```
 
-The character analyzer now decodes active primary-effect bits by certified source identity and reports each corresponding expiry value.
+The character analyzer decodes certified status bits and active primary-effect identities. The spell/text verifier pins both source-file hashes, all 26 effect labels, both spell catalogues, priest action-only labels, and both executable entry-count tables.
 
 ## Native-port compatibility rule
 
-Treat SAVE.DAT as an explicitly decoded little-endian legacy runtime image. Preserve legacy enum/index numbers, signed sentinels, fixed-point time precision, all 26 primary effect bits/timers, unknown/reserved bytes, dynamic serializer ordering, and the container state-61/62 mismatch exactly unless an explicit compatibility-fix layer says otherwise.
+Treat SAVE.DAT as an explicitly decoded little-endian legacy runtime image. Preserve legacy enum/index numbers, signed sentinels, fixed-point time precision, status bits, both fixed-size spell matrices, all 26 primary-effect bits/timers, unknown/reserved bytes, dynamic serializer ordering, and the container state-61/62 mismatch exactly unless an explicit compatibility-fix layer says otherwise.
 
 ## Remaining reconstruction targets
 
-1. Recover the exact Mage/priest spell-bank catalogue and executable per-level entry limits.
-2. Decode `T[588..613]` to preserve exact primary-effect expiration wording and independently corroborate the closed producer catalogue.
-3. Audit remaining character `status_word` bits and portrait/status presentation variants.
-4. Continue semantic recovery of the `0x16` live-world-object record and any remaining SAVE-adjacent runtime state needed by a native compatibility implementation.
+1. Recover the exact producer/meaning of status bit `0x2000` and determine whether any currently unnamed low status bits have real runtime ownership.
+2. Complete the exact player-facing portrait-resource catalogue/subset behind `+0x012` and any remaining status-presentation details.
+3. Identify a stronger runtime consumer for serialized `age` if one exists.
+4. Deepen the `0x16` live-world-object record, now the principal remaining structural SAVE component.
+5. Run a final SAVE-wide consistency/stale-offset audit before declaring the format archival-complete.
 
-The remaining SAVE work is now predominantly **catalogue and live-object semantics**, not serializer geometry or primary-effect identity discovery.
+The remaining SAVE work is now predominantly **live-object semantics and final residual/audit closure**, not basic serializer geometry, spell cataloguing, or primary-effect discovery.
