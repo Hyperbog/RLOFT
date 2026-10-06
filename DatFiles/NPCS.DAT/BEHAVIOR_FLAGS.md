@@ -1,6 +1,6 @@
 # NPCS.DAT behavior/capability flags
 
-Status: **six individual capability bits are now behaviorally decoded from certified CODE.2. The remaining bits stay raw until their exact effect/AI consumers are closed.**
+Status: **nine individual capability/effect bits are now behaviorally decoded from certified CODE.2. The remaining bits stay raw until their exact effect/AI consumers are closed.**
 
 This document extends `FORMAT.md`. The relevant physical fields are:
 
@@ -42,11 +42,7 @@ WIGHT
 ZOMBIE GOLEM
 ```
 
-Safe semantic name:
-
-```text
-undead_classification
-```
+Safe semantic name: `undead_classification`.
 
 ### `0x02` — level-drain attack
 
@@ -64,11 +60,7 @@ WRAITH
 WIGHT
 ```
 
-Safe name:
-
-```text
-level_drain_attack
-```
+Safe name: `level_drain_attack`.
 
 ### `0x04` — Strength-drain attack
 
@@ -83,11 +75,7 @@ SHADOW
 INQUISITOR
 ```
 
-Safe name:
-
-```text
-strength_drain_attack
-```
+Safe name: `strength_drain_attack`.
 
 ### `0x10` — unresolved status attack
 
@@ -135,11 +123,7 @@ SKELETON
 BRIGAND
 ```
 
-Safe behavioral name:
-
-```text
-dynamic_barrier_activation
-```
+Safe behavioral name: `dynamic_barrier_activation`.
 
 This is deliberately narrower than a source-level name such as `opens_doors`: the proved operation is interaction with the dynamic barrier/door record family.
 
@@ -157,11 +141,7 @@ ATMOSPHERE RAT
 ATMOSPHERE CROW
 ```
 
-Safe behavioral name:
-
-```text
-obstacle_passthrough
-```
+Safe behavioral name: `obstacle_passthrough`.
 
 Do not rename this bit `flying`; the supplied `ATMOSPHERE RAT` record demonstrates that the encoded behavior is collision-related rather than a universal locomotion taxonomy.
 
@@ -187,7 +167,88 @@ AFCE   test byte  +0x31 bit 0x80 in an area/effect path
 B6B0   test byte  +0x31 bit 0x04 while computing an undead-turning threshold
 ```
 
-This establishes the field as a generalized capability/effect-resistance/immunity mask family, but it does **not** yet justify assigning individual spell/immunity names to most bits. The exact overlapping access widths must be preserved.
+Three bits in this field are now individually decoded. See `EFFECT_IMMUNITIES.md` for the full call-site and spell-dispatch evidence.
+
+### `0x00000100` — common spell-effect immunity
+
+`B02C` skips an NPC entirely whenever the caller's effect-immunity mask intersects the NPC's `behavior_flags` dword. Bit `0x0100` is included in both proved elemental masks and in several targeted status-effect masks:
+
+```text
+fire effects   0x2100 = 0x2000 | 0x0100
+cold effects   0x0900 = 0x0800 | 0x0100
+status family  0x0102 / 0x0108 / 0x0110
+```
+
+It therefore acts as a common immunity gate shared across multiple spell/effect families. The name is deliberately scoped to the observed spell/effect dispatcher and does not claim universal immunity to every magical subsystem.
+
+Supplied definitions:
+
+```text
+DOOM GUARD
+BANSHEE
+ZOMBIE GOLEM
+LIVING WALL
+```
+
+Safe alias: `common_spell_effect_immunity`.
+
+### `0x00000800` — cold-effect immunity
+
+CODE.2 uses compound mask `0x0900` in the area/effect paths corresponding to the mage cold-spell family, including effect id 31 (the spell-table position and `3d10` behavior corresponding to Ice Storm) and effect id 53 (the position corresponding to Otiluke's Freezing Sphere).
+
+The element-specific portion is therefore `0x0800`.
+
+Supplied definitions:
+
+```text
+ZOMBIE
+SKELETON
+STRAHD
+SHADOW
+ZOMBIE LORD
+VAMPIRE
+BANSHEE
+SPECTRE
+WRAITH
+SHADOW FIEND
+WIGHT
+LIVING WALL
+```
+
+Safe alias: `cold_effect_immunity`.
+
+### `0x00002000` — fire-effect immunity
+
+CODE.2 uses compound mask `0x2100` for multiple fire-oriented effects, including effect id 1 whose damage is `2 * caster_level + 1d3` and effect id 10 whose attack path uses `3d6`. Their spell-table positions and behavior correspond to Burning Hands and Agannazer's Scorcher respectively.
+
+The element-specific portion is therefore `0x2000`.
+
+Supplied definitions:
+
+```text
+PYRE ELEMENTAL
+HELLHOUND
+BANSHEE
+SHADOW FIEND
+ZOMBIE GOLEM
+LIVING WALL
+```
+
+Safe alias: `fire_effect_immunity`.
+
+The original rule book independently describes Pyre Elementals as immune to fire-based spells/attacks and Wights/Wraiths as immune to cold-based spells, corroborating these executable-derived identities.
+
+### Remaining status-specific immunity bits
+
+The low components of:
+
+```text
+0x0102
+0x0108
+0x0110
+```
+
+remain unnamed. Their handlers set timed live-NPC state, but the exact source-level conditions represented by `0x0002`, `0x0008`, and `0x0010` have not yet been independently closed.
 
 ## Supplied bit distributions
 
@@ -216,13 +277,17 @@ Bits absent from the supplied database remain representable raw data and must no
 A high-level model may expose these proved aliases while retaining the original raw fields:
 
 ```text
-behavior_flags_3A & 0x20  undead_classification
-behavior_flags_3A & 0x02  level_drain_attack
-behavior_flags_3A & 0x04  strength_drain_attack
+behavior_flags & 0x00000100  common_spell_effect_immunity
+behavior_flags & 0x00000800  cold_effect_immunity
+behavior_flags & 0x00002000  fire_effect_immunity
 
-behavior_flags_39 & 0x20  paralysis_attack
-behavior_flags_39 & 0x40  dynamic_barrier_activation
-behavior_flags_39 & 0x80  obstacle_passthrough
+behavior_flags_3A & 0x20      undead_classification
+behavior_flags_3A & 0x02      level_drain_attack
+behavior_flags_3A & 0x04      strength_drain_attack
+
+behavior_flags_39 & 0x20      paralysis_attack
+behavior_flags_39 & 0x40      dynamic_barrier_activation
+behavior_flags_39 & 0x80      obstacle_passthrough
 ```
 
-Keep `+0x31..+0x34`, the remaining `+0x39` bits, and `+0x3A & 0x10` available as raw flags until their exact executable semantics are closed.
+Keep all remaining bits, `+0x39 & 0x01`, and `+0x3A & 0x10` available as raw flags until their exact executable semantics are closed.
