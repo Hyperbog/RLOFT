@@ -815,6 +815,7 @@ class RavenloftExtractorGui(tk.Tk):
             graphics_indices=self.graphics_indices.get(),
             graphics_metadata=self.graphics_metadata.get(),
             graphics_masks=self.graphics_masks.get(),
+            graphics_native=self.graphics_native.get(),
             audio_format=self.audio_format.get(),
             music_format=self.music_format.get(),
             cinematic_frame_format=self.cin_frame_format.get(),
@@ -824,7 +825,7 @@ class RavenloftExtractorGui(tk.Tk):
             cinematic_frames=self.all_frames.get(),
             cinematic_videos=self.all_videos.get(),
             cinematic_timeline=True,
-            preserve_native=self.graphics_native.get(),
+            preserve_native=True,
             export_support=self.all_support.get(),
         )
         self._run("Dumping complete media corpus…", lambda: master_dumper.dump_all(root, dest, options, self._master_progress, True))
