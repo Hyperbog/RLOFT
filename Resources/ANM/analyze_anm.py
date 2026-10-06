@@ -65,6 +65,10 @@ def parse_anm(data: bytes) -> Animation:
                     f"frame {frame_index} chunk {chunk_index}: truncated header"
                 )
             chunk_id = u16(data, pos)
+            if chunk_id > 9:
+                raise ValueError(
+                    f"frame {frame_index} chunk {chunk_index}: chunk id {chunk_id} outside CODE.2 dispatcher domain 0..9"
+                )
             chunk_size = i32(data, pos + 2)
             pos += 6
             if chunk_size < 0:

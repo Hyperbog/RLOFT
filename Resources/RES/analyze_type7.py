@@ -53,6 +53,10 @@ def validate_body(body: bytes) -> dict[str, int]:
             stop_selector, signed_adjustment, entry_selector = struct.unpack_from(
                 "<hhh", body, pos
             )
+            if not (0 <= stop_selector <= 0x0100 and 0 <= entry_selector <= 0x0100):
+                raise ValueError(
+                    f"renderer selector outside 0x0000..0x0100 stop={stop_selector} entry={entry_selector}"
+                )
             if stop_selector & 1 or entry_selector & 1:
                 raise ValueError(
                     f"odd renderer selector stop={stop_selector} entry={entry_selector}"

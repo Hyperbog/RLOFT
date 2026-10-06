@@ -10,6 +10,11 @@ WORD_TABLE_BYTES=0x100
 DWORD_TABLE_BYTES=0x400
 SCALE_PREFIX=0x204
 TRAILER_BYTES=0x200
+EXPECTED_BYTES=333757
+EXPECTED_SHA256="19b6bc15f1be616bb8ff49dc9029995a1a0413fae06addc9fd41ddef761d0e87"
+EXPECTED_BLOCK_COUNT=127
+EXPECTED_LOOKUP_MAX=508
+EXPECTED_AUX=128
 
 
 def parse(data: bytes):
@@ -23,6 +28,12 @@ def parse(data: bytes):
     globals8=struct.unpack_from("<8I",data,off); off+=32
     angle=struct.unpack_from("<256i",data,off); off+=DWORD_TABLE_BYTES
     block_count, lookup_max, aux = struct.unpack_from("<III",data,off); off+=12
+    if block_count != EXPECTED_BLOCK_COUNT:
+        raise ValueError(f"scale block count {block_count} != {EXPECTED_BLOCK_COUNT}")
+    if lookup_max != EXPECTED_LOOKUP_MAX:
+        raise ValueError(f"runtime lookup max {lookup_max} != {EXPECTED_LOOKUP_MAX}")
+    if aux != EXPECTED_AUX:
+        raise ValueError(f"renderer aux value {aux} != {EXPECTED_AUX}")
     lookup_words=lookup_max+1
     lookup=struct.unpack_from(f"<{lookup_words}H",data,off); off+=lookup_words*2
     code_total=struct.unpack_from("<I",data,off)[0]; off+=4
@@ -37,6 +48,8 @@ def parse(data: bytes):
         if size < SCALE_PREFIX: raise ValueError(f"block {i} < 0x204")
         patch=struct.unpack_from("<129H",raw,0)
         steps=struct.unpack_from("<129H",raw,0x102)
+        if patch[0] != SCALE_PREFIX:
+            raise ValueError(f"block {i} first patch offset 0x{patch[0]:X} != 0x{SCALE_PREFIX:X}")
         if not all(SCALE_PREFIX <= x < size for x in patch):
             raise ValueError(f"block {i} patch offset out of range")
         if not all(a<=b for a,b in zip(patch,patch[1:])):
@@ -52,20 +65,32 @@ def parse(data: bytes):
     if len(trailer)!=TRAILER_BYTES or any(trailer):
         raise ValueError(f"trailer is not 0x200 zero bytes: {len(trailer)}")
 
-    sine_bad=[]
+    step_sums=[b["step_sum"] for b in blocks]
+    if not all(a < b for a,b in zip(step_sums,step_sums[1:])):
+        raise ValueError("scale-step sums are not strictly increasing")
+
+    sine_bad=[]; sine_sign_bad=[]
     for deg,x in enumerate(sine):
         mag=x&0x7fffffff
         expected=min(65535,int(abs(math.sin(math.radians(deg)))*65536))
         if abs(mag-expected)>1: sine_bad.append((deg,mag,expected))
+        sign=(x>>31)&1; expected_sign=1 if 180 <= deg <= 360 else 0
+        if sign != expected_sign: sine_sign_bad.append((deg,sign,expected_sign))
     tangent_bad=[]
     for i,x in enumerate(tangent):
         deg=(i+1)/10 if i<450 else i/10
         expected=int(math.tan(math.radians(deg))*65536)
         if abs(x-expected)>2: tangent_bad.append((i,x,expected))
+    if sine_bad:
+        raise ValueError(f"sine magnitude formula outliers: {sine_bad[:3]}")
+    if sine_sign_bad:
+        raise ValueError(f"sine sign-bit range violations: {sine_sign_bad[:3]}")
+    if tangent_bad:
+        raise ValueError(f"tangent formula outliers: {tangent_bad[:3]}")
 
     return dict(
         bytes=len(data), sha256=hashlib.sha256(data).hexdigest(),
-        sine_entries=len(sine), sine_formula_outliers=len(sine_bad),
+        sine_entries=len(sine), sine_formula_outliers=len(sine_bad), sine_sign_outliers=len(sine_sign_bad),
         tangent_entries=len(tangent), tangent_formula_outliers=len(tangent_bad),
         projection_a_monotonic=all(a<=b for a,b in zip(table_a,table_a[1:])),
         projection_b_monotonic=all(a<=b for a,b in zip(table_b,table_b[1:])),
@@ -88,7 +113,11 @@ def parse(data: bytes):
 
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument("file",type=Path); args=ap.parse_args()
-    r=parse(args.file.read_bytes())
+    data=args.file.read_bytes()
+    digest=hashlib.sha256(data).hexdigest()
+    if len(data) != EXPECTED_BYTES or digest != EXPECTED_SHA256:
+        raise ValueError(f"non-canonical SINTAB identity bytes={len(data)} sha256={digest}")
+    r=parse(data)
     for k,v in r.items(): print(f"{k}: {v}")
     return 0
 

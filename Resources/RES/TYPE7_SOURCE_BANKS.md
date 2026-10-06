@@ -132,7 +132,7 @@ absolute RES3 object shape = 3316 + bank-local class-2 shape
 
 Repeated OBJECTS definitions deliberately reuse local bases; this is visual-resource sharing, not a parser error.
 
-## Source class 3: second INIT scene-descriptor family
+## Source class 3: transient/moving-effect scene family
 
 Immediately after the 175 class-1 descriptors, `16934` reads a second count and 7-byte table from the same open INIT file:
 
@@ -161,7 +161,7 @@ All 12 descriptor allocations fit the 76-entry class-3 bank. The last supplied a
 absolute = 4158 + local_shape
 ```
 
-The higher gameplay identity of this source family remains under reconstruction; it is intentionally not assigned a speculative source-level name here.
+The higher-level identity is now executable-backed. Scene emitter `2BFEC..2C22E` walks the same 0x16-byte live-world-object family used by the transient/moving-effect constructor `08A80`; both use record word `+0x0E` as the effect/type value, and the emitter uses that value to index this 12-entry INIT class-3 descriptor table. LEVELS event opcode 3 independently calls `08A80` to create these records. The safe project classification is therefore **transient/moving-effect scene family**; the historical DreamForge source identifier remains unknown.
 
 ## Why `shape_stride` is safer than `heading_stride`
 

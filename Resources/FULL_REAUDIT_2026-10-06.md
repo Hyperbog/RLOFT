@@ -309,3 +309,22 @@ The following remain legitimate evidence boundaries rather than audit defects:
 - inner ARIA GM1/GM2 bank grammar pending specification or shipped-driver reconstruction.
 
 Unknown remains UNKNOWN unless new primary evidence closes it.
+
+
+## 17. Corrective implementation status
+
+The corrective maintenance pass has now been integrated:
+
+- **R-AUDIT-001:** implemented with `CANONICAL_MANIFEST.json`, `verify_resources.py`, and the resource-validator CI self-test workflow. Full identity/semantic certification accepts an external immutable corpus because original game assets are intentionally not stored in Git.
+- **R-AUDIT-003:** implemented. RES documentation and `analyze_res.py` preserve signed runtime interpretation for the EH header-size word and type-1/type-2 `count`/`height` descriptor words.
+- **R-AUDIT-004:** implementation corrected. The Python LZSS model initializes only `0x000..0xFED`; `0xFEE..0xFFF` remain explicit undefined sentinels until written. Any early read now fails certification. **Canonical-corpus post-fix execution remains required** because the RES binaries are not committed to this repository.
+- **R-AUDIT-005:** implemented. SINTAB canonical identity, fixed serialized counts, signed-magnitude sine sign ranges, formula tolerances, patch-table first offsets, and strictly increasing scale-step sums are enforced.
+- **R-AUDIT-006:** implemented in documentation. T exactness is described as preservation/patch round-trip rather than a from-scratch serializer.
+- **R-AUDIT-007:** implemented centrally. The aggregate verifier hard-fails the canonical size/SHA-256 manifest before semantic analyzers run.
+- **R-AUDIT-008:** implemented. The stale TYPE7_RENDERER remaining-work list now points to the already-closed source-bank and SINTAB work.
+- **R-AUDIT-009:** implemented. ANM chunk IDs outside CODE.2 dispatcher domain `0..9` are rejected.
+- **R-AUDIT-010:** implemented. Type-7 selectors must be even and inside `0x0000..0x0100`.
+
+The withdrawn R-AUDIT-002 remains withdrawn; `TYPE7_SOURCE_BANKS.md` now records the proved transient/moving-effect identity.
+
+At this point the only audit action that cannot be executed from the repository alone is the post-fix run over the original 33 binary resources. No substitute bytes should be used for that certification.

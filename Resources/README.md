@@ -52,3 +52,22 @@ The 2026-10-05 source set contains 33 files:
 - Wordcode companion arrays are proved unconsumed by certified CODE.2; their historical producer/editor purpose remains explicitly `UNKNOWN` rather than being mislabeled runtime state.
 
 See `FINAL_RESOURCE_AUDIT.md` and `STATUS.md` before starting new resource-format work; remaining questions there are intentionally classified as historical/alternate-build/vendor-driver follow-up rather than missing active Ravenloft resource behavior.
+
+
+## Aggregate verification
+
+`CANONICAL_MANIFEST.json` records the immutable size/SHA-256 identities of all 33 supplied resource/support files. The originals are intentionally not committed to this repository.
+
+Run the complete local verifier against a directory containing the original files (the search is recursive):
+
+```sh
+python Resources/verify_resources.py --corpus /path/to/ravenloft/originals
+```
+
+To include DAT-backed namespace/source-bank checks, add the directory containing `NPCS.DAT`, `OBJECTS.DAT`, and `SAVE.DAT`:
+
+```sh
+python Resources/verify_resources.py --corpus /path/to/originals --dat-root /path/to/dat-files
+```
+
+Repository CI runs `--self-test`, which exercises the corrected decoder/domain invariants and compiles the permanent analyzers without requiring copyrighted game assets.

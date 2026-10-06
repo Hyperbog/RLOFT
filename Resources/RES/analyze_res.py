@@ -29,7 +29,13 @@ def encode_res(entries):
 
 
 def lzss(src: bytes, target: int):
-    hist=bytearray([0xFE])*0x1000; hp=0xFEE; flags=ip=0; out=bytearray()
+    # CODE.2 37700 fills only dictionary bytes 0x000..0xFED with 0xFE.
+    # The final 18 bytes are not initialized by that routine. Keep them as
+    # explicit sentinels so certification fails if a stream observes them
+    # before literals/back-references have defined them.
+    hist=[None]*0x1000
+    hist[:0xFEE]=[0xFE]*0xFEE
+    hp=0xFEE; flags=ip=0; out=bytearray()
     while len(out)<target:
         flags >>= 1
         if not flags & 0x100:
@@ -43,19 +49,24 @@ def lzss(src: bytes, target: int):
             lo,hi=src[ip],src[ip+1]; ip+=2
             off=lo|((hi&0xF0)<<4); count=(hi&0x0F)+3
             for j in range(count):
-                v=hist[(off+j)&0xFFF]; out.append(v); hist[hp]=v; hp=(hp+1)&0xFFF
+                source=(off+j)&0xFFF; v=hist[source]
+                if v is None:
+                    raise ValueError(f"LZSS reads dictionary byte 0x{source:03X} before CODE.2 defines it")
+                out.append(v); hist[hp]=v; hp=(hp+1)&0xFFF
                 if len(out)==target: break
     return bytes(out), ip
 
 
 def image_descriptor(entry, base):
-    count,height=struct.unpack_from("<HH",entry,base)
+    count,height=struct.unpack_from("<hh",entry,base)
     width=entry[base+4]; field5=entry[base+5]; method=entry[base+6]; field7=entry[base+7]
     return count,height,width,field5,method,field7
 
 
 def validate_image(entry, base, payload_at):
     count,height,width,field5,method,field7=image_descriptor(entry,base)
+    if count < 0 or height < 0:
+        raise ValueError(f"negative signed raster descriptor count={count} height={height}")
     target=count*height*width*8; payload=entry[payload_at:]
     if method==0:
         if len(payload)!=target: raise ValueError(f"raw {len(payload)} != {target}")
@@ -96,7 +107,10 @@ def summarize(path: Path):
                 rec.update(family="unclassified")
             non_eh.append(rec)
             continue
-        kinds["EH"]+=1; t=e[2]; hs=struct.unpack_from("<H",e,3)[0]; types[t]+=1; headers[(t,hs)]+=1
+        kinds["EH"]+=1; t=e[2]; hs=struct.unpack_from("<h",e,3)[0]; types[t]+=1; headers[(t,hs)]+=1
+        if hs < 0:
+            anomalies.append(dict(index=idx,type=t,error=f"negative sign-extended type_header_size {hs}"))
+            continue
         try:
             if t==1:
                 r=validate_image(e,5,13); comps[(1,r["compression"])]+=1; sizes[1][r["decoded_bytes"]]+=1; vals["type1_valid"]+=1

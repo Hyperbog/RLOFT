@@ -94,7 +94,7 @@ type 6  32x128 / 64x128 column-major first-person textures
 type 7  compiled scene-shape column display lists
 ```
 
-All supplied compressed families exhaust their compressed streams exactly.
+All supplied compressed families were previously shown to exhaust their compressed streams exactly. The 2026-10-06 executable re-audit corrected one decoder detail: CODE.2 initializes only dictionary bytes `0x000..0xFED` to `0xFE`; `analyze_res.py` now treats `0xFEE..0xFFF` as undefined until written and fails on an early read. A post-fix run against the canonical RES binaries is required to close that stricter edge check.
 
 The two shipped VOC length anomalies are preserved/documented rather than repaired.
 
@@ -230,7 +230,7 @@ record:
 plain = encoded XOR 0xDC
 ```
 
-25 zero-length records and all unreferenced slack/residue are preserved. Round-trip is byte-identical.
+25 zero-length records and all unreferenced slack/residue are preserved. The validator proves a byte-identical preservation/patch round-trip; it is not a from-scratch serializer.
 
 ## SAMPLE.AD
 

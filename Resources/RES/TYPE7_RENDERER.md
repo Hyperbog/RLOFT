@@ -150,7 +150,7 @@ These checks hold for all 8,362 supplied resources.
 
 ## Remaining semantic frontier
 
-- assign stronger names to the three 6-byte descriptor fields only after the scale-rasterizer instruction family is fully reconstructed;
-- map archive-3 IDs to `NPCS.DAT`, `OBJECTS.DAT`, and level scene-resource selectors;
-- correlate the 64/96/128 source-width families with named game objects and animation groups;
-- document the external scale-rasterizer data loaded by `3838` as its own preserved format/component.
+- assign stronger source-level names to the three 6-byte descriptor fields only where further instruction-level evidence supports them;
+- correlate the 64/96/128 source-width families with named game objects and animation groups where useful for archival indexing.
+
+The formerly open archive-3 source-bank mapping is closed by `TYPE7_SOURCE_BANKS.md`, `TYPE7_NPC_INDEX.md`, and `TYPE7_OBJECT_INDEX.md`. The external scale-rasterizer package loaded by `3838` is closed structurally by `../MISC/SINTAB/FORMAT.md` and its validator.

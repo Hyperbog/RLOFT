@@ -36,10 +36,12 @@ CODE.2 `2EB60..2EC72` reads the normal typed envelope as:
 ```text
 byte   magic[2]          // "EH"
 uint8  resource_type
-uint16 type_header_size
+word   type_header_size    // 16-bit field; CODE.2 sign-extends it
 byte   type_header[type_header_size]
 byte   payload[...]
 ```
+
+CODE.2 `2EB8E` and `2EB9F` load `type_header_size` with `MOVSX`. The physical field is therefore a 16-bit word with **signed runtime interpretation**; preservation tools may store the raw word, but a faithful runtime must not silently zero-extend it.
 
 The dispatcher at `2EDDA..2EEF7` maps types 1..7 exactly:
 
@@ -60,8 +62,8 @@ Types 6 and 7 intentionally share the same generic LZSS loader; higher-level mea
 All supplied type-1 resources use `type_header_size == 8`:
 
 ```text
-+0x00 uint16 count
-+0x02 int16  height
++0x00 int16  count          // sign-extended by CODE.2
++0x02 int16  height         // sign-extended by CODE.2
 +0x04 uint8  width_units       // width contribution = width_units * 8 bytes
 +0x05 uint8  field_5           // conservative physical name
 +0x06 uint8  compression
@@ -113,7 +115,8 @@ Dispatches to the encoded resource-error path at `2FFA4`. No decoder exists behi
 1,478 supplied type-1 resources. CODE.2 `37700` uses:
 
 - 4,096-byte history window;
-- fill byte `0xFE`;
+- bytes `0x000..0xFED` initialized to `0xFE` by `37700`;
+- bytes `0xFEE..0xFFF` are **not initialized by `37700`**;
 - initial history cursor `0xFEE`;
 - LSB-first flag bits;
 - literal when flag=1;
@@ -121,7 +124,7 @@ Dispatches to the encoded resource-error path at `2FFA4`. No decoder exists behi
 - offset `lo | ((hi & 0xF0) << 4)`;
 - length `(hi & 0x0F) + 3`.
 
-All supplied streams decode to the exact expected size and terminate at the exact payload boundary.
+The original corpus was previously certified for expected decoded sizes and exact compressed-payload exhaustion using a standalone decoder that prefilled all 4 KiB. After the 2026-10-06 executable re-audit, `analyze_res.py` models the final 18 bytes as undefined sentinels and fails if a stream reads one before it has been defined. Re-run that stricter validator against the canonical RES corpus before treating the partial-initialization edge as closed.
 
 See `EXECUTABLE_ONLY_FORMATS.md` for method-1 and method-2 preservation details.
 
@@ -131,8 +134,8 @@ Every supplied type-2 resource uses `type_header_size == 136 (0x88)`:
 
 ```text
 +0x00 uint8 glyph_widths[128]
-+0x80 uint16 count
-+0x82 int16  height
++0x80 int16  count          // sign-extended by CODE.2
++0x82 int16  height         // sign-extended by CODE.2
 +0x84 uint8  width_units
 +0x85 uint8  field_5
 +0x86 uint8  compression

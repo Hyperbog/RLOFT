@@ -122,7 +122,7 @@ Class: **CONFIRMED / RECONSTRUCTED**
 ```text
 byte   magic[2] = "EH"
 uint8  resource_type
-uint16 type_header_size
+word   type_header_size    // 16-bit field; sign-extended by CODE.2
 byte   type_header[type_header_size]
 byte   payload[]
 ```

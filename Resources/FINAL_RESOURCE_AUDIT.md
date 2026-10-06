@@ -381,3 +381,10 @@ For an initial faithful decompilation/native port, the Resources workstream is *
 - distinguish DreamForge-native data from Miles/ARIA middleware assets.
 
 Future work in this directory should require new primary evidence or should be clearly labeled comparative/historical archaeology. Runtime-driver reconstruction and alternate-release provenance belong to their respective workstreams rather than reopening already closed Ravenloft resource semantics.
+
+
+## 2026-10-06 executable-fidelity addendum
+
+A fresh adversarial re-audit preserved the architectural certification but corrected two low-level runtime details. CODE.2 sign-extends the EH header-size word and the type-1/type-2 raster `count`/`height` words. CODE.2 LZSS routine `37700` initializes only history bytes `0x000..0xFED` to `0xFE`, leaving `0xFEE..0xFFF` untouched by that routine before starting at cursor `0xFEE`.
+
+The committed validators now model the signed fields and the partial dictionary initialization explicitly; an attempted read of an as-yet-undefined tail byte is a certification failure rather than being silently normalized to `0xFE`. The original RES binaries are not stored in this repository, so the stricter LZSS edge requires a post-fix canonical-corpus run before that specific decoder detail is re-certified. See `FULL_REAUDIT_2026-10-06.md` and `verify_resources.py`.

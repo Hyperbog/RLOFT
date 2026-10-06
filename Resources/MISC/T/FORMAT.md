@@ -74,7 +74,7 @@ records followed by skipped slack       30
 inter-record skipped slack           1,804 bytes
 last record ends exactly at EOF        yes
 decoded records containing NUL           0
-parse/rebuild preserving slack         exact
+preservation/patch round-trip exact
 ```
 
 Zero-length records are valid indexed entries. Their offsets still participate in the table and must not be removed or collapsed.
@@ -144,9 +144,11 @@ Higher-level character rendering belongs to the game's DOS text/font pipeline. T
 - zero-length records;
 - all unreferenced gap sizes;
 - final-record EOF closure;
-- byte-identical structural round-trip while preserving every slack byte.
+- byte-identical preservation/patch round-trip while preserving every slack byte.
 
 ## Safe implementation boundary
+
+The validator starts from a preserved carrier (`bytearray(data)`) and rewrites the parsed active fields into it. Its exactness claim is therefore a **preservation/patch round-trip**, not an independent serializer rebuilt solely from an abstract record model.
 
 A faithful reader/editor should model the file as **offset-addressed records plus preserved unreferenced regions**, not as a simple packed list.
 
