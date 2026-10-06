@@ -37,23 +37,9 @@ AUDIO_ARCHIVES = ("RES6", "RES10", "RES11", "RES12")
 MUSIC_ARCHIVES = ("RES5", "RES11")
 TIMING_MODES = ("Native engine timing", "Custom FPS")
 
-# Effective average logical frame rates for the certified CINE00..CINE12 corpus
-# under the reconstructed CODE.2 native variable-timing path.
-NATIVE_AVG_FPS = {
-    "CINE00.ANM": 3.623409,
-    "CINE01.ANM": 3.295066,
-    "CINE02.ANM": 3.710882,
-    "CINE03.ANM": 3.710882,
-    "CINE04.ANM": 3.710882,
-    "CINE05.ANM": 3.710882,
-    "CINE06.ANM": 3.578044,
-    "CINE07.ANM": 3.337255,
-    "CINE08.ANM": 3.357229,
-    "CINE09.ANM": 3.444475,
-    "CINE10.ANM": 3.034419,
-    "CINE11.ANM": 3.034419,
-    "CINE12.ANM": 15.061751,
-}
+# Keep the GUI timing readout sourced from the same certified table used by
+# the exporter so the displayed rates cannot drift from rendered output.
+NATIVE_AVG_FPS = exporter.CERTIFIED_NATIVE_AVERAGE_FPS
 
 
 
@@ -219,6 +205,8 @@ class RavenloftExtractorGui(tk.Tk):
         # gothic frame rails/corners, and the corrected Ravenloft crest. No
         # source artwork is stretched.
         image = self._tile_native(parchment, width, height)
+        # Match the former build's darker parchment banner treatment.
+        image = Image.blend(image, Image.new("RGB", image.size, "#211311"), 0.48)
 
         rail_w = min(32, frame.width // 4)
         top_h = min(18, frame.height // 4)
