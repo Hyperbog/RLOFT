@@ -1,6 +1,6 @@
 # NPCS.DAT
 
-Status: **fixed 83 × 0x45 record format proven; scene/render parameters, collision extent, core combat statistics, XP, action delay, runtime-state templates and creature sound IDs reconstructed; eighteen behavior/effect bits decoded; lossless parse/encode verified.**
+Status: **fixed 83 × 0x45 record format proven; scene/render parameters, collision extent, core combat statistics, XP, action delay, runtime-state templates and creature sound IDs reconstructed; twenty behavior/effect bits decoded; lossless parse/encode verified.**
 
 - Size: 5,731 bytes
 - SHA-256: `f2dd1175bf42e8291b95952282dfc0cfb84455aaa532987cdd7380094c8eb30b`
@@ -98,7 +98,9 @@ Two access-width boundaries remain controlling:
 ### Proved `behavior_flags` aliases
 
 ```text
+0x00000001  detect_undead_effect_exclusion
 0x00000002  hold_undead_effect_immunity
+0x00000004  turn_undead_roll_penalty_4
 0x00000008  hold_person_effect_immunity
 0x00000010  hold_monster_effect_immunity
 0x00000080  death_spell_effect_immunity
@@ -125,6 +127,8 @@ Mage and priest Hold Person independently use `0x0108`; the Hold variants share 
 
 Lightning Bolt is closed through `OBJECTS.DAT` object 188 -> effect 28 -> moving-effect type 1 -> NPC mask `0x0300`. Death Spell is closed through object 197 -> effect 51 -> target routine `AED8` -> direct `npc[+0x31] & 0x80` exclusion. See `TARGETED_EFFECT_IMMUNITIES.md`.
 
+Detect Undead is closed through object 170 -> effect 3 -> active counter `0xF03C`; the renderer tests `behavior_flags & 0x00000001` and skips that NPC's Detect Undead marker when the separate broader detection source is absent. The turning routine separately tests `0x00000004` only after requiring the proved undead-classification bit, and subtracts exactly four from the turning roll before threshold comparison. No supplied NPC combines `undead_classification` with that roll-penalty bit, so the modifier is executable-supported but dormant in the shipped NPC table. See `DETECTION_TURNING_FLAGS.md`.
+
 The two weapon-category gates come from CODE.2 `0xC910..0xC99E`. Before testing them, the engine reroutes every nonzero-enchantment OBJECTS definition to category 11. An unenchanted category-10 hit against `0x00004000`, or an unenchanted/category-fallback-9 hit against `0x00008000`, is zeroed and then clamped by the same routine to **one damage minimum**. They are damage-floor/resistance behaviors, not zero-damage immunity. See `WEAPON_DAMAGE_FLAGS.md`.
 
 ### Proved `behavior_flags_39` aliases
@@ -149,7 +153,7 @@ Paralysis is independently anchored by `RING OF FREE ACTION` and the Remove Para
 0x20  undead_classification
 ```
 
-The disease identity is executable-closed: the attack sets party status bit `0x04`; internal cure code `0x64` clears it; cleric effect ID `100` supplies that code; OBJECTS.DAT object `215` is `CLERIC SCROLL OF 'CURE DISEASE'`.
+The disease identity is executable-closed: the attack sets party status bit `0x04`; internal cure code `0x64` clears it; cleric effect ID `100` supplies code `0x64`; OBJECTS.DAT object `215` is `CLERIC SCROLL OF 'CURE DISEASE'`.
 
 The level-drain path decrements character class levels/progression; the Strength-drain path calls the Strength-adjustment helper with `-1`; turning, detection and combat paths independently use `0x20` as the undead classification.
 
@@ -196,24 +200,26 @@ unresolved +0x3C nonzero       0
 Flag analyzers verify:
 
 ```text
-hold_undead_effect_immunity           25
-hold_person_effect_immunity           31
-hold_monster_effect_immunity          24
-death_spell_effect_immunity           11
-common_spell_effect_immunity           4
-lightning_bolt_effect_immunity         5
-cold_effect_immunity                  12
-fire_effect_immunity                   6
-weapon_category10_damage_floor_one    16
-weapon_category9_damage_floor_one     14
-poison_attack                           1
-disease_attack                          3
-undead_classification                  17
-level_drain_attack                      5
-strength_drain_attack                   2
-paralysis_attack                        6
-dynamic_barrier_activation              4
-obstacle_passthrough                    5
+detect_undead_effect_exclusion         17
+hold_undead_effect_immunity            25
+turn_undead_roll_penalty_4             18
+hold_person_effect_immunity            31
+hold_monster_effect_immunity           24
+death_spell_effect_immunity            11
+common_spell_effect_immunity            4
+lightning_bolt_effect_immunity          5
+cold_effect_immunity                   12
+fire_effect_immunity                    6
+weapon_category10_damage_floor_one     16
+weapon_category9_damage_floor_one      14
+poison_attack                            1
+disease_attack                           3
+undead_classification                   17
+level_drain_attack                       5
+strength_drain_attack                    2
+paralysis_attack                         6
+dynamic_barrier_activation               4
+obstacle_passthrough                     5
 ```
 
 ## Documentation and tools
@@ -223,6 +229,7 @@ obstacle_passthrough                    5
 - `EFFECT_IMMUNITIES.md` — common/fire/cold spell-effect immunity mechanics.
 - `HOLD_IMMUNITIES.md` — Hold Undead/Person/Monster immunity masks and shared live held state.
 - `TARGETED_EFFECT_IMMUNITIES.md` — Lightning Bolt and Death Spell exclusion chains.
+- `DETECTION_TURNING_FLAGS.md` — Detect Undead exclusion and latent four-point turning-roll modifier.
 - `STATUS_ATTACKS.md` — poison/disease/paralysis party-status mapping and cure-dispatch proof.
 - `WEAPON_DAMAGE_FLAGS.md` — category-9/category-10 one-damage gates and unresolved category-11 branch behavior.
 - `inspect_npcs.py` — lossless parser/encoder and corpus audit.
@@ -230,6 +237,7 @@ obstacle_passthrough                    5
 - `analyze_effect_immunities.py` — common/fire/cold immunity validation.
 - `analyze_hold_immunities.py` — NPCS/OBJECTS/CODE.2 hold-family validation.
 - `analyze_targeted_effect_immunities.py` — scroll/effect/moving-record/target-mask verification for Lightning Bolt and Death Spell.
+- `analyze_detection_turning_flags.py` — Detect Undead scroll/render chain, turning modifier, and shipped-data intersection audit.
 - `analyze_status_attacks.py` — NPC status setters, cure handlers and spell-name validation.
 - `analyze_weapon_damage_flags.py` — NPC/OBJECTS category sets and exact CODE.2 damage-gate signatures.
 
@@ -237,7 +245,7 @@ obstacle_passthrough                    5
 
 The remaining NPCS work is narrower:
 
-1. resolve additional raw `behavior_flags` bits through spell/effect/AI callers, with `0x00000004` the strongest current candidate because it directly modifies undead-turning resolution;
+1. resolve additional raw `behavior_flags` bits through spell/effect/AI callers;
 2. tighten the exact role of `+0x41` and `render_aux_27`;
 3. document story-NPC-specific animation meanings only where code proves them;
 4. preserve anomalous category-11 weapon-gate bits raw unless their intended source-level contract can be independently established.
