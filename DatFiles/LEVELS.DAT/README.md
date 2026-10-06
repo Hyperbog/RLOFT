@@ -8,6 +8,12 @@ Status: **preservation-grade reconstruction for the supplied build. Archive/dire
 - CODE.2 standalone writer: logical `171FC..17837`
 - CODE.2 level event interpreter: logical `002A8..006B8`
 
+## Final certification
+
+The combined master-archive / standalone-LEV audit is recorded in `FINAL_AUDIT_2026-10-06.md`. It rechecks all 32 archive records, 115,584 packed cells, 1,659 10-byte control records, all three compact world families, the 1,600 physical event slots, the Level-22 mutable fixture, the legacy Arrow alias, the residual cell-bit audit, and the bounded automap-cache provenance discrepancy.
+
+No remaining issue changes the certified record geometry or prevents a faithful parser/semantic model/lossless-preservation editor for the supplied build. This status does **not** claim that an independent byte-exact encoder has already been implemented; round-trip implementation remains a separate tooling milestone.
+
 ## Proven structure
 
 `LEVELS.DAT` begins with a 32-bit count of **32** followed by 32 little-endian record offsets. The directory ends at `0x84`, exactly the first record offset.
@@ -152,9 +158,9 @@ The center/frame interpretation is independently supported by archive geometry: 
 
 See `CELL_WORD.md`, `CELL_FLAG_LINKS.md`, and `analyze_cell_flag_links.py`.
 
-## Remaining LEVELS work
+## Bounded archival enrichment
 
-The reusable archive/direct-save format is now at practical preservation-grade closure. LEV022 is no longer an opaque mutable sample: its exact `0x0440` exploration delta, unchanged 10-byte lists, mutable live Assassin record, deterministic family-B expansion, cache relation, and writer-unowned preamble byte are documented.
+The reusable archive/direct-save reconstruction is complete to the supplied evidence boundary. LEV022 is no longer an opaque mutable sample: its exact `0x0440` exploration delta, unchanged 10-byte lists, mutable live Assassin record, deterministic family-B expansion, cache relation, and writer-unowned preamble byte are documented.
 
 Remaining issues are bounded provenance/source-history questions:
 
