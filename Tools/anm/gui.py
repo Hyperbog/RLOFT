@@ -265,6 +265,7 @@ class RavenloftExtractorGui(tk.Tk):
         ttk.Label(select, text="Select one, several, or all").grid(row=0, column=0, sticky="nw", padx=(0, 10))
         self.cin_list = self._listbox(select, media_inventory.ANM_NAMES, 7)
         self.cin_list.grid(row=0, column=1, sticky="ew")
+        self.cin_list.bind("<<ListboxSelect>>", lambda _e: self._refresh_native_timing_text())
         self._selection_buttons(select, 1, 1, self.cin_list)
 
         out = ttk.LabelFrame(tab, text="Outputs", padding=10)
@@ -273,12 +274,18 @@ class RavenloftExtractorGui(tk.Tk):
         ttk.Checkbutton(out, text="Individual frames", variable=self.cin_frames).grid(row=0, column=0, sticky="w")
         ttk.Combobox(out, textvariable=self.cin_frame_format, values=tuple(exporter.FRAME_FORMATS), state="readonly", width=22).grid(row=0, column=1, sticky="w", padx=8)
         self._folder_row(out, 1, "Frame destination", self.cin_frames_dest)
-        ttk.Checkbutton(out, text="Rendered video", variable=self.cin_video).grid(row=2, column=0, sticky="w", pady=(6, 0))
+        ttk.Checkbutton(
+            out,
+            text="Rendered video",
+            variable=self.cin_video,
+            command=self._update_video_state,
+        ).grid(row=2, column=0, sticky="w", pady=(6, 0))
         ttk.Combobox(out, textvariable=self.cin_video_format, values=tuple(exporter.VIDEO_FORMATS), state="readonly", width=24).grid(row=2, column=1, sticky="w", padx=8, pady=(6, 0))
         self._folder_row(out, 3, "Video destination", self.cin_video_dest)
+        self._folder_row(out, 4, "Metadata/original destination", self.cin_meta_dest)
 
         timing = ttk.Frame(out)
-        timing.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(7, 0))
+        timing.grid(row=5, column=0, columnspan=3, sticky="ew", pady=(7, 0))
         ttk.Label(timing, text="Timing").pack(side="left")
         combo = ttk.Combobox(timing, textvariable=self.cin_timing_mode, values=TIMING_MODES, state="readonly", width=22)
         combo.pack(side="left", padx=(6, 10))
@@ -286,18 +293,31 @@ class RavenloftExtractorGui(tk.Tk):
         ttk.Label(timing, text="Custom FPS").pack(side="left")
         self.cin_fps_entry = ttk.Entry(timing, textvariable=self.cin_fps, width=8)
         self.cin_fps_entry.pack(side="left", padx=(6, 16))
-        ttk.Checkbutton(timing, text="Sync sampled SFX into video", variable=self.cin_sync_audio).pack(side="left")
+        self.cin_sync_check = ttk.Checkbutton(
+            timing,
+            text="Sync sampled SFX into video",
+            variable=self.cin_sync_audio,
+        )
+        self.cin_sync_check.pack(side="left")
+
+        ttk.Label(
+            out,
+            textvariable=self.native_timing_text,
+            style="Subtle.TLabel",
+            justify="left",
+        ).grid(row=6, column=0, columnspan=3, sticky="w", pady=(7, 0))
 
         flags = ttk.Frame(out)
-        flags.grid(row=5, column=0, columnspan=3, sticky="w", pady=(7, 0))
+        flags.grid(row=7, column=0, columnspan=3, sticky="w", pady=(7, 0))
         ttk.Checkbutton(flags, text="Timeline JSON", variable=self.cin_timeline).pack(side="left")
         ttk.Checkbutton(flags, text="Preserve original ANM", variable=self.cin_native).pack(side="left", padx=(16, 0))
 
-        self._note(tab, 2, "Native timing reconstructs the CODE.2 frame-wait path. Sampled ANM SFX commands are muxed from RES6 at their frame timestamps; music commands remain XMI/MIDI/timeline data rather than being synthesized through an arbitrary soundfont.")
+        self._note(tab, 2, "Native timing is variable-rate, not one fixed FPS. Sampled ANM SFX commands are muxed from RES6/RES10 at their reconstructed frame timestamps. Timeline/original files use the metadata destination above.")
         button = ttk.Button(tab, text="Extract Selected Cinematics", command=self._start_cinematics)
         button.grid(row=3, column=0, sticky="e", pady=(12, 0))
         self._action_buttons.append(button)
         self._update_timing_state()
+        self._update_video_state()
 
     def _build_graphics_tab(self) -> None:
         tab = self._new_tab("Graphics & Textures")
@@ -312,9 +332,36 @@ class RavenloftExtractorGui(tk.Tk):
         ttk.Combobox(box, textvariable=self.graphics_format, values=tuple(asset_dumper.GRAPHICS_FORMATS), state="readonly", width=28).grid(row=2, column=1, sticky="w", padx=8, pady=(9, 0))
         ttk.Label(box, text="Palette bank").grid(row=3, column=0, sticky="w", pady=(8, 0))
         ttk.Spinbox(box, from_=0, to=14, textvariable=self.graphics_palette, width=6).grid(row=3, column=1, sticky="w", padx=8, pady=(8, 0))
-        ttk.Checkbutton(box, text="Preserve native EH records and canonical palette-index bytes", variable=self.graphics_native).grid(row=4, column=0, columnspan=3, sticky="w", pady=(8, 0))
+
+        extras = ttk.LabelFrame(box, text="Associated files", padding=8)
+        extras.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(9, 2))
+        ttk.Checkbutton(
+            extras,
+            text="Canonical palette-index bytes (.indices)",
+            variable=self.graphics_indices,
+        ).grid(row=0, column=0, sticky="w")
+        ttk.Checkbutton(
+            extras,
+            text="Metadata / compiled-shape data",
+            variable=self.graphics_metadata,
+        ).grid(row=0, column=1, sticky="w", padx=(18, 0))
+        ttk.Checkbutton(
+            extras,
+            text="Transparency mask PNGs",
+            variable=self.graphics_masks,
+        ).grid(row=1, column=0, sticky="w", pady=(5, 0))
+        ttk.Checkbutton(
+            extras,
+            text="Native RES/EH records",
+            variable=self.graphics_native,
+        ).grid(row=1, column=1, sticky="w", padx=(18, 0), pady=(5, 0))
+
         self._folder_row(box, 5, "Destination", self.graphics_dest)
-        self._note(tab, 1, "Select individual RES files or All to dump the complete graphics category.")
+        self._note(
+            tab,
+            1,
+            "PNG is sufficient for most modern-port artwork. RES3 NPCs/monsters, placed objects, loose items, and effects are now reconstructed as transparent native-resolution images. The associated-file options retain exact indexed/source data for preservation and renderer validation.",
+        )
         button = ttk.Button(tab, text="Extract Selected Graphics", command=self._start_graphics)
         button.grid(row=2, column=0, sticky="e", pady=(12, 0))
         self._action_buttons.append(button)
