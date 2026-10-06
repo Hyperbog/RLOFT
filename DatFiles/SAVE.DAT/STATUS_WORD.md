@@ -17,7 +17,7 @@ uint16_t status_word; // SAVE character +0x010
 | `0x0400` | Diseased | setter/curer + exact `T` mapping |
 | `0x0800` | Poisoned | setter/curer + exact `T` mapping |
 | `0x1000` | Paralyzed | setter/curer + exact `T` mapping |
-| `0x2000` | unresolved high-order action-blocking state | preserve raw; do not name yet |
+| `0x2000` | engine-recognized action/eligibility blocking state; exact gameplay identity unproved | producer-unproven; preserve raw |
 | `0x4000` | dead / zero-HP death state | binary-proven lifecycle |
 | `0x8000` | empty/unoccupied active-party slot | binary-proven ownership |
 
