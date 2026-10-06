@@ -15,6 +15,7 @@ public:
     IndexedFramebuffer();
 
     void clear(std::uint8_t color = 0);
+    void draw_frame(const Type1Raster& raster, int frame, int y, int x);
     void draw(const Type1Raster& raster, int y, int x);
 
     [[nodiscard]] const std::vector<std::uint8_t>& pixels() const noexcept { return pixels_; }
