@@ -13,9 +13,17 @@ FIXED_PREFIX = CONFIG_COUNT + 2
 
 @dataclass(frozen=True)
 class InfoDat:
-    config_ascii: bytes
+    raw_config_ascii: bytes
     selectors: tuple[int, ...]
-    path: bytes
+    resource_path: bytes
+
+    @property
+    def config_ascii(self) -> bytes:
+        return self.raw_config_ascii
+
+    @property
+    def path(self) -> bytes:
+        return self.resource_path
 
 
 def parse(data: bytes) -> InfoDat:
@@ -37,21 +45,26 @@ def parse(data: bytes) -> InfoDat:
         )
 
     return InfoDat(
-        config_ascii=config,
+        raw_config_ascii=config,
         selectors=tuple(c - ord("0") for c in config),
-        path=data[FIXED_PREFIX:end],
+        resource_path=data[FIXED_PREFIX:end],
     )
 
 
 def encode(info: InfoDat) -> bytes:
-    if len(info.config_ascii) != CONFIG_COUNT:
-        raise ValueError("config_ascii must be exactly 13 bytes")
-    if any(c < ord("0") or c > ord("9") for c in info.config_ascii):
-        raise ValueError("config_ascii must contain decimal ASCII bytes")
-    if len(info.path) > 0x7FFF:
-        raise ValueError("path too long for signed int16 length")
+    if len(info.selectors) != CONFIG_COUNT:
+        raise ValueError("selectors must contain exactly 13 values")
+    if any(value < 0 or value > 9 for value in info.selectors):
+        raise ValueError("selectors must be decimal values 0..9")
+    if len(info.resource_path) > 0x7FFF:
+        raise ValueError("resource path too long for signed int16 length")
 
-    return info.config_ascii + struct.pack("<h", len(info.path)) + info.path
+    config_ascii = bytes(ord("0") + value for value in info.selectors)
+    return (
+        config_ascii
+        + struct.pack("<h", len(info.resource_path))
+        + info.resource_path
+    )
 
 
 def main() -> None:
@@ -64,11 +77,11 @@ def main() -> None:
     rebuilt = encode(info)
 
     print(f"file={args.info.name} bytes={len(raw)}")
-    print(f"config_ascii={info.config_ascii.decode('ascii')}")
+    print(f"config_ascii={bytes(ord('0') + value for value in info.selectors).decode('ascii')}")
     print("selectors=" + ",".join(str(value) for value in info.selectors))
     print(
-        f"path_length={len(info.path)} "
-        f"path={info.path.decode('ascii', errors='backslashreplace')!r}"
+        f"path_length={len(info.resource_path)} "
+        f"path={info.resource_path.decode('ascii', errors='backslashreplace')!r}"
     )
     print(f"roundtrip={'PASS' if rebuilt == raw else 'FAIL'}")
 
