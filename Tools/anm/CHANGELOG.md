@@ -40,3 +40,14 @@
 - XMIDI-to-SMF conversion is not enabled until an authoritative Miles timing/
   event translation is implemented.
 - ARIA bank inner records remain opaque and are preserved byte-for-byte.
+
+## XMIDI / MIDI export
+
+- Added original-XMI, exact-timing Standard MIDI, and combined export choices.
+- Implemented FORM/XDIR/CAT/XMID discovery and EVNT conversion.
+- Recreates note-off events from Miles XMIDI note durations.
+- Uses exact 120 Hz SMF SMPTE timing (-30 fps, 4 ticks/frame).
+- Retains AIL controller events and reports FOR/NEXT/branch counts.
+- Corpus validation: 172 Ravenloft XMIDI resources, 350 sequences, zero parser
+  failures; 249 infinite FOR_LOOP and 245 NEXT_LOOP controls observed.
+- Original XMI remains canonical for AIL-specific looping/control-flow behavior.
