@@ -43,7 +43,7 @@ class NpcRecord:
     thac0: int
     experience_award: int
     action_delay: int
-    render_aux_27: int
+    projected_scale_lookup_bias: int
     directional_offsets: tuple[int, int, int, int]
     behavior_flags: int
     initial_runtime_flags: int
@@ -85,7 +85,7 @@ def parse_record(raw: bytes) -> NpcRecord:
         thac0=raw[0x22],
         experience_award=u16(raw, 0x23),
         action_delay=u16(raw, 0x25),
-        render_aux_27=u16(raw, 0x27),
+        projected_scale_lookup_bias=u16(raw, 0x27),
         directional_offsets=struct.unpack_from("<4H", raw, 0x29),
         behavior_flags=u32(raw, 0x31),
         initial_runtime_flags=u32(raw, 0x35),
@@ -140,7 +140,10 @@ def inspect(path: Path) -> None:
     )
     print(f"combat_hit_dice_nonzero={sum(record.hit_dice_count != 0 for record in records)}")
     print(f"scene_influence_nonzero={sum(record.scene_influence_step != 0 for record in records)}")
-    print(f"render_aux_27_nonzero={sum(record.render_aux_27 != 0 for record in records)}")
+    print(
+        "projected_scale_lookup_bias_nonzero="
+        f"{sum(record.projected_scale_lookup_bias != 0 for record in records)}"
+    )
     print(f"reserved_3b_nonzero={sum(record.unresolved_3b != 0 for record in records)}")
     print(f"reserved_3c_nonzero={sum(record.unresolved_3c != 0 for record in records)}")
 
