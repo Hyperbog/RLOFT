@@ -75,7 +75,7 @@ jobs:
         shell: pwsh
         working-directory: Tools/anm
         run: |
-          python -m PyInstaller --noconfirm --clean --onefile --windowed --name "RavenloftAssetExtractor" --version-file "windows_version_info.txt" --add-binary "$env:FFMPEG_EXE;." --add-data "THIRD_PARTY_NOTICES.md;." "app.py"
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name "RavenloftAssetExtractor" --version-file "windows_version_info.txt" --add-binary "$env:FFMPEG_EXE;." --add-data "THIRD_PARTY_NOTICES.md;." --add-data "assets;assets" "app.py"
 
       - name: Smoke-test frozen executable
         shell: pwsh
