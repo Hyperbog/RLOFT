@@ -307,7 +307,7 @@ scene-record generation / combat / AI / audio
 
 ```text
 name[20]
-scene_sprite_base
+local_shape_base
 collision_half_extent
 scene_frame_stride
 animation_cycle_divisor
