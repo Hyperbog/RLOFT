@@ -1,6 +1,6 @@
 # SAVE.DAT late character-record state (`+0x1B6..+0x247`)
 
-Status: **executable reconstruction normalized to corrected runtime character base DGROUP `0x218E0`.** The temporary spell-created hand subsystem is semantically identified. The terminal runtime-addressed region and final eight serialized bytes are kept distinct pending independent serializer audit.
+Status: **executable reconstruction normalized to corrected runtime character base DGROUP `0x218E0`.** The temporary spell-created hand subsystem is semantically identified, and the complete terminal 82-byte region is now bounded as serialized/runtime record state with no direct character-field reference in the audited CODE.2 image.
 
 ## Corrected late-state map
 
@@ -15,21 +15,14 @@ Status: **executable reconstruction normalized to corrected runtime character ba
 +0x1EA..+0x1ED   consumable additive/protection pool
 +0x1EE..+0x1F1   recurring Strength-recovery deadline
 +0x1F2..+0x1F5   accumulated state associated with primary effect index 6
-+0x1F6..+0x23F   runtime-addressed tail with no direct CODE.2 references found
-+0x240..+0x247   final eight serialized bytes; serializer/runtime role requires independent audit
++0x1F6..+0x247   82-byte serialized reserved/unreferenced terminal region
 ```
 
 ## Stone Giant Gauntlets state
 
-Runtime `0x21A96` maps to corrected record offset `+0x1B6`:
+Runtime `0x21A96` maps to corrected record offset `+0x1B6`. CODE.2 physical `0x4CF50..0x4D048` ties this dword to OBJECTS.DAT object `0x54`, `STONE GIANT GAUNTLETS`. Equipment-transition logic saves/restores displaced effective Strength here while the gauntlets force effective Strength to 20. Preserve the full dword.
 
-```text
-0x21A96 - 0x218E0 = 0x1B6
-```
-
-CODE.2 physical `0x4CF50..0x4D048` ties this dword to OBJECTS.DAT object `0x54`, `STONE GIANT GAUNTLETS`. Equipment-transition logic saves/restores displaced effective Strength here while the gauntlets force effective Strength to 20. Preserve the full dword.
-
-The bracer/gauntlet equipment slot is corrected item slot 20 at record `+0x068`, runtime `0x21948`. Strength base/current are corrected record `+0x032/+0x033`.
+The bracer/gauntlet equipment slot is item slot 20 at record `+0x068`, runtime `0x21948`. Strength base/current are record `+0x032/+0x033`.
 
 ## `+0x1BA..+0x1BD`: unreferenced serialized dword
 
@@ -72,37 +65,36 @@ Runtime `0x21ACA` maps to `+0x1EA`. Producer physical `0x45401..0x45417` adds a 
 
 ## `+0x1EE..+0x1F1`: recurring Strength-recovery deadline
 
-Runtime `0x21ACE` maps to `+0x1EE`. At expiry the engine applies `+1` through the Strength adjustment routine, clears the deadline, compares corrected current Strength `+0x033` against base Strength `+0x032`, and reschedules if further recovery is needed.
+Runtime `0x21ACE` maps to `+0x1EE`. At expiry the engine applies `+1` through the Strength adjustment routine, clears the deadline, compares current Strength `+0x033` against base Strength `+0x032`, and reschedules if further recovery is needed.
 
 ## `+0x1F2..+0x1F5`: accumulated effect-6 state
 
-Runtime `0x21AD2` maps to `+0x1F2`. Producer code adds a generated positive quantity; primary effect index 6 expiration decrements it. The exact player-facing identity remains pending effect-resource closure.
+Runtime `0x21AD2` maps to `+0x1F2`. Producer code adds a generated positive quantity; primary effect index 6 expiration decrements it. Exact player-facing identity remains pending effect-resource closure.
 
-## Terminal record region
+## `+0x1F6..+0x247`: terminal reserved/unreferenced region
 
-The previous documentation classified `+0x1FE..+0x247` as one 74-byte runtime tail. That conclusion depended on the obsolete runtime base `0x218D8`.
+The corrected character base and fixed `0x248` stride place the complete final 82 bytes at runtime `0x21AD6..0x21B27`.
 
-With the corrected base, runtime range `0x21AD6..0x21B1F` maps to:
+Evidence now covers the entire interval:
+
+1. The earlier exhaustive direct-address audit found no character-field operands in runtime `0x21AD6..0x21B1F` (`+0x1F6..+0x23F`).
+2. A follow-up literal scan of runtime addresses `0x21B20..0x21B27` (`+0x240..+0x247`) found no character-field access. The only literal collision is `0x21B24`, whose disassembly context at physical `0x5CAA7` is a code jump-table base (`jmp *%cs:0x21b24(,%eax,4)`), not a character-record operand.
+3. Character initialization uses runtime `0x21B28`, exactly `0x248` bytes after `0x218E0`, independently confirming that `+0x240..+0x247` belongs inside the runtime record image rather than outside the character structure.
+4. Fixture evidence: all 12 populated quick-start characters store zero across `+0x240..+0x247`; unused active-party records retain `0xFF` fill there. This supports initialized-but-unreferenced record storage and also proves a lossless decoder must not synthesize one universal fill value.
+
+Safe classification:
 
 ```text
-+0x1F6..+0x23F   74 bytes
++0x1F6..+0x247   82-byte serialized reserved/unreferenced terminal region
 ```
 
-The existing exhaustive literal-address audit found no direct CODE.2 references in that runtime interval. Populated quick-start records store zeros in the audited area, while unused records retain their unused-record fill pattern. Preserve these bytes losslessly.
-
-However, the fixed serialized record continues for eight more bytes:
-
-```text
-+0x240..+0x247
-```
-
-Those final eight bytes are **not covered by the previous runtime-address scan** and must not be silently folded into the same conclusion. They require an independent save/load serializer and fixture audit before being classified as reserved, runtime state, or non-runtime serialization data.
+This remains a conservative executable-audit statement, not proof that the original source declared the bytes as padding. Computed/indirect access cannot be ruled out solely by literal-address scanning. Compatibility-preserving implementations must retain the bytes exactly.
 
 ## Reconstruction requirements
 
 - Preserve all late-state dwords and absolute deadlines exactly.
 - Keep the nine-entry temporary-hand subsystem separate from the 26 primary effects.
 - Preserve the exact index/object mapping `0x7E..0x86`.
-- Preserve the opaque `+0x1BA` dword and `+0x1F6..+0x23F` region.
-- Do not repurpose `+0x240..+0x247`; its role remains explicitly open.
+- Preserve the opaque `+0x1BA` dword and complete `+0x1F6..+0x247` terminal region.
+- Do not repurpose terminal bytes as native extension space.
 - Derive serialized offsets from runtime addresses using corrected base `0x218E0`.
