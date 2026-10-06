@@ -1,6 +1,6 @@
 # INFO.DAT format reconstruction
 
-Status: **complete physical layout proved; resource/install path semantics proved in both CODE.1 and CODE.2; selectors 0..10 decode as the active RES0..RES10 location selectors for the supplied executable pair; selector positions 11..12 are retained historical slots with no active consumer in either certified game module.**
+Status: **ARCHIVAL-COMPLETE FOR THE SUPPLIED BUILD. Physical layout, CODE.1/CODE.2 resource-path behavior, active RES0..RES10 selectors, bounded historical slots 11..12, and byte-exact semantic decode→encode are certified.**
 
 ## Controlling evidence
 
@@ -133,7 +133,7 @@ A faithful reader/editor should:
 4. never synthesize meanings for selectors 11..12 until an executable consumer is proved;
 5. reproduce the original 17 supplied bytes exactly on decode -> encode.
 
-`inspect_info.py` provides the lossless physical parser/encoder. `analyze_info_config.py` verifies the resource-routing semantics against the immutable CODE.2 image.
+`inspect_info.py` provides the lossless semantic parser/encoder. `analyze_info_config.py` verifies the resource-routing semantics against the immutable CODE.2 image. Final certification is recorded in `FINAL_AUDIT_2026-10-06.md`.
 
 ## CODE.1 independent confirmation
 
