@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+"""Regression tests for reconstructed ANM timing and sampled-SFX mapping."""
+from __future__ import annotations
+
+import unittest
+
+import exporter
+import rloft_anm as anm
+
+
+def frame(index: int, *chunks: anm.Chunk) -> anm.Frame:
+    return anm.Frame(index, tuple(chunks))
+
+
+class CinematicTimingTests(unittest.TestCase):
+    def test_native_wait_uses_default_for_non_image_frame(self) -> None:
+        movie = anm.AnmFile(
+            2, 1,
+            (
+                frame(0, anm.Chunk(7, b"\x00\x00\x00\x00")),
+                frame(1, anm.Chunk(8, bytes(anm.RAW_PLANAR_SIZE))),
+            ),
+        )
+        self.assertEqual(exporter.native_wait_ticks(movie, "CINE00.ANM"), [1, 6])
+
+    def test_cine12_image_path_uses_two_ticks(self) -> None:
+        movie = anm.AnmFile(
+            1, 1,
+            (frame(0, anm.Chunk(3, b"\x00\x00")),),
+        )
+        self.assertEqual(exporter.native_wait_ticks(movie, "CINE12.ANM"), [2])
+
+    def test_native_timing_is_irq0_based(self) -> None:
+        movie = anm.AnmFile(
+            1, 1,
+            (frame(0, anm.Chunk(7, b"\x00\x00\x00\x00")),),
+        )
+        starts, durations = exporter.frame_start_times(movie, "CINE00.ANM", None)
+        self.assertEqual(starts, [0.0])
+        self.assertAlmostEqual(durations[0], 1.0 / exporter.PIT_HZ, places=9)
+
+    def test_queued_sfx_uses_init_base_49(self) -> None:
+        movie = anm.AnmFile(
+            1, 1,
+            (frame(0, anm.Chunk(6, (4).to_bytes(2, "little"))),),
+        )
+        events = exporter.cinematic_sfx_events(movie, "CINE00.ANM", None)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0].res6_index, 53)
+        self.assertEqual(events[0].command, 6)
+
+    def test_ignored_queued_sfx_ids_are_not_emitted(self) -> None:
+        chunks = tuple(
+            anm.Chunk(6, value.to_bytes(2, "little"))
+            for value in (3, 15, 0x88)
+        )
+        movie = anm.AnmFile(1, 1, (frame(0, *chunks),))
+        self.assertEqual(
+            exporter.cinematic_sfx_events(movie, "CINE00.ANM", None),
+            [],
+        )
+
+    def test_direct_sfx_uses_raw_res6_index(self) -> None:
+        movie = anm.AnmFile(
+            1, 1,
+            (frame(0, anm.Chunk(9, (42).to_bytes(2, "little"))),),
+        )
+        events = exporter.cinematic_sfx_events(movie, "CINE00.ANM", None)
+        self.assertEqual(events[0].res6_index, 42)
+        self.assertEqual(events[0].command, 9)
+
+
+if __name__ == "__main__":
+    unittest.main()
