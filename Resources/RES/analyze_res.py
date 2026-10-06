@@ -85,10 +85,10 @@ def summarize(path: Path):
                 if len(e)!=expected:
                     anomalies.append(dict(index=idx,type="non-EH",error=f"wordcode bytes {len(e)} != {expected}"))
                 else:
-                    tail=e[2+2*word_count:]
-                    rec["zero_tail_words"]=word_count
-                    rec["zero_tail_all_zero"]=not any(tail)
-                    if any(tail): anomalies.append(dict(index=idx,type="non-EH",error="wordcode trailing state bank is not zero"))
+                    companion=e[2+2*word_count:]
+                    rec["companion_words"]=word_count
+                    rec["companion_all_zero"]=not any(companion)
+                    if any(companion): anomalies.append(dict(index=idx,type="non-EH",error="wordcode serialized companion bank is not zero"))
                     else: vals["non_eh_wordcode_shape_exact"]+=1
             elif path.name=="RES1" and e==b"\x60\x00\x00\x00":
                 rec.update(family="four-byte-sentinel",value_u32=0x60); vals["non_eh_res1_sentinel"]+=1
