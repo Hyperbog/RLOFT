@@ -1,6 +1,6 @@
 # SAVE.DAT character post-inventory state (`+0x072..+0x247`)
 
-Status: **active executable reconstruction; an 80-byte packed-nibble array at `+0x0C2..+0x111` and a 32-bit flag field at `+0x13A` are now certified.**
+Status: **active executable reconstruction; an 80-byte packed-nibble array at `+0x0C2..+0x111`, an executable-accessed dword at `+0x12F`, and a 32-bit flag field at `+0x13A` are now structurally certified.**
 
 This note isolates the 470 bytes after `item[21]` in each serialized `0x248` character image. Sparse quick-start data must not be mistaken for padding.
 
@@ -40,6 +40,28 @@ therefore +0x10A = bank 7, entry 2
 
 EHLIANNA's `+0x10A = 0x0F` is therefore an ordinary packed-array element, not evidence of a separate field. ANVIL DAWN's `+0x0C2 = 0x11` is bank 0, entry 0 with both nibbles equal to 1.
 
+## Executable-accessed dword at `+0x12F..+0x132`
+
+The former fixture-only `+0x131` anchor is not an isolated byte. CODE.2 accesses a dword beginning at runtime `0x21A07`:
+
+```text
+0x21A07 - 0x218D8 = 0x12F
+record +0x12F..+0x132 = executable-accessed 32-bit field
+```
+
+At physical `0x45AD1`, CODE.2 writes a computed dword to `0x21A07`; the immediately following instruction adds the low byte of that computed value to runtime `0x21915`, the already-certified Dexterity-related current/effective byte. A corresponding path at physical `0x437B0` reads the low byte of `0x21A07` and subtracts it from `0x21915`.
+
+This proves a direct relationship between the **low byte** of the `+0x12F` dword and a temporary/equipment-style Dexterity adjustment path. It does **not** yet prove that the whole dword can be named simply as a Dexterity modifier: the reference fixture stores nonzero upper bytes while the low byte is zero.
+
+Reference values are:
+
+```text
+EHLIANNA    +0x12F..+0x132 = 00 00 02 00 -> 0x00020000
+ANVIL DAWN +0x12F..+0x132 = 00 00 01 00 -> 0x00010000
+```
+
+Therefore the earlier notation `+0x131 = 0x02/0x01` remains a true byte observation but is structurally incomplete and must not be modeled as a standalone field. Preserve the complete dword until its upper-byte semantics are traced.
+
 ## Certified 32-bit state/flags field at `+0x13A`
 
 Runtime `0x21A12` is a **32-bit little-endian flags/state word** beginning at record `+0x13A`:
@@ -73,34 +95,26 @@ The two populated active characters are sparse:
 ```text
 EHLIANNA
   packed bank 7, entry 2 (+0x10A) = 0x0F
-  +0x131 = 0x02
-  +0x13A..+0x13D = 00 00 00 00
+  +0x12F dword = 0x00020000
+  +0x13A flags = 0x00000000
 
 ANVIL DAWN
   packed bank 0, entry 0 (+0x0C2) = 0x11
   packed bank 7, entry 2 (+0x10A) = 0x0F
-  +0x131 = 0x01
-  +0x13A..+0x13D = 00 00 00 00
+  +0x12F dword = 0x00010000
+  +0x13A flags = 0x00000000
 ```
 
 All ten saved-roster records in this fixture contain only `0x00`/`0xFF` values throughout the post-inventory range. Unused active-party records are predominantly `0xFF`; occupancy must not be inferred from these fields.
 
-## Remaining candidate anchor
-
-```text
-record +0x131 -> runtime base 0x21A09
-```
-
-This remains an exact differential-save anchor but does not yet have certified semantics.
-
 ## Reconstruction rule
 
-Do not collapse `+0x072..+0x247` into reserved padding. At minimum it contains the certified 80-byte packed-nibble array and the 32-bit flags word. A native decoder must preserve the entire tail losslessly until every substructure is decoded.
+Do not collapse `+0x072..+0x247` into reserved padding. At minimum it contains the certified 80-byte packed-nibble array, the executable-accessed dword at `+0x12F`, and the 32-bit flags word at `+0x13A`. A native decoder must preserve the entire tail losslessly until every substructure is decoded.
 
 ## Tool support
 
-`tools/analyze_character_records.py` reports the packed region as eight ten-byte banks, decodes every byte into high/low nibbles, reports non-fill bytes elsewhere in the post-inventory range, and decodes `+0x13A..+0x13D` as a 32-bit little-endian flags value.
+`tools/analyze_character_records.py` reports the packed region as eight ten-byte banks, decodes every byte into high/low nibbles, reports non-fill bytes elsewhere in the post-inventory range, and decodes the dwords at `+0x12F` and `+0x13A` as little-endian values.
 
 ## Next target
 
-Trace the tables and callers driving the eight packed banks to establish their gameplay meaning, identify `+0x131`, and map individual `+0x13A` flag bits to gameplay effects. Then continue outward into the unresolved regions `+0x072..+0x0C1`, `+0x112..+0x139`, and `+0x13E..+0x247`.
+Trace the tables and callers driving the eight packed banks to establish their gameplay meaning, finish the upper-byte semantics of `+0x12F`, and map individual `+0x13A` flag bits to gameplay effects. Then continue outward into the unresolved regions `+0x072..+0x0C1`, `+0x112..+0x12E`, `+0x133..+0x139`, and `+0x13E..+0x247`.
