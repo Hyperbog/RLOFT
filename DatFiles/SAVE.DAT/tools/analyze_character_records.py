@@ -11,7 +11,7 @@ PARTY_OFFSET, PARTY_COUNT = 0x77, 4
 MIDDLE_OFFSET = PARTY_OFFSET + PARTY_COUNT * RECORD_SIZE
 WORLD_OBJECT_SIZE = 0x16
 WORLD_OBJECT_LIMIT = 0x96
-FIXED_AFTER_WORLD_OBJECTS_TO_ROSTER = 0x3CD  # D8A8/A7E4 + 62-slot bank + F920/F91C + charges
+FIXED_AFTER_WORLD_OBJECTS_TO_ROSTER = 0x3CD  # D8A8/A7E4 + 62-container bank + F920/F91C + charges
 ROSTER_COUNT = 10
 STATUS_OFFSET = 0x10
 PORTRAIT_OFFSET, SEX_OFFSET, RACE_OFFSET = 0x12, 0x13, 0x14
@@ -27,13 +27,44 @@ SPELL_MATRIX_A_OFFSET, SPELL_MATRIX_B_OFFSET = 0x06A, 0x0BA
 SPELL_BANKS, SPELL_BANK_SIZE = 8, 10
 SPELL_MATRIX_SIZE = SPELL_BANKS * SPELL_BANK_SIZE
 POST_START, POST_END = 0x06A, 0x248
-AUX_DWORD_OFFSET, ITEM_KNOWN_OFFSET, STATE_FLAGS_OFFSET = 0x127, 0x12B, 0x132
+AUX_DWORD_OFFSET, ITEM_KNOWN_OFFSET = 0x127, 0x12B
+PRIMARY_EFFECT_BITS_OFFSET = 0x132
+PRIMARY_EFFECT_EXPIRY_OFFSET = 0x136
+PRIMARY_EFFECT_COUNT = 26
 FINAL_RESERVED_OFFSET = 0x1F6
 
 SEX_NAMES = {0: "Male", 1: "Female"}
 RACE_NAMES = {0: "Human", 1: "Half-Elf", 2: "Halfling", 3: "Gnome", 4: "Dwarf", 5: "Elf"}
 CLASS_NAMES = {0: "Fighter", 1: "Paladin", 2: "Ranger", 3: "Cleric", 4: "Mage", 5: "Thief"}
 ALIGNMENT_NAMES = {0: "Lawful Good", 1: "Lawful Neutral", 2: "Neutral Good", 3: "True Neutral", 4: "Chaotic Good", 5: "Chaotic Neutral"}
+PRIMARY_EFFECT_NAMES = (
+    "Armor",
+    "Mage Light",
+    "Shield",
+    "Blur",
+    "Haste",
+    "Invisibility 10' Radius",
+    "Stoneskin",
+    "Dragon Scales",
+    "Bless",
+    "Invisibility to Undead",
+    "Priest Light",
+    "Aid",
+    "Draw Upon Holy Might - STR",
+    "Draw Upon Holy Might - DEX",
+    "Negative Plane Protection",
+    "Fortify",
+    "Slow Poison",
+    "True Seeing",
+    "Detect Undead",
+    "Potion of Fire Resistance",
+    "Detect Magic",
+    "Prayer",
+    "Shield of Lightning Protection equipped-state",
+    "Potion of Giant Strength",
+    "Potion of Speed",
+    "Wand of Enemy Detection",
+)
 
 
 def u16(r: bytes, off: int) -> int: return struct.unpack_from("<H", r, off)[0]
@@ -81,6 +112,19 @@ def show_spell_matrix(r: bytes, label: str, offset: int) -> None:
     for row in spell_banks(r, offset): print(f"    {row}")
 
 
+def active_effect_text(r: bytes) -> str:
+    bits = u32(r, PRIMARY_EFFECT_BITS_OFFSET)
+    active = []
+    for index, effect_name in enumerate(PRIMARY_EFFECT_NAMES):
+        if bits & (1 << index):
+            expiry = u32(r, PRIMARY_EFFECT_EXPIRY_OFFSET + index * 4)
+            active.append(f"{index}:{effect_name} expiry={expiry}")
+    unknown_bits = bits & ~((1 << PRIMARY_EFFECT_COUNT) - 1)
+    if unknown_bits:
+        active.append(f"out-of-catalogue-bits=0x{unknown_bits:08X}")
+    return "<none>" if not active else "; ".join(active)
+
+
 def show(label: str, index: int, base: int, r: bytes) -> None:
     classes = [s8(r, CLASS_OFFSET + i) for i in range(CLASS_COUNT)]
     class_text = ["absent" if value == -1 else enum_text(value, CLASS_NAMES) for value in classes]
@@ -100,7 +144,7 @@ def show(label: str, index: int, base: int, r: bytes) -> None:
     show_spell_matrix(r, "spells_B", SPELL_MATRIX_B_OFFSET)
     print(f"  aux127    : 0x{u32(r, AUX_DWORD_OFFSET):08X}")
     print(f"  known12B  : 0x{u32(r, ITEM_KNOWN_OFFSET):08X}")
-    print(f"  flags132  : 0x{u32(r, STATE_FLAGS_OFFSET):08X}")
+    print(f"  effects   : bits=0x{u32(r, PRIMARY_EFFECT_BITS_OFFSET):08X} {active_effect_text(r)}")
     print(f"  tail1F6   : {terminal_summary(r)}")
     print(f"  post!=fill: {sparse_post(r)}")
 
