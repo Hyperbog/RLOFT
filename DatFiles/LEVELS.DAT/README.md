@@ -1,6 +1,6 @@
 # LEVELS.DAT
 
-Status: **archive/record structure proven; cell-state, 10-byte control, compact-family, fixed event-script, active header-tail/music, automap, dynamic-door, loose-item family, event-callee, and annotation-tail semantics substantially reconstructed.**
+Status: **archive/record structure proven; cell-state, 10-byte control, compact-family, fixed event-script, active header-tail/music, automap, dynamic-door, loose-item family, event-callee, and annotation-tail semantics substantially reconstructed. Remaining format-level unknowns are narrow and explicitly preserved.**
 
 - Size: 499,878 bytes
 - SHA-256: `50d0b1d13f81733a1ac55296d00fcba9aef002202bc00341f1062c37fd017d91`
@@ -31,6 +31,7 @@ Every boundary equation and final record length validates with no archive except
 - `HEADER_TAIL.md` — active fixed-header tail fields at `+0x290..+0x29C`, including default level music and loader normalization.
 - `FAMILY_C.md` — family C as loose/pickable item world records plus runtime dropped/thrown-item behavior.
 - `CELL_WORD.md` — packed 16-bit cell code/flag model.
+- `CELL_FLAG_LINKS.md` — executable/corpus proof for special-geometry, render-prepass, hidden-passage, record-state-resource, and shade/decrement flags.
 - `CELL_RECORDS.md` — 10-byte record kinds, control bits, coordinates, and kind-specific fields.
 - `DYNAMIC_CELL_RECORDS.md` — group-2 animation state and open/closed collision behavior.
 - `EVENT_SCRIPTS.md` — 50-slot `0x514` event table and opcode dispatcher.
@@ -40,6 +41,7 @@ Every boundary equation and final record length validates with no archive except
 - `CACHE_REBUILD_AUDIT.md` — exact `01558` replay and Level 22 discrepancy.
 - `inspect_levels.py` — structural/coordinate validator.
 - `analyze_cells.py` — cell-flag statistics.
+- `analyze_cell_flag_links.py` — cell-flag/10-byte-record and center/frame adjacency audit.
 - `analyze_cell_records.py` — 10-byte kind/control and database checks.
 - `analyze_dynamic_records.py` — dynamic group-2 statistics.
 - `analyze_event_scripts.py` — fixed event-table slot/opcode validator.
@@ -69,19 +71,19 @@ The three signed NPC filters are compared directly against family-A/NPCS.DAT typ
 
 The two bytes at `+0x298/+0x299` must remain separate: CODE.2 passes them to two different VGA fill routines (`33E28` and `33DE0`).
 
-CODE.2 normalizes header `+0x29A` from zero to one immediately after level load. This exactly explains the sole fixed-header difference between archive level 22 (`0`) and supplied `LEV022.DAT` (`1`). The supplied archive distribution for this field is 14 zeros, 12 ones, and six values of 50.
+CODE.2 normalizes header `+0x29A` from zero to one immediately after level load. This exactly explains the sole fixed-header difference between archive level 22 (`0`) and supplied `LEV022.DAT` (`1`). The supplied archive distribution is 14 zeros, 12 ones, and six values of 50.
 
-Header `+0x29C` is now stronger than the former generic resource label. Every direct consumer routes through the music/sequence subsystem: it is compared against current sequence ID `29050()`, restored after temporary interaction sequences, and started by the options path when the separate music toggle is enabled. The safe name is `level_music_sequence_id`.
+Header `+0x29C` is the default level music-sequence ID. Every direct consumer routes through the music/sequence subsystem: it is compared against current sequence ID `29050()`, restored after temporary interaction sequences, and started by the options path when the separate music toggle is enabled.
 
-Header byte `+0x291` and `+0x29D..+0x2A3` have no direct absolute CODE.2 consumers found in the complete object scan and are zero in all supplied archive records. They remain raw preserved bytes rather than format-mandated padding.
+Header byte `+0x291` and `+0x29D..+0x2A3` have no direct absolute CODE.2 consumers found and are zero in all supplied archive records. They remain raw preserved bytes rather than format-mandated padding.
 
 ### Compact world-record families
 
-Family A is tied directly to `NPCS.DAT` and is the NPC/creature world-record family.
+Family A is tied directly to `NPCS.DAT` and is the **NPC/creature world-record family**.
 
 Family B is tied to `OBJECTS.DAT` and is the **placed object/item map-record family**. Its supplied compact records use IDs only `0..174`; their compact placement/orientation byte spans `0..7`, and family B supplies the placed-object automap overlay.
 
-Family C is behaviorally closed as the **loose/pickable item world-record family**. It expands to runtime array `0x17618`, is inserted by the loose-object spawn/drop path, is removed and compacted by the first-person pickup path, and is rendered as a distinct scene source class. The same 22-byte records acquire heading, lifetime and active-motion state when an item is thrown; CODE.2 `2388C` advances and collision-tests those moving records.
+Family C is the **loose/pickable item world-record family**. It expands to runtime array `0x17618`, is inserted by the loose-object spawn/drop path, is removed and compacted by the first-person pickup path, and is rendered as a distinct scene source class. The same 22-byte records acquire heading, lifetime and active-motion state when an item is thrown; CODE.2 `2388C` advances and collision-tests those moving records.
 
 Archive-wide family-C evidence:
 
@@ -94,13 +96,13 @@ object ID range      0..335
 compact flag byte         0 for all 622 supplied records
 ```
 
-All family-C type IDs are valid in the 336-entry supplied `OBJECTS.DAT`. The archive loader's family-C-only type migration `0x54 -> 0x58` remains exact executable behavior; its historical reason is not yet known.
+All family-C IDs are valid in the 336-entry supplied `OBJECTS.DAT`. The family-C-only legacy migration `0x54 -> 0x58` remains exact executable behavior; its historical reason is not yet known.
 
 ### Event scripts and resolved callees
 
 The fixed `0x514` block is **50 fixed 26-byte event slots**, each containing a one-byte active command count followed by five physical five-byte command positions. Across all supplied levels there are 394 active slots and 555 active commands.
 
-The high-value formerly address-named callees are now resolved:
+The high-value formerly address-named callees are resolved:
 
 ```text
 opcode 5   queue sound-effect request
@@ -116,23 +118,50 @@ Opcodes 8/9/10 operate on the same 32-byte / 256-bit vector at runtime `0x22200`
 
 Opcode 11's default path uses the resource/install path loaded from INFO.DAT, appends a backslash and two decimal digits, opens that numbered resource, runs its interactive processor, applies the result, then stops the current event slot. The supplied INFO.DAT path is `D:`.
 
-Opcode 6 belongs to the separate music sequence subsystem. The two supplied uses request sequence IDs `0x2F` and `0x2E` in level 29.
+Opcode 6 belongs to the separate music-sequence subsystem. The two supplied uses request sequence IDs `0x2F` and `0x2E` in level 29.
 
-See `EVENT_SCRIPTS.md`, `EVENT_CALLEES.md`, `analyze_event_scripts.py`, and `analyze_event_callees.py`.
+### Packed cell/automap state
 
-### Cell/automap and record state
+The 16-bit cell word is now substantially closed at the behavioral level:
 
-The six-bit cell code, visibility bit `0x0040`, explored bit `0x0400`, dynamic group-2 door/barrier state, generated automap cache, connected wall/inset/door resolver, placed-object overlay, and automap annotation list are all executable-backed.
+```text
+0x003F  six-bit cell code
+0x0040  transient current visibility/raycast mark
+0x0080  special-geometry center / dynamic-collision gate
+0x0100  special-geometry frame / adjacent-code substitution gate
+0x0200  extra render-prepass enable
+0x0400  persistent automap explored/revealed mark
+0x0800  secret/hidden-passage topology marker
+0x1000  10-byte-record state resource-offset enable
+0x2000  unresolved
+0xC000  two-bit render shade/decrement level
+```
 
-The major world-record split is established: family A = NPC/creature records, family B = placed object/item map records, and family C = loose/pickable item records with runtime dropped/thrown motion state.
+The center/frame interpretation is independently supported by archive geometry: every one of the 745 `0x0080` cells has two to four orthogonal `0x0100` neighbors, and 1,682 of 1,690 `0x0100` cells touch an `0x0080` center.
 
-## Next major targets
+`0x1000` is tied directly to first-group 10-byte record state. `1E9A0` returns `record[1] & 3`, and the renderer adds that value to its selected resource IDs. All 1,335 non-kind-1 records in the supplied archive occur on `0x1000` cells.
 
-The highest-value remaining LEVELS work is now:
+`0x0200` selects membership in an additional preliminary render pass before the ordinary all-record pass.
 
-1. tighten the few still-behavioral cell/control-bit names where CODE.2 permits it;
-2. investigate the historical purpose of the legacy family-C `0x54 -> 0x58` migration if evidence exists;
-3. close any remaining story-specific event special branches only when they provide reusable format semantics;
-4. then move into the other DAT databases while preserving the established LEVELS/INFO/SAVE/OBJECTS/NPCS cross-links.
+`0x0800` is a special pass-through/hidden topology marker in CODE.2 and resolves through the automap's `0x33 -> CP437 0xB2` path; independent Ravenloft automap documentation identifies that exported glyph as a secret-door marker. All 47 supplied `0x0800` cells are record-free.
+
+`0xC000` is consumed as a 0..3 decrement applied to both byte lanes of a packed render value; only two supplied cells use a nonzero selector, both selector value 2.
+
+`0x2000` remains deliberately unresolved. It occurs only three times, at the same coordinate `(44,34)` in levels 12..14, as raw word `0x2400`.
+
+See `CELL_WORD.md`, `CELL_FLAG_LINKS.md`, and `analyze_cell_flag_links.py`.
+
+## Remaining LEVELS work
+
+The reusable file-format semantics are now near closure. Remaining issues are narrow:
+
+1. the historical reason for the family-C legacy migration `0x54 -> 0x58`;
+2. the exact meaning of cell bit `0x2000`;
+3. story-specific opcode-11 branches `0x0B..0x0D` if they later matter outside their scripted scenes;
+4. the known 40-cell `LEV022.DAT` automap-cache provenance discrepancy.
+
+None of those blocks structural parsing, lossless preservation, or a high-level LEVELS reader/editor model.
+
+The next major reverse-engineering value is in the linked databases, especially `OBJECTS.DAT`: both placed family B and loose family C already address its 336-entry `0x41` record table directly. `NPCS.DAT` is similarly linked to family A and should follow.
 
 Lossless tooling must preserve every unresolved byte and flag verbatim.
