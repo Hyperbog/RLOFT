@@ -1,6 +1,6 @@
 # INFO.DAT format reconstruction
 
-Status: **complete physical layout proved; resource/install path semantics proved; selectors 0..10 decoded as RES0..RES10 location selectors; selectors 11..12 remain preserved with no proved CODE.2 resource-loader consumer.**
+Status: **complete physical layout proved; resource/install path semantics proved in both CODE.1 and CODE.2; selectors 0..10 decode as the active RES0..RES10 location selectors for the supplied executable pair; selector positions 11..12 are retained historical slots with no active consumer in either certified game module.**
 
 ## Controlling evidence
 
@@ -134,3 +134,17 @@ A faithful reader/editor should:
 5. reproduce the original 17 supplied bytes exactly on decode -> encode.
 
 `inspect_info.py` provides the lossless physical parser/encoder. `analyze_info_config.py` verifies the resource-routing semantics against the immutable CODE.2 image.
+
+## CODE.1 independent confirmation
+
+Certified CODE.1 independently preserves the same thirteen-slot reader:
+
+- function 8978 opens INFO.DAT, reads 13 selector bytes, subtracts ASCII '0', then reads the signed-length path payload;
+- function 8A04 builds indexed resource filenames from those selector/path values;
+- the resource bootstrap reaches the indexed loader with base name RES and group count 11.
+
+Therefore both supplied game modules consume the same physical thirteen-byte selector vector but initialize only indices 0..10.
+
+This is historically important because the CD also contains RES11 and RES12, now proved to be legacy/pre-split composite resource generations. It is consistent with a thirteen-archive lineage predating the final split layout, but no recovered executable currently proves that selector positions 11/12 were ever active. Preserve that distinction.
+
+See Resources/RES/RES11_RES12_LINEAGE.md.

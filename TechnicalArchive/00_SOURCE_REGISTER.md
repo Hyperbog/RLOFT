@@ -126,3 +126,53 @@ Constraints:
 - `BCOOLEY` is a directory name; do not identify a specific person without independent evidence;
 - `6WORLDS` and `PLAGUE.BAT` are preserved strings, but are **not** by themselves proof of Ravenloft codenames, project names, or runtime components;
 - the file should not be included in the active resource/runtime dependency graph unless executable evidence is found.
+
+## SR-006 — WinWorld Ravenloft v1.1 CD directory listing
+
+Class: **COMMUNITY-RESEARCH / historical media-listing corroboration**
+
+URL:
+https://forum.winworldpc.com/discussion/9842/ibm-pc-compatible-game-installation-file-listing-screenshot-from-cd-media-not-floppy/p19
+
+The post labels the disc Ravenloft: Strahd's Possession v1.1 and reproduces a DOS directory listing. RES0..RES12 sizes and March timestamps correspond to the project's supplied corpus metadata, including RES11/RES12 at March 4.
+
+Validation: **PARTIALLY CORROBORATED / SIZE+TIMESTAMP MATCH**
+
+Constraint: the source does not publish cryptographic hashes. It corroborates a period CD layout but is not sufficient to prove byte identity or assign every file in the modern GOG image to v1.1.
+
+## SR-007 — GOG Ravenloft 1.2a release metadata
+
+Class: **DISTRIBUTOR-METADATA**
+
+URL:
+https://www.gogdb.org/product/1432905053/releasenotes
+
+The recorded 03 November 2015 update states that the English distribution was updated to 1.2a.
+
+Use: provenance for modern GOG package history, not proof of individual 1994 file build dates.
+
+## SR-008 — community 1.2a executable hashes
+
+Class: **COMMUNITY-RESEARCH / release identity**
+
+URL:
+https://www.gog.com/forum/dungeons_dragons_ravenloft_series/strahds_possession_need_help_with_bugsglitches/page1
+
+A contemporary post publishes MD5 identities for a claimed 1.2a CODE.1/CODE.2 pair. The project's supplied CODE.1 and CODE.2 match those two MD5 values exactly.
+
+Validation: **CONFIRMED AGAINST SUPPLIED CODE.1/CODE.2 for those two identities**
+
+Constraint: the post also lists INFO.DAT. INFO.DAT contains installation-dependent path/selector data, so a different INFO.DAT hash must not be treated as proof of a mixed executable build.
+
+## SR-009 — Multi-Edit 7.0 STATUS.ME behavior
+
+Class: **COMMUNITY-RESEARCH / historical tool behavior**
+
+URL:
+https://www.forum.old-dos.ru/viewtopic.php?p=7536
+
+The Multi-Edit 7.0 research thread documents "Status file in each dir" and "One global status file" restore modes as saving editor state in STATUS.ME.
+
+Validation: **CORROBORATES SHIPPED STATUS.ME HEADER/CONTENT**
+
+Use: supports classification of the CD-shipped STATUS.ME as third-party editor workspace/status residue.

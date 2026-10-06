@@ -223,11 +223,19 @@ This is the model for community contributions generally: preserve attribution, r
 
 ## 10. Version sensitivity
 
-**Class: RECONSTRUCTED / requires release inventory.**
+**Class: RECONSTRUCTED / PER-FILE PROVENANCE REQUIRED.**
 
-Community walkthrough research identifies its tested copy as the GOG CD-ROM version 1.2A and reports differences/bugs across distributions. Therefore future behavior tests must record the exact executable/data hashes and release source. A behavior observed in another distribution must not silently override the immutable CODE.1/CODE.2 evidence archived here.
+The release inventory has begun in `06_RELEASE_MEDIA_AND_DEVELOPMENT_PROVENANCE.md`.
 
-A later provenance document should inventory known Ravenloft releases and hashes before cross-version claims are made.
+Current evidence distinguishes several layers:
+
+- the supplied CODE.1/CODE.2 identities match community-recorded 1.2a executable hashes;
+- GOG distribution metadata records an English update to 1.2a in November 2015;
+- a community-preserved CD listing labeled v1.1 records RES archive sizes/timestamps matching the supplied resource metadata;
+- INFO.DAT is installation-dependent and must not be used as a whole-build hash discriminator without normalizing its path/selector content;
+- RES11/RES12 are now byte-level reconstructed as legacy/pre-split composite generations retained on the CD.
+
+Therefore future behavior/version claims must attach to exact artifact hashes and source provenance rather than treating the modern GOG image as one indivisible historical build.
 
 ## 11. Immediate unknowns deliberately retained
 

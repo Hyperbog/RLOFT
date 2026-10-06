@@ -1,6 +1,6 @@
 # Non-EH RES records
 
-Status: **the active RES9 interaction/display wordcode bank is structurally and behaviorally reconstructed; the RES12 bank is an ID-aligned incompatible alternate; and the two RES1 four-byte records are proved inactive/unconsumed by the supplied CODE.2 resource paths. The serialized zero companion bank in every wordcode container is likewise not consumed by this executable and remains producer-side `UNKNOWN`.**
+Status: **the active RES9 interaction/display wordcode bank is structurally and behaviorally reconstructed; RES12 is a legacy generation of the same VM with an older 141-word opcode-05 inline-template encoding; and the two RES1 four-byte records are proved inactive/unconsumed by the supplied CODE.2 resource paths. The serialized zero companion bank in every wordcode container is likewise not consumed by this executable and remains producer-side `UNKNOWN`.**
 
 The immutable archives, `INIT`, and certified original CODE.2 object are controlling evidence.
 
@@ -152,11 +152,22 @@ The safe class name is **interaction/display wordcode** rather than NPC animatio
 
 ## RES12 relationship
 
-`RES12:370..406` has the identical outer count/program/zero-bank shape, and shared ordinals preserve multiple interaction identities/text bases. However, its internal dialect is not compatible with the active RES9 VM: among other differences, its party-character operation embeds inline character records/names/stats where active CODE.2 expects a one-word template ID.
+RES12:370..406 has the identical outer count/program/zero-bank shape and is now grammar-closed as a legacy generation of the active interaction/display VM.
 
-The whole-object raw-access audit also proves no direct archive-12 raw-handle request exists in this CODE.2 object.
+The former apparent invalid opcodes were operand data inside opcode 0x05. Legacy opcode 0x05 consumes a **141-word inline compact character template**; active RES9 opcode 0x05 consumes a **one-word template ID** into CODE.2's centralized static character-template table.
 
-Therefore RES12 remains an **ID-aligned alternate/incompatible interaction-wordcode bank physically present on the same supplied CD**. No floppy/localized/prototype label or intended executable/build role is asserted without matching evidence. See `RES12_WORDCODE.md`.
+With the recovered legacy arity:
+
+    programs                         37
+    program words                 4,820
+    decoded instructions          1,079
+    invalid direct targets            0
+
+Same-ordinal legacy/active text bases are preserved 37/37. All ten final static template identities appear in the legacy inline payloads.
+
+The whole-object raw-access audit still proves no direct archive-12 raw-handle request exists in supplied CODE.2, and supplied CODE.1 initializes only 11 indexed RES groups. RES12 is therefore historically related but inactive in the certified executable pair.
+
+See RES12_WORDCODE.md and RES11_RES12_LINEAGE.md.
 
 ## Closed versus intentionally unknown
 
@@ -173,6 +184,6 @@ Intentionally unresolved historical/producer questions:
 
 - why the wordcode producer serialized a same-length zero bank;
 - what tool/build originally used the two RES1 `0x00000060` markers;
-- exact intended executable/build role of the CD-shipped RES12 material.
+- exact historical executable/editor/build that consumed or produced the legacy RES11/RES12 composite generation.
 
 Those are preservation `UNKNOWN`s, not blockers for a faithful reconstruction of this executable's runtime behavior.

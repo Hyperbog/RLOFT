@@ -338,3 +338,26 @@ The instruction **grammar and active-bank control flow are closed**. Remaining w
 - determine whether/how the ID-aligned `RES12` wordcode bank is selected;
 - resolve the two four-byte `RES1` non-EH sentinels;
 - correlate individual program IDs with named in-game interactions and story events where code/level callers make that identity provable.
+
+## Historical opcode-05 serialization
+
+CD-shipped RES12 preserves a legacy generation of this same VM.
+
+The opcode dispatcher and operand grammar remain compatible except for opcode 0x05:
+
+    active RES9:
+        05 template_id
+
+    legacy RES12:
+        05 inline_template[141 words]
+
+Treating legacy opcode 0x05 as 141 operand words parses all 37 RES12 programs to EOF with 1,079 decoded instructions and zero invalid direct targets.
+
+The 141 words encode a compact character template: name/identity, HP/class progression, abilities, 21 item slots, and the two spell matrices. A deterministic expansion maps the payload into CODE.2's later static 0x248-byte character-record prefix through +0x109.
+
+The final static template IDs are:
+
+    0 GLORIANNA   1 VELIKA     2 MISCHA    3 VUKO      4 TATIAN
+    5 IRMGARDE    6 ANSHELM    7 RYSZARD   8 VLADISLAV 9 FHALKEN
+
+This is a historical producer/runtime representation change, not a second unrelated VM. See RES12_WORDCODE.md and RES11_RES12_LINEAGE.md.

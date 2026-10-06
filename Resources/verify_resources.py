@@ -97,6 +97,7 @@ def self_test() -> None:
     scripts = [
         "Resources/ANM/analyze_anm.py",
         "Resources/RES/analyze_res.py",
+        "Resources/RES/analyze_legacy_archives.py",
         "Resources/RES/analyze_type7.py",
         "Resources/RES/analyze_type7_banks.py",
         "Resources/RES/analyze_wordcode.py",

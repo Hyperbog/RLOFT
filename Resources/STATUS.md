@@ -279,7 +279,7 @@ That belongs to the `Runtime/` third-party-driver track. It is **not a blocker**
 The following remain evidence-class `UNKNOWN` or deferred, but do not represent missing parsing of active Ravenloft resource behavior:
 
 1. historical producer purpose of the wordcode zero companion arrays;
-2. exact intended build/runtime role of the CD-shipped RES11/RES12 alternate content;
+2. exact historical executable/editor/build that consumed or produced the now-reconstructed legacy/pre-split RES11/RES12 composite generation;
 3. producer meaning of the two inactive RES1 `0x00000060` records;
 4. original source/editor names for several physically understood fields;
 5. semantic names inside executable-only type 5, absent from Ravenloft data;
@@ -300,5 +300,16 @@ For the **initial faithful decompilation / native-port foundation**, the Resourc
 Optional future work should be scheduled under the appropriate scope:
 
 - `A32ARXM.DLL` if exact ARIA bank semantics become important;
-- alternate/build-related executables if the intended runtime role of the CD-shipped RES11/RES12 material needs identification;
+- an earlier matching executable/editor if the exact producer/consumer identity of the legacy RES11/RES12 generation is to be closed;
 - other DreamForge titles only for comparative-family archaeology after Ravenloft's own evidence remains clearly separated.
+
+## RES11/RES12 historical lineage
+
+The former generic "alternate content" classification has been narrowed substantially.
+
+- RES11 is a legacy/pre-split composite of resource families principally continued in RES3/4/5/6.
+- RES12 is a legacy/pre-split interaction composite principally continued in RES9 plus a shared legacy VOC bank.
+- RES12's 37 raw programs use the same VM opcode set; legacy opcode 0x05 embeds a 141-word character template where final RES9 uses a one-word static template ID.
+- both certified CODE.1 and CODE.2 read the thirteen INFO selectors but initialize only eleven indexed RES archives.
+
+The exact older executable/editor that selected or generated the composites remains unknown. See RES/RES11_RES12_LINEAGE.md.

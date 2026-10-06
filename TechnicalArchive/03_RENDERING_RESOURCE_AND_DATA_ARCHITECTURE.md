@@ -675,3 +675,13 @@ Primary repository evidence for this unit:
 `TechnicalArchive/04_WORLD_STATE_LEVELS_AND_SIMULATION_ARCHITECTURE.md`
 
 The next unit should integrate the now-deep `LEVELS.DAT`, `LEV022.DAT`, `NPCS.DAT`, `OBJECTS.DAT`, and SAVE cross-references into the world-state and simulation model: fixed level headers, cell words/flags, world record families, object/NPC runtime records, level transition/save behavior, automap state, events, and the boundary between persistent serialized state and generated renderer state.
+
+## Legacy/pre-split composite archives
+
+CD-shipped RES11 and RES12 are not active indexed archives in the supplied executable pair, but later preservation analysis proves they are historically integral to the resource architecture.
+
+RES11 is a legacy composite containing predecessor type-7, type-6, XMIDI, and VOC families later split principally across RES3..RES6.
+
+RES12 is a legacy interaction composite whose graphics and same-VM wordcode lineage principally continue in RES9. Its legacy opcode 0x05 stores a 141-word compact character template inline; the active generation replaces this with a static template ID into CODE.2.
+
+See Resources/RES/RES11_RES12_LINEAGE.md. The exact older consumer/producer executable remains unknown.

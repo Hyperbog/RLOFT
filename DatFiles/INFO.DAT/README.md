@@ -1,6 +1,6 @@
 # INFO.DAT
 
-Status: **physical format, installation/resource path, and RES0..RES10 location selectors are proven; lossless parse/encode verified. The two trailing selector digits remain preserved with no proved CODE.2 RES-loader consumer.**
+Status: **physical format, installation/resource path, and active RES0..RES10 location selectors are proven in the supplied CODE.1/CODE.2 pair; lossless parse/encode verified. The two trailing selector positions remain preserved historical slots with no active consumer in either certified module.**
 
 - Size: 17 bytes
 - SHA-256: `4ffa6ac5d5b5afd103bd67d84d3a372b401b3b19407b0c68c44bb0dfd9e32c30`
@@ -94,3 +94,11 @@ CODE.2 SHA/signatures       PASS
 ## Current frontier
 
 INFO.DAT is at practical format closure. The only unresolved bytes are selector digits 11 and 12: they are structurally valid and must be preserved, but no runtime meaning is currently proved.
+
+## CODE.1 and legacy-archive context
+
+CODE.1 independently reads the same 13 selector bytes but initializes only 11 indexed RES groups, matching CODE.2's active RES0..RES10 set.
+
+The shipped CD also contains RES11/RES12. Cross-archive analysis now identifies them as legacy/pre-split composite resource generations rather than unexplained foreign files. This strengthens the historical interpretation of INFO.DAT as a retained thirteen-slot format, but it does not prove active selector-11/12 semantics in the supplied executables.
+
+See FORMAT.md and ../../Resources/RES/RES11_RES12_LINEAGE.md.

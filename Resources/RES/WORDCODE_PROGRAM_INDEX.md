@@ -115,7 +115,7 @@ The documentation intentionally records indexes rather than reproducing dialogue
 
 Opcode `0x05` occurs in programs associated with recruitable/party-relevant interactions. Active template IDs are `0..9`.
 
-The executable proves the operation applies a fixed party-character template to live party state. A separate RES12 comparison contains inline ASCII character names strongly correlated with these template IDs, but that alternate-bank evidence is kept separate in `RES12_WORDCODE.md` until its exact historical/runtime relationship is closed.
+The executable proves the operation applies a fixed party-character template to live party state. RES12 now closes the historical encoding relationship: its legacy opcode 0x05 stores a 141-word compact character template inline, while active RES9 stores the corresponding one-word template ID. `RES12_WORDCODE.md` and `RES11_RES12_LINEAGE.md` preserve the full proof.
 
 Do not derive template names solely from NPC display names: program 37, for example, shares the ADVENTURER interaction graphics/text base with program 14 but applies a different template.
 
@@ -143,3 +143,32 @@ A faithful interaction index may expose the exact mappings above while keeping t
 - party-template IDs.
 
 Do not flatten shared resource bases into shared NPC identity or shared gameplay state.
+
+## Legacy RES12 program generation
+
+RES12:370..406 preserves programs corresponding to active IDs 0..36.
+
+Recovered comparison:
+
+- same VM opcode domain 0x00..0x29;
+- same grammar except opcode 0x05;
+- legacy opcode 0x05 = 141-word inline compact character template;
+- active opcode 0x05 = one-word static template ID;
+- same-ordinal text base preserved 37/37;
+- legacy graphics interaction base aligns at 51 versus final INIT base 103;
+- using those bases, 23/37 same-ordinal program base graphics are byte-identical.
+
+The final executable template ID order is:
+
+    0 GLORIANNA
+    1 VELIKA
+    2 MISCHA
+    3 VUKO
+    4 TATIAN
+    5 IRMGARDE
+    6 ANSHELM
+    7 RYSZARD
+    8 VLADISLAV
+    9 FHALKEN
+
+Legacy program 14 embeds IRMGARDE. In the active generation program 14 no longer adds a template; new program 37 uses template ID 5 twice while sharing program 14's interaction identity. This is preserved as a concrete script/content migration between generations.

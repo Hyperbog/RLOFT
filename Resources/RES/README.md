@@ -32,3 +32,9 @@ Unknown or unsupported-in-corpus behavior remains explicit. In particular:
 - type 7's on-disk compiled-shape structure is resolved, while the historical names/semantics of its three 6-byte rasterizer-descriptor fields and the external scale-rasterizer data remain under reconstruction.
 
 No binary asset is silently repaired or normalized. The two duplicated type-4 resources whose declared dword length exceeds their stored archive entry by exactly `0x10000` are documented as shipped anomalies.
+
+## Historical legacy archives
+
+- RES11_RES12_LINEAGE.md — cross-generation proof that CD-shipped RES11/RES12 are legacy/pre-split composite resource generations retained alongside the later active RES0..RES10 layout.
+- analyze_legacy_archives.py — reproducible RES11/RES12 -> RES3/4/5/6/9/10 and CODE.2 template-lineage validator.
+- RES12_WORDCODE.md — recovered legacy VM grammar and opcode-05 inline character-template encoding.

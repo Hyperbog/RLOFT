@@ -302,7 +302,7 @@ The following remain legitimate evidence boundaries rather than audit defects:
 
 - historical producer/editor purpose of the unread RES9 companion zero bank;
 - literal producer meaning of the two inactive RES1 `0x00000060` records;
-- exact intended build/runtime role of the CD-shipped RES11/RES12 alternate material;
+- exact historical executable/editor/build that consumed or produced the legacy/pre-split RES11/RES12 composite generation;
 - historical source/editor field names not recoverable from runtime behavior;
 - semantic field names for uninstantiated resource type 5;
 - higher-level producer semantics of unused ANM chunk type 4 beyond its executable control behavior;
@@ -371,3 +371,22 @@ The corrected evidence boundary is:
 - **unknown:** the exact intended executable/build/installation path that consumes or selected the extra CD-shipped material.
 
 Thus their **disc provenance is closed** while their **runtime/build role remains bounded UNKNOWN**.
+
+## 20. RES11/RES12 lineage closure
+
+Historical follow-up after runtime certification substantially closes the role of the two inactive CD archives.
+
+Confirmed/reconstructed results:
+
+- both certified CODE.1 and CODE.2 read all 13 INFO selector bytes but initialize only 11 indexed RES groups;
+- RES11 partitions as type7/type6/type3/type4 and has large exact-entry continuity into final RES3/4/6 plus a rebuilt two-bank XMIDI lineage into RES5;
+- RES12 partitions as graphics / 37 raw programs / VOC and has direct graphics continuity into RES9;
+- RES11 and RES12 share their 260-entry legacy VOC bank exactly;
+- RES12's apparent VM incompatibility was a parsing error caused by applying the final opcode-05 arity;
+- legacy opcode 0x05 consumes 141 inline character-template words; all other recovered opcode grammar matches the active VM;
+- all 37 legacy programs parse to EOF with 1,079 instructions and zero invalid direct targets;
+- the inline templates deterministically map into the later CODE.2 static character-template table.
+
+Safe historical classification is now **legacy/pre-split composite resource generation retained on the CD**.
+
+The only remaining lineage unknown is the exact older executable/editor/build that produced or consumed that generation.

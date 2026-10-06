@@ -362,7 +362,7 @@ These do not block faithful reconstruction of the supplied runtime:
 
 1. historical producer/editor purpose of the zero wordcode companion arrays;
 2. why the RES1 producer wrote literal `0x00000060` in the terminal reserved face slot;
-3. exact intended executable/build role of the CD-shipped RES11/RES12 alternate content;
+3. exact historical executable/editor/build that consumed or produced the legacy/pre-split RES11/RES12 composite generation;
 4. original source/editor names for physically understood fields;
 5. semantic field names for executable-only resource type 5, absent from supplied Ravenloft data;
 6. higher-level producer semantics of unused ANM chunk type 4;
@@ -405,3 +405,13 @@ The corrected CODE.2-faithful LZSS initialization model was then exercised over 
 No stream read any of the 18 dictionary bytes left uninitialized by CODE.2 before those bytes had been defined, and no stream left trailing compressed bytes.
 
 Therefore the resource workstream is **audit-clean for the supplied canonical Ravenloft runtime/data set**. Remaining unknowns are historical, alternate-build, or third-party-driver questions and do not block faithful reconstruction of the supplied build.
+
+## Historical RES11/RES12 lineage addendum
+
+Subsequent preservation work resolves the earlier generic "alternate archive" description.
+
+RES11 and RES12 are now documented as legacy/pre-split composite resource generations physically retained on the CD. Their byte-level descendants occur throughout the later active split archives, and RES12's wordcode is grammar-compatible with the active VM once legacy opcode 0x05 is given its proved 141-word inline-template operand.
+
+This does not change the runtime certification: supplied CODE.1/CODE.2 still initialize only RES0..RES10.
+
+See RES/RES11_RES12_LINEAGE.md.
