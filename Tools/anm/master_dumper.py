@@ -27,6 +27,7 @@ class DumpOptions:
     cinematic_fps: float = 15.0
     cinematic_frames: bool = True
     cinematic_videos: bool = False
+    cinematic_timeline: bool = True
     preserve_native: bool = True
     export_support: bool = True
 
@@ -91,7 +92,8 @@ def dump_cinematics(
                 progress=_stage_progress(progress, f"cinematic:{stem}:video"),
             )
 
-        exporter.write_timeline(movie, path, timeline_root / f"{stem}.json")
+        if options.cinematic_timeline:
+            exporter.write_timeline(movie, path, timeline_root / f"{stem}.json")
         records.append({
             "source": name,
             "frames": movie.frame_count,
