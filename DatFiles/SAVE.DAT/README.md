@@ -274,10 +274,14 @@ Treat SAVE.DAT as an explicitly decoded little-endian legacy runtime image. Pres
 
 ## Remaining reconstruction targets
 
-1. Complete the exact player-facing portrait-resource catalogue/subset behind `+0x012` and any remaining status-presentation details.
-2. Identify a stronger runtime consumer for serialized `age` if one exists.
-3. Finish the residual packed-state/auxiliary semantics of the now-identified `0x16` transient/moving-effect record where producer evidence permits.
-4. Run a final SAVE-wide consistency/stale-offset audit before declaring the format archival-complete.
+The principal SAVE structure and character identity layer are now closed. CODE.1 proves the exact player portrait subset (`0..16`) versus predefined roster slots, and independently generates/displays serialized age from race-specific starting-age dice.
+
+Remaining work is bounded:
+
+1. finish any defensible names for transient-effect packed-state/auxiliary fields and dormant types 5/7;
+2. retain opaque character/effect fields whose lifecycle is known but whose original source-level names are not;
+3. complete the SAVE-wide stale-offset/semantic consistency audit and validator/tooling synchronization;
+4. then mark the supplied-build SAVE format archival-complete if no contradiction remains.
 
 Status bit `0x2000` and low bits `0x0001..0x0020` have reached a bounded evidence result: the shipped runtime recognizes/preserves them, but the direct producer audit does not justify player-facing names. They remain compatibility-preserved raw state rather than open invitations to infer AD&D conditions.
 
