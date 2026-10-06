@@ -1,6 +1,6 @@
 # NPCS.DAT format reconstruction
 
-Status: **container and fixed 0x45-byte record layout proven; name, scene/render parameters, core combat statistics, XP, runtime-state templates, sound fields, and sixteen behavior/effect aliases are behaviorally anchored in certified CODE.2. Unknown flag bits remain raw.**
+Status: **container and fixed 0x45-byte record layout proven; name, scene/render parameters, core combat statistics, XP, runtime-state templates, sound fields, and eighteen behavior/effect aliases are behaviorally anchored in certified CODE.2. Unknown flag bits remain raw.**
 
 ## Controlling evidence
 
@@ -116,13 +116,15 @@ These fields are deliberately aliased across access widths.
 
 ### `+0x31..+0x34` — raw `uint32 behavior_flags`
 
-CODE.2 tests this storage as byte, unaligned word, and full dword. Eight aliases are currently proved:
+CODE.2 tests this storage as byte, unaligned word, and full dword. Ten aliases are currently proved:
 
 ```text
 0x00000002  hold_undead_effect_immunity
 0x00000008  hold_person_effect_immunity
 0x00000010  hold_monster_effect_immunity
+0x00000080  death_spell_effect_immunity
 0x00000100  common_spell_effect_immunity
+0x00000200  lightning_bolt_effect_immunity
 0x00000800  cold_effect_immunity
 0x00002000  fire_effect_immunity
 0x00004000  weapon_category10_damage_floor_one
@@ -135,11 +137,18 @@ The executable constructs compound spell masks:
 0x0102  Hold Undead
 0x0108  Hold Person
 0x0110  Hold Monster
+0x0300  Lightning Bolt
 0x0900  cold effects
 0x2100  fire effects
 ```
 
 The common area/effect path skips a target whenever its `behavior_flags` intersects the caller's mask. Mage and priest Hold Person both use `0x0108`; Hold variants share the same live held-state bit. Fire/cold dispatcher paths independently establish the elemental components.
+
+Lightning Bolt is independently closed through the serialized mage-scroll and moving-effect machinery. `OBJECTS.DAT` object 188 (`MAGE SCROLL OF 'LIGHTNING BOLT'`) maps to internal effect 28. Its handler creates moving-effect type 1; the type-1 NPC collision branch tests byte `npc+0x32` with mask `0x03`, which is dword mask `0x0300 = 0x0100 | 0x0200`. Thus `0x00000200` is a Lightning Bolt effect-immunity/exclusion bit in addition to the common `0x0100` gate.
+
+Death Spell uses a separate dedicated bit. `OBJECTS.DAT` object 197 (`MAGE SCROLL OF 'DEATH SPELL'`) maps to internal effect 51, whose target-area routine tests byte `npc+0x31` with `0x80` and skips that target when set. Thus `0x00000080` is a Death Spell effect-immunity/exclusion bit rather than part of the common `0x0100` family.
+
+See `TARGETED_EFFECT_IMMUNITIES.md` and `analyze_targeted_effect_immunities.py` for both complete chains.
 
 The separate physical-attack gate at CODE.2 `0xC910..0xC99E` resolves OBJECTS.DAT category and enchantment before applying two high bits. Nonzero enchantment reroutes the item to category 11. On the remaining paths:
 
@@ -152,7 +161,7 @@ Thus these aliases are **one-damage floors**, not zero-damage immunities. The su
 
 The same category-11 branch tests `0x00020000` and `0x00040000` around zero-extended enchantment loads and signed comparisons to `-2`. Their exact executable oddity is documented in `WEAPON_DAMAGE_FLAGS.md`; those bits remain raw rather than being assigned speculative source-level names.
 
-Preserve the full raw dword; these aliases are not a replacement enum. See `EFFECT_IMMUNITIES.md`, `HOLD_IMMUNITIES.md`, and `WEAPON_DAMAGE_FLAGS.md`.
+Preserve the full raw dword; these aliases are not a replacement enum. See `EFFECT_IMMUNITIES.md`, `HOLD_IMMUNITIES.md`, `TARGETED_EFFECT_IMMUNITIES.md`, and `WEAPON_DAMAGE_FLAGS.md`.
 
 ### `+0x35..+0x38` — initial runtime flags
 
