@@ -268,6 +268,10 @@ python DatFiles/SAVE.DAT/tools/verify_spell_text_catalogues.py /path/to/T /path/
 
 The character analyzer decodes certified status bits and active primary-effect identities. The spell/text verifier pins both source-file hashes, all 26 effect labels, both spell catalogues, priest action-only labels, and both executable entry-count tables.
 
+## Final certification
+
+The final supplied-build re-audit is recorded in `FINAL_AUDIT_2026-10-06.md`. It rechecks binary identities, fixture geometry, the 62-state container bank, CODE.1 portrait/age behavior, Mage/priest count tables, and raw-`T` status/effect labels. The remaining unnamed fields are bounded preservation cases rather than unresolved SAVE geometry.
+
 ## Native-port compatibility rule
 
 Treat SAVE.DAT as an explicitly decoded little-endian legacy runtime image. Preserve legacy enum/index numbers, signed sentinels, fixed-point time precision, status bits, both fixed-size spell matrices, all 26 primary-effect bits/timers, unknown/reserved bytes, dynamic serializer ordering, and the container state-61/62 mismatch exactly unless an explicit compatibility-fix layer says otherwise.
