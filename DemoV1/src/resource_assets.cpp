@@ -1,0 +1,189 @@
+#include "rloft/resource_assets.hpp"
+
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <stdexcept>
+
+namespace rloft {
+namespace {
+
+std::uint16_t u16(const std::uint8_t* p) {
+    return static_cast<std::uint16_t>(p[0]) |
+           (static_cast<std::uint16_t>(p[1]) << 8U);
+}
+
+std::int16_t s16(const std::uint8_t* p) {
+    return static_cast<std::int16_t>(u16(p));
+}
+
+std::uint32_t u32(const std::uint8_t* p) {
+    return static_cast<std::uint32_t>(p[0]) |
+           (static_cast<std::uint32_t>(p[1]) << 8U) |
+           (static_cast<std::uint32_t>(p[2]) << 16U) |
+           (static_cast<std::uint32_t>(p[3]) << 24U);
+}
+
+std::vector<std::uint8_t> lzss_4k(const std::uint8_t* src,
+                                  std::size_t src_size,
+                                  std::size_t target_size) {
+    std::array<int, 4096> history{};
+    history.fill(-1);
+    for (std::size_t i = 0; i < 0xFEE; ++i) history[i] = 0xFE;
+
+    std::size_t hp = 0xFEE;
+    std::size_t ip = 0;
+    std::uint32_t flags = 0;
+    std::vector<std::uint8_t> out;
+    out.reserve(target_size);
+
+    while (out.size() < target_size) {
+        flags >>= 1U;
+        if ((flags & 0x100U) == 0) {
+            if (ip >= src_size) throw std::runtime_error("LZSS control EOF");
+            flags = static_cast<std::uint32_t>(src[ip++]) | 0xFF00U;
+        }
+
+        if ((flags & 1U) != 0) {
+            if (ip >= src_size) throw std::runtime_error("LZSS literal EOF");
+            const auto value = src[ip++];
+            out.push_back(value);
+            history[hp] = value;
+            hp = (hp + 1U) & 0xFFFU;
+        } else {
+            if (ip + 1U >= src_size) throw std::runtime_error("LZSS backref EOF");
+            const auto lo = src[ip++];
+            const auto hi = src[ip++];
+            const auto offset = static_cast<std::size_t>(lo) |
+                                ((static_cast<std::size_t>(hi) & 0xF0U) << 4U);
+            const auto count = static_cast<std::size_t>(hi & 0x0FU) + 3U;
+            for (std::size_t j = 0; j < count && out.size() < target_size; ++j) {
+                const auto source = (offset + j) & 0xFFFU;
+                const int stored = history[source];
+                if (stored < 0) {
+                    throw std::runtime_error("LZSS read of undefined CODE.2 dictionary tail");
+                }
+                const auto value = static_cast<std::uint8_t>(stored);
+                out.push_back(value);
+                history[hp] = value;
+                hp = (hp + 1U) & 0xFFFU;
+            }
+        }
+    }
+
+    return out;
+}
+
+}  // namespace
+
+ResArchive::ResArchive(std::vector<std::uint8_t> bytes)
+    : bytes_(std::move(bytes)) {
+    if (bytes_.size() < 4) throw std::runtime_error("RES archive is too small");
+    const auto count = static_cast<std::int32_t>(u32(bytes_.data()));
+    if (count < 0) throw std::runtime_error("RES archive has negative entry count");
+    const auto table_end = 4ULL + static_cast<unsigned long long>(count) * 4ULL;
+    if (table_end > bytes_.size()) throw std::runtime_error("RES offset table exceeds EOF");
+
+    offsets_.reserve(static_cast<std::size_t>(count));
+    std::uint32_t previous = static_cast<std::uint32_t>(table_end);
+    for (int i = 0; i < count; ++i) {
+        const auto off = u32(bytes_.data() + 4 + i * 4);
+        if ((i == 0 && off != table_end) || off < previous || off > bytes_.size()) {
+            throw std::runtime_error("RES archive has invalid entry offsets");
+        }
+        offsets_.push_back(off);
+        previous = off;
+    }
+}
+
+int ResArchive::entry_count() const noexcept {
+    return static_cast<int>(offsets_.size());
+}
+
+std::vector<std::uint8_t> ResArchive::entry(int index) const {
+    if (index < 0 || index >= entry_count()) throw std::out_of_range("RES entry index");
+    const auto start = offsets_[static_cast<std::size_t>(index)];
+    const auto end = (index + 1 < entry_count())
+                         ? offsets_[static_cast<std::size_t>(index + 1)]
+                         : static_cast<std::uint32_t>(bytes_.size());
+    return {bytes_.begin() + start, bytes_.begin() + end};
+}
+
+Type1Raster ResArchive::decode_type1(int index) const {
+    const auto raw = entry(index);
+    if (raw.size() < 13 || raw[0] != 'E' || raw[1] != 'H' || raw[2] != 1) {
+        throw std::runtime_error("RES entry is not an EH type-1 raster");
+    }
+
+    const auto header_size = s16(raw.data() + 3);
+    if (header_size < 8 || 5 + static_cast<std::size_t>(header_size) > raw.size()) {
+        throw std::runtime_error("Invalid type-1 header size");
+    }
+
+    const auto* desc = raw.data() + 5;
+    const int count = s16(desc + 0);
+    const int height = s16(desc + 2);
+    const int width_units = desc[4];
+    const auto key = desc[5];
+    const auto compression = desc[6];
+    if (count <= 0 || height <= 0 || width_units <= 0) {
+        throw std::runtime_error("Invalid type-1 raster dimensions");
+    }
+
+    const int width = width_units * 8;
+    const auto expected = static_cast<std::size_t>(count) *
+                          static_cast<std::size_t>(height) *
+                          static_cast<std::size_t>(width);
+    const auto payload_at = 5U + static_cast<std::size_t>(header_size);
+    const auto* payload = raw.data() + payload_at;
+    const auto payload_size = raw.size() - payload_at;
+
+    std::vector<std::uint8_t> pixels;
+    if (compression == 0) {
+        if (payload_size != expected) throw std::runtime_error("Raw type-1 raster size mismatch");
+        pixels.assign(payload, payload + payload_size);
+    } else if (compression == 3) {
+        pixels = lzss_4k(payload, payload_size, expected);
+    } else {
+        throw std::runtime_error("Unsupported type-1 compression in shipped boot resource");
+    }
+
+    return Type1Raster{count, width, height, key, std::move(pixels)};
+}
+
+RavenloftBootAssets::RavenloftBootAssets(GameSource source)
+    : source_(std::move(source)),
+      res0_(source_.read("RES0")),
+      colors_(source_.read("COLORS")) {
+    if (colors_.size() != 1U + 15U * 768U || colors_[0] != 15U) {
+        throw std::runtime_error("COLORS is not the certified 15-palette Ravenloft bank");
+    }
+}
+
+Type1Raster RavenloftBootAssets::res0_type1(int index) const {
+    return res0_.decode_type1(index);
+}
+
+Palette6 RavenloftBootAssets::colors_palette(int index, int brightness) const {
+    if (index < 0 || index >= 15) throw std::out_of_range("COLORS palette index");
+    brightness = std::clamp(brightness, 0, 63);
+
+    Palette6 result;
+    const auto start = 1U + static_cast<std::size_t>(index) * 768U;
+    std::copy_n(colors_.begin() + static_cast<std::ptrdiff_t>(start), 768, result.rgb.begin());
+
+    if (brightness == 0) return result;
+    for (std::size_t i = 0; i < 256; ++i) {
+        auto* rgb = result.rgb.data() + i * 3;
+        const int peak = std::max({static_cast<int>(rgb[0]), static_cast<int>(rgb[1]), static_cast<int>(rgb[2])});
+        if (peak == 0) continue;
+        const int boost = ((63 - peak) * brightness + 31) / 63;
+        const int target = peak + boost;
+        for (int c = 0; c < 3; ++c) {
+            rgb[c] = static_cast<std::uint8_t>((static_cast<int>(rgb[c]) * target + peak / 2) / peak);
+        }
+    }
+    return result;
+}
+
+}  // namespace rloft
