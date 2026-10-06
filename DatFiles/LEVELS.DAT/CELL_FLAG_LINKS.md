@@ -1,6 +1,6 @@
 # LEVELS.DAT remaining packed-cell flag links
 
-Status: **the remaining high-value cell-word flags are tightened from certified CODE.2 consumers plus archive-wide structural correlations. `0x2000` remains unresolved.**
+Status: **the remaining high-value cell-word flags are closed to the supplied executable's evidence boundary. `0x2000` is corpus-populated but has no direct runtime consumer/producer in the certified CODE.2 audit and remains raw-preserved legacy state.**
 
 This document supplements `CELL_WORD.md`. The row-major 16-bit cell array is loaded at DGROUP `0x198E0`; bits `0..5` are the independently replaceable six-bit cell code.
 
@@ -15,7 +15,7 @@ This document supplements `CELL_WORD.md`. The row-major 16-bit cell array is loa
 0x0400  persistent automap explored/revealed mark
 0x0800  secret/hidden-passage topology marker
 0x1000  10-byte-record state resource-offset enable
-0x2000  unresolved
+0x2000  preserved authoring/legacy marker; no direct runtime consumer proved
 0xC000  two-bit render shade/decrement level (0..3)
 ```
 
@@ -153,13 +153,13 @@ selector 3 :       0
 
 The two selector-2 cells are in level 0 at `(39,10)` and `(39,11)`, both raw word `0x8000` with six-bit code zero.
 
-## `0x2000`: still unresolved
+## `0x2000`: runtime-unconsumed legacy/authoring state
 
-No direct cell-word consumer has been proved for `0x2000`.
+A final direct-reference audit of all 76 CODE.2 object-1 instructions that address the cell-word array at `0x198E0` found no operation isolating, setting, clearing, or branching on `0x2000`. Every literal `0x2000` instruction elsewhere in object 1 belongs to unrelated transient-effect state, character status, or fixed-point graphics arithmetic.
 
-Only three supplied archive cells carry it. All three are the same coordinate `(44,34)` in levels 12, 13, and 14, with raw word `0x2400` (`0x2000 | automap_explored`) and cell code zero.
+Only three supplied archive cells carry the bit. All three are coordinate `(44,34)` in levels 12, 13, and 14, raw word `0x2400` (`0x2000 | automap_explored`), with code zero. Their local neighborhoods contain no other special cell words, no 10-byte record occupies the coordinate, and no supplied event command targets it.
 
-This recurrence is useful evidence but not enough to assign semantics. The bit remains raw/preserved and unnamed.
+This closes the supplied-build evidence boundary: the bit is best exposed as **raw authoring/legacy state with no directly observed runtime behavior**. Do not rename it to a gameplay feature without new primary evidence, and do not discard it during round-trip serialization.
 
 ## Safe implementation boundary
 
