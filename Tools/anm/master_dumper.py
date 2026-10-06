@@ -22,6 +22,7 @@ class DumpOptions:
     graphics_format: str = "PNG (lossless indexed)"
     graphics_palette: int = 0
     audio_format: str = "FLAC (lossless)"
+    music_format: str = "Both XMI + MIDI"
     cinematic_frame_format: str = "PNG"
     cinematic_video_format: str = "MKV (FFV1 lossless)"
     cinematic_fps: float = 15.0
@@ -161,6 +162,7 @@ def dump_all(
     result["music"] = asset_dumper.dump_music(
         source_dir,
         destination / "music",
+        fmt=options.music_format,
         preserve_native=options.preserve_native,
         progress=_stage_progress(progress, "music"),
     )
@@ -190,7 +192,7 @@ def dump_all(
         "lossless_defaults": {
             "graphics": options.graphics_format,
             "sampled_audio": options.audio_format,
-            "music": "XMI/XDIR original",
+            "music": options.music_format,
             "cinematic_frames": options.cinematic_frame_format,
             "cinematic_video": options.cinematic_video_format if options.cinematic_videos else "not requested",
         },
