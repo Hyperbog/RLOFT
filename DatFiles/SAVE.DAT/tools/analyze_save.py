@@ -11,8 +11,8 @@ PREFIX_SIZE = 0x77
 PARTY_COUNT = 4
 PARTY_OFFSET = PREFIX_SIZE
 MIDDLE_OFFSET = PARTY_OFFSET + CHARACTER_SIZE * PARTY_COUNT
-WORLD_OBJECT_SIZE = 0x16
-WORLD_OBJECT_LIMIT = 0x96
+LIVE_EFFECT_SIZE = 0x16
+LIVE_EFFECT_LIMIT = 0x96
 
 # CODE.2 descriptor table 0x7330, recovered from initialized image at physical 0x7D254.
 CONTAINER_SLOT_COUNTS = (
@@ -122,26 +122,26 @@ def main() -> int:
         offset = PARTY_OFFSET + i * CHARACTER_SIZE
         print(f"  party[{i}] @ 0x{offset:04X}: {c_string(data, offset, 16)!r}")
 
-    world_count = u32(data, MIDDLE_OFFSET)
-    if world_count > WORLD_OBJECT_LIMIT:
-        raise SystemExit(f"invalid live transient-effect count {world_count}; executable limit is {WORLD_OBJECT_LIMIT}")
-    world_start = MIDDLE_OFFSET + 4
-    world_end = world_start + world_count * WORLD_OBJECT_SIZE
-    require(data, world_end, "live transient effects")
+    live_effect_count = u32(data, MIDDLE_OFFSET)
+    if live_effect_count > LIVE_EFFECT_LIMIT:
+        raise SystemExit(f"invalid live transient-effect count {live_effect_count}; executable limit is {LIVE_EFFECT_LIMIT}")
+    live_effect_start = MIDDLE_OFFSET + 4
+    live_effect_end = live_effect_start + live_effect_count * LIVE_EFFECT_SIZE
+    require(data, live_effect_end, "live transient effects")
 
-    spell_ui_off = world_end
+    spell_ui_off = live_effect_end
     gameplay_ticks_off = spell_ui_off + 8
     container_bank_off = gameplay_ticks_off + 4
 
     print("\nDynamic middle state")
-    print(f"  live transient-effect count       : {world_count}")
-    if world_count:
-        print(f"  live transient-effect array       : 0x{world_start:04X}-0x{world_end - 1:04X}")
-        for i in range(world_count):
-            offset = world_start + i * WORLD_OBJECT_SIZE
+    print(f"  live transient-effect count       : {live_effect_count}")
+    if live_effect_count:
+        print(f"  live transient-effect array       : 0x{live_effect_start:04X}-0x{live_effect_end - 1:04X}")
+        for i in range(live_effect_count):
+            offset = live_effect_start + i * LIVE_EFFECT_SIZE
             print(f"    effect[{i:03d}] @ 0x{offset:04X}: {live_effect_summary(data, offset)}")
     else:
-        print(f"  live transient-effect array       : empty at 0x{world_start:04X}")
+        print(f"  live transient-effect array       : empty at 0x{live_effect_start:04X}")
     print(
         "  spell UI selected characters : "
         f"[{u32(data, spell_ui_off)}, {u32(data, spell_ui_off + 4)}]"
@@ -207,9 +207,9 @@ def main() -> int:
         print(f"WARNING: derived end 0x{expected_end:X}, file 0x{len(data):X}")
         return 1
 
-    predicted = REFERENCE_SIZE + world_count * WORLD_OBJECT_SIZE
+    predicted = REFERENCE_SIZE + live_effect_count * LIVE_EFFECT_SIZE
     print(f"\nserializer-derived size: 0x{expected_end:X}")
-    print(f"reference-size formula : 0x{REFERENCE_SIZE:X} + {world_count}*0x16 = 0x{predicted:X}")
+    print(f"reference-size formula : 0x{REFERENCE_SIZE:X} + {live_effect_count}*0x16 = 0x{predicted:X}")
     return 0 if predicted == expected_end else 1
 
 
