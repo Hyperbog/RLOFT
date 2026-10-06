@@ -190,81 +190,112 @@ def type7_metadata(body: bytes) -> dict[str, object]:
 
 
 def decode_type7_raster(body: bytes) -> Type7Raster:
-    """Reconstruct a type-7 scene shape at its native 1:1 source scale.
+    """Reconstruct a type-7 scene shape at its native source resolution.
 
-    CODE.2's type-7 descriptors select entry/stop offsets in SINTAB's
-    129-entry scale rasterizer table. At the 1:1 SINTAB scale block every
-    scale step is one source texel, so selector/2 is the source Y boundary.
-    The descriptor's signed adjustment is the source-base displacement used
-    by the generated rasterizer before reading [ESI + y].
+    The decoded body stores three adjacent structures:
 
-    This is fully valid for the active RES3 corpus. Some retained RES11 legacy
-    records reference source storage that is not embedded in the same body;
-    those are reported as non-renderable rather than guessed.
+    1. the 10-byte geometry header and x_min..x_max column-pointer table;
+    2. a packed palette-index source stream;
+    3. the zero-terminated descriptor lists addressed by the pointer table.
+
+    At native 1:1 scale, each descriptor's entry/stop selector pair maps
+    directly to Y boundaries by selector/2. The packed source stream contains
+    exactly the texels required by each *unique* descriptor list, in first-use
+    column order. Duplicate column pointers deliberately reuse the same packed
+    texel span as well as the same descriptor list.
+
+    This relationship closes exactly for every supplied type-7 resource in
+    active RES3 and legacy RES11.
     """
     metadata = type7_metadata(body)
     width = int(metadata["source_width"])
     height = 128
     x_min = int(metadata["x_min"])
-    pointers = metadata["column_offsets"]
+    x_max = int(metadata["x_max"])
+    pointers = [int(value) for value in metadata["column_offsets"]]
 
     if width not in (64, 96, 128):
         raise AssetError(f"unsupported type-7 source width {width}")
+    if not pointers:
+        return Type7Raster(width, height, bytes(width * height), bytes(width * height))
+    if not (0 <= x_min <= x_max < width):
+        raise AssetError(
+            f"invalid type-7 horizontal bounds x={x_min}..{x_max} width={width}"
+        )
 
-    pixels = bytearray(width * height)
-    mask = bytearray(width * height)
+    table_end = 10 + len(pointers) * 2
+    source_end = min(pointers)
+    if source_end < table_end or source_end > len(body):
+        raise AssetError("invalid type-7 packed source-pixel range")
+    source_stream = body[table_end:source_end]
 
-    for column_index, pointer in enumerate(pointers):
-        x = x_min + column_index
-        if not 0 <= x < width:
-            raise AssetError(f"type-7 column x={x} outside source width {width}")
-        pos = int(pointer)
-        descriptor_guard = 0
-
+    def spans_for(pointer: int) -> list[tuple[int, int]]:
+        pos = pointer
+        spans: list[tuple[int, int]] = []
+        guard = 0
         while True:
             if pos + 2 > len(body):
                 raise AssetError("type-7 column list terminator exceeds decoded body")
-            stop_selector = struct.unpack_from("<h", body, pos)[0]
+            stop_selector = struct.unpack_from("<H", body, pos)[0]
             pos += 2
             if stop_selector == 0:
                 break
-
             if pos + 4 > len(body):
                 raise AssetError("type-7 descriptor exceeds decoded body")
-            signed_adjustment, entry_selector = struct.unpack_from("<hh", body, pos)
+            _signed_adjustment, entry_selector = struct.unpack_from("<hH", body, pos)
             pos += 4
-
             if (
-                entry_selector < 0
-                or stop_selector < 0
-                or entry_selector > stop_selector
+                entry_selector > stop_selector
                 or stop_selector > 0x100
                 or (entry_selector & 1)
                 or (stop_selector & 1)
             ):
                 raise AssetError(
                     "invalid type-7 raster selectors "
-                    f"entry=0x{entry_selector & 0xFFFF:04X} "
-                    f"stop=0x{stop_selector & 0xFFFF:04X}"
+                    f"entry=0x{entry_selector:04X} stop=0x{stop_selector:04X}"
                 )
-
             y0 = entry_selector // 2
             y1 = stop_selector // 2
-            source_start = signed_adjustment + y0
-            source_end = signed_adjustment + y1
-            if source_start < 0 or source_end > len(body):
-                raise AssetError(
-                    "type-7 descriptor references source pixels outside this "
-                    "decoded body (legacy/external source layout)"
-                )
+            if not (0 <= y0 <= y1 <= height):
+                raise AssetError(f"type-7 native Y span {y0}..{y1} is out of range")
+            spans.append((y0, y1))
+            guard += 1
+            if guard > 1024:
+                raise AssetError("type-7 column list exceeds descriptor sanity limit")
+        return spans
 
+    pixels = bytearray(width * height)
+    mask = bytearray(width * height)
+    source_cursor = 0
+    reused: dict[int, tuple[list[tuple[int, int]], bytes]] = {}
+
+    for column_index, pointer in enumerate(pointers):
+        x = x_min + column_index
+        if pointer not in reused:
+            spans = spans_for(pointer)
+            required = sum(y1 - y0 for y0, y1 in spans)
+            end = source_cursor + required
+            if end > len(source_stream):
+                raise AssetError(
+                    "type-7 packed source pixels end before descriptor spans are satisfied"
+                )
+            reused[pointer] = (spans, source_stream[source_cursor:end])
+            source_cursor = end
+
+        spans, column_pixels = reused[pointer]
+        pixel_cursor = 0
+        for y0, y1 in spans:
             for y in range(y0, y1):
                 target = y * width + x
-                pixels[target] = body[signed_adjustment + y]
+                pixels[target] = column_pixels[pixel_cursor]
                 mask[target] = 0xFF
+                pixel_cursor += 1
 
-            descriptor_guard += 1
-            if descriptor_guard > 1024:
-                raise AssetError("type-7 column list exceeds descriptor sanity limit")
+    if source_cursor != len(source_stream):
+        raise AssetError(
+            "type-7 packed source-pixel stream has "
+            f"{len(source_stream) - source_cursor} unconsumed byte(s)"
+        )
 
     return Type7Raster(width, height, bytes(pixels), bytes(mask))
+
