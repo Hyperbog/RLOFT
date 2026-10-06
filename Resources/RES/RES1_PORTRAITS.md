@@ -1,6 +1,6 @@
 # RES1 character portrait banks
 
-Status: **CONFIRMED for the supplied Ravenloft build.** RES1 entries `336..427` are two 46-slot character-face graphic banks selected from the serialized character identity fields and status word. The two formerly opaque raw `0x00000060` entries occupy the terminal invalid/reserved face slots in those banks.
+Status: **CONFIRMED for the supplied Ravenloft build.** RES1 entries `336..427` are two 46-slot character-face graphic banks selected from the serialized character identity fields and status word. The first bank contains normal portraits; character status bit `0x0100` selects the second, vengeful-spirit-possessed portrait bank. The two formerly opaque raw `0x00000060` entries occupy the terminal invalid/reserved face slots in those banks.
 
 ## Executable index formula
 
@@ -62,8 +62,8 @@ This document records the resource-side proof without changing the concurrently 
 The archive has exactly 92 slots from the face base through EOF:
 
 ```text
-336..381  bank 0: status bit 0x0100 clear
-382..427  bank 1: status bit 0x0100 set
+336..381  normal portrait bank
+382..427  vengeful-spirit-possessed portrait bank
 ```
 
 Each bank reserves 23 face indexes for each of two sex values:
@@ -85,13 +85,13 @@ FEMALE face 22     -> raw 4-byte 0x00000060 record
 Thus:
 
 ```text
-bank 0
+normal bank
   336..358  male faces 0..22
   359..379  female faces 0..20
   380       female face slot 21: zero-length
   381       female face slot 22: 60 00 00 00
 
-bank 1
+possessed bank
   382..404  male faces 0..22
   405..425  female faces 0..20
   426       female face slot 21: zero-length
@@ -123,25 +123,29 @@ The common decoded size is:
 
 The existing type-1 LZSS validator exhausts each stream exactly.
 
-## Status bit `0x0100`
+## Status bit `0x0100`: vengeful-spirit possession
 
-Its **resource behavior** is proved: it selects the second portrait bank by adding exactly 46.
+The gameplay meaning is now independently certified from CODE.2 state flow plus the reconstructed interaction/text system.
 
-The bit has at least one non-rendering consumer elsewhere in CODE.2, so it should not be renamed merely from the portrait effect. Until its gameplay state is independently certified, use a behavioral label such as:
+The fixed story routine `000B8..001F9` selects an eligible party member, runs wordcode program 9 (`GHOST`), and sets:
 
 ```text
-status_0100 / alternate_portrait_bank_bit
+character.status_word |= 0x0100
 ```
 
-rather than `dead`, `injured`, `unconscious`, or another speculative state name.
+The same story path later clears `0x0100` from the party after the GHOUL LORD completion flag is set. NPC death handling sets that flag when NPC type `0x12` / decimal 18 (`GHOUL LORD`) is defeated; program-9 text independently identifies Victor Grymig as the ghoul lord whose destruction frees the possessed body.
+
+The second 46-slot bank is therefore safely the **vengeful-spirit-possessed portrait bank**, not merely a generic alternate-state bank.
+
+See `DatFiles/SAVE.DAT/STATUS_POSSESSION.md` for the complete setter/completion/clearer evidence chain.
 
 ## Relationship to the two raw RES1 markers
 
 The two raw records are therefore no longer positionally mysterious:
 
 ```text
-RES1:381 = terminal female-face slot in bank 0
-RES1:427 = terminal female-face slot in bank 1
+RES1:381 = terminal female-face slot in the normal bank
+RES1:427 = terminal female-face slot in the possessed bank
 ```
 
 Their placement is resolved. Their literal producer-side value `0x00000060` remains unexplained and must be preserved exactly.
@@ -150,4 +154,5 @@ See:
 
 - `RES1_SENTINELS.md` for loader reachability and preservation evidence;
 - `Resources/MISC/INIT/UI_RESOURCE_BASES.md` for the INIT base fields;
+- `DatFiles/SAVE.DAT/STATUS_POSSESSION.md` for status bit `0x0100`;
 - `DatFiles/SAVE.DAT/CHARACTER_RECORD.md` for the serialized 0x248 character record.
