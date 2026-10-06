@@ -1,6 +1,6 @@
 # NPCS.DAT format reconstruction
 
-Status: **container and fixed 0x45-byte record layout proven; name, scene/render parameters, core combat statistics, XP, runtime-state templates, sound fields, and six behavior/capability bits are behaviorally anchored in certified CODE.2. Unknown flag bits remain raw.**
+Status: **container and fixed 0x45-byte record layout proven; name, scene/render parameters, core combat statistics, XP, runtime-state templates, sound fields, and fourteen behavior/effect aliases are behaviorally anchored in certified CODE.2. Unknown flag bits remain raw.**
 
 ## Controlling evidence
 
@@ -25,7 +25,7 @@ Each definition is exactly `0x45` / 69 bytes:
 4 + 83 * 0x45 = 5731
 ```
 
-CODE.2 `16810` independently reads the dword count, computes `count * 0x45`, allocates exactly that many bytes and reads the full table.
+CODE.2 independently reads the dword count, computes `count * 0x45`, allocates exactly that many bytes and reads the full table.
 
 ## Current record schema
 
@@ -62,69 +62,25 @@ CODE.2 `16810` independently reads the dword count, computes `count * 0x45`, all
 
 The flag-field names are physical/behavioral. Individual aliases are exposed only where independent consumers prove them.
 
-## `+0x00`: fixed 20-byte name
+## Fixed name and scene fields
 
-All 83 supplied records contain a NUL terminator inside the first 20 bytes. The longest supplied name is 18 characters.
+The first 20 bytes are a NUL-terminated fixed display-name field. All 83 supplied records terminate within the field; the longest supplied name is 18 characters.
 
-The early table begins:
-
-```text
-0  ZOMBIE
-1  DOOM GUARD
-2  WEREBAT
-3  PYRE ELEMENTAL
-4  SKELETON
-5  WORG
-6  SKELETAL BAT
-7  HELLHOUND
-8  STRAHD
-```
-
-The 20-byte extent is also structurally fixed by the first executable field at `+0x14`.
-
-## Scene sprite and collision extent: `+0x14/+0x16`
-
-First-person family-A scene emission at CODE.2 `2B721..2BA4F` copies the word at `+0x14` into the generated render record as its base sprite/resource value.
-
-`+0x16` is independently loaded as a word in collision/proximity paths such as `8DD4..8E2C`; CODE.2 subtracts it from and adds it to the live NPC X/Y coordinates to construct a bounding box. It is therefore a collision/spatial half-extent in the engine's fixed-point coordinate domain.
-
-Supplied `+0x16` values are:
+First-person family-A scene emission uses `+0x14` as the base sprite/resource. `+0x16` is loaded as a 16-bit fixed-point collision half-extent and added/subtracted from live NPC coordinates to form bounding boxes. Supplied encoded values are exactly:
 
 ```text
-0x8000 : 76 records
-0x0001 :  4 records
-0xFFFF :  3 records
+0x8000 : 76
+0x0001 :  4
+0xFFFF :  3
 ```
 
-These are exact encoded extents/sentinels and must not be normalized.
+They must not be normalized as ordinary integer sizes.
 
-## Animation fields: `+0x18..+0x1C`
-
-The renderer uses `+0x18` as the frame stride when adding state/orientation-dependent offsets to `scene_sprite_base`.
-
-`+0x19` participates both as an animation-group multiplier and as the divisor/modulus used when advancing a live NPC's orientation/phase.
-
-`+0x1A` supplies the additional animation span in the transient/reaction animation branches.
-
-`+0x1B`, when nonzero, is passed to the same `2B088` scene-cell propagation routine already identified for OBJECTS.DAT `scene_influence_step`. Only one supplied NPC uses it:
-
-```text
-PYRE ELEMENTAL -> 3
-```
-
-`+0x1C` is tested by the NPC damage/reaction routine `E284`; when nonzero the routine sets the live world record into the alternate reaction-animation state. The safe name is therefore `damage_reaction_animation_flag` rather than a content-specific animation label.
+`+0x18..+0x1A` drive frame/state animation arithmetic. `+0x1B`, when nonzero, feeds the same scene-cell influence propagation helper used by OBJECTS.DAT; only PYRE ELEMENTAL stores `3`. `+0x1C` gates the alternate damage/reaction animation state.
 
 ## Core combat block: `+0x1D..+0x24`
 
-### Hit dice
-
-Spawn/reset paths call the common dice routine using byte `+0x1D` as the dice count and six or eight sides depending on the encoded path, storing the result in the live NPC HP/state word. `hit_dice_count` is therefore a safe behavioral name.
-
-38 supplied definitions have nonzero hit dice; the remaining story/ambient definitions store zero.
-
-### Melee damage
-
-The NPC attack path at `D767..D77D` calls the common dice routine with:
+Spawn/reset paths use `+0x1D` as hit-dice count. The attack path rolls melee damage directly from:
 
 ```text
 count = npc[+0x1E]
@@ -132,141 +88,131 @@ sides = npc[+0x1F]
 bonus = npc[+0x20]
 ```
 
-This directly proves the three-byte melee damage profile.
+`+0x21` is signed armor class; `+0x22` is the NPC attack target number/THAC0; death resolution passes `+0x23` directly to the party XP-distribution routine.
 
 Examples:
 
 ```text
-ZOMBIE          1d8
-DOOM GUARD      1d10
-WORG            2d4
-HELLHOUND       1d10+4
-BONE GOLEM      3d8
+ZOMBIE          HD  4  AC 8  THAC0 17   1d8      XP  270
+DOOM GUARD      HD  5  AC 2  THAC0 15   1d10     XP 2000
+WEREBAT         HD  4  AC 5  THAC0 17   2d4      XP  420
+PYRE ELEMENTAL  HD 12  AC 0  THAC0  9   3d8      XP 7000
+HELLHOUND       HD  7  AC 4  THAC0 13   1d10+4   XP 1000
 ```
 
-### Armor class and THAC0
+38 supplied definitions have nonzero hit dice.
 
-Combat hit-resolution code reads `+0x21` as a signed byte and incorporates it into the attack roll needed to hit the NPC. The supplied values align with the creature armor-class values; `armor_class` is therefore the project name.
+## Action/render auxiliaries
 
-The reciprocal NPC-attack resolution path reads byte `+0x22` and subtracts target/character modifiers before comparing against the rolled attack value. Supplied values align with the expected THAC0 progression, so `thac0` is supported terminology.
+`+0x25` is copied to live NPC word `+0x10` as an action/state countdown and later decremented to zero; its wall-clock unit is not yet assigned.
 
-### Experience award
+`+0x27` is copied to generated scene render-record field `+0x0C`; only PYRE ELEMENTAL stores a nonzero value (`3`). Its exact higher-level visual role remains unresolved.
 
-NPC death resolution loads the word at `+0x23` and passes it directly to `DDA4`, the routine that distributes experience among active party members. This proves `experience_award`.
-
-Examples from the supplied database:
-
-```text
-WORG             120
-ZOMBIE            270
-WEREBAT           420
-HELLHOUND        1000
-DOOM GUARD       2000
-PYRE ELEMENTAL   7000
-```
-
-## `+0x25`: action delay
-
-The NPC behavior update at `1BDC9..1BEE0` copies the word at `+0x25` into live world-record field `+0x10` as the countdown following an action/state transition, and later decrements that live word until zero. `action_delay` is therefore a safe behavioral name; its wall-clock unit is not yet assigned.
-
-## `+0x27` and `+0x29..+0x30`
-
-`+0x27` is copied to generated scene render-record field `+0x0C`; only PYRE ELEMENTAL stores a nonzero supplied value (`3`). Its higher-level visual identity remains unresolved, so it stays `render_aux_27`.
-
-CODE.2 indexes four 16-bit entries beginning at `+0x29` by a live orientation/state selector and passes the selected value into spatial vector/placement calculations. They are exposed conservatively as:
-
-```text
-uint16 directional_offset[4]
-```
-
-without assigning a stronger geometry/editor name.
+CODE.2 indexes the four 16-bit entries at `+0x29` by live orientation/state and uses the selected value in spatial vector/placement calculations. They remain conservatively named `directional_offset[4]`.
 
 ## Behavior and runtime flags: `+0x31..+0x3A`
 
-These bytes are heavily consumed as packed flags and deliberately alias across access widths.
+These fields are deliberately aliased across access widths.
 
-### `+0x31..+0x34`
+### `+0x31..+0x34` — raw `uint32 behavior_flags`
 
-CODE.2:
-
-- tests byte `+0x31` bits directly;
-- tests the unaligned word at `+0x31` with masks such as `0x0102`, `0x0108`, and `0x0110`;
-- loads the complete unaligned dword at `+0x31` and intersects it with requested effect/behavior masks.
-
-Therefore these four bytes remain physically modeled as one raw `uint32 behavior_flags`. The field is a generalized effect/capability/immunity mask family, but most individual bits are not yet safely named.
-
-### `+0x35..+0x38`
-
-NPC creation/reset code copies the complete dword at `+0x35` verbatim into live family-A world-record field `+0x08`. It is therefore an **initial runtime-flags/state template**, not a damage-dice block.
-
-This overlapping dword interpretation is controlling: byte `+0x38` is the high byte of the initial runtime template and must not be independently normalized.
-
-### `+0x39`
-
-Three aliases are executable-proved:
+CODE.2 tests this storage as byte, unaligned word, and full dword. Six aliases are currently proved:
 
 ```text
+0x00000002  hold_undead_effect_immunity
+0x00000008  hold_person_effect_immunity
+0x00000010  hold_monster_effect_immunity
+0x00000100  common_spell_effect_immunity
+0x00000800  cold_effect_immunity
+0x00002000  fire_effect_immunity
+```
+
+The executable constructs compound masks:
+
+```text
+0x0102  Hold Undead
+0x0108  Hold Person
+0x0110  Hold Monster
+0x0900  cold effects
+0x2100  fire effects
+```
+
+The common area/effect path skips a target whenever its `behavior_flags` intersects the caller's mask. Mage and priest Hold Person both use `0x0108`; Hold variants share the same live held-state bit. Fire/cold dispatcher paths independently establish the elemental components.
+
+Preserve the full raw dword; these aliases are not a replacement enum. See `EFFECT_IMMUNITIES.md` and `HOLD_IMMUNITIES.md`.
+
+### `+0x35..+0x38` — initial runtime flags
+
+NPC initialization copies this entire dword verbatim into live family-A record field `+0x08`. Byte `+0x38` is therefore the high byte of this state template, not an independent combat statistic.
+
+### `+0x39` — secondary behavior/attack flags
+
+Proved aliases:
+
+```text
+0x01  poison_attack
 0x20  paralysis_attack
 0x40  dynamic_barrier_activation
 0x80  obstacle_passthrough
 ```
 
-- `D8A5` enters the paralysis/status path for `0x20`; the target-protection checks include `RING OF FREE ACTION`.
-- `2D767` allows an NPC carrying `0x40` to activate the already-decoded dynamic barrier/door record family during navigation.
-- `2CE8A` and `2D7FB` use `0x80` to suppress blocking by placed/special obstacle collision cases.
+`0x01` is closed through the party-status dispatcher: the NPC attack path sets status byte bit `0x08`; internal code `0x71` clears it; cleric effect ID `113` supplies that code; serialized OBJECTS.DAT object `223` is `CLERIC SCROLL OF 'NEUTRALIZE POISON'`.
 
-Bit `0x01` enters a separate attack-status path at `D947`; only DARKLING carries it, but the exact condition name is still unresolved.
+`0x20` enters the paralysis path, including `RING OF FREE ACTION` protection. `0x40` permits dynamic barrier/door activation during NPC navigation. `0x80` suppresses blocking from placed/special obstacle collision cases.
 
-### `+0x3A`
+### `+0x3A` — secondary classification/special-attack flags
 
-Three aliases are executable-proved:
+Proved aliases:
 
 ```text
 0x02  level_drain_attack
 0x04  strength_drain_attack
+0x10  disease_attack
 0x20  undead_classification
 ```
 
-Evidence:
+`0x02` enters the class-level decrement/progression path. `0x04` calls the Strength-adjustment routine with `-1`, which contains the explicit `STONE GIANT GAUNTLETS` exception.
 
-- `D7B3` routes `0x02` to `D1E0`, which decrements one of the character's class-level words and updates progression state.
-- `D7E8` routes `0x04` to `1202C(actor,-1)`; that helper adjusts the Strength byte and has the explicit `STONE GIANT GAUNTLETS` exception.
-- turning/detection/combat paths at `B5C7`, `B717`, `D52D`, `D78B`, and elsewhere consistently filter `0x20` as the undead class.
+`0x10` is closed through the cure dispatcher: the attack path sets party status bit `0x04`; internal code `0x64` clears it; cleric effect ID `100` supplies that code; OBJECTS.DAT object `215` is `CLERIC SCROLL OF 'CURE DISEASE'`.
 
-Bit `0x10` sets live party status bit `0x04` after an effect check and is absent for one explicitly immune character-class value. Its exact named condition remains unresolved.
+Turning, detection, and combat systems independently filter `0x20` as the undead classification.
 
-See `BEHAVIOR_FLAGS.md` for the full executable ledger and supplied-record sets.
+A useful control case is paralysis:
 
-`+0x3B/+0x3C` are zero in all supplied records and no stronger role is assigned yet. They remain preserved raw bytes.
+```text
+party status 0x04  internal code 0x64  Cure Disease
+party status 0x08  internal code 0x71  Neutralize Poison
+party status 0x10  internal code 0x68  Remove Paralysis
+```
+
+See `BEHAVIOR_FLAGS.md` and `STATUS_ATTACKS.md` for the complete executable ledger.
+
+`+0x3B/+0x3C` are zero in all supplied records and remain preserved raw bytes.
 
 ## Sound IDs: `+0x3D..+0x44`
 
-The last eight bytes are four little-endian sound/resource IDs. Their high bytes are zero in all supplied records, but CODE.2 reads them as words and they must remain words.
+The final eight bytes are four little-endian 16-bit sound/resource IDs:
 
 ```text
 +0x3D  ambient/proximity sound ID
 +0x3F  attack sound ID
-+0x41  separate sound-event ID; exact event label unresolved
++0x41  separate sound-event ID; exact label unresolved
 +0x43  death sound ID
 ```
 
-Evidence:
-
-- `1B99F..1B9BD` probabilistically plays `+0x3D` while an NPC is active/nearby;
-- the main NPC attack path `DA05..DA1A` plays `+0x3F`;
-- `E553..E570` plays `+0x41` through the same creature sound resource base;
-- the death-resolution path `E4C9..E508` plays `+0x43`, falling back to the base sound when zero.
+CODE.2 probabilistically plays `+0x3D` during active/proximity behavior, uses `+0x3F` in the main attack path, plays `+0x41` through the creature sound resource base in a separate event path, and consumes `+0x43` on death with a base-sound fallback.
 
 ## Safe implementation boundary
 
-A faithful reader/editor may expose the fields above while retaining every original byte. In particular:
+A faithful reader/editor may expose the proved fields and aliases while retaining every original byte. In particular:
 
 - preserve the fixed 20-byte name field exactly;
-- keep `+0x16` as its exact 16-bit fixed-point extent value;
-- preserve all animation fields even for noncombat/story NPCs;
-- expose hit dice, melee damage, armor class, THAC0 and XP as proved stat fields;
-- retain `behavior_flags` and `initial_runtime_flags` with their exact unaligned/overlapping access semantics;
-- expose only the six proved behavior aliases while preserving all other bits raw;
-- do not split the initial-runtime-flags dword into invented combat stats;
-- preserve unresolved `+0x3B/+0x3C` and all unknown flag bits;
+- keep `+0x16` as its exact 16-bit fixed-point extent encoding;
+- preserve all animation/render fields even for noncombat/story definitions;
+- expose HD, melee damage, AC, THAC0 and XP as proved stats;
+- retain `behavior_flags` and `initial_runtime_flags` with their exact overlapping access semantics;
+- expose only independently proved bit aliases and preserve every other bit raw;
+- preserve unresolved `+0x3B/+0x3C`;
 - preserve sound IDs as 16-bit values.
+
+The lossless parser/encoder is `inspect_npcs.py`. Semantic analyzers are indexed from `README.md`.
