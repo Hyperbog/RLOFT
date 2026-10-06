@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inspect the 0x248-byte SAVE.DAT character records without guessing unresolved semantics."""
+"""Inspect 0x248-byte SAVE.DAT character records using the corrected serialized layout."""
 from __future__ import annotations
 
 import argparse
@@ -9,14 +9,24 @@ from pathlib import Path
 RECORD_SIZE = 0x248
 PARTY_OFFSET, PARTY_COUNT = 0x77, 4
 ROSTER_OFFSET, ROSTER_COUNT = 0xD68, 10
-ITEM_OFFSET, ITEM_COUNT = 0x48, 21
-POST_START, POST_END = 0x72, 0x248
-SPELL_MATRIX_A_OFFSET = 0x072
-SPELL_MATRIX_B_OFFSET = 0x0C2
+STATUS_OFFSET = 0x10
+CLASS_OFFSET, CLASS_COUNT = 0x15, 3
+CURRENT_HP_OFFSET, MAX_HP_OFFSET = 0x1C, 0x1E
+LEVEL_OFFSET, LEVEL_COUNT = 0x20, 3
+PROGRESS_OFFSET, PROGRESS_COUNT = 0x26, 3
+STRENGTH_BASE_OFFSET, STRENGTH_CURRENT_OFFSET = 0x32, 0x33
+DEX_CURRENT_OFFSET = 0x35
+EXCEPTIONAL_STR_BASE_OFFSET, EXCEPTIONAL_STR_CURRENT_OFFSET = 0x3E, 0x3F
+ITEM_OFFSET, ITEM_COUNT = 0x40, 21
+SPELL_MATRIX_A_OFFSET = 0x06A
+SPELL_MATRIX_B_OFFSET = 0x0BA
 SPELL_BANKS, SPELL_BANK_SIZE = 8, 10
 SPELL_MATRIX_SIZE = SPELL_BANKS * SPELL_BANK_SIZE
-AUX_DWORD_OFFSET = 0x12F
-STATE_FLAGS_OFFSET = 0x13A
+POST_START, POST_END = 0x06A, 0x248
+AUX_DWORD_OFFSET = 0x127
+ITEM_KNOWN_OFFSET = 0x12B
+STATE_FLAGS_OFFSET = 0x132
+FINAL_SERIALIZED_OFFSET = 0x240
 
 
 def u16(r: bytes, off: int) -> int:
@@ -31,6 +41,10 @@ def u32(r: bytes, off: int) -> int:
     return struct.unpack_from("<I", r, off)[0]
 
 
+def s32(r: bytes, off: int) -> int:
+    return struct.unpack_from("<i", r, off)[0]
+
+
 def name16(r: bytes) -> str:
     raw = r[:0x10].split(b"\0", 1)[0]
     if not raw or all(b == 0xFF for b in raw):
@@ -39,15 +53,11 @@ def name16(r: bytes) -> str:
 
 
 def sparse_post(r: bytes) -> str:
-    """Report bytes in +0x72..+0x247 that are neither common fill value 00 nor FF."""
     cells = [(off, r[off]) for off in range(POST_START, POST_END) if r[off] not in (0x00, 0xFF)]
-    if not cells:
-        return "<none>"
-    return ", ".join(f"+0x{off:03X}=0x{value:02X}" for off, value in cells)
+    return "<none>" if not cells else ", ".join(f"+0x{off:03X}=0x{value:02X}" for off, value in cells)
 
 
 def spell_banks(r: bytes, matrix_offset: int) -> list[str]:
-    """Render one executable-proved 8 x 10 spell-preparation matrix."""
     rows: list[str] = []
     for bank in range(SPELL_BANKS):
         start = matrix_offset + bank * SPELL_BANK_SIZE
@@ -63,24 +73,30 @@ def spell_banks(r: bytes, matrix_offset: int) -> list[str]:
 
 def show_spell_matrix(r: bytes, label: str, offset: int) -> None:
     end = offset + SPELL_MATRIX_SIZE - 1
-    print(f"  {label:<10}: +0x{offset:03X}..+0x{end:03X} (8 levels x 10 entries; ready/selected counts)")
+    print(f"  {label:<10}: +0x{offset:03X}..+0x{end:03X}")
     for row in spell_banks(r, offset):
         print(f"    {row}")
 
 
 def show(label: str, index: int, base: int, r: bytes) -> None:
+    classes = [struct.unpack_from("<b", r, CLASS_OFFSET + i)[0] for i in range(CLASS_COUNT)]
+    levels = [s16(r, LEVEL_OFFSET + i * 2) for i in range(LEVEL_COUNT)]
+    progress = [s32(r, PROGRESS_OFFSET + i * 4) for i in range(PROGRESS_COUNT)]
     print(f"{label}[{index:02d}] file=0x{base:04X} name={name16(r)!r}")
-    print(f"  meta10_17 : {r[0x10:0x18].hex(' ')}")
-    print(f"  status    : 0x{u16(r, 0x18):04X}")
-    print(f"  core1A_25 : {r[0x1A:0x26].hex(' ')}")
-    print("  dword26   : " + ", ".join(f"0x{u32(r, o):08X}" for o in (0x26, 0x2A, 0x2E)))
-    print("  pairs32   : " + ", ".join(f"{r[o]}/{r[o+1]}" for o in range(0x32, 0x40, 2)))
-    print("  words40   : " + ", ".join(str(s16(r, o)) for o in range(0x40, 0x48, 2)))
+    print(f"  status    : 0x{u16(r, STATUS_OFFSET):04X}")
+    print(f"  classes   : {classes}")
+    print(f"  hp        : {s16(r, CURRENT_HP_OFFSET)}/{s16(r, MAX_HP_OFFSET)}")
+    print(f"  levels    : {levels}")
+    print(f"  progress  : {progress}")
+    print(f"  strength  : {r[STRENGTH_BASE_OFFSET]}/{r[STRENGTH_CURRENT_OFFSET]} exceptional={r[EXCEPTIONAL_STR_BASE_OFFSET]}/{r[EXCEPTIONAL_STR_CURRENT_OFFSET]}")
+    print(f"  dex_cur   : {r[DEX_CURRENT_OFFSET]}")
     print("  item[21]  : " + ", ".join(str(s16(r, ITEM_OFFSET + i * 2)) for i in range(ITEM_COUNT)))
     show_spell_matrix(r, "spells_A", SPELL_MATRIX_A_OFFSET)
     show_spell_matrix(r, "spells_B", SPELL_MATRIX_B_OFFSET)
-    print(f"  aux12F    : 0x{u32(r, AUX_DWORD_OFFSET):08X}")
-    print(f"  flags13A  : 0x{u32(r, STATE_FLAGS_OFFSET):08X}")
+    print(f"  aux127    : 0x{u32(r, AUX_DWORD_OFFSET):08X}")
+    print(f"  known12B  : 0x{u32(r, ITEM_KNOWN_OFFSET):08X}")
+    print(f"  flags132  : 0x{u32(r, STATE_FLAGS_OFFSET):08X}")
+    print(f"  final240  : {r[FINAL_SERIALIZED_OFFSET:RECORD_SIZE].hex(' ')}")
     print(f"  post!=fill: {sparse_post(r)}")
 
 
@@ -89,7 +105,6 @@ def main() -> int:
     ap.add_argument("save", type=Path)
     args = ap.parse_args()
     data = args.save.read_bytes()
-
     for label, start, count in (("party", PARTY_OFFSET, PARTY_COUNT), ("roster", ROSTER_OFFSET, ROSTER_COUNT)):
         for i in range(count):
             base = start + i * RECORD_SIZE
