@@ -12,6 +12,7 @@ from typing import Callable
 from PIL import Image
 
 import res_assets as ra
+import xmidi
 
 ProgressCallback = Callable[[int, int, str], None]
 
@@ -26,7 +27,11 @@ AUDIO_FORMATS = {
     "WAV (PCM lossless)": ".wav",
     "FLAC (lossless)": ".flac",
 }
-MUSIC_FORMATS = {"XMI/XDIR (original)": ".xmi"}
+MUSIC_FORMATS = (
+    "XMI/XDIR (original)",
+    "Standard MIDI (SMF0, exact 120 Hz)",
+    "Both XMI + MIDI",
+)
 
 
 def _stem(r: ra.EhResource) -> str:
@@ -182,22 +187,70 @@ def dump_audio(game_dir: Path, destination: Path, fmt: str,
 
 
 def dump_music(game_dir: Path, destination: Path,
+               fmt: str = "Both XMI + MIDI",
                preserve_native: bool = True,
                progress: ProgressCallback | None = None) -> dict:
-    resources = [r for a in ra.discover_archives(game_dir) for r in a.resources() if r.resource_type == 3]
+    if fmt not in MUSIC_FORMATS:
+        raise ra.AssetError(f"unsupported music format: {fmt}")
+
+    resources = [
+        r for a in ra.discover_archives(game_dir)
+        for r in a.resources()
+        if r.resource_type == 3
+    ]
     destination.mkdir(parents=True, exist_ok=True)
     records = []
+
+    export_xmi = fmt in ("XMI/XDIR (original)", "Both XMI + MIDI")
+    export_midi = fmt in ("Standard MIDI (SMF0, exact 120 Hz)", "Both XMI + MIDI")
+
     for ordinal, r in enumerate(resources, 1):
         declared, xmi = ra.length_prefixed_blob(r)
         stem = _stem(r)
+
         if preserve_native:
             (destination / f"{stem}.eh").write_bytes(r.raw)
-        (destination / f"{stem}.xmi").write_bytes(xmi)
-        records.append({"archive": r.archive, "entry": r.index,
-                        "declared_bytes": declared, "stored_bytes": len(xmi),
-                        "starts_form": xmi.startswith(b"FORM")})
+        if preserve_native or export_xmi:
+            (destination / f"{stem}.xmi").write_bytes(xmi)
+
+        midi_records = []
+        if export_midi:
+            midi_files, infos = xmidi.convert_all(xmi)
+            for midi_bytes, info in zip(midi_files, infos):
+                midi_name = f"{stem}_seq{info.sequence_index:02d}.mid"
+                (destination / midi_name).write_bytes(midi_bytes)
+                midi_records.append({
+                    "file": midi_name,
+                    "sequence": info.sequence_index,
+                    "end_tick_120hz": info.end_tick,
+                    "event_count": info.event_count,
+                    "ail_for_loop_count": info.loop_for_count,
+                    "ail_next_loop_count": info.loop_next_count,
+                    "branch_count": info.branch_count,
+                })
+
+        records.append({
+            "archive": r.archive,
+            "entry": r.index,
+            "declared_bytes": declared,
+            "stored_bytes": len(xmi),
+            "starts_form": xmi.startswith(b"FORM"),
+            "xmi_preserved": preserve_native or export_xmi,
+            "midi_sequences": midi_records,
+        })
         if progress:
             progress(ordinal, len(resources), f"Music: {stem}")
-    manifest = {"format": "XMI/XDIR (original)", "assets": records}
-    (destination / "music_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+
+    manifest = {
+        "format": fmt,
+        "timing": (
+            "SMF derivatives use SMPTE -30 fps with 4 ticks/frame, exactly "
+            "120 ticks/second. AIL loop controllers are retained as CC events; "
+            "original XMI is canonical for runtime control-flow semantics."
+        ),
+        "assets": records,
+    }
+    (destination / "music_manifest.json").write_text(
+        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+    )
     return manifest
