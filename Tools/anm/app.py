@@ -35,6 +35,7 @@ def _self_test() -> int:
     import res_assets  # noqa: F401
     import rloft_anm  # noqa: F401
     import support_dumper  # noqa: F401
+    import tooltips  # noqa: F401
     import xmidi  # noqa: F401
 
     for required in (
@@ -45,6 +46,9 @@ def _self_test() -> int:
         if runtime_paths.bundled_path(required) is None:
             return 20
 
+    banner = runtime_paths.bundled_path("assets/strahd_banner.webp")
+    if banner is None:
+        return 20
     ffmpeg = runtime_paths.bundled_path("ffmpeg.exe" if os.name == "nt" else "ffmpeg")
     if ffmpeg is None:
         return 21
