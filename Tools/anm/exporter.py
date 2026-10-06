@@ -47,9 +47,10 @@ CINE12_IMAGE_WAIT = 2
 QUEUED_SFX_BASE = 49
 IGNORED_QUEUED_SFX = {3, 15, 0x88}
 
-# Exact average presentation rates for the certified CINE00..CINE12 corpus.
-# Native playback is variable-rate; these are whole-cinematic averages, not a
-# replacement for per-frame timing.
+# Exact average *displayed-frame* rates for the certified CINE00..CINE12
+# corpus under native timing. Native playback is variable-rate; these are
+# whole-cinematic averages, not a replacement for per-frame timing. Zero-wait
+# command frames in CINE10/CINE11 are not displayed by the video exporter.
 CERTIFIED_NATIVE_AVERAGE_FPS = {
     "CINE00.ANM": 3.623409111904,
     "CINE01.ANM": 3.295065976980,
@@ -61,8 +62,8 @@ CERTIFIED_NATIVE_AVERAGE_FPS = {
     "CINE07.ANM": 3.337254943645,
     "CINE08.ANM": 3.357229246315,
     "CINE09.ANM": 3.444475328600,
-    "CINE10.ANM": 3.246670830023,
-    "CINE11.ANM": 3.243956608947,
+    "CINE10.ANM": 3.034418742188,
+    "CINE11.ANM": 3.034418742188,
     "CINE12.ANM": 15.061751209606,
 }
 
