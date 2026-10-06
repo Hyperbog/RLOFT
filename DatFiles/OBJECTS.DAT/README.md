@@ -1,6 +1,6 @@
 # OBJECTS.DAT
 
-Status: **fixed 336 × 0x41 record format proven; major rendering, UI, category, weight, combat, range, mutable-state, container, charge and magic-aura semantics reconstructed; lossless parse/encode verified.**
+Status: **fixed 336 × 0x41 record format proven; major rendering, UI, category, weight, combat, range, mutable-state, container, charge, magic-aura, and renderer-auxiliary semantics reconstructed; lossless parse/encode verified.**
 
 - Size: 21,844 bytes
 - SHA-256: `f23f0e7c1856904aa0156b0bf174cab794a41a327352b6ca00c3591ae5f2eed0`
@@ -29,7 +29,7 @@ Exact size equation:
 +0x00  char   name[40]
 +0x28  uint16 world_sprite_base
 +0x2A  uint8  world_heading_stride
-+0x2B  uint8  world_aux_selector
++0x2B  uint8  scene_influence_step
 +0x2C  uint8  unresolved_2C
 +0x2D  uint16 ui_graphic_index
 +0x2F  uint8  item_category
@@ -61,6 +61,22 @@ world_sprite_frame = world_sprite_base
 ```
 
 LEVELS family B and C both address this database by object type ID.
+
+## `+0x2B`: scene influence propagation
+
+When a loose family-C object is emitted into the first-person scene, CODE.2 passes nonzero object byte `+0x2B` to `2B088` together with the object's current map-cell index.
+
+That routine updates the scene-cell accumulator for the base cell and, for larger encoded values, neighboring rings:
+
+```text
+step 1  base cell
+step 2  base + eight immediate neighbors
+step 3  base + immediate ring + sixteen-cell outer ring
+```
+
+The exact accumulator propagation is documented in `RENDER_AUX.md`. All 336 supplied object records store zero here, so this is executable-supported latent format capability rather than a feature exercised by the shipped OBJECTS table.
+
+`+0x2C` remains raw: all supplied records store zero and no OBJECTS-relative CODE.2 consumer was found, including no unaligned `+0x2B` word access that aliases it.
 
 ## `+0x31`: mutable-state selector
 
@@ -103,7 +119,7 @@ SAVE.DAT writes/restores the entire 15-byte counter vector.
 
 ## `+0x32`: intrinsic magic marker
 
-This field is now executable-backed rather than merely corpus-associated.
+This field is executable-backed rather than merely corpus-associated.
 
 When magic-reveal state is active, CODE.2 highlights an item when:
 
@@ -134,7 +150,7 @@ record size                          0x41
 parse -> encode                      PASS byte-for-byte
 blank display names                   16
 max display-name length               39
-world_aux_selector nonzero             0
+scene_influence_step nonzero           0
 unresolved +0x2C nonzero               0
 container state indexes               62 unique / 62
 container indexes                     0..60 except 61, plus 62
@@ -149,16 +165,17 @@ SAVE initial charge vector             unique at +0x0D59
 - `FORMAT.md` — complete fixed-record field map and executable evidence.
 - `CATEGORY_SEMANTICS.md` — mutable state index, charge counters and intrinsic-magic marker.
 - `CONTAINER_STATE.md` — 10-byte container descriptor and compatibility rules.
+- `RENDER_AUX.md` — scene influence byte `+0x2B` and unresolved byte `+0x2C`.
 - `inspect_objects.py` — lossless parser/encoder and basic corpus audit.
 - `analyze_categories.py` — category/state/magic analysis plus optional SAVE charge-vector verification.
+- `analyze_render_aux.py` — corpus audit for `+0x2B/+0x2C`.
 
 ## Current frontier
 
 The static object format is now close to semantic closure. Highest-value remaining OBJECTS work:
 
 1. map item categories to exact equipment slots and use restrictions;
-2. resolve the nonzero role of `+0x2B` from its renderer callee, despite the shipped all-zero corpus;
-3. determine whether any executable path gives `+0x2C` a role;
-4. refine remaining `attack_profile` low-two-bit modes where CODE.2 proves reusable semantics.
+2. refine remaining `attack_profile` low-two-bit modes where CODE.2 proves reusable semantics;
+3. determine whether stronger source-level names exist for the scene influence accumulator without overclaiming renderer intent.
 
-The mutable charge/container state discovered here should be carried into the later SAVE.DAT reconstruction rather than embedded into static OBJECTS records.
+`+0x2C` remains explicitly unresolved and preserved. The mutable charge/container state belongs in SAVE/runtime reconstruction rather than in static OBJECTS records.
