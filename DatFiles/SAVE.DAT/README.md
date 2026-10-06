@@ -26,7 +26,7 @@ These regions exactly account for all `0x2448` bytes of the reference file.
 
 The `0x248` stride is visible directly in the fixture and agrees with the CODE.2 serializer. The four active-party slots begin at `0x0077`, `0x02BF`, `0x0507`, and `0x074F`. The first two contain `EHLIANNA` and `ANVIL DAWN`; the remaining two slots are empty in this quick-start fixture.
 
-The ten-record saved-roster block begins at `0x0D68`. Its populated records contain `GLORIANNA`, `DOOM GUARD`, `RAVEN`, `MELODY`, `RANDAR`, `BOW DYN`, `WYND SONG`, `KRAAL`, and `BARRUK`, with one empty slot.
+The ten-record saved-roster block begins at `0x0D68`. All ten records are populated, in order, by `GLORIANNA`, `VELIKA`, `MISCHA`, `VUKO`, `TATIAN`, `IRMGARDE`, `ANSHELM`, `RYSZARD`, `VLADISLAV`, and `FHALKEN`.
 
 This establishes that the same fixed-size character image is reused in both the active-party and saved-roster sections.
 
