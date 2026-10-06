@@ -1,6 +1,6 @@
 # NPCS.DAT
 
-Status: **fixed 83 × 0x45 record format proven; scene/render parameters, collision extent, core combat statistics, XP, action delay, runtime-state templates and creature sound IDs reconstructed; six behavior/capability bits decoded; lossless parse/encode verified.**
+Status: **fixed 83 × 0x45 record format proven; scene/render parameters, collision extent, core combat statistics, XP, action delay, runtime-state templates and creature sound IDs reconstructed; nine behavior/effect bits decoded; lossless parse/encode verified.**
 
 - Size: 5,731 bytes
 - SHA-256: `f2dd1175bf42e8291b95952282dfc0cfb84455aaa532987cdd7380094c8eb30b`
@@ -113,6 +113,27 @@ Two important access-width boundaries remain controlling:
 
 Therefore byte `+0x38` is **not** an independent damage statistic despite its varied high-bit values; it is the high byte of the live-state template.
 
+### Proven `behavior_flags` spell/effect aliases
+
+```text
+0x00000100  common_spell_effect_immunity
+0x00000800  cold_effect_immunity
+0x00002000  fire_effect_immunity
+```
+
+The common area/effect routine skips an NPC whenever its raw `behavior_flags` intersects the caller-provided immunity mask. CODE.2 constructs:
+
+```text
+fire mask  0x2100 = 0x2000 | 0x0100
+cold mask  0x0900 = 0x0800 | 0x0100
+```
+
+and several timed status handlers use `0x0102`, `0x0108`, and `0x0110`, proving that `0x0100` is the shared spell-effect immunity component while `0x2000` and `0x0800` are the fire/cold-specific components.
+
+The original rule book independently corroborates the elemental aliases: Pyre Elementals are described as immune to fire-based spells/attacks, while Wights and Wraiths are explicitly immune to cold-based spells.
+
+See `EFFECT_IMMUNITIES.md` and `analyze_effect_immunities.py`.
+
 ### Proven `+0x3A` aliases
 
 ```text
@@ -141,7 +162,7 @@ The paralysis path explicitly honors `RING OF FREE ACTION`; navigation with `0x4
 
 `+0x39 & 0x01` applies another party status effect and remains unnamed until that status is independently identified.
 
-The dword at `+0x31` remains a generalized overlapping effect/capability mask. Individual bits are not globally named until each relevant effect path is proved. See `BEHAVIOR_FLAGS.md`.
+See `BEHAVIOR_FLAGS.md` for the full flag ledger.
 
 ## Sound fields
 
@@ -173,31 +194,36 @@ unresolved +0x3B nonzero       0
 unresolved +0x3C nonzero       0
 ```
 
-`analyze_behavior_flags.py` additionally verifies the proved flag sets:
+Flag analyzers verify:
 
 ```text
-undead_classification       17
-level_drain_attack           5
-strength_drain_attack        2
-paralysis_attack             6
-dynamic_barrier_activation   4
-obstacle_passthrough         5
+common_spell_effect_immunity  4
+cold_effect_immunity         12
+fire_effect_immunity          6
+undead_classification        17
+level_drain_attack            5
+strength_drain_attack         2
+paralysis_attack              6
+dynamic_barrier_activation    4
+obstacle_passthrough          5
 ```
 
 ## Documentation and tools
 
 - `FORMAT.md` — physical schema and semantic reconstruction.
 - `BEHAVIOR_FLAGS.md` — proved flag aliases, executable evidence and unresolved flag boundary.
+- `EFFECT_IMMUNITIES.md` — spell/effect immunity-mask mechanics and elemental aliases.
 - `inspect_npcs.py` — lossless parser/encoder and corpus audit.
-- `analyze_behavior_flags.py` — archive-wide bit distribution and proved semantic-set audit.
+- `analyze_behavior_flags.py` — behavior-bit distribution and proved semantic-set audit.
+- `analyze_effect_immunities.py` — common/fire/cold immunity-mask validation.
 
 ## Current frontier
 
-The remaining NPCS work is narrower:
+The remaining NPCS work is now narrower:
 
-1. decode individual `+0x31..+0x34` effect/immunity bits from their spell/effect consumers;
+1. identify the status-specific low immunity bits participating in `0x0102`, `0x0108`, and `0x0110`;
 2. identify the exact conditions represented by `+0x39 & 0x01` and `+0x3A & 0x10`;
-3. tighten the exact role of `+0x41` and `render_aux_27`;
-4. document story-NPC-specific animation meanings only where code proves them.
+3. resolve additional high `behavior_flags` immunity/capability bits through their spell/effect callers;
+4. tighten the exact role of `+0x41` and `render_aux_27`.
 
-The current schema already supports a lossless reader/editor and faithful reproduction of the core creature stat/render database while retaining unresolved flags verbatim.
+The current schema supports a lossless reader/editor and faithful reproduction of the core creature stat/render/effect database while retaining every unresolved flag verbatim.
