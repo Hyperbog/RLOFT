@@ -130,7 +130,7 @@ Other certified states include:
 0x8000  empty/unoccupied active-party slot
 ```
 
-`0x0040` is a separate Vengeful-Spirit warning/coercion presentation/action-blocking state: the possession maintenance routine displays one of raw `T[351..354]` and then sets this bit. `0x2000` remains intentionally unnamed pending producer evidence. See `STATUS_WORD.md` and `STATUS_POSSESSION.md`.
+`0x0040` is a separate Vengeful-Spirit warning/coercion presentation/action-blocking state: the possession maintenance routine displays one of raw `T[351..354]` and then sets this bit. `0x2000` is an engine-recognized blocking tier for which the residual direct-producer audit found no defensible player-facing identity; it remains raw/preserved. See `STATUS_WORD.md` and `STATUS_POSSESSION.md`.
 
 ## Shipped spell catalogues closed
 
