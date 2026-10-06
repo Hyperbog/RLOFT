@@ -152,7 +152,7 @@ bit 9        0x0200  extra render-prepass enable
 bit 10       0x0400  persistent automap explored/revealed mark
 bit 11       0x0800  secret/hidden-passage topology marker
 bit 12       0x1000  10-byte-record state resource-offset enable
-bit 13       0x2000  unresolved
+bit 13       0x2000  preserved authoring/legacy marker; no direct runtime consumer proved
 bits 14..15  0xC000  two-bit render shade/decrement level
 ```
 
@@ -365,7 +365,7 @@ Recognizable throwable definitions handled by the movement path include Axe of H
 
 Thus projectile-like item behavior is **runtime state on family C**, not a fourth serialized object family.
 
-The loader also performs a family-C-only legacy type migration `0x54 -> 0x58`. The exact historical reason remains unknown and should be reproduced rather than silently removed.
+The loader also performs a family-C-only legacy type migration `0x54 -> 0x58`. In the current OBJECTS.DAT this converts the old compact value away from `STONE GIANT GAUNTLETS` and into current `ARROW OF SLAY UNDEAD` before runtime use. The semantic alias is therefore closed; only its historical database-revision provenance remains unknown.
 
 ## 11. OBJECTS.DAT — definition versus mutable state
 
@@ -588,7 +588,7 @@ Community research on Ravenloft's CP437 map bytes is retained only where it corr
 
 Claim: SAVE.DAT serializes application-wide and party state in a strict, variable-length order and is distinct from per-level mutable files.
 
-Class: **CONFIRMED / substantially reconstructed**
+Class: **CONFIRMED / supplied-build reconstruction archival-complete**
 
 Supplied fixture: 9,288 bytes (`0x2448`). Its size is not universal because one middle section contains a counted 22-byte runtime-object array.
 
@@ -597,8 +597,8 @@ Top-level serializer order:
 ```text
 fixed 0x77-byte global prefix
 4 * 0x248 active-party character records
-uint32 live_world_object_count
-count * 0x16 live-world-object records
+uint32 live_transient_effect_count
+count * 0x16 class-3 transient/moving-effect records
 uint32 spell_ui_selected_character[2]
 uint32 gameplay_tick_counter
 62 variable-width persistent container-state records
@@ -624,16 +624,16 @@ The fixed prefix contains:
 +0x5E          uint32 facing/orientation
 +0x62..+0x6B  shared primary-effect state/counters
 +0x6C          interrupt-driven engine tick snapshot
-+0x70          global runtime/time-related state at DGROUP 0xCF4C
-+0x74          signed selector/state at DGROUP 0x8600
-+0x76          companion selector/state at DGROUP 0x8602
++0x70          uint32 24-hour 16.16 world time-of-day clock
++0x74          int16 cursor-held OBJECTS.DAT object ID (-1 empty)
++0x76          uint8 cursor-held item known/identified state
 ```
 
 This demonstrates that the save file persists the player's current world position/orientation independently from the current level's cell/object structures.
 
-## 19. Two distinct saved time domains
+## 19. Three distinct saved timing domains
 
-A fidelity-critical result is that Ravenloft persists two different counters.
+A fidelity-critical result is that Ravenloft persists three distinct timing domains rather than one undifferentiated game clock.
 
 ### Interrupt-driven engine tick snapshot
 
@@ -650,9 +650,13 @@ Later in the variable middle section, DGROUP `0xA7E4` is serialized. It is used 
 - periodic healing/maintenance;
 - rest-time advancement.
 
+### 24-hour world time-of-day
+
+SAVE prefix `+0x70` stores DGROUP `0xCF4C` as a 16.16 fixed-point hour value. The upper word is normalized modulo 24 while the lower word preserves fractional-hour state used by fine-grained time advancement and environment/day-night logic.
+
 Class: **CONFIRMED**
 
-A port must not collapse these into one `game_time` value merely because both are counters.
+A port must not collapse interrupt ticks, pausable gameplay ticks, and world time-of-day into one `game_time` value.
 
 ## 20. Character-state ownership
 
@@ -677,22 +681,35 @@ This common record geometry should remain canonical even if a native port later 
 
 Substantial character regions now include identity, status, portrait/sex/race/class, HP, progression, ability pairs, 21 inventory item slots, two spell matrices, and a large effect/combat/timer region. The final 82 bytes remain serialized reserved/unreferenced state rather than being discarded.
 
-## 21. Live-world-object save section
+## 21. Live transient/moving-effect save section
 
 Immediately after the active party:
 
 ```text
 uint32 count
-WorldObject22 live_world_objects[count]
+LiveTransientEffect22 live_effects[count]
 ```
 
 Runtime source: DGROUP `0x248EC`; count DGROUP `0xC038`; record stride `0x16`; executable maximum `0x96` (150).
 
-Class: **CONFIRMED structurally; field semantics still under active recovery**
+Class: **CONFIRMED structurally and behaviorally**
 
-This array is distinct from the three per-level A/B/C expanded arrays. It is application-global runtime state serialized in SAVE order. Late SAVE offsets therefore shift by `count * 0x16`.
+This array is distinct from the three per-level A/B/C expanded arrays. It is application-global class-3 transient/moving-effect state serialized in SAVE order. LEVELS opcode 3 plus spell/item paths create records in the same family consumed by the class-3 RES3 scene emitter.
 
-Tools must parse sequentially rather than relying on the quick-start fixture's fixed offsets.
+Certified principal record fields are:
+
+```text
++0x00  int32 coordinate B, fixed-point
++0x04  int32 coordinate A, fixed-point
++0x08  int32 heading/orientation
++0x0C  uint16 cached map-cell index
++0x0E  uint16 transient-effect type
++0x10  uint16 auxiliary
++0x12  uint16 type-specific auxiliary
++0x14  uint16 packed movement/direction/frame/source state
+```
+
+Late SAVE offsets shift by `count * 0x16`; tools must parse sequentially rather than relying on the quick-start fixture's fixed offsets.
 
 ## 22. Persistent container state
 
@@ -784,7 +801,7 @@ Class: **RECONSTRUCTED summary**
 - current level, player position, facing
 - 256 global event flags
 - party and saved roster
-- live global world-object array
+- live global transient/moving-effect array
 - effect/timing state
 - containers
 - charged devices
@@ -914,13 +931,11 @@ Compatibility requirements:
 
 The following remain open without blocking the reconstructed architecture:
 
-- cell-word bit `0x2000`;
-- some 10-byte record kind-specific source-level meanings;
-- exact historical reason for family-C `0x54 -> 0x58` migration;
-- exact semantics of a small set of SAVE globals/effect catalogues;
-- detailed field naming of the global 0x16-byte live-world-object array;
+- original editor/source name for cell-word bit `0x2000`; direct CODE.2 audit finds no runtime consumer, so it remains preserved legacy/authoring state;
+- some 10-byte record kind-specific historical/source-level names;
+- exact historical object-table revision behind the semantically resolved family-C `0x54 -> 0x58` Arrow-of-Slay-Undead alias;
 - provenance/production reason for the 40-cell `LEV022.DAT` automap-cache discrepancy;
-- historical source names for family A/B/C and the two 10-byte control groups.
+- historical source names for family A/B/C, the two 10-byte control groups, and selected bounded auxiliary fields.
 
 Unknowns are preserved as bounded fields/behaviors instead of being filled by analogy to other DreamForge titles.
 
