@@ -1,6 +1,6 @@
 # OBJECTS.DAT format reconstruction
 
-Status: **fixed container/record layout proven; all 65 physical record bytes are accounted for, with major rendering, UI, weight, mutable-state, magic, equipment/combat, damage and range fields semantically reconstructed from certified CODE.2.**
+Status: **ARCHIVAL-COMPLETE FOR THE SUPPLIED BUILD. All 65 physical record bytes are accounted for; certified CODE.2 behavior, RES1/RES3 namespace linkage, SAVE/LEVELS relationships, and byte-exact decode→encode are reconciled. Bounded raw/latent fields remain preserved without speculative naming.**
 
 ## Controlling evidence
 
@@ -261,4 +261,4 @@ A faithful reader/editor may expose the canonical fields above while preserving 
 - do not infer range units;
 - retain empty-name records.
 
-`inspect_objects.py` is the lossless parser/encoder. `analyze_categories.py`, `analyze_render_aux.py`, `analyze_equipment_slots.py`, and `analyze_attack_profile.py` provide corpus validation.
+`inspect_objects.py` is the lossless parser/encoder. `analyze_categories.py`, `analyze_render_aux.py`, `analyze_equipment_slots.py`, and `analyze_attack_profile.py` provide corpus validation. Final certification is recorded in `FINAL_AUDIT_2026-10-06.md`.
