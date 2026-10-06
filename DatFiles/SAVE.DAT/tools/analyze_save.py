@@ -2,8 +2,8 @@
 """Analyze the serializer-certified Ravenloft: Strahd's Possession SAVE.DAT layout.
 
 The supplied quick-start fixture is 0x2448 bytes because its live-world-object
-count is zero.  Later offsets are derived from the serialized count rather than
-hard-coded to the fixture.
+count is zero. Later offsets are derived from that serialized count. The 938-byte
+fixture bank is persistent category-1 container contents/state, not level state.
 """
 from __future__ import annotations
 
@@ -16,12 +16,13 @@ PREFIX_SIZE = 0x77
 PARTY_COUNT = 4
 PARTY_OFFSET = PREFIX_SIZE
 PARTY_SIZE = CHARACTER_SIZE * PARTY_COUNT
-MIDDLE_OFFSET = PARTY_OFFSET + PARTY_SIZE  # 0x997
+MIDDLE_OFFSET = PARTY_OFFSET + PARTY_SIZE
 WORLD_OBJECT_SIZE = 0x16
 WORLD_OBJECT_LIMIT = 0x96
-POST_OBJECT_FIXED_BEFORE_LEVEL_BANK = 12  # D8A8[2] + A7E4
-LEVEL_MUTABLE_PAYLOAD_SIZE = 0x3AA        # 62 descriptor-sized blocks
-POST_LEVEL_GLOBALS_SIZE = 8               # F920 + F91C
+POST_OBJECT_FIXED_BEFORE_CONTAINER_BANK = 12  # D8A8[2] + A7E4
+CONTAINER_STATE_COUNT = 62
+CONTAINER_MUTABLE_PAYLOAD_SIZE = 0x3AA  # quick-start/build-fixed 62-state payload
+POST_CONTAINER_GLOBALS_SIZE = 8          # F920 + F91C
 CHARGES_SIZE = 15
 ROSTER_COUNT = 10
 ROSTER_SIZE = CHARACTER_SIZE * ROSTER_COUNT
@@ -61,7 +62,6 @@ def main() -> int:
     ap.add_argument("save", type=Path)
     args = ap.parse_args()
     data = args.save.read_bytes()
-
     require(data, MIDDLE_OFFSET + 4, "fixed prefix/party/world-object count")
 
     print(f"file: {args.save}")
@@ -92,16 +92,15 @@ def main() -> int:
     count = u32(data, MIDDLE_OFFSET)
     if count > WORLD_OBJECT_LIMIT:
         raise SystemExit(f"invalid live-world-object count {count}; executable limit is {WORLD_OBJECT_LIMIT}")
-
     world_start = MIDDLE_OFFSET + 4
     world_end = world_start + count * WORLD_OBJECT_SIZE
     require(data, world_end, "live-world-object array")
 
     links_off = world_end
-    level_counter_off = links_off + 8
-    level_bank_off = level_counter_off + 4
-    post_level_off = level_bank_off + LEVEL_MUTABLE_PAYLOAD_SIZE
-    charges_off = post_level_off + POST_LEVEL_GLOBALS_SIZE
+    container_counter_off = links_off + 8
+    container_bank_off = container_counter_off + 4
+    post_container_off = container_bank_off + CONTAINER_MUTABLE_PAYLOAD_SIZE
+    charges_off = post_container_off + POST_CONTAINER_GLOBALS_SIZE
     roster_off = charges_off + CHARGES_SIZE
     tail_off = roster_off + ROSTER_SIZE
     expected_end = tail_off + TAIL_SIZE
@@ -109,31 +108,27 @@ def main() -> int:
 
     print("\nDynamic middle state")
     print(f"  live-world-object count : {count}")
-    print(f"  live-world-object array : 0x{world_start:04X}-0x{world_end-1:04X} "
-          f"({count} x 0x{WORLD_OBJECT_SIZE:X})" if count else
-          f"  live-world-object array : empty at 0x{world_start:04X}")
-    print(f"  D8A8 dwords             : 0x{links_off:04X}-0x{links_off+7:04X} "
-          f"[{u32(data, links_off)}, {u32(data, links_off+4)}]")
-    print(f"  A7E4 counter            : 0x{level_counter_off:04X} = {u32(data, level_counter_off)}")
-    print(f"  62-slot mutable payload : 0x{level_bank_off:04X}-0x{post_level_off-1:04X} "
-          f"(0x{LEVEL_MUTABLE_PAYLOAD_SIZE:X} bytes)")
-    print(f"  F920                    : 0x{post_level_off:04X} = {u32(data, post_level_off)}")
-    print(f"  F91C                    : 0x{post_level_off+4:04X} = {u32(data, post_level_off+4)}")
+    if count:
+        print(f"  live-world-object array : 0x{world_start:04X}-0x{world_end-1:04X} ({count} x 0x{WORLD_OBJECT_SIZE:X})")
+    else:
+        print(f"  live-world-object array : empty at 0x{world_start:04X}")
+    print(f"  D8A8 dwords             : 0x{links_off:04X}-0x{links_off+7:04X} [{u32(data, links_off)}, {u32(data, links_off+4)}]")
+    print(f"  A7E4 state              : 0x{container_counter_off:04X} = {u32(data, container_counter_off)}")
+    print(f"  {CONTAINER_STATE_COUNT}-container payload    : 0x{container_bank_off:04X}-0x{post_container_off-1:04X} (0x{CONTAINER_MUTABLE_PAYLOAD_SIZE:X} bytes)")
+    print(f"  F920                    : 0x{post_container_off:04X} = {u32(data, post_container_off)}")
+    print(f"  F91C                    : 0x{post_container_off+4:04X} = {u32(data, post_container_off+4)}")
 
     print("\nLate serializer blocks")
-    print(f"  charges : 0x{charges_off:04X}-0x{charges_off+CHARGES_SIZE-1:04X} "
-          f"{hex_preview(data, charges_off, CHARGES_SIZE)}")
+    print(f"  charges : 0x{charges_off:04X}-0x{charges_off+CHARGES_SIZE-1:04X} {hex_preview(data, charges_off, CHARGES_SIZE)}")
     print(f"  roster  : 0x{roster_off:04X}-0x{tail_off-1:04X}")
     for i in range(ROSTER_COUNT):
         off = roster_off + i * CHARACTER_SIZE
         print(f"    roster[{i:02d}] @ 0x{off:04X}: {c_string(data, off, 16)!r}")
-    print(f"  trailing: 0x{tail_off:04X}-0x{expected_end-1:04X} "
-          f"{hex_preview(data, tail_off, TAIL_SIZE)}")
+    print(f"  trailing: 0x{tail_off:04X}-0x{expected_end-1:04X} {hex_preview(data, tail_off, TAIL_SIZE)}")
 
     if expected_end != len(data):
         print(f"WARNING: serializer-derived end is 0x{expected_end:X}; file ends at 0x{len(data):X}")
         return 1
-
     predicted = REFERENCE_SIZE + count * WORLD_OBJECT_SIZE
     print(f"\nserializer-derived size: 0x{expected_end:X}")
     print(f"reference-size formula : 0x{REFERENCE_SIZE:X} + {count}*0x16 = 0x{predicted:X}")
