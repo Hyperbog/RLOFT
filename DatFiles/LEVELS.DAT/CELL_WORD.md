@@ -1,6 +1,6 @@
 # LEVELS.DAT 16-bit cell word
 
-Status: **behavioral bit layout substantially closed from certified CODE.2; gameplay names are used only where multiple independent paths support them. `0x2000` remains unresolved.**
+Status: **behavioral bit layout closed to the supplied executable's evidence boundary. Gameplay names are used only where multiple independent paths support them; `0x2000` is preserved as a corpus-populated authoring/legacy marker with no direct runtime consumer or producer found in the supplied CODE.2.**
 
 This document specializes `SEMANTICS.md`. The controlling storage is the row-major `map_width * map_height` word array loaded to DGROUP `0x198E0`.
 
@@ -43,7 +43,7 @@ bit  9      0x0200  extra render-prepass enable
 bit 10      0x0400  persistent automap explored/revealed mark
 bit 11      0x0800  secret/hidden-passage topology marker
 bit 12      0x1000  10-byte-record state resource-offset enable
-bit 13      0x2000  unresolved
+bit 13      0x2000  preserved authoring/legacy marker; no direct runtime consumer proved
 bits 14..15 0xC000  two-bit render shade/decrement level
 ```
 
@@ -193,11 +193,25 @@ selector 3 :       0
 
 The two selector-2 cells are level 0 at `(39,10)` and `(39,11)`, both raw word `0x8000` with cell code zero.
 
-## `0x2000`: unresolved
+## `0x2000`: preserved authoring/legacy marker
 
-No separately proved direct cell-word consumer has been found for `0x2000`.
+A final direct-reference audit closes this bit to a bounded negative result rather than a guessed gameplay identity.
 
-Only three supplied archive cells carry it. All are coordinate `(44,34)` in levels 12, 13, and 14, with raw word `0x2400` (`0x2000 | 0x0400`) and code zero. This recurrence is retained as evidence but does not justify a semantic name.
+The certified CODE.2 object-1 image has 76 direct instruction references to the live cell-word array at DGROUP `0x198E0`. Those references explicitly isolate or modify `0x0040`, `0x0080`, `0x0100`, `0x0200`, `0x0400`, `0x0800`, `0x1000`, and `0xC000`, but none masks, compares, sets, or clears `0x2000`.
+
+A whole-object search for literal immediate `0x2000` finds only three unrelated uses:
+
+```text
+object1 0x093D6  transient-effect packed-state comparison
+object1 0x0C749  character status-word comparison
+object1 0x357DF  fixed-point graphics arithmetic
+```
+
+None addresses or derives from the cell array.
+
+Corpus evidence remains unusually narrow: only three of 115,584 archived cells carry the bit, all at coordinate `(44,34)` in levels 12, 13, and 14. Each stores raw word `0x2400` (`0x2000 | automap_explored`) with six-bit code zero. The surrounding 5x5 cell neighborhood is otherwise zero in all three levels, and no supplied 10-byte record or event command targets that coordinate.
+
+The safest supplied-build classification is therefore **preserved authoring/legacy marker with no directly observed runtime behavior**. This is not proof that the original editor called it unused or padding, and computed/indirect access cannot be disproved solely from literal-reference analysis. A lossless implementation must round-trip the bit exactly and should not synthesize a gameplay effect for it.
 
 ## Final byte-grid relationship
 
@@ -263,6 +277,6 @@ A faithful reader can now expose the behavioral fields above while preserving th
 - `0x0800` marks hidden/secret-passage topology, with the literal secret-door map glyph externally corroborated;
 - `0x1000` enables a visual resource offset from first-group 10-byte record state;
 - `0xC000` is one two-bit decrement selector;
-- `0x2000` remains unresolved and must be preserved raw.
+- `0x2000` has no direct runtime consumer/producer in the supplied CODE.2 audit; preserve it as raw authoring/legacy state.
 
 A faithful CODE.2 cache rebuild must retain the encoded `0x0093` test in both explored and unexplored paths even though the supplied Level 22 save does not reproduce that one branch from its serialized state. Import/repack tooling should preserve existing serialized cache bytes unless and until the save provenance discrepancy is independently resolved.
