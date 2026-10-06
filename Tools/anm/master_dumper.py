@@ -46,12 +46,15 @@ def dump_cinematics(
     destination: Path,
     options: DumpOptions,
     progress: ProgressCallback | None = None,
+    frames_destination: Path | None = None,
+    video_destination: Path | None = None,
+    timeline_destination: Path | None = None,
 ) -> dict[str, object]:
     source_dir = Path(source_dir)
     destination = Path(destination)
-    frames_root = destination / "frames"
-    video_root = destination / "video"
-    timeline_root = destination / "timelines"
+    frames_root = Path(frames_destination) if frames_destination else destination / "frames"
+    video_root = Path(video_destination) if video_destination else destination / "video"
+    timeline_root = Path(timeline_destination) if timeline_destination else destination / "timelines"
     originals_root = destination / "original_anm"
     timeline_root.mkdir(parents=True, exist_ok=True)
 
