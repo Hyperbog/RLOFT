@@ -1,6 +1,6 @@
 # SAVE.DAT global/non-character state
 
-Status: **serializer/deserializer-certified structural reconstruction.** SAVE files are variable-length: the supplied quick-start fixture is `0x2448` bytes because its live-world-object count is zero. The formerly generic 62-slot mutable bank is the persistent state backing OBJECTS.DAT category-1 container instances, and its individual record widths are now recovered from the executable descriptor table.
+Status: **serializer/deserializer-certified structural reconstruction.** SAVE files are variable-length: the supplied quick-start fixture is `0x2448` bytes because its live-world-object count is zero. The persistent container bank is parsed record-by-record, and the formerly anonymous `D8A8`, `A7E4`, `F920`, `F91C`, and trailing `0x6FA0` state now have executable-backed behavioral identities.
 
 ## Serializer anchor
 
@@ -16,20 +16,20 @@ For the supplied fixture:
 0x005A..0x005D  uint32 player/world coordinate B
 0x005E..0x0061  uint32 player facing/orientation
 0x0062..0x006B  shared primary-effect counters/state
-0x006C..0x006F  game-clock snapshot
-0x0070..0x0073  global runtime state at DGROUP 0xCF4C
+0x006C..0x006F  interrupt-driven engine tick counter snapshot
+0x0070..0x0073  uint32 global runtime state at DGROUP 0xCF4C
 0x0074..0x0075  int16 global selector/state at DGROUP 0x8600
 0x0076          uint8 companion selector/state at DGROUP 0x8602
 0x0077..0x0996  active party: 4 * 0x248
 0x0997..        live-world-object section and persistent container state
 ...             charged-item counters[15]
 ...             saved roster: 10 * 0x248
-...             trailing 16-byte party-local auxiliary state
+...             four 4-byte party container-UI contexts
 ```
 
 All offsets after the world-object count can move when that count is nonzero.
 
-## Fixed 0x77-byte prefix
+## Fixed `0x77`-byte prefix
 
 `0x0000..0x0031` is the exact 50-byte save description. `0x0032..0x0051` is the 32-byte persistent 256-bit event/game-state vector manipulated by LEVELS event set/clear/toggle/test operations.
 
@@ -44,13 +44,19 @@ The remaining prefix is:
 +0x64  uint16 DGROUP 0xF03E   shared primary-effect state
 +0x66  uint32 DGROUP 0xFD08   shared primary-effect state
 +0x6A  uint16 DGROUP 0x6DAE   shared primary-effect state
-+0x6C  uint32 game-clock snapshot
++0x6C  uint32 interrupt_tick_counter snapshot
 +0x70  uint32 DGROUP 0xCF4C
 +0x74  int16  DGROUP 0x8600
 +0x76  uint8  DGROUP 0x8602
 ```
 
-Quick-start values: level 22, coordinates `0x00048000/0x00048000`, facing 270, clock 1899 (`0x76B`), `CF4C=0x000E0000`, `8600=-1`, `8602=0`. Exact names for the final selectors remain open.
+Quick-start values: level 22, coordinates `0x00048000/0x00048000`, facing 270, interrupt-tick value 1899 (`0x76B`), `CF4C=0x000E0000`, `8600=-1`, `8602=0`.
+
+### `+0x6C`: interrupt-driven engine tick counter, not the gameplay-effect clock
+
+This field is now distinguished from saved `A7E4` below. Physical `0x6B624` simply returns DGROUP `0xF58C`. The interrupt handler beginning at physical `0x6B62C` reads and increments `0xF58C`; physical `0x6B65C` restores a caller-supplied value under `cli`/`sti`. The SAVE path calls the getter before writing `+0x6C`, and the load path passes the restored dword to the setter.
+
+Therefore `+0x6C` is an **interrupt-driven engine tick-counter snapshot**. Character effect/action deadlines do not use this value directly; those use the separate pausable gameplay counter `A7E4`.
 
 ## Active-party image
 
@@ -63,23 +69,64 @@ Immediately after the party image:
 ```text
 uint32 live_world_object_count;                  // DGROUP 0xC038
 WorldObject22 live_world_objects[count];         // runtime 0x248EC, 0x16 each
-uint32 party_roster_links_or_indices[2];         // DGROUP 0xD8A8
-uint32 container/global counter;                 // DGROUP 0xA7E4
+uint32 spell_ui_selected_character[2];           // DGROUP 0xD8A8
+uint32 gameplay_tick_counter;                    // DGROUP 0xA7E4
 for container_state = 0..61:
     int16 object_id[descriptor.slot_count];
     uint8 per_slot_state_bits;
-uint32 global_state_f920;
-uint32 global_state_f91c;
+uint32 environment_shading_level;                // DGROUP 0xF920, clamped 0..10
+uint32 level_light_adjustment;                   // DGROUP 0xF91C, clamped 0..8
 uint8 charged_item_counter[15];
 ```
 
 `DGROUP 0xC038` is a live-object count with executable limit `0x96` (150). Creation/removal code indexes a `0x16`-byte structure array at runtime `0x248EC`. The quick-start fixture count is zero, so every later fixture offset shifts by `live_world_object_count * 0x16` in saves containing live world objects.
 
-Eight bytes at DGROUP `0xD8A8` follow the dynamic array. Party/spell routines consume them as character/roster indices or links. Preserve both dwords; exact names remain open.
+## `D8A8[2]`: selected spell-UI characters
+
+The two serialized dwords at DGROUP `0xD8A8` are character indexes retained by the two spell-interface groups.
+
+Physical `0x5E2CC` accepts a character index, computes `group = character_index / 2`, validates that the character is active and has casting capability, then stores:
+
+```text
+D8A8[group] = character_index
+```
+
+It resets the associated spell-list UI state and expands that character's selected spell bank. Physical `0x5DF48` takes a spell-interface group, loads `D8A8[group]`, then reads that character's saved spell-bank/scroll fields and renders the spell interface. Combat/status paths compare changed character indexes against the same selected-character entries to request UI refreshes.
+
+Safe archival identity:
+
+```cpp
+uint32_t spell_ui_selected_character[2];
+```
+
+The supplied quick-start fixture stores `[0, 0]`. The two entries are behavioral UI selections, not roster pointers.
+
+## `A7E4`: pausable gameplay tick counter / deadline timebase
+
+DGROUP `0xA7E4` is the persistent gameplay-time counter used by saved character deadlines.
+
+Executable anchors:
+
+- physical `0x54BE8` is a trivial getter returning `A7E4`;
+- physical `0x54BE0` increments `A7E4` while the gameplay timing gate is active;
+- physical `0x59670(value)` writes the restored value to `A7E4` and synchronizes an internal maintenance baseline;
+- the SAVE loader reads this dword and calls `0x59670`;
+- primary-effect, temporary-hand, Strength-recovery, timed-slot, and hand/action deadline producers call `0x54BE8` and store `A7E4 + duration`;
+- timer-maintenance paths compare those saved deadlines against the same getter.
+
+Physical `0x59680` also uses elapsed `A7E4` for periodic gameplay maintenance. At intervals of `0x438` ticks it advances shared world/time state and performs party healing under the relevant conditions; at `0x21C` ticks it rotates another four-party maintenance operation. A resting path can advance `A7E4` directly by `0x438`.
+
+Safe archival identity:
+
+```cpp
+uint32_t gameplay_tick_counter;
+```
+
+This is intentionally described in engine ticks rather than seconds/minutes because the exact real-time conversion is not required by the serializer evidence. Quick-start value: `1735` (`0x06C7`).
 
 ## Persistent container-state bank
 
-The next dword is DGROUP `0xA7E4`, followed by 62 container mutable-state records. Category-1 `OBJECTS.DAT +0x31` is a signed `container_state_index` selecting a 10-byte runtime descriptor at DGROUP `0x7330 + index*10`.
+The next 62 records are the mutable state backing category-1 `OBJECTS.DAT` containers. `OBJECTS.DAT +0x31` is a signed `container_state_index` selecting a 10-byte runtime descriptor at DGROUP `0x7330 + index*10`.
 
 Descriptor layout:
 
@@ -93,7 +140,7 @@ Descriptor layout:
 +0x09  uint8  per_slot_state_bits
 ```
 
-The SAVE serializer writes only `2*slot_count` bytes from `contents_pointer`, then byte `+9`. The on-disk logical form is therefore:
+The SAVE serializer writes only `2*slot_count` bytes from `contents_pointer`, then byte `+9`:
 
 ```cpp
 struct SavedContainerState {
@@ -104,7 +151,7 @@ struct SavedContainerState {
 
 ### Executable descriptor table and exact bank size
 
-The initialized descriptor table is present in supplied CODE.2 at physical file offset `0x7D254`. The first seven descriptors directly establish the common families:
+The initialized descriptor table is present in supplied CODE.2 at physical file offset `0x7D254`. Common families are:
 
 ```text
 family                    slots columns capacity ui_x subtype record bytes
@@ -119,7 +166,7 @@ QUIVER                        8      4     127      5      6       17
 
 BAG OF HOLDING uses the SACK-shaped 8-slot/subtype-1 descriptor with capacity 255.
 
-Across descriptors `0..61`, `slot_count` sums to exactly 438. Therefore the serialized bank is independently closed as:
+Across descriptors `0..61`, `slot_count` sums to exactly 438:
 
 ```text
 438 object-ID words = 876 bytes
@@ -128,11 +175,7 @@ Across descriptors `0..61`, `slot_count` sums to exactly 438. Therefore the seri
                          938 bytes = 0x3AA
 ```
 
-This proves the quick-start bank ends exactly at `0x0D50`, rather than merely inferring its size from the next known serializer field.
-
 ### Exact state widths and quick-start offsets
-
-The state sequence below is derived from CODE.2 descriptor `slot_count`; names/OBJECTS IDs come from category-1 `OBJECTS.DAT +0x31`. Offsets are for the zero-live-object quick-start fixture.
 
 ```text
 state OBJECTS family                    slots SAVE offset
@@ -202,23 +245,21 @@ state OBJECTS family                    slots SAVE offset
 
 For `N` live world objects add `N*0x16` to every offset in this table.
 
-### Index-61 / index-62 compatibility anomaly
+### State-61 / state-62 shipped mismatch
 
-The shipped data contain a concrete boundary mismatch:
+The static data and executable boundary do not agree at the final container selector:
 
-- OBJECTS ID 329 (`QUIVER`) stores `container_state_index = 62`.
-- CODE.2 descriptor 61 is a fully initialized 8-slot subtype-6 QUIVER descriptor.
-- CODE.2 descriptor 62 is ten zero bytes.
-- SAVE loops exactly while state index `< 0x3E`, persisting indexes `0..61`; state 62 is never serialized by this loop.
-- quick-start state 61 contains eight object ID `57` entries, i.e. a full arrow-family quiver-shaped payload.
+- OBJECTS ID 329 (`QUIVER`) stores `container_state_index = 62`;
+- CODE.2 descriptor 61 is a fully initialized 8-slot subtype-6 QUIVER descriptor;
+- CODE.2 descriptor 62 is ten zero bytes;
+- SAVE serializes indexes `0..61` only;
+- quick-start state 61 contains eight object ID `57` entries, a full arrow-family quiver-shaped payload.
 
-This strongly suggests state 61 is the persistent state intended for the final quiver and that the static selector 62 is a shipped off-by-one/data anomaly. That interpretation is not yet promoted to an executable translation rule because no direct path mapping literal selector 62 to descriptor 61 has been proved. Preserve the shipped values; do not rewrite OBJECTS.DAT merely to normalize the discrepancy.
+The new direct-path audit found **no executable `62 -> 61` repair**. Generic open-container code at physical `0x5C5B7` sign-extends OBJECTS `+0x31`, multiplies it directly by ten, and reads descriptor `+4`; other container paths perform the same literal selector-to-descriptor calculation. Thus object 329's shipped selector addresses descriptor 62 as stored.
 
-### Quick-start contents
+The pattern remains consistent with a shipped off-by-one/static-data mistake, but a faithful engine should **not silently normalize it**. Preserve OBJECTS selector 62, the zero descriptor 62 behavior, and serialized state 61 unless a separately documented compatibility fix is intentionally enabled.
 
-The fixture parses exactly through all 62 descriptor-sized records. Forty-one records contain at least one non-empty object ID; 21 are empty. Every `per_slot_state_bits` byte is zero in this fixture.
-
-Representative contents:
+Representative quick-start contents:
 
 ```text
 state 0   POUCH          [71, -1, -1, -1]
@@ -229,30 +270,98 @@ state 20  BAG OF HOLDING [164, 164, 164, 164, 164, 164, 164, 164]
 state 61  unreferenced   [57, 57, 57, 57, 57, 57, 57, 57]
 ```
 
-Repeated IDs represent multiple item instances of the same object definition, not quantities.
+Forty-one records contain at least one non-empty object ID; 21 are empty. Every `per_slot_state_bits` byte is zero in this fixture.
 
-### `0xF920` / `0xF91C`
+## `F920`: environment/time-of-day shading control
 
-Two dwords follow the container-state bank. Consumers clamp `0xF920` to `0..10` and `0xF91C` to `0..8` in one UI/control path. Exact names remain pending.
+DGROUP `0xF920` is a renderer/environment shading control, clamped to `0..10` by physical `0x6CE00` and passed as the first argument to palette/shading-table generator `0x6C938`.
+
+Time-of-day maintenance at physical `0x6CEB8` extracts the high word of `CF4C`, normalizes it modulo 24, and—when the level uses a non-`0xFF` environment profile—loads `F920` from a 24-entry signed-word table at `0xF924 + hour*2`. It then rebuilds renderer shading tables. A separate renderer path at physical `0x5A1F0` uses `F920` as an index into an 11-entry table.
+
+For levels whose header environment profile is `0xFF`, level loading instead initializes `F920` from the first byte of a level-indexed fallback table at physical `0x53AAA..0x53AC4`.
+
+Safe behavioral name:
+
+```cpp
+uint32_t environment_shading_level; // clamped 0..10
+```
+
+The original editor/player-facing term is not known. Quick-start value: 0.
+
+## `F91C`: level light adjustment combined with party effects
+
+DGROUP `0xF91C` is clamped to `0..8` by physical `0x6CE5C`. Every palette/shading recomputation calculates:
+
+```text
+palette_light_parameter = F91C + party_effect_light_override
+```
+
+where physical `0x6CD98` returns 8 when any active party character has primary effect bit mask `0x0402` (effects 1 or 10), otherwise 0. `0x6C938` itself caps the combined argument at 8.
+
+For `environment_profile_id == 0xFF`, level loading initializes `F91C` from the second byte of the same level-indexed fallback table used for `F920`. Expiration/application paths for effects 1 and 10 trigger `0x6CE5C(F91C)` to rebuild the renderer tables after party effect state changes.
+
+Safe behavioral name:
+
+```cpp
+uint32_t level_light_adjustment; // clamped 0..8
+```
+
+This identifies the renderer role without prematurely assigning the exact in-game terminology or names of effects 1/10. Quick-start value: 0.
 
 ## Quick-start middle offsets
 
 ```text
 0x0997..0x099A  uint32 live_world_object_count = 0
-0x099B..0x09A2  DGROUP 0xD8A8[2]
-0x09A3..0x09A6  DGROUP 0xA7E4
+0x099B..0x09A2  spell_ui_selected_character[2] = [0,0]
+0x09A3..0x09A6  gameplay_tick_counter = 1735
 0x09A7..0x0D50  62-container mutable payload (938 bytes)
-0x0D51..0x0D54  DGROUP 0xF920
-0x0D55..0x0D58  DGROUP 0xF91C
+0x0D51..0x0D54  environment_shading_level = 0
+0x0D55..0x0D58  level_light_adjustment = 0
 0x0D59..0x0D67  charged_item_counter[15]
 0x0D68..0x2437  saved roster, 10 * 0x248
-0x2438..0x2447  trailing 16-byte auxiliary state
+0x2438..0x2447  party_container_ui_context[4]
 ```
 
-## Saved roster and trailing state
+## Trailing `0x6FA0`: four party container-UI contexts
 
-After charges, CODE.2 writes `0x16D0` bytes from runtime `0xA808` (`10 * 0x248`). The final operation writes 16 bytes from DGROUP `0x6FA0`, indexed by gameplay code as four 4-byte party-local entries. The quick-start fixture stores `0xFF` in all 16 trailing bytes.
+The final 16 bytes are four 4-byte UI contexts indexed by party member. They are not generic opaque trailing counters.
+
+Opening a category-1 object at physical `0x5C56C..0x5C5E4` builds one context directly from the object's container descriptor and object definition. Rendering/transition routines `0x4BED0` and `0x4BFD8` step byte `+2` from `0 -> 3` while opening and `3 -> 0` while closing. Generic container rendering at `0x4B994` uses phase 3 to draw the actual slot contents.
+
+Per-party layout:
+
+```text
++0  int8  container_subtype_or_minus1
++1  int8  container_state_index_or_minus1
++2  int8  container_ui_phase_or_minus1   // 0..3 while active; 3 = fully open/content phase
++3  int8  container_object_id_or_minus1
+```
+
+Evidence for the other bytes is direct:
+
+- `+0` receives descriptor `+4` (`container_subtype`);
+- `+1` receives OBJECTS `+0x31` (`container_state_index`) and later selects the descriptor/content pointer;
+- `+3` receives the active object's definition ID byte and is later multiplied by the `0x41` OBJECTS-record stride for object-property lookup;
+- party-slot swap logic swaps all four bytes together, preserving the UI context with the corresponding party position.
+
+All four contexts are initialized to `FF FF FF FF`; the quick-start fixture stores that inactive form for all four entries.
+
+A compatibility model can expose:
+
+```cpp
+struct PartyContainerUiContext {
+    int8_t container_subtype;
+    int8_t container_state_index;
+    int8_t ui_phase;
+    int8_t container_object_id;
+};
+PartyContainerUiContext party_container_ui_context[4];
+```
+
+Preserve the signed-byte representation and `-1` sentinel exactly.
 
 ## Native parsing rule
 
-Read sequentially. After the dynamic live-world-object array and fixed middle globals, parse states `0..61` using the certified slot-count catalogue above, then F920/F91C, 15 charge counters, ten `0x248` roster records and the 16-byte tail. Do not model `0x0D59`, `0x0D68`, or total size `0x2448` as universal constants, and do not treat the 938-byte container bank as an anonymous blob in the logical model.
+Read sequentially. After the dynamic live-world-object array, read `spell_ui_selected_character[2]`, `gameplay_tick_counter`, states `0..61` using the certified slot-count catalogue, the two renderer controls, 15 charge counters, ten `0x248` roster records, and four 4-byte party container-UI contexts.
+
+Do not model `0x0D59`, `0x0D68`, `0x2438`, or total size `0x2448` as universal constants. Preserve the state-61/62 mismatch rather than silently repairing shipped data.
