@@ -42,8 +42,8 @@ physical 0x41CFA  push 0x218E0
 +0x03C/+0x03D     Charisma base/current
 +0x03E/+0x03F     exceptional Strength percentile base/current
 +0x040..+0x069   int16 item[21]
-+0x06A..+0x0B9   spell matrix A: 8 x 10 packed cells; scribeable spellbook family
-+0x0BA..+0x109   spell matrix B: 8 x 10 packed cells; second casting family
++0x06A..+0x0B9   Mage spellbook matrix: 8 x 10 packed cells
++0x0BA..+0x109   Cleric/Paladin priest-style matrix: 8 x 10 packed cells
 +0x10A           class/level-derived base attack target
 +0x10B..+0x112   uint32 hand_ready_deadline[2]
 +0x113..+0x116   Vampiric Touch absorption pool
@@ -116,9 +116,9 @@ alignment_code
 
 STRAHD'S POSSESSION exposes six non-evil alignments; earlier generic references to nine AD&D alignment values do not describe this serialized enum.
 
-Portrait rendering uses `portrait_index + sex_code*23`; the engine's presentation bank capacity is 23 entries per sex even though the player creation UI exposes a smaller selectable face set.
+Portrait rendering uses `portrait_index + sex_code*23`. CODE.1 character creation exposes exactly face indexes `0..16`; index 17 is explicitly disabled on the final selection page and 18..22 are not reached by the creation-page cycle. The supplied roster uses the upper valid slots for predefined characters: male 17..22 and female 17..20. Female slots 21..22 are invalid/reserved in RES1. Status `0x0100` selects the parallel 46-entry possessed portrait bank.
 
-`+0x018` is the serialized age field. Fixture values and historical editor behavior support this strongly; unlike the four enums above it has not yet been closed through a direct `T` lookup.
+`+0x018` is executable-certified age. CODE.1 generation routine physical `0x2FA18..0x2FA6D` derives starting age from race using the shipped table `15+1d4, 15+1d6, 20+3d4, 60+3d12, 40+5d6, 100+5d6` for Human through Elf respectively. Physical `0x30112` later displays the stored word through the numeric character-information path.
 
 ## Record activity
 
@@ -128,7 +128,7 @@ The status word is runtime `0x218F0`, serialized `+0x010`. Party/UI iteration sk
 bool record_is_active = ((status_word & 0x8000u) == 0);
 ```
 
-Unused fixture records contain `00 80` at `+0x010..+0x011`; an all-zero occupancy test is invalid. Known masks include disease `0x0400`, poison `0x0800`, and paralysis `0x1000`.
+Unused fixture records contain `00 80` at `+0x010..+0x011`; an all-zero occupancy test is invalid. Certified masks include Vengeful-Spirit warning/coercion `0x0040`, recruited/template provenance `0x0080`, possession `0x0100`, Held `0x0200`, disease `0x0400`, poison `0x0800`, paralysis `0x1000`, death `0x4000`, and empty slot `0x8000`. Bit `0x2000` is an engine-recognized blocking tier without a proved producer/player-facing identity; low bits `0x0001..0x0020` remain raw/preserved.
 
 ## Armor Class and hit points
 
@@ -268,7 +268,4 @@ Do not memory-map the legacy image onto a modern compiler-native structure. Deco
 
 ## Remaining semantic targets
 
-1. remaining `status_word` bits;
-2. exact player-facing identities for the 26 primary effects and three paired timed slots;
-3. exact gameplay identities of opaque `+0x1BA` and the `+0x1EA/+0x1F2` effect-state quantities beyond their certified lifecycle behavior;
-4. exact portrait-resource catalogue and status-dependent alternate presentation bank.
+The record's principal identity, status, portrait, class/progression, ability, inventory, spell-family, and primary-effect catalogues are closed. Remaining bounded questions are the exact gameplay identity of opaque `+0x1BA`, narrower source-level names for a few auxiliary effect quantities/timed slots, and any residual status-bit producer discovered during final audit. These do not alter the certified `0x248` geometry or compatibility boundary.
