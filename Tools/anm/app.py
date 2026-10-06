@@ -37,6 +37,14 @@ def _self_test() -> int:
     import support_dumper  # noqa: F401
     import xmidi  # noqa: F401
 
+    for required in (
+        "assets/strahd_frame_main.png",
+        "assets/strahd_parchment.png",
+        "assets/strahd_title_logo.png",
+    ):
+        if runtime_paths.bundled_path(required) is None:
+            return 20
+
     ffmpeg = runtime_paths.bundled_path("ffmpeg.exe" if os.name == "nt" else "ffmpeg")
     if ffmpeg is None:
         return 21
