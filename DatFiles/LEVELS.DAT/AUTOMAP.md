@@ -1,154 +1,97 @@
 # LEVELS.DAT automap classifier and export pipeline
 
-Status: **internal cache generation, dynamic door-state relationship, and base ASCII export mapping proven from certified CODE.2**.
+Status: **cache generation, dynamic door-state relationship, connected-map resolution, base CP437 export, placed-object overlay, and annotation overlay are reconstructed from certified CODE.2.**
 
-This document specializes `CELL_WORD.md`. The immutable CODE.2 object-1 bytes remain controlling evidence. Names such as `wall`, `floor`, `inset`, and `door` are used only where executable behavior and independently documented Ravenloft automap bytes support them.
+The immutable CODE.2 object remains controlling evidence. Human-readable wall/floor/inset/door names are used where executable behavior and the independently documented Ravenloft automap byte format agree.
 
 ## Runtime data flow
 
 ```text
-DGROUP 0x198E0  width*height uint16 packed cell words
-DGROUP 0x1760   width*height uint8 generated automap/display cache
-DGROUP 0x12756  map width used by automap renderer/exporter
-DGROUP 0x12754  map height used by automap renderer/exporter
-DGROUP 0x25622  64-word primary cell-code resource lookup
-DGROUP 0xCB3C   first width-indexed 10-byte record pointer group
-DGROUP 0xCD3C   second width-indexed 10-byte record pointer group
+0x198E0  width*height uint16 packed cell words
+0x1760   width*height uint8 generated automap/display cache
+0x12756  automap width
+0x12754  automap height
+0x25622  primary cell-code resource lookup[64]
+0xCB3C   first 10-byte record pointer group
+0xCD3C   second 10-byte record pointer group
+0x5760   variable automap annotation list
 ```
 
-The standalone level writer `171FC..17837` serializes the 16-bit cell words, later calls `01558`, and then serializes the byte cache. Thus the byte layer is generated state, not an independent topology grid.
+The standalone writer serializes cell words, calls `01558`, then serializes `0x1760`, proving the byte grid is generated state rather than independent topology.
 
-## Exact cache classifier: `01558..01830`
+## Cache classifier `01558..01830`
 
-The routine walks every `(column,row)` and forms:
+For each cell:
 
 ```text
 index = row * width + column
 word  = cell_words[index]
 code  = word & 0x003F
+default output = 0xFF
 ```
 
-The default output is `0xFF`.
-
-### Party-cell override
-
-If the current coordinates equal the party cell (`0x255D2` column, `0x255D6` row), byte `0x258A8` selects:
+Party-cell override:
 
 ```text
-0x258A8 == 0xFF  -> 0x2F
-otherwise        -> 0x2E
+0x258A8 == 0xFF -> 0x2F
+otherwise       -> 0x2E
 ```
 
-### Explored cells (`word & 0x0400`)
+Explored cells (`word & 0x0400`):
 
-1. `code == 0` -> `0x2E/0x2F` floor-class path.
-2. Otherwise read `resource = int16(0x25622[code])`.
-3. `resource == 0x0093` -> `0x2E/0x2F` floor-class path.
-4. `word & 0x0800` -> class `0x05`.
-5. If `word & 0x0080` is clear -> class `0x01`.
-6. If `0x0080` is set, call `1E8C8(column,row)`:
-   - no 10-byte record -> class `0x03`;
-   - record exists -> call `1E930(index)`;
-     - result `== 0x8000` -> class `0x04`;
-     - any other result -> class `0x02`.
+1. code zero -> `0x2E/0x2F`;
+2. nonzero `0x25622[code] == 0x0093` -> `0x2E/0x2F`;
+3. `0x0800` -> `0x05`;
+4. no `0x0080` -> `0x01`;
+5. `0x0080` with no 10-byte record -> `0x03`;
+6. with record, `1E930(index) == 0x8000` -> `0x04`, otherwise `0x02`.
 
-### Unexplored cells
+Unexplored cells remain `0xFF` except the encoded `0x0093` floor shortcut and ordinary nonzero cells adjacent in the eight-neighbor set to an explored raw-code-zero cell, which become boundary class `0x01`.
 
-1. `code == 0` remains `0xFF`.
-2. A nonzero code whose `0x25622[code] == 0x0093` takes the `0x2E/0x2F` path.
-3. Otherwise all eight in-bounds neighbors are examined.
-4. If any neighbor has `0x0400` and raw `tile_code == 0`, the current cell becomes class `0x01`.
-5. Otherwise it remains `0xFF`.
+## Dynamic special-cell records
 
-This proves the cache's boundary-reveal rule.
+`1E930` searches runtime group 2 and returns `record[6] << 12`, or `0x8000` when no matching group-2 record exists.
 
-## 10-byte-record state used by the classifier
-
-`1E8C8(column,row)` searches both runtime record groups for a record whose byte `+4` equals `row`:
-
-- first group at `0xCB3C[column]`;
-- then second group at `0xCD3C[column]`.
-
-`1E930(index)` searches the second group only and returns:
+CODE.2 proves for real group-2 records:
 
 ```text
-matching_record.byte[6] << 12
+record +6 == 0    open / passable
+record +6 == 8    closed / blocking
+record +6 1..7    transitional and blocking on the traced path
+record +7         signed animation delta
 ```
 
-or `0x8000` when no matching second-group record exists.
-
-`1E9A0(index)`, used by first-person rendering, searches the first group only and returns:
+Therefore, when a group-2 record exists:
 
 ```text
-matching_record.byte[1] & 0x03
+cache 0x04  fully closed endpoint
+cache 0x02  open or transitional state
 ```
 
-or zero if no record exists.
+No matching group-2 record also yields cache `0x04`, so `0x04` is not globally synonymous with `closed door`.
 
-## Dynamic door state closed
+See `DYNAMIC_CELL_RECORDS.md`.
 
-CODE.2 `20B40..20C0B` proves that second-group record bytes `+6/+7` form an animation state:
+## Connected-map resolver `009B0..00B6B`
+
+For cache classes below `0x20`, the resolver builds orthogonal-neighbor masks for special/wall connectivity and floor adjacency.
 
 ```text
-+6  uint8 position, persistent endpoints 0 and 8
-+7  int8  delta, normally -1 / 0 / +1
+0x01  generic connected wall/boundary via table 0x5FF0
+0x02  0x29/0x2B for aligned door geometry, otherwise wall fallback
+0x03  0x20..0x23 inset result from floor-neighbor direction
+0x04  0x28/0x2A for aligned door geometry, otherwise wall fallback
+0x05  0x33 with opposite floor neighbors, otherwise class-0x01 fallback
 ```
 
-The update loop adds byte `+7` into byte `+6` until the value reaches endpoint 0 or 8, then clears the delta. When no animations remain it normalizes every non-8 value to zero.
+Class `0x03` is inset-capable. Class `0x05` supports the hidden/secret-marker automap path.
 
-The interaction path `20C0C..20CF2` toggles low-two-bit mode 1 as follows:
+## Base SAVE conversion `026E8..02A33`
 
-```text
-position 0 -> delta +1       # toward 8
-nonzero   -> position 8,
-             delta -1       # toward 0
-```
-
-Low-two-bit mode 2 sets delta `-1` only.
-
-Most importantly, traversal/collision code at `0B164..0B18D` calls `1E930` for `0x0080` cells and treats return value zero as nonblocking while any nonzero result is blocking. Therefore:
+Resolved values `0x20..0x33` are converted through the fixed table at `0x6011 + value`; other unresolved values below `0x20` use fallback byte `0xDB`.
 
 ```text
-record[6] == 0    open / passable endpoint
-record[6] == 8    closed / blocking endpoint
-record[6] 1..7    in motion, still blocking on this traversal path
-```
-
-The automap relationship is therefore:
-
-```text
-cache class 0x04  fully closed endpoint when a group-2 record exists
-cache class 0x02  open endpoint or transitional position 0..7
-```
-
-A missing group-2 record also makes `1E930` return `0x8000`, so class `0x04` is not globally synonymous with "closed door" without that qualification.
-
-Across all supplied archive levels, 324 legacy records are diverted into runtime group 2. Of those, **323** start with byte `+6 == 8`, byte `+7 == 0`, and low-two-bit mode 1; one exceptional record starts at zero with mode 0. This archive-wide pattern strongly corroborates the shipped closed/stationary initialization without making it a format constraint.
-
-See `DYNAMIC_CELL_RECORDS.md` and `analyze_dynamic_records.py` for the complete evidence and counts.
-
-## Connected-map resolver: `009B0..00B6B`
-
-Before drawing or exporting a cache value below `0x20`, CODE.2 resolves it using the four orthogonal neighbors. It constructs one mask for neighboring cache values `< 0x20` and another for neighboring floor classes `0x2E/0x2F`.
-
-```text
-class 0x01  generic connected wall/boundary via table 0x5FF0
-class 0x02  emits 0x29 or 0x2B for the two door alignments; otherwise wall fallback
-class 0x03  emits 0x20..0x23 from floor-neighbor direction; otherwise wall/inset fallback
-class 0x04  emits 0x28 or 0x2A for the two door alignments; otherwise wall fallback
-class 0x05  emits 0x33 when opposite floor neighbors align; otherwise class-0x01 fallback
-```
-
-Class `0x03` is the inset-producing special state. Class `0x05` is the hidden/secret-marker state in automap output.
-
-The class-2/class-4 internal distinction records dynamic state, but both aligned variants export to the same horizontal or vertical CP437 door glyph, so the text export does not preserve open/closed state.
-
-## Automap `SAVE` exporter: `026E8..02A33`
-
-The exporter reads `0x1760`, calls `009B0` for cache classes below `0x20`, and converts resolved values `0x20..0x33` through a fixed byte table at `0x6011 + value`. If the resolver returns another value below `0x20`, exporter byte `0x6030` (`0xDB`) is used as the ordinary wall fallback.
-
-```text
-resolved  exported byte
+resolved  output
 0x20      0xDF
 0x21      0xDC
 0x22      0xDD
@@ -172,104 +115,113 @@ resolved  exported byte
 fallback  0xDB
 ```
 
-The published Ravenloft automap study independently identifies the relevant CP437 bytes as:
+Daniel D'Agostino's Ravenloft-engine automap study independently identifies the relevant CP437 bytes as `0xDB` wall, `0xDC/0xDD/0xDE/0xDF` directional insets, `0xFA` floor, `0xB2` secret door, `0xBA` vertical door, and `0xCD` horizontal door:
+
+<https://www.swordsandsoftware.com/ravenloft-automaps.php>
+
+The binary proves the conversion table; the external study supplies those human-readable glyph names.
+
+The official manual states that the automap is line-of-sight/exploration based and displays current map/object information. That is consistent with the reconstructed pipeline but is not used to assign binary offsets.
+
+## Export overlays
+
+The exporter builds three map buffers:
+
+1. base glyphs from cache `0x1760`;
+2. placed-record/object symbols;
+3. automap annotation labels.
+
+In merged output, non-space buffer-2 bytes replace the base, then non-space annotation bytes replace buffer 2. Annotation labels therefore have highest precedence.
+
+### Placed object/item overlay
+
+For each visible/non-`0xFF` cell, exporter `026E8` repeatedly calls `00700`, which in the active level path scans family B (`0x22238`, count `0x258A6`). It reads each matching record's runtime type word `+0x0E` and emits:
 
 ```text
-0xDB wall
-0xDC bottom inset
-0xDD left inset
-0xDE right inset
-0xDF top inset
-0xFA floor
-0xB2 secret door
-0xBA vertical door
-0xCD horizontal door
+type 0x3C..0x41 -> '*' (0x2A)
+other type       -> 0xFE
 ```
 
-Source: <https://www.swordsandsoftware.com/ravenloft-automaps.php>
-
-The binary proves the byte conversion; the external source supplies the human-readable names.
-
-The official manual states that the automap reflects current object state and displays walls, insets, doors, floors, trap doors, rugs, plates, illusionary walls, the party, trees, creatures, NPCs, and furniture. That is consistent with the executable pipeline but does not identify every internal overlay class.
-
-Official manual mirror: <https://www.bestoldgames.net/download/games/ravenloft/ravenloft-dos-manual.pdf>
-
-## Export overlays after the base map
-
-The exporter builds multiple row buffers and overlays additional world/object information after the base cache conversion. One proven overlay walks cell-associated runtime records via `00700`; records whose type word is in `0x3C..0x41` emit ASCII `'*'`, while other records on that path emit `0xFE`.
-
-Those overlay categories remain unnamed until the associated type table is closed.
-
-## Header lookup tables used by rendering
-
-The `0x2A4` header begins at runtime `0x25618`. Five consecutive 64-word tables are behaviorally identified:
+CODE.2 `168C8` loads `OBJECTS.DAT` as `count * 0x41` records. The supplied entries `0x3C..0x41` are:
 
 ```text
-header +0x00A  DGROUP 0x25622  primary resource lookup A[64]
-header +0x08A  DGROUP 0x256A2  alternate resource lookup A[64]
-header +0x10A  DGROUP 0x25722  primary resource lookup B[64]
-header +0x18A  DGROUP 0x257A2  alternate resource lookup B[64]
-header +0x20A  DGROUP 0x25822  automap-render style/control word[64]
+POTION OF EXTRA HEALING
+POTION OF FIRE RESIST
+POTION OF GIANT STRENGTH
+POTION OF HEALING
+POTION OF SPEED
+OIL OF FIERY BURNING
 ```
 
-The first-person renderer indexes the primary/alternate A/B tables by the six-bit cell code. Bit `0x0100` can substitute an adjacent `0x0080` cell's code into that lookup. Bit `0x1000` can add the low two state bits returned by `1E9A0` when that neighbor substitution did not occur.
+Family-B IDs all lie inside the supplied 336-entry object database and other family-B consumers use IDs corresponding to concrete keys/items (for example `0x9B`, BLOOD KEY). This supports family B as a placed object/item record family. Literal `0xFE` remains unnamed until its final font/display semantics are needed.
 
-The automap drawing routine `00B6C` loads the low and high bytes of `0x25822[tile_code]` into renderer globals before drawing a cell, then restores defaults `0xB1/0xB5`.
+### Annotation-label overlay
 
-Across all 32 supplied archive records, all **2,048** entries of `0x25822` are exactly `0xB5B1`. This is a data-set observation, not a format constraint.
-
-## Primary-table runtime normalization: `1EDAC`
-
-`1EDAC` walks the primary resource tables at `0x25622` and `0x25722`. It applies these ten `(old,new)` pairs from object-2 offset `0xBFBC`:
+Routine `23B8` walks entries at `0x5760`:
 
 ```text
-0x15C -> 0x15D
-0x15D -> 0x15E
-0x15E -> 0x15C
-0x0AA -> 0x0AB
-0x0AB -> 0x0AA
-0x11B -> 0x11C
-0x11C -> 0x11D
-0x11D -> 0x11B
-0x101 -> 0x102
-0x102 -> 0x101
+int16 raw_x
+int16 raw_y
+int16 payload_length
+uint8 payload[payload_length]
 ```
 
-For A-table values `0x242..0x244` and `0x245..0x247`, it also derives the next member of the corresponding three-value cycle into alternate table `0x256A2`. A later conditional path can replace alternate value `0x69` with `0x8E` for both A and B planes.
-
-This normalization does **not** rewrite resource `0x0093`.
-
-## `LEV022.DAT` cache-replay boundary
-
-Archive level 22 and the supplied `LEV022.DAT` remain a strong validation pair for storage layout, record expansion, and exploration state, but the serialized LEV cache is not a byte-for-byte replay oracle for this exact CODE.2 `01558` routine.
-
-The direct file contains `0x25622[1] = 0x0093`, while its 450 cell words divide as:
+It maps coordinates using signed truncation toward zero:
 
 ```text
-code 1, unexplored : 40 cells  (33 cache 0xFF, 7 cache 0x01)
-code 1, explored   : 46 cells  (cache 0x2E)
-code 0, unexplored : 97 cells  (cache 0xFF)
-code 0, explored   : 267 cells (cache 0x2E)
+map_x = raw_x / 8
+map_y = raw_y / 5
 ```
 
-Exact `01558` sends every nonzero code whose primary resource is `0x0093` through the `0x2E/0x2F` path regardless of exploration. Replaying the serialized state therefore differs for exactly the 40 unexplored code-1 cells. The writer serializes the header and cell-word array before calling `01558`; `1EDAC` does not rewrite `0x0093`. No speculative repair is made.
+and places the entry's sequential label into the third map buffer. Labels begin `A` through `Z`; later two-letter labels use the exact encoded increment ordering. Routine `2474` walks the same list and emits the matching `label: payload` legend.
 
-See `CACHE_REBUILD_AUDIT.md` and `audit_cache_rebuild.py`.
+The final level tail is therefore the serialized automap annotation list, not generic text. See `AUTOMAP_OVERLAYS.md`.
+
+## Header lookup banks
+
+The `0x2A4` header contains five consecutive 64-word tables:
+
+```text
++0x00A  0x25622 primary resource A[64]
++0x08A  0x256A2 alternate resource A[64]
++0x10A  0x25722 primary resource B[64]
++0x18A  0x257A2 alternate resource B[64]
++0x20A  0x25822 automap style/control[64]
+```
+
+First-person rendering indexes the first four by six-bit cell code. Bit `0x0100` can substitute an adjacent `0x0080` cell's code; bit `0x1000` can add the low two state bits returned by `1E9A0` when no earlier substitution occurred.
+
+Automap drawing loads low/high bytes of `0x25822[tile_code]` into renderer globals and then restores defaults `0xB1/0xB5`. All 2,048 fifth-table entries in the supplied archive are `0xB5B1`; that is an observation, not a format rule.
+
+## Primary-table animation `1EDAC`
+
+`1EDAC` mutates primary resource tables with cycles including:
+
+```text
+0x15C -> 0x15D -> 0x15E -> 0x15C
+0x0AA -> 0x0AB -> 0x0AA
+0x11B -> 0x11C -> 0x11D -> 0x11B
+0x101 -> 0x102 -> 0x101
+```
+
+It also derives companion values for `0x242..0x247` cycles. It does not rewrite `0x0093`.
+
+## LEV022 cache-replay boundary
+
+The supplied `LEV022.DAT` is structurally valid but its saved cache cannot be reproduced by a single exact execution of certified `01558` using the same file's serialized header/cell state. Exactly 40 unexplored code-1 cells conflict with the encoded `0x25622[1] == 0x0093` shortcut; all other deterministic ordinary-cell checks agree.
+
+This is retained as a provenance/runtime-state discrepancy rather than patched by speculation. See `CACHE_REBUILD_AUDIT.md` and `audit_cache_rebuild.py`.
 
 ## Safe implementation boundary
 
-A faithful implementation can now:
+A faithful implementation may now reproduce:
 
-- regenerate the CODE.2 cache according to `01558` from complete live state;
-- distinguish dynamic group-2 endpoint 0 as open/passable and endpoint 8 as closed/blocking;
-- interpret class `0x04` as the fully closed group-2 endpoint when such a record exists, and class `0x02` as the open/transitional branch;
-- resolve cache classes through `009B0`;
-- export the proved base CP437 map bytes through the `026E8` conversion table;
-- preserve both 10-byte record groups and all five 64-word header lookup tables losslessly.
+- live cache generation from complete runtime state;
+- connected wall/inset/door resolution;
+- base CP437 map conversion;
+- dynamic open/closed group-2 behavior;
+- family-B placed-object overlay and its `'*'` range;
+- annotation labels, legend, and overlay precedence;
+- the five 64-word header tables losslessly.
 
-Still unresolved:
-
-- the stronger gameplay meaning of group-2 byte-1 mode 2 and eligibility bits `0x04/0x40`;
-- the exact gameplay identity of `0x0800` outside its proved pass-through and `0xB2` map behavior;
-- exporter overlay types represented by `0xE9`, `0xB0`, `0x09`, `'*'`, and `0xFE`;
-- the provenance reason for the 40-cell `LEV022.DAT` cache discrepancy.
+Still unresolved include the precise gameplay meaning of group-2 mode 2, the broad semantic name for cell flag `0x0800`, literal exporter values `0xE9`, `0xB0`, `0x09`, and `0xFE`, and the provenance reason for the 40-cell `LEV022.DAT` discrepancy.
