@@ -371,6 +371,7 @@ class RavenloftExtractorGui(tk.Tk):
         self.rowconfigure(2, weight=1)
         self.header = ttk.Frame(self, padding=(16, 10))
         self.header.grid(row=0, column=0, sticky="ew")
+        self._padding_widgets.append((self.header, (16, 10)))
         ttk.Label(self.header, text="Ravenloft Asset Extraction Suite", style="Title.TLabel").grid(row=0, column=0, sticky="w")
         self.banner = tk.Canvas(self, height=150, background=BG, highlightthickness=0)
         self.banner.grid(row=1, column=0, sticky="ew")
@@ -378,6 +379,7 @@ class RavenloftExtractorGui(tk.Tk):
 
         self.body = ttk.Frame(self, padding=(14, 10, 14, 10))
         self.body.grid(row=2, column=0, sticky="nsew")
+        self._padding_widgets.append((self.body, (14, 10, 14, 10)))
         self.body.columnconfigure(0, weight=1)
         self.body.rowconfigure(1, weight=1)
         self.body.bind("<Configure>", self._resize_wraps)
@@ -401,15 +403,17 @@ class RavenloftExtractorGui(tk.Tk):
         self._build_support_tab()
         self._build_all_tab()
 
-        footer = ttk.Frame(self, padding=(14, 0, 14, 12))
-        footer.grid(row=3, column=0, sticky="ew")
-        footer.columnconfigure(0, weight=1)
-        ttk.Progressbar(footer, variable=self.progress_value, maximum=100).grid(row=0, column=0, sticky="ew")
-        ttk.Label(footer, textvariable=self.status, style="Subtle.TLabel").grid(row=1, column=0, sticky="ew", pady=(6, 0))
+        self.footer = ttk.Frame(self, padding=(14, 0, 14, 12))
+        self.footer.grid(row=3, column=0, sticky="ew")
+        self._padding_widgets.append((self.footer, (14, 0, 14, 12)))
+        self.footer.columnconfigure(0, weight=1)
+        ttk.Progressbar(self.footer, variable=self.progress_value, maximum=100).grid(row=0, column=0, sticky="ew")
+        ttk.Label(self.footer, textvariable=self.status, style="Subtle.TLabel").grid(row=1, column=0, sticky="ew", pady=(6, 0))
         self.after(10, self._schedule_banner)
 
     def _new_tab(self, title: str) -> ttk.Frame:
         tab = ttk.Frame(self.notebook, padding=14)
+        self._padding_widgets.append((tab, (14,)))
         tab.columnconfigure(0, weight=1)
         tab.rowconfigure(99, weight=1)
         self.notebook.add(tab, text=title)
@@ -427,7 +431,23 @@ class RavenloftExtractorGui(tk.Tk):
         self._wrap_labels.append(label)
 
     def _listbox(self, parent, values: tuple[str, ...], height: int = 6) -> tk.Listbox:
-        box = tk.Listbox(parent, selectmode=tk.EXTENDED, exportselection=False, height=height, background=FIELD, foreground=TEXT, selectbackground=ACCENT, selectforeground="#fff4d4", highlightbackground=BORDER, highlightcolor=GOLD, relief="solid", borderwidth=1, activestyle="none")
+        box = tk.Listbox(
+            parent,
+            selectmode=tk.EXTENDED,
+            exportselection=False,
+            height=max(3, round(height * self._ui_scale)),
+            background=FIELD,
+            foreground=TEXT,
+            selectbackground=ACCENT,
+            selectforeground="#fff4d4",
+            highlightbackground=BORDER,
+            highlightcolor=GOLD,
+            relief="solid",
+            borderwidth=1,
+            activestyle="none",
+            font=self._font_ui,
+        )
+        self._scalable_listboxes.append((box, height))
         for value in values:
             box.insert(tk.END, value)
         box.selection_set(0, tk.END)
