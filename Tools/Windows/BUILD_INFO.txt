@@ -1,0 +1,7 @@
+Ravenloft Asset Extraction Suite
+Target: Windows 11 x64
+Git commit: 7f8908960b7380b3b62b4379db2c9386925ef8df
+Python: Python 3.12.10
+PyInstaller: 6.22.3
+FFmpeg: ffmpeg version 9.0.2-essentials_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers
+Executable SHA-256: 048106a30b8f2f0cf85e6cf370c93582f777a75bcf219ef576314fe000a0f476
