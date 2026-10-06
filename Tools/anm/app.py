@@ -46,8 +46,12 @@ def _self_test() -> int:
         if runtime_paths.bundled_path(required) is None:
             return 20
 
-    banner = runtime_paths.bundled_path("assets/strahd_banner.webp")
-    if banner is None:
+    required_gui_assets = (
+        "assets/strahd_frame_main.png",
+        "assets/strahd_parchment.png",
+        "assets/strahd_title_logo.png",
+    )
+    if any(runtime_paths.bundled_path(path) is None for path in required_gui_assets):
         return 20
     ffmpeg = runtime_paths.bundled_path("ffmpeg.exe" if os.name == "nt" else "ffmpeg")
     if ffmpeg is None:
