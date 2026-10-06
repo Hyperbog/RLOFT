@@ -1,72 +1,109 @@
 # LEVELS.DAT / LEVnnn.DAT semantic reconstruction
 
-Status: **first semantic pass proven from certified CODE.2 plus all supplied LEVELS.DAT records and LEV022.DAT**.
+Status: **container, cell-state, 10-byte control, compact-family expansion, automap-cache, dynamic-door, and annotation-tail semantics substantially reconstructed from certified CODE.2 and supplied DAT files.**
 
-This file deliberately separates proved storage semantics from unresolved gameplay meaning. The immutable CODE.2 bytes remain controlling evidence.
+The immutable CODE.2 bytes remain controlling evidence. Names are assigned only where executable behavior or a directly loaded database proves them.
 
-## CODE.2 evidence used
+## Primary CODE.2 evidence
 
-- Level loader: object-1 logical `181B4..18D8B`
-- Standalone writer: `171FC..17837`
-- Width-derived neighbor table: `170AC..171CE`
-- 10-byte list lookup: `1E8C8..1EA03`
-- Legacy compact conversions: `1866B..18918`
+- level loader: `181B4..18D8B`
+- standalone writer: `171FC..17837`
+- 10-byte lookup helpers: `1E8C8..1EA03`
+- legacy 11->22 conversions: `1866B..18918`
+- dynamic 10-byte records: `20B40..20CF2`
+- 10-byte interaction dispatcher: around `22B09`
+- automap cache rebuild: `01558..01830`
+- automap SAVE/export: `026E8..02A33`
+- annotation lookup/legend: `23B8`, `2474`
 
-## Fixed 0x2A4 header: proved fields
+## Fixed 0x2A4 header
 
-The loader reads the complete 0x2A4 bytes to DGROUP `0x25618` and the writer emits the same 0x2A4-byte region verbatim.
-
-```text
-header +0x001  int16 map_width        -> DGROUP 0x25619
-header +0x003  int16 map_height       -> DGROUP 0x2561B
-header +0x28A  int16 count_258A2
-header +0x28C  int16 count_258A4
-header +0x28E  int16 count_258A6
-header +0x29A  uint16 field_258B2
-header +0x29C  uint8  mode_258B4
-```
-
-`map_width` is the row stride used in every proven linear-cell expression; `map_height` is the row-count bound. CODE.2 repeatedly forms `cell_index = row * map_width + column`.
-
-`mode_258B4` is compared against the active resource/mode value and selects resource-loading behavior. Its higher gameplay name remains unresolved.
-
-For the supplied archive record 22 and `LEV022.DAT`, the 0x2A4 headers differ at only one byte: header `+0x29A` is `00` in the archive baseline and `01` in the standalone save. No semantic name is assigned yet.
-
-## 16-bit per-cell layer
-
-Immediately after the 0x2A4 header, CODE.2 loads `map_width * map_height` 16-bit words row-by-row into DGROUP `0x198E0`. The writer serializes the same row-major word layer.
-
-This is a packed per-cell state/topology word, not a plain unqualified tile ID: consumers independently test or mutate low six bits and flags including `0x0040`, `0x0080`, `0x0400`, `0x0800`, `0x1000`, and others. Individual bit names remain unresolved.
-
-## 10-byte column-list records
-
-The archive stores one width-indexed collection of 10-byte records. Standalone saves store two width-indexed collections separated by byte `CF50`.
-
-Two coordinate bytes are now proved:
+The header is loaded to DGROUP `0x25618` and written verbatim.
 
 ```text
-record +0x04  uint8 row
-record +0x05  uint8 column
++0x001  int16 map_width
++0x003  int16 map_height
++0x00A  uint16 primary_resource_A[64]
++0x08A  uint16 alternate_resource_A[64]
++0x10A  uint16 primary_resource_B[64]
++0x18A  uint16 alternate_resource_B[64]
++0x20A  uint16 automap_style_control[64]
++0x28A  int16 family_A_count   (0x258A2)
++0x28C  int16 family_C_count   (0x258A4)
++0x28E  int16 family_B_count   (0x258A6)
++0x29A  uint16 field_258B2
++0x29C  uint8 mode_258B4
 ```
 
-CODE.2 `1E8C8` selects the pointer array by column and compares record byte `+4` with the requested row. The archive bytes independently confirm the redundant column byte: **all 1,659 archived 10-byte records have byte `+5` equal to the owning column, and every byte `+4` is within the level height**.
+The first four 64-word banks feed first-person resource/render selection and are mutable at runtime. The fifth is consumed by automap rendering. Additional header bytes remain unresolved.
 
-The legacy loader splits the single archive collection into the two runtime collections:
+## 16-bit cell layer
 
-- archive records with byte `+0 == 1` are diverted to the second runtime collection;
-- all other records remain in the first runtime collection;
-- diverted records are bucketed by their byte `+5` column.
+Immediately after the header is a row-major `width * height` array at runtime `0x198E0`.
 
-The standalone writer shows the runtime termination rules rather than storing a permanent trailing sentinel:
+Proved split:
 
-- first list continues while byte `+0 != 0` **or** byte `+1 & 0x10 != 0`;
-- second list continues while byte `+0 != 0`.
+```text
+0x003F  six-bit cell code
+0x0040  transient current visibility/raycast mark
+0x0080  special-cell gate
+0x0100  neighbor/substitution render gate
+0x0200  one-bit render attribute
+0x0400  persistent automap explored/revealed mark
+0x0800  conditional pass-through / special automap behavior
+0x1000  per-cell lookup/render augmentation
+0x2000  unresolved
+0xC000  two-bit render selector
+```
 
-Other proved accesses include byte `+6` of second-list records being converted to a value shifted left by 12 and byte `+7` participating in mutable countdown/state logic. Their gameplay labels are still unresolved.
+See `CELL_WORD.md` for consumer-level proof and archive statistics.
 
-## Legacy 11-byte record coordinate encoding
+## 10-byte cell records
 
-All three archive families use the same compact positional skeleton:
+The archive stores one width-indexed collection. The loader partitions it into:
+
+```text
+runtime group 1 at 0xCB3C : archive kind != 1
+runtime group 2 at 0xCD3C : archive kind == 1
+```
+
+Standalone saves serialize the two groups separately, with active-animation byte `0xCF50` between them.
+
+Proved common fields:
+
+```text
++0x00  uint8 kind
++0x01  uint8 control/state flags
++0x04  uint8 row
++0x05  uint8 column
+```
+
+All 1,659 supplied archive records have byte `+5` equal to the owning column and byte `+4` inside map height.
+
+Important proved byte-1 roles:
+
+```text
+0x03  low-two-bit state/mode field
+0x04  interaction eligibility gate
+0x08  kind-3 geometry inclusion modifier
+0x10  active continuation/render gate
+0x40  interaction suppression gate
+```
+
+Kind-specific proof includes:
+
+- kind 1: dynamic barrier/door record; `+6` position, `+7` signed animation delta;
+- kind 2: persistent two-state interaction; signed `+2` dispatched through common event/script routine;
+- kind 4: conditional interaction/event path; signed `+2` dispatched on successful action and `+6` consumed as a kind-specific accepted-ID field;
+- kind 10: byte `+9` is passed as a resource/mode argument.
+
+For kind 1, endpoint `+6 == 0` is open/passable and `+6 == 8` is closed/blocking. Positions 1..7 are transitional and block on the traced traversal path.
+
+See `CELL_RECORDS.md` and `DYNAMIC_CELL_RECORDS.md`.
+
+## Legacy compact 11-byte families
+
+All three archive families use:
 
 ```text
 +0x00  uint16 type_id
@@ -77,7 +114,7 @@ All three archive families use the same compact positional skeleton:
 +0x0A  uint8  compact_flags
 ```
 
-The loader reconstructs two packed 32-bit coordinates in each 22-byte runtime record:
+The common 22-byte runtime expansion includes:
 
 ```text
 runtime +0x00 = (y_cell << 16) | y_fraction
@@ -87,75 +124,100 @@ runtime +0x0E = type_id
 runtime +0x10 = 0
 ```
 
-The high words are used as signed cell coordinates and the low words as sub-cell fractions. Runtime code also consumes the full dwords, establishing the packed 16.16-style representation.
+Across all supplied levels there are 6,204 compact records and every stored cell coordinate is in bounds.
 
-Across all 32 archive levels there are **6,204 compact 11-byte records**. Every `x_cell` is in `[0,map_width)` and every `y_cell` is in `[0,map_height)`.
+### Family A — count 0x258A2
 
-## Family-specific legacy expansion
+Family A directly indexes the table loaded from `NPCS.DAT`:
 
-### Family A — header count `0x258A2`
+- CODE.2 `16810` loads `NPCS.DAT` as `count * 0x45` bytes to pointer `0x22230`.
+- expansion `186B9` indexes that exact pointer with `type_id * 0x45`.
+- supplied `NPCS.DAT` contains 83 records, and all 1,258 family-A records use IDs `0..82`.
 
-The final audit independently identifies scans bounded by `258A2` as world-record scans, so `world record family` is supported terminology for this table.
+Family A is therefore an NPC/creature type family, in addition to the previously proved runtime world-record behavior.
 
-In addition to the common coordinate/type fields, the loader:
+The expansion also imports metadata dword `NPC[type].+0x35`, maps compact low-three flags to runtime bits 3..5, masks runtime flags with `0x3E39`, and derives runtime `+0x12` through metadata-dependent logic.
 
-- loads runtime dword `+0x08` from the type metadata table at `metadata[type_id*0x45 + 0x35]`;
-- maps the compact flag byte's low three bits into runtime flag bits 3..5;
-- then masks the runtime flag word with `0x3E39`;
-- derives runtime word `+0x12` through type/metadata-dependent logic, with a special type-8 result of `0x37`.
+### Family B — count 0x258A6
 
-The exact gameplay meanings of runtime `+0x08`, `+0x12`, and individual flag bits remain unresolved.
+Family B expands to runtime `0x22238`; its type word is runtime `+0x0E` at `0x22246`. Level 22's 110 archive family-B records reproduce all 110 supplied direct-save records byte-for-byte after the proved expansion.
 
-### Family B — header count `0x258A6`
+The family is strongly tied to the `OBJECTS.DAT` namespace:
 
-The loader writes the common coordinate/type fields, zeros runtime `+0x10`, maps compact low-three flag bits to runtime bits 3..5, and masks the runtime flags with `0xFE3F`.
+- CODE.2 `168C8` loads `OBJECTS.DAT` as `count * 0x41` records to pointer `0x255D8`;
+- supplied `OBJECTS.DAT` contains 336 entries;
+- all 4,324 family-B records use IDs `0..174`;
+- family-B consumers test IDs that map to concrete item/key entries, including `0x9B = BLOOD KEY`;
+- the automap placed-record overlay singles out family-B IDs `0x3C..0x41`, which are six potion/oil entries in the supplied object table.
 
-This mapping has a strong independent sample check: for archive level 22, applying the encoded family-B expansion to its 110 compact records reproduces **all 110 corresponding 22-byte records in LEV022.DAT byte-for-byte**.
+This supports the safe description **placed object/item record family**. The precise distinction from family C is still unresolved.
 
-The supplied pair therefore directly validates the compact-to-expanded field order, not merely the section sizes.
+### Family C — count 0x258A4
 
-### Family C — header count `0x258A4`
+Family C preserves the common coordinates, maps compact type `0x54` to runtime `0x58`, zeros runtime `+0x10`, and masks runtime flags with `0xFE07` without importing compact byte `+0x0A` on this conversion path.
 
-The common coordinate/type mapping is preserved, with two family-specific rules:
+Its supplied type IDs range `0..335`, also within the 336-entry `OBJECTS.DAT` namespace. The exact semantic distinction between family B and family C remains open.
 
-- compact type `0x54` is converted to runtime type `0x58`;
-- runtime flags are masked with `0xFE07` and the compact byte `+0x0A` is not imported by this conversion path.
+## Automap cache and overlays
 
-Runtime `+0x10` is explicitly zeroed. Other untouched/derived words remain unresolved.
+The common-tail `width * height` byte array is a generated automap/display cache. The standalone writer calls `01558` immediately before serializing it.
 
-## Level 22 baseline/save correlation
+The cache encodes explored floor, connected boundary/wall, dynamic door-capable states, inset states, and special hidden/secret-marker behavior. The exporter converts resolved states to the documented CP437 wall/floor/door/inset bytes.
 
-Archive level 22 and `LEV022.DAT` both describe 30x15 cells with counts `1 / 110 / 0` for families A/B/C.
+The SAVE/export path then overlays:
 
-Additional byte-level comparison:
+1. placed family-B records (`'*'` for object IDs `0x3C..0x41`, literal `0xFE` otherwise);
+2. automap annotation labels generated from the final variable-length annotation blob.
+
+Annotation labels have precedence over placed-record symbols in the merged output. See `AUTOMAP.md` and `AUTOMAP_OVERLAYS.md`.
+
+## Common annotation tail
+
+After duplicated dimensions and automap cache, the common tail is:
+
+```text
+uint32 annotation_blob_length
+uint8  annotation_blob[annotation_blob_length]
+```
+
+CODE.2 loads this into a zero-filled `0x800`-byte buffer at `0x5760`. Runtime entries are:
+
+```text
+int16 raw_x
+int16 raw_y
+int16 payload_length
+uint8 payload[payload_length]
+```
+
+A zero-length entry terminates the in-memory list and is not included in the serialized length. The exporter maps raw coordinates with signed `/8` and `/5` scaling, writes sequential map labels, and emits a matching label/text legend.
+
+All supplied archive records and `LEV022.DAT` have annotation length zero.
+
+## Level 22 correlation
+
+Archive record 22 and `LEV022.DAT` are both 30x15 with family counts A/B/C = `1 / 110 / 0`.
 
 ```text
 0x2A4 header:        1 differing byte (+0x29A)
 16-bit cell layer:  626 differing bytes / 900
 0x514 block:         byte-identical
-final byte layer:   320 differing bytes / 450
+final byte cache:   320 differing bytes / 450
 family B expansion: 110 / 110 records byte-identical
 ```
 
-This proves that the fixed 0x514 block is unchanged in this baseline/save pair while both per-cell layers are mutable in actual saved state. It does not prove that the 0x514 block is globally immutable for every gameplay path.
+The final cache contains the separately documented 40-cell replay discrepancy and must not be treated as a fresh exact `01558` oracle for this sample.
 
 ## Current semantic boundary
 
-Proved enough to implement safely now:
+Safe to expose semantically now:
 
-- archive/direct dimensions and counts;
-- row-major 16-bit cell layer;
-- row/column coordinates in 10-byte records;
-- archive-to-runtime separation of the two 10-byte list groups;
-- compact 11-byte type/coordinate/fraction layout;
-- exact common 11->22 coordinate/index conversion;
-- family-specific flag/type conversion rules.
+- dimensions and five header lookup banks;
+- packed cell-code/visibility/exploration fields and behavioral flags;
+- 10-byte record kind, coordinates, proved control bits, and kind-specific fields;
+- dynamic open/closed group-2 state;
+- compact record coordinates/type IDs and family-specific conversion rules;
+- family A as NPC/creature records and family B as placed object/item records;
+- generated automap cache, base export, placed-object overlay, and annotation overlay;
+- annotation-list tail.
 
-Still unresolved and intentionally unnamed:
-
-- most of the 0x2A4 header;
-- individual 16-bit cell-word bits;
-- 10-byte record bytes other than proved accesses;
-- gameplay identities of families B and C;
-- exact contents of the 0x514 block;
-- semantic meaning of the final per-cell byte layer.
+The next major unresolved structure is the fixed `0x514` block, followed by remaining header fields, family-C identity, and still-unnamed control bits/overlay glyph values.
