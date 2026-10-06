@@ -112,6 +112,8 @@ The supplied database uses all category values `0..15`:
 
 CODE.2 explicitly special-cases category 1 and groups categories `2..4`, `5..8`, and `9..11` in several item-presentation/equipment paths. These names are project behavioral/content labels, not claimed original source enum names.
 
+See `EQUIPMENT_SLOTS.md` for the proved equipment routing of categories 3..8 and the separate hand/admissibility layer.
+
 ## Weight: `+0x30`
 
 Weight is stored in half-pound units. Recursive burden logic adds this byte for each item and follows category-1 container contents. Item description divides by two and displays a half-pound suffix for odd values.
@@ -174,14 +176,23 @@ Do not merge `+0x32` and `+0x37` into one serialized `is_magic` field.
 
 ## Packed attack profile: `+0x35`
 
-CODE.2 proves at least:
+CODE.2 now supports the tighter behavioral split:
 
 ```text
-bits 0..1  attack_mode
+bits 0..1  hand_pair_class
 bits 2..5  weapon_speed_factor
+bits 6..15 preserved; zero in the supplied database
 ```
 
-The speed factor feeds attack timing. The low two bits participate in weapon-mode/compatibility behavior and remain behaviorally named until that mode enum is fully closed. Bits above bit 5 are zero in the supplied table but must be preserved for arbitrary inputs.
+The speed factor feeds attack timing. `23FC4..24A5D` reads the low two bits while arbitrating the proved hand slots 14/15.
+
+Hand-pair class `2` is **paired-hand-exclusive**: when a qualifying hand item has class 2, CODE.2 invalidates use of the opposite hand. The seven supplied class-2 definitions are QUARTERSTAFF (three physical definitions), TWO-HANDED SWORD, HALBERD, COMPOSITE BOW, and JAVELIN OF LIGHTNING.
+
+Because the class includes ranged/thrown items as well as obvious two-handed melee weapons, `paired_hand_exclusive` is safer than a universal `two_handed` label.
+
+Classes 0 and 1 are pairable compatibility classes subject to actor roles, item-specific predicates, and additional weight arbitration. Their exact original enum names remain unresolved.
+
+See `ATTACK_PROFILE.md` and `analyze_attack_profile.py`.
 
 ## Damage profiles: `+0x38..+0x3D`
 
@@ -231,6 +242,7 @@ scene_influence_step nonzero       0
 unresolved +0x2C nonzero           0
 intrinsic_magic_marker values      0 or 1
 container state indexes            62 unique / 62
+hand_pair_class                  311 / 18 / 7 / 0
 nonzero range records              17
 ```
 
@@ -242,8 +254,8 @@ A faithful reader/editor may expose the canonical fields above while preserving 
 - retain separate intrinsic-magic and numerical-enchantment fields;
 - expose `scene_influence_step` using its exact propagation behavior even though shipped values are zero;
 - preserve `+0x2C` raw;
-- keep `attack_mode` behavioral until its exact reusable enum is closed;
+- expose attack-profile low bits as `hand_pair_class`, with class 2 named `paired_hand_exclusive` and classes 0/1 left numeric;
 - do not infer range units;
 - retain empty-name records.
 
-`inspect_objects.py` is the lossless parser/encoder. `analyze_categories.py` and `analyze_render_aux.py` provide corpus validation.
+`inspect_objects.py` is the lossless parser/encoder. `analyze_categories.py`, `analyze_render_aux.py`, `analyze_equipment_slots.py`, and `analyze_attack_profile.py` provide corpus validation.
