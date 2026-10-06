@@ -1,120 +1,130 @@
-# SAVE.DAT character post-inventory state (`+0x072..+0x247`)
+# SAVE.DAT character post-inventory state (`+0x072..+0x1A5`)
 
-Status: **active executable reconstruction; spell matrices, item-identification metadata, and the timed-effect flag/timer core are now structurally certified.**
+Status: **executable reconstruction. Both spell matrices, spell-UI persistence bytes, item-identification metadata, a reversible Strength effect modifier, and the primary timed-effect core are certified.**
 
-This note isolates the 470 bytes after `item[21]` in each serialized `0x248` character image. Sparse quick-start data must not be mistaken for padding.
-
-## Dual spell memorization/preparation matrices
+## Dual spell preparation matrices
 
 ```text
-matrix A: runtime 0x2194A..0x21999 = record +0x072..+0x0C1
-matrix B: runtime 0x2199A..0x219E9 = record +0x0C2..+0x111
-matrix byte = base + spell_level_index * 10 + spell_entry
+matrix A: +0x072..+0x0C1 = runtime 0x2194A..0x21999
+matrix B: +0x0C2..+0x111 = runtime 0x2199A..0x219E9
+cell = matrix + bank*10 + entry
 ```
 
-Both are 8 x 10 packed cells. High nibble is currently ready/memorized count; low nibble is selected/planned count; low nibble `0xF` is unavailable. Matrix A is the scribeable spellbook family. Matrix B is a distinct spell family whose display-family name remains conservative pending `T` resource decoding.
+Both are 8 x 10 packed cells. High nibble is ready/current count; low nibble is selected/planned count; low nibble `0xF` means unavailable. Matrix A is the scribeable spellbook family; matrix B is the distinct second casting family.
 
-## Executable-accessed dword at `+0x12F..+0x132`
+## `+0x112..+0x12A`
 
-Runtime `0x21A07` maps to record `+0x12F`. One path writes a dword there and adds its low byte to the certified Dexterity-related current/effective byte at `+0x3D`; a corresponding path subtracts that low byte. The full dword remains unnamed because fixture values use upper bytes while the low byte is zero.
+This 25-byte region remains persistent serialized state with no single safe semantic partition yet. Preserve it losslessly.
 
-## Item known/identified-state bitset at `+0x133..+0x136`
+## `+0x12B..+0x12E`: reversible Strength modifier for primary effect index 12
 
-Runtime `0x21A0B` is a 32-bit bitset whose low 21 bits map one-for-one to `item[0..20]`:
+Runtime `0x21A03` maps to record `+0x12B`.
 
-```text
-bit N <-> item[N], N = 0..20
-```
+Producer physical `0x458B9..0x45940` supplies the decisive linkage:
 
-CODE.2 helpers read/write individual bits, inventory transfers move the bit with the item, initialization clears the dword, a bulk action marks every occupied slot, and the inventory renderer consumes the bit beside the item ID. This certifies persistent per-item **known/identified state**.
+- it sets primary effect bit 12 (`0x00001000`) by ORing `0x10` into byte runtime `0x21A13`;
+- it computes and stores the corresponding effect deadline at runtime `0x21A46`, which is `+0x13E + 12*4`;
+- it computes a positive Strength adjustment from character state;
+- it calls the certified Strength-adjustment helper `0x4CF50`;
+- it stores that helper's actual returned adjustment in runtime dword `0x21A03` / record `+0x12B`.
 
-Native code must move the corresponding bit when an item changes slots and clear it when a slot becomes empty. Do not derive identification state from OBJECTS.DAT.
+Expiration helper physical `0x43799..0x437AF`, reached for the matching primary effect index, reads `0x21A03`, negates it, and passes it back to `0x4CF50`, reversing the Strength change.
 
-## Class/casting capability selector at `+0x139`
-
-Runtime `0x21A11` is initialized from class-related bytes and used as a whole-byte selector/mask by spell UI/setup paths. Setup code ORs `0x04` for class code 1, `0x01` for class code 3, and `0x02` when any class byte equals code 4. Exact class names remain tied to the separate class-ID reconstruction.
-
-## Timed character-effect flags at `+0x13A..+0x13D`
-
-Runtime `0x21A12` is a 32-bit effect/state bitset. Executable expiry processing now gives the field a stronger structural identity than the earlier generic `state/flags` label.
-
-### 26 effect bits have parallel expiration dwords
-
-Physical `0x43957..0x43988` performs the following for each active character:
-
-1. if the dword at `0x21A12` is zero, skip effect-expiration work;
-2. iterate effect index `0..25`;
-3. inspect a dword beginning at runtime `0x21A16 + effect_index*4`;
-4. when that dword is positive and the current game-time value has reached/passed it, call physical `0x43640(character, effect_index)`.
-
-The timer base maps exactly to serialized record offset `+0x13E`:
-
-```text
-0x21A16 - 0x218D8 = 0x13E
-```
-
-and the loop covers 26 dwords:
-
-```text
-record +0x13E + effect_index*4
-for effect_index = 0..25
-```
-
-Thus `+0x13E..+0x1A5` is a certified array of **26 per-effect expiration/time dwords** aligned with bits 0..25 of the `+0x13A` effect bitset.
-
-### Expiration helper
-
-Physical `0x43640` computes `mask = 1 << effect_index` and XORs that mask into `0x21A12`. It is reached by the expiration scanner only for an active character/effect timer that has matured. The routine also performs effect-specific follow-up/resource-message work indexed by the same effect number.
-
-This establishes the core legacy model:
+Thus the safe semantic identity is:
 
 ```c
-uint32_t active_effect_bits;       // +0x13A
-uint32_t effect_expiry[26];        // +0x13E .. +0x1A5
-
-// bit i and effect_expiry[i] describe the same effect slot
+int32_t primary_effect_12_strength_adjustment; // +0x12B
 ```
 
-The exact time unit/epoch is still being traced; preserve raw dword values rather than converting them prematurely.
+The player-facing spell/effect name remains pending the primary-effect resource catalogue. Do not substitute a guessed AD&D spell name.
 
-### Confirmed masks and consumers
+## `+0x12F..+0x132`: reversible Dexterity-related auxiliary dword
+
+Runtime `0x21A07` maps to record `+0x12F`. One transition adds its low byte to certified Dexterity current/effective `+0x3D`; companion expiration/cleanup physical `0x437B0` subtracts the same low byte. Preserve the full dword because fixture values use upper bytes even where consumers operate on the low byte.
+
+## `+0x133..+0x136`: item known/identified-state bits
+
+Runtime `0x21A0B` is a 32-bit bitset whose low 21 bits map one-for-one to `item[0..20]`.
+
+CODE.2 reads/writes selected slot bits, moves the bit with an inventory item, clears it with the slot, can mark all occupied items, and passes the state to item rendering. Native code must preserve this as item-instance state.
+
+## `+0x137`: persistent selected spell bank/level index
+
+Runtime byte `0x21A0F` is persistent spell-interface state, not an unknown gameplay flag.
+
+Evidence:
+
+- physical `0x5E32E..0x5E34D` reads `+0x137` and passes it with the selected character to spell-list expansion routine `0x5E0E4`;
+- `0x5E0E4` multiplies that argument by ten and uses it as the bank offset into **both** persistent 8x10 spell matrices;
+- physical `0x5E413..0x5E451` derives a new bank from spell-interface selection coordinates, resets `+0x138`, writes the derived byte to `+0x137`, and rebuilds the spell list.
+
+Because matrix bank `0` corresponds to displayed spell level 1, the portable interpretation is:
+
+```c
+uint8_t selected_spell_bank; // +0x137, zero-based spell-level bank
+```
+
+## `+0x138`: persistent six-row spell-list scroll offset
+
+Runtime byte `0x21A10` is the list offset used by the spell interface.
+
+Physical `0x5DF89..0x5E0AB` loads `+0x137` and `+0x138`, renders the selected bank, and displays at most six expanded spell/action rows. Navigation physical `0x5E3A4..0x5E3F4` changes `+0x138` by exactly six when paging through a list. Selecting a new bank at `0x5E43D` resets it to zero.
+
+Thus:
+
+```c
+uint8_t spell_list_scroll; // +0x138; paging offset, stepped by 6
+```
+
+This is persistent UI/navigation state embedded in the character image.
+
+## `+0x139`: class/casting capability selector
+
+Runtime `0x21A11` is initialized from class-related bytes and used as a selector/mask by spell setup and UI paths. Setup ORs `0x04` for class code 1, `0x01` for class code 3, and `0x02` when any class byte equals code 4. Exact class labels remain governed by the separate class-ID reconstruction.
+
+## `+0x13A..+0x1A5`: primary timed effects
+
+```c
+uint32_t primary_effect_bits;       // +0x13A
+uint32_t primary_effect_expiry[26]; // +0x13E..+0x1A5
+```
+
+Bit `i` corresponds to timer `i`. Expiration processing iterates indexes `0..25`, compares nonzero positive deadlines against current game time, and dispatches effect-specific cleanup through the same index.
+
+Expiration-message resources map contiguously:
 
 ```text
-0x00000001  bit 0; tested and explicitly cleared
-0x00000002  bit 1; explicitly set; included in 0x0402 test
-0x00000008  bit 3; affects a derived combat calculation
-0x00000010  bit 4; included in dword test 0x01000010
-0x00000020  bit 5; explicitly set/tested/cleared
-0x00000040  bit 6; tested; one path invokes expiration/helper index 6
-0x00000100  bit 8; affects the same derived calculation
-0x00000200  bit 9; cleared together with bit 5 by WORD AND 0xFDDF
-0x00000400  bit 10; included in WORD test 0x0402
-0x01000000  bit 24; included in dword test 0x01000010
+effect 0  -> T[588]
+...
+effect 25 -> T[613]
 ```
 
-At physical `0x47907..0x47938`, bits 3, 5, 6, and 8 alter a common derived calculation; bit 6 additionally triggers helper `0x43640` with effect index 6. This further confirms that the dword is an effect registry rather than miscellaneous unrelated flags.
+The exact player-facing identities should be assigned from those resources and producer traces rather than AD&D inference.
 
-Physical `0x43B91` clears bits `0x20` and `0x0200` together while also zeroing associated character auxiliary dwords. Physical `0x4949C` separately walks the party, notices bit `0x20`, marks the character UI dirty, and clears that bit. These behaviors are retained as executable facts without assigning spell/effect names prematurely.
-
-## Reconstruction rule
-
-A native decoder should model at least:
+## Current reconstruction map
 
 ```text
-+0x072..+0x0C1   spell-preparation matrix A: 8 x 10 packed cells
-+0x0C2..+0x111   spell-preparation matrix B: 8 x 10 packed cells
-+0x112..+0x12E   unresolved
-+0x12F..+0x132   executable-accessed auxiliary dword
-+0x133..+0x136   uint32 item known/identified-state bitset; bits 0..20 -> item[0..20]
-+0x137..+0x138   unresolved bytes
-+0x139           class/casting capability selector/mask
-+0x13A..+0x13D   uint32 active timed-effect bitset; bits 0..25 paired with timer slots
-+0x13E..+0x1A5   uint32 effect_expiry[26]
-+0x1A6..+0x247   unresolved effect/auxiliary state
++0x072..+0x0C1   spell matrix A, 8 x 10 packed cells
++0x0C2..+0x111   spell matrix B, 8 x 10 packed cells
++0x112..+0x12A   unresolved persistent state
++0x12B..+0x12E   reversible Strength adjustment for primary effect 12
++0x12F..+0x132   reversible Dexterity-related auxiliary dword
++0x133..+0x136   item known/identified bits
++0x137           selected spell bank / zero-based spell level
++0x138           spell-list scroll offset, six-row paging
++0x139           class/casting capability selector
++0x13A..+0x13D   primary active-effect bits
++0x13E..+0x1A5   primary effect expiry[26]
 ```
 
-Preserve all unresolved bytes and raw timer values losslessly.
+Later state beginning at `+0x1A6` is documented in `TIMED_SLOTS.md` and `CHARACTER_TAIL.md`.
+
+## Native reconstruction rule
+
+Do not discard `+0x137/+0x138` as incidental UI bytes: the original SAVE persists them as part of each character record. A compatibility loader should retain them, even if a modern UI elects not to use the original navigation model.
+
+Preserve `+0x112..+0x12A` and all upper bytes of auxiliary dwords exactly until their remaining consumers are certified.
 
 ## Next target
 
-Trace the effect-specific producers and resource-message IDs for effect indexes 0..25. This should assign canonical gameplay names to individual `+0x13A` bits while simultaneously determining the time representation stored in `effect_expiry[26]`.
+Continue backward through `+0x112..+0x12A`, then use the primary-effect producer/expiration linkage to name effect index 12 and the neighboring reversible Dexterity effect without speculation.
