@@ -1,10 +1,10 @@
 # SAVE.DAT character post-inventory state (`+0x072..+0x247`)
 
-Status: **active executable reconstruction; an 80-byte packed-nibble array at `+0x0C2..+0x111`, an executable-accessed dword at `+0x12F`, and a 32-bit flag field at `+0x13A` are now structurally certified.**
+Status: **active executable reconstruction; the 80-byte matrix at `+0x0C2..+0x111` is now identified as persistent spell-preparation/memorization state, alongside an executable-accessed dword at `+0x12F` and a 32-bit flag field at `+0x13A`.**
 
 This note isolates the 470 bytes after `item[21]` in each serialized `0x248` character image. Sparse quick-start data must not be mistaken for padding.
 
-## Certified packed-nibble array at `+0x0C2..+0x111`
+## Spell-preparation/memorization matrix at `+0x0C2..+0x111`
 
 Runtime address `0x2199A` maps to record offset `+0x0C2`:
 
@@ -22,7 +22,9 @@ extent        = +0x0C2..+0x111 inclusive
 runtime       = 0x2199A..0x219E9
 ```
 
-Each byte contains two independently manipulated 4-bit values. Consumers extract and rewrite the low/high nibbles with `0x0F` and `0xF0`, compare nibble values with `0x0F`, preserve one nibble while replacing the other, and sometimes replace the entire byte with `0x00` or `0xFF`.
+The executable's own nearby UI/text corpus identifies this subsystem as spell memorization/preparation: the same CODE.2 image contains the `memorize` command text and spell-casting/scribing messages, while the matrix routines initialize class/level-dependent banks, expose paired nibble counts, and consume one high-nibble unit on successful use. This combination is sufficient to promote the matrix from generic packed state to **persistent spell-preparation/memorization state**. Exact AD&D terminology for each nibble remains narrower than the subsystem identification and is retained conservatively below.
+
+Each byte contains two independently manipulated 4-bit quantities. Consumers extract and rewrite the low/high nibbles with `0x0F` and `0xF0`, compare nibble values with `0x0F`, preserve one nibble while replacing the other, and sometimes replace the entire byte with `0x00` or `0xFF`.
 
 The boundary proof is executable, not fixture-derived. In the loop at physical `0x3EBFA..0x3ECF9`, the outer index executes exactly eight times (`ebx < 8`) and advances the array offset by `0x0A` after each bank. The related initialization/update loops at `0x3ED2C..0x3EDBE` and `0x3EDDB..0x3EE8F` use the same ten-byte bank stride and eight-bank termination. Direct element access at `0x3F407..0x3F41E` computes `bank * 10` before adding an entry index.
 
@@ -30,21 +32,18 @@ The inner loops use a per-bank count rather than blindly touching all ten entrie
 
 ### Certified nibble behavior
 
-The two nibbles are not merely packed flags: CODE.2 treats them as small **counters/state quantities**.
+The two nibbles are counters/state values rather than independent boolean flags:
 
-At physical `0x3F3F4..0x3F53D`, direct `(character, bank, entry)` access first rejects a low nibble of `0xF` and then rejects a zero high nibble. After the associated action path succeeds, `0x3F4BA..0x3F4DA` decrements the **high nibble by exactly one**, masks it back to four bits, preserves the low nibble, and writes the packed byte back. This establishes the high nibble as a consumable/remaining quantity for the selected entry.
+- the high nibble is tested for zero before the associated spell-use path can proceed;
+- successful use decrements that high nibble by exactly one while preserving the low nibble;
+- low nibble `0xF` is treated as an unavailable/sentinel state in the examined matrix-management paths;
+- normalization loops compare the two nibble quantities and can clamp/rewrite one against the other;
+- per-bank limits from executable tables constrain aggregate values;
+- initialization/update routines are class/level dependent, with distinct paths reached for different stored class codes.
 
-The normalization family at `0x3EBFA..0x3ECF9` compares high and low nibbles, accumulates them independently, clamps them against per-bank limits, and rewrites one nibble while preserving the other. The initialization/update families at `0x3ED2C..0x3EE8F` use `0xF` as an unavailable/sentinel low-nibble state and convert selected entries between `00`, `11`, and `FF`-style states according to class/level-driven tables.
+This establishes a memorization/preparation accounting model. It does **not** yet justify naming one nibble `memorized`, `available`, `selected`, or `capacity` in the canonical layout: those exact roles still require tracing the UI columns and cast caller argument flow.
 
-Therefore a native reconstruction must preserve the two counters separately even though they share one byte. The exact gameplay names of the two counters are still withheld: the surrounding family is strongly spell-system-shaped, but the canonical SAVE documentation will not call these memorized/prepared spell counts until the table identities and action caller are closed independently.
-
-### Character-class initialization cross-reference
-
-The packed-array initialization helpers are invoked from character setup paths. For example, physical `0x4F8AB` calls the `0x3EDC8` initializer when the first stored class-code byte equals `1`; physical `0x4F915`, `0x4F93F`, and `0x4F969` call the `0x3ED08` initializer for class code `3` in any of the three class-code positions. These calls pass the character index and a class-related word from the character record.
-
-This proves that availability within the 8×10 matrix is class/level dependent. It does not by itself assign AD&D class names to numeric class codes 1 and 3.
-
-### Fixture consequence: `+0x10A` is no longer a separate unknown anchor
+### Fixture consequence: `+0x10A` is an ordinary matrix element
 
 `+0x10A` lies inside this certified array:
 
@@ -54,7 +53,7 @@ This proves that availability within the 8×10 matrix is class/level dependent. 
 therefore +0x10A = bank 7, entry 2
 ```
 
-EHLIANNA's `+0x10A = 0x0F` is therefore an ordinary packed-array element, not evidence of a separate field. ANVIL DAWN's `+0x0C2 = 0x11` is bank 0, entry 0 with both nibbles equal to 1.
+EHLIANNA's `+0x10A = 0x0F` is therefore an ordinary spell-matrix element, not evidence of a separate field. ANVIL DAWN's `+0x0C2 = 0x11` is bank 0, entry 0 with both nibbles equal to 1.
 
 ## Executable-accessed dword at `+0x12F..+0x132`
 
@@ -110,13 +109,13 @@ The two populated active characters are sparse:
 
 ```text
 EHLIANNA
-  packed bank 7, entry 2 (+0x10A) = 0x0F
+  spell matrix bank 7, entry 2 (+0x10A) = 0x0F
   +0x12F dword = 0x00020000
   +0x13A flags = 0x00000000
 
 ANVIL DAWN
-  packed bank 0, entry 0 (+0x0C2) = 0x11
-  packed bank 7, entry 2 (+0x10A) = 0x0F
+  spell matrix bank 0, entry 0 (+0x0C2) = 0x11
+  spell matrix bank 7, entry 2 (+0x10A) = 0x0F
   +0x12F dword = 0x00010000
   +0x13A flags = 0x00000000
 ```
@@ -125,12 +124,12 @@ All ten saved-roster records in this fixture contain only `0x00`/`0xFF` values t
 
 ## Reconstruction rule
 
-Do not collapse `+0x072..+0x247` into reserved padding. At minimum it contains the certified 80-byte packed-nibble array, the executable-accessed dword at `+0x12F`, and the 32-bit flags word at `+0x13A`. A native decoder must preserve the entire tail losslessly until every substructure is decoded.
+Do not collapse `+0x072..+0x247` into reserved padding. At minimum it contains the certified 80-byte spell-preparation/memorization matrix, the executable-accessed dword at `+0x12F`, and the 32-bit flags word at `+0x13A`. A native decoder must preserve the entire tail losslessly until every substructure is decoded.
 
 ## Tool support
 
-`tools/analyze_character_records.py` reports the packed region as eight ten-byte banks, decodes every byte into high/low nibbles, reports non-fill bytes elsewhere in the post-inventory range, and decodes the dwords at `+0x12F` and `+0x13A` as little-endian values.
+`tools/analyze_character_records.py` reports the spell matrix as eight ten-byte banks, decodes every byte into high/low nibbles, reports non-fill bytes elsewhere in the post-inventory range, and decodes the dwords at `+0x12F` and `+0x13A` as little-endian values.
 
 ## Next target
 
-Close the table identities and caller semantics behind the packed-array action path so the two nibble counters can receive gameplay names without inference. Then finish the upper-byte semantics of `+0x12F`, map individual `+0x13A` flag bits to gameplay effects, and continue outward into the unresolved regions `+0x072..+0x0C1`, `+0x112..+0x12E`, `+0x133..+0x139`, and `+0x13E..+0x247`.
+Trace the spell UI columns and cast caller argument flow to assign exact meanings to the high and low nibbles, then finish the upper-byte semantics of `+0x12F` and map individual `+0x13A` flag bits to gameplay effects. Continue outward into unresolved regions `+0x072..+0x0C1`, `+0x112..+0x12E`, `+0x133..+0x139`, and `+0x13E..+0x247`.
