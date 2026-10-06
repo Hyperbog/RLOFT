@@ -23,7 +23,7 @@ The project's existing preservation rule remains controlling: shipped Ravenloft 
 - `README.BAT` — displays `README.TXT` through `MORE`.
 - `PATCHES.INI` — UltraSound `LOADPATS.EXE` patch-selection table for AIL 32.
 - `README.TXT` — shipped release/readme documentation.
-- `SAMPLE.AD` — presently unclassified binary/data sample; duplicate copies elsewhere in the project should not create a second workstream.
+- `SAMPLE.AD` — **confirmed Miles AIL 2.x YM3812/OPL2 Global Timbre Library (GTL)**. Its canonical resource-format reconstruction lives at `Resources/MISC/SAMPLE.AD/`; duplicate runtime/media copies are the same middleware asset and do not create a second workstream.
 
 ### Audio DLLs
 18 supplied DLLs have been identified as 32-bit Intel LX-format DLLs. Embedded copyright/device strings identify the family as Miles Design audio drivers (with the two GUS drivers additionally crediting Advanced Gravis and Forte Technologies). These are initially treated as third-party runtime dependencies, not DreamForge gameplay code.
@@ -31,6 +31,8 @@ The project's existing preservation rule remains controlling: shipped Ravenloft 
 Driver set:
 
 `A32ADLIB.DLL`, `A32ALGDG.DLL`, `A32ALGFM.DLL`, `A32ARDG.DLL`, `A32ARXM.DLL`, `A32MT32.DLL`, `A32PASDG.DLL`, `A32PASFM.DLL`, `A32PASOP.DLL`, `A32SBDG.DLL`, `A32SBFM.DLL`, `A32SBPDG.DLL`, `A32SP1FM.DLL`, `A32SP2FM.DLL`, `A32SPKR.DLL`, `A32TANDY.DLL`, `GUSDIG32.DLL`, `GUSMID32.DLL`.
+
+The Resources track has additionally confirmed that shipped `GM1.BNK` / `GM2.BNK` are Sierra Semiconductor ARIA General MIDI banks associated with the ARIA XMIDI path; Ravenloft's corresponding 32-bit driver is `A32ARXM.DLL`. Their inner bank grammar remains a Runtime/driver-side question rather than a DreamForge resource-format requirement.
 
 ## Confirmed initial findings
 
@@ -46,7 +48,7 @@ Driver set:
 2. **SINSTALL.EXE** — recover `SOUND.CFG` format and exact driver-selection/configuration contract needed for faithful compatibility.
 3. **INSTALL.EXE** — reconstruct installation/file-layout behavior where it contributes preservation evidence.
 4. **LOADPATS.EXE** — unpack and document its Gravis/AIL contract; decompile only to the depth needed for faithful runtime behavior.
-5. **Audio DLLs** — document format, driver identity, interface/exports and call contract. Full source-level decompilation is deferred unless Ravenloft depends on undocumented behavior that a source port must reproduce.
+5. **Audio DLLs** — document format, driver identity, interface/exports and call contract. Full source-level decompilation is deferred unless Ravenloft depends on undocumented behavior that a source port must reproduce. `A32ARXM.DLL` is the specific future source of truth if byte-level GM1/GM2 ARIA bank semantics become necessary.
 6. **BAT/INI/TXT files** — preserve verbatim and annotate; no decompilation is required.
 
 ## Next checkpoint
