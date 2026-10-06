@@ -39,7 +39,7 @@ The executable dispatch at `2EDDA..2EEF7`, using the seven-entry table at `2EC98
 | 3 | `286C4` | 172 | length-prefixed `FORM` / `XDIR` XMIDI sequence data |
 | 4 | `28020` | 1,005 | length-prefixed Creative Voice File sampled-sound data |
 | 5 | `374E0` | 0 | executable-supported structured resource; no supplied instance, semantics unresolved |
-| 6 | `37590` | 1,319 | LZSS-compressed fixed-size renderer raster buffer |
+| 6 | `37590` | 1,319 | LZSS-compressed first-person column-major texture raster |
 | 7 | `37590` | 8,362 | LZSS-compressed structured renderer geometry/data record |
 
 Types 6 and 7 intentionally share the same generic decompression loader; their higher-level interpretation comes from their archive/consumer paths rather than a different on-disk compression wrapper.
@@ -131,7 +131,7 @@ CODE.2 `28020` reads the dword length, allocates `length + 4`, stores the length
 - bytes physically stored after the length: `5,737 (0x1669)`
 - discrepancy: exactly `65,536 (0x10000)` bytes
 
-The executable reads the field as a full dword, so this discrepancy is preserved as a **shipped data anomaly**, not silently normalized to a 16-bit length. Its runtime sequence requires separate stream-boundary analysis.
+The executable reads the field as a full dword, so this discrepancy is preserved as a **shipped data anomaly**, not silently normalized to a 16-bit length. Its runtime consequence requires separate stream-boundary analysis.
 
 ## Types 6 and 7: shared LZSS wrapper
 
@@ -161,9 +161,20 @@ Exhaustive validation:
 - all 1,319 type-6 streams decode to the declared size and consume their compressed payload exactly;
 - all 8,362 type-7 streams decode to the declared size and consume their compressed payload exactly.
 
-### Type 6 consumer evidence
+### Type 6: column-major first-person surface textures
 
-The supplied type-6 records decode only to 4,096 bytes (134 resources) or 8,192 bytes (1,185 resources). CODE.2 renderer paths including `33651..33664`, `336B7..336CA`, `33739..3374C`, and `33788..3379B` request archive `4`, call resource accessor `2F29C`, skip the leading decoded-size word, and retain/index the resulting buffer in renderer state. The safe current classification is therefore **renderer raster buffer**. Exact logical dimensions/tiling remain unresolved; no `64x64`, `128x64`, or similar shape is asserted merely from byte count.
+The supplied type-6 records decode only to 4,096 bytes (134 resources) or 8,192 bytes (1,185 resources). The exact layout is now executable-backed rather than inferred from those byte counts.
+
+CODE.2 `32F93..32FA0` computes renderer record field `+0x10` as `(0x255E8 >> 4) & 0x0FC0`, so the selector advances only in `0x40` units. Loader paths `33647..33664` and `336AF..336D4` double that field and add it to the archive-4 decoded-body pointer, producing an exact `0x80` / 128-byte source-column stride.
+
+Sampler `338C8` independently proves that each selected block is one vertical source column: it computes fixed-point step `0x800000 / output_height`, where `0x800000 == 128 << 16`, reads one source byte per resampled scanline, subtracts a color/shading bias, writes it to VGA memory, and advances destination by `0x50` / 80 bytes (one 320-pixel planar scanline).
+
+Therefore the supplied decoded bodies are exactly:
+
+- 4,096 bytes = **32 columns x 128 texels**;
+- 8,192 bytes = **64 columns x 128 texels**.
+
+Storage is column-major: each contiguous 128-byte block is a complete vertical texture column. The safe project classification is **column-major first-person surface/wall texture raster**. See `TYPE6_RENDERER.md` for the full instruction-level evidence.
 
 ### Type 7 consumer evidence
 
@@ -183,11 +194,25 @@ Across all 8,362 supplied type-7 bodies, `word2 >= word1` and `word4 >= word3`. 
 
 There are 77 non-empty entries that do not begin with `EH`:
 
-- `RES1`: 2 records, each four bytes `60 00 00 00`;
-- `RES9`: 38 records;
-- `RES12`: 37 records.
+- `RES1:381` and `RES1:427`: four-byte `60 00 00 00` sentinels, still semantically unresolved;
+- `RES9:517..554`: 38 executable-proved interaction/display wordcode containers;
+- `RES12:370..406`: 37 ID-aligned alternate wordcode-shaped containers whose selection by this executable is not yet proven.
 
-They are preserved as valid archive entries and remain a separate unresolved family. The generic resource loader has an explicit non-`EH` error/reporting path, so these records must not be forced through the typed EH grammar. Their consumers will be traced separately.
+All 75 larger records use the exact serialized shape:
+
+```text
+uint16 word_count
+uint16 program_words[word_count]
+uint16 zero_bank[word_count]
+```
+
+Every supplied `zero_bank` word is zero. CODE.2 `13F70` bypasses the normal `EH` loader, opens archive 9 directly, seeks entry `0x258CC + 0x7FCC + program_id`, reads the leading count and exactly `count * 2` bytes of `program_words`, and does not read the zero bank. The supplied `INIT` loads `0x258CC = 103` from `+0x1E` and `0x7FCC = 414` from `+0x22`, so the runtime bank begins exactly at `103 + 414 = RES9:517` and covers program IDs 0..37.
+
+CODE.2 `15534` dispatches wordcode opcodes `0..0x29` through a 42-entry table. Proven operations include archive-9 drawing, absolute branches, text-base changes, sound playback, music transitions, interpreter state-bit operations, and cinematic invocation. The safe classification is therefore **interaction/display wordcode** rather than malformed resources.
+
+`RES12:370..406` has the identical count/program/zero-bank shape, and all 37 shared ordinal slots have the same early opcode-`0x19` text-base operand as the corresponding `RES9` programs. No equivalent raw archive-12 loader has yet been proven, so it remains an ID-aligned alternate bank rather than an asserted active runtime bank.
+
+See `NON_EH.md` for the detailed loader/interpreter evidence.
 
 ## Validation status
 
@@ -206,9 +231,9 @@ They are preserved as valid archive entries and remain a separate unresolved fam
 
 ## Remaining work
 
-1. trace the 77 non-EH records to their direct consumers;
-2. identify exact type-6 raster layout/dimensions from rendering math rather than byte-count inference;
+1. finish all 42 interaction/display wordcode opcode semantics and determine the purpose of the serialized zero companion bank;
+2. trace `RES12` alternate-bank selection or prove it unused by this executable, and resolve the two `RES1` sentinels;
 3. continue type-7 structure recovery beyond the confirmed leading geometry fields and offset tables;
-4. map RES indices back into LEVELS/OBJECTS/NPCS consumers and renderer resource codes;
+4. map RES texture/program/geometry indices back into LEVELS/OBJECTS/NPCS consumers and renderer resource codes;
 5. reconstruct CODE.2's method-1 type-1 decoder even though no supplied resource uses it, for complete engine preservation;
 6. keep type 5 explicitly unresolved until a sample or enough executable evidence establishes its format independently.
