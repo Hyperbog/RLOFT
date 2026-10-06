@@ -6,6 +6,8 @@ enable_testing()
 add_library(rloft_boot_flow
     src/boot_flow.cpp
     src/game_source.cpp
+    src/resource_assets.cpp
+    src/startup_presenter.cpp
 )
 target_include_directories(rloft_boot_flow PUBLIC include)
 target_compile_features(rloft_boot_flow PUBLIC cxx_std_17)
@@ -27,3 +29,19 @@ add_test(NAME boot_flow_tests COMMAND boot_flow_tests)
 add_executable(game_source_tests tests/game_source_tests.cpp)
 target_link_libraries(game_source_tests PRIVATE rloft_boot_flow)
 add_test(NAME game_source_tests COMMAND game_source_tests)
+
+add_executable(presenter_tests tests/presenter_tests.cpp)
+target_link_libraries(presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME presenter_tests COMMAND presenter_tests)
+
+if(WIN32)
+    add_executable(ravenloft_demo_v1 WIN32 src/win32_main.cpp)
+    target_link_libraries(
+        ravenloft_demo_v1
+        PRIVATE rloft_boot_flow User32 Gdi32 Shell32 Advapi32
+    )
+    target_compile_features(ravenloft_demo_v1 PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(ravenloft_demo_v1 PRIVATE /W4 /permissive-)
+    endif()
+endif()
