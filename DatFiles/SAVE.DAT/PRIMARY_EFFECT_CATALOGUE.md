@@ -1,6 +1,8 @@
 # SAVE.DAT primary effect catalogue
 
-Status: **all 26 bits in the serialized primary-effect word now have executable-backed source identities.** The catalogue is derived from CODE.2 application producers, the spell dispatcher, serialized `OBJECTS.DAT` spell-scroll names, item-use/equipment paths, and the official manual's spell behavior descriptions. `T[588..613]` remains useful as a future text-level corroboration, but is no longer required to identify the effect slots.
+Status: **all 26 bits in the serialized primary-effect word have executable-backed source identities and direct raw-`T` text corroboration.** The catalogue is derived from CODE.2 application producers, spell dispatch, serialized `OBJECTS.DAT` spell-scroll names, item-use/equipment paths, the supplied `T` resource, and official manual behavior descriptions.
+
+See `T_EFFECT_TEXT.md` for the exact `T[588..613]` strings and expiration-message assembly.
 
 ## Serialized structure
 
@@ -11,9 +13,9 @@ Each `0x248` character record contains:
 +0x136..+0x19D  uint32 effect_expiry[26]
 ```
 
-For slot `i`, bit `1 << i` corresponds to `effect_expiry[i]` at `+0x136 + i*4`. The common expiration handler also selects message `T[0x24C + i]`.
+For slot `i`, bit `1 << i` corresponds to `effect_expiry[i]` at `+0x136 + i*4`. The common expiration handler selects `T[0x24C + i]`.
 
-Not every active effect is timer-driven. Effects such as Invisibility 10' Radius, Negative Plane Protection, Fortify, and the equipment-derived lightning-protection bit have special removal conditions and may not install a normal positive expiry.
+Not every active effect is timer-driven. Effects such as Invisibility 10' Radius, Negative Plane Protection, Fortify, and the equipment-derived lightning-protection bit have special removal conditions and may not install an ordinary positive expiry.
 
 ## Complete catalogue
 
@@ -60,13 +62,13 @@ family 0 = Mage
 family 1 = priest
 ```
 
-This matches the existing `T` resource geometry:
+and the corresponding name index is:
 
 ```text
 T_index = 0x42 + spell_dispatch_id
 ```
 
-The category-14 spell-scroll dispatcher provides an independent serialized-name cross-check. The contiguous `OBJECTS.DAT` scroll sequence beginning at object 167 forwards the same dispatch IDs. Relevant examples include:
+The category-14 spell-scroll dispatcher provides an independent serialized-name cross-check. Representative mappings include:
 
 ```text
 object 167  MAGE SCROLL OF 'ARMOR'                -> dispatch 0
@@ -92,47 +94,73 @@ object 222  CLERIC SCROLL OF 'FORTIFY'              -> dispatch 112
 
 Priest Hold Person is an intentional shared-handler complication in the scroll path and is not a primary character-effect bit; see the NPC hold-status documentation.
 
+## Raw `T[588..613]` corroboration
+
+The supplied `T` file directly decodes the expiration-label range as:
+
+```text
+ 0 Armor                 13 Draw Dexterity
+ 1 Light                 14 Neg. Plane Prot.
+ 2 Shield                15 Fortify
+ 3 Blur                  16 Slow Poison
+ 4 Haste                 17 True Seeing
+ 5 Invisibility          18 Detect Undead
+ 6 Stoneskin             19 Fire Resistance
+ 7 Dragon Scales         20 Detect Magic
+ 8 Bless                 21 Prayer
+ 9 Invis. to Undead      22 Lightning Prot.
+10 Light                 23 Giant Strength
+11 Aid                   24 Speed
+12 Draw Strength         25 Detect Enemy
+```
+
+The raw range produces no contradiction with the producer catalogue. It also proves why producer tracing remains controlling for exact ownership: Mage Light and priest Light both use the same display label `Light`, and the item/equipment-derived upper slots display generic effect names rather than their source object names.
+
+CODE.2 assembles expiration UI text as:
+
+```text
+"%s's " + T[0x24C + effect_index] + " wears off."
+```
+
 ## Behavioral corroboration
 
-The official manual's spell descriptions match the executable auxiliary state closely:
+Official manual spell descriptions match the executable auxiliary state:
 
 - Armor lasts until its protection pool is exhausted, matching effect 0's saved absorption pool.
 - Aid grants temporary hit points consumed before normal HP, matching effect 11's `+0x1EA` pool.
 - Draw Upon Holy Might separately raises Strength and Dexterity, matching effects 12/13 and their reversible saved deltas.
-- Negative Plane Protection lasts until duration or an undead hit, consistent with effect 14's special nonstandard timer handling.
+- Negative Plane Protection lasts until duration or an undead hit, consistent with effect 14's special handling.
 - Fortify affects the next cure spell, consistent with effect 15 being a one-shot bit rather than an ordinary fixed-duration timer.
-- Stoneskin absorbs a limited number of attacks, consistent with effect 6's separate accumulated/remaining state.
+- Stoneskin absorbs a limited number of attacks, consistent with effect 6's separate `+0x1F2` state.
 
-These manual descriptions corroborate the mechanics; the executable remains the controlling evidence for serialized slot identity.
+The executable remains the controlling source for serialized slot ownership; `T` and the manual provide independent semantic corroboration.
 
 ## Non-spell effects 19 and 22..25
 
-The upper primary-effect slots are not all prepared spells:
-
 ```text
-19  Potion of Fire Resistance     OBJECTS ID 61
-22  Shield of Lightning Protection OBJECTS ID 103, equipment-derived
-23  Potion of Giant Strength      OBJECTS ID 62
-24  Potion of Speed               OBJECTS ID 64
-25  Wand of Enemy Detection       OBJECTS ID 75
+19  Potion of Fire Resistance       OBJECTS ID 61
+22  Shield of Lightning Protection  OBJECTS ID 103, equipment-derived
+23  Potion of Giant Strength        OBJECTS ID 62
+24  Potion of Speed                  OBJECTS ID 64
+25  Wand of Enemy Detection          OBJECTS ID 75
 ```
 
-This explains why reconstructing the catalogue solely from spell-list order or `T` spell banks would leave the final entries ambiguous.
+This is why the 26-slot representation must not be replaced with a simple spell-ID array.
 
 ## Expiration and cleanup consequences
 
-The existing expiration audit remains authoritative. In particular:
+The expiration audit remains authoritative:
 
-- effects 1 and 10 both rebuild renderer lighting state;
+- effects 1 and 10 rebuild renderer lighting state;
 - effect 6 decrements Stoneskin auxiliary state at `+0x1F2`;
 - effect 11 clears Aid's temporary protection pool `+0x1EA`;
 - effects 12/13 reverse Draw Upon Holy Might ability deltas;
-- effects 17, 18, 20 and 25 decrement their shared global counters;
+- effects 17, 18, 20 and 25 decrement shared global counters;
 - effect 21 clears Prayer state across the party;
 - effect 23 reverses the potion Strength modifier at `+0x1BE`.
 
-See `EFFECT_FLAGS.md` for the exact expiration-dispatch branches.
+See `EFFECT_FLAGS.md` for exact cleanup branches.
 
 ## Native-port rule
 
-Use stable legacy effect indexes at the compatibility boundary. Do not replace the 26-bit/timer representation with spell IDs: several effects are item- or equipment-derived, and some spell effects have special removal semantics rather than ordinary timer expiry.
+Use stable legacy effect indexes at the compatibility boundary. Keep normalized internal source identities separate from exact legacy display labels. Do not replace the 26-bit/timer representation with spell IDs: several entries are item/equipment-derived and several spell effects have special removal semantics rather than ordinary timer expiry.
