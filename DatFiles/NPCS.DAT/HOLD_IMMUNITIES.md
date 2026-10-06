@@ -1,8 +1,8 @@
 # NPCS.DAT hold/status immunity bits
 
-Status: **the three low status-specific bits previously observed in compound masks `0x0102`, `0x0108`, and `0x0110` are now decoded as Hold Undead, Hold Person, and Hold Monster effect-immunity/exclusion gates.**
+Status: **the three low status-specific bits previously observed in compound masks `0x0102`, `0x0108`, and `0x0110` are decoded as Hold Undead, Hold Person, and Hold Monster effect-immunity/exclusion gates. A later cross-audit corrected the cleric Hold Person scroll path: its scroll reuses dispatch ID 25 rather than proving prepared-priest dispatch ID 92.**
 
-The immutable CODE.2 object remains controlling evidence. `OBJECTS.DAT` provides an independent serialized spell-name/order cross-check.
+The immutable CODE.2 object remains controlling evidence. `OBJECTS.DAT` provides an independent serialized spell-name/order cross-check where the executable scroll stub actually carries the corresponding dispatch ID.
 
 ## Physical field
 
@@ -14,37 +14,55 @@ These are bit aliases on the raw dword; the raw field must still be retained exa
 
 ## Dispatcher mapping
 
-The CODE.2 spell/effect dispatcher uses a dword jump table at logical object-1 offset `0xB740`. The relevant effect IDs resolve to:
+The CODE.2 spell/effect dispatcher uses a dword jump table at logical object-1 offset `0xB740`. The relevant handlers resolve to:
 
 ```text
-effect 24 -> 0xC123
-effect 25 -> 0xC201
-effect 26 -> 0xC179
-effect 41 -> 0xC2E0
-effect 92 -> 0xC273
+dispatch 24 -> 0xC123  Slow
+dispatch 25 -> 0xC201  Hold Person shared scroll/mage path
+dispatch 26 -> 0xC179  Hold Undead
+dispatch 41 -> 0xC2E0  Hold Monster
+dispatch 92 -> 0xC273  prepared-priest Hold Person path
 ```
 
-The serialized spell-scroll sequence in `OBJECTS.DAT` independently identifies those effect slots:
+The serialized spell-scroll sequence independently verifies four direct mappings:
 
 ```text
-effect 24  object 184  MAGE SCROLL OF 'SLOW'
-effect 25  object 185  MAGE SCROLL OF 'HOLD PERSON'
-effect 26  object 186  MAGE SCROLL OF 'HOLD UNDEAD'
-effect 41  object 195  MAGE SCROLL OF 'HOLD MONSTER'
-effect 92  object 211  CLERIC SCROLL OF 'HOLD PERSON'
+dispatch 24  object 184  MAGE SCROLL OF 'SLOW'
+dispatch 25  object 185  MAGE SCROLL OF 'HOLD PERSON'
+dispatch 26  object 186  MAGE SCROLL OF 'HOLD UNDEAD'
+dispatch 41  object 195  MAGE SCROLL OF 'HOLD MONSTER'
 ```
 
-The mage and cleric Hold Person implementations converge on the same immunity mask, which is a particularly strong cross-check.
+### Cleric Hold Person scroll correction
+
+OBJECTS ID 211 is indeed:
+
+```text
+CLERIC SCROLL OF 'HOLD PERSON'
+```
+
+but it does **not** dispatch through ID 92. The category-14 scroll table maps both object 185 and object 211 to the same stub at logical object-1 `0x26300` / physical CODE.2 `0x61224`. That stub contains:
+
+```text
+57 56 6A 19 ...
+          ^^ push 0x19 = dispatch 25
+```
+
+Thus the cleric scroll intentionally reuses the shared dispatch-25 Hold Person handler.
+
+Prepared priest spell execution is a separate path. Its compact prepared-spell ID 92 reaches handler `0xC273`, which independently performs the Hold Person eligibility test and sets the same live held-state bit. The identity of handler 92 comes from that prepared-priest behavior; object 211 must not be cited as a serialized proof that the scroll itself passes ID 92.
+
+This distinction matters because scroll-dispatch IDs and prepared-priest IDs are not interchangeable for every spell even when they implement the same named spell.
 
 ## `0x00000008` — Hold Person effect immunity/exclusion
 
-Mage Hold Person (`effect 25`) tests at logical `0xC23C`:
+The shared/mage Hold Person handler (`dispatch 25`) tests at logical `0xC23C`:
 
 ```text
 test word [npc + 0x31], 0x0108
 ```
 
-Priest Hold Person (`effect 92`) independently tests the same mask at logical `0xC2AF`:
+The prepared-priest Hold Person handler (`dispatch 92`) independently tests the same mask at logical `0xC2AF`:
 
 ```text
 test word [npc + 0x31], 0x0108
@@ -56,13 +74,13 @@ Because `0x0108 == 0x0100 | 0x0008`, and `0x0100` is already proved to be the co
 behavior_flags & 0x00000008  hold_person_effect_immunity
 ```
 
-The name is behavioral: the bit causes the Hold Person handler to reject/skip the target. It does not claim whether the original source enum described this as immunity, creature class eligibility, or both.
+The name is behavioral: the bit causes either Hold Person handler to reject/skip the target. It does not claim whether the original source enum described this as immunity, creature-class eligibility, or both.
 
 31 supplied NPC definitions carry the bit.
 
 ## `0x00000002` — Hold Undead effect immunity/exclusion
 
-Mage Hold Undead (`effect 26`) tests at logical `0xC1B4`:
+Hold Undead (`dispatch 26`) tests at logical `0xC1B4`:
 
 ```text
 test word [npc + 0x31], 0x0102
@@ -86,7 +104,7 @@ The encoded set includes both non-undead creatures and undead that the spell exc
 
 ## `0x00000010` — Hold Monster effect immunity/exclusion
 
-Mage Hold Monster (`effect 41`) tests at logical `0xC317`:
+Hold Monster (`dispatch 41`) tests at logical `0xC317`:
 
 ```text
 test word [npc + 0x31], 0x0110
@@ -108,7 +126,7 @@ behavior_flags & 0x00000010  hold_monster_effect_immunity
 
 ## Shared live held state
 
-All four hold handlers that reach their application path—mage Hold Person, mage Hold Undead, priest Hold Person, and mage Hold Monster—set the same live family-A runtime state bit:
+All four hold implementations that reach their application path—shared/mage Hold Person, Hold Undead, prepared-priest Hold Person, and Hold Monster—set the same live family-A runtime state bit:
 
 ```text
 live_npc.runtime_flags_low |= 0x08
@@ -117,17 +135,17 @@ live_npc.runtime_flags_low |= 0x08
 at logical sites:
 
 ```text
-0xC252  mage Hold Person
-0xC1CA  mage Hold Undead
-0xC2BF  priest Hold Person
-0xC32D  mage Hold Monster
+0xC252  shared/mage Hold Person (dispatch 25)
+0xC1CA  Hold Undead (dispatch 26)
+0xC2BF  prepared-priest Hold Person (dispatch 92)
+0xC32D  Hold Monster (dispatch 41)
 ```
 
-They then install a duration/countdown in live record word `+0x10`, with spell-specific duration formulas.
+They then install a duration/countdown in live record word `+0x10`, with handler-specific duration formulas.
 
-This shared state transition is the executable-level proof that the three low bits all belong to the same hold-status family while selecting different target/effect eligibility classes.
+This shared state transition is the executable-level proof that the three low NPC bits belong to the same hold-status family while selecting different target/effect eligibility classes.
 
-By contrast, the immediately preceding Slow handler (`effect 24`) tests only the common `0x0100` gate and sets a different live runtime bit (`0x80`), demonstrating that the low hold bits are not generic timed-status immunity bits.
+By contrast, Slow (`dispatch 24`) tests only the common `0x0100` gate and sets a different live runtime bit (`0x80`), demonstrating that the low hold bits are not generic timed-status immunity bits.
 
 ## Supplied-corpus counts
 
@@ -153,4 +171,4 @@ flags & 0x0100  common_spell_effect_immunity
 
 while preserving the original `uint32 behavior_flags` exactly.
 
-`analyze_hold_immunities.py` verifies the NPC bit distributions, the serialized OBJECTS spell names, the CODE.2 jump-table targets, the exact mask-test instruction bytes, and the shared live held-state mutation.
+`analyze_hold_immunities.py` verifies the NPC bit distributions, direct spell-scroll mappings, the cleric-scroll reuse of dispatch 25, the dispatcher targets, exact mask-test instructions, and the shared live held-state mutation.
