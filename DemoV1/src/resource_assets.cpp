@@ -154,14 +154,26 @@ Type1Raster ResArchive::decode_type1(int index) const {
 RavenloftBootAssets::RavenloftBootAssets(GameSource source)
     : source_(std::move(source)),
       res0_(source_.read("RES0")),
+      res1_(source_.read("RES1")),
+      res7_(source_.read("RES7")),
       colors_(source_.read("COLORS")) {
     if (colors_.size() != 1U + 15U * 768U || colors_[0] != 15U) {
         throw std::runtime_error("COLORS is not the certified 15-palette Ravenloft bank");
     }
 }
 
+Type1Raster RavenloftBootAssets::type1(int archive, int index) const {
+    switch (archive) {
+        case 0: return res0_.decode_type1(index);
+        case 1: return res1_.decode_type1(index);
+        case 7: return res7_.decode_type1(index);
+        default:
+            throw std::out_of_range("Demo v1 has no loaded type-1 archive for requested bank");
+    }
+}
+
 Type1Raster RavenloftBootAssets::res0_type1(int index) const {
-    return res0_.decode_type1(index);
+    return type1(0, index);
 }
 
 Palette6 RavenloftBootAssets::colors_palette(int index, int brightness) const {
