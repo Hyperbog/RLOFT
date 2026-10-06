@@ -1,32 +1,41 @@
 # SAVE.DAT character post-inventory state (`+0x072..+0x247`)
 
-Status: **active executable reconstruction; the 80-byte matrix at `+0x0C2..+0x111` is persistent spell memorization/preparation state with planned/selected and currently-ready copy counts now distinguished, alongside an executable-accessed dword at `+0x12F` and a 32-bit flag field at `+0x13A`.**
+Status: **active executable reconstruction; two adjacent 80-byte spell-preparation matrices are now executable-certified, followed by an executable-accessed dword at `+0x12F` and a 32-bit flag field at `+0x13A`.**
 
 This note isolates the 470 bytes after `item[21]` in each serialized `0x248` character image. Sparse quick-start data must not be mistaken for padding.
 
-## Spell memorization/preparation matrix at `+0x0C2..+0x111`
+## Dual spell memorization/preparation matrices
 
-Runtime address `0x2199A` maps to record offset `+0x0C2`:
-
-```text
-0x2199A - 0x218D8 = 0x0C2
-```
-
-CODE.2 consumers prove an **80-byte array arranged as 8 banks of 10 bytes**:
+Relocation-aware disassembly of CODE.2 object 1 exposes two structurally parallel 80-byte matrices inside every character record:
 
 ```text
-record offset = 0x0C2 + bank * 10 + entry
-bank          = 0..7
-entry         = 0..9
-extent        = +0x0C2..+0x111 inclusive
-runtime       = 0x2199A..0x219E9
+matrix A: runtime 0x2194A..0x21999 = record +0x072..+0x0C1
+matrix B: runtime 0x2199A..0x219E9 = record +0x0C2..+0x111
+
+matrix byte = base + spell_level_index * 10 + spell_entry
+spell_level_index = 0..7   (displayed spell level = index + 1)
+spell_entry       = 0..9
 ```
 
-The executable's nearby UI/text corpus identifies the subsystem as spell memorization/preparation: the same CODE.2 image contains the `memorize` command text and spell-casting/scribing messages, while these routines initialize class/level-dependent banks, maintain paired counts, and consume prepared copies during spell use.
+This closes the formerly unresolved `+0x072..+0x0C1` region: it is not miscellaneous state or padding. It is a second spell-preparation matrix with the same eight-bank, ten-entry geometry and the same packed-nibble accounting rules as the previously certified matrix at `+0x0C2`.
+
+### Executable proof of the parallel layout
+
+The CODE.2 routine beginning at reconstructed object-1 linear `0x11BC0` iterates eight banks and accesses packed cells at runtime `0x2194A + character*0x248 + bank*10 + entry`. Its inner loop extracts both nibbles, treats low nibble `0xF` as unavailable, clamps aggregate counts against a per-bank limit, and enforces the high-nibble count not exceeding the low-nibble count.
+
+The immediately following routine beginning at linear `0x11D4C` performs the same algorithm against runtime `0x2199A + character*0x248 + bank*10 + entry`. It likewise advances ten bytes per bank and terminates after eight banks.
+
+The two bases differ by exactly `0x50` bytes, the size of one complete 8x10 matrix:
+
+```text
+0x2199A - 0x2194A = 0x50
+```
+
+The second routine additionally chooses between table roots `0x62B0` and `0x6350` according to the character class-related discriminator at record `+0x1D`, demonstrating that matrix availability/progression is class-sensitive.
 
 ### Certified nibble roles
 
-Each byte contains two 4-bit quantities:
+For both matrices, each byte contains two 4-bit quantities:
 
 ```text
 bits 7..4  currently memorized/ready copies
@@ -34,70 +43,51 @@ bits 3..0  selected/planned memorization count
 low = 0xF  unavailable / non-selectable sentinel
 ```
 
-The distinction follows from combined executable behavior rather than AD&D terminology alone:
+The direct spell-use path requires a nonzero high nibble and decrements only that high nibble after successful use, preserving the low nibble. Matrix-management paths independently sum and clamp selected and ready counts and enforce `ready <= selected`.
 
-1. The direct spell-use routine at physical `0x3F3F4..0x3F53D` addresses one matrix element from character, bank, and entry indices. It rejects low nibble `0xF`, rejects a zero high nibble, invokes the associated action/cast path, and on successful use decrements **only the high nibble by one**, preserving the low nibble. Thus the high nibble is the currently usable/prepared copy count.
-2. Matrix-management code at `0x3EBFA..0x3ECF9` sums the low and high nibbles independently against per-bank limits. It can reduce the low nibble to satisfy the bank allocation limit and separately reduce the high nibble. It also enforces `high <= low` for an individual entry. Thus the low nibble is the persistent requested/selected count against which the ready count is bounded.
-3. Class/level-dependent initialization and availability routines at `0x3ED08..0x3EDC7` and `0x3EDC8..0x3EE98` switch entries between usable numeric state and `0xFF` sentinel state according to spell access. They seed newly enabled cells with paired `1/1` state in specific positions.
-4. Because casting consumes the high count without reducing the low count, the low count survives as the memorization plan while the high count represents copies presently ready for use. Subsequent preparation/rest logic can therefore restore ready copies toward the selected count without losing the player's selection.
-
-This gives the native representation:
+Portable native code should decode explicitly:
 
 ```c
-struct PackedSpellPreparation {
-    uint8_t selected_count : 4; // low nibble; 0xF means unavailable
-    uint8_t ready_count    : 4; // high nibble; consumed by successful use
-};
+selected = packed & 0x0F;
+ready    = packed >> 4;
+unavailable = (selected == 0x0F);
 ```
 
-The bitfield syntax above is explanatory only; portable code should decode the nibbles explicitly rather than rely on compiler bitfield layout.
+Do not use compiler-dependent C/C++ bitfield layout for the serialized representation.
 
-The ten-byte bank width is storage capacity. Executable per-bank entry-count tables determine how many cells in each bank are meaningful. The eight bank identities/level numbering should remain table-derived until their exact UI labels are cross-referenced.
+### Bank numbering and capacity
 
-### Fixture consequence: `+0x10A` is an ordinary matrix element
+Each matrix has eight ten-byte banks. Bank index is zero-based internally and corresponds to displayed spell level `bank + 1`. The ten-byte width is storage capacity; executable table-driven entry counts determine how many cells in a bank are meaningful.
 
-`+0x10A` lies inside this certified array:
+The UI paths currently traced render spell levels 1 through 6, while the persistent record reserves all eight levels. Banks 6 and 7 therefore remain real executable-managed storage even where the shipped UI path does not expose them directly.
 
-```text
-0x10A - 0x0C2 = 0x48 = 72
-72 = 7 * 10 + 2
-therefore +0x10A = bank 7, entry 2
-```
+### Matrix-family naming boundary
 
-EHLIANNA's `+0x10A = 0x0F` has `selected_count = 0xF`, the unavailable sentinel, and `ready_count = 0`. ANVIL DAWN's `+0x0C2 = 0x11` has one selected copy and one currently-ready copy at bank 0, entry 0.
+Both arrays are now certified as spell memorization/preparation state. Their exact family identities (for example, which one corresponds to each AD&D spellcasting tradition/class family) are **not yet canonicalized**. The separate table roots and class-dependent initialization prove distinct spell families, but the family labels must be tied to executable UI/spell-list data rather than inferred solely from rules knowledge.
 
 ## Executable-accessed dword at `+0x12F..+0x132`
 
-The former fixture-only `+0x131` anchor is not an isolated byte. CODE.2 accesses a dword beginning at runtime `0x21A07`:
+CODE.2 accesses a dword beginning at runtime `0x21A07`:
 
 ```text
 0x21A07 - 0x218D8 = 0x12F
 record +0x12F..+0x132 = executable-accessed 32-bit field
 ```
 
-At physical `0x45AD1`, CODE.2 writes a computed dword to `0x21A07`; the immediately following instruction adds the low byte of that computed value to runtime `0x21915`, the already-certified Dexterity-related current/effective byte. A corresponding path at physical `0x437B0` reads the low byte of `0x21A07` and subtracts it from `0x21915`.
+One path writes a computed dword there and adds its low byte to the certified Dexterity-related current/effective byte at `+0x3D`; a corresponding path subtracts the low byte. The whole dword must not yet be named simply as a Dexterity modifier because the reference fixture stores nonzero upper bytes while the low byte is zero.
 
-This proves a direct relationship between the **low byte** of the `+0x12F` dword and a temporary/equipment-style Dexterity adjustment path. It does **not** yet prove that the whole dword can be named simply as a Dexterity modifier: the reference fixture stores nonzero upper bytes while the low byte is zero.
-
-Reference values are:
+Reference values:
 
 ```text
 EHLIANNA    +0x12F..+0x132 = 00 00 02 00 -> 0x00020000
 ANVIL DAWN +0x12F..+0x132 = 00 00 01 00 -> 0x00010000
 ```
 
-Therefore the earlier notation `+0x131 = 0x02/0x01` remains a true byte observation but is structurally incomplete and must not be modeled as a standalone field. Preserve the complete dword until its upper-byte semantics are traced.
-
 ## Certified 32-bit state/flags field at `+0x13A`
 
-Runtime `0x21A12` is a **32-bit little-endian flags/state word** beginning at record `+0x13A`:
+Runtime `0x21A12` is a 32-bit little-endian flags/state word beginning at record `+0x13A`.
 
-```text
-0x21A12 - 0x218D8 = 0x13A
-record +0x13A..+0x13D = uint32_le state_flags
-```
-
-CODE.2 performs byte, word, and dword operations on the same field. Confirmed masks/operations include:
+Confirmed masks/operations include:
 
 ```text
 0x00000001  tested; bit 0 also explicitly cleared
@@ -110,40 +100,30 @@ CODE.2 performs byte, word, and dword operations on the same field. Confirmed ma
 0x01000000  included in dword test 0x01000010
 ```
 
-The executable also ORs caller-supplied dword masks into the field, XORs dynamically selected bits, tests dynamically selected bits, compares the full dword against zero, and iterates individual bit positions. Individual gameplay names remain unassigned until their surrounding effect/action paths are semantically traced.
+The executable also ORs caller-supplied masks, XORs dynamically selected bits, tests dynamic bits, compares the complete dword with zero, and iterates individual bit positions. Gameplay names remain unassigned until the surrounding effect/action paths are semantically traced.
 
-Representative physical consumers include `0x4366C`, `0x43957`, `0x43B91`, `0x4539E`, `0x457AF`, `0x45CA1`, `0x46A61`, `0x47907`, `0x47CAF`, `0x4842F`, `0x494A0`, `0x494B0`, `0x49939`, `0x4A042`, `0x4D65E`, `0x4D837`, `0x56630`, `0x5A589`, and `0x6CDDE`.
+## Reference-fixture consequence
 
-## Reference-fixture survey
+The two populated active characters are sparse, but both matrices must be preserved. In particular, the previously noted `+0x10A` byte is matrix B, bank 7, entry 2. The first matrix occupies the full region immediately after inventory even when most cells are `0x00`/`0xFF` in the quick-start fixture.
 
-The two populated active characters are sparse:
-
-```text
-EHLIANNA
-  spell matrix bank 7, entry 2 (+0x10A) = 0x0F
-    selected = unavailable (0xF), ready = 0
-  +0x12F dword = 0x00020000
-  +0x13A flags = 0x00000000
-
-ANVIL DAWN
-  spell matrix bank 0, entry 0 (+0x0C2) = 0x11
-    selected = 1, ready = 1
-  spell matrix bank 7, entry 2 (+0x10A) = 0x0F
-    selected = unavailable (0xF), ready = 0
-  +0x12F dword = 0x00010000
-  +0x13A flags = 0x00000000
-```
-
-All ten saved-roster records in this fixture contain only `0x00`/`0xFF` values throughout the post-inventory range. Unused active-party records are predominantly `0xFF`; occupancy must not be inferred from these fields.
+All ten saved-roster records contain only `0x00`/`0xFF` values throughout much of this tail. That does not make the regions padding.
 
 ## Reconstruction rule
 
-Do not collapse `+0x072..+0x247` into reserved padding. At minimum it contains the certified 80-byte spell-preparation matrix, the executable-accessed dword at `+0x12F`, and the 32-bit flags word at `+0x13A`. A native decoder must preserve the entire tail losslessly until every substructure is decoded.
+A native decoder should model at least:
 
-## Tool support
+```text
++0x072..+0x0C1   spell-preparation matrix A: 8 x 10 packed cells
++0x0C2..+0x111   spell-preparation matrix B: 8 x 10 packed cells
++0x112..+0x12E   unresolved
++0x12F..+0x132   executable-accessed dword
++0x133..+0x139   unresolved
++0x13A..+0x13D   uint32 state/flags
++0x13E..+0x247   unresolved effect/auxiliary state
+```
 
-`tools/analyze_character_records.py` reports the spell matrix as eight ten-byte banks, decodes every byte into high/low nibbles, reports non-fill bytes elsewhere in the post-inventory range, and decodes the dwords at `+0x12F` and `+0x13A` as little-endian values.
+Preserve all unresolved bytes losslessly.
 
 ## Next target
 
-Map the eight bank identities and their executable entry-count/slot-limit tables, then finish the upper-byte semantics of `+0x12F` and assign individual `+0x13A` flag bits to gameplay effects. Continue outward into unresolved regions `+0x072..+0x0C1`, `+0x112..+0x12E`, `+0x133..+0x139`, and `+0x13E..+0x247`.
+Tie matrix A and matrix B to their exact spell-family/UI identities using their distinct table roots and callers; then extract the relocation-aware progression/entry-count tables and assign individual `+0x13A` flag bits to gameplay effects.
