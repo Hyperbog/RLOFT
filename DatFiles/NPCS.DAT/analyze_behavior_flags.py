@@ -10,7 +10,9 @@ from pathlib import Path
 RECORD_SIZE = 0x45
 
 PROVEN = (
+    ("behavior_flags", 0x00000001, "detect_undead_effect_exclusion"),
     ("behavior_flags", 0x00000002, "hold_undead_effect_immunity"),
+    ("behavior_flags", 0x00000004, "turn_undead_roll_penalty_4"),
     ("behavior_flags", 0x00000008, "hold_person_effect_immunity"),
     ("behavior_flags", 0x00000010, "hold_monster_effect_immunity"),
     ("behavior_flags", 0x00000080, "death_spell_effect_immunity"),
