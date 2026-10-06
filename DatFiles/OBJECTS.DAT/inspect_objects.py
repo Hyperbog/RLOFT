@@ -24,10 +24,10 @@ def s8(value: int) -> int:
 class ObjectRecord:
     raw: bytes
     name: str
-    world_sprite_base: int
-    world_heading_stride: int
+    local_shape_base: int
+    shape_stride: int
     scene_influence_step: int
-    unknown_2c: int
+    unresolved_2c: int
     ui_graphic_index: int
     item_category: int
     weight_half_pounds: int
@@ -47,7 +47,7 @@ class ObjectRecord:
     range_long: int
 
     @property
-    def attack_mode(self) -> int:
+    def hand_pair_class(self) -> int:
         return self.attack_profile & 0x3
 
     @property
@@ -55,6 +55,22 @@ class ObjectRecord:
         return (self.attack_profile >> 2) & 0xF
 
     # Compatibility aliases for earlier provisional schema names.
+    @property
+    def world_sprite_base(self) -> int:
+        return self.local_shape_base
+
+    @property
+    def world_heading_stride(self) -> int:
+        return self.shape_stride
+
+    @property
+    def attack_mode(self) -> int:
+        return self.hand_pair_class
+
+    @property
+    def unknown_2c(self) -> int:
+        return self.unresolved_2c
+
     @property
     def world_aux_selector(self) -> int:
         return self.scene_influence_step
@@ -81,10 +97,10 @@ def parse_record(raw: bytes) -> ObjectRecord:
     return ObjectRecord(
         raw=raw,
         name=name,
-        world_sprite_base=u16(raw, 0x28),
-        world_heading_stride=raw[0x2A],
+        local_shape_base=u16(raw, 0x28),
+        shape_stride=raw[0x2A],
         scene_influence_step=raw[0x2B],
-        unknown_2c=raw[0x2C],
+        unresolved_2c=raw[0x2C],
         ui_graphic_index=u16(raw, 0x2D),
         item_category=raw[0x2F],
         weight_half_pounds=raw[0x30],
@@ -115,10 +131,10 @@ def encode_record(record: ObjectRecord) -> bytes:
     out[:NAME_SIZE] = b"\0" * NAME_SIZE
     out[: len(name)] = name
 
-    struct.pack_into("<H", out, 0x28, record.world_sprite_base)
-    out[0x2A] = record.world_heading_stride
+    struct.pack_into("<H", out, 0x28, record.local_shape_base)
+    out[0x2A] = record.shape_stride
     out[0x2B] = record.scene_influence_step
-    out[0x2C] = record.unknown_2c
+    out[0x2C] = record.unresolved_2c
     struct.pack_into("<H", out, 0x2D, record.ui_graphic_index)
     out[0x2F] = record.item_category
     out[0x30] = record.weight_half_pounds
@@ -181,7 +197,7 @@ def analyze(path: Path) -> None:
 
     counter_line("categories", (r.item_category for r in records))
     counter_line("scene_influence_step", (r.scene_influence_step for r in records))
-    counter_line("unknown_2c", (r.unknown_2c for r in records))
+    counter_line("unresolved_2c", (r.unresolved_2c for r in records))
     counter_line("intrinsic_magic_marker", (r.intrinsic_magic_marker for r in records))
     counter_line("attack_profiles", (r.attack_profile for r in records))
     counter_line("enchantment_bonus", (r.enchantment_bonus for r in records))
@@ -206,10 +222,10 @@ def analyze(path: Path) -> None:
             f"{object_id:03d} {r.name or '<blank>'} "
             f"cat={r.item_category} weight={r.weight_half_pounds}/2lb "
             f"ui={r.ui_graphic_index} "
-            f"world={r.world_sprite_base}+heading*{r.world_heading_stride} "
+            f"shape={r.local_shape_base}+variant*{r.shape_stride} "
             f"influence={r.scene_influence_step} "
             f"state={r.state_index} magic={r.intrinsic_magic_marker} "
-            f"attack_mode={r.attack_mode} speed={r.weapon_speed_factor} "
+            f"pair_class={r.hand_pair_class} speed={r.weapon_speed_factor} "
             f"ench={r.enchantment_bonus} "
             f"dmg={r.damage_sm_dice}d{r.damage_sm_sides}+{r.damage_sm_bonus}/"
             f"{r.damage_lg_dice}d{r.damage_lg_sides}+{r.damage_lg_bonus} "
