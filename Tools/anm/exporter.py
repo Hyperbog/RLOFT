@@ -173,12 +173,17 @@ def native_timing_summary(source: anm.AnmFile, source_name: str | Path | None) -
     positive = [w for w in waits if w > 0]
     rates = sorted({round(PIT_HZ / w, 6) for w in positive})
     total = sum(waits) / PIT_HZ
+    displayed = len(positive)
     return {
         "timer_hz": PIT_HZ,
         "wait_ticks": sorted(set(waits)),
         "instantaneous_fps": rates,
-        "average_frame_rate": (source.frame_count / total) if total > 0 else None,
+        "logical_frame_count": source.frame_count,
+        "displayed_frame_count": displayed,
+        "average_logical_frame_rate": (source.frame_count / total) if total > 0 else None,
+        "average_displayed_frame_rate": (displayed / total) if total > 0 else None,
         "duration_seconds": total,
+        "zero_wait_frames": source.frame_count - displayed,
         "variable_rate": len(set(waits)) > 1,
     }
 
