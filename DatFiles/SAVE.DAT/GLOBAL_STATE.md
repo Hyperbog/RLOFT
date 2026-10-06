@@ -1,6 +1,6 @@
 # SAVE.DAT global/non-character state
 
-Status: **serializer/deserializer-certified structural reconstruction.** SAVE files are variable-length: the supplied quick-start fixture is `0x2448` bytes because its live-world-object count is zero. The persistent container bank is parsed record-by-record, and the formerly anonymous `D8A8`, `A7E4`, `F920`, `F91C`, and trailing `0x6FA0` state now have executable-backed behavioral identities.
+Status: **serializer/deserializer-certified structural reconstruction.** SAVE files are variable-length: the supplied quick-start fixture is `0x2448` bytes because its live-world-object count is zero. The fixed prefix, persistent container bank, spell-UI selections, gameplay clock, renderer controls, cursor-held item state, and trailing `0x6FA0` contexts now have executable-backed behavioral identities.
 
 ## Serializer anchor
 
@@ -17,9 +17,9 @@ For the supplied fixture:
 0x005E..0x0061  uint32 player facing/orientation
 0x0062..0x006B  shared primary-effect counters/state
 0x006C..0x006F  interrupt-driven engine tick counter snapshot
-0x0070..0x0073  uint32 global runtime state at DGROUP 0xCF4C
-0x0074..0x0075  int16 global selector/state at DGROUP 0x8600
-0x0076          uint8 companion selector/state at DGROUP 0x8602
+0x0070..0x0073  uint32 24-hour 16.16 time-of-day clock
+0x0074..0x0075  int16 cursor-held OBJECTS.DAT object ID
+0x0076          uint8 cursor-held item known/identified flag
 0x0077..0x0996  active party: 4 * 0x248
 0x0997..        live-world-object section and persistent container state
 ...             charged-item counters[15]
@@ -45,18 +45,49 @@ The remaining prefix is:
 +0x66  uint32 DGROUP 0xFD08   shared primary-effect state
 +0x6A  uint16 DGROUP 0x6DAE   shared primary-effect state
 +0x6C  uint32 interrupt_tick_counter snapshot
-+0x70  uint32 DGROUP 0xCF4C
-+0x74  int16  DGROUP 0x8600
-+0x76  uint8  DGROUP 0x8602
++0x70  uint32 time_of_day_16_16_hours (DGROUP 0xCF4C)
++0x74  int16  cursor_item_object_id (DGROUP 0x8600; -1 empty)
++0x76  uint8  cursor_item_known (DGROUP 0x8602)
 ```
 
-Quick-start values: level 22, coordinates `0x00048000/0x00048000`, facing 270, interrupt-tick value 1899 (`0x76B`), `CF4C=0x000E0000`, `8600=-1`, `8602=0`.
+Quick-start values: level 22, coordinates `0x00048000/0x00048000`, facing 270, interrupt-tick value 1899 (`0x76B`), time-of-day `0x000E0000` = 14:00, cursor item `-1`, cursor-known flag `0`.
 
 ### `+0x6C`: interrupt-driven engine tick counter, not the gameplay-effect clock
 
-This field is now distinguished from saved `A7E4` below. Physical `0x6B624` simply returns DGROUP `0xF58C`. The interrupt handler beginning at physical `0x6B62C` reads and increments `0xF58C`; physical `0x6B65C` restores a caller-supplied value under `cli`/`sti`. The SAVE path calls the getter before writing `+0x6C`, and the load path passes the restored dword to the setter.
+This field is distinguished from saved `A7E4` below. Physical `0x6B624` simply returns DGROUP `0xF58C`. The interrupt handler beginning at physical `0x6B62C` reads and increments `0xF58C`; physical `0x6B65C` restores a caller-supplied value under `cli`/`sti`. The SAVE path calls the getter before writing `+0x6C`, and the load path passes the restored dword to the setter.
 
 Therefore `+0x6C` is an **interrupt-driven engine tick-counter snapshot**. Character effect/action deadlines do not use this value directly; those use the separate pausable gameplay counter `A7E4`.
+
+### `+0x70`: 24-hour 16.16 fixed-point time of day
+
+DGROUP `0xCF4C` is a fixed-point world clock. Initialization at physical `0x5B497` writes `0x000E0000`, i.e. 14:00 with zero fractional hour. Physical `0x6CEB8` extracts the upper word, normalizes it modulo 24, preserves the lower 16 bits, and recombines the dword. World/environment logic at `0x529D5` and `0x59EA1` shifts by 16 and compares the resulting integer hour against day/night boundaries. UI/time logic at `0x5AE34` also operates on the upper word in a 24-hour domain.
+
+A time-advance path at physical `0x3F8E2` adds `0x445` to the complete dword; in 16.16 hours that is approximately one minute. The low word is therefore meaningful serialized fractional-hour state and must not be discarded.
+
+Safe identity:
+
+```cpp
+uint32_t time_of_day_16_16_hours;
+```
+
+See `PREFIX_GLOBALS.md` for the detailed instruction evidence.
+
+### `+0x74/+0x76`: cursor-held item and identification state
+
+DGROUP `0x8600` is the signed OBJECTS.DAT object ID currently attached to the global held-item/cursor state; `-1` means empty. DGROUP `0x8602` is the held item's known/identified flag.
+
+Physical `0x55268` writes the object ID to `0x8600`, indexes the `0x41`-byte OBJECTS.DAT table, reads object byte `+0x2D` (the inventory/UI graphic selector), loads that graphic, and refreshes cursor/UI state. Inventory swap code at `0x4C6C4..0x4C963` reads a character inventory object together with its certified `item_known_bits` entry and swaps it against the `0x8600/0x8602` pair, proving that the companion byte travels with item identity.
+
+Item-description routine `0x4A6B4(object_id, known_flag)` always emits the base object name, but only reveals the OBJECTS `+0x37` enchantment suffix/value when `known_flag != 0`. Numerous UI paths call it with exactly `(0x8600, 0x8602)`.
+
+The SAVE loader reads these fields to temporaries and calls `0x55268(object_id, known)` so the cursor graphic is rebuilt from restored semantic state.
+
+Safe identities:
+
+```cpp
+int16_t cursor_item_object_id; // -1 = empty
+uint8_t cursor_item_known;     // zero unknown; nonzero known/identified
+```
 
 ## Active-party image
 
@@ -255,7 +286,7 @@ The static data and executable boundary do not agree at the final container sele
 - SAVE serializes indexes `0..61` only;
 - quick-start state 61 contains eight object ID `57` entries, a full arrow-family quiver-shaped payload.
 
-The new direct-path audit found **no executable `62 -> 61` repair**. Generic open-container code at physical `0x5C5B7` sign-extends OBJECTS `+0x31`, multiplies it directly by ten, and reads descriptor `+4`; other container paths perform the same literal selector-to-descriptor calculation. Thus object 329's shipped selector addresses descriptor 62 as stored.
+The direct-path audit found **no executable `62 -> 61` repair**. Generic open-container code at physical `0x5C5B7` sign-extends OBJECTS `+0x31`, multiplies it directly by ten, and reads descriptor `+4`; other container paths perform the same literal selector-to-descriptor calculation. Thus object 329's shipped selector addresses descriptor 62 as stored.
 
 The pattern remains consistent with a shipped off-by-one/static-data mistake, but a faithful engine should **not silently normalize it**. Preserve OBJECTS selector 62, the zero descriptor 62 behavior, and serialized state 61 unless a separately documented compatibility fix is intentionally enabled.
 
@@ -276,7 +307,7 @@ Forty-one records contain at least one non-empty object ID; 21 are empty. Every 
 
 DGROUP `0xF920` is a renderer/environment shading control, clamped to `0..10` by physical `0x6CE00` and passed as the first argument to palette/shading-table generator `0x6C938`.
 
-Time-of-day maintenance at physical `0x6CEB8` extracts the high word of `CF4C`, normalizes it modulo 24, and—when the level uses a non-`0xFF` environment profile—loads `F920` from a 24-entry signed-word table at `0xF924 + hour*2`. It then rebuilds renderer shading tables. A separate renderer path at physical `0x5A1F0` uses `F920` as an index into an 11-entry table.
+Time-of-day maintenance at physical `0x6CEB8` extracts the integer hour from the high word of `CF4C`, normalizes it modulo 24, and—when the level uses a non-`0xFF` environment profile—loads `F920` from a 24-entry signed-word table at `0xF924 + hour*2`. It then rebuilds renderer shading tables. A separate renderer path at physical `0x5A1F0` uses `F920` as an index into an 11-entry table.
 
 For levels whose header environment profile is `0xFF`, level loading instead initializes `F920` from the first byte of a level-indexed fallback table at physical `0x53AAA..0x53AC4`.
 
@@ -364,4 +395,4 @@ Preserve the signed-byte representation and `-1` sentinel exactly.
 
 Read sequentially. After the dynamic live-world-object array, read `spell_ui_selected_character[2]`, `gameplay_tick_counter`, states `0..61` using the certified slot-count catalogue, the two renderer controls, 15 charge counters, ten `0x248` roster records, and four 4-byte party container-UI contexts.
 
-Do not model `0x0D59`, `0x0D68`, `0x2438`, or total size `0x2448` as universal constants. Preserve the state-61/62 mismatch rather than silently repairing shipped data.
+Do not model `0x0D59`, `0x0D68`, `0x2438`, or total size `0x2448` as universal constants. Preserve the complete fixed-prefix time/cursor state and the state-61/62 mismatch rather than silently repairing shipped data.
