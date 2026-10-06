@@ -12,6 +12,12 @@ SLOT_SIZE = 26
 SLOT_COUNT = 50
 COMMAND_SIZE = 5
 
+OPCODE11_SPECIAL = {
+    0x0B: "final_strahd_activation",
+    0x0C: "vengeful_spirit_possession",
+    0x0D: "irimgarde_fixed_cell_trigger",
+}
+
 
 def u32(buf: bytes, off: int) -> int:
     return struct.unpack_from("<I", buf, off)[0]
@@ -87,6 +93,10 @@ def analyze(levels_path: Path, info_path: Path | None) -> None:
             )
         for level_id, slot_index, command_index, command, unaligned in matches:
             suffix = "" if unaligned is None else f" unaligned_dword={unaligned:#x}"
+            if opcode == 11:
+                arg3 = command[3]
+                branch = OPCODE11_SPECIAL.get(arg3, f"numbered_resource_{arg3:02d}")
+                suffix += f" branch={branch}"
             print(
                 f"  level={level_id} slot={slot_index} command={command_index} "
                 f"bytes={command.hex(' ')}{suffix}"
