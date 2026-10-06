@@ -167,7 +167,7 @@ The supplied type-6 records decode only to 4,096 bytes (134 resources) or 8,192 
 
 ### Type 7 consumer evidence
 
-Every supplied type-7 decoded body is at least 10 bytes. Renderer paths `21C1D..21C55` and `36E94..36F04` request archive `3`, skip the leading decoded-size word, then consume the body as structured 16-bit data.
+Every supplied type-7 decoded body is at least 10 bytes. Renderer paths `21C1D..21C55` and `36E94..36F04` request archive `3a, skip the leading decoded-size word, then consume the body as structured 16-bit data.
 
 The first five signed words are used as geometry:
 
@@ -194,10 +194,10 @@ They are preserved as valid archive entries and remain a separate unresolved fam
 `analyze_res.py` now validates the complete supplied corpus:
 
 - 13 outer archives; byte-identical parse/reassembly;
-- 11,895 total entries;
+- 12,562 total entries;
 - 21 zero-length entries;
 - 77 non-EH entries;
-- 11,797 EH entries across types 1, 2, 3, 4, 6, and 7;
+- 12,464 EH entries across types 1, 2, 3, 4, 6, and 7;
 - exact method-0 size checks for all 113 supplied type-1 raw resources;
 - exact method-3 LZSS stream exhaustion for all 1,478 type-1 and all 15 type-2 resources;
 - exact XDIR length/signature checks for all 172 type-3 resources;

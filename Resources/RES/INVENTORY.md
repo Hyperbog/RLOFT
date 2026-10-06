@@ -9,7 +9,7 @@ This inventory is generated from the immutable `RES0`..`RES12` files. Counts des
 | `RES2` | 63,736 | 38 | 0 | 0 | type 1: 38 |
 | `RES3` | 5,228,638 | 4,234 | 0 | 0 | type 7: 4,234 |
 | `RES4` | 1,975,542 | 667 | 0 | 0 | type 6: 667 |
-| `RES5` | 1,510,960 | 98 | 0 | 0 | type 3: 98 |
+| `RES5` | 1,511,960 | 98 | 0 | 0 | type 3: 98 |
 | `RES6` | 6,210,899 | 266 | 0 | 0 | type 4: 266 |
 | `RES7` | 211,133 | 62 | 0 | 0 | type 1: 62 |
 | `RES8` | 58,772 | 73 | 0 | 0 | type 1: 73 |
@@ -17,7 +17,7 @@ This inventory is generated from the immutable `RES0`..`RES12` files. Counts des
 | `RES10` | 46,060,354 | 219 | 0 | 0 | type 4: 219 |
 | `RES11` | 15,589,639 | 5,114 | 0 | 0 | type 3: 74; type 4: 260; type 6: 652; type 7: 4,128 |
 | `RES12` | 12,150,551 | 667 | 0 | 37 | type 1: 370; type 4: 260 |
-| **Total** | **99,582,006** | **11,895** | **21** | **77** | type 1: 1,591; type 2: 15; type 3: 172; type 4: 1,005; type 6: 1,319; type 7: 8,362 |
+| **Total** | **99,663,006** | **12,562** | **21** | **77** | type 1: 1,591; type 2: 15; type 3: 172; type 4: 1,005; type 6: 1,319; type 7: 8,362 |
 
 ## Compression inventory
 
