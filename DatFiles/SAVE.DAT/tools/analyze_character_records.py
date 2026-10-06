@@ -9,8 +9,8 @@ from pathlib import Path
 RECORD_SIZE = 0x248
 PARTY_OFFSET, PARTY_COUNT = 0x77, 4
 MIDDLE_OFFSET = PARTY_OFFSET + PARTY_COUNT * RECORD_SIZE
-WORLD_OBJECT_SIZE = 0x16
-WORLD_OBJECT_LIMIT = 0x96
+LIVE_EFFECT_SIZE = 0x16
+LIVE_EFFECT_LIMIT = 0x96
 FIXED_AFTER_WORLD_OBJECTS_TO_ROSTER = 0x3CD  # D8A8/A7E4 + 62-container bank + F920/F91C + charges
 ROSTER_COUNT = 10
 STATUS_OFFSET = 0x10
@@ -178,11 +178,11 @@ def main() -> int:
     data = args.save.read_bytes()
     if len(data) < MIDDLE_OFFSET + 4: raise SystemExit("SAVE too short for party/world-object count")
 
-    world_count = u32(data, MIDDLE_OFFSET)
-    if world_count > WORLD_OBJECT_LIMIT: raise SystemExit(f"invalid live transient-effect count {world_count}")
-    roster_offset = MIDDLE_OFFSET + 4 + world_count * WORLD_OBJECT_SIZE + FIXED_AFTER_WORLD_OBJECTS_TO_ROSTER
+    live_effect_count = u32(data, MIDDLE_OFFSET)
+    if live_effect_count > LIVE_EFFECT_LIMIT: raise SystemExit(f"invalid live transient-effect count {live_effect_count}")
+    roster_offset = MIDDLE_OFFSET + 4 + live_effect_count * LIVE_EFFECT_SIZE + FIXED_AFTER_WORLD_OBJECTS_TO_ROSTER
 
-    print(f"live_world_object_count={world_count}; derived roster offset=0x{roster_offset:X}")
+    print(f"live_world_object_count={live_effect_count}; derived roster offset=0x{roster_offset:X}")
     for label, start, count in (("party", PARTY_OFFSET, PARTY_COUNT), ("roster", roster_offset, ROSTER_COUNT)):
         for i in range(count):
             base = start + i * RECORD_SIZE
