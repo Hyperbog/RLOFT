@@ -216,3 +216,49 @@ The build:
   `Tools/Windows/` and as a GitHub Actions artifact.
 
 The executable does not bundle the game's extractable resource corpus.
+
+
+## Current GUI behavior
+
+### Baked Strahd banner
+
+The Strahd interface is the only GUI theme. Its banner is composed from the
+original Ravenloft frame, parchment, and corrected title artwork baked into the
+application. The artwork is tiled/cropped at native pixel scale rather than
+stretched and does not require RES0/COLORS at runtime.
+
+### Native-rate display
+
+Native cinematic timing is variable-rate. The GUI displays the selected
+cinematic's effective average displayed-frame rate plus the underlying image
+cadence and engine timer.
+
+Certified timing values are based on the reconstructed IRQ0 path:
+
+- engine timer: approximately 18.2065 Hz;
+- CINE00..CINE11 image frames: approximately 3.0344 FPS;
+- CINE12 image frames: approximately 9.1033 FPS;
+- one-tick command frames: approximately 18.2065 FPS;
+- zero-wait command frames add no display time.
+
+The exported timeline/manifest retains exact per-frame waits.
+
+### Complete RES3 scene graphics
+
+Active RES3 type-7 compiled scene shapes are reconstructed to transparent
+native-resolution images. All 4,234 active RES3 records render successfully and
+are separated into:
+
+- NPC / creature graphics;
+- placed object graphics;
+- loose / pickable item graphics;
+- transient / moving-effect graphics.
+
+PNG is the recommended modern-port visual derivative. Optional associated
+outputs can retain canonical palette-index bytes, structural metadata/compiled
+shape bytes, standalone transparency masks, and original EH records.
+
+### Hover help
+
+Interactive controls have delayed floating tooltips. They appear only after a
+short hover and disappear on mouse leave or click.
