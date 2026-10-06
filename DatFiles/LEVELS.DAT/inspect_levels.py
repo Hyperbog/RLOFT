@@ -194,6 +194,40 @@ def expand_legacy_family_b(item: LegacyCompactRecord, width: int) -> bytes:
     return bytes(out)
 
 
+def collect_column_records(record: bytes, start: int, width: int) -> Tuple[int, List[Tuple[int, bytes]]]:
+    pos = start
+    records: List[Tuple[int, bytes]] = []
+    for column in range(width):
+        count = s16(record, pos)
+        pos += 2
+        if count < 0:
+            raise ValueError(f"negative column count {count} at column {column}")
+        for _ in range(count):
+            end = pos + LIST_RECORD_SIZE
+            if end > len(record):
+                raise ValueError("truncated 10-byte column record")
+            records.append((column, record[pos:end]))
+            pos = end
+    return pos, records
+
+
+def decode_direct_world_record(record: bytes, off: int) -> dict[str, int]:
+    if off + DIRECT_RECORD_SIZE > len(record):
+        raise ValueError("truncated 22-byte direct world record")
+    state = u16(record, off + 0x14)
+    return {
+        "y_fixed": u32(record, off + 0x00),
+        "x_fixed": u32(record, off + 0x04),
+        "runtime_flags": u32(record, off + 0x08),
+        "cell_index": u16(record, off + 0x0C),
+        "type_id": u16(record, off + 0x0E),
+        "action_countdown": u16(record, off + 0x10),
+        "current_hp": s16(record, off + 0x12),
+        "packed_state": state,
+        "facing": (state >> 3) & 0x07,
+    }
+
+
 def validate_tail(record: bytes, blob_end: int, core: CoreHeader) -> int:
     pos = blob_end
     if pos + 4 > len(record):
@@ -371,6 +405,21 @@ def correlate(archive_path: Path, direct_path: Path, level_id: int) -> None:
     grid_a = legacy[la.bounds[0] + BASE_HEADER_SIZE : la.bounds[1]]
     grid_d = direct[ld.bounds[0] + BASE_HEADER_SIZE : ld.bounds[1]]
     grid_diff_bytes = sum(a != b for a, b in zip(grid_a, grid_d))
+    cell_count = la.core.width * la.core.height
+    words_a = struct.unpack_from(f"<{cell_count}H", grid_a, 0)
+    words_d = struct.unpack_from(f"<{cell_count}H", grid_d, 0)
+    word_deltas = [a ^ d for a, d in zip(words_a, words_d) if a != d]
+
+    archive_list_end, archive_list_records = collect_column_records(
+        legacy, la.bounds[1], la.core.width
+    )
+    direct_group1_end, direct_group1_records = collect_column_records(
+        direct, ld.bounds[1], ld.core.width
+    )
+    active_animation_count = direct[direct_group1_end]
+    direct_group2_end, direct_group2_records = collect_column_records(
+        direct, direct_group1_end + 1, ld.core.width
+    )
 
     blob_a = legacy[la.bounds[5] : la.bounds[6]]
     blob_d = direct[ld.bounds[5] : ld.bounds[6]]
@@ -394,8 +443,53 @@ def correlate(archive_path: Path, direct_path: Path, level_id: int) -> None:
     print(f"dimensions={la.core.width}x{la.core.height}")
     print(f"header differing bytes={len(header_diffs)}: " + ",".join(f"{i:#x}" for i in header_diffs))
     print(f"16-bit cell-layer differing bytes={grid_diff_bytes}/{len(grid_a)}")
+    print(f"16-bit cell words changed={len(word_deltas)}/{cell_count}")
+    if word_deltas:
+        delta_counts = {}
+        for delta in word_deltas:
+            delta_counts[delta] = delta_counts.get(delta, 0) + 1
+        print(
+            "cell-word XOR deltas="
+            + ", ".join(f"0x{k:04X}:{v}" for k, v in sorted(delta_counts.items()))
+        )
+    print(
+        "10-byte group-1 byte-identical="
+        f"{archive_list_records == direct_group1_records} "
+        f"records={len(direct_group1_records)}"
+    )
+    print(
+        f"direct active-animation count={active_animation_count}, "
+        f"group-2 records={len(direct_group2_records)}"
+    )
+
+    if la.core.count_258a2 == ld.core.count_258a2:
+        for i in range(la.core.count_258a2):
+            compact = decode_legacy_compact(
+                legacy, la.bounds[2] + i * LEGACY_RECORD_SIZE
+            )
+            live = decode_direct_world_record(
+                direct, ld.bounds[2] + i * DIRECT_RECORD_SIZE
+            )
+            print(
+                f"family_A[{i}] type={live['type_id']} "
+                f"archive_xy=({compact.x_cell},{compact.y_cell}) "
+                f"direct_xy=({live['x_fixed'] >> 16},{live['y_fixed'] >> 16}) "
+                f"archive_facing={compact.flags_byte & 7} direct_facing={live['facing']} "
+                f"hp={live['current_hp']} action={live['action_countdown']} "
+                f"flags=0x{live['runtime_flags']:08X}"
+            )
+
     print(f"0x514 block byte-identical={blob_a == blob_d}")
     print(f"final byte-layer differing bytes={cell_diff_bytes}/{len(cell_a)}")
+    changed_0440 = {
+        i for i, (a, d) in enumerate(zip(words_a, words_d)) if (a ^ d) == 0x0440
+    }
+    cache_2e = {i for i, value in enumerate(cell_d) if value == 0x2E}
+    if changed_0440 or cache_2e:
+        print(
+            "0x0440-changed cells vs direct cache 0x2E="
+            f"{len(changed_0440)}/{len(cache_2e)}, exact_set_match={changed_0440 == cache_2e}"
+        )
     if family_b_matches is not None:
         print(
             "legacy family-B deterministic expansion matches direct records="
