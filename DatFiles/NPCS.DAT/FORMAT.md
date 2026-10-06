@@ -1,6 +1,6 @@
 # NPCS.DAT format reconstruction
 
-Status: **container and fixed 0x45-byte record layout proven; name, scene/render parameters, core combat statistics, XP, runtime-state templates, sound fields, and fourteen behavior/effect aliases are behaviorally anchored in certified CODE.2. Unknown flag bits remain raw.**
+Status: **container and fixed 0x45-byte record layout proven; name, scene/render parameters, core combat statistics, XP, runtime-state templates, sound fields, and sixteen behavior/effect aliases are behaviorally anchored in certified CODE.2. Unknown flag bits remain raw.**
 
 ## Controlling evidence
 
@@ -116,7 +116,7 @@ These fields are deliberately aliased across access widths.
 
 ### `+0x31..+0x34` — raw `uint32 behavior_flags`
 
-CODE.2 tests this storage as byte, unaligned word, and full dword. Six aliases are currently proved:
+CODE.2 tests this storage as byte, unaligned word, and full dword. Eight aliases are currently proved:
 
 ```text
 0x00000002  hold_undead_effect_immunity
@@ -125,9 +125,11 @@ CODE.2 tests this storage as byte, unaligned word, and full dword. Six aliases a
 0x00000100  common_spell_effect_immunity
 0x00000800  cold_effect_immunity
 0x00002000  fire_effect_immunity
+0x00004000  weapon_category10_damage_floor_one
+0x00008000  weapon_category9_damage_floor_one
 ```
 
-The executable constructs compound masks:
+The executable constructs compound spell masks:
 
 ```text
 0x0102  Hold Undead
@@ -139,7 +141,18 @@ The executable constructs compound masks:
 
 The common area/effect path skips a target whenever its `behavior_flags` intersects the caller's mask. Mage and priest Hold Person both use `0x0108`; Hold variants share the same live held-state bit. Fire/cold dispatcher paths independently establish the elemental components.
 
-Preserve the full raw dword; these aliases are not a replacement enum. See `EFFECT_IMMUNITIES.md` and `HOLD_IMMUNITIES.md`.
+The separate physical-attack gate at CODE.2 `0xC910..0xC99E` resolves OBJECTS.DAT category and enchantment before applying two high bits. Nonzero enchantment reroutes the item to category 11. On the remaining paths:
+
+```text
+category 10 + 0x00004000 -> temporary damage 0 -> final minimum 1
+category  9 + 0x00008000 -> temporary damage 0 -> final minimum 1
+```
+
+Thus these aliases are **one-damage floors**, not zero-damage immunities. The supplied category-9 content is mace/quarterstaff/warhammer; category 10 contains ordinary axe/sword/dagger/spear/halberd definitions and variants. The aliases stay category-based rather than claiming an original AD&D damage-type enum.
+
+The same category-11 branch tests `0x00020000` and `0x00040000` around zero-extended enchantment loads and signed comparisons to `-2`. Their exact executable oddity is documented in `WEAPON_DAMAGE_FLAGS.md`; those bits remain raw rather than being assigned speculative source-level names.
+
+Preserve the full raw dword; these aliases are not a replacement enum. See `EFFECT_IMMUNITIES.md`, `HOLD_IMMUNITIES.md`, and `WEAPON_DAMAGE_FLAGS.md`.
 
 ### `+0x35..+0x38` — initial runtime flags
 
@@ -211,6 +224,7 @@ A faithful reader/editor may expose the proved fields and aliases while retainin
 - preserve all animation/render fields even for noncombat/story definitions;
 - expose HD, melee damage, AC, THAC0 and XP as proved stats;
 - retain `behavior_flags` and `initial_runtime_flags` with their exact overlapping access semantics;
+- reproduce the weapon-gate order, including enchantment rerouting and final minimum-one clamp;
 - expose only independently proved bit aliases and preserve every other bit raw;
 - preserve unresolved `+0x3B/+0x3C`;
 - preserve sound IDs as 16-bit values.
