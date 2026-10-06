@@ -45,7 +45,7 @@ STATUS_BITS = (
     (0x0400, "Diseased"),
     (0x0800, "Poisoned"),
     (0x1000, "Paralyzed"),
-    (0x2000, "unresolved high-order blocking state"),
+    (0x2000, "engine-recognized blocking state; exact identity unproved"),
     (0x4000, "Dead"),
     (0x8000, "empty/unoccupied slot"),
 )
@@ -179,7 +179,7 @@ def main() -> int:
     if len(data) < MIDDLE_OFFSET + 4: raise SystemExit("SAVE too short for party/world-object count")
 
     world_count = u32(data, MIDDLE_OFFSET)
-    if world_count > WORLD_OBJECT_LIMIT: raise SystemExit(f"invalid live-world-object count {world_count}")
+    if world_count > WORLD_OBJECT_LIMIT: raise SystemExit(f"invalid live transient-effect count {world_count}")
     roster_offset = MIDDLE_OFFSET + 4 + world_count * WORLD_OBJECT_SIZE + FIXED_AFTER_WORLD_OBJECTS_TO_ROSTER
 
     print(f"live_world_object_count={world_count}; derived roster offset=0x{roster_offset:X}")
