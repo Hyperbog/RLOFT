@@ -1,9 +1,16 @@
 # Ravenloft Tools
 
-This directory contains modern preservation and analysis utilities built from the certified reverse-engineering work in this repository.
+Modern preservation, inspection, extraction, and remastering utilities built
+from the certified reverse-engineering work in this repository.
 
-## Current tools
+## Current tool
 
-- `anm/` — native inspector and frame extractor for `CINE00.ANM` through `CINE12.ANM`.
+- `anm/` — **Ravenloft Asset Extraction Suite**. The directory name is a
+  historical artifact from its ANM-only first phase; it now extracts the full
+  graphics/texture/font/shape, sampled-audio, music/timbre, cinematic,
+  palette/text, and renderer-support corpus.
 
-Tools must treat the shipped Ravenloft files as immutable source evidence. Decoders should follow the certified format documentation under `Resources/` and preserve format uncertainties rather than inventing semantics.
+All tools treat shipped Ravenloft bytes as immutable source evidence. Decoders
+follow the certified `Resources/` documentation, preserve canonical/native
+bytes alongside modern derivatives where useful, and keep unresolved semantics
+explicit rather than inventing them.
