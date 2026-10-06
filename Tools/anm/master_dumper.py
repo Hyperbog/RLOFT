@@ -25,7 +25,8 @@ class DumpOptions:
     music_format: str = "Both XMI + MIDI"
     cinematic_frame_format: str = "PNG"
     cinematic_video_format: str = "MKV (FFV1 lossless)"
-    cinematic_fps: float = 15.0
+    cinematic_fps: float | None = None
+    cinematic_audio: bool = True
     cinematic_frames: bool = True
     cinematic_videos: bool = False
     cinematic_timeline: bool = True
@@ -51,6 +52,7 @@ def dump_cinematics(
     frames_destination: Path | None = None,
     video_destination: Path | None = None,
     timeline_destination: Path | None = None,
+    names: tuple[str, ...] | None = None,
 ) -> dict[str, object]:
     source_dir = Path(source_dir)
     destination = Path(destination)
@@ -60,8 +62,9 @@ def dump_cinematics(
     originals_root = destination / "original_anm"
     timeline_root.mkdir(parents=True, exist_ok=True)
 
+    selected_names = names or inventory.ANM_NAMES
     records = []
-    for ordinal, name in enumerate(inventory.ANM_NAMES, 1):
+    for ordinal, name in enumerate(selected_names, 1):
         path = source_dir / name
         if not path.is_file():
             continue
@@ -85,12 +88,15 @@ def dump_cinematics(
             suffix = exporter.VIDEO_FORMATS[options.cinematic_video_format]
             video_root.mkdir(parents=True, exist_ok=True)
             video_file = video_root / f"{stem}{suffix}"
-            exporter.export_video(
+            video_info = exporter.export_video(
                 movie,
                 video_file,
                 options.cinematic_video_format,
                 options.cinematic_fps,
                 progress=_stage_progress(progress, f"cinematic:{stem}:video"),
+                source_path=path,
+                game_dir=source_dir,
+                sync_audio=options.cinematic_audio,
             )
 
         if options.cinematic_timeline:
@@ -101,18 +107,24 @@ def dump_cinematics(
             "default_wait": movie.default_wait,
             "frames_exported": options.cinematic_frames,
             "video": str(video_file) if video_file else None,
+            "video_info": video_info if video_file else None,
+            "native_timing": exporter.native_timing_summary(movie, name),
         })
         if progress:
-            progress("cinematics", ordinal, len(inventory.ANM_NAMES), f"Completed {name}")
+            progress("cinematics", ordinal, len(selected_names), f"Completed {name}")
 
     manifest = {
         "frame_format": options.cinematic_frame_format,
         "video_format": options.cinematic_video_format if options.cinematic_videos else None,
-        "video_fps": options.cinematic_fps if options.cinematic_videos else None,
+        "video_timing": (
+            "native engine timing" if options.cinematic_videos and options.cinematic_fps is None
+            else options.cinematic_fps if options.cinematic_videos else None
+        ),
+        "sampled_audio_sync": options.cinematic_audio if options.cinematic_videos else False,
         "cinematics": records,
         "timing_note": (
-            "ANM default_wait is preserved in each timeline. Constant-FPS video is a presentation "
-            "export; exact original timing remains represented by ANM/timeline data."
+            "Native export follows reconstructed CODE.2 wait-tick behavior. "
+            "A numeric FPS is an optional constant-rate presentation derivative."
         ),
     }
     destination.mkdir(parents=True, exist_ok=True)
@@ -195,6 +207,7 @@ def dump_all(
             "music": options.music_format,
             "cinematic_frames": options.cinematic_frame_format,
             "cinematic_video": options.cinematic_video_format if options.cinematic_videos else "not requested",
+            "cinematic_timing": "native" if options.cinematic_fps is None else options.cinematic_fps,
         },
         "sections": result,
     }
