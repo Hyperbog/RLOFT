@@ -177,6 +177,62 @@ absolute_RES3_id = 4158 + class3_bank_local_shape
 
 Thus `+0x0E` is not an OBJECTS.DAT or NPCS.DAT object ID.
 
+### Known effect-type producers
+
+The 12-value `effect_type` domain must **not** be modeled as the spell-dispatch ID. Direct producer tracing proves that several values are shared by spells, charged devices, and level-script effects.
+
+The following associations are executable- and resource-backed:
+
+| Type | Certified shipped producer(s) | Evidence boundary |
+|---:|---|---|
+| 0 | Mage **Fireball**; OBJECTS ID 76 **WAND OF FIREBALLS**; LEVELS opcode 3 instances | shared effect class, not uniquely Fireball |
+| 1 | Mage **Lightning Bolt**; LEVELS opcode 3 instances | Lightning Bolt chain independently closes type 1 and its NPC immunity mask |
+| 2 | Mage **Ice Knife** | direct spell-dispatch constructor call |
+| 3 | Mage **Cone of Cold**; OBJECTS ID 77 **WAND OF FROST** | shared cold-effect class |
+| 4 | Mage **Flame Arrow** | direct spell-dispatch constructor call |
+| 5 | no direct producer identified in the audited supplied paths | preserve numeric type/descriptor |
+| 6 | Mage **Magic Missile**; OBJECTS ID 78 **WAND OF MAGIC MISSILES** | shared missile-effect class |
+| 7 | no direct producer identified in the audited supplied paths | preserve numeric type/descriptor |
+| 8 | Mage **Burning Hands** and **Agannazar's Scorcher** area-effect presentation; additional runtime constructor path exists | shared class; do not rename the numeric type to one spell |
+| 9 | Mage **Ice Storm** and **Otiluke's Freezing Sphere** area-effect presentation | shared area/cold class |
+| 10 | priest **Flame Strike** presentation/effect | dedicated audited producer writes type 10 directly |
+| 11 | OBJECTS ID 115 **HOLY SYMBOL OF RAVENKIND** area-effect path | item-derived effect class |
+
+The ordinary projectile-style spell handlers establish these direct constructor arguments:
+
+```text
+Fireball        dispatch 21 -> type 0
+Lightning Bolt dispatch 28 -> type 1
+Ice Knife       dispatch 15 -> type 2
+Cone of Cold    dispatch 40 -> type 3
+Flame Arrow     dispatch 22 -> type 4
+Magic Missile   dispatch  5 -> type 6
+```
+
+The charged-device item-use dispatcher independently reuses:
+
+```text
+OBJECTS 76  WAND OF FIREBALLS       -> type 0
+OBJECTS 77  WAND OF FROST           -> type 3
+OBJECTS 78  WAND OF MAGIC MISSILES  -> type 6
+```
+
+The area-effect builder at physical `0x45F50` writes its seventh argument into record `+0x0E`. Its shipped callers establish:
+
+```text
+Burning Hands             -> type 8
+Agannazar's Scorcher      -> type 8
+Ice Storm                 -> type 9
+Otiluke's Freezing Sphere -> type 9
+Holy Symbol of Ravenkind  -> type 11
+```
+
+Flame Strike takes a separate path: priest dispatch 122 calls physical `0x46334`, which directly appends a live record and stores literal `10` at `+0x0E`.
+
+Finally, LEVELS opcode 3 passes its serialized `arg3` directly as the constructor type. Across the supplied LEVELS corpus its 42 instances use only values 0 and 1, so level scripts independently exercise those two effect classes outside prepared-spell dispatch.
+
+Types 5 and 7 have valid INIT class-3 descriptors/resources but no direct producer was found in the audited supplied runtime paths. They may be dormant/legacy or reachable through data outside the supplied corpus. Preserve them as supported numeric descriptor indexes rather than declaring them unused.
+
 ### Auxiliary words
 
 The common constructor explicitly initializes `+0x10` to zero, but a narrower gameplay name is not yet justified.
