@@ -21,6 +21,9 @@ ProgressCallback = Callable[[str, int, int, str], None]
 class DumpOptions:
     graphics_format: str = "PNG (lossless indexed)"
     graphics_palette: int = 0
+    graphics_indices: bool = True
+    graphics_metadata: bool = True
+    graphics_masks: bool = False
     audio_format: str = "FLAC (lossless)"
     music_format: str = "Both XMI + MIDI"
     cinematic_frame_format: str = "PNG"
@@ -181,6 +184,9 @@ def dump_all(
         palette_index=options.graphics_palette,
         preserve_native=options.preserve_native,
         progress=_stage_progress(progress, "graphics"),
+        export_indices=options.graphics_indices,
+        export_metadata=options.graphics_metadata,
+        export_masks=options.graphics_masks,
     )
     result["audio"] = asset_dumper.dump_audio(
         source_dir,
