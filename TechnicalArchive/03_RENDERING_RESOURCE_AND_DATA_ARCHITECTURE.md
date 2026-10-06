@@ -598,7 +598,7 @@ Evidence:
 
 Safe treatment:
 - preserve and document them as supplied alternate/unselected resource material;
-- do not label them floppy/CD/localization/prototype without independent provenance;
+- CD provenance is now explicit: both are present in the same supplied CD image. Do not further label them floppy/localization/prototype or assign an intended executable/build role without independent evidence;
 - do not silently merge them into the active RES namespace.
 
 ## 19. Renderer pipeline summary
@@ -644,7 +644,7 @@ A native reconstruction may replace low-level implementation mechanisms with saf
 4. **Generated-rasterizer behavior.** Portable code may replace self-modifying x86 at runtime, but must reproduce the encoded draw semantics.
 5. **Archive routing.** INFO's local/alternate path distinction and active RES0..RES10 boundary are part of the shipped installation architecture.
 6. **Vendor/game boundary.** Miles GTL/ARIA assets and drivers should remain distinguishable from DreamForge-native resource formats.
-7. **Evidence-bounded unknowns.** Alternate RES11/12 provenance, type-5 source semantics, inactive wordcode companion arrays, and historical producer marker meanings remain unknown where the supplied runtime does not decide them.
+7. **Evidence-bounded unknowns.** RES11/12 disc provenance is known (same supplied CD); their intended executable/build role remains unresolved. Type-5 source semantics, inactive wordcode companion arrays, and historical producer marker meanings remain unknown where the supplied runtime does not decide them.
 
 ## 21. Canonical evidence
 

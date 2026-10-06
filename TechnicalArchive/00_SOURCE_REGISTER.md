@@ -86,3 +86,43 @@ The register should expand with exact editions/pages/sections as used:
 ## Citation rule inside archive documents
 
 For external sources, record source ID plus exact section/page where available. For Ravenloft binary claims, cite logical/file addresses and canonical reconstruction/audit artifacts. Community claims retain author/source attribution even after independent confirmation so the historical contribution is not erased.
+
+
+## SR-005 — shipped CD `STATUS.ME`
+
+Class: **PRIMARY-GAME / shipped development-mastering residue**
+
+Source: original Ravenloft CD filesystem as supplied through the GOG `game.gog` CD image.
+
+Preserved file identity:
+
+- bytes: `1,029`
+- SHA-256: `8f76f831bf7ab218784c1f2bfdee2ce8d7f6ec5ee926688f1fae5ba1adc585db`
+
+The file begins with the literal header:
+
+```text
+@MULTI-EDIT VERSION 7.0    O:\BCOOLEY\6WORLDS\
+```
+
+and contains Multi-Edit workspace/status fields including an open-file reference to:
+
+```text
+O:\BCOOLEY\6WORLDS\PLAGUE.BAT
+```
+
+plus a file-history/filter entry `INSTALL?.NFO`.
+
+Independent period/reconstructed Multi-Edit 7.0 documentation identifies `STATUS.ME` as the editor's saved status/workspace file. Accordingly this file is classified as **third-party development/editor residue accidentally or intentionally carried into the mastered CD filesystem**, not as a Ravenloft runtime data format.
+
+Preservation value:
+
+- proves part of a development/mastering workstation path survived onto the shipped CD;
+- provides historical tooling/environment clues;
+- may help future source-tree archaeology.
+
+Constraints:
+
+- `BCOOLEY` is a directory name; do not identify a specific person without independent evidence;
+- `6WORLDS` and `PLAGUE.BAT` are preserved strings, but are **not** by themselves proof of Ravenloft codenames, project names, or runtime components;
+- the file should not be included in the active resource/runtime dependency graph unless executable evidence is found.

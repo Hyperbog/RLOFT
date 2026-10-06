@@ -156,7 +156,7 @@ The safe class name is **interaction/display wordcode** rather than NPC animatio
 
 The whole-object raw-access audit also proves no direct archive-12 raw-handle request exists in this CODE.2 object.
 
-Therefore RES12 remains an **ID-aligned alternate/incompatible interaction-wordcode bank**. No provenance label such as floppy/CD/prototype/localized is asserted without a matching executable or documentary source. See `RES12_WORDCODE.md`.
+Therefore RES12 remains an **ID-aligned alternate/incompatible interaction-wordcode bank physically present on the same supplied CD**. No floppy/localized/prototype label or intended executable/build role is asserted without matching evidence. See `RES12_WORDCODE.md`.
 
 ## Closed versus intentionally unknown
 
@@ -173,6 +173,6 @@ Intentionally unresolved historical/producer questions:
 
 - why the wordcode producer serialized a same-length zero bank;
 - what tool/build originally used the two RES1 `0x00000060` markers;
-- exact provenance/build identity of RES12.
+- exact intended executable/build role of the CD-shipped RES12 material.
 
 Those are preservation `UNKNOWN`s, not blockers for a faithful reconstruction of this executable's runtime behavior.

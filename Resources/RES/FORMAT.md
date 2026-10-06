@@ -350,7 +350,7 @@ Thus it is serialized-but-runtime-unread in this executable. Its historical prod
 
 RES12 has the same outer count/program/zero-bank container but an incompatible internal dialect, including inline character-template data where active CODE.2 expects a one-word template ID. No archive-12 raw-handle loader exists in the certified CODE.2 object.
 
-Safe classification: **ID-aligned alternate/incompatible interaction-wordcode bank**. No floppy/CD/prototype/localization provenance is asserted without a matching executable or documentary source.
+Safe classification: **ID-aligned alternate/incompatible interaction-wordcode bank physically shipped on the same supplied CD**. The disc provenance is now known; no floppy/localization/prototype label or intended executable/build role is asserted without matching evidence.
 
 ### RES1 raw markers
 
@@ -382,7 +382,7 @@ No supplied Ravenloft RES entry remains structurally unparsed.
 The intentional open questions are narrower:
 
 - original producer/editor meaning of the unused wordcode zero bank;
-- provenance/build identity of the RES12 alternate set;
+- intended executable/build role of the CD-shipped RES12 alternate set;
 - historical meaning of the two inactive RES1 `0x00000060` markers;
 - source-level names for conservative type-1 descriptor fields `+0x05/+0x07`;
 - semantic field names for executable-only type 5, which has no Ravenloft sample.

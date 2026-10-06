@@ -302,7 +302,7 @@ The following remain legitimate evidence boundaries rather than audit defects:
 
 - historical producer/editor purpose of the unread RES9 companion zero bank;
 - literal producer meaning of the two inactive RES1 `0x00000060` records;
-- exact provenance/build identity of RES11/RES12 alternate material;
+- exact intended build/runtime role of the CD-shipped RES11/RES12 alternate material;
 - historical source/editor field names not recoverable from runtime behavior;
 - semantic field names for uninstantiated resource type 5;
 - higher-level producer semantics of unused ANM chunk type 4 beyond its executable control behavior;
@@ -357,3 +357,17 @@ compressed-stream trailing-byte failures 0
 The strict decoder models CODE.2 routine `37700` exactly at initialization time: dictionary bytes `0x000..0xFED` begin as `0xFE`, while `0xFEE..0xFFF` remain undefined until written. Every shipped compressed stream completes without observing an undefined byte.
 
 This closes the last empirical qualifier introduced by the 2026-10-06 re-audit. The resource workstream is now **audit-clean for the supplied canonical Ravenloft corpus**, subject only to the intentionally bounded historical/vendor unknowns listed above.
+
+
+## 19. CD provenance clarification
+
+The supplied corpus is sourced from the original CD filesystem contained in the GOG `game.gog` image. This explicitly includes `RES9` through `RES12`; therefore earlier wording that left the physical/source provenance of `RES11`/`RES12` unknown was too broad.
+
+The corrected evidence boundary is:
+
+- **known:** `RES11` and `RES12` are physically present on the same supplied CD image;
+- **known:** certified CODE.2's active indexed archive setup is still `RES0..RES10`;
+- **known:** `RES12` contains an ID-aligned but incompatible wordcode-shaped bank and no direct archive-12 raw loader has been found in certified CODE.2;
+- **unknown:** the exact intended executable/build/installation path that consumes or selected the extra CD-shipped material.
+
+Thus their **disc provenance is closed** while their **runtime/build role remains bounded UNKNOWN**.

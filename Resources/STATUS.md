@@ -279,7 +279,7 @@ That belongs to the `Runtime/` third-party-driver track. It is **not a blocker**
 The following remain evidence-class `UNKNOWN` or deferred, but do not represent missing parsing of active Ravenloft resource behavior:
 
 1. historical producer purpose of the wordcode zero companion arrays;
-2. exact edition/build provenance of RES11/RES12 alternate content;
+2. exact intended build/runtime role of the CD-shipped RES11/RES12 alternate content;
 3. producer meaning of the two inactive RES1 `0x00000060` records;
 4. original source/editor names for several physically understood fields;
 5. semantic names inside executable-only type 5, absent from Ravenloft data;
@@ -300,5 +300,5 @@ For the **initial faithful decompilation / native-port foundation**, the Resourc
 Optional future work should be scheduled under the appropriate scope:
 
 - `A32ARXM.DLL` if exact ARIA bank semantics become important;
-- alternate-build executables if RES11/RES12 provenance needs identification;
+- alternate/build-related executables if the intended runtime role of the CD-shipped RES11/RES12 material needs identification;
 - other DreamForge titles only for comparative-family archaeology after Ravenloft's own evidence remains clearly separated.

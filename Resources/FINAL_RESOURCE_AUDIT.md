@@ -362,7 +362,7 @@ These do not block faithful reconstruction of the supplied runtime:
 
 1. historical producer/editor purpose of the zero wordcode companion arrays;
 2. why the RES1 producer wrote literal `0x00000060` in the terminal reserved face slot;
-3. exact edition/build provenance and intended executable for RES11/RES12 alternate content;
+3. exact intended executable/build role of the CD-shipped RES11/RES12 alternate content;
 4. original source/editor names for physically understood fields;
 5. semantic field names for executable-only resource type 5, absent from supplied Ravenloft data;
 6. higher-level producer semantics of unused ANM chunk type 4;
