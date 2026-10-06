@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Ravenloft RES0..RES12 and confirmed EH resource families."""
+"""Validate Ravenloft RES0..RES12 and confirmed resource families."""
 from __future__ import annotations
 import argparse, hashlib, json, struct
 from collections import Counter, defaultdict
@@ -72,10 +72,30 @@ def validate_image(entry, base, payload_at):
 def summarize(path: Path):
     data=path.read_bytes(); offs,entries=parse_res(data)
     kinds=Counter(); types=Counter(); headers=Counter(); comps=Counter(); vals=Counter()
-    sizes=defaultdict(Counter); anomalies=[]
+    sizes=defaultdict(Counter); anomalies=[]; non_eh=[]
     for idx,e in enumerate(entries):
         if not e: kinds["zero-length"]+=1; continue
-        if len(e)<5 or e[:2]!=b"EH": kinds["non-EH"]+=1; continue
+        if len(e)<5 or e[:2]!=b"EH":
+            kinds["non-EH"]+=1
+            rec={"index":idx,"bytes":len(e),"sha256":hashlib.sha256(e).hexdigest()}
+            if path.name in ("RES9","RES12") and len(e)>=2:
+                word_count=struct.unpack_from("<H",e,0)[0]
+                expected=2+4*word_count
+                rec.update(family="interaction-wordcode",word_count=word_count,expected_bytes=expected)
+                if len(e)!=expected:
+                    anomalies.append(dict(index=idx,type="non-EH",error=f"wordcode bytes {len(e)} != {expected}"))
+                else:
+                    tail=e[2+2*word_count:]
+                    rec["zero_tail_words"]=word_count
+                    rec["zero_tail_all_zero"]=not any(tail)
+                    if any(tail): anomalies.append(dict(index=idx,type="non-EH",error="wordcode trailing state bank is not zero"))
+                    else: vals["non_eh_wordcode_shape_exact"]+=1
+            elif path.name=="RES1" and e==b"\x60\x00\x00\x00":
+                rec.update(family="four-byte-sentinel",value_u32=0x60); vals["non_eh_res1_sentinel"]+=1
+            else:
+                rec.update(family="unclassified")
+            non_eh.append(rec)
+            continue
         kinds["EH"]+=1; t=e[2]; hs=struct.unpack_from("<H",e,3)[0]; types[t]+=1; headers[(t,hs)]+=1
         try:
             if t==1:
@@ -98,6 +118,11 @@ def summarize(path: Path):
                 target=struct.unpack_from("<H",e,5)[0]; decoded,used=lzss(e[7:],target)
                 if used!=len(e)-7: raise ValueError(f"LZSS trailing {len(e)-7-used}")
                 sizes[t][target]+=1; vals[f"type{t}_lzss_exact"]+=1
+                if t==6:
+                    if target % 128: raise ValueError(f"type6 decoded size {target} is not divisible by 128-byte column stride")
+                    columns=target//128
+                    vals[f"type6_columns_{columns}"]+=1
+                    if columns not in (32,64): raise ValueError(f"unexpected supplied type6 column count {columns}")
                 if t==7 and len(decoded)<10: raise ValueError("type7 decoded body < 10")
             else: vals[f"type{t}_unvalidated"]+=1
         except Exception as exc: anomalies.append(dict(index=idx,type=t,error=str(exc)))
@@ -106,7 +131,7 @@ def summarize(path: Path):
         entry_kinds=dict(sorted(kinds.items())),eh_types={str(k):types[k] for k in sorted(types)},
         header_sizes={f"type{t}:size{s}":n for (t,s),n in sorted(headers.items())},
         compression={f"type{t}:method{m}":n for (t,m),n in sorted(comps.items())},validations=dict(sorted(vals.items())),
-        decoded_sizes={f"type{t}":{str(k):v for k,v in sorted(c.items())} for t,c in sorted(sizes.items())},anomalies=anomalies)
+        decoded_sizes={f"type{t}":{str(k):v for k,v in sorted(c.items())} for t,c in sorted(sizes.items())},non_eh=non_eh,anomalies=anomalies)
 
 
 def main():
