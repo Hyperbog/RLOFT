@@ -60,7 +60,8 @@ class RenderedFrame:
 class SfxEvent:
     frame: int
     seconds: float
-    res6_index: int
+    archive: int
+    resource_index: int
     command: int
     encoded_id: int
 
@@ -157,6 +158,7 @@ def native_timing_summary(source: anm.AnmFile, source_name: str | Path | None) -
         "timer_hz": PIT_HZ,
         "wait_ticks": sorted(set(waits)),
         "instantaneous_fps": rates,
+        "average_frame_rate": (source.frame_count / total) if total > 0 else None,
         "duration_seconds": total,
         "variable_rate": len(set(waits)) > 1,
     }
@@ -241,10 +243,23 @@ def cinematic_sfx_events(
             if chunk.chunk_id == 6:
                 if encoded in IGNORED_QUEUED_SFX:
                     continue
+                archive = 6
                 resource_id = QUEUED_SFX_BASE + encoded
             else:
+                # CODE.2 146B8 explicitly selects archive 10 before 27F24(id),
+                # then restores archive 6 after direct cinematic playback.
+                archive = 10
                 resource_id = encoded
-            result.append(SfxEvent(frame.index, seconds, resource_id, chunk.chunk_id, encoded))
+            result.append(
+                SfxEvent(
+                    frame.index,
+                    seconds,
+                    archive,
+                    resource_id,
+                    chunk.chunk_id,
+                    encoded,
+                )
+            )
     return result
 
 
@@ -253,15 +268,26 @@ def _write_sfx_inputs(
     temp_dir: Path,
     events: list[SfxEvent],
 ) -> list[tuple[Path, SfxEvent]]:
-    archive = res_assets.ResArchive(Path(game_dir) / "RES6", 6)
-    resources = {r.index: r for r in archive.resources() if r.resource_type == 4}
+    resource_maps: dict[int, dict[int, res_assets.EhResource]] = {}
     result: list[tuple[Path, SfxEvent]] = []
     for ordinal, event in enumerate(events):
-        resource = resources.get(event.res6_index)
+        if event.archive not in resource_maps:
+            archive = res_assets.ResArchive(
+                Path(game_dir) / f"RES{event.archive}",
+                event.archive,
+            )
+            resource_maps[event.archive] = {
+                r.index: r
+                for r in archive.resources()
+                if r.resource_type == 4
+            }
+        resource = resource_maps[event.archive].get(event.resource_index)
         if resource is None:
             continue
         _declared, voc = res_assets.length_prefixed_blob(resource)
-        path = temp_dir / f"sfx_{ordinal:03d}_res6_{event.res6_index:03d}.voc"
+        path = temp_dir / (
+            f"sfx_{ordinal:03d}_res{event.archive}_{event.resource_index:03d}.voc"
+        )
         path.write_bytes(voc)
         result.append((path, event))
     return result
@@ -414,7 +440,8 @@ def write_timeline(source: anm.AnmFile, source_path: Path, destination: Path) ->
             {
                 "frame": event.frame,
                 "seconds": event.seconds,
-                "res6_index": event.res6_index,
+                "archive": event.archive,
+                "resource_index": event.resource_index,
                 "command": event.command,
                 "encoded_id": event.encoded_id,
             }
