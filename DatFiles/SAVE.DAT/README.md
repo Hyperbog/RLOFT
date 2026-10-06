@@ -1,6 +1,6 @@
 # SAVE.DAT
 
-Status: **high-effort audited active reconstruction.** The serializer/deserializer order is certified; the shared `0x248` character image is substantially reconstructed; the variable-length global layout, persistent container bank, three saved timing domains, renderer controls, cursor-held item state, and trailing container-UI contexts are behaviorally mapped.
+Status: **high-effort audited active reconstruction.** Serializer/deserializer order is certified; the shared `0x248` character image is substantially reconstructed; variable-length global layout, three saved timing domains, persistent container state, renderer controls, cursor-held item state, all 26 primary-effect identities, and trailing container-UI contexts are behaviorally mapped.
 
 - Supplied fixture size: 9,288 bytes (`0x2448`)
 - Supplied fixture SHA-256: `f898cb92fca6447954f5e0b2bf6f8ad2435e4a64ae3b9de74f8bf75e0ed10d5d`
@@ -26,9 +26,9 @@ level_light_adjustment
 4 * 4-byte party container-UI contexts
 ```
 
-The supplied quick-start fixture has `live_world_object_count == 0`, so its late absolute offsets are:
+The supplied quick-start fixture has `live_world_object_count == 0`, giving:
 
-| Fixture offset range | Size | Interpretation |
+| Fixture range | Size | Interpretation |
 |---|---:|---|
 | `0x0000–0x0076` | `0x77` | fixed global prefix |
 | `0x0077–0x0996` | `0x920` | active party: `4 × 0x248` |
@@ -41,9 +41,9 @@ The supplied quick-start fixture has `live_world_object_count == 0`, so its late
 | `0x0D68–0x2437` | `0x16D0` | saved roster: `10 × 0x248` |
 | `0x2438–0x2447` | `0x10` | `party_container_ui_context[4]` |
 
-For a save containing `N` live world objects, every fixture offset from `0x099B` onward shifts by `N * 0x16`. Thus `0x0D59`, `0x0D68`, `0x2438`, and total size `0x2448` are fixture anchors, not universal format constants.
+For `N` live world objects, every fixture offset from `0x099B` onward shifts by `N * 0x16`. Thus `0x0D59`, `0x0D68`, `0x2438`, and total size `0x2448` are fixture anchors, not universal format constants.
 
-See `GLOBAL_STATE.md` for the detailed executable evidence and full container-state catalogue. See `PREFIX_GLOBALS.md` for the final fixed-prefix semantic closure.
+See `GLOBAL_STATE.md` for the complete global/container reconstruction and `PREFIX_GLOBALS.md` for fixed-prefix evidence.
 
 ## Fixed prefix
 
@@ -61,36 +61,32 @@ See `GLOBAL_STATE.md` for the detailed executable evidence and full container-st
 0x0076          cursor-held item known/identified flag
 ```
 
-The supplied fixture stores level/map `22`, coordinates `0x00048000/0x00048000`, facing `270`, interrupt-tick value `1899`, time-of-day `0x000E0000` = 14:00, cursor item `-1`, and cursor-known flag `0`.
+Quick-start: level 22, coordinates `0x00048000/0x00048000`, facing 270, interrupt ticks 1899, time-of-day `0x000E0000` = 14:00, cursor item `-1`, cursor-known flag `0`.
 
-### Three distinct saved time domains
+### Three distinct time domains
 
-The executable distinguishes three independent saved timing concepts:
+The executable preserves three separate concepts:
 
-- prefix `+0x6C` is DGROUP `0xF58C`, incremented by the engine interrupt handler and restored under `cli/sti`;
-- middle-state DGROUP `0xA7E4` is the **pausable gameplay tick counter** used to create/expire character effect/action deadlines and drive periodic gameplay maintenance;
-- prefix `+0x70` / DGROUP `0xCF4C` is a **24-hour 16.16 fixed-point world time-of-day clock**. Its high word is the hour modulo 24 and its low word preserves fractional-hour progression.
+- `+0x6C` / DGROUP `0xF58C`: interrupt-driven engine tick counter;
+- middle DGROUP `0xA7E4`: pausable gameplay tick counter used by action/effect deadlines and periodic maintenance;
+- `+0x70` / DGROUP `0xCF4C`: 24-hour 16.16 fixed-point world time-of-day.
 
-`CF4C` is initialized to `0x000E0000`, world/environment logic compares its upper word with hour boundaries, the normalizer reduces the hour modulo 24 while retaining the low word, and time-advance code adds approximately one minute in fixed-point units.
+Do not collapse these into one native clock.
 
-These domains must not be collapsed into one native clock.
-
-### Cursor-held item state
-
-`+0x74/+0x76` are the global cursor-held item pair:
+### Cursor-held item
 
 ```cpp
-int16_t cursor_item_object_id; // OBJECTS.DAT ID; -1 = empty
-uint8_t cursor_item_known;     // zero unknown/unidentified; nonzero known
+int16_t cursor_item_object_id; // OBJECTS.DAT ID; -1 empty
+uint8_t cursor_item_known;     // zero unknown; nonzero known/identified
 ```
 
-The held-item setter uses the object ID to select the OBJECTS.DAT record and its inventory/UI graphic, then rebuilds the cursor image. Inventory-transfer code moves `cursor_item_known` alongside the object in the same way character `item_known_bits` move with inventory instances. Item-description code reveals the OBJECTS `+0x37` enchantment suffix only when the known flag is nonzero. SAVE load restores the pair through the held-item setter rather than merely copying bytes.
+The loader restores the pair through the normal held-item setter so the legacy cursor graphic is reconstructed. Inventory-transfer code moves the known flag alongside the item exactly as character `item_known_bits` follow inventory slots.
 
 ## Character image
 
-The serializer directly transfers `0x920 = 4 × 0x248` bytes beginning at runtime `0x218E0`, proving the corrected character base and stride.
+The serializer directly transfers `0x920 = 4 × 0x248` bytes beginning at runtime `0x218E0`, certifying the corrected character base and stride.
 
-Major certified record regions:
+Major certified regions:
 
 ```text
 +0x000..+0x00F   name
@@ -108,15 +104,39 @@ Major certified record regions:
 +0x040..+0x069   item[21]
 +0x06A..+0x0B9   Mage spellbook matrix
 +0x0BA..+0x109   Cleric/Paladin priest-style spell matrix
-+0x10A..+0x1F5   combat, spell UI, timed effects, temporary-hand effects, recovery/protection state
++0x10A..+0x1F5   combat, spell UI, primary/secondary timed effects and recovery state
 +0x1F6..+0x247   82-byte serialized reserved/unreferenced terminal region
 ```
 
-Identity enums and detailed field evidence are in `CORE_FIELDS.md` and `CHARACTER_RECORD.md`.
+See `CORE_FIELDS.md`, `CHARACTER_RECORD.md`, and the focused post-inventory/effect notes.
+
+## Primary effect catalogue closed
+
+Character `+0x132..+0x19D` is a 26-bit primary-effect set plus 26 corresponding expiry dwords. Application producers now identify every slot:
+
+```text
+ 0 Armor                             13 Draw Upon Holy Might - DEX
+ 1 Mage Light                        14 Negative Plane Protection
+ 2 Shield                            15 Fortify
+ 3 Blur                              16 Slow Poison
+ 4 Haste                             17 True Seeing
+ 5 Invisibility 10' Radius           18 Detect Undead
+ 6 Stoneskin                         19 Potion of Fire Resistance
+ 7 Dragon Scales                     20 Detect Magic
+ 8 Bless                             21 Prayer
+ 9 Invisibility to Undead            22 Shield of Lightning Protection equipped-state
+10 Priest Light                      23 Potion of Giant Strength
+11 Aid                               24 Potion of Speed
+12 Draw Upon Holy Might - STR        25 Wand of Enemy Detection
+```
+
+This is not simply a spell-ID table: indexes 19 and 22–25 are item/equipment-derived, and several spell-derived slots have special removal conditions rather than ordinary positive expiries.
+
+Expiration text remains contiguous at `T[588..613]`, but those records are now needed for **exact original wording/corroboration**, not for discovering the effect identities themselves. See `PRIMARY_EFFECT_CATALOGUE.md` and `EFFECT_FLAGS.md`.
 
 ## Dynamic live-world-object section
 
-Immediately after the active party, CODE.2 writes `DGROUP 0xC038` as a 32-bit count, then `count * 0x16` bytes from runtime `0x248EC`.
+Immediately after the active party, CODE.2 writes `DGROUP 0xC038` as a 32-bit count followed by `count * 0x16` bytes from runtime `0x248EC`.
 
 ```text
 structure stride = 0x16
@@ -125,21 +145,15 @@ maximum count    = 0x96 (150)
 
 A parser must follow the count rather than seek directly to the quick-start fixture's late offsets.
 
-## Selected spell-UI characters
+## Selected spell UI and gameplay ticks
 
-The two dwords at DGROUP `0xD8A8` are retained selected-character indexes for two spell-interface groups. Selection code computes `group = character_index / 2`, stores the character index, resets associated spell-list state, and rebuilds that character's spell list. Rendering later reloads these indexes.
+`DGROUP 0xD8A8[2]` retains selected-character indexes for the two spell-interface groups. Quick-start value: `[0,0]`.
 
-Quick-start value: `[0, 0]`.
-
-## Gameplay tick counter
-
-DGROUP `0xA7E4` is the persistent pausable gameplay-time counter. Character effect timers, hand/action deadlines, temporary spell-hand deadlines, recovery deadlines, and periodic healing/maintenance all use this timebase.
-
-Quick-start value: `1735` (`0x06C7`).
+`DGROUP 0xA7E4` is the persistent pausable gameplay tick counter used by primary effects, hand/action readiness, temporary spell-hand state, Strength recovery, timed slots, and periodic healing/maintenance. Quick-start value: `1735` (`0x06C7`).
 
 ## Persistent container-state bank
 
-The former anonymous `0x3AA` bank is the mutable state backing category-1 OBJECTS.DAT containers.
+The `0x3AA` quick-start bank is mutable state for category-1 OBJECTS.DAT containers:
 
 ```text
 OBJECTS.DAT +0x31
@@ -152,26 +166,15 @@ OBJECTS.DAT +0x31
 Each serialized record contains:
 
 ```cpp
-int16_t object_id[slot_count]; // -1 = empty
+int16_t object_id[slot_count]; // -1 empty
 uint8_t per_slot_state_bits;
 ```
 
-The 62 executable descriptors contain 438 total slots:
-
-```text
-438 * 2-byte object IDs = 876 bytes
-62 state bytes          =  62 bytes
-                          ---------
-                          938 bytes = 0x3AA
-```
-
-The bank includes pouches, sacks, chests, Bag of Holding, sling pouches, scroll cases, key rings, and quivers. `GLOBAL_STATE.md` lists every state index, associated OBJECTS definition, slot count, and quick-start file offset.
+The 62 executable descriptors contain 438 total slots, closing the bank exactly as `438*2 + 62 = 938 = 0x3AA` bytes. `GLOBAL_STATE.md` lists every state index, OBJECTS identity, width, and quick-start offset.
 
 ### Shipped state-61/62 mismatch
 
-OBJECTS ID 329 (`QUIVER`) stores selector 62, but descriptor 62 is zero-filled; the SAVE loop persists only indexes `0..61`; descriptor/state 61 is quiver-shaped and the quick-start state contains eight arrows.
-
-A direct executable audit found no `62 -> 61` repair: generic container code indexes descriptor 62 literally. This is consistent with a shipped off-by-one/static-data bug, but faithful compatibility should preserve the original mismatch rather than silently correcting it.
+OBJECTS ID 329 (`QUIVER`) stores selector 62, while descriptor 62 is zero-filled. SAVE persists only descriptors 0..61; descriptor/state 61 is quiver-shaped and the quick-start payload contains eight arrows. Generic container code does not repair `62 -> 61`. Faithful compatibility therefore preserves the shipped mismatch unless an explicit optional fix is enabled.
 
 ## Renderer/environment controls
 
@@ -182,21 +185,15 @@ F920  environment_shading_level   clamped 0..10
 F91C  level_light_adjustment      clamped 0..8
 ```
 
-`F920` feeds palette/shading-table generation and, for levels with an active environment profile, is refreshed from a 24-entry time-of-day table using the integer hour from `CF4C` modulo 24. Levels using the `0xFF` profile fallback initialize it from a level-indexed table.
+`F920` participates in palette/shading generation and can follow the integer hour of `CF4C`. `F91C` is combined with a party-wide light override. Primary effects **1 Mage Light** and **10 Priest Light** are the two effect bits that trigger that renderer-lighting recomputation.
 
-`F91C` is combined with a party-wide lighting override generated when primary effect 1 or 10 is active, then passed into the same shading-table generator. Exact original UI/editor terminology remains unknown, so the names are behavioral.
+Quick-start stores zero in both controls.
 
-The quick-start fixture stores zero in both.
+## Charged devices, roster and trailing UI state
 
-## Charged-item counters and roster
+The 15-byte charged-device vector at DGROUP `0x67EC` follows renderer controls. The serializer then writes `0x16D0 = 10 × 0x248` bytes from the saved-character roster.
 
-The 15-byte charged-device vector at DGROUP `0x67EC` follows the renderer controls. The supplied zero-world-object fixture places it at `0x0D59..0x0D67`.
-
-The serializer then writes `0x16D0 = 10 × 0x248` saved-roster bytes from runtime `0xA808`.
-
-## Final 16 bytes: party container-UI contexts
-
-DGROUP `0x6FA0` is four party-local 4-byte contexts:
+The final 16 bytes are four party-local container UI contexts:
 
 ```text
 +0  int8 container_subtype_or_minus1
@@ -205,9 +202,7 @@ DGROUP `0x6FA0` is four party-local 4-byte contexts:
 +3  int8 container_object_id_or_minus1
 ```
 
-Opening/closing routines animate `ui_phase` through `0→3` and `3→0`; phase 3 is the fully open/content-rendering phase. All four bytes move together when party positions are swapped.
-
-The quick-start fixture contains four inactive `FF FF FF FF` contexts.
+Opening/closing transitions animate phase `0→3` and `3→0`; phase 3 is fully open. Quick-start stores four inactive `FF FF FF FF` contexts.
 
 ## Tooling
 
@@ -216,17 +211,17 @@ python DatFiles/SAVE.DAT/tools/analyze_save.py /path/to/SAVE.DAT
 python DatFiles/SAVE.DAT/tools/analyze_character_records.py /path/to/SAVE.DAT
 ```
 
-The top-level analyzer follows serializer order, decodes the fixed-prefix time/cursor fields, parses all 62 container records using the executable slot-count catalogue, and derives late offsets dynamically.
+The character analyzer now decodes active primary-effect bits by certified source identity and reports each corresponding expiry value.
 
 ## Native-port compatibility rule
 
-Treat SAVE.DAT as an explicitly decoded little-endian legacy runtime image. Preserve legacy enum numbers, signed sentinels, full fixed-point time-of-day precision, unknown fields, the state-61/62 mismatch, and dynamic serializer ordering exactly unless an intentional compatibility-fix layer is separately enabled.
+Treat SAVE.DAT as an explicitly decoded little-endian legacy runtime image. Preserve legacy enum/index numbers, signed sentinels, fixed-point time precision, all 26 primary effect bits/timers, unknown/reserved bytes, dynamic serializer ordering, and the container state-61/62 mismatch exactly unless an explicit compatibility-fix layer says otherwise.
 
 ## Remaining reconstruction targets
 
-1. Decode/catalogue `T[588..613]` for all 26 primary-effect names, including the lighting effects that feed the renderer override.
-2. Recover exact Mage/priest spell lists and per-level entry limits.
+1. Recover the exact Mage/priest spell-bank catalogue and executable per-level entry limits.
+2. Decode `T[588..613]` to preserve exact primary-effect expiration wording and independently corroborate the closed producer catalogue.
 3. Audit remaining character `status_word` bits and portrait/status presentation variants.
-4. Continue semantic recovery of live-world-object fields and any remaining global runtime state needed for a native SAVE implementation.
+4. Continue semantic recovery of the `0x16` live-world-object record and any remaining SAVE-adjacent runtime state needed by a native compatibility implementation.
 
-The fixed prefix, byte ordering, variable-length middle structure, container bank, and late UI state are now sufficiently resolved for an explicit native compatibility decoder. The remaining SAVE work is concentrated in effect/resource catalogues and live-world-object semantics.
+The remaining SAVE work is now predominantly **catalogue and live-object semantics**, not serializer geometry or primary-effect identity discovery.
