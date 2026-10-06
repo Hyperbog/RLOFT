@@ -26,7 +26,23 @@ Each byte contains two independently manipulated 4-bit values. Consumers extract
 
 The boundary proof is executable, not fixture-derived. In the loop at physical `0x3EBFA..0x3ECF9`, the outer index executes exactly eight times (`ebx < 8`) and advances the array offset by `0x0A` after each bank. The related initialization/update loops at `0x3ED2C..0x3EDBE` and `0x3EDDB..0x3EE8F` use the same ten-byte bank stride and eight-bank termination. Direct element access at `0x3F407..0x3F41E` computes `bank * 10` before adding an entry index.
 
-The inner loops use a per-bank count rather than blindly touching all ten entries, so the ten-byte width is storage capacity, not proof that every entry in every bank is active. The gameplay label is still intentionally unresolved; no spell-slot name is assigned until surrounding tables/callers are traced.
+The inner loops use a per-bank count rather than blindly touching all ten entries, so the ten-byte width is storage capacity, not proof that every entry in every bank is active.
+
+### Certified nibble behavior
+
+The two nibbles are not merely packed flags: CODE.2 treats them as small **counters/state quantities**.
+
+At physical `0x3F3F4..0x3F53D`, direct `(character, bank, entry)` access first rejects a low nibble of `0xF` and then rejects a zero high nibble. After the associated action path succeeds, `0x3F4BA..0x3F4DA` decrements the **high nibble by exactly one**, masks it back to four bits, preserves the low nibble, and writes the packed byte back. This establishes the high nibble as a consumable/remaining quantity for the selected entry.
+
+The normalization family at `0x3EBFA..0x3ECF9` compares high and low nibbles, accumulates them independently, clamps them against per-bank limits, and rewrites one nibble while preserving the other. The initialization/update families at `0x3ED2C..0x3EE8F` use `0xF` as an unavailable/sentinel low-nibble state and convert selected entries between `00`, `11`, and `FF`-style states according to class/level-driven tables.
+
+Therefore a native reconstruction must preserve the two counters separately even though they share one byte. The exact gameplay names of the two counters are still withheld: the surrounding family is strongly spell-system-shaped, but the canonical SAVE documentation will not call these memorized/prepared spell counts until the table identities and action caller are closed independently.
+
+### Character-class initialization cross-reference
+
+The packed-array initialization helpers are invoked from character setup paths. For example, physical `0x4F8AB` calls the `0x3EDC8` initializer when the first stored class-code byte equals `1`; physical `0x4F915`, `0x4F93F`, and `0x4F969` call the `0x3ED08` initializer for class code `3` in any of the three class-code positions. These calls pass the character index and a class-related word from the character record.
+
+This proves that availability within the 8×10 matrix is class/level dependent. It does not by itself assign AD&D class names to numeric class codes 1 and 3.
 
 ### Fixture consequence: `+0x10A` is no longer a separate unknown anchor
 
@@ -117,4 +133,4 @@ Do not collapse `+0x072..+0x247` into reserved padding. At minimum it contains t
 
 ## Next target
 
-Trace the tables and callers driving the eight packed banks to establish their gameplay meaning, finish the upper-byte semantics of `+0x12F`, and map individual `+0x13A` flag bits to gameplay effects. Then continue outward into the unresolved regions `+0x072..+0x0C1`, `+0x112..+0x12E`, `+0x133..+0x139`, and `+0x13E..+0x247`.
+Close the table identities and caller semantics behind the packed-array action path so the two nibble counters can receive gameplay names without inference. Then finish the upper-byte semantics of `+0x12F`, map individual `+0x13A` flag bits to gameplay effects, and continue outward into the unresolved regions `+0x072..+0x0C1`, `+0x112..+0x12E`, `+0x133..+0x139`, and `+0x13E..+0x247`.
