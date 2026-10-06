@@ -1,6 +1,6 @@
 # NPCS.DAT
 
-Status: **fixed 83 × 0x45 record format proven; scene/render parameters, collision extent, core combat statistics, XP, action delay, runtime-state templates and creature sound IDs reconstructed; twelve behavior/effect bits decoded; lossless parse/encode verified.**
+Status: **fixed 83 × 0x45 record format proven; scene/render parameters, collision extent, core combat statistics, XP, action delay, runtime-state templates and creature sound IDs reconstructed; fourteen behavior/effect bits decoded; lossless parse/encode verified.**
 
 - Size: 5,731 bytes
 - SHA-256: `f2dd1175bf42e8291b95952282dfc0cfb84455aaa532987cdd7380094c8eb30b`
@@ -60,7 +60,7 @@ CODE.2 independently computes and reads the same `count * 0x45` allocation. LEVE
 
 See `FORMAT.md` for executable evidence and access-width details.
 
-## Core combat fields
+## Core combat and scene fields
 
 CODE.2 directly establishes:
 
@@ -72,7 +72,7 @@ CODE.2 directly establishes:
 +0x23                 experience award distributed on death
 ```
 
-Examples from the supplied table:
+Examples:
 
 ```text
 ZOMBIE          HD  4  AC 8  THAC0 17   1d8      XP  270
@@ -82,38 +82,20 @@ PYRE ELEMENTAL  HD 12  AC 0  THAC0  9   3d8      XP 7000
 HELLHOUND       HD  7  AC 4  THAC0 13   1d10+4   XP 1000
 ```
 
-38 of the 83 definitions have nonzero hit dice. Story/ambient definitions generally leave the combat block zero.
-
-## Scene/render fields
-
-The base scene sprite is `+0x14`. `+0x18..+0x1A` drive frame/state arithmetic in the first-person scene emitter.
-
-`+0x16` is used as the half-extent of the live NPC's fixed-point collision rectangle. Supplied values are:
-
-```text
-0x8000 : 76
-0x0001 :  4
-0xFFFF :  3
-```
-
-`+0x1B` uses the same scene-cell propagation helper as OBJECTS.DAT `scene_influence_step`; only PYRE ELEMENTAL has a nonzero value (`3`).
-
-`+0x27` is copied to a generated render-record auxiliary field and is likewise nonzero only for PYRE ELEMENTAL (`3`). Its higher-level name remains unresolved.
+`+0x14` is the base first-person scene sprite/resource. `+0x18..+0x1A` participate in animation frame arithmetic. `+0x16` is the fixed-point collision half-extent. `+0x1B` uses the same scene-cell influence propagation helper as OBJECTS.DAT; only PYRE ELEMENTAL has a nonzero supplied value (`3`). `+0x27` is also nonzero only for PYRE ELEMENTAL and remains behaviorally named `render_aux_27`.
 
 ## Packed runtime flags
 
-Two important access-width boundaries remain controlling:
+Two access-width boundaries remain controlling:
 
 ```text
 +0x31..+0x34  uint32 behavior_flags
 +0x35..+0x38  uint32 initial_runtime_flags
 ```
 
-`behavior_flags` is also tested through byte and unaligned-word aliases. `initial_runtime_flags` is copied verbatim into the live 22-byte family-A world record on NPC initialization.
+`behavior_flags` is also read by byte and unaligned word. `initial_runtime_flags` is copied verbatim into the live family-A record on NPC initialization. Do not split or normalize these overlapping representations.
 
-Therefore byte `+0x38` is **not** an independent damage statistic despite its varied high-bit values; it is the high byte of the live-state template.
-
-### Proven `behavior_flags` spell/effect aliases
+### Proved `behavior_flags` aliases
 
 ```text
 0x00000002  hold_undead_effect_immunity
@@ -124,7 +106,7 @@ Therefore byte `+0x38` is **not** an independent damage statistic despite its va
 0x00002000  fire_effect_immunity
 ```
 
-The common area/effect routine skips an NPC whenever its raw `behavior_flags` intersects the caller-provided immunity mask. CODE.2 constructs:
+CODE.2 constructs these compound masks:
 
 ```text
 Hold Undead    0x0102 = 0x0100 | 0x0002
@@ -134,45 +116,47 @@ fire effects   0x2100 = 0x0100 | 0x2000
 cold effects   0x0900 = 0x0100 | 0x0800
 ```
 
-Mage and priest Hold Person independently use the same `0x0108` mask. All four hold handlers that reach application set the same live NPC held-state bit, while Slow uses only the common `0x0100` gate and a different live state. This closes the three low hold-family aliases without treating them as creature taxonomy.
+Mage and priest Hold Person independently use `0x0108`; the Hold variants share the same live held-state bit. Elemental aliases are additionally consistent with the game's bestiary descriptions.
 
-The original rule book independently corroborates the elemental aliases: Pyre Elementals are described as immune to fire-based spells/attacks, while Wights and Wraiths are explicitly immune to cold-based spells.
-
-See `EFFECT_IMMUNITIES.md`, `HOLD_IMMUNITIES.md`, `analyze_effect_immunities.py`, and `analyze_hold_immunities.py`.
-
-### Proven `+0x3A` aliases
+### Proved `behavior_flags_39` aliases
 
 ```text
-0x02  level_drain_attack
-0x04  strength_drain_attack
-0x20  undead_classification
-```
-
-Executable consumers prove these independently:
-
-- `D7B3` invokes the class-level decrement/progression routine for `0x02`;
-- `D7E8` invokes the Strength-adjustment routine with `-1` for `0x04`;
-- turning, detection and combat paths repeatedly filter `0x20` as the undead classification.
-
-`+0x3A & 0x10` applies a separate party status effect, but its exact named condition remains unresolved.
-
-### Proven `+0x39` aliases
-
-```text
+0x01  poison_attack
 0x20  paralysis_attack
 0x40  dynamic_barrier_activation
 0x80  obstacle_passthrough
 ```
 
-The paralysis path explicitly honors `RING OF FREE ACTION`; navigation with `0x40` can activate the dynamic door/barrier record family; collision handling with `0x80` suppresses blocking from placed/special obstacles.
+The poison identity is executable-closed: the attack sets party status bit `0x08`; internal cure code `0x71` clears it; cleric effect ID `113` supplies code `0x71`; OBJECTS.DAT object `223` is `CLERIC SCROLL OF 'NEUTRALIZE POISON'`.
 
-`+0x39 & 0x01` applies another party status effect and remains unnamed until that status is independently identified.
+Paralysis is independently anchored by `RING OF FREE ACTION` and the Remove Paralysis cure path. Navigation with `0x40` can activate the dynamic barrier/door record family; `0x80` suppresses blocking from placed/special obstacles.
 
-See `BEHAVIOR_FLAGS.md` for the full flag ledger.
+### Proved `behavior_flags_3A` aliases
+
+```text
+0x02  level_drain_attack
+0x04  strength_drain_attack
+0x10  disease_attack
+0x20  undead_classification
+```
+
+The disease identity is executable-closed: the attack sets party status bit `0x04`; internal cure code `0x64` clears it; cleric effect ID `100` supplies code `0x64`; OBJECTS.DAT object `215` is `CLERIC SCROLL OF 'CURE DISEASE'`.
+
+The level-drain path decrements character class levels/progression; the Strength-drain path calls the Strength-adjustment helper with `-1`; turning, detection and combat paths independently use `0x20` as the undead classification.
+
+The three cure/status controls now line up exactly:
+
+```text
+status 0x04  code 0x64  Cure Disease
+status 0x08  code 0x71  Neutralize Poison
+status 0x10  code 0x68  Remove Paralysis
+```
+
+See `BEHAVIOR_FLAGS.md` and `STATUS_ATTACKS.md` for the full executable evidence.
 
 ## Sound fields
 
-The four final words are all executable-consumed sound/resource offsets:
+The final four words are executable-consumed sound/resource offsets:
 
 ```text
 +0x3D  ambient/proximity sound
@@ -181,7 +165,7 @@ The four final words are all executable-consumed sound/resource offsets:
 +0x43  death sound
 ```
 
-They are 16-bit little-endian fields even though all supplied high bytes are zero.
+They remain 16-bit values even though supplied high bytes are zero.
 
 ## Supplied-corpus validation
 
@@ -209,32 +193,35 @@ hold_monster_effect_immunity  24
 common_spell_effect_immunity   4
 cold_effect_immunity          12
 fire_effect_immunity           6
-undead_classification         17
-level_drain_attack             5
-strength_drain_attack          2
-paralysis_attack               6
-dynamic_barrier_activation     4
-obstacle_passthrough           5
+poison_attack                   1
+disease_attack                  3
+undead_classification          17
+level_drain_attack              5
+strength_drain_attack           2
+paralysis_attack                6
+dynamic_barrier_activation      4
+obstacle_passthrough            5
 ```
 
 ## Documentation and tools
 
 - `FORMAT.md` — physical schema and semantic reconstruction.
-- `BEHAVIOR_FLAGS.md` — proved flag aliases, executable evidence and unresolved flag boundary.
+- `BEHAVIOR_FLAGS.md` — canonical proved flag ledger and unresolved boundary.
 - `EFFECT_IMMUNITIES.md` — common/fire/cold spell-effect immunity mechanics.
-- `HOLD_IMMUNITIES.md` — Hold Undead/Person/Monster immunity masks and shared runtime held state.
+- `HOLD_IMMUNITIES.md` — Hold Undead/Person/Monster immunity masks and shared live held state.
+- `STATUS_ATTACKS.md` — poison/disease/paralysis party-status mapping and cure-dispatch proof.
 - `inspect_npcs.py` — lossless parser/encoder and corpus audit.
-- `analyze_behavior_flags.py` — behavior-bit distribution and proved semantic-set audit.
-- `analyze_effect_immunities.py` — common/fire/cold immunity-mask validation.
-- `analyze_hold_immunities.py` — cross-validates NPCS, OBJECTS spell ordering, CODE.2 dispatcher targets/masks, and held-state mutation.
+- `analyze_behavior_flags.py` — raw bit distribution and proved semantic-set audit.
+- `analyze_effect_immunities.py` — common/fire/cold immunity validation.
+- `analyze_hold_immunities.py` — NPCS/OBJECTS/CODE.2 hold-family validation.
+- `analyze_status_attacks.py` — NPC status setters, cure handlers and spell-name validation.
 
 ## Current frontier
 
-The remaining NPCS work is now narrower:
+The remaining NPCS work is narrower:
 
-1. identify the exact conditions represented by `+0x39 & 0x01` and `+0x3A & 0x10`;
-2. resolve additional high `behavior_flags` immunity/capability bits through their spell/effect callers;
-3. tighten the exact role of `+0x41` and `render_aux_27`;
-4. document any story-NPC-specific animation meanings only where code proves them.
+1. resolve additional high `behavior_flags` capability/immunity bits through spell/effect callers;
+2. tighten the exact role of `+0x41` and `render_aux_27`;
+3. document story-NPC-specific animation meanings only where code proves them.
 
-The current schema supports a lossless reader/editor and faithful reproduction of the core creature stat/render/effect database while retaining every unresolved flag verbatim.
+The current schema supports a lossless reader/editor and faithful reproduction of the creature stat/render/effect database while preserving every unresolved bit verbatim.
