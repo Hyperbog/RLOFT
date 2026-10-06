@@ -1,6 +1,6 @@
 # NPCS.DAT behavior/capability flags
 
-Status: **eighteen individual capability/effect bits are now behaviorally decoded from certified CODE.2. Remaining bits stay raw until their exact consumers are closed.**
+Status: **twenty individual capability/effect bits are now behaviorally decoded from certified CODE.2. Remaining bits stay raw until their exact consumers are closed.**
 
 The physical fields are:
 
@@ -17,7 +17,9 @@ The executable is controlling evidence. Creature names and serialized spell name
 ### `behavior_flags` (`+0x31..+0x34`)
 
 ```text
+0x00000001  detect_undead_effect_exclusion
 0x00000002  hold_undead_effect_immunity
+0x00000004  turn_undead_roll_penalty_4
 0x00000008  hold_person_effect_immunity
 0x00000010  hold_monster_effect_immunity
 0x00000080  death_spell_effect_immunity
@@ -44,9 +46,54 @@ Mage and priest Hold Person independently use `0x0108`. All Hold variants that a
 
 The common area/effect routine skips an NPC whenever its raw dword intersects the caller's immunity mask. Fire/cold spell dispatch and the original bestiary descriptions independently support the elemental aliases. See `EFFECT_IMMUNITIES.md`.
 
-The Lightning Bolt and Death Spell aliases are closed through complete serialized-scroll -> internal-effect -> handler -> target-mask chains. See `TARGETED_EFFECT_IMMUNITIES.md` and `analyze_targeted_effect_immunities.py`.
+Lightning Bolt and Death Spell are closed through complete serialized-scroll -> internal-effect -> handler -> target-mask chains. See `TARGETED_EFFECT_IMMUNITIES.md`.
 
-These names are intentionally behavioral. In particular, the low Hold bits can encode target exclusion as well as intrinsic resistance, so they are not creature-taxonomy enums.
+Detect Undead exclusion and the turning-roll modifier are closed through independent display/turning paths. See `DETECTION_TURNING_FLAGS.md`.
+
+These names are intentionally behavioral. The Hold bits can encode target exclusion as well as intrinsic resistance, and the turning modifier is a latent executable behavior rather than a content taxonomy.
+
+#### `0x00000001` — Detect Undead effect exclusion
+
+`OBJECTS.DAT` object 170 is `MAGE SCROLL OF 'DETECT UNDEAD'`. Its scroll stub pushes internal effect ID 3; the spell jump table maps effect 3 to `0xBC2A`, which increments active-effect counter `0xF03C`.
+
+The scene/render path later tests that counter. When the separate broader detection counter `0xF03E` is zero, `0x2C724` executes:
+
+```text
+test byte [npc_definition + 0x31], 0x01
+jne  skip_detection_marker
+```
+
+Therefore the safe alias is:
+
+```text
+behavior_flags & 0x00000001  detect_undead_effect_exclusion
+```
+
+Supplied count: **17**.
+
+This remains separate from `behavior_flags_3A & 0x20`, the independently proved undead classification used by turning/combat systems.
+
+#### `0x00000004` — Turn Undead roll penalty of four
+
+The turning routine `0xB518..0xB6F0` first requires the proved undead-classification bit and reads NPC hit dice. Immediately before its turning-table threshold comparison it executes:
+
+```text
+B6B0  test byte [npc_definition + 0x31], 0x04
+B6B5  je   B6BC
+B6B7  sub  turn_roll, 4
+...
+B6C3  compare threshold against turn_roll
+```
+
+Thus the bit makes an otherwise eligible undead harder to turn by reducing the effective roll exactly four points.
+
+Safe alias:
+
+```text
+behavior_flags & 0x00000004  turn_undead_roll_penalty_4
+```
+
+Eighteen supplied definitions carry the bit, but **none** of the 17 supplied definitions marked `undead_classification` also carry it. The capability is therefore executable-supported but dormant in the shipped NPC table; do not claim those 18 serialized carriers are actually turn-resistant in play.
 
 #### `0x00000080` — Death Spell effect immunity
 
@@ -73,7 +120,7 @@ The type-1 collision branch at `0x8E77` tests:
 test byte [npc_definition + 0x32], 0x03
 ```
 
-Because byte `+0x32` is the second byte of the dword beginning at `+0x31`, this is dword mask:
+Because byte `+0x32` is the second byte of the dword beginning at `+0x31`, this is:
 
 ```text
 0x0300 = 0x0100 common_spell_effect_immunity
@@ -95,9 +142,7 @@ category 10 + behavior_flags 0x00004000 -> damage = 0
 category  9 + behavior_flags 0x00008000 -> damage = 0
 ```
 
-The routine then unconditionally clamps any result below 1 back to 1. These flags therefore impose a **one-damage floor**, not zero-damage immunity.
-
-The supplied category-9 definitions are the mace/quarterstaff/warhammer family; category 10 contains the ordinary axe/sword/dagger/spear/halberd family and named variants. The project aliases remain category-based rather than asserting an original damage-type enum.
+The routine then clamps any result below 1 back to 1. These flags therefore impose a **one-damage floor**, not zero-damage immunity.
 
 Supplied counts:
 
@@ -106,7 +151,7 @@ weapon_category10_damage_floor_one  16
 weapon_category9_damage_floor_one   14
 ```
 
-See `WEAPON_DAMAGE_FLAGS.md` and `analyze_weapon_damage_flags.py` for the exact branch order, item sets, and the unresolved category-11 high-bit comparisons.
+See `WEAPON_DAMAGE_FLAGS.md` for the exact branch order and unresolved category-11 high-bit comparisons.
 
 ### `behavior_flags_39` (`+0x39`)
 
@@ -119,19 +164,19 @@ See `WEAPON_DAMAGE_FLAGS.md` and `analyze_weapon_damage_flags.py` for the exact 
 
 #### `0x01` — poison attack
 
-The NPC attack path tests `npc[+0x39] & 0x01` at logical `0xD947`. If the effect passes the common resistance/save check, it sets party status byte bit `0x08` at `0xD960`.
+The NPC attack path tests `npc[+0x39] & 0x01` at logical `0xD947`. If the effect passes the common resistance/save check, it sets party status bit `0x08`.
 
-The character-effect dispatcher handles internal code `0x71` by clearing that exact bit. Cleric effect ID `113` supplies code `0x71`, and serialized `OBJECTS.DAT` object 223 is:
+The character-effect dispatcher handles internal code `0x71` by clearing that bit. Cleric effect ID `113` supplies code `0x71`; serialized OBJECTS.DAT object 223 is:
 
 ```text
 CLERIC SCROLL OF 'NEUTRALIZE POISON'
 ```
 
-Therefore `0x01` is safely `poison_attack`. Only `DARKLING` carries it in the supplied NPC table. See `STATUS_ATTACKS.md`.
+Therefore `0x01` is safely `poison_attack`. Only `DARKLING` carries it in the supplied table.
 
 #### `0x20` — paralysis attack
 
-The main attack path tests this bit and the protection path explicitly honors `RING OF FREE ACTION`. Successful application sets the paralysis status. The cleric Remove Paralysis path independently clears the same party-status bit.
+The main attack path tests this bit and the protection path explicitly honors `RING OF FREE ACTION`. Successful application sets the paralysis status. Remove Paralysis independently clears the same party-status bit.
 
 Marked definitions:
 
@@ -157,11 +202,11 @@ SKELETON
 BRIGAND
 ```
 
-The project name is deliberately narrower than an assumed original `opens_doors` flag.
-
 #### `0x80` — obstacle passthrough
 
-Collision/navigation code uses this bit to suppress blocking from placed/special obstacles. Marked definitions are:
+Collision/navigation code uses this bit to suppress blocking from placed/special obstacles.
+
+Marked definitions:
 
 ```text
 SKELETAL BAT
@@ -209,15 +254,9 @@ INQUISITOR
 
 #### `0x10` — disease attack
 
-The NPC attack path tests `npc[+0x3A] & 0x10` at logical `0xD967`; after its class exemption and common resistance/save check it sets party status byte bit `0x04` at `0xD98C`.
+The attack path sets party status bit `0x04`. Internal cure code `0x64` clears exactly that bit; cleric effect ID `100` supplies that code; OBJECTS.DAT object 215 is `CLERIC SCROLL OF 'CURE DISEASE'`.
 
-The character-effect dispatcher handles internal code `0x64` by clearing exactly that bit. Cleric effect ID `100` supplies code `0x64`, and serialized `OBJECTS.DAT` object 215 is:
-
-```text
-CLERIC SCROLL OF 'CURE DISEASE'
-```
-
-Therefore the safe alias is `disease_attack`. Supplied definitions are:
+Supplied definitions:
 
 ```text
 ZOMBIE LORD
@@ -225,15 +264,13 @@ GHOUL LORD
 INQUISITOR
 ```
 
-See `STATUS_ATTACKS.md`.
-
 #### `0x20` — undead classification
 
 Turning/repulsion, detection and combat paths independently filter this bit as the undead class. Seventeen supplied definitions carry it.
 
 ## Cure/status control mapping
 
-The status-removal dispatcher gives an independent three-condition control set:
+The status-removal dispatcher gives an independent control set:
 
 ```text
 party status 0x04  internal code 0x64  Cure Disease
@@ -241,24 +278,20 @@ party status 0x08  internal code 0x71  Neutralize Poison
 party status 0x10  internal code 0x68  Remove Paralysis
 ```
 
-The corresponding cleric dispatcher IDs are `100`, `113`, and `104`; the serialized scroll definitions are OBJECTS IDs `215`, `223`, and `219` respectively.
-
-This mapping is the controlling evidence for the poison/disease names rather than monster-name inference.
+The corresponding cleric dispatcher IDs are `100`, `113`, and `104`; serialized scroll definitions are OBJECTS IDs `215`, `223`, and `219`.
 
 ## Remaining `behavior_flags` dword
 
-CODE.2 also reads `+0x31..+0x34` using overlapping widths. Examples include:
+CODE.2 continues to read `+0x31..+0x34` using overlapping widths. Remaining notable raw cases include:
 
 ```text
-B2FB  dword +0x31 intersect caller effect mask
-B6B0  byte  +0x31 & 0x04
 C96D  dword +0x31 & 0x00020000 in category-11 weapon path
 C980  dword +0x31 & 0x00040000 in category-11 weapon path
 ```
 
-The category-11 tests at `C96D..C991` use zero-extended enchantment bytes followed by signed comparisons to `-2`. Their exact binary behavior is documented in `WEAPON_DAMAGE_FLAGS.md`, but the bits remain semantically raw because the comparison pattern is anomalous and the intended source-level contract is not proved.
+Those category-11 tests use zero-extended enchantment bytes followed by signed comparisons to `-2`. Their exact binary behavior is documented in `WEAPON_DAMAGE_FLAGS.md`, but the intended source-level contract is not proved, so the bits remain raw.
 
-Many raw bits therefore remain a generalized effect/capability/immunity family. Preserve the complete dword and do not flatten aliases into an enum.
+Many other bits remain a generalized effect/capability/immunity family. Preserve the complete dword and do not flatten aliases into an enum.
 
 ## Supplied bit distributions
 
@@ -283,7 +316,9 @@ behavior_flags_3A
 A high-level model may expose these aliases while retaining the exact raw fields:
 
 ```text
+behavior_flags & 0x00000001  detect_undead_effect_exclusion
 behavior_flags & 0x00000002  hold_undead_effect_immunity
+behavior_flags & 0x00000004  turn_undead_roll_penalty_4
 behavior_flags & 0x00000008  hold_person_effect_immunity
 behavior_flags & 0x00000010  hold_monster_effect_immunity
 behavior_flags & 0x00000080  death_spell_effect_immunity
