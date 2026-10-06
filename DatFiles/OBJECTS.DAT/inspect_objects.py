@@ -31,8 +31,8 @@ class ObjectRecord:
     ui_graphic_index: int
     item_category: int
     weight_half_pounds: int
-    aux_index: int
-    special_property_marker: int
+    state_index: int
+    intrinsic_magic_marker: int
     armor_class_adjustment: int
     attack_profile: int
     enchantment_bonus: int
@@ -53,6 +53,15 @@ class ObjectRecord:
     @property
     def weapon_speed_factor(self) -> int:
         return (self.attack_profile >> 2) & 0xF
+
+    # Compatibility aliases for the earlier provisional schema names.
+    @property
+    def aux_index(self) -> int:
+        return self.state_index
+
+    @property
+    def special_property_marker(self) -> int:
+        return self.intrinsic_magic_marker
 
 
 def parse_record(raw: bytes) -> ObjectRecord:
@@ -75,8 +84,8 @@ def parse_record(raw: bytes) -> ObjectRecord:
         ui_graphic_index=u16(raw, 0x2D),
         item_category=raw[0x2F],
         weight_half_pounds=raw[0x30],
-        aux_index=s8(raw[0x31]),
-        special_property_marker=u16(raw, 0x32),
+        state_index=s8(raw[0x31]),
+        intrinsic_magic_marker=u16(raw, 0x32),
         armor_class_adjustment=s8(raw[0x34]),
         attack_profile=u16(raw, 0x35),
         enchantment_bonus=raw[0x37],
@@ -109,8 +118,8 @@ def encode_record(record: ObjectRecord) -> bytes:
     struct.pack_into("<H", out, 0x2D, record.ui_graphic_index)
     out[0x2F] = record.item_category
     out[0x30] = record.weight_half_pounds
-    out[0x31] = record.aux_index & 0xFF
-    struct.pack_into("<H", out, 0x32, record.special_property_marker)
+    out[0x31] = record.state_index & 0xFF
+    struct.pack_into("<H", out, 0x32, record.intrinsic_magic_marker)
     out[0x34] = record.armor_class_adjustment & 0xFF
     struct.pack_into("<H", out, 0x35, record.attack_profile)
     out[0x37] = record.enchantment_bonus
@@ -169,7 +178,7 @@ def analyze(path: Path) -> None:
     counter_line("categories", (r.item_category for r in records))
     counter_line("world_aux_selector", (r.world_aux_selector for r in records))
     counter_line("unknown_2c", (r.unknown_2c for r in records))
-    counter_line("special_property_marker", (r.special_property_marker for r in records))
+    counter_line("intrinsic_magic_marker", (r.intrinsic_magic_marker for r in records))
     counter_line("attack_profiles", (r.attack_profile for r in records))
     counter_line("enchantment_bonus", (r.enchantment_bonus for r in records))
     counter_line("ac_adjustment", (r.armor_class_adjustment for r in records))
@@ -183,8 +192,8 @@ def analyze(path: Path) -> None:
             )
         )
     )
-    category1_aux = [r.aux_index for r in records if r.item_category == 1]
-    print(f"category1_aux_unique={len(set(category1_aux))}")
+    category1_state = [r.state_index for r in records if r.item_category == 1]
+    print(f"category1_state_unique={len(set(category1_state))}")
 
     sample_ids = [0, 20, 40, 57, 63, 74, 87, 155, 164, 167, 268, 335]
     for object_id in sample_ids:
@@ -194,8 +203,9 @@ def analyze(path: Path) -> None:
             f"cat={r.item_category} weight={r.weight_half_pounds}/2lb "
             f"ui={r.ui_graphic_index} "
             f"world={r.world_sprite_base}+heading*{r.world_heading_stride} "
-            f"aux={r.aux_index} attack_mode={r.attack_mode} "
-            f"speed={r.weapon_speed_factor} ench={r.enchantment_bonus} "
+            f"state={r.state_index} magic={r.intrinsic_magic_marker} "
+            f"attack_mode={r.attack_mode} speed={r.weapon_speed_factor} "
+            f"ench={r.enchantment_bonus} "
             f"dmg={r.damage_sm_dice}d{r.damage_sm_sides}+{r.damage_sm_bonus}/"
             f"{r.damage_lg_dice}d{r.damage_lg_sides}+{r.damage_lg_bonus} "
             f"range={r.range_short}/{r.range_medium}/{r.range_long}"
