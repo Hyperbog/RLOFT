@@ -1,6 +1,6 @@
 # OBJECTS.DAT
 
-Status: **fixed container/record layout proven; major rendering, UI, category, weight, defensive, attack, damage and range fields substantially reconstructed; category-dependent `+0x31` semantics split for containers and wands; lossless parse/encode round-trip verified.**
+Status: **fixed 336 × 0x41 record format proven; major rendering, UI, category, weight, combat, range, mutable-state, container, charge and magic-aura semantics reconstructed; lossless parse/encode verified.**
 
 - Size: 21,844 bytes
 - SHA-256: `f23f0e7c1856904aa0156b0bf174cab794a41a327352b6ca00c3591ae5f2eed0`
@@ -23,8 +23,6 @@ Exact size equation:
 4 + 336 * 65 = 21,844
 ```
 
-CODE.2 independently computes the same record-table length as `(count << 6) + count` before allocating and reading the database.
-
 ## Current record model
 
 ```text
@@ -36,20 +34,16 @@ CODE.2 independently computes the same record-table length as `(count << 6) + co
 +0x2D  uint16 ui_graphic_index
 +0x2F  uint8  item_category
 +0x30  uint8  weight_half_pounds
-+0x31  int8   category_specific_index
-+0x32  uint16 special_property_marker
++0x31  int8   state_index                 // polymorphic mutable-state selector
++0x32  uint16 intrinsic_magic_marker
 +0x34  int8   armor_class_adjustment
 +0x35  uint16 attack_profile
 +0x37  uint8  enchantment_bonus
-+0x38  uint8  damage_sm_dice
-+0x39  uint8  damage_sm_sides
-+0x3A  uint8  damage_sm_bonus
-+0x3B  uint8  damage_lg_dice
-+0x3C  uint8  damage_lg_sides
-+0x3D  uint8  damage_lg_bonus
-+0x3E  uint8  range_short
-+0x3F  uint8  range_medium
-+0x40  uint8  range_long
++0x38..0x3A   small-target damage profile
++0x3B..0x3D   large-target damage profile
++0x3E         range_short
++0x3F         range_medium
++0x40         range_long
 ```
 
 `attack_profile` contains at least:
@@ -59,83 +53,112 @@ bits 0..1  attack_mode
 bits 2..5  weapon_speed_factor
 ```
 
-The family-C loose-item renderer proves the world-frame formula:
+The family-C renderer proves:
 
 ```text
 world_sprite_frame = world_sprite_base
                    + heading_index * world_heading_stride
 ```
 
-LEVELS family B and family C both address this database by object type ID, tying placed and loose world items directly to these definitions.
+LEVELS family B and C both address this database by object type ID.
 
-## Category-dependent `+0x31`
+## `+0x31`: mutable-state selector
 
-The byte at `+0x31` is signed and polymorphic rather than one global field.
+The byte is signed and deliberately polymorphic.
 
 ### Containers
 
-For category `1`, CODE.2 burden logic follows `+0x31` as the container's inventory/list slot and recursively adds contained-item weight. All 62 supplied container records have distinct indexes.
-
-### Wands/devices
-
-Outside containers, the only nonzero `+0x31` values in the supplied database occur on 11 category-0 wand records. Their values are exactly `1..11`.
-
-The duplicated FIREBALL wand definitions `76,330,331,332,333` are byte-identical except for `+0x31`; the three FROST definitions `77,334,335` have the same property. Combined with CODE.2's signed subtype/state indexing, this supports a category-0 **wand/device runtime-state slot** interpretation rather than an item/spell identity field.
-
-All supplied records in categories `2..15` have `+0x31 == 0`.
-
-See `CATEGORY_SEMANTICS.md` and `analyze_categories.py`.
-
-## `+0x32` versus enchantment
-
-The 16-bit `special_property_marker` is independent from numerical enchantment byte `+0x37`.
-
-The supplied database contains:
+For category `1`, it selects a 10-byte container-state descriptor at runtime `0x7330`. That descriptor contains:
 
 ```text
-+0x32 == 0 : 199 records
-+0x32 == 1 : 137 records
+slot_count
+UI column count
+capacity in whole pounds
+UI x offset
+container subtype
+contents pointer
+per-slot state bits
 ```
 
-Named/special items and entire special-use families often use marker `1`, but ordinary `+1/+2` weapon and armor variants can have `enchantment_bonus > 0` while the marker remains zero. It therefore must not be flattened into a generic `is_magic` flag.
-
-`special_property_marker` remains the conservative project name until the remaining category-specific presentation/use predicates are closed.
-
-## Supplied-corpus checks
-
-The current tooling validates:
+Specialized subtypes enforce:
 
 ```text
-records                    336
-record size                0x41
-parse -> encode roundtrip  PASS (byte-for-byte)
-blank display names         16
-max display-name length     39
-world_aux_selector nonzero   0
-unresolved +0x2C nonzero     0
-nonzero range records       17
-category-1 aux indexes      62 unique / 62 records
-category-0 nonzero +0x31    11 records, all wands
-wand state-slot values       1..11 exactly
+SLING POUCH -> category 13 ammunition
+SCROLL CASE -> category 14 scrolls
+KEY RING    -> category 12 keys
+QUIVER      -> category 15 arrows
 ```
 
-The supplied table uses categories `0..15` and enchantment values `0..3`.
+All 62 shipped container definitions use distinct state indexes. See `CONTAINER_STATE.md`.
+
+### Charged rods/wands
+
+For the proved charged-device family, `+0x31` selects one of **15 persistent charge counters** at runtime `0x67EC`.
+
+CODE.2 tests the selected counter, decrements it on successful use and runs the depletion/removal path at zero. The supplied runtime image initializes all 15 counters to `12`.
+
+OBJECTS records select slots 0..11; duplicate FIREBALL and FROST definitions intentionally differ only at `+0x31` so they can maintain independent charge state.
+
+SAVE.DAT writes/restores the entire 15-byte counter vector.
+
+## `+0x32`: intrinsic magic marker
+
+This field is now executable-backed rather than merely corpus-associated.
+
+When magic-reveal state is active, CODE.2 highlights an item when:
+
+```text
+enchantment_bonus != 0
+OR
+intrinsic_magic_marker != 0
+```
+
+The field is therefore a serialized intrinsic magic/aura marker independent from numerical enchantment.
+
+Supplied counts:
+
+```text
+marker 0 : 199
+marker 1 : 137
+```
+
+Do not merge `+0x32` and `+0x37` into a single `is_magic` value.
+
+## Supplied-corpus validation
+
+Current tools validate:
+
+```text
+records                              336
+record size                          0x41
+parse -> encode                      PASS byte-for-byte
+blank display names                   16
+max display-name length               39
+world_aux_selector nonzero             0
+unresolved +0x2C nonzero               0
+container state indexes               62 unique / 62
+container indexes                     0..60 except 61, plus 62
+charged state-slot mappings           PASS
+charged duplicate definitions differ  only at +0x31
+intrinsic-magic marker values          0/1 only
+SAVE initial charge vector             unique at +0x0D59
+```
 
 ## Documentation and tools
 
-- `FORMAT.md` — record layout and field-level CODE.2 evidence.
-- `CATEGORY_SEMANTICS.md` — category groupings plus `+0x31/+0x32` analysis.
-- `inspect_objects.py` — lossless parser/encoder plus corpus audit.
-- `analyze_categories.py` — category, special-marker, container-slot and wand-state-slot audit.
+- `FORMAT.md` — complete fixed-record field map and executable evidence.
+- `CATEGORY_SEMANTICS.md` — mutable state index, charge counters and intrinsic-magic marker.
+- `CONTAINER_STATE.md` — 10-byte container descriptor and compatibility rules.
+- `inspect_objects.py` — lossless parser/encoder and basic corpus audit.
+- `analyze_categories.py` — category/state/magic analysis plus optional SAVE charge-vector verification.
 
 ## Current frontier
 
-The fixed record schema is sufficient for a faithful reader/editor model while retaining every raw byte. Remaining high-value OBJECTS work is now narrower:
+The static object format is now close to semantic closure. Highest-value remaining OBJECTS work:
 
-1. close the exact external runtime table addressed by the category-0 wand/device state slots and determine which portions are persisted in SAVE.DAT;
-2. tighten the exact category-specific predicates driven by `+0x32` without misnaming it as a generic magic flag;
-3. resolve the nonzero meaning of `+0x2B` from its renderer callee even though the shipped table stores zero;
-4. determine whether any executable path gives `+0x2C` a role;
-5. map the equipment categories to exact engine equipment slots/use restrictions where CODE.2 proves them.
+1. map item categories to exact equipment slots and use restrictions;
+2. resolve the nonzero role of `+0x2B` from its renderer callee, despite the shipped all-zero corpus;
+3. determine whether any executable path gives `+0x2C` a role;
+4. refine remaining `attack_profile` low-two-bit modes where CODE.2 proves reusable semantics.
 
-Unknown or category-specific bytes must remain preserved verbatim.
+The mutable charge/container state discovered here should be carried into the later SAVE.DAT reconstruction rather than embedded into static OBJECTS records.
