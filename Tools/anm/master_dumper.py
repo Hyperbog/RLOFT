@@ -227,6 +227,12 @@ def dump_all(
         "source_certified": validation["certified_complete"],
         "lossless_defaults": {
             "graphics": options.graphics_format,
+            "graphics_extras": {
+                "native_eh": options.preserve_native,
+                "decoded_indices": options.graphics_indices,
+                "metadata_shape_data": options.graphics_metadata,
+                "transparency_masks": options.graphics_masks,
+            },
             "sampled_audio": options.audio_format,
             "music": options.music_format,
             "cinematic_frames": options.cinematic_frame_format,
