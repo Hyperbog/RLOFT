@@ -6,6 +6,7 @@ import queue
 import re
 import threading
 import tkinter as tk
+import tkinter.font as tkfont
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
@@ -37,6 +38,12 @@ AUDIO_ARCHIVES = ("RES6", "RES10", "RES11", "RES12")
 MUSIC_ARCHIVES = ("RES5", "RES11")
 TIMING_MODES = ("Native engine timing", "Custom FPS")
 
+BASE_WIDTH = 1120
+BASE_HEIGHT = 820
+MIN_UI_SCALE = 0.72
+MAX_UI_SCALE = 1.30
+BASE_BANNER_HEIGHT = 150
+
 # Keep the GUI timing readout sourced from the same certified table used by
 # the exporter so the displayed rates cannot drift from rendered output.
 NATIVE_AVG_FPS = exporter.CERTIFIED_NATIVE_AVERAGE_FPS
@@ -47,10 +54,23 @@ class RavenloftExtractorGui(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("Ravenloft Asset Extraction Suite")
-        self.geometry("1120x820")
+        screen_w = max(800, self.winfo_screenwidth())
+        screen_h = max(600, self.winfo_screenheight())
+        launch_scale = min(
+            1.0,
+            max(MIN_UI_SCALE, (screen_w - 80) / BASE_WIDTH),
+            max(MIN_UI_SCALE, (screen_h - 120) / BASE_HEIGHT),
+        )
+        launch_w = max(820, int(BASE_WIDTH * launch_scale))
+        launch_h = max(620, int(BASE_HEIGHT * launch_scale))
+        self.geometry(f"{launch_w}x{launch_h}")
         self.minsize(820, 620)
         self.resizable(True, True)
         self.configure(background=BG)
+        self._ui_scale = launch_scale
+        self._scale_job: str | None = None
+        self._scalable_listboxes: list[tuple[tk.Listbox, int]] = []
+        self._padding_widgets: list[tuple[object, tuple[int, ...]]] = []
 
         self.source_dir = tk.StringVar()
         self.source_status = tk.StringVar(value="Choose the Ravenloft resource folder.")
@@ -106,7 +126,7 @@ class RavenloftExtractorGui(tk.Tk):
         self._action_buttons: list[ttk.Button] = []
         self._wrap_labels: list[ttk.Label] = []
         self._banner_photo: ImageTk.PhotoImage | None = None
-        self._banner_assets: tuple[Image.Image, Image.Image, Image.Image] | None = None
+        self._banner_source: Image.Image | None = None
         self._banner_job: str | None = None
         self._tooltips: list[object] = []
 
@@ -114,6 +134,8 @@ class RavenloftExtractorGui(tk.Tk):
         self._build_ui()
         self._refresh_native_timing_text()
         self._tooltips = tooltips.install(self)
+        self.bind("<Configure>", self._schedule_ui_scale, add="+")
+        self.after(40, self._apply_ui_scale)
         self.after(100, self._poll_events)
 
     def _build_styles(self) -> None:
