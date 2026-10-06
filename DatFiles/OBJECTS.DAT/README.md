@@ -1,6 +1,6 @@
 # OBJECTS.DAT
 
-Status: **fixed 336 × 0x41 record format proven; major rendering, UI, category, weight, combat, range, mutable-state, container, charge, magic-aura, renderer-auxiliary, equipment-slot, and hand-pair semantics reconstructed; lossless parse/encode verified.**
+Status: **ARCHIVAL-COMPLETE FOR THE SUPPLIED BUILD. Fixed 336 × 0x41 geometry, static semantics, resource namespaces, mutable-state indirection, equipment/combat behavior, and byte-exact decode→encode are certified; bounded raw/latent fields remain preserved.**
 
 - Size: 21,844 bytes
 - SHA-256: `f23f0e7c1856904aa0156b0bf174cab794a41a327352b6ca00c3591ae5f2eed0`
@@ -231,6 +231,7 @@ pair-class-2 definitions                7 physical records / 5 names
 - `RENDER_AUX.md` — scene influence byte `+0x2B` and unresolved byte `+0x2C`.
 - `EQUIPMENT_SLOTS.md` — exact equipment-slot/category routing and hard-coded restrictions.
 - `ATTACK_PROFILE.md` — packed hand-pair class and weapon-speed semantics.
+- `FINAL_AUDIT_2026-10-06.md` — final archival certification and cross-workstream consistency audit.
 - `inspect_objects.py` — lossless parser/encoder and basic corpus audit.
 - `analyze_categories.py` — category/state/magic analysis plus optional SAVE charge-vector verification.
 - `analyze_render_aux.py` — corpus audit for `+0x2B/+0x2C`.
@@ -239,10 +240,6 @@ pair-class-2 definitions                7 physical records / 5 names
 
 ## Current frontier
 
-The static object format is now at practical semantic closure for faithful parsing/editing. Remaining OBJECTS questions are narrow:
+The supplied-build OBJECTS reconstruction is archival-complete. Remaining questions are historical/source-name enrichment only: stronger original names for pairing classes 0/1 and the scene influence accumulator, physical range units, cross-version provenance, and any future evidence for `+0x2C`.
 
-1. determine whether stronger source-level names exist for pairing classes 0/1 without inferring them from weapon names;
-2. determine whether stronger source-level names exist for the scene influence accumulator without overclaiming renderer intent;
-3. keep `+0x2C` explicitly unresolved unless a real consumer is found.
-
-None of these questions block a lossless OBJECTS reader/editor, equipment model, combat metadata model, or SAVE/runtime state linkage. The next major database target is `NPCS.DAT`.
+These do not block faithful parsing, editing, byte-exact round-trip serialization, resource resolution, equipment/combat behavior, LEVELS linkage, or SAVE/runtime state linkage. See `FINAL_AUDIT_2026-10-06.md`. The next database to receive the same final archival audit is `NPCS.DAT`.
