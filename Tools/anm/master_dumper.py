@@ -71,9 +71,15 @@ def dump_cinematics(
         movie = anm.parse_anm(path)
         stem = path.stem
 
+        original_file = None
         if options.preserve_native:
-            originals_root.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(path, originals_root / name)
+            try:
+                originals_root.mkdir(parents=True, exist_ok=True)
+                original_file = originals_root / name
+                if path.resolve() != original_file.resolve():
+                    shutil.copyfile(path, original_file)
+            except Exception as exc:
+                raise RuntimeError(f"{name}: Preserve original ANM failed: {exc}") from exc
 
         if options.cinematic_frames:
             exporter.export_frames(
@@ -84,23 +90,33 @@ def dump_cinematics(
             )
 
         video_file = None
+        video_info = None
         if options.cinematic_videos:
             suffix = exporter.VIDEO_FORMATS[options.cinematic_video_format]
             video_root.mkdir(parents=True, exist_ok=True)
             video_file = video_root / f"{stem}{suffix}"
-            video_info = exporter.export_video(
-                movie,
-                video_file,
-                options.cinematic_video_format,
-                options.cinematic_fps,
-                progress=_stage_progress(progress, f"cinematic:{stem}:video"),
-                source_path=path,
-                game_dir=source_dir,
-                sync_audio=options.cinematic_audio,
-            )
+            try:
+                video_info = exporter.export_video(
+                    movie,
+                    video_file,
+                    options.cinematic_video_format,
+                    options.cinematic_fps,
+                    progress=_stage_progress(progress, f"cinematic:{stem}:video"),
+                    source_path=path,
+                    game_dir=source_dir,
+                    sync_audio=options.cinematic_audio,
+                )
+            except Exception as exc:
+                stage = "video/SFX sync" if options.cinematic_audio else "video export"
+                raise RuntimeError(f"{name}: {stage} failed: {exc}") from exc
 
+        timeline_file = None
         if options.cinematic_timeline:
-            exporter.write_timeline(movie, path, timeline_root / f"{stem}.json")
+            try:
+                timeline_file = timeline_root / f"{stem}.json"
+                exporter.write_timeline(movie, path, timeline_file)
+            except Exception as exc:
+                raise RuntimeError(f"{name}: Timeline JSON failed: {exc}") from exc
         records.append({
             "source": name,
             "frames": movie.frame_count,
@@ -108,6 +124,8 @@ def dump_cinematics(
             "frames_exported": options.cinematic_frames,
             "video": str(video_file) if video_file else None,
             "video_info": video_info if video_file else None,
+            "timeline_json": str(timeline_file) if timeline_file else None,
+            "original_anm": str(original_file) if original_file else None,
             "native_timing": exporter.native_timing_summary(movie, name),
         })
         if progress:
