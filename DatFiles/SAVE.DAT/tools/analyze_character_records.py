@@ -14,6 +14,7 @@ POST_START, POST_END = 0x72, 0x248
 PACKED_NIBBLE_OFFSET = 0x0C2
 PACKED_BANKS, PACKED_BANK_SIZE = 8, 10
 PACKED_NIBBLE_END = PACKED_NIBBLE_OFFSET + PACKED_BANKS * PACKED_BANK_SIZE
+AUX_DWORD_OFFSET = 0x12F
 STATE_FLAGS_OFFSET = 0x13A
 
 
@@ -68,6 +69,7 @@ def show(label: str, index: int, base: int, r: bytes) -> None:
     print(f"  packed    : +0x{PACKED_NIBBLE_OFFSET:03X}..+0x{PACKED_NIBBLE_END - 1:03X} (8 banks x 10 bytes; hi/lo nibbles)")
     for row in packed_banks(r):
         print(f"    {row}")
+    print(f"  aux12F    : 0x{u32(r, AUX_DWORD_OFFSET):08X}")
     print(f"  flags13A  : 0x{u32(r, STATE_FLAGS_OFFSET):08X}")
     print(f"  post!=fill: {sparse_post(r)}")
 
