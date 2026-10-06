@@ -72,6 +72,7 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
 
         if r.resource_type == 1:
             raster, _ = ra.decode_type1(r)
+            (folder / f"{stem}.indices").write_bytes(raster.pixels)
             for frame in range(raster.count):
                 stride = raster.width * raster.element_height
                 pixels = raster.pixels[frame * stride:(frame + 1) * stride]
@@ -81,6 +82,7 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
 
         elif r.resource_type == 2:
             raster, widths = ra.decode_type1(r, font=True)
+            (folder / f"{stem}.indices").write_bytes(raster.pixels)
             glyph_dir = folder / f"{stem}_glyphs"
             glyph_dir.mkdir(exist_ok=True)
             for glyph in range(raster.count):
@@ -163,6 +165,8 @@ def dump_audio(game_dir: Path, destination: Path, fmt: str,
     for ordinal, r in enumerate(resources, 1):
         declared, voc = ra.length_prefixed_blob(r)
         stem = _stem(r)
+        if preserve_native:
+            (destination / f"{stem}.eh").write_bytes(r.raw)
         if preserve_native or fmt == "VOC (original)":
             (destination / f"{stem}.voc").write_bytes(voc)
         if fmt != "VOC (original)":
@@ -178,6 +182,7 @@ def dump_audio(game_dir: Path, destination: Path, fmt: str,
 
 
 def dump_music(game_dir: Path, destination: Path,
+               preserve_native: bool = True,
                progress: ProgressCallback | None = None) -> dict:
     resources = [r for a in ra.discover_archives(game_dir) for r in a.resources() if r.resource_type == 3]
     destination.mkdir(parents=True, exist_ok=True)
@@ -185,6 +190,8 @@ def dump_music(game_dir: Path, destination: Path,
     for ordinal, r in enumerate(resources, 1):
         declared, xmi = ra.length_prefixed_blob(r)
         stem = _stem(r)
+        if preserve_native:
+            (destination / f"{stem}.eh").write_bytes(r.raw)
         (destination / f"{stem}.xmi").write_bytes(xmi)
         records.append({"archive": r.archive, "entry": r.index,
                         "declared_bytes": declared, "stored_bytes": len(xmi),
