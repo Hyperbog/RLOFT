@@ -1,6 +1,6 @@
 # OBJECTS.DAT
 
-Status: **fixed 336 × 0x41 record format proven; major rendering, UI, category, weight, combat, range, mutable-state, container, charge, magic-aura, renderer-auxiliary, and equipment-slot semantics reconstructed; lossless parse/encode verified.**
+Status: **fixed 336 × 0x41 record format proven; major rendering, UI, category, weight, combat, range, mutable-state, container, charge, magic-aura, renderer-auxiliary, equipment-slot, and hand-pair semantics reconstructed; lossless parse/encode verified.**
 
 - Size: 21,844 bytes
 - SHA-256: `f23f0e7c1856904aa0156b0bf174cab794a41a327352b6ca00c3591ae5f2eed0`
@@ -46,12 +46,14 @@ Exact size equation:
 +0x40         range_long
 ```
 
-`attack_profile` contains at least:
+`attack_profile` is now behaviorally split as:
 
 ```text
-bits 0..1  attack_mode
+bits 0..1  hand_pair_class
 bits 2..5  weapon_speed_factor
 ```
+
+Pair class 2 is proved **paired-hand-exclusive**. Values 0 and 1 remain distinct pairable compatibility classes pending stronger source-level labels.
 
 The family-C renderer proves:
 
@@ -173,6 +175,26 @@ Category-4 body armor has exact class-code restrictions, including a five-object
 
 See `EQUIPMENT_SLOTS.md` and `analyze_equipment_slots.py`.
 
+## Hand-pair profile
+
+The low two bits of `attack_profile` are read by `23FC4..24A5D` while arbitrating equipment slots 14/15.
+
+For class 2, CODE.2 invalidates the opposite hand. The complete supplied class-2 set is:
+
+```text
+QUARTERSTAFF
+TWO-HANDED SWORD
+HALBERD
+COMPOSITE BOW
+JAVELIN OF LIGHTNING
+```
+
+with duplicate QUARTERSTAFF definitions accounting for seven physical records total. Because the set includes ranged/thrown definitions as well as obvious two-handed melee weapons, the safe name is **paired-hand-exclusive**, not simply `two_handed`.
+
+Class 1 contains larger pairable one-hand weapons such as BATTLE AXE, MACE, LONG SWORD, BROAD SWORD, WARHAMMER and SPEAR. Class 0 contains many default records plus shorter/special weapons such as SHORT SWORD, DAGGER and THROWING KNIFE. The exact source-level distinction between classes 0 and 1 remains unresolved.
+
+See `ATTACK_PROFILE.md` and `analyze_attack_profile.py`.
+
 ## Supplied-corpus validation
 
 Current tools validate:
@@ -194,6 +216,8 @@ SAVE initial charge vector             unique at +0x0D59
 quiver equipment exceptions            13 / 13 resolve to QUIVER
 class-code-5 armor whitelist            5 / 5 category-4 records
 transient touch-item guard              9 / 9 category-0 pseudo-items
+hand_pair_class counts                 311 / 18 / 7 / 0
+pair-class-2 definitions                7 physical records / 5 names
 ```
 
 ## Documentation and tools
@@ -203,17 +227,19 @@ transient touch-item guard              9 / 9 category-0 pseudo-items
 - `CONTAINER_STATE.md` — 10-byte container descriptor and compatibility rules.
 - `RENDER_AUX.md` — scene influence byte `+0x2B` and unresolved byte `+0x2C`.
 - `EQUIPMENT_SLOTS.md` — exact equipment-slot/category routing and hard-coded restrictions.
+- `ATTACK_PROFILE.md` — packed hand-pair class and weapon-speed semantics.
 - `inspect_objects.py` — lossless parser/encoder and basic corpus audit.
 - `analyze_categories.py` — category/state/magic analysis plus optional SAVE charge-vector verification.
 - `analyze_render_aux.py` — corpus audit for `+0x2B/+0x2C`.
 - `analyze_equipment_slots.py` — equipment category, quiver, armor-whitelist and transient-item audit.
+- `analyze_attack_profile.py` — pairing-class and weapon-speed corpus audit.
 
 ## Current frontier
 
-The static object format is now very close to semantic closure. Highest-value remaining OBJECTS work:
+The static object format is now at practical semantic closure for faithful parsing/editing. Remaining OBJECTS questions are narrow:
 
-1. refine the remaining `attack_profile` low-two-bit modes where CODE.2 proves reusable semantics;
+1. determine whether stronger source-level names exist for pairing classes 0/1 without inferring them from weapon names;
 2. determine whether stronger source-level names exist for the scene influence accumulator without overclaiming renderer intent;
 3. keep `+0x2C` explicitly unresolved unless a real consumer is found.
 
-None of these remaining questions block a lossless OBJECTS reader/editor or faithful equipment-slot implementation. The next database-level target after the packed attack-mode pass is `NPCS.DAT`.
+None of these questions block a lossless OBJECTS reader/editor, equipment model, combat metadata model, or SAVE/runtime state linkage. The next major database target is `NPCS.DAT`.
