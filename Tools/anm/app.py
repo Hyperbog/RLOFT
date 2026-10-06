@@ -38,21 +38,15 @@ def _self_test() -> int:
     import tooltips  # noqa: F401
     import xmidi  # noqa: F401
 
-    for required in (
-        "assets/strahd_frame_main.png",
-        "assets/strahd_parchment.png",
-        "assets/strahd_title_logo.png",
-    ):
-        if runtime_paths.bundled_path(required) is None:
-            return 20
-
-    required_gui_assets = (
-        "assets/strahd_frame_main.png",
-        "assets/strahd_parchment.png",
-        "assets/strahd_title_logo.png",
-    )
-    if any(runtime_paths.bundled_path(path) is None for path in required_gui_assets):
+    banner = runtime_paths.bundled_path("assets/strahd_banner.webp")
+    if banner is None:
         return 20
+    try:
+        from PIL import Image
+        with Image.open(banner) as source:
+            source.verify()
+    except Exception:
+        return 24
     ffmpeg = runtime_paths.bundled_path("ffmpeg.exe" if os.name == "nt" else "ffmpeg")
     if ffmpeg is None:
         return 21
