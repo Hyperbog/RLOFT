@@ -110,7 +110,7 @@ The common tail's `width * height` byte array is loaded at DGROUP `0x1760`. The 
 0x01  generic visible/boundary class in ordinary non-special paths
 0x02..0x04  special-cell classes derived through 10-byte record state
 0x05  class selected by cell flag 0x0800
-0x2E/0x2F  floor/current-party style class selected partly by header state
+0x2E/0x2F  common class selected by raw code zero, lookup value 0x0093, and header state
 ```
 
 These are internal classification bytes. They must not be equated directly with the ASCII bytes written by the automap `SAVE` feature; the latter is a later rendering/export stage.
@@ -125,7 +125,17 @@ For archive level 22 the byte grid is `0xFF` for all 450 cells. In `LEV022.DAT` 
 
 The same standalone save has exactly **313 `0x0400` cells** and **313 `0x0040` cells**. Cell-by-cell, all 313 explored cells carry byte class `0x2E`; the remaining seven non-`0xFF` cells are boundary class `0x01`.
 
-One header-table-dependent branch does not reconstruct those seven saved boundary cells from the serialized header bytes alone. CODE.2 also contains routines that mutate the table beginning at DGROUP `0x25622`; until the exact live-table transition at save time is closed, no stronger byte-for-byte cache regeneration claim is made.
+### Level 22 replay discrepancy
+
+A later instruction-level replay closed the previously suspected `0x25622` live-table explanation and found a sharper result.
+
+`01558` consults `0x25622[tile_code]` in **both** its explored and unexplored branches. Level 22 serializes `0x25622[1] == 0x0093` in both the archive and standalone headers. The only direct table animator, `1EDAC..1EEFA`, cycles specific resource-ID ranges and never changes `0x0093`.
+
+Using the serialized `LEV022.DAT` header and cell words, exact ordinary-cell CODE.2 replay therefore predicts class `0x2E` for all 40 unexplored code-1 cells. The save instead contains `0xFF` for 33 of them and boundary class `0x01` for seven. Those are the **only 40 mismatches**; all 46 explored code-1 cells match the encoded `0x0093 -> 0x2E` path.
+
+If the unexplored branch alone is replayed without its encoded `0x0093` shortcut, the supplied byte grid matches **450/450** cells. This does **not** justify changing the certified CODE.2 semantics: the executable bytes unambiguously contain that shortcut. It establishes an unresolved save/provenance or production-path discrepancy instead.
+
+See `CACHE_REBUILD_AUDIT.md` for the full writer-order, table-animation, and byte-for-byte evidence.
 
 ## Archive-wide cell statistics
 
@@ -150,3 +160,5 @@ These counts are evidence about the supplied data set, not format constraints.
 ## Safe implementation boundary
 
 A faithful reader can now expose `tile_code`, `current_visible`, and `automap_explored` explicitly and preserve every remaining flag bit losslessly. Editor-facing names for `0x0080`, `0x0100`, `0x0200`, `0x0800`, `0x1000`, `0x2000`, and `0xC000` should remain behavioral until their associated render/interaction objects are identified.
+
+A faithful CODE.2 cache rebuild must retain the encoded `0x0093` test in both explored and unexplored paths even though the supplied Level 22 save does not reproduce that one branch from its serialized state. Import/repack tooling should preserve existing serialized cache bytes unless and until the save provenance discrepancy is independently resolved.
