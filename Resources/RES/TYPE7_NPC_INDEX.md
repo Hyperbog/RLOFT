@@ -8,7 +8,7 @@ CODE.2 `2B738..2B776` indexes the selected `NPCS.DAT` record, reads word `+0x14`
 
 The first-person renderer later calls `36CEC` from `2C4E1`, `2C524`, `2C5AB`, `2C5FF`, `2C632`, `2C665`, and `2C6B6`. Its second argument is the scene record's `+0x04` value (sometimes with a small renderer-specific adjustment), and `36E94..36EA5` passes that argument directly to resource accessor `2F29C` with archive number **3**.
 
-Therefore `NPCS.DAT +0x14` is specifically the **base archive-3 type-7 compiled-shape index**. The existing project name `scene_sprite_base` remains visually intuitive, but the underlying on-disk resource is the compiled-shape/display-list format documented in `TYPE7_RENDERER.md`.
+Therefore `NPCS.DAT +0x14` is specifically the **class-0 bank-local base index for archive-3 type-7 compiled shapes**. The canonical project name is now `local_shape_base`; older `scene_sprite_base` terminology is retained only as a compatibility alias in tooling.
 
 Every supplied base index below lies inside `RES3`'s 4,234-entry all-type-7 archive. The shape column reports the geometry header of the base resource only; animation/state code can select later IDs relative to that base.
 
@@ -117,7 +117,7 @@ A modern loader can resolve a live NPC's base scene shape without heuristic asse
 
 ```text
 npc_definition = NPCS.DAT[npc_type]
-shape_id        = npc_definition.scene_sprite_base + executable-defined frame/state offset
+shape_id        = npc_definition.local_shape_base + executable-defined frame/state offset
 shape           = RES3[shape_id]   // EH type 7
 ```
 
