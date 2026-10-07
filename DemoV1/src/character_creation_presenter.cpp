@@ -890,6 +890,244 @@ void CharacterCreationPresenter::transition_24d4_frame(
         column);
 }
 
+void CharacterCreationPresenter::draw_slot_scaled_07e4(
+    const CharacterCreationFlow& flow,
+    const CharacterStatsModel* stats,
+    int slot,
+    int y,
+    int x,
+    int numerator,
+    int denominator,
+    const IndexedRegion* cached) {
+    if (!slot_active(flow, slot)) return;
+
+    const auto state = flow.state();
+
+    // 07E4 special cases use captured images for actor cards and the live
+    // stats panel, matching its 0954/0958 paths.
+    if (state == CharacterCreationState::ActorChoice ||
+        (state == CharacterCreationState::StatsReview && slot == 7)) {
+        if (!cached) {
+            throw std::logic_error(
+                "CODE.1 07E4 cached slot lacks captured region");
+        }
+        framebuffer_.restore_scaled_horizontal(
+            *cached,
+            y,
+            x,
+            numerator,
+            denominator);
+        return;
+    }
+
+    if (state == CharacterCreationState::PortraitChoice) {
+        const auto available = flow.available_choices();
+        if (!available[static_cast<std::size_t>(slot)]) {
+            framebuffer_.draw_frame_scaled_horizontal(
+                assets_.type1(7, 0x15),
+                0,
+                y,
+                x,
+                numerator,
+                denominator);
+            return;
+        }
+
+        framebuffer_.draw_frame_scaled_horizontal(
+            assets_.type1(7, 0x14),
+            0,
+            y,
+            x,
+            numerator,
+            denominator);
+
+        // b16_range -> CACC uses the table installed by 4B18/CBD4. CACC
+        // translates every byte, including the encoded transparent key.
+        framebuffer_.draw_frame_scaled_horizontal(
+            assets_.type1(
+                1,
+                336 +
+                    flow.draft().sex * 23 +
+                    flow.portrait_page() +
+                    slot),
+            0,
+            y + 0x15,
+            x,
+            numerator,
+            denominator,
+            &remaps_.luminance[0],
+            true);
+        return;
+    }
+
+    int resource = -1;
+    switch (state) {
+        case CharacterCreationState::SexChoice:
+            resource = 0x0C + slot - 2;
+            break;
+        case CharacterCreationState::RaceChoice:
+            resource = slot;
+            break;
+        case CharacterCreationState::ClassChoice: {
+            const auto available = flow.available_choices();
+            resource =
+                available[static_cast<std::size_t>(slot)]
+                    ? 6 + slot
+                    : 0x15;
+            break;
+        }
+        case CharacterCreationState::OptionChoice: {
+            const auto available = flow.available_choices();
+            resource =
+                available[static_cast<std::size_t>(slot)]
+                    ? 0x0E + slot
+                    : 0x15;
+            break;
+        }
+        case CharacterCreationState::StatsReview:
+            resource = slot == 6 ? 0x16 : 0x2E;
+            break;
+        case CharacterCreationState::ActorChoice:
+        case CharacterCreationState::PortraitChoice:
+            break;
+    }
+
+    if (resource < 0) {
+        throw std::logic_error(
+            "unsupported CODE.1 07E4 slot resource");
+    }
+
+    framebuffer_.draw_frame_scaled_horizontal(
+        assets_.type1(7, resource),
+        0,
+        y,
+        x,
+        numerator,
+        denominator);
+}
+
+void CharacterCreationPresenter::transition_07e4_frame(
+    const CharacterCreationFlow& before,
+    const CharacterCreationFlow& after,
+    const CharacterStatsModel* before_stats,
+    const CharacterStatsModel* after_stats,
+    int first_slot,
+    int last_slot,
+    int frame_index) {
+    if (before.state() != after.state()) {
+        throw std::logic_error(
+            "CODE.1 07E4 only replaces slots within one controller mode");
+    }
+    if (first_slot < 0 ||
+        first_slot >= last_slot ||
+        last_slot > 9) {
+        throw std::out_of_range(
+            "CODE.1 07E4 slot range");
+    }
+
+    const int count =
+        transition_07e4_frame_count(first_slot, last_slot);
+    if (frame_index < 0 || frame_index >= count) {
+        throw std::out_of_range(
+            "CODE.1 07E4 transition frame index");
+    }
+
+    std::array<IndexedRegion, 9> old_region{};
+    std::array<IndexedRegion, 9> new_region{};
+
+    screen(before, before_stats);
+    for (int slot = first_slot; slot < last_slot; ++slot) {
+        old_region[static_cast<std::size_t>(slot)] =
+            framebuffer_.capture(
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)],
+                0x7A,
+                0x30);
+    }
+
+    // 07E4's optional 0940/0948 records are already the new records while
+    // the slot flip runs, so the destination screen is the correct base.
+    screen(after, after_stats);
+    for (int slot = first_slot; slot < last_slot; ++slot) {
+        new_region[static_cast<std::size_t>(slot)] =
+            framebuffer_.capture(
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)],
+                0x7A,
+                0x30);
+    }
+
+    const auto seam_color = assets_.code1_u8(0x63F8U);
+
+    for (int slot = first_slot; slot < last_slot; ++slot) {
+        const auto index = static_cast<std::size_t>(slot);
+        const auto& old_pixels = old_region[index].pixels;
+        const auto& new_pixels = new_region[index].pixels;
+
+        // This is the visible equivalent of 07E4's old_id == new_id fast
+        // path, and also covers special capture handles with identical pixels.
+        if (old_pixels == new_pixels) {
+            continue;
+        }
+
+        const int row = kSlotRow[index];
+        const int column = kSlotColumn[index];
+        const int delay = slot - first_slot;
+        const int k =
+            frame_index < delay
+                ? 0
+                : frame_index - delay + 1;
+
+        if (k == 0) {
+            framebuffer_.restore(old_region[index], row, column);
+            continue;
+        }
+
+        draw_frame(7, 0x1E + slot, 0, row, column);
+
+        if (k < 6) {
+            const int q = 6 - k;
+            draw_slot_scaled_07e4(
+                before,
+                before_stats,
+                slot,
+                row,
+                column + 4 * k,
+                q,
+                10,
+                &old_region[index]);
+            continue;
+        }
+
+        if (k == 6) {
+            // A05C(x,y+18h,x+79h,y+18h,color): one vertical center seam.
+            framebuffer_.fill_rect(
+                row,
+                column + 0x18,
+                0x7A,
+                1,
+                seam_color);
+            continue;
+        }
+
+        if (k < 12) {
+            const int q = 12 - k;
+            draw_slot_scaled_07e4(
+                after,
+                after_stats,
+                slot,
+                row,
+                column + 4 * q,
+                q,
+                6,
+                &new_region[index]);
+            continue;
+        }
+
+        framebuffer_.restore(new_region[index], row, column);
+    }
+}
+
 void CharacterCreationPresenter::screen(
     const CharacterCreationFlow& flow,
     const CharacterStatsModel* stats,
