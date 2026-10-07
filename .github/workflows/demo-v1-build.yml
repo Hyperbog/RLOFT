@@ -31,3 +31,9 @@ jobs:
         run: cmake --build build/demo-v1 --config Release
       - name: Test
         run: ctest --test-dir build/demo-v1 -C Release --output-on-failure
+      - name: Publish Windows executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ravenloft-Demo-v1-Windows-x64
+          path: build/demo-v1/Release/ravenloft_demo_v1.exe
+          if-no-files-found: error
