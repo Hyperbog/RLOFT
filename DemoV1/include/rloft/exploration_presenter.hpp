@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
+#include <unordered_map>
+#include <vector>
 
 #include "rloft/environment_presenter.hpp"
 #include "rloft/exploration_hud_presenter.hpp"
@@ -9,6 +12,7 @@
 #include "rloft/resource_assets.hpp"
 #include "rloft/surface_fill.hpp"
 #include "rloft/surface_wall_presenter.hpp"
+#include "rloft/type7_scene_pixel_executor.hpp"
 
 namespace rloft {
 
@@ -19,6 +23,10 @@ struct ExplorationSurfaceCoverage final {
     std::size_t type7_scene_calls_pending{};
     std::size_t type7_visible_columns_pending{};
     std::size_t type7_unvalidated_wide_runs{};
+    std::size_t type7_calls_rasterized{};
+    std::size_t type7_columns_rasterized{};
+    std::size_t type7_indexed_writes{};
+    std::size_t type7_calls_failed{};
 
     [[nodiscard]] bool complete() const noexcept {
         return sintab_main_runs_pending == 0 &&
@@ -73,6 +81,8 @@ private:
     SurfaceFillTable fill_table_{};
     std::uint16_t res0_raster_base_{};
     std::uint16_t res1_portrait_base_{};
+    std::unordered_map<std::uint16_t, std::vector<std::uint8_t>>
+        type7_source_cache_;
 };
 
 }  // namespace rloft
