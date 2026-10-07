@@ -52,6 +52,8 @@ int main() {
     pending.visible_columns.push_back(
         rloft::Type7VisibleColumn{32U, 0U, 129U});
     frame.world_scene_render_plans.push_back(pending);
+    frame.scene_vga_trace.emplace();
+    frame.scene_vga_trace->unresolved_wide_runs = 1U;
 
     frame.sweep_runs = {fallback};
     const auto scene_pending =
@@ -62,10 +64,12 @@ int main() {
     assert(scene_pending.sintab_prepass_runs_pending == 0U);
     assert(scene_pending.type7_scene_calls_pending == 1U);
     assert(scene_pending.type7_visible_columns_pending == 2U);
+    assert(scene_pending.type7_unvalidated_wide_runs == 1U);
     assert(!scene_pending.complete());
 
     // Fully occluded calls are not missing visible pixels.
     frame.world_scene_render_plans[0].visible_columns.clear();
+    frame.scene_vga_trace->unresolved_wide_runs = 0U;
     frame.sweep_runs = {fallback};
     const auto complete =
         rloft::ExplorationPresenter::surface_coverage(
@@ -76,5 +80,6 @@ int main() {
     assert(complete.sintab_prepass_runs_pending == 0);
     assert(complete.type7_scene_calls_pending == 0);
     assert(complete.type7_visible_columns_pending == 0);
+    assert(complete.type7_unvalidated_wide_runs == 0U);
     assert(complete.complete());
 }
