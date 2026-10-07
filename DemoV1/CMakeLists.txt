@@ -25,6 +25,7 @@ add_library(rloft_boot_flow
     src/party_presentation.cpp
     src/top_edge_menu.cpp
     src/exploration_ui.cpp
+    src/exploration_hud_presenter.cpp
     src/exploration_world.cpp
     src/exploration_collision.cpp
     src/exploration_motion.cpp
@@ -104,6 +105,10 @@ add_test(NAME top_edge_menu_tests COMMAND top_edge_menu_tests)
 add_executable(exploration_ui_tests tests/exploration_ui_tests.cpp)
 target_link_libraries(exploration_ui_tests PRIVATE rloft_boot_flow)
 add_test(NAME exploration_ui_tests COMMAND exploration_ui_tests)
+
+add_executable(exploration_hud_presenter_tests tests/exploration_hud_presenter_tests.cpp)
+target_link_libraries(exploration_hud_presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_hud_presenter_tests COMMAND exploration_hud_presenter_tests)
 
 add_executable(exploration_world_tests tests/exploration_world_tests.cpp)
 target_link_libraries(exploration_world_tests PRIVATE rloft_boot_flow)
@@ -247,6 +252,7 @@ set(RLOFT_TEST_TARGETS
     party_presentation_tests
     top_edge_menu_tests
     exploration_ui_tests
+    exploration_hud_presenter_tests
     exploration_world_tests
     exploration_collision_tests
     exploration_motion_tests
