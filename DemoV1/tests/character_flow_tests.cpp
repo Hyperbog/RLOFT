@@ -119,7 +119,7 @@ int main() {
     assert(retained.apply_event(3));
     assert(retained.apply_event(1));
     assert(retained.apply_event(1));
-    assert(retained.apply_event(0xFF));
+    assert(retained.state() == CharacterCreationState::OptionChoice);
     assert(retained.apply_event(1));
     assert(retained.apply_event(1));
     retained.finish_current_actor(true, "STRAHD");
