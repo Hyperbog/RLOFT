@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 namespace {
@@ -42,9 +43,26 @@ int main() {
         renderer(),
         {});
 
+    // The CODE.2 VGA page and dispatcher mode are mutable runtime
+    // values; the live input path will eventually toggle these fields.
+    assert(runtime.scene_video_page() == 0U);
+    runtime.set_scene_video_page(1U);
+    assert(runtime.scene_video_page() == 1U);
+    runtime.set_scene_individual_columns_mode(true);
+    assert(runtime.scene_individual_columns_mode());
+    bool bad_page = false;
+    try {
+        runtime.set_scene_video_page(2U);
+    } catch (const std::out_of_range&) {
+        bad_page = true;
+    }
+    assert(bad_page);
+    assert(runtime.scene_video_page() == 1U);
+
     {
         const auto frame = runtime.build_frame();
 
+        assert(!frame.scene_vga_trace.has_value());
         assert(frame.scene.frame.level_id == 22);
         const rloft::CellPosition expected_party_cell{1, 1};
         assert(frame.scene.frame.party_cell ==
