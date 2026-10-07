@@ -430,6 +430,20 @@ bool CharacterCreationFlow::apply_event(int event) {
     return false;
 }
 
+void CharacterCreationFlow::resolve_existing_actor(
+    int actor, bool keep) {
+    if (actor < 0 || actor >= 2 ||
+        !actor_present_[static_cast<std::size_t>(actor)]) {
+        throw std::logic_error(
+            "CODE.1 existing-actor decision has no populated slot");
+    }
+
+    if (!keep) {
+        actors_[static_cast<std::size_t>(actor)] = {};
+        actor_present_[static_cast<std::size_t>(actor)] = false;
+    }
+}
+
 void CharacterCreationFlow::finish_current_actor(
     bool accepted, std::string name) {
     const int actor = draft_.actor;
