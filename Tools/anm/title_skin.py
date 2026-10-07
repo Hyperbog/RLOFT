@@ -106,10 +106,13 @@ _RAVENLOFT_LOGO_PNG_B64 = "iVBORw0KGgoAAAANSUhEUgAAAPAAAAByCAMAAABa86xzAAADAFBMV
 
 @lru_cache(maxsize=1)
 def ravenloft_logo() -> Image.Image:
-    raw = base64.b64decode(_RAVENLOFT_LOGO_PNG_B64)
-    import io
-    with Image.open(io.BytesIO(raw)) as source:
-        return source.convert("RGBA")
+    path = runtime_paths.bundled_path("assets/strahd_title_logo.png")
+    if path is None:
+        raise RuntimeError("baked Ravenloft title asset is missing")
+    with Image.open(path) as source:
+        logo = source.convert("RGBA")
+        logo.load()
+        return logo
 
 
 def render_header(width: int, height: int, ui_scale: float = 1.0) -> Image.Image:
