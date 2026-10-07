@@ -5,6 +5,10 @@
 #include <vector>
 
 #include "rloft/exploration_runtime_motion.hpp"
+#include "rloft/inventory_runtime.hpp"
+#include "rloft/level_world_state.hpp"
+#include "rloft/npc_catalog.hpp"
+#include "rloft/object_catalog.hpp"
 #include "rloft/exploration_scene.hpp"
 #include "rloft/micro_rasterizer_plan.hpp"
 #include "rloft/renderer_tables.hpp"
@@ -44,6 +48,23 @@ public:
         return renderer_tables_;
     }
 
+    // Activates the mutable CODE.2 world/inventory layer for the currently
+    // loaded level. Archive NPC hit points require the caller to supply the
+    // faithful game dice path; direct-save records ignore that callback.
+    void initialize_gameplay_state(
+        const GameSource& source,
+        const LevelWorldStateCodec::DiceRoller& roll);
+
+    [[nodiscard]] bool gameplay_state_initialized() const noexcept {
+        return gameplay_state_initialized_;
+    }
+    [[nodiscard]] LevelWorldState& world() noexcept { return world_; }
+    [[nodiscard]] const LevelWorldState& world() const noexcept { return world_; }
+    [[nodiscard]] InventoryRuntimeState& inventory() noexcept { return inventory_; }
+    [[nodiscard]] const InventoryRuntimeState& inventory() const noexcept { return inventory_; }
+    [[nodiscard]] const NpcCatalog& npc_catalog() const noexcept { return npc_catalog_; }
+    [[nodiscard]] const ObjectCatalog& object_catalog() const noexcept { return object_catalog_; }
+
     [[nodiscard]] ExplorationRuntimeMotionResult tick_motion(
         ExplorationMotionInputs inputs);
 
@@ -61,6 +82,11 @@ private:
     std::vector<EnvironmentProfile> environment_profiles_;
     EnvironmentPhaseState environment_phase_state_{};
     ExplorationRuntimeMotionState motion_state_{};
+    bool gameplay_state_initialized_{};
+    NpcCatalog npc_catalog_{};
+    ObjectCatalog object_catalog_{};
+    LevelWorldState world_{};
+    InventoryRuntimeState inventory_{};
 };
 
 }  // namespace rloft
