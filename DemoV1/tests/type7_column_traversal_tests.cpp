@@ -114,19 +114,37 @@ int main() {
     assert(tiny.initial_scale == 0U);
     assert(tiny.columns.empty());
 
-    // Preserve 36D23's special resource arithmetic and reject an
-    // unrepresentable wrapped native pointer rather than dereferencing it.
-    bool rejected = false;
-    try {
-        (void)rloft::Type7ColumnTraversalModel::build(
+    // 36D34..36D59 special resource IDs alter 10450, not the selected
+    // SINTAB pointer. For scale 64: phase=(64*2)+(128>>3)=144;
+    // pointer=64-(64>>3)=56, the same physical block as ordinary IDs.
+    const auto special =
+        rloft::Type7ColumnTraversalModel::build(
             shape(64U, 30, 33),
             t,
             0x117U,
-            64U);
-    } catch (const std::out_of_range&) {
-        rejected = true;
-    }
-    assert(rejected);
+            512U);
+    assert(special.renderer_phase_adjustment == 144U);
+    assert(special.scale_pointer_index == 56U);
+    assert(special.scale_block_index == 55U);
+    assert(plan.renderer_phase_adjustment == 16U);
+
+    // Verify both inclusive/exclusive edges of the original special range.
+    const auto special_last =
+        rloft::Type7ColumnTraversalModel::build(
+            shape(64U, 30, 33),
+            t,
+            0x13AU,
+            512U);
+    const auto normal_next =
+        rloft::Type7ColumnTraversalModel::build(
+            shape(64U, 30, 33),
+            t,
+            0x13BU,
+            512U);
+    assert(special_last.renderer_phase_adjustment == 144U);
+    assert(normal_next.renderer_phase_adjustment == 16U);
+    assert(special_last.scale_pointer_index ==
+           normal_next.scale_pointer_index);
 
     return 0;
 }
