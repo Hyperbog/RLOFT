@@ -36,6 +36,7 @@ add_library(rloft_boot_flow
     src/fixed_projection.cpp
     src/renderer_tables.cpp
     src/micro_rasterizer_layout.cpp
+    src/micro_rasterizer_plan.cpp
     src/environment_projection.cpp
     src/environment_presenter.cpp
     src/automap_presentation.cpp
@@ -145,6 +146,10 @@ add_executable(micro_rasterizer_layout_tests tests/micro_rasterizer_layout_tests
 target_link_libraries(micro_rasterizer_layout_tests PRIVATE rloft_boot_flow)
 add_test(NAME micro_rasterizer_layout_tests COMMAND micro_rasterizer_layout_tests)
 
+add_executable(micro_rasterizer_plan_tests tests/micro_rasterizer_plan_tests.cpp)
+target_link_libraries(micro_rasterizer_plan_tests PRIVATE rloft_boot_flow)
+add_test(NAME micro_rasterizer_plan_tests COMMAND micro_rasterizer_plan_tests)
+
 add_executable(environment_projection_tests tests/environment_projection_tests.cpp)
 target_link_libraries(environment_projection_tests PRIVATE rloft_boot_flow)
 add_test(NAME environment_projection_tests COMMAND environment_projection_tests)
@@ -238,6 +243,7 @@ set(RLOFT_TEST_TARGETS
     fixed_projection_tests
     renderer_tables_tests
     micro_rasterizer_layout_tests
+    micro_rasterizer_plan_tests
     environment_projection_tests
     environment_presenter_tests
     automap_presentation_tests
