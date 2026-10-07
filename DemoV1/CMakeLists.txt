@@ -16,6 +16,7 @@ add_library(rloft_boot_flow
     src/character_creation_presenter.cpp
     src/character_palette_remap.cpp
     src/character_stats.cpp
+    src/character_sheet.cpp
     src/character_transfer.cpp
     src/exploration_state.cpp
     src/exploration_session.cpp
@@ -275,6 +276,10 @@ add_executable(character_stats_tests tests/character_stats_tests.cpp)
 target_link_libraries(character_stats_tests PRIVATE rloft_boot_flow)
 add_test(NAME character_stats_tests COMMAND character_stats_tests)
 
+add_executable(character_sheet_tests tests/character_sheet_tests.cpp)
+target_link_libraries(character_sheet_tests PRIVATE rloft_boot_flow)
+add_test(NAME character_sheet_tests COMMAND character_sheet_tests)
+
 add_executable(character_transfer_tests tests/character_transfer_tests.cpp)
 target_link_libraries(character_transfer_tests PRIVATE rloft_boot_flow)
 add_test(NAME character_transfer_tests COMMAND character_transfer_tests)
@@ -337,6 +342,7 @@ set(RLOFT_TEST_TARGETS
     xmidi_tests
     character_flow_tests
     character_stats_tests
+    character_sheet_tests
     character_transfer_tests
     character_palette_remap_tests
     sound_config_tests
