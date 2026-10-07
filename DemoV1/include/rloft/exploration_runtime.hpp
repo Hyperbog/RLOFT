@@ -10,7 +10,10 @@
 #include "rloft/level22_encounter.hpp"
 #include "rloft/npc_catalog.hpp"
 #include "rloft/npc_scene.hpp"
+#include "rloft/loose_item_scene.hpp"
 #include "rloft/object_catalog.hpp"
+#include "rloft/scene_source_banks.hpp"
+#include "rloft/world_scene_record.hpp"
 #include "rloft/exploration_scene.hpp"
 #include "rloft/micro_rasterizer_plan.hpp"
 #include "rloft/renderer_tables.hpp"
@@ -24,7 +27,7 @@ namespace rloft {
 struct ExplorationRuntimeFrame final {
     ExplorationSceneSnapshot scene{};
     std::vector<ViewSweepRecord> sweep_records;
-    std::vector<NpcSceneEmission> npc_records;
+    std::vector<WorldSceneRecord> world_scene_records;
     std::vector<ViewSweepRun> sweep_runs;
     SurfaceShadeTable surface_shades{};
     std::vector<SurfacePrepassPlan> prepass_plans;
@@ -97,6 +100,7 @@ private:
     bool gameplay_state_initialized_{};
     NpcCatalog npc_catalog_{};
     ObjectCatalog object_catalog_{};
+    SceneSourceBanks scene_source_banks_{};
     LevelWorldState world_{};
     InventoryRuntimeState inventory_{};
 };
