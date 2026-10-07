@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -53,6 +54,9 @@ public:
     [[nodiscard]] std::vector<std::uint8_t> music_sequence(int index) const;
     [[nodiscard]] std::vector<std::uint8_t> sampled_audio(int archive, int index) const;
     [[nodiscard]] std::string text(int index) const;
+    [[nodiscard]] std::uint8_t code1_u8(std::size_t dgroup_offset) const;
+    [[nodiscard]] std::uint16_t code1_u16(std::size_t dgroup_offset) const;
+    [[nodiscard]] std::int32_t code1_s32(std::size_t dgroup_offset) const;
     [[nodiscard]] Palette6 colors_palette(int index, int brightness = 0) const;
 
 private:
@@ -65,6 +69,7 @@ private:
     ResArchive res10_;
     std::vector<std::uint8_t> colors_;
     std::vector<std::uint8_t> text_;
+    std::vector<std::uint8_t> code1_;
 };
 
 }  // namespace rloft
