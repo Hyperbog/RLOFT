@@ -57,6 +57,7 @@ add_library(rloft_boot_flow
     src/view_sweep_setup.cpp
     src/view_sweep_traversal.cpp
     src/view_sweep_runs.cpp
+    src/view_sweep_influence.cpp
     src/fixed_projection.cpp
     src/first_person_entity_projection.cpp
     src/npc_scene.cpp
@@ -249,6 +250,10 @@ add_test(NAME view_sweep_traversal_tests COMMAND view_sweep_traversal_tests)
 add_executable(view_sweep_runs_tests tests/view_sweep_runs_tests.cpp)
 target_link_libraries(view_sweep_runs_tests PRIVATE rloft_boot_flow)
 add_test(NAME view_sweep_runs_tests COMMAND view_sweep_runs_tests)
+
+add_executable(view_sweep_influence_tests tests/view_sweep_influence_tests.cpp)
+target_link_libraries(view_sweep_influence_tests PRIVATE rloft_boot_flow)
+add_test(NAME view_sweep_influence_tests COMMAND view_sweep_influence_tests)
 
 add_executable(fixed_projection_tests tests/fixed_projection_tests.cpp)
 target_link_libraries(fixed_projection_tests PRIVATE rloft_boot_flow)
@@ -451,6 +456,7 @@ set(RLOFT_TEST_TARGETS
     view_sweep_setup_tests
     view_sweep_traversal_tests
     view_sweep_runs_tests
+    view_sweep_influence_tests
     fixed_projection_tests
     first_person_entity_projection_tests
     npc_scene_tests
