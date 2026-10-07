@@ -117,6 +117,20 @@ int main() {
     assert(runs[0].viewport_x == 126U);
     assert(runs[0].width == 2U);
 
+    // 370AE resumes the RIGHT pass after ending the LEFT pass.
+    auto both_sides = left;
+    both_sides.columns.push_back({
+        rloft::Type7ColumnSide::Right, 32U, 2U, 122U, 1U
+    });
+    rays[128].depth = 499U;
+    runs = rloft::Type7ColumnTraversalModel::visible_runs(
+        both_sides, 128, 500U, rays);
+    assert(runs.size() == 2U);
+    assert(runs[0].source_x == 31U);
+    assert(runs[1].source_x == 32U);
+    assert(runs[1].viewport_x == 128U);
+    assert(runs[1].width == 1U);
+
     // The last right-hand source span is clipped to the viewport edge.
     rays = walls();
     rays[254].depth = 0U;
