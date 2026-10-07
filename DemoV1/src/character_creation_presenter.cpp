@@ -1355,6 +1355,23 @@ void CharacterCreationPresenter::transition_07e4_frame(
                 0x30);
     }
 
+    // function_266C has an intentional asymmetric update when advancing to
+    // class substage 1/2. Enabled choices are written to both 08F4 and 08F8
+    // before 07E4, so they are already visible (old == new); only choices
+    // becoming disabled retain the previous old ID and animate to RES7:15.
+    if (before.state() == CharacterCreationState::ClassChoice &&
+        after.state() == CharacterCreationState::ClassChoice &&
+        after.class_stage() > 0 &&
+        after.class_stage() != before.class_stage()) {
+        const auto available = after.available_choices();
+        for (int slot = first_slot; slot < last_slot && slot < 6; ++slot) {
+            if (available[static_cast<std::size_t>(slot)]) {
+                old_region[static_cast<std::size_t>(slot)] =
+                    new_region[static_cast<std::size_t>(slot)];
+            }
+        }
+    }
+
     // Runtime 63F8 is the first byte of 4A0C row 4:
     // 5FF8 + 4*100h. It lives in generated BSS, not stored CODE.1 data.
     const auto seam_color = remaps_.bright[4][0];
