@@ -66,3 +66,29 @@ R.EXE supervisor
 ```
 
 The next implementation unit is the native RES0/COLORS presentation renderer used by the cold-start sequence and startup menu.
+
+
+## CODE.1 character-creation boundary
+
+Direct re-disassembly of the certified CODE.1 object closes the first three
+controller states:
+
+```text
+state 0  0x1CD0  choose one of the two original player-character slots
+state 1  0x1DD8  sex selection
+                  result 3 -> sex 0 / MALE
+                  result 4 -> sex 1 / FEMALE
+state 2  0x1E64  race selection
+                  results 1..6 -> race codes 0..5
+```
+
+The state-0 presentation is now rendered from the installed game data.
+CODE.1 loads COLORS palette 8 before the controller. Its first screen uses
+RES7 graphics, including the two vertically emitted background strips at
+RES7:24/25, the fixed RES7:30..38 control family, RES7:42, and the two
+state-0 selector graphics.
+
+The observable CODE.1 opening presentation at `0x45FC..0x4976` occurs
+between the CODE.2 -> CODE.1 handoff and state 0. That animation remains the
+next fidelity item; the demo currently enters the correct final state-0
+screen after the CODE.2 menu transition.
