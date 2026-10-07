@@ -48,6 +48,24 @@ static void startup_latch_bypasses_presentation() {
     assert(flow.snapshot().stage == BootStage::StartupMenu);
 }
 
+
+static void character_creation_status10_returns_to_code2() {
+    BootFlow flow;
+    flow.boot();
+    flow.finish_code2_startup(false, true);
+    flow.select_startup_menu(BootFlow::kCharacterWorkflowMenuIndex);
+    flow.supervisor_dispatch();
+
+    flow.finish_character_creation(LegacyResult::ContinueModuleCycle);
+    assert(flow.snapshot().stage == BootStage::Code1ExitToSupervisor);
+    assert(flow.snapshot().pending_result == LegacyResult::ContinueModuleCycle);
+
+    flow.supervisor_dispatch();
+    assert(flow.snapshot().module == LegacyModule::Code2);
+    assert(flow.snapshot().stage == BootStage::Code2Startup);
+    assert(flow.snapshot().chars_present);
+}
+
 static void menu_exit_uses_ordinary_status() {
     BootFlow flow;
     flow.boot();
@@ -63,6 +81,7 @@ int main() {
     cold_boot_reaches_character_creation();
     escape_skips_cold_start_presentation();
     startup_latch_bypasses_presentation();
+    character_creation_status10_returns_to_code2();
     menu_exit_uses_ordinary_status();
     std::cout << "boot_flow_tests: PASS\n";
 }
