@@ -892,6 +892,7 @@ void CharacterCreationPresenter::transition_15b0_frame(
     int selected_slot,
     int target_row,
     int target_column,
+    int final_stage,
     int frame_index) {
     const int count =
         transition_15b0_frame_count(selected_slot);
@@ -985,6 +986,27 @@ void CharacterCreationPresenter::transition_15b0_frame(
     if (selected_slot < 0) {
         throw std::logic_error(
             "dissolve-only 15B0 transition has no movement frames");
+    }
+    if (final_stage < 1 || final_stage > 5) {
+        throw std::logic_error(
+            "selected CODE.1 15B0 requires final 04B0 stage 1..5");
+    }
+
+    if (frame_index == 19) {
+        // After the nine movement frames, 15B0 redraws RES7:19 over the
+        // lower page, reapplies 04B0(final_mode), and calls 5454 for one
+        // final full-page presentation before the next controller starts.
+        transition_15b0_frame(
+            before,
+            stats,
+            selected_slot,
+            target_row,
+            target_column,
+            final_stage,
+            18);
+        draw_strip(7, 0x19, 200, 0);
+        draw_persistent_summary(before.draft(), final_stage);
+        return;
     }
 
     // End of the second loop: all active slots except the selected choice are
