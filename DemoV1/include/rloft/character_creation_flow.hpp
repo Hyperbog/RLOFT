@@ -31,6 +31,7 @@ public:
     [[nodiscard]] CharacterCreationState state() const noexcept { return state_; }
     [[nodiscard]] const CharacterDraft& draft() const noexcept { return draft_; }
     [[nodiscard]] bool aborted() const noexcept { return aborted_; }
+    [[nodiscard]] bool completed() const noexcept { return completed_; }
     [[nodiscard]] int class_stage() const noexcept { return class_stage_; }
     [[nodiscard]] int portrait_page() const noexcept { return portrait_page_; }
     [[nodiscard]] bool actor_present(int actor) const noexcept {
@@ -67,6 +68,7 @@ private:
     std::array<CharacterDraft, 2> actors_{};
     std::array<bool, 2> actor_present_{{false, false}};
     bool aborted_{};
+    bool completed_{};
     int class_stage_{};
     int portrait_page_{};
 };
