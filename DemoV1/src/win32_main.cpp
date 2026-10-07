@@ -9,6 +9,7 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <deque>
 #include <exception>
 #include <filesystem>
 #include <optional>
@@ -166,6 +167,17 @@ public:
         return result;
     }
 
+    std::optional<int> consume_key_event() {
+        if (key_events_.empty()) return std::nullopt;
+        const int value = key_events_.front();
+        key_events_.pop_front();
+        return value;
+    }
+
+    void clear_key_events() {
+        key_events_.clear();
+    }
+
     bool quit_requested() const noexcept { return quit_; }
     HWND hwnd() const noexcept { return hwnd_; }
 
@@ -249,7 +261,28 @@ private:
                 return 1;
 
             case WM_KEYDOWN:
-                if (wparam == VK_ESCAPE) escape_pressed_ = true;
+                if (wparam == VK_ESCAPE) {
+                    escape_pressed_ = true;
+                    return 0;
+                }
+
+                if (character_mode_) {
+                    if (wparam >= 'A' && wparam <= 'Z') {
+                        key_events_.push_back(static_cast<int>(wparam));
+                    } else if (wparam >= '0' && wparam <= '9') {
+                        key_events_.push_back(static_cast<int>(wparam));
+                    } else if (wparam == VK_SPACE) {
+                        key_events_.push_back(' ');
+                    } else if (wparam == VK_BACK) {
+                        key_events_.push_back(8);
+                    } else if (wparam == VK_RETURN) {
+                        key_events_.push_back(0x0D);
+                    } else if (wparam == VK_ADD) {
+                        key_events_.push_back(0x14E);
+                    } else if (wparam == VK_SUBTRACT) {
+                        key_events_.push_back(0x14A);
+                    }
+                }
                 return 0;
 
             case WM_MOUSEMOVE:
@@ -316,6 +349,7 @@ private:
     int selection_{-1};
     std::optional<int> clicked_{};
     std::optional<NativePoint> character_click_{};
+    std::deque<int> key_events_{};
 };
 
 bool fade_in(Host& host,
