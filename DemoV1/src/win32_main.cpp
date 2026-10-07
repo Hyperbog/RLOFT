@@ -43,7 +43,7 @@ public:
         WNDCLASSW wc{};
         wc.lpfnWndProc = &Host::window_proc;
         wc.hInstance = instance;
-        wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+        wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
         wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
         wc.lpszClassName = L"RavenloftDemoV1Window";
         RegisterClassW(&wc);
