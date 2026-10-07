@@ -120,3 +120,82 @@ Do not count renderer or interactive-gameplay fidelity as closed yet.
    controlled reference frames at several scales and both render modes.
 5. Only after pixel output is real, let the presenter consume the generated
    draw plans and enable original viewport hit dispatch.
+
+
+## Follow-up: contiguous depth-clipped run fidelity (October 7, 2026)
+
+A direct re-audit of the immutable CODE.2 object-1 instructions at
+`36F2E..37094` (left side) and `37140..3729B` (right side)
+identified an error in the earlier `visible_columns` implementation:
+it independently rejected each wall-occluded destination pixel.
+**The DOS renderer does not always behave that way.** It first derives
+a contiguous scaled run from one type-7 source column and applies
+the following distinction:
+
+- `scale_step == 0`: no destination draw.
+- `scale_step == 1`: gate that single destination against the
+  original signed wall depth and argument 6.
+- `scale_step > 1`: trim the run at viewport edges, then compare
+  **only the first and last** destination ray depths. If both are
+  drawable, dispatch the whole span through `36B14`. If one endpoint
+  is blocked, trim that contiguous edge inward until the first
+  unblocked ray is found. If both endpoints are blocked, suppress the
+  entire run even when an interior ray is unblocked.
+- The left/right code paths advance their independent horizontal
+  cursors differently. For the right side, the final trimmed width
+  determines the start of the following source column.
+
+This means that a 3-pixel run with front-of-wall depths at its first
+and last pixels remains a **3-pixel submitted span** even when the
+middle ray depth is behind a wall. The former independent-ray filter
+introduced holes that did not exist in the original draw calls.
+
+The repaired implementation is
+`type7_column_traversal::visible_runs`, which returns original
+`36B14`-sized groups. `visible_columns` now only expands the
+accepted groups for the per-destination microcode descriptor model.
+`world_scene_render_plan` retains **both** `visible_runs` and
+`visible_columns`. It does not claim that either has yet rendered
+pixels.
+
+New regression `type7_visible_runs_tests` covers the two-endpoint
+case, both-endpoints-hidden case, left/right edge trimming, the
+shifted right cursor after trimming, and viewport-edge clipping.
+
+## Follow-up: stateful VGA scene trace (October 7, 2026)
+
+A direct dump of CODE.2's object-2 data establishes
+`BYTE[0xC029] == 1` at game start (physical file
+`0x75F24 + 0xC029 == 0x81F4D`). The instruction at `0x6617`
+can XOR it with 1 later. Thus the initially active `36B14`
+path is the per-destination-column form, but the grouped-run form
+is also reachable. The `type7_vga_plane_masks` decoder now
+exposes the **initial** value without treating it as immutable
+live gameplay state.
+
+The new `type7_vga_scene_trace` composes the retained
+`Type7VisibleRun` records, the original `369D8` source-column
+descriptor list, the exact SINTAB entry/stop operands, and the
+original three VGA mask passes. It specifically models the
+`36B14` byte-swap boundary correctly:
+
+- `369D8` traverses **all** entries in one source column's display
+  list within the same VGA pass; this is not one `36B14` call per
+  descriptor;
+- with `0xC029 == 0`, one grouped `369D8` is dispatched per run,
+  then `XCHG AL,AH` changes the saved lookup word for the next run;
+- with `0xC029 != 0`, the original run is dispatched one destination
+  column at a time, parity-selecting the lookup byte order; the
+  caller-visible global lookup is restored after that run.
+
+Regression `type7_vga_scene_trace_tests` covers the distinction
+using two source-column runs, one with **two descriptors**, plus
+page-1 VGA addresses and the byte-swapped lookup sequence. An invalid
+run width greater than the certified 1..7 mask-table domain is
+rejected rather than silently narrowed to an unrelated valid slot.
+
+**Boundary:** The trace is an execution-input record, not a completed
+pixel output. This stage does not claim that the SINTAB-generated
+instructions are decoded, interpreted, or rasterized. The scene
+presenter continues to count visible type-7 columns as pending, and
+unrendered objects remain non-clickable.
