@@ -1055,3 +1055,347 @@ hit = modified_roll >= threshold
 
 This exact ordering should become the native reference implementation.
 
+
+
+## 46. NPC melee damage uses definition dice directly
+
+After an ordinary NPC attack passes the hit check, the main attack path reads:
+
+```text
+NPCS +0x1E  melee_damage_dice
+NPCS +0x1F  melee_damage_sides
+NPCS +0x20  melee_damage_bonus
+```
+
+and sends those values through the common dice helper.
+
+[NPCS format](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/NPCS.DAT/FORMAT.md)
+
+The resulting damage value is still not necessarily the target character's final HP loss. Special status/drain processing and the common character-damage routine execute around/after the basic melee calculation.
+
+## 47. Secondary NPC attacks are separate capability paths
+
+NPC melee can additionally trigger definition-controlled effects:
+
+```text
+behavior_flags_39 & 0x01  poison
+behavior_flags_39 & 0x20  paralysis
+
+behavior_flags_3A & 0x02  level drain
+behavior_flags_3A & 0x04  Strength drain
+behavior_flags_3A & 0x10  disease
+```
+
+[NPC behavior flags](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/NPCS.DAT/BEHAVIOR_FLAGS.md)
+
+These are not encoded as extra dice in `+0x1E..+0x20`.
+
+A native combat profile should therefore separate:
+
+```text
+base melee damage
+secondary status/drain capability
+```
+
+## 48. Common character status-saving helper
+
+Logical `CEE4` is a class/level-indexed d20 saving helper used by several NPC status/drain paths.
+
+Its table lookup is:
+
+```text
+class_code = character.class_code[0]
+
+table_offset =
+    class_code * 0x5C
+  + character.class_level[0] * 4
+
+threshold =
+    dword table at 0x6888 + table_offset
+
+roll = 1d20
+
+success =
+    roll >= threshold
+```
+
+The executable uses the character's **first class slot** for this helper.
+
+Direct uses include several NPC special-attack/status paths such as poison, paralysis, disease, and drain processing.
+
+The safe preservation name is:
+
+```text
+character_status_save_family_A
+```
+
+The exact original AD&D saving-throw category name is not asserted solely from this table geometry.
+
+## 49. Class/level indexing is executable state, not a generic save API
+
+The `CEE4` helper multiplies the stored class code by `0x5C` and the stored first-class level by four.
+
+That is a concrete data-layout dependency:
+
+```text
+save family A
+    indexed by class_code[0]
+    and class_level[0]
+```
+
+A modern engine may expose a named saving-throw abstraction, but faithful behavior should still be regression-tested against the original table bytes and exact first-class selection rule.
+
+## 50. A second saving-throw table family exists
+
+Logical `CF2C(character, modifier)` performs a distinct class/level-indexed saving calculation.
+
+It uses the same broad class/level selection form but a different table family beginning at runtime `0x6AB0`.
+
+The encoded comparison is:
+
+```text
+threshold =
+    save_table_family_B[class, level]
+  + caller_modifier
+
+roll = 1d20
+
+success =
+    roll >= threshold
+```
+
+This is not the same lookup table used by `CEE4`.
+
+Therefore Ravenloft combat contains at least two mechanically distinct saving-table families.
+
+## 51. Save family B is directly tied to damage mitigation
+
+A direct caller at logical `92B8` invokes `CF2C` during a damage/effect path.
+
+When the save succeeds, the caller halves damage using the executable's signed-half sequence.
+
+Thus a safe behavioral name is:
+
+```text
+modifier_bearing_damage_save_family_B
+```
+
+until a stronger historical source identifies the exact original saving-throw category.
+
+The preservation rule is:
+
+> do not collapse all combat saving throws into one class/level table.
+
+## 52. Saving-throw success is compared after table/modifier construction
+
+Both saving helpers use an ordinary d20 result compared to a calculated threshold.
+
+They are not the same as the player/NPC **attack** natural-1/natural-20 hit logic documented above.
+
+The native model should therefore keep:
+
+```text
+attack roll
+saving throw family A
+saving throw family B
+```
+
+as separate reference functions.
+
+## 53. Common character-damage routine
+
+Logical `CD44..CEE3` is the central HP-damage application path for party characters.
+
+Its reconstructed high-level order is:
+
+```text
+record incoming damage feedback
+    |
+    v
+deplete Armor protection quantity
+    |
+    v
+consume Aid true absorption
+    |
+    v
+consume Vampiric Touch true absorption
+    |
+    v
+subtract remaining damage from HP
+    |
+    v
+refresh character state/UI
+    |
+    +-- still alive -> return
+    |
+    v
+death/cleanup processing
+```
+
+This order is CODE-PROVEN and is important because the three protection quantities do not have the same semantics.
+
+## 54. Incoming combat-feedback is recorded before mitigation
+
+At entry, the routine stores the original incoming damage argument in combat-feedback slot 2:
+
+```text
+combat_feedback_damage[2] =
+    original incoming damage
+
+combat_feedback_deadline[2] =
+    gameplay_time + 0x36
+```
+
+[Combat-feedback state](https://github.com/Hyperbog/RLOFT/blob/d40af8a3660ca126f1635279fda7c4015a3dff4c/DatFiles/SAVE.DAT/POST_EFFECT_TIMERS.md)
+
+Therefore the short-lived HUD damage number is not necessarily the same as final HP loss after true absorption pools.
+
+## 55. Armor +0x117 is durability/protection state, not HP absorption
+
+Character dword:
+
+```text
++0x117  Armor protection/durability quantity
+```
+
+is decremented by the **full incoming damage amount**.
+
+If the result reaches zero or below:
+
+```text
+quantity = 0
+clear primary effect 0 Armor
+```
+
+But the routine does **not** subtract this quantity from the local damage value before continuing.
+
+[Post-inventory character state](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/POST_INVENTORY_STATE.md)
+
+Thus Armor can wear down in response to hits without absorbing HP damage at this stage.
+
+This corrects the earlier over-specific `armor_absorption_pool` interpretation.
+
+## 56. Aid +0x1EA is a true damage-absorption pool
+
+Character dword:
+
+```text
++0x1EA
+```
+
+associated with primary effect 11 Aid is consumed against remaining damage.
+
+Encoded behavior:
+
+```text
+if damage >= aid_pool:
+    damage -= aid_pool
+    aid_pool = 0
+else:
+    aid_pool -= damage
+    damage = 0
+```
+
+Only the post-Aid remaining value continues toward later protection/HP processing.
+
+[Character record](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/CHARACTER_RECORD.md)
+
+## 57. Vampiric Touch +0x113 is another true absorption pool
+
+After Aid processing, character:
+
+```text
++0x113  Vampiric Touch absorption pool
+```
+
+is applied using the same absorb-until-empty form:
+
+```text
+if damage >= vampiric_pool:
+    damage -= vampiric_pool
+    vampiric_pool = 0
+else:
+    vampiric_pool -= damage
+    damage = 0
+```
+
+[Post-inventory state](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/POST_INVENTORY_STATE.md)
+
+The exact protection sequence is therefore:
+
+```text
+Armor durability
+    does not reduce damage
+
+Aid pool
+    reduces damage
+
+Vampiric Touch pool
+    reduces remaining damage
+
+HP
+    receives final remainder
+```
+
+## 58. Character HP subtraction occurs only after true absorption
+
+The common routine subtracts the post-pool damage value from:
+
+```text
+character.current_hp
+```
+
+at record `+0x01C`.
+
+This means a fully absorbed hit can still:
+
+- consume Armor durability;
+- create incoming combat-feedback;
+- leave HP unchanged.
+
+That is observable behavior and should be covered by native tests.
+
+## 59. Character death state
+
+If HP falls to zero or below, the routine:
+
+```text
+current_hp = 0
+
+status_word |= 0x4000   // death
+
+status high byte &= 0xE3
+```
+
+The high-byte mask clears the proved:
+
+- disease;
+- poison;
+- paralysis;
+
+condition bits while preserving other compatible state.
+
+[Character status](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/STATUS_WORD.md)
+
+It then calls the character death/cleanup helper and refreshes dependent UI/spell selection state.
+
+## 60. Party incapacitation/game-over test
+
+After character death processing, the engine scans all four active-party records.
+
+The terminal condition tests character status against mask:
+
+```text
+0xD040
+```
+
+and, when the complete party satisfies the encoded incapacitated/dead/blocked condition, enters the game-over path.
+
+This is not equivalent to merely asking:
+
+```text
+all current_hp == 0
+```
+
+because the condition is status-mask based.
+
