@@ -58,6 +58,45 @@ int main() {
     assert(raster.height == 1);
     assert(raster.transparent_index == 0);
 
+    // CODE.1 767C -> DC90: a nonzero descriptor byte +7 converts an
+    // N-element, one-row type-1 image into one N-row runtime image.
+    {
+        std::vector<std::uint8_t> transformed_bytes(8 + 13 + 24);
+        put32(transformed_bytes, 0, 1);
+        put32(transformed_bytes, 4, 8);
+
+        std::size_t q = 8;
+        transformed_bytes[q++] = 'E';
+        transformed_bytes[q++] = 'H';
+        transformed_bytes[q++] = 1;
+        put16(transformed_bytes, q, 8);
+        q += 2;
+        put16(transformed_bytes, q, 3);
+        q += 2;
+        put16(transformed_bytes, q, 1);
+        q += 2;
+        transformed_bytes[q++] = 1;
+        transformed_bytes[q++] = 0xFF;
+        transformed_bytes[q++] = 0;
+        transformed_bytes[q++] = 1;
+        for (int i = 0; i < 24; ++i) {
+            transformed_bytes[q++] =
+                static_cast<std::uint8_t>(i + 1);
+        }
+
+        rloft::ResArchive transformed_archive(
+            std::move(transformed_bytes));
+        const auto transformed =
+            transformed_archive.decode_type1(0);
+        assert(transformed.count == 1);
+        assert(transformed.width == 8);
+        assert(transformed.height == 3);
+        assert(transformed.transparent_index == 0xFF);
+        assert(transformed.pixels.size() == 24);
+        assert(transformed.pixels.front() == 1);
+        assert(transformed.pixels.back() == 24);
+    }
+
     rloft::IndexedFramebuffer framebuffer;
     framebuffer.clear(9);
     framebuffer.draw(raster, 10, 5);
