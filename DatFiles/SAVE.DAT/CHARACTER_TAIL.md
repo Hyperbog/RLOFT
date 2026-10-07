@@ -5,8 +5,8 @@ Status: **high-effort executable reconstruction normalized to corrected runtime 
 ## Corrected late-state map
 
 ```text
-+0x19E..+0x1A9   uint32 timed_slot_deadline[3]
-+0x1AA..+0x1B5   uint32 timed_slot_aux[3]
++0x19E..+0x1A9   uint32 combat_feedback_deadline[3]
++0x1AA..+0x1B5   uint32 combat_feedback_damage[3]
 +0x1B6..+0x1B9   Stone Giant Gauntlets displaced/effective Strength auxiliary
 +0x1BA..+0x1BD   serialized dword; no direct CODE.2 reference found
 +0x1BE..+0x1C1   Potion of Giant Strength reversible Strength modifier (primary effect 23)
