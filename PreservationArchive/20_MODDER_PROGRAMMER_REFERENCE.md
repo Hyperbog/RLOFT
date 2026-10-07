@@ -2,7 +2,7 @@
 
 ## 20 — Modder and Programmer Reference: Stable IDs, Structures, and Extension Rules
 
-**Status:** FOUNDATION — supplied DOS 1.2a contracts indexed; executable/native regression integration pending  
+**Status:** ORIGINAL FILE CONTRACTS AND FLAG/ID CROSS-REFERENCE DOCUMENTED — native implementation regressions pending  
 **Working branch:** `code1-decompilation`  
 **Controlling evidence:** original CODE.1/CODE.2, fixed DAT fixtures, certified Resources corpus and the 19 preceding subsystem chapters.  
 **Applicability:** the **supplied** executable and accompanying resource/data set, not every historical CD, diskette, non-English or non-DOS edition.
@@ -175,3 +175,134 @@ A variable-length archive does **not** imply its runtime supports arbitrary grow
 The original-file integrity test recorded for Chapter 19 passed **15/15** local assertions. An additional five focused structural assertions passed for OBJECTS, NPCS, LEVELS, INFO and the supplied SAVE geometry. The larger 33-file RES/ANM corpus values used here come from the prior certified original-resource audit and were **not** newly rehashed in the current workspace.
 
 **Next:** detailed status/flag and sentinel glossary; exact producer/consumer ownership index; a few original-file worked offset examples; and the eventual native-port regression checklist. Historical source terminology still classified UNKNOWN in Chapter 18 remains UNKNOWN.
+
+
+## 13. Character status-word glossary: masks are not an enum
+
+The physical status word is an unsigned 16-bit value at **character-relative `+0x010`**, runtime `0x218F0 + slot*0x248`, saved at `SAVE + 0x77 + slot*0x248 + 0x10` for active-party slots. These identifiers come from the [certified character-status map](../DatFiles/SAVE.DAT/STATUS_WORD.md), rather than guesses from AD&D conditions.
+
+| Mask | Proved meaning or evidence limit | Important ownership |
+|---|---|---|
+| `0x0001..0x0020` | Six individual low bits; gameplay identities unproved | Raw serialized state, not automatically unused padding |
+| `0x0040` | Vengeful-Spirit warning/coercion and action-blocking state | Distinct from Held; possession maintenance sets/clears |
+| `0x0080` | Recruited/template-character provenance | Set on template-party installation, retained through save |
+| `0x0100` | Vengeful-Spirit possession | Story/event setter and resolver; adds 46 to portrait ID |
+| `0x0200` | Held | Character status UI `T[654]` |
+| `0x0400` | Diseased | Status UI `T[655]`, attack and cure handlers |
+| `0x0800` | Poisoned | Status UI `T[656]`, attack and cure handlers |
+| `0x1000` | Paralyzed | Status UI `T[657]`, attack and removal handlers |
+| `0x2000` | Engine-consumed action-blocking tier; original identity **UNKNOWN** | Preserve bit; direct producer not proved |
+| `0x4000` | Dead/zero-HP character | HP/death and revival lifecycle; **occupied** slot remains |
+| `0x8000` | Empty/unoccupied active-party slot | Character replacement/recruitment code |
+
+The exact player-facing condition range also includes **`T[653]` POSSESSED** for `0x0100`. Some callers test compound masks `0xF240`, `0xD040` or `0x0140` rather than any single status alias. Preserve the original expression at those callers.
+
+**Crucial type distinction:** character status `0x2000` and LEVELS cell-word `0x2000` are **different fields in different owners**. The cell bit is a legacy/authoring marker with no proved bit-specific runtime consumer; the character bit is consumed in action blocking. A global enum named `BIT_2000` would be dangerous.
+
+## 14. Flag namespaces and level-cell field glossary
+
+The original SAVE fixed prefix `0x0032..0x0051` holds **32 bytes = 256 persistent flag bits**. CODE.2's flag operations at `1C124/1C160/1C1A0/1C1DC` and LEVELS event opcodes 8/9/10 or RES9 VM opcodes `09..0D` use this persistent namespace; RES9 VM opcodes `1E..22` instead use a separate **wordcode-local dword** at runtime `0x7FD0`. They are not aliases.
+
+Concrete examples:
+
+```text
+Persistent global event flag 0x3C (decimal 60):
+  SAVE byte offset = 0x32 + (60 >> 3) = 0x39
+  bit within byte = 1 << (60 & 7) = 0x10
+  semantic lifecycle = GHOST/vengeful-spirit possession story state
+
+Persistent flag 0x20 (decimal 32):
+  SAVE byte offset = 0x36
+  bit within byte = 0x01
+  setter = GHOUL LORD (NPC type 18) death path
+```
+
+These are **indexing illustrations** using the certified byte/bit vector, not evidence that either flag is set in the supplied quick-start fixture.
+
+A LEVELS cell word is `uint16` at the level's packed row-major cell array. Certified masks:
+
+| Mask | Meaning |
+|---|---|
+| `0x003F` | Six-bit cell code (not a boolean) |
+| `0x0040` | Transient current-visibility/raycast mark |
+| `0x0080` | Special-geometry center and dynamic-collision gate |
+| `0x0100` | Special-geometry frame / neighbor substitution |
+| `0x0200` | Extra render-prepass enable |
+| `0x0400` | Persistent automap explored/revealed |
+| `0x0800` | Hidden-passage topology marker |
+| `0x1000` | 10-byte-record resource-offset state |
+| `0x2000` | Preserved legacy/authoring marker; original semantics unproved |
+| `0xC000` | Two-bit render shade/decrement level |
+
+No modder should rename `0x0040` generically across these two types: character status `0x0040` is not map current visibility `0x0040`. See [LEVELS cell word](../DatFiles/LEVELS.DAT/CELL_WORD.md) and [SAVE persistent state](../DatFiles/SAVE.DAT/GLOBAL_STATE.md).
+
+## 15. Producer/consumer ownership index
+
+| Serialized/source identity | Producer / authoritative writer | Consumer / transformation | Safeguard |
+|---|---|---|---|
+| OBJECTS definition `id` | Static OBJECTS record | Inventory, equipment, combat, family-B/C world records | Keep original `id` stable; no implicit RES index |
+| OBJECTS `+0x2D` | Definition/UI local index | RES1 entry `INIT+0x02 + index` | Verify actual UI bank range |
+| OBJECTS `+0x28,+0x2A` | Definition scene base/stride | RES3 class-2 bank + scene variant | No offset into RES3 without class base |
+| OBJECTS `+0x31` | Definition mutable selector | Category-specific container state or charged counter | Signed physical byte, polymorphic |
+| NPCS type `id` | Static NPCS record | Family-A live actor generation, combat, sound | NPC type and instance index are separate |
+| NPCS `+0x14` | Scene local base | RES3 class-0 compiled shapes | Retain local/absolute distinction |
+| NPCS `+0x31` | Template behavior flags | Damage gates, AI/actor state | Preserve unsupported populated bits |
+| Party `+0x10` status | Story, effect, HP and recruitment code | Occupancy, portraits, UI, action masks, ending | Multi-bit field, not single enum |
+| SAVE `+0x32` 256-bit flags | LEVELS events, RES9 VM, story handlers | Script predicates/story transitions | Not wordcode-local state |
+| RES9 wordcode IP | 16-bit program-word array | VM branches/calls/timers/choices | Branch targets at valid decoded word IPs |
+| LEVELS event slot | Fixed `0x514` per-level table | 13-way event interpreter | Inactive command bytes must survive |
+| `T` index | Offset-indexed XOR text archive | UI, story, dialogs, cinematic subtitle `+0x324` | Indexed logical text IDs, not UTF-8 offsets |
+| ANM chunk stream | Per-cinematic packet authoring | Renderer/palette/audio/timing dispatcher | Packet order and original waits matter |
+| `CHARS` image | CODE.1 party image writer | CODE.2 startup party loader | Raw `0x920`-byte handoff only |
+| INFO selection/path | Original installation configuration | Indexed RES0..10 and numbered external resources | Preserve selector bytes 11/12 raw |
+
+The original engine may contain multiple writer paths for a field; this table identifies the *proved ownership family*, not a claim of a single exclusive producer instruction. Exact source call edges are recorded in the linked subsystem chapters.
+
+## 16. Worked offsets verified on supplied original files
+
+The following numbers were checked against the original-file byte images. Distinguish **file-relative byte offsets** from **runtime DGROUP offsets** and **archive-local entry IDs**.
+
+```text
+OBJECTS.DAT: uint32 count=336
+  object 329 record start = 4 + 329*0x41 = 0x538D
+  object name[40]         = "QUIVER"
+  selector field +0x31    = file 0x53BE
+  selector value          = signed int8 62
+  Runtime quiver-shaped state descriptor 61 is separate.
+
+NPCS.DAT: uint32 count=83
+  NPC type 18 start       = 4 + 18*0x45 = 0x04DE
+  NPC name[20]           = "GHOUL LORD"
+  Actor instances carry this type ID; they are not additional NPCS records.
+
+SAVE.DAT: active party base file 0x0077, stride 0x248
+  slot 0 status at file   = 0x0087, value 0x0000
+  slot 1 status at file   = 0x02CF, value 0x0000
+  slot 2 status at file   = 0x0517, value 0x8000
+  slot 3 status at file   = 0x075F, value 0x8000
+  transient count        = file 0x0997, value zero
+  gameplay tick          = file 0x09A3, value 1735
+  IRQ tick               = file 0x006C, value 1899
+  world 16.16 time       = file 0x0070, value 0x000E0000 (14:00)
+
+LEVELS.DAT: count=32 at file +0
+  first absolute level offset = 0x84
+  table of 32 uint32 offsets occupies file 0x04..0x83
+INFO.DAT: 13 ASCII location digits, then uint16 path length=2
+  trailing two bytes      = "D:"
+```
+
+These checks validate the stated **static fixture offsets and values**. They do not mean every SAVE contains zero transient effects or that all level, object and character tables can be expanded without updating the original executable. See [source provenance manifest](19_RELEASE_MEDIA_BUILD_PROVENANCE_AND_DREAMFORGE_LINEAGE.md).
+
+## 17. Strictness tiers for native compatibility tests
+
+**Tier A — lossless original data:** byte-identical parse→encode on unedited files; retention of unknown bits, name tails, RES duplicates, fixed command slots, raw cell markers and unknown wordcode companion arrays. The existing workstream audits have certified these properties for their respective supplied canonical source sets; new edited assets require their own tests.
+
+**Tier B — deterministic source behavior:** original signed arithmetic and integer promotion; event/VM dispatch targets; index-base arithmetic; status and world gates; SAVE semantic setters; game-clock pause/nesting and scripted time advances. Verify against original executable traces where possible.
+
+**Tier C — environment-dependent execution:** IRQ/PIT cadence, original audio-device service rates, DOS handles, external path routing and original video/audio hardware timing. These may be abstracted in a native port but require observable-gameplay equivalence claims to be separately tested.
+
+**Tier D — extended assets:** additions exceeding original compiled capacities must use an explicit versioned native extension and import/export policy. Neither preservation tools nor a demo implementation can certify them as original-compatible without a consumer audit.
+
+**Documentation state:** the present glossary is grounded in immutable original-file fixtures and certified subsystem chapters. It is an implementation reference, **not a completed native regression run**.
+
