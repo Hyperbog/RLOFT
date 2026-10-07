@@ -4,6 +4,7 @@ project(RavenloftDemoV1 LANGUAGES CXX)
 enable_testing()
 
 add_library(rloft_boot_flow
+    src/anm_cinematic.cpp
     src/boot_flow.cpp
     src/character_creation_presenter.cpp
     src/game_source.cpp
