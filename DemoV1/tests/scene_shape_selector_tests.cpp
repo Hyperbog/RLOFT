@@ -1,0 +1,48 @@
+#include "rloft/scene_shape_selector.hpp"
+
+#include <cassert>
+
+int main() {
+    rloft::RendererTables tables{};
+    tables.constants[2] = 160U; // C6D0.
+
+    rloft::ExplorationSessionState session{};
+    session.facing = 0;
+
+    // LEV022-style Assassin facing 6, centered on screen.
+    assert(
+        rloft::SceneShapeSelectorModel::select_bank_local(
+            315U, 160U, 0x0030U, 9U, 0U, 8U,
+            session, tables) ==
+        319U);
+
+    // Reaction state 1 applies the encoded modulo-5/modulo-3 offset.
+    assert(
+        rloft::SceneShapeSelectorModel::select_bank_local(
+            347U, 160U, 0x0032U, 9U, 0U, 8U,
+            session, tables) ==
+        348U);
+
+    // State 3 performs no common 2B2F4 directional adjustment.
+    assert(
+        rloft::SceneShapeSelectorModel::select_bank_local(
+            350U, 160U, 0x0036U, 9U, 0U, 8U,
+            session, tables) ==
+        350U);
+
+    // A centered class-2 item with packed state zero selects subframe zero.
+    assert(
+        rloft::SceneShapeSelectorModel::select_bank_local(
+            694U, 160U, 0U, 0x88U, 2U, 8U,
+            session, tables) ==
+        694U);
+
+    // The dedicated stride-2 path quantizes through 45-degree sectors.
+    assert(
+        rloft::SceneShapeSelectorModel::select_bank_local(
+            100U, 160U, 0U, 1U, 2U, 2U,
+            session, tables) ==
+        101U);
+
+    return 0;
+}
