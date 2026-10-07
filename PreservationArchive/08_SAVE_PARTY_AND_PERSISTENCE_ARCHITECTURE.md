@@ -487,3 +487,652 @@ load only high-level identity
     -> recalculate all runtime state
 ```
 
+
+
+## 17. Live transient/moving effects are cross-level SAVE state
+
+Immediately after the active-party block, SAVE writes:
+
+```text
+uint32 live_effect_count
+live_effect_count * 0x16 live_effect_records
+```
+
+Runtime ownership:
+
+```text
+count   DGROUP 0xC038
+array   runtime 0x248EC
+limit   0x96 = 150 records
+```
+
+[SAVE global state](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+The record layout is:
+
+```text
++0x00  int32  coord_B_16_16
++0x04  int32  coord_A_16_16
++0x08  int32  heading_angle
++0x0C  uint16 map_cell_index
++0x0E  uint16 effect_type
++0x10  uint16 auxiliary_10
++0x12  uint16 type_specific_aux_12
++0x14  uint16 packed_state
+```
+
+This is the same class-3 transient/moving-effect family connected to LEVELS opcode 3 and RES3 source class 3. It is saved globally because active effects can exist at the instant a save is made and must resume after load.
+
+The constructor does not clear every byte/word of a new record. Unknown auxiliary and packed-state bits are therefore preservation-significant.
+
+## 18. Effect type is a renderer/runtime class, not a spell ID
+
+The twelve-value `effect_type` domain is shared by multiple producers.
+
+Certified examples include:
+
+```text
+type 0   Fireball / Wand of Fireballs / level-script effect
+type 1   Lightning Bolt / level-script effect
+type 2   Ice Knife
+type 3   Cone of Cold / Wand of Frost
+type 4   Flame Arrow
+type 6   Magic Missile / Wand of Magic Missiles
+type 8   Burning Hands / Agannazar's Scorcher presentation family
+type 9   Ice Storm / Otiluke's Freezing Sphere presentation family
+type 10  Flame Strike
+type 11  Holy Symbol of Ravenkind effect path
+```
+
+[SAVE global state](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+Values 5 and 7 remain valid descriptor slots without a certified direct producer in the audited supplied paths.
+
+A native serializer should preserve the numeric class exactly and should not rename the stored value to a specific spell enum.
+
+## 19. Spell-interface selection is deliberately persistent
+
+The next eight bytes are:
+
+```text
+uint32 spell_ui_selected_character[2]
+```
+
+at runtime `0xD8A8`.
+
+The spell UI groups characters by:
+
+```text
+group = character_index / 2
+```
+
+and stores the currently selected active caster:
+
+```text
+D8A8[group] = character_index
+```
+
+[SAVE global state](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+These dwords are therefore persistent UI/gameplay selections, not roster pointers and not character identity storage.
+
+Component 07 documents how the Pray/Memorize interfaces consume them.
+
+## 20. Gameplay deadline counter is restored before timed systems resume
+
+After the two spell selections, SAVE stores:
+
+```text
+uint32 gameplay_tick_counter
+```
+
+from `A7E4`.
+
+The load path does not merely assign the saved dword. It calls the runtime setter so the associated maintenance baseline is synchronized. [SAVE global state](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+Character records store **absolute deadlines in this same time domain**.
+
+Examples include:
+
+- primary effect expiries;
+- hand/action-ready deadlines;
+- temporary hand-effect expiries;
+- secondary timed slots;
+- recurring Strength recovery.
+
+Therefore save/load fidelity requires restoring:
+
+```text
+saved absolute deadlines
++
+their common A7E4 timebase
+```
+
+together.
+
+Converting the character deadlines to host-relative durations during load is possible internally, but the compatibility layer must preserve the original modulo-32-bit comparison behavior.
+
+## 21. Persistent containers are global mutable object state
+
+The next variable-width block consists of exactly 62 serialized container states.
+
+`OBJECTS.DAT +0x31` is a signed `container_state_index` into the runtime descriptor table:
+
+```text
+descriptor = 0x7330 + index * 10
+```
+
+Descriptor:
+
+```text
++0x00  uint8  slot_count
++0x01  uint8  ui_columns
++0x02  uint8  capacity_pounds
++0x03  uint8  ui_x_offset
++0x04  uint8  container_subtype
++0x05  uint32 contents_pointer
++0x09  uint8  per_slot_state_bits
+```
+
+The serializer writes, for each state `0..61`:
+
+```text
+int16 object_id[slot_count]
+uint8 per_slot_state_bits
+```
+
+[SAVE global state](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+This is **container-instance state**, not character-local inventory.
+
+A pouch/chest/quiver stored in a character inventory slot can therefore point to persistent contents that live in this SAVE-global container bank.
+
+## 22. Container bank size is descriptor-driven
+
+Across descriptors `0..61`:
+
+```text
+total item slots         438
+serialized item words    876 bytes
+state bytes               62 bytes
+total                    938 bytes / 0x3AA
+```
+
+The supplied fixture therefore has a `0x3AA` container block.
+
+Container families include:
+
+- pouch;
+- sack;
+- chest;
+- sling pouch;
+- ivory scroll case;
+- key ring;
+- quiver;
+- Bag of Holding.
+
+The reader must use the descriptor slot counts in sequence. The bank is not an array of fixed-size container records.
+
+## 23. Shipped state-61 / selector-62 quiver mismatch is preserved
+
+A concrete shipped inconsistency remains:
+
+```text
+OBJECTS ID 329 (QUIVER)
+    container_state_index = 62
+
+descriptor 61
+    initialized 8-slot quiver-shaped descriptor
+
+descriptor 62
+    ten zero bytes
+
+SAVE serializer
+    writes states 0..61 only
+
+quick-start SAVE state 61
+    eight arrow-family object IDs
+```
+
+[SAVE global state](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+The direct executable audit found no `62 -> 61` repair. Generic container code multiplies the OBJECTS selector literally by ten.
+
+The evidence is consistent with a shipped static-data/off-by-one defect, but that diagnosis is not strong enough to rewrite the historical data.
+
+Faithful rule:
+
+```text
+preserve selector 62
+preserve zero descriptor 62
+preserve serialized state 61
+do not silently redirect 62 to 61
+```
+
+A later remaster compatibility option can intentionally fix it if desired and documented.
+
+## 24. Environment shading and level-light state are saved explicitly
+
+After container state:
+
+```text
+uint32 environment_shading_level   // F920, range 0..10
+uint32 level_light_adjustment      // F91C, range 0..8
+```
+
+[SAVE global state](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+`F920` is tied to environment/time-of-day shading selection.
+
+`F91C` participates in palette/light rebuilding and is combined with party light effects.
+
+These values can be recomputed in some circumstances, but the original SAVE format stores them anyway. A faithful loader restores the serialized values through the encoded post-load setter paths before normal rendering continues.
+
+This is another distinction between:
+
+```text
+derived in ordinary gameplay
+```
+
+and:
+
+```text
+non-persistent
+```
+
+The original designers explicitly persisted these derived renderer controls.
+
+## 25. Fifteen charged-device counters are cross-character global state
+
+The next serialized block is:
+
+```text
+uint8 charged_item_counter[15]
+```
+
+at runtime `0x67EC`. [SAVE README](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/README.md)
+
+Executable item/effect paths consume this vector for charged devices, including proved wand/detection behavior. [Primary effect catalogue](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md)
+
+The counters are not stored inside the `0x248` character inventory records, even when a charged object is carried by a character.
+
+Thus item identity and charged-device mutable quantity can live in separate serialization domains.
+
+Detailed object-to-counter mapping belongs to the item/equipment component; the SAVE boundary is simply the exact 15-byte vector.
+
+## 26. Saved roster follows the global mutable state
+
+The ten-character roster is serialized only after:
+
+- live transient effects;
+- spell UI selections;
+- gameplay tick counter;
+- all 62 containers;
+- renderer/light controls;
+- charged-device counters.
+
+The order reinforces that the roster is a separate persistent bank, not an extension of the active four-character array.
+
+For the zero-effect fixture:
+
+```text
+roster starts at 0x0D68
+size             0x16D0
+```
+
+but that starting offset shifts with the live-effect count.
+
+## 27. Four party-local container UI contexts terminate SAVE
+
+The final 16 bytes are four four-byte records at runtime `0x6FA0`:
+
+```text
++0  int8 container_subtype_or_minus1
++1  int8 container_state_index_or_minus1
++2  int8 container_ui_phase_or_minus1
++3  int8 container_object_id_or_minus1
+```
+
+[SAVE global state](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+The opening/closing animation moves `ui_phase` through:
+
+```text
+0 -> 3  opening
+3 -> 0  closing
+3       fully open / content display
+```
+
+Party-slot rearrangement swaps the complete four-byte context with the party position.
+
+The quick-start save stores:
+
+```text
+FF FF FF FF
+```
+
+for all four inactive contexts.
+
+UI modal state can therefore be part of persistent game state when the original game chooses to serialize it.
+
+## 28. The working persistence directory is the live save image
+
+A new byte-level audit during this preservation pass closed the outer slot workflow.
+
+The immutable CODE.2 data object contains:
+
+```text
+WORK
+SAVE??\SAVE.DAT
+\
+SAVE.DAT
+\*.*
+..
+???????????
+```
+
+and the CODE.2 save serializer itself constructs:
+
+```text
+WORK\SAVE.DAT
+```
+
+[Canonical SAVE slot workflow](https://github.com/Hyperbog/RLOFT/blob/5b475da87b26903b570a99d69c697bd61da4b352/DatFiles/SAVE.DAT/SAVE_SLOT_WORKFLOW.md)
+
+Therefore `WORK` is the runtime's live persistence set.
+
+Conceptually:
+
+```text
+WORK\
+    SAVE.DAT
+    LEVnnn.DAT
+    other working files copied by *.*
+```
+
+A numbered user save is a snapshot of this directory.
+
+## 29. Quicksave is directory SAVE00
+
+The quicksave path at logical `077A0`:
+
+1. calls `171FC(current_level)`;
+2. writes `WORK\SAVE.DAT` using save-description selector 0;
+3. forms directory `SAVE00`;
+4. creates/enters it;
+5. deletes its existing files using FCB wildcard delete;
+6. returns to the parent;
+7. wildcard-copies:
+   ```text
+   WORK\*.* -> SAVE00\
+   ```
+
+Description-table entry zero is the shipped string:
+
+```text
+QUICKSAVE
+```
+
+[Canonical SAVE slot workflow](https://github.com/Hyperbog/RLOFT/blob/5b475da87b26903b570a99d69c697bd61da4b352/DatFiles/SAVE.DAT/SAVE_SLOT_WORKFLOW.md)
+
+This closes the historical meaning of slot 0.
+
+## 30. Ordinary user slots are SAVE01 through SAVE10
+
+The normal slot UI has ten rows, internally zero-based `0..9`.
+
+Before creating a directory it computes:
+
+```text
+slot_number = selected_row + 1
+```
+
+and writes normal decimal tens/ones into the template:
+
+```text
+SAVE01
+SAVE02
+...
+SAVE09
+SAVE10
+```
+
+Each slot has a 50-byte description entry.
+
+[Canonical SAVE slot workflow](https://github.com/Hyperbog/RLOFT/blob/5b475da87b26903b570a99d69c697bd61da4b352/DatFiles/SAVE.DAT/SAVE_SLOT_WORKFLOW.md)
+
+This is distinct from the automap `AUTO???.MAP` digit-order quirk documented in Component 06.
+
+## 31. Ordinary SAVE packages the entire WORK directory
+
+After the user selects/edits a slot:
+
+1. `066E8(slot_number)` writes `WORK\SAVE.DAT`;
+2. CODE.2 creates/enters `SAVE##`;
+3. existing slot files are deleted;
+4. CODE.2 returns to the parent directory;
+5. wildcard copier `073A0` performs:
+   ```text
+   WORK\*.* -> SAVE##\
+   ```
+
+[Canonical SAVE slot workflow](https://github.com/Hyperbog/RLOFT/blob/5b475da87b26903b570a99d69c697bd61da4b352/DatFiles/SAVE.DAT/SAVE_SLOT_WORKFLOW.md)
+
+The user's saved game is therefore **not complete if only SAVE.DAT is retained**. Its per-level mutable snapshots travel with it in the same numbered directory.
+
+## 32. LOAD replaces WORK with the chosen slot snapshot
+
+Quickload uses `SAVE00`.
+
+Normal load maps UI row `0..9` to `SAVE01..SAVE10`.
+
+The load workflow:
+
+1. verifies/enters selected `SAVE##`;
+2. returns to parent;
+3. enters `WORK`;
+4. deletes existing WORK files;
+5. returns to parent;
+6. wildcard-copies:
+   ```text
+   SAVE##\*.* -> WORK\
+   ```
+7. opens `WORK\SAVE.DAT`;
+8. restores global/party state;
+9. invokes the normal level loader, which now sees the selected slot's restored `WORK\LEVnnn.DAT` snapshots.
+
+[Canonical SAVE slot workflow](https://github.com/Hyperbog/RLOFT/blob/5b475da87b26903b570a99d69c697bd61da4b352/DatFiles/SAVE.DAT/SAVE_SLOT_WORKFLOW.md)
+
+The original game therefore uses a working-copy architecture:
+
+```text
+SAVE## directory
+     |
+     | copy all files
+     v
+WORK directory
+     |
+     +-- SAVE.DAT
+     +-- LEV snapshots
+     |
+     v
+runtime
+```
+
+## 33. Wildcard copying is an actual whole-file copier
+
+Routine `073A0`:
+
+- appends `\*.*` to the source directory;
+- uses DOS find-first/find-next;
+- gets each file name from the 0x2C-byte find structure;
+- constructs source and destination paths;
+- obtains source size;
+- allocates enough memory for the complete source;
+- reads the file;
+- creates destination;
+- writes the complete expected size;
+- frees the temporary allocation;
+- continues enumeration.
+
+[Canonical SAVE slot workflow](https://github.com/Hyperbog/RLOFT/blob/5b475da87b26903b570a99d69c697bd61da4b352/DatFiles/SAVE.DAT/SAVE_SLOT_WORKFLOW.md)
+
+The final semantic audit records a fidelity quirk: the source short-read result is not independently required to equal the source size before the destination write, while the destination write count is checked against the full expected size. [CODE.2 final semantic audit](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_SEMANTIC_AUDIT.md)
+
+A native port need not reproduce unsafe file-I/O implementation mistakes, but compatibility tests should preserve observable failure/success behavior where practical.
+
+## 34. Slot replacement explicitly deletes previous files
+
+Before copying into a save slot or restoring into WORK, CODE.2 changes into the target directory and calls an FCB delete helper initialized with:
+
+```text
+???????????
+```
+
+The helper executes:
+
+```text
+INT 21h / AH=13h
+```
+
+FCB delete.
+
+[Canonical SAVE slot workflow](https://github.com/Hyperbog/RLOFT/blob/5b475da87b26903b570a99d69c697bd61da4b352/DatFiles/SAVE.DAT/SAVE_SLOT_WORKFLOW.md)
+
+This means slot replacement is a **replace snapshot** operation rather than an overlay-copy that leaves stale old level files behind.
+
+That distinction is essential: a stale `LEVnnn.DAT` from an older slot state could otherwise override `LEVELS.DAT` after load.
+
+## 35. Current level is synchronized before the user save is packaged
+
+Component 07 established that the top-edge SAVE command calls:
+
+```text
+171FC(current_level)
+```
+
+before entering the broader save UI.
+
+The dedicated quicksave path does the same and then writes `WORK\SAVE.DAT`.
+
+[Input/UI preservation chapter](https://github.com/Hyperbog/RLOFT/blob/5c5520783c781321b210e5cee8f07598fec45279/PreservationArchive/07_INPUT_UI_MENU_AND_INVENTORY_ARCHITECTURE.md) [Canonical SAVE slot workflow](https://github.com/Hyperbog/RLOFT/blob/5b475da87b26903b570a99d69c697bd61da4b352/DatFiles/SAVE.DAT/SAVE_SLOT_WORKFLOW.md)
+
+Thus the intended transaction order is:
+
+```text
+serialize current mutable level
+    |
+    v
+serialize global/party SAVE.DAT
+    |
+    v
+copy complete WORK set into slot directory
+```
+
+This prevents the global save from pointing at an older current-level snapshot.
+
+## 36. Load reconstructs semantic runtime state after raw bytes are read
+
+The load tail performs more than bulk reads.
+
+Examples:
+
+- held-item ID/known flag are read to temporaries and passed through the normal cursor-item setter;
+- interrupt-tick snapshot is restored through the dedicated setter;
+- gameplay tick is restored through the gameplay-time setter;
+- active-party class/casting capability state is repaired/rederived from loaded character classes;
+- charged-device bytes are copied into their live vector;
+- ten roster records are copied from a temporary `0x248` buffer into the roster bank;
+- trailing container UI contexts are restored;
+- renderer/environment controls are passed through runtime setter paths;
+- selected runtime/dirty flags are reinitialized;
+- the current-level global is temporarily forced to `-1`;
+- normal level loader `181B4(saved_level)` is called;
+- the loaded transient-effect count is restored after the level-load path;
+- post-level cell/state probe `06C68` runs.
+
+[CODE.2 final semantic audit](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_SEMANTIC_AUDIT.md)
+
+This gives the correct implementation rule:
+
+> deserialization restores semantic state through subsystem reconstruction points; it is not one giant memcpy into a permanent runtime image.
+
+## 37. Level load after SAVE restoration uses restored WORK snapshots
+
+The load tail explicitly calls:
+
+```text
+current_level = -1
+181B4(saved_level)
+```
+
+after the selected save slot has already been copied back to WORK.
+
+Therefore the normal level loader now resolves:
+
+```text
+WORK\LEVnnn.DAT
+```
+
+for the saved current level when that snapshot exists.
+
+This ties Components 05 and 08 together:
+
+```text
+SAVE.DAT current level
+    tells engine which level to activate
+
+restored LEVnnn.DAT
+    supplies that level's mutable live-state snapshot
+```
+
+Neither file alone is the complete restoration state.
+
+## 38. Transient-effect count is restored around level activation
+
+The load routine reads the saved live-effect count and effect records, then later calls the normal level loader.
+
+After that level activation path it writes the saved count back to runtime `C038`.
+
+The exact sequencing matters because level initialization can touch/reset runtime world-family state.
+
+A faithful native implementation can avoid such temporary overwrite internally, but must ensure that the final post-load transient-effect array/count matches the SAVE image rather than a level-load default.
+
+## 39. Save serializer uses strict short-write checks
+
+For each fixed block, the original serializer compares the write result with the exact requested byte count.
+
+On mismatch:
+
+```text
+close SAVE handle
+return failure (1)
+```
+
+On complete success:
+
+```text
+close handle
+return success (0)
+```
+
+[CODE.2 final semantic audit](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_SEMANTIC_AUDIT.md)
+
+A native serializer should preserve the transactional expectation that incomplete output is failure, even if its host I/O implementation differs.
+
+## 40. Save label has one preserved odd special path
+
+When serializer argument is:
+
+```text
+-1 / 0xFFFFFFFF
+```
+
+the original code copies only five bytes from the `TEMP` source string into the existing 50-byte label buffer, then writes the full 50-byte field.
+
+[CODE.2 final semantic audit](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_SEMANTIC_AUDIT.md)
+
+The exact historical caller purpose/source-level name is not established here.
+
+It is nevertheless machine behavior and should not be normalized into a clean 50-byte overwrite in a byte-faithful compatibility serializer.
+
