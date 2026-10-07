@@ -30,6 +30,15 @@ ExplorationRuntime ExplorationRuntime::load_fresh(
             source.read("INIT")));
 }
 
+void ExplorationRuntime::set_scene_video_page(
+    std::uint8_t page) {
+    if (page > 1U) {
+        throw std::out_of_range(
+            "scene VGA page must be 0 or 1");
+    }
+    scene_video_page_ = page;
+}
+
 void ExplorationRuntime::initialize_gameplay_state(
     const GameSource& source) {
     initialize_gameplay_state(
@@ -52,6 +61,19 @@ void ExplorationRuntime::initialize_gameplay_state(
     placed_scene_catalog_ = PlacedSceneCatalog::load(source);
     scene_shape_archive_.emplace(source.read("RES3"));
     scene_shape_cache_.clear();
+    // A real DOS install supplies CODE.2. Tests with partial synthetic
+    // resource sets can omit it, leaving the diagnostic VGA trace absent.
+    scene_vga_masks_.reset();
+    scene_video_page_ = 0U;
+    scene_individual_columns_mode_ = false;
+    if (source.contains("CODE.2")) {
+        scene_vga_masks_.emplace(
+            Type7VgaPlaneMaskModel::load(source));
+        scene_video_page_ =
+            scene_vga_masks_->initial_video_page();
+        scene_individual_columns_mode_ =
+            scene_vga_masks_->initial_individual_columns_mode();
+    }
     world_ = LevelWorldStateCodec::build(
         session_.level,
         npc_catalog_,
@@ -280,25 +302,37 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
         // Scene RES3 shapes are immutable during a level session. Cache the
         // decoded display lists once, and preserve reference stability on
         // insertion through std::unordered_map.
+        const auto shape_for_id =
+            [this](std::uint16_t resource_id)
+                -> const Type7SceneShape& {
+                const auto existing =
+                    scene_shape_cache_.find(resource_id);
+                if (existing != scene_shape_cache_.end()) {
+                    return existing->second;
+                }
+                const auto inserted =
+                    scene_shape_cache_.emplace(
+                        resource_id,
+                        scene_shape_archive_->decode_type7(
+                            static_cast<int>(resource_id)));
+                return inserted.first->second;
+            };
         out.world_scene_render_plans =
             WorldSceneRenderPlanModel::build(
                 out.world_scene_draw_calls,
                 renderer_tables_,
                 out.sweep_records,
-                [this](std::uint16_t resource_id)
-                    -> const Type7SceneShape& {
-                    const auto existing =
-                        scene_shape_cache_.find(resource_id);
-                    if (existing != scene_shape_cache_.end()) {
-                        return existing->second;
-                    }
-                    const auto inserted =
-                        scene_shape_cache_.emplace(
-                            resource_id,
-                            scene_shape_archive_->decode_type7(
-                                static_cast<int>(resource_id)));
-                    return inserted.first->second;
-                });
+                shape_for_id);
+        if (scene_vga_masks_.has_value()) {
+            out.scene_vga_trace =
+                Type7VgaFrameTraceModel::build(
+                    out.world_scene_render_plans,
+                    renderer_tables_,
+                    *scene_vga_masks_,
+                    scene_video_page_,
+                    scene_individual_columns_mode_,
+                    shape_for_id);
+        }
     }
 
     out.sweep_runs =
