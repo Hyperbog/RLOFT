@@ -34,6 +34,7 @@ add_library(rloft_boot_flow
     src/top_edge_menu.cpp
     src/top_edge_menu_presenter.cpp
     src/quit_confirm.cpp
+    src/options_menu.cpp
     src/exploration_ui.cpp
     src/exploration_hud_presenter.cpp
     src/exploration_presenter.cpp
@@ -339,6 +340,10 @@ add_executable(sound_config_tests tests/sound_config_tests.cpp)
 target_link_libraries(sound_config_tests PRIVATE rloft_boot_flow)
 add_test(NAME sound_config_tests COMMAND sound_config_tests)
 
+add_executable(options_menu_tests tests/options_menu_tests.cpp)
+target_link_libraries(options_menu_tests PRIVATE rloft_boot_flow)
+add_test(NAME options_menu_tests COMMAND options_menu_tests)
+
 set(RLOFT_TEST_TARGETS
     boot_flow_tests
     exploration_state_tests
@@ -402,6 +407,7 @@ set(RLOFT_TEST_TARGETS
     character_transfer_tests
     character_palette_remap_tests
     sound_config_tests
+    options_menu_tests
 )
 if(MSVC)
     foreach(test_target IN LISTS RLOFT_TEST_TARGETS)
