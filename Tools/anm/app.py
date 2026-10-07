@@ -42,9 +42,14 @@ def _self_test() -> int:
 
     try:
         skin = title_skin.render_window(900, 680, 1.0)
+        header = title_skin.render_header(900, 104, 1.0)
         if skin.size != (900, 680) or skin.mode != "RGB":
             return 24
+        if header.size != (900, 104) or header.mode != "RGB":
+            return 24
         if title_skin.menu_panel().size != (208, 191):
+            return 24
+        if title_skin.ravenloft_logo().mode != "RGBA":
             return 24
         header = title_skin.render_header(900, 104, 1.0)
         if header.size != (900, 104) or header.mode != "RGB":
