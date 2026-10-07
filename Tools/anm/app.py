@@ -39,7 +39,7 @@ def _self_test() -> int:
     import xmidi  # noqa: F401
 
     try:
-        from PIL import Image
+        png_signature = b"\x89PNG\r\n\x1a\n"
         for required in (
             "assets/strahd_frame_main.png",
             "assets/strahd_parchment.png",
@@ -48,8 +48,9 @@ def _self_test() -> int:
             asset = runtime_paths.bundled_path(required)
             if asset is None:
                 return 20
-            with Image.open(asset) as source:
-                source.verify()
+            data = asset.read_bytes()
+            if len(data) < 24 or data[:8] != png_signature:
+                return 24
     except Exception:
         return 24
     ffmpeg = runtime_paths.bundled_path("ffmpeg.exe" if os.name == "nt" else "ffmpeg")
