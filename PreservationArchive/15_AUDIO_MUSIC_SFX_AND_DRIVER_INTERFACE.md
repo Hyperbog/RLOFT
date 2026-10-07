@@ -2,7 +2,7 @@
 
 ## 15 — Sound, Music, Sampled Effects, Cinematics, and Driver Interfaces
 
-**Status:** PRIMARY GAME-FACING AUDIO RECONSTRUCTION — IN PROGRESS
+**Status:** GAME-FACING AUDIO CONTRACT CORROBORATED — HARDWARE-SPECIFIC TIMING STILL OPEN
 **Branch:** code1-decompilation
 **Frozen evidence baseline:** 373c7f10e6fc0f29c1e805125ef048150fcc7ba7
 
@@ -529,7 +529,7 @@ It need not reproduce motherboard/hardware details except when explicitly operat
 Required follow-up evidence is narrowly defined:
 
 1. exact SOUND.CFG numeric word meanings;
-2. precise CODE.1/CODE.2 initialization callee behavior;
+2. remaining device-specific initialization results and failure semantics (the shared AIL/32 timer-service contract is now identified; see §53);
 3. audio driver status/completion results visible to game logic;
 4. per-driver RES5 alternate-bank selection;
 5. sequence transition timing/state when a new request arrives during an active sequence.
@@ -747,3 +747,13 @@ SOUND.CFG 59 bytes
 The game-facing audio architecture is now documented to the established supplied-build evidence boundary. The vendor/configuration unknowns remain explicitly open.
 
 Next component: **ANM cinematic engine, frame/audio synchronization, subtitle/T integration, VGA palette and planar frames, and finale CINE10/CINE11 selection.**
+
+## 53. AIL/32 exported service contract and timer-callback certification boundary
+
+Chapter [17 — Timing, Interrupts, and Frame Cadence](17_TIMING_INTERRUPTS_AND_FRAME_CADENCE.md) now cross-checks the exact game-side audio-driver path with [John Miles' released AIL/32 source](https://github.com/Wohlstand/ail32-sandbox/blob/e343617606c281ee26e4890280d8d3956aa3ba41/ail32.asm). The CODE.2 dispatch IDs are not arbitrary application-private opcodes: `0x64=AIL_DESC_DRVR`, `0x65=AIL_DET_DEV`, `0x66=AIL_INIT_DRVR`, `0x67=AIL_SERVE_DRVR`, and `0x68=AIL_SHUTDOWN_DRVR`. These names are directly attested in the vendor's `ail32.inc` and matched to CODE.2 `35F88`, `35FB4` and `366C5..36789`.
+
+The driver descriptor word/dword at `+0x20` is the original AIL/32 `svc_rate`, specified in **Hertz** (or `-1` for no timer service). CODE.2 requests `AIL_SERVE_DRVR` and, if the export is non-null and `svc_rate != -1`, registers the callback, computes a microsecond period through integer division, dispatches `AIL_INIT_DRVR`, and then starts the callback timer. Callback slot 16 is reserved for prior interrupt-8 service. This identifies the middleware contract, while preserving the distinction between timer registration and successful physical-device initialization.
+
+The supplied `SOUND.CFG` selects `A32MT32.DLL` and `A32SBPDG.DLL`; it does **not** contain their respective `svc_rate` descriptor values. Those values are driver-file/runtime evidence, not fields to extrapolate from address/IRQ/DMA configuration words. Runtime IRQ cadence and game FPS therefore remain uncertified. No native-port implementation should hard-wire either player's music driver or digital audio driver to an inferred callback period.
+
+This source correlation resolves one previously bounded item—**meaning and unit of the vendor timer service-rate field**—without resolving all SOUND.CFG installer field labels, device-specific callback values, or audio completion timing. The archival source for actual game-facing scheduling remains the immutable CODE.2 binary; the vendor code provides nomenclature and an independent structural explanation.
