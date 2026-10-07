@@ -30,7 +30,8 @@ public:
         const CharacterCreationFlow& flow,
         const CharacterStatsModel* stats = nullptr,
         int selected_stat = -1,
-        bool stats_editor = false);
+        bool stats_editor = false,
+        int hovered_choice = -1);
     void screen(CharacterCreationState state);
 
     void existing_actor_decision_screen(
