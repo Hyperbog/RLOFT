@@ -142,15 +142,41 @@ def render_window(width: int, height: int, ui_scale: float = 1.0) -> Image.Image
     paste(bl, (side_x, bottom_y))
     paste(br, (max(0, width - br.width - side_x), bottom_y))
 
-    inner_top = top_y + tl.height - max(8, round(10 * scale))
-    inner_bottom = bottom_y + max(8, round(10 * scale))
-    y = inner_top
-    while y < inner_bottom:
-        take = min(left.height, inner_bottom - y)
-        paste(left.crop((0, 0, left.width, take)), (side_x, y))
-        paste(right.crop((0, 0, right.width, take)), (right_x, y))
-        y += max(1, left.height)
+    # Draw clean vertical stone rails, then place exactly one of the original
+    # side ornaments on each edge. Repeating the side crop created the
+    # "columns through the background" artifact in earlier builds.
+    rail_w = max(4, round(7 * scale))
+    left_rail_x = side_x + max(2, round(9 * scale))
+    right_rail_x = max(0, width - side_x - max(2, round(9 * scale)) - rail_w)
+    rail_top = top_y + max(18, round(24 * scale))
+    rail_bottom = max(rail_top, bottom_y + max(6, round(12 * scale)))
+    draw.rectangle(
+        (left_rail_x, rail_top, left_rail_x + rail_w, rail_bottom),
+        fill=rail,
+    )
+    draw.rectangle(
+        (right_rail_x, rail_top, right_rail_x + rail_w, rail_bottom),
+        fill=rail,
+    )
 
-    paste(bc, ((width - bc.width) // 2, max(0, height - bc.height - round(3 * scale))))
+    ornament_y = max(
+        rail_top,
+        min(
+            rail_bottom - left.height,
+            (height - left.height) // 2,
+        ),
+    )
+    paste(left, (side_x, ornament_y))
+    paste(right, (right_x, ornament_y))
+
+    # Bottom finial and Strahd's Possession plaque use the exact original
+    # title-screen pixels and are always drawn last so they sit above rails.
+    paste(
+        bc,
+        (
+            (width - bc.width) // 2,
+            max(0, height - bc.height - round(3 * scale)),
+        ),
+    )
     paste(title, ((width - title.width) // 2, max(0, round(4 * scale))))
     return out
