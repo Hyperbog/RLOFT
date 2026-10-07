@@ -37,6 +37,10 @@ add_executable(presenter_tests tests/presenter_tests.cpp)
 target_link_libraries(presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME presenter_tests COMMAND presenter_tests)
 
+add_executable(voc_decoder_tests tests/voc_decoder_tests.cpp)
+target_link_libraries(voc_decoder_tests PRIVATE rloft_boot_flow)
+add_test(NAME voc_decoder_tests COMMAND voc_decoder_tests)
+
 if(WIN32)
     add_executable(
         ravenloft_demo_v1 WIN32
