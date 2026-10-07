@@ -42,6 +42,10 @@ add_executable(voc_decoder_tests tests/voc_decoder_tests.cpp)
 target_link_libraries(voc_decoder_tests PRIVATE rloft_boot_flow)
 add_test(NAME voc_decoder_tests COMMAND voc_decoder_tests)
 
+add_executable(xmidi_tests tests/xmidi_tests.cpp)
+target_link_libraries(xmidi_tests PRIVATE rloft_boot_flow)
+add_test(NAME xmidi_tests COMMAND xmidi_tests)
+
 if(WIN32)
     add_executable(
         ravenloft_demo_v1 WIN32
