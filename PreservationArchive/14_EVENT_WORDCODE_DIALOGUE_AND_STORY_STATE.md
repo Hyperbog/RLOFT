@@ -823,3 +823,505 @@ lands at a decoded instruction start.
 
 These are latent executable-supported capabilities and belong in a faithful VM even though no supplied active program exercises them.
 
+
+
+## 51. RES12 preserves an earlier generation of the same interaction VM
+
+The supplied CD also contains:
+
+```text
+RES12:370..406
+37 raw wordcode programs
+```
+
+with the same outer shape:
+
+```text
+uint16 word_count
+uint16 program_words[word_count]
+uint16 companion_bank[word_count]
+```
+
+[RES12 wordcode](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/RES12_WORDCODE.md)
+
+RES12 is historically related but not loaded by the certified CODE.1/CODE.2 pair.
+
+## 52. RES12 is not an incompatible opcode dialect
+
+Earlier parsing with the active grammar appeared to produce invalid opcodes above `0x29`.
+
+Those values are actually operand data inside legacy opcode `0x05`.
+
+Recovered rule:
+
+```text
+active RES9 opcode 05
+    05 template_id
+    one operand word
+
+legacy RES12 opcode 05
+    05 inline_character_template[141]
+    141 operand words
+```
+
+Every other recovered opcode grammar remains compatible. [RES12 wordcode](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/RES12_WORDCODE.md)
+
+## 53. The recovered legacy grammar parses all 37 programs cleanly
+
+With opcode `0x05` assigned 141 operand words:
+
+```text
+programs parsed                   37 / 37
+program words                      4,820
+decoded instructions               1,079
+invalid direct control targets         0
+timer slots used                      0,1
+opcode-05 occurrences                 16
+```
+
+[RES12 wordcode](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/RES12_WORDCODE.md)
+
+This is strong evidence of format evolution rather than corruption.
+
+## 54. Legacy opcode 05 stores a compact character template inline
+
+The 141 words encode:
+
+```text
+0..15      name words
+16         portrait
+17         sex
+18         race
+19         age
+20..22     class codes
+23         alignment
+24         base AC
+25..26     current/max HP
+27..29     class levels
+30..32     class progression
+33         Strength
+34         exceptional Strength
+35..39     Dex/Con/Int/Wis/Cha
+40..60     item[21]
+61..140    two spell matrices
+```
+
+[RES12 wordcode](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/RES12_WORDCODE.md)
+
+It is a compact predecessor structure, not a verbatim `0x248` runtime character record.
+
+## 55. Legacy templates deterministically expand into the later record prefix
+
+The 141-word payload expands into the final character-record layout through:
+
+```text
++0x109
+```
+
+covering:
+
+- name/identity;
+- HP and class progression;
+- duplicated base/current abilities;
+- 21 item slots;
+- both 80-byte spell matrices.
+
+Later runtime/effect state beginning at `+0x10A` is absent from the legacy payload. [RES11/RES12 lineage](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/RES11_RES12_LINEAGE.md)
+
+## 56. The final executable centralizes those templates
+
+Active RES9 replaces the inline 141-word character data with one static template ID.
+
+CODE.2 stores ten static `0x248` templates:
+
+```text
+0 GLORIANNA
+1 VELIKA
+2 MISCHA
+3 VUKO
+4 TATIAN
+5 IRMGARDE
+6 ANSHELM
+7 RYSZARD
+8 VLADISLAV
+9 FHALKEN
+```
+
+[RES11/RES12 lineage](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/RES11_RES12_LINEAGE.md)
+
+The format evolution is therefore:
+
+```text
+legacy script
+    opcode 05 + 141-word inline template
+
+final script
+    opcode 05 + template ID
+        |
+        v
+centralized CODE.2 0x248 template table
+```
+
+## 57. Legacy and final templates preserve real content revisions
+
+FHALKEN and MISCHA expand byte-identically through the mapped 266-byte prefix.
+
+Other characters differ in bounded fields.
+
+This proves the later generation is not only a structural repack; some content was revised between producer generations. [RES11/RES12 lineage](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/RES11_RES12_LINEAGE.md)
+
+## 58. Same-ordinal text identity survives 37/37 programs
+
+For legacy program IDs `0..36`, the initial text-base operand matches the corresponding active program in:
+
+```text
+37 / 37
+```
+
+cases.
+
+[RES12 wordcode](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/RES12_WORDCODE.md)
+
+This is strong continuity evidence between the two script generations.
+
+## 59. Graphics namespace moved while preserving large exact content runs
+
+Exact archive alignment reconstructs:
+
+```text
+legacy interaction graphics base   51
+final RES9 interaction base       103
+```
+
+Using those bases, 23/37 same-ordinal programs resolve their configured base graphic to byte-identical resources. [RES11/RES12 lineage](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/RES11_RES12_LINEAGE.md)
+
+The old base is an alignment reconstruction, not a recovered old INIT constant.
+
+## 60. IRMGARDE records a concrete script migration
+
+Legacy program 14 embeds IRMGARDE inline.
+
+In the active generation:
+
+- program 14 no longer applies template 5;
+- new program 37 applies template ID 5 twice;
+- programs 14 and 37 share the same major interaction graphics/text/sound identity.
+
+[RES12 wordcode](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/RES12_WORDCODE.md)
+
+This preserves a specific story/content restructuring between generations.
+
+## 61. Certified executables do not load RES12 wordcode
+
+CODE.2 raw wordcode loader requests archive 9 only.
+
+CODE.1 also initializes only 11 indexed RES groups.
+
+Therefore:
+
+```text
+RES9 interaction wordcode
+    active in supplied executable
+
+RES12 interaction wordcode
+    historical/pre-split predecessor generation
+```
+
+[RES11/RES12 lineage](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/RES11_RES12_LINEAGE.md)
+
+The exact older executable/editor that consumed RES12 remains unknown.
+
+## 62. LEVELS opcode 11 bridges the level VM into story/interaction systems
+
+LEVELS event opcode 11 reads `arg3`.
+
+Three values are reserved for hard-coded story routines:
+
+```text
+0x0B  final-Strahd story activation
+0x0C  Vengeful-Spirit possession lifecycle
+0x0D  Irmgarde-dependent fixed-cell trigger
+```
+
+All other values enter the separate numbered interactive-resource processor. [LEVELS event callees](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/LEVELS.DAT/EVENT_CALLEES.md)
+
+## 63. Final-Strahd event invokes wordcode program 28
+
+Reserved value:
+
+```text
+arg3 = 0x0B
+```
+
+calls a routine that:
+
+1. invokes RES9 program 28;
+2. program 28 is independently mapped to `FINAL STRAHD`;
+3. sets persistent global flag `0x3A`;
+4. scans live family-A actors;
+5. finds NPC type 8 / STRAHD;
+6. clears its runtime suppression bit;
+7. refreshes world/scene state.
+
+[LEVELS event callees](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/LEVELS.DAT/EVENT_CALLEES.md)
+
+This is a direct LEVELS→RES9→live-NPC story transition.
+
+## 64. Vengeful-Spirit event invokes the GHOST interaction program
+
+Reserved value:
+
+```text
+arg3 = 0x0C
+```
+
+calls story routine `000B8`.
+
+That routine uses:
+
+```text
+RES9 program 9
+NPC identity GHOST
+```
+
+and persistent flags:
+
+```text
+0x20
+0x3C
+0x3D
+```
+
+to control onset/resolution. [Possession status](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/STATUS_POSSESSION.md)
+
+## 65. Possession becomes persistent character state
+
+On onset the story routine selects an eligible active party character and installs:
+
+```text
+status 0x0100
+    Vengeful-Spirit possession
+
+persistent flag 0x3C
+    possession event active
+```
+
+[Possession status](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/STATUS_POSSESSION.md)
+
+This state survives through the ordinary `0x248` character SAVE image.
+
+## 66. Possession also drives recurring coercion state
+
+A later maintenance routine requires `0x0100`, chooses one of four T messages, displays it with the affected portrait, and sets:
+
+```text
+status 0x0040
+```
+
+the Vengeful-Spirit warning/coercion presentation/action-blocking state.
+
+[Possession status](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/STATUS_POSSESSION.md)
+
+Thus a story script can produce long-lived gameplay/UI restrictions through character status.
+
+## 67. Ghoul Lord death closes the possession story loop
+
+NPC type:
+
+```text
+0x12 / 18
+GHOUL LORD
+```
+
+sets persistent event flag:
+
+```text
+0x20
+```
+
+on death.
+
+The next possession-resolution path:
+
+- re-invokes program 9;
+- sets flag `0x3D`;
+- clears active-possession flag `0x3C`;
+- clears character status bits `0x0100 | 0x0040`.
+
+[Possession status](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/STATUS_POSSESSION.md)
+
+This is a complete cross-subsystem chain:
+
+```text
+LEVELS event
+ -> RES9 interaction
+ -> character status
+ -> NPC death
+ -> global flag
+ -> RES9 resolution
+ -> character status clear
+```
+
+## 68. Irmgarde event is hard-coded story logic, not a generic door command
+
+Reserved value:
+
+```text
+arg3 = 0x0D
+```
+
+requires a recruited/template party member named:
+
+```text
+IRMGARDE
+```
+
+and rejects her if:
+
+```text
+paralyzed 0x1000
+dead      0x4000
+```
+
+[LEVELS event callees](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/LEVELS.DAT/EVENT_CALLEES.md)
+
+On success the routine clears the six-bit code of fixed cell:
+
+```text
+row 18
+column 54
+```
+
+sets global event flag `0x46`, writes state code `0x33`, and returns success.
+
+This must remain a named hard-coded story hook rather than being generalized into an ordinary “open cell” opcode.
+
+## 69. Opcode-11 default path runs numbered interactive resources
+
+Any `arg3` other than `0x0B..0x0D` calls:
+
+```text
+13EF8(arg3)
+```
+
+and stops the current LEVELS event slot afterward. [LEVELS event callees](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/LEVELS.DAT/EVENT_CALLEES.md)
+
+This is a **third interaction layer**, separate from both:
+
+- LEVELS fixed command slots;
+- RES9 wordcode.
+
+## 70. Numbered resources are opened through INFO.DAT's shared path
+
+Setup calls `139AC(number)`, which constructs:
+
+```text
+resource_path + "\" + two decimal digits
+```
+
+The supplied INFO.DAT stores:
+
+```text
+resource_path = "D:"
+```
+
+so numbered interaction 7 resolves to:
+
+```text
+D:\07
+```
+
+[INFO.DAT README](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/INFO.DAT/README.md)
+
+## 71. The numbered-resource processor is kept distinct because its inner format is not yet equivalently closed
+
+The wrapper path is proved:
+
+```text
+13EF8(number)
+    |
+    +-- 13AD8 initialize/open
+    |
+    +-- 13834 interactive processor
+    |
+    +-- 13C88 apply/cleanup result
+    |
+    v
+interaction result
+```
+
+[LEVELS event callees](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/LEVELS.DAT/EVENT_CALLEES.md)
+
+The surrounding executable establishes its interactive/story role, but the preservation archive deliberately does not label its internal resource grammar as RES9 wordcode without equivalent format evidence.
+
+## 72. Supplied LEVELS opcode-11 uses six values
+
+```text
+0x02  numbered resource
+0x07  numbered resource
+0x09  numbered resource
+0x0B  final-Strahd special
+0x0C  Vengeful-Spirit special
+0x0D  Irmgarde special
+```
+
+[LEVELS event scripts](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/LEVELS.DAT/EVENT_SCRIPTS.md)
+
+This demonstrates that opcode 11 is a dispatcher across both data-driven external interactions and hard-coded story logic.
+
+## 73. LEVELS modal text and RES9 dialog both use indexed text mechanisms
+
+LEVELS opcode 7 calls the indexed XOR-decoding reader directly.
+
+RES9 wordcode establishes a text base and uses local text IDs for modal/choice interactions.
+
+Both ultimately depend on indexed encoded text resources, but they use different script-level addressing conventions.
+
+Do not force both into one script instruction format merely because their presentation is text.
+
+## 74. Persistent story state belongs to SAVE, not the script files
+
+Script resources define behavior and transitions.
+
+The resulting long-lived state is stored in:
+
+- SAVE global event flags;
+- active character records/status;
+- roster/party state;
+- LEV world state;
+- inventory/containers;
+- live world actors.
+
+The scripts themselves are immutable resources.
+
+This separation permits the same interaction program to behave differently on later visits by querying persistent flags and current world/party state.
+
+## 75. Script-driven world changes pass through normal subsystem state
+
+Examples:
+
+```text
+grant/remove item
+    -> normal inventory/container/world-item system
+
+suppress NPC
+    -> live family-A runtime state
+
+spawn loose item
+    -> family-C world state
+
+set global flag
+    -> SAVE-persistent flag vector
+
+apply character template
+    -> active party 0x248 record
+
+clear cell code
+    -> live level cell word
+
+play cinematic
+    -> ANM subsystem
+```
+
+The VM does not maintain shadow copies of these systems.
+
