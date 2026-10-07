@@ -24,14 +24,20 @@ class TitleSkinTests(unittest.TestCase):
         self.assertEqual(image.size, (1280, 900))
         self.assertEqual(image.mode, "RGB")
 
-        # Corners/center title must differ from the tiled interior field.
+        # Decorative corners/rails must differ from the tiled interior field.
         self.assertNotEqual(image.getpixel((12, 12)), image.getpixel((640, 450)))
-        self.assertNotEqual(image.getpixel((640, 12)), image.getpixel((640, 450)))
+        self.assertNotEqual(image.getpixel((640, 15)), image.getpixel((640, 450)))
+
+    def test_ravenloft_header_renders(self) -> None:
+        header = title_skin.render_header(1280, 104, 1.0)
+        self.assertEqual(header.size, (1280, 104))
+        self.assertEqual(header.mode, "RGB")
+        self.assertNotEqual(header.getpixel((640, 52)), header.getpixel((10, 52)))
 
     def test_chrome_insets_are_positive(self) -> None:
         side, top, bottom = title_skin.chrome_insets(1.0)
         self.assertGreater(side, 0)
-        self.assertGreater(top, side)
+        self.assertEqual(top, 0)
         self.assertGreater(bottom, 0)
 
 
