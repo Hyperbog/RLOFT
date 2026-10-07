@@ -285,3 +285,42 @@ The supplied-build SAVE format is certified. Remaining work is optional semantic
 3. recover historical names for opaque character/effect fields such as `+0x1BA` without changing their preserved binary treatment.
 
 Status bit `0x2000` and low bits `0x0001..0x0020` remain compatibility-preserved raw state because the direct producer audit does not justify player-facing names.
+
+## Outer save-slot directory workflow
+
+The internal `SAVE.DAT` serializer is only one layer of Ravenloft's user-save architecture.
+
+Immutable CODE.2 also proves a working-directory snapshot model:
+
+```text
+WORK\
+    SAVE.DAT
+    LEVnnn.DAT
+    other working files matched by *.*
+
+SAVE00\
+    dedicated quicksave snapshot
+
+SAVE01\ .. SAVE10\
+    ordinary user save snapshots
+```
+
+Before a user save is packaged, the current level is serialized to its standalone `LEVnnn.DAT` form. The global serializer writes `WORK\SAVE.DAT`. The selected save directory is cleared, then wildcard copier `073A0` copies:
+
+```text
+WORK\*.* -> SAVE##\
+```
+
+Loading reverses the transaction:
+
+```text
+SAVE##\*.* -> WORK\
+```
+
+after first clearing the current WORK directory. The common load path then opens `WORK\SAVE.DAT`; its final restoration invokes the normal level loader, which can consume the restored `WORK\LEVnnn.DAT` snapshots.
+
+Therefore **SAVE.DAT alone is not a complete ordinary Ravenloft save slot**.
+
+Full executable-backed reconstruction:
+
+`DatFiles/SAVE.DAT/SAVE_SLOT_WORKFLOW.md`
