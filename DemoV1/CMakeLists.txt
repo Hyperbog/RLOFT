@@ -318,6 +318,10 @@ add_executable(type7_column_traversal_tests tests/type7_column_traversal_tests.c
 target_link_libraries(type7_column_traversal_tests PRIVATE rloft_boot_flow)
 add_test(NAME type7_column_traversal_tests COMMAND type7_column_traversal_tests)
 
+add_executable(type7_visible_runs_tests tests/type7_visible_runs_tests.cpp)
+target_link_libraries(type7_visible_runs_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_visible_runs_tests COMMAND type7_visible_runs_tests)
+
 add_executable(type7_microcode_plan_tests tests/type7_microcode_plan_tests.cpp)
 target_link_libraries(type7_microcode_plan_tests PRIVATE rloft_boot_flow)
 add_test(NAME type7_microcode_plan_tests COMMAND type7_microcode_plan_tests)
@@ -529,6 +533,7 @@ set(RLOFT_TEST_TARGETS
     world_scene_draw_calls_tests
     world_scene_render_plan_tests
     type7_column_traversal_tests
+    type7_visible_runs_tests
     type7_microcode_plan_tests
     type7_rasterizer_setup_tests
     type7_rasterizer_patch_tests
