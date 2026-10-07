@@ -346,3 +346,28 @@ entire game**. Remaining tasks include:
    paths separately (original microcode source is now available).
 4. Verify full Level 22 Assassin visualization, viewport targeting,
    combat/relic interactions and transition behavior end-to-end.
+
+## Canonical pixel-equivalence regression vectors (October 7, 2026)
+
+All 127 original SINTAB generated code blocks were further checked for **pixel values**, not only opcode decoding. A separate Python reference executes each with deterministic source bytes `source[i] = (i * 31 + 17) & 0xFF` and fresh zeroed VGA planes. Each 21,000-byte plane-0 result is FNV-1a-64 hashed; the block index and little-endian per-block digest are then combined.
+
+| ECX lookup | 127-block FNV-1a checksum |
+| --- | --- |
+| `0x0102` | `0x0658C6DB74B80324` |
+| `0x3412` | `0x0D284A7FB40210EE` |
+
+Both expected fingerprints are now enforced by the canonical-asset path of `sintab_pixel_microcode_tests`. A standalone strict C++17 reference built with `-Werror -fsanitize=address,undefined` independently reproduced the same fingerprints from the real SINTAB.
+
+Three descriptor-cutoff cases use original block 31 with entry patch index 0 and stop patch index 16:
+
+| Patch configuration | Source reads | Pixel stores | Expected FNV-1a |
+| --- | ---: | ---: | --- |
+| Descriptor stop only | 16 | 16 | `0xD17D98730D9A77C5` |
+| Mode-0 RET patches from index 8 | 8 | 8 | `0xFF8A6C8D22C4A0C5` |
+| Nonzero mode, 4 leading JMP patches | 12 | 12 | `0x44E1511AB24CEDC5` |
+
+These are also asserted by `type7_scene_pixel_executor_tests` when `RLOFT_SINTAB_PATH` points to the original asset. Their independent reference calculations are now in `DemoV1/tools/reference_sintab_pixels.py` and can be reproduced with `python3 DemoV1/tools/reference_sintab_pixels.py /path/to/SINTAB`.
+
+The original SINTAB scale-step histogram is `0:2015, 1:4128, 2:4128, 3:4128, 4:1984`; therefore a normal projected source-column run never exceeds four pixels. The original patch offset tables contain **4,669 adjacent equal-offset pairs**. An EB patch across such an alias can create `EB FE` (jump to itself); interpreter execution is guarded and the new unit test checks this failure mode.
+
+**Remaining limitations:** reference matching covers deterministic SINTAB code inputs, not full live RES3 DOS screenshot equivalence. Surface/wall and prepass SINTAB rendering remains incomplete. The new repository C++ tests are still not independently build-certified because GitHub Actions fails before executing steps.
