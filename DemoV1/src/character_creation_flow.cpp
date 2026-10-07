@@ -195,10 +195,15 @@ std::array<bool, 6> option_availability(
 int CharacterCreationFlow::hit_test(
     CharacterCreationState state, int row, int column) noexcept {
     int result = -1;
-    for (int i = 0; i < 6; ++i) {
+    const int first =
+        state == CharacterCreationState::StatsReview ? 6 : 0;
+    const int limit =
+        state == CharacterCreationState::StatsReview ? 9 : 6;
+
+    for (int i = first; i < limit; ++i) {
         if (row >= kRow[i] && row < kRow[i] + 0x7A &&
             column >= kColumn[i] && column < kColumn[i] + 0x30) {
-            // CODE.1 does not break on overlap; the last matching slot wins.
+            // CODE.1 035C does not break on overlap; the last match wins.
             result = i + 1;
         }
     }
@@ -403,6 +408,13 @@ bool CharacterCreationFlow::apply_event(int event) {
             return false;
 
         case CharacterCreationState::StatsReview:
+            if (event == 0) {
+                draft_.face = -1;
+                state_ = CharacterCreationState::PortraitChoice;
+                return true;
+            }
+            // Events 7/8/9 are owned by function_40FC's mode-6 controller,
+            // not the linear mode-transition state machine.
             return false;
     }
 
