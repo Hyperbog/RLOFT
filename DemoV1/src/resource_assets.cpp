@@ -278,7 +278,7 @@ std::vector<std::uint8_t> ResArchive::decode_type3(int index) const {
     };
 }
 
-Type7Geometry ResArchive::decode_type7_geometry(int index) const {
+Type7SceneShape ResArchive::decode_type7(int index) const {
     const auto raw = entry(index);
     if (raw.size() < 7U ||
         raw[0] != 'E' || raw[1] != 'H' || raw[2] != 7) {
@@ -305,13 +305,19 @@ Type7Geometry ResArchive::decode_type7_geometry(int index) const {
         raw.size() - 7U,
         decoded_size);
 
-    Type7Geometry geometry{};
-    geometry.source_width = u16(body.data() + 0U);
-    geometry.x_min = s16(body.data() + 2U);
-    geometry.x_max = s16(body.data() + 4U);
-    geometry.y_min = s16(body.data() + 6U);
-    geometry.y_max = s16(body.data() + 8U);
+    Type7SceneShape out{};
+    out.geometry.source_width =
+        u16(body.data() + 0U);
+    out.geometry.x_min =
+        s16(body.data() + 2U);
+    out.geometry.x_max =
+        s16(body.data() + 4U);
+    out.geometry.y_min =
+        s16(body.data() + 6U);
+    out.geometry.y_max =
+        s16(body.data() + 8U);
 
+    const auto& geometry = out.geometry;
     if (geometry.source_width == 0U ||
         (geometry.source_width & 1U) != 0U ||
         geometry.x_min < 0 ||
@@ -325,7 +331,87 @@ Type7Geometry ResArchive::decode_type7_geometry(int index) const {
         throw std::runtime_error(
             "Type-7 scene-shape geometry is invalid");
     }
-    return geometry;
+
+    const auto column_count =
+        static_cast<std::size_t>(
+            geometry.x_max -
+            geometry.x_min +
+            1);
+    const auto table_end =
+        10U + column_count * 2U;
+    if (table_end > body.size()) {
+        throw std::runtime_error(
+            "Type-7 column pointer table exceeds decoded body");
+    }
+
+    out.columns.reserve(column_count);
+    for (std::size_t i = 0;
+         i < column_count;
+         ++i) {
+        const auto list_offset =
+            static_cast<std::size_t>(
+                u16(body.data() + 10U + i * 2U));
+        if (list_offset < table_end ||
+            list_offset >= body.size()) {
+            throw std::runtime_error(
+                "Type-7 column list pointer leaves decoded body");
+        }
+
+        Type7ColumnDisplayList column{};
+        column.source_x =
+            static_cast<std::int16_t>(
+                geometry.x_min +
+                static_cast<std::int16_t>(i));
+        column.list_offset =
+            static_cast<std::uint16_t>(
+                list_offset);
+
+        auto p = list_offset;
+        for (;;) {
+            if (p + 2U > body.size()) {
+                throw std::runtime_error(
+                    "Type-7 column list lacks terminator");
+            }
+            const auto stop =
+                s16(body.data() + p);
+            p += 2U;
+            if (stop == 0) {
+                break;
+            }
+            if (p + 4U > body.size()) {
+                throw std::runtime_error(
+                    "Type-7 raster descriptor exceeds decoded body");
+            }
+
+            const auto adjustment =
+                s16(body.data() + p);
+            const auto entry =
+                s16(body.data() + p + 2U);
+            p += 4U;
+
+            if ((static_cast<std::uint16_t>(stop) & 1U) != 0U ||
+                (static_cast<std::uint16_t>(entry) & 1U) != 0U) {
+                throw std::runtime_error(
+                    "Type-7 raster selector is not even");
+            }
+
+            column.descriptors.push_back(
+                Type7RasterDescriptor{
+                    stop,
+                    adjustment,
+                    entry,
+                });
+        }
+
+        out.columns.push_back(
+            std::move(column));
+    }
+
+    return out;
+}
+
+Type7Geometry ResArchive::decode_type7_geometry(int index) const {
+    return decode_type7(index).geometry;
 }
 
 std::vector<std::uint8_t> ResArchive::decode_type4(int index) const {
@@ -461,6 +547,15 @@ Type7Geometry RavenloftBootAssets::res3_type7_geometry(
             source_.read("RES3"));
     }
     return res3_->decode_type7_geometry(index);
+}
+
+Type7SceneShape RavenloftBootAssets::res3_type7(
+    int index) const {
+    if (!res3_.has_value()) {
+        res3_.emplace(
+            source_.read("RES3"));
+    }
+    return res3_->decode_type7(index);
 }
 
 std::vector<std::uint8_t> RavenloftBootAssets::sampled_audio(
