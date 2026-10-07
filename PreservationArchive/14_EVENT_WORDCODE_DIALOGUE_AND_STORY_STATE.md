@@ -343,3 +343,483 @@ NPC type
 ```
 
 The preservation archive records indexes and behavior rather than reproducing copyrighted dialogue text.
+
+
+## 21. Wordcode has two independent flag namespaces
+
+### Persistent global flags
+
+Opcodes:
+
+```text
+09  branch if set
+0A  set
+0B  clear
+0C  toggle
+0D  branch if clear
+```
+
+operate the 256-bit vector at runtime `0x22200`, serialized by SAVE.DAT.
+
+### Wordcode-local flags
+
+Opcodes:
+
+```text
+1E  set
+1F  clear
+20  toggle
+21  branch if set
+22  branch if clear
+```
+
+operate a separate local dword at runtime `0x7FD0`.
+
+[WORDCODE_VM.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+A port must not merge these namespaces.
+
+## 22. Persistent global flags connect multiple scripting systems
+
+The same SAVE-backed flag vector is consumed by:
+
+- LEVELS event opcodes 8/9/10;
+- RES9 wordcode opcodes 09/0A/0B/0C/0D;
+- hard-coded story routines;
+- helper `1C1DC`.
+
+[LEVELS event callees](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/LEVELS.DAT/EVENT_CALLEES.md)
+
+This makes the vector the principal cross-level/cross-script persistent story-state store.
+
+## 23. Wordcode-local flags are interaction-lifetime state
+
+The local dword at `0x7FD0` is manipulated only by the interaction VM family.
+
+These bits belong to the currently running interaction and must not be serialized into the 256-bit SAVE vector merely because both use bit operations.
+
+## 24. Recurring wordcode timers are VM callbacks
+
+Opcode:
+
+```text
+0F slot, handler_ip, interval
+```
+
+configures one of five 12-byte timer records.
+
+Each stores:
+
+- handler word IP;
+- interval;
+- next absolute deadline.
+
+[WORDCODE_VM.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+The active corpus uses slots `0..3`; slot 4 exists in CODE.2 but is unused.
+
+## 25. Timer execution temporarily replaces the main IP
+
+When due, the timer poller:
+
+1. saves the main VM instruction pointer;
+2. changes IP to the configured handler;
+3. executes until a nonzero VM result;
+4. restores the saved main IP;
+5. advances/reschedules the deadline by the interval.
+
+This is callback/subroutine behavior inside one interaction state, not a separately serialized script thread.
+
+## 26. Timer disable sentinel is part of the VM ABI
+
+```text
+handler_ip == 0xFFFF
+```
+
+disables/normalizes the timer slot.
+
+A host implementation may use an optional internally, but debugger/export state should retain the original sentinel semantics.
+
+## 27. Inventory predicates recurse through containers
+
+Opcode:
+
+```text
+08 object_id,target_ip
+```
+
+searches party inventory recursively, including container contents.
+
+When found:
+
+```text
+IP = target_ip
+```
+
+otherwise execution falls through. [WORDCODE_VM.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+This reuses the same nested container model documented in Component 10.
+
+## 28. Operand 0xFFFF is a story-specific Barovian Coin predicate
+
+For opcode 08:
+
+```text
+object_id = 0xFFFF
+```
+
+does not mean an empty or wildcard item.
+
+It invokes a special recursive count of:
+
+```text
+OBJECTS 0x75
+BAROVIAN COIN
+```
+
+and branches only when the count is exactly:
+
+```text
+15
+```
+
+[WORDCODE_VM.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+This hard-coded sentinel must survive semantic lifting.
+
+## 29. Item grant can fall back to the world
+
+Opcode:
+
+```text
+06 object_id
+```
+
+attempts to add the object to party inventory.
+
+Its helper contains object-specific handling and can fall back to creating a loose family-C item at the party position if ordinary insertion cannot complete. [WORDCODE_VM.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+A script-level `grant_item` operation is therefore not guaranteed to end with the item inside a character slot.
+
+## 30. Item removal is recursive
+
+Opcode:
+
+```text
+28 object_id
+```
+
+uses the paired recursive inventory/container removal helper.
+
+Thus scripts can remove items stored inside nested containers rather than only top-level character slots.
+
+## 31. Opcode 29 creates ordinary family-C world state
+
+```text
+29 object_id
+```
+
+spawns a loose family-C item at the current party position.
+
+The resulting item is a normal mutable world item and is later persisted through LEV state. [WORDCODE_VM.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+## 32. Active opcode 05 applies a centralized party-character template
+
+```text
+05 template_id
+```
+
+selects one of CODE.2's ten static `0x248` templates and installs it through the party helper chain.
+
+Template IDs:
+
+```text
+0 GLORIANNA
+1 VELIKA
+2 MISCHA
+3 VUKO
+4 TATIAN
+5 IRMGARDE
+6 ANSHELM
+7 RYSZARD
+8 VLADISLAV
+9 FHALKEN
+```
+
+[RES12 wordcode](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/RES12_WORDCODE.md)
+
+## 33. Template application becomes persistent character state
+
+The party-template installation path produces a complete active `0x248` character image and marks recruited/template provenance bit:
+
+```text
+status 0x0080
+```
+
+That character then participates in:
+
+- active party state;
+- SAVE serialization;
+- roster/provenance logic;
+- story/finale predicates.
+
+The script VM therefore crosses directly into long-lived party state.
+
+## 34. Opcode 16 suppresses matching live NPC actors
+
+```text
+16 npc_type
+```
+
+scans live family-A records and sets a suppression bit on matching actors.
+
+First-person family-A scene emission tests that bit as a skip gate. [WORDCODE_VM.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+The operation is safely:
+
+```text
+suppress/hide matching NPC type
+```
+
+and does not mutate `NPCS.DAT`.
+
+## 35. NPC suppression has encoded special operands
+
+CODE.2 includes additional handling for opcode-16 operands:
+
+```text
+0xFFFF
+0x0029
+```
+
+including a coupled type operation.
+
+The exact cases are part of executable behavior and should remain explicit rather than normalized into a simple “for each actor with type == operand” loop.
+
+## 36. Interaction programs have three mutable local resource bases
+
+```text
+17 value  -> archive-9 typed-resource sub-base 0x7FF0
+19 value  -> indexed-text base                 0x7FF4
+27 value  -> voice/sound sub-base              0x7FF8
+```
+
+[WORDCODE_VM.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+Local IDs in later instructions are interpreted relative to these bases.
+
+## 37. Archive-9 graphics use INIT interaction base 103
+
+For ordinary interaction graphics:
+
+```text
+absolute RES9 typed resource =
+    INIT interaction base 103
+  + current wordcode resource sub-base
+  + instruction resource delta
+```
+
+[WORDCODE_VM.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+This namespace is separate from the raw program bank at RES9 entries 517..554.
+
+## 38. Draw opcode 10 is the dominant interaction visual operation
+
+```text
+10 resource_delta, x, y
+```
+
+selects the archive-9 resource and renders it at the encoded coordinates.
+
+The active bank contains:
+
+```text
+1,044
+```
+
+instances, making it the most frequent opcode in the shipped wordcode corpus. [WORDCODE_VM.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+## 39. Randomized draw opcode 23 selects a resource variant, not a branch
+
+```text
+23 resource_delta, random_span, x, y
+```
+
+applies the executable's random selection within the encoded resource span before drawing.
+
+It is a visual resource-selection operation rather than randomized control flow.
+
+## 40. Draw variants 25 and 26 have separate renderer paths
+
+Both consume:
+
+```text
+resource_delta, x, y
+```
+
+but use different graphics helper sequences.
+
+Opcode 25 performs an explicit managed load/draw/release sequence.
+
+Opcode 26 uses a separate temporary rectangle/display-state path. [WORDCODE_VM.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+Their behavior is known, but the preservation archive does not invent original compositor-mode names.
+
+## 41. Opcode 11 is a display/UI refresh operation
+
+Opcode `11` has no operands and is heavily used between interaction draws.
+
+It invokes a display/UI refresh/reset helper path.
+
+Because the exact original source-level label is unavailable, the behavioral name remains conservative.
+
+## 42. Wordcode can directly control interaction music
+
+Opcode:
+
+```text
+1D music_id
+```
+
+enters the music-sequence subsystem.
+
+The active bank uses this opcode 36 times. [WORDCODE_VM.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+This is interaction-local music control layered over the default level-music architecture documented in Component 05.
+
+## 43. Direct sound opcode exists even though the active bank does not use it
+
+Opcode:
+
+```text
+1C sound_id
+```
+
+adds the INIT sound-effect base and enters the direct SFX playback path.
+
+The active 38 programs contain zero opcode-1C instances, but the executable handler is complete and therefore remains part of the VM contract.
+
+## 44. Cinematic opcode 24 terminates the active run
+
+```text
+24 cinematic_id
+```
+
+invokes the ANM cinematic subsystem and establishes the VM termination condition.
+
+Only two active programs use it:
+
+```text
+program 16 / BURGOMASTER     cinematic 6
+program 32 / VISTANI INSIDE  cinematic 1
+```
+
+[WORDCODE program index](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_PROGRAM_INDEX.md)
+
+## 45. Interaction-loop exit is separate from VM termination
+
+Opcode `15` sets runtime exit-request byte `0x8100`.
+
+It is not the same mechanism as interpreter return code 3.
+
+The outer interaction loop checks this byte at the relevant execution phase. [WORDCODE_VM.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+## 46. NPC type maps directly to wordcode program ID
+
+For an accepted live NPC interaction:
+
+```text
+if npc_type == 82:
+    program_id = 37
+else:
+    program_id = npc_type - 34
+```
+
+Therefore:
+
+```text
+NPC types 34..70 -> programs 0..36
+NPC type 82      -> program 37
+```
+
+[WORDCODE program index](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_PROGRAM_INDEX.md)
+
+## 47. All 38 active programs have executable-proved NPC identities
+
+Representative mappings:
+
+```text
+0   MAN IN WOODS
+4   TATYANA
+9   GHOST
+16  BURGOMASTER
+23  MAGIC MIRROR WHOLE
+27  STRAHD DISGUISED
+28  FINAL STRAHD
+37  ADVENTURER
+```
+
+The complete program/NPC/resource/text/sound table is preserved in [WORDCODE_PROGRAM_INDEX.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_PROGRAM_INDEX.md).
+
+## 48. Shared assets do not imply shared story identity
+
+Alternate NPC/program pairs deliberately reuse setup bases:
+
+```text
+VISTANI / VISTANI INSIDE
+ELVEN MAGE / ELVEN MAGE IN BAR
+STRAHDS PRISONER / STRAHDS PRIS OUT
+DANDY WOMAN / DANDY WOMAN IN BAR
+MAN IN WOODS / MAN IN WOOD IN BAR
+```
+
+They retain separate:
+
+- NPC type IDs;
+- program IDs;
+- live actor state;
+- script content/state.
+
+A port/editor should not deduplicate them because their resources match.
+
+## 49. Active wordcode corpus is structurally closed
+
+Across RES9 programs 0..37:
+
+```text
+programs                         38
+program words                11,396
+decoded instructions          4,237
+parse errors                      0
+invalid direct control targets    0
+timer slots used                0..3
+executable timer slots           0..4
+```
+
+[WORDCODE_VM.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+Every validated:
+
+- conditional branch;
+- absolute jump;
+- nested call;
+- enabled timer handler;
+- choice target list;
+- dynamically inserted choice target;
+
+lands at a decoded instruction start.
+
+## 50. Five supported opcodes are unused by the active shipped bank
+
+```text
+03  set one choice target
+04  set one choice text
+0B  clear persistent global flag
+0C  toggle persistent global flag
+1C  direct sound-effect playback
+```
+
+[WORDCODE_VM.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+These are latent executable-supported capabilities and belong in a faithful VM even though no supplied active program exercises them.
+
