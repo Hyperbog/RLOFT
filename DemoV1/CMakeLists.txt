@@ -20,6 +20,7 @@ add_library(rloft_boot_flow
     src/exploration_state.cpp
     src/exploration_session.cpp
     src/exploration_world.cpp
+    src/exploration_collision.cpp
     src/environment_view.cpp
     src/surface_texture.cpp
     src/game_source.cpp
@@ -57,6 +58,10 @@ add_test(NAME exploration_session_tests COMMAND exploration_session_tests)
 add_executable(exploration_world_tests tests/exploration_world_tests.cpp)
 target_link_libraries(exploration_world_tests PRIVATE rloft_boot_flow)
 add_test(NAME exploration_world_tests COMMAND exploration_world_tests)
+
+add_executable(exploration_collision_tests tests/exploration_collision_tests.cpp)
+target_link_libraries(exploration_collision_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_collision_tests COMMAND exploration_collision_tests)
 
 add_executable(environment_view_tests tests/environment_view_tests.cpp)
 target_link_libraries(environment_view_tests PRIVATE rloft_boot_flow)
@@ -107,6 +112,7 @@ set(RLOFT_TEST_TARGETS
     exploration_state_tests
     exploration_session_tests
     exploration_world_tests
+    exploration_collision_tests
     environment_view_tests
     surface_texture_tests
     game_source_tests
