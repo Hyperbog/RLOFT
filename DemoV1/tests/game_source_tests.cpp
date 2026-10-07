@@ -178,12 +178,16 @@ void test_loose_and_env_discovery() {
         fs::remove_all(nested);
         fs::create_directories(nested / "RLOFT");
         write_iso(nested / "game.gog", false);
-        auto source = GameSource::open(nested);
-        assert(source.kind() == GameSourceKind::GogCdImage);
-        expect_runtime_output(
-            source,
-            nested / "RLOFT",
-            "GOG nested runtime path");
+        {
+            auto source = GameSource::open(nested);
+            assert(source.kind() == GameSourceKind::GogCdImage);
+            expect_runtime_output(
+                source,
+                nested / "RLOFT",
+                "GOG nested runtime path");
+        }
+        // Windows cannot remove game.gog while Iso9660Image still owns the
+        // open stream. Destroy the source before deleting the fixture.
         fs::remove_all(nested);
     }
 
