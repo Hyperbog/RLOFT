@@ -111,10 +111,12 @@ int main() {
     auto w = world();
     auto tables = renderer();
     const auto catalog = assassin_catalog();
+    rloft::SceneSourceBanks banks{};
+    banks.base = {0U, 2169U, 3316U, 4158U};
 
     auto scene =
         rloft::NpcSceneModel::build(
-            w, s, catalog, tables, 1U);
+            w, s, catalog, tables, banks, 1U);
     assert(scene.size() == 1U);
     assert(scene[0].screen_x == 160U);
     assert(scene[0].projected_extent == 4681U);
@@ -129,7 +131,7 @@ int main() {
         0x0032U;
     scene =
         rloft::NpcSceneModel::build(
-            w, s, catalog, tables, 1U);
+            w, s, catalog, tables, banks, 1U);
     assert(scene.size() == 1U);
     assert(scene[0].resource_id == 348U);
 
@@ -139,7 +141,7 @@ int main() {
         0x0036U;
     scene =
         rloft::NpcSceneModel::build(
-            w, s, catalog, tables, 1U);
+            w, s, catalog, tables, banks, 1U);
     assert(scene.size() == 1U);
     assert(scene[0].resource_id == 350U);
 
@@ -147,7 +149,7 @@ int main() {
     s.level.cell_words[0] = 0U;
     scene =
         rloft::NpcSceneModel::build(
-            w, s, catalog, tables, 1U);
+            w, s, catalog, tables, banks, 1U);
     assert(scene.empty());
 
     // The encounter death/suppression bit removes the NPC from scene output.
@@ -156,7 +158,7 @@ int main() {
         0x02000000U;
     scene =
         rloft::NpcSceneModel::build(
-            w, s, catalog, tables, 1U);
+            w, s, catalog, tables, banks, 1U);
     assert(scene.empty());
 
     // The encoded comparison is projected_extent <= C02D.
@@ -167,7 +169,7 @@ int main() {
     tables.constants[7] = 22400U;
     scene =
         rloft::NpcSceneModel::build(
-            w, s, catalog, tables, 100U);
+            w, s, catalog, tables, banks, 100U);
     assert(scene.empty());
 
     // CODE.2 21BF0 uses the selected type-7 geometry to construct the
