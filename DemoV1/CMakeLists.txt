@@ -40,7 +40,7 @@ if(WIN32)
     add_executable(ravenloft_demo_v1 WIN32 src/win32_main.cpp)
     target_link_libraries(
         ravenloft_demo_v1
-        PRIVATE rloft_boot_flow User32 Gdi32 Shell32 Advapi32
+        PRIVATE rloft_boot_flow User32 Gdi32 Shell32 Ole32 Advapi32
     )
     target_compile_features(ravenloft_demo_v1 PRIVATE cxx_std_17)
     if(MSVC)
