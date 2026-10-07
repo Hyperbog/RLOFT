@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <string>
 
 namespace rloft {
 
@@ -22,6 +23,7 @@ struct CharacterDraft {
     std::array<int, 3> classes{{-1, -1, -1}};
     int option{-1};
     int face{-1};
+    std::string name;
 };
 
 class CharacterCreationFlow final {
@@ -31,6 +33,16 @@ public:
     [[nodiscard]] bool aborted() const noexcept { return aborted_; }
     [[nodiscard]] int class_stage() const noexcept { return class_stage_; }
     [[nodiscard]] int portrait_page() const noexcept { return portrait_page_; }
+    [[nodiscard]] bool actor_present(int actor) const noexcept {
+        return actor >= 0 && actor < 2 &&
+               actor_present_[static_cast<std::size_t>(actor)];
+    }
+    [[nodiscard]] const CharacterDraft& actor(int actor) const {
+        return actors_.at(static_cast<std::size_t>(actor));
+    }
+    [[nodiscard]] bool both_present() const noexcept {
+        return actor_present_[0] && actor_present_[1];
+    }
 
     [[nodiscard]] std::array<bool, 6> available_choices() const noexcept;
 
@@ -43,9 +55,14 @@ public:
     // Returns true when the state/draft changed.
     bool apply_event(int event);
 
+    // function_3138 completion/deletion followed by mode-7 -> mode-0 wrap.
+    void finish_current_actor(bool accepted, std::string name = {});
+
 private:
     CharacterCreationState state_{CharacterCreationState::ActorChoice};
     CharacterDraft draft_{};
+    std::array<CharacterDraft, 2> actors_{};
+    std::array<bool, 2> actor_present_{{false, false}};
     bool aborted_{};
     int class_stage_{};
     int portrait_page_{};
