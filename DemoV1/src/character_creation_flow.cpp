@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <array>
+#include <stdexcept>
+#include <utility>
 
 namespace rloft {
 namespace {
