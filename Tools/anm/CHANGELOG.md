@@ -1,3 +1,9 @@
+## 0.6.1
+
+- Enlarged the invisible frameless-window resize hit area so all four edges and corners are practical to drag on Windows/high-DPI displays.
+- Fixed maximized-window title-bar handling so a normal click no longer restores the window; restore now occurs only after an actual title-bar drag begins.
+- Added regression coverage for widened resize zones and maximized-titlebar click behavior.
+
 ## 0.6.0
 
 - Added semantic multipart RES3 extraction for NPCs/creatures, OBJECTS.DAT items, INIT class-1 scene descriptors, and class-3 transient/spell effects.

@@ -18,7 +18,43 @@ class WindowChromeResizeTests(unittest.TestCase):
         self.assertEqual(hit(997, 3, 1000, 700), window_chrome.HTTOPRIGHT)
         self.assertEqual(hit(3, 697, 1000, 700), window_chrome.HTBOTTOMLEFT)
         self.assertEqual(hit(997, 697, 1000, 700), window_chrome.HTBOTTOMRIGHT)
+        # The logical resize zone is intentionally wider than the painted
+        # rail so high-DPI users can actually grab the border.
+        self.assertEqual(hit(7, 350, 1000, 700), window_chrome.HTLEFT)
+        self.assertEqual(hit(992, 350, 1000, 700), window_chrome.HTRIGHT)
+        self.assertEqual(hit(500, 7, 1000, 700), window_chrome.HTTOP)
+        self.assertEqual(hit(500, 692, 1000, 700), window_chrome.HTBOTTOM)
+        self.assertIsNone(hit(20, 350, 1000, 700))
         self.assertIsNone(hit(500, 350, 1000, 700))
+
+    def test_maximized_titlebar_click_does_not_restore(self) -> None:
+        class Root:
+            def winfo_x(self): return 0
+            def winfo_y(self): return 0
+
+        class Event:
+            x_root = 500
+            y_root = 10
+            x = 500
+            y = 10
+
+        chrome = object.__new__(window_chrome.FramelessWindow)
+        chrome.root = Root()
+        chrome._resize_hit = None
+        chrome._resize_origin = None
+        chrome._move_origin = None
+        chrome._maximized_drag_origin = None
+        chrome._edge_hit_from_event = lambda _event: None
+        chrome.is_maximized = lambda: True
+
+        toggled = []
+        chrome.toggle_maximize = lambda: toggled.append(True)
+
+        self.assertEqual(chrome._begin_move(Event()), "break")
+        self.assertEqual(toggled, [])
+        self.assertEqual(chrome._maximized_drag_origin, (500, 10, 500, 10))
+        chrome._end_move(Event())
+        self.assertIsNone(chrome._maximized_drag_origin)
 
     def test_right_resize(self) -> None:
         self.assertEqual(

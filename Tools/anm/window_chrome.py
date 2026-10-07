@@ -52,6 +52,11 @@ class FramelessWindow:
         self._resize_hit: int | None = None
         self._resize_origin: tuple[int, int, int, int, int, int] | None = None
         self._move_origin: tuple[int, int, int, int] | None = None
+        # Clicking a maximized title bar must not restore the window. Windows
+        # restores a maximized window only after the user actually drags it.
+        # Keep the initial press pending until pointer motion crosses a small
+        # threshold, then restore and continue the drag from that point.
+        self._maximized_drag_origin: tuple[int, int, int, int] | None = None
 
         if not self.enabled:
             return
@@ -126,9 +131,21 @@ class FramelessWindow:
         if hit_test is not None:
             return self._begin_resize(event, hit_test)
 
+        self._move_origin = None
+        self._maximized_drag_origin = None
         if self.is_maximized():
-            self.toggle_maximize()
-            self.root.update_idletasks()
+            # A plain click on a maximized title bar is not a restore command.
+            # Save enough information to restore only if the user begins an
+            # actual drag. event.x/y are titlebar-local and preserve the
+            # cursor's vertical grab point after restoring.
+            self._maximized_drag_origin = (
+                int(event.x_root),
+                int(event.y_root),
+                int(getattr(event, "x", 0)),
+                int(getattr(event, "y", 0)),
+            )
+            return "break"
+
         self._move_origin = (
             int(event.x_root),
             int(event.y_root),
@@ -138,6 +155,39 @@ class FramelessWindow:
         return "break"
 
     def _perform_move(self, event) -> str:
+        if self._maximized_drag_origin is not None:
+            start_x, start_y, local_x, local_y = self._maximized_drag_origin
+            dx = int(event.x_root) - start_x
+            dy = int(event.y_root) - start_y
+            if abs(dx) < 4 and abs(dy) < 4:
+                return "break"
+
+            # Restore only after real drag motion. Position the restored window
+            # under the pointer before continuing so it behaves like ordinary
+            # Windows title-bar dragging rather than jumping to its old origin.
+            self.toggle_maximize()
+            self.root.update_idletasks()
+            width = max(1, self.root.winfo_width())
+            # The maximized titlebar may be much wider than the restored
+            # window. Preserve the horizontal grab position proportionally,
+            # but keep it away from the far edges for predictable movement.
+            screen_width = max(1, self.root.winfo_screenwidth())
+            ratio = max(0.05, min(0.95, start_x / screen_width))
+            grab_x = max(8, min(width - 8, round(width * ratio)))
+            grab_y = max(0, min(32, local_y))
+            window_x = int(event.x_root) - grab_x
+            window_y = int(event.y_root) - grab_y
+            self.root.geometry(f"+{window_x}+{window_y}")
+            self.root.update_idletasks()
+            self._maximized_drag_origin = None
+            self._move_origin = (
+                int(event.x_root),
+                int(event.y_root),
+                self.root.winfo_x(),
+                self.root.winfo_y(),
+            )
+            return "break"
+
         if self._move_origin is None:
             return "break"
         start_x, start_y, window_x, window_y = self._move_origin
@@ -148,6 +198,7 @@ class FramelessWindow:
 
     def _end_move(self, _event=None) -> str:
         self._move_origin = None
+        self._maximized_drag_origin = None
         return "break"
 
     def _begin_resize(self, event, hit_test: int) -> str:
@@ -293,14 +344,15 @@ class FramelessWindow:
         y: int,
         width: int,
         height: int,
-        edge: int = 5,
-        corner: int = 12,
+        edge: int = 10,
+        corner: int = 20,
     ) -> int | None:
         """Return a resize hit code for a point in client coordinates.
 
-        No visible Tk widgets are placed over the decorative frame.  The
-        previous 5px/12px overlay frames obscured the rails and corner artwork,
-        especially on the right and bottom edges.
+        No visible Tk widgets are placed over the decorative frame. The
+        logical hit area is intentionally wider than the painted rail so the
+        border is practical to grab on high-DPI Windows displays while the
+        artwork remains completely unobscured.
         """
         width = max(1, int(width))
         height = max(1, int(height))
