@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rloft/character_creation_flow.hpp"
+#include "rloft/character_palette_remap.hpp"
 #include "rloft/character_stats.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
@@ -43,6 +44,29 @@ public:
         const std::string& name,
         bool cursor_on);
 
+    // CODE.1 15B0: 10 dissolve frames, plus 9 selected-slot movement
+    // frames when selected_slot >= 0.
+    [[nodiscard]] static int transition_15b0_frame_count(
+        int selected_slot) noexcept {
+        return selected_slot >= 0 ? 19 : 10;
+    }
+    void transition_15b0_frame(
+        const CharacterCreationFlow& before,
+        const CharacterStatsModel* stats,
+        int selected_slot,
+        int target_row,
+        int target_column,
+        int frame_index);
+
+    // CODE.1 24D4: nine-frame selected-slot move used by intermediate
+    // class-choice stages.
+    void transition_24d4_frame(
+        const CharacterCreationFlow& before,
+        int selected_slot,
+        int target_row,
+        int target_column,
+        int frame_index);
+
     // Compatibility name for state 0.
     void first_screen();
 
@@ -71,8 +95,27 @@ private:
         int selected_stat);
     void draw_controller_base(
         CharacterCreationState state, const std::string& label);
+    [[nodiscard]] bool slot_active(
+        const CharacterCreationFlow& flow,
+        int slot) const noexcept;
+    void draw_slot_content(
+        const CharacterCreationFlow& flow,
+        const CharacterStatsModel* stats,
+        int slot,
+        int y,
+        int x);
+    void draw_slot_content_mapped(
+        const CharacterCreationFlow& flow,
+        const CharacterStatsModel* stats,
+        int slot,
+        int y,
+        int x,
+        const std::array<std::uint8_t, 256>& bright_map,
+        const std::array<std::uint8_t, 256>& luminance_map,
+        const IndexedRegion* cached);
 
     const RavenloftBootAssets& assets_;
+    CharacterPaletteRemaps remaps_;
     IndexedFramebuffer framebuffer_;
 };
 
