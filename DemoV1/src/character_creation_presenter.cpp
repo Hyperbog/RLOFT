@@ -616,22 +616,29 @@ void CharacterCreationPresenter::draw_10a4_ornament(
             7,
             sequence[static_cast<std::size_t>(phase)]);
 
-    const int target_column =
-        kSlotColumn[static_cast<std::size_t>(slot)] + 0x18;
-    const int target_row =
+    // CODE.1 10A4 works in native (x,y) order:
+    // target_x = DGROUP 087C + 3Dh, target_y = DGROUP 0880 + 18h,
+    // starting at (-38h,A0h). The host drawing API takes (row,column),
+    // so convert only after the exact interpolation has been evaluated.
+    const int target_x =
         kSlotRow[static_cast<std::size_t>(slot)] + 0x3D;
+    const int target_y =
+        kSlotColumn[static_cast<std::size_t>(slot)] + 0x18;
 
-    const int anchor_column =
-        0xA0 +
-        ((target_column - 0xA0) * (phase + 1) + 6) /
-            12;
-    const int anchor_row =
+    const int anchor_x =
         -0x38 +
-        ((target_row - (-0x38)) * (phase + 1) + 6) /
+        ((target_x - (-0x38)) * (phase + 1) + 6) /
+            12;
+    const int anchor_y =
+        0xA0 +
+        ((target_y - 0xA0) * (phase + 1) + 6) /
             12;
 
-    const int row = anchor_row - raster.height / 2;
-    const int column = anchor_column - raster.width * 2;
+    // Original rect:
+    //   x = anchor_x - width/2
+    //   y = anchor_y - height*2
+    const int row = anchor_y - raster.height * 2;
+    const int column = anchor_x - raster.width / 2;
 
     if (reversed[static_cast<std::size_t>(phase)]) {
         // A5C8 is the same temporary in-place vertical reversal used by 4520.

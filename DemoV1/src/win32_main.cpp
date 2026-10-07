@@ -1054,7 +1054,11 @@ int run(HINSTANCE instance) {
                     }
 
                     if (sound_id >= 0) {
-                        audio_player.stop_all();
+                        // CODE.1 C4E0 -> C57C only finalizes the previous
+                        // Miles sample when its status is SMP_DONE. It does
+                        // not explicitly stop a sample that is still playing.
+                        // Win32AudioPlayer::play() already reaps completed
+                        // voices, so do not truncate an active one-shot here.
                         audio_player.play(
                             rloft::decode_creative_voice(
                                 assets.sampled_audio(6, sound_id)));

@@ -148,6 +148,21 @@ int main() {
     assert(rloft::StartupPresenter::menu_selection_from_y(318) == 3);
     assert(rloft::StartupPresenter::menu_selection_from_y(400) == -1);
 
+    // CODE.1 10A4 interpolation sanity: slot 0 is (x=13,y=3).
+    // Phase 0 starts from (-56,160) and moves 1/12 toward
+    // (13+61,3+24) = (74,27), using signed rounded interpolation.
+    // The presenter converts to row/column only after this native x/y math.
+    {
+        const int target_x = 13 + 0x3D;
+        const int target_y = 3 + 0x18;
+        const int anchor_x =
+            -0x38 + ((target_x - (-0x38)) * 1 + 6) / 12;
+        const int anchor_y =
+            0xA0 + ((target_y - 0xA0) * 1 + 6) / 12;
+        assert(anchor_x == -45);
+        assert(anchor_y == 149);
+    }
+
     // 07E4's stagger loop contributes N+10 frames, followed by one final
     // full 064C redraw/page flip.
     assert(
