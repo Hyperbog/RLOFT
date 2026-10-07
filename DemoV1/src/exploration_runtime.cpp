@@ -49,6 +49,7 @@ void ExplorationRuntime::initialize_gameplay_state(
     npc_catalog_ = NpcCatalog::load(source);
     object_catalog_ = ObjectCatalog::load(source);
     scene_source_banks_ = SceneSourceBanks::load(source);
+    placed_scene_catalog_ = PlacedSceneCatalog::load(source);
     scene_shape_archive_.emplace(source.read("RES3"));
     world_ = LevelWorldStateCodec::build(
         session_.level,
@@ -166,6 +167,14 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
                 renderer_tables_,
                 scene_source_banks_,
                 render_threshold);
+        auto placed_records =
+            PlacedObjectSceneModel::build(
+                world_,
+                session_,
+                placed_scene_catalog_,
+                renderer_tables_,
+                scene_source_banks_,
+                render_threshold);
         auto loose_records =
             LooseItemSceneModel::build(
                 world_,
@@ -177,19 +186,70 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
 
         out.world_scene_records.reserve(
             npc_records.size() +
+            placed_records.size() +
             loose_records.size());
         out.world_scene_records.insert(
             out.world_scene_records.end(),
             npc_records.begin(),
             npc_records.end());
-
-        // CODE.2 emits class-1 placed objects between NPCs and family-C.
-        // That family is not yet promoted to the live scene model; retain the
-        // exact relative order of the integrated class-0 and class-2 records.
+        out.world_scene_records.insert(
+            out.world_scene_records.end(),
+            placed_records.begin(),
+            placed_records.end());
         out.world_scene_records.insert(
             out.world_scene_records.end(),
             loose_records.begin(),
             loose_records.end());
+
+        // CODE.2 applies each emitted source's optional scene-cell influence
+        // after projection/threshold acceptance and before final rendering.
+        for (const auto& record :
+             out.world_scene_records) {
+            std::uint8_t step = 0U;
+            std::uint32_t cell_index = 0U;
+
+            if (record.source_class == 0U) {
+                const auto& live =
+                    world_.npcs.at(
+                        record.source_index);
+                step =
+                    npc_catalog_.at(
+                        live.npc_type_id).
+                        scene_influence_step;
+                cell_index =
+                    live.cached_cell_index;
+            } else if (
+                record.source_class == 1U) {
+                const auto& live =
+                    world_.placed_objects.at(
+                        record.source_index);
+                step =
+                    placed_scene_catalog_.at(
+                        live.object_type_id).
+                        scene_influence_step;
+                cell_index =
+                    live.cached_cell_index;
+            } else if (
+                record.source_class == 2U) {
+                const auto& live =
+                    world_.loose_items.at(
+                        record.source_index);
+                step =
+                    object_catalog_.at(
+                        live.object_type_id).
+                        scene_influence_step;
+                cell_index =
+                    live.cached_cell_index;
+            }
+
+            if (step != 0U) {
+                ViewSweepInfluenceModel::apply(
+                    out.sweep_records,
+                    step,
+                    cell_index,
+                    session_.level.width);
+            }
+        }
 
         if (out.world_scene_records.size() >
             NpcSceneModel::kMaxSceneRecords) {
