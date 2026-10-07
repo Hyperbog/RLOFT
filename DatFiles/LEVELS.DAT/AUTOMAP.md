@@ -30,14 +30,15 @@ code  = word & 0x003F
 default output = 0xFF
 ```
 
-Level-profile-selected common floor/empty class:
+Party-cell override, with the internal class variant selected by the level environment/render profile:
 
 ```text
-header +0x290 / DGROUP 0x258A8 == 0xFF -> 0x2F
-otherwise                              -> 0x2E
+if row == high16(player_coord_B) && column == high16(player_coord_A):
+    header +0x290 / DGROUP 0x258A8 == 0xFF -> 0x2F
+    otherwise                              -> 0x2E
 ```
 
-The earlier label "party-cell override" was too strong. `0x258A8` is independently proved to be the level's environment/render-profile selector, not a party-position value. Both `0x2E` and `0x2F` convert to export byte `0xFA`, so their exact on-screen/editor distinction remains an internal profile-dependent floor/empty-class distinction.
+The direct CODE.2 sequence at `015AA..015E3` proves the coordinate comparison before the profile-byte test. Both `0x2E` and `0x2F` convert to export byte `0xFA`, so the text-file export intentionally collapses the party-cell distinction to the ordinary floor glyph.
 
 Explored cells (`word & 0x0400`):
 
