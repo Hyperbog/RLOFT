@@ -145,29 +145,9 @@ add_executable(level_world_state_tests tests/level_world_state_tests.cpp)
 target_link_libraries(level_world_state_tests PRIVATE rloft_boot_flow)
 add_test(NAME level_world_state_tests COMMAND level_world_state_tests)
 
-add_executable(npc_catalog_tests tests/npc_catalog_tests.cpp)
-target_link_libraries(npc_catalog_tests PRIVATE rloft_boot_flow)
-add_test(NAME npc_catalog_tests COMMAND npc_catalog_tests)
-
-add_executable(level22_story_tests tests/level22_story_tests.cpp)
-target_link_libraries(level22_story_tests PRIVATE rloft_boot_flow)
-add_test(NAME level22_story_tests COMMAND level22_story_tests)
-
-add_executable(level22_encounter_tests tests/level22_encounter_tests.cpp)
-target_link_libraries(level22_encounter_tests PRIVATE rloft_boot_flow)
-add_test(NAME level22_encounter_tests COMMAND level22_encounter_tests)
-
-add_executable(level_world_state_tests tests/level_world_state_tests.cpp)
-target_link_libraries(level_world_state_tests PRIVATE rloft_boot_flow)
-add_test(NAME level_world_state_tests COMMAND level_world_state_tests)
-
 add_executable(inventory_screen_tests tests/inventory_screen_tests.cpp)
 target_link_libraries(inventory_screen_tests PRIVATE rloft_boot_flow)
 add_test(NAME inventory_screen_tests COMMAND inventory_screen_tests)
-
-add_executable(inventory_runtime_tests tests/inventory_runtime_tests.cpp)
-target_link_libraries(inventory_runtime_tests PRIVATE rloft_boot_flow)
-add_test(NAME inventory_runtime_tests COMMAND inventory_runtime_tests)
 
 add_executable(inventory_runtime_tests tests/inventory_runtime_tests.cpp)
 target_link_libraries(inventory_runtime_tests PRIVATE rloft_boot_flow)
