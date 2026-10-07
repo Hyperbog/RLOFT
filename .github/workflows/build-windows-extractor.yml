@@ -86,6 +86,15 @@ jobs:
             throw "Frozen application self-test failed with exit code $($process.ExitCode)"
           }
 
+      - name: Smoke-test custom Ravenloft window chrome
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path "Tools/anm/dist/RavenloftAssetExtractor.exe"
+          $process = Start-Process -FilePath $exe -ArgumentList "--gui-self-test" -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            throw "Frameless GUI self-test failed with exit code $($process.ExitCode)"
+          }
+
       - name: Write checksums and build information
         shell: pwsh
         run: |
