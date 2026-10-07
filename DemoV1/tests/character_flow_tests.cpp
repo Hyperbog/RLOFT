@@ -166,5 +166,29 @@ int main() {
     retained.resolve_existing_actor(0, false);
     assert(!retained.actor_present(0));
 
+    // function_4978: leaving actor choice with both presence flags set returns
+    // status 10; the same mode-0 event with an incomplete pair returns 0.
+    CharacterCreationFlow complete_pair;
+    assert(complete_pair.apply_event(3)); // actor 0
+    assert(complete_pair.apply_event(3)); // sex 0
+    assert(complete_pair.apply_event(1)); // race 0
+    assert(complete_pair.apply_event(1)); // class 0 -> option
+    assert(complete_pair.apply_event(1)); // option 0
+    assert(complete_pair.apply_event(1)); // face 0
+    complete_pair.finish_current_actor(true, "ONE");
+
+    assert(complete_pair.apply_event(4)); // actor 1
+    assert(complete_pair.apply_event(4)); // sex 1
+    assert(complete_pair.apply_event(1)); // race 0
+    assert(complete_pair.apply_event(1)); // class 0 -> option
+    assert(complete_pair.apply_event(1)); // option 0
+    assert(complete_pair.apply_event(1)); // face 0, different sex
+    complete_pair.finish_current_actor(true, "TWO");
+
+    assert(complete_pair.both_present());
+    assert(complete_pair.apply_event(0));
+    assert(complete_pair.completed());
+    assert(!complete_pair.aborted());
+
     std::cout << "character_flow_tests: PASS\n";
 }
