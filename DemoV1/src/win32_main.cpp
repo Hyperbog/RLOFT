@@ -929,6 +929,9 @@ int run(HINSTANCE instance) {
                         character_presenter.transition_15b0_frame(
                             before,
                             stats,
+                            final_stage > 0
+                                ? &character_flow
+                                : nullptr,
                             selected_slot,
                             target_row,
                             target_column,
