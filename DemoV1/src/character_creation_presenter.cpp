@@ -273,6 +273,24 @@ void CharacterCreationPresenter::draw_empty_actor_card(int y, int x) {
     }
 }
 
+void CharacterCreationPresenter::draw_actor_card(
+    const CharacterDraft& actor, int y, int x) {
+    if (actor.sex < 0 || actor.face < 0) {
+        throw std::logic_error(
+            "completed actor card is missing sex or portrait");
+    }
+
+    // function_1A04 present-actor branch.
+    draw_frame(7, 0x14, 0, y, x);
+    draw_frame(
+        1,
+        336 + actor.sex * 23 + actor.face,
+        0,
+        y + 0x15,
+        x);
+    draw_text_centered(y + 2, x, 0x30, actor.name, 0);
+}
+
 void CharacterCreationPresenter::draw_text_box(int record, int y, int x) {
     draw_frame(7, 0x1A, 0, y, x);
 
@@ -452,9 +470,17 @@ void CharacterCreationPresenter::screen(
     switch (state) {
         case CharacterCreationState::ActorChoice:
             draw_controller_base(state, {});
-            draw_empty_actor_card(row[2], column[2]);
-            draw_empty_actor_card(row[3], column[3]);
-            draw_text_box(2, 0x114, 0x10C);
+            if (flow.actor_present(0)) {
+                draw_actor_card(flow.actor(0), row[2], column[2]);
+            } else {
+                draw_empty_actor_card(row[2], column[2]);
+            }
+            if (flow.actor_present(1)) {
+                draw_actor_card(flow.actor(1), row[3], column[3]);
+            } else {
+                draw_empty_actor_card(row[3], column[3]);
+            }
+            draw_text_box(flow.both_present() ? 1 : 2, 0x114, 0x10C);
             return;
 
         case CharacterCreationState::SexChoice:
