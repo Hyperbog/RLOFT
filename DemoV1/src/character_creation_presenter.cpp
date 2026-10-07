@@ -1134,6 +1134,13 @@ void CharacterCreationPresenter::transition_07e4_frame(
             "CODE.1 07E4 transition frame index");
     }
 
+    // After the stagger loop terminates, 07E4 calls 064C once and flips that
+    // complete page. Preserve it as a distinct presentation frame.
+    if (frame_index == count - 1) {
+        screen(after, after_stats);
+        return;
+    }
+
     std::array<IndexedRegion, 9> old_region{};
     std::array<IndexedRegion, 9> new_region{};
 
@@ -1367,6 +1374,10 @@ void CharacterCreationPresenter::controller_entry_frame(
     }
 
     const int phase = frame_index - ten_a4_frames;
+    if (phase == seven_e4_frames - 1) {
+        screen(flow, stats);
+        return;
+    }
 
     // 10A4 has now settled every active slot to RES7:15h. 1464 then calls
     // 07E4 to flip those placeholders into the real controller resources.
