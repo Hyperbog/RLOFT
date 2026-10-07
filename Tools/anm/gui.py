@@ -461,18 +461,6 @@ class RavenloftExtractorGui(tk.Tk):
         )
         self.titlebar_title.grid(row=0, column=0, sticky="w", padx=(10, 6))
 
-        zoom = ttk.Frame(self.titlebar)
-        zoom.grid(row=0, column=2, sticky="e", padx=(4, 8))
-        ttk.Label(zoom, text="UI size").pack(side="left", padx=(0, 6))
-        ttk.Button(zoom, text="−", width=3, command=self._zoom_out).pack(side="left")
-        ttk.Button(
-            zoom,
-            textvariable=self.ui_zoom_text,
-            width=6,
-            command=self._zoom_reset,
-        ).pack(side="left", padx=4)
-        ttk.Button(zoom, text="+", width=3, command=self._zoom_in).pack(side="left")
-
         chrome_buttons = tk.Frame(self.titlebar, background="#210d10")
         chrome_buttons.grid(row=0, column=3, sticky="e", padx=(0, 6))
         self.minimize_button = tk.Button(
@@ -559,8 +547,32 @@ class RavenloftExtractorGui(tk.Tk):
         self.footer.grid(row=3, column=0, sticky="ew")
         self._padding_widgets.append((self.footer, (14, 0, 14, 12)))
         self.footer.columnconfigure(0, weight=1)
-        ttk.Progressbar(self.footer, variable=self.progress_value, maximum=100).grid(row=0, column=0, sticky="ew")
-        ttk.Label(self.footer, textvariable=self.status, style="Subtle.TLabel").grid(row=1, column=0, sticky="ew", pady=(6, 0))
+        self.footer.columnconfigure(1, weight=0)
+        ttk.Progressbar(
+            self.footer,
+            variable=self.progress_value,
+            maximum=100,
+        ).grid(row=0, column=0, columnspan=2, sticky="ew")
+
+        ttk.Label(
+            self.footer,
+            textvariable=self.status,
+            style="Subtle.TLabel",
+        ).grid(row=1, column=0, sticky="w", pady=(6, 0))
+
+        # Keep UI-size controls out of the title bar so the custom chrome stays
+        # visually clean.  They live with the other status controls instead.
+        zoom = ttk.Frame(self.footer)
+        zoom.grid(row=1, column=1, sticky="e", padx=(12, 0), pady=(4, 0))
+        ttk.Label(zoom, text="UI size").pack(side="left", padx=(0, 6))
+        ttk.Button(zoom, text="−", width=3, command=self._zoom_out).pack(side="left")
+        ttk.Button(
+            zoom,
+            textvariable=self.ui_zoom_text,
+            width=6,
+            command=self._zoom_reset,
+        ).pack(side="left", padx=4)
+        ttk.Button(zoom, text="+", width=3, command=self._zoom_in).pack(side="left")
 
         self._apply_chrome_insets()
         self.after(10, self._schedule_skin)
