@@ -104,6 +104,45 @@ int main() {
     assert(right_only.columns[1].source_x == 67U);
     assert(right_only.columns[1].scale_step == 5U);
 
+    // CODE.2 36F4E/36FCE/37157/371D7 checks every destination ray with
+    // signed comparison; equal/greater wall depth suppresses the column.
+    // Width-zero source column 31 does not advance the left-hand cursor.
+    std::vector<rloft::ViewSweepRecord> rays(256U);
+    rays[127].depth = 499U;
+    rays[128].depth = 499U;
+    rays[129].depth = 500U;
+    rays[130].depth = 501U;
+    rays[131].depth = 0xFFFFFFFFU; // signed -1: visible
+    rays[132].depth = 0x80000000U; // signed INT32_MIN: visible
+    const auto visible =
+        rloft::Type7ColumnTraversalModel::visible_columns(
+            plan, 128, 500U, rays);
+    assert(visible.size() == 4U);
+    assert(visible[0].viewport_x == 127U);
+    assert(visible[0].source_x == 30U);
+    assert(visible[1].viewport_x == 128U);
+    assert(visible[1].source_x == 32U);
+    assert(visible[2].viewport_x == 131U);
+    assert(visible[2].source_x == 33U);
+    assert(visible[3].viewport_x == 132U);
+    assert(visible[3].source_x == 33U);
+
+    // A sprite near viewport column zero is cropped, never wrapped to the
+    // far-right ray. In particular its leftmost source column emits nothing.
+    const auto cropped =
+        rloft::Type7ColumnTraversalModel::visible_columns(
+            plan, 0, 500U,
+            std::vector<rloft::ViewSweepRecord>(2U));
+    assert(cropped.size() == 2U);
+    assert(cropped[0].source_x == 32U);
+    assert(cropped[0].viewport_x == 0U);
+    assert(cropped[1].source_x == 32U);
+    assert(cropped[1].viewport_x == 1U);
+
+    // No output with no input ray slots, regardless of scene geometry.
+    assert(rloft::Type7ColumnTraversalModel::visible_columns(
+        plan, 128, 500U, {}).empty());
+
     // Extents below 8 exit before accessing the SINTAB code-pointer table.
     const auto tiny =
         rloft::Type7ColumnTraversalModel::build(
