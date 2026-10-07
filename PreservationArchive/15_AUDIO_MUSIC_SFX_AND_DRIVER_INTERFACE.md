@@ -523,3 +523,227 @@ A modern port may provide clean digital output, device mixing and safe resource 
 - file loading and error behavior exposed to the game.
 
 It need not reproduce motherboard/hardware details except when explicitly operating a hardware-emulation mode.
+
+## 33. Remaining core-facing audio questions
+
+Required follow-up evidence is narrowly defined:
+
+1. exact SOUND.CFG numeric word meanings;
+2. precise CODE.1/CODE.2 initialization callee behavior;
+3. audio driver status/completion results visible to game logic;
+4. per-driver RES5 alternate-bank selection;
+5. sequence transition timing/state when a new request arrives during an active sequence.
+
+These are **open implementation-level questions**, not justification to infer hardware port, IRQ and DMA labels from the example config bytes.
+
+## 34. Fidelity boundary for modern hardware
+
+A faithful native game should preserve which sound or sequence is requested, its namespace, timing, priority, channel, enable state, and expected completion status.
+
+A modern backend may map these events into a host audio mixer and MIDI/XMIDI renderer. Emulating ISA registers, DMA, interrupts or the original hardware detection utility is optional unless that behavior materially affects gameplay timing.
+
+## 35. Drivers and installers remain preservation assets
+
+The source set includes INSTALL.EXE, SINSTALL.EXE, LOADPATS.EXE, PATCHES.INI and eighteen shipped protected-mode driver DLLs.
+
+Preserve all of them even when none is loaded by a modern default audio configuration. **Conditionally inactive**, **historically retained**, **not called by a particular executable**, and **unrelated to game logic** are not interchangeable classifications.
+
+## 36. Regression: both CODE config reads
+
+For CODE.1 and CODE.2 require:
+
+~~~text
+SOUND.CFG read size   0x3B
+binary fixture bytes  59
+driver string #1      +0x16
+driver string #2      +0x24
+group A words         +0,+2,+4,+6
+group B words         +0xA,+0xC,+0xE,+0x10
+conditional selector  +0x14
+~~~
+
+A no-op import/export must preserve all 59 bytes even when some numeric words remain unnamed.
+
+## 37. Regression: separate SFX scheduling and direct playback
+
+Cover:
+- request into an empty channel;
+- higher, equal and lower priority on occupied channels;
+- separate channels zero and one;
+- delayed queue servicing;
+- direct 27F24 invocation;
+- 280DC mode bracketing;
+- user audio-disable behavior.
+
+The exact priority comparison must be tested against original 28110, not guessed from abstract mixer expectations.
+
+## 38. Regression: distinct game callers
+
+Require correct caller-specific behavior for:
+
+~~~text
+LEVELS opcode 5    queue channel 0, aux FF, priority 0
+ANM chunk 6        add 0x258D0 base, queue channel 1
+ANM chunk 9        direct playback with 280DC wrapper
+wordcode opcode 1C direct sound path, though no active use
+NPC death           distinct audio base and zero-ID fallback
+~~~
+
+The ANM chunk-6 ID exclusions 3, 15 and 0x88 require separate fixtures.
+
+## 39. Regression: XMIDI and music sequence selection
+
+For all 172 type-3 entries:
+- preserve the outer EH type-3 record;
+- require the stated 32-bit payload extent;
+- verify FORM/XDIR signature;
+- preserve raw bytes, not merely conversion into host MIDI;
+- retain RES5's two 49-entry sequence banks and INIT offset 49;
+- preserve separate music-enable and current-sequence state.
+
+Transitions must exercise 28DCC, 28EF0 and 28C54 ordering.
+
+## 40. Regression: VOC resources and original anomaly
+
+For all 1005 type-4 blobs require the Creative Voice File signature.
+
+For 1003 ordinary records verify declared length equals stored payload extent.
+
+Retain exactly the two byte-identical anomalies at RES11:4877 and RES12:430, preserving the original 0x11669 length field against the 0x1669-byte payload.
+
+Report the mismatch; do not silently repair or drop the historical resource.
+
+## 41. Regression: sampled-audio namespace mapping
+
+Verify distinct resolution of:
+- RES6 game SFX;
+- RES10 interaction sound/voice;
+- INIT SFX boundary values 49, 69, 166, 192, 266;
+- INIT interaction voice base 48;
+- NPC ambient/attack/reaction versus death sound bases.
+
+A numeric sound ID alone is not sufficient without caller/namespace context.
+
+## 42. Regression: SAMPLE.AD timbre library
+
+Require:
+
+~~~text
+233 header records, six bytes each
+FF FF header terminator at 0x576
+first timbre begins at 0x578
+every timbre record length 14
+12 bytes timbre payload per entry
+all 233 records close at EOF 4662
+bank 0    patches 0..127
+bank 127  patches 35..87
+bank 1    patches 0..51
+~~~
+
+Validate YM3812 modulator/carrier register fields against the independently identified Miles format. Preserve source header order and absolute offsets.
+
+## 43. Regression: ARIA preservation-only boundary
+
+Verify exact GM1/GM2 sizes, hashes, common signature and shared first 77 bytes.
+
+Until the inner ARIA bank record grammar is recovered from a trustworthy spec or driver, field-level round-trip must remain **NOT CERTIFIED**. Passing a raw byte-preserving copy test does not certify decoded ARIA timbres.
+
+## 44. Regression: cinematic audio and image timeline
+
+Exercise ANM chunk IDs 5, 6 and 9 in the original frame/packet order and relative to image/palette packets and the frame wait value.
+
+ANM chunk 7 is a T subtitle/text lookup, not itself a music or audio command.
+
+This prevents modern playback from drifting when cinematic commands coincide with graphics or mode changes.
+
+## 45. Correction C-33 — sampled SFX and music are not one play function
+
+CODE.2 has independent queues, direct sampled playback, music-sequence loading, timed stop/finalization and distinct user settings.
+
+Flattening every caller into an immediate play() loses the original scheduling/transition logic.
+
+## 46. Correction C-34 — SOUND.CFG is actively consumed by both CODE modules
+
+Both executables load exactly 59 bytes into their own audio configuration state. SOUND.CFG is not only an optional installer byproduct.
+
+A native port may replace the legacy hardware UI while retaining the original configuration import contract.
+
+## 47. Correction C-35 — SAMPLE.AD and ARIA BNK are different formats
+
+SAMPLE.AD is a Miles OPL2/YM3812 Global Timbre Library.
+
+GM1.BNK and GM2.BNK are Sierra Semiconductor ARIA hardware banks. They are not AdLib Instrument Maker BNK archives and should not be parsed with that unrelated grammar.
+
+## 48. Correction C-36 — inactive legacy audio resources are historically meaningful
+
+RES11 and RES12 preserve earlier music/VOC resource generations, including byte-identical legacy sampled banks and a real 0x10000 declared-length anomaly.
+
+An inactive resource is not automatically redundant, especially during historical source/format preservation.
+
+## 49. Correction C-37 — BAT comments do not prove GUS patch-loader execution
+
+The supplied RLOFT.BAT/SOUND.BAT contain LOADPATS-oriented comments but neither actually invokes LOADPATS.EXE before checking ERRORLEVEL.
+
+The activation path is not established by those comments alone.
+
+## 50. Historical unknowns retained
+
+- exact numeric SOUND.CFG field labels and writer rules;
+- full original installer/card detection workflow;
+- driver-side timing/completion ABI where not proved by CODE;
+- precise per-driver RES5 bank selection predicates;
+- ARIA GM1/GM2 inner grammar;
+- LOADPATS activation path under every original installation configuration;
+- exact original source-function names for the game audio interface;
+- hardware-specific synthesis behavior beyond the original source asset/driver role.
+
+These remain bounded questions rather than invented facts or grounds for modifying original files.
+
+## 51. Source ledger
+
+- [Runtime audio dependency audit](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Runtime/AUDIO_INTERFACE_DEPENDENCY_AUDIT.md)
+- [Optional executable/driver triage](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Runtime/OPTIONAL_EXECUTABLE_DRIVER_TRIAGE.md)
+- [Resource type-3/type-4 format](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/FORMAT.md)
+- [Resource inventory](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/INVENTORY.md)
+- [Historical RES11/RES12 lineage](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/RES11_RES12_LINEAGE.md)
+- [INIT audio namespace bases](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/INIT/README.md)
+- [SAMPLE.AD vendor-format reconstruction](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/SAMPLE.AD/FORMAT.md)
+- [ARIA bank classification](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/BNK/ARIA_BANKS.md)
+- [ANM audiovisual packet grammar](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/ANM/FORMAT.md)
+- [LEVELS SFX/music event callees](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_CALLEES.md)
+- [NPCS sound fields](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/NPCS.DAT/SOUND_FIELDS.md)
+
+## 52. Architectural checkpoint
+
+~~~text
+SOUND.CFG 59 bytes
+     |
+     +-- CODE.1 independent audio setup
+     +-- CODE.2 independent audio setup
+                |
+                +-- sampled SFX request queue
+                |     RES6 / RES10 VOC
+                |     NPC events
+                |     LEVELS events
+                |     ANM queue/direct SFX
+                |     RES9 interaction voice
+                |
+                +-- music sequencer
+                      RES5 XMIDI/XDIR
+                      INIT 49-entry alternate bank
+                      LEVELS default sequence
+                      scripted changes
+                      ANM music commands
+                |
+                v
+           Miles/AIL driver boundary
+                |
+                +-- SAMPLE.AD OPL2 timbres
+                +-- MT-32 / MIDI
+                +-- ARIA GM1/GM2
+                +-- Sound Blaster / GUS / other hardware
+~~~
+
+The game-facing audio architecture is now documented to the established supplied-build evidence boundary. The vendor/configuration unknowns remain explicitly open.
+
+Next component: **ANM cinematic engine, frame/audio synchronization, subtitle/T integration, VGA palette and planar frames, and finale CINE10/CINE11 selection.**
