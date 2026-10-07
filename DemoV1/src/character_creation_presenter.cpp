@@ -1057,7 +1057,9 @@ void CharacterCreationPresenter::transition_07e4_frame(
                 0x30);
     }
 
-    const auto seam_color = assets_.code1_u8(0x63F8U);
+    // Runtime 63F8 is the first byte of 4A0C row 4:
+    // 5FF8 + 4*100h. It lives in generated BSS, not stored CODE.1 data.
+    const auto seam_color = remaps_.bright[4][0];
 
     for (int slot = first_slot; slot < last_slot; ++slot) {
         const auto index = static_cast<std::size_t>(slot);
