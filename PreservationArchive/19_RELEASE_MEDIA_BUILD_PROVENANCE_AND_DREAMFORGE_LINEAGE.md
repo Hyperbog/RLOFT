@@ -2,7 +2,7 @@
 
 ## 19 — Release, Media, Build Provenance, and DreamForge Lineage
 
-**Status:** FOUNDATION — supplied executable revision identified; historical media/build equivalence deliberately unresolved  
+**Status:** VERIFIED FILE-LEVEL PROVENANCE MANIFEST — historical patch deltas and exact media mastering remain OPEN  
 **Working branch:** `code1-decompilation`  
 **Frozen repository evidence baseline:** `373c7f10e6fc0f29c1e805125ef048150fcc7ba7`  
 **Evidence hierarchy:** immutable supplied binaries and certified format audits first; dated storefront/publisher records and documented contemporary media second; historical community testimony third. Never infer executable equality solely from matching game title, file name or platform.
@@ -164,7 +164,7 @@ offset 0x0D  LE uint16 resource_path_length = 2
 offset 0x0F  resource_path bytes = "D:"
 ```
 
-CODE.2 `2E768..2E7EE` reads and converts all thirteen ASCII digits, but its indexed archive initialization supplies a **count of 11**. Within that count, zero selects the working-directory archive and a nonzero selector prepends the shared path. For the supplied configuration, `RES0..RES8` resolve locally while **`RES9` and `RES10` resolve through `D:\\RES9` and `D:\\RES10`**. The same two-byte `D:` prefix is also used for numbered external interactive resources (e.g. `D:\\07`).
+CODE.2 `2E768..2E7EE` reads and converts all thirteen ASCII digits, but its indexed archive initialization supplies a **count of 11**. Within that count, zero selects the working-directory archive and a nonzero selector prepends the shared path. For the supplied configuration, `RES0..RES8` resolve locally while **`RES9` and `RES10` resolve through `D:\RES9` and `D:\RES10`**. The same two-byte `D:` prefix is also used for numbered external interactive resources (e.g. `D:\07`).
 
 Selectors **11** and **12** are physically present and parsed but lack proved active consumers in this executable pair. They must be preserved **without claiming the 1-valued digits directly enable RES11 or RES12**. This is an important practical reason an `INFO.DAT` checksum may differ between valid installations with identical game executable bytes.
 
