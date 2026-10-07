@@ -89,6 +89,33 @@ def _gui_self_test() -> int:
         if not hasattr(app, "titlebar") or not hasattr(app, "header_canvas"):
             app.destroy()
             return 28
+
+        # Exercise the same Tk resize path used by the decorative right border.
+        from types import SimpleNamespace
+        start_w = app.winfo_width()
+        start_x = app.winfo_rootx()
+        start_y = app.winfo_rooty()
+        handle = chrome._handles[0] if chrome._handles else app
+        press = SimpleNamespace(
+            x_root=start_x + start_w,
+            y_root=start_y + 100,
+            widget=handle,
+        )
+        chrome._begin_resize(press, window_chrome.HTRIGHT)
+        motion = SimpleNamespace(
+            x_root=press.x_root + 24,
+            y_root=press.y_root,
+            widget=handle,
+        )
+        chrome._perform_resize(motion)
+        app.update_idletasks()
+        app.update()
+        if app.winfo_width() < start_w:
+            chrome._end_resize(motion)
+            app.destroy()
+            return 30
+        chrome._end_resize(motion)
+
         app.destroy()
         return 0
     except Exception:
