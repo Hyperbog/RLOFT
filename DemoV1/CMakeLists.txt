@@ -28,6 +28,7 @@ add_library(rloft_boot_flow
     src/exploration_world.cpp
     src/exploration_collision.cpp
     src/environment_view.cpp
+    src/view_sweep_record.cpp
     src/environment_projection.cpp
     src/environment_presenter.cpp
     src/automap_presentation.cpp
@@ -101,6 +102,10 @@ add_executable(environment_view_tests tests/environment_view_tests.cpp)
 target_link_libraries(environment_view_tests PRIVATE rloft_boot_flow)
 add_test(NAME environment_view_tests COMMAND environment_view_tests)
 
+add_executable(view_sweep_record_tests tests/view_sweep_record_tests.cpp)
+target_link_libraries(view_sweep_record_tests PRIVATE rloft_boot_flow)
+add_test(NAME view_sweep_record_tests COMMAND view_sweep_record_tests)
+
 add_executable(environment_projection_tests tests/environment_projection_tests.cpp)
 target_link_libraries(environment_projection_tests PRIVATE rloft_boot_flow)
 add_test(NAME environment_projection_tests COMMAND environment_projection_tests)
@@ -170,6 +175,7 @@ set(RLOFT_TEST_TARGETS
     exploration_world_tests
     exploration_collision_tests
     environment_view_tests
+    view_sweep_record_tests
     environment_projection_tests
     environment_presenter_tests
     automap_presentation_tests
