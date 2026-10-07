@@ -24,12 +24,19 @@ class TitleSkinTests(unittest.TestCase):
         self.assertEqual(image.size, (1280, 900))
         self.assertEqual(image.mode, "RGB")
 
-        # The outer rails now run cleanly through the former corner zones.
+        # Horizontal and vertical rails share the same bounds, producing
+        # simple square intersections with no ornamental overlays.
         stone_dark = (40, 29, 31)
-        self.assertEqual(image.getpixel((10, 50)), stone_dark)
-        self.assertEqual(image.getpixel((1270, 50)), stone_dark)
-        self.assertEqual(image.getpixel((10, 872)), stone_dark)
-        self.assertEqual(image.getpixel((1270, 872)), stone_dark)
+        self.assertEqual(image.getpixel((6, 52)), stone_dark)
+        self.assertEqual(image.getpixel((1274, 52)), stone_dark)
+        self.assertEqual(image.getpixel((6, 875)), stone_dark)
+        self.assertEqual(image.getpixel((1274, 875)), stone_dark)
+
+        # The former side-medallion and bottom-finial locations are now plain
+        # rail/background pixels rather than pasted source ornaments.
+        self.assertEqual(image.getpixel((6, 450)), stone_dark)
+        self.assertEqual(image.getpixel((1274, 450)), stone_dark)
+        self.assertNotEqual(image.getpixel((640, 875)), image.getpixel((640, 899)))
 
     def test_ravenloft_header_renders(self) -> None:
         header = title_skin.render_header(1280, 104, 1.0)
@@ -37,10 +44,11 @@ class TitleSkinTests(unittest.TestCase):
         self.assertEqual(header.mode, "RGB")
         self.assertNotEqual(header.getpixel((640, 52)), header.getpixel((10, 52)))
 
-        # The full-bleed header rail reaches through the former corner zones.
+        # Header rails use the same rectangular bounds and meet in square
+        # intersections at both top corners.
         stone_dark = (40, 29, 31)
-        self.assertEqual(header.getpixel((10, 16)), stone_dark)
-        self.assertEqual(header.getpixel((1270, 16)), stone_dark)
+        self.assertEqual(header.getpixel((6, 18)), stone_dark)
+        self.assertEqual(header.getpixel((1274, 18)), stone_dark)
 
     def test_chrome_insets_are_positive(self) -> None:
         side, top, bottom = title_skin.chrome_insets(1.0)
