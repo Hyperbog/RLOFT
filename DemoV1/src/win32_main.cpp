@@ -778,9 +778,7 @@ int run_exploration(
     rloft::AutomapScreenPresenter automap_presenter(assets);
     rloft::ExplorationLegacyInputController input;
     rloft::ExplorationUiController ui;
-    auto automap_state =
-        rloft::AutomapScreenStateModel::initial(
-            runtime.session());
+    std::optional<rloft::AutomapModalController> automap;
     const auto exploration_palette =
         assets.colors_palette(
             rloft::LevelDisplayModel::palette_index(
@@ -807,6 +805,7 @@ int run_exploration(
                 // Host safety escape. The faithful mouse exit remains
                 // automap panel action 11 below.
                 ui.close_screen();
+                automap.reset();
                 input.clear();
                 continue;
             }
@@ -815,32 +814,28 @@ int run_exploration(
 
         if (ui.state().screen ==
             rloft::ExplorationUiScreen::Automap) {
+            if (!automap) {
+                automap.emplace(runtime.session());
+            }
+
             if (const auto click =
                     host.consume_exploration_click()) {
                 if (const auto action =
                         rloft::AutomapControlModel::action_at(
                             click->row,
                             click->column)) {
-                    if (*action >= 0 && *action <= 3) {
-                        automap_state.navigation_mask =
-                            rloft::AutomapControlModel::
-                                navigation_mask(*action);
-                        rloft::AutomapScreenStateModel::
-                            apply_navigation(
-                                automap_state,
-                                runtime.session().level.width,
-                                runtime.session().level.height);
-                        automap_state.navigation_mask = 0;
-                    } else if (*action == 11) {
-                        // CODE.2 02DB0 action 11 exits 03634 map mode.
-                        automap_state.navigation_mask = 0;
+                    const auto result =
+                        automap->apply_action(
+                            *action,
+                            runtime.session().level.width,
+                            runtime.session().level.height);
+                    if (result ==
+                        rloft::AutomapModalResult::Close) {
                         ui.close_screen();
+                        automap.reset();
                         input.clear();
                         continue;
                     }
-                    // Actions 4..10 are annotation/delete, level browsing,
-                    // overlay toggle and export controls. They remain inert
-                    // until those exact modal subroutines are integrated.
                 }
             }
 
@@ -848,8 +843,8 @@ int run_exploration(
                 presenter.framebuffer(),
                 runtime.session(),
                 runtime.renderer_tables(),
-                automap_state,
-                false);
+                automap->state(),
+                automap->annotation_overlay_enabled());
             host.present(
                 presenter.framebuffer(),
                 exploration_palette);
@@ -905,9 +900,7 @@ int run_exploration(
                             rloft::ExplorationWorldModel::
                                 party_cell(
                                     runtime.session()));
-                    automap_state =
-                        rloft::AutomapScreenStateModel::
-                            initial(runtime.session());
+                    automap.emplace(runtime.session());
                     input.clear();
                 }
             }
@@ -951,20 +944,7 @@ int run_exploration(
             frame,
             runtime.renderer_tables());
 
-        if (pressed_menu ==
-            static_cast<int>(
-                rloft::TopEdgeMenuAction::Automap)) {
-            automap.emplace(runtime.session());
-            input.clear();
-
-            presenter.framebuffer().clear(0);
-            automap_presenter.draw(
-                presenter.framebuffer(),
-                runtime.session(),
-                runtime.renderer_tables(),
-                automap->state(),
-                automap->annotation_overlay_enabled());
-        } else if (hovered_menu >= 0) {
+        if (hovered_menu >= 0) {
             menu_presenter.draw(
                 presenter.framebuffer(),
                 hovered_menu,
