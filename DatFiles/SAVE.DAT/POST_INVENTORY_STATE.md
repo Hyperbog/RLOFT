@@ -47,14 +47,16 @@ Incoming-damage processing at physical `0x47CE7..0x47D18` consumes this dword be
 int32_t vampiric_touch_absorption_pool; // +0x113
 ```
 
-## `+0x117..+0x11A`: Armor absorption pool
+## `+0x117..+0x11A`: Armor protection/durability quantity
 
-Runtime dword `0x219F7` maps to `+0x117`. Physical `0x45435..0x45454` initializes primary effect 0, obtains a generated protection quantity, adds 8, and stores it here. Incoming-damage processing consumes the pool; depletion clamps it to zero and clears primary effect bit 0.
+Runtime dword `0x219F7` maps to `+0x117`. Physical `0x45435..0x45454` initializes primary effect 0, obtains a generated protection quantity, adds 8, and stores it here.
 
-Producer tracing identifies effect 0 as **Armor**, and raw `T[588]` independently decodes to `Armor`.
+A direct re-disassembly of common character-damage routine logical `0xCD44..0xCEE3` tightens the semantics. Incoming damage subtracts the **full incoming damage amount** from this quantity. If the result reaches zero or below, CODE.2 clamps it to zero and clears primary effect bit 0. Unlike the later Aid (`+0x1EA`) and Vampiric Touch (`+0x113`) pools in the same routine, this subtraction does **not** reduce the local damage value before HP processing.
+
+Therefore `+0x117` is a consumable **Armor protection/durability quantity**, not an HP-damage absorption pool in the supplied executable. Producer tracing identifies effect 0 as **Armor**, and raw `T[588]` independently decodes to `Armor`.
 
 ```c
-int32_t armor_absorption_pool; // +0x117
+int32_t armor_protection_quantity; // +0x117; damage depletes it but is not absorbed here
 ```
 
 ## `+0x11B..+0x122`: reserved/unreferenced serialized subrange
@@ -128,7 +130,7 @@ See `PRIMARY_EFFECT_CATALOGUE.md`, `EFFECT_FLAGS.md`, and `T_EFFECT_TEXT.md`.
 +0x10A           class/level-derived base attack target
 +0x10B..+0x112   uint32 hand_ready_deadline[2]
 +0x113..+0x116   Vampiric Touch damage-absorption pool
-+0x117..+0x11A   Armor damage-absorption pool
++0x117..+0x11A   Armor protection/durability quantity
 +0x11B..+0x122   reserved/unreferenced serialized bytes
 +0x123..+0x126   Draw Upon Holy Might - STR reversible adjustment
 +0x127..+0x12A   Draw Upon Holy Might - DEX reversible adjustment
@@ -144,4 +146,4 @@ Later state begins at `+0x19E`.
 
 ## Native reconstruction rule
 
-Use explicit legacy decoding. Preserve absolute hand-ready deadlines, both complete 80-byte spell matrices, all effect timers, and all reserved bytes exactly. Model `+0x113` and `+0x117` as consumable signed protection quantities rather than booleans. Preserve the `+0x131` capability mask as serialized; derive native class capabilities separately.
+Use explicit legacy decoding. Preserve absolute hand-ready deadlines, both complete 80-byte spell matrices, all effect timers, and all reserved bytes exactly. Model `+0x113` as a true damage-absorption pool and `+0x117` as a separate consumable Armor protection/durability quantity. Both are signed quantities, but only the former reduces remaining damage in the common damage routine. Preserve the `+0x131` capability mask as serialized; derive native class capabilities separately.
