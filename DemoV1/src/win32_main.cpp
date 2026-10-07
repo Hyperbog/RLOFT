@@ -12,6 +12,7 @@
 #include <deque>
 #include <exception>
 #include <filesystem>
+#include <fstream>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -25,6 +26,7 @@
 #include "rloft/character_creation_flow.hpp"
 #include "rloft/character_creation_presenter.hpp"
 #include "rloft/character_stats.hpp"
+#include "rloft/character_transfer.hpp"
 #include "rloft/game_source.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
@@ -821,6 +823,8 @@ int run(HINSTANCE instance) {
 
                 rloft::CharacterCreationFlow character_flow;
                 rloft::CharacterStatsModel character_stats(assets);
+                const auto transfer_tables =
+                    rloft::CharacterTransferTables::from_assets(assets);
                 std::array<std::optional<rloft::CharacterStatsModel>, 2>
                     actor_stats{};
                 bool stats_ready = false;
@@ -1115,6 +1119,81 @@ int run(HINSTANCE instance) {
                         if (event >= 0 &&
                             character_flow.apply_event(event)) {
                             if (character_flow.aborted()) {
+                                flow.finish_character_creation(
+                                    rloft::LegacyResult::OrdinaryTermination);
+                                flow.supervisor_dispatch();
+                                host.set_character_mode(false);
+                                return 0;
+                            }
+
+                            if (character_flow.completed()) {
+                                std::array<
+                                    rloft::CharacterTransferActor,
+                                    2> transfer{};
+
+                                for (std::size_t actor = 0;
+                                     actor < transfer.size();
+                                     ++actor) {
+                                    if (!actor_stats[actor]) {
+                                        throw std::logic_error(
+                                            "completed actor lacks retained "
+                                            "CODE.1 stats");
+                                    }
+                                    transfer[actor].draft =
+                                        character_flow.actor(
+                                            static_cast<int>(actor));
+                                    transfer[actor].stats =
+                                        actor_stats[actor]->value();
+                                }
+
+                                const auto image =
+                                    rloft::build_character_transfer(
+                                        transfer,
+                                        transfer_tables);
+                                const auto path =
+                                    assets.source().runtime_output_path(
+                                        "CHARS");
+
+                                std::error_code ec;
+                                std::filesystem::remove(path, ec);
+
+                                std::ofstream out(
+                                    path,
+                                    std::ios::binary |
+                                        std::ios::trunc);
+                                if (!out) {
+                                    throw std::runtime_error(
+                                        "Unable to create CHARS at: " +
+                                        path.string());
+                                }
+                                out.write(
+                                    reinterpret_cast<const char*>(
+                                        image.data()),
+                                    static_cast<std::streamsize>(
+                                        image.size()));
+                                out.close();
+                                if (!out) {
+                                    throw std::runtime_error(
+                                        "Unable to write complete 0x920-byte "
+                                        "CHARS handoff at: " +
+                                        path.string());
+                                }
+
+                                flow.finish_character_creation(
+                                    rloft::LegacyResult::
+                                        ContinueModuleCycle);
+                                flow.supervisor_dispatch();
+
+                                if (flow.snapshot().module !=
+                                        rloft::LegacyModule::Code2 ||
+                                    flow.snapshot().stage !=
+                                        rloft::BootStage::Code2Startup ||
+                                    !flow.snapshot().chars_present) {
+                                    throw std::logic_error(
+                                        "R.EXE status-10 dispatch did not "
+                                        "reach CODE.2 CHARS startup");
+                                }
+
                                 host.set_character_mode(false);
                                 return 0;
                             }
