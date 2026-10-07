@@ -21,6 +21,8 @@ class CharacterCreationFlow final {
 public:
     [[nodiscard]] CharacterCreationState state() const noexcept { return state_; }
     [[nodiscard]] const CharacterDraft& draft() const noexcept { return draft_; }
+    [[nodiscard]] bool aborted() const noexcept { return aborted_; }
+    [[nodiscard]] bool race_committed() const noexcept { return race_committed_; }
 
     // CODE.1 035C hit-test result. Coordinate order follows the engine's
     // 320x400 logical surface: row (0..399), column (0..319).
@@ -34,6 +36,8 @@ public:
 private:
     CharacterCreationState state_{CharacterCreationState::ActorChoice};
     CharacterDraft draft_{};
+    bool aborted_{};
+    bool race_committed_{};
 };
 
 }  // namespace rloft
