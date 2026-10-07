@@ -38,6 +38,7 @@ void SurfaceFillModel::draw(
     IndexedFramebuffer& framebuffer,
     const SurfaceFillTable& table,
     int first_row,
+    int row_step,
     std::uint8_t base_color) {
     for (int row = 0; row < kRows; ++row) {
         // Encoded EBX is 0x80 on the first scanline and decrements to 1.
@@ -47,7 +48,7 @@ void SurfaceFillModel::draw(
             static_cast<std::uint8_t>(
                 base_color - table.subtract[index]);
         framebuffer.fill_rect(
-            first_row + row,
+            first_row + row * row_step,
             kColumn,
             1,
             kWidth,
@@ -59,14 +60,14 @@ void SurfaceFillModel::draw_upper(
     IndexedFramebuffer& framebuffer,
     const SurfaceFillTable& table,
     std::uint8_t base_color) {
-    draw(framebuffer, table, kUpperRow, base_color);
+    draw(framebuffer, table, kUpperRow, 1, base_color);
 }
 
 void SurfaceFillModel::draw_lower(
     IndexedFramebuffer& framebuffer,
     const SurfaceFillTable& table,
     std::uint8_t base_color) {
-    draw(framebuffer, table, kLowerRow, base_color);
+    // CODE.2 33DE0 advances EDI by +0x40 then -0x90: net -0x50,\n    // exactly one VGA scanline upward per iteration.\n    draw(framebuffer, table, kLowerRow, -1, base_color);
 }
 
 }  // namespace rloft

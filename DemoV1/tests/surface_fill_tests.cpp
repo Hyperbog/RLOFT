@@ -47,9 +47,7 @@ int main() {
         fb, table, 10);
     assert(at(259, 32) ==
            static_cast<std::uint8_t>(10 - 128));
-    assert(at(386, 287) == 9);
-    assert(at(258, 32) == 0xEE);
-    assert(at(387, 32) == 0xEE);
+    assert(at(132, 287) == 9);\n    assert(at(260, 32) == 0xEE);\n    // Row 131 belongs to the already-drawn upper half; lower stops at 132.\n    assert(at(131, 32) ==\n           static_cast<std::uint8_t>(200 - 1));
 
     bool rejected = false;
     try {

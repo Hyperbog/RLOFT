@@ -41,6 +41,7 @@ private:
         IndexedFramebuffer& framebuffer,
         const SurfaceFillTable& table,
         int first_row,
+        int row_step,
         std::uint8_t base_color);
 };
 
