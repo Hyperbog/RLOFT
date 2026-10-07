@@ -259,9 +259,16 @@ RavenloftBootAssets::RavenloftBootAssets(GameSource source)
       res7_(source_.read("RES7")),
       res10_(source_.read("RES10")),
       colors_(source_.read("COLORS")),
-      text_(source_.read("T")) {
+      text_(source_.read("T")),
+      code1_(source_.read("CODE.1")) {
     if (colors_.size() != 1U + 15U * 768U || colors_[0] != 15U) {
         throw std::runtime_error("COLORS is not the certified 15-palette Ravenloft bank");
+    }
+    // Certified CODE.1 baseline from Runtime/CODE_OBJECT_MAP.md.
+    // The active data object begins at file 0x3E724.
+    if (code1_.size() != 0x43D1BU) {
+        throw std::runtime_error(
+            "CODE.1 does not match the certified Ravenloft 1.2a executable size");
     }
 }
 
@@ -326,6 +333,34 @@ std::string RavenloftBootAssets::text(int index) const {
         out[i] = static_cast<char>(text_[record_at + 2U + i] ^ 0xDCU);
     }
     return out;
+}
+
+std::uint8_t RavenloftBootAssets::code1_u8(
+    std::size_t dgroup_offset) const {
+    constexpr std::size_t kObject2FileStart = 0x3E724U;
+    const auto at = kObject2FileStart + dgroup_offset;
+    if (at >= code1_.size()) {
+        throw std::out_of_range("CODE.1 DGROUP byte exceeds stored object");
+    }
+    return code1_[at];
+}
+
+std::uint16_t RavenloftBootAssets::code1_u16(
+    std::size_t dgroup_offset) const {
+    const std::uint16_t lo = code1_u8(dgroup_offset);
+    const std::uint16_t hi = code1_u8(dgroup_offset + 1U);
+    return static_cast<std::uint16_t>(lo | (hi << 8U));
+}
+
+std::int32_t RavenloftBootAssets::code1_s32(
+    std::size_t dgroup_offset) const {
+    const auto b0 = static_cast<std::uint32_t>(code1_u8(dgroup_offset));
+    const auto b1 = static_cast<std::uint32_t>(code1_u8(dgroup_offset + 1U));
+    const auto b2 = static_cast<std::uint32_t>(code1_u8(dgroup_offset + 2U));
+    const auto b3 = static_cast<std::uint32_t>(code1_u8(dgroup_offset + 3U));
+    const std::uint32_t raw =
+        b0 | (b1 << 8U) | (b2 << 16U) | (b3 << 24U);
+    return static_cast<std::int32_t>(raw);
 }
 
 Palette6 RavenloftBootAssets::colors_palette(int index, int brightness) const {
