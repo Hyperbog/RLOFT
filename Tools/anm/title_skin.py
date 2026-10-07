@@ -184,11 +184,10 @@ def render_header(width: int, height: int, ui_scale: float = 1.0) -> Image.Image
     margin = max(2, round(4 * frame_scale))
     rail_w = max(4, round(6 * frame_scale))
     top_rail_y = max(12, round(16 * frame_scale))
-    left_rail_x = margin + max(13, round(16 * frame_scale))
-    right_rail_x = max(
-        left_rail_x + rail_w,
-        width - margin - max(13, round(16 * frame_scale)) - rail_w,
-    )
+    # Square frame: vertical rails share the same outer coordinates as the
+    # horizontal rails so every junction is a true 90-degree intersection.
+    left_rail_x = margin
+    right_rail_x = max(left_rail_x + rail_w, width - margin - rail_w)
     stone = (112, 109, 103)
     stone_light = (162, 158, 149)
     stone_dark = (40, 29, 31)
@@ -256,12 +255,10 @@ def chrome_insets(scale: float = 1.0) -> tuple[int, int, int]:
 
 
 def render_window(width: int, height: int, ui_scale: float = 1.0) -> Image.Image:
-    """Render the client window as an enlarged version of RES0:100's frame.
+    """Render the client window as a clean Ravenloft-themed rectangular frame.
 
-    The original Strahd's Possession menu panel supplies the side ornaments,
-    bottom finial, and visual proportions.  Long edges are
-    simple stone rails so decorative columns never repeat through the
-    background.
+    The remaining RES0 side ornaments and bottom finial are intentionally
+    omitted.  The four stone rails meet directly at square 90-degree corners.
     """
     width = max(1, int(width))
     height = max(1, int(height))
@@ -277,11 +274,6 @@ def render_window(width: int, height: int, ui_scale: float = 1.0) -> Image.Image
             out.paste(tile, (x, y))
     out = Image.blend(out, Image.new("RGB", out.size, "#13090a"), 0.28)
 
-    panel = menu_panel()
-    left = _scaled_crop(panel, SIDE_LEFT, scale)
-    right = _scaled_crop(panel, SIDE_RIGHT, scale)
-    bottom_center = _scaled_crop(panel, BOTTOM_CENTER, scale)
-
     margin = max(2, round(4 * scale))
     # The app uses a 34px custom titlebar at scale 1.0.  Start the original
     # menu frame below it so the non-client controls never cover the ornaments.
@@ -292,13 +284,15 @@ def render_window(width: int, height: int, ui_scale: float = 1.0) -> Image.Image
     rail_w = max(4, round(6 * scale))
 
     draw = ImageDraw.Draw(out)
-    left_rail_x = margin + max(13, round(16 * scale))
-    right_rail_x = max(left_rail_x + rail_w, width - margin - max(13, round(16 * scale)) - rail_w)
+    # Keep all four frame rails on the same rectangular bounds so the
+    # corners meet cleanly instead of stopping short of one another.
+    left_rail_x = margin
+    right_rail_x = max(left_rail_x + rail_w, width - margin - rail_w)
     top_rail_y = frame_top + max(12, round(16 * scale))
     bottom_rail_y = max(top_rail_y + rail_w, height - margin - max(14, round(18 * scale)))
 
-    # Long edges are deliberately undecorated rails. All ornate pixels come
-    # from RES0:100 and are pasted over these rails afterward.
+    # Long edges are deliberately undecorated rails.  No side medallions,
+    # finials, or corner pieces are composited over them.
     draw.rectangle(
         (margin, top_rail_y, width - margin, top_rail_y + rail_w),
         fill=stone_dark,
@@ -336,24 +330,5 @@ def render_window(width: int, height: int, ui_scale: float = 1.0) -> Image.Image
         width=max(1, round(2 * scale)),
     )
 
-    def paste(img: Image.Image, xy: tuple[int, int]) -> None:
-        out.paste(img, xy, img if img.mode == "RGBA" else None)
-
-    # Exactly one original side medallion/ornament on each edge.
-    inner_top = top_rail_y + rail_w
-    inner_bottom = bottom_rail_y - rail_w
-    available = max(0, inner_bottom - inner_top)
-    side_y = inner_top + max(0, (available - left.height) // 2)
-    paste(left, (margin, side_y))
-    paste(right, (max(0, width - margin - right.width), side_y))
-
-    # The original bottom finial is centered like the source menu frame.
-    paste(
-        bottom_center,
-        (
-            (width - bottom_center.width) // 2,
-            max(frame_top, height - margin - bottom_center.height),
-        ),
-    )
     return out
 
