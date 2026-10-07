@@ -55,6 +55,7 @@ add_library(rloft_boot_flow
     src/automap_viewport_presenter.cpp
     src/automap_screen_state.cpp
     src/automap_controls.cpp
+    src/automap_modal.cpp
     src/automap_screen_presenter.cpp
     src/surface_texture.cpp
     src/surface_column_scaler.cpp
@@ -234,6 +235,10 @@ add_executable(automap_controls_tests tests/automap_controls_tests.cpp)
 target_link_libraries(automap_controls_tests PRIVATE rloft_boot_flow)
 add_test(NAME automap_controls_tests COMMAND automap_controls_tests)
 
+add_executable(automap_modal_tests tests/automap_modal_tests.cpp)
+target_link_libraries(automap_modal_tests PRIVATE rloft_boot_flow)
+add_test(NAME automap_modal_tests COMMAND automap_modal_tests)
+
 add_executable(automap_screen_presenter_tests tests/automap_screen_presenter_tests.cpp)
 target_link_libraries(automap_screen_presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME automap_screen_presenter_tests COMMAND automap_screen_presenter_tests)
@@ -341,6 +346,7 @@ set(RLOFT_TEST_TARGETS
     automap_viewport_presenter_tests
     automap_screen_state_tests
     automap_controls_tests
+    automap_modal_tests
     automap_screen_presenter_tests
     surface_texture_tests
     surface_column_scaler_tests
