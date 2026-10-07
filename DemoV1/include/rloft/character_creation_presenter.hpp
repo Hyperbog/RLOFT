@@ -56,6 +56,7 @@ private:
     void draw_text_centered(
         int y, int left, int span, const std::string& text, int font_id);
     void draw_empty_actor_card(int y, int x);
+    void draw_actor_card(const CharacterDraft& actor, int y, int x);
     void draw_text_box(int record, int y, int x);
     void draw_persistent_summary(const CharacterDraft& draft, int stage);
     void draw_stats_panel(
