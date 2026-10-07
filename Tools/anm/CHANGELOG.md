@@ -1,3 +1,13 @@
+## 0.6.2
+
+- Added recursive install-folder scanning for loose/non-CD Ravenloft copies.
+- Added direct GOG `game.gog` and generic ISO/BIN/IMG ISO-9660 source support, including 2048-byte and raw 2352-byte sector layouts.
+- Added mixed-source resolution: loose/modded files override matching CD-image files while missing files fall back to the image.
+- Added source normalization/cache so existing extractors can transparently consume nested installs and CD images.
+- Changed validation from a hard flat-folder assumption to usable-vs-certified reporting; noncanonical store/modded copies are accepted while checksum differences remain visible.
+- Added CD-image selection in the GUI and regression coverage for GOG images, raw BIN images, nested loose installs, mixed overrides, and noncanonical partial sources.
+- Includes the frameless-window resize/maximize-click fixes introduced immediately before this source-discovery update.
+
 ## 0.6.1
 
 - Enlarged the invisible frameless-window resize hit area so all four edges and corners are practical to drag on Windows/high-DPI displays.

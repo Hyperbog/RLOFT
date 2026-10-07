@@ -24,16 +24,29 @@ other game resource. The resource folder is needed only for extraction.
 
 The window is freely resizable and the interface adapts to the available size.
 
-### Source folder
+### Game / media source
 
-Choose a folder containing the audited media corpus:
+The extractor accepts the location users actually have rather than requiring a
+pre-extracted CD directory. You can select:
 
-- `RES0` .. `RES12`
-- `CINE00.ANM` .. `CINE12.ANM`
-- `GM1.BNK`, `GM2.BNK`
-- `COLORS`, `INIT`, `SAMPLE.AD`, `SINTAB`, `T`
+- a normal Ravenloft install directory, including nested GOG/Steam-style layouts;
+- a directory containing loose CD files such as `RES0..RES12`, `INIT`, and `COLORS`;
+- a GOG install directory containing `game.gog` (the original CD image);
+- an ISO-9660 `.gog`, `.iso`, `.bin`, or `.img` CD image directly;
+- a mixed/modded install where loose files override matching files inside the CD image.
 
-**Validate 33 files** checks size and SHA-256 against the certified source set.
+Folder scans are case-insensitive and recurse through common install-directory
+layouts. For image/mixed layouts the tool builds a temporary flat source view
+so the certified decoders still receive the original filenames. `NPCS.DAT`
+and `OBJECTS.DAT` are carried into that view when present for semantic
+multipart grouping.
+
+**Scan / Validate** reports how many of the audited 33 media files are present
+and whether they byte-match the preservation reference. A hash mismatch is
+reported as provenance information rather than rejecting the source, so other
+store releases, modified installs, and loose preservation copies remain usable.
+Missing categories are reported and only affect extraction paths that require
+those files.
 
 ## Extraction tabs
 

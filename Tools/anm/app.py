@@ -29,6 +29,7 @@ def _self_test() -> int:
     import PIL  # noqa: F401
     import asset_dumper  # noqa: F401
     import exporter  # noqa: F401
+    import game_source  # noqa: F401
     import gui  # noqa: F401
     import master_dumper  # noqa: F401
     import media_inventory  # noqa: F401

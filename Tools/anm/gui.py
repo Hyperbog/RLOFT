@@ -14,6 +14,7 @@ from PIL import Image, ImageTk
 
 import asset_dumper
 import exporter
+import game_source
 import master_dumper
 import media_inventory
 import runtime_paths
@@ -80,7 +81,11 @@ class RavenloftExtractorGui(tk.Tk):
         self._padding_widgets: list[tuple[object, tuple[int, ...]]] = []
 
         self.source_dir = tk.StringVar()
-        self.source_status = tk.StringVar(value="Choose the Ravenloft resource folder.")
+        self.source_status = tk.StringVar(
+            value="Choose a Ravenloft install folder, loose media folder, or CD image."
+        )
+        self._source_cache_input: str | None = None
+        self._source_cache_path: Path | None = None
         self.status = tk.StringVar(value="Ready.")
         self.progress_value = tk.DoubleVar(value=0)
 
@@ -540,13 +545,28 @@ class RavenloftExtractorGui(tk.Tk):
         source = ttk.Frame(self.body, padding=(2, 2, 2, 10))
         source.grid(row=0, column=0, sticky="ew")
         source.columnconfigure(1, weight=1)
-        ttk.Label(source, text="Resource folder").grid(row=0, column=0, sticky="w", padx=(0, 8))
-        ttk.Entry(source, textvariable=self.source_dir).grid(row=0, column=1, sticky="ew")
-        ttk.Button(source, text="Browse…", command=self._choose_source_dir).grid(row=0, column=2, padx=(8, 0))
-        validate = ttk.Button(source, text="Validate 33 files", command=self._validate_source)
-        validate.grid(row=0, column=3, padx=(8, 0))
+        ttk.Label(source, text="Game / media source").grid(
+            row=0, column=0, sticky="w", padx=(0, 8)
+        )
+        ttk.Entry(source, textvariable=self.source_dir).grid(
+            row=0, column=1, sticky="ew"
+        )
+        ttk.Button(
+            source, text="Folder…", command=self._choose_source_dir
+        ).grid(row=0, column=2, padx=(8, 0))
+        ttk.Button(
+            source, text="CD image…", command=self._choose_source_image
+        ).grid(row=0, column=3, padx=(6, 0))
+        validate = ttk.Button(
+            source, text="Scan / Validate", command=self._validate_source
+        )
+        validate.grid(row=0, column=4, padx=(8, 0))
         self._action_buttons.append(validate)
-        ttk.Label(source, textvariable=self.source_status, style="Subtle.TLabel").grid(row=1, column=0, columnspan=4, sticky="ew", pady=(7, 0))
+        ttk.Label(
+            source,
+            textvariable=self.source_status,
+            style="Subtle.TLabel",
+        ).grid(row=1, column=0, columnspan=5, sticky="ew", pady=(7, 0))
 
         self.notebook = ttk.Notebook(self.body)
         self.notebook.grid(row=1, column=0, sticky="nsew")
@@ -1013,10 +1033,34 @@ class RavenloftExtractorGui(tk.Tk):
             "frames carry state without adding display time."
         )
 
+    def _reset_source_cache(self) -> None:
+        self._source_cache_input = None
+        self._source_cache_path = None
+
     def _choose_source_dir(self) -> None:
-        value = filedialog.askdirectory(title="Choose Ravenloft resource folder")
+        value = filedialog.askdirectory(
+            title="Choose Ravenloft install or loose media folder"
+        )
         if value:
             self.source_dir.set(value)
+            self._reset_source_cache()
+            self._auto_destinations(Path(value))
+            self._validate_source()
+
+    def _choose_source_image(self) -> None:
+        value = filedialog.askopenfilename(
+            title="Choose Ravenloft CD image",
+            filetypes=(
+                ("CD images", "*.gog *.iso *.bin *.img"),
+                ("GOG CD image", "*.gog"),
+                ("ISO image", "*.iso"),
+                ("Raw BIN image", "*.bin"),
+                ("All files", "*.*"),
+            ),
+        )
+        if value:
+            self.source_dir.set(value)
+            self._reset_source_cache()
             self._auto_destinations(Path(value))
             self._validate_source()
 
@@ -1027,6 +1071,9 @@ class RavenloftExtractorGui(tk.Tk):
             variable.set(value)
 
     def _auto_destinations(self, root: Path) -> None:
+        root = Path(root)
+        if root.is_file():
+            root = root.parent
         base = root / "RLOFT_DUMP"
         for variable, path in (
             (self.graphics_dest, base / "graphics"),
@@ -1040,19 +1087,68 @@ class RavenloftExtractorGui(tk.Tk):
             if not variable.get():
                 variable.set(str(path))
 
+    def _source_input_path(self) -> Path:
+        raw = self.source_dir.get().strip()
+        if not raw:
+            raise RuntimeError(
+                "Choose a Ravenloft install folder, loose media folder, or CD image."
+            )
+        path = Path(raw).expanduser()
+        if not path.exists():
+            raise RuntimeError(f"Game/media source does not exist: {path}")
+        return path
+
     def _source_path(self) -> Path:
-        root = Path(self.source_dir.get())
-        if not root.is_dir():
-            raise RuntimeError("Choose a valid Ravenloft resource folder.")
-        return root
+        selected = self._source_input_path()
+        cache_key = str(selected.resolve())
+        if (
+            self._source_cache_input == cache_key
+            and self._source_cache_path is not None
+            and self._source_cache_path.is_dir()
+        ):
+            return self._source_cache_path
+
+        prepared = game_source.prepare_source_dir(selected)
+        self._source_cache_input = cache_key
+        self._source_cache_path = prepared
+        return prepared
 
     def _validate_source(self) -> None:
         try:
-            result = media_inventory.validate_source_dir(self._source_path(), verify_hashes=True)
+            selected = self._source_input_path()
+            result = game_source.validate_source(selected, verify_hashes=True)
+            found = len(result["present"])
+            total = int(result["expected"])
+            mismatched = len(result["mismatched"])
+            missing = len(result["missing"])
+            kind = str(result["kind"])
+            if result.get("image_path"):
+                kind += f" ({Path(str(result['image_path'])).name})"
+
             if result["certified_complete"]:
-                self.source_status.set("All 33 audited media/resource files match.")
+                status = f"{kind}: {found}/{total} audited files match exactly."
+            elif result["usable_complete"]:
+                status = (
+                    f"{kind}: {found}/{total} files found; {mismatched} differ "
+                    "from the audited GOG/CD reference and are accepted."
+                )
             else:
-                self.source_status.set(f"Missing {len(result['missing'])}; mismatched {len(result['mismatched'])}.")
+                status = (
+                    f"{kind}: {found}/{total} audited files found; {missing} missing"
+                )
+                if mismatched:
+                    status += f"; {mismatched} differ from the audited reference"
+                status += ". Partial source accepted; unavailable categories may fail."
+
+            auxiliary = set(result.get("auxiliary", ()))
+            grouped = [
+                name for name in ("NPCS.DAT", "OBJECTS.DAT")
+                if name in auxiliary
+            ]
+            if grouped:
+                status += " Grouping data: " + ", ".join(grouped) + "."
+            self.source_status.set(status)
+            self._reset_source_cache()
         except Exception as exc:
             self.source_status.set(str(exc))
 
