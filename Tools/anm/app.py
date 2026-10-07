@@ -43,7 +43,7 @@ def _self_test() -> int:
         for required in (
             "assets/strahd_frame_main.png",
             "assets/strahd_parchment.png",
-            "assets/strahd_title_logo.png",
+            "assets/strahd_banner.webp",
         ):
             asset = runtime_paths.bundled_path(required)
             if asset is None:
