@@ -43,6 +43,17 @@ Type7VgaPlaneMaskModel Type7VgaPlaneMaskModel::from_code2(
     }
     model.initial_individual_columns_mode_ =
         initial_mode != 0U;
+    constexpr std::size_t kVideoPageAt =
+        kCode2Object2FileOffset + 0xEF4DU;
+    if (kVideoPageAt >= code2_bytes.size()) {
+        throw std::runtime_error(
+            "CODE.2 is truncated before initial video page");
+    }
+    model.initial_video_page_ = code2_bytes[kVideoPageAt];
+    if (model.initial_video_page_ > 1U) {
+        throw std::runtime_error(
+            "CODE.2 initial VGA page is outside 0..1");
+    }
     for (std::size_t plane = 0U;
          plane < kMaskOffsets.size(); ++plane) {
         const auto start =
