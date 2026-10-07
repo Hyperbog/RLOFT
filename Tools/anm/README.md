@@ -258,6 +258,30 @@ PNG is the recommended modern-port visual derivative. Optional associated
 outputs can retain canonical palette-index bytes, structural metadata/compiled
 shape bytes, standalone transparency masks, and original EH records.
 
+### Semantic multipart grouping
+
+Graphics extraction can keep the raw archive layout, create grouped multipart
+folders, or write both. Grouping follows the reconstructed renderer tables
+instead of image similarity:
+
+- NPC/creature definitions use NPCS.DAT local shape bases and frame stride,
+  with the class-0 allocation window bounded by the next distinct NPC base;
+- OBJECTS.DAT definitions use the class-2 local shape base and shape stride;
+- the 175 INIT class-1 descriptors are split into exact variant/view subranges;
+- the 12 INIT class-3 transient/moving-effect descriptors are split into exact
+  variant/view subranges and use certified spell/item producer labels where
+  known.
+
+Each multipart folder contains native-resolution frames plus a manifest mapping
+every file back to its original RES3 ID. Optional contact sheets, animated GIF
+previews, and shared-resource alias maps are intended for modding, batch
+upscaling, and remaster workflows. Generic names such as `variant_00` and
+`view_00` are retained where the executable does not prove a narrower label.
+
+NPC and object grouping requires `NPCS.DAT` and `OBJECTS.DAT` beside the
+selected resource files. If either is absent, the raw extraction and INIT-based
+groups still complete and the grouped manifest records the skipped family.
+
 ### Hover help
 
 Interactive controls have delayed floating tooltips. They appear only after a

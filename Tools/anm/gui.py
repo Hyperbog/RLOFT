@@ -87,6 +87,16 @@ class RavenloftExtractorGui(tk.Tk):
         self.graphics_format = tk.StringVar(value="PNG (lossless indexed)")
         self.graphics_palette_mode = tk.StringVar(value=asset_dumper.PALETTE_MODE_AUTOMATIC)
         self.graphics_palette = tk.IntVar(value=0)
+        self.graphics_organization = tk.StringVar(
+            value=asset_dumper.GRAPHICS_ORGANIZATION_BOTH
+        )
+        self.graphics_group_npcs = tk.BooleanVar(value=True)
+        self.graphics_group_objects = tk.BooleanVar(value=True)
+        self.graphics_group_scene = tk.BooleanVar(value=True)
+        self.graphics_group_effects = tk.BooleanVar(value=True)
+        self.graphics_group_contact_sheets = tk.BooleanVar(value=True)
+        self.graphics_group_previews = tk.BooleanVar(value=True)
+        self.graphics_group_alias_maps = tk.BooleanVar(value=True)
         self.graphics_indices = tk.BooleanVar(value=True)
         self.graphics_metadata = tk.BooleanVar(value=True)
         self.graphics_masks = tk.BooleanVar(value=False)
@@ -789,11 +799,46 @@ class RavenloftExtractorGui(tk.Tk):
             variable=self.graphics_native,
         ).grid(row=1, column=1, sticky="w", padx=(18, 0), pady=(5, 0))
 
-        self._folder_row(box, 5, "Destination", self.graphics_dest)
+        ttk.Label(box, text="Organization").grid(
+            row=5, column=0, sticky="w", pady=(9, 0)
+        )
+        ttk.Combobox(
+            box,
+            textvariable=self.graphics_organization,
+            values=asset_dumper.GRAPHICS_ORGANIZATIONS,
+            state="readonly",
+            width=30,
+        ).grid(row=5, column=1, sticky="w", padx=8, pady=(9, 0))
+
+        grouping = ttk.LabelFrame(box, text="Multipart grouping", padding=8)
+        grouping.grid(row=6, column=0, columnspan=3, sticky="ew", pady=(9, 2))
+        ttk.Checkbutton(
+            grouping, text="NPCs / creatures", variable=self.graphics_group_npcs
+        ).grid(row=0, column=0, sticky="w")
+        ttk.Checkbutton(
+            grouping, text="Objects / items", variable=self.graphics_group_objects
+        ).grid(row=0, column=1, sticky="w", padx=(18, 0))
+        ttk.Checkbutton(
+            grouping, text="INIT scene descriptors", variable=self.graphics_group_scene
+        ).grid(row=0, column=2, sticky="w", padx=(18, 0))
+        ttk.Checkbutton(
+            grouping, text="Effects / spells", variable=self.graphics_group_effects
+        ).grid(row=0, column=3, sticky="w", padx=(18, 0))
+        ttk.Checkbutton(
+            grouping, text="Contact sheets", variable=self.graphics_group_contact_sheets
+        ).grid(row=1, column=0, sticky="w", pady=(5, 0))
+        ttk.Checkbutton(
+            grouping, text="Animated previews", variable=self.graphics_group_previews
+        ).grid(row=1, column=1, sticky="w", padx=(18, 0), pady=(5, 0))
+        ttk.Checkbutton(
+            grouping, text="Shared-resource maps", variable=self.graphics_group_alias_maps
+        ).grid(row=1, column=2, sticky="w", padx=(18, 0), pady=(5, 0))
+
+        self._folder_row(box, 7, "Destination", self.graphics_dest)
         self._note(
             tab,
             1,
-            "Automatic palette routing is recommended: it uses exact original-game mappings where reconstructed and a documented canonical world preview for level-dependent art. The graphics manifest records the chosen bank and any valid runtime alternatives per asset. .indices files always preserve the original palette indices.",
+            "Automatic palette routing is recommended. Multipart grouping follows NPCS.DAT, OBJECTS.DAT, INIT, and the reconstructed RES3 renderer rather than image similarity. Each group receives a manifest; optional contact sheets, GIF previews, and shared-resource maps are generated for modding/upscaling. NPC/object grouping is skipped with a manifest warning if those DAT files are not beside the selected resources.",
         )
         button = ttk.Button(tab, text="Extract Selected Graphics", command=self._start_graphics)
         button.grid(row=99, column=0, sticky="se", pady=(10, 0))
@@ -888,6 +933,23 @@ class RavenloftExtractorGui(tk.Tk):
         if not 0 <= value <= 14:
             raise RuntimeError("Manual palette bank must be between 0 and 14.")
         return value
+
+    def _graphics_group_families(self) -> set[str]:
+        selected: set[str] = set()
+        if self.graphics_group_npcs.get():
+            selected.add("npcs")
+        if self.graphics_group_objects.get():
+            selected.add("objects")
+        if self.graphics_group_scene.get():
+            selected.add("scene_descriptors")
+        if self.graphics_group_effects.get():
+            selected.add("effects")
+        if (
+            self.graphics_organization.get() != asset_dumper.GRAPHICS_ORGANIZATION_RAW
+            and not selected
+        ):
+            raise RuntimeError("Enable at least one multipart grouping family.")
+        return selected
 
     def _update_timing_state(self) -> None:
         self.cin_fps_entry.configure(
@@ -1055,6 +1117,11 @@ class RavenloftExtractorGui(tk.Tk):
                 export_indices=self.graphics_indices.get(),
                 export_metadata=self.graphics_metadata.get(),
                 export_masks=self.graphics_masks.get(),
+                organization=self.graphics_organization.get(),
+                group_families=self._graphics_group_families(),
+                group_contact_sheets=self.graphics_group_contact_sheets.get(),
+                group_animated_previews=self.graphics_group_previews.get(),
+                group_alias_maps=self.graphics_group_alias_maps.get(),
             ),
         )
 
@@ -1163,6 +1230,11 @@ class RavenloftExtractorGui(tk.Tk):
         options = master_dumper.DumpOptions(
             graphics_format=self.graphics_format.get(),
             graphics_palette=self._graphics_palette_index(),
+            graphics_organization=self.graphics_organization.get(),
+            graphics_group_families=tuple(sorted(self._graphics_group_families())),
+            graphics_group_contact_sheets=self.graphics_group_contact_sheets.get(),
+            graphics_group_animated_previews=self.graphics_group_previews.get(),
+            graphics_group_alias_maps=self.graphics_group_alias_maps.get(),
             graphics_indices=self.graphics_indices.get(),
             graphics_metadata=self.graphics_metadata.get(),
             graphics_masks=self.graphics_masks.get(),

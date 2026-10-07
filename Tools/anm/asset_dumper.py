@@ -12,6 +12,7 @@ from typing import Callable
 
 from PIL import Image
 
+import grouped_graphics
 import palette_router
 import res_assets as ra
 import runtime_paths
@@ -39,6 +40,13 @@ MUSIC_FORMATS = (
 PALETTE_MODE_AUTOMATIC = palette_router.PALETTE_MODE_AUTOMATIC
 PALETTE_MODE_MANUAL = palette_router.PALETTE_MODE_MANUAL
 PALETTE_MODES = palette_router.PALETTE_MODES
+
+GRAPHICS_ORGANIZATIONS = grouped_graphics.ORGANIZATIONS
+GRAPHICS_ORGANIZATION_BOTH = grouped_graphics.ORGANIZATION_BOTH
+GRAPHICS_ORGANIZATION_RAW = grouped_graphics.ORGANIZATION_RAW
+GRAPHICS_ORGANIZATION_GROUPED = grouped_graphics.ORGANIZATION_GROUPED
+GRAPHICS_GROUP_FAMILIES = grouped_graphics.ALL_FAMILIES
+GRAPHICS_GROUP_FAMILY_LABELS = grouped_graphics.FAMILY_LABELS
 
 
 def _stem(r: ra.EhResource) -> str:
@@ -107,9 +115,26 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
                   archives: set[int] | None = None,
                   export_indices: bool = True,
                   export_metadata: bool = True,
-                  export_masks: bool = False) -> dict:
+                  export_masks: bool = False,
+                  organization: str = GRAPHICS_ORGANIZATION_BOTH,
+                  group_families: set[str] | None = None,
+                  group_contact_sheets: bool = True,
+                  group_animated_previews: bool = True,
+                  group_alias_maps: bool = True) -> dict:
     if fmt not in GRAPHICS_FORMATS:
         raise ra.AssetError(f"unsupported graphics format: {fmt}")
+    if organization not in GRAPHICS_ORGANIZATIONS:
+        raise ra.AssetError(f"unsupported graphics organization: {organization}")
+    raw_enabled = organization != GRAPHICS_ORGANIZATION_GROUPED
+    grouped_enabled = (
+        organization != GRAPHICS_ORGANIZATION_RAW
+        and (archives is None or 3 in archives)
+    )
+    selected_group_families = (
+        set(GRAPHICS_GROUP_FAMILIES)
+        if group_families is None
+        else set(group_families)
+    )
     resources = [
         r for archive in ra.discover_archives(game_dir)
         if archives is None or archive.archive_number in archives
@@ -147,7 +172,8 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
         else:
             folder_name, bank = f"type{r.resource_type}", None
         folder = destination / folder_name
-        folder.mkdir(exist_ok=True)
+        if raw_enabled:
+            folder.mkdir(exist_ok=True)
         rec: dict[str, object] = {
             "archive": r.archive,
             "entry": r.index,
@@ -160,23 +186,24 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
             rec["palette_alternatives"] = list(palette_decision.alternatives)
         if bank is not None:
             rec["scene_bank"] = bank
-        if preserve_native:
+        if raw_enabled and preserve_native:
             (folder / f"{stem}.eh").write_bytes(r.raw)
 
         if r.resource_type == 1:
             raster, _ = ra.decode_type1(r)
-            if export_indices:
+            if raw_enabled and export_indices:
                 (folder / f"{stem}.indices").write_bytes(raster.pixels)
-            for frame in range(raster.count):
-                stride = raster.width * raster.element_height
-                pixels = raster.pixels[frame * stride:(frame + 1) * stride]
-                _save_indexed(
-                    pixels,
-                    (raster.width, raster.element_height),
-                    palette,
-                    folder / f"{stem}_frame{frame:03d}",
-                    fmt,
-                )
+            if raw_enabled:
+                for frame in range(raster.count):
+                    stride = raster.width * raster.element_height
+                    pixels = raster.pixels[frame * stride:(frame + 1) * stride]
+                    _save_indexed(
+                        pixels,
+                        (raster.width, raster.element_height),
+                        palette,
+                        folder / f"{stem}_frame{frame:03d}",
+                        fmt,
+                    )
             rec.update(
                 width=raster.width,
                 height=raster.element_height,
@@ -186,25 +213,26 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
 
         elif r.resource_type == 2:
             raster, widths = ra.decode_type1(r, font=True)
-            if export_indices:
+            if raw_enabled and export_indices:
                 (folder / f"{stem}.indices").write_bytes(raster.pixels)
-            glyph_dir = folder / f"{stem}_glyphs"
-            glyph_dir.mkdir(exist_ok=True)
-            for glyph in range(raster.count):
-                stride = raster.width * raster.element_height
-                pixels = raster.pixels[glyph * stride:(glyph + 1) * stride]
-                _save_indexed(
-                    pixels,
-                    (raster.width, raster.element_height),
-                    palette,
-                    glyph_dir / f"glyph_{glyph:03d}",
-                    fmt,
-                )
-            if export_metadata:
-                (folder / f"{stem}_widths.json").write_text(
-                    json.dumps(list(widths or b""), indent=2) + "\n",
-                    encoding="utf-8",
-                )
+            if raw_enabled:
+                glyph_dir = folder / f"{stem}_glyphs"
+                glyph_dir.mkdir(exist_ok=True)
+                for glyph in range(raster.count):
+                    stride = raster.width * raster.element_height
+                    pixels = raster.pixels[glyph * stride:(glyph + 1) * stride]
+                    _save_indexed(
+                        pixels,
+                        (raster.width, raster.element_height),
+                        palette,
+                        glyph_dir / f"glyph_{glyph:03d}",
+                        fmt,
+                    )
+                if export_metadata:
+                    (folder / f"{stem}_widths.json").write_text(
+                        json.dumps(list(widths or b""), indent=2) + "\n",
+                        encoding="utf-8",
+                    )
             rec.update(
                 glyph_width=raster.width,
                 height=raster.element_height,
@@ -221,11 +249,12 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
             for x in range(width):
                 for y, value in enumerate(body[x * 128:(x + 1) * 128]):
                     row_major[y * width + x] = value
-            if export_indices:
+            if raw_enabled and export_indices:
                 # Keep the exact canonical column-major decoded storage as well
                 # as the viewable row-major image.
                 (folder / f"{stem}.indices").write_bytes(body)
-            _save_indexed(bytes(row_major), (width, height), palette, folder / stem, fmt)
+            if raw_enabled:
+                _save_indexed(bytes(row_major), (width, height), palette, folder / stem, fmt)
             rec.update(
                 width=width,
                 height=height,
@@ -236,7 +265,7 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
         else:
             body = ra.decode_shared_lzss(r)
             metadata = ra.type7_metadata(body)
-            if export_metadata:
+            if raw_enabled and export_metadata:
                 (folder / f"{stem}.shape.bin").write_bytes(body)
                 (folder / f"{stem}.shape.json").write_text(
                     json.dumps(metadata, indent=2) + "\n",
@@ -251,20 +280,21 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
                 rec.update(metadata)
                 rec.update(rendered=False, render_error=str(exc))
             else:
-                if export_indices:
+                if raw_enabled and export_indices:
                     (folder / f"{stem}.indices").write_bytes(raster.pixels)
-                if export_masks:
+                if raw_enabled and export_masks:
                     Image.frombytes(
                         "L", (raster.width, raster.height), raster.mask
                     ).save(folder / f"{stem}.mask.png", format="PNG")
-                _save_masked(
-                    raster.pixels,
-                    raster.mask,
-                    (raster.width, raster.height),
-                    palette,
-                    folder / stem,
-                    fmt,
-                )
+                if raw_enabled:
+                    _save_masked(
+                        raster.pixels,
+                        raster.mask,
+                        (raster.width, raster.height),
+                        palette,
+                        folder / stem,
+                        fmt,
+                    )
                 rec.update(metadata)
                 rec.update(
                     width=raster.width,
@@ -302,10 +332,17 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
         "format": fmt,
         "archives": sorted(archives) if archives is not None else "all",
         "options": {
+            "organization": organization,
+            "raw_archive_layout": raw_enabled,
+            "grouped_multipart_layout": grouped_enabled,
             "native_eh": preserve_native,
             "decoded_indices": export_indices,
             "metadata_and_shape_data": export_metadata,
             "transparency_masks": export_masks,
+            "group_families": sorted(selected_group_families),
+            "group_contact_sheets": group_contact_sheets,
+            "group_animated_previews": group_animated_previews,
+            "group_alias_maps": group_alias_maps,
         },
         "rendered_assets": rendered,
         "structural_only_type7": structural_only,
@@ -316,6 +353,23 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
         ),
         "assets": records,
     }
+    if grouped_enabled:
+        manifest["grouped"] = grouped_graphics.export_grouped(
+            game_dir,
+            destination / "grouped",
+            fmt,
+            palette_index=palette_index,
+            families=selected_group_families,
+            contact_sheets=group_contact_sheets,
+            animated_previews=group_animated_previews,
+            alias_maps=group_alias_maps,
+        )
+    elif organization != GRAPHICS_ORGANIZATION_RAW:
+        manifest["grouped"] = {
+            "skipped": True,
+            "reason": "RES3 was not selected for this graphics extraction.",
+        }
+
     (destination / "graphics_manifest.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )

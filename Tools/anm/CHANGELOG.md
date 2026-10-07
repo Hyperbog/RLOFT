@@ -1,3 +1,12 @@
+## 0.6.0
+
+- Added semantic multipart RES3 extraction for NPCs/creatures, OBJECTS.DAT items, INIT class-1 scene descriptors, and class-3 transient/spell effects.
+- Added Raw + grouped, Raw only, and Grouped only organization modes.
+- Added per-group manifests with original RES3 IDs, generic variant/view coordinates, source-table provenance, and shared-resource relationships.
+- Added contact-sheet PNGs, animated GIF previews, per-variant previews, and shared-resource alias maps.
+- Added certified effect-producer labels for Fireball, Lightning Bolt, Ice Knife, Cone of Cold/Wand of Frost, Flame Arrow, Magic Missile, Burning Hands/Agannazar's Scorcher, Ice Storm/Freezing Sphere, Flame Strike, and Holy Symbol of Ravenkind classes.
+- Added regression coverage for INIT/NPCS/OBJECTS multipart plan reconstruction.
+
 ## 0.5.6
 
 - Added automatic original-game palette routing as the default Graphics & Textures behavior.

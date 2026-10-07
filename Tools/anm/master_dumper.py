@@ -21,6 +21,11 @@ ProgressCallback = Callable[[str, int, int, str], None]
 class DumpOptions:
     graphics_format: str = "PNG (lossless indexed)"
     graphics_palette: int | None = None
+    graphics_organization: str = asset_dumper.GRAPHICS_ORGANIZATION_BOTH
+    graphics_group_families: tuple[str, ...] = asset_dumper.GRAPHICS_GROUP_FAMILIES
+    graphics_group_contact_sheets: bool = True
+    graphics_group_animated_previews: bool = True
+    graphics_group_alias_maps: bool = True
     graphics_indices: bool = True
     graphics_metadata: bool = True
     graphics_masks: bool = False
@@ -188,6 +193,11 @@ def dump_all(
         export_indices=options.graphics_indices,
         export_metadata=options.graphics_metadata,
         export_masks=options.graphics_masks,
+        organization=options.graphics_organization,
+        group_families=set(options.graphics_group_families),
+        group_contact_sheets=options.graphics_group_contact_sheets,
+        group_animated_previews=options.graphics_group_animated_previews,
+        group_alias_maps=options.graphics_group_alias_maps,
     )
     result["audio"] = asset_dumper.dump_audio(
         source_dir,
