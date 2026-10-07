@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -18,6 +19,30 @@ using rloft::GameSourceKind;
 namespace {
 
 constexpr std::size_t kSector = 2048;
+
+void expect_runtime_output(
+    const GameSource& source,
+    const fs::path& expected_parent,
+    const char* context) {
+    const auto output = source.runtime_output_path("CHARS");
+    if (output.filename() != fs::path("CHARS")) {
+        throw std::runtime_error(
+            std::string(context) +
+            ": runtime filename is " + output.filename().string());
+    }
+
+    std::error_code ec;
+    const bool same =
+        fs::equivalent(output.parent_path(), expected_parent, ec);
+    if (ec || !same) {
+        throw std::runtime_error(
+            std::string(context) +
+            ": runtime parent mismatch; actual=" +
+            output.parent_path().string() +
+            " expected=" + expected_parent.string() +
+            " error=" + ec.message());
+    }
+}
 
 void put_le32(std::uint8_t* p, std::uint32_t v) {
     p[0] = static_cast<std::uint8_t>(v);
@@ -115,11 +140,7 @@ void test_iso(bool raw) {
         auto source = GameSource::open(base);
         assert(source.kind() == GameSourceKind::GogCdImage);
         assert(source.contains("res0"));
-        {
-            const auto output = source.runtime_output_path("CHARS");
-            assert(output.filename() == fs::path("CHARS"));
-            assert(fs::equivalent(output.parent_path(), base));
-        }
+        expect_runtime_output(source, base, "ISO runtime path");
         assert(source.contains("INIT"));
         assert(source.read("RES0") ==
                std::vector<std::uint8_t>({1, 2, 3}));
@@ -159,13 +180,10 @@ void test_loose_and_env_discovery() {
         write_iso(nested / "game.gog", false);
         auto source = GameSource::open(nested);
         assert(source.kind() == GameSourceKind::GogCdImage);
-        {
-            const auto output = source.runtime_output_path("CHARS");
-            assert(output.filename() == fs::path("CHARS"));
-            assert(fs::equivalent(
-                output.parent_path(),
-                nested / "RLOFT"));
-        }
+        expect_runtime_output(
+            source,
+            nested / "RLOFT",
+            "GOG nested runtime path");
         fs::remove_all(nested);
     }
 
