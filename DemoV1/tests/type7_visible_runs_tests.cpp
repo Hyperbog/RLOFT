@@ -102,6 +102,21 @@ int main() {
     assert(runs[1].viewport_x == 124U);
     assert(runs[1].width == 1U);
 
+    // 3705B..3708F: if only the last endpoint is drawable, CODE.2
+    // trims the blocked left prefix, draws that suffix and jumps
+    // directly to 370AE. It does NOT process the next left-side column.
+    rays = walls();
+    rays[125].depth = 500U;
+    rays[126].depth = 499U;
+    rays[127].depth = 499U;
+    rays[124].depth = 499U; // Would draw if left traversal continued.
+    runs = rloft::Type7ColumnTraversalModel::visible_runs(
+        left, 128, 500U, rays);
+    assert(runs.size() == 1U);
+    assert(runs[0].source_x == 31U);
+    assert(runs[0].viewport_x == 126U);
+    assert(runs[0].width == 2U);
+
     // The last right-hand source span is clipped to the viewport edge.
     rays = walls();
     rays[254].depth = 0U;
