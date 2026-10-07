@@ -1901,6 +1901,322 @@ void CharacterCreationPresenter::existing_actor_decision_screen(
     draw_stats_panel(draft, stats, 0x114, 0x10C, -1);
 }
 
+void CharacterCreationPresenter::final_decision_entry_frame(
+    const CharacterCreationFlow& flow,
+    const CharacterStatsModel& stats,
+    int frame_index) {
+    const int total = final_decision_entry_frame_count();
+    if (frame_index < 0 || frame_index >= total) {
+        throw std::out_of_range(
+            "CODE.1 3138 entry frame index");
+    }
+
+    constexpr std::array<int, 2> active{{2, 3}};
+    constexpr int ten_a4_frames = 2 + 2 * 14;
+    const int flip_frames =
+        transition_07e4_frame_count(0, 6);
+
+    if (frame_index < ten_a4_frames) {
+        draw_final_decision_base(flow, stats);
+        if (frame_index < 2) return;
+
+        const int local = frame_index - 2;
+        const int active_index = local / 14;
+        const int phase = local % 14;
+
+        for (int i = 0; i < active_index; ++i) {
+            const int slot = active[static_cast<std::size_t>(i)];
+            draw_frame(
+                7, 0x15, 0,
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)]);
+        }
+
+        const int slot =
+            active[static_cast<std::size_t>(active_index)];
+        if (phase >= 12) {
+            draw_frame(
+                7, 0x15, 0,
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)]);
+        } else {
+            draw_10a4_ornament(slot, phase);
+        }
+        return;
+    }
+
+    const int phase = frame_index - ten_a4_frames;
+    if (phase == flip_frames - 1) {
+        final_decision_screen(flow, stats);
+        return;
+    }
+
+    draw_final_decision_base(flow, stats);
+    for (const int slot : active) {
+        draw_frame(
+            7, 0x15, 0,
+            kSlotRow[static_cast<std::size_t>(slot)],
+            kSlotColumn[static_cast<std::size_t>(slot)]);
+    }
+
+    std::array<IndexedRegion, 2> old_region{};
+    std::array<IndexedRegion, 2> new_region{};
+    for (int i = 0; i < 2; ++i) {
+        const int slot = active[static_cast<std::size_t>(i)];
+        old_region[static_cast<std::size_t>(i)] =
+            framebuffer_.capture(
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)],
+                0x7A,
+                0x30);
+    }
+
+    final_decision_screen(flow, stats);
+    for (int i = 0; i < 2; ++i) {
+        const int slot = active[static_cast<std::size_t>(i)];
+        new_region[static_cast<std::size_t>(i)] =
+            framebuffer_.capture(
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)],
+                0x7A,
+                0x30);
+    }
+
+    draw_final_decision_base(flow, stats);
+    for (const int slot : active) {
+        draw_frame(
+            7, 0x15, 0,
+            kSlotRow[static_cast<std::size_t>(slot)],
+            kSlotColumn[static_cast<std::size_t>(slot)]);
+    }
+
+    const auto seam_color = remaps_.bright[4][0];
+    for (int i = 0; i < 2; ++i) {
+        const int slot = active[static_cast<std::size_t>(i)];
+        const auto index = static_cast<std::size_t>(i);
+        const int delay = slot;  // 3138's temporary mode 7 uses 07E4(0,6).
+        const int k =
+            phase < delay
+                ? 0
+                : phase - delay + 1;
+        const int row =
+            kSlotRow[static_cast<std::size_t>(slot)];
+        const int column =
+            kSlotColumn[static_cast<std::size_t>(slot)];
+
+        if (k == 0) {
+            framebuffer_.restore(
+                old_region[index], row, column);
+            continue;
+        }
+
+        draw_frame(7, 0x1E + slot, 0, row, column);
+        if (k < 6) {
+            const int q = 6 - k;
+            framebuffer_.restore_scaled_horizontal(
+                old_region[index],
+                row,
+                column + 4 * k,
+                q,
+                10);
+        } else if (k == 6) {
+            framebuffer_.fill_rect(
+                row,
+                column + 0x18,
+                0x7A,
+                1,
+                seam_color);
+        } else if (k < 12) {
+            const int q = 12 - k;
+            framebuffer_.restore_scaled_horizontal(
+                new_region[index],
+                row,
+                column + 4 * q,
+                q,
+                6);
+        } else {
+            framebuffer_.restore(
+                new_region[index], row, column);
+        }
+    }
+}
+
+void CharacterCreationPresenter::final_decision_dissolve_frame(
+    const CharacterCreationFlow& flow,
+    const CharacterStatsModel& stats,
+    int frame_index) {
+    if (frame_index < 0 || frame_index >= 10) {
+        throw std::out_of_range(
+            "CODE.1 3138 15B0 frame index");
+    }
+
+    final_decision_screen(flow, stats);
+
+    if (frame_index < 5) {
+        const auto& map =
+            remaps_.bright[
+                static_cast<std::size_t>(frame_index)];
+        for (int slot : {2, 3}) {
+            const auto region = framebuffer_.capture(
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)],
+                0x7A,
+                0x30);
+            framebuffer_.restore_mapped(
+                region,
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)],
+                map);
+        }
+        return;
+    }
+
+    const auto& map =
+        remaps_.bright[
+            static_cast<std::size_t>(9 - frame_index)];
+    for (int slot : {2, 3}) {
+        framebuffer_.draw_frame_mapped(
+            assets_.type1(7, 0x1E + slot),
+            0,
+            kSlotRow[static_cast<std::size_t>(slot)],
+            kSlotColumn[static_cast<std::size_t>(slot)],
+            map);
+    }
+}
+
+void CharacterCreationPresenter::name_entry_entry_frame(
+    const CharacterCreationFlow& flow,
+    const CharacterStatsModel& stats,
+    int frame_index) {
+    const int total = name_entry_entry_frame_count();
+    if (frame_index < 0 || frame_index >= total) {
+        throw std::out_of_range(
+            "CODE.1 3020 entry frame index");
+    }
+
+    constexpr int ten_a4_frames = 2 + 14;
+    const int flip_frames =
+        transition_07e4_frame_count(6, 9);
+
+    if (frame_index < ten_a4_frames) {
+        draw_name_entry_base(flow, stats);
+        if (frame_index < 2) return;
+
+        const int phase = (frame_index - 2) % 14;
+        if (phase >= 12) {
+            draw_frame(
+                7, 0x15, 0,
+                kSlotRow[7], kSlotColumn[7]);
+        } else {
+            draw_10a4_ornament(7, phase);
+        }
+        return;
+    }
+
+    const int phase = frame_index - ten_a4_frames;
+    if (phase >= flip_frames) {
+        // 3020 explicitly draws RES7:14 and flips once more after 1464.
+        name_entry_screen(flow, stats, {}, false);
+        return;
+    }
+
+    if (phase == flip_frames - 1) {
+        name_entry_screen(flow, stats, {}, false);
+        return;
+    }
+
+    draw_name_entry_base(flow, stats);
+    draw_frame(
+        7, 0x15, 0,
+        kSlotRow[7], kSlotColumn[7]);
+    const auto old_region = framebuffer_.capture(
+        kSlotRow[7], kSlotColumn[7], 0x7A, 0x30);
+
+    name_entry_screen(flow, stats, {}, false);
+    const auto new_region = framebuffer_.capture(
+        kSlotRow[7], kSlotColumn[7], 0x7A, 0x30);
+
+    draw_name_entry_base(flow, stats);
+    draw_frame(
+        7, 0x15, 0,
+        kSlotRow[7], kSlotColumn[7]);
+
+    // 3020 runs under mode 6, so 07E4 covers slots 6..8. Slot 7 is delayed
+    // one phase even though slots 6/8 have new_id == -1.
+    const int k =
+        phase < 1
+            ? 0
+            : phase;
+    const int row = kSlotRow[7];
+    const int column = kSlotColumn[7];
+    const auto seam_color = remaps_.bright[4][0];
+
+    if (k == 0) {
+        framebuffer_.restore(old_region, row, column);
+    } else {
+        draw_frame(7, 0x1E + 7, 0, row, column);
+        if (k < 6) {
+            const int q = 6 - k;
+            framebuffer_.restore_scaled_horizontal(
+                old_region,
+                row,
+                column + 4 * k,
+                q,
+                10);
+        } else if (k == 6) {
+            framebuffer_.fill_rect(
+                row,
+                column + 0x18,
+                0x7A,
+                1,
+                seam_color);
+        } else if (k < 12) {
+            const int q = 12 - k;
+            framebuffer_.restore_scaled_horizontal(
+                new_region,
+                row,
+                column + 4 * q,
+                q,
+                6);
+        } else {
+            framebuffer_.restore(new_region, row, column);
+        }
+    }
+}
+
+void CharacterCreationPresenter::name_entry_dissolve_frame(
+    const CharacterCreationFlow& flow,
+    const CharacterStatsModel& stats,
+    const std::string& name,
+    int frame_index) {
+    if (frame_index < 0 || frame_index >= 10) {
+        throw std::out_of_range(
+            "CODE.1 3020 15B0 frame index");
+    }
+
+    name_entry_screen(flow, stats, name, false);
+
+    if (frame_index < 5) {
+        const auto region = framebuffer_.capture(
+            kSlotRow[7], kSlotColumn[7], 0x7A, 0x30);
+        framebuffer_.restore_mapped(
+            region,
+            kSlotRow[7],
+            kSlotColumn[7],
+            remaps_.bright[
+                static_cast<std::size_t>(frame_index)]);
+        return;
+    }
+
+    framebuffer_.draw_frame_mapped(
+        assets_.type1(7, 0x1E + 7),
+        0,
+        kSlotRow[7],
+        kSlotColumn[7],
+        remaps_.bright[
+            static_cast<std::size_t>(9 - frame_index)]);
+}
+
 void CharacterCreationPresenter::final_decision_screen(
     const CharacterCreationFlow& flow,
     const CharacterStatsModel& stats) {
