@@ -18,34 +18,24 @@ int CharacterCreationFlow::hit_test(
     CharacterCreationState state, int row, int column) noexcept {
     // CODE.1 035C scans slots 0..5 for modes 0..5. Each slot is the
     // engine's 0x7A x 0x30 row/column rectangle.
+    int result = -1;
     for (int i = 0; i < 6; ++i) {
         if (row >= kRow[i] && row < kRow[i] + 0x7A &&
             column >= kColumn[i] && column < kColumn[i] + 0x30) {
-            const int event = i + 1;
-
-            // State 0 only exposes the two actor cards (events 3/4).
-            if (state == CharacterCreationState::ActorChoice &&
-                event != 3 && event != 4) {
-                continue;
-            }
-
-            // State 1 only exposes sex choices (events 3/4).
-            if (state == CharacterCreationState::SexChoice &&
-                event != 3 && event != 4) {
-                continue;
-            }
-
-            return event;
+            // CODE.1 does not break on overlap; the last matching slot wins.
+            result = i + 1;
         }
     }
 
-    // CODE.1 035C's fixed cancel/back rectangle.
+    // CODE.1 035C applies this test after the six normal slots, so cancel
+    // overrides an overlapping slot exactly as the binary does.
     if (row >= 0x114 && row < 0x18E &&
         column >= 0x10C && column < 0x13C) {
-        return 0;
+        result = 0;
     }
 
-    return -1;
+    (void)state; // Mode 0..5 shares the same six-slot geometry at 035C.
+    return result;
 }
 
 bool CharacterCreationFlow::apply_event(int event) {
