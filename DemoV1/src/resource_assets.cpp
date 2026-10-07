@@ -278,6 +278,56 @@ std::vector<std::uint8_t> ResArchive::decode_type3(int index) const {
     };
 }
 
+Type7Geometry ResArchive::decode_type7_geometry(int index) const {
+    const auto raw = entry(index);
+    if (raw.size() < 7U ||
+        raw[0] != 'E' || raw[1] != 'H' || raw[2] != 7) {
+        throw std::runtime_error(
+            "RES entry is not an EH type-7 scene shape");
+    }
+
+    const auto header_size = s16(raw.data() + 3);
+    if (header_size != 0) {
+        throw std::runtime_error(
+            "Shipped type-7 resource has unexpected header");
+    }
+
+    const auto decoded_size =
+        static_cast<std::size_t>(
+            u16(raw.data() + 5));
+    if (decoded_size < 10U) {
+        throw std::runtime_error(
+            "Type-7 scene shape is shorter than its geometry header");
+    }
+
+    const auto body = lzss_4k(
+        raw.data() + 7U,
+        raw.size() - 7U,
+        decoded_size);
+
+    Type7Geometry geometry{};
+    geometry.source_width = u16(body.data() + 0U);
+    geometry.x_min = s16(body.data() + 2U);
+    geometry.x_max = s16(body.data() + 4U);
+    geometry.y_min = s16(body.data() + 6U);
+    geometry.y_max = s16(body.data() + 8U);
+
+    if (geometry.source_width == 0U ||
+        (geometry.source_width & 1U) != 0U ||
+        geometry.x_min < 0 ||
+        geometry.x_max < geometry.x_min ||
+        geometry.x_max >=
+            static_cast<std::int16_t>(
+                geometry.source_width) ||
+        geometry.y_min < 0 ||
+        geometry.y_max < geometry.y_min ||
+        geometry.y_max > 128) {
+        throw std::runtime_error(
+            "Type-7 scene-shape geometry is invalid");
+    }
+    return geometry;
+}
+
 std::vector<std::uint8_t> ResArchive::decode_type4(int index) const {
     const auto raw = entry(index);
     if (raw.size() < 9 ||
@@ -402,6 +452,15 @@ Type2Font RavenloftBootAssets::res0_font(int index) const {
 std::vector<std::uint8_t> RavenloftBootAssets::music_sequence(
     int index) const {
     return res5_.decode_type3(index);
+}
+
+Type7Geometry RavenloftBootAssets::res3_type7_geometry(
+    int index) const {
+    if (!res3_.has_value()) {
+        res3_.emplace(
+            source_.read("RES3"));
+    }
+    return res3_->decode_type7_geometry(index);
 }
 
 std::vector<std::uint8_t> RavenloftBootAssets::sampled_audio(
