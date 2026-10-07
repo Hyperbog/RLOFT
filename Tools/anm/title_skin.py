@@ -161,8 +161,16 @@ def ravenloft_logo() -> Image.Image:
 
 
 def render_header(width: int, height: int, ui_scale: float = 1.0) -> Image.Image:
+    """Render the crest field plus the visible top section of the outer frame.
+
+    The header canvas is intentionally full-bleed.  Re-drawing the frame's
+    upper corners and rails here prevents that canvas from covering the same
+    decorations drawn on the full-window skin underneath it.
+    """
     width = max(1, int(width))
     height = max(1, int(height))
+    frame_scale = max(0.72, min(1.35, float(ui_scale)))
+
     texture = red_texture()
     out = Image.new("RGB", (width, height), "#210d10")
     for y in range(0, height, texture.height):
@@ -173,12 +181,76 @@ def render_header(width: int, height: int, ui_scale: float = 1.0) -> Image.Image
             out.paste(tile, (x, y))
     out = Image.blend(out, Image.new("RGB", out.size, "#16090b"), 0.20)
 
+    panel = menu_panel()
+    tl = _scaled_crop(panel, TOP_LEFT, frame_scale)
+    tr = _scaled_crop(panel, TOP_RIGHT, frame_scale)
+
+    margin = max(2, round(4 * frame_scale))
+    rail_w = max(4, round(6 * frame_scale))
+    top_rail_y = max(12, round(16 * frame_scale))
+    left_rail_x = margin + max(13, round(16 * frame_scale))
+    right_rail_x = max(
+        left_rail_x + rail_w,
+        width - margin - max(13, round(16 * frame_scale)) - rail_w,
+    )
+    stone = (112, 109, 103)
+    stone_light = (162, 158, 149)
+    stone_dark = (40, 29, 31)
+
+    draw = ImageDraw.Draw(out)
+    draw.rectangle(
+        (
+            margin + tl.width - max(10, round(12 * frame_scale)),
+            top_rail_y,
+            max(
+                margin + tl.width,
+                width - margin - tr.width + max(10, round(12 * frame_scale)),
+            ),
+            top_rail_y + rail_w,
+        ),
+        fill=stone_dark,
+    )
+    draw.line(
+        (
+            margin + tl.width - max(9, round(11 * frame_scale)),
+            top_rail_y + 1,
+            width - margin - tr.width + max(9, round(11 * frame_scale)),
+            top_rail_y + 1,
+        ),
+        fill=stone_light,
+        width=max(1, round(2 * frame_scale)),
+    )
+    draw.rectangle(
+        (left_rail_x, top_rail_y, left_rail_x + rail_w, height),
+        fill=stone_dark,
+    )
+    draw.line(
+        (left_rail_x + 1, top_rail_y, left_rail_x + 1, height),
+        fill=stone,
+        width=max(1, round(2 * frame_scale)),
+    )
+    draw.rectangle(
+        (right_rail_x, top_rail_y, right_rail_x + rail_w, height),
+        fill=stone_dark,
+    )
+    draw.line(
+        (right_rail_x + rail_w - 2, top_rail_y, right_rail_x + rail_w - 2, height),
+        fill=stone,
+        width=max(1, round(2 * frame_scale)),
+    )
+
+    out.paste(tl, (margin, 0), tl)
+    out.paste(tr, (max(0, width - margin - tr.width), 0), tr)
+
     logo = ravenloft_logo()
-    target_h = max(44, min(height - 8, round(92 * max(0.75, min(1.25, ui_scale)))))
-    scale = min(target_h / logo.height, max(1, width - 40) / logo.width)
+    target_h = max(
+        44,
+        min(height - 8, round(92 * max(0.75, min(1.25, frame_scale)))),
+    )
+    logo_scale = min(target_h / logo.height, max(1, width - 40) / logo.width)
     draw_size = (
-        max(1, round(logo.width * scale)),
-        max(1, round(logo.height * scale)),
+        max(1, round(logo.width * logo_scale)),
+        max(1, round(logo.height * logo_scale)),
     )
     logo = logo.resize(draw_size, Image.Resampling.NEAREST)
     out.paste(
@@ -196,7 +268,10 @@ def chrome_insets(scale: float = 1.0) -> tuple[int, int, int]:
     return (
         max(38, round(48 * scale)),
         0,
-        max(36, round(46 * scale)),
+        # Reserve the complete 62px source-corner height plus its outer
+        # margin.  The footer must end above the lower corner artwork rather
+        # than covering its upper portion.
+        max(48, round(66 * scale)),
     )
 
 
