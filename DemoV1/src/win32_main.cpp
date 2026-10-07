@@ -1126,7 +1126,7 @@ int run(HINSTANCE instance) {
                             1.0 / kVgaRefreshHz));
                 Clock::time_point character_animation_deadline{};
 
-                auto present_character_animation_frame = [&]() {
+                auto present_character_animation_frame = [&](int retraces = 1) {
                     host.present(
                         character_presenter.framebuffer(),
                         character_palette);
@@ -1143,7 +1143,8 @@ int run(HINSTANCE instance) {
                         character_animation_deadline = now;
                     }
                     character_animation_deadline +=
-                        character_animation_period;
+                        character_animation_period *
+                        std::max(1, retraces);
 
                     const bool ok = host.wait_until(
                         character_animation_deadline,
@@ -1239,12 +1240,16 @@ int run(HINSTANCE instance) {
                     const int frames =
                         character_presenter.controller_entry_frame_count(
                             target);
+                    const int ten_a4_frames =
+                        character_presenter.controller_entry_10a4_frame_count(
+                            target);
                     for (int frame = 0; frame < frames; ++frame) {
                         character_presenter.controller_entry_frame(
                             target,
                             stats,
                             frame);
-                        if (!present_character_animation_frame()) {
+                        if (!present_character_animation_frame(
+                                frame < ten_a4_frames ? 2 : 1)) {
                             return false;
                         }
                     }
@@ -1286,7 +1291,9 @@ int run(HINSTANCE instance) {
                             character_flow,
                             character_stats,
                             frame);
-                        if (!present_character_animation_frame()) {
+                        constexpr int kTenA4Frames = 2 + 2 * 14;
+                        if (!present_character_animation_frame(
+                                frame < kTenA4Frames ? 2 : 1)) {
                             return false;
                         }
                     }
@@ -1315,7 +1322,9 @@ int run(HINSTANCE instance) {
                             character_flow,
                             character_stats,
                             frame);
-                        if (!present_character_animation_frame()) {
+                        constexpr int kTenA4Frames = 2 + 14;
+                        if (!present_character_animation_frame(
+                                frame < kTenA4Frames ? 2 : 1)) {
                             return false;
                         }
                     }

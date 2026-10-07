@@ -139,6 +139,8 @@ public:
     // placeholder resource 15h into the controller's real slot resources.
     [[nodiscard]] int controller_entry_frame_count(
         const CharacterCreationFlow& flow) const noexcept;
+    [[nodiscard]] int controller_entry_10a4_frame_count(
+        const CharacterCreationFlow& flow) const noexcept;
     void controller_entry_frame(
         const CharacterCreationFlow& flow,
         const CharacterStatsModel* stats,

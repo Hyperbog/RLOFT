@@ -1454,14 +1454,19 @@ void CharacterCreationPresenter::transition_07e4_frame(
     }
 }
 
-int CharacterCreationPresenter::controller_entry_frame_count(
+int CharacterCreationPresenter::controller_entry_10a4_frame_count(
     const CharacterCreationFlow& flow) const noexcept {
     int active = 0;
     for (int slot = 0; slot < 9; ++slot) {
         if (slot_active(flow, slot)) ++active;
     }
+    return 2 + active * 14;
+}
+
+int CharacterCreationPresenter::controller_entry_frame_count(
+    const CharacterCreationFlow& flow) const noexcept {
     const auto range = controller_entry_range(flow.state());
-    return 2 + active * 14 +
+    return controller_entry_10a4_frame_count(flow) +
            transition_07e4_frame_count(
                range.first,
                range.second);
