@@ -60,6 +60,15 @@ The new `type7_vga_plane_masks` model reconstructs the immutable CODE.2
 tables at runtime and validates all 28 active mask triplets. It currently
 exposes exact masks and conditional pass counts without dispatching x86.
 
+The `type7_vga_raster_dispatch` model now also reconstructs the complete
+`36B14 -> 369D8 -> 369C0` dispatch ABI without invoking generated code. It
+records each VGA destination byte address, sequencer mask, renderer lookup word
+(unchanged or low-byte-swapped), and pass order, including page base selection.
+Both `0xC029` paths are independently regression-tested using original
+mask-table-equivalent fixtures. This call-level trace is kept separate from
+the currently per-pixel scene-column model: original grouped-run segmentation
+must be preserved before integrating it into final framebuffer drawing.
+
 The new `vga_planar_memory` backend implements four distinct 64-KiB
 planes in the original `0xA0000..0xAFFFF` aperture. A masked byte write
 modifies only selected planes. Pages 0/1 use 32-KiB slices; for an ordinary
@@ -89,7 +98,7 @@ generated instructions have been translated.
 
 `DemoV1/CMakeLists.txt` registers targeted tests for native type-7
 reconstruction, traversal, microcode offsets, patching, VGA mask parsing,
-and planar memory. An independent local strict C++17/sanitizer smoke test
+VGA raster dispatch, and planar memory. An independent local strict C++17/sanitizer smoke test
 using the uploaded CODE.2 bytes checked all 28 triplets and simulated
 three sequential masked VGA memory writes for each one. These local
 checks are narrower than a full build of the demo library.
