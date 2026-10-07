@@ -87,6 +87,12 @@ Chapter [16](16_ANM_CINEMATIC_ENGINE_AND_TIMELINE.md) proves that each frame use
 
 Regression requirements: test registration and teardown of both IRQ-8 owners; saved-vector chaining; tick rollover boundaries; anchored versus unanchored waits; flag-specific early exits; cooperative servicing while waiting; the 17 callback-slot states; changing shortest intervals and emitted PIT bytes; final timer-vector restoration; and variable ANM packet mixes. These are proposed tests, **not executed gameplay certifications**.
 
+## 8. SAVE time-domain cross-check
+
+The certified SAVE format preserves three independent quantities: the IRQ counter `0xF58C` in the fixed header at `+0x6C`; world time `0xCF4C` (16.16 hours) at `+0x70`; and the pausable gameplay counter `0xA7E4` after the variable-length transient-effect array. They cannot be merged into a single wall-clock timestamp. The supplied 9,288-byte quick-start fixture records `1899`, `0x000E0000` (14:00), and `1735` respectively. Their different sample values independently disprove assuming one global integer tick stream.
+
+Primary cross-check: [SAVE global-state specification](../DatFiles/SAVE.DAT/GLOBAL_STATE.md) and original CODE.2 load/save readers.
+
 ## 9. Timer installation ordering across audio initialization
 
 The primary CODE.2 initialization path at `2044B` enters `2F2EC`. Inside it, `2F323` calls `30BB4` **before** either sound-driver initializer. After SOUND.CFG loading and the configuration checks, `2F407` calls `27D20` with driver filename at config `+0x24` and four config words at `+0x0A..+0x10` **only when** word `+0x14` is nonzero. `2F426` calls `282BC` with filename at `+0x16` and words `+0x00..+0x06`. In the supplied SOUND.CFG these correspond respectively to the digital-sound and MT-32 music driver selections.
@@ -140,11 +146,73 @@ The deadline comparison at `2E6BD` uses **unsigned** `JB` after computing an abs
 
 **Verification:** source CODE.2 SHA-256 matched the certified original, and 28 targeted byte/call assertions for these paths passed. This verifies the cited machine bytes and static edges, **not** timer hardware measured in execution.
 
-## 14. Remaining unknowns
+## 14. Exact SAVE clock serialization and restoration
+
+CODE.2 save path `0x6974..0x69D0` calls the tick getter `30700` and writes its resulting dword, then writes `CF4C` directly. The matching load path `0x6D70..0x6D99` reads four bytes, passes the result at `0x6D84` to `30738`, and reads world time into `CF4C`. The tick setter `30738` brackets the store to `F58C` with `CLI`/`STI`; the getter is a direct dword read, not a host stopwatch.
+
+The middle SAVE section, after the four-character image and `0x16`-byte transient records, writes `A7E4` at `0x6ADD..0x6AF0`. On load, `0x6EAE..0x6EC7` reads the dword and passes it to setter `1E74C`. With `n` transient effects, the fixture-relative gameplay field begins at:
+
+```text
+0x09A3 + 0x16 * n
+```
+
+The supplied fixture has `n=0`. **Do not hard-code `0x09A3` as an offset for every save file.** The 16.16 world-time value and IRQ snapshot are in the fixed prefix and do not shift.
+
+## 15. Restoration baselines and periodic maintenance
+
+Setter `1E74C` stores its argument into `A7E4` **and `BF50`**, not into `BF54`. Routine `1E75C` is responsible for initialization of both maintenance baselines when sentinel `BF58 == -1`: it zeroes `BF58` and sets `BF50=BF54=A7E4`.
+
+After this setup, it compares `(A7E4-BF50)` to `0x438` and handles elapsed chunks, including advancing the high 16-bit hour word of `CF4C` and party HP/status work. The difference is compared using a **signed** branch. A separate comparison of `A7E4-BF54` against `0x21C` uses `JLE`: that operation triggers only when the difference is **strictly greater** than `0x21C`, then updates `BF54` and rotates a party-maintenance index.
+
+Important: the maintenance baseline dwords are internal scheduling state, whereas **absolute effect deadlines stored within characters** and the common gameplay tick are serialized. After load, execute the original reinitialization/setter behavior rather than presuming two independently serialized maintenance baselines. This also explains why restoring just a host timestamp is insufficient.
+
+## 16. Nested gameplay-clock pause and resume
+
+`19C80` increments `A7E4` only when `A7E8` is nonzero. `19CCC` and `19CF4` implement a **bounded nesting stack** for this enable value:
+
+```text
+A7EC          byte stack depth, maximum 14
+140A0[0..13]  saved prior low-byte enable states
+A7E8          active gameplay-tick enable state
+```
+
+A push at depth below 14 saves the current low byte, increments depth, and assigns the supplied new state. At depth 14 it returns without recording a deeper state. A pop when nonempty decrements depth and restores the saved byte (zero-extended into the dword); an empty pop preserves the current value. The distinction between a nested pause and globally disabling the underlying interrupt is essential: `F58C` can keep advancing while `A7E4` remains stationary.
+
+Do not turn this into an unlimited boolean stack or silently lose the original 14-entry cap in a strict compatibility implementation.
+
+## 17. Actual main-loop pacing and deferred work
+
+The main CODE.2 loop at `201A7..2022B` has a reproducible ordered call path:
+
+```text
+201A7  2E608       anchor current IRQ tick
+201AC..201C5       gameplay/input/render update calls
+201D0  1A510       update using current C050 page/state
+201E1  1F494       render/presentation update
+201E9  28168       service queued sound effects
+201EE  1F120       additional frame service
+201F3  push 0       wait flags
+201F5  push 2       tick duration
+201F7  2E614       anchored two-tick wait
+2021C..20226       additional state/UI updates
+2022B  1E75C       gameplay time maintenance
+```
+
+This is a **two-game-clock-tick deadline target for the common loop path**, not proof of an invariant 30/60-FPS display rate. Actual elapsed time depends on interrupt delivery, prior frame work, audio callbacks, and whether the anchor/deadline was already reached. It is also separate from the ANM packet-dependent waits in Chapter 16.
+
+## 18. Rest fast-forward and regression boundary
+
+The resting path at `49B4` directly adds `0x438` to **A7E4**, then at `49BE` adds `0x445` to the 16.16 world-time dword **CF4C** and calls normalization/service routine `31F94`. The addends are exact machine constants and **not interchangeable**. Thus elapsed game effects and world-clock presentation can advance through authored game actions without equivalent real-time IRQ intervals. At `50C0..50CB` the rest path calls `1E74C(A7E4)`, synchronizing `BF50` after its accelerated updates.
+
+Regression fixtures must include: variable `SAVE` transient counts; preserving all three clocks; IRQ restoration with an interrupt-safe setter; `BF58=-1` initialization; signed `0x438` and strict-`>` `0x21C` thresholds; nested pause depth 0/14; natural frame deadlines; rest fast-forward arithmetic; and timeout/rollover boundaries. These are required tests, not claimed gameplay tests already executed.
+
+**Direct verification this pass:** SHA-256 of original CODE.2 and 30 instruction anchors, plus fixture clock values and file length, passed. All test descriptions above remain regression specifications until instrumented playback/round-trip execution is run.
+
+## 19. Remaining unknowns
 
 The complete dynamic initialization order for all original audio drivers; timer scheduling under driver failure/reinitialization; platform-dependent ISR latency; precise physical elapsed time per cinematic tick; and behavior across wraparound at real runtime remain **OPEN**. Do not infer these solely from nominal IBM PC PIT constants or a modern emulator.
 
-**Next:** trace exact save/load ownership for the gameplay-time counter and its regeneration baselines; investigate driver callback activation for the supplied SOUND.CFG under executable observation; then audit additional frame/update loop callers and capture timing regression traces.
+**Next:** trace exact audiovisual callback activation for the supplied SOUND.CFG under controlled original execution, test the 14-deep pause stack and signed periodic-maintenance thresholds, and compare measured IRQ/PIT cadence with frame and ANM timelines. The underlying 16.16 world-time progression and rest acceleration are now statically cross-linked to the original SAVE layout.
 
 ## Source ledger
 
