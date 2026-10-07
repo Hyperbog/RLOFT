@@ -905,3 +905,727 @@ Routine `02A34`:
 [Automap reconstruction](https://github.com/Hyperbog/RLOFT/blob/dedebcbbe43b435e989e05c0a8b1ff9b8a611245/DatFiles/LEVELS.DAT/AUTOMAP.md) [Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
 
 The `AUTOMAPS` directory itself is created by launcher `R.EXE` before CODE.2 gameplay execution. [R.EXE reconstruction](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Runtime/R_EXE/01_STRUCTURAL_RECONSTRUCTION.md)
+
+
+## 41. The AUTO filename has an encoded digit-order quirk
+
+Routine `02A34` does not fill the three `AUTO???` placeholders in conventional hundreds/tens/ones order.
+
+Its machine-code stores are:
+
+```text
+placeholder 1 <- hundreds digit
+placeholder 2 <- ones digit
+placeholder 3 <- tens digit
+```
+
+Thus the strict encoded transformation is:
+
+```text
+map ID = 100*h + 10*t + o
+
+filename digits = h o t
+```
+
+For values where tens and ones happen to be equal or one is zero, the distinction may be visually unobvious. For example:
+
+```text
+22 -> 022
+```
+
+still appears conventional.
+
+But:
+
+```text
+12 -> 021
+```
+
+under the encoded routine rather than conventional `012`.
+
+[Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+This should be classified as a **machine-proven filename digit-order quirk**. A strict compatibility implementation should reproduce it. A modernized export UI may intentionally correct it, but only above the faithful layer.
+
+## 42. Historical-map LEV filenames use conventional digit order
+
+The map-browser path `02AE8` independently constructs:
+
+```text
+work\lev???.dat
+```
+
+and writes the requested level digits in ordinary:
+
+```text
+hundreds
+tens
+ones
+```
+
+order. [Automap reconstruction](https://github.com/Hyperbog/RLOFT/blob/dedebcbbe43b435e989e05c0a8b1ff9b8a611245/DatFiles/LEVELS.DAT/AUTOMAP.md)
+
+The AUTO save-path quirk therefore cannot be generalized into a shared decimal-filename formatter. The two call paths encode their three digits differently.
+
+## 43. Annotation legend follows the exported map
+
+After emitting the map rows, exporter `026E8` invokes legend routine `02474`.
+
+The legend walks the same annotation list and uses the same label progression as the marker overlay. Therefore a SAVE/PRINT automap with notes consists conceptually of:
+
+```text
+map body
+    |
+    +-- base/placed/note-marker cells
+    |
+    v
+annotation legend
+    label : payload
+```
+
+[Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+Note payload bytes remain byte-preserved; this chapter does not invent a richer text encoding than the executable requires.
+
+## 44. SAVE export intentionally omits the party marker
+
+Internally the current party cell becomes cache class `0x2E` or `0x2F`.
+
+The export conversion table maps both to:
+
+```text
+0xFA
+```
+
+the same byte used for ordinary floor classes `0x2C/0x2D`. [Automap reconstruction](https://github.com/Hyperbog/RLOFT/blob/dedebcbbe43b435e989e05c0a8b1ff9b8a611245/DatFiles/LEVELS.DAT/AUTOMAP.md)
+
+Consequently:
+
+```text
+on-screen/internal map state
+    knows the party-cell class
+
+saved/printed base CP437 map
+    collapses it to floor
+```
+
+The party location is not represented as a distinct base-map character by this export table.
+
+## 45. Saved cache and exported map are different artifacts
+
+Two serialized/persistent outputs must not be conflated.
+
+### LEV automap cache
+
+Stored inside the standalone level snapshot:
+
+```text
+uint8 cache[width*height]
+```
+
+Values include internal classes such as:
+
+```text
+0xFF
+0x01..0x05
+0x2E
+0x2F
+```
+
+### AUTO map text
+
+Generated on demand through:
+
+```text
+cache
+ -> connected resolver
+ -> CP437 conversion
+ -> overlays
+ -> text lines
+ -> legend
+```
+
+The `.MAP` file is a human-facing export, not a saved runtime cache and not a loadable level snapshot.
+
+## 46. Level-22 replay discrepancy remains bounded
+
+The supplied `LEV022.DAT` contains:
+
+```text
+450 cells
+313 explored
+137 unexplored
+
+86 raw-code-1 cells
+    46 explored
+    40 unexplored
+```
+
+Serialized cache:
+
+```text
+0x2E : 313
+0xFF : 130
+0x01 :   7
+```
+
+[Cache rebuild audit](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/CACHE_REBUILD_AUDIT.md)
+
+Replaying certified CODE.2 `01558` against the same serialized header/cell state predicts `0x2E` for the 40 unexplored code-1 cells because:
+
+```text
+primary_cell_resource_A[1] == 0x0093
+```
+
+The saved artifact instead stores:
+
+```text
+33 * 0xFF
+ 7 * 0x01
+```
+
+at those positions.
+
+Every explored code-1 cell agrees with certified CODE.2.
+
+## 47. The Level-22 discrepancy is not explained by lookup animation
+
+The primary resource-table animator `1EDAC` cycles values including:
+
+```text
+0x15C -> 0x15D -> 0x15E -> 0x15C
+0x0AA -> 0x0AB -> 0x0AA
+0x11B -> 0x11C -> 0x11D -> 0x11B
+0x101 -> 0x102 -> 0x101
+```
+
+plus the documented `0x242..0x247` ranges.
+
+It does not modify `0x0093`. [Cache rebuild audit](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/CACHE_REBUILD_AUDIT.md)
+
+The standalone writer also serializes the header and later calls `01558` without an intervening `1EDAC` call that could explain a different table state.
+
+The previous live-table-transition hypothesis is therefore rejected.
+
+## 48. Compatibility policy for the Level-22 discrepancy
+
+The preservation rule is deliberately asymmetric:
+
+### Native faithful behavior
+
+When rebuilding automap cache from live state:
+
+```text
+execute/reproduce certified CODE.2 01558 semantics
+```
+
+### Historical artifact preservation
+
+When importing and round-tripping an existing `LEVnnn.DAT`:
+
+```text
+retain its serialized cache bytes
+unless the user explicitly requests regeneration
+```
+
+### Prohibited shortcut
+
+Do not:
+
+```text
+modify the certified classifier
+invent an unseen flag
+or silently rewrite imported historical cache bytes
+```
+
+merely to force both evidence sources to agree.
+
+The discrepancy remains a bounded provenance/executable-revision/production-path unknown.
+
+## 49. Current map versus historical map cache authority
+
+The browser itself demonstrates the appropriate runtime distinction:
+
+```text
+current map:
+    rebuild cache now from live world state
+
+historical map:
+    display stored cache from WORK\LEVnnn.DAT
+```
+
+This is the original game's own division between active-world truth and saved-map snapshot state.
+
+A faithful port can reuse the same principle.
+
+## 50. Community research cross-corroboration
+
+Daniel D'Agostino's Ravenloft Engine automap study independently reports that Ravenloft automaps:
+
+- represent explored world space on a cell grid;
+- save a map under the `AUTOMAPS` directory;
+- use IBM/DOS character values for text-art map elements;
+- include object/furniture-style map markers;
+- support map notes/footnotes;
+- support printing.
+
+Community source:  
+<https://www.swordsandsoftware.com/ravenloft-automaps.php>
+
+During this preservation pass, the key Ravenloft-specific implementation claims above were independently closed from CODE.2:
+
+```text
+AUTOMAPS\AUTO???.MAP template
+merged save exporter
+stdprn print caller
+CP437 conversion table
+placed-object overlay
+annotation-marker overlay
+annotation legend
+historical WORK\LEV map browser
+```
+
+The community source therefore remains useful historical corroboration and terminology, while the executable now controls the implementation claims.
+
+## 51. Faithful native automap architecture
+
+A future native implementation can cleanly separate:
+
+```text
+MapDiscoveryState
+    persistent 0x0400 cell bits
+
+CurrentVisibilityState
+    transient 0x0040 cell bits
+
+AutomapClassifier
+    reconstructs 0x1760 classes
+
+AutomapConnectivityResolver
+    wall / inset / door / hidden geometry
+
+AutomapViewport
+    selected map
+    source origin
+    scrolling
+
+AutomapSnapshotReader
+    selective WORK\LEVnnn.DAT reader
+
+AutomapObjectOverlay
+    family-B placed objects
+
+AutomapAnnotations
+    raw coordinate + payload list
+
+AutomapTextExporter
+    CP437 conversion
+    merged SAVE output
+    printer overprint output
+```
+
+These are suggested native subsystem names, not recovered DreamForge source identifiers.
+
+## 52. Do not tie automap browsing to world activation
+
+The original historical-map browser proves that map browsing and level instantiation are separate operations.
+
+A native port should preserve this design property:
+
+```text
+browse old map
+    != load old level
+    != mutate current world
+```
+
+A dedicated snapshot reader is preferable to temporarily swapping the entire gameplay world merely to display an old map.
+
+This also provides a clean foundation for future QoL map browsing without compromising faithful world-state ownership.
+
+## 53. Preserve indexed-color/text semantics below later remaster UI
+
+For faithful execution, map exports should retain:
+
+- original byte values;
+- DOS/CP437-oriented character semantics;
+- original layer precedence;
+- exact row traversal;
+- CR/LF behavior;
+- printer overprint behavior;
+- annotation-label order.
+
+A later remaster may draw vector walls, icons, colored markers, tooltips, or a minimap, but that should be a separate presentation layer over the preserved automap state machine.
+
+## 54. Required automap regression classes
+
+### 54.1 Discovery transition
+
+Verify:
+
+```text
+first-person reached cell
+    sets 0x0040 and 0x0400
+
+visibility reset
+    clears 0x0040
+    retains 0x0400
+```
+
+### 54.2 Party cell
+
+For player cell coordinates, verify:
+
+```text
+environment profile != 0xFF -> 0x2E
+environment profile == 0xFF -> 0x2F
+```
+
+and verify both export as `0xFA`.
+
+### 54.3 Explored classes
+
+Test each branch:
+
+```text
+raw zero
+0x0093 shortcut
+0x0800 hidden topology
+ordinary wall
+0x0080 no record
+0x0080 dynamic record open
+0x0080 dynamic record closed
+0x0080 dynamic record transitional
+```
+
+### 54.4 Unexplored boundary
+
+Test all eight neighbor positions around an unexplored ordinary nonzero cell and preserve the raw-code-zero neighbor requirement.
+
+### 54.5 Connected resolver
+
+Construct fixtures for:
+
+- wall junction masks;
+- four inset orientations;
+- horizontal/vertical dynamic-door geometry;
+- hidden/secret opposite-floor resolution;
+- fallback paths.
+
+### 54.6 Current-map browser
+
+Verify that selecting current level:
+
+- rebuilds cache from live state;
+- retains live annotation state;
+- uses live family-B records.
+
+### 54.7 Historical-map browser
+
+Verify that selecting another map:
+
+- opens `WORK\LEVnnn.DAT`;
+- reads stored cache rather than rebuilding it;
+- obtains family-B overlays;
+- obtains annotations;
+- does not mutate current gameplay level.
+
+### 54.8 Paging
+
+Verify wrap behavior and skipping of unavailable historical snapshots.
+
+### 54.9 Annotation geometry
+
+Verify signed truncation:
+
+```text
+raw_x / 8
+raw_y / 5
+```
+
+including negative constructed coordinates.
+
+### 54.10 Annotation labels
+
+Test transition:
+
+```text
+A ... Z
+then original two-character progression
+```
+
+and confirm legend labels match map markers exactly.
+
+### 54.11 Object overlays
+
+Verify:
+
+```text
+0x3C..0x41 -> '*'
+other family-B types -> 0xFE
+multiple records -> final record wins
+```
+
+### 54.12 Merged SAVE output
+
+Verify:
+
+```text
+annotation > object > base
+column-oriented traversal
+CR/LF line endings
+legend appended
+```
+
+### 54.13 PRINT output
+
+Verify:
+
+```text
+base
+CR
+object
+CR
+annotation
+CR LF
+```
+
+against a captured stream, without normalizing the single CRs to independent lines.
+
+### 54.14 Filename generation
+
+Test conventional historical snapshot names and the distinct AUTO save quirk:
+
+```text
+WORK\LEVnnn.DAT
+    hundreds/tens/ones
+
+AUTOMAPS\AUTO???.MAP
+    hundreds/ones/tens
+```
+
+### 54.15 Level-22 artifact mode
+
+Maintain separate tests for:
+
+```text
+certified cache regeneration
+historical LEV byte preservation
+```
+
+rather than requiring them to produce one identical cache for the known 40-cell boundary.
+
+## 55. Modding/editor requirements
+
+A preservation-grade editor should expose separately:
+
+```text
+cell exploration bit
+current visibility bit
+serialized cache byte
+resolved display class
+placed-object overlays
+annotation entries
+```
+
+Editing one should not silently rewrite unrelated layers.
+
+Examples:
+
+- changing a wall cell may justify rebuilding the cache only when explicitly requested;
+- adding a map note should update annotation serialization without normalizing unknown cell bits;
+- importing a historical LEV should retain its original cache even if current CODE.2 would rebuild some cells differently;
+- removing a placed object should modify family B rather than painting over the text-map export.
+
+## 56. Remaster extension boundary
+
+After the faithful implementation is frozen, a modern map layer may add:
+
+- scalable vector automaps;
+- minimaps;
+- zoom;
+- free panning;
+- modern icons;
+- player-position arrows;
+- colored doors/secrets;
+- search/filtering;
+- persistent cross-level map browser;
+- richer annotations;
+- modern text export formats.
+
+Those features should consume the faithful map model rather than replace it.
+
+The original automap remains valuable as a deterministic compatibility reference even if no modern player sees the CP437 representation by default.
+
+## 57. Correction C-05 — automap is not one persisted bitmap
+
+A simplistic architecture such as:
+
+```text
+LEVELS/LEV map byte
+    -> draw map
+```
+
+is historically incorrect.
+
+The recovered architecture is:
+
+```text
+authoritative cell/dynamic state
+    |
+    v
+discovery and party-position classifier
+    |
+    v
+generated one-byte cache
+    |
+    v
+connectivity resolver
+    |
+    +--> on-screen automap
+    |
+    +--> CP437 base glyph conversion
+            |
+            +-- placed-object overlay
+            +-- annotation overlay
+            |
+            +--> merged SAVE file
+            +--> stdprn overprint stream
+```
+
+and the map browser adds a second source:
+
+```text
+historical WORK\LEV snapshot
+    -> stored cache / objects / annotations
+    -> display only
+```
+
+This is a documentation/architecture correction. The certified executable reconstruction itself is unchanged.
+
+## 58. Correction C-06 — SAVE/PRINT implementation is no longer community-only
+
+Earlier project material appropriately treated the precise automap filename and print producer as community-correlated until a binary producer could be located.
+
+This preservation pass closes those executable links:
+
+```text
+SAVE:
+    CODE.2 literal AUTOMAPS\AUTO???.MAP
+    + routine 02A34
+    + exporter 026E8
+
+PRINT:
+    direct caller 03321
+    + fixed fifth Watcom standard stream at 0xF764
+    + official Watcom stdprn stream ordering
+    + exporter 026E8
+```
+
+The Swords and Software study remains credited as independent research, but these specific implementation facts can now be promoted to CODE-PROVEN / CROSS-CORROBORATED status.
+
+## 59. Historical unknowns retained
+
+The following remain intentionally unresolved or only conservatively named:
+
+1. exact original DreamForge source names for cache classes `0x01..0x05`;
+2. precise user-facing semantics of resolved bytes `0xE9`, `0xB0`, and `0x09`;
+3. original source/editor name for cell bit `0x0800`, beyond the proved hidden/secret-topology behavior;
+4. exact original name of the fifth level-header `automap_style_control[64]` table;
+5. why all supplied style-table entries are the same `0xB5B1`;
+6. provenance of the Level-22 40-cell cache discrepancy;
+7. whether the AUTO tens/ones ordering was noticed or intentional in the original production source;
+8. exact historical source names for the on-screen annotation display toggle and map-browser globals.
+
+These are bounded terminology/provenance questions, not structural blockers.
+
+## 60. Source ledger
+
+### Primary repository evidence
+
+- [DatFiles/LEVELS.DAT/AUTOMAP.md](https://github.com/Hyperbog/RLOFT/blob/dedebcbbe43b435e989e05c0a8b1ff9b8a611245/DatFiles/LEVELS.DAT/AUTOMAP.md)
+- [DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+- [DatFiles/LEVELS.DAT/CACHE_REBUILD_AUDIT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/CACHE_REBUILD_AUDIT.md)
+- [DatFiles/LEVELS.DAT/CELL_WORD.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/CELL_WORD.md)
+- [DatFiles/LEVELS.DAT/CELL_FLAG_LINKS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/CELL_FLAG_LINKS.md)
+- [DatFiles/LEVELS.DAT/DYNAMIC_CELL_RECORDS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/DYNAMIC_CELL_RECORDS.md)
+- [DatFiles/LEVELS.DAT/FORMAT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FORMAT.md)
+- [DatFiles/LEVELS.DAT/HEADER_TAIL.md](https://github.com/Hyperbog/RLOFT/blob/2cafc03090ffbf729ed61e17f53c247cef01d534/DatFiles/LEVELS.DAT/HEADER_TAIL.md)
+- [DatFiles/LEV022.DAT/MUTABLE_DELTA.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEV022.DAT/MUTABLE_DELTA.md)
+- [Code2/Code2.cpp](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/Code2.cpp)
+- [Code2/FINAL_CERTIFICATION.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_CERTIFICATION.md)
+- [Runtime/R_EXE/01_STRUCTURAL_RECONSTRUCTION.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Runtime/R_EXE/01_STRUCTURAL_RECONSTRUCTION.md)
+
+### Official runtime documentation
+
+Open Watcom C Library Reference, DOS standard FILE streams including `stdaux` and `stdprn`:
+
+<https://openwatcom.org/ftp/manuals/1.5/clib.pdf>
+
+### Community historical/reverse-engineering corroboration
+
+Daniel D'Agostino, “The Ravenloft Engine Trilogy's Automaps,” Swords and Software, 10 March 2024:
+
+<https://www.swordsandsoftware.com/ravenloft-automaps.php>
+
+Community terminology is not allowed to override contradictory Ravenloft executable evidence.
+
+## 61. Architectural checkpoint
+
+The automap/navigation architecture is now:
+
+```text
+FIRST-PERSON WORLD
+
+live 16-bit cells
+    |
+    +-- 0x0040 current visibility
+    +-- 0x0400 persistent discovery
+    +-- special/hidden/dynamic topology
+    |
+    v
+01558 classifier
+    |
+    +-- exact current party cell -> 0x2E/0x2F
+    +-- exploration classes
+    +-- dynamic door/special state
+    +-- unexplored boundary exposure
+    |
+    v
+uint8 map cache
+    |
+    +------------------------------+
+    |                              |
+    | current map                  | historical map
+    |                              |
+    | rebuilt from live state      | read from WORK\LEVnnn.DAT
+    |                              |
+    +---------------+--------------+
+                    |
+                    v
+          connected-map resolver
+                    |
+          +---------+----------+
+          |                    |
+          v                    v
+   on-screen browser       CP437 conversion
+          |                    |
+          |                    +-- family-B object overlay
+          |                    +-- annotation label overlay
+          |                    |
+          |                    +--> merged AUTO map file
+          |                    |
+          |                    +--> stdprn CR-overprint
+          |
+          +-- viewport scrolling
+          +-- map paging
+          +-- annotation payload display
+
+ANNOTATIONS
+raw_x/raw_y/payload
+    |
+    +--> on-screen text
+    +--> compact export labels
+    +--> label:payload legend
+```
+
+The next preservation component should move into the **input/UI shell and menu architecture**: keyboard/mouse event state, cursor/input translation, top-level menus, top-edge menu behavior, modal screens, inventory/HUD UI ownership, hit-box conventions, and how these presentation systems call the world/resource layers already documented.
