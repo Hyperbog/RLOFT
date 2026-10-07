@@ -854,10 +854,27 @@ int run(HINSTANCE instance) {
                         return 0;
                     }
 
-                    if (frame == 0 &&
-                        !code1_palette_reveal(
-                            host, character_presenter, character_palette)) {
-                        return 0;
+                    if (frame == 0) {
+                        // 45FC: BC1C(18h,1,9C4h). CODE.1's dispatcher maps
+                        // ED29 to AIL_set_relative_volume; static audio state
+                        // is volume=100, tempo=100, enabled=1 and 2B88=0.
+                        // B824 starts RES5:24 sequence 1 at volume zero, then
+                        // ramps the sequence-relative volume to 100 over
+                        // 2500 ms before the palette reveal begins.
+                        midi_player.play(
+                            rloft::parse_xmidi_sequence(
+                                assets.music_sequence(0x18),
+                                1),
+                            0,
+                            100,
+                            0x9C4);
+
+                        if (!code1_palette_reveal(
+                                host,
+                                character_presenter,
+                                character_palette)) {
+                            return 0;
+                        }
                     }
 
                     // 45FC calls C4E0(base+0Dh) on frame 1 of each 10-frame
@@ -1711,6 +1728,13 @@ int run(HINSTANCE instance) {
 
 
                             if (character_flow.aborted()) {
+                                // function_5014 begins with BB80(9C4h) and
+                                // BCB4: fade active sequence relative volume
+                                // to zero over 2500 ms, wait for zero, then
+                                // normalize/stop it before module teardown.
+                                midi_player.fade_out_and_stop(0x9C4);
+                                audio_player.stop_all();
+
                                 flow.finish_character_creation(
                                     rloft::LegacyResult::OrdinaryTermination);
                                 flow.supervisor_dispatch();
@@ -1719,6 +1743,11 @@ int run(HINSTANCE instance) {
                             }
 
                             if (character_flow.completed()) {
+                                // 5014 performs the same BB80/BCB4 music
+                                // fade before 5F4C/4EF0 serialize CHARS.
+                                midi_player.fade_out_and_stop(0x9C4);
+                                audio_player.stop_all();
+
                                 std::array<
                                     rloft::CharacterTransferActor,
                                     2> transfer{};
