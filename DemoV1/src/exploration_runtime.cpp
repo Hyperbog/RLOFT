@@ -51,6 +51,7 @@ void ExplorationRuntime::initialize_gameplay_state(
     scene_source_banks_ = SceneSourceBanks::load(source);
     placed_scene_catalog_ = PlacedSceneCatalog::load(source);
     scene_shape_archive_.emplace(source.read("RES3"));
+    scene_shape_cache_.clear();
     world_ = LevelWorldStateCodec::build(
         session_.level,
         npc_catalog_,
@@ -272,6 +273,32 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
             WorldSceneDrawCallModel::build(
                 out.world_scene_records,
                 world_);
+        if (!scene_shape_archive_.has_value()) {
+            throw std::logic_error(
+                "gameplay scene archive is not initialized");
+        }
+        // Scene RES3 shapes are immutable during a level session. Cache the
+        // decoded display lists once, and preserve reference stability on
+        // insertion through std::unordered_map.
+        out.world_scene_render_plans =
+            WorldSceneRenderPlanModel::build(
+                out.world_scene_draw_calls,
+                renderer_tables_,
+                out.sweep_records,
+                [this](std::uint16_t resource_id)
+                    -> const Type7SceneShape& {
+                    const auto existing =
+                        scene_shape_cache_.find(resource_id);
+                    if (existing != scene_shape_cache_.end()) {
+                        return existing->second;
+                    }
+                    const auto inserted =
+                        scene_shape_cache_.emplace(
+                            resource_id,
+                            scene_shape_archive_->decode_type7(
+                                static_cast<int>(resource_id)));
+                    return inserted.first->second;
+                });
     }
 
     out.sweep_runs =
