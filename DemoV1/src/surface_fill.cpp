@@ -67,7 +67,9 @@ void SurfaceFillModel::draw_lower(
     IndexedFramebuffer& framebuffer,
     const SurfaceFillTable& table,
     std::uint8_t base_color) {
-    // CODE.2 33DE0 advances EDI by +0x40 then -0x90: net -0x50,\n    // exactly one VGA scanline upward per iteration.\n    draw(framebuffer, table, kLowerRow, -1, base_color);
+    // CODE.2 33DE0 advances EDI by +0x40 then -0x90: net -0x50,
+    // exactly one VGA scanline upward per iteration.
+    draw(framebuffer, table, kLowerRow, -1, base_color);
 }
 
 }  // namespace rloft
