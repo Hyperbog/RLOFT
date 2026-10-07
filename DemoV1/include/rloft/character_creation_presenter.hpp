@@ -72,7 +72,7 @@ public:
     [[nodiscard]] static int transition_07e4_frame_count(
         int first_slot,
         int last_slot) noexcept {
-        return (last_slot - first_slot) + 10;
+        return (last_slot - first_slot) + 11;
     }
     void transition_07e4_frame(
         const CharacterCreationFlow& before,
