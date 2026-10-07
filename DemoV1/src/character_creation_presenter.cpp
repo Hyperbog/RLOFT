@@ -2028,6 +2028,16 @@ void CharacterCreationPresenter::existing_actor_decision_screen(
 
     const auto& draft = flow.actor(actor);
     draw_persistent_summary(draft, 5);
+
+    // function_04B0(stage 6) paints the stored actor name at 116h/D7h only
+    // when the selected actor's presence flag is already set.
+    draw_text_centered(
+        0x116,
+        0xD7,
+        0x30,
+        draft.name,
+        0);
+
     draw_stats_panel(draft, stats, 0x114, 0x10C, -1);
 }
 
