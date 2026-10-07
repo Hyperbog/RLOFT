@@ -14,7 +14,7 @@ rloft::Type7VgaPlaneMaskModel masks() {
         0xC668U, 0xC688U, 0xC6A8U
     };
     std::vector<std::uint8_t> file(
-        object2 + locations[2] + 32U);
+        object2 + 0xEF4DU + 1U);
     for (unsigned phase=0U; phase<4U; ++phase) {
         for (unsigned count=1U; count<=7U; ++count) {
             for (unsigned k=0U; k<count; ++k) {
