@@ -35,6 +35,24 @@ rloft::CharacterTransferActor actor(
     return out;
 }
 
+rloft::CharacterTransferActor actor_with_classes(
+    int index,
+    int race,
+    std::array<int, 3> classes) {
+    auto out = actor(index, index == 0 ? "CLASS0" : "CLASS1");
+    out.draft.race = race;
+    out.draft.classes = classes;
+    return out;
+}
+
+std::uint16_t family_word(
+    std::size_t family,
+    std::size_t race,
+    std::size_t word) {
+    return static_cast<std::uint16_t>(
+        family * 1000U + race * 100U + word);
+}
+
 }  // namespace
 
 int main() {
@@ -113,6 +131,93 @@ int main() {
             assert(image[base + q] == 0);
         }
         assert(image[base + 0x11BU] == 0xFF);
+    }
+
+
+    // CODE.1 5D90/5F4C class-family regression. Each family/race record gets
+    // unique words so a wrong family selection or slot mapping is visible.
+    rloft::CharacterTransferTables family_tables;
+    family_tables.object_conflict_flag.resize(512, 0);
+    for (std::size_t family = 0; family < 15U; ++family) {
+        for (std::size_t race = 0; race < 6U; ++race) {
+            for (std::size_t word = 0; word < 14U; ++word) {
+                family_tables.family_race_words[family][race][word] =
+                    family_word(family, race, word);
+            }
+        }
+    }
+
+    struct ClassFamilyCase {
+        std::array<int, 3> classes;
+        std::size_t family;
+    };
+    const std::array<ClassFamilyCase, 15> family_cases{{
+        {{{0, -1, -1}}, 0},  // Fighter
+        {{{1, -1, -1}}, 1},  // Paladin
+        {{{2, -1, -1}}, 2},  // Ranger
+        {{{3, -1, -1}}, 3},  // Cleric
+        {{{4, -1, -1}}, 4},  // Mage
+        {{{5, -1, -1}}, 5},  // Thief
+        {{{0, 5, -1}}, 6},   // Fighter/Thief
+        {{{0, 3, -1}}, 7},   // Fighter/Cleric
+        {{{0, 4, -1}}, 8},   // Fighter/Mage
+        {{{3, 5, -1}}, 9},   // Cleric/Thief
+        {{{2, 3, -1}}, 10},  // Ranger/Cleric
+        {{{3, 4, -1}}, 11},  // Cleric/Mage
+        {{{4, 5, -1}}, 12},  // Mage/Thief
+        {{{0, 4, 5}}, 13},   // Fighter/Mage/Thief
+        {{{0, 4, 3}}, 14},   // Fighter/Mage/Cleric
+    }};
+
+    constexpr std::size_t inventory_at = 0x40U;
+    for (const auto& test_case : family_cases) {
+        std::array<rloft::CharacterTransferActor, 2> class_actors{{
+            actor_with_classes(0, 2, test_case.classes),
+            actor_with_classes(1, 5, {{1, -1, -1}})
+        }};
+        const auto class_image =
+            rloft::build_character_transfer(
+                class_actors,
+                family_tables);
+
+        // item[0..9] <- source words 4..13.
+        for (std::size_t slot = 0; slot < 10U; ++slot) {
+            assert(
+                u16(class_image, inventory_at + slot * 2U) ==
+                family_word(
+                    test_case.family,
+                    2,
+                    4U + slot));
+        }
+
+        // item[10..13] are not written by 5F4C and retain FFh.
+        for (std::size_t slot = 10U; slot <= 13U; ++slot) {
+            assert(
+                u16(class_image, inventory_at + slot * 2U) ==
+                0xFFFFU);
+        }
+
+        // Equipped item[14..17] use q4 order source words 2,3,1,0.
+        constexpr std::array<std::size_t, 4> equipped_words{{
+            2, 3, 1, 0
+        }};
+        for (std::size_t i = 0; i < equipped_words.size(); ++i) {
+            assert(
+                u16(
+                    class_image,
+                    inventory_at + (14U + i) * 2U) ==
+                family_word(
+                    test_case.family,
+                    2,
+                    equipped_words[i]));
+        }
+
+        // item[18..20] likewise remain empty at creation.
+        for (std::size_t slot = 18U; slot <= 20U; ++slot) {
+            assert(
+                u16(class_image, inventory_at + slot * 2U) ==
+                0xFFFFU);
+        }
     }
 
     std::cout << "character_transfer_tests: PASS\n";
