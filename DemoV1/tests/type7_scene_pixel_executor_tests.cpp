@@ -2,6 +2,9 @@
 
 #include <cassert>
 #include <cstdint>
+#include <cstdlib>
+#include <fstream>
+#include <iterator>
 #include <stdexcept>
 #include <vector>
 
@@ -93,4 +96,103 @@ int main() {
     rloft::Type7VgaSceneTrace empty{};
     assert(rloft::Type7ScenePixelExecutor::draw(
         hidden,empty,{},tables,video).indexed_writes==0U);
+
+    // Optional canonical SINTAB pixel execution regression, using an
+    // independent Python-generated reference from the original file:
+    //   python3 DemoV1/tools/reference_sintab_pixels.py /path/to/SINTAB
+    // No SINTAB bytes are embedded in this repository.
+    const auto original_path = std::getenv("RLOFT_SINTAB_PATH");
+    if (original_path != nullptr && original_path[0] != 0) {
+        std::ifstream input(original_path, std::ios::binary);
+        if (!input) {
+            throw std::runtime_error("canonical SINTAB cannot be opened");
+        }
+        const std::vector<std::uint8_t> bytes(
+            (std::istreambuf_iterator<char>(input)),
+            std::istreambuf_iterator<char>());
+        const auto canonical = rloft::RendererTables::parse(bytes);
+        const auto& actual_block = canonical.scale_blocks.at(31U);
+
+        rloft::WorldSceneRenderPlan real_plan{};
+        real_plan.traversal.scale_block_index = 31U;
+        real_plan.rasterizer_setup.drawable = true;
+        real_plan.rasterizer_setup.patch_from = 128U;
+        real_plan.visible_runs.push_back(
+            rloft::Type7VisibleRun{31U,0U,128U,1U});
+
+        rloft::Type7VgaSceneTrace real_trace{};
+        rloft::Type7VgaSceneRun real_run{};
+        real_run.source_x = 31U;
+        real_run.source_column_index = 0U;
+        real_run.viewport_x = 128U;
+        real_run.width = 1U;
+        rloft::Type7MicrocodeDraw real_descriptor{};
+        real_descriptor.source_x = 31U;
+        real_descriptor.source_column_index = 0U;
+        real_descriptor.entry_code_offset =
+            actual_block.code_patch_offset[0U]-0x204U;
+        real_descriptor.stop_code_offset =
+            actual_block.code_patch_offset[16U]-0x204U;
+        real_run.descriptors.push_back(real_descriptor);
+        real_run.dispatch.calls.push_back({
+            128,
+            rloft::VgaPlanarMemory::kPhysicalBase,
+            0x0102U,
+            0x01U,
+            0U,
+        });
+        real_trace.runs.push_back(real_run);
+
+        std::vector<std::uint8_t> source(4096U);
+        for(std::size_t k=0U;k<source.size();++k) {
+            source[k] = static_cast<std::uint8_t>(
+                (k*31U+17U)&0xFFU);
+        }
+        constexpr std::uint64_t fnv_init =
+            0xCBF29CE484222325ULL;
+        constexpr std::uint64_t fnv_mul =
+            0x100000001B3ULL;
+        const auto checksum = [](const rloft::VgaPlanarMemory& memory) {
+            std::uint64_t hash = fnv_init;
+            for(std::uint32_t offset=0U;offset<21000U;++offset) {
+                const auto pixel = memory.read(
+                    rloft::VgaPlanarMemory::kPhysicalBase+offset,0U);
+                hash = (hash^pixel)*fnv_mul;
+            }
+            return hash;
+        };
+
+        struct Case final {
+            bool nonzero_mode;
+            std::size_t patch_from;
+            std::size_t patch_before;
+            std::size_t reads;
+            std::size_t stores;
+            std::uint64_t fingerprint;
+        };
+        const Case scenarios[] = {
+            {false,128U,0U,16U,16U,0xD17D98730D9A77C5ULL},
+            {false,8U,0U,8U,8U,0xFF8A6C8D22C4A0C5ULL},
+            {true,128U,4U,12U,12U,0x44E1511AB24CEDC5ULL},
+        };
+        for (const auto& scenario : scenarios) {
+            real_plan.rasterizer_setup.nonzero_mode =
+                scenario.nonzero_mode;
+            real_plan.rasterizer_setup.patch_from =
+                scenario.patch_from;
+            real_plan.rasterizer_setup.patch_before =
+                scenario.patch_before;
+            rloft::VgaPlanarMemory destination;
+            const auto report =
+                rloft::Type7ScenePixelExecutor::draw(
+                    real_plan,
+                    real_trace,
+                    source,
+                    canonical,
+                    destination);
+            assert(report.source_reads==scenario.reads);
+            assert(report.indexed_writes==scenario.stores);
+            assert(checksum(destination)==scenario.fingerprint);
+        }
+    }
 }
