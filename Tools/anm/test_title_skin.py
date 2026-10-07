@@ -27,15 +27,15 @@ class TitleSkinTests(unittest.TestCase):
         # Horizontal and vertical rails share the same bounds, producing
         # simple square intersections with no ornamental overlays.
         stone_dark = (40, 29, 31)
-        self.assertEqual(image.getpixel((6, 52)), stone_dark)
-        self.assertEqual(image.getpixel((1274, 52)), stone_dark)
-        self.assertEqual(image.getpixel((6, 875)), stone_dark)
-        self.assertEqual(image.getpixel((1274, 875)), stone_dark)
+        self.assertEqual(image.getpixel((8, 52)), stone_dark)
+        self.assertEqual(image.getpixel((1272, 52)), stone_dark)
+        self.assertEqual(image.getpixel((8, 875)), stone_dark)
+        self.assertEqual(image.getpixel((1272, 875)), stone_dark)
 
         # The former side-medallion and bottom-finial locations are now plain
         # rail/background pixels rather than pasted source ornaments.
-        self.assertEqual(image.getpixel((6, 450)), stone_dark)
-        self.assertEqual(image.getpixel((1274, 450)), stone_dark)
+        self.assertEqual(image.getpixel((8, 450)), stone_dark)
+        self.assertEqual(image.getpixel((1272, 450)), stone_dark)
         self.assertNotEqual(image.getpixel((640, 875)), image.getpixel((640, 899)))
 
     def test_ravenloft_header_renders(self) -> None:
@@ -47,8 +47,8 @@ class TitleSkinTests(unittest.TestCase):
         # Header rails use the same rectangular bounds and meet in square
         # intersections at both top corners.
         stone_dark = (40, 29, 31)
-        self.assertEqual(header.getpixel((6, 18)), stone_dark)
-        self.assertEqual(header.getpixel((1274, 18)), stone_dark)
+        self.assertEqual(header.getpixel((8, 18)), stone_dark)
+        self.assertEqual(header.getpixel((1272, 18)), stone_dark)
 
     def test_chrome_insets_are_positive(self) -> None:
         side, top, bottom = title_skin.chrome_insets(1.0)
