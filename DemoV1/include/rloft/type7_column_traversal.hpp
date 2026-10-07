@@ -30,6 +30,9 @@ struct Type7ColumnTraversalPlan final {
     std::uint32_t initial_scale{};
     std::uint32_t clamped_scale{};
     std::uint32_t scale_pointer_index{};
+    // DGROUP 10450: horizontal/vertical renderer phase correction.
+    // It is separate from scale_pointer_index (CODE.2 36D34..36D59).
+    std::uint32_t renderer_phase_adjustment{};
     std::size_t scale_block_index{};
     std::vector<Type7ColumnStep> columns;
 };
