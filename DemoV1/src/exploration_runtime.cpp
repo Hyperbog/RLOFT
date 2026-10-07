@@ -168,6 +168,9 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
     ViewSweepOptions sweep_options,
     const std::array<std::uint16_t, 32>& rng15) {
     ExplorationRuntimeFrame out{};
+    out.scene_video_page = scene_video_page_;
+    out.scene_individual_columns_mode =
+        scene_individual_columns_mode_;
 
     out.sweep_records =
         ViewSweepTraversalModel::build(
