@@ -135,4 +135,61 @@ Type7ColumnTraversalPlan Type7ColumnTraversalModel::build(
     return out;
 }
 
+
+std::vector<Type7VisibleColumn>
+Type7ColumnTraversalModel::visible_columns(
+    const Type7ColumnTraversalPlan& plan,
+    int screen_x,
+    std::uint32_t raw_depth,
+    const std::vector<ViewSweepRecord>& rays) {
+    std::vector<Type7VisibleColumn> out;
+    const auto depth =
+        static_cast<std::int32_t>(raw_depth);
+    int left_cursor = screen_x;
+    int right_cursor = screen_x;
+
+    for (const auto& column : plan.columns) {
+        const auto run_width =
+            static_cast<int>(column.scale_step);
+        int first = 0;
+        if (column.side == Type7ColumnSide::Left) {
+            // CODE.2 36F2E decrements the destination pointer before
+            // emitting the left-hand side. A step of zero emits nothing.
+            left_cursor -= run_width;
+            first = left_cursor;
+        } else {
+            // CODE.2 37140..372C3 emits right-hand spans starting at the
+            // center and then advances to the next source column.
+            first = right_cursor;
+            right_cursor += run_width;
+        }
+
+        for (int offset = 0;
+             offset < run_width;
+             ++offset) {
+            const auto x = first + offset;
+            if (x < 0 ||
+                static_cast<std::size_t>(x) >=
+                    rays.size()) {
+                continue;
+            }
+            // 36F4E/36FCE/37157/371D7 compare the signed ray depth
+            // against argument 6; >= suppresses the source column.
+            if (static_cast<std::int32_t>(
+                    rays[static_cast<std::size_t>(x)].depth) >=
+                depth) {
+                continue;
+            }
+            out.push_back(
+                Type7VisibleColumn{
+                    column.source_x,
+                    column.source_column_index,
+                    static_cast<std::size_t>(x),
+                });
+        }
+    }
+
+    return out;
+}
+
 }  // namespace rloft
