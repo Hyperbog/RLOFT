@@ -363,6 +363,23 @@ std::int32_t RavenloftBootAssets::code1_s32(
     return static_cast<std::int32_t>(raw);
 }
 
+std::string RavenloftBootAssets::code1_cstring(
+    std::size_t dgroup_offset) const {
+    constexpr std::size_t kObject2FileStart = 0x3E724U;
+    const auto start = kObject2FileStart + dgroup_offset;
+    if (start >= code1_.size()) {
+        throw std::out_of_range("CODE.1 DGROUP string exceeds stored object");
+    }
+
+    std::string out;
+    for (std::size_t at = start; at < code1_.size(); ++at) {
+        const auto ch = code1_[at];
+        if (ch == 0) return out;
+        out.push_back(static_cast<char>(ch));
+    }
+    throw std::runtime_error("CODE.1 DGROUP string is unterminated");
+}
+
 Palette6 RavenloftBootAssets::colors_palette(int index, int brightness) const {
     if (index < 0 || index >= 15) throw std::out_of_range("COLORS palette index");
     brightness = std::clamp(brightness, 0, 63);
