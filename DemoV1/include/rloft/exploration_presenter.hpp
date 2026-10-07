@@ -58,9 +58,10 @@ public:
     // persistent HUD base, upper environment/fill, lower gradient fill,
     // available surface columns, and read-only party panels.
     //
-    // SINTAB generated-rasterizer runs and visible RES3/type-7 scene calls
-    // are counted rather than approximated. They remain pending until their bytecode semantics can be
-    // validated against canonical SINTAB bytes.
+    // SINTAB-generated surface and prepass runs remain pending. Original
+    // RES3/type-7 sprites now execute their certified SINTAB pixel bytecode
+    // when the complete original VGA call trace is supported; all other
+    // sprite calls remain explicitly pending with no approximate fallback.
     [[nodiscard]] ExplorationPresentedFrame present(
         const ExplorationRuntimeFrame& frame,
         const RendererTables& tables,
