@@ -83,7 +83,7 @@ int main() {
             static_cast<std::streamsize>(bytes.size()));
     }
 
-    rloft::GameSource source(root);
+    auto source = rloft::GameSource::open(root);
     rloft::SurfaceWallPresenter presenter(source);
     rloft::IndexedFramebuffer framebuffer;
     framebuffer.clear(0xEE);
