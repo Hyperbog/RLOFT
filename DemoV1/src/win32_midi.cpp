@@ -142,26 +142,26 @@ struct Win32MidiPlayer::Impl {
                         buffer.push_back(static_cast<char>(0xF7));
                     }
 
-                    WAVEHDR header{};
+                    MIDIHDR header{};
                     header.lpData = buffer.data();
                     header.dwBufferLength =
                         static_cast<DWORD>(buffer.size());
                     if (midiOutPrepareHeader(
                             out,
-                            reinterpret_cast<MIDIHDR*>(&header),
+                            &header,
                             sizeof(MIDIHDR)) != MMSYSERR_NOERROR) {
                         return;
                     }
                     midiOutLongMsg(
                         out,
-                        reinterpret_cast<MIDIHDR*>(&header),
+                        &header,
                         sizeof(MIDIHDR));
                     while ((header.dwFlags & MHDR_DONE) == 0) {
                         Sleep(1);
                     }
                     midiOutUnprepareHeader(
                         out,
-                        reinterpret_cast<MIDIHDR*>(&header),
+                        &header,
                         sizeof(MIDIHDR));
                 };
 
