@@ -58,16 +58,16 @@ def audit(raw: bytes) -> dict[str, object]:
         boundaries = {0}
         while pc < len(code):
             instruction = code[pc:pc+2]
-            if instruction == b"\\x8a\\x86" and pc+6 <= len(code):
+            if instruction == b"\x8a\x86" and pc+6 <= len(code):
                 counts["load_al"] += 1
                 pc += 6
-            elif instruction == b"\\x88\\xc4":
+            elif instruction == b"\x88\xc4":
                 counts["mov_ah_al"] += 1
                 pc += 2
-            elif instruction == b"\\x29\\xc8":
+            elif instruction == b"\x29\xc8":
                 counts["sub_eax_ecx"] += 1
                 pc += 2
-            elif instruction in (b"\\x88\\x87", b"\\x88\\xa7") and pc+6 <= len(code):
+            elif instruction in (b"\x88\x87", b"\x88\xa7") and pc+6 <= len(code):
                 displacement = struct.unpack_from("<I", code, pc+2)[0]
                 if displacement % 80:
                     raise ValueError(f"block {block}: non-VGA-row store displacement")
