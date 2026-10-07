@@ -68,6 +68,54 @@ void IndexedFramebuffer::draw_frame_mirrored(
     }
 }
 
+IndexedRegion IndexedFramebuffer::capture(
+    int y, int x, int height, int width) const {
+    if (height < 0 || width < 0) {
+        throw std::invalid_argument("negative indexed capture extent");
+    }
+
+    IndexedRegion region;
+    region.height = height;
+    region.width = width;
+    region.pixels.assign(
+        static_cast<std::size_t>(height) * static_cast<std::size_t>(width), 0);
+
+    for (int row = 0; row < height; ++row) {
+        const int sy = y + row;
+        if (sy < 0 || sy >= kHeight) continue;
+        for (int col = 0; col < width; ++col) {
+            const int sx = x + col;
+            if (sx < 0 || sx >= kWidth) continue;
+            region.pixels[
+                static_cast<std::size_t>(row) * width + col] =
+                pixels_[static_cast<std::size_t>(sy) * kWidth + sx];
+        }
+    }
+    return region;
+}
+
+void IndexedFramebuffer::restore(
+    const IndexedRegion& region, int y, int x) {
+    if (region.height < 0 || region.width < 0 ||
+        region.pixels.size() !=
+            static_cast<std::size_t>(region.height) *
+                static_cast<std::size_t>(region.width)) {
+        throw std::invalid_argument("invalid indexed region");
+    }
+
+    for (int row = 0; row < region.height; ++row) {
+        const int dy = y + row;
+        if (dy < 0 || dy >= kHeight) continue;
+        for (int col = 0; col < region.width; ++col) {
+            const int dx = x + col;
+            if (dx < 0 || dx >= kWidth) continue;
+            pixels_[static_cast<std::size_t>(dy) * kWidth + dx] =
+                region.pixels[
+                    static_cast<std::size_t>(row) * region.width + col];
+        }
+    }
+}
+
 void IndexedFramebuffer::draw(const Type1Raster& raster, int y, int x) {
     for (int frame = 0; frame < raster.count; ++frame) {
         draw_frame(raster, frame, y + frame * raster.height, x);
