@@ -39,6 +39,11 @@ namespace {
 
 using Clock = std::chrono::steady_clock;
 
+// VGA mode timing used by Ravenloft's 320x400 planar presentation path.
+// CODE.1 AF64 programs the CRTC start address and then AF34 waits for the
+// next vertical retrace. The same retrace cadence drives DAC burst pacing.
+constexpr double kVgaRefreshHz = 70.0863;
+
 std::wstring widen(std::string_view text) {
     if (text.empty()) return {};
     const int count = MultiByteToWideChar(
@@ -393,7 +398,7 @@ bool fade_in(Host& host,
         host.present(
             presenter.framebuffer(),
             rloft::StartupPresenter::fade_factor(palette, factor));
-        if (!host.pause_frame(std::chrono::duration<double>(1.0 / 70.0))) {
+        if (!host.pause_frame(std::chrono::duration<double>(1.0 / kVgaRefreshHz))) {
             return false;
         }
     }
@@ -408,7 +413,7 @@ bool fade_out(Host& host,
         host.present(
             presenter.framebuffer(),
             rloft::StartupPresenter::fade_factor(palette, factor));
-        if (!host.pause_frame(std::chrono::duration<double>(1.0 / 70.0))) {
+        if (!host.pause_frame(std::chrono::duration<double>(1.0 / kVgaRefreshHz))) {
             return false;
         }
     }
@@ -445,7 +450,6 @@ bool code1_palette_reveal(
     // in four 0xC0-byte bursts, and A010 waits for vertical retrace before
     // each burst. Preserve the partial-bank progression instead of collapsing
     // each factor to one host frame.
-    constexpr double kVgaRefreshHz = 70.0863;
     rloft::Palette6 current{};
 
     for (int factor = 1; factor <= 8; ++factor) {
@@ -788,7 +792,7 @@ int run(HINSTANCE instance) {
             presenter.menu_animation_frame(step);
             host.present(presenter.framebuffer(), palette12);
             if (!host.pause_frame(
-                    std::chrono::duration<double>(1.0 / 70.0))) {
+                    std::chrono::duration<double>(1.0 / kVgaRefreshHz))) {
                 return 0;
             }
         }
@@ -912,7 +916,7 @@ int run(HINSTANCE instance) {
                         character_presenter.framebuffer(),
                         character_palette);
                     return host.pause_frame(
-                        std::chrono::duration<double>(1.0 / 70.0));
+                        std::chrono::duration<double>(1.0 / kVgaRefreshHz));
                 };
 
                 auto animate_15b0 = [&](
