@@ -115,7 +115,11 @@ void test_iso(bool raw) {
         auto source = GameSource::open(base);
         assert(source.kind() == GameSourceKind::GogCdImage);
         assert(source.contains("res0"));
-        assert(source.runtime_output_path("CHARS") == base / "CHARS");
+        {
+            const auto output = source.runtime_output_path("CHARS");
+            assert(output.filename() == fs::path("CHARS"));
+            assert(fs::equivalent(output.parent_path(), base));
+        }
         assert(source.contains("INIT"));
         assert(source.read("RES0") ==
                std::vector<std::uint8_t>({1, 2, 3}));
@@ -151,8 +155,13 @@ void test_loose_and_env_discovery() {
         write_iso(nested / "game.gog", false);
         auto source = GameSource::open(nested);
         assert(source.kind() == GameSourceKind::GogCdImage);
-        assert(source.runtime_output_path("CHARS") ==
-               nested / "RLOFT" / "CHARS");
+        {
+            const auto output = source.runtime_output_path("CHARS");
+            assert(output.filename() == fs::path("CHARS"));
+            assert(fs::equivalent(
+                output.parent_path(),
+                nested / "RLOFT"));
+        }
         fs::remove_all(nested);
     }
 
