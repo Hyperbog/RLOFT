@@ -14,6 +14,7 @@ add_library(rloft_boot_flow
     src/game_source.cpp
     src/resource_assets.cpp
     src/startup_presenter.cpp
+    src/sound_config.cpp
     src/voc_decoder.cpp
     src/xmidi.cpp
 )
@@ -66,6 +67,10 @@ add_executable(character_palette_remap_tests tests/character_palette_remap_tests
 target_link_libraries(character_palette_remap_tests PRIVATE rloft_boot_flow)
 add_test(NAME character_palette_remap_tests COMMAND character_palette_remap_tests)
 
+add_executable(sound_config_tests tests/sound_config_tests.cpp)
+target_link_libraries(sound_config_tests PRIVATE rloft_boot_flow)
+add_test(NAME sound_config_tests COMMAND sound_config_tests)
+
 set(RLOFT_TEST_TARGETS
     boot_flow_tests
     game_source_tests
@@ -76,6 +81,7 @@ set(RLOFT_TEST_TARGETS
     character_stats_tests
     character_transfer_tests
     character_palette_remap_tests
+    sound_config_tests
 )
 if(MSVC)
     foreach(test_target IN LISTS RLOFT_TEST_TARGETS)
