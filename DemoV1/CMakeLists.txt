@@ -21,6 +21,7 @@ add_library(rloft_boot_flow
     src/exploration_session.cpp
     src/exploration_world.cpp
     src/environment_view.cpp
+    src/surface_texture.cpp
     src/game_source.cpp
     src/resource_assets.cpp
     src/startup_presenter.cpp
@@ -60,6 +61,10 @@ add_test(NAME exploration_world_tests COMMAND exploration_world_tests)
 add_executable(environment_view_tests tests/environment_view_tests.cpp)
 target_link_libraries(environment_view_tests PRIVATE rloft_boot_flow)
 add_test(NAME environment_view_tests COMMAND environment_view_tests)
+
+add_executable(surface_texture_tests tests/surface_texture_tests.cpp)
+target_link_libraries(surface_texture_tests PRIVATE rloft_boot_flow)
+add_test(NAME surface_texture_tests COMMAND surface_texture_tests)
 
 add_executable(game_source_tests tests/game_source_tests.cpp)
 target_link_libraries(game_source_tests PRIVATE rloft_boot_flow)
@@ -103,6 +108,7 @@ set(RLOFT_TEST_TARGETS
     exploration_session_tests
     exploration_world_tests
     environment_view_tests
+    surface_texture_tests
     game_source_tests
     presenter_tests
     voc_decoder_tests
