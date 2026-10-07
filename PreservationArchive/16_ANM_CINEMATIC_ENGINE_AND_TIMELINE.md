@@ -95,11 +95,56 @@ If **any** party record qualifies, play `CINE10.ANM`; otherwise use `CINE11.ANM`
 
 The other routine at `0x23DF0` duplicates finale behavior but has no established incoming executable edge; it must not be presented as another live trigger.
 
-## 8. Validation limits and next evidence pass
+## 8. Tick-based cinematic timing — newly checked from original CODE.2
+
+The frame loop at `13834..139AA` reads the two 16-bit ANM header words, records a frame-clock anchor with `2E608`, processes each packet through `135C4`, then dispatches pending subtitle, sampled-SFX service, palette upload and wait operations **in that order**.
+
+Before decoding each frame, `138B4` sets byte `[0x7F80]=0`. Only chunk **3** (`136A2`) and chunk **8** (`136C6`) set it to one. At `13953..13973`, this byte selects the first argument to `2E614(wait,0)`:
+
+```text
+if frame had a chunk-3 or chunk-8 image update:
+    wait = dword [0x12C10]
+else:
+    wait = dword [0x7F90]  // ANM default_wait
+```
+
+**Important address distinction:** `[0x12C10]` is a **data reference**, not a call to the unrelated executable bytes at object offset `0x12C10`. `13B1F` writes `6` to this wait variable for the normal numbered-event path, whereas `13B2E` writes `2` for event **12**. Thus the zero header waits in `CINE10/CINE11` do not imply every frame bypasses timing; their type-8/3 update frames use the alternate wait. A type-2 full-image packet by itself does **not** select that alternate branch.
+
+## 9. Clock source, servicing, and interruption
+
+`2E608` stores the current `30700()` value into `[0x2B640]`. `30700` simply returns `[0xF58C]`; the interrupt path at `30708..30735` increments that same counter. `2E614` constructs an absolute deadline by adding the chosen wait count to the anchored counter and loops until the tick value reaches the deadline, calling service routine `2F868` along the way. It clears the anchor on normal return.
+
+The player also calls `2F868` after each packet, `2A020` and queued-SFX service `28168` after subtitle presentation, and again calls `2F868` after the wait. At `1397B..1398A`, a keyboard result of `0x1B` (Escape) terminates frame iteration and makes the player return `1`; normal completion returns the initialized `0`. Preserve that early-return distinction.
+
+The machine **proves tick-count durations** (not seconds or video frames per second). The wall-clock rate of this interrupt counter, its interrupt installation details, and any platform-specific calibration belong to the dedicated timing chapter; do not multiply `6` or `2` by an assumed frequency here.
+
+## 10. Chunk-4 repeat and seek state
+
+The only dispatch edge into `13488` is packet handler `136B6`. On first encounter, when `[0x7F98]==0`, the routine reads `uint16 repeat_count` into `[0x7F9C]` and a following `uint32 relative_offset`; it combines the latter with saved stream base `[0x7FAC]` into `[0x7FA0]`. It then invokes the separate buffered image/drawing decoder `133CC`, captures a return file position in `[0x7FB0]`, seeks to `[0x7FA0]` and enables `[0x7F98]=1`.
+
+While active, successive chunk-4 dispatches decrement `[0x7F9C]`. Nonzero iterations skip six buffered bytes, run `133CC` again and seek to `[0x7FA0]`. The terminal iteration seeks to saved `[0x7FB0]`, resets the buffered cursor to `0x1F400`, and clears `[0x7F98]` and `[0x7F94]`. The original also recalculates absolute positions using its `0x1F400`-byte buffer extent. These are **binary-proven state transitions**, not a claim of a well-defined artist/editor repeat instruction: chunk 4 occurs **zero times** in the 13 supplied ANMs. Its historical intended workflow, permitted ranges and malformed-input behavior are still **UNKNOWN**.
+
+## 11. CINE11-only music substitution
+
+Type-5 music command handler `136DA..13751` compares its first signed 16-bit word to `0x15`. Only when the current cinematic number `[0x7F78]` equals **11** does it substitute `0x30` for that music ID (`13701..1370A`). It subsequently calls `28DCC(0x9C4)`, `28EF0`, `29008(100)`, `28F58(100)`, then `28E58(selected_music_id, second_word+1, 0x9C4)`.
+
+This is an executable conditional, even if a raw ANM extractor presents both variants with the same embedded first word. Avoid rewriting source ANM packets to bake in this runtime substitution.
+
+## 12. Regression requirements for faithful execution
+
+- Test frame packets in source order, then the post-packet subtitle, sound service, palette-commit and wait ordering; include more than one packet in a frame.
+- Test wait selection separately for no image update, type 2 only, type 3, type 8 and mixed packets. Also test `CINE10/CINE11` zero header waits and event-12 alternate wait value.
+- Anchor waits to the interrupt-counter timeline and assert Escape returns `1`, distinct from natural return `0`.
+- Keep chunk-4 internal cursor, absolute seeks, repeat count, saved return address and two reset flags independently testable. Do not claim corpus round-trip validates execution of an absent packet.
+- Test the first-word `0x15 -> 0x30` music substitution in cinematic 11, and the negative cases for other IDs/cinematics.
+
+These cases supplement the format checks, not replace them. No ANM replay was executed during this source-inspection pass.
+
+## 13. Validation limits and next evidence pass
 
 The repository's `Resources/ANM/analyze_anm.py` records byte-exact unchanged parse/serialize and structural validation for all 13 supplied files, including all 73 type-2, 809 type-3 and 2,796 type-8 chunks. **This continuation has inspected the stored audit; it has not rerun corpus validation.** A raw-preserving parse/serialize check is not a certified mutation encoder.
 
-Next: trace `13488` repeat/seek state and the `12C10` alternate-timing branch instruction-by-instruction; map event callers and cinematic SFX/subtitle IDs; then add frame-accurate regression fixtures. Retain chunk-4 authoring intent and timing units as **UNKNOWN** until proved.
+Next: map each cinematic's event callers and individual sound/subtitle IDs against the actual supplied ANM payloads and T/audio indexes; establish the timer interrupt's real frequency in the dedicated timing chapter, then implement frame-accurate regression fixtures. Retain chunk-4 original authoring intent as **UNKNOWN**.
 
 ## Primary source ledger
 
