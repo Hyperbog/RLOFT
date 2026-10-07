@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "rloft/character_creation_flow.hpp"
 #include "rloft/character_palette_remap.hpp"
 #include "rloft/character_stats.hpp"
@@ -81,6 +83,15 @@ public:
         int last_slot,
         int frame_index);
 
+    // CODE.1 1464 entry = 10A4 ornament staging followed by 07E4 from
+    // placeholder resource 15h into the controller's real slot resources.
+    [[nodiscard]] int controller_entry_frame_count(
+        const CharacterCreationFlow& flow) const noexcept;
+    void controller_entry_frame(
+        const CharacterCreationFlow& flow,
+        const CharacterStatsModel* stats,
+        int frame_index);
+
     // Compatibility name for state 0.
     void first_screen();
 
@@ -109,6 +120,12 @@ private:
         int selected_stat);
     void draw_controller_base(
         CharacterCreationState state, const std::string& label);
+    void draw_controller_entry_base(
+        const CharacterCreationFlow& flow);
+    void draw_controller_text_boxes(
+        const CharacterCreationFlow& flow);
+    [[nodiscard]] std::pair<int, int> controller_entry_range(
+        CharacterCreationState state) const noexcept;
     [[nodiscard]] bool slot_active(
         const CharacterCreationFlow& flow,
         int slot) const noexcept;
