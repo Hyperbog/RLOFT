@@ -111,15 +111,17 @@ void test_iso(bool raw) {
     fs::create_directories(base);
     write_iso(base / "game.gog", raw);
 
-    auto source = GameSource::open(base);
-    assert(source.kind() == GameSourceKind::GogCdImage);
-    assert(source.contains("res0"));
-    assert(source.contains("INIT"));
-    assert(source.read("RES0") ==
-           std::vector<std::uint8_t>({1, 2, 3}));
+    {
+        auto source = GameSource::open(base);
+        assert(source.kind() == GameSourceKind::GogCdImage);
+        assert(source.contains("res0"));
+        assert(source.contains("INIT"));
+        assert(source.read("RES0") ==
+               std::vector<std::uint8_t>({1, 2, 3}));
 
-    const auto text = source.read("T");
-    assert(std::string(text.begin(), text.end()) == "hello");
+        const auto text = source.read("T");
+        assert(std::string(text.begin(), text.end()) == "hello");
+    }
     fs::remove_all(base);
 }
 
@@ -133,9 +135,11 @@ void test_loose_and_env_discovery() {
         std::ofstream(base / name, std::ios::binary) << name;
     }
 
-    auto source = GameSource::open(base);
-    assert(source.kind() == GameSourceKind::LooseDirectory);
-    assert(source.contains("res0"));
+    {
+        auto source = GameSource::open(base);
+        assert(source.kind() == GameSourceKind::LooseDirectory);
+        assert(source.contains("res0"));
+    }
 
 #ifdef _WIN32
     _putenv_s("RLOFT_GAME_DIR", base.string().c_str());
@@ -143,9 +147,11 @@ void test_loose_and_env_discovery() {
     setenv("RLOFT_GAME_DIR", base.string().c_str(), 1);
 #endif
 
-    auto found = GameSource::auto_locate();
-    assert(found.has_value());
-    assert(found->kind() == GameSourceKind::LooseDirectory);
+    {
+        auto found = GameSource::auto_locate();
+        assert(found.has_value());
+        assert(found->kind() == GameSourceKind::LooseDirectory);
+    }
 
 #ifdef _WIN32
     _putenv_s("RLOFT_GAME_DIR", "");
