@@ -23,7 +23,7 @@ WorldSceneRenderPlanModel::build(
     for (const auto& call : calls) {
         WorldSceneRenderPlan plan{};
         plan.call = call;
-        const auto shape = shape_lookup(call.resource_id);
+        const auto& shape = shape_lookup(call.resource_id);
         plan.traversal =
             Type7ColumnTraversalModel::build(
                 shape,
