@@ -776,7 +776,7 @@ int run(HINSTANCE instance) {
                 }
 
                 rloft::CharacterCreationFlow character_flow;
-                character_presenter.screen(character_flow.state());
+                character_presenter.screen(character_flow);
                 host.present(
                     character_presenter.framebuffer(),
                     character_palette);
@@ -800,20 +800,21 @@ int run(HINSTANCE instance) {
                                 return 0;
                             }
 
-                            character_presenter.screen(
-                                character_flow.state());
-                            host.present(
-                                character_presenter.framebuffer(),
-                                character_palette);
-
-                            if (character_flow.race_committed()) {
+                            if (character_flow.state() ==
+                                rloft::CharacterCreationState::StatsReview) {
                                 SetWindowTextW(
                                     host.hwnd(),
                                     L"Ravenloft: Strahd's Possession — "
-                                    L"Character Creation (race selected)");
-                                // State 2 has completed exactly. Do not invent
-                                // state 3 until its controller is integrated.
+                                    L"Character Creation (stats review)");
+                                // Modes 0..5 are now integrated. Stop input at
+                                // the exact mode-6 boundary until 40FC is
+                                // reproduced rather than drawing a fake screen.
                                 host.set_character_mode(false);
+                            } else {
+                                character_presenter.screen(character_flow);
+                                host.present(
+                                    character_presenter.framebuffer(),
+                                    character_palette);
                             }
                         }
                     }
