@@ -27,6 +27,7 @@ add_library(rloft_boot_flow
     src/level_display.cpp
     src/party_presentation.cpp
     src/object_catalog.cpp
+    src/original_random.cpp
     src/npc_catalog.cpp
     src/level22_story.cpp
     src/level22_encounter.cpp
@@ -136,6 +137,10 @@ add_test(NAME party_presentation_tests COMMAND party_presentation_tests)
 add_executable(object_catalog_tests tests/object_catalog_tests.cpp)
 target_link_libraries(object_catalog_tests PRIVATE rloft_boot_flow)
 add_test(NAME object_catalog_tests COMMAND object_catalog_tests)
+
+add_executable(original_random_tests tests/original_random_tests.cpp)
+target_link_libraries(original_random_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_random_tests COMMAND original_random_tests)
 
 add_executable(npc_catalog_tests tests/npc_catalog_tests.cpp)
 target_link_libraries(npc_catalog_tests PRIVATE rloft_boot_flow)
@@ -414,6 +419,7 @@ set(RLOFT_TEST_TARGETS
     level_display_tests
     party_presentation_tests
     object_catalog_tests
+    original_random_tests
     npc_catalog_tests
     level22_story_tests
     level22_encounter_tests
