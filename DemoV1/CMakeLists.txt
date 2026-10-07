@@ -61,6 +61,26 @@ add_executable(character_transfer_tests tests/character_transfer_tests.cpp)
 target_link_libraries(character_transfer_tests PRIVATE rloft_boot_flow)
 add_test(NAME character_transfer_tests COMMAND character_transfer_tests)
 
+set(RLOFT_TEST_TARGETS
+    boot_flow_tests
+    game_source_tests
+    presenter_tests
+    voc_decoder_tests
+    xmidi_tests
+    character_flow_tests
+    character_stats_tests
+    character_transfer_tests
+)
+if(MSVC)
+    foreach(test_target IN LISTS RLOFT_TEST_TARGETS)
+        target_compile_options(${test_target} PRIVATE /UNDEBUG)
+    endforeach()
+else()
+    foreach(test_target IN LISTS RLOFT_TEST_TARGETS)
+        target_compile_options(${test_target} PRIVATE -UNDEBUG)
+    endforeach()
+endif()
+
 if(WIN32)
     add_executable(
         ravenloft_demo_v1 WIN32
