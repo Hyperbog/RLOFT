@@ -23,7 +23,7 @@ This archive is a new, from-scratch technical reconstruction of the shipped tech
 3. reverse engineers validating the reconstructed code and data formats;
 4. modders who need stable, precise descriptions of file formats, runtime structures, renderer behavior, scripting, audio, AI, combat, UI, save state, and resource ownership.
 
-The earlier audits are evidence, not the narrative structure of this archive. Their conclusions will be re-checked, cross-linked, corrected where necessary, and expanded into subsystem-level explanations. The previous `TechnicalArchive/` material is likewise retained as historical project work, but it is **not** treated as authoritative merely because it already exists.
+The earlier audits are evidence, not the narrative structure of this archive. Their conclusions will be re-checked, cross-linked, corrected where necessary, and expanded into subsystem-level explanations. The superseded `TechnicalArchive/` documentation has been removed from the active `code1-decompilation` tree to avoid maintaining two competing technical archives. It remains recoverable from Git history and from the frozen `preservation-backup-code1-2026-10-07` baseline.
 
 The controlling rule remains the one established by the certified CODE reconstructions: immutable shipped bytes outrank names, comments, hypotheses, compiler conventions, secondary documentation, and prior project prose. CODE.1's final audit explicitly distinguishes complete byte accounting from semantic correctness, while CODE.2's certification states that the immutable CODE.2 binary remains controlling evidence. Sources: [CODE.1 final binary audit](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code1/FINAL_BINARY_AUDIT.md), [CODE.2 final certification](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_CERTIFICATION.md).
 
@@ -43,7 +43,7 @@ The fresh documentation pass covers the shipped-game reconstruction and preserva
 
 The repository's audit workflows under `.github/` are secondary provenance where they encode verification equations, expected hashes, or historical audit gates.
 
-The existing `TechnicalArchive/` is preserved and may be used as a lead/index, but every claim reused from it must be independently re-established from stronger evidence.
+The obsolete `TechnicalArchive/` is not part of the active documentation tree. Any historical comparison with that earlier attempt should use Git history or the frozen preservation baseline; claims originating there still require independent re-establishment from primary evidence before inclusion here.
 
 The repository tree at the frozen baseline contains 294 tracked files. At that revision, the primary evidence directories contain 8 `Code1` files, 7 `Code2` files, 95 `DatFiles` files, 82 `Resources` files, and 27 `Runtime` files. Source: [frozen repository tree at 373c7f10](https://github.com/Hyperbog/RLOFT/tree/373c7f10e6fc0f29c1e805125ef048150fcc7ba7).
 
