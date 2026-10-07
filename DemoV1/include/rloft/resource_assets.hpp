@@ -53,6 +53,13 @@ struct Type7SceneShape {
     std::vector<Type7ColumnDisplayList> columns;
 };
 
+struct Type7NativeRaster {
+    std::uint16_t width{};
+    std::uint16_t height{128U};
+    std::vector<std::uint8_t> pixels;
+    std::vector<std::uint8_t> mask;
+};
+
 struct EnvironmentPlacement {
     std::int16_t resource_selector{};
     std::int16_t azimuth_degrees{};
@@ -89,6 +96,7 @@ public:
     [[nodiscard]] std::vector<std::uint8_t> decode_type4(int index) const;
     [[nodiscard]] Type7Geometry decode_type7_geometry(int index) const;
     [[nodiscard]] Type7SceneShape decode_type7(int index) const;
+    [[nodiscard]] Type7NativeRaster decode_type7_native_raster(int index) const;
 
 private:
     std::vector<std::uint8_t> bytes_;
@@ -107,6 +115,7 @@ public:
     [[nodiscard]] std::vector<std::uint8_t> sampled_audio(int archive, int index) const;
     [[nodiscard]] Type7Geometry res3_type7_geometry(int index) const;
     [[nodiscard]] Type7SceneShape res3_type7(int index) const;
+    [[nodiscard]] Type7NativeRaster res3_type7_native_raster(int index) const;
     [[nodiscard]] std::string text(int index) const;
     [[nodiscard]] std::uint16_t init_u16(std::size_t byte_offset) const;
     [[nodiscard]] std::vector<EnvironmentProfile> environment_profiles() const;
