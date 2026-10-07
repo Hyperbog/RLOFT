@@ -55,9 +55,10 @@ ExplorationPresenter::surface_coverage(
         out.type7_unvalidated_wide_runs =
             frame.scene_vga_trace->unresolved_wide_runs;
     }
-    // No type-7 invocation is considered presented while the original
-    // 369D8 vertical generated-rasterizer path is still untranslated.
-    // Fully occluded calls have no pending visible pixels.
+    // This static pre-presentation estimate marks every visible type-7
+    // scene call pending. present() subtracts successful canonical SINTAB
+    // rasterizations and reports any transactional draw failure separately.
+    // Fully occluded calls never contribute missing pixels.
     for (const auto& plan : frame.world_scene_render_plans) {
         if (plan.visible_columns.empty()) {
             continue;
