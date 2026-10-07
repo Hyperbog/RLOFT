@@ -2,6 +2,8 @@
 
 #include <array>
 #include <cstddef>
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -155,6 +157,81 @@ void CharacterCreationPresenter::opening_frame(int frame_index) {
     throw std::logic_error("opening frame simulation did not reach requested frame");
 }
 
+void CharacterCreationPresenter::draw_text(
+    int y,
+    int x,
+    const std::string& text,
+    int font_id,
+    bool selected) {
+    if (text.empty()) return;
+
+    const auto font = assets_.res0_font(font_id);
+    auto& dst = framebuffer_.mutable_pixels();
+
+    for (const unsigned char ch : text) {
+        if (ch >= font.widths.size() || ch >= font.raster.count) {
+            throw std::runtime_error(
+                "CODE.1 text uses glyph outside RES0 font resource");
+        }
+
+        if (!selected) {
+            framebuffer_.draw_frame(font.raster, ch, y, x);
+        } else {
+            // function_38A4 changes 59F8[8] from 8 to 5Ah and routes font
+            // blits through that remap while the selected row is drawn.
+            const auto frame_stride =
+                static_cast<std::size_t>(font.raster.width) *
+                font.raster.height;
+            const auto frame_at =
+                static_cast<std::size_t>(ch) * frame_stride;
+
+            for (int sy = 0; sy < font.raster.height; ++sy) {
+                const int dy = y + sy;
+                if (dy < 0 || dy >= IndexedFramebuffer::kHeight) continue;
+
+                for (int sx = 0; sx < font.raster.width; ++sx) {
+                    const int dx = x + sx;
+                    if (dx < 0 || dx >= IndexedFramebuffer::kWidth) continue;
+
+                    auto value = font.raster.pixels[
+                        frame_at +
+                        static_cast<std::size_t>(sy) * font.raster.width +
+                        sx];
+                    if (font.raster.transparent_index != 0xFF &&
+                        value == font.raster.transparent_index) {
+                        continue;
+                    }
+                    if (value == 8) value = 0x5A;
+
+                    dst[static_cast<std::size_t>(dy) *
+                            IndexedFramebuffer::kWidth +
+                        dx] = value;
+                }
+            }
+        }
+
+        x += font.widths[ch];
+    }
+}
+
+void CharacterCreationPresenter::draw_text_right(
+    int y,
+    int right,
+    const std::string& text,
+    int font_id,
+    bool selected) {
+    const auto font = assets_.res0_font(font_id);
+    int width = 0;
+    for (const unsigned char ch : text) {
+        if (ch >= font.widths.size()) {
+            throw std::runtime_error(
+                "CODE.1 text uses glyph outside RES0 font table");
+        }
+        width += font.widths[ch];
+    }
+    draw_text(y, right - width, text, font_id, selected);
+}
+
 void CharacterCreationPresenter::draw_text_centered(
     int y, int left, int span, const std::string& text, int font_id) {
     if (text.empty()) return;
@@ -163,25 +240,17 @@ void CharacterCreationPresenter::draw_text_centered(
     int width = 0;
     for (const unsigned char ch : text) {
         if (ch >= font.widths.size()) {
-            throw std::runtime_error("CODE.1 text uses glyph outside RES0 font table");
+            throw std::runtime_error(
+                "CODE.1 text uses glyph outside RES0 font table");
         }
         width += font.widths[ch];
     }
 
-    int x = left + (span - width) / 2;
-    for (const unsigned char ch : text) {
-        if (ch >= font.raster.count) {
-            throw std::runtime_error("CODE.1 font raster is missing requested glyph");
-        }
-        framebuffer_.draw_frame(font.raster, ch, y, x);
-        x += font.widths[ch];
-    }
+    draw_text(y, left + (span - width) / 2, text, font_id);
 }
 
 void CharacterCreationPresenter::draw_empty_actor_card(int y, int x) {
     // function_1A04 -> function_004C(T[0]) -> function_00EC mode 0.
-    // Row 0 of the five palette-remap tables is color-equivalent to the
-    // original palette, so the RES7:1A background can be drawn directly.
     draw_frame(7, 0x1A, 0, y, x);
 
     const auto label = assets_.text(0);
@@ -203,7 +272,6 @@ void CharacterCreationPresenter::draw_empty_actor_card(int y, int x) {
         row += 10;
     }
 }
-
 
 void CharacterCreationPresenter::draw_text_box(int record, int y, int x) {
     draw_frame(7, 0x1A, 0, y, x);
@@ -230,38 +298,129 @@ void CharacterCreationPresenter::draw_text_box(int record, int y, int x) {
     }
 }
 
-void CharacterCreationPresenter::draw_summary(
-    const CharacterDraft& draft, bool include_option) {
-    for (int i = 2; i >= 0; --i) {
-        const int cls = draft.classes[static_cast<std::size_t>(i)];
-        if (cls < 0) continue;
-        draw_frame(
-            7,
-            6 + cls,
-            0,
-            0x114 - i * 0x14,
-            0x6D - i);
+void CharacterCreationPresenter::draw_persistent_summary(
+    const CharacterDraft& draft, int stage) {
+    // Exact function_04B0 staged painter.
+    if (stage >= 1 && draft.sex >= 0) {
+        draw_frame(7, draft.sex + 0x0C, 0, 0x114, 3);
     }
 
-    if (include_option && draft.option >= 0) {
-        draw_frame(7, 0x0E + draft.option, 0, 0x114, 0xA2);
+    if (stage >= 2 && draft.race >= 0) {
+        draw_frame(7, draft.race, 0, 0x114, 0x38);
+    }
+
+    if (stage >= 3) {
+        for (int i = 2; i >= 0; --i) {
+            const int cls = draft.classes[static_cast<std::size_t>(i)];
+            if (cls < 0) continue;
+            draw_frame(
+                7,
+                cls + 6,
+                0,
+                0x114 - i * 0x14,
+                0x6D - i);
+        }
+    }
+
+    if (stage >= 4 && draft.option >= 0) {
+        draw_frame(7, draft.option + 0x0E, 0, 0x114, 0xA2);
+    }
+
+    if (stage >= 5 && draft.sex >= 0 && draft.face >= 0) {
+        draw_frame(7, 0x14, 0, 0x114, 0xD7);
+        draw_frame(
+            1,
+            336 + draft.sex * 23 + draft.face,
+            0,
+            0x129,
+            0xD7);
     }
 }
 
+void CharacterCreationPresenter::draw_stats_panel(
+    const CharacterDraft& draft,
+    const CharacterStatsModel& stats_model,
+    int y,
+    int x,
+    int selected_stat) {
+    draw_frame(7, 0x14, 0, y, x);
+
+    const auto& stats = stats_model.value();
+
+    auto two_digits = [](int value) {
+        std::ostringstream out;
+        out << std::setfill('0') << std::setw(2) << value;
+        return out.str();
+    };
+
+    int row = y + 4;
+    for (int i = 0; i < 6; ++i) {
+        const bool selected = selected_stat == i;
+        draw_text(row, x + 1, assets_.text(0x2F + i), 0, selected);
+
+        std::string value;
+        if (i == 0 && stats.exceptional_strength != 0) {
+            value =
+                two_digits(stats.abilities[0]) + "/" +
+                two_digits(stats.exceptional_strength % 100);
+        } else {
+            value = two_digits(stats.abilities[static_cast<std::size_t>(i)]);
+        }
+
+        draw_text_right(row, x + 0x2F, value, 0, selected);
+        row += 10;
+    }
+
+    row += 10;
+    draw_text(row, x + 1, assets_.text(0x35), 0);
+    draw_text_right(
+        row, x + 0x2F, std::to_string(stats.base_6810), 0);
+
+    row += 10;
+    draw_text(row, x + 1, assets_.text(0x36), 0);
+    draw_text_right(
+        row,
+        x + 0x2F,
+        std::to_string(stats_model.secondary_display_value()),
+        0);
+
+    row += 10;
+    const bool multiclass = draft.classes[1] != -1;
+    draw_text(
+        row,
+        x + 1,
+        assets_.text(multiclass ? 0x38 : 0x37),
+        0);
+
+    std::ostringstream levels;
+    levels << stats.levels[0];
+    if (draft.classes[1] != -1) levels << '/' << stats.levels[1];
+    if (draft.classes[2] != -1) levels << '/' << stats.levels[2];
+    draw_text_right(row, x + 0x2F, levels.str(), 0);
+
+    row += 10;
+    const bool hp_selected = selected_stat == 10;
+    draw_text(row, x + 1, assets_.text(0x39), 0, hp_selected);
+    draw_text_right(
+        row,
+        x + 0x2F,
+        std::to_string(stats.hit_points),
+        0,
+        hp_selected);
+}
+
 void CharacterCreationPresenter::draw_controller_base(
-    CharacterCreationState state, int label_record) {
+    CharacterCreationState state, const std::string& label) {
     framebuffer_.clear(0);
 
-    // CODE.1 10A4 only emits RES7:18 while controller mode 04D0 == 0.
     if (state == CharacterCreationState::ActorChoice) {
         draw_strip(7, 0x18, 0, 0);
     }
     draw_strip(7, 0x19, 200, 0);
     draw_frame(7, 0x2A, 0, 5, 0);
 
-    if (label_record >= 0) {
-        draw_text_centered(
-            5, 0, 0x140, assets_.text(label_record), 1);
+    if (!label.empty()) {
+        draw_text_centered(5, 0, 0x140, label, 1);
     }
 
     static constexpr std::array<int, 9> row{
@@ -276,7 +435,10 @@ void CharacterCreationPresenter::draw_controller_base(
 }
 
 void CharacterCreationPresenter::screen(
-    const CharacterCreationFlow& flow) {
+    const CharacterCreationFlow& flow,
+    const CharacterStatsModel* stats,
+    int selected_stat,
+    bool stats_editor) {
     static constexpr std::array<int, 9> row{
         13, 67, 91, 91, 67, 13, 91, 91, 91
     };
@@ -289,21 +451,22 @@ void CharacterCreationPresenter::screen(
 
     switch (state) {
         case CharacterCreationState::ActorChoice:
-            draw_controller_base(state, -1);
+            draw_controller_base(state, {});
             draw_empty_actor_card(row[2], column[2]);
             draw_empty_actor_card(row[3], column[3]);
             draw_text_box(2, 0x114, 0x10C);
             return;
 
         case CharacterCreationState::SexChoice:
-            draw_controller_base(state, 0x26);
+            draw_controller_base(state, assets_.text(0x26));
             draw_frame(7, 0x0C, 0, row[2], column[2]);
             draw_frame(7, 0x0D, 0, row[3], column[3]);
             draw_text_box(8, 0x114, 0x10C);
             return;
 
         case CharacterCreationState::RaceChoice:
-            draw_controller_base(state, 0x27);
+            draw_controller_base(state, assets_.text(0x27));
+            draw_persistent_summary(draft, 1);
             for (int i = 0; i < 6; ++i) {
                 draw_frame(7, i, 0, row[i], column[i]);
             }
@@ -311,8 +474,8 @@ void CharacterCreationPresenter::screen(
             return;
 
         case CharacterCreationState::ClassChoice: {
-            draw_controller_base(state, 0x28);
-            draw_summary(draft, false);
+            draw_controller_base(state, assets_.text(0x28));
+            draw_persistent_summary(draft, 3);
 
             const auto available = flow.available_choices();
             for (int i = 0; i < 6; ++i) {
@@ -334,8 +497,8 @@ void CharacterCreationPresenter::screen(
         }
 
         case CharacterCreationState::OptionChoice: {
-            draw_controller_base(state, 0x29);
-            draw_summary(draft, false);
+            draw_controller_base(state, assets_.text(0x29));
+            draw_persistent_summary(draft, 3);
             const auto available = flow.available_choices();
             for (int i = 0; i < 6; ++i) {
                 draw_frame(
@@ -352,8 +515,8 @@ void CharacterCreationPresenter::screen(
         }
 
         case CharacterCreationState::PortraitChoice: {
-            draw_controller_base(state, 0x2A);
-            draw_summary(draft, true);
+            draw_controller_base(state, assets_.text(0x2A));
+            draw_persistent_summary(draft, 4);
 
             const auto available = flow.available_choices();
             for (int i = 0; i < 6; ++i) {
@@ -363,14 +526,9 @@ void CharacterCreationPresenter::screen(
                 }
 
                 draw_frame(7, 0x14, 0, row[i], column[i]);
-                const int portrait =
-                    336 +
-                    draft.sex * 23 +
-                    flow.portrait_page() +
-                    i;
                 draw_frame(
                     1,
-                    portrait,
+                    336 + draft.sex * 23 + flow.portrait_page() + i,
                     0,
                     row[i] + 0x15,
                     column[i]);
@@ -381,9 +539,45 @@ void CharacterCreationPresenter::screen(
             return;
         }
 
-        case CharacterCreationState::StatsReview:
-            throw std::logic_error(
-                "CODE.1 stats-review renderer is not integrated yet");
+        case CharacterCreationState::StatsReview: {
+            if (!stats) {
+                throw std::logic_error(
+                    "CODE.1 mode 6 requires generated character stats");
+            }
+
+            std::string label;
+            if (stats_editor) {
+                label = assets_.text(0x2C);
+            } else {
+                const auto offset = assets_.code1_s32(0x04B8);
+                if (offset < 0) {
+                    throw std::runtime_error(
+                        "CODE.1 mode-6 title pointer is negative");
+                }
+                label = assets_.code1_cstring(
+                    static_cast<std::size_t>(offset));
+            }
+
+            draw_controller_base(state, label);
+            draw_persistent_summary(draft, 5);
+
+            draw_frame(
+                7, stats_editor ? 0x2C : 0x16, 0, row[6], column[6]);
+            draw_stats_panel(
+                draft,
+                *stats,
+                row[7],
+                column[7],
+                selected_stat);
+            draw_frame(
+                7, stats_editor ? 0x2D : 0x2E, 0, row[8], column[8]);
+
+            draw_text_box(
+                stats_editor ? 3 : 0x0E,
+                0x114,
+                0x10C);
+            return;
+        }
     }
 
     throw std::logic_error("unsupported character controller state");
