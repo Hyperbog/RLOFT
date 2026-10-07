@@ -656,22 +656,28 @@ A direct re-disassembly of common character-damage routine `CD44..CEE3` corrects
 
 These quantities must remain distinct in the native model; they cannot be collapsed into a generic `absorption_pool` abstraction.
 
-## 32. Three additional paired timed slots
+## 32. Three combat-feedback damage slots
 
 After the 26 primary expiry dwords:
 
 ```text
-uint32 timed_slot_deadline[3]
-uint32 timed_slot_aux[3]
+uint32 combat_feedback_deadline[3]
+uint32 combat_feedback_damage[3]
 ```
 
-[Post-effect timers](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/POST_EFFECT_TIMERS.md)
+[Post-effect timers](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/POST_EFFECT_TIMERS.md)
 
-Each deadline is paired one-to-one with its auxiliary dword.
+Direct producer/consumer tracing now closes the formerly unknown identities:
 
-Maintenance clears matured nonzero deadlines and marks character UI/state dirty. A separate consumer selects a slot and uses its auxiliary while active.
+```text
+slot 0  recent outgoing damage for hand A
+slot 1  recent outgoing damage for hand B
+slot 2  recent incoming damage
+```
 
-Exact source/gameplay names remain unresolved. These slots must remain distinct from the 26 primary effects.
+On a successful player attack, slot `hand` receives the final attack damage and a display deadline at `current_time + attack_duration/2`. The common character-damage routine writes the original incoming damage argument to slot 2 and gives it a fixed display lifetime of `0x36` gameplay ticks. The HUD consumer renders the stored value while its deadline remains active.
+
+These are presentation-linked combat-feedback timers, not gameplay effect timers, and remain distinct from the 26 primary effects and the two hand-ready deadlines.
 
 ## 33. Temporary hand-effect family
 
@@ -833,7 +839,7 @@ SpellPreparationState
 CharacterTimingState
     two hand deadlines
     26 primary expiries
-    3 auxiliary timed slots
+    3 combat-feedback damage slots
     9 temporary hand expiries
     recovery deadlines
 
