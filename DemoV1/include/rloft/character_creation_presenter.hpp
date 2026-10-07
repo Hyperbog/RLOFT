@@ -100,7 +100,7 @@ public:
     // frames when selected_slot >= 0.
     [[nodiscard]] static int transition_15b0_frame_count(
         int selected_slot) noexcept {
-        return selected_slot >= 0 ? 19 : 10;
+        return selected_slot >= 0 ? 20 : 10;
     }
     void transition_15b0_frame(
         const CharacterCreationFlow& before,
@@ -108,6 +108,7 @@ public:
         int selected_slot,
         int target_row,
         int target_column,
+        int final_stage,
         int frame_index);
 
     // CODE.1 24D4: nine-frame selected-slot move used by intermediate
