@@ -187,9 +187,6 @@ def render_header(width: int, height: int, ui_scale: float = 1.0) -> Image.Image
         logo,
     )
 
-    draw = ImageDraw.Draw(out)
-    rail = (103, 101, 97)
-    draw.line((0, height - 2, width, height - 2), fill=rail, width=2)
     return out
 
 
