@@ -1169,6 +1169,58 @@ int run(HINSTANCE instance) {
                         portrait_hover_slot = -1;
                     }
 
+                    // function_043C polls 831C only while mode == 6.
+                    // Keypad '+' maps to event 7; keypad '-' maps to event 9.
+                    // 831C is a peek, so unrelated queued keys are consumed
+                    // here only as host input noise, never as controller events.
+                    if (!name_entry &&
+                        !final_decision &&
+                        !existing_actor_decision &&
+                        character_flow.state() ==
+                            rloft::CharacterCreationState::StatsReview &&
+                        stats_ready) {
+                        if (const auto key = host.consume_key_event()) {
+                            int key_event = -1;
+                            if (*key == 0x14E) key_event = 7;
+                            if (*key == 0x14A) key_event = 9;
+
+                            if (key_event != -1) {
+                                if (stats_editor) {
+                                    if (selected_stat != -1) {
+                                        character_stats.adjust(
+                                            character_flow.draft(),
+                                            selected_stat,
+                                            key_event == 7);
+                                        render_character();
+                                    }
+                                } else if (key_event == 7) {
+                                    const auto old_stats =
+                                        character_stats;
+                                    character_stats.generate(
+                                        character_flow.draft());
+                                    if (!animate_07e4(
+                                            character_flow,
+                                            character_flow,
+                                            &old_stats,
+                                            &character_stats,
+                                            7,
+                                            8)) {
+                                        return 0;
+                                    }
+                                    render_character();
+                                } else {
+                                    if (!animate_stats_editor(true)) {
+                                        return 0;
+                                    }
+                                    stats_editor = true;
+                                    selected_stat = -1;
+                                    render_character();
+                                }
+                                continue;
+                            }
+                        }
+                    }
+
                     if (name_entry) {
                         const auto tick = code1_tick_count(code1_epoch);
                         if (tick > name_blink_deadline) {
