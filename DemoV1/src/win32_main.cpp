@@ -805,6 +805,13 @@ int run(HINSTANCE instance) {
     }
 
     rloft::RavenloftBootAssets assets(std::move(source));
+
+    // CODE.2 1A0B0 and CODE.1 52AC both resolve the default mouse cursor as
+    // RES0[INIT word 0 + 2Fh]. Frame zero is the normal pointer state.
+    host.set_game_cursor(
+        assets.res0_type1(
+            static_cast<int>(assets.init_u16(0x00)) + 0x2F));
+
     rloft::Win32AudioPlayer audio_player;
     rloft::Win32MidiPlayer midi_player;
     rloft::StartupPresenter presenter(assets);
