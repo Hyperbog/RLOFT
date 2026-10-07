@@ -270,6 +270,16 @@ audited as immutable controlling evidence:
 - the only additional unmodified code instruction is each block's
   terminal `ret`; there are no unclassified opcodes in this corpus
 
+An independent canonical-file execution exercise ran all 127 original
+SINTAB code bodies with bounded synthetic source/VGA memory, completing
+**58,798** generated instructions (including 127 terminal returns), with
+the same **11,587** source reads and **23,910** indexed writes. Another
+**635** executions inserted a temporary `RET` at representative original
+patch-table positions and verified bounded termination. This exercises
+original binary instructions using a separate Python reference interpreter;
+it does **not** certify a successful C++ demo build or match against
+complete DOS screenshots.
+
 These figures are reproducible with:
 
 ```sh
