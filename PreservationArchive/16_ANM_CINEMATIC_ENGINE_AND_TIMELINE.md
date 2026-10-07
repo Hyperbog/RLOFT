@@ -140,11 +140,59 @@ This is an executable conditional, even if a raw ANM extractor presents both var
 
 These cases supplement the format checks, not replace them. No ANM replay was executed during this source-inspection pass.
 
-## 13. Validation limits and next evidence pass
+## 13. Numbered-event dispatch is conditional, not a one-to-one filename lookup
+
+Routine `13EF8` is the high-level entry point for a numbered cinematic request, while `13AD8` is the stateful selector and `139AC` constructs `CINEnn.ANM`. Most event numbers remain unchanged, **but at least two event numbers undergo explicit game-state selection**. Event 7 may be rejected before opening any file. The byte-proven dispatch chain is `13EF8 -> 13AD8 -> 139AC -> 13834`; the first routine also preserves/reinstates display/audio state via `13C88`.
+
+### 13.1 Event 2 selects CINE01 through CINE05
+
+At `13B3D..13B69`, CODE.2 scans the four party status words at `0x218F0 + i*0x248`. For each it clears the low status byte, masks high-byte bit `0x80` (**status bit `0x8000`**), and increments a counter when the result is zero. After four records it subtracts one from that count and adds it to the requested cinematic number `2`:
+
+```cpp
+unsigned occupied = 0;
+for (unsigned i = 0; i < 4; ++i)
+    occupied += (party[i].status & 0x8000u) == 0;
+unsigned cinematic = 2 + occupied - 1; // 1..5 for 0..4 occupied slots
+```
+
+This is a **party occupancy** selector, not a selection based on living-versus-dead characters or recruited provenance. The final filenames are `CINE01`, `CINE02`, `CINE03`, `CINE04`, `CINE05` for occupancy 0, 1, 2, 3, 4 respectively. An occupancy of zero maps to CINE01 mathematically; this does not establish that ordinary gameplay can invoke event 2 with an empty party. The existing event-10 `CINE10/CINE11` selector is a **different predicate**.
+
+### 13.2 Event 7 has an early no-play return
+
+At `13EFC..13F18`, the high-level entry tests requested event `7` and calls `1C1DC(0x25)`. When that predicate returns `1`, it returns zero immediately, **without** entering `13AD8`, opening an ANM, saving audiovisual state, or starting playback. Otherwise the normal path proceeds. Do not equate a zero return from `13EF8` with proof that a movie ran to completion; a deliberately suppressed request may also return zero.
+
+## 14. Direct cinematic call-site inventory
+
+An object-1 instruction scan identifies these direct `CALL rel32` edges into `13EF8`; descriptions are limited to what the nearby instructions prove.
+
+| CODE.2 call address | Passed event | Evidence-bound context |
+|---|---|---|
+| `0x0052C` | dynamic (`EAX`) | Forwarded from a general dispatch branch after cases `0x0B..0x0D`. |
+| `0x15DDE` | dynamic table word | Indexed `uint16` from `[0x13020 + index*2]`, advancing `[0x7FEC]`. |
+| `0x194B7` | 0 | Immediate `push 0` in a separate presentation path. |
+| `0x1992D` | 0 | Calls event 0 and examines its return before continuing. |
+| `0x1999F` | 12 | Explicit event-12 request after music-state operations in that same path. |
+| `0x21941` | 8 | Explicit request after a four-condition success gate and a text request. |
+| `0x23E08` | 10 | Duplicate finale routine; established as having **no known reachable incoming edge**. |
+| `0x26BD1` | 10 | **Live** five-quest-object success tail, followed by supervisor status 12. |
+
+This is a list of **direct static calls**, not an exhaustive dynamic event-source census. An event number absent from an immediate call may still arrive through the two parameterized paths. In particular, the event-2 selector is real even without a direct `push 2; call 13EF8` site.
+
+## 15. Interrupt and PIT evidence boundary for cinematic waits
+
+The ANM frame loop awaits the `0xF58C` counter via `30700`, `2E608`, and `2E614`. The interrupt-vector installation routine at `30BB4..30C36` explicitly registers `30708` for **interrupt 8**; that handler increments `[0xF58C]`, executes `19C80`, and chains to its saved previous interrupt handler. This ties cinematic waits to an interrupt-updated clock, not to a fixed frame-delay loop.
+
+A **second** timer infrastructure is also present. `360E8` installs handler `35FC6` at interrupt 8, using channel-state tables and periodic callbacks; `3616F` writes control value `0x36` to PIT port `0x43` and low/high divisor bytes to port `0x40`. `3619D` and `361CE` choose and program divisors from active timer channels. The two vector installations and their restoration paths must be ordered and traced before claiming a single fixed cinematic tick frequency.
+
+Do **not** derive seconds per ANM tick from `default_wait=1`, alternate wait `6` or `2`, an isolated PIT divisor, or the conventional DOS BIOS tick rate. A trustworthy conversion requires the effective installed vector, PIT divisor, chaining behavior and active callback configuration during actual cinematic execution. These cross-module timing questions move to the dedicated timing chapter.
+
+**Verification checkpoint:** 15 targeted original `CODE.2` machine-byte checks were rerun in this investigation and passed, covering event 2, event 7, immediate event 8/12 calls, IRQ0 handler installation/increment, and PIT programming. This checks binary identities and instruction anchors, **not** run-time cinematic execution or time-calibrated playback.
+
+## 16. Validation limits and next evidence pass
 
 The repository's `Resources/ANM/analyze_anm.py` records byte-exact unchanged parse/serialize and structural validation for all 13 supplied files, including all 73 type-2, 809 type-3 and 2,796 type-8 chunks. **This continuation has inspected the stored audit; it has not rerun corpus validation.** A raw-preserving parse/serialize check is not a certified mutation encoder.
 
-Next: map each cinematic's event callers and individual sound/subtitle IDs against the actual supplied ANM payloads and T/audio indexes; establish the timer interrupt's real frequency in the dedicated timing chapter, then implement frame-accurate regression fixtures. Retain chunk-4 original authoring intent as **UNKNOWN**.
+Next: establish timer vector/PIT ordering in the dedicated timing chapter; correlate individual ANM SFX/subtitle packet parameters against the original cinematic payloads, indexed T and audio resource namespaces; then build frame-accurate runtime tests. Original chunk-4 authoring intent remains **UNKNOWN**.
 
 ## Primary source ledger
 
