@@ -68,6 +68,41 @@ void IndexedFramebuffer::draw_frame_mirrored(
     }
 }
 
+void IndexedFramebuffer::draw_frame_mapped(
+    const Type1Raster& raster,
+    int frame,
+    int y,
+    int x,
+    const std::array<std::uint8_t, 256>& map) {
+    if (frame < 0 || frame >= raster.count) {
+        throw std::out_of_range("type-1 mapped frame index");
+    }
+
+    const auto frame_stride =
+        static_cast<std::size_t>(raster.width) * raster.height;
+    const auto frame_at = static_cast<std::size_t>(frame) * frame_stride;
+    for (int sy = 0; sy < raster.height; ++sy) {
+        const int dy = y + sy;
+        if (dy < 0 || dy >= kHeight) continue;
+        for (int sx = 0; sx < raster.width; ++sx) {
+            const int dx = x + sx;
+            if (dx < 0 || dx >= kWidth) continue;
+
+            const auto value = raster.pixels[
+                frame_at +
+                static_cast<std::size_t>(sy) * raster.width +
+                sx];
+            if (raster.transparent_index != 0xFF &&
+                value == raster.transparent_index) {
+                continue;
+            }
+
+            pixels_[static_cast<std::size_t>(dy) * kWidth + dx] =
+                map[value];
+        }
+    }
+}
+
 IndexedRegion IndexedFramebuffer::capture(
     int y, int x, int height, int width) const {
     if (height < 0 || width < 0) {
