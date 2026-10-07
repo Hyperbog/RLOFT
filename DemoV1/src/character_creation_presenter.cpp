@@ -11,6 +11,20 @@
 namespace rloft {
 namespace {
 
+constexpr std::array<int, 9> kSlotRow{
+    13, 67, 91, 91, 67, 13, 91, 91, 91
+};
+constexpr std::array<int, 9> kSlotColumn{
+    3, 56, 109, 162, 215, 268, 83, 136, 189
+};
+
+int div8_after_plus4(int value) noexcept {
+    const auto wrapped =
+        static_cast<std::int32_t>(
+            static_cast<std::uint32_t>(value) + 4U);
+    return wrapped / 8;
+}
+
 void advance_indicator(int& value, int& step) {
     int sum = value + step;
     if (sum == 0x18) {
@@ -28,7 +42,10 @@ void advance_indicator(int& value, int& step) {
 
 CharacterCreationPresenter::CharacterCreationPresenter(
     const RavenloftBootAssets& assets)
-    : assets_(assets) {}
+    : assets_(assets),
+      remaps_(
+          CharacterPaletteRemaps::build(
+              assets.colors_palette(8))) {}
 
 Palette6 CharacterCreationPresenter::palette() const {
     // CODE.1 0x4978 calls C254(buffer, 0, 8, "COLORS", 256)
@@ -450,6 +467,427 @@ void CharacterCreationPresenter::draw_controller_base(
     for (int i = 0; i < 9; ++i) {
         draw_frame(7, 0x1E + i, 0, row[i], column[i]);
     }
+}
+
+bool CharacterCreationPresenter::slot_active(
+    const CharacterCreationFlow& flow,
+    int slot) const noexcept {
+    if (slot < 0 || slot >= 9) return false;
+
+    switch (flow.state()) {
+        case CharacterCreationState::ActorChoice:
+        case CharacterCreationState::SexChoice:
+            return slot == 2 || slot == 3;
+
+        case CharacterCreationState::RaceChoice:
+        case CharacterCreationState::ClassChoice:
+        case CharacterCreationState::OptionChoice:
+        case CharacterCreationState::PortraitChoice:
+            return slot < 6;
+
+        case CharacterCreationState::StatsReview:
+            return slot >= 6 && slot <= 8;
+    }
+    return false;
+}
+
+void CharacterCreationPresenter::draw_slot_content(
+    const CharacterCreationFlow& flow,
+    const CharacterStatsModel* stats,
+    int slot,
+    int y,
+    int x) {
+    const auto state = flow.state();
+
+    if (!slot_active(flow, slot)) return;
+
+    switch (state) {
+        case CharacterCreationState::ActorChoice: {
+            const int actor = slot - 2;
+            if (flow.actor_present(actor)) {
+                draw_actor_card(flow.actor(actor), y, x);
+            } else {
+                draw_empty_actor_card(y, x);
+            }
+            return;
+        }
+
+        case CharacterCreationState::SexChoice:
+            draw_frame(7, 0x0C + slot - 2, 0, y, x);
+            return;
+
+        case CharacterCreationState::RaceChoice:
+            draw_frame(7, slot, 0, y, x);
+            return;
+
+        case CharacterCreationState::ClassChoice: {
+            const auto available = flow.available_choices();
+            draw_frame(
+                7,
+                available[static_cast<std::size_t>(slot)]
+                    ? 6 + slot
+                    : 0x15,
+                0,
+                y,
+                x);
+            return;
+        }
+
+        case CharacterCreationState::OptionChoice: {
+            const auto available = flow.available_choices();
+            draw_frame(
+                7,
+                available[static_cast<std::size_t>(slot)]
+                    ? 0x0E + slot
+                    : 0x15,
+                0,
+                y,
+                x);
+            return;
+        }
+
+        case CharacterCreationState::PortraitChoice: {
+            const auto available = flow.available_choices();
+            if (!available[static_cast<std::size_t>(slot)]) {
+                draw_frame(7, 0x15, 0, y, x);
+                return;
+            }
+            draw_frame(7, 0x14, 0, y, x);
+            draw_frame(
+                1,
+                336 +
+                    flow.draft().sex * 23 +
+                    flow.portrait_page() +
+                    slot,
+                0,
+                y + 0x15,
+                x);
+            return;
+        }
+
+        case CharacterCreationState::StatsReview:
+            if (slot == 6) {
+                draw_frame(7, 0x16, 0, y, x);
+                return;
+            }
+            if (slot == 7) {
+                if (!stats) {
+                    throw std::logic_error(
+                        "stats slot requires generated stats");
+                }
+                draw_stats_panel(
+                    flow.draft(), *stats, y, x, -1);
+                return;
+            }
+            if (slot == 8) {
+                draw_frame(7, 0x2E, 0, y, x);
+                return;
+            }
+            return;
+    }
+}
+
+void CharacterCreationPresenter::draw_slot_content_mapped(
+    const CharacterCreationFlow& flow,
+    const CharacterStatsModel* stats,
+    int slot,
+    int y,
+    int x,
+    const std::array<std::uint8_t, 256>& bright_map,
+    const std::array<std::uint8_t, 256>& luminance_map,
+    const IndexedRegion* cached) {
+    if (!slot_active(flow, slot)) return;
+
+    const auto state = flow.state();
+
+    // CODE.1 mode 0 actor cards and mode 6 slot 7 are cached images and pass
+    // through 6824 rather than being redrawn from their component resources.
+    if (state == CharacterCreationState::ActorChoice ||
+        (state == CharacterCreationState::StatsReview && slot == 7)) {
+        if (!cached) {
+            throw std::logic_error(
+                "CODE.1 cached slot transition lacks captured region");
+        }
+        framebuffer_.restore_mapped(
+            *cached, y, x, bright_map);
+        return;
+    }
+
+    if (state == CharacterCreationState::PortraitChoice) {
+        const auto available = flow.available_choices();
+        if (!available[static_cast<std::size_t>(slot)]) {
+            framebuffer_.draw_frame_mapped(
+                assets_.type1(7, 0x15),
+                0,
+                y,
+                x,
+                bright_map);
+            return;
+        }
+
+        framebuffer_.draw_frame_mapped(
+            assets_.type1(7, 0x14),
+            0,
+            y,
+            x,
+            bright_map);
+        framebuffer_.draw_frame_mapped(
+            assets_.type1(
+                1,
+                336 +
+                    flow.draft().sex * 23 +
+                    flow.portrait_page() +
+                    slot),
+            0,
+            y + 0x15,
+            x,
+            luminance_map);
+        return;
+    }
+
+    int resource = -1;
+    switch (state) {
+        case CharacterCreationState::SexChoice:
+            resource = 0x0C + slot - 2;
+            break;
+        case CharacterCreationState::RaceChoice:
+            resource = slot;
+            break;
+        case CharacterCreationState::ClassChoice: {
+            const auto available = flow.available_choices();
+            resource =
+                available[static_cast<std::size_t>(slot)]
+                    ? 6 + slot
+                    : 0x15;
+            break;
+        }
+        case CharacterCreationState::OptionChoice: {
+            const auto available = flow.available_choices();
+            resource =
+                available[static_cast<std::size_t>(slot)]
+                    ? 0x0E + slot
+                    : 0x15;
+            break;
+        }
+        case CharacterCreationState::StatsReview:
+            resource = slot == 6 ? 0x16 : 0x2E;
+            break;
+        case CharacterCreationState::ActorChoice:
+        case CharacterCreationState::PortraitChoice:
+            break;
+    }
+
+    if (resource < 0) {
+        throw std::logic_error(
+            "unsupported mapped character slot resource");
+    }
+
+    framebuffer_.draw_frame_mapped(
+        assets_.type1(7, resource),
+        0,
+        y,
+        x,
+        bright_map);
+}
+
+void CharacterCreationPresenter::transition_15b0_frame(
+    const CharacterCreationFlow& before,
+    const CharacterStatsModel* stats,
+    int selected_slot,
+    int target_row,
+    int target_column,
+    int frame_index) {
+    const int count =
+        transition_15b0_frame_count(selected_slot);
+    if (frame_index < 0 || frame_index >= count) {
+        throw std::out_of_range(
+            "CODE.1 15B0 transition frame index");
+    }
+    if (selected_slot >= 0 &&
+        !slot_active(before, selected_slot)) {
+        throw std::logic_error(
+            "CODE.1 15B0 selected slot is not active");
+    }
+
+    // Reconstruct each displayed page from the settled source state. This is
+    // equivalent to the original two-page scratch-buffer sequence because
+    // each iteration restores the affected rectangle before drawing.
+    screen(before, stats);
+
+    std::array<IndexedRegion, 9> cached{};
+    std::array<bool, 9> has_cached{};
+    for (int slot = 0; slot < 9; ++slot) {
+        if (!slot_active(before, slot)) continue;
+        if (before.state() == CharacterCreationState::ActorChoice ||
+            (before.state() == CharacterCreationState::StatsReview &&
+             slot == 7)) {
+            cached[static_cast<std::size_t>(slot)] =
+                framebuffer_.capture(
+                    kSlotRow[static_cast<std::size_t>(slot)],
+                    kSlotColumn[static_cast<std::size_t>(slot)],
+                    0x7A,
+                    0x30);
+            has_cached[static_cast<std::size_t>(slot)] = true;
+        }
+    }
+
+    if (frame_index < 5) {
+        const auto& bright =
+            remaps_.bright[static_cast<std::size_t>(frame_index)];
+        const auto& lum =
+            remaps_.luminance[static_cast<std::size_t>(frame_index)];
+
+        for (int slot = 0; slot < 9; ++slot) {
+            if (!slot_active(before, slot) ||
+                slot == selected_slot) {
+                continue;
+            }
+
+            draw_slot_content_mapped(
+                before,
+                stats,
+                slot,
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)],
+                bright,
+                lum,
+                has_cached[static_cast<std::size_t>(slot)]
+                    ? &cached[static_cast<std::size_t>(slot)]
+                    : nullptr);
+        }
+        return;
+    }
+
+    if (frame_index < 10) {
+        const int map_row = 9 - frame_index;
+        const auto& bright =
+            remaps_.bright[static_cast<std::size_t>(map_row)];
+
+        for (int slot = 0; slot < 9; ++slot) {
+            if (!slot_active(before, slot) ||
+                slot == selected_slot) {
+                continue;
+            }
+
+            framebuffer_.draw_frame_mapped(
+                assets_.type1(7, 0x1E + slot),
+                0,
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)],
+                bright);
+        }
+        return;
+    }
+
+    if (selected_slot < 0) {
+        throw std::logic_error(
+            "dissolve-only 15B0 transition has no movement frames");
+    }
+
+    // End of the second loop: all active slots except the selected choice are
+    // their ordinary slot backgrounds.
+    for (int slot = 0; slot < 9; ++slot) {
+        if (!slot_active(before, slot)) continue;
+        if (slot != selected_slot) {
+            draw_frame(
+                7,
+                0x1E + slot,
+                0,
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)]);
+        }
+    }
+
+    const int start_row =
+        kSlotRow[static_cast<std::size_t>(selected_slot)];
+    const int start_column =
+        kSlotColumn[static_cast<std::size_t>(selected_slot)];
+
+    // The selected slot's source rectangle is restored from scratch before
+    // every movement frame.
+    draw_frame(
+        7,
+        0x1E + selected_slot,
+        0,
+        start_row,
+        start_column);
+
+    const int step = frame_index - 10;
+    const auto row_product = static_cast<std::int32_t>(
+        static_cast<std::uint32_t>(target_row - start_row) *
+        static_cast<std::uint32_t>(step));
+    const auto column_product = static_cast<std::int32_t>(
+        static_cast<std::uint32_t>(target_column - start_column) *
+        static_cast<std::uint32_t>(step));
+
+    const int row =
+        start_row + div8_after_plus4(row_product);
+    const int column =
+        start_column + div8_after_plus4(column_product);
+
+    draw_slot_content(
+        before,
+        stats,
+        selected_slot,
+        row,
+        column);
+}
+
+void CharacterCreationPresenter::transition_24d4_frame(
+    const CharacterCreationFlow& before,
+    int selected_slot,
+    int target_row,
+    int target_column,
+    int frame_index) {
+    if (frame_index < 0 || frame_index > 8) {
+        throw std::out_of_range(
+            "CODE.1 24D4 transition frame index");
+    }
+    if (!slot_active(before, selected_slot)) {
+        throw std::logic_error(
+            "CODE.1 24D4 selected slot is not active");
+    }
+
+    screen(before, nullptr);
+
+    const int start_row =
+        kSlotRow[static_cast<std::size_t>(selected_slot)];
+    const int start_column =
+        kSlotColumn[static_cast<std::size_t>(selected_slot)];
+
+    draw_frame(
+        7,
+        0x1E + selected_slot,
+        0,
+        start_row,
+        start_column);
+
+    const int dr =
+        static_cast<std::int32_t>(
+            static_cast<std::uint32_t>(target_row) -
+            static_cast<std::uint32_t>(start_row)) /
+        8;
+    const int dc =
+        static_cast<std::int32_t>(
+            static_cast<std::uint32_t>(target_column) -
+            static_cast<std::uint32_t>(start_column)) /
+        8;
+
+    const int row =
+        static_cast<std::int32_t>(
+            static_cast<std::uint32_t>(start_row) +
+            static_cast<std::uint32_t>(dr * frame_index));
+    const int column =
+        static_cast<std::int32_t>(
+            static_cast<std::uint32_t>(start_column) +
+            static_cast<std::uint32_t>(dc * frame_index));
+
+    draw_slot_content(
+        before,
+        nullptr,
+        selected_slot,
+        row,
+        column);
 }
 
 void CharacterCreationPresenter::screen(
