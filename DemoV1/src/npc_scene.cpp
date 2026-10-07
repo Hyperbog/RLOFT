@@ -1,6 +1,7 @@
 #include "rloft/npc_scene.hpp"
 
 #include "rloft/first_person_entity_projection.hpp"
+#include "rloft/scene_shape_selector.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -40,78 +41,6 @@ std::uint16_t seeded_random15(
         0x00003039U;
     return static_cast<std::uint16_t>(
         (seed >> 16U) & 0x7FFFU);
-}
-
-int normalize_degrees(int value) noexcept {
-    while (value >= 360) value -= 360;
-    while (value < 0) value += 360;
-    return value;
-}
-
-std::uint16_t apply_relative_orientation(
-    std::uint16_t resource,
-    const LiveNpcRecord& npc,
-    const NpcDefinition& definition,
-    std::uint16_t screen_x,
-    const ExplorationSessionState& session,
-    const RendererTables& tables) {
-    const auto stride =
-        static_cast<int>(
-            definition.scene_frame_stride);
-    if (stride != 1 && stride != 8) {
-        // The supplied NPCS.DAT uses only 1 and 8. CODE.2 also contains
-        // source-class branches for 2 and 16; they are not exercised by the
-        // shipped NPC definition table and are not approximated here.
-        throw std::logic_error(
-            "unsupported NPC scene frame stride");
-    }
-
-    auto relative =
-        static_cast<std::int32_t>(
-            tables.c6d0() -
-            static_cast<std::uint32_t>(
-                screen_x));
-    relative /= 8;
-    relative +=
-        static_cast<std::int32_t>(
-            session.facing);
-    relative +=
-        static_cast<std::int32_t>(
-            npc.facing()) * 45;
-    relative -= 180;
-
-    // CODE.2 generic source-class-0 path for supplied strides 1/8.
-    relative += 44;
-    relative -= (8 / stride) * 22;
-    relative = normalize_degrees(relative);
-
-    const auto sector =
-        (relative / 45) % 8;
-    const auto state =
-        static_cast<int>(
-            (npc.packed_runtime_state >> 1U) &
-            3U);
-    const auto divisor = 8 / stride;
-
-    if (state == 0) {
-        resource = add_word(
-            resource,
-            static_cast<std::uint32_t>(
-                sector / divisor));
-    } else if (
-        (state == 1 || state == 2) &&
-        npc.npc_type_id != 0x21U) {
-        const auto q = sector / divisor;
-        const auto offset = (q % 5) % 3;
-        resource = add_word(
-            resource,
-            static_cast<std::uint32_t>(
-                offset));
-    }
-
-    // Class-0 resource base at 27100[0] is zero in the certified supplied
-    // build, so no numeric adjustment is required here.
-    return resource;
 }
 
 std::uint16_t select_resource(
@@ -243,13 +172,16 @@ std::uint16_t select_resource(
 
     // State 3 bypasses 2B2F4 in the original builder.
     if (state != 3U) {
-        resource = apply_relative_orientation(
-            resource,
-            npc,
-            definition,
-            screen_x,
-            session,
-            tables);
+        resource =
+            SceneShapeSelectorModel::select_bank_local(
+                resource,
+                screen_x,
+                npc.packed_runtime_state,
+                npc.npc_type_id,
+                0U,
+                definition.scene_frame_stride,
+                session,
+                tables);
     }
     return resource;
 }
