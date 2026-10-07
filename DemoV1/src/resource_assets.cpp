@@ -225,6 +225,7 @@ Type1Raster ResArchive::decode_type1(int index) const {
     const int width_units = desc[4];
     const auto key = desc[5];
     const auto compression = desc[6];
+    const auto transform = desc[7];
     if (count <= 0 || height <= 0 || width_units <= 0) {
         throw std::runtime_error("Invalid type-1 raster dimensions");
     }
@@ -245,6 +246,17 @@ Type1Raster ResArchive::decode_type1(int index) const {
         pixels = lzss_4k(payload, payload_size, expected);
     } else {
         throw std::runtime_error("Unsupported type-1 compression in shipped boot resource");
+    }
+
+    // CODE.1 767C calls DC90 when source descriptor byte +7 is nonzero.
+    // DC90 acts only on one-row images: it transposes the encoded
+    // [element][plane] matrix into [plane][row], then rewrites the runtime
+    // descriptor from N elements x 1 row to 1 element x N rows. In this
+    // host-side chunky representation the decoded source bytes are already
+    // laid out as consecutive visual rows, so the equivalent transformation
+    // is purely descriptor geometry; pixel order is unchanged.
+    if (transform != 0 && height == 1) {
+        return Type1Raster{1, width, count, key, std::move(pixels)};
     }
 
     return Type1Raster{count, width, height, key, std::move(pixels)};
