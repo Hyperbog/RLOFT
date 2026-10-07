@@ -76,6 +76,7 @@ add_library(rloft_boot_flow
     src/type7_rasterizer_setup.cpp
     src/type7_rasterizer_patch.cpp
     src/sintab_pixel_microcode.cpp
+    src/type7_scene_pixel_executor.cpp
     src/type7_vga_plane_masks.cpp
     src/type7_vga_raster_dispatch.cpp
     src/type7_vga_scene_trace.cpp
@@ -341,6 +342,10 @@ add_executable(sintab_pixel_microcode_tests tests/sintab_pixel_microcode_tests.c
 target_link_libraries(sintab_pixel_microcode_tests PRIVATE rloft_boot_flow)
 add_test(NAME sintab_pixel_microcode_tests COMMAND sintab_pixel_microcode_tests)
 
+add_executable(type7_scene_pixel_executor_tests tests/type7_scene_pixel_executor_tests.cpp)
+target_link_libraries(type7_scene_pixel_executor_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_scene_pixel_executor_tests COMMAND type7_scene_pixel_executor_tests)
+
 add_executable(type7_vga_plane_masks_tests tests/type7_vga_plane_masks_tests.cpp)
 target_link_libraries(type7_vga_plane_masks_tests PRIVATE rloft_boot_flow)
 add_test(NAME type7_vga_plane_masks_tests COMMAND type7_vga_plane_masks_tests)
@@ -553,6 +558,7 @@ set(RLOFT_TEST_TARGETS
     type7_rasterizer_setup_tests
     type7_rasterizer_patch_tests
     sintab_pixel_microcode_tests
+    type7_scene_pixel_executor_tests
     type7_vga_plane_masks_tests
     type7_vga_raster_dispatch_tests
     type7_vga_scene_trace_tests
