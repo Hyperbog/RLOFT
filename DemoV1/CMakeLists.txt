@@ -69,6 +69,7 @@ add_library(rloft_boot_flow
     src/scene_source_banks.cpp
     src/world_scene_record.cpp
     src/world_scene_selection.cpp
+    src/world_scene_draw_calls.cpp
     src/type7_column_traversal.cpp
     src/renderer_tables.cpp
     src/micro_rasterizer_layout.cpp
@@ -298,6 +299,10 @@ add_executable(world_scene_selection_tests tests/world_scene_selection_tests.cpp
 target_link_libraries(world_scene_selection_tests PRIVATE rloft_boot_flow)
 add_test(NAME world_scene_selection_tests COMMAND world_scene_selection_tests)
 
+add_executable(world_scene_draw_calls_tests tests/world_scene_draw_calls_tests.cpp)
+target_link_libraries(world_scene_draw_calls_tests PRIVATE rloft_boot_flow)
+add_test(NAME world_scene_draw_calls_tests COMMAND world_scene_draw_calls_tests)
+
 add_executable(type7_column_traversal_tests tests/type7_column_traversal_tests.cpp)
 target_link_libraries(type7_column_traversal_tests PRIVATE rloft_boot_flow)
 add_test(NAME type7_column_traversal_tests COMMAND type7_column_traversal_tests)
@@ -486,6 +491,7 @@ set(RLOFT_TEST_TARGETS
     scene_source_banks_tests
     world_scene_record_tests
     world_scene_selection_tests
+    world_scene_draw_calls_tests
     type7_column_traversal_tests
     renderer_tables_tests
     micro_rasterizer_layout_tests
