@@ -1,3 +1,4 @@
+#include "rloft/character_creation_presenter.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
 
@@ -85,6 +86,18 @@ int main() {
     assert(rloft::StartupPresenter::menu_selection_from_y(301) == 2);
     assert(rloft::StartupPresenter::menu_selection_from_y(318) == 3);
     assert(rloft::StartupPresenter::menu_selection_from_y(400) == -1);
+
+    // 07E4's stagger loop contributes N+10 frames, followed by one final
+    // full 064C redraw/page flip.
+    assert(
+        rloft::CharacterCreationPresenter::transition_07e4_frame_count(
+            0, 6) == 17);
+    assert(
+        rloft::CharacterCreationPresenter::transition_07e4_frame_count(
+            2, 4) == 13);
+    assert(
+        rloft::CharacterCreationPresenter::transition_07e4_frame_count(
+            6, 9) == 14);
 
     std::cout << "presenter_tests: PASS\n";
 }
