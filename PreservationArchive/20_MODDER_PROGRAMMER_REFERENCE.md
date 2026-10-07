@@ -2,7 +2,7 @@
 
 ## 20 — Modder and Programmer Reference: Stable IDs, Structures, and Extension Rules
 
-**Status:** ORIGINAL FILE CONTRACTS AND FLAG/ID CROSS-REFERENCE DOCUMENTED — native implementation regressions pending  
+**Status:** SOURCE-BACKED PROGRAMMER REFERENCE AUDITED — native implementation regressions and historical UNKNOWNs remain separately OPEN  
 **Working branch:** `code1-decompilation`  
 **Controlling evidence:** original CODE.1/CODE.2, fixed DAT fixtures, certified Resources corpus and the 19 preceding subsystem chapters.  
 **Applicability:** the **supplied** executable and accompanying resource/data set, not every historical CD, diskette, non-English or non-DOS edition.
@@ -306,3 +306,28 @@ These checks validate the stated **static fixture offsets and values**. They do 
 
 **Documentation state:** the present glossary is grounded in immutable original-file fixtures and certified subsystem chapters. It is an implementation reference, **not a completed native regression run**.
 
+
+
+## 18. Final reference audit and publication boundary
+
+**Decision: SOURCE-BACKED PROGRAMMER REFERENCE CLOSED TO CURRENT EVIDENCE; native runtime regressions OPEN.**
+
+This chapter is a directly usable indexing layer above the canonical file and subsystem audits, **not** a competing schema that replaces them. Its field dimensions, stable-index rules, auxiliary-source offsets, flag tables and byte examples are verified against existing certified source documents. The published repository tree was checked for every relative Markdown link in this chapter: **19/19 references resolve** to tracked paths on `code1-decompilation`.
+
+**Local original-file verification in this continuation** produced:
+
+- **9/9 size/SHA-256** matches for CODE.1, CODE.2, INFO.DAT, LEVELS.DAT, LEV022.DAT, OBJECTS.DAT, NPCS.DAT, SAVE.DAT and SINTAB against the certified manifest;
+- **19/19 targeted byte/structure assertions** for worked examples (§16), including the QUIVER selector, GHOUL LORD index, all four active-party slot status words, SAVE's three clocks and transient count, LEVELS directory and INFO.DAT route; and
+- exact `CODE.2` embedded `Ver 1.2a` string at the certified file offset.
+
+These are **source integrity and static encoding** validations; no new full original-game playback, patch expansion or native gameplay behavior test was executed. The separate 33-file RES/ANM validation numbers cited elsewhere in this chapter remain the result of the certified Resources workstream, **not a claim that all those original assets were re-mounted and processed today**.
+
+### No-silent-repair policy
+
+If a modded artifact contains an out-of-range index, mismatched payload length, unsupported opcode, unknown nonzero packed bits, stale cache or invalid original executable pointer, a preservation editor must not silently coerce it into a plausible new form. Use one of three explicit outcomes: reject and explain, retain original bytes with a validation warning, or apply a user-requested reversible repair with a logged byte diff and output provenance.
+
+### Port compatibility checklist
+
+The native port's future CI should include **round-trip**, **referential**, **original-behavior** and **hardware-dependency** suites as separate jobs; a green parser unit test must not certify native fidelity. Compare game state at boundaries with proved original order: startup/CHARS handoff, per-frame update and tick waiting, level events, wordcode branching, inventory mutation, HP/status progression, cinematics and save/load. Original undocumented field meanings remain categorized in [Chapter 18](18_ORIGINAL_QUIRKS_LATENT_FEATURES_AND_LEGACY_DATA.md).
+
+**Next archive-wide step:** build the final contradiction and UNKNOWN audit across Chapters 00–20, distinguish contradictions from source-evidence upgrades and from bounded historical unknowns, and declare documentation 100% only after every recorded issue is either resolved with evidence or explicitly bounded. Missing earlier executable/media versions and dynamic original audio timing are still open external-evidence targets.
