@@ -55,9 +55,10 @@ struct LevelState final {
     std::vector<CellControlRecord> group2;
     std::uint8_t active_animation_count{};
 
-    // Retained byte-for-byte but intentionally inert for this milestone.
-    // family A contains NPC/creature instances; family B/C contain placed and
-    // loose item/world records that later builds will activate.
+    // Retained byte-for-byte as the serialized source for the mutable runtime
+    // world. Family A contains NPC/creature instances; family B/C contain
+    // placed and loose item/world records. LevelWorldStateCodec expands these
+    // compact archive records or restores direct-save runtime records.
     std::vector<std::uint8_t> family_a_raw;
     std::vector<std::uint8_t> family_b_raw;
     std::vector<std::uint8_t> family_c_raw;
