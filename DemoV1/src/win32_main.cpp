@@ -832,6 +832,11 @@ int run(HINSTANCE instance) {
                     host.hwnd(),
                     L"Ravenloft: Strahd's Possession — Character Creation");
 
+                // CODE.1 4CB0 reads INIT word 11 into 712C and C650(6)
+                // selects RES6 for the C4E0 one-shot sound path.
+                const int character_sfx_base =
+                    assets.init_u16(0x16);
+
                 // CODE.1 45FC..4976: 70 displayed iterations. Each 87D8(2,0)
                 // wait is two chained BIOS INT-8 ticks. The first frame is
                 // submitted while the inherited CODE.2 palette is black; only
@@ -853,6 +858,25 @@ int run(HINSTANCE instance) {
                         !code1_palette_reveal(
                             host, character_presenter, character_palette)) {
                         return 0;
+                    }
+
+                    // 45FC calls C4E0(base+0Dh) on frame 1 of each 10-frame
+                    // group (logical frames 1 and 36), and C4E0(base+0Ch)
+                    // on group 0's second-loop frame 15 (logical frame 25).
+                    // C4E0 first invokes C57C, so stop the previous one-shot
+                    // before submitting the new RES6 Creative Voice record.
+                    int sound_id = -1;
+                    if (frame == 1 || frame == 36) {
+                        sound_id = character_sfx_base + 0x0D;
+                    } else if (frame == 25) {
+                        sound_id = character_sfx_base + 0x0C;
+                    }
+
+                    if (sound_id >= 0) {
+                        audio_player.stop_all();
+                        audio_player.play(
+                            rloft::decode_creative_voice(
+                                assets.sampled_audio(6, sound_id)));
                     }
                 }
 
