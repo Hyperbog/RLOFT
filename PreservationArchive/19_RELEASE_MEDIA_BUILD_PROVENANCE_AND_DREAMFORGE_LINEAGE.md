@@ -2,7 +2,7 @@
 
 ## 19 — Release, Media, Build Provenance, and DreamForge Lineage
 
-**Status:** VERIFIED FILE-LEVEL PROVENANCE MANIFEST — historical patch deltas and exact media mastering remain OPEN  
+**Status:** SUPPLIED-BUILD STATIC PROVENANCE AUDITED — historical patch deltas and exact media mastering remain OPEN  
 **Working branch:** `code1-decompilation`  
 **Frozen repository evidence baseline:** `373c7f10e6fc0f29c1e805125ef048150fcc7ba7`  
 **Evidence hierarchy:** immutable supplied binaries and certified format audits first; dated storefront/publisher records and documented contemporary media second; historical community testimony third. Never infer executable equality solely from matching game title, file name or platform.
@@ -205,3 +205,41 @@ A real 1.1/1.2/1.2a regression diff should compare:
 
 **Completion boundary:** the present supplied-build provenance can be certified, but the patch delta matrix is **OPEN** until source patches or older edition binaries are acquired and independently hashed. No amount of static interpretation of 1.2a alone can prove which exact bytes changed in 1.2.
 
+
+## 15. Final static provenance audit — executable and installation evidence
+
+**Source-level decision: CLOSED TO SUPPLIED ORIGINALS; alternate media/patch delta reconstruction remains OPEN.** The 33-entry RES/ANM/support manifest in §10 is copied from the independently certified original resource audit; the per-file DATA and CODE identifiers in §9 are compared against **currently supplied original byte files**. These two evidence populations must not be confused.
+
+A fresh local verification of `CODE.1`, `CODE.2`, `INFO.DAT`, `LEVELS.DAT`, `LEV022.DAT`, `OBJECTS.DAT`, `NPCS.DAT`, `SAVE.DAT`, and `SINTAB` produced **15/15 successful tests**:
+
+- nine independent **file-size and SHA-256** identities;
+- exact **INFO.DAT** physical selector/path bytes and length;
+- `CODE.2` literal **`Ver 1.2a`** at file offset `0x7E1E4`;
+- OBJECTS count `336` × record length `0x41`, NPCS count `83` × `0x45`;
+- LEVELS count `32` and first record offset `0x84`;
+- SAVE tick/time samples `1899`, `0x000E0000` and `1735`.
+
+The locally provided **SINTAB** SHA-256 matches the corresponding independently certified row of the resources archive. The other 32 source resources in §10 were audited by the earlier `Resources/FINAL_RESOURCE_AUDIT.md` investigation, **not re-present in this workspace's mounted original files**. The CODE.1/CODE.2 MD5 matches and embedded version string establish 1.2a executable provenance; the original R.EXE remains represented here by its certified separate binary-audit report.
+
+## 16. Earlier contemporary patch attestation and chronology correction
+
+A publicly preserved contemporary [patch listing dated **March 3, 1995**](https://groups.google.com/g/comp.sys.ibm.pc.games.adventure/c/fDBFpSLIaus) names **all four** `rlftcd11.zip`, `rlftcd12.zip`, `rlftdk11.zip`, and `rlftdk12.zip`; the previously cited [May 9, 1995 list](https://groups.google.com/g/comp.sys.ibm.pc.games.adventure/c/c8ZPgcpO8Tw) corroborates the same entries, as does an [August 1995 follow-up](https://groups.google.com/g/comp.sys.ibm.pc.games.adventure/c/_miPm_DHjAg).
+
+**Correction P-19.2:** the May 1995 listing is **not the earliest established surviving contemporary attestation** in the presently checked sources. The four patch filenames are documented **by March 3, 1995**. That does **not** date the creation/release of each ZIP, nor verify its binary contents. The separate 1995 archive index gives approximate rounded sizes; present-day archival indexes may give precise stored byte counts, but neither constitutes a recovered, authenticated patch archive.
+
+## 17. Preservation sign-off and cross-version gate
+
+| Question | Status |
+|---|---|
+| Supplied executable pair byte identity and `Ver 1.2a` | **VERIFIED** |
+| Resource/core-DAT archive identities and 1.2a installation selectors | **VERIFIED for supplied original files; manifest verified against prior certified corpus** |
+| Historical existence of CD/diskette version 1.1 and 1.2 patch names | **CONTEMPORARY DOCUMENTARY EVIDENCE** |
+| One-to-one mapping of 1994 archive timestamps onto retail code versions | **UNPROVED** |
+| Exact 1.0/1.1/1.2/1.2a code/object/resource deltas | **UNPROVED without older originals or authenticated patches** |
+| `CINE13.ANM` report's exact failing older call and repair | **UNPROVED; do not invent a resource** |
+| Original source compiler/linker command lines, DreamForge editor version | **UNKNOWN** |
+| FM Towns/PC-98 and German-release byte/format equivalence | **UNPROVED** |
+
+Chapter 19 is therefore **documentation-complete to the currently available and independently verified evidence**, with precise external-comparison gates retained. Future discoveries must extend the per-file manifest, record how new evidence was acquired and hashed, and amend the claims rather than revising source bytes or inferring gameplay changes from filenames alone.
+
+**Next:** Chapter 20 — stable IDs, serialized record layouts, cross-resource pointer namespaces, validators, preservation editor rules and implementation compatibility contracts. The complete archive still requires its separate final contradiction/UNKNOWN audit.
