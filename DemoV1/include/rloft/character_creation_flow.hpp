@@ -58,6 +58,9 @@ public:
     // function_3138 completion/deletion followed by mode-7 -> mode-0 wrap.
     void finish_current_actor(bool accepted, std::string name = {});
 
+    // function_1BD4 existing-actor keep/delete submode.
+    void resolve_existing_actor(int actor, bool keep);
+
 private:
     CharacterCreationState state_{CharacterCreationState::ActorChoice};
     CharacterDraft draft_{};
