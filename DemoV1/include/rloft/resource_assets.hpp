@@ -57,6 +57,7 @@ public:
     [[nodiscard]] std::uint8_t code1_u8(std::size_t dgroup_offset) const;
     [[nodiscard]] std::uint16_t code1_u16(std::size_t dgroup_offset) const;
     [[nodiscard]] std::int32_t code1_s32(std::size_t dgroup_offset) const;
+    [[nodiscard]] std::string code1_cstring(std::size_t dgroup_offset) const;
     [[nodiscard]] Palette6 colors_palette(int index, int brightness = 0) const;
 
 private:
