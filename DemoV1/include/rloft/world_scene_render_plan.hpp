@@ -21,7 +21,7 @@ struct WorldSceneRenderPlan final {
 class WorldSceneRenderPlanModel final {
 public:
     using ShapeLookup =
-        std::function<Type7SceneShape(std::uint16_t absolute_res3_id)>;
+        std::function<const Type7SceneShape&(std::uint16_t absolute_res3_id)>;
 
     // Preserve the draw-call sequence as emitted by the CODE.2 scene loop.
     // This is a portable horizontal/occlusion planning layer. Executing the
