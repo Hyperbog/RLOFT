@@ -309,6 +309,48 @@ Clock::duration pit_ticks(int ticks) {
             ticks / rloft::StartupPresenter::kPitHz));
 }
 
+Clock::duration code1_ticks(int ticks) {
+    // CODE.1 hooks INT 8 before Miles AIL. AIL later DDA-chains that prior
+    // vector at the BIOS 54,925-us cadence even when a sound driver requests
+    // a faster service interrupt. 87D8(2,0) therefore waits two BIOS ticks.
+    return std::chrono::duration_cast<Clock::duration>(
+        std::chrono::microseconds(54925LL * ticks));
+}
+
+bool code1_palette_reveal(
+    Host& host,
+    rloft::CharacterCreationPresenter& presenter,
+    const rloft::Palette6& source) {
+    // BFE0 performs factors 1..8. 6618 -> A010 uploads the 768-byte DAC bank
+    // in four 0xC0-byte bursts, and A010 waits for vertical retrace before
+    // each burst. Preserve the partial-bank progression instead of collapsing
+    // each factor to one host frame.
+    constexpr double kVgaRefreshHz = 70.0863;
+    rloft::Palette6 current{};
+
+    for (int factor = 1; factor <= 8; ++factor) {
+        const auto target =
+            rloft::StartupPresenter::fade_factor(source, factor);
+
+        for (int burst = 0; burst < 4; ++burst) {
+            const auto first =
+                static_cast<std::size_t>(burst) * 0xC0U;
+            std::copy_n(
+                target.rgb.begin() + static_cast<std::ptrdiff_t>(first),
+                0xC0,
+                current.rgb.begin() + static_cast<std::ptrdiff_t>(first));
+
+            host.present(presenter.framebuffer(), current);
+            if (!host.pause_frame(
+                    std::chrono::duration<double>(
+                        1.0 / kVgaRefreshHz))) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 std::optional<std::filesystem::path> command_line_source() {
     int argc = 0;
     LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
@@ -453,18 +495,43 @@ int run(HINSTANCE instance) {
                 host.set_menu_mode(false);
 
                 rloft::CharacterCreationPresenter character_presenter(assets);
-                character_presenter.first_screen();
-                host.present(
-                    character_presenter.framebuffer(),
-                    character_presenter.palette());
+                const auto character_palette = character_presenter.palette();
+                rloft::Palette6 black{};
 
                 SetWindowTextW(
                     host.hwnd(),
                     L"Ravenloft: Strahd's Possession — Character Creation");
 
-                // Demo-v1 milestone: stay on CODE.1 state 0. The next unit
-                // restores the observable 0x45FC opening animation and then
-                // wires the original state-0 input/hover behavior.
+                // CODE.1 45FC..4976: 70 displayed iterations. Each 87D8(2,0)
+                // wait is two chained BIOS INT-8 ticks. The first frame is
+                // submitted while the inherited CODE.2 palette is black; only
+                // after that wait does BFE0 reveal COLORS palette 8.
+                for (int frame = 0;
+                     frame < rloft::CharacterCreationPresenter::kOpeningFrameCount;
+                     ++frame) {
+                    character_presenter.opening_frame(frame);
+                    host.present(
+                        character_presenter.framebuffer(),
+                        frame == 0 ? black : character_palette);
+
+                    if (!host.wait_until(
+                            Clock::now() + code1_ticks(2), false)) {
+                        return 0;
+                    }
+
+                    if (frame == 0 &&
+                        !code1_palette_reveal(
+                            host, character_presenter, character_palette)) {
+                        return 0;
+                    }
+                }
+
+                character_presenter.first_screen();
+                host.present(
+                    character_presenter.framebuffer(),
+                    character_palette);
+
+                // Demo-v1 milestone currently holds on CODE.1 state 0.
                 while (host.pump()) {
                     std::this_thread::sleep_for(
                         std::chrono::milliseconds(1));
