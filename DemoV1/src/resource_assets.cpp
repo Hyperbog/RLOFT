@@ -109,6 +109,57 @@ std::vector<std::uint8_t> ResArchive::entry(int index) const {
     return {bytes_.begin() + start, bytes_.begin() + end};
 }
 
+Type2Font ResArchive::decode_type2(int index) const {
+    const auto raw = entry(index);
+    if (raw.size() < 5U + 136U ||
+        raw[0] != 'E' || raw[1] != 'H' || raw[2] != 2) {
+        throw std::runtime_error("RES entry is not an EH type-2 font");
+    }
+
+    const auto header_size = s16(raw.data() + 3);
+    if (header_size < 136 ||
+        5 + static_cast<std::size_t>(header_size) > raw.size()) {
+        throw std::runtime_error("Invalid type-2 font header size");
+    }
+
+    Type2Font font;
+    std::copy_n(raw.begin() + 5, font.widths.size(), font.widths.begin());
+
+    const auto* desc = raw.data() + 5 + 128;
+    const int count = s16(desc + 0);
+    const int height = s16(desc + 2);
+    const int width_units = desc[4];
+    const auto key = desc[5];
+    const auto compression = desc[6];
+    if (count <= 0 || height <= 0 || width_units <= 0) {
+        throw std::runtime_error("Invalid type-2 font raster dimensions");
+    }
+
+    const int width = width_units * 8;
+    const auto expected = static_cast<std::size_t>(count) *
+                          static_cast<std::size_t>(height) *
+                          static_cast<std::size_t>(width);
+    const auto payload_at = 5U + static_cast<std::size_t>(header_size);
+    const auto* payload = raw.data() + payload_at;
+    const auto payload_size = raw.size() - payload_at;
+
+    std::vector<std::uint8_t> pixels;
+    if (compression == 0) {
+        if (payload_size != expected) {
+            throw std::runtime_error("Raw type-2 font raster size mismatch");
+        }
+        pixels.assign(payload, payload + payload_size);
+    } else if (compression == 3) {
+        pixels = lzss_4k(payload, payload_size, expected);
+    } else {
+        throw std::runtime_error("Unsupported type-2 font compression");
+    }
+
+    font.raster =
+        Type1Raster{count, width, height, key, std::move(pixels)};
+    return font;
+}
+
 Type1Raster ResArchive::decode_type1(int index) const {
     const auto raw = entry(index);
     if (raw.size() < 13 || raw[0] != 'E' || raw[1] != 'H' || raw[2] != 1) {
@@ -156,7 +207,8 @@ RavenloftBootAssets::RavenloftBootAssets(GameSource source)
       res0_(source_.read("RES0")),
       res1_(source_.read("RES1")),
       res7_(source_.read("RES7")),
-      colors_(source_.read("COLORS")) {
+      colors_(source_.read("COLORS")),
+      text_(source_.read("T")) {
     if (colors_.size() != 1U + 15U * 768U || colors_[0] != 15U) {
         throw std::runtime_error("COLORS is not the certified 15-palette Ravenloft bank");
     }
@@ -174,6 +226,39 @@ Type1Raster RavenloftBootAssets::type1(int archive, int index) const {
 
 Type1Raster RavenloftBootAssets::res0_type1(int index) const {
     return type1(0, index);
+}
+
+Type2Font RavenloftBootAssets::res0_font(int index) const {
+    return res0_.decode_type2(index);
+}
+
+std::string RavenloftBootAssets::text(int index) const {
+    if (text_.size() < 4) {
+        throw std::runtime_error("T text archive is truncated");
+    }
+    const auto count = static_cast<std::int32_t>(u32(text_.data()));
+    if (index < 0 || index >= count) {
+        throw std::out_of_range("T text record index");
+    }
+
+    const auto table_at = 4U + static_cast<std::size_t>(index) * 4U;
+    if (table_at + 4U > text_.size()) {
+        throw std::runtime_error("T text index exceeds archive");
+    }
+    const auto record_at = static_cast<std::size_t>(u32(text_.data() + table_at));
+    if (record_at + 2U > text_.size()) {
+        throw std::runtime_error("T text record offset exceeds archive");
+    }
+    const auto length = static_cast<std::size_t>(u16(text_.data() + record_at));
+    if (record_at + 2U + length > text_.size()) {
+        throw std::runtime_error("T text record payload exceeds archive");
+    }
+
+    std::string out(length, '\0');
+    for (std::size_t i = 0; i < length; ++i) {
+        out[i] = static_cast<char>(text_[record_at + 2U + i] ^ 0xDCU);
+    }
+    return out;
 }
 
 Palette6 RavenloftBootAssets::colors_palette(int index, int brightness) const {
