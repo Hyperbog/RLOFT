@@ -54,14 +54,15 @@ int main() {
     second.source_index = 4U;
     second.render_mode = 0x3CU;
 
+    const auto native_shape = shape();
     std::vector<std::uint16_t> looked_up;
     const auto plans = rloft::WorldSceneRenderPlanModel::build(
         {first, second},
         t,
         rays,
-        [&looked_up](std::uint16_t id) {
+        [&looked_up, &native_shape](std::uint16_t id) -> const rloft::Type7SceneShape& {
             looked_up.push_back(id);
-            return shape();
+            return native_shape;
         });
 
     assert(plans.size() == 2U);
