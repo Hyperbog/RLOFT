@@ -9,6 +9,7 @@ add_library(rloft_boot_flow
     src/character_creation_flow.cpp
     src/character_creation_presenter.cpp
     src/character_stats.cpp
+    src/character_transfer.cpp
     src/game_source.cpp
     src/resource_assets.cpp
     src/startup_presenter.cpp
@@ -55,6 +56,10 @@ add_test(NAME character_flow_tests COMMAND character_flow_tests)
 add_executable(character_stats_tests tests/character_stats_tests.cpp)
 target_link_libraries(character_stats_tests PRIVATE rloft_boot_flow)
 add_test(NAME character_stats_tests COMMAND character_stats_tests)
+
+add_executable(character_transfer_tests tests/character_transfer_tests.cpp)
+target_link_libraries(character_transfer_tests PRIVATE rloft_boot_flow)
+add_test(NAME character_transfer_tests COMMAND character_transfer_tests)
 
 if(WIN32)
     add_executable(
