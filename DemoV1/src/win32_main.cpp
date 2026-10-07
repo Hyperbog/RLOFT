@@ -997,6 +997,66 @@ int run(HINSTANCE instance) {
                     return true;
                 };
 
+                auto animate_final_decision_entry = [&]() {
+                    const int frames =
+                        rloft::CharacterCreationPresenter::
+                            final_decision_entry_frame_count();
+                    for (int frame = 0; frame < frames; ++frame) {
+                        character_presenter.final_decision_entry_frame(
+                            character_flow,
+                            character_stats,
+                            frame);
+                        if (!present_character_animation_frame()) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
+                auto animate_final_decision_dissolve = [&]() {
+                    for (int frame = 0; frame < 10; ++frame) {
+                        character_presenter.final_decision_dissolve_frame(
+                            character_flow,
+                            character_stats,
+                            frame);
+                        if (!present_character_animation_frame()) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
+                auto animate_name_entry = [&]() {
+                    const int frames =
+                        rloft::CharacterCreationPresenter::
+                            name_entry_entry_frame_count();
+                    for (int frame = 0; frame < frames; ++frame) {
+                        character_presenter.name_entry_entry_frame(
+                            character_flow,
+                            character_stats,
+                            frame);
+                        if (!present_character_animation_frame()) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
+                auto animate_name_dissolve = [&](
+                    const std::string& name) {
+                    for (int frame = 0; frame < 10; ++frame) {
+                        character_presenter.name_entry_dissolve_frame(
+                            character_flow,
+                            character_stats,
+                            name,
+                            frame);
+                        if (!present_character_animation_frame()) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
                 const auto name_font = assets.res0_font(0);
                 auto name_width = [&](const std::string& value) {
                     int width = 0;
@@ -1037,6 +1097,12 @@ int run(HINSTANCE instance) {
                                     throw std::logic_error(
                                         "name entry lost selected actor");
                                 }
+
+                                if (!animate_name_dissolve(
+                                        pending_name)) {
+                                    return 0;
+                                }
+
                                 actor_stats[
                                     static_cast<std::size_t>(actor)] =
                                     character_stats;
@@ -1050,6 +1116,14 @@ int run(HINSTANCE instance) {
                                 selected_stat = -1;
                                 pending_name.clear();
                                 host.clear_key_events();
+
+                                // 4978 converts mode 7 back to mode 0 and
+                                // immediately calls 1CD0/1464 again.
+                                if (!animate_controller_entry(
+                                        character_flow,
+                                        nullptr)) {
+                                    return 0;
+                                }
                                 render_character();
                                 continue;
                             }
@@ -1103,6 +1177,13 @@ int run(HINSTANCE instance) {
                                     point->column);
 
                             if (event == 3) {
+                                if (!animate_final_decision_dissolve()) {
+                                    return 0;
+                                }
+                                if (!animate_name_entry()) {
+                                    return 0;
+                                }
+
                                 pending_name.clear();
                                 name_entry = true;
                                 name_cursor_on = true;
@@ -1111,12 +1192,23 @@ int run(HINSTANCE instance) {
                                 host.clear_key_events();
                                 render_character();
                             } else if (event == 4) {
+                                if (!animate_final_decision_dissolve()) {
+                                    return 0;
+                                }
+
                                 character_flow.finish_current_actor(false);
                                 stats_ready = false;
                                 stats_editor = false;
                                 final_decision = false;
                                 selected_stat = -1;
                                 pending_name.clear();
+
+                                // Delete also returns through mode 7 -> 0.
+                                if (!animate_controller_entry(
+                                        character_flow,
+                                        nullptr)) {
+                                    return 0;
+                                }
                                 render_character();
                             }
                         }
@@ -1261,6 +1353,9 @@ int run(HINSTANCE instance) {
                                             -1,
                                             -1,
                                             -1)) {
+                                        return 0;
+                                    }
+                                    if (!animate_final_decision_entry()) {
                                         return 0;
                                     }
                                     final_decision = true;
