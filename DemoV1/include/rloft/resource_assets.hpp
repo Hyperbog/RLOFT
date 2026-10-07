@@ -36,6 +36,23 @@ struct Type7Geometry {
     std::int16_t y_max{};
 };
 
+struct Type7RasterDescriptor {
+    std::int16_t raster_stop_selector{};
+    std::int16_t signed_adjustment{};
+    std::int16_t raster_entry_selector{};
+};
+
+struct Type7ColumnDisplayList {
+    std::int16_t source_x{};
+    std::uint16_t list_offset{};
+    std::vector<Type7RasterDescriptor> descriptors;
+};
+
+struct Type7SceneShape {
+    Type7Geometry geometry{};
+    std::vector<Type7ColumnDisplayList> columns;
+};
+
 struct EnvironmentPlacement {
     std::int16_t resource_selector{};
     std::int16_t azimuth_degrees{};
@@ -71,6 +88,7 @@ public:
     [[nodiscard]] std::vector<std::uint8_t> decode_type3(int index) const;
     [[nodiscard]] std::vector<std::uint8_t> decode_type4(int index) const;
     [[nodiscard]] Type7Geometry decode_type7_geometry(int index) const;
+    [[nodiscard]] Type7SceneShape decode_type7(int index) const;
 
 private:
     std::vector<std::uint8_t> bytes_;
@@ -88,6 +106,7 @@ public:
     [[nodiscard]] std::vector<std::uint8_t> music_sequence(int index) const;
     [[nodiscard]] std::vector<std::uint8_t> sampled_audio(int archive, int index) const;
     [[nodiscard]] Type7Geometry res3_type7_geometry(int index) const;
+    [[nodiscard]] Type7SceneShape res3_type7(int index) const;
     [[nodiscard]] std::string text(int index) const;
     [[nodiscard]] std::uint16_t init_u16(std::size_t byte_offset) const;
     [[nodiscard]] std::vector<EnvironmentProfile> environment_profiles() const;
