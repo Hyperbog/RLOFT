@@ -52,6 +52,7 @@ class FramelessWindow:
         self._handles: list[tk.Frame] = []
         self._resize_hit: int | None = None
         self._resize_origin: tuple[int, int, int, int, int, int] | None = None
+        self._move_origin: tuple[int, int, int, int] | None = None
 
         if not self.enabled:
             return
@@ -88,8 +89,12 @@ class FramelessWindow:
         if not self.enabled or not self.hwnd:
             return
         style = self._get_window_long(GWL_STYLE)
-        style &= ~WS_CAPTION
-        style |= WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU
+        # Tk supplies all resize hit targets itself. Leaving WS_THICKFRAME set
+        # makes Windows 11 draw a native top resize strip over the custom skin
+        # and keeps a second non-client sizing path alive. Remove both native
+        # caption and sizing frame so there is exactly one window border.
+        style &= ~(WS_CAPTION | WS_THICKFRAME)
+        style |= WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU
         self._set_window_long(GWL_STYLE, style)
 
         exstyle = self._get_window_long(GWL_EXSTYLE)
@@ -108,17 +113,38 @@ class FramelessWindow:
         )
 
     def bind_drag(self, widget: tk.Misc) -> None:
-        widget.bind("<ButtonPress-1>", self._start_move, add="+")
+        # Keep movement entirely in Tk. Entering the native non-client modal
+        # loop from a Tk callback can re-enter Tcl/Tk and was still capable of
+        # terminating the frozen application on real Windows 11 systems.
+        widget.bind("<ButtonPress-1>", self._begin_move, add="+")
+        widget.bind("<B1-Motion>", self._perform_move, add="+")
+        widget.bind("<ButtonRelease-1>", self._end_move, add="+")
         widget.bind("<Double-Button-1>", lambda _event: self.toggle_maximize(), add="+")
 
-    def _start_move(self, _event=None) -> None:
-        if not self.enabled or not self.hwnd:
-            return
+    def _begin_move(self, event) -> str:
         if self.is_maximized():
-            ctypes.windll.user32.ShowWindow(self.hwnd, SW_RESTORE)
+            self.toggle_maximize()
             self.root.update_idletasks()
-        ctypes.windll.user32.ReleaseCapture()
-        ctypes.windll.user32.SendMessageW(self.hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0)
+        self._move_origin = (
+            int(event.x_root),
+            int(event.y_root),
+            self.root.winfo_x(),
+            self.root.winfo_y(),
+        )
+        return "break"
+
+    def _perform_move(self, event) -> str:
+        if self._move_origin is None:
+            return "break"
+        start_x, start_y, window_x, window_y = self._move_origin
+        x = window_x + int(event.x_root) - start_x
+        y = window_y + int(event.y_root) - start_y
+        self.root.geometry(f"+{x}+{y}")
+        return "break"
+
+    def _end_move(self, _event=None) -> str:
+        self._move_origin = None
+        return "break"
 
     def _begin_resize(self, event, hit_test: int) -> str:
         """Begin a border resize without entering Windows' modal NC loop.
