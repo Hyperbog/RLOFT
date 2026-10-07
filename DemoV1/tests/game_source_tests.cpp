@@ -160,11 +160,24 @@ void test_loose_and_env_discovery() {
     for (const auto& name : {"RES0", "INIT", "T"}) {
         std::ofstream(base / name, std::ios::binary) << name;
     }
+    {
+        std::ofstream cfg(base / "SoUnD.CfG", std::ios::binary);
+        const std::array<std::uint8_t, 4> bytes{{1, 2, 3, 4}};
+        cfg.write(
+            reinterpret_cast<const char*>(bytes.data()),
+            static_cast<std::streamsize>(bytes.size()));
+    }
 
     {
         auto source = GameSource::open(base);
         assert(source.kind() == GameSourceKind::LooseDirectory);
         assert(source.contains("res0"));
+        {
+            const auto cfg = source.read_runtime("SOUND.CFG");
+            assert(cfg.has_value());
+            assert(*cfg == std::vector<std::uint8_t>({1, 2, 3, 4}));
+            assert(!source.read_runtime("MISSING.CFG").has_value());
+        }
         {
             const auto output = source.runtime_output_path("CHARS");
             assert(output.filename() == fs::path("CHARS"));
