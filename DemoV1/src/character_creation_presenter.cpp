@@ -204,32 +204,76 @@ void CharacterCreationPresenter::draw_empty_actor_card(int y, int x) {
     }
 }
 
-void CharacterCreationPresenter::first_screen() {
+void CharacterCreationPresenter::draw_controller_base(
+    CharacterCreationState state, int label_record) {
     framebuffer_.clear(0);
 
-    // CODE.1 presentation routine 0x10A4, mode/state 0.
-    draw_strip(7, 0x18, 0, 0);
+    // CODE.1 10A4 only emits RES7:18 while controller mode 04D0 == 0.
+    if (state == CharacterCreationState::ActorChoice) {
+        draw_strip(7, 0x18, 0, 0);
+    }
     draw_strip(7, 0x19, 200, 0);
     draw_frame(7, 0x2A, 0, 5, 0);
 
-    // Exact CODE.1 DGROUP coordinate pairs. The first coordinate is the
-    // 0..399 screen row and the second is the 0..319 screen column.
-    static constexpr std::array<int, 9> y{
+    if (label_record >= 0) {
+        draw_text_centered(
+            5, 0, 0x140, assets_.text(label_record), 1);
+    }
+
+    static constexpr std::array<int, 9> row{
         13, 67, 91, 91, 67, 13, 91, 91, 91
     };
-    static constexpr std::array<int, 9> x{
+    static constexpr std::array<int, 9> column{
+        3, 56, 109, 162, 215, 268, 83, 136, 189
+    };
+    for (int i = 0; i < 9; ++i) {
+        draw_frame(7, 0x1E + i, 0, row[i], column[i]);
+    }
+}
+
+void CharacterCreationPresenter::screen(CharacterCreationState state) {
+    static constexpr std::array<int, 9> row{
+        13, 67, 91, 91, 67, 13, 91, 91, 91
+    };
+    static constexpr std::array<int, 9> column{
         3, 56, 109, 162, 215, 268, 83, 136, 189
     };
 
-    for (int i = 0; i < 9; ++i) {
-        draw_frame(7, 0x1E + i, 0, y[i], x[i]);
+    switch (state) {
+        case CharacterCreationState::ActorChoice:
+            draw_controller_base(state, -1);
+
+            // function_1CD0 setup:
+            // {-1,-1,1,1,-1,-1,-1,-1,-1,...}
+            // State 0 resource value 1 is replaced by the transient 095C/0960
+            // handles built by 1A04. Fresh generation creates both from T[0].
+            draw_empty_actor_card(row[2], column[2]);
+            draw_empty_actor_card(row[3], column[3]);
+            return;
+
+        case CharacterCreationState::SexChoice:
+            draw_controller_base(state, 0x26);
+
+            // function_1DD8 setup slots 2/3 = RES7:0C / RES7:0D.
+            draw_frame(7, 0x0C, 0, row[2], column[2]);
+            draw_frame(7, 0x0D, 0, row[3], column[3]);
+            return;
+
+        case CharacterCreationState::RaceChoice:
+            draw_controller_base(state, 0x27);
+
+            // function_1E64 setup slots 0..5 = RES7:00..05.
+            for (int i = 0; i < 6; ++i) {
+                draw_frame(7, i, 0, row[i], column[i]);
+            }
+            return;
     }
 
-    // State 0 uses transient 095C/0960 handles for slots 2 and 3. On a fresh
-    // character-generation session both handles are identical runtime-built
-    // empty cards generated from T[0], RES0 font 0 and RES7:1A.
-    draw_empty_actor_card(y[2], x[2]);
-    draw_empty_actor_card(y[3], x[3]);
+    throw std::logic_error("unsupported character controller state");
+}
+
+void CharacterCreationPresenter::first_screen() {
+    screen(CharacterCreationState::ActorChoice);
 }
 
 }  // namespace rloft
