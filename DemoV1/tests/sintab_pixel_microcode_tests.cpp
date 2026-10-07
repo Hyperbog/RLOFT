@@ -113,7 +113,7 @@ int main() {
     // installed locally, verify every generated code body with this
     // same portable audit; otherwise the synthetic tests still run.
     const auto path=std::getenv("RLOFT_SINTAB_PATH");
-    if (path!=nullptr && path[0]!='\\0') {
+    if (path!=nullptr && path[0]!=0) {
         std::ifstream file(path,std::ios::binary);
         if(!file) throw std::runtime_error("cannot open SINTAB");
         std::vector<std::uint8_t> bytes(
