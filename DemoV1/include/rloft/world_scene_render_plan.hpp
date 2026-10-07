@@ -7,6 +7,7 @@
 #include "rloft/renderer_tables.hpp"
 #include "rloft/type7_column_traversal.hpp"
 #include "rloft/type7_microcode_plan.hpp"
+#include "rloft/type7_rasterizer_setup.hpp"
 #include "rloft/world_scene_draw_calls.hpp"
 
 namespace rloft {
@@ -16,6 +17,7 @@ namespace rloft {
 struct WorldSceneRenderPlan final {
     WorldSceneDrawCall call{};
     Type7ColumnTraversalPlan traversal{};
+    Type7RasterizerSetup rasterizer_setup{};
     std::vector<Type7VisibleColumn> visible_columns;
     std::vector<Type7MicrocodeDraw> microcode_draws;
 };
