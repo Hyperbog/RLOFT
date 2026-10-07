@@ -21,6 +21,8 @@
 #include "rloft/world_scene_record.hpp"
 #include "rloft/world_scene_draw_calls.hpp"
 #include "rloft/world_scene_render_plan.hpp"
+#include "rloft/type7_vga_frame_trace.hpp"
+#include "rloft/type7_vga_plane_masks.hpp"
 #include "rloft/world_scene_selection.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/exploration_scene.hpp"
@@ -40,6 +42,7 @@ struct ExplorationRuntimeFrame final {
     std::vector<WorldSceneRecord> world_scene_records;
     std::vector<WorldSceneDrawCall> world_scene_draw_calls;
     std::vector<WorldSceneRenderPlan> world_scene_render_plans;
+    std::optional<Type7VgaFrameTrace> scene_vga_trace;
     std::vector<ViewSweepRun> sweep_runs;
     SurfaceShadeTable surface_shades{};
     std::vector<SurfacePrepassPlan> prepass_plans;
@@ -64,6 +67,19 @@ public:
     }
     [[nodiscard]] const RendererTables& renderer_tables() const noexcept {
         return renderer_tables_;
+    }
+
+    // CODE.2 EF4D and C029 live state. Initialize from the original
+    // executable's data object; later input/event paths may change them.
+    [[nodiscard]] std::uint8_t scene_video_page() const noexcept {
+        return scene_video_page_;
+    }
+    [[nodiscard]] bool scene_individual_columns_mode() const noexcept {
+        return scene_individual_columns_mode_;
+    }
+    void set_scene_video_page(std::uint8_t page);
+    void set_scene_individual_columns_mode(bool individual) noexcept {
+        scene_individual_columns_mode_ = individual;
     }
 
     // Activates the mutable CODE.2 world/inventory layer for the currently
@@ -124,6 +140,9 @@ private:
     SceneSourceBanks scene_source_banks_{};
     PlacedSceneCatalog placed_scene_catalog_{};
     std::optional<ResArchive> scene_shape_archive_;
+    std::optional<Type7VgaPlaneMaskModel> scene_vga_masks_;
+    std::uint8_t scene_video_page_{};
+    bool scene_individual_columns_mode_{};
     std::unordered_map<std::uint16_t, Type7SceneShape> scene_shape_cache_;
     OriginalRandom original_random_{};
     LevelWorldState world_{};
