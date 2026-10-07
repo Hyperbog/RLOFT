@@ -17,6 +17,7 @@ add_library(rloft_boot_flow
     src/character_palette_remap.cpp
     src/character_stats.cpp
     src/character_transfer.cpp
+    src/exploration_state.cpp
     src/game_source.cpp
     src/resource_assets.cpp
     src/startup_presenter.cpp
@@ -40,6 +41,10 @@ endif()
 add_executable(boot_flow_tests tests/boot_flow_tests.cpp)
 target_link_libraries(boot_flow_tests PRIVATE rloft_boot_flow)
 add_test(NAME boot_flow_tests COMMAND boot_flow_tests)
+
+add_executable(exploration_state_tests tests/exploration_state_tests.cpp)
+target_link_libraries(exploration_state_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_state_tests COMMAND exploration_state_tests)
 
 add_executable(game_source_tests tests/game_source_tests.cpp)
 target_link_libraries(game_source_tests PRIVATE rloft_boot_flow)
@@ -79,6 +84,7 @@ add_test(NAME sound_config_tests COMMAND sound_config_tests)
 
 set(RLOFT_TEST_TARGETS
     boot_flow_tests
+    exploration_state_tests
     game_source_tests
     presenter_tests
     voc_decoder_tests
