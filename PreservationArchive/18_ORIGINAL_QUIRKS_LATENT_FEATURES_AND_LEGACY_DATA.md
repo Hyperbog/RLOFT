@@ -2,7 +2,7 @@
 
 ## 18 — Original Quirks, Dormant Features, and Legacy Data
 
-**Status:** FOUNDATION — cross-system anomaly classification begun; complete correction/quirk census pending  
+**Status:** CROSS-SUBSYSTEM Q/D/L/C/U CENSUS COMPLETE TO CURRENT PRIMARY EVIDENCE — runtime implementation tests pending  
 **Branch:** `code1-decompilation`  
 **Frozen original-evidence baseline:** `373c7f10e6fc0f29c1e805125ef048150fcc7ba7`  
 **Controlling evidence:** original CODE.1/CODE.2 and shipped game resources, supplemented by certified executable, DAT and resource audits.
@@ -83,7 +83,7 @@ The post-accounting executable audits record genuine **reconstruction fixes**: C
 
 **Direct fixture identity cross-check in this continuation:** CODE.1, CODE.2, OBJECTS.DAT, NPCS.DAT, SAVE.DAT, LEVELS.DAT and LEV022.DAT sizes and SHA-256 hashes match the certified project records; SAVE stores raw clock values `1899`, `0x000E0000` and `1735`; raw OBJECTS record 329 holds selector 62. Prior large-corpus/decompiler audits were **read**, not rerun in this continuation.
 
-**Next:** cross-audit launcher/shutdown, deferred resource error cases, remaining unknown-bit families and alternative-build evidence; prepare a canonical Q/D/L/C/U traceability index and close the chapter only after source contradictions are resolved.
+**Current pass:** cross-subsystem census recorded. The canonical UNKNOWN inventory and compatibility acceptance criteria follow; any new historical build evidence must be incorporated through the correction policy.
 
 
 ## 7. Expanded Q census — original executable behavior
@@ -135,3 +135,51 @@ A corrected C++ reimplementation is not a discovery of a gameplay bug. Examples 
 This continuation rechecked **existing audited source documents and GitHub commit state**. It has **not rerun** every original executable, file decoder or gameplay test. Requirements in this table are pending executable/native regression tests, not falsely certified as such.
 
 **Next:** complete cross-component anomaly traceability for process shutdown, save errors, object IDs and audio/render cases; build a stable index for all bounded UNKNOWNs; then close Chapter 18 with a contradiction check before proceeding to release/build provenance.
+
+
+## 11. Bounded UNKNOWN inventory reconciled with Chapter 00
+
+The canonical initial [scope/UNKNOWN ledger](00_SCOPE_EVIDENCE_BASELINE_AND_OPEN_QUESTIONS.md) contains **16** independently numbered entries. Their original IDs remain stable; the following table supplies the Chapter-18 preservation action, **not** a claim that every historical source name can be recovered.
+
+| ID | Remaining unresolved fact | Evidence-preserving disposition |
+|---|---|---|
+| U-001 | Original labels for six NPC main-behavior bits and four residual `+0x39` bits | Preserve packed bits and confirmed masks; keep Q-06's two category-11 branch semantics separately |
+| U-002 | NPC `+0x3B/+0x3C`, zero in all 83 definitions | Keep both bytes as raw, not mandatory padding |
+| U-003 | NPC directional-vector, cell-influence and animation-state original names | Keep reconstructed behavioral names and exact field geometry |
+| U-004 | Original hand-pair class 0/1 names | Preserve numeric classes; class 2 is the proved paired-hand-exclusive group |
+| U-005 | OBJECTS `+0x2C` meaning, zero in 336 records | Preserve byte raw; no proved CODE.2 consumer |
+| U-006 | OBJECTS range units, scene-accumulator terminology, duplicate-definition provenance | Preserve units as encoded and exact object-ID identities |
+| U-007 | LEVELS/LEV authoring provenance, object-ID `0x54 -> 0x58`, cell bit `0x2000`, LEV022 cache | Preserve original state, document loader transforms, do not invent revision history |
+| U-008 | SAVE status low bits `0x0001..0x0020`, character `+0x1BA`, residual packed auxiliaries | Keep all unproved bits/dwords in byte-exact character records |
+| U-009 | Purpose of the unused companion array in RES9 wordcode | Preserve the second `word_count` array verbatim |
+| U-010 | Meaning of reserved RES1 face-slot literal `0x00000060` | Retain zero-length and four-byte sentinel entries |
+| U-011 | Exact legacy producer/editor/executable for RES11/RES12 | Preserve separate generations and proven active-versus-legacy grammar |
+| U-012 | Historical meaning of absent EH resource type 5 | Retain executable loader contract; no fabricated shipped instances |
+| U-013 | Historical authoring meaning of unused ANM type-4 control | Preserve machine seek/repeat behavior and no-corpus-usage classification |
+| U-014 | Inner grammar of ARIA `GM1.BNK/GM2.BNK` | Keep intact; defer third-party-driver archaeology |
+| U-015 | Unnamed SOUND.CFG numeric fields and active audio-driver completion/cadence details | AIL/32 `svc_rate` units now known; **individual driver rates/config word labels remain open** |
+| U-016 | Full optional LX/OS2 audio-driver internals | Separate historical archaeology; do not pretend full driver decompilation is necessary for base gameplay |
+
+Relevant canonical sources: [NPC final audit](../DatFiles/NPCS.DAT/FINAL_AUDIT_2026-10-06.md), [OBJECTS final audit](../DatFiles/OBJECTS.DAT/FINAL_AUDIT_2026-10-06.md), [LEVELS final audit](../DatFiles/LEVELS.DAT/FINAL_AUDIT_2026-10-06.md), [SAVE final audit](../DatFiles/SAVE.DAT/FINAL_AUDIT_2026-10-06.md), [Resources final audit](../Resources/FINAL_RESOURCE_AUDIT.md), [audio ABI](15_AUDIO_MUSIC_SFX_AND_DRIVER_INTERFACE.md), and [timing ABI](17_TIMING_INTERRUPTS_AND_FRAME_CADENCE.md).
+
+## 12. Compatibility implementation priority
+
+**Release-blocking for byte-compatible data handling:** all unmodified original record and archive bytes, unknown occupied bits, per-level mutable cache, 62 serialized container descriptors, raw interaction companion arrays, and original save timebases. These obligations do not depend on recovering historical developer terminology.
+
+**Release-blocking for gameplay behavior:** original item selection and inventory quirks; signed enchantment comparison; priest level-loss normalization; story opcode special dispatch; timing-domain independence; save/load success and failure logic; actual multimedia packet dispatch.
+
+**Preservation-only until new original evidence appears:** undocumented type-5 payload names, unused ANM chunk-4 authoring model, dormant source paths without identified runtime producers, exact RES11/12 build lineage, and ARIA bank grammar. None of these should be reclassified as game-reachable merely for feature completeness.
+
+**Controlled modernization:** safe native file-handle cleanup and host audio/graphics abstractions are acceptable only if visible game-state transitions and original bytes remain stable. Separate such changes in the future *native implementation* archive from this *original technology* archive.
+
+### Chapter-18 audit gate
+
+- Q-01..Q-09: **nine distinct original behavioral entries**, including the partial overlap Q-04/Q-09 on save cancellation; the overlap is intentional as ownership vs failure-path details, not two unrelated bugs.
+- D-01..D-07: **seven dormant/unsupported activation entries** with explicitly bounded evidence of absence.
+- L-01..L-09: **nine legacy, reserved or anomalous data classes**, not all defects.
+- U-001..U-016: **all sixteen original scope UNKNOWN entries retained**; some narrower semantics have since been proved without proving historical intent.
+- C corrections: source-local labels must be chapter-qualified because labels were reused. Original executable behavior is not conflated with C++ translation fixes.
+
+This census is **documentation-level** and grounded in the previously certified source audits. It does **not** constitute a fresh whole-corpus test run, a native behavior regression certificate, or recovery of missing historical builds.
+
+**Next archival component:** Chapter 19, release/media/build provenance and DreamForge lineage. Revisit any Chapter-18 entry if that investigation yields earlier original executable or editor evidence. Final project-wide contradiction checking remains a separate future chapter.
