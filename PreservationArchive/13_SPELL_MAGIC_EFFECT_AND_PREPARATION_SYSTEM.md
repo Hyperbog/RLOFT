@@ -1510,3 +1510,441 @@ The array therefore has ordered compact semantics analogous to family-C world it
 
 A native engine can use handles internally, but compatibility state traces should reproduce visible/order-sensitive iteration where relevant.
 
+
+
+## 62. NPC spell eligibility is mask-driven and spell-specific
+
+The creature definition does not expose one universal spell-resistance field.
+
+Different magic paths construct different masks over the raw `NPCS.DAT behavior_flags` dword.
+
+Certified examples include:
+
+```text
+common spell/effect gate
+    0x0100
+
+fire effect
+    0x2100
+    = common 0x0100
+    | fire-specific 0x2000
+
+cold effect
+    0x0900
+    = common 0x0100
+    | cold-specific 0x0800
+
+Lightning Bolt
+    0x0300
+    = common 0x0100
+    | lightning-specific 0x0200
+
+Hold Undead
+    0x0102
+
+Hold Person
+    0x0108
+
+Hold Monster
+    0x0110
+```
+
+[NPC effect immunities](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/EFFECT_IMMUNITIES.md) [Hold immunities](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/HOLD_IMMUNITIES.md) [Targeted immunities](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/TARGETED_EFFECT_IMMUNITIES.md)
+
+A faithful magic engine should preserve each encoded target predicate rather than mapping them all to one host-side `magic_resistance` percentage.
+
+## 63. Fire and cold share the common gate but retain element-specific exclusions
+
+Fire-family effect paths use:
+
+```text
+behavior_flags & 0x2100
+```
+
+Cold-family paths use:
+
+```text
+behavior_flags & 0x0900
+```
+
+The common `0x0100` bit therefore excludes both families, while the element-specific bits can exclude only their associated effect path. [NPC effect immunities](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/EFFECT_IMMUNITIES.md)
+
+This compositional mask behavior is more precise than assigning one inferred tabletop resistance category.
+
+## 64. Lightning Bolt has its own exclusion path
+
+The complete executable/resource chain is:
+
+```text
+OBJECTS 188
+MAGE SCROLL OF 'LIGHTNING BOLT'
+        |
+        v
+dispatch 28
+        |
+        v
+class-3 transient effect type 1
+        |
+        v
+moving-effect NPC collision
+        |
+        v
+behavior_flags mask 0x0300
+```
+
+[Targeted immunities](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/TARGETED_EFFECT_IMMUNITIES.md)
+
+The additional bit:
+
+```text
+0x00000200
+```
+
+is therefore safely the Lightning Bolt effect exclusion/immunity bit.
+
+## 65. Death Spell does not reuse the common spell gate
+
+Mage dispatch 51:
+
+```text
+DEATH SPELL
+```
+
+enters a target-area routine that checks:
+
+```text
+behavior_flags & 0x00000080
+```
+
+and skips matching NPC targets. [Targeted immunities](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/TARGETED_EFFECT_IMMUNITIES.md)
+
+This path does **not** combine the common `0x0100` gate.
+
+Thus even two effects that are both “magic” can use different definition predicates and different target traversal.
+
+## 66. Hold effects share one live state but use different eligibility masks
+
+Certified hold dispatches:
+
+```text
+25  Mage/shared Hold Person
+26  Hold Undead
+41  Hold Monster
+92  prepared-priest Hold Person
+```
+
+use different target masks but converge on the same live family-A held state:
+
+```text
+live_npc.runtime_flags_low |= 0x08
+```
+
+plus a handler-specific duration/countdown in live actor word `+0x10`. [Hold immunities](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/HOLD_IMMUNITIES.md)
+
+This gives a useful subsystem split:
+
+```text
+spell identity
+    -> eligibility mask
+
+successful application
+    -> common live held-state representation
+```
+
+## 67. Slow is not another Hold variant
+
+Mage dispatch 24:
+
+```text
+SLOW
+```
+
+tests the common `0x0100` exclusion but sets a different live actor runtime bit:
+
+```text
+0x80
+```
+
+rather than held-state bit `0x08`. [Hold immunities](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/HOLD_IMMUNITIES.md)
+
+Combat later uses this state in both directions:
+
+- slowed NPC is easier for the party to hit;
+- slowed NPC has a harder attack threshold.
+
+[Combat chapter](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/PreservationArchive/12_COMBAT_ATTACK_DAMAGE_SAVES_AND_PROGRESSION.md)
+
+## 68. Turn Undead is an action in the priest dispatch namespace
+
+Dispatch 88:
+
+```text
+TURN UNDEAD
+```
+
+shares the priest-family action namespace but lies beyond the level-1 matrix preparation count.
+
+It calls the undead-turning resolution path rather than consuming a prepared matrix-B cell. [Spell catalogue](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/SPELL_CATALOGUE.md) [NPC detection/turning](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/DETECTION_TURNING_FLAGS.md)
+
+Target eligibility first requires:
+
+```text
+behavior_flags_3A & 0x20
+    undead_classification
+```
+
+A separate main behavior bit `0x00000004` subtracts four from the favorable turning roll before threshold comparison.
+
+No supplied NPC combines both bits, so that modifier is executable-supported but dormant for the shipped creature table.
+
+## 69. Lay Hands is likewise outside prepared matrix-B cells
+
+Dispatch 87:
+
+```text
+LAY HANDS
+```
+
+also occupies the priest-family text/dispatch bank but lies beyond the seven prepared level-1 priest entries. [Spell catalogue](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/SPELL_CATALOGUE.md)
+
+It must therefore remain distinguishable from:
+
+```text
+prepared spell cell
+scroll spell
+special class/action dispatch
+```
+
+even though all three can enter the same overall action dispatcher namespace.
+
+## 70. Status-removal spells map directly to certified character bits
+
+Three priest actions form exact producer/consumer pairs with the NPC status-attack system:
+
+```text
+dispatch 100  Cure Disease
+    clears character status 0x0400
+
+dispatch 104  Remove Paralysis
+    clears character status 0x1000
+
+dispatch 113  Neutralize Poison
+    clears character status 0x0800
+```
+
+[Status attacks](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/STATUS_ATTACKS.md) [Character status](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/STATUS_WORD.md)
+
+These exact bit lifecycles should control the native spell behavior.
+
+## 71. Death and revival are character-state transitions, not occupancy changes
+
+The character model distinguishes:
+
+```text
+0x4000  dead
+0x8000  empty active-party slot
+```
+
+The certified revival path restores:
+
+```text
+current_hp = 1
+clear status bit 0x4000
+```
+
+without converting the record through the empty-slot state. [Character status](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/STATUS_WORD.md)
+
+The priest spell catalogue contains dispatch 123 `RAISE DEAD`; the archive retains the exact revival-state behavior as the compatibility boundary without inventing a broader resurrection model beyond the proved call chains.
+
+## 72. Cure and healing paths clamp against serialized maximum HP
+
+Character state stores:
+
+```text
+current_hp
+max_hp
+```
+
+Healing paths add their computed amount and clamp against `max_hp`. [Character record](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/CHARACTER_RECORD.md)
+
+Fortify modifies the generated cure amount before this ordinary healing/clamp behavior.
+
+This keeps:
+
+```text
+spell healing quantity
+character HP clamp
+```
+
+as separate layers.
+
+## 73. Cause Wounds and Harm use temporary hand delivery
+
+Priest actions:
+
+```text
+82   Cause Light Wounds
+111  Cause Serious Wounds
+121  Cause Critical Wounds
+131  Harm
+```
+
+correspond to temporary hand pseudo-items:
+
+```text
+0x81  CAUSE LIGHT WOUNDS
+0x82  CAUSE SERIOUS WOUNDS
+0x83  CAUSE CRITICAL WOUNDS
+0x84  HARM
+```
+
+[Spell catalogue](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/SPELL_CATALOGUE.md) [Character tail](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/CHARACTER_TAIL.md)
+
+The effect is therefore armed into a hand and delivered through the player attack machinery rather than applied as an immediate target-HP subtraction at spell-selection time.
+
+## 74. Mage touch spells use the same delivery architecture
+
+Mage actions including:
+
+```text
+CHILL TOUCH
+VAMPIRIC TOUCH
+CLAWS OF THE UMBER HULK
+LICH TOUCH
+```
+
+likewise map into the temporary hand-effect subsystem.
+
+This unifies a set of otherwise different spell names under one execution mechanism:
+
+```text
+cast
+    -> arm temporary hand pseudo-item
+    -> ordinary attack targeting/hit path
+    -> pseudo-item-specific damage/effect
+    -> expiry/removal if not consumed earlier
+```
+
+## 75. Scrolls reuse spell handlers without becoming prepared spells
+
+Category-14 OBJECTS records map to spell dispatch IDs.
+
+Using a scroll:
+
+- does not require that dispatch to be present as a ready copy in the character's preparation matrix;
+- does not change the identity of the underlying spell handler;
+- preserves the physical scroll object as a separate object/item identity.
+
+Representative chain:
+
+```text
+OBJECTS 188
+MAGE SCROLL OF 'LIGHTNING BOLT'
+    -> scroll dispatcher
+    -> dispatch 28
+    -> ordinary Lightning Bolt handler
+```
+
+[Spell resource lookup](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/SPELL_RESOURCE_LOOKUP.md) [Targeted immunities](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/TARGETED_EFFECT_IMMUNITIES.md)
+
+## 76. Charged devices also reuse magic effect classes
+
+Charged OBJECTS definitions select mutable charge bytes through `OBJECTS +0x31`.
+
+Proved examples:
+
+```text
+WAND OF FIREBALLS
+    -> class-3 type 0
+
+WAND OF FROST
+    -> class-3 type 3
+
+WAND OF MAGIC MISSILES
+    -> class-3 type 6
+
+WAND OF ENEMY DETECTION
+    -> primary effect 25
+    -> shared enemy-detection state 0xF03E
+```
+
+[Object/inventory chapter](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/PreservationArchive/10_OBJECT_INVENTORY_EQUIPMENT_AND_CONTAINERS.md) [Global SAVE state](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+The physical wand object, charge-counter identity, persistent character/global effect state, and renderer effect type are all different namespaces.
+
+## 77. Device depletion remains item state, not spell state
+
+Charged-device use:
+
+1. resolves the object's `state_index`;
+2. reads its SAVE-global charge byte;
+3. rejects use when zero;
+4. invokes the corresponding item/effect behavior;
+5. decrements the charge on successful use;
+6. runs depletion/removal behavior when the counter reaches zero.
+
+[OBJECTS category semantics](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/OBJECTS.DAT/CATEGORY_SEMANTICS.md)
+
+A native spell dispatcher should therefore not own wand charges.
+
+## 78. LEVELS scripts can create the same class-3 effect types
+
+LEVELS event opcode 3 calls the common transient-effect constructor.
+
+Across the supplied level corpus, its serialized type argument uses:
+
+```text
+0
+1
+```
+
+which are the same class-3 effect classes used by Fireball and Lightning Bolt paths. [LEVELS event scripts](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/LEVELS.DAT/EVENT_SCRIPTS.md) [Global SAVE state](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+Thus a class-3 renderer/effect type can originate from:
+
+- prepared spell;
+- scroll;
+- charged device;
+- level script.
+
+Its producer is not encoded solely by `effect_type`.
+
+## 79. Magic identity exists in multiple namespaces simultaneously
+
+The complete system requires keeping at least these identities distinct:
+
+```text
+preparation identity
+    family / bank / entry
+
+spell dispatch ID
+    compact executable action ID
+
+text-resource ID
+    T index
+
+primary-effect index
+    0..25 character persistent-effect slot
+
+temporary-hand index
+    0..8
+
+temporary pseudo-object ID
+    0x7E..0x86
+
+class-3 effect type
+    0..11
+
+scroll/device OBJECTS ID
+
+charged-device counter index
+
+NPC target/immunity mask
+
+source actor/context
+```
+
+Many mappings are one-to-many or many-to-one.
+
+A native API that uses one universal `SpellId` for all of these without explicit conversion layers will obscure original behavior.
+
