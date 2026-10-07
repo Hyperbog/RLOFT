@@ -76,7 +76,10 @@ rloft::WorldSceneRenderPlan plan() {
 } // namespace
 
 int main() {
-    const auto t=tables(), m=masks(), sh=shape(), p=plan();
+    const auto t = tables();
+    const auto m = masks();
+    const auto sh = shape();
+    const auto p = plan();
     // The original 369D8 walks TWO descriptors inside each VGA pass,
     // not two independent 36B14 dispatches that would XCHG ECX twice.
     const auto grouped =
