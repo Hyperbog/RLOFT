@@ -29,6 +29,9 @@ private:
     void draw_strip(int archive, int resource, int y, int x);
     void draw_opening_base();
     void draw_opening_moving_object(int position, int delta);
+    void draw_text_centered(
+        int y, int left, int span, const std::string& text, int font_id);
+    void draw_empty_actor_card(int y, int x);
 
     const RavenloftBootAssets& assets_;
     IndexedFramebuffer framebuffer_;
