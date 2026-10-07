@@ -18,6 +18,7 @@ struct WorldSceneRenderPlan final {
     WorldSceneDrawCall call{};
     Type7ColumnTraversalPlan traversal{};
     Type7RasterizerSetup rasterizer_setup{};
+    std::vector<Type7VisibleRun> visible_runs;
     std::vector<Type7VisibleColumn> visible_columns;
     std::vector<Type7MicrocodeDraw> microcode_draws;
 };
