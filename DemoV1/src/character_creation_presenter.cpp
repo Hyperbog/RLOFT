@@ -1901,6 +1901,144 @@ void CharacterCreationPresenter::existing_actor_decision_screen(
     draw_stats_panel(draft, stats, 0x114, 0x10C, -1);
 }
 
+void CharacterCreationPresenter::stats_editor_transition_frame(
+    const CharacterCreationFlow& flow,
+    const CharacterStatsModel& stats,
+    bool entering,
+    int frame_index) {
+    const int flip_frames =
+        transition_07e4_frame_count(6, 9);
+    const int total =
+        stats_editor_transition_frame_count(entering);
+    if (frame_index < 0 || frame_index >= total) {
+        throw std::out_of_range(
+            "CODE.1 3C58 transition frame index");
+    }
+
+    if (!entering && frame_index == flip_frames) {
+        // function_40FC restores the ordinary mode-6 title immediately after
+        // 3C58 returns and copies that title region to the visible page.
+        screen(flow, &stats, -1, false);
+        return;
+    }
+
+    if (frame_index == flip_frames - 1) {
+        // 07E4's final 064C redraw still carries the editor title when
+        // leaving 3C58; entering already uses the editor title.
+        screen(flow, &stats, -1, entering ? true : true);
+        if (!entering) {
+            draw_frame(
+                7, 0x16, 0,
+                kSlotRow[6], kSlotColumn[6]);
+            draw_stats_panel(
+                flow.draft(), stats,
+                kSlotRow[7], kSlotColumn[7], -1);
+            draw_frame(
+                7, 0x2E, 0,
+                kSlotRow[8], kSlotColumn[8]);
+            draw_text_box(0x0E, 0x114, 0x10C);
+        }
+        return;
+    }
+
+    std::array<IndexedRegion, 3> old_region{};
+    std::array<IndexedRegion, 3> new_region{};
+
+    screen(
+        flow,
+        &stats,
+        -1,
+        entering ? false : true);
+    for (int slot = 6; slot < 9; ++slot) {
+        old_region[static_cast<std::size_t>(slot - 6)] =
+            framebuffer_.capture(
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)],
+                0x7A,
+                0x30);
+    }
+
+    screen(
+        flow,
+        &stats,
+        -1,
+        entering ? true : false);
+    for (int slot = 6; slot < 9; ++slot) {
+        new_region[static_cast<std::size_t>(slot - 6)] =
+            framebuffer_.capture(
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)],
+                0x7A,
+                0x30);
+    }
+
+    // Entering: function_40FC has already painted T[2C] before 3C58 starts.
+    // Leaving: T[2C] remains until 3C58 returns, but 07E4 phase 0/1 paints
+    // the ordinary mode-6 lower text record.
+    screen(flow, &stats, -1, true);
+    if (!entering) {
+        draw_text_box(0x0E, 0x114, 0x10C);
+    }
+
+    const auto seam_color = remaps_.bright[4][0];
+    const int phase = frame_index;
+
+    for (int slot = 6; slot < 9; ++slot) {
+        const auto index =
+            static_cast<std::size_t>(slot - 6);
+        if (old_region[index].pixels ==
+            new_region[index].pixels) {
+            continue;
+        }
+
+        const int delay = slot - 6;
+        const int k =
+            phase < delay
+                ? 0
+                : phase - delay + 1;
+        const int row =
+            kSlotRow[static_cast<std::size_t>(slot)];
+        const int column =
+            kSlotColumn[static_cast<std::size_t>(slot)];
+
+        if (k == 0) {
+            framebuffer_.restore(
+                old_region[index], row, column);
+            continue;
+        }
+
+        draw_frame(7, 0x1E + slot, 0, row, column);
+
+        if (k < 6) {
+            const int q = 6 - k;
+            framebuffer_.restore_scaled_horizontal(
+                old_region[index],
+                row,
+                column + 4 * k,
+                q,
+                10);
+        } else if (k == 6) {
+            framebuffer_.fill_rect(
+                row,
+                column + 0x18,
+                0x7A,
+                1,
+                seam_color);
+        } else if (k < 12) {
+            const int q = 12 - k;
+            framebuffer_.restore_scaled_horizontal(
+                new_region[index],
+                row,
+                column + 4 * q,
+                q,
+                6);
+        } else {
+            framebuffer_.restore(
+                new_region[index], row, column);
+        }
+    }
+}
+
 void CharacterCreationPresenter::final_decision_entry_frame(
     const CharacterCreationFlow& flow,
     const CharacterStatsModel& stats,
