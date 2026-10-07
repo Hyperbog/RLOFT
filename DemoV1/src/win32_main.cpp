@@ -823,17 +823,48 @@ int run(HINSTANCE instance) {
                 rloft::CharacterStatsModel character_stats(assets);
                 bool stats_ready = false;
                 bool stats_editor = false;
+                bool final_decision = false;
+                bool name_entry = false;
                 int selected_stat = -1;
+                std::string pending_name;
+                bool name_cursor_on = true;
+                auto name_blink_deadline =
+                    code1_tick_count(code1_epoch) + 9U;
 
                 auto render_character = [&]() {
-                    character_presenter.screen(
-                        character_flow,
-                        stats_ready ? &character_stats : nullptr,
-                        selected_stat,
-                        stats_editor);
+                    if (name_entry) {
+                        character_presenter.name_entry_screen(
+                            character_flow,
+                            character_stats,
+                            pending_name,
+                            name_cursor_on);
+                    } else if (final_decision) {
+                        character_presenter.final_decision_screen(
+                            character_flow,
+                            character_stats);
+                    } else {
+                        character_presenter.screen(
+                            character_flow,
+                            stats_ready ? &character_stats : nullptr,
+                            selected_stat,
+                            stats_editor);
+                    }
                     host.present(
                         character_presenter.framebuffer(),
                         character_palette);
+                };
+
+                const auto name_font = assets.res0_font(0);
+                auto name_width = [&](const std::string& value) {
+                    int width = 0;
+                    for (const unsigned char ch : value) {
+                        if (ch >= name_font.widths.size()) {
+                            throw std::runtime_error(
+                                "CODE.1 name uses glyph outside font table");
+                        }
+                        width += name_font.widths[ch];
+                    }
+                    return width;
                 };
 
                 render_character();
@@ -842,6 +873,101 @@ int run(HINSTANCE instance) {
                 // CODE.1 043C/035C input path. Mode 6 changes the scan range
                 // from slots 0..5 to 6..8; its event 9 opens the 3C58 editor.
                 while (host.pump()) {
+                    if (name_entry) {
+                        const auto tick = code1_tick_count(code1_epoch);
+                        if (tick > name_blink_deadline) {
+                            name_blink_deadline = tick + 9U;
+                            name_cursor_on = !name_cursor_on;
+                            render_character();
+                        }
+
+                        if (const auto key = host.consume_key_event()) {
+                            if (*key == 0x0D) {
+                                character_flow.finish_current_actor(
+                                    true,
+                                    pending_name);
+                                stats_ready = false;
+                                stats_editor = false;
+                                final_decision = false;
+                                name_entry = false;
+                                selected_stat = -1;
+                                pending_name.clear();
+                                host.clear_key_events();
+                                render_character();
+                                continue;
+                            }
+
+                            if (*key == 8) {
+                                if (!pending_name.empty()) {
+                                    pending_name.pop_back();
+                                    name_cursor_on = true;
+                                    name_blink_deadline =
+                                        code1_tick_count(code1_epoch) + 9U;
+                                    render_character();
+                                }
+                                continue;
+                            }
+
+                            const bool valid =
+                                (*key >= 'A' && *key <= 'Z') ||
+                                (*key >= '0' && *key <= '9') ||
+                                *key == ' ';
+                            if (valid &&
+                                pending_name.size() < 15U) {
+                                std::string candidate = pending_name;
+                                candidate.push_back(
+                                    static_cast<char>(*key));
+                                // function_2DFC accepts only when the new
+                                // rendered width remains strictly below 30h.
+                                if (name_width(candidate) < 0x30) {
+                                    pending_name = std::move(candidate);
+                                    name_cursor_on = true;
+                                    name_blink_deadline =
+                                        code1_tick_count(code1_epoch) + 9U;
+                                    render_character();
+                                }
+                            }
+                        }
+
+                        std::this_thread::sleep_for(
+                            std::chrono::milliseconds(1));
+                        continue;
+                    }
+
+                    if (final_decision) {
+                        if (const auto point =
+                                host.consume_character_click()) {
+                            // function_3138 reuses slots 2/3, which are the
+                            // same rectangles as the mode-0 actor cards.
+                            const int event =
+                                rloft::CharacterCreationFlow::hit_test(
+                                    rloft::CharacterCreationState::ActorChoice,
+                                    point->row,
+                                    point->column);
+
+                            if (event == 3) {
+                                pending_name.clear();
+                                name_entry = true;
+                                name_cursor_on = true;
+                                name_blink_deadline =
+                                    code1_tick_count(code1_epoch) + 9U;
+                                host.clear_key_events();
+                                render_character();
+                            } else if (event == 4) {
+                                character_flow.finish_current_actor(false);
+                                stats_ready = false;
+                                stats_editor = false;
+                                final_decision = false;
+                                selected_stat = -1;
+                                pending_name.clear();
+                                render_character();
+                            }
+                        }
+
+                        std::this_thread::sleep_for(
+                            std::chrono::milliseconds(1));
+                        continue;
+                    }
                     if (const auto point = host.consume_character_click()) {
                         const auto state = character_flow.state();
                         const int event =
@@ -898,12 +1024,12 @@ int run(HINSTANCE instance) {
                                     selected_stat = -1;
                                     render_character();
                                 } else if (event == 8) {
-                                    // Final accept/delete and name entry are
-                                    // the next certified sub-controller.
-                                    SetWindowTextW(
-                                        host.hwnd(),
-                                        L"Ravenloft: Strahd's Possession — "
-                                        L"Character Creation (final decision)");
+                                    // function_40FC event 8 enters 3138.
+                                    final_decision = true;
+                                    stats_editor = false;
+                                    selected_stat = -1;
+                                    host.clear_key_events();
+                                    render_character();
                                 }
                             }
                             continue;
@@ -926,6 +1052,8 @@ int run(HINSTANCE instance) {
                                     character_flow.draft());
                                 stats_ready = true;
                                 stats_editor = false;
+                                final_decision = false;
+                                name_entry = false;
                                 selected_stat = -1;
                             }
                             render_character();
