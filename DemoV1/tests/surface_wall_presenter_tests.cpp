@@ -82,6 +82,11 @@ int main() {
             reinterpret_cast<const char*>(bytes.data()),
             static_cast<std::streamsize>(bytes.size()));
     }
+    // GameSource loose-media discovery requires these canonical marker files;
+    // the presenter test intentionally does not read their contents.
+    std::ofstream(root / "RES0", std::ios::binary).put('\0');
+    std::ofstream(root / "INIT", std::ios::binary).put('\0');
+    std::ofstream(root / "T", std::ios::binary).put('\0');
 
     auto source = rloft::GameSource::open(root);
     rloft::SurfaceWallPresenter presenter(source);
