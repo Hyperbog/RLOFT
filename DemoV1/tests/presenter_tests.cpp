@@ -148,19 +148,26 @@ int main() {
     assert(rloft::StartupPresenter::menu_selection_from_y(318) == 3);
     assert(rloft::StartupPresenter::menu_selection_from_y(400) == -1);
 
-    // CODE.1 10A4 interpolation sanity: slot 0 is (x=13,y=3).
-    // Phase 0 starts from (-56,160) and moves 1/12 toward
-    // (13+61,3+24) = (74,27), using signed rounded interpolation.
-    // The presenter converts to row/column only after this native x/y math.
+    // CODE.1 10A4 preserves its encoded first/second coordinate order.
+    // Slot 0 starts with the first coordinate offscreen negative; after the
+    // low-level graphics wrappers this is the VGA row, so the card enters
+    // from the same screen edge as the original DOS executable.
     {
-        const int target_x = 13 + 0x3D;
-        const int target_y = 3 + 0x18;
-        const int anchor_x =
-            -0x38 + ((target_x - (-0x38)) * 1 + 6) / 12;
-        const int anchor_y =
-            0xA0 + ((target_y - 0xA0) * 1 + 6) / 12;
-        assert(anchor_x == -45);
-        assert(anchor_y == 150);
+        const int target_first = 13 + 0x3D;
+        const int target_second = 3 + 0x18;
+        const int anchor_first =
+            -0x38 + ((target_first - (-0x38)) * 1 + 6) / 12;
+        const int anchor_second =
+            0xA0 + ((target_second - 0xA0) * 1 + 6) / 12;
+        assert(anchor_first == -45);
+        assert(anchor_second == 150);
+
+        constexpr int raster_height = 48;
+        constexpr int raster_width = 32;
+        const int row = anchor_first - raster_height / 2;
+        const int column = anchor_second - raster_width * 2;
+        assert(row < 0);
+        assert(column >= 0);
     }
 
     // 07E4's stagger loop contributes N+10 frames, followed by one final
