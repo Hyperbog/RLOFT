@@ -104,6 +104,12 @@ jobs:
             "Executable SHA-256: $hash"
           ) | Set-Content -Path "Tools/anm/dist/BUILD_INFO.txt" -Encoding utf8
 
+      - name: Sync publish branch before staging
+        shell: pwsh
+        run: |
+          git fetch origin code1-decompilation
+          git rebase origin/code1-decompilation
+
       - name: Stage Windows distribution in repository
         shell: pwsh
         run: |
@@ -137,8 +143,6 @@ jobs:
             Write-Host "Windows distribution is already current."
           } else {
             git commit -m "tools: publish Windows 11 executable [skip ci]"
-            git fetch origin code1-decompilation
-            git rebase origin/code1-decompilation
             git push origin HEAD:code1-decompilation
           }
 
