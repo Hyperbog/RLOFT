@@ -83,6 +83,45 @@ void ExplorationUiController::open_inventory(
     state_.top_edge_hover = -1;
 }
 
+void ExplorationUiController::open_party_panels(
+    std::size_t actor_index) {
+    if (actor_index >= PartyImage::kActorCount) {
+        throw std::out_of_range("party actor index");
+    }
+
+    // CODE.2 06C68 zeroes 6F90..6F9F. 13118 -> 112EC therefore opens with
+    // every active party column in inventory/equipment mode.
+    state_.party_panel_character_mode.fill(false);
+    state_.selected_party_actor = actor_index;
+    state_.screen = ExplorationUiScreen::PartyPanels;
+    state_.top_edge_menu_visible = false;
+    state_.top_edge_hover = -1;
+}
+
+void ExplorationUiController::toggle_party_panel(
+    std::size_t actor_index) {
+    if (actor_index >= PartyImage::kActorCount) {
+        throw std::out_of_range("party actor index");
+    }
+    if (state_.screen != ExplorationUiScreen::PartyPanels) {
+        throw std::logic_error(
+            "party panel toggle outside party modal");
+    }
+
+    // Primary-click 11AD8 toggles only the selected actor's low mode bit.
+    state_.party_panel_character_mode[actor_index] =
+        !state_.party_panel_character_mode[actor_index];
+    state_.selected_party_actor = actor_index;
+}
+
+bool ExplorationUiController::party_panel_character_mode(
+    std::size_t actor_index) const {
+    if (actor_index >= PartyImage::kActorCount) {
+        throw std::out_of_range("party actor index");
+    }
+    return state_.party_panel_character_mode[actor_index];
+}
+
 void ExplorationUiController::close_screen() noexcept {
     state_.screen = ExplorationUiScreen::Viewport;
     state_.top_edge_menu_visible = false;

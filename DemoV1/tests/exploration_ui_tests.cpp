@@ -41,10 +41,40 @@ int main() {
     assert(ui.state().screen == ExplorationUiScreen::Inventory);
     assert(ui.state().selected_party_actor == 1);
 
+    ui.open_party_panels(2);
+    assert(ui.state().screen == ExplorationUiScreen::PartyPanels);
+    assert(ui.state().selected_party_actor == 2);
+    for (std::size_t actor = 0; actor < 4; ++actor) {
+        assert(!ui.party_panel_character_mode(actor));
+    }
+
+    ui.toggle_party_panel(2);
+    assert(ui.party_panel_character_mode(2));
+    assert(!ui.party_panel_character_mode(0));
+    ui.toggle_party_panel(2);
+    assert(!ui.party_panel_character_mode(2));
+
     bool rejected = false;
     try {
         ui.open_inventory(4);
     } catch (const std::out_of_range&) {
+        rejected = true;
+    }
+    assert(rejected);
+
+    rejected = false;
+    try {
+        ui.open_party_panels(4);
+    } catch (const std::out_of_range&) {
+        rejected = true;
+    }
+    assert(rejected);
+
+    ui.close_screen();
+    rejected = false;
+    try {
+        ui.toggle_party_panel(0);
+    } catch (const std::logic_error&) {
         rejected = true;
     }
     assert(rejected);

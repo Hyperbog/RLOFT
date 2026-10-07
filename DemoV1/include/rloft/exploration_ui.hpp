@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 
 #include "rloft/top_edge_menu.hpp"
@@ -18,6 +19,7 @@ enum class ExplorationUiScreen {
     Options,
     Character,
     Inventory,
+    PartyPanels,
 };
 
 struct ExplorationUiState final {
@@ -25,6 +27,7 @@ struct ExplorationUiState final {
     bool top_edge_menu_visible{};
     int top_edge_hover{-1};
     std::size_t selected_party_actor{};
+    std::array<bool, 4> party_panel_character_mode{};
 };
 
 class ExplorationUiController final {
@@ -37,6 +40,10 @@ public:
     bool activate_top_edge_selection();
     void open_character(std::size_t actor_index);
     void open_inventory(std::size_t actor_index);
+    void open_party_panels(std::size_t actor_index);
+    void toggle_party_panel(std::size_t actor_index);
+    [[nodiscard]] bool party_panel_character_mode(
+        std::size_t actor_index) const;
     void close_screen() noexcept;
 
 private:
