@@ -1399,3 +1399,900 @@ all current_hp == 0
 
 because the condition is status-mask based.
 
+
+
+## 61. NPC damage is applied to live actor HP
+
+Logical `E284..E552` is the common NPC damage/death family.
+
+Its target is the **live family-A actor record**:
+
+```text
++0x12  int16 current_hp
+```
+
+rather than an HP field in NPCS.DAT.
+
+[Family-A live actor](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FAMILY_A.md)
+
+This preserves the definition/instance split:
+
+```text
+NPCS.DAT
+    immutable HD/AC/THAC0/damage/XP template
+
+family-A actor
+    mutable current HP
+```
+
+## 62. Surviving NPCs take the reaction-sound path
+
+After damage/effect application:
+
+```text
+if live.current_hp > 0
+```
+
+the common handler can queue the definition's:
+
+```text
++0x41 damage_reaction_sound_id
+```
+
+against the normal creature-sound base.
+
+[NPC sound fields](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/NPCS.DAT/SOUND_FIELDS.md)
+
+The surviving reaction path is therefore separate from death audio and death-state transitions.
+
+## 63. NPC death branches on live HP <= 0
+
+When:
+
+```text
+live.current_hp <= 0
+```
+
+the damage handler enters its death path.
+
+That path can include:
+
+- special/story-specific handling;
+- death animation/state mutation;
+- definition XP transfer;
+- death-sound selection;
+- scene/world refresh.
+
+The exact special branches vary by actor/type; a native engine should not replace the original death family with a generic unconditional actor deletion.
+
+## 64. NPC death sound uses the dedicated death bank
+
+Definition:
+
+```text
+NPCS +0x43  death_sound_id
+```
+
+is resolved relative to the dedicated death-sound base rather than the ordinary creature-sound base.
+
+A serialized value of zero still resolves to the base death sound and therefore does **not** mean silence. [NPC sound fields](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/NPCS.DAT/SOUND_FIELDS.md)
+
+This should be represented as:
+
+```text
+death_resource = death_sound_base + death_sound_id
+```
+
+not:
+
+```text
+if death_sound_id == 0:
+    no sound
+```
+
+## 65. Definition XP is passed into party progression
+
+On NPC death, definition word:
+
+```text
+NPCS +0x23  experience_award
+```
+
+is passed directly to logical XP-distribution routine `DDA4..DFC0`.
+
+[NPCS format](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/NPCS.DAT/FORMAT.md)
+
+The dead live actor does not carry a separate mutable XP field.
+
+## 66. XP eligibility uses character status, not HP alone
+
+XP distribution first counts active-party characters whose:
+
+```text
+status_word & 0xF240 == 0
+```
+
+Only those records participate in the party-member divisor and later receive class progression.
+
+This means XP eligibility is not simply:
+
+```text
+record occupied
+AND current_hp > 0
+```
+
+It is a specific status-mask predicate.
+
+A faithful progression layer must preserve that predicate exactly.
+
+## 67. Party-member XP share uses rounded integer division
+
+Let:
+
+```text
+X = NPC experience_award
+N = eligible party-member count
+```
+
+The routine computes:
+
+```text
+party_share =
+    (X + (N >> 1)) / N
+```
+
+for the positive XP domain used by the death path.
+
+If the quotient becomes zero:
+
+```text
+party_share = 1
+```
+
+Thus the game performs rounded integer division rather than simple truncation.
+
+## 68. Multiclass XP is divided again
+
+For each eligible character the routine counts occupied class slots:
+
+```text
+class_count =
+    1
+  + (class_code[1] != -1)
+  + (class_code[2] != -1)
+```
+
+Then:
+
+```text
+class_share =
+    (party_share + (class_count >> 1))
+  / class_count
+
+if class_share == 0:
+    class_share = 1
+```
+
+The same resulting class share is added independently to every occupied:
+
+```text
+class_progress[i]
+```
+
+field.
+
+[Character class layout](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/CORE_FIELDS.md)
+
+## 69. Two-stage rounding can change exact total allocation
+
+Because XP is rounded at:
+
+1. the party-member division;
+2. the per-character class division;
+
+and each stage has a minimum result of 1, the resulting total progression added across every class record is not guaranteed to be a perfect algebraic partition of the original XP amount.
+
+This is encoded behavior.
+
+A native port must not “correct” it by carrying fractional remainders globally unless intentionally changing gameplay.
+
+## 70. Class progression uses class-specific threshold tables
+
+After adding class XP, the routine selects a class-specific threshold region:
+
+```text
+table_base =
+    0x7D9C
+  + class_code * 0x28
+```
+
+and compares threshold values against:
+
+```text
+class_progress / 1000
+```
+
+to derive the current level.
+
+The resulting level is written back to the matching:
+
+```text
+class_level[i]
+```
+
+slot when it changes.
+
+The progression model is therefore class-slot-local throughout:
+
+```text
+class_code[i]
+class_progress[i]
+class_level[i]
+```
+
+## 71. Level changes trigger side effects
+
+When a class level changes, CODE.2 invokes class/character level-up side-effect logic rather than merely incrementing the serialized level word.
+
+Those side effects can update derived character state.
+
+The complete class-specific level-up rules are outside this combat chapter's scope, but the progression ordering is:
+
+```text
+add class XP
+    |
+    v
+recompute level from threshold table
+    |
+    +-- unchanged -> continue
+    |
+    v
+store new class level
+    |
+    v
+run level-change side effects
+```
+
+## 72. Base attack target is recomputed after XP processing
+
+After processing the character's occupied class slots, XP distribution calls logical `DBD4(character)`.
+
+Its result is written to:
+
+```text
+character +0x10A
+base_attack_target
+```
+
+[Post-inventory character state](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/POST_INVENTORY_STATE.md)
+
+Thus the combat target byte is a serialized **derived value** that can change immediately after level progression.
+
+The persistence layer preserves it, but progression logic also knows how to regenerate it.
+
+## 73. Combat and progression therefore form a feedback loop
+
+```text
+NPC dies
+    |
+    v
+definition XP
+    |
+    v
+party eligibility
+    |
+    v
+party rounded share
+    |
+    v
+class rounded share
+    |
+    v
+class_progress[]
+    |
+    v
+class_level[]
+    |
+    v
+base_attack_target +0x10A
+    |
+    v
+future player hit thresholds
+```
+
+This is why the native port should not isolate progression completely from combat-state recomputation.
+
+## 74. Special NPC attack branch can bypass ordinary melee amount
+
+The main NPC attack family contains a special type-specific branch for NPC type 15.
+
+For each eligible active character, that branch invokes saving helper `CEE4`.
+
+On save failure it builds a lethal-scale damage quantity from the target's current life/protection state and sends that through common character damage.
+
+The exact higher-level creature/attack label is intentionally not generalized here; the preservation point is:
+
+> not every NPC attack is ordinary melee dice followed by status side effects.
+
+Some actor/type-specific attack paths construct damage by their own executable rules.
+
+## 75. Special status attacks and base damage remain independently ordered
+
+For the ordinary NPC attack family, the safe architecture is:
+
+```text
+hit check
+    |
+    v
+base melee dice
+    |
+    +-- level-drain capability
+    +-- Strength-drain capability
+    +-- paralysis capability
+    +-- poison capability
+    +-- disease capability
+    |
+    v
+saving/protection/eligibility checks
+    |
+    v
+common character damage
+```
+
+Some status side effects can be prevented even though the base physical hit still deals damage.
+
+Conversely, actor-specific branches may apply a nonstandard damage quantity.
+
+## 76. Character protection effects occupy different layers
+
+The combat path demonstrates at least four distinct defensive concepts:
+
+```text
+attack avoidance/modification
+    Blur
+    Invisibility 10' Radius
+    Bless encoded defensive modifier
+    Slow on attacker
+    effective AC
+
+attack interception
+    Stoneskin
+
+persistent protection durability
+    Armor +0x117
+
+true HP-damage absorption
+    Aid +0x1EA
+    Vampiric Touch +0x113
+```
+
+These should not be collapsed into one generic `damage_reduction` list.
+
+## 77. Stoneskin is not an HP absorption pool in this path
+
+The NPC hit routine consumes Stoneskin before ordinary threshold comparison and returns no hit.
+
+Character:
+
+```text
++0x1F2
+```
+
+stores accumulated Stoneskin-associated state in addition to primary effect bit/timer state. [Character record](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/CHARACTER_RECORD.md)
+
+Thus Stoneskin differs structurally and behaviorally from Aid/Vampiric damage absorption.
+
+## 78. Combat feedback is presentation state with persistence geometry
+
+The three recent-damage slots are serialized inside the `0x248` character image:
+
+```text
+slot 0  outgoing hand A damage
+slot 1  outgoing hand B damage
+slot 2  incoming damage
+
+deadline[3]
+damage[3]
+```
+
+They can therefore survive a SAVE image even though they are short-lived UI feedback.
+
+[Combat-feedback state](https://github.com/Hyperbog/RLOFT/blob/d40af8a3660ca126f1635279fda7c4015a3dff4c/DatFiles/SAVE.DAT/POST_EFFECT_TIMERS.md)
+
+This is another example of UI/presentation state intentionally embedded inside persistent character state.
+
+## 79. Faithful combat reference architecture
+
+A clean native implementation can separate:
+
+```text
+AttackRollModel
+    player hit equation
+    NPC hit equation
+
+EffectiveDefenseModel
+    equipment
+    Dexterity
+    burden
+    effects
+
+WeaponDamageModel
+    OBJECTS dice
+    Strength damage adjustment
+    enchantment/category routing
+    special item dispatch
+
+NpcDamageGateModel
+    category floors
+    residual category-11 behavior
+
+CharacterProtectionModel
+    Stoneskin interception
+    Armor durability
+    Aid absorption
+    Vampiric absorption
+
+SavingThrowModel
+    family A status saves
+    family B modifier-bearing damage saves
+
+NpcSecondaryAttackModel
+    poison
+    paralysis
+    disease
+    level drain
+    Strength drain
+
+ActionTimingModel
+    hand-ready deadlines
+    speed-factor timing
+    Haste/Speed acceleration
+
+CombatFeedbackModel
+    outgoing/incoming recent damage slots
+
+ProgressionModel
+    XP eligibility
+    party/class split
+    level thresholds
+    derived attack-target update
+```
+
+These are proposed native abstractions, not recovered original source type names.
+
+## 80. Required combat regression classes
+
+### 80.1 Player hit automatic branches
+
+Test player roll results around:
+
+```text
+modified result == 1
+modified result == 19
+modified result == 20
+```
+
+including positive Bless/Aid/Gauntlet roll bonuses.
+
+Verify the automatic checks use the **modified result**.
+
+### 80.2 NPC hit automatic branches
+
+Test raw natural:
+
+```text
+1
+20
+```
+
+and verify those branches occur before Blur/Invisibility/Bless modifications.
+
+### 80.3 Player threshold assembly
+
+Independently vary:
+
+- base attack target;
+- NPC signed AC;
+- weapon enchantment;
+- Strength/exceptional Strength;
+- burden ranks 0..4;
+- NPC Slow state.
+
+Require exact threshold arithmetic.
+
+### 80.4 Player roll bonuses
+
+Test all combinations of:
+
+- Bless;
+- Aid;
+- Stone Giant Gauntlets.
+
+Verify additive result before the automatic `>=20` / `==1` tests.
+
+### 80.5 Effective AC
+
+Construct fixtures independently varying:
+
+- base AC;
+- torso armor;
+- headgear;
+- both hand slots;
+- enchantment;
+- Dexterity;
+- burden;
+- Armor;
+- Dragon Scales;
+- Ring of Protection;
+- Bracers of Protection.
+
+Compare against original signed arithmetic/order.
+
+### 80.6 Bracers special path
+
+Test object `0x51` with:
+
+- no category-4 armor;
+- category-4 armor;
+- intermediate AC better/worse than 5.
+
+### 80.7 Stoneskin ordering
+
+Test NPC natural 20 while Stoneskin is active and verify encoded natural-20 ordering relative to Stoneskin.
+
+Test ordinary nonautomatic rolls and verify Stoneskin consumes/intercepts before later threshold modifiers.
+
+### 80.8 Player ordinary damage
+
+Test:
+
+- weapon small-target dice;
+- Strength damage adjustment;
+- unarmed `1d2`;
+- enchantment/category gate;
+- one-damage NPC floor.
+
+### 80.9 Temporary hand items
+
+Exercise all nine `0x7E..0x86` pseudo-items through their dedicated dispatch rather than OBJECTS ordinary dice.
+
+### 80.10 Rod of Smiting
+
+Test charge-state and target-specific special behavior separately from generic weapon resolution.
+
+### 80.11 NPC melee damage
+
+Verify NPC definition dice/sides/bonus are used directly before secondary attack effects.
+
+### 80.12 Saving throw family A
+
+For every class/level fixture, compare:
+
+```text
+0x6888 + class*0x5C + level*4
+```
+
+threshold lookup and d20 success boundary.
+
+### 80.13 Saving throw family B
+
+Verify the independent `0x6AB0` table family, caller modifier, and direct damage-halving consumer.
+
+### 80.14 Armor durability correction
+
+Apply damage with only Armor active.
+
+Require:
+
+- `+0x117` decremented by full incoming damage;
+- Armor cleared on depletion;
+- HP damage **not** reduced by the Armor quantity.
+
+### 80.15 Aid absorption
+
+Apply damage around the exact Aid pool boundary:
+
+```text
+damage < pool
+damage == pool
+damage > pool
+```
+
+and verify post-Aid remainder.
+
+### 80.16 Vampiric absorption
+
+Repeat equivalent boundary tests after Aid processing.
+
+### 80.17 Combined protection ordering
+
+Construct:
+
+```text
+Armor
+Aid
+Vampiric Touch
+```
+
+simultaneously and verify:
+
+```text
+Armor durability first
+Aid absorption second
+Vampiric absorption third
+HP fourth
+```
+
+### 80.18 Incoming combat feedback
+
+Verify slot 2 stores the **original incoming argument**, not post-absorption HP loss.
+
+### 80.19 Character death
+
+Drive HP below zero and verify:
+
+- clamp to zero;
+- set death bit;
+- clear disease/poison/paralysis bits;
+- run cleanup/UI path.
+
+### 80.20 Party terminal-state test
+
+Construct party status combinations around mask `0xD040`; do not substitute an all-zero-HP test.
+
+### 80.21 NPC damage/death
+
+Verify:
+
+- live HP mutation;
+- surviving reaction sound;
+- death sound bank;
+- zero death-ID base sound;
+- definition XP consumption.
+
+### 80.22 XP party share
+
+Test multiple eligible-party counts and verify:
+
+```text
+(XP + N/2) / N
+```
+
+integer rounding plus minimum 1.
+
+### 80.23 XP multiclass split
+
+For one-, two-, and three-class characters verify the second rounded division and per-class progression increments.
+
+### 80.24 Level threshold/update
+
+Cross class-specific threshold boundaries and verify:
+
+- class level update;
+- level-change side effects;
+- base attack target recomputation.
+
+### 80.25 Hand timing
+
+For representative weapon speeds verify:
+
+```text
+duration = speed * 9
+```
+
+and Haste/Potion of Speed half-duration behavior.
+
+### 80.26 Combat feedback timing
+
+On successful player attacks verify:
+
+```text
+feedback deadline =
+    current time + attack duration/2
+```
+
+while hand-ready deadline uses the full duration.
+
+## 81. Correction C-19 — player and NPC automatic hit/miss ordering differs
+
+The two central d20 hit routines are not interchangeable.
+
+Player attack:
+
+```text
+1d20 + bonuses
+then >=20 auto hit / ==1 auto miss
+```
+
+NPC attack:
+
+```text
+raw 1d20
+then natural 20 auto hit / natural 1 auto miss
+then defensive modifiers
+```
+
+A shared generic d20 helper that applies the same natural-roll semantics to both sides would alter original behavior.
+
+## 82. Correction C-20 — Armor +0x117 is not a true HP absorption pool
+
+The earlier broad label `Armor absorption pool` was too strong.
+
+Direct disassembly proves:
+
+```text
+incoming damage depletes +0x117
+depletion clears Armor
+but +0x117 does not subtract from remaining damage
+```
+
+Aid and Vampiric Touch are the true damage-absorption pools in the common character-damage routine.
+
+The canonical SAVE/character documentation has been corrected accordingly.
+
+## 83. Correction C-21 — saving throws are not one table
+
+CODE.2 uses at least two class/level-indexed saving-table families:
+
+```text
+CEE4
+    table family 0x6888
+    common NPC status/drain save path
+
+CF2C
+    table family 0x6AB0
+    explicit caller modifier
+    direct damage-mitigation consumer
+```
+
+The exact historical AD&D category names remain an enrichment target, but the two executable families must remain distinct.
+
+## 84. Correction C-22 — +0x19E..+0x1B5 is combat-feedback state
+
+The former unnamed three paired timer/auxiliary slots are now CODE-PROVEN:
+
+```text
+slot 0
+    outgoing hand-A damage feedback
+
+slot 1
+    outgoing hand-B damage feedback
+
+slot 2
+    incoming character-damage feedback
+```
+
+Each slot has an absolute gameplay-time display deadline and a damage value.
+
+The canonical SAVE docs and open-question ledger have been updated to remove these from the unresolved set.
+
+## 85. Historical unknowns retained
+
+The combat system is mechanically reconstructable for the supplied build, but these historical/source-level questions remain:
+
+1. original DreamForge source names for saving-table family A and family B;
+2. original source labels for burden ranks `0..4`;
+3. physical real-time unit represented by attack duration values;
+4. original source-level intent of NPC category-11 behavior bits `0x20000/0x40000`, despite exact machine behavior being preserved;
+5. original high-level name for the type-15 special NPC attack branch;
+6. source-level labels for selected class-level progression tables/helpers;
+7. exact tabletop/source terminology for selected signed ability tables where the executable arithmetic is already known.
+
+These are naming/provenance gaps, not blockers to faithful combat execution.
+
+## 86. Source ledger
+
+### Character/combat state
+
+- [DatFiles/SAVE.DAT/CHARACTER_RECORD.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/CHARACTER_RECORD.md)
+- [DatFiles/SAVE.DAT/CORE_FIELDS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/CORE_FIELDS.md)
+- [DatFiles/SAVE.DAT/POST_INVENTORY_STATE.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/POST_INVENTORY_STATE.md)
+- [DatFiles/SAVE.DAT/POST_EFFECT_TIMERS.md](https://github.com/Hyperbog/RLOFT/blob/d40af8a3660ca126f1635279fda7c4015a3dff4c/DatFiles/SAVE.DAT/POST_EFFECT_TIMERS.md)
+- [DatFiles/SAVE.DAT/STATUS_WORD.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/STATUS_WORD.md)
+- [DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md)
+
+### OBJECTS weapon/equipment state
+
+- [DatFiles/OBJECTS.DAT/FORMAT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/OBJECTS.DAT/FORMAT.md)
+- [DatFiles/OBJECTS.DAT/ATTACK_PROFILE.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/OBJECTS.DAT/ATTACK_PROFILE.md)
+- [Component 10](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/PreservationArchive/10_OBJECT_INVENTORY_EQUIPMENT_AND_CONTAINERS.md)
+
+### NPC combat state
+
+- [DatFiles/NPCS.DAT/FORMAT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/NPCS.DAT/FORMAT.md)
+- [DatFiles/NPCS.DAT/BEHAVIOR_FLAGS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/NPCS.DAT/BEHAVIOR_FLAGS.md)
+- [DatFiles/NPCS.DAT/WEAPON_DAMAGE_FLAGS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/NPCS.DAT/WEAPON_DAMAGE_FLAGS.md)
+- [DatFiles/NPCS.DAT/STATUS_ATTACKS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/NPCS.DAT/STATUS_ATTACKS.md)
+- [Component 11](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/PreservationArchive/11_NPC_CREATURE_AI_AND_LIVE_ACTOR_MODEL.md)
+
+### Executable reconstruction
+
+- [Code2/Code2.cpp](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/Code2.cpp)
+- [Code2/CODE2_CONTINUITY_ADDENDUM.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/CODE2_CONTINUITY_ADDENDUM.md)
+- [Code2/FINAL_SEMANTIC_AUDIT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_SEMANTIC_AUDIT.md)
+- [Code2/FINAL_CERTIFICATION.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_CERTIFICATION.md)
+
+## 87. Architectural checkpoint
+
+The combat architecture is now:
+
+```text
+PLAYER ATTACK
+    |
+    +-- character base attack target
+    +-- weapon enchantment
+    +-- Strength attack adjustment
+    +-- burden rank
+    +-- Bless/Aid/Gauntlet roll bonuses
+    +-- target NPC AC / Slow state
+    |
+    v
+modified player d20 hit check
+    |
+    v
+weapon/unarmed/touch damage
+    |
+    +-- Strength damage adjustment
+    +-- item special cases
+    +-- NPC category/enchantment gate
+    |
+    v
+NPC live HP / death / XP
+    |
+    +-- reaction/death sound
+    +-- party/class XP
+    +-- class levels
+    +-- recompute base attack target
+    |
+    v
+hand-ready deadline
++ outgoing damage feedback
+
+
+NPC ATTACK
+    |
+    +-- raw natural d20
+    +-- target effective AC
+    |      equipment
+    |      Dexterity
+    |      burden
+    |      Armor/Dragon Scales/ring/bracers
+    +-- Stoneskin interception
+    +-- Blur/Invisibility/Bless modifiers
+    +-- NPC THAC0 / Slow state
+    |
+    v
+NPC hit result
+    |
+    v
+melee dice + secondary status/drain effects
+    |
+    +-- saving family A
+    +-- special protection predicates
+    |
+    v
+COMMON CHARACTER DAMAGE
+    |
+    +-- record incoming feedback
+    +-- deplete Armor durability
+    +-- absorb with Aid
+    +-- absorb with Vampiric Touch
+    +-- subtract HP
+    |
+    +-- alive
+    |
+    +-- dead
+          death status
+          cleanup
+          party terminal-state test
+
+
+OTHER DAMAGE/EFFECT PATHS
+    |
+    +-- saving family B
+    +-- signed half-damage result
+```
+
+This closes the central combat execution model to the supplied-build evidence boundary.
+
+The next preservation component should reconstruct the **spell and magic system**: Mage/priest spell matrices, memorization/prayer preparation, spell dispatch IDs, spell/resource lookup, targeting modes, persistent effects and expiries, area/projectile class-3 effects, scroll/device reuse of spell handlers, light/detection/global counters, restoration/cure behavior, and the separation between spell identity, presentation effect type, and serialized character effect state.
