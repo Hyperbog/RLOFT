@@ -31,6 +31,19 @@ ExplorationRuntime ExplorationRuntime::load_fresh(
 }
 
 void ExplorationRuntime::initialize_gameplay_state(
+    const GameSource& source) {
+    initialize_gameplay_state(
+        source,
+        [this](
+            std::uint8_t count,
+            std::uint8_t sides) {
+            return original_random_.dice(
+                count,
+                sides);
+        });
+}
+
+void ExplorationRuntime::initialize_gameplay_state(
     const GameSource& source,
     const LevelWorldStateCodec::DiceRoller& roll) {
     npc_catalog_ = NpcCatalog::load(source);
