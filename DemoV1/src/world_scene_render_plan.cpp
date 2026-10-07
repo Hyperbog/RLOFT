@@ -31,6 +31,15 @@ WorldSceneRenderPlanModel::build(
                 call.resource_id,
                 call.scale_extent,
                 call.render_scale_lookup_bias);
+        plan.rasterizer_setup =
+            Type7RasterizerSetupModel::build(
+                plan.traversal,
+                tables,
+                call.render_mode);
+        if (!plan.rasterizer_setup.drawable) {
+            out.push_back(std::move(plan));
+            continue;
+        }
         plan.visible_columns =
             Type7ColumnTraversalModel::visible_columns(
                 plan.traversal,
