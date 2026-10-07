@@ -425,10 +425,12 @@ fs::path GameSource::runtime_output_path(
     // directory. GOG installations commonly keep that runtime directory as
     // an RLOFT child next to game.gog; loose-media installs are already rooted
     // at the runtime directory.
-    const auto rloft = located_.install_root / "RLOFT";
-    std::error_code ec;
-    if (fs::is_directory(rloft, ec)) {
-        return rloft / std::string(filename);
+    if (const auto rloft =
+            child_case_insensitive(located_.install_root, "RLOFT")) {
+        std::error_code ec;
+        if (fs::is_directory(*rloft, ec)) {
+            return *rloft / std::string(filename);
+        }
     }
     return located_.install_root / std::string(filename);
 }
