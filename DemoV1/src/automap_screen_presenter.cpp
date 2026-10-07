@@ -88,6 +88,16 @@ void AutomapScreenPresenter::draw(
         framebuffer,
         session,
         origin);
+
+    if (annotation_overlay_enabled) {
+        annotations_.draw(
+            framebuffer,
+            AutomapAnnotationModel::parse(
+                session.level.automap_annotations),
+            state.column,
+            state.row);
+    }
+
     viewport_.draw_player_marker(
         framebuffer,
         session,
