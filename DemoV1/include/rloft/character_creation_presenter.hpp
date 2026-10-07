@@ -37,6 +37,18 @@ public:
         const CharacterCreationFlow& flow,
         int actor,
         const CharacterStatsModel& stats);
+    [[nodiscard]] static int existing_actor_transition_frame_count(
+        bool entering) noexcept {
+        return transition_07e4_frame_count(0, 6) +
+               (entering ? 1 : 0);
+    }
+    void existing_actor_transition_frame(
+        const CharacterCreationFlow& before,
+        const CharacterCreationFlow& after,
+        int actor,
+        const CharacterStatsModel& stats,
+        bool entering,
+        int frame_index);
     void final_decision_screen(
         const CharacterCreationFlow& flow,
         const CharacterStatsModel& stats);
