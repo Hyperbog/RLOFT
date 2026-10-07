@@ -6,9 +6,11 @@
 #include <mmsystem.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <thread>
@@ -42,6 +44,13 @@ void all_notes_off(HMIDIOUT out) {
     }
 }
 
+int scaled_expression(int base, int relative_volume) noexcept {
+    return std::clamp(
+        (base * relative_volume + 50) / 100,
+        0,
+        127);
+}
+
 }  // namespace
 
 struct Win32MidiPlayer::Impl {
@@ -59,7 +68,13 @@ struct Win32MidiPlayer::Impl {
     std::mutex mutex;
     std::condition_variable cv;
     bool stop_requested{};
+    bool sequence_active{};
+    HMIDIOUT active_out{};
+    int relative_volume{100};
+    std::array<std::uint8_t, 16> expression{};
+
     std::thread worker;
+    std::thread fade_thread;
 
     ~Impl() {
         stop();
@@ -79,21 +94,134 @@ struct Win32MidiPlayer::Impl {
         return !stop_requested;
     }
 
+    void apply_relative_volume_locked() {
+        if (!active_out) return;
+
+        for (int channel = 0; channel < 16; ++channel) {
+            const int value =
+                scaled_expression(
+                    expression[static_cast<std::size_t>(channel)],
+                    relative_volume);
+            const DWORD message =
+                static_cast<DWORD>(0xB0 | channel) |
+                (static_cast<DWORD>(11) << 8U) |
+                (static_cast<DWORD>(value) << 16U);
+            midiOutShortMsg(active_out, message);
+        }
+    }
+
+    void set_relative_volume_locked(int value) {
+        relative_volume = std::clamp(value, 0, 100);
+        apply_relative_volume_locked();
+    }
+
+    void fade_relative_volume(
+        int from,
+        int to,
+        int milliseconds,
+        bool wait_for_sequence_start) {
+        std::unique_lock<std::mutex> lock(mutex);
+
+        if (wait_for_sequence_start) {
+            cv.wait(lock, [this] {
+                return stop_requested || sequence_active;
+            });
+            if (stop_requested) return;
+        }
+
+        if (milliseconds <= 0) {
+            set_relative_volume_locked(to);
+            return;
+        }
+
+        const auto epoch = std::chrono::steady_clock::now();
+        const auto duration =
+            std::chrono::milliseconds(milliseconds);
+        const auto deadline = epoch + duration;
+
+        for (;;) {
+            if (stop_requested) return;
+
+            const auto now = std::chrono::steady_clock::now();
+            if (now >= deadline) {
+                set_relative_volume_locked(to);
+                return;
+            }
+
+            const auto elapsed =
+                std::chrono::duration_cast<std::chrono::microseconds>(
+                    now - epoch);
+            const auto total =
+                std::chrono::duration_cast<std::chrono::microseconds>(
+                    duration);
+
+            const auto numerator =
+                static_cast<std::int64_t>(to - from) *
+                elapsed.count();
+            const int value =
+                from +
+                static_cast<int>(
+                    numerator / total.count());
+            if (value != relative_volume) {
+                set_relative_volume_locked(value);
+            }
+
+            // The DOS AIL driver services XMIDI at a timer cadence. Updating
+            // the host-side relative-volume multiplier at 120 Hz preserves
+            // the same audible gradual fade without altering authored CC7.
+            const auto next =
+                std::min(
+                    deadline,
+                    now +
+                        std::chrono::duration_cast<
+                            std::chrono::steady_clock::duration>(
+                            std::chrono::duration<double>(
+                                1.0 / 120.0)));
+
+            cv.wait_until(
+                lock,
+                next,
+                [this] { return stop_requested; });
+        }
+    }
+
     void stop() {
         {
             std::lock_guard<std::mutex> lock(mutex);
             stop_requested = true;
         }
         cv.notify_all();
+
+        if (fade_thread.joinable()) fade_thread.join();
         if (worker.joinable()) worker.join();
+
+        std::lock_guard<std::mutex> lock(mutex);
+        active_out = nullptr;
+        sequence_active = false;
     }
 
-    void play(XmiSequence sequence) {
+    void play(
+        XmiSequence sequence,
+        int initial_relative_volume,
+        int target_relative_volume,
+        int fade_milliseconds) {
         stop();
+
+        initial_relative_volume =
+            std::clamp(initial_relative_volume, 0, 100);
+        target_relative_volume =
+            std::clamp(target_relative_volume, 0, 100);
 
         {
             std::lock_guard<std::mutex> lock(mutex);
             stop_requested = false;
+            sequence_active = false;
+            active_out = nullptr;
+            expression.fill(127);
+            relative_volume =
+                fade_milliseconds > 0
+                    ? initial_relative_volume
+                    : target_relative_volume;
         }
 
         worker = std::thread(
@@ -105,8 +233,23 @@ struct Win32MidiPlayer::Impl {
                         0,
                         0,
                         CALLBACK_NULL) != MMSYSERR_NOERROR) {
+                    std::lock_guard<std::mutex> lock(mutex);
+                    cv.notify_all();
                     return;
                 }
+
+                {
+                    std::lock_guard<std::mutex> lock(mutex);
+                    if (stop_requested) {
+                        midiOutClose(out);
+                        cv.notify_all();
+                        return;
+                    }
+                    active_out = out;
+                    sequence_active = true;
+                    apply_relative_volume_locked();
+                }
+                cv.notify_all();
 
                 const auto epoch = std::chrono::steady_clock::now();
                 std::uint64_t tick = 0;
@@ -173,7 +316,8 @@ struct Win32MidiPlayer::Impl {
 
                     const auto& event = sequence.events[index];
                     const auto event_tick =
-                        tick + static_cast<std::uint64_t>(event.delay_ticks);
+                        tick + static_cast<std::uint64_t>(
+                            event.delay_ticks);
 
                     if (!send_due(event_tick)) break;
 
@@ -246,13 +390,35 @@ struct Win32MidiPlayer::Impl {
                             continue;
                         }
 
+                        if (controller == 11) {
+                            const auto channel = status & 0x0FU;
+                            int scaled = value;
+                            {
+                                std::lock_guard<std::mutex> lock(mutex);
+                                expression[
+                                    static_cast<std::size_t>(channel)] =
+                                    value;
+                                scaled = scaled_expression(
+                                    value,
+                                    relative_volume);
+                            }
+                            const DWORD message =
+                                static_cast<DWORD>(status) |
+                                (static_cast<DWORD>(11) << 8U) |
+                                (static_cast<DWORD>(scaled) << 16U);
+                            midiOutShortMsg(out, message);
+                            ++index;
+                            continue;
+                        }
+
                         if (controller >= 110 && controller <= 120) {
                             // Miles-specific controller. Bank selection has a
                             // direct General-MIDI analogue; the remaining
                             // control semantics are internal to AIL.
                             if (controller == 114) {
                                 const DWORD bank =
-                                    static_cast<DWORD>(0xB0U | (status & 0x0FU)) |
+                                    static_cast<DWORD>(
+                                        0xB0U | (status & 0x0FU)) |
                                     (static_cast<DWORD>(0) << 8U) |
                                     (static_cast<DWORD>(value) << 16U);
                                 midiOutShortMsg(out, bank);
@@ -283,12 +449,58 @@ struct Win32MidiPlayer::Impl {
                     ++index;
                 }
 
-                // XMIDI loop branching does not flush the note queue, but
-                // stopping/ending a sequence releases its active channels.
                 all_notes_off(out);
                 midiOutReset(out);
                 midiOutClose(out);
+
+                {
+                    std::lock_guard<std::mutex> lock(mutex);
+                    active_out = nullptr;
+                    sequence_active = false;
+                }
+                cv.notify_all();
             });
+
+        if (fade_milliseconds > 0 &&
+            initial_relative_volume != target_relative_volume) {
+            fade_thread = std::thread(
+                [this,
+                 initial_relative_volume,
+                 target_relative_volume,
+                 fade_milliseconds] {
+                    fade_relative_volume(
+                        initial_relative_volume,
+                        target_relative_volume,
+                        fade_milliseconds,
+                        true);
+                });
+        }
+    }
+
+    void fade_out_and_stop(int milliseconds) {
+        if (fade_thread.joinable()) {
+            fade_thread.join();
+        }
+
+        int from = 0;
+        bool active = false;
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            active = sequence_active;
+            from = relative_volume;
+        }
+
+        // CODE.1 BB80 returns immediately for a sequence that is already
+        // stopped/done. Otherwise BCB4 waits until the relative volume reaches
+        // zero and only then normalizes/stops the active sequence.
+        if (active) {
+            fade_relative_volume(
+                from,
+                0,
+                milliseconds,
+                false);
+        }
+        stop();
     }
 };
 
@@ -297,8 +509,20 @@ Win32MidiPlayer::Win32MidiPlayer()
 
 Win32MidiPlayer::~Win32MidiPlayer() = default;
 
-void Win32MidiPlayer::play(XmiSequence sequence) {
-    impl_->play(std::move(sequence));
+void Win32MidiPlayer::play(
+    XmiSequence sequence,
+    int initial_relative_volume,
+    int target_relative_volume,
+    int fade_milliseconds) {
+    impl_->play(
+        std::move(sequence),
+        initial_relative_volume,
+        target_relative_volume,
+        fade_milliseconds);
+}
+
+void Win32MidiPlayer::fade_out_and_stop(int milliseconds) {
+    impl_->fade_out_and_stop(milliseconds);
 }
 
 void Win32MidiPlayer::stop() {
