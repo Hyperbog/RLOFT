@@ -25,8 +25,11 @@ class TitleSkinTests(unittest.TestCase):
             image = title_skin.render_window(width, height, scale)
             self.assertEqual(image.size, (width, height))
             self.assertEqual(image.mode, "RGB")
-            # Frame/title rendering must make the skin non-uniform.
-            self.assertNotEqual(image.getpixel((2, 2)), image.getpixel((width // 2, height // 2)))
+            # The exact title frame/texture must produce a genuinely varied
+            # image; do not depend on any particular coordinate being unique.
+            colors = image.getcolors(maxcolors=width * height)
+            self.assertIsNotNone(colors)
+            self.assertGreater(len(colors), 32)
 
     def test_chrome_insets_are_positive(self) -> None:
         side, top, bottom = title_skin.chrome_insets(1.0)
