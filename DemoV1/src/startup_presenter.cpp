@@ -40,6 +40,34 @@ void IndexedFramebuffer::draw_frame(
     }
 }
 
+void IndexedFramebuffer::draw_frame_mirrored(
+    const Type1Raster& raster, int frame, int y, int x) {
+    if (frame < 0 || frame >= raster.count) {
+        throw std::out_of_range("type-1 frame index");
+    }
+
+    const auto frame_stride =
+        static_cast<std::size_t>(raster.width) * raster.height;
+    const auto frame_at = static_cast<std::size_t>(frame) * frame_stride;
+    for (int sy = 0; sy < raster.height; ++sy) {
+        const int dy = y + sy;
+        if (dy < 0 || dy >= kHeight) continue;
+        for (int sx = 0; sx < raster.width; ++sx) {
+            const int dx = x + sx;
+            if (dx < 0 || dx >= kWidth) continue;
+            const int source_x = raster.width - 1 - sx;
+            const auto value = raster.pixels[
+                frame_at + static_cast<std::size_t>(sy) * raster.width +
+                source_x];
+            if (raster.transparent_index != 0xFF &&
+                value == raster.transparent_index) {
+                continue;
+            }
+            pixels_[static_cast<std::size_t>(dy) * kWidth + dx] = value;
+        }
+    }
+}
+
 void IndexedFramebuffer::draw(const Type1Raster& raster, int y, int x) {
     for (int frame = 0; frame < raster.count; ++frame) {
         draw_frame(raster, frame, y + frame * raster.height, x);
