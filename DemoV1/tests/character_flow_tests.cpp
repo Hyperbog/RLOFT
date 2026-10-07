@@ -135,5 +135,10 @@ int main() {
     assert(!retained.apply_event(3));
     assert(retained.state() == CharacterCreationState::ActorChoice);
 
+    retained.resolve_existing_actor(0, true);
+    assert(retained.actor_present(0));
+    retained.resolve_existing_actor(0, false);
+    assert(!retained.actor_present(0));
+
     std::cout << "character_flow_tests: PASS\n";
 }
