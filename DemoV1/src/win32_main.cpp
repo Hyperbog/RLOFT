@@ -920,7 +920,8 @@ int run(HINSTANCE instance) {
                     const rloft::CharacterStatsModel* stats,
                     int selected_slot,
                     int target_row,
-                    int target_column) {
+                    int target_column,
+                    int final_stage) {
                     const int frames =
                         rloft::CharacterCreationPresenter::
                             transition_15b0_frame_count(selected_slot);
@@ -931,6 +932,7 @@ int run(HINSTANCE instance) {
                             selected_slot,
                             target_row,
                             target_column,
+                            final_stage,
                             frame);
                         if (!present_character_animation_frame()) {
                             return false;
@@ -1453,7 +1455,8 @@ int run(HINSTANCE instance) {
                                                 &character_stats,
                                                 -1,
                                                 -1,
-                                                -1)) {
+                                                -1,
+                                                0)) {
                                             return 0;
                                         }
                                         stats_ready = false;
@@ -1562,7 +1565,8 @@ int run(HINSTANCE instance) {
                                             nullptr,
                                             -1,
                                             -1,
-                                            -1);
+                                            -1,
+                                            0);
                                     }
                                     break;
 
@@ -1572,7 +1576,8 @@ int run(HINSTANCE instance) {
                                         nullptr,
                                         event == 0 ? -1 : event - 1,
                                         0x114,
-                                        3);
+                                        3,
+                                        event == 0 ? 0 : 1);
                                     break;
 
                                 case rloft::CharacterCreationState::RaceChoice:
@@ -1581,7 +1586,8 @@ int run(HINSTANCE instance) {
                                         nullptr,
                                         event == 0 ? -1 : event - 1,
                                         0x114,
-                                        0x38);
+                                        0x38,
+                                        event == 0 ? 0 : 2);
                                     break;
 
                                 case rloft::CharacterCreationState::ClassChoice:
@@ -1611,7 +1617,10 @@ int run(HINSTANCE instance) {
                                             before,
                                             event - 1,
                                             0x114,
-                                            0x6D);
+                                            0x6D,
+                                            (event >= 1 && event <= 6)
+                                                ? 3
+                                                : 0);
                                         if (transition_ok) {
                                             transition_ok = animate_07e4(
                                                 before,
@@ -1642,7 +1651,8 @@ int run(HINSTANCE instance) {
                                         nullptr,
                                         event == 0 ? -1 : event - 1,
                                         0x114,
-                                        0xA2);
+                                        0xA2,
+                                        event == 0 ? 0 : 4);
                                     break;
 
                                 case rloft::CharacterCreationState::PortraitChoice:
@@ -1652,7 +1662,8 @@ int run(HINSTANCE instance) {
                                             nullptr,
                                             event == 0 ? -1 : event - 1,
                                             0x114,
-                                            0xD7);
+                                            0xD7,
+                                            event == 0 ? 0 : 5);
                                     }
                                     // FF rebuilds mode 5 through a fresh
                                     // 1464/07E4 entry. That entrance path is
