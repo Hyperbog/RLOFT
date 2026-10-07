@@ -52,11 +52,37 @@ public:
     void final_decision_screen(
         const CharacterCreationFlow& flow,
         const CharacterStatsModel& stats);
+    [[nodiscard]] static int final_decision_entry_frame_count() noexcept {
+        return 2 + 2 * 14 + transition_07e4_frame_count(0, 6);
+    }
+    void final_decision_entry_frame(
+        const CharacterCreationFlow& flow,
+        const CharacterStatsModel& stats,
+        int frame_index);
+    void final_decision_dissolve_frame(
+        const CharacterCreationFlow& flow,
+        const CharacterStatsModel& stats,
+        int frame_index);
+
     void name_entry_screen(
         const CharacterCreationFlow& flow,
         const CharacterStatsModel& stats,
         const std::string& name,
         bool cursor_on);
+    [[nodiscard]] static int name_entry_entry_frame_count() noexcept {
+        // 10A4: two base flips + one active slot's 14 flips.
+        // 07E4: range 6..9, then 3020 explicitly flips the card once more.
+        return 2 + 14 + transition_07e4_frame_count(6, 9) + 1;
+    }
+    void name_entry_entry_frame(
+        const CharacterCreationFlow& flow,
+        const CharacterStatsModel& stats,
+        int frame_index);
+    void name_entry_dissolve_frame(
+        const CharacterCreationFlow& flow,
+        const CharacterStatsModel& stats,
+        const std::string& name,
+        int frame_index);
 
     // CODE.1 15B0: 10 dissolve frames, plus 9 selected-slot movement
     // frames when selected_slot >= 0.
@@ -136,6 +162,13 @@ private:
         const CharacterCreationFlow& flow);
     void draw_controller_text_boxes(
         const CharacterCreationFlow& flow);
+    void draw_final_decision_base(
+        const CharacterCreationFlow& flow,
+        const CharacterStatsModel& stats);
+    void draw_name_entry_base(
+        const CharacterCreationFlow& flow,
+        const CharacterStatsModel& stats);
+    void draw_10a4_ornament(int slot, int phase);
     [[nodiscard]] std::pair<int, int> controller_entry_range(
         CharacterCreationState state) const noexcept;
     [[nodiscard]] bool slot_active(
