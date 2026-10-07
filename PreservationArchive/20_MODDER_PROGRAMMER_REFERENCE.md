@@ -30,7 +30,7 @@ Retain the original SHA-256 and release/media provenance of every input; do not 
 | `NPCS.DAT` | `uint32 count=83`, then `83 × 0x45` byte templates | NPC type IDs are record indices; retain all `+0x39..+0x3C` residual bytes |
 | `LEVELS.DAT` | `uint32 count=32`, 32 absolute LE offsets, variable records from `0x84` | Geometry, state, compact families, script table and cache belong to each level |
 | `LEVnnn.DAT` | Direct mutable level form (e.g. `LEV022.DAT` = 6028 B) | **Not** an uncompressed byte-identical LEVELS member; preserve serialized cache/residue |
-| `SAVE.DAT` | `0x77`-byte global prefix, 4 characters, counted `0x16)-byte transient records, other state and 10-character roster | File size depends on transient count; no universal offsets past that counted array |
+| `SAVE.DAT` | `0x77`-byte global prefix, 4 characters, counted `0x16`-byte transient records, other state and 10-character roster | File size depends on transient count; no universal offsets past that counted array |
 | `CHARS` | **`4 × 0x248 = 0x920` bytes** | Transient CODE.1→CODE.2 party transfer, **not** a normal persistent save |
 | `RES0..RES12` | `int32 count`, `count × int32` absolute offsets, entry payloads | Nondecreasing offsets; duplicates can be **valid zero-length entries** |
 | `CINE00..12.ANM` | `uint16 frame_count`, `uint16 default_wait`, per-frame chunk lists | Packet dispatch semantics and original order are timing-sensitive |
@@ -138,3 +138,40 @@ Required gates for a preservation-grade editor: file size, SHA-256 and object co
 All physical dimensions, source namespace bases and compiler-mapping claims above trace to the certified primary documents. The prior 33-file resource workstream independently certified its canonical corpus; this pass has **not** dynamically replayed all resource consumers in a DOS environment. The local original-file integrity check for nine provided files passed **15/15 tests** in the Chapter-19 closing audit.
 
 **Next:** build a more exhaustive cross-reference for IDs, sentinels, flag domains, caller/producer ownership and per-file serializer constraints; then prepare the final project-wide contradiction and bounded-UNKNOWN audit. Preserve the difference between *known encoded behavior* and *unknown historical authoring names*.
+
+
+## 10. Edit-impact matrix and original runtime limits
+
+The following table identifies **compatibility consequences**, not permissions to expand original array capacities.
+
+| Proposed change | Field or format | Required checks |
+|---|---|---|
+| Rename an item | OBJECTS fixed `name[40]` | Preserve unchanged tail bytes and ObjectId; do not disturb RES1 UI or RES3 shape IDs |
+| Change an item's appearance | OBJECTS `+0x28/+0x2A/+0x2D` | Verify RES3 class-2 bank window and `RES1[168+local_ui_index]` |
+| Modify NPC stats or shape | NPCS record `0x45` bytes | Check family-A type-index references, HP/action initialization, shape bases and unknown bits |
+| Modify a door or wall | LEVELS cell words and 10-byte cell records | Check coordinates, collision flags, visual state, event triggers and automap cache |
+| Modify level scripts | LEVELS 50 × 26-byte event table | Retain five physical commands, inactive bytes, and opcode range `0..12` |
+| Modify interaction scripts | RES9 wordcode + T | Validate word-aligned IPs, conditional targets, text bases and flag namespaces |
+| Change cinematic/audio | ANM packets and RES5/6/10 | Validate packet order, tick waits, SFX/music namespace and subtitle `T` IDs |
+| Modify saved party | SAVE images or CHARS | Preserve `0x248`-byte image geometry and correct lifecycle for each file |
+| Add an entirely new object, NPC, level or opcode | Original fixed executable tables | **Not automatically supported**: audit every consumer and index bound before claiming compatibility |
+
+A variable-length archive does **not** imply its runtime supports arbitrary growth. Adding ObjectId 336, NPC type 83, level 32, a sixth command in a LEVELS slot, or a 43rd VM opcode may require **a new native format or executable modification**. Original data must remain independently importable.
+
+## 11. Reproducible edit workflow
+
+1. Record the original full-file SHA-256, edition and physical source (installation, CD image, save slot or extraction).
+2. Decode then encode **without any changes**; demand byte-for-byte equivalence before attempting an edit.
+3. Modify one typed field at a time while retaining raw unknown bytes, inactive commands, reserved rows and original IDs.
+4. Validate counts, absolute offsets, signed widths, opcode targets, archive-local indexes and every affected cross-file dependency.
+5. Emit a byte-range diff and a referential-integrity report; reject unproved capacity expansion rather than silently truncating.
+6. Validate *observable* gameplay behavior separately. A successful parser round-trip cannot prove that an original DOS executable will accept an edited resource.
+7. Export a new modded artifact; preserve the unmodified source and its hash.
+
+**Security boundary:** original `SINTAB` contains executable x86 rasterizer microcode. Modern editors must treat modified SINTAB as untrusted machine code and should inspect, disassemble, bounds-check or safely emulate it instead of directly executing it in the editing process.
+
+## 12. Validation checkpoint and next reference layer
+
+The original-file integrity test recorded for Chapter 19 passed **15/15** local assertions. An additional five focused structural assertions passed for OBJECTS, NPCS, LEVELS, INFO and the supplied SAVE geometry. The larger 33-file RES/ANM corpus values used here come from the prior certified original-resource audit and were **not** newly rehashed in the current workspace.
+
+**Next:** detailed status/flag and sentinel glossary; exact producer/consumer ownership index; a few original-file worked offset examples; and the eventual native-port regression checklist. Historical source terminology still classified UNKNOWN in Chapter 18 remains UNKNOWN.
