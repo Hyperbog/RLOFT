@@ -77,6 +77,8 @@ public:
     [[nodiscard]] Palette6 palette9() const;
     [[nodiscard]] Palette6 palette12() const;
     [[nodiscard]] static Palette6 fade_factor(const Palette6& source, int factor);
+    [[nodiscard]] static Type1Raster code2_menu_cursor(
+        const Type1Raster& source);
 
     void first_logo();
     void second_logo();

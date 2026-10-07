@@ -148,6 +148,30 @@ int main() {
     assert(rloft::StartupPresenter::menu_selection_from_y(318) == 3);
     assert(rloft::StartupPresenter::menu_selection_from_y(400) == -1);
 
+    // CODE.2 19378 clears a 256-byte translation table, patches nineteen
+    // entries, and applies 2AA9C to cursor record 0 before the title menu.
+    // Transparent pixels are not translated and the raw source is untouched.
+    {
+        rloft::Type1Raster cursor{
+            1,
+            8,
+            1,
+            0,
+            {0x00, 0x08, 0x1B, 0x16, 0x5C, 0x58, 0x53, 0x7E}
+        };
+        const auto menu_cursor =
+            rloft::StartupPresenter::code2_menu_cursor(cursor);
+        assert(menu_cursor.pixels[0] == 0x00);
+        assert(menu_cursor.pixels[1] == 0xEB);
+        assert(menu_cursor.pixels[2] == 0xFF);
+        assert(menu_cursor.pixels[3] == 0xF9);
+        assert(menu_cursor.pixels[4] == 0xAC);
+        assert(menu_cursor.pixels[5] == 0x53);
+        assert(menu_cursor.pixels[6] == 0x0A);
+        assert(menu_cursor.pixels[7] == 0x00);
+        assert(cursor.pixels[1] == 0x08);
+    }
+
     // CODE.1 10A4 preserves its encoded first/second coordinate order.
     // Slot 0 starts with the first coordinate offscreen negative; after the
     // low-level graphics wrappers this is the VGA row, so the card enters

@@ -915,10 +915,14 @@ int run(HINSTANCE instance) {
     Host host;
 
     // CODE.2 1A0B0 and CODE.1 52AC both resolve the default mouse cursor as
-    // RES0[INIT word 0 + 2Fh]. Frame zero is the normal pointer state.
-    host.set_game_cursor(
+    // RES0[INIT word 0 + 2Fh]. CODE.2 19378 then recolors record zero for
+    // the title menu; CODE.1 later uses the raw resource again.
+    const auto raw_cursor =
         assets.res0_type1(
-            static_cast<int>(assets.init_u16(0x00)) + 0x2F));
+            static_cast<int>(assets.init_u16(0x00)) + 0x2F);
+    const auto menu_cursor =
+        rloft::StartupPresenter::code2_menu_cursor(raw_cursor);
+    host.set_game_cursor(raw_cursor);
 
     rloft::Win32AudioPlayer audio_player;
     rloft::Win32MidiPlayer midi_player;
@@ -1024,6 +1028,9 @@ int run(HINSTANCE instance) {
         flow.skip_cold_start_presentation();
     }
 
+    // CODE.2 19464 executes 1A0B0 -> 19378 before the first menu cursor
+    // draw. Use the identically translated record-zero cursor only here.
+    host.set_game_cursor(menu_cursor);
     presenter.menu_frame(-1);
     host.present(presenter.framebuffer(), palette12);
     host.set_menu_mode(true);
@@ -1045,6 +1052,9 @@ int run(HINSTANCE instance) {
                 flow.supervisor_dispatch();
 
                 host.set_menu_mode(false);
+                // The CODE.2 title translation is an in-place mutation of its
+                // private cursor copy. CODE.1 starts from the raw RES0 cursor.
+                host.set_game_cursor(raw_cursor);
 
                 rloft::CharacterCreationPresenter character_presenter(assets);
                 const auto character_palette = character_presenter.palette();

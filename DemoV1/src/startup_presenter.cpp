@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdlib>
 #include <stdexcept>
+#include <utility>
 
 namespace rloft {
 
@@ -306,6 +307,49 @@ Palette6 StartupPresenter::fade_factor(const Palette6& source, int factor) {
     for (std::size_t i = 0; i < source.rgb.size(); ++i) {
         out.rgb[i] = static_cast<std::uint8_t>(
             (static_cast<unsigned>(source.rgb[i]) * factor) >> 3U);
+    }
+    return out;
+}
+
+Type1Raster StartupPresenter::code2_menu_cursor(
+    const Type1Raster& source) {
+    if (source.count < 1 || source.width < 1 || source.height < 1) {
+        throw std::invalid_argument(
+            "CODE.2 menu cursor requires a non-empty type-1 raster");
+    }
+
+    // CODE.2 19378 clears the 256-byte table at 759C, patches exactly these
+    // nineteen entries, then calls 2AA9C(0,759C,880D). 2AA9C translates only
+    // record/frame 0 in place and does not translate the transparent key.
+    std::array<std::uint8_t, 256> map{};
+    const std::array<std::pair<std::uint8_t, std::uint8_t>, 19> patches{{
+        {0x08, 0xEB}, {0x1B, 0xFF}, {0x16, 0xF9},
+        {0x09, 0xEC}, {0x1A, 0xFE}, {0x0B, 0xEF},
+        {0x12, 0xF5}, {0x10, 0xF3}, {0x0C, 0xEF},
+        {0x0D, 0xF0}, {0x0A, 0xED}, {0x5C, 0xAC},
+        {0x58, 0x53}, {0x55, 0x44}, {0x53, 0x0A},
+        {0x56, 0x45}, {0x57, 0x45}, {0x54, 0x42},
+        {0x59, 0x53},
+    }};
+    for (const auto& [from, to] : patches) {
+        map[from] = to;
+    }
+
+    Type1Raster out = source;
+    const auto frame_stride =
+        static_cast<std::size_t>(out.width) * out.height;
+    if (out.pixels.size() < frame_stride) {
+        throw std::invalid_argument(
+            "CODE.2 menu cursor raster payload is truncated");
+    }
+
+    for (std::size_t i = 0; i < frame_stride; ++i) {
+        const auto value = out.pixels[i];
+        if (out.transparent_index != 0xFF &&
+            value == out.transparent_index) {
+            continue;
+        }
+        out.pixels[i] = map[value];
     }
     return out;
 }
