@@ -59,6 +59,7 @@ add_library(rloft_boot_flow
     src/fixed_projection.cpp
     src/first_person_entity_projection.cpp
     src/npc_scene.cpp
+    src/scene_shape_bounds.cpp
     src/renderer_tables.cpp
     src/micro_rasterizer_layout.cpp
     src/micro_rasterizer_plan.cpp
