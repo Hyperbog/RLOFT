@@ -28,6 +28,7 @@ add_library(rloft_boot_flow
     src/inventory_screen.cpp
     src/party_hud.cpp
     src/party_panel_controls.cpp
+    src/party_modal_presenter.cpp
     src/top_edge_menu.cpp
     src/top_edge_menu_presenter.cpp
     src/exploration_ui.cpp
