@@ -116,6 +116,20 @@ void IndexedFramebuffer::restore(
     }
 }
 
+void IndexedFramebuffer::fill_rect(
+    int y, int x, int height, int width, std::uint8_t color) {
+    if (height <= 0 || width <= 0) return;
+    for (int row = 0; row < height; ++row) {
+        const int dy = y + row;
+        if (dy < 0 || dy >= kHeight) continue;
+        for (int col = 0; col < width; ++col) {
+            const int dx = x + col;
+            if (dx < 0 || dx >= kWidth) continue;
+            pixels_[static_cast<std::size_t>(dy) * kWidth + dx] = color;
+        }
+    }
+}
+
 void IndexedFramebuffer::draw(const Type1Raster& raster, int y, int x) {
     for (int frame = 0; frame < raster.count; ++frame) {
         draw_frame(raster, frame, y + frame * raster.height, x);
