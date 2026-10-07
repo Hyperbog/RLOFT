@@ -47,20 +47,22 @@ Type7ColumnTraversalPlan Type7ColumnTraversalModel::build(
         out.initial_scale,
         tables.scale_block_count);
 
-    // 36D23..36D59 distinguishes the resource-ID range 0x117..0x13A.
-    // Keep the executable's unsigned 32-bit subtraction here. A wrapped
-    // pointer index is not safe to access through a portable vector.
-    std::uint32_t adjustment{};
+    // CODE.2 36D23..36D59: the special-ID branch writes 10450 with
+    // (scale*2) + ((scale*2)>>3), but 36D54 shifts EAX, not [10450].
+    // The selected block index is scale - (scale>>3) in both branches.
+    // Mixing those two variables underflows for ordinary special IDs.
     if (absolute_res3_id >= 0x117U &&
         absolute_res3_id < 0x13BU) {
         const auto doubled =
             out.clamped_scale * 2U;
-        adjustment = doubled + (doubled >> 3U);
+        out.renderer_phase_adjustment =
+            doubled + (doubled >> 3U);
     } else {
-        adjustment = out.clamped_scale >> 2U;
+        out.renderer_phase_adjustment =
+            out.clamped_scale >> 2U;
     }
     out.scale_pointer_index =
-        out.clamped_scale - (adjustment >> 1U);
+        out.clamped_scale - (out.clamped_scale >> 3U);
 
     // The original pointer array aliases entry 0 to block 0. Entries 1..N
     // reference physical blocks 0..N-1 (SINTAB loader 3838..3A63).
