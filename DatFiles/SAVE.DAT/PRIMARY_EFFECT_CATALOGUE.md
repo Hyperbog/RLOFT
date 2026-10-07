@@ -26,17 +26,17 @@ Not every active effect is timer-driven. Effects such as Invisibility 10' Radius
 | 2 | `0x00000004` | **Shield** | Mage dispatch 6, physical `0x46BC9` | none beyond normal timer |
 | 3 | `0x00000008` | **Blur** | Mage dispatch 11, physical `0x46BFD` | none beyond normal timer |
 | 4 | `0x00000010` | **Haste** | Mage dispatch 23, physical `0x46C28` | none beyond normal timer |
-| 5 | `0x00000020` | **Invisibility 10' Radius** | Mage dispatch 27 calls `0x456B8`; physical `0x457AF` sets bit 5 | special-duration effect; no ordinary timer installed here |
+| 5 | `0x00000020` | **Invisibility 10' Radius** | Mage dispatch 27 calls `0x456B8`; physical `0x457AF` sets bit 5 | party-wide state; player attack helper `0xE578` clears bit 5 across all four party records; no ordinary timer installed here |
 | 6 | `0x00000040` | **Stoneskin** | Mage dispatch 32, physical `0x46C82` | `+0x1F2` accumulated/remaining Stoneskin state |
 | 7 | `0x00000080` | **Dragon Scales** | Mage dispatch 55, physical `0x46C53` | none beyond normal timer |
 | 8 | `0x00000100` | **Bless** | priest dispatch 80, physical `0x46CA1` | none beyond normal timer |
-| 9 | `0x00000200` | **Invisibility to Undead** | priest dispatch 84, physical `0x46CC3` | none beyond normal timer |
+| 9 | `0x00000200` | **Invisibility to Undead** | priest dispatch 84, physical `0x46CC3` | attack helper `0xE578` clears the acting character's bit and expiry slot 9 |
 | 10 | `0x00000400` | **Priest Light** | priest dispatch 85, physical `0x46AD3..0x46B46` | renderer/shading rebuild on apply/expire |
 | 11 | `0x00000800` | **Aid** | priest dispatch 90, physical `0x46D1E` | `+0x1EA` temporary-hit-point/protection pool |
 | 12 | `0x00001000` | **Draw Upon Holy Might - STR** | priest dispatch 94 -> `0x457C4`; bit set at `0x458B9` | reversible Strength delta at `+0x123` |
 | 13 | `0x00002000` | **Draw Upon Holy Might - DEX** | priest dispatch 95 -> `0x45954`; bit set at `0x45A49` | reversible Dexterity delta in low byte of `+0x127` |
-| 14 | `0x00004000` | **Negative Plane Protection** | priest dispatch 102, physical `0x47394` | special duration/until-hit behavior; ordinary expiry may remain zero |
-| 15 | `0x00008000` | **Fortify** | priest dispatch 112, physical `0x46B9D` | special one-shot state consumed by cure handling |
+| 14 | `0x00004000` | **Negative Plane Protection** | priest dispatch 102, physical `0x47394` | consumed by qualifying undead/drain attack path; consumption zeros expiry slot 14 and clears the bit |
+| 15 | `0x00008000` | **Fortify** | priest dispatch 112, physical `0x46B9D` | one-shot cure modifier: substitutes encoded maximum healing (8/16/27) then clears the bit |
 | 16 | `0x00010000` | **Slow Poison** | priest dispatch 93, physical `0x46CF2` | none beyond normal timer |
 | 17 | `0x00020000` | **True Seeing** | Mage dispatch 54, physical `0x4749A..0x474FF` | increments/decrements shared dword `0xFD08` |
 | 18 | `0x00040000` | **Detect Undead** | Mage dispatch 3, physical `0x46B4E..0x46B98` | increments/decrements shared word `0xF03C` |
@@ -164,3 +164,29 @@ See `EFFECT_FLAGS.md` for exact cleanup branches.
 ## Native-port rule
 
 Use stable legacy effect indexes at the compatibility boundary. Keep normalized internal source identities separate from exact legacy display labels. Do not replace the 26-bit/timer representation with spell IDs: several entries are item/equipment-derived and several spell effects have special removal semantics rather than ordinary timer expiry.
+
+## Preservation-pass lifecycle closure
+
+Direct CODE.2 re-disassembly further closes four primary-effect lifecycles that were previously documented more generally:
+
+```text
+effect 5  Invisibility 10' Radius
+    attacking clears bit 5 across all four party records
+
+effect 9  Invisibility to Undead
+    an attack by that character clears bit 9
+    and zeros expiry slot 9
+
+effect 14 Negative Plane Protection
+    qualifying undead/drain attack consumes the protection
+    then zeros expiry slot 14 and clears bit 14
+
+effect 15 Fortify
+    next qualifying cure uses the encoded maximum:
+        Cure Light Wounds     8
+        Cure Serious Wounds  16
+        Cure Critical Wounds 27
+    then Fortify is cleared
+```
+
+These are direct executable lifecycles, not manual-only behavior descriptions.
