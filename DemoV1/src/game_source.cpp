@@ -415,6 +415,24 @@ std::optional<fs::path> GameSource::runtime_file(
     return std::nullopt;
 }
 
+fs::path GameSource::runtime_output_path(
+    std::string_view filename) const {
+    if (const auto existing = runtime_file(filename)) {
+        return *existing;
+    }
+
+    // R.EXE/CODE.1 use a relative "CHARS" pathname in the writable runtime
+    // directory. GOG installations commonly keep that runtime directory as
+    // an RLOFT child next to game.gog; loose-media installs are already rooted
+    // at the runtime directory.
+    const auto rloft = located_.install_root / "RLOFT";
+    std::error_code ec;
+    if (fs::is_directory(rloft, ec)) {
+        return rloft / std::string(filename);
+    }
+    return located_.install_root / std::string(filename);
+}
+
 std::string_view to_string(GameSourceKind kind) noexcept {
     switch (kind) {
         case GameSourceKind::LooseDirectory:
