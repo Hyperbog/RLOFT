@@ -268,6 +268,10 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
         }
         WorldSceneOrderModel::assign_render_order(
             out.world_scene_records);
+        out.world_scene_draw_calls =
+            WorldSceneDrawCallModel::build(
+                out.world_scene_records,
+                world_);
     }
 
     out.sweep_runs =
