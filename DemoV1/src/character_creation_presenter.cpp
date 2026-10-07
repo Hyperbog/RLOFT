@@ -1389,6 +1389,11 @@ void CharacterCreationPresenter::transition_07e4_frame(
     // 5FF8 + 4*100h. It lives in generated BSS, not stored CODE.1 data.
     const auto seam_color = remaps_.bright[4][0];
 
+    // CODE.1 phase 0/1 do not call 53E4 and are therefore not visible.
+    // The first host-presented transition frame corresponds to original
+    // loop phase 2.
+    const int phase = frame_index + 2;
+
     for (int slot = first_slot; slot < last_slot; ++slot) {
         const auto index = static_cast<std::size_t>(slot);
         const auto& old_pixels = old_region[index].pixels;
@@ -1404,9 +1409,9 @@ void CharacterCreationPresenter::transition_07e4_frame(
         const int column = kSlotColumn[index];
         const int delay = slot - first_slot;
         const int k =
-            frame_index < delay
+            phase < delay
                 ? 0
-                : frame_index - delay + 1;
+                : phase - delay + 1;
 
         if (k == 0) {
             framebuffer_.restore(old_region[index], row, column);
@@ -1544,11 +1549,12 @@ void CharacterCreationPresenter::controller_entry_frame(
         return;
     }
 
-    const int phase = frame_index - ten_a4_frames;
-    if (phase == seven_e4_frames - 1) {
+    const int visible_phase = frame_index - ten_a4_frames;
+    if (visible_phase == seven_e4_frames - 1) {
         screen(flow, stats);
         return;
     }
+    const int phase = visible_phase + 2;
 
     // 10A4 has now settled every active slot to RES7:15h. 1464 then calls
     // 07E4 to flip those placeholders into the real controller resources.
@@ -1953,15 +1959,16 @@ void CharacterCreationPresenter::existing_actor_transition_frame(
     }
 
     const auto seam_color = remaps_.bright[4][0];
+    const int phase = frame_index + 2;
 
     for (int n = 0; n < 2; ++n) {
         const int slot = 2 + n;
         const auto index = static_cast<std::size_t>(n);
         const int delay = slot;  // first=0 in 1BD4's 07E4(0,6).
         const int k =
-            frame_index < delay
+            phase < delay
                 ? 0
-                : frame_index - delay + 1;
+                : phase - delay + 1;
         const int row =
             kSlotRow[static_cast<std::size_t>(slot)];
         const int column =
@@ -2134,7 +2141,7 @@ void CharacterCreationPresenter::stats_editor_transition_frame(
     }
 
     const auto seam_color = remaps_.bright[4][0];
-    const int phase = frame_index;
+    const int phase = frame_index + 2;
 
     for (int slot = 6; slot < 9; ++slot) {
         const auto index =
@@ -2236,11 +2243,12 @@ void CharacterCreationPresenter::final_decision_entry_frame(
         return;
     }
 
-    const int phase = frame_index - ten_a4_frames;
-    if (phase == flip_frames - 1) {
+    const int visible_phase = frame_index - ten_a4_frames;
+    if (visible_phase == flip_frames - 1) {
         final_decision_screen(flow, stats);
         return;
     }
+    const int phase = visible_phase + 2;
 
     draw_final_decision_base(flow, stats);
     for (const int slot : active) {
@@ -2404,17 +2412,18 @@ void CharacterCreationPresenter::name_entry_entry_frame(
         return;
     }
 
-    const int phase = frame_index - ten_a4_frames;
-    if (phase >= flip_frames) {
+    const int visible_phase = frame_index - ten_a4_frames;
+    if (visible_phase >= flip_frames) {
         // 3020 explicitly draws RES7:14 and flips once more after 1464.
         name_entry_screen(flow, stats, {}, false);
         return;
     }
 
-    if (phase == flip_frames - 1) {
+    if (visible_phase == flip_frames - 1) {
         name_entry_screen(flow, stats, {}, false);
         return;
     }
+    const int phase = visible_phase + 2;
 
     draw_name_entry_base(flow, stats);
     draw_frame(

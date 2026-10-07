@@ -165,22 +165,23 @@ int main() {
         constexpr int raster_height = 48;
         constexpr int raster_width = 32;
         const int row = anchor_first - raster_height / 2;
-        const int column = anchor_second - raster_width * 2;
+        const int column = anchor_second - raster_width / 4;
         assert(row < 0);
-        assert(column >= 0);
+        assert(column == 142);
     }
 
-    // 07E4's stagger loop contributes N+10 frames, followed by one final
-    // full 064C redraw/page flip.
+    // 07E4 executes N+10 loop phases, but original phases 0/1 only prepare
+    // hidden VGA pages through 55DC. Visible frames are phases 2..N+9 plus
+    // the final 064C page flip.
     assert(
         rloft::CharacterCreationPresenter::transition_07e4_frame_count(
-            0, 6) == 17);
+            0, 6) == 15);
     assert(
         rloft::CharacterCreationPresenter::transition_07e4_frame_count(
-            2, 4) == 13);
+            2, 4) == 11);
     assert(
         rloft::CharacterCreationPresenter::transition_07e4_frame_count(
-            6, 9) == 14);
+            6, 9) == 12);
 
     std::cout << "presenter_tests: PASS\n";
 }
