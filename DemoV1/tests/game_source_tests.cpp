@@ -144,7 +144,11 @@ void test_loose_and_env_discovery() {
         auto source = GameSource::open(base);
         assert(source.kind() == GameSourceKind::LooseDirectory);
         assert(source.contains("res0"));
-        assert(source.runtime_output_path("CHARS") == base / "CHARS");
+        {
+            const auto output = source.runtime_output_path("CHARS");
+            assert(output.filename() == fs::path("CHARS"));
+            assert(fs::equivalent(output.parent_path(), base));
+        }
     }
 
     {
