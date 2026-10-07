@@ -59,6 +59,113 @@ Taken together, these executable and corpus relationships support describing fam
 
 The byte `0xFE` is a literal exporter overlay value. Its final displayed glyph/category is intentionally left unnamed until the downstream character/font semantics are independently closed.
 
+
+## Exact export traversal and output modes
+
+A direct CODE.2 re-disassembly of `026E8..02A33` closes the physical text-output ordering.
+
+The routine allocates three temporary buffers, each `map_height` bytes long. The outer loop advances across `map_width`; for each outer coordinate the inner loop advances across `map_height` and computes the source cell as:
+
+```text
+cell_index = inner_coordinate * map_width + outer_coordinate
+```
+
+The exported text is therefore a column-oriented/transposed traversal of the native row-major cell array: each emitted text line corresponds to one outer X-like map coordinate while positions within the line walk the row/Y-like coordinate.
+
+The three buffers remain:
+
+```text
+buffer 1  resolved base-map CP437 bytes
+buffer 2  placed-object overlay bytes
+buffer 3  annotation-label overlay bytes
+```
+
+### Merged file output
+
+In merged mode the routine combines them in this exact precedence order:
+
+```text
+result = base
+
+if object_overlay != ' ':
+    result = object_overlay
+
+if annotation_overlay != ' ':
+    result = annotation_overlay
+```
+
+It then writes the complete merged line followed by the encoded two-byte CR/LF line ending.
+
+Thus:
+
+```text
+annotation > placed object > base terrain
+```
+
+when two layers occupy the same exported cell.
+
+### Printer/stream output uses carriage-return overprinting
+
+In the non-merged stream mode, `026E8` does **not** merge the three buffers in memory.
+
+For each map line it writes:
+
+```text
+base buffer
+CR
+
+placed-object buffer
+CR
+
+annotation-label buffer
+CR LF
+```
+
+The single carriage returns after the first and second layers return the print head to the beginning of the same physical line without advancing paper. The three textual layers are therefore designed to overprint on a DOS printer/compatible stream. The final CR/LF advances to the next physical map line.
+
+This explains why the object and note buffers contain spaces everywhere they do not intend to replace the base layer: spaces leave already printed base characters visually intact on ordinary impact/text printers.
+
+## SAVE and PRINT callers
+
+The map-file SAVE path is now executable-proven.
+
+CODE.2 contains the mutable path template:
+
+```text
+AUTOMAPS\\AUTO???.MAP
+```
+
+at object-2/DGROUP offset `0x5FDA` (physical CODE.2 file offset `0x7BEFE` in the supplied executable).
+
+Routine `02A34` patches the three question-mark bytes, creates/opens the resulting file through the runtime file wrappers, calls `026E8` in merged-output mode, and closes the stream.
+
+The digit stores must be preserved in their encoded order. The supplied routine writes:
+
+```text
+first placeholder   hundreds digit
+second placeholder  ones digit
+third placeholder   tens digit
+```
+
+so the filename generator has a machine-proven tens/ones ordering quirk. For level 22 this still yields `AUTO022.MAP`; values with unequal tens/ones can expose the difference. A compatibility implementation should reproduce the encoded order rather than silently replacing it with generic `%03d` formatting.
+
+The PRINT caller at `03321` invokes the same exporter in non-merged mode with fixed FILE-like runtime object `0xF764`.
+
+CODE.2 holds five consecutive Watcom FILE objects at `0xF6F4 + n*0x1C`; `0xF764` is the fifth. Open Watcom's DOS C runtime documents the startup standard streams in the order:
+
+```text
+stdin
+stdout
+stderr
+stdaux
+stdprn
+```
+
+Therefore the fifth object is the standard printer stream, `stdprn`. The CR-overprint behavior above is consequently the actual Ravenloft automap PRINT path, not merely a generic text-stream hypothesis.
+
+Open Watcom C Library reference:
+<https://openwatcom.org/ftp/manuals/1.5/clib.pdf>
+
 ## Annotation-label overlay
 
 Routine `23B8` walks the variable-length list at DGROUP `0x5760`. Each in-memory entry begins:
@@ -119,6 +226,10 @@ A faithful tool may now:
 - reproduce the `/8` and `/5` map-coordinate matching rule;
 - reproduce label generation using the encoded order;
 - reproduce object-overlay `'*'` selection for family-B types `0x3C..0x41` and preserve literal `0xFE` for other records;
-- merge overlays in the original precedence order.
+- merge overlays in the original precedence order;
+- reproduce the transposed/column-oriented export traversal;
+- reproduce merged-file CR/LF output;
+- reproduce printer-layer CR overprinting;
+- preserve the encoded AUTO filename digit-order quirk when strict compatibility is required.
 
 Do not reinterpret annotation payload encoding beyond byte-preserving text behavior until the text/font path is separately required.
