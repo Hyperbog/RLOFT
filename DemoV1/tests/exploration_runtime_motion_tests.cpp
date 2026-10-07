@@ -94,8 +94,10 @@ int main() {
             rloft::ExplorationRuntimeMotionModel::tick(
                 s, runtime, input, t);
 
+        // 2DBAC retries Y-only next. Because dy is zero, that retry is the
+        // unchanged old position and therefore succeeds without movement.
         assert(result.applied.acceptance ==
-               rloft::LocomotionAcceptance::Blocked);
+               rloft::LocomotionAcceptance::YOnly);
         assert(s.coordinate_a == 0x00018000U);
         assert(s.coordinate_b == 0x00018000U);
         assert(s.facing == 270);
