@@ -8,6 +8,7 @@ add_library(rloft_boot_flow
     src/boot_flow.cpp
     src/character_creation_flow.cpp
     src/character_creation_presenter.cpp
+    src/character_palette_remap.cpp
     src/character_stats.cpp
     src/character_transfer.cpp
     src/game_source.cpp
@@ -61,6 +62,10 @@ add_executable(character_transfer_tests tests/character_transfer_tests.cpp)
 target_link_libraries(character_transfer_tests PRIVATE rloft_boot_flow)
 add_test(NAME character_transfer_tests COMMAND character_transfer_tests)
 
+add_executable(character_palette_remap_tests tests/character_palette_remap_tests.cpp)
+target_link_libraries(character_palette_remap_tests PRIVATE rloft_boot_flow)
+add_test(NAME character_palette_remap_tests COMMAND character_palette_remap_tests)
+
 set(RLOFT_TEST_TARGETS
     boot_flow_tests
     game_source_tests
@@ -70,6 +75,7 @@ set(RLOFT_TEST_TARGETS
     character_flow_tests
     character_stats_tests
     character_transfer_tests
+    character_palette_remap_tests
 )
 if(MSVC)
     foreach(test_target IN LISTS RLOFT_TEST_TARGETS)
