@@ -369,7 +369,9 @@ class RavenloftExtractorGui(tk.Tk):
         if hasattr(self, "titlebar"):
             self.titlebar.grid_configure(padx=(side, side))
         if hasattr(self, "header_canvas"):
-            self.header_canvas.grid_configure(padx=(side, side))
+            # The crest field is part of the outer skin, not an inset panel.
+            # Let it run full-bleed behind the decorative side ornaments.
+            self.header_canvas.grid_configure(padx=0)
         if hasattr(self, "body"):
             self.body.grid_configure(padx=(side, side))
         if hasattr(self, "footer"):
