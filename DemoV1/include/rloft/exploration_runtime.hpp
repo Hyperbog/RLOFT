@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 #include "rloft/exploration_runtime_motion.hpp"
@@ -14,6 +15,8 @@
 #include "rloft/object_catalog.hpp"
 #include "rloft/scene_source_banks.hpp"
 #include "rloft/world_scene_record.hpp"
+#include "rloft/world_scene_selection.hpp"
+#include "rloft/resource_assets.hpp"
 #include "rloft/exploration_scene.hpp"
 #include "rloft/micro_rasterizer_plan.hpp"
 #include "rloft/renderer_tables.hpp"
@@ -83,6 +86,11 @@ public:
     [[nodiscard]] LooseItemPickupResult pickup_level22_loose_item(
         std::size_t item_index);
 
+    [[nodiscard]] std::optional<WorldSceneTarget> world_scene_target_at(
+        const std::vector<WorldSceneRecord>& records,
+        int row,
+        int column) const;
+
     // Builds the canonical exploration render/update snapshot. The sweep
     // mutates only current visibility/explored state; automap is rebuilt
     // immediately afterward so presentation and simulation share one truth.
@@ -101,6 +109,7 @@ private:
     NpcCatalog npc_catalog_{};
     ObjectCatalog object_catalog_{};
     SceneSourceBanks scene_source_banks_{};
+    std::optional<ResArchive> scene_shape_archive_;
     LevelWorldState world_{};
     InventoryRuntimeState inventory_{};
 };
