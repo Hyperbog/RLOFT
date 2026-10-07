@@ -36,6 +36,7 @@ void ExplorationRuntime::initialize_gameplay_state(
     npc_catalog_ = NpcCatalog::load(source);
     object_catalog_ = ObjectCatalog::load(source);
     scene_source_banks_ = SceneSourceBanks::load(source);
+    scene_shape_archive_.emplace(source.read("RES3"));
     world_ = LevelWorldStateCodec::build(
         session_.level,
         npc_catalog_,
@@ -81,6 +82,30 @@ LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
         session_.party,
         object_catalog_);
 }
+
+std::optional<WorldSceneTarget>
+ExplorationRuntime::world_scene_target_at(
+    const std::vector<WorldSceneRecord>& records,
+    int row,
+    int column) const {
+    if (!gameplay_state_initialized_ ||
+        !scene_shape_archive_.has_value()) {
+        throw std::logic_error(
+            "gameplay scene state is not initialized");
+    }
+
+    return WorldSceneSelectionModel::target_at(
+        records,
+        row,
+        column,
+        [this](std::uint16_t resource_id) {
+            return scene_shape_archive_->
+                decode_type7_geometry(
+                    static_cast<int>(
+                        resource_id));
+        });
+}
+
 
 ExplorationRuntimeMotionResult ExplorationRuntime::tick_motion(
     ExplorationMotionInputs inputs) {
