@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -23,6 +24,12 @@ public:
     void clear(std::uint8_t color = 0);
     void draw_frame(const Type1Raster& raster, int frame, int y, int x);
     void draw_frame_mirrored(const Type1Raster& raster, int frame, int y, int x);
+    void draw_frame_mapped(
+        const Type1Raster& raster,
+        int frame,
+        int y,
+        int x,
+        const std::array<std::uint8_t, 256>& map);
     void draw(const Type1Raster& raster, int y, int x);
 
     [[nodiscard]] IndexedRegion capture(int y, int x, int height, int width) const;
