@@ -230,7 +230,7 @@ uint32_t combat_feedback_deadline[3]; // +0x19E
 uint32_t combat_feedback_damage[3];   // +0x1AA
 ```
 
-Primary effect bit `i` corresponds to expiry `i`; expiration resources map to `T[588]..T[613]`. The three paired timed slots are separate.
+Primary effect bit `i` corresponds to expiry `i`; expiration resources map to `T[588]..T[613]`. The three paired combat-feedback slots are separate from the primary-effect timer family; slots 0/1 hold recent outgoing hand damage and slot 2 holds recent incoming damage.
 
 A high-effort re-audit corrected one earlier dispatch transcription: primary effect **11**, not 10, owns the `+0x1EA` pool cleanup. Effect 10 shares an external-state update with effect 1. Effect 12 uses the reversible Strength state at `+0x123`, effect 13 the Dexterity auxiliary at `+0x127`, and effect 23 the reversible modifier at `+0x1BE`. See `EFFECT_FLAGS.md`.
 
@@ -268,4 +268,4 @@ Do not memory-map the legacy image onto a modern compiler-native structure. Deco
 
 ## Remaining semantic targets
 
-The record's principal identity, status, portrait, class/progression, ability, inventory, spell-family, and primary-effect catalogues are closed. Remaining bounded questions are the exact gameplay identity of opaque `+0x1BA`, narrower source-level names for a few auxiliary effect quantities/timed slots, and any residual status-bit producer discovered during final audit. These do not alter the certified `0x248` geometry or compatibility boundary.
+The record's principal identity, status, portrait, class/progression, ability, inventory, spell-family, and primary-effect catalogues are closed. Remaining bounded questions are the exact gameplay identity of opaque `+0x1BA`, narrower source-level names for a few auxiliary effect quantities, and any residual status-bit producer discovered during final audit. These do not alter the certified `0x248` geometry or compatibility boundary.
