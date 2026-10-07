@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace rloft {
 namespace {
@@ -410,6 +411,229 @@ Type7SceneShape ResArchive::decode_type7(int index) const {
     return out;
 }
 
+
+Type7NativeRaster ResArchive::decode_type7_native_raster(
+    int index) const {
+    const auto raw = entry(index);
+    if (raw.size() < 7U ||
+        raw[0] != 'E' || raw[1] != 'H' || raw[2] != 7) {
+        throw std::runtime_error(
+            "RES entry is not an EH type-7 scene shape");
+    }
+
+    const auto header_size = s16(raw.data() + 3);
+    if (header_size != 0) {
+        throw std::runtime_error(
+            "Shipped type-7 resource has unexpected header");
+    }
+
+    const auto decoded_size =
+        static_cast<std::size_t>(
+            u16(raw.data() + 5));
+    if (decoded_size < 10U) {
+        throw std::runtime_error(
+            "Type-7 scene shape is shorter than its geometry header");
+    }
+
+    const auto body = lzss_4k(
+        raw.data() + 7U,
+        raw.size() - 7U,
+        decoded_size);
+
+    const auto width = u16(body.data() + 0U);
+    const auto x_min = s16(body.data() + 2U);
+    const auto x_max = s16(body.data() + 4U);
+    if ((width != 64U &&
+         width != 96U &&
+         width != 128U) ||
+        x_min < 0 ||
+        x_max < x_min ||
+        x_max >= static_cast<std::int16_t>(width)) {
+        throw std::runtime_error(
+            "Type-7 native raster geometry is invalid");
+    }
+
+    const auto column_count =
+        static_cast<std::size_t>(
+            x_max - x_min + 1);
+    const auto table_end =
+        10U + column_count * 2U;
+    if (table_end > body.size()) {
+        throw std::runtime_error(
+            "Type-7 native raster column table exceeds body");
+    }
+
+    std::vector<std::uint16_t> pointers;
+    pointers.reserve(column_count);
+    auto source_end = body.size();
+    for (std::size_t i = 0;
+         i < column_count;
+         ++i) {
+        const auto pointer =
+            u16(body.data() + 10U + i * 2U);
+        if (pointer < table_end ||
+            pointer >= body.size()) {
+            throw std::runtime_error(
+                "Type-7 native raster list pointer leaves body");
+        }
+        pointers.push_back(pointer);
+        source_end =
+            std::min(
+                source_end,
+                static_cast<std::size_t>(
+                    pointer));
+    }
+
+    if (source_end < table_end) {
+        throw std::runtime_error(
+            "Type-7 packed source range overlaps column table");
+    }
+
+    struct ReusedColumn final {
+        std::vector<std::pair<std::size_t, std::size_t>> spans;
+        std::vector<std::uint8_t> pixels;
+    };
+
+    constexpr std::size_t kHeight = 128U;
+    Type7NativeRaster out{};
+    out.width = width;
+    out.height =
+        static_cast<std::uint16_t>(
+            kHeight);
+    out.pixels.assign(
+        static_cast<std::size_t>(width) *
+            kHeight,
+        0U);
+    out.mask.assign(
+        out.pixels.size(),
+        0U);
+
+    std::size_t source_cursor = table_end;
+    std::unordered_map<std::uint16_t, ReusedColumn> reused;
+
+    for (std::size_t column_index = 0;
+         column_index < pointers.size();
+         ++column_index) {
+        const auto pointer =
+            pointers[column_index];
+        auto found = reused.find(pointer);
+        if (found == reused.end()) {
+            ReusedColumn decoded{};
+            std::size_t required = 0;
+            auto p =
+                static_cast<std::size_t>(
+                    pointer);
+
+            for (;;) {
+                if (p + 2U > body.size()) {
+                    throw std::runtime_error(
+                        "Type-7 native raster list lacks terminator");
+                }
+                const auto stop =
+                    u16(body.data() + p);
+                p += 2U;
+                if (stop == 0U) {
+                    break;
+                }
+                if (p + 4U > body.size()) {
+                    throw std::runtime_error(
+                        "Type-7 native raster descriptor exceeds body");
+                }
+
+                // CODE.2 369D8 uses the middle word as the source-pointer
+                // displacement at scaled render time. At native scale the
+                // packed stream is consumed in first-use column/list order;
+                // this relationship closes exactly across the supplied corpus.
+                (void)s16(body.data() + p);
+                const auto entry =
+                    u16(body.data() + p + 2U);
+                p += 4U;
+
+                if ((entry & 1U) != 0U ||
+                    (stop & 1U) != 0U ||
+                    entry > stop ||
+                    stop > 0x0100U) {
+                    throw std::runtime_error(
+                        "Type-7 native raster selectors are invalid");
+                }
+
+                const auto y0 =
+                    static_cast<std::size_t>(
+                        entry / 2U);
+                const auto y1 =
+                    static_cast<std::size_t>(
+                        stop / 2U);
+                if (y1 > kHeight) {
+                    throw std::runtime_error(
+                        "Type-7 native raster Y span exceeds 128 rows");
+                }
+                decoded.spans.emplace_back(
+                    y0, y1);
+                required += y1 - y0;
+            }
+
+            if (source_cursor > source_end ||
+                required > source_end - source_cursor) {
+                throw std::runtime_error(
+                    "Type-7 packed source stream ends before descriptor spans");
+            }
+
+            decoded.pixels.assign(
+                body.begin() +
+                    static_cast<std::ptrdiff_t>(
+                        source_cursor),
+                body.begin() +
+                    static_cast<std::ptrdiff_t>(
+                        source_cursor +
+                        required));
+            source_cursor += required;
+            found =
+                reused.emplace(
+                    pointer,
+                    std::move(decoded)).first;
+        }
+
+        const auto x =
+            static_cast<std::size_t>(
+                x_min) +
+            column_index;
+        std::size_t pixel_cursor = 0;
+        for (const auto& span :
+             found->second.spans) {
+            for (auto y = span.first;
+                 y < span.second;
+                 ++y) {
+                if (pixel_cursor >=
+                    found->second.pixels.size()) {
+                    throw std::runtime_error(
+                        "Type-7 native raster span exceeds packed pixels");
+                }
+                const auto at =
+                    y *
+                        static_cast<std::size_t>(
+                            width) +
+                    x;
+                out.pixels[at] =
+                    found->second.pixels[
+                        pixel_cursor++];
+                out.mask[at] = 0xFFU;
+            }
+        }
+        if (pixel_cursor !=
+            found->second.pixels.size()) {
+            throw std::runtime_error(
+                "Type-7 native raster leaves reused column pixels");
+        }
+    }
+
+    if (source_cursor != source_end) {
+        throw std::runtime_error(
+            "Type-7 packed source stream has unconsumed bytes");
+    }
+
+    return out;
+}
+
 Type7Geometry ResArchive::decode_type7_geometry(int index) const {
     return decode_type7(index).geometry;
 }
@@ -556,6 +780,16 @@ Type7SceneShape RavenloftBootAssets::res3_type7(
             source_.read("RES3"));
     }
     return res3_->decode_type7(index);
+}
+
+Type7NativeRaster RavenloftBootAssets::res3_type7_native_raster(
+    int index) const {
+    if (!res3_.has_value()) {
+        res3_.emplace(
+            source_.read("RES3"));
+    }
+    return res3_->decode_type7_native_raster(
+        index);
 }
 
 std::vector<std::uint8_t> RavenloftBootAssets::sampled_audio(
