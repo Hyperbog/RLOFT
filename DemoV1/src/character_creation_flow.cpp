@@ -43,12 +43,14 @@ bool CharacterCreationFlow::apply_event(int event) {
         case CharacterCreationState::ActorChoice:
             if (event == 0) {
                 draft_.actor = -1;
+                aborted_ = true;
                 return true;
             }
             if (event == 3 || event == 4) {
                 draft_.actor = event - 3;
                 draft_.sex = -1;
                 draft_.race = -1;
+                race_committed_ = false;
                 state_ = CharacterCreationState::SexChoice;
                 return true;
             }
@@ -76,8 +78,10 @@ bool CharacterCreationFlow::apply_event(int event) {
             }
             if (event >= 1 && event <= 6) {
                 draft_.race = event - 1;
-                // CODE.1 advances 04D0 here; Demo v1 deliberately stops at
-                // the next unimplemented controller state rather than invent it.
+                race_committed_ = true;
+                // CODE.1 advances 04D0 here. The following controller state is
+                // outside this current input slice, so expose the commit without
+                // fabricating the next state.
                 return true;
             }
             return false;
