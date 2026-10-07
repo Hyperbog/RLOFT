@@ -1048,7 +1048,30 @@ void CharacterCreationPresenter::transition_15b0_frame(
                 "selected CODE.1 15B0 final frame lacks post-selection state");
         }
         draw_strip(7, 0x19, 200, 0);
-        draw_persistent_summary(after->draft(), final_stage);
+
+        // function_266C calls 15B0 before function_1F24 normalizes the
+        // selected class tuple. CharacterCreationFlow normalizes as part of
+        // apply_event(), so reconstruct that one pre-normalization summary
+        // frame from the source class stage and selected slot.
+        if (before.state() == CharacterCreationState::ClassChoice &&
+            after->state() == CharacterCreationState::OptionChoice &&
+            selected_slot >= 0) {
+            auto transition_draft = before.draft();
+            const int stage = before.class_stage();
+            if (stage < 0 || stage >= 3) {
+                throw std::logic_error(
+                    "CODE.1 final class transition has invalid class stage");
+            }
+            transition_draft.classes[
+                static_cast<std::size_t>(stage)] = selected_slot;
+            draw_persistent_summary(
+                transition_draft,
+                final_stage);
+        } else {
+            draw_persistent_summary(
+                after->draft(),
+                final_stage);
+        }
         return;
     }
 
