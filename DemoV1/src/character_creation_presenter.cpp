@@ -1658,6 +1658,175 @@ void CharacterCreationPresenter::screen(
     throw std::logic_error("unsupported character controller state");
 }
 
+void CharacterCreationPresenter::existing_actor_transition_frame(
+    const CharacterCreationFlow& before,
+    const CharacterCreationFlow& after,
+    int actor,
+    const CharacterStatsModel& stats,
+    bool entering,
+    int frame_index) {
+    const int flip_frames =
+        transition_07e4_frame_count(0, 6);
+    const int total =
+        existing_actor_transition_frame_count(entering);
+    if (frame_index < 0 || frame_index >= total) {
+        throw std::out_of_range(
+            "CODE.1 1BD4 transition frame index");
+    }
+
+    if (entering && frame_index == flip_frames) {
+        // 1BD4 draws stage 6 only after the 07E4 slot flip has completed.
+        existing_actor_decision_screen(
+            before,
+            actor,
+            stats);
+        return;
+    }
+
+    if (frame_index == flip_frames - 1) {
+        if (entering) {
+            screen(before);
+            draw_frame(
+                7, 0x2F, 0,
+                kSlotRow[2], kSlotColumn[2]);
+            draw_frame(
+                7, 0x30, 0,
+                kSlotRow[3], kSlotColumn[3]);
+        } else {
+            screen(after);
+        }
+        return;
+    }
+
+    std::array<IndexedRegion, 2> old_region{};
+    std::array<IndexedRegion, 2> new_region{};
+
+    if (entering) {
+        screen(before);
+        for (int n = 0; n < 2; ++n) {
+            const int slot = 2 + n;
+            old_region[static_cast<std::size_t>(n)] =
+                framebuffer_.capture(
+                    kSlotRow[static_cast<std::size_t>(slot)],
+                    kSlotColumn[static_cast<std::size_t>(slot)],
+                    0x7A,
+                    0x30);
+        }
+
+        draw_frame(
+            7, 0x2F, 0,
+            kSlotRow[2], kSlotColumn[2]);
+        draw_frame(
+            7, 0x30, 0,
+            kSlotRow[3], kSlotColumn[3]);
+        for (int n = 0; n < 2; ++n) {
+            const int slot = 2 + n;
+            new_region[static_cast<std::size_t>(n)] =
+                framebuffer_.capture(
+                    kSlotRow[static_cast<std::size_t>(slot)],
+                    kSlotColumn[static_cast<std::size_t>(slot)],
+                    0x7A,
+                    0x30);
+        }
+
+        // During the flip, mode 0's ordinary lower text record remains
+        // active. Stage 6 is painted only after the flip.
+        screen(before);
+    } else {
+        existing_actor_decision_screen(
+            before,
+            actor,
+            stats);
+        for (int n = 0; n < 2; ++n) {
+            const int slot = 2 + n;
+            old_region[static_cast<std::size_t>(n)] =
+                framebuffer_.capture(
+                    kSlotRow[static_cast<std::size_t>(slot)],
+                    kSlotColumn[static_cast<std::size_t>(slot)],
+                    0x7A,
+                    0x30);
+        }
+
+        screen(after);
+        for (int n = 0; n < 2; ++n) {
+            const int slot = 2 + n;
+            new_region[static_cast<std::size_t>(n)] =
+                framebuffer_.capture(
+                    kSlotRow[static_cast<std::size_t>(slot)],
+                    kSlotColumn[static_cast<std::size_t>(slot)],
+                    0x7A,
+                    0x30);
+        }
+
+        // 07E4 phase 0/1 redraws the actor-choice lower record, replacing
+        // the temporary stage-6 panel as the buttons flip back.
+        screen(after);
+    }
+
+    const auto seam_color = remaps_.bright[4][0];
+
+    for (int n = 0; n < 2; ++n) {
+        const int slot = 2 + n;
+        const auto index = static_cast<std::size_t>(n);
+        const int delay = slot;  // first=0 in 1BD4's 07E4(0,6).
+        const int k =
+            frame_index < delay
+                ? 0
+                : frame_index - delay + 1;
+        const int row =
+            kSlotRow[static_cast<std::size_t>(slot)];
+        const int column =
+            kSlotColumn[static_cast<std::size_t>(slot)];
+
+        if (k == 0) {
+            framebuffer_.restore(
+                old_region[index],
+                row,
+                column);
+            continue;
+        }
+
+        draw_frame(7, 0x1E + slot, 0, row, column);
+
+        if (k < 6) {
+            const int q = 6 - k;
+            framebuffer_.restore_scaled_horizontal(
+                old_region[index],
+                row,
+                column + 4 * k,
+                q,
+                10);
+            continue;
+        }
+
+        if (k == 6) {
+            framebuffer_.fill_rect(
+                row,
+                column + 0x18,
+                0x7A,
+                1,
+                seam_color);
+            continue;
+        }
+
+        if (k < 12) {
+            const int q = 12 - k;
+            framebuffer_.restore_scaled_horizontal(
+                new_region[index],
+                row,
+                column + 4 * q,
+                q,
+                6);
+            continue;
+        }
+
+        framebuffer_.restore(
+            new_region[index],
+            row,
+            column);
+    }
+}
+
 void CharacterCreationPresenter::existing_actor_decision_screen(
     const CharacterCreationFlow& flow,
     int actor,
