@@ -379,7 +379,7 @@ class RavenloftExtractorGui(tk.Tk):
 
         # Clean horizontal rails. The side columns are drawn afterwards so the
         # right rail can never cover the right column.
-        rail_color = "#4b4b4b"
+        rail_color = (75, 75, 75)
         top_h = bottom_h = 14
         banner.paste(rail_color, (0, 0, width, top_h))
         banner.paste(rail_color, (0, height - bottom_h, width, height))
