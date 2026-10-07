@@ -48,6 +48,18 @@ ExplorationPresenter::surface_coverage(
         }
     }
 
+    // No type-7 invocation is considered presented while the original
+    // 369D8 vertical generated-rasterizer path is still untranslated.
+    // Fully occluded calls have no pending visible pixels.
+    for (const auto& plan : frame.world_scene_render_plans) {
+        if (plan.visible_columns.empty()) {
+            continue;
+        }
+        ++out.type7_scene_calls_pending;
+        out.type7_visible_columns_pending +=
+            plan.visible_columns.size();
+    }
+
     return out;
 }
 
