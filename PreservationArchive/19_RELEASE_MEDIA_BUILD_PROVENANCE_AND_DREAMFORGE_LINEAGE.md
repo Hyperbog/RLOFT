@@ -34,7 +34,7 @@ The same 2015 post gives patch reference MD5 `e64b6744671a557bd34f24d122752815` 
 
 ```text
 size        17 bytes
-MD5         e376e8e0e8918ff1dfbf8e4a6f55
+MD5         e376e8e0e8918ff1dfbf8e4fbe8a6f55
 SHA-256     4ffa6ac5d5b5afd103bd67d84d3a372b401b3b19407b0c68c44bb0dfd9e32c30
 raw hex     30 30 30 30 30 30 30 30 30 31 31 31 31 02 00 44 3A
 ```
@@ -91,4 +91,117 @@ DreamForge's earlier corporate name was **Event Horizon Software**; the company'
 Still unproved: the exact retail mastering source/media image for this supplied installation; field-by-field INFO.DAT variation across installations; full historical patch manifests for 1.0/1.1/1.2/1.2a; a direct earlier-executable comparison for `CINE13`; exact RES11/12 source/editor build; cross-platform FM Towns/PC-98 binary layouts; and the DreamForge original compiler/linker command line.
 
 Next: establish a **per-file provenance matrix** (hash, native/legacy status, CD timestamp, consumer, recorded distribution), search archived patch/manifests where lawful and available, then turn the remaining verified release history into a cross-version compatibility boundary. Leave missing documentary evidence explicit.
+
+
+
+## 9. Per-file original evidence matrix: directly available binaries
+
+A file's **SHA-256** is its byte identity. Version and media attribution are separate columns of evidence: the verified local source corpus contains eight originally supplied runtime/data files plus **SINTAB**, the latter also appearing in the independently certified 33-file Resources manifest. An original file present in the local evidence set does **not** establish its original DOS CD drive or directory.
+
+| File | Size (bytes) | SHA-256 | Interpretation |
+|---|---:|---|---|
+| `CODE.1` | 277,787 | `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed` | Executable; 1.2a independently matched |
+| `CODE.2` | 558,689 | `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314` | Executable; embedded `Ver 1.2a` at file `0x7E1E4` |
+| `INFO.DAT` | 17 | `4ffa6ac5d5b5afd103bd67d84d3a372b401b3b19407b0c68c44bb0dfd9e32c30` | Installation/resource-location selection; **not** a fixed CD-wide revision marker |
+| `LEVELS.DAT` | 499,878 | `50d0b1d13f81733a1ac55296d00fcba9aef002202bc00341f1062c37fd017d91` | Packed world baseline; no patch-to-patch hash comparison yet |
+| `LEV022.DAT` | 6,028 | `f88b033ff4cdafdd89620e0fac51ff2fb81bce103a6d31a26b91464532c9f51e` | Mutable level-22 save fixture, **not** an original immutable level baseline |
+| `OBJECTS.DAT` | 21,844 | `f23f0e7c1856904aa0156b0bf174cab794a41a327352b6ca00c3591ae5f2eed0` | Original static item-definition database |
+| `NPCS.DAT` | 5,731 | `f2dd1175bf42e8291b95952282dfc0cfb84455aaa532987cdd7380094c8eb30b` | Original static NPC-definition database |
+| `SAVE.DAT` | 9,288 | `f898cb92fca6447954f5e0b2bf6f8ad2435e4a64ae3b9de74f8bf75e0ed10d5d` | Quick-start/mutable-state fixture; not fixed per retail revision |
+| `SINTAB` | 333,757 | `19b6bc15f1be616bb8ff49dc9029995a1a0413fae06addc9fd41ddef761d0e87` | Executable rasterizer support; independently matches certified resource-manifest identity |
+
+**Audit correction P-19.1:** the previous §3 accidentally transcribed the INFO.DAT MD5 as `e376e8e0e8918ff1dfbf8e4a6f55`. The original 17-byte file actually hashes to **`e376e8e0e8918ff1dfbf8e4fbe8a6f55`**. The published 2015 patch reference MD5 `e64b6744671a557bd34f24d122752815` is unchanged; the discrepancy is genuine. This correction changes **documentation only** and affects no serialized format/behavior. MD5 is retained solely to compare the published historical patch post; use SHA-256 as the project's controlling file identity.
+
+## 10. Complete 33-file resources provenance manifest
+
+The table below is transcribed **mechanically** from [Resources/FINAL_RESOURCE_AUDIT.md](../Resources/FINAL_RESOURCE_AUDIT.md), where the 33 source identities were certified against the original resource corpus. Only `SINTAB` was independently re-hashed from currently mounted resource bytes in this continuation. The remaining 32 are **previously certified repo evidence**, not files newly re-downloaded or rehashed here.
+
+| File | Size (bytes) | SHA-256 | Source role |
+|---|---:|---|---|
+| `CINE00.ANM` | 13,781,936 | `6627ebb7e91cc62c56871ad5140a5df038fde198b079e94b010467433ce9eccb` | ANM corpus |
+| `CINE01.ANM` | 16,009,364 | `47a1e618f687351ebdb3e9ed07961f0feb3a42969f4cf984e48884c548153362` | ANM corpus |
+| `CINE02.ANM` | 7,498,347 | `62a06c3ecf78c3f7907279592cc042f652cbcafeb8694027ce72f5d6995d9199` | ANM corpus |
+| `CINE03.ANM` | 7,498,347 | `7da29505c4aac4f3449eb8feed9f119f9f80101fb0c91ffdb46938956e3b6ce6` | ANM corpus |
+| `CINE04.ANM` | 7,498,347 | `78f352452abfeb7c9f4f3edb34f30c4c44f30752b88e6e783a04d1a3c5d66c2f` | ANM corpus |
+| `CINE05.ANM` | 7,498,347 | `6f991c789a1a99c2d182bae55426b6e4b00e5ceb210871874518afd0a5aefbe6` | ANM corpus |
+| `CINE06.ANM` | 7,339,821 | `7149f7a9020a1d718970ce2fa610cfbfab76b5f89d95caae17b78e119d9e3925` | ANM corpus |
+| `CINE07.ANM` | 34,569,939 | `70cefedf8d2cb68525e6ebdcb8bf9e4be07e4619d12610b537e2f3c9841685ef` | ANM corpus |
+| `CINE08.ANM` | 9,255,472 | `cfbc8b5835906ceedcf74e8c202430cd0b5b4e4d4c7c00054d42b934def817f3` | ANM corpus |
+| `CINE09.ANM` | 5,485,203 | `287c3752048c5545c78f51d09035635bcd5422849770482918179a0d89f9387c` | ANM corpus |
+| `CINE10.ANM` | 56,273,227 | `e7d6404057d1ea472f0ee1ec870b9098fff9adb86020af08d2e531eae6961bfd` | ANM corpus |
+| `CINE11.ANM` | 57,092,507 | `9ee3f32320e0ae975b496ec69d34691ff45cc9e48fbf54a5de4a3f2fb5ef067e` | ANM corpus |
+| `CINE12.ANM` | 1,446,666 | `a39bdb4965ba27f9fd1b1f4a8fb2ac291a48da831070cdf226faab229b132291` | ANM corpus |
+| `RES0` | 2,186,991 | `5e30584947c9627e31b5dd2573ad75c2d3cc9fe796ac669e0ca5d02d6db7e61d` | Indexed RES 0–10 |
+| `RES1` | 354,310 | `c13b8ae42f7d3b65c06d8413627f40a2a155a7404da44abfc158b38a4e5efd19` | Indexed RES 0–10 |
+| `RES2` | 63,736 | `bd46022e716fb1014ce0d0be98fa2c8a1cad7970df6943b1b4d54d017581a8f8` | Indexed RES 0–10 |
+| `RES3` | 5,228,638 | `44955ebbed0a8ed8d874fae07b01710317044882ab3c7c95d9be54e883df9a36` | Indexed RES 0–10 |
+| `RES4` | 1,975,542 | `d8989c50fa58e317ff33465e7baec16e970f40586417d790fd8a1b9005c60f46` | Indexed RES 0–10 |
+| `RES5` | 1,510,960 | `f943c933cfe593bb2912bc25e10b72f1ecafe10f684526f38489616cedbe91b6` | Indexed RES 0–10 |
+| `RES6` | 6,210,899 | `697aa0803b2219dcb094bfae769ffb0c60cd7d89f7a7ba06c12ed6a4553f736d` | Indexed RES 0–10 |
+| `RES7` | 211,133 | `78b46977d1d3232824392ec1e4852519a6d2e20277adb0e78a67c7605ee9c4e1` | Indexed RES 0–10 |
+| `RES8` | 58,772 | `bfadd70c836260143f7e28b34128a0a16e7ca1743379a00176d2adfa525b28b4` | Indexed RES 0–10 |
+| `RES9` | 8,061,481 | `c3021a8bb16bf1d8b9234ac47a670e4a41b8a1c078cba34be34f0f89a5135543` | Indexed RES 0–10 |
+| `RES10` | 46,060,354 | `dc0c6b25a521f54d82bc564168859c74aa4b464413338d4b58d519b166e8e6f9` | Indexed RES 0–10 |
+| `RES11` | 15,589,639 | `5c231d0e117def4f465f9b8d24ea6a315f610919e5fdd0910b9c2446d435d903` | Legacy/pre-split RES |
+| `RES12` | 12,150,551 | `d03808be3f96ae48eab9f991433e8f7c4af989a6cf76ae9cb5a14f6964e40855` | Legacy/pre-split RES |
+| `GM1.BNK` | 23,907 | `843f012e7980e0a58722aa5c7a6e88b652f2f8d404834638cd994ca0869df5a8` | Third-party ARIA bank |
+| `GM2.BNK` | 24,273 | `b4af656059a6afba5db2da972c3506ca08d899ca04c65389e0bec7aaf6536339` | Third-party ARIA bank |
+| `COLORS` | 11,521 | `e366986bf701ba832aa769bf99f0db90a76af658300ce3d02e7039a970a9baf5` | Palette support |
+| `INIT` | 1,879 | `cc48df4eb4c0710d45e7f5557e440129df44c5efb1af3ca3426ea9f9e3798276` | Resource index/bases |
+| `SAMPLE.AD` | 4,662 | `79ee9f4ad3134be906ce493072ce0c3b7169c9013d3c25947ac385aaf3f9633b` | AIL instrument support |
+| `SINTAB` | 333,757 | `19b6bc15f1be616bb8ff49dc9029995a1a0413fae06addc9fd41ddef761d0e87` | Rasterizer support |
+| `T` | 133,584 | `a3f1e19e40f226c8cf150a43aacd9c378ee35a1294d2c9dd72870bfdf1e16315` | Text index |
+
+The provenance matrix deliberately separates the *resource corpus presence* of `RES11`/`RES12` from the *executable indexed-loader selection* of **RES0–RES10**. It similarly identifies `CINE00.ANM` through `CINE12.ANM` as the **thirteen** supplied cinematic sources without inventing `CINE13.ANM` as a fourteenth file. Full size/hash identities provide comparisons for future CD-ROM image, GOG `game.gog`, Steam payload, diskette, regional and compilation dumps **without implying equality before actual matching**.
+
+## 11. INFO.DAT installation routing and historical selector boundary
+
+The [certified INFO.DAT parser](../DatFiles/INFO.DAT/README.md) establishes an exact **17-byte** physical structure, not an opaque revision marker:
+
+```text
+offset 0x00  ASCII decimal resource_location_digits[13] = "0000000001111"
+offset 0x0D  LE uint16 resource_path_length = 2
+offset 0x0F  resource_path bytes = "D:"
+```
+
+CODE.2 `2E768..2E7EE` reads and converts all thirteen ASCII digits, but its indexed archive initialization supplies a **count of 11**. Within that count, zero selects the working-directory archive and a nonzero selector prepends the shared path. For the supplied configuration, `RES0..RES8` resolve locally while **`RES9` and `RES10` resolve through `D:\\RES9` and `D:\\RES10`**. The same two-byte `D:` prefix is also used for numbered external interactive resources (e.g. `D:\\07`).
+
+Selectors **11** and **12** are physically present and parsed but lack proved active consumers in this executable pair. They must be preserved **without claiming the 1-valued digits directly enable RES11 or RES12**. This is an important practical reason an `INFO.DAT` checksum may differ between valid installations with identical game executable bytes.
+
+## 12. Evidence of 1995 patches — but not recovered binary deltas
+
+The contemporary [9 May 1995 patch-list posting](https://groups.google.com/g/comp.sys.ibm.pc.games.adventure/c/c8ZPgcpO8Tw) independently records distinct CD and diskette patch distributions:
+
+| Listed version | CD-ROM update | Diskette update |
+|---|---|---|
+| 1.1 | `RLFTCD11.ZIP` | `RLFTDK11.ZIP` |
+| 1.2 | `RLFTCD12.ZIP` | `RLFTDK12.ZIP` |
+
+A preserved [1.1 CD updater notice](https://www.oocities.org/timessquare/battlefield/7222/strahd.html) separately describes extracting `RLFTCD11.EXE` and running `PATCH`, while explicitly excluding the diskette version from that updater. **ZIP/archive naming and installer-stage EXE naming describe different packaging layers**; they are not contradictory claims about a single filename.
+
+Those contemporary notices prove that media-specific updates were distributed by 1995. They do **not** supply authenticated complete contents, hashes, byte-level before/after deltas or patch scripts in the current evidence set. The 2015 community claim that 1.2a came through the Masterpiece Collection, with MD5s for `CODE.1`, `CODE.2`, `INFO.DAT` and `R.EXE`, is useful corroboration but not a vendor patch manifest. Its published `R.EXE` MD5 remains **UNVERIFIED** for this project because the present local file evidence does not include original `R.EXE` bytes.
+
+Version nomenclature and changes should therefore be tracked as three different things: **original executable self-identification**, **external updater/patch label**, and **storefront package label**.
+
+## 13. GOG installer history and the CINE13 boundary
+
+[GOG's 2015 release history](https://www.gogdb.org/product/1432905053/releasenotes) explicitly identifies an English **1.2 → 1.2a** transition on **2015-11-03**, with German **1.2** remaining separate at that time. An archived [contemporaneous download-change log](https://www.gog.com/forum/general/the_what_did_just_update_thread/post10833) records distinct installer revisions for Windows, Mac and Linux. These are **GOG wrapper/distribution revisions** and do not establish that each platform contains a different 1994 DOS executable.
+
+GOG's fix note uses the string `cine13.anm`. The current source inventory and Chapter 16 establish only `CINE00..CINE12`; matching 1.2a executables likewise cannot establish exactly which call/site was altered between 1.2 and 1.2a without an original 1.2 CODE image. Preserve this as a **patch-reason/alternate-executable comparison target**, not evidence of a missing source archive file that should be fabricated.
+
+A community [2015 patch discussion](https://www.gog.com/forum/dungeons_dragons_ravenloft_series/strahds_possession_need_help_with_bugsglitches/post10) reported changing `game.gog` as well as installed CODE/configuration/launcher scripts. This is an account of a user's patch package, **not proof that GOG's official patch wrote exactly those files**. A future cross-distributor audit must independently hash the mounted CD content and installed resource trees.
+
+## 14. Minimum acceptable cross-version comparison
+
+A real 1.1/1.2/1.2a regression diff should compare:
+
+1. Whole-file SHA-256 and lengths for `CODE.1`, `CODE.2`, `R.EXE`, `INFO.DAT` and each source resource; do not rely on user-facing version labels alone.
+2. For CODE, isolate the shared DOS/4GW bound loader first and compare nested **LE object pages, relocations, import/name tables, and game-owned strings** independently; an installer rebuild of the extender is not necessarily a gameplay change.
+3. For RES and ANM, compare exact index tables, entry hashes, wordcode grammar, active namespace indices and content rather than mere file timestamps.
+4. For `INFO.DAT`, normalize only the **semantic location selectors and path** for comparison; retain the raw 17-byte source independently.
+5. For mutable `SAVE.DAT` and `LEVnnn.DAT`, identify their save-state provenance separately from immutable CD authoring data. Never infer patch origin solely from their hashes.
+6. For 1.2's reported `CINE13` failure, prove the actual filename constructor and callers from the **older executable** before assigning cause.
+7. For cross-platform/regional builds, test encodings, drivers, offsets and serialization contracts from their own originals rather than importing DOS 1.2a identities.
+
+**Completion boundary:** the present supplied-build provenance can be certified, but the patch delta matrix is **OPEN** until source patches or older edition binaries are acquired and independently hashed. No amount of static interpretation of 1.2a alone can prove which exact bytes changed in 1.2.
 
