@@ -20,7 +20,7 @@ ProgressCallback = Callable[[str, int, int, str], None]
 @dataclass(frozen=True)
 class DumpOptions:
     graphics_format: str = "PNG (lossless indexed)"
-    graphics_palette: int = 0
+    graphics_palette: int | None = None
     graphics_indices: bool = True
     graphics_metadata: bool = True
     graphics_masks: bool = False

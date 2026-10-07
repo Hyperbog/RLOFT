@@ -12,6 +12,7 @@ from typing import Callable
 
 from PIL import Image
 
+import palette_router
 import res_assets as ra
 import runtime_paths
 import xmidi
@@ -34,6 +35,10 @@ MUSIC_FORMATS = (
     "Standard MIDI (SMF0, exact 120 Hz)",
     "Both XMI + MIDI",
 )
+
+PALETTE_MODE_AUTOMATIC = palette_router.PALETTE_MODE_AUTOMATIC
+PALETTE_MODE_MANUAL = palette_router.PALETTE_MODE_MANUAL
+PALETTE_MODES = palette_router.PALETTE_MODES
 
 
 def _stem(r: ra.EhResource) -> str:
@@ -97,7 +102,7 @@ def _type7_folder(resource: ra.EhResource) -> tuple[str, str | None]:
 
 
 def dump_graphics(game_dir: Path, destination: Path, fmt: str,
-                  palette_index: int = 0, preserve_native: bool = False,
+                  palette_index: int | None = None, preserve_native: bool = False,
                   progress: ProgressCallback | None = None,
                   archives: set[int] | None = None,
                   export_indices: bool = True,
@@ -111,11 +116,31 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
         for r in archive.resources()
         if r.resource_type in (1, 2, 6, 7)
     ]
-    palette = ra.palette_from_colors(Path(game_dir) / "COLORS", palette_index)
+    palette_path = Path(game_dir) / "COLORS"
+    if palette_index is not None and not 0 <= palette_index < 15:
+        raise ra.AssetError("manual palette bank must be in the range 0..14")
+    palette_cache: dict[int, bytes] = {}
+
+    def palette_for(bank: int) -> bytes:
+        if bank not in palette_cache:
+            palette_cache[bank] = ra.palette_from_colors(palette_path, bank)
+        return palette_cache[bank]
+
     destination.mkdir(parents=True, exist_ok=True)
     records: list[dict[str, object]] = []
 
     for ordinal, r in enumerate(resources, 1):
+        if palette_index is None:
+            palette_decision = palette_router.resolve_palette(
+                r.archive, r.index, r.resource_type
+            )
+        else:
+            palette_decision = palette_router.PaletteDecision(
+                bank=palette_index,
+                source="manual override",
+                confidence="manual",
+            )
+        palette = palette_for(palette_decision.bank)
         stem = _stem(r)
         if r.resource_type == 7:
             folder_name, bank = _type7_folder(r)
@@ -127,7 +152,12 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
             "archive": r.archive,
             "entry": r.index,
             "type": r.resource_type,
+            "palette_bank": palette_decision.bank,
+            "palette_resolution": palette_decision.source,
+            "palette_confidence": palette_decision.confidence,
         }
+        if palette_decision.alternatives:
+            rec["palette_alternatives"] = list(palette_decision.alternatives)
         if bank is not None:
             rec["scene_bank"] = bank
         if preserve_native:
@@ -254,7 +284,21 @@ def dump_graphics(game_dir: Path, destination: Path, fmt: str,
         if record.get("type") == 7 and not record.get("rendered")
     )
     manifest = {
+        "palette_mode": "automatic" if palette_index is None else "manual",
         "palette_bank": palette_index,
+        "automatic_palette_policy": (
+            {
+                "canonical_world_bank": palette_router.WORLD_CANONICAL_BANK,
+                "observed_world_banks": list(palette_router.WORLD_RUNTIME_BANKS),
+                "note": (
+                    "Exact CODE.2 resource mappings are used where proved. "
+                    "Level-dependent assets use one canonical preview bank; "
+                    "valid runtime alternatives are recorded per asset."
+                ),
+            }
+            if palette_index is None
+            else None
+        ),
         "format": fmt,
         "archives": sorted(archives) if archives is not None else "all",
         "options": {

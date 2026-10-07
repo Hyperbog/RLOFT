@@ -1,3 +1,11 @@
+## 0.5.6
+
+- Added automatic original-game palette routing as the default Graphics & Textures behavior.
+- Retained banks 0..14 as an explicit manual override.
+- Added exact RES0 world-mode and modal-screen palette mappings reconstructed from CODE.2.
+- Added environment-profile palette routing and per-asset palette provenance/alternative banks to graphics_manifest.json.
+- Preserved canonical .indices output independently of preview-palette selection.
+
 # Asset Extraction Suite Changelog
 
 ## Version 0.2.0

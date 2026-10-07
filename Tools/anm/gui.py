@@ -85,6 +85,7 @@ class RavenloftExtractorGui(tk.Tk):
         self.progress_value = tk.DoubleVar(value=0)
 
         self.graphics_format = tk.StringVar(value="PNG (lossless indexed)")
+        self.graphics_palette_mode = tk.StringVar(value=asset_dumper.PALETTE_MODE_AUTOMATIC)
         self.graphics_palette = tk.IntVar(value=0)
         self.graphics_indices = tk.BooleanVar(value=True)
         self.graphics_metadata = tk.BooleanVar(value=True)
@@ -740,8 +741,30 @@ class RavenloftExtractorGui(tk.Tk):
         self._selection_buttons(box, 1, 1, self.graphics_list)
         ttk.Label(box, text="Image format").grid(row=2, column=0, sticky="w", pady=(9, 0))
         ttk.Combobox(box, textvariable=self.graphics_format, values=tuple(asset_dumper.GRAPHICS_FORMATS), state="readonly", width=28).grid(row=2, column=1, sticky="w", padx=8, pady=(9, 0))
-        ttk.Label(box, text="Palette bank").grid(row=3, column=0, sticky="w", pady=(8, 0))
-        ttk.Spinbox(box, from_=0, to=14, textvariable=self.graphics_palette, width=6).grid(row=3, column=1, sticky="w", padx=8, pady=(8, 0))
+        ttk.Label(box, text="Palette").grid(row=3, column=0, sticky="w", pady=(8, 0))
+        palette_controls = ttk.Frame(box)
+        palette_controls.grid(row=3, column=1, sticky="w", padx=8, pady=(8, 0))
+        self.graphics_palette_mode_combo = ttk.Combobox(
+            palette_controls,
+            textvariable=self.graphics_palette_mode,
+            values=asset_dumper.PALETTE_MODES,
+            state="readonly",
+            width=24,
+        )
+        self.graphics_palette_mode_combo.pack(side="left")
+        self.graphics_palette_mode_combo.bind(
+            "<<ComboboxSelected>>", self._update_palette_state
+        )
+        ttk.Label(palette_controls, text="Manual bank").pack(side="left", padx=(12, 5))
+        self.graphics_palette_spin = ttk.Spinbox(
+            palette_controls,
+            from_=0,
+            to=14,
+            textvariable=self.graphics_palette,
+            width=5,
+        )
+        self.graphics_palette_spin.pack(side="left")
+        self._update_palette_state()
 
         extras = ttk.LabelFrame(box, text="Associated files", padding=8)
         extras.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(9, 2))
@@ -770,7 +793,7 @@ class RavenloftExtractorGui(tk.Tk):
         self._note(
             tab,
             1,
-            "PNG is sufficient for most modern-port artwork. RES3 NPCs/monsters, placed objects, loose items, and effects are now reconstructed as transparent native-resolution images. The associated-file options retain exact indexed/source data for preservation and renderer validation.",
+            "Automatic palette routing is recommended: it uses exact original-game mappings where reconstructed and a documented canonical world preview for level-dependent art. The graphics manifest records the chosen bank and any valid runtime alternatives per asset. .indices files always preserve the original palette indices.",
         )
         button = ttk.Button(tab, text="Extract Selected Graphics", command=self._start_graphics)
         button.grid(row=99, column=0, sticky="se", pady=(10, 0))
@@ -851,6 +874,20 @@ class RavenloftExtractorGui(tk.Tk):
 
     def _resize_wraps(self, event) -> None:
         self._resize_wraps_for_width(event.width)
+
+    def _update_palette_state(self, _event=None) -> None:
+        if not hasattr(self, "graphics_palette_spin"):
+            return
+        manual = self.graphics_palette_mode.get() == asset_dumper.PALETTE_MODE_MANUAL
+        self.graphics_palette_spin.configure(state="normal" if manual else "disabled")
+
+    def _graphics_palette_index(self) -> int | None:
+        if self.graphics_palette_mode.get() == asset_dumper.PALETTE_MODE_AUTOMATIC:
+            return None
+        value = int(self.graphics_palette.get())
+        if not 0 <= value <= 14:
+            raise RuntimeError("Manual palette bank must be between 0 and 14.")
+        return value
 
     def _update_timing_state(self) -> None:
         self.cin_fps_entry.configure(
@@ -1001,7 +1038,7 @@ class RavenloftExtractorGui(tk.Tk):
             if not self.graphics_dest.get():
                 raise RuntimeError("Choose a graphics destination.")
             dest = Path(self.graphics_dest.get())
-            palette = int(self.graphics_palette.get())
+            palette = self._graphics_palette_index()
         except Exception as exc:
             messagebox.showerror("Cannot extract", str(exc))
             return
@@ -1125,7 +1162,7 @@ class RavenloftExtractorGui(tk.Tk):
             return
         options = master_dumper.DumpOptions(
             graphics_format=self.graphics_format.get(),
-            graphics_palette=int(self.graphics_palette.get()),
+            graphics_palette=self._graphics_palette_index(),
             graphics_indices=self.graphics_indices.get(),
             graphics_metadata=self.graphics_metadata.get(),
             graphics_masks=self.graphics_masks.get(),

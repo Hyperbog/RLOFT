@@ -19,6 +19,8 @@ SPECIAL = {
     "Preserve original ANM": "Copy the original ANM beside the derived cinematic exports.",
     "Extract Selected Cinematics": "Extract only the cinematics selected in the list above.",
     "Extract Selected Graphics": "Extract graphics from only the selected RES archives.",
+    "Automatic (recommended)": "Choose original-game palette mappings automatically. Context-dependent assets use a canonical shipped preview bank and record valid alternatives in the manifest.",
+    "Manual override": "Force one COLORS palette bank for every selected graphic. Useful for comparison and debugging.",
     "Sampled audio": "Extract Creative Voice File sampled audio from the selected audio archives.",
     "XMIDI music": "Extract Miles XMIDI/XDIR music from the selected music archives.",
     "SAMPLE.AD OPL2 timbres": "Extract the game's Miles AIL YM3812/OPL2 instrument definitions.",
