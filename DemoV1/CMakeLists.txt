@@ -30,6 +30,7 @@ add_library(rloft_boot_flow
     src/exploration_motion.cpp
     src/exploration_locomotion.cpp
     src/exploration_runtime_motion.cpp
+    src/exploration_runtime.cpp
     src/environment_view.cpp
     src/view_sweep_record.cpp
     src/view_sweep_setup.cpp
@@ -123,6 +124,10 @@ add_test(NAME exploration_locomotion_tests COMMAND exploration_locomotion_tests)
 add_executable(exploration_runtime_motion_tests tests/exploration_runtime_motion_tests.cpp)
 target_link_libraries(exploration_runtime_motion_tests PRIVATE rloft_boot_flow)
 add_test(NAME exploration_runtime_motion_tests COMMAND exploration_runtime_motion_tests)
+
+add_executable(exploration_runtime_tests tests/exploration_runtime_tests.cpp)
+target_link_libraries(exploration_runtime_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_runtime_tests COMMAND exploration_runtime_tests)
 
 add_executable(environment_view_tests tests/environment_view_tests.cpp)
 target_link_libraries(environment_view_tests PRIVATE rloft_boot_flow)
@@ -247,6 +252,7 @@ set(RLOFT_TEST_TARGETS
     exploration_motion_tests
     exploration_locomotion_tests
     exploration_runtime_motion_tests
+    exploration_runtime_tests
     environment_view_tests
     view_sweep_record_tests
     view_sweep_setup_tests
