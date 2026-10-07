@@ -77,6 +77,7 @@ add_library(rloft_boot_flow
     src/type7_rasterizer_patch.cpp
     src/type7_vga_plane_masks.cpp
     src/type7_vga_raster_dispatch.cpp
+    src/type7_vga_scene_trace.cpp
     src/vga_planar_memory.cpp
     src/renderer_tables.cpp
     src/micro_rasterizer_layout.cpp
@@ -342,6 +343,10 @@ add_executable(type7_vga_raster_dispatch_tests tests/type7_vga_raster_dispatch_t
 target_link_libraries(type7_vga_raster_dispatch_tests PRIVATE rloft_boot_flow)
 add_test(NAME type7_vga_raster_dispatch_tests COMMAND type7_vga_raster_dispatch_tests)
 
+add_executable(type7_vga_scene_trace_tests tests/type7_vga_scene_trace_tests.cpp)
+target_link_libraries(type7_vga_scene_trace_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_vga_scene_trace_tests COMMAND type7_vga_scene_trace_tests)
+
 add_executable(vga_planar_memory_tests tests/vga_planar_memory_tests.cpp)
 target_link_libraries(vga_planar_memory_tests PRIVATE rloft_boot_flow)
 add_test(NAME vga_planar_memory_tests COMMAND vga_planar_memory_tests)
@@ -539,6 +544,7 @@ set(RLOFT_TEST_TARGETS
     type7_rasterizer_patch_tests
     type7_vga_plane_masks_tests
     type7_vga_raster_dispatch_tests
+    type7_vga_scene_trace_tests
     vga_planar_memory_tests
     renderer_tables_tests
     micro_rasterizer_layout_tests
