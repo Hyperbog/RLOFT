@@ -85,6 +85,8 @@ int main() {
     assert(plans[0].traversal.scale_block_index == 55U);
     assert(plans[0].traversal.lookup_index == 257U);
     assert(plans[0].traversal.lookup_value == 123U);
+    assert(plans[0].rasterizer_setup.drawable);
+    assert(!plans[0].rasterizer_setup.nonzero_mode);
     assert(plans[0].visible_columns.size() == 1U);
     assert(plans[0].visible_columns[0].viewport_x == 127U);
     assert(plans[0].visible_columns[0].source_x == 31U);
@@ -95,6 +97,8 @@ int main() {
 
     assert(plans[1].call.resource_id == 4011U);
     assert(plans[1].call.render_mode == 0x3CU);
+    assert(plans[1].rasterizer_setup.drawable);
+    assert(plans[1].rasterizer_setup.nonzero_mode);
     assert(plans[1].visible_columns.size() == 3U);
     assert(plans[1].visible_columns[0].viewport_x == 63U);
     assert(plans[1].visible_columns[1].viewport_x == 64U);
@@ -102,6 +106,24 @@ int main() {
     assert(plans[1].microcode_draws.size() == 3U);
     assert(plans[1].microcode_draws[0].viewport_x == 63U);
     assert(plans[1].microcode_draws[2].viewport_x == 65U);
+
+    // A nonzero render-mode call that returns at CODE.2 36E31 must not
+    // produce visible columns or execute 369D8 descriptors.
+    auto suppressed = second;
+    suppressed.scale_extent = 65535U;
+    const auto suppressed_plan =
+        rloft::WorldSceneRenderPlanModel::build(
+            {suppressed},
+            t,
+            rays,
+            [&native_shape](std::uint16_t)
+                -> const rloft::Type7SceneShape& {
+                return native_shape;
+            });
+    assert(suppressed_plan.size() == 1U);
+    assert(!suppressed_plan[0].rasterizer_setup.drawable);
+    assert(suppressed_plan[0].visible_columns.empty());
+    assert(suppressed_plan[0].microcode_draws.empty());
 
     // An empty world does not require access to RES3.
     assert(rloft::WorldSceneRenderPlanModel::build(
