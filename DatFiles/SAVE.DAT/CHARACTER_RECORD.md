@@ -47,7 +47,7 @@ physical 0x41CFA  push 0x218E0
 +0x10A           class/level-derived base attack target
 +0x10B..+0x112   uint32 hand_ready_deadline[2]
 +0x113..+0x116   Vampiric Touch absorption pool
-+0x117..+0x11A   primary-effect-0 absorption pool
++0x117..+0x11A   primary-effect-0 Armor protection/durability quantity
 +0x11B..+0x122   reserved/unreferenced serialized bytes
 +0x123..+0x126   reversible Strength modifier for primary effect index 12
 +0x127..+0x12A   auxiliary dword; low byte participates in reversible Dexterity adjustment
