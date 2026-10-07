@@ -39,17 +39,19 @@ def _self_test() -> int:
     import xmidi  # noqa: F401
 
     try:
-        png_signature = b"\x89PNG\r\n\x1a\n"
-        for required in (
-            "assets/strahd_frame_main.png",
-            "assets/strahd_parchment.png",
-            "assets/strahd_banner.webp",
-        ):
+        required_assets = {
+            "assets/strahd_frame_main.png": b"\x89PNG\r\n\x1a\n",
+            "assets/strahd_parchment.png": b"\x89PNG\r\n\x1a\n",
+            "assets/strahd_banner.webp": b"RIFF",
+        }
+        for required, signature in required_assets.items():
             asset = runtime_paths.bundled_path(required)
             if asset is None:
                 return 20
             data = asset.read_bytes()
-            if len(data) < 24 or data[:8] != png_signature:
+            if len(data) < 24 or not data.startswith(signature):
+                return 24
+            if required.endswith(".webp") and data[8:12] != b"WEBP":
                 return 24
     except Exception:
         return 24
