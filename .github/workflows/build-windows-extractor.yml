@@ -71,95 +71,6 @@ jobs:
         run: |
           python -m unittest discover -p "test_*.py" -v
 
-      - name: Package extractor visual assets
-        shell: pwsh
-        working-directory: Tools/anm
-        run: |
-          @'
-          from pathlib import Path
-          import shutil
-          import title_skin
-
-          out = Path("dist/visual-assets")
-          out.mkdir(parents=True, exist_ok=True)
-
-          panel = title_skin.menu_panel()
-          texture = title_skin.red_texture()
-          logo = title_skin.ravenloft_logo()
-
-          panel.save(out / "01_menu_panel_RES0_100.png")
-          texture.save(out / "02_red_texture.png")
-          logo.save(out / "03_ravenloft_logo.png")
-
-          crops = {
-              "04_top_left.png": title_skin.TOP_LEFT,
-              "05_top_right.png": title_skin.TOP_RIGHT,
-              "06_bottom_left.png": title_skin.BOTTOM_LEFT,
-              "07_bottom_right.png": title_skin.BOTTOM_RIGHT,
-              "08_side_left.png": title_skin.SIDE_LEFT,
-              "09_side_right.png": title_skin.SIDE_RIGHT,
-              "10_bottom_center.png": title_skin.BOTTOM_CENTER,
-          }
-          for name, box in crops.items():
-              panel.crop(box).save(out / name)
-
-          title_skin.render_header(1280, 104, 1.0).save(
-              out / "11_current_header_1280x104.png"
-          )
-          title_skin.render_window(1280, 900, 1.0).save(
-              out / "12_current_outer_frame_1280x900.png"
-          )
-
-          for name in (
-              "strahd_banner.webp",
-              "strahd_frame_main.png",
-              "strahd_parchment.png",
-              "strahd_title_logo.png",
-          ):
-              src = Path("assets") / name
-              if src.exists():
-                  shutil.copy2(src, out / ("reference_" + name))
-
-          readme = """Ravenloft Asset Extraction Suite - visual assembly kit
-
-PRIMARY CURRENT ASSETS
-01_menu_panel_RES0_100.png
-02_red_texture.png
-03_ravenloft_logo.png
-
-FRAME PIECES
-04_top_left.png
-05_top_right.png
-06_bottom_left.png
-07_bottom_right.png
-08_side_left.png
-09_side_right.png
-10_bottom_center.png
-
-CURRENT GENERATED REFERENCES
-11_current_header_1280x104.png
-12_current_outer_frame_1280x900.png
-
-SOURCE CROP COORDINATES IN 01_menu_panel_RES0_100.png
-TOP_LEFT      = (0, 0, 54, 62)
-TOP_RIGHT     = (154, 0, 208, 62)
-BOTTOM_LEFT   = (0, 129, 62, 191)
-BOTTOM_RIGHT  = (146, 129, 208, 191)
-SIDE_LEFT     = (0, 57, 39, 140)
-SIDE_RIGHT    = (169, 57, 208, 140)
-BOTTOM_CENTER = (63, 145, 145, 191)
-
-Files prefixed reference_ are older/reference compositions retained in the
-project and are included to make hand assembly easier.
-"""
-          (out / "README.txt").write_text(readme, encoding="utf-8")
-          shutil.make_archive(
-              "dist/RavenloftExtractor-VisualAssets",
-              "zip",
-              root_dir=out,
-          )
-          '@ | python -
-
       - name: Freeze one-file Windows application
         shell: pwsh
         working-directory: Tools/anm
@@ -253,12 +164,5 @@ project and are included to make hand assembly easier.
             Tools/anm/dist/RavenloftAssetExtractor.exe.sha256
             Tools/anm/dist/BUILD_INFO.txt
             Tools/anm/THIRD_PARTY_NOTICES.md
-          if-no-files-found: error
-          retention-days: 90
-      - name: Upload extractor visual asset kit
-        uses: actions/upload-artifact@v4
-        with:
-          name: RavenloftExtractor-VisualAssets
-          path: Tools/anm/dist/RavenloftExtractor-VisualAssets.zip
           if-no-files-found: error
           retention-days: 90
