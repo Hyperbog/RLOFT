@@ -46,8 +46,9 @@ int main() {
         const auto frame = runtime.build_frame();
 
         assert(frame.scene.frame.level_id == 22);
+        const rloft::CellPosition expected_party_cell{1, 1};
         assert(frame.scene.frame.party_cell ==
-               rloft::CellPosition{1, 1});
+               expected_party_cell);
         assert(frame.scene.palette_index == 4);
         assert(frame.scene.environment_mode == 0);
         assert(frame.sweep_records.size() == 1);
