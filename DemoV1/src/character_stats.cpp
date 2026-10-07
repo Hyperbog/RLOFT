@@ -2,18 +2,10 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <limits>
 #include <stdexcept>
 #include <utility>
 
 namespace rloft {
-namespace {
-
-int signed8(std::uint8_t value) noexcept {
-    return static_cast<int>(static_cast<std::int8_t>(value));
-}
-
-}  // namespace
 
 CharacterStatTables CharacterStatTables::from_assets(
     const RavenloftBootAssets& assets) {
@@ -103,10 +95,6 @@ int CharacterStatsModel::hp_variant_extra(
         throw std::out_of_range("CODE.1 HP variant table index");
     }
 
-    const std::size_t offset =
-        0x04D4U +
-        static_cast<std::size_t>(cls / 3) * 0x4CU +
-        static_cast<std::size_t>(variant) * 4U;
     const std::size_t index =
         static_cast<std::size_t>(cls / 3) * 19U +
         static_cast<std::size_t>(variant);
