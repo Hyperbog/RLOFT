@@ -115,6 +115,7 @@ void test_iso(bool raw) {
         auto source = GameSource::open(base);
         assert(source.kind() == GameSourceKind::GogCdImage);
         assert(source.contains("res0"));
+        assert(source.runtime_output_path("CHARS") == base / "CHARS");
         assert(source.contains("INIT"));
         assert(source.read("RES0") ==
                std::vector<std::uint8_t>({1, 2, 3}));
@@ -139,6 +140,20 @@ void test_loose_and_env_discovery() {
         auto source = GameSource::open(base);
         assert(source.kind() == GameSourceKind::LooseDirectory);
         assert(source.contains("res0"));
+        assert(source.runtime_output_path("CHARS") == base / "CHARS");
+    }
+
+    {
+        const auto nested =
+            fs::temp_directory_path() / "rloft_gog_runtime_test";
+        fs::remove_all(nested);
+        fs::create_directories(nested / "RLOFT");
+        write_iso(nested / "game.gog", false);
+        auto source = GameSource::open(nested);
+        assert(source.kind() == GameSourceKind::GogCdImage);
+        assert(source.runtime_output_path("CHARS") ==
+               nested / "RLOFT" / "CHARS");
+        fs::remove_all(nested);
     }
 
 #ifdef _WIN32
