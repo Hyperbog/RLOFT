@@ -76,6 +76,7 @@ add_library(rloft_boot_flow
     src/type7_rasterizer_setup.cpp
     src/type7_rasterizer_patch.cpp
     src/type7_vga_plane_masks.cpp
+    src/vga_planar_memory.cpp
     src/renderer_tables.cpp
     src/micro_rasterizer_layout.cpp
     src/micro_rasterizer_plan.cpp
@@ -332,6 +333,10 @@ add_executable(type7_vga_plane_masks_tests tests/type7_vga_plane_masks_tests.cpp
 target_link_libraries(type7_vga_plane_masks_tests PRIVATE rloft_boot_flow)
 add_test(NAME type7_vga_plane_masks_tests COMMAND type7_vga_plane_masks_tests)
 
+add_executable(vga_planar_memory_tests tests/vga_planar_memory_tests.cpp)
+target_link_libraries(vga_planar_memory_tests PRIVATE rloft_boot_flow)
+add_test(NAME vga_planar_memory_tests COMMAND vga_planar_memory_tests)
+
 add_executable(renderer_tables_tests tests/renderer_tables_tests.cpp)
 target_link_libraries(renderer_tables_tests PRIVATE rloft_boot_flow)
 add_test(NAME renderer_tables_tests COMMAND renderer_tables_tests)
@@ -523,6 +528,7 @@ set(RLOFT_TEST_TARGETS
     type7_rasterizer_setup_tests
     type7_rasterizer_patch_tests
     type7_vga_plane_masks_tests
+    vga_planar_memory_tests
     renderer_tables_tests
     micro_rasterizer_layout_tests
     micro_rasterizer_plan_tests
