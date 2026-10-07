@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rloft/character_creation_flow.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
 
@@ -19,7 +20,10 @@ public:
     // (10-frame + 25-frame) groups exactly as the original loops execute.
     void opening_frame(int frame_index);
 
-    // Final resting frame of CODE.1 state 0, before the first input event.
+    // Resting frame after CODE.1's presentation/slot animations have settled.
+    void screen(CharacterCreationState state);
+
+    // Compatibility name for state 0.
     void first_screen();
 
 private:
@@ -32,6 +36,8 @@ private:
     void draw_text_centered(
         int y, int left, int span, const std::string& text, int font_id);
     void draw_empty_actor_card(int y, int x);
+    void draw_controller_base(
+        CharacterCreationState state, int label_record);
 
     const RavenloftBootAssets& assets_;
     IndexedFramebuffer framebuffer_;
