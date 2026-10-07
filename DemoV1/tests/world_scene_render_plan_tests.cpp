@@ -23,6 +23,9 @@ rloft::Type7SceneShape shape() {
 rloft::RendererTables tables() {
     rloft::RendererTables out{};
     out.scale_block_count = 127U;
+    out.runtime_lookup_max = 508U;
+    out.runtime_lookup.assign(509U, 0U);
+    out.runtime_lookup[257] = 123U;
     out.scale_blocks.resize(127U);
     for (auto& block : out.scale_blocks) {
         block.scale_step[31] = 1U;
@@ -47,6 +50,7 @@ int main() {
     first.scale_extent = 512U;
     first.raw_depth = 400U;
     first.render_mode = 0U;
+    first.render_scale_lookup_bias = 1U;
 
     rloft::WorldSceneDrawCall second = first;
     second.screen_x = 64U;
@@ -71,6 +75,8 @@ int main() {
     assert(looked_up[1] == 4011U);
     assert(plans[0].call.resource_id == 4010U);
     assert(plans[0].traversal.scale_block_index == 55U);
+    assert(plans[0].traversal.lookup_index == 257U);
+    assert(plans[0].traversal.lookup_value == 123U);
     assert(plans[0].visible_columns.size() == 1U);
     assert(plans[0].visible_columns[0].viewport_x == 127U);
     assert(plans[0].visible_columns[0].source_x == 31U);
