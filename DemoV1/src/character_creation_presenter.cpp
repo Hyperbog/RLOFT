@@ -908,7 +908,14 @@ void CharacterCreationPresenter::transition_15b0_frame(
     // Reconstruct each displayed page from the settled source state. This is
     // equivalent to the original two-page scratch-buffer sequence because
     // each iteration restores the affected rectangle before drawing.
-    screen(before, stats);
+    screen(
+        before,
+        stats,
+        -1,
+        false,
+        before.state() == CharacterCreationState::PortraitChoice
+            ? selected_slot
+            : -1);
 
     std::array<IndexedRegion, 9> cached{};
     std::array<bool, 9> has_cached{};
@@ -1551,7 +1558,8 @@ void CharacterCreationPresenter::screen(
     const CharacterCreationFlow& flow,
     const CharacterStatsModel* stats,
     int selected_stat,
-    bool stats_editor) {
+    bool stats_editor,
+    int hovered_choice) {
     static constexpr std::array<int, 9> row{
         13, 67, 91, 91, 67, 13, 91, 91, 91
     };
@@ -1647,12 +1655,29 @@ void CharacterCreationPresenter::screen(
                 }
 
                 draw_frame(7, 0x14, 0, row[i], column[i]);
-                draw_frame(
-                    1,
-                    336 + draft.sex * 23 + flow.portrait_page() + i,
-                    0,
-                    row[i] + 0x15,
-                    column[i]);
+                const auto portrait =
+                    assets_.type1(
+                        1,
+                        336 +
+                            draft.sex * 23 +
+                            flow.portrait_page() +
+                            i);
+                if (i == hovered_choice) {
+                    framebuffer_.draw_frame(
+                        portrait,
+                        0,
+                        row[i] + 0x15,
+                        column[i]);
+                } else {
+                    // 064C/2A64 render the resting portrait through the
+                    // 4B18 luminance table; hover redraws it raw.
+                    framebuffer_.draw_frame_mapped(
+                        portrait,
+                        0,
+                        row[i] + 0x15,
+                        column[i],
+                        remaps_.luminance[0]);
+                }
             }
 
             draw_text_box(0x0D, 0x114, 0x10C);
