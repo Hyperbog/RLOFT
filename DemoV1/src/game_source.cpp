@@ -415,6 +415,39 @@ std::optional<fs::path> GameSource::runtime_file(
     return std::nullopt;
 }
 
+std::optional<std::vector<std::uint8_t>> GameSource::read_runtime(
+    std::string_view filename) const {
+    const auto path = runtime_file(filename);
+    if (!path) return std::nullopt;
+
+    std::ifstream in(*path, std::ios::binary);
+    if (!in) {
+        throw std::runtime_error(
+            "Unable to open runtime file: " + path->string());
+    }
+
+    in.seekg(0, std::ios::end);
+    const auto size = in.tellg();
+    if (size < 0) {
+        throw std::runtime_error(
+            "Unable to size runtime file: " + path->string());
+    }
+    in.seekg(0);
+
+    std::vector<std::uint8_t> bytes(
+        static_cast<std::size_t>(size));
+    if (!bytes.empty()) {
+        in.read(
+            reinterpret_cast<char*>(bytes.data()),
+            static_cast<std::streamsize>(bytes.size()));
+        if (!in) {
+            throw std::runtime_error(
+                "Unable to read runtime file: " + path->string());
+        }
+    }
+    return bytes;
+}
+
 fs::path GameSource::runtime_output_path(
     std::string_view filename) const {
     if (const auto existing = runtime_file(filename)) {
