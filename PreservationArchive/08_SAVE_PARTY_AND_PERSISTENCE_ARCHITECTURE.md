@@ -1136,3 +1136,539 @@ The exact historical caller purpose/source-level name is not established here.
 
 It is nevertheless machine behavior and should not be normalized into a clean 50-byte overwrite in a byte-faithful compatibility serializer.
 
+
+
+## 41. Save/load UI has original failure and cancel asymmetries
+
+The slot workflows are not perfectly symmetric at the implementation level.
+
+The certified semantic audit records:
+
+- short-write failure in `066E8` closes the SAVE handle and returns failure;
+- wildcard-copy failure reaches slot-specific message/error paths;
+- normal SAVE and LOAD selection do not surface every failure through the same UI routine;
+- right-click/cancel exits in the original save/load selection loops intentionally leave selected original runtime handles unclosed.
+
+[CODE.2 final semantic audit](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_SEMANTIC_AUDIT.md)
+
+A native faithful port should preserve:
+
+```text
+which action succeeds/fails
+which UI path is taken
+which data is or is not committed
+```
+
+but it should not deliberately leak host file handles merely to reproduce an invisible implementation defect.
+
+This is an example of the distinction between **observable compatibility behavior** and **unsafe period implementation mechanics**.
+
+## 42. MAKSAV.BAT independently corroborates the directory model
+
+The supplied runtime script `MAKSAV.BAT` creates `SAVE01`, copies:
+
+```text
+LEV022.DAT
+SAVE.DAT
+```
+
+into that directory, then deletes the working copies. [Runtime README](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Runtime/README.md)
+
+That batch file is quick-start/install packaging rather than the interactive CODE.2 save routine, but it independently confirms the same historical save-slot concept:
+
+```text
+SAVE## directory
+    contains global SAVE.DAT
+    plus standalone level snapshots
+```
+
+The CODE.2 workflow remains controlling for actual in-game save/load behavior.
+
+## 43. Persistence ownership graph
+
+The recovered persistent-state architecture is:
+
+```text
+                          USER SAVE SLOT
+                    SAVE00 or SAVE01..SAVE10
+                               |
+                               | complete directory copy
+                               v
+                             WORK
+                 +-------------+-------------+
+                 |                           |
+                 v                           v
+             SAVE.DAT                    LEVnnn.DAT
+        global/cross-level          per-level mutable snapshot
+                 |                           |
+        +--------+---------+                 |
+        |        |         |                 |
+        v        v         v                 |
+     party    roster    globals              |
+        |        |         |                 |
+        |        |         +-- event flags   |
+        |        |         +-- clocks        |
+        |        |         +-- containers    |
+        |        |         +-- charges       |
+        |        |         +-- renderer state|
+        |        |                           |
+        +--------+---------------------------+
+                 |
+                 v
+               runtime
+                 |
+                 +-- current level activated through normal LEV/LEVELS loader
+                 +-- held-item graphics rebuilt
+                 +-- timing baselines synchronized
+                 +-- transient effects restored
+                 +-- UI selections/contexts restored
+
+
+SEPARATE PROCESS-HANDOFF CONTRACT
+
+CODE.1
+   |
+   | 0x920 party image
+   v
+ CHARS
+   |
+   v
+CODE.2
+```
+
+This graph is the persistence model a native reimplementation should preserve even if physical host-file packaging changes.
+
+## 44. Suggested faithful native persistence model
+
+A clean native implementation can expose:
+
+```text
+LegacyCharacterImage
+    exact 0x248 compatibility representation
+
+PartyState
+    four active LegacyCharacterImage-derived states
+
+RosterState
+    ten saved character states
+
+GlobalGameState
+    event bits
+    level ID
+    world transform
+    clocks
+    held item
+    transient effects
+    spell selections
+    containers
+    light/environment controls
+    charged devices
+    UI contexts
+
+LevelRuntimeState
+    one mutable level
+
+WorkingPersistenceSet
+    GlobalGameState serialization
+    zero or more LevelRuntimeState snapshots
+
+SaveSlot
+    snapshot of WorkingPersistenceSet
+
+ModulePartyTransfer
+    CHARS-compatible four-character transfer only
+```
+
+Suggested modern type boundaries are implementation guidance, not recovered DreamForge names.
+
+## 45. Preserve semantic setters on load
+
+Where the original loader invokes a subsystem setter after reading raw values, the native implementation should preserve that reconstruction boundary.
+
+Examples:
+
+```text
+cursor item
+    deserialize ID/known
+    -> install through held-item/cursor subsystem
+
+interrupt tick
+    deserialize
+    -> restore through timer subsystem
+
+gameplay tick
+    deserialize
+    -> restore + synchronize maintenance baseline
+
+renderer/light controls
+    deserialize
+    -> rebuild/refresh relevant render state
+
+saved level ID
+    deserialize
+    -> activate through normal level loader
+```
+
+This prevents save loading from bypassing side effects required to make semantic runtime state consistent with the serialized values.
+
+## 46. Required persistence regression classes
+
+### 46.1 Exact fixture parse
+
+For supplied `SAVE.DAT`, verify:
+
+```text
+size                   0x2448
+live effect count      0
+active party bytes     0x920
+container bank         0x3AA
+roster                  10 * 0x248
+trailing contexts      16 bytes
+final cursor            exact EOF
+```
+
+### 46.2 Variable-length saves
+
+Construct saves with live-effect counts:
+
+```text
+0
+1
+representative middle value
+0x96 maximum
+```
+
+and verify every following field shifts by exactly:
+
+```text
+count * 0x16
+```
+
+without changing its own serialized width.
+
+### 46.3 Active-party round trip
+
+For all four `0x248` records, require byte-preserving round trip including:
+
+- empty-slot records;
+- dead characters;
+- status bits;
+- unknown bytes;
+- reserved terminal region.
+
+### 46.4 CHARS compatibility
+
+Verify:
+
+```text
+SAVE active-party block
+    can be represented as same four 0x248 images
+
+CHARS
+    is exactly those four images only
+```
+
+without accidentally copying SAVE-global state into the transfer file.
+
+### 46.5 Time domains
+
+Save/load independently varied:
+
+```text
+F58C interrupt ticks
+A7E4 gameplay ticks
+CF4C time of day
+```
+
+and prove one does not overwrite/derive the other.
+
+### 46.6 Absolute deadlines
+
+Construct character effect/hand deadlines around the saved `A7E4` value and verify expiry ordering after reload, including unsigned/wrapped boundary cases where used by the original routine.
+
+### 46.7 Cursor-held item
+
+Save:
+
+```text
+empty
+known item
+unknown item
+```
+
+and verify semantic cursor image/state is rebuilt through the ordinary installation path.
+
+### 46.8 Containers
+
+For every descriptor state `0..61`:
+
+- use its exact slot count;
+- preserve `-1` empty sentinel;
+- preserve state byte;
+- round-trip nested object IDs.
+
+Maintain an explicit state-61/selector-62 fixture and do **not** auto-repair it in faithful mode.
+
+### 46.9 Renderer controls
+
+Vary `F920/F91C`, load, and verify subsequent palette/light reconstruction starts from the serialized values.
+
+### 46.10 Charged-device vector
+
+Round-trip all 15 bytes independently of character inventory placement.
+
+### 46.11 Roster
+
+Round-trip ten complete distinct character records and verify active-party records remain an independent four-record block.
+
+### 46.12 UI contexts
+
+Test all four contexts with:
+
+```text
+inactive -1 form
+opening phases 0..2
+fully open phase 3
+closing transition state
+```
+
+and preserve signed-byte sentinels.
+
+### 46.13 Quicksave slot
+
+Verify transaction:
+
+```text
+current LEV snapshot
+WORK\SAVE.DAT
+clear SAVE00
+WORK\*.* -> SAVE00
+```
+
+### 46.14 Normal save slots
+
+For visible rows 0..9, verify directory mapping:
+
+```text
+0 -> SAVE01
+...
+8 -> SAVE09
+9 -> SAVE10
+```
+
+### 46.15 Slot replacement
+
+Seed a destination slot with a stale `LEVxxx.DAT` not present in WORK.
+
+After save, prove that stale file no longer exists.
+
+This specifically tests the FCB-delete-before-copy semantics.
+
+### 46.16 Load replacement
+
+Seed WORK with a stale level snapshot not present in selected SAVE slot.
+
+After load-copy, prove the stale file has been removed before selected slot files are restored.
+
+### 46.17 Post-load level activation
+
+After selecting a save with a mutable current-level `LEVnnn.DAT`, verify:
+
+```text
+SAVE current level ID
++
+restored WORK\LEVnnn.DAT
+```
+
+produce the saved mutable world, not the compact `LEVELS.DAT` baseline.
+
+### 46.18 Failure injection
+
+Inject:
+
+- SAVE short write;
+- source open failure;
+- destination creation failure;
+- destination short write;
+- missing slot directory.
+
+Verify the original success/failure contract and prevent partial state from being treated as a valid save.
+
+## 47. Preservation/repacker rules
+
+A lossless SAVE tool must preserve:
+
+- the complete 50-byte description;
+- all 256 global event bits;
+- complete 32-bit coordinates/facing;
+- all three time domains;
+- cursor item plus known flag;
+- every byte of all fourteen serialized `0x248` character images;
+- variable transient-effect record count and raw fields;
+- spell-interface selections;
+- all 62 container states;
+- the selector-62 mismatch;
+- both renderer controls;
+- all 15 charge bytes;
+- four trailing container UI contexts.
+
+A complete **slot** preservation tool must additionally preserve every file in the selected `SAVE##` directory, not merely `SAVE.DAT`.
+
+## 48. Correction C-09 — SAVE.DAT alone is not a complete Ravenloft save slot
+
+Any documentation, converter, or native architecture that treats:
+
+```text
+SAVE.DAT == complete saved game
+```
+
+is incomplete.
+
+The executable-proven user-save model is:
+
+```text
+SAVE##\
+    SAVE.DAT
+    LEVnnn.DAT snapshots
+    other WORK files included by wildcard copy
+```
+
+and load restores the complete directory snapshot into `WORK` before runtime reconstruction. [Canonical SAVE slot workflow](https://github.com/Hyperbog/RLOFT/blob/5b475da87b26903b570a99d69c697bd61da4b352/DatFiles/SAVE.DAT/SAVE_SLOT_WORKFLOW.md)
+
+This is a newly closed architectural correction from the preservation pass.
+
+## 49. Correction C-10 — a loaded save is restored through WORK, not read in-place from SAVE##
+
+The numbered slot is not the runtime's active backing store.
+
+The executable explicitly performs:
+
+```text
+selected SAVE## directory
+       |
+       | wildcard copy after clearing WORK
+       v
+WORK
+       |
+       +--> WORK\SAVE.DAT
+       +--> WORK\LEVnnn.DAT
+       |
+       v
+runtime loader
+```
+
+[Canonical SAVE slot workflow](https://github.com/Hyperbog/RLOFT/blob/5b475da87b26903b570a99d69c697bd61da4b352/DatFiles/SAVE.DAT/SAVE_SLOT_WORKFLOW.md)
+
+A faithful native port can abstract this physical copy, but its logical ownership should preserve a mutable working state distinct from an immutable selected-slot snapshot.
+
+## 50. Historical unknowns retained
+
+The supplied-build persistence system is structurally closed, but these narrower historical questions remain:
+
+1. original DreamForge source-level names for the four shared prefix state values at SAVE `+0x62..+0x6B`;
+2. exact historical purpose/caller meaning of the serializer's special `slot == -1` five-byte `TEMP` label path;
+3. historical source names for transient-effect types 5 and 7 and several auxiliary/packed fields;
+4. historical source-level explanation for the container state-61 / selector-62 mismatch;
+5. exact player-facing/source names for character status bit `0x2000` and low bits `0x0001..0x0020`;
+6. semantic identity of serialized character dword `+0x1BA`;
+7. historical source names for the three paired post-effect timed slots/auxiliary quantities;
+8. whether any shipped variant used more working-file classes inside save slots than the supplied build demonstrates.
+
+These remain explicit `UNKNOWN` or bounded legacy states. They are not license to normalize the serialized bytes.
+
+## 51. Source ledger
+
+### SAVE/DAT reconstruction
+
+- [DatFiles/SAVE.DAT/README.md](https://github.com/Hyperbog/RLOFT/blob/cb4fbbc63b4306d8e9523eb4fef368229332f865/DatFiles/SAVE.DAT/README.md)
+- [DatFiles/SAVE.DAT/FINAL_AUDIT_2026-10-06.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/FINAL_AUDIT_2026-10-06.md)
+- [DatFiles/SAVE.DAT/GLOBAL_STATE.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+- [DatFiles/SAVE.DAT/PREFIX_GLOBALS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/PREFIX_GLOBALS.md)
+- [DatFiles/SAVE.DAT/CHARACTER_RECORD.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/CHARACTER_RECORD.md)
+- [DatFiles/SAVE.DAT/STATUS_WORD.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/STATUS_WORD.md)
+- [DatFiles/SAVE.DAT/POST_INVENTORY_STATE.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/POST_INVENTORY_STATE.md)
+- [DatFiles/SAVE.DAT/POST_EFFECT_TIMERS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/POST_EFFECT_TIMERS.md)
+- [DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md)
+- [DatFiles/SAVE.DAT/SAVE_SLOT_WORKFLOW.md](https://github.com/Hyperbog/RLOFT/blob/5b475da87b26903b570a99d69c697bd61da4b352/DatFiles/SAVE.DAT/SAVE_SLOT_WORKFLOW.md)
+
+### Runtime/module transition evidence
+
+- [Runtime/CHARS_XREF_RECONSTRUCTION.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Runtime/CHARS_XREF_RECONSTRUCTION.md)
+- [Runtime/STATE_TRANSITION_PROTOCOL.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Runtime/STATE_TRANSITION_PROTOCOL.md)
+- [Runtime/README.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Runtime/README.md)
+
+### Executable reconstruction
+
+- [Code2/Code2.cpp](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/Code2.cpp)
+- [Code2/FINAL_SEMANTIC_AUDIT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_SEMANTIC_AUDIT.md)
+- [Code2/FINAL_CERTIFICATION.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_CERTIFICATION.md)
+
+### Cross-component ownership
+
+- [Component 01 — executable/module cycle](https://github.com/Hyperbog/RLOFT/blob/5feafdf672b64c5065bced86d4a8b7d579c60679/PreservationArchive/01_EXECUTABLE_CONTAINER_AND_MODULE_CYCLE.md)
+- [Component 05 — world/LEV state](https://github.com/Hyperbog/RLOFT/blob/5ad18eff1519ec6b98470095aa18baf5f082c6cc/PreservationArchive/05_WORLD_LEVEL_STATE_AND_EVENTS.md)
+- [Component 07 — input/UI/save command](https://github.com/Hyperbog/RLOFT/blob/5c5520783c781321b210e5cee8f07598fec45279/PreservationArchive/07_INPUT_UI_MENU_AND_INVENTORY_ARCHITECTURE.md)
+
+## 52. Architectural checkpoint
+
+The persistence foundation is now:
+
+```text
+                         LIVE GAME
+                             |
+          +------------------+-------------------+
+          |                                      |
+          v                                      v
+     global/party state                     current level state
+          |                                      |
+          v                                      v
+   WORK\SAVE.DAT                         WORK\LEVnnn.DAT
+          |                                      |
+          +------------------+-------------------+
+                             |
+                             | wildcard directory snapshot
+                             v
+               SAVE00 / SAVE01..SAVE10
+
+
+SAVE.DAT
+    |
+    +-- description
+    +-- 256 global event bits
+    +-- current level
+    +-- party transform
+    +-- interrupt tick
+    +-- time of day
+    +-- cursor-held item
+    +-- active party 4 * 0x248
+    +-- class-3 transient effects
+    +-- spell UI selections
+    +-- gameplay tick
+    +-- 62 persistent containers
+    +-- environment/light controls
+    +-- 15 charged-device counters
+    +-- saved roster 10 * 0x248
+    +-- four party container UI contexts
+
+
+LOAD
+    SAVE##
+       |
+       | clear/replace WORK
+       v
+    WORK
+       |
+       +-- deserialize SAVE.DAT
+       +-- rebuild semantic subsystems
+       +-- activate saved current level
+               |
+               +-- standalone LEV if restored
+               +-- compact LEVELS fallback otherwise
+
+
+CHARS
+    remains separate:
+    transient 0x920 CODE.1 -> CODE.2 party transfer
+```
+
+The next preservation component should document the **party and character gameplay model itself**: race/sex/class identity, class combinations and levels, ability scores, HP/AC, age, alignment, status flags, recruited versus original party membership, spell matrices, primary/timed effects, character progression, and the exact live-state rules that the SAVE serializer preserves.
