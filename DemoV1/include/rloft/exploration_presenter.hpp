@@ -16,10 +16,14 @@ struct ExplorationSurfaceCoverage final {
     std::size_t fallback_main_runs{};
     std::size_t sintab_main_runs_pending{};
     std::size_t sintab_prepass_runs_pending{};
+    std::size_t type7_scene_calls_pending{};
+    std::size_t type7_visible_columns_pending{};
 
     [[nodiscard]] bool complete() const noexcept {
         return sintab_main_runs_pending == 0 &&
-               sintab_prepass_runs_pending == 0;
+               sintab_prepass_runs_pending == 0 &&
+               type7_scene_calls_pending == 0 &&
+               type7_visible_columns_pending == 0;
     }
 };
 
@@ -44,8 +48,8 @@ public:
     // persistent HUD base, upper environment/fill, lower gradient fill,
     // available surface columns, and read-only party panels.
     //
-    // SINTAB generated-rasterizer runs are intentionally counted rather than
-    // approximated. They remain pending until their bytecode semantics can be
+    // SINTAB generated-rasterizer runs and visible RES3/type-7 scene calls
+    // are counted rather than approximated. They remain pending until their bytecode semantics can be
     // validated against canonical SINTAB bytes.
     [[nodiscard]] ExplorationPresentedFrame present(
         const ExplorationRuntimeFrame& frame,
