@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include "rloft/game_source.hpp"
@@ -20,6 +21,11 @@ struct Type1Raster {
     std::vector<std::uint8_t> pixels;
 };
 
+struct Type2Font {
+    std::array<std::uint8_t, 128> widths{};
+    Type1Raster raster;
+};
+
 class ResArchive final {
 public:
     explicit ResArchive(std::vector<std::uint8_t> bytes);
@@ -27,6 +33,7 @@ public:
     [[nodiscard]] int entry_count() const noexcept;
     [[nodiscard]] std::vector<std::uint8_t> entry(int index) const;
     [[nodiscard]] Type1Raster decode_type1(int index) const;
+    [[nodiscard]] Type2Font decode_type2(int index) const;
 
 private:
     std::vector<std::uint8_t> bytes_;
@@ -40,6 +47,8 @@ public:
     [[nodiscard]] const GameSource& source() const noexcept { return source_; }
     [[nodiscard]] Type1Raster type1(int archive, int index) const;
     [[nodiscard]] Type1Raster res0_type1(int index) const;
+    [[nodiscard]] Type2Font res0_font(int index) const;
+    [[nodiscard]] std::string text(int index) const;
     [[nodiscard]] Palette6 colors_palette(int index, int brightness = 0) const;
 
 private:
@@ -48,6 +57,7 @@ private:
     ResArchive res1_;
     ResArchive res7_;
     std::vector<std::uint8_t> colors_;
+    std::vector<std::uint8_t> text_;
 };
 
 }  // namespace rloft
