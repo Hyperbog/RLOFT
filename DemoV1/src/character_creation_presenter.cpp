@@ -583,6 +583,77 @@ void CharacterCreationPresenter::screen(
     throw std::logic_error("unsupported character controller state");
 }
 
+void CharacterCreationPresenter::final_decision_screen(
+    const CharacterCreationFlow& flow,
+    const CharacterStatsModel& stats) {
+    if (flow.state() != CharacterCreationState::StatsReview) {
+        throw std::logic_error(
+            "final decision is only valid from CODE.1 mode 6");
+    }
+
+    static constexpr std::array<int, 9> row{
+        13, 67, 91, 91, 67, 13, 91, 91, 91
+    };
+    static constexpr std::array<int, 9> column{
+        3, 56, 109, 162, 215, 268, 83, 136, 189
+    };
+
+    // function_3138 temporarily presents mode 7 with arg=6:
+    // persistent summary through the stats panel, plus RES7:2F/30.
+    draw_controller_base(
+        CharacterCreationState::StatsReview,
+        assets_.text(0x2D));
+    draw_persistent_summary(flow.draft(), 5);
+    draw_stats_panel(
+        flow.draft(), stats, 0x114, 0x10C, -1);
+
+    draw_frame(7, 0x2F, 0, row[2], column[2]);
+    draw_frame(7, 0x30, 0, row[3], column[3]);
+}
+
+void CharacterCreationPresenter::name_entry_screen(
+    const CharacterCreationFlow& flow,
+    const CharacterStatsModel& stats,
+    const std::string& name,
+    bool cursor_on) {
+    if (flow.state() != CharacterCreationState::StatsReview) {
+        throw std::logic_error(
+            "name entry is only valid from CODE.1 mode 6");
+    }
+
+    // function_3020: mode-6 staged summary, T[46] title, and the center
+    // RES7:14 card at 5Bh/88h.
+    draw_controller_base(
+        CharacterCreationState::StatsReview,
+        assets_.text(0x2E));
+    draw_persistent_summary(flow.draft(), 5);
+    draw_stats_panel(
+        flow.draft(), stats, 0x114, 0x10C, -1);
+
+    draw_frame(7, 0x14, 0, 0x5B, 0x88);
+    draw_text_centered(0x93, 0x88, 0x30, name, 0);
+
+    if (cursor_on) {
+        const auto font = assets_.res0_font(0);
+        int width = 0;
+        for (const unsigned char ch : name) {
+            if (ch >= font.widths.size()) {
+                throw std::runtime_error(
+                    "name-entry glyph exceeds CODE.1 font table");
+            }
+            width += font.widths[ch];
+        }
+
+        const int start = 0x88 + (0x30 - width) / 2;
+        framebuffer_.fill_rect(
+            0x93,
+            start + width,
+            0x0A,
+            1,
+            0x5F);
+    }
+}
+
 void CharacterCreationPresenter::screen(CharacterCreationState state) {
     CharacterCreationFlow flow;
     if (state != CharacterCreationState::ActorChoice) {
