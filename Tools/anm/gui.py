@@ -69,6 +69,7 @@ class RavenloftExtractorGui(tk.Tk):
         self.minsize(820, 620)
         self.resizable(True, True)
         self.configure(background=BG)
+        self._resolution_scale = launch_scale
         self._user_zoom = 1.0
         self.ui_zoom_text = tk.StringVar(value="100%")
         self._ui_scale = launch_scale
@@ -138,7 +139,7 @@ class RavenloftExtractorGui(tk.Tk):
         self._build_ui()
         self._refresh_native_timing_text()
         self._tooltips = tooltips.install(self)
-        self.bind("<Configure>", self._schedule_ui_scale, add="+")
+        self.bind("<Configure>", self._on_window_configure, add="+")
         self.after(40, self._apply_ui_scale)
         self.after(100, self._poll_events)
 
@@ -290,33 +291,48 @@ class RavenloftExtractorGui(tk.Tk):
             darkcolor=ACCENT,
         )
 
-    def _schedule_ui_scale(self, event) -> None:
+    def _on_window_configure(self, event) -> None:
         if event.widget is not self:
             return
-        if self._scale_job:
-            try:
-                self.after_cancel(self._scale_job)
-            except tk.TclError:
-                pass
-        self._scale_job = self.after(70, self._apply_ui_scale)
+        width = max(1, event.width)
+        height = max(1, event.height)
+
+        # Window resizing reflows available space only. It never changes
+        # fonts, button sizes, or widget padding. Those are controlled solely
+        # by screen-resolution initialization + the explicit UI-size buttons.
+        self._resize_wraps_for_width(width)
+        self._fit_listboxes_to_height(height)
+
+        aspect_height = round(width * 150 / 1120)
+        banner_height = max(90, min(180, aspect_height))
+        if int(float(self.banner.cget("height"))) != banner_height:
+            self.banner.configure(height=banner_height)
+        self._schedule_banner()
+
+    def _fit_listboxes_to_height(self, window_height: int) -> None:
+        if window_height >= 900:
+            factor = 1.0
+        elif window_height >= 760:
+            factor = 0.78
+        else:
+            factor = 0.55
+        for box, base_height in self._scalable_listboxes:
+            rows = max(2, min(base_height, round(base_height * factor)))
+            if int(box.cget("height")) != rows:
+                box.configure(height=rows)
 
     def _apply_ui_scale(self) -> None:
-        self._scale_job = None
-        width = max(1, self.winfo_width())
-        height = max(1, self.winfo_height())
-        fit_scale = min(width / BASE_WIDTH, height / BASE_HEIGHT)
-        scale = fit_scale * self._user_zoom
+        # UI scale is resolution-tied and user-controlled. Resizing the window
+        # does not modify this value.
+        scale = self._resolution_scale * self._user_zoom
         scale = max(MIN_UI_SCALE, min(MAX_UI_SCALE, scale))
-        changed = abs(scale - self._ui_scale) >= 0.02
+        changed = abs(scale - self._ui_scale) >= 0.001
         self._ui_scale = scale
 
         if changed:
             self._apply_style_metrics(scale)
-            for box, base_height in self._scalable_listboxes:
-                box.configure(
-                    font=self._font_ui,
-                    height=max(2, round(base_height * scale)),
-                )
+            for box, _base_height in self._scalable_listboxes:
+                box.configure(font=self._font_ui)
             for widget, base_padding in self._padding_widgets:
                 scaled = tuple(max(0, round(value * scale)) for value in base_padding)
                 try:
@@ -324,10 +340,8 @@ class RavenloftExtractorGui(tk.Tk):
                 except tk.TclError:
                     pass
 
-        banner_height = max(90, round(BASE_BANNER_HEIGHT * scale))
-        if int(float(self.banner.cget("height"))) != banner_height:
-            self.banner.configure(height=banner_height)
-        self._resize_wraps_for_width(width)
+        self._resize_wraps_for_width(max(1, self.winfo_width()))
+        self._fit_listboxes_to_height(max(1, self.winfo_height()))
         self._schedule_banner()
 
     def _set_user_zoom(self, value: float) -> None:
@@ -351,22 +365,36 @@ class RavenloftExtractorGui(tk.Tk):
         if self._banner_source is not None:
             return self._banner_source
 
-        def load(name: str, mode: str) -> Image.Image:
+        def load_rgb(name: str) -> Image.Image:
             path = runtime_paths.bundled_path(f"assets/{name}")
             if path is None:
                 raise RuntimeError(f"baked Strahd banner asset missing: {name}")
             with Image.open(path) as source:
-                return source.convert(mode)
+                return source.convert("RGB")
 
-        frame = load("strahd_frame_main.png", "RGB")
-        parchment = load("strahd_parchment.png", "RGB")
-        baked = load("strahd_banner.webp", "RGB")
+        frame = load_rgb("strahd_frame_main.png")
+        parchment = load_rgb("strahd_parchment.png")
+
+        logo_path = runtime_paths.bundled_path("assets/strahd_title_logo.png")
+        if logo_path is None:
+            raise RuntimeError("baked Strahd banner asset missing: strahd_title_logo.png")
+        with Image.open(logo_path) as source:
+            if source.mode == "P":
+                indexed = source.copy()
+                logo = source.convert("RGBA")
+                # Original RES0:99 surrounding field is palette index 160.
+                alpha = indexed.point(
+                    lambda value: 0 if value == 160 else 255,
+                    mode="L",
+                )
+                logo.putalpha(alpha)
+            else:
+                logo = source.convert("RGBA")
 
         width, height = 1120, 150
         banner = Image.new("RGB", (width, height), BG)
 
-        # Tile only parchment in the center. Ornate side columns must never be
-        # repeated through the background.
+        # Parchment is the only repeated artwork in the banner.
         for y in range(0, height, parchment.height):
             for x in range(0, width, parchment.width):
                 tile = parchment.crop(
@@ -379,31 +407,25 @@ class RavenloftExtractorGui(tk.Tk):
             0.48,
         )
 
-        # Clean gray top/bottom rails first.
+        # Plain rails first.
         rail = (75, 75, 75)
         top_h = bottom_h = 14
         banner.paste(rail, (0, 0, width, top_h))
         banner.paste(rail, (0, height - bottom_h, width, height))
 
-        # Exactly one column on each side, layered after the rails so neither
-        # can disappear behind the gray strips.
+        # Exactly one ornate column on each side, drawn after the rails so the
+        # right column cannot disappear behind the gray strip.
         side_w = min(32, frame.width // 4)
-        left = frame.crop((0, 0, side_w, min(frame.height, height)))
-        right = frame.crop(
-            (frame.width - side_w, 0, frame.width, min(frame.height, height))
-        )
+        side_h = min(height, frame.height)
+        left = frame.crop((0, 0, side_w, side_h))
+        right = frame.crop((frame.width - side_w, 0, frame.width, side_h))
         banner.paste(left, (0, 0))
         banner.paste(right, (width - side_w, 0))
 
-        # The standalone logo PNG inherited from the earlier build is damaged.
-        # The complete baked banner is valid, so take only its known-good
-        # central 240x114 crest region. The background underneath comes from
-        # the same parchment treatment and aligns at the original coordinates.
-        logo_w, logo_h = 240, 114
-        logo_x = (width - logo_w) // 2
-        logo_y = (height - logo_h) // 2
-        crest = baked.crop((logo_x, logo_y, logo_x + logo_w, logo_y + logo_h))
-        banner.paste(crest, (logo_x, logo_y))
+        # Correct palette-12 logo above all other layers.
+        logo_x = (width - logo.width) // 2
+        logo_y = (height - logo.height) // 2
+        banner.paste(logo, (logo_x, logo_y), logo)
 
         self._banner_source = banner
         return self._banner_source
