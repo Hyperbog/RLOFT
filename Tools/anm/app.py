@@ -36,23 +36,15 @@ def _self_test() -> int:
     import rloft_anm  # noqa: F401
     import support_dumper  # noqa: F401
     import tooltips  # noqa: F401
+    import title_skin  # noqa: F401
     import xmidi  # noqa: F401
 
     try:
-        required_assets = {
-            "assets/strahd_frame_main.png": b"\x89PNG\r\n\x1a\n",
-            "assets/strahd_parchment.png": b"\x89PNG\r\n\x1a\n",
-            "assets/strahd_banner.webp": b"RIFF",
-        }
-        for required, signature in required_assets.items():
-            asset = runtime_paths.bundled_path(required)
-            if asset is None:
-                return 20
-            data = asset.read_bytes()
-            if len(data) < 24 or not data.startswith(signature):
-                return 24
-            if required.endswith(".webp") and data[8:12] != b"WEBP":
-                return 24
+        skin = title_skin.render_window(900, 680, 1.0)
+        if skin.size != (900, 680) or skin.mode != "RGB":
+            return 24
+        if title_skin.menu_panel().size != (208, 191):
+            return 24
     except Exception:
         return 24
     ffmpeg = runtime_paths.bundled_path("ffmpeg.exe" if os.name == "nt" else "ffmpeg")
