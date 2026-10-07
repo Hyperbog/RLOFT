@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <unordered_map>
 #include <vector>
 
 #include "rloft/exploration_runtime_motion.hpp"
@@ -19,6 +20,7 @@
 #include "rloft/scene_source_banks.hpp"
 #include "rloft/world_scene_record.hpp"
 #include "rloft/world_scene_draw_calls.hpp"
+#include "rloft/world_scene_render_plan.hpp"
 #include "rloft/world_scene_selection.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/exploration_scene.hpp"
@@ -37,6 +39,7 @@ struct ExplorationRuntimeFrame final {
     std::vector<ViewSweepRecord> sweep_records;
     std::vector<WorldSceneRecord> world_scene_records;
     std::vector<WorldSceneDrawCall> world_scene_draw_calls;
+    std::vector<WorldSceneRenderPlan> world_scene_render_plans;
     std::vector<ViewSweepRun> sweep_runs;
     SurfaceShadeTable surface_shades{};
     std::vector<SurfacePrepassPlan> prepass_plans;
@@ -121,6 +124,7 @@ private:
     SceneSourceBanks scene_source_banks_{};
     PlacedSceneCatalog placed_scene_catalog_{};
     std::optional<ResArchive> scene_shape_archive_;
+    std::unordered_map<std::uint16_t, Type7SceneShape> scene_shape_cache_;
     OriginalRandom original_random_{};
     LevelWorldState world_{};
     InventoryRuntimeState inventory_{};
