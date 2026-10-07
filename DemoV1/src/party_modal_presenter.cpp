@@ -17,7 +17,8 @@ PartyModalPresenter::PartyModalPresenter(
               assets.source().read("CODE.2"))),
       res0_base_(assets.init_u16(0x00)),
       res1_object_base_(assets.init_u16(0x02)),
-      res1_portrait_base_(assets.init_u16(0x04)) {}
+      res1_portrait_base_(assets.init_u16(0x04)),
+      font1_(assets.res0_font(1)) {}
 
 void PartyModalPresenter::draw_res0_local(
     IndexedFramebuffer& framebuffer,
@@ -61,6 +62,15 @@ void PartyModalPresenter::draw_actor_base(
         0,
         0,
         column);
+
+    // 0FF3C -> 40508(2,dst,50h,name,1): centered actor name.
+    IndexedFontPresenter::draw_centered(
+        framebuffer,
+        font1_,
+        2,
+        column,
+        0x50,
+        actor.name);
 
     const auto hud =
         PartyHudModel::panel(
@@ -211,6 +221,65 @@ std::size_t PartyModalPresenter::draw_inventory(
     return mirrored_pending;
 }
 
+void PartyModalPresenter::draw_character_centered_text(
+    IndexedFramebuffer& framebuffer,
+    const CharacterSheet& sheet) const {
+    const int column =
+        static_cast<int>(sheet.actor_index) * 0x50;
+
+    // Every line here is emitted through app22_draw_40508 in CODE.2 10158:
+    // row, actor-column base, 50h span, and font selector 1.
+    IndexedFontPresenter::draw_centered(
+        framebuffer, font1_,
+        0x126, column, 0x50,
+        assets_.text(0x3A));
+    IndexedFontPresenter::draw_centered(
+        framebuffer, font1_,
+        0x15B, column, 0x50,
+        assets_.text(0x3B));
+
+    std::string classes;
+    std::string levels =
+        assets_.text(0x3C) + "  ";
+    bool first = true;
+    for (const auto& track : sheet.classes) {
+        if (!track.present()) continue;
+        if (!first) {
+            classes += "/";
+            levels += "/";
+        }
+        classes += assets_.text(
+            track.text_resource_index());
+        levels += std::to_string(track.level);
+        first = false;
+    }
+
+    IndexedFontPresenter::draw_centered(
+        framebuffer, font1_,
+        0x7B, column, 0x50,
+        classes);
+    IndexedFontPresenter::draw_centered(
+        framebuffer, font1_,
+        0x88, column, 0x50,
+        levels);
+    IndexedFontPresenter::draw_centered(
+        framebuffer, font1_,
+        0x95, column, 0x50,
+        assets_.text(
+            sheet.alignment_text_resource_index()));
+
+    const auto race_sex =
+        assets_.text(
+            sheet.race_text_resource_index()) +
+        " " +
+        assets_.text(
+            sheet.sex_text_resource_index());
+    IndexedFontPresenter::draw_centered(
+        framebuffer, font1_,
+        0xA2, column, 0x50,
+        race_sex);
+}
+
 PartyModalCoverage PartyModalPresenter::draw(
     IndexedFramebuffer& framebuffer,
     const PartyImage& party,
@@ -248,14 +317,22 @@ PartyModalCoverage PartyModalPresenter::draw(
             static_cast<int>(actor_index) *
             0x50;
         if (character_mode[actor_index]) {
-            // 10158 begins with local RES0 24h at row 45h, column dst+38h,
-            // followed by the class/level/race/sex/stat/HP/XP text families.
+            // 10158 begins with local RES0 24h at row 45h, column dst+38h.
             draw_res0_local(
                 framebuffer,
                 0x24,
                 0,
                 0x45,
                 column + 0x38);
+
+            draw_character_centered_text(
+                framebuffer,
+                CharacterSheetModel::actor(
+                    party,
+                    actor_index));
+
+            // Ability columns plus AC/HP/XP use 405A8/4060C/403C8 and
+            // derived helpers that remain separately bounded.
             ++coverage.character_text_columns_pending;
         } else {
             coverage.mirrored_equipment_draws_pending +=

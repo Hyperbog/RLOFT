@@ -4,7 +4,9 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "rloft/character_sheet.hpp"
 #include "rloft/exploration_hud_presenter.hpp"
+#include "rloft/indexed_font_presenter.hpp"
 #include "rloft/inventory_screen.hpp"
 #include "rloft/object_catalog.hpp"
 #include "rloft/party_presentation.hpp"
@@ -59,12 +61,17 @@ private:
         IndexedFramebuffer& framebuffer,
         const PartyActorPresentation& actor) const;
 
+    void draw_character_centered_text(
+        IndexedFramebuffer& framebuffer,
+        const CharacterSheet& sheet) const;
+
     const RavenloftBootAssets& assets_;
     ObjectCatalog objects_;
     ExplorationHudPresenter::PortraitMaps portrait_maps_{};
     std::uint16_t res0_base_{};
     std::uint16_t res1_object_base_{};
     std::uint16_t res1_portrait_base_{};
+    Type2Font font1_{};
 };
 
 }  // namespace rloft
