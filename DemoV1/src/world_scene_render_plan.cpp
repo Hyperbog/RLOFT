@@ -40,12 +40,24 @@ WorldSceneRenderPlanModel::build(
             out.push_back(std::move(plan));
             continue;
         }
-        plan.visible_columns =
-            Type7ColumnTraversalModel::visible_columns(
+        plan.visible_runs =
+            Type7ColumnTraversalModel::visible_runs(
                 plan.traversal,
                 static_cast<int>(call.screen_x),
                 call.raw_depth,
                 rays);
+        // Keep the exact 36B14 dispatch grouping, but expand each accepted
+        // run into individual destinations for the descriptor/span planner.
+        for (const auto& run : plan.visible_runs) {
+            for (std::size_t i = 0U; i < run.width; ++i) {
+                plan.visible_columns.push_back(
+                    Type7VisibleColumn{
+                        run.source_x,
+                        run.source_column_index,
+                        run.viewport_x + i,
+                    });
+            }
+        }
         plan.microcode_draws =
             Type7MicrocodePlanModel::build(
                 shape,
