@@ -23,6 +23,7 @@
 #include "rloft/boot_flow.hpp"
 #include "rloft/character_creation_flow.hpp"
 #include "rloft/character_creation_presenter.hpp"
+#include "rloft/character_stats.hpp"
 #include "rloft/game_source.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
@@ -359,6 +360,14 @@ Clock::duration code1_ticks(int ticks) {
     // a faster service interrupt. 87D8(2,0) therefore waits two BIOS ticks.
     return std::chrono::duration_cast<Clock::duration>(
         std::chrono::microseconds(54925LL * ticks));
+}
+
+std::uint32_t code1_tick_count(Clock::time_point epoch) {
+    const auto elapsed =
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            Clock::now() - epoch);
+    return static_cast<std::uint32_t>(
+        elapsed.count() / 54925LL);
 }
 
 bool code1_palette_reveal(
@@ -746,6 +755,7 @@ int run(HINSTANCE instance) {
                 rloft::CharacterCreationPresenter character_presenter(assets);
                 const auto character_palette = character_presenter.palette();
                 rloft::Palette6 black{};
+                const auto code1_epoch = Clock::now();
 
                 SetWindowTextW(
                     host.hwnd(),
@@ -776,22 +786,94 @@ int run(HINSTANCE instance) {
                 }
 
                 rloft::CharacterCreationFlow character_flow;
-                character_presenter.screen(character_flow);
-                host.present(
-                    character_presenter.framebuffer(),
-                    character_palette);
+                rloft::CharacterStatsModel character_stats(assets);
+                bool stats_ready = false;
+                bool stats_editor = false;
+                int selected_stat = -1;
+
+                auto render_character = [&]() {
+                    character_presenter.screen(
+                        character_flow,
+                        stats_ready ? &character_stats : nullptr,
+                        selected_stat,
+                        stats_editor);
+                    host.present(
+                        character_presenter.framebuffer(),
+                        character_palette);
+                };
+
+                render_character();
                 host.set_character_mode(true);
 
-                // CODE.1 043C/035C input path: wait for a mouse event, convert
-                // to the 320x400 logical coordinates, then resolve the exact
-                // six slot rectangles plus the fixed cancel rectangle.
+                // CODE.1 043C/035C input path. Mode 6 changes the scan range
+                // from slots 0..5 to 6..8; its event 9 opens the 3C58 editor.
                 while (host.pump()) {
                     if (const auto point = host.consume_character_click()) {
+                        const auto state = character_flow.state();
                         const int event =
                             rloft::CharacterCreationFlow::hit_test(
-                                character_flow.state(),
+                                state,
                                 point->row,
                                 point->column);
+
+                        if (state ==
+                                rloft::CharacterCreationState::StatsReview &&
+                            stats_ready) {
+                            if (stats_editor) {
+                                if (event == 0) {
+                                    stats_editor = false;
+                                    selected_stat = -1;
+                                    render_character();
+                                } else if (event == 8) {
+                                    const int q =
+                                        (point->row - 0x60) / 10;
+                                    selected_stat =
+                                        (q >= 0 && (q < 6 || q == 10))
+                                            ? q
+                                            : -1;
+                                    render_character();
+                                } else if (event == 7 &&
+                                           selected_stat != -1) {
+                                    character_stats.adjust(
+                                        character_flow.draft(),
+                                        selected_stat,
+                                        true);
+                                    render_character();
+                                } else if (event == 9 &&
+                                           selected_stat != -1) {
+                                    character_stats.adjust(
+                                        character_flow.draft(),
+                                        selected_stat,
+                                        false);
+                                    render_character();
+                                }
+                            } else {
+                                if (event == 0 &&
+                                    character_flow.apply_event(0)) {
+                                    stats_ready = false;
+                                    selected_stat = -1;
+                                    render_character();
+                                } else if (event == 7) {
+                                    // function_40FC rerolls through 3884 without
+                                    // reseeding the 618A generator.
+                                    character_stats.generate(
+                                        character_flow.draft());
+                                    render_character();
+                                } else if (event == 9) {
+                                    stats_editor = true;
+                                    selected_stat = -1;
+                                    render_character();
+                                } else if (event == 8) {
+                                    // Final accept/delete and name entry are
+                                    // the next certified sub-controller.
+                                    SetWindowTextW(
+                                        host.hwnd(),
+                                        L"Ravenloft: Strahd's Possession — "
+                                        L"Character Creation (final decision)");
+                                }
+                            }
+                            continue;
+                        }
 
                         if (event >= 0 &&
                             character_flow.apply_event(event)) {
@@ -802,20 +884,17 @@ int run(HINSTANCE instance) {
 
                             if (character_flow.state() ==
                                 rloft::CharacterCreationState::StatsReview) {
-                                SetWindowTextW(
-                                    host.hwnd(),
-                                    L"Ravenloft: Strahd's Possession — "
-                                    L"Character Creation (stats review)");
-                                // Modes 0..5 are now integrated. Stop input at
-                                // the exact mode-6 boundary until 40FC is
-                                // reproduced rather than drawing a fake screen.
-                                host.set_character_mode(false);
-                            } else {
-                                character_presenter.screen(character_flow);
-                                host.present(
-                                    character_presenter.framebuffer(),
-                                    character_palette);
+                                // function_40FC seeds once from the CODE.1
+                                // INT-8 tick counter and calls 3884.
+                                character_stats.seed(
+                                    code1_tick_count(code1_epoch));
+                                character_stats.generate(
+                                    character_flow.draft());
+                                stats_ready = true;
+                                stats_editor = false;
+                                selected_stat = -1;
                             }
+                            render_character();
                         }
                     }
 
