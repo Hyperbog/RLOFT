@@ -288,3 +288,49 @@ Where official documentation or developer testimony supplies information absent 
 Where community researchers discovered something first, they will be credited and their result will be independently checked before promotion.
 
 The next document begins with the executable/runtime foundation and reconstructs the startup/container relationship without importing assumptions from the previous `TechnicalArchive/` narrative.
+
+
+---
+
+## 10. Documentation separation after the faithful native port
+
+This historical preservation archive documents the **original Ravenloft implementation and evidence**. It must remain conceptually separate from the architecture of the future native C++ port and from later remaster features.
+
+Once the faithful native port is functionally complete, and **before** intentional modernization/remastering begins, the project should freeze a faithful-port revision and create a second documentation body provisionally titled:
+
+> **Faithful Native Port — Architecture and Compatibility Certification**
+
+That implementation archive should document how the new C++ code reproduces the behavior established here while consuming the original Ravenloft data/resource files. It should include, at minimum:
+
+- original file -> native reader/decoder mappings;
+- original executable routine/address -> native C++ subsystem/function mappings;
+- DAT/RES/ANM/T/INIT/etc. serialized structure -> C++ type mappings;
+- original resource IDs and namespace translations;
+- CODE.1/CODE.2 process/module behavior -> native state-machine implementation;
+- CHARS compatibility serialization -> native party-transfer implementation;
+- renderer, input, timing, audio, event, save/load, party, world, and UI subsystem ownership;
+- preserved bugs/quirks and the tests that prove them;
+- places where host implementation differs internally while preserving observable legacy behavior;
+- byte-level, state-trace, rendering, and gameplay regression evidence;
+- extension points reserved for later modernization.
+
+A traceability matrix should permit a programmer to move in both directions:
+
+```text
+original evidence
+    <-> reconstructed historical behavior
+    <-> faithful native C++ implementation
+    <-> regression/compatibility test
+```
+
+Only after that faithful-port architecture is documented and its revision frozen should the project begin a third documentation layer for intentional modernization/remaster behavior.
+
+The permanent conceptual separation is therefore:
+
+```text
+1. Original Ravenloft historical behavior
+2. Faithful native C++ implementation
+3. Modern remaster / Ravenloft Engine extensions
+```
+
+Modern features must not be allowed to retroactively redefine the historical archive or obscure which behavior originated in the shipped DOS game.
