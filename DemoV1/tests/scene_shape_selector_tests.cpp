@@ -1,6 +1,7 @@
 #include "rloft/scene_shape_selector.hpp"
 
 #include <cassert>
+#include <stdexcept>
 
 int main() {
     rloft::RendererTables tables{};
