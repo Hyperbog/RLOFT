@@ -1948,3 +1948,778 @@ Many mappings are one-to-many or many-to-one.
 
 A native API that uses one universal `SpellId` for all of these without explicit conversion layers will obscure original behavior.
 
+
+
+## 80. Spell state is distributed across character, global, item, NPC, and world storage
+
+No single runtime structure owns “all magic.”
+
+The recovered ownership is:
+
+```text
+character 0x248 record
+    preparation matrices
+    casting capability
+    primary effect bits/timers
+    temporary hand effects
+    effect auxiliaries
+
+SAVE-global state
+    selected caster indexes
+    shared detection counters
+    charged-device counters
+    transient effect array
+    gameplay clock
+
+OBJECTS.DAT / object state
+    scroll identity
+    wand/rod identity
+    charge-bank selector
+    equipment-derived magic source
+
+NPCS.DAT
+    target eligibility / immunity masks
+    undead classification
+
+live family-A actor
+    held / slowed runtime state
+    effect countdowns
+
+LEVELS/LEV
+    script-created class-3 effects
+    world state affected by magic
+
+T
+    spell/action/effect presentation text
+```
+
+A native subsystem can centralize orchestration while retaining these serialization ownership boundaries.
+
+## 81. Spell timing uses the SAVE-restored gameplay clock
+
+Ordinary effect expiries and temporary-hand expiries are absolute deadlines in the same gameplay-time domain:
+
+```text
+DGROUP 0xA7E4
+SAVE gameplay_tick_counter
+```
+
+[Global SAVE state](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+Therefore save/load correctness requires restoring:
+
+```text
+active bits
+absolute deadlines
+effect auxiliaries
+shared counters
+gameplay timebase
+```
+
+as a coherent set.
+
+A native engine may internally convert to relative timers, but legacy import/export and compatibility traces must preserve the original 32-bit absolute-deadline semantics.
+
+## 82. Spell preparation and active effects are independent persistence systems
+
+The preparation matrices answer:
+
+```text
+which spell cells exist?
+how many are selected/planned?
+how many copies are ready?
+```
+
+Primary/temporary effects answer:
+
+```text
+what magic is currently affecting a character/world?
+when/how is it removed?
+what auxiliary state belongs to it?
+```
+
+Casting a spell may connect those systems, but they are not interchangeable data.
+
+The same spell identity can:
+
+- be available but not ready;
+- be ready but not active;
+- create a persistent effect;
+- create a temporary hand pseudo-item;
+- create a class-3 moving effect;
+- perform an immediate cure/status mutation;
+- invoke a special action such as Turn Undead.
+
+## 83. A faithful dispatcher should preserve the original conversion chain
+
+A suitable legacy execution chain is:
+
+```text
+source
+    prepared action
+    scroll
+    wand/device
+    special priest action
+    level event
+        |
+        v
+legacy dispatch/action identity
+        |
+        +-- immediate character operation
+        +-- primary effect producer
+        +-- temporary hand-effect producer
+        +-- class-3 transient-effect producer
+        +-- NPC target traversal
+        +-- world/script operation
+        |
+        v
+subsystem-specific persistent state
+```
+
+This avoids one overgeneralized “cast spell” function whose arguments no longer reveal the original namespaces or ownership.
+
+## 84. Suggested native magic architecture
+
+A faithful C++ implementation can expose:
+
+```text
+LegacySpellMatrix
+    exact 8x10 packed bytes
+
+SpellPreparationModel
+    family/bank/entry
+    selected count
+    ready count
+    capacity normalization
+
+LegacySpellDispatchId
+    exact compact action ID
+
+SpellActionDispatcher
+    dispatch -> original behavior family
+
+PrimaryEffectState
+    raw 26-bit mask
+    26 expiry dwords
+    effect-specific auxiliaries
+
+TemporaryHandEffectState
+    9 bits
+    9 expiries
+    pseudo-item mapping
+
+SharedMagicState
+    True Seeing
+    Detect Undead
+    Detect Magic
+    Enemy Detection counters
+
+TransientMagicEffect
+    exact 0x16 compatibility record
+
+SpellTargetPolicy
+    NPC masks
+    party eligibility
+    area/projectile traversal
+
+LegacyMagicText
+    T-index lookup
+
+MagicItemBridge
+    scrolls
+    charged devices
+    equipment-derived effects
+```
+
+These are proposed native names, not recovered DreamForge identifiers.
+
+## 85. Preserve raw matrix bytes even when a typed model exists
+
+The packed spell cells contain a legacy sentinel:
+
+```text
+low nibble 0xF
+    unavailable/non-selectable
+```
+
+and reserve banks 6/7 even though the shipped UI exposes only six spell levels.
+
+A byte-preserving compatibility object should remain available underneath any typed preparation API.
+
+Do not discard inactive/reserved cells simply because the shipped content count is zero.
+
+## 86. Preserve the priest level-loss count-table inconsistency
+
+Normal priest preparation uses:
+
+```text
+priest count table 0x6420
+[7,6,5,4,4,2,0,0]
+```
+
+but priest level-loss normalizer `0x3EB28` operates on matrix B while using the Mage-shaped table:
+
+```text
+0x6440
+[7,6,10,4,2,6,0,0]
+```
+
+[Spell matrix](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/SPELL_MATRIX.md)
+
+This is an executable inconsistency/likely legacy bug.
+
+Strict compatibility should reproduce it. A modernized rules layer may repair it only as an explicit deviation.
+
+## 87. Preserve special effect removal outside the generic timer sweep
+
+The native effect manager must have explicit paths for at least:
+
+```text
+attack:
+    break effect 5 across party
+    break actor's effect 9
+
+qualifying undead/drain hit:
+    consume effect 14
+
+qualifying cure:
+    consume effect 15
+
+equipment refresh:
+    establish/remove effect 22
+
+Stoneskin intercept:
+    consume/update effect 6 state
+
+temporary-hand expiry:
+    remove matching hand pseudo-item
+
+ordinary timer sweep:
+    common expiration + index-specific cleanup
+```
+
+Routing every effect only through:
+
+```text
+if now >= expiry:
+    clear()
+```
+
+would be historically incorrect.
+
+## 88. Required spell-matrix regression tests
+
+### 88.1 Geometry
+
+For each character require:
+
+```text
+Mage matrix    0x50 bytes
+priest matrix  0x50 bytes
+8 banks
+10 stored cells per bank
+```
+
+### 88.2 Packed nibble behavior
+
+Exercise every combination needed for:
+
+```text
+selected count
+ready count
+unavailable low-nibble 0xF
+```
+
+without destroying the other nibble.
+
+### 88.3 Entry counts
+
+Verify exact shipped active-entry arrays:
+
+```text
+Mage    [7,6,10,4,2,6,0,0]
+priest  [7,6,5,4,4,2,0,0]
+```
+
+### 88.4 Capacity normalization
+
+Construct over-capacity selected/ready values and verify the original slot-limit vector and normalization ordering.
+
+### 88.5 Reserved banks
+
+Fill banks 6/7 with nonzero synthetic bytes and require lossless SAVE/CHARS round trip even though the shipped UI does not expose them.
+
+### 88.6 Priest level-loss bug
+
+Create matrix-B data that differs between the priest/Mage count domains and verify strict mode follows the encoded Mage-shaped count table in the level-loss path.
+
+## 89. Required spell identity/dispatch regression tests
+
+### 89.1 T geometry
+
+Verify:
+
+```text
+Mage T index =
+    0x42 + bank*10 + entry
+
+priest T index =
+    0x92 + bank*10 + entry
+```
+
+against the complete certified catalogue.
+
+### 89.2 Dispatch geometry
+
+Verify:
+
+```text
+Mage dispatch =
+    bank*10 + entry
+
+priest prepared dispatch =
+    80 + bank*10 + entry
+```
+
+for every shipped active cell.
+
+### 89.3 Special priest actions
+
+Require:
+
+```text
+87 Lay Hands
+88 Turn Undead
+```
+
+to remain outside the prepared matrix count.
+
+### 89.4 Scroll convergence
+
+For representative Mage/priest scrolls verify that the physical object ID maps to the expected ordinary spell dispatch without inserting a prepared matrix copy.
+
+### 89.5 Cross-family Hold Person
+
+Verify priest scroll reuse of dispatch 25 separately from prepared-priest dispatch 92, while both converge on the same successful live-held state.
+
+## 90. Required primary-effect regression tests
+
+For each of 26 indexes verify:
+
+- bit position;
+- expiry-slot index;
+- producer;
+- ordinary/special removal class;
+- T expiration-label index where applicable;
+- index-specific cleanup.
+
+Special fixtures must include:
+
+```text
+Armor durability depletion
+Mage/Priest Light renderer rebuild
+Invisibility attack break
+Stoneskin attack interception
+Aid absorption
+Draw Upon Holy Might reversal
+Negative Plane Protection consumption
+Fortify cure maximization
+True Seeing shared counter
+Detect Undead shared counter
+Detect Magic shared counter
+Prayer party synchronization
+Shield-of-Lightning equipment derivation
+Potion Giant Strength reversal
+Potion Speed/Haste attack timing
+Enemy Detection shared counter
+```
+
+## 91. Required temporary-hand regression tests
+
+For indexes `0..8`:
+
+1. install bit/deadline;
+2. install correct pseudo-object ID;
+3. ensure normal inventory dragging rejects it;
+4. advance gameplay time to expiry;
+5. clear bit/deadline;
+6. remove the pseudo-object if still in either hand.
+
+Additionally:
+
+- Vampiric Touch successful hit must populate `+0x113`;
+- Cause Wounds/Harm must use attack delivery rather than immediate inventory-independent damage.
+
+## 92. Required shared-magic-state regression tests
+
+Construct overlapping effects on multiple characters and verify shared counters do not become simple booleans.
+
+For example:
+
+```text
+two Detect Magic sources active
+    global state reflects both
+
+one expires
+    global mode remains active
+
+second expires
+    global mode becomes inactive
+```
+
+Equivalent tests apply to:
+
+- True Seeing;
+- Detect Undead;
+- Enemy Detection.
+
+## 93. Required transient-effect regression tests
+
+### 93.1 Type map
+
+Create every directly proved type producer and require the expected numeric `effect_type`.
+
+### 93.2 Types 5 and 7
+
+Instantiate synthetic valid records and ensure descriptor/render handling preserves them even though no supplied direct producer was found.
+
+### 93.3 Coordinates
+
+Verify 16.16 coordinates, heading normalization, direction-sector packing, and cached-cell calculation.
+
+### 93.4 Type-8 lifetime
+
+Require `+0x12` initialization to the encoded `20..29` range only for the relevant constructor path and removal at zero.
+
+### 93.5 Partial initialization
+
+Pre-seed unknown auxiliary/packed bits and ensure constructor semantics modify only fields/masks actually written by the original.
+
+### 93.6 Save/load
+
+Serialize one or more active transient effects through variable-length SAVE state and require exact restoration after level activation.
+
+## 94. Required NPC-magic targeting tests
+
+Construct synthetic definitions covering each relevant mask independently and in combinations:
+
+```text
+common 0x0100
+fire   0x2000
+cold   0x0800
+lightning 0x0200
+Death Spell 0x0080
+Hold Undead 0x0002
+Hold Person 0x0008
+Hold Monster 0x0010
+Detect Undead exclusion 0x0001
+Turn Undead penalty 0x0004
+undead classification in +0x3A
+```
+
+Verify the original compound masks and do not infer broader category relationships.
+
+## 95. Required cure/status regression tests
+
+Verify exact status clear pairs:
+
+```text
+Cure Disease       clears 0x0400
+Neutralize Poison  clears 0x0800
+Remove Paralysis   clears 0x1000
+```
+
+For cure healing, test:
+
+- normal random/generated amount;
+- max-HP clamp;
+- Fortify fixed maxima `8/16/27`;
+- Fortify bit consumed exactly once.
+
+For revival, preserve the certified transition:
+
+```text
+dead occupied character
+    current_hp = 0
+    status 0x4000
+
+revived
+    current_hp = 1
+    clear 0x4000
+    remain occupied
+```
+
+## 96. Required magic-item regression tests
+
+### Scrolls
+
+Verify physical scroll consumption/use dispatch is separate from prepared ready counts.
+
+### Charged devices
+
+Verify charge bank selection and independent duplicate-wand counters.
+
+### Wands creating class-3 records
+
+Verify:
+
+```text
+Fireballs      type 0
+Frost          type 3
+Magic Missiles type 6
+```
+
+### Enemy Detection
+
+Verify the wand produces primary effect 25 and updates shared state `0xF03E`.
+
+### Equipment
+
+Verify Shield of Lightning Protection establishes effect 22 only through equipment-state logic.
+
+## 97. Correction C-23 — one SpellId cannot represent the original system
+
+The original engine uses distinct numeric identities for:
+
+- prepared matrix cells;
+- dispatch actions;
+- text records;
+- primary effects;
+- temporary-hand effects;
+- pseudo-items;
+- class-3 transient effects;
+- scroll/device objects;
+- charged-device state;
+- target masks.
+
+Some identities happen to map one-to-one in specific cases; many do not.
+
+A faithful port should use explicit conversion tables/types instead of assigning one global spell enum to every subsystem.
+
+## 98. Correction C-24 — primary effects are not uniformly timer-driven
+
+The direct preservation pass closes multiple nonstandard removal conditions:
+
+```text
+effect 5   broken by party attack action
+effect 9   broken by that character's attack action
+effect 14  consumed by qualifying undead/drain hit
+effect 15  consumed by qualifying cure
+effect 22  equipment-derived
+```
+
+alongside party/global cleanup and auxiliary-state cases.
+
+Therefore the 26 expiry dwords are part of the format, not proof that every bit uses one ordinary expiration lifecycle.
+
+## 99. Correction C-25 — visible spell projectiles are not spell records
+
+The SAVE-global `0x16` class-3 records are live presentation/movement/effect instances.
+
+Their `effect_type` is a 12-entry renderer/gameplay effect class shared by spells, wands, and level scripts.
+
+They must not be serialized or exposed as if:
+
+```text
+effect_type == spell dispatch ID
+```
+
+or:
+
+```text
+transient record == prepared spell
+```
+
+## 100. Correction C-26 — Hold eligibility and live held state belong to different layers
+
+The definition masks:
+
+```text
+0x0102
+0x0108
+0x0110
+```
+
+select which NPC templates reject Hold Undead/Person/Monster.
+
+Successful application then converges on mutable actor state:
+
+```text
+runtime_flags 0x08
+countdown +0x10
+```
+
+Static immunity and live effect state must not be merged.
+
+## 101. Correction C-27 — Detect Undead exclusion is not undead classification
+
+The renderer's Detect Undead exclusion bit:
+
+```text
+behavior_flags 0x00000001
+```
+
+and the gameplay undead classification:
+
+```text
+behavior_flags_3A 0x20
+```
+
+are independently consumed and have different supplied membership.
+
+A native `isUndead()` helper cannot replace both predicates.
+
+## 102. Historical unknowns retained
+
+The magic subsystem is behaviorally broad but still retains bounded unknowns:
+
+1. original DreamForge type/function names for the two preparation matrices and action records;
+2. exact source-level names for the shared detection counters;
+3. original enum labels for class-3 effect types 0..11;
+4. direct shipped producer identities for class-3 types 5 and 7;
+5. exact labels for packed transient bits 1..2 and remaining raw bits;
+6. exact source-level name for the source-actor/context field;
+7. precise original source abstractions around ordinary versus special effect cleanup;
+8. original rationale for the priest level-loss use of the Mage-shaped count table;
+9. original design/source terminology distinguishing special priest actions from prepared spells;
+10. any additional spell-specific behavior only reachable through content not present in the supplied corpus.
+
+These do not block faithful spell preparation, dispatch, persistence, targeting, effects, scroll/device use, or class-3 rendering for the supplied build.
+
+## 103. Source ledger
+
+### Character spell/preparation state
+
+- [DatFiles/SAVE.DAT/SPELL_MATRIX.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/SPELL_MATRIX.md)
+- [DatFiles/SAVE.DAT/SPELL_FAMILIES.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/SPELL_FAMILIES.md)
+- [DatFiles/SAVE.DAT/SPELL_CATALOGUE.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/SPELL_CATALOGUE.md)
+- [DatFiles/SAVE.DAT/SPELL_RESOURCE_LOOKUP.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/SPELL_RESOURCE_LOOKUP.md)
+- [DatFiles/SAVE.DAT/CHARACTER_RECORD.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/CHARACTER_RECORD.md)
+- [DatFiles/SAVE.DAT/CHARACTER_TAIL.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/CHARACTER_TAIL.md)
+
+### Persistent effects
+
+- [DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md)
+- [DatFiles/SAVE.DAT/EFFECT_FLAGS.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/EFFECT_FLAGS.md)
+- [DatFiles/SAVE.DAT/T_EFFECT_TEXT.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/T_EFFECT_TEXT.md)
+- [DatFiles/SAVE.DAT/POST_INVENTORY_STATE.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/POST_INVENTORY_STATE.md)
+- [DatFiles/SAVE.DAT/GLOBAL_STATE.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+### NPC target/effect behavior
+
+- [DatFiles/NPCS.DAT/EFFECT_IMMUNITIES.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/EFFECT_IMMUNITIES.md)
+- [DatFiles/NPCS.DAT/HOLD_IMMUNITIES.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/HOLD_IMMUNITIES.md)
+- [DatFiles/NPCS.DAT/TARGETED_EFFECT_IMMUNITIES.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/TARGETED_EFFECT_IMMUNITIES.md)
+- [DatFiles/NPCS.DAT/DETECTION_TURNING_FLAGS.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/DETECTION_TURNING_FLAGS.md)
+- [DatFiles/NPCS.DAT/STATUS_ATTACKS.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/STATUS_ATTACKS.md)
+
+### Item/world integration
+
+- [DatFiles/OBJECTS.DAT/CATEGORY_SEMANTICS.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/OBJECTS.DAT/CATEGORY_SEMANTICS.md)
+- [DatFiles/LEVELS.DAT/EVENT_SCRIPTS.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/LEVELS.DAT/EVENT_SCRIPTS.md)
+- [Resources/RES/TYPE7_SOURCE_BANKS.md](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/TYPE7_SOURCE_BANKS.md)
+
+### Executable/cross-component reconstruction
+
+- [Code2/Code2.cpp](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/Code2.cpp)
+- [Code2/CODE2_CONTINUITY_ADDENDUM.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/CODE2_CONTINUITY_ADDENDUM.md)
+- [Code2/FINAL_SEMANTIC_AUDIT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_SEMANTIC_AUDIT.md)
+- [Component 09 — character model](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/PreservationArchive/09_PARTY_CHARACTER_GAMEPLAY_MODEL.md)
+- [Component 10 — items](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/PreservationArchive/10_OBJECT_INVENTORY_EQUIPMENT_AND_CONTAINERS.md)
+- [Component 11 — NPCs](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/PreservationArchive/11_NPC_CREATURE_AI_AND_LIVE_ACTOR_MODEL.md)
+- [Component 12 — combat](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/PreservationArchive/12_COMBAT_ATTACK_DAMAGE_SAVES_AND_PROGRESSION.md)
+
+## 104. Architectural checkpoint
+
+The recovered magic architecture is:
+
+```text
+SPELL PREPARATION
+
+character Mage/priest matrices
+        |
+        +-- selected/planned nibble
+        +-- ready/current nibble
+        +-- class/capability slot limits
+        |
+        v
+runtime ready action records
+        |
+        v
+legacy dispatch ID
+        |
+        +----------------------+----------------------+--------------------+
+        |                      |                      |                    |
+        v                      v                      v                    v
+ immediate/status         primary effect       temporary hand       class-3 transient
+ cure/remove/etc.         26-slot system       9-slot system        effect array
+        |                      |                      |                    |
+        |                      |                      |                    +-- RES3 class 3
+        |                      |                      |                    +-- movement/collision
+        |                      |                      |                    +-- SAVE persistence
+        |                      |                      |
+        |                      |                      +-- pseudo-item in hand
+        |                      |                      +-- player attack delivery
+        |                      |
+        |                      +-- ordinary expiry
+        |                      +-- attack break
+        |                      +-- hit consumption
+        |                      +-- one-shot cure modifier
+        |                      +-- equipment derivation
+        |                      +-- shared counters
+        |                      +-- auxiliary quantities
+        |
+        +-- status clear
+        +-- healing/revival
+        +-- NPC targeting
+
+
+OTHER PRODUCERS
+
+scroll OBJECTS IDs
+charged devices
+equipment
+LEVELS opcode 3
+special priest actions
+        |
+        +--> reuse dispatch/effect families above
+
+
+NPC TARGET POLICY
+
+raw NPC behavior flags
+        |
+        +-- common immunity
+        +-- fire/cold exclusion
+        +-- Lightning exclusion
+        +-- Death Spell exclusion
+        +-- Hold-specific exclusion
+        +-- Detect Undead exclusion
+        +-- undead classification / turning
+        |
+        v
+live NPC effect state
+    held 0x08
+    slowed 0x80
+    countdowns
+
+
+PERSISTENCE
+
+character 0x248
+    matrices
+    effect bits/deadlines
+    hand effects
+    auxiliaries
+
+SAVE global
+    detection counters
+    charged-device counters
+    class-3 transient array
+    selected casters
+    gameplay timebase
+```
+
+This closes the spell/magic subsystem to the supplied-build evidence boundary.
+
+The next preservation component should document the **event-script/wordcode and dialogue/text-dispatch architecture**: level event VM integration, numbered interactive resources, wordcode control flow, dialogue/menu selection, persistent event flags, story branches, T/other text-resource access, NPC/story interactions, and how script results mutate world/party state.
