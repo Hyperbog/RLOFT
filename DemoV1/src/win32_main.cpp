@@ -39,6 +39,7 @@
 #include "rloft/exploration_runtime.hpp"
 #include "rloft/party_modal_presenter.hpp"
 #include "rloft/party_panel_controls.hpp"
+#include "rloft/quit_confirm.hpp"
 #include "rloft/top_edge_menu_presenter.hpp"
 #include "rloft/game_source.hpp"
 #include "rloft/resource_assets.hpp"
@@ -801,9 +802,11 @@ int run_exploration(
     rloft::TopEdgeMenuPresenter menu_presenter(assets);
     rloft::AutomapScreenPresenter automap_presenter(assets);
     rloft::PartyModalPresenter party_modal_presenter(assets);
+    rloft::QuitConfirmPresenter quit_presenter(assets);
     rloft::ExplorationLegacyInputController input;
     rloft::ExplorationUiController ui;
     std::optional<rloft::AutomapModalController> automap;
+    std::optional<std::uint32_t> quit_random_seed;
     const auto exploration_palette =
         assets.colors_palette(
             rloft::LevelDisplayModel::palette_index(
@@ -821,7 +824,8 @@ int run_exploration(
     // used by the reconstructed startup/character presenters. Input axes are
     // persistent, so every retrace advances the original 1FC14 -> 2E120 path
     // even when no new Windows message arrived.
-    auto next_frame = Clock::now();
+    const auto exploration_epoch = Clock::now();
+    auto next_frame = exploration_epoch;
 
     while (host.pump()) {
         if (host.consume_escape()) {
@@ -831,6 +835,14 @@ int run_exploration(
                 // automap panel action 11 below.
                 ui.close_screen();
                 automap.reset();
+                input.clear();
+                continue;
+            }
+            if (ui.state().screen ==
+                rloft::ExplorationUiScreen::QuitConfirm) {
+                // Host safety escape; CODE.2 07D44 itself is pointer-modal.
+                ui.close_screen();
+                quit_random_seed.reset();
                 input.clear();
                 continue;
             }
@@ -878,6 +890,74 @@ int run_exploration(
                 runtime.renderer_tables(),
                 automap->state(),
                 automap->annotation_overlay_enabled());
+            host.present(
+                presenter.framebuffer(),
+                exploration_palette);
+
+            next_frame +=
+                std::chrono::duration_cast<Clock::duration>(
+                    std::chrono::duration<double>(
+                        1.0 / kVgaRefreshHz));
+            if (!host.wait_until(next_frame, false)) {
+                break;
+            }
+            const auto now = Clock::now();
+            if (next_frame +
+                    std::chrono::milliseconds(100) <
+                now) {
+                next_frame = now;
+            }
+            continue;
+        }
+
+        if (ui.state().screen ==
+            rloft::ExplorationUiScreen::QuitConfirm) {
+            if (!quit_random_seed) {
+                // 314B0 leaves 30CA2 reseeded from the live IRQ-8 tick
+                // (30700). The host tracks the same BIOS cadence from
+                // exploration entry; whole-program pre-entry phase remains
+                // intentionally outside this presentation model.
+                quit_random_seed =
+                    code1_tick_count(exploration_epoch);
+            }
+
+            if (const auto click =
+                    host.consume_exploration_click()) {
+                const auto choice =
+                    rloft::QuitConfirmModel::choice_at(
+                        click->row,
+                        click->column);
+                if (choice !=
+                    rloft::QuitConfirmChoice::None) {
+                    quit_presenter.draw(
+                        presenter.framebuffer(),
+                        *quit_random_seed,
+                        choice);
+                    host.present(
+                        presenter.framebuffer(),
+                        exploration_palette);
+                    if (!host.pause_frame(
+                            std::chrono::duration<double>(
+                                1.0 / kVgaRefreshHz))) {
+                        break;
+                    }
+
+                    if (choice ==
+                        rloft::QuitConfirmChoice::Confirm) {
+                        host.set_exploration_input(nullptr);
+                        return 0;
+                    }
+
+                    ui.close_screen();
+                    quit_random_seed.reset();
+                    input.clear();
+                    continue;
+                }
+            }
+
+            quit_presenter.draw(
+                presenter.framebuffer(),
+                *quit_random_seed);
             host.present(
                 presenter.framebuffer(),
                 exploration_palette);
@@ -967,24 +1047,43 @@ int run_exploration(
                         click->column,
                         click->row);
 
-            if (pressed_menu ==
-                    static_cast<int>(
-                        rloft::TopEdgeMenuAction::Automap)) {
-                ui.update_mouse(
-                    click->column,
-                    click->row);
-                if (ui.activate_top_edge_selection() &&
-                    ui.state().screen ==
-                        rloft::ExplorationUiScreen::Automap) {
-                    // CODE.2 03634 runs 01558 before the first automap draw.
-                    rloft::ExplorationWorldModel::
-                        rebuild_automap_cache(
-                            runtime.session().level,
+            if (pressed_menu >= 0) {
+                const auto action =
+                    rloft::TopEdgeMenuModel::
+                        action_for_selection(
+                            pressed_menu);
+
+                // These menu cases now have faithful native modal handlers.
+                // Rest/pray/memorize/load/save/options remain explicitly
+                // deferred rather than entering incomplete state mutation.
+                if (action ==
+                        rloft::TopEdgeMenuAction::Automap ||
+                    action ==
+                        rloft::TopEdgeMenuAction::Quit) {
+                    ui.update_mouse(
+                        click->column,
+                        click->row);
+                    if (ui.activate_top_edge_selection()) {
+                        if (ui.state().screen ==
+                            rloft::ExplorationUiScreen::Automap) {
+                            // CODE.2 03634 runs 01558 before first map draw.
                             rloft::ExplorationWorldModel::
-                                party_cell(
-                                    runtime.session()));
-                    automap.emplace(runtime.session());
-                    input.clear();
+                                rebuild_automap_cache(
+                                    runtime.session().level,
+                                    rloft::ExplorationWorldModel::
+                                        party_cell(
+                                            runtime.session()));
+                            automap.emplace(
+                                runtime.session());
+                        } else if (
+                            ui.state().screen ==
+                            rloft::ExplorationUiScreen::QuitConfirm) {
+                            quit_random_seed =
+                                code1_tick_count(
+                                    exploration_epoch);
+                        }
+                        input.clear();
+                    }
                 }
             }
 
@@ -1028,6 +1127,24 @@ int run_exploration(
         // CODE.2 080AC is modal while the pointer remains in the top
         // 64-pixel band (D680=3). Do not advance 1FC14/2E120 locomotion
         // while that dispatcher owns input.
+        if (ui.state().screen ==
+                rloft::ExplorationUiScreen::QuitConfirm) {
+            quit_presenter.draw(
+                presenter.framebuffer(),
+                quit_random_seed.value_or(1U));
+            host.present(
+                presenter.framebuffer(),
+                exploration_palette);
+            next_frame +=
+                std::chrono::duration_cast<Clock::duration>(
+                    std::chrono::duration<double>(
+                        1.0 / kVgaRefreshHz));
+            if (!host.wait_until(next_frame, false)) {
+                break;
+            }
+            continue;
+        }
+
         if (ui.state().screen ==
                 rloft::ExplorationUiScreen::Automap) {
             // The click that entered map mode was consumed above; render the
