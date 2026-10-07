@@ -42,6 +42,44 @@ void ExplorationRuntime::initialize_gameplay_state(
     gameplay_state_initialized_ = true;
 }
 
+NpcDamageResult ExplorationRuntime::damage_level22_assassin(
+    std::size_t npc_index,
+    std::uint16_t amount,
+    std::uint16_t reaction_mode,
+    const Level22EncounterModel::PlacementProbe& can_place) {
+    if (!gameplay_state_initialized_) {
+        throw std::logic_error("gameplay state is not initialized");
+    }
+    if (session_.level_id != Level22Story::kLevelId) {
+        throw std::logic_error("Assassin damage outside Level 22");
+    }
+    return Level22EncounterModel::damage_assassin(
+        world_,
+        npc_index,
+        amount,
+        reaction_mode,
+        session_.facing,
+        npc_catalog_,
+        renderer_tables_,
+        can_place);
+}
+
+LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
+    std::size_t item_index) {
+    if (!gameplay_state_initialized_) {
+        throw std::logic_error("gameplay state is not initialized");
+    }
+    if (session_.level_id != Level22Story::kLevelId) {
+        throw std::logic_error("Level 22 pickup outside Level 22");
+    }
+    return Level22EncounterModel::pickup_loose_item(
+        world_,
+        item_index,
+        inventory_,
+        session_.party,
+        object_catalog_);
+}
+
 ExplorationRuntimeMotionResult ExplorationRuntime::tick_motion(
     ExplorationMotionInputs inputs) {
     return ExplorationRuntimeMotionModel::tick(
