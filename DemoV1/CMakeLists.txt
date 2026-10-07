@@ -27,7 +27,12 @@ add_library(rloft_boot_flow
     src/level_display.cpp
     src/party_presentation.cpp
     src/object_catalog.cpp
+    src/npc_catalog.cpp
+    src/level22_story.cpp
+    src/level22_encounter.cpp
+    src/level_world_state.cpp
     src/inventory_screen.cpp
+    src/inventory_runtime.cpp
     src/party_hud.cpp
     src/party_panel_controls.cpp
     src/party_modal_presenter.cpp
@@ -124,9 +129,29 @@ add_executable(object_catalog_tests tests/object_catalog_tests.cpp)
 target_link_libraries(object_catalog_tests PRIVATE rloft_boot_flow)
 add_test(NAME object_catalog_tests COMMAND object_catalog_tests)
 
+add_executable(npc_catalog_tests tests/npc_catalog_tests.cpp)
+target_link_libraries(npc_catalog_tests PRIVATE rloft_boot_flow)
+add_test(NAME npc_catalog_tests COMMAND npc_catalog_tests)
+
+add_executable(level22_story_tests tests/level22_story_tests.cpp)
+target_link_libraries(level22_story_tests PRIVATE rloft_boot_flow)
+add_test(NAME level22_story_tests COMMAND level22_story_tests)
+
+add_executable(level22_encounter_tests tests/level22_encounter_tests.cpp)
+target_link_libraries(level22_encounter_tests PRIVATE rloft_boot_flow)
+add_test(NAME level22_encounter_tests COMMAND level22_encounter_tests)
+
+add_executable(level_world_state_tests tests/level_world_state_tests.cpp)
+target_link_libraries(level_world_state_tests PRIVATE rloft_boot_flow)
+add_test(NAME level_world_state_tests COMMAND level_world_state_tests)
+
 add_executable(inventory_screen_tests tests/inventory_screen_tests.cpp)
 target_link_libraries(inventory_screen_tests PRIVATE rloft_boot_flow)
 add_test(NAME inventory_screen_tests COMMAND inventory_screen_tests)
+
+add_executable(inventory_runtime_tests tests/inventory_runtime_tests.cpp)
+target_link_libraries(inventory_runtime_tests PRIVATE rloft_boot_flow)
+add_test(NAME inventory_runtime_tests COMMAND inventory_runtime_tests)
 
 add_executable(party_hud_tests tests/party_hud_tests.cpp)
 target_link_libraries(party_hud_tests PRIVATE rloft_boot_flow)
@@ -353,7 +378,12 @@ set(RLOFT_TEST_TARGETS
     level_display_tests
     party_presentation_tests
     object_catalog_tests
+    npc_catalog_tests
+    level22_story_tests
+    level22_encounter_tests
+    level_world_state_tests
     inventory_screen_tests
+    inventory_runtime_tests
     party_hud_tests
     party_panel_controls_tests
     top_edge_menu_tests
