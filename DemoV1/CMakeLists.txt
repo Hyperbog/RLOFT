@@ -366,6 +366,10 @@ add_executable(presenter_tests tests/presenter_tests.cpp)
 target_link_libraries(presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME presenter_tests COMMAND presenter_tests)
 
+add_executable(type7_scene_shape_tests tests/type7_scene_shape_tests.cpp)
+target_link_libraries(type7_scene_shape_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_scene_shape_tests COMMAND type7_scene_shape_tests)
+
 add_executable(indexed_font_presenter_tests tests/indexed_font_presenter_tests.cpp)
 target_link_libraries(indexed_font_presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME indexed_font_presenter_tests COMMAND indexed_font_presenter_tests)
@@ -476,6 +480,7 @@ set(RLOFT_TEST_TARGETS
     surface_prepass_tests
     game_source_tests
     presenter_tests
+    type7_scene_shape_tests
     indexed_font_presenter_tests
     voc_decoder_tests
     xmidi_tests
