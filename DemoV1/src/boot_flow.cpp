@@ -82,8 +82,27 @@ void BootFlow::select_startup_menu(int index) {
     // Their full visible behavior belongs to the next implementation phase.
 }
 
+void BootFlow::finish_character_creation(
+    LegacyResult result) {
+    if (state_.stage != BootStage::CharacterCreation ||
+        state_.module != LegacyModule::Code1) {
+        invalid_transition("finish_character_creation", state_.stage);
+    }
+
+    if (result != LegacyResult::ContinueModuleCycle &&
+        result != LegacyResult::OrdinaryTermination) {
+        throw std::logic_error(
+            "CODE.1 character controller only returns status 0 or 10");
+    }
+
+    state_.pending_result = result;
+    state_.stage = BootStage::Code1ExitToSupervisor;
+}
+
 void BootFlow::supervisor_dispatch() {
-    if (state_.stage != BootStage::Code2ExitToSupervisor ||
+    const auto exit_stage = state_.stage;
+    if ((exit_stage != BootStage::Code2ExitToSupervisor &&
+         exit_stage != BootStage::Code1ExitToSupervisor) ||
         !state_.pending_result.has_value()) {
         invalid_transition("supervisor_dispatch", state_.stage);
     }
@@ -92,9 +111,17 @@ void BootFlow::supervisor_dispatch() {
     state_.pending_result.reset();
 
     if (result == LegacyResult::ContinueModuleCycle) {
-        // R.EXE: CODE.2 status 10 -> launch CODE.1.
-        state_.module = LegacyModule::Code1;
-        state_.stage = BootStage::CharacterCreation;
+        if (exit_stage == BootStage::Code2ExitToSupervisor) {
+            // R.EXE: CODE.2 status 10 -> launch CODE.1.
+            state_.module = LegacyModule::Code1;
+            state_.stage = BootStage::CharacterCreation;
+        } else {
+            // R.EXE: CODE.1 status 10 -> launch CODE.2. The normal completed
+            // character path has serialized CHARS immediately before exit.
+            state_.module = LegacyModule::Code2;
+            state_.stage = BootStage::Code2Startup;
+            state_.chars_present = true;
+        }
         return;
     }
 
@@ -129,6 +156,7 @@ std::string_view to_string(BootStage stage) noexcept {
         case BootStage::StartupMenu: return "startup menu";
         case BootStage::Code2ExitToSupervisor: return "CODE.2 exit to supervisor";
         case BootStage::CharacterCreation: return "character creation";
+        case BootStage::Code1ExitToSupervisor: return "CODE.1 exit to supervisor";
         case BootStage::Terminated: return "terminated";
     }
     return "unknown stage";
