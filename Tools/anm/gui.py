@@ -38,10 +38,12 @@ AUDIO_ARCHIVES = ("RES6", "RES10", "RES11", "RES12")
 MUSIC_ARCHIVES = ("RES5", "RES11")
 TIMING_MODES = ("Native engine timing", "Custom FPS")
 
-BASE_WIDTH = 1120
-BASE_HEIGHT = 820
-MIN_UI_SCALE = 0.72
-MAX_UI_SCALE = 1.30
+BASE_WIDTH = 1280
+BASE_HEIGHT = 1080
+MIN_UI_SCALE = 0.58
+MAX_UI_SCALE = 1.35
+MIN_USER_ZOOM = 0.80
+MAX_USER_ZOOM = 1.20
 BASE_BANNER_HEIGHT = 150
 
 # Keep the GUI timing readout sourced from the same certified table used by
@@ -67,6 +69,8 @@ class RavenloftExtractorGui(tk.Tk):
         self.minsize(820, 620)
         self.resizable(True, True)
         self.configure(background=BG)
+        self._user_zoom = 1.0
+        self.ui_zoom_text = tk.StringVar(value="100%")
         self._ui_scale = launch_scale
         self._scale_job: str | None = None
         self._scalable_listboxes: list[tuple[tk.Listbox, int]] = []
@@ -300,7 +304,8 @@ class RavenloftExtractorGui(tk.Tk):
         self._scale_job = None
         width = max(1, self.winfo_width())
         height = max(1, self.winfo_height())
-        scale = min(width / BASE_WIDTH, height / BASE_HEIGHT)
+        fit_scale = min(width / BASE_WIDTH, height / BASE_HEIGHT)
+        scale = fit_scale * self._user_zoom
         scale = max(MIN_UI_SCALE, min(MAX_UI_SCALE, scale))
         changed = abs(scale - self._ui_scale) >= 0.02
         self._ui_scale = scale
@@ -310,7 +315,7 @@ class RavenloftExtractorGui(tk.Tk):
             for box, base_height in self._scalable_listboxes:
                 box.configure(
                     font=self._font_ui,
-                    height=max(3, round(base_height * scale)),
+                    height=max(2, round(base_height * scale)),
                 )
             for widget, base_padding in self._padding_widgets:
                 scaled = tuple(max(0, round(value * scale)) for value in base_padding)
@@ -325,14 +330,82 @@ class RavenloftExtractorGui(tk.Tk):
         self._resize_wraps_for_width(width)
         self._schedule_banner()
 
+    def _set_user_zoom(self, value: float) -> None:
+        value = max(MIN_USER_ZOOM, min(MAX_USER_ZOOM, value))
+        if abs(value - self._user_zoom) < 0.001:
+            return
+        self._user_zoom = value
+        self.ui_zoom_text.set(f"{round(value * 100):d}%")
+        self._apply_ui_scale()
+
+    def _zoom_out(self) -> None:
+        self._set_user_zoom(self._user_zoom - 0.10)
+
+    def _zoom_in(self) -> None:
+        self._set_user_zoom(self._user_zoom + 0.10)
+
+    def _zoom_reset(self) -> None:
+        self._set_user_zoom(1.0)
+
     def _load_banner_source(self) -> Image.Image:
         if self._banner_source is not None:
             return self._banner_source
-        path = runtime_paths.bundled_path("assets/strahd_banner.webp")
-        if path is None:
-            raise RuntimeError("baked Strahd banner asset is missing")
-        with Image.open(path) as source:
-            self._banner_source = source.convert("RGB")
+
+        def load(name: str, mode: str) -> Image.Image:
+            path = runtime_paths.bundled_path(f"assets/{name}")
+            if path is None:
+                raise RuntimeError(f"baked Strahd banner asset missing: {name}")
+            with Image.open(path) as source:
+                return source.convert(mode)
+
+        frame = load("strahd_frame_main.png", "RGB")
+        parchment = load("strahd_parchment.png", "RGB")
+        logo = load("strahd_title_logo.png", "RGBA")
+
+        width, height = 1120, 150
+        banner = Image.new("RGB", (width, height), "#4b4b4b")
+
+        # Parchment interior. Tile only the parchment texture; never tile the
+        # ornate frame, which was the source of the background "columns".
+        interior = Image.new("RGB", (width, height), BG)
+        for y in range(0, height, parchment.height):
+            for x in range(0, width, parchment.width):
+                tile = parchment.crop(
+                    (0, 0, min(parchment.width, width - x), min(parchment.height, height - y))
+                )
+                interior.paste(tile, (x, y))
+        interior = Image.blend(interior, Image.new("RGB", interior.size, "#211311"), 0.48)
+        banner.paste(interior, (0, 0))
+
+        # Clean horizontal rails. The side columns are drawn afterwards so the
+        # right rail can never cover the right column.
+        rail_color = "#4b4b4b"
+        top_h = bottom_h = 14
+        banner.paste(rail_color, (0, 0, width, top_h))
+        banner.paste(rail_color, (0, height - bottom_h, width, height))
+
+        # One left and one right column only.
+        side_w = min(32, frame.width // 4)
+        side_h = min(height, frame.height)
+        left = frame.crop((0, 0, side_w, side_h))
+        right = frame.crop((frame.width - side_w, 0, frame.width, side_h))
+        if side_h < height:
+            y = 0
+            while y < height:
+                take = min(side_h, height - y)
+                banner.paste(left.crop((0, 0, side_w, take)), (0, y))
+                banner.paste(right.crop((0, 0, side_w, take)), (width - side_w, y))
+                y += side_h
+        else:
+            banner.paste(left.crop((0, 0, side_w, height)), (0, 0))
+            banner.paste(right.crop((0, 0, side_w, height)), (width - side_w, 0))
+
+        # Crest/logo always sits above the complete frame.
+        logo_x = (width - logo.width) // 2
+        logo_y = (height - logo.height) // 2
+        banner.paste(logo, (logo_x, logo_y), logo)
+
+        self._banner_source = banner
         return self._banner_source
 
     def _schedule_banner(self) -> None:
@@ -372,7 +445,14 @@ class RavenloftExtractorGui(tk.Tk):
         self.header = ttk.Frame(self, padding=(16, 10))
         self.header.grid(row=0, column=0, sticky="ew")
         self._padding_widgets.append((self.header, (16, 10)))
+        self.header.columnconfigure(0, weight=1)
         ttk.Label(self.header, text="Ravenloft Asset Extraction Suite", style="Title.TLabel").grid(row=0, column=0, sticky="w")
+        zoom = ttk.Frame(self.header)
+        zoom.grid(row=0, column=1, sticky="e")
+        ttk.Label(zoom, text="UI size").pack(side="left", padx=(0, 6))
+        ttk.Button(zoom, text="−", width=3, command=self._zoom_out).pack(side="left")
+        ttk.Button(zoom, textvariable=self.ui_zoom_text, width=6, command=self._zoom_reset).pack(side="left", padx=4)
+        ttk.Button(zoom, text="+", width=3, command=self._zoom_in).pack(side="left")
         self.banner = tk.Canvas(self, height=150, background=BG, highlightthickness=0)
         self.banner.grid(row=1, column=0, sticky="ew")
         self.banner.bind("<Configure>", lambda _e: self._schedule_banner())
@@ -415,7 +495,7 @@ class RavenloftExtractorGui(tk.Tk):
         tab = ttk.Frame(self.notebook, padding=14)
         self._padding_widgets.append((tab, (14,)))
         tab.columnconfigure(0, weight=1)
-        tab.rowconfigure(99, weight=1)
+        tab.rowconfigure(98, weight=1)
         self.notebook.add(tab, text=title)
         return tab
 
@@ -435,7 +515,7 @@ class RavenloftExtractorGui(tk.Tk):
             parent,
             selectmode=tk.EXTENDED,
             exportselection=False,
-            height=max(3, round(height * self._ui_scale)),
+            height=max(2, round(height * self._ui_scale)),
             background=FIELD,
             foreground=TEXT,
             selectbackground=ACCENT,
@@ -547,7 +627,7 @@ class RavenloftExtractorGui(tk.Tk):
 
         self._note(tab, 2, "Native timing is variable-rate, not one fixed FPS. Sampled ANM SFX commands are muxed from RES6/RES10 at their reconstructed frame timestamps. Timeline/original files use the metadata destination above.")
         button = ttk.Button(tab, text="Extract Selected Cinematics", command=self._start_cinematics)
-        button.grid(row=3, column=0, sticky="e", pady=(12, 0))
+        button.grid(row=99, column=0, sticky="se", pady=(12, 0))
         self._action_buttons.append(button)
         self._update_timing_state()
         self._update_video_state()
@@ -596,7 +676,7 @@ class RavenloftExtractorGui(tk.Tk):
             "PNG is sufficient for most modern-port artwork. RES3 NPCs/monsters, placed objects, loose items, and effects are now reconstructed as transparent native-resolution images. The associated-file options retain exact indexed/source data for preservation and renderer validation.",
         )
         button = ttk.Button(tab, text="Extract Selected Graphics", command=self._start_graphics)
-        button.grid(row=2, column=0, sticky="e", pady=(12, 0))
+        button.grid(row=99, column=0, sticky="se", pady=(12, 0))
         self._action_buttons.append(button)
 
     def _build_audio_tab(self) -> None:
@@ -626,7 +706,7 @@ class RavenloftExtractorGui(tk.Tk):
         self._folder_row(box, 5, "Destination", self.audio_dest)
         self._note(tab, 1, "Select individual RES audio/music files or All for the complete category.")
         button = ttk.Button(tab, text="Extract Selected Audio & Music", command=self._start_audio)
-        button.grid(row=2, column=0, sticky="e", pady=(12, 0))
+        button.grid(row=99, column=0, sticky="se", pady=(12, 0))
         self._action_buttons.append(button)
 
     def _build_support_tab(self) -> None:
@@ -645,7 +725,7 @@ class RavenloftExtractorGui(tk.Tk):
             ttk.Checkbutton(box, text=text, variable=variable).grid(row=row, column=0, sticky="w", pady=3)
         self._folder_row(box, len(options), "Destination", self.support_dest)
         button = ttk.Button(tab, text="Extract Selected Support Assets", command=self._start_support)
-        button.grid(row=1, column=0, sticky="e", pady=(12, 0))
+        button.grid(row=99, column=0, sticky="se", pady=(12, 0))
         self._action_buttons.append(button)
 
     def _build_all_tab(self) -> None:
@@ -661,7 +741,7 @@ class RavenloftExtractorGui(tk.Tk):
         ttk.Checkbutton(box, text="Standalone support assets", variable=self.all_support).grid(row=4, column=0, sticky="w", pady=(5, 0))
         self._folder_row(box, 5, "Destination", self.all_dest)
         button = ttk.Button(tab, text="Dump Everything", command=self._start_all)
-        button.grid(row=1, column=0, sticky="e", pady=(12, 0))
+        button.grid(row=99, column=0, sticky="se", pady=(12, 0))
         self._action_buttons.append(button)
 
     def _resize_wraps_for_width(self, window_width: int) -> None:
@@ -682,7 +762,9 @@ class RavenloftExtractorGui(tk.Tk):
         self._refresh_native_timing_text()
 
     def _update_video_state(self) -> None:
-        self.cin_sync_check.configure(state="normal" if self.cin_video.get() else "disabled")
+        # Keep the preference editable even when video output is currently
+        # disabled. It takes effect whenever Rendered video is enabled.
+        self.cin_sync_check.configure(state="normal")
 
     def _refresh_native_timing_text(self) -> None:
         timer = exporter.PIT_HZ
