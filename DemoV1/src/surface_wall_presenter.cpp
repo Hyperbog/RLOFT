@@ -9,7 +9,8 @@ namespace rloft {
 void SurfaceWallPresenter::draw_main_runs(
     IndexedFramebuffer& framebuffer,
     const std::vector<ViewSweepRun>& runs,
-    const SurfaceShadeTable& shades) {
+    const SurfaceShadeTable& shades,
+    const RendererTables& tables) {
     auto& pixels = framebuffer.mutable_pixels();
 
     for (const auto& run : runs) {
@@ -30,6 +31,13 @@ void SurfaceWallPresenter::draw_main_runs(
         const auto extent =
             (run.depth & 0xFFF8U) >> 1U;
         if (extent == 0U) {
+            continue;
+        }
+
+        // CODE.2 3263C uses the selected SINTAB generated rasterizer for
+        // extents <= C730 (runtime_lookup_max = 508 in the shipped SINTAB).
+        // 338C8 is only the generic fallback above that boundary.
+        if (extent <= tables.runtime_lookup_max) {
             continue;
         }
 

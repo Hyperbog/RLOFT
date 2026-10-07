@@ -8,14 +8,18 @@ int main() {
 
     assert(daylight.packed[0] == 0x0101);
     assert(daylight.packed[64] == 0x0101);
-    assert(daylight.packed[100] == 0x0000);
-    assert(daylight.packed[175] == 0x0000);
+    assert(daylight.packed[100] == 0x0101);
+    assert(daylight.packed[175] == 0x0101);
+    assert(daylight.packed[300] == 0x0000);
+    assert(daylight.packed[508] == 0x0000);
     assert(daylight.fallback == 0x0000);
 
     const auto dusk =
         rloft::SurfaceShadingModel::build(8, 0);
     assert(dusk.packed[0] == 0x0909);
-    assert(dusk.packed[9] == 0x0809);
+    assert(dusk.packed[9] == 0x0909);
+    assert(dusk.packed[100] == 0x0607);
+    assert(dusk.packed[508] == 0x0000);
     assert(dusk.fallback == 0x0000);
 
     // Normal resources use extent-indexed table entries, packed subtraction,

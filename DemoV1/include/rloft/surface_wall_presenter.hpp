@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "rloft/startup_presenter.hpp"
+#include "rloft/renderer_tables.hpp"
 #include "rloft/surface_column_scaler.hpp"
 #include "rloft/surface_shading.hpp"
 #include "rloft/surface_texture.hpp"
@@ -23,7 +24,8 @@ public:
     void draw_main_runs(
         IndexedFramebuffer& framebuffer,
         const std::vector<ViewSweepRun>& runs,
-        const SurfaceShadeTable& shades);
+        const SurfaceShadeTable& shades,
+        const RendererTables& tables);
 
 private:
     SurfaceTextureArchive textures_;

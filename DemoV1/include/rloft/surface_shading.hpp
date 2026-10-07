@@ -7,7 +7,7 @@
 namespace rloft {
 
 struct SurfaceShadeTable final {
-    static constexpr std::size_t kCount = 176;
+    static constexpr std::size_t kCount = 509;
 
     std::array<std::uint16_t, kCount> packed{};
     std::uint16_t fallback{};
@@ -15,7 +15,7 @@ struct SurfaceShadeTable final {
 
 class SurfaceShadingModel final {
 public:
-    static constexpr int kDepthLimit = 175;
+    static constexpr int kDepthLimit = 508;
     static constexpr int kSpan = 127;
 
     // CODE.2 31A14, using the executable's F954 table.

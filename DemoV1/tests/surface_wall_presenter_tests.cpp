@@ -111,10 +111,26 @@ int main() {
     prepass.pass = rloft::SweepRenderPass::Prepass;
     prepass.first_ray = 20;
 
+    rloft::RendererTables tables{};
+    tables.runtime_lookup_max = 508;
+
+    // Extent 64 belongs to the generated-SINTAB path and must not be drawn
+    // by the generic 338C8 fallback presenter.
     presenter.draw_main_runs(
         framebuffer,
         {prepass, main},
-        shades);
+        shades,
+        tables);
+    assert(framebuffer.pixels()[
+        108U * 320U + 34U] == 0xEE);
+
+    // Extent 512 is the first fallback-scaled extent above C730=508.
+    main.depth = 1024;
+    presenter.draw_main_runs(
+        framebuffer,
+        {prepass, main},
+        shades,
+        tables);
 
     const auto& px = framebuffer.pixels();
     auto at = [&](int y, int x) {
@@ -123,18 +139,20 @@ int main() {
             static_cast<std::size_t>(x)];
     };
 
-    // extent 64 -> scaler row 104; viewport base row is 4.
-    assert(at(108, 34) == 4);
-    assert(at(109, 34) == 6);
-    assert(at(108, 35) == 4);
-    assert(at(108, 36) == 4);
+    // extent 512 clips to the 256-line working region. The initial clipped
+    // phase begins at source texel 16 of texture column 1 (base value 4).
+    assert(at(4, 34) == 20);
+    assert(at(5, 34) == 20);
+    assert(at(8, 34) == 21);
+    assert(at(4, 35) == 20);
+    assert(at(4, 36) == 20);
 
-    assert(at(107, 34) == 0xEE);
-    assert(at(108, 33) == 0xEE);
-    assert(at(108, 37) == 0xEE);
+    assert(at(3, 34) == 0xEE);
+    assert(at(4, 33) == 0xEE);
+    assert(at(4, 37) == 0xEE);
 
-    // Prepass is deliberately untouched by this presenter.
-    assert(at(108, 52) == 0xEE);
+    // Prepass remains deliberately untouched by this presenter.
+    assert(at(4, 52) == 0xEE);
 
     std::filesystem::remove_all(root);
 }
