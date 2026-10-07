@@ -1,5 +1,6 @@
 #include "rloft/resource_assets.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstddef>
