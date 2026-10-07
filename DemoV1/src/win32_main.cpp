@@ -30,6 +30,7 @@
 #include "rloft/game_source.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
+#include "rloft/sound_config.hpp"
 #include "rloft/voc_decoder.hpp"
 #include "rloft/win32_audio.hpp"
 #include "rloft/win32_midi.hpp"
@@ -837,6 +838,15 @@ int run(HINSTANCE instance) {
                 const int character_sfx_base =
                     assets.init_u16(0x16);
 
+                int character_music_relative_volume = 100;
+                if (const auto sound_cfg =
+                        assets.source().read_runtime("SOUND.CFG")) {
+                    character_music_relative_volume =
+                        rloft::code1_music_relative_volume(
+                            *sound_cfg,
+                            100);
+                }
+
                 // CODE.1 45FC..4976: 70 displayed iterations. Each 87D8(2,0)
                 // wait is two chained BIOS INT-8 ticks. The first frame is
                 // submitted while the inherited CODE.2 palette is black; only
@@ -866,7 +876,7 @@ int run(HINSTANCE instance) {
                                 assets.music_sequence(0x18),
                                 1),
                             0,
-                            100,
+                            character_music_relative_volume,
                             0x9C4);
 
                         if (!code1_palette_reveal(
