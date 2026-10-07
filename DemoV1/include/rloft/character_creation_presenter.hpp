@@ -84,6 +84,12 @@ public:
         const std::string& name,
         int frame_index);
 
+    void stats_editor_transition_frame(
+        const CharacterCreationFlow& flow,
+        const CharacterStatsModel& stats,
+        bool entering,
+        int frame_index);
+
     // CODE.1 15B0: 10 dissolve frames, plus 9 selected-slot movement
     // frames when selected_slot >= 0.
     [[nodiscard]] static int transition_15b0_frame_count(
