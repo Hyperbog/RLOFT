@@ -482,3 +482,372 @@ A floating-point rewrite may look visually close while differing at clipping edg
 The SINTAB path is the clearest example, but the CODE.2 graphics audits identify additional runtime control/immediate patch sites in clipped blitters and adjacent rasterizer setup routines. The certification record preserves those patches and their restoration ordering rather than normalizing them away. [CODE.2 continuity, Batches 61, 107, 108, 121, 122](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/CODE2_CONTINUITY_ADDENDUM.md)
 
 A modern renderer does not need to reproduce writable-code implementation mechanics. It does need to reproduce the resulting parameterized raster behavior.
+
+## 36. UI, world, and cinematic rendering share one VGA substrate
+
+The source families are distinct:
+
+```text
+RES0 / RES1 / RES2 / RES7 / RES8 / RES9 type 1
+    -> raster/UI/image presentation
+
+RES4 type 6
+    -> vertically sampled first-person surfaces
+
+RES3 type 7
+    -> compiled projected scene objects
+
+ANM
+    -> streamed cinematic frames/deltas
+```
+
+but they converge on the same page, palette, plane-selection, clipping, and VGA-memory machinery. [Resources final audit](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/FINAL_RESOURCE_AUDIT.md)
+
+A faithful native architecture should therefore keep **legacy decoding** separate from **legacy presentation semantics**. The renderer may share one final indexed-color surface abstraction while preserving the different source representations that feed it.
+
+## 37. Historical graphics dependency graph
+
+```text
+                         COLORS
+                            |
+                            v
+                     palette staging
+                            |
+                            v
+                         VGA DAC
+                            ^
+                            |
+              +-------------+-------------+
+              |                           |
+              |                        ANM palette
+              |
+LEVELS / INIT / NPCS / OBJECTS
+              |
+              v
+      scene-record construction
+              |
+       +------+------------------+
+       |                         |
+       v                         v
+  RES4 type 6                RES3 type 7
+  128-texel columns          compiled shapes
+       |                         |
+       |                         v
+       |                      SINTAB
+       |                 lookup + scale code
+       |                         |
+       +------------+------------+
+                    |
+                    v
+          first-person rasterization
+                    |
+                    v
+             planar VGA pages
+
+Parallel presentation:
+RES0 / RES1 / RES8 / RES9 type-1 graphics
+                    |
+                    v
+         planar image/sprite paths
+                    |
+                    v
+             same VGA pages
+```
+
+The diagram is a reconstructed dependency model, not a claim about DreamForge's original source-file organization.
+
+## 38. Faithful-port implementation boundary
+
+A modern implementation can separate the original data model from host presentation:
+
+```text
+LegacyGraphicsData
+    |
+    +-- indexed palettes
+    +-- runtime raster images
+    +-- type-6 texture columns
+    +-- type-7 compiled shapes
+    +-- SINTAB tables/scale programs
+    |
+    v
+FaithfulRasterModel
+    |
+    +-- original coordinate domains
+    +-- original integer/fixed-point arithmetic
+    +-- original clipping
+    +-- palette-index operations
+    +-- draw/display-page semantics
+    |
+    v
+HostPresentationBackend
+    |
+    +-- software surface
+    +-- platform window
+    +-- optional hardware acceleration
+```
+
+The host backend is not the historical model. It is a transport/presentation layer below which the faithful behavior can be tested independently.
+
+## 39. Suggested native compatibility concepts
+
+A later C++ implementation should make the historical distinctions explicit rather than burying them in renderer globals. Suitable conceptual types include:
+
+```text
+LegacyVideoMode
+    width = 320
+    height = 200 or 400
+    plane_pitch = 80
+    page_stride = 0x4000 or 0x8000
+
+LegacyPageState
+    draw_page
+    display_page
+
+LegacyPlanarAddress
+    byte_offset
+    plane
+
+LegacyPalette
+    256 RGB triplets in original 0..63 component domain
+
+LegacyRasterImage
+    frame/layout/transparency metadata
+    preserved palette-index bytes
+
+LegacyTextureColumn
+    128 source texels
+
+LegacyCompiledShape
+    geometry
+    column-pointer table
+    descriptor lists
+
+LegacyScaleProgram
+    SINTAB control tables
+    canonical serialized program bytes
+```
+
+These are proposed native concepts, not recovered original C/C++ declarations.
+
+## 40. Required graphics regression classes
+
+Before the faithful port's graphics layer is considered certified, regression coverage should include the following.
+
+### 40.1 Address translation
+
+Verify:
+
+```text
+(x, y, page) -> original byte offset + plane
+```
+
+including page boundaries and edge coordinates.
+
+### 40.2 Page behavior
+
+Verify:
+
+- changing the draw page does not implicitly change the visible page;
+- changing the visible CRTC page does not corrupt draw-page state;
+- full-page copies;
+- cross-page rectangle copies;
+- 200-line and 400-line page-stride behavior.
+
+### 40.3 Primitive rasterization
+
+Verify:
+
+- direct pixel read/write;
+- VGA-latch-dependent writes where observable;
+- horizontal/vertical/general lines;
+- plane-mask wrap;
+- rectangle edge masks;
+- signed clipping at every display edge.
+
+### 40.4 Runtime raster images
+
+Verify:
+
+- frame selection;
+- direct copy;
+- transparency-key copy;
+- palette-index subtraction;
+- palette-table translation;
+- clipped forms;
+- capture/restore round trips.
+
+### 40.5 Palette behavior
+
+Verify:
+
+- exact COLORS record reads;
+- partial palette-range reads;
+- 0..63 source component preservation;
+- runtime intensity transform;
+- full 768-byte palette state;
+- ANM palette application.
+
+### 40.6 Type 6
+
+Verify:
+
+- 32×128 and 64×128 families;
+- exact 128-byte source-column selection;
+- fixed-point source indices for representative output heights;
+- vertical clipping/centering;
+- byte subtraction/wrap;
+- `0x50` planar destination stride.
+
+### 40.7 Type 7 / SINTAB
+
+Verify:
+
+- header geometry;
+- unaligned column-list pointers;
+- duplicate list pointers;
+- left/right traversal;
+- scale-block selection;
+- selector resolution;
+- descriptor stop/entry behavior;
+- portable replacement output against the original scale-program semantics.
+
+### 40.8 Cinematics
+
+Verify:
+
+- type-2 320×400 decode;
+- chunky-to-planar conversion;
+- type-3 sparse planar deltas;
+- type-8 four-plane 320×256 region at `0x0FF0`;
+- page/palette sequencing.
+
+The future **Faithful Native Port — Architecture and Compatibility Certification** should link these tests back to the original addresses and resource formats documented here.
+
+## 41. Modern remaster boundary
+
+After faithful execution is frozen and certified, the remaster may intentionally replace or extend:
+
+- VGA page flipping with a modern presentation/swap model;
+- palette-index shading with true-color or shader lighting;
+- software scaling with GPU rendering;
+- scale-program execution with modern geometry/raster pipelines;
+- fixed logical output with arbitrary resolutions;
+- original camera restrictions with free mouselook;
+- original UI scaling with high-resolution interfaces.
+
+Those are modernization features, not corrections to the historical renderer.
+
+The project should continue to distinguish:
+
+```text
+original behavior
+        |
+        v
+faithful native implementation
+        |
+        v
+intentional remaster behavior
+```
+
+so a programmer can always determine which layer is responsible for a rendering result.
+
+## 42. Correction C-03 — “320×200 framebuffer” is too narrow
+
+Any project wording that describes the original renderer universally as a 320×200 framebuffer should be interpreted more precisely.
+
+The executable proves:
+
+```text
+logical width              320
+supported logical height   200 or 400
+planar pitch               80 bytes/row/plane
+page stride                0x4000 or 0x8000
+```
+
+The cinematic path independently proves a 320×400 decoded-frame model and a raw 256-line planar region. The first-person type-6 sampler independently uses a 256-line working region. [Code1.cpp `function_9ca0`](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code1/Code1.cpp) [ANM format](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/ANM/FORMAT.md) [Type-6 renderer](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE6_RENDERER.md)
+
+This is a **documentation clarification only**. It does not change the certified CODE.1/CODE.2 reconstruction.
+
+## 43. Historical unknowns retained
+
+The graphics pipeline is behaviorally reconstructed to the level required for faithful implementation, but historical/source-level questions remain:
+
+1. DreamForge's original names for the two display configurations;
+2. original names for many VGA globals and runtime image fields;
+3. original authoring-tool names for type-7 descriptor fields;
+4. identity and implementation details of the original generator that produced SINTAB scale-program bodies;
+5. whether the development team used a conventional contemporary nickname for the unchained VGA mode;
+6. original editor terminology for environment/backdrop profiles;
+7. complete named-art indexing for every RES3 shape and RES4 texture;
+8. exact intended visual labels for every palette-index subtraction/translation path.
+
+These are preservation `UNKNOWN`s. They do not block faithful rendering of the supplied build.
+
+## 44. Source ledger
+
+### Executable reconstruction
+
+- [Code1/Code1.cpp](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code1/Code1.cpp)
+- [Code1/FINAL_BINARY_AUDIT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code1/FINAL_BINARY_AUDIT.md)
+- [Code2/CODE2_CONTINUITY_ADDENDUM.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/CODE2_CONTINUITY_ADDENDUM.md)
+- [Code2/FINAL_SEMANTIC_AUDIT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_SEMANTIC_AUDIT.md)
+- [Code2/FINAL_CERTIFICATION.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_CERTIFICATION.md)
+
+### Resource/renderer evidence
+
+- [Resources/RES/TYPE6_RENDERER.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE6_RENDERER.md)
+- [Resources/RES/TYPE7_RENDERER.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE7_RENDERER.md)
+- [Resources/RES/TYPE7_SOURCE_BANKS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE7_SOURCE_BANKS.md)
+- [Resources/MISC/SINTAB/FORMAT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/SINTAB/FORMAT.md)
+- [Resources/MISC/COLORS/FORMAT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/COLORS/FORMAT.md)
+- [Resources/MISC/INIT/FORMAT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/INIT/FORMAT.md)
+- [Resources/MISC/INIT/ENVIRONMENT_PROFILES.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/INIT/ENVIRONMENT_PROFILES.md)
+- [Resources/ANM/FORMAT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/ANM/FORMAT.md)
+- [Resources/FINAL_RESOURCE_AUDIT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/FINAL_RESOURCE_AUDIT.md)
+
+## 45. Architectural checkpoint
+
+The graphics foundation is now:
+
+```text
+BIOS mode 13h
+    |
+    v
+VGA register reconfiguration
+    |
+    v
+unchained four-plane 256-color framebuffer
+    |
+    +-- 320 pixels wide
+    +-- 80 bytes/row/plane
+    +-- 200 or 400 logical rows
+    +-- 0x4000 or 0x8000 page stride
+    |
+    +--> CPU draw-page selection
+    |
+    +--> independent CRTC display-page selection
+    |
+    +--> planar capture / restore / page copy
+    |
+    +--> UI/runtime raster images
+    |
+    +--> type-6 column texture sampler
+    |
+    +--> type-7 compiled shape
+            |
+            v
+          SINTAB scale block
+            |
+            v
+       scale-specific renderer behavior
+            |
+            v
+         VGA planes
+
+Palette side:
+COLORS / ANM palette
+    -> optional runtime intensity transform
+    -> VGA DAC
+```
+
+This closes the graphics architecture at the historical-system level. The next preservation chapter should move upward into **world and level representation**: LEVELS.DAT and LEV state, coordinate systems, cell words, geometry, movement/collision, doors, dynamic cell records, scene-source generation, and the boundary between immutable level definitions and mutable runtime state.
