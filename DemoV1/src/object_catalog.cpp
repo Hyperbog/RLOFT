@@ -47,6 +47,12 @@ ObjectCatalog ObjectCatalog::parse(
             i * ObjectDefinition::kSerializedSize;
         ObjectDefinition object{};
         object.name = fixed_name(rec);
+        object.scene_shape_base_local =
+            u16(rec + 0x28);
+        object.scene_shape_stride =
+            rec[0x2A];
+        object.scene_influence_step =
+            rec[0x2B];
         object.ui_graphic_index = u16(rec + 0x2D);
         object.item_category = rec[0x2F];
         object.weight_half_units = rec[0x30];
