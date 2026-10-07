@@ -260,6 +260,7 @@ RavenloftBootAssets::RavenloftBootAssets(GameSource source)
       res10_(source_.read("RES10")),
       colors_(source_.read("COLORS")),
       text_(source_.read("T")),
+      init_(source_.read("INIT")),
       code1_(source_.read("CODE.1")) {
     if (colors_.size() != 1U + 15U * 768U || colors_[0] != 15U) {
         throw std::runtime_error("COLORS is not the certified 15-palette Ravenloft bank");
@@ -333,6 +334,15 @@ std::string RavenloftBootAssets::text(int index) const {
         out[i] = static_cast<char>(text_[record_at + 2U + i] ^ 0xDCU);
     }
     return out;
+}
+
+std::uint16_t RavenloftBootAssets::init_u16(
+    std::size_t byte_offset) const {
+    if (byte_offset + 2U > init_.size()) {
+        throw std::out_of_range("INIT word exceeds installed file");
+    }
+    return static_cast<std::uint16_t>(init_[byte_offset]) |
+           (static_cast<std::uint16_t>(init_[byte_offset + 1U]) << 8U);
 }
 
 std::uint8_t RavenloftBootAssets::code1_u8(
