@@ -12,7 +12,9 @@ Artwork is cropped, tiled, or uniformly nearest-neighbour scaled only.
 from __future__ import annotations
 
 import base64
+import hashlib
 from functools import lru_cache
+from io import BytesIO
 
 from PIL import Image, ImageDraw, ImageOps
 
@@ -107,16 +109,54 @@ _RAVENLOFT_LOGO_PALETTE_HEX = "3945be000000bababaa2a2a2caceca9696968e8e8e7575758
 
 @lru_cache(maxsize=1)
 def ravenloft_logo() -> Image.Image:
-    import zlib
-    pixels = zlib.decompress(base64.b64decode(_RAVENLOFT_LOGO_PIXELS_B64))
-    palette = bytes.fromhex(_RAVENLOFT_LOGO_PALETTE_HEX)
-    if len(pixels) != 240 * 114 or len(palette) != 31 * 3:
-        raise RuntimeError("embedded Ravenloft crest is corrupt")
-    indexed = Image.frombytes("P", (240, 114), pixels)
-    indexed.putpalette(palette + bytes(768 - len(palette)))
-    rgba = indexed.convert("RGBA")
-    alpha = indexed.point(lambda value: 0 if value == 0 else 255, mode="L")
-    rgba.putalpha(alpha)
+    """Load the verified Ravenloft crest extracted from RES0/COLORS.
+
+    The previous binary PNG committed through the connector was truncated.
+    Store the indexed PNG as small text chunks instead and verify the exact
+    source bytes before decoding them.
+    """
+    prefix = (
+        "iVBORw0KGgoAAAANSUhEUgAAAPAAAAByCAMAAABa86xzAAADAFBMVEU5Rb4AAAC6"
+        "urqioqLKzsqWlpaOjo51dXWCgoJhYWFJSUk9PT1VVVU1NTUcHBwoKChJEAwoCAyK"
+        "FCBpFBAQEBBtbW1paWmKjo6urq7n5+e2ysrb29tFTVFFMU0ICAg"
+    )
+    encoded = prefix + ("A" * 821)
+    for index in range(1, 9):
+        path = runtime_paths.bundled_path(
+            f"assets/ravenloft_logo.chunk{index:02d}.b64"
+        )
+        if path is None:
+            raise RuntimeError(
+                f"baked Ravenloft crest chunk {index:02d} is missing"
+            )
+        encoded += path.read_text(encoding="ascii").strip()
+
+    raw = base64.b64decode(encoded, validate=True)
+    expected = "4e6b802ae98e66a407a3839ae9d958ac727f93992ef0e21ca1d735c368023690"
+    if hashlib.sha256(raw).hexdigest() != expected:
+        raise RuntimeError("baked Ravenloft crest checksum mismatch")
+
+    with Image.open(BytesIO(raw)) as source:
+        original = source.copy()
+
+    background_index = original.getpixel((0, 0)) if original.mode == "P" else None
+    rgba = original.convert("RGBA")
+    if background_index is not None:
+        alpha = original.point(
+            lambda value: 0 if value == background_index else 255,
+            mode="L",
+        )
+        rgba.putalpha(alpha)
+        return rgba
+
+    background = rgba.getpixel((0, 0))[:3]
+    pixels = list(rgba.getdata())
+    rgba.putdata(
+        [
+            (r, g, b, 0 if (r, g, b) == background else a)
+            for r, g, b, a in pixels
+        ]
+    )
     return rgba
 
 
