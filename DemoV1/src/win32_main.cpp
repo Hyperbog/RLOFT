@@ -57,6 +57,12 @@ std::wstring widen(std::string_view text) {
 
 class Host final {
 public:
+    ~Host() {
+        if (frame_timer_) {
+            CloseHandle(frame_timer_);
+        }
+    }
+
     bool create(HINSTANCE instance) {
         WNDCLASSW wc{};
         wc.lpfnWndProc = &Host::window_proc;
@@ -68,6 +74,24 @@ public:
         wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
         wc.lpszClassName = L"RavenloftDemoV1Window";
         RegisterClassW(&wc);
+
+#ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
+#define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
+#endif
+        // CODE.1 synchronizes every page switch to VGA retrace. Use a
+        // high-resolution waitable timer so the native host can preserve the
+        // ~14.27 ms retrace period without 1 ms polling/scheduler jitter.
+        frame_timer_ = CreateWaitableTimerExW(
+            nullptr,
+            nullptr,
+            CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,
+            TIMER_ALL_ACCESS);
+        if (!frame_timer_) {
+            frame_timer_ = CreateWaitableTimerW(
+                nullptr,
+                TRUE,
+                nullptr);
+        }
 
         // The native framebuffer is 320x400, but the VGA mode was viewed on
         // a 4:3 display with non-square pixels. Present it at 4:3 rather than
@@ -127,12 +151,55 @@ public:
     }
 
     bool wait_until(Clock::time_point deadline, bool allow_escape) {
-        while (Clock::now() < deadline) {
+        using HundredNanoseconds =
+            std::chrono::duration<LONGLONG, std::ratio<1, 10000000>>;
+
+        for (;;) {
             if (!pump()) return false;
             if (allow_escape && consume_escape()) return false;
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+            const auto now = Clock::now();
+            if (now >= deadline) return true;
+
+            if (!frame_timer_) {
+                std::this_thread::yield();
+                continue;
+            }
+
+            const auto remaining =
+                std::chrono::duration_cast<HundredNanoseconds>(
+                    deadline - now);
+            LARGE_INTEGER due{};
+            due.QuadPart = -std::max<LONGLONG>(
+                1,
+                remaining.count());
+
+            if (!SetWaitableTimer(
+                    frame_timer_,
+                    &due,
+                    0,
+                    nullptr,
+                    nullptr,
+                    FALSE)) {
+                std::this_thread::yield();
+                continue;
+            }
+
+            const HANDLE handles[] = {frame_timer_};
+            const DWORD result = MsgWaitForMultipleObjectsEx(
+                1,
+                handles,
+                INFINITE,
+                QS_ALLINPUT,
+                MWMO_INPUTAVAILABLE);
+
+            if (result == WAIT_FAILED) {
+                std::this_thread::yield();
+            }
+            // WAIT_OBJECT_0 means the high-resolution deadline fired.
+            // WAIT_OBJECT_0 + 1 means window/input messages arrived; loop,
+            // pump them, and arm the remaining interval again.
         }
-        return true;
     }
 
     bool pause_frame(std::chrono::duration<double> duration) {
@@ -519,6 +586,7 @@ private:
     }
 
     HWND hwnd_{};
+    HANDLE frame_timer_{};
     std::vector<std::uint8_t> base_indices_;
     rloft::Palette6 current_palette_{};
     std::vector<std::uint32_t> bgra_;
@@ -1131,15 +1199,14 @@ int run(HINSTANCE instance) {
                         character_presenter.framebuffer(),
                         character_palette);
 
-                    // CODE.1 53E4 advances on VGA retrace. Keep an accumulated
-                    // 70.0863-Hz deadline so host rendering time does not get
-                    // added to every frame and make the card flight stutter.
+                    // CODE.1 53E4/65A4 waits for the next VGA retrace on
+                    // every page switch. If native rendering misses a target
+                    // retrace, the original waits for a later retrace; it
+                    // never shortens the following frame to "catch up".
                     const auto now = Clock::now();
                     if (character_animation_deadline ==
                             Clock::time_point{} ||
-                        now >
-                            character_animation_deadline +
-                                character_animation_period * 2) {
+                        now >= character_animation_deadline) {
                         character_animation_deadline = now;
                     }
                     character_animation_deadline +=
