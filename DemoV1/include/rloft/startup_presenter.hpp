@@ -27,8 +27,10 @@ public:
 
     [[nodiscard]] IndexedRegion capture(int y, int x, int height, int width) const;
     void restore(const IndexedRegion& region, int y, int x);
+    void fill_rect(int y, int x, int height, int width, std::uint8_t color);
 
     [[nodiscard]] const std::vector<std::uint8_t>& pixels() const noexcept { return pixels_; }
+    [[nodiscard]] std::vector<std::uint8_t>& mutable_pixels() noexcept { return pixels_; }
 
 private:
     std::vector<std::uint8_t> pixels_;
