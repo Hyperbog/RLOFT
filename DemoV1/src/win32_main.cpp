@@ -30,6 +30,7 @@
 #include "rloft/exploration_legacy_input.hpp"
 #include "rloft/exploration_presenter.hpp"
 #include "rloft/exploration_runtime.hpp"
+#include "rloft/top_edge_menu_presenter.hpp"
 #include "rloft/game_source.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
@@ -246,8 +247,19 @@ public:
             exploration_input_->clear();
         }
         exploration_input_ = controller;
-        if (!exploration_input_) return;
+        exploration_click_.reset();
+
+        if (!exploration_input_) {
+            if (!menu_mode_ && !character_mode_) {
+                character_pointer_.reset();
+            }
+            refresh_pointer_overlay();
+            return;
+        }
+
         exploration_input_->clear();
+        update_pointer_from_system_cursor();
+        refresh_pointer_overlay();
     }
 
     int selection() const noexcept { return selection_; }
@@ -275,6 +287,16 @@ public:
 
     [[nodiscard]] std::optional<NativePoint> character_pointer() const {
         return character_pointer_;
+    }
+
+    [[nodiscard]] std::optional<NativePoint> exploration_pointer() const {
+        return character_pointer_;
+    }
+
+    std::optional<NativePoint> consume_exploration_click() {
+        auto result = exploration_click_;
+        exploration_click_.reset();
+        return result;
     }
 
     std::optional<int> consume_key_event() {
@@ -349,7 +371,7 @@ private:
             bgra_[i] = palette_bgra(base_indices_[i]);
         }
 
-        if (!(menu_mode_ || character_mode_) ||
+        if (!(menu_mode_ || character_mode_ || exploration_input_) ||
             !character_pointer_ ||
             !game_cursor_ ||
             game_cursor_->count <= 0) {
@@ -571,7 +593,7 @@ private:
                         rloft::StartupPresenter::menu_selection_from_y(y);
                 }
 
-                if (menu_mode_ || character_mode_) {
+                if (menu_mode_ || character_mode_ || exploration_input_) {
                     const auto old_pointer = character_pointer_;
                     const int row =
                         native_y_from_client(GET_Y_LPARAM(lparam));
@@ -602,7 +624,7 @@ private:
             }
 
             case WM_MOUSELEAVE:
-                if (menu_mode_ || character_mode_) {
+                if (menu_mode_ || character_mode_ || exploration_input_) {
                     character_pointer_.reset();
                     refresh_pointer_overlay();
                 }
@@ -620,6 +642,16 @@ private:
                     if (row >= 0 && column >= 0) {
                         character_pointer_ = NativePoint{row, column};
                         character_click_ = *character_pointer_;
+                    }
+                }
+                if (exploration_input_) {
+                    const int row =
+                        native_y_from_client(GET_Y_LPARAM(lparam));
+                    const int column =
+                        native_x_from_client(GET_X_LPARAM(lparam));
+                    if (row >= 0 && column >= 0) {
+                        character_pointer_ = NativePoint{row, column};
+                        exploration_click_ = *character_pointer_;
                     }
                 }
                 return 0;
@@ -670,6 +702,7 @@ private:
     int selection_{-1};
     std::optional<int> clicked_{};
     std::optional<NativePoint> character_click_{};
+    std::optional<NativePoint> exploration_click_{};
     std::optional<NativePoint> character_pointer_{};
     std::deque<int> key_events_{};
 };
@@ -734,6 +767,7 @@ int run_exploration(
         rloft::ExplorationRuntime::load_fresh(
             assets.source(), chars);
     rloft::ExplorationPresenter presenter(assets);
+    rloft::TopEdgeMenuPresenter menu_presenter(assets);
     rloft::ExplorationLegacyInputController input;
 
     host.set_character_mode(false);
@@ -754,13 +788,47 @@ int run_exploration(
             break;
         }
 
-        const auto motion_inputs = input.tick(false);
-        (void)runtime.tick_motion(motion_inputs);
+        int hovered_menu = -1;
+        if (const auto pointer =
+                host.exploration_pointer()) {
+            hovered_menu =
+                rloft::TopEdgeMenuModel::
+                    selection_from_mouse(
+                        pointer->column,
+                        pointer->row);
+        }
+
+        int pressed_menu = -1;
+        if (const auto click =
+                host.consume_exploration_click()) {
+            pressed_menu =
+                rloft::TopEdgeMenuModel::
+                    selection_from_mouse(
+                        click->column,
+                        click->row);
+        }
+
+        // CODE.2 080AC is modal while the pointer remains in the top
+        // 64-pixel band (D680=3). Do not advance 1FC14/2E120 locomotion
+        // while that dispatcher owns input.
+        if (hovered_menu < 0) {
+            const auto motion_inputs =
+                input.tick(false);
+            (void)runtime.tick_motion(
+                motion_inputs);
+        }
 
         const auto frame = runtime.build_frame();
         const auto presented = presenter.present(
             frame,
             runtime.renderer_tables());
+
+        if (hovered_menu >= 0) {
+            menu_presenter.draw(
+                presenter.framebuffer(),
+                hovered_menu,
+                pressed_menu);
+        }
 
         host.present(
             presenter.framebuffer(),
