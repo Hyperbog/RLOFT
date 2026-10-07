@@ -1418,22 +1418,26 @@ void function_0139c(Machine& m,Application04Boundary& b,Application03Boundary& a
     function_011a8(m,b);
     const s32 end_col=app04_add_s32(col,cols);
     const s32 end_row=app04_add_s32(row,rows);
-    for(u32 cbits=static_cast<u32>(col);static_cast<s32>(cbits)<end_col;++cbits) {
+    s32 draw0=6;
+    for(u32 cbits=static_cast<u32>(col);static_cast<s32>(cbits)<end_col;++cbits,draw0=app04_add_s32(draw0,8)) {
         const s32 c=static_cast<s32>(cbits);
         if(c<0||c>=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x12756u)))))continue;
-        for(u32 rbits=static_cast<u32>(row);static_cast<s32>(rbits)<end_row;++rbits) {
+        s32 draw1=4;
+        for(u32 rbits=static_cast<u32>(row);static_cast<s32>(rbits)<end_row;++rbits,draw1=app04_add_s32(draw1,5)) {
             const s32 r=static_cast<s32>(rbits);
             if(r>=0&&r<static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x12754u)))))
-                function_00b6c(m,a3,c,r,6,4);
+                function_00b6c(m,a3,c,r,draw0,draw1);
         }
     }
-    for(u32 cbits=static_cast<u32>(col);static_cast<s32>(cbits)<end_col;++cbits) {
+    draw0=6;
+    for(u32 cbits=static_cast<u32>(col);static_cast<s32>(cbits)<end_col;++cbits,draw0=app04_add_s32(draw0,8)) {
         const s32 c=static_cast<s32>(cbits);
         if(c<0||c>=static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x12756u)))))continue;
-        for(u32 rbits=static_cast<u32>(row);static_cast<s32>(rbits)<end_row;++rbits) {
+        s32 draw1=4;
+        for(u32 rbits=static_cast<u32>(row);static_cast<s32>(rbits)<end_row;++rbits,draw1=app04_add_s32(draw1,5)) {
             const s32 r=static_cast<s32>(rbits);
             if(r>=0&&r<static_cast<s32>(static_cast<s16>(load_le16(dg(m,0x12754u)))))
-                function_00cb0(m,a3,g,c,r,6,4);
+                function_00cb0(m,a3,g,c,r,draw0,draw1);
         }
     }
     if(*dg(m,0x5FD9u)!=0u)function_01228(m,b,col,row);

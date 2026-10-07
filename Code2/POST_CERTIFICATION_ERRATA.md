@@ -99,3 +99,39 @@ logical `0x2975C`.
 certification documents are retained as provenance and carry a notice pointing
 to this erratum rather than having their original closure data silently
 rewritten.
+
+
+## Erratum 002 — routine 0139C automap draw-coordinate accumulators
+
+**Date discovered:** 2026-10-07  
+**Discovery context:** Demo v1 native automap presentation integration  
+**Binary authority:** immutable supplied `CODE.2`, object-1 logical `0139C..01556`
+
+The historical certified translation called both cell passes with constant draw
+coordinates `6,4`. Immutable disassembly proves two loop-carried coordinates:
+
+```text
+draw0 = 6 + 8 * (column - viewport_column)
+draw1 = 4 + 5 * (row    - viewport_row)
+```
+
+Both live values are passed to `00B6C` and `00CB0`.
+
+Object-1 begins at file `0x3AF24`; logical `0x0139C` maps to physical
+`0x3C2C0`. Reproduction:
+
+```sh
+dd if=CODE.2 of=code2_obj1.bin bs=1 skip=$((0x3AF24)) count=$((0x3A852))
+objdump -D -b binary -m i386 -M intel \
+  --adjust-vma=0x10000 \
+  --start-address=0x1139c --stop-address=0x11557 \
+  code2_obj1.bin
+```
+
+The first pass advances the inner coordinate by 5 at displayed `0x11437`
+and the outer coordinate by 8 at `0x1143F`. The second pass repeats those
+increments at `0x114D7` and `0x114DF`.
+
+Executable-byte coverage/accounting is unchanged. The source-level automap
+placement semantics are corrected on the current branch; historical
+certification hashes remain provenance for the pre-erratum snapshot.
