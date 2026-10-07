@@ -47,6 +47,7 @@ std::vector<std::uint8_t> fake_code2() {
             code2[start + j] = tables[i][j];
         }
     }
+    code2[kDataFileStart + 0xC029U] = 1U;
     return code2;
 }
 
@@ -65,6 +66,7 @@ int main() {
     const auto code2 = fake_code2();
     const auto model =
         rloft::Type7VgaPlaneMaskModel::from_code2(code2);
+    assert(model.initial_individual_columns_mode());
 
     // Every 369D8 mask table slot in the active domain is checked against
     // the certified bytes and every plane union covers its run width.
@@ -105,6 +107,23 @@ int main() {
     rejected = false;
     try { (void)rloft::Type7VgaPlaneMaskModel::from_code2(truncated); }
     catch (const std::runtime_error&) { rejected = true; }
+    assert(rejected);
+
+    // CODE.2's initial 0xC029 byte determines the default 36B14
+    // dispatcher, and is toggled later by the executable at 0x6617.
+    auto grouped_initial = code2;
+    grouped_initial[kDataFileStart + 0xC029U] = 0U;
+    assert(!rloft::Type7VgaPlaneMaskModel::
+        from_code2(grouped_initial).
+        initial_individual_columns_mode());
+    grouped_initial[kDataFileStart + 0xC029U] = 2U;
+    rejected = false;
+    try {
+        (void)rloft::Type7VgaPlaneMaskModel::
+            from_code2(grouped_initial);
+    } catch (const std::runtime_error&) {
+        rejected = true;
+    }
     assert(rejected);
 
     auto corrupt = code2;
