@@ -29,7 +29,11 @@ std::vector<std::uint8_t> make_record(bool direct) {
     put32(r, 1, b0); put32(r, 5, b1); put32(r, 9, b2);
     put32(r, 13, b3); put32(r, 17, b4); put32(r, 21, b5); put32(r, 25, b6);
     put16(r, b0 + 1, w); put16(r, b0 + 3, h);
-    r[b0 + 0x290] = 0xFF; r[b0 + 0x29C] = 7;
+    r[b0 + 0x290] = 0xFF;
+    r[b0 + 0x298] = 0x2C;
+    r[b0 + 0x299] = 0x31;
+    put16(r, b0 + 0x29A, 0);
+    r[b0 + 0x29C] = 7;
     put16(r, b0 + 0x2A4 + 0, 0x0400);
     put16(r, b0 + 0x2A4 + 2, 0x0081);
 
@@ -73,6 +77,11 @@ int main() {
     auto legacy = rloft::ExplorationStateCodec::parse_archive_level(archive, 0);
     assert(legacy.width == 2 && legacy.height == 2);
     assert(legacy.music_sequence == 7);
+    assert(legacy.renderer_fill_base_a == 0x2C);
+    assert(legacy.renderer_fill_base_b == 0x31);
+    assert(legacy.header[0x29A] == 0);
+    assert(legacy.header[0x29B] == 0);
+    assert(legacy.render_threshold_floor == 1);
     assert(legacy.group1.size() == 1);
     assert(legacy.group2.size() == 1);
     assert(legacy.automap_cache[0] == 0x2E);
@@ -82,4 +91,7 @@ int main() {
     assert(direct.group2.size() == 2);
     assert(direct.active_animation_count == 1);
     assert(direct.storage == rloft::LevelStorage::DirectSave);
+    assert(direct.renderer_fill_base_a == 0x2C);
+    assert(direct.renderer_fill_base_b == 0x31);
+    assert(direct.render_threshold_floor == 1);
 }

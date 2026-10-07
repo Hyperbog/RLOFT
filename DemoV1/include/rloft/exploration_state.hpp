@@ -44,6 +44,9 @@ struct LevelState final {
     int width{};
     int height{};
     std::uint8_t environment_profile{0xFF};
+    std::uint8_t renderer_fill_base_a{};
+    std::uint8_t renderer_fill_base_b{};
+    std::int16_t render_threshold_floor{1};
     std::uint8_t music_sequence{};
 
     std::vector<std::uint16_t> cell_words;

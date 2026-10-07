@@ -99,6 +99,14 @@ LevelState parse_record(const std::vector<std::uint8_t>& record,
         throw std::runtime_error("invalid level dimensions");
     }
     out.environment_profile = out.header[0x290];
+    out.renderer_fill_base_a = out.header[0x298];
+    out.renderer_fill_base_b = out.header[0x299];
+    out.render_threshold_floor = s16(out.header.data() + 0x29A);
+    if (out.render_threshold_floor == 0) {
+        // CODE.2 normalizes serialized zero to live value one immediately
+        // after level load, while the raw header remains preserved above.
+        out.render_threshold_floor = 1;
+    }
     out.music_sequence = out.header[0x29C];
 
     const int family_a_count = s16(out.header.data() + 0x28A);
