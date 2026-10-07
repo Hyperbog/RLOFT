@@ -50,6 +50,8 @@ class FramelessWindow:
         self.enabled = os.name == "nt"
         self.hwnd: int | None = None
         self._handles: list[tk.Frame] = []
+        self._resize_hit: int | None = None
+        self._resize_origin: tuple[int, int, int, int, int, int] | None = None
 
         if not self.enabled:
             return
@@ -118,16 +120,110 @@ class FramelessWindow:
         ctypes.windll.user32.ReleaseCapture()
         ctypes.windll.user32.SendMessageW(self.hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0)
 
-    def _start_resize(self, hit_test: int) -> None:
-        if not self.enabled or not self.hwnd or self.is_maximized():
-            return
-        ctypes.windll.user32.ReleaseCapture()
-        ctypes.windll.user32.SendMessageW(
-            self.hwnd,
-            WM_NCLBUTTONDOWN,
-            hit_test,
-            0,
+    def _begin_resize(self, event, hit_test: int) -> str:
+        """Begin a border resize without entering Windows' modal NC loop.
+
+        Calling WM_NCLBUTTONDOWN synchronously from a Tk callback can re-enter
+        Tcl/Tk while the native sizing loop owns the thread. Keep resizing in
+        Tk instead so border clicks cannot terminate the process.
+        """
+        if self.is_maximized():
+            return "break"
+
+        self.root.update_idletasks()
+        self._resize_hit = hit_test
+        self._resize_origin = (
+            int(event.x_root),
+            int(event.y_root),
+            self.root.winfo_x(),
+            self.root.winfo_y(),
+            max(1, self.root.winfo_width()),
+            max(1, self.root.winfo_height()),
         )
+        try:
+            event.widget.grab_set()
+        except tk.TclError:
+            pass
+        return "break"
+
+    @staticmethod
+    def _resized_geometry(
+        hit_test: int,
+        dx: int,
+        dy: int,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        min_width: int,
+        min_height: int,
+    ) -> tuple[int, int, int, int]:
+        left = hit_test in (HTLEFT, HTTOPLEFT, HTBOTTOMLEFT)
+        right = hit_test in (HTRIGHT, HTTOPRIGHT, HTBOTTOMRIGHT)
+        top = hit_test in (HTTOP, HTTOPLEFT, HTTOPRIGHT)
+        bottom = hit_test in (HTBOTTOM, HTBOTTOMLEFT, HTBOTTOMRIGHT)
+
+        new_x, new_y = x, y
+        new_w, new_h = width, height
+
+        if left:
+            proposed = width - dx
+            if proposed >= min_width:
+                new_w = proposed
+                new_x = x + dx
+            else:
+                new_w = min_width
+                new_x = x + (width - min_width)
+        elif right:
+            new_w = max(min_width, width + dx)
+
+        if top:
+            proposed = height - dy
+            if proposed >= min_height:
+                new_h = proposed
+                new_y = y + dy
+            else:
+                new_h = min_height
+                new_y = y + (height - min_height)
+        elif bottom:
+            new_h = max(min_height, height + dy)
+
+        return new_x, new_y, new_w, new_h
+
+    def _perform_resize(self, event) -> str:
+        if self._resize_hit is None or self._resize_origin is None:
+            return "break"
+
+        start_x, start_y, x, y, width, height = self._resize_origin
+        dx = int(event.x_root) - start_x
+        dy = int(event.y_root) - start_y
+        min_width, min_height = self.root.minsize()
+
+        new_x, new_y, new_w, new_h = self._resized_geometry(
+            self._resize_hit,
+            dx,
+            dy,
+            x,
+            y,
+            width,
+            height,
+            max(1, int(min_width)),
+            max(1, int(min_height)),
+        )
+        self.root.geometry(f"{new_w}x{new_h}+{new_x}+{new_y}")
+        return "break"
+
+    def _end_resize(self, event=None) -> str:
+        self._resize_hit = None
+        self._resize_origin = None
+        widget = getattr(event, "widget", None)
+        if widget is not None:
+            try:
+                widget.grab_release()
+            except tk.TclError:
+                pass
+        return "break"
+
 
     def minimize(self) -> None:
         if self.enabled and self.hwnd:
@@ -184,8 +280,10 @@ class FramelessWindow:
             )
             frame.bind(
                 "<ButtonPress-1>",
-                lambda _event, code=hit: self._start_resize(code),
+                lambda event, code=hit: self._begin_resize(event, code),
             )
+            frame.bind("<B1-Motion>", self._perform_resize)
+            frame.bind("<ButtonRelease-1>", self._end_resize)
             self._handles.append(frame)
         self._layout_resize_handles()
 
