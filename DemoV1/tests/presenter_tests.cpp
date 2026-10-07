@@ -63,6 +63,17 @@ int main() {
     assert(framebuffer.pixels()[10 * 320 + 5] == 9);
     assert(framebuffer.pixels()[10 * 320 + 6] == 1);
 
+    std::array<std::uint8_t, 256> remap{};
+    for (int i = 0; i < 256; ++i) {
+        remap[static_cast<std::size_t>(i)] =
+            static_cast<std::uint8_t>(255 - i);
+    }
+    framebuffer.clear(9);
+    framebuffer.draw_frame_mapped(raster, 0, 12, 7, remap);
+    // Transparent source index 0 remains untouched; source index 1 maps to FE.
+    assert(framebuffer.pixels()[12 * 320 + 7] == 9);
+    assert(framebuffer.pixels()[12 * 320 + 8] == 0xFE);
+
     rloft::Palette6 palette;
     for (auto& value : palette.rgb) value = 56;
     const auto half = rloft::StartupPresenter::fade_factor(palette, 4);
