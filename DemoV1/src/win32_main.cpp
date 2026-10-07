@@ -27,6 +27,7 @@
 #include "rloft/character_creation_presenter.hpp"
 #include "rloft/character_stats.hpp"
 #include "rloft/character_transfer.hpp"
+#include "rloft/exploration_legacy_input.hpp"
 #include "rloft/game_source.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
@@ -237,6 +238,16 @@ public:
         refresh_pointer_overlay();
     }
 
+    void set_exploration_input(
+        rloft::ExplorationLegacyInputController* controller) noexcept {
+        if (exploration_input_ && exploration_input_ != controller) {
+            exploration_input_->clear();
+        }
+        exploration_input_ = controller;
+        if (!exploration_input_) return;
+        exploration_input_->clear();
+    }
+
     int selection() const noexcept { return selection_; }
 
     std::optional<int> consume_click() {
@@ -279,6 +290,42 @@ public:
     HWND hwnd() const noexcept { return hwnd_; }
 
 private:
+    static std::optional<std::uint8_t> legacy_scan_from_vk(
+        WPARAM key) noexcept {
+        using Input = rloft::ExplorationLegacyInputController;
+        switch (key) {
+            case VK_HOME:
+            case VK_NUMPAD7:
+                return Input::kHome;
+            case VK_UP:
+            case VK_NUMPAD8:
+                return Input::kUp;
+            case VK_PRIOR:
+            case VK_NUMPAD9:
+                return Input::kPageUp;
+            case VK_LEFT:
+            case VK_NUMPAD4:
+                return Input::kLeft;
+            case VK_CLEAR:
+            case VK_NUMPAD5:
+                return Input::kCenter;
+            case VK_RIGHT:
+            case VK_NUMPAD6:
+                return Input::kRight;
+            case VK_END:
+            case VK_NUMPAD1:
+                return Input::kEnd;
+            case VK_DOWN:
+            case VK_NUMPAD2:
+                return Input::kDown;
+            case VK_NEXT:
+            case VK_NUMPAD3:
+                return Input::kPageDown;
+            default:
+                return std::nullopt;
+        }
+    }
+
     static std::uint8_t expand6(std::uint8_t value) {
         return static_cast<std::uint8_t>(
             (static_cast<unsigned>(value) * 255U + 31U) / 63U);
@@ -474,6 +521,13 @@ private:
                     return 0;
                 }
 
+                if (exploration_input_) {
+                    if (const auto scan = legacy_scan_from_vk(wparam)) {
+                        exploration_input_->press(*scan);
+                    }
+                    return 0;
+                }
+
                 if (character_mode_) {
                     if (wparam >= 'A' && wparam <= 'Z') {
                         key_events_.push_back(static_cast<int>(wparam));
@@ -492,6 +546,21 @@ private:
                     }
                 }
                 return 0;
+
+            case WM_KEYUP:
+                if (exploration_input_) {
+                    if (const auto scan = legacy_scan_from_vk(wparam)) {
+                        exploration_input_->release(*scan);
+                    }
+                    return 0;
+                }
+                break;
+
+            case WM_KILLFOCUS:
+                if (exploration_input_) {
+                    exploration_input_->clear();
+                }
+                break;
 
             case WM_MOUSEMOVE: {
                 if (menu_mode_) {
@@ -595,6 +664,7 @@ private:
     bool escape_pressed_{false};
     bool menu_mode_{false};
     bool character_mode_{false};
+    rloft::ExplorationLegacyInputController* exploration_input_{nullptr};
     int selection_{-1};
     std::optional<int> clicked_{};
     std::optional<NativePoint> character_click_{};
