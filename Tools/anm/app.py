@@ -37,6 +37,7 @@ def _self_test() -> int:
     import support_dumper  # noqa: F401
     import tooltips  # noqa: F401
     import title_skin  # noqa: F401
+    import window_chrome  # noqa: F401
     import xmidi  # noqa: F401
 
     try:
@@ -44,6 +45,9 @@ def _self_test() -> int:
         if skin.size != (900, 680) or skin.mode != "RGB":
             return 24
         if title_skin.menu_panel().size != (208, 191):
+            return 24
+        header = title_skin.render_header(900, 104, 1.0)
+        if header.size != (900, 104) or header.mode != "RGB":
             return 24
     except Exception:
         return 24
