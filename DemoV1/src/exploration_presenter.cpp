@@ -2,6 +2,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <exception>
+#include <stdexcept>
+#include <utility>
 
 namespace rloft {
 
@@ -125,6 +128,80 @@ ExplorationPresentedFrame ExplorationPresenter::present(
         frame.surface_shades,
         tables);
 
+    auto output_coverage =
+        surface_coverage(frame, tables);
+
+    // The original draw order places world-scene type-7 shapes after
+    // the environment and wall surfaces, but before party-panel chrome.
+    // 369D8 renders to one of two planar VGA pages. A per-call private
+    // copy ensures that a malformed/incompletely modeled descriptor
+    // cannot partially corrupt the user's current world framebuffer.
+    if (frame.scene_vga_trace.has_value() &&
+        frame.scene_vga_trace->scene_calls.size() ==
+            frame.world_scene_render_plans.size()) {
+        VgaPlanarMemory video;
+        video.import_page(
+            framebuffer_,
+            frame.scene_video_page);
+        bool any_rasterized = false;
+        for (std::size_t index = 0U;
+             index < frame.world_scene_render_plans.size();
+             ++index) {
+            const auto& plan =
+                frame.world_scene_render_plans[index];
+            if (plan.visible_columns.empty()) {
+                continue;
+            }
+            const auto& optional_trace =
+                frame.scene_vga_trace->scene_calls[index];
+            if (!optional_trace.has_value()) {
+                continue;
+            }
+            try {
+                const auto found =
+                    type7_source_cache_.find(plan.call.resource_id);
+                const auto body =
+                    found != type7_source_cache_.end()
+                        ? found->second
+                        : assets_.res3_type7_body(
+                            plan.call.resource_id);
+                auto candidate = video;
+                const auto drawn =
+                    Type7ScenePixelExecutor::draw(
+                        plan,
+                        *optional_trace,
+                        body,
+                        tables,
+                        candidate);
+                video = std::move(candidate);
+                if (found == type7_source_cache_.end()) {
+                    type7_source_cache_.emplace(
+                        plan.call.resource_id,
+                        body);
+                }
+                any_rasterized = true;
+                ++output_coverage.type7_calls_rasterized;
+                output_coverage.type7_columns_rasterized +=
+                    plan.visible_columns.size();
+                output_coverage.type7_indexed_writes +=
+                    drawn.indexed_writes;
+                --output_coverage.type7_scene_calls_pending;
+                output_coverage.type7_visible_columns_pending -=
+                    plan.visible_columns.size();
+            } catch (const std::exception&) {
+                // Preserve a fully unmodified destination page on
+                // failure and keep this call explicitly pending in
+                // coverage diagnostics. No approximate sprite fallback.
+                ++output_coverage.type7_calls_failed;
+            }
+        }
+        if (any_rasterized) {
+            video.export_page(
+                framebuffer_,
+                frame.scene_video_page);
+        }
+    }
+
     const auto panels =
         PartyHudModel::panels(
             frame.scene.party,
@@ -140,9 +217,7 @@ ExplorationPresentedFrame ExplorationPresenter::present(
         assets_.colors_palette(
             frame.scene.palette_index);
     out.surface_coverage =
-        surface_coverage(
-            frame,
-            tables);
+        output_coverage;
     return out;
 }
 
