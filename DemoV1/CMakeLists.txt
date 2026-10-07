@@ -54,6 +54,7 @@ add_library(rloft_boot_flow
     src/environment_presenter.cpp
     src/automap_presentation.cpp
     src/automap_annotations.cpp
+    src/automap_annotation_presenter.cpp
     src/automap_viewport_presenter.cpp
     src/automap_screen_state.cpp
     src/automap_controls.cpp
@@ -233,6 +234,10 @@ add_executable(automap_annotations_tests tests/automap_annotations_tests.cpp)
 target_link_libraries(automap_annotations_tests PRIVATE rloft_boot_flow)
 add_test(NAME automap_annotations_tests COMMAND automap_annotations_tests)
 
+add_executable(automap_annotation_presenter_tests tests/automap_annotation_presenter_tests.cpp)
+target_link_libraries(automap_annotation_presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME automap_annotation_presenter_tests COMMAND automap_annotation_presenter_tests)
+
 add_executable(automap_viewport_presenter_tests tests/automap_viewport_presenter_tests.cpp)
 target_link_libraries(automap_viewport_presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME automap_viewport_presenter_tests COMMAND automap_viewport_presenter_tests)
@@ -355,6 +360,7 @@ set(RLOFT_TEST_TARGETS
     environment_presenter_tests
     automap_presentation_tests
     automap_annotations_tests
+    automap_annotation_presenter_tests
     automap_viewport_presenter_tests
     automap_screen_state_tests
     automap_controls_tests
