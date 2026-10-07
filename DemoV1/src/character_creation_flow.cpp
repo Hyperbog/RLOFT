@@ -309,7 +309,8 @@ bool CharacterCreationFlow::apply_event(int event) {
         case CharacterCreationState::ActorChoice:
             if (event == 0) {
                 draft_.actor = -1;
-                aborted_ = true;
+                completed_ = both_present();
+                aborted_ = !completed_;
                 return true;
             }
             if (event == 3 || event == 4) {
@@ -487,6 +488,7 @@ void CharacterCreationFlow::finish_current_actor(
     class_stage_ = 0;
     portrait_page_ = 0;
     aborted_ = false;
+    completed_ = false;
 }
 
 }  // namespace rloft
