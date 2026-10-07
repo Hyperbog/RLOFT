@@ -52,6 +52,8 @@ public:
     [[nodiscard]] std::vector<std::uint8_t> read(std::string_view filename) const;
     [[nodiscard]] std::optional<std::filesystem::path> runtime_file(
         std::string_view filename) const;
+    [[nodiscard]] std::optional<std::vector<std::uint8_t>> read_runtime(
+        std::string_view filename) const;
     [[nodiscard]] std::filesystem::path runtime_output_path(
         std::string_view filename) const;
 
