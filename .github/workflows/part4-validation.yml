@@ -1,9 +1,9 @@
 name: Part 4 validation
 
 on:
-  pull_request:
+  push:
     branches:
-      - demo-v1
+      - demo-v1-part4-live-sim-ci
     paths:
       - "DemoV1/**"
       - ".github/workflows/part4-validation.yml"
