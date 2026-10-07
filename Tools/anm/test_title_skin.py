@@ -34,11 +34,15 @@ class TitleSkinTests(unittest.TestCase):
         self.assertEqual(header.mode, "RGB")
         self.assertNotEqual(header.getpixel((640, 52)), header.getpixel((10, 52)))
 
+        # The full-bleed header must redraw the outer top rail because the
+        # header canvas otherwise covers the frame rendered behind it.
+        self.assertEqual(header.getpixel((100, 16)), (40, 29, 31))
+
     def test_chrome_insets_are_positive(self) -> None:
         side, top, bottom = title_skin.chrome_insets(1.0)
         self.assertGreater(side, 0)
         self.assertEqual(top, 0)
-        self.assertGreater(bottom, 0)
+        self.assertGreaterEqual(bottom, 66)
 
 
 if __name__ == "__main__":
