@@ -5,6 +5,7 @@
 #include <cstdint>
 
 #include "rloft/character_sheet.hpp"
+#include "rloft/character_modal_stats.hpp"
 #include "rloft/exploration_hud_presenter.hpp"
 #include "rloft/indexed_font_presenter.hpp"
 #include "rloft/inventory_screen.hpp"
@@ -72,6 +73,7 @@ private:
     std::uint16_t res1_object_base_{};
     std::uint16_t res1_portrait_base_{};
     Type2Font font1_{};
+    CharacterExperienceTable experience_table_{};
 };
 
 }  // namespace rloft

@@ -19,7 +19,10 @@ PartyModalPresenter::PartyModalPresenter(
       res0_base_(assets.init_u16(0x00)),
       res1_object_base_(assets.init_u16(0x02)),
       res1_portrait_base_(assets.init_u16(0x04)),
-      font1_(assets.res0_font(1)) {}
+      font1_(assets.res0_font(1)),
+      experience_table_(
+          CharacterExperienceTable::from_code2(
+              assets.source().read("CODE.2"))) {}
 
 void PartyModalPresenter::draw_res0_local(
     IndexedFramebuffer& framebuffer,
@@ -349,6 +352,43 @@ void PartyModalPresenter::draw_character_centered_text(
             column + 0x43,
             base);
     }
+
+    // 10158 HP line: label + space + current/max, centered around
+    // actor-column +28h, which is equivalent to a centered 50h-span draw.
+    IndexedFontPresenter::draw_centered(
+        framebuffer,
+        font1_,
+        0x112,
+        column,
+        0x50,
+        CharacterModalStatsModel::hit_points_line(
+            sheet,
+            assets_.text(0x39)));
+
+    // 10158 class/XP rows. Class names are right-aligned at +22h for both
+    // current-XP and XP-needed sections. The numeric values use external
+    // formatter 3E70Ch and remain separately coverage-bounded.
+    const auto experience_rows =
+        CharacterModalStatsModel::experience_rows(
+            sheet,
+            experience_table_);
+    for (const auto& xp : experience_rows) {
+        const auto class_name =
+            assets_.text(
+                xp.class_text_resource_index());
+        IndexedFontPresenter::draw_right(
+            framebuffer,
+            font1_,
+            xp.current_row,
+            column + 0x22,
+            class_name);
+        IndexedFontPresenter::draw_right(
+            framebuffer,
+            font1_,
+            xp.needed_row,
+            column + 0x22,
+            class_name);
+    }
 }
 
 PartyModalCoverage PartyModalPresenter::draw(
@@ -402,8 +442,9 @@ PartyModalCoverage PartyModalPresenter::draw(
                     party,
                     actor_index));
 
-            // Ability columns plus AC/HP/XP use 405A8/4060C/403C8 and
-            // derived helpers that remain separately bounded.
+            // Computed AC, HP styling side effects, and 3E70Ch XP numeric
+            // formatting remain separately bounded. HP text, class labels,
+            // and XP threshold math are now native and exact.
             ++coverage.character_text_columns_pending;
         } else {
             coverage.mirrored_equipment_draws_pending +=
