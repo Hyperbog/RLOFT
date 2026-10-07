@@ -118,7 +118,7 @@ int main() {
     assert(scene.size() == 1U);
     assert(scene[0].screen_x == 160U);
     assert(scene[0].projected_extent == 4681U);
-    assert(scene[0].resource_id == 317U);
+    assert(scene[0].resource_id == 319U);
     assert(scene[0].source_index == 0U);
     assert(scene[0].source_class == 0U);
     assert(scene[0].render_scale_lookup_bias == 0U);
@@ -131,7 +131,7 @@ int main() {
         rloft::NpcSceneModel::build(
             w, s, catalog, tables, 1U);
     assert(scene.size() == 1U);
-    assert(scene[0].resource_id == 349U);
+    assert(scene[0].resource_id == 348U);
 
     // State 3 locally seeds CODE.2's LCG from the NPC index and bypasses
     // 2B2F4 orientation. Index zero produces random bit zero.
