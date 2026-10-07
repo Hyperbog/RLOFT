@@ -137,6 +137,32 @@ int main() {
 
     retained.resolve_existing_actor(0, true);
     assert(retained.actor_present(0));
+
+    // Start actor 1 with the same sex. At portrait mode, actor 0's face 0 is
+    // excluded exactly as function_2A64 specifies.
+    assert(retained.apply_event(4));
+    assert(retained.apply_event(3));
+    assert(retained.apply_event(1));
+    assert(retained.apply_event(1));
+    assert(retained.state() == CharacterCreationState::OptionChoice);
+    assert(retained.apply_event(1));
+    assert(retained.state() == CharacterCreationState::PortraitChoice);
+    {
+        const auto a = retained.available_choices();
+        assert(!a[0]);
+        assert(a[1]);
+    }
+
+    // Back out to actor choice before exercising existing-slot deletion.
+    assert(retained.apply_event(0));
+    assert(retained.apply_event(0));
+    assert(retained.apply_event(0));
+    assert(retained.state() == CharacterCreationState::RaceChoice);
+    assert(retained.apply_event(0));
+    assert(retained.state() == CharacterCreationState::SexChoice);
+    assert(retained.apply_event(0));
+    assert(retained.state() == CharacterCreationState::ActorChoice);
+
     retained.resolve_existing_actor(0, false);
     assert(!retained.actor_present(0));
 
