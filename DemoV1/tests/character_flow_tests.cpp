@@ -112,5 +112,28 @@ int main() {
     assert(back.apply_event(0));
     assert(back.aborted());
 
+    // 3138 completion followed by 4978 mode-7 -> mode-0 wrap retains the
+    // accepted actor while resetting the working draft.
+    CharacterCreationFlow retained;
+    assert(retained.apply_event(3));
+    assert(retained.apply_event(3));
+    assert(retained.apply_event(1));
+    assert(retained.apply_event(1));
+    assert(retained.apply_event(0xFF));
+    assert(retained.apply_event(1));
+    assert(retained.apply_event(1));
+    retained.finish_current_actor(true, "STRAHD");
+    assert(retained.state() == CharacterCreationState::ActorChoice);
+    assert(retained.actor_present(0));
+    assert(!retained.actor_present(1));
+    assert(retained.actor(0).name == "STRAHD");
+    assert(retained.actor(0).face == 0);
+    assert(retained.draft().actor == -1);
+
+    // Existing actor slots do not restart generation through 1CD0; the host
+    // owns the 1BD4 keep/delete submode.
+    assert(!retained.apply_event(3));
+    assert(retained.state() == CharacterCreationState::ActorChoice);
+
     std::cout << "character_flow_tests: PASS\n";
 }
