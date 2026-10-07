@@ -19,19 +19,20 @@ import media_inventory
 import runtime_paths
 import support_dumper
 import tooltips
+import title_skin
 
 
-BG = "#170e0d"
-PANEL = "#241512"
-PANEL2 = "#34211b"
-FIELD = "#100b0a"
-TEXT = "#eadfc9"
-MUTED = "#b9aa90"
-GOLD = "#d1ae63"
-BORDER = "#72543c"
-ACCENT = "#741c1c"
-ACCENT_HOT = "#9b2b27"
-TROUGH = "#0a0707"
+BG = "#16090b"
+PANEL = "#2a1014"
+PANEL2 = "#40161a"
+FIELD = "#100708"
+TEXT = "#ead9bc"
+MUTED = "#c0ad91"
+GOLD = "#d5962c"
+BORDER = "#aaa49c"
+ACCENT = "#77141a"
+ACCENT_HOT = "#a52422"
+TROUGH = "#090506"
 
 GRAPHICS_ARCHIVES = ("RES0", "RES1", "RES2", "RES3", "RES4", "RES7", "RES8", "RES9", "RES11", "RES12")
 AUDIO_ARCHIVES = ("RES6", "RES10", "RES11", "RES12")
@@ -39,8 +40,8 @@ MUSIC_ARCHIVES = ("RES5", "RES11")
 TIMING_MODES = ("Native engine timing", "Custom FPS")
 
 BASE_WIDTH = 1280
-BASE_HEIGHT = 1080
-MIN_UI_SCALE = 0.58
+BASE_HEIGHT = 900
+MIN_UI_SCALE = 0.68
 MAX_UI_SCALE = 1.35
 MIN_USER_ZOOM = 0.80
 MAX_USER_ZOOM = 1.20
@@ -63,10 +64,10 @@ class RavenloftExtractorGui(tk.Tk):
             max(MIN_UI_SCALE, (screen_w - 80) / BASE_WIDTH),
             max(MIN_UI_SCALE, (screen_h - 120) / BASE_HEIGHT),
         )
-        launch_w = max(820, int(BASE_WIDTH * launch_scale))
-        launch_h = max(620, int(BASE_HEIGHT * launch_scale))
+        launch_w = max(900, int(BASE_WIDTH * launch_scale))
+        launch_h = max(680, int(BASE_HEIGHT * launch_scale))
         self.geometry(f"{launch_w}x{launch_h}")
-        self.minsize(820, 620)
+        self.minsize(max(860, int(900 * launch_scale)), max(650, int(680 * launch_scale)))
         self.resizable(True, True)
         self.configure(background=BG)
         self._resolution_scale = launch_scale
@@ -130,9 +131,8 @@ class RavenloftExtractorGui(tk.Tk):
         self._events: queue.Queue[tuple] = queue.Queue()
         self._action_buttons: list[ttk.Button] = []
         self._wrap_labels: list[ttk.Label] = []
-        self._banner_photo: ImageTk.PhotoImage | None = None
-        self._banner_source: Image.Image | None = None
-        self._banner_job: str | None = None
+        self._skin_photo: ImageTk.PhotoImage | None = None
+        self._skin_job: str | None = None
         self._tooltips: list[object] = []
 
         self._build_styles()
@@ -297,23 +297,12 @@ class RavenloftExtractorGui(tk.Tk):
         width = max(1, event.width)
         height = max(1, event.height)
 
-        # Resolution-tied baseline: resizing the window scales the complete UI.
-        # The explicit UI-size control remains a multiplier on top of this.
-        resolution_scale = min(width / BASE_WIDTH, height / BASE_HEIGHT)
-        resolution_scale = max(MIN_UI_SCALE, min(MAX_UI_SCALE, resolution_scale))
-        if abs(resolution_scale - self._resolution_scale) >= 0.01:
-            self._resolution_scale = resolution_scale
-            self._apply_ui_scale()
-        else:
-            self._resize_wraps_for_width(width)
-            self._fit_listboxes_to_height(height)
-
-        # The banner follows window width while keeping its 1120:150 aspect.
-        aspect_height = round(width * 150 / 1120)
-        banner_height = max(80, min(round(190 * self._ui_scale), aspect_height))
-        if int(float(self.banner.cget("height"))) != banner_height:
-            self.banner.configure(height=banner_height)
-        self._schedule_banner()
+        # Resizing changes available layout space only.  Screen resolution
+        # establishes the initial UI scale once at launch; explicit UI-size
+        # controls are the only way to change fonts/buttons afterward.
+        self._resize_wraps_for_width(width)
+        self._fit_listboxes_to_height(height)
+        self._schedule_skin()
 
     def _fit_listboxes_to_height(self, window_height: int) -> None:
         if window_height >= 900:
@@ -328,8 +317,6 @@ class RavenloftExtractorGui(tk.Tk):
                 box.configure(height=rows)
 
     def _apply_ui_scale(self) -> None:
-        # Window resolution establishes the baseline; the user control applies
-        # an explicit zoom multiplier without breaking the resolution tie.
         scale = self._resolution_scale * self._user_zoom
         scale = max(MIN_UI_SCALE, min(MAX_UI_SCALE, scale))
         changed = abs(scale - self._ui_scale) >= 0.001
@@ -346,9 +333,10 @@ class RavenloftExtractorGui(tk.Tk):
                 except tk.TclError:
                     pass
 
+        self._apply_chrome_insets()
         self._resize_wraps_for_width(max(1, self.winfo_width()))
         self._fit_listboxes_to_height(max(1, self.winfo_height()))
-        self._schedule_banner()
+        self._schedule_skin()
 
     def _set_user_zoom(self, value: float) -> None:
         value = max(MIN_USER_ZOOM, min(MAX_USER_ZOOM, value))
@@ -367,115 +355,70 @@ class RavenloftExtractorGui(tk.Tk):
     def _zoom_reset(self) -> None:
         self._set_user_zoom(1.0)
 
-    def _load_banner_source(self) -> Image.Image:
-        if self._banner_source is not None:
-            return self._banner_source
+    def _apply_chrome_insets(self) -> None:
+        side, top, bottom = title_skin.chrome_insets(self._ui_scale)
+        if hasattr(self, "header"):
+            self.header.grid_configure(padx=(side, side), pady=(top, 0))
+        if hasattr(self, "body"):
+            self.body.grid_configure(padx=(side, side))
+        if hasattr(self, "footer"):
+            self.footer.grid_configure(padx=(side, side), pady=(0, bottom))
 
-        def load_rgb(name: str) -> Image.Image:
-            path = runtime_paths.bundled_path(f"assets/{name}")
-            if path is None:
-                raise RuntimeError(f"baked Strahd banner asset missing: {name}")
-            with Image.open(path) as source:
-                return source.convert("RGB")
-
-        frame = load_rgb("strahd_frame_main.png")
-        parchment = load_rgb("strahd_parchment.png")
-        baked = load_rgb("strahd_banner.webp")
-
-        width, height = 1120, 150
-        banner = Image.new("RGB", (width, height), BG)
-
-        # Only parchment repeats. This removes the accidental ornate columns
-        # that appeared through the banner background.
-        for y in range(0, height, parchment.height):
-            for x in range(0, width, parchment.width):
-                tile = parchment.crop(
-                    (0, 0, min(parchment.width, width - x), min(parchment.height, height - y))
-                )
-                banner.paste(tile, (x, y))
-        banner = Image.blend(
-            banner,
-            Image.new("RGB", banner.size, "#211311"),
-            0.48,
-        )
-
-        # Horizontal rails first.
-        rail = (75, 75, 75)
-        top_h = bottom_h = 14
-        banner.paste(rail, (0, 0, width, top_h))
-        banner.paste(rail, (0, height - bottom_h, width, height))
-
-        # Exactly one side column per edge, always above the rails.
-        side_w = min(32, frame.width // 4)
-        side_h = min(height, frame.height)
-        left = frame.crop((0, 0, side_w, side_h))
-        right = frame.crop((frame.width - side_w, 0, frame.width, side_h))
-        banner.paste(left, (0, 0))
-        banner.paste(right, (width - side_w, 0))
-
-        # Use the known-good crest region from the valid baked banner. The
-        # standalone logo PNG inherited from an earlier build is truncated.
-        logo_w, logo_h = 240, 114
-        logo_x = (width - logo_w) // 2
-        logo_y = (height - logo_h) // 2
-        crest = baked.crop((logo_x, logo_y, logo_x + logo_w, logo_y + logo_h))
-        banner.paste(crest, (logo_x, logo_y))
-
-        self._banner_source = banner
-        return self._banner_source
-
-    def _schedule_banner(self) -> None:
-        if self._banner_job:
+    def _schedule_skin(self) -> None:
+        if self._skin_job:
             try:
-                self.after_cancel(self._banner_job)
+                self.after_cancel(self._skin_job)
             except tk.TclError:
                 pass
-        self._banner_job = self.after(45, self._render_banner)
+        self._skin_job = self.after(45, self._render_skin)
 
-    def _render_banner(self) -> None:
-        self._banner_job = None
-        source = self._load_banner_source()
-        width = max(1, self.banner.winfo_width())
-        height = max(1, int(float(self.banner.cget("height"))))
-
-        # Scale the completed banner as one image. This preserves the former
-        # build's exact composition and keeps its aspect ratio; no element is
-        # independently stretched.
-        scale = min(width / source.width, height / source.height)
-        draw_w = max(1, round(source.width * scale))
-        draw_h = max(1, round(source.height * scale))
-        rendered = source.resize((draw_w, draw_h), Image.Resampling.NEAREST)
-
-        canvas = Image.new("RGB", (width, height), BG)
-        x = (width - draw_w) // 2
-        y = (height - draw_h) // 2
-        canvas.paste(rendered, (x, y))
-
-        self._banner_photo = ImageTk.PhotoImage(canvas)
-        self.banner.delete("all")
-        self.banner.create_image(0, 0, anchor="nw", image=self._banner_photo)
+    def _render_skin(self) -> None:
+        self._skin_job = None
+        width = max(1, self.winfo_width())
+        height = max(1, self.winfo_height())
+        image = title_skin.render_window(width, height, self._ui_scale)
+        self._skin_photo = ImageTk.PhotoImage(image)
+        self.skin_canvas.delete("all")
+        self.skin_canvas.create_image(0, 0, anchor="nw", image=self._skin_photo)
 
     def _build_ui(self) -> None:
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(2, weight=1)
-        self.header = ttk.Frame(self, padding=(16, 10))
+        self.rowconfigure(1, weight=1)
+
+        # Full-window original title-screen skin.  It is created first so all
+        # interactive widgets naturally stack above it.
+        self.skin_canvas = tk.Canvas(
+            self,
+            background=BG,
+            highlightthickness=0,
+            borderwidth=0,
+        )
+        self.skin_canvas.place(x=0, y=0, relwidth=1, relheight=1)
+
+        self.header = ttk.Frame(self, padding=(16, 8))
         self.header.grid(row=0, column=0, sticky="ew")
-        self._padding_widgets.append((self.header, (16, 10)))
+        self._padding_widgets.append((self.header, (16, 8)))
         self.header.columnconfigure(0, weight=1)
-        ttk.Label(self.header, text="Ravenloft Asset Extraction Suite", style="Title.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(
+            self.header,
+            text="Ravenloft Asset Extraction Suite",
+            style="Title.TLabel",
+        ).grid(row=0, column=0, sticky="w")
         zoom = ttk.Frame(self.header)
         zoom.grid(row=0, column=1, sticky="e")
         ttk.Label(zoom, text="UI size").pack(side="left", padx=(0, 6))
         ttk.Button(zoom, text="−", width=3, command=self._zoom_out).pack(side="left")
-        ttk.Button(zoom, textvariable=self.ui_zoom_text, width=6, command=self._zoom_reset).pack(side="left", padx=4)
+        ttk.Button(
+            zoom,
+            textvariable=self.ui_zoom_text,
+            width=6,
+            command=self._zoom_reset,
+        ).pack(side="left", padx=4)
         ttk.Button(zoom, text="+", width=3, command=self._zoom_in).pack(side="left")
-        self.banner = tk.Canvas(self, height=150, background=BG, highlightthickness=0)
-        self.banner.grid(row=1, column=0, sticky="ew")
-        self.banner.bind("<Configure>", lambda _e: self._schedule_banner())
 
-        self.body = ttk.Frame(self, padding=(14, 10, 14, 10))
-        self.body.grid(row=2, column=0, sticky="nsew")
-        self._padding_widgets.append((self.body, (14, 10, 14, 10)))
+        self.body = ttk.Frame(self, padding=(14, 8, 14, 8))
+        self.body.grid(row=1, column=0, sticky="nsew")
+        self._padding_widgets.append((self.body, (14, 8, 14, 8)))
         self.body.columnconfigure(0, weight=1)
         self.body.rowconfigure(1, weight=1)
         self.body.bind("<Configure>", self._resize_wraps)
@@ -500,18 +443,18 @@ class RavenloftExtractorGui(tk.Tk):
         self._build_all_tab()
 
         self.footer = ttk.Frame(self, padding=(14, 0, 14, 12))
-        self.footer.grid(row=3, column=0, sticky="ew")
+        self.footer.grid(row=2, column=0, sticky="ew")
         self._padding_widgets.append((self.footer, (14, 0, 14, 12)))
         self.footer.columnconfigure(0, weight=1)
         ttk.Progressbar(self.footer, variable=self.progress_value, maximum=100).grid(row=0, column=0, sticky="ew")
         ttk.Label(self.footer, textvariable=self.status, style="Subtle.TLabel").grid(row=1, column=0, sticky="ew", pady=(6, 0))
-        self.after(10, self._schedule_banner)
+        self._apply_chrome_insets()
+        self.after(10, self._schedule_skin)
 
     def _new_tab(self, title: str) -> ttk.Frame:
         tab = ttk.Frame(self.notebook, padding=14)
         self._padding_widgets.append((tab, (14,)))
         tab.columnconfigure(0, weight=1)
-        tab.rowconfigure(98, weight=1)
         self.notebook.add(tab, text=title)
         return tab
 
@@ -643,7 +586,7 @@ class RavenloftExtractorGui(tk.Tk):
 
         self._note(tab, 2, "Native timing is variable-rate, not one fixed FPS. Sampled ANM SFX commands are muxed from RES6/RES10 at their reconstructed frame timestamps. Timeline/original files use the metadata destination above.")
         button = ttk.Button(tab, text="Extract Selected Cinematics", command=self._start_cinematics)
-        button.grid(row=99, column=0, sticky="se", pady=(12, 0))
+        button.grid(row=3, column=0, sticky="e", pady=(10, 0))
         self._action_buttons.append(button)
         self._update_timing_state()
         self._update_video_state()
@@ -692,7 +635,7 @@ class RavenloftExtractorGui(tk.Tk):
             "PNG is sufficient for most modern-port artwork. RES3 NPCs/monsters, placed objects, loose items, and effects are now reconstructed as transparent native-resolution images. The associated-file options retain exact indexed/source data for preservation and renderer validation.",
         )
         button = ttk.Button(tab, text="Extract Selected Graphics", command=self._start_graphics)
-        button.grid(row=99, column=0, sticky="se", pady=(12, 0))
+        button.grid(row=2, column=0, sticky="e", pady=(10, 0))
         self._action_buttons.append(button)
 
     def _build_audio_tab(self) -> None:
@@ -722,7 +665,7 @@ class RavenloftExtractorGui(tk.Tk):
         self._folder_row(box, 5, "Destination", self.audio_dest)
         self._note(tab, 1, "Select individual RES audio/music files or All for the complete category.")
         button = ttk.Button(tab, text="Extract Selected Audio & Music", command=self._start_audio)
-        button.grid(row=99, column=0, sticky="se", pady=(12, 0))
+        button.grid(row=2, column=0, sticky="e", pady=(10, 0))
         self._action_buttons.append(button)
 
     def _build_support_tab(self) -> None:
@@ -741,7 +684,7 @@ class RavenloftExtractorGui(tk.Tk):
             ttk.Checkbutton(box, text=text, variable=variable).grid(row=row, column=0, sticky="w", pady=3)
         self._folder_row(box, len(options), "Destination", self.support_dest)
         button = ttk.Button(tab, text="Extract Selected Support Assets", command=self._start_support)
-        button.grid(row=99, column=0, sticky="se", pady=(12, 0))
+        button.grid(row=2, column=0, sticky="e", pady=(10, 0))
         self._action_buttons.append(button)
 
     def _build_all_tab(self) -> None:
@@ -757,7 +700,7 @@ class RavenloftExtractorGui(tk.Tk):
         ttk.Checkbutton(box, text="Standalone support assets", variable=self.all_support).grid(row=4, column=0, sticky="w", pady=(5, 0))
         self._folder_row(box, 5, "Destination", self.all_dest)
         button = ttk.Button(tab, text="Dump Everything", command=self._start_all)
-        button.grid(row=99, column=0, sticky="se", pady=(12, 0))
+        button.grid(row=2, column=0, sticky="e", pady=(10, 0))
         self._action_buttons.append(button)
 
     def _resize_wraps_for_width(self, window_width: int) -> None:
