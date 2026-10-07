@@ -23,6 +23,7 @@ add_library(rloft_boot_flow
     src/exploration_scene.cpp
     src/level_display.cpp
     src/party_presentation.cpp
+    src/party_hud.cpp
     src/top_edge_menu.cpp
     src/exploration_ui.cpp
     src/exploration_hud_presenter.cpp
@@ -97,6 +98,10 @@ add_test(NAME level_display_tests COMMAND level_display_tests)
 add_executable(party_presentation_tests tests/party_presentation_tests.cpp)
 target_link_libraries(party_presentation_tests PRIVATE rloft_boot_flow)
 add_test(NAME party_presentation_tests COMMAND party_presentation_tests)
+
+add_executable(party_hud_tests tests/party_hud_tests.cpp)
+target_link_libraries(party_hud_tests PRIVATE rloft_boot_flow)
+add_test(NAME party_hud_tests COMMAND party_hud_tests)
 
 add_executable(top_edge_menu_tests tests/top_edge_menu_tests.cpp)
 target_link_libraries(top_edge_menu_tests PRIVATE rloft_boot_flow)
@@ -250,6 +255,7 @@ set(RLOFT_TEST_TARGETS
     exploration_scene_tests
     level_display_tests
     party_presentation_tests
+    party_hud_tests
     top_edge_menu_tests
     exploration_ui_tests
     exploration_hud_presenter_tests
