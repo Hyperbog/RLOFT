@@ -101,6 +101,38 @@ int main() {
     } catch (const std::out_of_range&) {rejected=true;}
     assert(rejected);
 
+    // The canonical SINTAB contains 4,669 adjacent aliasing patch
+    // offsets. CODE.2's reversible EB patches can therefore encode
+    // EB FE (a jump back to itself). No untrusted data-derived control
+    // flow may hang the portable game process.
+    auto self_jump=block.rasterizer_x86;
+    self_jump[0U]=0xEBU;
+    self_jump[1U]=0xFEU;
+    rejected=false;
+    try {
+        (void)rloft::SintabPixelMicrocode::execute(
+            self_jump,0U,{0xA5U},0,0U,
+            destination,1U,video);
+    } catch (const std::runtime_error&) {rejected=true;}
+    assert(rejected);
+
+    // Truncated jumps and targets outside generated code are rejected
+    // before any masked VGA write can occur.
+    rejected=false;
+    try {
+        (void)rloft::SintabPixelMicrocode::execute(
+            {0xEBU},0U,{0xA5U},0,0U,
+            destination,1U,video);
+    } catch (const std::runtime_error&) {rejected=true;}
+    assert(rejected);
+    rejected=false;
+    try {
+        (void)rloft::SintabPixelMicrocode::execute(
+            {0xEBU,0x7FU,0xC3U},0U,{0xA5U},0,0U,
+            destination,1U,video);
+    } catch (const std::out_of_range&) {rejected=true;}
+    assert(rejected);
+
     auto invalid=block;
     invalid.rasterizer_x86[8U]=0x90U;
     rejected=false;
