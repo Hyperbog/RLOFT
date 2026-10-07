@@ -1,0 +1,311 @@
+#include "rloft/inventory_runtime.hpp"
+
+#include <cstddef>
+#include <cstdint>
+#include <stdexcept>
+
+namespace rloft {
+namespace {
+
+constexpr std::size_t kCode2Object2FileStart = 0x75F24U;
+constexpr std::size_t kContainerDescriptorsAt = 0x7330U;
+constexpr std::size_t kContainerDescriptorSize = 10U;
+
+std::uint16_t u16(const std::uint8_t* p) noexcept {
+    return static_cast<std::uint16_t>(p[0]) |
+           (static_cast<std::uint16_t>(p[1]) << 8U);
+}
+std::uint32_t u32(const std::uint8_t* p) noexcept {
+    return static_cast<std::uint32_t>(p[0]) |
+           (static_cast<std::uint32_t>(p[1]) << 8U) |
+           (static_cast<std::uint32_t>(p[2]) << 16U) |
+           (static_cast<std::uint32_t>(p[3]) << 24U);
+}
+std::int16_t s16(const std::uint8_t* p) noexcept {
+    return static_cast<std::int16_t>(u16(p));
+}
+
+std::int16_t party_item(
+    const PartyImage& party,
+    std::size_t actor,
+    std::size_t slot) noexcept {
+    const auto at =
+        actor * PartyImage::kActorSize +
+        0x40U + slot * 2U;
+    return s16(party.bytes.data() + at);
+}
+
+void set_party_item(
+    PartyImage& party,
+    std::size_t actor,
+    std::size_t slot,
+    std::int16_t item) noexcept {
+    const auto at =
+        actor * PartyImage::kActorSize +
+        0x40U + slot * 2U;
+    const auto value =
+        static_cast<std::uint16_t>(item);
+    party.bytes[at] =
+        static_cast<std::uint8_t>(value);
+    party.bytes[at + 1U] =
+        static_cast<std::uint8_t>(value >> 8U);
+}
+
+bool contains_recursive(
+    const InventoryRuntimeState& runtime,
+    const ObjectCatalog& objects,
+    std::int16_t root,
+    std::int16_t target) {
+    if (root == target) return true;
+    if (root < 0) return false;
+
+    const auto& definition =
+        objects.at(static_cast<std::size_t>(root));
+    if (definition.item_category != 1U) {
+        return false;
+    }
+
+    const int state_index =
+        definition.container_state_index;
+    if (state_index < 0 ||
+        state_index >=
+            static_cast<int>(
+                InventoryRuntimeState::kRuntimeDescriptorCount)) {
+        return false;
+    }
+
+    const auto& container =
+        runtime.containers[
+            static_cast<std::size_t>(state_index)];
+    for (const auto child : container.items) {
+        if (child == -1) continue;
+        if (contains_recursive(
+                runtime,
+                objects,
+                child,
+                target)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool remove_recursive(
+    InventoryRuntimeState& runtime,
+    const ObjectCatalog& objects,
+    std::int16_t root,
+    std::int16_t target) {
+    if (root < 0) return false;
+
+    const auto& definition =
+        objects.at(static_cast<std::size_t>(root));
+    if (definition.item_category != 1U) {
+        return false;
+    }
+
+    const int state_index =
+        definition.container_state_index;
+    if (state_index < 0 ||
+        state_index >=
+            static_cast<int>(
+                InventoryRuntimeState::kRuntimeDescriptorCount)) {
+        return false;
+    }
+
+    auto& container =
+        runtime.containers[
+            static_cast<std::size_t>(state_index)];
+
+    for (std::size_t i = 0;
+         i < container.items.size();
+         ++i) {
+        const auto child = container.items[i];
+        if (child == -1) continue;
+
+        if (child == target) {
+            container.items[i] = -1;
+
+            // CODE.2 0F290 uses an 8-bit descriptor bitset. Shifts are
+            // machine-masked; supplied container sizes are <= 8.
+            const auto mask =
+                static_cast<std::uint8_t>(
+                    1U << (i & 7U));
+            container.per_slot_state_bits =
+                static_cast<std::uint8_t>(
+                    container.per_slot_state_bits &
+                    static_cast<std::uint8_t>(~mask));
+            return true;
+        }
+
+        if (remove_recursive(
+                runtime,
+                objects,
+                child,
+                target)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+}  // namespace
+
+InventoryRuntimeState InventoryRuntimeState::fresh(
+    const GameSource& source) {
+    const auto code2 = source.read("CODE.2");
+    if (code2.size() < kCode2Object2FileStart) {
+        throw std::runtime_error(
+            "CODE.2 is truncated before data object");
+    }
+
+    InventoryRuntimeState out{};
+    out.held = {-1, 0};
+
+    for (std::size_t i = 0;
+         i < kRuntimeDescriptorCount;
+         ++i) {
+        const auto desc_at =
+            kCode2Object2FileStart +
+            kContainerDescriptorsAt +
+            i * kContainerDescriptorSize;
+        if (desc_at + kContainerDescriptorSize >
+            code2.size()) {
+            throw std::runtime_error(
+                "CODE.2 container descriptor exceeds file");
+        }
+
+        const auto* d = code2.data() + desc_at;
+        auto& container = out.containers[i];
+        container.slot_count = d[0];
+        container.ui_columns = d[1];
+        container.capacity_pounds = d[2];
+        container.ui_x_offset = d[3];
+        container.subtype = d[4];
+        container.per_slot_state_bits = d[9];
+
+        const auto contents_dgroup =
+            static_cast<std::size_t>(u32(d + 5));
+        if (container.slot_count == 0U) {
+            if (contents_dgroup != 0U) {
+                throw std::runtime_error(
+                    "zero-slot CODE.2 container has contents pointer");
+            }
+            continue;
+        }
+
+        const auto contents_at =
+            kCode2Object2FileStart +
+            contents_dgroup;
+        const auto bytes =
+            static_cast<std::size_t>(
+                container.slot_count) * 2U;
+        if (contents_at + bytes > code2.size()) {
+            throw std::runtime_error(
+                "CODE.2 container contents exceed file");
+        }
+
+        container.items.reserve(
+            container.slot_count);
+        for (std::size_t slot = 0;
+             slot < container.slot_count;
+             ++slot) {
+            container.items.push_back(
+                s16(code2.data() +
+                    contents_at + slot * 2U));
+        }
+    }
+
+    return out;
+}
+
+bool InventoryRuntimeState::has_object(
+    const PartyImage& party,
+    const ObjectCatalog& objects,
+    std::int16_t target) const {
+    if (held.object_id != -1 &&
+        contains_recursive(
+            *this,
+            objects,
+            held.object_id,
+            target)) {
+        return true;
+    }
+
+    for (std::size_t actor = 0;
+         actor < PartyImage::kActorCount;
+         ++actor) {
+        if (!party.active(actor)) continue;
+
+        for (std::size_t slot = 0;
+             slot < 21U;
+             ++slot) {
+            const auto item =
+                party_item(party, actor, slot);
+            if (item == -1) continue;
+            if (contains_recursive(
+                    *this,
+                    objects,
+                    item,
+                    target)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void InventoryRuntimeState::remove_object(
+    PartyImage& party,
+    const ObjectCatalog& objects,
+    std::int16_t target) {
+    if (held.object_id != -1) {
+        if (held.object_id == target) {
+            held = {-1, 0};
+            return;
+        }
+        if (remove_recursive(
+                *this,
+                objects,
+                held.object_id,
+                target)) {
+            return;
+        }
+    }
+
+    for (std::size_t actor = 0;
+         actor < PartyImage::kActorCount;
+         ++actor) {
+        if (!party.active(actor)) continue;
+
+        for (std::size_t slot = 0;
+             slot < 21U;
+             ++slot) {
+            const auto item =
+                party_item(party, actor, slot);
+            if (item == -1) continue;
+
+            if (item == target) {
+                set_party_item(
+                    party,
+                    actor,
+                    slot,
+                    -1);
+                // CODE.2 then calls 0F238(actor, slot, 0). Because the
+                // slot is already -1, that routine returns before changing
+                // the actor item-known bitfield. Preserve that ordering.
+                break;
+            }
+
+            if (remove_recursive(
+                    *this,
+                    objects,
+                    item,
+                    target)) {
+                return;
+            }
+        }
+    }
+}
+
+}  // namespace rloft
