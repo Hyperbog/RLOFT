@@ -27,6 +27,7 @@ add_library(rloft_boot_flow
     src/exploration_collision.cpp
     src/environment_view.cpp
     src/environment_projection.cpp
+    src/environment_presenter.cpp
     src/automap_presentation.cpp
     src/automap_annotations.cpp
     src/surface_texture.cpp
@@ -94,6 +95,10 @@ add_executable(environment_projection_tests tests/environment_projection_tests.c
 target_link_libraries(environment_projection_tests PRIVATE rloft_boot_flow)
 add_test(NAME environment_projection_tests COMMAND environment_projection_tests)
 
+add_executable(environment_presenter_tests tests/environment_presenter_tests.cpp)
+target_link_libraries(environment_presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME environment_presenter_tests COMMAND environment_presenter_tests)
+
 add_executable(automap_presentation_tests tests/automap_presentation_tests.cpp)
 target_link_libraries(automap_presentation_tests PRIVATE rloft_boot_flow)
 add_test(NAME automap_presentation_tests COMMAND automap_presentation_tests)
@@ -154,6 +159,7 @@ set(RLOFT_TEST_TARGETS
     exploration_collision_tests
     environment_view_tests
     environment_projection_tests
+    environment_presenter_tests
     automap_presentation_tests
     automap_annotations_tests
     surface_texture_tests
