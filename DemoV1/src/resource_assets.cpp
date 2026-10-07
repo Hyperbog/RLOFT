@@ -279,6 +279,31 @@ std::vector<std::uint8_t> ResArchive::decode_type3(int index) const {
     };
 }
 
+std::vector<std::uint8_t> ResArchive::decode_type7_body(
+    int index) const {
+    const auto raw = entry(index);
+    if (raw.size() < 7U ||
+        raw[0] != 'E' || raw[1] != 'H' || raw[2] != 7) {
+        throw std::runtime_error(
+            "RES entry is not an EH type-7 scene shape");
+    }
+    if (s16(raw.data() + 3) != 0) {
+        throw std::runtime_error(
+            "type-7 stream uses unexpected resource header");
+    }
+    const auto declared =
+        static_cast<std::size_t>(
+            u16(raw.data() + 5));
+    if (declared < 10U) {
+        throw std::runtime_error(
+            "type-7 decoded body is shorter than its geometry header");
+    }
+    return lzss_4k(
+        raw.data() + 7U,
+        raw.size() - 7U,
+        declared);
+}
+
 Type7SceneShape ResArchive::decode_type7(int index) const {
     const auto raw = entry(index);
     if (raw.size() < 7U ||
@@ -771,6 +796,14 @@ Type7Geometry RavenloftBootAssets::res3_type7_geometry(
             source_.read("RES3"));
     }
     return res3_->decode_type7_geometry(index);
+}
+
+std::vector<std::uint8_t> RavenloftBootAssets::res3_type7_body(
+    int index) const {
+    if (!res3_.has_value()) {
+        res3_.emplace(source_.read("RES3"));
+    }
+    return res3_->decode_type7_body(index);
 }
 
 Type7SceneShape RavenloftBootAssets::res3_type7(
