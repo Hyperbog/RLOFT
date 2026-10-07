@@ -11,6 +11,7 @@ add_library(rloft_boot_flow
     src/resource_assets.cpp
     src/startup_presenter.cpp
     src/voc_decoder.cpp
+    src/xmidi.cpp
 )
 target_include_directories(rloft_boot_flow PUBLIC include)
 target_compile_features(rloft_boot_flow PUBLIC cxx_std_17)
@@ -46,6 +47,7 @@ if(WIN32)
         ravenloft_demo_v1 WIN32
         src/win32_audio.cpp
         src/win32_main.cpp
+        src/win32_midi.cpp
     )
     target_link_libraries(
         ravenloft_demo_v1
