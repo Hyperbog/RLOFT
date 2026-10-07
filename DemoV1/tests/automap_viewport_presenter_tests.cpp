@@ -73,4 +73,25 @@ int main() {
     assert(
         rloft::AutomapViewportPresenter::
             tile_resource_id(15) == 67);
+
+    // Exact 29CEC tie behavior: shallow diagonal advances the secondary
+    // axis only when the signed error is nonnegative.
+    rloft::IndexedFramebuffer framebuffer;
+    framebuffer.clear(0);
+    rloft::AutomapViewportPresenter::draw_line(
+        framebuffer,
+        10, 10,
+        12, 14,
+        7);
+    const auto& pixels = framebuffer.pixels();
+    auto at = [&](int y, int x) {
+        return pixels[
+            static_cast<std::size_t>(y) * 320U +
+            static_cast<std::size_t>(x)];
+    };
+    assert(at(10,10) == 7);
+    assert(at(11,11) == 7);
+    assert(at(11,12) == 7);
+    assert(at(12,13) == 7);
+    assert(at(12,14) == 7);
 }

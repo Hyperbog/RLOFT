@@ -5,7 +5,9 @@
 
 #include "rloft/automap_presentation.hpp"
 #include "rloft/environment_view.hpp"
+#include "rloft/exploration_motion.hpp"
 #include "rloft/exploration_session.hpp"
+#include "rloft/renderer_tables.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
 
@@ -58,6 +60,20 @@ public:
         IndexedFramebuffer& framebuffer,
         const ExplorationSessionState& session,
         AutomapViewportOrigin origin) const;
+
+    void draw_player_marker(
+        IndexedFramebuffer& framebuffer,
+        const ExplorationSessionState& session,
+        const RendererTables& tables,
+        AutomapViewportOrigin origin) const;
+
+    static void draw_line(
+        IndexedFramebuffer& framebuffer,
+        int y0,
+        int x0,
+        int y1,
+        int x1,
+        std::uint8_t color);
 
 private:
     const RavenloftBootAssets& assets_;

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <stdexcept>
 
 namespace rloft {
@@ -164,6 +165,173 @@ void AutomapViewportPresenter::draw_tiles(
 
             remap[0xB1] = 0xB1U;
             remap[0xB5] = 0xB5U;
+        }
+    }
+}
+
+void AutomapViewportPresenter::draw_player_marker(
+    IndexedFramebuffer& framebuffer,
+    const ExplorationSessionState& session,
+    const RendererTables& tables,
+    AutomapViewportOrigin origin) const {
+    const int player_column =
+        static_cast<std::int16_t>(session.coordinate_a >> 16U);
+    const int player_row =
+        static_cast<std::int16_t>(session.coordinate_b >> 16U);
+
+    if (player_column < origin.column ||
+        player_column >= origin.column + kVisibleColumns ||
+        player_row < origin.row ||
+        player_row >= origin.row + kVisibleRows) {
+        return;
+    }
+
+    const auto frac_a =
+        static_cast<std::uint16_t>(session.coordinate_a);
+    const auto frac_b =
+        static_cast<std::uint16_t>(session.coordinate_b);
+
+    const int start_y =
+        kBaseY +
+        (player_column - origin.column) * kColumnPitch +
+        static_cast<int>(frac_a) / 0x2000;
+    const int start_x =
+        kBaseX +
+        (player_row - origin.row) * kRowPitch +
+        static_cast<int>(frac_b) / 0x3333;
+
+    const auto tiles =
+        assets_.type1(
+            0,
+            tile_resource_id(assets_.init_u16(0x00)));
+    if (0x34 >= tiles.count) {
+        throw std::runtime_error(
+            "automap resource lacks player marker frame");
+    }
+    framebuffer.draw_frame(
+        tiles,
+        0x34,
+        start_y - 2,
+        start_x);
+
+    const auto step =
+        ExplorationMotionModel::direction_vector(
+            0x00010000U,
+            session.facing,
+            false,
+            tables);
+
+    std::uint32_t acc_y =
+        static_cast<std::uint32_t>(
+            static_cast<std::uint16_t>(start_y))
+        << 16U;
+    std::uint32_t acc_x =
+        static_cast<std::uint32_t>(
+            static_cast<std::uint16_t>(start_x))
+        << 16U;
+
+    for (int i = 0; i < 8; ++i) {
+        acc_y += step.delta_x;
+        acc_x += step.delta_y;
+    }
+
+    const int end_y =
+        static_cast<std::int16_t>(acc_y >> 16U);
+    const int end_x =
+        static_cast<std::int16_t>(acc_x >> 16U);
+
+    if (end_y < 0 || end_x < 0 || end_y > 0x18F) {
+        return;
+    }
+
+    draw_line(
+        framebuffer,
+        start_y,
+        start_x,
+        end_y,
+        end_x,
+        0xFFU);
+}
+
+void AutomapViewportPresenter::draw_line(
+    IndexedFramebuffer& framebuffer,
+    int y0,
+    int x0,
+    int y1,
+    int x1,
+    std::uint8_t color) {
+    int dc = x1 - x0;
+
+    auto put = [&](int y, int x) {
+        if (y >= 0 &&
+            y < IndexedFramebuffer::kHeight &&
+            x >= 0 &&
+            x < IndexedFramebuffer::kWidth) {
+            framebuffer.mutable_pixels()[
+                static_cast<std::size_t>(y) *
+                    IndexedFramebuffer::kWidth +
+                static_cast<std::size_t>(x)] =
+                color;
+        }
+    };
+
+    if (dc == 0) {
+        int dr = y1 - y0;
+        if (dr < 0) {
+            dr = -dr;
+            y0 = y1;
+        }
+        for (int i = 0; i <= dr; ++i) {
+            put(y0 + i, x0);
+        }
+        return;
+    }
+
+    if (dc < 0) {
+        dc = -dc;
+        std::swap(x0, x1);
+        std::swap(y0, y1);
+    }
+
+    int dr = y1 - y0;
+    if (dr == 0) {
+        for (int x = x0; x <= x1; ++x) {
+            put(y0, x);
+        }
+        return;
+    }
+
+    const int row_step = dr < 0 ? -1 : 1;
+    if (dr < 0) dr = -dr;
+
+    const bool row_major = dr > dc;
+    const int major = row_major ? dr : dc;
+    const int minor = row_major ? dc : dr;
+    const int twice = minor * 2;
+    int error = twice - major;
+    const int diagonal = error - major;
+
+    int y = y0;
+    int x = x0;
+    for (int i = 0; i <= major; ++i) {
+        put(y, x);
+
+        if (row_major) {
+            y += row_step;
+            if (error < 0) {
+                error += twice;
+            } else {
+                error += diagonal;
+                ++x;
+            }
+        } else {
+            ++x;
+            if (error < 0) {
+                error += twice;
+            } else {
+                error += diagonal;
+                y += row_step;
+            }
         }
     }
 }
