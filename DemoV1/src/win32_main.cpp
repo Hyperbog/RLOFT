@@ -1027,21 +1027,11 @@ int run(HINSTANCE instance) {
         }
     }
 
-    const bool chars_present = source.runtime_file("CHARS").has_value();
-    bool preserve_existing_chars = false;
-    if (chars_present) {
-        const int result = MessageBoxW(
-            nullptr,
-            L"A CHARS transfer file is already present. Demo v1 currently "
-            L"ends at the CODE.2 CHARS-present boundary.\n\n"
-            L"Choose Yes to replay the fresh-boot / character-creation demo "
-            L"without changing the existing CHARS file.\n\n"
-            L"Choose No to exit.",
-            L"Ravenloft Demo Build v1",
-            MB_YESNO | MB_ICONINFORMATION);
-        if (result != IDYES) return 3;
-        preserve_existing_chars = true;
-    }
+    // CODE.2 204B3 checks the writable runtime CHARS transfer before the
+    // cold-start presentation. A valid existing party enters the gameplay
+    // import/level-load path directly; CHARS-absent startup continues through
+    // the cinematic/menu/character workflow below.
+    auto startup_chars = source.read_runtime("CHARS");
 
     rloft::RavenloftBootAssets assets(std::move(source));
     Host host;
@@ -1061,7 +1051,9 @@ int run(HINSTANCE instance) {
     rloft::StartupPresenter presenter(assets);
     rloft::BootFlow flow;
     flow.boot();
-    flow.finish_code2_startup(false, false);
+    flow.finish_code2_startup(
+        startup_chars.has_value(),
+        false);
 
     if (!host.create(instance)) {
         throw std::runtime_error("Unable to create presentation window");
@@ -1069,6 +1061,20 @@ int run(HINSTANCE instance) {
 
     rloft::Palette6 black{};
     host.present(presenter.framebuffer(), black);
+
+    if (startup_chars) {
+        if (flow.snapshot().stage !=
+                rloft::BootStage::Exploration ||
+            flow.snapshot().module !=
+                rloft::LegacyModule::Code2) {
+            throw std::logic_error(
+                "CODE.2 CHARS-present startup did not enter exploration");
+        }
+        return run_exploration(
+            host,
+            assets,
+            *startup_chars);
+    }
 
     bool skipped = false;
 
@@ -2179,35 +2185,33 @@ int run(HINSTANCE instance) {
                                     rloft::build_character_transfer(
                                         transfer,
                                         transfer_tables);
-                                if (!preserve_existing_chars) {
-                                    const auto path =
-                                        assets.source().runtime_output_path(
-                                            "CHARS");
+                                const auto path =
+                                    assets.source().runtime_output_path(
+                                        "CHARS");
 
-                                    std::error_code ec;
-                                    std::filesystem::remove(path, ec);
+                                std::error_code ec;
+                                std::filesystem::remove(path, ec);
 
-                                    std::ofstream out(
-                                        path,
-                                        std::ios::binary |
-                                            std::ios::trunc);
-                                    if (!out) {
-                                        throw std::runtime_error(
-                                            "Unable to create CHARS at: " +
-                                            path.string());
-                                    }
-                                    out.write(
-                                        reinterpret_cast<const char*>(
-                                            image.data()),
-                                        static_cast<std::streamsize>(
-                                            image.size()));
-                                    out.close();
-                                    if (!out) {
-                                        throw std::runtime_error(
-                                            "Unable to write complete "
-                                            "0x920-byte CHARS handoff at: " +
-                                            path.string());
-                                    }
+                                std::ofstream out(
+                                    path,
+                                    std::ios::binary |
+                                        std::ios::trunc);
+                                if (!out) {
+                                    throw std::runtime_error(
+                                        "Unable to create CHARS at: " +
+                                        path.string());
+                                }
+                                out.write(
+                                    reinterpret_cast<const char*>(
+                                        image.data()),
+                                    static_cast<std::streamsize>(
+                                        image.size()));
+                                out.close();
+                                if (!out) {
+                                    throw std::runtime_error(
+                                        "Unable to write complete "
+                                        "0x920-byte CHARS handoff at: " +
+                                        path.string());
                                 }
 
                                 flow.finish_character_creation(
