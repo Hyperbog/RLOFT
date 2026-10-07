@@ -67,9 +67,34 @@ def _self_test() -> int:
     return 0 if proc.returncode == 0 else 23
 
 
+def _gui_self_test() -> int:
+    _enable_windows_dpi_awareness()
+    try:
+        import gui
+        app = gui.RavenloftExtractorGui()
+        app.update_idletasks()
+        app.update()
+        chrome = getattr(app, "_window_chrome", None)
+        if chrome is None:
+            app.destroy()
+            return 26
+        if os.name == "nt" and (not chrome.enabled or not chrome.hwnd):
+            app.destroy()
+            return 27
+        if not hasattr(app, "titlebar") or not hasattr(app, "header_canvas"):
+            app.destroy()
+            return 28
+        app.destroy()
+        return 0
+    except Exception:
+        return 29
+
+
 def main() -> int:
     if "--self-test" in sys.argv:
         return _self_test()
+    if "--gui-self-test" in sys.argv:
+        return _gui_self_test()
 
     _enable_windows_dpi_awareness()
     import gui
