@@ -21,6 +21,9 @@ int main(){
  put32(bytes,0,2);
  auto rec0=4U;
  bytes[rec0+0]='K';bytes[rec0+1]='E';bytes[rec0+2]='Y';
+ put16(bytes,rec0+0x28,686);
+ bytes[rec0+0x2A]=8;
+ bytes[rec0+0x2B]=3;
  put16(bytes,rec0+0x2D,17);
  bytes[rec0+0x2F]=3;bytes[rec0+0x30]=5;bytes[rec0+0x31]=0xFF;bytes[rec0+0x37]=2;
  auto rec1=4U+0x41U;
@@ -28,6 +31,9 @@ int main(){
  const auto cat=rloft::ObjectCatalog::parse(bytes);
  assert(cat.size()==2);
  assert(cat.at(0).name=="KEY");
+ assert(cat.at(0).scene_shape_base_local==686);
+ assert(cat.at(0).scene_shape_stride==8);
+ assert(cat.at(0).scene_influence_step==3);
  assert(cat.at(0).ui_graphic_index==17);
  assert(cat.at(0).item_category==3);
  assert(cat.at(0).weight_half_units==5);
