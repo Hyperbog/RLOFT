@@ -360,50 +360,50 @@ class RavenloftExtractorGui(tk.Tk):
 
         frame = load("strahd_frame_main.png", "RGB")
         parchment = load("strahd_parchment.png", "RGB")
-        logo = load("strahd_title_logo.png", "RGBA")
+        baked = load("strahd_banner.webp", "RGB")
 
         width, height = 1120, 150
-        banner = Image.new("RGB", (width, height), "#4b4b4b")
+        banner = Image.new("RGB", (width, height), BG)
 
-        # Parchment interior. Tile only the parchment texture; never tile the
-        # ornate frame, which was the source of the background "columns".
-        interior = Image.new("RGB", (width, height), BG)
+        # Tile only parchment in the center. Ornate side columns must never be
+        # repeated through the background.
         for y in range(0, height, parchment.height):
             for x in range(0, width, parchment.width):
                 tile = parchment.crop(
                     (0, 0, min(parchment.width, width - x), min(parchment.height, height - y))
                 )
-                interior.paste(tile, (x, y))
-        interior = Image.blend(interior, Image.new("RGB", interior.size, "#211311"), 0.48)
-        banner.paste(interior, (0, 0))
+                banner.paste(tile, (x, y))
+        banner = Image.blend(
+            banner,
+            Image.new("RGB", banner.size, "#211311"),
+            0.48,
+        )
 
-        # Clean horizontal rails. The side columns are drawn afterwards so the
-        # right rail can never cover the right column.
-        rail_color = (75, 75, 75)
+        # Clean gray top/bottom rails first.
+        rail = (75, 75, 75)
         top_h = bottom_h = 14
-        banner.paste(rail_color, (0, 0, width, top_h))
-        banner.paste(rail_color, (0, height - bottom_h, width, height))
+        banner.paste(rail, (0, 0, width, top_h))
+        banner.paste(rail, (0, height - bottom_h, width, height))
 
-        # One left and one right column only.
+        # Exactly one column on each side, layered after the rails so neither
+        # can disappear behind the gray strips.
         side_w = min(32, frame.width // 4)
-        side_h = min(height, frame.height)
-        left = frame.crop((0, 0, side_w, side_h))
-        right = frame.crop((frame.width - side_w, 0, frame.width, side_h))
-        if side_h < height:
-            y = 0
-            while y < height:
-                take = min(side_h, height - y)
-                banner.paste(left.crop((0, 0, side_w, take)), (0, y))
-                banner.paste(right.crop((0, 0, side_w, take)), (width - side_w, y))
-                y += side_h
-        else:
-            banner.paste(left.crop((0, 0, side_w, height)), (0, 0))
-            banner.paste(right.crop((0, 0, side_w, height)), (width - side_w, 0))
+        left = frame.crop((0, 0, side_w, min(frame.height, height)))
+        right = frame.crop(
+            (frame.width - side_w, 0, frame.width, min(frame.height, height))
+        )
+        banner.paste(left, (0, 0))
+        banner.paste(right, (width - side_w, 0))
 
-        # Crest/logo always sits above the complete frame.
-        logo_x = (width - logo.width) // 2
-        logo_y = (height - logo.height) // 2
-        banner.paste(logo, (logo_x, logo_y), logo)
+        # The standalone logo PNG inherited from the earlier build is damaged.
+        # The complete baked banner is valid, so take only its known-good
+        # central 240x114 crest region. The background underneath comes from
+        # the same parchment treatment and aligns at the original coordinates.
+        logo_w, logo_h = 240, 114
+        logo_x = (width - logo_w) // 2
+        logo_y = (height - logo_h) // 2
+        crest = baked.crop((logo_x, logo_y, logo_x + logo_w, logo_y + logo_h))
+        banner.paste(crest, (logo_x, logo_y))
 
         self._banner_source = banner
         return self._banner_source
