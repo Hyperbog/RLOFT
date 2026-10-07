@@ -105,6 +105,7 @@ public:
     void transition_15b0_frame(
         const CharacterCreationFlow& before,
         const CharacterStatsModel* stats,
+        const CharacterCreationFlow* after,
         int selected_slot,
         int target_row,
         int target_column,
