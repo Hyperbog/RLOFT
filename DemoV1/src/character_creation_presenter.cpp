@@ -889,6 +889,7 @@ void CharacterCreationPresenter::draw_slot_content_mapped(
 void CharacterCreationPresenter::transition_15b0_frame(
     const CharacterCreationFlow& before,
     const CharacterStatsModel* stats,
+    const CharacterCreationFlow* after,
     int selected_slot,
     int target_row,
     int target_column,
@@ -999,13 +1000,18 @@ void CharacterCreationPresenter::transition_15b0_frame(
         transition_15b0_frame(
             before,
             stats,
+            after,
             selected_slot,
             target_row,
             target_column,
             final_stage,
             18);
+        if (!after) {
+            throw std::logic_error(
+                "selected CODE.1 15B0 final frame lacks post-selection state");
+        }
         draw_strip(7, 0x19, 200, 0);
-        draw_persistent_summary(before.draft(), final_stage);
+        draw_persistent_summary(after->draft(), final_stage);
         return;
     }
 
