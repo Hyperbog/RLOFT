@@ -911,3 +911,1105 @@ additional mutable state:
 ```
 
 The next half of this chapter closes those mutable systems and their use transitions.
+
+
+## 38. Container state is external to OBJECTS.DAT
+
+Category-1 objects do not store mutable contents in their 65-byte definitions.
+
+Instead:
+
+```text
+OBJECTS +0x31
+    -> signed container_state_index
+    -> runtime descriptor table at 0x7330 + index*10
+```
+
+[Container state](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/OBJECTS.DAT/CONTAINER_STATE.md)
+
+Runtime descriptor:
+
+```text
++0x00  uint8  slot_count
++0x01  uint8  ui_columns
++0x02  uint8  capacity_pounds
++0x03  uint8  ui_x_offset
++0x04  uint8  container_subtype
++0x05  uint32 contents_pointer
++0x09  uint8  per_slot_state_bits
+```
+
+The object definition identifies **which mutable container state** it uses.
+
+## 39. Container contents are arrays of object IDs
+
+Each container state owns:
+
+```text
+int16 object_id[slot_count]
+```
+
+with:
+
+```text
+-1 / 0xFFFF = empty slot
+```
+
+Recursive burden, search, UI rendering, insertion, and removal all dereference this live array.
+
+Thus container contents are another location in which the same stable 16-bit OBJECTS IDs live.
+
+## 40. Per-container slot-state bits are independently persistent
+
+Descriptor byte `+0x09` is a bitset indexed by container slot.
+
+CODE.2 has dedicated read/write helpers, and item-transfer paths move/update the corresponding bit when contents move.
+
+The exact higher-level semantic identity of the bit remains unresolved.
+
+It must therefore be modeled as:
+
+```text
+per_slot_state_bits
+```
+
+without inventing a universal `known`, `selected`, or `used` label.
+
+## 41. Container subtype compatibility rules
+
+Certified subtype values:
+
+```text
+0  POUCH
+1  SACK / BAG OF HOLDING family
+2  CHEST
+3  SLING POUCH
+4  IVORY SCROLL CASE
+5  KEY RING
+6  QUIVER
+```
+
+Specialized insertion gates:
+
+```text
+subtype 3 -> category 13  stone/sling ammunition
+subtype 4 -> category 14  scrolls
+subtype 5 -> category 12  keys
+subtype 6 -> category 15  arrows
+```
+
+[Container state](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/OBJECTS.DAT/CONTAINER_STATE.md)
+
+Subtypes 0/1/2 use broader generic-container behavior.
+
+## 42. Generic pouch/sack-style containers also consult hand-pair class
+
+The subtype-0/1 insertion path rejects an inserted object when:
+
+```text
+object.attack_profile & 0x03 != 0
+```
+
+[Container state](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/OBJECTS.DAT/CONTAINER_STATE.md)
+
+Because the low two bits are now proved to be `hand_pair_class`, this is an actual interaction between weapon compatibility classification and generic container admission.
+
+The exact original design label for this restriction remains unknown.
+
+## 43. Container UI is a live nested inventory
+
+Component 07 proved that open containers are rendered inside the selected character inventory column.
+
+Click handler `11C3C` enforces:
+
+- active container mode;
+- subtype compatibility;
+- target slot bounds;
+- slot count;
+- recursive/nesting restrictions;
+- prospective burden/capacity.
+
+[Input/UI chapter](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/PreservationArchive/07_INPUT_UI_MENU_AND_INVENTORY_ARCHITECTURE.md)
+
+Container legality is therefore enforced by engine interaction code, not merely by decorative UI layout.
+
+## 44. Ordinary swap can auto-insert into a container
+
+When:
+
+```text
+character slot already contains a compatible container
+AND
+cursor holds an item
+```
+
+ordinary inventory swap `117A0` can call the nested insertion helper.
+
+On success:
+
+```text
+held item -> first compatible free container slot
+cursor    -> empty
+outer character slot remains the container object
+```
+
+[Input/UI chapter](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/PreservationArchive/07_INPUT_UI_MENU_AND_INVENTORY_ARCHITECTURE.md)
+
+This is original context-sensitive drag/drop behavior and should be explicit in a native interaction model.
+
+## 45. Container state is SAVE-global, not embedded in characters
+
+SAVE serialization writes descriptors/states `0..61`.
+
+For each:
+
+```text
+2 * slot_count bytes of object IDs
+1 byte per_slot_state_bits
+```
+
+Across those states:
+
+```text
+438 item slots * 2 bytes = 876
+62 state bytes            =  62
+                           ----
+total                      = 938 bytes = 0x3AA
+```
+
+[Persistence chapter](https://github.com/Hyperbog/RLOFT/blob/6363f0af3d84d9559010ea38053e525af79c50ab/PreservationArchive/08_SAVE_PARTY_AND_PERSISTENCE_ARCHITECTURE.md)
+
+A character carries a container object ID, but the container contents are global mutable state selected by that object's static definition.
+
+## 46. Container definitions represent distinct state identities
+
+All 62 supplied category-1 object definitions use distinct state indexes.
+
+Therefore duplicate visible names such as:
+
+```text
+CHEST
+POUCH
+QUIVER
+SCROLL CASE
+```
+
+can be separate persistent container instances.
+
+They must not be deduplicated by name or artwork.
+
+## 47. State-61 / selector-62 quiver mismatch is preserved
+
+The final shipped quiver exposes a bounded static/runtime mismatch:
+
+```text
+OBJECTS ID 329 QUIVER
+    state_index = 62
+
+descriptor 61
+    valid 8-slot subtype-6 quiver descriptor
+
+descriptor 62
+    ten zero bytes
+
+SAVE
+    persists only descriptor/state indexes 0..61
+
+quick-start state 61
+    contains eight arrow-family object IDs
+```
+
+[Container state](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/OBJECTS.DAT/CONTAINER_STATE.md)
+
+Direct path auditing found no executable:
+
+```text
+62 -> 61
+```
+
+repair.
+
+Faithful behavior preserves:
+
+- OBJECTS selector 62;
+- zero descriptor 62;
+- serialized state 61;
+- absence of an automatic remap.
+
+A later remaster may intentionally repair it only as a documented compatibility change.
+
+## 48. Charged devices reuse the same physical state-index byte
+
+For charged rods/wands, `OBJECTS +0x31` instead selects:
+
+```text
+uint8 charged_item_counter[15]
+```
+
+at runtime `0x67EC`.
+
+[Category semantics](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/OBJECTS.DAT/CATEGORY_SEMANTICS.md)
+
+Use flow:
+
+1. load charge-counter index from object definition;
+2. read selected counter;
+3. reject use when zero;
+4. on successful use, decrement counter;
+5. when the counter reaches zero, run depletion/removal handling.
+
+SAVE serializes all 15 bytes.
+
+## 49. Supplied charged-device map
+
+```text
+ID  74  ROD OF SMITING            -> slot 0
+ID  75  WAND OF ENEMY DETECTION   -> slot 1
+ID  76  WAND OF FIREBALLS          -> slot 2
+ID 330  WAND OF FIREBALLS          -> slot 3
+ID 331  WAND OF FIREBALLS          -> slot 4
+ID 332  WAND OF FIREBALLS          -> slot 5
+ID 333  WAND OF FIREBALLS          -> slot 6
+ID  77  WAND OF FROST              -> slot 7
+ID 334  WAND OF FROST              -> slot 8
+ID 335  WAND OF FROST              -> slot 9
+ID  78  WAND OF MAGIC MISSILES     -> slot 10
+ID  79  WAND OF PARALYZATION       -> slot 11
+```
+
+Slots 12..14 exist in the persistent vector but are not selected by the supplied OBJECTS definitions.
+
+[Category semantics](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/OBJECTS.DAT/CATEGORY_SEMANTICS.md)
+
+## 50. Rod of Smiting proves index zero is valid
+
+OBJECTS ID 74 stores:
+
+```text
+state_index = 0
+```
+
+and therefore selects charge slot zero.
+
+Item-description code has an explicit ID-74 exception so its charge state can be presented even though a generic:
+
+```text
+state_index != 0
+```
+
+test would miss it.
+
+Thus zero is a valid charge-counter index, not universally “no state.”
+
+## 51. Duplicate wand definitions intentionally carry separate charge state
+
+The duplicate FIREBALL/FROST records are otherwise effectively identical for visible identity/behavior but differ at `+0x31`.
+
+That difference gives each physical definition its own mutable charge counter.
+
+Therefore:
+
+```text
+same name
+same UI artwork
+same effect
+```
+
+does **not** imply definitions can be merged.
+
+Persistent state identity is encoded partly by duplicate record identity.
+
+## 52. Consumable item effects feed the character effect system
+
+Certified item-use examples:
+
+```text
+OBJECTS 61  POTION OF FIRE RESIST
+    -> primary character effect 19
+
+OBJECTS 62  POTION OF GIANT STRENGTH
+    -> primary effect 23
+    -> stores reversible Strength modifier at character +0x1BE
+
+OBJECTS 64  POTION OF SPEED
+    -> primary effect 24
+
+OBJECTS 75  WAND OF ENEMY DETECTION
+    -> primary effect 25
+    -> shared enemy-detection counter
+    -> consumes charge state
+```
+
+[Primary effect catalogue](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md)
+
+Object use therefore often installs state into the character record rather than mutating the static object definition.
+
+## 53. Equipment can derive persistent effect bits
+
+OBJECTS ID 103:
+
+```text
+SHIELD OF LIGHTNING PROTECTION
+```
+
+is checked by equipment-update code.
+
+When qualifying equipment is present, character primary effect bit/index 22 is derived/set; when the qualifying shield is absent, that equipment-derived state is removed through its special path.
+
+[Primary effect catalogue](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md)
+
+This is not an ordinary consumable timer.
+
+The native equipment system must support:
+
+```text
+equip state
+    -> derived character state
+
+unequip state
+    -> derived state removal/rebuild
+```
+
+## 54. Stone Giant Gauntlets have reversible equipment state
+
+OBJECTS ID:
+
+```text
+0x54 / 84  STONE GIANT GAUNTLETS
+```
+
+uses character dword:
+
+```text
++0x1B6
+```
+
+to preserve displaced/effective Strength while the gauntlets force effective Strength to 20.
+
+[Character tail](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/SAVE.DAT/CHARACTER_TAIL.md)
+
+The effect belongs to slot 20, the proved bracer/gauntlet equipment slot.
+
+This is another reason equip/unequip cannot be implemented as a simple object-ID assignment.
+
+## 55. Ring of Wizardry is slot-specific equipment state
+
+The executable's Ring of Wizardry consumer checks only:
+
+```text
+slot 12
+slot 13
+```
+
+for object ID `0x48`.
+
+[Equipment slots](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/OBJECTS.DAT/EQUIPMENT_SLOTS.md)
+
+This independently confirms that ring behavior is tied to the dedicated ring slots rather than merely carrying the item somewhere in ordinary inventory.
+
+## 56. Scrolls are item objects that route into spell dispatch
+
+Category 14 contains 66 spell-scroll variants.
+
+Representative exact mappings:
+
+```text
+object 167  MAGE SCROLL OF 'ARMOR'
+    -> Mage dispatch 0
+
+object 171  MAGE SCROLL OF 'LIGHT'
+    -> Mage dispatch 4
+
+object 187  MAGE SCROLL OF 'INVISIBILITY 10 FOOT'
+    -> Mage dispatch 27
+
+object 202  CLERIC SCROLL OF 'BLESS'
+    -> priest dispatch 80
+
+object 218  CLERIC SCROLL OF 'PRAYER'
+    -> priest dispatch 103
+
+object 222  CLERIC SCROLL OF 'FORTIFY'
+    -> priest dispatch 112
+```
+
+[Primary effect catalogue](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md)
+
+Thus the object-use layer can be a producer for the same legacy spell/action dispatch namespace used by prepared spells.
+
+A scroll object ID is not itself the spell dispatch ID.
+
+## 57. Item effects may create transient world-effect records
+
+Charged devices independently reuse the class-3 transient/moving-effect system documented in Components 05 and 08.
+
+Examples:
+
+```text
+WAND OF FIREBALLS
+    -> class-3 effect type 0
+
+WAND OF FROST
+    -> class-3 effect type 3
+
+WAND OF MAGIC MISSILES
+    -> class-3 effect type 6
+```
+
+[Persistence global state](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+Static object use can therefore produce:
+
+```text
+character effects
+or
+transient world effects
+or
+direct combat/action behavior
+```
+
+depending on the object.
+
+## 58. Pickable world items are family-C instances
+
+LEVELS family C is the loose/pickable item world family.
+
+Its live record stores:
+
+```text
+world position
+cached cell index
+OBJECTS.DAT type ID
+runtime/motion state
+```
+
+[Family C](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/LEVELS.DAT/FAMILY_C.md)
+
+The first-person selection path resolves a rendered class-2 scene entry to a family-C index and calls pickup/removal routine `21704`.
+
+That routine transfers the selected object type through the item/UI path, then compacts the family-C array.
+
+## 59. Pickup removes the world instance
+
+Family-C pickup:
+
+1. identifies the selected live family-C record;
+2. passes its object type and associated flag-derived state to the item/UI transition path;
+3. removes the record;
+4. memmoves later 22-byte records down;
+5. decrements the family-C count.
+
+[Family C](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/LEVELS.DAT/FAMILY_C.md)
+
+The world instance is therefore consumed by pickup rather than remaining as a hidden duplicate.
+
+## 60. Inventory can drop the held item into the world
+
+While full inventory mode is active, logical key `0x44` checks the cursor-held item.
+
+When one exists, the engine calls the family-C loose-item constructor with the party's current world coordinates, then clears/updates held-item UI state.
+
+[Input/UI chapter](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/PreservationArchive/07_INPUT_UI_MENU_AND_INVENTORY_ARCHITECTURE.md)
+
+Thus:
+
+```text
+cursor-held item
+    -> family-C world item
+```
+
+is an actual object-state transition.
+
+## 61. Dropped items are not stored in a separate drop queue
+
+Loose-item constructor `2195C..21ADA` appends directly to the same family-C array loaded from level state.
+
+It stores:
+
+- object type;
+- fixed-point world position;
+- cell index;
+- initialized runtime state.
+
+[Family C](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/LEVELS.DAT/FAMILY_C.md)
+
+This means player drops become ordinary level-world item instances and are later serialized through standalone LEV state.
+
+## 62. Family-C runtime ceiling is 300
+
+The array limit is:
+
+```text
+0x12C = 300 records
+```
+
+When inserting while full, the engine discards the oldest record by shifting the remaining 299 records down before appending the new item.
+
+[Family C](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/LEVELS.DAT/FAMILY_C.md)
+
+This is observable ordered-array behavior and must not be replaced by an unbounded world-item container in strict compatibility mode.
+
+## 63. Thrown items reuse family C
+
+Thrown/moving items are not a separate object-instance type.
+
+Routine `23B38` creates a family-C record with:
+
+- object ID;
+- world position;
+- heading/direction state;
+- motion/lifetime state;
+- active-motion flag.
+
+Routine `2388C` advances those records, collision-tests them, updates position/cell, and can end motion.
+
+[Family C](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/LEVELS.DAT/FAMILY_C.md)
+
+Recognizable type-sensitive paths include:
+
+```text
+AXE OF HURLING
+ARROW OF SLAY UNDEAD
+DAGGER OF THROWING
+JAVELIN OF LIGHTNING
+```
+
+## 64. One legacy object-ID migration occurs before runtime item use
+
+Compact LEVELS family-C type:
+
+```text
+0x54
+```
+
+is remapped on load to:
+
+```text
+0x58
+```
+
+In the current object table:
+
+```text
+0x54  STONE GIANT GAUNTLETS
+0x58  ARROW OF SLAY UNDEAD
+```
+
+[Family C](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/LEVELS.DAT/FAMILY_C.md)
+
+Every later OBJECTS lookup sees `0x58`.
+
+This is a serialization-version migration in the level loader, not a global alias between those two current object definitions.
+
+## 65. Placed family-B objects are a distinct world family
+
+LEVELS family B also stores OBJECTS type IDs, but its role differs from family C.
+
+Family B:
+
+- represents placed map object/item records;
+- uses source class 1 scene descriptors;
+- participates in automap object overlay;
+- has different serialized flags/state behavior.
+
+Family C:
+
+- represents loose/pickable instances;
+- emits RES3 source class 2;
+- can be inserted/removed at runtime;
+- is reused for dropped/thrown items.
+
+[World-state chapter](https://github.com/Hyperbog/RLOFT/blob/5ad18eff1519ec6b98470095aa18baf5f082c6cc/PreservationArchive/05_WORLD_LEVEL_STATE_AND_EVENTS.md)
+
+Do not unify the two merely because both carry OBJECTS IDs.
+
+## 66. Item-instance identity is location plus auxiliary state
+
+The legacy architecture does not allocate one universal serialized item-instance record.
+
+Instead, an item instance is represented by:
+
+```text
+object ID
++
+current owner/location
++
+location-specific mutable state
+```
+
+Examples:
+
+### Character slot
+
+```text
+object_id
+known bit
+```
+
+### Cursor
+
+```text
+object_id
+known byte
+```
+
+### Container
+
+```text
+object_id
+container-slot state bit
+```
+
+### Family C
+
+```text
+object_id
+position
+motion/state
+```
+
+### Charged device
+
+```text
+object definition's state_index
+-> shared persistent charge byte
+```
+
+This distributed design must be understood before mapping the game to a modern entity/component representation.
+
+## 67. Suggested native object model
+
+A compatible modern architecture can expose:
+
+```text
+LegacyObjectDefinition
+    exact 0x41-byte OBJECTS record
+
+ObjectId
+    stable uint16-compatible definition index
+
+InventoryLocation
+    character + slot
+
+CursorItemState
+    object ID
+    known state
+
+ContainerState
+    descriptor
+    item slots
+    per-slot bits
+
+WorldItemState
+    family-C 22-byte-compatible state
+
+PlacedObjectState
+    family-B state
+
+ChargeBank
+    15 persistent counters
+
+EquipmentDerivedState
+    effects/attribute overrides derived from equipped IDs
+```
+
+These are proposed native abstractions, not recovered original source types.
+
+## 68. Equip/unequip should be treated as a transaction
+
+A strict equipment transition can require:
+
+1. validate category/slot;
+2. validate character-class restrictions;
+3. validate hand-pair compatibility;
+4. preserve/transplant known state;
+5. remove old equipment-derived side effects;
+6. install new object ID;
+7. apply new equipment-derived side effects;
+8. recompute defense/ability/presentation state;
+9. update hand readiness/UI dirtiness;
+10. rebuild cursor state for swapped-out item.
+
+The exact original code spreads these consequences across helpers.
+
+A native implementation should centralize them carefully while preserving original ordering where that ordering is observable.
+
+## 69. Container insertion should be treated as a transaction
+
+A faithful container insert must:
+
+1. resolve static container object's `state_index`;
+2. resolve the live descriptor;
+3. validate subtype;
+4. validate recursion/nesting rule;
+5. calculate recursive burden;
+6. compare against capacity;
+7. find/validate target slot;
+8. move object ID;
+9. move/preserve slot-state bit;
+10. update cursor/outer inventory state;
+11. redraw affected UI.
+
+Do not update the static OBJECTS record.
+
+## 70. Required object/inventory regression classes
+
+### 70.1 Database identity
+
+Verify:
+
+```text
+size      21,844
+count     336
+stride    65
+SHA-256   certified value
+```
+
+and byte-exact decode/encode.
+
+### 70.2 UI resource linkage
+
+For all 336 records:
+
+```text
+168 + ui_graphic_index
+```
+
+must resolve inside the certified RES1 object-UI namespace.
+
+### 70.3 RES3 world linkage
+
+For every supplied object definition and valid scene variant:
+
+```text
+3316 + local_shape_base + variant*shape_stride
+```
+
+must remain inside the certified class-2 RES3 bank.
+
+### 70.4 Signed fields
+
+Test negative:
+
+- armor adjustment;
+- signed state index where relevant.
+
+Do not allow host unsigned promotion to change behavior.
+
+### 70.5 21-slot character inventory
+
+Round-trip all 21 slots including `-1` empties.
+
+### 70.6 Known-state movement
+
+Test:
+
+```text
+character -> cursor
+cursor -> character
+character slot -> another slot through cursor
+```
+
+and require known state to follow item identity.
+
+### 70.7 Equipment routing
+
+Test categories 3..8 and generic-hand categories against exact target slots.
+
+### 70.8 Quiver exceptions
+
+Test all thirteen hard-coded quiver IDs and at least one nonmatching category-1 object.
+
+### 70.9 Armor restrictions
+
+Test:
+
+- single-class Mage rejection;
+- class-code-5 whitelist acceptance;
+- class-code-5 nonwhitelist rejection.
+
+### 70.10 Hand-pair classes
+
+Test classes 0, 1, and 2 in both hand positions.
+
+Class 2 must invalidate the opposite hand.
+
+### 70.11 Weapon speed
+
+Verify attack-ready duration generation from:
+
+```text
+weapon_speed_factor * 9
+```
+
+at the item-side scheduling boundary.
+
+### 70.12 Container subtype
+
+Test each specialized subtype against allowed and disallowed item categories.
+
+### 70.13 Container capacity
+
+Test exact boundary:
+
+```text
+prospective == capacity*2
+```
+
+and one half-pound above.
+
+### 70.14 Nested burden
+
+Construct nested containers and verify recursive burden equals legacy results.
+
+### 70.15 State-61 mismatch
+
+Preserve:
+
+```text
+object 329 selector 62
+descriptor 62 zero
+state 61 separately serialized
+```
+
+without repair.
+
+### 70.16 Charge bank
+
+Test all supplied charge-slot mappings independently.
+
+### 70.17 Duplicate charged definitions
+
+Verify otherwise-identical duplicate wands consume independent counters.
+
+### 70.18 Charge exhaustion
+
+Test:
+
+```text
+counter 2 -> use -> 1
+counter 1 -> use -> 0 + depletion path
+counter 0 -> rejected use
+```
+
+### 70.19 Consumables
+
+Verify item-produced primary effects and reversible auxiliaries for the proved potion cases.
+
+### 70.20 Equipment-derived state
+
+Equip/unequip:
+
+- Shield of Lightning Protection;
+- Stone Giant Gauntlets;
+- Ring of Wizardry path where applicable.
+
+### 70.21 Temporary hand items
+
+Attempt ordinary swap on IDs `0x7E..0x86`; require rejection.
+
+### 70.22 World pickup
+
+Pick family-C item and verify:
+
+- world count decreases;
+- array compacts;
+- selected type enters item/UI transition;
+- remaining record order is preserved.
+
+### 70.23 Drop
+
+Drop cursor-held item and verify:
+
+- family-C count increments;
+- object type preserved;
+- world position derives from party position;
+- cursor state clears.
+
+### 70.24 300-item limit
+
+Fill family C to 300 and insert one more; require oldest-record eviction and ordered compaction.
+
+### 70.25 Thrown state
+
+Verify moving family-C item remains the same object ID and transitions back/out according to original motion handling.
+
+## 71. Preservation/editor rules
+
+A lossless object editor must preserve:
+
+- all 65 bytes of all 336 records;
+- blank names;
+- duplicate definitions;
+- raw `+0x2C`;
+- latent `+0x2B`;
+- attack-profile bits 6..15;
+- distinct intrinsic-magic and enchantment fields;
+- polymorphic `state_index`;
+- exact object IDs.
+
+A save/level editor must additionally preserve the mutable state pools that static definitions point into.
+
+## 72. Do not infer unique item-instance IDs where the original has none
+
+A modern engine may assign internal UUIDs for convenience, but compatibility serialization must not depend on them.
+
+The original persistence model uses:
+
+```text
+stable definition ID
++
+container/slot/world position
++
+separate mutable-state banks
+```
+
+This is especially important for duplicated wands and containers, where duplicate **definition** records themselves encode state identity.
+
+## 73. Correction C-13 — OBJECTS.DAT does not contain complete item state
+
+Any architecture that treats one `OBJECTS.DAT` record as:
+
+```text
+complete item instance
+```
+
+is incorrect.
+
+It is a static definition.
+
+Mutable state may live in:
+
+- character known bits;
+- cursor state;
+- container bank;
+- charged-device vector;
+- character effect auxiliaries;
+- LEVELS/LEV world records.
+
+The faithful port should model the static/dynamic split explicitly.
+
+## 74. Correction C-14 — category does not fully determine equipment placement
+
+Category provides the primary routing, but exact placement also depends on:
+
+- ring-side position;
+- hard-coded quiver object IDs;
+- class-code armor gates;
+- exact armor whitelist;
+- hand-pair class;
+- transient hand-item guards.
+
+Therefore:
+
+```text
+slot = category_to_slot[category]
+```
+
+alone is insufficient.
+
+## 75. Correction C-15 — thrown items are not a separate projectile database
+
+Dropped, loose, pickable, and thrown physical items all converge on the family-C live world-record family.
+
+Thrown state is runtime motion state layered over a normal loose-item OBJECTS identity.
+
+This differs from class-3 spell/effect projectiles, which are a separate transient-effect family.
+
+## 76. Historical unknowns retained
+
+Remaining bounded item/object questions include:
+
+1. original source-level names for hand-pair classes 0 and 1;
+2. original source/editor name for `scene_influence_step`;
+3. any historical consumer/name for `+0x2C`;
+4. physical-world units for range bytes;
+5. historical database provenance behind duplicated/revisioned object definitions;
+6. exact original source name for container `per_slot_state_bits`;
+7. intended design/source explanation of quiver selector 62 versus state 61;
+8. exact original source taxonomy for item categories.
+
+None blocks faithful parsing, inventory behavior, state persistence, or world-item reconstruction.
+
+## 77. Source ledger
+
+### OBJECTS.DAT
+
+- [DatFiles/OBJECTS.DAT/README.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/OBJECTS.DAT/README.md)
+- [DatFiles/OBJECTS.DAT/FORMAT.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/OBJECTS.DAT/FORMAT.md)
+- [DatFiles/OBJECTS.DAT/CATEGORY_SEMANTICS.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/OBJECTS.DAT/CATEGORY_SEMANTICS.md)
+- [DatFiles/OBJECTS.DAT/EQUIPMENT_SLOTS.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/OBJECTS.DAT/EQUIPMENT_SLOTS.md)
+- [DatFiles/OBJECTS.DAT/ATTACK_PROFILE.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/OBJECTS.DAT/ATTACK_PROFILE.md)
+- [DatFiles/OBJECTS.DAT/CONTAINER_STATE.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/OBJECTS.DAT/CONTAINER_STATE.md)
+- [DatFiles/OBJECTS.DAT/RENDER_AUX.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/OBJECTS.DAT/RENDER_AUX.md)
+- [DatFiles/OBJECTS.DAT/FINAL_AUDIT_2026-10-06.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/OBJECTS.DAT/FINAL_AUDIT_2026-10-06.md)
+
+### Character/SAVE state
+
+- [DatFiles/SAVE.DAT/PREFIX_GLOBALS.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/SAVE.DAT/PREFIX_GLOBALS.md)
+- [DatFiles/SAVE.DAT/GLOBAL_STATE.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+- [DatFiles/SAVE.DAT/CHARACTER_TAIL.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/SAVE.DAT/CHARACTER_TAIL.md)
+- [DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md)
+
+### World/UI integration
+
+- [DatFiles/LEVELS.DAT/FAMILY_C.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/LEVELS.DAT/FAMILY_C.md)
+- [Component 05 world state](https://github.com/Hyperbog/RLOFT/blob/5ad18eff1519ec6b98470095aa18baf5f082c6cc/PreservationArchive/05_WORLD_LEVEL_STATE_AND_EVENTS.md)
+- [Component 07 input/UI/inventory](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/PreservationArchive/07_INPUT_UI_MENU_AND_INVENTORY_ARCHITECTURE.md)
+- [Component 08 persistence](https://github.com/Hyperbog/RLOFT/blob/6363f0af3d84d9559010ea38053e525af79c50ab/PreservationArchive/08_SAVE_PARTY_AND_PERSISTENCE_ARCHITECTURE.md)
+- [Component 09 character model](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/PreservationArchive/09_PARTY_CHARACTER_GAMEPLAY_MODEL.md)
+
+## 78. Architectural checkpoint
+
+The object/inventory system is now:
+
+```text
+OBJECTS.DAT
+    336 static definitions
+          |
+          v
+       object ID
+          |
+          +------------------+-------------------+
+          |                  |                   |
+          v                  v                   v
+   character item[21]     container slot      family-C world item
+          |                  |                   |
+          |                  |                   +-- drop
+          |                  |                   +-- pickup
+          |                  |                   +-- thrown/moving state
+          |                  |
+          |                  +-- subtype/capacity rules
+          |                  +-- per-slot state bit
+          |
+          +-- ordinary inventory 0..11
+          +-- equipment 12..20
+          +-- known-state bit
+          +-- hand-pair arbitration
+          +-- equip/unequip effects
+          |
+          v
+     cursor-held state
+      object ID + known
+          |
+          +-- inventory swap
+          +-- container insertion
+          +-- world drop
+
+
+OBJECTS +0x31
+    |
+    +-- category-1 container -> persistent container state
+    |
+    +-- charged device -> persistent 15-byte charge bank
+
+
+item use
+    |
+    +-- character effect
+    +-- spell dispatch
+    +-- class-3 world effect
+    +-- combat/action behavior
+```
+
+The next preservation component should reconstruct **NPC/creature definitions and live actor behavior**: the 83-record NPCS.DAT table, AI/runtime flags, perception and movement, facing/animation, action countdowns, attack behavior, immunities, sounds, special monster abilities, world-family-A state, and the exact boundary between creature template and live actor instance.
