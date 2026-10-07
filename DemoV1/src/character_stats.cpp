@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 
 namespace rloft {
 namespace {
@@ -14,9 +15,53 @@ int signed8(std::uint8_t value) noexcept {
 
 }  // namespace
 
+CharacterStatTables CharacterStatTables::from_assets(
+    const RavenloftBootAssets& assets) {
+    CharacterStatTables tables;
+
+    for (std::size_t i = 0; i < tables.progression.size(); ++i) {
+        tables.progression[i] =
+            assets.code1_u16(0x057CU + i * 2U);
+    }
+    for (std::size_t i = 0; i < tables.race_roll.size(); ++i) {
+        tables.race_roll[i] =
+            assets.code1_u8(0x082EU + i);
+    }
+    for (std::size_t i = 0; i < tables.race_bounds.size(); ++i) {
+        tables.race_bounds[i] =
+            assets.code1_u8(0x066CU + i);
+    }
+    for (std::size_t i = 0; i < tables.race_bonus.size(); ++i) {
+        tables.race_bonus[i] = static_cast<std::int8_t>(
+            assets.code1_u8(0x06B4U + i));
+    }
+    for (std::size_t i = 0; i < tables.class_minima.size(); ++i) {
+        tables.class_minima[i] =
+            assets.code1_u8(0x07D4U + i);
+    }
+    for (std::size_t i = 0; i < tables.hit_die.size(); ++i) {
+        tables.hit_die[i] = static_cast<std::int8_t>(
+            assets.code1_u8(0x0853U + i));
+    }
+    for (std::size_t i = 0; i < tables.hp_variant.size(); ++i) {
+        tables.hp_variant[i] =
+            assets.code1_s32(0x04D4U + i * 4U);
+    }
+    for (std::size_t i = 0; i < tables.secondary_bonus.size(); ++i) {
+        tables.secondary_bonus[i] = static_cast<std::int8_t>(
+            assets.code1_u8(0x083FU + i));
+    }
+    tables.step_mode = (assets.code1_u8(0x04D4U) & 1U) != 0U;
+    return tables;
+}
+
 CharacterStatsModel::CharacterStatsModel(
     const RavenloftBootAssets& assets)
-    : assets_(assets) {}
+    : tables_(CharacterStatTables::from_assets(assets)) {}
+
+CharacterStatsModel::CharacterStatsModel(
+    CharacterStatTables tables)
+    : tables_(std::move(tables)) {}
 
 void CharacterStatsModel::seed(std::uint32_t value) noexcept {
     rng_state_ = value;
@@ -62,7 +107,10 @@ int CharacterStatsModel::hp_variant_extra(
         0x04D4U +
         static_cast<std::size_t>(cls / 3) * 0x4CU +
         static_cast<std::size_t>(variant) * 4U;
-    return assets_.code1_s32(offset);
+    const std::size_t index =
+        static_cast<std::size_t>(cls / 3) * 19U +
+        static_cast<std::size_t>(variant);
+    return tables_.hp_variant[index];
 }
 
 void CharacterStatsModel::generate(const CharacterDraft& draft) {
@@ -88,10 +136,9 @@ void CharacterStatsModel::generate(const CharacterDraft& draft) {
         int level = 0;
         while (level < 20 &&
                quota / 1000 >=
-                   assets_.code1_u16(
-                       0x057CU +
-                       static_cast<std::size_t>(cls) * 40U +
-                       static_cast<std::size_t>(level) * 2U)) {
+                   tables_.progression[
+                       static_cast<std::size_t>(cls) * 20U +
+                       static_cast<std::size_t>(level)]) {
             ++level;
         }
         stats_.levels[static_cast<std::size_t>(i)] = level;
@@ -99,12 +146,12 @@ void CharacterStatsModel::generate(const CharacterDraft& draft) {
 
     // function_32F4.
     const std::size_t race_roll =
-        0x082EU + static_cast<std::size_t>(draft.race) * 3U;
+        static_cast<std::size_t>(draft.race) * 3U;
     stats_.base_6810 =
-        static_cast<int>(assets_.code1_u8(race_roll)) +
+        static_cast<int>(tables_.race_roll[race_roll]) +
         roll(
-            assets_.code1_u8(race_roll + 1U),
-            assets_.code1_u8(race_roll + 2U));
+            tables_.race_roll[race_roll + 1U],
+            tables_.race_roll[race_roll + 2U]);
 
     // function_334C.
     for (auto& ability : stats_.abilities) {
@@ -126,9 +173,8 @@ void CharacterStatsModel::generate(const CharacterDraft& draft) {
     int last_class = 0;
     for (int i = 0; i < classes; ++i) {
         last_class = draft.classes[static_cast<std::size_t>(i)];
-        const int sides = signed8(
-            assets_.code1_u8(
-                0x0853U + static_cast<std::size_t>(last_class)));
+        const int sides =
+            tables_.hit_die[static_cast<std::size_t>(last_class)];
         hp_total += roll(
             stats_.levels[static_cast<std::size_t>(i)],
             sides);
@@ -148,18 +194,16 @@ void CharacterStatsModel::normalize(const CharacterDraft& draft) {
 
     // Race ranges and signed race modifiers.
     for (int stat = 0; stat < 6; ++stat) {
-        const int bonus = signed8(
-            assets_.code1_u8(
-                0x06B4U +
+        const int bonus =
+            tables_.race_bonus[
                 static_cast<std::size_t>(race) * 6U +
-                static_cast<std::size_t>(stat)));
+                static_cast<std::size_t>(stat)];
 
         const std::size_t bound =
-            0x066CU +
             static_cast<std::size_t>(race) * 12U +
             static_cast<std::size_t>(stat) * 2U;
-        const int lo = assets_.code1_u8(bound) + bonus;
-        const int hi = assets_.code1_u8(bound + 1U) + bonus;
+        const int lo = tables_.race_bounds[bound] + bonus;
+        const int hi = tables_.race_bounds[bound + 1U] + bonus;
 
         stats_.abilities[static_cast<std::size_t>(stat)] =
             std::clamp(
@@ -189,10 +233,9 @@ void CharacterStatsModel::normalize(const CharacterDraft& draft) {
             const int cls = draft.classes[static_cast<std::size_t>(j)];
             if (cls < 0) continue;
             const int minimum =
-                assets_.code1_u8(
-                    0x07D4U +
+                tables_.class_minima[
                     static_cast<std::size_t>(stat) * 15U +
-                    static_cast<std::size_t>(cls));
+                    static_cast<std::size_t>(cls)];
             stats_.abilities[static_cast<std::size_t>(stat)] =
                 std::max(
                     stats_.abilities[static_cast<std::size_t>(stat)],
@@ -207,9 +250,8 @@ void CharacterStatsModel::normalize(const CharacterDraft& draft) {
 
     for (int i = 0; i < classes; ++i) {
         const int cls = draft.classes[static_cast<std::size_t>(i)];
-        int die = signed8(
-            assets_.code1_u8(
-                0x0853U + static_cast<std::size_t>(cls)));
+        int die =
+            tables_.hit_die[static_cast<std::size_t>(cls)];
         if (die < 1) die = 1;
 
         const int level = stats_.levels[static_cast<std::size_t>(i)];
@@ -249,9 +291,11 @@ int CharacterStatsModel::secondary_display_value() const {
     if (index < 0 || index > 255) {
         throw std::out_of_range("CODE.1 secondary-stat lookup index");
     }
-    const int bonus = signed8(
-        assets_.code1_u8(
-            0x083FU + static_cast<std::size_t>(index)));
+    if (index >= static_cast<int>(tables_.secondary_bonus.size())) {
+        throw std::out_of_range("CODE.1 secondary-stat table index");
+    }
+    const int bonus =
+        tables_.secondary_bonus[static_cast<std::size_t>(index)];
     return stats_.secondary_6813 + bonus;
 }
 
@@ -263,8 +307,7 @@ bool CharacterStatsModel::adjust(
         return false;
     }
 
-    const bool step_mode =
-        (assets_.code1_u8(0x04D4U) & 1U) != 0U;
+    const bool step_mode = tables_.step_mode;
 
     if (selection < 6) {
         auto& stat = stats_.abilities[static_cast<std::size_t>(selection)];
