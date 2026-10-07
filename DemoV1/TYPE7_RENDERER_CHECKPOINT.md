@@ -199,3 +199,52 @@ pixel output. This stage does not claim that the SINTAB-generated
 instructions are decoded, interpreted, or rasterized. The scene
 presenter continues to count visible type-7 columns as pending, and
 unrendered objects remain non-clickable.
+
+
+## Frame trace integration and left-pass repair (October 7, 2026)
+
+`ExplorationRuntime` now loads the original CODE.2 VGA mask tables
+(if CODE.2 is available), captures the initial `0xC029` individual-column
+mode and `0xEF4D` video page, and preserves both as **mutable runtime
+state**. CODE.2's supplied initial values are `1` and `0`, respectively.
+The port does not yet hook all DOS input paths that modify those globals.
+Callers can explicitly change them through the scene mode/page setters.
+
+`type7_vga_frame_trace` combines each live `WorldSceneRenderPlan`
+with the original RES3 shape and selected SINTAB block to produce a
+call-order-preserving trace. A trace vector maintains **one slot per
+ordered draw call**. Empty/occluded plans retain empty traces. Calls with
+unsupported horizontal runs (`width==0` or `width>7`) retain an empty
+optional slot and increment `unresolved_wide_runs`: a partial trace must
+not masquerade as a faithful one, nor abort the entire game frame.
+
+The `ExplorationRuntimeFrame::scene_vga_trace` optional remains unset
+when the source cannot supply CODE.2. The presenter reports the
+`type7_unvalidated_wide_runs` count when a diagnostic trace is present.
+Neither a trace nor the screen clipping plan is treated as pixel output;
+the existing `type7_scene_calls_pending` and
+`type7_visible_columns_pending` remain authoritative for unfinished
+rasterization.
+
+### Correction at CODE.2 `3708F -> 370AE`
+
+A re-audit of the immutable machine instructions identified an important
+control-flow boundary for the left-side type-7 traversal. After a
+multi-column run with the **left endpoint blocked and the right
+endpoint visible**, CODE.2 trims and draws the visible suffix, then
+jumps to `370AE`, entering the **right-hand pass directly**. The
+left-side loop does **not** visit any further left columns.
+
+A preliminary C++ correction incorrectly used `break` on the single
+merged left/right loop, which would have omitted the right pass too.
+The final version sets `left_pass_finished`, skips remaining left
+columns, and still executes the subsequent right source columns.
+The regression now requires that a drawable next-left column is
+suppressed **and** the first right-hand column is still present.
+
+The following are **not** finished or certified:
+- executable SINTAB-generated-code instruction decoding / emulation;
+- exact scaled VGA color and vertical texture writes;
+- final viewport presentation and original click-to-interact dispatch;
+- full Linux/Windows CMake build and all registered tests (GitHub
+  Actions presently ends both jobs before step 1).
