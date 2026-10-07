@@ -31,6 +31,7 @@ add_library(rloft_boot_flow
     src/exploration_world.cpp
     src/exploration_collision.cpp
     src/exploration_motion.cpp
+    src/exploration_legacy_input.cpp
     src/exploration_locomotion.cpp
     src/exploration_runtime_motion.cpp
     src/exploration_runtime.cpp
@@ -132,6 +133,10 @@ add_test(NAME exploration_collision_tests COMMAND exploration_collision_tests)
 add_executable(exploration_motion_tests tests/exploration_motion_tests.cpp)
 target_link_libraries(exploration_motion_tests PRIVATE rloft_boot_flow)
 add_test(NAME exploration_motion_tests COMMAND exploration_motion_tests)
+
+add_executable(exploration_legacy_input_tests tests/exploration_legacy_input_tests.cpp)
+target_link_libraries(exploration_legacy_input_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_legacy_input_tests COMMAND exploration_legacy_input_tests)
 
 add_executable(exploration_locomotion_tests tests/exploration_locomotion_tests.cpp)
 target_link_libraries(exploration_locomotion_tests PRIVATE rloft_boot_flow)
@@ -273,6 +278,7 @@ set(RLOFT_TEST_TARGETS
     exploration_world_tests
     exploration_collision_tests
     exploration_motion_tests
+    exploration_legacy_input_tests
     exploration_locomotion_tests
     exploration_runtime_motion_tests
     exploration_runtime_tests
