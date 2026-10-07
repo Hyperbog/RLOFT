@@ -15,6 +15,8 @@ rloft::Type7SceneShape shape() {
         rloft::Type7ColumnDisplayList column{};
         column.source_x = static_cast<std::int16_t>(x);
         column.list_offset = static_cast<std::uint16_t>(200 + x);
+        column.descriptors.push_back(
+            rloft::Type7RasterDescriptor{4, -3, 2});
         out.columns.push_back(column);
     }
     return out;
@@ -30,6 +32,12 @@ rloft::RendererTables tables() {
     for (auto& block : out.scale_blocks) {
         block.scale_step[31] = 1U;
         block.scale_step[32] = 2U;
+        block.rasterizer_x86.assign(258U, 0x90U);
+        for (std::size_t i = 0; i < 129U; ++i) {
+            block.code_patch_offset[i] =
+                static_cast<std::uint16_t>(
+                    0x204U + i * 2U);
+        }
     }
     return out;
 }
@@ -80,6 +88,10 @@ int main() {
     assert(plans[0].visible_columns.size() == 1U);
     assert(plans[0].visible_columns[0].viewport_x == 127U);
     assert(plans[0].visible_columns[0].source_x == 31U);
+    assert(plans[0].microcode_draws.size() == 1U);
+    assert(plans[0].microcode_draws[0].viewport_x == 127U);
+    assert(plans[0].microcode_draws[0].entry_patch_offset == 0x206U);
+    assert(plans[0].microcode_draws[0].stop_patch_offset == 0x208U);
 
     assert(plans[1].call.resource_id == 4011U);
     assert(plans[1].call.render_mode == 0x3CU);
@@ -87,6 +99,9 @@ int main() {
     assert(plans[1].visible_columns[0].viewport_x == 63U);
     assert(plans[1].visible_columns[1].viewport_x == 64U);
     assert(plans[1].visible_columns[2].viewport_x == 65U);
+    assert(plans[1].microcode_draws.size() == 3U);
+    assert(plans[1].microcode_draws[0].viewport_x == 63U);
+    assert(plans[1].microcode_draws[2].viewport_x == 65U);
 
     // An empty world does not require access to RES3.
     assert(rloft::WorldSceneRenderPlanModel::build(
