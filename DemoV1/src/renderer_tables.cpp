@@ -214,4 +214,23 @@ RendererTables RendererTables::load(
     return parse(source.read("SINTAB"));
 }
 
+std::size_t RendererTables::scale_block_index_for_extent(
+    std::uint32_t extent) const {
+    const auto runtime_slot =
+        static_cast<std::size_t>((extent & 0xFFFCU) >> 2U);
+    const auto block_index =
+        runtime_slot == 0U ? 0U : runtime_slot - 1U;
+    if (block_index >= scale_blocks.size()) {
+        throw std::out_of_range(
+            "surface extent exceeds SINTAB scale blocks");
+    }
+    return block_index;
+}
+
+const RendererScaleBlock& RendererTables::scale_block_for_extent(
+    std::uint32_t extent) const {
+    return scale_blocks[
+        scale_block_index_for_extent(extent)];
+}
+
 }  // namespace rloft

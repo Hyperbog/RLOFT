@@ -63,6 +63,11 @@ struct RendererTables final {
     [[nodiscard]] std::uint32_t depth_numerator() const noexcept {
         return constants[7];
     }
+
+    [[nodiscard]] std::size_t scale_block_index_for_extent(
+        std::uint32_t extent) const;
+    [[nodiscard]] const RendererScaleBlock& scale_block_for_extent(
+        std::uint32_t extent) const;
 };
 
 }  // namespace rloft

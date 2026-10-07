@@ -42,6 +42,7 @@ add_library(rloft_boot_flow
     src/surface_column_scaler.cpp
     src/surface_shading.cpp
     src/surface_wall_presenter.cpp
+    src/surface_prepass.cpp
     src/game_source.cpp
     src/resource_assets.cpp
     src/startup_presenter.cpp
@@ -166,6 +167,10 @@ add_executable(surface_wall_presenter_tests tests/surface_wall_presenter_tests.c
 target_link_libraries(surface_wall_presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME surface_wall_presenter_tests COMMAND surface_wall_presenter_tests)
 
+add_executable(surface_prepass_tests tests/surface_prepass_tests.cpp)
+target_link_libraries(surface_prepass_tests PRIVATE rloft_boot_flow)
+add_test(NAME surface_prepass_tests COMMAND surface_prepass_tests)
+
 add_executable(game_source_tests tests/game_source_tests.cpp)
 target_link_libraries(game_source_tests PRIVATE rloft_boot_flow)
 add_test(NAME game_source_tests COMMAND game_source_tests)
@@ -229,6 +234,7 @@ set(RLOFT_TEST_TARGETS
     surface_column_scaler_tests
     surface_shading_tests
     surface_wall_presenter_tests
+    surface_prepass_tests
     game_source_tests
     presenter_tests
     voc_decoder_tests
