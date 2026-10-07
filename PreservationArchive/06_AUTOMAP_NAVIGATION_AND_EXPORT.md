@@ -517,3 +517,391 @@ text_index = selected_map_id + 0x26D
 and passed to the indexed text reader `1C368`, with decoded title stored in buffer `0x6058`. [Automap reconstruction](https://github.com/Hyperbog/RLOFT/blob/dedebcbbe43b435e989e05c0a8b1ff9b8a611245/DatFiles/LEVELS.DAT/AUTOMAP.md)
 
 The map browser therefore obtains display names through the same indexed/XOR-decoded text-resource architecture used elsewhere in CODE.2 rather than storing level names in LEVELS.DAT.
+
+
+## 21. Selected-map paging wraps and skips unavailable snapshots
+
+Selected map ID is stored at `0x1274C`.
+
+The paging controls adjust that ID through the level domain, wrap at the ends, and call map-loader `02AE8`. If the requested historical map has no readable `WORK\LEVnnn.DAT` snapshot, the control continues searching instead of instantiating the compact archive baseline as a substitute.
+
+This preserves an important UI rule:
+
+> the historical-map browser exposes maps with saved standalone map state, not every authored LEVELS.DAT record merely because it exists.
+
+The active map is always available through the live path.
+
+## 22. Current-map flag gates SAVE and PRINT
+
+Runtime byte `0x5FCB` records whether the selected map is the active gameplay level.
+
+The map SAVE and PRINT actions check this flag and return without performing their output operation when a historical/browsed map is selected.
+
+Thus:
+
+```text
+current live map
+    view
+    save
+    print
+
+historical WORK\LEV snapshot
+    view
+    no current-map SAVE
+    no current-map PRINT
+```
+
+This prevents browsing a stored historical snapshot from being confused with making that snapshot the current world.
+
+## 23. Initial map viewport follows the party
+
+On entering the automap, the selected map is initialized to current level/map `0xC6C8`.
+
+The initial map viewport origin is derived from the high words of the player's live fixed-point world coordinates with an encoded offset of 24 cells.
+
+The map is then regenerated through `01558` and drawn by the on-screen map renderer `0139C`.
+
+The viewport is therefore initially centered/offset relative to the party's actual current cell rather than using a fixed level origin.
+
+## 24. Automap scrolling
+
+The automap scroll handler modifies the two viewport-origin components in two granularities:
+
+```text
+4 cells   fine scroll
+40 cells  large/page scroll
+```
+
+and clamps the resulting origin against level bounds before redraw.
+
+The exact input-bit assignments belong to the later input/UI chapter. The map-side behavior is already clear: navigation changes only the displayed source window, not the player's world position and not the stored exploration state.
+
+## 25. On-screen cell scaling
+
+Renderer `0139C` advances its two display coordinates by:
+
+```text
+8 units per source cell on one map axis
+5 units per source cell on the other map axis
+```
+
+while walking the selected source rectangle.
+
+This same geometry appears in annotation export lookup, which converts stored annotation coordinates using:
+
+```text
+map_x = raw_x / 8
+map_y = raw_y / 5
+```
+
+with signed integer division/truncation toward zero. [Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+The correspondence establishes that note coordinates are stored in the map renderer's scaled coordinate space, not directly as raw cell indices.
+
+The archive does not need to assign modern Cartesian labels to the renderer's two internal screen axes beyond the proved `/8` and `/5` relationship.
+
+## 26. On-screen annotation text is optional
+
+Byte `0x5FD9` is toggled by a map UI action and tested by renderer `0139C`.
+
+When nonzero, the renderer calls `01228`, which walks the annotation buffer at `0x5760` and draws annotation payload text using map-scaled placement and font-width logic.
+
+Safe semantic identity:
+
+```text
+0x5FD9
+    annotation-text display enabled
+```
+
+This is separate from the compact A/B/C... labels used by text export. The on-screen renderer can display note payload text directly.
+
+## 27. Runtime annotation representation
+
+The automap annotation list lives in a zero-filled `0x800`-byte runtime buffer at `0x5760`.
+
+Each entry is:
+
+```text
++0x00  int16 raw_x
++0x02  int16 raw_y
++0x04  int16 payload_length
++0x06  uint8 payload[payload_length]
+```
+
+A zero `payload_length` marks the in-memory terminator. [Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+The level snapshot serializes:
+
+```text
+uint32 annotation_blob_length
+uint8  annotation_blob[annotation_blob_length]
+```
+
+The zero-length terminator itself is not part of the serialized byte count; it exists because the runtime buffer is pre-zeroed after loading the preceding payload bytes.
+
+## 28. Annotation size boundary
+
+The level loader clears the complete `0x800` runtime annotation buffer and reads the serialized blob only when:
+
+```text
+serialized_length < 0x7FF
+```
+
+[Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+This leaves room for the implicit terminating zero-length header within the zero-filled buffer.
+
+A faithful editor should preserve this runtime bound rather than treating the serialized length as an arbitrary unbounded string field.
+
+## 29. Supplied corpus contains no saved annotations
+
+Across:
+
+```text
+all 32 LEVELS.DAT records
+supplied LEV022.DAT
+```
+
+the serialized annotation length is zero. [Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+Therefore the **format and runtime behavior** of annotations are executable-proven, but the supplied DAT corpus does not provide a naturally authored nonempty annotation fixture.
+
+Regression tests for nonempty annotations must use constructed inputs that obey the proved layout rather than claiming such content came from the supplied save.
+
+## 30. Text-export annotation labels
+
+Export helper `023B8` walks the annotation list and matches map coordinates using:
+
+```text
+raw_x / 8
+raw_y / 5
+```
+
+On a matching map cell it writes a sequential label into the annotation overlay buffer.
+
+Labels begin as single letters:
+
+```text
+A
+B
+...
+Z
+```
+
+then continue into a two-letter domain using the original routine's encoded increment order. [Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+A port should reproduce the actual increment routine rather than replacing it with an assumed spreadsheet-column convention unless tests establish equivalence for the complete supported range.
+
+## 31. Annotation legend uses the same label generator
+
+Routine `02474` walks the same annotation records and emits the corresponding legend text:
+
+```text
+<label>:<payload>
+```
+
+using the same label progression as the map marker routine. [Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+This guarantees that map marker and legend remain synchronized without storing the label itself in level data.
+
+The label is derived from annotation-list order.
+
+## 32. Placed-object overlay is family B
+
+For each map cell whose cache state is not `0xFF`, exporter `026E8` repeatedly calls `00700`.
+
+In the active level/map path, `00700` scans family B:
+
+```text
+base   0x22238
+count  0x258A6
+size   22 bytes per live record
+```
+
+and returns records whose stored cell coordinates match the requested cell. [Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+This independently reinforces the family-B identity established in Component 05 as **placed object/item map records**.
+
+## 33. Object overlay symbol selection
+
+For each matching family-B record the exporter reads runtime type ID at `+0x0E` and writes:
+
+```text
+type 0x3C..0x41
+    -> '*' (0x2A)
+
+all other family-B types
+    -> 0xFE
+```
+
+The supplied `OBJECTS.DAT` entries `0x3C..0x41` are:
+
+```text
+POTION OF EXTRA HEALING
+POTION OF FIRE RESIST
+POTION OF GIANT STRENGTH
+POTION OF HEALING
+POTION OF SPEED
+OIL OF FIERY BURNING
+```
+
+[Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+Thus `'*'` is a specially selected symbol for that six-entry consumable/liquid range.
+
+Byte `0xFE` is the generic placed-object overlay value for the other family-B types. Community Ravenloft map research describes this display byte as the map's furniture/object glyph; the executable proves only its generic non-`0x3C..0x41` family-B use.
+
+## 34. Multiple objects in one cell are order-sensitive
+
+The exporter continues calling `00700` to obtain every matching family-B record for the cell.
+
+Each matching object writes the same single overlay position, so later returned records replace the earlier symbol.
+
+Therefore the final placed-object glyph is order-dependent when multiple placed records share one map cell. [Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+A port should preserve family-B ordering if it aims to reproduce text output exactly.
+
+## 35. Export has three conceptual layers
+
+Exporter `026E8` builds:
+
+```text
+layer 1  base terrain/door/inset/floor glyphs
+
+layer 2  placed family-B object symbols
+
+layer 3  annotation marker labels
+```
+
+[Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+In merged-file output the precedence is:
+
+```text
+annotation label
+    > placed-object marker
+    > base map glyph
+```
+
+Spaces in an overlay mean “do not replace the lower layer.”
+
+## 36. Text export is column-oriented relative to native storage
+
+The native cell index is row-major:
+
+```text
+cell_index = row * map_width + column
+```
+
+Exporter `026E8` allocates row buffers of length `map_height`, loops outer coordinate through `map_width`, and computes each source cell as:
+
+```text
+cell_index =
+    inner_coordinate * map_width
+  + outer_coordinate
+```
+
+[Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+Thus the DOS text map is emitted in a column-oriented/transposed traversal relative to the native row-major array.
+
+This is an export-layout fact and should be preserved when comparing generated `.MAP` files.
+
+## 37. Merged file output
+
+In map-file SAVE mode the exporter performs:
+
+```text
+result = base_glyph
+
+if object_overlay != space:
+    result = object_overlay
+
+if annotation_overlay != space:
+    result = annotation_overlay
+```
+
+and writes the complete merged buffer followed by:
+
+```text
+CR LF
+```
+
+[Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+The saved automap is therefore a one-layer text image produced by destructively merging the three conceptual layers at export time.
+
+## 38. Printer output deliberately overprints layers
+
+In non-merged stream mode, the same exporter writes:
+
+```text
+base map line
+CR
+
+placed-object line
+CR
+
+annotation-label line
+CR LF
+```
+
+[Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+The first two carriage returns return the print head to the start of the same physical line **without advancing paper**.
+
+The three layers therefore overprint one another on a conventional DOS text printer. Spaces in object/note lines leave the previously printed lower layer untouched.
+
+This is not equivalent to printing three separate visible map rows.
+
+## 39. PRINT uses Watcom `stdprn`
+
+The direct PRINT caller at logical `03321` invokes exporter `026E8` in non-merged mode using fixed FILE-like runtime object `0xF764`.
+
+The runtime contains five consecutive Watcom standard FILE objects:
+
+```text
+base = 0xF6F4
+stride = 0x1C
+```
+
+and `0xF764` is the fifth object.
+
+Open Watcom's DOS C Library documents the standard startup streams in this order:
+
+```text
+stdin
+stdout
+stderr
+stdaux
+stdprn
+```
+
+Therefore the fixed stream is the DOS standard printer stream, `stdprn`.
+
+Official runtime documentation:  
+<https://openwatcom.org/ftp/manuals/1.5/clib.pdf>
+
+The game's automap PRINT path is consequently machine/runtime corroborated, not merely inferred from UI text or later community observation.
+
+## 40. Map SAVE path template is embedded in CODE.2
+
+CODE.2 contains the mutable path template:
+
+```text
+AUTOMAPS\AUTO???.MAP
+```
+
+at object-2/DGROUP `0x5FDA`, physical CODE.2 file offset `0x7BEFE` in the supplied executable.
+
+Routine `02A34`:
+
+1. derives three decimal digits from the current map/level value;
+2. patches the three `?` bytes;
+3. removes/recreates/opens the target file through runtime wrappers;
+4. calls exporter `026E8` in merged mode;
+5. closes the file.
+
+[Automap reconstruction](https://github.com/Hyperbog/RLOFT/blob/dedebcbbe43b435e989e05c0a8b1ff9b8a611245/DatFiles/LEVELS.DAT/AUTOMAP.md) [Automap overlays](https://github.com/Hyperbog/RLOFT/blob/82abcbffbebee81936511b816b5ba6b6aa231a54/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+The `AUTOMAPS` directory itself is created by launcher `R.EXE` before CODE.2 gameplay execution. [R.EXE reconstruction](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Runtime/R_EXE/01_STRUCTURAL_RECONSTRUCTION.md)
