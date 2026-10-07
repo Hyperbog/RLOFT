@@ -204,6 +204,50 @@ void CharacterCreationPresenter::draw_empty_actor_card(int y, int x) {
     }
 }
 
+
+void CharacterCreationPresenter::draw_text_box(int record, int y, int x) {
+    draw_frame(7, 0x1A, 0, y, x);
+
+    const auto label = assets_.text(record);
+    std::vector<std::string> words;
+    std::size_t start = 0;
+    while (start < label.size()) {
+        while (start < label.size() && label[start] == ' ') ++start;
+        if (start >= label.size()) break;
+        const auto space = label.find(' ', start);
+        if (space == std::string::npos) {
+            words.emplace_back(label.substr(start));
+            break;
+        }
+        words.emplace_back(label.substr(start, space - start));
+        start = space + 1;
+    }
+
+    int row = y + 0x7A / 2 - static_cast<int>(words.size()) * 5;
+    for (const auto& word : words) {
+        draw_text_centered(row, x, 0x30, word, 0);
+        row += 10;
+    }
+}
+
+void CharacterCreationPresenter::draw_summary(
+    const CharacterDraft& draft, bool include_option) {
+    for (int i = 2; i >= 0; --i) {
+        const int cls = draft.classes[static_cast<std::size_t>(i)];
+        if (cls < 0) continue;
+        draw_frame(
+            7,
+            6 + cls,
+            0,
+            0x114 - i * 0x14,
+            0x6D - i);
+    }
+
+    if (include_option && draft.option >= 0) {
+        draw_frame(7, 0x0E + draft.option, 0, 0x114, 0xA2);
+    }
+}
+
 void CharacterCreationPresenter::draw_controller_base(
     CharacterCreationState state, int label_record) {
     framebuffer_.clear(0);
@@ -231,7 +275,8 @@ void CharacterCreationPresenter::draw_controller_base(
     }
 }
 
-void CharacterCreationPresenter::screen(CharacterCreationState state) {
+void CharacterCreationPresenter::screen(
+    const CharacterCreationFlow& flow) {
     static constexpr std::array<int, 9> row{
         13, 67, 91, 91, 67, 13, 91, 91, 91
     };
@@ -239,37 +284,118 @@ void CharacterCreationPresenter::screen(CharacterCreationState state) {
         3, 56, 109, 162, 215, 268, 83, 136, 189
     };
 
+    const auto state = flow.state();
+    const auto& draft = flow.draft();
+
     switch (state) {
         case CharacterCreationState::ActorChoice:
             draw_controller_base(state, -1);
-
-            // function_1CD0 setup:
-            // {-1,-1,1,1,-1,-1,-1,-1,-1,...}
-            // State 0 resource value 1 is replaced by the transient 095C/0960
-            // handles built by 1A04. Fresh generation creates both from T[0].
             draw_empty_actor_card(row[2], column[2]);
             draw_empty_actor_card(row[3], column[3]);
+            draw_text_box(2, 0x114, 0x10C);
             return;
 
         case CharacterCreationState::SexChoice:
             draw_controller_base(state, 0x26);
-
-            // function_1DD8 setup slots 2/3 = RES7:0C / RES7:0D.
             draw_frame(7, 0x0C, 0, row[2], column[2]);
             draw_frame(7, 0x0D, 0, row[3], column[3]);
+            draw_text_box(8, 0x114, 0x10C);
             return;
 
         case CharacterCreationState::RaceChoice:
             draw_controller_base(state, 0x27);
-
-            // function_1E64 setup slots 0..5 = RES7:00..05.
             for (int i = 0; i < 6; ++i) {
                 draw_frame(7, i, 0, row[i], column[i]);
             }
+            draw_text_box(9, 0x114, 0x10C);
             return;
+
+        case CharacterCreationState::ClassChoice: {
+            draw_controller_base(state, 0x28);
+            draw_summary(draft, false);
+
+            const auto available = flow.available_choices();
+            for (int i = 0; i < 6; ++i) {
+                draw_frame(
+                    7,
+                    available[static_cast<std::size_t>(i)] ? 6 + i : 0x15,
+                    0,
+                    row[i],
+                    column[i]);
+            }
+
+            if (flow.class_stage() == 0) {
+                draw_text_box(0x0A, 0x114, 0x10C);
+            } else {
+                draw_text_box(0x0B, 0x114, 0x10C);
+                draw_text_box(3, 0x114, 0x0D7);
+            }
+            return;
+        }
+
+        case CharacterCreationState::OptionChoice: {
+            draw_controller_base(state, 0x29);
+            draw_summary(draft, false);
+            const auto available = flow.available_choices();
+            for (int i = 0; i < 6; ++i) {
+                draw_frame(
+                    7,
+                    available[static_cast<std::size_t>(i)]
+                        ? 0x0E + i
+                        : 0x15,
+                    0,
+                    row[i],
+                    column[i]);
+            }
+            draw_text_box(0x0C, 0x114, 0x10C);
+            return;
+        }
+
+        case CharacterCreationState::PortraitChoice: {
+            draw_controller_base(state, 0x2A);
+            draw_summary(draft, true);
+
+            const auto available = flow.available_choices();
+            for (int i = 0; i < 6; ++i) {
+                if (!available[static_cast<std::size_t>(i)]) {
+                    draw_frame(7, 0x15, 0, row[i], column[i]);
+                    continue;
+                }
+
+                draw_frame(7, 0x14, 0, row[i], column[i]);
+                const int portrait =
+                    336 +
+                    draft.sex * 23 +
+                    flow.portrait_page() +
+                    i;
+                draw_frame(
+                    1,
+                    portrait,
+                    0,
+                    row[i] + 0x15,
+                    column[i]);
+            }
+
+            draw_text_box(0x0D, 0x114, 0x10C);
+            draw_text_box(4, 0x114, 0x0D7);
+            return;
+        }
+
+        case CharacterCreationState::StatsReview:
+            throw std::logic_error(
+                "CODE.1 stats-review renderer is not integrated yet");
     }
 
     throw std::logic_error("unsupported character controller state");
+}
+
+void CharacterCreationPresenter::screen(CharacterCreationState state) {
+    CharacterCreationFlow flow;
+    if (state != CharacterCreationState::ActorChoice) {
+        throw std::logic_error(
+            "state-only character screen is valid only for actor choice");
+    }
+    screen(flow);
 }
 
 void CharacterCreationPresenter::first_screen() {
