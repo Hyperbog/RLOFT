@@ -25,6 +25,8 @@
 #include "rloft/game_source.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
+#include "rloft/voc_decoder.hpp"
+#include "rloft/win32_audio.hpp"
 
 namespace {
 
@@ -362,15 +364,25 @@ enum class CinematicResult {
 
 CinematicResult play_cinematic(
     Host& host,
-    rloft::AnmCinematic& cinematic) {
+    rloft::AnmCinematic& cinematic,
+    const rloft::RavenloftBootAssets& assets,
+    rloft::Win32AudioPlayer& audio_player) {
     cinematic.reset();
 
     while (!cinematic.finished()) {
         const auto frame = cinematic.render_next();
 
-        // Image/palette/subtitle behavior is native here. Audio commands are
-        // surfaced by the renderer and are wired into the audio bridge in the
-        // following implementation unit.
+        // Apply the sampled-audio commands at the same logical ANM frame.
+        // Type 5 music commands remain separately owned by the XMIDI bridge.
+        for (const auto& event : frame.audio) {
+            if (event.command == rloft::AnmAudioCommand::QueuedSfx ||
+                event.command == rloft::AnmAudioCommand::DirectSfx) {
+                const auto voc =
+                    assets.sampled_audio(event.archive, event.resource);
+                audio_player.play(rloft::decode_creative_voice(voc));
+            }
+        }
+
         host.present(cinematic.framebuffer(), cinematic.palette());
 
         if (frame.wait_ticks > 0) {
@@ -559,6 +571,7 @@ int run(HINSTANCE instance) {
     }
 
     rloft::RavenloftBootAssets assets(std::move(source));
+    rloft::Win32AudioPlayer audio_player;
     rloft::StartupPresenter presenter(assets);
     rloft::BootFlow flow;
     flow.boot();
@@ -579,7 +592,8 @@ int run(HINSTANCE instance) {
     {
         rloft::AnmCinematic cine00(
             assets.source().read("CINE00.ANM"), 0, assets);
-        const auto result = play_cinematic(host, cine00);
+        const auto result =
+            play_cinematic(host, cine00, assets, audio_player);
         if (result == CinematicResult::Quit) return 0;
         if (result == CinematicResult::Escaped) skipped = true;
     }
@@ -587,7 +601,8 @@ int run(HINSTANCE instance) {
     if (!skipped) {
         rloft::AnmCinematic cine12(
             assets.source().read("CINE12.ANM"), 12, assets);
-        const auto result = play_cinematic(host, cine12);
+        const auto result =
+            play_cinematic(host, cine12, assets, audio_player);
         if (result == CinematicResult::Quit) return 0;
         if (result == CinematicResult::Escaped) skipped = true;
     }
