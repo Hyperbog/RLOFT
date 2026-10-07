@@ -9,6 +9,19 @@
 
 namespace rloft {
 
+enum class InventorySlotRole {
+    Ordinary,
+    RingA,
+    RingB,
+    HandA,
+    HandB,
+    Body,
+    Head,
+    Accessory,
+    Quiver,
+    BracerGauntlet,
+};
+
 struct PartyActorPresentation final {
     static constexpr std::size_t kInventorySlotCount = 21;
     static constexpr std::size_t kOrdinaryInventoryCount = 12;
@@ -28,6 +41,7 @@ struct PartyActorPresentation final {
     std::uint32_t item_known_bits{};
 
     [[nodiscard]] bool item_known(std::size_t slot) const;
+    [[nodiscard]] static InventorySlotRole slot_role(std::size_t slot);
     [[nodiscard]] int portrait_local_index() const noexcept;
 };
 

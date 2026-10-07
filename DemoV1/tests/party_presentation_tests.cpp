@@ -68,9 +68,32 @@ int main() {
     assert(actor.item_known(12));
     assert(!actor.item_known(1));
 
+    assert(rloft::PartyActorPresentation::slot_role(0) ==
+           rloft::InventorySlotRole::Ordinary);
+    assert(rloft::PartyActorPresentation::slot_role(11) ==
+           rloft::InventorySlotRole::Ordinary);
+    assert(rloft::PartyActorPresentation::slot_role(12) ==
+           rloft::InventorySlotRole::RingA);
+    assert(rloft::PartyActorPresentation::slot_role(14) ==
+           rloft::InventorySlotRole::HandA);
+    assert(rloft::PartyActorPresentation::slot_role(16) ==
+           rloft::InventorySlotRole::Body);
+    assert(rloft::PartyActorPresentation::slot_role(19) ==
+           rloft::InventorySlotRole::Quiver);
+    assert(rloft::PartyActorPresentation::slot_role(20) ==
+           rloft::InventorySlotRole::BracerGauntlet);
+
     bool rejected = false;
     try {
         (void)actor.item_known(21);
+    } catch (const std::out_of_range&) {
+        rejected = true;
+    }
+    assert(rejected);
+
+    rejected = false;
+    try {
+        (void)rloft::PartyActorPresentation::slot_role(21);
     } catch (const std::out_of_range&) {
         rejected = true;
     }

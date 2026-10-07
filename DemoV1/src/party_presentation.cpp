@@ -30,6 +30,25 @@ bool PartyActorPresentation::item_known(std::size_t slot) const {
     return (item_known_bits & (1U << slot)) != 0;
 }
 
+InventorySlotRole PartyActorPresentation::slot_role(std::size_t slot) {
+    if (slot < kOrdinaryInventoryCount) {
+        return InventorySlotRole::Ordinary;
+    }
+    switch (slot) {
+        case 12: return InventorySlotRole::RingA;
+        case 13: return InventorySlotRole::RingB;
+        case 14: return InventorySlotRole::HandA;
+        case 15: return InventorySlotRole::HandB;
+        case 16: return InventorySlotRole::Body;
+        case 17: return InventorySlotRole::Head;
+        case 18: return InventorySlotRole::Accessory;
+        case 19: return InventorySlotRole::Quiver;
+        case 20: return InventorySlotRole::BracerGauntlet;
+        default:
+            throw std::out_of_range("party inventory slot");
+    }
+}
+
 int PartyActorPresentation::portrait_local_index() const noexcept {
     int local =
         static_cast<int>(portrait_index) +
