@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
 project(RavenloftDemoV1 LANGUAGES CXX)
 
+# Keep the Windows release self-contained: do not require a separately
+# installed Microsoft Visual C++ runtime on the user's machine.
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 enable_testing()
 
 add_library(rloft_boot_flow
