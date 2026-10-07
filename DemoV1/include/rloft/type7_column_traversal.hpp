@@ -6,6 +6,7 @@
 
 #include "rloft/renderer_tables.hpp"
 #include "rloft/resource_assets.hpp"
+#include "rloft/view_sweep_record.hpp"
 
 namespace rloft {
 
@@ -33,6 +34,12 @@ struct Type7ColumnTraversalPlan final {
     std::vector<Type7ColumnStep> columns;
 };
 
+struct Type7VisibleColumn final {
+    std::uint16_t source_x{};
+    std::size_t source_column_index{};
+    std::size_t viewport_x{};
+};
+
 class Type7ColumnTraversalModel final {
 public:
     // Models the scale-pointer selection and left/right per-column traversal
@@ -43,6 +50,15 @@ public:
         const RendererTables& tables,
         std::uint16_t absolute_res3_id,
         std::uint32_t projected_extent);
+
+    // Horizontal CODE.2 36F20..372C3 placement, with exact per-view-ray
+    // signed depth test (< raw_depth means drawable). Produces one record
+    // per visible destination column. No vertical microcode is executed.
+    [[nodiscard]] static std::vector<Type7VisibleColumn> visible_columns(
+        const Type7ColumnTraversalPlan& plan,
+        int screen_x,
+        std::uint32_t raw_depth,
+        const std::vector<ViewSweepRecord>& rays);
 };
 
 }  // namespace rloft
