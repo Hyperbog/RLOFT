@@ -43,6 +43,8 @@ struct ExplorationRuntimeFrame final {
     std::vector<WorldSceneDrawCall> world_scene_draw_calls;
     std::vector<WorldSceneRenderPlan> world_scene_render_plans;
     std::optional<Type7VgaFrameTrace> scene_vga_trace;
+    std::uint8_t scene_video_page{};
+    bool scene_individual_columns_mode{};
     std::vector<ViewSweepRun> sweep_runs;
     SurfaceShadeTable surface_shades{};
     std::vector<SurfacePrepassPlan> prepass_plans;
