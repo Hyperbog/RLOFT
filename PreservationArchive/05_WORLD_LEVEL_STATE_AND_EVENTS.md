@@ -548,3 +548,375 @@ The common live expansion is 22 bytes and includes:
 [LEVELS semantics](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/SEMANTICS.md)
 
 The families share geometric scaffolding but are not interchangeable; their definition databases, state initialization, rendering source classes, and mutation rules differ.
+
+
+## 24. Family A — NPC/creature world instances
+
+Family A is counted by header `+0x28A` and directly indexes the 83-entry `NPCS.DAT` definition table.
+
+Archive form:
+
+```text
++0x00  uint16 npc_type_id
++0x02  int16  x_cell
++0x04  uint16 x_fraction
++0x06  int16  y_cell
++0x08  uint16 y_fraction
++0x0A  uint8  compact_orientation
+```
+
+Live/direct-save form:
+
+```text
++0x00  uint32 y_position_16_16
++0x04  uint32 x_position_16_16
++0x08  uint32 runtime_flags
++0x0C  uint16 cached_cell_index
++0x0E  uint16 npc_type_id
++0x10  uint16 action_state_countdown
++0x12  int16  current_hp
++0x14  uint16 packed_runtime_state
+```
+
+The record is exactly `0x16` bytes. [Family A](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FAMILY_A.md)
+
+### 24.1 Definition versus instance state
+
+On archive load, `NPCS.DAT +0x35` supplies initial runtime flags. The engine copies them into live record `+0x08`, after which gameplay modifies the live copy.
+
+Current HP at `+0x12` is likewise instantiated from NPC definition data and random/dice initialization, then persists as mutable actor state. `+0x10` is an action/state countdown that active behavior decrements. [Family A](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FAMILY_A.md)
+
+The ownership chain is:
+
+```text
+NPCS.DAT
+    immutable NPC type/template
+
+LEVELS.DAT family A
+    compact baseline placement/type/orientation
+
+live family-A array
+    mutable actor instance
+
+LEVnnn.DAT family A
+    serialized live actor instance
+```
+
+A direct LEV load must restore the live fields rather than rerolling HP or reinitializing position, countdown, flags, or facing.
+
+### 24.2 Facing is embedded in packed live state
+
+The compact orientation's low three bits become live bits 3..5:
+
+```text
+facing = (packed_runtime_state >> 3) & 7
+```
+
+Runtime turning logic rewrites those same bits. Other bits have separate runtime roles, so `+0x14` must remain a packed state word rather than being reduced to a facing enum. [Family A](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FAMILY_A.md)
+
+## 25. Family B — placed object/item map records
+
+Family B is counted by header `+0x28E` and expands into the 22-byte runtime array at `0x22238`.
+
+The family is tied to the object/item and class-1 scene namespaces:
+
+- the supplied archive contains 4,324 family-B records;
+- all type IDs lie in `0..174`;
+- the automap exporter treats them as placed object/item records and resolves names/types through the object database;
+- the same `0..174` domain indexes the 175-entry class-1 scene descriptor table loaded from INIT. [LEVELS semantics](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/SEMANTICS.md) [RES3 source banks](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE7_SOURCE_BANKS.md)
+
+Level 22 is an important control fixture: applying the certified archive expansion to all 110 family-B compact records reproduces all 110 standalone records byte-for-byte. No family-B gameplay mutation occurred in the supplied saved session. [LEV022 mutable delta](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEV022.DAT/MUTABLE_DELTA.md)
+
+The safe family name is **placed object/item map records**. It should not be merged with family C simply because both ultimately reference object/item definitions.
+
+## 26. Family B scene representation is descriptor-driven
+
+Family-B scene emission uses source class 1.
+
+Its type ID indexes the 175 seven-byte descriptors stored in INIT:
+
+```text
++0x00  uint16 local_shape_base
++0x02  uint16 spatial_extent_or_fixed_point_field
++0x04  uint8  shape_stride
++0x05  uint8  variant_count
++0x06  uint8  scene_influence_step
+```
+
+[RES3 source banks](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE7_SOURCE_BANKS.md)
+
+The engine constructs a class-1 bank-local shape from live variant state and the descriptor's stride, then the common scene helper adds RES3 source-class base `2169`.
+
+Thus the family-B serialized type is not itself an absolute RES3 shape ID.
+
+## 27. Family C — loose/pickable item world instances
+
+Family C is counted by header `+0x28C` and expands to the live 22-byte array at `0x17618`.
+
+Its type field indexes `OBJECTS.DAT`, but its runtime role differs sharply from family B:
+
+- records can be inserted dynamically as loose/dropped objects;
+- visible records emit scene source class 2;
+- selected records can be picked up and removed;
+- the same record form can carry thrown/moving-item state;
+- the runtime family is capped at 300 records. [Family C](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FAMILY_C.md)
+
+The safe family name is **loose/pickable item world records**.
+
+## 28. Family C runtime ceiling and ordered compaction
+
+Loose-item insertion at `2195C..21ADA` appends a 22-byte record, computes its cell index, initializes live state, and increments the family count.
+
+The encoded ceiling is:
+
+```text
+300 records = 0x12C
+```
+
+If the array is already full, the engine discards the oldest record by shifting the remaining 299 records down before appending the new record. [Family C](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FAMILY_C.md)
+
+Pickup/removal likewise compacts the array after deletion.
+
+Therefore the family is an **ordered compact array**. A native port should not silently replace it with an unordered container if ordering can affect selection, rendering, or eviction behavior.
+
+## 29. Family C also carries thrown/moving items
+
+Routine `23B38` creates an active family-C instance with position, type, heading/direction state, a motion/lifetime word, and a live motion flag.
+
+Routine `2388C` advances these instances, updates 16.16 position and cached cell, performs collision/contact handling, decrements motion state, and can clear active movement. [Family C](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FAMILY_C.md)
+
+The path includes type-specific handling for recognizable `OBJECTS.DAT` IDs:
+
+```text
+0x57  AXE OF HURLING
+0x58  ARROW OF SLAY UNDEAD
+0x59  DAGGER OF THROWING
+0x5A  JAVELIN OF LIGHTNING
+```
+
+[Family C](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FAMILY_C.md)
+
+Thrown/projectile behavior is therefore runtime state layered onto the loose-item family, not a separate serialized projectile family.
+
+## 30. Legacy family-C object-ID migration
+
+The compact archive loader applies one explicit family-C-only migration:
+
+```text
+compact type 0x54 -> runtime type 0x58
+```
+
+In the supplied current `OBJECTS.DAT`:
+
+```text
+0x54  STONE GIANT GAUNTLETS
+0x58  ARROW OF SLAY UNDEAD
+```
+
+[Family C](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FAMILY_C.md)
+
+The conversion occurs before ordinary runtime object lookups. A faithful archive loader must therefore preserve the migration exactly; interpreting compact `0x54` literally against the current object table would construct the wrong item.
+
+The exact historical object-database revision that made this alias necessary remains unknown.
+
+## 31. Runtime transient/moving-effect family
+
+The engine also maintains a separate 22-byte live-world-record family for transient/moving effects.
+
+Level event opcode 3 calls constructor `08A80`, which creates this record family. Scene emitter `2BFEC..2C22E` later walks the same runtime family and maps its type through the 12-entry class-3 INIT descriptor table. [EVENT_SCRIPTS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_SCRIPTS.md) [RES3 source banks](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE7_SOURCE_BANKS.md)
+
+The safe classification is **transient/moving-effect scene family**.
+
+It must remain distinct from family C: both can move, but they use different definition tables, source classes, constructors, and scene-emission paths.
+
+## 32. Four scene-source classes connect world state to RES3
+
+World-to-scene construction resolves four source classes:
+
+```text
+class 0  family A / NPC-creature
+class 1  family B / INIT class-1 descriptor
+class 2  family C / loose-item OBJECTS.DAT
+class 3  transient/moving effect
+```
+
+INIT supplies RES3 bank bases:
+
+```text
+class 0       0
+class 1    2169
+class 2    3316
+class 3    4158
+```
+
+and the common translation is:
+
+```text
+absolute_RES3_id =
+    source_class_base[source_class]
+  + bank_local_shape_id
+```
+
+[RES3 source banks](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE7_SOURCE_BANKS.md)
+
+Those four bases partition all 4,234 RES3 entries exactly.
+
+This is the architectural bridge between mutable world instances and the type-7 renderer documented in Component 04.
+
+## 33. Scene identity must preserve local namespaces
+
+The original engine stores local identities in several different definition spaces:
+
+```text
+NPCS.DAT
+INIT class-1 descriptors
+OBJECTS.DAT
+INIT class-3 descriptors
+```
+
+Only during scene construction are these translated into absolute RES3 IDs.
+
+A faithful engine/editor should therefore preserve:
+
+```text
+world family
+type ID
+live state/variant
+source class
+bank-local shape ID
+absolute RES3 ID (derived)
+```
+
+Flattening stored shape identities into absolute RES3 IDs would destroy the original namespace design and make lossless round-trip editing unsafe.
+
+## 34. Standalone LEV body stores expanded live state
+
+The direct-save form serializes expanded runtime state:
+
+```text
+width * {
+    int16 count
+    count * 10-byte group-1 records
+}
+
+uint8 active_dynamic_animation_count
+
+width * {
+    int16 count
+    count * 10-byte group-2 records
+}
+
+family A:
+    live 22-byte actor records
+
+family B:
+    serialized count word
+    expanded/live 22-byte placed-object records
+
+family C:
+    live 22-byte loose/moving-item records
+
+fixed 0x514 event table
+common tail
+```
+
+[LEVELS format](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FORMAT.md)
+
+The archive and standalone forms therefore differ in both **representation** and **state ownership**.
+
+## 35. LEV022 is direct evidence of mutable world persistence
+
+Archive level 22 and supplied `LEV022.DAT` both describe:
+
+```text
+map           30 x 15 = 450 cells
+family A       1
+family B     110
+family C       0
+event table   0x514 bytes, all zero
+annotations   0 bytes
+```
+
+[LEV022 mutable delta](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEV022.DAT/MUTABLE_DELTA.md)
+
+Exactly 313 of 450 cell words differ, and every difference is:
+
+```text
+archive_word XOR standalone_word = 0x0440
+```
+
+Only current-visibility and persistent-exploration bits changed. Cell codes and every other cell flag remain identical.
+
+## 36. LEV022 actor mutation
+
+The single family-A record is NPC type 9, `ASSASSIN`.
+
+Archive baseline:
+
+```text
+x cell   13
+y cell    7
+facing    2
+```
+
+Standalone live state:
+
+```text
+x cell                   18
+y cell                    7
+cached cell             228
+action/state countdown    4
+current HP               15
+facing                    6
+runtime flags    0x10000000
+```
+
+[Family A](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FAMILY_A.md)
+
+This is direct proof that the standalone level snapshot preserves movement, facing, current HP, and live action timing.
+
+## 37. Unchanged Level-22 state is also diagnostic
+
+The comparison proves that these subsystems did not mutate in the supplied session:
+
+- all ten group-1 10-byte records are byte-identical;
+- active dynamic-animation count is zero;
+- group 2 is empty;
+- all 110 family-B records equal deterministic archive expansion;
+- family C is empty in both forms;
+- the event table is byte-identical and all zero. [LEV022 mutable delta](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEV022.DAT/MUTABLE_DELTA.md)
+
+This cleanly separates deterministic baseline expansion from actual play-session mutation.
+
+## 38. The event table is level-local persistent state
+
+After the three world-record families, both archive and standalone forms contain exactly:
+
+```text
+0x514 bytes = 50 slots * 26 bytes
+```
+
+Each slot is:
+
+```text
++0x00  uint8 active_command_count
++0x01  command[0]   // 5 bytes
++0x06  command[1]
++0x0B  command[2]
++0x10  command[3]
++0x15  command[4]
+```
+
+and each command is:
+
+```text
+uint8 opcode
+uint8 arg1
+uint8 arg2
+uint8 arg3
+uint8 arg4
+```
+
+[EVENT_SCRIPTS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_SCRIPTS.md)
+
+Only the first `active_command_count` commands execute, but inactive command bytes remain persistent raw state. A lossless serializer must preserve all 26 bytes of every slot.
