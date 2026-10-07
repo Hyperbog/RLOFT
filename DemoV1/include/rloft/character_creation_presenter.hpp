@@ -30,6 +30,10 @@ public:
         bool stats_editor = false);
     void screen(CharacterCreationState state);
 
+    void existing_actor_decision_screen(
+        const CharacterCreationFlow& flow,
+        int actor,
+        const CharacterStatsModel& stats);
     void final_decision_screen(
         const CharacterCreationFlow& flow,
         const CharacterStatsModel& stats);
