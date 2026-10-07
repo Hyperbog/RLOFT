@@ -99,6 +99,8 @@ LevelState parse_record(const std::vector<std::uint8_t>& record,
         throw std::runtime_error("invalid level dimensions");
     }
     out.environment_profile = out.header[0x290];
+    out.renderer_vertical_offset =
+        static_cast<std::int8_t>(out.header[0x009]);
     out.renderer_fill_base_a = out.header[0x298];
     out.renderer_fill_base_b = out.header[0x299];
     out.render_threshold_floor = s16(out.header.data() + 0x29A);
