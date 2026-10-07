@@ -22,6 +22,8 @@
 #include <vector>
 
 #include "rloft/anm_cinematic.hpp"
+#include "rloft/automap_modal.hpp"
+#include "rloft/automap_screen_presenter.hpp"
 #include "rloft/level_display.hpp"
 #include "rloft/exploration_ui.hpp"
 #include "rloft/automap_screen_state.hpp"
@@ -949,7 +951,20 @@ int run_exploration(
             frame,
             runtime.renderer_tables());
 
-        if (hovered_menu >= 0) {
+        if (pressed_menu ==
+            static_cast<int>(
+                rloft::TopEdgeMenuAction::Automap)) {
+            automap.emplace(runtime.session());
+            input.clear();
+
+            presenter.framebuffer().clear(0);
+            automap_presenter.draw(
+                presenter.framebuffer(),
+                runtime.session(),
+                runtime.renderer_tables(),
+                automap->state(),
+                automap->annotation_overlay_enabled());
+        } else if (hovered_menu >= 0) {
             menu_presenter.draw(
                 presenter.framebuffer(),
                 hovered_menu,
