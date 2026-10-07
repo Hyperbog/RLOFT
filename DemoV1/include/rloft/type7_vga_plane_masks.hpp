@@ -37,8 +37,16 @@ public:
         std::uint32_t viewport_x,
         std::uint8_t column_count) const;
 
+    // Original bound data-object byte C029 is 1 in the supplied CODE.2.
+    // The game can toggle it at 6617, so the initial value is not a
+    // substitute for mutable renderer state during live play.
+    [[nodiscard]] bool initial_individual_columns_mode() const noexcept {
+        return initial_individual_columns_mode_;
+    }
+
 private:
     std::array<std::array<std::uint8_t, 32>, 3> plane_tables_{};
+    bool initial_individual_columns_mode_{};
 };
 
 } // namespace rloft
