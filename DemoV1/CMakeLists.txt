@@ -30,6 +30,7 @@ add_library(rloft_boot_flow
     src/environment_view.cpp
     src/view_sweep_record.cpp
     src/fixed_projection.cpp
+    src/renderer_tables.cpp
     src/environment_projection.cpp
     src/environment_presenter.cpp
     src/automap_presentation.cpp
@@ -111,6 +112,10 @@ add_executable(fixed_projection_tests tests/fixed_projection_tests.cpp)
 target_link_libraries(fixed_projection_tests PRIVATE rloft_boot_flow)
 add_test(NAME fixed_projection_tests COMMAND fixed_projection_tests)
 
+add_executable(renderer_tables_tests tests/renderer_tables_tests.cpp)
+target_link_libraries(renderer_tables_tests PRIVATE rloft_boot_flow)
+add_test(NAME renderer_tables_tests COMMAND renderer_tables_tests)
+
 add_executable(environment_projection_tests tests/environment_projection_tests.cpp)
 target_link_libraries(environment_projection_tests PRIVATE rloft_boot_flow)
 add_test(NAME environment_projection_tests COMMAND environment_projection_tests)
@@ -182,6 +187,7 @@ set(RLOFT_TEST_TARGETS
     environment_view_tests
     view_sweep_record_tests
     fixed_projection_tests
+    renderer_tables_tests
     environment_projection_tests
     environment_presenter_tests
     automap_presentation_tests
