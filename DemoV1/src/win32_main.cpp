@@ -147,6 +147,7 @@ public:
         character_mode_ = enabled;
         if (!enabled) {
             character_click_.reset();
+            character_pointer_.reset();
         }
     }
 
@@ -167,6 +168,10 @@ public:
         auto result = character_click_;
         character_click_.reset();
         return result;
+    }
+
+    [[nodiscard]] std::optional<NativePoint> character_pointer() const {
+        return character_pointer_;
     }
 
     std::optional<int> consume_key_event() {
@@ -287,11 +292,35 @@ private:
                 }
                 return 0;
 
-            case WM_MOUSEMOVE:
+            case WM_MOUSEMOVE: {
                 if (menu_mode_) {
                     const int y = native_y_from_client(GET_Y_LPARAM(lparam));
                     selection_ =
                         rloft::StartupPresenter::menu_selection_from_y(y);
+                }
+                if (character_mode_) {
+                    const int row =
+                        native_y_from_client(GET_Y_LPARAM(lparam));
+                    const int column =
+                        native_x_from_client(GET_X_LPARAM(lparam));
+                    if (row >= 0 && column >= 0) {
+                        character_pointer_ = NativePoint{row, column};
+                    } else {
+                        character_pointer_.reset();
+                    }
+
+                    TRACKMOUSEEVENT leave{};
+                    leave.cbSize = sizeof(leave);
+                    leave.dwFlags = TME_LEAVE;
+                    leave.hwndTrack = hwnd_;
+                    TrackMouseEvent(&leave);
+                }
+                return 0;
+            }
+
+            case WM_MOUSELEAVE:
+                if (character_mode_) {
+                    character_pointer_.reset();
                 }
                 return 0;
 
@@ -305,7 +334,8 @@ private:
                     const int column =
                         native_x_from_client(GET_X_LPARAM(lparam));
                     if (row >= 0 && column >= 0) {
-                        character_click_ = NativePoint{row, column};
+                        character_pointer_ = NativePoint{row, column};
+                        character_click_ = *character_pointer_;
                     }
                 }
                 return 0;
@@ -351,6 +381,7 @@ private:
     int selection_{-1};
     std::optional<int> clicked_{};
     std::optional<NativePoint> character_click_{};
+    std::optional<NativePoint> character_pointer_{};
     std::deque<int> key_events_{};
 };
 
@@ -834,6 +865,7 @@ int run(HINSTANCE instance) {
                 bool existing_actor_decision = false;
                 int existing_actor = -1;
                 int selected_stat = -1;
+                int portrait_hover_slot = -1;
                 std::string pending_name;
                 bool name_cursor_on = true;
                 auto name_blink_deadline =
@@ -867,7 +899,8 @@ int run(HINSTANCE instance) {
                             character_flow,
                             stats_ready ? &character_stats : nullptr,
                             selected_stat,
-                            stats_editor);
+                            stats_editor,
+                            portrait_hover_slot);
                     }
                     host.present(
                         character_presenter.framebuffer(),
@@ -1099,6 +1132,43 @@ int run(HINSTANCE instance) {
                 // CODE.1 043C/035C input path. Mode 6 changes the scan range
                 // from slots 0..5 to 6..8; its event 9 opens the 3C58 editor.
                 while (host.pump()) {
+                    // function_2A64 is the only character controller with
+                    // continuous mouseover rendering. Resting portraits use
+                    // 5AF8; the usable portrait under the pointer is redrawn
+                    // raw until the pointer moves away.
+                    if (!name_entry &&
+                        !final_decision &&
+                        !existing_actor_decision &&
+                        character_flow.state() ==
+                            rloft::CharacterCreationState::PortraitChoice) {
+                        int hover = -1;
+                        if (const auto pointer =
+                                host.character_pointer()) {
+                            const int hit =
+                                rloft::CharacterCreationFlow::hit_test(
+                                    rloft::CharacterCreationState::
+                                        PortraitChoice,
+                                    pointer->row,
+                                    pointer->column);
+                            if (hit >= 1 && hit <= 6) {
+                                const auto available =
+                                    character_flow.available_choices();
+                                if (available[
+                                        static_cast<std::size_t>(
+                                            hit - 1)]) {
+                                    hover = hit - 1;
+                                }
+                            }
+                        }
+
+                        if (hover != portrait_hover_slot) {
+                            portrait_hover_slot = hover;
+                            render_character();
+                        }
+                    } else if (portrait_hover_slot != -1) {
+                        portrait_hover_slot = -1;
+                    }
+
                     if (name_entry) {
                         const auto tick = code1_tick_count(code1_epoch);
                         if (tick > name_blink_deadline) {
