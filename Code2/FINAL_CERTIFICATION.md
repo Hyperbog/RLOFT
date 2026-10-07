@@ -1,3 +1,5 @@
+> **Historical certification notice — 2026-10-07:** this document records the certification snapshot exactly as it existed when closed. A later integration audit found and corrected one source-level semantic defect in routine `2975C`: the immutable binary consumes five stack arguments, while the certified translation declared four. Byte coverage/accounting is unaffected. The current source and evidence are documented in `Code2/POST_CERTIFICATION_ERRATA.md`. The hashes in this document therefore identify the historical pre-erratum snapshot.
+
 # CODE.2 final certification
 
 ## Status

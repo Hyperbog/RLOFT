@@ -1,3 +1,5 @@
+> **Post-certification semantic correction (2026-10-07):** routine `2975C` was rechecked against immutable CODE.2 during native automap integration and corrected from a four-argument source signature to the encoded five-argument `(frame,y,x,key,set)` contract. Historical certification hashes below refer to the pre-erratum source snapshot. See `POST_CERTIFICATION_ERRATA.md`.
+
 # CODE.2 faithful decompilation progress
 
 ![Progress](https://img.shields.io/badge/object%20accounting-100.00%25-brightgreen)

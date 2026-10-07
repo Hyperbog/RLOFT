@@ -68,7 +68,7 @@ The accounting distinction matters historically: 100% object reconciliation does
 
 Canonical semantic source: `Code2/Code2.cpp`. Certified `Code2.cpp` SHA-256: `b4ab60f12e0d5a3c986ef61ec3c2e5c6d68f0193a0e535ef35eb7af6f3aed4aa`; certified Git blob SHA: `c3f16122e79c3c464382e4511d9d932f6fcd694a`.
 
-Authoritative certification record: `Code2/FINAL_CERTIFICATION.md`; detailed provenance remains in `Code2/FINAL_SEMANTIC_AUDIT.md`, `Code2/PROGRESS.md`, and the continuity records.
+Historical certification record: `Code2/FINAL_CERTIFICATION.md`; post-certification semantic corrections are tracked in `Code2/POST_CERTIFICATION_ERRATA.md`. Detailed provenance remains in `Code2/FINAL_SEMANTIC_AUDIT.md`, `Code2/PROGRESS.md`, and the continuity records.
 
 ## 5. Executable/container model
 

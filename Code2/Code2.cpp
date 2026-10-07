@@ -19833,10 +19833,13 @@ void function_29738(Machine& m,u32 out) noexcept {
 }
 static_assert(0x2975Bu-0x29738u==35u);
 
-[[nodiscard]] u32 function_2975c(Application57Boundary& b,u32 a1,u32 a2,u32 key,u32 set) noexcept {
+[[nodiscard]] u32 function_2975c(Application57Boundary& b,u32 frame,u32 y,u32 x,u32 key,u32 set) noexcept {
+    // Encoded stack contract is five arguments. 2975C first loads arg5/arg4
+    // into 2F29C(set/key), then forwards arg1/arg2/arg3 plus the resolved
+    // image to 2A380(frame,y,x,image).
     const u32 image=b.call_2f29c?b.call_2f29c(key,set):0u;
     if(image==0u)return 0u;
-    if(b.call_2a380)(void)b.call_2a380(a1,a2,key,image);
+    if(b.call_2a380)(void)b.call_2a380(frame,y,x,image);
     return b.call_2e758?b.call_2e758():0u; // encoded tail JMP
 }
 static_assert(0x2978Au-0x2975Cu==46u);

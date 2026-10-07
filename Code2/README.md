@@ -1,5 +1,7 @@
 # CODE.2 faithful decompilation
 
+> **Post-certification erratum (2026-10-07):** native Demo integration rechecked immutable CODE.2 bytes and found a source-level stack-signature defect in translated routine `2975C`. The current source corrects it to the encoded five-argument contract. The certification hashes below identify the historical pre-erratum snapshot, not the current `Code2.cpp`. Byte accounting remains unchanged. See `Code2/POST_CERTIFICATION_ERRATA.md`.
+
 This directory contains the certified faithful C++ reconstruction of Ravenloft: Strahd's Possession `CODE.2`.
 
 ## Final status
