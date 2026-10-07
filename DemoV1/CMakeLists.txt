@@ -28,6 +28,7 @@ add_library(rloft_boot_flow
     src/party_presentation.cpp
     src/object_catalog.cpp
     src/original_random.cpp
+    src/placed_scene_catalog.cpp
     src/npc_catalog.cpp
     src/level22_story.cpp
     src/level22_encounter.cpp
@@ -62,6 +63,7 @@ add_library(rloft_boot_flow
     src/first_person_entity_projection.cpp
     src/npc_scene.cpp
     src/loose_item_scene.cpp
+    src/placed_object_scene.cpp
     src/scene_shape_bounds.cpp
     src/scene_shape_selector.cpp
     src/scene_source_banks.cpp
@@ -142,6 +144,10 @@ add_test(NAME object_catalog_tests COMMAND object_catalog_tests)
 add_executable(original_random_tests tests/original_random_tests.cpp)
 target_link_libraries(original_random_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_random_tests COMMAND original_random_tests)
+
+add_executable(placed_scene_catalog_tests tests/placed_scene_catalog_tests.cpp)
+target_link_libraries(placed_scene_catalog_tests PRIVATE rloft_boot_flow)
+add_test(NAME placed_scene_catalog_tests COMMAND placed_scene_catalog_tests)
 
 add_executable(npc_catalog_tests tests/npc_catalog_tests.cpp)
 target_link_libraries(npc_catalog_tests PRIVATE rloft_boot_flow)
@@ -274,6 +280,10 @@ add_test(NAME scene_shape_selector_tests COMMAND scene_shape_selector_tests)
 add_executable(loose_item_scene_tests tests/loose_item_scene_tests.cpp)
 target_link_libraries(loose_item_scene_tests PRIVATE rloft_boot_flow)
 add_test(NAME loose_item_scene_tests COMMAND loose_item_scene_tests)
+
+add_executable(placed_object_scene_tests tests/placed_object_scene_tests.cpp)
+target_link_libraries(placed_object_scene_tests PRIVATE rloft_boot_flow)
+add_test(NAME placed_object_scene_tests COMMAND placed_object_scene_tests)
 
 add_executable(scene_source_banks_tests tests/scene_source_banks_tests.cpp)
 target_link_libraries(scene_source_banks_tests PRIVATE rloft_boot_flow)
@@ -429,6 +439,7 @@ set(RLOFT_TEST_TARGETS
     party_presentation_tests
     object_catalog_tests
     original_random_tests
+    placed_scene_catalog_tests
     npc_catalog_tests
     level22_story_tests
     level22_encounter_tests
@@ -462,6 +473,7 @@ set(RLOFT_TEST_TARGETS
     npc_scene_tests
     scene_shape_selector_tests
     loose_item_scene_tests
+    placed_object_scene_tests
     scene_source_banks_tests
     world_scene_record_tests
     world_scene_selection_tests
