@@ -102,6 +102,16 @@ class GroupedGraphicsTests(unittest.TestCase):
             self.assertEqual(effect.res3_ids, [30, 31, 32, 33])
             self.assertIn("Fireball", effect.extra["certified_producers"])
 
+    def test_grouped_images_keep_raw_canonical_filename(self) -> None:
+        self.assertEqual(
+            grouped_graphics.original_res3_stem(0),
+            "RES3_00000_T7",
+        )
+        self.assertEqual(
+            grouped_graphics.original_res3_stem(4233),
+            "RES3_04233_T7",
+        )
+
     def test_missing_optional_dat_files_are_warnings(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

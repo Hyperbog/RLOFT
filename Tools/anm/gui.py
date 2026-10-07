@@ -13,6 +13,7 @@ from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk
 
 import asset_dumper
+import edit_menu
 import exporter
 import game_source
 import master_dumper
@@ -152,12 +153,15 @@ class RavenloftExtractorGui(tk.Tk):
         self._skin_job: str | None = None
         self._header_photo: ImageTk.PhotoImage | None = None
         self._header_job: str | None = None
+        self._last_client_size: tuple[int, int] | None = None
         self._window_chrome: window_chrome.FramelessWindow | None = None
         self._tooltips: list[object] = []
+        self._edit_menu: edit_menu.EditMenuController | None = None
 
         self._build_styles()
         self._build_ui()
         self._refresh_native_timing_text()
+        self._edit_menu = edit_menu.install(self)
         self._tooltips = tooltips.install(self)
         self.bind("<Configure>", self._on_window_configure, add="+")
         self.after(40, self._apply_ui_scale)
@@ -316,14 +320,18 @@ class RavenloftExtractorGui(tk.Tk):
             return
         width = max(1, event.width)
         height = max(1, event.height)
+        size = (width, height)
 
-        # Resizing changes available layout space only.  Screen resolution
-        # establishes the initial UI scale once at launch; explicit UI-size
-        # controls are the only way to change fonts/buttons afterward.
-        self._resize_wraps_for_width(width)
-        self._fit_listboxes_to_height(height)
-        self._schedule_skin()
-        self._schedule_header()
+        # Pure window movement also generates Configure events. Re-rendering
+        # the full PIL-backed frame on every move caused visible flashing and
+        # stale-frame artifacts. Only layout/skin work when the client size
+        # actually changes.
+        if size != self._last_client_size:
+            self._last_client_size = size
+            self._resize_wraps_for_width(width)
+            self._fit_listboxes_to_height(height)
+            self._schedule_skin()
+            self._schedule_header()
         self._sync_maximize_button()
 
     def _fit_listboxes_to_height(self, window_height: int) -> None:
@@ -396,12 +404,12 @@ class RavenloftExtractorGui(tk.Tk):
             self.footer.grid_configure(padx=(side, side), pady=(0, bottom))
 
     def _schedule_skin(self) -> None:
+        # Coalesce resize bursts without continually pushing the render farther
+        # into the future. This keeps the decorative frame updating throughout
+        # a live edge drag instead of snapping only after the drag stops.
         if self._skin_job:
-            try:
-                self.after_cancel(self._skin_job)
-            except tk.TclError:
-                pass
-        self._skin_job = self.after(45, self._render_skin)
+            return
+        self._skin_job = self.after(16, self._render_skin)
 
     def _render_skin(self) -> None:
         self._skin_job = None
@@ -414,11 +422,8 @@ class RavenloftExtractorGui(tk.Tk):
 
     def _schedule_header(self) -> None:
         if self._header_job:
-            try:
-                self.after_cancel(self._header_job)
-            except tk.TclError:
-                pass
-        self._header_job = self.after(35, self._render_header)
+            return
+        self._header_job = self.after(16, self._render_header)
 
     def _render_header(self) -> None:
         self._header_job = None

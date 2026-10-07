@@ -286,14 +286,31 @@ instead of image similarity:
   known.
 
 Each multipart folder contains native-resolution frames plus a manifest mapping
-every file back to its original RES3 ID. Optional contact sheets, animated GIF
-previews, and shared-resource alias maps are intended for modding, batch
-upscaling, and remaster workflows. Generic names such as `variant_00` and
-`view_00` are retained where the executable does not prove a narrower label.
+every file back to its original RES3 ID. The image files themselves retain the
+same canonical raw-extractor filename, for example `RES3_04233_T7.png`; the
+group folder and manifest carry the semantic creature/object/effect and
+variant/view information. Grouping therefore never renames an asset.
+
+Optional contact sheets, animated GIF previews, and shared-resource alias maps
+are intended for modding, batch upscaling, and remaster workflows. Generic
+variant/view labels remain in manifests/previews where the executable does not
+prove a narrower semantic name.
 
 NPC and object grouping requires `NPCS.DAT` and `OBJECTS.DAT` beside the
 selected resource files. If either is absent, the raw extraction and INIT-based
 groups still complete and the grouped manifest records the skipped family.
+
+### Window and editing behavior
+
+The frameless Windows window exposes practical resize hit zones on every edge
+and corner and displays the standard horizontal, vertical, and diagonal resize
+cursors while hovering those zones. Frame artwork redraws continuously during
+live resize but is not regenerated for pure window movement, avoiding the
+flashing/stale-frame effect seen in earlier builds.
+
+Editable fields have a standard secondary/right-click menu with Undo, Redo,
+Cut, Copy, Paste, Delete, and Select All. The same controls also support the
+usual Ctrl+Z/Ctrl+Y shortcuts.
 
 ### Hover help
 

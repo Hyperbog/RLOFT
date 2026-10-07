@@ -1,3 +1,11 @@
+## 0.6.3
+
+- Grouped multipart exports now keep the canonical raw asset filename (for example `RES3_04233_T7.png`); grouping semantics live only in folders/manifests/previews.
+- Added standard resize cursors for all frameless-window edges and corners.
+- Changed skin/header redraw scheduling so live resize updates continuously while pure window movement does not trigger expensive full-frame redraws, eliminating movement/resize visual glitches.
+- Added a secondary/right-click edit menu to entry, spinbox, and combobox fields with Undo, Redo, Cut, Copy, Paste, Delete, and Select All, plus Ctrl+Z/Ctrl+Y support.
+- Added regression/smoke coverage for canonical grouped filenames, resize-cursor mapping, and edit-menu initialization.
+
 ## 0.6.2
 
 - Added recursive install-folder scanning for loose/non-CD Ravenloft copies.

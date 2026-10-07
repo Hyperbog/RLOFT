@@ -57,6 +57,7 @@ class FramelessWindow:
         # Keep the initial press pending until pointer motion crosses a small
         # threshold, then restore and continue the drag from that point.
         self._maximized_drag_origin: tuple[int, int, int, int] | None = None
+        self._cursor_widget: tk.Misc | None = None
 
         if not self.enabled:
             return
@@ -302,6 +303,12 @@ class FramelessWindow:
         widget = getattr(event, "widget", None)
         if widget is not None:
             try:
+                widget.configure(cursor="")
+            except (tk.TclError, AttributeError):
+                pass
+        self._cursor_widget = None
+        if widget is not None:
+            try:
                 widget.grab_release()
             except tk.TclError:
                 pass
@@ -385,6 +392,53 @@ class FramelessWindow:
             return HTBOTTOM
         return None
 
+    @staticmethod
+    def _cursor_for_hit(hit_test: int | None) -> str:
+        if hit_test in (HTLEFT, HTRIGHT):
+            return "size_we"
+        if hit_test in (HTTOP, HTBOTTOM):
+            return "size_ns"
+        if hit_test in (HTTOPLEFT, HTBOTTOMRIGHT):
+            return "size_nw_se"
+        if hit_test in (HTTOPRIGHT, HTBOTTOMLEFT):
+            return "size_ne_sw"
+        return ""
+
+    def _set_resize_cursor(self, event) -> None:
+        """Show native-style sizing cursors over the logical resize zones."""
+        hit_test = self._edge_hit_from_event(event)
+        cursor = self._cursor_for_hit(hit_test)
+        widget = getattr(event, "widget", None)
+
+        if self._cursor_widget is not None and self._cursor_widget is not widget:
+            try:
+                self._cursor_widget.configure(cursor="")
+            except (tk.TclError, AttributeError):
+                pass
+            self._cursor_widget = None
+
+        if widget is None:
+            return
+
+        # Tk's Windows cursor names are the closest match to the standard
+        # border resize arrows. Fall back to the long-standing scrollbar
+        # double-arrow names if a particular Tk build rejects a diagonal name.
+        fallbacks = {
+            "size_we": "sb_h_double_arrow",
+            "size_ns": "sb_v_double_arrow",
+            "size_nw_se": "top_left_corner",
+            "size_ne_sw": "top_right_corner",
+        }
+        try:
+            widget.configure(cursor=cursor)
+        except (tk.TclError, AttributeError):
+            fallback = fallbacks.get(cursor, "")
+            try:
+                widget.configure(cursor=fallback)
+            except (tk.TclError, AttributeError):
+                pass
+        self._cursor_widget = widget if cursor else None
+
     def _edge_hit_from_event(self, event) -> int | None:
         if self.is_maximized():
             return None
@@ -408,6 +462,7 @@ class FramelessWindow:
         """Keep resize hit targets logical so the artwork stays unobscured."""
         if not self.enabled:
             return
+        self.root.bind("<Motion>", self._set_resize_cursor, add="+")
         self.root.bind("<ButtonPress-1>", self._begin_edge_resize, add="+")
         self.root.bind("<B1-Motion>", self._perform_resize, add="+")
         self.root.bind("<ButtonRelease-1>", self._end_resize, add="+")

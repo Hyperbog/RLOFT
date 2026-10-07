@@ -91,6 +91,9 @@ def _gui_self_test() -> int:
         if not hasattr(app, "titlebar") or not hasattr(app, "header_canvas"):
             app.destroy()
             return 28
+        if getattr(app, "_edit_menu", None) is None:
+            app.destroy()
+            return 32
 
         # Exercise the same Tk resize path used by the decorative right border.
         from types import SimpleNamespace

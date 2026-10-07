@@ -27,6 +27,18 @@ class WindowChromeResizeTests(unittest.TestCase):
         self.assertIsNone(hit(20, 350, 1000, 700))
         self.assertIsNone(hit(500, 350, 1000, 700))
 
+    def test_resize_cursor_mapping(self) -> None:
+        cursor = window_chrome.FramelessWindow._cursor_for_hit
+        self.assertEqual(cursor(window_chrome.HTLEFT), "size_we")
+        self.assertEqual(cursor(window_chrome.HTRIGHT), "size_we")
+        self.assertEqual(cursor(window_chrome.HTTOP), "size_ns")
+        self.assertEqual(cursor(window_chrome.HTBOTTOM), "size_ns")
+        self.assertEqual(cursor(window_chrome.HTTOPLEFT), "size_nw_se")
+        self.assertEqual(cursor(window_chrome.HTBOTTOMRIGHT), "size_nw_se")
+        self.assertEqual(cursor(window_chrome.HTTOPRIGHT), "size_ne_sw")
+        self.assertEqual(cursor(window_chrome.HTBOTTOMLEFT), "size_ne_sw")
+        self.assertEqual(cursor(None), "")
+
     def test_maximized_titlebar_click_does_not_restore(self) -> None:
         class Root:
             def winfo_x(self): return 0

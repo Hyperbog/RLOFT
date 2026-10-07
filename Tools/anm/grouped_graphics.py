@@ -213,6 +213,11 @@ def parse_objects(path: Path) -> list[dict[str, object]]:
     return records
 
 
+def original_res3_stem(res3_id: int) -> str:
+    """Return the canonical filename stem used by the raw RES extractor."""
+    return f"RES3_{int(res3_id):05d}_T7"
+
+
 def _frames_for_range(absolute_start: int, count: int, stride: int) -> list[GroupFrame]:
     stride = max(1, stride)
     frames: list[GroupFrame] = []
@@ -571,10 +576,10 @@ def export_grouped(
                 warnings.append(f"{group.ref}: RES3:{frame.res3_id} could not render: {exc}")
                 continue
 
-            file_stem = (
-                f"{sequence:04d}_variant_{frame.variant:02d}_"
-                f"view_{frame.view:02d}_RES3_{frame.res3_id:05d}"
-            )
+            # Group folders provide the semantic organization. Preserve the
+            # exact canonical raw-extractor asset filename inside those
+            # folders so grouping never renames an original RES resource.
+            file_stem = original_res3_stem(frame.res3_id)
             output = _save_rgba(image, frame_dir / file_stem, fmt)
             rel_output = output.relative_to(group_dir).as_posix()
             frame_records.append({
