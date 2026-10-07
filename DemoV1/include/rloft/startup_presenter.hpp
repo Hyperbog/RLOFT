@@ -34,6 +34,11 @@ public:
 
     [[nodiscard]] IndexedRegion capture(int y, int x, int height, int width) const;
     void restore(const IndexedRegion& region, int y, int x);
+    void restore_mapped(
+        const IndexedRegion& region,
+        int y,
+        int x,
+        const std::array<std::uint8_t, 256>& map);
     void fill_rect(int y, int x, int height, int width, std::uint8_t color);
 
     [[nodiscard]] const std::vector<std::uint8_t>& pixels() const noexcept { return pixels_; }
