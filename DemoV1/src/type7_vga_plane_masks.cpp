@@ -30,6 +30,19 @@ unsigned bit_count(std::uint8_t value) noexcept {
 Type7VgaPlaneMaskModel Type7VgaPlaneMaskModel::from_code2(
     const std::vector<std::uint8_t>& code2_bytes) {
     Type7VgaPlaneMaskModel model{};
+    constexpr std::size_t kInitialModeAt =
+        kCode2Object2FileOffset + 0xC029U;
+    if (kInitialModeAt >= code2_bytes.size()) {
+        throw std::runtime_error(
+            "CODE.2 is truncated before initial VGA dispatcher flag");
+    }
+    const auto initial_mode = code2_bytes[kInitialModeAt];
+    if (initial_mode > 1U) {
+        throw std::runtime_error(
+            "CODE.2 initial VGA dispatcher flag is not Boolean");
+    }
+    model.initial_individual_columns_mode_ =
+        initial_mode != 0U;
     for (std::size_t plane = 0U;
          plane < kMaskOffsets.size(); ++plane) {
         const auto start =
