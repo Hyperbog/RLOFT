@@ -65,7 +65,7 @@ R.EXE supervisor
   -> character-creation workflow
 ```
 
-The next implementation unit is the native RES0/COLORS presentation renderer used by the cold-start sequence and startup menu.
+The native RES0/COLORS cold-start renderer and startup-menu presentation are implemented. The Windows host also composites the original Ravenloft cursor from the selected installation's RES0 data rather than using a host-system pointer.
 
 
 ## CODE.1 character-creation boundary
@@ -88,7 +88,14 @@ RES7 graphics, including the two vertically emitted background strips at
 RES7:24/25, the fixed RES7:30..38 control family, RES7:42, and the two
 state-0 selector graphics.
 
-The observable CODE.1 opening presentation at `0x45FC..0x4976` occurs
-between the CODE.2 -> CODE.1 handoff and state 0. That animation remains the
-next fidelity item; the demo currently enters the correct final state-0
-screen after the CODE.2 menu transition.
+The observable CODE.1 opening presentation at `0x45FC..0x4976` is implemented,
+including its 70 displayed frames, palette reveal, opening music ramp, and
+RES6 one-shot sound cues. The reconstructed controller then continues through
+the character-creation workflow, its transition animations, stat generation
+and editing, portrait selection, naming, final acceptance, CHARS serialization,
+and the status-10 supervisor handoff back to CODE.2.
+
+For Demo v1's requested cold-start-to-character-creation slice, the remaining
+unimplemented CODE.2 behavior is outside the target path: the CHARS-present
+startup/import branch and the full visible behavior of startup-menu entries 0
+and 1.
