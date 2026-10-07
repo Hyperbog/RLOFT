@@ -1504,7 +1504,8 @@ int run(HINSTANCE instance) {
                                             &character_stats,
                                             -1,
                                             -1,
-                                            -1)) {
+                                            -1,
+                                            0)) {
                                         return 0;
                                     }
                                     if (!animate_final_decision_entry()) {
@@ -1620,10 +1621,7 @@ int run(HINSTANCE instance) {
                                             before,
                                             event - 1,
                                             0x114,
-                                            0x6D,
-                                            (event >= 1 && event <= 6)
-                                                ? 3
-                                                : 0);
+                                            0x6D);
                                         if (transition_ok) {
                                             transition_ok = animate_07e4(
                                                 before,
@@ -1644,7 +1642,10 @@ int run(HINSTANCE instance) {
                                                 ? event - 1
                                                 : -1,
                                             0x114,
-                                            0x6D);
+                                            0x6D,
+                                            (event >= 1 && event <= 6)
+                                                ? 3
+                                                : 0);
                                     }
                                     break;
 
