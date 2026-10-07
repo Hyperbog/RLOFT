@@ -448,9 +448,11 @@ void CharacterCreationPresenter::draw_controller_base(
     CharacterCreationState state, const std::string& label) {
     framebuffer_.clear(0);
 
-    if (state == CharacterCreationState::ActorChoice) {
-        draw_strip(7, 0x18, 0, 0);
-    }
+    // CODE.1 10A4 emits RES7:18 only in mode 0, then preserves that
+    // upper half in both VGA pages for all later controller modes. Because
+    // this host presenter reconstructs each visible frame from scratch, draw
+    // the inherited upper page explicitly before the lower RES7:19 half.
+    draw_strip(7, 0x18, 0, 0);
     draw_strip(7, 0x19, 200, 0);
     draw_frame(7, 0x2A, 0, 5, 0);
 
