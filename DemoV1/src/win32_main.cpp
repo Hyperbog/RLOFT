@@ -953,6 +953,24 @@ int run(HINSTANCE instance) {
                     return true;
                 };
 
+                auto animate_controller_entry = [&](
+                    const rloft::CharacterCreationFlow& target,
+                    const rloft::CharacterStatsModel* stats) {
+                    const int frames =
+                        character_presenter.controller_entry_frame_count(
+                            target);
+                    for (int frame = 0; frame < frames; ++frame) {
+                        character_presenter.controller_entry_frame(
+                            target,
+                            stats,
+                            frame);
+                        if (!present_character_animation_frame()) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
                 const auto name_font = assets.res0_font(0);
                 auto name_width = [&](const std::string& value) {
                     int width = 0;
@@ -966,8 +984,13 @@ int run(HINSTANCE instance) {
                     return width;
                 };
 
-                render_character();
                 host.set_character_mode(true);
+                if (!animate_controller_entry(
+                        character_flow,
+                        nullptr)) {
+                    return 0;
+                }
+                render_character();
 
                 // CODE.1 043C/035C input path. Mode 6 changes the scan range
                 // from slots 0..5 to 6..8; its event 9 opens the 3C58 editor.
@@ -1164,6 +1187,11 @@ int run(HINSTANCE instance) {
                                         }
                                         stats_ready = false;
                                         selected_stat = -1;
+                                        if (!animate_controller_entry(
+                                                character_flow,
+                                                nullptr)) {
+                                            return 0;
+                                        }
                                         render_character();
                                     }
                                 } else if (event == 7) {
@@ -1445,6 +1473,27 @@ int run(HINSTANCE instance) {
                                 final_decision = false;
                                 name_entry = false;
                                 selected_stat = -1;
+                            }
+
+                            const bool fresh_controller =
+                                before_state != character_flow.state() ||
+                                (before_state ==
+                                     rloft::CharacterCreationState::
+                                         PortraitChoice &&
+                                 event == 0xFF);
+                            if (fresh_controller) {
+                                const auto* entry_stats =
+                                    character_flow.state() ==
+                                            rloft::
+                                                CharacterCreationState::
+                                                    StatsReview
+                                        ? &character_stats
+                                        : nullptr;
+                                if (!animate_controller_entry(
+                                        character_flow,
+                                        entry_stats)) {
+                                    return 0;
+                                }
                             }
                             render_character();
                         }
