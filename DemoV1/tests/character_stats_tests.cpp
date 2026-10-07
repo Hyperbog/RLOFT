@@ -114,5 +114,20 @@ int main() {
         assert(model.value().exceptional_strength == 0);
     }
 
+    {
+        auto t = tables();
+
+        // CODE.1 334C can transiently roll CON above 18 because it stores
+        // function_0010(3,6,0,0)+3 before 3404 clamps race bounds. Seed 2
+        // reaches raw CON 19. 37C0 must use that address exactly rather than
+        // rejecting it as an out-of-range table index.
+        t.hp_variant[19] = 7;
+        rloft::CharacterStatsModel model(t);
+        model.seed(2);
+        model.generate(draft());
+        assert(model.value().abilities[2] == 18);
+        assert(model.value().hit_points >= 1);
+    }
+
     std::cout << "character_stats_tests: PASS\n";
 }

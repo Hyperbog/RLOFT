@@ -91,8 +91,21 @@ int CharacterStatsModel::class_count(
 
 int CharacterStatsModel::hp_variant_extra(
     int cls, int variant) const {
-    if (cls < 0 || cls >= 6 || variant < 0 || variant >= 19) {
-        throw std::out_of_range("CODE.1 HP variant table index");
+    if (cls < 0 || cls >= 6) {
+        throw std::out_of_range("CODE.1 HP class table index");
+    }
+
+    // Exact CODE.1 37C0/3404 address expression:
+    //   04D4h + (class/3)*4Ch + constitution*4
+    //
+    // 37C0 runs before 3404 clamps the freshly rolled Constitution. 334C's
+    // encoded roll can transiently yield 19..21, so those values legally
+    // fall through into the following DGROUP dwords in the original image.
+    // No bounds check exists in CODE.1. The 0..21 range below is the complete
+    // reachable range from the original generator.
+    if (variant < 0 || variant > 21) {
+        throw std::out_of_range(
+            "CODE.1 unreachable HP variant table index");
     }
 
     const std::size_t index =

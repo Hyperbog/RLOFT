@@ -634,11 +634,15 @@ void CharacterCreationPresenter::draw_10a4_ornament(
         ((target_second - 0xA0) * (phase + 1) + 6) /
             12;
 
-    // 10A4 stores image+4 as its first extent (host raster height) and
-    // image+6*8 as its second extent (host raster width), then passes the
-    // resulting Rect fields directly to the row/column graphics wrappers.
+    // Raw CODE.1 10A4 arithmetic:
+    //   rect.first  = anchor_first  - word(image+4) / 2
+    //   rect.second = anchor_second - byte(image+6) * 2
+    //
+    // The host raster expands byte(image+6) to width*8 pixels, therefore the
+    // second subtraction is raster.width/4. The earlier width*2 translation
+    // was eight times too large and pushed the flying cards to the wrong side.
     const int row = anchor_first - raster.height / 2;
-    const int column = anchor_second - raster.width * 2;
+    const int column = anchor_second - raster.width / 4;
 
     if (reversed[static_cast<std::size_t>(phase)]) {
         // A5C8 is the same temporary in-place vertical reversal used by 4520.

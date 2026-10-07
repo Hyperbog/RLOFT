@@ -24,7 +24,10 @@ struct CharacterStatTables {
     std::array<std::int8_t, 36> race_bonus{};
     std::array<std::uint8_t, 90> class_minima{};
     std::array<std::int8_t, 6> hit_die{};
-    std::array<std::int32_t, 38> hp_variant{};
+    // CODE.1 37C0 indexes the two 19-dword HP bands before 3404 clamps
+    // raw Constitution. 334C can transiently produce 19..21, so the exact
+    // reachable address range extends three dwords beyond the nominal bands.
+    std::array<std::int32_t, 41> hp_variant{};
     std::array<std::int8_t, 32> secondary_bonus{};
     bool step_mode{};
 
