@@ -19,6 +19,7 @@ add_library(rloft_boot_flow
     src/character_transfer.cpp
     src/exploration_state.cpp
     src/exploration_session.cpp
+    src/exploration_world.cpp
     src/game_source.cpp
     src/resource_assets.cpp
     src/startup_presenter.cpp
@@ -50,6 +51,10 @@ add_test(NAME exploration_state_tests COMMAND exploration_state_tests)
 add_executable(exploration_session_tests tests/exploration_session_tests.cpp)
 target_link_libraries(exploration_session_tests PRIVATE rloft_boot_flow)
 add_test(NAME exploration_session_tests COMMAND exploration_session_tests)
+
+add_executable(exploration_world_tests tests/exploration_world_tests.cpp)
+target_link_libraries(exploration_world_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_world_tests COMMAND exploration_world_tests)
 
 add_executable(game_source_tests tests/game_source_tests.cpp)
 target_link_libraries(game_source_tests PRIVATE rloft_boot_flow)
@@ -91,6 +96,7 @@ set(RLOFT_TEST_TARGETS
     boot_flow_tests
     exploration_state_tests
     exploration_session_tests
+    exploration_world_tests
     game_source_tests
     presenter_tests
     voc_decoder_tests
