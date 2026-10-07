@@ -33,11 +33,6 @@ SceneShapeSelectorModel::select_bank_local(
     std::uint8_t shape_stride,
     const ExplorationSessionState& session,
     const RendererTables& tables) {
-    // 2B2F4's early cache path is exclusive to source class 1.
-    if (source_class == 1U) {
-        throw std::logic_error(
-            "class-1 scene selector cache path is not implemented");
-    }
     if (source_class > 3U) {
         throw std::out_of_range(
             "scene source class");
@@ -48,6 +43,24 @@ SceneShapeSelectorModel::select_bank_local(
         // stride; reject malformed/custom data deterministically.
         throw std::logic_error(
             "zero scene shape stride reached CODE.2 selector");
+    }
+
+    // 2B2F4's mutable 10-entry class-1 cache is used only when
+    // q=(type-2)/3 is 0..9. Level 22's placed types 62..64 all have q=20
+    // and therefore use the ordinary current-record path below. Refuse the
+    // stateful cache domain until its cross-record state is modeled.
+    if (source_class == 1U) {
+        const auto shifted =
+            static_cast<std::int32_t>(
+                type_id) -
+            2;
+        const auto cache_group =
+            shifted / 3;
+        if (cache_group >= 0 &&
+            cache_group < 10) {
+            throw std::logic_error(
+                "class-1 mutable scene selector cache is not integrated");
+        }
     }
 
     const auto live_facing =
@@ -82,9 +95,27 @@ SceneShapeSelectorModel::select_bank_local(
             (relative * 10) / 225;
         selector %= 16;
 
-        // The source-class-1 mirror predicate at 2B4A0 is unreachable here.
-        resource =
-            add_word(resource, selector);
+        if (source_class == 1U &&
+            type_id >= 0x3CU &&
+            type_id <= 0x43U) {
+            // 2B188/2B4A0 mirrors the second half of this class-1 type range.
+            if (selector < 8) {
+                resource =
+                    add_word(
+                        resource,
+                        selector % 8);
+            } else {
+                resource =
+                    add_word(
+                        resource,
+                        7 - (selector % 8));
+            }
+        } else {
+            resource =
+                add_word(
+                    resource,
+                    selector % 8);
+        }
         return resource;
     }
 
