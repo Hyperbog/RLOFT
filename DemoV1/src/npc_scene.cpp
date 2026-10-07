@@ -194,6 +194,7 @@ NpcSceneModel::build(
     const ExplorationSessionState& session,
     const NpcCatalog& catalog,
     const RendererTables& tables,
+    const SceneSourceBanks& banks,
     std::uint8_t render_threshold,
     const Random15& shared_random15) {
     std::vector<NpcSceneEmission> out;
@@ -263,14 +264,16 @@ NpcSceneModel::build(
         emission.projected_extent =
             projection.projected_extent;
         emission.resource_id =
-            select_resource(
-                npc,
-                definition,
-                npc_index,
-                projection.screen_x,
-                session,
-                tables,
-                shared_random15);
+            static_cast<std::uint16_t>(
+                banks.at(0U) +
+                select_resource(
+                    npc,
+                    definition,
+                    npc_index,
+                    projection.screen_x,
+                    session,
+                    tables,
+                    shared_random15));
         emission.source_index =
             static_cast<std::uint16_t>(
                 npc_index);
