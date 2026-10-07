@@ -164,6 +164,81 @@ Official Watcom standard-stream documentation:
 Daniel D'Agostino's independent Ravenloft automap study reports the same user-facing Save/Print intent and DOS/IBM-character-set rendering:
 <https://www.swordsandsoftware.com/ravenloft-automaps.php>
 
+
+## On-screen map browser and historical snapshot reader
+
+Direct CODE.2 routine `02AE8` proves that the in-game map browser has two different data paths.
+
+### Current map
+
+When the requested map ID equals current level/map global `0xC6C8`, the routine:
+
+1. calls cache rebuild `01558` against the live world;
+2. restores the current live annotation buffer from a temporary backup;
+3. uses the current live family-B placed-object state.
+
+This is the live automap path.
+
+### Other map
+
+When the requested map differs from `0xC6C8`, `02AE8` constructs:
+
+```text
+work\\lev???.dat
+```
+
+using a normal hundreds/tens/ones three-digit substitution for the requested level ID, opens that standalone level snapshot, and selectively loads only the state required for map display:
+
+- expanded family-B placed-object records used by the overlay;
+- duplicated map width/height from the common tail;
+- the serialized one-byte-per-cell automap cache;
+- the serialized annotation blob.
+
+It does **not** instantiate the browsed level as the active world, does not replace the live cell-word array, and does not load that level's actors as active gameplay state.
+
+Thus the original browser has a distinct read-only historical-map path:
+
+```text
+current map
+    live world -> rebuild cache -> live objects/notes
+
+other map
+    WORK\\LEVnnn.DAT
+        -> stored map cache
+        -> placed-object overlay state
+        -> saved annotations
+        -> display only
+```
+
+If the requested standalone snapshot cannot be opened, the routine reports failure and the paging controls continue searching for another readable map.
+
+### Selected-map state and paging
+
+The selected map ID is stored at `0x1274C`. Paging logic wraps through the 32-level domain and skips map IDs for which `02AE8` cannot obtain display state.
+
+A current-map flag at `0x5FCB` records whether the selected map is the active gameplay map. The SAVE and PRINT map actions require this flag, so historical/browsed snapshots can be viewed but are not re-saved or printed through those current-map actions.
+
+### Initial viewport and scrolling
+
+Entering the automap initializes the selected map from current level `0xC6C8`, rebuilds current cache state, and derives the initial viewport origin from the high words of the live player coordinates with a 24-cell offset.
+
+The scroll handler adjusts the two viewport-origin components in encoded increments of:
+
+```text
+4 cells   fine scroll
+40 cells  large/page scroll
+```
+
+with map-boundary clamping before redraw.
+
+Renderer `0139C` maps source cells into screen coordinates using per-cell increments of 8 and 5 units on its two map axes. The annotation export lookup uses the inverse signed divisions `raw_x / 8` and `raw_y / 5`, linking saved note coordinates to the same map grid geometry.
+
+### Annotation-text display toggle
+
+Automap byte `0x5FD9` enables an additional annotation-text presentation pass. Renderer `0139C` tests the byte and, when nonzero, calls `01228`, which walks the annotation list at `0x5760` and renders payload text at map-scaled coordinates.
+
+This is safely a **map annotation-text display toggle**. It is separate from the compact annotation labels used by text export.
+
 ## Export overlays
 
 The exporter builds three map buffers:
