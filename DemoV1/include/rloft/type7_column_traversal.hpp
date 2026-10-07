@@ -46,6 +46,16 @@ struct Type7VisibleColumn final {
     std::size_t viewport_x{};
 };
 
+// A single CODE.2 36B14 invocation after edge clipping. The DOS renderer
+// tests each run's first and last ray, then either draws the entire run,
+// trims an occluded edge, or omits it. This is NOT per-pixel depth rejection.
+struct Type7VisibleRun final {
+    std::uint16_t source_x{};
+    std::size_t source_column_index{};
+    std::size_t viewport_x{};
+    std::uint16_t width{};
+};
+
 class Type7ColumnTraversalModel final {
 public:
     // Models the scale-pointer selection and left/right per-column traversal
@@ -58,9 +68,17 @@ public:
         std::uint32_t projected_extent,
         std::uint16_t render_scale_lookup_bias = 0U);
 
-    // Horizontal CODE.2 36F20..372C3 placement, with exact per-view-ray
-    // signed depth test (< raw_depth means drawable). Produces one record
-    // per visible destination column. No vertical microcode is executed.
+    // CODE.2 36F2E..3729B contiguous spans, signed wall-depth endpoint
+    // tests, single-column gates and side-specific cursor advances.
+    // Only existing original drawable spans are returned.
+    [[nodiscard]] static std::vector<Type7VisibleRun> visible_runs(
+        const Type7ColumnTraversalPlan& plan,
+        int screen_x,
+        std::uint32_t raw_depth,
+        const std::vector<ViewSweepRecord>& rays);
+
+    // Expands the original accepted runs for the later vertical descriptor
+    // planner, without changing their draw-call grouping or precedence.
     [[nodiscard]] static std::vector<Type7VisibleColumn> visible_columns(
         const Type7ColumnTraversalPlan& plan,
         int screen_x,
