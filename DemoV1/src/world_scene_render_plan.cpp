@@ -29,7 +29,8 @@ WorldSceneRenderPlanModel::build(
                 shape,
                 tables,
                 call.resource_id,
-                call.scale_extent);
+                call.scale_extent,
+                call.render_scale_lookup_bias);
         plan.visible_columns =
             Type7ColumnTraversalModel::visible_columns(
                 plan.traversal,
