@@ -21,6 +21,7 @@
 
 #include "rloft/anm_cinematic.hpp"
 #include "rloft/boot_flow.hpp"
+#include "rloft/character_creation_flow.hpp"
 #include "rloft/character_creation_presenter.hpp"
 #include "rloft/game_source.hpp"
 #include "rloft/resource_assets.hpp"
@@ -138,11 +139,29 @@ public:
         }
     }
 
+    void set_character_mode(bool enabled) {
+        character_mode_ = enabled;
+        if (!enabled) {
+            character_click_.reset();
+        }
+    }
+
     int selection() const noexcept { return selection_; }
 
     std::optional<int> consume_click() {
         auto result = clicked_;
         clicked_.reset();
+        return result;
+    }
+
+    struct NativePoint {
+        int row{};
+        int column{};
+    };
+
+    std::optional<NativePoint> consume_character_click() {
+        auto result = character_click_;
+        character_click_.reset();
         return result;
     }
 
@@ -173,6 +192,13 @@ private:
         if (client_y < dst.top || client_y >= dst.bottom) return -1;
         const auto height = std::max<LONG>(1, dst.bottom - dst.top);
         return (client_y - dst.top) * 400 / height;
+    }
+
+    int native_x_from_client(int client_x) const {
+        const auto dst = render_rect();
+        if (client_x < dst.left || client_x >= dst.right) return -1;
+        const auto width = std::max<LONG>(1, dst.right - dst.left);
+        return (client_x - dst.left) * 320 / width;
     }
 
     void paint() {
@@ -237,6 +263,15 @@ private:
                 if (menu_mode_ && selection_ >= 0) {
                     clicked_ = selection_;
                 }
+                if (character_mode_) {
+                    const int row =
+                        native_y_from_client(GET_Y_LPARAM(lparam));
+                    const int column =
+                        native_x_from_client(GET_X_LPARAM(lparam));
+                    if (row >= 0 && column >= 0) {
+                        character_click_ = NativePoint{row, column};
+                    }
+                }
                 return 0;
 
             case WM_CLOSE:
@@ -276,8 +311,10 @@ private:
     bool quit_{false};
     bool escape_pressed_{false};
     bool menu_mode_{false};
+    bool character_mode_{false};
     int selection_{-1};
     std::optional<int> clicked_{};
+    std::optional<NativePoint> character_click_{};
 };
 
 bool fade_in(Host& host,
@@ -738,13 +775,49 @@ int run(HINSTANCE instance) {
                     }
                 }
 
-                character_presenter.first_screen();
+                rloft::CharacterCreationFlow character_flow;
+                character_presenter.screen(character_flow.state());
                 host.present(
                     character_presenter.framebuffer(),
                     character_palette);
+                host.set_character_mode(true);
 
-                // Demo-v1 milestone currently holds on CODE.1 state 0.
+                // CODE.1 043C/035C input path: wait for a mouse event, convert
+                // to the 320x400 logical coordinates, then resolve the exact
+                // six slot rectangles plus the fixed cancel rectangle.
                 while (host.pump()) {
+                    if (const auto point = host.consume_character_click()) {
+                        const int event =
+                            rloft::CharacterCreationFlow::hit_test(
+                                character_flow.state(),
+                                point->row,
+                                point->column);
+
+                        if (event >= 0 &&
+                            character_flow.apply_event(event)) {
+                            if (character_flow.aborted()) {
+                                host.set_character_mode(false);
+                                return 0;
+                            }
+
+                            character_presenter.screen(
+                                character_flow.state());
+                            host.present(
+                                character_presenter.framebuffer(),
+                                character_palette);
+
+                            if (character_flow.race_committed()) {
+                                SetWindowTextW(
+                                    host.hwnd(),
+                                    L"Ravenloft: Strahd's Possession — "
+                                    L"Character Creation (race selected)");
+                                // State 2 has completed exactly. Do not invent
+                                // state 3 until its controller is integrated.
+                                host.set_character_mode(false);
+                            }
+                        }
+                    }
+
                     std::this_thread::sleep_for(
                         std::chrono::milliseconds(1));
                 }
