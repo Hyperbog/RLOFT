@@ -921,11 +921,27 @@ void CharacterCreationPresenter::transition_15b0_frame(
 
     std::array<IndexedRegion, 9> cached{};
     std::array<bool, 9> has_cached{};
-    for (int slot = 0; slot < 9; ++slot) {
-        if (!slot_active(before, slot)) continue;
-        if (before.state() == CharacterCreationState::ActorChoice ||
-            (before.state() == CharacterCreationState::StatsReview &&
-             slot == 7)) {
+
+    // 1DD8 decrements 04D0 *before* calling 15B0 on Back. The old sex-choice
+    // IDs are still installed, but 15B0 sees mode 0 and therefore draws the
+    // cached actor cards from 095C/0960. Represent that deliberately mixed
+    // state without replacing the surrounding sex-choice title/page.
+    const bool sex_back_to_actor =
+        selected_slot < 0 &&
+        before.state() == CharacterCreationState::SexChoice &&
+        after &&
+        after->state() == CharacterCreationState::ActorChoice;
+
+    if (sex_back_to_actor) {
+        const auto old_page =
+            framebuffer_.capture(
+                0,
+                0,
+                IndexedFramebuffer::kHeight,
+                IndexedFramebuffer::kWidth);
+
+        screen(*after, nullptr);
+        for (int slot : {2, 3}) {
             cached[static_cast<std::size_t>(slot)] =
                 framebuffer_.capture(
                     kSlotRow[static_cast<std::size_t>(slot)],
@@ -934,6 +950,23 @@ void CharacterCreationPresenter::transition_15b0_frame(
                     0x30);
             has_cached[static_cast<std::size_t>(slot)] = true;
         }
+
+        framebuffer_.restore(old_page, 0, 0);
+    } else {
+        for (int slot = 0; slot < 9; ++slot) {
+            if (!slot_active(before, slot)) continue;
+            if (before.state() == CharacterCreationState::ActorChoice ||
+                (before.state() == CharacterCreationState::StatsReview &&
+                 slot == 7)) {
+                cached[static_cast<std::size_t>(slot)] =
+                    framebuffer_.capture(
+                        kSlotRow[static_cast<std::size_t>(slot)],
+                        kSlotColumn[static_cast<std::size_t>(slot)],
+                        0x7A,
+                        0x30);
+                has_cached[static_cast<std::size_t>(slot)] = true;
+            }
+        }
     }
 
     if (frame_index < 5) {
@@ -941,6 +974,10 @@ void CharacterCreationPresenter::transition_15b0_frame(
             remaps_.bright[static_cast<std::size_t>(frame_index)];
         const auto& lum =
             remaps_.luminance[static_cast<std::size_t>(frame_index)];
+        const auto& dissolve_flow =
+            sex_back_to_actor ? *after : before;
+        const auto* dissolve_stats =
+            sex_back_to_actor ? nullptr : stats;
 
         for (int slot = 0; slot < 9; ++slot) {
             if (!slot_active(before, slot) ||
@@ -949,8 +986,8 @@ void CharacterCreationPresenter::transition_15b0_frame(
             }
 
             draw_slot_content_mapped(
-                before,
-                stats,
+                dissolve_flow,
+                dissolve_stats,
                 slot,
                 kSlotRow[static_cast<std::size_t>(slot)],
                 kSlotColumn[static_cast<std::size_t>(slot)],
