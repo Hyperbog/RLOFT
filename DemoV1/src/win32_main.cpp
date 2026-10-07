@@ -917,8 +917,8 @@ int run_exploration(
                 presenter.framebuffer(),
                 runtime.session(),
                 runtime.renderer_tables(),
-                automap_state,
-                false);
+                automap->state(),
+                automap->annotation_overlay_enabled());
             host.present(
                 presenter.framebuffer(),
                 exploration_palette);
