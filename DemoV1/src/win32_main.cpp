@@ -805,6 +805,7 @@ int run(HINSTANCE instance) {
     }
 
     rloft::RavenloftBootAssets assets(std::move(source));
+    Host host;
 
     // CODE.2 1A0B0 and CODE.1 52AC both resolve the default mouse cursor as
     // RES0[INIT word 0 + 2Fh]. Frame zero is the normal pointer state.
@@ -819,7 +820,6 @@ int run(HINSTANCE instance) {
     flow.boot();
     flow.finish_code2_startup(false, false);
 
-    Host host;
     if (!host.create(instance)) {
         throw std::runtime_error("Unable to create presentation window");
     }
