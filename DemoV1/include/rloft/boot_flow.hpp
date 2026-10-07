@@ -19,6 +19,7 @@ enum class BootStage : std::uint8_t {
     StartupMenu,
     Code2ExitToSupervisor,
     CharacterCreation,
+    Code1ExitToSupervisor,
     Terminated,
 };
 
@@ -49,6 +50,7 @@ public:
     void finish_cold_start_presentation();
     void skip_cold_start_presentation();
     void select_startup_menu(int index);
+    void finish_character_creation(LegacyResult result);
     void supervisor_dispatch();
 
 private:
