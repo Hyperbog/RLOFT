@@ -122,10 +122,30 @@ int main() {
         const auto tables=rloft::RendererTables::parse(bytes);
         assert(tables.scale_blocks.size()==127U);
         std::size_t total_reads=0U, total_writes=0U;
+        rloft::VgaPlanarMemory original_video;
+        std::vector<std::uint8_t> original_source(4096U,0U);
+        for(std::size_t i=0U;i<original_source.size();++i) {
+            original_source[i]=
+                static_cast<std::uint8_t>((i*31U+17U)&0xFFU);
+        }
         for(const auto& original:tables.scale_blocks) {
             const auto report=rloft::SintabPixelMicrocode::audit(original);
             total_reads+=report.source_reads;
             total_writes+=report.destination_writes;
+            // Execute every complete ORIGINAL generated code block, not
+            // only artificial fixtures. All stored pixel displacements
+            // must stay inside the original A0000 planar address range.
+            const auto execution=rloft::SintabPixelMicrocode::execute(
+                original.rasterizer_x86,
+                0U,
+                original_source,
+                0,
+                0x0102U,
+                rloft::VgaPlanarMemory::kPhysicalBase,
+                0x0FU,
+                original_video);
+            assert(execution.source_reads==report.source_reads);
+            assert(execution.destination_writes==report.destination_writes);
         }
         assert(total_reads==11587U);
         assert(total_writes==23910U);
