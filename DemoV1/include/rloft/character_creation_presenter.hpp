@@ -21,6 +21,7 @@ public:
     void opening_frame(int frame_index);
 
     // Resting frame after CODE.1's presentation/slot animations have settled.
+    void screen(const CharacterCreationFlow& flow);
     void screen(CharacterCreationState state);
 
     // Compatibility name for state 0.
@@ -36,6 +37,8 @@ private:
     void draw_text_centered(
         int y, int left, int span, const std::string& text, int font_id);
     void draw_empty_actor_card(int y, int x);
+    void draw_text_box(int record, int y, int x);
+    void draw_summary(const CharacterDraft& draft, bool include_option);
     void draw_controller_base(
         CharacterCreationState state, int label_record);
 
