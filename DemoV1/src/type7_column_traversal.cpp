@@ -12,7 +12,8 @@ Type7ColumnTraversalPlan Type7ColumnTraversalModel::build(
     const Type7SceneShape& shape,
     const RendererTables& tables,
     std::uint16_t absolute_res3_id,
-    std::uint32_t projected_extent) {
+    std::uint32_t projected_extent,
+    std::uint16_t render_scale_lookup_bias) {
     const auto& geometry = shape.geometry;
     const auto width =
         static_cast<std::size_t>(geometry.source_width);
@@ -63,6 +64,24 @@ Type7ColumnTraversalPlan Type7ColumnTraversalModel::build(
     }
     out.scale_pointer_index =
         out.clamped_scale - (out.clamped_scale >> 3U);
+
+    // CODE.2 36CFA..36D8C uses the *unclamped* argument-3 size with its
+    // low three bits masked. Argument 4 is added to the derived table index.
+    // Above C730 the lookup result is zero; values above 0x808 are capped.
+    out.lookup_index =
+        ((projected_extent & 0xFFF8U) >> 1U) +
+        static_cast<std::uint32_t>(
+            render_scale_lookup_bias);
+    if (out.lookup_index <= tables.runtime_lookup_max) {
+        if (out.lookup_index >= tables.runtime_lookup.size()) {
+            throw std::out_of_range(
+                "type-7 renderer SINTAB lookup is truncated");
+        }
+        out.lookup_value =
+            std::min<std::uint16_t>(
+                tables.runtime_lookup[out.lookup_index],
+                0x0808U);
+    }
 
     // The original pointer array aliases entry 0 to block 0. Entries 1..N
     // reference physical blocks 0..N-1 (SINTAB loader 3838..3A63).
