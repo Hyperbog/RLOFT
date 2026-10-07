@@ -160,6 +160,30 @@ Type2Font ResArchive::decode_type2(int index) const {
     return font;
 }
 
+std::vector<std::uint8_t> ResArchive::decode_type4(int index) const {
+    const auto raw = entry(index);
+    if (raw.size() < 9 ||
+        raw[0] != 'E' || raw[1] != 'H' || raw[2] != 4) {
+        throw std::runtime_error("RES entry is not an EH type-4 sampled sound");
+    }
+
+    const auto header_size = s16(raw.data() + 3);
+    if (header_size != 0) {
+        throw std::runtime_error("Shipped type-4 resource has unexpected header");
+    }
+
+    const auto declared = static_cast<std::size_t>(u32(raw.data() + 5));
+    const auto available = raw.size() - 9U;
+    if (declared > available) {
+        throw std::runtime_error("Type-4 VOC length exceeds active RES entry");
+    }
+
+    return {
+        raw.begin() + 9,
+        raw.begin() + 9 + static_cast<std::ptrdiff_t>(declared)
+    };
+}
+
 Type1Raster ResArchive::decode_type1(int index) const {
     const auto raw = entry(index);
     if (raw.size() < 13 || raw[0] != 'E' || raw[1] != 'H' || raw[2] != 1) {
@@ -206,7 +230,9 @@ RavenloftBootAssets::RavenloftBootAssets(GameSource source)
     : source_(std::move(source)),
       res0_(source_.read("RES0")),
       res1_(source_.read("RES1")),
+      res6_(source_.read("RES6")),
       res7_(source_.read("RES7")),
+      res10_(source_.read("RES10")),
       colors_(source_.read("COLORS")),
       text_(source_.read("T")) {
     if (colors_.size() != 1U + 15U * 768U || colors_[0] != 15U) {
@@ -230,6 +256,17 @@ Type1Raster RavenloftBootAssets::res0_type1(int index) const {
 
 Type2Font RavenloftBootAssets::res0_font(int index) const {
     return res0_.decode_type2(index);
+}
+
+std::vector<std::uint8_t> RavenloftBootAssets::sampled_audio(
+    int archive, int index) const {
+    switch (archive) {
+        case 6: return res6_.decode_type4(index);
+        case 10: return res10_.decode_type4(index);
+        default:
+            throw std::out_of_range(
+                "Requested archive is not an active sampled-audio bank");
+    }
 }
 
 std::string RavenloftBootAssets::text(int index) const {
