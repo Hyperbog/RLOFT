@@ -46,28 +46,28 @@ int main() {
     assert(full.scale_block_index == 0);
     assert(full.first_segment == 0);
     assert(full.stop_segment == 128);
-    assert(full.output_count == 6);
+    assert(full.cumulative_step_total == 6);
     assert(full.spans.size() == 128);
 
     assert(full.spans[0].source_index == 0);
-    assert(full.spans[0].repeat_count == 2);
-    assert(full.spans[0].output_begin == 0);
-    assert(full.spans[0].output_end == 2);
+    assert(full.spans[0].step_value == 2);
+    assert(full.spans[0].cumulative_step_begin == 0);
+    assert(full.spans[0].cumulative_step_end == 2);
     assert(full.spans[0].patch_offset == 0x204U);
     assert(full.spans[0].next_patch_offset == 0x208U);
     assert(full.spans[0].code_begin == 0);
     assert(full.spans[0].code_end == 4);
 
     assert(full.spans[1].source_index == 1);
-    assert(full.spans[1].repeat_count == 0);
-    assert(full.spans[1].output_begin == 2);
-    assert(full.spans[1].output_end == 2);
+    assert(full.spans[1].step_value == 0);
+    assert(full.spans[1].cumulative_step_begin == 2);
+    assert(full.spans[1].cumulative_step_end == 2);
     assert(full.spans[1].code_begin == 4);
     assert(full.spans[1].code_end == 4);
 
-    assert(full.spans[2].repeat_count == 3);
-    assert(full.spans[2].output_begin == 2);
-    assert(full.spans[2].output_end == 5);
+    assert(full.spans[2].step_value == 3);
+    assert(full.spans[2].cumulative_step_begin == 2);
+    assert(full.spans[2].cumulative_step_end == 5);
 
     const auto partial =
         rloft::MicroRasterizerPlanModel::range(
@@ -76,12 +76,12 @@ int main() {
             1,
             4);
     assert(partial.spans.size() == 3);
-    assert(partial.output_count == 4);
+    assert(partial.cumulative_step_total == 4);
     assert(partial.spans[0].source_index == 1);
     assert(partial.spans[1].source_index == 2);
-    assert(partial.spans[1].output_begin == 0);
-    assert(partial.spans[1].output_end == 3);
-    assert(partial.spans[2].output_end == 4);
+    assert(partial.spans[1].cumulative_step_begin == 0);
+    assert(partial.spans[1].cumulative_step_end == 3);
+    assert(partial.spans[2].cumulative_step_end == 4);
 
     rloft::SurfacePrepassPlan prepass{};
     prepass.scale_block_index = 0;
@@ -92,7 +92,7 @@ int main() {
             tables, prepass);
     assert(pre.first_segment == 1);
     assert(pre.stop_segment == 4);
-    assert(pre.output_count == 4);
+    assert(pre.cumulative_step_total == 4);
 
     bool rejected = false;
     try {

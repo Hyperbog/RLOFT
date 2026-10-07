@@ -48,7 +48,7 @@ MicroRasterizerPlan MicroRasterizerPlanModel::range(
                 segment.code_end,
             });
     }
-    out.output_count = cursor;
+    out.cumulative_step_total = cursor;
     return out;
 }
 
