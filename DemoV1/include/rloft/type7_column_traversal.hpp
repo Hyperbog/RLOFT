@@ -33,6 +33,9 @@ struct Type7ColumnTraversalPlan final {
     // DGROUP 10450: horizontal/vertical renderer phase correction.
     // It is separate from scale_pointer_index (CODE.2 36D34..36D59).
     std::uint32_t renderer_phase_adjustment{};
+    // 36CFA..36D8C: the SINTAB runtime lookup is indexed before drawing.
+    std::uint32_t lookup_index{};
+    std::uint16_t lookup_value{};
     std::size_t scale_block_index{};
     std::vector<Type7ColumnStep> columns;
 };
@@ -52,7 +55,8 @@ public:
         const Type7SceneShape& shape,
         const RendererTables& tables,
         std::uint16_t absolute_res3_id,
-        std::uint32_t projected_extent);
+        std::uint32_t projected_extent,
+        std::uint16_t render_scale_lookup_bias = 0U);
 
     // Horizontal CODE.2 36F20..372C3 placement, with exact per-view-ray
     // signed depth test (< raw_depth means drawable). Produces one record
