@@ -37,6 +37,12 @@ WorldSceneRenderPlanModel::build(
                 static_cast<int>(call.screen_x),
                 call.raw_depth,
                 rays);
+        plan.microcode_draws =
+            Type7MicrocodePlanModel::build(
+                shape,
+                plan.traversal,
+                plan.visible_columns,
+                tables);
         out.push_back(std::move(plan));
     }
     return out;
