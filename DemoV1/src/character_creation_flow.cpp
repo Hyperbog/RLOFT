@@ -1,5 +1,6 @@
 #include "rloft/character_creation_flow.hpp"
 
+#include <algorithm>
 #include <array>
 
 namespace rloft {
@@ -12,12 +13,121 @@ constexpr std::array<int, 9> kColumn{
     3, 56, 109, 162, 215, 268, 83, 136, 189
 };
 
+// CODE.1 DGROUP 06D8: first class availability by race.
+constexpr bool kFirstClass[6][6] = {
+    {1,1,1,1,1,1},
+    {1,0,1,1,1,1},
+    {1,0,0,1,0,1},
+    {1,0,0,1,0,1},
+    {1,0,0,1,0,1},
+    {1,0,1,1,1,1},
+};
+
+// CODE.1 DGROUP 06FC: second class availability by race, then
+// already-selected first class, then candidate class.
+constexpr bool kSecondClass[6][6][6] = {
+    {
+        {0,0,0,0,0,0},{0,0,0,0,0,0},{0,0,0,0,0,0},
+        {0,0,0,0,0,0},{0,0,0,0,0,0},{0,0,0,0,0,0},
+    },
+    {
+        {0,0,0,1,1,1},{0,0,0,0,0,0},{0,0,0,1,0,0},
+        {1,0,1,0,1,0},{1,0,0,1,0,1},{1,0,0,0,1,0},
+    },
+    {
+        {0,0,0,0,0,1},{0,0,0,0,0,0},{0,0,0,0,0,0},
+        {0,0,0,0,0,0},{0,0,0,0,0,0},{1,0,0,0,0,0},
+    },
+    {
+        {0,0,0,1,0,1},{0,0,0,0,0,0},{0,0,0,0,0,0},
+        {1,0,0,0,0,1},{0,0,0,0,0,0},{1,0,0,1,0,0},
+    },
+    {
+        {0,0,0,1,0,1},{0,0,0,0,0,0},{0,0,0,0,0,0},
+        {1,0,0,0,0,0},{0,0,0,0,0,0},{1,0,0,0,0,0},
+    },
+    {
+        {0,0,0,0,1,1},{0,0,0,0,0,0},{0,0,0,0,0,0},
+        {0,0,0,0,0,0},{1,0,0,0,0,1},{1,0,0,0,1,0},
+    },
+};
+
+std::array<bool, 6> third_class(
+    int race, int first, int second) noexcept {
+    std::array<bool, 6> out{};
+
+    // CODE.1 function_2198 mode 2. Only races 1 and 5 expose
+    // third-class combinations in the shipped rules.
+    if (race == 5) {
+        if (first == 0) {
+            if (second == 4) out[5] = true;
+            if (second == 5) out[4] = true;
+        }
+        if (first == 4) {
+            if (second == 0) out[5] = true;
+            if (second == 5) out[0] = true;
+        }
+        if (first == 5 && second == 4) out[0] = true;
+    } else if (race == 1) {
+        if (first == 0) {
+            if (second == 4) {
+                out[5] = true;
+                out[3] = true;
+            }
+            if (second == 5 || second == 3) out[4] = true;
+        }
+        if (first == 4) {
+            if (second == 0) {
+                out[5] = true;
+                out[3] = true;
+            }
+            if (second == 5 || second == 3) out[0] = true;
+        }
+        if (first == 5) {
+            if (second == 4) out[0] = true;
+            if (second == 0) {
+                out[4] = true;
+                out[3] = true;
+            }
+        }
+        if (first == 3) {
+            if (second == 4) out[0] = true;
+            if (second == 0) out[4] = true;
+        }
+    }
+
+    return out;
+}
+
+std::array<bool, 6> option_availability(
+    const CharacterDraft& draft) noexcept {
+    std::array<bool, 6> out{{true, true, true, true, true, true}};
+
+    if (draft.classes[0] == 1) {
+        out = {{true, false, false, false, false, false}};
+        return out;
+    }
+
+    if (std::find(
+            draft.classes.begin(),
+            draft.classes.end(),
+            5) != draft.classes.end()) {
+        out[0] = false;
+    }
+
+    if (draft.classes[0] == 2 || draft.classes[1] == 2) {
+        out[1] = false;
+        out[3] = false;
+        out[5] = false;
+    }
+
+    return out;
+}
+
 }  // namespace
 
 int CharacterCreationFlow::hit_test(
     CharacterCreationState state, int row, int column) noexcept {
-    // CODE.1 035C scans slots 0..5 for modes 0..5. Each slot is the
-    // engine's 0x7A x 0x30 row/column rectangle.
     int result = -1;
     for (int i = 0; i < 6; ++i) {
         if (row >= kRow[i] && row < kRow[i] + 0x7A &&
@@ -27,15 +137,79 @@ int CharacterCreationFlow::hit_test(
         }
     }
 
-    // CODE.1 035C applies this test after the six normal slots, so cancel
-    // overrides an overlapping slot exactly as the binary does.
+    // CODE.1 035C's fixed cancel/back rectangle.
     if (row >= 0x114 && row < 0x18E &&
         column >= 0x10C && column < 0x13C) {
         result = 0;
     }
 
-    (void)state; // Mode 0..5 shares the same six-slot geometry at 035C.
+    // Modes 3 and 5 apply a second special rectangle after cancel. In mode 3
+    // this is "finish class choices"; in mode 5 it advances portrait pages.
+    if ((state == CharacterCreationState::ClassChoice ||
+         state == CharacterCreationState::PortraitChoice) &&
+        row >= 0x114 && row < 0x18E &&
+        column >= 0x0D7 && column < 0x107) {
+        result = 0xFF;
+    }
+
     return result;
+}
+
+std::array<bool, 6> CharacterCreationFlow::available_choices() const noexcept {
+    std::array<bool, 6> out{};
+
+    switch (state_) {
+        case CharacterCreationState::ActorChoice:
+        case CharacterCreationState::SexChoice:
+            out[2] = true;
+            out[3] = true;
+            return out;
+
+        case CharacterCreationState::RaceChoice:
+            out.fill(true);
+            return out;
+
+        case CharacterCreationState::ClassChoice:
+            if (draft_.race < 0 || draft_.race >= 6) return out;
+            if (class_stage_ == 0) {
+                for (int i = 0; i < 6; ++i) {
+                    out[i] = kFirstClass[draft_.race][i];
+                }
+                return out;
+            }
+            if (class_stage_ == 1 &&
+                draft_.classes[0] >= 0 &&
+                draft_.classes[0] < 6) {
+                for (int i = 0; i < 6; ++i) {
+                    out[i] =
+                        kSecondClass[draft_.race][draft_.classes[0]][i];
+                }
+                return out;
+            }
+            if (class_stage_ == 2) {
+                return third_class(
+                    draft_.race,
+                    draft_.classes[0],
+                    draft_.classes[1]);
+            }
+            return out;
+
+        case CharacterCreationState::OptionChoice:
+            return option_availability(draft_);
+
+        case CharacterCreationState::PortraitChoice: {
+            out.fill(true);
+            for (int i = 0; i < 6; ++i) {
+                if (portrait_page_ + i == 17) out[i] = false;
+            }
+            return out;
+        }
+
+        case CharacterCreationState::StatsReview:
+            return out;
+    }
+
+    return out;
 }
 
 bool CharacterCreationFlow::apply_event(int event) {
@@ -47,10 +221,8 @@ bool CharacterCreationFlow::apply_event(int event) {
                 return true;
             }
             if (event == 3 || event == 4) {
+                draft_ = {};
                 draft_.actor = event - 3;
-                draft_.sex = -1;
-                draft_.race = -1;
-                race_committed_ = false;
                 state_ = CharacterCreationState::SexChoice;
                 return true;
             }
@@ -64,7 +236,6 @@ bool CharacterCreationFlow::apply_event(int event) {
             }
             if (event == 3 || event == 4) {
                 draft_.sex = event - 3;
-                draft_.race = -1;
                 state_ = CharacterCreationState::RaceChoice;
                 return true;
             }
@@ -78,14 +249,94 @@ bool CharacterCreationFlow::apply_event(int event) {
             }
             if (event >= 1 && event <= 6) {
                 draft_.race = event - 1;
-                race_committed_ = true;
-                // CODE.1 advances 04D0 here. The following controller state is
-                // outside this current input slice, so expose the commit without
-                // fabricating the next state.
+                draft_.classes = {{-1, -1, -1}};
+                draft_.option = -1;
+                draft_.face = -1;
+                class_stage_ = 0;
+                state_ = CharacterCreationState::ClassChoice;
                 return true;
             }
             return false;
+
+        case CharacterCreationState::ClassChoice: {
+            if (event == 0) {
+                if (class_stage_ == 0) {
+                    draft_.classes = {{-1, -1, -1}};
+                    state_ = CharacterCreationState::RaceChoice;
+                } else {
+                    // CODE.1 clears all three class bytes and restarts stage 0.
+                    draft_.classes = {{-1, -1, -1}};
+                    class_stage_ = 0;
+                }
+                return true;
+            }
+
+            if (event == 0xFF) {
+                if (class_stage_ == 0) return false;
+                state_ = CharacterCreationState::OptionChoice;
+                return true;
+            }
+
+            if (event < 1 || event > 6) return false;
+            const auto available = available_choices();
+            if (!available[static_cast<std::size_t>(event - 1)]) return false;
+
+            draft_.classes[static_cast<std::size_t>(class_stage_)] = event - 1;
+            ++class_stage_;
+
+            if (class_stage_ >= 3) {
+                state_ = CharacterCreationState::OptionChoice;
+                return true;
+            }
+
+            const auto next = available_choices();
+            if (std::none_of(next.begin(), next.end(), [](bool v) { return v; })) {
+                state_ = CharacterCreationState::OptionChoice;
+            }
+            return true;
+        }
+
+        case CharacterCreationState::OptionChoice:
+            if (event == 0) {
+                draft_.option = -1;
+                class_stage_ = 0;
+                draft_.classes = {{-1, -1, -1}};
+                state_ = CharacterCreationState::ClassChoice;
+                return true;
+            }
+            if (event >= 1 && event <= 6) {
+                const auto available = available_choices();
+                if (!available[static_cast<std::size_t>(event - 1)]) return false;
+                draft_.option = event - 1;
+                portrait_page_ = 0;
+                state_ = CharacterCreationState::PortraitChoice;
+                return true;
+            }
+            return false;
+
+        case CharacterCreationState::PortraitChoice:
+            if (event == 0) {
+                draft_.face = -1;
+                state_ = CharacterCreationState::OptionChoice;
+                return true;
+            }
+            if (event == 0xFF) {
+                portrait_page_ = (portrait_page_ + 6) % 18;
+                return true;
+            }
+            if (event >= 1 && event <= 6) {
+                const auto available = available_choices();
+                if (!available[static_cast<std::size_t>(event - 1)]) return false;
+                draft_.face = portrait_page_ + event - 1;
+                state_ = CharacterCreationState::StatsReview;
+                return true;
+            }
+            return false;
+
+        case CharacterCreationState::StatsReview:
+            return false;
     }
+
     return false;
 }
 
