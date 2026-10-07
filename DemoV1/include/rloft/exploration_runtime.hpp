@@ -13,6 +13,7 @@
 #include "rloft/npc_scene.hpp"
 #include "rloft/loose_item_scene.hpp"
 #include "rloft/object_catalog.hpp"
+#include "rloft/original_random.hpp"
 #include "rloft/scene_source_banks.hpp"
 #include "rloft/world_scene_record.hpp"
 #include "rloft/world_scene_selection.hpp"
@@ -60,6 +61,9 @@ public:
     // Activates the mutable CODE.2 world/inventory layer for the currently
     // loaded level. Archive NPC hit points require the caller to supply the
     // faithful game dice path; direct-save records ignore that callback.
+    void initialize_gameplay_state(
+        const GameSource& source);
+
     void initialize_gameplay_state(
         const GameSource& source,
         const LevelWorldStateCodec::DiceRoller& roll);
@@ -110,6 +114,7 @@ private:
     ObjectCatalog object_catalog_{};
     SceneSourceBanks scene_source_banks_{};
     std::optional<ResArchive> scene_shape_archive_;
+    OriginalRandom original_random_{};
     LevelWorldState world_{};
     InventoryRuntimeState inventory_{};
 };
