@@ -20,6 +20,7 @@ import runtime_paths
 import support_dumper
 import tooltips
 import title_skin
+import window_chrome
 
 
 BG = "#16090b"
@@ -133,6 +134,9 @@ class RavenloftExtractorGui(tk.Tk):
         self._wrap_labels: list[ttk.Label] = []
         self._skin_photo: ImageTk.PhotoImage | None = None
         self._skin_job: str | None = None
+        self._header_photo: ImageTk.PhotoImage | None = None
+        self._header_job: str | None = None
+        self._window_chrome: window_chrome.FramelessWindow | None = None
         self._tooltips: list[object] = []
 
         self._build_styles()
@@ -303,6 +307,8 @@ class RavenloftExtractorGui(tk.Tk):
         self._resize_wraps_for_width(width)
         self._fit_listboxes_to_height(height)
         self._schedule_skin()
+        self._schedule_header()
+        self._sync_maximize_button()
 
     def _fit_listboxes_to_height(self, window_height: int) -> None:
         if window_height >= 900:
@@ -334,9 +340,12 @@ class RavenloftExtractorGui(tk.Tk):
                     pass
 
         self._apply_chrome_insets()
+        if hasattr(self, "header_canvas"):
+            self.header_canvas.configure(height=max(78, round(104 * scale)))
         self._resize_wraps_for_width(max(1, self.winfo_width()))
         self._fit_listboxes_to_height(max(1, self.winfo_height()))
         self._schedule_skin()
+        self._schedule_header()
 
     def _set_user_zoom(self, value: float) -> None:
         value = max(MIN_USER_ZOOM, min(MAX_USER_ZOOM, value))
@@ -356,9 +365,11 @@ class RavenloftExtractorGui(tk.Tk):
         self._set_user_zoom(1.0)
 
     def _apply_chrome_insets(self) -> None:
-        side, top, bottom = title_skin.chrome_insets(self._ui_scale)
-        if hasattr(self, "header"):
-            self.header.grid_configure(padx=(side, side), pady=(top, 0))
+        side, _top, bottom = title_skin.chrome_insets(self._ui_scale)
+        if hasattr(self, "titlebar"):
+            self.titlebar.grid_configure(padx=(side, side))
+        if hasattr(self, "header_canvas"):
+            self.header_canvas.grid_configure(padx=(side, side))
         if hasattr(self, "body"):
             self.body.grid_configure(padx=(side, side))
         if hasattr(self, "footer"):
@@ -381,12 +392,43 @@ class RavenloftExtractorGui(tk.Tk):
         self.skin_canvas.delete("all")
         self.skin_canvas.create_image(0, 0, anchor="nw", image=self._skin_photo)
 
+    def _schedule_header(self) -> None:
+        if self._header_job:
+            try:
+                self.after_cancel(self._header_job)
+            except tk.TclError:
+                pass
+        self._header_job = self.after(35, self._render_header)
+
+    def _render_header(self) -> None:
+        self._header_job = None
+        if not hasattr(self, "header_canvas"):
+            return
+        width = max(1, self.header_canvas.winfo_width())
+        height = max(1, int(float(self.header_canvas.cget("height"))))
+        image = title_skin.render_header(width, height, self._ui_scale)
+        self._header_photo = ImageTk.PhotoImage(image)
+        self.header_canvas.delete("all")
+        self.header_canvas.create_image(0, 0, anchor="nw", image=self._header_photo)
+
+    def _toggle_maximize(self) -> None:
+        if self._window_chrome is None:
+            return
+        self._window_chrome.toggle_maximize()
+        self.after(30, self._sync_maximize_button)
+
+    def _sync_maximize_button(self) -> None:
+        if not hasattr(self, "maximize_button") or self._window_chrome is None:
+            return
+        self.maximize_button.configure(
+            text="❐" if self._window_chrome.is_maximized() else "□"
+        )
+
     def _build_ui(self) -> None:
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
+        self.rowconfigure(2, weight=1)
 
-        # Full-window original title-screen skin.  It is created first so all
-        # interactive widgets naturally stack above it.
+        # The skin canvas is the application's actual decorative frame.
         self.skin_canvas = tk.Canvas(
             self,
             background=BG,
@@ -395,17 +437,30 @@ class RavenloftExtractorGui(tk.Tk):
         )
         self.skin_canvas.place(x=0, y=0, relwidth=1, relheight=1)
 
-        self.header = ttk.Frame(self, padding=(16, 8))
-        self.header.grid(row=0, column=0, sticky="ew")
-        self._padding_widgets.append((self.header, (16, 8)))
-        self.header.columnconfigure(0, weight=1)
-        ttk.Label(
-            self.header,
+        # Custom non-client title bar. The stock Windows title bar is removed
+        # after these controls are created.
+        self.titlebar = tk.Frame(
+            self,
+            background="#210d10",
+            height=34,
+            borderwidth=0,
+            highlightthickness=0,
+        )
+        self.titlebar.grid(row=0, column=0, sticky="ew")
+        self.titlebar.grid_propagate(False)
+        self.titlebar.columnconfigure(1, weight=1)
+
+        self.titlebar_title = tk.Label(
+            self.titlebar,
             text="Ravenloft Asset Extraction Suite",
-            style="Title.TLabel",
-        ).grid(row=0, column=0, sticky="w")
-        zoom = ttk.Frame(self.header)
-        zoom.grid(row=0, column=1, sticky="e")
+            background="#210d10",
+            foreground=GOLD,
+            font=self._font_heading,
+        )
+        self.titlebar_title.grid(row=0, column=0, sticky="w", padx=(10, 6))
+
+        zoom = ttk.Frame(self.titlebar)
+        zoom.grid(row=0, column=2, sticky="e", padx=(4, 8))
         ttk.Label(zoom, text="UI size").pack(side="left", padx=(0, 6))
         ttk.Button(zoom, text="−", width=3, command=self._zoom_out).pack(side="left")
         ttk.Button(
@@ -416,8 +471,64 @@ class RavenloftExtractorGui(tk.Tk):
         ).pack(side="left", padx=4)
         ttk.Button(zoom, text="+", width=3, command=self._zoom_in).pack(side="left")
 
+        chrome_buttons = tk.Frame(self.titlebar, background="#210d10")
+        chrome_buttons.grid(row=0, column=3, sticky="e", padx=(0, 6))
+        self.minimize_button = tk.Button(
+            chrome_buttons,
+            text="—",
+            command=lambda: self._window_chrome and self._window_chrome.minimize(),
+            background="#35161a",
+            foreground=GOLD,
+            activebackground="#5a2025",
+            activeforeground="#fff3d0",
+            relief="flat",
+            borderwidth=1,
+            width=4,
+            font=self._font_ui,
+        )
+        self.minimize_button.pack(side="left", padx=(0, 2))
+        self.maximize_button = tk.Button(
+            chrome_buttons,
+            text="□",
+            command=self._toggle_maximize,
+            background="#35161a",
+            foreground=GOLD,
+            activebackground="#5a2025",
+            activeforeground="#fff3d0",
+            relief="flat",
+            borderwidth=1,
+            width=4,
+            font=self._font_ui,
+        )
+        self.maximize_button.pack(side="left", padx=2)
+        self.close_button = tk.Button(
+            chrome_buttons,
+            text="×",
+            command=lambda: self._window_chrome.close() if self._window_chrome else self.destroy(),
+            background="#5a171d",
+            foreground="#f0dfc3",
+            activebackground="#8a2029",
+            activeforeground="#ffffff",
+            relief="flat",
+            borderwidth=1,
+            width=4,
+            font=self._font_ui,
+        )
+        self.close_button.pack(side="left", padx=(2, 0))
+
+        # Ravenloft crest/banner, distinct from the Strahd's Possession menu
+        # plaque used elsewhere in the original title screen.
+        self.header_canvas = tk.Canvas(
+            self,
+            height=max(78, round(104 * self._ui_scale)),
+            background=BG,
+            highlightthickness=0,
+            borderwidth=0,
+        )
+        self.header_canvas.grid(row=1, column=0, sticky="ew")
+
         self.body = ttk.Frame(self, padding=(14, 8, 14, 8))
-        self.body.grid(row=1, column=0, sticky="nsew")
+        self.body.grid(row=2, column=0, sticky="nsew")
         self._padding_widgets.append((self.body, (14, 8, 14, 8)))
         self.body.columnconfigure(0, weight=1)
         self.body.rowconfigure(1, weight=1)
@@ -443,13 +554,20 @@ class RavenloftExtractorGui(tk.Tk):
         self._build_all_tab()
 
         self.footer = ttk.Frame(self, padding=(14, 0, 14, 12))
-        self.footer.grid(row=2, column=0, sticky="ew")
+        self.footer.grid(row=3, column=0, sticky="ew")
         self._padding_widgets.append((self.footer, (14, 0, 14, 12)))
         self.footer.columnconfigure(0, weight=1)
         ttk.Progressbar(self.footer, variable=self.progress_value, maximum=100).grid(row=0, column=0, sticky="ew")
         ttk.Label(self.footer, textvariable=self.status, style="Subtle.TLabel").grid(row=1, column=0, sticky="ew", pady=(6, 0))
+
         self._apply_chrome_insets()
         self.after(10, self._schedule_skin)
+        self.after(10, self._schedule_header)
+
+        self._window_chrome = window_chrome.FramelessWindow(self, border_color="#5e5c59")
+        self._window_chrome.bind_drag(self.titlebar)
+        self._window_chrome.bind_drag(self.titlebar_title)
+        self.after(30, self._sync_maximize_button)
 
     def _new_tab(self, title: str) -> ttk.Frame:
         tab = ttk.Frame(self.notebook, padding=14)
