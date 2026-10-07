@@ -35,6 +35,7 @@ void ExplorationRuntime::initialize_gameplay_state(
     const LevelWorldStateCodec::DiceRoller& roll) {
     npc_catalog_ = NpcCatalog::load(source);
     object_catalog_ = ObjectCatalog::load(source);
+    scene_source_banks_ = SceneSourceBanks::load(source);
     world_ = LevelWorldStateCodec::build(
         session_.level,
         npc_catalog_,
@@ -119,13 +120,46 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
             OptionsMenuModel::render_threshold(
                 defaults.distancing(),
                 session_.level.render_threshold_floor);
-        out.npc_records =
+        auto npc_records =
             NpcSceneModel::build(
                 world_,
                 session_,
                 npc_catalog_,
                 renderer_tables_,
+                scene_source_banks_,
                 render_threshold);
+        auto loose_records =
+            LooseItemSceneModel::build(
+                world_,
+                session_,
+                object_catalog_,
+                renderer_tables_,
+                scene_source_banks_,
+                render_threshold);
+
+        out.world_scene_records.reserve(
+            npc_records.size() +
+            loose_records.size());
+        out.world_scene_records.insert(
+            out.world_scene_records.end(),
+            npc_records.begin(),
+            npc_records.end());
+
+        // CODE.2 emits class-1 placed objects between NPCs and family-C.
+        // That family is not yet promoted to the live scene model; retain the
+        // exact relative order of the integrated class-0 and class-2 records.
+        out.world_scene_records.insert(
+            out.world_scene_records.end(),
+            loose_records.begin(),
+            loose_records.end());
+
+        if (out.world_scene_records.size() >
+            NpcSceneModel::kMaxSceneRecords) {
+            out.world_scene_records.resize(
+                NpcSceneModel::kMaxSceneRecords);
+        }
+        WorldSceneOrderModel::assign_render_order(
+            out.world_scene_records);
     }
 
     out.sweep_runs =
