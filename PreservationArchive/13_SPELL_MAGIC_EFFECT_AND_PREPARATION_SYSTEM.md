@@ -889,3 +889,624 @@ For an active effect with a positive expiry deadline:
 [Effect flags](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/EFFECT_FLAGS.md)
 
 Not every effect uses this ordinary lifecycle; the second half of this chapter documents special removal, global counters, temporary hand effects, and transient world effects.
+
+
+## 36. Primary effects have multiple lifetime classes
+
+The 26-bit subsystem does not imply one uniform timer model.
+
+The supplied executable demonstrates at least these lifetime classes:
+
+```text
+ordinary timed
+    bit + positive expiry
+    common expiration handler
+
+attack-broken
+    Invisibility 10' Radius
+    Invisibility to Undead
+
+attack-consumed
+    Negative Plane Protection
+
+one-shot spell modifier
+    Fortify
+
+equipment-derived
+    Shield of Lightning Protection
+
+party-synchronized
+    Prayer
+
+shared-global-counter-backed
+    True Seeing
+    Detect Undead
+    Detect Magic
+    Wand of Enemy Detection
+
+timed + auxiliary quantity
+    Armor
+    Stoneskin
+    Aid
+    Draw Upon Holy Might
+    Potion of Giant Strength
+```
+
+[Effect flags](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/EFFECT_FLAGS.md) [Primary effect catalogue](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md)
+
+A native magic layer may expose common interfaces, but compatibility behavior must retain these different removal and cleanup rules.
+
+## 37. Attacking breaks party-wide Invisibility 10' Radius
+
+Player attack pre-handler logical `0xE578` executes before the attack's hit test.
+
+It walks all four party-character records. For each record with:
+
+```text
+primary effect bit 5
+Invisibility 10' Radius
+```
+
+it:
+
+```text
+clear bit 5
+mark that character display dirty
+```
+
+No ordinary positive expiry slot is cleared in this branch because this producer/lifecycle does not depend on the standard timer path.
+
+[Effect flags](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/EFFECT_FLAGS.md) [Combat chapter](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/PreservationArchive/12_COMBAT_ATTACK_DAMAGE_SAVES_AND_PROGRESSION.md)
+
+Thus one attack by one party member breaks the radius invisibility state across the party.
+
+## 38. The attacker separately loses Invisibility to Undead
+
+The same pre-attack helper then examines the acting character.
+
+If primary effect 9 is active:
+
+```text
+Invisibility to Undead
+```
+
+CODE.2:
+
+```text
+zeros effect_expiry[9]
+clears effect bit 9
+marks acting character display dirty
+```
+
+[Effect flags](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/EFFECT_FLAGS.md)
+
+This removal occurs before whether the attack succeeds is known.
+
+Therefore:
+
+```text
+attack command
+    |
+    +-- clear party effect 5
+    +-- clear attacker's effect 9
+    |
+    v
+target/hit resolution
+```
+
+is the compatibility ordering.
+
+## 39. Negative Plane Protection is consumed by qualifying undead/drain attacks
+
+Primary effect 14:
+
+```text
+Negative Plane Protection
+```
+
+has a special combat-side lifecycle.
+
+The NPC attack family tests:
+
+- NPC undead classification;
+- NPC level-drain capability;
+- NPC Strength-drain capability;
+- the target character's effect-14 state.
+
+When the protection intercepts a qualifying drain/undead path, the ordinary drain outcome is suppressed and a local “protection consumed” state is retained until after the damage phase.
+
+The consumption tail then:
+
+```text
+effect_expiry[14] = 0
+clear primary effect bit 14
+run the encoded protection-consumption presentation/effect path
+```
+
+[Primary effect catalogue](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md) [Combat chapter](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/PreservationArchive/12_COMBAT_ATTACK_DAMAGE_SAVES_AND_PROGRESSION.md)
+
+It should therefore be modeled as a special one-hit/one-event protection state rather than forced through only the ordinary expiration sweep.
+
+## 40. Fortify is a one-shot cure modifier
+
+Primary effect 15:
+
+```text
+Fortify
+```
+
+is tested by the cure handlers.
+
+Without Fortify, those handlers use their ordinary generated/random healing quantity.
+
+With Fortify active, they substitute exact encoded maximum values:
+
+```text
+Cure Light Wounds       8
+Cure Serious Wounds    16
+Cure Critical Wounds   27
+```
+
+and clear Fortify immediately.
+
+[Primary effect catalogue](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md)
+
+This is direct executable behavior. The archive does not need to infer the tabletop dice formula to preserve the result.
+
+## 41. Prayer is synchronized across the party
+
+Primary effect 21:
+
+```text
+Prayer
+```
+
+is installed through a party-wide producer path.
+
+Its expiration cleanup does not behave like four completely unrelated per-character timers. The handler clears corresponding Prayer state across the party.
+
+[Effect flags](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/EFFECT_FLAGS.md)
+
+A native implementation may represent this as a party-scoped source effect with per-character legacy bits, but its legacy serializer must preserve the bits/timers exactly.
+
+## 42. Shared detection/vision counters are SAVE-global state
+
+Four primary effects also update shared counters outside the character record:
+
+```text
+effect 17 True Seeing
+    SAVE prefix +0x66
+    DGROUP 0xFD08
+    uint32 shared state
+
+effect 18 Detect Undead
+    SAVE prefix +0x62
+    DGROUP 0xF03C
+    uint16 shared state
+
+effect 20 Detect Magic
+    SAVE prefix +0x6A
+    DGROUP 0x6DAE
+    uint16 shared state
+
+effect 25 Wand of Enemy Detection
+    SAVE prefix +0x64
+    DGROUP 0xF03E
+    uint16 shared state
+```
+
+[Global SAVE state](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/GLOBAL_STATE.md) [Effect flags](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/EFFECT_FLAGS.md)
+
+Producers increment/establish these shared states and expiration cleanup decrements them.
+
+This allows multiple character/item effects to contribute to one global renderer/detection mode without reducing the persistent character bitsets to one global boolean.
+
+## 43. Detect Undead and undead classification are intentionally separate
+
+When the shared Detect Undead counter `0xF03C` is active, first-person presentation code resolves NPC definitions and checks:
+
+```text
+behavior_flags & 0x00000001
+    detect_undead_effect_exclusion
+```
+
+A creature carrying that bit is excluded from the Detect Undead marker/display path.
+
+This is separate from:
+
+```text
+behavior_flags_3A & 0x20
+    undead_classification
+```
+
+which Turn Undead uses. [NPC detection/turning](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/NPCS.DAT/DETECTION_TURNING_FLAGS.md)
+
+A native model must not collapse the two into one `is_undead` predicate.
+
+## 44. Detect Magic changes item presentation through shared state
+
+When shared magic-reveal state `0x6DAE` is nonzero, independent item presentation paths reveal magical state using the same global condition.
+
+OBJECTS still retains the actual static magic/enchantment information:
+
+```text
+intrinsic_magic_marker
+enchantment_bonus
+```
+
+while the shared effect state controls whether the UI/render path exposes it. [OBJECTS category semantics](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/OBJECTS.DAT/CATEGORY_SEMANTICS.md)
+
+This is a presentation-state interaction, not mutation of the item definitions.
+
+## 45. Shield of Lightning Protection is equipment-derived magic state
+
+Primary effect 22 is tied to equipped OBJECTS ID 103:
+
+```text
+SHIELD OF LIGHTNING PROTECTION
+```
+
+Equipment refresh code sets the bit when the qualifying shield is present and removes the state when it is absent. [Primary effect catalogue](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md)
+
+It is therefore not an ordinary timed cast effect despite sharing the same serialized primary-effect word.
+
+Compatibility reconstruction should derive/reconcile it during equipment-state updates rather than scheduling it as a generic spell timer.
+
+## 46. Armor carries a protection/durability quantity but does not absorb HP damage
+
+Primary effect 0:
+
+```text
+Armor
+```
+
+uses character:
+
+```text
++0x117  Armor protection/durability quantity
+```
+
+Incoming damage subtracts the full incoming amount from this quantity and clears Armor when it reaches zero or below.
+
+Crucially, that subtraction does **not** reduce the local damage amount before subsequent true absorption and HP processing.
+
+[Post-inventory state](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/POST_INVENTORY_STATE.md) [Combat chapter](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/PreservationArchive/12_COMBAT_ATTACK_DAMAGE_SAVES_AND_PROGRESSION.md)
+
+This distinction was corrected during the combat preservation pass.
+
+## 47. Aid is a true temporary protection pool
+
+Primary effect 11:
+
+```text
+Aid
+```
+
+uses:
+
+```text
++0x1EA  Aid temporary-hit-point/protection pool
+```
+
+Incoming damage consumes this pool before remaining damage reaches ordinary HP.
+
+Expiration clears the pool as part of effect-11 cleanup. [Character tail](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/CHARACTER_TAIL.md)
+
+This is mechanically different from Armor's durability quantity.
+
+## 48. Draw Upon Holy Might stores reversible deltas
+
+Primary effects:
+
+```text
+12  Draw Upon Holy Might - STR
+13  Draw Upon Holy Might - DEX
+```
+
+store their applied reversible values at:
+
+```text
++0x123  Strength delta
++0x127  Dexterity delta / low-byte state
+```
+
+Expiration explicitly reverses those saved quantities rather than blindly recalculating the character from base attributes. [Effect flags](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/EFFECT_FLAGS.md)
+
+Those auxiliaries are therefore part of the effect's persistent identity.
+
+## 49. Potion of Giant Strength similarly stores a reversible modifier
+
+Primary effect 23 is item-derived:
+
+```text
+POTION OF GIANT STRENGTH
+```
+
+and retains its reversible modifier at:
+
+```text
++0x1BE
+```
+
+Expiration passes the stored quantity through the Strength-adjustment reversal helper. [Primary effect catalogue](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/PRIMARY_EFFECT_CATALOGUE.md)
+
+This is another case where “effect active” is not fully represented by the bit/timer pair alone.
+
+## 50. Stoneskin is an attack-interception effect with auxiliary state
+
+Primary effect 6:
+
+```text
+Stoneskin
+```
+
+stores additional state at:
+
+```text
++0x1F2  accumulated/remaining Stoneskin state
+```
+
+[Character tail](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/CHARACTER_TAIL.md)
+
+Combat ordering is exact:
+
+1. NPC raw natural 20/1 handling occurs;
+2. effective AC is calculated;
+3. if Stoneskin is active, the Stoneskin consumption/removal helper is invoked;
+4. the attack returns as a miss/intercept;
+5. ordinary Blur/Invisibility/Bless comparison does not occur for that intercepted attack.
+
+[Combat chapter](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/PreservationArchive/12_COMBAT_ATTACK_DAMAGE_SAVES_AND_PROGRESSION.md)
+
+The helper also modifies the auxiliary Stoneskin state. A faithful magic layer should keep the primary bit/timer and the auxiliary count/state coupled.
+
+## 51. Temporary hand spells form a separate nine-effect subsystem
+
+Character state:
+
+```text
++0x1C2  uint32 temporary_hand_effect_bits
++0x1C6  uint32 temporary_hand_effect_expiry[9]
+```
+
+maps indexes to pseudo-item IDs:
+
+```text
+0  0x7E  CHILL TOUCH
+1  0x7F  VAMPIRIC TOUCH
+2  0x80  CLAWS OF THE UMBER HULK
+3  0x81  CAUSE LIGHT WOUNDS
+4  0x82  CAUSE SERIOUS WOUNDS
+5  0x83  CAUSE CRITICAL WOUNDS
+6  0x84  HARM
+7  0x85  FLAME BLADE
+8  0x86  LICH TOUCH
+```
+
+[Character tail](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/CHARACTER_TAIL.md)
+
+These are not entries in the 26-bit primary-effect system.
+
+## 52. Temporary hand spells materialize as protected pseudo-items
+
+When active, the corresponding temporary object occupies a hand slot.
+
+Normal inventory swapping explicitly refuses to move object IDs `0x7E..0x86`. [Object/inventory chapter](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/PreservationArchive/10_OBJECT_INVENTORY_EQUIPMENT_AND_CONTAINERS.md)
+
+The magic system therefore uses the ordinary combat-hand interface while protecting those spell-generated pseudo-items from ordinary inventory manipulation.
+
+This creates the path:
+
+```text
+spell/action
+    |
+    v
+temporary hand-effect bit + expiry
+    |
+    v
+temporary OBJECTS pseudo-item in hand
+    |
+    v
+ordinary player attack machinery
+    |
+    v
+spell-specific hit/damage behavior
+```
+
+## 53. Temporary-hand expiration removes the hand object
+
+Maintenance walks all nine temporary-hand expiry slots.
+
+On maturation it:
+
+1. clears the matching temporary-effect bit;
+2. clears the corresponding deadline;
+3. calls the removal helper;
+4. removes the matching pseudo-object from either hand if still equipped.
+
+[Character tail](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/CHARACTER_TAIL.md)
+
+Thus the timer and the actual hand inventory state must remain synchronized.
+
+## 54. Vampiric Touch couples offense to later defense
+
+Temporary pseudo-item:
+
+```text
+0x7F  VAMPIRIC TOUCH
+```
+
+uses a dedicated combat case.
+
+After a successful hit, the produced damage amount is stored into:
+
+```text
+character +0x113
+```
+
+the true Vampiric Touch absorption pool. [Combat chapter](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/PreservationArchive/12_COMBAT_ATTACK_DAMAGE_SAVES_AND_PROGRESSION.md)
+
+Later incoming damage consumes that pool after Aid but before ordinary HP.
+
+The spell therefore links:
+
+```text
+successful offensive hand effect
+    -> persistent defensive absorption quantity
+```
+
+rather than ending when its attack animation completes.
+
+## 55. Class-3 transient effects are a third magic representation
+
+Many visible/projectile/area spell effects use the SAVE-global transient array rather than character primary bits or temporary hand bits.
+
+Runtime ownership:
+
+```text
+count  DGROUP 0xC038
+array  runtime 0x248EC
+limit  150 records
+size   0x16 bytes each
+```
+
+[Global SAVE state](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+These records are persisted by SAVE.DAT so moving/active spell effects can survive a save/load.
+
+## 56. Transient-effect record
+
+```text
++0x00  int32  coord_B_16_16
++0x04  int32  coord_A_16_16
++0x08  int32  heading_angle
++0x0C  uint16 map_cell_index
++0x0E  uint16 effect_type
++0x10  uint16 auxiliary_10
++0x12  uint16 type_specific_aux_12
++0x14  uint16 packed_state
+```
+
+[Global SAVE state](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+This is a live effect instance, not a spell definition and not an OBJECTS/NPCS record.
+
+## 57. Class-3 effect type is not spell dispatch ID
+
+Certified type producers are:
+
+```text
+type 0
+    Fireball
+    Wand of Fireballs
+    LEVELS opcode-3 effect
+
+type 1
+    Lightning Bolt
+    LEVELS opcode-3 effect
+
+type 2
+    Ice Knife
+
+type 3
+    Cone of Cold
+    Wand of Frost
+
+type 4
+    Flame Arrow
+
+type 5
+    no direct supplied-path producer identified
+
+type 6
+    Magic Missile
+    Wand of Magic Missiles
+
+type 7
+    no direct supplied-path producer identified
+
+type 8
+    Burning Hands
+    Agannazar's Scorcher presentation/effect family
+
+type 9
+    Ice Storm
+    Otiluke's Freezing Sphere presentation/effect family
+
+type 10
+    Flame Strike
+
+type 11
+    Holy Symbol of Ravenkind area-effect path
+```
+
+[Global SAVE state](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+The same type can have multiple spell/item/script producers.
+
+## 58. Class-3 effects use INIT descriptors and RES3 source class 3
+
+The scene emitter resolves:
+
+```text
+descriptor =
+    class3_descriptor_table
+  + effect_type * 7
+```
+
+and derives the class-3 bank-local shape.
+
+The final RES3 translation is:
+
+```text
+absolute_RES3_id =
+    4158
+  + class3_bank_local_shape
+```
+
+[Global SAVE state](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/GLOBAL_STATE.md) [RES3 source banks](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/TYPE7_SOURCE_BANKS.md)
+
+Thus spell dispatch identity and renderer effect identity are separate namespaces.
+
+## 59. Class-3 packed state carries direction, animation, and source context
+
+Certified subfields of record `+0x14` are:
+
+```text
+bits 1..2   movement/collision state; exact labels unresolved
+bits 3..5   direction sector 0..7
+bits 6..8   animation/variant frame 0..7
+bits11..13  source-actor/context code 0..7
+other bits  preserve raw
+```
+
+Normal spell/action callers place party-character indexes `0..3` into the source/context field.
+
+LEVELS event opcode 3 passes literal `4`, proving it is broader than an unconditional party-character index. [Global SAVE state](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+## 60. The transient constructor deliberately performs partial initialization
+
+The common constructor does not clear all `0x16` bytes.
+
+It writes principal fields and modifies selected packed-state masks.
+
+For type 8 it initializes `+0x12` to a pseudo-random value in:
+
+```text
+20..29
+```
+
+and maintenance decrements/removes the record when it reaches zero.
+
+For other types, `+0x12` is not universally initialized by the common constructor. [Global SAVE state](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+A faithful runtime/serializer must not “clean up” unknown auxiliaries globally.
+
+## 61. Transient-effect removal preserves ordered-array behavior
+
+Removal compacts later `0x16` records and decrements the global count.
+
+The array therefore has ordered compact semantics analogous to family-C world items.
+
+A native engine can use handles internally, but compatibility state traces should reproduce visible/order-sensitive iteration where relevant.
+
