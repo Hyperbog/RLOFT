@@ -61,7 +61,10 @@ public:
         WNDCLASSW wc{};
         wc.lpfnWndProc = &Host::window_proc;
         wc.hInstance = instance;
-        wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
+        // CODE.2/CODE.1 render their own RES0 cursor into the framebuffer.
+        // Leave the client cursor unmanaged by the window class so the host
+        // never paints a second Windows arrow over the game.
+        wc.hCursor = nullptr;
         wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
         wc.lpszClassName = L"RavenloftDemoV1Window";
         RegisterClassW(&wc);
@@ -88,20 +91,20 @@ public:
         return true;
     }
 
+    void set_game_cursor(rloft::Type1Raster cursor) {
+        if (cursor.count <= 0 || cursor.width <= 0 || cursor.height <= 0) {
+            throw std::runtime_error(
+                "Ravenloft cursor resource has invalid dimensions");
+        }
+        game_cursor_ = std::move(cursor);
+        refresh_pointer_overlay();
+    }
+
     void present(const rloft::IndexedFramebuffer& framebuffer,
                  const rloft::Palette6& palette) {
-        const auto& src = framebuffer.pixels();
-        bgra_.resize(src.size());
-
-        for (std::size_t i = 0; i < src.size(); ++i) {
-            const auto index = static_cast<std::size_t>(src[i]) * 3U;
-            const auto r = expand6(palette.rgb[index]);
-            const auto g = expand6(palette.rgb[index + 1U]);
-            const auto b = expand6(palette.rgb[index + 2U]);
-            bgra_[i] = static_cast<std::uint32_t>(b) |
-                       (static_cast<std::uint32_t>(g) << 8U) |
-                       (static_cast<std::uint32_t>(r) << 16U);
-        }
+        base_indices_ = framebuffer.pixels();
+        current_palette_ = palette;
+        rebuild_bgra();
 
         InvalidateRect(hwnd_, nullptr, FALSE);
         UpdateWindow(hwnd_);
@@ -146,15 +149,22 @@ public:
         if (!enabled) {
             selection_ = -1;
             clicked_.reset();
+            if (!character_mode_) character_pointer_.reset();
+        } else {
+            update_pointer_from_system_cursor();
         }
+        refresh_pointer_overlay();
     }
 
     void set_character_mode(bool enabled) {
         character_mode_ = enabled;
         if (!enabled) {
             character_click_.reset();
-            character_pointer_.reset();
+            if (!menu_mode_) character_pointer_.reset();
+        } else {
+            update_pointer_from_system_cursor();
         }
+        refresh_pointer_overlay();
     }
 
     int selection() const noexcept { return selection_; }
@@ -198,6 +208,82 @@ private:
     static std::uint8_t expand6(std::uint8_t value) {
         return static_cast<std::uint8_t>(
             (static_cast<unsigned>(value) * 255U + 31U) / 63U);
+    }
+
+    std::uint32_t palette_bgra(std::uint8_t value) const {
+        const auto index = static_cast<std::size_t>(value) * 3U;
+        const auto r = expand6(current_palette_.rgb[index]);
+        const auto g = expand6(current_palette_.rgb[index + 1U]);
+        const auto b = expand6(current_palette_.rgb[index + 2U]);
+        return static_cast<std::uint32_t>(b) |
+               (static_cast<std::uint32_t>(g) << 8U) |
+               (static_cast<std::uint32_t>(r) << 16U);
+    }
+
+    void rebuild_bgra() {
+        bgra_.resize(base_indices_.size());
+        for (std::size_t i = 0; i < base_indices_.size(); ++i) {
+            bgra_[i] = palette_bgra(base_indices_[i]);
+        }
+
+        if (!(menu_mode_ || character_mode_) ||
+            !character_pointer_ ||
+            !game_cursor_ ||
+            game_cursor_->count <= 0) {
+            return;
+        }
+
+        const auto& cursor = *game_cursor_;
+        const auto frame_stride =
+            static_cast<std::size_t>(cursor.width) * cursor.height;
+        const auto frame_at = 0U * frame_stride;
+        for (int sy = 0; sy < cursor.height; ++sy) {
+            const int row = character_pointer_->row + sy;
+            if (row < 0 || row >= 400) continue;
+            for (int sx = 0; sx < cursor.width; ++sx) {
+                const int column = character_pointer_->column + sx;
+                if (column < 0 || column >= 320) continue;
+
+                const auto value = cursor.pixels[
+                    frame_at +
+                    static_cast<std::size_t>(sy) * cursor.width +
+                    static_cast<std::size_t>(sx)];
+                if (cursor.transparent_index != 0xFF &&
+                    value == cursor.transparent_index) {
+                    continue;
+                }
+
+                const auto at =
+                    static_cast<std::size_t>(row) * 320U +
+                    static_cast<std::size_t>(column);
+                if (at < bgra_.size()) {
+                    bgra_[at] = palette_bgra(value);
+                }
+            }
+        }
+    }
+
+    void refresh_pointer_overlay() {
+        if (base_indices_.empty()) return;
+        rebuild_bgra();
+        InvalidateRect(hwnd_, nullptr, FALSE);
+        UpdateWindow(hwnd_);
+    }
+
+    void update_pointer_from_system_cursor() {
+        if (!hwnd_) return;
+        POINT point{};
+        if (!GetCursorPos(&point) || !ScreenToClient(hwnd_, &point)) {
+            return;
+        }
+
+        const int row = native_y_from_client(point.y);
+        const int column = native_x_from_client(point.x);
+        if (row >= 0 && column >= 0) {
+            character_pointer_ = NativePoint{row, column};
+        } else {
+            character_pointer_.reset();
+        }
     }
 
     RECT render_rect() const {
@@ -270,6 +356,13 @@ private:
                 paint();
                 return 0;
 
+            case WM_SETCURSOR:
+                if (LOWORD(lparam) == HTCLIENT) {
+                    SetCursor(nullptr);
+                    return TRUE;
+                }
+                break;
+
             case WM_ERASEBKGND:
                 return 1;
 
@@ -304,7 +397,9 @@ private:
                     selection_ =
                         rloft::StartupPresenter::menu_selection_from_y(y);
                 }
-                if (character_mode_) {
+
+                if (menu_mode_ || character_mode_) {
+                    const auto old_pointer = character_pointer_;
                     const int row =
                         native_y_from_client(GET_Y_LPARAM(lparam));
                     const int column =
@@ -313,6 +408,15 @@ private:
                         character_pointer_ = NativePoint{row, column};
                     } else {
                         character_pointer_.reset();
+                    }
+
+                    if ((!old_pointer && character_pointer_) ||
+                        (old_pointer && !character_pointer_) ||
+                        (old_pointer && character_pointer_ &&
+                         (old_pointer->row != character_pointer_->row ||
+                          old_pointer->column !=
+                              character_pointer_->column))) {
+                        refresh_pointer_overlay();
                     }
 
                     TRACKMOUSEEVENT leave{};
@@ -325,8 +429,9 @@ private:
             }
 
             case WM_MOUSELEAVE:
-                if (character_mode_) {
+                if (menu_mode_ || character_mode_) {
                     character_pointer_.reset();
+                    refresh_pointer_overlay();
                 }
                 return 0;
 
@@ -379,7 +484,10 @@ private:
     }
 
     HWND hwnd_{};
+    std::vector<std::uint8_t> base_indices_;
+    rloft::Palette6 current_palette_{};
     std::vector<std::uint32_t> bgra_;
+    std::optional<rloft::Type1Raster> game_cursor_;
     bool quit_{false};
     bool escape_pressed_{false};
     bool menu_mode_{false};
