@@ -84,6 +84,11 @@ public:
         const std::string& name,
         int frame_index);
 
+    [[nodiscard]] static int stats_editor_transition_frame_count(
+        bool entering) noexcept {
+        return transition_07e4_frame_count(6, 9) +
+               (entering ? 0 : 1);
+    }
     void stats_editor_transition_frame(
         const CharacterCreationFlow& flow,
         const CharacterStatsModel& stats,
