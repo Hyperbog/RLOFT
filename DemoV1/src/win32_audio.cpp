@@ -20,7 +20,8 @@ namespace rloft {
 struct Win32AudioPlayer::Impl {
     struct Voice {
         std::thread thread;
-        std::shared_ptr<std::atomic_bool> stop;
+        std::shared_ptr<std::atomic_bool> done;
+        std::shared_ptr<std::atomic_bool> stop_requested;
     };
 
     std::mutex mutex;
@@ -30,7 +31,7 @@ struct Win32AudioPlayer::Impl {
         std::lock_guard<std::mutex> lock(mutex);
         auto it = voices.begin();
         while (it != voices.end()) {
-            if ((*it)->stop->load(std::memory_order_acquire)) {
+            if ((*it)->done->load(std::memory_order_acquire)) {
                 if ((*it)->thread.joinable()) {
                     (*it)->thread.join();
                 }
@@ -45,11 +46,13 @@ struct Win32AudioPlayer::Impl {
         reap();
 
         auto done = std::make_shared<std::atomic_bool>(false);
+        auto stop_requested = std::make_shared<std::atomic_bool>(false);
         auto voice = std::make_unique<Voice>();
-        voice->stop = done;
+        voice->done = done;
+        voice->stop_requested = stop_requested;
 
         voice->thread = std::thread(
-            [sound = std::move(sound), done]() mutable {
+            [sound = std::move(sound), done, stop_requested]() mutable {
                 HANDLE event = CreateEventW(nullptr, FALSE, FALSE, nullptr);
                 if (!event) {
                     done->store(true, std::memory_order_release);
@@ -90,8 +93,13 @@ struct Win32AudioPlayer::Impl {
                         wave, &header, sizeof(header)) == MMSYSERR_NOERROR) {
                     if (waveOutWrite(
                             wave, &header, sizeof(header)) == MMSYSERR_NOERROR) {
-                        while ((header.dwFlags & WHDR_DONE) == 0) {
-                            WaitForSingleObject(event, 50);
+                        while ((header.dwFlags & WHDR_DONE) == 0 &&
+                               !stop_requested->load(std::memory_order_acquire)) {
+                            WaitForSingleObject(event, 20);
+                        }
+                        if (stop_requested->load(std::memory_order_acquire) &&
+                            (header.dwFlags & WHDR_DONE) == 0) {
+                            waveOutReset(wave);
                         }
                     }
                     waveOutUnprepareHeader(wave, &header, sizeof(header));
@@ -113,9 +121,9 @@ struct Win32AudioPlayer::Impl {
             owned.swap(voices);
         }
 
-        // These one-shot voices normally finish quickly. The audio subsystem
-        // is intentionally not reset from another thread while waveOutWrite
-        // owns its buffer; join preserves buffer lifetime cleanly.
+        for (auto& voice : owned) {
+            voice->stop_requested->store(true, std::memory_order_release);
+        }
         for (auto& voice : owned) {
             if (voice->thread.joinable()) {
                 voice->thread.join();
