@@ -1057,6 +1057,24 @@ int run(HINSTANCE instance) {
                     return true;
                 };
 
+                auto animate_stats_editor = [&](bool entering) {
+                    const int frames =
+                        rloft::CharacterCreationPresenter::
+                            stats_editor_transition_frame_count(
+                                entering);
+                    for (int frame = 0; frame < frames; ++frame) {
+                        character_presenter.stats_editor_transition_frame(
+                            character_flow,
+                            character_stats,
+                            entering,
+                            frame);
+                        if (!present_character_animation_frame()) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
                 const auto name_font = assets.res0_font(0);
                 auto name_width = [&](const std::string& value) {
                     int width = 0;
@@ -1275,6 +1293,9 @@ int run(HINSTANCE instance) {
                             stats_ready) {
                             if (stats_editor) {
                                 if (event == 0) {
+                                    if (!animate_stats_editor(false)) {
+                                        return 0;
+                                    }
                                     stats_editor = false;
                                     selected_stat = -1;
                                     render_character();
@@ -1340,6 +1361,9 @@ int run(HINSTANCE instance) {
                                     }
                                     render_character();
                                 } else if (event == 9) {
+                                    if (!animate_stats_editor(true)) {
+                                        return 0;
+                                    }
                                     stats_editor = true;
                                     selected_stat = -1;
                                     render_character();
