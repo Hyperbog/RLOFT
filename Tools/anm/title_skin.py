@@ -14,9 +14,10 @@ from __future__ import annotations
 import base64
 from functools import lru_cache
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 
 import res_assets
+import runtime_paths
 
 
 _MENU_ENTRY_B64 = (
@@ -91,92 +92,138 @@ def _scaled_crop(panel: Image.Image, box: tuple[int, int, int, int], scale: floa
     return crop.resize(size, Image.Resampling.NEAREST)
 
 
-def chrome_insets(scale: float = 1.0) -> tuple[int, int, int]:
-    return (
-        max(38, round(46 * scale)),
-        max(66, round(76 * scale)),
-        max(36, round(48 * scale)),
-    )
+@lru_cache(maxsize=1)
+def frame_main() -> Image.Image:
+    path = runtime_paths.bundled_path("assets/strahd_frame_main.png")
+    if path is None:
+        raise RuntimeError("baked Ravenloft frame asset is missing")
+    with Image.open(path) as source:
+        return source.convert("RGB")
 
 
-def render_window(width: int, height: int, ui_scale: float = 1.0) -> Image.Image:
+@lru_cache(maxsize=1)
+def ravenloft_logo() -> Image.Image:
+    path = runtime_paths.bundled_path("assets/strahd_title_logo.png")
+    if path is None:
+        raise RuntimeError("baked Ravenloft title asset is missing")
+    with Image.open(path) as source:
+        original = source.copy()
+    if original.mode == "P":
+        background_index = original.getpixel((0, 0))
+        rgba = original.convert("RGBA")
+        alpha = original.point(
+            lambda value: 0 if value == background_index else 255,
+            mode="L",
+        )
+        rgba.putalpha(alpha)
+        return rgba
+
+    rgba = original.convert("RGBA")
+    background = rgba.getpixel((0, 0))[:3]
+    pixels = list(rgba.getdata())
+    cleaned = [
+        (r, g, b, 0 if (r, g, b) == background else a)
+        for r, g, b, a in pixels
+    ]
+    rgba.putdata(cleaned)
+    return rgba
+
+
+def render_header(width: int, height: int, ui_scale: float = 1.0) -> Image.Image:
     width = max(1, int(width))
     height = max(1, int(height))
-    scale = max(0.70, min(1.45, float(ui_scale)))
-
     texture = red_texture()
-    out = Image.new("RGB", (width, height), "#170e0d")
+    out = Image.new("RGB", (width, height), "#210d10")
     for y in range(0, height, texture.height):
         for x in range(0, width, texture.width):
-            tile = texture.crop((0, 0, min(texture.width, width - x), min(texture.height, height - y)))
+            tile = texture.crop(
+                (0, 0, min(texture.width, width - x), min(texture.height, height - y))
+            )
             out.paste(tile, (x, y))
-    out = Image.blend(out, Image.new("RGB", out.size, "#140b0b"), 0.34)
+    out = Image.blend(out, Image.new("RGB", out.size, "#16090b"), 0.20)
 
-    panel = menu_panel()
-    left = _scaled_crop(panel, SIDE_LEFT, scale)
-    right = _scaled_crop(panel, SIDE_RIGHT, scale)
-    tl = _scaled_crop(panel, TOP_LEFT, scale)
-    tr = _scaled_crop(panel, TOP_RIGHT, scale)
-    bl = _scaled_crop(panel, BOTTOM_LEFT, scale)
-    br = _scaled_crop(panel, BOTTOM_RIGHT, scale)
-    bc = _scaled_crop(panel, BOTTOM_CENTER, scale)
-    title = _scaled_crop(panel, TITLE_CROP, scale)
+    logo = ravenloft_logo()
+    target_h = max(44, min(height - 8, round(92 * max(0.75, min(1.25, ui_scale)))))
+    scale = min(target_h / logo.height, max(1, width - 40) / logo.width)
+    draw_size = (
+        max(1, round(logo.width * scale)),
+        max(1, round(logo.height * scale)),
+    )
+    logo = logo.resize(draw_size, Image.Resampling.NEAREST)
+    out.paste(
+        logo,
+        ((width - logo.width) // 2, (height - logo.height) // 2),
+        logo,
+    )
 
     draw = ImageDraw.Draw(out)
-    rail = (105, 103, 98)
-    side_x = max(0, round(8 * scale))
-    right_x = max(0, width - right.width - side_x)
-    top_y = max(0, round(8 * scale))
-    bottom_y = max(0, height - bl.height - round(8 * scale))
-
-    rail_y = top_y + max(2, round(15 * scale))
-    draw.rectangle((side_x + tl.width - 8, rail_y, max(side_x + tl.width, right_x + 8), rail_y + max(3, round(5 * scale))), fill=rail)
-    rail_bottom = max(0, height - round(18 * scale))
-    draw.rectangle((side_x + bl.width - 8, rail_bottom, max(side_x + bl.width, right_x + 8), rail_bottom + max(3, round(5 * scale))), fill=rail)
-
-    def paste(img: Image.Image, xy: tuple[int, int]) -> None:
-        out.paste(img, xy, img if img.mode == "RGBA" else None)
-
-    paste(tl, (side_x, top_y))
-    paste(tr, (right_x, top_y))
-    paste(bl, (side_x, bottom_y))
-    paste(br, (max(0, width - br.width - side_x), bottom_y))
-
-    # Draw clean vertical stone rails, then place exactly one of the original
-    # side ornaments on each edge. Repeating the side crop created the
-    # "columns through the background" artifact in earlier builds.
-    rail_w = max(4, round(7 * scale))
-    left_rail_x = side_x + max(2, round(9 * scale))
-    right_rail_x = max(0, width - side_x - max(2, round(9 * scale)) - rail_w)
-    rail_top = top_y + max(18, round(24 * scale))
-    rail_bottom = max(rail_top, bottom_y + max(6, round(12 * scale)))
-    draw.rectangle(
-        (left_rail_x, rail_top, left_rail_x + rail_w, rail_bottom),
-        fill=rail,
-    )
-    draw.rectangle(
-        (right_rail_x, rail_top, right_rail_x + rail_w, rail_bottom),
-        fill=rail,
-    )
-
-    ornament_y = max(
-        rail_top,
-        min(
-            rail_bottom - left.height,
-            (height - left.height) // 2,
-        ),
-    )
-    paste(left, (side_x, ornament_y))
-    paste(right, (right_x, ornament_y))
-
-    # Bottom finial and Strahd's Possession plaque use the exact original
-    # title-screen pixels and are always drawn last so they sit above rails.
-    paste(
-        bc,
-        (
-            (width - bc.width) // 2,
-            max(0, height - bc.height - round(3 * scale)),
-        ),
-    )
-    paste(title, ((width - title.width) // 2, max(0, round(4 * scale))))
+    rail = (103, 101, 97)
+    draw.line((0, height - 2, width, height - 2), fill=rail, width=2)
     return out
+
+
+def chrome_insets(scale: float = 1.0) -> tuple[int, int, int]:
+    return (
+        max(26, round(34 * scale)),
+        0,
+        max(24, round(30 * scale)),
+    )
+
+def render_window(width: int, height: int, ui_scale: float = 1.0) -> Image.Image:
+    """Render clean outer Ravenloft chrome around the application.
+
+    Only corner ornaments are used. Long edges are simple stone rails, avoiding
+    the repeated side-eye/column pattern that made the previous skin noisy.
+    """
+    width = max(1, int(width))
+    height = max(1, int(height))
+    scale = max(0.72, min(1.35, float(ui_scale)))
+
+    texture = red_texture()
+    out = Image.new("RGB", (width, height), "#17090b")
+    for y in range(0, height, texture.height):
+        for x in range(0, width, texture.width):
+            tile = texture.crop(
+                (0, 0, min(texture.width, width - x), min(texture.height, height - y))
+            )
+            out.paste(tile, (x, y))
+    out = Image.blend(out, Image.new("RGB", out.size, "#13090a"), 0.22)
+
+    source = frame_main()
+    corner_src = 58
+    tl = source.crop((0, 0, corner_src, corner_src))
+    tr = source.crop((source.width - corner_src, 0, source.width, corner_src))
+    bl = ImageOps.flip(tl)
+    br = ImageOps.flip(tr)
+
+    corner = max(38, round(corner_src * scale))
+    def resize(img: Image.Image) -> Image.Image:
+        return img.resize((corner, corner), Image.Resampling.NEAREST)
+
+    tl, tr, bl, br = map(resize, (tl, tr, bl, br))
+    margin = max(2, round(3 * scale))
+    rail = (94, 92, 89)
+    dark = (28, 18, 19)
+    rail_w = max(3, round(5 * scale))
+
+    draw = ImageDraw.Draw(out)
+    x0 = margin + corner - max(5, round(7 * scale))
+    x1 = width - margin - corner + max(5, round(7 * scale))
+    y0 = margin + max(12, round(15 * scale))
+    y1 = height - margin - max(12, round(15 * scale))
+
+    if x1 > x0:
+        draw.rectangle((x0, y0, x1, y0 + rail_w), fill=dark)
+        draw.rectangle((x0, y0 + 1, x1, y0 + max(1, rail_w - 2)), fill=rail)
+        draw.rectangle((x0, y1 - rail_w, x1, y1), fill=dark)
+        draw.rectangle((x0, y1 - rail_w + 1, x1, y1 - 1), fill=rail)
+    if y1 > y0:
+        draw.rectangle((margin + max(10, round(13 * scale)), y0, margin + max(10, round(13 * scale)) + rail_w, y1), fill=dark)
+        draw.rectangle((width - margin - max(10, round(13 * scale)) - rail_w, y0, width - margin - max(10, round(13 * scale)), y1), fill=dark)
+
+    out.paste(tl, (margin, margin))
+    out.paste(tr, (max(0, width - margin - tr.width), margin))
+    out.paste(bl, (margin, max(0, height - margin - bl.height)))
+    out.paste(br, (max(0, width - margin - br.width), max(0, height - margin - br.height)))
+    return out
+
