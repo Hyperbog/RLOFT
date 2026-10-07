@@ -99,6 +99,72 @@ std::array<bool, 6> third_class(
     return out;
 }
 
+void normalize_classes(CharacterDraft& draft) noexcept {
+    auto& p = draft.classes;
+    int key = p[0];
+
+    if (p[1] == -1) {
+        key = p[0];
+    } else if (p[2] == -1) {
+        const int a = p[0];
+        const int b = p[1];
+
+        if (a == 0) {
+            if (b == 5) key = 6;
+            if (b == 3) key = 7;
+            if (b == 4) key = 8;
+        }
+        if (a == 5) {
+            if (b == 0) key = 6;
+            if (b == 3) key = 9;
+            if (b == 4) key = 12;
+        }
+        if (a == 2) key = 10;
+        if (a == 3) {
+            if (b == 0) key = 7;
+            if (b == 5) key = 9;
+            if (b == 4) key = 11;
+            if (b == 2) key = 10;
+        }
+        if (a == 4) {
+            if (b == 0) key = 8;
+            if (b == 3) key = 11;
+            if (b == 5) key = 12;
+        }
+    } else {
+        key = (p[0] == 5 || p[1] == 5 || p[2] == 5) ? 13 : 14;
+    }
+
+    switch (key - 6) {
+        case 0:
+        case 1:
+        case 2:
+            if (p[0] != 0) std::swap(p[0], p[1]);
+            break;
+
+        case 3:
+        case 4:
+        case 5:
+            if (p[0] != 3) std::swap(p[0], p[1]);
+            break;
+
+        case 6:
+            if (p[0] != 4) std::swap(p[0], p[1]);
+            break;
+
+        case 7:
+            p = {{0, 4, 5}};
+            break;
+
+        case 8:
+            p = {{0, 4, 3}};
+            break;
+
+        default:
+            break;
+    }
+}
+
 std::array<bool, 6> option_availability(
     const CharacterDraft& draft) noexcept {
     std::array<bool, 6> out{{true, true, true, true, true, true}};
@@ -273,6 +339,7 @@ bool CharacterCreationFlow::apply_event(int event) {
 
             if (event == 0xFF) {
                 if (class_stage_ == 0) return false;
+                normalize_classes(draft_);
                 state_ = CharacterCreationState::OptionChoice;
                 return true;
             }
@@ -285,12 +352,14 @@ bool CharacterCreationFlow::apply_event(int event) {
             ++class_stage_;
 
             if (class_stage_ >= 3) {
+                normalize_classes(draft_);
                 state_ = CharacterCreationState::OptionChoice;
                 return true;
             }
 
             const auto next = available_choices();
             if (std::none_of(next.begin(), next.end(), [](bool v) { return v; })) {
+                normalize_classes(draft_);
                 state_ = CharacterCreationState::OptionChoice;
             }
             return true;
