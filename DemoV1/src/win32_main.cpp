@@ -821,10 +821,14 @@ int run(HINSTANCE instance) {
 
                 rloft::CharacterCreationFlow character_flow;
                 rloft::CharacterStatsModel character_stats(assets);
+                std::array<std::optional<rloft::CharacterStatsModel>, 2>
+                    actor_stats{};
                 bool stats_ready = false;
                 bool stats_editor = false;
                 bool final_decision = false;
                 bool name_entry = false;
+                bool existing_actor_decision = false;
+                int existing_actor = -1;
                 int selected_stat = -1;
                 std::string pending_name;
                 bool name_cursor_on = true;
@@ -842,6 +846,18 @@ int run(HINSTANCE instance) {
                         character_presenter.final_decision_screen(
                             character_flow,
                             character_stats);
+                    } else if (existing_actor_decision) {
+                        if (existing_actor < 0 || existing_actor >= 2 ||
+                            !actor_stats[
+                                static_cast<std::size_t>(existing_actor)]) {
+                            throw std::logic_error(
+                                "existing actor decision lacks saved stats");
+                        }
+                        character_presenter.existing_actor_decision_screen(
+                            character_flow,
+                            existing_actor,
+                            *actor_stats[
+                                static_cast<std::size_t>(existing_actor)]);
                     } else {
                         character_presenter.screen(
                             character_flow,
@@ -883,6 +899,15 @@ int run(HINSTANCE instance) {
 
                         if (const auto key = host.consume_key_event()) {
                             if (*key == 0x0D) {
+                                const int actor =
+                                    character_flow.draft().actor;
+                                if (actor < 0 || actor >= 2) {
+                                    throw std::logic_error(
+                                        "name entry lost selected actor");
+                                }
+                                actor_stats[
+                                    static_cast<std::size_t>(actor)] =
+                                    character_stats;
                                 character_flow.finish_current_actor(
                                     true,
                                     pending_name);
@@ -968,6 +993,41 @@ int run(HINSTANCE instance) {
                             std::chrono::milliseconds(1));
                         continue;
                     }
+
+                    if (existing_actor_decision) {
+                        if (const auto point =
+                                host.consume_character_click()) {
+                            const int event =
+                                rloft::CharacterCreationFlow::hit_test(
+                                    rloft::CharacterCreationState::ActorChoice,
+                                    point->row,
+                                    point->column);
+
+                            if (event == 3) {
+                                character_flow.resolve_existing_actor(
+                                    existing_actor,
+                                    true);
+                                existing_actor_decision = false;
+                                existing_actor = -1;
+                                render_character();
+                            } else if (event == 4) {
+                                character_flow.resolve_existing_actor(
+                                    existing_actor,
+                                    false);
+                                actor_stats[
+                                    static_cast<std::size_t>(
+                                        existing_actor)].reset();
+                                existing_actor_decision = false;
+                                existing_actor = -1;
+                                render_character();
+                            }
+                        }
+
+                        std::this_thread::sleep_for(
+                            std::chrono::milliseconds(1));
+                        continue;
+                    }
+
                     if (const auto point = host.consume_character_click()) {
                         const auto state = character_flow.state();
                         const int event =
@@ -1033,6 +1093,23 @@ int run(HINSTANCE instance) {
                                 }
                             }
                             continue;
+                        }
+
+                        if (state ==
+                                rloft::CharacterCreationState::ActorChoice &&
+                            (event == 3 || event == 4)) {
+                            const int actor = event - 3;
+                            if (character_flow.actor_present(actor)) {
+                                if (!actor_stats[
+                                        static_cast<std::size_t>(actor)]) {
+                                    throw std::logic_error(
+                                        "populated actor lacks retained stats");
+                                }
+                                existing_actor_decision = true;
+                                existing_actor = actor;
+                                render_character();
+                                continue;
+                            }
                         }
 
                         if (event >= 0 &&
