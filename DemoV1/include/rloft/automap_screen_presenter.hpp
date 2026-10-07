@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rloft/automap_annotation_presenter.hpp"
 #include "rloft/automap_screen_state.hpp"
 #include "rloft/automap_viewport_presenter.hpp"
 #include "rloft/renderer_tables.hpp"
@@ -14,6 +15,7 @@ public:
         const RavenloftBootAssets& assets)
         : assets_(assets),
           viewport_(assets),
+          annotations_(assets),
           res0_base_(assets.init_u16(0x00)) {}
 
     void draw(
@@ -33,6 +35,7 @@ private:
 
     const RavenloftBootAssets& assets_;
     AutomapViewportPresenter viewport_;
+    AutomapAnnotationPresenter annotations_;
     std::uint16_t res0_base_{};
 };
 
