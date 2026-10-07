@@ -57,8 +57,8 @@ physical 0x41CFA  push 0x218E0
 +0x131           class/casting capability selector/mask
 +0x132..+0x135   uint32 primary active-effect bits
 +0x136..+0x19D   uint32 primary_effect_expiry[26]
-+0x19E..+0x1A9   uint32 timed_slot_deadline[3]
-+0x1AA..+0x1B5   uint32 timed_slot_aux[3]
++0x19E..+0x1A9   uint32 combat_feedback_deadline[3]
++0x1AA..+0x1B5   uint32 combat_feedback_damage[3]
 +0x1B6..+0x1B9   Stone Giant Gauntlets displaced/effective Strength auxiliary
 +0x1BA..+0x1BD   serialized dword; no direct CODE.2 reference found
 +0x1BE..+0x1C1   reversible modifier for primary effect index 23
@@ -226,8 +226,8 @@ The item-known bits `0..20` correspond one-for-one to `item[0..20]` and move wit
 ```c
 uint32_t primary_effect_bits;       // +0x132
 uint32_t primary_effect_expiry[26]; // +0x136
-uint32_t timed_slot_deadline[3];    // +0x19E
-uint32_t timed_slot_aux[3];         // +0x1AA
+uint32_t combat_feedback_deadline[3]; // +0x19E
+uint32_t combat_feedback_damage[3];   // +0x1AA
 ```
 
 Primary effect bit `i` corresponds to expiry `i`; expiration resources map to `T[588]..T[613]`. The three paired timed slots are separate.
