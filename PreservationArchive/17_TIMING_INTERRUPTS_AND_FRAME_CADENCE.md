@@ -2,7 +2,7 @@
 
 ## 17 — Timing, Interrupt Scheduling, and Frame Cadence
 
-**Status:** FOUNDATION — original CODE.2 interrupt, tick and PIT mechanisms traced; live device-dependent cadence not yet certified  
+**Status:** ORIGINAL GAME TIMER AND AIL/32 VENDOR SOURCE CORROBORATED — runtime driver-dependent cadence remains OPEN  
 **Working branch:** `code1-decompilation`  
 **Frozen original-evidence baseline:** `373c7f10e6fc0f29c1e805125ef048150fcc7ba7`  
 **Evidence:** original `CODE.2` SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`; object-1 file start `0x3AF24`, size `0x3A852`. All addresses below are original **object-1 logical offsets** unless explicitly marked runtime data addresses.
@@ -128,7 +128,7 @@ period = 1000000u / frequency; // original: 0xF4240 / input
 
 A separate entry `36581` converts a different time scale by multiplying the argument by `10000` then dividing by `0x2E9C`; zero is replaced by the reserved `0xD68D` value. `361CE` chooses the **smallest nonempty interval** across slots, changes the PIT divisor only when this minimum differs from `[0x10362]`, and resets all accumulated per-slot counts on a change. `3619D` converts the chosen interval into the PIT low/high divisor specified in §6.
 
-The reciprocal `1000000/frequency` and reserved `0xD68D` are consistent with an intended microsecond-oriented interval scale and a conventional approximately 18.2-Hz old-timer callback. **That is a bounded interpretation of the arithmetic, not a measured cadence:** integer division, callback accumulation, PIT phase and audio-driver configuration can all affect observed timing. In particular, do not convert an ANM wait count into milliseconds by assuming it equals a newly programmed high-rate audio callback interval. The game-facing `0xF58C` counter only advances when its own handler `30708` runs.
+The original AIL/32 middleware source independently **names the frequency input in Hertz and period in microseconds**, and identifies `0xD68D` as the reserved BIOS-timer period. **This vendor-source identity is proved; the rate achieved at runtime is not yet measured:** integer division, callback accumulation, PIT phase and audio-driver configuration can all affect observed timing. In particular, do not convert an ANM wait count into milliseconds by assuming it equals a newly programmed high-rate audio callback interval. The game-facing `0xF58C` counter only advances when its own handler `30708` runs.
 
 ## 12. Gameplay timer consumers beyond cinematics
 
@@ -208,11 +208,67 @@ Regression fixtures must include: variable `SAVE` transient counts; preserving a
 
 **Direct verification this pass:** SHA-256 of original CODE.2 and 30 instruction anchors, plus fixture clock values and file length, passed. All test descriptions above remain regression specifications until instrumented playback/round-trip execution is run.
 
-## 19. Remaining unknowns
+## 19. AIL/32 original source closes the middleware timer identity
+
+The shipped CODE.2 timer manager is independently matched, field by field and instruction by instruction, to **John Miles / Miles Design AIL/32** timer code released as freeware source in 2000. The original-source-derived `ail32.asm` preserved by Wohlstand, commit [e3436176](https://github.com/Wohlstand/ail32-sandbox/blob/e343617606c281ee26e4890280d8d3956aa3ba41/ail32.asm), and the separately maintained [DJGPP adaptation at 10923180](https://github.com/volkertb/ail32-djgpp/blob/1092318093dd4daafc4a2475b602f220692a54bb/ail32.asm) use the same timer constants, names and control flow. These are two copies of a common vendor lineage, **not two independent original programs**. The shipped CODE.2 bytes are still authoritative for this build.
+
+| CODE.2 runtime address | Original AIL/32 source name | Meaning |
+|---|---|---|
+| `0x10270` | `active_timers` | Count of registered user timer callbacks |
+| `0x10272` | `timer_busy` | Interrupt reentry guard |
+| `0x10274` | `timer_callback[17]` | Function address by timer handle |
+| `0x102B8` | `timer_status[17]` | State 0 free, 1 stopped, 2 active |
+| `0x102DA` | `timer_elapsed[17]` | Accumulated timer scheduling units |
+| `0x1031E` | `timer_value[17]` | Callback period/limit per handle |
+| `0x10362` | `timer_period` | Fastest selected base period |
+| `0x10366/0x1036A` | `bios_cb` / `bios_cb_cs` | Previous protected-mode IRQ-8 vector |
+| `0x1037A` | `index_base[16]` | Registered driver procedure table |
+| `0x103BA` | `assigned_timer[16]` | Timer handle associated with each driver |
+| `0x103FA` | `driver_active[16]` | Driver installation flag |
+
+The vendor source names are **documented third-party middleware identities**, not guessed DreamForge engine variable names. Original code and reconstructed executable corroborate `3609B=init_DDA_arrays`, `360E8=hook_timer_process`, `35FC6=API_timer`, `361CE=program_timers`, `3632D=AIL_register_timer`, and `3654E=AIL_set_timer_frequency`.
+
+## 20. Driver service callback and installation order, now named
+
+The AIL/32 interface enumerates `AIL_DESC_DRVR=100 (0x64)`, `AIL_DET_DEV=101 (0x65)`, `AIL_INIT_DRVR=102 (0x66)`, `AIL_SERVE_DRVR=103 (0x67)`, and `AIL_SHUTDOWN_DRVR=104 (0x68)`. See pinned [vendor service constants](https://github.com/Wohlstand/ail32-sandbox/blob/e343617606c281ee26e4890280d8d3956aa3ba41/ail32.inc).
+
+The CODE.2 code at `366C5..36789` matches original vendor `AIL_init_driver`. It reads `drvr_desc.svc_rate` at descriptor offset `+0x20` and follows this precise branch:
+
+```text
+svc_rate == -1?                -> no periodic driver service
+AIL_SERVE_DRVR export absent?  -> no periodic driver service
+otherwise:
+  AIL_register_timer(exported_callback)
+  AIL_set_timer_frequency(timer_handle, svc_rate)
+AIL_INIT_DRVR(handle, IO, IRQ, DMA, DRQ)
+if registered: AIL_start_timer(timer_handle)
+```
+
+**Correction C-39:** callback registration and frequency assignment happen **before** the `0x66` initialization dispatch. The timer is moved to active state 2 **after** that dispatch. Earlier §10 wording could be read as though `0x66` installation occurs before registration; that interpretation is withdrawn. No configured driver name alone proves its actual `svc_rate`, whether it exposes `0x67`, or whether a particular hardware probe succeeds.
+
+## 21. Microseconds, Hertz and PIT conversion are vendor-documented
+
+The recovered source explicitly calls `AIL_set_timer_period` in **microseconds** and `AIL_set_timer_frequency` in **Hertz**, implementing `period_us = 1,000,000 / frequency_hz` using integer division. `set_PIT_period` documents the `8380` approximation as `0.83809532` microseconds per PIT input clock; for periods below **54,925 µs**, it computes `(period_us * 10000)/8380` with an extended multiply/divide. Periods of **54,925 µs or longer** select divisor zero, the original 16-bit PIT full-cycle encoding. Slot 16 is explicitly `BIOS_H`, with an initial period of 54,925 µs, intended to preserve the preexisting IRQ-8 service.
+
+This closes the **original middleware unit names and conversion purpose**. It does **not** prove that Ravenloft's own `0xF58C` ticks have precisely 54,925 µs between increments in every device configuration: that counter advances when `30708` is actually reached through the chained IRQ path.
+
+## 22. Faithful native timer and IRQ0 behavior
+
+A native timing layer should preserve: (a) independent raw IRQ and pausable gameplay counters, (b) the current tick anchor and unsigned deadline comparison, (c) callback handles 0–15 plus reserved 16, (d) free/stopped/running callback states, (e) the minimum-period change and accumulator resets, and (f) the old-vector chaining and teardown ordering. A port **may** replace physical PIT I/O with host scheduling when the observable tick/event sequence is maintained; a hardware-faithful option must additionally preserve divisor zero, the truncated PIT programming bytes and the original period conversion.
+
+Source-based edge case: `AIL_set_timer_frequency` performs an unguarded unsigned divide by the requested frequency. A zero `svc_rate` accompanied by an exported service routine would enter a divide-by-zero path; its reachability with any *supplied* sound driver remains unknown. Do not introduce that failure into the default native mixer unnecessarily, but record compatibility behavior before sanitizing legacy imports.
+
+## 23. Reproducible evidence and dynamic-certification gate
+
+This pass checked the locally supplied immutable CODE.2, extracted its exact object-1 extent, and compared **31 instruction anchors, 8 relative-call destinations, both CODE.2 SHA-256 identities, and 3 SAVE clock fixture values**. All final checks passed. These are static original-file checks, not executed DOS playback.
+
+A final *dynamic cadence* certificate would require: the exact shipped driver DLLs from the selected SOUND.CFG; each loaded driver's descriptor `svc_rate` and availability of function `0x67`; success/failure of `0x66` initialization; the installed interrupt-8 vector across startup/playback/shutdown; the divisor writes observed at port `0x40`; and timestamped `0xF58C` increments and frame waits. Without that trace, no universal FPS or seconds-per-cinematic-tick claim is warranted.
+
+## 24. Remaining unknowns
 
 The complete dynamic initialization order for all original audio drivers; timer scheduling under driver failure/reinitialization; platform-dependent ISR latency; precise physical elapsed time per cinematic tick; and behavior across wraparound at real runtime remain **OPEN**. Do not infer these solely from nominal IBM PC PIT constants or a modern emulator.
 
-**Next:** trace exact audiovisual callback activation for the supplied SOUND.CFG under controlled original execution, test the 14-deep pause stack and signed periodic-maintenance thresholds, and compare measured IRQ/PIT cadence with frame and ANM timelines. The underlying 16.16 world-time progression and rest acceleration are now statically cross-linked to the original SAVE layout.
+**Next:** inspect actual selected A32MT32.DLL/A32SBPDG.DLL service-rate descriptors, collect IRQ/PIT and frame trace under controlled original playback, and execute pause-stack and signed-threshold regression tests. Source-level AIL/32 timer names/units are now historically corroborated; effective Ravenloft frame cadence remains a dynamic test target.
 
 ## Source ledger
 
@@ -222,3 +278,7 @@ The complete dynamic initialization order for all original audio drivers; timer 
 - [Chapter 15 — audio driver boundary](15_AUDIO_MUSIC_SFX_AND_DRIVER_INTERFACE.md)
 - [Chapter 07 — UI/input](07_INPUT_UI_MENU_AND_INVENTORY_ARCHITECTURE.md)
 - [Runtime audio dependency audit](../Runtime/AUDIO_INTERFACE_DEPENDENCY_AUDIT.md)
+
+- [John Miles AIL/32 released-source lineage, pinned source](https://github.com/Wohlstand/ail32-sandbox/blob/e343617606c281ee26e4890280d8d3956aa3ba41/ail32.asm)
+- [AIL/32 driver procedure constants](https://github.com/Wohlstand/ail32-sandbox/blob/e343617606c281ee26e4890280d8d3956aa3ba41/ail32.inc)
+- [Second maintained AIL/32 source copy (not independent lineage)](https://github.com/volkertb/ail32-djgpp/blob/1092318093dd4daafc4a2475b602f220692a54bb/ail32.asm)
