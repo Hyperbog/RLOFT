@@ -971,6 +971,32 @@ int run(HINSTANCE instance) {
                     return true;
                 };
 
+                auto animate_existing_actor_decision = [&](
+                    const rloft::CharacterCreationFlow& before,
+                    const rloft::CharacterCreationFlow& after,
+                    int actor,
+                    const rloft::CharacterStatsModel& stats,
+                    bool entering) {
+                    const int frames =
+                        rloft::CharacterCreationPresenter::
+                            existing_actor_transition_frame_count(
+                                entering);
+                    for (int frame = 0; frame < frames; ++frame) {
+                        character_presenter.
+                            existing_actor_transition_frame(
+                                before,
+                                after,
+                                actor,
+                                stats,
+                                entering,
+                                frame);
+                        if (!present_character_animation_frame()) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
                 const auto name_font = assets.res0_font(0);
                 auto name_width = [&](const std::string& value) {
                     int width = 0;
@@ -1109,20 +1135,30 @@ int run(HINSTANCE instance) {
                                     point->row,
                                     point->column);
 
-                            if (event == 3) {
+                            if (event == 3 || event == 4) {
+                                const int actor = existing_actor;
+                                const auto before = character_flow;
                                 character_flow.resolve_existing_actor(
-                                    existing_actor,
-                                    true);
-                                existing_actor_decision = false;
-                                existing_actor = -1;
-                                render_character();
-                            } else if (event == 4) {
-                                character_flow.resolve_existing_actor(
-                                    existing_actor,
-                                    false);
-                                actor_stats[
-                                    static_cast<std::size_t>(
-                                        existing_actor)].reset();
+                                    actor,
+                                    event == 3);
+                                const auto after = character_flow;
+
+                                if (!animate_existing_actor_decision(
+                                        before,
+                                        after,
+                                        actor,
+                                        *actor_stats[
+                                            static_cast<std::size_t>(
+                                                actor)],
+                                        false)) {
+                                    return 0;
+                                }
+
+                                if (event == 4) {
+                                    actor_stats[
+                                        static_cast<std::size_t>(
+                                            actor)].reset();
+                                }
                                 existing_actor_decision = false;
                                 existing_actor = -1;
                                 render_character();
@@ -1246,6 +1282,18 @@ int run(HINSTANCE instance) {
                                         static_cast<std::size_t>(actor)]) {
                                     throw std::logic_error(
                                         "populated actor lacks retained stats");
+                                }
+                                const auto before =
+                                    character_flow;
+                                if (!animate_existing_actor_decision(
+                                        before,
+                                        before,
+                                        actor,
+                                        *actor_stats[
+                                            static_cast<std::size_t>(
+                                                actor)],
+                                        true)) {
+                                    return 0;
                                 }
                                 existing_actor_decision = true;
                                 existing_actor = actor;
