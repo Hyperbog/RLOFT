@@ -139,3 +139,80 @@ A separate direct producer sets Mage Light bit `0x00000002` and timer index 1, i
 ## Reconstruction rule
 
 Preserve all 26 timer dwords exactly, including inactive or unusual values. Cancellation and expiration must synchronize the relevant bit/timer only where the original does so and reproduce index-specific cleanup. Keep original T labels separate from normalized internal names so a faithful UI can reproduce the legacy wording exactly.
+
+## Directly closed special-removal paths
+
+A preservation-pass re-disassembly closed three previously broad/special lifecycle descriptions.
+
+### Invisibility 10' Radius and Invisibility to Undead break on attack
+
+Logical `0xE578`, called by the player attack path before hit resolution, performs two distinct removals.
+
+First it loops over all four active-party record positions. For each record whose primary-effect bit 5 is set:
+
+```text
+effect 5  Invisibility 10' Radius
+```
+
+it:
+
+- marks that character display dirty;
+- clears primary-effect bit 5.
+
+The helper does not zero an ordinary expiry slot because the producer path does not install one here.
+
+It then examines the **acting character**. If primary-effect bit 9 is set:
+
+```text
+effect 9  Invisibility to Undead
+```
+
+it:
+
+- zeros effect-expiry slot 9 at record `+0x15A`;
+- clears effect bit 9;
+- marks the character display dirty.
+
+Thus one physical attack action breaks the party-wide radius invisibility state across the party and separately breaks the attacker's Invisibility to Undead state.
+
+### Negative Plane Protection is consumed by qualifying undead/drain attacks
+
+In the ordinary NPC attack family, when a target character has effect bit 14:
+
+```text
+Negative Plane Protection
+```
+
+the executable recognizes qualifying undead/drain circumstances before the corresponding level/Strength-drain outcomes are allowed.
+
+The protected path sets a local protection-consumed marker instead of running the ordinary drain result. After the attack's damage phase, that marker causes CODE.2 to:
+
+- run the protection-consumption presentation/effect path;
+- zero effect-expiry slot 14 at record `+0x16E`;
+- clear primary-effect bit 14.
+
+The result is a one-hit/special-consumption lifecycle rather than a uniform ordinary positive-timer effect.
+
+### Fortify is a one-shot cure maximizer
+
+Cure handlers test primary-effect bit 15:
+
+```text
+Fortify
+```
+
+on the cure-source/caster-side character state.
+
+When inactive, the handlers use their ordinary random healing quantities.
+
+When active, the same handlers substitute fixed maximum values and clear Fortify immediately:
+
+```text
+Cure Light Wounds       ->  8
+Cure Serious Wounds     -> 16
+Cure Critical Wounds    -> 27
+```
+
+Fortify therefore belongs to a one-shot spell-modification lifecycle, not the common timed-expiration family.
+
+These direct paths tighten the earlier manual-correlated descriptions and should control native compatibility behavior.
