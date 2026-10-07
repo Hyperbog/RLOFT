@@ -83,4 +83,55 @@ The post-accounting executable audits record genuine **reconstruction fixes**: C
 
 **Direct fixture identity cross-check in this continuation:** CODE.1, CODE.2, OBJECTS.DAT, NPCS.DAT, SAVE.DAT, LEVELS.DAT and LEV022.DAT sizes and SHA-256 hashes match the certified project records; SAVE stores raw clock values `1899`, `0x000E0000` and `1735`; raw OBJECTS record 329 holds selector 62. Prior large-corpus/decompiler audits were **read**, not rerun in this continuation.
 
-**Next:** build the address-level Q/D/L/C/U census from all 17 subsystem chapters, add competing historical revision evidence where it exists, and verify each preservation recommendation against both the binary and source archive.
+**Next:** cross-audit launcher/shutdown, deferred resource error cases, remaining unknown-bit families and alternative-build evidence; prepare a canonical Q/D/L/C/U traceability index and close the chapter only after source contradictions are resolved.
+
+
+## 7. Expanded Q census — original executable behavior
+
+**Q-05 — Automap digit permutation.** CODE.2 `02A34` writes the hundreds digit, *ones* digit and *tens* digit into the three placeholders of `AUTO???`. Thus map ID `12` maps to `AUTO021`, not `AUTO012`; ID `22` deceptively yields ordinary-looking `AUTO022`. Preserve the exact conversion on legacy export and when locating existing generated automaps. [Automap chapter §41](06_AUTOMAP_NAVIGATION_AND_EXPORT.md).
+
+**Q-06 — Category-11 weapon signedness.** Both [creature behavior §53](11_NPC_CREATURE_AI_AND_LIVE_ACTOR_MODEL.md) and [combat §26](12_COMBAT_ATTACK_DAMAGE_SAVES_AND_PROGRESSION.md) trace a synthetic category 11 for enchanted weapons. CODE.2 zero-extends the enchantment byte but compares it by signed branch against sign-extended `-2`; with supplied nonnegative enchantments, NPC flag `0x00020000` forces the one-damage floor, while flag `0x00040000` does not independently reduce damage. Store the flags as distinct numerical bits; never normalize them into an invented magical immunity model.
+
+**Q-07 — Five-byte overwrite of a 50-byte save label.** For serializer argument `-1/0xFFFFFFFF`, the special `066E8` save path copies exactly five bytes from `TEMP` into an **existing** 50-byte label buffer, then writes the full 50-byte record. The remaining 45 bytes are not overwritten by that specific copy. Preserve the source-byte result in a compatibility serializer; do not label it a general-purpose safe `strncpy`. The special caller's historical intention remains unknown. [SAVE chapter §40](08_SAVE_PARTY_AND_PERSISTENCE_ARCHITECTURE.md).
+
+**Q-08 — Event-11 reserved selector values.** LEVELS event opcode `0x0B` interprets argument `0x0B`, `0x0C`, or `0x0D` as three fixed story routines (final Strahd, possession, Irmgarde). Other arguments enter the numbered external-interaction path. The selector is neither a uniform RES9 wordcode index nor an unconditional cinematic filename ID. [Event chapter §77](14_EVENT_WORDCODE_DIALOGUE_AND_STORY_STATE.md).
+
+**Q-09 — Short-write versus cancellation semantics.** SAVE writer `066E8` closes the file and reports failure on a short write, whereas the original menu's cancel paths can leave selected handles open. Preserve original failure/return behavior, but permit native host-handle cleanup when not game-observable. [SAVE chapter §§39–41](08_SAVE_PARTY_AND_PERSISTENCE_ARCHITECTURE.md).
+
+## 8. Expanded dormant/legacy census
+
+**D-07 — Five unexercised active wordcode instructions.** The active RES9 bank does not use opcodes `03` (set choice target), `04` (set choice text), `0B` (clear persistent flag), `0C` (toggle persistent flag), or `1C` (direct SFX), although the shipped VM dispatches all five. A faithful modder-compatible interpreter must implement these opcodes even though a replay of existing scripts would not cover them. [Wordcode chapter §50](14_EVENT_WORDCODE_DIALOGUE_AND_STORY_STATE.md).
+
+**L-06 — Physical VOC length disagreement.** `RES11:4877` and `RES12:430` contain identical Creative Voice data but declare `0x11669` bytes when only `0x01669` are physically present, a precise `0x10000` difference. They are the only two mismatches among 1,005 surveyed type-4 resources. Parsing tools must report the mismatch rather than quietly fixing the archive length. [Audio chapter §14](15_AUDIO_MUSIC_SFX_AND_DRIVER_INTERFACE.md).
+
+**L-07 — Legacy family-C object migration.** Compact family-C serialized ID `0x54` is remapped by the level loader to `0x58`, the current `ARROW OF SLAY UNDEAD`. The current OBJECTS definition at `0x54` is `STONE GIANT GAUNTLETS`. This is evidence of an authoring/resource-table revision, not license to substitute `0x54` globally; migration occurs at the precise legacy-load boundary. [Item chapter §64](10_OBJECT_INVENTORY_EQUIPMENT_AND_CONTAINERS.md).
+
+**L-08 — Legacy music bank is a distinct revision.** The original RES11 bank has **74** type-3 sequences in two 37-entry banks. Final RES5 has **98** in two 49-entry banks, with no complete legacy sequence byte-identical to a final entry. These are distinct serialized generations; the absence of exact byte matches does not prove their musical compositions differ. [Audio chapter §18](15_AUDIO_MUSIC_SFX_AND_DRIVER_INTERFACE.md).
+
+**L-09 — NPC behavior residuals are not padding.** All eight bits of NPC definition byte `+0x39` occur in the supplied NPC corpus; CODE.2 directly proves mask `0xE1` and leaves populated `0x1E` outside the currently named consumer set. The two main behavior bits `0x00020000` and `0x00040000` have the machine behavior described in Q-06 but lack trustworthy original design labels. Preserve both raw and interpreted views. [NPC chapter §§62–65](11_NPC_CREATURE_AI_AND_LIVE_ACTOR_MODEL.md).
+
+## 9. Reconstruction correction census and identifier disambiguation
+
+The `C-` labels in previous subsystem documents are **not a globally unique primary key**. Chapter 02's local `C-03` (CODE.1 extender identification), `C-04` (extender code-9 identity), `C-05` (Watcom enum incompatibility), and `C-06` (DPMI ownership header) collide numerically with later preservation-wide labels: Chapter 04 `C-03` (VGA dimensions), Chapter 05 `C-04` (LEV file form), and Chapter 06 `C-05/C-06` (automap model and export implementation).
+
+**Correction policy CP-18.1:** identify an earlier correction by **`(chapter number, C-label)`**, or by chapter/section title, never by `C-nn` alone. Do not renumber legacy headings silently: external commit references may already point to them. Chapter 17's `C-39` appears inside §20 as a correction paragraph rather than as a separate numbered heading; index it by `(17, §20, C-39)`.
+
+A corrected C++ reimplementation is not a discovery of a gameplay bug. Examples with exact audit provenance include CODE.1 `07E4` live-state handling, four-plane VGA mask rotation, and CODE.2 `000B8..001F9` removal of an invented call. The [CODE.1 audit](../Code1/FINAL_BINARY_AUDIT.md) and [CODE.2 semantic audit](../Code2/FINAL_SEMANTIC_AUDIT.md) establish those repairs; Chapter 18 records only their classification and traceability.
+
+## 10. Direct native compatibility tests to prioritize
+
+| Fixture / trigger | Observable or archival invariant |
+|---|---|
+| Automap ID 12 | Filename is `AUTO021`, not conventional `AUTO012` |
+| NPC flag `0x00020000` / `0x00040000` | Preserve category-11 branch order and original integer signedness |
+| Save label with special `-1` argument | Only the first five bytes overwritten before complete 50-byte write |
+| LEVELS event `0x0B`, args 11/12/13/other | Three fixed calls versus external numbered path |
+| RES9 VM unused instructions 03/04/0B/0C/1C | Dispatch all five independently; do not require shipped script coverage |
+| RES type-4 mismatches | Preserve declared/physical sizes and original bytes |
+| Family-C ID `0x54` | Remap only in the proved legacy loader |
+| RES11 and RES5 music | Keep independent banks and original indices, without deduplicating |
+| NPC `+0x39` and high flags | Preserve unknown populated bits byte-for-byte |
+
+This continuation rechecked **existing audited source documents and GitHub commit state**. It has **not rerun** every original executable, file decoder or gameplay test. Requirements in this table are pending executable/native regression tests, not falsely certified as such.
+
+**Next:** complete cross-component anomaly traceability for process shutdown, save errors, object IDs and audio/render cases; build a stable index for all bounded UNKNOWNs; then close Chapter 18 with a contradiction check before proceeding to release/build provenance.
