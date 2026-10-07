@@ -287,3 +287,14 @@ After the sequential audit had already reached object end, a deeper byte-level r
 The stream tail received the remaining call-graph/control-flow fixes. In `10EE0`, stream flag 40h forces the close path even when the stream address is below the caller threshold. `1106E` uses the encoded signed `JLE` comparison. `11100` now reaches its seek adjustment through `D85F` and its temporary-file removal through the address-distinct `11275` wrapper; `11275` itself forwards to `D8AA`. Finally, `11285` always obtains descriptor state through `103C3` and maps low-level write errors through the DOS/runtime error mapper instead of collapsing them directly to -1.
 
 This checkpoint supersedes the affected details in checkpoint 10n, in particular its earlier statement that `1083F` returned the relocated arena base. The stale post-10n `fix_semantic_audit_checkpoint10m.py` staging script was deliberately not executed because it mixed valid discoveries with replacements that had already been superseded by checkpoint 10n. Object classification and the sequential semantic frontier remain closed at **70,402 / 70,402 address bytes = 100.00%**, with **69,361 translated instructions + 1,041 proven non-code/data**, unresolved **0**.
+
+
+## Post-closure semantic hardening checkpoint 10p — 07E4 live-validation correction
+
+Live Demo v1 comparison against the supplied original `CODE.1` and a DOSBox capture exposed one remaining semantic normalization error in the already-closed character-card transition at `07E4`.
+
+The raw instruction stream at `0C45..0E29` keeps two values distinct during the new-card half of the flip. It first rewrites the local counter as `offset = 12 - k`, then separately computes `scale = 6 - offset` before calling `9C44`. Therefore the scale numerator is **`k - 6`**, while `12-k` is used only for the horizontal origin offset. The prior lift reused `12-k` for both roles.
+
+For a 48-pixel card the incorrect lift produced the descending scaled-width sequence `40,32,24,16,8` before the full card; the immutable binary produces the ascending sequence `8,16,24,32,40`, followed by the unscaled 48-pixel frame. This matches the smooth center-seam-to-face expansion visible in the DOSBox reference recording.
+
+The `07E4` reconstruction now preserves the separate `offset` and `scale` values exactly. The sequential audit frontier and byte classification remain unchanged at **70,402 / 70,402 address bytes = 100.00%**, with this checkpoint correcting semantics inside an already-accounted instruction range.
