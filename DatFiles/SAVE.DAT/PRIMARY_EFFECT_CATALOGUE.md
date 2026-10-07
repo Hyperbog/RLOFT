@@ -21,7 +21,7 @@ Not every active effect is timer-driven. Effects such as Invisibility 10' Radius
 
 | Index | Bit | Source identity | Primary producer / evidence | Special persistent state |
 |---:|---:|---|---|---|
-| 0 | `0x00000001` | **Armor** | Mage dispatch 0, physical `0x46A3A`, generic timed-effect helper | `+0x117` absorption pool; initialized to caster-derived value + 8 |
+| 0 | `0x00000001` | **Armor** | Mage dispatch 0, physical `0x46A3A`, generic timed-effect helper | `+0x117` Armor protection/durability quantity; initialized to caster-derived value + 8 |
 | 1 | `0x00000002` | **Mage Light** | Mage dispatch 4, physical `0x46A58..0x46ACB` | renderer/shading rebuild on apply/expire |
 | 2 | `0x00000004` | **Shield** | Mage dispatch 6, physical `0x46BC9` | none beyond normal timer |
 | 3 | `0x00000008` | **Blur** | Mage dispatch 11, physical `0x46BFD` | none beyond normal timer |
@@ -126,7 +126,7 @@ CODE.2 assembles expiration UI text as:
 
 Official manual spell descriptions match the executable auxiliary state:
 
-- Armor lasts until its protection pool is exhausted, matching effect 0's saved absorption pool.
+- Armor's saved protection quantity is depleted by incoming hits and clears the effect when exhausted; direct CODE.2 damage ordering shows this quantity is durability/protection state rather than an HP-damage absorption pool.
 - Aid grants temporary hit points consumed before normal HP, matching effect 11's `+0x1EA` pool.
 - Draw Upon Holy Might separately raises Strength and Dexterity, matching effects 12/13 and their reversible saved deltas.
 - Negative Plane Protection lasts until duration or an undead hit, consistent with effect 14's special handling.
