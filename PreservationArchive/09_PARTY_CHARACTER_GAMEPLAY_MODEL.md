@@ -643,18 +643,18 @@ Index-specific cleanup includes:
 
 Thus character effect state has cross-character and global side effects.
 
-## 31. Armor and Vampiric Touch use consumable pools
+## 31. Damage protection uses distinct consumable quantities
 
 Two early post-inventory dwords are not ordinary timers:
 
 ```text
-+0x113  Vampiric Touch absorption pool
-+0x117  Armor absorption pool
++0x113  Vampiric Touch damage-absorption pool
++0x117  Armor protection/durability quantity
 ```
 
-Incoming damage consumes these quantities before remaining damage reaches HP. Armor depletion also clears effect 0. [Post-inventory state](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/POST_INVENTORY_STATE.md)
+A direct re-disassembly of common character-damage routine `CD44..CEE3` corrects an earlier overstatement. `+0x113` is a true absorption pool: it reduces remaining damage before HP. `+0x117` is different: the full incoming damage amount depletes the Armor quantity, and depletion clears primary effect 0, but that subtraction does **not** reduce the local damage value before later protection pools and HP processing. Aid state at `+0x1EA` is another true absorption pool. [Post-inventory state](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/DatFiles/SAVE.DAT/POST_INVENTORY_STATE.md)
 
-They must be modeled as signed/consumable quantities, not booleans.
+These quantities must remain distinct in the native model; they cannot be collapsed into a generic `absorption_pool` abstraction.
 
 ## 32. Three additional paired timed slots
 
@@ -839,7 +839,7 @@ CharacterTimingState
 
 CharacterEffectState
     primary bits
-    absorption pools
+    protection/absorption quantities
     reversible deltas
     accumulated quantities
 
