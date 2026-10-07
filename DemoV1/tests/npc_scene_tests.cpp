@@ -1,4 +1,5 @@
 #include "rloft/npc_scene.hpp"
+#include "rloft/scene_shape_bounds.hpp"
 
 #include <cassert>
 #include <cstddef>
@@ -168,6 +169,34 @@ int main() {
         rloft::NpcSceneModel::build(
             w, s, catalog, tables, 100U);
     assert(scene.empty());
+
+    // CODE.2 21BF0 uses the selected type-7 geometry to construct the
+    // clickable screen rectangle. With a 400-unit projected extent, the
+    // Assassin base shape produces this exact clipped VGA-space box.
+    const rloft::Type7Geometry assassin_shape{
+        64U, 15, 51, 27, 128
+    };
+    const auto hit =
+        rloft::SceneShapeBoundsModel::npc_type7(
+            128U,
+            400U,
+            assassin_shape);
+    assert(hit.valid);
+    assert(hit.top == 115U);
+    assert(hit.bottom == 254U);
+    assert(hit.left == 137U);
+    assert(hit.right == 187U);
+    assert(hit.contains(115, 137));
+    assert(hit.contains(254, 187));
+    assert(!hit.contains(114, 137));
+    assert(!hit.contains(115, 188));
+
+    const auto too_small =
+        rloft::SceneShapeBoundsModel::npc_type7(
+            128U,
+            319U,
+            assassin_shape);
+    assert(!too_small.valid);
 
     return 0;
 }
