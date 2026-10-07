@@ -51,6 +51,8 @@ int main() {
     assert(plan->screen_x == 44);
     assert(plan->screen_base_row == -44);
     assert(plan->scale_block_index == 15);
+    assert(plan->entry_segment_index == 93);
+    assert(plan->stop_segment_index == 97);
     assert(plan->entry_offset == 0x204 + 93);
     assert(plan->stop_offset == 0x204 + 97);
     assert(plan->texture_column_index == 4);

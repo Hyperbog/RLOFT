@@ -25,6 +25,8 @@ struct SurfacePrepassPlan final {
     int row_shift{};
 
     std::size_t scale_block_index{};
+    std::size_t entry_segment_index{};
+    std::size_t stop_segment_index{};
     std::uint16_t entry_offset{};
     std::uint16_t stop_offset{};
 };
@@ -43,7 +45,12 @@ private:
         std::uint32_t extent,
         std::int8_t vertical_offset) noexcept;
 
-    [[nodiscard]] static std::uint16_t entry_offset(
+    struct EntrySelection final {
+        std::size_t segment_index{};
+        std::uint16_t offset{};
+    };
+
+    [[nodiscard]] static EntrySelection entry_selection(
         const RendererScaleBlock& block,
         int vertical_offset,
         std::uint32_t target);

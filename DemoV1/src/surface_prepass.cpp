@@ -18,7 +18,8 @@ int SurfacePrepassModel::rounded_row_shift(
     return static_cast<int>(value / 0x80);
 }
 
-std::uint16_t SurfacePrepassModel::entry_offset(
+SurfacePrepassModel::EntrySelection
+SurfacePrepassModel::entry_selection(
     const RendererScaleBlock& block,
     int vertical_offset,
     std::uint32_t target) {
@@ -51,8 +52,12 @@ std::uint16_t SurfacePrepassModel::entry_offset(
     } else {
         slot = 0;
     }
-    return block.code_patch_offset[
-        static_cast<std::size_t>(slot)];
+    const auto index =
+        static_cast<std::size_t>(slot);
+    return EntrySelection{
+        index,
+        block.code_patch_offset[index],
+    };
 }
 
 std::optional<SurfacePrepassPlan> SurfacePrepassModel::build(
@@ -128,14 +133,20 @@ std::optional<SurfacePrepassPlan> SurfacePrepassModel::build(
     out.screen_base_row = 4 - row_shift;
     out.row_shift = row_shift;
     out.scale_block_index = block_index;
+    out.stop_segment_index =
+        static_cast<std::size_t>(patch_index);
     out.stop_offset =
         block.code_patch_offset[
-            static_cast<std::size_t>(patch_index)];
-    out.entry_offset = entry_offset(
+            out.stop_segment_index];
+
+    const auto entry = entry_selection(
         block,
         static_cast<int>(
             level.renderer_vertical_offset),
         static_cast<std::uint32_t>(row_shift));
+    out.entry_segment_index =
+        entry.segment_index;
+    out.entry_offset = entry.offset;
     return out;
 }
 
