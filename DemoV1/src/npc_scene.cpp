@@ -230,14 +230,6 @@ NpcSceneModel::build(
         const auto& definition =
             catalog.at(npc.npc_type_id);
 
-        if (definition.scene_influence_step != 0U) {
-            // CODE.2 calls 2B088 here after successful projection. That
-            // side effect is distinct from scene-record construction and is
-            // not silently omitted.
-            throw std::logic_error(
-                "NPC scene influence path is not integrated");
-        }
-
         const auto projection =
             FirstPersonEntityProjectionModel::project(
                 npc.y_position_16_16,
