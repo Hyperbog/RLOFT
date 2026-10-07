@@ -67,6 +67,20 @@ public:
         int target_column,
         int frame_index);
 
+    [[nodiscard]] static int transition_07e4_frame_count(
+        int first_slot,
+        int last_slot) noexcept {
+        return (last_slot - first_slot) + 10;
+    }
+    void transition_07e4_frame(
+        const CharacterCreationFlow& before,
+        const CharacterCreationFlow& after,
+        const CharacterStatsModel* before_stats,
+        const CharacterStatsModel* after_stats,
+        int first_slot,
+        int last_slot,
+        int frame_index);
+
     // Compatibility name for state 0.
     void first_screen();
 
@@ -112,6 +126,15 @@ private:
         int x,
         const std::array<std::uint8_t, 256>& bright_map,
         const std::array<std::uint8_t, 256>& luminance_map,
+        const IndexedRegion* cached);
+    void draw_slot_scaled_07e4(
+        const CharacterCreationFlow& flow,
+        const CharacterStatsModel* stats,
+        int slot,
+        int y,
+        int x,
+        int numerator,
+        int denominator,
         const IndexedRegion* cached);
 
     const RavenloftBootAssets& assets_;
