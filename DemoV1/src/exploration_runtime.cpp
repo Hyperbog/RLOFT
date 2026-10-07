@@ -101,7 +101,8 @@ std::optional<WorldSceneTarget>
 ExplorationRuntime::world_scene_target_at(
     const std::vector<WorldSceneRecord>& records,
     int row,
-    int column) const {
+    int column,
+    std::uint8_t action_flags) const {
     if (!gameplay_state_initialized_ ||
         !scene_shape_archive_.has_value()) {
         throw std::logic_error(
@@ -112,11 +113,20 @@ ExplorationRuntime::world_scene_target_at(
         records,
         row,
         column,
+        action_flags,
         [this](std::uint16_t resource_id) {
             return scene_shape_archive_->
                 decode_type7_geometry(
                     static_cast<int>(
                         resource_id));
+        },
+        [this](std::uint16_t source_index) {
+            const auto& placed =
+                world_.placed_objects.at(
+                    source_index);
+            return WorldSceneSelectionModel::
+                class1_type_is_interactive(
+                    placed.object_type_id);
         });
 }
 
