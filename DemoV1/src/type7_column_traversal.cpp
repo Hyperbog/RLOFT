@@ -173,6 +173,7 @@ Type7ColumnTraversalModel::visible_runs(
         static_cast<std::int32_t>(raw_depth);
     std::int64_t left_cursor = screen_x;
     std::int64_t right_cursor = screen_x;
+    bool left_pass_finished = false;
 
     const auto front_of_wall =
         [&rays, depth](std::int64_t x) {
@@ -195,6 +196,10 @@ Type7ColumnTraversalModel::visible_runs(
         };
 
     for (const auto& column : plan.columns) {
+        if (column.side == Type7ColumnSide::Left &&
+            left_pass_finished) {
+            continue;
+        }
         std::int64_t count = column.scale_step;
         if (count == 0) {
             continue;
@@ -256,8 +261,10 @@ Type7ColumnTraversalModel::visible_runs(
                 push(column, left_cursor, count);
                 // CODE.2 3708F branches to 370AE, not 37094:
                 // the left traversal ends after drawing this suffix.
-                // Further left-side source columns are not visited.
-                break;
+                // Further left-side source columns are not visited,
+                // but CODE.2 resumes at 370AE and enters the RIGHT pass.
+                left_pass_finished = true;
+                continue;
             }
             // 37056 explicitly skips a run with *both* endpoints blocked,
             // even when its interior happens to be visible.
