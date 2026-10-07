@@ -2,6 +2,7 @@
 
 #include "rloft/exploration_world.hpp"
 #include "rloft/resource_assets.hpp"
+#include "rloft/options_menu.hpp"
 
 #include <stdexcept>
 #include <utility>
@@ -110,6 +111,22 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
         environment_profiles_,
         environment_phase_state_,
         rng15);
+
+    if (gameplay_state_initialized_) {
+        const auto defaults =
+            OptionsState::defaults();
+        const auto render_threshold =
+            OptionsMenuModel::render_threshold(
+                defaults.distancing(),
+                session_.level.render_threshold_floor);
+        out.npc_records =
+            NpcSceneModel::build(
+                world_,
+                session_,
+                npc_catalog_,
+                renderer_tables_,
+                render_threshold);
+    }
 
     out.sweep_runs =
         ViewSweepRunModel::build(

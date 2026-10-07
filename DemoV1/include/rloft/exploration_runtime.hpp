@@ -9,6 +9,7 @@
 #include "rloft/level_world_state.hpp"
 #include "rloft/level22_encounter.hpp"
 #include "rloft/npc_catalog.hpp"
+#include "rloft/npc_scene.hpp"
 #include "rloft/object_catalog.hpp"
 #include "rloft/exploration_scene.hpp"
 #include "rloft/micro_rasterizer_plan.hpp"
@@ -23,6 +24,7 @@ namespace rloft {
 struct ExplorationRuntimeFrame final {
     ExplorationSceneSnapshot scene{};
     std::vector<ViewSweepRecord> sweep_records;
+    std::vector<NpcSceneEmission> npc_records;
     std::vector<ViewSweepRun> sweep_runs;
     SurfaceShadeTable surface_shades{};
     std::vector<SurfacePrepassPlan> prepass_plans;

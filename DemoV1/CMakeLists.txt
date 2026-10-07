@@ -57,6 +57,8 @@ add_library(rloft_boot_flow
     src/view_sweep_traversal.cpp
     src/view_sweep_runs.cpp
     src/fixed_projection.cpp
+    src/first_person_entity_projection.cpp
+    src/npc_scene.cpp
     src/renderer_tables.cpp
     src/micro_rasterizer_layout.cpp
     src/micro_rasterizer_plan.cpp
@@ -241,6 +243,14 @@ add_executable(fixed_projection_tests tests/fixed_projection_tests.cpp)
 target_link_libraries(fixed_projection_tests PRIVATE rloft_boot_flow)
 add_test(NAME fixed_projection_tests COMMAND fixed_projection_tests)
 
+add_executable(first_person_entity_projection_tests tests/first_person_entity_projection_tests.cpp)
+target_link_libraries(first_person_entity_projection_tests PRIVATE rloft_boot_flow)
+add_test(NAME first_person_entity_projection_tests COMMAND first_person_entity_projection_tests)
+
+add_executable(npc_scene_tests tests/npc_scene_tests.cpp)
+target_link_libraries(npc_scene_tests PRIVATE rloft_boot_flow)
+add_test(NAME npc_scene_tests COMMAND npc_scene_tests)
+
 add_executable(renderer_tables_tests tests/renderer_tables_tests.cpp)
 target_link_libraries(renderer_tables_tests PRIVATE rloft_boot_flow)
 add_test(NAME renderer_tables_tests COMMAND renderer_tables_tests)
@@ -406,6 +416,8 @@ set(RLOFT_TEST_TARGETS
     view_sweep_traversal_tests
     view_sweep_runs_tests
     fixed_projection_tests
+    first_person_entity_projection_tests
+    npc_scene_tests
     renderer_tables_tests
     micro_rasterizer_layout_tests
     micro_rasterizer_plan_tests
