@@ -183,7 +183,7 @@ The supplied LEVELS/LEV corpus is structurally closed for preservation, but the 
 
 ### U-008 — SAVE character/status residual semantics
 
-The SAVE audit preserves several bounded unknowns: character status low bits `0x0001..0x0020` with no proved gameplay ownership, serialized character dword `+0x1BA` without a direct CODE.2 field reference, exact source-level names for three paired timed slots/auxiliary quantities, and unnamed packed bits/enum labels in transient-effect state. Source: [SAVE.DAT final audit](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/FINAL_AUDIT_2026-10-06.md).
+The SAVE audit preserves several bounded unknowns: character status low bits `0x0001..0x0020` with no proved gameplay ownership, serialized character dword `+0x1BA` without a direct CODE.2 field reference, source-level names for selected remaining auxiliary quantities, and unnamed packed bits/enum labels in transient-effect state. The former three paired timed slots are now behaviorally closed as combat-feedback damage display slots. Source: [SAVE.DAT final audit](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/FINAL_AUDIT_2026-10-06.md).
 
 ### U-009 — RES9 companion bank historical purpose
 
