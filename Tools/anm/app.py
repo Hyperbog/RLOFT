@@ -76,6 +76,7 @@ def _gui_self_test() -> int:
     _enable_windows_dpi_awareness()
     try:
         import gui
+        import window_chrome
         app = gui.RavenloftExtractorGui()
         app.update_idletasks()
         app.update()
