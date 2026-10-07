@@ -17,7 +17,23 @@ int LevelDisplayModel::hour_phase(std::uint32_t t) noexcept {auto p=static_cast<
 EnvironmentPhaseRecord LevelDisplayModel::environment_phase(std::uint32_t t){const auto i=static_cast<std::size_t>(hour_phase(t));return {kShade[i],kY[i],kAz[i]};}
 void LevelDisplayModel::apply_daylight_phase(EnvironmentProfile& p,const EnvironmentPhaseRecord& ph){
  if(ph.shade_mode>=10)throw std::invalid_argument("night environment selector cycling is stateful");
+ EnvironmentPhaseState state{};
+ apply_phase(p,ph,state);
+}
+void LevelDisplayModel::apply_phase(EnvironmentProfile& p,const EnvironmentPhaseRecord& ph,EnvironmentPhaseState& state){
  if(p.placements.empty())throw std::runtime_error("environment profile has no first placement");
- auto& f=p.placements.front();f.resource_selector=0x18;f.azimuth_degrees=static_cast<std::int16_t>(ph.first_record_azimuth);f.screen_y=static_cast<std::int16_t>(ph.first_record_screen_y);
+ auto& f=p.placements.front();
+ if(ph.shade_mode<10){
+   f.resource_selector=0x18;
+   state.current_night_selector=-1;
+ } else if(state.current_night_selector==-1){
+   state.current_night_selector=state.next_night_selector;
+   f.resource_selector=static_cast<std::int16_t>(state.current_night_selector);
+   state.next_night_selector=(state.current_night_selector+1)%8;
+ } else {
+   f.resource_selector=static_cast<std::int16_t>(state.current_night_selector);
+ }
+ f.azimuth_degrees=static_cast<std::int16_t>(ph.first_record_azimuth);
+ f.screen_y=static_cast<std::int16_t>(ph.first_record_screen_y);
 }
 }  // namespace rloft

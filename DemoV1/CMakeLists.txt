@@ -20,6 +20,7 @@ add_library(rloft_boot_flow
     src/exploration_state.cpp
     src/exploration_session.cpp
     src/exploration_frame.cpp
+    src/exploration_scene.cpp
     src/level_display.cpp
     src/party_presentation.cpp
     src/top_edge_menu.cpp
@@ -67,6 +68,10 @@ add_test(NAME exploration_session_tests COMMAND exploration_session_tests)
 add_executable(exploration_frame_tests tests/exploration_frame_tests.cpp)
 target_link_libraries(exploration_frame_tests PRIVATE rloft_boot_flow)
 add_test(NAME exploration_frame_tests COMMAND exploration_frame_tests)
+
+add_executable(exploration_scene_tests tests/exploration_scene_tests.cpp)
+target_link_libraries(exploration_scene_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_scene_tests COMMAND exploration_scene_tests)
 
 add_executable(level_display_tests tests/level_display_tests.cpp)
 target_link_libraries(level_display_tests PRIVATE rloft_boot_flow)
@@ -157,6 +162,7 @@ set(RLOFT_TEST_TARGETS
     exploration_state_tests
     exploration_session_tests
     exploration_frame_tests
+    exploration_scene_tests
     level_display_tests
     party_presentation_tests
     top_edge_menu_tests
