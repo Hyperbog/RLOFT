@@ -20,6 +20,7 @@ add_library(rloft_boot_flow
     src/exploration_state.cpp
     src/exploration_session.cpp
     src/exploration_frame.cpp
+    src/party_presentation.cpp
     src/exploration_world.cpp
     src/exploration_collision.cpp
     src/environment_view.cpp
@@ -60,6 +61,10 @@ add_test(NAME exploration_session_tests COMMAND exploration_session_tests)
 add_executable(exploration_frame_tests tests/exploration_frame_tests.cpp)
 target_link_libraries(exploration_frame_tests PRIVATE rloft_boot_flow)
 add_test(NAME exploration_frame_tests COMMAND exploration_frame_tests)
+
+add_executable(party_presentation_tests tests/party_presentation_tests.cpp)
+target_link_libraries(party_presentation_tests PRIVATE rloft_boot_flow)
+add_test(NAME party_presentation_tests COMMAND party_presentation_tests)
 
 add_executable(exploration_world_tests tests/exploration_world_tests.cpp)
 target_link_libraries(exploration_world_tests PRIVATE rloft_boot_flow)
@@ -122,6 +127,7 @@ set(RLOFT_TEST_TARGETS
     exploration_state_tests
     exploration_session_tests
     exploration_frame_tests
+    party_presentation_tests
     exploration_world_tests
     exploration_collision_tests
     environment_view_tests
