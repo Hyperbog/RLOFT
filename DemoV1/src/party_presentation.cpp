@@ -51,12 +51,22 @@ InventorySlotRole PartyActorPresentation::slot_role(std::size_t slot) {
 
 int PartyActorPresentation::portrait_local_index() const noexcept {
     int local =
-        static_cast<int>(portrait_index) +
+        static_cast<int>(
+            static_cast<std::int8_t>(portrait_index)) +
         static_cast<int>(sex_code) * 23;
     if ((status_word & 0x0100U) != 0) {
         local += 46;
     }
     return local;
+}
+
+std::int32_t PartyActorPresentation::effective_hp() const noexcept {
+    const auto raw =
+        static_cast<std::uint32_t>(
+            static_cast<std::int32_t>(current_hp)) +
+        static_cast<std::uint32_t>(hp_modifier_113) +
+        static_cast<std::uint32_t>(hp_modifier_1ea);
+    return static_cast<std::int32_t>(raw);
 }
 
 PartyActorPresentation PartyPresentationModel::actor(
@@ -80,6 +90,11 @@ PartyActorPresentation PartyPresentationModel::actor(
         static_cast<std::int8_t>(bytes[0x01B]);
     out.current_hp = s16(bytes + 0x01C);
     out.max_hp = s16(bytes + 0x01E);
+    out.hp_modifier_113 =
+        static_cast<std::int32_t>(u32(bytes + 0x113));
+    out.condition_effect_flags = u32(bytes + 0x132);
+    out.hp_modifier_1ea =
+        static_cast<std::int32_t>(u32(bytes + 0x1EA));
 
     for (std::size_t slot = 0; slot < out.items.size(); ++slot) {
         out.items[slot] =

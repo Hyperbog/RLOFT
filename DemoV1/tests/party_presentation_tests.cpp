@@ -39,6 +39,9 @@ int main() {
     bytes[0x01B] = 0xFF;          // signed AC -1
     put16(bytes, 0x01C, 12);
     put16(bytes, 0x01E, 20);
+    put32(bytes, 0x113, 3);
+    put32(bytes, 0x132, 0x0402);
+    put32(bytes, 0x1EA, static_cast<std::uint32_t>(-2));
 
     for (std::size_t slot = 0;
          slot < rloft::PartyActorPresentation::kInventorySlotCount;
@@ -61,6 +64,10 @@ int main() {
     assert(actor.base_armor_class == -1);
     assert(actor.current_hp == 12);
     assert(actor.max_hp == 20);
+    assert(actor.hp_modifier_113 == 3);
+    assert(actor.hp_modifier_1ea == -2);
+    assert(actor.condition_effect_flags == 0x0402);
+    assert(actor.effective_hp() == 13);
     assert(actor.items[0] == 5);
     assert(actor.items[1] == -1);
     assert(actor.items[12] == 7);
@@ -82,6 +89,12 @@ int main() {
            rloft::InventorySlotRole::Quiver);
     assert(rloft::PartyActorPresentation::slot_role(20) ==
            rloft::InventorySlotRole::BracerGauntlet);
+
+    auto negative_face = actor;
+    negative_face.portrait_index = 0xFF;
+    negative_face.sex_code = 1;
+    negative_face.status_word = 0;
+    assert(negative_face.portrait_local_index() == 22);
 
     bool rejected = false;
     try {

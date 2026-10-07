@@ -36,6 +36,9 @@ struct PartyActorPresentation final {
     std::int8_t base_armor_class{};
     std::int16_t current_hp{};
     std::int16_t max_hp{};
+    std::int32_t hp_modifier_113{};
+    std::int32_t hp_modifier_1ea{};
+    std::uint32_t condition_effect_flags{};
 
     std::array<std::int16_t, kInventorySlotCount> items{};
     std::uint32_t item_known_bits{};
@@ -43,6 +46,7 @@ struct PartyActorPresentation final {
     [[nodiscard]] bool item_known(std::size_t slot) const;
     [[nodiscard]] static InventorySlotRole slot_role(std::size_t slot);
     [[nodiscard]] int portrait_local_index() const noexcept;
+    [[nodiscard]] std::int32_t effective_hp() const noexcept;
 };
 
 class PartyPresentationModel final {
