@@ -297,14 +297,20 @@ class RavenloftExtractorGui(tk.Tk):
         width = max(1, event.width)
         height = max(1, event.height)
 
-        # Window resizing reflows available space only. It never changes
-        # fonts, button sizes, or widget padding. Those are controlled solely
-        # by screen-resolution initialization + the explicit UI-size buttons.
-        self._resize_wraps_for_width(width)
-        self._fit_listboxes_to_height(height)
+        # Resolution-tied baseline: resizing the window scales the complete UI.
+        # The explicit UI-size control remains a multiplier on top of this.
+        resolution_scale = min(width / BASE_WIDTH, height / BASE_HEIGHT)
+        resolution_scale = max(MIN_UI_SCALE, min(MAX_UI_SCALE, resolution_scale))
+        if abs(resolution_scale - self._resolution_scale) >= 0.01:
+            self._resolution_scale = resolution_scale
+            self._apply_ui_scale()
+        else:
+            self._resize_wraps_for_width(width)
+            self._fit_listboxes_to_height(height)
 
+        # The banner follows window width while keeping its 1120:150 aspect.
         aspect_height = round(width * 150 / 1120)
-        banner_height = max(90, min(180, aspect_height))
+        banner_height = max(80, min(round(190 * self._ui_scale), aspect_height))
         if int(float(self.banner.cget("height"))) != banner_height:
             self.banner.configure(height=banner_height)
         self._schedule_banner()
@@ -322,8 +328,8 @@ class RavenloftExtractorGui(tk.Tk):
                 box.configure(height=rows)
 
     def _apply_ui_scale(self) -> None:
-        # UI scale is resolution-tied and user-controlled. Resizing the window
-        # does not modify this value.
+        # Window resolution establishes the baseline; the user control applies
+        # an explicit zoom multiplier without breaking the resolution tie.
         scale = self._resolution_scale * self._user_zoom
         scale = max(MIN_UI_SCALE, min(MAX_UI_SCALE, scale))
         changed = abs(scale - self._ui_scale) >= 0.001
@@ -374,27 +380,13 @@ class RavenloftExtractorGui(tk.Tk):
 
         frame = load_rgb("strahd_frame_main.png")
         parchment = load_rgb("strahd_parchment.png")
-
-        logo_path = runtime_paths.bundled_path("assets/strahd_title_logo.png")
-        if logo_path is None:
-            raise RuntimeError("baked Strahd banner asset missing: strahd_title_logo.png")
-        with Image.open(logo_path) as source:
-            if source.mode == "P":
-                indexed = source.copy()
-                logo = source.convert("RGBA")
-                # Original RES0:99 surrounding field is palette index 160.
-                alpha = indexed.point(
-                    lambda value: 0 if value == 160 else 255,
-                    mode="L",
-                )
-                logo.putalpha(alpha)
-            else:
-                logo = source.convert("RGBA")
+        baked = load_rgb("strahd_banner.webp")
 
         width, height = 1120, 150
         banner = Image.new("RGB", (width, height), BG)
 
-        # Parchment is the only repeated artwork in the banner.
+        # Only parchment repeats. This removes the accidental ornate columns
+        # that appeared through the banner background.
         for y in range(0, height, parchment.height):
             for x in range(0, width, parchment.width):
                 tile = parchment.crop(
@@ -407,14 +399,13 @@ class RavenloftExtractorGui(tk.Tk):
             0.48,
         )
 
-        # Plain rails first.
+        # Horizontal rails first.
         rail = (75, 75, 75)
         top_h = bottom_h = 14
         banner.paste(rail, (0, 0, width, top_h))
         banner.paste(rail, (0, height - bottom_h, width, height))
 
-        # Exactly one ornate column on each side, drawn after the rails so the
-        # right column cannot disappear behind the gray strip.
+        # Exactly one side column per edge, always above the rails.
         side_w = min(32, frame.width // 4)
         side_h = min(height, frame.height)
         left = frame.crop((0, 0, side_w, side_h))
@@ -422,10 +413,13 @@ class RavenloftExtractorGui(tk.Tk):
         banner.paste(left, (0, 0))
         banner.paste(right, (width - side_w, 0))
 
-        # Correct palette-12 logo above all other layers.
-        logo_x = (width - logo.width) // 2
-        logo_y = (height - logo.height) // 2
-        banner.paste(logo, (logo_x, logo_y), logo)
+        # Use the known-good crest region from the valid baked banner. The
+        # standalone logo PNG inherited from an earlier build is truncated.
+        logo_w, logo_h = 240, 114
+        logo_x = (width - logo_w) // 2
+        logo_y = (height - logo_h) // 2
+        crest = baked.crop((logo_x, logo_y, logo_x + logo_w, logo_y + logo_h))
+        banner.paste(crest, (logo_x, logo_y))
 
         self._banner_source = banner
         return self._banner_source
