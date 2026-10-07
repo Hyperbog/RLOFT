@@ -70,6 +70,7 @@ add_library(rloft_boot_flow
     src/game_source.cpp
     src/resource_assets.cpp
     src/startup_presenter.cpp
+    src/indexed_font_presenter.cpp
     src/sound_config.cpp
     src/voc_decoder.cpp
     src/xmidi.cpp
@@ -291,6 +292,10 @@ add_executable(presenter_tests tests/presenter_tests.cpp)
 target_link_libraries(presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME presenter_tests COMMAND presenter_tests)
 
+add_executable(indexed_font_presenter_tests tests/indexed_font_presenter_tests.cpp)
+target_link_libraries(indexed_font_presenter_tests PRIVATE rloft_boot_flow)
+add_test(NAME indexed_font_presenter_tests COMMAND indexed_font_presenter_tests)
+
 add_executable(voc_decoder_tests tests/voc_decoder_tests.cpp)
 target_link_libraries(voc_decoder_tests PRIVATE rloft_boot_flow)
 add_test(NAME voc_decoder_tests COMMAND voc_decoder_tests)
@@ -375,6 +380,7 @@ set(RLOFT_TEST_TARGETS
     surface_prepass_tests
     game_source_tests
     presenter_tests
+    indexed_font_presenter_tests
     voc_decoder_tests
     xmidi_tests
     character_flow_tests
