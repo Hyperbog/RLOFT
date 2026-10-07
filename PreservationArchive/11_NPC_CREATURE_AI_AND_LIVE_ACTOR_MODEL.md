@@ -756,3 +756,1170 @@ LEVnnn.DAT mutable persistence
 ```
 
 The second half of this chapter closes combat/status capability behavior, immunities/resistances, sounds, death/XP, residual flags, and native-port regression requirements.
+
+
+## 34. Hold-effect eligibility is definition-driven
+
+Three low bits specialize the common spell-effect gate:
+
+```text
+0x00000002  hold_undead_effect_immunity
+0x00000008  hold_person_effect_immunity
+0x00000010  hold_monster_effect_immunity
+```
+
+The encoded compound masks are:
+
+```text
+Hold Undead    0x0102
+Hold Person    0x0108
+Hold Monster   0x0110
+```
+
+where `0x0100` is the independently proved common spell-effect immunity bit. [Hold immunities](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/HOLD_IMMUNITIES.md)
+
+These are effect-specific exclusion gates. They should not be reinterpreted as one creature-category enum.
+
+## 35. Cleric and Mage Hold Person converge on the same live state
+
+The shared/Mage Hold Person handler and prepared-priest Hold Person handler are separate dispatch paths, but both test:
+
+```text
+0x0108
+```
+
+and both install the same live held-state bit when successful.
+
+The Cleric Hold Person **scroll** deliberately reuses dispatch ID 25 rather than prepared-priest dispatch 92. [Hold immunities](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/HOLD_IMMUNITIES.md)
+
+Thus:
+
+```text
+spell source/dispatch
+    may differ
+
+definition eligibility
+    same mask
+
+live applied state
+    same runtime hold bit
+```
+
+## 36. Common/fire/cold immunity masks are compositional
+
+The common area/effect traversal performs:
+
+```text
+if ((effect_mask & npc.behavior_flags) != 0)
+    skip target
+```
+
+Fire paths use:
+
+```text
+0x2100
+= 0x2000 fire_effect_immunity
+| 0x0100 common_spell_effect_immunity
+```
+
+Cold paths use:
+
+```text
+0x0900
+= 0x0800 cold_effect_immunity
+| 0x0100 common_spell_effect_immunity
+```
+
+[Effect immunities](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/EFFECT_IMMUNITIES.md)
+
+Do not collapse these into one generic `magic_resistance` property.
+
+## 37. Supplied elemental-immunity counts
+
+Across the 83 definitions:
+
+```text
+common spell-effect immunity   4
+cold-effect immunity          12
+fire-effect immunity           6
+```
+
+[NPCS effect immunities](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/EFFECT_IMMUNITIES.md)
+
+Overlaps are valid.
+
+For example, a creature may carry:
+
+```text
+common
++
+cold
++
+fire
+```
+
+simultaneously.
+
+## 38. Lightning Bolt has a dedicated additional exclusion bit
+
+The complete chain is:
+
+```text
+OBJECTS 188
+MAGE SCROLL OF 'LIGHTNING BOLT'
+        |
+        v
+dispatch 28
+        |
+        v
+class-3 moving effect type 1
+        |
+        v
+NPC collision path
+        |
+        v
+test behavior_flags mask 0x0300
+```
+
+where:
+
+```text
+0x0300 =
+0x0100 common_spell_effect_immunity
+|
+0x0200 lightning_bolt_effect_immunity
+```
+
+[Targeted immunities](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/TARGETED_EFFECT_IMMUNITIES.md)
+
+Five supplied definitions carry the Lightning-specific bit.
+
+## 39. Death Spell has an independent exclusion bit
+
+The chain is:
+
+```text
+OBJECTS 197
+MAGE SCROLL OF 'DEATH SPELL'
+        |
+        v
+dispatch 51
+        |
+        v
+target-area routine
+        |
+        v
+test npc_definition +0x31 byte bit 0x80
+```
+
+This is:
+
+```text
+behavior_flags & 0x00000080
+    death_spell_effect_immunity
+```
+
+[Targeted immunities](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/TARGETED_EFFECT_IMMUNITIES.md)
+
+Unlike Lightning Bolt, Death Spell does **not** include the common `0x0100` bit in its encoded target test.
+
+## 40. Detect Undead exclusion and undead classification are separate
+
+Two different flags exist:
+
+```text
+behavior_flags & 0x00000001
+    detect_undead_effect_exclusion
+
+behavior_flags_3A & 0x20
+    undead_classification
+```
+
+[Detection/turning flags](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/DETECTION_TURNING_FLAGS.md)
+
+The first controls one detection marker/display path.
+
+The second is the classification used by turning/repulsion and other undead-sensitive systems.
+
+Do not infer:
+
+```text
+detect-undead visible
+==
+undead classification
+```
+
+from either bit alone.
+
+## 41. Turn Undead requires classification first
+
+Turning resolution:
+
+1. rejects targets without `undead_classification`;
+2. derives its roll/table state;
+3. tests behavior bit `0x00000004`;
+4. if set, subtracts exactly 4 from the favorable turn roll;
+5. performs threshold comparison.
+
+[Detection/turning flags](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/DETECTION_TURNING_FLAGS.md)
+
+Safe alias:
+
+```text
+turn_undead_roll_penalty_4
+```
+
+## 42. The turning modifier is dormant in the supplied NPC table
+
+Eighteen supplied definitions carry `0x00000004`.
+
+Seventeen definitions carry the separate undead-classification bit.
+
+But **none** carries both.
+
+Therefore the executable supports the modifier, but the supplied data never exercises it for a target that passes the undead-classification prerequisite. [Detection/turning flags](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/DETECTION_TURNING_FLAGS.md)
+
+This is latent executable capability, not evidence that those 18 creatures are “turn resistant.”
+
+## 43. NPC melee status effects are separate from base damage
+
+The ordinary melee attack uses definition:
+
+```text
++0x1E  damage dice
++0x1F  damage sides
++0x20  damage bonus
+```
+
+After/beside the normal attack path, capability bits can apply additional status effects.
+
+Proved secondary attack families include:
+
+- poison;
+- paralysis;
+- disease;
+- level drain;
+- Strength drain.
+
+These effects use separate resistance/save/eligibility logic and should not be folded into the base damage dice.
+
+## 44. Poison attack
+
+```text
+behavior_flags_39 & 0x01
+```
+
+On successful application, the creature attack sets party status high-byte bit:
+
+```text
+0x08
+```
+
+Neutralize Poison later clears exactly that bit. [Status attacks](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/STATUS_ATTACKS.md)
+
+Only supplied:
+
+```text
+DARKLING
+```
+
+carries this attack bit.
+
+## 45. Paralysis attack
+
+```text
+behavior_flags_39 & 0x20
+```
+
+sets the party paralysis condition when its effect path succeeds.
+
+The attack path explicitly honors Ring of Free Action protection.
+
+Remove Paralysis clears the same status bit. [NPCS behavior flags](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/BEHAVIOR_FLAGS.md)
+
+Supplied carriers:
+
+```text
+GHAST
+GHOUL
+GHOUL LORD
+INQUISITOR
+BONE GOLEM
+REVENANT
+```
+
+## 46. Disease attack
+
+```text
+behavior_flags_3A & 0x10
+```
+
+sets party status high-byte bit:
+
+```text
+0x04
+```
+
+and Cure Disease clears the same bit. [Status attacks](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/STATUS_ATTACKS.md)
+
+Supplied carriers:
+
+```text
+ZOMBIE LORD
+GHOUL LORD
+INQUISITOR
+```
+
+The executable contains an encoded class-code-1 exemption before the common effect application path. Because class code 1 is independently Paladin, a native faithful implementation should preserve that exact exemption while avoiding broader inferred tabletop generalization.
+
+## 47. Level-drain attack
+
+```text
+behavior_flags_3A & 0x02
+```
+
+causes the attack path to invoke the character level/progression reduction routine.
+
+Supplied carriers:
+
+```text
+STRAHD
+VAMPIRE
+SPECTRE
+WRAITH
+WIGHT
+```
+
+[NPCS behavior flags](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/BEHAVIOR_FLAGS.md)
+
+The exact class-slot reduction behavior belongs to the combat/progression chapter; the NPC-side capability identity is closed here.
+
+## 48. Strength-drain attack
+
+```text
+behavior_flags_3A & 0x04
+```
+
+calls the character Strength-adjustment routine with `-1`.
+
+Supplied carriers:
+
+```text
+SHADOW
+INQUISITOR
+```
+
+[NPCS behavior flags](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/BEHAVIOR_FLAGS.md)
+
+The character Strength helper contains an explicit Stone Giant Gauntlets exception, creating a direct NPC-attack ↔ equipment interaction.
+
+## 49. Weapon-category defenses are damage floors, not immunity
+
+Before applying physical weapon damage to an NPC, CODE.2:
+
+1. derives the weapon's OBJECTS category;
+2. treats `weapon_id == -1` as category 9;
+3. if object enchantment is nonzero, reroutes the hit to synthetic category 11;
+4. applies NPC category-specific gates;
+5. clamps resulting damage to at least 1.
+
+[Weapon damage flags](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/WEAPON_DAMAGE_FLAGS.md)
+
+Therefore the proved category 9/10 flags do **not** produce zero damage.
+
+They reduce the post-gate hit to the engine's minimum one damage.
+
+## 50. Category-9 one-damage floor
+
+```text
+behavior_flags & 0x00008000
+```
+
+applies to unenchanted category-9 weapon path.
+
+The supplied category-9 family includes:
+
+```text
+MACE
+QUARTERSTAFF
+WARHAMMER
+```
+
+and related definitions. [Weapon damage flags](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/WEAPON_DAMAGE_FLAGS.md)
+
+Safe name remains category-based rather than inferred as `blunt_resistance`.
+
+## 51. Category-10 one-damage floor
+
+```text
+behavior_flags & 0x00004000
+```
+
+applies to unenchanted category-10 path.
+
+That object family includes ordinary:
+
+- axes;
+- swords;
+- daggers;
+- pole/thrusting weapons.
+
+[Weapon damage flags](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/WEAPON_DAMAGE_FLAGS.md)
+
+Again, the executable category is controlling. Do not rename the flag to one guessed tabletop damage type.
+
+## 52. Enchanted weapons enter synthetic category 11
+
+For a nonnegative object ID:
+
+```text
+category = OBJECTS.item_category
+
+if OBJECTS.enchantment_bonus != 0:
+    category = 11
+```
+
+before the NPC weapon-gate branch. [Weapon damage flags](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/WEAPON_DAMAGE_FLAGS.md)
+
+This means the category-9/category-10 resistance bits apply only to unenchanted definitions.
+
+A native combat implementation must preserve this ordering.
+
+## 53. Category-11 high-bit behavior includes a shipped signedness anomaly
+
+Two additional main-dword bits are consumed:
+
+```text
+0x00020000
+0x00040000
+```
+
+but their source-level intent is unresolved.
+
+The executable:
+
+- zero-extends the object's enchantment byte;
+- compares against sign-extended immediate `-2`;
+- uses signed conditional branches.
+
+[Weapon damage flags](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/WEAPON_DAMAGE_FLAGS.md)
+
+For the supplied `0..255` enchantment domain:
+
+- `0x00020000` drives category-11 damage to the one-damage floor;
+- `0x00040000` does not independently reduce supplied-object damage.
+
+This exact machine behavior must be preserved in faithful mode rather than “fixing” the apparent signedness mismatch silently.
+
+## 54. Creature attack sound is definition-driven
+
+Definition `+0x3F` is used by normal and special attack paths.
+
+Playback resource:
+
+```text
+creature_sound_base 0x258C0
++
+attack_sound_id
+```
+
+is queued through the common sound request path. [Sound fields](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/SOUND_FIELDS.md)
+
+This sound selection belongs to the creature template rather than the live actor record.
+
+## 55. Damage-reaction sound occurs only while the actor survives
+
+Common NPC damage/effect routine tests live:
+
+```text
+current_hp > 0
+```
+
+after applying its HP/state changes.
+
+If the actor remains alive, it resolves:
+
+```text
+creature_sound_base 0x258C0
++
+damage_reaction_sound_id
+```
+
+from definition `+0x41`. [Sound fields](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/SOUND_FIELDS.md)
+
+The name is intentionally broader than `pain_sound` because the routine is also a common damage/effect handler.
+
+## 56. Death sound uses a separate resource base
+
+When live HP is zero or negative, the common handler enters death processing.
+
+Definition:
+
+```text
++0x43 death_sound_id
+```
+
+is resolved against:
+
+```text
+death_sound_base 0x258BC
+```
+
+rather than ordinary creature base `0x258C0`. [Sound fields](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/SOUND_FIELDS.md)
+
+If `death_sound_id == 0`, the engine queues the base death sound itself.
+
+Thus:
+
+```text
+zero death sound ID
+    != silence
+```
+
+## 57. Sound corpus organization
+
+Across the 83 definitions:
+
+```text
+ambient/proximity nonzero   33
+attack nonzero              34
+damage reaction nonzero     35
+death nonzero                9
+```
+
+Thirty-two definitions have exact consecutive triplets:
+
+```text
+ambient  = N
+attack   = N+1
+reaction = N+2
+```
+
+Examples:
+
+```text
+ZOMBIE          6 / 7 / 8
+SKELETON        9 / 10 / 11
+WEREBAT        15 / 16 / 17
+PYRE ELEMENTAL 33 / 34 / 35
+WEREWOLF       58 / 59 / 60
+BONE GOLEM     82 / 83 / 84
+LIVING WALL    94 / 95 / 96
+```
+
+[Sound fields](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/SOUND_FIELDS.md)
+
+The corpus pattern corroborates, but does not define, the executable-proved contexts.
+
+## 58. Death is driven by live HP
+
+The live actor field:
+
+```text
++0x12 int16 current_hp
+```
+
+is tested by the common damage/death routine.
+
+```text
+current_hp > 0
+    survivor reaction path
+
+current_hp <= 0
+    death resolution path
+```
+
+[Family A](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/LEVELS.DAT/FAMILY_A.md)
+
+Death therefore belongs to the mutable actor state, not an immutable NPC-definition flag.
+
+## 59. Definition XP is consumed on death
+
+Definition `+0x23` is passed to the party XP-distribution path during death resolution. [NPCS README](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/README.md)
+
+Thus the ownership is:
+
+```text
+NPC definition
+    XP reward amount
+
+live actor
+    HP/death state
+
+death handler
+    consumes definition XP
+    -> party progression system
+```
+
+The later combat/progression chapter documents the recipient/distribution arithmetic.
+
+## 60. Death handling can contain special/story branches
+
+The central death path is not guaranteed to be only:
+
+```text
+HP <= 0
+-> sound
+-> XP
+-> remove
+```
+
+CODE.2 contains special story/death convergence before final audio and cleanup for selected actors. [Sound fields](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/SOUND_FIELDS.md)
+
+Additionally, level event/story logic can scan family-A actors by type and alter live runtime suppression state, as demonstrated by the FINAL STRAHD path. [LEVELS event callees](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/LEVELS.DAT/EVENT_CALLEES.md)
+
+A modern actor destructor should not bypass these scripted/special transitions.
+
+## 61. Level header contains three NPC-type filters
+
+Level header:
+
+```text
++0x292
++0x294
++0x296
+```
+
+stores three signed NPC type filters.
+
+They are compared directly to family-A `npc_type_id` values. `-1` is predominantly the no-match sentinel. [LEVELS header tail](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/LEVELS.DAT/HEADER_TAIL.md)
+
+This is another level ↔ NPCS namespace connection beyond ordinary placement.
+
+The exact higher-level purpose of each filter is documented only to the proved call sites; do not invent editor names.
+
+## 62. Residual main behavior bits must survive editing
+
+The supplied main behavior dword populates every low bit `0..19`.
+
+Proved semantic mask:
+
+```text
+0x0000EB9F
+```
+
+Residual populated mask:
+
+```text
+0x000F1460
+```
+
+[Residual flags](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/RESIDUAL_FLAGS.md)
+
+Six populated bits have no proved semantic consumer:
+
+```text
+0x00000020
+0x00000040
+0x00000400
+0x00001000
+0x00010000
+0x00080000
+```
+
+They are real serialized state, not padding.
+
+## 63. Two residual main bits have exact behavior but unknown intent
+
+```text
+0x00020000
+0x00040000
+```
+
+are consumed in category-11 weapon handling.
+
+Their exact machine behavior is preserved, but the intended original labels remain unknown. [Residual flags](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/RESIDUAL_FLAGS.md)
+
+This is a useful preservation category:
+
+```text
+behavior known
+source intent/name unknown
+```
+
+## 64. Residual +0x39 bits must also survive
+
+All eight bits of `behavior_flags_39` occur in the supplied table.
+
+Proved mask:
+
+```text
+0xE1
+```
+
+Residual populated mask:
+
+```text
+0x1E
+= 0x02 | 0x04 | 0x08 | 0x10
+```
+
+[Residual flags](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/RESIDUAL_FLAGS.md)
+
+These four bits must remain raw/preserved.
+
+## 65. +0x3A has no populated residual bits
+
+Supplied populated mask:
+
+```text
+0x36
+```
+
+which is exactly the proved semantic mask:
+
+```text
+0x02 level drain
+0x04 Strength drain
+0x10 disease
+0x20 undead
+```
+
+Thus every populated bit in `+0x3A` is semantically accounted for in this corpus.
+
+## 66. +0x3B/+0x3C remain raw zero bytes
+
+Both bytes are zero in all 83 supplied records.
+
+No direct NPC-definition consumer has been proved.
+
+[NPCS final audit](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/FINAL_AUDIT_2026-10-06.md)
+
+They remain:
+
+```text
+unresolved_3B
+unresolved_3C
+```
+
+not guaranteed padding.
+
+## 67. Raw flag storage must remain authoritative
+
+A bad native representation would be:
+
+```text
+struct NpcCapabilities {
+    bool fire_immune;
+    bool cold_immune;
+    ...
+}
+```
+
+with serialization regenerated only from known booleans.
+
+That would destroy residual bits.
+
+The faithful boundary should instead be:
+
+```text
+uint32 behavior_flags;
+uint8  behavior_flags_39;
+uint8  behavior_flags_3A;
+
+named semantic accessors
+    view/test bits without replacing raw storage
+```
+
+## 68. Live runtime flags require the same preservation discipline
+
+Definition `initial_runtime_flags` is copied into live actor `runtime_flags`, then modified by:
+
+- status application;
+- movement/action logic;
+- story/wordcode;
+- visibility/suppression behavior.
+
+A standalone LEV file serializes the live dword directly.
+
+Therefore the live actor field should also remain raw-authoritative with named bit views layered above it.
+
+## 69. Suggested native NPC architecture
+
+A faithful modern implementation can separate:
+
+```text
+LegacyNpcDefinition
+    exact 0x45-byte NPCS record
+
+NpcDefinitionView
+    visual fields
+    collision
+    combat stats
+    capability aliases
+    audio IDs
+
+LegacyNpcLiveRecord
+    exact 0x16-byte LEV-compatible actor state
+
+NpcActor
+    fixed-point transform
+    current HP
+    facing
+    action/status countdown
+    mutable runtime flags
+    cached cell
+
+NpcNavigationPolicy
+    dynamic barrier activation
+    obstacle passthrough
+    common level collision
+
+NpcCombatProfile
+    THAC0
+    damage dice
+    special attacks
+    immunity/resistance aliases
+
+NpcPresentationProfile
+    type-7 shape base
+    animation fields
+    render scale bias
+    sounds
+```
+
+These are proposed native abstractions, not recovered DreamForge source names.
+
+## 70. Template and actor must not share mutable fields
+
+A strict port should not mutate:
+
+```text
+NPCS definition initial_runtime_flags
+NPCS action_delay
+NPCS hit_dice_count
+```
+
+when one actor is held, damaged, slowed, hidden, or killed.
+
+Those definition values initialize or parameterize the live actor.
+
+Each family-A actor owns its own:
+
+```text
+runtime_flags
+countdown
+HP
+position
+facing
+```
+
+## 71. Required NPC regression classes
+
+### 71.1 Database identity
+
+Verify:
+
+```text
+size      5,731
+count     83
+stride    69
+SHA-256   certified value
+```
+
+and byte-exact decode/encode.
+
+### 71.2 Name-tail preservation
+
+Use records with nonzero post-NUL residue and ensure a no-op parse/reencode preserves every byte.
+
+### 71.3 Definition-to-live expansion
+
+For representative definitions verify:
+
+- initial runtime flags copy;
+- fixed-point position;
+- cached cell;
+- facing packing;
+- HP initialization;
+- actor type.
+
+### 71.4 Standalone LEV restoration
+
+Load a direct actor snapshot and ensure:
+
+- HP is not rerolled;
+- position is not reset;
+- facing is not restored from baseline;
+- countdown is not recreated from definition delay.
+
+### 71.5 Collision extent
+
+Test all three supplied encodings:
+
+```text
+0x8000
+0x0001
+0xFFFF
+```
+
+with original-width arithmetic.
+
+### 71.6 Scene animation
+
+Exercise shape base, frame stride, cycle divisor, animation span, and damage-reaction animation gate.
+
+### 71.7 Render scale bias
+
+Compare Pyre Elemental value 3 against ordinary zero-bias NPCs through the type-7 lookup path.
+
+### 71.8 Action countdown
+
+Verify definition delay installation, live decrement, and persistence through LEV save/load.
+
+### 71.9 Hold eligibility
+
+Construct targets carrying:
+
+```text
+0x0100
+0x0002
+0x0008
+0x0010
+combinations
+```
+
+and verify Hold Undead/Person/Monster independently.
+
+### 71.10 Hold live state
+
+After successful hold:
+
+```text
+live runtime bit 0x08
+countdown installed
+```
+
+and preserve direct LEV serialization.
+
+### 71.11 Slow state
+
+Verify Slow's distinct runtime bit `0x80` and common-immunity test.
+
+### 71.12 Fire/cold immunity
+
+Test masks `0x2100` and `0x0900` with common-only, element-only, and combined definitions.
+
+### 71.13 Lightning immunity
+
+Test `0x0300` against class-3 effect type 1.
+
+### 71.14 Death Spell
+
+Verify dedicated `0x80` exclusion independent of common `0x0100`.
+
+### 71.15 Detect Undead
+
+Verify the dedicated exclusion bit affects detection marker/display without replacing undead classification.
+
+### 71.16 Turning
+
+Test:
+
+- non-undead target rejection;
+- undead target normal roll;
+- synthetic undead + penalty-bit target for latent `-4` behavior.
+
+### 71.17 Barrier navigation
+
+Test dynamic barrier encounter with and without `behavior_flags_39 & 0x40`.
+
+### 71.18 Obstacle passthrough
+
+Test placed/special obstacle collision with and without `0x80`.
+
+### 71.19 Status attacks
+
+Exercise:
+
+- poison;
+- paralysis;
+- disease;
+- level drain;
+- Strength drain.
+
+Verify corresponding character-state mutations and protection/cure interactions.
+
+### 71.20 Weapon resistance floors
+
+Test unenchanted category 9 and 10 against matching/nonmatching flags and require minimum one damage rather than zero.
+
+### 71.21 Enchanted reroute
+
+Add nonzero enchantment and verify category 11 is selected before the category-9/10 gates.
+
+### 71.22 Category-11 anomaly
+
+Preserve exact zero-extend/signed-comparison behavior for `0x20000/0x40000`.
+
+### 71.23 Audio
+
+Verify separate:
+
+- ambient/proximity;
+- attack;
+- surviving damage-reaction;
+- death.
+
+Test zero death ID fallback.
+
+### 71.24 Death/XP
+
+Reduce live HP to zero and verify death path reads definition XP rather than actor-local XP.
+
+### 71.25 Residual flags
+
+Inject/preserve every residual populated main and +0x39 bit through edit and runtime definition access.
+
+### 71.26 LEV022 actor fixture
+
+Require exact reproduction of the supplied Assassin's:
+
+```text
+x cell 18
+y cell 7
+flags 0x10000000
+cell 228
+countdown 4
+HP 15
+facing 6
+```
+
+## 72. Correction C-16 — NPCS.DAT is not live actor state
+
+A creature's current:
+
+- HP;
+- position;
+- facing;
+- countdown;
+- status/runtime flags;
+
+does **not** live in NPCS.DAT.
+
+NPCS is a static template database.
+
+The mutable state lives in family-A records and is serialized by LEV snapshots.
+
+A native implementation that directly mutates NPCS definitions during gameplay would incorrectly share state among every actor of that type.
+
+## 73. Correction C-17 — behavior flags are not one monster-type enum
+
+The three behavior fields simultaneously encode:
+
+- effect eligibility;
+- immunities;
+- damage-floor behavior;
+- navigation capability;
+- special attacks;
+- undead classification;
+- unresolved legacy capacity.
+
+They are overlapping bitfields, not one exclusive monster taxonomy.
+
+## 74. Correction C-18 — weapon gates are not complete immunity
+
+The proved category-9/category-10 flags force the intermediate damage to zero, but the same routine subsequently clamps damage to a minimum of one.
+
+Therefore the externally meaningful behavior is:
+
+```text
+one-damage floor
+```
+
+not:
+
+```text
+immune to category
+```
+
+This ordering must remain explicit in the future combat implementation.
+
+## 75. Historical unknowns retained
+
+Bounded remaining questions include:
+
+1. source-level names for six populated main behavior bits with no proved semantic consumer;
+2. source-level intent/names for category-11 bits `0x20000/0x40000`;
+3. source-level names for residual `+0x39` bits `0x02/0x04/0x08/0x10`;
+4. original editor/source name for `directional_offset[4]`;
+5. original source name for `scene_influence_step`;
+6. whether alternate builds assign semantics to `+0x3B/+0x3C`;
+7. finer historical labels for story/ambient animation states;
+8. original high-level AI-state names around countdown/navigation behavior.
+
+None prevents faithful parsing, actor reconstruction, navigation, rendering, status attacks, audio, combat gating, or LEV persistence.
+
+## 76. Source ledger
+
+### NPCS definition
+
+- [DatFiles/NPCS.DAT/README.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/README.md)
+- [DatFiles/NPCS.DAT/FORMAT.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/FORMAT.md)
+- [DatFiles/NPCS.DAT/FINAL_AUDIT_2026-10-06.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/FINAL_AUDIT_2026-10-06.md)
+
+### Behavior/effects
+
+- [DatFiles/NPCS.DAT/BEHAVIOR_FLAGS.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/BEHAVIOR_FLAGS.md)
+- [DatFiles/NPCS.DAT/RESIDUAL_FLAGS.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/RESIDUAL_FLAGS.md)
+- [DatFiles/NPCS.DAT/EFFECT_IMMUNITIES.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/EFFECT_IMMUNITIES.md)
+- [DatFiles/NPCS.DAT/HOLD_IMMUNITIES.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/HOLD_IMMUNITIES.md)
+- [DatFiles/NPCS.DAT/TARGETED_EFFECT_IMMUNITIES.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/TARGETED_EFFECT_IMMUNITIES.md)
+- [DatFiles/NPCS.DAT/DETECTION_TURNING_FLAGS.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/DETECTION_TURNING_FLAGS.md)
+- [DatFiles/NPCS.DAT/STATUS_ATTACKS.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/STATUS_ATTACKS.md)
+- [DatFiles/NPCS.DAT/WEAPON_DAMAGE_FLAGS.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/WEAPON_DAMAGE_FLAGS.md)
+
+### Rendering/audio/world state
+
+- [DatFiles/NPCS.DAT/RENDER_AUX_27.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/RENDER_AUX_27.md)
+- [DatFiles/NPCS.DAT/SOUND_FIELDS.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/NPCS.DAT/SOUND_FIELDS.md)
+- [DatFiles/LEVELS.DAT/FAMILY_A.md](https://github.com/Hyperbog/RLOFT/blob/f63ea449ed5c761ae6416f9e13966efd056c81c6/DatFiles/LEVELS.DAT/FAMILY_A.md)
+- [Component 05 world state](https://github.com/Hyperbog/RLOFT/blob/5ad18eff1519ec6b98470095aa18baf5f082c6cc/PreservationArchive/05_WORLD_LEVEL_STATE_AND_EVENTS.md)
+- [Component 04 renderer](https://github.com/Hyperbog/RLOFT/blob/1e7d4ec3d6d1d0aa098eb7c26ff4454783463340/PreservationArchive/04_VGA_RENDERING_PIPELINE.md)
+
+## 77. Architectural checkpoint
+
+The creature/NPC architecture is now:
+
+```text
+NPCS.DAT
+    83 immutable definitions
+        |
+        +-- scene/animation template
+        +-- collision extent
+        +-- combat stats
+        +-- action delay
+        +-- capability/immunity raw flags
+        +-- special attack raw flags
+        +-- sound IDs
+        |
+        v
+LEVELS family A compact placement
+        |
+        v
+live 22-byte actor
+        |
+        +-- 16.16 position
+        +-- runtime flags
+        +-- cached cell
+        +-- type ID
+        +-- countdown
+        +-- current HP
+        +-- packed facing/state
+        |
+        +----------------+----------------+----------------+
+        |                |                |                |
+        v                v                v                v
+   navigation        rendering        combat/status      audio
+        |                |                |                |
+   barriers           RES3 class0      THAC0/damage      ambient
+   obstacles          animation        immunities         attack
+   collision          type7 draw       drain/status       reaction
+                                        death/XP          death
+        |
+        v
+LEVnnn.DAT
+    mutable actor persistence
+```
+
+The next preservation component should document **combat resolution**: player and NPC attack selection, THAC0/Armor Class rolls, damage dice, weapon category/enchantment routing, saves/resistance checks, ranged/thrown attacks, status application, absorption/protection pools, death, XP distribution, hand/action timing, and combat-facing integration with the item/NPC systems already reconstructed.
