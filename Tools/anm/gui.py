@@ -455,6 +455,10 @@ class RavenloftExtractorGui(tk.Tk):
         tab = ttk.Frame(self.notebook, padding=14)
         self._padding_widgets.append((tab, (14,)))
         tab.columnconfigure(0, weight=1)
+        # Reserve a flexible middle row and keep the current action at the
+        # bottom edge of the visible tab. This prevents Extract/Dump controls
+        # from drifting below the client area as the window is shortened.
+        tab.rowconfigure(98, weight=1)
         self.notebook.add(tab, text=title)
         return tab
 
@@ -586,7 +590,7 @@ class RavenloftExtractorGui(tk.Tk):
 
         self._note(tab, 2, "Native timing is variable-rate, not one fixed FPS. Sampled ANM SFX commands are muxed from RES6/RES10 at their reconstructed frame timestamps. Timeline/original files use the metadata destination above.")
         button = ttk.Button(tab, text="Extract Selected Cinematics", command=self._start_cinematics)
-        button.grid(row=3, column=0, sticky="e", pady=(10, 0))
+        button.grid(row=99, column=0, sticky="se", pady=(10, 0))
         self._action_buttons.append(button)
         self._update_timing_state()
         self._update_video_state()
@@ -635,7 +639,7 @@ class RavenloftExtractorGui(tk.Tk):
             "PNG is sufficient for most modern-port artwork. RES3 NPCs/monsters, placed objects, loose items, and effects are now reconstructed as transparent native-resolution images. The associated-file options retain exact indexed/source data for preservation and renderer validation.",
         )
         button = ttk.Button(tab, text="Extract Selected Graphics", command=self._start_graphics)
-        button.grid(row=2, column=0, sticky="e", pady=(10, 0))
+        button.grid(row=99, column=0, sticky="se", pady=(10, 0))
         self._action_buttons.append(button)
 
     def _build_audio_tab(self) -> None:
@@ -665,7 +669,7 @@ class RavenloftExtractorGui(tk.Tk):
         self._folder_row(box, 5, "Destination", self.audio_dest)
         self._note(tab, 1, "Select individual RES audio/music files or All for the complete category.")
         button = ttk.Button(tab, text="Extract Selected Audio & Music", command=self._start_audio)
-        button.grid(row=2, column=0, sticky="e", pady=(10, 0))
+        button.grid(row=99, column=0, sticky="se", pady=(10, 0))
         self._action_buttons.append(button)
 
     def _build_support_tab(self) -> None:
@@ -684,7 +688,7 @@ class RavenloftExtractorGui(tk.Tk):
             ttk.Checkbutton(box, text=text, variable=variable).grid(row=row, column=0, sticky="w", pady=3)
         self._folder_row(box, len(options), "Destination", self.support_dest)
         button = ttk.Button(tab, text="Extract Selected Support Assets", command=self._start_support)
-        button.grid(row=2, column=0, sticky="e", pady=(10, 0))
+        button.grid(row=99, column=0, sticky="se", pady=(10, 0))
         self._action_buttons.append(button)
 
     def _build_all_tab(self) -> None:
@@ -700,7 +704,7 @@ class RavenloftExtractorGui(tk.Tk):
         ttk.Checkbutton(box, text="Standalone support assets", variable=self.all_support).grid(row=4, column=0, sticky="w", pady=(5, 0))
         self._folder_row(box, 5, "Destination", self.all_dest)
         button = ttk.Button(tab, text="Dump Everything", command=self._start_all)
-        button.grid(row=2, column=0, sticky="e", pady=(10, 0))
+        button.grid(row=99, column=0, sticky="se", pady=(10, 0))
         self._action_buttons.append(button)
 
     def _resize_wraps_for_width(self, window_width: int) -> None:
