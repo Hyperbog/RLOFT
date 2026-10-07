@@ -37,7 +37,7 @@ constexpr std::array<std::uint8_t, 32> kThird{
 
 std::vector<std::uint8_t> fake_code2() {
     std::vector<std::uint8_t> code2(
-        kDataFileStart + kLocations[2] + 32U, 0);
+        kDataFileStart + 0xEF4DU + 1U, 0);
     constexpr std::array<std::array<std::uint8_t, 32>, 3> tables{
         kFirst, kSecond, kThird
     };
@@ -67,6 +67,7 @@ int main() {
     const auto model =
         rloft::Type7VgaPlaneMaskModel::from_code2(code2);
     assert(model.initial_individual_columns_mode());
+    assert(model.initial_video_page() == 0U);
 
     // Every 369D8 mask table slot in the active domain is checked against
     // the certified bytes and every plane union covers its run width.
@@ -121,6 +122,16 @@ int main() {
     try {
         (void)rloft::Type7VgaPlaneMaskModel::
             from_code2(grouped_initial);
+    } catch (const std::runtime_error&) {
+        rejected = true;
+    }
+    assert(rejected);
+
+    auto wrong_page = code2;
+    wrong_page[kDataFileStart + 0xEF4DU] = 2U;
+    rejected = false;
+    try {
+        (void)rloft::Type7VgaPlaneMaskModel::from_code2(wrong_page);
     } catch (const std::runtime_error&) {
         rejected = true;
     }
