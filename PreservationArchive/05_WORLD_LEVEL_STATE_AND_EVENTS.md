@@ -1270,3 +1270,265 @@ rewrite the LEV022 cache to hide the known provenance discrepancy
 ```
 
 The historical serialized form and the reconstructed live semantics are both preservation targets.
+
+
+## 54. Required world-state regression classes
+
+A faithful native implementation should not be certified from visual playtesting alone. At minimum, regression coverage should include the following.
+
+### 54.1 Archive parsing
+
+For all 32 supplied records:
+
+```text
+record offset
+section boundaries
+map dimensions
+cell count
+10-byte record count
+family A/B/C counts
+event-table extent
+tail extent
+final record size
+```
+
+must reproduce the certified archive geometry.
+
+### 54.2 Compact-to-live expansion
+
+Given a compact archive record, verify exact live initialization for:
+
+- 16.16 positions;
+- cached cell indices;
+- family-A runtime flags;
+- actor HP initialization under deterministic/random-test fixtures;
+- action-state initialization;
+- facing packing;
+- family-B expanded records;
+- family-C legacy `0x54 -> 0x58` migration.
+
+### 54.3 Standalone restoration
+
+A direct LEV load must restore stored live state rather than reconstruct it from baseline definitions.
+
+The supplied Level-22 fixture should preserve:
+
+```text
+Assassin x position
+Assassin facing
+current HP
+action countdown
+0x0440 cell deltas
+expanded family-B records
+serialized cache bytes
+writer-unowned byte 0
+```
+
+### 54.4 Collision
+
+Test:
+
+```text
+ordinary code-0 cell         passable
+ordinary nonzero code cell   blocking
+0x0080 + dynamic pos 0       passable
+0x0080 + dynamic pos 8       blocking
+0x0080 + pos 1..7            blocking on traced path
+0x0080 + no group-2 record   special nonzero result
+```
+
+### 54.5 Dynamic record animation
+
+Test:
+
+- `+7 = +1` reaches endpoint 8;
+- `+7 = -1` reaches endpoint 0;
+- endpoint arrival clears delta;
+- active-animation count decrements;
+- stationary-state normalization retains only 0 or 8.
+
+### 54.6 Event-driven cell mutation
+
+Test opcodes 0–4 against exact cell/record state, especially opcode 4's preservation of all non-code bits.
+
+### 54.7 World-family ordering
+
+Test family-C append, full-array oldest-record discard, pickup/removal compaction, and moving-item updates without changing ordering semantics.
+
+### 54.8 Scene-source translation
+
+For all four source classes verify:
+
+```text
+bank-local shape
++ correct INIT source base
+= expected absolute RES3 entry
+```
+
+and preserve local IDs in serialized definitions.
+
+### 54.9 Event persistence crossing
+
+Verify that:
+
+```text
+level event-table bytes
+    remain level-owned
+
+persistent global event flags
+    round-trip through SAVE-owned 32-byte state
+```
+
+### 54.10 Generated cache
+
+Maintain two distinct test modes:
+
+```text
+rebuild mode
+    reproduce certified CODE.2 01558
+
+artifact-preservation mode
+    retain imported serialized cache bytes
+```
+
+This is necessary because of the bounded `LEV022.DAT` provenance discrepancy.
+
+## 55. Correction C-04 — standalone LEV files are not decompressed LEVELS records
+
+Any documentation or implementation shorthand describing `LEVnnn.DAT` as merely an unpacked/decompressed version of a `LEVELS.DAT` record is incorrect.
+
+The standalone form stores **live mutable state** not derivable solely by structural expansion:
+
+```text
+actor movement
+actor facing
+current HP
+action countdown
+mutable runtime flags
+dynamic-cell animation state
+current/persistent exploration flags
+loose/thrown item state
+live normalized header values
+generated automap/cache state
+```
+
+[LEV022 mutable delta](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEV022.DAT/MUTABLE_DELTA.md) [LEVELS final audit](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FINAL_AUDIT_2026-10-06.md)
+
+The accurate distinction is:
+
+```text
+LEVELS.DAT record
+    compact authored baseline
+
+LEVnnn.DAT
+    serialized live level snapshot
+```
+
+This is a documentation/architecture correction. It does not change the certified binary reconstruction.
+
+## 56. Historical unknowns retained
+
+The supplied-build world model is structurally closed, but the following historical/source-level questions remain intentionally unresolved:
+
+1. original editor/source name for cell bit `0x2000`;
+2. exact historical object-table revision that required family-C `0x54 -> 0x58`;
+3. provenance or executable-revision explanation for the 40-cell `LEV022.DAT` cache mismatch;
+4. exact editor-facing names of all 10-byte record kinds and unresolved record bytes;
+5. higher-level meaning of dynamic kind-1 mode 2;
+6. exact editor/source name for the extra `0x0200` render prepass;
+7. original source name for the two-bit `0xC000` render decrement;
+8. original source names for the three compact world families;
+9. exact producer/editor terminology for the four RES3 scene-source classes.
+
+These are historical naming/provenance gaps. None prevents faithful parsing, runtime reconstruction, or lossless preservation for the supplied build.
+
+## 57. Source ledger
+
+### Primary level/world reconstruction
+
+- [DatFiles/LEVELS.DAT/README.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/README.md)
+- [DatFiles/LEVELS.DAT/FORMAT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FORMAT.md)
+- [DatFiles/LEVELS.DAT/SEMANTICS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/SEMANTICS.md)
+- [DatFiles/LEVELS.DAT/FINAL_AUDIT_2026-10-06.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FINAL_AUDIT_2026-10-06.md)
+- [DatFiles/LEVELS.DAT/HEADER_TAIL.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/HEADER_TAIL.md)
+- [DatFiles/LEVELS.DAT/CELL_WORD.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/CELL_WORD.md)
+- [DatFiles/LEVELS.DAT/CELL_FLAG_LINKS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/CELL_FLAG_LINKS.md)
+- [DatFiles/LEVELS.DAT/CELL_RECORDS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/CELL_RECORDS.md)
+- [DatFiles/LEVELS.DAT/DYNAMIC_CELL_RECORDS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/DYNAMIC_CELL_RECORDS.md)
+- [DatFiles/LEVELS.DAT/FAMILY_A.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FAMILY_A.md)
+- [DatFiles/LEVELS.DAT/FAMILY_C.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FAMILY_C.md)
+- [DatFiles/LEVELS.DAT/EVENT_SCRIPTS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_SCRIPTS.md)
+- [DatFiles/LEVELS.DAT/EVENT_CALLEES.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_CALLEES.md)
+- [DatFiles/LEVELS.DAT/CACHE_REBUILD_AUDIT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/CACHE_REBUILD_AUDIT.md)
+- [DatFiles/LEVELS.DAT/AUTOMAP.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/AUTOMAP.md)
+- [DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+- [DatFiles/LEV022.DAT/MUTABLE_DELTA.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEV022.DAT/MUTABLE_DELTA.md)
+
+### Executable reconstruction
+
+- [Code2/CODE2_CONTINUITY_ADDENDUM.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/CODE2_CONTINUITY_ADDENDUM.md)
+- [Code2/FINAL_SEMANTIC_AUDIT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_SEMANTIC_AUDIT.md)
+- [Code2/FINAL_CERTIFICATION.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_CERTIFICATION.md)
+
+### Cross-subsystem resource evidence
+
+- [Resources/RES/TYPE7_SOURCE_BANKS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE7_SOURCE_BANKS.md)
+- [Resources/MISC/INIT/ENVIRONMENT_PROFILES.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/INIT/ENVIRONMENT_PROFILES.md)
+
+## 58. Architectural checkpoint
+
+The original level/world architecture can now be summarized as:
+
+```text
+                    LEVELS.DAT
+               compact authored baseline
+                         |
+                         v
+                   archive loader
+                         |
+        +----------------+----------------+
+        |                |                |
+        v                v                v
+   fixed header      packed cells     compact world
+        |                |             families A/B/C
+        |                |                |
+        |                |                v
+        |                |          22-byte live records
+        |                |                |
+        +--------+-------+--------+-------+
+                 |                |
+                 v                v
+          10-byte control     runtime transient
+          group split         effect records
+                 |                |
+                 +-------+--------+
+                         |
+                         v
+                 live level state
+                         |
+           +-------------+-------------+
+           |             |             |
+           v             v             v
+       collision       events       scene builder
+           |             |             |
+           |             |             +--> RES3 class 0
+           |             |             +--> RES3 class 1
+           |             |             +--> RES3 class 2
+           |             |             +--> RES3 class 3
+           |             |
+           |             +--> SFX/music/text
+           |             +--> global SAVE event flags
+           |             +--> topology/record mutation
+           |
+           v
+    exploration/current-view state
+           |
+           v
+   generated automap/display cache
+           |
+           v
+             LEVnnn.DAT
+        expanded mutable snapshot
+```
+
+The next preservation chapter should specialize the **automap and navigation representation**: cache classification, connected-wall resolution, door/inset/secret glyph generation, party/location state, placed-object overlays, annotations, export format, and the relationship between map discovery and first-person visibility.
