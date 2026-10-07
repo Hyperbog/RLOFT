@@ -29,6 +29,19 @@ ExplorationRuntime ExplorationRuntime::load_fresh(
             source.read("INIT")));
 }
 
+void ExplorationRuntime::initialize_gameplay_state(
+    const GameSource& source,
+    const LevelWorldStateCodec::DiceRoller& roll) {
+    npc_catalog_ = NpcCatalog::load(source);
+    object_catalog_ = ObjectCatalog::load(source);
+    world_ = LevelWorldStateCodec::build(
+        session_.level,
+        npc_catalog_,
+        roll);
+    inventory_ = InventoryRuntimeState::fresh(source);
+    gameplay_state_initialized_ = true;
+}
+
 ExplorationRuntimeMotionResult ExplorationRuntime::tick_motion(
     ExplorationMotionInputs inputs) {
     return ExplorationRuntimeMotionModel::tick(
