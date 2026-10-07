@@ -27,6 +27,7 @@ add_library(rloft_boot_flow
     src/object_catalog.cpp
     src/inventory_screen.cpp
     src/party_hud.cpp
+    src/party_panel_controls.cpp
     src/top_edge_menu.cpp
     src/top_edge_menu_presenter.cpp
     src/exploration_ui.cpp
@@ -123,6 +124,10 @@ add_test(NAME inventory_screen_tests COMMAND inventory_screen_tests)
 add_executable(party_hud_tests tests/party_hud_tests.cpp)
 target_link_libraries(party_hud_tests PRIVATE rloft_boot_flow)
 add_test(NAME party_hud_tests COMMAND party_hud_tests)
+
+add_executable(party_panel_controls_tests tests/party_panel_controls_tests.cpp)
+target_link_libraries(party_panel_controls_tests PRIVATE rloft_boot_flow)
+add_test(NAME party_panel_controls_tests COMMAND party_panel_controls_tests)
 
 add_executable(top_edge_menu_tests tests/top_edge_menu_tests.cpp)
 target_link_libraries(top_edge_menu_tests PRIVATE rloft_boot_flow)
@@ -323,6 +328,7 @@ set(RLOFT_TEST_TARGETS
     object_catalog_tests
     inventory_screen_tests
     party_hud_tests
+    party_panel_controls_tests
     top_edge_menu_tests
     top_edge_menu_presenter_tests
     exploration_ui_tests
