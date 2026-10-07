@@ -107,3 +107,26 @@ fatal rather than silently substituting a host asset.
 
 A user-machine smoke run against an owned installation remains the final external
 environment check, not an unresolved reconstruction item.
+
+
+## Post-audit live smoke test
+
+A first user-machine run against original installed media exposed host-integration issues
+that were not visible in asset-free CI. They were corrected in commit `e8c1d90c`:
+
+- corrected the host presentation from raw square-pixel 320x400 geometry to the
+  physical 4:3 VGA display aspect while retaining the native 320x400 framebuffer;
+- changed window painting to an off-screen buffered repaint and stopped forcing a
+  synchronous redraw for every cursor movement, reducing host-side flashing;
+- corrected Windows title-bar mojibake caused by the non-ASCII em dash;
+- added a safe CHARS-present replay path: the user may replay the fresh-boot /
+  character-creation slice while the existing CHARS file remains untouched;
+- retained the original behavior for a first fresh run: successful character creation
+  still serializes the exact 0x920-byte CHARS transfer file.
+
+The fourth CODE.2 startup-menu entry (the visible "Watch the Future" choice in the
+tested media) intentionally exits through the ordinary status-0 path; the observed
+process termination is therefore expected behavior, not a demo regression.
+
+CI for `e8c1d90c` passed on both Windows and Linux, and the Windows artifact was
+published successfully.
