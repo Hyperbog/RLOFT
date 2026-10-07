@@ -37,6 +37,8 @@
 #include "rloft/exploration_legacy_input.hpp"
 #include "rloft/exploration_presenter.hpp"
 #include "rloft/exploration_runtime.hpp"
+#include "rloft/party_modal_presenter.hpp"
+#include "rloft/party_panel_controls.hpp"
 #include "rloft/top_edge_menu_presenter.hpp"
 #include "rloft/game_source.hpp"
 #include "rloft/resource_assets.hpp"
@@ -776,6 +778,7 @@ int run_exploration(
     rloft::ExplorationPresenter presenter(assets);
     rloft::TopEdgeMenuPresenter menu_presenter(assets);
     rloft::AutomapScreenPresenter automap_presenter(assets);
+    rloft::PartyModalPresenter party_modal_presenter(assets);
     rloft::ExplorationLegacyInputController input;
     rloft::ExplorationUiController ui;
     std::optional<rloft::AutomapModalController> automap;
@@ -806,6 +809,14 @@ int run_exploration(
                 // automap panel action 11 below.
                 ui.close_screen();
                 automap.reset();
+                input.clear();
+                continue;
+            }
+            if (ui.state().screen ==
+                rloft::ExplorationUiScreen::PartyPanels) {
+                // Host safety escape. The exact CODE.2 13118 modal-close
+                // gesture is tracked separately and is not approximated here.
+                ui.close_screen();
                 input.clear();
                 continue;
             }
@@ -865,6 +876,48 @@ int run_exploration(
             continue;
         }
 
+        if (ui.state().screen ==
+            rloft::ExplorationUiScreen::PartyPanels) {
+            if (const auto click =
+                    host.consume_exploration_click()) {
+                if (const auto actor =
+                        rloft::PartyPanelControlModel::
+                            modal_toggle_actor_at(
+                                click->row,
+                                click->column)) {
+                    if (runtime.session().party.active(*actor)) {
+                        ui.toggle_party_panel(*actor);
+                    }
+                }
+                // All item/equipment click branches in CODE.2 12E70 remain
+                // intentionally inert for this read-only milestone.
+            }
+
+            (void)party_modal_presenter.draw(
+                presenter.framebuffer(),
+                runtime.session().party,
+                ui.state().party_panel_character_mode,
+                ui.state().selected_party_actor);
+            host.present(
+                presenter.framebuffer(),
+                exploration_palette);
+
+            next_frame +=
+                std::chrono::duration_cast<Clock::duration>(
+                    std::chrono::duration<double>(
+                        1.0 / kVgaRefreshHz));
+            if (!host.wait_until(next_frame, false)) {
+                break;
+            }
+            const auto now = Clock::now();
+            if (next_frame +
+                    std::chrono::milliseconds(100) <
+                now) {
+                next_frame = now;
+            }
+            continue;
+        }
+
         int hovered_menu = -1;
         if (const auto pointer =
                 host.exploration_pointer()) {
@@ -904,6 +957,42 @@ int run_exploration(
                     input.clear();
                 }
             }
+
+            if (pressed_menu < 0) {
+                if (const auto actor =
+                        rloft::PartyPanelControlModel::
+                            gameplay_actor_at(
+                                click->row,
+                                click->column)) {
+                    if (runtime.session().party.active(*actor)) {
+                        ui.open_party_panels(*actor);
+                        input.clear();
+                    }
+                }
+            }
+        }
+
+        if (ui.state().screen ==
+            rloft::ExplorationUiScreen::PartyPanels) {
+            // The opening actor-panel click is consumed above. Render the
+            // modal immediately and do not advance 1FC14/2E120 locomotion.
+            (void)party_modal_presenter.draw(
+                presenter.framebuffer(),
+                runtime.session().party,
+                ui.state().party_panel_character_mode,
+                ui.state().selected_party_actor);
+            host.present(
+                presenter.framebuffer(),
+                exploration_palette);
+
+            next_frame +=
+                std::chrono::duration_cast<Clock::duration>(
+                    std::chrono::duration<double>(
+                        1.0 / kVgaRefreshHz));
+            if (!host.wait_until(next_frame, false)) {
+                break;
+            }
+            continue;
         }
 
         // CODE.2 080AC is modal while the pointer remains in the top
