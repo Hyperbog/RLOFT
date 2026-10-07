@@ -30,12 +30,14 @@ code  = word & 0x003F
 default output = 0xFF
 ```
 
-Party-cell override:
+Level-profile-selected common floor/empty class:
 
 ```text
-0x258A8 == 0xFF -> 0x2F
-otherwise       -> 0x2E
+header +0x290 / DGROUP 0x258A8 == 0xFF -> 0x2F
+otherwise                              -> 0x2E
 ```
+
+The earlier label "party-cell override" was too strong. `0x258A8` is independently proved to be the level's environment/render-profile selector, not a party-position value. Both `0x2E` and `0x2F` convert to export byte `0xFA`, so their exact on-screen/editor distinction remains an internal profile-dependent floor/empty-class distinction.
 
 Explored cells (`word & 0x0400`):
 
@@ -122,6 +124,44 @@ Daniel D'Agostino's Ravenloft-engine automap study independently identifies the 
 The binary proves the conversion table; the external study supplies those human-readable glyph names.
 
 The official manual states that the automap is line-of-sight/exploration based and displays current map/object information. That is consistent with the reconstructed pipeline but is not used to assign binary offsets.
+
+
+## Automap SAVE filename and PRINT path
+
+A later direct CODE.2 xref pass closes two items that were previously community-corrobated rather than executable-proved.
+
+Object-2/DGROUP offset `0x5FDA` contains the literal mutable template:
+
+```text
+AUTOMAPS\\AUTO???.MAP
+```
+
+Physical file location in the supplied CODE.2 is `0x7BEFE`.
+
+Routine `02A34` receives the current level/map value, patches the three `?` bytes at DGROUP `0x5FE7..0x5FE9`, removes/recreates/opens that path through the runtime file wrappers, then calls exporter `026E8` in merged/file-output mode and closes the resulting handle. The placeholder writes are instruction-proven and should be reproduced exactly rather than replaced by an assumed formatting helper.
+
+A second direct caller at `03321` invokes `026E8` in stream/non-merged mode with fixed FILE-like object pointer DGROUP `0xF764`. The five consecutive runtime FILE objects at `0xF6F4 + n*0x1C` map this pointer to the fifth DOS standard stream. Watcom's DOS C library documents the startup standard-stream order as `stdin`, `stdout`, `stderr`, `stdaux`, `stdprn`; therefore `0xF764` is the **standard printer stream (`stdprn`)**.
+
+This closes the executable-side Save/Print architecture:
+
+```text
+SAVE automap
+    -> patch AUTOMAPS\\AUTO???.MAP template
+    -> create/open file
+    -> 026E8 merged map output
+    -> annotation legend
+
+PRINT automap
+    -> 026E8 stdprn stream output
+    -> three-layer textual rows
+    -> annotation legend
+```
+
+Official Watcom standard-stream documentation:
+<https://openwatcom.org/ftp/manuals/1.5/clib.pdf>
+
+Daniel D'Agostino's independent Ravenloft automap study reports the same user-facing Save/Print intent and DOS/IBM-character-set rendering:
+<https://www.swordsandsoftware.com/ravenloft-automaps.php>
 
 ## Export overlays
 
