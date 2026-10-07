@@ -8,6 +8,7 @@ add_library(rloft_boot_flow
     src/boot_flow.cpp
     src/character_creation_flow.cpp
     src/character_creation_presenter.cpp
+    src/character_stats.cpp
     src/game_source.cpp
     src/resource_assets.cpp
     src/startup_presenter.cpp
@@ -50,6 +51,10 @@ add_test(NAME xmidi_tests COMMAND xmidi_tests)
 add_executable(character_flow_tests tests/character_flow_tests.cpp)
 target_link_libraries(character_flow_tests PRIVATE rloft_boot_flow)
 add_test(NAME character_flow_tests COMMAND character_flow_tests)
+
+add_executable(character_stats_tests tests/character_stats_tests.cpp)
+target_link_libraries(character_stats_tests PRIVATE rloft_boot_flow)
+add_test(NAME character_stats_tests COMMAND character_stats_tests)
 
 if(WIN32)
     add_executable(
