@@ -181,10 +181,6 @@ def render_header(width: int, height: int, ui_scale: float = 1.0) -> Image.Image
             out.paste(tile, (x, y))
     out = Image.blend(out, Image.new("RGB", out.size, "#16090b"), 0.20)
 
-    panel = menu_panel()
-    tl = _scaled_crop(panel, TOP_LEFT, frame_scale)
-    tr = _scaled_crop(panel, TOP_RIGHT, frame_scale)
-
     margin = max(2, round(4 * frame_scale))
     rail_w = max(4, round(6 * frame_scale))
     top_rail_y = max(12, round(16 * frame_scale))
@@ -199,24 +195,11 @@ def render_header(width: int, height: int, ui_scale: float = 1.0) -> Image.Image
 
     draw = ImageDraw.Draw(out)
     draw.rectangle(
-        (
-            margin + tl.width - max(10, round(12 * frame_scale)),
-            top_rail_y,
-            max(
-                margin + tl.width,
-                width - margin - tr.width + max(10, round(12 * frame_scale)),
-            ),
-            top_rail_y + rail_w,
-        ),
+        (margin, top_rail_y, width - margin, top_rail_y + rail_w),
         fill=stone_dark,
     )
     draw.line(
-        (
-            margin + tl.width - max(9, round(11 * frame_scale)),
-            top_rail_y + 1,
-            width - margin - tr.width + max(9, round(11 * frame_scale)),
-            top_rail_y + 1,
-        ),
+        (margin, top_rail_y + 1, width - margin, top_rail_y + 1),
         fill=stone_light,
         width=max(1, round(2 * frame_scale)),
     )
@@ -238,9 +221,6 @@ def render_header(width: int, height: int, ui_scale: float = 1.0) -> Image.Image
         fill=stone,
         width=max(1, round(2 * frame_scale)),
     )
-
-    out.paste(tl, (margin, 0), tl)
-    out.paste(tr, (max(0, width - margin - tr.width), 0), tr)
 
     logo = ravenloft_logo()
     target_h = max(
@@ -278,8 +258,8 @@ def chrome_insets(scale: float = 1.0) -> tuple[int, int, int]:
 def render_window(width: int, height: int, ui_scale: float = 1.0) -> Image.Image:
     """Render the client window as an enlarged version of RES0:100's frame.
 
-    The original Strahd's Possession menu panel supplies the four corners,
-    side ornaments, bottom finial, and visual proportions.  Long edges are
+    The original Strahd's Possession menu panel supplies the side ornaments,
+    bottom finial, and visual proportions.  Long edges are
     simple stone rails so decorative columns never repeat through the
     background.
     """
@@ -298,10 +278,6 @@ def render_window(width: int, height: int, ui_scale: float = 1.0) -> Image.Image
     out = Image.blend(out, Image.new("RGB", out.size, "#13090a"), 0.28)
 
     panel = menu_panel()
-    tl = _scaled_crop(panel, TOP_LEFT, scale)
-    tr = _scaled_crop(panel, TOP_RIGHT, scale)
-    bl = _scaled_crop(panel, BOTTOM_LEFT, scale)
-    br = _scaled_crop(panel, BOTTOM_RIGHT, scale)
     left = _scaled_crop(panel, SIDE_LEFT, scale)
     right = _scaled_crop(panel, SIDE_RIGHT, scale)
     bottom_center = _scaled_crop(panel, BOTTOM_CENTER, scale)
@@ -310,8 +286,6 @@ def render_window(width: int, height: int, ui_scale: float = 1.0) -> Image.Image
     # The app uses a 34px custom titlebar at scale 1.0.  Start the original
     # menu frame below it so the non-client controls never cover the ornaments.
     frame_top = max(28, round(34 * scale))
-    bottom_y = max(frame_top + 1, height - margin - bl.height)
-
     stone = (112, 109, 103)
     stone_light = (162, 158, 149)
     stone_dark = (40, 29, 31)
@@ -326,26 +300,20 @@ def render_window(width: int, height: int, ui_scale: float = 1.0) -> Image.Image
     # Long edges are deliberately undecorated rails. All ornate pixels come
     # from RES0:100 and are pasted over these rails afterward.
     draw.rectangle(
-        (margin + tl.width - max(10, round(12 * scale)), top_rail_y,
-         max(margin + tl.width, width - margin - tr.width + max(10, round(12 * scale))),
-         top_rail_y + rail_w),
+        (margin, top_rail_y, width - margin, top_rail_y + rail_w),
         fill=stone_dark,
     )
     draw.line(
-        (margin + tl.width - max(9, round(11 * scale)), top_rail_y + 1,
-         width - margin - tr.width + max(9, round(11 * scale)), top_rail_y + 1),
+        (margin, top_rail_y + 1, width - margin, top_rail_y + 1),
         fill=stone_light,
         width=max(1, round(2 * scale)),
     )
     draw.rectangle(
-        (margin + bl.width - max(10, round(12 * scale)), bottom_rail_y - rail_w,
-         max(margin + bl.width, width - margin - br.width + max(10, round(12 * scale))),
-         bottom_rail_y),
+        (margin, bottom_rail_y - rail_w, width - margin, bottom_rail_y),
         fill=stone_dark,
     )
     draw.line(
-        (margin + bl.width - max(9, round(11 * scale)), bottom_rail_y - 1,
-         width - margin - br.width + max(9, round(11 * scale)), bottom_rail_y - 1),
+        (margin, bottom_rail_y - 1, width - margin, bottom_rail_y - 1),
         fill=stone_light,
         width=max(1, round(2 * scale)),
     )
@@ -371,15 +339,9 @@ def render_window(width: int, height: int, ui_scale: float = 1.0) -> Image.Image
     def paste(img: Image.Image, xy: tuple[int, int]) -> None:
         out.paste(img, xy, img if img.mode == "RGBA" else None)
 
-    # Original title-panel corners.
-    paste(tl, (margin, frame_top))
-    paste(tr, (max(0, width - margin - tr.width), frame_top))
-    paste(bl, (margin, bottom_y))
-    paste(br, (max(0, width - margin - br.width), bottom_y))
-
     # Exactly one original side medallion/ornament on each edge.
-    inner_top = frame_top + tl.height
-    inner_bottom = bottom_y
+    inner_top = top_rail_y + rail_w
+    inner_bottom = bottom_rail_y - rail_w
     available = max(0, inner_bottom - inner_top)
     side_y = inner_top + max(0, (available - left.height) // 2)
     paste(left, (margin, side_y))

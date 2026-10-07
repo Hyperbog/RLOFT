@@ -24,9 +24,12 @@ class TitleSkinTests(unittest.TestCase):
         self.assertEqual(image.size, (1280, 900))
         self.assertEqual(image.mode, "RGB")
 
-        # Decorative corners/rails must differ from the tiled interior field.
-        self.assertNotEqual(image.getpixel((12, 12)), image.getpixel((640, 450)))
-        self.assertNotEqual(image.getpixel((640, 15)), image.getpixel((640, 450)))
+        # The outer rails now run cleanly through the former corner zones.
+        stone_dark = (40, 29, 31)
+        self.assertEqual(image.getpixel((10, 50)), stone_dark)
+        self.assertEqual(image.getpixel((1270, 50)), stone_dark)
+        self.assertEqual(image.getpixel((10, 872)), stone_dark)
+        self.assertEqual(image.getpixel((1270, 872)), stone_dark)
 
     def test_ravenloft_header_renders(self) -> None:
         header = title_skin.render_header(1280, 104, 1.0)
@@ -34,9 +37,10 @@ class TitleSkinTests(unittest.TestCase):
         self.assertEqual(header.mode, "RGB")
         self.assertNotEqual(header.getpixel((640, 52)), header.getpixel((10, 52)))
 
-        # The full-bleed header must redraw the outer top rail because the
-        # header canvas otherwise covers the frame rendered behind it.
-        self.assertEqual(header.getpixel((100, 16)), (40, 29, 31))
+        # The full-bleed header rail reaches through the former corner zones.
+        stone_dark = (40, 29, 31)
+        self.assertEqual(header.getpixel((10, 16)), stone_dark)
+        self.assertEqual(header.getpixel((1270, 16)), stone_dark)
 
     def test_chrome_insets_are_positive(self) -> None:
         side, top, bottom = title_skin.chrome_insets(1.0)
