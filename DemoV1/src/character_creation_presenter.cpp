@@ -469,6 +469,108 @@ void CharacterCreationPresenter::draw_controller_base(
     }
 }
 
+void CharacterCreationPresenter::draw_controller_entry_base(
+    const CharacterCreationFlow& flow) {
+    std::string label;
+    int stage = 0;
+
+    switch (flow.state()) {
+        case CharacterCreationState::ActorChoice:
+            break;
+        case CharacterCreationState::SexChoice:
+            label = assets_.text(0x26);
+            break;
+        case CharacterCreationState::RaceChoice:
+            label = assets_.text(0x27);
+            stage = 1;
+            break;
+        case CharacterCreationState::ClassChoice:
+            label = assets_.text(0x28);
+            stage = 3;
+            break;
+        case CharacterCreationState::OptionChoice:
+            label = assets_.text(0x29);
+            stage = 3;
+            break;
+        case CharacterCreationState::PortraitChoice:
+            label = assets_.text(0x2A);
+            stage = 4;
+            break;
+        case CharacterCreationState::StatsReview: {
+            const auto offset = assets_.code1_s32(0x04B8);
+            if (offset < 0) {
+                throw std::runtime_error(
+                    "CODE.1 mode-6 title pointer is negative");
+            }
+            label = assets_.code1_cstring(
+                static_cast<std::size_t>(offset));
+            stage = 5;
+            break;
+        }
+    }
+
+    // function_10A4's two initial page passes: controller chrome, all nine
+    // slot backgrounds, title, and the 04B0 persistent summary only.
+    draw_controller_base(flow.state(), label);
+    if (stage != 0) {
+        draw_persistent_summary(flow.draft(), stage);
+    }
+}
+
+void CharacterCreationPresenter::draw_controller_text_boxes(
+    const CharacterCreationFlow& flow) {
+    switch (flow.state()) {
+        case CharacterCreationState::ActorChoice:
+            draw_text_box(
+                flow.both_present() ? 1 : 2,
+                0x114,
+                0x10C);
+            return;
+        case CharacterCreationState::SexChoice:
+            draw_text_box(8, 0x114, 0x10C);
+            return;
+        case CharacterCreationState::RaceChoice:
+            draw_text_box(9, 0x114, 0x10C);
+            return;
+        case CharacterCreationState::ClassChoice:
+            if (flow.class_stage() == 0) {
+                draw_text_box(0x0A, 0x114, 0x10C);
+            } else {
+                draw_text_box(0x0B, 0x114, 0x10C);
+                draw_text_box(3, 0x114, 0x0D7);
+            }
+            return;
+        case CharacterCreationState::OptionChoice:
+            draw_text_box(0x0C, 0x114, 0x10C);
+            return;
+        case CharacterCreationState::PortraitChoice:
+            draw_text_box(0x0D, 0x114, 0x10C);
+            draw_text_box(4, 0x114, 0x0D7);
+            return;
+        case CharacterCreationState::StatsReview:
+            draw_text_box(0x0E, 0x114, 0x10C);
+            return;
+    }
+}
+
+std::pair<int, int>
+CharacterCreationPresenter::controller_entry_range(
+    CharacterCreationState state) const noexcept {
+    switch (state) {
+        case CharacterCreationState::ActorChoice:
+        case CharacterCreationState::SexChoice:
+            return {2, 4};
+        case CharacterCreationState::StatsReview:
+            return {6, 9};
+        case CharacterCreationState::RaceChoice:
+        case CharacterCreationState::ClassChoice:
+        case CharacterCreationState::OptionChoice:
+        case CharacterCreationState::PortraitChoice:
+            return {0, 6};
+    }
+    return {0, 0};
+}
+
 bool CharacterCreationPresenter::slot_active(
     const CharacterCreationFlow& flow,
     int slot) const noexcept {
@@ -1127,6 +1229,264 @@ void CharacterCreationPresenter::transition_07e4_frame(
         }
 
         framebuffer_.restore(new_region[index], row, column);
+    }
+}
+
+int CharacterCreationPresenter::controller_entry_frame_count(
+    const CharacterCreationFlow& flow) const noexcept {
+    int active = 0;
+    for (int slot = 0; slot < 9; ++slot) {
+        if (slot_active(flow, slot)) ++active;
+    }
+    const auto range = controller_entry_range(flow.state());
+    return 2 + active * 14 +
+           transition_07e4_frame_count(
+               range.first,
+               range.second);
+}
+
+void CharacterCreationPresenter::controller_entry_frame(
+    const CharacterCreationFlow& flow,
+    const CharacterStatsModel* stats,
+    int frame_index) {
+    if (flow.state() == CharacterCreationState::StatsReview &&
+        !stats) {
+        throw std::logic_error(
+            "CODE.1 mode-6 entry requires generated stats");
+    }
+
+    std::array<int, 9> active_slots{};
+    int active_count = 0;
+    for (int slot = 0; slot < 9; ++slot) {
+        if (slot_active(flow, slot)) {
+            active_slots[static_cast<std::size_t>(active_count++)] =
+                slot;
+        }
+    }
+
+    const int ten_a4_frames = 2 + active_count * 14;
+    const auto range = controller_entry_range(flow.state());
+    const int seven_e4_frames =
+        transition_07e4_frame_count(
+            range.first,
+            range.second);
+    const int total =
+        ten_a4_frames + seven_e4_frames;
+
+    if (frame_index < 0 || frame_index >= total) {
+        throw std::out_of_range(
+            "CODE.1 controller entry frame index");
+    }
+
+    if (frame_index < ten_a4_frames) {
+        draw_controller_entry_base(flow);
+
+        if (frame_index < 2) {
+            return;
+        }
+
+        const int local = frame_index - 2;
+        const int active_index = local / 14;
+        const int phase = local % 14;
+
+        for (int i = 0; i < active_index; ++i) {
+            const int slot =
+                active_slots[static_cast<std::size_t>(i)];
+            draw_frame(
+                7,
+                0x15,
+                0,
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)]);
+        }
+
+        const int slot =
+            active_slots[
+                static_cast<std::size_t>(active_index)];
+
+        if (phase >= 12) {
+            draw_frame(
+                7,
+                0x15,
+                0,
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)]);
+            return;
+        }
+
+        // function_10A4 reads these twelve bytes from 0964h/0970h.
+        static constexpr std::array<int, 12> sequence{
+            0x15, 0x27, 0x28, 0x29, 0x28, 0x27,
+            0x15, 0x27, 0x28, 0x29, 0x28, 0x27
+        };
+        static constexpr std::array<bool, 12> reversed{
+            false, false, false, false, true, true,
+            false, false, false, false, true, true
+        };
+
+        const auto raster =
+            assets_.type1(
+                7,
+                sequence[static_cast<std::size_t>(phase)]);
+
+        const int target_column =
+            kSlotColumn[static_cast<std::size_t>(slot)] + 0x18;
+        const int target_row =
+            kSlotRow[static_cast<std::size_t>(slot)] + 0x3D;
+
+        const int anchor_column =
+            0xA0 +
+            ((target_column - 0xA0) * (phase + 1) + 6) /
+                12;
+        const int anchor_row =
+            -0x38 +
+            ((target_row - (-0x38)) * (phase + 1) + 6) /
+                12;
+
+        // 10A4 derives its capture rectangle from internal image +4
+        // (height) and +6*8 (width), then draws at the same origin.
+        const int row = anchor_row - raster.height / 2;
+        const int column = anchor_column - raster.width * 2;
+
+        if (reversed[static_cast<std::size_t>(phase)]) {
+            // A5C8 is the same in-place mirror used by 4520; preserve the
+            // established decoded-raster equivalent.
+            framebuffer_.draw_frame_mirrored(
+                raster,
+                0,
+                row,
+                column);
+        } else {
+            framebuffer_.draw_frame(
+                raster,
+                0,
+                row,
+                column);
+        }
+        return;
+    }
+
+    const int phase = frame_index - ten_a4_frames;
+
+    // 10A4 has now settled every active slot to RES7:15h. 1464 then calls
+    // 07E4 to flip those placeholders into the real controller resources.
+    draw_controller_entry_base(flow);
+    for (int slot = 0; slot < 9; ++slot) {
+        if (!slot_active(flow, slot)) continue;
+        draw_frame(
+            7,
+            0x15,
+            0,
+            kSlotRow[static_cast<std::size_t>(slot)],
+            kSlotColumn[static_cast<std::size_t>(slot)]);
+    }
+    draw_controller_text_boxes(flow);
+
+    std::array<IndexedRegion, 9> old_region{};
+    std::array<IndexedRegion, 9> new_region{};
+
+    for (int slot = range.first; slot < range.second; ++slot) {
+        if (!slot_active(flow, slot)) continue;
+        old_region[static_cast<std::size_t>(slot)] =
+            framebuffer_.capture(
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)],
+                0x7A,
+                0x30);
+    }
+
+    screen(flow, stats);
+    for (int slot = range.first; slot < range.second; ++slot) {
+        if (!slot_active(flow, slot)) continue;
+        new_region[static_cast<std::size_t>(slot)] =
+            framebuffer_.capture(
+                kSlotRow[static_cast<std::size_t>(slot)],
+                kSlotColumn[static_cast<std::size_t>(slot)],
+                0x7A,
+                0x30);
+    }
+
+    // Rebuild the visible page that 07E4 starts from.
+    draw_controller_entry_base(flow);
+    for (int slot = 0; slot < 9; ++slot) {
+        if (!slot_active(flow, slot)) continue;
+        draw_frame(
+            7,
+            0x15,
+            0,
+            kSlotRow[static_cast<std::size_t>(slot)],
+            kSlotColumn[static_cast<std::size_t>(slot)]);
+    }
+    draw_controller_text_boxes(flow);
+
+    const auto seam_color = remaps_.bright[4][0];
+
+    for (int slot = range.first; slot < range.second; ++slot) {
+        if (!slot_active(flow, slot)) continue;
+
+        const auto index = static_cast<std::size_t>(slot);
+        if (old_region[index].pixels ==
+            new_region[index].pixels) {
+            continue;
+        }
+
+        const int row = kSlotRow[index];
+        const int column = kSlotColumn[index];
+        const int delay = slot - range.first;
+        const int k =
+            phase < delay
+                ? 0
+                : phase - delay + 1;
+
+        if (k == 0) {
+            framebuffer_.restore(
+                old_region[index],
+                row,
+                column);
+            continue;
+        }
+
+        draw_frame(7, 0x1E + slot, 0, row, column);
+
+        if (k < 6) {
+            const int q = 6 - k;
+            framebuffer_.restore_scaled_horizontal(
+                old_region[index],
+                row,
+                column + 4 * k,
+                q,
+                10);
+            continue;
+        }
+
+        if (k == 6) {
+            framebuffer_.fill_rect(
+                row,
+                column + 0x18,
+                0x7A,
+                1,
+                seam_color);
+            continue;
+        }
+
+        if (k < 12) {
+            const int q = 12 - k;
+            draw_slot_scaled_07e4(
+                flow,
+                stats,
+                slot,
+                row,
+                column + 4 * q,
+                q,
+                6,
+                &new_region[index]);
+            continue;
+        }
+
+        framebuffer_.restore(
+            new_region[index],
+            row,
+            column);
     }
 }
 
