@@ -3,6 +3,7 @@
 #include "rloft/party_hud.hpp"
 
 #include <cstddef>
+#include <cstdio>
 #include <cstdint>
 #include <stdexcept>
 
@@ -278,6 +279,76 @@ void PartyModalPresenter::draw_character_centered_text(
         framebuffer, font1_,
         0xA2, column, 0x50,
         race_sex);
+
+    // 10158 ability table: direct-position labels at +0Ch, current values
+    // right-aligned to +2Ch, base values right-aligned to +43h.
+    for (std::size_t i = 0;
+         i < sheet.abilities.size();
+         ++i) {
+        const int row =
+            0xB8 + static_cast<int>(i) * 0x0C;
+        const auto& ability =
+            sheet.abilities[i];
+
+        IndexedFontPresenter::draw(
+            framebuffer,
+            font1_,
+            row,
+            column + 0x0C,
+            assets_.text(
+                ability.label_text_resource));
+
+        char current[16]{};
+        if (i == 0U &&
+            ability.current == 0x12U &&
+            sheet.exceptional_strength_current != 0U) {
+            std::snprintf(
+                current,
+                sizeof(current),
+                "%02d/%02d",
+                static_cast<int>(ability.current),
+                static_cast<int>(
+                    sheet.exceptional_strength_current %
+                    100U));
+        } else {
+            std::snprintf(
+                current,
+                sizeof(current),
+                "%02d",
+                static_cast<int>(ability.current));
+        }
+        IndexedFontPresenter::draw_right(
+            framebuffer,
+            font1_,
+            row,
+            column + 0x2C,
+            current);
+
+        char base[16]{};
+        if (i == 0U &&
+            sheet.exceptional_strength_base != 0U) {
+            std::snprintf(
+                base,
+                sizeof(base),
+                "%02d/%02d",
+                static_cast<int>(ability.base),
+                static_cast<int>(
+                    sheet.exceptional_strength_base %
+                    100U));
+        } else {
+            std::snprintf(
+                base,
+                sizeof(base),
+                "%02d",
+                static_cast<int>(ability.base));
+        }
+        IndexedFontPresenter::draw_right(
+            framebuffer,
+            font1_,
+            row,
+            column + 0x43,
+            base);
+    }
 }
 
 PartyModalCoverage PartyModalPresenter::draw(

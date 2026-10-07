@@ -41,6 +41,20 @@ void IndexedFontPresenter::draw(
     }
 }
 
+void IndexedFontPresenter::draw_right(
+    IndexedFramebuffer& framebuffer,
+    const Type2Font& font,
+    int row,
+    int right,
+    std::string_view text) {
+    draw(
+        framebuffer,
+        font,
+        row,
+        right - measure(font, text),
+        text);
+}
+
 void IndexedFontPresenter::draw_centered(
     IndexedFramebuffer& framebuffer,
     const Type2Font& font,
