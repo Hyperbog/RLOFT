@@ -31,6 +31,10 @@ rloft::Type7SceneShape shape(
 rloft::RendererTables tables() {
     rloft::RendererTables out{};
     out.scale_block_count = 127U;
+    out.runtime_lookup_max = 508U;
+    out.runtime_lookup.assign(509U, 0U);
+    out.runtime_lookup[256] = 0x0042U;
+    out.runtime_lookup[259] = 0x0999U;
     out.scale_blocks.resize(127U);
     for (auto& block : out.scale_blocks) {
         block.scale_step[30] = 1U;
@@ -61,6 +65,31 @@ int main() {
     assert(plan.clamped_scale == 64U);
     assert(plan.scale_pointer_index == 56U);
     assert(plan.scale_block_index == 55U);
+    assert(plan.lookup_index == 256U);
+    assert(plan.lookup_value == 0x0042U);
+
+    // CODE.2 36D63 adds arg 4 to the original unclamped size-derived slot;
+    // resulting SINTAB values saturate at 0x808 (36D8F).
+    const auto biased =
+        rloft::Type7ColumnTraversalModel::build(
+            shape(64U, 30, 33),
+            t,
+            4010U,
+            512U,
+            3U);
+    assert(biased.lookup_index == 259U);
+    assert(biased.lookup_value == 0x0808U);
+    assert(biased.scale_block_index == plan.scale_block_index);
+
+    const auto table_overflow =
+        rloft::Type7ColumnTraversalModel::build(
+            shape(64U, 30, 33),
+            t,
+            4010U,
+            2048U,
+            3U);
+    assert(table_overflow.lookup_index == 1027U);
+    assert(table_overflow.lookup_value == 0U);
     assert(plan.columns.size() == 4U);
 
     // 36EBD..370AE walks left from center-1 (31), then from 30;
