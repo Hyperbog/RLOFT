@@ -874,6 +874,85 @@ int run(HINSTANCE instance) {
                         character_palette);
                 };
 
+                auto present_character_animation_frame = [&]() {
+                    host.present(
+                        character_presenter.framebuffer(),
+                        character_palette);
+                    return host.pause_frame(
+                        std::chrono::duration<double>(1.0 / 70.0));
+                };
+
+                auto animate_15b0 = [&](
+                    const rloft::CharacterCreationFlow& before,
+                    const rloft::CharacterStatsModel* stats,
+                    int selected_slot,
+                    int target_row,
+                    int target_column) {
+                    const int frames =
+                        rloft::CharacterCreationPresenter::
+                            transition_15b0_frame_count(selected_slot);
+                    for (int frame = 0; frame < frames; ++frame) {
+                        character_presenter.transition_15b0_frame(
+                            before,
+                            stats,
+                            selected_slot,
+                            target_row,
+                            target_column,
+                            frame);
+                        if (!present_character_animation_frame()) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
+                auto animate_24d4 = [&](
+                    const rloft::CharacterCreationFlow& before,
+                    int selected_slot,
+                    int target_row,
+                    int target_column) {
+                    for (int frame = 0; frame <= 8; ++frame) {
+                        character_presenter.transition_24d4_frame(
+                            before,
+                            selected_slot,
+                            target_row,
+                            target_column,
+                            frame);
+                        if (!present_character_animation_frame()) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
+                auto animate_07e4 = [&](
+                    const rloft::CharacterCreationFlow& before,
+                    const rloft::CharacterCreationFlow& after,
+                    const rloft::CharacterStatsModel* before_stats,
+                    const rloft::CharacterStatsModel* after_stats,
+                    int first_slot,
+                    int last_slot) {
+                    const int frames =
+                        rloft::CharacterCreationPresenter::
+                            transition_07e4_frame_count(
+                                first_slot,
+                                last_slot);
+                    for (int frame = 0; frame < frames; ++frame) {
+                        character_presenter.transition_07e4_frame(
+                            before,
+                            after,
+                            before_stats,
+                            after_stats,
+                            first_slot,
+                            last_slot,
+                            frame);
+                        if (!present_character_animation_frame()) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
                 const auto name_font = assets.res0_font(0);
                 auto name_width = [&](const std::string& value) {
                     int width = 0;
@@ -1072,23 +1151,54 @@ int run(HINSTANCE instance) {
                                     render_character();
                                 }
                             } else {
-                                if (event == 0 &&
-                                    character_flow.apply_event(0)) {
-                                    stats_ready = false;
-                                    selected_stat = -1;
-                                    render_character();
+                                if (event == 0) {
+                                    const auto before = character_flow;
+                                    if (character_flow.apply_event(0)) {
+                                        if (!animate_15b0(
+                                                before,
+                                                &character_stats,
+                                                -1,
+                                                -1,
+                                                -1)) {
+                                            return 0;
+                                        }
+                                        stats_ready = false;
+                                        selected_stat = -1;
+                                        render_character();
+                                    }
                                 } else if (event == 7) {
                                     // function_40FC rerolls through 3884 without
-                                    // reseeding the 618A generator.
+                                    // reseeding the 618A generator, then 07E4
+                                    // replaces only slot 7.
+                                    const auto old_stats = character_stats;
                                     character_stats.generate(
                                         character_flow.draft());
+                                    if (!animate_07e4(
+                                            character_flow,
+                                            character_flow,
+                                            &old_stats,
+                                            &character_stats,
+                                            7,
+                                            8)) {
+                                        return 0;
+                                    }
                                     render_character();
                                 } else if (event == 9) {
                                     stats_editor = true;
                                     selected_stat = -1;
                                     render_character();
                                 } else if (event == 8) {
-                                    // function_40FC event 8 enters 3138.
+                                    // function_40FC event 8 dissolves mode 6
+                                    // through 15B0 before entering 3138.
+                                    const auto before = character_flow;
+                                    if (!animate_15b0(
+                                            before,
+                                            &character_stats,
+                                            -1,
+                                            -1,
+                                            -1)) {
+                                        return 0;
+                                    }
                                     final_decision = true;
                                     stats_editor = false;
                                     selected_stat = -1;
@@ -1116,8 +1226,132 @@ int run(HINSTANCE instance) {
                             }
                         }
 
-                        if (event >= 0 &&
-                            character_flow.apply_event(event)) {
+                        if (event >= 0) {
+                            const auto before = character_flow;
+                            const auto before_state = before.state();
+
+                            if (!character_flow.apply_event(event)) {
+                                continue;
+                            }
+
+                            bool transition_ok = true;
+                            switch (before_state) {
+                                case rloft::CharacterCreationState::ActorChoice:
+                                    if (event == 3 || event == 4) {
+                                        // 1CD0 dissolves the actor-choice
+                                        // controller before entering mode 1.
+                                        transition_ok = animate_15b0(
+                                            before,
+                                            nullptr,
+                                            -1,
+                                            -1,
+                                            -1);
+                                    }
+                                    break;
+
+                                case rloft::CharacterCreationState::SexChoice:
+                                    transition_ok = animate_15b0(
+                                        before,
+                                        nullptr,
+                                        event == 0 ? -1 : event - 1,
+                                        0x114,
+                                        3);
+                                    break;
+
+                                case rloft::CharacterCreationState::RaceChoice:
+                                    transition_ok = animate_15b0(
+                                        before,
+                                        nullptr,
+                                        event == 0 ? -1 : event - 1,
+                                        0x114,
+                                        0x38);
+                                    break;
+
+                                case rloft::CharacterCreationState::ClassChoice:
+                                    if (event == 0 &&
+                                        character_flow.state() ==
+                                            rloft::CharacterCreationState::
+                                                ClassChoice) {
+                                        // 266C substage cancel clears the
+                                        // class tuple and uses 07E4 to restore
+                                        // the stage-0 six-choice set.
+                                        transition_ok = animate_07e4(
+                                            before,
+                                            character_flow,
+                                            nullptr,
+                                            nullptr,
+                                            0,
+                                            6);
+                                    } else if (event >= 1 && event <= 6 &&
+                                               character_flow.state() ==
+                                                   rloft::
+                                                       CharacterCreationState::
+                                                           ClassChoice) {
+                                        // A further class stage exists:
+                                        // 24D4 moves the accepted card, then
+                                        // 07E4 replaces the six choices.
+                                        transition_ok = animate_24d4(
+                                            before,
+                                            event - 1,
+                                            0x114,
+                                            0x6D);
+                                        if (transition_ok) {
+                                            transition_ok = animate_07e4(
+                                                before,
+                                                character_flow,
+                                                nullptr,
+                                                nullptr,
+                                                0,
+                                                6);
+                                        }
+                                    } else {
+                                        // Stage-0 cancel, explicit FF finish,
+                                        // or a class pick with no next stage
+                                        // leaves mode 3 through 15B0.
+                                        transition_ok = animate_15b0(
+                                            before,
+                                            nullptr,
+                                            (event >= 1 && event <= 6)
+                                                ? event - 1
+                                                : -1,
+                                            0x114,
+                                            0x6D);
+                                    }
+                                    break;
+
+                                case rloft::CharacterCreationState::OptionChoice:
+                                    transition_ok = animate_15b0(
+                                        before,
+                                        nullptr,
+                                        event == 0 ? -1 : event - 1,
+                                        0x114,
+                                        0xA2);
+                                    break;
+
+                                case rloft::CharacterCreationState::PortraitChoice:
+                                    if (event != 0xFF) {
+                                        transition_ok = animate_15b0(
+                                            before,
+                                            nullptr,
+                                            event == 0 ? -1 : event - 1,
+                                            0x114,
+                                            0xD7);
+                                    }
+                                    // FF rebuilds mode 5 through a fresh
+                                    // 1464/07E4 entry. That entrance path is
+                                    // handled separately from old-page
+                                    // replacement below.
+                                    break;
+
+                                case rloft::CharacterCreationState::StatsReview:
+                                    break;
+                            }
+
+                            if (!transition_ok) {
+                                return 0;
+                            }
+
+
                             if (character_flow.aborted()) {
                                 flow.finish_character_creation(
                                     rloft::LegacyResult::OrdinaryTermination);
