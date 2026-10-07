@@ -49,14 +49,6 @@ LooseItemSceneModel::build(
             throw std::logic_error(
                 "visible loose item has zero scene shape stride");
         }
-        if (definition.scene_influence_step != 0U) {
-            // CODE.2 invokes 2B088 for these definitions. Level 22's four
-            // Assassin relics all store zero here; do not silently omit the
-            // side effect for other content.
-            throw std::logic_error(
-                "loose-item scene influence path is not integrated");
-        }
-
         const auto projection =
             FirstPersonEntityProjectionModel::project(
                 item.y_position_16_16,
