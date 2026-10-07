@@ -96,7 +96,8 @@ public:
     [[nodiscard]] std::optional<WorldSceneTarget> world_scene_target_at(
         const std::vector<WorldSceneRecord>& records,
         int row,
-        int column) const;
+        int column,
+        std::uint8_t action_flags = 0x01U) const;
 
     // Builds the canonical exploration render/update snapshot. The sweep
     // mutates only current visibility/explored state; automap is rebuilt
