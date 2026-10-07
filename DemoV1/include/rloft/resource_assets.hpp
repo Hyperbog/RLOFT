@@ -96,6 +96,9 @@ public:
     [[nodiscard]] std::vector<std::uint8_t> decode_type4(int index) const;
     [[nodiscard]] Type7Geometry decode_type7_geometry(int index) const;
     [[nodiscard]] Type7SceneShape decode_type7(int index) const;
+    // Original decoded RES3 body, including geometry, packed texels and
+    // descriptor lists. This is the ESI base used by CODE.2 369D8.
+    [[nodiscard]] std::vector<std::uint8_t> decode_type7_body(int index) const;
     [[nodiscard]] Type7NativeRaster decode_type7_native_raster(int index) const;
 
 private:
@@ -115,6 +118,7 @@ public:
     [[nodiscard]] std::vector<std::uint8_t> sampled_audio(int archive, int index) const;
     [[nodiscard]] Type7Geometry res3_type7_geometry(int index) const;
     [[nodiscard]] Type7SceneShape res3_type7(int index) const;
+    [[nodiscard]] std::vector<std::uint8_t> res3_type7_body(int index) const;
     [[nodiscard]] Type7NativeRaster res3_type7_native_raster(int index) const;
     [[nodiscard]] std::string text(int index) const;
     [[nodiscard]] std::uint16_t init_u16(std::size_t byte_offset) const;
