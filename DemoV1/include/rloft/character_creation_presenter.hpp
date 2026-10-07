@@ -30,6 +30,15 @@ public:
         bool stats_editor = false);
     void screen(CharacterCreationState state);
 
+    void final_decision_screen(
+        const CharacterCreationFlow& flow,
+        const CharacterStatsModel& stats);
+    void name_entry_screen(
+        const CharacterCreationFlow& flow,
+        const CharacterStatsModel& stats,
+        const std::string& name,
+        bool cursor_on);
+
     // Compatibility name for state 0.
     void first_screen();
 
