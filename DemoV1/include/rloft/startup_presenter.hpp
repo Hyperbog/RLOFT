@@ -30,6 +30,15 @@ public:
         int y,
         int x,
         const std::array<std::uint8_t, 256>& map);
+    void draw_frame_scaled_horizontal(
+        const Type1Raster& raster,
+        int frame,
+        int y,
+        int x,
+        int numerator,
+        int denominator,
+        const std::array<std::uint8_t, 256>* map = nullptr,
+        bool map_transparent = false);
     void draw(const Type1Raster& raster, int y, int x);
 
     [[nodiscard]] IndexedRegion capture(int y, int x, int height, int width) const;
@@ -39,6 +48,13 @@ public:
         int y,
         int x,
         const std::array<std::uint8_t, 256>& map);
+    void restore_scaled_horizontal(
+        const IndexedRegion& region,
+        int y,
+        int x,
+        int numerator,
+        int denominator,
+        const std::array<std::uint8_t, 256>* map = nullptr);
     void fill_rect(int y, int x, int height, int width, std::uint8_t color);
 
     [[nodiscard]] const std::vector<std::uint8_t>& pixels() const noexcept { return pixels_; }
