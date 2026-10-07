@@ -1325,3 +1325,481 @@ play cinematic
 
 The VM does not maintain shadow copies of these systems.
 
+
+## 51. RES9 setup instructions form an interaction context
+
+A program typically establishes three independent bases:
+
+~~~text
+0x17 resource_base
+     -> runtime 0x7FF0
+
+0x19 text_base
+     -> runtime 0x7FF4
+
+0x27 voice_sound_base
+     -> runtime 0x7FF8
+~~~
+
+The selection equation for ordinary interaction graphics is:
+
+~~~text
+RES9_typed_entry = 103 + resource_base + instruction_delta
+~~~
+
+The corresponding dialogue text ID is relative to the independently mutable T base. The voice/sound base is a third namespace.
+
+This is why a program cannot be safely reduced to a single resource ID. [Wordcode VM](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+## 52. Three wordcode return/exit mechanisms must not be conflated
+
+The interpreter exposes:
+
+~~~text
+return 1    nested subroutine return (opcode 0x07)
+return 2    choice UI yield (opcode 0x0E)
+return 3    program termination (opcode 0x1B)
+~~~
+
+Separately, opcode 0x15 writes an interaction-loop exit-request flag at runtime 0x8100.
+
+Additionally, cinematic opcode 0x24 reaches the higher-level termination condition after playback.
+
+A faithful caller must preserve these distinctions rather than using one boolean ended flag. [Wordcode VM](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_VM.md)
+
+## 53. T is a separate indexed text file, not embedded RES9 dialogue
+
+Physical T file identity:
+
+~~~text
+bytes            133584
+stored count       1073
+active offsets     1073
+first record       4572 / 0x11DC
+SHA-256         a3f1e19e40f226c8cf150a43aacd9c378ee35a1294d2c9dd72870bfdf1e16315
+~~~
+
+The indexed reader is CODE.2 logical 1C368..1C408.
+
+RES9 script instructions reference T by index using their text-base setup; LEVELS opcode 7 and ANM cinematic text operations also call the same indexed reader.
+
+Sources: [T format](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/MISC/T/FORMAT.md), [wordcode program index](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_PROGRAM_INDEX.md).
+
+## 54. Exact T record decoding
+
+The file begins with:
+
+~~~text
+uint32 stored_count
+uint32 absolute_offset[stored_count]
+unreferenced carrier bytes
+record payloads at absolute_offset[]
+~~~
+
+Lookup:
+
+~~~text
+seek(T, 4 + index*4)
+read uint32 absolute_record_offset
+seek(T, absolute_record_offset)
+read uint16 encoded_length
+read encoded_length payload bytes
+append runtime NUL
+for each payload byte:
+    byte ^= 0xDC
+~~~
+
+This is not LZ or Huffman decompression. It is bytewise XOR obfuscation.
+
+The runtime NUL is not physically stored. CODE.2 follows the offset table, not the end of the previous record. Do not parse contiguous strings by stepping from one length to the next.
+
+## 55. Unreferenced T bytes remain historical evidence
+
+The active offset table ends at byte 4296, but the first referenced record begins at byte 4572:
+
+~~~text
+pre-payload slack = 276 bytes
+~~~
+
+Thirty gaps after active records total another 1804 bytes of unreferenced material. Gaps vary from 4 to 1012 bytes and include fragments of unrelated previous content.
+
+Twenty-five active records have zero encoded length. All 1073 supplied active records contain no embedded decoded NUL.
+
+These are archive facts, not authorization to:
+- erase slack during patch-only repacking;
+- treat residue as hidden/active dialogue;
+- collapse legitimate empty records;
+- inject a runtime NUL into the file.
+
+Source: [T archive reconstruction](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/MISC/T/FORMAT.md).
+
+## 56. RES9 NPC dialogue bases are independently established
+
+NPCS.DAT interaction identity, RES9 script ID and T base are three separate identifiers.
+
+The direct caller near CODE.2 31ADC..31B20 maps NPC types 34..70 to program IDs 0..36. Special NPC type 82 maps to program 37.
+
+Then opcode 0x19 establishes the T base.
+
+Examples from the shipped program table:
+
+| RES9 program | NPC type | Name | T base |
+|---:|---:|---|---:|
+| 0 | 34 | MAN IN WOODS | 239 |
+| 4 | 38 | TATYANA | 302 |
+| 9 | 43 | GHOST | 343 |
+| 16 | 50 | BURGOMASTER | 420 |
+| 27 | 61 | STRAHD DISGUISED | 527 |
+| 28 | 62 | FINAL STRAHD | 544 |
+| 37 | 82 | ADVENTURER | 396 |
+
+The T records decode to dialogue families coherent with these identities, cross-checking the executable's numeric mapping.
+
+Source: [program index](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/WORDCODE_PROGRAM_INDEX.md).
+
+## 57. NPC interaction dispatch and scripted fixed calls coexist
+
+A clicked/interacted NPC normally goes through a type eligibility predicate and:
+
+~~~text
+if npc_type == 0x52:
+    program = 0x25
+else:
+    program = npc_type - 0x22
+
+16524(program)
+~~~
+
+Story and level-event routines can independently call 16524 with a fixed ID (for example GHOST program 9 or FINAL STRAHD program 28).
+
+Consequently, the same script program may be reached by:
+- an NPC interaction;
+- a fixed story event;
+- a level-event reserved branch.
+
+Do not infer unique NPC proximity as a precondition for every invocation.
+
+## 58. Choice state uses four *paired* slots
+
+The runner owns four choices, each represented by a text ID and wordcode destination:
+
+~~~text
+choice[i]:
+    text_id
+    target_word_ip
+~~~
+
+The active implementation stores these as interleaved words with a four-byte slot stride at runtime 0x7FD8/0x7FDA.
+
+Sentinel 0xFFFF means an unused entry.
+
+The VM provides list replacement (opcodes 00, 01), individual setter opcodes 03/04, append opcode 13, remove/compact opcode 14, prepend opcode 1A, and choice-yield opcode 0E.
+
+A native UI may draw more elaborate widgets, but the strict scripting model has exactly four slots and original overflow/compaction rules.
+
+## 59. Conditional modal dialogue is not a choice instruction
+
+Opcode 02 selects a text record conditionally and presents it modally, optionally with voice/sound. It does not itself mean that the player selected an option from the four-choice list.
+
+Its variable-length word grammar terminates on condition 0x21 **plus its own paired default text ID**.
+
+This distinction matters for a decompiler because parsing opcode 02 as a conventional fixed-arity choice instruction shifts the positions of all following opcodes and invalidates branches.
+
+## 60. Nested wordcode saves and restores caller IP
+
+Opcode 12 receives a target word IP. The runner:
+
+1. saves current VM IP;
+2. switches to the target;
+3. invokes wordcode until a nonzero interpreter return;
+4. restores the caller IP.
+
+Opcode 07 supplies the corresponding nested-return code.
+
+A C++ translation may use structured call frames, but preserving original word-IP semantics and intermediate result handling is mandatory.
+
+## 61. Wordcode has five recurring callback slots
+
+Opcode 0F encodes:
+
+~~~text
+slot_index
+handler_word_ip
+interval
+~~~
+
+Runtime holds five 12-byte timer entries, with target IP, interval, and next absolute deadline.
+
+When due, the poller temporarily executes the handler script and restores the main IP, then advances the deadline.
+
+A handler IP of 0xFFFF disables/normalizes the timer slot.
+
+Active programs use slots 0..3, but slot 4 is executable-supported capacity; do not remove it in the faithful engine.
+
+This timer mechanism is not character effect expiration and not the LEVELS fixed 50-slot event table.
+
+## 62. Two kinds of story flags use overlapping syntax
+
+RES9 global flag instructions:
+
+~~~text
+09 id,target    branch if persistent bit set
+0A id           set persistent bit
+0B id           clear persistent bit
+0C id           toggle persistent bit
+0D id,target    branch if persistent bit clear
+~~~
+
+Call the same 256-bit SAVE-owned flag services used by LEVELS event opcodes 8/9/10.
+
+RES9 VM-local instructions:
+
+~~~text
+1E bit          set local bit
+1F bit          clear local bit
+20 bit          toggle local bit
+21 bit,target   branch if local bit set
+22 bit,target   branch if local bit clear
+~~~
+
+Operate on a separate wordcode state dword at runtime 0x7FD0.
+
+Global flags persist in SAVE.DAT. Local wordcode flags are interaction-state values. A native API must require the caller to name which flag domain is being accessed.
+
+## 63. Wordcode item search is recursive
+
+Opcode 08 tests party possession of an OBJECTS item ID, including items nested inside persistent container contents.
+
+It jumps to the encoded word IP when found. Otherwise execution proceeds after the instruction.
+
+Opcode 28 removes the item through a related recursive inventory/container operation.
+
+These calls share the distributed item-state model documented in Component 10: definitions are in OBJECTS.DAT; actual references live in character slots, containers, cursor, and/or world records.
+
+## 64. Special 0xFFFF item predicate counts Barovian Coins
+
+Opcode 08 operand 0xFFFF is a **special case**, not an invalid object ID.
+
+The underlying helper recursively counts OBJECTS ID 0x75 (BAROVIAN COIN) and succeeds only if exactly 15 are found.
+
+A compatibility implementation must reproduce the hard-coded count and ID. It must not turn the special value into “has any item” or “always false.”
+
+## 65. Grant and loose-item spawn have different semantics
+
+Opcode 06 attempts to grant an object to the party. Its helper has object-specific cases and may fall back to instantiating a family-C loose world item when insertion fails.
+
+Opcode 29 directly creates a family-C loose item at current party position.
+
+The distinction is:
+
+~~~text
+06 item ID:
+    try inventory
+    -> possibly world fallback
+
+29 item ID:
+    explicitly create world item
+~~~
+
+Both preserve the original OBJECTS type ID and use the world family-C 22-byte record layout for spawned instances.
+
+## 66. Opcode 05 uses centralized party templates in active RES9
+
+Active opcode:
+
+~~~text
+05 template_id
+~~~
+
+The callee copies/installs one of ten predefined 0x248-character images through party/roster state helpers. Template IDs range 0..9 in the supplied active bank.
+
+Final template identities:
+
+~~~text
+0 GLORIANNA   1 VELIKA   2 MISCHA   3 VUKO
+4 TATIAN      5 IRMGARDE 6 ANSHELM 7 RYSZARD
+8 VLADISLAV   9 FHALKEN
+~~~
+
+The interpreter operation is conservatively named **apply/add party-character template**. Calling every occurrence “recruit NPC” would overfit some program contexts.
+
+This operation links interaction wordcode to the exact 0x248 character ABI shared by CODE.1, CODE.2, CHARS, and SAVE.DAT.
+
+## 67. Opcode 16 modifies live actors, not NPCS templates
+
+Given an NPC type operand, opcode 16 scans family-A live records, selecting matching types, then sets:
+
+~~~text
+live_actor.byte[+0x0B] |= 0x02
+~~~
+
+This bit is part of the actor runtime-flags dword and suppresses class-0 scene emission. The NPCS.DAT definition itself is not rewritten.
+
+Two special encoded operands also exist: 0xFFFF and 0x29, including a coupled type operation. They require exact executable handling rather than a generic equality-only loop.
+
+The FINAL STRAHD story path later clears the same actor-suppression bit for type 8.
+
+## 68. Wordcode music, direct sound, and cinematics
+
+- Opcode 1D transitions/selects music-sequence ID through the 0x28Cxx/0x290xx manager.
+- Opcode 1C plays an SFX ID after applying the INIT base. It contains two ID exclusions, and has zero occurrences in active RES9.
+- Opcode 24 invokes a cinematic ID, then terminates the active script run.
+
+Only two shipped active programs invoke the cinematic opcode:
+
+~~~text
+program 16 BURGOMASTER      cinematic 6
+program 32 VISTANI INSIDE   cinematic 1
+~~~
+
+These connect RES9 dialogue programs to the ANM decoder/timing system without implying that cinematics themselves are wordcode scripts.
+
+## 69. Historical duplicate interaction identities are not deduplicable
+
+Several NPC type pairs intentionally reuse graphics/text/sound setup bases while retaining separate program IDs:
+
+~~~text
+VISTANI / VISTANI INSIDE
+ELVEN MAGE / ELVEN MAGE IN BAR
+STRAHDS PRISONER / STRAHDS PRIS OUT
+DANDY WOMAN / DANDY WOMAN IN BAR
+MAN IN WOODS / MAN IN WOOD IN BAR
+~~~
+
+Other shared setups include prisoner chained/unchained and both maiden statues.
+
+A preservation editor must retain each entry; apparent duplicate resources are a gameplay/story state distinction, not garbage.
+
+## 70. RES9 active corpus boundaries are closed
+
+The supplied active bank validates to:
+
+~~~text
+programs                         38
+program words                11396
+decoded instructions          4237
+parse errors                     0
+invalid direct targets           0
+timer slots used              0..3
+timer slots available          0..4
+~~~
+
+Opcode frequencies (hex opcodes) are recorded exhaustively in WORDCODE_VM.md. All decoded explicit branch, nested-call, timer-handler and dynamically constructed choice destinations land on instruction starts.
+
+Five handlers are supported but unused in active RES9:
+
+~~~text
+03 choice target setter
+04 choice text setter
+0B global bit clear
+0C global bit toggle
+1C direct SFX playback
+~~~
+
+A runtime faithful to CODE.2 must retain them.
+
+## 71. RES12 is a related older scripting generation, not the active bank
+
+RES12 raw entries 370..406 contain 37 programs. They use the same outer form as active RES9:
+
+~~~text
+uint16 word_count
+uint16 program_words[word_count]
+uint16 zero_companion[word_count]
+~~~
+
+They are grammar-compatible with the 0x00..0x29 VM except for opcode 05's operand encoding.
+
+The recovered legacy form is:
+
+~~~text
+05 inline_character_template[141 words]
+~~~
+
+rather than one final static template ID.
+
+With this grammar:
+- 37/37 programs parse;
+- 4820 program words;
+- 1079 instructions;
+- zero invalid direct targets;
+- 16 occurrences of inline template opcode 05.
+
+Sources: [legacy wordcode](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/RES12_WORDCODE.md), [resource lineage](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/Resources/RES/RES11_RES12_LINEAGE.md).
+
+## 72. Exact legacy inline template geometry
+
+RES12 opcode 05's 141 word payload contains:
+
+~~~text
+0..15     name characters / one low ASCII byte per word
+16        portrait
+17        sex
+18        race
+19        age
+20..22    class codes
+23        alignment
+24        base armor class
+25..26    current/max HP
+27..29    class levels
+30..32    class progress / XP
+33        Strength
+34        exceptional Strength
+35..39    Dexterity/Constitution/Intelligence/Wisdom/Charisma
+40..60    object IDs in item[21]
+61..140   two 8x10 spell matrices (80 words)
+~~~
+
+The data deterministically maps to the later CODE.2 fixed character-record fields through +0x109. It does not encode the complete later 0x248 live character image, because post-inventory timers/effects/UI state are absent.
+
+This is a concrete format-lineage finding, not conjecture based on visual similarity.
+
+## 73. Historical opcode 05 data was migrated to centralized templates
+
+The active executable stores ten static 0x248-byte party templates and the active wordcode references them by numeric template ID.
+
+The legacy RES12 programs embedded these templates inline.
+
+Specific migration: legacy program 14 embedded IRMGARDE. Active program 14 no longer applies a template, while active program 37 applies template ID 5 twice and shares program 14's interaction graphics/text/sound identity.
+
+This is evidence of *content evolution*, not a second unrelated game script format.
+
+## 74. RES12 is shipped but not selected by this CODE.2 VM loader
+
+The direct raw-handle audit finds only one CODE.2 raw archive-handle request path:
+
+~~~text
+13F76 -> 2EC74(archive 9)
+~~~
+
+No equivalent raw archive-12 request is observed. CODE.1 also initializes only 11 indexed RES groups.
+
+Therefore:
+
+~~~text
+active supplied executable -> RES9 wordcode
+shipped historical resource -> RES12 legacy wordcode
+~~~
+
+The original editor or executable revision that used the legacy RES12 generation remains unknown. Its files remain preservation material, not candidates for deletion as unused assets.
+
+## 75. Graphics/text continuity corroborates the lineage
+
+Across 37 ordinal program pairs:
+- all 37 preserve the same starting text-base value;
+- historical base resource alignment indicates legacy graphics base 51 versus active INIT base 103;
+- 23 of 37 aligned initial graphics are byte-identical.
+
+The old graphic base is inferred from matching records; it is not claimed as an original recovered INIT value.
+
+These constraints provide substantial evidence for a pre-split/legacy producer format and a restructured final resource index.
+
+## 76. Equal-length zero companion word array stays UNKNOWN
+
+Both active RES9 and legacy RES12 script containers store a second array of word_count 16-bit zeros.
+
+The supplied CODE.2 runtime reads only the first bank. Its whole-object raw-resource access scan finds no alternative path that consumes the second bank.
+
+This establishes **no direct runtime consumer in the supplied executable**, not an explanation of why the producer wrote it.
+
+The historical purpose must remain UNKNOWN; a lossless tool must preserve the array, not strip it.
