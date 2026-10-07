@@ -76,6 +76,100 @@ std::vector<std::uint8_t> lzss_4k(const std::uint8_t* src,
 
 }  // namespace
 
+std::vector<EnvironmentProfile> decode_environment_profiles(
+    const std::vector<std::uint8_t>& init_bytes) {
+    constexpr std::size_t kProfileCountAt = 0x0545U;
+    constexpr std::size_t kProfilesAt = 0x0547U;
+    if (init_bytes.size() < kProfilesAt) {
+        throw std::runtime_error("INIT is truncated before environment profiles");
+    }
+
+    const auto profile_count =
+        static_cast<std::size_t>(u16(init_bytes.data() + kProfileCountAt));
+    std::size_t pos = kProfilesAt;
+    std::vector<EnvironmentProfile> out;
+    out.reserve(profile_count);
+
+    for (std::size_t profile_index = 0;
+         profile_index < profile_count;
+         ++profile_index) {
+        if (pos + 4U > init_bytes.size()) {
+            throw std::runtime_error("INIT environment profile header exceeds EOF");
+        }
+
+        EnvironmentProfile profile{};
+        profile.res8_base = u16(init_bytes.data() + pos);
+        profile.stored_record_count = u16(init_bytes.data() + pos + 2U);
+        pos += 4U;
+
+        if (profile.stored_record_count == 0) {
+            throw std::runtime_error("INIT environment profile has no terminator record");
+        }
+
+        const auto bytes_needed =
+            static_cast<std::size_t>(profile.stored_record_count) * 8U;
+        if (pos > init_bytes.size() ||
+            bytes_needed > init_bytes.size() - pos) {
+            throw std::runtime_error("INIT environment placement list exceeds EOF");
+        }
+
+        profile.placements.reserve(profile.stored_record_count);
+        for (std::size_t i = 0; i < profile.stored_record_count; ++i) {
+            EnvironmentPlacement placement{};
+            placement.resource_selector =
+                s16(init_bytes.data() + pos + 0U);
+            placement.azimuth_degrees =
+                s16(init_bytes.data() + pos + 2U);
+            placement.draw_width_pixels =
+                s16(init_bytes.data() + pos + 4U);
+            placement.screen_y =
+                s16(init_bytes.data() + pos + 6U);
+            pos += 8U;
+
+            if (placement.resource_selector == 0 &&
+                !placement.terminator()) {
+                throw std::runtime_error(
+                    "INIT environment terminator selector has nonzero payload");
+            }
+            if (placement.terminator() &&
+                i + 1U != profile.stored_record_count) {
+                throw std::runtime_error(
+                    "INIT environment profile has premature terminator");
+            }
+
+            profile.placements.push_back(placement);
+        }
+
+        if (!profile.placements.back().terminator()) {
+            throw std::runtime_error(
+                "INIT environment profile lacks final zero terminator");
+        }
+        out.push_back(std::move(profile));
+    }
+
+    if (pos != init_bytes.size()) {
+        throw std::runtime_error(
+            "INIT contains bytes after environment profile table");
+    }
+    return out;
+}
+
+int resolve_environment_res8_id(
+    const EnvironmentProfile& profile,
+    const EnvironmentPlacement& placement) {
+    if (placement.terminator()) {
+        throw std::invalid_argument(
+            "environment terminator has no RES8 resource");
+    }
+    const int selector = placement.resource_selector;
+    if (selector < 0) {
+        throw std::out_of_range("negative environment resource selector");
+    }
+    return selector >= 8
+        ? static_cast<int>(profile.res8_base) + selector
+        : selector;
+}
+
 ResArchive::ResArchive(std::vector<std::uint8_t> bytes)
     : bytes_(std::move(bytes)) {
     if (bytes_.size() < 4) throw std::runtime_error("RES archive is too small");
@@ -269,6 +363,7 @@ RavenloftBootAssets::RavenloftBootAssets(GameSource source)
       res5_(source_.read("RES5")),
       res6_(source_.read("RES6")),
       res7_(source_.read("RES7")),
+      res8_(source_.read("RES8")),
       res10_(source_.read("RES10")),
       colors_(source_.read("COLORS")),
       text_(source_.read("T")),
@@ -290,6 +385,7 @@ Type1Raster RavenloftBootAssets::type1(int archive, int index) const {
         case 0: return res0_.decode_type1(index);
         case 1: return res1_.decode_type1(index);
         case 7: return res7_.decode_type1(index);
+        case 8: return res8_.decode_type1(index);
         default:
             throw std::out_of_range("Demo v1 has no loaded type-1 archive for requested bank");
     }
@@ -355,6 +451,10 @@ std::uint16_t RavenloftBootAssets::init_u16(
     }
     return static_cast<std::uint16_t>(init_[byte_offset]) |
            (static_cast<std::uint16_t>(init_[byte_offset + 1U]) << 8U);
+}
+
+std::vector<EnvironmentProfile> RavenloftBootAssets::environment_profiles() const {
+    return decode_environment_profiles(init_);
 }
 
 std::uint8_t RavenloftBootAssets::code1_u8(

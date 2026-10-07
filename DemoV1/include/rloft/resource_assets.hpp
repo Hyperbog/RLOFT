@@ -27,6 +27,30 @@ struct Type2Font {
     Type1Raster raster;
 };
 
+struct EnvironmentPlacement {
+    std::int16_t resource_selector{};
+    std::int16_t azimuth_degrees{};
+    std::int16_t draw_width_pixels{};
+    std::int16_t screen_y{};
+
+    [[nodiscard]] bool terminator() const noexcept {
+        return resource_selector == 0 && azimuth_degrees == 0 &&
+               draw_width_pixels == 0 && screen_y == 0;
+    }
+};
+
+struct EnvironmentProfile {
+    std::uint16_t res8_base{};
+    std::uint16_t stored_record_count{};
+    std::vector<EnvironmentPlacement> placements;
+};
+
+[[nodiscard]] std::vector<EnvironmentProfile> decode_environment_profiles(
+    const std::vector<std::uint8_t>& init_bytes);
+[[nodiscard]] int resolve_environment_res8_id(
+    const EnvironmentProfile& profile,
+    const EnvironmentPlacement& placement);
+
 class ResArchive final {
 public:
     explicit ResArchive(std::vector<std::uint8_t> bytes);
@@ -55,6 +79,7 @@ public:
     [[nodiscard]] std::vector<std::uint8_t> sampled_audio(int archive, int index) const;
     [[nodiscard]] std::string text(int index) const;
     [[nodiscard]] std::uint16_t init_u16(std::size_t byte_offset) const;
+    [[nodiscard]] std::vector<EnvironmentProfile> environment_profiles() const;
     [[nodiscard]] std::uint8_t code1_u8(std::size_t dgroup_offset) const;
     [[nodiscard]] std::uint16_t code1_u16(std::size_t dgroup_offset) const;
     [[nodiscard]] std::int32_t code1_s32(std::size_t dgroup_offset) const;
@@ -68,6 +93,7 @@ private:
     ResArchive res5_;
     ResArchive res6_;
     ResArchive res7_;
+    ResArchive res8_;
     ResArchive res10_;
     std::vector<std::uint8_t> colors_;
     std::vector<std::uint8_t> text_;
