@@ -553,6 +553,100 @@ void CharacterCreationPresenter::draw_controller_text_boxes(
     }
 }
 
+void CharacterCreationPresenter::draw_final_decision_base(
+    const CharacterCreationFlow& flow,
+    const CharacterStatsModel& stats) {
+    if (flow.state() != CharacterCreationState::StatsReview) {
+        throw std::logic_error(
+            "final decision base requires CODE.1 mode 6 draft");
+    }
+    draw_controller_base(
+        CharacterCreationState::StatsReview,
+        assets_.text(0x2D));
+    draw_persistent_summary(flow.draft(), 5);
+    draw_stats_panel(
+        flow.draft(),
+        stats,
+        0x114,
+        0x10C,
+        -1);
+}
+
+void CharacterCreationPresenter::draw_name_entry_base(
+    const CharacterCreationFlow& flow,
+    const CharacterStatsModel& stats) {
+    if (flow.state() != CharacterCreationState::StatsReview) {
+        throw std::logic_error(
+            "name entry base requires CODE.1 mode 6 draft");
+    }
+    draw_controller_base(
+        CharacterCreationState::StatsReview,
+        assets_.text(0x2E));
+    draw_persistent_summary(flow.draft(), 5);
+    draw_stats_panel(
+        flow.draft(),
+        stats,
+        0x114,
+        0x10C,
+        -1);
+}
+
+void CharacterCreationPresenter::draw_10a4_ornament(
+    int slot,
+    int phase) {
+    if (slot < 0 || slot >= 9 ||
+        phase < 0 || phase >= 12) {
+        throw std::out_of_range(
+            "CODE.1 10A4 ornament frame");
+    }
+
+    static constexpr std::array<int, 12> sequence{
+        0x15, 0x27, 0x28, 0x29, 0x28, 0x27,
+        0x15, 0x27, 0x28, 0x29, 0x28, 0x27
+    };
+    static constexpr std::array<bool, 12> reversed{
+        false, false, false, false, true, true,
+        false, false, false, false, true, true
+    };
+
+    const auto raster =
+        assets_.type1(
+            7,
+            sequence[static_cast<std::size_t>(phase)]);
+
+    const int target_column =
+        kSlotColumn[static_cast<std::size_t>(slot)] + 0x18;
+    const int target_row =
+        kSlotRow[static_cast<std::size_t>(slot)] + 0x3D;
+
+    const int anchor_column =
+        0xA0 +
+        ((target_column - 0xA0) * (phase + 1) + 6) /
+            12;
+    const int anchor_row =
+        -0x38 +
+        ((target_row - (-0x38)) * (phase + 1) + 6) /
+            12;
+
+    const int row = anchor_row - raster.height / 2;
+    const int column = anchor_column - raster.width * 2;
+
+    if (reversed[static_cast<std::size_t>(phase)]) {
+        // A5C8 is the same temporary in-place mirror used by 4520.
+        framebuffer_.draw_frame_mirrored(
+            raster,
+            0,
+            row,
+            column);
+    } else {
+        framebuffer_.draw_frame(
+            raster,
+            0,
+            row,
+            column);
+    }
+}
+
 std::pair<int, int>
 CharacterCreationPresenter::controller_entry_range(
     CharacterCreationState state) const noexcept {
@@ -1321,55 +1415,7 @@ void CharacterCreationPresenter::controller_entry_frame(
             return;
         }
 
-        // function_10A4 reads these twelve bytes from 0964h/0970h.
-        static constexpr std::array<int, 12> sequence{
-            0x15, 0x27, 0x28, 0x29, 0x28, 0x27,
-            0x15, 0x27, 0x28, 0x29, 0x28, 0x27
-        };
-        static constexpr std::array<bool, 12> reversed{
-            false, false, false, false, true, true,
-            false, false, false, false, true, true
-        };
-
-        const auto raster =
-            assets_.type1(
-                7,
-                sequence[static_cast<std::size_t>(phase)]);
-
-        const int target_column =
-            kSlotColumn[static_cast<std::size_t>(slot)] + 0x18;
-        const int target_row =
-            kSlotRow[static_cast<std::size_t>(slot)] + 0x3D;
-
-        const int anchor_column =
-            0xA0 +
-            ((target_column - 0xA0) * (phase + 1) + 6) /
-                12;
-        const int anchor_row =
-            -0x38 +
-            ((target_row - (-0x38)) * (phase + 1) + 6) /
-                12;
-
-        // 10A4 derives its capture rectangle from internal image +4
-        // (height) and +6*8 (width), then draws at the same origin.
-        const int row = anchor_row - raster.height / 2;
-        const int column = anchor_column - raster.width * 2;
-
-        if (reversed[static_cast<std::size_t>(phase)]) {
-            // A5C8 is the same in-place mirror used by 4520; preserve the
-            // established decoded-raster equivalent.
-            framebuffer_.draw_frame_mirrored(
-                raster,
-                0,
-                row,
-                column);
-        } else {
-            framebuffer_.draw_frame(
-                raster,
-                0,
-                row,
-                column);
-        }
+        draw_10a4_ornament(slot, phase);
         return;
     }
 
