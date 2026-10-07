@@ -27,6 +27,8 @@
 #include "rloft/startup_presenter.hpp"
 #include "rloft/voc_decoder.hpp"
 #include "rloft/win32_audio.hpp"
+#include "rloft/win32_midi.hpp"
+#include "rloft/xmidi.hpp"
 
 namespace {
 
@@ -366,7 +368,8 @@ CinematicResult play_cinematic(
     Host& host,
     rloft::AnmCinematic& cinematic,
     const rloft::RavenloftBootAssets& assets,
-    rloft::Win32AudioPlayer& audio_player) {
+    rloft::Win32AudioPlayer& audio_player,
+    rloft::Win32MidiPlayer& midi_player) {
     cinematic.reset();
 
     while (!cinematic.finished()) {
@@ -380,6 +383,11 @@ CinematicResult play_cinematic(
                 const auto voc =
                     assets.sampled_audio(event.archive, event.resource);
                 audio_player.play(rloft::decode_creative_voice(voc));
+            } else if (event.command == rloft::AnmAudioCommand::MusicSequence) {
+                const auto xmi = assets.music_sequence(event.resource);
+                const int sequence_index = event.second + 1;
+                midi_player.play(
+                    rloft::parse_xmidi_sequence(xmi, sequence_index));
             }
         }
 
@@ -572,6 +580,7 @@ int run(HINSTANCE instance) {
 
     rloft::RavenloftBootAssets assets(std::move(source));
     rloft::Win32AudioPlayer audio_player;
+    rloft::Win32MidiPlayer midi_player;
     rloft::StartupPresenter presenter(assets);
     rloft::BootFlow flow;
     flow.boot();
@@ -593,7 +602,10 @@ int run(HINSTANCE instance) {
         rloft::AnmCinematic cine00(
             assets.source().read("CINE00.ANM"), 0, assets);
         const auto result =
-            play_cinematic(host, cine00, assets, audio_player);
+            play_cinematic(
+                host, cine00, assets, audio_player, midi_player);
+        audio_player.stop_all();
+        midi_player.stop();
         if (result == CinematicResult::Quit) return 0;
         if (result == CinematicResult::Escaped) skipped = true;
     }
@@ -602,7 +614,10 @@ int run(HINSTANCE instance) {
         rloft::AnmCinematic cine12(
             assets.source().read("CINE12.ANM"), 12, assets);
         const auto result =
-            play_cinematic(host, cine12, assets, audio_player);
+            play_cinematic(
+                host, cine12, assets, audio_player, midi_player);
+        audio_player.stop_all();
+        midi_player.stop();
         if (result == CinematicResult::Quit) return 0;
         if (result == CinematicResult::Escaped) skipped = true;
     }
