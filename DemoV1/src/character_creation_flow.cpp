@@ -292,8 +292,15 @@ bool CharacterCreationFlow::apply_event(int event) {
                 return true;
             }
             if (event == 3 || event == 4) {
+                const int actor = event - 3;
+                if (actor_present_[static_cast<std::size_t>(actor)]) {
+                    // function_1BD4 existing-actor keep/delete modal is
+                    // presented by the host; do not overwrite the actor here.
+                    return false;
+                }
+
                 draft_ = {};
-                draft_.actor = event - 3;
+                draft_.actor = actor;
                 state_ = CharacterCreationState::SexChoice;
                 return true;
             }
@@ -419,6 +426,32 @@ bool CharacterCreationFlow::apply_event(int event) {
     }
 
     return false;
+}
+
+void CharacterCreationFlow::finish_current_actor(
+    bool accepted, std::string name) {
+    const int actor = draft_.actor;
+    if (actor < 0 || actor >= 2) {
+        throw std::logic_error(
+            "CODE.1 final decision has no selected actor");
+    }
+
+    if (accepted) {
+        draft_.name = std::move(name);
+        actors_[static_cast<std::size_t>(actor)] = draft_;
+        actor_present_[static_cast<std::size_t>(actor)] = true;
+    } else {
+        actors_[static_cast<std::size_t>(actor)] = {};
+        actor_present_[static_cast<std::size_t>(actor)] = false;
+    }
+
+    // function_40FC increments mode to 7; function_4978 immediately maps 7
+    // back to 0 and re-enters actor choice.
+    draft_ = {};
+    state_ = CharacterCreationState::ActorChoice;
+    class_stage_ = 0;
+    portrait_page_ = 0;
+    aborted_ = false;
 }
 
 }  // namespace rloft
