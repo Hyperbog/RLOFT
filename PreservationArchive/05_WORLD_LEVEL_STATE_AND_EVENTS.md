@@ -920,3 +920,353 @@ uint8 arg4
 [EVENT_SCRIPTS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_SCRIPTS.md)
 
 Only the first `active_command_count` commands execute, but inactive command bytes remain persistent raw state. A lossless serializer must preserve all 26 bytes of every slot.
+
+
+## 39. Level event interpreter
+
+CODE.2 `002A8..006B8` is the active interpreter for the 50-slot table. A script index of `-1` returns immediately; otherwise the interpreter computes:
+
+```text
+slot = event_table + script_index * 26
+```
+
+and executes only the active prefix. [EVENT_SCRIPTS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_SCRIPTS.md)
+
+Archive-wide:
+
+```text
+physical slots       1,600
+active slots           394
+active commands         555
+maximum active count      5
+supported opcodes       0..12
+```
+
+No supplied active command uses an opcode outside the supported domain.
+
+## 40. Event opcode map
+
+The preservation-grade semantic map is:
+
+```text
+0   cell-record action A
+1   cell-record action B
+2   toggle cell-record state
+3   spawn transient/moving effect
+4   replace six-bit cell code
+5   queue sound-effect request
+6   transition music sequence
+7   show indexed modal message
+8   set persistent global event flag
+9   clear persistent global event flag
+10  toggle persistent global event flag
+11  run hard-coded story hook or numbered interactive event
+12  assign global state code
+```
+
+[EVENT_SCRIPTS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_SCRIPTS.md) [EVENT_CALLEES.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_CALLEES.md)
+
+This is a behavior map, not a claim that these were the original DreamForge source enum names.
+
+## 41. Event opcodes 0–2 operate directly on cell records
+
+Opcodes 0 and 1 use command bytes `arg1=row` and `arg2=column` to locate the 10-byte record associated with a cell.
+
+For kind-1 dynamic records they can temporarily modify interaction eligibility and call the dynamic barrier routine. For non-kind-1 records they modify interaction bit `0x04` in opposite directions. [EVENT_SCRIPTS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_SCRIPTS.md)
+
+Opcode 2 toggles cell-record state. For ordinary records it toggles the low state bit while retaining the rest of the control byte; kind-1 and kind-6 records have specialized behavior. [EVENT_SCRIPTS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_SCRIPTS.md)
+
+Thus events and cell-control records are not separate subsystems. The event VM is one of the mechanisms that mutates persistent cell-local interaction state.
+
+## 42. Event opcode 3 creates scene-visible runtime state
+
+Opcode 3 receives cell coordinates and an orientation parameter, quantizes orientation in the encoded 45-degree domain, and calls the transient/moving-effect constructor `08A80`. [EVENT_SCRIPTS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_SCRIPTS.md)
+
+That record family later emits scene source class 3. The chain is therefore:
+
+```text
+level event command
+    -> transient world record
+    -> class-3 INIT descriptor
+    -> class-3 RES3 bank
+    -> type-7 renderer
+```
+
+This is one of the clearest cross-subsystem links from scripting to visible world state.
+
+## 43. Event opcode 4 mutates topology without destroying cell flags
+
+Opcode 4 is exact:
+
+```text
+index = row * map_width + column
+
+cell.low_byte &= 0xC0
+cell.word     |= (new_cell_code & 0x003F)
+```
+
+[EVENT_SCRIPTS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_SCRIPTS.md)
+
+It replaces only the six-bit cell code and preserves bits 6 and 7 of the low byte plus the complete high byte. A native port must not implement this as assignment of a newly constructed cell word.
+
+## 44. Sound, music, and text event calls are distinct
+
+Opcode 5 queues a sound-effect request through the `0x280xx` SFX subsystem.
+
+Opcode 6 transitions music through the separate `0x28C54..0x290C2` sequence subsystem.
+
+Opcode 7 invokes an indexed text decoder/display path. The text lookup reads an offset-table entry, a 16-bit payload length, then XOR-decodes the payload with `0xDC`. [EVENT_CALLEES.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_CALLEES.md)
+
+The event VM therefore maintains distinct logical channels for:
+
+```text
+sampled/digital sound requests
+music sequence state
+modal text/messages
+```
+
+rather than one generic resource-action opcode.
+
+## 45. Persistent global event flags cross the level/save boundary
+
+Opcodes 8, 9, and 10 operate on a 32-byte vector at runtime `0x22200`:
+
+```text
+8   set bit
+9   clear bit
+10  toggle bit
+```
+
+Companion code tests the same vector.
+
+SAVE serialization writes and reloads exactly those 32 bytes, proving a persistent 256-bit global game/event-state space. [EVENT_CALLEES.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_CALLEES.md)
+
+This is an important ownership boundary:
+
+```text
+LEVELS/LEV event table
+    defines level-local commands
+
+SAVE.DAT event-flag vector
+    stores global persistent results/state
+```
+
+A faithful implementation should not serialize the global flag vector into a per-level LEV snapshot unless reproducing an external save container that explicitly owns it.
+
+## 46. Opcode 11 contains hard-coded story branches
+
+Opcode 11 reserves three `arg3` values:
+
+```text
+0x0B  final-Strahd story activation/reveal-enable
+0x0C  Vengeful-Spirit possession lifecycle
+0x0D  Irmgarde-dependent fixed-cell story trigger
+```
+
+Other values open numbered interactive resources. [EVENT_CALLEES.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_CALLEES.md)
+
+The numbered-resource path constructs:
+
+```text
+<resource path from INFO.DAT> + "\" + two decimal digits
+```
+
+The supplied INFO path is `D:`, so numbered event 7 resolves to `D:\07` in that installation image. [EVENT_CALLEES.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_CALLEES.md)
+
+This is a direct level -> INFO.DAT -> external numbered-resource dependency.
+
+## 47. The common level tail serializes generated and user-visible map state
+
+After the event table, both level forms end with:
+
+```text
+int16 width_again
+int16 height_again
+uint8 automap_cache[width*height]
+uint32 annotation_blob_length
+uint8 annotation_blob[annotation_blob_length]
+```
+
+The repeated dimensions match the fixed-header dimensions in every supplied record. [LEVELS format](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FORMAT.md)
+
+The byte grid is not a second independent topology map. The standalone writer calls cache routine `01558` immediately before serialization, proving that the array is generated from current cell/header/dynamic state. [CELL_WORD.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/CELL_WORD.md)
+
+The annotation blob is a list of variable-size map annotations:
+
+```text
+int16 raw_x
+int16 raw_y
+int16 payload_length
+byte  payload[payload_length]
+```
+
+terminated in memory by a zero-length record. The terminator is not serialized. [AUTOMAP_OVERLAYS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/AUTOMAP_OVERLAYS.md)
+
+All supplied archive levels and `LEV022.DAT` have zero annotation length.
+
+## 48. Generated automap cache is persistence, not authority
+
+The authoritative topology/state inputs are the cell words, level header lookup tables, and dynamic records. The one-byte-per-cell cache is a derived classification used by automap/display code.
+
+The direct-save writer regenerates it immediately before writing. [AUTOMAP.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/AUTOMAP.md)
+
+A faithful port should therefore distinguish:
+
+```text
+authoritative live world state
+    -> cache classifier
+    -> generated automap/display cache
+```
+
+while still preserving imported serialized cache bytes when round-tripping an existing historical artifact.
+
+## 49. LEV022 contains one bounded cache-provenance discrepancy
+
+The supplied Level-22 standalone cache cannot be reproduced at exactly 40 unexplored code-1 cells by executing certified CODE.2 cache routine `01558` against the state serialized in the same LEV file.
+
+The relevant lookup is:
+
+```text
+primary_resource_A[1] == 0x0093
+```
+
+and the certified routine contains the corresponding shortcut in both explored and unexplored ordinary-cell paths. The supplied save behaves as if that shortcut were absent for those 40 unexplored cells. [CACHE_REBUILD_AUDIT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/CACHE_REBUILD_AUDIT.md) [LEVELS final audit](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FINAL_AUDIT_2026-10-06.md)
+
+The correct preservation decision is:
+
+```text
+native regeneration:
+    reproduce certified CODE.2 behavior
+
+historical LEV import/repack:
+    preserve serialized cache bytes unless explicitly rebuilding
+
+do not:
+    alter certified code semantics solely to force LEV022 to match
+```
+
+Possible historical causes include executable revision or production-path provenance, but none is proved.
+
+## 50. Environment and music are level-owned selections
+
+The header connects the world model to two other systems.
+
+### Environment profile
+
+`header +0x290` selects environment/render profile 0 or 1, while `0xFF` chooses the alternate/default level path. INIT owns the two explicit profile definitions and their RES8 backdrop placements. [INIT environment profiles](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/INIT/ENVIRONMENT_PROFILES.md)
+
+### Default music
+
+`header +0x29C` is the default level music-sequence ID. Level load compares it with current music state and transitions when necessary; temporary interaction music can later restore the header-selected sequence. [EVENT_CALLEES.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/EVENT_CALLEES.md)
+
+Therefore entering/loading a level is not only a topology operation. It establishes environment and default audio context as part of level activation.
+
+## 51. Level load is an instantiation process
+
+The compact archive should be understood as input to a constructor-like process:
+
+```text
+LEVELS.DAT compact record
+    |
+    +-- copy fixed header
+    +-- load cell words
+    +-- split 10-byte records into live groups
+    +-- expand family A using NPCS.DAT defaults
+    +-- expand family B
+    +-- expand family C and apply legacy alias
+    +-- load event table
+    +-- load cache/annotation tail
+    +-- normalize selected live header fields
+    +-- restore/establish post-load global state
+    |
+    v
+live level/world state
+```
+
+By contrast:
+
+```text
+LEVnnn.DAT
+    |
+    +-- restore already expanded runtime records
+    +-- restore dynamic group state
+    +-- restore mutable actors/items/cell state
+    +-- restore serialized cache/annotations
+    |
+    v
+live level/world state
+```
+
+[LEVELS format](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/LEVELS.DAT/FORMAT.md) [CODE.2 continuity, Batch 32](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/CODE2_CONTINUITY_ADDENDUM.md)
+
+This difference should be explicit in the native C++ architecture.
+
+## 52. Faithful native world model
+
+A suitable future implementation boundary is:
+
+```text
+LegacyLevelArchive
+    compact immutable baseline records
+
+LegacyLevelSnapshot
+    standalone expanded mutable serialization
+
+LevelDefinition
+    fixed authored data and preserved raw fields
+
+LevelRuntimeState
+    cells
+    cell-control groups
+    actor instances
+    placed-object instances
+    loose/moving items
+    transient effects
+    event table
+    exploration/cache/annotations
+
+WorldSceneBuilder
+    converts visible runtime instances
+    into four legacy RES3 source classes
+
+LegacyCollisionModel
+    ordinary six-bit-code collision
+    special dynamic-cell collision
+
+LegacyEventInterpreter
+    mutates cell/record/world/global state
+```
+
+These are proposed native concepts, not recovered source identifiers.
+
+The implementation should maintain the historical separation between **definition**, **instance**, **derived cache**, and **global save state**.
+
+## 53. Lossless editor rules
+
+A preservation-grade editor/repacker must retain:
+
+```text
+all raw header bytes
+all 16 cell-word bits
+all 10 bytes of every cell-control record
+all compact-family bytes not consumed by runtime
+all 26 bytes of every event slot
+standalone preamble byte 0
+existing generated cache bytes when not rebuilding
+annotation payload bytes
+legacy family-C 0x54 representation in archive data
+```
+
+It must not silently:
+
+```text
+clear cell bit 0x2000
+normalize unused header bytes
+discard inactive event commands
+merge family B and family C
+convert local scene IDs into absolute RES3 IDs on disk
+replace imported LEV actor state with regenerated NPC defaults
+rewrite the LEV022 cache to hide the known provenance discrepancy
+```
+
+The historical serialized form and the reconstructed live semantics are both preservation targets.
