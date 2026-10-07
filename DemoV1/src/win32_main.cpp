@@ -257,6 +257,7 @@ public:
         }
         exploration_input_ = controller;
         exploration_click_.reset();
+        exploration_secondary_click_.reset();
 
         if (!exploration_input_) {
             if (!menu_mode_ && !character_mode_) {
@@ -305,6 +306,12 @@ public:
     std::optional<NativePoint> consume_exploration_click() {
         auto result = exploration_click_;
         exploration_click_.reset();
+        return result;
+    }
+
+    std::optional<NativePoint> consume_exploration_secondary_click() {
+        auto result = exploration_secondary_click_;
+        exploration_secondary_click_.reset();
         return result;
     }
 
@@ -665,6 +672,20 @@ private:
                 }
                 return 0;
 
+            case WM_RBUTTONDOWN:
+                if (exploration_input_) {
+                    const int row =
+                        native_y_from_client(GET_Y_LPARAM(lparam));
+                    const int column =
+                        native_x_from_client(GET_X_LPARAM(lparam));
+                    if (row >= 0 && column >= 0) {
+                        character_pointer_ = NativePoint{row, column};
+                        exploration_secondary_click_ =
+                            *character_pointer_;
+                    }
+                }
+                return 0;
+
             case WM_CLOSE:
                 DestroyWindow(hwnd_);
                 return 0;
@@ -712,6 +733,7 @@ private:
     std::optional<int> clicked_{};
     std::optional<NativePoint> character_click_{};
     std::optional<NativePoint> exploration_click_{};
+    std::optional<NativePoint> exploration_secondary_click_{};
     std::optional<NativePoint> character_pointer_{};
     std::deque<int> key_events_{};
 };
@@ -878,6 +900,14 @@ int run_exploration(
 
         if (ui.state().screen ==
             rloft::ExplorationUiScreen::PartyPanels) {
+            if (host.consume_exploration_secondary_click()) {
+                // CODE.2 12E70 cleanup on flags&2 calls 1F8FC, which sets
+                // D680=0; 13118 then leaves the modal loop.
+                ui.close_screen();
+                input.clear();
+                continue;
+            }
+
             if (const auto click =
                     host.consume_exploration_click()) {
                 if (const auto actor =
