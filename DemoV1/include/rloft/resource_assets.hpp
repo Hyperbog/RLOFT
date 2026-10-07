@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <optional>
 
 #include "rloft/game_source.hpp"
 
@@ -25,6 +26,14 @@ struct Type1Raster {
 struct Type2Font {
     std::array<std::uint8_t, 128> widths{};
     Type1Raster raster;
+};
+
+struct Type7Geometry {
+    std::uint16_t source_width{};
+    std::int16_t x_min{};
+    std::int16_t x_max{};
+    std::int16_t y_min{};
+    std::int16_t y_max{};
 };
 
 struct EnvironmentPlacement {
@@ -61,6 +70,7 @@ public:
     [[nodiscard]] Type2Font decode_type2(int index) const;
     [[nodiscard]] std::vector<std::uint8_t> decode_type3(int index) const;
     [[nodiscard]] std::vector<std::uint8_t> decode_type4(int index) const;
+    [[nodiscard]] Type7Geometry decode_type7_geometry(int index) const;
 
 private:
     std::vector<std::uint8_t> bytes_;
@@ -77,6 +87,7 @@ public:
     [[nodiscard]] Type2Font res0_font(int index) const;
     [[nodiscard]] std::vector<std::uint8_t> music_sequence(int index) const;
     [[nodiscard]] std::vector<std::uint8_t> sampled_audio(int archive, int index) const;
+    [[nodiscard]] Type7Geometry res3_type7_geometry(int index) const;
     [[nodiscard]] std::string text(int index) const;
     [[nodiscard]] std::uint16_t init_u16(std::size_t byte_offset) const;
     [[nodiscard]] std::vector<EnvironmentProfile> environment_profiles() const;
@@ -90,6 +101,7 @@ private:
     GameSource source_;
     ResArchive res0_;
     ResArchive res1_;
+    mutable std::optional<ResArchive> res3_;
     ResArchive res5_;
     ResArchive res6_;
     ResArchive res7_;
