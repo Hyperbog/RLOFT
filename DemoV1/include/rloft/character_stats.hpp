@@ -17,9 +17,25 @@ struct CharacterStats {
     int hit_points{};
 };
 
+struct CharacterStatTables {
+    std::array<std::uint16_t, 120> progression{};
+    std::array<std::uint8_t, 18> race_roll{};
+    std::array<std::uint8_t, 72> race_bounds{};
+    std::array<std::int8_t, 36> race_bonus{};
+    std::array<std::uint8_t, 90> class_minima{};
+    std::array<std::int8_t, 6> hit_die{};
+    std::array<std::int32_t, 38> hp_variant{};
+    std::array<std::int8_t, 32> secondary_bonus{};
+    bool step_mode{};
+
+    [[nodiscard]] static CharacterStatTables from_assets(
+        const RavenloftBootAssets& assets);
+};
+
 class CharacterStatsModel final {
 public:
     explicit CharacterStatsModel(const RavenloftBootAssets& assets);
+    explicit CharacterStatsModel(CharacterStatTables tables);
 
     void seed(std::uint32_t value) noexcept;
     void generate(const CharacterDraft& draft);
@@ -38,7 +54,7 @@ private:
     [[nodiscard]] int class_count(const CharacterDraft& draft) const noexcept;
     [[nodiscard]] int hp_variant_extra(int cls, int variant) const;
 
-    const RavenloftBootAssets& assets_;
+    CharacterStatTables tables_{};
     std::uint32_t rng_state_{};
     CharacterStats stats_{};
 };
