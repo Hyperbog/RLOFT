@@ -96,17 +96,21 @@ def _gui_self_test() -> int:
         start_w = app.winfo_width()
         start_x = app.winfo_rootx()
         start_y = app.winfo_rooty()
-        handle = chrome._handles[0] if chrome._handles else app
+        # Resize hit targets are logical edge regions rather than visible
+        # overlay widgets so they cannot cover the decorative frame.
         press = SimpleNamespace(
-            x_root=start_x + start_w,
+            x_root=start_x + start_w - 1,
             y_root=start_y + 100,
-            widget=handle,
+            widget=app,
         )
-        chrome._begin_resize(press, window_chrome.HTRIGHT)
+        chrome._begin_edge_resize(press)
+        if chrome._resize_hit != window_chrome.HTRIGHT:
+            app.destroy()
+            return 31
         motion = SimpleNamespace(
             x_root=press.x_root + 24,
             y_root=press.y_root,
-            widget=handle,
+            widget=app,
         )
         chrome._perform_resize(motion)
         app.update_idletasks()
