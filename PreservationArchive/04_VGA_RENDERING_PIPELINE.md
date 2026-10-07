@@ -239,3 +239,246 @@ ANM type-2 image packets decode 400 rows of 320 chunky pixels before planar conv
 
 so the raw type-8 image occupies scanlines 51..306 inside the 320×400 page. [ANM format](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/ANM/FORMAT.md)
 
+
+## 23. First-person type-6 textures are column-major
+
+RES type 6 decodes to one of two body sizes:
+
+```text
+4096 bytes = 32 columns * 128 texels
+8192 bytes = 64 columns * 128 texels
+```
+
+The renderer's source selector advances in `0x40` units and is doubled before indexing, producing an exact `0x80` / 128-byte source-column stride. The selected body therefore consists of complete vertical columns, not row-major scanlines. [RES type-6 renderer](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE6_RENDERER.md)
+
+The physical interpretation is:
+
+```text
+column 0: 128 vertical texels
+column 1: 128 vertical texels
+...
+```
+
+This is a storage fact established by the executable's address arithmetic, not merely by factoring the decoded byte counts.
+
+## 24. Type-6 vertical sampling
+
+CODE.2 `0x338C8` receives one selected 128-texel source column and a requested output height. It computes:
+
+```text
+step = 0x800000 / output_height
+```
+
+Since:
+
+```text
+0x800000 = 128 << 16
+```
+
+the source domain is exactly 128 samples expressed through fixed-point phase arithmetic. For each destination row, the routine selects a source texel from the high phase bits, applies the low-byte subtraction/shading value, writes one palette-index byte, advances the destination by `0x50`, and advances the source phase. [RES type-6 renderer](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE6_RENDERER.md)
+
+The CODE.2 reconstruction preserves the original signed division, arithmetic shifts used during clipping, low-byte loop-count behavior, source-index formation, and destination stride. [CODE.2 continuity, Batch 94](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/CODE2_CONTINUITY_ADDENDUM.md)
+
+The sampler clips/centers against a 256-line first-person working region. That 256-line domain is another reason not to reduce the entire original renderer to a single abstract 320×200 surface.
+
+## 25. RES4 contains two texture-width families
+
+The active RES4 archive contains 667 type-6 resources and divides exactly at INIT value `600`:
+
+```text
+RES4:0..599     600 resources -> 64 x 128 texels
+RES4:600..666    67 resources -> 32 x 128 texels
+```
+
+INIT `+0x0E = 600` is therefore the exact base of the secondary/narrow texture namespace. [INIT format](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/INIT/FORMAT.md) [RES type-6 renderer](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE6_RENDERER.md)
+
+The dimensions are proven. A universal editor-facing label such as “wall texture” is intentionally withheld because individual material/level use is narrower than the storage format itself.
+
+## 26. First-person scene objects use compiled shapes, not bitmap sprites
+
+RES type 7 is structurally different from type 6 and ordinary UI raster resources.
+
+Its decoded body begins:
+
+```text
++0x00 uint16 source_width
++0x02 int16  x_min
++0x04 int16  x_max
++0x06 int16  y_min
++0x08 int16  y_max
+
++0x0A uint16 column_list_offset[x_max-x_min+1]
+```
+
+Each column pointer addresses a zero-terminated sequence of six-byte descriptors:
+
+```text
+int16 raster_stop_selector
+int16 signed_adjustment
+int16 raster_entry_selector
+...
+int16 0
+```
+
+The pointer itself may be odd; the original code performs unaligned word reads and supplied resources rely on that behavior. [RES type-7 renderer](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE7_RENDERER.md)
+
+Across all 8,362 supplied type-7 bodies, the reconstructed geometry, pointer-table bounds, list termination, and selector constraints validate. Source widths are only 64, 96, or 128. [RES type-7 renderer](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE7_RENDERER.md)
+
+The visible result may be called a sprite informally, but the original serialized form is a **compiled scene-shape column display list**.
+
+## 27. Shape geometry is consumed before rasterization
+
+CODE.2 `0x21BF0` reads the type-7 geometric header and scales its bounds into the runtime scene record. Later first-person scene paths repeatedly call `0x36CEC`, passing the scene record's resolved archive-3 resource ID. [RES type-7 renderer](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE7_RENDERER.md)
+
+Thus one type-7 object supplies both:
+
+- projected-bound geometry;
+- per-column compiled draw instructions.
+
+The renderer does not first decode a conventional 2D bitmap and then scale that bitmap.
+
+## 28. RES3 scene identity is source-class-relative
+
+Four INIT words partition all 4,234 RES3 type-7 entries:
+
+```text
+source class 0 base    0 -> RES3 0..2168
+source class 1 base 2169 -> RES3 2169..3315
+source class 2 base 3316 -> RES3 3316..4157
+source class 3 base 4158 -> RES3 4158..4233
+```
+
+The common translation is:
+
+```text
+absolute_RES3_id =
+    source_base[source_class]
+  + bank_local_shape_id
+```
+
+The proved source families are:
+
+```text
+0  NPC/creature shapes
+1  placed object/item family
+2  loose/pickable OBJECTS family
+3  transient/moving effects
+```
+
+[RES3 source-bank map](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE7_SOURCE_BANKS.md)
+
+This mapping belongs to scene construction, not the rasterizer itself. By the time the type-7 renderer requests archive 3, the local ID has already been translated to an absolute RES3 entry.
+
+## 29. SINTAB is a complete renderer support package
+
+The external `SINTAB` file is not merely a sine table.
+
+Its supplied top-level structure contains:
+
+```text
+450 dwords  signed-magnitude Q16 sine family
+900 dwords  Q16 tangent family
+128 words   projection table A
+128 words   projection table B
+8 dwords    renderer constants
+256 dwords  signed view-angle table
+509 words   runtime lookup table
+127         variable scale blocks
+512 bytes   preserved zero trailer
+```
+
+CODE.2 loader `0x3838..0x3A63` consumes the fixed data and 127 scale blocks; the final zero trailer is serialized but ignored by the active loader. [SINTAB format](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/SINTAB/FORMAT.md)
+
+Every scale block begins:
+
+```text
+block +0x000  uint16 code_patch_offset[129]
+block +0x102  uint16 scale_step[129]
+block +0x204  byte   rasterizer_x86[]
+```
+
+The loader publishes `block + 0x204`, the code-body address, into the runtime scale-code pointer table at DGROUP `0x18FE0`. All 127 supplied generated code bodies terminate in `RET`. [SINTAB format](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/SINTAB/FORMAT.md)
+
+## 30. Type-7 descriptors select spans of scale-specific renderer code
+
+The first and third words in each active type-7 descriptor are even byte selectors in the same 129-entry domain used by each SINTAB scale block.
+
+CODE.2 `0x369D8` uses the stop selector to locate a byte in the selected scale-specific renderer body, saves the original byte, temporarily replaces it with `0xC3` (`RET`), resolves the entry selector, invokes the selected renderer entry through the register-call bridge at `0x369C0`, then restores the original byte. [RES type-7 renderer](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE7_RENDERER.md) [CODE.2 continuity, Batches 120–122](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/CODE2_CONTINUITY_ADDENDUM.md)
+
+Neighboring renderer helpers likewise consult the two 129-word control tables and temporarily alter selected control bytes before restoring them. The behavior is deliberate runtime specialization of the pre-generated scale code.
+
+The historical path is therefore:
+
+```text
+type-7 column descriptor
+        |
+        v
+selected SINTAB scale block
+        |
+        v
+entry/stop selectors
+        |
+        v
+bounded generated renderer span
+        |
+        v
+planar VGA writes
+```
+
+## 31. Type-7 column traversal is centered on source width
+
+CODE.2 `0x36CEC` traverses the type-7 pointer table around:
+
+```text
+source_width / 2
+```
+
+The left side is walked toward `x_min`; the right side is walked toward `x_max`. Duplicate pointer values are legal and allow several source columns to share a descriptor list. [RES type-7 renderer](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/TYPE7_RENDERER.md)
+
+The renderer derives a scale selection from projected size, selects from the SINTAB pointer table, and uses the serialized runtime lookup and scale-step data while producing the projected shape. [SINTAB format](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/SINTAB/FORMAT.md)
+
+## 32. The faithful port should translate SINTAB behavior, not discard it
+
+A portable engine should not need writable executable x86 buffers as its primary renderer. But replacing the scale blocks with generic bitmap scaling without validation would remove original renderer behavior.
+
+The preservation-compatible strategy is:
+
+1. parse and retain the original SINTAB tables and scale blocks;
+2. translate their behavior into safe portable C++ or equivalent renderer operations;
+3. preserve the original integer lookup/selection rules;
+4. compare translated pixel output against the original encoded semantics;
+5. keep the original SINTAB bytes as canonical evidence.
+
+The committed SINTAB analyzer already validates all block sizes, control tables, code ranges, terminators, aggregate payload size, and the 512-byte trailer. [SINTAB format](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/SINTAB/FORMAT.md)
+
+## 33. Environment-profile backdrops are view-angle driven
+
+The final INIT section contains two environment/backdrop profiles selected by `LEVELS.DAT` header byte `+0x290` when its value is 0 or 1; `0xFF` uses an alternate/default level path.
+
+Each placement contains a resource selector, azimuth, draw width, and screen Y coordinate. CODE.2 `0x314B0` subtracts the current camera/view angle from the stored azimuth, wraps the result, projects horizontal screen position, resolves the RES8 graphic, clips by width, and draws at the stored Y position. [INIT environment profiles](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/INIT/ENVIRONMENT_PROFILES.md)
+
+The safe preservation term is **environment-profile backdrop/panorama placement**. Exact original editor terminology remains unknown.
+
+## 34. Rendering is strongly integer/fixed-point
+
+The certified graphics code repeatedly depends on original machine-width arithmetic, including:
+
+- signed `IDIV`;
+- arithmetic versus logical shifts;
+- 16-bit truncation and wrap;
+- low-byte loop counts;
+- modulo-2^32 multiply/add;
+- byte-width palette-index arithmetic;
+- signed clipping comparisons;
+- `SHLD`-based source indexing;
+- partial-register state.
+
+Examples occur in the type-6 sampler, projected raster setup, and compiled-shape renderer. [CODE.2 continuity, Batches 94 and 103–109](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/CODE2_CONTINUITY_ADDENDUM.md)
+
+A floating-point rewrite may look visually close while differing at clipping edges, sample boundaries, or exact palette indexes. The faithful port should therefore preserve integer reference behavior or regression fixtures for these paths.
+
+## 35. Runtime renderer specialization occurs in multiple families
+
+The SINTAB path is the clearest example, but the CODE.2 graphics audits identify additional runtime control/immediate patch sites in clipped blitters and adjacent rasterizer setup routines. The certification record preserves those patches and their restoration ordering rather than normalizing them away. [CODE.2 continuity, Batches 61, 107, 108, 121, 122](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/CODE2_CONTINUITY_ADDENDUM.md)
+
+A modern renderer does not need to reproduce writable-code implementation mechanics. It does need to reproduce the resulting parameterized raster behavior.
