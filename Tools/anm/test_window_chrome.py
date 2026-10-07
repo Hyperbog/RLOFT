@@ -8,6 +8,18 @@ import window_chrome
 
 
 class WindowChromeResizeTests(unittest.TestCase):
+    def test_edge_hit_testing_without_overlay_widgets(self) -> None:
+        hit = window_chrome.FramelessWindow._edge_hit_test
+        self.assertEqual(hit(0, 350, 1000, 700), window_chrome.HTLEFT)
+        self.assertEqual(hit(999, 350, 1000, 700), window_chrome.HTRIGHT)
+        self.assertEqual(hit(500, 0, 1000, 700), window_chrome.HTTOP)
+        self.assertEqual(hit(500, 699, 1000, 700), window_chrome.HTBOTTOM)
+        self.assertEqual(hit(3, 3, 1000, 700), window_chrome.HTTOPLEFT)
+        self.assertEqual(hit(997, 3, 1000, 700), window_chrome.HTTOPRIGHT)
+        self.assertEqual(hit(3, 697, 1000, 700), window_chrome.HTBOTTOMLEFT)
+        self.assertEqual(hit(997, 697, 1000, 700), window_chrome.HTBOTTOMRIGHT)
+        self.assertIsNone(hit(500, 350, 1000, 700))
+
     def test_right_resize(self) -> None:
         self.assertEqual(
             window_chrome.FramelessWindow._resized_geometry(

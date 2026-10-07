@@ -49,7 +49,6 @@ class FramelessWindow:
         self.border_color = border_color
         self.enabled = os.name == "nt"
         self.hwnd: int | None = None
-        self._handles: list[tk.Frame] = []
         self._resize_hit: int | None = None
         self._resize_origin: tuple[int, int, int, int, int, int] | None = None
         self._move_origin: tuple[int, int, int, int] | None = None
@@ -67,8 +66,7 @@ class FramelessWindow:
             self.hwnd = int(self.root.winfo_id())
 
         self._apply_windows_style()
-        self._create_resize_handles()
-        self.root.bind("<Configure>", self._layout_resize_handles, add="+")
+        self._bind_resize_edges()
 
     def _get_window_long(self, index: int) -> int:
         user32 = ctypes.windll.user32
@@ -122,6 +120,12 @@ class FramelessWindow:
         widget.bind("<Double-Button-1>", lambda _event: self.toggle_maximize(), add="+")
 
     def _begin_move(self, event) -> str:
+        # The titlebar occupies the full client width. Let its extreme edges
+        # remain resize targets before treating the press as a window move.
+        hit_test = self._edge_hit_from_event(event)
+        if hit_test is not None:
+            return self._begin_resize(event, hit_test)
+
         if self.is_maximized():
             self.toggle_maximize()
             self.root.update_idletasks()
@@ -216,9 +220,9 @@ class FramelessWindow:
 
         return new_x, new_y, new_w, new_h
 
-    def _perform_resize(self, event) -> str:
+    def _perform_resize(self, event) -> str | None:
         if self._resize_hit is None or self._resize_origin is None:
-            return "break"
+            return None
 
         start_x, start_y, x, y, width, height = self._resize_origin
         dx = int(event.x_root) - start_x
@@ -239,7 +243,9 @@ class FramelessWindow:
         self.root.geometry(f"{new_w}x{new_h}+{new_x}+{new_y}")
         return "break"
 
-    def _end_resize(self, event=None) -> str:
+    def _end_resize(self, event=None) -> str | None:
+        if self._resize_hit is None and self._resize_origin is None:
+            return None
         self._resize_hit = None
         self._resize_origin = None
         widget = getattr(event, "widget", None)
@@ -265,7 +271,6 @@ class FramelessWindow:
             else:
                 ctypes.windll.user32.ShowWindow(self.hwnd, SW_MAXIMIZE)
                 maximized = True
-            self.root.after(20, self._layout_resize_handles)
             return maximized
 
         if self.root.state() == "zoomed":
@@ -282,59 +287,76 @@ class FramelessWindow:
     def close(self) -> None:
         self.root.destroy()
 
-    def _create_resize_handles(self) -> None:
+    @staticmethod
+    def _edge_hit_test(
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        edge: int = 5,
+        corner: int = 12,
+    ) -> int | None:
+        """Return a resize hit code for a point in client coordinates.
+
+        No visible Tk widgets are placed over the decorative frame.  The
+        previous 5px/12px overlay frames obscured the rails and corner artwork,
+        especially on the right and bottom edges.
+        """
+        width = max(1, int(width))
+        height = max(1, int(height))
+        x = int(x)
+        y = int(y)
+        edge = max(1, int(edge))
+        corner = max(edge, int(corner))
+
+        in_left_corner = x < corner
+        in_right_corner = x >= width - corner
+        in_top_corner = y < corner
+        in_bottom_corner = y >= height - corner
+
+        if in_left_corner and in_top_corner and (x < edge or y < edge):
+            return HTTOPLEFT
+        if in_right_corner and in_top_corner and (x >= width - edge or y < edge):
+            return HTTOPRIGHT
+        if in_left_corner and in_bottom_corner and (x < edge or y >= height - edge):
+            return HTBOTTOMLEFT
+        if in_right_corner and in_bottom_corner and (x >= width - edge or y >= height - edge):
+            return HTBOTTOMRIGHT
+
+        if x < edge:
+            return HTLEFT
+        if x >= width - edge:
+            return HTRIGHT
+        if y < edge:
+            return HTTOP
+        if y >= height - edge:
+            return HTBOTTOM
+        return None
+
+    def _edge_hit_from_event(self, event) -> int | None:
+        if self.is_maximized():
+            return None
+        self.root.update_idletasks()
+        x = int(event.x_root) - self.root.winfo_rootx()
+        y = int(event.y_root) - self.root.winfo_rooty()
+        return self._edge_hit_test(
+            x,
+            y,
+            max(1, self.root.winfo_width()),
+            max(1, self.root.winfo_height()),
+        )
+
+    def _begin_edge_resize(self, event) -> str | None:
+        hit_test = self._edge_hit_from_event(event)
+        if hit_test is None:
+            return None
+        return self._begin_resize(event, hit_test)
+
+    def _bind_resize_edges(self) -> None:
+        """Keep resize hit targets logical so the artwork stays unobscured."""
         if not self.enabled:
             return
+        self.root.bind("<ButtonPress-1>", self._begin_edge_resize, add="+")
+        self.root.bind("<B1-Motion>", self._perform_resize, add="+")
+        self.root.bind("<ButtonRelease-1>", self._end_resize, add="+")
 
-        specs = (
-            ("size_we", HTRIGHT),
-            ("size_we", HTLEFT),
-            ("size_ns", HTTOP),
-            ("size_ns", HTBOTTOM),
-            ("size_nw_se", HTTOPLEFT),
-            ("size_ne_sw", HTTOPRIGHT),
-            ("size_ne_sw", HTBOTTOMLEFT),
-            ("size_nw_se", HTBOTTOMRIGHT),
-        )
-        for cursor, hit in specs:
-            frame = tk.Frame(
-                self.root,
-                background=self.border_color,
-                cursor=cursor,
-                borderwidth=0,
-                highlightthickness=0,
-            )
-            frame.bind(
-                "<ButtonPress-1>",
-                lambda event, code=hit: self._begin_resize(event, code),
-            )
-            frame.bind("<B1-Motion>", self._perform_resize)
-            frame.bind("<ButtonRelease-1>", self._end_resize)
-            self._handles.append(frame)
-        self._layout_resize_handles()
-
-    def _layout_resize_handles(self, _event=None) -> None:
-        if not self._handles:
-            return
-        if self.is_maximized():
-            for frame in self._handles:
-                frame.place_forget()
-            return
-
-        w = max(1, self.root.winfo_width())
-        h = max(1, self.root.winfo_height())
-        edge = 5
-        corner = 12
-
-        right, left, top, bottom, tl, tr, bl, br = self._handles
-        left.place(x=0, y=corner, width=edge, height=max(1, h - 2 * corner))
-        right.place(x=max(0, w - edge), y=corner, width=edge, height=max(1, h - 2 * corner))
-        top.place(x=corner, y=0, width=max(1, w - 2 * corner), height=edge)
-        bottom.place(x=corner, y=max(0, h - edge), width=max(1, w - 2 * corner), height=edge)
-        tl.place(x=0, y=0, width=corner, height=corner)
-        tr.place(x=max(0, w - corner), y=0, width=corner, height=corner)
-        bl.place(x=0, y=max(0, h - corner), width=corner, height=corner)
-        br.place(x=max(0, w - corner), y=max(0, h - corner), width=corner, height=corner)
-
-        for frame in self._handles:
-            frame.lift()

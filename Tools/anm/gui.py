@@ -367,7 +367,9 @@ class RavenloftExtractorGui(tk.Tk):
     def _apply_chrome_insets(self) -> None:
         side, _top, bottom = title_skin.chrome_insets(self._ui_scale)
         if hasattr(self, "titlebar"):
-            self.titlebar.grid_configure(padx=(side, side))
+            # The non-client strip is part of the window itself, not the
+            # inset content area. Keep its background flush with both edges.
+            self.titlebar.grid_configure(padx=0)
         if hasattr(self, "header_canvas"):
             # The crest field is part of the outer skin, not an inset panel.
             # Let it run full-bleed behind the decorative side ornaments.
@@ -462,7 +464,7 @@ class RavenloftExtractorGui(tk.Tk):
         self.titlebar_title.grid(row=0, column=0, sticky="w", padx=(10, 6))
 
         chrome_buttons = tk.Frame(self.titlebar, background="#210d10")
-        chrome_buttons.grid(row=0, column=3, sticky="e", padx=(0, 6))
+        chrome_buttons.grid(row=0, column=3, sticky="e", padx=(0, 10))
         self.minimize_button = tk.Button(
             chrome_buttons,
             text="—",
