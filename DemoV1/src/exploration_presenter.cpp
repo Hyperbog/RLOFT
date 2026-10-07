@@ -48,6 +48,10 @@ ExplorationPresenter::surface_coverage(
         }
     }
 
+    if (frame.scene_vga_trace.has_value()) {
+        out.type7_unvalidated_wide_runs =
+            frame.scene_vga_trace->unresolved_wide_runs;
+    }
     // No type-7 invocation is considered presented while the original
     // 369D8 vertical generated-rasterizer path is still untranslated.
     // Fully occluded calls have no pending visible pixels.
