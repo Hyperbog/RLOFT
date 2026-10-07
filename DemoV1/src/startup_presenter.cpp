@@ -103,6 +103,58 @@ void IndexedFramebuffer::draw_frame_mapped(
     }
 }
 
+void IndexedFramebuffer::draw_frame_scaled_horizontal(
+    const Type1Raster& raster,
+    int frame,
+    int y,
+    int x,
+    int numerator,
+    int denominator,
+    const std::array<std::uint8_t, 256>* map,
+    bool map_transparent) {
+    if (frame < 0 || frame >= raster.count) {
+        throw std::out_of_range("type-1 scaled frame index");
+    }
+    if (numerator < 0 || denominator <= 0) {
+        throw std::invalid_argument("invalid horizontal scale ratio");
+    }
+
+    const auto frame_stride =
+        static_cast<std::size_t>(raster.width) * raster.height;
+    const auto frame_at = static_cast<std::size_t>(frame) * frame_stride;
+
+    int accumulator = denominator / 2;
+    int dx_offset = 0;
+    for (int sx = 0; sx < raster.width; ++sx) {
+        accumulator += numerator;
+        while (accumulator >= denominator) {
+            accumulator -= denominator;
+            const int dx = x + dx_offset++;
+            if (dx < 0 || dx >= kWidth) continue;
+
+            for (int sy = 0; sy < raster.height; ++sy) {
+                const int dy = y + sy;
+                if (dy < 0 || dy >= kHeight) continue;
+
+                const auto raw = raster.pixels[
+                    frame_at +
+                    static_cast<std::size_t>(sy) * raster.width +
+                    sx];
+
+                if (!map_transparent &&
+                    raster.transparent_index != 0xFF &&
+                    raw == raster.transparent_index) {
+                    continue;
+                }
+
+                const auto value = map ? (*map)[raw] : raw;
+                pixels_[static_cast<std::size_t>(dy) * kWidth + dx] =
+                    value;
+            }
+        }
+    }
+}
+
 IndexedRegion IndexedFramebuffer::capture(
     int y, int x, int height, int width) const {
     if (height < 0 || width < 0) {
@@ -174,6 +226,45 @@ void IndexedFramebuffer::restore_mapped(
                     static_cast<std::size_t>(row) * region.width + col];
             pixels_[static_cast<std::size_t>(dy) * kWidth + dx] =
                 map[source];
+        }
+    }
+}
+
+void IndexedFramebuffer::restore_scaled_horizontal(
+    const IndexedRegion& region,
+    int y,
+    int x,
+    int numerator,
+    int denominator,
+    const std::array<std::uint8_t, 256>* map) {
+    if (region.height < 0 || region.width < 0 ||
+        region.pixels.size() !=
+            static_cast<std::size_t>(region.height) *
+                static_cast<std::size_t>(region.width)) {
+        throw std::invalid_argument("invalid scaled indexed region");
+    }
+    if (numerator < 0 || denominator <= 0) {
+        throw std::invalid_argument("invalid region scale ratio");
+    }
+
+    int accumulator = denominator / 2;
+    int dx_offset = 0;
+    for (int sx = 0; sx < region.width; ++sx) {
+        accumulator += numerator;
+        while (accumulator >= denominator) {
+            accumulator -= denominator;
+            const int dx = x + dx_offset++;
+            if (dx < 0 || dx >= kWidth) continue;
+
+            for (int sy = 0; sy < region.height; ++sy) {
+                const int dy = y + sy;
+                if (dy < 0 || dy >= kHeight) continue;
+
+                const auto raw = region.pixels[
+                    static_cast<std::size_t>(sy) * region.width + sx];
+                pixels_[static_cast<std::size_t>(dy) * kWidth + dx] =
+                    map ? (*map)[raw] : raw;
+            }
         }
     }
 }
