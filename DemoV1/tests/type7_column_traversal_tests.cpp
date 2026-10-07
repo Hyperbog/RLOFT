@@ -146,15 +146,18 @@ int main() {
     const auto visible =
         rloft::Type7ColumnTraversalModel::visible_columns(
             plan, 128, 500U, rays);
-    assert(visible.size() == 4U);
+    // CODE.2 trims blocked right edges and advances by shortened widths.
+    assert(visible.size() == 2U);
     assert(visible[0].viewport_x == 127U);
     assert(visible[0].source_x == 30U);
     assert(visible[1].viewport_x == 128U);
     assert(visible[1].source_x == 32U);
-    assert(visible[2].viewport_x == 131U);
-    assert(visible[2].source_x == 33U);
-    assert(visible[3].viewport_x == 132U);
-    assert(visible[3].source_x == 33U);
+    const auto clipped_runs =
+        rloft::Type7ColumnTraversalModel::visible_runs(
+            plan, 128, 500U, rays);
+    assert(clipped_runs.size() == 2U);
+    assert(clipped_runs[0].width == 1U);
+    assert(clipped_runs[1].width == 1U);
 
     // A sprite near viewport column zero is cropped, never wrapped to the
     // far-right ray. In particular its leftmost source column emits nothing.
