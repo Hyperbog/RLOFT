@@ -59,8 +59,11 @@ add_library(rloft_boot_flow
     src/fixed_projection.cpp
     src/first_person_entity_projection.cpp
     src/npc_scene.cpp
+    src/loose_item_scene.cpp
     src/scene_shape_bounds.cpp
     src/scene_shape_selector.cpp
+    src/scene_source_banks.cpp
+    src/world_scene_record.cpp
     src/renderer_tables.cpp
     src/micro_rasterizer_layout.cpp
     src/micro_rasterizer_plan.cpp
@@ -257,6 +260,18 @@ add_executable(scene_shape_selector_tests tests/scene_shape_selector_tests.cpp)
 target_link_libraries(scene_shape_selector_tests PRIVATE rloft_boot_flow)
 add_test(NAME scene_shape_selector_tests COMMAND scene_shape_selector_tests)
 
+add_executable(loose_item_scene_tests tests/loose_item_scene_tests.cpp)
+target_link_libraries(loose_item_scene_tests PRIVATE rloft_boot_flow)
+add_test(NAME loose_item_scene_tests COMMAND loose_item_scene_tests)
+
+add_executable(scene_source_banks_tests tests/scene_source_banks_tests.cpp)
+target_link_libraries(scene_source_banks_tests PRIVATE rloft_boot_flow)
+add_test(NAME scene_source_banks_tests COMMAND scene_source_banks_tests)
+
+add_executable(world_scene_record_tests tests/world_scene_record_tests.cpp)
+target_link_libraries(world_scene_record_tests PRIVATE rloft_boot_flow)
+add_test(NAME world_scene_record_tests COMMAND world_scene_record_tests)
+
 add_executable(renderer_tables_tests tests/renderer_tables_tests.cpp)
 target_link_libraries(renderer_tables_tests PRIVATE rloft_boot_flow)
 add_test(NAME renderer_tables_tests COMMAND renderer_tables_tests)
@@ -425,6 +440,9 @@ set(RLOFT_TEST_TARGETS
     first_person_entity_projection_tests
     npc_scene_tests
     scene_shape_selector_tests
+    loose_item_scene_tests
+    scene_source_banks_tests
+    world_scene_record_tests
     renderer_tables_tests
     micro_rasterizer_layout_tests
     micro_rasterizer_plan_tests
