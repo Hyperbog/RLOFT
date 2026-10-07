@@ -7,6 +7,7 @@
 #include "rloft/exploration_runtime_motion.hpp"
 #include "rloft/inventory_runtime.hpp"
 #include "rloft/level_world_state.hpp"
+#include "rloft/level22_encounter.hpp"
 #include "rloft/npc_catalog.hpp"
 #include "rloft/object_catalog.hpp"
 #include "rloft/exploration_scene.hpp"
@@ -67,6 +68,15 @@ public:
 
     [[nodiscard]] ExplorationRuntimeMotionResult tick_motion(
         ExplorationMotionInputs inputs);
+
+    [[nodiscard]] NpcDamageResult damage_level22_assassin(
+        std::size_t npc_index,
+        std::uint16_t amount,
+        std::uint16_t reaction_mode,
+        const Level22EncounterModel::PlacementProbe& can_place = {});
+
+    [[nodiscard]] LooseItemPickupResult pickup_level22_loose_item(
+        std::size_t item_index);
 
     // Builds the canonical exploration render/update snapshot. The sweep
     // mutates only current visibility/explored state; automap is rebuilt
