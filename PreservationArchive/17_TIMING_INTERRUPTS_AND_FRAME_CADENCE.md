@@ -2,7 +2,7 @@
 
 ## 17 — Timing, Interrupt Scheduling, and Frame Cadence
 
-**Status:** ORIGINAL GAME TIMER AND AIL/32 VENDOR SOURCE CORROBORATED — runtime driver-dependent cadence remains OPEN  
+**Status:** STATIC TIMING CONTRACT DOCUMENTED — physical driver-dependent cadence and runtime certification OPEN  
 **Working branch:** `code1-decompilation`  
 **Frozen original-evidence baseline:** `373c7f10e6fc0f29c1e805125ef048150fcc7ba7`  
 **Evidence:** original `CODE.2` SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`; object-1 file start `0x3AF24`, size `0x3A852`. All addresses below are original **object-1 logical offsets** unless explicitly marked runtime data addresses.
@@ -269,6 +269,22 @@ A final *dynamic cadence* certificate would require: the exact shipped driver DL
 The complete dynamic initialization order for all original audio drivers; timer scheduling under driver failure/reinitialization; platform-dependent ISR latency; precise physical elapsed time per cinematic tick; and behavior across wraparound at real runtime remain **OPEN**. Do not infer these solely from nominal IBM PC PIT constants or a modern emulator.
 
 **Next:** inspect actual selected A32MT32.DLL/A32SBPDG.DLL service-rate descriptors, collect IRQ/PIT and frame trace under controlled original playback, and execute pause-stack and signed-threshold regression tests. Source-level AIL/32 timer names/units are now historically corroborated; effective Ravenloft frame cadence remains a dynamic test target.
+
+## 25. Static timing audit decision and certification scope
+
+**Decision: SOURCE-LEVEL RECONSTRUCTION CLOSED TO PRESENT EVIDENCE; physical cadence remains unmeasured.** The original CODE.2 and independent AIL/32 vendor source identify the counter producers, ISR ownership, callback registration, period units, PIT conversion, timer states, queued servicing and restore ordering. The certified SAVE specification independently verifies persistence of three timing domains. This is sufficient to specify the shipped game's **logic-level timing contract**, not to certify a particular DOS/hardware/emulator frame rate.
+
+**New baseline check (2026-10-07):** the supplied original CODE.1 and CODE.2, SAVE.DAT, OBJECTS.DAT, NPCS.DAT, LEVELS.DAT, and LEV022.DAT match their documented sizes and SHA-256 identities; the SAVE fixture directly decodes `F58C=1899`, `CF4C=0x000E0000`, and `A7E4=1735` at the previously certified offsets. This check establishes original-file identity and fixture interpretation, not game execution.
+
+| Question | Evidence-grade outcome | Remaining action |
+|---|---|---|
+| Game tick and pausable tick ownership | Original binary and SAVE serializer established | Regression test with native state/time model |
+| PIT divisor arithmetic and AIL timer slot semantics | Original machine behavior plus recovered vendor source | Unit test divisor bytes and callback-state transitions |
+| Driver-service discovery ABI and service-rate units | `AIL_SERVE_DRVR`, `svc_rate` and Hertz/microseconds established | Inspect **each shipped driver descriptor** and exercise initialization |
+| A single original FPS or physical cinematic tick length | **NOT PROVED** | Capture original/emulated IRQ/PIT and frame timestamps, noting driver configuration |
+| Exact edge behavior near 32-bit timer wrap and hardware failure | Encoded comparisons preserved, complete runtime effects **NOT PROVED** | Controlled traces against a real original-compatible runtime |
+
+**No blanket "timing 100%" claim is justified.** The remaining work is specifically *dynamic hardware/driver certification* and implementation tests. These are separate from the documentary closure of static original behavior. The archive can proceed to Chapter 18 while retaining this explicit open gate; discovery of contrary machine evidence reopens the relevant section under the correction policy in Chapter 00.
 
 ## Source ledger
 
