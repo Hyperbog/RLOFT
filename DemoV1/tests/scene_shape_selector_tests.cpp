@@ -44,5 +44,30 @@ int main() {
             session, tables) ==
         101U);
 
+    // Level 22 class-1 types 62..64 are outside the mutable cache groups.
+    // Type 62 is also inside 2B188's 0x3C..0x43 stride-16 mirror range.
+    assert(
+        rloft::SceneShapeSelectorModel::select_bank_local(
+            100U, 160U, 0U, 62U, 1U, 16U,
+            session, tables) ==
+        107U);
+
+    // Normal stride-16 sources fold 16 half-sectors to eight frames.
+    assert(
+        rloft::SceneShapeSelectorModel::select_bank_local(
+            100U, 160U, 0U, 62U, 2U, 16U,
+            session, tables) ==
+        100U);
+
+    bool cache_rejected = false;
+    try {
+        (void)rloft::SceneShapeSelectorModel::select_bank_local(
+            100U, 160U, 0U, 10U, 1U, 8U,
+            session, tables);
+    } catch (const std::logic_error&) {
+        cache_rejected = true;
+    }
+    assert(cache_rejected);
+
     return 0;
 }
