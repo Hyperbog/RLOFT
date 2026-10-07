@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <shellapi.h>
+#include <shlobj.h>
 
 #include <algorithm>
 #include <chrono>
@@ -387,6 +388,111 @@ CinematicResult play_cinematic(
     return CinematicResult::Completed;
 }
 
+
+std::optional<std::filesystem::path> choose_install_folder(HWND owner) {
+    BROWSEINFOW bi{};
+    bi.hwndOwner = owner;
+    bi.lpszTitle =
+        L"Select your original Ravenloft: Strahd's Possession installation folder";
+    bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_USENEWUI;
+
+    PIDLIST_ABSOLUTE pidl = SHBrowseForFolderW(&bi);
+    if (!pidl) return std::nullopt;
+
+    std::array<wchar_t, MAX_PATH> path{};
+    const bool ok = SHGetPathFromIDListW(pidl, path.data()) != FALSE;
+    CoTaskMemFree(pidl);
+    if (!ok) return std::nullopt;
+    return std::filesystem::path(path.data());
+}
+
+void save_preferred_install(const std::filesystem::path& path) {
+    HKEY key = nullptr;
+    if (RegCreateKeyExW(
+            HKEY_CURRENT_USER,
+            L"Software\\Hyperbog\\RLOFT Demo V1",
+            0,
+            nullptr,
+            0,
+            KEY_SET_VALUE,
+            nullptr,
+            &key,
+            nullptr) != ERROR_SUCCESS) {
+        return;
+    }
+
+    const auto value = path.wstring();
+    RegSetValueExW(
+        key,
+        L"GamePath",
+        0,
+        REG_SZ,
+        reinterpret_cast<const BYTE*>(value.c_str()),
+        static_cast<DWORD>((value.size() + 1) * sizeof(wchar_t)));
+    RegCloseKey(key);
+}
+
+std::optional<std::filesystem::path> preferred_install() {
+    HKEY key = nullptr;
+    if (RegOpenKeyExW(
+            HKEY_CURRENT_USER,
+            L"Software\\Hyperbog\\RLOFT Demo V1",
+            0,
+            KEY_QUERY_VALUE,
+            &key) != ERROR_SUCCESS) {
+        return std::nullopt;
+    }
+
+    std::array<wchar_t, 32768> value{};
+    DWORD type = 0;
+    DWORD bytes = static_cast<DWORD>(value.size() * sizeof(wchar_t));
+    const auto status = RegQueryValueExW(
+        key,
+        L"GamePath",
+        nullptr,
+        &type,
+        reinterpret_cast<BYTE*>(value.data()),
+        &bytes);
+    RegCloseKey(key);
+
+    if (status != ERROR_SUCCESS ||
+        (type != REG_SZ && type != REG_EXPAND_SZ) ||
+        value[0] == L'\0') {
+        return std::nullopt;
+    }
+    return std::filesystem::path(value.data());
+}
+
+std::optional<rloft::GameSource> choose_valid_install(HWND owner) {
+    for (;;) {
+        const auto selected = choose_install_folder(owner);
+        if (!selected) return std::nullopt;
+
+        try {
+            auto source = rloft::GameSource::open(*selected);
+            if (!source.contains("RES0") ||
+                !source.contains("INIT") ||
+                !source.contains("T")) {
+                throw std::runtime_error(
+                    "The selected folder does not contain a valid Ravenloft installation.");
+            }
+            save_preferred_install(*selected);
+            return source;
+        } catch (const std::exception& exc) {
+            const auto message =
+                widen(std::string(exc.what()) +
+                      "\n\nChoose the Ravenloft installation folder that contains "
+                      "the original game files or game.gog.");
+            const int result = MessageBoxW(
+                owner,
+                message.c_str(),
+                L"Ravenloft installation not found",
+                MB_RETRYCANCEL | MB_ICONWARNING);
+            if (result != IDRETRY) return std::nullopt;
+        }
+    }
+}
+
 std::optional<std::filesystem::path> command_line_source() {
     int argc = 0;
     LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
@@ -403,20 +509,40 @@ int run(HINSTANCE instance) {
 
     if (const auto explicit_path = command_line_source()) {
         source = rloft::GameSource::open(*explicit_path);
+        save_preferred_install(source.location().install_root);
     } else {
-        auto found = rloft::GameSource::auto_locate();
-        if (!found) {
-            MessageBoxW(
+        bool resolved = false;
+
+        if (const auto saved = preferred_install()) {
+            try {
+                source = rloft::GameSource::open(*saved);
+                resolved = true;
+            } catch (...) {
+                // A moved/uninstalled copy is not fatal; continue discovery.
+            }
+        }
+
+        if (!resolved) {
+            if (auto found = rloft::GameSource::auto_locate()) {
+                source = std::move(*found);
+                save_preferred_install(source.location().install_root);
+                resolved = true;
+            }
+        }
+
+        if (!resolved) {
+            const int result = MessageBoxW(
                 nullptr,
                 L"Ravenloft was not located automatically.\n\n"
-                L"Install an owned copy, set RLOFT_GAME_DIR, or pass the "
-                L"installation directory/game.gog as the first command-line "
-                L"argument.",
-                L"Ravenloft Demo Build v1",
-                MB_OK | MB_ICONERROR);
-            return 2;
+                L"Choose the folder where your owned copy is installed.",
+                L"Locate Ravenloft installation",
+                MB_OKCANCEL | MB_ICONINFORMATION);
+            if (result != IDOK) return 2;
+
+            auto chosen = choose_valid_install(nullptr);
+            if (!chosen) return 2;
+            source = std::move(*chosen);
         }
-        source = std::move(*found);
     }
 
     const bool chars_present = source.runtime_file("CHARS").has_value();
