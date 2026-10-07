@@ -86,6 +86,7 @@ PartyActorPresentation PartyPresentationModel::actor(
     out.active = (out.status_word & 0x8000U) == 0;
     out.portrait_index = bytes[0x012];
     out.sex_code = bytes[0x013];
+    out.race_code = bytes[0x014];
     out.base_armor_class =
         static_cast<std::int8_t>(bytes[0x01B]);
     out.current_hp = s16(bytes + 0x01C);

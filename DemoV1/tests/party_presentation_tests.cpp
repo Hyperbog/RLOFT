@@ -36,6 +36,7 @@ int main() {
     put16(bytes, 0x010, 0x0100);  // active + possessed portrait bank
     bytes[0x012] = 2;
     bytes[0x013] = 1;
+    bytes[0x014] = 4;
     bytes[0x01B] = 0xFF;          // signed AC -1
     put16(bytes, 0x01C, 12);
     put16(bytes, 0x01E, 20);
@@ -60,6 +61,7 @@ int main() {
     assert(actor.status_word == 0x0100);
     assert(actor.portrait_index == 2);
     assert(actor.sex_code == 1);
+    assert(actor.race_code == 4);
     assert(actor.portrait_local_index() == 71);
     assert(actor.base_armor_class == -1);
     assert(actor.current_hp == 12);

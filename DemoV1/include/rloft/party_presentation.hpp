@@ -33,6 +33,7 @@ struct PartyActorPresentation final {
 
     std::uint8_t portrait_index{};
     std::uint8_t sex_code{};
+    std::uint8_t race_code{};
     std::int8_t base_armor_class{};
     std::int16_t current_hp{};
     std::int16_t max_hp{};
