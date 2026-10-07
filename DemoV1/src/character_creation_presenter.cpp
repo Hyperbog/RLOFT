@@ -80,8 +80,8 @@ void CharacterCreationPresenter::draw_opening_base() {
 
 void CharacterCreationPresenter::draw_opening_moving_object(
     int position, int delta) {
-    // CODE.1 4520. A5C8 temporarily mirrors the resource in the two
-    // positive-direction cases, then immediately restores the source.
+    // CODE.1 4520. A5C8 temporarily reverses the resource vertically in
+    // the two positive-direction cases, then immediately restores it.
     if (position == 0x16) {
         draw_frame_mirrored(
             7, 0x3D, 0, 0xE5, position - delta);
@@ -634,7 +634,7 @@ void CharacterCreationPresenter::draw_10a4_ornament(
     const int column = anchor_column - raster.width * 2;
 
     if (reversed[static_cast<std::size_t>(phase)]) {
-        // A5C8 is the same temporary in-place mirror used by 4520.
+        // A5C8 is the same temporary in-place vertical reversal used by 4520.
         framebuffer_.draw_frame_mirrored(
             raster,
             0,

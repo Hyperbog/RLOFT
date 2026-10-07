@@ -189,6 +189,10 @@ public:
         return result;
     }
 
+    void clear_character_click() noexcept {
+        character_click_.reset();
+    }
+
     [[nodiscard]] std::optional<NativePoint> character_pointer() const {
         return character_pointer_;
     }
@@ -1112,12 +1116,43 @@ int run(HINSTANCE instance) {
                         character_palette);
                 };
 
+                const auto character_animation_period =
+                    std::chrono::duration_cast<Clock::duration>(
+                        std::chrono::duration<double>(
+                            1.0 / kVgaRefreshHz));
+                Clock::time_point character_animation_deadline{};
+
                 auto present_character_animation_frame = [&]() {
                     host.present(
                         character_presenter.framebuffer(),
                         character_palette);
-                    return host.pause_frame(
-                        std::chrono::duration<double>(1.0 / kVgaRefreshHz));
+
+                    // CODE.1 53E4 advances on VGA retrace. Keep an accumulated
+                    // 70.0863-Hz deadline so host rendering time does not get
+                    // added to every frame and make the card flight stutter.
+                    const auto now = Clock::now();
+                    if (character_animation_deadline ==
+                            Clock::time_point{} ||
+                        now >
+                            character_animation_deadline +
+                                character_animation_period * 2) {
+                        character_animation_deadline = now;
+                    }
+                    character_animation_deadline +=
+                        character_animation_period;
+
+                    const bool ok = host.wait_until(
+                        character_animation_deadline,
+                        false);
+
+                    // 10A4/07E4/15B0 do not accept a mouse selection while
+                    // their page-flip animation is running. CODE.1's 043C
+                    // input path also waits for any held button to be released
+                    // before accepting the next hit. Do not carry a Windows
+                    // WM_LBUTTONDOWN from an animation frame into the newly
+                    // interactive screen.
+                    host.clear_character_click();
+                    return ok;
                 };
 
                 auto animate_15b0 = [&](

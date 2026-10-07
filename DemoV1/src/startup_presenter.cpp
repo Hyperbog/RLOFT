@@ -46,19 +46,23 @@ void IndexedFramebuffer::draw_frame_mirrored(
         throw std::out_of_range("type-1 frame index");
     }
 
+    // CODE.1 A5C8 is not a left/right mirror. It reverses the scanline
+    // order inside each VGA plane, which is a vertical flip once the planar
+    // resource has been decoded to the host's row-major raster.
     const auto frame_stride =
         static_cast<std::size_t>(raster.width) * raster.height;
     const auto frame_at = static_cast<std::size_t>(frame) * frame_stride;
     for (int sy = 0; sy < raster.height; ++sy) {
         const int dy = y + sy;
         if (dy < 0 || dy >= kHeight) continue;
+        const int source_y = raster.height - 1 - sy;
         for (int sx = 0; sx < raster.width; ++sx) {
             const int dx = x + sx;
             if (dx < 0 || dx >= kWidth) continue;
-            const int source_x = raster.width - 1 - sx;
             const auto value = raster.pixels[
-                frame_at + static_cast<std::size_t>(sy) * raster.width +
-                source_x];
+                frame_at +
+                static_cast<std::size_t>(source_y) * raster.width +
+                sx];
             if (raster.transparent_index != 0xFF &&
                 value == raster.transparent_index) {
                 continue;

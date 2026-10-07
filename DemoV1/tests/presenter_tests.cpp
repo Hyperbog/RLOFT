@@ -114,6 +114,28 @@ int main() {
     assert(framebuffer.pixels()[12 * 320 + 7] == 9);
     assert(framebuffer.pixels()[12 * 320 + 8] == 0xFE);
 
+    // CODE.1 A5C8 reverses scanline order (vertical), not columns.
+    // The character-opening indicator and 10A4 flying-card sequence both
+    // use this primitive.
+    rloft::Type1Raster flip_test{
+        1,
+        2,
+        2,
+        0xFF,
+        {1, 2,
+         3, 4}
+    };
+    framebuffer.clear(0);
+    framebuffer.draw_frame_mirrored(
+        flip_test,
+        0,
+        20,
+        10);
+    assert(framebuffer.pixels()[20 * 320 + 10] == 3);
+    assert(framebuffer.pixels()[20 * 320 + 11] == 4);
+    assert(framebuffer.pixels()[21 * 320 + 10] == 1);
+    assert(framebuffer.pixels()[21 * 320 + 11] == 2);
+
     rloft::Palette6 palette;
     for (auto& value : palette.rgb) value = 56;
     const auto half = rloft::StartupPresenter::fade_factor(palette, 4);
