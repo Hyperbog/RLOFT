@@ -17,6 +17,7 @@
 #include <utility>
 #include <vector>
 
+#include "rloft/anm_cinematic.hpp"
 #include "rloft/boot_flow.hpp"
 #include "rloft/character_creation_presenter.hpp"
 #include "rloft/game_source.hpp"
@@ -351,6 +352,41 @@ bool code1_palette_reveal(
     return true;
 }
 
+enum class CinematicResult {
+    Completed,
+    Escaped,
+    Quit,
+};
+
+CinematicResult play_cinematic(
+    Host& host,
+    rloft::AnmCinematic& cinematic) {
+    cinematic.reset();
+
+    while (!cinematic.finished()) {
+        const auto frame = cinematic.render_next();
+
+        // Image/palette/subtitle behavior is native here. Audio commands are
+        // surfaced by the renderer and are wired into the audio bridge in the
+        // following implementation unit.
+        host.present(cinematic.framebuffer(), cinematic.palette());
+
+        if (frame.wait_ticks > 0) {
+            if (!host.wait_until(
+                    Clock::now() + pit_ticks(frame.wait_ticks),
+                    true)) {
+                if (host.quit_requested()) return CinematicResult::Quit;
+                return CinematicResult::Escaped;
+            }
+        } else {
+            if (!host.pump()) return CinematicResult::Quit;
+            if (host.consume_escape()) return CinematicResult::Escaped;
+        }
+    }
+
+    return CinematicResult::Completed;
+}
+
 std::optional<std::filesystem::path> command_line_source() {
     int argc = 0;
     LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
@@ -410,6 +446,25 @@ int run(HINSTANCE instance) {
     host.present(presenter.framebuffer(), black);
 
     bool skipped = false;
+
+    // CODE.2 19888 begins with numbered cinematic event 0, then event 12.
+    // 13EF8 maps those numbers directly to CINE00.ANM and CINE12.ANM.
+    {
+        rloft::AnmCinematic cine00(
+            assets.source().read("CINE00.ANM"), 0, assets);
+        const auto result = play_cinematic(host, cine00);
+        if (result == CinematicResult::Quit) return 0;
+        if (result == CinematicResult::Escaped) skipped = true;
+    }
+
+    if (!skipped) {
+        rloft::AnmCinematic cine12(
+            assets.source().read("CINE12.ANM"), 12, assets);
+        const auto result = play_cinematic(host, cine12);
+        if (result == CinematicResult::Quit) return 0;
+        if (result == CinematicResult::Escaped) skipped = true;
+    }
+
     const auto palette14 = presenter.palette14();
     const auto palette9 = presenter.palette9();
     const auto palette12 = presenter.palette12();
