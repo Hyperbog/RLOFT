@@ -18,6 +18,7 @@
 #include "rloft/placed_object_scene.hpp"
 #include "rloft/scene_source_banks.hpp"
 #include "rloft/world_scene_record.hpp"
+#include "rloft/world_scene_draw_calls.hpp"
 #include "rloft/world_scene_selection.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/exploration_scene.hpp"
@@ -35,6 +36,7 @@ struct ExplorationRuntimeFrame final {
     ExplorationSceneSnapshot scene{};
     std::vector<ViewSweepRecord> sweep_records;
     std::vector<WorldSceneRecord> world_scene_records;
+    std::vector<WorldSceneDrawCall> world_scene_draw_calls;
     std::vector<ViewSweepRun> sweep_runs;
     SurfaceShadeTable surface_shades{};
     std::vector<SurfacePrepassPlan> prepass_plans;
