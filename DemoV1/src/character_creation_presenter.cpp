@@ -609,6 +609,34 @@ void CharacterCreationPresenter::screen(
     throw std::logic_error("unsupported character controller state");
 }
 
+void CharacterCreationPresenter::existing_actor_decision_screen(
+    const CharacterCreationFlow& flow,
+    int actor,
+    const CharacterStatsModel& stats) {
+    if (flow.state() != CharacterCreationState::ActorChoice ||
+        !flow.actor_present(actor)) {
+        throw std::logic_error(
+            "existing-actor decision requires a populated mode-0 slot");
+    }
+
+    static constexpr std::array<int, 9> row{
+        13, 67, 91, 91, 67, 13, 91, 91, 91
+    };
+    static constexpr std::array<int, 9> column{
+        3, 56, 109, 162, 215, 268, 83, 136, 189
+    };
+
+    // function_1BD4 leaves the mode-0 title blank, substitutes resources
+    // 2F/30 into slots 2/3, and invokes function_04B0(stage 6).
+    draw_controller_base(CharacterCreationState::ActorChoice, {});
+    draw_frame(7, 0x2F, 0, row[2], column[2]);
+    draw_frame(7, 0x30, 0, row[3], column[3]);
+
+    const auto& draft = flow.actor(actor);
+    draw_persistent_summary(draft, 5);
+    draw_stats_panel(draft, stats, 0x114, 0x10C, -1);
+}
+
 void CharacterCreationPresenter::final_decision_screen(
     const CharacterCreationFlow& flow,
     const CharacterStatsModel& stats) {
