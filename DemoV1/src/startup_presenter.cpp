@@ -151,6 +151,33 @@ void IndexedFramebuffer::restore(
     }
 }
 
+void IndexedFramebuffer::restore_mapped(
+    const IndexedRegion& region,
+    int y,
+    int x,
+    const std::array<std::uint8_t, 256>& map) {
+    if (region.height < 0 || region.width < 0 ||
+        region.pixels.size() !=
+            static_cast<std::size_t>(region.height) *
+                static_cast<std::size_t>(region.width)) {
+        throw std::invalid_argument("invalid indexed mapped region");
+    }
+
+    for (int row = 0; row < region.height; ++row) {
+        const int dy = y + row;
+        if (dy < 0 || dy >= kHeight) continue;
+        for (int col = 0; col < region.width; ++col) {
+            const int dx = x + col;
+            if (dx < 0 || dx >= kWidth) continue;
+            const auto source =
+                region.pixels[
+                    static_cast<std::size_t>(row) * region.width + col];
+            pixels_[static_cast<std::size_t>(dy) * kWidth + dx] =
+                map[source];
+        }
+    }
+}
+
 void IndexedFramebuffer::fill_rect(
     int y, int x, int height, int width, std::uint8_t color) {
     if (height <= 0 || width <= 0) return;
