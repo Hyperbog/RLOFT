@@ -44,9 +44,15 @@ public:
         return initial_individual_columns_mode_;
     }
 
+    // CODE.2 original data object byte EF4D is the initial 0/1 page.
+    [[nodiscard]] std::uint8_t initial_video_page() const noexcept {
+        return initial_video_page_;
+    }
+
 private:
     std::array<std::array<std::uint8_t, 32>, 3> plane_tables_{};
     bool initial_individual_columns_mode_{};
+    std::uint8_t initial_video_page_{};
 };
 
 } // namespace rloft
