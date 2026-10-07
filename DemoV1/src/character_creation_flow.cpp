@@ -272,8 +272,27 @@ std::array<bool, 6> CharacterCreationFlow::available_choices() const noexcept {
 
         case CharacterCreationState::PortraitChoice: {
             out.fill(true);
+            const int other =
+                draft_.actor >= 0 ? (draft_.actor ^ 1) : -1;
+
             for (int i = 0; i < 6; ++i) {
-                if (portrait_page_ + i == 17) out[i] = false;
+                const int face = portrait_page_ + i;
+                if (face == 17) {
+                    out[i] = false;
+                    continue;
+                }
+
+                // function_2A64 excludes a portrait already owned by the
+                // other original player character only when 680B (sex/order)
+                // matches the current actor.
+                if (other >= 0 && other < 2 &&
+                    actor_present_[static_cast<std::size_t>(other)] &&
+                    actors_[static_cast<std::size_t>(other)].sex ==
+                        draft_.sex &&
+                    actors_[static_cast<std::size_t>(other)].face ==
+                        face) {
+                    out[i] = false;
+                }
             }
             return out;
         }
