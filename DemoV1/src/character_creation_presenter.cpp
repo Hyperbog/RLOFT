@@ -1389,9 +1389,9 @@ void CharacterCreationPresenter::transition_07e4_frame(
     // 5FF8 + 4*100h. It lives in generated BSS, not stored CODE.1 data.
     const auto seam_color = remaps_.bright[4][0];
 
-    // CODE.1 phase 0/1 do not call 53E4 and are therefore not visible.
-    // The first host-presented transition frame corresponds to original
-    // loop phase 2.
+    // CODE.1 phases 0/1 do not flip the card page. Their 55DC call copies
+    // only rows 0xEC..0x18F (the lower text/UI region) to the displayed page,
+    // so the card area first becomes visible when phase 2 calls 53E4.
     const int phase = frame_index + 2;
 
     for (int slot = first_slot; slot < last_slot; ++slot) {
@@ -1447,13 +1447,16 @@ void CharacterCreationPresenter::transition_07e4_frame(
 
         if (k < 12) {
             const int q = 12 - k;
+            // Raw CODE.1 0C45..0E29 uses q only for the origin offset.
+            // The 9C44 scale numerator is 6-q == k-6, producing the exact
+            // 1/6,2/6,3/6,4/6,5/6 face-card expansion.
             draw_slot_scaled_07e4(
                 after,
                 after_stats,
                 slot,
                 row,
                 column + 4 * q,
-                q,
+                k - 6,
                 6,
                 &new_region[index]);
             continue;
@@ -1665,7 +1668,7 @@ void CharacterCreationPresenter::controller_entry_frame(
                 slot,
                 row,
                 column + 4 * q,
-                q,
+                k - 6,
                 6,
                 &new_region[index]);
             continue;
@@ -2011,7 +2014,7 @@ void CharacterCreationPresenter::existing_actor_transition_frame(
                 new_region[index],
                 row,
                 column + 4 * q,
-                q,
+                k - 6,
                 6);
             continue;
         }
@@ -2190,7 +2193,7 @@ void CharacterCreationPresenter::stats_editor_transition_frame(
                 new_region[index],
                 row,
                 column + 4 * q,
-                q,
+                k - 6,
                 6);
         } else {
             framebuffer_.restore(
@@ -2331,7 +2334,7 @@ void CharacterCreationPresenter::final_decision_entry_frame(
                 new_region[index],
                 row,
                 column + 4 * q,
-                q,
+                k - 6,
                 6);
         } else {
             framebuffer_.restore(
@@ -2476,7 +2479,7 @@ void CharacterCreationPresenter::name_entry_entry_frame(
                 new_region,
                 row,
                 column + 4 * q,
-                q,
+                k - 6,
                 6);
         } else {
             framebuffer_.restore(new_region, row, column);

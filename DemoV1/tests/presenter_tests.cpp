@@ -170,9 +170,9 @@ int main() {
         assert(column == 142);
     }
 
-    // 07E4 executes N+10 loop phases, but original phases 0/1 only prepare
-    // hidden VGA pages through 55DC. Visible frames are phases 2..N+9 plus
-    // the final 064C page flip.
+    // 07E4 executes N+10 phases. In phases 0/1, 55DC copies only the lower
+    // UI rectangle (row 0xEC for height 0xA4), so the upper card area first
+    // changes visibly at phase 2.
     assert(
         rloft::CharacterCreationPresenter::transition_07e4_frame_count(
             0, 6) == 15);
@@ -182,6 +182,35 @@ int main() {
     assert(
         rloft::CharacterCreationPresenter::transition_07e4_frame_count(
             6, 9) == 12);
+
+    // Raw CODE.1 0C45..0E29 keeps the face-card position offset and scale
+    // numerator separate. For k=7..11:
+    //   offset = 12-k -> 5,4,3,2,1
+    //   scale  = 6-offset = k-6 -> 1,2,3,4,5
+    // C9D4 therefore expands a 48-pixel card as 8,16,24,32,40 pixels before
+    // the final unscaled 48-pixel frame. Using offset as the numerator would
+    // reverse this sequence and visibly jitter.
+    {
+        rloft::Type1Raster card{
+            1,
+            48,
+            1,
+            0xFF,
+            std::vector<std::uint8_t>(48, 1)
+        };
+        for (int k = 7; k < 12; ++k) {
+            const int offset = 12 - k;
+            const int scale = k - 6;
+            framebuffer.clear(0);
+            framebuffer.draw_frame_scaled_horizontal(
+                card, 0, 30, 20 + 4 * offset, scale, 6);
+            int drawn = 0;
+            for (int x = 0; x < 320; ++x) {
+                if (framebuffer.pixels()[30 * 320 + x] == 1) ++drawn;
+            }
+            assert(drawn == 8 * scale);
+        }
+    }
 
     std::cout << "presenter_tests: PASS\n";
 }

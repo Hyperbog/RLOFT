@@ -124,9 +124,9 @@ public:
     [[nodiscard]] static int transition_07e4_frame_count(
         int first_slot,
         int last_slot) noexcept {
-        // 07E4 executes N+10 loop phases, but phases 0 and 1 only prepare
-        // the hidden VGA pages via 55DC; they are never page-flipped.
-        // Visible animation = phases 2..N+9, plus the final 064C flip.
+        // 07E4 executes N+10 loop phases. Phases 0/1 use 55DC to copy only
+        // the lower UI rectangle (rows 0xEC..0x18F), not the card area.
+        // Visible card animation = phases 2..N+9, plus the final 064C flip.
         return (last_slot - first_slot) + 9;
     }
     void transition_07e4_frame(

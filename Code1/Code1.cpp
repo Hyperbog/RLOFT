@@ -2340,11 +2340,15 @@ void function_07e4(Machine&m,Batch16Boundary&b,s32 first,s32 last)noexcept{
    }
    if(k==6u){if(b.call_6c60)b.call_6c60(0u,x,y,s+0x1eu,7u);const u32 color=*dgroup_ptr(m,dgroup(0x63f8u));if(b.call_a05c)b.call_a05c(x,y+0x18,x+0x79,y+0x18,color);continue;}
    if(k<12u){
-    const u32 q=12u-k;if(b.call_6c60)b.call_6c60(0u,x,y,s+0x1eu,7u);y+=static_cast<s32>(4u*q);
-    if(load_le32(dgroup_ptr(m,dgroup(0x04d0u)))==0u&&new_id==1)b16_slide(b,0u,q,6u,load_le32(dgroup_ptr(m,dgroup(0x0954u+i4))),x,y);
-    else if(slot==7&&new_id!=0x14)b16_slide(b,0u,q,6u,load_le32(dgroup_ptr(m,dgroup(0x0958u))),x,y);
-    else if(b16_range(m,new_id)){const u32 a=b.call_954c?b.call_954c(0x14u,7u):0u,c=b.call_954c?b.call_954c(static_cast<u32>(new_id),1u):0u;b16_slide(b,0u,q,6u,a,x,y);b16_slide(b,1u,q,6u,c,x+0x15,y);}
-    else{const u32 r=b.call_954c?b.call_954c(static_cast<u32>(new_id),7u):0u;b16_slide(b,0u,q,6u,r,x,y);}continue;
+    // Raw 0C45..0E29 first stores offset=12-k, then recomputes
+    // scale=6-offset (therefore k-6) before every 9C44 call. Keeping those
+    // as separate values is essential: the new card expands 1/6..5/6 while
+    // its origin walks back from +20 to +4 pixels toward the full-card edge.
+    const u32 offset=12u-k,scale=6u-offset;if(b.call_6c60)b.call_6c60(0u,x,y,s+0x1eu,7u);y+=static_cast<s32>(4u*offset);
+    if(load_le32(dgroup_ptr(m,dgroup(0x04d0u)))==0u&&new_id==1)b16_slide(b,0u,scale,6u,load_le32(dgroup_ptr(m,dgroup(0x0954u+i4))),x,y);
+    else if(slot==7&&new_id!=0x14)b16_slide(b,0u,scale,6u,load_le32(dgroup_ptr(m,dgroup(0x0958u))),x,y);
+    else if(b16_range(m,new_id)){const u32 a=b.call_954c?b.call_954c(0x14u,7u):0u,c=b.call_954c?b.call_954c(static_cast<u32>(new_id),1u):0u;b16_slide(b,0u,scale,6u,a,x,y);b16_slide(b,1u,scale,6u,c,x+0x15,y);}
+    else{const u32 r=b.call_954c?b.call_954c(static_cast<u32>(new_id),7u):0u;b16_slide(b,0u,scale,6u,r,x,y);}continue;
    }
    if(load_le32(dgroup_ptr(m,dgroup(0x04d0u)))==0u&&new_id==1){if(b.call_67c8)b.call_67c8(0u,x,y,load_le32(dgroup_ptr(m,dgroup(0x0954u+i4))));}
    else if(slot==7&&new_id!=0x14){if(b.call_67c8)b.call_67c8(0u,x,y,load_le32(dgroup_ptr(m,dgroup(0x0958u))));}
