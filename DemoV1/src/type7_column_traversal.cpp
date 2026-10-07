@@ -254,6 +254,10 @@ Type7ColumnTraversalModel::visible_runs(
                     --count;
                 }
                 push(column, left_cursor, count);
+                // CODE.2 3708F branches to 370AE, not 37094:
+                // the left traversal ends after drawing this suffix.
+                // Further left-side source columns are not visited.
+                break;
             }
             // 37056 explicitly skips a run with *both* endpoints blocked,
             // even when its interior happens to be visible.
