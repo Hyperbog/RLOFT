@@ -58,6 +58,51 @@ int main() {
     assert(raster.height == 1);
     assert(raster.transparent_index == 0);
 
+
+    // RES3 type-7 uses the shared CODE.2 LZSS wrapper. This synthetic
+    // all-literal stream encodes the certified Assassin base-shape geometry:
+    // 64w; x 15..51; y 27..128.
+    {
+        std::vector<std::uint8_t> type7_bytes(27U, 0);
+        put32(type7_bytes, 0, 1);
+        put32(type7_bytes, 4, 8);
+
+        const std::array<std::uint8_t, 10> body{{
+            64, 0,
+            15, 0,
+            51, 0,
+            27, 0,
+            128, 0,
+        }};
+
+        std::size_t q = 8;
+        type7_bytes[q++] = 'E';
+        type7_bytes[q++] = 'H';
+        type7_bytes[q++] = 7;
+        put16(type7_bytes, q, 0);
+        q += 2;
+        put16(type7_bytes, q, 10);
+        q += 2;
+
+        type7_bytes[q++] = 0xFF;
+        for (std::size_t i = 0; i < 8U; ++i) {
+            type7_bytes[q++] = body[i];
+        }
+        type7_bytes[q++] = 0x03;
+        type7_bytes[q++] = body[8];
+        type7_bytes[q++] = body[9];
+
+        rloft::ResArchive type7_archive(
+            std::move(type7_bytes));
+        const auto geometry =
+            type7_archive.decode_type7_geometry(0);
+        assert(geometry.source_width == 64U);
+        assert(geometry.x_min == 15);
+        assert(geometry.x_max == 51);
+        assert(geometry.y_min == 27);
+        assert(geometry.y_max == 128);
+    }
+
     // CODE.1 767C -> DC90: a nonzero descriptor byte +7 converts an
     // N-element, one-row type-1 image into one N-row runtime image.
     {
