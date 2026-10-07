@@ -34,6 +34,7 @@ public:
     [[nodiscard]] std::vector<std::uint8_t> entry(int index) const;
     [[nodiscard]] Type1Raster decode_type1(int index) const;
     [[nodiscard]] Type2Font decode_type2(int index) const;
+    [[nodiscard]] std::vector<std::uint8_t> decode_type4(int index) const;
 
 private:
     std::vector<std::uint8_t> bytes_;
@@ -48,6 +49,7 @@ public:
     [[nodiscard]] Type1Raster type1(int archive, int index) const;
     [[nodiscard]] Type1Raster res0_type1(int index) const;
     [[nodiscard]] Type2Font res0_font(int index) const;
+    [[nodiscard]] std::vector<std::uint8_t> sampled_audio(int archive, int index) const;
     [[nodiscard]] std::string text(int index) const;
     [[nodiscard]] Palette6 colors_palette(int index, int brightness = 0) const;
 
@@ -55,7 +57,9 @@ private:
     GameSource source_;
     ResArchive res0_;
     ResArchive res1_;
+    ResArchive res6_;
     ResArchive res7_;
+    ResArchive res10_;
     std::vector<std::uint8_t> colors_;
     std::vector<std::uint8_t> text_;
 };
