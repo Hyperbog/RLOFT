@@ -64,6 +64,20 @@ static void character_creation_status10_returns_to_code2() {
     assert(flow.snapshot().module == LegacyModule::Code2);
     assert(flow.snapshot().stage == BootStage::Code2Startup);
     assert(flow.snapshot().chars_present);
+
+    flow.finish_code2_startup(true, false);
+    assert(flow.snapshot().module == LegacyModule::Code2);
+    assert(flow.snapshot().stage == BootStage::Exploration);
+}
+
+static void existing_chars_enters_exploration() {
+    BootFlow flow;
+    flow.boot();
+    flow.finish_code2_startup(true, false);
+
+    assert(flow.snapshot().module == LegacyModule::Code2);
+    assert(flow.snapshot().chars_present);
+    assert(flow.snapshot().stage == BootStage::Exploration);
 }
 
 static void menu_exit_uses_ordinary_status() {
@@ -82,6 +96,7 @@ int main() {
     escape_skips_cold_start_presentation();
     startup_latch_bypasses_presentation();
     character_creation_status10_returns_to_code2();
+    existing_chars_enters_exploration();
     menu_exit_uses_ordinary_status();
     std::cout << "boot_flow_tests: PASS\n";
 }

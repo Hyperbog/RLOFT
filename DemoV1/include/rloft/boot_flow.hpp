@@ -20,6 +20,7 @@ enum class BootStage : std::uint8_t {
     Code2ExitToSupervisor,
     CharacterCreation,
     Code1ExitToSupervisor,
+    Exploration,
     Terminated,
 };
 

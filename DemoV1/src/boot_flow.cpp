@@ -23,10 +23,10 @@ void BootFlow::finish_code2_startup(bool chars_present,
     state_.presentation_latch_set = presentation_latch_set;
 
     // CODE.2 0x204B3: CHARS present takes the existing-party import path.
-    // Demo v1 intentionally targets the CHARS-absent boot-to-creation slice.
+    // The gameplay runtime begins after that import and the first level load.
     if (chars_present) {
-        throw std::logic_error(
-            "Demo v1 boot slice does not yet implement the CHARS-present path");
+        state_.stage = BootStage::Exploration;
+        return;
     }
 
     // CODE.2 0x19888: byte [F050+0x72] bypasses the staged cold-start
@@ -157,6 +157,7 @@ std::string_view to_string(BootStage stage) noexcept {
         case BootStage::Code2ExitToSupervisor: return "CODE.2 exit to supervisor";
         case BootStage::CharacterCreation: return "character creation";
         case BootStage::Code1ExitToSupervisor: return "CODE.1 exit to supervisor";
+        case BootStage::Exploration: return "exploration runtime";
         case BootStage::Terminated: return "terminated";
     }
     return "unknown stage";
