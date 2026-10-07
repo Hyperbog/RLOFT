@@ -22,6 +22,7 @@ add_library(rloft_boot_flow
     src/exploration_frame.cpp
     src/party_presentation.cpp
     src/top_edge_menu.cpp
+    src/exploration_ui.cpp
     src/exploration_world.cpp
     src/exploration_collision.cpp
     src/environment_view.cpp
@@ -70,6 +71,10 @@ add_test(NAME party_presentation_tests COMMAND party_presentation_tests)
 add_executable(top_edge_menu_tests tests/top_edge_menu_tests.cpp)
 target_link_libraries(top_edge_menu_tests PRIVATE rloft_boot_flow)
 add_test(NAME top_edge_menu_tests COMMAND top_edge_menu_tests)
+
+add_executable(exploration_ui_tests tests/exploration_ui_tests.cpp)
+target_link_libraries(exploration_ui_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_ui_tests COMMAND exploration_ui_tests)
 
 add_executable(exploration_world_tests tests/exploration_world_tests.cpp)
 target_link_libraries(exploration_world_tests PRIVATE rloft_boot_flow)
@@ -134,6 +139,7 @@ set(RLOFT_TEST_TARGETS
     exploration_frame_tests
     party_presentation_tests
     top_edge_menu_tests
+    exploration_ui_tests
     exploration_world_tests
     exploration_collision_tests
     environment_view_tests
