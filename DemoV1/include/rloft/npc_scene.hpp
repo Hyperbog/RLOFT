@@ -9,20 +9,12 @@
 #include "rloft/level_world_state.hpp"
 #include "rloft/npc_catalog.hpp"
 #include "rloft/renderer_tables.hpp"
+#include "rloft/scene_source_banks.hpp"
+#include "rloft/world_scene_record.hpp"
 
 namespace rloft {
 
-// Stable portion of CODE.2's 0x16-byte generated scene record after NPC
-// projection/frame selection. The four trailing interaction-bound words are
-// deliberately excluded until helper 21BF0 is translated.
-struct NpcSceneEmission final {
-    std::uint16_t screen_x{};
-    std::uint16_t projected_extent{};
-    std::uint16_t resource_id{};
-    std::uint16_t source_index{};
-    std::uint16_t source_class{};  // CODE.2 class 0 = NPC.
-    std::uint16_t render_scale_lookup_bias{};
-};
+using NpcSceneEmission = WorldSceneRecord;
 
 class NpcSceneModel final {
 public:
@@ -39,6 +31,7 @@ public:
         const ExplorationSessionState& session,
         const NpcCatalog& catalog,
         const RendererTables& tables,
+        const SceneSourceBanks& banks,
         std::uint8_t render_threshold,
         const Random15& shared_random15 = {});
 };
