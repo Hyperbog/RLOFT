@@ -13,6 +13,9 @@ struct ObjectDefinition final {
     static constexpr std::size_t kSerializedSize = 0x41;
 
     std::string name;
+    std::uint16_t scene_shape_base_local{};
+    std::uint8_t scene_shape_stride{};
+    std::uint8_t scene_influence_step{};
     std::uint16_t ui_graphic_index{};
     std::uint8_t item_category{};
     std::uint8_t weight_half_units{};
