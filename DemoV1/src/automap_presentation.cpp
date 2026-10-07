@@ -1,6 +1,7 @@
 #include "rloft/automap_presentation.hpp"
 
 #include <array>
+#include <algorithm>
 #include <cstddef>
 #include <stdexcept>
 
@@ -152,6 +153,220 @@ std::vector<std::uint8_t> AutomapPresentationModel::cp437_base_map(
             out[ExplorationWorldModel::cell_index(level, cell)] =
                 cp437_base_glyph(level, cell);
         }
+    }
+    return out;
+}
+
+namespace {
+
+std::uint16_t read_u16(const std::uint8_t* p) noexcept {
+    return static_cast<std::uint16_t>(p[0]) |
+           (static_cast<std::uint16_t>(p[1]) << 8U);
+}
+
+std::int16_t read_s16(const std::uint8_t* p) noexcept {
+    return static_cast<std::int16_t>(read_u16(p));
+}
+
+std::int16_t family_b_count(const LevelState& level) noexcept {
+    return read_s16(level.header.data() + 0x28E);
+}
+
+}  // namespace
+
+std::vector<AutomapExportModel::PlacedRecord>
+AutomapExportModel::placed_records(
+    const LevelState& level) {
+    const auto raw_count = family_b_count(level);
+    if (raw_count < 0) {
+        throw std::runtime_error(
+            "negative family-B count in automap exporter");
+    }
+    const auto count = static_cast<std::size_t>(raw_count);
+
+    std::vector<PlacedRecord> out;
+    out.reserve(count);
+
+    if (level.storage == LevelStorage::ArchiveCompact) {
+        constexpr std::size_t kStride = 11U;
+        if (level.family_b_raw.size() != count * kStride) {
+            throw std::runtime_error(
+                "compact family-B bytes disagree with header count");
+        }
+
+        for (std::size_t i = 0; i < count; ++i) {
+            const auto* record =
+                level.family_b_raw.data() + i * kStride;
+            out.push_back(PlacedRecord{
+                read_s16(record + 2U),
+                read_s16(record + 6U),
+                read_u16(record + 0U),
+            });
+        }
+        return out;
+    }
+
+    constexpr std::size_t kPrefix = 2U;
+    constexpr std::size_t kStride = 22U;
+    if (level.family_b_raw.size() !=
+        kPrefix + count * kStride) {
+        throw std::runtime_error(
+            "direct family-B bytes disagree with header count");
+    }
+    if (read_s16(level.family_b_raw.data()) != raw_count) {
+        throw std::runtime_error(
+            "direct family-B prefix disagrees with header count");
+    }
+
+    for (std::size_t i = 0; i < count; ++i) {
+        const auto* record =
+            level.family_b_raw.data() +
+            kPrefix + i * kStride;
+
+        // Runtime/direct layout:
+        // +0 y 16.16, +4 x 16.16, +0E object type.
+        // 00700 compares the signed high words at +2/+6.
+        out.push_back(PlacedRecord{
+            read_s16(record + 6U),
+            read_s16(record + 2U),
+            read_u16(record + 0x0EU),
+        });
+    }
+    return out;
+}
+
+std::vector<std::uint8_t>
+AutomapExportModel::placed_overlay(
+    const LevelState& level,
+    int column_index) {
+    if (column_index < 0 ||
+        column_index >= level.width ||
+        level.height <= 0) {
+        throw std::out_of_range(
+            "automap export column");
+    }
+
+    std::vector<std::uint8_t> out(
+        static_cast<std::size_t>(level.height),
+        0x20U);
+    const auto records = placed_records(level);
+
+    for (int row = 0; row < level.height; ++row) {
+        const auto cell =
+            ExplorationWorldModel::cell_index(
+                level, {column_index, row});
+        if (cell >= level.automap_cache.size()) {
+            throw std::runtime_error(
+                "automap cache does not match level dimensions");
+        }
+        if (level.automap_cache[cell] == 0xFFU) {
+            continue;
+        }
+
+        for (const auto& record : records) {
+            if (record.column != column_index ||
+                record.row != row) {
+                continue;
+            }
+            // CODE.2 026E8 writes each match to the same byte; later family-B
+            // records therefore win at a shared cell.
+            out[static_cast<std::size_t>(row)] =
+                record.type >= 0x3CU &&
+                        record.type <= 0x41U
+                    ? 0x2AU
+                    : 0xFEU;
+        }
+    }
+    return out;
+}
+
+AutomapExportColumn AutomapExportModel::column(
+    const LevelState& level,
+    int column_index) {
+    if (column_index < 0 ||
+        column_index >= level.width ||
+        level.height <= 0) {
+        throw std::out_of_range(
+            "automap export column");
+    }
+
+    AutomapExportColumn out{};
+    const auto height =
+        static_cast<std::size_t>(level.height);
+    out.base.assign(height, 0x20U);
+    out.placed =
+        placed_overlay(level, column_index);
+    out.labels.assign(height, 0x20U);
+
+    for (int row = 0; row < level.height; ++row) {
+        out.base[static_cast<std::size_t>(row)] =
+            AutomapPresentationModel::cp437_base_glyph(
+                level, {column_index, row});
+    }
+
+    const auto annotations =
+        AutomapAnnotationModel::parse(
+            level.automap_annotations);
+
+    // This cursor deliberately does not equal the current row once a label is
+    // found. It is the exact 026E8 label_ptr progression.
+    std::size_t label_cursor = 0;
+    for (int row = 0; row < level.height; ++row) {
+        const auto label =
+            AutomapAnnotationModel::label_at(
+                annotations,
+                {column_index, row});
+        if (label.has_value()) {
+            if (label_cursor < height) {
+                out.labels[label_cursor] =
+                    static_cast<std::uint8_t>(
+                        label->first);
+            } else {
+                out.label_write_overflow = true;
+            }
+
+            ++label_cursor;
+            if (label_cursor < height) {
+                out.labels[label_cursor] =
+                    static_cast<std::uint8_t>(
+                        label->second);
+            } else {
+                out.label_write_overflow = true;
+            }
+
+            ++label_cursor;
+        }
+        ++label_cursor;
+    }
+
+    out.merged = out.base;
+    for (std::size_t i = 0; i < height; ++i) {
+        if (out.placed[i] != 0x20U) {
+            out.merged[i] = out.placed[i];
+        }
+        if (out.labels[i] != 0x20U) {
+            out.merged[i] = out.labels[i];
+        }
+    }
+    return out;
+}
+
+std::vector<AutomapExportColumn>
+AutomapExportModel::columns(
+    const LevelState& level) {
+    if (level.width <= 0 || level.height <= 0) {
+        throw std::runtime_error(
+            "invalid level geometry for automap export");
+    }
+
+    std::vector<AutomapExportColumn> out;
+    out.reserve(
+        static_cast<std::size_t>(level.width));
+    for (int column_index = 0;
+         column_index < level.width;
+         ++column_index) {
+        out.push_back(
+            column(level, column_index));
     }
     return out;
 }
