@@ -1,0 +1,134 @@
+name: Package Extractor Visual Assets
+
+on:
+  push:
+    branches:
+      - code1-decompilation
+    paths:
+      - ".github/workflows/package-extractor-assets.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Pillow
+        run: python -m pip install "Pillow>=10,<12"
+
+      - name: Export exact visual assets used by the extractor
+        working-directory: Tools/anm
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+          import title_skin
+
+          out = Path("dist/visual-assets")
+          out.mkdir(parents=True, exist_ok=True)
+
+          # Exact decoded sources currently consumed by title_skin.py.
+          panel = title_skin.menu_panel()
+          texture = title_skin.red_texture()
+          logo = title_skin.ravenloft_logo()
+          panel.save(out / "01_menu_panel_RES0_100.png")
+          texture.save(out / "02_red_texture.png")
+          logo.save(out / "03_ravenloft_logo.png")
+
+          crops = {
+              "04_top_left.png": title_skin.TOP_LEFT,
+              "05_top_right.png": title_skin.TOP_RIGHT,
+              "06_bottom_left.png": title_skin.BOTTOM_LEFT,
+              "07_bottom_right.png": title_skin.BOTTOM_RIGHT,
+              "08_side_left.png": title_skin.SIDE_LEFT,
+              "09_side_right.png": title_skin.SIDE_RIGHT,
+              "10_bottom_center.png": title_skin.BOTTOM_CENTER,
+          }
+          for name, box in crops.items():
+              panel.crop(box).save(out / name)
+
+          # Current generated compositions as assembly references.
+          title_skin.render_header(1280, 104, 1.0).save(
+              out / "11_current_header_1280x104.png"
+          )
+          title_skin.render_window(1280, 900, 1.0).save(
+              out / "12_current_outer_frame_1280x900.png"
+          )
+
+          # Older/reference composites retained in the project.
+          for name in (
+              "strahd_banner.webp",
+              "strahd_frame_main.png",
+              "strahd_parchment.png",
+              "strahd_title_logo.png",
+          ):
+              src = Path("assets") / name
+              if src.exists():
+                  shutil.copy2(src, out / ("reference_" + name))
+
+          readme = """Ravenloft Asset Extraction Suite - visual assembly kit
+
+These PNGs are exported directly from the same title_skin.py sources used by
+the current extractor build.
+
+PRIMARY CURRENT ASSETS
+01_menu_panel_RES0_100.png
+  Original decoded title/menu panel used as the source for ornaments.
+02_red_texture.png
+  Original decoded red field texture tiled behind the UI.
+03_ravenloft_logo.png
+  Exact Ravenloft crest used in the header.
+
+FRAME PIECES
+04_top_left.png
+05_top_right.png
+06_bottom_left.png
+07_bottom_right.png
+08_side_left.png
+09_side_right.png
+10_bottom_center.png
+
+CURRENT GENERATED REFERENCES
+11_current_header_1280x104.png
+12_current_outer_frame_1280x900.png
+
+SOURCE CROP COORDINATES IN THE 208x191 MENU PANEL
+TOP_LEFT      = (0, 0, 54, 62)
+TOP_RIGHT     = (154, 0, 208, 62)
+BOTTOM_LEFT   = (0, 129, 62, 191)
+BOTTOM_RIGHT  = (146, 129, 208, 191)
+SIDE_LEFT     = (0, 57, 39, 140)
+SIDE_RIGHT    = (169, 57, 208, 140)
+BOTTOM_CENTER = (63, 145, 145, 191)
+
+The files prefixed reference_ are older/reference artwork retained in the
+project. They are included so a hand-built replacement can be compared against
+both the source pieces and the prior compositions.
+"""
+          (out / "README.txt").write_text(readme, encoding="utf-8")
+
+          shutil.make_archive(
+              "dist/RavenloftExtractor-VisualAssets",
+              "zip",
+              root_dir=out,
+          )
+          PY
+
+      - name: Upload visual asset kit
+        uses: actions/upload-artifact@v4
+        with:
+          name: RavenloftExtractor-VisualAssets
+          path: Tools/anm/dist/RavenloftExtractor-VisualAssets.zip
+          if-no-files-found: error
+          retention-days: 90
