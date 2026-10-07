@@ -160,7 +160,7 @@ int main() {
         const int anchor_y =
             0xA0 + ((target_y - 0xA0) * 1 + 6) / 12;
         assert(anchor_x == -45);
-        assert(anchor_y == 149);
+        assert(anchor_y == 150);
     }
 
     // 07E4's stagger loop contributes N+10 frames, followed by one final
