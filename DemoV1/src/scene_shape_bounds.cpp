@@ -23,11 +23,14 @@ std::int32_t scaled_geometry(
 
 }  // namespace
 
-SceneInteractionBounds
-SceneShapeBoundsModel::npc_type7(
+namespace {
+
+SceneInteractionBounds type7_bounds(
     std::uint16_t screen_x,
     std::uint16_t projected_extent,
-    const Type7Geometry& geometry) {
+    const Type7Geometry& geometry,
+    std::int32_t minimum_scale,
+    std::int32_t horizontal_adjustment) {
     // The original caller temporarily adds 0x7D00 to scene +0x02 before
     // 21BF0; the helper immediately subtracts it. Starting from the stable
     // projected extent therefore reaches the same scale directly.
@@ -35,7 +38,7 @@ SceneShapeBoundsModel::npc_type7(
         static_cast<std::int32_t>(
             projected_extent) /
         8;
-    if (scale < 0x28) {
+    if (scale < minimum_scale) {
         return {};
     }
 
@@ -111,8 +114,7 @@ SceneShapeBoundsModel::npc_type7(
     const auto right =
         left + scaled_x_span;
 
-    // CODE.2 2BB73/2BB7B adds 0x20 to scene words +0x12/+0x14 after 21BF0.
-    left += 0x20;
+    left += horizontal_adjustment;
 
     SceneInteractionBounds out{};
     out.valid = true;
@@ -125,8 +127,40 @@ SceneShapeBoundsModel::npc_type7(
         static_cast<std::uint16_t>(left);
     out.right =
         static_cast<std::uint16_t>(
-            right + 0x20);
+            right + horizontal_adjustment);
     return out;
+}
+
+}  // namespace
+
+SceneInteractionBounds
+SceneShapeBoundsModel::emitter_type7(
+    std::uint16_t screen_x,
+    std::uint16_t projected_extent,
+    const Type7Geometry& geometry) {
+    // 2B6D0/2BDF4 callers temporarily bias extent by 0x7D00, call 21BF0
+    // with threshold 0x28, then add 0x20 to both horizontal bounds.
+    return type7_bounds(
+        screen_x,
+        projected_extent,
+        geometry,
+        0x28,
+        0x20);
+}
+
+SceneInteractionBounds
+SceneShapeBoundsModel::interaction_type7(
+    std::uint16_t screen_x,
+    std::uint16_t projected_extent,
+    const Type7Geometry& geometry) {
+    // 223F4 re-runs 21BF0 with threshold 0x1E and tests the resulting
+    // rectangle directly, without the emitter's later +0x20 adjustment.
+    return type7_bounds(
+        screen_x,
+        projected_extent,
+        geometry,
+        0x1E,
+        0);
 }
 
 }  // namespace rloft
