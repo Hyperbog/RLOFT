@@ -87,11 +87,64 @@ Chapter [16](16_ANM_CINEMATIC_ENGINE_AND_TIMELINE.md) proves that each frame use
 
 Regression requirements: test registration and teardown of both IRQ-8 owners; saved-vector chaining; tick rollover boundaries; anchored versus unanchored waits; flag-specific early exits; cooperative servicing while waiting; the 17 callback-slot states; changing shortest intervals and emitted PIT bytes; final timer-vector restoration; and variable ANM packet mixes. These are proposed tests, **not executed gameplay certifications**.
 
-## 8. Remaining unknowns
+## 9. Timer installation ordering across audio initialization
+
+The primary CODE.2 initialization path at `2044B` enters `2F2EC`. Inside it, `2F323` calls `30BB4` **before** either sound-driver initializer. After SOUND.CFG loading and the configuration checks, `2F407` calls `27D20` with driver filename at config `+0x24` and four config words at `+0x0A..+0x10` **only when** word `+0x14` is nonzero. `2F426` calls `282BC` with filename at `+0x16` and words `+0x00..+0x06`. In the supplied SOUND.CFG these correspond respectively to the digital-sound and MT-32 music driver selections.
+
+Therefore the verified **attempted** order in this entry path is:
+
+```text
+30BB4 game IRQ-8 hook (30708)
+  -> 27D20 digital driver, conditional on SOUND.CFG +0x14
+  -> 282BC music driver
+  -> driver-managed callback registration, if requested
+```
+
+The timer code does not prove that both driver loads always succeed or that every supported hardware/launcher configuration reaches the same post-initialization state. Neither driver filename should be taken as a recovered timer frequency.
+
+## 10. Driver registration activates a separate callback layer
+
+The digital loader `27D20` invokes scheduler-table initializer `36254` (`27DFE`), then asks `365DF` for a driver handle (`27E04`); the music loader `282BC` likewise obtains a handle (`283AD`) but initializes the shared tables only when `[0xEE40]==0` (`283A7`). Both loaders eventually invoke install dispatch `366C5`, at `27EB6` and `2847D` respectively.
+
+The dispatch at `366C5..36779` calls the driver's resolved interface function, and **only if a non-sentinel callback address is supplied** does `3670C` register it through `3632D`. A successful registration returns a callback-slot handle and the driver supplies its desired interval via `3654E`. Thus the additional IRQ-8 installer `360E8` is reached through a concrete **driver-callback path**, not an unconditional gameplay startup call.
+
+On the first registration, `3632D` clears the timer state through `3609B`, captures the then-current interrupt-8 vector, installs `35FC6`, and reserves timer **slot 16** with callback `3607B`, initial interval `0xD68D`, and active state 2. User/device callbacks occupy slots 0..15. Handler `35FC6` services due callbacks and uses the special slot-16 callback to transfer to the previously saved vector. Where the game hook was already installed, this provides the bridge back to `30708` and ultimately the prior system handler.
+
+Driver release at `3678A` unregisters the owned timer slot; when the last slot is removed, `363DD` restores the prior interrupt vector using `36137` and returns the PIT divisor to zero using `3616F(0)`. This is a **conditional, counted teardown**, not an unconditional shutdown of the game clock.
+
+## 11. Interval units, quantization and cadence boundary
+
+At `3654E` the scheduler converts the frequency argument by unsigned division:
+
+```c
+period = 1000000u / frequency; // original: 0xF4240 / input
+```
+
+A separate entry `36581` converts a different time scale by multiplying the argument by `10000` then dividing by `0x2E9C`; zero is replaced by the reserved `0xD68D` value. `361CE` chooses the **smallest nonempty interval** across slots, changes the PIT divisor only when this minimum differs from `[0x10362]`, and resets all accumulated per-slot counts on a change. `3619D` converts the chosen interval into the PIT low/high divisor specified in §6.
+
+The reciprocal `1000000/frequency` and reserved `0xD68D` are consistent with an intended microsecond-oriented interval scale and a conventional approximately 18.2-Hz old-timer callback. **That is a bounded interpretation of the arithmetic, not a measured cadence:** integer division, callback accumulation, PIT phase and audio-driver configuration can all affect observed timing. In particular, do not convert an ANM wait count into milliseconds by assuming it equals a newly programmed high-rate audio callback interval. The game-facing `0xF58C` counter only advances when its own handler `30708` runs.
+
+## 12. Gameplay timer consumers beyond cinematics
+
+The game hook's `19C80` callback supports a deferred event at `[0xA790]`. The corresponding producer at `19DDC..19E01` sets enabled byte `[0xA79C]`, captures two arguments in `[0xA794/0xA798]`, and schedules `deadline = 30700() + uint8[0xC025]`. On an IRQ tick with `now > deadline` (strict unsigned comparison), `19C80` calls `22CE0(arg1,arg2,2)` and clears the enabled byte. A competing path `19E08..19E32` may dispatch the stored event earlier with mode 8.
+
+Separately, when `[0xA7E8]` is nonzero, `19C80` increments dword `[0xA7E4]` on each game-clock invocation. Routine `1E75C`, called from `2022B`, measures this **second** counter against two baselines `[0xBF50/0xBF54]`. At an interval difference of at least `0x438`, it enters a repeating party-status/HP regeneration pass, compares current versus maximum HP for four `0x248`-byte character records, and increments eligible HP by one. An additional branch checks `0x21C` ticks for a different periodic party-state update.
+
+The underlying game-time counter can also be explicitly assigned by `1E74C`; it is therefore not merely an alias for `0xF58C`. Preserve both raw counters, their independent reset/set operations, their pause/enable gates, and their callers before choosing a host-side clock abstraction.
+
+## 13. Correction C-38 — wait-flag 4 and unsigned deadline wrapping
+
+Chapter §4 previously left flag `0x04` open because `2E614` contains a later conditional return `0x1F0` (`2E6A1..2E6B7`). Direct control-flow examination constrains this further: on entry `2E63A` tests that bit and immediately **clears it** with `and bl,0xFB` at `2E63F` before the servicing loop. The flag-1/flag-2 early-return paths do not fall through after changing `EBX`. Consequently the later `test bl,0x04` cannot normally succeed from a caller-supplied flag-4 bit. Preserve the encoded dead branch; do not advertise `0x1F0` as an observed reachable early-return result.
+
+The deadline comparison at `2E6BD` uses **unsigned** `JB` after computing an absolute 32-bit deadline. There is no proved modular-difference correction at this comparison; a native implementation must retain this behavior or document a deliberate later compatibility deviation. Tests should cover near-wrap anchors instead of silently substituting a mathematically cleaner timer.
+
+**Verification:** source CODE.2 SHA-256 matched the certified original, and 28 targeted byte/call assertions for these paths passed. This verifies the cited machine bytes and static edges, **not** timer hardware measured in execution.
+
+## 14. Remaining unknowns
 
 The complete dynamic initialization order for all original audio drivers; timer scheduling under driver failure/reinitialization; platform-dependent ISR latency; precise physical elapsed time per cinematic tick; and behavior across wraparound at real runtime remain **OPEN**. Do not infer these solely from nominal IBM PC PIT constants or a modern emulator.
 
-**Next:** resolve timer registration and chaining along the actual default audio configuration, then enumerate the other tick-controlled gameplay loops and correlate counter ownership with the save/world state architecture.
+**Next:** trace exact save/load ownership for the gameplay-time counter and its regeneration baselines; investigate driver callback activation for the supplied SOUND.CFG under executable observation; then audit additional frame/update loop callers and capture timing regression traces.
 
 ## Source ledger
 
