@@ -46,7 +46,7 @@ CODE.2 reads this field strictly as a byte. The supplied archive contains only:
 
 Independent consumers establish that it selects a renderer/environment profile when it is not `0xFF`, while `0xFF` selects an alternate/default path:
 
-- `01558` uses the `0xFF` distinction when selecting internal automap floor/empty class `0x2E` versus `0x2F`; both later export as CP437 `0xFA`. The earlier `floor/party` wording was too strong because this byte is independently proved to be the environment/render-profile selector, not party-position state.
+- `01558` first identifies the current party cell by comparing the iterated row/column with the high words of the live player coordinates at `0x255D6/0x255D2`; only for that cell does the `0xFF` distinction select party-cell class `0x2F` versus `0x2E`. Both later export as CP437 `0xFA`, so the text export intentionally collapses the party marker to floor.
 - `04A52`, `0D6BB`, `0E621`, and multiple later interaction/render paths branch on `== 0xFF`.
 - `1F2B1` uses a non-`0xFF` value as an index for renderer/profile setup through `314B0` and tables at `0x2B750/0x2B764`.
 - during level load, if the field is `0xFF`, CODE.2 obtains two fallback values from a level-indexed table and passes them through `31EDC` and `31F38`; otherwise that fallback setup is skipped.
