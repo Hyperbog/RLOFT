@@ -22,6 +22,11 @@
 #include <vector>
 
 #include "rloft/anm_cinematic.hpp"
+#include "rloft/level_display.hpp"
+#include "rloft/exploration_ui.hpp"
+#include "rloft/automap_screen_state.hpp"
+#include "rloft/automap_screen_presenter.hpp"
+#include "rloft/automap_controls.hpp"
 #include "rloft/boot_flow.hpp"
 #include "rloft/character_creation_flow.hpp"
 #include "rloft/character_creation_presenter.hpp"
@@ -768,7 +773,17 @@ int run_exploration(
             assets.source(), chars);
     rloft::ExplorationPresenter presenter(assets);
     rloft::TopEdgeMenuPresenter menu_presenter(assets);
+    rloft::AutomapScreenPresenter automap_presenter(assets);
     rloft::ExplorationLegacyInputController input;
+    rloft::ExplorationUiController ui;
+    auto automap_state =
+        rloft::AutomapScreenStateModel::initial(
+            runtime.session());
+    const auto exploration_palette =
+        assets.colors_palette(
+            rloft::LevelDisplayModel::palette_index(
+                static_cast<int>(
+                    runtime.session().level_id)));
 
     host.set_character_mode(false);
     host.set_menu_mode(false);
@@ -785,7 +800,72 @@ int run_exploration(
 
     while (host.pump()) {
         if (host.consume_escape()) {
+            if (ui.state().screen ==
+                rloft::ExplorationUiScreen::Automap) {
+                // Host safety escape. The faithful mouse exit remains
+                // automap panel action 11 below.
+                ui.close_screen();
+                input.clear();
+                continue;
+            }
             break;
+        }
+
+        if (ui.state().screen ==
+            rloft::ExplorationUiScreen::Automap) {
+            if (const auto click =
+                    host.consume_exploration_click()) {
+                if (const auto action =
+                        rloft::AutomapControlModel::action_at(
+                            click->row,
+                            click->column)) {
+                    if (*action >= 0 && *action <= 3) {
+                        automap_state.navigation_mask =
+                            rloft::AutomapControlModel::
+                                navigation_mask(*action);
+                        rloft::AutomapScreenStateModel::
+                            apply_navigation(
+                                automap_state,
+                                runtime.session().level.width,
+                                runtime.session().level.height);
+                        automap_state.navigation_mask = 0;
+                    } else if (*action == 11) {
+                        // CODE.2 02DB0 action 11 exits 03634 map mode.
+                        automap_state.navigation_mask = 0;
+                        ui.close_screen();
+                        input.clear();
+                        continue;
+                    }
+                    // Actions 4..10 are annotation/delete, level browsing,
+                    // overlay toggle and export controls. They remain inert
+                    // until those exact modal subroutines are integrated.
+                }
+            }
+
+            automap_presenter.draw(
+                presenter.framebuffer(),
+                runtime.session(),
+                runtime.renderer_tables(),
+                automap_state,
+                false);
+            host.present(
+                presenter.framebuffer(),
+                exploration_palette);
+
+            next_frame +=
+                std::chrono::duration_cast<Clock::duration>(
+                    std::chrono::duration<double>(
+                        1.0 / kVgaRefreshHz));
+            if (!host.wait_until(next_frame, false)) {
+                break;
+            }
+            const auto now = Clock::now();
+            if (next_frame +
+                    std::chrono::milliseconds(100) <
+                now) {
+                next_frame = now;
+            }
+            continue;
         }
 
         int hovered_menu = -1;
@@ -806,11 +886,57 @@ int run_exploration(
                     selection_from_mouse(
                         click->column,
                         click->row);
+
+            if (pressed_menu ==
+                    static_cast<int>(
+                        rloft::TopEdgeMenuAction::Automap)) {
+                ui.update_mouse(
+                    click->column,
+                    click->row);
+                if (ui.activate_top_edge_selection() &&
+                    ui.state().screen ==
+                        rloft::ExplorationUiScreen::Automap) {
+                    // CODE.2 03634 runs 01558 before the first automap draw.
+                    rloft::ExplorationWorldModel::
+                        rebuild_automap_cache(
+                            runtime.session().level,
+                            rloft::ExplorationWorldModel::
+                                party_cell(
+                                    runtime.session()));
+                    automap_state =
+                        rloft::AutomapScreenStateModel::
+                            initial(runtime.session());
+                    input.clear();
+                }
+            }
         }
 
         // CODE.2 080AC is modal while the pointer remains in the top
         // 64-pixel band (D680=3). Do not advance 1FC14/2E120 locomotion
         // while that dispatcher owns input.
+        if (ui.state().screen ==
+                rloft::ExplorationUiScreen::Automap) {
+            // The click that entered map mode was consumed above; render the
+            // modal immediately without advancing locomotion.
+            automap_presenter.draw(
+                presenter.framebuffer(),
+                runtime.session(),
+                runtime.renderer_tables(),
+                automap_state,
+                false);
+            host.present(
+                presenter.framebuffer(),
+                exploration_palette);
+            next_frame +=
+                std::chrono::duration_cast<Clock::duration>(
+                    std::chrono::duration<double>(
+                        1.0 / kVgaRefreshHz));
+            if (!host.wait_until(next_frame, false)) {
+                break;
+            }
+            continue;
+        }
+
         if (hovered_menu < 0) {
             const auto motion_inputs =
                 input.tick(false);
