@@ -798,6 +798,11 @@ int run_exploration(
     auto runtime =
         rloft::ExplorationRuntime::load_fresh(
             assets.source(), chars);
+    // CODE.2 expands/restores the mutable world immediately on level load.
+    // Archive Level 22 uses the shipped RNG state/dice path; direct LEV022
+    // state restores HP and actor state verbatim without consuming RNG.
+    runtime.initialize_gameplay_state(
+        assets.source());
     rloft::ExplorationPresenter presenter(assets);
     rloft::TopEdgeMenuPresenter menu_presenter(assets);
     rloft::AutomapScreenPresenter automap_presenter(assets);
