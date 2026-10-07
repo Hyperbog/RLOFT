@@ -69,12 +69,15 @@ public:
         wc.lpszClassName = L"RavenloftDemoV1Window";
         RegisterClassW(&wc);
 
-        RECT rect{0, 0, 640, 800};
+        // The native framebuffer is 320x400, but the VGA mode was viewed on
+        // a 4:3 display with non-square pixels. Present it at 4:3 rather than
+        // treating framebuffer samples as square host pixels.
+        RECT rect{0, 0, 640, 480};
         AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
         hwnd_ = CreateWindowExW(
             0,
             wc.lpszClassName,
-            L"Ravenloft: Strahd's Possession — Demo Build v1",
+            L"Ravenloft: Strahd's Possession - Demo Build v1",
             WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
@@ -266,8 +269,11 @@ private:
     void refresh_pointer_overlay() {
         if (base_indices_.empty()) return;
         rebuild_bgra();
+
+        // Mouse movement can generate a very dense WM_MOUSEMOVE stream.
+        // Queue one repaint and let the normal message pump coalesce it rather
+        // than forcing a synchronous full-window repaint for every pixel.
         InvalidateRect(hwnd_, nullptr, FALSE);
-        UpdateWindow(hwnd_);
     }
 
     void update_pointer_from_system_cursor() {
@@ -291,9 +297,12 @@ private:
         GetClientRect(hwnd_, &client);
         const int cw = client.right - client.left;
         const int ch = client.bottom - client.top;
-        const double scale = std::min(cw / 320.0, ch / 400.0);
-        const int width = std::max(1, static_cast<int>(320.0 * scale));
-        const int height = std::max(1, static_cast<int>(400.0 * scale));
+
+        // Preserve the physical 4:3 VGA presentation aspect. The game's
+        // 320x400 framebuffer is a memory geometry, not a square-pixel aspect.
+        const double scale = std::min(cw / 4.0, ch / 3.0);
+        const int width = std::max(1, static_cast<int>(4.0 * scale));
+        const int height = std::max(1, static_cast<int>(3.0 * scale));
         const int left = (cw - width) / 2;
         const int top = (ch - height) / 2;
         return RECT{left, top, left + width, top + height};
@@ -318,7 +327,22 @@ private:
         HDC dc = BeginPaint(hwnd_, &ps);
         RECT client{};
         GetClientRect(hwnd_, &client);
-        FillRect(dc, &client, static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
+        const int width = std::max<LONG>(1, client.right - client.left);
+        const int height = std::max<LONG>(1, client.bottom - client.top);
+
+        // Render the complete client image off-screen and publish it with one
+        // BitBlt. Direct FillRect + StretchDIBits to the window could expose
+        // the cleared background between those operations and visibly flash.
+        HDC back_dc = CreateCompatibleDC(dc);
+        HBITMAP back_bitmap = CreateCompatibleBitmap(dc, width, height);
+        HGDIOBJ old_bitmap =
+            back_dc && back_bitmap ? SelectObject(back_dc, back_bitmap) : nullptr;
+
+        HDC target = (back_dc && back_bitmap && old_bitmap) ? back_dc : dc;
+        FillRect(
+            target,
+            &client,
+            static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
 
         if (!bgra_.empty()) {
             BITMAPINFO info{};
@@ -330,9 +354,9 @@ private:
             info.bmiHeader.biCompression = BI_RGB;
 
             const auto dst = render_rect();
-            SetStretchBltMode(dc, COLORONCOLOR);
+            SetStretchBltMode(target, COLORONCOLOR);
             StretchDIBits(
-                dc,
+                target,
                 dst.left,
                 dst.top,
                 dst.right - dst.left,
@@ -347,6 +371,13 @@ private:
                 SRCCOPY);
         }
 
+        if (target == back_dc) {
+            BitBlt(dc, 0, 0, width, height, back_dc, 0, 0, SRCCOPY);
+        }
+
+        if (old_bitmap) SelectObject(back_dc, old_bitmap);
+        if (back_bitmap) DeleteObject(back_bitmap);
+        if (back_dc) DeleteDC(back_dc);
         EndPaint(hwnd_, &ps);
     }
 
@@ -793,15 +824,19 @@ int run(HINSTANCE instance) {
     }
 
     const bool chars_present = source.runtime_file("CHARS").has_value();
+    bool preserve_existing_chars = false;
     if (chars_present) {
-        MessageBoxW(
+        const int result = MessageBoxW(
             nullptr,
-            L"A legacy CHARS transfer file is present. The CHARS-present "
-            L"CODE.2 startup branch is not implemented in Demo v1 yet.\n\n"
-            L"The file has not been modified or deleted.",
+            L"A CHARS transfer file is already present. Demo v1 currently "
+            L"ends at the CODE.2 CHARS-present boundary.\n\n"
+            L"Choose Yes to replay the fresh-boot / character-creation demo "
+            L"without changing the existing CHARS file.\n\n"
+            L"Choose No to exit.",
             L"Ravenloft Demo Build v1",
-            MB_OK | MB_ICONWARNING);
-        return 3;
+            MB_YESNO | MB_ICONINFORMATION);
+        if (result != IDYES) return 3;
+        preserve_existing_chars = true;
     }
 
     rloft::RavenloftBootAssets assets(std::move(source));
@@ -946,7 +981,7 @@ int run(HINSTANCE instance) {
 
                 SetWindowTextW(
                     host.hwnd(),
-                    L"Ravenloft: Strahd's Possession — Character Creation");
+                    L"Ravenloft: Strahd's Possession - Character Creation");
 
                 // CODE.1 4CB0 reads INIT word 11 into 712C and C650(6)
                 // selects RES6 for the C4E0 one-shot sound path.
@@ -1896,33 +1931,35 @@ int run(HINSTANCE instance) {
                                     rloft::build_character_transfer(
                                         transfer,
                                         transfer_tables);
-                                const auto path =
-                                    assets.source().runtime_output_path(
-                                        "CHARS");
+                                if (!preserve_existing_chars) {
+                                    const auto path =
+                                        assets.source().runtime_output_path(
+                                            "CHARS");
 
-                                std::error_code ec;
-                                std::filesystem::remove(path, ec);
+                                    std::error_code ec;
+                                    std::filesystem::remove(path, ec);
 
-                                std::ofstream out(
-                                    path,
-                                    std::ios::binary |
-                                        std::ios::trunc);
-                                if (!out) {
-                                    throw std::runtime_error(
-                                        "Unable to create CHARS at: " +
-                                        path.string());
-                                }
-                                out.write(
-                                    reinterpret_cast<const char*>(
-                                        image.data()),
-                                    static_cast<std::streamsize>(
-                                        image.size()));
-                                out.close();
-                                if (!out) {
-                                    throw std::runtime_error(
-                                        "Unable to write complete 0x920-byte "
-                                        "CHARS handoff at: " +
-                                        path.string());
+                                    std::ofstream out(
+                                        path,
+                                        std::ios::binary |
+                                            std::ios::trunc);
+                                    if (!out) {
+                                        throw std::runtime_error(
+                                            "Unable to create CHARS at: " +
+                                            path.string());
+                                    }
+                                    out.write(
+                                        reinterpret_cast<const char*>(
+                                            image.data()),
+                                        static_cast<std::streamsize>(
+                                            image.size()));
+                                    out.close();
+                                    if (!out) {
+                                        throw std::runtime_error(
+                                            "Unable to write complete "
+                                            "0x920-byte CHARS handoff at: " +
+                                            path.string());
+                                    }
                                 }
 
                                 flow.finish_character_creation(
