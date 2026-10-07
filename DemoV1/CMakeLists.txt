@@ -73,6 +73,7 @@ add_library(rloft_boot_flow
     src/world_scene_render_plan.cpp
     src/type7_column_traversal.cpp
     src/type7_microcode_plan.cpp
+    src/type7_rasterizer_setup.cpp
     src/renderer_tables.cpp
     src/micro_rasterizer_layout.cpp
     src/micro_rasterizer_plan.cpp
@@ -317,6 +318,10 @@ add_executable(type7_microcode_plan_tests tests/type7_microcode_plan_tests.cpp)
 target_link_libraries(type7_microcode_plan_tests PRIVATE rloft_boot_flow)
 add_test(NAME type7_microcode_plan_tests COMMAND type7_microcode_plan_tests)
 
+add_executable(type7_rasterizer_setup_tests tests/type7_rasterizer_setup_tests.cpp)
+target_link_libraries(type7_rasterizer_setup_tests PRIVATE rloft_boot_flow)
+add_test(NAME type7_rasterizer_setup_tests COMMAND type7_rasterizer_setup_tests)
+
 add_executable(renderer_tables_tests tests/renderer_tables_tests.cpp)
 target_link_libraries(renderer_tables_tests PRIVATE rloft_boot_flow)
 add_test(NAME renderer_tables_tests COMMAND renderer_tables_tests)
@@ -505,6 +510,7 @@ set(RLOFT_TEST_TARGETS
     world_scene_render_plan_tests
     type7_column_traversal_tests
     type7_microcode_plan_tests
+    type7_rasterizer_setup_tests
     renderer_tables_tests
     micro_rasterizer_layout_tests
     micro_rasterizer_plan_tests
