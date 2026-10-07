@@ -28,6 +28,8 @@
 #include "rloft/character_stats.hpp"
 #include "rloft/character_transfer.hpp"
 #include "rloft/exploration_legacy_input.hpp"
+#include "rloft/exploration_presenter.hpp"
+#include "rloft/exploration_runtime.hpp"
 #include "rloft/game_source.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
@@ -722,6 +724,66 @@ std::uint32_t code1_tick_count(Clock::time_point epoch) {
             Clock::now() - epoch);
     return static_cast<std::uint32_t>(
         elapsed.count() / 54925LL);
+}
+
+int run_exploration(
+    Host& host,
+    rloft::RavenloftBootAssets& assets,
+    const std::vector<std::uint8_t>& chars) {
+    auto runtime =
+        rloft::ExplorationRuntime::load_fresh(
+            assets.source(), chars);
+    rloft::ExplorationPresenter presenter(assets);
+    rloft::ExplorationLegacyInputController input;
+
+    host.set_character_mode(false);
+    host.set_menu_mode(false);
+    host.set_exploration_input(&input);
+    SetWindowTextW(
+        host.hwnd(),
+        L"Ravenloft: Strahd's Possession - Exploration");
+
+    // Native host cadence follows the same nominal VGA retrace pacing already
+    // used by the reconstructed startup/character presenters. Input axes are
+    // persistent, so every retrace advances the original 1FC14 -> 2E120 path
+    // even when no new Windows message arrived.
+    auto next_frame = Clock::now();
+
+    while (host.pump()) {
+        if (host.consume_escape()) {
+            break;
+        }
+
+        const auto motion_inputs = input.tick(false);
+        (void)runtime.tick_motion(motion_inputs);
+
+        const auto frame = runtime.build_frame();
+        const auto presented = presenter.present(
+            frame,
+            runtime.renderer_tables());
+
+        host.present(
+            presenter.framebuffer(),
+            presented.palette);
+
+        next_frame += std::chrono::duration_cast<Clock::duration>(
+            std::chrono::duration<double>(
+                1.0 / kVgaRefreshHz));
+        if (!host.wait_until(next_frame, false)) {
+            break;
+        }
+
+        // Do not let a stalled/debugged host accumulate an arbitrarily large
+        // catch-up burst. CODE.2 is real-time driven; resume from the current
+        // retrace phase instead.
+        const auto now = Clock::now();
+        if (next_frame + std::chrono::milliseconds(100) < now) {
+            next_frame = now;
+        }
+    }
+
+    host.set_exploration_input(nullptr);
+    return 0;
 }
 
 bool code1_palette_reveal(
@@ -2163,8 +2225,24 @@ int run(HINSTANCE instance) {
                                         "reach CODE.2 CHARS startup");
                                 }
 
+                                // CODE.2 204B3 imports CHARS, then the normal
+                                // fresh-party path loads level 22 at 4.5/4.5,
+                                // facing 270, time 14:00 and enters gameplay.
+                                flow.finish_code2_startup(true, false);
+                                if (flow.snapshot().stage !=
+                                        rloft::BootStage::Exploration) {
+                                    throw std::logic_error(
+                                        "CODE.2 CHARS startup did not enter "
+                                        "exploration");
+                                }
+
                                 host.set_character_mode(false);
-                                return 0;
+                                return run_exploration(
+                                    host,
+                                    assets,
+                                    std::vector<std::uint8_t>(
+                                        image.begin(),
+                                        image.end()));
                             }
 
                             if (character_flow.state() ==
