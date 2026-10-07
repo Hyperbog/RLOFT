@@ -14,6 +14,8 @@
 #include "rloft/loose_item_scene.hpp"
 #include "rloft/object_catalog.hpp"
 #include "rloft/original_random.hpp"
+#include "rloft/placed_scene_catalog.hpp"
+#include "rloft/placed_object_scene.hpp"
 #include "rloft/scene_source_banks.hpp"
 #include "rloft/world_scene_record.hpp"
 #include "rloft/world_scene_selection.hpp"
@@ -24,6 +26,7 @@
 #include "rloft/surface_prepass.hpp"
 #include "rloft/surface_shading.hpp"
 #include "rloft/view_sweep_runs.hpp"
+#include "rloft/view_sweep_influence.hpp"
 #include "rloft/view_sweep_traversal.hpp"
 
 namespace rloft {
@@ -113,6 +116,7 @@ private:
     NpcCatalog npc_catalog_{};
     ObjectCatalog object_catalog_{};
     SceneSourceBanks scene_source_banks_{};
+    PlacedSceneCatalog placed_scene_catalog_{};
     std::optional<ResArchive> scene_shape_archive_;
     OriginalRandom original_random_{};
     LevelWorldState world_{};
