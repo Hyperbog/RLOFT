@@ -28,6 +28,13 @@ Type7VgaSceneTrace Type7VgaSceneTraceModel::build(
 
     out.runs.reserve(plan.visible_runs.size());
     for (const auto& run : plan.visible_runs) {
+        if (run.width == 0U || run.width > 7U) {
+            // The 32-byte CODE.2 plane tables contain only 1..7 runs.
+            // Do not narrow a larger scene span and accidentally alias a
+            // valid table slot before proving original run segmentation.
+            throw std::out_of_range(
+                "scene VGA invocation has unvalidated run width");
+        }
         // One representative destination column is sufficient to recover
         // the source display-list entry/stop patch operands. The original
         // 369D8 walks every descriptor for each VGA mask pass, while 36B14
