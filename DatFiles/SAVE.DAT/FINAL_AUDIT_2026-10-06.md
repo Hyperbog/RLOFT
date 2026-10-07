@@ -115,7 +115,7 @@ The following are not format blockers and must remain raw/preserved:
 - character status bit `0x2000`: engine-recognized blocking tier, no proved player-facing identity or direct lifecycle producer;
 - character status low bits `0x0001..0x0020`: no proved gameplay ownership;
 - character `+0x1BA` dword: serialized, no direct CODE.2 field reference found;
-- exact source-level names for the three paired timed slots and selected auxiliary quantities;
+- exact source-level names for selected remaining auxiliary quantities; the former three paired timed slots are now behaviorally closed as combat-feedback damage display slots (outgoing hand A, outgoing hand B, incoming damage);
 - remaining unnamed packed bits/enum labels inside transient-effect state;
 - historical source identifiers where only behavioral identities survive.
 
