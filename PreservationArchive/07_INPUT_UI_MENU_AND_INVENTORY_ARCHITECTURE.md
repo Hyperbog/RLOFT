@@ -1277,3 +1277,742 @@ inventory cursor-held item
 from Component 05.
 
 Inventory is therefore directly connected to world-state creation rather than storing dropped items in a separate UI queue.
+
+
+## 56. Party order can be changed directly from the inventory UI
+
+Inventory dispatcher `12E70` routes clicks with:
+
+```text
+row < 0x10
+```
+
+to party-slot swap routine `12470`.
+
+The routine highlights the source character panel, waits for a new pointer press, and derives the target character slot as:
+
+```text
+target = cursor_column / 0x50
+       = cursor_column / 80
+```
+
+[Code2.cpp, `12470..12723`](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/Code2.cpp)
+
+Thus party reordering is a direct manipulation of the four 80-pixel inventory columns.
+
+## 57. Party swapping exchanges complete character images
+
+If source and target differ, `12470` allocates one temporary `0x248` buffer and performs:
+
+```text
+temp   <- source character 0x248 bytes
+source <- target character 0x248 bytes
+target <- temp
+```
+
+It then swaps the corresponding per-character UI/container context state and redraws both panels.
+
+The complete serialized/runtime character image moves as one unit. [Character record](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/CHARACTER_RECORD.md)
+
+A native port should not reorder only names/portraits or selected gameplay fields.
+
+## 58. Party swapping repairs actor-index references in live records
+
+After exchanging the two character records, `12470` scans:
+
+- the live transient/moving-effect family;
+- the family-C loose/moving-item family.
+
+For each relevant packed-state word it examines the encoded three-bit actor/context field and swaps source/target actor indexes there too.
+
+[Code2.cpp, `12470..12723`](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/Code2.cpp)
+
+This is a significant UI-to-world invariant:
+
+> changing party order requires repairing live world references to party actor indexes.
+
+A modern `std::swap(party[a], party[b])` is insufficient unless equivalent reference repair is performed.
+
+## 59. Inventory character panel renderer
+
+`0FF3C` and its neighboring panel routines render character identity/state into the currently selected 80-pixel-wide inventory column.
+
+The panel draws, depending on state:
+
+- character name;
+- portrait;
+- HP/status presentation;
+- inventory/equipment panel elements;
+- burden/load information;
+- nested container presentation where active.
+
+The portrait formula is the same RES1 face-bank formula used by the HUD. [RES1 portraits](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/RES1_PORTRAITS.md)
+
+## 60. Inventory panel mode can change per character or globally
+
+Routine `11AD8` toggles per-character panel mode stored in:
+
+```text
+0x6F90 + slot*4
+```
+
+One flag form applies the mode transition to a single character; another applies the low-mode toggle across all four panels.
+
+After changing mode, the routine redraws affected panels and reinstalls the held-item cursor.
+
+This is presentation state separate from the authoritative inventory item array.
+
+## 61. Character burden/load modal is screen-overlaid
+
+`12988(slot)` temporarily replaces the selected inventory panel with a character-load presentation.
+
+It computes and displays:
+
+- current burden;
+- derived rank/category;
+- current limit/capacity;
+- associated text labels.
+
+It then waits for release + press, restores the normal panel, restores held-item cursor presentation, and drains stale input.
+
+[Code2.cpp, `12988..12C1D`](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/Code2.cpp)
+
+The modal is a temporary redraw over one character column, not a separately serialized UI screen.
+
+## 62. Character condition/status modal
+
+`12C20(slot)` checks status bits:
+
+```text
+0x0100
+0x0200
+0x0400
+0x0800
+0x1000
+```
+
+and, for active bits, displays corresponding indexed text and icon resources in the selected character panel.
+
+These bits include already-certified states such as possession, Held, disease, poison, and paralysis. [Character record](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/CHARACTER_RECORD.md)
+
+The UI uses the character status word as authority; there is no separate status-modal state database.
+
+## 63. Active-effect modal
+
+`12724(slot)` reads the character's primary active-effect bitfield at runtime `0x21A12 + slot*0x248`.
+
+It walks effect bits, displays up to 14 matching rows with paired icon/text resources, waits for user input, then restores the character panel and cursor.
+
+[Code2.cpp, `12724..12986`](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/Code2.cpp)
+
+This provides a direct presentation path for the timed-effect state serialized in each `0x248` character record.
+
+## 64. Modal UI uses capture/restore and explicit input draining
+
+Across the top-edge menu, inventory detail panels, status views, and other modal presentation paths, a repeated pattern appears:
+
+```text
+capture or redraw underlying region
+    |
+    v
+draw modal content
+    |
+    v
+wait for release / wait for press
+    |
+    v
+restore underlying region
+    |
+    v
+clear/drain stale queued pointer state
+```
+
+This is a central design idiom of the original UI.
+
+A modern widget toolkit may internally replace it, but strict compatibility tests should account for original press/release gating so clicks do not pass through modals.
+
+## 65. Gameplay hit-region table gives exact screen partition
+
+The executable's 21-region table is:
+
+```text
+region   row range      column range
+
+0          4..259        32..287
+
+1        276..307         4..19
+2        276..307        21..35
+3        276..307        37..52
+4        312..391         4..51
+
+5        276..307        57..72
+6        276..307        74..88
+7        276..307        90..105
+8        312..391        57..104
+
+9        276..307       215..230
+10       276..307       232..246
+11       276..307       248..263
+12       312..391       215..262
+
+13       276..307       268..283
+14       276..307       285..299
+15       276..307       301..316
+16       312..391       268..315
+
+17       312..391        52..56
+18       312..391       263..267
+19       275..289       140..179
+20       292..391       126..195
+```
+
+followed by:
+
+```text
+-1 -1 -1 -1
+```
+
+as terminator.
+
+These values are direct object-2 executable data consumed by `229CC`.
+
+This table should be retained as a canonical regression fixture even if a modern UI scales coordinates.
+
+## 66. HUD geometry leaves a central first-person/control corridor
+
+The table reveals a deliberate screen organization:
+
+```text
+upper/middle:
+    256×256 first-person interaction region
+
+lower left:
+    party characters 0/1 HUD controls
+
+lower right:
+    party characters 2/3 HUD controls
+
+lower center:
+    compact mode/control region
+    movement/control pad
+```
+
+The exact art is resource-driven, but the interaction geometry is executable-defined.
+
+## 67. Auxiliary pointer/analog input can synthesize keyboard scan state
+
+Mouse callback `19D18` contains an additional sampled-input path gated by a device/probe function.
+
+When enabled, signed sample values are scaled into the same 320×400 cursor coordinate domain.
+
+High callback flag bits can also remove/reinsert keypad scan codes according to sample thresholds of approximately `±1000`.
+
+Examples synthesize scan codes in the same movement set:
+
+```text
+0x47 / 0x49
+0x48 / 0x50
+0x4F / 0x51
+```
+
+[Code2.cpp, `19D18..1A064`](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/Code2.cpp)
+
+The exact hardware/source label is kept conservative here as **auxiliary sampled/analog input**. It behaves by feeding the ordinary keyboard movement state rather than bypassing gameplay logic.
+
+## 68. Cursor/UI clipping state is temporarily saved during callback redraw
+
+When pointer position changes, the mouse callback:
+
+1. saves the active clip rectangle;
+2. stores new row/column;
+3. switches clipping to the complete pointer domain;
+4. removes/redraws the software cursor;
+5. restores the prior clip rectangle.
+
+This prevents normal world/UI clipping from truncating cursor maintenance.
+
+[Code2.cpp, `19D18..1A064`](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/Code2.cpp)
+
+## 69. UI timing uses a nestable gameplay-timing gate
+
+Several modal screens call:
+
+```text
+19CCC(value)
+...
+19CF4()
+```
+
+These routines push and restore the prior state of gameplay timing gate `0xA7E8` through a bounded stack.
+
+The pausable gameplay tick counter at `0xA7E4` advances only while that gate is active. [SAVE global state](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+Thus opening a modal/menu can intentionally alter gameplay-time progression without disturbing the independent interrupt tick counter.
+
+## 70. UI resource namespaces
+
+The original presentation shell draws from several already-reconstructed resource namespaces.
+
+### RES0
+
+INIT `+0x00 = 15` gives the RES0 UI/raster base:
+
+```text
+RES0:0..14
+    fonts
+
+RES0:15..
+    raster/UI graphics
+```
+
+### RES1 object UI
+
+INIT `+0x02 = 168` gives the OBJECTS UI-graphic base:
+
+```text
+RES1:168..335
+```
+
+### RES1 portraits
+
+INIT `+0x04 = 336` gives the normal face-bank base, with the possession bank at `+46`.
+
+[INIT UI bases](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/INIT/UI_RESOURCE_BASES.md)
+
+The UI code therefore consumes logical/local graphic selectors and applies namespace bases at runtime. A remaster asset layer should preserve those logical identities even if the backing images change.
+
+## 71. Faithful native input architecture
+
+A clean native architecture can preserve original responsibilities as:
+
+```text
+PhysicalInput
+    |
+    +-- keyboard scan state
+    +-- mouse buttons/position
+    +-- optional sampled/analog source
+    |
+    v
+LegacyInputTranslator
+    |
+    +-- modifier bits
+    +-- held-scan queue
+    +-- logical key codes
+    +-- pointer row/column
+    |
+    v
+LegacyPointerEventQueue
+    |
+    +-- gameplay mode
+    +-- inventory mode
+    +-- automap mode
+    |
+    v
+UI/World Dispatch
+```
+
+The top-edge menu remains a direct-polling modal overlay outside the ordinary queued dispatch while active.
+
+## 72. Faithful native presentation architecture
+
+The presentation side can be separated as:
+
+```text
+LegacyHUDModel
+    party status
+    portraits
+    hand states
+    spell UI state
+
+LegacyInventoryModel
+    character item slots
+    equipment compatibility
+    containers
+    held item
+    known bits
+
+LegacyUIRenderer
+    original row/column geometry
+    modal capture/restore semantics
+    cursor compositing
+    resource-ID resolution
+
+HostPresentation
+    modern window/event backend
+```
+
+No host toolkit coordinate or widget identity should leak into serialized legacy state.
+
+## 73. Required keyboard regressions
+
+A faithful input layer should test:
+
+- key press insertion into the ordered scan queue;
+- repeated press/move-to-tail behavior;
+- release removal;
+- current/previous scan state;
+- left/right Shift, Alt, Ctrl modifier bits;
+- logical translation-table lookup;
+- blocking versus non-consuming translated-key access;
+- one-shot flag set-and-clear behavior;
+- simultaneous diagonal movement through held physical scan tests.
+
+## 74. Required mouse regressions
+
+Test:
+
+```text
+DOS CX 0..638
+    -> logical column 0..319
+
+DOS DX 0..399
+    -> logical row 0..399
+
+logical set-position column
+    -> DOS CX *2
+```
+
+Also verify:
+
+- button low-bit handling;
+- row/column storage ordering;
+- relative/control-mode toggle;
+- callback clip save/restore;
+- event-queue overflow policy.
+
+## 75. Required pointer-event queue regressions
+
+For the 20-entry ring:
+
+- enqueue in modes 0, 1, and 4;
+- reject normal enqueue in other modes;
+- preserve row/column/flags as signed 16-bit fields;
+- maintain FIFO order;
+- drop new event when full;
+- flush by assigning head=tail;
+- dispatch against the **current** UI mode at drain time, as encoded.
+
+## 76. Required top-edge menu regressions
+
+Test exact activation:
+
+```text
+cursor_row == 0
+    -> latch menu
+
+menu remains active while
+cursor_row < 64
+
+selection =
+cursor_column / 40
+```
+
+Validate all eight labels in order:
+
+```text
+rest pray memorize automap load save quit options
+```
+
+and all three button states:
+
+```text
+normal
+hover
+pressed
+```
+
+Also test:
+
+- capture/restore of top strip;
+- held-item detach/restore around pray/memorize;
+- current LEV snapshot write before SAVE UI;
+- release gating;
+- prior UI mode restoration.
+
+## 77. Required cursor regressions
+
+Verify:
+
+- ordinary cursor with no held item;
+- held item installs correct OBJECTS/RES1 graphic;
+- known state follows held item;
+- SAVE/load restores item + known state and rebuilds graphic;
+- 32×16 backing rectangle;
+- nested hide/show depth;
+- non-overlap page copies leave cursor undisturbed;
+- overlap copies remove/restore it correctly;
+- held-item change remains coherent across both draw/display pages.
+
+## 78. Required HUD regressions
+
+For each of four party slots:
+
+- empty-slot graphic;
+- normal portrait selection;
+- possessed portrait-bank selection;
+- HP-bar geometry and threshold color;
+- status/effect overlays;
+- both hand widgets;
+- spell-selection state;
+- dirty-slot refresh behavior.
+
+The four panel positions must reproduce the encoded `0,53,211,264` layout.
+
+## 79. Required inventory regressions
+
+Test:
+
+- four 80-pixel character columns;
+- 12 ordinary grid slots;
+- equipment slot selection by object category;
+- ring side selection;
+- hand/quiver predicate routing;
+- empty-cursor descriptor hit testing;
+- item-known bit transfer;
+- rejection of temporary hand-effect IDs;
+- nested-container compatibility/capacity;
+- held item -> world drop;
+- current-world family-C insertion;
+- panel mode toggle.
+
+## 80. Required party-reordering regressions
+
+Swap every pair of party slots and verify:
+
+- complete `0x248` character images exchange;
+- per-character UI/container contexts exchange;
+- redraw follows new order;
+- transient-effect actor references are remapped;
+- family-C actor/context references are remapped;
+- no unrelated packed-state bits change.
+
+## 81. Modern key binding boundary
+
+A later native port can expose configurable key bindings without changing the historical gameplay command layer.
+
+The recommended mapping is:
+
+```text
+modern physical key
+    -> configurable binding
+    -> legacy logical command
+    -> faithful gameplay state
+```
+
+rather than rewriting world movement to depend directly on host key codes.
+
+This preserves the ability to regression-test original logical commands while allowing modern controls.
+
+## 82. Modern mouse/free-look boundary
+
+Free mouse look can likewise be layered as an optional remaster control producer:
+
+```text
+modern relative mouse input
+    -> modern control adapter
+    -> faithful movement/look state
+```
+
+The original absolute 320×400 pointer model, hit rectangles, menus, inventory, and automap should remain available for faithful mode and UI interaction.
+
+## 83. Remastered UI boundary
+
+Later modernization may intentionally provide:
+
+- scalable HUD;
+- high-resolution portraits;
+- redesigned inventory layout;
+- drag/drop conveniences;
+- tooltips;
+- modern menus;
+- top menu auto-hide animation changes;
+- gamepad focus navigation;
+- configurable cursor scale;
+- widescreen presentation.
+
+Those are modern presentation features.
+
+They should consume the preserved logical state:
+
+```text
+party
+inventory slots
+held item
+container state
+spell selections
+status/effect state
+logical menu actions
+```
+
+rather than redefining legacy serialization or mechanics.
+
+## 84. Correction C-07 — the edge menu is top-edge, not left-edge
+
+A superficial reading of reconstructed local names can misidentify `0x9E31` as conventional Cartesian X.
+
+The raw INT 33h flow proves:
+
+```text
+0x9E31 = DOS vertical coordinate DX
+0x9E33 = DOS horizontal coordinate CX / 2
+```
+
+Therefore:
+
+```text
+080AC test 0x9E31 < 0x40
+    = top 64 screen rows
+
+selection 0x9E33 / 0x28
+    = eight horizontal 40-pixel columns
+```
+
+The original game does indeed use an **appearing/disappearing top-edge menu**.
+
+Any faithful port or documentation calling this a left-edge menu should be corrected.
+
+## 85. Correction C-08 — UI coordinates must not be blindly named X/Y
+
+The original runtime frequently passes coordinates in:
+
+```text
+row, column
+```
+
+order.
+
+This affects:
+
+- pointer state;
+- queued pointer events;
+- gameplay hit rectangles;
+- inventory dispatcher;
+- movement-control rectangles;
+- top-menu selection.
+
+Modern code may convert to conventional `x=column, y=row`, but conversion should occur once at a clear boundary.
+
+Mixing conventions piecemeal would transpose hit boxes and reproduce exactly the class of interpretation error corrected above.
+
+## 86. Historical unknowns retained
+
+Bounded unknowns include:
+
+1. original DreamForge source names for most UI globals;
+2. exact source-level enum names for pointer-event flag bits;
+3. exact source label of the auxiliary sampled/analog input path;
+4. source-level names for movement command indices stored in the rectangle tables;
+5. original editor/tool names for the inventory hit-descriptor tables;
+6. narrower source names for some panel-mode globals;
+7. producer-side names for several modal/status graphics;
+8. whether the menu's exact capture/poll quirks were intentionally designed or compiler/source implementation artifacts.
+
+These do not prevent faithful UI reconstruction.
+
+## 87. Source ledger
+
+### Executable reconstruction
+
+- [Code2/Code2.cpp](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/Code2.cpp)
+- [Code2/CODE2_CONTINUITY_ADDENDUM.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/CODE2_CONTINUITY_ADDENDUM.md)
+- [Code2/FINAL_SEMANTIC_AUDIT.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_SEMANTIC_AUDIT.md)
+- [Code2/FINAL_CERTIFICATION.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Code2/FINAL_CERTIFICATION.md)
+
+### Character/SAVE evidence
+
+- [DatFiles/SAVE.DAT/CHARACTER_RECORD.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/CHARACTER_RECORD.md)
+- [DatFiles/SAVE.DAT/GLOBAL_STATE.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/DatFiles/SAVE.DAT/GLOBAL_STATE.md)
+
+### Resource evidence
+
+- [Resources/MISC/INIT/UI_RESOURCE_BASES.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/MISC/INIT/UI_RESOURCE_BASES.md)
+- [Resources/RES/RES0_RES1_NAMESPACES.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/RES0_RES1_NAMESPACES.md)
+- [Resources/RES/RES1_PORTRAITS.md](https://github.com/Hyperbog/RLOFT/blob/373c7f10e6fc0f29c1e805125ef048150fcc7ba7/Resources/RES/RES1_PORTRAITS.md)
+
+### Cross-component preservation archive
+
+- [04 — VGA rendering pipeline](https://github.com/Hyperbog/RLOFT/blob/1e7d4ec3d6d1d0aa098eb7c26ff4454783463340/PreservationArchive/04_VGA_RENDERING_PIPELINE.md)
+- [05 — world/level state](https://github.com/Hyperbog/RLOFT/blob/5ad18eff1519ec6b98470095aa18baf5f082c6cc/PreservationArchive/05_WORLD_LEVEL_STATE_AND_EVENTS.md)
+- [06 — automap/navigation](https://github.com/Hyperbog/RLOFT/blob/524ff7161118ecaa28e1a2e71526df54cf3be1d2/PreservationArchive/06_AUTOMAP_NAVIGATION_AND_EXPORT.md)
+
+## 88. Architectural checkpoint
+
+The original input/UI shell can now be summarized as:
+
+```text
+KEYBOARD IRQ
+    |
+    +-- scan queue
+    +-- held scans
+    +-- modifiers
+    +-- logical translation
+    |
+    +---------------------+
+                          |
+DOS INT 33h MOUSE         |
+    |                     |
+    +-- 320x400 row/col   |
+    +-- buttons           |
+    +-- software cursor   |
+    |                     |
+    +----------+----------+
+               |
+               v
+       gameplay input state
+               |
+       +-------+-------+
+       |               |
+       v               v
+ pointer event queue   direct movement/key commands
+       |
+       +-- mode 0 gameplay/HUD
+       +-- mode 1 inventory
+       +-- mode 4 automap
+
+TOP EDGE
+cursor row == 0
+       |
+       v
+64-row overlay menu
+8 x 40-column choices
+       |
+       +-- rest
+       +-- pray
+       +-- memorize
+       +-- automap
+       +-- load
+       +-- save
+       +-- quit
+       +-- options
+
+GAMEPLAY PRESENTATION
+       |
+       +-- 256x256 world hit region
+       +-- 4 party HUD groups
+       +-- 2 hand widgets/actor
+       +-- spell selection
+       +-- movement-control hit tables
+       |
+       v
+software cursor / held item
+       |
+       v
+double-buffer-aware compositor
+
+FULL INVENTORY
+       |
+       +-- 4 x 80-column party panels
+       +-- 12 ordinary slots/actor
+       +-- equipment slots
+       +-- nested containers
+       +-- held-item swap
+       +-- party reordering
+       +-- status/effect modals
+       |
+       +--> authoritative character records
+       +--> SAVE-persistent held item
+       +--> SAVE-persistent container/UI context
+       +--> family-C world item creation
+```
+
+The next preservation component should move into **SAVE/party lifecycle and game-state persistence as a complete system**: SAVE.DAT container geometry, active party versus saved roster, global state, CHARS transfer between CODE.1/CODE.2, container bank, spell UI selections, clocks/timers, load/save workflow, and state-transition ownership.
