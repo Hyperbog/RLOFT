@@ -98,6 +98,94 @@ def fingerprints(data: bytes) -> dict[int, int]:
     return result
 
 
+
+# Block 31 has one 16-byte generated segment per selector. These three
+# known-good cases exercise 369D8's descriptor stop-RET, CODE.2's
+# mode-0 trailing RET patches, and nonzero-mode leading short jumps.
+DESCRIPTOR_CASES = (
+    ("normal", False, 128, 0, 16, 16, 0xD17D98730D9A77C5),
+    ("trailing-ret", False, 8, 0, 8, 8, 0xFF8A6C8D22C4A0C5),
+    ("leading-jmp", True, 128, 4, 12, 12, 0x44E1511AB24CEDC5),
+)
+
+
+def patched_descriptor_reference(
+    block: bytes, source: bytes,
+    nonzero_mode: bool, patch_from: int, patch_before: int
+) -> tuple[int, int, int]:
+    """Decode original patch sites and run block-31 entry 0 to stop 16."""
+    patch = struct.unpack_from("<129H", block)
+    code = bytearray(block[0x204:])
+    if nonzero_mode:
+        for i in range(patch_before):
+            here = patch[i] - 0x204
+            following = patch[i + 1] - 0x204
+            code[here] = 0xEB
+            code[here + 1] = (following - here - 2) & 255
+    else:
+        for i in range(patch_from, 128):
+            code[patch[i] - 0x204] = 0xC3
+    code[patch[16] - 0x204] = 0xC3
+
+    eax, pc, reads, writes = 0, patch[0] - 0x204, 0, 0
+    plane = bytearray(PLANE_BYTES_CHECKED)
+    for _ in range(len(code) * 2 + 1):
+        if pc >= len(code):
+            raise ValueError("patched descriptor ran outside SINTAB generated code")
+        op = code[pc:pc + 2]
+        if code[pc] == 0xC3:
+            break
+        if code[pc] == 0xEB:
+            (jump,) = struct.unpack_from("<b", code, pc + 1)
+            pc += 2 + jump
+            if pc < 0:
+                raise ValueError("backward jump left generated code")
+        elif op == b"\x8a\x86":
+            disp = struct.unpack_from("<i", code, pc + 2)[0]
+            eax = (eax & 0xFFFFFF00) | source[disp]
+            pc += 6
+            reads += 1
+        elif op == b"\x88\xc4":
+            eax = (eax & 0xFFFF00FF) | ((eax & 255) << 8)
+            pc += 2
+        elif op == b"\x29\xc8":
+            eax = (eax - 0x0102) & 0xFFFFFFFF
+            pc += 2
+        elif op in (b"\x88\x87", b"\x88\xa7"):
+            disp = struct.unpack_from("<I", code, pc + 2)[0]
+            plane[disp] = (eax >> (8 if op[1] == 0xA7 else 0)) & 255
+            pc += 6
+            writes += 1
+        else:
+            raise ValueError(f"unsupported patched descriptor bytecode at {pc:#x}")
+    else:
+        raise ValueError("patched descriptor exceeded execution guard")
+    digest = FNV_START
+    for value in plane:
+        digest = mix(digest, value)
+    return reads, writes, digest
+
+
+def verify_descriptor_cases(data: bytes) -> None:
+    cursor = 0x1F42
+    source = bytes((i * 31 + 17) & 255 for i in range(4096))
+    for block_index in range(32):
+        size = struct.unpack_from("<H", data, cursor)[0]
+        cursor += 2
+        if block_index == 31:
+            block = data[cursor:cursor + size]
+        cursor += size
+    for name, nonzero, from_index, before_index, reads, stores, expected in DESCRIPTOR_CASES:
+        actual_reads, actual_stores, digest = patched_descriptor_reference(
+            block, source, nonzero, from_index, before_index
+        )
+        if (actual_reads, actual_stores, digest) != (reads, stores, expected):
+            raise ValueError(f"{name}: patched descriptor pixel output mismatch")
+        print(
+            f"{name}: reads={reads}, stores={stores},"
+            f" pixel fingerprint={digest:#018x}"
+        )
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("sintab", type=Path)
@@ -108,6 +196,7 @@ def main() -> None:
         print(f"lookup {lookup:#06x}: reference fingerprint {value:#018x}")
         if value != expected:
             raise ValueError(f"pixel fingerprint mismatch: expected {expected:#018x}")
+    verify_descriptor_cases(args.sintab.read_bytes())
 
 
 if __name__ == "__main__":
