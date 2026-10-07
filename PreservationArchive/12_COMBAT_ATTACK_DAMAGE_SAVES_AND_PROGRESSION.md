@@ -159,15 +159,41 @@ live actor index
 
 This retains the definition/live-state split established in Component 11.
 
-## 6. Attacking breaks selected character effects/state
+## 6. Attacking breaks invisibility states before hit resolution
 
 Before the hit test the attack path calls logical `E578`.
 
-That helper clears selected action-sensitive character states, including one character-local effect bit and associated timer/state, and marks UI refresh state.
+Direct re-disassembly closes its two effect removals.
 
-The exact effect identities belong to the spell/effect chapter; the combat ordering is important:
+First, it loops over all four party records. For each character with primary effect 5:
 
-> attack-side effect breaking occurs before hit resolution.
+```text
+Invisibility 10' Radius
+```
+
+it clears bit 5 and marks that character display dirty.
+
+It then examines the acting character. If primary effect 9:
+
+```text
+Invisibility to Undead
+```
+
+is active, it zeros expiry slot 9, clears bit 9, and marks the acting character dirty.
+
+Thus the exact combat ordering is:
+
+```text
+attack command
+    |
+    +-- break party-wide Invisibility 10' Radius
+    +-- break attacker's Invisibility to Undead
+    |
+    v
+target/hit resolution
+```
+
+The removal occurs even before whether the attack ultimately hits is known.
 
 ## 7. Player hit-check routine
 
