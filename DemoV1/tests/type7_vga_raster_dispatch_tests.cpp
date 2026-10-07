@@ -8,7 +8,7 @@
 int main() {
     constexpr std::size_t start = 0x75F24U;
     constexpr std::size_t offsets[3] = {0xC668U, 0xC688U, 0xC6A8U};
-    std::vector<std::uint8_t> bytes(start + offsets[2] + 32U);
+    std::vector<std::uint8_t> bytes(start + 0xEF4DU + 1U);
     for (unsigned phase=0; phase<4U; ++phase) {
         for (unsigned count=1U; count<=7U; ++count) {
             for (unsigned n=0; n<count; ++n) {
