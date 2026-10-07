@@ -193,12 +193,30 @@ int main() {
     assert(!hit.contains(114, 137));
     assert(!hit.contains(115, 188));
 
-    const auto too_small =
-        rloft::SceneShapeBoundsModel::npc_type7(
+    const auto interaction =
+        rloft::SceneShapeBoundsModel::interaction_type7(
+            128U,
+            400U,
+            assassin_shape);
+    assert(interaction.valid);
+    assert(interaction.top == 115U);
+    assert(interaction.bottom == 254U);
+    assert(interaction.left == 105U);
+    assert(interaction.right == 155U);
+
+    const auto emitter_too_small =
+        rloft::SceneShapeBoundsModel::emitter_type7(
             128U,
             319U,
             assassin_shape);
-    assert(!too_small.valid);
+    assert(!emitter_too_small.valid);
+
+    const auto interaction_small =
+        rloft::SceneShapeBoundsModel::interaction_type7(
+            128U,
+            319U,
+            assassin_shape);
+    assert(interaction_small.valid);
 
     return 0;
 }
