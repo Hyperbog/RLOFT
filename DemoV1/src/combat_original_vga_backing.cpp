@@ -127,7 +127,7 @@ CombatOriginalVgaBackingModel::restore_2a178(
     }
     // 2A1DA..2A1DC OUT 03C4h,AX=FF02h:
     // all four physical VGA planes remain enabled.
-    vga.set_sequencer_map_mask_02(0x0FU);
+    vga.write_sequencer_raw_mask_02(0xFFU);
     return CombatOriginalVgaBackingResult{
         layout->physical_start,layout->starting_plane,
         layout->bytes_per_row,
