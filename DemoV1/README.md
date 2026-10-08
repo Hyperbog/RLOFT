@@ -1,5 +1,28 @@
 # Ravenloft Demo Build v1
 
+## Latest DDA4 callback control — original 50DC and timed service sequence
+
+The [50DC / DDA4 service-order checkpoint](LEVEL22_DDA4_50DC_SERVICE_ORDER_CHECKPOINT.md)
+adds independently audited, read-only models of the original
+class-selection predicate and its call sequence after a class
+level changes. The original 50DC selector uses the status
+mask `0xF240`, prefers class code `3` in zero mode,
+has a class-`1` level-9 exception, and searches code `4`
+in nonzero mode. A nonnegative result optionally calls
+`3EA4` or `3DE4`. **Even with a negative result**, the
+original still calls presentation `3210F`, timed message
+`1C21C`, and RNG-consuming HP service `DC7C` in order.
+
+The verified original executable audit now has **378 opcode
+signatures** plus one direct and two hashed original data
+references. The exact committed focused C++ sources/tests
+passed isolated strict C++17 Debug and Release harnesses;
+registered full CMake/Windows tests remain **unexecuted**.
+This does **not** apply live levels, HP, XP, combat statistics
+or IRQ timers. Full original game-behavior acceptance
+remains **20% (1/5 major demo gates)**.
+
+
 ## Latest preservation checkpoint — original class levels and attack target
 
 The [DDA4/DBD4 source checkpoint](LEVEL22_DDA4_THRESHOLDS_DBD4_CHECKPOINT.md)
