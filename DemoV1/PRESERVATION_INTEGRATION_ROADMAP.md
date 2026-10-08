@@ -243,3 +243,27 @@ original CODE.2 instruction checks; exact implementation
 source passed isolated Debug/Release/UBSan tests.
 No new private Windows runner build was triggered.
 Faithful demo acceptance remains **20% (1/5)**.
+
+
+## Source-ordered original sprite/VGA state and pointer binding
+
+The [current machine binding checkpoint](ORIGINAL_SPRITE_MACHINE_BINDING_CHECKPOINT_20261008.md)
+closes the bounded normal/shaded sprite raster's omitted
+DOS state: the 2A584 two-DWORD self-modifying code operands,
+VGA sequencer 03C4h index-02 persistent mask, and
+transparent global F009. A reusable native
+`CombatOriginalSpriteRasterBinder` drives the existing
+2939C/293EC->2A380/2A584->2E758 chain through
+authentic original DOS sprite and shader pointer readers.
+Source checks: **653 named / 645 distinct original x86
+instruction sites**.
+
+The binding intentionally rejects absent resource bytes;
+no dummy art, default lookup palette, fixed VGA pitch or
+fabricated timing was introduced. The next integration
+needs an actual source-backed DOS memory/resource provider,
+original 1A8C8 compositor and 2E758 refresh implementation,
+and DOS VGA-plane/IRQ reference comparison. Local strict
+C++17 builds passed; a new full Windows CTest and EXE
+build are **still required** for this newer codebase.
+No private Actions runner was triggered here.
