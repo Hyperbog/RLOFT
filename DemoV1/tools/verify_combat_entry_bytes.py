@@ -340,6 +340,33 @@ ANCHORS = {
     "E257 NPC definition initial flags": (0xE257, "8b440235"),
     "E25B clear NPC action word": (0xE25B, "66c786904d01000000"),
     "E267 store full initial flags": (0xE267, "8986884d0100"),
+    # DDA4..DFC0 original XP distribution, before class threshold and
+    # derived-stat recomputation. 25 independently checked CODE.2 bytes.
+    "DDA4 XP distribution entry": (0xDDA4, "53"),
+    "DDA4 status word": (0xDDAF, "668b90f0180200"),
+    "DDA4 original F240 eligibility mask": (0xDDB6, "81e240f20000"),
+    "DDA4 eligible actor increment": (0xDDC3, "43"),
+    "DDA4 4 character stride boundary": (0xDDC9, "3d20090000"),
+    "DDA4 party divisor half rounding": (0xDDD2, "d1fa"),
+    "DDA4 signed party IDIV": (0xDDDD, "f7fb"),
+    "DDA4 min party quotient test": (0xDDE3, "85c0"),
+    "DDA4 party minimum one": (0xDDE7, "c7442404010000"),
+    "DDA4 actor status recheck": (0xDE0F, "668b90f0180200"),
+    "DDA4 actor class track mask": (0xDE16, "81e240f20000"),
+    "DDA4 second class signed code": (0xDE27, "0fbe80f6180200"),
+    "DDA4 class lane empty sentinel": (0xDE36, "83f8ff"),
+    "DDA4 third class signed code": (0xDE4B, "0fbe80f7180200"),
+    "DDA4 third lane FF sentinel": (0xDE52, "83f8ff"),
+    "DDA4 count class track": (0xDE57, "ff442410"),
+    "DDA4 load class share dividend": (0xDE80, "8b442408"),
+    "DDA4 signed class IDIV": (0xDE91, "f77c2410"),
+    "DDA4 min class quotient test": (0xDEAB, "85c0"),
+    "DDA4 class minimum one": (0xDEAF, "b801000000"),
+    "DDA4 add XP to track DWORD": (0xDEC2, "018206190200"),
+    "DDA4 read class track XP DWORD": (0xDEE4, "8b8706190200"),
+    "DDA4 class level field": (0xDEFF, "0fbf8000190200"),
+    "DDA4 write updated class level": (0xDF18, "6689b000190200"),
+    "DDA4 post award class service": (0xDFCF, "ff742420"),
 }
 
 # Original object-2 DGROUP contents (not x86 code). These 26
