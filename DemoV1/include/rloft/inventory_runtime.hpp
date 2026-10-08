@@ -76,7 +76,7 @@ struct InventoryRuntimeState final {
 
     // CODE.2 214B8, pointer flag 08h: swap held item with actor
     // item[14+hand]. Only the ordinary, non-container / non-special
-    // exchange is enabled. Clear this hand's +18E/192 readiness field.
+    // exchange is enabled. Clear only this hand's +19E/+1A2 readiness dword.
     // Separate pointer flag 01h invokes *use/attack*, NOT this method.
     [[nodiscard]] InventoryHandSwapStatus swap_hand_slot(
         PartyImage& party,
