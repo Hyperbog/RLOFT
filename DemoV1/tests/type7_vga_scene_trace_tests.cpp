@@ -87,6 +87,8 @@ int main() {
             p, sh, t, m, 0U, false);
     assert(grouped.runs.size()==2U);
     assert(grouped.runs[0].width==2U);
+    assert(!grouped.runs[0].individual_columns_mode);
+    assert(!grouped.runs[1].individual_columns_mode);
     assert(grouped.runs[0].descriptors.size()==2U);
     assert(grouped.runs[0].dispatch.calls.size()==1U);
     assert(grouped.runs[0].dispatch.calls[0].
@@ -109,6 +111,8 @@ int main() {
     const auto individual =
         rloft::Type7VgaSceneTraceModel::build(
             p, sh, t, m, 1U, true);
+    assert(individual.runs[0].individual_columns_mode);
+    assert(individual.runs[1].individual_columns_mode);
     assert(individual.runs[0].dispatch.calls.size()==2U);
     assert(individual.runs[0].dispatch.calls[0].
            ecx_lookup==0x1234U);
