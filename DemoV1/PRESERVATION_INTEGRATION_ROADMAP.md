@@ -26,6 +26,28 @@ The certified archive documents 22/22 numbered *historical static* chapters 00�
 | [Ch.08 — SAVE/party persistence](../PreservationArchive/08_SAVE_PARTY_AND_PERSISTENCE_ARCHITECTURE.md) | `src/inventory_runtime.cpp`, `src/exploration_runtime.cpp` | R-053/R-077: preserve original scene flags, party belongings and module handoff in complete game-state transitions |
 | [Ch.20 — programmer reference](../PreservationArchive/20_MODDER_PROGRAMMER_REFERENCE.md), [Ch.21 — unknown/correction audit](../PreservationArchive/21_FINAL_CONTRADICTION_UNKNOWN_AND_EVIDENCE_AUDIT.md) | All `DemoV1/` modules | R-072: each reconstructed function/module must cite controlling CODE offset, format provenance, test and regression result |
 
+## Cross-cutting timing acceptance (applies to every task below)
+
+**Timing is a correctness gate, not an end-stage visual improvement.**
+Follow the [native timing fidelity contract](TIMING_FIDELITY_CONTRACT.md)
+and original [Chapter 17](../PreservationArchive/17_TIMING_INTERRUPTS_AND_FRAME_CADENCE.md)
+throughout movement, turning, animations, card flips, combat, UI/modal waits,
+world time and story transitions. The original `2E608/2E614(2,0)`
+main-loop cadence is separate from the VGA retrace; the native host currently
+integrates exploration motion at nominal `70.0863`-Hz presentation cadence.
+**Investigate this mismatch before accepting movement speed or combat action
+frequency as faithful.** Preserve original input/event service ordering,
+separate `F58C` IRQ ticks, `A7E4` gameplay maintenance ticks, `CF4C`
+world-time state, animation packet waits and driver-dependent clock behavior.
+Never turn authored multiframe sequences into instantaneous changes or assign
+uniform animation FPS without evidence.
+
+Required acceptance: original-vs-native time-series traces (coordinates,
+heading, frame IDs/dwell, cooldown/hand flags, palette/sound and pause/resume),
+including actual DOS capture under a documented runtime configuration. Render
+smoothing on modern monitors may be presentation-only; it must not speed up
+the game simulation. Keep GitHub Actions manual-only while private.
+
 ## Implementation order, using the archive to avoid rediscovery
 
 1. **R-072 follow-through:** CODE.2 branch divergence is reconciled (above). Continue original-offset traceability for Level 22 native routines; isolate remaining inferred behavior and run a fresh whole-file CODE.2 strict syntax check when a compiler is available.
