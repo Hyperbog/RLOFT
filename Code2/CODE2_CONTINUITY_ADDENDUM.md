@@ -745,3 +745,16 @@ Audited immutable original CODE.2 SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d9
 - The *old* slot object's known value is captured before mutation and transferred with that object into the held cursor at `11A34..11A4D`. The other object-sensitive branches (such as special potion/spell objects, nested container insertion and inventory side effects) must not be collapsed into universal swaps.
 
 The native DemoV1 `InventoryRuntimeState::swap_ordinary_slot` now preserves the stale-known-bit case explicitly for this bounded ordinary-grid interaction and tests it. UI routing and full combat remain separately pending. This finding refines the inventory archival understanding but does not change the original source byte-accounting certification.
+
+
+## 2026-10-07 original `C80C` player-hit arithmetic confirmation
+
+The original CODE.2 object-1 bytes were re-disassembled independently for `C80C..C90C` while building the bounded native Level 22 combat-hit resolver. The archived Ch.12 conclusion is confirmed opcode-for-opcode:
+
+- `C818`: live actor flag byte `+8 & 08h` jumps to immediate hit before dice/actor/weapon work.
+- `C83E`: OBJECTS definition byte `+37h` is loaded zero-extended as weapon enchantment; `C851` subtracts the `C7C4` strength attack helper only when enabled.
+- `C866..C879`: ranks 2/3/4 add exact penalties 1/2/4; `C87B..C89F` forms base attack target minus signed NPC AC plus the accumulator, and subtracts four on NPC slow flag `80h`.
+- `C8A7/C8B7`: primary effect byte `+F3h` tests bits 0/3 (Bless/Aid); `C8C7` tests slot-20 object `54h`, adding three to the die modifier.
+- `C8D6`: dice call `2C328(1,20,bonus,0)`. `C8E5` performs **modified-result >=20 auto-hit** before `C8F4` checks **modified-result ==1 auto-miss**; the final signed compare to threshold is `C900..C905`.
+
+Do not refactor this into natural-one/natural-twenty semantics. The new native `CombatHitCheckModel` is a side-effect-free arithmetic model with explicitly supplied inputs; **the wider original `E5F0` attack orchestrator, target selection, dice sourcing, weapon damage, NPC gate, audio, cooldown and input routing are still required** for faithful combat. See `demo-v1:DemoV1/LEVEL22_COMBAT_HIT_CHECKPOINT.md`.
