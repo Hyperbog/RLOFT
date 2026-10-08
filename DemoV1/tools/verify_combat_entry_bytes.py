@@ -142,6 +142,17 @@ ANCHORS = {
     "24B48 adds full interval": (0x24BD9, "01c2"),
     "24B48 computes actor stride": (0x24BDB, "69c348020000"),
     "24B48 writes hand action-state +10B": (0x24BE5, "899498eb190200"),
+    # E5F0 calls CODE.2 logical E578 (objdump virtual 1E578),
+    # an actor effect/redraw service BEFORE NPC target hit checks.
+    "E578 prehit status service entry": (0xE578, "31d231c0"),
+    "E578 tests all actor bit20": (0xE57C, "f680121a020020"),
+    "E578 marks affected panel redraw": (0xE585, "c6825acf000001"),
+    "E578 clears actor bit20": (0xE58C, "80a0121a0200df"),
+    "E578 addresses attacking actor": (0xE59E, "6944240448020000"),
+    "E578 tests selected actor bit02": (0xE5A6, "f680131a020002"),
+    "E578 clears selected dword +15A": (0xE5AF, "c7803a1a020000000000"),
+    "E578 clears selected actor bit02": (0xE5B9, "80a0131a0200fd"),
+    "E578 marks selected panel redraw": (0xE5C4, "c6805acf000001"),
 }
 
 
