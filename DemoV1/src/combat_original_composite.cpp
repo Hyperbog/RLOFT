@@ -96,6 +96,8 @@ CombatOriginalCompositeRoute CombatOriginalCompositeModel::run_1a8c8(
         // 9E37, set active BYTE 9E39 from low argument byte,
         // then invoke 1A288. The latter can mutate live globals.
         const auto old_page=state.active_page_9e39;
+        const auto saved_left=state.overlay_left_9e31;
+        const auto saved_top=state.overlay_top_9e33;
         state.overlay_reference_count_9e37=word_dec(
             state.overlay_reference_count_9e37);
         state.active_page_9e39=static_cast<std::uint8_t>(rect.page);
@@ -114,8 +116,7 @@ CombatOriginalCompositeRoute CombatOriginalCompositeModel::run_1a8c8(
         // 1A9AB..1A9BF: call 1AB20 with the saved overlay
         // POSITION from entry, then increment live WORD 9E37
         // and restore the original mode BYTE.
-        service.restore_overlay_1ab20(
-            state.overlay_left_9e31,state.overlay_top_9e33);
+        service.restore_overlay_1ab20(saved_left,saved_top);
         state.overlay_reference_count_9e37=word_inc(
             state.overlay_reference_count_9e37);
         state.active_page_9e39=old_page;
