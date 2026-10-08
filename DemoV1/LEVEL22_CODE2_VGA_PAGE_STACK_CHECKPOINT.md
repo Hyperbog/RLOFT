@@ -156,3 +156,16 @@ A/B frame comparisons.
 **Formal acceptance:** 1 of 5 demo gates. Shared-engine
 reconstruction has advanced; overall engineering completion
 remains unmeasured.
+
+
+## Subsequent original backing clipping checkpoint
+
+[Original 292BC/2932C clipping](LEVEL22_CODE2_OVERLAY_BACKING_CLIP_CHECKPOINT.md)
+is now implemented downstream of the real
+2E590/2E5D4 page-stack binding, preserving
+signed EF3F/EF41 clip bounds and the
+zero-column restore branch. It leaves
+the actual VGA 2A114/2A178 transfer
+services explicit and unapproximated.
+The cumulative source ledger is
+855 named checks at 847 unique addresses.
