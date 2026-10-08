@@ -1,13 +1,9 @@
 name: Demo v1 build
 
-# Authorized one-time build request for 2026-10-08.
-# The temporary push trigger only watches an explicit build-request marker.
-# Remove the temporary push trigger after the build begins.
+# Private-repo development: never consume Windows runner minutes from
+# source or documentation commits. Run this workflow manually only.
+# Reconsider the push trigger once the repository is public.
 on:
-  push:
-    branches: [demo-v1]
-    paths:
-      - 'DemoV1/.manual-build-request-20261008'
   workflow_dispatch:
     inputs:
       run_linux:
