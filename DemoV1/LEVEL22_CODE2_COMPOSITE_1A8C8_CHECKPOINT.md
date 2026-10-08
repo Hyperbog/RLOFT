@@ -141,3 +141,25 @@ has advanced independently. The engineering-completion
 percentage is not objectively measured; see
 [demo scorecard](DEMO_PROGRESS_SCORECARD_20261008.md).
 GitHub Actions remains manual-only.
+
+
+## Later original 2A078 and 30CD4 integration — superseding boundary
+
+The earlier statement that neither the 2A078 pixel
+copy nor 30CD4 backing transfer was implemented
+has been superseded by
+[the original source checkpoint](LEVEL22_CODE2_2A078_30CD4_COPY_CHECKPOINT.md).
+Native source now transfers actual four-plane VGA
+bytes using original GC write-mode-1 source latches,
+and moves captured DGROUP overlay backing bytes
+with original 30CD4 overlap direction. The original
+1A8C8 wrapper directly uses these reusable engine
+callbacks.
+
+The **remaining** compositor blockers are original
+1A288 suspension, 1AB20 restoration, faithful live
+resource/globals, DOS frame equivalence and
+full current-HEAD Windows CTest/build verification.
+Source opcode audit is **754 named/746 distinct**
+logical CODE.2 instruction addresses. This is not
+a new accepted demo release gate.
