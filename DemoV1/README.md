@@ -1,5 +1,39 @@
 # Ravenloft Demo Build v1
 
+## Current DOS message renderer frontier — exact glyph and sprite callbacks
+
+The [303C8/2939C/293EC original renderer checkpoint](LEVEL22_ORIGINAL_GLYPH_SPRITE_RENDERER_CHECKPOINT.md)
+adds two more source-backed native execution layers after the
+verified **130/130 Windows CTests at earlier pinned SHA**:
+
+- `3060C -> 303C8` now uses the original `2F29C`
+  font selection, signed DOS character indexes, per-glyph
+  `F56C` normal/shaded choice, re-read font pointer `2B67C`,
+  unsigned width byte and wrapping `2B680` column advancement.
+  A `bind_display_3060c` adapter connects this sequence
+  to the existing original IRQ-timed `1C258` callback driver.
+- `2939C/293EC` now dispatch to the original normal/shaded
+  sprite-raster callbacks with null-resource early returns
+  and observe the optional `2E758/F0C8` refresh **after**
+  rasterization, including callback-mutated F0C8 changes.
+
+The immutable-code ledger contains **557 named x86 byte
+checks at 549 distinct offsets**, a direct Strength data
+reference, nine SHA256-checked DGROUP spans and one hashed
+CS span. All **48 new original instruction sites matched**
+the supplied `CODE.2`. Focused local source-equivalent
+strict C++17 Debug, Release and UBSan tests passed.
+These new CMake tests are **NOT** included in the older
+green 130/130 Windows runner result.
+
+Actual `2A380/2A584` planar sprite pixels, `2E758`
+refresh effects and `1A8C8` composition remain to be
+implemented and compared with DOS reference frames.
+No Windows font API or approximate indexed-font drawing
+has been silently substituted. Overall faithful-gameplay
+acceptance remains **20% (1/5 gates)**.
+
+
 ## Latest verified Windows build — 130/130 CTests passed
 
 The actual [Windows x64 GitHub Actions run #634](https://github.com/Hyperbog/RLOFT/actions/runs/37788168281)
