@@ -21,10 +21,13 @@ enum class CombatIrqDisplayAction : std::uint8_t {
 };
 
 struct CombatIrqDisplaySnapshot final {
+    // Observed when 1C258 enters its conditional presentation.
     std::uint8_t pending_cf59{};
+    // Observed LATER, at 1C2D1, after all deferred 1C258 renderer
+    // calls. The actual original services may alter live globals;
+    // never reuse an earlier deadline if the value has changed.
     std::uint32_t deadline_cf54{0xFFFFFFFFU};
-    // Taken specifically at CODE.2 1C2CC, AFTER any 1C258
-    // display calls, not sampled before deferred rendering.
+    // Read at 1C2CC via 30700, after any 1C258 callbacks.
     std::uint32_t irq_tick_at_expiry_check{};
 };
 
