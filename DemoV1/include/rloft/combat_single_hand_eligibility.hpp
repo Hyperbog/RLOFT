@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 #include "rloft/combat_hand_predicates.hpp"
 #include "rloft/exploration_state.hpp"
@@ -25,16 +26,18 @@ struct CombatSingleHandContext final {
 
 class CombatSingleHandEligibilityModel final {
 public:
-    // Exact nonnegative-item 240A8 branch model. Original 23E58/23F50
-    // access raw object memory even for signed item -1; until the
-    // actual pointer-before-OBJECTS context is modeled, reject -1
-    // instead of inventing a normal unarmed result.
+    // For -1 the original 23E58/23F50 read OBJECTS base -0x12
+    // (category byte at record[-1]+0x2F). The caller must supply
+    // this RAW loaded-memory byte when known from an original trace.
+    // Absent evidence -> reject; do not invent unarmed eligibility.
     [[nodiscard]] static CombatSingleHandEligibility evaluate(
         const PartyImage& party,
         const ObjectCatalog& objects,
         std::size_t actor,
         std::int32_t item_id,
-        CombatSingleHandContext context);
+        CombatSingleHandContext context,
+        std::optional<std::uint8_t> empty_prebase_category =
+            std::nullopt);
 };
 
 } // namespace rloft
