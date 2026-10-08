@@ -163,4 +163,55 @@ int main() {
         rloft::Type7VgaTraceValidator::validate_scene(corrupted,plan);
     } catch(const std::invalid_argument&) {caught=true;}
     assert(caught);
+
+    // A geometrically complete scene can STILL be missing pixels if
+    // the trace omits one or more six-byte RES3 display-list descriptors.
+    // Compare the run's representative descriptor list to every original
+    // destination-specific Type7MicrocodeDraw, including entry/stop,
+    // signed ESI adjustment and descriptor ordering.
+    rloft::Type7MicrocodeDraw descriptor{};
+    descriptor.source_x=31U;
+    descriptor.source_column_index=0U;
+    descriptor.entry_code_offset=12U;
+    descriptor.stop_code_offset=44U;
+    descriptor.entry_selector=2U;
+    descriptor.stop_selector=8U;
+    descriptor.signed_source_adjustment=-17;
+    descriptor.descriptor_index=0U;
+    descriptor.viewport_x=130U;
+    trace.runs[0].descriptors={descriptor};
+    for(std::size_t index=0U;index<4U;++index) {
+        descriptor.viewport_x=130U+index;
+        plan.microcode_draws.push_back(descriptor);
+    }
+    descriptor.source_x=32U;
+    descriptor.source_column_index=1U;
+    descriptor.viewport_x=134U;
+    trace.runs[1].descriptors={descriptor};
+    plan.microcode_draws.push_back(descriptor);
+    rloft::Type7VgaTraceValidator::validate_scene(trace,plan);
+
+    corrupted=trace;
+    corrupted.runs[0].descriptors.clear();
+    caught=false;
+    try {
+        rloft::Type7VgaTraceValidator::validate_scene(corrupted,plan);
+    } catch(const std::invalid_argument&) {caught=true;}
+    assert(caught);
+
+    corrupted=trace;
+    corrupted.runs[0].descriptors[0].signed_source_adjustment++;
+    caught=false;
+    try {
+        rloft::Type7VgaTraceValidator::validate_scene(corrupted,plan);
+    } catch(const std::invalid_argument&) {caught=true;}
+    assert(caught);
+
+    corrupted=trace;
+    corrupted.runs[1].descriptors[0].entry_code_offset++;
+    caught=false;
+    try {
+        rloft::Type7VgaTraceValidator::validate_scene(corrupted,plan);
+    } catch(const std::invalid_argument&) {caught=true;}
+    assert(caught);
 }
