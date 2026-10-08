@@ -251,6 +251,12 @@ public partial class MainWindow : Window
         AssemblyGrid.ScrollIntoView(found);
     }
 
+    private void IntelligenceList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        IntelligenceEvidenceText.Text = IntelligenceList.SelectedItem is IntelligenceRow row
+            ? row.Evidence : "Select a field to see supporting evidence.";
+    }
+
     private void SaveProject_Click(object sender, RoutedEventArgs e)
     {
         if (_artifact is null || _working) return;

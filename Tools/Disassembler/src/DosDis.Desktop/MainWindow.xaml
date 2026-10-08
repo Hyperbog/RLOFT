@@ -101,7 +101,8 @@
           <DockPanel Grid.Row="0">
             <TextBlock DockPanel.Dock="Top" Text="FILE INTELLIGENCE" FontSize="11" FontWeight="SemiBold"
                        Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,10"/>
-            <ListView x:Name="IntelligenceList" Background="{StaticResource PanelBrush}"
+            <TextBlock x:Name="IntelligenceEvidenceText" DockPanel.Dock="Bottom" Text="Select a field to see supporting evidence." TextWrapping="Wrap" Margin="0,8,0,0" FontSize="11" Foreground="{StaticResource SecondaryTextBrush}"/>
+            <ListView x:Name="IntelligenceList" SelectionChanged="IntelligenceList_SelectionChanged" Background="{StaticResource PanelBrush}"
                       BorderThickness="0" Foreground="{StaticResource PrimaryTextBrush}">
               <ListView.View>
                 <GridView>
