@@ -318,6 +318,28 @@ ANCHORS = {
     "E233 original 1C328 respawn HP roll": (0xE233, "e8f0e00000"),
     "E26D successful respawn literal one": (0xE26D, "b801000000"),
     "E279 no-respawn literal zero": (0xE279, "31c0"),
+    # New E0F8 source-model dependencies: reseed fallback, live arrays,
+    # slot fields and NPC definition reads, all original-byte checked.
+    "290D0 test zero low16 seed": (0x290D5, "6685db"),
+    "290DA BIOS fallback pointer 46C": (0x290DA, "bb6c040000"),
+    "290E6 calls 30CC4 seed store": (0x290E6, "e8d97b0000"),
+    "30700 reads IRQ tick F58C": (0x30700, "a18cf50000"),
+    "E103 retain only IRQ low16": (0xE103, "0fb7c0"),
+    "E111 signed width source": (0xE111, "0fbf1d19560200"),
+    "E126 signed height source": (0xE126, "0fbf1d1b560200"),
+    "E1A7 skip NPC bit02 corpse": (0xE1A7, "f6808b4d010002"),
+    "E1B0 NPC word cell index": (0xE1B0, "0fb7988c4d0100"),
+    "E1BF signed NPC active count": (0xE1BF, "0fbf1da2580200"),
+    "E1F0 store x cell coordinate": (0xE1F0, "668986864d0100"),
+    "E20C set x fixed fraction 8000": (0xE20C, "66c786844d01000080"),
+    "E217 store y cell coordinate": (0xE217, "6689be824d0100"),
+    "E224 record cached cell index": (0xE224, "66898e8c4d0100"),
+    "E22D NPC definition HP dice +1D": (0xE22D, "0fb644021d"),
+    "E238 store rolled NPC HP": (0xE238, "668986924d0100"),
+    "E24E mask packed NPC state FE39": (0xE24E, "6681a6944d010039fe"),
+    "E257 NPC definition initial flags": (0xE257, "8b440235"),
+    "E25B clear NPC action word": (0xE25B, "66c786904d01000000"),
+    "E267 store full initial flags": (0xE267, "8986884d0100"),
 }
 
 # Original object-2 DGROUP contents (not x86 code). These 26
