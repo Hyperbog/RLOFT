@@ -797,3 +797,25 @@ Both driver names occupy fixed **14-byte** NUL-padded regions at `+0x16..+0x23` 
 **Evidence gain / U-015 disposition:** the exact physical 59-byte geometry, the separation of configurable music/digital groups, the fixed-string slot widths, and the meaningful presence of additional trailer selectors are now **cross-sample corroborated**. Their historical installer field names, the precise values-to-hardware mapping beyond driver filenames, error paths and dynamic callback timing remain **bounded UNKNOWNs**. Do not promote plausible MPU/IRQ/DMA labels to machine-proven semantics without reverse engineering the installer writer or a documented AIL driver consumer.
 
 **Recommended native-port fixture test:** round-trip all three raw configurations without changing a byte; verify that their driver names and four trailer words do not get truncated; keep the original DOS device-selection UI as an optional legacy compatibility layer, while modern audio backends preserve observable game music/SFX selection.
+
+
+## 56. Direct A32 audio-driver static ABI: serviced callback rates and nonserviced digital paths
+
+**New original-byte evidence:** the user-supplied `RLOFT_DLL.zip` provides **16 Miles A32 LX/OS2-style backend DLLs** plus two distinct GUS backend images. Each of the 16 A32 DLLs was independently parsed: DOS MZ→LX header, declared object-1 image pages, the original entry dispatch table at object-relative `0x002F`, the terminal `0xFFFFFFFF` dispatch marker, and the following **200-byte descriptor** (`descriptor[+0]=0xC8`). The original AIL/32 `AIL_DESC_DRVR=0x64` convention and `descriptor[+0x20]` signed Hertz `svc_rate` field were previously established by the vendor source in Chapter 17.
+
+Every one of the 16 descriptors is internally coherent with its dispatch table: a non-`-1` `svc_rate` coincides with a present `AIL_SERVE_DRVR=0x67` dispatch entry, and `svc_rate=-1` coincides with an absent service dispatch entry. **16/16 A32 driver table/descriptor consistency checks passed**.
+
+| Original A32 DLL(s) | Static `svc_rate` | `0x67` service entry |
+|---|---:|---|
+| `A32MT32`, `A32ARXM` | **120 Hz** | Present |
+| `A32ADLIB`, `A32ALGFM`, `A32PASFM`, `A32PASOP`, `A32SBFM`, `A32SP1FM`, `A32SP2FM`, `A32SPKR`, `A32TANDY` | **120 Hz** | Present |
+| `A32ARDG` | **72 Hz** | Present |
+| `A32ALGDG`, `A32PASDG`, `A32SBDG`, `A32SBPDG` | **-1** (no timer service) | Absent |
+
+**Exact source offsets in the selected shipped drivers:** the `A32MT32.DLL` LX object-1 image begins at file offset `0x0800`; its dispatch-table terminator is object-relative `0x015F`, descriptor begins at `0x0163`, and its service-rate signed dword at image `0x0183` is `0x00000078` = **120 Hz**. `A32SBPDG.DLL` object-1 image begins at file offset `0x0A00`; its terminator is image `0x00C7`, descriptor begins at `0x00CB`, and the rate at `0x00EB` is `0xFFFFFFFF` = **-1**, with no exported `0x67`. For the SB16 `A32SP2FM.DLL` alternate music profile, descriptor service rate is **120 Hz** at object image `0x0183`.
+
+**Consequence for the three certified SOUND.CFG profiles:** MT32 and SC55 select `A32MT32.DLL` (nominal 120-Hz scheduled-service capable) plus `A32SBPDG.DLL` (no software timer service). SB16 selects `A32SP2FM.DLL` (nominal 120-Hz service capable) plus the same `A32SBPDG.DLL`. The alternate ARIA digital `A32ARDG.DLL` demonstrates that **not every digital backend lacks a service timer**; its descriptor requests 72 Hz. These are concrete shipped-driver choices rather than conjectures from MT32/Sound Blaster filenames.
+
+**What remains OPEN:** no driver initialization was executed on original DOS hardware or an emulator, so actual device detection success, whether all callbacks are started, the finally programmed shared PIT divisor under multiple owners, physical IRQ delivery rates, and the game's observed `F58C` cinematic frame/tick cadence are **not measured**. A static **120-Hz driver callback request does not prove 120 FPS**, nor does it prove that every gameplay tick occurs exactly every 8.333 ms. The two GUS LX images were not classified using this A32-specific header grammar and remain separate vendor/backend evidence.
+
+**U-015 updated:** the originally open *individual shipped A32 driver descriptor service-rate values* are now **RESOLVED for 16/16**, but the numeric `SOUND.CFG` field names, driver-runtime completion/failure behavior and measured cadence remain explicitly unresolved.
