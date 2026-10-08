@@ -1,5 +1,44 @@
 # Ravenloft Demo Build v1
 
+## Latest CODE.2 VGA latch copy and overlay backing transfer
+
+[Original 2A078 / 30CD4 checkpoint](LEVEL22_CODE2_2A078_30CD4_COPY_CHECKPOINT.md)
+now implements the shared screen compositor's **actual four-plane
+VGA rectangle copy**. `2A078` uses VGA graphics-controller
+write mode 1 and source-read hardware latches, with the original
+`0x0F` sequencer plane mask, temporary destination page selection,
+and exact forward `REP MOVSB` semantics. This is **not**
+a packed indexed-pixel copy or `memmove`: overlapping VGA
+copy regions can overwrite later source bytes.
+
+A distinct `30CD4` native model now reproduces the original
+unsigned-overlap direction choice and `0x400`-byte
+DGROUP overlay backing transfer. Both routines are connected
+to the prior `1A8C8` compositor through reusable
+callbacks. Its direct path can write actual VGA pixels;
+its buffered path can also move captured backing bytes
+when real `1A288/1AB20` collaborators are supplied.
+The original `1C258` message callback can invoke this
+VGA copy before reading the independent `30700` IRQ time.
+
+Original code audit: **70/70 new instruction signatures matched**
+the original `CODE.2`, increasing the total to
+**754 named checks at 746 distinct code locations**.
+The exact committed 2A078 and 30CD4 sources passed
+independent strict C++17 Debug, optimized Release and
+UndefinedBehaviorSanitizer tests against compatible local
+memory interfaces. The checked-in new CTest targets are
+registered but **have not received a complete Windows build**.
+
+Next: reconstruct actual `1A288` overlay suspension and
+`1AB20` overlay restoration; connect real DOS resource
+buffers and verify frame/IRQ traces against DOS. The earlier
+130/130 Windows CI success belongs to its older source
+SHA, not to this newer code. Formal release acceptance
+remains **1 of 5 gates**; engineering completion is
+tracked separately without an invented percentage.
+
+
 ## Current original 1A8C8 compositor checkpoint — signed row/column overlap
 
 The [1A8C8 original compositor checkpoint](LEVEL22_CODE2_COMPOSITE_1A8C8_CHECKPOINT.md)
