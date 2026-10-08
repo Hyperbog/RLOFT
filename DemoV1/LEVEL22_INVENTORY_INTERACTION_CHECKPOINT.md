@@ -33,10 +33,10 @@ The immutable supplied CODE.2 program (SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92
 - [x] Native swap and original tile hit geometry.
 - [x] Win32 modal input routing and held-item feedback.
 - [x] Synthetic core/integration regression tests added.
-- [ ] Fresh Windows CI compilation and all tests pass after these changes.
+- [x] Windows x64 compile and all 102 CTests passed in [run #617](https://github.com/Hyperbog/RLOFT/actions/runs/37718023346). The artifact was successfully published; the separate post-artifact Git EXE push failed because the branch advanced during the build, and that workflow step has since been corrected.
 - [ ] Original-game resource playtest of pickup → inventory stash → world return, including cursor graphic and menu-mode sequencing.
 
-**Inventory interaction subcheckpoint: 67% (4/6 gates)** prior to build and playtest verification.
+**Inventory interaction subcheckpoint: 83% (5/6 gates)**. Only a real installed-game item pickup / modal stash / world-return test remains.
 
 **Overall faithful-demo acceptance: 20% (1/5 major release gates)**. This percentage does not advance until the broader inventory, original combat, main wall renderer and story-transition acceptance conditions close. The previously completed initial walkaround milestone remains 100% within its own deliberately bounded scope.
 
