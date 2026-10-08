@@ -1,5 +1,22 @@
 # Ravenloft Demo Build v1
 
+## Project-wide timing fidelity — mandatory
+
+**Walking pace, turn response, animation frame dwell, card flips, combat
+recovery, NPC reactions and story transitions must match the original game's
+timekeeping**, not merely its final graphics or state. See the
+[Timing Fidelity Contract](TIMING_FIDELITY_CONTRACT.md), grounded in
+[Preservation Archive Chapter 17](../PreservationArchive/17_TIMING_INTERRUPTS_AND_FRAME_CADENCE.md).
+
+The original main loop has an anchored two-game-tick target
+(`201A7..2022B`, `2E608/2E614`). This must be reconciled with the native
+host's nominal 70.0863-Hz **display** refresh; the two are not interchangeable.
+No universal milliseconds-per-tick claim is made without measured original
+runtime evidence. Every new gameplay subsystem requires explicit timing,
+interruptibility, audio/animation ordering and regression acceptance.
+Overall five-major-gate demo completion remains **20%**; cadence equality is
+not yet certified.
+
 ## Private-repository development and build policy
 
 **Automatic GitHub Actions Windows builds are disabled on `demo-v1`.**
