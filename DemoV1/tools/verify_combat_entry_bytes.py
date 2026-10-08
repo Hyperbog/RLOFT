@@ -12,6 +12,7 @@ from pathlib import Path
 
 EXPECTED_SHA256 = "853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314"
 CODE_OBJECT_START = 0x3AF24
+DATA_OBJECT_START = 0x75F24
 
 # Offsets are CODE.2 object-1 logical addresses, not 0x10000-adjusted
 # objdump virtual addresses. These are independently disassembled x86.
@@ -247,6 +248,25 @@ ANCHORS = {
     "E284 special type8 HP minimum ten": (0xE2F6, "66c746120a00"),
     "E284 generic NPC HP deduct as word": (0xE2FE, "8b44242066294612"),
     "E284 next NPC type classifier": (0xE306, "0fb7460e"),
+    # Original damage modifier table indexed directly by E736,
+    # followed by the early HARM HP clamp and damage-zero branch.
+    "E733 prepares actual strength index": (0xE733, "8b0424"),
+    "E736 signed DGROUP 684B lookup": (0xE736, "0fbe804b680000"),
+    "E825 HARM reads signed NPC HP": (0xE825, "0fbf5712"),
+    "E829 HARM selects visual code 24": (0xE829, "c744240c24000000"),
+    "E831 HARM conditionally stores die as NPC HP": (0xE831, "39c27e0466894712"),
+    "E839 HARM zeroes provisional damage": (0xE839, "31f6eb5c"),
+}
+
+# Original object-2 DGROUP contents (not x86 code). These 26
+# signed bytes are used for normal Strength scores 0..25.
+# The original x86 expression has no bounds check, so higher
+# indexes are intentionally not materialized as pseudo-tables.
+DATA_ANCHORS = {
+    "DGROUP +684B strength damage scores 0..25": (
+        0x684B,
+        "07fcfeffffff000000000000000000000101020708090a0b0c0e",
+    ),
 }
 
 
@@ -267,6 +287,16 @@ def verify(original: bytes) -> int:
                 f"expected={expected.hex()} actual={actual.hex()}"
             )
 
+    for title, (logical, hex_bytes) in DATA_ANCHORS.items():
+        expected = bytes.fromhex(hex_bytes)
+        start = DATA_OBJECT_START + logical
+        actual = original[start : start + len(expected)]
+        if actual != expected:
+            raise ValueError(
+                f"{title}: original DGROUP mismatch at {start:#x}: "
+                f"expected={expected.hex()} actual={actual.hex()}"
+            )
+
     base = 0x218E0
     assert 0x21A7E - base == 0x19E, "215E9 hand-ready offset"
     assert 0x219EB - base == 0x10B, "26037 per-hand action-state offset"
@@ -281,5 +311,6 @@ if __name__ == "__main__":
     total = verify(Path(sys.argv[1]).read_bytes())
     print(
         f"PASS: {total} original CODE.2 combat/hand opcode anchors; "
+        f"{len(DATA_ANCHORS)} original data tables; "
         "party offsets 19E/10B/12B; no build executed"
     )
