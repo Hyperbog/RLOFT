@@ -331,3 +331,28 @@ captures into the live runtime, and DOS frame/state/
 IRQ equivalence tests. Do not mark the formal demo
 acceptance gates passed solely because reusable engine
 components pass isolated unit tests.
+
+
+## Original 1A288/1AB20 shared-overlay lifecycle reconstructed
+
+[Source checkpoint](LEVEL22_CODE2_OVERLAY_1A288_1AB20_CHECKPOINT.md):
+the reusable overlay model now reconstructs the
+original 85FC/9E37 first-activation, nested, and
+last-reference gates, 2E590/2E5D4 page callbacks,
+1A3B8 position update, 292BC/2932C 32×16
+backing capture/restore, 2AE30 probe and conditional
+29804 sprite modes. It binds to the actual 1A8C8
+compositor and preserves authentic 2A078/30CD4
+collaborators instead of replacing them with
+imaginary pixels.
+
+49 newly verified CODE.2 anchors increase the
+executable ledger to **803 named checks at 795
+distinct logical instruction offsets**. The
+isolated strict C++17 model tests passed;
+the new full 1A8C8 integration test is CMake-
+registered but not yet Windows-built. The
+individual original page-stack, overlay backing
+capture/restore and mouse/graphic services still
+require source-backed native implementations and
+DOS reference screen/IRQ comparison.
