@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 
 namespace rloft {
@@ -78,23 +79,50 @@ CombatSingleHandEligibilityModel::evaluate(
     const ObjectCatalog& objects,
     std::size_t actor,
     std::int32_t item_id,
-    CombatSingleHandContext context) {
+    CombatSingleHandContext context,
+    std::optional<std::uint8_t> empty_prebase_category) {
     if (actor >= PartyImage::kActorCount) {
         throw std::out_of_range("CODE.2 240A8 actor index");
     }
-    if (item_id < 0) {
-        throw std::out_of_range(
-            "CODE.2 240A8 raw empty-hand object lookup unresolved");
+    if (item_id < -1) {
+        throw std::out_of_range("CODE.2 240A8 invalid negative item");
+    }
+    if (item_id == -1 && !empty_prebase_category) {
+        throw std::invalid_argument(
+            "CODE.2 240A8 requires actual OBJECTS base-0x12 byte");
+    }
+
+    // 23E58(-1) and 23F50(-1) do NOT read an abstract unarmed
+    // category: both calculate (signed item * 0x41) + OBJECTS+0x2F.
+    // Their resulting byte for -1 is physically OBJECTS base-0x12.
+    const auto category = item_id == -1
+        ? *empty_prebase_category
+        : objects.at(static_cast<std::size_t>(item_id)).item_category;
+    const bool special=effect_special(item_id,category);
+    const bool classified = item_id == -1
+        ? (category == 9U || category == 10U ||
+           category == 11U || special)
+        : (CombatHandPredicates::is_attack_hand_item(item_id,objects)
+           || special);
+    bool eligible=true;
+
+    if (item_id == -1) {
+        // 240E3 jumps over all class/OBJECTS body logic directly to
+        // 2420D when classified. The 24248 -1 guard then clears
+        // eligibility only under its exact party-mode and status gate.
+        // When unclassified, 2428A..243D7 leaves initial true intact.
+        if (classified &&
+            context.party_mode_258a8 == 0xFFU &&
+            actor >= 2U &&
+            !(party.status_word(0U)==0x8000U &&
+              party.status_word(1U)==0x8000U)) {
+            eligible=false;
+        }
+        return {eligible,classified};
     }
 
     const auto& object=objects.at(
         static_cast<std::size_t>(item_id));
-    const auto category=object.item_category;
-    const bool special=effect_special(item_id,category);
-    const bool classified=
-        CombatHandPredicates::is_attack_hand_item(item_id,objects)
-        || special;
-    bool eligible=true;
 
     if (classified) {
         // CODE.2 240D9..2420B. All original class-code comparisons
