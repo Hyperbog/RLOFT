@@ -290,9 +290,10 @@ public sealed class ProjectStore : IDisposable
     }
 
     /// <summary>
-    /// Creates a consistent, closed SQLite project snapshot, including WAL
-    /// transactions. A raw file copy of an active WAL database is unsafe.
-    /// The backup destination must be a new path: never overwrite research.
+    /// Writes a validated SQLite backup to a unique sibling file, then
+    /// atomically moves it into the requested destination without overwrite.
+    /// This prevents a crash or a concurrent new file from exposing an
+    /// incomplete backup as a saved research project.
     /// </summary>
     public void CreateBackup(string destinationPath)
     {
@@ -305,26 +306,79 @@ public sealed class ProjectStore : IDisposable
         string? parent = Path.GetDirectoryName(destination);
         if (parent is null || !Directory.Exists(parent))
             throw new DirectoryNotFoundException("Backup destination directory does not exist.");
+
+        // The staging database must be on the same volume as the destination
+        // for the final non-overwriting rename to be atomic. It is never a
+        // public .ddproj path until SQLite has closed and verification passes.
+        string temporary = Path.Combine(parent,
+            "." + Path.GetFileName(destination) + "." + Guid.NewGuid().ToString("N") + ".part");
         var builder = new SqliteConnectionStringBuilder
         {
-            DataSource = destination,
+            DataSource = temporary,
             Mode = SqliteOpenMode.ReadWriteCreate,
             Cache = SqliteCacheMode.Private,
             Pooling = false
         };
         try
         {
-            using var backup = new SqliteConnection(builder.ToString());
-            backup.Open();
-            _db.BackupDatabase(backup);
+            using (var backup = new SqliteConnection(builder.ToString()))
+            {
+                backup.Open();
+                _db.BackupDatabase(backup);
+                // Ensure the staged copy is a self-contained database file,
+                // not a database whose newest pages still live in a -wal file.
+                using (var journal = backup.CreateCommand())
+                {
+                    journal.CommandText = "PRAGMA journal_mode=DELETE;";
+                    if (!string.Equals(journal.ExecuteScalar()?.ToString(), "delete",
+                        StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException("SQLite backup could not enter standalone journal mode.");
+                }
+                using var check = backup.CreateCommand();
+                check.CommandText = "PRAGMA integrity_check;";
+                if (!string.Equals(check.ExecuteScalar()?.ToString(), "ok",
+                    StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException("SQLite backup failed integrity validation.");
+                check.CommandText = "PRAGMA foreign_key_check;";
+                using var violations = check.ExecuteReader();
+                if (violations.Read())
+                    throw new InvalidDataException("SQLite backup contains foreign-key violations.");
+            }
+
+            // Reopen after closing the writer. Integrity verification at this
+            // point proves the main file can be read independently of WAL.
+            if (File.Exists(temporary + "-wal") || File.Exists(temporary + "-shm"))
+                throw new InvalidDataException("SQLite backup still has live journal sidecars.");
+            var readOnlyBuilder = new SqliteConnectionStringBuilder
+            {
+                DataSource = temporary, Mode = SqliteOpenMode.ReadOnly,
+                Cache = SqliteCacheMode.Private, Pooling = false
+            };
+            using (var verify = new SqliteConnection(readOnlyBuilder.ToString()))
+            {
+                verify.Open();
+                using var check = verify.CreateCommand();
+                check.CommandText = "PRAGMA integrity_check;";
+                if (!string.Equals(check.ExecuteScalar()?.ToString(), "ok",
+                    StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException("Standalone SQLite backup failed validation.");
+            }
+
+            // File.Move with overwrite:false refuses an existing destination,
+            // including one created by another process after our first check.
+            File.Move(temporary, destination, overwrite: false);
         }
-        catch
+        finally
         {
-            // Never leave a half-written backup that might be mistaken for a
-            // verified project. The original source connection stays untouched.
-            try { if (File.Exists(destination)) File.Delete(destination); }
-            catch (IOException) { /* The incomplete copy remains unusable. */ }
-            throw;
+            // Clean only OUR unique staging artifacts. Never delete the
+            // requested destination even when another process created it.
+            foreach (string suffix in new[] { "", "-wal", "-shm" })
+            {
+                string fragment = temporary + suffix;
+                try { if (File.Exists(fragment)) File.Delete(fragment); }
+                catch (IOException) { /* Cleanup best-effort; do not obscure original error. */ }
+                catch (UnauthorizedAccessException) { /* Same. */ }
+            }
         }
     }
 

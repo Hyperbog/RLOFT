@@ -42,6 +42,8 @@ try
         string backup = Path.Combine(folder, "backup.ddproj");
         project.CreateBackup(backup);
         Require(File.Exists(backup), "transactionally consistent SQLite backup missing");
+        Require(!Directory.EnumerateFiles(folder, "*.part", SearchOption.TopDirectoryOnly).Any(),
+            "successful SQLite backup leaked a staging database");
         using (var copy = ProjectStore.Open(backup))
         {
             copy.VerifyIntegrity();
@@ -54,6 +56,11 @@ try
         try { project.CreateBackup(backup); }
         catch (IOException) { existingBackupRejected = true; }
         Require(existingBackupRejected, "backup silently overwrote existing research");
+        using (var copy = ProjectStore.Open(backup))
+            Require(copy.GetAnnotation(artifact.Sha256, 1, 0, "comment")?.Body == "needs review",
+                "a refused overwrite changed the existing backup");
+        Require(!Directory.EnumerateFiles(folder, "*.part", SearchOption.TopDirectoryOnly).Any(),
+            "refused backup left a staging database behind");
     }
     using (var reopened = ProjectStore.Open(path))
     {

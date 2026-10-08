@@ -136,13 +136,16 @@ public partial class MainWindow : Window
             // a finished snapshot to the project database.
             _analysisCancellation = null;
             CancelAnalysisButton.IsEnabled = false;
-            _graph = graph;
-            ShowAnalysis(graph);
+            // Persist before changing the visible analysis. If storage fails,
+            // the previous graph and analyst selection remain visible rather
+            // than displaying a new graph that the project never saved.
             if (_project != null)
             {
                 ProjectStore project = _project;
                 await Task.Run(() => project.SaveAnalysis(graph));
             }
+            _graph = graph;
+            ShowAnalysis(graph);
             StatusText.Text = $"{graph.Instructions.Count:N0} candidate instructions; {graph.FunctionCandidates.Count:N0} function candidates; " +
                 $"{graph.JumpTables.Count:N0} table candidates. " +
                 (graph.Truncated ? "TRUNCATED by instruction budget." : "Remaining bytes are not automatically code.");

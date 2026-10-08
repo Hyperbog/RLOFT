@@ -117,3 +117,9 @@ The core recursive analyzer now accepts an optional `CancellationToken`. The Win
 ## Planned diagnostics, exports and analysis debugger (not implemented)
 
 The first Windows release roadmap now includes user-initiated **disassembly and analysis export**, **crash/incident packages**, and **session diagnostics** that explain why the analyzer classified bytes, recovered functions, or selected jump-table targets. The longer-term **analysis debugger** will support pass/decision stepping and evidence inspection, not arbitrary execution of the DOS game. The initial implementation is deferred until the Windows workspace is functional; no diagnostic UI/runtime has been added by this documentation change. See [Diagnostics, exports, and analysis debugger backlog](docs/DIAGNOSTICS_EXPORT_AND_ANALYSIS_DEBUGGER.md). The overall release estimate is unchanged at **30%**. GitHub Actions remains manual-only; AI assistance remains post-final-release.
+
+## Part 21: atomic backup and local Windows build preparation
+
+This source-only checkpoint stages SQLite project backups as separate same-directory files, validates database integrity and foreign keys, switches to standalone journal mode, and exposes the final `.ddproj` **only after** a non-overwriting rename. It also preserves the previous displayed CFG if the project's `SaveAnalysis` fails. Regression assertions cover backup staging cleanup and the immutability of existing backup destinations. The local PowerShell script accepts `-LocalLogDirectory` for a **local-only** build transcript (may contain paths; inspect before sharing). See [Part 21](docs/PART21_CHECKPOINT.md).
+
+**No .NET 10/WPF compilation was executed for this checkpoint.** Estimated release progress remains **30%** pending actual Windows build/GUI validation. GitHub Actions stays manual-only and Windows-only, and AI remains postponed until after final release.

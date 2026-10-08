@@ -3,13 +3,29 @@
 param(
     [switch]$Publish,
     [string]$OriginalCode1 = '',
-    [string]$OriginalCode2 = ''
+    [string]$OriginalCode2 = '',
+    [string]$LocalLogDirectory = ''
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Push-Location $root
+$transcriptStarted = $false
 try {
+    if ($LocalLogDirectory -ne '') {
+        $directory = [System.IO.Path]::GetFullPath($LocalLogDirectory)
+        New-Item -Path $directory -ItemType Directory -Force | Out-Null
+        $transcript = Join-Path $directory ("DOSDis-Windows-build-" +
+            [DateTimeOffset]::UtcNow.ToString('yyyyMMddTHHmmssfff') + '.txt')
+        Start-Transcript -Path $transcript -NoClobber -ErrorAction Stop | Out-Null
+        $transcriptStarted = $true
+        Write-Warning 'Local build transcript can include file paths and machine details. Review before sharing.'
+    }
+    if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+        throw '.NET SDK was not found. Install .NET 10 SDK for Windows and rerun the local build.'
+    }
+    & dotnet --version
+    if ($LASTEXITCODE -ne 0) { throw 'Could not query installed .NET SDK.' }
     function Invoke-Dotnet([string[]] $Arguments) {
         & dotnet @Arguments
         if ($LASTEXITCODE -ne 0) { throw "dotnet $($Arguments -join ' ') failed ($LASTEXITCODE)" }
@@ -34,4 +50,7 @@ try {
     }
     Write-Host 'Local build and tests complete.' -ForegroundColor Green
 }
-finally { Pop-Location }
+finally {
+    if ($transcriptStarted) { Stop-Transcript | Out-Null }
+    Pop-Location
+}
