@@ -51,6 +51,7 @@ rloft::ObjectCatalog catalog_with(
 int main() {
     using rloft::CombatHandPairEligibilityModel;
     using rloft::CombatSingleHandContext;
+    using rloft::CombatEmptyHandRawFields;
     rloft::PartyImage p{};
     p.bytes.fill(0xFFU);
     set16(p,0U,0x10U,0U);
@@ -225,13 +226,13 @@ int main() {
     assert(rejected);
     auto empty_pair=CombatHandPairEligibilityModel::evaluate(
         p,objects,0U,0U,CombatSingleHandContext{0U},
-        std::uint8_t{0U});
+        CombatEmptyHandRawFields{0U});
     assert(empty_pair.first_eligible && empty_pair.second_eligible);
     assert(!empty_pair.first_classified && !empty_pair.second_classified);
     set32(p,0U,0x10BU,3U);
     empty_pair=CombatHandPairEligibilityModel::evaluate(
         p,objects,0U,0U,CombatSingleHandContext{0U},
-        std::uint8_t{0U});
+        CombatEmptyHandRawFields{0U});
     assert(!empty_pair.first_eligible && empty_pair.second_eligible);
     set32(p,0U,0x10BU,0U);
 
@@ -273,28 +274,71 @@ int main() {
     set16(p,2U,0x40U+15U*2U,0xFFFFU);
     empty_pair=CombatHandPairEligibilityModel::evaluate(
         p,objects,2U,0U,CombatSingleHandContext{0xFFU},
-        std::uint8_t{9U});
+        CombatEmptyHandRawFields{9U});
     assert(!empty_pair.first_eligible && !empty_pair.second_eligible);
     empty_pair=CombatHandPairEligibilityModel::evaluate(
         p,objects,2U,0U,CombatSingleHandContext{0xFFU},
-        std::uint8_t{0U});
+        CombatEmptyHandRawFields{0U});
     assert(empty_pair.first_eligible && empty_pair.second_eligible);
     set16(p,0U,0x10U,0x8000U);
     set16(p,1U,0x10U,0x8000U);
     empty_pair=CombatHandPairEligibilityModel::evaluate(
         p,objects,2U,0U,CombatSingleHandContext{0xFFU},
-        std::uint8_t{9U});
+        CombatEmptyHandRawFields{9U});
     assert(empty_pair.first_eligible && empty_pair.second_eligible);
 
-    // Mixed empty+positive still may dereference -1 weight/qualifier
-    // during ordinary arbitration. It must remain unsupported.
+    // Mixed -1/ordinary needs MORE heap bytes than both-empty.
+    // Absence of raw +30h weight or +35h qualifier must fail.
     set16(p,2U,0x40U+15U*2U,1U);
     rejected=false;
     try {
         (void)CombatHandPairEligibilityModel::evaluate(
             p,objects,2U,0U,CombatSingleHandContext{0U},
-            std::uint8_t{0U});
+            CombatEmptyHandRawFields{9U});
     } catch(const std::invalid_argument&) {rejected=true;}
+    assert(rejected);
+
+    // Supply exactly the three bytes the original code reads.
+    // Matching qualifiers 0: a weight0 empty hand beats weapon1
+    // weight4; raising its raw weight to8 flips the winner.
+    auto mixed=CombatHandPairEligibilityModel::evaluate(
+        p,objects,2U,0U,CombatSingleHandContext{0U},
+        CombatEmptyHandRawFields{9U,0U,0U});
+    assert(mixed.first_classified && mixed.second_classified);
+    assert(mixed.first_eligible && !mixed.second_eligible);
+    mixed=CombatHandPairEligibilityModel::evaluate(
+        p,objects,2U,0U,CombatSingleHandContext{0U},
+        CombatEmptyHandRawFields{9U,8U,0U});
+    assert(!mixed.first_eligible && mixed.second_eligible);
+    mixed=CombatHandPairEligibilityModel::evaluate(
+        p,objects,2U,0U,CombatSingleHandContext{0U},
+        CombatEmptyHandRawFields{9U,8U,2U});
+    assert(!mixed.first_eligible && !mixed.second_eligible);
+
+    // Raw category0 -> nonclassified empty hand. Neither normal
+    // category9 qualifier0 nor -1 qualifier0 vetoes the other.
+    mixed=CombatHandPairEligibilityModel::evaluate(
+        p,objects,2U,0U,CombatSingleHandContext{0U},
+        CombatEmptyHandRawFields{0U,0U,0U});
+    assert(!mixed.first_classified && mixed.second_classified);
+    assert(mixed.first_eligible && mixed.second_eligible);
+
+    // Reverse the pair: weight ordering is asymmetric but
+    // ordinary qualifier logic still applies to real raw fields.
+    set16(p,2U,0x40U+14U*2U,1U);
+    set16(p,2U,0x40U+15U*2U,0xFFFFU);
+    mixed=CombatHandPairEligibilityModel::evaluate(
+        p,objects,2U,1U,CombatSingleHandContext{0U},
+        CombatEmptyHandRawFields{9U,0U,0U});
+    assert(!mixed.first_eligible && mixed.second_eligible);
+    assert(mixed.selected_eligible);
+
+    rejected=false;
+    try {
+        (void)CombatHandPairEligibilityModel::evaluate(
+            p,objects,2U,0U,CombatSingleHandContext{0U},
+            CombatEmptyHandRawFields{9U,0U,4U});
+    } catch(const std::out_of_range&) {rejected=true;}
     assert(rejected);
 
     // No observable mutation from the valid paired-pseudo shortcut.
