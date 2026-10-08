@@ -598,6 +598,24 @@ ANCHORS = {
     "293EC nonzero font resource guard": (0x293EC, "837c241000"),
     "293EC calls original shaded sprite2A584": (0x29407, "e878110000"),
     "293EC jumps to 2E758 refresh callback": (0x2940F, "e944530000"),
+    # Normal/shaded sprite primitive and live 2E758 F0C8 hook boundary.
+    "2939A shared null sprite early return": (0x2939A, "c3"),
+    "2939C forwards resource draw argument": (0x293A3, "ff742410"),
+    "2939C balances 2A380 arguments": (0x293B8, "83c410"),
+    "293EC null shade resource skips all callbacks": (0x293F1, "74a7"),
+    "293EC forwards shade parameter": (0x293F3, "ff742414"),
+    "293EC balances 2A584 arguments": (0x2940C, "83c414"),
+    "2E758 reads optional original F0C8 pointer": (0x2E758, "833dc8f0000000"),
+    "2E758 skips null deferred callback": (0x2E75F, "7406"),
+    "2E758 calls dynamically observed F0C8": (0x2E761, "ff15c8f00000"),
+    "2E758 returns after conditional callback": (0x2E767, "c3"),
+    "2A380 original normal sprite rasterizer entry": (0x2A380, "c8000000"),
+    "2A380 original position prelude 2AB38": (0x2A39B, "e898070000"),
+    "2A584 shaded sprite rasterizer entry": (0x2A584, "c8000000"),
+    "2A584 reads original shade argument": (0x2A58D, "8b4518"),
+    "2A584 writes first shade selfpatch operand": (0x2A590, "a30ba60200"),
+    "2A584 writes second shade selfpatch operand": (0x2A595, "a372a60200"),
+    "2A584 common sprite setup 2AB38": (0x2A5AC, "e887050000"),
 }
 
 # Original object-2 DGROUP contents (not x86 code). These 26
