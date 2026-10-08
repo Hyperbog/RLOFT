@@ -288,6 +288,10 @@ int main() {
     assert(empty_pair.first_eligible && empty_pair.second_eligible);
 
     // Mixed -1/ordinary needs MORE heap bytes than both-empty.
+    // Restore a condition-free actor: the earlier paired-pseudo
+    // fixture deliberately set status 7240h, which would otherwise
+    // zero BOTH normal candidates before weight arbitration.
+    set16(p,2U,0x10U,0U);
     // Absence of raw +30h weight or +35h qualifier must fail.
     set16(p,2U,0x40U+15U*2U,1U);
     rejected=false;
