@@ -56,7 +56,7 @@ int main() {
     // because MOVZX enchantment cannot be signed < -2.
     for(const auto id:{3,5,6}) {
         x=run(id,0x20000U,42);
-        assert(x.damage_after_gate==1 && x.forced_minimum);
+        assert(x.damage_after_gate==1 && x.minimum_clamped);
         x=run(id,0x40000U,42);
         assert(x.damage_after_gate==42 && !x.creature_restriction_triggered && !x.minimum_clamped);
     }
