@@ -409,3 +409,35 @@ checks, while full Windows CTests remain
 unrun at this current HEAD. Next reconstruct
 2A114 and 2A178 actual source-backed VGA
 plane read/write and backing-buffer data.
+
+
+## Source-backed original VGA backing bytes: 2A114 / 2A178
+
+The [original VGA backing checkpoint](LEVEL22_CODE2_2A114_2A178_VGA_BACKING_CHECKPOINT.md)
+now provides the actual pixel transfers previously
+left as injected services: `2A114` performs
+original graphics-controller read-map 0/1/2/3
+captures into sequential raw DGROUP plane blocks;
+`2A178` performs original sequencer-mask
+1/2/4/8 restoration, with raw final FF02h
+port state preserved distinctly from its
+effective 0F map mask.
+
+Native reuse is through the prior `292BC/2932C`
+signed clip adapter and the original
+`1A288/1AB20` overlay lifecycle, with live
+original video registers. The 53 new exact
+source anchors increase verification to
+**908 named checks at 900 distinct offsets**.
+The exact newly committed core transfer source
+passed isolated strict Debug, Release and UBSan
+tests; the full real Windows CTest and reference
+DOS frame/IRQ equivalence remain open.
+
+The next remaining original graphics callbacks
+are position logic `1A3B8`, hit testing
+`2AE30`, sprite drawing `29804`, and
+authentic DOS runtime resource/video-data
+connection. Do not mistake isolated VGA plane
+byte roundtrips for an accepted full demo
+release gate.
