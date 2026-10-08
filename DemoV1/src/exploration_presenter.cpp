@@ -230,6 +230,8 @@ ExplorationPresentedFrame ExplorationPresenter::present(
     out.surface_coverage =
         output_coverage;
     out.type7_failures = std::move(raster_failures);
+    out.type7_trace_failure =
+        frame.scene_vga_trace_failure;
     return out;
 }
 
