@@ -1,6 +1,17 @@
 # Original Preservation Archive → Demo v1 integration map
 
 ## Provenance and boundary
+## Project progress scoring clarification
+
+The [demo progress scorecard](DEMO_PROGRESS_SCORECARD_20261008.md)
+distinguishes discrete **1/5 formal release gates accepted**
+from cumulative engineering implementation, which has made
+substantial additional advances but has **no objectively
+weighted percentage**. A historical “20%” label is an
+acceptance score, not an engineering completion estimate.
+Track source-backed model coverage, actual live-game integration,
+current-Windows CTests and original-DOS comparison separately.
+
 
 The authoritative original-technology archive was produced on `code1-decompilation`. This directory's parent preservation snapshot was copied into `demo-v1` using the **identical 24 Git blob object IDs**, not regenerated prose, from source commit:
 
