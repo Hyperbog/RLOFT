@@ -1,4 +1,5 @@
 #include "rloft/level22_encounter.hpp"
+#include "rloft/combat_npc_injury_prelude.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -119,19 +120,24 @@ NpcDamageResult Level22EncounterModel::damage_assassin(
     NpcDamageResult result{};
     result.damaged = true;
 
-    if (def.damage_reaction_animation_flag != 0U) {
-        live.packed_runtime_state =
-            static_cast<std::uint16_t>(
-                live.packed_runtime_state | 0x0006U);
-    }
-    live.action_state_countdown =
-        reaction_mode == 0U ? 2U : 1U;
-
-    live.current_hp =
-        static_cast<std::int16_t>(
-            static_cast<std::uint16_t>(
-                live.current_hp) -
-            amount);
+    // CODE.2 E284..E306 is now shared with the full
+    // original NPC injury prelude. For the Level 22 Assassin
+    // (NPC type 9), this preserves the existing HP deduction,
+    // definition-controlled 06h reaction bits, and 2/1 countdown.
+    // Type-specific death, sounds and four quest drops below are
+    // still handled by the established Level 22 encounter path.
+    const auto injury = CombatNpcInjuryPreludeModel::inspect(
+        CombatNpcInjuryPreludeInputs{
+            live.npc_type_id,
+            live.current_hp,
+            live.packed_runtime_state,
+            def.damage_reaction_animation_flag,
+            reaction_mode,
+            static_cast<std::int32_t>(amount)
+        });
+    live.packed_runtime_state = injury.next_packed_state_14;
+    live.action_state_countdown = injury.next_action_countdown_10;
+    live.current_hp = injury.next_hp;
 
     if (live.current_hp > 0) {
         result.sound_kind =
