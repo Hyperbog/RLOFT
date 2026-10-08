@@ -61,7 +61,7 @@ The outstanding categories fall into:
 
 - **Original authoring names and unused capacity:** NPC residual flags/bytes and directional fields; OBJECTS unused/legacy fields, pair-class labels and range units; RESOURCE type-5 payload labels; RES9 companion arrays; unused ANM repeat producer model.
 - **Historical resource revisions:** LEV022 forty-cell cache provenance, original RES11/12 producer/executable, legacy family-C ID migration and RES1 reserved literal.
-- **Third-party driver details:** ARIA GM1/GM2 inner BNK layout, optional hardware drivers, individual `AIL_SERVE_DRVR` callback rates and complete device-sensitive timing behavior.
+- **Third-party driver details:** ARIA GM1/GM2 inner BNK layout, optional GUS internals, and complete device-sensitive execution/timing behavior. Sixteen original A32 `svc_rate`/service-handler pairs are now statically recovered (see §22).
 - **Old-version media:** exact 1.0/1.1/1.2/1.2a patch deltas, authenticated alternative CD/diskette/regional builds, and reported `CINE13.ANM` older-version failure.
 
 The prior recoveries of AIL/32 period units and 1.2a executable identity are **partial resolutions of some uncertainty**, not evidence that every historical query is answered. Before closing this audit, create an explicit disposition for each outstanding question: *PROVED, BOUNDED TO AVAILABLE SOURCE, or REQUIRES UNSUPPLIED HISTORICAL/RUNTIME EVIDENCE*.
@@ -111,7 +111,7 @@ Codes describe the **remaining unproved aspect**, not the status of the entire f
 | **U-012** | B/H | Type-5 EH loader contract reconstructed; no shipped type-5 resource | Type-5 example or authoring source naming payload fields |
 | **U-013** | B/H | ANM packet-4 seeking/repetition machine behavior reconstructed; zero shipped instances | Actual authored packet or producer format |
 | **U-014** | O/D | GM1/GM2 identified as ARIA bank material, bytes retained | Driver/source or documented ARIA inner-bank specification |
-| **U-015** | D | SOUND.CFG layout and AIL/32 `svc_rate` Hz/microseconds contract identified | Driver descriptor values, numeric config labels, real callback and error path traces |
+| **U-015** | B/D | SOUND.CFG profiles and all sixteen original A32 `svc_rate` descriptor values/service-handler exports now byte-proven | Installer field-name archaeology, full GUS internals, actual driver callback/error traces and physical cadence |
 | **U-016** | O | Optional installer/18 audio drivers separated from core game logic | Targeted driver decompilation only where a substantive original ABI question remains |
 
 **Reconciliation:** all **16/16 IDs** from Chapter 00 are now explicitly disposed. The evidence improved since their first recording (especially U-001, U-007, U-011, U-015), but the residual historical/source-name portions have **not** been relabeled as proved. This is an accounting closure, **not** a claim of recovering every original author intent. Chapter [18](18_ORIGINAL_QUIRKS_LATENT_FEATURES_AND_LEGACY_DATA.md) remains the detailed quirk/source preservation ledger.
@@ -213,8 +213,8 @@ The **structural evidence and document-navigation audits now pass**: 22/22 chapt
 **Do not claim universal original-program verification from these figures.** Remaining distinct gates:
 
 1. **Source-semantic review depth:** examine every chapter's specific disputed arithmetic/control-flow corrections and permanent record-field aliases against its controlling original instruction range where a new contradiction is suspected; the current scan checked major shared-field families, not literally every prose assertion.
-2. **Full original resource replay:** current workspace lacks independently mounted bytes for the other 32 resource corpus files; prior certified decoder audits remain the valid recorded workstream evidence, not fresh checks in this audit.
-3. **Hardware/driver observations:** actual sound-driver descriptor frequencies, PIT/IRQ timing, transient initialization failures and full runtime frame trace are still unmeasured. Chapter 17 describes the static contract and keeps this external gate open.
+2. **Full original resource replay (historical checkpoint, now superseded in §21):** this earlier check lacked the other 32 resource files. The newly uploaded archives now provide them, and §21 records a fresh outer-grammar and packet-boundary parser pass.
+3. **Hardware/driver observations (updated in §22):** all sixteen A32 descriptor frequencies/handlers are now source-proven; actual PIT/IRQ delivery, driver initialization outcomes and real runtime frame cadence remain unmeasured.
 4. **Historical edition comparison:** exact pre-1.2a code differences, publisher CD mastering, alternate regional/platform source, and original DreamForge authoring formats require unsupplied originals.
 5. **Faithful native implementation:** executable gameplay integration, graphics/audio/video equivalence, full save/restore replay and optional extension security tests belong to the separate port/demo workstream.
 
@@ -332,7 +332,7 @@ The Project user supplied complete original ZIP inputs for the formerly unavaila
 
 All files were read directly out of ZIP containers, with no executable launch and no alteration of original data. The two independent ZIP-packaged instances of `SAMPLE.AD` are also identical. All 18 supplied audio DLLs are available for static follow-up. Original `R.EXE` was checked separately: its MD5 agrees with the historical 1.2a reference, closing the prior R.EXE uncertainty in Chapter 19.
 
-The two additional `rlftdk11.zip` and `rlftdk12.zip` archives are specifically **floppy-edition installers**. Their internal ARJ manifests identify 1.1's `CODE.1`, `CODE.2`, `R.EXE` and 1.2's `CODE.2`; the 1.2a program bytes supplied for this Project have different CODE.2 size/CRC. ARJ header CRC checks passed, but compressed code payloads have **not yet been independently decompressed and SHA-256 verified**. Full member details and historical citations are maintained in [Chapter 19 §§18–20](19_RELEASE_MEDIA_BUILD_PROVENANCE_AND_DREAMFORGE_LINEAGE.md).
+The two additional `rlftdk11.zip` and `rlftdk12.zip` archives are specifically **floppy-edition installers**. Their internal ARJ manifests identify 1.1's `CODE.1`, `CODE.2`, `R.EXE` and 1.2's `CODE.2`; the 1.2a program bytes supplied for this Project have different CODE.2 size/CRC. The prior ARJ header-only audit has now been superseded by **complete method-1 extraction with decompressed SHA-256 and CRC32 verification**; see [Chapter 19 §21](19_RELEASE_MEDIA_BUILD_PROVENANCE_AND_DREAMFORGE_LINEAGE.md).
 
 **Updated remaining original inputs:** `SOUND.CFG` was not found in any of the new ZIPs; as an installer-generated game-specific configuration, it can be supplied separately if an actual configured DOS/GOG installation is available. The independently identifiable CD-ROM patch variants `rlftcd11.zip`/`rlftcd12.zip` are preferable for CD-specific version comparisons. An authenticated 1.0 executable/media image would improve release archaeology, but is not required to preserve the fully verified current 1.2a build.
 
@@ -348,6 +348,64 @@ The presets are labeled `MT32`, `SC55` and `SB16`; the top-level `SOUND.CFG` is 
 
 The directly run structural validator passed **12/12 tests** covering unique-source counts, byte lengths and duplicate identity, baseline SHA-256, invariant digital settings, valid NUL-terminated driver-name slots, driver-file availability, and observed trailer selector values. Source table and full hashes are in [Chapter 15 §§54–55](15_AUDIO_MUSIC_SFX_AND_DRIVER_INTERFACE.md).
 
-**Effect on U-015:** the distinction between configurable music and digital driver groups is now corroborated by three independent real-world profile samples. Original installer field names, driver-callback service rates and hardware-dependent completion/timing behavior remain unproved. This upload **partially strengthens** the audio-interface documentation but does not establish historical version 1.0 or eliminate the remaining driver/dynamic evidence category.
+**Effect on U-015 (updated by §22):** the three real-world profiles corroborate separated music/digital configuration groups. All sixteen A32 driver-requested callback rates have now been proved statically; original installer field names and measured device-dependent runtime behavior remain unproved. This upload **partially strengthens** the audio-interface documentation but does not establish historical version 1.0 or eliminate the remaining driver/dynamic evidence category.
 
 **No further uploads required for the three SOUND.CFG presets.** The earlier §19 request for SOUND.CFG is now satisfied. A verified original 1.0 release or authentic CD-specific 1.1/1.2 patch would remain optional historical evidence; the current 1.2a original-build documentation is not blocked by their absence.
+
+
+## 21. Fresh original-code patch extraction and RES/ANM structure replay
+
+**Previously open audit tasks completed (2026-10-08):**
+
+**Patch payloads:** Both floppy-edition updater ZIPs' embedded `DATA.A00` ARJ compressed data have been decoded with a read-only independent implementation of the published UNARJ method-1 Huffman/back-reference grammar. **Four/four member payloads passed original uncompressed byte length and recorded CRC32 verification.** They were independently hashed by SHA-256. The 1.1 package's `CODE.1` and `R.EXE` are proven **byte-for-byte identical** to the supplied 1.2a versions; the 1.1 package's executable `CODE.2` self-identifies as **`Ver 1.1a (F)`**, the 1.2 package's `CODE.2` as **`Ver 1.2 (F)`**, and the current executable as `Ver 1.2a`. Full hashes, LE-page geometry and binary sizes appear in [Chapter 19 §21](19_RELEASE_MEDIA_BUILD_PROVENANCE_AND_DREAMFORGE_LINEAGE.md).
+
+**RES replay:** A new stand-alone original-file pass decoded the entry count and all absolute file offsets from **each of RES0..RES12**, checked the first-offset equation, monotonicity, entry bounds, physical EH resource envelopes, header-size bounds, known type IDs and exact EOF partition. Aggregate exact results:
+
+```text
+RES archives               13 / 13 PASS
+Total original RES bytes    99,663,006
+Indexed RES entries         12,562
+EH entries                  12,464
+Zero-length entries         21
+Non-empty non-EH entries    77
+EH type 1 / 2 / 3 / 4       1,591 / 15 / 172 / 1,005
+EH type 5                   0  (executable-only)
+EH type 6 / 7               1,319 / 8,362
+```
+
+All totals independently match the pre-existing [certified Resources corpus audit](../Resources/FINAL_RESOURCE_AUDIT.md).
+
+**ANM replay:** A separate stream reader re-parsed every `CINE00..CINE12.ANM` from the 16-bit frame-count/default-wait header through each counted chunk's 16-bit type and signed 32-bit payload length. Every packet remained within its original file; the parser reached EOF precisely for **13/13** files. This pass checked packet ID range `0..9`, all fixed-size types (0,1,5,6,7,8,9), and the known finale `default_wait=0` exception.
+
+```text
+ANM files                   13 / 13 PASS
+Total ANM frames            4,149
+Chunk-0 palette            351
+Chunk-1 blackout            13
+Chunk-2 full-row RLE        73
+Chunk-3 planar delta       809
+Chunk-4 repeat/seek          0 (dormant)
+Chunk-5 music               12
+Chunk-6 queued sound        18
+Chunk-7 subtitles           79
+Chunk-8 planar image     2,796
+Chunk-9 direct sound        56
+```
+
+**Bounded limitation:** this fresh pass validates **outer RES record/EH bounds and the ANM stream/payload envelope**, not every inner type-1 LZSS decode, type-7 scaled-code execution, or ANM type-2/3 pixel operation. Those more specialized format decoders are covered by the earlier, hash-matched certified Resources workstream. Do not report this boundary-only replay as a second full image/video decoder certification.
+
+## 22. Shipped A32 driver static timer-service ABI verified
+
+The entire original `RLOFT_DLL.zip` is present. For each of **16/16 A32 drivers**, a fresh parser validated the MZ/LX object, service dispatch table (original object-relative `0x2F`), terminating `0xFFFFFFFF`, 200-byte descriptor body, signed `svc_rate` dword at descriptor `+0x20`, and presence/absence of exported service opcode `0x67`.
+
+Results: **11** A32 backends advertise **120 Hz** and have `0x67`, **one** `A32ARDG.DLL` advertises **72 Hz** and has `0x67`, and **four** digital audio backends advertise `-1` and omit `0x67`. All **16/16 descriptor-versus-dispatch invariants PASS**. In particular, the actually configured `A32MT32.DLL` and alternate `A32SP2FM.DLL` request **120 Hz**, while `A32SBPDG.DLL` requests **no software callback**. [Chapter 15 §56](15_AUDIO_MUSIC_SFX_AND_DRIVER_INTERFACE.md) records the exact driver filename matrix and source offsets; [Chapter 17 §26](17_TIMING_INTERRUPTS_AND_FRAME_CADENCE.md) records timing implications.
+
+**Audit change:** bounded UNKNOWN **U-015 is narrowed**: the shipped A32 descriptor values and their function-availability conditions are no longer unknown. Actual DOS/device initialization outcomes, physical interrupt cadence, the GUS-specific vendor internals and installer numeric field labels remain unevaluated or historical UNKNOWN. Never equate a 120-Hz requested music callback with an unconditionally measured 120-FPS game display.
+
+## 23. Updated certification boundary after these source passes
+
+The documentation now contains verified direct source identities for all supplied 1.2a files and the 33-resource corpus, actual extracted 1.1a/1.2 floppy CODE.2 files, a fresh full outer-container replay for 13 RES + 13 ANM sources, and A32 static callback rates for every supplied A32 backend. This removes three previously explicit limitations: **unavailable RES/ANM source bytes, unextracted patch ARJ payloads, and unknown A32 descriptor rates**.
+
+**Remaining gates are distinct:** hardware/emulator gameplay and presentation traces; complete original-versus-native regression; optional pre-1.2a **CD** updater binaries and authenticated 1.0/alternate-media code; and true original designer/editor labels for bounded unused fields. These are **not** silently assumed by the tested static results.
+
+**Current archival conclusion:** the supplied 1.2a static format and machine-behavior reference is evidence-accounted and the original-file/parser audit has passed. A blanket **100% of all historical revisions or executed real-time gameplay** certificate would still be unsupported. Any claim of “100%” must explicitly identify the *supplied-build static archive* rather than the broader remaster, dynamic DOS execution or historical edition corpus.
