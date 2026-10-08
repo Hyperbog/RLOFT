@@ -21,9 +21,9 @@ struct CombatOriginalCompositeState final {
 struct CombatOriginalCompositeRect final {
     std::uint32_t page{};
     std::uint32_t row{};
-    std::uint32_t top{};
-    std::uint32_t width{};
-    std::uint32_t height{};
+    std::uint32_t column{};
+    std::uint32_t rows{};
+    std::uint32_t columns{};
 };
 
 enum class CombatOriginalCompositeRoute : std::uint8_t {
@@ -33,7 +33,8 @@ enum class CombatOriginalCompositeRoute : std::uint8_t {
 };
 
 struct CombatOriginalCompositeServices final {
-    // Original 2A078(dest_page, x1,y1,x2,y2,width,height).
+    // Original 2A078(dest_page,src_row,src_col,dst_row,dst_col,
+    //                 row_count,column_count).
     std::function<void(
         std::uint32_t,std::uint32_t,std::uint32_t,
         std::uint32_t,std::uint32_t,std::uint32_t,std::uint32_t)>
@@ -46,14 +47,14 @@ struct CombatOriginalCompositeServices final {
     std::function<void(std::uint32_t,std::uint32_t,std::uint32_t)>
         move_overlay_bytes_30cd4;
 
-    // Original 1AB20(overlay left, overlay top).
+    // Original 1AB20(overlay row, overlay column).
     std::function<void(std::int32_t,std::int32_t)>
         restore_overlay_1ab20;
 };
 
 class CombatOriginalCompositeModel final {
 public:
-    // Uses original inclusive, signed x86 rectangle comparisons
+    // Uses original inclusive, signed x86 row/column comparisons
     // and ORIGINAL DWORD overflow for coordinate additions.
     [[nodiscard]] static CombatOriginalCompositeRoute inspect_1a8c8(
         const CombatOriginalCompositeState& state,
