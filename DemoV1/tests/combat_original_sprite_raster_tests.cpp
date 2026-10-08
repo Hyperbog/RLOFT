@@ -63,8 +63,6 @@ int main() {
     assert(result->transparent_bytes_skipped==0U);
     assert(result->final_sequencer_plane_mask==0x02U);
     assert(mem.sequencer_map_mask_02() && *mem.sequencer_map_mask_02()==0x02U);
-    mem.clear();
-    assert(*mem.sequencer_map_mask_02()==0x02U); // clear pixels, not VGA registers
     for(std::uint32_t y=0U;y<2U;++y) {
         const auto addr=0xA0000U+80U*(y+1U);
         assert(mem.read(addr+0U,2U)==10U+y*2U);
@@ -78,6 +76,9 @@ int main() {
         assert(mem.read(addr+0U,0U)==0xAAU);
         assert(mem.read(addr+0U,1U)==0xAAU);
     }
+
+    mem.clear();
+    assert(*mem.sequencer_map_mask_02()==0x02U); // clear pixels, not VGA registers
 
     // Source-backed 2AB38 + 2A380 interaction across ALL 320
     // initial columns: source plane p lands at (column+p)&3 and
