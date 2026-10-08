@@ -93,6 +93,22 @@ int main() {
     }
     assert(rejected);
 
+    // CODE.2 36EA8 subtracts 0x204 from the generated-code pointer
+    // before handing SINTAB's original 129-word prefix to 369D8.
+    // Descriptor selectors are therefore NONNEGATIVE byte offsets
+    // 0..0x100 into the patch table, not signed offsets from the code
+    // entrypoint. Negative even selectors would read unrelated memory.
+    native = shape();
+    native.columns[0].descriptors[0].raster_entry_selector = -2;
+    rejected = false;
+    try {
+        (void)rloft::Type7MicrocodePlanModel::build(
+            native, traversal, visible, t);
+    } catch (const std::invalid_argument&) {
+        rejected = true;
+    }
+    assert(rejected);
+
     native = shape();
     auto invalid_block = tables();
     invalid_block.scale_blocks[0].code_patch_offset[2] = 0xFFFFU;
