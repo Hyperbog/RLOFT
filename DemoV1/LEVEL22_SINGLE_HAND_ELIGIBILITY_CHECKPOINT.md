@@ -14,6 +14,24 @@ The original shipped `CODE.2` SHA-256 is `853e0a4dfcabebcfeecb975cf2a92b92eb4d94
 4. If *not classified*, `2428A..243D7` tests two different item-ID ranges. `0xA7..0xC9` requires any class 4 or any class-5 lane whose **corresponding signed level word** at actor offsets `+0x20/+0x22/+0x24` is `>=10`. `0xCA..0xE4` or the **single** ID `0x12D` requires class 3 or an eligible level-10 class-5 lane. Other nonclassified positive IDs return the original initial true candidate. Negative class bytes and levels remain signed, not normalized.
 5. `33FC4` and `34060` are *different helper exception sets*, both additionally recognize `23EE4`'s six pair-exception IDs. `34060` also accepts `0x31,0x5B,0x26,0xF8,0xF9`. `33FC4` accepts special `23F50` cases and `0x30,0x29,0xFE,0xFF,0x28,0xFC,0xFD,0x27,0xFA,0xFB,0x26,0xF8,0xF9`. Both accept pseudo IDs `0x7E..0x86`. They must not be replaced by one undifferentiated “usable item” classification.
 
+### Cross-check against the supplied original OBJECTS.DAT
+
+The supplied original 21,844-byte `OBJECTS.DAT` contains **336 records** of 65 bytes each, after its four-byte count header (`4 + 336*65 = 21,844`). Reading the actual `+0x2F` category and `+0x35 & 3` field corroborates the original branch distinctions:
+
+| Object ID | Original item | Category | `+0x35 & 3` |
+| --- | --- | ---: | ---: |
+| `0x2E` | SPEAR | 10 | 1 |
+| `0x30` | COMPOSITE BOW | 0 | 2 |
+| `0x31` | SLING | 0 | 0 |
+| `0x59` | DAGGER OF THROWING | 11 | 0 |
+| `0xA7` | MAGE SCROLL OF 'ARMOR' | 14 | 0 |
+| `0xC9` | MAGE SCROLL OF 'DRAGON SCALES' | 14 | 0 |
+| `0xCA` | CLERIC SCROLL OF 'BLESS' | 14 | 0 |
+| `0xE4` | CLERIC SCROLL OF 'HARM' | 14 | 0 |
+| `0x12D` | CLERIC SCROLL OF 'RAISE DEAD' | 14 | 0 |
+
+The low-two-bit field distribution across the supplied archive is **311 zero, 18 one, 7 two**. Its existence confirms why hardcoding every item as zero would be wrong. The semantics of its upper bits remain unassigned. The item-name/category correlation also corroborates the mage/cleric-scroll ranges, but the shipped instructions—not English item names—remain the authority for exact branching. No game assets are added to Git.
+
 ### Original empty-hand boundary deliberately not guessed
 
 The original `24478` **does** invoke `240A8` with `item=-1`. `240A8` calls `23E58` and possibly `23F50` *before* testing item `-1`. Both helper routines can perform raw OBJECTS-base-relative memory reads using the signed negative ID; the exact memory immediately preceding the original loaded OBJECTS pointer can matter. A faithful emulator has to recover that raw-pointer context and special `3420D/34248` empty-hand branch behavior. A generic array index or invented “unarmed category 10” assumption is **not** sufficient here.
