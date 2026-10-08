@@ -42,17 +42,17 @@ CombatOriginalCompositeRoute CombatOriginalCompositeModel::inspect_1a8c8(
     // inclusively, against a 32x16 overlay. x+width and y+height
     // use 32-bit wrap, and original signed conditional branches.
     const auto overlay_right=static_cast<std::uint32_t>(
-        static_cast<std::int32_t>(state.overlay_left_9e31)+0x20);
+        static_cast<std::int32_t>(state.overlay_row_9e31)+0x20);
     const auto overlay_bottom=static_cast<std::uint32_t>(
-        static_cast<std::int32_t>(state.overlay_top_9e33)+0x10);
-    const auto overlay_left=static_cast<std::int64_t>(
-        state.overlay_left_9e31);
-    const auto overlay_top=static_cast<std::int64_t>(
-        state.overlay_top_9e33);
-    if(signed_dword(overlay_right)<signed_dword(rect.left) ||
-       overlay_left>signed_dword(rect.left+rect.width) ||
-       signed_dword(overlay_bottom)<signed_dword(rect.top) ||
-       overlay_top>signed_dword(rect.top+rect.height))
+        static_cast<std::int32_t>(state.overlay_column_9e33)+0x10);
+    const auto overlay_row=static_cast<std::int64_t>(
+        state.overlay_row_9e31);
+    const auto overlay_column=static_cast<std::int64_t>(
+        state.overlay_column_9e33);
+    if(signed_dword(overlay_right)<signed_dword(rect.row) ||
+       overlay_row>signed_dword(rect.row+rect.rows) ||
+       signed_dword(overlay_bottom)<signed_dword(rect.column) ||
+       overlay_column>signed_dword(rect.column+rect.columns))
         return CombatOriginalCompositeRoute::DirectOutsideOverlay;
 
     return CombatOriginalCompositeRoute::BufferedOverlayOverlap;
@@ -76,8 +76,8 @@ CombatOriginalCompositeRoute CombatOriginalCompositeModel::run_1a8c8(
     // its LOW BIT flipped, but keeps its remaining 31 bits.
     const auto copy=[&](){
         service.copy_rect_2a078(
-            rect.page^1U,rect.left,rect.top,
-            rect.left,rect.top,rect.width,rect.height);
+            rect.page^1U,rect.row,rect.column,
+            rect.row,rect.column,rect.rows,rect.columns);
     };
 
     // 1A9D5 path never touches A6BA, even if it was nonzero
@@ -97,8 +97,8 @@ CombatOriginalCompositeRoute CombatOriginalCompositeModel::run_1a8c8(
         // 9E37, set active BYTE 9E39 from low argument byte,
         // then invoke 1A288. The latter can mutate live globals.
         const auto old_page=state.active_page_9e39;
-        const auto saved_left=state.overlay_left_9e31;
-        const auto saved_top=state.overlay_top_9e33;
+        const auto saved_row=state.overlay_row_9e31;
+        const auto saved_column=state.overlay_column_9e33;
         state.overlay_reference_count_9e37=word_dec(
             state.overlay_reference_count_9e37);
         state.active_page_9e39=static_cast<std::uint8_t>(rect.page);
@@ -117,7 +117,7 @@ CombatOriginalCompositeRoute CombatOriginalCompositeModel::run_1a8c8(
         // 1A9AB..1A9BF: call 1AB20 with the saved overlay
         // POSITION from entry, then increment live WORD 9E37
         // and restore the original mode BYTE.
-        service.restore_overlay_1ab20(saved_left,saved_top);
+        service.restore_overlay_1ab20(saved_row,saved_column);
         state.overlay_reference_count_9e37=word_inc(
             state.overlay_reference_count_9e37);
         state.active_page_9e39=old_page;
