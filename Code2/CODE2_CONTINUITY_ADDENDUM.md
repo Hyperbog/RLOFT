@@ -783,3 +783,19 @@ Direct disassembly of original CODE.2 `26018..260ED` continues the audited `214B
 - `214B8:216C6..216F7` calls `24478` first, and only when that approval succeeds calls `26018(actor,hand,-1)`. The earlier live-actor status-mask check is `0xF240`. `24478` itself examines both hands and actor conditions.
 
 These are original-byte control-flow facts, **not proof of a working native attack**. Connecting the native `C80C` arithmetic directly to a hand click would omit eligibility, dual hand state, per-item attack dispatch, NPC targeting, damage, feedback, and original scheduling. The bounded hand item-swap / actor-panel stash paths are documented on `demo-v1` separately.
+
+
+## 2026-10-07 corrected party-base offsets and original DB94/DACC target scanning
+
+Re-audited immutable original `CODE.2` SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`. The initial native hand-swap implementation contained a real 16-byte addressing mistake: it subtracted the actor's *status* address instead of the complete party record's base. DOS party base is `0x218E0`, not `0x218F0`. The correct byte facts are:
+
+- `214B8:215E9` emits `mov dword [edi+esi*4+0x21A7E],0`, where `edi=actor*0x248`; actor-relative offset is **`0x19E + 4*hand`**, not the erroneously documented `0x18E`.
+- `26018:26037` checks `dword [eax+edi*4+0x219EB] != 0` before dispatch; actor-relative offset is **`0x10B + 4*hand`**, independently of item-swap readiness. `+0x12B` is the original known-bit word. The native party byte writer and its tests have now been corrected; prior published demo binaries predating this fix are not proof of the new offset.
+- `214B8:216C6..216F7` requires actor status mask `0xF240` clear and `24478(actor,hand)` approval before calling `26018`. A new native read-only preflight distinguishes these gates, but deliberately does **not** impersonate the still-pending full `24478` two-hand eligibility helper.
+- `23F50..23FBE` is an original special-item predicate: direct IDs `0x2E,0x2F,0x41,0x57,0x59,0x5A` or item categories `0x0F/0x0D`. `26018:26064` explicitly assigns an unarmed hand `item=-1` category `0x0A`. The ordinary `9..11` categories dispatch into `E5F0`; category `0x0E` has its own specific item table. Generic attack action is therefore not valid for all items.
+- `DB94:DB94..DBD2` tests only the low input preference bit: choose `DACC(0)` then fallback `DACC(1)`, or the reverse when the bit is set, and only fallback when the first returns `-1`.
+- `DACC:DACC..DB93` scans descending projected draw ranks in 22-byte records from the original `0x27148 + group*0x2260` buffers. Rank is at `+0x0A`; zero required at `+0x08`; actor ID at `+0x06`. It requires `actor_flag[0x14D8B + actor_id*0x16] & 0x02 == 0`, horizontal `+0x00 <=0x80` for group0 or `>0x80` for group1, projected vertical `((u16(+0x02)-0x7D00) signed-shift-right 3) >=0x3B`, and actor flag `&0x10` set. The successful target result is that actor ID; otherwise `-1`. This is a rank-and-visibility selector, not a nearest-distance or raw cursor-pixel heuristic.
+
+An offline, asset-supplied verifier was added at `demo-v1:DemoV1/tools/verify_combat_entry_bytes.py`. It checks the original SHA plus **18 byte-for-byte x86 anchor sequences** and the relative offsets; all 18 were confirmed locally without GitHub Actions. The native model and test registrations are described in `demo-v1:DemoV1/LEVEL22_COMBAT_ENTRY_CHECKPOINT.md`. Source is committed without a fresh compile: **the Demo v1 Windows build workflow is now manual-only to conserve private-repository runner minutes**, so don't claim any new native tests have passed until explicitly run later.
+
+This is a postcertification evidence correction and additional source-level reconstruction, not a change to the already-accounted executable bytes.
