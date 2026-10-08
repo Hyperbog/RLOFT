@@ -71,6 +71,11 @@ rloft::WorldSceneRenderPlan plan() {
         {31U,0U,128U,2U},
         {32U,1U,130U,1U},
     };
+    p.visible_columns = {
+        {31U,0U,128U}, {31U,0U,129U}, {32U,1U,130U},
+    };
+    p.microcode_draws = rloft::Type7MicrocodePlanModel::build(
+        shape(), p.traversal, p.visible_columns, tables());
     return p;
 }
 
