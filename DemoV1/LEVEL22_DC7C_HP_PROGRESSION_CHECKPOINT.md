@@ -119,3 +119,29 @@ derived `DBD4` attack target. Continue to preserve original
 E284 item drop / BF44 / death presentation / XP award ordering.
 
 **Overall faithful demo: 20% (1 of 5 major gates accepted).**
+
+
+## Extended independent differential regression
+
+A retained original-asset-gated section of
+`combat_level_up_hp_tests.cpp` now evaluates **16,416** cases:
+all six supported classes, all 19 Constitution indexes, levels
+`0,1,9,10,11,20`, one/two/three-class records, original RNG seeds
+`1,42,0,0xFFFFFFFF`, and actors `0` and `3` to cross-check
+the `0x248` record stride. The reference reconstructs dice from
+the original LCG, reads signed modifiers directly from the original
+DGROUP bytes and chooses the branch from the **original CS:DC64
+six-way jump-table DWORD values**. It independently checks the die,
+post-division increase, two 16-bit HP sums, and subsequent RNG state.
+
+All **16,416/16,416** original-byte-driven comparisons passed.
+The corrected exact committed test Git blob SHA is
+`aa187a3b86ec37688693bbc289536d47e3ded8b8`,
+and both strict C++17 Debug and optimized Release modes passed
+with the supplied original `CODE.2`. The test runs its synthetic
+subset without proprietary assets; the exhaustive matrix is
+enabled by setting `RLOFT_TEST_CODE2` to an owned CODE.2 path.
+
+These are function-model differential results, **not** DOS
+in-game event-order, real-time IRQ, or compiled Windows-demo
+equivalence tests. The model is not connected to live party state.
