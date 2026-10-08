@@ -38,7 +38,7 @@ CombatHandPairEligibility CombatHandPairEligibilityModel::evaluate(
     std::size_t actor,
     std::size_t selected_hand,
     CombatSingleHandContext context,
-    std::optional<std::uint8_t> empty_prebase_category) {
+    std::optional<CombatEmptyHandRawFields> empty_raw) {
     if (actor >= PartyImage::kActorCount || selected_hand >= 2U) {
         throw std::out_of_range("CODE.2 24478 actor/hand");
     }
@@ -54,25 +54,28 @@ CombatHandPairEligibility CombatHandPairEligibilityModel::evaluate(
     };
     const bool both_empty=first_id==-1 && second_id==-1;
     const bool both_pseudo=pseudo(first_id) && pseudo(second_id);
-    // 244CE and 24522 bypass the qualifier/weight arbiter.
-    // Other -1 + nonempty pair paths may read heap-adjacent
-    // OBJECTS[-1] +30/+35; reject only those absent-memory cases.
-    // Mixed pseudo + ordinary *nonnegative* pairs are valid and
-    // continue through the same verified 246E9 item arbiter.
-    if ((first_id<0 || second_id<0) && !both_empty) {
+    // The original has no -1 record inside OBJECTS.DAT.
+    // Mixed -1/nonempty branches at 246E9 may read its category,
+    // weight and qualifier from allocator-adjacent memory.
+    // Require a caller-observed raw snapshot for ANY -1 hand;
+    // do not fill missing bytes with a hypothetical unarmed item.
+    if ((first_id==-1 || second_id==-1) && !empty_raw) {
         throw std::invalid_argument(
-            "CODE.2 24478 mixed empty/nonempty heap data unresolved");
+            "CODE.2 24478 requires observed raw OBJECTS[-1] fields");
     }
-    if (both_empty && !empty_prebase_category) {
-        throw std::invalid_argument(
-            "CODE.2 24478 both-empty requires raw OBJECTS[-1] byte");
+    if (empty_raw && empty_raw->qualifier_low2>3U) {
+        throw std::out_of_range(
+            "CODE.2 OBJECTS[-1] qualifier must be masked to two bits");
     }
+    const auto prebase_category=empty_raw
+        ? std::optional<std::uint8_t>(empty_raw->category)
+        : std::nullopt;
     const auto initial_a=CombatSingleHandEligibilityModel::evaluate(
         party,objects,actor,first_id,context,
-        empty_prebase_category);
+        prebase_category);
     const auto initial_b=CombatSingleHandEligibilityModel::evaluate(
         party,objects,actor,second_id,context,
-        empty_prebase_category);
+        prebase_category);
 
     CombatHandPairEligibility result{};
     result.first_classified=initial_a.classified;
@@ -104,8 +107,26 @@ CombatHandPairEligibility CombatHandPairEligibilityModel::evaluate(
         return result;
     }
 
-    const auto& a=objects.at(static_cast<std::size_t>(first_id));
-    const auto& b=objects.at(static_cast<std::size_t>(second_id));
+    // Preserve the same field-level semantics for valid item IDs
+    // and original raw heap reads for sentinel -1. These objects
+    // only carry the two item properties read by 246E9..24A56;
+    // no invented pre-OBJECTS record is written into game state.
+    ObjectDefinition raw_first{};
+    ObjectDefinition raw_second{};
+    if (first_id==-1) {
+        raw_first.weight_half_units=empty_raw->weight;
+        raw_first.raw_byte_35_low2=empty_raw->qualifier_low2;
+    }
+    if (second_id==-1) {
+        raw_second.weight_half_units=empty_raw->weight;
+        raw_second.raw_byte_35_low2=empty_raw->qualifier_low2;
+    }
+    const auto& a=first_id==-1
+        ? raw_first
+        : objects.at(static_cast<std::size_t>(first_id));
+    const auto& b=second_id==-1
+        ? raw_second
+        : objects.at(static_cast<std::size_t>(second_id));
 
     // 346E9..34A56: arbitrate classification flags in the
     // exact CODE.2 branch order. These operations only suppress
