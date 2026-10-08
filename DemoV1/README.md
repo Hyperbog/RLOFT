@@ -1,5 +1,22 @@
 # Ravenloft Demo Build v1
 
+## Diagnostic build: raw Level 22 frame export
+
+[Capture checkpoint](LEVEL22_NATIVE_FRAME_CAPTURE_CHECKPOINT_20261008.md):
+the optional `Capture-Level22.cmd` launch mode writes a maximum of
+16 changed-position snapshots under
+`%TEMP%\RLOFT-Demo-Captures\<session>\`.
+Every snapshot contains the original-resolution **native** indexed
+frame (`.idx`, 128,000 bytes), its palette (`.pal`, 768 bytes),
+and `.tsv` wide-wall `C6F4` geometry, immutable CODE.2 VGA mask
+bytes, coverage counts and failures. The launcher is staged in the
+manually built Windows artifact. The captured mask bytes are
+**shipped static data, not DOS live RAM**. A true DOS reference
+trace/frame is still required before fidelity claims are made.
+
+This is committed source, **not a newly built EXE**. The current
+formal acceptance remains 1/5 gates (20%).
+
 ## Bounded wider ordinary walls (original CODE.2 mask audit)
 
 [Original 335DC/336F7/3263C mask checkpoint](LEVEL22_CODE2_WIDE_MAIN_SURFACE_MASK_BOUNDARY_20261008.md):
