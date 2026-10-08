@@ -166,20 +166,22 @@ ExplorationPresentedFrame ExplorationPresenter::present(
                         ? found->second
                         : assets_.res3_type7_body(
                             plan.call.resource_id);
-                auto candidate = video;
+                // Resource-cache allocation happens before pixel
+                // execution. If it fails, no framebuffer changes occur.
+                // The executor itself now stages and commits the entire
+                // scene, including late generated-code failure cases.
+                if (found == type7_source_cache_.end()) {
+                    type7_source_cache_.emplace(
+                        plan.call.resource_id,
+                        body);
+                }
                 const auto drawn =
                     Type7ScenePixelExecutor::draw(
                         plan,
                         *optional_trace,
                         body,
                         tables,
-                        candidate);
-                video = std::move(candidate);
-                if (found == type7_source_cache_.end()) {
-                    type7_source_cache_.emplace(
-                        plan.call.resource_id,
-                        body);
-                }
+                        video);
                 any_rasterized = true;
                 ++output_coverage.type7_calls_rasterized;
                 output_coverage.type7_columns_rasterized +=
