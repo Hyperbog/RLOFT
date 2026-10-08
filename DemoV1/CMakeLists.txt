@@ -112,6 +112,7 @@ add_library(rloft_boot_flow
     src/exploration_ui.cpp
     src/exploration_hud_presenter.cpp
     src/exploration_presenter.cpp
+    src/exploration_frame_capture.cpp
     src/exploration_world.cpp
     src/exploration_collision.cpp
     src/exploration_motion.cpp
@@ -460,6 +461,9 @@ add_test(NAME exploration_hud_presenter_tests COMMAND exploration_hud_presenter_
 add_executable(exploration_presenter_tests tests/exploration_presenter_tests.cpp)
 target_link_libraries(exploration_presenter_tests PRIVATE rloft_boot_flow)
 add_test(NAME exploration_presenter_tests COMMAND exploration_presenter_tests)
+add_executable(exploration_frame_capture_tests tests/exploration_frame_capture_tests.cpp)
+target_link_libraries(exploration_frame_capture_tests PRIVATE rloft_boot_flow)
+add_test(NAME exploration_frame_capture_tests COMMAND exploration_frame_capture_tests)
 add_executable(exploration_preview_tests tests/exploration_preview_tests.cpp)
 target_link_libraries(exploration_preview_tests PRIVATE rloft_boot_flow)
 add_test(NAME exploration_preview_tests COMMAND exploration_preview_tests)
@@ -844,6 +848,7 @@ set(RLOFT_TEST_TARGETS
     exploration_ui_tests
     exploration_hud_presenter_tests
     exploration_presenter_tests
+    exploration_frame_capture_tests
     exploration_preview_tests
     exploration_world_tests
     exploration_collision_tests
