@@ -205,3 +205,22 @@ execute this pure model out of order, substitute the Windows
 clock, skip its RNG side effect on capped levels, or apply
 HP to live characters before the 3EA4/3DE4 and 1C21C
 services have been integrated.
+
+
+## 1C21C IRQ-timed level-up message queue (2026-10-08)
+
+Original CODE.2 `1C21C..1C257` calls **30700** and
+writes `CF54 = full_IRQ_tick + 0x5A` with original DWORD
+wrap. It copies a zero-terminated 3210F-produced message
+to `14580` without clearing trailing bytes, then sets
+`CF59=1`. The separate display/expiry stage checks
+unsigned `observed_IRQ_tick > CF54` at `1C2D1..1C2D7`
+(plain CMP/JBE, NOT a wrap-safe host elapsed-time helper).
+
+The [source-only callback checkpoint](LEVEL22_DDA4_SPELL_IRQ_CHECKPOINT.md)
+has a bounded read-only model of the queue and expiry
+predicate. **Do not use Windows frame time, gameplay A7E4
+time, timer approximations or synthetic retries** when this
+is later connected to the live DDA4 event sequence.
+Original 1C258..1C326 display effects and original 3210F
+message bytes are separate remaining acceptance gates.
