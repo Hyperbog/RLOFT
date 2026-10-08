@@ -149,3 +149,59 @@ reference-DOS pixels, IRQ ticks, and mutation order match.
 
 **Overall faithful-demo acceptance remains 20% (1/5).**
 The GitHub Actions workflow remains manual-only.
+
+
+## Next source-backed pixel-address dependency: 2AB38
+
+Subsequent to the glyph/sprite callback integration above, the
+original `2AB38..2AB6B` address calculation used by
+`2A380` and `2A584` has been modeled independently:
+
+```text
+first = (uint32_t(row) << (DWORD[EFED] & 31))
+second = (first << (DWORD[EFF1] & 31))
+physical_linear_EBX = DWORD[F001] + first + second
+                    + (uint32_t(column) >> 2)
+plane_ECX = uint32_t(column) & 3
+```
+
+This is the original x86 register arithmetic, **not** a
+hardcoded 320x400 Windows framebuffer formula. Both row
+shifts and F001 are mutable original runtime globals.
+The supplied CODE.2 DGROUP image initially serializes
+the involved globals as zero; their **runtime** values
+must be observed from original initialization or live
+game state, not inferred from those zero-filled bytes.
+
+An observed `EFED=4`, `EFF1=2` combination produces
+`16+64=80` VGA bytes per row, while `F005=0x800`
+and page1 produce F001 `0xA8000`. These are useful
+specific test inputs, **not universal assumed constants**.
+
+New source:
+`include/rloft/combat_original_vga_address.hpp`,
+`src/combat_original_vga_address.cpp` and
+`tests/combat_original_vga_address_tests.cpp`.
+The test exercises all 320 columns, both visible VGA
+pages, last displayed pixel, unusual runtime row shifts,
+x86 low-five-bit CL shifts, unsigned column SHR2,
+negative-looking input coordinates, and original DWORD
+overflow. Focused standalone strict C++17 Debug,
+Release and UBSan tests **passed**. CMake registers the
+new model and CTest with assertions enabled, but it
+has not yet run in another complete Windows CI build.
+
+**20 more exact original 2AB38 instruction signatures**
+were independently verified, bringing the cumulative
+audit to **577 named x86 checks at 569 distinct logical
+instruction addresses**. The direct Strength table,
+nine hashed DGROUP data spans and one hashed CS span
+remain unchanged.
+
+This completes the **pixel-address/plane selection math
+only**. It does not emulate the source 2A380/2A584
+sequencer OUT instructions, run-length/transparent pixels,
+sprite clipping, shade self-patches, hardware write-mask
+composition, or 1A8C8 screen compositing. Those remain
+the next source-fidelity gate and must be checked against
+reference DOS VGA contents.
