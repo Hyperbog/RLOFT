@@ -1,10 +1,15 @@
 #include "rloft/level22_encounter.hpp"
 #include "rloft/combat_npc_death_followon.hpp"
 
+#ifdef NDEBUG
+#undef NDEBUG // Keep assertions active in Release CTest.
+#endif
+
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include <stdexcept>
 
 namespace {
 
@@ -104,10 +109,47 @@ int main() {
     assassin.runtime_flags = 0xE0000001U; // pre-existing byte+0B flags
     world.npcs.push_back(assassin);
 
+    // 0x258AA is not an uninitialized flag: it is the three SIGNED
+    // NPC filters copied from original level header +0x292..0x297.
+    rloft::LevelState level{};
+    level.width=30;
+    level.height=15;
+    for(std::size_t i=0;i<3U;++i) {
+        level.header[0x292U+i*2U]=0xFFU;
+        level.header[0x293U+i*2U]=0xFFU;
+    }
+    assert((level.respawn_npc_types()==
+        std::array<std::int16_t,3>{{-1,-1,-1}}));
+
+    // A modified header that tracks type9 MUST NOT silently skip the
+    // original RNG-consuming E0F8 call and mutate the level anyway.
+    auto unsupported=level;
+    unsupported.header[0x292U]=9U;
+    unsupported.header[0x293U]=0U;
+    assert(unsupported.respawn_npc_types()[0]==9);
+    bool correctly_rejected=false;
+    try {
+        auto probe_world=world;
+        (void)rloft::Level22EncounterModel::damage_assassin(
+            probe_world,unsupported,0U,5U,0U,0U,
+            npc_catalog(),tables,{});
+    } catch(const std::logic_error&) {
+        correctly_rejected=true;
+    }
+    assert(correctly_rejected);
+    assert(world.npcs[0].current_hp==5);
+    // A signed -1 tracker must also NOT match type 0xFFFF.
+    level.header[0x294U]=0U;
+    level.header[0x295U]=0U;
+    assert(level.respawn_npc_types()[1]==0);
+    level.header[0x294U]=0xFFU;
+    level.header[0x295U]=0xFFU;
+
     // Nonlethal damage uses the reaction sound and reaction animation/count.
     auto damage =
         rloft::Level22EncounterModel::damage_assassin(
             world,
+            level,
             0,
             2,
             0,
@@ -135,6 +177,7 @@ int main() {
     damage =
         rloft::Level22EncounterModel::damage_assassin(
             world,
+            level,
             0,
             3,
             1,
