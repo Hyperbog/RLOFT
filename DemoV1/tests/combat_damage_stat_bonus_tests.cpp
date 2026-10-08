@@ -100,9 +100,9 @@ int main() {
         party,0U,std::int8_t{0})==0);
 
     bool rejected=false;
-    const auto original=party.bytes;
+    const auto original_party_bytes=party.bytes;
     try {(void)bonus(4U);}
     catch(const std::out_of_range&) {rejected=true;}
     assert(rejected);
-    assert(party.bytes==original);
+    assert(party.bytes==original_party_bytes);
 }
