@@ -159,7 +159,13 @@ int main() {
     // must receive precisely their original plane contents, rather
     // than only relying on ExplorationPresenter's outer transaction.
     auto late_failure=trace;
+    auto late_plan=plan;
+    // Keep both native original-plan and VGA trace descriptor inputs
+    // consistent, so this scenario tests a genuine LATE source-memory
+    // exception instead of the preflight descriptor-integrity guard.
     late_failure.runs[0].descriptors[1].
+        signed_source_adjustment=32767;
+    late_plan.microcode_draws[1].
         signed_source_adjustment=32767;
     rloft::VgaPlanarMemory preserved;
     const auto vga_base=rloft::VgaPlanarMemory::kPhysicalBase;
@@ -168,7 +174,7 @@ int main() {
     rejected=false;
     try {
         (void)rloft::Type7ScenePixelExecutor::draw(
-            plan,late_failure,{0xA5U,0xB1U},tables,preserved);
+            late_plan,late_failure,{0xA5U,0xB1U},tables,preserved);
     } catch (const std::out_of_range&) {
         rejected=true;
     }
