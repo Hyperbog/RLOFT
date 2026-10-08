@@ -138,3 +138,30 @@ AFTER drawing. Do not treat the read-only event trace as
 a rendered HUD update, or a source regression as a
 complete Windows/demo build. Overall release acceptance
 is still **20% (1/5 major gates)**.
+
+
+## Windows build gate closure and active renderer dependency
+
+The real Windows CI build finally **passed 130/130 CTests**
+on [run #634](https://github.com/Hyperbog/RLOFT/actions/runs/37788168281).
+The runnable demo executable was refreshed and committed.
+The earlier source-only checkpoints that stated the entire
+repository had never been built are historically correct
+for their time but **superseded as of this exact source SHA**.
+This pass certifies MSVC compile and tests, not original DOS
+fidelity, timing or complete native gameplay.
+
+Following that green run, a new `CombatIrqDisplayRuntimeModel`
+can synchronously call original message-rendering services
+with the true order and caller-supplied 30700 tick. It also
+models original 291B0/29FEC/2AB6C VGA page state from
+observed F005 page stride. **These new sources remain
+outside that Windows build;** only strict C++17 isolated
+Debug/Release/UBSan tests passed. The next integration
+must connect underlying 2939C->2A380/2E758 and
+3060C->303C8 plus 1A8C8 framebuffer effects to
+the original planar VGA model and validate DOS reference
+image/timer traces, without inventing missing resources.
+
+Details: [2026-10-08 checkpoint](WINDOWS_BUILD_AND_IRQ_RENDERER_CHECKPOINT_20261008.md).
+Overall **20% (1/5 demo acceptance gates)** is unchanged.
