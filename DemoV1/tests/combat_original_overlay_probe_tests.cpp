@@ -128,4 +128,13 @@ int main() {
     try{(void)bound.probe_2ae30(100,50);}
     catch(const std::logic_error&){failed=true;}
     assert(failed);
+    // D680 is one source global, shared with the pointer
+    // position routine. A LIVE provider bypasses record memory
+    // even if the probe state's older snapshot was zero.
+    const auto reads_before=reads;
+    api.live_disabled_d680=[](){return static_cast<std::uint8_t>(1U);};
+    auto disabled=Model::bind_1a288(
+        state,api,CombatOriginalOverlayServices{});
+    assert(disabled.probe_2ae30(100,50)==0);
+    assert(reads==reads_before);
 }
