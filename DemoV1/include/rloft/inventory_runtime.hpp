@@ -26,6 +26,13 @@ struct ContainerRuntimeState final {
     std::vector<std::int16_t> items;
 };
 
+enum class InventoryQuickStashStatus : std::uint8_t {
+    NothingHeld,
+    Stashed,
+    Full,
+    Unsupported
+};
+
 enum class InventoryHandSwapStatus : std::uint8_t {
     NoChange,
     Swapped,
@@ -57,6 +64,15 @@ struct InventoryRuntimeState final {
         const ObjectCatalog& objects,
         std::size_t actor,
         std::size_t slot);
+
+    // CODE.2 211D8 flag 08h generic actor-panel fallback:
+    // place a held ordinary object in the first empty slot 0..11,
+    // clear the cursor, leave party item-known bits unchanged.
+    // Category 0F/0D special paths are intentionally separate.
+    [[nodiscard]] InventoryQuickStashStatus quick_stash_held(
+        PartyImage& party,
+        const ObjectCatalog& objects,
+        std::size_t actor);
 
     // CODE.2 214B8, pointer flag 08h: swap held item with actor
     // item[14+hand]. Only the ordinary, non-container / non-special
