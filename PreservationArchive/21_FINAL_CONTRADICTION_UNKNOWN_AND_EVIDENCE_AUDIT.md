@@ -170,3 +170,54 @@ Cross-chapter comparison has now examined: LE executable geometry and object ori
 4. Decide and document explicit gates for required native regressions and unsupplied original-media/runtime timing research, without pretending to have executed them.
 5. Only then issue a scoped static documentation completeness decision. Do not equate it with 100% native game behavior testing or 100% historical provenance recovery.
 
+
+
+## 11. Post-correction repository integrity: complete publication-path gate
+
+A new tree/Markdown pass after correction A-14.1 read **all 22 numbered chapters (00–21)** and checked the currently published headings and all relative Markdown link targets:
+
+```text
+numbered chapter documents       22
+missing numbered chapter IDs      0
+chapters with duplicate/out-of-order section numbers   0
+numbered Chapter-14 sections     139, strictly sequential and unique
+relative Markdown links          100
+broken relative target paths       0
+Markdown relative #anchor URLs     0
+```
+
+The prior audit counted 86 relative links across Chapters 00–20; Chapter 21 adds fourteen links, accounting for the new full total **100**. Remote external/commit-pinned hyperlinks were **not network-probed one by one**. Markdown source paths resolving does not prove that the cited prose or external original data is correct; that remains an independent semantic/evidence check.
+
+The correction preserved all Chapter-14 paragraphs and C-labels, altered **64** later `##` section numbers, and updated Chapter-18 Q-08 from §77 to the corrected §102. The historical migration note is embedded at the top of Chapter 14 and has a stable short label **A-14.1**.
+
+## 12. Repository delta and frozen-source separation
+
+An authenticated GitHub comparison of `373c7f10e6fc0f29c1e805125ef048150fcc7ba7...code1-decompilation` reports **89 commits ahead** and **43 changed tracked paths** at the current checkpoint:
+
+| Path group | Changed paths | What actually changed |
+|---|---:|---|
+| `PreservationArchive/` | 22 | New numbered documentary chapters `00..21` |
+| `DatFiles/` | 12 | 11 previous Markdown audit/reference files modified; 1 new Markdown workflow note |
+| `Runtime/` | 1 | `CODE_OBJECT_MAP.md` documentation correction |
+| `TechnicalArchive/` | 8 | Former superseded docs removed from the active documentation branch |
+| `Code1/`, `Code2/`, `Resources/`, `Tools/` | **0** | No tracked changes in these primary reconstruction/asset-extraction areas |
+
+**Important nuance:** the original binary fixture inputs supplied in the present workspace are separate from repository Markdown. The file comparison excludes silent original-binary rewrites in the tracked Git tree (none are listed); the local 9/9 SHA-256 and 35/35 byte/structure checks independently defend the fixtures tested here. Removing obsolete `TechnicalArchive/` **from the active documentation branch** is an intentional prior branch-scope decision, not erasure of the frozen history.
+
+The branch `preservation-backup-code1-2026-10-07` still points to exact frozen commit **`373c7f10e6fc0f29c1e805125ef048150fcc7ba7`**. The separate `demo-v1` branch points to **`18dbc63e867b04043c63b3723f45dcc6d22cbc3d`** at this audit checkpoint; no changes were made to either branch in this documentation pass.
+
+## 13. Scope-limited publication state and unresolved test responsibility
+
+The **structural evidence and document-navigation audits now pass**: 22/22 chapter IDs, all present section sequences, 100/100 internal relative file links, complete explicit dispositions for U-001..U-016, and the 35/35 available-file verification suite. Original system architecture, field dimensions and major cross-system ownership relations have been compared, with one new editorial contradiction repaired.
+
+**Do not claim universal original-program verification from these figures.** Remaining distinct gates:
+
+1. **Source-semantic review depth:** examine every chapter's specific disputed arithmetic/control-flow corrections and permanent record-field aliases against its controlling original instruction range where a new contradiction is suspected; the current scan checked major shared-field families, not literally every prose assertion.
+2. **Full original resource replay:** current workspace lacks independently mounted bytes for the other 32 resource corpus files; prior certified decoder audits remain the valid recorded workstream evidence, not fresh checks in this audit.
+3. **Hardware/driver observations:** actual sound-driver descriptor frequencies, PIT/IRQ timing, transient initialization failures and full runtime frame trace are still unmeasured. Chapter 17 describes the static contract and keeps this external gate open.
+4. **Historical edition comparison:** exact pre-1.2a code differences, publisher CD mastering, alternate regional/platform source, and original DreamForge authoring formats require unsupplied originals.
+5. **Faithful native implementation:** executable gameplay integration, graphics/audio/video equivalence, full save/restore replay and optional extension security tests belong to the separate port/demo workstream.
+
+**Current decision: FINAL CERTIFICATION NOT YET ISSUED.** The archive has reached a strong *evidence-accounted and structurally consistent* checkpoint. The final documentation milestone must state exactly what is complete and what is bounded, not pretend that unavailable original historical media or hardware traces were produced.
+
+**Next:** complete the last semantic correction/alias crosswalk and explicitly decide whether the remaining gaps are permitted as bounded historical/runtime UNKNOWNs under Chapter 00's archival completeness definition. If the check succeeds, issue a scoped documentation completion certificate; keep native-port completion a separate determination.
