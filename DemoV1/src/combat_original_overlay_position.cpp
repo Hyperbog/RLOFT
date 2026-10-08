@@ -76,6 +76,15 @@ CombatOriginalOverlayPositionModel::bind_1a288(
         overlay.composite.overlay_column_9e33=projection.output_column;
         overlay.composite.overlay_third_word_9e35=
             projection.output_third_word;
+        // This is the SAME original WORD[A6BC] read later in
+        // 1A288's drawing-mode branch, not another independent
+        // host setting. Re-read it AFTER original 1F820/33C90.
+        const auto word_bits=mouse.constrain_mode_a6bc;
+        const auto signed_word=word_bits<=0x7FFFU
+            ? static_cast<std::int32_t>(word_bits)
+            : static_cast<std::int32_t>(word_bits)-0x10000;
+        overlay.special_mode_a6bc=static_cast<std::int16_t>(
+            signed_word);
     };
     return overlays;
 }
