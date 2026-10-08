@@ -74,8 +74,8 @@ CombatOriginalOverlayPositionModel::bind_1a288(
         const auto projection=run_1a3b8(mouse,calls);
         overlay.composite.overlay_row_9e31=projection.output_row;
         overlay.composite.overlay_column_9e33=projection.output_column;
-        // Position result A6B8 is the supplied original 9E35 word.
-        // No additional meaning/geometry is invented for it.
+        overlay.composite.overlay_third_word_9e35=
+            projection.output_third_word;
     };
     return overlays;
 }
