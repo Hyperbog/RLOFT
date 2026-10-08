@@ -12,9 +12,10 @@ namespace rloft {
 // ordinary OBJECTS-based 1C328 damage dice. This is not the
 // per-die weapon bonus in OBJECTS byte +3Ah.
 //
-// The original signed table at DGROUP 684Bh must be decoded
-// from original loaded memory: a raw CODE.2 file offset is NOT
-// proof of the table's contents.
+// The original signed table at DGROUP 684Bh was recovered from
+// CODE.2 object-2 data at physical file offset 0x7C76F. Scores
+// 0..25 are original constant bytes; above 25 the executable
+// reads adjacent DGROUP bytes and an observed value is required.
 class CombatDamageStatBonusModel final {
 public:
     [[nodiscard]] static std::int32_t inspect(
