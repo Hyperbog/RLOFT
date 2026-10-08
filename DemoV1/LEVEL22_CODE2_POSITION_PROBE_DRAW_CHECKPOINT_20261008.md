@@ -190,3 +190,24 @@ full-game overlay fidelity.
 **Release acceptance remains 1 of 5 major demo gates.**
 Engineering completion is measured separately and
 has no supported numerical percentage.
+
+
+## Later source predicate and 29414 clipping update
+
+The previous checkpoint's 2AD18/2ADE0
+predicates and 29414 draw callback were
+still external dependencies. They now have
+source-backed bounded C++ implementations
+and reusable adapters, documented at
+[original 29414 and predicate checkpoint](LEVEL22_CODE2_29414_PREDICATES_CHECKPOINT_20261008.md).
+The bitset 1C1DC reads original DWORD[22200+
+4*(bit>>5)] live; 29414 writes full EF74+EFD4*24
+clip records and calls 2E758 first.
+
+The next missing raster routine is 2A6B0
+(clipped sprite bytes), plus original
+33C90/1F820 pointer effects and source
+game memory binding. Current opcode checks:
+**1109 named / 1101 distinct original sites**.
+This source progress does not mean another
+end-to-end demo gate has been accepted.
