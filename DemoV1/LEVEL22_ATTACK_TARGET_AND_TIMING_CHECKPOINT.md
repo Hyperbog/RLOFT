@@ -35,7 +35,7 @@ Then `DWORD(actor+0x132) & 0x01000010` **halves** the interval, with integer tru
 
 **Clock fidelity:** `29CC4` returns DWORD `A7E4`, which `29C80:29CBC` increments only when its enabling flag `A7E8` is active. This is **not** an assumed milliseconds value, not the independent `F58C` IRQ count, and not the native Win32 `70.0863`-Hz display cadence. Use actual original tick evolution and input/order traces to calibrate timing; do not convert these counts into arbitrary fixed wall time.
 
-The new read-only `CombatAttackTimingModel::inspect` returns the animation interval, an optional hit-only hand ready deadline, and an optional hit-only damage value. It does not mutate party state, apply the clock or send animation/sound commands. Its tests cover item IDs, high bits of +35h, zero-duration cases (no fabricated minimum), effect halving on either mask bit, odd-value truncation, 32-bit deadline rollover, miss behavior and nonmutation.
+The new read-only `CombatAttackTimingModel::inspect` uses **the captured item ID passed by `26018` to `E5F0`**, rather than re-reading the actor's current hand slot, and returns the animation interval, an optional hit-only hand ready deadline, and an optional hit-only damage value. It does not mutate party state, apply the clock or send animation/sound commands. Its tests cover item IDs, high bits of +35h, zero-duration cases (no fabricated minimum), effect halving on either mask bit, odd-value truncation, 32-bit deadline rollover, miss behavior and nonmutation.
 
 ## Separate target-selection model
 
