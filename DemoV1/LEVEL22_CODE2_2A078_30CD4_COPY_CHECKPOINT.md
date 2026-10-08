@@ -185,3 +185,29 @@ are not proof of total game behavior.
 **Formal acceptance: 1 of 5 major demo gates.**
 Engineering completion: **not yet objectively weighted**.
 GitHub Actions: **manual-only; no runner triggered here**.
+
+
+## Next audited overlay entry points: 1A288 and 1AB20
+
+A preliminary byte-level audit of original `1A288` and
+`1AB20` confirms that neither is a plain no-op or
+generic mouse overlay call:
+
+- `1A288` first tests `WORD[85FC]` and `WORD[9E37]`.
+  Its zero-reference branch calls `2E590`, then `1A3B8`
+  with pointers to 9E31/9E33/9E35, then `292BC`
+  with a `0x20` by `0x10` overlay capture and an
+  original backing source at `9E3A+(BYTE[9E39]<<10)`.
+  Subsequent `2AE30` calls and the long mode-dependent
+  branch tree remain to be reconstructed, and cannot be
+  replaced by an unconditional copy.
+- `1AB20` also checks `85FC`, decrements `9E37`,
+  conditionally invokes `2E590`, and uses `2932C`
+  to restore the 32×16 backing image when its gate allows.
+  Later branches depend on additional overlay/mouse globals
+  and call `29804`/`2E5D4`. The authoritative
+  implementation must follow the original guards and
+  per-branch callback sequence.
+
+This audit narrows the next work package; it does **not**
+claim those two procedures are implemented or verified.
