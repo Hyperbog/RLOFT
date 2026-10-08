@@ -149,3 +149,27 @@ the remaining original overlay art/position
 services. Formal release acceptance remains
 1/5 gates; development progress is not a
 measured global percentage.
+
+
+## Subsequent native VGA backing capture/restore milestone
+
+The original backing-image capture and restore
+calls `2A114` and `2A178` now have native
+reusable four-plane VGA byte models and a
+binder for existing `292BC/2932C` clipping.
+The graphics-controller read-map selection and
+sequencer raw `FF02h` write are preserved,
+including the zero-logical-column restore
+path. Exact new CODE.2 source signatures:
+**53**, bringing the ledger to **908 named /
+900 distinct instruction sites**.
+
+The committed source passed isolated strict
+C++17 Debug, Release and UBSan tests. The
+two new CTests are CMake-registered but need a
+fresh Windows run and eventual DOS pixel
+comparison. Shared graphics implementation
+has advanced further, but **1 of 5 major
+formal demo gates** remains accepted;
+engineering completion is not objectively
+quantified.
