@@ -1,16 +1,24 @@
-# Ravenloft Tools
+# Ravenloft tools
 
-Modern preservation, inspection, extraction, and remastering utilities built
-from the certified reverse-engineering work in this repository.
+## Default Windows application: WPF Fluent Asset Extractor
 
-## Current tool
+The supported Windows 11 extraction suite is the native
+**[Ravenloft WPF Fluent Asset Extractor](WpfExtractor/README.md)**.
 
-- `anm/` — **Ravenloft Asset Extraction Suite**. The directory name is a
-  historical artifact from its ANM-only first phase; it now extracts the full
-  graphics/texture/font/shape, sampled-audio, music/timbre, cinematic,
-  palette/text, and renderer-support corpus.
+- **Download:** [Latest Windows 11 application](https://github.com/Hyperbog/RLOFT/releases/latest)
+- **Windows frontend:** [`Tools/WpfExtractor/`](WpfExtractor/)
+- **Original-game extraction engine:** [`Tools/anm/`](anm/)
+- **Version control:** WPF is the only supported Windows UI in the default branch.
 
-All tools treat shipped Ravenloft bytes as immutable source evidence. Decoders
-follow the certified `Resources/` documentation, preserve canonical/native
-bytes alongside modern derivatives where useful, and keep unresolved semantics
-explicit rather than inventing them.
+Unzip the entire Windows distribution and launch `RavenloftExtractor.exe`.
+The packaged Python backend and .NET runtime files must remain alongside it.
+The application does not contain the original game files.
+
+This repository's asset extraction core remains source-faithful and preserves
+the reverse-engineered RES/ANM/COLORS formats, native indices, grouped original
+filenames, and provenance metadata. The `anm/` directory is named for the
+initial cinematic research; today it is the shared extraction engine.
+
+The prior Python/Tkinter GUI and its Windows EXE are retired. Historical
+source builds are retained in Git history, not as active tools. Other project
+branches (demo, decompilation research, archival work) are unaffected.

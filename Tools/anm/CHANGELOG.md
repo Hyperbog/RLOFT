@@ -1,3 +1,12 @@
+## WPF Fluent — default Windows frontend (2026-10-07)
+
+- Replaced the previous Tkinter desktop application with native .NET 10 WPF using Microsoft's Windows 11 Fluent theme.
+- Retired the custom frameless chrome, simulated resize cursors, and legacy UI app/packaging files.
+- Retained the original Python decoders, resource-grouping/palette logic, original filenames, install/CD scanning, and all preservation manifests.
+- Made `Tools/WpfExtractor` the default Windows app, `Tools/anm/wpf_bridge.py` its production backend, and the default-branch GitHub Actions workflow the canonical ZIP/release publisher.
+- Moved large Windows ZIP distribution from Git blobs to the current GitHub Release asset.
+- The previous v0.6.x Tkinter changelog below remains for historical traceability; it is not an actively supported Windows frontend.
+
 ## 0.6.3
 
 - Grouped multipart exports now keep the canonical raw asset filename (for example `RES3_04233_T7.png`); grouping semantics live only in folders/manifests/previews.
