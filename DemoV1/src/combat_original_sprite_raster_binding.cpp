@@ -39,6 +39,15 @@ CombatOriginalSpriteServices CombatOriginalSpriteRasterBinder::bind(
         get_shader=std::move(readers.capture_shader_at_pointer)
     ](std::int32_t frame,std::uint32_t row,
       std::uint32_t col,std::uint32_t resource,std::uint32_t shade) {
+        // Source 2A590/2A595 stores the lookup pointer BEFORE
+        // 2AB38 and any resource reads. The capture callbacks may
+        // observe this original code memory, so apply it first.
+        // The subsequent bounded raster rechecks the same patched
+        // operands but does not change their already stored value.
+        if(!CombatOriginalSpriteCodePatchModel::patch_2a584(
+                machine,shade))
+            throw std::logic_error(
+                "uncaptured or unrecognized CODE.2 shade operand sites");
         if(!get_source || !get_shader) throw std::logic_error(
             "missing original DOS sprite or shader table capture");
         const auto original=get_source(resource);
