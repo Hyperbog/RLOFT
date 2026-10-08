@@ -94,6 +94,9 @@ CombatOriginalClippedRasterModel::draw_2a6b0(
         key=*value;
         ++source_pointer;
     }
+    // 2A7A4 self-patches the comparison immediate BEFORE pixel reads.
+    // Even a later unsupported bounded capture leaves that code byte.
+    original_state.code_comparison_byte_2a816=key;
     CombatOriginalClippedRasterState s{};
     s.top_skip_bytes_f00d=skipped_top>>2U;
     s.bottom_skip_bytes_f011=skipped_bottom>>2U;
