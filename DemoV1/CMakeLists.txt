@@ -52,6 +52,7 @@ add_library(rloft_boot_flow
     src/combat_attack_timing.cpp
     src/combat_attack_status_service.cpp
     src/combat_damage_dice.cpp
+    src/combat_damage_stat_bonus.cpp
     src/combat_attack_target.cpp
     src/combat_hand_predicates.cpp
     src/combat_single_hand_eligibility.cpp
@@ -231,6 +232,9 @@ add_test(NAME combat_attack_status_service_tests COMMAND combat_attack_status_se
 add_executable(combat_damage_dice_tests tests/combat_damage_dice_tests.cpp)
 target_link_libraries(combat_damage_dice_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_damage_dice_tests COMMAND combat_damage_dice_tests)
+add_executable(combat_damage_stat_bonus_tests tests/combat_damage_stat_bonus_tests.cpp)
+target_link_libraries(combat_damage_stat_bonus_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_damage_stat_bonus_tests COMMAND combat_damage_stat_bonus_tests)
 add_executable(combat_attack_target_tests tests/combat_attack_target_tests.cpp)
 target_link_libraries(combat_attack_target_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_attack_target_tests COMMAND combat_attack_target_tests)
@@ -604,6 +608,7 @@ set(RLOFT_TEST_TARGETS
     combat_attack_timing_tests
     combat_attack_status_service_tests
     combat_damage_dice_tests
+    combat_damage_stat_bonus_tests
     combat_attack_target_tests
     combat_hand_predicates_tests
     combat_single_hand_eligibility_tests
