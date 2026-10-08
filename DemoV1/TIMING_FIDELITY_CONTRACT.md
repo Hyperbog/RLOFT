@@ -322,3 +322,26 @@ pixel write itself, nor a new timing source. Original
 303C8 per-glyph callbacks, F0C8 refresh, 1A8C8
 composition and IRQ-after-render ordering are still
 mandatory for faithful timed message output.
+
+
+## Original 2A380/2A584 sprite mask, shade pointer and refresh order
+
+Source-backed normal and shaded sprite raster loops now
+write real four-plane bytes to native `VgaPlanarMemory`.
+The complete call chain still orders
+`2939C/293EC -> 2A380/2A584 -> 2E758/F0C8`,
+and the IRQ is not sampled until all original rendering
+callbacks return. The shaded `2A584` code first writes
+the table pointer DWORD to original CODE.2 operands
+`2A60B` and `2A672`, then indexes that 256-byte DOS
+memory table with the original raw sprite color. The
+sentinel branch skips both lookup and VGA write.
+
+The current raster source returns the pointer-patch value
+and the final sequencer plane mask, but does **not yet
+persist** these two live original state side effects.
+An actual in-game renderer must write these values in
+the original order and preserve post-raster F0C8 refresh
+and `1C2C4` post-draw IRQ observation. Do not substitute
+a guessed shade formula, modern framebuffer pitch, or
+host frame clock. [Technical checkpoint](LEVEL22_CODE2_SPRITE_RASTER_CHECKPOINT.md).
