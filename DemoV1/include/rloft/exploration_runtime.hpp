@@ -38,6 +38,12 @@
 
 namespace rloft {
 
+struct SurfacePrepassPlanFailure final {
+    std::uint32_t resource_id{};
+    std::size_t first_ray{};
+    std::string reason;
+};
+
 struct ExplorationRuntimeFrame final {
     ExplorationSceneSnapshot scene{};
     std::vector<ViewSweepRecord> sweep_records;
@@ -62,6 +68,9 @@ struct ExplorationRuntimeFrame final {
     std::vector<ViewSweepRun> sweep_runs;
     SurfaceShadeTable surface_shades{};
     std::vector<SurfacePrepassPlan> prepass_plans;
+    // CODE.2-derived planning can encounter unsupported SINTAB pointer
+    // underflow; the rest of the world frame still must be presented.
+    std::vector<SurfacePrepassPlanFailure> prepass_plan_failures;
 };
 
 class ExplorationRuntime final {
