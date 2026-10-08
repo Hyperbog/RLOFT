@@ -14,6 +14,7 @@
 #include "rloft/resource_assets.hpp"
 #include "rloft/surface_fill.hpp"
 #include "rloft/surface_wall_presenter.hpp"
+#include "rloft/surface_sintab_prepass_executor.hpp"
 #include "rloft/type7_scene_pixel_executor.hpp"
 
 namespace rloft {
@@ -22,6 +23,9 @@ struct ExplorationSurfaceCoverage final {
     std::size_t fallback_main_runs{};
     std::size_t sintab_main_runs_pending{};
     std::size_t sintab_prepass_runs_pending{};
+    std::size_t sintab_prepass_runs_rasterized{};
+    std::size_t sintab_prepass_indexed_writes{};
+    std::size_t sintab_prepass_runs_failed{};
     std::size_t type7_scene_calls_pending{};
     std::size_t type7_visible_columns_pending{};
     std::size_t type7_unvalidated_wide_runs{};
@@ -48,9 +52,16 @@ struct Type7SceneRasterFailure final {
     std::string reason;
 };
 
+struct SurfacePrepassRasterFailure final {
+    std::uint32_t resource_id{};
+    std::size_t first_ray{};
+    std::string reason;
+};
+
 struct ExplorationPresentedFrame final {
     Palette6 palette{};
     ExplorationSurfaceCoverage surface_coverage{};
+    std::vector<SurfacePrepassRasterFailure> surface_prepass_failures;
     std::vector<Type7SceneRasterFailure> type7_failures;
     std::optional<std::string> type7_trace_failure;
 };
@@ -93,6 +104,9 @@ private:
     ExplorationHudPresenter hud_;
     SurfaceWallPresenter walls_;
     SurfaceFillTable fill_table_{};
+    Type7VgaPlaneMaskModel surface_vga_masks_;
+    std::unordered_map<std::uint32_t, SurfaceTexture>
+        surface_texture_cache_;
     std::uint16_t res0_raster_base_{};
     std::uint16_t res1_portrait_base_{};
     std::unordered_map<std::uint16_t, std::vector<std::uint8_t>>
