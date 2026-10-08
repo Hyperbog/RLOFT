@@ -255,4 +255,13 @@ int main() {
     assert(result && result->vga_bytes_written==0U);
     assert(result->source_bytes_consumed==0U);
     assert(result->final_sequencer_plane_mask==2U);
+
+    // Different original zero-width semantics: 2A380's REP MOVSW
+    // can process zero source words, while shaded 2A584 enters a
+    // LODSB/DEC ECX/JNE loop whose zero ECX underflows. Return
+    // unsupported rather than silently turning that loop into
+    // a safe zero-pixel shaded sprite.
+    assert(!CombatOriginalSpriteRasterModel::draw_2a584(
+        mem,empty,0U,video(),lut));
+    assert(mem.read(0xA0000U+80U,2U)==0xA5U);
 }
