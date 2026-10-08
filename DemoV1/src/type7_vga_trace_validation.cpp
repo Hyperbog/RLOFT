@@ -148,4 +148,42 @@ void Type7VgaTraceValidator::validate(
     }
 }
 
+
+void Type7VgaTraceValidator::validate_scene(
+    const Type7VgaSceneTrace& trace,
+    const WorldSceneRenderPlan& plan) {
+    if(trace.runs.size()!=plan.visible_runs.size()) {
+        throw std::invalid_argument(
+            "type-7 scene trace has missing or additional source-column runs");
+    }
+    std::uint32_t current_lookup=plan.traversal.lookup_value;
+    for(std::size_t index=0U;index<trace.runs.size();++index) {
+        const auto& run=trace.runs[index];
+        const auto& original=plan.visible_runs[index];
+        if(run.source_x!=original.source_x ||
+           run.source_column_index!=original.source_column_index ||
+           run.viewport_x!=original.viewport_x ||
+           run.width!=original.width) {
+            throw std::invalid_argument(
+                "type-7 scene trace changed original source-column geometry");
+        }
+        validate(run);
+        const auto initial_pass_lookup=
+            run.individual_columns_mode &&
+            (run.viewport_x&1U)!=0U
+                ? swap_low_bytes(current_lookup)
+                : current_lookup;
+        if(run.dispatch.calls.front().ecx_lookup !=
+           initial_pass_lookup) {
+            throw std::invalid_argument(
+                "type-7 scene trace lost CODE.2 lookup state between runs");
+        }
+        current_lookup=run.dispatch.lookup_after_dispatch;
+    }
+    if(trace.final_lookup_word!=current_lookup) {
+        throw std::invalid_argument(
+            "type-7 scene trace has inconsistent final lookup word");
+    }
+}
+
 } // namespace rloft
