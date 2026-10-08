@@ -30,7 +30,7 @@ int main() {
     // These values are verified in the original DGROUP:67FA table.
     tables.constitution_bonus[0][15]=1;
     tables.constitution_bonus[0][1]=-3;
-    tables.constitution_bonus[1][15]=2;
+    tables.constitution_bonus[1][15]=1;
     tables.constitution_bonus[1][1]=-3;
     party.bytes[0x37U]=15U;
     party.bytes[0x15U]=0U;
@@ -71,25 +71,25 @@ int main() {
     party.bytes[0x15U]=3U;
     outcome=hp(9);
     assert(outcome && outcome->original_die_roll==5U);
-    assert(outcome->final_hp_increase==7);
+    assert(outcome->final_hp_increase==6);
     outcome=hp(10);
-    assert(outcome && outcome->final_hp_increase==4);
+    assert(outcome && outcome->final_hp_increase==3);
 
     // Class 4: d4 until level 10, con+1 beginning level 11.
     party.bytes[0x15U]=4U;
     outcome=hp(10);
     assert(outcome && outcome->original_die_roll==3U);
-    assert(outcome->final_hp_increase==5);
+    assert(outcome->final_hp_increase==4);
     outcome=hp(11);
-    assert(outcome && outcome->final_hp_increase==3);
+    assert(outcome && outcome->final_hp_increase==2);
 
     // Class 5: d6 until level 10, con+2 beginning level 11.
     party.bytes[0x15U]=5U;
     outcome=hp(10);
     assert(outcome && outcome->original_die_roll==4U);
-    assert(outcome->final_hp_increase==6);
+    assert(outcome->final_hp_increase==5);
     outcome=hp(11);
-    assert(outcome && outcome->final_hp_increase==4);
+    assert(outcome && outcome->final_hp_increase==3);
 
     // Multiclass divisor occurs after min-one; for three classes,
     // the final HP increase can be ZERO (do not modernize to >=1).
@@ -139,7 +139,7 @@ int main() {
         assert(loaded->die_sides[4]==4U);
         assert(loaded->die_sides[5]==6U);
         assert(loaded->constitution_bonus[0][15]==1);
-        assert(loaded->constitution_bonus[1][15]==2);
+        assert(loaded->constitution_bonus[1][15]==1);
         auto altered=code;
         altered[0x75F24U+0x67FAU+15U]^=1U;
         assert(!CombatLevelUpHpTables::from_code2(altered));
