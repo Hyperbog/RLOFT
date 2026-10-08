@@ -1,5 +1,21 @@
 # Ravenloft Demo Build v1
 
+## Bounded wider ordinary walls (original CODE.2 mask audit)
+
+[Original 335DC/336F7/3263C mask checkpoint](LEVEL22_CODE2_WIDE_MAIN_SURFACE_MASK_BOUNDARY_20261008.md):
+the native ordinary wall renderer now accepts exact eight-column
+coalesced runs beginning at pixel phases 0, 1, and 2, verified
+directly against original CODE.2 mask bytes. The original never
+splits C6F4 into seven-column chunks. Phase 3 width 8 and all
+widths 9+ remain explicitly unsupported until source/runtime
+state is verified; no guessed overdraw is introduced.
+
+The voluntary `--explore-level22` preview title displays current
+`SINTAB walls rendered/total` and `Wall errors` without altering
+original-resolution pixels. Source code and regressions are committed,
+but the newest executable has **not** been built at this HEAD.
+Formal release acceptance remains **1/5 gates (20%)**.
+
 ## Current visible-rendering milestone — ordinary SINTAB wall pixels
 
 [Original CODE.2 main wall checkpoint](LEVEL22_ORIGINAL_SINTAB_MAIN_WALL_CHECKPOINT_20261008.md):
