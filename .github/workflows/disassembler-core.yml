@@ -1,0 +1,34 @@
+name: DOS disassembler core smoke tests
+on:
+  push:
+    paths:
+      - 'Tools/Disassembler/**'
+      - '.github/workflows/disassembler-core.yml'
+  pull_request:
+    paths:
+      - 'Tools/Disassembler/**'
+      - '.github/workflows/disassembler-core.yml'
+permissions:
+  contents: read
+jobs:
+  core:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build core CLI and synthetic fixtures
+        shell: bash
+        working-directory: Tools/Disassembler
+        run: |
+          dotnet build src/DosDis.Cli/DosDis.Cli.csproj --configuration Release
+          dotnet build tests/DosDis.Smoke/DosDis.Smoke.csproj --configuration Release
+      - name: Run synthetic smoke test suite (no game files)
+        shell: bash
+        working-directory: Tools/Disassembler
+        run: dotnet run --project tests/DosDis.Smoke --configuration Release --no-build
