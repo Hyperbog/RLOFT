@@ -73,6 +73,48 @@ int main() {
     } catch(const std::out_of_range&) {rejected=true;}
     assert(rejected);
 
+    // E845 calls 22E40(actor, class4), not a generic caster
+    // level. Resolve the signed lane from an original party
+    // record before drawing any dice.
+    rloft::PartyImage party{};
+    party.bytes.fill(0xFFU);
+    auto put_level=[&](unsigned lane,std::int16_t value) {
+        const auto at=0x20U+2U*lane;
+        party.bytes[at]=static_cast<std::uint8_t>(value);
+        party.bytes[at+1U]=static_cast<std::uint8_t>(
+            static_cast<std::uint16_t>(value)>>8U);
+    };
+    // No class4 lane => original 22E40 returns 1, giving 1d6.
+    plan=CombatDamageDiceModel::inspect_for_actor(
+        objects,party,0U,0x7F);
+    assert_dice(plan,1U,6U,0,0);
+    party.bytes[0x15U]=4U;
+    put_level(0U,9);
+    plan=CombatDamageDiceModel::inspect_for_actor(
+        objects,party,0U,0x7F);
+    assert_dice(plan,5U,6U,0,0);
+    // First matching lane wins even if a later matching lane
+    // carries a higher level. This affects RNG draw count.
+    party.bytes[0x16U]=4U;
+    put_level(1U,19);
+    plan=CombatDamageDiceModel::inspect_for_actor(
+        objects,party,0U,0x7F);
+    assert_dice(plan,5U,6U,0,0);
+    party.bytes[0x15U]=0xFFU;
+    plan=CombatDamageDiceModel::inspect_for_actor(
+        objects,party,0U,0x7F);
+    assert_dice(plan,10U,6U,0,0);
+    // A spell-hand does not consume a strength damage bonus.
+    plan=CombatDamageDiceModel::inspect_for_actor(
+        objects,party,0U,0x7E);
+    assert_dice(plan,1U,4U,0,0);
+    rejected=false;
+    try {
+        (void)CombatDamageDiceModel::inspect_for_actor(
+            objects,party,4U,0x7F);
+    } catch(const std::out_of_range&) {rejected=true;}
+    assert(rejected);
+
     plan=CombatDamageDiceModel::inspect(objects,0x80);
     assert_dice(plan,2U,6U,0,0);
     assert(plan.hit_effect_code && *plan.hit_effect_code==0x0CU);
