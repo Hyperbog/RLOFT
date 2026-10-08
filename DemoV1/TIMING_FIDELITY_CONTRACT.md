@@ -35,6 +35,17 @@ No universal movement speed in milliseconds, frames per attack, or ANM frame rat
 7. **Treat audible pacing as part of timing fidelity**: animation, UI highlight, sound start/stop, palette fades and event response must remain synchronized to the original authored sequence.
 8. **No completion claim without temporal acceptance**. A model with correct static bytes and endpoints, or a single good screenshot, remains unverified until a time-series comparison is available.
 
+## Original CODE.2 combat cadence — audited requirement
+
+The native `E5F0` source audit now proves **two independent hand time consequences** using the pauseable original `A7E4` maintenance counter:
+
+- A nonzero `C80C` hit writes `actor+0x19E+4*hand = first_A7E4 + floor(action_interval/2)` and stores damage at `actor+0x1AA+4*hand`; a miss does **not** perform those writes.
+- The next callable routine—CODE.2 logical `24B48`—performs action graphics and then, **when the action interval is nonzero, even on a MISS or without a target**, reads `A7E4` again and writes `actor+0x10B+4*hand = second_A7E4 + full_action_interval`. The two clock reads can differ because presentation comes between them.
+- For normal item IDs the interval is `9 * ((OBJECTS WORD +0x35 >>2)&15)`; for empty or pseudo hands it is 18. Original actor effect DWORD at `+0x132 & 0x01000010` halves that interval (integer truncation).
+- Before hit resolution, CODE.2 logical `E578` services pending effect flags across all four actors and the attacking actor's additional state, setting original HUD dirty flags. Such service must not be silently deferred until after the hit or skipped because it is not visible in a still screenshot.
+
+This is a **positive behavioral rule** for all combat implementation and regression acceptance. A missed swing is *not* instantaneous availability for another swing; conversely the hit-ready dword is not a replacement for the full action-busy dword. Neither may be implemented as a generic Windows frame delay. The source-only [combat target and timing checkpoint](LEVEL22_ATTACK_TARGET_AND_TIMING_CHECKPOINT.md) and original [CODE.2 continuity archive](../Code2/CODE2_CONTINUITY_ADDENDUM.md) record exact PC and machine-byte evidence; actual DOS tick calibration and native temporal traces remain required.
+
 ## Measurable timing acceptance and regression plan
 
 - Original DOS **reference traces**: record a representative sequence of timestamps, original tick counts, player 16.16 coordinates/heading, action flags, displayed page/palette, animation frame IDs, sound cues and modal transitions under recorded input. Distinguish measured values from inferences and note DOSBox/hardware/audio configuration.
