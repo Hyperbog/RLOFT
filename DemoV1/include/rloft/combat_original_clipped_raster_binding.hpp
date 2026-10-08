@@ -16,6 +16,7 @@ public:
         CombatOriginalClippedRasterState& original_machine,
         std::function<std::optional<CombatOriginalSpriteMemory>(std::uint32_t)>
             capture_original_sprite,
-        CombatOriginalSpriteClipServices existing);
+        CombatOriginalSpriteClipServices existing,
+        CombatOriginalSpriteMachineState* mutable_code_image=nullptr);
 };
 } // namespace rloft
