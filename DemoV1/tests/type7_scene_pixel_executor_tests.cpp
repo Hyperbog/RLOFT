@@ -106,6 +106,26 @@ int main() {
         rejected=true;
     }
     assert(rejected);
+
+    // This scene has valid SINTAB bytes and valid individual mask passes,
+    // but its purported final lookup word is corrupted. The complete
+    // 36B14 execution record must be rejected BEFORE any pixel is written.
+    auto wrong_state=trace;
+    wrong_state.final_lookup_word=0x1234U;
+    rloft::VgaPlanarMemory untouched;
+    rejected=false;
+    try {
+        (void)rloft::Type7ScenePixelExecutor::draw(
+            plan,wrong_state,{0xA5U,0xB1U},tables,untouched);
+    } catch (const std::invalid_argument&) {
+        rejected=true;
+    }
+    assert(rejected);
+    assert(untouched.read(
+        rloft::VgaPlanarMemory::kPhysicalBase+80U,0U)==0U);
+    assert(untouched.read(
+        rloft::VgaPlanarMemory::kPhysicalBase+160U,0U)==0U);
+
     // Fully hidden sprites produce no writes or RES3 source reads.
     rloft::WorldSceneRenderPlan hidden{};
     rloft::Type7VgaSceneTrace empty{};
