@@ -50,4 +50,4 @@ These are **newly bounded control-flow findings**, not implemented playable atta
 4. Connect the *distinct* `0x01` action route to `C80C` accuracy only after the original `E5F0` attack dispatcher, `DB94` target selection, damage dice, `C910` category gate and cooldown/feedback are implemented.
 5. Replay original-game input and indexed screenshots before labeling a working combat step.
 
-**Completion:** bounded live hand/actor-panel milestone **60% (3/5 acceptance gates)** before CI; overall faithful demo **20%**.
+**Completion:** bounded live hand/actor-panel milestone **80% (4/5 acceptance gates)** after [Windows CI run #631](https://github.com/Hyperbog/RLOFT/actions/runs/37719712911) passed 102/102 CTests and published the EXE; remaining gate is original-game playtest/DOS gesture mapping. Overall faithful demo **20%**.
