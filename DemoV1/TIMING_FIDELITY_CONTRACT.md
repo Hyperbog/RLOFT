@@ -395,3 +395,34 @@ native effects and DOS trace comparison. Never
 pre-sample IRQ time, omit the 1024-byte backing move
 or change signed edge comparisons into ordinary
 unsigned rectangle intersection.
+
+
+## Original 2A078 VGA latch-copy versus DGROUP 30CD4 move
+
+The `1A8C8` screen-compositor wrapper now connects to an
+actual native `2A078` four-plane VGA **write-mode-1**
+rectangle copy. `2A078` momentarily selects the destination
+VGA page, computes its byte address via `2AB38`, restores
+the original source `EFE9/F001` page via `2AB6C`,
+sets graphics controller 05h to `0x41`, selects
+sequencer plane mask `0x0F`, then performs the original
+**FORWARD** `REP MOVSB` with full four-plane latches
+on each source read. Mode 05h is set back to `0x40`
+after copying, while the sequencer mask persists.
+Overlapping VGA copies intentionally do **not** use
+an overlap-aware memmove.
+
+By contrast, original `30CD4` is an independent
+DGROUP overlap-aware move that uses original unsigned
+source/destination comparisons and may copy **backward**.
+The native `1A8C8` backing callback can now execute its
+exact 1024-byte memory move after the planar copy and
+before the overlay restore call.
+
+The complete `1C258 -> 1A8C8 -> 2A078 -> 30700`
+order is preserved in the injectable native bridge.
+Original `1A288` overlay suspension, `1AB20`
+restoration, actual DOS resource state and pixel/frame
+comparisons remain outstanding. No Windows host-clock
+source has been substituted. See
+[the original-code checkpoint](LEVEL22_CODE2_2A078_30CD4_COPY_CHECKPOINT.md).
