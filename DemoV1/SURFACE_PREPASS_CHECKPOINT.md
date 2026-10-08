@@ -33,3 +33,23 @@ The second path's actual pre-block bytes and whether it is reachable in the supp
 ## Next renderer slice
 
 Translate the original `32620` surface SINTAB call ABI and `3263C` prepass mask/page sequence to a validated, transactional VGA trace before running SINTAB bytecode. Verify both the selected entry/stop and the exact original source texture bytes. Compare plane output to original DOS frames before decrementing any pending-surface coverage count.
+
+
+## Implemented native prepass raster stage (subsequent October 7 checkpoint)
+
+**Original call evidence:** CODE.2 `32620..3263A` takes three stack arguments: generated-code entry pointer, destination EDI and lookup/subtract ECX; ESI is the live decoded RES4 column from dgroup `255E4`. The parent `3263C` computes the destination using `EF4D` page selection, `(C6F8>>2)+C6E0`, and the prepass's `row_shift*80` subtraction. It obtains three sequencer masks at `C668/C688/C6A8`, temporarily installs `RET` at the SINTAB entry for vertical slot `signed_byte[25621]+1`, invokes `32620` in active mask-pass order, and restores that byte.
+
+The new `SurfaceSintabPrepassExecutor::draw` in `DemoV1/src/surface_sintab_prepass_executor.cpp` uses the already decoded original type-6 RES4 column, original SINTAB six-opcode interpreter, exact CODE.2 plane-mask tables, and the existing SINTAB prepass entry/stop plan. It works on a copy of all four VGA planes, so failure after an earlier successful store cannot corrupt the caller's video memory. Its argument checks reject incompatible surface extents, run widths outside the modeled 1..7 mask-table domain, invalid source offsets, code-selector mismatches and unsupported code execution.
+
+`ExplorationPresenter` now draws supported prepass runs **before** the ordinary main wall pass and before type-7 scene sprites; it caches decoded RES4 textures and emits per-run rasterization counts, indexed write counts and resource/first-ray-specific failure reasons. `ExplorationRuntime::build_frame` records strict `SurfacePrepassModel::build` failures without suppressing an otherwise valid world/navigation frame. A prepass is counted as rendered only on a fully committed VGA write; failed and unplanned work remains pending in surface coverage.
+
+New registered synthetic test `surface_sintab_prepass_executor_tests` exercises a real SINTAB opcode sequence, phase-three three-pixel VGA masks spanning two memory bytes, shade subtraction, page-one isolation, invalid selectors/widths and rollback on an invalid second source read. The earlier `surface_prepass_tests` continue to cover successful/underflow scale-table search.
+
+**Evidence/acceptance boundary:** source and tests are committed, and the original CODE.2 instructions were independently disassembled. A passing Windows CTest run, original RES4+SINTAB pixel fingerprint match, complete ordinary main-pass SINTAB drawing, and DOS screenshot equivalence are **not yet established**. Do not mark the renderer or demo 100% complete.
+
+### Revised next steps
+
+1. Complete ordinary `FCD0=0` surface SINTAB drawing for extents at or below `C730`, retaining the `338C8` generic fallback at greater extents.
+2. Validate prepass/main sequencing, sprite overdraw and original generated-code call geometry against instrumented original DOS indexed VGA traces.
+3. Ensure all supported/unsupported surface runs remain accurately represented in pending coverage and diagnostic reports.
+4. Run a complete Windows C++ build and the new CTest suite on the updated branch, then verify original resources with the existing optional asset-gated pixel regression harness.
