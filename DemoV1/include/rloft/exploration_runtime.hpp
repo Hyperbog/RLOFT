@@ -42,6 +42,13 @@ struct ExplorationRuntimeFrame final {
     std::vector<ViewSweepRecord> sweep_records;
     std::vector<WorldSceneRecord> world_scene_records;
     std::uint64_t world_scene_revision{};
+    // The public session() accessor permits camera motion independently
+    // of gameplay inventory/world mutations. Preserve the exact 16.16
+    // camera coordinates and facing used to build the hit rectangles.
+    std::uint32_t source_coordinate_a{};
+    std::uint32_t source_coordinate_b{};
+    std::uint32_t source_facing{};
+    int source_level_id{};
     std::vector<WorldSceneDrawCall> world_scene_draw_calls;
     std::vector<WorldSceneRenderPlan> world_scene_render_plans;
     std::optional<Type7VgaFrameTrace> scene_vga_trace;
