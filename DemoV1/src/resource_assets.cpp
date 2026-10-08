@@ -660,7 +660,30 @@ Type7NativeRaster ResArchive::decode_type7_native_raster(
 }
 
 Type7Geometry ResArchive::decode_type7_geometry(int index) const {
-    return decode_type7(index).geometry;
+    // CODE.2 21BF0 needs only the five decoded geometry words. It does
+    // not traverse column pointers or the 6-byte compiled display lists.
+    // Keep geometry-only consumers independent of later rasterizer data;
+    // decode_type7() remains the strict full-body/display-list validator.
+    const auto body=decode_type7_body(index);
+    Type7Geometry geometry{};
+    geometry.source_width=u16(body.data()+0U);
+    geometry.x_min=s16(body.data()+2U);
+    geometry.x_max=s16(body.data()+4U);
+    geometry.y_min=s16(body.data()+6U);
+    geometry.y_max=s16(body.data()+8U);
+    if (geometry.source_width==0U ||
+        (geometry.source_width&1U)!=0U ||
+        geometry.x_min<0 ||
+        geometry.x_max<geometry.x_min ||
+        geometry.x_max>=static_cast<std::int16_t>(
+            geometry.source_width) ||
+        geometry.y_min<0 ||
+        geometry.y_max<geometry.y_min ||
+        geometry.y_max>128) {
+        throw std::runtime_error(
+            "Type-7 scene-shape geometry is invalid");
+    }
+    return geometry;
 }
 
 std::vector<std::uint8_t> ResArchive::decode_type4(int index) const {
