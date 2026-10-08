@@ -528,3 +528,33 @@ after the entire draw/restore chain completes.
 Do not eagerly flatten the backing into a
 modern framebuffer or omit zero-width callbacks.
 [Source checkpoint](LEVEL22_CODE2_2A114_2A178_VGA_BACKING_CHECKPOINT.md).
+
+
+## Original 1A3B8 / 2AE30 / 29804 overlay callback chronology
+
+The source-backed 1A288 overlay activation now can
+call native 1A3B8 positioning with exact signed
+A6B4/A6B6 clamps; it executes 33C90 **before**
+or **after** particular global WORD stores depending
+on which of the distinct A6BE/A6BC modes is active.
+It outputs three live pointer values including 9E35
+after callbacks return. A nonzero D680 resets both
+modes and calls 1F820.
+
+Source `2AE30` reads the **opposite scene page**
+using `C050 XOR 1`, rereads the scene-record
+count at F038, and checks 22-byte record bounds
+before optional 2AD18/2ADE0 predicate callbacks.
+The first true predicate skips the second. Finally
+native 29804 **increments live EFD4 before**
+passing its 24-byte draw-record pointer at
+EF74+(EFD4_before*24) to 29414, then decrements
+the *live* EFD4 value after the nested renderer
+returns. No additional rendering or original
+IRQ observations are moved ahead of these calls.
+
+[Technical checkpoint](LEVEL22_CODE2_POSITION_PROBE_DRAW_CHECKPOINT_20261008.md)
+records source branches, callback boundaries and
+4 new CTests. The resulting VGA output still needs
+reference-DOS comparison and true 29414/predicate
+implementations.
