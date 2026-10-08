@@ -157,6 +157,7 @@ void Type7VgaTraceValidator::validate_scene(
             "type-7 scene trace has missing or additional source-column runs");
     }
     std::uint32_t current_lookup=plan.traversal.lookup_value;
+    std::size_t expected_descriptor_index=0U;
     for(std::size_t index=0U;index<trace.runs.size();++index) {
         const auto& run=trace.runs[index];
         const auto& original=plan.visible_runs[index];
@@ -168,6 +169,42 @@ void Type7VgaTraceValidator::validate_scene(
                 "type-7 scene trace changed original source-column geometry");
         }
         validate(run);
+        // WorldSceneRenderPlanModel has already expanded each accepted
+        // source-column run into one Type7MicrocodeDraw per *destination*
+        // column and native 6-byte display-list descriptor. The VGA
+        // trace intentionally stores that list only once per run, but
+        // its contents and length must still match the original plan.
+        // Otherwise an omitted descriptor could falsely count as a
+        // fully drawn NPC or item even though zero pixels were written.
+        for(std::size_t destination=0U;
+            destination<run.width;
+            ++destination) {
+            for(const auto& actual:run.descriptors) {
+                if(expected_descriptor_index>=plan.microcode_draws.size()) {
+                    throw std::invalid_argument(
+                        "type-7 VGA scene trace added a descriptor absent from the plan");
+                }
+                const auto& expected=
+                    plan.microcode_draws[expected_descriptor_index++];
+                if(expected.viewport_x!=run.viewport_x+destination ||
+                   expected.source_x!=actual.source_x ||
+                   expected.source_column_index!=actual.source_column_index ||
+                   expected.descriptor_index!=actual.descriptor_index ||
+                   expected.source_row_begin!=actual.source_row_begin ||
+                   expected.source_row_end!=actual.source_row_end ||
+                   expected.signed_source_adjustment!=
+                       actual.signed_source_adjustment ||
+                   expected.entry_selector!=actual.entry_selector ||
+                   expected.stop_selector!=actual.stop_selector ||
+                   expected.entry_patch_offset!=actual.entry_patch_offset ||
+                   expected.stop_patch_offset!=actual.stop_patch_offset ||
+                   expected.entry_code_offset!=actual.entry_code_offset ||
+                   expected.stop_code_offset!=actual.stop_code_offset) {
+                    throw std::invalid_argument(
+                        "type-7 VGA scene descriptor differs from the original render plan");
+                }
+            }
+        }
         const auto initial_pass_lookup=
             run.individual_columns_mode &&
             (run.viewport_x&1U)!=0U
@@ -179,6 +216,10 @@ void Type7VgaTraceValidator::validate_scene(
                 "type-7 scene trace lost CODE.2 lookup state between runs");
         }
         current_lookup=run.dispatch.lookup_after_dispatch;
+    }
+    if(expected_descriptor_index!=plan.microcode_draws.size()) {
+        throw std::invalid_argument(
+            "type-7 VGA scene trace omitted original SINTAB descriptors");
     }
     if(trace.final_lookup_word!=current_lookup) {
         throw std::invalid_argument(
