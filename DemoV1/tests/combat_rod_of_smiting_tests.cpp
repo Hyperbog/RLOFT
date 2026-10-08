@@ -1,4 +1,5 @@
 #include "rloft/combat_rod_of_smiting.hpp"
+#include "rloft/combat_hit_check.hpp"
 
 #include <cassert>
 #include <cstdint>
@@ -28,6 +29,22 @@ int main() {
         assert(!p.additional_dice);
         assert(!p.charge_consumed && p.skip_c910);
     }
+    // Connect both independent original primitives in a model
+    // regression: even raw d20 20 creates original C80C EAX=1,
+    // so the Rod may not enter its unreachable charged branch.
+    rloft::CombatHitCheckInputs original_hit{};
+    original_hit.base_attack_target=255U;
+    original_hit.raw_d20=20U;
+    const auto original_hit_result=
+        rloft::CombatHitCheckModel::resolve(original_hit);
+    assert(original_hit_result.hit);
+    assert(original_hit_result.modified_d20==20);
+    assert(original_hit_result.original_eax_return==1U);
+    const auto original_rod=CombatRodOfSmitingModel::inspect(
+        0x17U,original_hit_result.original_eax_return);
+    assert(original_rod.additional_dice &&
+           !original_rod.charge_consumed);
+
     // Passing the underlying raw d20==20 as the value of C80C
     // would wrongly activate unreachable charge branches.
     bool rejected=false;
