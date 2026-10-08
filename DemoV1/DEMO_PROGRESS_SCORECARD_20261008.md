@@ -76,3 +76,25 @@ Windows MSVC run. Original overlay suspension/restore
 and DOS pixel/IRQ comparison are still unaccepted.
 These accomplishments improve shared engine coverage
 but do not constitute another formal end-to-end gate.
+
+
+## Latest original overlay implementation — 1A288/1AB20
+
+Source-backed native callbacks now preserve the
+original 1A288/1AB20 16-bit overlay reference
+counter, first-activation capture, conditional
+draw modes, and last-reference restoration
+ordering, including the full 1A8C8 compositor
+handoff. The source checker has **803 named
+x86 byte checks at 795 distinct addresses**.
+Focused local Debug, Release and UBSan checks
+passed for the overlay branch engine; the
+new integrated CTest awaits a complete Windows
+run at this branch HEAD.
+
+These are additional reusable engine milestones.
+The underlying page-stack, graphics capture and
+DOS timing/pixel equivalence remain unaccepted,
+so **1 of 5 formal release gates** is still the
+correct discrete acceptance score, not the
+percentage of engineering completed.
