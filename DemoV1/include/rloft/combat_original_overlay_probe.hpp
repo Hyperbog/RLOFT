@@ -21,6 +21,9 @@ struct CombatOriginalOverlayProbeServices final {
     // Missing memory is distinct from a genuine zero WORD.
     std::function<std::optional<std::uint16_t>(std::uint32_t)>
         original_word;
+    // Optional authoritative BYTE[D680] provider. Original
+    // 2AE30 tests this LIVE global on entry, shared with 1A3B8.
+    std::function<std::uint8_t()> live_disabled_d680;
     // Original 2AD18 and 2ADE0 predicates are evaluated in
     // source order only on a visible flag-zero matching record.
     std::function<std::optional<bool>(std::uint32_t)>
