@@ -133,3 +133,23 @@ comparison is still needed for formal fidelity.
 **Formal demo acceptance: 1/5 release gates.**
 Engineering progress continues but is not
 assigned an unsupported single percentage.
+
+
+## New 2A114/2A178 full-plane backing implementation
+
+The earlier statement that 2A114 and 2A178
+were injected unimplemented pixel services
+has now been superseded for their bounded
+original VGA **four-plane byte transfer** by
+[the source checkpoint](LEVEL22_CODE2_2A114_2A178_VGA_BACKING_CHECKPOINT.md).
+A native binder connects their exact bytes and
+register effects through the existing
+292BC/2932C clipped overlay callbacks,
+including zero-column restore and its
+original raw FF02h sequencer write.
+
+The byte ledger now has **908 named/900
+distinct original code-address checks**.
+The full DOS resource and overlay runtime
+effects remain awaiting integration and
+reference-frame comparison.
