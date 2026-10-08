@@ -18,10 +18,27 @@ snapshot-invalidating world state, are documented in
 
 **Do not label the demo finished yet.** SINTAB wall/prepass rendering, final
 original-frame equivalence, actual host mouse/combat-input bindings, relic
-transition integration, and full C++ build verification remain open.
-Development commits continue on `demo-v1` even if GitHub Actions jobs cannot
-start due to runner availability.
+transition integration, remain open.
+Development commits continue on `demo-v1`; the Windows CI workflow handles
+native-source changes while Linux is manual opt-in.
 
+
+## Certified preservation reference
+
+The complete original-engine preservation documentation is mirrored as
+[PreservationArchive/](../PreservationArchive/00_SCOPE_EVIDENCE_BASELINE_AND_OPEN_QUESTIONS.md)
+from the pinned `code1-decompilation` source, including the 22 completed
+static chapters and the separate 91-task future research register. See
+[PRESERVATION_INTEGRATION_ROADMAP.md](PRESERVATION_INTEGRATION_ROADMAP.md)
+for the original-code-to-native source map, open acceptance tests, and the
+known CODE.2 reconstruction revision difference between branches.
+
+The native demo is a **separate** workstream. GitHub Actions run #572 passed
+full Linux and Windows compilation/tests (99/99 Linux tests; Windows
+executable published), but original-frame equivalence and the full Level 22
+Assassin/relic/transition gameplay remain unverified. Automatic Linux jobs
+are intentionally paused to save Actions minutes; Windows builds and tests
+remain available for native changes.
 
 ## Asset policy
 
