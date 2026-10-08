@@ -1,5 +1,25 @@
 # Ravenloft Demo Build v1
 
+## Latest preservation checkpoint — original class levels and attack target
+
+The [DDA4/DBD4 source checkpoint](LEVEL22_DDA4_THRESHOLDS_DBD4_CHECKPOINT.md)
+adds bounded C++ models for six original class tables (20 XP thresholds each)
+and the original class-specific DBD4 attack-target coefficients.
+All source tables are loaded from the user-owned CODE.2 executable,
+fingerprint checked and never embedded/distributed as asset dumps.
+The CODE.2 verifier now has **347 original instruction signatures,
+one direct Strength data anchor and two hashed original data tables**.
+An isolated strict C++17 core test passed against original CODE.2 in
+Debug and Release; the full Windows game has **not** been rebuilt.
+
+Importantly, original level changes invoke 50DC/3EA4/3DE4/3210F/1C21C/DC7C
+before DBD4 recalculates the attack target. These side effects are
+**not** currently simulated and the new models are read-only.
+Native XP, level-up and party-stat mutation remain gated on full
+original instruction-order validation. Overall release acceptance
+remains **20% (1/5 major gates)**.
+
+
 ## DDA4 original experience distribution — next source checkpoint
 
 The [DDA4 experience checkpoint](LEVEL22_DDA4_EXPERIENCE_CHECKPOINT.md)
