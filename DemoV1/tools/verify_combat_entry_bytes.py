@@ -300,6 +300,24 @@ ANCHORS = {
     "E55B nonlethal def plus41": (0xE55B, "0fb74041"),
     "E564 nonlethal global plus258C0": (0xE564, "0305c0580200"),
     "E56B nonlethal effect call": (0xE56B, "e8a09b0100"),
+    # E0F8 is a real RNG/map/NPC mutation path, not an
+    # abstract respawn flag. Only actual observed E0F8 results
+    # may authorize skipping E539's death-bit write.
+    "E0F8 reads original 30700 tick": (0xE0FE, "e8fd250200"),
+    "E109 invokes original 290D0": (0xE109, "e8c2af0100"),
+    "E11B first 30CA2 candidate RNG": (0xE11B, "e8822b0200"),
+    "E134 second 30CA2 candidate RNG": (0xE134, "e8692b0200"),
+    "E158 level cell bit40 exclusion": (0xE158, "f680e098010040"),
+    "E165 level cell occupancy exclusion": (0xE165, "f680e09801003f"),
+    "E185 candidate x displacement 15": (0xE185, "83f80f"),
+    "E19C candidate y displacement 15": (0xE19C, "83f80f"),
+    "E1D6 retries up to three": (0xE1D6, "83fe03"),
+    "E1DF all three attempts exhausted": (0xE1DF, "83fe03"),
+    "E1E8 respawn slot record stride 22": (0xE1E8, "6b74241416"),
+    "E201 respawn state word 8000": (0xE201, "66c786804d01000080"),
+    "E233 original 1C328 respawn HP roll": (0xE233, "e8f0e00000"),
+    "E26D successful respawn literal one": (0xE26D, "b801000000"),
+    "E279 no-respawn literal zero": (0xE279, "31c0"),
 }
 
 # Original object-2 DGROUP contents (not x86 code). These 26
