@@ -290,11 +290,8 @@ int main() {
     } catch(const std::invalid_argument&) {rejected=true;}
     assert(rejected);
 
-    // No observable mutation from any of the short-circuit paths.
+    // No observable mutation from the valid paired-pseudo shortcut.
     const auto before=p.bytes;
-    rejected=false;
-    try {(void)evaluate(objects);}
-    catch(const std::invalid_argument&) {rejected=true;}
-    assert(rejected);
+    (void)evaluate(objects);
     assert(p.bytes==before);
 }
