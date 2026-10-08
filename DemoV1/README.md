@@ -1,6 +1,44 @@
 # Ravenloft Demo Build v1
 
 
+## Original 2A114/2A178 four-plane overlay backing bytes
+
+[Original VGA backing checkpoint](LEVEL22_CODE2_2A114_2A178_VGA_BACKING_CHECKPOINT.md)
+adds native source-backed **actual four-plane VGA capture and
+restoration** below the previously reconstructed `292BC`
+and `2932C` signed overlay-clipping services. `2A114`
+reads planes 0–3 into four contiguous blocks of original
+DGROUP backing bytes while selecting graphics-controller
+read-map index `04h`. `2A178` restores those blocks
+using sequencer map masks `1,2,4,8` and finishes
+with the exact original **`OUT 03C4h,FF02h`**.
+The VGA state now preserves both raw `0xFF`
+and effective lower-four-bit mask `0x0F`.
+
+The original **zero-width restore** case is reproduced:
+starting at column 3 still transfers one physical byte
+per plane, whereas an aligned zero-width restore
+writes no pixels but still updates hardware mask state.
+An injected native binder supplies both raster services
+to the existing clipped overlay chain, reusing live
+`F001/EFED/EFF1/EFF9` rather than hardcoded geometry.
+
+**53 new original CODE.2 signatures** raise the
+byte-verification ledger to **908 named / 900
+distinct instruction sites**. The exact committed
+raster source passed isolated strict C++17
+Debug/Release/UBSan tests against compatible VGA/DGROUP
+interfaces. The two new registered CTests and full
+Windows EXE have **not** yet been built at current HEAD.
+Remaining fidelity work: original `1A3B8` coordinate
+selection, `2AE30` hit testing, `29804` drawing,
+live game-resource binding and DOS A/B frame/IRQ checks.
+
+Formal demo acceptance is **1/5 gates**, distinct
+from unmeasured overall engineering progress.
+
+
+
 ## Original 292BC/2932C backing-image clipping reconstructed
 
 [Original backing clip checkpoint](LEVEL22_CODE2_OVERLAY_BACKING_CLIP_CHECKPOINT.md)
