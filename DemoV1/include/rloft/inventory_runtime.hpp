@@ -26,6 +26,12 @@ struct ContainerRuntimeState final {
     std::vector<std::int16_t> items;
 };
 
+enum class InventoryHandSwapStatus : std::uint8_t {
+    NoChange,
+    Swapped,
+    Unsupported
+};
+
 enum class InventoryOrdinarySwapStatus : std::uint8_t {
     NoChange,
     Swapped,
@@ -51,6 +57,16 @@ struct InventoryRuntimeState final {
         const ObjectCatalog& objects,
         std::size_t actor,
         std::size_t slot);
+
+    // CODE.2 214B8, pointer flag 08h: swap held item with actor
+    // item[14+hand]. Only the ordinary, non-container / non-special
+    // exchange is enabled. Clear this hand's +18E/192 readiness field.
+    // Separate pointer flag 01h invokes *use/attack*, NOT this method.
+    [[nodiscard]] InventoryHandSwapStatus swap_hand_slot(
+        PartyImage& party,
+        const ObjectCatalog& objects,
+        std::size_t actor,
+        std::size_t hand);
 
     [[nodiscard]] bool has_object(
         const PartyImage& party,
