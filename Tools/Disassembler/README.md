@@ -18,7 +18,7 @@ dotnet run --project tests/DosDis.Smoke
 dotnet run --project tests/DosDis.Smoke -- /path/to/CODE.1 /path/to/CODE.2
 ```
 
-Windows and Linux CI jobs upload self-contained `DOSDis-CLI-win-x64-preview` and `DOSDis-CLI-linux-x64-preview` artifacts for testing (not endorsed production releases).
+**Windows-only policy (2026-10-08):** CI runs only on Windows and publishes only `DOSDis-CLI-win-x64-preview`. Linux build, test and publish jobs have been disabled at the project owner's request. This is a preview, not an endorsed production release.
 
 `inspect` emits JSON with immutable source SHA-256, LE module/object/page mappings, entry point, and evidence-tagged File Intelligence fields. `disasm` emits structured instruction records (original bytes, object offset, assembly, flow-control category).
 
@@ -88,4 +88,8 @@ Earlier sections of this README describe the Part 14 baseline; Part 15 and Part 
 
 ### Part 16 original-game checkpoint
 
-The self-contained Linux x64 CI artifact was run separately against the uploaded, SHA-256-verified original CODE files (not uploaded to CI). Entry-seeded static analysis identified 10,997 candidate CODE.1 instructions and 41,720 candidate CODE.2 instructions, with no instruction-budget truncation at 100,000. The known CODE.2 shared-return test passed. These counts **are not complete original-game instruction inventories** and are not behavior-fidelity percentages. See [Part 16 checkpoint](docs/CFG_ANALYSIS_CHECKPOINT.md).
+A historical Part 16 Linux x64 artifact was run separately against the uploaded, SHA-256-verified original CODE files (not uploaded to CI). That previous test is retained as evidence; no further Linux builds are planned. Entry-seeded static analysis identified 10,997 candidate CODE.1 instructions and 41,720 candidate CODE.2 instructions, with no instruction-budget truncation at 100,000. The known CODE.2 shared-return test passed. These counts **are not complete original-game instruction inventories** and are not behavior-fidelity percentages. See [Part 16 checkpoint](docs/CFG_ANALYSIS_CHECKPOINT.md).
+
+## Optional AI assistant (design only)
+
+See [docs/AI_ASSISTANCE_ARCHITECTURE.md](docs/AI_ASSISTANCE_ARCHITECTURE.md) for the optional provider-neutral conversational assistant, model/effort controls, official ChatGPT sign-in eligibility, API/local providers, read-only analysis tools, and approval-gated annotation proposals. **No LLM integration, account connection, or automatic language generation is implemented yet.**
