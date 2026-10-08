@@ -64,7 +64,10 @@ rloft::ObjectCatalog objects() {
     bytes[c + 0x2F] = 1;
     bytes[c + 0x31] = 0;
 
-    // Objects 3/4/5 are ordinary target items.
+    // Objects 3/4/5 are ordinary target items. Categories 0F/0D
+    // are alternate CODE.2 211D8 hand/container placement branches.
+    bytes[4U + 6U*0x41U + 0x2FU] = 0x0FU;
+    bytes[4U + 7U*0x41U + 0x2FU] = 0x0DU;
     return rloft::ObjectCatalog::parse(bytes);
 }
 
@@ -265,4 +268,59 @@ int main() {
         (void)runtime.swap_ordinary_slot(party,catalog,0U,12U);
     } catch (const std::out_of_range&) { rejected=true; }
     assert(rejected);
+
+    // CODE.2 211D8 short path: held item -> first free ordinary
+    // slot in the clicked actor panel, no full modal required.
+    // This direct insertion intentionally does NOT update the
+    // item-known bitfield; it copies only the object ID.
+    rloft::PartyImage quick_party{};
+    quick_party.bytes.fill(0xFFU);
+    quick_party.bytes[0x10U]=0U;
+    quick_party.bytes[0x11U]=0U;
+    set_item(quick_party,0U,0U,3);
+    quick_party.bytes[0x12BU]=0x02U; // stale known bit at empty slot1
+    runtime.held={4,0U};
+    assert(runtime.quick_stash_held(quick_party,catalog,0U)==
+           rloft::InventoryQuickStashStatus::Stashed);
+    assert(get_item(quick_party,0U,1U)==4);
+    assert(quick_party.bytes[0x12BU]==0x02U);
+    assert(runtime.held.object_id==-1);
+    assert(runtime.held.known==0U);
+
+    // First occupied free slot is skipped; verified 12-slot scan
+    // chooses slot 2 on the next eligible insertion.
+    runtime.held={5,1U};
+    assert(runtime.quick_stash_held(quick_party,catalog,0U)==
+           rloft::InventoryQuickStashStatus::Stashed);
+    assert(get_item(quick_party,0U,2U)==5);
+    assert((quick_party.bytes[0x12BU] & 0x04U)==0U);
+    assert(runtime.held.object_id==-1);
+
+    assert(runtime.quick_stash_held(quick_party,catalog,0U)==
+           rloft::InventoryQuickStashStatus::NothingHeld);
+
+    // The original inventory-full branch must preserve the held item.
+    for(std::size_t slot=0U; slot<12U; ++slot)
+        set_item(quick_party,0U,slot,3);
+    const auto full_party=quick_party.bytes;
+    runtime.held={4,1U};
+    assert(runtime.quick_stash_held(quick_party,catalog,0U)==
+           rloft::InventoryQuickStashStatus::Full);
+    assert(quick_party.bytes==full_party);
+    assert(runtime.held.object_id==4);
+    assert(runtime.held.known==1U);
+
+    // Category0F and 0D take alternate original paths. Do not
+    // coerce either into an ordinary stash.
+    set_item(quick_party,0U,10U,-1);
+    for(const auto special : {6,7}) {
+        runtime.held={static_cast<std::int16_t>(special),1U};
+        const auto prior=quick_party.bytes;
+        assert(runtime.quick_stash_held(quick_party,catalog,0U)==
+               rloft::InventoryQuickStashStatus::Unsupported);
+        assert(quick_party.bytes==prior);
+        assert(runtime.held.object_id==special);
+    }
+    assert(runtime.quick_stash_held(quick_party,catalog,2U)==
+           rloft::InventoryQuickStashStatus::Unsupported);
 }
