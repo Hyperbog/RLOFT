@@ -39,19 +39,19 @@ CombatOriginalCompositeRoute CombatOriginalCompositeModel::inspect_1a8c8(
         return CombatOriginalCompositeRoute::DirectWithoutOverlay;
 
     // 1A8FC..1A92C: OVERLAP compares signed DWORD coordinates,
-    // inclusively, against a 32x16 overlay. x+width and y+height
-    // use 32-bit wrap, and original signed conditional branches.
-    const auto overlay_right=static_cast<std::uint32_t>(
+    // inclusively, against an overlay of 32 rows by 16 columns.
+    // row+rows and column+columns wrap as original DWORD ADDs.
+    const auto overlay_row_end=static_cast<std::uint32_t>(
         static_cast<std::int32_t>(state.overlay_row_9e31)+0x20);
-    const auto overlay_bottom=static_cast<std::uint32_t>(
+    const auto overlay_column_end=static_cast<std::uint32_t>(
         static_cast<std::int32_t>(state.overlay_column_9e33)+0x10);
     const auto overlay_row=static_cast<std::int64_t>(
         state.overlay_row_9e31);
     const auto overlay_column=static_cast<std::int64_t>(
         state.overlay_column_9e33);
-    if(signed_dword(overlay_right)<signed_dword(rect.row) ||
+    if(signed_dword(overlay_row_end)<signed_dword(rect.row) ||
        overlay_row>signed_dword(rect.row+rect.rows) ||
-       signed_dword(overlay_bottom)<signed_dword(rect.column) ||
+       signed_dword(overlay_column_end)<signed_dword(rect.column) ||
        overlay_column>signed_dword(rect.column+rect.columns))
         return CombatOriginalCompositeRoute::DirectOutsideOverlay;
 
@@ -73,7 +73,8 @@ CombatOriginalCompositeRoute CombatOriginalCompositeModel::run_1a8c8(
             "original 1A8C8 overlap needs 1A288,30CD4,1AB20");
 
     // 1A8A3..1A8B2: original 2A078 uses the page argument with
-    // its LOW BIT flipped, but keeps its remaining 31 bits.
+    // its LOW BIT flipped, but keeps its remaining 31 bits. The
+    // source 2A078 arguments are row,column,row,column,rows,columns.
     const auto copy=[&](){
         service.copy_rect_2a078(
             rect.page^1U,rect.row,rect.column,
