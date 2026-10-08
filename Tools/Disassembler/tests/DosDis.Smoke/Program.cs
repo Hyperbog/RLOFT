@@ -181,6 +181,117 @@ try
     var limited = ControlFlowAnalysis.Analyze(graphImage, maxInstructions: 1);
     Equal(limited.Truncated, true, "analysis budget truncation is disclosed");
     Equal(limited.Instructions.Count, 1, "analysis respects budget");
+    // Part 17: relocation-backed, indexed dword jump tables are CANDIDATES,
+    // not proof of all runtime index values. The synthetic fixture uses an
+    // explicit absolute LE fixup at every table element.
+    var tableBytes = MakeFixture(false);
+    Dword(tableBytes, 0x80 + 0xc4, 96);
+    Dword(tableBytes, 0x80 + 0x2c, 96);
+    new byte[] { 0xFF, 0x24, 0x85, 0x40, 0x00, 0x01, 0x00 }
+        .CopyTo(tableBytes, 0x200); // jmp dword ptr [eax*4+0x10040]
+    tableBytes[0x200 + 0x20] = 0xC3;
+    tableBytes[0x200 + 0x28] = 0xC3;
+    tableBytes[0x200 + 0x30] = 0xC3;
+    Dword(tableBytes, 0x80 + 0x68, 0xe0);
+    Dword(tableBytes, 0x80 + 0x6c, 0xe8);
+    Dword(tableBytes, 0x80 + 0xe4, 21);
+    for (int i = 0; i < 3; i++)
+    {
+        int at = 0x80 + 0xe8 + i * 7;
+        tableBytes[at] = 0x07; // internal 32-bit absolute pointer
+        tableBytes[at + 1] = 0;
+        BinaryPrimitives.WriteUInt16LittleEndian(tableBytes.AsSpan(at + 2, 2), (ushort)(0x40 + i * 4));
+        tableBytes[at + 4] = 1; // target object
+        BinaryPrimitives.WriteUInt16LittleEndian(tableBytes.AsSpan(at + 5, 2), (ushort)(0x20 + i * 8));
+    }
+    var tableImage = LeImage.Load(BinaryArtifact.FromBytes(tableBytes));
+    var tableGraph = ControlFlowAnalysis.Analyze(tableImage);
+    Equal(tableGraph.JumpTables.Count, 1, "LE relocation-backed table recognized");
+    Equal(tableGraph.JumpTables[0].Table, new FlowAddress(1, 0x40), "jump table address");
+    Equal(tableGraph.JumpTables[0].CandidateTargets.Count, 3, "three jump table candidates");
+    Equal(tableGraph.Instructions.Count, 4, "table candidates recursively decoded");
+    Equal(tableGraph.Edges.Count(e => e.Kind == "candidate-indirect-jump"), 3,
+        "distinct jump candidates recorded");
+    Equal(tableGraph.Edges.Any(e => e.Kind == "unresolved-indirect-jump"), true,
+        "unproven index bound stays unresolved");
+    Equal(tableGraph.DataReferences.Any(x => x.Kind == "indexed-pointer-table-base" &&
+        x.Target.Offset == 0x40), true, "jump-table base xref recorded");
+    Equal(tableGraph.Ranges.Any(r => r.Begin <= 0x40 && r.EndExclusive > 0x40 &&
+        r.Classification == "unknown-file-backed"), true,
+        "pointer table not silently promoted to verified data");
+    Equal(Convert.ToHexString(tableImage.ReadStoredBytes(1, 0x40, 4)), "00000000",
+        "original pointer remains original");
+    Equal(Convert.ToHexString(tableImage.ReadRelocatedBytes(1, 0x40, 4)), "20000100",
+        "relocated pointer reconstructed without mutation");
+
+    // The on-disk disp32 may be only an object-relative offset. An LE
+    // relocation attached to that disp32 resolves the actual table base.
+    var unrelocatedDisplacement = (byte[])tableBytes.Clone();
+    Dword(unrelocatedDisplacement, 0x200 + 3, 0x40);
+    Dword(unrelocatedDisplacement, 0x80 + 0xe4, 28);
+    new byte[] { 0x07, 0x00, 0x03, 0x00, 0x01, 0x40, 0x00 }
+        .CopyTo(unrelocatedDisplacement, 0x80 + 0xe8 + 21);
+    var adjustedGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(unrelocatedDisplacement)));
+    Equal(adjustedGraph.JumpTables.Count, 1,
+        "relocation resolves on-disk unrelocated indexed displacement");
+    Equal(adjustedGraph.DataReferences.Any(x => x.Kind == "relocated-operand" &&
+        x.Target.Offset == 0x40), true, "displacement fixup source xref identified");
+
+    var unprovenTableBytes = (byte[])tableBytes.Clone();
+    Dword(unprovenTableBytes, 0x80 + 0x68, 0);
+    Dword(unprovenTableBytes, 0x80 + 0x6c, 0);
+    Dword(unprovenTableBytes, 0x80 + 0xe4, 0);
+    // These literals LOOK like pointers, but there are no LE fixups.
+    Dword(unprovenTableBytes, 0x200 + 0x40, 0x10020);
+    Dword(unprovenTableBytes, 0x200 + 0x44, 0x10028);
+    Dword(unprovenTableBytes, 0x200 + 0x48, 0x10030);
+    var unprovenGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(unprovenTableBytes)));
+    Equal(unprovenGraph.JumpTables.Count, 0, "coincidental literal addresses not promoted");
+    Equal(unprovenGraph.Edges.Count(e => e.Kind == "candidate-indirect-jump"), 0,
+        "unproved table generates no flow edges");
+
+    var badTableBytes = (byte[])tableBytes.Clone();
+    // Second pointer now targets outside the object; one entry does not
+    // establish a table, even though three encoded fixups remain present.
+    BinaryPrimitives.WriteUInt16LittleEndian(badTableBytes.AsSpan(0x80 + 0xe8 + 7 + 5, 2), 0x7F);
+    var badTableGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(badTableBytes)));
+    Equal(badTableGraph.JumpTables.Count, 0, "invalid second target breaks candidate table");
+
+    var directDataBytes = (byte[])tableBytes.Clone();
+    new byte[] { 0xA1, 0x40, 0x00, 0x01, 0x00, 0xC3 }
+        .CopyTo(directDataBytes, 0x200); // mov eax,[0x10040]; ret
+    var directDataGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(directDataBytes)));
+    Equal(directDataGraph.DataReferences.Any(r => r.Kind == "absolute-memory-operand" &&
+        r.Target == new FlowAddress(1, 0x40)), true,
+        "absolute memory operand xref retains object-relative location");
+    Equal(directDataGraph.JumpTables.Count, 0, "ordinary direct memory read isn't a table");
+
+    var pointerBytes = (byte[])tableBytes.Clone();
+    new byte[] { 0xFF, 0x15, 0x40, 0x00, 0x01, 0x00, 0xC3 }
+        .CopyTo(pointerBytes, 0x200); // call dword ptr [0x10040]; ret
+    Dword(pointerBytes, 0x80 + 0xe4, 7);
+    var pointerGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(pointerBytes)));
+    Equal(pointerGraph.Edges.Any(e => e.Kind == "candidate-indirect-call" &&
+        e.Destination == new FlowAddress(1, 0x20)), true,
+        "relocation-backed absolute indirect call recognized");
+    Equal(pointerGraph.Edges.Any(e => e.Kind == "unresolved-indirect-call"), true,
+        "indirect call still carries unresolved runtime possibility");
+    Equal(pointerGraph.FunctionCandidates.Any(f => f.Entry == new FlowAddress(1, 0x20) &&
+        f.Evidence == "relocation-backed-indirect-call-candidate"), true,
+        "indirect call candidate distinguished from direct call");
+
+    var protectedTableGraph = ControlFlowAnalysis.Analyze(tableImage,
+        protectedData: new[] { new ProtectedDataRange(1, 0x40, 0x4C, "confirmed-pointer-table") });
+    Equal(protectedTableGraph.JumpTables.Count, 1,
+        "analyst-protected table data can still supply fixup evidence");
+    Equal(protectedTableGraph.Ranges.Any(r => r.Begin <= 0x40 && r.EndExclusive >= 0x4C &&
+        r.Classification == "protected-data"), true, "protected table classification retained");
+    Console.WriteLine("PASS: relocation-backed indirect calls, indexed jump tables, data xrefs and conservative uncertainty");
     Console.WriteLine("PASS: recursive CFG, function candidates, shared-tail ownership, protected data, conflicts and budgets");
     Console.WriteLine("PASS: synthetic nested/flat LE, address maps, decoder, immutability and malformed fixtures");
 

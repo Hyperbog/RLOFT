@@ -27,6 +27,8 @@ public sealed record FlowAnalysisResult(
     IReadOnlyList<FunctionCandidate> FunctionCandidates,
     IReadOnlyList<ClassifiedRange> Ranges,
     IReadOnlyList<FlowDiagnostic> Diagnostics,
+    IReadOnlyList<DataCrossReference> DataReferences,
+    IReadOnlyList<JumpTableCandidate> JumpTables,
     bool Truncated);
 
 /// <summary>
@@ -90,6 +92,10 @@ public static class ControlFlowAnalysis
             Comparer<FlowAddress>.Create((a, b) => a.Object != b.Object
                 ? a.Object.CompareTo(b.Object) : a.Offset.CompareTo(b.Offset)));
         var edges = new List<FlowEdge>();
+        var dataReferences = new List<DataCrossReference>();
+        var jumpTables = new List<JumpTableCandidate>();
+        var referenceRecovery = new ReferenceRecovery(image);
+        var indirectFunctionEntries = new HashSet<FlowAddress>();
         var queued = new HashSet<FlowAddress>();
         var pending = new Queue<FlowAddress>();
         var functionEntries = new HashSet<FlowAddress>(sourceSeeds);
@@ -182,6 +188,10 @@ public static class ControlFlowAnalysis
                 classifications[i] = 1;
             }
 
+            var references = referenceRecovery.Inspect(cursor, size, instruction);
+            dataReferences.AddRange(references.Data);
+            if (references.Table is not null) jumpTables.Add(references.Table);
+
             FlowAddress next = new(cursor.Object, checked(cursor.Offset + (uint)size));
             bool hasNext = IsExecutable(next);
             bool nextBacked = hasNext && image.ToFileOffset(next.Object, next.Offset) != null;
@@ -219,6 +229,14 @@ public static class ControlFlowAnalysis
                     break;
                 case FlowControl.IndirectCall:
                     Continuation("indirect-call-continuation");
+                    foreach (var target in references.IndirectTargets)
+                    {
+                        AddEdge(target.Target, "candidate-indirect-call", target.Evidence);
+                        indirectFunctionEntries.Add(target.Target);
+                        functionEntries.Add(target.Target);
+                    }
+                    // Register state and runtime memory remain unknown, so
+                    // candidate targets never eliminate the unresolved edge.
                     AddEdge(null, "unresolved-indirect-call");
                     break;
                 case FlowControl.ConditionalBranch:
@@ -229,6 +247,8 @@ public static class ControlFlowAnalysis
                     AddEdge(directTarget, directTarget is null ? "unresolved-far-jump" : "jump");
                     break;
                 case FlowControl.IndirectBranch:
+                    foreach (var target in references.IndirectTargets)
+                        AddEdge(target.Target, "candidate-indirect-jump", target.Evidence);
                     AddEdge(null, "unresolved-indirect-jump");
                     break;
                 case FlowControl.Return:
@@ -337,7 +357,9 @@ public static class ControlFlowAnalysis
             }
             functions.Add(new FunctionCandidate(entry,
                 reachable.OrderBy(x => x.Object).ThenBy(x => x.Offset).ToArray(),
-                sourceSeeds.Contains(entry) ? "analyst-or-module-entry-seed" : "direct-call-candidate"));
+                sourceSeeds.Contains(entry) ? "analyst-or-module-entry-seed" :
+                    indirectFunctionEntries.Contains(entry) ? "relocation-backed-indirect-call-candidate" :
+                    "direct-call-candidate"));
         }
 
         // Emit maximal contiguous classification spans for executable objects.
@@ -360,6 +382,7 @@ public static class ControlFlowAnalysis
             }
         }
         return new FlowAnalysisResult(image.ArtifactSha256, sourceSeeds, explicitData,
-            instructions.Values.ToArray(), edges, blocks, functions, regions, diagnostics, truncated);
+            instructions.Values.ToArray(), edges, blocks, functions, regions, diagnostics,
+            dataReferences, jumpTables, truncated);
     }
 }

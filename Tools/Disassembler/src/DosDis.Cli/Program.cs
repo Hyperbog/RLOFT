@@ -89,13 +89,16 @@ try
                 Instructions = graph.Instructions.Count, Blocks = graph.Blocks.Count,
                 FunctionCandidates = graph.FunctionCandidates.Count, Edges = graph.Edges.Count,
                 Regions = graph.Ranges.Count, Diagnostics = graph.Diagnostics.Count,
+                DataReferences = graph.DataReferences.Count, JumpTables = graph.JumpTables.Count,
                 OmittedOutput = graph.Instructions.Count > maxOutput || graph.Edges.Count > maxOutput ||
                     graph.Blocks.Count > maxOutput || graph.FunctionCandidates.Count > maxOutput ||
-                    graph.Ranges.Count > maxOutput || graph.Diagnostics.Count > maxOutput
+                    graph.Ranges.Count > maxOutput || graph.Diagnostics.Count > maxOutput ||
+                    graph.DataReferences.Count > maxOutput || graph.JumpTables.Count > maxOutput
             },
             Instructions = graph.Instructions.Take(maxOutput), Edges = graph.Edges.Take(maxOutput),
             Blocks = graph.Blocks.Take(maxOutput), FunctionCandidates = graph.FunctionCandidates.Take(maxOutput),
-            Ranges = graph.Ranges.Take(maxOutput), Diagnostics = graph.Diagnostics.Take(maxOutput)
+            Ranges = graph.Ranges.Take(maxOutput), Diagnostics = graph.Diagnostics.Take(maxOutput),
+            DataReferences = graph.DataReferences.Take(maxOutput), JumpTables = graph.JumpTables.Take(maxOutput)
         });
     }
     else if (args[0] == "memory")
