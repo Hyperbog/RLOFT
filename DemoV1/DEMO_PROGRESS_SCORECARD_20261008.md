@@ -173,3 +173,25 @@ has advanced further, but **1 of 5 major
 formal demo gates** remains accepted;
 engineering completion is not objectively
 quantified.
+
+
+## Original 1A3B8 / 2AE30 / 29804 subsystem progress
+
+Source-backed shared overlay position, opposite-page
+record hit testing and nested rendering bookkeeping
+are now part of the native C++17 codebase, with a
+test that binds all three models through the
+existing original 1A288 activation/1AB20 restoration.
+They preserve original 9E35 output, source callbacks,
+22-byte entity records and EFD4 scratch-record depth.
+Source-byte ledger: **1,004 named / 996 distinct
+instruction anchors**, from 96 new checks.
+
+Core sources passed independent Debug, optimized
+Release and UndefinedBehaviorSanitizer local tests;
+new registered CTests and complete Windows EXE still
+require a current-HEAD build. Full native overlays
+still depend on true 29414, 2AD18, 2ADE0, 33C90,
+1F820 and source runtime memory. Release acceptance
+therefore remains **1/5 formally passed gates**,
+not an estimate of engineering completion.
