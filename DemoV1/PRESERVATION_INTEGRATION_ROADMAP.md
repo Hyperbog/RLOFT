@@ -497,3 +497,37 @@ record registers. Follow with original
 33C90/1F820 pointer effects, authentic
 runtime resource/state binding, and DOS
 frame/IRQ comparisons.
+
+
+## Original CODE.2 2A6B0 clipped raster bytes reconstructed
+
+The [2A6B0 source checkpoint](LEVEL22_CODE2_2A6B0_CLIPPED_VGA_CHECKPOINT_20261008.md)
+implements original `2A6B0` actual clipped
+four-plane sprite rasterization under
+`29414` and `29804`. This preserves all
+six original scratch DWORDs, `F00D–F031`
+mutable source row and column state, original
+frame-key transparency tests, sequencer
+mask rotation, narrow clipped planes, and
+changes to width after VGA byte rollover.
+Original executable self-modification at
+`2A816` is now supported through the
+existing writable CODE.2 image model.
+
+All **154** original 2A6B0 instruction signatures
+matched the supplied CODE.2, increasing
+the ledger to **1,263 named checks at 1,255
+distinct addresses**. The exact committed
+raster and binder passed isolated C++17
+Debug/Release/UBSan tests. Two new CTest
+targets are registered; full current-HEAD
+Windows compilation and native-vs-DOS
+frame/IRQ equality are not yet confirmed.
+
+Next audit and implement `2A8A0`, the
+**color-adjusted clipped sprite** routine.
+Its self-modified code immediates and
+SHL-based initial mask differ from 2A6B0.
+The remaining pointer/scene/asset state
+must also be wired before the demo can
+pass another release acceptance gate.
