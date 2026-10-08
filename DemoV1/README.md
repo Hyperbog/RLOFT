@@ -112,7 +112,7 @@ the allocator-adjacent **runtime byte value** is still unknown. The positive
 two-item subset of `24478` is implemented separately; complete `-1` and
 pseudo-hand arbitration remain prerequisites to live attacks.
 The [offline original-byte audit](tools/verify_combat_entry_bytes.py)
-registers **54 exact opcode anchors**, including 21 new sequences matched
+registers **72 exact opcode anchors**, including 21 single-hand, 11 pair-arbitration and 7 OBJECTS loader/heap sequences matched
 against original CODE.2. This is source evidence, not a new game build.
 
 **Bounded nonnegative `240A8` checkpoint: 75%** (compiled/original-runtime
