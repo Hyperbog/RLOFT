@@ -157,7 +157,7 @@ The canonical initial [scope/UNKNOWN ledger](00_SCOPE_EVIDENCE_BASELINE_AND_OPEN
 | U-012 | Historical meaning of absent EH resource type 5 | Retain executable loader contract; no fabricated shipped instances |
 | U-013 | Historical authoring meaning of unused ANM type-4 control | Preserve machine seek/repeat behavior and no-corpus-usage classification |
 | U-014 | Inner grammar of ARIA `GM1.BNK/GM2.BNK` | Keep intact; defer third-party-driver archaeology |
-| U-015 | Unnamed SOUND.CFG numeric fields and active audio-driver completion/cadence details | AIL/32 `svc_rate` units now known; **individual driver rates/config word labels remain open** |
+| U-015 | Unnamed SOUND.CFG numeric fields and active audio-driver completion/cadence details | Three sound profiles and **all 16 A32 driver svc_rate values/handler presence now proved**; exact installer field labels and measured runtime cadence **remain open** (Chapter 15 §56; Chapter 17 §26) |
 | U-016 | Full optional LX/OS2 audio-driver internals | Separate historical archaeology; do not pretend full driver decompilation is necessary for base gameplay |
 
 Relevant canonical sources: [NPC final audit](../DatFiles/NPCS.DAT/FINAL_AUDIT_2026-10-06.md), [OBJECTS final audit](../DatFiles/OBJECTS.DAT/FINAL_AUDIT_2026-10-06.md), [LEVELS final audit](../DatFiles/LEVELS.DAT/FINAL_AUDIT_2026-10-06.md), [SAVE final audit](../DatFiles/SAVE.DAT/FINAL_AUDIT_2026-10-06.md), [Resources final audit](../Resources/FINAL_RESOURCE_AUDIT.md), [audio ABI](15_AUDIO_MUSIC_SFX_AND_DRIVER_INTERFACE.md), and [timing ABI](17_TIMING_INTERRUPTS_AND_FRAME_CADENCE.md).
