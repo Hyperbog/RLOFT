@@ -1,5 +1,15 @@
 # Demo v1 — development progress versus formal acceptance
 
+**Optional native diagnostic capture checkpoint (2026-10-08):**
+A `--capture-render` Level 22 mode and packaged
+`Capture-Level22.cmd` launcher now serialize up to 16 changed-pose
+320×400 native indexed frames, palettes, exact generated wall-run
+geometry, original static CODE.2 mask-byte readings, and failure
+reports. The new `exploration_frame_capture_tests` regression is
+CMake-registered, **not yet run on the current HEAD**. This capture
+is not a DOS reference and does not establish pixel equivalence.
+[Evidence and limitations](LEVEL22_NATIVE_FRAME_CAPTURE_CHECKPOINT_20261008.md).
+
 **Subsequent original wide-wall bounded checkpoint (2026-10-08):**
 Source-backed C6F4 coalesced wall widths now include exact width
 8 at phase 0, 1, or 2, where original CODE.2 masks select eight
