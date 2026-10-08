@@ -56,12 +56,24 @@ jobs:
           # Windows image includes GCC. Check the actual executable and
           # fail explicitly instead of silently skipping this gate.
           $compiler = Get-Command g++.exe -ErrorAction SilentlyContinue
-          if (-not $compiler) {
-            throw "The hosted Windows image has no g++ compiler on PATH."
-          }
-          & $compiler.Source -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
+          if ($compiler) {
+            & $compiler.Source -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } else {
+            # windows-latest guarantees a Visual Studio C++ toolchain
+            # for the CMake -A x64 job; locate the installed edition
+            # rather than assuming a hardcoded VS Enterprise path.
+            $vswhere = "${env:ProgramFiles(x86)}\\Microsoft Visual Studio\\Installer\\vswhere.exe"
+            if (-not (Test-Path $vswhere)) {
+              throw "Neither g++ nor Visual Studio vswhere is available."
+            }
+            $vsRoot = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+            if (-not $vsRoot) { throw "No MSVC C++ toolchain installed." }
+            $vcvars = Join-Path $vsRoot "VC\\Auxiliary\\Build\\vcvars64.bat"
+            if (-not (Test-Path $vcvars)) { throw "MSVC x64 initialization missing." }
+            $command = 'call "' + $vcvars + '" >NUL && cl.exe /nologo /std:c++17 /permissive- /Zs Code2\\Code2.cpp'
+            & cmd.exe /d /s /c $command
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
       - name: Configure
         run: cmake -S DemoV1 -B build/demo-v1 -A x64
