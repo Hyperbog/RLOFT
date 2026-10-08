@@ -414,7 +414,10 @@ InventoryHandSwapStatus InventoryRuntimeState::swap_hand_slot(
     held = {current, previous_known};
     // 215E9 explicitly zeroes the selected hand's four-byte
     // ready deadline. Opposite hand remains unchanged.
-    const auto deadline_at = base + 0x18EU + hand*4U;
+    // DOS character base 218E0h; 21A7Eh-218E0h=019Eh.
+    // Do NOT confuse this with the separate action-state dword at
+    // 219EBh-218E0h=010Bh checked by the 26018 dispatcher.
+    const auto deadline_at = base + 0x19EU + hand*4U;
     for (unsigned b=0U; b<4U; ++b) {
         party.bytes[deadline_at+b] = 0U;
     }
