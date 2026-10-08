@@ -162,3 +162,24 @@ validation has been completed for this new model.
 5. Keep GitHub Actions **manual-only** while the repository remains private. No new Windows previews merely to observe timing.
 
 **Completion accounting:** This contract is a new cross-cutting release requirement, **not** evidence that timing fidelity is finished. The preexisting overall five-major-gate faithful-demo acceptance remains **20% (1/5)** until runtime behavior, including cadence, is verified.
+
+
+## DDA4 level-change event clock and HP service (source audit 2026-10-08)
+
+Original DDA4:DF0E..DF86 writes a changed class level, invokes
+`50DC(0,actor)`, conditionally calls `3EA4` or `3DE4`,
+and **unconditionally** invokes `3210F`, `1C21C`, then
+`DC7C`. Original `1C21C:1C21E` directly calls `30700`
+and sets `CF54 = observed_irq_tick + 0x5A`; it also
+queues the associated message and sets `CF59=1`.
+The `DC7C` path calls original `1C328` dice before
+modifying current/max HP. Thus even a level change whose
+50DC predicate returns negative still has observable IRQ
+timing, queued presentation and RNG/state consequences.
+These steps **must not** be replaced with one immediate
+XP/HP recalculation or a Windows frame-time clock.
+
+The [new source-only 50DC service plan](LEVEL22_DDA4_50DC_SERVICE_ORDER_CHECKPOINT.md)
+reports this ordering without executing the services; do
+not confuse a read-only trace with live timing acceptance.
+
