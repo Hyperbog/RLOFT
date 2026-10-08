@@ -18,6 +18,10 @@ struct ObjectDefinition final {
     std::uint8_t scene_influence_step{};
     std::uint16_t ui_graphic_index{};
     std::uint8_t item_category{};
+    // Raw OBJECTS.DAT record +35h low two bits. CODE.2 240A8 /
+    // 24478 tests this exact mask for hand-eligibility branches;
+    // the remaining high bits are not interpreted as a modern flag.
+    std::uint8_t raw_byte_35_low2{};
     std::uint8_t weight_half_units{};
     std::int8_t container_state_index{};
     std::uint8_t enchantment{};
