@@ -1,5 +1,26 @@
 # Ravenloft Demo Build v1
 
+## Progress reporting — acceptance is not development completion
+
+**Formal release acceptance: 1 of 5 major demo gates (20%).**
+This is a coarse count of **accepted milestones**, not a
+measure of implementation work, engineering hours, original
+instruction coverage, or the percentage of the full game
+completed. Substantial cross-cutting source reconstruction
+and subsystem tests have been added since the first gate
+was accepted, without yet earning another end-to-end gate.
+Do **not** read historical “20%” checkpoint labels in
+this README as “only 20% of development is complete.”
+
+The [current development-versus-acceptance scorecard](DEMO_PROGRESS_SCORECARD_20261008.md)
+lists the completed/partial subsystems and actual blockers.
+The overall development percentage remains **unmeasured**
+until an effort-weighted scope audit. Windows build #634
+passed 130/130 CTests at an earlier pinned commit; newer
+source requires a fresh consolidated test run, and original
+DOS runtime/frame/timing equivalence remains to be proved.
+
+
 ## Latest original VGA sprite machine-state and asset-reader bridge
 
 The [sprite machine-state checkpoint](ORIGINAL_SPRITE_MACHINE_BINDING_CHECKPOINT_20261008.md)
