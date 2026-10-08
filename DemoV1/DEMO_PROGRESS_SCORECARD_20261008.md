@@ -122,3 +122,30 @@ service pixels and DOS reference comparisons
 remain unaccepted. **Formal release acceptance
 is still 1/5 gates**, while engineering completion
 is not objectively weighted.
+
+
+## 292BC/2932C original backing-clip source milestone
+
+The reusable overlay renderer now includes
+the original signed clipping and backend
+dispatch differences for 292BC capture and
+2932C restore, including original zero-width
+restore behavior. Its adapters compose with
+the reconstructed 1A288/1AB20 lifecycle
+and the previously completed 2E590/2E5D4
+page stack.
+
+The original executable audit is now
+**855 named byte checks / 847 distinct
+instruction locations**. Exact committed
+component sources and bindings passed
+isolated Debug/Release/UBSan checks, but
+their newly registered CTests and pixel
+effects remain outside the historical
+Windows 130/130 runner result. The next
+faithful-graphics acceptance blocker is
+2A114/2A178 four-plane backing bytes and
+the remaining original overlay art/position
+services. Formal release acceptance remains
+1/5 gates; development progress is not a
+measured global percentage.
