@@ -63,6 +63,11 @@ int main() {
         const auto frame = runtime.build_frame();
 
         assert(!frame.scene_vga_trace.has_value());
+        assert(frame.world_scene_revision == 0U);
+        assert(frame.source_level_id == runtime.session().level_id);
+        assert(frame.source_coordinate_a == runtime.session().coordinate_a);
+        assert(frame.source_coordinate_b == runtime.session().coordinate_b);
+        assert(frame.source_facing == 0U);
         assert(frame.scene.frame.level_id == 22);
         const rloft::CellPosition expected_party_cell{1, 1};
         assert(frame.scene.frame.party_cell ==
@@ -93,6 +98,9 @@ int main() {
                rloft::LocomotionAcceptance::NoTranslation);
 
         const auto frame = runtime.build_frame();
+        assert(frame.source_facing == 90U);
+        assert(frame.source_coordinate_a == runtime.session().coordinate_a);
+        assert(frame.source_coordinate_b == runtime.session().coordinate_b);
         assert(frame.scene.frame.facing_degrees == 90);
     }
 }
