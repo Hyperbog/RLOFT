@@ -19,8 +19,10 @@ namespace rloft {
 // serialized OBJECTS.DAT bytes and MUST NOT be synthesized.
 struct CombatEmptyHandRawFields final {
     std::uint8_t category{};
-    std::uint8_t weight{};
-    std::uint8_t qualifier_low2{};
+    // Both-empty branches bypass these reads entirely. For a
+    // mixed -1/nonempty pair they MUST be observed, not defaulted.
+    std::optional<std::uint8_t> weight;
+    std::optional<std::uint8_t> qualifier_low2;
 };
 
 struct CombatHandPairEligibility final {
