@@ -12,7 +12,7 @@ Only after original `E5F0` obtains a real target and `C80C` returns a nonzero hi
 
 - `E5F0:E86E..E88F` reads OBJECTS record **`+0x38`** as dice count, **`+0x39`** as sides, and **`+0x3A`** as bonus **per die**. It passes a *fourth* original character-derived final bonus computed earlier at `E6C9..E768` to `1C328(count,sides,per_die_bonus,final_bonus)`. The native `ObjectDefinition` now exposes exactly those three serialized bytes.
 - The earlier final bonus uses actor **`+0x33`** raw strength and **`+0x3F`** exceptional-strength percentage. When raw strength is **18** and the signed class lanes include any code **1, 5, 0 or 2**, the exceptional percentage gives **3** at 0–75, **4** at 76–90, **5** at 91–99, **6** at 100+. The class tests are original `23EAC`, not guessed from displayed race/class strings.
-- Every other case uses an **original signed-byte lookup at DGROUP `0x684B + strength`** (`E733`); the byte is **not** fabricated from D&D tables. `CombatDamageStatBonusModel` requires the observed original table byte in this case. This is a separate open loaded-DGROUP provenance task.
+- Every other case uses the **original signed-byte lookup at DGROUP `0x684B + strength`** (`E733`). The authored signed entries for Strength scores **0–25** have since been recovered exactly from CODE.2 object 2 (physical `0x7C76F`), and `CombatDamageStatBonusModel` now uses those actual bytes. For scores above 25 the original indexed machine instruction reaches adjacent DGROUP, so the native helper requires an observed byte. See [newer checkpoint](LEVEL22_STRENGTH_HARM_E284_CLASSIFICATION_CHECKPOINT.md).
 - `CombatDamageDiceModel` likewise requires the genuinely computed final bonus for a non-pseudo item. It preserves the item+3A per-die value and does not invent a generic damage modifier.
 
 Sample original OBJECTS.DAT records, not distributed by Git:
@@ -46,7 +46,7 @@ The actual original table at logical `E5CC` contains **nine 32-bit CODE.2 jump a
 
 `CombatDamageDiceModel` reports these arguments, original effect discriminators and the separate HARM special branch. For `0x7F`, the original `22E40` result can now be computed directly with `CombatDamageDiceModel::inspect_for_actor` using the actual actor's signed class levels; the original standalone `inspect` still rejects a missing caller-supplied helper result. Its signed-divide behavior is reproduced if that input is provided; counts outside the existing native `OriginalRandom::dice` u8-count API are rejected rather than silently truncated. More instruction work may be required to connect the full `22E40` semantics.
 
-**HARM caveat:** the original `E815..E839` changes the live target HP before the general gate. `C910` later enforces a **minimum-one resulting injury**, so it is misleading to say that HARM's pre-gate zero automatically produces final zero damage. Actual world mutation is pending.
+**HARM source closure:** the original `E815..E839` changes target HP directly before the general gate; `C910` then enforces **minimum-one resulting injury**, followed by a second HP subtraction in `E284`. The later [`CombatHarmPreludeModel` checkpoint](LEVEL22_STRENGTH_HARM_E284_CLASSIFICATION_CHECKPOINT.md) now represents this exact order and has a composed cross-model regression. It does **not** yet roll RNG, apply HARM in live player combat or certify presentation timing.
 
 ## C910 original weapon/creature damage gate
 
@@ -69,8 +69,8 @@ The new read-only `CombatWeaponDamageGateModel` separately reports the original 
 
 ## Next faithful integration stages
 
-1. Identify the actual original DGROUP signed stat lookup table at `0x684B`, including loader provenance. The independent `22E40` class-level dependency for Vampiric Touch is **now reconstructed** from party bytes; see [follow-up](LEVEL22_CLASS_LEVEL_ROD_INJURY_CHECKPOINT.md).
-2. Rod of Smiting's reachable target-type branch and **unreachable charged-crit path** are now audited and modeled. Stage `E815..E839` HARM HP mutation in exact pre-`C910` order, then original later E284 type/death effects.
+1. Original DGROUP `0x684B` signed Strength table scores **0–25 are recovered and byte verified**, as is `22E40` Vampiric Touch. Only out-of-range Strength scores still need adjacent loaded bytes; see [later checkpoint](LEVEL22_STRENGTH_HARM_E284_CLASSIFICATION_CHECKPOINT.md).
+2. Rod of Smiting's reachable target-type branch and **unreachable charged-crit path** are audited; HARM HP clamp has now been **staged through C910 and E284 in source**. Complete the later creature-specific `E284` type/death/audio effects and live timed attack integration.
 3. Reconstruct the precise `E5F0` event/visual call sequence and NPC damage handoff `E284`, including hit-roll check, original `1C328` RNG draw count and `38110` effect timing. Only the initial E284 prelude is now reused by existing Level 22 Assassin damage; the rest of creature-specific death and live player-attack integration remains open.
 4. Capture original DOS RNG, action-clock and animation/input traces before claiming combat temporal fidelity.
 5. Keep Windows GitHub Actions manual-only and defer executable publication until a meaningful consolidated, explicitly authorized verification point.
