@@ -441,3 +441,26 @@ authentic DOS runtime resource/video-data
 connection. Do not mistake isolated VGA plane
 byte roundtrips for an accepted full demo
 release gate.
+
+
+## Native 1A3B8, 2AE30, 29804 overlay subsystems now reconstructed
+
+[Position/probe/drawing checkpoint](LEVEL22_CODE2_POSITION_PROBE_DRAW_CHECKPOINT_20261008.md):
+native 1A3B8 mouse state and three overlay outputs,
+2AE30 original alternate-page scene record scanner
+with injected live 22-byte DOS record data and
+source predicate hooks, and 29804 EFD4-indexed
+24-byte nested draw scratch-record bookkeeping
+are implemented at the shared engine level.
+
+This advances source-backed overlay flow to the
+original 29414/2AD18/2ADE0/33C90/1F820 external
+service boundaries. It does not fabricate graphics,
+hit-test records or DOS pointer state. 96 new x86
+byte anchors matched CODE.2, for **1004 named /
+996 unique addresses**. Exact core source files
+passed isolated strict Debug/Release/UBSan tests;
+four source-level CTests, including a composed
+1A288 overlay chain, are CMake-registered.
+Full current-HEAD Windows build and original DOS
+reference framebuffer/IRQ validation remain open.
