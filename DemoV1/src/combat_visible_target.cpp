@@ -51,7 +51,10 @@ std::int32_t CombatVisibleTargetModel::scan(
         // difference before division, not unsigned wraparound.
         const auto delta=
             static_cast<std::int32_t>(chosen->vertical)-0x7D00;
-        if ((delta >> 3) < 0x3B) continue;
+        // A negative signed delta is necessarily below the positive
+        // threshold. Avoid relying on implementation-defined C++
+        // right-shift behavior for negative values.
+        if (delta < 0 || (delta >> 3) < 0x3B) continue;
         if ((flags & 0x10U) != 0U)
             return static_cast<std::int32_t>(actor);
     }
