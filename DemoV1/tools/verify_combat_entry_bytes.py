@@ -108,6 +108,29 @@ ANCHORS = {
     "24693 second pseudo in general path": (0x24693, "837c241c7e"),
     "246E9 classified first branching": (0x246E9, "837c240400"),
     "23F34 pseudo helper lower bound": (0x23F34, "837c24047e"),
+    # E5F0 original player attack: exact target and maintenance-clock
+    # pacing. Addresses are logical CODE.2 object-1 offsets.
+    "E5F0 explicit target sentinel": (0xE5FB, "837c2434ff"),
+    "E5F0 fallback DB94": (0xE606, "e889f5ffff"),
+    "E5F0 party mode byte": (0xE621, "0fb605a8580200"),
+    "E5F0 rear actor index bit": (0xE639, "f644242802"),
+    "E5F0 unarmed item test": (0xE640, "83fdff"),
+    "E5F0 rear qualifier original word": (0xE652, "668b440235"),
+    "E5F0 rear qualifier equals two": (0xE65B, "663d0200"),
+    "E5F0 target suppressed": (0xE661, "c7442410ffffffff"),
+    "E5F0 C80C original hit call": (0xE6AB, "e85ce1ffff"),
+    "E5F0 unarmed recovery": (0xE9D0, "83fdff"),
+    "E5F0 temporary hand lower bound": (0xE9D5, "83fd7e"),
+    "E5F0 recovery full word +35": (0xE9F5, "668b440235"),
+    "E5F0 recovery SHL 10": (0xE9FA, "c1e00a"),
+    "E5F0 recovery SHR AX 12": (0xE9FD, "66c1e80c"),
+    "E5F0 actor action modifier mask": (0xEA15, "f780121a020010000001"),
+    "E5F0 hit-gated deadline": (0xEA2E, "837c240800"),
+    "E5F0 calls 29CC4 maintenance clock": (0xEA35, "e88ab20000"),
+    "E5F0 stores hand ready at +19E": (0xEA55, "899c827e1a0200"),
+    "E5F0 stores damage at +1AA": (0xEA5C, "89b4828a1a0200"),
+    "E5F0 invokes original action animation": (0xEA6E, "e8d5600100"),
+    "29CC4 reads pauseable gameplay A7E4": (0x19CC4, "a1e4a70000"),
 }
 
 
