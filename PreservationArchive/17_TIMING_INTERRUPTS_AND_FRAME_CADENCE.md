@@ -298,3 +298,18 @@ The complete dynamic initialization order for all original audio drivers; timer 
 - [John Miles AIL/32 released-source lineage, pinned source](https://github.com/Wohlstand/ail32-sandbox/blob/e343617606c281ee26e4890280d8d3956aa3ba41/ail32.asm)
 - [AIL/32 driver procedure constants](https://github.com/Wohlstand/ail32-sandbox/blob/e343617606c281ee26e4890280d8d3956aa3ba41/ail32.inc)
 - [Second maintained AIL/32 source copy (not independent lineage)](https://github.com/volkertb/ail32-djgpp/blob/1092318093dd4daafc4a2475b602f220692a54bb/ail32.asm)
+
+
+## 26. Shipped A32 driver service frequencies — static descriptor audit closed
+
+**New original-file evidence:** the complete supplied 18-DLL archive is now mounted. Sixteen files belong to the A32 vendor family with a common MZ→LX object-1 driver image, dispatch opcode table and 200-byte descriptor. The two GUS backends are separate and were **not** analyzed with the A32-specific schema. Every A32 dispatch table begins with `AIL_DESC_DRVR=0x64` and ends at a `0xFFFFFFFF` sentinel; the 200-byte descriptor follows the sentinel. The signed dword at `descriptor+0x20` is the vendor-established **`svc_rate` in Hz**.
+
+The original A32 images now yield **16/16 consistent service-rate and dispatch-table pairs**: eleven A32 music, FM or simple-synth backends request **120 Hz** and publish opcode `0x67`; `A32ARDG.DLL` requests **72 Hz** and publishes `0x67`; four Sound Blaster/Pro Audio Spectrum/ARIA digital backends request **-1 (no callback timer)** and omit `0x67`. Refer to [Chapter 15 §56](15_AUDIO_MUSIC_SFX_AND_DRIVER_INTERFACE.md) for all filenames and original file/image offsets.
+
+Specifically, the recovered presets `MT32` and `SC55` select music driver `A32MT32.DLL` with **descriptor `svc_rate=120`** and digital driver `A32SBPDG.DLL` with **`svc_rate=-1`**. The `SB16` preset selects `A32SP2FM.DLL` with **`svc_rate=120`**, again paired with `A32SBPDG.DLL`.
+
+**Scope correction T-17.1:** §§23–25 listed *original driver descriptor values* as an open input because the raw DLL files were then unavailable. **That static input is now resolved for all sixteen A32 backends.** Do not interpret prior “driver unavailable” wording as current source-set status.
+
+The evidence does **not** establish an unconditional `120` game frames/s or physical `F58C` ticks/s: `AIL_INIT_DRVR` may fail, other scheduler slots/BIOS service can alter the programmed PIT minimum, IRQ delivery depends on the environment, and observed cinematic rendering can span multiple tick deadlines. Nominal `120 Hz` means the configured backend advertises a 120-callback/s *request* when the vendor timer manager successfully activates it. Real-time cadence and DOS/emulated execution remain independent **OPEN** validation gates.
+
+**Certification:** all original A32 descriptor-rate and `0x67` service-availability facts are now **STATIC SOURCE-PROVEN**. Dynamic hardware-level cadence remains **NOT MEASURED**.
