@@ -1,13 +1,6 @@
 name: Windows DOS disassembler core smoke tests
+# Manually trigger in GitHub Actions only; no automatic push/PR builds.
 on:
-  push:
-    paths:
-      - 'Tools/Disassembler/**'
-      - '.github/workflows/disassembler-core.yml'
-  pull_request:
-    paths:
-      - 'Tools/Disassembler/**'
-      - '.github/workflows/disassembler-core.yml'
   workflow_dispatch:
 permissions:
   contents: read
