@@ -1,5 +1,19 @@
 # Ravenloft Demo Build v1
 
+## DDA4 original experience distribution — next source checkpoint
+
+The [DDA4 experience checkpoint](LEVEL22_DDA4_EXPERIENCE_CHECKPOINT.md)
+reconstructs eligible-party count (original status mask 0xF240),
+rounded per-member experience, three class-track count/rounding,
+minimum-one award rules and 32-bit class XP wrap. It returns a
+**read-only projection**; level-up threshold scans, class-change
+callbacks, and recalculated attack targets are NOT implemented.
+The original-byte verifier now contains **318 code signatures plus one
+Strength table**. A source-equivalent isolated C++17 test passed,
+but registered CMake/Windows tests and end-to-end demo acceptance
+have not been rerun. **Overall demo: 20% (1/5 gates).**
+
+
 ## New original-file result: Level 22 cannot invoke E0F8 for the Assassin
 
 **The E284 `0x258AA` tracker is resolved for the supplied original Level 22
