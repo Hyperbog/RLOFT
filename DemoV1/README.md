@@ -82,9 +82,10 @@ models original `244CE..246E9` and distinguishes its first-actor
 supports **both hands empty**, but only with the original observed
 OBJECTS pre-base category byte, or **both hands holding pseudo
 spell items `0x7E..0x86`**; both shortcut directly to their distinct
-action-state busy checks. Mixed empty/pseudo/ordinary pairs remain
-gated until raw heap-adjacent item qualifiers and original execution
-traces are understood. No attack is enabled and current source
+action-state busy checks. Mixed **positive pseudo+ordinary** pairs also follow the normal
+qualifier/weight arbiter after pseudo overrides. Only a mixed `-1`
+with any nonempty hand remains gated until raw heap-adjacent item
+qualifiers and original execution traces are understood. No attack is enabled and current source
 has not been compiled since private CI was paused.
 
 ## Original 24478 ordinary two-hand arbitration
