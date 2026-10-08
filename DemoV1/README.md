@@ -742,3 +742,24 @@ For Demo v1's requested cold-start-to-character-creation slice, the remaining
 unimplemented CODE.2 behavior is outside the target path: the CHARS-present
 startup/import branch and the full visible behavior of startup-menu entries 0
 and 1.
+
+
+## New original 2AB38 planar VGA pixel-address checkpoint
+
+The [glyph/sprite rendering checkpoint](LEVEL22_ORIGINAL_GLYPH_SPRITE_RENDERER_CHECKPOINT.md)
+also now includes a source-backed `2AB38` address/plane model:
+the original combines two **mutable** row-shift globals
+`EFED/EFF1`, unsigned `column>>2`, `column&3` as
+the VGA plane, and the original `F001` linear page base.
+It preserves wrapping x86 DWORD arithmetic and never
+invents constant screen pitch or a default DOS video page.
+
+**20 additional original signatures passed**, raising
+the executable audit to **577 named checks at 569 distinct
+addresses**. Local strict C++17 Debug, Release and UBSan
+pixel-address model tests passed. This calculation is
+registered in the native CMake/CTest source but is
+**not included in the prior green Windows 130/130 run**.
+The actual original sprite plane writes and display
+compositor remain unintegrated; faithful gameplay
+acceptance stays **20% (1/5 main gates)**.
