@@ -34,8 +34,8 @@ source. Do not treat its tests as validation of current HEAD.
 
 The current source-only work includes
 [original attack/target preflight and offline verification](LEVEL22_COMBAT_ENTRY_CHECKPOINT.md).
-An original-asset offline byte audit now covers **33 original CODE.2
-machine-code anchors** (18 prior + 15 additional verified); four new C++
+An original-asset offline byte audit now covers **54 original CODE.2
+machine-code anchors** (33 prior + 21 additional verified); five new C++
 test targets are registered but **not yet executed**. The new
 [24478 two-hand eligibility research checkpoint](LEVEL22_HAND_PAIR_ELIGIBILITY_CHECKPOINT.md)
 implements three original helper predicates, not the full attack-approval rule.
@@ -72,6 +72,25 @@ Overall faithful-demo acceptance is still **20% (1/5 major release gates)**.
 
 
 Goal: reproduce the original shipped behavior from boot through character creation while reading assets from a legally installed/owned copy of *Ravenloft: Strahd's Possession*.
+
+## Original 240A8 candidate and 24478 hand legality — source-only progress
+
+The latest [single-hand eligibility checkpoint](LEVEL22_SINGLE_HAND_ELIGIBILITY_CHECKPOINT.md)
+implements original `240A8` for **nonnegative object IDs**, including its
+`33FC4/34060` exception sets, signed class and level gates, two original
+spell-ID intervals, party-mode rules and the literal OBJECTS `+0x35 & 3`
+qualifier. Its regression target is registered but not yet compiled.
+
+The source deliberately **does not invent `240A8(-1)` unarmed semantics**:
+the original helper can read memory before the loaded OBJECTS buffer for
+negative IDs. Recovering that original pointer context and finishing the
+two-hand `24478` reconciliation remain prerequisites to live attacks.
+The [offline original-byte audit](tools/verify_combat_entry_bytes.py)
+registers **54 exact opcode anchors**, including 21 new sequences matched
+against original CODE.2. This is source evidence, not a new game build.
+
+**Bounded nonnegative `240A8` checkpoint: 75%** (compiled/original-runtime
+comparison pending). **Overall faithful-demo release acceptance: 20%**.
 
 ## Level 22 live HUD item handling (original CODE.2 214B8 / 211D8)
 
