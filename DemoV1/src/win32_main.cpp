@@ -19,6 +19,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -37,6 +38,7 @@
 #include "rloft/character_transfer.hpp"
 #include "rloft/exploration_legacy_input.hpp"
 #include "rloft/exploration_presenter.hpp"
+#include "rloft/exploration_frame_capture.hpp"
 #include "rloft/exploration_preview.hpp"
 #include "rloft/exploration_runtime.hpp"
 #include "rloft/party_modal_presenter.hpp"
@@ -797,7 +799,8 @@ int run_exploration(
     Host& host,
     rloft::RavenloftBootAssets& assets,
     const std::vector<std::uint8_t>& chars,
-    bool exploration_preview = false) {
+    bool exploration_preview = false,
+    bool capture_render = false) {
     auto runtime =
         rloft::ExplorationRuntime::load_fresh(
             assets.source(), chars);
@@ -834,6 +837,24 @@ int run_exploration(
               L"Arrow keys / Numpad to move | Esc to exit"
             : L"Ravenloft: Strahd's Possession - Exploration");
     std::wstring last_preview_title;
+
+    // Opt-in native-only forensic captures. No file I/O is performed
+    // during ordinary game launches. One frame per changed cell/facing
+    // with a fixed upper bound avoids retrace-paced disk flooding.
+    std::vector<std::uint8_t> capture_code2;
+    std::filesystem::path capture_directory;
+    std::optional<std::tuple<std::uint32_t,int,int,std::uint32_t>>
+        last_capture_position;
+    std::size_t capture_count=0U;
+    std::optional<std::string> capture_failure;
+    if (capture_render) {
+        capture_code2=assets.source().read("CODE.2");
+        const auto session_id=std::chrono::duration_cast<
+            std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
+        capture_directory=std::filesystem::temp_directory_path()/
+            "RLOFT-Demo-Captures"/std::to_string(session_id);
+    }
 
     // Native host cadence follows the same nominal VGA retrace pacing already
     // used by the reconstructed startup/character presenters. Input axes are
@@ -1373,6 +1394,37 @@ int run_exploration(
             frame,
             runtime.renderer_tables());
 
+        if (capture_render && !capture_failure.has_value() &&
+            capture_count < 16U) {
+            const auto& session=runtime.session();
+            const auto cell_x=static_cast<std::int32_t>(
+                session.coordinate_a)>>16;
+            const auto cell_y=static_cast<std::int32_t>(
+                session.coordinate_b)>>16;
+            const auto key=std::make_tuple(
+                static_cast<std::uint32_t>(session.level_id),
+                static_cast<int>(cell_x),static_cast<int>(cell_y),
+                static_cast<std::uint32_t>(session.facing));
+            if (!last_capture_position.has_value() ||
+                *last_capture_position != key) {
+                try {
+                    rloft::ExplorationFrameCapture::write(
+                        capture_directory,
+                        {capture_count+1U,
+                         static_cast<std::uint32_t>(session.level_id),
+                         cell_x,cell_y,
+                         static_cast<std::uint32_t>(session.facing)},
+                        frame,presented,presenter.framebuffer(),
+                        capture_code2);
+                    ++capture_count;
+                    last_capture_position=key;
+                } catch(const std::exception& error) {
+                    capture_failure=error.what();
+                    OutputDebugStringA(capture_failure->c_str());
+                }
+            }
+        }
+
         if (hovered_menu >= 0) {
             menu_presenter.draw(
                 presenter.framebuffer(),
@@ -1392,7 +1444,7 @@ int run_exploration(
                 session.coordinate_a) >> 16;
             const auto row = static_cast<std::int32_t>(
                 session.coordinate_b) >> 16;
-            const auto caption =
+            auto caption =
                 std::wstring(L"Ravenloft - Exploration Preview | Level ") +
                 std::to_wstring(session.level_id) +
                 L" | Cell " + std::to_wstring(column) +
@@ -1408,6 +1460,13 @@ int run_exploration(
                 std::to_wstring(
                     presented.surface_coverage.sintab_main_runs_failed) +
                 L" | Arrow keys / Numpad | Esc to exit";
+            if (capture_render) {
+                caption+=L" | Captures "+
+                    std::to_wstring(capture_count)+L"/16";
+                if (capture_failure.has_value()) {
+                    caption+=L" | Capture error";
+                }
+            }
             if (caption != last_preview_title) {
                 SetWindowTextW(host.hwnd(), caption.c_str());
                 last_preview_title = caption;
@@ -1627,6 +1686,7 @@ std::optional<rloft::GameSource> choose_valid_install(HWND owner) {
 struct DemoCommandLine final {
     std::optional<std::filesystem::path> source;
     bool explore_level22{};
+    bool capture_render{};
 };
 
 DemoCommandLine command_line_options() {
@@ -1642,10 +1702,12 @@ DemoCommandLine command_line_options() {
             const std::wstring_view arg(argv[index]);
             if (arg == L"--explore-level22" || arg == L"--explore") {
                 result.explore_level22 = true;
+            } else if (arg == L"--capture-render") {
+                result.capture_render = true;
             } else if (!arg.empty() && arg.front() == L'-') {
                 throw std::invalid_argument(
                     "Unknown command-line option. Use --explore-level22 "
-                    "and optionally one Ravenloft installation path.");
+                    "[--capture-render] and optionally one Ravenloft installation path.");
             } else if (result.source.has_value()) {
                 throw std::invalid_argument(
                     "Specify at most one Ravenloft installation path");
@@ -1658,6 +1720,10 @@ DemoCommandLine command_line_options() {
         throw;
     }
     LocalFree(argv);
+    if(result.capture_render && !result.explore_level22) {
+        throw std::invalid_argument(
+            "--capture-render requires --explore-level22");
+    }
     return result;
 }
 
@@ -1747,7 +1813,7 @@ int run(HINSTANCE instance) {
         const auto preview = rloft::ExplorationPreview::party(
             startup_chars);
         return run_exploration(
-            host, assets, preview.chars, true);
+            host, assets, preview.chars, true, options.capture_render);
     }
 
     if (startup_chars) {
