@@ -1,6 +1,8 @@
 #include "rloft/surface_prepass.hpp"
 
 #include <cassert>
+#include <stdexcept>
+#include <string>
 
 int main() {
     rloft::RendererTables tables{};
@@ -59,22 +61,29 @@ int main() {
     assert(plan->texture_source_byte_offset == 0x200);
     assert(plan->subtract_pair == 0x0101);
 
-    // CODE.2 337E3..337F9: if the accumulated 16-bit SINTAB
-    // scale steps never reach the requested row shift, the original
-    // subtract-and-clamp path selects patch entry ZERO. It must not
-    // throw and suppress a valid prepass draw.
+    // CODE.2 337EF..337F9 does not clamp an exhausted search.
+    // After the signed slot loop exits at -2, a *second* subtract
+    // makes -4. The unsigned JAE permits a word read at [EDI-4],
+    // outside this extracted scale block. Reject this unsupported
+    // case instead of inventing entry-zero pixels.
     for (auto& step : block.scale_step) {
         step = 0;
     }
-    const auto exhausted =
-        rloft::SurfacePrepassModel::build(
+    bool rejected_exhausted_lookup = false;
+    try {
+        (void)rloft::SurfacePrepassModel::build(
             run, level, tables, shades);
-    assert(exhausted.has_value());
-    assert(exhausted->entry_segment_index == 0);
-    assert(exhausted->entry_offset == 0x204);
+    } catch (const std::runtime_error& error) {
+        rejected_exhausted_lookup =
+            std::string(error.what()).find(
+                "bytes before the scale block") !=
+            std::string::npos;
+    }
+    assert(rejected_exhausted_lookup);
 
-    // The last remaining table slot can satisfy the threshold.
-    // Its post-selection decrement is likewise clamped to zero.
+    // When slot zero itself satisfies the threshold, the LAST
+    // decrement borrows and the original JAE correctly clamps to
+    // prefix entry zero. This is distinct from exhaustion above.
     block.scale_step[0] = 48;
     const auto last_slot =
         rloft::SurfacePrepassModel::build(
