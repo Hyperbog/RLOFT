@@ -1,5 +1,32 @@
 # Ravenloft Demo Build v1
 
+## New DC7C level-up HP reconstruction — original CODE.2
+
+The [DC7C HP checkpoint](LEVEL22_DC7C_HP_PROGRESSION_CHECKPOINT.md)
+now includes a read-only source reconstruction of original
+single-die class HP rolls, the two 19-byte signed Constitution
+adjustment banks, all six CS jump-table branches, original
+level-10/11 caps, the **clamp-before-multiclass** rule, one
+30CA2 RNG draw per call and 16-bit current/max HP wrapping.
+The tables are loaded from a user-owned `CODE.2` image
+and fingerprint-checked, not embedded or redistributed.
+
+The original-byte audit has grown to **407 named checks,
+399 distinct logical instruction addresses**, plus one direct
+Strength table, four hashed DGROUP tables and one hashed CS
+jump table. The exact committed read-only model and regression
+passed isolated strict C++17 Debug and Release tests against
+the original CODE.2 data; the original-backed test caught
+and corrected a mistaken fixture value for Constitution 15
+before final validation.
+
+**No live XP/HP changes, no original-timing emulation, and no
+rebuilt Windows EXE are claimed.** The `3EA4`/`3DE4`
+class services and `1C21C` IRQ message side effects must be
+preserved before the full DDA4 sequence can mutate state.
+Overall faithful-demo acceptance remains **20% (1/5)**.
+
+
 ## Latest DDA4 callback control — original 50DC and timed service sequence
 
 The [50DC / DDA4 service-order checkpoint](LEVEL22_DDA4_50DC_SERVICE_ORDER_CHECKPOINT.md)
