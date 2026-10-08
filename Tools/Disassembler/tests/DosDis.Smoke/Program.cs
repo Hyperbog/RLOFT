@@ -149,7 +149,7 @@ try
         bool cancelledAsRequested = false;
         try { ControlFlowAnalysis.Analyze(graphImage, cancellationToken: cancelled.Token); }
         catch (OperationCanceledException) { cancelledAsRequested = true; }
-        Require(cancelledAsRequested, "cancelled analysis must stop without publishing partial findings");
+        Equal(cancelledAsRequested, true, "cancelled analysis must stop without publishing partial findings");
     }
     var graph = ControlFlowAnalysis.Analyze(graphImage, protectedData: new[] {
         new ProtectedDataRange(1, 6, 10, "synthetic-known-data") });
