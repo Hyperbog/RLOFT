@@ -55,6 +55,7 @@ add_library(rloft_boot_flow
     src/combat_class_level.cpp
     src/combat_rod_of_smiting.cpp
     src/combat_npc_injury_prelude.cpp
+    src/combat_npc_death_followon.cpp
     src/combat_harm_prelude.cpp
     src/combat_damage_stat_bonus.cpp
     src/combat_weapon_damage_gate.cpp
@@ -246,6 +247,9 @@ add_test(NAME combat_rod_of_smiting_tests COMMAND combat_rod_of_smiting_tests)
 add_executable(combat_npc_injury_prelude_tests tests/combat_npc_injury_prelude_tests.cpp)
 target_link_libraries(combat_npc_injury_prelude_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_npc_injury_prelude_tests COMMAND combat_npc_injury_prelude_tests)
+add_executable(combat_npc_death_followon_tests tests/combat_npc_death_followon_tests.cpp)
+target_link_libraries(combat_npc_death_followon_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_npc_death_followon_tests COMMAND combat_npc_death_followon_tests)
 add_executable(combat_harm_prelude_tests tests/combat_harm_prelude_tests.cpp)
 target_link_libraries(combat_harm_prelude_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_harm_prelude_tests COMMAND combat_harm_prelude_tests)
@@ -631,6 +635,7 @@ set(RLOFT_TEST_TARGETS
     combat_class_level_tests
     combat_rod_of_smiting_tests
     combat_npc_injury_prelude_tests
+    combat_npc_death_followon_tests
     combat_harm_prelude_tests
     combat_damage_stat_bonus_tests
     combat_weapon_damage_gate_tests
