@@ -28,6 +28,11 @@ int main() {
     page.page_stride_f005=0x800U;
     page.saved_pages_2b644.assign(10U,0U);
 
+    CombatOriginalVgaCopyState live_video{};
+    live_video.selected_page_efe9=page.selected_page_efe9;
+    live_video.linear_page_base_f001=page.physical_page_base_f001;
+    live_video.page_stride_f005=0x800U;
+
     std::vector<std::string> trace;
     CombatOriginalVgaPageStackServices paging{};
     paging.selected_page_291b0=[&](std::uint8_t selected){
@@ -35,6 +40,9 @@ int main() {
         assert(selected==0U||selected==3U);
         assert(page.active_page_ef4d==selected);
         assert(page.selected_page_efe9==selected);
+        assert(live_video.selected_page_efe9==selected);
+        assert(live_video.linear_page_base_f001==
+               page.physical_page_base_f001);
     };
     paging.diagnostic_2f580=[&](std::uint32_t){
         assert(false&&"no original stack error on this valid path");
@@ -71,8 +79,8 @@ int main() {
         assert(page.depth_f0d0==1U);
         assert(page.active_page_ef4d==0U);
     };
-    auto linked=CombatOriginalVgaPageStackOverlayBinder::bind(
-        page,paging,overlay_callbacks);
+    auto linked=CombatOriginalVgaPageStackOverlayBinder::bind_with_live_video(
+        page,live_video,paging,overlay_callbacks);
     assert(linked.push_page_2e590&&linked.pop_page_2e5d4);
     assert(linked.capture_292bc&&linked.restore_2932c);
 
@@ -111,6 +119,8 @@ int main() {
     assert(page.active_page_ef4d==3U);
     assert(page.selected_page_efe9==3U);
     assert(page.physical_page_base_f001==0xB8000U);
+    assert(live_video.selected_page_efe9==3U);
+    assert(live_video.linear_page_base_f001==0xB8000U);
     assert(composite.overlay_reference_count_9e37==1);
     assert(composite.active_page_9e39==1U);
     assert(composite.redraw_busy_a6ba==0U);
@@ -123,4 +133,18 @@ int main() {
     assert(trace.empty());
     assert(composite.overlay_reference_count_9e37==3);
     assert(page.depth_f0d0==0U);
+
+    // Live F005 is read at each 2AB6C call, not frozen when
+    // this binding was created. A later original-mode change
+    // must alter both stack projection and VGA copy addresses.
+    live_video.page_stride_f005=0x123U;
+    linked.push_page_2e590(2U);
+    assert(page.page_stride_f005==0x123U);
+    assert(page.physical_page_base_f001==
+           ((0xA000U+2U*0x123U)<<4U));
+    assert(live_video.linear_page_base_f001==
+           page.physical_page_base_f001);
+    linked.pop_page_2e5d4();
+    assert(page.depth_f0d0==0U);
+    assert(live_video.selected_page_efe9==3U);
 }
