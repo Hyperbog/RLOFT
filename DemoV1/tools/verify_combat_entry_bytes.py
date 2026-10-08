@@ -92,6 +92,22 @@ ANCHORS = {
     "heap wrapper adds ten bytes": (0x31053, "30db83c70a"),
     "heap wrapper returns base plus ten": (0x310A2, "8d460a"),
     "heap wrapper writes magic dword": (0x310A5, "c7460678563412"),
+    # 244CE..246E9 empty and temporary spell-hand early gates.
+    "244CE first empty hand": (0x244CE, "83fdff"),
+    "244D3 both empty hands": (0x244D3, "3b6c241c"),
+    "244EC first actor status fetch": (0x244EC, "0fb705f0180200"),
+    "244F3 status threshold 4000h": (0x244F3, "3d00400000"),
+    "24501 second status threshold 4000h": (0x24501, "3d00400000"),
+    "24522 first pseudo lower bound": (0x24522, "83fd7e"),
+    "24540 second pseudo helper": (0x24540, "e8eff9ffff"),
+    "2454C paired pseudo forces first true": (0x2454C, "bb01000000"),
+    "245A9 actor condition mask 7240h": (0x245A9, "2540720000"),
+    "245BE empty-first party mode": (0x245BE, "0fb605a8580200"),
+    "24641 first pseudo in general path": (0x24641, "83fd7e"),
+    "2465B first pseudo party-mode override": (0x2465B, "0fb605a8580200"),
+    "24693 second pseudo in general path": (0x24693, "837c241c7e"),
+    "246E9 classified first branching": (0x246E9, "837c240400"),
+    "23F34 pseudo helper lower bound": (0x23F34, "837c24047e"),
 }
 
 
