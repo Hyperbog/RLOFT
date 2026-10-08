@@ -507,8 +507,10 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         raise SystemExit("usage: verify_combat_entry_bytes.py CODE.2")
     total = verify(Path(sys.argv[1]).read_bytes())
+    unique_offsets = len({at for at, _ in ANCHORS.values()})
     print(
-        f"PASS: {total} original CODE.2 combat/hand opcode anchors; "
+        f"PASS: {total} named CODE.2 combat/hand byte checks "
+        f"({unique_offsets} unique logical instruction offsets); "
         f"{len(DATA_ANCHORS)} direct data tables + "
         f"{len(DATA_HASH_ANCHORS)} hashed data tables; "
         "party offsets 19E/10B/12B; no build executed"
