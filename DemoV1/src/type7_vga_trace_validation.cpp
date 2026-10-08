@@ -105,6 +105,20 @@ void Type7VgaTraceValidator::validate(
 
         std::size_t call_index=group.first;
         const auto base=calls[call_index].physical_address;
+        if(individual) {
+            // 36B80 increments horizontal 105E3 by one; 369D8
+            // computes SAR(x,2). The physical byte destination must
+            // advance only at the four-plane boundary, not arbitrarily
+            // between successive individual-column calls.
+            const auto physical_byte_delta=
+                static_cast<std::uint32_t>(group.column/4) -
+                static_cast<std::uint32_t>(start/4);
+            if(base != calls.front().physical_address+
+                           physical_byte_delta) {
+                throw std::invalid_argument(
+                    "type-7 VGA individual columns have wrong byte addresses");
+            }
+        }
         for(std::size_t pass=0U;pass<masks.size();++pass) {
             if(masks[pass]==0U) {
                 continue;
