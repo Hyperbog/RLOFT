@@ -49,4 +49,35 @@ int main() {
                 0x44, 0x39).has_value());
     assert(!PartyPanelControlModel::modal_toggle_actor_at(
                 0x45, 0x38).has_value());
+
+    // 12E70 click rectangles are actual 32x16 tiles with two-pixel
+    // horizontal and vertical gutters. Check all four actor columns.
+    for(std::size_t actor=0U;actor<4U;++actor) {
+        for(std::size_t slot=0U;slot<12U;++slot) {
+            const int row=0x129+static_cast<int>(slot/4U)*0x22;
+            const int column=static_cast<int>(actor)*0x50+5+
+                             static_cast<int>(slot%4U)*0x12;
+            const auto first=PartyPanelControlModel::
+                modal_ordinary_slot_at(row,column);
+            const auto last=PartyPanelControlModel::
+                modal_ordinary_slot_at(row+31,column+15);
+            assert(first && last);
+            assert(first->actor==actor && last->actor==actor);
+            assert(first->slot==slot && last->slot==slot);
+            assert(!PartyPanelControlModel::
+                   modal_ordinary_slot_at(row+32,column));
+            assert(!PartyPanelControlModel::
+                   modal_ordinary_slot_at(row,column+16));
+        }
+    }
+    assert(!PartyPanelControlModel::
+           modal_ordinary_slot_at(0x128,5));
+    assert(!PartyPanelControlModel::
+           modal_ordinary_slot_at(0x18D,5));
+    assert(!PartyPanelControlModel::
+           modal_ordinary_slot_at(0x129,4));
+    assert(!PartyPanelControlModel::
+           modal_ordinary_slot_at(0x129,0x4B));
+    assert(!PartyPanelControlModel::
+           modal_ordinary_slot_at(0x129,320));
 }
