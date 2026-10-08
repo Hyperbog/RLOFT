@@ -82,4 +82,14 @@ int main() {
     assert(complete.type7_visible_columns_pending == 0);
     assert(complete.type7_unvalidated_wide_runs == 0U);
     assert(complete.complete());
+
+    // An unsupported SINTAB plan cannot be reported as a complete
+    // frame even if a synthetic caller supplies zero pending work.
+    auto failed_prepass = complete;
+    failed_prepass.sintab_prepass_runs_failed = 1U;
+    assert(!failed_prepass.complete());
+    failed_prepass.sintab_prepass_runs_failed = 0U;
+    failed_prepass.sintab_prepass_runs_rasterized = 1U;
+    failed_prepass.sintab_prepass_indexed_writes = 2U;
+    assert(failed_prepass.complete());
 }
