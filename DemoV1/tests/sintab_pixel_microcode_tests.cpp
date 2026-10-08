@@ -172,7 +172,7 @@ int main() {
         constexpr std::uint64_t fnv_prime =
             0x100000001B3ULL;
         const auto mix =
-            [](std::uint64_t hash, std::uint8_t value) {
+            [fnv_prime](std::uint64_t hash, std::uint8_t value) {
                 return (hash ^ value) * fnv_prime;
             };
         std::uint64_t fingerprints[2] = {
