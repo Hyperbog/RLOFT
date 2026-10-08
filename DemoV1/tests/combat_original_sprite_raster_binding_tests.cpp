@@ -29,6 +29,14 @@ int main() {
     readers.capture_sprite_at_pointer=[&](std::uint32_t addr)
       ->std::optional<CombatOriginalSpriteMemory> {
         ++reads;
+        if(reads==2U) {
+            // Original 2A590/2A595 writes BOTH code operands
+            // before any shaded sprite header is read.
+            assert(machine.writable_code_object1[0x2A60BU]==0U);
+            assert(machine.writable_code_object1[0x2A60CU]==0x90U);
+            assert(machine.writable_code_object1[0x2A672U]==0U);
+            assert(machine.writable_code_object1[0x2A673U]==0x90U);
+        }
         if(addr!=0x1000U)return std::nullopt;
         CombatOriginalSpriteMemory r{};
         r.captured_base_address=addr;
