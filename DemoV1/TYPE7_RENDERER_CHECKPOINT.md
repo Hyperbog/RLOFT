@@ -391,3 +391,23 @@ python3 DemoV1/tools/test_offline_renderer_verify.py
 ```
 
 CTest also registers this asset-free Python regression automatically when Python is installed. **Do not conflate** these original-data checks with compiling the C++ renderer or successfully running the full demo; those remain separate requirements.
+
+## Whole-scene VGA execution integrity (October 7, 2026)
+
+The CODE.2 binary was re-read at `369C0..36B95` and `36DAD..36EBA` to close both the SINTAB selector ABI and the VGA dispatch state. In particular, `36EA8` **subtracts `0x204`** from the scale-code pointer before installing it at global `0x105D7`; `369D8` then resolves the original 16-bit descriptors against the 129-word patch prefix, using **nonnegative even selectors in the range 0..0x100**. The previous C++ descriptor-offset representation was correct. Regression now explicitly rejects negative even selectors instead of risking an apparent signed-relative reinterpretation.
+
+However, the original portable type-7 pixel executor trusted an externally built VGA trace without validating all masks and lookup transitions. This could allow corrupted or incomplete traces to be counted as successful sprite rendering.
+
+`Type7VgaTraceValidator` now validates:
+
+- Every destination run's width is in the certified CODE.2 1..7 range, and every destination column is representable.
+- The **original `0xC029` branch** (grouped versus individual columns), retained explicitly even for a single-column run.
+- Exact three-pass planar masks calculated independently from the horizontal phase and run width; no missing, duplicated, or additional VGA passes.
+- The VGA physical-byte increment between lane changes and within sequential pass addresses.
+- Per-column parity selection of the original ECX lookup word, including the full value rather than just the low 16 bits.
+- `36B14` grouped lookup-byte swapping versus individual-mode lookup restoration, and preservation of the original ECX chain across consecutive source columns.
+- Exact run count, source identity, horizontal geometry, and the scene's final lookup word.
+
+`Type7ScenePixelExecutor::draw` runs the **whole-scene validation before any generated-code mutation or planar video writes**, so an inconsistent trace cannot produce even a partial direct-call render. The presenter continues to supply an additional per-scene transactional framebuffer copy for exceptions during actual SINTAB execution. The new `type7_vga_trace_validation_tests` target includes adversarial altered masks, pass indices, addresses, reordered/missing columns, incorrect ECX values and both one-column mode outcomes. Existing original-dispatch and scene-executor tests now also invoke these checks.
+
+**Validation boundary:** Source/test registration and GitHub commits are confirmed, but a complete local CMake build is still required to certify these C++ changes. GitHub Actions runner availability remains independent of the development commits.
