@@ -84,6 +84,14 @@ ANCHORS = {
     "24478 classified second only": (0x24A30, "833c2400"),
     "240A8 empty hand before class": (0x240E3, "83feff"),
     "240A8 empty hand party veto": (0x24248, "83feff"),
+    # Loader 268C8 + 4104C allocator; -1 category is NOT serialized.
+    "OBJECTS loader resource 0704": (0x168C9, "6804070000"),
+    "OBJECTS count times record 41": (0x168F7, "89d0c1e00601d050"),
+    "OBJECTS allocated pointer store": (0x1690C, "a3d8550200"),
+    "OBJECTS read count times 41": (0x1691E, "e8c9a90100"),
+    "heap wrapper adds ten bytes": (0x31053, "30db83c70a"),
+    "heap wrapper returns base plus ten": (0x310A2, "8d460a"),
+    "heap wrapper writes magic dword": (0x310A5, "c7460678563412"),
 }
 
 
