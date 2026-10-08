@@ -94,7 +94,11 @@ NpcDamageResult ExplorationRuntime::damage_level22_assassin(
     if (session_.level_id != Level22Story::kLevelId) {
         throw std::logic_error("Assassin damage outside Level 22");
     }
-    const auto outcome = Level22EncounterModel::damage_assassin(
+    // The original death/drop routine can mutate HP and item records
+    // before a later source-data or placement error throws. Invalidate
+    // prior scene indices before starting, even on exceptional exit.
+    ++world_scene_revision_;
+    return Level22EncounterModel::damage_assassin(
         world_,
         npc_index,
         amount,
@@ -103,10 +107,6 @@ NpcDamageResult ExplorationRuntime::damage_level22_assassin(
         npc_catalog_,
         renderer_tables_,
         can_place);
-    if (outcome.damaged) {
-        ++world_scene_revision_;
-    }
-    return outcome;
 }
 
 LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
@@ -117,14 +117,15 @@ LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
     if (session_.level_id != Level22Story::kLevelId) {
         throw std::logic_error("Level 22 pickup outside Level 22");
     }
-    auto outcome = Level22EncounterModel::pickup_loose_item(
+    // 21704 mutates held inventory and compacts the loose-item array
+    // before checking Level 22 story completion. Invalidate first.
+    ++world_scene_revision_;
+    return Level22EncounterModel::pickup_loose_item(
         world_,
         item_index,
         inventory_,
         session_.party,
         object_catalog_);
-    ++world_scene_revision_;
-    return outcome;
 }
 
 std::optional<NpcDamageResult>
