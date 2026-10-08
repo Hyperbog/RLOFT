@@ -22,6 +22,10 @@ struct ObjectDefinition final {
     // 24478 tests this exact mask for hand-eligibility branches;
     // the remaining high bits are not interpreted as a modern flag.
     std::uint8_t raw_byte_35_low2{};
+    // Original CODE.2 E5F0: recovery uses record WORD +35h bits 2..5.
+    // Keep the complete little-endian source word, not only the
+    // +35h qualifier mask consumed by 240A8/24478.
+    std::uint16_t raw_word_35{};
     std::uint8_t weight_half_units{};
     std::int8_t container_state_index{};
     std::uint8_t enchantment{};
