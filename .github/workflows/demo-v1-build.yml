@@ -1,0 +1,113 @@
+name: Demo v1 build
+
+# Private-repo development: never consume Windows runner minutes from
+# source or documentation commits. Run this workflow manually only.
+# Reconsider the push trigger once the repository is public.
+on:
+  workflow_dispatch:
+    inputs:
+      run_linux:
+        description: "Opt in to paused Linux build and tests"
+        required: false
+        type: boolean
+        default: false
+
+# Prevent two intentionally requested manual builds competing for minutes.
+concurrency:
+  group: demo-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  linux-tests:
+    # Paused to conserve Actions minutes. A manual workflow_dispatch
+    # with run_linux=true can explicitly opt in.
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_linux }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S DemoV1 -B build/demo-v1 -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build/demo-v1 --config Release
+      - name: Test
+        run: ctest --test-dir build/demo-v1 -C Release --output-on-failure
+
+  windows-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify CODE.2 faithful C++17 reconstruction syntax
+        shell: pwsh
+        run: |
+          # Windows image includes GCC. Check the actual executable and
+          # fail explicitly instead of silently skipping this gate.
+          $compiler = Get-Command g++.exe -ErrorAction SilentlyContinue
+          if ($compiler) {
+            & $compiler.Source -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } else {
+            # windows-latest guarantees a Visual Studio C++ toolchain
+            # for the CMake -A x64 job; locate the installed edition
+            # rather than assuming a hardcoded VS Enterprise path.
+            $vswhere = "${env:ProgramFiles(x86)}\\Microsoft Visual Studio\\Installer\\vswhere.exe"
+            if (-not (Test-Path $vswhere)) {
+              throw "Neither g++ nor Visual Studio vswhere is available."
+            }
+            $vsRoot = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+            if (-not $vsRoot) { throw "No MSVC C++ toolchain installed." }
+            $vcvars = Join-Path $vsRoot "VC\\Auxiliary\\Build\\vcvars64.bat"
+            if (-not (Test-Path $vcvars)) { throw "MSVC x64 initialization missing." }
+            $command = 'call "' + $vcvars + '" >NUL && cl.exe /nologo /std:c++17 /permissive- /Zs Code2\\Code2.cpp'
+            & cmd.exe /d /s /c $command
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - name: Configure
+        run: cmake -S DemoV1 -B build/demo-v1 -A x64
+      - name: Build
+        run: cmake --build build/demo-v1 --config Release
+      - name: Test
+        run: ctest --test-dir build/demo-v1 -C Release --output-on-failure
+      - name: Stage Level 22 walkaround launcher
+        shell: pwsh
+        run: |
+          Copy-Item DemoV1/Windows/Explore-Level22.cmd build/demo-v1/Release/Explore-Level22.cmd -Force
+
+      - name: Publish Windows executable and walkaround launcher
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ravenloft-Demo-v1-Windows-x64
+          path: |
+            build/demo-v1/Release/ravenloft_demo_v1.exe
+            build/demo-v1/Release/Explore-Level22.cmd
+          if-no-files-found: error
+
+      - name: Keep Windows executable in git
+        shell: pwsh
+        run: |
+          # Documentation-only commits can land after the Windows
+          # checkout but before the 6-minute native build completes.
+          # Refresh to the latest branch HEAD BEFORE copying the
+          # already-built EXE, so the binary commit has a fast-forward
+          # parent rather than silently losing concurrent documentation.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin demo-v1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git checkout -B demo-v1 origin/demo-v1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          New-Item -ItemType Directory -Force -Path DemoV1/Windows | Out-Null
+          Copy-Item build/demo-v1/Release/ravenloft_demo_v1.exe DemoV1/Windows/ravenloft_demo_v1.exe -Force
+          $hash = (Get-FileHash DemoV1/Windows/ravenloft_demo_v1.exe -Algorithm SHA256).Hash.ToLower()
+          Set-Content -NoNewline -Path DemoV1/Windows/ravenloft_demo_v1.exe.sha256 -Value "$hash  ravenloft_demo_v1.exe"
+          git add DemoV1/Windows/ravenloft_demo_v1.exe DemoV1/Windows/ravenloft_demo_v1.exe.sha256
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 1) {
+            git commit -m "build: refresh Demo v1 Windows executable [skip ci]"
+            git push origin HEAD:demo-v1
+          } elseif ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
