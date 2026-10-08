@@ -18,7 +18,7 @@ dotnet run --project tests/DosDis.Smoke
 dotnet run --project tests/DosDis.Smoke -- /path/to/CODE.1 /path/to/CODE.2
 ```
 
-On the Windows CI job, a self-contained `DOSDis-CLI-win-x64-preview` build artifact is uploaded for testing (not an endorsed production release).
+Windows and Linux CI jobs upload self-contained `DOSDis-CLI-win-x64-preview` and `DOSDis-CLI-linux-x64-preview` artifacts for testing (not endorsed production releases).
 
 `inspect` emits JSON with immutable source SHA-256, LE module/object/page mappings, entry point, and evidence-tagged File Intelligence fields. `disasm` emits structured instruction records (original bytes, object offset, assembly, flow-control category).
 
