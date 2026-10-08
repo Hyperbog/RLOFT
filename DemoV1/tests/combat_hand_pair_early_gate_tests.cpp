@@ -100,6 +100,11 @@ int main() {
     status(party,0U,0x4000U);
 
     // Boundaries are inclusive: 7D/87 are ordinary, not pseudo.
+    // The previous FFh/actor2 test left actor0 status at 0x4000.
+    // For THIS actor0 ordinary-hand case that status is masked by
+    // original 2459C (0x7240), vetoing both candidate hands.
+    // Clear it explicitly so the test isolates item boundaries.
+    status(party,0U,0U);
     r=apply(0U,0x7D,0x87,0U,false,true);
     assert(!r.skip_object_arbitration);
     assert(!r.first_eligible && r.second_eligible);
