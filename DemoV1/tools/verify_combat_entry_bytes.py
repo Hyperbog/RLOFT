@@ -398,6 +398,25 @@ ANCHORS = {
     "DDA4 level-up callback dc7c": (0xDF81, "e8f6fcffff"),
     "DDA4 actor target recompute dbd4": (0xDFD3, "e8fcfbffff"),
     "DDA4 store attack target byte": (0xDFE3, "8882ea190200"),
+    # Original DDA4:DF1F invokes 50DC(0,actor) after storing new level.
+    "50DC callback selection entry": (0x50DC, "53"),
+    "50DC actor stride": (0x50DD, "6944240c48020000"),
+    "50DC actor status WORD": (0x50E5, "668b90f0180200"),
+    "50DC F240 exclusion mask": (0x50EC, "81e240f20000"),
+    "50DC mode zero comparison": (0x50FD, "837c240800"),
+    "50DC zero-mode first class": (0x5104, "0fbe90f5180200"),
+    "50DC zero-mode class3": (0x510B, "83fa03"),
+    "50DC zero-mode second class": (0x5114, "0fbe98f6180200"),
+    "50DC zero-mode third class": (0x5127, "0fbe98f7180200"),
+    "50DC class1 level exception": (0x513A, "83fa01"),
+    "50DC class1 signed level": (0x513F, "0fbf8000190200"),
+    "50DC class1 threshold9": (0x5146, "83f809"),
+    "50DC nonzero-mode first class": (0x514F, "0fbe90f5180200"),
+    "50DC nonzero-mode class4": (0x5156, "83fa04"),
+    "50DC nonzero-mode second class": (0x515F, "0fbe90f6180200"),
+    "50DC nonzero-mode third class": (0x5172, "0fbe80f7180200"),
+    "50DC no qualifying class -1": (0x5185, "b8ffffffff"),
+    "50DC return": (0x518B, "c3"),
 }
 
 # Original object-2 DGROUP contents (not x86 code). These 26
