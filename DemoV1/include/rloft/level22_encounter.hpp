@@ -47,6 +47,7 @@ public:
     // supplies the broader 2D5D0 collision probe used by 2195C.
     [[nodiscard]] static NpcDamageResult damage_assassin(
         LevelWorldState& world,
+        const LevelState& level,
         std::size_t npc_index,
         std::uint16_t amount,
         std::uint16_t reaction_mode,
