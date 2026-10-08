@@ -1,6 +1,8 @@
 # Optional AI Disassembly Assistant — design decision and research (2026-10-08)
 
-**Status: PROPOSED, NOT IMPLEMENTED.** No provider credentials, network calls, or LLM dependencies are required for ordinary DOSDis analysis. This architecture preserves the user's requested disassembler-only scope: AI assists human disassembly work; it does **not** generate high-level source languages.
+**STATUS: DEFERRED UNTIL AFTER THE FINAL RELEASE — NOT IN CURRENT DEVELOPMENT SCOPE.** Per the project owner's instruction of 2026-10-08, the AI assistant will not be prototyped, implemented, tested, packaged, integrated, or prioritized during the disassembler's initial development, beta, release-candidate or final-release cycle. No AI-related UI, credentials, SDKs, service wiring, provider integrations or scaffolding should be introduced until *after* the fully functional disassembler's final release is delivered and accepted, and the owner explicitly chooses to reopen this idea.
+
+**This document is a retained future-reference research note, not an active implementation specification or backlog.** The API/product details below are a 2026-10-08 snapshot and **must be reverified** when the idea is revisited. No provider credentials, network calls, or LLM dependencies are needed for DOSDis analysis. No automatic source-language generation is in scope.
 
 ## Product and user experience
 
@@ -52,7 +54,7 @@ AI output is untrusted. It may propose labels, comments, hypotheses, comparison 
 - Prompt-injection resilience: treat strings/annotations/resources as untrusted task data; reject instructions embedded in binaries or scraped documents to run tools, reveal secrets or change policies.
 - All ordinary disassembly continues fully offline and deterministically if no AI provider is selected or if it fails.
 
-## Implementation sequence and acceptance
+## Possible post-final-release sequence (inactive; do not schedule before final release)
 
 1. **AI-00 contract**: provider/capability registry and local conversation/event schema, fully isolated from binary loaders; no network by default.
 2. **AI-01 read-only chat**: optional WPF panel, streamed multi-turn text, selection-aware context previews, mock provider and cancellation tests.
