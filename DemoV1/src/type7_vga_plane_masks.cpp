@@ -92,28 +92,6 @@ Type7VgaPlaneMaskModel Type7VgaPlaneMaskModel::from_code2(
             }
         }
     }
-    // 3263C indexes exactly phase*8+C6F4 without splitting an
-    // ordinary wall run. The first byte of the NEXT eight-byte
-    // phase group is the canonical eight-column width for the
-    // preceding phases 0..2. It yields eight physical lane bits.
-    // Phase 3 reaches index 32, outside the three 32-byte arrays,
-    // and cannot be accepted from this immutable 96-byte capture.
-    for (std::size_t phase = 0U; phase < 3U; ++phase) {
-        const auto at = phase * 8U + 8U;
-        unsigned written = 0U;
-        for (const auto& table : model.plane_tables_) {
-            const auto mask = table[at];
-            if ((mask & 0xF0U) != 0U) {
-                throw std::runtime_error(
-                    "CODE.2 eight-column wall mask exceeds four VGA planes");
-            }
-            written += bit_count(mask);
-        }
-        if (written != 8U) {
-            throw std::runtime_error(
-                "CODE.2 eight-column wall mask does not cover eight pixels");
-        }
-    }
     return model;
 }
 
@@ -164,8 +142,19 @@ Type7VgaRunMasks Type7VgaPlaneMaskModel::for_surface_main_run(
     Type7VgaRunMasks out{};
     out.screen_phase = phase;
     out.column_count = column_count;
+    unsigned written = 0U;
     for (std::size_t lane = 0U; lane < out.planes.size(); ++lane) {
-        out.planes[lane] = plane_tables_[lane][slot];
+        const auto mask = plane_tables_[lane][slot];
+        if ((mask & 0xF0U) != 0U) {
+            throw std::runtime_error(
+                "CODE.2 eight-column wall mask exceeds four VGA planes");
+        }
+        written += bit_count(mask);
+        out.planes[lane] = mask;
+    }
+    if (written != 8U) {
+        throw std::runtime_error(
+            "CODE.2 eight-column wall mask does not cover eight pixels");
     }
     return out;
 }
