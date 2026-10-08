@@ -7,11 +7,6 @@
 namespace rloft {
 namespace {
 
-std::uint16_t read_u16(const std::uint8_t* bytes) noexcept {
-    return static_cast<std::uint16_t>(bytes[0]) |
-           (static_cast<std::uint16_t>(bytes[1])<<8U);
-}
-
 std::uint32_t read_u32(const std::uint8_t* bytes) noexcept {
     return static_cast<std::uint32_t>(bytes[0]) |
            (static_cast<std::uint32_t>(bytes[1])<<8U) |
@@ -26,6 +21,7 @@ CombatAttackTimingPlan CombatAttackTimingModel::inspect(
     const ObjectCatalog& objects,
     std::size_t actor,
     std::size_t hand,
+    std::int32_t dispatched_item_id,
     std::uint32_t gameplay_maintenance_tick_a7e4,
     bool hit_succeeded,
     std::int32_t computed_damage) {
@@ -34,8 +30,9 @@ CombatAttackTimingPlan CombatAttackTimingModel::inspect(
     }
     const auto* rec =
         party.bytes.data()+actor*PartyImage::kActorSize;
-    const auto item=static_cast<std::int16_t>(
-        read_u16(rec+0x40U+2U*(14U+hand)));
+    // E5F0:1E5F7 uses the third dispatched call argument, not
+    // a second potentially stale read of the live party hand.
+    const auto item=dispatched_item_id;
     if (item<-1) {
         throw std::out_of_range("CODE.2 E5F0 invalid hand item");
     }
