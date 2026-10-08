@@ -11,7 +11,10 @@ This directory contains the certified faithful C++ reconstruction of Ravenloft: 
 - Unresolved object-1 bytes: **0**
 - Strict C++17 verification at certification: **0 errors, 0 warnings**
 - Certified `Code2.cpp` SHA-256: `b4ab60f12e0d5a3c986ef61ec3c2e5c6d68f0193a0e535ef35eb7af6f3aed4aa`
-- Certified Git blob SHA: `c3f16122e79c3c464382e4511d9d932f6fcd694a`
+- Original 2026-10-05 certified Git blob SHA (historical): `c3f16122e79c3c464382e4511d9d932f6fcd694a`
+- **Current corrected `Code2.cpp` Git blob SHA (both branches): `87f6638921c53a32bde59735515fbc175e2c96ee`**
+
+**2026-10-07 post-certification correction:** direct re-disassembly of the original CODE.2 verified two semantic repairs originally present in `demo-v1`: automap draw-coordinate accumulation in `0139C` and the five-argument wrapper at `2975C`. The source is now identical on `code1-decompilation` and `demo-v1`. See [`POST_CERTIFICATION_GRAPHICS_CORRECTIONS_2026-10-07.md`](POST_CERTIFICATION_GRAPHICS_CORRECTIONS_2026-10-07.md) for physical offsets, instruction witnesses and verification limits. The file-size/SHA-256 values at original certification are historical, not the identity of the current corrected source.
 
 The detailed historical audit/checkpoint documents are provenance. Temporary integration scripts and staged fragments are not canonical source artifacts; Git history preserves them.
 
