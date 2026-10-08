@@ -501,3 +501,30 @@ rendering, page-stack callbacks and the
 post-render `30700` IRQ observation; no
 short-circuit modern graphics clipping should
 replace it. [Checkpoint](LEVEL22_CODE2_OVERLAY_BACKING_CLIP_CHECKPOINT.md).
+
+
+## Native 2A114/2A178 four-plane backing capture/restore
+
+Original overlay `1A288` invokes `292BC -> 2A114`
+to capture an area into raw DGROUP backing blocks,
+with **each full VGA plane copied contiguously**
+before the next read map. `2A114` writes VGA GC
+read-map register 04h for planes 0 through 3 and
+leaves plane 3 selected. `1AB20` invokes
+`2932C -> 2A178` to restore all four blocks
+via VGA sequencer masks `1,2,4,8` and finally
+executes the exact **`OUT 03C4h,FF02h`**.
+The native VGA state now retains the raw 0xFF
+port data separately from the effective 0x0F
+plane mask.
+
+Even a clipped zero-column restore can issue
+source-backed port effects or copy a physical
+byte when its starting column plane is nonzero.
+These occur **inside** the original
+`1A8C8 -> 1A288/1AB20` callback chain, and
+the independent `30700` IRQ clock is read only
+after the entire draw/restore chain completes.
+Do not eagerly flatten the backing into a
+modern framebuffer or omit zero-width callbacks.
+[Source checkpoint](LEVEL22_CODE2_2A114_2A178_VGA_BACKING_CHECKPOINT.md).
