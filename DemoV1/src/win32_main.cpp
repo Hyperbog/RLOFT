@@ -1205,6 +1205,61 @@ int run_exploration(
             }
         }
 
+        // Native input adapter: for now a right-click on a hand tile
+        // explicitly requests CODE.2 214B8 flag 08h (item exchange).
+        // Original DOS button/held-time event mapping still needs a
+        // captured input trace; do not pass primary flag 01h through
+        // this route, as that is the unfinished use/attack command.
+        if (ui.state().screen ==
+                rloft::ExplorationUiScreen::Viewport) {
+            if (const auto secondary =
+                    host.consume_exploration_secondary_click()) {
+                if (!exploration_preview) {
+                    if (const auto hand =
+                            rloft::PartyPanelControlModel::
+                                gameplay_hand_at(
+                                    secondary->row,
+                                    secondary->column)) {
+                        const auto status =
+                            runtime.inventory().swap_hand_slot(
+                                runtime.session().party,
+                                runtime.object_catalog(),
+                                hand->actor,
+                                hand->hand);
+                        if (status ==
+                            rloft::InventoryHandSwapStatus::Swapped) {
+                            // Live hand equipment and readiness changed.
+                            // Rebuild scene selection on the next frame;
+                            // never retarget a stale view after input.
+                            displayed_scene_frame.reset();
+                            input.clear();
+                            const auto held = runtime.inventory().held;
+                            const auto caption =
+                                held.object_id == -1
+                                    ? std::wstring(
+                                        L"Ravenloft - Hand exchange | "
+                                        L"Cursor empty")
+                                    : std::wstring(
+                                        L"Ravenloft - Hand exchange | "
+                                        L"Held item ID ") +
+                                        std::to_wstring(held.object_id) +
+                                        (held.known != 0
+                                            ? L" (identified)"
+                                            : L" (unknown)");
+                            SetWindowTextW(
+                                host.hwnd(), caption.c_str());
+                        } else if (status ==
+                            rloft::InventoryHandSwapStatus::Unsupported) {
+                            SetWindowTextW(
+                                host.hwnd(),
+                                L"Ravenloft - Hand interaction pending: "
+                                L"special item or container");
+                        }
+                    }
+                }
+            }
+        }
+
         if (ui.state().screen ==
             rloft::ExplorationUiScreen::PartyPanels) {
             // The opening actor-panel click is consumed above. Render the
