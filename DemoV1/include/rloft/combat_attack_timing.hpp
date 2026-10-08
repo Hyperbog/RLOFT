@@ -25,14 +25,14 @@ class CombatAttackTimingModel final {
 public:
     // This pure function does not roll the original RNG, select a
     // target, write party fields, emit sounds, or advance a clock.
-    // The caller must supply the actual current A7E4 value from
-    // original gameplay maintenance (29CC4), a C80C hit result,
-    // and the original post-C910 damage value when hit succeeds.
+    // The caller supplies the item ID captured by 26018 and passed
+    // to E5F0, A7E4 from 29CC4, the C80C hit result and damage.
     [[nodiscard]] static CombatAttackTimingPlan inspect(
         const PartyImage& party,
         const ObjectCatalog& objects,
         std::size_t actor,
         std::size_t hand,
+        std::int32_t dispatched_item_id,
         std::uint32_t gameplay_maintenance_tick_a7e4,
         bool hit_succeeded,
         std::int32_t computed_damage);
