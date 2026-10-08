@@ -1,5 +1,35 @@
 # Ravenloft Demo Build v1
 
+
+## Original 1A288/1AB20 overlay activation and restoration checkpoint
+
+The [original overlay source checkpoint](LEVEL22_CODE2_OVERLAY_1A288_1AB20_CHECKPOINT.md)
+closes another shared-engine behavior boundary: the original
+`1A288` first-activation and nested-reference increments,
+`1AB20` last-reference backing restoration, signed WORD
+wrap, and conditional `2AE30/29804` mode selection.
+`CombatOriginalOverlayModel` operates on the SAME live
+overlay globals used by `1A8C8` and can attach its
+callbacks to the existing authentic `2A078` VGA
+copy and `30CD4` backing-transfer services.
+
+**49 new x86 opcode signatures matched** owned CODE.2,
+raising the audit to **803 named / 795 distinct sites**.
+The source-equivalent branch model passed isolated strict
+C++17 Debug, Release and UBSan tests. A CMake-registered
+integration CTest also exercises the full source-order
+`1A8C8 → 1A288 → VGA copy → 30CD4 → 1AB20`
+callback sequence, but it has **not** been run in a
+fresh complete Windows build.
+
+Original page stack `2E590/2E5D4`, actual
+`292BC/2932C` overlay backing pixels,
+`1A3B8/2AE30/29804` graphic/mouse behavior
+and DOS frame/IRQ comparisons remain outstanding.
+Formal demo acceptance remains **1/5 gates**;
+engineering completion is tracked separately.
+
+
 ## Latest CODE.2 VGA latch copy and overlay backing transfer
 
 [Original 2A078 / 30CD4 checkpoint](LEVEL22_CODE2_2A078_30CD4_COPY_CHECKPOINT.md)
