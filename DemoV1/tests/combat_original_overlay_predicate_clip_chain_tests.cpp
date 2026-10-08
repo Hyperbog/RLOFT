@@ -66,6 +66,7 @@ int main() {
     CombatOriginalDgroupCapture record_bytes{};
     record_bytes.captured_base_dgroup_offset=0xEF74U;
     record_bytes.bytes.assign(24U,0x00U);
+    std::uint32_t expected_draw_mode=1U;
     CombatOriginalSpriteClipServices draw_raster{};
     draw_raster.refresh_2e758=[&](){
         trace.push_back('R');
@@ -83,7 +84,7 @@ int main() {
         std::uint32_t mode,std::uint32_t row,
         std::uint32_t column,std::uint32_t resource) {
         trace.push_back('F');
-        assert(mode==1U&&row==10U&&column==20U);
+        assert(mode==expected_draw_mode&&row==10U&&column==20U);
         assert(resource==0x1000U);
         assert(depth.nested_record_depth_efd4==1U);
     };
@@ -118,14 +119,15 @@ int main() {
     assert(clip.output_rows_ef6d==2U);
     assert(clip.output_columns_ef6f==8U);
 
-    // Turning on original world-state bit 0x48 suppresses
-    // the 2AD18 special case, preventing the source class-2
-    // sprite from being drawn. The scan still returns 0.
+    // Original bit 0x48 suppresses the class-2 *classification*,
+    // but 1A288's ordinary fallback still draws mode zero.
+    // This is a source-visible difference from mode one.
     trace.clear();
     bits[0x22208U]=1U<<8U;
+    expected_draw_mode=0U;
     screen.overlay_reference_count_9e37=0;
     CombatOriginalOverlayModel::suspend_1a288(overlay,services);
-    assert((trace==std::vector<char>{'P','M','C','G','Q'}));
+    assert((trace==std::vector<char>{'P','M','C','G','R','F','Q'}));
     assert(screen.overlay_reference_count_9e37==1);
     assert(depth.nested_record_depth_efd4==0U);
 }
