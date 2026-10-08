@@ -13,9 +13,9 @@ in nonzero mode. A nonnegative result optionally calls
 original still calls presentation `3210F`, timed message
 `1C21C`, and RNG-consuming HP service `DC7C` in order.
 
-The verified original executable audit now has **378 opcode
-signatures** plus one direct and two hashed original data
-references. The exact committed focused C++ sources/tests
+The original executable audit now has **378 named byte
+checks covering 370 distinct instruction offsets**, plus one
+direct and two hashed original data references. The exact committed focused C++ sources/tests
 passed isolated strict C++17 Debug and Release harnesses;
 registered full CMake/Windows tests remain **unexecuted**.
 This does **not** apply live levels, HP, XP, combat statistics
