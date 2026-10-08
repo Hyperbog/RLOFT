@@ -26,6 +26,15 @@ CombatLevelChangeSequenceModel::inspect(
     if(actor>=PartyImage::kActorCount || old_level==new_level)
         return std::nullopt;
     const auto base=actor*PartyImage::kActorSize;
+    // DDA4:DE0F..DE21 skips an ineligible actor before this
+    // entire level-change branch can be reached. 50DC itself
+    // returns -1 for that state, but the surrounding DDA4
+    // sequence must NOT emit presentation/IRQ/HP events.
+    const auto status=static_cast<std::uint16_t>(
+        static_cast<std::uint16_t>(observed_party.bytes[base+0x10U]) |
+        (static_cast<std::uint16_t>(observed_party.bytes[base+0x11U])<<8U));
+    if ((status&0xF240U)!=0U)
+        return std::nullopt;
     const auto tracks=1U+
         static_cast<unsigned>(observed_party.bytes[base+0x16U]!=0xFFU)+
         static_cast<unsigned>(observed_party.bytes[base+0x17U]!=0xFFU);
