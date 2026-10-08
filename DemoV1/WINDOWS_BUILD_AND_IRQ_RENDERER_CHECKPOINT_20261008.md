@@ -112,3 +112,21 @@ post-render IRQ samples against DOS reference traces.
 Progress remains **20% (1 of 5 major acceptance gates)**.
 No additional Windows build is claimed for the newly
 added renderer bridge.
+
+
+## Follow-on source-only execution after green Windows build
+
+[303C8/2939C/293EC source checkpoint](LEVEL22_ORIGINAL_GLYPH_SPRITE_RENDERER_CHECKPOINT.md)
+adds the callback-driven original glyph traversal and
+normal/shaded sprite dispatch **after** Windows run #634
+successfully built the earlier source and passed 130 CTests.
+The source ledger is now **557 named checks, 549 unique
+instruction addresses**. The two new CTest targets are
+CMake-registered and passed source-equivalent standalone
+strict C++17 Debug/Release/UBSan testing, but have not
+been run in a fresh complete Windows CI build.
+
+The remaining native renderer dependency is original
+2A380/2A584 indexed sprite raster and 1A8C8 composition
+against real DOS VGA planes. Preserve F0C8 callback timing
+and signed high-byte character widths when integrating.
