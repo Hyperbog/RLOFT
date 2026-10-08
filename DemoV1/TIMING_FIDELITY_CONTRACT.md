@@ -252,3 +252,24 @@ plan source-verified actions. Renderer services 291B0,
 2939C, 3060C, and 1A8C8 and shared-global re-reads
 must be integrated in their original observed temporal order
 before declaring a timed level-up message implementation.
+
+
+## Verified Windows build versus unconnected IRQ renderer services
+
+Original 1C258/1C2C4 now has a C++ **execution bridge**.
+It invokes injected 291B0, 2939C, 3060C and 1A8C8
+collaborators synchronously and reads 30700 only AFTER
+pending-message drawing has returned. Callback-side changes
+to C050, 2222C, CF54 and the message buffer are re-read at
+their real original call sites. Pending CF59 clears after the
+first composite; expired CF54 becomes FFFFFFFF before
+the second composite. The independently verified 291B0
+page state uses original F005 stride, not a hardcoded Windows
+stride. See [actual run history and source boundary](WINDOWS_BUILD_AND_IRQ_RENDERER_CHECKPOINT_20261008.md).
+
+Windows CI #634 passed all **130 tests**, but the new
+execution bridge was committed subsequently and is not
+included in that pinned build. No real display service,
+DOS IRQ observation or pixel-matching runtime claim has
+been made by adding this bridge. The workflow is again
+manual-only.
