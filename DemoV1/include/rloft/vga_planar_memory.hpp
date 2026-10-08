@@ -37,6 +37,12 @@ public:
     [[nodiscard]] std::optional<std::uint8_t>
     graphics_read_map_04() const noexcept;
     void set_sequencer_map_mask_02(std::uint8_t plane_mask);
+    // Some original OUT 03C4h values set reserved high bits too
+    // (2A1DC writes FF02h). Record the raw AH byte AND the
+    // effective four-plane mask independently.
+    void write_sequencer_raw_mask_02(std::uint8_t original_ah) noexcept;
+    [[nodiscard]] std::optional<std::uint8_t>
+    last_sequencer_raw_mask_02() const noexcept;
     [[nodiscard]] std::optional<std::uint8_t>
     sequencer_map_mask_02() const noexcept;
     void write(
@@ -63,6 +69,7 @@ private:
     [[nodiscard]] static std::size_t page_start(unsigned page);
     std::array<std::vector<std::uint8_t>, 4> planes_;
     std::optional<std::uint8_t> sequencer_map_mask_02_{};
+    std::optional<std::uint8_t> sequencer_last_raw_mask_02_{};
     std::optional<std::uint8_t> graphics_read_map_04_{};
 };
 
