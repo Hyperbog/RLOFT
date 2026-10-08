@@ -52,6 +52,31 @@ An exact original CODE.2 audit proves `C80C` returns a **Boolean DWORD** (0/1), 
 
 The first part of original `E284` NPC injury now also reproduces reaction-state/countdown and special type-8/type-15 HP arithmetic. The Level 22 Assassin (type9) shares this prelude. All resulting HP, animations, reaction frames and actual game-time effects still require compiled native and original DOS comparison.
 
+## HARM staged HP writes and NPC reaction sequencing
+
+The original spell-hand HARM branch (`E5F0:E815..E83B`) is
+not one damage assignment. **After a successful C80C result**
+it consumes its real `1d4` RNG draw; only then does it compare
+signed NPC HP and *conditionally* write the rolled value directly
+to `npc+0x12`. It emits/queues effect `0x24` and explicitly
+zeroes the provisional injury, **then** invokes general `C910`
+which enforces minimum-one damage, and **then** calls `E284`
+to subtract another HP point. For target HP20 and roll3, the
+staged values are **HP3 → HP2**, not HP3 as a final result.
+A 1-HP target whose HARM roll exceeds 1 is not healed and can
+die after the second injury. Every stage must remain ordered
+relative to sound/visual service and the two independent
+`A7E4` action deadlines.
+
+In `E284:E306..E324`, original `3ACDC` NPC classification
+updates high NPC runtime-state bits **before** the positive-HP
+test. This update runs even on nonlethal hits; moving it into
+the death-only handler would change AI/display reactions.
+The Level 22 Assassin path now preserves it in source, but
+original DOS audiovisual and tick-trace comparison remains
+a separate release gate. See
+[Strength/HARM/E284 checkpoint](LEVEL22_STRENGTH_HARM_E284_CLASSIFICATION_CHECKPOINT.md).
+
 ## Original combat RNG and damage-effect ordering
 
 The original `E5F0:E6C9..E963` branch is reached **only after C80C hit success**. Once that branch executes, its item-specific original `1C328` dice recipes call `30CA2` RNG once per die, preserving the original count, per-die modifiers, and final modifier ordering. An attack that misses the initial hit check **must not roll or advance the damage RNG** merely to stage an effect, while its **nonzero-duration action-state lockout still runs later** through `24B48`.
