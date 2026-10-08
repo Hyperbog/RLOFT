@@ -1,5 +1,28 @@
 # Ravenloft Demo Build v1
 
+## New original-file result: Level 22 cannot invoke E0F8 for the Assassin
+
+**The E284 `0x258AA` tracker is resolved for the supplied original Level 22
+archive and mutable save.** `LEVELS.DAT` level 22 and `LEV022.DAT`
+both store signed creature-type filters **(-1,-1,-1)** at fixed level-header
+offsets `0x292/0x294/0x296`. Original CODE.2's `E50F..E539` scan
+sign-extends each filter and compares against the zero-extended NPC type,
+so Assassin type `9` cannot call `E0F8`. It reaches the original
+corpse-marker branch **without E0F8 RNG draws or timer reseeding**.
+
+The [updated E0F8 checkpoint](LEVEL22_E0F8_RESPAWN_SOURCE_CHECKPOINT.md)
+records original binary/hash verification and this important refinement
+to the earlier research. `LevelState::respawn_npc_types()` now exposes
+the actual saved header values; the Level22 encounter and its live
+`ExplorationRuntime` caller pass the real level state, reject any
+unsupported matching tracker before modifying the world, and use the
+original no-match corpse-marker model. The Level22 C++ regression
+fixtures now cover signed header parsing and matched-tracker rejection.
+This is committed **source only**; no consolidated native/Windows tests
+or updated EXE are claimed. Complete combat/presentation/timing
+acceptance remains open and the overall five-gate demo stays at **20%**.
+
+
 ## Original E0F8 respawn source-model checkpoint
 
 The [E0F8 source checkpoint](LEVEL22_E0F8_RESPAWN_SOURCE_CHECKPOINT.md)
