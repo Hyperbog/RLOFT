@@ -150,3 +150,20 @@ to this current branch HEAD.
 completion remains unmeasured; this is substantial
 reusable engine progress, not a new accepted release gate.
 GitHub Actions stays manual-only.
+
+
+## Following shared original 2E590/2E5D4 page-stack checkpoint
+
+[2E590 / 2E5D4 source checkpoint](LEVEL22_CODE2_VGA_PAGE_STACK_CHECKPOINT.md)
+supersedes the previous statement that these VGA
+page operations were only injected stubs.
+They now have reusable source-backed native
+F0D0/EF4D/2B644 stack logic with precise 291B0
+selection, warning diagnostics and explicit
+shared EFE9/F001/F005 synchronization to 2A078.
+The cumulative opcode verifier is now at
+**826 named / 818 distinct original locations**.
+The remaining nontrivial dependencies are the
+actual 292BC/2932C capture/restore, their
+2A114/2A178 VGA backing raster, overlay
+position/graphics services, and DOS validation.
