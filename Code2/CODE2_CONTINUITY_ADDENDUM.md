@@ -771,3 +771,15 @@ The original supplied immutable CODE.2 (`853e0a4dfcabebcfeecb975cf2a92b92eb4d948
 - The native demo now models only the validated regular swap and quick-stash paths, while explicitly gating live container panel updates, special categories, pseudo-items and action/attack input. A provisional Win32 right-click adapter feeds the swap intent; the specific DOS mouse-button/hold-time mapping to flag `08h` remains a future original input-trace test. The branch `01h` remains disabled until original combat dispatch is faithful.
 
 See `demo-v1:DemoV1/LEVEL22_HAND_INTERACTION_CHECKPOINT.md` and `DemoV1/LEVEL22_HAND_ACTION_NEXT.md`. These findings refine interactive item behavior but do not change historical CODE.2 byte accounting or establish full level-playability.
+
+
+## 2026-10-07 hand action dispatcher `26018` and second per-hand state word
+
+Direct disassembly of original CODE.2 `26018..260ED` continues the audited `214B8` use/attack path:
+
+- `2601F..2603F` receives actor and hand, calls the action-context helper `19CCC(0)`, then checks `dword [0x219EB + actor*0x248 + 4*hand]`. A nonzero word causes an early return at `273DF`. This is **not** the same state location as `214B8:215E9`'s `0x21A7E + actor*0x248 + 4*hand` hand readiness deadline. Native gameplay must track both correctly.
+- `26045..26069` reads the actual object in `item[14+hand]` from `0x2193C + actor*0x248 + hand*2` and resolves its OBJECTS `+0x2F` category; `item=-1` is deliberately converted to category `0x0A` (unarmed).
+- `260B2..260D6` explicitly routes categories `9,10,11` into the central `E5F0` original player attack orchestration. Item category `0x0E` enters a special hard-coded item-ID table at `260DB`. Other categories and effects branch further through `26018`, rather than all being universal melee.
+- `214B8:216C6..216F7` calls `24478` first, and only when that approval succeeds calls `26018(actor,hand,-1)`. The earlier live-actor status-mask check is `0xF240`. `24478` itself examines both hands and actor conditions.
+
+These are original-byte control-flow facts, **not proof of a working native attack**. Connecting the native `C80C` arithmetic directly to a hand click would omit eligibility, dual hand state, per-item attack dispatch, NPC targeting, damage, feedback, and original scheduling. The bounded hand item-swap / actor-panel stash paths are documented on `demo-v1` separately.
