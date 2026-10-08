@@ -30,6 +30,25 @@ Overall faithful-demo acceptance is still **20% (1/5 major release gates)**.
 
 Goal: reproduce the original shipped behavior from boot through character creation while reading assets from a legally installed/owned copy of *Ravenloft: Strahd's Possession*.
 
+## Level 22 functional gameplay integration (ordinary inventory)
+
+The next [inventory interaction checkpoint](LEVEL22_INVENTORY_INTERACTION_CHECKPOINT.md)
+adds **original CODE.2 12E70 ordinary 3x4 slot clicks** and the bounded
+`117A0` held-item/identified-bit exchange to the existing four-party inventory
+modal. Players can now take a previously picked-up loose item from the held
+cursor into an empty normal inventory slot, freeing the cursor for another
+pickup. The model tests also cover the full sequence of three Assassin relic
+pickups/stashes followed by the fourth item completing the original Level 22
+possession predicate.
+
+Temporary spell-hand objects, occupied container insertion, equipment and
+hand action rules remain gated. Combat and the 22-frame Level 23 transition
+are not yet enabled. Automated Windows compilation and an original-asset
+inventory interaction playtest remain separate acceptance gates.
+
+**Inventory subcheckpoint: 67% (4/6 bounded gates)** before new CI.
+**Overall faithful-demo release acceptance: 20% (1/5 gates)**.
+
 ## Extended integration milestone — Level 22
 
 The demo's original boot/character-creation milestone has been extended to
