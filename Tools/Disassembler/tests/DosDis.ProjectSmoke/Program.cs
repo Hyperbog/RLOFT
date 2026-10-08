@@ -1,9 +1,39 @@
+using System.Buffers.Binary;
 using DosDis.Core;
 using DosDis.Persistence;
 
 static void Require(bool value, string explanation)
 {
     if (!value) throw new InvalidOperationException(explanation);
+}
+
+// Unencumbered nested MZ/LE fixture for original-byte cache validation.
+static byte[] MakeStoredLeFixture()
+{
+    var bytes = new byte[0x600];
+    static void Dword(byte[] array, int at, uint value) =>
+        BinaryPrimitives.WriteUInt32LittleEndian(array.AsSpan(at, 4), value);
+    bytes[0] = (byte)'M'; bytes[1] = (byte)'Z';
+    Dword(bytes, 0x3C, 0x80);
+    bytes[0x80] = (byte)'L'; bytes[0x81] = (byte)'E';
+    Dword(bytes, 0x80 + 0x14, 1); // one page
+    Dword(bytes, 0x80 + 0x18, 1); // entry object
+    Dword(bytes, 0x80 + 0x1C, 0); // entry offset
+    Dword(bytes, 0x80 + 0x28, 4096);
+    Dword(bytes, 0x80 + 0x2C, 4); // four bytes stored
+    Dword(bytes, 0x80 + 0x40, 0xC4); // object table
+    Dword(bytes, 0x80 + 0x44, 1);
+    Dword(bytes, 0x80 + 0x48, 0xDC); // page map
+    Dword(bytes, 0x80 + 0x80, 0x200); // data page relative to module
+    Dword(bytes, 0x80 + 0xC4, 4);
+    Dword(bytes, 0x80 + 0xC8, 0x10000);
+    Dword(bytes, 0x80 + 0xCC, 0x2005); // executable
+    Dword(bytes, 0x80 + 0xD0, 1);
+    Dword(bytes, 0x80 + 0xD4, 1);
+    bytes[0x80 + 0xDC + 2] = 1;
+    bytes[0x200] = 0x90; bytes[0x201] = 0xC3;
+    bytes[0x202] = 0x90; bytes[0x203] = 0xC3;
+    return bytes;
 }
 
 string folder = Path.Combine(Path.GetTempPath(), "dosdis-project-smoke-" + Guid.NewGuid().ToString("N"));
@@ -76,6 +106,43 @@ try
         Require(reopened.LoadLatestAnalysis(new string('0', 64)) == null,
             "unrelated artifact incorrectly matched");
     }
+    // A matching SHA-256 and well-formed SQLite snapshot alone do not prove
+    // that the CACHED instruction evidence matches the reopened original.
+    var sourceArtifact = BinaryArtifact.FromBytes(MakeStoredLeFixture(), "stored-source-fixture.exe");
+    var sourceImage = LeImage.Load(sourceArtifact);
+    var sourceGraph = ControlFlowAnalysis.Analyze(sourceImage, maxInstructions: 16);
+    Require(sourceGraph.Instructions.Count >= 2, "synthetic source graph was empty");
+    string sourceProjectPath = Path.Combine(folder, "source-verified.ddproj");
+    using (var sourceProject = ProjectStore.Open(sourceProjectPath))
+    {
+        sourceProject.EnsureArtifact(sourceArtifact);
+        sourceProject.SaveAnalysis(sourceGraph);
+        var valid = sourceProject.LoadLatestAnalysis(sourceArtifact.Sha256, sourceImage);
+        Require(valid?.Instructions.Count == sourceGraph.Instructions.Count,
+            "genuine saved instruction bytes failed source-file verification");
+
+        var modified = sourceGraph.Instructions.Select((item, index) =>
+            index == 0 ? item with { OriginalBytes = "CC" } : item).ToArray();
+        sourceProject.SaveAnalysis(sourceGraph with { Instructions = modified });
+        bool alteredBytesRejected = false;
+        try { sourceProject.LoadLatestAnalysis(sourceArtifact.Sha256, sourceImage); }
+        catch (InvalidDataException) { alteredBytesRejected = true; }
+        Require(alteredBytesRejected, "altered cached instruction bytes were trusted");
+
+        // Duplicate instruction entries must not be accepted as independent
+        // evidence even if the SQLite instruction-count metadata matches.
+        sourceProject.SaveAnalysis(sourceGraph with
+        {
+            Instructions = sourceGraph.Instructions.Concat(new[] { sourceGraph.Instructions[0] }).ToArray()
+        });
+        bool duplicateRejected = false;
+        try { sourceProject.LoadLatestAnalysis(sourceArtifact.Sha256, sourceImage); }
+        catch (InvalidDataException) { duplicateRejected = true; }
+        Require(duplicateRejected, "duplicate saved instruction starts were trusted");
+    }
+    Require(sourceArtifact.Sha256 == BinaryArtifact.FromBytes(MakeStoredLeFixture()).Sha256,
+        "source-byte verifier changed the original artifact");
+
     // A malformed project must not display metadata inconsistent with the cached graph.
     string inconsistent = Path.Combine(folder, "inconsistent-snapshot.ddproj");
     using (var original = ProjectStore.Open(path)) original.CreateBackup(inconsistent);
@@ -126,7 +193,7 @@ try
         }
         using (var recovered = ProjectStore.Open(originalProject))
         {
-            var restored = recovered.LoadLatestAnalysis(originalHash);
+            var restored = recovered.LoadLatestAnalysis(originalHash, originalImage);
             Require(restored is not null && restored.Instructions.Count == limited.Instructions.Count &&
                 restored.Edges.Count == limited.Edges.Count, "original-binary project graph mismatch after reopen");
         }

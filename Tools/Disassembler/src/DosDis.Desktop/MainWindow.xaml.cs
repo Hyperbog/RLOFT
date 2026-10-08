@@ -113,7 +113,7 @@ public partial class MainWindow : Window
                 x.ObjectOffset, x.Bytes, x.Assembly, "linear-preview-unverified")).ToArray());
             if (_project != null)
             {
-                _graph = _project.LoadLatestAnalysis(_artifact.Sha256);
+                _graph = _project.LoadLatestAnalysis(_artifact.Sha256, _image);
                 if (_graph != null) ShowAnalysis(_graph);
             }
             StatusText.Text = _image is null ? "File identified where possible; this executable format is not yet supported."
@@ -399,7 +399,7 @@ public partial class MainWindow : Window
                 next.VerifyIntegrity();
                 if (!next.ListArtifacts().Any(a => a.Sha256 == _artifact.Sha256 && a.Length == _artifact.Length))
                     throw new InvalidDataException("This project does not contain the matching original binary hash.");
-                FlowAnalysisResult? saved = next.LoadLatestAnalysis(_artifact.Sha256);
+                FlowAnalysisResult? saved = next.LoadLatestAnalysis(_artifact.Sha256, _image);
                 _project?.Dispose();
                 _project = next;
                 BackupProjectButton.IsEnabled = true;

@@ -179,7 +179,7 @@ public sealed class ProjectStore : IDisposable
         return id;
     }
 
-    public FlowAnalysisResult? LoadLatestAnalysis(string artifactSha)
+    public FlowAnalysisResult? LoadLatestAnalysis(string artifactSha, LeImage? verifiedOriginal = null)
     {
         using var command = _db.CreateCommand();
         command.CommandText = """
@@ -219,6 +219,11 @@ public sealed class ProjectStore : IDisposable
             result.ProtectedData is null || result.Instructions.Count != storedInstructionCount ||
             result.Truncated != (storedTruncated == 1))
             throw new InvalidDataException("Stored analysis payload disagrees with its metadata.");
+        // The SQLite payload can be structurally valid but contain incorrect
+        // instruction bytes/addresses. If the original is open, verify every
+        // saved instruction against its exact immutable source-file mapping.
+        if (verifiedOriginal is not null)
+            SnapshotEvidenceVerifier.Verify(result, verifiedOriginal);
         return result;
     }
 
