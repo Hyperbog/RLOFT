@@ -1,1 +1,1 @@
-Part 24 Windows build request, 2026-10-08. Temporary trigger; remove after job. No original game files.
+Part 24 authorized second Windows build, 2026-10-08. Fix missing System.IO namespace in WPF MainWindow. Temporary trigger; remove after result.
