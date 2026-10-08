@@ -63,9 +63,18 @@ CombatHandPairEligibility CombatHandPairEligibilityModel::evaluate(
         throw std::invalid_argument(
             "CODE.2 24478 requires observed raw OBJECTS[-1] fields");
     }
-    if (empty_raw && empty_raw->qualifier_low2>3U) {
+    if (empty_raw && empty_raw->qualifier_low2 &&
+        *empty_raw->qualifier_low2>3U) {
         throw std::out_of_range(
             "CODE.2 OBJECTS[-1] qualifier must be masked to two bits");
+    }
+    // Original both-empty 244CE returns BEFORE any +30h/+35h
+    // accesses; no need to invent those heap bytes in that case.
+    // Mixed -1/nonempty reaches 246E9, which may require both.
+    if ((first_id==-1 || second_id==-1) && !both_empty &&
+        (!empty_raw->weight || !empty_raw->qualifier_low2)) {
+        throw std::invalid_argument(
+            "CODE.2 mixed -1 pair requires observed weight and qualifier");
     }
     const auto prebase_category=empty_raw
         ? std::optional<std::uint8_t>(empty_raw->category)
@@ -114,12 +123,12 @@ CombatHandPairEligibility CombatHandPairEligibilityModel::evaluate(
     ObjectDefinition raw_first{};
     ObjectDefinition raw_second{};
     if (first_id==-1) {
-        raw_first.weight_half_units=empty_raw->weight;
-        raw_first.raw_byte_35_low2=empty_raw->qualifier_low2;
+        raw_first.weight_half_units=*empty_raw->weight;
+        raw_first.raw_byte_35_low2=*empty_raw->qualifier_low2;
     }
     if (second_id==-1) {
-        raw_second.weight_half_units=empty_raw->weight;
-        raw_second.raw_byte_35_low2=empty_raw->qualifier_low2;
+        raw_second.weight_half_units=*empty_raw->weight;
+        raw_second.raw_byte_35_low2=*empty_raw->qualifier_low2;
     }
     const auto& a=first_id==-1
         ? raw_first
