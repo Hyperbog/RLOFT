@@ -1,6 +1,43 @@
 # Ravenloft Demo Build v1
 
 
+## Original overlay pointer, hit-test and draw-record milestone
+
+[Original 1A3B8 / 2AE30 / 29804 source checkpoint](LEVEL22_CODE2_POSITION_PROBE_DRAW_CHECKPOINT_20261008.md)
+adds shared-engine native source models for the three remaining
+original overlay entry services. `1A3B8` preserves independent
+mouse-clamping modes, source-ordered `33C90/1F820`
+callbacks and all three original position WORD outputs
+(`9E31/9E33/9E35`). `2AE30` scans genuine
+opposite-scene-page **22-byte records**, performs original
+signed inclusive hit bounds, early type/frame filtering
+and 0/1/2 classifications with authentic supplied
+`2AD18/2ADE0` predicates. `29804` manages the
+original `EFD4` nested drawing stack and
+`EF74 + EFD4*0x18` record addresses before
+calling real `29414`.
+
+The three adapters compose with existing `1A288`
+without replacing earlier four-plane VGA copying,
+page selection, signed backing clipping or
+reference-count behavior. **96 new CODE.2 opcode
+checks** passed, raising the cumulative audit to
+**1,004 named / 996 unique instruction sites**.
+The exact source files passed isolated strict
+C++17 Debug, Release and UBSan checks. Four new
+assertion-enabled CTests are registered, but a
+current-HEAD full Windows build and DOS frame
+comparisons have not run.
+
+The next original-code dependencies are `29414`
+record rendering, `2AD18/2ADE0` predicates
+and the `33C90/1F820` pointer services, followed
+by authentic game runtime memory binding.
+Formal demo acceptance is **1/5 gates**;
+overall engineering completion is unmeasured.
+
+
+
 ## Original 2A114/2A178 four-plane overlay backing bytes
 
 [Original VGA backing checkpoint](LEVEL22_CODE2_2A114_2A178_VGA_BACKING_CHECKPOINT.md)
