@@ -183,3 +183,25 @@ The [new source-only 50DC service plan](LEVEL22_DDA4_50DC_SERVICE_ORDER_CHECKPOI
 reports this ordering without executing the services; do
 not confuse a read-only trace with live timing acceptance.
 
+
+
+## DC7C level-up RNG ordering — original-source acceptance boundary
+
+At original `DDA4:DF81`, the `DC7C` level-up HP routine
+is entered **after** the mandatory `3210F` presentation and
+`1C21C` IRQ-timed message queue. Its first gameplay action
+is `1C328(1,class_die_sides,0,0)`, consuming **exactly one
+30CA2 RNG draw before evaluating any class cap or Constitution
+modifier**. Even when a level >=10 or >=11 causes the die
+value to be discarded from the HP formula, the random draw
+still advances the shared DOS RNG state.
+
+The [DC7C source checkpoint](LEVEL22_DC7C_HP_PROGRESSION_CHECKPOINT.md)
+reproduces the original six-way class dispatch, post-roll
+state, HP arithmetic, multiclass division and two WORD additions
+without mutating the game. Its 16,416 original-asset-backed
+comparison cases pass. The native DDA4 timeline must **not**
+execute this pure model out of order, substitute the Windows
+clock, skip its RNG side effect on capped levels, or apply
+HP to live characters before the 3EA4/3DE4 and 1C21C
+services have been integrated.
