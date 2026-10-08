@@ -1,6 +1,6 @@
 # Diagnostic Exports, Crash Reports, and Analysis Debugger
 
-**Status:** approved design/backlog requirement; **NOT IMPLEMENTED**.
+**Status:** Phase 1 partially implemented as uncompiled source in Part 30: bounded operation events, opt-in diagnostic JSON export, best-effort local incident hooks. **Decision-level analyzer debugger, replay, ZIP bundles and advanced session inspection remain NOT IMPLEMENTED.**
 **Requested:** 2026-10-08 by project owner; implementation may be scheduled later, after the first functional Windows GUI is running. Maintain Windows-only releases, original-byte fidelity, and manual GitHub Actions. No AI feature is involved.
 
 ## Why this feature matters
@@ -66,4 +66,4 @@ Do not conflate an exported candidate listing with proven original code. Preserv
 
 ## Progress accounting
 
-This document is **requirements planning only**; it contributes **0 completed implementation percentage**. Overall first-release disassembler progress remains at the most recent 30% estimate until actual functionality and verification change it. No AI integration is required or permitted before final release.
+Phase 1 of this design has a source-only implementation in [Part 30](PART30_DIAGNOSTIC_SESSION_CHECKPOINT.md); none of that unverified code earns percentage credit until Windows compile/test. The user-confirmed Part 29 UI acceptance brings the overall first-final-release planning estimate to **41%**. No AI integration is required or permitted before final release.

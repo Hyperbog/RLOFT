@@ -23,6 +23,13 @@ public partial class MainWindow : Window
     private long _commentRevision;
     private CancellationTokenSource? _analysisCancellation;
 
+    private void Trace(DiagnosticStage stage, int? objectNumber = null,
+        uint? objectOffset = null, int? instructionCount = null)
+    {
+        App.Diagnostics.Record(stage, _artifact?.Sha256, objectNumber,
+            objectOffset, instructionCount);
+    }
+
     public MainWindow()
     {
         InitializeComponent();
@@ -32,6 +39,7 @@ public partial class MainWindow : Window
         SaveNoteButton.IsEnabled = false;
         CancelAnalysisButton.IsEnabled = false;
         ExportAnalysisButton.IsEnabled = false;
+        ExportDiagnosticButton.IsEnabled = true;
     }
 
     private sealed record AssemblyRow(int Object, uint Offset, string Bytes,
@@ -57,10 +65,12 @@ public partial class MainWindow : Window
         FunctionsList.IsEnabled = !value;
         CancelAnalysisButton.IsEnabled = value && _analysisCancellation is not null;
         ExportAnalysisButton.IsEnabled = !value && _graph is not null;
+        ExportDiagnosticButton.IsEnabled = !value;
         if (status != null) StatusText.Text = status;
     }
     private void Error(string context, Exception error)
     {
+        App.Diagnostics.Record(DiagnosticStage.HandledError, _artifact?.Sha256, error: error);
         StatusText.Text = $"{context}: {error.Message}";
         MessageBox.Show(this, $"{context}\n\n{error.Message}", "DOSDis", MessageBoxButton.OK, MessageBoxImage.Error);
     }
@@ -74,6 +84,7 @@ public partial class MainWindow : Window
             CheckFileExists = true
         };
         if (picker.ShowDialog(this) != true) return;
+        App.Diagnostics.Record(DiagnosticStage.FileOpenStarted);
         SetWorking(true, "Reading and identifying original bytes…");
         try
         {
@@ -95,6 +106,7 @@ public partial class MainWindow : Window
             });
             _artifact = result.artifact;
             _image = result.image;
+            Trace(_image is null ? DiagnosticStage.FileOpenedRaw : DiagnosticStage.FileOpenedLe);
             _graph = null;
             ExportAnalysisButton.IsEnabled = false;
             _referenceIndex = new Dictionary<FlowAddress, IReadOnlyList<ReferenceRow>>();
@@ -143,6 +155,7 @@ public partial class MainWindow : Window
         if (_image is null || _artifact is null || _working) return;
         _analysisCancellation = new CancellationTokenSource();
         CancellationTokenSource cancellation = _analysisCancellation;
+        Trace(DiagnosticStage.AnalysisStarted);
         SetWorking(true, "Analyzing direct and relocation-backed control flow…");
         try
         {
@@ -164,6 +177,7 @@ public partial class MainWindow : Window
             }
             _graph = graph;
             ShowAnalysis(graph);
+            Trace(DiagnosticStage.AnalysisCompleted, instructionCount: graph.Instructions.Count);
             ExportAnalysisButton.IsEnabled = true;
             StatusText.Text = $"{graph.Instructions.Count:N0} candidate instructions; {graph.FunctionCandidates.Count:N0} function candidates; " +
                 $"{graph.JumpTables.Count:N0} table candidates. " +
@@ -171,9 +185,14 @@ public partial class MainWindow : Window
         }
         catch (OperationCanceledException)
         {
+            Trace(DiagnosticStage.AnalysisCancelled);
             StatusText.Text = "Analysis cancelled; previous project findings preserved.";
         }
-        catch (Exception ex) { Error("Analysis failed", ex); }
+        catch (Exception ex)
+        {
+            App.Diagnostics.Record(DiagnosticStage.AnalysisFailed, _artifact?.Sha256, error: ex);
+            Error("Analysis failed", ex);
+        }
         finally
         {
             _analysisCancellation = null;
@@ -360,6 +379,7 @@ public partial class MainWindow : Window
             { Error("Cannot navigate to address", ex); return; }
         }
         if (found is null) return;
+        Trace(DiagnosticStage.Navigation, address.Object, address.Offset);
         // Navigation updates the selected address and context without
         // unexpectedly switching the user's Hexadecimal or References tab.
         AssemblyGrid.SelectedItem = found;
@@ -397,9 +417,40 @@ public partial class MainWindow : Window
         {
             await Task.Run(() => AnalysisReportExport.WriteNew(picker.FileName, graph,
                 json, bytesChoice == MessageBoxResult.Yes));
+            Trace(DiagnosticStage.AnalysisReportExported);
             StatusText.Text = $"Analysis report saved: {picker.FileName}. Original executable untouched.";
         }
         catch (Exception ex) { Error("Analysis report export failed", ex); }
+        finally { SetWorking(false); }
+    }
+
+    private async void ExportDiagnostic_Click(object sender, RoutedEventArgs e)
+    {
+        if (_working) return;
+        var consent = MessageBox.Show(this,
+            "Export this session's recent operation events and source SHA-256 identities?\n\n" +
+            "The report excludes original executable bytes, local paths, analyst notes, " +
+            "exception messages and stack traces. No data is uploaded.\n\n" +
+            "The report is a bounded event history, not a replay or instruction-level debugger.",
+            "Diagnostic report — privacy review",
+            MessageBoxButton.YesNo, MessageBoxImage.Information, MessageBoxResult.No);
+        if (consent != MessageBoxResult.Yes) return;
+        var picker = new SaveFileDialog
+        {
+            Title = "Save private DOSDis diagnostic session (JSON)",
+            Filter = "DOSDis diagnostic session (*.json)|*.json",
+            DefaultExt = ".json", AddExtension = true, OverwritePrompt = false,
+            FileName = "dosdis-diagnostic-session.json"
+        };
+        if (picker.ShowDialog(this) != true) return;
+        SetWorking(true, "Exporting bounded diagnostic events…");
+        try
+        {
+            await Task.Run(() => App.Diagnostics.WriteReportNew(picker.FileName));
+            Trace(DiagnosticStage.DiagnosticReportExported);
+            StatusText.Text = "Diagnostic session exported (no binary bytes, comments or file paths).";
+        }
+        catch (Exception ex) { Error("Diagnostic export failed", ex); }
         finally { SetWorking(false); }
     }
 
@@ -420,6 +471,7 @@ public partial class MainWindow : Window
             }
             _project.EnsureArtifact(_artifact);
             if (_graph != null) _project.SaveAnalysis(_graph);
+            Trace(DiagnosticStage.ProjectSaved);
             StatusText.Text = $"Project saved: {_project.FilePath}. No complete original executable was embedded; instruction bytes remain in cached findings.";
             BackupProjectButton.IsEnabled = true;
             SaveNoteButton.IsEnabled = AssemblyGrid.SelectedItem is AssemblyRow;
@@ -440,6 +492,7 @@ public partial class MainWindow : Window
         try
         {
             _project.CreateBackup(picker.FileName);
+            Trace(DiagnosticStage.ProjectBackupSaved);
             StatusText.Text = "Project backup saved (previously committed analysis/notes only): " + picker.FileName;
         }
         catch (Exception ex) { Error("Project backup failed", ex); }
@@ -501,6 +554,7 @@ public partial class MainWindow : Window
                         MainTabs.SelectedIndex = 1;
                     }
                 }
+                Trace(DiagnosticStage.ProjectOpened);
                 StatusText.Text = saved is not null
                     ? $"Project restored: {saved.Instructions.Count:N0} candidate instructions."
                     : _image is null
@@ -519,6 +573,7 @@ public partial class MainWindow : Window
             var note = _project.SaveAnnotation(_artifact.Sha256, row.Object, row.Offset,
                 "comment", NoteEditor.Text, _commentRevision);
             _commentRevision = note.Revision;
+            Trace(DiagnosticStage.AnalystCommentSaved, row.Object, row.Offset);
             StatusText.Text = $"Comment saved for {row.AddressText}, revision {note.Revision}. Original file untouched.";
         }
         catch (Exception ex) { Error("Annotation was not saved", ex); }
@@ -536,6 +591,7 @@ public partial class MainWindow : Window
                 : "Cancelling analysis before closing. Close again when it finishes.";
             return;
         }
+        Trace(DiagnosticStage.AppClosed);
         _project?.Dispose();
     }
 }

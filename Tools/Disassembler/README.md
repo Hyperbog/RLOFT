@@ -163,3 +163,9 @@ Address navigation from the function Explorer now preserves the active Disassemb
 ## Part 29: verified Windows build of raw-file hex viewer
 
 The Part 28 navigation fix and raw-file hexadecimal fallback have now **compiled and passed both synthetic .NET 10 suites on Windows**: [successful GitHub run 37858020058](https://github.com/Hyperbog/RLOFT/actions/runs/37858020058). Self-contained Windows desktop and CLI preview artifacts were published and integrity-checked. The new UI still requires a real Windows 11 interaction test: confirm Explorer function selection retains the current Hexadecimal/References tab and arbitrary DAT files open to `file+0x...` physical bytes. The workflow was immediately reverted to `workflow_dispatch` only and the temporary trigger removed. Completion estimate: **40%** overall (was 39%). See [Part 29 verification note](docs/PART29_WINDOWS_BUILD_AND_RAW_INSPECTION.md).
+
+## Part 30: private, bounded diagnostic session capture (source checkpoint)
+
+The initial diagnostic roadmap now has source-level implementation: a **bounded per-process event ring buffer**, synthetic privacy/report tests, an opt-in WPF **Diagnostics…** JSON export action, and best-effort local incident reports for unhandled .NET failures. The event schema stores controlled stage names, timestamps, source SHA-256 and numeric context; it **does not collect original bytes, analyst comments, local paths or exception messages**. This first iteration is an *operation history*, not a decoder-decision debugger or replay. See [Part 30 checkpoint](docs/PART30_DIAGNOSTIC_SESSION_CHECKPOINT.md).
+
+**Part 30 source is not yet Windows-compiled**. The user confirmed Part 29's tab-state/raw-file issues resolved; estimated first-final-release completion **41%** (40% previously, no credit for unbuilt Part 30 code). GitHub Actions remains manual-only, Windows-only, and AI remains postponed until after final release.

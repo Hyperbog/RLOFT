@@ -45,6 +45,55 @@ static byte[] MakeFixture(bool nested)
 
 try
 {
+    // Diagnostics are bounded and safe to share by default: no executable
+    // contents, source paths, exception messages, private comments or stacks.
+    const string diagnosticHash = "fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed";
+    var diagnostics = new DiagnosticSession(capacity: 8);
+    for (int i = 0; i < 12; i++)
+        diagnostics.Record(DiagnosticStage.AnalysisStarted, diagnosticHash, 1, (uint)i);
+    Equal(diagnostics.Snapshot().Count, 8, "bounded diagnostic ring size");
+    Equal(diagnostics.Snapshot()[0].Sequence, 5L, "oldest diagnostics dropped");
+    Equal(diagnostics.Snapshot()[7].Sequence, 12L, "diagnostic sequence stays monotonic");
+    diagnostics.Record(DiagnosticStage.HandledError, diagnosticHash,
+        error: new IOException("secret-path-C:\\\\private\\\\original.CODE.1"));
+    string diagnosticJson = diagnostics.BuildJson();
+    using (var parsed = JsonDocument.Parse(diagnosticJson))
+    {
+        Equal(parsed.RootElement.GetProperty("schemaVersion").GetInt32(), 1,
+            "versioned diagnostic schema");
+        Equal(parsed.RootElement.GetProperty("droppedEvents").GetInt64(), 5L,
+            "diagnostic event drop counter");
+        Equal(parsed.RootElement.GetProperty("events").GetArrayLength(), 8,
+            "diagnostic event count matches capacity");
+        Equal(parsed.RootElement.GetProperty("privacy").GetProperty("originalExecutableIncluded").GetBoolean(),
+            false, "diagnostics do not embed game data");
+    }
+    Equal(diagnosticJson.Contains("secret-path"), false, "exception messages are not serialized");
+    Equal(diagnosticJson.Contains("original.CODE.1"), false, "source path excluded from diagnostics");
+    Equal(diagnosticJson.Contains("IOException"), true, "exception type retained for debugging");
+    bool rejectedDiagnosticHash = false;
+    try { diagnostics.Record(DiagnosticStage.FileOpenedRaw, "not-an-original-hash"); }
+    catch (ArgumentException) { rejectedDiagnosticHash = true; }
+    Equal(rejectedDiagnosticHash, true, "diagnostics reject arbitrary identity text");
+    string diagnosticDir = Path.Combine(Path.GetTempPath(), "dosdis-diagnostic-test-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(diagnosticDir);
+    try
+    {
+        string report = Path.Combine(diagnosticDir, "diagnostics.json");
+        diagnostics.WriteReportNew(report);
+        string originalReport = File.ReadAllText(report);
+        Equal(originalReport.Contains("dosdis-diagnostic-session"), true, "saved diagnostic report readable");
+        bool noOverwrite = false;
+        try { diagnostics.WriteReportNew(report); }
+        catch (IOException) { noOverwrite = true; }
+        Equal(noOverwrite, true, "diagnostic export refuses overwrite");
+        Equal(File.ReadAllText(report), originalReport, "failed report does not alter previous evidence");
+        Equal(Directory.EnumerateFiles(diagnosticDir, "*.part").Any(), false,
+            "no staging diagnostic files left behind");
+    }
+    finally { Directory.Delete(diagnosticDir, recursive: true); }
+    Console.WriteLine("PASS: bounded diagnostic events, privacy defaults, atomic export and non-overwriting reports");
+
     // Arbitrary resources and unsupported binaries remain useful as read-only
     // physical hex, without being misclassified as executable instructions.
     byte[] rawResource = { 0x52, 0x45, 0x53, 0x00, 0xFF, 0x20, 0x7E };

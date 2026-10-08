@@ -25,6 +25,8 @@
           <Button x:Name="OpenProjectButton" Content="Open project" Click="OpenProject_Click"/>
           <Button x:Name="SaveProjectButton" Content="Save project" Click="SaveProject_Click"/>
           <Button x:Name="ExportAnalysisButton" Content="Export…" Click="ExportAnalysis_Click" ToolTip="Export evidence-tagged analysis as JSON or text; excludes the original executable"/>
+          <Button x:Name="ExportDiagnosticButton" Content="Diagnostics…" Click="ExportDiagnostic_Click"
+                  ToolTip="Export bounded session events without paths, source bytes, comments or exception messages."/>
           <Button x:Name="BackupProjectButton" Content="Backup project" Click="BackupProject_Click"/>
           <Button x:Name="AnalyzeButton" Style="{StaticResource PrimaryActionButtonStyle}" Content="Analyze" Click="Analyze_Click"/>
           <Button x:Name="CancelAnalysisButton" Content="Cancel analysis" Click="CancelAnalysis_Click" IsEnabled="False"/>
