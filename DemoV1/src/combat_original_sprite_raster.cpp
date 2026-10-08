@@ -141,6 +141,10 @@ static std::optional<CombatOriginalSpriteRasterResult> draw_sprite_impl(
     for(std::uint32_t plane=0U;plane<4U;++plane) {
         const auto mask=static_cast<std::uint8_t>(
             sequencer_ah&0x0FU);
+        // Original opaque 2A3E2/2A405 or transparent 2A429/2A46B;
+        // shaded 2A5F3/2A62C or 2A64F/2A6A3. OUT 03C4h,
+        // indexed register 02h, BEFORE any writes on this pass.
+        vga.set_sequencer_map_mask_02(mask);
         auto dst=plane_start;
         for(std::uint32_t y=0U;y<height;++y) {
             for(std::uint32_t x=0U;x<bytes_per_row;++x) {
