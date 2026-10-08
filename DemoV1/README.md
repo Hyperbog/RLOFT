@@ -17,8 +17,8 @@ snapshot-invalidating world state, are documented in
 [LEVEL22_VIEWPORT_ACTION_CHECKPOINT.md](LEVEL22_VIEWPORT_ACTION_CHECKPOINT.md).
 
 **Do not label the demo finished yet.** SINTAB wall/prepass rendering, final
-original-frame equivalence, actual host mouse/combat-input bindings, relic
-transition integration, remain open.
+original-frame equivalence, remaining host combat/inventory-input bindings,
+and relic-transition integration remain open.
 Development commits continue on `demo-v1`; the Windows CI workflow handles
 native-source changes while Linux is manual opt-in.
 
