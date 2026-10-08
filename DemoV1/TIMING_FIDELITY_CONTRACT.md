@@ -587,3 +587,33 @@ No synthetic host clock is introduced.
 [Source checkpoint](LEVEL22_CODE2_29414_PREDICATES_CHECKPOINT_20261008.md).
 The underlying clipped pixel copier `2A6B0`
 still requires native source reconstruction.
+
+
+## 2A6B0 clipped sprite and original self-modifying comparison byte
+
+The source-backed `29414` clipper now can invoke
+actual `2A6B0` VGA writes. The clipped raster
+reads the mutable original 24-byte record, selects
+four VGA sequencer masks in original order, and
+performs transparent/opaque source comparisons
+without consuming an alternative host clock.
+
+Original `2A7A4` executes **before any clipped
+pixel row copying** and writes original
+`BYTE[CODE.2:2A816]`, changing the immediate
+transparency key of `2A814:CMP [ESI],imm8`.
+The native renderer preserves this call-site
+mutation when an actual mutable original CODE.2
+image is available, even if a later host
+aperture preflight rejects the frame. It retains
+original byte `F009`'s DWORD row count and
+raw VGA plane register writes after a
+successful copy.
+
+The renderer can change source and destination
+byte counts on plane-mask rollover: do not
+replace its per-plane source sequencing with
+one eagerly decoded, constant-width rectangle.
+Reference DOS IRQ/frame-state comparison is
+still needed.
+[Source checkpoint](LEVEL22_CODE2_2A6B0_CLIPPED_VGA_CHECKPOINT_20261008.md).
