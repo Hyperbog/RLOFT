@@ -133,3 +133,25 @@ Release and UBSan results. The full game has **not** had its
 live actor/RNG timeline wired or a fresh Windows EXE build;
 3EA4, 3DE4 and timed message side effects still block native
 progression acceptance.
+
+
+## New callback implementations: 3DE4/3EA4 and 1C21C
+
+See [the 2026-10-08 spell/IRQ checkpoint](LEVEL22_DDA4_SPELL_IRQ_CHECKPOINT.md).
+Both class-service branches after 50DC are now modeled as
+**read-only source-backed byte sweeps** from distinct original
+20-by-8 spell-state tables and one shared eight-DWORD entry-count
+table. The 1C21C IRQ message queue is also modeled read-only
+with exact +0x5A full-tick deadline and unsigned expiry check.
+
+The original executable audit has **457 named byte checks at
+449 distinct instruction offsets**, one direct and eight
+hashed data tables. Tests recorded in the checkpoint are
+standalone C++17 source-equivalent differential checks, not
+an integrated Windows/demo gameplay test.
+
+The earlier callback *ordering* model remains authoritative:
+DDA4 writes the new class level, calls 50DC, conditionally
+invokes exactly one of 3EA4 or 3DE4, then calls 3210F,
+1C21C and DC7C. These projected effects are not yet wired to
+the game's live party, queue, or original IRQ/RNG time domains.
