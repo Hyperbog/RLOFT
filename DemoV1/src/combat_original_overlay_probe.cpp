@@ -26,7 +26,10 @@ std::optional<std::int32_t> CombatOriginalOverlayProbeModel::probe_2ae30(
     std::uint32_t row,std::uint32_t column,
     const CombatOriginalOverlayProbeServices& calls) {
     // 2AE3C..2AE4C: disabled D680 returns zero WITHOUT any reads.
-    if(state.skip_probing_d680!=0U)return 0;
+    const auto disabled=calls.live_disabled_d680
+        ? calls.live_disabled_d680()
+        : state.skip_probing_d680;
+    if(disabled!=0U)return 0;
     if(!calls.original_word)return std::nullopt;
     // Source toggles only AL, preserving upper 24 bits C050.
     const auto alternate=state.active_scene_page_c050^1U;
