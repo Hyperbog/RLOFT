@@ -79,6 +79,7 @@ add_library(rloft_boot_flow
     src/combat_original_overlay.cpp
     src/combat_original_vga_page_stack.cpp
     src/combat_original_vga_page_stack_binding.cpp
+    src/combat_original_overlay_backing_clip.cpp
     src/combat_level_message.cpp
     src/combat_harm_prelude.cpp
     src/combat_damage_stat_bonus.cpp
@@ -346,6 +347,9 @@ add_test(NAME combat_original_vga_page_stack_tests COMMAND combat_original_vga_p
 add_executable(combat_original_vga_page_stack_binding_tests tests/combat_original_vga_page_stack_binding_tests.cpp)
 target_link_libraries(combat_original_vga_page_stack_binding_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_original_vga_page_stack_binding_tests COMMAND combat_original_vga_page_stack_binding_tests)
+add_executable(combat_original_overlay_backing_clip_tests tests/combat_original_overlay_backing_clip_tests.cpp)
+target_link_libraries(combat_original_overlay_backing_clip_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_overlay_backing_clip_tests COMMAND combat_original_overlay_backing_clip_tests)
 add_executable(combat_harm_prelude_tests tests/combat_harm_prelude_tests.cpp)
 target_link_libraries(combat_harm_prelude_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_harm_prelude_tests COMMAND combat_harm_prelude_tests)
@@ -755,6 +759,7 @@ set(RLOFT_TEST_TARGETS
     combat_original_overlay_tests
     combat_original_vga_page_stack_tests
     combat_original_vga_page_stack_binding_tests
+    combat_original_overlay_backing_clip_tests
     combat_level_message_tests
     combat_harm_prelude_tests
     combat_damage_stat_bonus_tests
