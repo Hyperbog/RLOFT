@@ -48,6 +48,16 @@ public:
         const std::vector<std::uint8_t>& captured_c_string,
         std::uint32_t font_style,
         const CombatOriginalTextServices& services);
+
+    // Connects 1C258's injected 3060C service to the exact 303C8
+    // glyph walk. The state reference must outlive the callback;
+    // the original font-service callbacks are retained by value.
+    [[nodiscard]] static std::function<void(
+        std::uint32_t, std::uint32_t,
+        const std::vector<std::uint8_t>&, std::uint32_t)>
+    bind_display_3060c(
+        CombatOriginalTextState& original_font_state,
+        CombatOriginalTextServices original_font_services);
 };
 
 } // namespace rloft
