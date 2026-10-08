@@ -292,6 +292,93 @@ InventoryOrdinarySwapStatus InventoryRuntimeState::swap_ordinary_slot(
     return InventoryOrdinarySwapStatus::Swapped;
 }
 
+InventoryHandSwapStatus InventoryRuntimeState::swap_hand_slot(
+    PartyImage& party,
+    const ObjectCatalog& objects,
+    std::size_t actor,
+    std::size_t hand) {
+    if (actor >= PartyImage::kActorCount || hand >= 2U) {
+        throw std::out_of_range("CODE.2 214B8 actor/hand");
+    }
+    // 214CD..214DE: original only checks actor +11h bit 80h.
+    if (!party.active(actor)) {
+        return InventoryHandSwapStatus::Unsupported;
+    }
+    const auto slot = 14U + hand;
+    const auto current = party_item(party, actor, slot);
+    const auto incoming = held.object_id;
+    if (current == -1 && incoming == -1) {
+        return InventoryHandSwapStatus::NoChange;
+    }
+
+    // 2151F..2152A rejects the *current* temporary effect IDs.
+    // Also guard insertion of a temporary spell object into a hand:
+    // the verified normal ID/known exchange is not its action path.
+    if (current < -1 || incoming < -1 ||
+        (current >= 0x7E && current <= 0x86) ||
+        (incoming >= 0x7E && incoming <= 0x86)) {
+        return InventoryHandSwapStatus::Unsupported;
+    }
+    // 2155B..2158B: category 3,4,5,6,7,8 held objects cannot
+    // enter this general hand swap path. A held -1 means empty.
+    if (incoming >= 0) {
+        const auto& definition =
+            objects.at(static_cast<std::size_t>(incoming));
+        const auto category = definition.item_category;
+        if (category >= 3U && category <= 8U) {
+            return InventoryHandSwapStatus::Unsupported;
+        }
+        // Hand1 container-item swaps update live 6FA0 panel state
+        // through 21648..216C4. Keep container changes pending
+        // until that live menu model is reconstructed.
+        if (category == 1U) {
+            return InventoryHandSwapStatus::Unsupported;
+        }
+    }
+    if (current >= 0) {
+        const auto& definition =
+            objects.at(static_cast<std::size_t>(current));
+        if (definition.item_category == 1U) {
+            return InventoryHandSwapStatus::Unsupported;
+        }
+    }
+
+    const auto base = actor * PartyImage::kActorSize;
+    const auto known_at = base + 0x12BU;
+    const auto bit = std::uint32_t{1} << slot;
+    const std::uint32_t bits =
+        static_cast<std::uint32_t>(party.bytes[known_at]) |
+        (static_cast<std::uint32_t>(party.bytes[known_at+1U])<<8U) |
+        (static_cast<std::uint32_t>(party.bytes[known_at+2U])<<16U) |
+        (static_cast<std::uint32_t>(party.bytes[known_at+3U])<<24U);
+    // 215A1 reads known BEFORE changing the hand item, even if
+    // that known bit is stale from a prior empty-slot swap.
+    const auto previous_known =
+        static_cast<std::uint8_t>((bits & bit) != 0U);
+    const auto updated =
+        incoming == -1
+            ? bits  // 0F238 returns early for an empty slot.
+            : static_cast<std::uint32_t>(
+                  (bits & ~bit) |
+                  (held.known ? bit : 0U));
+
+    // Commit authoritative party item, known word and held item only
+    // after all object-category validation has completed.
+    set_party_item(party, actor, slot, incoming);
+    for (unsigned b=0U; b<4U; ++b) {
+        party.bytes[known_at+b] =
+            static_cast<std::uint8_t>(updated >> (b*8U));
+    }
+    held = {current, previous_known};
+    // 215E9 explicitly zeroes the selected hand's four-byte
+    // ready deadline. Opposite hand remains unchanged.
+    const auto deadline_at = base + 0x18EU + hand*4U;
+    for (unsigned b=0U; b<4U; ++b) {
+        party.bytes[deadline_at+b] = 0U;
+    }
+    return InventoryHandSwapStatus::Swapped;
+}
+
 bool InventoryRuntimeState::has_object(
     const PartyImage& party,
     const ObjectCatalog& objects,
