@@ -1,4 +1,4 @@
-> **Post-certification semantic correction (2026-10-07):** routine `2975C` was rechecked against immutable CODE.2 during native automap integration and corrected from a four-argument source signature to the encoded five-argument `(frame,y,x,key,set)` contract. Historical certification hashes below refer to the pre-erratum source snapshot. See `POST_CERTIFICATION_ERRATA.md`.
+> **Post-certification semantic correction (2026-10-07):** routines `0139C` (loop-carried draw coordinates) and `2975C` (five-argument `(frame,y,x,key,set)` wrapper) were verified against immutable CODE.2 and corrected. Historical certification hashes below refer to the pre-erratum source snapshot. See `POST_CERTIFICATION_ERRATA.md`.
 
 # CODE.2 faithful decompilation progress
 
@@ -27,7 +27,7 @@
 - Object-2 virtual size: `0x2DD10`
 - Object-2 physical start: `0x75F24`
 
-## Certified source
+## Originally certified source (historical snapshot)
 
 - Canonical reconstruction: `Code2/Code2.cpp`
 - File size: **1,304,770 bytes**
@@ -40,3 +40,7 @@
 Object-1 byte ownership and semantic inspection are complete. The accumulated semantic defect ledger was repaired in the canonical source, including the formatter/floating-format paths, incoming-CF behavior, rejected-stack behavior, explicit DPMI carry/register contracts, and final runtime-tail ownership through `0x3A851`.
 
 `Code2/FINAL_CERTIFICATION.md` is the authoritative certification record. `Code2/FINAL_SEMANTIC_AUDIT.md` retains the detailed audit provenance.
+
+## Reconciled branches — 2026-10-07
+
+Both `demo-v1` and `code1-decompilation` now use the same verified corrected `Code2/Code2.cpp` blob `87f6638921c53a32bde59735515fbc175e2c96ee`. The originally certified `c3f16122e79c3c464382e4511d9d932f6fcd694a` is retained in Git history; two exact corrected regions are documented in [`POST_CERTIFICATION_ERRATA.md`](POST_CERTIFICATION_ERRATA.md). The 100% byte-accounting result remains unchanged, but the historical syntax check was against the original snapshot and no fresh whole-file syntax test is claimed here.
