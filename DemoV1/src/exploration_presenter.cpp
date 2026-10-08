@@ -1,5 +1,6 @@
 #include "rloft/exploration_presenter.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -16,6 +17,8 @@ ExplorationPresenter::ExplorationPresenter(
       fill_table_(
           SurfaceFillTable::from_code2(
               assets.source().read("CODE.2"))),
+      surface_vga_masks_(
+          Type7VgaPlaneMaskModel::load(assets.source())),
       res0_raster_base_(assets.init_u16(0x00U)),
       res1_portrait_base_(assets.init_u16(0x04U)) {}
 
@@ -118,6 +121,78 @@ ExplorationPresentedFrame ExplorationPresenter::present(
         framebuffer_,
         fill_table_,
         frame.scene.frame.renderer_fill_base_b);
+
+    // CODE.2 335DC first renders any valid extra surface prepass,
+    // before 336F7 performs the ordinary wall pass. The prepass calls
+    // 32620 with the actual RES4 texture column and original SINTAB
+    // generated code. Unsupported original memory geometry, unavailable
+    // resources and invalid selectors remain explicitly PENDING.
+    std::vector<SurfacePrepassRasterFailure> prepass_failures;
+    if (!frame.prepass_plans.empty()) {
+        VgaPlanarMemory prepass_video;
+        prepass_video.import_page(framebuffer_, frame.scene_video_page);
+        bool any_prepass_rasterized = false;
+        for (const auto& plan : frame.prepass_plans) {
+            try {
+                const auto matches_original_run = std::any_of(
+                    frame.sweep_runs.begin(),
+                    frame.sweep_runs.end(),
+                    [&](const ViewSweepRun& run) {
+                        return run.pass == SweepRenderPass::Prepass &&
+                               run.drawable() &&
+                               run.first_ray == plan.first_ray &&
+                               run.ray_count == plan.ray_count &&
+                               run.resource_id == plan.resource_id &&
+                               run.texture_column_index ==
+                                   plan.texture_column_index &&
+                               run.texture_source_byte_offset ==
+                                   plan.texture_source_byte_offset &&
+                               ((run.depth & 0xFFF8U) >> 1U) ==
+                                   plan.extent;
+                    });
+                if (!matches_original_run) {
+                    throw std::invalid_argument(
+                        "surface prepass plan has no matching sweep run");
+                }
+                auto cached =
+                    surface_texture_cache_.find(plan.resource_id);
+                if (cached == surface_texture_cache_.end()) {
+                    auto texture =
+                        walls_.texture(static_cast<int>(
+                            plan.resource_id));
+                    cached = surface_texture_cache_.emplace(
+                        plan.resource_id,
+                        std::move(texture)).first;
+                }
+                const auto report =
+                    SurfaceSintabPrepassExecutor::draw(
+                        plan,
+                        cached->second,
+                        tables,
+                        surface_vga_masks_,
+                        frame.scene_video_page,
+                        prepass_video);
+                any_prepass_rasterized = true;
+                ++output_coverage.sintab_prepass_runs_rasterized;
+                output_coverage.sintab_prepass_indexed_writes +=
+                    report.indexed_writes;
+                if (output_coverage.sintab_prepass_runs_pending == 0U) {
+                    throw std::logic_error(
+                        "surface prepass coverage underflow");
+                }
+                --output_coverage.sintab_prepass_runs_pending;
+            } catch (const std::exception& error) {
+                ++output_coverage.sintab_prepass_runs_failed;
+                prepass_failures.push_back(SurfacePrepassRasterFailure{
+                    plan.resource_id, plan.first_ray, error.what(),
+                });
+            }
+        }
+        if (any_prepass_rasterized) {
+            prepass_video.export_page(
+                framebuffer_, frame.scene_video_page);
+        }
+    }
 
     // This presenter currently draws the exact 338C8 fallback path for
     // extents above SINTAB's runtime lookup boundary. <= boundary runs remain
@@ -229,6 +304,8 @@ ExplorationPresentedFrame ExplorationPresenter::present(
             frame.scene.palette_index);
     out.surface_coverage =
         output_coverage;
+    out.surface_prepass_failures =
+        std::move(prepass_failures);
     out.type7_failures = std::move(raster_failures);
     out.type7_trace_failure =
         frame.scene_vga_trace_failure;
