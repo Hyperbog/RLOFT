@@ -200,7 +200,7 @@ public partial class MainWindow : Window
             throw new InvalidOperationException("Choose a destination folder first.");
 
         int? palette = null;
-        if (action is "graphics" or "all" && AutomaticPalette.IsChecked != true)
+        if ((action == "graphics" || action == "all") && AutomaticPalette.IsChecked != true)
         {
             if (!int.TryParse(ManualPalette.Text.Trim(), out var index) || index is < 0 or > 14)
                 throw new InvalidOperationException("Manual palette bank must be 0–14.");

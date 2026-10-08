@@ -13,6 +13,6 @@
     <RootNamespace>RavenloftExtractor</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Resource Include="Assets\strahd_title_logo.png"/>
+    <Resource Include="Assets\ravenloft_logo.png"/>
   </ItemGroup>
 </Project>

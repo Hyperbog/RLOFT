@@ -1,7 +1,7 @@
 <Window x:Class="RavenloftExtractor.MainWindow"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-  Title="Ravenloft — Asset Extraction Suite"
+  Title="Ravenloft — Asset Extraction Suite" Icon="/Assets/ravenloft_logo.png"
   Width="1230" Height="800" MinWidth="780" MinHeight="520"
   WindowStyle="SingleBorderWindow" ResizeMode="CanResize"
   Background="{StaticResource CanvasBrush}"
@@ -22,7 +22,7 @@
       <DockPanel LastChildFill="True">
         <Border Width="124" Height="68" Background="#171217" CornerRadius="9"
                 Padding="7" DockPanel.Dock="Left" Margin="0,0,18,0">
-          <Image Source="/Assets/strahd_title_logo.png" Stretch="Uniform"/>
+          <Image Source="/Assets/ravenloft_logo.png" Stretch="Uniform"/>
         </Border>
         <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center"
                     Margin="12,0,4,0" HorizontalAlignment="Right">
