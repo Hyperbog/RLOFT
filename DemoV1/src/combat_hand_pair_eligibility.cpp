@@ -55,14 +55,13 @@ CombatHandPairEligibility CombatHandPairEligibilityModel::evaluate(
     const bool both_empty=first_id==-1 && second_id==-1;
     const bool both_pseudo=pseudo(first_id) && pseudo(second_id);
     // 244CE and 24522 bypass the qualifier/weight arbiter.
-    // The other mixed sentinel/pseudo branches may read original
-    // heap-adjacent OBJECTS[-1] +30/+35 values; reject them until
-    // those bytes are captured from the original runtime.
-    if ((first_id<0 || second_id<0 ||
-         pseudo(first_id) || pseudo(second_id)) &&
-        !both_empty && !both_pseudo) {
+    // Other -1 + nonempty pair paths may read heap-adjacent
+    // OBJECTS[-1] +30/+35; reject only those absent-memory cases.
+    // Mixed pseudo + ordinary *nonnegative* pairs are valid and
+    // continue through the same verified 246E9 item arbiter.
+    if ((first_id<0 || second_id<0) && !both_empty) {
         throw std::invalid_argument(
-            "CODE.2 24478 mixed empty/pseudo pair unresolved");
+            "CODE.2 24478 mixed empty/nonempty heap data unresolved");
     }
     if (both_empty && !empty_prebase_category) {
         throw std::invalid_argument(
