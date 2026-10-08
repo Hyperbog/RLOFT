@@ -47,8 +47,12 @@ int main() {
     const auto plan=[&](unsigned hand,bool hit,
                         std::uint32_t now=100U,
                         std::int32_t damage=7) {
+        const auto offset=0x40U+2U*(14U+hand);
+        const auto item=static_cast<std::int16_t>(
+            static_cast<std::uint16_t>(party.bytes[offset]) |
+            (static_cast<std::uint16_t>(party.bytes[offset+1U])<<8U));
         return CombatAttackTimingModel::inspect(
-            party,objects,0U,hand,now,hit,damage);
+            party,objects,0U,hand,item,now,hit,damage);
     };
 
     // E5F0:1E9E9 unarmed and pseudo spell hand are exactly 18,
@@ -102,6 +106,13 @@ int main() {
     assert(p.hand_ready_deadline==28U); // unsigned wrap +31
     assert(p.stored_damage==-12);
 
+    // E5F0 retains the exact item already captured by 26018.
+    set16(party,0x40U+14U*2U,1U);
+    const auto captured=CombatAttackTimingModel::inspect(
+        party,objects,0U,0U,3,100U,true,7);
+    assert(captured.animation_interval==63U);
+    assert(plan(0U,true).animation_interval==54U);
+
     // Planning never modifies original character bytes or A7E4.
     const auto original=party.bytes;
     (void)plan(0U,true);
@@ -109,7 +120,7 @@ int main() {
 
     bool rejected=false;
     try { (void)CombatAttackTimingModel::inspect(
-        party,objects,4U,0U,0U,false,0); }
+        party,objects,4U,0U,0,0U,false,0); }
     catch(const std::out_of_range&) {rejected=true;}
     assert(rejected);
     rejected=false;
