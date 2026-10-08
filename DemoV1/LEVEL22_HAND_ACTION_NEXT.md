@@ -26,6 +26,10 @@ The original `214B8` wrapper, directly re-disassembled:
 - `215A1..215E2` queries the old hand's identified state, installs the held object and updates the slot-known bit, then triggers redraw. `215E9` clears the hand's readiness countdown. If the hand becomes empty, `0F238` has the same verified stale-known-bit early exit described in the inventory checkpoint.
 - `216C6` tests **pointer flags bit 0 (`0x01`)** for the **use/attack path**. It checks actor status and the readiness gate, invokes `24478`, then `26018`; it does not directly call the Level 22 Assassin damage function with a made-up damage value.
 
+## Implementation status update
+
+The separate [live hand and HUD actor-panel checkpoint](LEVEL22_HAND_INTERACTION_CHECKPOINT.md) now implements the original inclusive hand rectangles, bounded `214B8` identity/known exchange and selected-hand deadline clear, and `211D8` quick stash into first free ordinary inventory slot. Both are connected to a **provisional native right-click adapter**; original DOS queue timing/button semantics still require a trace. The actual `214B8` flag-`01h` use/attack branch remains unwired. The original-value hand geometry and state mutation regressions were added to the Windows test suite.
+
 ## Safe integration sequence
 
 1. Add a separate native hit model for exact above four actor hand-pair rectangles, keeping lane 1/3 priority and cursor/inventory region separation.
@@ -34,4 +38,4 @@ The original `214B8` wrapper, directly re-disassembled:
 4. Connect the *distinct* `0x01` action route to `C80C` accuracy only after the original `E5F0` attack dispatcher, `DB94` target selection, damage dice, `C910` category gate and cooldown/feedback are implemented.
 5. Replay original-game input and indexed screenshots before labeling a working combat step.
 
-**Completion:** preparatory hand/input research **20% (1/5 bounded gates)**; ordinary inventory interaction **67%** before CI; overall faithful demo **20%**.
+**Completion:** bounded live hand/actor-panel milestone **60% (3/5 acceptance gates)** before CI; overall faithful demo **20%**.
