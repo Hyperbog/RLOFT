@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <optional>
 #include <stdexcept>
+#include <utility>
+#include <initializer_list>
 #include <vector>
 
 namespace {
