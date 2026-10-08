@@ -1,6 +1,38 @@
 # Ravenloft Demo Build v1
 
 
+## Original 292BC/2932C backing-image clipping reconstructed
+
+[Original backing clip checkpoint](LEVEL22_CODE2_OVERLAY_BACKING_CLIP_CHECKPOINT.md)
+adds source-verified native clipping for the original
+32×16 overlay capture/restore. `292BC` and
+`2932C` use signed DWORD coordinates, signed
+WORD EF3F/EF41 bounds and exact wrapping arithmetic.
+They differ in a significant original quirk:
+capture requires **positive** final column count,
+while restoration can still call `2A178` when
+the column count is **zero**.
+
+The new reusable binding connects these rules to
+the earlier `1A288/1AB20` overlay lifecycle;
+the underlying VGA `2A114/2A178` raster backends
+remain explicit, without invented backing pixels.
+Of 30 sampled original instructions, 29 add new
+auditor anchors (the 2939A return was previously
+checked), bringing the executable audit to
+**855 named checks at 847 unique addresses**.
+The exact source and binder passed isolated strict
+C++17 Debug, Release and UBSan checks.
+Both new CTests are registered but await a
+fresh full Windows build.
+
+Formal release acceptance remains **1/5 gates**,
+and the engineering completion percentage remains
+unmeasured; this is additional reusable game-engine
+behavior, not a newly accepted end-to-end demo gate.
+
+
+
 ## Original VGA page-stack integration (CODE.2 2E590 / 2E5D4)
 
 [Source and integration checkpoint](LEVEL22_CODE2_VGA_PAGE_STACK_CHECKPOINT.md):
