@@ -214,4 +214,39 @@ int main() {
             staged_party,objects,
             static_cast<std::int16_t>(relic)));
     }
+
+    // CODE.2 211D8 alternate real interaction: after each world
+    // pickup the actor-panel flag08 path quick-stashes the held item
+    // into the first free ordinary slot, without opening the modal.
+    auto quick_world = rloft::LevelWorldState{};
+    for(const auto drop:rloft::Level22Story::assassin_death_drops()) {
+        rloft::LiveObjectRecord item{};
+        item.object_type_id=drop.object_id;
+        quick_world.loose_items.push_back(item);
+    }
+    rloft::InventoryRuntimeState quick_inventory{};
+    rloft::PartyImage quick_party{};
+    quick_party.bytes.fill(0xFFU);
+    quick_party.bytes[0x10U]=0U;
+    quick_party.bytes[0x11U]=0U;
+    for(std::size_t i=0U;i<4U;++i) {
+        assert(quick_inventory.held.object_id==-1);
+        const auto got=rloft::Level22EncounterModel::pickup_loose_item(
+            quick_world,0U,quick_inventory,quick_party,objects);
+        assert(got.level22_mist_sequence==(i==3U));
+        if(i<3U) {
+            assert(quick_inventory.quick_stash_held(
+                       quick_party,objects,0U)==
+                   rloft::InventoryQuickStashStatus::Stashed);
+            assert(quick_inventory.held.object_id==-1);
+            assert(quick_party.bytes[0x12BU]==0U);
+        }
+    }
+    assert(quick_world.loose_items.empty());
+    assert(quick_inventory.held.object_id==0x74);
+    for(const auto relic:rloft::Level22Story::quest_objects()) {
+        assert(quick_inventory.has_object(
+            quick_party,objects,
+            static_cast<std::int16_t>(relic)));
+    }
 }
