@@ -249,7 +249,7 @@ int main() {
             0xCBF29CE484222325ULL;
         constexpr std::uint64_t fnv_mul =
             0x100000001B3ULL;
-        const auto checksum = [](const rloft::VgaPlanarMemory& memory) {
+        const auto checksum = [fnv_init,fnv_mul](const rloft::VgaPlanarMemory& memory) {
             std::uint64_t hash = fnv_init;
             for(std::uint32_t offset=0U;offset<21000U;++offset) {
                 const auto pixel = memory.read(
