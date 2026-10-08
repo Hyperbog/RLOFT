@@ -120,6 +120,45 @@ LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
         object_catalog_);
 }
 
+std::optional<NpcDamageResult>
+ExplorationRuntime::damage_level22_assassin_at(
+    const std::vector<WorldSceneRecord>& records,
+    int row,
+    int column,
+    std::uint16_t amount,
+    std::uint16_t reaction_mode,
+    const Level22EncounterModel::PlacementProbe& can_place) {
+    // 223F4's bit-0 source-class-2 gate must remain clear during
+    // combat selection: loose items are pickup targets, not enemies.
+    const auto selected = world_scene_target_at(
+        records, row, column, 0U);
+    const auto npc_index =
+        Level22ViewportTargetModel::assassin_index(
+            selected, world_);
+    if (!npc_index.has_value()) {
+        return std::nullopt;
+    }
+    return damage_level22_assassin(
+        *npc_index, amount, reaction_mode, can_place);
+}
+
+std::optional<LooseItemPickupResult>
+ExplorationRuntime::pickup_level22_loose_item_at(
+    const std::vector<WorldSceneRecord>& records,
+    int row,
+    int column) {
+    // 224EF requires bit 0 for class-2 hit-test eligibility.
+    const auto selected = world_scene_target_at(
+        records, row, column, 0x01U);
+    const auto item_index =
+        Level22ViewportTargetModel::loose_item_index(
+            selected, world_);
+    if (!item_index.has_value()) {
+        return std::nullopt;
+    }
+    return pickup_level22_loose_item(*item_index);
+}
+
 std::optional<WorldSceneTarget>
 ExplorationRuntime::world_scene_target_at(
     const std::vector<WorldSceneRecord>& records,
