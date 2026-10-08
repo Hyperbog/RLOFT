@@ -131,6 +131,8 @@ ExplorationPresentedFrame ExplorationPresenter::present(
 
     auto output_coverage =
         surface_coverage(frame, tables);
+    std::vector<Type7SceneRasterFailure> raster_failures;
+
 
     // The original draw order places world-scene type-7 shapes after
     // the environment and wall surfaces, but before party-panel chrome.
@@ -191,11 +193,17 @@ ExplorationPresentedFrame ExplorationPresenter::present(
                 --output_coverage.type7_scene_calls_pending;
                 output_coverage.type7_visible_columns_pending -=
                     plan.visible_columns.size();
-            } catch (const std::exception&) {
-                // Preserve a fully unmodified destination page on
-                // failure and keep this call explicitly pending in
-                // coverage diagnostics. No approximate sprite fallback.
+            } catch (const std::exception& error) {
+                // The executor commits a complete sprite or none of it.
+                // Do not discard the reason: without working CI, runtime
+                // output must name the exact RES3 source that failed.
                 ++output_coverage.type7_calls_failed;
+                raster_failures.push_back(Type7SceneRasterFailure{
+                    plan.call.resource_id,
+                    plan.call.source_class,
+                    plan.call.source_index,
+                    error.what(),
+                });
             }
         }
         if (any_rasterized) {
@@ -221,6 +229,7 @@ ExplorationPresentedFrame ExplorationPresenter::present(
             frame.scene.palette_index);
     out.surface_coverage =
         output_coverage;
+    out.type7_failures = std::move(raster_failures);
     return out;
 }
 
