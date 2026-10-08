@@ -417,6 +417,20 @@ ANCHORS = {
     "50DC nonzero-mode third class": (0x5172, "0fbe80f7180200"),
     "50DC no qualifying class -1": (0x5185, "b8ffffffff"),
     "50DC return": (0x518B, "c3"),
+    # DDA4:DF0E..DF86 optional class service vs mandatory timed/HP callbacks;
+    "DDA4 passes actor to 50DC": (0xDF0E, "ff742420"),
+    "DDA4 50DC selector mode zero": (0xDF16, "6a00"),
+    "DDA4 tests 50DC signed result": (0xDF27, "85c0"),
+    "DDA4 negative selector skips optional class service": (0xDF29, "7c29"),
+    "DDA4 selects first class code1": (0xDF36, "83f801"),
+    "DDA4 presentation arguments even on negative gate": (0xDF54, "ff74240c"),
+    "DDA4 format3210F mandatory": (0xDF63, "e8a7410200"),
+    "DDA4 queue1C21C mandatory": (0xDF70, "e8a7e20000"),
+    "DC7C character HP-change entry": (0xDC7C, "53"),
+    "DC7C die sides from original class table6821": (0xDC98, "0fbe8021680000"),
+    "DC7C invokes original 1C328 dice": (0xDCA2, "e881e60000"),
+    "DC7C adds HP maximum word": (0xDD8E, "6601b0fe180200"),
+    "DC7C adds HP current word": (0xDD95, "6601b0fc180200"),
 }
 
 # Original object-2 DGROUP contents (not x86 code). These 26
