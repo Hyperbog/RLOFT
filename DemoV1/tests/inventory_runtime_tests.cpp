@@ -132,7 +132,9 @@ int main() {
     assert(get_item(party,0,3U)==-1);
     assert(runtime.held.object_id==5);
     assert(runtime.held.known==1);
-    assert(party.bytes[known_at]==0x02U);
+    // Original 0F238 returns early for a newly empty slot. Its
+    // identified bit remains stale although the item moved away.
+    assert(party.bytes[known_at]==0x0AU);
 
     // Insert the identified item into another empty ordinary slot;
     // transfer its bit, without changing unrelated identified slots.
@@ -142,7 +144,7 @@ int main() {
     assert(get_item(party,0,4U)==5);
     assert(runtime.held.object_id==-1);
     assert(runtime.held.known==0U);
-    assert(party.bytes[known_at]==0x12U);
+    assert(party.bytes[known_at]==0x1AU);
 
     // Swapping two distinct objects also swaps both known states,
     // rather than leaving identification attached to the character slot.
