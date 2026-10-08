@@ -1,5 +1,15 @@
 # Demo v1 — development progress versus formal acceptance
 
+**Subsequent original wide-wall bounded checkpoint (2026-10-08):**
+Source-backed C6F4 coalesced wall widths now include exact width
+8 at phase 0, 1, or 2, where original CODE.2 masks select eight
+physical pixels. Phase 3 reads past the source mask array and
+remains unsupported. The native preview title now reports SINTAB
+rendered/total counts and wall errors for user playtests.
+Registered CTests and documentation are committed; current-HEAD
+MSVC/visual comparison remain pending.
+[Width boundary](LEVEL22_CODE2_WIDE_MAIN_SURFACE_MASK_BOUNDARY_20261008.md).
+
 **Next source checkpoint — original ordinary SINTAB walls (2026-10-08):**
 The `3263C/FCD0=0` main wall rasterizer is now connected to the
 actual Level 22 presenter for original grouped widths 1..7, using
