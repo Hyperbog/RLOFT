@@ -137,6 +137,23 @@ int main() {
     assert(untouched.read(
         rloft::VgaPlanarMemory::kPhysicalBase+160U,0U)==0U);
 
+    // A trace with fewer descriptors than the expanded RES3 render plan
+    // must not claim that the sprite was drawn. The missing pixels are
+    // detected before executing even its first valid descriptor.
+    auto missing_descriptor=trace;
+    missing_descriptor.runs[0].descriptors.pop_back();
+    rejected=false;
+    try {
+        (void)rloft::Type7ScenePixelExecutor::draw(
+            plan,missing_descriptor,{0xA5U,0xB1U},
+            tables,untouched);
+    } catch (const std::invalid_argument&) {
+        rejected=true;
+    }
+    assert(rejected);
+    assert(untouched.read(
+        rloft::VgaPlanarMemory::kPhysicalBase+80U,0U)==0U);
+
     // The second source descriptor fails AFTER the first descriptor
     // has already executed a valid VGA store. Direct draw() callers
     // must receive precisely their original plane contents, rather
