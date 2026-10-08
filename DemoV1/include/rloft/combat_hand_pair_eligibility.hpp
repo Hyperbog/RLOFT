@@ -8,10 +8,12 @@
 
 namespace rloft {
 
-// Original CODE.2 24478: ordinary two-item arbitration plus the two
-// proven 244CE/24522 short-circuits (both empty and both pseudo).
-// BOTH-empty requires the actual observed -1 OBJECTS pre-base byte.
-// Mixed empty/pseudo/normal pairs remain unresolved, never guessed.
+// Original CODE.2 24478: complete nonnegative two-item candidate
+// arbitration (including temporary pseudo-hand objects 7Eh..86h),
+// plus the both-empty short circuit when the actual original
+// OBJECTS[-1] pre-base classification byte is supplied. Any mixed
+// -1 + positive/pseudo pair remains unresolved until other
+// original allocator-adjacent OBJECTS bytes are observed.
 struct CombatHandPairEligibility final {
     bool first_eligible{};
     bool second_eligible{};
