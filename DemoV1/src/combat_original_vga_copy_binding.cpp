@@ -31,4 +31,24 @@ CombatOriginalVgaCopyBinder::bind_direct_copy(
     return services;
 }
 
+CombatOriginalCompositeServices
+CombatOriginalVgaCopyBinder::bind_copy_and_backing(
+    VgaPlanarMemory& original_vga_planes,
+    CombatOriginalVgaCopyState& original_video_state,
+    CombatOriginalDgroupCapture& original_dgroup) {
+    auto services=bind_direct_copy(
+        original_vga_planes,original_video_state);
+    services.move_overlay_bytes_30cd4=[
+        &original_dgroup
+    ](std::uint32_t destination,std::uint32_t source,
+      std::uint32_t count) {
+        const auto moved=CombatOriginalDgroupMoveModel::move_30cd4(
+            original_dgroup,destination,source,count);
+        if(!moved)
+            throw std::logic_error(
+                "30CD4 backing-byte move outside captured original DGROUP");
+    };
+    return services;
+}
+
 } // namespace rloft
