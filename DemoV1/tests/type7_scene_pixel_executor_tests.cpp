@@ -126,6 +126,29 @@ int main() {
     assert(untouched.read(
         rloft::VgaPlanarMemory::kPhysicalBase+160U,0U)==0U);
 
+    // The second source descriptor fails AFTER the first descriptor
+    // has already executed a valid VGA store. Direct draw() callers
+    // must receive precisely their original plane contents, rather
+    // than only relying on ExplorationPresenter's outer transaction.
+    auto late_failure=trace;
+    late_failure.runs[0].descriptors[1].
+        signed_source_adjustment=32767;
+    rloft::VgaPlanarMemory preserved;
+    const auto vga_base=rloft::VgaPlanarMemory::kPhysicalBase;
+    preserved.write(vga_base+80U,0x01U,0x5AU);
+    preserved.write(vga_base+160U,0x02U,0x71U);
+    rejected=false;
+    try {
+        (void)rloft::Type7ScenePixelExecutor::draw(
+            plan,late_failure,{0xA5U,0xB1U},tables,preserved);
+    } catch (const std::out_of_range&) {
+        rejected=true;
+    }
+    assert(rejected);
+    assert(preserved.read(vga_base+80U,0U)==0x5AU);
+    assert(preserved.read(vga_base+160U,1U)==0x71U);
+    assert(preserved.read(vga_base+160U,0U)==0U);
+
     // Fully hidden sprites produce no writes or RES3 source reads.
     rloft::WorldSceneRenderPlan hidden{};
     rloft::Type7VgaSceneTrace empty{};
