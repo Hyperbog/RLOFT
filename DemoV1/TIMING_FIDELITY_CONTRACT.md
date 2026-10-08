@@ -345,3 +345,29 @@ the original order and preserve post-raster F0C8 refresh
 and `1C2C4` post-draw IRQ observation. Do not substitute
 a guessed shade formula, modern framebuffer pitch, or
 host frame clock. [Technical checkpoint](LEVEL22_CODE2_SPRITE_RASTER_CHECKPOINT.md).
+
+
+## Original sprite self-patch and hardware state now preserved
+
+The original shade pointer is stored to CODE.2 operands
+2A60B/2A672 **before** 2A584 invokes 2AB38 or reads
+sprite resource bytes. The native machine capture now
+implements both opcode writes before DOS resource-reader
+callbacks, with repeatable 32-bit little-endian patches
+to writable original code memory.
+
+Sprite plane loops set the original VGA sequencer index-02
+mask **before** writing each plane. The last mask remains
+observable after sprite rendering or framebuffer clearing.
+Transparent branch 2A42B/2A651 writes F009 to the actual
+observed source height after the initial sequencer OUT,
+whereas opaque sprites leave F009 unchanged. All these
+source-ordered updates are opt-in with a captured original
+DOS machine state and do not invent the initial register.
+
+See [current machine-state checkpoint](ORIGINAL_SPRITE_MACHINE_BINDING_CHECKPOINT_20261008.md).
+The later 2E758/F0C8 refresh and 1C2C4 full IRQ read
+are still separate temporal obligations; the current
+binding executes source-order callbacks, not a synthetic
+host-clock substitute. The newer source is not covered
+by the previous green Windows runner.
