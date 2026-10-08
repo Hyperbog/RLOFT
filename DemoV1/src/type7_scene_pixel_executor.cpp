@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace rloft {
@@ -38,6 +39,13 @@ Type7PixelDrawReport Type7ScenePixelExecutor::draw(
     (void)SintabPixelMicrocode::audit(block);
     auto patched=Type7RasterizerPatchModel::stage(
         block,plan.rasterizer_setup);
+
+    // 369D8 executes multiple descriptors and plane passes. A later
+    // descriptor can fail on a source offset or generated jump even when
+    // earlier passes have already written pixels. Stage the *whole scene*
+    // on a separate planar memory buffer so the public draw() API is
+    // transactional, including when called outside ExplorationPresenter.
+    auto candidate_video = video;
 
     for (std::size_t run_index=0U;
          run_index<trace.runs.size();
@@ -100,7 +108,7 @@ Type7PixelDrawReport Type7ScenePixelExecutor::draw(
                             pass.ecx_lookup,
                             pass.physical_address,
                             pass.sequencer_mask,
-                            video);
+                            candidate_video);
                     ++report.vga_passes;
                     report.source_reads+=result.source_reads;
                     report.indexed_writes+=result.destination_writes;
@@ -117,6 +125,9 @@ Type7PixelDrawReport Type7ScenePixelExecutor::draw(
         throw std::runtime_error(
             "scene SINTAB temporary code patches failed restoration");
     }
+    // Commit only after every descriptor, pass, and restoration check
+    // succeeds. Move assignment is non-throwing for the VGA plane vectors.
+    video = std::move(candidate_video);
     return report;
 }
 
