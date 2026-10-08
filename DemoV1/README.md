@@ -31,7 +31,12 @@ from the pinned `code1-decompilation` source, including the 22 completed
 static chapters and the separate 91-task future research register. See
 [PRESERVATION_INTEGRATION_ROADMAP.md](PRESERVATION_INTEGRATION_ROADMAP.md)
 for the original-code-to-native source map, open acceptance tests, and the
-known CODE.2 reconstruction revision difference between branches.
+resolved two-routine CODE.2 reconstruction reconciliation across branches.
+Both branches now share the original-byte-corrected `Code2/Code2.cpp` blob
+`87f6638921c53a32bde59735515fbc175e2c96ee`; see
+[the recorded CODE.2 errata](../Code2/POST_CERTIFICATION_ERRATA.md).
+The historical 2026-10-05 source-certification hashes remain provenance
+for the pre-correction revision, not the present source.
 
 The native demo is a **separate** workstream. GitHub Actions run #572 passed
 full Linux and Windows compilation/tests (99/99 Linux tests; Windows
