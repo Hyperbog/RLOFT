@@ -1,5 +1,23 @@
 # Ravenloft Demo Build v1
 
+## Original E0F8 respawn source-model checkpoint
+
+The [E0F8 source checkpoint](LEVEL22_E0F8_RESPAWN_SOURCE_CHECKPOINT.md)
+adds a **read-only** reconstruction of the original IRQ-tick/290D0 BIOS
+fallback RNG reseed, two 30CA2 draws per candidate, low-byte map
+obstruction, two separate 15-cell party-distance tests, live NPC cell
+occupancy, three-attempt limit and exact 22-byte slot/HP mutation plan.
+Its local isolated C++17 tests passed with Release assertions enabled.
+The CMake test target is registered but the current branch has **not**
+received a consolidated Windows build. On the original 30x15 Level 22
+map the routine cannot find a candidate at least 15 y-cells from an
+in-bounds party, but a *real invocation still consumes six RNG draws*;
+the actual 258AA tracker and original IRQ observations remain unknown.
+The offline verifier now has **293 CODE.2 instruction signatures plus one
+Strength data table**. This **does not** connect E0F8 to live combat,
+change shipped behavior or advance overall demo acceptance (20%, 1/5).
+
+
 ## Project-wide timing fidelity — mandatory
 
 **Walking pace, turn response, animation frame dwell, card flips, combat
