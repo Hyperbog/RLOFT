@@ -34,9 +34,9 @@ source. Do not treat its tests as validation of current HEAD.
 
 The current source-only work includes
 [original attack/target preflight and offline verification](LEVEL22_COMBAT_ENTRY_CHECKPOINT.md).
-An original-asset offline byte audit now covers **54 original CODE.2
-machine-code anchors** (33 prior + 21 additional verified); five new C++
-test targets are registered but **not yet executed**. The new
+An original-asset offline byte audit now covers **87 original CODE.2
+machine-code anchors**; seven new C++ test targets have been registered
+but **not yet executed** after the private-repository build pause. The new
 [24478 two-hand eligibility research checkpoint](LEVEL22_HAND_PAIR_ELIGIBILITY_CHECKPOINT.md)
 implements three original helper predicates, not the full attack-approval rule.
 This deliberate pause does not alter the **overall faithful-demo
@@ -110,7 +110,7 @@ has not been compiled since private CI was paused.
 ## Original 24478 ordinary two-hand arbitration
 
 The [ordinary two-hand arbitration checkpoint](LEVEL22_HAND_PAIR_ARBITRATION_CHECKPOINT.md)
-models CODE.2 `24478` for **two nonnegative, non-pseudo equipped items**,
+originally modeled CODE.2 `24478` for **two ordinary positive equipped items**; the later [conditional full pair model](LEVEL22_HAND_PAIR_RAW_HEAP_MODEL_CHECKPOINT.md) now extends that source to the original pseudo and `-1` branches,
 using the original independent `240A8` eligibility/classification results,
 literal OBJECTS `+0x35 & 3` and `+0x30` weight fields, character class
 groups, `23EE4` pair exemptions, and each hand's `+0x10B/+0x10F`
@@ -121,8 +121,9 @@ The original loader at `268C8` allocates OBJECTS through a wrapper
 returning a pointer 10 bytes into an allocation. `240A8(-1)` reads the
 pre-table byte `OBJECTS_POINTER-0x12`, *outside* the allocated object
 record and even before the low-level allocation base. The helper can
-model the empty-hand decision only when that actual raw byte is supplied;
-full pair arbitration still refuses `-1` and pseudo-hand items.
+model the empty-hand decision only when that actual raw byte is supplied.
+The full pair model now handles `-1` and pseudo items **conditional
+on all raw original bytes actually read by the selected path**.
 Original heap behavior and game-time action pacing remain separate
 research gates.
 
@@ -142,9 +143,10 @@ qualifier. Its regression target is registered but not yet compiled.
 The source deliberately **does not invent a default `240A8(-1)` unarmed category**:
 the original helper reads memory before the allocated OBJECTS buffer.
 The original loader's pointer arithmetic has now been recovered, but
-the allocator-adjacent **runtime byte value** is still unknown. The positive
-two-item subset of `24478` is implemented separately; complete `-1` and
-pseudo-hand arbitration remain prerequisites to live attacks.
+the allocator-adjacent **runtime byte value** is still unknown. Conditional
+`24478` arbitration now supports `-1` and pseudo hands; **capturing the real
+original heap values and connecting timed attack input** remain prerequisites
+to live attacks.
 The [offline original-byte audit](tools/verify_combat_entry_bytes.py)
 registers **87 exact opcode anchors**, including the 15 newly audited `24478` empty/pseudo short-circuit instructions (both original party-status checks remain distinct) matched
 against original CODE.2. This is source evidence, not a new game build.
