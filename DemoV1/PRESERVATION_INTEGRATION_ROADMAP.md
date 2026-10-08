@@ -58,6 +58,8 @@ the game simulation. Keep GitHub Actions manual-only while private.
 
    - **`24478` normal pair arbitration:** literal hand-classified candidates, OBJECTS `+0x35` qualifier and `+0x30` weight priority, signed class-group exceptions, and separate `+0x10B/+0x10F` busy-state checks are now modeled for two regular nonnegative item IDs ([checkpoint](LEVEL22_HAND_PAIR_ARBITRATION_CHECKPOINT.md)). The original OBJECTS loader's `4104C` wrapper adds ten bytes before returning the buffer pointer; `item[-1]` reads the previous low-level heap block's vicinity, **not OBJECTS.DAT**. Never assume an unarmed category or claim complete `24478` until the heap byte and pseudo-hand runtime behavior are evidenced. Preserve tick-accurate attack eligibility under [timing contract](TIMING_FIDELITY_CONTRACT.md).
 
+   - **`24478` early-return completion:** original machine code `244CE..246E9` now independently modeled with tests: both-empty and both-pseudo pair shortcuts; single pseudo/empty candidate overrides; the `0x7240` actor-status gate; and the separate first-two-actor status threshold **`>=0x4000`**, which must not be confused with `240A8`'s earlier exact `0x8000` test. Two complete short-circuit pair cases now reach their own final busy checks ([checkpoint](LEVEL22_HAND_PAIR_EARLY_GATES_CHECKPOINT.md)). The consolidated offline signature count is **87**, no Actions builds. Remaining mixed pairs may read raw pre-OBJECTS memory.
+
 5. **R-078 story transition:** compare CODE.2 Level 22 event sequence to the native last-relic state machine and run the original 22-frame transition with correct Level 23 load and consumed relics.
 
 ## Current acceptance boundary
