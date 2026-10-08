@@ -1,5 +1,28 @@
 # Ravenloft Demo Build v1
 
+## Private-repository development and build policy
+
+**Automatic GitHub Actions Windows builds are disabled on `demo-v1`.**
+`.github/workflows/demo-v1-build.yml` has **manual `workflow_dispatch`
+only**, to conserve private-repository Actions minutes. Continue committing
+faithful gameplay reconstruction, regression tests and archival research
+without repeatedly building preview binaries. Re-enable push builds only
+after explicitly deciding to do so when the repository becomes public.
+
+The **last previously tested Windows executable** is from
+[build #631](https://github.com/Hyperbog/RLOFT/actions/runs/37719712911)
+(102/102 CTests), but it **predates** the recently verified correction
+of the hand readiness offset and the new combat-entry/target-selection
+source. Do not treat its tests as validation of current HEAD.
+
+The current source-only work includes
+[original attack/target preflight and offline verification](LEVEL22_COMBAT_ENTRY_CHECKPOINT.md).
+An original-asset offline byte audit checked 18 original CODE.2 machine-code
+anchors; three new C++ test targets are registered but **not yet executed**.
+This deliberate pause does not alter the **overall faithful-demo
+acceptance: 20% (1/5 release gates)**.
+
+
 ## Playable Level 22 walkaround preview (opt-in)
 
 **Windows x64:** use the newly added `Explore-Level22.cmd` packaged next
@@ -48,10 +71,11 @@ explicitly unsupported. The original `214B8` separate use/attack path is
 not yet enabled: original target selection, damage, cooldown and feedback
 must be reconstructed first.
 
-**Live HUD hand/actor-panel checkpoint: 80% (4/5 bounded gates)** after
+**Hand interaction checkpoint: 60% (3/5 gates) on current source**,
+pending a deferred manual CI rerun and installed-game playtest. Historical
 [Windows CI run #631](https://github.com/Hyperbog/RLOFT/actions/runs/37719712911)
-passed **102/102 CTests** and published the Windows x64 EXE.
-A real installed-game interaction/DOS-input comparison remains. Overall faithful demo: **20%**.
+passed 102/102 for the *earlier binary*, but did not validate the later
+`+0x19E` readiness offset correction. Overall faithful demo: **20%**.
 
 ## Level 22 functional gameplay integration (ordinary inventory)
 
