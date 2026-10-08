@@ -61,7 +61,8 @@ CombatOriginalClippedRasterModel::draw_2a6b0(
     std::uint32_t column,
     std::uint32_t scratch_pointer,
     const CombatOriginalSpriteVideoState& video,
-    CombatOriginalClippedRasterState& original_state) {
+    CombatOriginalClippedRasterState& original_state,
+    CombatOriginalSpriteMachineState* mutable_code_image) {
     if(scratch_pointer<dgroup.captured_base_dgroup_offset)
         return std::nullopt;
     const auto scratch=static_cast<std::uint64_t>(
@@ -97,6 +98,10 @@ CombatOriginalClippedRasterModel::draw_2a6b0(
     // 2A7A4 self-patches the comparison immediate BEFORE pixel reads.
     // Even a later unsupported bounded capture leaves that code byte.
     original_state.code_comparison_byte_2a816=key;
+    if(mutable_code_image!=nullptr &&
+       !CombatOriginalSpriteCodePatchModel::patch_2a6b0(
+            *mutable_code_image,key))
+        return std::nullopt;
     CombatOriginalClippedRasterState s{};
     s.top_skip_bytes_f00d=skipped_top>>2U;
     s.bottom_skip_bytes_f011=skipped_bottom>>2U;
