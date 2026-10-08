@@ -32,4 +32,18 @@ bool CombatOriginalSpriteCodePatchModel::patch_2a584(
     return true;
 }
 
+bool CombatOriginalSpriteCodePatchModel::patch_2a6b0(
+    CombatOriginalSpriteMachineState& machine,
+    std::uint8_t original_key) noexcept {
+    auto& bytes=machine.writable_code_object1;
+    constexpr std::size_t kCompareOpcode=0x2A814U;
+    constexpr std::size_t kPatchedByte=0x2A816U;
+    if(bytes.size()<=kPatchedByte ||
+       bytes[kCompareOpcode]!=0x80U ||
+       bytes[kCompareOpcode+1U]!=0x3EU)
+        return false;
+    bytes[kPatchedByte]=original_key;
+    return true;
+}
+
 } // namespace rloft
