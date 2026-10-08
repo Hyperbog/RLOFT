@@ -464,3 +464,10 @@ Regression cases distinguish (a) a valid/fully hidden scene, (b) an unvalidated 
 GitHub Actions [run #572](https://github.com/Hyperbog/RLOFT/actions/runs/37710634731), source commit `d845a3ce23927bbc4b4a40ab0ce9728d8a015771`, fully succeeded: **Linux CMake build and 99/99 CTest cases**, plus **Windows x64 MSVC build, Windows CTest, published executable artifact and committed .exe**. The original failures were two fixture defects and a geometry-only decoder design issue; after fixes, both platforms passed. This establishes cross-platform **source/test** certification at that revision, not visual screenshot equivalence.
 
 To conserve usage, `.github/workflows/demo-v1-build.yml` now skips Linux on ordinary pushes. Linux requires manual workflow dispatch with `run_linux=true`. The Windows workflow continues to build/test/publish, while concurrency cancels superseded runs; the paths filter omits documentation-only and output binary updates.
+
+
+## Separate RES4 prepass integration status (October 7, 2026)
+
+This historical type-7 log contains earlier accurate-at-the-time statements that all SINTAB **surface** rendering remained pending. That is no longer the current implementation state. The distinct RES4 type-6 extra **prepass** can now execute original SINTAB generated pixels transactionally for supported 1..7-column runs through `SurfaceSintabPrepassExecutor`, the original CODE.2 surface ABI (`32620/3263C`), and the original VGA plane masks. It is integrated before the ordinary wall and type-7 passes, with strict retained failure/pending diagnostics. See [the current surface prepass checkpoint](SURFACE_PREPASS_CHECKPOINT.md).
+
+The ordinary `FCD0=0` main SINTAB wall renderer, full original DOS indexed-frame pixel comparisons and source-to-native gameplay acceptance remain **open**. No previous type-7-specific validation fingerprint or successful prior CI run is retrospectively changed by this separate feature. Fresh Windows CI compilation and the new test results are not yet certified in this checkpoint.
