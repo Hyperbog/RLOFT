@@ -20,6 +20,21 @@ void VgaPlanarMemory::clear(std::uint8_t value) noexcept {
     }
 }
 
+// Original read-map selector 03CEh index 04h survives copying
+// through 2A114. The power-on value is not known from CODE.2.
+void VgaPlanarMemory::set_graphics_read_map_04(
+    std::uint8_t selected_plane) {
+    if(selected_plane>=4U)
+        throw std::out_of_range(
+            "original VGA read-map selector must be in 0..3");
+    graphics_read_map_04_=selected_plane;
+}
+
+std::optional<std::uint8_t>
+VgaPlanarMemory::graphics_read_map_04() const noexcept {
+    return graphics_read_map_04_;
+}
+
 // Preserves the sequencer register observed through port 03C4h;
 // changing this register does not by itself modify framebuffer bytes.
 void VgaPlanarMemory::set_sequencer_map_mask_02(
