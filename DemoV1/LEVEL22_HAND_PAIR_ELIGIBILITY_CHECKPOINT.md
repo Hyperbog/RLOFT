@@ -25,7 +25,7 @@ Source: immutable supplied `CODE.2`, SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb
 | `23EAC` | Compare the requested **signed** class code to any of actor bytes `+0x15, +0x16, +0x17`; sign-extend each before equality | `CombatHandPredicates::has_class` |
 | `23EE4` | True only for exact IDs `0x2B,0x59,0x68,0x9F,0x102,0x103` | `CombatHandPredicates::is_pair_exception` |
 | `23E58` | True for object IDs `0x7E..0x86`; otherwise actual OBJECTS category `9,10,11`, or exact object ID `0x30` | `CombatHandPredicates::is_attack_hand_item` |
-| `240A8` | Supplies per-hand candidate and auxiliary flags to `24478`, with nontrivial class, object, and special-item paths | **Pending complete instruction-accounted translation** |
+| `240A8` | Supplies per-hand candidate and auxiliary flags to `24478`, with class, spell-range and party-state branches | [Nonnegative-item branches implemented](LEVEL22_SINGLE_HAND_ELIGIBILITY_CHECKPOINT.md); original `-1` raw OBJECTS pre-base lookup unresolved |
 | `24478` | Combines candidates, classes, definitions, special cases, both action-state dwords and requested hand | **Pending complete instruction-accounted translation** |
 
 **Important distinction:** `23EE4` (six pair-exception IDs) and `23F50` (six *different* effect-special IDs plus category D/F) are **separate original predicates**. Neither may be silently replaced by the other's list. The existing `CombatHandDispatchModel` remains only a read-only candidate classifier and still explicitly requires `24478` approval.
@@ -40,7 +40,7 @@ Source: immutable supplied `CODE.2`, SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb
 
 ## Required next implementation steps
 
-1. Translate all reachable `240A8` helper paths, including the signed item fields, class lookup, special cases and out-parameters, into deterministic tables/tests.
+1. Recover the original raw OBJECTS pointer/pre-base memory behavior for `240A8(-1)`; the other nonnegative `240A8` branches and helpers are now in the source with regression tests, but not yet compiled.
 2. Complete `24478` with an instruction-to-source branch ledger, independent original-byte fixtures, and exhaustive actor/hand candidate reconciliation tests. Never return attack authorization from only the three predicates above.
 3. Integrate approval only at the original `214B8` flag-`01h` point and preserve action-state gating, `26018` dispatch and original timing before damage.
 4. Then implement exact `E5F0` target/hit/damage feedback orchestration with `DB94/DACC` matching the *live projected NPC buffers*, animation and sound ordering, and original cooldown/deadline units.
