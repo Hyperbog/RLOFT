@@ -56,6 +56,15 @@ class BridgeTests(unittest.TestCase):
             extract.assert_called_once()
             self.assertEqual(len(result), 1)
 
+    def test_cinematic_originals_option_is_independent_of_audio(self):
+        with patch.object(wpf_bridge.master_dumper, "dump_cinematics",
+                          return_value={"cinematics": []}) as called:
+            wpf_bridge.cinematics(Path("source"), Path("out"), {
+                "preserve_native": True,
+                "cinematic_preserve_native": False,
+            })
+        self.assertFalse(called.call_args.args[2].preserve_native)
+
     def test_duplicate_small_progress_is_throttled(self):
         wpf_bridge._last_progress.clear()
         with patch.object(wpf_bridge, "emit") as emit:

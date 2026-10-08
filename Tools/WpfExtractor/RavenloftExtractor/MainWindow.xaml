@@ -128,12 +128,13 @@
                     <Button Grid.Column="2" Content="CD image" Click="BrowseSourceImage_Click"
                             Margin="8,0,0,0" Padding="12,6"/>
                   </Grid>
-                  <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                  <WrapPanel Margin="0,14,0,0">
                     <Button Content="Scan &amp; validate" Style="{StaticResource PrimaryAction}"
-                            Click="Validate_Click"/>
+                            Click="Validate_Click" Margin="0,0,14,8"/>
                     <TextBlock Text="Alternate store versions and modified files are supported."
-                               Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="15,0,0,0"/>
-                  </StackPanel>
+                               Style="{StaticResource Hint}" MaxWidth="380"
+                               VerticalAlignment="Center" Margin="0,0,0,8"/>
+                  </WrapPanel>
                   <TextBlock x:Name="ValidationSummary" Margin="0,15,0,0"
                              Text="No game files have been scanned yet."
                              Style="{StaticResource Hint}"/>

@@ -119,7 +119,10 @@ def cinematics(source: Path, destination: Path, request: dict) -> dict:
         cinematic_frames=_flag(request, "cinematic_frames"),
         cinematic_videos=_flag(request, "cinematic_videos", False),
         cinematic_timeline=_flag(request, "cinematic_timeline"),
-        preserve_native=_flag(request, "preserve_native"),
+        preserve_native=_flag(
+            request, "cinematic_preserve_native",
+            _flag(request, "preserve_native")
+        ),
     )
     names = request.get("cinematic_names")
     return master_dumper.dump_cinematics(
@@ -161,18 +164,18 @@ def _run_all(source: Path, destination: Path, request: dict) -> dict:
     result: dict = {}
     present = {path.name.upper() for path in source.iterdir() if path.is_file()}
     if "COLORS" in present:
-        selected = set(GRAPHICS_DEFAULT).intersection(
+        selected = _archives(request, "graphics_archives", GRAPHICS_DEFAULT).intersection(
             int(name[3:]) for name in present
             if name.startswith("RES") and name[3:].isdigit()
         )
         if selected:
             local = dict(request, graphics_archives=sorted(selected))
             result["graphics"] = graphics(source, destination / "graphics", local)
-    sound = set(AUDIO_DEFAULT).intersection(
+    sound = _archives(request, "audio_archives", AUDIO_DEFAULT).intersection(
         int(name[3:]) for name in present
         if name.startswith("RES") and name[3:].isdigit()
     )
-    music_archives = set(MUSIC_DEFAULT).intersection(
+    music_archives = _archives(request, "music_archives", MUSIC_DEFAULT).intersection(
         int(name[3:]) for name in present
         if name.startswith("RES") and name[3:].isdigit()
     )

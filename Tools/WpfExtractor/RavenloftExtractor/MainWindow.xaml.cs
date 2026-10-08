@@ -266,8 +266,8 @@ public partial class MainWindow : Window
             ["audio_format"] = Selected(AudioFormat),
             ["music"] = IsChecked(ExtractMusic),
             ["music_format"] = Selected(MusicFormat),
-            ["preserve_native"] = action == "cinematics"
-                ? IsChecked(CinematicOriginals) : IsChecked(AudioPreserve),
+            ["preserve_native"] = IsChecked(AudioPreserve),
+            ["cinematic_preserve_native"] = IsChecked(CinematicOriginals),
             ["cinematic_names"] = names,
             ["cinematic_frames"] = IsChecked(CinematicFrames),
             ["cinematic_videos"] = IsChecked(CinematicVideos),
