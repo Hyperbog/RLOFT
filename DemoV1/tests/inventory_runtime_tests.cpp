@@ -119,4 +119,83 @@ int main() {
         party, catalog, 5);
     assert(get_item(party, 0, 1) == -1);
     assert((party.bytes[known_at] & 0x02U) != 0U);
+
+    // CODE.2 117A0 ordinary-grid exchange: identified state follows
+    // the object from the actor's 32-bit +12B bitset onto the held cursor.
+    // Actor 0 slot 3 occupied and identified, cursor empty.
+    set_item(party,0,3,5);
+    party.bytes[known_at]=0x0AU; // slots 1 and 3 known
+    runtime.held={-1,0U};
+    const auto taken=runtime.swap_ordinary_slot(
+        party,catalog,0U,3U);
+    assert(taken==rloft::InventoryOrdinarySwapStatus::Swapped);
+    assert(get_item(party,0,3U)==-1);
+    assert(runtime.held.object_id==5);
+    assert(runtime.held.known==1);
+    assert(party.bytes[known_at]==0x02U);
+
+    // Insert the identified item into another empty ordinary slot;
+    // transfer its bit, without changing unrelated identified slots.
+    const auto inserted=runtime.swap_ordinary_slot(
+        party,catalog,0U,4U);
+    assert(inserted==rloft::InventoryOrdinarySwapStatus::Swapped);
+    assert(get_item(party,0,4U)==5);
+    assert(runtime.held.object_id==-1);
+    assert(runtime.held.known==0U);
+    assert(party.bytes[known_at]==0x12U);
+
+    // Swapping two distinct objects also swaps both known states,
+    // rather than leaving identification attached to the character slot.
+    set_item(party,0,6U,4);
+    runtime.held={3,0U};
+    party.bytes[known_at]=0x52U; // slot6 known, slot4 known, slot1 known
+    const auto exchanged=runtime.swap_ordinary_slot(
+        party,catalog,0U,6U);
+    assert(exchanged==rloft::InventoryOrdinarySwapStatus::Swapped);
+    assert(get_item(party,0,6U)==3);
+    assert(runtime.held.object_id==4);
+    assert(runtime.held.known==1U);
+    assert(party.bytes[known_at]==0x12U);
+
+    // Empty->empty must be a true no-op even if a historical orphaned
+    // slot-known bit survives an older 0F540 removal.
+    const auto before_party=party.bytes;
+    const auto before_held=runtime.held;
+    runtime.held={-1,0U};
+    assert(runtime.swap_ordinary_slot(party,catalog,0U,8U)==
+           rloft::InventoryOrdinarySwapStatus::NoChange);
+    assert(party.bytes==before_party);
+    assert(runtime.held.object_id==-1);
+    runtime.held=before_held;
+
+    // The original does not transfer spell-hand pseudo-objects.
+    set_item(party,0,7U,0x7EU);
+    const auto before_protected=party.bytes;
+    const auto held_protected=runtime.held;
+    assert(runtime.swap_ordinary_slot(party,catalog,0U,7U)==
+           rloft::InventoryOrdinarySwapStatus::Unsupported);
+    assert(party.bytes==before_protected);
+    assert(runtime.held.object_id==held_protected.object_id);
+    assert(runtime.held.known==held_protected.known);
+
+    // A held item over a category-1 container invokes original
+    // 21404 insertion, which is not yet implemented: do not swap it.
+    set_item(party,0,9U,2);
+    runtime.held={5,1U};
+    const auto before_container=party.bytes;
+    assert(runtime.swap_ordinary_slot(party,catalog,0U,9U)==
+           rloft::InventoryOrdinarySwapStatus::Unsupported);
+    assert(party.bytes==before_container);
+    assert(runtime.held.object_id==5);
+    assert(runtime.held.known==1U);
+
+    // Inactive actor and invalid slots cannot mutate an unrelated
+    // party member's inventory, held item, or identification bitset.
+    assert(runtime.swap_ordinary_slot(party,catalog,2U,1U)==
+           rloft::InventoryOrdinarySwapStatus::Unsupported);
+    bool rejected=false;
+    try {
+        (void)runtime.swap_ordinary_slot(party,catalog,0U,12U);
+    } catch (const std::out_of_range&) { rejected=true; }
+    assert(rejected);
 }
