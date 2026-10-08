@@ -224,3 +224,31 @@ DOS frame/gameplay reference comparison
 remain open. Formal release acceptance
 stays **1/5 gates** and engineering progress
 remains unweighted.
+
+
+## Original 2A6B0 clipped four-plane VGA raster milestone
+
+CODE.2 `2A6B0` now executes clipped
+opaque/transparent four-plane source bytes,
+through a real `29414` callback binder.
+The original graphics globals F00D..F031,
+transparent sentinel, forward per-plane
+copy and mutable literal at CODE:2A816
+are modeled. The original-code audit
+now covers **1,263 named signatures /
+1,255 unique instruction offsets**.
+
+The committed raster and binder passed
+focused strict C++17 Debug, Release and
+UndefinedBehaviorSanitizer checks. Two
+new assertion-enabled CTests are
+registered, but no complete Windows
+CTest or DOS reference pixel equivalence
+was run for this newer branch HEAD.
+Next: 2A8A0 shaded clipped variant and
+original scene/cursor/IRQ state integration.
+
+**Formal demo acceptance remains 1/5
+major gates (20% discrete acceptance).**
+That percentage is **not** a weighted
+estimate of actual engineering completion.
