@@ -52,6 +52,7 @@ Type7VgaSceneTrace Type7VgaSceneTraceModel::build(
             run.source_column_index;
         invocation.viewport_x = run.viewport_x;
         invocation.width = run.width;
+        invocation.individual_columns_mode = individual_columns_mode;
         invocation.descriptors =
             Type7MicrocodePlanModel::build(
                 shape,
