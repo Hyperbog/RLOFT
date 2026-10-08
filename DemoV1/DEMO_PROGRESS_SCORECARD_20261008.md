@@ -53,3 +53,26 @@ is registered but has not been included in a fresh
 full Windows build. Thus the formal acceptance
 score remains **1/5**; engineering completion remains
 **unmeasured**, not 20%.
+
+
+## Subsequent 2A078 / 30CD4 reusable-engine work
+
+The source checkpoint
+[original 2A078 VGA latch copy and 30CD4 DGROUP transfer](LEVEL22_CODE2_2A078_30CD4_COPY_CHECKPOINT.md)
+adds **actual four-plane source-backed VGA rectangle
+writes** to the 1A8C8 compositor's direct path, and
+the original 1024-byte overlay-buffer transfer to
+its buffered path when genuine overlay collaborators
+are available. It preserves the key difference between
+forward, potentially aliasing VGA `REP MOVSB` and
+overlap-aware DGROUP `30CD4` moves.
+
+70 new original-byte signatures matched CODE.2; total
+is **754 named / 746 distinct code locations**.
+Committed 2A078 and 30CD4 core source passed isolated
+strict C++17 Debug/Release/UBSan testing. New CTests
+are CMake-registered but not covered by the last complete
+Windows MSVC run. Original overlay suspension/restore
+and DOS pixel/IRQ comparison are still unaccepted.
+These accomplishments improve shared engine coverage
+but do not constitute another formal end-to-end gate.
