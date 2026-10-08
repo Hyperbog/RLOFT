@@ -371,3 +371,27 @@ are still separate temporal obligations; the current
 binding executes source-order callbacks, not a synthetic
 host-clock substitute. The newer source is not covered
 by the previous green Windows runner.
+
+
+## 1A8C8 original framebuffer compositor — wrapper verified, pixel copy open
+
+`1C258` calls `1A8C8` **before** the independent `30700`
+IRQ read in `1C2C4`. Original `1A8C8` conditionally
+wraps `2A078` with signed **row/column** overlay
+intersection and nested `1A288/1AB20` services. A
+buffered overlap may decrement the 9E37 overlay WORD,
+switch 9E39 page, call 1A288, copy via 2A078,
+move 0x400 backing bytes with 30CD4, call 1AB20,
+then increment the *live* refcount, restore 9E39
+and clear A6BA. This whole chain completes before
+`30700` observes the IRQ clock.
+
+[Original 1A8C8 source checkpoint](LEVEL22_CODE2_COMPOSITE_1A8C8_CHECKPOINT.md)
+adds a callback-driven reusable wrapper and a
+timed-message callback adapter. The underlying VGA
+2A078 graphics-controller port operations and
+nested overlay routines still require source-backed
+native effects and DOS trace comparison. Never
+pre-sample IRQ time, omit the 1024-byte backing move
+or change signed edge comparisons into ordinary
+unsigned rectangle intersection.
