@@ -279,6 +279,45 @@ public sealed class ProjectStore : IDisposable
         return new ProjectAnnotation(hash,objectNumber,offset,kind,body,expectedRevision+1,time);
     }
 
+    /// <summary>
+    /// Creates a consistent, closed SQLite project snapshot, including WAL
+    /// transactions. A raw file copy of an active WAL database is unsafe.
+    /// The backup destination must be a new path: never overwrite research.
+    /// </summary>
+    public void CreateBackup(string destinationPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
+        string destination = Path.GetFullPath(destinationPath);
+        if (string.Equals(destination, FilePath, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("A project backup must have a different path.");
+        if (File.Exists(destination))
+            throw new IOException("Backup destination exists; refusing to overwrite a project.");
+        string? parent = Path.GetDirectoryName(destination);
+        if (parent is null || !Directory.Exists(parent))
+            throw new DirectoryNotFoundException("Backup destination directory does not exist.");
+        var builder = new SqliteConnectionStringBuilder
+        {
+            DataSource = destination,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Cache = SqliteCacheMode.Private,
+            Pooling = false
+        };
+        try
+        {
+            using var backup = new SqliteConnection(builder.ToString());
+            backup.Open();
+            _db.BackupDatabase(backup);
+        }
+        catch
+        {
+            // Never leave a half-written backup that might be mistaken for a
+            // verified project. The original source connection stays untouched.
+            try { if (File.Exists(destination)) File.Delete(destination); }
+            catch (IOException) { /* The incomplete copy remains unusable. */ }
+            throw;
+        }
+    }
+
     public void VerifyIntegrity()
     {
         using var command = _db.CreateCommand();

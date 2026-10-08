@@ -23,6 +23,7 @@ try {
     }
     if ($OriginalCode1 -ne '') {
         Invoke-Dotnet -Arguments @('run', '--project', 'tests/DosDis.Smoke', '--configuration', 'Release', '--', $OriginalCode1, $OriginalCode2)
+        Invoke-Dotnet -Arguments @('run', '--project', 'tests/DosDis.ProjectSmoke', '--configuration', 'Release', '--', $OriginalCode1, $OriginalCode2)
     }
     if ($Publish) {
         Invoke-Dotnet -Arguments @('publish', 'src/DosDis.Desktop/DosDis.Desktop.csproj', '-c', 'Release',

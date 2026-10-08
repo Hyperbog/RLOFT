@@ -39,6 +39,21 @@ try
         catch (InvalidOperationException) { staleRejected = true; }
         Require(staleRejected, "stale annotation was permitted to overwrite the analyst's change");
         project.VerifyIntegrity();
+        string backup = Path.Combine(folder, "backup.ddproj");
+        project.CreateBackup(backup);
+        Require(File.Exists(backup), "transactionally consistent SQLite backup missing");
+        using (var copy = ProjectStore.Open(backup))
+        {
+            copy.VerifyIntegrity();
+            Require(copy.LoadLatestAnalysis(artifact.Sha256)?.Instructions.Count == 1,
+                "WAL-safe backup lost analysis snapshot");
+            Require(copy.GetAnnotation(artifact.Sha256, 1, 0, "comment")?.Body == "needs review",
+                "WAL-safe backup lost latest analyst note");
+        }
+        bool existingBackupRejected = false;
+        try { project.CreateBackup(backup); }
+        catch (IOException) { existingBackupRejected = true; }
+        Require(existingBackupRejected, "backup silently overwrote existing research");
     }
     using (var reopened = ProjectStore.Open(path))
     {
@@ -54,7 +69,48 @@ try
         Require(reopened.LoadLatestAnalysis(new string('0', 64)) == null,
             "unrelated artifact incorrectly matched");
     }
-    Console.WriteLine("PASS: SQLite identity, compressed analysis round-trip, analyst note revision/concurrency, integrity and reopen");
+    // Do not guess how to interpret newer project schemas.
+    string incompatible = Path.Combine(folder, "future-schema.ddproj");
+    using (var future = ProjectStore.Open(incompatible)) { }
+    using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={incompatible}"))
+    {
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA user_version=999;";
+        command.ExecuteNonQuery();
+    }
+    bool incompatibleRejected = false;
+    try { using var future = ProjectStore.Open(incompatible); }
+    catch (InvalidDataException) { incompatibleRejected = true; }
+    Require(incompatibleRejected, "unknown project schema was silently accepted");
+
+    if (args.Length != 0 && args.Length != 2)
+        throw new ArgumentException("Pass either no files or both verified original CODE.1 and CODE.2 paths.");
+    foreach (string original in args)
+    {
+        var originalArtifact = BinaryArtifact.Open(original);
+        string originalHash = originalArtifact.Sha256;
+        var originalImage = LeImage.Load(originalArtifact);
+        var limited = ControlFlowAnalysis.Analyze(originalImage, maxInstructions: 1000);
+        Require(limited.Instructions.Count > 0, "original binary did not produce entry-reachable instructions");
+        string originalProject = Path.Combine(folder, originalArtifact.Name + ".ddproj");
+        using (var savedProject = ProjectStore.Open(originalProject))
+        {
+            savedProject.EnsureArtifact(originalArtifact);
+            savedProject.SaveAnalysis(limited);
+            savedProject.VerifyIntegrity();
+        }
+        using (var recovered = ProjectStore.Open(originalProject))
+        {
+            var restored = recovered.LoadLatestAnalysis(originalHash);
+            Require(restored is not null && restored.Instructions.Count == limited.Instructions.Count &&
+                restored.Edges.Count == limited.Edges.Count, "original-binary project graph mismatch after reopen");
+        }
+        Require(BinaryArtifact.Open(original).Sha256 == originalHash,
+            "original binary content changed during project regression");
+        Console.WriteLine($"PASS: {originalArtifact.Name} bounded original-binary project round trip");
+    }
+    Console.WriteLine("PASS: SQLite identity, WAL-safe backup, schema guard, analysis round-trip, annotation conflict, integrity and reopen");
     return 0;
 }
 catch (Exception error)

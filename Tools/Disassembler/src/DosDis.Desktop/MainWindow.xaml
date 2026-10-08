@@ -24,6 +24,7 @@
           <Button x:Name="OpenBinaryButton" Content="Open binary" Click="OpenBinary_Click"/>
           <Button x:Name="OpenProjectButton" Content="Open project" Click="OpenProject_Click"/>
           <Button x:Name="SaveProjectButton" Content="Save project" Click="SaveProject_Click"/>
+          <Button x:Name="BackupProjectButton" Content="Backup project" Click="BackupProject_Click"/>
           <Button x:Name="AnalyzeButton" Content="Analyze" Click="Analyze_Click"/>
         </StackPanel>
       </DockPanel>

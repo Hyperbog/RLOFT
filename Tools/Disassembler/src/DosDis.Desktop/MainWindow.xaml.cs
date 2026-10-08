@@ -24,6 +24,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         AnalyzeButton.IsEnabled = false;
         SaveProjectButton.IsEnabled = false;
+        BackupProjectButton.IsEnabled = false;
         SaveNoteButton.IsEnabled = false;
     }
 
@@ -43,6 +44,7 @@ public partial class MainWindow : Window
         OpenProjectButton.IsEnabled = !value;
         AnalyzeButton.IsEnabled = !value && _image != null;
         SaveProjectButton.IsEnabled = !value && _artifact != null;
+        BackupProjectButton.IsEnabled = !value && _project != null;
         SaveNoteButton.IsEnabled = !value && _artifact != null && _project != null && AssemblyGrid.SelectedItem is AssemblyRow;
         AssemblyGrid.IsEnabled = !value;
         FunctionsList.IsEnabled = !value;
@@ -89,6 +91,7 @@ public partial class MainWindow : Window
             {
                 _project.Dispose();
                 _project = null;
+                BackupProjectButton.IsEnabled = false;
             }
             BinaryName.Text = _artifact.Name;
             ArtifactHash.Text = $"SHA-256 {_artifact.Sha256}";
@@ -149,6 +152,8 @@ public partial class MainWindow : Window
         _rows = items;
         AssemblyGrid.ItemsSource = items;
         ReferencesGrid.ItemsSource = null;
+        _commentRevision = 0;
+        SaveNoteButton.IsEnabled = false;
         NoteEditor.Text = string.Empty;
         SelectedAddressText.Text = "Select an instruction";
         HexView.Text = string.Empty;
@@ -237,10 +242,20 @@ public partial class MainWindow : Window
             try
             {
                 var lines = Disassembly.Decode(_image, address.Object, address.Offset, 64);
-                SetRows(lines.Select(x => new AssemblyRow(address.Object, x.ObjectOffset, x.Bytes,
-                    x.Assembly, "linear-preview-unverified")).ToArray());
-                StatusText.Text = "Temporary linear preview; not automatically classified as executable code.";
-                found = _rows.FirstOrDefault();
+                // A navigation preview must not discard the graph or the browsable
+                // analysis listing. Merge only previously absent instruction starts;
+                // preserve the existing candidate evidence for matching addresses.
+                var byAddress = _rows.ToDictionary(x => (x.Object, x.Offset));
+                foreach (var line in lines)
+                {
+                    var preview = new AssemblyRow(address.Object, line.ObjectOffset, line.Bytes,
+                        line.Assembly, "linear-preview-unverified");
+                    byAddress.TryAdd((preview.Object, preview.Offset), preview);
+                }
+                _rows = byAddress.Values.OrderBy(x => x.Object).ThenBy(x => x.Offset).ToArray();
+                AssemblyGrid.ItemsSource = _rows;
+                StatusText.Text = "Supplemental UNVERIFIED linear preview; original analyzed listing retained.";
+                found = _rows.FirstOrDefault(x => x.Object == address.Object && x.Offset == address.Offset);
             }
             catch (Exception ex) when (ex is InvalidDataException or ArgumentException or NotSupportedException)
             { Error("Cannot navigate to address", ex); return; }
@@ -275,10 +290,30 @@ public partial class MainWindow : Window
             _project.EnsureArtifact(_artifact);
             if (_graph != null) _project.SaveAnalysis(_graph);
             StatusText.Text = $"Project saved: {_project.FilePath}. No complete original executable was embedded; instruction bytes remain in cached findings.";
+            BackupProjectButton.IsEnabled = true;
             SaveNoteButton.IsEnabled = AssemblyGrid.SelectedItem is AssemblyRow;
         }
         catch (Exception ex) { Error("Project save failed", ex); }
     }
+    private void BackupProject_Click(object sender, RoutedEventArgs e)
+    {
+        if (_project is null || _working) return;
+        var picker = new SaveFileDialog
+        {
+            Title = "Create consistent DOSDis project backup",
+            DefaultExt = ".ddproj", Filter = "DOSDis project (*.ddproj)|*.ddproj",
+            AddExtension = true, OverwritePrompt = false,
+            FileName = Path.GetFileNameWithoutExtension(_project.FilePath) + "-backup.ddproj"
+        };
+        if (picker.ShowDialog(this) != true) return;
+        try
+        {
+            _project.CreateBackup(picker.FileName);
+            StatusText.Text = "Project backup saved (previously committed analysis/notes only): " + picker.FileName;
+        }
+        catch (Exception ex) { Error("Project backup failed", ex); }
+    }
+
     private void OpenProject_Click(object sender, RoutedEventArgs e)
     {
         if (_artifact is null)
@@ -303,9 +338,29 @@ public partial class MainWindow : Window
                 FlowAnalysisResult? saved = next.LoadLatestAnalysis(_artifact.Sha256);
                 _project?.Dispose();
                 _project = next;
+                BackupProjectButton.IsEnabled = true;
                 _graph = saved;
-                if (saved != null) ShowAnalysis(saved);
-                StatusText.Text = saved is null ? "Project opened; no analysis snapshot saved yet."
+                if (saved != null)
+                {
+                    ShowAnalysis(saved);
+                }
+                else
+                {
+                    // The new project has no saved graph. Do not retain rows,
+                    // functions, or references from the previously open project.
+                    FunctionsList.ItemsSource = Array.Empty<FunctionRow>();
+                    IReadOnlyList<DecodedLine> preview = Array.Empty<DecodedLine>();
+                    if (_image is { } currentImage)
+                    {
+                        try { preview = Disassembly.Decode(currentImage, (int)currentImage.EntryObject,
+                            currentImage.EntryOffset, 128); }
+                        catch (InvalidDataException) { /* No stored bytes at the entry. */ }
+                    }
+                    int entryObject = _image is { } loaded ? (int)loaded.EntryObject : 1;
+                    SetRows(preview.Select(x => new AssemblyRow(entryObject,
+                        x.ObjectOffset, x.Bytes, x.Assembly, "linear-preview-unverified")).ToArray());
+                }
+                StatusText.Text = saved is null ? "Project opened; no analysis snapshot saved. Showing UNVERIFIED entry preview."
                     : $"Project restored: {saved.Instructions.Count:N0} candidate instructions.";
             }
             catch { next.Dispose(); throw; }

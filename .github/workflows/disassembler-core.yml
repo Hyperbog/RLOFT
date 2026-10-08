@@ -21,6 +21,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet build tests/DosDis.Smoke/DosDis.Smoke.csproj --configuration Release
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet build tests/DosDis.ProjectSmoke/DosDis.ProjectSmoke.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet build src/DosDis.Desktop/DosDis.Desktop.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build Windows desktop and persistence smoke project
         shell: pwsh
         working-directory: Tools/Disassembler
@@ -34,6 +38,8 @@ jobs:
         working-directory: Tools/Disassembler
         run: |
           dotnet run --project tests/DosDis.Smoke --configuration Release --no-build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet run --project tests/DosDis.ProjectSmoke --configuration Release --no-build
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Run SQLite project persistence smoke tests
         shell: pwsh
@@ -61,6 +67,20 @@ jobs:
           dotnet publish src/DosDis.Cli/DosDis.Cli.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output dist/win-x64
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Copy-Item README.md,THIRD_PARTY_NOTICES.md -Destination dist/win-x64/
+      - name: Publish portable self-contained Windows desktop
+        shell: pwsh
+        working-directory: Tools/Disassembler
+        run: |
+          dotnet publish src/DosDis.Desktop/DosDis.Desktop.csproj --configuration Release --runtime win-x64 --self-contained true --output dist/windows-desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item README.md,THIRD_PARTY_NOTICES.md -Destination dist/windows-desktop/
+      - name: Upload Windows desktop preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DOSDis-Desktop-win-x64-preview
+          path: Tools/Disassembler/dist/windows-desktop/
+          if-no-files-found: error
+          retention-days: 30
       - name: Upload Windows CLI preview artifact
         uses: actions/upload-artifact@v4
         with:
