@@ -165,3 +165,28 @@ image/timer traces, without inventing missing resources.
 
 Details: [2026-10-08 checkpoint](WINDOWS_BUILD_AND_IRQ_RENDERER_CHECKPOINT_20261008.md).
 Overall **20% (1/5 demo acceptance gates)** is unchanged.
+
+
+## 303C8/2939C faithful glyph and sprite layer (2026-10-08)
+
+The [original glyph/sprite continuity checkpoint](LEVEL22_ORIGINAL_GLYPH_SPRITE_RENDERER_CHECKPOINT.md)
+extends the DDA4 message renderer from 1C258 through
+3060C/303C8 to 2939C/293EC and deferred 2E758/F0C8.
+It preserves signed DOS glyph indexes, the live mutable
+font record/width lookup, shaded-vs-normal sprite selection,
+zero-resource early return and post-raster refresh timing.
+The verified original executable ledger now contains
+**557 named byte checks / 549 distinct code locations**.
+
+The native adapters can execute original callbacks in order,
+but the injected **sprite rasterizers** 2A380/2A584 and
+**compositor** 1A8C8 still require real source-backed
+VGA-plane implementations and DOS pixel comparisons.
+The currently available IndexedFontPresenter is not
+proof of exact DOS CP437 signed-width behavior.
+Do not merge any approximate glyph renderer as the final
+original gameplay path. The original Windows #634 PASS
+at a previous source commit is unaffected and does not
+test these two newly registered CTests. A new explicit
+Windows build will be needed to claim full integrated
+CMake/CTest acceptance of this newer source.
