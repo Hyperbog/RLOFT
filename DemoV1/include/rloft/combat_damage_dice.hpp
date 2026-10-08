@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "rloft/object_catalog.hpp"
+#include "rloft/exploration_state.hpp"
 
 namespace rloft {
 
@@ -51,6 +52,16 @@ public:
         std::int32_t dispatched_item_id,
         std::optional<std::int32_t> original_stat_bonus = std::nullopt,
         std::optional<std::int32_t> helper_22e40_value = std::nullopt);
+    // E5F0 item 7Fh needs original 22E40(class=4,actor),
+    // now reconstructed directly from supplied party-record lanes.
+    // Does not consume RNG and still requires a genuine stat
+    // bonus for ordinary weapon item IDs.
+    [[nodiscard]] static CombatDamageDicePlan inspect_for_actor(
+        const ObjectCatalog& objects,
+        const PartyImage& party,
+        std::size_t actor,
+        std::int32_t dispatched_item_id,
+        std::optional<std::int32_t> original_stat_bonus = std::nullopt);
 };
 
 } // namespace rloft
