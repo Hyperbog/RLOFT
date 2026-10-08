@@ -50,6 +50,7 @@ add_library(rloft_boot_flow
     src/combat_hit_check.cpp
     src/combat_hand_dispatch.cpp
     src/combat_attack_timing.cpp
+    src/combat_attack_target.cpp
     src/combat_hand_predicates.cpp
     src/combat_single_hand_eligibility.cpp
     src/combat_hand_pair_eligibility.cpp
@@ -222,6 +223,9 @@ add_test(NAME combat_hand_dispatch_tests COMMAND combat_hand_dispatch_tests)
 add_executable(combat_attack_timing_tests tests/combat_attack_timing_tests.cpp)
 target_link_libraries(combat_attack_timing_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_attack_timing_tests COMMAND combat_attack_timing_tests)
+add_executable(combat_attack_target_tests tests/combat_attack_target_tests.cpp)
+target_link_libraries(combat_attack_target_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_attack_target_tests COMMAND combat_attack_target_tests)
 add_executable(combat_hand_predicates_tests tests/combat_hand_predicates_tests.cpp)
 target_link_libraries(combat_hand_predicates_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_hand_predicates_tests COMMAND combat_hand_predicates_tests)
@@ -590,6 +594,7 @@ set(RLOFT_TEST_TARGETS
     combat_hit_check_tests
     combat_hand_dispatch_tests
     combat_attack_timing_tests
+    combat_attack_target_tests
     combat_hand_predicates_tests
     combat_single_hand_eligibility_tests
     combat_hand_pair_eligibility_tests
