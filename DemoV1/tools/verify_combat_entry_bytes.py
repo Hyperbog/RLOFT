@@ -431,6 +431,36 @@ ANCHORS = {
     "DC7C invokes original 1C328 dice": (0xDCA2, "e881e60000"),
     "DC7C adds HP maximum word": (0xDD8E, "6601b0fe180200"),
     "DC7C adds HP current word": (0xDD95, "6601b0fc180200"),
+    # DC7C HP projection: independently verified new instructions.
+    "DC7C actor stride 248": (0xDC80, "696c241448020000"),
+    "DC7C reads class lane argument": (0xDC88, "8b7c2418"),
+    "DC7C loads signed class code for die": (0xDC8E, "0fbe842ff5180200"),
+    "DC7C reloads signed class code": (0xDCAB, "0fbe942ff5180200"),
+    "DC7C signed class divisor three": (0xDCB3, "bf03000000"),
+    "DC7C class sign extension for IDIV": (0xDCBA, "c1fa1f"),
+    "DC7C signed class IDIV": (0xDCBD, "f7ff"),
+    "DC7C constitution row stride19": (0xDCBF, "6bc013"),
+    "DC7C Constitution byte at actor37": (0xDCC2, "0fb69517190200"),
+    "DC7C signed constitution table lookup": (0xDCCC, "0fbe8402fa670000"),
+    "DC7C compares first die roll with one": (0xDCD4, "83f901"),
+    "DC7C minimum die register one": (0xDCD9, "bb01000000"),
+    "DC7C class lane reload for dispatch": (0xDCEA, "8a92f5180200"),
+    "DC7C 6-class jump table limit": (0xDCF0, "80fa05"),
+    "DC7C CS jump table dispatch": (0xDCFE, "2eff24bd64dc0000"),
+    "DC7C class 0-2 threshold level10": (0xDD06, "837c241c0a"),
+    "DC7C class 0-2 cap bonus3": (0xDD12, "8d7003"),
+    "DC7C class4 threshold level11": (0xDD17, "837c241c0b"),
+    "DC7C class4 cap bonus1": (0xDD22, "8d7001"),
+    "DC7C class3 threshold level10": (0xDD27, "837c241c0a"),
+    "DC7C class5 threshold level11": (0xDD32, "837c241c0b"),
+    "DC7C clamp HP before class split": (0xDD3F, "83fe01"),
+    "DC7C clamp HP to one": (0xDD44, "be01000000"),
+    "DC7C second class presence at 16": (0xDD51, "0fbe90f6180200"),
+    "DC7C third class presence at 17": (0xDD5D, "0fbe80f7180200"),
+    "DC7C three-class divisor": (0xDD69, "bb03000000"),
+    "DC7C three-class signed division": (0xDD75, "f7fb"),
+    "DC7C two-class signed rounding correction": (0xDD80, "2bc2"),
+    "DC7C two-class signed half shift": (0xDD82, "d1f8"),
 }
 
 # Original object-2 DGROUP contents (not x86 code). These 26
@@ -455,6 +485,25 @@ DATA_HASH_ANCHORS = {
     "DGROUP +6827 six class attack coefficient pairs": (
         0x6827, 12,
         "096e8cc68d13fba7899b37774f0e66c8f412869aacc4d77be93877835bead8d1",
+    ),
+    "DGROUP +67FA DC7C 2x19 signed Constitution modifiers": (
+        0x67FA, 38,
+        "5090628e6309047081b2fc48172d79d8b13ffc08025af478484f42932760d60a",
+    ),
+    "DGROUP +6821 DC7C original HP die sides 0..5": (
+        0x6821, 6,
+        "f79a9a67b29974232d1b0008612c8caf2a3046bd4d39b30500248285e910764e",
+    ),
+}
+
+
+# CODE.2 CS:DC64 is embedded *data*, not an instruction anchor:
+# a six-entry absolute jump target table with the exact branch map
+# [DD06,DD06,DD06,DD27,DD17,DD32].
+CODE_HASH_ANCHORS = {
+    "CS DC64 original six-class HP jump table": (
+        0xDC64, 24,
+        "21c4e5c680980250d2ad1ac886735cc7a9f6f3d9a1c3e9bdfdf24e6c908734fa",
     ),
 }
 
@@ -495,6 +544,15 @@ def verify(original: bytes) -> int:
                 f"{title}: original data-table SHA mismatch at {start:#x}"
             )
 
+    for title, (logical, count, expected_hash) in CODE_HASH_ANCHORS.items():
+        start = CODE_OBJECT_START + logical
+        actual_bytes = original[start:start + count]
+        actual_hash = hashlib.sha256(actual_bytes).hexdigest()
+        if len(actual_bytes) != count or actual_hash != expected_hash:
+            raise ValueError(
+                f"{title}: original CODE.2 CS data SHA mismatch at {start:#x}"
+            )
+
     base = 0x218E0
     assert 0x21A7E - base == 0x19E, "215E9 hand-ready offset"
     assert 0x219EB - base == 0x10B, "26037 per-hand action-state offset"
@@ -512,6 +570,7 @@ if __name__ == "__main__":
         f"PASS: {total} named CODE.2 combat/hand byte checks "
         f"({unique_offsets} unique logical instruction offsets); "
         f"{len(DATA_ANCHORS)} direct data tables + "
-        f"{len(DATA_HASH_ANCHORS)} hashed data tables; "
+        f"{len(DATA_HASH_ANCHORS)} hashed DGROUP data tables + "
+        f"{len(CODE_HASH_ANCHORS)} hashed CS data tables; "
         "party offsets 19E/10B/12B; no build executed"
     )
