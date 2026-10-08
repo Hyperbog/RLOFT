@@ -9,6 +9,17 @@ endif()
 
 enable_testing()
 
+# Offline regression for original CODE.2 VGA lookup semantics. This Python
+# test synthesizes table layouts rather than checking in proprietary assets.
+# It runs on local machines even when GitHub Actions runner quotas are spent.
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+    add_test(
+        NAME offline_renderer_verifier_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_offline_renderer_verify.py")
+endif()
+
 add_library(rloft_boot_flow
     src/anm_cinematic.cpp
     src/assassin_relic_transition.cpp
