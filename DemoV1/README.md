@@ -34,8 +34,8 @@ source. Do not treat its tests as validation of current HEAD.
 
 The current source-only work includes
 [original attack/target preflight and offline verification](LEVEL22_COMBAT_ENTRY_CHECKPOINT.md).
-An original-asset offline byte audit now covers **117 original CODE.2
-machine-code anchors**. Nine new combat C++ test targets are registered,
+An original-asset offline byte audit now covers **126 original CODE.2
+machine-code anchors**. Ten new combat C++ test targets are registered,
 but **have not been executed** since the private-repository build pause.
 The [conditional 24478 hand-eligibility model](LEVEL22_HAND_PAIR_RAW_HEAP_MODEL_CHECKPOINT.md)
 preserves the original requirement for observed DOS heap-adjacent
@@ -73,6 +73,17 @@ Overall faithful-demo acceptance is still **20% (1/5 major release gates)**.
 
 
 Goal: reproduce the original shipped behavior from boot through character creation while reading assets from a legally installed/owned copy of *Ravenloft: Strahd's Possession*.
+
+## Pre-attack status service E578 — original actor effects
+
+The original CODE.2 logical `E578` executes **after initial target
+selection but before target validation and the hit roll**. It clears
+a pending `+0x132` effect bit for all four actors, then clears
+selected-actor `+0x133` bit02h and its `+0x15A` state, marking
+the original `CF5A` HUD redraw flags. The source model
+`CombatAttackStatusService` and synthetic regression are committed,
+but are not yet wired into live attacks or compiled under deferred CI.
+See the [E5F0 timing and E578 checkpoint](LEVEL22_ATTACK_TARGET_AND_TIMING_CHECKPOINT.md).
 
 ## Original E5F0 target selection and attack timing — source checkpoint
 
