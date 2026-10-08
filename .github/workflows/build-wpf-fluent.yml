@@ -32,11 +32,29 @@ jobs:
           cache: pip
           cache-dependency-path: Tools/anm/requirements.txt
 
+      - name: Download verified FFmpeg for video export
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+          $zip = Join-Path $env:RUNNER_TEMP "ffmpeg-essentials.zip"
+          $out = Join-Path $env:RUNNER_TEMP "ffmpeg-unpacked"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          $shaText = (Invoke-WebRequest -Uri "$url.sha256").Content.Trim()
+          $expected = ($shaText -split "\s+")[0].ToLowerInvariant()
+          $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw "FFmpeg checksum mismatch" }
+          Expand-Archive -Path $zip -DestinationPath $out -Force
+          $ffmpeg = Get-ChildItem $out -Filter ffmpeg.exe -File -Recurse |
+                    Select-Object -First 1 -ExpandProperty FullName
+          if (-not $ffmpeg) { throw "No ffmpeg.exe in verified archive." }
+          "RLOFT_FFMPEG=$ffmpeg" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Regression tests and compile packaged Windows app
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          & Tools/WpfExtractor/build-local.ps1
+          & Tools/WpfExtractor/build-local.ps1 -FFmpegPath $env:RLOFT_FFMPEG
           if ($LASTEXITCODE -ne 0) { throw "Local build wrapper failed." }
 
       - name: Upload complete Windows 11 package
