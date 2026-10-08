@@ -45,6 +45,7 @@ int main() {
     using rloft::CombatOriginalSpriteRasterModel;
     using rloft::VgaPlanarMemory;
     using rloft::CombatOriginalSpriteMemory;
+    using rloft::CombatOriginalShaderMemory;
     VgaPlanarMemory mem{};
 
     // 2A380 raw branch: 2 rows x 2 bytes in each of 4 source
@@ -135,6 +136,62 @@ int main() {
     assert(mem.read(0xA0000U+161U,3U)==74U);
     assert(mem.read(0xA0000U+81U,0U)==81U);
     assert(mem.read(0xA0000U+162U,0U)==84U);
+
+    // 2A584 does NOT subtract a shade constant from color bytes:
+    // it writes a FULL DWORD LUT pointer at code operands 2A60B
+    // and 2A672 and performs MOV AL,[EBX+pointer] per source byte.
+    CombatOriginalShaderMemory lut{};
+    lut.captured_base_address=0x11220000U;
+    lut.original_lookup_pointer=0x11220080U;
+    lut.bytes.resize(0x80U+256U,0U);
+    for(std::uint32_t color=0U;color<256U;++color)
+        lut.bytes[0x80U+color]=
+            static_cast<std::uint8_t>(color^0x5AU);
+    const auto opaque_shader=sprite(16U,2U,1U,0U,{
+        10U,11U,12U,13U,20U,21U,22U,23U,
+        30U,31U,32U,33U,40U,41U,42U,43U});
+    mem.clear(0xA7U);
+    result=CombatOriginalSpriteRasterModel::draw_2a584(
+        mem,opaque_shader,0U,video(),lut);
+    assert(result && result->used_shader_lookup);
+    assert(!result->used_transparent_branch);
+    assert(result->shader_pointer_self_patched==0x11220080U);
+    assert(result->vga_bytes_written==16U);
+    assert(result->source_bytes_consumed==16U);
+    assert(result->final_sequencer_plane_mask==2U);
+    assert(mem.read(0xA0000U+80U,2U)==(10U^0x5AU));
+    assert(mem.read(0xA0000U+81U,3U)==(21U^0x5AU));
+    assert(mem.read(0xA0000U+81U,0U)==(30U^0x5AU));
+    assert(mem.read(0xA0000U+82U,1U)==(41U^0x5AU));
+
+    // Transparency comparison is made against unmodified input
+    // BEFORE the 256-entry LUT; sentinel pixels are never mapped.
+    mem.clear(0xA7U);
+    result=CombatOriginalSpriteRasterModel::draw_2a584(
+        mem,transparent,0U,video(),lut);
+    assert(result && result->used_shader_lookup);
+    assert(result->used_transparent_branch);
+    assert(result->transparent_bytes_skipped==6U);
+    assert(result->vga_bytes_written==10U);
+    assert(result->source_bytes_consumed==17U);
+    assert(mem.read(0xA0000U+80U,2U)==0xA7U);
+    assert(mem.read(0xA0000U+81U,2U)==(61U^0x5AU));
+    assert(mem.read(0xA0000U+161U,2U)==0xA7U);
+    assert(mem.read(0xA0000U+80U,3U)==(71U^0x5AU));
+    assert(mem.read(0xA0000U+81U,3U)==0xA7U);
+
+    // Host captures that cannot cover all 256 original table
+    // bytes are rejected before any native VGA byte is written.
+    lut.bytes.resize(0x80U+255U);
+    mem.clear(0x5CU);
+    assert(!CombatOriginalSpriteRasterModel::draw_2a584(
+        mem,opaque_shader,0U,video(),lut));
+    assert(mem.read(0xA0000U+80U,2U)==0x5CU);
+    lut.bytes.resize(0x80U+256U);
+    lut.original_lookup_pointer=0x11220200U;
+    assert(!CombatOriginalSpriteRasterModel::draw_2a584(
+        mem,opaque_shader,0U,video(),lut));
+    lut.original_lookup_pointer=0x11220080U;
 
     // DOS negative frame indexes are unsigned MUL bit patterns.
     // A source view may begin BEFORE the referenced font header.
