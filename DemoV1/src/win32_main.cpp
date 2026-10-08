@@ -1255,6 +1255,40 @@ int run_exploration(
                                 L"Ravenloft - Hand interaction pending: "
                                 L"special item or container");
                         }
+                    } else if (const auto actor =
+                                   rloft::PartyPanelControlModel::
+                                       gameplay_actor_at(
+                                           secondary->row,
+                                           secondary->column)) {
+                        // CODE.2 211D8 flag 08h actor-panel action.
+                        // Stash the held ordinary object in the first
+                        // empty one of the 12 common inventory slots.
+                        const auto status =
+                            runtime.inventory().quick_stash_held(
+                                runtime.session().party,
+                                runtime.object_catalog(),
+                                *actor);
+                        if (status ==
+                            rloft::InventoryQuickStashStatus::Stashed) {
+                            displayed_scene_frame.reset();
+                            input.clear();
+                            SetWindowTextW(
+                                host.hwnd(),
+                                L"Ravenloft - Item stored in first "
+                                L"free inventory slot");
+                        } else if (status ==
+                            rloft::InventoryQuickStashStatus::Full) {
+                            SetWindowTextW(
+                                host.hwnd(),
+                                L"Ravenloft - Inventory full; "
+                                L"held item preserved");
+                        } else if (status ==
+                            rloft::InventoryQuickStashStatus::Unsupported) {
+                            SetWindowTextW(
+                                host.hwnd(),
+                                L"Ravenloft - Special actor-panel "
+                                L"item action pending");
+                        }
                     }
                 }
             }
