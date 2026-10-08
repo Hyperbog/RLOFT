@@ -1,5 +1,25 @@
 # Ravenloft Demo Build v1
 
+## Current visible-rendering milestone — ordinary SINTAB wall pixels
+
+[Original CODE.2 main wall checkpoint](LEVEL22_ORIGINAL_SINTAB_MAIN_WALL_CHECKPOINT_20261008.md):
+`3263C/FCD0=0` ordinary in-range RES4 surface runs now execute the
+actual SINTAB generated rasterizer, in their original VGA plane masks
+and shade pairs. This is **connected directly to the live Level 22
+exploration presenter**, after the preliminary SINTAB pass and before
+large-extent fallback walls and type-7 scene objects.
+
+The executor covers original group widths 1..7 and retains all
+unsupported wider/invalid runs as diagnostic pending work rather than
+fabricating image pixels. It is backed by registered original-mask,
+page-isolation and transaction/rollback regressions, but **has not
+yet passed a new complete Windows build or original DOS frame
+comparison**. The last green Windows EXE predates this change:
+download it only as the prior baseline, not as evidence of these walls.
+Formal release acceptance remains **1/5 gates**, separate from
+unmeasured engineering completion.
+
+
 
 ## Native original clipped VGA sprite renderer (CODE.2 2A6B0)
 
