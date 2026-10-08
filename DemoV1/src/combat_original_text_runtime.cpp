@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
+#include <utility>
 
 namespace rloft {
 
@@ -71,6 +72,22 @@ void CombatOriginalTextRuntimeModel::draw_3060c_303c8(
     // executable would keep reading outside the captured memory.
     throw std::invalid_argument(
         "missing NUL in original 303C8 text capture");
+}
+
+std::function<void(
+    std::uint32_t, std::uint32_t,
+    const std::vector<std::uint8_t>&, std::uint32_t)>
+CombatOriginalTextRuntimeModel::bind_display_3060c(
+    CombatOriginalTextState& original_font_state,
+    CombatOriginalTextServices original_font_services) {
+    return [&original_font_state,
+            font_services=std::move(original_font_services)](
+                std::uint32_t row, std::uint32_t column,
+                const std::vector<std::uint8_t>& text,
+                std::uint32_t font_style) {
+        CombatOriginalTextRuntimeModel::draw_3060c_303c8(
+            original_font_state,row,column,text,font_style,font_services);
+    };
 }
 
 } // namespace rloft
