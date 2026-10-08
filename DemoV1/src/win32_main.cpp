@@ -812,6 +812,9 @@ int run_exploration(
     rloft::ExplorationUiController ui;
     std::optional<rloft::AutomapModalController> automap;
     std::optional<std::uint32_t> quit_random_seed;
+    // Hit-testing is performed against the frame the player ACTUALLY saw,
+    // never against a freshly reconstructed scene after the click arrives.
+    std::optional<rloft::ExplorationRuntimeFrame> displayed_scene_frame;
     const auto exploration_palette =
         assets.colors_palette(
             rloft::LevelDisplayModel::palette_index(
@@ -1093,6 +1096,7 @@ int run_exploration(
             }
 
             if (pressed_menu < 0) {
+                bool opened_actor_panel = false;
                 if (const auto actor =
                         rloft::PartyPanelControlModel::
                             gameplay_actor_at(
@@ -1101,6 +1105,47 @@ int run_exploration(
                     if (runtime.session().party.active(*actor)) {
                         ui.open_party_panels(*actor);
                         input.clear();
+                        opened_actor_panel = true;
+                    }
+                }
+
+                // An unclaimed native primary click uses the ORIGINAL
+                // 223F4 hit rectangles, descending render rank and the
+                // class-2 action-flags bit via the Level 22 runtime API.
+                // Do not synthesize an attack from a clicked NPC: damage
+                // requires the original combat controller's hit roll.
+                if (!opened_actor_panel &&
+                    displayed_scene_frame.has_value() &&
+                    runtime.session().level_id ==
+                        rloft::Level22Story::kLevelId &&
+                    // CODE.2's held-item replacement/swap UI is still
+                    // unimplemented. Never silently destroy a held item.
+                    runtime.inventory().held.object_id == -1) {
+                    try {
+                        const auto pickup =
+                            runtime.pickup_level22_loose_item_at(
+                                *displayed_scene_frame,
+                                click->row,
+                                click->column);
+                        if (pickup.has_value()) {
+                            // Family-C erase compacts source indices. The
+                            // old displayed frame is invalid immediately.
+                            displayed_scene_frame.reset();
+                            input.clear();
+                            if (pickup->level22_mist_sequence) {
+                                // Preserve honest pending status until the
+                                // original 22-frame cinematic is wired.
+                                SetWindowTextW(
+                                    host.hwnd(),
+                                    L"Ravenloft - Level 22 mist "
+                                    L"transition pending");
+                            }
+                        }
+                    } catch (const std::logic_error&) {
+                        // The stored picture was replaced by movement or a
+                        // world mutation. Discard this stale click rather
+                        // than retargeting to a new live family-C index.
+                        displayed_scene_frame.reset();
                     }
                 }
             }
@@ -1180,7 +1225,7 @@ int run_exploration(
                 motion_inputs);
         }
 
-        const auto frame = runtime.build_frame();
+        auto frame = runtime.build_frame();
         const auto presented = presenter.present(
             frame,
             runtime.renderer_tables());
@@ -1195,6 +1240,7 @@ int run_exploration(
         host.present(
             presenter.framebuffer(),
             presented.palette);
+        displayed_scene_frame = std::move(frame);
 
         next_frame += std::chrono::duration_cast<Clock::duration>(
             std::chrono::duration<double>(

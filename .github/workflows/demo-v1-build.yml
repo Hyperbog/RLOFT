@@ -5,7 +5,13 @@ on:
     branches:
       - demo-v1
     paths:
-      - "DemoV1/**"
+      # Source/build changes trigger CI. Documentation-only commits
+      # and the published .exe must not consume Windows runner minutes.
+      - "DemoV1/src/**"
+      - "DemoV1/include/**"
+      - "DemoV1/tests/**"
+      - "DemoV1/tools/**"
+      - "DemoV1/CMakeLists.txt"
       - ".github/workflows/demo-v1-build.yml"
   workflow_dispatch:
     inputs:

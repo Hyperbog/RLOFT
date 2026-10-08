@@ -457,3 +457,10 @@ The original `Type7VgaFrameTraceModel::build` deliberately throws on malformed p
 Regression cases distinguish (a) a valid/fully hidden scene, (b) an unvalidated width-8 run retained as an optional null scene slot, and (c) genuinely failed trace construction for invalid video page or missing shape lookup. Failures remain inspectable rather than approximated with fabricated pixels.
 
 **Validation status:** Committed to `demo-v1` with existing CMake tests extended. Full C++ compilation still requires a working runner or an independently available complete source tree; no final pixel-equivalence claim is made for live RES3 game frames.
+
+
+## Cross-platform build certification (October 8, 2026)
+
+GitHub Actions [run #572](https://github.com/Hyperbog/RLOFT/actions/runs/37710634731), source commit `d845a3ce23927bbc4b4a40ab0ce9728d8a015771`, fully succeeded: **Linux CMake build and 99/99 CTest cases**, plus **Windows x64 MSVC build, Windows CTest, published executable artifact and committed .exe**. The original failures were two fixture defects and a geometry-only decoder design issue; after fixes, both platforms passed. This establishes cross-platform **source/test** certification at that revision, not visual screenshot equivalence.
+
+To conserve usage, `.github/workflows/demo-v1-build.yml` now skips Linux on ordinary pushes. Linux requires manual workflow dispatch with `run_linux=true`. The Windows workflow continues to build/test/publish, while concurrency cancels superseded runs; the paths filter omits documentation-only and output binary updates.

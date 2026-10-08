@@ -37,3 +37,14 @@ These methods preserve original game mechanics; they do not synthesize attack ro
 5. Complete C++ compilation and in-game visual verification, independent of the unavailable GitHub Actions jobs.
 
 No original game assets are committed to the repository.
+
+
+## Native host pickup binding (October 8, 2026)
+
+The Windows exploration host now retains the exact last presented `ExplorationRuntimeFrame`, and uses an otherwise unclaimed **primary** viewport click to call `pickup_level22_loose_item_at(frame,row,column)`. This invokes the previously reconstructed original CODE.2 `223F4` selection rectangles, render-rank precedence and class-2 action-flag gating. Clicks on the top menu or active actor panel are handled by their existing modal paths first, and are never interpreted as world pickups.
+
+The host refuses item pickup while the original cursor is already holding an item. This **temporary loss-prevention guard** is not a reconstructed replacement for CODE.2's still-unimplemented held-item swap/inventory modal. A successful pickup clears the cached frame immediately because family-C record indices compact on removal. Stale snapshots are discarded rather than applying the click to a different item; the next frame is built normally. No arbitrary mouse click is converted into an Assassin damage roll.
+
+The original completion predicate is preserved; a pickup that reports `level22_mist_sequence=true` is surfaced as *transition pending* in the host title. **The 22-frame mist cinematic, Level 23 load, relic removal, and held-item inventory transfer UI are not yet wired**, so this is an interaction checkpoint, not the complete story sequence.
+
+CI verified the previous unmodified source baseline in GitHub Actions run [#572](https://github.com/Hyperbog/RLOFT/actions/runs/37710634731): Linux 99/99 tests, Windows full Build/Test and artifact publication all passed. Linux automatic builds were then deliberately paused at the user's request to conserve Actions minutes; Windows remains enabled.
