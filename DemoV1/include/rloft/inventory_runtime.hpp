@@ -26,6 +26,12 @@ struct ContainerRuntimeState final {
     std::vector<std::int16_t> items;
 };
 
+enum class InventoryOrdinarySwapStatus : std::uint8_t {
+    NoChange,
+    Swapped,
+    Unsupported
+};
+
 struct InventoryRuntimeState final {
     static constexpr std::size_t kSerializedContainerCount = 62;
     static constexpr std::size_t kRuntimeDescriptorCount = 63;
@@ -35,6 +41,16 @@ struct InventoryRuntimeState final {
 
     [[nodiscard]] static InventoryRuntimeState fresh(
         const GameSource& source);
+
+    // CODE.2 117A0 verified ordinary-slot identity + 0x12B known-bit
+    // transfer. The caller must have already resolved a 12E70 3x4
+    // ordinary-grid hit; unsupported container insertion or special
+    // object interactions are rejected without mutating either state.
+    [[nodiscard]] InventoryOrdinarySwapStatus swap_ordinary_slot(
+        PartyImage& party,
+        const ObjectCatalog& objects,
+        std::size_t actor,
+        std::size_t slot);
 
     [[nodiscard]] bool has_object(
         const PartyImage& party,
