@@ -57,7 +57,7 @@
             <TextBlock x:Name="BinaryName" Text="—" FontSize="14" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
             <TextBlock x:Name="ArtifactHash" Text="SHA-256 —" Margin="0,4,0,0" FontSize="10" TextWrapping="Wrap"
                        Foreground="{StaticResource SecondaryTextBrush}"/>
-            <TextBlock Text="FUNCTION CANDIDATES" FontSize="11" Margin="0,24,0,0" FontWeight="SemiBold"
+            <TextBlock x:Name="ExplorerSectionTitle" Text="FUNCTION CANDIDATES" FontSize="11" Margin="0,24,0,0" FontWeight="SemiBold"
                        Foreground="{StaticResource SecondaryTextBrush}"/>
           </StackPanel>
           <ListBox x:Name="FunctionsList" SelectionChanged="FunctionsList_SelectionChanged"

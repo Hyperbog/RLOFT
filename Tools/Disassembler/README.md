@@ -153,3 +153,9 @@ Review identified native WPF controls rendering bright white in the otherwise da
 ## Part 27: verified Windows build of theme and exports
 
 The Part 26 dark-theme revisions and Part 25 analysis-report exports have now **compiled successfully on a Windows .NET 10 runner**. Core and SQLite synthetic regression tests passed, including candidate JSON/text report export and machine-byte opt-in safeguards. Windows desktop and CLI x64 ZIP packages were published by [successful run 37855935875](https://github.com/Hyperbog/RLOFT/actions/runs/37855935875). The temporary one-time build trigger was removed and GitHub Actions is manual-only again. **Visual acceptance of this newer executable, actual CODE.1/CODE.2 interactive behavior and GUI project workflows remain pending.** First-release estimated completion: **39%** (up from 37%). See [Part 27 test and build checkpoint](docs/PART27_WINDOWS_BUILD_CHECKPOINT.md).
+
+## Part 28: keep selected tab and inspect arbitrary raw files (source preview)
+
+Address navigation from the function Explorer now preserves the active Disassembly, Hexadecimal, or References tab. Unsupported file formats (including game resources) open in a bounded, **read-only physical-file-offset hex view** instead of appearing blank. Use `file:0xOFFSET` to seek in raw source bytes; `object:0xOFFSET` remains for recognized LE object mapping. File Intelligence explicitly marks when code analysis is unavailable. This is **not** a general resource parser or 16-bit MZ disassembler. Synthetic smoke source covers raw bytes and EOF bounds, and no original game bytes are changed. See [Part 28 checkpoint](docs/PART28_TAB_AND_RAW_HEX_CHECKPOINT.md).
+
+**Status: code committed but not yet rebuilt on Windows**, pending UI validation; first-release progress **39%** (unchanged). GitHub Actions is manual-only; AI remains post-final-release.

@@ -20,6 +20,11 @@ public static class FileIntelligence
         var fields = new SortedDictionary<string, IntelligenceField>();
         fields["sha256"] = new(artifact.Sha256, "direct", "SHA-256 over input bytes");
         fields["size_bytes"] = new(artifact.Length.ToString(), "direct", "Input byte length");
+        fields["analysis_support"] = le is null
+            ? new("Raw hexadecimal only (no supported LE image)", "tool-capability",
+                "Any original file can be inspected byte-for-byte; no architecture or instruction boundaries are guessed.")
+            : new("32-bit LE object-mapped candidate analysis", "tool-capability",
+                "Only bounded MZ/LE executable mapping is currently supported for recursive disassembly.");
         if (Known.TryGetValue(artifact.Sha256, out var identity))
         {
             fields["software"] = new(identity.Title, "verified-fingerprint", "RLOFT preserved 1.2a SHA-256 corpus");
@@ -43,8 +48,12 @@ public static class FileIntelligence
         if (fields.ContainsKey("dos_extender") &&
             content.Contains("Feb 17 1994 11:54:25", StringComparison.Ordinal))
             fields["extender_build_stamp"] = new("Feb 17 1994 11:54:25", "embedded-string", "DOS/4GW bound-runtime identification");
-        fields["minimum_dos_version"] = new("Unknown", "unknown", "Not inferred from DOS API usage or extender version");
-        fields["compiler_exact_version"] = new("Unknown", "unknown", "Version-specific compiler signature verification pending");
+        if (le != null)
+        {
+            // These questions do not apply to arbitrary DAT/RES/raw data files.
+            fields["minimum_dos_version"] = new("Unknown", "unknown", "Not inferred from DOS API usage or extender version");
+            fields["compiler_exact_version"] = new("Unknown", "unknown", "Version-specific compiler signature verification pending");
+        }
         return fields;
     }
 }

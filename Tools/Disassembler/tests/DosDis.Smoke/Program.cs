@@ -45,6 +45,31 @@ static byte[] MakeFixture(bool nested)
 
 try
 {
+    // Arbitrary resources and unsupported binaries remain useful as read-only
+    // physical hex, without being misclassified as executable instructions.
+    byte[] rawResource = { 0x52, 0x45, 0x53, 0x00, 0xFF, 0x20, 0x7E };
+    var resourceSnapshot = BinaryArtifact.FromBytes(rawResource, "raw-resource.dat");
+    var resourceHex = RawHexPreview.Render(resourceSnapshot);
+    Equal(resourceHex.Contains("file+0x00000000"), true, "raw physical file address");
+    Equal(resourceHex.Contains("52 45 53 00 FF 20 7E"), true, "raw byte hex evidence");
+    Equal(resourceHex.Contains("RES.. ~"), true, "raw ASCII representation");
+    Equal(FileIntelligence.Inspect(resourceSnapshot)["analysis_support"].Status,
+        "tool-capability", "unsupported file reports actual analyzer scope");
+    Equal(FileIntelligence.Inspect(resourceSnapshot).ContainsKey("minimum_dos_version"),
+        false, "raw data file must not inherit DOS executable assumptions");
+    rawResource[0] = 0x00;
+    Equal(resourceSnapshot.Data[0], (byte)0x52, "raw hex view never mutates source");
+    Equal(RawHexPreview.Render(BinaryArtifact.FromBytes(Array.Empty<byte>())),
+        "(empty file; no bytes to inspect)", "empty raw file clearly identified");
+    var sixteenPlus = BinaryArtifact.FromBytes(Enumerable.Range(0, 17).Select(x => (byte)x).ToArray());
+    Equal(RawHexPreview.Render(sixteenPlus, 16, 1).StartsWith("file+0x00000010"),
+        true, "raw file seeking honors absolute offsets");
+    bool invalidRawOffset = false;
+    try { RawHexPreview.Render(sixteenPlus, 17); }
+    catch (ArgumentOutOfRangeException) { invalidRawOffset = true; }
+    Equal(invalidRawOffset, true, "reject past-EOF raw seek");
+    Console.WriteLine("PASS: raw bytes, EOF, physical-offset hex navigation and unsupported-format capability label");
+
     foreach (bool nested in new[] { false, true })
     {
         byte[] raw = MakeFixture(nested);

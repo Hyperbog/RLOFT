@@ -107,20 +107,30 @@ public partial class MainWindow : Window
             BinaryName.Text = _artifact.Name;
             ArtifactHash.Text = $"SHA-256 {_artifact.Sha256}";
             FileSubtitle.Text = _image is null
-                ? $"{_artifact.Length:N0} bytes · Unsupported/unknown format"
+                ? $"{_artifact.Length:N0} bytes · original raw file · code analysis unavailable"
                 : $"{_artifact.Length:N0} bytes · LE · {_image.Objects.Count} objects · {_image.Relocations.Count:N0} fixups";
+            ExplorerSectionTitle.Text = _image is null ? "RAW FILE — NO FUNCTION ANALYSIS" : "FUNCTION CANDIDATES";
             IntelligenceList.ItemsSource = result.intelligence.Select(x => new IntelligenceRow(x.Key,
                 $"{x.Value.Value} ({x.Value.Status})", x.Value.Evidence)).ToArray();
             FunctionsList.ItemsSource = Array.Empty<FunctionRow>();
             AddressBox.Text = _image is null ? "1:0x0" : $"{_image.EntryObject}:0x{_image.EntryOffset:X}";
             SetRows(result.preview.Select(x => new AssemblyRow(_image is null ? 1 : (int)_image.EntryObject,
                 x.ObjectOffset, x.Bytes, x.Assembly, "linear-preview-unverified")).ToArray());
-            if (_project != null)
+            if (_image is null)
+            {
+                // Data/resource files are not code. Show exact physical bytes
+                // immediately, without inventing a function candidate.
+                HexView.Text = RawHexPreview.Render(_artifact);
+                AddressBox.Text = "file:0x0";
+                MainTabs.SelectedIndex = 1;
+            }
+            if (_project != null && _image != null)
             {
                 _graph = _project.LoadLatestAnalysis(_artifact.Sha256, _image);
                 if (_graph != null) ShowAnalysis(_graph);
             }
-            StatusText.Text = _image is null ? "File identified where possible; this executable format is not yet supported."
+            StatusText.Text = _image is null
+                ? "RAW HEX VIEW ONLY: original file bytes at physical offsets. No LE object mapping or instructions inferred."
                 : _graph is not null ? "Restored saved candidate analysis. Original file hash verified."
                 : "Showing an UNVERIFIED linear preview. Run Analyze for evidence-tagged reachable code.";
         }
@@ -264,7 +274,12 @@ public partial class MainWindow : Window
 
     private void RenderHex(FlowAddress address)
     {
-        if (_image is null || address.Object < 1 || address.Object > _image.Objects.Count) return;
+        if (_image is null)
+        {
+            if (_artifact is not null) HexView.Text = RawHexPreview.Render(_artifact);
+            return;
+        }
+        if (address.Object < 1 || address.Object > _image.Objects.Count) return;
         uint virtualSize = _image.Objects[address.Object - 1].VirtualSize;
         uint start = address.Offset & ~15u;
         var output = new StringBuilder();
@@ -289,14 +304,29 @@ public partial class MainWindow : Window
 
     private void GoTo_Click(object sender, RoutedEventArgs e)
     {
-        if (_image is null) return;
+        if (_artifact is null) return;
         try
         {
             string[] parts = AddressBox.Text.Trim().Split(':', 2);
-            if (parts.Length != 2) throw new FormatException("Expected object:0xOFFSET, for example 1:0x2975C.");
+            if (parts.Length != 2)
+                throw new FormatException("Use object:0xOFFSET for LE code or file:0xOFFSET for physical file bytes.");
+            string value = parts[1].StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+                ? parts[1][2..] : parts[1];
+
+            if (parts[0].Equals("file", StringComparison.OrdinalIgnoreCase))
+            {
+                int fileOffset = int.Parse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                HexView.Text = RawHexPreview.Render(_artifact, fileOffset);
+                AddressBox.Text = $"file:0x{fileOffset:X8}";
+                MainTabs.SelectedIndex = 1;
+                StatusText.Text = "Physical source file view (unmodified original bytes); this is not LE object-relative disassembly.";
+                return;
+            }
+
+            if (_image is null)
+                throw new FormatException("This file has no supported executable mapping. Use file:0xOFFSET to inspect original bytes.");
             int number = int.Parse(parts[0], CultureInfo.InvariantCulture);
-            string raw = parts[1].StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? parts[1][2..] : parts[1];
-            uint offset = uint.Parse(raw, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+            uint offset = uint.Parse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
             Navigate(new FlowAddress(number, offset));
         }
         catch (Exception ex) when (ex is FormatException or ArgumentException or OverflowException)
@@ -330,9 +360,10 @@ public partial class MainWindow : Window
             { Error("Cannot navigate to address", ex); return; }
         }
         if (found is null) return;
-        MainTabs.SelectedIndex = 0;
+        // Navigation updates the selected address and context without
+        // unexpectedly switching the user's Hexadecimal or References tab.
         AssemblyGrid.SelectedItem = found;
-        AssemblyGrid.ScrollIntoView(found);
+        if (MainTabs.SelectedIndex == 0) AssemblyGrid.ScrollIntoView(found);
     }
 
     private void IntelligenceList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -435,7 +466,9 @@ public partial class MainWindow : Window
                 next.VerifyIntegrity();
                 if (!next.ListArtifacts().Any(a => a.Sha256 == _artifact.Sha256 && a.Length == _artifact.Length))
                     throw new InvalidDataException("This project does not contain the matching original binary hash.");
-                FlowAnalysisResult? saved = next.LoadLatestAnalysis(_artifact.Sha256, _image);
+                FlowAnalysisResult? saved = _image is null
+                    ? null  // No executable mapping: do not revive stale interpreted instructions.
+                    : next.LoadLatestAnalysis(_artifact.Sha256, _image);
                 _project?.Dispose();
                 _project = next;
                 BackupProjectButton.IsEnabled = true;
@@ -461,9 +494,18 @@ public partial class MainWindow : Window
                     int entryObject = _image is { } loaded ? (int)loaded.EntryObject : 1;
                     SetRows(preview.Select(x => new AssemblyRow(entryObject,
                         x.ObjectOffset, x.Bytes, x.Assembly, "linear-preview-unverified")).ToArray());
+                    if (_image is null && _artifact is not null)
+                    {
+                        HexView.Text = RawHexPreview.Render(_artifact);
+                        AddressBox.Text = "file:0x0";
+                        MainTabs.SelectedIndex = 1;
+                    }
                 }
-                StatusText.Text = saved is null ? "Project opened; no analysis snapshot saved. Showing UNVERIFIED entry preview."
-                    : $"Project restored: {saved.Instructions.Count:N0} candidate instructions.";
+                StatusText.Text = saved is not null
+                    ? $"Project restored: {saved.Instructions.Count:N0} candidate instructions."
+                    : _image is null
+                        ? "Project opened for raw file metadata. Hexadecimal view shows only original bytes, not executable code."
+                        : "Project opened; no analysis snapshot saved. Showing UNVERIFIED entry preview.";
             }
             catch { next.Dispose(); throw; }
         }
