@@ -243,3 +243,44 @@ A publicly preserved contemporary [patch listing dated **March 3, 1995**](https:
 Chapter 19 is therefore **documentation-complete to the currently available and independently verified evidence**, with precise external-comparison gates retained. Future discoveries must extend the per-file manifest, record how new evidence was acquired and hashed, and amend the claims rather than revising source bytes or inferring gameplay changes from filenames alone.
 
 **Next:** Chapter 20 — stable IDs, serialized record layouts, cross-resource pointer namespaces, validators, preservation editor rules and implementation compatibility contracts. The complete archive still requires its separate final contradiction/UNKNOWN audit.
+
+
+## 18. Newly supplied original corpus revalidated (2026-10-08)
+
+The user provided six archival ZIP containers: `ANM+OTHER.zip`, `RES+OTHER.zip`, `EXE_BAT_OTHER.zip`, `RLOFT_DLL.zip`, `rlftdk11.zip`, and `rlftdk12.zip`. Their entries were enumerated **without executing any original DOS installer, EXE or DLL**.
+
+**Fresh resource/cinematic result: 33/33 byte identities PASS.** Every one of the **33** entries in the independently certified [Resources final-audit manifest](../Resources/FINAL_RESOURCE_AUDIT.md), duplicated in Chapter 19 §10, was independently streamed out of the uploaded archives and rehashed by SHA-256. All 13 `RES0..RES12`, all 13 `CINE00..CINE12.ANM`, both `GM1.BNK`/`GM2.BNK`, `INIT`, `COLORS`, `T`, `SAMPLE.AD` and `SINTAB` match the recorded **size and complete SHA-256**. No content mismatch was observed. The two supplied occurrences of `SAMPLE.AD` are byte-identical and the newly supplied `SINTAB` matches the existing mounted original.
+
+Other newly available originals: `R.EXE`, `INSTALL.EXE`, `LOADPATS.EXE`, `SINSTALL.EXE`, the BAT/INI/TXT launcher collateral, and **18 audio DLL files**. Their original ZIP metadata, names, per-file sizes and SHA-256 digests were surveyed. Those DLLs are now present for future targeted original-ABI investigation; **no DLL code has been executed or its actual device service cadence measured**.
+
+**Correction P-19.3:** the previously unverified original **`R.EXE`** from `EXE_BAT_OTHER.zip` is exactly **12,368 bytes**, SHA-256 `a6d5874dc91fb068a3ed0a07290547c310ee7f4f50be4d8176c4788f251631b0`, MD5 `927953b61ef3d7e59cef01085357ecd9`. The MD5 matches the published **2015-10-29 1.2a community reference**. Thus `CODE.1`, `CODE.2` **and `R.EXE` now all match the three published 1.2a executable checksums**; only the installation-specific `INFO.DAT` reference differs, as §11 explains. [Contemporary community MD5 report](https://www.gog.com/forum/dungeons_dragons_ravenloft_series/strahds_possession_need_help_with_bugsglitches/post10).
+
+## 19. Direct 1.1 and 1.2 floppy patch packaging — ARJ manifests
+
+Two additional user-supplied packages are **floppy-edition**, not CD-ROM-edition, update installers. `INSTALL.NFO` in each explicitly identifies its version and sets **CD info = 0**. Both ZIP containers include `BOOT.NFO`, `INSTALL.NFO`, `INSTALL.EXE`, `DEARJ.EXE` and `DATA.A00`; the latter contains a valid ARJ header stream with **original member names, uncompressed sizes, CRC32 values, and method-1 compressed data**.
+
+| Source | Internal ARJ member | Uncompressed size | Original-member CRC32 |
+|---|---|---:|---|
+| `rlftdk11.zip` | `CODE.1` | 277,787 | `804CA5FA` |
+| `rlftdk11.zip` | `CODE.2` | 547,793 | `11F75050` |
+| `rlftdk11.zip` | `R.EXE` | 12,368 | `83EE0B03` |
+| `rlftdk12.zip` | `CODE.2` | 552,417 | `17390FF6` |
+| Current separately supplied 1.2a | `CODE.2` | 558,689 | `E0DD27FE` |
+
+The ARJ file headers' stored header-CRCs matched their recomputed header CRC32s. Member compressed ranges and the terminal end markers were read successfully. **The ARJ method-1 payloads have not yet been decompressed and SHA-256 checked**: an appropriate trusted ARJ decoder/runtime was not available in this audit environment. The outer ZIP payloads and internal ARJ headers are authenticated to their uploaded bytes, but header CRCs alone do not certify decompressed file content.
+
+The ARJ header declares `CODE.1` and `R.EXE` for 1.1 with **the same physical sizes and CRC32 values** as the present 1.2a original copies. This is strong evidence that these components were unchanged between those particular floppy patch payloads and the current 1.2a copies, but **not a cryptographic equality proof** until independent extraction and hashing. The 1.1/1.2/1.2a `CODE.2` sizes and CRCs differ, making distinct executable revisions directly evidenced.
+
+`rlftdk11.zip` has `INSTALL.NFO` internally marked **“created 4/25/1994”** and named *Ravenloft Floppy Version Patch Disk v1.1*. `rlftdk12.zip` marks **“created 9/7/1994”** and *Ravenloft Patch Disk v1.2 (FLOPPY VERSION)*. Those are **embedded installer metadata dates**, not independently certified public release dates. Earlier public records already prove both patch variants were distributed by 1995.
+
+A contemporary [1995 patch list](https://groups.google.com/g/comp.sys.ibm.pc.games.adventure/c/JCehnWYIaSs) separately identifies **`rlftcd11.zip` and `rlftcd12.zip`** as the CD-ROM versions, so the supplied `rlftdk*` files must not be silently described as the exact upgrades appropriate for the project's CD/RES corpus. One February 1995 posting also reports that the 1.2 CD and disk patches had been withdrawn from an SSI CompuServe forum, which is a **period third-party caution, not an independently verified SSI withdrawal notice**.
+
+## 20. Version 1.0 discovery boundary
+
+No authenticated standalone **1.0 executable or original 1.0 media image** was present in the supplied ZIPs. Applying an upgrade *forward* from version 1.0 does not make it possible to reconstruct its input binary without the original source or a proven reversible delta; here, the ARJ members are replacements rather than documented reverse-delta data.
+
+A [2015 collector account](https://www.gog.com/forum/dungeons_dragons_ravenloft_series/strahds_possession_need_help_with_bugsglitches/post10) claims a boxed original `1.0` CD and a separate 1.2a Masterpiece Collection source; a [2020 collector account](https://www.gog.com/forum/dungeons_dragons_ravenloft_series/ranged_combat_strahds_possession/post25) instead reports **1.0** from *their* Masterpiece Collection CD. These accounts may reflect packaging/regional variants, but **do not prove which specific edition/pressing includes a given CODE hash**. The game's modern English [GOG release note](https://www.gogdb.org/product/1432905053/releasenotes) documents an update to 1.2a on 2015-11-03.
+
+**Potential lawful acquisition routes to investigate:** an owned original unpatched retail CD/diskette set, a correctly identified privately held original 1.0 installation, or an institution/collector authorized to provide a research comparison of hashes or executable bytes. A known *download* of a byte-authenticated 1.0 image from an authorized source has **not been established** by this pass. Do not substitute an unverified third-party 1.0 label or claim that all Masterpiece discs use the same revision.
+
+**Next comparisons:** obtain the paired **CD patch** installers if available, decompress the ARJ method-1 members safely and check CRC/SHA against their declared revision, inspect shipped audio drivers' descriptor `svc_rate` independently of actual timing, and compare a verified version-1.0 original when acquired. No original executable should be overwritten during this work.
