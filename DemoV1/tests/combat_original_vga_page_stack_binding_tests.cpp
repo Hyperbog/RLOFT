@@ -36,8 +36,8 @@ int main() {
     std::vector<std::string> trace;
     CombatOriginalVgaPageStackServices paging{};
     paging.selected_page_291b0=[&](std::uint8_t selected){
-        trace.push_back(selected==0U?"page0":"page3");
-        assert(selected==0U||selected==3U);
+        trace.push_back("page"+std::to_string(selected));
+        assert(selected==0U||selected==2U||selected==3U);
         assert(page.active_page_ef4d==selected);
         assert(page.selected_page_efe9==selected);
         assert(live_video.selected_page_efe9==selected);
@@ -139,6 +139,10 @@ int main() {
     // must alter both stack projection and VGA copy addresses.
     live_video.page_stride_f005=0x123U;
     linked.push_page_2e590(2U);
+    assert(page.active_page_ef4d==2U);
+    assert(page.selected_page_efe9==2U);
+    assert(live_video.selected_page_efe9==2U);
+    assert(trace.back()=="page2");
     assert(page.page_stride_f005==0x123U);
     assert(page.physical_page_base_f001==
            ((0xA000U+2U*0x123U)<<4U));
