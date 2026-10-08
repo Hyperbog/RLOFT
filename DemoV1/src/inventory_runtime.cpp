@@ -292,6 +292,48 @@ InventoryOrdinarySwapStatus InventoryRuntimeState::swap_ordinary_slot(
     return InventoryOrdinarySwapStatus::Swapped;
 }
 
+InventoryQuickStashStatus InventoryRuntimeState::quick_stash_held(
+    PartyImage& party,
+    const ObjectCatalog& objects,
+    std::size_t actor) {
+    if (actor >= PartyImage::kActorCount) {
+        throw std::out_of_range("CODE.2 211D8 party actor");
+    }
+    if (!party.active(actor)) {
+        return InventoryQuickStashStatus::Unsupported;
+    }
+    if (held.object_id == -1) {
+        return InventoryQuickStashStatus::NothingHeld;
+    }
+    if (held.object_id < -1 ||
+        (held.object_id >= 0x7E && held.object_id <= 0x86)) {
+        return InventoryQuickStashStatus::Unsupported;
+    }
+    const auto& definition =
+        objects.at(static_cast<std::size_t>(held.object_id));
+    // 21246/212F1 routes categories 0F and 0D to alternate
+    // container/hand special insertion, not this ordinary fallback.
+    if (definition.item_category == 0x0FU ||
+        definition.item_category == 0x0DU) {
+        return InventoryQuickStashStatus::Unsupported;
+    }
+
+    // 2143F..21478 scans 12 actual actor item words. On the
+    // first -1 it copies the held object and calls 2A344(-1,0).
+    // It does NOT call 0F238: the destination's known-bit word is
+    // deliberately untouched even if the cursor had known=1.
+    for (std::size_t slot=0U; slot<12U; ++slot) {
+        if (party_item(party,actor,slot) == -1) {
+            set_party_item(party,actor,slot,held.object_id);
+            held = {-1,0U};
+            return InventoryQuickStashStatus::Stashed;
+        }
+    }
+    // 21478: the original reports full inventory with 2C21C,
+    // without losing the cursor item.
+    return InventoryQuickStashStatus::Full;
+}
+
 InventoryHandSwapStatus InventoryRuntimeState::swap_hand_slot(
     PartyImage& party,
     const ObjectCatalog& objects,
