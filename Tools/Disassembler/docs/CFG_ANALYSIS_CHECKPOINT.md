@@ -69,3 +69,17 @@ The optional original-game smoke test uses CODE.2 `0x2975C` and its independentl
 - Import RLOFT annotations with provenance and conflict-resolution workflows.
 - Measure precision and recall on independent test corpora, including unknown DOS games.
 - Add persistent SQLite projects and GUI cross-reference browsing.
+
+## Original-game execution checkpoint — 2026-10-08
+
+A self-contained Linux x64 binary built by the public CI workflow was executed **locally** against authorized original `CODE.1` / `CODE.2` files. Original binaries did not enter CI or the source repository. Both were matched to the hashes in RLOFT's immutable reference audit before analysis.
+
+| Original input / analysis seed | Candidate instructions | Blocks | Candidate functions | Flow edges | Truncated |
+|---|---:|---:|---:|---:|---|
+| CODE.1 `1:0xCC1C` (module entry) | 10,997 | 2,625 | 276 | 12,329 | No |
+| CODE.2 `1:0x353A0` (module entry) | 41,720 | 9,753 | 618 | 47,249 | No |
+| CODE.2 `1:0x2975C` (manual wrapper seed; budget 3,000) | 3,000 | 785 | 117 | 3,365 | **Yes** |
+
+These are **entry-seeded static reachable candidates**, not a count of all existing instructions or a claim that all those candidates are correct. The analysis remains limited by unresolved indirect edges and lack of jump-table analysis. The manual wrapper test decoded the preceding `RET` at `0x2975A` and preserved `0x2976E → 0x2975A` as a `branch-taken` edge. The original CODE.2 `0x3A7F8..0x3A7FE` `WVIDEO` embedded literal and the `0x1548C..0x15534` RES9 dispatch area remained `unknown-file-backed`, **not** automatically classified as data or code. Those exact regions have independent RLOFT documentary evidence, but the prototype intentionally does not import it yet.
+
+The original full-entry runs used `--max-instructions 100000 --max-output 0`; that output limit affected display only. Benchmarks in one particular Linux container were approximately 0.38 seconds (CODE.1) and 0.80 seconds (CODE.2), not guaranteed performance across machines. The existing 100% *manual* RLOFT instruction/byte-accounting certifications cannot be attributed to this prototype.
