@@ -103,6 +103,14 @@ int main(){
     assert(compositor.overlay_row_9e31==-2);
     assert(compositor.overlay_column_9e33==8);
     assert(compositor.overlay_third_word_9e35==1234);
+    // Original A6BC is read again later in 1A288; the binder
+    // must propagate the single shared WORD after position.
+    state.constrain_mode_a6bc=4U;
+    state.row_a6b4=5;
+    state.column_a6b6=20;
+    adapter.position_1a3b8(overlay);
+    assert(overlay.special_mode_a6bc==4);
+    state.constrain_mode_a6bc=0U;
 
     // Missing original services fail closed instead of inventing
     // host cursor movement or alternate disable behavior.
