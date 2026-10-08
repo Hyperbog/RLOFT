@@ -90,3 +90,31 @@ the game simulation. Keep GitHub Actions manual-only while private.
 ## Updating the preserved snapshot
 
 The archive files in `../PreservationArchive/` are identical Git blobs copied from the pinned `code1-decompilation` commit above. Make factual changes to the authoritative archive branch, establish supporting original-byte evidence there, then intentionally resynchronize the snapshot; do not independently edit its contents on `demo-v1`.
+
+
+## Current source-only callback verification — 2026-10-08
+
+Original CODE.2 DDA4 callback modeling now includes the bounded
+3DE4 and 3EA4 spell-state byte loops, their separately verified
+level tables and group counts, and the original 1C21C IRQ
+message queue/deadline. The latest [checkpoint](LEVEL22_DDA4_SPELL_IRQ_CHECKPOINT.md)
+contains original SHA256 provenance, actor byte offsets, all
+50 new opcode signatures, 960 table-driven local C++17
+differential cases, and the remaining live-integration gates.
+
+Before actual XP or level-up writes are enabled:
+1. Implement/validate 3210F exact formatted text and
+   1C258..1C326 message display/expiry side effects.
+2. Execute each callback with the *observed post-prior-call*
+   character state; never use a stale preplanned spell/HP
+   state or reseed the shared RNG.
+3. Preserve full 30700 IRQ time, 1C21C +0x5A unsigned
+   deadline behavior, and original DC7C dice consumption.
+4. Complete a deliberate full CMake/Windows regression and
+   reference-DOS state/time trace. No automatic Actions
+   build is authorized merely by this checkpoint.
+
+The latest audited ledger has 457 named instruction-byte
+checks at 449 unique logical offsets, one direct data table,
+and eight hashed DGROUP/CS tables. Acceptance remains
+**20% (1/5 major demo gates)**.
