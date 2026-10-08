@@ -812,3 +812,20 @@ Further direct original-file validation against supplied immutable `CODE.2` (SHA
 - `24478:24A5E/24A6F` independently vetoes each candidate if the corresponding action dword at `0x219EB` or `0x219EF` is nonzero. `24A7A..24A90` returns the candidate of the requested hand only. This control flow is sensitive to character state/attack scheduling even when an item is visually present.
 
 The `demo-v1` branch now includes `CombatHandPredicates` (three nonmutating helper models) and a new deterministic test target for the next **manual** CTest session. The offline byte verifier is extended from 18 to **33 fixed machine-code anchors**; the 15 new checks were independently verified against supplied original bytes without any GitHub Actions usage. See `demo-v1:DemoV1/LEVEL22_HAND_PAIR_ELIGIBILITY_CHECKPOINT.md`. Crucially, **`240A8` and complete `24478` are still unimplemented**, and no attack execution is enabled. There is no fresh C++ compiler/test pass for these additions.
+
+
+## 2026-10-07 complete nonnegative-item 240A8 candidate branch audit
+
+The next original-byte audit disassembled shipped CODE.2 logical `240A8..243DD` (virtual objdump `340A8..343DD`) and its `33FC4/34060` predicate helpers, and verified **21 additional exact opcode anchors** against immutable CODE.2 SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`. The checked-in offline signature set now contains **54 total original anchors (33 previous + 21 newly checked)**.
+
+**Original `240A8(actor,item,&classification)` behavior for nonnegative item IDs**:
+
+1. It initializes eligibility true, classifies the item using `23E58` then `23F50` fallback, and writes that Boolean to its out pointer. Item category is serialized OBJECTS byte `+0x2F`.
+2. For classified items, `23EAC`'s three signed class bytes test codes `0,1,3,4,5`. Class 4 without `0/5/1` requires `34060(item)`; class 4 + class 5 without `0/1` requires `34060 OR 33FC4`; class 5 without `0/1/3` requires `33FC4`. Any class 3 with category 10 then vetoes eligibility.
+3. A classified item in global `258A8==0xFF` and actor index >=2, unless **both** first actor statuses are exactly `0x8000`, further requires `(OBJECTS item byte +0x35 & 3)==2` or `23F50(item)`. The native `ObjectDefinition` now retains only these raw low two bits, avoiding speculative high-bit names.
+4. Unclassified item IDs `0xA7..0xC9` require class 4 or a corresponding class-5 signed level word `>=10`; IDs `0xCA..0xE4` **or precisely `0x12D`** require class 3 or corresponding class-5 level `>=10`. Each class level is separately loaded as signed 16-bit from actor `+0x20/+0x22/+0x24`. Other nonnegative unclassified IDs retain the initialized true result.
+5. `34060` and `33FC4` use different exception sets in addition to pseudo hand IDs `0x7E..0x86` and `23EE4`'s paired-item exceptions. These sets are not interchangeable with `23F50`'s special effects list.
+
+**Explicit open edge:** original `24478` also calls `240A8(-1)` for an empty hand. The original `23E58/23F50` can make raw OBJECTS-base-relative memory reads with this negative ID **before** `240A8`'s explicit -1 check. Without the original loaded-buffer/pre-base memory mapping, the native `CombatSingleHandEligibilityModel` deliberately rejects negative IDs rather than fabricating an unarmed result. This is a remaining original-memory investigation; `240A8` source coverage does not mean full `24478` attack approval is complete.
+
+The `demo-v1` branch now contains `combat_single_hand_eligibility.*`, a new deterministic C++ regression target and `ObjectCatalog::raw_byte_35_low2` decoding. These source changes are committed under the private-repository manual-only CI policy, **without a new C++ build or native interactive test**. See `demo-v1:DemoV1/LEVEL22_SINGLE_HAND_ELIGIBILITY_CHECKPOINT.md` for input-specific tests and future integration dependencies. This finding changes neither original CODE.2 byte accounting nor overall five-gate demo acceptance.
