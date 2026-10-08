@@ -38,9 +38,9 @@ int main() {
     // Empty hand is exact category9, not the 26018 category10
     // unarmed dispatch category. C910 is a distinct classifier.
     auto x=run(-1,0U,9);
-    assert(x.damage_after_gate==9 && !x.forced_minimum);
+    assert(x.damage_after_gate==9 && !x.creature_restriction_triggered && !x.minimum_clamped);
     x=run(-1,0x8000U,9);
-    assert(x.damage_after_gate==1 && x.forced_minimum);
+    assert(x.damage_after_gate==1 && x.creature_restriction_triggered && x.minimum_clamped);
 
     // Category 9 checks creature bit15, category 10 checks bit14.
     x=run(1,0x8000U,8);
@@ -58,13 +58,19 @@ int main() {
         x=run(id,0x20000U,42);
         assert(x.damage_after_gate==1 && x.forced_minimum);
         x=run(id,0x40000U,42);
-        assert(x.damage_after_gate==42 && !x.forced_minimum);
+        assert(x.damage_after_gate==42 && !x.creature_restriction_triggered && !x.minimum_clamped);
     }
     // Nonzero enchantment overrides original category9/10.
     x=run(5,0x8000U,42);
     assert(x.damage_after_gate==42);
     x=run(6,0x4000U,42);
     assert(x.damage_after_gate==42);
+
+    // Even when input damage is already one, the original NPC
+    // restriction branch still fires and clamps an internal zero.
+    x=run(1,0x8000U,1);
+    assert(x.damage_after_gate==1);
+    assert(x.creature_restriction_triggered && x.minimum_clamped);
 
     // Other categories ignore these creature-immunity bits.
     x=run(4,0xFFFFFFFFU,17);
@@ -75,7 +81,7 @@ int main() {
         assert(x.damage_after_gate==1);
     }
     x=run(4,0U,2);
-    assert(x.damage_after_gate==2 && !x.forced_minimum);
+    assert(x.damage_after_gate==2 && !x.creature_restriction_triggered && !x.minimum_clamped);
 
     bool rejected=false;
     try {(void)run(-2,0U,4);}
