@@ -8,12 +8,21 @@
 
 namespace rloft {
 
-// Original CODE.2 24478: complete nonnegative two-item candidate
-// arbitration (including temporary pseudo-hand objects 7Eh..86h),
-// plus the both-empty short circuit when the actual original
-// OBJECTS[-1] pre-base classification byte is supplied. Any mixed
-// -1 + positive/pseudo pair remains unresolved until other
-// original allocator-adjacent OBJECTS bytes are observed.
+// Original CODE.2 24478: ordinary positive/pseudo item candidate
+// arbitration plus empty-hand combinations ONLY when original
+// OBJECTS[-1] heap-adjacent category, weight and qualifier fields
+// are supplied by an observed runtime snapshot. Never manufacture
+// raw -1 item bytes from OBJECTS.DAT.
+// An ORIGINAL observed 24478 heap-adjacent item[-1] byte triple.
+// OBJECTS_PTR-0x12 = category (+2Fh), -0x11 = weight (+30h),
+// -0x0C = low 2 qualifier bits of word (+35h). These are not
+// serialized OBJECTS.DAT bytes and MUST NOT be synthesized.
+struct CombatEmptyHandRawFields final {
+    std::uint8_t category{};
+    std::uint8_t weight{};
+    std::uint8_t qualifier_low2{};
+};
+
 struct CombatHandPairEligibility final {
     bool first_eligible{};
     bool second_eligible{};
@@ -33,7 +42,7 @@ public:
         std::size_t actor,
         std::size_t selected_hand,
         CombatSingleHandContext context,
-        std::optional<std::uint8_t> empty_prebase_category =
+        std::optional<CombatEmptyHandRawFields> empty_raw =
             std::nullopt);
 };
 
