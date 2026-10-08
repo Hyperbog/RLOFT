@@ -195,3 +195,32 @@ still depend on true 29414, 2AD18, 2ADE0, 33C90,
 1F820 and source runtime memory. Release acceptance
 therefore remains **1/5 formally passed gates**,
 not an estimate of engineering completion.
+
+
+## Source-backed type predicates and clipped sprite state — current checkpoint
+
+The 2AD18/2ADE0 original type predicates and
+1C1DC live DGROUP world-bit reads are now
+implemented and linked to the prior 2AE30
+opposite-page hit scanner. Original 29414
+source-level row/column sprite cropping is
+also native, with exact EF74 24-byte records,
+EF69..EF6F output WORDs and original 0/1/2
+dispatch. The previous EFD4 drawing wrapper
+can invoke 29414. The original A6BC/D680
+globals are now explicitly shared or observed
+across the overlay position/probe adapters.
+
+New opcode signatures **105/105** matched
+CODE.2, yielding **1,109 named and 1,101
+distinct original instruction sites**. The
+two committed core C++ sources passed
+source-identical focused Debug/Release/UBSan
+tests. Their three newly registered CTests
+and integrated full Windows build are not
+yet verified on current branch HEAD.
+Actual 2A6B0 clipped pixel rendering and
+DOS frame/gameplay reference comparison
+remain open. Formal release acceptance
+stays **1/5 gates** and engineering progress
+remains unweighted.
