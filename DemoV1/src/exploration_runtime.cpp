@@ -80,6 +80,7 @@ void ExplorationRuntime::initialize_gameplay_state(
         roll);
     inventory_ = InventoryRuntimeState::fresh(source);
     gameplay_state_initialized_ = true;
+    ++world_scene_revision_;
 }
 
 NpcDamageResult ExplorationRuntime::damage_level22_assassin(
@@ -93,7 +94,7 @@ NpcDamageResult ExplorationRuntime::damage_level22_assassin(
     if (session_.level_id != Level22Story::kLevelId) {
         throw std::logic_error("Assassin damage outside Level 22");
     }
-    return Level22EncounterModel::damage_assassin(
+    const auto outcome = Level22EncounterModel::damage_assassin(
         world_,
         npc_index,
         amount,
@@ -102,6 +103,10 @@ NpcDamageResult ExplorationRuntime::damage_level22_assassin(
         npc_catalog_,
         renderer_tables_,
         can_place);
+    if (outcome.damaged) {
+        ++world_scene_revision_;
+    }
+    return outcome;
 }
 
 LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
@@ -112,17 +117,19 @@ LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
     if (session_.level_id != Level22Story::kLevelId) {
         throw std::logic_error("Level 22 pickup outside Level 22");
     }
-    return Level22EncounterModel::pickup_loose_item(
+    auto outcome = Level22EncounterModel::pickup_loose_item(
         world_,
         item_index,
         inventory_,
         session_.party,
         object_catalog_);
+    ++world_scene_revision_;
+    return outcome;
 }
 
 std::optional<NpcDamageResult>
 ExplorationRuntime::damage_level22_assassin_at(
-    const std::vector<WorldSceneRecord>& records,
+    const ExplorationRuntimeFrame& frame,
     int row,
     int column,
     std::uint16_t amount,
@@ -130,8 +137,13 @@ ExplorationRuntime::damage_level22_assassin_at(
     const Level22EncounterModel::PlacementProbe& can_place) {
     // 223F4's bit-0 source-class-2 gate must remain clear during
     // combat selection: loose items are pickup targets, not enemies.
+    if (!gameplay_state_initialized_ ||
+        frame.world_scene_revision != world_scene_revision_) {
+        throw std::logic_error(
+            "Assassin target was selected from a stale world frame");
+    }
     const auto selected = world_scene_target_at(
-        records, row, column, 0U);
+        frame.world_scene_records, row, column, 0U);
     const auto npc_index =
         Level22ViewportTargetModel::assassin_index(
             selected, world_);
@@ -144,12 +156,17 @@ ExplorationRuntime::damage_level22_assassin_at(
 
 std::optional<LooseItemPickupResult>
 ExplorationRuntime::pickup_level22_loose_item_at(
-    const std::vector<WorldSceneRecord>& records,
+    const ExplorationRuntimeFrame& frame,
     int row,
     int column) {
     // 224EF requires bit 0 for class-2 hit-test eligibility.
+    if (!gameplay_state_initialized_ ||
+        frame.world_scene_revision != world_scene_revision_) {
+        throw std::logic_error(
+            "pickup target was selected from a stale world frame");
+    }
     const auto selected = world_scene_target_at(
-        records, row, column, 0x01U);
+        frame.world_scene_records, row, column, 0x01U);
     const auto item_index =
         Level22ViewportTargetModel::loose_item_index(
             selected, world_);
@@ -207,6 +224,7 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
     ViewSweepOptions sweep_options,
     const std::array<std::uint16_t, 32>& rng15) {
     ExplorationRuntimeFrame out{};
+    out.world_scene_revision = world_scene_revision_;
     out.scene_video_page = scene_video_page_;
     out.scene_individual_columns_mode =
         scene_individual_columns_mode_;
