@@ -2,15 +2,16 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 #include "rloft/combat_single_hand_eligibility.hpp"
 
 namespace rloft {
 
-// Original CODE.2 24478 ordinary two-hand pair arbitration. Both item
-// IDs must be nonnegative and outside the temporary 7Eh..86h pseudo
-// spell-hand range. Original -1/raw pre-OBJECTS and pseudo branches
-// are separate and are not guessed by this restricted implementation.
+// Original CODE.2 24478: ordinary two-item arbitration plus the two
+// proven 244CE/24522 short-circuits (both empty and both pseudo).
+// BOTH-empty requires the actual observed -1 OBJECTS pre-base byte.
+// Mixed empty/pseudo/normal pairs remain unresolved, never guessed.
 struct CombatHandPairEligibility final {
     bool first_eligible{};
     bool second_eligible{};
@@ -29,7 +30,9 @@ public:
         const ObjectCatalog& objects,
         std::size_t actor,
         std::size_t selected_hand,
-        CombatSingleHandContext context);
+        CombatSingleHandContext context,
+        std::optional<std::uint8_t> empty_prebase_category =
+            std::nullopt);
 };
 
 } // namespace rloft
