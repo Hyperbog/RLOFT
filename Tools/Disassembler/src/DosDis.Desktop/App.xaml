@@ -3,44 +3,258 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
   <Application.Resources>
-    <SolidColorBrush x:Key="WindowBrush" Color="#11151D"/>
-    <SolidColorBrush x:Key="PanelBrush" Color="#1A202A"/>
-    <SolidColorBrush x:Key="InputBrush" Color="#242D3A"/>
-    <SolidColorBrush x:Key="SubtleBorderBrush" Color="#384457"/>
-    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#EEF2F8"/>
-    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#ADBBD0"/>
+    <!-- Explicit templates keep disabled/selected/hover WPF theme states dark on Windows 11. -->
+    <SolidColorBrush x:Key="WindowBrush" Color="#10151E"/>
+    <SolidColorBrush x:Key="PanelBrush" Color="#19212D"/>
+    <SolidColorBrush x:Key="InputBrush" Color="#232E3D"/>
+    <SolidColorBrush x:Key="HoverBrush" Color="#314053"/>
+    <SolidColorBrush x:Key="PressedBrush" Color="#394D64"/>
+    <SolidColorBrush x:Key="SelectedBrush" Color="#244466"/>
+    <SolidColorBrush x:Key="DisabledBrush" Color="#202936"/>
+    <SolidColorBrush x:Key="SubtleBorderBrush" Color="#354355"/>
+    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#F1F5FA"/>
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#B5C5D7"/>
+    <SolidColorBrush x:Key="DisabledTextBrush" Color="#8190A4"/>
     <SolidColorBrush x:Key="AccentBrush" Color="#87BAFF"/>
-    <Style TargetType="TextBlock">
+
+    <Style TargetType="{x:Type TextBlock}">
       <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
       <Setter Property="FontFamily" Value="Segoe UI"/>
     </Style>
-    <Style TargetType="Button">
+
+    <Style TargetType="{x:Type Button}">
       <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
       <Setter Property="Background" Value="{StaticResource InputBrush}"/>
       <Setter Property="BorderBrush" Value="{StaticResource SubtleBorderBrush}"/>
       <Setter Property="BorderThickness" Value="1"/>
-      <Setter Property="Padding" Value="12,7"/>
-      <Setter Property="Margin" Value="0,0,8,0"/>
+      <Setter Property="Padding" Value="11,8"/>
+      <Setter Property="Margin" Value="0,0,7,0"/>
+      <Setter Property="FontFamily" Value="Segoe UI"/>
       <Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
       <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="MinHeight" Value="33"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type Button}">
+            <Border x:Name="Chrome" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6"
+                    SnapsToDevicePixels="True">
+              <ContentPresenter Margin="{TemplateBinding Padding}" RecognizesAccessKey="True"
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Chrome" Property="Background" Value="{StaticResource HoverBrush}"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Chrome" Property="Background" Value="{StaticResource PressedBrush}"/>
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Chrome" Property="Background" Value="{StaticResource DisabledBrush}"/>
+                <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource PanelBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource DisabledTextBrush}"/>
+                <Setter Property="Cursor" Value="Arrow"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
     </Style>
-    <Style TargetType="TextBox">
+
+    <Style x:Key="PrimaryActionButtonStyle" TargetType="{x:Type Button}"
+           BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Background" Value="{StaticResource SelectedBrush}"/>
+      <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style TargetType="{x:Type TextBox}">
       <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
       <Setter Property="Background" Value="{StaticResource InputBrush}"/>
       <Setter Property="BorderBrush" Value="{StaticResource SubtleBorderBrush}"/>
       <Setter Property="BorderThickness" Value="1"/>
-      <Setter Property="Padding" Value="7"/>
-      <Setter Property="FontFamily" Value="Consolas"/>
-      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Padding" Value="9,6"/>
+      <Setter Property="FontFamily" Value="Segoe UI"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}"/>
+      <Setter Property="MinHeight" Value="32"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type TextBox}">
+            <Border x:Name="InputBorder" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5">
+              <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                            Focusable="False"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter TargetName="InputBorder" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="InputBorder" Property="Background" Value="{StaticResource DisabledBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource DisabledTextBrush}"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
     </Style>
-    <Style TargetType="ListBox">
+
+    <Style TargetType="{x:Type TabControl}">
+      <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
+      <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="0"/>
+    </Style>
+    <Style TargetType="{x:Type TabItem}">
+      <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
+      <Setter Property="FontFamily" Value="Segoe UI"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type TabItem}">
+            <Border x:Name="TabChrome" Background="Transparent" BorderThickness="0,0,0,2"
+                    BorderBrush="Transparent" Padding="16,10" Margin="0,0,5,0">
+              <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+                <Setter TargetName="TabChrome" Property="Background" Value="{StaticResource InputBrush}"/>
+                <Setter TargetName="TabChrome" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+              </Trigger>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{StaticResource DisabledTextBrush}"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type ListBox}">
       <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
       <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
       <Setter Property="BorderThickness" Value="0"/>
       <Setter Property="FontFamily" Value="Consolas"/>
       <Setter Property="FontSize" Value="12"/>
+      <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
     </Style>
-    <Style TargetType="DataGrid">
+    <Style TargetType="{x:Type ListBoxItem}">
+      <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="Padding" Value="7,5"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type ListBoxItem}">
+            <Border x:Name="ItemChrome" Background="Transparent" CornerRadius="4">
+              <ContentPresenter ContentSource="Content" Margin="{TemplateBinding Padding}"
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="ItemChrome" Property="Background" Value="{StaticResource HoverBrush}"/>
+              </Trigger>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="ItemChrome" Property="Background" Value="{StaticResource SelectedBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{StaticResource DisabledTextBrush}"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Preserve DataGrid's column resizing while using a fully dark header template. -->
+    <Style x:Key="HeaderResizeGripStyle" TargetType="{x:Type Thumb}">
+      <Setter Property="Width" Value="5"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Cursor" Value="SizeWE"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type Thumb}">
+            <Border Background="{TemplateBinding Background}"/>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type DataGridColumnHeader}">
+      <Setter Property="Background" Value="{StaticResource InputBrush}"/>
+      <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource SubtleBorderBrush}"/>
+      <Setter Property="FontFamily" Value="Segoe UI"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Height" Value="34"/>
+      <Setter Property="HorizontalContentAlignment" Value="Left"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type DataGridColumnHeader}">
+            <Grid>
+              <Border x:Name="ColumnChrome" Background="{TemplateBinding Background}"
+                      BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="0,0,1,1"
+                      Padding="10,6">
+                <ContentPresenter Content="{TemplateBinding Content}" RecognizesAccessKey="True"
+                                  VerticalAlignment="Center" HorizontalAlignment="Left"/>
+              </Border>
+              <Thumb x:Name="PART_LeftHeaderGripper" HorizontalAlignment="Left"
+                     Style="{StaticResource HeaderResizeGripStyle}"/>
+              <Thumb x:Name="PART_RightHeaderGripper" HorizontalAlignment="Right"
+                     Style="{StaticResource HeaderResizeGripStyle}"/>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="ColumnChrome" Property="Background" Value="{StaticResource HoverBrush}"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type DataGridRow}">
+      <Setter Property="MinHeight" Value="27"/>
+      <Style.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter Property="Background" Value="{StaticResource HoverBrush}"/>
+        </Trigger>
+        <Trigger Property="IsSelected" Value="True">
+          <Setter Property="Background" Value="{StaticResource SelectedBrush}"/>
+          <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+    <Style TargetType="{x:Type DataGridCell}">
+      <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="6,4"/>
+      <Style.Triggers>
+        <Trigger Property="IsSelected" Value="True">
+          <Setter Property="Background" Value="{StaticResource SelectedBrush}"/>
+          <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+    <Style TargetType="{x:Type DataGrid}">
       <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
       <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
       <Setter Property="RowBackground" Value="{StaticResource PanelBrush}"/>
@@ -56,7 +270,11 @@
       <Setter Property="EnableColumnVirtualization" Value="True"/>
       <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
       <Setter Property="FontFamily" Value="Consolas"/>
-      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontSize" Value="13"/>
+    </Style>
+    <Style x:Key="IntelligenceValueTextStyle" TargetType="{x:Type TextBlock}">
+      <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+      <Setter Property="ToolTip" Value="{Binding DisplayValue}"/>
     </Style>
   </Application.Resources>
 </Application>
