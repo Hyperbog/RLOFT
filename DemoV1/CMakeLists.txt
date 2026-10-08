@@ -171,6 +171,7 @@ add_library(rloft_boot_flow
     src/surface_wall_presenter.cpp
     src/surface_prepass.cpp
     src/surface_sintab_prepass_executor.cpp
+    src/surface_sintab_main_executor.cpp
     src/game_source.cpp
     src/resource_assets.cpp
     src/startup_presenter.cpp
@@ -695,6 +696,11 @@ add_executable(surface_sintab_prepass_executor_tests
 target_link_libraries(surface_sintab_prepass_executor_tests PRIVATE rloft_boot_flow)
 add_test(NAME surface_sintab_prepass_executor_tests
     COMMAND surface_sintab_prepass_executor_tests)
+add_executable(surface_sintab_main_executor_tests
+    tests/surface_sintab_main_executor_tests.cpp)
+target_link_libraries(surface_sintab_main_executor_tests PRIVATE rloft_boot_flow)
+add_test(NAME surface_sintab_main_executor_tests
+    COMMAND surface_sintab_main_executor_tests)
 
 add_executable(game_source_tests tests/game_source_tests.cpp)
 target_link_libraries(game_source_tests PRIVATE rloft_boot_flow)
@@ -897,6 +903,7 @@ set(RLOFT_TEST_TARGETS
     surface_wall_presenter_tests
     surface_prepass_tests
     surface_sintab_prepass_executor_tests
+    surface_sintab_main_executor_tests
     game_source_tests
     presenter_tests
     type7_scene_shape_tests
