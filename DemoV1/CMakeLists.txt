@@ -86,6 +86,9 @@ add_library(rloft_boot_flow
     src/combat_original_overlay_position.cpp
     src/combat_original_overlay_draw.cpp
     src/combat_original_overlay_probe.cpp
+    src/combat_original_overlay_predicates.cpp
+    src/combat_original_sprite_clip.cpp
+    src/combat_original_sprite_clip_binding.cpp
     src/combat_level_message.cpp
     src/combat_harm_prelude.cpp
     src/combat_damage_stat_bonus.cpp
@@ -377,6 +380,12 @@ add_test(NAME combat_original_overlay_probe_tests COMMAND combat_original_overla
 add_executable(combat_original_overlay_chain_tests tests/combat_original_overlay_chain_tests.cpp)
 target_link_libraries(combat_original_overlay_chain_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_original_overlay_chain_tests COMMAND combat_original_overlay_chain_tests)
+add_executable(combat_original_overlay_predicates_tests tests/combat_original_overlay_predicates_tests.cpp)
+target_link_libraries(combat_original_overlay_predicates_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_overlay_predicates_tests COMMAND combat_original_overlay_predicates_tests)
+add_executable(combat_original_sprite_clip_tests tests/combat_original_sprite_clip_tests.cpp)
+target_link_libraries(combat_original_sprite_clip_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_sprite_clip_tests COMMAND combat_original_sprite_clip_tests)
 add_executable(combat_harm_prelude_tests tests/combat_harm_prelude_tests.cpp)
 target_link_libraries(combat_harm_prelude_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_harm_prelude_tests COMMAND combat_harm_prelude_tests)
@@ -794,6 +803,8 @@ set(RLOFT_TEST_TARGETS
     combat_original_overlay_draw_tests
     combat_original_overlay_probe_tests
     combat_original_overlay_chain_tests
+    combat_original_overlay_predicates_tests
+    combat_original_sprite_clip_tests
     combat_level_message_tests
     combat_harm_prelude_tests
     combat_damage_stat_bonus_tests
