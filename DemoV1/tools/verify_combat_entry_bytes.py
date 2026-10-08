@@ -256,6 +256,16 @@ ANCHORS = {
     "E829 HARM selects visual code 24": (0xE829, "c744240c24000000"),
     "E831 HARM conditionally stores die as NPC HP": (0xE831, "39c27e0466894712"),
     "E839 HARM zeroes provisional damage": (0xE839, "31f6eb5c"),
+    # Original E284 E306 call to 3ACDC NPC-type classifier and
+    # the BYTE+0B flags update before nonlethal/death split.
+    "3ACDC type less than 22 classification": (0x2ACE8, "837d1422"),
+    "3ACDC exception type 50": (0x2ACF7, "837d1450"),
+    "3ACDC other type false": (0x2AD06, "c745fc00000000"),
+    "E30B invokes NPC type classifier": (0xE30B, "e8ccc90100"),
+    "E317 NPC runtime byte+0B clears 30": (0xE317, "80660bcf"),
+    "E31B NPC runtime byte+0B sets 10": (0xE31B, "804e0b10"),
+    "E31F branches on signed HP positive": (0xE31F, "66837e1200"),
+    "E324 jumps past death path if alive": (0xE324, "0f8f29020000"),
 }
 
 # Original object-2 DGROUP contents (not x86 code). These 26
