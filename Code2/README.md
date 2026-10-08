@@ -1,6 +1,6 @@
 # CODE.2 faithful decompilation
 
-> **Post-certification erratum (2026-10-07):** native Demo integration rechecked immutable CODE.2 bytes and found a source-level stack-signature defect in translated routine `2975C`. The current source corrects it to the encoded five-argument contract. The certification hashes below identify the historical pre-erratum snapshot, not the current `Code2.cpp`. Byte accounting remains unchanged. See `Code2/POST_CERTIFICATION_ERRATA.md`.
+> **Post-certification erratum (2026-10-07):** native Demo integration rechecked immutable CODE.2 bytes and confirmed two source-level semantic defects: constant automap draw coordinates in `0139C` and a four-versus-five argument wrapper at `2975C`. The current source implements the encoded increments and five-argument contract. The certification hashes below identify the historical pre-erratum snapshot, not the current `Code2.cpp`. Byte accounting remains unchanged. See `Code2/POST_CERTIFICATION_ERRATA.md`. This two-hunk branch difference is now fully reconciled; the full original-byte comparison is recorded in the main branch.
 
 This directory contains the certified faithful C++ reconstruction of Ravenloft: Strahd's Possession `CODE.2`.
 
@@ -13,7 +13,8 @@ This directory contains the certified faithful C++ reconstruction of Ravenloft: 
 - Unresolved object-1 bytes: **0**
 - Strict C++17 verification at certification: **0 errors, 0 warnings**
 - Certified `Code2.cpp` SHA-256: `b4ab60f12e0d5a3c986ef61ec3c2e5c6d68f0193a0e535ef35eb7af6f3aed4aa`
-- Certified Git blob SHA: `c3f16122e79c3c464382e4511d9d932f6fcd694a`
+- Original certified Git blob SHA (historical): `c3f16122e79c3c464382e4511d9d932f6fcd694a`
+- **Current corrected Git blob SHA (also on `code1-decompilation`): `87f6638921c53a32bde59735515fbc175e2c96ee`**
 
 The detailed historical audit/checkpoint documents are provenance. Temporary integration scripts and staged fragments are not canonical source artifacts; Git history preserves them.
 
