@@ -52,6 +52,8 @@ int main() {
                 assert(vga.read(0xA8000U+(y+1U)*80U+x,p)==
                        17U+p*32U+y*2U+x);
     assert(*vga.sequencer_map_mask_02()==15U);
+    assert(vga.last_sequencer_raw_mask_02()&&
+           *vga.last_sequencer_raw_mask_02()==0xFFU);
 
     // Original 2932C calls 2A178 with zero columns.
     // The starting column three produces one physical byte.
