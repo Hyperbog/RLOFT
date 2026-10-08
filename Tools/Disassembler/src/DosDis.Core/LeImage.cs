@@ -12,10 +12,12 @@ public sealed class LeImage
 {
     private readonly BinaryArtifact _artifact;
     private readonly IReadOnlyDictionary<int, List<LePage>> _pages;
+    private readonly Lazy<IReadOnlyDictionary<int, byte[]>> _relocatedMemory;
 
     private LeImage(BinaryArtifact artifact, long moduleOrigin, long header,
         uint pageSize, uint lastPageSize, uint entryObject, uint entryOffset,
-        IReadOnlyList<LeObject> objects, IReadOnlyDictionary<int, List<LePage>> pages)
+        IReadOnlyList<LeObject> objects, IReadOnlyDictionary<int, List<LePage>> pages,
+        IReadOnlyList<LeRelocation> relocations)
     {
         _artifact = artifact;
         ModuleOrigin = moduleOrigin;
@@ -26,6 +28,8 @@ public sealed class LeImage
         EntryOffset = entryOffset;
         Objects = objects;
         _pages = pages;
+        Relocations = relocations;
+        _relocatedMemory = new Lazy<IReadOnlyDictionary<int, byte[]>>(BuildRelocatedMemory);
     }
 
     public long ModuleOrigin { get; }
@@ -35,6 +39,7 @@ public sealed class LeImage
     public uint EntryObject { get; }
     public uint EntryOffset { get; }
     public IReadOnlyList<LeObject> Objects { get; }
+    public IReadOnlyList<LeRelocation> Relocations { get; }
     public IReadOnlyList<LePage> Pages => _pages.Values.SelectMany(x => x).ToArray();
 
     private static ushort U16(ReadOnlySpan<byte> data, long offset)
@@ -120,8 +125,9 @@ public sealed class LeImage
         }
         if (entryOffset >= objects[(int)entryObject - 1].VirtualSize)
             throw new InvalidDataException("Entry point falls outside its LE object.");
+        var relocations = LeFixupReader.Parse(b.ToArray(), hdr, pageCount, objects);
         return new LeImage(artifact, module, hdr, pageSize, lastPageSize,
-            entryObject, entryOffset, objects, pages);
+            entryObject, entryOffset, objects, pages, relocations);
     }
 
     public long? ToFileOffset(int objectNumber, uint offset)
@@ -151,5 +157,63 @@ public sealed class LeImage
             result[i] = _artifact.Data[(int)physical.Value];
         }
         return result;
+    }
+    /// <summary>Relocated memory view with zero-initialized virtual tails.
+    /// The source file and ReadStoredBytes() always retain original bytes.</summary>
+    public byte[] ReadRelocatedBytes(int objectNumber, uint offset, int count)
+    {
+        if (count < 0 || count > 1024 * 1024)
+            throw new ArgumentOutOfRangeException(nameof(count));
+        if (objectNumber < 1 || objectNumber > Objects.Count)
+            throw new ArgumentOutOfRangeException(nameof(objectNumber));
+        byte[] memory = _relocatedMemory.Value[objectNumber];
+        if ((ulong)offset + (uint)count > (ulong)memory.Length)
+            throw new InvalidDataException("Relocated memory request crosses object bounds.");
+        return memory.AsSpan(checked((int)offset), count).ToArray();
+    }
+
+    private IReadOnlyDictionary<int, byte[]> BuildRelocatedMemory()
+    {
+        var memory = new Dictionary<int, byte[]>();
+        foreach (var obj in Objects)
+        {
+            if (obj.VirtualSize > 32 * 1024 * 1024)
+                throw new NotSupportedException("LE object exceeds prototype mapped-memory limit.");
+            var mapped = new byte[checked((int)obj.VirtualSize)];
+            foreach (var page in _pages[obj.Number])
+            {
+                if (page.FileOffset is null) continue;
+                long start = checked((long)page.ObjectPage * PageSize);
+                int size = checked((int)Math.Min((long)page.StoredLength, (long)obj.VirtualSize - start));
+                if (size < 0)
+                    throw new InvalidDataException("LE stored page starts beyond its object.");
+                _artifact.Data.Slice(checked((int)page.FileOffset.Value), size)
+                    .CopyTo(mapped.AsSpan(checked((int)start), size));
+            }
+            memory.Add(obj.Number, mapped);
+        }
+        // Duplicate cross-page records are valid if and only if they write
+        // identical bytes. Conflicting relocation evidence is a hard failure.
+        var patchedBytes = new Dictionary<(int Object, long Offset), byte>();
+        foreach (var fixup in Relocations)
+        {
+            var destination = Objects[fixup.TargetObject - 1];
+            uint target = unchecked(destination.PreferredBase + fixup.TargetOffset + fixup.Additive);
+            if (fixup.SourceType == 0x08)
+            {
+                uint sourceLinear = unchecked(Objects[fixup.SourceObject - 1].PreferredBase + (uint)fixup.SourceOffset);
+                target = unchecked(target - sourceLinear - 4);
+            }
+            for (int j = 0; j < 4; j++)
+            {
+                byte value = (byte)(target >> (j * 8));
+                var key = (fixup.SourceObject, fixup.SourceOffset + j);
+                if (patchedBytes.TryGetValue(key, out byte prior) && prior != value)
+                    throw new InvalidDataException($"Conflicting LE fixups at object {key.Item1} + 0x{key.Item2:X}.");
+                patchedBytes[key] = value;
+                memory[fixup.SourceObject][checked((int)(fixup.SourceOffset + j))] = value;
+            }
+        }
+        return memory;
     }
 }

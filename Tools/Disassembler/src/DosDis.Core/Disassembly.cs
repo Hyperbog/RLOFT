@@ -8,7 +8,7 @@ public sealed record DecodedLine(uint ObjectOffset, string Bytes, string Assembl
 public static class Disassembly
 {
     public static IReadOnlyList<DecodedLine> Decode(LeImage image, int objectNumber,
-        uint offset, int instructionCount)
+        uint offset, int instructionCount, bool relocated = false)
     {
         if (instructionCount is < 1 or > 1024)
             throw new ArgumentOutOfRangeException(nameof(instructionCount));
@@ -28,7 +28,9 @@ public static class Disassembly
             backed++;
         if (backed == 0)
             throw new InvalidDataException("No file-backed bytes at requested address.");
-        byte[] data = image.ReadStoredBytes(objectNumber, offset, backed);
+        byte[] data = relocated
+            ? image.ReadRelocatedBytes(objectNumber, offset, backed)
+            : image.ReadStoredBytes(objectNumber, offset, backed);
         var reader = new ByteArrayCodeReader(data);
         var decoder = Decoder.Create(32, reader);
         decoder.IP = offset;

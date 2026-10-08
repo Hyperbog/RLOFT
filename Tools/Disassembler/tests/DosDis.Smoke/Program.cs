@@ -58,6 +58,73 @@ try
         raw[0] = 0; // original snapshot must not change
         Equal(art.Data[0], (byte)'M', "immutability");
     }
+    // Internal absolute 32-bit fixup; original stored bytes remain immutable.
+    var fixedPage = MakeFixture(false);
+    Dword(fixedPage, 0x80 + 0x68, 0xe0);
+    Dword(fixedPage, 0x80 + 0x6c, 0xe8);
+    Dword(fixedPage, 0x80 + 0xe4, 7);
+    new byte[] { 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00 }
+        .CopyTo(fixedPage, 0x80 + 0xe8);
+    var fixedImage = LeImage.Load(BinaryArtifact.FromBytes(fixedPage));
+    Equal(fixedImage.Relocations.Count, 1, "synthetic fixup count");
+    Equal(Convert.ToHexString(fixedImage.ReadStoredBytes(1, 0, 4)), "90C390C3", "original fixup bytes unchanged");
+    Equal(Convert.ToHexString(fixedImage.ReadRelocatedBytes(1, 0, 4)), "02000100", "internal absolute fixup");
+
+    // 32-bit target and additive values are parsed at their exact encoded widths.
+    var additivePage = (byte[])fixedPage.Clone();
+    Dword(additivePage, 0x80 + 0xe4, 13);
+    new byte[] { 0x07, 0x34, 0x00, 0x00, 0x01, 0x05, 0x00,
+                 0x00, 0x00, 0x06, 0x00, 0x00, 0x00 }
+        .CopyTo(additivePage, 0x80 + 0xe8);
+    Equal(Convert.ToHexString(LeImage.Load(BinaryArtifact.FromBytes(additivePage))
+        .ReadRelocatedBytes(1, 0, 4)), "0B000100", "32-bit target plus additive");
+    var relativePage = (byte[])fixedPage.Clone();
+    relativePage[0x80 + 0xe8] = 0x08;
+    relativePage[0x80 + 0xe8 + 5] = 0x0a;
+    Equal(Convert.ToHexString(LeImage.Load(BinaryArtifact.FromBytes(relativePage))
+        .ReadRelocatedBytes(1, 0, 4)), "06000000", "self-relative fixup");
+
+    // LE fixup source lists are compact and can patch multiple sites.
+    var sources = MakeFixture(false);
+    Dword(sources, 0x80 + 0xc4, 12);
+    Dword(sources, 0x80 + 0x2c, 12);
+    Dword(sources, 0x80 + 0x68, 0xe0);
+    Dword(sources, 0x80 + 0x6c, 0xe8);
+    Dword(sources, 0x80 + 0xe4, 10);
+    new byte[] { 0x27, 0x00, 0x02, 0x01, 0x02, 0x00, 0x00, 0x00, 0x04, 0x00 }
+        .CopyTo(sources, 0x80 + 0xe8);
+    var listed = LeImage.Load(BinaryArtifact.FromBytes(sources));
+    Equal(listed.Relocations.Count, 2, "source list count");
+    Equal(Convert.ToHexString(listed.ReadRelocatedBytes(1, 0, 8)),
+        "0200010002000100", "source list targets");
+
+    // Signed source offsets can point back across a page boundary.
+    var crossed = MakeFixture(false);
+    Dword(crossed, 0x80 + 0x14, 2);
+    Dword(crossed, 0x80 + 0x28, 16);
+    Dword(crossed, 0x80 + 0x2c, 16);
+    Dword(crossed, 0x80 + 0xc4, 32);
+    Dword(crossed, 0x80 + 0xd4, 2);
+    crossed[0x80 + 0xe0 + 2] = 2;
+    Dword(crossed, 0x80 + 0x68, 0xe4);
+    Dword(crossed, 0x80 + 0x6c, 0xf0);
+    Dword(crossed, 0x80 + 0xe4 + 8, 7);
+    new byte[] { 0x07, 0x00, 0xfe, 0xff, 0x01, 0x04, 0x00 }
+        .CopyTo(crossed, 0x80 + 0xf0);
+    var across = LeImage.Load(BinaryArtifact.FromBytes(crossed));
+    Equal(across.Relocations.Count, 1, "cross-boundary record count");
+    Equal(across.Relocations[0].SourceOffset, 14L, "negative signed source offset");
+    Equal(Convert.ToHexString(across.ReadRelocatedBytes(1, 14, 4)),
+        "04000100", "cross-page relocated bytes");
+    var truncatedFixup = (byte[])fixedPage.Clone();
+    Dword(truncatedFixup, 0x80 + 0xe4, 6);
+    Fails(() => LeImage.Load(BinaryArtifact.FromBytes(truncatedFixup)), "truncated fixup record");
+    var invalidFixupPage = (byte[])fixedPage.Clone();
+    Dword(invalidFixupPage, 0x80 + 0xe4, 0xffffffff);
+    Fails(() => LeImage.Load(BinaryArtifact.FromBytes(invalidFixupPage)), "invalid fixup page boundary");
+    var unsupportedFixup = (byte[])fixedPage.Clone();
+    unsupportedFixup[0x80 + 0xe8] = 0x02;
+    Fails(() => LeImage.Load(BinaryArtifact.FromBytes(unsupportedFixup)), "unsupported selector fixup");
     var invalidMap = MakeFixture(false);
     invalidMap[0x80 + 0xdc + 3] = 5;
     Fails(() => LeImage.Load(BinaryArtifact.FromBytes(invalidMap)), "unsupported page kind");
@@ -91,6 +158,11 @@ try
         }
         var code2 = LeImage.Load(BinaryArtifact.Open(args[1]));
         Equal(code2.ToFileOffset(1, 0x2975c), 0x64680L, "CODE.2 wrapper physical offset");
+        var code1 = LeImage.Load(BinaryArtifact.Open(args[0]));
+        Equal(code1.Relocations.Count, 2617, "CODE.1 internal fixups");
+        Equal(code2.Relocations.Count, 9813, "CODE.2 internal fixups");
+        Equal(Convert.ToHexString(code1.ReadRelocatedBytes(1, 0xf1c, 4)), "58090300", "CODE.1 first fixup target");
+        Equal(Convert.ToHexString(code2.ReadRelocatedBytes(1, 0xba7, 4)), "E0980600", "CODE.2 first fixup target");
         var lines = Disassembly.Decode(code2, 1, 0x2975c, 4);
         Equal(lines[0].ObjectOffset, 0x2975cU, "CODE.2 wrapper instruction start");
         Equal(lines[0].Bytes, "FF742414", "CODE.2 wrapper first instruction bytes");

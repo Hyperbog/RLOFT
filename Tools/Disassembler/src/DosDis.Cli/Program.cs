@@ -15,9 +15,9 @@ static void Print(object payload) => Console.WriteLine(JsonSerializer.Serialize(
 
 try
 {
-    if (args.Length < 2 || args[0] is not ("inspect" or "disasm"))
+    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory"))
     {
-        Console.Error.WriteLine("Usage: dosdis inspect <file> | dosdis disasm <file> --object 1 --offset 0x2975C --count 16");
+        Console.Error.WriteLine("Usage: dosdis inspect <file> | dosdis fixups <file> [--max 40] | dosdis memory <file> --object 1 --offset 0 --count 16 | dosdis disasm <file> --object 1 --offset 0x2975C --count 16 [--relocated]");
         return 2;
     }
     var artifact = BinaryArtifact.Open(args[1]);
@@ -34,10 +34,30 @@ try
             Format = image == null ? "unrecognized-or-not-yet-supported" : "DOS LE",
             Module = image == null ? null : new {
                 image.ModuleOrigin, image.HeaderOffset, image.PageSize,
-                image.EntryObject, image.EntryOffset, image.Objects, Pages = image.Pages
+                image.EntryObject, image.EntryOffset, image.Objects, Pages = image.Pages,
+                FixupCount = image.Relocations.Count
             },
             Intelligence = FileIntelligence.Inspect(artifact, image)
         });
+    }
+    else if (args[0] == "fixups")
+    {
+        image ??= LeImage.Load(artifact);
+        int max = int.Parse(Option(args, "--max", "40"), CultureInfo.InvariantCulture);
+        if (max is < 0 or > 10000) throw new ArgumentOutOfRangeException(nameof(max));
+        Print(new { artifact.Sha256, Total = image.Relocations.Count,
+            Fixups = image.Relocations.Take(max) });
+    }
+    else if (args[0] == "memory")
+    {
+        image ??= LeImage.Load(artifact);
+        int number = int.Parse(Option(args, "--object", "1"), CultureInfo.InvariantCulture);
+        uint at = Hex(Option(args, "--offset", "0"));
+        int length = int.Parse(Option(args, "--count", "16"), CultureInfo.InvariantCulture);
+        if (length is < 1 or > 4096) throw new ArgumentOutOfRangeException(nameof(length));
+        Print(new { artifact.Sha256, Object = number, Offset = $"0x{at:X}",
+            MemoryView = "relocated-virtual-memory", Bytes = Convert.ToHexString(image.ReadRelocatedBytes(number, at, length)),
+            FirstSourceFileOffset = image.ToFileOffset(number, at) });
     }
     else
     {
@@ -45,8 +65,10 @@ try
         int objectNumber = int.Parse(Option(args, "--object", "1"), CultureInfo.InvariantCulture);
         uint offset = Hex(Option(args, "--offset", "0"));
         int count = int.Parse(Option(args, "--count", "16"), CultureInfo.InvariantCulture);
+        bool relocated = args.Contains("--relocated", StringComparer.Ordinal);
         Print(new { artifact.Sha256, Object = objectNumber, Offset = $"0x{offset:X}",
-            Lines = Disassembly.Decode(image, objectNumber, offset, count) });
+            MemoryView = relocated ? "relocated-virtual-memory" : "original-file-bytes",
+            Lines = Disassembly.Decode(image, objectNumber, offset, count, relocated) });
     }
     return 0;
 }
