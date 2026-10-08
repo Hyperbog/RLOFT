@@ -74,3 +74,19 @@ post-level service, then connect completed DDA4 progression
 to the Level 22 death event without changing its original
 BF44/drop/presentation/corpse ordering. Overall five-gate
 demo acceptance stays 20%; manual Actions only.
+
+
+## Subsequent original 50DC callback audit
+
+[The verified original callback service checkpoint](LEVEL22_DDA4_50DC_SERVICE_ORDER_CHECKPOINT.md)
+now closes 50DC's two selector modes and the original
+DF1F..DF86 required service order as read-only C++ models.
+The caller eligibility precondition is source-checked: an actor
+with status & F240 != 0 never reaches a level-change callback.
+For eligible actors whose 50DC returns -1, the original
+still performs formatted output, IRQ-timed message queuing
+and a DC7C RNG-consuming HP update. Exact original CODE.2
+byte ledger: 378 named checks, 370 distinct logical offsets,
+one direct plus two hashed data references.
+All current callback implementations remain read-only; full
+native build and DOS timing/level-up acceptance remain open.
