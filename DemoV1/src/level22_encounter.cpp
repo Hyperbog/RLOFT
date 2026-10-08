@@ -96,6 +96,7 @@ void spawn_drop(
 
 NpcDamageResult Level22EncounterModel::damage_assassin(
     LevelWorldState& world,
+    const LevelState& level,
     std::size_t npc_index,
     std::uint16_t amount,
     std::uint16_t reaction_mode,
@@ -113,6 +114,24 @@ NpcDamageResult Level22EncounterModel::damage_assassin(
         Level22Story::kAssassinNpcType) {
         throw std::logic_error(
             "Level 22 damage target is not the Assassin");
+    }
+
+    // Original level-header bytes +292/+294/+296 are the signed
+    // 258AA NPC-type tracker entries read at E284:E50F. Both archive
+    // level 22 and direct LEV022 have (-1,-1,-1), so type9 does NOT
+    // call E0F8. Reject other/modified states *before any mutation*:
+    // an E0F8 call would reseed RNG, possibly respawn, and shift the
+    // following death/award timeline; we cannot treat it as false.
+    if (level.width!=30 || level.height!=15) {
+        throw std::logic_error("Level22 Assassin requires Level22 geometry");
+    }
+    const auto respawn_types=level.respawn_npc_types();
+    for (const auto tracked:respawn_types) {
+        if (static_cast<std::int32_t>(tracked)==
+            static_cast<std::int32_t>(live.npc_type_id)) {
+            throw std::logic_error(
+                "E284 matched E0F8 respawn requires original IRQ/RNG state");
+        }
     }
 
     const auto& def =
@@ -199,9 +218,13 @@ NpcDamageResult Level22EncounterModel::damage_assassin(
         ++result.spawned_loose_items;
     }
 
-    // 0E284 marks byte +0B bit 1 after the special respawn scan fails. Level
-    // 22 has no Assassin respawn entry, so this is runtime_flags bit 25.
-    live.runtime_flags |= 0x02000000U;
+    // E50F..E539: NONE of the actual level-header types match the
+    // level22 Assassin. The original signed three-word scan therefore
+    // consumes no RNG, invokes no E0F8 and marks the corpse. This is
+    // no longer based on a guessed level-22 special case.
+    constexpr std::array<bool,3U> no_calls{{false,false,false}};
+    live.runtime_flags=CombatNpcDeathFollowOnModel::death_runtime_flags(
+        live.npc_type_id,live.runtime_flags,respawn_types,no_calls);
     return result;
 }
 
