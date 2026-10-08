@@ -58,6 +58,12 @@ int main() {
     run.dispatch.lookup_after_dispatch = 0x0201U;
     trace.runs.push_back(run);
     trace.final_lookup_word = 0x0201U;
+    // Production plans contain one complete descriptor list for every
+    // accepted physical pixel, not merely a representative VGA trace.
+    plan.microcode_draws = trace.runs[0].descriptors;
+    for (auto& entry : plan.microcode_draws) {
+        entry.viewport_x = 128U;
+    }
 
     rloft::VgaPlanarMemory video;
     const auto result=rloft::Type7ScenePixelExecutor::draw(
@@ -80,6 +86,10 @@ int main() {
     // original 36A2B tables cannot generate mask 0x03 for width one.
     plan.visible_runs[0].width = 2U;
     trace.runs[0].width = 2U;
+    for (auto entry : trace.runs[0].descriptors) {
+        entry.viewport_x = 129U;
+        plan.microcode_draws.push_back(entry);
+    }
     trace.runs[0].dispatch.calls[0].sequencer_mask=0x03U;
     const auto two=rloft::Type7ScenePixelExecutor::draw(
         plan,trace,{0xA5U,0xB1U},tables,grouped);
@@ -93,6 +103,7 @@ int main() {
     // rejection without triggering an independent mask inconsistency.
     plan.visible_runs[0].width = 1U;
     trace.runs[0].width = 1U;
+    plan.microcode_draws.resize(2U);
     trace.runs[0].dispatch.calls[0].sequencer_mask=0x01U;
 
     // A trace cannot be applied to unrelated visible scene columns.
@@ -203,6 +214,8 @@ int main() {
         real_run.dispatch.lookup_after_dispatch = 0x0201U;
         real_trace.runs.push_back(real_run);
         real_trace.final_lookup_word = 0x0201U;
+        real_descriptor.viewport_x = 128U;
+        real_plan.microcode_draws.push_back(real_descriptor);
 
         std::vector<std::uint8_t> source(4096U);
         for(std::size_t k=0U;k<source.size();++k) {
