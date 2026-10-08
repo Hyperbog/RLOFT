@@ -46,6 +46,12 @@ The native `E5F0` source audit now proves **two independent hand time consequenc
 
 This is a **positive behavioral rule** for all combat implementation and regression acceptance. A missed swing is *not* instantaneous availability for another swing; conversely the hit-ready dword is not a replacement for the full action-busy dword. Neither may be implemented as a generic Windows frame delay. The source-only [combat target and timing checkpoint](LEVEL22_ATTACK_TARGET_AND_TIMING_CHECKPOINT.md) and original [CODE.2 continuity archive](../Code2/CODE2_CONTINUITY_ADDENDUM.md) record exact PC and machine-byte evidence; actual DOS tick calibration and native temporal traces remain required.
 
+## C80C return-value fidelity and Rod RNG branching
+
+An exact original CODE.2 audit proves `C80C` returns a **Boolean DWORD** (0/1), not a raw d20. `E5F0` stores that exact return and later Rod of Smiting checks it against 20, making its charged critical branch **unreachable in the normal attack path**. For NPC types `0x17` and `0x1F`, a successful Rod attack first consumes its normal OBJECTS dice, then additionally consumes **two d8 rolls with +6 per die**, instead of a single combined damage roll. Other target types retain only the initial dice result. Never reintroduce charged critical effects by comparing a host raw roll to 20; never omit the initial Rod RNG draw before the extra two.
+
+The first part of original `E284` NPC injury now also reproduces reaction-state/countdown and special type-8/type-15 HP arithmetic. The Level 22 Assassin (type9) shares this prelude. All resulting HP, animations, reaction frames and actual game-time effects still require compiled native and original DOS comparison.
+
 ## Original combat RNG and damage-effect ordering
 
 The original `E5F0:E6C9..E963` branch is reached **only after C80C hit success**. Once that branch executes, its item-specific original `1C328` dice recipes call `30CA2` RNG once per die, preserving the original count, per-die modifiers, and final modifier ordering. An attack that misses the initial hit check **must not roll or advance the damage RNG** merely to stage an effect, while its **nonzero-duration action-state lockout still runs later** through `24B48`.
