@@ -35,7 +35,7 @@ The actual original table at logical `E5CC` contains **nine 32-bit CODE.2 jump a
 | ID | Original pseudo-hand item | Original `1C328` dice args | Other original consequence |
 | --- | --- | --- | --- |
 | `0x7E` | CHILL TOUCH | `(1,4,0,0)` | Standard gate continues |
-| `0x7F` | VAMPIRIC TOUCH | `(N,6,0,0)` | `N` comes from `22E40(actor,4,6)` then signed adjustment, arithmetic halving and +1; **no guessed count** |
+| `0x7F` | VAMPIRIC TOUCH | `(N,6,0,0)` | `N` now comes from **`22E40(class=4, actor)`**, which returns first matching signed class level or fallback 1, followed by original signed halving and +1; no guessed count |
 | `0x80` | CLAWS OF THE UMBER HULK | `(2,6,0,0)` | Hit effect code `0x0C` |
 | `0x81` | CAUSE LIGHT WOUNDS | `(1,8,0,0)` | Standard gate continues |
 | `0x82` | CAUSE SERIOUS WOUNDS | `(2,8,1,0)` | Hit effect code `0x09` |
@@ -44,7 +44,7 @@ The actual original table at logical `E5CC` contains **nine 32-bit CODE.2 jump a
 | `0x85` | FLAME BLADE | `(1,4,4,2)` | Standard gate continues |
 | `0x86` | LICH TOUCH | `(1,10,0,0)` | Standard gate continues |
 
-`CombatDamageDiceModel` reports these arguments, original effect discriminators and the separate HARM special branch. For `0x7F`, absent the genuine `22E40` result, the dice plan is **absent**, not defaulted. Its signed-divide behavior is reproduced if that input is provided; counts outside the existing native `OriginalRandom::dice` u8-count API are rejected rather than silently truncated. More instruction work may be required to connect the full `22E40` semantics.
+`CombatDamageDiceModel` reports these arguments, original effect discriminators and the separate HARM special branch. For `0x7F`, the original `22E40` result can now be computed directly with `CombatDamageDiceModel::inspect_for_actor` using the actual actor's signed class levels; the original standalone `inspect` still rejects a missing caller-supplied helper result. Its signed-divide behavior is reproduced if that input is provided; counts outside the existing native `OriginalRandom::dice` u8-count API are rejected rather than silently truncated. More instruction work may be required to connect the full `22E40` semantics.
 
 **HARM caveat:** the original `E815..E839` changes the live target HP before the general gate. `C910` later enforces a **minimum-one resulting injury**, so it is misleading to say that HARM's pre-gate zero automatically produces final zero damage. Actual world mutation is pending.
 
@@ -58,7 +58,7 @@ The original `C910` receives damage, NPC definition pointer (DWORD **`+0x31`**),
 4. **Executable quirk, preserved:** `C975` loads the enchantment byte with `MOVZX`, then `C979` compares that nonnegative 32-bit register against **signed -2**. No zero-extended 8-bit value 0..255 is less than -2, so the `JL` branch is never taken. The symmetrical `C988..C98F` zero-extended value is always `>= -2`. This must not be replaced with imagined signed-enchantment semantics.
 5. Finally `C993..C99D` clamps **any provisional damage below one to one** (including negative values, HARM's pre-gate zero, or values suppressed by creature flags).
 
-The new read-only `CombatWeaponDamageGateModel` separately reports the original creature restriction being triggered and whether the final minimum clamp occurred, even if the input damage already equaled one. `E5F0` **excludes hardcoded Rod of Smiting `0x4A` from the normal C910 call**, instead using monster-type, hit-roll and charge-dependent special logic at `E8BB..E955`. The pure dice model identifies that route; it does **not** claim Rod-of-Smiting damage is ready.
+The new read-only `CombatWeaponDamageGateModel` separately reports the original creature restriction being triggered and whether the final minimum clamp occurred, even if the input damage already equaled one. `E5F0` **excludes hardcoded Rod of Smiting `0x4A` from the normal C910 call**, instead entering original `E8BB..E955`. The later `C80C` comparison to 20 actually receives **only a Boolean return 0/1**; the apparent charged critical-hit branches are unreachable. Reachable monster type `0x17/0x1F` behavior makes an **extra `1C328(2,8,6,0)` roll**, while other types retain initial damage. The separate [Rod model](LEVEL22_CLASS_LEVEL_ROD_INJURY_CHECKPOINT.md) now exposes this outcome without consuming RNG.
 
 ## Tests and acceptance
 
@@ -69,9 +69,9 @@ The new read-only `CombatWeaponDamageGateModel` separately reports the original 
 
 ## Next faithful integration stages
 
-1. Identify the actual original DGROUP signed stat lookup table at `0x684B`, including loader provenance; reconstruct `22E40` Vampiric Touch count from original actor level/state.
-2. Model Rod of Smiting `0x4A` branches, target-type special cases and charge consumption; model `E815..E839` HARM HP change in a safe staging layer with original injury ordering.
-3. Reconstruct the precise `E5F0` event/visual call sequence and NPC damage handoff `E284`, including hit-roll check, original `1C328` RNG draw count and `38110` effect timing. Only then integrate into mutable Level 22 NPC records.
+1. Identify the actual original DGROUP signed stat lookup table at `0x684B`, including loader provenance. The independent `22E40` class-level dependency for Vampiric Touch is **now reconstructed** from party bytes; see [follow-up](LEVEL22_CLASS_LEVEL_ROD_INJURY_CHECKPOINT.md).
+2. Rod of Smiting's reachable target-type branch and **unreachable charged-crit path** are now audited and modeled. Stage `E815..E839` HARM HP mutation in exact pre-`C910` order, then original later E284 type/death effects.
+3. Reconstruct the precise `E5F0` event/visual call sequence and NPC damage handoff `E284`, including hit-roll check, original `1C328` RNG draw count and `38110` effect timing. Only the initial E284 prelude is now reused by existing Level 22 Assassin damage; the rest of creature-specific death and live player-attack integration remains open.
 4. Capture original DOS RNG, action-clock and animation/input traces before claiming combat temporal fidelity.
 5. Keep Windows GitHub Actions manual-only and defer executable publication until a meaningful consolidated, explicitly authorized verification point.
 
