@@ -558,3 +558,32 @@ records source branches, callback boundaries and
 4 new CTests. The resulting VGA output still needs
 reference-DOS comparison and true 29414/predicate
 implementations.
+
+
+## Original 2AD18/2ADE0 and 29414 predicate/clip chronology
+
+Source `2AE30` now can invoke the original
+`2AD18` world-state predicate and pure
+`2ADE0` secondary class predicate, not injected
+guessed cursor classes. Source `2AD18`
+reads `1C1DC(48h)` on types 3Bh/3Ch before
+reading `1C1DC(35h/36h)`, with the original
+short-circuit that avoids the second read
+when bit 48h is set. The original DWORD state
+at DGROUP `22200` is read LIVE.
+
+The earlier `29804` EFD4 draw-record layer
+now delegates to a source-backed `29414`
+clipper. `29414` invokes 2E758 **before**
+its resource null check, writes six live
+scratch DWORDs in original order, updates
+`EF69/EF6B/EF6D/EF6F`, then chooses
+the direct `2A380` or clipped `2A6B0`
+branch, or returns without pixels. All of
+those operations precede the subsequent
+original game `30700` IRQ observation.
+No synthetic host clock is introduced.
+
+[Source checkpoint](LEVEL22_CODE2_29414_PREDICATES_CHECKPOINT_20261008.md).
+The underlying clipped pixel copier `2A6B0`
+still requires native source reconstruction.
