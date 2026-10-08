@@ -15,8 +15,14 @@ void select_291b0(
     // 291B0 calls 29FEC -> 2AB6C before setting EF4D.
     // The latter computes EFE9 and F001 from original F005,
     // masking page to one byte and wrapping all DWORD arithmetic.
+    const auto live_stride=services.observed_stride_f005_before_291b0
+        ? services.observed_stride_f005_before_291b0()
+        : state.page_stride_f005;
+    // Record the actual F005 observation, not a stale previous
+    // stride from before 2F580's diagnostic callback.
+    state.page_stride_f005=live_stride;
     const auto projection=CombatVgaPageSelectionModel::inspect(
-        page,state.page_stride_f005);
+        page,live_stride);
     state.selected_page_efe9=projection.original_efe9_page;
     state.physical_page_base_f001=
         projection.original_f001_vga_linear_base;
