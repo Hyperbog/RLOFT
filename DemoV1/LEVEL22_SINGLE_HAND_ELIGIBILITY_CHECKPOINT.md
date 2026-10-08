@@ -36,7 +36,7 @@ The low-two-bit field distribution across the supplied archive is **311 zero, 18
 
 The original `24478` **does** invoke `240A8` with `item=-1`. `240A8` calls `23E58` and possibly `23F50` *before* testing item `-1`. Both helper routines can perform raw OBJECTS-base-relative memory reads using the signed negative ID; the exact memory immediately preceding the original loaded OBJECTS pointer can matter. A faithful emulator has to recover that raw-pointer context and special `3420D/34248` empty-hand branch behavior. A generic array index or invented “unarmed category 10” assumption is **not** sufficient here.
 
-Therefore the current `CombatSingleHandEligibilityModel::evaluate` explicitly rejects **negative item IDs**; it does **not** claim to reproduce the original unarmed path. This is an intentional open reconstruction dependency, not a statement that the original game disallows unarmed attacks.
+The original OBJECTS loader has since been traced: `268C8..2692C` allocates `count*65` bytes through `4104C`, which returns the underlying allocation pointer plus 10; `23E58(-1)` and `23F50(-1)` read `OBJECTS_POINTER-0x12`, **eight bytes before the underlying low-level allocation start**. The requested byte is therefore not recoverable from OBJECTS.DAT itself. The updated `CombatSingleHandEligibilityModel::evaluate` accepts `-1` only when this **actual pre-base category byte** is supplied explicitly. It models the resulting `240A8` classification and party gate and rejects any `-1` request lacking that byte. It does not invent the runtime value or assert full `24478` empty-hand behavior; see [pair arbitration checkpoint](LEVEL22_HAND_PAIR_ARBITRATION_CHECKPOINT.md).
 
 ## Committed source and deterministic tests
 
@@ -54,4 +54,4 @@ Therefore the current `CombatSingleHandEligibilityModel::evaluate` explicitly re
 4. Connect `26018` and `E5F0` when target/collision/weapon category/damage/audio/animation/timing dependencies are ready; test original vs native **time series**, not only final HP.
 5. Keep GitHub Actions manual-only while private and batch later verification into one intentional build.
 
-**Completion accounting:** Bounded **nonnegative-item `240A8` branch source checkpoint ~75%** (original-byte branch audit, native model and tests, source integration complete; compiled/runtime comparison open). Full `24478` two-hand decision remains unfinished. **Overall faithful-demo release acceptance remains 20% (1/5 gates).**
+**Completion accounting:** Bounded **`240A8` original branch model checkpoint ~75%** (original-byte branch audit, native model and tests, source integration complete; compiled/runtime comparison open). Full `24478` two-hand decision remains unfinished. **Overall faithful-demo release acceptance remains 20% (1/5 gates).**
