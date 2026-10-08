@@ -14,6 +14,12 @@ std::int32_t CombatVisibleTargetModel::scan(
     if (group > 1U) {
         throw std::out_of_range("CODE.2 DACC group must be 0 or 1");
     }
+    // Two fixed original scene buffers are spaced by 0x2260 bytes,
+    // each with 0x16-byte records: 400 records maximum per group.
+    if (records.size() > 0x2260U / 0x16U) {
+        throw std::out_of_range(
+            "CODE.2 DACC projected group exceeds 400 records");
+    }
     if (records.empty()) return -1;
     // The DOS DACC loop obtains the count from F038(group), then
     // searches each draw rank count-1 .. 0 by matching record+0Ah.
