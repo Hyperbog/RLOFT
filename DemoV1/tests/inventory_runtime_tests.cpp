@@ -199,11 +199,17 @@ int main() {
     // establish which original 4-byte field gets reset.
     set_item(party,0,14U,3);
     set_item(party,0,15U,4);
-    const auto dead0 = 0x18EU;
-    const auto dead1 = 0x192U;
+    const auto dead0 = 0x19EU;
+    const auto dead1 = 0x1A2U;
+    // The 26018 attack-action state words at +10B/+10F are
+    // independent. The item swap must NOT clear either of them.
+    const auto action0 = 0x10BU;
+    const auto action1 = 0x10FU;
     for(std::size_t b=0U;b<4U;++b) {
         party.bytes[dead0+b]=0xABU;
         party.bytes[dead1+b]=0xCDU;
+        party.bytes[action0+b]=0x5AU;
+        party.bytes[action1+b]=0x6BU;
     }
     // Hand A contains identified item3; held unidentified item5.
     party.bytes[known_at+1U]=0x40U;
@@ -218,6 +224,8 @@ int main() {
     for(std::size_t b=0U;b<4U;++b) {
         assert(party.bytes[dead0+b]==0U);
         assert(party.bytes[dead1+b]==0xCDU);
+        assert(party.bytes[action0+b]==0x5AU);
+        assert(party.bytes[action1+b]==0x6BU);
     }
 
     // Take from hand B to an empty cursor: 0F238 returns early
@@ -230,8 +238,11 @@ int main() {
     assert(runtime.held.object_id==4);
     assert(runtime.held.known==1U);
     assert((party.bytes[known_at+1U] & 0x80U)!=0U);
-    for(std::size_t b=0U;b<4U;++b)
+    for(std::size_t b=0U;b<4U;++b) {
         assert(party.bytes[dead1+b]==0U);
+        assert(party.bytes[action0+b]==0x5AU);
+        assert(party.bytes[action1+b]==0x6BU);
+    }
 
     // Hand swap refuses equipment types 3..8, category-1
     // container menu state, and temporary spell-hand pseudo-items.
