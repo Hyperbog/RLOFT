@@ -1,5 +1,27 @@
 # Ravenloft Demo Build v1
 
+## Playable Level 22 walkaround preview (opt-in)
+
+**Windows x64:** use the newly added `Explore-Level22.cmd` packaged next
+to `ravenloft_demo_v1.exe` in the latest Windows Actions artifact. It
+loads the actual Level 22 without requiring the intro or character-creation
+sequence. If CHARS is present it is used read-only; otherwise the preview
+uses temporary in-memory EXPLORER/GUIDE characters. Your installed game files
+are not saved or modified by this mode.
+
+Use arrow keys or the numeric keypad to move and turn; press Esc to exit.
+Alternatively run `ravenloft_demo_v1.exe --explore-level22` (optionally
+followed by a quoted installation path). The normal no-flag boot flow is
+unchanged. The original world/environment is loaded, but incomplete
+main-wall rasterization can leave some foliage/walls/scene pixels absent.
+The preview is not a full gameplay demo.
+
+[Walkaround instructions, implementation and acceptance checklist](EXPLORATION_WALKAROUND_CHECKPOINT.md).
+**Checkpoint acceptance: 60% (3/5 defined gates)** pending Windows build and
+real installed-game smoke test. Overall demo acceptance remains **20% (1/5
+major release gates)**.
+
+
 Goal: reproduce the original shipped behavior from boot through character creation while reading assets from a legally installed/owned copy of *Ravenloft: Strahd's Possession*.
 
 ## Extended integration milestone — Level 22
