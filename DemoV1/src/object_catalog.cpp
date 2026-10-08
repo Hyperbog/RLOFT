@@ -59,6 +59,9 @@ ObjectCatalog ObjectCatalog::parse(
         object.raw_byte_35_low2 =
             static_cast<std::uint8_t>(object.raw_word_35 & 0x03U);
         object.weight_half_units = rec[0x30];
+        object.damage_dice_count = rec[0x38];
+        object.damage_dice_sides = rec[0x39];
+        object.damage_per_die_bonus = rec[0x3A];
         object.container_state_index =
             static_cast<std::int8_t>(rec[0x31]);
         object.enchantment = rec[0x37];
