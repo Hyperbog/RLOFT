@@ -6,6 +6,7 @@
 #endif
 
 #include <cassert>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
