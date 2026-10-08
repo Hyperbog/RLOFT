@@ -385,3 +385,27 @@ four-plane backing capture/restore, including
 `2A114/2A178` VGA read map and sequencer
 registers, then DOS reference framebuffer
 comparison and other gameplay gates.
+
+
+## 292BC/2932C source-accurate overlay backing clipping
+
+The [original backing clip checkpoint](LEVEL22_CODE2_OVERLAY_BACKING_CLIP_CHECKPOINT.md)
+adds native source-verified `292BC/2932C`
+clipping to the existing 1A288/1AB20 overlay
+renderer. The routines preserve negative signed
+start coordinate adjustment, EF3F/EF41 signed
+viewport bounds, original DWORD wrap and the
+zero-column asymmetry (capture skips, restore
+still calls its backend). A reusable binder
+forwards the exact clipped original arguments
+to original 2A114/2A178 callbacks without
+substituting modern offscreen bitmaps.
+
+29 additional unique original-code checks
+increase the ledger to **855 named / 847 unique
+instruction offsets**. New source passed
+isolated strict C++17 Debug/Release/UBSan
+checks, while full Windows CTests remain
+unrun at this current HEAD. Next reconstruct
+2A114 and 2A178 actual source-backed VGA
+plane read/write and backing-buffer data.
