@@ -26,7 +26,7 @@
 - Indexed indirect transfers need a known pointer-table base and **at least two** consecutive relocation-backed executable destinations. Stop at the first missing/invalid entry, the object's boundary, or the 128-entry cap.
 - The analyzer never automatically marks table bytes **verified data**; the original unknown/protected classifications are preserved. Analyst-protected table data may still supply relocation evidence without being executed.
 - No proof is made that an index is in range, that the full table was found, or that runtime memory has not been changed. The existing `unresolved-indirect-*` edge is preserved **even when candidate targets are emitted**.
-- At present candidate indirect targets are traversed to make additional potential paths visible, but their edge evidence is `candidate-...`, not verified. Therefore instruction counts after Part 17 cannot be compared as proof of increased accuracy or runtime coverage.
+- At present candidate indirect targets are traversed to make additional potential paths visible, but their edge evidence is `candidate-...`, not verified. Instructions reached **only** through these edges carry `candidate-relocation-backed-indirect` provenance rather than an ordinary direct-reachability label. Therefore instruction counts after Part 17 cannot be compared as proof of increased accuracy or runtime coverage.
 - Unknown backing, uncertain operand mode, conflicting fixups and nonmatching table entries do not generate inferred targets.
 - `maxInstructions` and `--max-output` remain bounded. Consumers must check `Truncated` and output truncation summary fields.
 

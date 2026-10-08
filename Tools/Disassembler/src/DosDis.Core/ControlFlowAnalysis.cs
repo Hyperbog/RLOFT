@@ -98,15 +98,23 @@ public static class ControlFlowAnalysis
         var indirectFunctionEntries = new HashSet<FlowAddress>();
         var queued = new HashSet<FlowAddress>();
         var pending = new Queue<FlowAddress>();
+        // Preserve whether a discovered instruction was reached only through a
+        // candidate indirect edge rather than a direct or analyst seed.
+        var speculativeOnly = new Dictionary<FlowAddress, bool>();
         var functionEntries = new HashSet<FlowAddress>(sourceSeeds);
         bool truncated = false;
 
         bool IsExecutable(FlowAddress loc) =>
             owners.TryGetValue(loc.Object, out int[]? arr) && loc.Offset < arr.Length;
 
-        void QueueCandidate(FlowAddress loc)
+        void QueueCandidate(FlowAddress loc, bool speculative = false)
         {
-            if (IsExecutable(loc) && queued.Add(loc)) pending.Enqueue(loc);
+            if (!IsExecutable(loc)) return;
+            if (!speculativeOnly.TryGetValue(loc, out bool previouslySpeculative))
+                speculativeOnly[loc] = speculative;
+            else if (previouslySpeculative && !speculative)
+                speculativeOnly[loc] = false;
+            if (queued.Add(loc)) pending.Enqueue(loc);
         }
         foreach (var seed in sourceSeeds)
         {
@@ -181,7 +189,9 @@ public static class ControlFlowAnalysis
             formatter.Format(instruction, output);
             instructions.Add(cursor, new FlowInstruction(cursor, size,
                 Convert.ToHexString(raw.AsSpan(0, size)), output.ToStringAndReset(),
-                instruction.FlowControl.ToString(), "candidate-reachable-from-seed"));
+                instruction.FlowControl.ToString(),
+                speculativeOnly.GetValueOrDefault(cursor) ? "candidate-relocation-backed-indirect" :
+                "candidate-reachable-from-seed"));
             for (int i = pos; i < pos + size; i++)
             {
                 ownership[i] = pos;
@@ -209,7 +219,7 @@ public static class ControlFlowAnalysis
                 if (target is not null)
                 {
                     if (IsExecutable(target.Value) && image.ToFileOffset(target.Value.Object, target.Value.Offset) != null)
-                        QueueCandidate(target.Value);
+                        QueueCandidate(target.Value, kind.StartsWith("candidate-indirect-", StringComparison.Ordinal));
                     else Report(cursor, "unresolved-target", $"{kind} destination {target.Value} is not backed executable code in this object.");
                 }
             }

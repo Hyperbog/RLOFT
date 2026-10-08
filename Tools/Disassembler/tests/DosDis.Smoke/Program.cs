@@ -210,6 +210,9 @@ try
     Equal(tableGraph.JumpTables[0].Table, new FlowAddress(1, 0x40), "jump table address");
     Equal(tableGraph.JumpTables[0].CandidateTargets.Count, 3, "three jump table candidates");
     Equal(tableGraph.Instructions.Count, 4, "table candidates recursively decoded");
+    Equal(tableGraph.Instructions.Where(x => x.Address.Offset is 0x20 or 0x28 or 0x30)
+        .All(x => x.Evidence == "candidate-relocation-backed-indirect"), true,
+        "indirect-only recovered instructions disclose speculative origin");
     Equal(tableGraph.Edges.Count(e => e.Kind == "candidate-indirect-jump"), 3,
         "distinct jump candidates recorded");
     Equal(tableGraph.Edges.Any(e => e.Kind == "unresolved-indirect-jump"), true,
