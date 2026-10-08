@@ -302,3 +302,32 @@ VGA sequencer/graphics-controller rectangle-copy,
 then nested 1A288/1AB20 overlay effects and DOS
 A/B frame/IRQ testing. Formal demo acceptance stays
 1/5 gates; engineering percentage is unmeasured.
+
+
+## Actual native 2A078 VGA latch and 30CD4 overlay backing copy
+
+The [2A078/30CD4 original-code checkpoint](LEVEL22_CODE2_2A078_30CD4_COPY_CHECKPOINT.md)
+closes two further **shared engine** source paths:
+original graphics-controller write-mode-1 four-plane
+VGA rectangle copying, including original EFE9/F001
+page restoration and forward overlapping-source behavior;
+and original `30CD4` unsigned-overlap-aware DGROUP
+buffer transfer for the `1A8C8` 1024-byte overlay
+backing block.
+
+The `CombatOriginalVgaCopyBinder` now supplies these
+to the original `1A8C8` renderer callback, and native
+code can transfer real planar pixel and backing bytes.
+**70** further CODE.2 original opcode signatures
+passed, for **754 named / 746 unique addresses**.
+Strict source-equivalent local Debug/Release/UBSan
+checks passed, but no fresh Windows EXE or full
+CTests are claimed for this HEAD.
+
+Remaining overlay-specific work is reconstructing
+`1A288` and `1AB20` display/restore services,
+integrating actual original framebuffer and DGROUP
+captures into the live runtime, and DOS frame/state/
+IRQ equivalence tests. Do not mark the formal demo
+acceptance gates passed solely because reusable engine
+components pass isolated unit tests.
