@@ -1,6 +1,40 @@
 # Ravenloft Demo Build v1
 
 
+## Original VGA page-stack integration (CODE.2 2E590 / 2E5D4)
+
+[Source and integration checkpoint](LEVEL22_CODE2_VGA_PAGE_STACK_CHECKPOINT.md):
+native overlay callbacks now execute the original DOS
+`F0D0` **byte-depth VGA page stack** rather than
+treating `2E590/2E5D4` as stub page changes.
+The stack saves `EF4D` into `2B644`, preserving
+its distinction from original `EFE9`, and
+recalculates `F001` through `291B0/2AB6C`
+with live `F005`. Original diagnostic calls at
+depth 10/0, their continuation semantics and byte
+wraparound are explicitly modeled.
+
+A new binder connects page push/pop to `1A288/1AB20`
+and synchronizes `EFE9/F001/F005` with the actual
+`2A078` VGA-copy model. No hardcoded Level 22
+page number was used. **23/23 original instruction
+checks passed**, raising the executable audit to
+**826 named / 818 distinct sites**. The exact committed
+core source and binding passed isolated strict
+C++17 Debug, Release and UBSan checks; the two
+registered checked-in CTests have not yet run in a
+complete Windows build on current `demo-v1`.
+
+The next source-backed graphics boundary is
+`292BC/2932C` 32×16 VGA overlay backing-image
+capture/restore (including their *different*
+zero-width clipping gates) and its lower-level
+`2A114/2A178` four-plane operations.
+Formal demo acceptance remains **1 of 5 gates**;
+the development completion percentage is unmeasured.
+
+
+
 ## Original 1A288/1AB20 overlay activation and restoration checkpoint
 
 The [original overlay source checkpoint](LEVEL22_CODE2_OVERLAY_1A288_1AB20_CHECKPOINT.md)
