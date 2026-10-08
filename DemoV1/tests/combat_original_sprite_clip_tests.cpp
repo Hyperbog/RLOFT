@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -129,7 +130,6 @@ int main() {
     viewport.viewport_last_row_ef59=319U;
     viewport.viewport_last_column_ef61=399U;
     resource_height=2U;resource_byte_width=1U;
-    CombatOriginalOverlayDrawState depth{};
     auto original_draw=CombatOriginalSpriteClipBinder::bind_29804(
         viewport,dos,s,CombatOriginalOverlayDrawServices{});
     assert(original_draw.draw_29414);
