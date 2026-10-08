@@ -34,6 +34,22 @@ ANCHORS = {
     "DACC projection delta 7D00": (0x0DB61, "81ea007d0000"),
     "DACC vertical threshold 3B": (0x0DB6A, "83fa3b"),
     "DACC eligible actor flag10": (0x0DB76, "f6808b4d010010"),
+    # CODE.2 24478 direct two-hand checks plus its original helpers.
+    "23EAC signed class byte0": (0x23EB4, "0fbe90f5180200"),
+    "23EAC signed class byte1": (0x23EC1, "0fbe90f6180200"),
+    "23EAC signed class byte2": (0x23ECE, "0fbe80f7180200"),
+    "23EE4 paired exception 2B": (0x23EE8, "83f82b"),
+    "23EE4 paired exception 103": (0x23F23, "3d03010000"),
+    "23E58 pseudo-item lower bound": (0x23E58, "837c24047e"),
+    "23E58 original OBJECTS category": (0x23E80, "0fb644022f"),
+    "23E58 weapon category9": (0x23E85, "83f809"),
+    "23E58 object30 exception": (0x23E9A, "837c240430"),
+    "24478 first hand item": (0x24489, "0fbfa83c190200"),
+    "24478 second hand item": (0x24490, "0fbf803e190200"),
+    "24478 actor status mask": (0x245A9, "2540720000"),
+    "24478 hand0 action state": (0x24A5E, "83b8eb19020000"),
+    "24478 hand1 action state": (0x24A6F, "83beef19020000"),
+    "24478 selected hand flag": (0x24A7A, "837c243800"),
 }
 
 
