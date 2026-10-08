@@ -4,6 +4,13 @@ name: Build native WPF Fluent extractor (manual)
 # budget/runner restrictions; don't spend minutes on each documentation commit.
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - extractor-wpf-fluent
+    paths:
+      - "Tools/WpfExtractor/**"
+      - "Tools/anm/wpf_bridge.py"
+      - ".github/workflows/build-wpf-fluent.yml"
 
 permissions:
   contents: read
