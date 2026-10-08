@@ -1,6 +1,46 @@
 # Ravenloft Demo Build v1
 
 
+## Latest source-backed overlay predicates and sprite clipping (29414)
+
+[Original CODE.2 29414/2AD18/2ADE0 checkpoint](LEVEL22_CODE2_29414_PREDICATES_CHECKPOINT_20261008.md)
+implements the previously injected `2AD18` and
+`2ADE0` object-type predicates, including the
+real `1C1DC` world-state bitset at DGROUP
+`22200`, and `29414` signed viewport clipping.
+The 29414 model writes the original six-DWORD
+(24-byte) scratch record at `EF74+EFD4*24`,
+updates source `EF69/EF6B/EF6D/EF6F` WORDs,
+and chooses full `2A380`, clipped `2A6B0`
+or no raster (original EAX 2/1/0).
+It calls `2E758` before the resource null check.
+
+Adapters now install the genuine predicates beneath
+`2AE30` and connect `29414` beneath the existing
+`29804` draw-record stack. The shared original
+`A6BC` and `D680` modes are synchronized
+or sampled live instead of frozen as independent
+overlay mouse and probe snapshots. An integrated
+CTest exercises the full original callback chain
+through the real overlay resource `880D`.
+
+**105/105 original CODE.2 opcode checks matched**,
+bringing the ledger to **1,109 named checks / 1,101
+distinct addresses**. The two exact committed core
+source blobs passed independent strict C++17 Debug,
+Release and UBSan smoke tests. All three new
+assertion-enabled CTests are registered, but
+full current-HEAD Windows compilation and DOS
+reference frame comparisons remain open.
+The main remaining pixel backend is original
+`2A6B0` clipped VGA rasterization.
+
+Formal demo acceptance remains **1 of 5 gates**;
+overall engineering completion is not a measured
+single percentage.
+
+
+
 ## Original overlay pointer, hit-test and draw-record milestone
 
 [Original 1A3B8 / 2AE30 / 29804 source checkpoint](LEVEL22_CODE2_POSITION_PROBE_DRAW_CHECKPOINT_20261008.md)
