@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <initializer_list>
 
 int main() {
     using rloft::CombatNpcInjuryPreludeInputs;
