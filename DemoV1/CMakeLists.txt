@@ -61,6 +61,7 @@ add_library(rloft_boot_flow
     src/combat_progression_thresholds.cpp
     src/combat_level_change_gate.cpp
     src/combat_level_change_sequence.cpp
+    src/combat_level_up_hp.cpp
     src/combat_harm_prelude.cpp
     src/combat_damage_stat_bonus.cpp
     src/combat_weapon_damage_gate.cpp
@@ -270,6 +271,9 @@ add_test(NAME combat_level_change_gate_tests COMMAND combat_level_change_gate_te
 add_executable(combat_level_change_sequence_tests tests/combat_level_change_sequence_tests.cpp)
 target_link_libraries(combat_level_change_sequence_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_level_change_sequence_tests COMMAND combat_level_change_sequence_tests)
+add_executable(combat_level_up_hp_tests tests/combat_level_up_hp_tests.cpp)
+target_link_libraries(combat_level_up_hp_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_level_up_hp_tests COMMAND combat_level_up_hp_tests)
 add_executable(combat_harm_prelude_tests tests/combat_harm_prelude_tests.cpp)
 target_link_libraries(combat_harm_prelude_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_harm_prelude_tests COMMAND combat_harm_prelude_tests)
@@ -661,6 +665,7 @@ set(RLOFT_TEST_TARGETS
     combat_progression_thresholds_tests
     combat_level_change_gate_tests
     combat_level_change_sequence_tests
+    combat_level_up_hp_tests
     combat_harm_prelude_tests
     combat_damage_stat_bonus_tests
     combat_weapon_damage_gate_tests
