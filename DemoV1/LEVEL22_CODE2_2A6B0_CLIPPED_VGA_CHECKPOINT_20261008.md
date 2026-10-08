@@ -66,7 +66,7 @@ The native model preserves raw comparisons before
 any color transformation, skips transparent VGA writes,
 and records all selected physical plane masks.
 
-The original word `F009` is also updated to the
+The original DWORD `F009` is also updated to the
 live row counter after the sequencer OUT; the native
 bounded result exposes its final value. Original
 zero-iteration `DEC/JNE` loops have no positive count
@@ -148,8 +148,8 @@ supplied in place of DOS data.
 ## Next exact remaining pixel boundary
 
 Original `2A8A0..2AA9A` is a separate
-**color-adjusted clipped sprite** procedure with a
-five-DWORD extra argument: original `2A8AC`
+**color-adjusted clipped sprite** procedure with an
+additional DWORD color-adjustment argument: original `2A8AC`
 self-modifies immediate `2AA12`, and
 `2A99C` patches transparency comparison
 immediate `2AA0D`. The inner path uses
