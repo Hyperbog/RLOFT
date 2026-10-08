@@ -356,3 +356,32 @@ individual original page-stack, overlay backing
 capture/restore and mouse/graphic services still
 require source-backed native implementations and
 DOS reference screen/IRQ comparison.
+
+
+## Original 2E590/2E5D4 page stack connected to overlay renderer
+
+The [VGA page-stack checkpoint](LEVEL22_CODE2_VGA_PAGE_STACK_CHECKPOINT.md)
+reconstructs original `F0D0` byte stack depth,
+`EF4D` active-page savings in DGROUP 2B644,
+true `291B0/2AB6C` selection, live F005 page
+stride and original depth-10/depth-0 diagnostics.
+The reversible page-stack callbacks now bind
+to the earlier 1A288/1AB20 overlay model.
+A shared-video binding also propagates its
+EFE9/F001 changes into the live 2A078
+VGA-copy globals rather than leaving two
+stale independent video snapshots.
+
+23 newly checked source instructions raise the
+ledger to **826 named / 818 unique logical
+CODE.2 addresses**. Exact committed source
+passed isolated strict Debug/Release/UBSan
+tests, with two more assertion-enabled CTests
+registered. No complete Windows build at this
+current source HEAD is claimed.
+
+Next is original `292BC/2932C` clip and
+four-plane backing capture/restore, including
+`2A114/2A178` VGA read map and sequencer
+registers, then DOS reference framebuffer
+comparison and other gameplay gates.
