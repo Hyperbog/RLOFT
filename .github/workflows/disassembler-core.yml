@@ -1,11 +1,7 @@
 name: Windows DOS disassembler core smoke tests
-# Temporary scoped Windows build for user-authorized Part 31 diagnostic test.
+# Manual only — no GitHub Actions minutes on push or PR.
 on:
   workflow_dispatch:
-  push:
-    branches: [disassembler-foundation]
-    paths:
-      - 'Tools/Disassembler/.ci-build-once-part31'
 permissions:
   contents: read
 jobs:
