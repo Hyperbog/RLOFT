@@ -165,6 +165,20 @@ int main() {
     result=evaluate(objects);
     assert(!result.first_eligible && !result.second_eligible);
     set32(p,0U,0x10BU,0U);
+    // The SECOND hand's action-state dword is distinct; if the
+    // second hand was the winning candidate, it alone is vetoed.
+    objects=catalog_with(0,0,4,1);
+    result=evaluate(objects);
+    assert(!result.first_eligible && result.second_eligible);
+    set32(p,0U,0x10FU,0x11223344U);
+    result=evaluate(objects);
+    assert(!result.first_eligible && !result.second_eligible);
+    set32(p,0U,0x10FU,0U);
+    // Conversely the original +19E/+1A2 hand-ready data is not
+    // consulted by 24478 final action-state gating.
+    result=evaluate(objects);
+    assert(!result.first_eligible && result.second_eligible);
+    assert(evaluate(objects,1U).selected_eligible);
 
     // Ordinary scoped model never pretends to handle raw
     // pre-OBJECTS[-1] or original pseudo-hand special branches.
@@ -183,6 +197,12 @@ int main() {
     try {
         (void)CombatHandPairEligibilityModel::evaluate(
             p,objects,4U,0U,CombatSingleHandContext{0U});
+    } catch(const std::out_of_range&) {rejected=true;}
+    assert(rejected);
+    rejected=false;
+    try {
+        (void)CombatHandPairEligibilityModel::evaluate(
+            p,objects,0U,2U,CombatSingleHandContext{0U});
     } catch(const std::out_of_range&) {rejected=true;}
     assert(rejected);
 
