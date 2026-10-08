@@ -65,12 +65,15 @@ int main() {
     assert(trace && trace->selected_50dc_track==1);
     assert(trace->events[1]==S::Class3EA4);
 
-    // Status exclusion suppresses only conditional class-service
-    // calls. Original 3210F/1C21C/DC7C remain required.
+    // DDA4:DE0F excludes status F240 BEFORE class processing.
+    // An ineligible actor must not generate any level-up services,
+    // even though a direct 50DC call would return -1.
     put16(party,0U,0x10U,0x4000U);
+    assert(!inspect(0U,1U,3,4));
+    put16(party,0U,0x10U,0U);
     trace=inspect(0U,1U,3,4);
-    assert(trace && trace->count==4U && trace->selected_50dc_track==-1);
-    assert(trace->events[3]==S::HpIncreaseDC7C);
+    assert(trace && trace->count==5U);
+    assert(trace->events[4]==S::HpIncreaseDC7C);
 
     // The source snapshot must represent a REAL changed level
     // already stored, not arbitrary projected or stale state.
