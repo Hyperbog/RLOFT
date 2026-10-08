@@ -10,7 +10,7 @@ The certified archive documents 22/22 numbered *historical static* chapters 00�
 
 **Evidence precedence:** immutable original DOS binary bytes → instruction-accounted certified reconstruction → corroborated archive analysis → native-port fixture. Pin any new behavioral finding to its original CODE.1/CODE.2 offset and archived evidence, not merely to a modern source name.
 
-**Important branch divergence:** `Code1/Code1.cpp` already shares the authoritative Git blob `226c563007ac4daef8f732505341175914ba2b94` between both branches. The certified CODE.2 C++ blob on `code1-decompilation` is `c3f16122e79c3c464382e4511d9d932f6fcd694a`, but the demo branch's `Code2/Code2.cpp` is `87f6638921c53a32bde59735515fbc175e2c96ee`. **Do not silently replace either**: reconcile the byte/instruction-level difference against the certified audit and original binary before deciding which source revision should be synchronized. This difference does *not* mean the original CODE.2 file changed.
+**Branch reconciliation closed (2026-10-07):** `Code1/Code1.cpp` already matched across both branches (Git blob `226c563007ac4daef8f732505341175914ba2b94`). The two CODE.2 C++ revisions differed in **exactly two source regions**, both justified by direct original `CODE.2` x86 disassembly: `0139C` automap offsets and `2975C` graphics argument forwarding. The original-certified snapshot `c3f16122e79c3c464382e4511d9d932f6fcd694a` is retained in Git history, and `code1-decompilation` now uses the same corrected `Code2/Code2.cpp` blob as `demo-v1`: `87f6638921c53a32bde59735515fbc175e2c96ee`. See [the demo errata](../Code2/POST_CERTIFICATION_ERRATA.md), the [pinned original-byte audit](https://github.com/Hyperbog/RLOFT/blob/33c109add901459150011009bf88a90c1428185d/Code2/POST_CERTIFICATION_GRAPHICS_CORRECTIONS_2026-10-07.md), and [main-branch reconciliation commit](https://github.com/Hyperbog/RLOFT/commit/c952e9adb152007208951da3b0030c7439fd72b9). No original executable data or byte-accounting totals were changed. New strict full-file syntax and original-frame acceptance gates remain separate.
 
 ## Direct original-code-to-port crosswalk
 
@@ -28,7 +28,7 @@ The certified archive documents 22/22 numbered *historical static* chapters 00�
 
 ## Implementation order, using the archive to avoid rediscovery
 
-1. **R-072 traceability baseline:** reconcile CODE.2 C++ branch divergence, cite source offsets for the existing Level 22 native routines and isolate any remaining inferred behavior.
+1. **R-072 follow-through:** CODE.2 branch divergence is reconciled (above). Continue original-offset traceability for Level 22 native routines; isolate remaining inferred behavior and run a fresh whole-file CODE.2 strict syntax check when a compiler is available.
 2. **R-076 visible fidelity:** use Ch.04 and certified rasterizer evidence to finish the type-6 walls/prepass and compare exact indexed pixels against original DOS reference scenes. Current synthetic SINTAB tests do not replace this acceptance criterion.
 3. **R-061/R-079 pointer and item behavior:** use Ch.07 §15–24 and §31–55 to implement correctly ordered hand/cursor swap and inventory panel inputs. The current host click→loose-item bridge intentionally refuses pickup while holding another item.
 4. **R-045/R-075 combat:** implement the original attack hit/damage model from Ch.12 and actor state from Ch.11 before enabling arbitrary viewport attack clicks. Never synthesize a damage roll merely because an NPC is clicked.
