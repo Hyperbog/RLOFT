@@ -188,3 +188,28 @@ These new raster commits are subsequent and not included
 in that result. GitHub Actions remains manual-only.
 
 **Overall faithful-demo acceptance remains 20% (1/5 major gates).**
+
+
+## Subsequent sprite machine-state and real-raster binding update
+
+The earlier source-only observation that shader code patches and
+sequencer/F009 persistence were unimplemented is superseded by the
+[new machine and binding checkpoint](ORIGINAL_SPRITE_MACHINE_BINDING_CHECKPOINT_20261008.md).
+The native raster now preserves VGA sequencer register index02's
+last plane mask, the transparent branch's F009 row count, and
+the original 2A584 full-DWORD shader operand patches at
+2A60B and 2A672 through a caller-owned captured CODE.2
+object-1 code image. All port state starts **unknown** until
+observed; no fictitious power-on register values are assumed.
+
+An injected resource-reader adapter now connects 2939C/293EC
+to the existing 2A380/2A584 pixel raster with actual
+source DOS resource and shader pointers. Shader code is
+patched before memory capture callbacks, then F0C8 refresh
+is deferred until after rasterization as in original 2E758.
+The five new audited x86 instructions raise coverage to
+**653 named checks / 645 distinct logical code addresses**.
+New tests passed isolated Debug/Release/UBSan checks, but
+not yet an integrated MSVC Windows build. Actual DOS
+resource backing, 1A8C8 composition, reference pixels
+and real IRQ timelines remain to be verified.
