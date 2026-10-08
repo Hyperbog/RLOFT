@@ -117,4 +117,36 @@ int main() {
             overlay,region,services);
     } catch(const std::invalid_argument&) {rejected=true;}
     assert(rejected);
+
+    // With authentic DGROUP capture and explicitly injected original
+    // overlay collaborators, the buffered path also moves the exact
+    // 0x400-byte backing page AFTER its VGA copy and BEFORE restore.
+    CombatOriginalDgroupCapture dgroup{};
+    dgroup.captured_base_dgroup_offset=0x9E3AU;
+    dgroup.bytes.resize(0x800U,0xCDU);
+    for(std::uint32_t i=0U;i<0x400U;++i)
+        dgroup.bytes[i]=static_cast<std::uint8_t>((i*11U+7U)&0xFFU);
+    auto buffered=CombatOriginalVgaCopyBinder::bind_copy_and_backing(
+        vga,video_state,dgroup);
+    std::vector<std::uint8_t> overlay_actions;
+    overlay.active_page_9e39=3U;
+    buffered.suspend_overlay_1a288=[&]() {
+        overlay_actions.push_back(1U);
+        assert(overlay.overlay_reference_count_9e37==0);
+        assert(overlay.active_page_9e39==0U);
+    };
+    buffered.restore_overlay_1ab20=[&](
+        std::int32_t original_row,std::int32_t original_column) {
+        overlay_actions.push_back(2U);
+        assert(original_row==1 && original_column==3);
+        for(std::uint32_t i=0U;i<0x400U;++i)
+            assert(dgroup.bytes[i]==dgroup.bytes[i+0x400U]);
+    };
+    assert(CombatOriginalCompositeModel::run_1a8c8(
+        overlay,region,buffered)==
+        CombatOriginalCompositeRoute::BufferedOverlayOverlap);
+    assert((overlay_actions==std::vector<std::uint8_t>{1U,2U}));
+    assert(overlay.overlay_reference_count_9e37==1);
+    assert(overlay.active_page_9e39==3U);
+    assert(overlay.redraw_busy_a6ba==0U);
 }
