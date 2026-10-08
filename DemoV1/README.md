@@ -12,15 +12,17 @@ describes the full current scope.
 The original SINTAB 127-block rasterizer interpreter, original RES3 type-7
 pixel execution path, and whole-scene VGA trace integrity are documented in
 [TYPE7_RENDERER_CHECKPOINT.md](TYPE7_RENDERER_CHECKPOINT.md).
-The separate original CODE.2 surface-prepass lookup audit and its
+The separate original CODE.2 surface-prepass investigation and its
 signed/unsigned SINTAB underflow boundary are tracked in
 [SURFACE_PREPASS_CHECKPOINT.md](SURFACE_PREPASS_CHECKPOINT.md).
-The original wall/prepass pixel renderer remains unfinished.
+A **transactional SINTAB pixel executor is now connected to supported
+RES4 surface prepass runs**, with per-run diagnostics and pending coverage.
+Ordinary SINTAB main-pass wall rendering and DOS-frame equivalence remain open.
 Viewport-selected Assassin damage and loose-item pickup bindings, including
 snapshot-invalidating world state, are documented in
 [LEVEL22_VIEWPORT_ACTION_CHECKPOINT.md](LEVEL22_VIEWPORT_ACTION_CHECKPOINT.md).
 
-**Do not label the demo finished yet.** SINTAB wall/prepass rendering, final
+**Do not label the demo finished yet.** Ordinary SINTAB wall rendering, final
 original-frame equivalence, remaining host combat/inventory-input bindings,
 and relic-transition integration remain open.
 Development commits continue on `demo-v1`; the Windows CI workflow handles
