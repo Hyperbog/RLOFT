@@ -7,7 +7,7 @@
 The original `26018` hand dispatch calls `E5F0(actor, hand, item_id, target)` for item categories `9, 10, 11`. This attack orchestrator has essential observable ordering and time-state behavior independent of the already reconstructed `C80C` hit arithmetic:
 
 1. **`E5F0:E5FB..E614`:** if target argument is exactly `-1`, call `DB94(actor)` to find a preferred projected target; if caller supplied any nonnegative target, preserve it and **do not call DB94**. `DB94` selects group `actor & 1` first and scans the opposite group only if the first returned `-1`. The existing `DACC` ranked projected-NPC selector is the underlying visibility scan.
-2. **`E618`:** calls `1E578(actor)` to service existing action/status state *before* entering hit evaluation; this mutation is a separate unresolved integration step, not simulated inside the new pure target selector.
+2. **`E618`:** calls original CODE.2 logical **`E578(actor)`** (objdump virtual `1E578`) *before* target/hit evaluation. The bounded E578 mutation and CF5A redraw flags now have their own source model and tests; real action orchestration must run it in this exact order.
 3. **`E621..E669`:** if global party mode `0x258A8 == 0xFF`, a target was found, and `actor & 2 != 0` (actors 2/3), clear the selected target to `-1` when `item_id == -1` or `OBJECTS[item].WORD(+0x35) & 3 != 2`. Importantly this is **target suppression, not input-event rejection**. Actors 0/1 and qualified item code 2 retain their target. Original `E5F0` can still execute its later no-target animation/feedback path.
 4. **`E671..E6C3`:** only when a target remains, resolve original projected NPC data and call `C80C` for accuracy. The original hit result is separately checked before post-hit damage resolution; no target means no genuine hit. Existing `CombatHitCheckModel` covers only that arithmetic primitive, not the complete original `E5F0` side effects.
 5. **`E6C9..E9D0`:** on a hit, original weapon spell/ability damage and object-specific cases feed subsequent `C910` gating and NPC injury calls. The whole damage/dice/RNG sequence remains to be reconstructed before enabling combat input.
@@ -52,21 +52,31 @@ The earlier `24478/26018` input gate reads the `+0x10B` action state, **not** th
 
 This model does **not** check whether a caller-provided explicit NPC index maps to an existing live projected record; that remains the original combat state layer's responsibility. The model reports whether original rear-party rules suppressed a target, rather than falsely interpreting target suppression as a rejected user click.
 
+## Original E578 actor-status service — before hit resolution
+
+At `E5F0:E618` the executable calls logical **`E578`** (not `1E578`; the latter is an adjusted disassembler address). The source-level `CombatAttackStatusService::apply` now models its bounded mutation in exact original order:
+
+1. For **all four actors**, inspect byte `actor+0x132` bit `0x20`. When set, mark that actor's original `CF5A` HUD-dirty byte `1` and clear **only** bit `0x20`.
+2. For the **attacking actor alone**, inspect byte `actor+0x133` bit `0x02`. When set, clear the 32-bit field at `actor+0x15A`, clear only that `0x02` effect bit, and set the attacking actor's `CF5A` redraw byte `1`.
+3. Do not change the independent `+0x19E` hit-ready or `+0x10B` action-state timing fields in this helper. Those are changed later at the two clock-dependent stages.
+
+The code is deliberately a **separate callable state operation**, not yet connected to live attacks. Its new C++ test fixture asserts four-actor iteration, preserved unrelated effect bits, selected-actor-only cleanup, original literal redraw `1`, idempotence and invalid-actor nonmutation. **Nine additional original x86 opcode signatures matched**, bringing the offline verifier to 126. These tests have not run on MSVC yet.
+
 ## Provenance and acceptance
 
 - The supplied immutable CODE.2 SHA-256 is `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`, with object-1 file base `0x3AF24`.
 - **21 additional executable instruction-byte anchors** for `E5F0`, `29CC4`, DB94 target handling, `+0x35` recovery, effect mask, hit-gated deadline/damage writes, and animation dispatch were independently checked byte-for-byte against the supplied original and passed.
-- `tools/verify_combat_entry_bytes.py` now records **117 original machine-code anchors** (87 previous + 21 E5F0/29CC4 + **9 more original 24B48 presentation/scheduler anchors**). Every added instruction signature was checked against the original, but these do not verify compiled C++ behavior.
+- `tools/verify_combat_entry_bytes.py` now records **126 original machine-code anchors** (87 previous + 21 E5F0/29CC4 + 9 original 24B48 scheduler + **9 E578 status-service anchors**). Every added signature was checked against the original, but these do not verify compiled C++ behavior.
 - Native sources: `combat_attack_timing.hpp/.cpp`, `combat_attack_target.hpp/.cpp`; updated `ObjectCatalog` parser retains full `WORD(+0x35)`; two new C++ test programs are registered in CMake for later manual CI.
 - **No new compiled-test claim**: previous 102/102 Windows pass from Actions #631 predates the full CODE.2 hand-pair, E5F0 timing and target source.
 
 ## Remaining work
 
 1. Connect complete conditional `24478` eligibility and `26018` category dispatch to the real native hand input without losing the existing safety gates. For `-1` and mixed hands, observe the original DOS heap-adjacent bytes rather than invent values.
-2. Reconstruct E5F0's real `1E578` pre-hit status servicing, projected NPC record mapping, `30CA2` RNG, original damage branches and `C910` weapon/creature effects; then connect the native world actor mutations.
+2. The bounded **logical `E578`** pre-hit status/redraw cleanup is now reconstructed; connect it before NPC evaluation, then complete original projected NPC state, `30CA2` RNG, special damage branches and `C910` weapon/creature effects before mutating live NPCs.
 3. Reconstruct original logical **`24B48`** (objdump virtual `34B48`) frame presentation and audio/input-service ordering; the current timing plan already preserves its **second**, miss-inclusive `A7E4` action deadline, but the actual frame/UI work, cooperative ticks and pause/resume remain to be ported. Compare the two original timestamp reads separately.
 4. Batch a consolidated current-HEAD C++ build/test only on explicit request or when the repository moves public.
 
-**Bounded E5F0 target/timing source checkpoint: 67% (4/6 gates: original instruction audit, OBJECTS word decoding, read-only target/timing source, and regression registration complete; compiled/DOS-run verification and live orchestration remain open).**
+**Bounded E5F0 target/timing and E578 service source checkpoint: 67% (4/6 gates: original instruction audit, object/timing decoding, staged source reconstruction, and regression registration complete; compiled/DOS-run verification and live orchestration remain open).**
 
 **Overall faithful-demo end-to-end acceptance stays 20% (1/5 major gates)**. A high source-level percentage does not imply a playable Assassin encounter.
