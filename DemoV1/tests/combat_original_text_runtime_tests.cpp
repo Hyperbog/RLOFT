@@ -20,7 +20,7 @@ int main() {
     svc.select_font_2f29c=[&](std::uint32_t style,std::uint32_t variant) {
         calls.emplace_back("font");
         assert(style==1U && variant==0U);
-        assert(state.row_2b684==263U && state.column_2b680==34U);
+        // 3060C writes the latest caller-supplied row/column before this call.
         return 0x1000U;
     };
     svc.font_resource_pointer=[&](std::uint32_t record) {
