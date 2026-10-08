@@ -22,16 +22,12 @@ void CombatOriginalTextRuntimeModel::draw_3060c_303c8(
     state.column_2b680=original_column;
     state.font_record_2b67c=services.select_font_2f29c(font_style,0U);
 
-    // Bounded original-memory capture, not a DOS string truncation.
-    std::size_t terminator=0U;
-    while(terminator<captured_c_string.size() &&
-          captured_c_string[terminator]!=0U)
-        ++terminator;
-    if(terminator==captured_c_string.size())
-        throw std::invalid_argument("missing NUL in original 303C8 text capture");
-
-    for(std::size_t i=0U;i<terminator;++i) {
+    // Test each byte only when 303C8 would reach it. Earlier
+    // renderer callbacks can mutate future source-memory bytes;
+    // an eager whole-string copy or NUL scan would be observable.
+    for(std::size_t i=0U;i<captured_c_string.size();++i) {
         const auto raw=captured_c_string[i];
+        if(raw==0U) return;
         // 30413/30434 and 30446 use MOVSX BYTE; unsigned char
         // normalization changes the glyph selected for CP437 >=80h.
         const auto glyph=raw<0x80U
@@ -71,6 +67,10 @@ void CombatOriginalTextRuntimeModel::draw_3060c_303c8(
         // x86 3044F ADD DWORD does not saturate at the screen edge.
         state.column_2b680+=advance;
     }
+    // The host snapshot ended before the first live NUL; the DOS
+    // executable would keep reading outside the captured memory.
+    throw std::invalid_argument(
+        "missing NUL in original 303C8 text capture");
 }
 
 } // namespace rloft
