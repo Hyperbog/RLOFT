@@ -43,7 +43,7 @@ Original `E284..E306` early mutation occurs after post-roll weapon/creature dama
 2. NPC type `0x0F`: do **not** subtract incoming damage from HP; still service reaction state and continue original later type classification.
 3. NPC type `0x08`: if high packed flags `WORD+0x14 & 0xC000 == 0xC000` OR signed HP `<=10`, skip HP subtraction. Otherwise perform the same 16-bit subtraction; if the new signed HP is `<=0`, clamp to literal **10**, rather than allowing death through that prelude.
 4. Other NPC types (including Level 22 Assassin original type **`0x09`**): perform **16-bit** subtraction of `AX` from signed `WORD+0x12`, preserving original arithmetic wrapping, without a generic clamp.
-5. **Stop the bounded model at `E306`**. That instruction invokes later creature-type classification and possible death consequences; reproducing the prelude is **not** certification of the full original E284 death/respawn routine.
+5. **Historical scope through `E306`.** Later direct auditing has now decoded `E306..E324`'s `3ACDC` classification and `NPC+0x0B` state change, with implementation in the shared injury prelude and Level22 Assassin path. **The remainder of E284's creature-specific death/respawn/audio routines remains open**; see [newer checkpoint](LEVEL22_STRENGTH_HARM_E284_CLASSIFICATION_CHECKPOINT.md).
 
 Native `CombatNpcInjuryPreludeModel::inspect` reports resulting reaction bits, countdown and signed HP without world mutation. New tests exercise types `8,9,15`, packed high-mask C000h, reaction zero/nonzero, HP floor, signed negative results and 16-bit wrapped damage. The existing `Level22EncounterModel::damage_assassin` now calls this common exact prelude for original type 9 **before** its existing Assassin-only death-sound, XP, and four quest-item drop logic. Existing encounter regression tests have been extended to assert preservation of unrelated packed-state high bits and countdown 2/1.
 
@@ -57,8 +57,8 @@ Sources/targets registered in `DemoV1/CMakeLists.txt`: `combat_class_level`, `co
 
 Remaining blockers in dependency order:
 
-1. Recover original **loaded DGROUP `0x684B`** signed Strength damage-lookup bytes and all required loader/relocation context; this dependency is distinct from the now solved `22E40` class-level helper.
-2. Reconstruct **live HARM HP-clamp / C910 / E284** order and the full later `E284` creature-specific death/respawn pathways, ensuring exact RNG/HP and sound ordering.
+1. **Closed in subsequent source audit:** DGROUP `0x684B` signed Strength modifiers for scores `0..25` were recovered from CODE.2 object-2 physical `0x7C76F`, and the native damage model uses those actual bytes. Only unsupported scores above 25 still require adjacent loaded DGROUP evidence; see [newer checkpoint](LEVEL22_STRENGTH_HARM_E284_CLASSIFICATION_CHECKPOINT.md).
+2. **Source-only HARM HP-clamp → C910 → E284 ordering is now reconstructed and cross-model tested**; actual RNG, HP effects and audiovisual timing in live player attacks, plus later E284 creature death/respawn, remain incomplete.
 3. Finish player attack input `214B8/26018`, original `A7E4` hit/action deadlines and `24B48` animation/sound timing without substituting display ticks for gameplay-maintenance clocks.
 4. Compare deterministic original DOS input, RNG, NPC HP, animation and clock traces to the native implementation. Run a **consolidated** manual Windows compile/CTest only when intentionally authorized or after the repo becomes public.
 
