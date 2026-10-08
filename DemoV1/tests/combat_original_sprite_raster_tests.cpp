@@ -74,6 +74,26 @@ int main() {
         assert(mem.read(addr+0U,1U)==0xAAU);
     }
 
+    // Source-backed 2AB38 + 2A380 interaction across ALL 320
+    // initial columns: source plane p lands at (column+p)&3 and
+    // advances the physical byte when that sum crosses plane3.
+    const auto one_row=sprite(8U,1U,1U,0U,{
+        1U,2U,11U,12U,21U,22U,31U,32U});
+    for(std::uint32_t column=0U;column<320U;++column) {
+        mem.clear(0xCCU);
+        result=CombatOriginalSpriteRasterModel::draw_2a380(
+            mem,one_row,0U,video(2U,column));
+        assert(result && result->vga_bytes_written==8U);
+        const auto rowbase=0xA0000U+2U*80U;
+        for(std::uint32_t pass=0U;pass<4U;++pass) {
+            const auto plane=(column+pass)&3U;
+            const auto byteOffset=(column+pass)>>2U;
+            const auto color=static_cast<std::uint8_t>(1U+pass*10U);
+            assert(mem.read(rowbase+byteOffset,plane)==color);
+            assert(mem.read(rowbase+byteOffset+1U,plane)==color+1U);
+        }
+    }
+
     // Source WORD+0 multiplies the frame index. No assumption
     // that the first indexed frame is always requested.
     raw=sprite(16U,2U,1U,0U,{
