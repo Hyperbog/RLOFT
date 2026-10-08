@@ -50,6 +50,7 @@ add_library(rloft_boot_flow
     src/combat_hit_check.cpp
     src/combat_hand_dispatch.cpp
     src/combat_hand_predicates.cpp
+    src/combat_single_hand_eligibility.cpp
     src/combat_target_priority.cpp
     src/combat_visible_target.cpp
     src/party_hud.cpp
@@ -218,6 +219,9 @@ add_test(NAME combat_hand_dispatch_tests COMMAND combat_hand_dispatch_tests)
 add_executable(combat_hand_predicates_tests tests/combat_hand_predicates_tests.cpp)
 target_link_libraries(combat_hand_predicates_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_hand_predicates_tests COMMAND combat_hand_predicates_tests)
+add_executable(combat_single_hand_eligibility_tests tests/combat_single_hand_eligibility_tests.cpp)
+target_link_libraries(combat_single_hand_eligibility_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_single_hand_eligibility_tests COMMAND combat_single_hand_eligibility_tests)
 add_executable(combat_target_priority_tests tests/combat_target_priority_tests.cpp)
 target_link_libraries(combat_target_priority_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_target_priority_tests COMMAND combat_target_priority_tests)
@@ -574,6 +578,7 @@ set(RLOFT_TEST_TARGETS
     combat_hit_check_tests
     combat_hand_dispatch_tests
     combat_hand_predicates_tests
+    combat_single_hand_eligibility_tests
     combat_target_priority_tests
     combat_visible_target_tests
     party_hud_tests
