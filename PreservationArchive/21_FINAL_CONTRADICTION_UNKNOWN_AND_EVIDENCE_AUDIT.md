@@ -221,3 +221,53 @@ The **structural evidence and document-navigation audits now pass**: 22/22 chapt
 **Current decision: FINAL CERTIFICATION NOT YET ISSUED.** The archive has reached a strong *evidence-accounted and structurally consistent* checkpoint. The final documentation milestone must state exactly what is complete and what is bounded, not pretend that unavailable original historical media or hardware traces were produced.
 
 **Next:** complete the last semantic correction/alias crosswalk and explicitly decide whether the remaining gaps are permitted as bounded historical/runtime UNKNOWNs under Chapter 00's archival completeness definition. If the check succeeds, issue a scoped documentation completion certificate; keep native-port completion a separate determination.
+
+
+## 14. Correction-label crosswalk: 39 numeric labels, 43 chapter-specific records
+
+A sequential chapter-source scan located the original numbered `C-` correction headings and their chapter ownership. The complete intended label range **C-01..C-39** is represented, with **no missing numeric label**. However, C-03, C-04, C-05 and C-06 each occur twice in separate chapters, producing **43 distinct correction records from 39 label strings**. These are not conflicting claims about one address: they refer to different historical reconstruction problems.
+
+| Qualified chapter | Correction IDs | Canonical subject family |
+|---|---|---|
+| 01 | **C-01, C-02** | CODE bound-object origin; common extender identity |
+| 02 | **C-03..C-06** | Watcom/DOS extender and memory-ownership nomenclature |
+| 04 | **C-03** | VGA surface dimensions and page geometry |
+| 05 | **C-04** | LEV direct-save form versus LEVELS archive record |
+| 06 | **C-05, C-06** | Automap state decomposition; original map export |
+| 07 | **C-07, C-08** | Top-edge menu and coordinate argument roles |
+| 08 | **C-09, C-10** | Save-slot directory workflow and WORK restoration |
+| 09 | **C-11, C-12** | Status bits and heterogeneous effect/timer ownership |
+| 10 | **C-13..C-15** | Object mutable state, equipment exceptions and thrown-item records |
+| 11 | **C-16..C-18** | NPC template/live actor split, behavior flags and damage gates |
+| 12 | **C-19..C-22** | Hit ordering, armor counters, saves, combat-feedback slots |
+| 13 | **C-23..C-27** | Spell ID domains, nonuniform effects, spell projectiles, Hold and Detect Undead |
+| 14 | **C-28..C-32** | Level vs wordcode grammars, dialogue/story state, legacy RES12, flag namespaces and reserved branches |
+| 15 | **C-33..C-37** | Audio API families, SOUND.CFG, middleware banks, legacy audio, BAT/LOADPATS |
+| 17 | **C-38, C-39** | Wait-flag unreachable branch and AIL/32 driver registration order |
+
+**Index detail:** C-39 is not a standalone numbered heading. It is explicitly marked **“Correction C-39” inside Chapter 17 §20**. C-38 is Chapter 17 §13. Following correction A-14.1, the Chapter-14 C-28..C-32 headings are **§132–§136**. External references to earlier committed headings require the §-number migration rule in §8.
+
+**Citations must use `(chapter, C-label)`**, or the fully qualified chapter/section title. A bare `C-03` can refer to the CODE.1 extender **or** to VGA geometry. Neither is a defect in the original game; both are corrections to this archive's prior explanations.
+
+The correction entries themselves defer to their local original-byte/source-audit witnesses. This crosswalk **validates identifier presence, ordering and ownership**; it does not claim that the machine-level calculations behind every C-label were freshly independently redisassembled today. That distinction remains the last semantic-certification safeguard.
+
+## 15. End-of-pass integration checkpoint
+
+The current static evidence registry now has:
+
+```text
+Numbered archive chapters       22 / 22        (00..21)
+All section-number runs unique  22 / 22
+Relative Markdown links         100 / 100      path existence
+Foundational UNKNOWN IDs         16 / 16       classified
+Numeric C-label range            C-01..C-39   no gaps
+Chapter-qualified C records     43            four duplicate label strings
+Original available files         9 / 9         size and SHA-256 verified
+Fresh byte/structure assertions  35 / 35       passed
+Frozen backup branch             exact baseline retained
+Code1/Code2/Resources/Tools      no tracked changes from frozen baseline
+```
+
+**Publication safeguard:** these figures are *registry integrity checks*, not a count of all possible gameplay paths, resource byte accesses or dynamic device behaviors. The original resource workstream's previously certified corpus remains controlling where its original files were not supplied again for this audit.
+
+**Next decision:** assess remaining per-chapter semantic correction witnesses and decide whether the standard in Chapter 00 allows a final *original-build static documentation certificate with explicitly bounded historical/runtime unknowns*. A blanket declaration that every historical edition, every driver cadence and the native implementation is “100%” would be unsupported.
