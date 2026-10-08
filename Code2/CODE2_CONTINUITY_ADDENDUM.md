@@ -893,3 +893,20 @@ The original `24B48` routine establishes **two separate timing consequences** fo
 **Nine exact additional x86 opcode anchors** at logical `24B48..24BE5` were verified against supplied original `CODE.2`, SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`; all 9 matched. The cumulative offline original instruction signature count is now **117 (87 older + 21 E5F0/29CC4 + 9 logical 24B48)**. The native `CombatAttackTimingModel` has been amended to return **both independent optional deadlines**, accepting **two** original maintenance clock observations. New uncompiled regression assertions include misses, distinct clock observations, zero intervals and 32-bit wrap. The model remains read-only, awaiting full NPC attack orchestration, actual display frame/audio service and DOS timing comparison.
 
 See `demo-v1:DemoV1/LEVEL22_ATTACK_TARGET_AND_TIMING_CHECKPOINT.md`. This postcertification correction changes no binary bytes or original executable coverage totals.
+
+
+## 2026-10-08 CODE.2 E578 pre-hit four-actor status cleanup
+
+Reauditing the `E5F0` entry exposed one more important address labeling error. `E5F0:E618` calls **CODE.2 logical `E578`**, not logical `1E578`: `1E578` is the objdump virtual address after the separate `+0x10000` adjustment. This callable effect helper executes after initial `DB94` target lookup (if needed) and **before** target validation and `C80C` hit calculation.
+
+Exact original `E578..E5CB` instructions show:
+
+- `E57C..E59C`: for **all four** characters, test `BYTE [actor*0x248 + 0x21A12] & 0x20` (character offset `+0x132`). When set, write original `BYTE CF5A[actor]=1` for the HUD repaint and clear **only bit `0x20`** of that effect byte.
+- `E59E..E5CB`: for the *selected attacking actor*, test `BYTE [actor*0x248 + 0x21A13] & 0x02` (character offset `+0x133`). If set, write zero to the **four-byte state** at `actor*0x248+0x21A3A` (character offset `+0x15A`), clear only `+0x133` bit `0x02`, and set that actor's `CF5A` repaint byte to 1.
+- No call to `29CC4`, RNG, hit calculations or display refresh occurs inside this helper. Its original mutation order still matters, since `E5F0` invokes it before target/hit resolution and subsequent `+0x132` attack speed-mask evaluation.
+
+**Nine new byte-for-byte machine-code anchors** were verified against the supplied original `CODE.2` (immutable SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`). The cumulative offline verifier is now **126 exact CODE.2 x86 signatures** (87 initial + 21 E5F0/29CC4 + 9 24B48 presentation scheduler + 9 E578 actor status cleanup), all additions checked without GitHub Actions.
+
+On `demo-v1`, `CombatAttackStatusService::apply` is the separate original-behavior model with a regression target for all four actor flags, selected-actor-only dword clearance, HUD dirty bytes, repeated-call idempotence and invalid index handling. It is **not yet connected to live combat**; C++ tests are registered but *have not run* since private-repository Windows CI became manual-only.
+
+The original action ordering now has two different clock observations and clearly separated side effects: `DB94` target preference if needed → **E578 pending actor-effect cleanup** → special party-mode target suppression → C80C hit/weapon/damage logic → optional hit-only `+0x19E` deadline/damage write → logical **24B48** animation presentation → miss-inclusive, interval-nonzero `+0x10B` action-busy deadline using later `A7E4`. See `demo-v1:DemoV1/LEVEL22_ATTACK_TARGET_AND_TIMING_CHECKPOINT.md`. The reconstruction does not claim original animation frame/timer calibration or an enabled Assassin attack.
