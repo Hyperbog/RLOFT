@@ -193,3 +193,21 @@ IRQ ordering and the Level 22 demo transition.
 **Formal demo acceptance stays 1/5 gates.**
 Engineering completion is tracked separately, without
 a fabricated numerical whole-project estimate.
+
+
+## Later 2A6B0 clipped rasterization completion
+
+The prior dependency on `2A6B0`
+clipped VGA source bytes is now closed
+at the bounded component level. See
+[the original 2A6B0 checkpoint](LEVEL22_CODE2_2A6B0_CLIPPED_VGA_CHECKPOINT_20261008.md).
+Its actual four-plane transparent/opaque
+writes, mutable clip record and original
+CODE.2 self-patched transparency comparison
+`2A816` are native and source-verified.
+The separate color-adjusted `2A8A0`
+routine, complete runtime resource/mouse
+integration and DOS A/B frame traces
+remain outstanding.
+Cumulative opcode audit: 1,263 named /
+1,255 distinct instruction sites.
