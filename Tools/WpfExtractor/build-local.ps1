@@ -23,6 +23,11 @@ Push-Location $engine
 try {
   & py -3.12 -m pip install -r requirements.txt "pyinstaller==6.22.3"
   if ($LASTEXITCODE -ne 0) { throw "Python dependencies failed." }
+  # Old connector-created PNG was corrupt; always reconstruct verified
+  # native crest pixels before WPF loads or embeds the resource.
+  $logo = Join-Path $PSScriptRoot "RavenloftExtractor\Assets\ravenloft_logo.png"
+  & py -3.12 render_wpf_logo.py $logo
+  if ($LASTEXITCODE -ne 0) { throw "Could not reconstruct original logo." }
   if (-not $SkipTests) {
     & py -3.12 -m unittest discover -p "test_*.py" -v
     if ($LASTEXITCODE -ne 0) { throw "Python regression suite failed." }

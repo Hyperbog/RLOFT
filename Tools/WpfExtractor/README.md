@@ -33,8 +33,11 @@ repository and run:
 ./Tools/WpfExtractor/build-local.ps1
 ```
 
-The script runs the Python regressions, freezes the Python backend using
-PyInstaller and publishes the self-contained WPF Windows x64 app. The ZIP is
+The script regenerates a valid transparent Ravenloft logo from the original
+indexed bitmap and palette stored in the preservation sources. This avoids a
+damaged legacy PNG in the repository. It then runs the Python regressions,
+freezes the Python backend using PyInstaller and publishes the self-contained
+WPF Windows x64 app. The ZIP is
 written at:
 
 ```text
