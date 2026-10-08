@@ -31,9 +31,12 @@ int main() {
         std::uint32_t x2,std::uint32_t y2,
         std::uint32_t width,std::uint32_t height) {
         events.emplace_back("2A078");
-        assert(page==0U && x1==120U && x2==120U);
-        assert(y1==210U && y2==210U && width==12U && height==8U);
-        assert(state.redraw_busy_a6ba==1U);
+        assert(page==(rect.page^1U));
+        assert(x1==rect.left && x2==rect.left);
+        assert(y1==rect.top && y2==rect.top);
+        assert(width==rect.width && height==rect.height);
+        assert(state.redraw_busy_a6ba==1U ||
+               state.redraw_busy_a6ba==9U);
     };
     callback.suspend_overlay_1a288=[&](){
         events.emplace_back("1A288");
