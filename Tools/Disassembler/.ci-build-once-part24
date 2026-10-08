@@ -1,1 +1,1 @@
-Part 24 authorized Windows test build number 3, 2026-10-08. Fixed stale Require helper in smoke test. Restore workflow to manual-only after verification.
+Part 24 authorized Windows test build number 4, 2026-10-08. Fixed nullable snapshot assertion; trigger temporary and branch-specific.

@@ -95,9 +95,10 @@ try
     using (var reopened = ProjectStore.Open(path))
     {
         reopened.VerifyIntegrity();
-        var loaded = reopened.LoadLatestAnalysis(artifact.Sha256);
-        Require(loaded is not null && loaded.ArtifactSha256 == artifact.Sha256,
-            "analysis snapshot failed to reload");
+        var loaded = reopened.LoadLatestAnalysis(artifact.Sha256)
+            ?? throw new InvalidOperationException("analysis snapshot failed to reload");
+        Require(loaded.ArtifactSha256 == artifact.Sha256,
+            "analysis snapshot failed to match original artifact");
         Require(loaded.Instructions.Count == 1 && loaded.Instructions[0].OriginalBytes == "90",
             "instruction evidence changed after round trip");
         var note = reopened.GetAnnotation(artifact.Sha256, 1, 0, "comment");
