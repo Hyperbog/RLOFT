@@ -46,7 +46,7 @@ hand action rules remain gated. Combat and the 22-frame Level 23 transition
 are not yet enabled. Automated Windows compilation and an original-asset
 inventory interaction playtest remain separate acceptance gates.
 
-**Inventory subcheckpoint: 67% (4/6 bounded gates)** before new CI.
+**Inventory subcheckpoint: 83% (5/6 bounded gates)** after Windows 102/102 CTests; real gameplay interaction remains unverified.
 **Overall faithful-demo release acceptance: 20% (1/5 gates)**.
 
 ## Level 22 combat accuracy — original hit test
@@ -60,8 +60,9 @@ are registered in CMake, but the input command, hit target, RNG, damage,
 weapon category gate, NPC reaction and hand cooldown have **not** been
 connected. Attacks are intentionally not dispatched by arbitrary clicks.
 
-**Hit-check arithmetic subcheckpoint: 67% (2/3 bounded gates)** until
-fresh CI; overall faithful-demo acceptance remains 20%.
+**Hit-check arithmetic subcheckpoint: 100% (3/3 bounded gates)** after
+Windows 102/102 CTests; full combat is still unimplemented and overall
+faithful-demo acceptance remains 20%.
 
 ## Extended integration milestone — Level 22
 
