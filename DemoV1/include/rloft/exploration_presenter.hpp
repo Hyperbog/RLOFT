@@ -37,6 +37,7 @@ struct ExplorationSurfaceCoverage final {
     [[nodiscard]] bool complete() const noexcept {
         return sintab_main_runs_pending == 0 &&
                sintab_prepass_runs_pending == 0 &&
+               sintab_prepass_runs_failed == 0 &&
                type7_scene_calls_pending == 0 &&
                type7_visible_columns_pending == 0 &&
                type7_unvalidated_wide_runs == 0;
