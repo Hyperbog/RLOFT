@@ -437,3 +437,23 @@ These methods are now available to the input/UI layer; **binding physical mouse 
 `ExplorationPresentedFrame::type7_failures` now contains the failed original RES3 resource ID, source class/index, and exception message. The original coverage pending counts remain unchanged when a sprite fails. A missing original source, invalid SINTAB instruction, or wrong trace no longer disappears behind a generic failed-count statistic.
 
 All changes and new tests are committed directly to `demo-v1`. The full project C++ build is still unverified because GitHub Actions jobs have been failing before any steps execute.
+
+## Pixel-trace completeness and gameplay-safe trace failures (October 7, 2026)
+
+### Full descriptor completeness
+
+The accepted original render plan expands every visible source-column run into its destination-specific SINTAB display-list descriptors. The earlier VGA trace checked horizontal masks and ECX state but did **not** verify that its representative descriptor lists were complete. In the presence of a missing/truncated descriptor, a scene could be counted as fully drawn while leaving pixels unrendered.
+
+`Type7VgaTraceValidator::validate_scene` now compares the complete flattened source/display-list descriptor sequence against `WorldSceneRenderPlan::microcode_draws`. For each original destination column, it verifies the source ID/column index, descriptor ordinal, row bounds, signed ESI adjustment, physical entry/stop selectors and patch offsets, and generated instruction entry/stop addresses. Extra, reordered, changed, or omitted descriptors fail before pixel execution. Empty display lists remain valid only when the original plan also has none.
+
+Existing synthetic test plans were corrected to include their expanded native descriptors. New adversarial tests omit a traced descriptor or corrupt its source adjustment/entry offset and prove rejection. The scene-pixel executor regression also confirms that a truncated trace cannot perform any VGA write.
+
+### Trace-building failure isolation
+
+The original `Type7VgaFrameTraceModel::build` deliberately throws on malformed pages or missing required RES3 lookup data. That remains useful for direct strict callers, but a failure to construct a **secondary pixel diagnostics trace** must not abort navigation, wall rays, HUD updates or scene target selection.
+
+`Type7VgaFrameTraceModel::try_build` now returns either a complete trace or a retained error string. It does **not** swallow or partially publish an incomplete trace. `ExplorationRuntime::build_frame` uses this outcome for the optional trace while still constructing the rest of the world frame. The error is propagated through `ExplorationRuntimeFrame::scene_vga_trace_failure` to `ExplorationPresentedFrame::type7_trace_failure`; all existing visible scene calls remain marked pending if no trace can be built.
+
+Regression cases distinguish (a) a valid/fully hidden scene, (b) an unvalidated width-8 run retained as an optional null scene slot, and (c) genuinely failed trace construction for invalid video page or missing shape lookup. Failures remain inspectable rather than approximated with fabricated pixels.
+
+**Validation status:** Committed to `demo-v1` with existing CMake tests extended. Full C++ compilation still requires a working runner or an independently available complete source tree; no final pixel-equivalence claim is made for live RES3 game frames.
