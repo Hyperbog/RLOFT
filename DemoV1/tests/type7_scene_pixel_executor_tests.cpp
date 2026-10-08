@@ -24,6 +24,7 @@ int main() {
 
     rloft::WorldSceneRenderPlan plan{};
     plan.traversal.scale_block_index=0U;
+    plan.traversal.lookup_value=0x0102U;
     plan.rasterizer_setup.drawable=true;
     plan.rasterizer_setup.patch_from=128U;
     plan.visible_runs={{31U,0U,128U,1U}};
@@ -56,6 +57,7 @@ int main() {
     // the entire descriptor list, even when the run is one pixel wide.
     run.dispatch.lookup_after_dispatch = 0x0201U;
     trace.runs.push_back(run);
+    trace.final_lookup_word = 0x0201U;
 
     rloft::VgaPlanarMemory video;
     const auto result=rloft::Type7ScenePixelExecutor::draw(
@@ -128,6 +130,7 @@ int main() {
 
         rloft::WorldSceneRenderPlan real_plan{};
         real_plan.traversal.scale_block_index = 31U;
+        real_plan.traversal.lookup_value = 0x0102U;
         real_plan.rasterizer_setup.drawable = true;
         real_plan.rasterizer_setup.patch_from = 128U;
         real_plan.visible_runs.push_back(
@@ -156,6 +159,7 @@ int main() {
         });
         real_run.dispatch.lookup_after_dispatch = 0x0201U;
         real_trace.runs.push_back(real_run);
+        real_trace.final_lookup_word = 0x0201U;
 
         std::vector<std::uint8_t> source(4096U);
         for(std::size_t k=0U;k<source.size();++k) {
