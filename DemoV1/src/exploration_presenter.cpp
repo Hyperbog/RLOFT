@@ -203,10 +203,61 @@ ExplorationPresentedFrame ExplorationPresenter::present(
         }
     }
 
-    // This presenter currently draws the exact 338C8 fallback path for
-    // extents above SINTAB's runtime lookup boundary. The ordinary
-    // <= boundary main-pass runs remain pending; the separate prepass
-    // now uses validated original SINTAB bytecode for supported runs.
+    // CODE.2 336F7 invokes 3263C with FCD0=0 for the ordinary
+    // all-record pass. These calls execute the complete original SINTAB
+    // scale block from its normal entry point, not the FCD0=1 temporary
+    // RET/vertical-offset path. Preserve prior prepass pixels and commit
+    // only source-verified complete four-plane writes.
+    std::vector<SurfaceMainRasterFailure> main_failures;
+    std::optional<VgaPlanarMemory> main_video;
+    bool any_main_rasterized = false;
+    for (const auto& run : frame.sweep_runs) {
+        if (run.pass != SweepRenderPass::Main || !run.drawable()) {
+            continue;
+        }
+        const auto extent = (run.depth & 0xFFF8U) >> 1U;
+        if (extent == 0U || extent > tables.runtime_lookup_max) {
+            continue; // 338C8 remains the separate large-extent path.
+        }
+        try {
+            if (!main_video.has_value()) {
+                main_video.emplace();
+                main_video->import_page(
+                    framebuffer_, frame.scene_video_page);
+            }
+            auto cached = surface_texture_cache_.find(run.resource_id);
+            if (cached == surface_texture_cache_.end()) {
+                auto texture = walls_.texture(
+                    static_cast<int>(run.resource_id));
+                cached = surface_texture_cache_.emplace(
+                    run.resource_id, std::move(texture)).first;
+            }
+            if (output_coverage.sintab_main_runs_pending == 0U) {
+                throw std::logic_error(
+                    "SINTAB main surface coverage underflow");
+            }
+            const auto report = SurfaceSintabMainExecutor::draw(
+                run, cached->second, tables, frame.surface_shades,
+                surface_vga_masks_, frame.scene_video_page, *main_video);
+            any_main_rasterized = true;
+            ++output_coverage.sintab_main_runs_rasterized;
+            output_coverage.sintab_main_indexed_writes +=
+                report.indexed_writes;
+            --output_coverage.sintab_main_runs_pending;
+        } catch (const std::exception& error) {
+            ++output_coverage.sintab_main_runs_failed;
+            main_failures.push_back(SurfaceMainRasterFailure{
+                run.resource_id, run.first_ray, error.what(),
+            });
+        }
+    }
+    if (any_main_rasterized) {
+        main_video->export_page(
+            framebuffer_, frame.scene_video_page);
+    }
+
+    // CODE.2 338C8 generic scaling applies ONLY ABOVE the original
+    // SINTAB threshold; it must never replace in-range generated code.
     walls_.draw_main_runs(
         framebuffer_,
         frame.sweep_runs,
@@ -313,6 +364,8 @@ ExplorationPresentedFrame ExplorationPresenter::present(
         output_coverage;
     out.surface_prepass_failures =
         std::move(prepass_failures);
+    out.surface_main_failures =
+        std::move(main_failures);
     out.type7_failures = std::move(raster_failures);
     out.type7_trace_failure =
         frame.scene_vga_trace_failure;
