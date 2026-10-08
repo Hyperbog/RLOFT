@@ -1,0 +1,373 @@
+<Window x:Class="RavenloftExtractor.MainWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  Title="Ravenloft — Asset Extraction Suite"
+  Width="1230" Height="800" MinWidth="780" MinHeight="520"
+  WindowStyle="SingleBorderWindow" ResizeMode="CanResize"
+  Background="{StaticResource CanvasBrush}"
+  FontFamily="Segoe UI" Foreground="{StaticResource PrimaryTextBrush}"
+  UseLayoutRounding="True" SnapsToDevicePixels="True">
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="92"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="90"/>
+    </Grid.RowDefinitions>
+
+    <!-- Branding is in the *client* area. Windows owns the actual title bar,
+         border, caption hit testing, system menu, and resize cursors. -->
+    <Border Grid.Row="0" Background="#251A23" BorderBrush="{StaticResource StrokeBrush}"
+            BorderThickness="0,0,0,1" Padding="22,9">
+      <DockPanel LastChildFill="True">
+        <Border Width="124" Height="68" Background="#171217" CornerRadius="9"
+                Padding="7" DockPanel.Dock="Left" Margin="0,0,18,0">
+          <Image Source="/Assets/strahd_title_logo.png" Stretch="Uniform"/>
+        </Border>
+        <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center"
+                    Margin="12,0,4,0" HorizontalAlignment="Right">
+          <TextBlock Text="PRESERVATION TOOLS" Style="{StaticResource Eyebrow}" HorizontalAlignment="Right"/>
+          <TextBlock Text="WPF · FLUENT PREVIEW" FontSize="11"
+                     Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Right"/>
+        </StackPanel>
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Text="RAVENLOFT" FontSize="24" FontFamily="Georgia"
+                     FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+          <TextBlock Text="Asset Extraction Suite" FontSize="13"
+                     Foreground="{StaticResource SecondaryTextBrush}"/>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="218"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+
+      <Border Grid.Column="0" Background="{StaticResource SidebarBrush}"
+              BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,0,1,0"
+              Padding="12,18,12,14">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Bottom" Margin="12,10,6,4">
+            <Rectangle Height="1" Fill="{StaticResource StrokeBrush}" Margin="0,0,0,14"/>
+            <TextBlock Text="THE ORIGINAL GAME. PRESERVED." FontSize="10"
+                       TextWrapping="Wrap" Foreground="{StaticResource SecondaryTextBrush}"/>
+            <TextBlock Text="Windows 11 · 64-bit" FontSize="11" Margin="0,7,0,0"
+                       Foreground="{StaticResource SecondaryTextBrush}"/>
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Text="WORKSPACE" Style="{StaticResource Eyebrow}" Margin="13,3,0,15"/>
+            <RadioButton x:Name="NavSource" Content="⌂   Game source" Tag="source"
+                         GroupName="Pages" IsChecked="True"
+                         Style="{StaticResource NavigationItem}"
+                         Checked="Navigation_Checked"/>
+            <RadioButton x:Name="NavGraphics" Content="▧   Graphics &amp; textures" Tag="graphics"
+                         GroupName="Pages" Style="{StaticResource NavigationItem}"
+                         Checked="Navigation_Checked"/>
+            <RadioButton x:Name="NavAudio" Content="♫   Audio &amp; music" Tag="audio"
+                         GroupName="Pages" Style="{StaticResource NavigationItem}"
+                         Checked="Navigation_Checked"/>
+            <RadioButton x:Name="NavCinematics" Content="▹   Cinematics" Tag="cinematics"
+                         GroupName="Pages" Style="{StaticResource NavigationItem}"
+                         Checked="Navigation_Checked"/>
+            <RadioButton x:Name="NavSupport" Content="◇   Support assets" Tag="support"
+                         GroupName="Pages" Style="{StaticResource NavigationItem}"
+                         Checked="Navigation_Checked"/>
+            <Rectangle Fill="{StaticResource StrokeBrush}" Height="1" Margin="10,17,10,13"/>
+            <RadioButton x:Name="NavAll" Content="↓   Extract everything" Tag="all"
+                         GroupName="Pages" Style="{StaticResource NavigationItem}"
+                         Checked="Navigation_Checked"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <Grid Grid.Column="1" Margin="26,19,26,0">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <DockPanel Margin="0,0,0,16" LastChildFill="True">
+          <Button DockPanel.Dock="Right" Content="Change source" Click="GoToSource_Click"
+                  x:Name="ChangeSourceButton" Visibility="Collapsed" Margin="15,0,0,0"
+                  VerticalAlignment="Top" Padding="13,6"/>
+          <StackPanel>
+            <TextBlock x:Name="PageTitle" Text="Choose your game source"
+                       Style="{StaticResource SectionTitle}"/>
+            <TextBlock x:Name="PageSubtitle" Text="Installations, CD images and loose game files"
+                       Style="{StaticResource Hint}" Margin="0,6,0,0"/>
+            <TextBlock x:Name="ActiveSource" Style="{StaticResource Hint}"
+                       Foreground="{StaticResource AccentBrush}" Visibility="Collapsed"
+                       TextTrimming="CharacterEllipsis" MaxWidth="750" Margin="0,6,0,0"/>
+          </StackPanel>
+        </DockPanel>
+
+        <ScrollViewer Grid.Row="1" x:Name="SettingsScroller"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      CanContentScroll="True" Padding="0,0,12,20">
+          <StackPanel>
+
+            <!-- Source page -->
+            <StackPanel x:Name="PageSource">
+              <Border Style="{StaticResource Card}">
+                <StackPanel>
+                  <TextBlock Text="GAME INSTALLATION" Style="{StaticResource Eyebrow}"/>
+                  <TextBlock Text="Select any installed copy, a loose media folder, or an ISO/BIN/IMG/GOG CD image."
+                             Style="{StaticResource Hint}" Margin="0,0,0,14"/>
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="Auto"/>
+                      <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="SourcePath" MinHeight="36" Padding="10,7"
+                             ToolTip="Original game directory, game.gog, .iso, .img or .bin"/>
+                    <Button Grid.Column="1" Content="Browse folder" Click="BrowseSourceFolder_Click"
+                            Margin="10,0,0,0" Padding="12,6"/>
+                    <Button Grid.Column="2" Content="CD image" Click="BrowseSourceImage_Click"
+                            Margin="8,0,0,0" Padding="12,6"/>
+                  </Grid>
+                  <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                    <Button Content="Scan &amp; validate" Style="{StaticResource PrimaryAction}"
+                            Click="Validate_Click"/>
+                    <TextBlock Text="Alternate store versions and modified files are supported."
+                               Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="15,0,0,0"/>
+                  </StackPanel>
+                  <TextBlock x:Name="ValidationSummary" Margin="0,15,0,0"
+                             Text="No game files have been scanned yet."
+                             Style="{StaticResource Hint}"/>
+                </StackPanel>
+              </Border>
+              <Border Style="{StaticResource Card}">
+                <StackPanel>
+                  <TextBlock Text="EXTRACTION DESTINATION" Style="{StaticResource Eyebrow}"/>
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="DestinationPath" MinHeight="36" Padding="10,7"/>
+                    <Button Content="Browse" Grid.Column="1" Click="BrowseDestination_Click"
+                            Margin="10,0,0,0" Padding="14,6"/>
+                  </Grid>
+                  <TextBlock Text="Files are exported without altering your game installation. Original resource IDs remain in output filenames and manifests."
+                             Style="{StaticResource Hint}" Margin="0,12,0,0"/>
+                </StackPanel>
+              </Border>
+              <Border Style="{StaticResource Card}">
+                <StackPanel>
+                  <TextBlock Text="MADE FOR MODDING &amp; REMASTERING" Style="{StaticResource Eyebrow}"/>
+                  <TextBlock Text="Archive-faithful images · Creature angles · Spell effects · Native audio · Cinematic timelines"
+                             FontSize="16" Foreground="{StaticResource PrimaryTextBrush}" TextWrapping="Wrap"/>
+                  <TextBlock Text="Choose a category from the left. Advanced settings scroll independently while extraction controls remain accessible."
+                             Style="{StaticResource Hint}" Margin="0,10,0,0"/>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <!-- Graphics page -->
+            <StackPanel x:Name="PageGraphics" Visibility="Collapsed">
+              <Border Style="{StaticResource Card}">
+                <StackPanel>
+                  <TextBlock Text="IMAGE EXPORT" Style="{StaticResource Eyebrow}"/>
+                  <WrapPanel>
+                    <StackPanel Margin="0,0,24,12">
+                      <TextBlock Text="Format" Style="{StaticResource Hint}" Margin="0,0,0,5"/>
+                      <ComboBox x:Name="GraphicsFormat" Width="250" SelectedIndex="0">
+                        <ComboBoxItem Content="PNG (lossless indexed)"/>
+                        <ComboBoxItem Content="TIFF (lossless)"/>
+                        <ComboBoxItem Content="BMP (lossless)"/>
+                        <ComboBoxItem Content="WebP (lossless)"/>
+                      </ComboBox>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,12,12">
+                      <TextBlock Text="Organization" Style="{StaticResource Hint}" Margin="0,0,0,5"/>
+                      <ComboBox x:Name="GraphicsOrganization" Width="265" SelectedIndex="0">
+                        <ComboBoxItem Content="Raw + grouped (recommended)"/>
+                        <ComboBoxItem Content="Raw only"/>
+                        <ComboBoxItem Content="Grouped only"/>
+                      </ComboBox>
+                    </StackPanel>
+                  </WrapPanel>
+                  <WrapPanel>
+                    <CheckBox x:Name="AutomaticPalette" Content="Automatically choose original palette"
+                              IsChecked="True" Margin="0,0,16,10"
+                              Checked="AutomaticPalette_Changed"
+                              Unchecked="AutomaticPalette_Changed"/>
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Text="Manual bank (0–14)" Style="{StaticResource Hint}"
+                                 VerticalAlignment="Center" Margin="0,0,8,0"/>
+                      <TextBox x:Name="ManualPalette" Text="4" IsEnabled="False" Width="52" Padding="7,4"/>
+                    </StackPanel>
+                  </WrapPanel>
+                </StackPanel>
+              </Border>
+              <Border Style="{StaticResource Card}">
+                <StackPanel>
+                  <TextBlock Text="MULTIPART ASSET FAMILIES" Style="{StaticResource Eyebrow}"/>
+                  <TextBlock Text="Group original RES3 frames without renaming any extracted image."
+                             Style="{StaticResource Hint}" Margin="0,0,0,12"/>
+                  <WrapPanel>
+                    <CheckBox x:Name="GroupNpcs" Content="NPCs / creatures" IsChecked="True" Margin="0,0,24,10"/>
+                    <CheckBox x:Name="GroupObjects" Content="Objects / items" IsChecked="True" Margin="0,0,24,10"/>
+                    <CheckBox x:Name="GroupEffects" Content="Spells / effects" IsChecked="True" Margin="0,0,24,10"/>
+                    <CheckBox x:Name="GroupScenes" Content="Scene descriptors" IsChecked="True" Margin="0,0,24,10"/>
+                  </WrapPanel>
+                  <TextBlock Text="ORGANIZATION EXTRAS" Style="{StaticResource Eyebrow}" Margin="0,8,0,7"/>
+                  <WrapPanel>
+                    <CheckBox x:Name="GroupSheets" Content="Contact sheets" IsChecked="True" Margin="0,0,24,10"/>
+                    <CheckBox x:Name="GroupPreviews" Content="Animated previews" IsChecked="True" Margin="0,0,24,10"/>
+                    <CheckBox x:Name="GroupAliases" Content="Shared resource maps" IsChecked="True" Margin="0,0,24,10"/>
+                  </WrapPanel>
+                </StackPanel>
+              </Border>
+              <Border Style="{StaticResource Card}">
+                <StackPanel>
+                  <TextBlock Text="SOURCE ARCHIVES" Style="{StaticResource Eyebrow}"/>
+                  <WrapPanel x:Name="GraphicsArchives" Margin="0,0,0,10"/>
+                  <TextBlock Text="PRESERVATION OPTIONS" Style="{StaticResource Eyebrow}"/>
+                  <WrapPanel>
+                    <CheckBox x:Name="GraphicsIndices" Content="Original palette indices" IsChecked="True" Margin="0,0,24,10"/>
+                    <CheckBox x:Name="GraphicsMetadata" Content="Shape/structure data" IsChecked="True" Margin="0,0,24,10"/>
+                    <CheckBox x:Name="GraphicsNative" Content="Native EH records" IsChecked="False" Margin="0,0,24,10"/>
+                    <CheckBox x:Name="GraphicsMasks" Content="Transparency masks" IsChecked="False" Margin="0,0,24,10"/>
+                  </WrapPanel>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <!-- Audio page -->
+            <StackPanel x:Name="PageAudio" Visibility="Collapsed">
+              <Border Style="{StaticResource Card}">
+                <StackPanel>
+                  <TextBlock Text="SOUND AND SCORE" Style="{StaticResource Eyebrow}"/>
+                  <CheckBox x:Name="ExtractAudio" Content="Export sampled sound effects" IsChecked="True" Margin="0,0,0,10"/>
+                  <ComboBox x:Name="AudioFormat" Width="260" HorizontalAlignment="Left" SelectedIndex="0" Margin="0,0,0,17">
+                    <ComboBoxItem Content="FLAC (lossless)"/>
+                    <ComboBoxItem Content="WAV (PCM lossless)"/>
+                    <ComboBoxItem Content="VOC (original)"/>
+                  </ComboBox>
+                  <CheckBox x:Name="ExtractMusic" Content="Export XMIDI and standard MIDI" IsChecked="True" Margin="0,0,0,10"/>
+                  <ComboBox x:Name="MusicFormat" Width="300" HorizontalAlignment="Left" SelectedIndex="0">
+                    <ComboBoxItem Content="Both XMI + MIDI"/>
+                    <ComboBoxItem Content="XMI/XDIR (original)"/>
+                    <ComboBoxItem Content="Standard MIDI (SMF0, exact 120 Hz)"/>
+                  </ComboBox>
+                  <CheckBox x:Name="AudioPreserve" Content="Preserve original audio resources"
+                            IsChecked="True" Margin="0,18,0,0"/>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <!-- Cinematics page -->
+            <StackPanel x:Name="PageCinematics" Visibility="Collapsed">
+              <Border Style="{StaticResource Card}">
+                <StackPanel>
+                  <TextBlock Text="FRAME AND VIDEO RECONSTRUCTION" Style="{StaticResource Eyebrow}"/>
+                  <TextBlock Text="Original game timing remains the default." Style="{StaticResource Hint}" Margin="0,0,0,12"/>
+                  <TextBlock Text="Specific cinematics (optional: CINE00.ANM, CINE01.ANM…)"
+                             Style="{StaticResource Hint}" Margin="0,0,0,6"/>
+                  <TextBox x:Name="CinematicNames" MinHeight="34" Margin="0,0,0,16"/>
+                  <WrapPanel>
+                    <CheckBox x:Name="CinematicFrames" Content="Individual frames" IsChecked="True" Margin="0,0,22,12"/>
+                    <CheckBox x:Name="CinematicVideos" Content="Render movies" IsChecked="False" Margin="0,0,22,12"/>
+                    <CheckBox x:Name="CinematicTimelines" Content="Timing JSON" IsChecked="True" Margin="0,0,22,12"/>
+                    <CheckBox x:Name="CinematicSync" Content="Synchronize SFX" IsChecked="True" Margin="0,0,22,12"/>
+                    <CheckBox x:Name="CinematicOriginals" Content="Preserve ANM" IsChecked="True" Margin="0,0,22,12"/>
+                  </WrapPanel>
+                  <WrapPanel Margin="0,9,0,0">
+                    <StackPanel Margin="0,0,25,12">
+                      <TextBlock Text="Frame format" Style="{StaticResource Hint}" Margin="0,0,0,5"/>
+                      <ComboBox x:Name="CinematicFrameFormat" Width="170" SelectedIndex="0">
+                        <ComboBoxItem Content="PNG"/><ComboBoxItem Content="BMP"/>
+                        <ComboBoxItem Content="TIFF"/><ComboBoxItem Content="JPEG"/>
+                        <ComboBoxItem Content="WEBP"/>
+                      </ComboBox>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,20,12">
+                      <TextBlock Text="Video format" Style="{StaticResource Hint}" Margin="0,0,0,5"/>
+                      <ComboBox x:Name="CinematicVideoFormat" Width="240" SelectedIndex="0">
+                        <ComboBoxItem Content="MKV (FFV1 lossless)"/>
+                        <ComboBoxItem Content="MP4 (H.264)"/><ComboBoxItem Content="MKV (H.264)"/>
+                        <ComboBoxItem Content="MOV (H.264)"/><ComboBoxItem Content="AVI (MPEG-4)"/>
+                        <ComboBoxItem Content="WebM (VP9)"/><ComboBoxItem Content="GIF"/>
+                      </ComboBox>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,12,12">
+                      <TextBlock Text="Optional FPS (blank = native)" Style="{StaticResource Hint}" Margin="0,0,0,5"/>
+                      <TextBox x:Name="CinematicFps" Width="160" Padding="7,4"/>
+                    </StackPanel>
+                  </WrapPanel>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <!-- Support assets -->
+            <StackPanel x:Name="PageSupport" Visibility="Collapsed">
+              <Border Style="{StaticResource Card}">
+                <StackPanel>
+                  <TextBlock Text="ORIGINAL GAME SUPPORT DATA" Style="{StaticResource Eyebrow}"/>
+                  <TextBlock Text="Export available palettes, subtitle/text data, OPL timbres, ARIA banks, INIT mapping and SINTAB renderer tables."
+                             Style="{StaticResource Hint}" Margin="0,0,0,14"/>
+                  <WrapPanel>
+                    <CheckBox x:Name="SupportColors" Content="COLORS · palettes" IsChecked="True" Margin="0,0,20,12"/>
+                    <CheckBox x:Name="SupportText" Content="T · text" IsChecked="True" Margin="0,0,20,12"/>
+                    <CheckBox x:Name="SupportSample" Content="SAMPLE.AD · OPL2" IsChecked="True" Margin="0,0,20,12"/>
+                    <CheckBox x:Name="SupportBanks" Content="GM1 / GM2 · ARIA" IsChecked="True" Margin="0,0,20,12"/>
+                    <CheckBox x:Name="SupportInit" Content="INIT · mapping" IsChecked="True" Margin="0,0,20,12"/>
+                    <CheckBox x:Name="SupportSintab" Content="SINTAB · renderer" IsChecked="True" Margin="0,0,20,12"/>
+                  </WrapPanel>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <!-- Dump everything -->
+            <StackPanel x:Name="PageAll" Visibility="Collapsed">
+              <Border Style="{StaticResource Card}">
+                <StackPanel>
+                  <TextBlock Text="FULL SOURCE ARCHIVE" Style="{StaticResource Eyebrow}"/>
+                  <TextBlock Text="Extract all available resource categories with the settings configured in each section. The original game directory is never modified."
+                             FontSize="16" Foreground="{StaticResource PrimaryTextBrush}" TextWrapping="Wrap"/>
+                  <CheckBox x:Name="AllSupport" Content="Include available support assets" IsChecked="True" Margin="0,19,0,0"/>
+                  <TextBlock Text="A complete or partial installation is supported; missing source categories will be reported or skipped."
+                             Style="{StaticResource Hint}" Margin="0,12,0,0"/>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </Grid>
+
+    <!-- This footer never scrolls or clips under the settings. -->
+    <Border Grid.Row="2" Background="#251A23" BorderBrush="{StaticResource StrokeBrush}"
+            BorderThickness="0,1,0,0" Padding="24,10">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center">
+          <TextBlock x:Name="StatusText" Text="Ready · Choose a game source."
+                     Foreground="{StaticResource PrimaryTextBrush}" TextTrimming="CharacterEllipsis"/>
+          <TextBlock x:Name="StatusDetail" Text="No operation running."
+                     Style="{StaticResource Hint}" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+        </StackPanel>
+        <Button x:Name="RunButton" Grid.Row="0" Grid.Column="1"
+                Style="{StaticResource PrimaryAction}" Content="Scan source"
+                Margin="15,0,8,0" Click="Run_Click"/>
+        <Button x:Name="CancelButton" Grid.Row="0" Grid.Column="2"
+                Content="Cancel" IsEnabled="False" Click="Cancel_Click"
+                Padding="16,9" MinHeight="39"/>
+        <ProgressBar x:Name="WorkProgress" Grid.Row="1" Grid.ColumnSpan="3"
+                     Height="5" Margin="0,12,0,0" Minimum="0" Maximum="100"/>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>
