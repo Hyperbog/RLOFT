@@ -12,7 +12,8 @@ namespace rloft {
 // This is read-only and does not apply damage or consume RNG.
 struct CombatWeaponDamageGateResult final {
     std::int32_t damage_after_gate{};
-    bool forced_minimum{};
+    bool creature_restriction_triggered{};
+    bool minimum_clamped{};
 };
 
 class CombatWeaponDamageGateModel final {
