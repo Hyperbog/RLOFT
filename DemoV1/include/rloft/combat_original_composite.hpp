@@ -12,15 +12,15 @@ namespace rloft {
 struct CombatOriginalCompositeState final {
     std::uint16_t enabled_85fc{};
     std::int16_t overlay_reference_count_9e37{};
-    std::int16_t overlay_left_9e31{};
-    std::int16_t overlay_top_9e33{};
+    std::int16_t overlay_row_9e31{};
+    std::int16_t overlay_column_9e33{};
     std::uint8_t active_page_9e39{};
     std::uint16_t redraw_busy_a6ba{};
 };
 
 struct CombatOriginalCompositeRect final {
     std::uint32_t page{};
-    std::uint32_t left{};
+    std::uint32_t row{};
     std::uint32_t top{};
     std::uint32_t width{};
     std::uint32_t height{};
