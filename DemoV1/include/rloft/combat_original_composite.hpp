@@ -67,6 +67,15 @@ public:
         CombatOriginalCompositeState& state,
         const CombatOriginalCompositeRect& rect,
         const CombatOriginalCompositeServices& services);
+
+    // Bind this authentic original compositor wrapper directly to
+    // CombatIrqDisplayServices::composite_1a8c8 without freezing the
+    // live overlay globals or introducing host timing.
+    [[nodiscard]] static std::function<void(
+        std::uint32_t,std::uint32_t,std::uint32_t,
+        std::uint32_t,std::uint32_t)> bind_irq_display_1a8c8(
+            CombatOriginalCompositeState& original_state,
+            CombatOriginalCompositeServices original_services);
 };
 
 } // namespace rloft
