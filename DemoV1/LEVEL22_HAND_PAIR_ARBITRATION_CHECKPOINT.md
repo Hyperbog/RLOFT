@@ -4,7 +4,7 @@
 
 **Source checkpoint only; no GitHub Actions builds.** This implements the normal two-**nonnegative**-item hand arbitration of original `24478`. It specifically excludes item `-1` and pseudo-hand object IDs `0x7E..0x86`, which use other original branches and, for `-1`, heap-adjacent reads. The model reports eligibility *candidates*, not executable attacks. CODE.2 `214B8` and `26018` action routing, original 30CA2 dice, E5F0 damage, 24478 complete approval and timing are still separate dependencies.
 
-Original source: supplied `CODE.2`, SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`. CODE.2 object-1 logical offsets below; file base `0x3AF24`. Machine-byte signatures for matching qualifier, weight, unequal qualifier, single-classification, and two `-1` conditions were appended to the offline verifier. The verifier now contains **65 original instruction signatures** (54 previous + 11 new).
+Original source: supplied `CODE.2`, SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`. CODE.2 object-1 logical offsets below; file base `0x3AF24`. Machine-byte signatures for matching qualifier, weight, unequal qualifier, single-classification, and two `-1` conditions were appended to the offline verifier. The verifier now contains **72 original instruction signatures** (54 previous + 11 pair-arbitration + 7 OBJECTS loader/memory allocation anchors).
 
 ## Exact ordinary 24478 candidate flow
 
