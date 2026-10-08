@@ -426,3 +426,26 @@ restoration, actual DOS resource state and pixel/frame
 comparisons remain outstanding. No Windows host-clock
 source has been substituted. See
 [the original-code checkpoint](LEVEL22_CODE2_2A078_30CD4_COPY_CHECKPOINT.md).
+
+
+## 1A288 and 1AB20 nested original overlay timing
+
+Original `1A288` does not always draw: if 85FC is
+disabled it is a no-op; if 9E37 is nonzero, it only
+increments the WORD and returns. On first activation
+it runs 2E590, 1A3B8, 292BC (32×16 capture),
+2AE30, optional mode-dependent 29804 calls,
+then 2E5D4 **before** incrementing 9E37.
+
+Original `1AB20` decrements 9E37 immediately when
+85FC is enabled, then restores backing only when
+the resulting WORD is zero: 2E590 -> 2932C
+(32×16 at caller-supplied signed row/column)
+-> tail-call 2E5D4. No increment follows.
+The original 1A8C8 compositor already changes
+these shared globals before and after its callbacks.
+The integrated native adapter preserves the exact
+callback, 16-bit counter and page restoration order.
+All this work happens before the original 1C2C4
+`30700` IRQ observation. See
+[the original-overlay checkpoint](LEVEL22_CODE2_OVERLAY_1A288_1AB20_CHECKPOINT.md).
