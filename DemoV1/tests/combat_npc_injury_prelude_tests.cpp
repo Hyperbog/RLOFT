@@ -14,9 +14,12 @@ int main() {
     in.npc_definition_reaction_byte_1c=1U;
     in.reaction_mode=0U;
     in.raw_damage=4;
+    in.previous_runtime_flags=0xE2000002U;
     auto r=CombatNpcInjuryPreludeModel::inspect(in);
     assert(r.next_hp==11);
     assert(r.next_packed_state_14==0xA006U);
+    assert(r.classification_state_applied);
+    assert(r.next_runtime_flags==0xD2000002U);
     assert(r.next_action_countdown_10==2U);
     assert(!r.hp_subtraction_skipped && !r.type8_hp_floor_applied);
     in.reaction_mode=15U;
@@ -62,6 +65,24 @@ int main() {
     in.raw_damage=10;
     r=CombatNpcInjuryPreludeModel::inspect(in);
     assert(r.next_hp==10 && !r.type8_hp_floor_applied);
+
+    // 3ACDC returns true for type <0x22 or exactly 0x50.
+    // Classifier updates NPC BYTE+0B for nonlethal injuries too.
+    in.previous_runtime_flags=0xF2000040U;
+    in.previous_hp=30;
+    in.raw_damage=1;
+    for(const auto type:{0x00U,0x08U,0x09U,0x0FU,0x21U,0x50U}) {
+        in.npc_type_id=static_cast<std::uint16_t>(type);
+        r=CombatNpcInjuryPreludeModel::inspect(in);
+        assert(r.classification_state_applied);
+        assert(r.next_runtime_flags==0xD2000040U);
+    }
+    for(const auto type:{0x22U,0x23U,0x4FU,0x51U,0xFFFFU}) {
+        in.npc_type_id=static_cast<std::uint16_t>(type);
+        r=CombatNpcInjuryPreludeModel::inspect(in);
+        assert(!r.classification_state_applied);
+        assert(r.next_runtime_flags==0xF2000040U);
+    }
 
     // Generic NPC damage is a 16-bit original subtraction,
     // not a host saturating/nonnegative subtraction.
