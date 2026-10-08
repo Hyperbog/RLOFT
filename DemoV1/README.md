@@ -73,18 +73,44 @@ Overall faithful-demo acceptance is still **20% (1/5 major release gates)**.
 
 Goal: reproduce the original shipped behavior from boot through character creation while reading assets from a legally installed/owned copy of *Ravenloft: Strahd's Possession*.
 
+## Original 24478 ordinary two-hand arbitration
+
+The [ordinary two-hand arbitration checkpoint](LEVEL22_HAND_PAIR_ARBITRATION_CHECKPOINT.md)
+models CODE.2 `24478` for **two nonnegative, non-pseudo equipped items**,
+using the original independent `240A8` eligibility/classification results,
+literal OBJECTS `+0x35 & 3` and `+0x30` weight fields, character class
+groups, `23EE4` pair exemptions, and each hand's `+0x10B/+0x10F`
+action-state busy gate. The source/tests are registered for an eventual
+manual build; **there is no newly verified Windows binary or playable attack**.
+
+The original loader at `268C8` allocates OBJECTS through a wrapper
+returning a pointer 10 bytes into an allocation. `240A8(-1)` reads the
+pre-table byte `OBJECTS_POINTER-0x12`, *outside* the allocated object
+record and even before the low-level allocation base. The helper can
+model the empty-hand decision only when that actual raw byte is supplied;
+full pair arbitration still refuses `-1` and pseudo-hand items.
+Original heap behavior and game-time action pacing remain separate
+research gates.
+
+**Bounded ordinary pair checkpoint: 60% (3/5 gates)**. Overall faithful
+demo release acceptance remains **20% (1/5 gates)**.
+
 ## Original 240A8 candidate and 24478 hand legality — source-only progress
 
 The latest [single-hand eligibility checkpoint](LEVEL22_SINGLE_HAND_ELIGIBILITY_CHECKPOINT.md)
-implements original `240A8` for **nonnegative object IDs**, including its
+implements original `240A8` for **nonnegative object IDs** and permits the original
+empty-hand (`-1`) branch **only with the true OBJECTS pre-base category byte**,
+including its
 `33FC4/34060` exception sets, signed class and level gates, two original
 spell-ID intervals, party-mode rules and the literal OBJECTS `+0x35 & 3`
 qualifier. Its regression target is registered but not yet compiled.
 
-The source deliberately **does not invent `240A8(-1)` unarmed semantics**:
-the original helper can read memory before the loaded OBJECTS buffer for
-negative IDs. Recovering that original pointer context and finishing the
-two-hand `24478` reconciliation remain prerequisites to live attacks.
+The source deliberately **does not invent a default `240A8(-1)` unarmed category**:
+the original helper reads memory before the allocated OBJECTS buffer.
+The original loader's pointer arithmetic has now been recovered, but
+the allocator-adjacent **runtime byte value** is still unknown. The positive
+two-item subset of `24478` is implemented separately; complete `-1` and
+pseudo-hand arbitration remain prerequisites to live attacks.
 The [offline original-byte audit](tools/verify_combat_entry_bytes.py)
 registers **54 exact opcode anchors**, including 21 new sequences matched
 against original CODE.2. This is source evidence, not a new game build.
