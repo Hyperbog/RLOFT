@@ -17,6 +17,30 @@ DATA_OBJECT_START = 0x75F24
 # Offsets are CODE.2 object-1 logical addresses, not 0x10000-adjusted
 # objdump virtual addresses. These are independently disassembled x86.
 ANCHORS = {
+    # Original 2E590/2E5D4 VGA page stack with BYTE F0D0 depth and EF4D saved page.
+    "2E590 loads current BYTE F0D0 stack depth": (0x2E590, "0fb615d0f00000"),
+    "2E590 compares overflow warning at depth ten": (0x2E597, "83fa0a"),
+    "2E590 conditional diagnostic branch": (0x2E59A, "750d"),
+    "2E590 pushes original overflow message 1358": (0x2E59C, "6858130000"),
+    "2E590 invokes original diagnostic 2F580": (0x2E5A1, "e8da0f0000"),
+    "2E590 rereads F0D0 after diagnostic": (0x2E5A9, "a0d0f00000"),
+    "2E590 zero-extends stack byte index": (0x2E5AE, "0fb6d0"),
+    "2E590 reads ACTIVE page EF4D not EFE9": (0x2E5B1, "8a254def0000"),
+    "2E590 writes DGROUP 2B644 indexed page": (0x2E5B7, "88a244b60200"),
+    "2E590 reads incoming page low byte": (0x2E5BD, "0fb6542404"),
+    "2E590 increment AL wraps depth at byte FF": (0x2E5C2, "fec0"),
+    "2E590 commits incremented BYTE F0D0": (0x2E5C5, "a2d0f00000"),
+    "2E590 calls 291B0 select page": (0x2E5CA, "e8e1abffff"),
+    "2E5D4 original underflow byte zero check": (0x2E5D4, "803dd0f0000000"),
+    "2E5D4 bypasses diagnostic when nonzero": (0x2E5DB, "750d"),
+    "2E5D4 pushes underflow message 136C": (0x2E5DD, "686c130000"),
+    "2E5D4 calls original diagnostic 2F580": (0x2E5E2, "e8990f0000"),
+    "2E5D4 decrements BYTE F0D0 with wrap": (0x2E5EA, "fe0dd0f00000"),
+    "2E5D4 reloads postdecrement stack index": (0x2E5F0, "0fb605d0f00000"),
+    "2E5D4 reads saved BYTE page 2B644": (0x2E5F7, "0fb68044b60200"),
+    "2E5D4 pushes restored saved page": (0x2E5FE, "50"),
+    "2E5D4 calls 291B0 for restoration": (0x2E5FF, "e8acabffff"),
+    "2E5D4 normal page pop return": (0x2E607, "c3"),
     # Original 1A288/1AB20 overlay nesting, capture, mode draw and restore.
     "1A288 overlay enabled WORD85FC": (0x1A288, "66833dfc85000000"),
     "1A288 disabled jumps return": (0x1A290, "0f8475090000"),
