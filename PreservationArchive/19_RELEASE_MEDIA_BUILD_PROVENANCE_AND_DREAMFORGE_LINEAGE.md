@@ -2,7 +2,7 @@
 
 ## 19 — Release, Media, Build Provenance, and DreamForge Lineage
 
-**Status:** SUPPLIED-BUILD STATIC PROVENANCE AUDITED — historical patch deltas and exact media mastering remain OPEN  
+**Status:** SUPPLIED 1.2a AND FLOPPY 1.1a/1.2 EXECUTABLES BYTE-VERIFIED — CD/1.0 REVISION DELTAS AND MEDIA MASTERING OPEN  
 **Working branch:** `code1-decompilation`  
 **Frozen repository evidence baseline:** `373c7f10e6fc0f29c1e805125ef048150fcc7ba7`  
 **Evidence hierarchy:** immutable supplied binaries and certified format audits first; dated storefront/publisher records and documented contemporary media second; historical community testimony third. Never infer executable equality solely from matching game title, file name or platform.
@@ -267,9 +267,9 @@ Two additional user-supplied packages are **floppy-edition**, not CD-ROM-edition
 | `rlftdk12.zip` | `CODE.2` | 552,417 | `17390FF6` |
 | Current separately supplied 1.2a | `CODE.2` | 558,689 | `E0DD27FE` |
 
-The ARJ file headers' stored header-CRCs matched their recomputed header CRC32s. Member compressed ranges and the terminal end markers were read successfully. **The ARJ method-1 payloads have not yet been decompressed and SHA-256 checked**: an appropriate trusted ARJ decoder/runtime was not available in this audit environment. The outer ZIP payloads and internal ARJ headers are authenticated to their uploaded bytes, but header CRCs alone do not certify decompressed file content.
+The ARJ file headers' stored header-CRCs matched their recomputed header CRC32s. Member compressed ranges and the terminal end markers were read successfully. **Historical note (superseded by §21):** this first pass had only validated the ARJ headers. The method-1 payloads were subsequently fully decompressed and authenticated by SHA-256 and CRC32. The outer ZIP payloads and internal ARJ headers are authenticated to their uploaded bytes, but header CRCs alone do not certify decompressed file content.
 
-The ARJ header declares `CODE.1` and `R.EXE` for 1.1 with **the same physical sizes and CRC32 values** as the present 1.2a original copies. This is strong evidence that these components were unchanged between those particular floppy patch payloads and the current 1.2a copies, but **not a cryptographic equality proof** until independent extraction and hashing. The 1.1/1.2/1.2a `CODE.2` sizes and CRCs differ, making distinct executable revisions directly evidenced.
+The ARJ header declares `CODE.1` and `R.EXE` for 1.1 with **the same physical sizes and CRC32 values** as the present 1.2a original copies. This is strong evidence that these components were unchanged between those particular floppy patch payloads and the current 1.2a copies, and **this exact equality is now independently proved** by the decoded byte comparison in §21. The 1.1/1.2/1.2a `CODE.2` sizes and CRCs differ, making distinct executable revisions directly evidenced.
 
 `rlftdk11.zip` has `INSTALL.NFO` internally marked **“created 4/25/1994”** and named *Ravenloft Floppy Version Patch Disk v1.1*. `rlftdk12.zip` marks **“created 9/7/1994”** and *Ravenloft Patch Disk v1.2 (FLOPPY VERSION)*. Those are **embedded installer metadata dates**, not independently certified public release dates. Earlier public records already prove both patch variants were distributed by 1995.
 
@@ -284,3 +284,36 @@ A [2015 collector account](https://www.gog.com/forum/dungeons_dragons_ravenloft_
 **Potential lawful acquisition routes to investigate:** an owned original unpatched retail CD/diskette set, a correctly identified privately held original 1.0 installation, or an institution/collector authorized to provide a research comparison of hashes or executable bytes. A known *download* of a byte-authenticated 1.0 image from an authorized source has **not been established** by this pass. Do not substitute an unverified third-party 1.0 label or claim that all Masterpiece discs use the same revision.
 
 **Next comparisons:** obtain the paired **CD patch** installers if available, decompress the ARJ method-1 members safely and check CRC/SHA against their declared revision, inspect shipped audio drivers' descriptor `svc_rate` independently of actual timing, and compare a verified version-1.0 original when acquired. No original executable should be overwritten during this work.
+
+
+## 21. Fully decoded original floppy patch executables — independent source-byte revision graph
+
+**Correction P-19.4 (2026-10-08): the `DATA.A00` method-1 members in §19 have now been fully decompressed and authenticated, rather than merely catalogued from ARJ headers.** The verification implemented the original published UNARJ v2.65 canonical Huffman/LZ history grammar as a read-only local decoder; no uploaded DOS executable or installer was run. Each decompressed member matched its archived length and stored CRC32. `CODE.1` and `R.EXE` from the 1.1 floppy patch were then byte-compared to the existing supplied originals.
+
+| Patch member / current source | Uncompressed bytes | CRC32 | SHA-256 |
+|---|---:|---|---|
+| `rlftdk11.zip / CODE.1` | 277,787 | `804CA5FA` | `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed` |
+| `rlftdk11.zip / CODE.2` | 547,793 | `11F75050` | `53fadcafee5227a7fcf26fabb0d0aea73390ec532ba4b20d1e7a736c8cce9928` |
+| `rlftdk11.zip / R.EXE` | 12,368 | `83EE0B03` | `a6d5874dc91fb068a3ed0a07290547c310ee7f4f50be4d8176c4788f251631b0` |
+| `rlftdk12.zip / CODE.2` | 552,417 | `17390FF6` | `82a5314951dbee8a02716bea52ab994dbc812987c21c13eece920c8dcc0cb0e1` |
+| Supplied 1.2a `CODE.2` | 558,689 | `E0DD27FE` | `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314` |
+
+**Proved exact equality:** the floppy-1.1 patch's `CODE.1` is **byte-for-byte identical** to the supplied 1.2a `CODE.1`; its `R.EXE` is **byte-for-byte identical** to the supplied 1.2a `R.EXE`. Their equality is no longer inferred from CRC32 alone. These specific patch payloads do not establish identity of those files across every CD/diskette pressing or unpatched 1.0 build.
+
+**Unexpected primary version detail:** the extracted 1.1-patch `CODE.2` actually embeds **`Ver 1.1a (F)`**, the 1.2-patch binary **`Ver 1.2 (F)`**, and the supplied current executable **`Ver 1.2a`**. The installer package name `rlftdk11.zip` is therefore **not** an exact substitute for the embedded 1.1a floppy game-module version. All three binaries contain the same byte-for-byte DOS/4GW runtime/container prefix through physical offset `0x27BEF`, first diverging at `0x27BF0` in the nested LE module-page-count field.
+
+| CODE.2 identifier | 1.1a (F) | 1.2 (F) | 1.2a |
+|---|---:|---:|---:|
+| `LE` header absolute physical offset | `0x27BDC` | `0x27BDC` | `0x27BDC` |
+| Total LE module pages | 76 | 77 | 78 |
+| LE application entry object | 1 | 1 | 1 |
+| LE object-1 entry offset | `0x33E24` | `0x3421C` | `0x353A0` |
+| Nested-module-relative data page offset | `0x14600` | `0x14A00` | `0x15200` |
+| Physical object-1 start | `0x3A324` | `0x3A724` | `0x3AF24` |
+| Object-1 declared byte count | `0x3815E` | `0x3906E` | `0x3A852` |
+| Object-1 SHA-256 | `367669526679cad68a3886fff562e84ec3c264ab23197f3d489db008b1fb45fd` | `0fd24d6598868e2ed3073e3b10952d367216b71ca1d1fa89db06955f86846fd0` | `014952c4f003c548d928984825bab57dff54ce962dbfae21d7260f19fd3a62f3` |
+| Embedded CODE.2 version text offset (physical) | `0x7B570` | `0x7C970` | `0x7E1E4` |
+
+**What this establishes:** the two recovered patch members are verified original machine-byte witnesses from **floppy-specific revisions**, and the supplied 1.2a is a distinct later CODE.2 object. The offsets above are per-binary, and addresses in the 1.2a decompilation must **not** be applied naively to either older CODE.2 as if function locations were stable. Complete function-level changes require a separate aligned disassembly/relocation comparison. Neither a floppy-to-CD equivalence proof nor a version-1.0 reconstruction follows automatically.
+
+**Historical 1.0 remains optional:** these upgrades contain replacement code, not an invertible full patch against 1.0. Do not invent a 1.0 binary from compressed 1.1a/1.2 payloads.
