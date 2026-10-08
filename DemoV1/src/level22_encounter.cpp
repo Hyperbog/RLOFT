@@ -1,5 +1,6 @@
 #include "rloft/level22_encounter.hpp"
 #include "rloft/combat_npc_injury_prelude.hpp"
+#include "rloft/combat_npc_death_followon.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -142,7 +143,21 @@ NpcDamageResult Level22EncounterModel::damage_assassin(
     // E306..E31F runs for nonlethal and lethal injury alike.
     live.runtime_flags = injury.next_runtime_flags;
 
-    if (live.current_hp > 0) {
+    // Original E284:E31F..E577 first separates living damage
+    // presentation from death-specific branches. For this
+    // bounded Level22 type9 specialization the planner also
+    // provides exact 3195C drop item/seed arguments.
+    // Original 258BC/258C0 presentation resource bases are
+    // managed by the outer runtime, not guessed here.
+    const auto followon=CombatNpcDeathFollowOnModel::inspect(
+        live.npc_type_id,
+        live.current_hp,
+        def.damage_sound_id,
+        def.death_sound_id,
+        def.experience_award,
+        0U,0U);
+
+    if (!followon.is_death) {
         result.sound_kind =
             NpcSoundKind::DamageReaction;
         result.sound_id =
@@ -156,8 +171,22 @@ NpcDamageResult Level22EncounterModel::damage_assassin(
     result.experience_award =
         def.experience_award;
 
-    for (const auto& drop :
-         Level22Story::assassin_death_drops()) {
+    // E3C9..E443 issues four 3195C calls with exact IDs and
+    // screen seeds. Use the shared original death dispatcher,
+    // not a second modern hardcoded four-item loop.
+    if (followon.special!=
+            CombatNpcDeathSpecialBranch::Type9FourQuestDrops ||
+        !followon.set_story_dword_bf44 ||
+        followon.drop_count!=4U) {
+        throw std::logic_error(
+            "CODE.2 E284 type9 death branch not verified");
+    }
+    for (std::size_t i=0U;i<followon.drop_count;++i) {
+        const auto& original_drop=followon.drops[i];
+        const Level22Drop drop{
+            original_drop.screen_seed,
+            original_drop.object_id
+        };
         spawn_drop(
             world,
             drop,
