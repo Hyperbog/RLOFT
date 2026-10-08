@@ -29,6 +29,10 @@ struct CombatOriginalVgaPageStackServices final {
     // Observer invoked after the original 291B0/29FEC/2AB6C
     // state mutation, never as a substitute for that mutation.
     std::function<void(std::uint8_t)> selected_page_291b0;
+    // Optional live 2AB6C DWORD[F005] read. An original diagnostic
+    // may change F005 before 291B0 is invoked; callers may provide
+    // the authoritative video-state provider instead of an old copy.
+    std::function<std::uint32_t()> observed_stride_f005_before_291b0;
 };
 
 class CombatOriginalVgaPageStackModel final {
