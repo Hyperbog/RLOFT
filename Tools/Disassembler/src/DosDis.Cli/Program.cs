@@ -37,10 +37,11 @@ static void Print(object payload) => Console.WriteLine(JsonSerializer.Serialize(
 
 try
 {
-    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze"))
+    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report"))
     {
-        Console.Error.WriteLine("Usage: dosdis inspect|fixups|memory|disasm|analyze <file> [options]\n" +
-            "Analyze: [--seed 1:0x2975C] [--data 1:0x100:0x110] [--include-entry] [--max-instructions 100000] [--max-output 300] [--relocated]");
+        Console.Error.WriteLine("Usage: dosdis inspect|fixups|memory|disasm|analyze|report <file> [options]\n" +
+            "Analyze/report: [--seed 1:0x2975C] [--data 1:0x100:0x110] [--include-entry] [--max-instructions 100000] [--relocated]\n" +
+            "Analyze: [--max-output 300]; Report: --out path.json|path.txt [--include-bytes] (no overwrite)");
         return 2;
     }
     var artifact = BinaryArtifact.Open(args[1]);
@@ -71,7 +72,7 @@ try
         Print(new { artifact.Sha256, Total = image.Relocations.Count,
             Fixups = image.Relocations.Take(max) });
     }
-    else if (args[0] == "analyze")
+    else if (args[0] is "analyze" or "report")
     {
         image ??= LeImage.Load(artifact);
         var seeds = RepeatedOption(args, "--seed").Select(ParseSeed).ToList();
@@ -83,7 +84,21 @@ try
         if (maxOutput is < 0 or > 10000) throw new ArgumentOutOfRangeException(nameof(maxOutput));
         var graph = ControlFlowAnalysis.Analyze(image, seeds, data, maxInstructions,
             args.Contains("--relocated", StringComparer.Ordinal));
-        Print(new {
+        if (args[0] == "report")
+        {
+            string output = Option(args, "--out", "");
+            if (string.IsNullOrWhiteSpace(output))
+                throw new ArgumentException("Report requires --out path.json or --out path.txt.");
+            string extension = Path.GetExtension(output);
+            bool asJson = string.Equals(extension, ".json", StringComparison.OrdinalIgnoreCase);
+            if (!asJson && !string.Equals(extension, ".txt", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("Report path must have a .json or .txt extension.");
+            bool includeBytes = args.Contains("--include-bytes", StringComparer.Ordinal);
+            AnalysisReportExport.WriteNew(output, graph, asJson, includeBytes);
+            Console.WriteLine($"Candidate analysis report exported ({graph.Instructions.Count} instructions, " +
+                $"bytes {(includeBytes ? "included" : "omitted")}). Original executable unchanged.");
+        }
+        else Print(new {
             graph.ArtifactSha256, graph.Seeds, graph.ProtectedData, graph.Truncated,
             Summary = new {
                 Instructions = graph.Instructions.Count, Blocks = graph.Blocks.Count,

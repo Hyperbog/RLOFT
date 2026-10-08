@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Text.Json;
 using DosDis.Core;
 
 static void Equal<T>(T actual, T expected, string label)
@@ -153,6 +154,53 @@ try
     }
     var graph = ControlFlowAnalysis.Analyze(graphImage, protectedData: new[] {
         new ProtectedDataRange(1, 6, 10, "synthetic-known-data") });
+    // Part 25: user-triggered offline exports preserve evidence classification,
+    // omit potentially proprietary instruction bytes by default, and never
+    // overwrite an existing analyst report.
+    string exportJson = AnalysisReportExport.BuildJson(graph);
+    using (var exported = JsonDocument.Parse(exportJson))
+    {
+        var root = exported.RootElement;
+        Equal(root.GetProperty("format").GetString(), "dosdis-analysis-report", "versioned report identity");
+        Equal(root.GetProperty("analysisStatus").GetString(), "candidate-unverified", "export cannot promote candidates");
+        Equal(root.GetProperty("source").GetProperty("sha256").GetString(), graph.ArtifactSha256, "export source hash");
+        Equal(root.GetProperty("source").GetProperty("sourceBinaryIncluded").GetBoolean(), false, "no complete original in report");
+        Equal(root.GetProperty("source").GetProperty("sourcePathIncluded").GetBoolean(), false, "no original path in report");
+        Equal(root.GetProperty("source").GetProperty("instructionBytesIncluded").GetBoolean(), false, "machine bytes opt-in only");
+        Equal(root.GetProperty("instructions").GetArrayLength(), graph.Instructions.Count, "candidate instruction count exported");
+        Equal(root.GetProperty("instructions")[0].TryGetProperty("originalBytes", out _), false,
+            "default JSON unexpectedly embeds original machine bytes");
+        Equal(root.GetProperty("dataReferences").ValueKind, JsonValueKind.Array, "evidence references included");
+        Equal(root.GetProperty("jumpTableCandidates").ValueKind, JsonValueKind.Array, "candidate jump tables included");
+    }
+    using (var optedIn = JsonDocument.Parse(AnalysisReportExport.BuildJson(graph, includeInstructionBytes: true)))
+        Equal(optedIn.RootElement.GetProperty("instructions")[0].GetProperty("originalBytes").GetString(),
+            graph.Instructions[0].OriginalBytes, "explicit byte opt-in includes correct original instruction bytes");
+    string exportText = AnalysisReportExport.BuildText(graph);
+    Equal(exportText.Contains("CANDIDATE / UNVERIFIED", StringComparison.Ordinal), true,
+        "text report must explicitly mark uncertainty");
+    Equal(exportText.Contains("[DIAGNOSTICS]", StringComparison.Ordinal), true,
+        "text report includes diagnostics section");
+    string originalHash = graphImage.ArtifactSha256;
+    string tempExportDir = Path.Combine(Path.GetTempPath(), "dosdis-export-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(tempExportDir);
+    try
+    {
+        string jsonPath = Path.Combine(tempExportDir, "report.json");
+        AnalysisReportExport.WriteNew(jsonPath, graph, asJson: true);
+        Equal(File.ReadAllText(jsonPath).Contains("dosdis-analysis-report", StringComparison.Ordinal), true,
+            "atomic JSON report publication");
+        bool refusedToOverwrite = false;
+        try { AnalysisReportExport.WriteNew(jsonPath, graph, asJson: true); }
+        catch (IOException) { refusedToOverwrite = true; }
+        Equal(refusedToOverwrite, true, "report writer must refuse to overwrite prior evidence");
+        Equal(Directory.EnumerateFiles(tempExportDir, "*.part", SearchOption.TopDirectoryOnly).Any(), false,
+            "report writer leaked temporary data");
+        AnalysisReportExport.WriteNew(Path.Combine(tempExportDir, "report.txt"), graph, asJson: false);
+        Equal(graphImage.ArtifactSha256, originalHash, "export must never change original artifact identity");
+    }
+    finally { Directory.Delete(tempExportDir, recursive: true); }
+    Console.WriteLine("PASS: candidate-only JSON/text export, machine-byte opt-in, atomic report publication");
     Equal(graph.ArtifactSha256, BinaryArtifact.FromBytes(graphBytes).Sha256, "graph source identity");
     Equal(graph.Instructions.Count, 4, "reachable-only decoded starts");
     Equal(graph.Blocks.Count, 4, "basic blocks and branch leaders");

@@ -135,3 +135,9 @@ SQLite snapshots are now cross-checked against the opened SHA-256-matched origin
 ## Part 24: first successful Windows build (verified CI)
 
 The .NET 10 WPF desktop, CLI, core, persistence and synthetic regression projects have **compiled and passed both test suites on GitHub's Windows runner**. The successful desktop and CLI preview archives are available from [Actions run 37841978786](https://github.com/Hyperbog/RLOFT/actions/runs/37841978786). The WPF desktop is **not yet interactively tested** on Windows 11 and the CODE.1/CODE.2 proprietary binaries were excluded from CI. The Windows workflow has been returned to `workflow_dispatch` only. Updated first-final-release planning progress: **35%** (was 30%). See [Part 24 checkpoint](docs/PART24_CHECKPOINT.md).
+
+## Part 25: offline evidence-preserving analysis export (source preview)
+
+The WPF workspace now has a user-initiated **Export…** action to write a candidate analysis report in JSON or text format. The CLI has a `report` command with explicit `--out` and optional `--include-bytes`. The schema-versioned output retains artifact SHA-256, object-relative addresses, uncertainty/provenance, control-flow/diagnostic details and candidate tables, but omits the full executable, original file paths, project comments and machine-byte excerpts by default. Byte excerpts require an explicit opt-in; inspect free-text provenance before sharing. Exports cannot silently overwrite existing reports. See [Part 25 checkpoint](docs/PART25_CHECKPOINT.md).
+
+**Part 25 has passed offline structural checks only; no new Windows compilation or GUI runtime test has been run.** GitHub Actions remains `workflow_dispatch` only. The first-final-release estimate stays at **35%** until Windows verification.

@@ -31,6 +31,7 @@ public partial class MainWindow : Window
         BackupProjectButton.IsEnabled = false;
         SaveNoteButton.IsEnabled = false;
         CancelAnalysisButton.IsEnabled = false;
+        ExportAnalysisButton.IsEnabled = false;
     }
 
     private sealed record AssemblyRow(int Object, uint Offset, string Bytes,
@@ -55,6 +56,7 @@ public partial class MainWindow : Window
         AssemblyGrid.IsEnabled = !value;
         FunctionsList.IsEnabled = !value;
         CancelAnalysisButton.IsEnabled = value && _analysisCancellation is not null;
+        ExportAnalysisButton.IsEnabled = !value && _graph is not null;
         if (status != null) StatusText.Text = status;
     }
     private void Error(string context, Exception error)
@@ -94,6 +96,7 @@ public partial class MainWindow : Window
             _artifact = result.artifact;
             _image = result.image;
             _graph = null;
+            ExportAnalysisButton.IsEnabled = false;
             _referenceIndex = new Dictionary<FlowAddress, IReadOnlyList<ReferenceRow>>();
             if (_project != null && !_project.ListArtifacts().Any(a => a.Sha256 == _artifact.Sha256))
             {
@@ -151,6 +154,7 @@ public partial class MainWindow : Window
             }
             _graph = graph;
             ShowAnalysis(graph);
+            ExportAnalysisButton.IsEnabled = true;
             StatusText.Text = $"{graph.Instructions.Count:N0} candidate instructions; {graph.FunctionCandidates.Count:N0} function candidates; " +
                 $"{graph.JumpTables.Count:N0} table candidates. " +
                 (graph.Truncated ? "TRUNCATED by instruction budget." : "Remaining bytes are not automatically code.");
@@ -337,6 +341,37 @@ public partial class MainWindow : Window
             ? row.Evidence : "Select a field to see supporting evidence.";
     }
 
+    private async void ExportAnalysis_Click(object sender, RoutedEventArgs e)
+    {
+        if (_working || _graph is null) return;
+        var picker = new SaveFileDialog
+        {
+            Title = "Export candidate analysis (no executable or source paths)",
+            Filter = "JSON analysis report (*.json)|*.json|Text analysis report (*.txt)|*.txt",
+            DefaultExt = ".json", AddExtension = true, OverwritePrompt = false,
+            FileName = "dosdis-candidate-analysis.json"
+        };
+        if (picker.ShowDialog(this) != true) return;
+        bool json = picker.FilterIndex == 1;
+        var bytesChoice = MessageBox.Show(this,
+            "Include ORIGINAL machine-byte excerpts for individual candidate instructions?\n\n" +
+            "No (recommended) exports addresses, assembly and evidence only. " +
+            "Neither choice embeds a complete original executable or project notes.",
+            "Export privacy options", MessageBoxButton.YesNoCancel,
+            MessageBoxImage.Question, MessageBoxResult.No);
+        if (bytesChoice == MessageBoxResult.Cancel) return;
+        FlowAnalysisResult graph = _graph ?? throw new InvalidOperationException("No analysis to export.");
+        SetWorking(true, "Exporting evidence-tagged candidate analysis…");
+        try
+        {
+            await Task.Run(() => AnalysisReportExport.WriteNew(picker.FileName, graph,
+                json, bytesChoice == MessageBoxResult.Yes));
+            StatusText.Text = $"Analysis report saved: {picker.FileName}. Original executable untouched.";
+        }
+        catch (Exception ex) { Error("Analysis report export failed", ex); }
+        finally { SetWorking(false); }
+    }
+
     private void SaveProject_Click(object sender, RoutedEventArgs e)
     {
         if (_artifact is null || _working) return;
@@ -405,6 +440,7 @@ public partial class MainWindow : Window
                 _project = next;
                 BackupProjectButton.IsEnabled = true;
                 _graph = saved;
+                ExportAnalysisButton.IsEnabled = saved != null;
                 _referenceIndex = new Dictionary<FlowAddress, IReadOnlyList<ReferenceRow>>();
                 if (saved != null)
                 {
