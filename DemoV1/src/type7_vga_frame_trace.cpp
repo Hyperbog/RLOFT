@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -55,6 +56,28 @@ Type7VgaFrameTrace Type7VgaFrameTraceModel::build(
                 masks,
                 video_page,
                 individual_columns_mode));
+    }
+    return out;
+}
+
+Type7VgaFrameTraceAttempt Type7VgaFrameTraceModel::try_build(
+    const std::vector<WorldSceneRenderPlan>& plans,
+    const RendererTables& tables,
+    const Type7VgaPlaneMaskModel& masks,
+    std::uint8_t video_page,
+    bool individual_columns_mode,
+    const ShapeLookup& shape_lookup) {
+    Type7VgaFrameTraceAttempt out{};
+    try {
+        out.trace = build(
+            plans,
+            tables,
+            masks,
+            video_page,
+            individual_columns_mode,
+            shape_lookup);
+    } catch (const std::exception& error) {
+        out.failure = error.what();
     }
     return out;
 }
