@@ -2,6 +2,27 @@
 
 Goal: reproduce the original shipped behavior from boot through character creation while reading assets from a legally installed/owned copy of *Ravenloft: Strahd's Possession*.
 
+## Extended integration milestone — Level 22
+
+The demo's original boot/character-creation milestone has been extended to
+**all systems integrated for the Level 22 Assassin/relic sequence**.
+The earlier boot/controller documentation below remains valid but no longer
+describes the full current scope.
+
+The original SINTAB 127-block rasterizer interpreter, original RES3 type-7
+pixel execution path, and whole-scene VGA trace integrity are documented in
+[TYPE7_RENDERER_CHECKPOINT.md](TYPE7_RENDERER_CHECKPOINT.md).
+Viewport-selected Assassin damage and loose-item pickup bindings, including
+snapshot-invalidating world state, are documented in
+[LEVEL22_VIEWPORT_ACTION_CHECKPOINT.md](LEVEL22_VIEWPORT_ACTION_CHECKPOINT.md).
+
+**Do not label the demo finished yet.** SINTAB wall/prepass rendering, final
+original-frame equivalence, actual host mouse/combat-input bindings, relic
+transition integration, and full C++ build verification remain open.
+Development commits continue on `demo-v1` even if GitHub Actions jobs cannot
+start due to runner availability.
+
+
 ## Asset policy
 
 The demo does **not** bundle Ravenloft game data.
