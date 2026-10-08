@@ -31,6 +31,8 @@ Direct original analysis exposes a stronger fact than the previous notes:
 
 This is a **shipped executable behavior**, not a recommendation to change the intended D&D rules. Native `CombatRodOfSmitingModel::inspect(type,c80c_return)` accepts the actual C80C Boolean (rejects a mistaken raw d20=20), returns the conditional extra dice recipe and explicitly reports no charge consumption. The original `OBJECTS.DAT` Rod of Smiting `0x4A` record has original `+0x31` charge index byte 0, but the unreachable branch must not be resurrected just because that index exists.
 
+The existing `CombatHitCheckModel::resolve` now also exposes the **exact original EAX Boolean return** (`CombatHitCheckResult::original_eax_return`), separately from its calculated `modified_d20`. A direct regression chains a raw d20 of 20 through `C80C` to returned **1**, then into the Rod model, confirming the charge path stays dead. This prevents future integration from accidentally passing the wrong d20 field.
+
 A future DOS runtime trace is still required to validate representative Rod attacks. When a legacy source comment calls the dead branch “crit on natural twenty,” **do not map a host raw roll to the comparison**; the original C80C returns only Boolean.
 
 ## 3. E284 NPC injury prelude reconstructed and reused by Level 22
