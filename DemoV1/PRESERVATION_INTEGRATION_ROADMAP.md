@@ -118,3 +118,23 @@ The latest audited ledger has 457 named instruction-byte
 checks at 449 unique logical offsets, one direct data table,
 and eight hashed DGROUP/CS tables. Acceptance remains
 **20% (1/5 major demo gates)**.
+
+
+## New message-format and display evidence (2026-10-08)
+
+The specific DDA4 level-up string and message lifecycle are
+now source-modeled:
+`DF54->3210F(original format+548)->DGROUP 759C
+->1C21C/IRQ enqueue->1C258 display->1C2CC IRQ expiry`.
+See [the authoritative source checkpoint](LEVEL22_DDA4_MESSAGE_FORMAT_DISPLAY_CHECKPOINT.md).
+
+This closes the original **format identity** and **display
+call ordering**, not the broader general-purpose 385B0
+formatter and not original VGA/IRQ runtime integration.
+Original 1C258 uses 291B0, 2939C, 3060C and 1A8C8
+as deferred renderer services; those must run in sequence
+against live globals and with a fresh IRQ observation
+AFTER drawing. Do not treat the read-only event trace as
+a rendered HUD update, or a source regression as a
+complete Windows/demo build. Overall release acceptance
+is still **20% (1/5 major gates)**.
