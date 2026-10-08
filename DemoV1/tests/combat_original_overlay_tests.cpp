@@ -130,4 +130,70 @@ int main(){
     assert((trace==std::vector<std::string>{
         "push","position","capture","probe","pop",
         "push","restore","pop"}));
+
+    // Integrate with the real 1A8C8 wrapper: that wrapper
+    // temporarily decrements the depth to zero before 1A288,
+    // and its later 1AB20 decrements back to zero. It finally
+    // increments depth and restores the original active page.
+    std::vector<std::string> frame;
+    CombatOriginalOverlayServices render{};
+    render.push_page_2e590=[&](std::uint8_t page){
+        assert(page==0U);
+        frame.emplace_back("push");
+    };
+    render.position_1a3b8=[&](CombatOriginalOverlayGlobals& current){
+        frame.emplace_back("position");
+        current.composite.overlay_row_9e31=-10;
+        current.composite.overlay_column_9e33=34;
+    };
+    render.capture_292bc=[&](
+        std::uint32_t source,std::int32_t row,std::int32_t col,
+        std::uint32_t height,std::uint32_t width){
+        frame.emplace_back("capture");
+        assert(source==0x9E3AU&&row==-10&&col==34);
+        assert(height==0x20U&&width==0x10U);
+    };
+    render.probe_2ae30=[&](std::int32_t row,std::int32_t col){
+        frame.emplace_back("probe");
+        assert(row==-10&&col==34);
+        return 0;
+    };
+    render.pop_page_2e5d4=[&](){frame.emplace_back("pop");};
+    render.restore_2932c=[&](
+        std::uint32_t source,std::int32_t row,std::int32_t col,
+        std::uint32_t height,std::uint32_t width){
+        frame.emplace_back("restore");
+        assert(source==0x9E3AU&&row==-10&&col==34);
+        assert(height==0x20U&&width==0x10U);
+    };
+    CombatOriginalCompositeServices blit{};
+    blit.copy_rect_2a078=[&](
+        std::uint32_t page,std::uint32_t row,std::uint32_t col,
+        std::uint32_t dst_row,std::uint32_t dst_col,
+        std::uint32_t rows,std::uint32_t columns){
+        frame.emplace_back("copy");
+        assert(page==1U&&row==0U&&col==34U);
+        assert(dst_row==0U&&dst_col==34U);
+        assert(rows==2U&&columns==2U);
+    };
+    blit.move_overlay_bytes_30cd4=[&](
+        std::uint32_t dest,std::uint32_t src,std::uint32_t bytes){
+        frame.emplace_back("backing");
+        assert(dest==0xA23AU&&src==0x9E3AU&&bytes==0x400U);
+    };
+    auto integrated=CombatOriginalOverlayModel::bind_1a8c8(g,render,blit);
+    state.overlay_reference_count_9e37=1;
+    state.active_page_9e39=1U;
+    state.overlay_row_9e31=-10;
+    state.overlay_column_9e33=34;
+    g.overlay_mode_a6c0=0U;
+    assert(CombatOriginalCompositeModel::run_1a8c8(
+        state,CombatOriginalCompositeRect{0U,0U,34U,2U,2U},
+        integrated)==CombatOriginalCompositeRoute::BufferedOverlayOverlap);
+    assert((frame==std::vector<std::string>{
+        "push","position","capture","probe","pop","copy",
+        "backing","push","restore","pop"}));
+    assert(state.overlay_reference_count_9e37==1);
+    assert(state.active_page_9e39==1U);
+    assert(state.redraw_busy_a6ba==0U);
 }
