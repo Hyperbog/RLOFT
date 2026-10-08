@@ -10,6 +10,7 @@
 #include "rloft/inventory_runtime.hpp"
 #include "rloft/level_world_state.hpp"
 #include "rloft/level22_encounter.hpp"
+#include "rloft/level22_viewport_target.hpp"
 #include "rloft/npc_catalog.hpp"
 #include "rloft/npc_scene.hpp"
 #include "rloft/loose_item_scene.hpp"
@@ -115,6 +116,25 @@ public:
 
     [[nodiscard]] LooseItemPickupResult pickup_level22_loose_item(
         std::size_t item_index);
+
+    // Bind the previously reconstructed 223F4 viewport hit test to the
+    // actual Level 22 encounter. Attack actions pass flags=0 so loose
+    // pickups do not occlude NPC combat; pickup actions pass flags=1.
+    // Both still honor the original highest-render-rank hit order.
+    [[nodiscard]] std::optional<NpcDamageResult>
+    damage_level22_assassin_at(
+        const std::vector<WorldSceneRecord>& records,
+        int row,
+        int column,
+        std::uint16_t amount,
+        std::uint16_t reaction_mode,
+        const Level22EncounterModel::PlacementProbe& can_place = {});
+
+    [[nodiscard]] std::optional<LooseItemPickupResult>
+    pickup_level22_loose_item_at(
+        const std::vector<WorldSceneRecord>& records,
+        int row,
+        int column);
 
     [[nodiscard]] std::optional<WorldSceneTarget> world_scene_target_at(
         const std::vector<WorldSceneRecord>& records,
