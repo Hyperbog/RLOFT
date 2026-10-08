@@ -799,3 +799,16 @@ Re-audited immutable original `CODE.2` SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92
 An offline, asset-supplied verifier was added at `demo-v1:DemoV1/tools/verify_combat_entry_bytes.py`. It checks the original SHA plus **18 byte-for-byte x86 anchor sequences** and the relative offsets; all 18 were confirmed locally without GitHub Actions. The native model and test registrations are described in `demo-v1:DemoV1/LEVEL22_COMBAT_ENTRY_CHECKPOINT.md`. Source is committed without a fresh compile: **the Demo v1 Windows build workflow is now manual-only to conserve private-repository runner minutes**, so don't claim any new native tests have passed until explicitly run later.
 
 This is a postcertification evidence correction and additional source-level reconstruction, not a change to the already-accounted executable bytes.
+
+
+## 2026-10-07 original 24478 two-hand legality helper audit
+
+Further direct original-file validation against supplied immutable `CODE.2` (SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`) closes three **individual helper contracts** while keeping their larger caller unresolved:
+
+- `23EAC:23EB4/23EC1/23ECE`: compares a requested signed class code to the three separate **MOVSX** bytes at actor offsets `+0x15,+0x16,+0x17`. Sign extension matters: `0xFF` matches `-1`, not `255`.
+- `23EE4:23EE8..23F30`: returns true on precisely six paired-item exception IDs: `0x2B,0x59,0x68,0x9F,0x102,0x103`. This list is *not* the separate `23F50` special-item list `0x2E,0x2F,0x41,0x57,0x59,0x5A`; both functions exist and have distinct callers.
+- `23E58:23E58..23EA9`: recognizes temporary hand IDs `0x7E..0x86`, or OBJECTS byte `+0x2F` category `9,10,11`, or object ID `0x30`. For a negative catalog index outside the pseudo-range, this original helper's direct read does not provide a documented safe semantics; the bounded native helper rejects invalid IDs instead of reading out of bounds.
+- `24478:24489/24490` reads both signed item words from `0x2193C/0x2193E + actor*0x248`; calls `240A8` twice to populate separate candidate state; then reconciles class tests, item-definition word `+0x35` low two bits, object byte `+0x30`, temporary items and special exceptions. Do **not** substitute a mere class or weapon-category test for the full two-hand decision.
+- `24478:24A5E/24A6F` independently vetoes each candidate if the corresponding action dword at `0x219EB` or `0x219EF` is nonzero. `24A7A..24A90` returns the candidate of the requested hand only. This control flow is sensitive to character state/attack scheduling even when an item is visually present.
+
+The `demo-v1` branch now includes `CombatHandPredicates` (three nonmutating helper models) and a new deterministic test target for the next **manual** CTest session. The offline byte verifier is extended from 18 to **33 fixed machine-code anchors**; the 15 new checks were independently verified against supplied original bytes without any GitHub Actions usage. See `demo-v1:DemoV1/LEVEL22_HAND_PAIR_ELIGIBILITY_CHECKPOINT.md`. Crucially, **`240A8` and complete `24478` are still unimplemented**, and no attack execution is enabled. There is no fresh C++ compiler/test pass for these additions.
