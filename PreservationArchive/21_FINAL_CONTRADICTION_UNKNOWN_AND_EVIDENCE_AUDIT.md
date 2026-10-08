@@ -192,7 +192,7 @@ The correction preserved all Chapter-14 paragraphs and C-labels, altered **64** 
 
 ## 12. Repository delta and frozen-source separation
 
-An authenticated GitHub comparison of `373c7f10e6fc0f29c1e805125ef048150fcc7ba7...code1-decompilation` reports **89 commits ahead** and **43 changed tracked paths** at the current checkpoint:
+An authenticated GitHub comparison of `373c7f10e6fc0f29c1e805125ef048150fcc7ba7...code1-decompilation`, captured immediately before the final documentation amendment, returned **89 commits ahead** and **43 changed tracked paths**. The commit-ahead count is a historical snapshot that increases with each subsequent documentation commit; the affected-path inventory below remains the comparison's result:
 
 | Path group | Changed paths | What actually changed |
 |---|---:|---|
