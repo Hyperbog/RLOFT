@@ -1,6 +1,6 @@
 # Level 22 live HUD hand and actor-panel interactions
 
-Status: original CODE.2 semantics cross-checked, bounded native implementation + synthetic tests committed, Windows CI fully passed (102/102), original-game interactive acceptance pending.
+Status: original CODE.2 semantics and newer hand state offset re-audited; bounded native implementation and tests committed. Historical Windows binary passed 102/102, but **the current source offset correction is not yet rebuilt** under the new private-repository manual CI policy. Live original-game acceptance remains pending.
 
 ## Original DOS evidence
 
@@ -37,9 +37,9 @@ The immediate adjacent spaces are actor spell/control lanes or gutters, **not** 
 - [x] Original opcode and 21-region table audit, with correct actor/hand/status/known offsets.
 - [x] Actual native hand and actor-panel input routing with safe non-combat interactions.
 - [x] Regression tests for exact hit rectangles, known-bit swap, independent hand readiness, pseudo-item/actor/category exclusion, quick-stash first-free ordering, full-inventory loss prevention, category 0F/0D separation.
-- [x] Fresh Windows x64 MSVC build, CODE.2 syntax gate, all **102/102** CTests, artifact upload and Git EXE publication verified in [GitHub Actions run #631](https://github.com/Hyperbog/RLOFT/actions/runs/37719712911). The added hand geometry, inventory state and four-relic fast-stash integration tests passed. Published EXE SHA-256 `fe79c73de9e6560fdcd967854d817093bf03130141a21f02303fd0853e469f56`.
+- [ ] Current-source Windows build: [historical Actions run #631](https://github.com/Hyperbog/RLOFT/actions/runs/37719712911) completed all 102/102 tests and published EXE SHA-256 `fe79c73de9e6560fdcd967854d817093bf03130141a21f02303fd0853e469f56`, **before** the original-byte audit corrected `actor+0x18E` to `actor+0x19E`. Those older tests do not validate the corrected byte writes. Save Windows CI minutes until an explicitly requested manual consolidated build.
 - [ ] Installed-original Windows playtest of hand exchange, direct actor-panel stash, cursor feedback, and return to Level 22 world (plus compare DOS button mapping).
 
-**Bounded hand/actor-panel checkpoint: 80% (4/5 gates)** after successful Windows CI. Only real installed-game interaction and original DOS input-trace confirmation remain in the final combined playtest gate. **Overall faithful-demo release acceptance: 20% (1/5 major release gates)**; the initial environmental walkaround remains separately closed.
+**Current-source hand/actor-panel checkpoint: 60% (3/5 gates)**, because the old 102/102 CI pass predates the corrected original `+0x19E` readiness offset. A manual current-HEAD compile/test and a real-game input/playtest remain the two outstanding acceptance gates. The historical published build had reached 80% before that correction. **Overall faithful-demo release acceptance: 20% (1/5 major release gates)**; the initial environmental walkaround remains separately closed.
 
 The next main-gameplay dependency is original `214B8` flag `0x01` → `24478/26018` → `E5F0` weapon/THAC0/dice/NPC gate/feedback/cooldown, followed by Assassin death, relics and mist/Level 23 handoff. No artificial damage roll or scripted kill has been enabled.
