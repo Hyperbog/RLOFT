@@ -131,6 +131,17 @@ ANCHORS = {
     "E5F0 stores damage at +1AA": (0xEA5C, "89b4828a1a0200"),
     "E5F0 invokes original action animation": (0xEA6E, "e8d5600100"),
     "29CC4 reads pauseable gameplay A7E4": (0x19CC4, "a1e4a70000"),
+    # CODE.2 logical 24B48 (objdump virtual 34B48) is the
+    # action presentation/scheduling stage CALLED BY E5F0.
+    "24B48 action presenter entry": (0x24B48, "5383ec08"),
+    "24B48 receives selected hand": (0x24B50, "8b542414"),
+    "24B48 presents action graphic": (0x24BA6, "e8e59effff"),
+    "24B48 gates scheduling on nonzero interval": (0x24BC9, "837c241c00"),
+    "24B48 reads maintenance tick after present": (0x24BD0, "e8ef50ffff"),
+    "24B48 gets full original interval": (0x24BD5, "8b54241c"),
+    "24B48 adds full interval": (0x24BD9, "01c2"),
+    "24B48 computes actor stride": (0x24BDB, "69c348020000"),
+    "24B48 writes hand action-state +10B": (0x24BE5, "899498eb190200"),
 }
 
 
