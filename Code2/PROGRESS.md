@@ -25,7 +25,7 @@
 - Object-2 virtual size: `0x2DD10`
 - Object-2 physical start: `0x75F24`
 
-## Certified source
+## Original 2026-10-05 certified source (historical snapshot)
 
 - Canonical reconstruction: `Code2/Code2.cpp`
 - File size: **1,304,770 bytes**
@@ -38,3 +38,9 @@
 Object-1 byte ownership and semantic inspection are complete. The accumulated semantic defect ledger was repaired in the canonical source, including the formatter/floating-format paths, incoming-CF behavior, rejected-stack behavior, explicit DPMI carry/register contracts, and final runtime-tail ownership through `0x3A851`.
 
 `Code2/FINAL_CERTIFICATION.md` is the authoritative certification record. `Code2/FINAL_SEMANTIC_AUDIT.md` retains the detailed audit provenance.
+
+## Post-certification semantic alignment — 2026-10-07
+
+The previously diverging `Code2/Code2.cpp` source on `code1-decompilation` and `demo-v1` has been reconciled. Both branches now reference **the identical corrected Git blob `87f6638921c53a32bde59735515fbc175e2c96ee`**. The prior source identity above is retained as historical certification evidence. The original CODE.2 proves two source-level corrections: automap drawing offsets at `0139C` and stack argument/graphics forwarding at `2975C`. See [`POST_CERTIFICATION_GRAPHICS_CORRECTIONS_2026-10-07.md`](POST_CERTIFICATION_GRAPHICS_CORRECTIONS_2026-10-07.md).
+
+All 239,698 executable object-1 bytes remain accounted for. This reconciliation verifies these two semantics only; a new strict whole-file syntax verification and runtime-equivalence test have **not** been completed in this checkpoint.
