@@ -107,4 +107,60 @@ int main() {
     bad=grouped();
     bad.width=8U;
     assert(rejected(bad));
+
+    // Original lookup is carried between source-column draws, not
+    // reloaded independently from each run. Two grouped runs swap the
+    // bytes twice, restoring the original scene-level lookup word.
+    rloft::WorldSceneRenderPlan plan{};
+    plan.traversal.lookup_value=0x1234U;
+    plan.visible_runs={
+        {31U,0U,130U,4U},
+        {32U,1U,134U,1U},
+    };
+    rloft::Type7VgaSceneTrace trace{};
+    trace.runs.push_back(grouped());
+    auto second=grouped();
+    second.source_x=32U;
+    second.source_column_index=1U;
+    second.viewport_x=134U;
+    second.width=1U;
+    second.dispatch.calls={
+        {134,0xA0121U,0x3412U,0x04U,0U},
+    };
+    second.dispatch.lookup_after_dispatch=0x1234U;
+    trace.runs.push_back(second);
+    trace.final_lookup_word=0x1234U;
+    rloft::Type7VgaTraceValidator::validate_scene(trace,plan);
+
+    auto corrupted=trace;
+    corrupted.runs[1].dispatch.calls[0].ecx_lookup=0x1234U;
+    bool caught=false;
+    try {
+        rloft::Type7VgaTraceValidator::validate_scene(corrupted,plan);
+    } catch(const std::invalid_argument&) {caught=true;}
+    assert(caught);
+
+    corrupted=trace;
+    corrupted.final_lookup_word=0x3412U;
+    caught=false;
+    try {
+        rloft::Type7VgaTraceValidator::validate_scene(corrupted,plan);
+    } catch(const std::invalid_argument&) {caught=true;}
+    assert(caught);
+
+    corrupted=trace;
+    corrupted.runs[0].width=3U;
+    caught=false;
+    try {
+        rloft::Type7VgaTraceValidator::validate_scene(corrupted,plan);
+    } catch(const std::invalid_argument&) {caught=true;}
+    assert(caught);
+
+    corrupted=trace;
+    corrupted.runs.pop_back();
+    caught=false;
+    try {
+        rloft::Type7VgaTraceValidator::validate_scene(corrupted,plan);
+    } catch(const std::invalid_argument&) {caught=true;}
+    assert(caught);
 }
