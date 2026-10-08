@@ -80,4 +80,31 @@ int main() {
            modal_ordinary_slot_at(0x129,0x4B));
     assert(!PartyPanelControlModel::
            modal_ordinary_slot_at(0x129,320));
+
+    // Original CODE.2 229CC actor hand-region table at D684, with
+    // inclusive boundaries and deliberately separate spell lanes.
+    const int min_columns[4][2] = {
+        {4,37},{57,90},{215,248},{268,301}
+    };
+    for(std::size_t actor=0U; actor<4U; ++actor) {
+        for(std::size_t hand=0U; hand<2U; ++hand) {
+            const int x=min_columns[actor][hand];
+            const auto first=PartyPanelControlModel::gameplay_hand_at(
+                276,x);
+            const auto last=PartyPanelControlModel::gameplay_hand_at(
+                307,x+15);
+            assert(first && last);
+            assert(first->actor==actor && first->hand==hand);
+            assert(last->actor==actor && last->hand==hand);
+            assert(!PartyPanelControlModel::gameplay_hand_at(
+                275,x));
+            assert(!PartyPanelControlModel::gameplay_hand_at(
+                308,x));
+            assert(!PartyPanelControlModel::gameplay_hand_at(
+                276,x+16));
+        }
+    }
+    assert(!PartyPanelControlModel::gameplay_hand_at(276,21));
+    assert(!PartyPanelControlModel::gameplay_hand_at(315,4));
+    assert(!PartyPanelControlModel::gameplay_hand_at(300,320));
 }
