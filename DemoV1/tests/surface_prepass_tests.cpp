@@ -59,6 +59,41 @@ int main() {
     assert(plan->texture_source_byte_offset == 0x200);
     assert(plan->subtract_pair == 0x0101);
 
+    // CODE.2 337E3..337F9: if the accumulated 16-bit SINTAB
+    // scale steps never reach the requested row shift, the original
+    // subtract-and-clamp path selects patch entry ZERO. It must not
+    // throw and suppress a valid prepass draw.
+    for (auto& step : block.scale_step) {
+        step = 0;
+    }
+    const auto exhausted =
+        rloft::SurfacePrepassModel::build(
+            run, level, tables, shades);
+    assert(exhausted.has_value());
+    assert(exhausted->entry_segment_index == 0);
+    assert(exhausted->entry_offset == 0x204);
+
+    // The last remaining table slot can satisfy the threshold.
+    // Its post-selection decrement is likewise clamped to zero.
+    block.scale_step[0] = 48;
+    const auto last_slot =
+        rloft::SurfacePrepassModel::build(
+            run, level, tables, shades);
+    assert(last_slot.has_value());
+    assert(last_slot->entry_segment_index == 0);
+    assert(last_slot->entry_offset == 0x204);
+
+    // 337E3 adds to CX, not ECX: the sum remains 16-bit even if
+    // individual entries overflow that range.
+    block.scale_step[0] = 0;
+    block.scale_step[96] = 0xFFFF;
+    const auto large_step =
+        rloft::SurfacePrepassModel::build(
+            run, level, tables, shades);
+    assert(large_step.has_value());
+    assert(large_step->entry_segment_index == 95);
+    assert(large_step->entry_offset == 0x204 + 95);
+
     // Runtime slot zero aliases the first serialized scale block.
     tables.scale_blocks.resize(1);
     assert(tables.scale_block_index_for_extent(0) == 0);
