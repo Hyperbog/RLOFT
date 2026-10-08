@@ -34,8 +34,8 @@ source. Do not treat its tests as validation of current HEAD.
 
 The current source-only work includes
 [original attack/target preflight and offline verification](LEVEL22_COMBAT_ENTRY_CHECKPOINT.md).
-An original-asset offline byte audit now covers **173 original CODE.2
-machine-code anchors**. Thirteen new combat C++ test targets are registered,
+An original-asset offline byte audit now covers **212 original CODE.2
+machine-code anchors**. Sixteen new combat C++ test targets are registered,
 but **have not been executed** since the private-repository build pause.
 The [conditional 24478 hand-eligibility model](LEVEL22_HAND_PAIR_RAW_HEAP_MODEL_CHECKPOINT.md)
 preserves the original requirement for observed DOS heap-adjacent
@@ -74,6 +74,33 @@ Overall faithful-demo acceptance is still **20% (1/5 major release gates)**.
 
 Goal: reproduce the original shipped behavior from boot through character creation while reading assets from a legally installed/owned copy of *Ravenloft: Strahd's Possession*.
 
+## Original 22E40, Rod and E284 injury reconstruction
+
+The [class-level, Rod and E284 injury checkpoint](LEVEL22_CLASS_LEVEL_ROD_INJURY_CHECKPOINT.md)
+closes three additional original combat source dependencies:
+
+- **Vampiric Touch `0x7F`:** `22E40` returns the signed
+  level of the *first matching class-4 lane* (`+0x15..+0x17`,
+  levels `+0x20..+0x24`), defaulting to 1 when absent.
+  The damage planner now derives its d6 count directly from
+  the original `PartyImage`.
+- **Rod of Smiting `0x4A`:** `E5F0` compares the Boolean
+  return of `C80C` to 20, so its apparent charge-consuming
+  critical path is **unreachable through that normal caller**.
+  NPC types `0x17/0x1F` reach an extra `2d8+6 per die`
+  roll; other types retain initial damage.
+- **NPC injury `E284`:** preserves original reaction flags,
+  type-`0x0F` subtraction exemption, type-`0x08` HP floor,
+  and signed/word-wrap arithmetic. The existing Level 22
+  Assassin type-`0x09` damage path now shares this original
+  prelude before its established XP, death sound, and four drops.
+
+**39 additional immutable CODE.2 opcode signatures** were checked
+locally, bringing the audit to **212**. The source and CMake targets
+are committed but have not received a new Windows build; raw
+`DGROUP:684B` Strength table bytes, full `E284` creature-specific
+effects, actual RNG/tick traces and playable attack input remain open.
+
 ## E5F0 damage dice and C910 weapon restrictions — source checkpoint
 
 The [damage-dice and creature-gate checkpoint](LEVEL22_DAMAGE_DICE_AND_WEAPON_GATE_CHECKPOINT.md)
@@ -85,14 +112,15 @@ modifier thresholds, and the `C910` creature/weapon damage gate.
 The model handles HARM's special pre-gate NPC-HP-clamp decision
 without applying it prematurely, and distinguishes Rod of Smiting's
 separate `0x4A` charge/type branch. Character modifiers that use
-the signed loaded DGROUP table `0x684B` and Vampiric Touch's
-`22E40` dice-count helper require **original observed inputs**, not
-invented constants.
+the signed loaded DGROUP table `0x684B` still requires original
+observed bytes; **Vampiric Touch's `22E40` class-level helper is now
+reconstructed directly from the party record**.
 
 The new models **do not roll dice, change NPC health, change hand
 recovery timers, or launch an animation**. Three new C++ test targets
 are registered for later intentional verification; the original
-opcode audit added 47 checked signatures, bringing it to **173**.
+that earlier source stage added 47 verified signatures (then 173);
+the current audit has **212**.
 Overall faithful-demo acceptance remains **20% (1/5 major gates)**.
 
 ## Pre-attack status service E578 — original actor effects
@@ -207,7 +235,7 @@ the allocator-adjacent **runtime byte value** is still unknown. Conditional
 original heap values and connecting timed attack input** remain prerequisites
 to live attacks.
 The [offline original-byte audit](tools/verify_combat_entry_bytes.py)
-had reached **87 opcode anchors at that earlier checkpoint**; the [current verifier](tools/verify_combat_entry_bytes.py) contains **173**, including the 15 then-newly audited `24478` empty/pseudo short-circuit instructions (both original party-status checks remain distinct) matched
+had reached **87 opcode anchors at that earlier checkpoint**; the [current verifier](tools/verify_combat_entry_bytes.py) contains **212**, including the 15 then-newly audited `24478` empty/pseudo short-circuit instructions (both original party-status checks remain distinct) matched
 against original CODE.2. This is source evidence, not a new game build.
 
 **Bounded nonnegative `240A8` checkpoint: 75%** (compiled/original-runtime
