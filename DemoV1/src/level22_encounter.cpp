@@ -133,11 +133,14 @@ NpcDamageResult Level22EncounterModel::damage_assassin(
             live.packed_runtime_state,
             def.damage_reaction_animation_flag,
             reaction_mode,
-            static_cast<std::int32_t>(amount)
+            static_cast<std::int32_t>(amount),
+            live.runtime_flags
         });
     live.packed_runtime_state = injury.next_packed_state_14;
     live.action_state_countdown = injury.next_action_countdown_10;
     live.current_hp = injury.next_hp;
+    // E306..E31F runs for nonlethal and lethal injury alike.
+    live.runtime_flags = injury.next_runtime_flags;
 
     if (live.current_hp > 0) {
         result.sound_kind =
