@@ -66,6 +66,8 @@ int main() {
                        7U+p*40U+y*2U+x);
     assert(vga.sequencer_map_mask_02()&&
            *vga.sequencer_map_mask_02()==0x0FU);
+    assert(vga.last_sequencer_raw_mask_02()&&
+           *vga.last_sequencer_raw_mask_02()==0xFFU);
     assert(*vga.graphics_read_map_04()==3U);
 
     // Original 2932C allows a zero-column restore. 2A178
