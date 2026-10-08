@@ -20,6 +20,21 @@ void VgaPlanarMemory::clear(std::uint8_t value) noexcept {
     }
 }
 
+// Preserves the sequencer register observed through port 03C4h;
+// changing this register does not by itself modify framebuffer bytes.
+void VgaPlanarMemory::set_sequencer_map_mask_02(
+    std::uint8_t plane_mask) {
+    if((plane_mask&0xF0U)!=0U)
+        throw std::out_of_range(
+            "original VGA sequencer map-mask register exceeds four planes");
+    sequencer_map_mask_02_=plane_mask;
+}
+
+std::optional<std::uint8_t>
+VgaPlanarMemory::sequencer_map_mask_02() const noexcept {
+    return sequencer_map_mask_02_;
+}
+
 std::size_t VgaPlanarMemory::offset_for(
     std::uint32_t physical_address) {
     if (physical_address < kPhysicalBase ||
