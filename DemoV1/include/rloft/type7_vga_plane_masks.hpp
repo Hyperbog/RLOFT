@@ -37,6 +37,16 @@ public:
         std::uint32_t viewport_x,
         std::uint8_t column_count) const;
 
+    // Original 3263C main surface compositor shares these CODE.2
+    // tables with 369D8 but does not clamp C6F4 to seven. The
+    // unmodified shipped tables additionally support an EXACT
+    // 8-column mask for phases 0..2 (indices 8/16/24). Phase 3
+    // width 8 and all larger widths are unverified table overreads:
+    // do not split or replace their native behavior with guesses.
+    [[nodiscard]] Type7VgaRunMasks for_surface_main_run(
+        std::uint32_t viewport_x,
+        std::uint8_t column_count) const;
+
     // Original bound data-object byte C029 is 1 in the supplied CODE.2.
     // The game can toggle it at 6617, so the initial value is not a
     // substitute for mutable renderer state during live play.
