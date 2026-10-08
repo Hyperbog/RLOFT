@@ -34,3 +34,15 @@ Next:
 4. Execute a consolidated source compilation/CTest **only on an authorized manual run**, or locally without private GitHub Actions if a complete project checkout becomes available.
 
 **Bounded E284 death-follow-on source checkpoint: 67% (4/6 source/evidence gates).** Original byte evidence, typed source plan, focused tests, and Level 22 drop integration are complete; compiled validation and original runtime event/timing verification remain open. **Overall five-major-gate faithful demo acceptance remains 20% (1/5).** No Windows EXE was produced.
+
+## New E0F8 respawn body audit — exact RNG/time boundary
+
+A follow-up direct disassembly of CODE.2 logical `E0F8..E281`, reached from the **matching** `E284:E51F` tracker slot, proves `E0F8` is **not** a static Boolean test:
+
+1. `E0FE` calls original `30700` (game IRQ tick read) and `E109` calls `290D0` with its result. The timing domain is **not** automatically the pauseable `A7E4` attack-recovery counter.
+2. Each placement attempt invokes original `30CA2` **twice** at `E11B` and `E134` to choose coordinates, followed by the original cell `0x40/0x3F` occupancy masks and two signed-distance thresholds of `0x0F` at `E185/E19C`.
+3. `E1D6..E1E2` permits **up to three** candidate attempts; after three failures it returns literal **0** at `E279`. A successful candidate writes a 22-byte-stride original NPC slot and its signed coordinates, state `0x8000`, destination NPC type and other definition-derived fields.
+4. **Only on successful placement**, the routine calls original `1C328` at `E233` to roll the new NPC's HP from the NPC definition's hit-dice byte and six-sided dice (other two damage bonuses zero), then returns literal **1** at `E26D`.
+5. Therefore `E0F8` can advance the game's original RNG stream and mutate the NPC array *after* death presentation but *before* `E539` decides whether to mark the dead NPC. Calling a modern respawn callback without reproducing those draws and checks would alter subsequent attack dice, game-world state and timing.
+
+**15/15 more original CODE.2 opcode matches** were verified at `E0F8` (including its IRQ tick call, both `30CA2` draws, obstruction/distance thresholds, max-attempt branch, actor record writes, HP roller, success and failure return values). The cumulative offline verifier now has **273 original x86 instruction signatures plus one 26-byte Strength data signature**. This additional research does **not** claim to implement E0F8 or supply the three original `258AA` tracked slot values. The pure `CombatNpcDeathFollowOnModel::death_runtime_flags` still requires the caller to supply observed tracker types and **actual** E0F8 success/failure results; no synthetic resurrections or RNG draws are enabled.
