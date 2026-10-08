@@ -273,3 +273,31 @@ included in that pinned build. No real display service,
 DOS IRQ observation or pixel-matching runtime claim has
 been made by adding this bridge. The workflow is again
 manual-only.
+
+
+## Original signed glyph, shaded sprite and F0C8 refresh ordering
+
+After 1C258 calls 3060C, original 303C8 selects font via
+2F29C, stores the pointer at 2B67C and traverses each
+**signed** DOS character. Every glyph re-reads F56C
+to choose 2939C or shaded 293EC, and **after the
+sprite renderer returns** re-reads 2B67C and the unsigned
+advance byte at font_record+signed_character+4 to advance
+2B680. The original code loops on live source bytes,
+not an eagerly copied Windows text string.
+
+Both 2939C and 293EC skip drawing entirely for a null
+resource pointer; when nonzero they delegate to 2A380
+or 2A584, then tail-call 2E758. The 2E758 conditional
+callback pointer F0C8 is read **after** sprite rasterization,
+which may change that pointer. The shaded sprite primitive
+also self-patches the original shade operand locations.
+These effects have explicit bounded, callback-driven source
+models but the pixel rasterizers and refresh effect are not
+yet implemented.
+
+[Original glyph/sprite source checkpoint](LEVEL22_ORIGINAL_GLYPH_SPRITE_RENDERER_CHECKPOINT.md)
+records 48 additional verified x86 instruction signatures and
+focused strict Debug/Release/UBSan tests. No later Windows
+CI pass is claimed. Preserve the current 30700 post-draw
+IRQ observation, independent of Windows frame time.
