@@ -269,10 +269,15 @@ InventoryOrdinarySwapStatus InventoryRuntimeState::swap_ordinary_slot(
         (static_cast<std::uint32_t>(party.bytes[known_at+3U]) << 24U);
     const auto old_known =
         static_cast<std::uint8_t>((before & bit) != 0U);
+    // CODE.2 1194C writes the new object before calling 0F238.
+    // Original 0F238 immediately returns when that slot is -1, so
+    // taking an item leaves its old known bit stale in the empty slot.
     const auto updated =
-        static_cast<std::uint32_t>(
-            (before & ~bit) |
-            (held.known != 0U ? bit : 0U));
+        incoming == -1
+            ? before
+            : static_cast<std::uint32_t>(
+                  (before & ~bit) |
+                  (held.known != 0U ? bit : 0U));
 
     // All model preflight occurs before the first write. Commit the
     // authoritative 21-item party record, four-byte known bitset and
