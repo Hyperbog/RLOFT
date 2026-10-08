@@ -39,12 +39,16 @@ SurfacePrepassModel::entry_selection(
         if (static_cast<std::uint32_t>(sum) >= target) {
             break;
         }
-        // Original CODE.2 337EF..337F9 exits the search after
-        // decrementing below zero and returns patch selector zero;
-        // it does not signal a failed render. The final unconditional
-        // decrement/clamp at 337F4..337F9 is reproduced below.
+        // CODE.2 337EF..337F9 has TWO decrements and distinct
+        // signed-JGE / unsigned-JAE tests. If slot zero failed the
+        // comparison, EBX goes 0 -> -2 -> -4. The unsigned JAE then
+        // reads [block - 4], NOT patch slot zero. That crosses this
+        // extracted block's boundary, so reject rather than fabricate
+        // the source bytes or falsely claim a valid entry.
         if (slot == 0) {
-            break;
+            throw std::runtime_error(
+                "CODE.2 337F9 exhausted SINTAB lookup accesses "
+                "bytes before the scale block");
         }
         --slot;
     }
