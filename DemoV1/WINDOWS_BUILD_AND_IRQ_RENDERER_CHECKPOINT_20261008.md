@@ -130,3 +130,22 @@ The remaining native renderer dependency is original
 2A380/2A584 indexed sprite raster and 1A8C8 composition
 against real DOS VGA planes. Preserve F0C8 callback timing
 and signed high-byte character widths when integrating.
+
+
+## Sprite raster follow-on; no new Windows CI claim
+
+After Windows run #634 succeeded at its **earlier**
+source commit, original CODE.2 2A380/2A584
+opaque/transparent pixel raster has been reconstructed
+against `VgaPlanarMemory`.
+[Detailed sprite source checkpoint](LEVEL22_CODE2_SPRITE_RASTER_CHECKPOINT.md)
+records 71 additional verified x86 instruction signatures
+(648 named, 640 distinct total) and isolated Debug,
+Release and UBSan source tests.
+
+Newly registered `combat_original_sprite_raster_tests`
+and recent glyph/sprite/2AB38 tests are **not part of**
+the previously green 130/130 Windows CTest result.
+The last committed demo EXE remains intact and the
+workflow is still manual-only. Pixel-perfect DOS
+rendering is not yet accepted.
