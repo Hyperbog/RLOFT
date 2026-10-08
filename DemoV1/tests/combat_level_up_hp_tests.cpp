@@ -143,6 +143,71 @@ int main() {
         auto altered=code;
         altered[0x75F24U+0x67FAU+15U]^=1U;
         assert(!CombatLevelUpHpTables::from_code2(altered));
+        // Byte-driven differential regression. The expected branch comes
+        // from the ORIGINAL six-way CS jump table at logical DC64,
+        // while the C++ model uses its independently audited dispatch.
+        // This runs only when the caller provides owned CODE.2 bytes.
+        const auto cs_jump=[&](int cls) {
+            const auto at=0x3AF24U+0xDC64U+
+                static_cast<std::size_t>(cls)*4U;
+            return static_cast<std::uint32_t>(code[at]) |
+                (static_cast<std::uint32_t>(code[at+1U])<<8U) |
+                (static_cast<std::uint32_t>(code[at+2U])<<16U) |
+                (static_cast<std::uint32_t>(code[at+3U])<<24U);
+        };
+        std::uint32_t matrix_cases=0U;
+        for (int actor:{0,3})
+        for (int cls=0;cls<6;++cls)
+        for (int con=0;con<19;++con)
+        for (int level:{0,1,9,10,11,20})
+        for (int multiclass=0;multiclass<3;++multiclass)
+        for (std::uint32_t seed:{1U,42U,0U,0xFFFFFFFFU}) {
+            rloft::PartyImage snap{};
+            const auto base=static_cast<std::size_t>(actor)*
+                rloft::PartyImage::kActorSize;
+            snap.bytes[base+0x15U]=static_cast<std::uint8_t>(cls);
+            snap.bytes[base+0x16U]=multiclass>=1?1U:0xFFU;
+            snap.bytes[base+0x17U]=multiclass==2?2U:0xFFU;
+            snap.bytes[base+0x37U]=static_cast<std::uint8_t>(con);
+            snap.bytes[base+0x1CU]=0xFDU;
+            snap.bytes[base+0x1DU]=0xFFU;
+            snap.bytes[base+0x1EU]=0xFFU;
+            snap.bytes[base+0x1FU]=0xFFU;
+            const auto result=CombatLevelUpHpModel::inspect(
+                snap,static_cast<std::size_t>(actor),0U,
+                level,seed,*loaded);
+            assert(result);
+            const auto next=seed*0x41C64E6DU+0x3039U;
+            const auto random15=(next>>16U)&0x7FFFU;
+            const auto original_sides=code[
+                0x75F24U+0x6821U+static_cast<std::size_t>(cls)];
+            const auto die=static_cast<std::int32_t>(
+                (random15*original_sides)>>15U)+1;
+            const auto con_raw=code[0x75F24U+0x67FAU+
+                static_cast<std::size_t>(cls/3*19+con)];
+            const auto bonus=static_cast<std::int32_t>(
+                con_raw<=127U ? static_cast<int>(con_raw):
+                                static_cast<int>(con_raw)-256);
+            std::int32_t gain=0;
+            const auto jump=cs_jump(cls);
+            if (jump==0xDD06U) gain=level<10?die+bonus:bonus+3;
+            else if (jump==0xDD27U) gain=level<10?die+bonus:bonus+2;
+            else if (jump==0xDD17U) gain=level<11?die+bonus:bonus+1;
+            else if (jump==0xDD32U) gain=level<11?die+bonus:bonus+2;
+            else assert(false && "unexpected original CS jump target");
+            if (gain<1) gain=1;
+            if (multiclass!=0) gain/=multiclass==1?2:3;
+            assert(result->original_die_roll==
+                   static_cast<std::uint16_t>(die));
+            assert(result->final_hp_increase==gain);
+            assert(result->current_hp_after==
+                static_cast<std::uint16_t>(0xFFFDU+gain));
+            assert(result->max_hp_after==
+                static_cast<std::uint16_t>(0xFFFFU+gain));
+            assert(result->rng_state_after==next);
+            ++matrix_cases;
+        }
+        assert(matrix_cases==16416U);
     }
     assert(!CombatLevelUpHpTables::from_code2({}));
 }
