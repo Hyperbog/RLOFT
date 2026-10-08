@@ -229,6 +229,10 @@ int main() {
     quick_party.bytes.fill(0xFFU);
     quick_party.bytes[0x10U]=0U;
     quick_party.bytes[0x11U]=0U;
+    // This synthetic fresh actor has no initially identified items.
+    // 211D8 itself must leave these four bytes unchanged on stash.
+    for(std::size_t b=0U;b<4U;++b)
+        quick_party.bytes[0x12BU+b]=0U;
     for(std::size_t i=0U;i<4U;++i) {
         assert(quick_inventory.held.object_id==-1);
         const auto got=rloft::Level22EncounterModel::pickup_loose_item(
