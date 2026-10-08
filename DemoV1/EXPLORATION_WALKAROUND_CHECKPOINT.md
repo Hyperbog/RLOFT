@@ -44,7 +44,7 @@ ravenloft_demo_v1.exe --explore-level22 "C:\\GOG Games\\Ravenloft Strahds Posses
 
 ## Acceptance and limitations
 
-**Windows build and automated tests are now verified.** GitHub Actions run [#602](https://github.com/Hyperbog/RLOFT/actions/runs/37716513471) built Windows x64 successfully, completed the CODE.2 syntax gate, and passed **101/101 CTest cases** including `exploration_preview_tests` and `surface_sintab_prepass_executor_tests`. The produced EXE was checked as an x64 PE image containing the UTF-16 `--explore-level22` option, and the Windows archive includes `Explore-Level22.cmd`. A real interactive walkaround with the original installed game files is still awaiting user acceptance. The main `FCD0=0` SINTAB wall pass and per-pixel DOS comparison remain outstanding. Accordingly, outdoors can show original sky/ground/environment primitives while **some walls, foliage, or scene elements can be missing or incorrectly drawn**. Do not claim full environmental or game fidelity.
+**Windows build and automated tests are now verified.** GitHub Actions run [#602](https://github.com/Hyperbog/RLOFT/actions/runs/37716513471) built Windows x64 successfully, completed the CODE.2 syntax gate, and passed **101/101 CTest cases** including `exploration_preview_tests` and `surface_sintab_prepass_executor_tests`. The produced EXE was checked as an x64 PE image containing the UTF-16 `--explore-level22` option, and the Windows archive includes `Explore-Level22.cmd`. User-provided screenshots now confirm a successful installed-resource launch, visible Level 22 outdoor scene with trees/hills/sky/grass and a visible figure, original HUD, an expanded top-edge menu and an opened automap. This is a functional visual smoke test, not proof that every locomotion input or indexed pixel is correct. The main `FCD0=0` SINTAB wall pass and per-pixel DOS comparison remain outstanding. Accordingly, outdoors can show original sky/ground/environment primitives while **some walls, foliage, or scene elements can be missing or incorrectly drawn**. Do not claim full environmental or game fidelity.
 
 ### Walkaround-specific gates
 
@@ -52,6 +52,20 @@ ravenloft_demo_v1.exe --explore-level22 "C:\\GOG Games\\Ravenloft Strahds Posses
 2. [x] Read-only preview party / no game-file writes / no pickup in preview.
 3. [x] Launcher staged alongside exe in Windows artifact.
 4. [x] Fresh Windows build and regression suite confirmed passing (run #602, 101/101).
-5. [ ] Real playable smoke test against installed original game resources.
+5. [x] User-provided smoke-test screenshots from a real Windows launch show the outdoor scene, HUD, top-edge menu and automap (movement/turning correctness remains a separate future check).
 
-**Walkaround checkpoint: 80% accepted (4/5 gates)**, pending a real game-file smoke test. **Overall demo end-to-end acceptance: 20% (1/5 major release gates)**, unchanged by this opt-in exploration slice.
+**Walkaround entry/visual smoke-test checkpoint: 100% accepted (5/5 gates)**. This closes the deliberately bounded preview milestone, not the faithful rendering or full gameplay acceptance tasks. **Overall demo end-to-end acceptance: 20% (1/5 major release gates)**, unchanged by this opt-in exploration slice.
+
+
+## First user-observed Windows run — visual findings
+
+Four screenshots provided by the user show that the x64 demo launched with their installed Ravenloft resources. Observations:
+
+1. **Outdoors present**: the expected orange sky, distant landscape, autumn trees, green ground, first-person world figure, and ornate lower/side HUD are visible.
+2. **Top-edge menu presents**: all eight historical choices and a bright hovered SAVE state appear over the world view.
+3. **Automap opens**: the parchment/map modal and party marker are visible. However, portions of the world/top-menu frame remain behind or beside the modal, and the map itself shows a narrow central map region. The user did not supply a DOS comparison; neither modal background compositing nor automap geometry is certified correct.
+4. **Character-panel display defect**: a separate screenshot shows two oversized/shifted character panels and stray separators on an otherwise black screen; its trigger/path is not yet known. This should be treated as an actionable rendering defect rather than assumed to be the intended UI state.
+
+**Scope of evidence:** Screenshots prove launch plus rendering/opening of the above views, not smooth motion, absence of crashes during longer play, original DOS frame equivalence, or full combat. No raw user screenshots have been committed to Git; they remain in the project conversation. Follow-up priority: investigate full-screen/modal framebuffer isolation; then complete `FCD0=0` SINTAB walls and pixel-compare against DOS captures.
+
+**Completion:** initial walkaround entry and visual smoke **100% (5/5)**; overall faithful-demo five-gate acceptance **20% (1/5)**, unchanged.
