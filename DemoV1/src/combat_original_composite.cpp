@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <stdexcept>
+#include <utility>
 
 namespace rloft {
 namespace {
@@ -125,6 +126,23 @@ CombatOriginalCompositeRoute CombatOriginalCompositeModel::run_1a8c8(
     // 1A9C4: normal return clears A6BA on both gated paths.
     state.redraw_busy_a6ba=0U;
     return route;
+}
+
+std::function<void(
+    std::uint32_t,std::uint32_t,std::uint32_t,
+    std::uint32_t,std::uint32_t)>
+CombatOriginalCompositeModel::bind_irq_display_1a8c8(
+    CombatOriginalCompositeState& original_state,
+    CombatOriginalCompositeServices original_services) {
+    return [&original_state,
+            services=std::move(original_services)](
+        std::uint32_t page,std::uint32_t left,std::uint32_t top,
+        std::uint32_t width,std::uint32_t height) {
+        const CombatOriginalCompositeRect rect{
+            page,left,top,width,height};
+        (void)CombatOriginalCompositeModel::run_1a8c8(
+            original_state,rect,services);
+    };
 }
 
 } // namespace rloft
