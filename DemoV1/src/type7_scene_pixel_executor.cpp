@@ -1,4 +1,5 @@
 #include "rloft/type7_scene_pixel_executor.hpp"
+#include "rloft/type7_vga_trace_validation.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -51,6 +52,11 @@ Type7PixelDrawReport Type7ScenePixelExecutor::draw(
         // plane passes. Individual-column paths dispatch one 369D8 per
         // destination column, each with a separate parity-selected ECX.
         // Group contiguous plane-pass records by destination column.
+        // Independently derive all CODE.2 sequencer masks, pass indices,
+        // ECX parity and horizontal destinations before interpreting any
+        // generated instructions for this source column. A bad trace must
+        // not be accepted as successfully rendered indexed pixels.
+        Type7VgaTraceValidator::validate(run);
         const auto& passes=run.dispatch.calls;
         std::size_t first=0U;
         while(first<passes.size()) {
