@@ -47,6 +47,7 @@ int main() {
     using rloft::CombatOriginalSpriteMemory;
     using rloft::CombatOriginalShaderMemory;
     VgaPlanarMemory mem{};
+    assert(!mem.sequencer_map_mask_02()); // unknown until first OUT 3C4h
 
     // 2A380 raw branch: 2 rows x 2 bytes in each of 4 source
     // planes. Starting at column2 rotates write masks 4,8,1,2.
@@ -61,6 +62,9 @@ int main() {
     assert(result->source_bytes_consumed==16U);
     assert(result->transparent_bytes_skipped==0U);
     assert(result->final_sequencer_plane_mask==0x02U);
+    assert(mem.sequencer_map_mask_02() && *mem.sequencer_map_mask_02()==0x02U);
+    mem.clear();
+    assert(*mem.sequencer_map_mask_02()==0x02U); // clear pixels, not VGA registers
     for(std::uint32_t y=0U;y<2U;++y) {
         const auto addr=0xA0000U+80U*(y+1U);
         assert(mem.read(addr+0U,2U)==10U+y*2U);
@@ -192,6 +196,40 @@ int main() {
     assert(!CombatOriginalSpriteRasterModel::draw_2a584(
         mem,opaque_shader,0U,video(),lut));
     lut.original_lookup_pointer=0x11220080U;
+
+    // Original shaded 2A590/2A595 modifies CODE.2 operands FIRST.
+    // The original transparent loop also stores height at F009,
+    // after the first VGA sequencer port write.
+    rloft::CombatOriginalSpriteMachineState machine{};
+    machine.writable_code_object1.resize(0x2A676U,0U);
+    auto& code=machine.writable_code_object1;
+    code[0x2A609U]=0x8AU;code[0x2A60AU]=0x83U;
+    code[0x2A670U]=0x8AU;code[0x2A671U]=0x83U;
+    result=CombatOriginalSpriteRasterModel::draw_2a584(
+        mem,opaque_shader,0U,video(),lut,&machine);
+    assert(result && result->vga_bytes_written==16U);
+    assert(!machine.transparent_row_count_f009);
+    assert(code[0x2A60BU]==0x80U && code[0x2A60CU]==0x00U);
+    assert(code[0x2A60DU]==0x22U && code[0x2A60EU]==0x11U);
+    assert(code[0x2A672U]==0x80U && code[0x2A674U]==0x22U);
+    assert(mem.sequencer_map_mask_02() &&
+           *mem.sequencer_map_mask_02()==0x02U);
+    result=CombatOriginalSpriteRasterModel::draw_2a584(
+        mem,transparent,0U,video(),lut,&machine);
+    assert(result && result->used_transparent_branch);
+    assert(machine.transparent_row_count_f009 &&
+           *machine.transparent_row_count_f009==2U);
+    assert(*mem.sequencer_map_mask_02()==0x02U);
+    // Normal opaque path leaves F009 untouched.
+    machine.transparent_row_count_f009=99U;
+    result=CombatOriginalSpriteRasterModel::draw_2a380(
+        mem,opaque_shader,0U,video(),&machine);
+    assert(result && *machine.transparent_row_count_f009==99U);
+    result=CombatOriginalSpriteRasterModel::draw_2a380(
+        mem,transparent,0U,video(),&machine);
+    assert(result && *machine.transparent_row_count_f009==2U);
+    // Original shaded code operands persist across normal draws.
+    assert(code[0x2A60BU]==0x80U && code[0x2A672U]==0x80U);
 
     // DOS negative frame indexes are unsigned MUL bit patterns.
     // A source view may begin BEFORE the referenced font header.
