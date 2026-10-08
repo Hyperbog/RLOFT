@@ -12,6 +12,7 @@ on:
       - "DemoV1/tests/**"
       - "DemoV1/tools/**"
       - "DemoV1/CMakeLists.txt"
+      - "Code2/Code2.cpp"
       - ".github/workflows/demo-v1-build.yml"
   workflow_dispatch:
     inputs:
@@ -49,6 +50,19 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Verify CODE.2 faithful C++17 reconstruction syntax
+        shell: pwsh
+        run: |
+          # Windows image includes GCC. Check the actual executable and
+          # fail explicitly instead of silently skipping this gate.
+          $compiler = Get-Command g++.exe -ErrorAction SilentlyContinue
+          if (-not $compiler) {
+            throw "The hosted Windows image has no g++ compiler on PATH."
+          }
+          & $compiler.Source -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
       - name: Configure
         run: cmake -S DemoV1 -B build/demo-v1 -A x64
       - name: Build
