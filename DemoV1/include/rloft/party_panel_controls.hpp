@@ -43,6 +43,17 @@ public:
     modal_actor_at_column(
         int column) noexcept;
 
+    struct OrdinaryInventoryHit final {
+        std::size_t actor{};
+        std::size_t slot{};
+    };
+
+    // 12E70 ordinary 3x4 grid: rows 129h + (slot/4)*22h,
+    // actor-local columns 5 + (slot%4)*12h, 32x16 draw/hit tiles.
+    // Preserve the two-pixel gutters: they are not item clicks.
+    [[nodiscard]] static std::optional<OrdinaryInventoryHit>
+    modal_ordinary_slot_at(int row, int column) noexcept;
+
     // CODE.2 12E70 -> 11AD8. Within the selected 80-pixel actor column the
     // inventory/character toggle is row 45h..60h, local column 39h..4Dh.
     [[nodiscard]] static std::optional<std::size_t>
