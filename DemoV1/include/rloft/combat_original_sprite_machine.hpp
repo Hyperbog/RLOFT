@@ -25,6 +25,12 @@ public:
     [[nodiscard]] static bool patch_2a584(
         CombatOriginalSpriteMachineState& machine,
         std::uint32_t original_shader_table_pointer) noexcept;
+    // 2A7A4: MOV BYTE [2A816],DH patches CMP [ESI],imm8 in
+    // the clipped-sprite renderer. Unlike shader patching, this
+    // changes one executable byte and must retain surrounding code.
+    [[nodiscard]] static bool patch_2a6b0(
+        CombatOriginalSpriteMachineState& machine,
+        std::uint8_t original_transparency_key) noexcept;
 };
 
 } // namespace rloft
