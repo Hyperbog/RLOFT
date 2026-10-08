@@ -12,11 +12,34 @@ constexpr std::array<PartyPanelHitRect, 4> kGameplayInventoryRegions{{
     {0x138, 0x10C, 0x187, 0x13B},
 }};
 
+// Exact inclusive actor hand regions from CODE.2 D684 (21 x 8 bytes).
+// The other actor lanes use separate spell and full-party modal paths.
+constexpr std::array<std::array<PartyPanelHitRect,2>,4>
+    kGameplayHandRegions{{
+        {{{0x114,0x004,0x133,0x013},{0x114,0x025,0x133,0x034}}},
+        {{{0x114,0x039,0x133,0x048},{0x114,0x05A,0x133,0x069}}},
+        {{{0x114,0x0D7,0x133,0x0E6},{0x114,0x0F8,0x133,0x107}}},
+        {{{0x114,0x10C,0x133,0x11B},{0x114,0x12D,0x133,0x13C}}},
+    }};
+
 }  // namespace
 
 const std::array<PartyPanelHitRect, 4>&
 PartyPanelControlModel::gameplay_inventory_regions() noexcept {
     return kGameplayInventoryRegions;
+}
+
+std::optional<PartyPanelControlModel::GameplayHandHit>
+PartyPanelControlModel::gameplay_hand_at(
+    int row, int column) noexcept {
+    for (std::size_t actor=0; actor<kGameplayHandRegions.size(); ++actor) {
+        for (std::size_t hand=0; hand<2U; ++hand) {
+            if (kGameplayHandRegions[actor][hand].contains(row,column)) {
+                return GameplayHandHit{actor,hand};
+            }
+        }
+    }
+    return std::nullopt;
 }
 
 std::optional<std::size_t>
