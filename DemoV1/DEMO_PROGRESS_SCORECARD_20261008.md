@@ -1,4 +1,17 @@
 # Demo v1 — development progress versus formal acceptance
+
+**Next source checkpoint — original ordinary SINTAB walls (2026-10-08):**
+The `3263C/FCD0=0` main wall rasterizer is now connected to the
+actual Level 22 presenter for original grouped widths 1..7, using
+source RES4 bytes, SINTAB generated instructions, CODE.2 planar VGA
+masks and existing original shade arithmetic. Bounded unit tests
+and failure telemetry are registered. A current-HEAD Windows CTest
+run and reference DOS pixel/IRQ comparison are **pending**; long
+unsupported coalesced runs still need original treatment. This is
+an implemented visible-rendering path, *not* another accepted
+release gate and not a newly compiled/downloadable EXE.
+[Checkpoint](LEVEL22_ORIGINAL_SINTAB_MAIN_WALL_CHECKPOINT_20261008.md).
+
 **Baseline:** 2026-10-08. **Branch:** `demo-v1`.  
 **Purpose:** Prevent the historical five-gate release score from being mistaken for total engineering completion.
 
