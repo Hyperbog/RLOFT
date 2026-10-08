@@ -27,12 +27,27 @@ bool inside_original_aperture(std::uint32_t physical) noexcept {
 }
 } // namespace
 
-std::optional<CombatOriginalSpriteRasterResult>
-CombatOriginalSpriteRasterModel::draw_2a380(
+static std::optional<CombatOriginalSpriteRasterResult> draw_sprite_impl(
     VgaPlanarMemory& vga,
     const CombatOriginalSpriteMemory& source,
     std::uint32_t frame_bits,
-    const CombatOriginalSpriteVideoState& video) {
+    const CombatOriginalSpriteVideoState& video,
+    const CombatOriginalShaderMemory* shader) {
+    // Original 2A584 writes a lookup ADDRESS into two four-byte
+    // instruction operands; MOV AL,[EBX+address] reads the full
+    // captured table. An incomplete shader capture is unsupported
+    // BEFORE any plane writes or self-patch state is projected.
+    std::size_t lookup_start=0U;
+    if(shader!=nullptr) {
+        const auto offset=static_cast<std::uint32_t>(
+            shader->original_lookup_pointer-
+            shader->captured_base_address);
+        if(offset>shader->bytes.size() ||
+           shader->bytes.size()-offset<256U)
+            return std::nullopt;
+        lookup_start=offset;
+    }
+
     const auto header=static_cast<std::uint32_t>(
         source.resource_header_address-source.captured_base_address);
     if (header>=source.bytes.size() ||
@@ -107,6 +122,9 @@ CombatOriginalSpriteRasterModel::draw_2a380(
 
     CombatOriginalSpriteRasterResult out{};
     out.used_transparent_branch=transparent;
+    out.used_shader_lookup=shader!=nullptr;
+    out.shader_pointer_self_patched=
+        shader!=nullptr ? shader->original_lookup_pointer : 0U;
     std::size_t position=frame;
     if(transparent) {
         // 2A422 MOV BH,[ESI], then INC ESI once for the frame.
@@ -127,7 +145,13 @@ CombatOriginalSpriteRasterModel::draw_2a380(
                 if(transparent && pixel==out.sentinel) {
                     ++out.transparent_bytes_skipped;
                 } else {
-                    vga.write(dst,mask,pixel);
+                    // 2A609 and 2A670: MOVZX EBX,AL then MOV AL,
+                    // [EBX+patched DWORD]. This lookup runs only
+                    // after the RAW byte passes transparency test.
+                    const auto color=shader!=nullptr
+                        ? shader->bytes[lookup_start+pixel]
+                        : pixel;
+                    vga.write(dst,mask,color);
                     ++out.vga_bytes_written;
                 }
                 ++dst;
@@ -144,6 +168,25 @@ CombatOriginalSpriteRasterModel::draw_2a380(
     out.source_bytes_consumed=static_cast<std::uint32_t>(
         position-frame);
     return out;
+}
+
+std::optional<CombatOriginalSpriteRasterResult>
+CombatOriginalSpriteRasterModel::draw_2a380(
+    VgaPlanarMemory& vga,
+    const CombatOriginalSpriteMemory& source,
+    std::uint32_t frame_bits,
+    const CombatOriginalSpriteVideoState& video) {
+    return draw_sprite_impl(vga,source,frame_bits,video,nullptr);
+}
+
+std::optional<CombatOriginalSpriteRasterResult>
+CombatOriginalSpriteRasterModel::draw_2a584(
+    VgaPlanarMemory& vga,
+    const CombatOriginalSpriteMemory& source,
+    std::uint32_t frame_bits,
+    const CombatOriginalSpriteVideoState& video,
+    const CombatOriginalShaderMemory& shader) {
+    return draw_sprite_impl(vga,source,frame_bits,video,&shader);
 }
 
 } // namespace rloft
