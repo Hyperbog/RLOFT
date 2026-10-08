@@ -8,12 +8,27 @@ on:
       - "DemoV1/**"
       - ".github/workflows/demo-v1-build.yml"
   workflow_dispatch:
+    inputs:
+      run_linux:
+        description: "Opt in to paused Linux build and tests"
+        required: false
+        type: boolean
+        default: false
+
+# Keep only the newest Windows build when rapid source commits overlap.
+# Cancellation avoids paying for obsolete full builds of the same branch.
+concurrency:
+  group: demo-v1-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
 
 jobs:
   linux-tests:
+    # Paused to conserve Actions minutes. Pushes run Windows only; a
+    # manual workflow_dispatch with run_linux=true can explicitly opt in.
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_linux }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
