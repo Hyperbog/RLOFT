@@ -14,6 +14,7 @@ struct CombatOriginalCompositeState final {
     std::int16_t overlay_reference_count_9e37{};
     std::int16_t overlay_row_9e31{};
     std::int16_t overlay_column_9e33{};
+    std::int16_t overlay_third_word_9e35{};
     std::uint8_t active_page_9e39{};
     std::uint16_t redraw_busy_a6ba{};
 };
