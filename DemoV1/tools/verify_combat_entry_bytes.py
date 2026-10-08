@@ -512,6 +512,37 @@ ANCHORS = {
     "1C2D1 compares unsigned deadline": (0x1C2D1, "3b0554cf0000"),
     "1C2D7 JBE not expired for <= deadline": (0x1C2D7, "764d"),
     "1C314 expiration deadline sentinel FFFFFFFF": (0x1C314, "c70554cf0000ffffffff"),
+    # DDA4:DF54 and 3210F exact single-format path; 1C258/1C2C4 display lifecycle.
+    "3210F variadic formatter wrapper prologue": (0x3210F, "53"),
+    "3210F obtains variadic source argument": (0x32113, "8d442414"),
+    "3210F output byte callback 320F8": (0x32117, "68f8200300"),
+    "3210F uses generic formatter 385B0": (0x3212F, "e87c640000"),
+    "3210F writes final NUL terminator": (0x32139, "c6040200"),
+    "DDA4 loads exact level-up format pointer": (0xDF58, "ff35e4670000"),
+    "DDA4 selects shared message buffer 759C": (0xDF5E, "689c750000"),
+    "1C258 pending message test": (0x1C258, "803d59cf000000"),
+    "1C258 branch when no pending message": (0x1C25F, "7460"),
+    "1C258 read low C050 renderer parameter": (0x1C261, "0fb60550c00000"),
+    "1C258 call 291B0 renderer service": (0x1C269, "e842cf0000"),
+    "1C258 dynamic 2222C background argument": (0x1C271, "ff352c220200"),
+    "1C258 backdrop height 20": (0x1C277, "6a20"),
+    "1C258 backdrop width 106": (0x1C279, "6806010000"),
+    "1C258 backdrop call 2939C": (0x1C280, "e817d10000"),
+    "1C258 message draw style 1": (0x1C288, "6a01"),
+    "1C258 queue buffer address 14580": (0x1C28A, "6880450100"),
+    "1C258 message baseline 22": (0x1C28F, "6a22"),
+    "1C258 message left offset 107": (0x1C291, "6807010000"),
+    "1C258 text draw call 3060C": (0x1C296, "e871430100"),
+    "1C258 composite final argument 100": (0x1C29E, "6800010000"),
+    "1C258 composite secondary argument 0C": (0x1C2A3, "6a0c"),
+    "1C258 frame composite call 1A8C8": (0x1C2B2, "e811e6ffff"),
+    "1C258 pending flag cleared after presentation": (0x1C2B7, "c60559cf000000"),
+    "1C2C4 presents before IRQ expiration": (0x1C2C4, "e88fffffff"),
+    "1C2CC expiry palette source C050": (0x1C2D9, "0fb60550c00000"),
+    "1C2CC expiry background source 2222C": (0x1C2E9, "ff352c220200"),
+    "1C2CC expiry backdrop call 2939C": (0x1C2F8, "e89fd00000"),
+    "1C2CC expiry composite call 1A8C8": (0x1C31E, "e8a5e5ffff"),
+    "1C2CC end of expiry lifecycle": (0x1C326, "c3"),
 }
 
 # Original object-2 DGROUP contents (not x86 code). These 26
@@ -556,6 +587,14 @@ DATA_HASH_ANCHORS = {
     "DGROUP +6420 eight 3DE4 and 3EA4 group counts": (
         0x6420, 32,
         "20a62fd57d3da4cf6d4b2a6df39fff88a8a6df8522efdda5b839331aa8716bb9",
+    ),
+    "DGROUP +548 original level-up message format string": (
+        0x548, 18,
+        "7a8e30053ba3aa8b830030d93008eb38f8f458da54c2cc275305bc15e5d658d5",
+    ),
+    "DGROUP +67E4 DDA4 original format pointer": (
+        0x67E4, 4,
+        "a6246ee40149d8701c64240f8fa77d429aac33cc9c1de8acac31e9a595e12cc1",
     ),
 }
 
