@@ -67,6 +67,7 @@ add_library(rloft_boot_flow
     src/combat_irq_display.cpp
     src/combat_irq_display_runtime.cpp
     src/combat_original_text_runtime.cpp
+    src/combat_original_sprite_runtime.cpp
     src/combat_level_message.cpp
     src/combat_harm_prelude.cpp
     src/combat_damage_stat_bonus.cpp
@@ -298,6 +299,9 @@ add_test(NAME combat_irq_display_runtime_tests COMMAND combat_irq_display_runtim
 add_executable(combat_original_text_runtime_tests tests/combat_original_text_runtime_tests.cpp)
 target_link_libraries(combat_original_text_runtime_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_original_text_runtime_tests COMMAND combat_original_text_runtime_tests)
+add_executable(combat_original_sprite_runtime_tests tests/combat_original_sprite_runtime_tests.cpp)
+target_link_libraries(combat_original_sprite_runtime_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_sprite_runtime_tests COMMAND combat_original_sprite_runtime_tests)
 add_executable(combat_harm_prelude_tests tests/combat_harm_prelude_tests.cpp)
 target_link_libraries(combat_harm_prelude_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_harm_prelude_tests COMMAND combat_harm_prelude_tests)
@@ -695,6 +699,7 @@ set(RLOFT_TEST_TARGETS
     combat_irq_display_tests
     combat_irq_display_runtime_tests
     combat_original_text_runtime_tests
+    combat_original_sprite_runtime_tests
     combat_level_message_tests
     combat_harm_prelude_tests
     combat_damage_stat_bonus_tests
