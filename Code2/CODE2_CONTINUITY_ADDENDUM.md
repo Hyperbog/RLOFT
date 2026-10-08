@@ -878,3 +878,18 @@ New original behavior, without assuming any unverified host timebase:
 The `demo-v1` branch now contains `CombatAttackTargetModel` and `CombatAttackTimingModel` (read-only source/checkpoint + deterministic C++ tests), and OBJECTS decoding retains the original full `raw_word_35` in addition to its qualifier bits. These models do **not** implement `1E578` actor-state mutation, `C80C` event RNG, the `E5F0` weapon/special damage branches, NPC state changes, `34B48` animation frames/audio or actual DOS clock calibration. Both new C++ tests are registered but **not compiled/tested since GitHub Actions was made manual-only to conserve private-repository Windows minutes**.
 
 See `demo-v1:DemoV1/LEVEL22_ATTACK_TARGET_AND_TIMING_CHECKPOINT.md` and the project-wide `TIMING_FIDELITY_CONTRACT.md`. This addendum is an original-byte research refinement, not a revision to the archived executable byte accounting or a full combat release certification.
+
+
+## 2026-10-08 CODE.2 24B48 presentation schedules action-state even on miss
+
+A further original-byte audit corrected an important ambiguity in the initial `E5F0` note: **the final animation/presentation callee has CODE.2 object-1 logical address `24B48`** (objdump's +0x10000-adjusted virtual address **`34B48`**). The original `E5F0:EA6E` relative call targets virtual `34B48`, hence logical `24B48`. Never confuse it with a different routine at logical `34B48`.
+
+The original `24B48` routine establishes **two separate timing consequences** for each attack action:
+
+- `E5F0:EA2E..EA5C` writes `[actor +0x19E + hand*4] = first_29CC4(A7E4) + floor(interval/2)` and stores `[actor +0x1AA + hand*4]=post_weapon_damage` **only when the earlier C80C hit was nonzero**.
+- `E5F0:EA63` calls logical `24B48(actor,hand,0,interval)`. `24B48:24B48..24BC9` performs action graphic/presentation work. `24B48:24BC9` then checks `interval != 0`. **For every nonzero interval, even on a miss or when no target was found**, `24B48:24BD0` calls `29CC4` **again**, this time *after* presentation; `24BD9` adds the FULL original interval, and `24BE5` writes `[actor +0x10B + hand*4] = second_29CC4(A7E4) + interval`. When interval is exactly zero, the routine does not perform that second hand action-state write.
+- The `+0x10B/+0x10F` field is precisely what `24478` and `26018` check when deciding whether hand action is busy. The earlier `+0x19E/+0x1A2` field is the different hit-ready/cursor-swap deadline. Thus a missed attack may keep the hand busy despite writing **no hit-ready/damage state**, and the two deadlines can have **different A7E4 clock bases** because graphics/presentation/service may take time between them. They cannot share a single host deadline or be expressed in arbitrary frame-per-second units.
+
+**Nine exact additional x86 opcode anchors** at logical `24B48..24BE5` were verified against supplied original `CODE.2`, SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`; all 9 matched. The cumulative offline original instruction signature count is now **117 (87 older + 21 E5F0/29CC4 + 9 logical 24B48)**. The native `CombatAttackTimingModel` has been amended to return **both independent optional deadlines**, accepting **two** original maintenance clock observations. New uncompiled regression assertions include misses, distinct clock observations, zero intervals and 32-bit wrap. The model remains read-only, awaiting full NPC attack orchestration, actual display frame/audio service and DOS timing comparison.
+
+See `demo-v1:DemoV1/LEVEL22_ATTACK_TARGET_AND_TIMING_CHECKPOINT.md`. This postcertification correction changes no binary bytes or original executable coverage totals.
