@@ -271,3 +271,26 @@ Code1/Code2/Resources/Tools      no tracked changes from frozen baseline
 **Publication safeguard:** these figures are *registry integrity checks*, not a count of all possible gameplay paths, resource byte accesses or dynamic device behaviors. The original resource workstream's previously certified corpus remains controlling where its original files were not supplied again for this audit.
 
 **Next decision:** assess remaining per-chapter semantic correction witnesses and decide whether the standard in Chapter 00 allows a final *original-build static documentation certificate with explicitly bounded historical/runtime unknowns*. A blanket declaration that every historical edition, every driver cadence and the native implementation is “100%” would be unsupported.
+
+
+## 16. Direct executable semantic witnesses: timing and middleware
+
+A fresh static disassembly of the **supplied original CODE.2** (object-1 physical start `0x3AF24`, length `0x3A852`) checked **21/21 exact instruction-byte witnesses** and **5/5 independently decoded `CALL rel32` targets**. CODE.2 full-file SHA-256 was reverified as `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
+
+The opcode witnesses address three particularly consequential cross-chapter behavior questions:
+
+1. **Wait flag and deadline:** `2E63A` tests bit 4, `2E63F` clears that bit, `2E6A1` tests it again and `2E6BF` branches by unsigned `JB`. This supports the correction that ordinary callers cannot reach the later flag-4 return simply by supplying flag 4.
+2. **Clock setters and periodic maintenance:** `1E750` writes the gameplay counter `A7E4`; `1E755` synchronizes baseline `BF50` but does not assign `BF54`. The `1E78C/1E791` comparison uses threshold `0x438` with signed `JL`; `1E88C/1E891` uses `0x21C` and signed `JLE`. These details must not be replaced with unsigned host-time approximations.
+3. **IRQ and driver registration:** `3071C` increments the distinct hardware-interrupt tick `F58C`; `30728` calls the previous saved IRQ vector; `3073C/30742` surround restoration with `CLI/STI`. The AIL/32 driver descriptor `svc_rate` field is accessed at `366ED`, service function `0x67` is requested at `366F5`, timer callback registration/period calls at `3670C/3672D` precede the driver initialization opcode `0x66` at `36744`, and timer activation follows at `36771`.
+
+Five source-relative calls were verified: `3670C→3632D`, `3672D→3654E`, `36749→35FB4`, `36771→3644F`, and `30722→19C80`. The precise fixed byte and call sites establish **source-level semantic witnesses**, not hardware-measured callback frequency or absolute FPS. The disassembly confirms the current Chapters 17/20 interpretation on these selected issues; it is not a complete executable-path replay.
+
+## 17. Outstanding original-file corpus for stronger independent certification
+
+The Project currently exposes exactly these nine original files for direct byte auditing: `CODE.1`, `CODE.2`, `OBJECTS.DAT`, `NPCS.DAT`, `LEVELS.DAT`, `LEV022.DAT`, `SAVE.DAT`, `INFO.DAT`, `SINTAB`. Do **not** require them to be re-uploaded.
+
+The **additional requested evidence** for an independent rerun comprises `RES0..RES12`, `CINE00.ANM..CINE12.ANM`, `INIT`, `T`, `COLORS`, `SAMPLE.AD`, `GM1.BNK`, `GM2.BNK`, the original `SOUND.CFG` and audio DLLs (especially `A32MT32.DLL` and `A32SBPDG.DLL`), and `R.EXE`/installer scripts. Preserve directory structure when providing them. Original 1.0/1.1/1.2 patches are **optional** unless exact historical release deltas are a required certification target.
+
+Original resource code/data was documented in earlier certified audits, but the other **32 resources of the 33-file Resources manifest** are not mounted in this Project inventory for a new independent check. The stronger resource-audit gate is therefore pending the user-provided original corpus, **not failed**.
+
+**Status remains bounded:** original-game static reconstruction is extensively documented and cross-referenced. A fresh entire original-resource replay and measured driver/hardware/runtime equivalence remain open until their actual source inputs or execution traces are available. Do not issue an unqualified 100% certificate on these results alone.
