@@ -1,12 +1,9 @@
 name: Demo v1 build
 
-# Authorized one-time 2026-10-08 build-marker trigger.
-# Restore normal manual-only operation immediately after dispatch.
+# Private-repo development: never consume Windows runner minutes from
+# source or documentation commits. Run this workflow manually only.
+# Reconsider the push trigger once the repository is public.
 on:
-  push:
-    branches: [demo-v1]
-    paths:
-      - 'DemoV1/.manual-build-request-20261008'
   workflow_dispatch:
     inputs:
       run_linux:
