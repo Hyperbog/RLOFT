@@ -18,12 +18,13 @@ SurfaceSintabMainReport SurfaceSintabMainExecutor::draw(
     const Type7VgaPlaneMaskModel& masks,
     unsigned video_page,
     VgaPlanarMemory& video) {
-    // The original C6F8/C6F4 plane-mask tables address only grouped
-    // lengths 1..7. Longer authoring runs need their original splitting
-    // procedure, not a made-up eight-column sequencer mask.
+    // Original 336F7..337BF never splits C6F4 on this path.
+    // Its 32-byte per-plane tables also permit exactly eight columns
+    // at phases 0..2. The phase-3 width-eight read exceeds the
+    // canonical table and is deliberately left unsupported.
     if (run.pass != SweepRenderPass::Main || !run.drawable() ||
         video_page > 1U || run.first_ray >= 256U ||
-        run.ray_count == 0U || run.ray_count > 7U ||
+        run.ray_count == 0U || run.ray_count > 8U ||
         run.ray_count > 256U - run.first_ray) {
         throw std::out_of_range(
             "CODE.2 3263C main-pass page or grouped-ray geometry");
@@ -60,7 +61,7 @@ SurfaceSintabMainReport SurfaceSintabMainExecutor::draw(
     const auto lookup = SurfaceShadingModel::packed_subtract(
         shades, run.resource_id, extent, run.shade_decrement,
         run.first_ray);
-    const auto lanes = masks.for_run(
+    const auto lanes = masks.for_surface_main_run(
         static_cast<std::uint32_t>(run.first_ray),
         static_cast<std::uint8_t>(run.ray_count));
 
