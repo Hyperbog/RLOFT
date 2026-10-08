@@ -141,3 +141,23 @@ files or a consolidated repository/Windows build.**
 
 **Overall faithful demo acceptance remains 20% (1/5).**
 GitHub Actions remains manual-only; no private runner minutes spent.
+
+
+## Later actual Windows build and live-callback bridge checkpoint
+
+The [2026-10-08 build and IRQ/VGA checkpoint](WINDOWS_BUILD_AND_IRQ_RENDERER_CHECKPOINT_20261008.md)
+records **a real Windows MSVC build and 130/130 CTest PASS**
+at exact source SHA `40e3f14b1072a7a0180ea1b0b4c1cea437137631`,
+with a refreshed Windows executable committed and artifact uploaded.
+Three MSVC test-source compilation errors and one original-status
+fixture mismatch were corrected to reach the green run.
+
+Subsequent source **added after the passing Windows binary** is
+`CombatIrqDisplayRuntimeModel::update`, which actually invokes
+the previous read-only `1C258/1C2C4` renderer services in their
+original order through callbacks. The original independent IRQ
+clock is still supplied by the host, never invented. This remains
+**non-pixel-integrated source** until 291B0/2939C/3060C/1A8C8
+are bound to the real native renderer. New source and CTest
+have only strict isolated C++17 validation; do not apply the
+earlier Windows PASS to those unbuilt new files.
