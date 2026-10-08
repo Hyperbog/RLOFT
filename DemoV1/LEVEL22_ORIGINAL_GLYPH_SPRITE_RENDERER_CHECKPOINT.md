@@ -205,3 +205,33 @@ sprite clipping, shade self-patches, hardware write-mask
 composition, or 1A8C8 screen compositing. Those remain
 the next source-fidelity gate and must be checked against
 reference DOS VGA contents.
+
+
+## Later validated normal/shaded sprite pixel writes — 2026-10-08
+
+The previous statement that 2A380/2A584 sprite rasterization was
+unimplemented has been superseded for the **bounded normal and
+shaded four-plane pixel-copy paths**. See the authoritative
+[original sprite raster checkpoint](LEVEL22_CODE2_SPRITE_RASTER_CHECKPOINT.md).
+
+`CombatOriginalSpriteRasterModel` now executes the original
+opaque `REP MOVSW` or transparent sentinel-copy loops
+and writes real per-plane bytes through `VgaPlanarMemory`.
+`2A584` uses a captured original 256-byte table whose
+**full 32-bit pointer**, not a tint value, is stored into two
+original CODE.2 operands; the sentinel is checked before
+mapping. The model supports unsigned wrapping frame
+addressing, signed-negative glyph frame indexes when backing
+memory is captured, original BL truncation on transparent
+row width, and the zero-width difference between 2A380 and
+2A584. It does not yet mutate the original CODE.2
+self-patched operands or persist the VGA sequencer mask.
+
+The executable byte verifier is now at **648 named
+instruction checks at 640 distinct logical addresses**.
+Exact implementation source passed isolated strict C++17
+Debug, Release and UBSan tests, including all 320 starting
+columns. The *registered full CTest* has not yet been run
+on Windows at this newer source SHA. Reference-DOS
+resource pixels, screen composition, and IRQ comparisons
+are still open acceptance conditions.
