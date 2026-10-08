@@ -127,13 +127,6 @@ NpcDamageResult Level22EncounterModel::damage_assassin(
         throw std::logic_error("Level22 Assassin requires Level22 geometry");
     }
     const auto respawn_types=level.respawn_npc_types();
-    for (const auto tracked:respawn_types) {
-        if (static_cast<std::int32_t>(tracked)==
-            static_cast<std::int32_t>(live.npc_type_id)) {
-            throw std::logic_error(
-                "E284 matched E0F8 respawn requires original IRQ/RNG state");
-        }
-    }
 
     const auto& def =
         npcs.at(live.npc_type_id);
@@ -157,6 +150,19 @@ NpcDamageResult Level22EncounterModel::damage_assassin(
             static_cast<std::int32_t>(amount),
             live.runtime_flags
         });
+    // Original E31F branches directly to E553 for positive signed HP.
+    // Only a death path can reach the signed tracker/E0F8 scan.
+    // Inspect the injury first WITHOUT mutating the world, then fail
+    // closed only if a lethal result requires unmodeled IRQ/RNG.
+    if (injury.next_hp<=0) {
+        for (const auto tracked:respawn_types) {
+            if (static_cast<std::int32_t>(tracked)==
+                static_cast<std::int32_t>(live.npc_type_id)) {
+                throw std::logic_error(
+                    "E284 lethal E0F8 match requires original IRQ/RNG state");
+            }
+        }
+    }
     live.packed_runtime_state = injury.next_packed_state_14;
     live.action_state_countdown = injury.next_action_countdown_10;
     live.current_hp = injury.next_hp;
