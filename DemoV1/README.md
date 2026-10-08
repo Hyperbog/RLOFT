@@ -34,7 +34,7 @@ source. Do not treat its tests as validation of current HEAD.
 
 The current source-only work includes
 [original attack/target preflight and offline verification](LEVEL22_COMBAT_ENTRY_CHECKPOINT.md).
-An original-asset offline byte audit now covers **108 original CODE.2
+An original-asset offline byte audit now covers **117 original CODE.2
 machine-code anchors**. Nine new combat C++ test targets are registered,
 but **have not been executed** since the private-repository build pause.
 The [conditional 24478 hand-eligibility model](LEVEL22_HAND_PAIR_RAW_HEAP_MODEL_CHECKPOINT.md)
@@ -83,9 +83,12 @@ recovery based on the **full original OBJECTS WORD +0x35 bits 2..5**.
 The result is **9 × ((word >> 2) & 15)** gameplay maintenance ticks
 for a regular item, or 18 for an empty/pseudo hand, optionally halved
 by the original actor effect mask. On a successful hit the original
-`E5F0` adds half that interval to pauseable tick counter `A7E4`
-and stores a damage value; it still passes the action interval to
-its animation routine separately.
+`E5F0` stores **A7E4 + half the interval** as the *hit-only*
+hand-ready deadline and records the resulting damage. Its next call,
+original CODE.2 logical **`24B48`**, presents the hand action and,
+when the interval is nonzero, stores a **second, miss-inclusive**
+action-busy deadline using the **later A7E4 reading + full interval**.
+The two dwords and clock observations cannot be merged.
 
 The new native routines are **side-effect-free**, consume the
 **captured dispatched item ID** as original E5F0 does, and do not
