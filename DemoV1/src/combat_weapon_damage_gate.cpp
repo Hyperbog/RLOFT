@@ -29,16 +29,21 @@ CombatWeaponDamageGateResult CombatWeaponDamageGateModel::inspect(
     }
 
     std::int32_t damage=damage_before_gate;
+    bool vetoed=false;
     switch(category) {
         case 9U:
             // C95F: TEST CH,80h = DWORD bit15.
-            if ((npc_definition_flags_31&0x00008000U)!=0U)
+            if ((npc_definition_flags_31&0x00008000U)!=0U) {
                 damage=0;
+                vetoed=true;
+            }
             break;
         case 10U:
             // C966: TEST CH,40h = DWORD bit14.
-            if ((npc_definition_flags_31&0x00004000U)!=0U)
+            if ((npc_definition_flags_31&0x00004000U)!=0U) {
                 damage=0;
+                vetoed=true;
+            }
             break;
         case 11U:
             // C96D: NPC bit17, then MOVZX enchantment BYTE and
@@ -46,8 +51,10 @@ CombatWeaponDamageGateResult CombatWeaponDamageGateModel::inspect(
             // can NEVER compare signed-less than -2, so the
             // original fallthrough zeroes damage whenever bit17
             // is set. This is an x86 fact, not tabletop rules.
-            if ((npc_definition_flags_31&0x00020000U)!=0U)
+            if ((npc_definition_flags_31&0x00020000U)!=0U) {
                 damage=0;
+                vetoed=true;
+            }
             // C980: NPC bit18, MOVZX same byte, CMP -2 / JGE.
             // Every 0..255 value satisfies signed >= -2, so this
             // branch can never add a second veto.
@@ -58,8 +65,9 @@ CombatWeaponDamageGateResult CombatWeaponDamageGateModel::inspect(
     }
 
     // C993..C99D clamps even a zeroed or negative result to 1.
-    if (damage<1) damage=1;
-    return {damage,damage!=damage_before_gate};
+    const bool minimum_clamped=damage<1;
+    if (minimum_clamped) damage=1;
+    return {damage,vetoed,minimum_clamped};
 }
 
 } // namespace rloft
