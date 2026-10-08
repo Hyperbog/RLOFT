@@ -1,5 +1,38 @@
 # Ravenloft Demo Build v1
 
+## Latest original VGA sprite machine-state and asset-reader bridge
+
+The [sprite machine-state checkpoint](ORIGINAL_SPRITE_MACHINE_BINDING_CHECKPOINT_20261008.md)
+extends the completed original `2A380/2A584` pixel-copy
+models to their missing DOS-observable side effects: exact
+32-bit shader-pointer writes to both original executable
+operands, the persistent VGA sequencer plane-mask register
+(index `02h` at `03C4h`), and transparent-row global
+`F009`. The shaded patch occurs before sprite-memory
+reader callbacks, matching original `2A590/2A595` order.
+
+`CombatOriginalSpriteRasterBinder` now links the existing
+original normal/shaded sprite dispatcher to **actual planar
+VGA writes** using injected **original DOS resource/shader
+pointer readers**, with `2E758/F0C8` callback refresh
+after rasterization. This binding is shared engine code:
+no Level 22-only geometry, invented sprite bytes or
+arithmetic tint rules were inserted.
+
+Five newly added original-byte signatures matched CODE.2.
+The audit now holds **653 named checks at 645 distinct
+instruction sites**. Focused strict C++17 Debug/Release/
+UBSan tests passed for matching source blobs, machine-state
+patches against the original owned CODE.2, pixel writes,
+callback sequencing and resource capture boundaries.
+**No new full Windows build is claimed.** The last
+green 130/130 Windows CTest belongs to the prior
+pinned build source. DOS reference-screen compositor,
+actual memory-resource provider and real-game rendering
+acceptance remain open; faithful-demo progress is
+**20% (1/5 major gates)**.
+
+
 ## Latest original sprite raster checkpoint — real four-plane VGA writes
 
 The [2A380/2A584 raster source checkpoint](LEVEL22_CODE2_SPRITE_RASTER_CHECKPOINT.md)
