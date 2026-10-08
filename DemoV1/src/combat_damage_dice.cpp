@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 #include <stdexcept>
+#include "rloft/combat_class_level.hpp"
 
 namespace rloft {
 namespace {
@@ -109,6 +110,29 @@ CombatDamageDicePlan CombatDamageDiceModel::inspect(
         plan.after_roll=CombatDamageAfterRoll::RodOfSmiting;
     }
     return plan;
+}
+
+CombatDamageDicePlan CombatDamageDiceModel::inspect_for_actor(
+    const ObjectCatalog& objects,
+    const PartyImage& party,
+    std::size_t actor,
+    std::int32_t dispatched_item_id,
+    std::optional<std::int32_t> original_stat_bonus) {
+    if (actor>=PartyImage::kActorCount) {
+        throw std::out_of_range("CODE.2 E845 actor index");
+    }
+    if (dispatched_item_id==0x7F) {
+        // E845 pushes literal class 4 then actor, calls 22E40,
+        // and converts its returned SIGNED class-level word
+        // into the dynamic number of d6 dice. No invented
+        // spell-caster level is used.
+        const auto level=CombatClassLevelModel::for_class(
+            party,actor,4);
+        return inspect(objects,dispatched_item_id,
+                       original_stat_bonus,level);
+    }
+    return inspect(objects,dispatched_item_id,
+                   original_stat_bonus);
 }
 
 } // namespace rloft
