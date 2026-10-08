@@ -82,6 +82,7 @@ int main() {
     assassin.y_position_16_16 =
         0x00078000U;
     assassin.current_hp = 5;
+    assassin.packed_runtime_state = 0x8000U; // preserve unrelated original packed state
     world.npcs.push_back(assassin);
 
     // Nonlethal damage uses the reaction sound and reaction animation/count.
@@ -107,6 +108,7 @@ int main() {
     assert(world.npcs[0].current_hp == 3);
     assert(world.npcs[0].action_state_countdown == 2);
     assert((world.npcs[0].packed_runtime_state & 6U) == 6U);
+    assert((world.npcs[0].packed_runtime_state & 0x8000U) != 0U);
 
     // Lethal damage spawns all four story items; failed placement probes make
     // each fall back to the corpse coordinates.
@@ -126,6 +128,8 @@ int main() {
                 return false;
             });
     assert(damage.died);
+    assert(world.npcs[0].action_state_countdown == 1U);
+    assert((world.npcs[0].packed_runtime_state & 0x8000U) != 0U);
     assert(damage.sound_kind ==
            rloft::NpcSoundKind::Death);
     assert(damage.sound_id == 22);
