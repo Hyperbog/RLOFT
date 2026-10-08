@@ -29,6 +29,11 @@ static CombatOriginalSpriteVideoState video(){CombatOriginalSpriteVideoState v{}
 int main(){
 VgaPlanarMemory vga{};CombatOriginalClippedRasterState st{}; auto v=video();
 CombatOriginalDgroupCapture clip{};clip.captured_base_dgroup_offset=0xEF74U;clip.bytes.resize(24);
+CombatOriginalSpriteMachineState code_image{};
+code_image.writable_code_object1.assign(0x2A817U,0U);
+code_image.writable_code_object1[0x2A814U]=0x80U;
+code_image.writable_code_object1[0x2A815U]=0x3EU;
+code_image.writable_code_object1[0x2A816U]=0x04U;
 // Two visible rows and eight columns from a 16-column original.
 record(clip,0,0,2,4,4,8);auto src=source();vga.clear(0xCC);
 auto out=CombatOriginalClippedRasterModel::draw_2a6b0(vga,src,clip,0,10,20,0xEF74,v,st);
@@ -49,6 +54,13 @@ record(clip,0,0,2,0,0,16);src=source();src.bytes[8]=0xFFU;vga.clear(0xCC);
 out=CombatOriginalClippedRasterModel::draw_2a6b0(vga,src,clip,0,0,0,0xEF74,v,st);
 assert(out&&out->transparent_skipped==1U&&out->bytes_written==31U);
 assert(st.code_comparison_byte_2a816==0xFFU&& !out->transparent_resource);
+// In a genuine writable CODE.2 image, 2A7A4 must patch the
+// opcode operand itself, not merely save an extra C++ color field.
+out=CombatOriginalClippedRasterModel::draw_2a6b0(
+    vga,src,clip,0,0,0,0xEF74,v,st,&code_image);
+assert(out && code_image.writable_code_object1[0x2A816U]==0xFFU);
+assert(code_image.writable_code_object1[0x2A814U]==0x80U);
+assert(code_image.writable_code_object1[0x2A815U]==0x3EU);
 assert(vga.read(0xA0000U,0U)==0xCC);
 
 // Transparent frame takes per-frame sentinel BEFORE traversal.
@@ -57,6 +69,9 @@ src.bytes[9U+1U]=0x04U;vga.clear(0xCC);
 out=CombatOriginalClippedRasterModel::draw_2a6b0(vga,src,clip,0,0,0,0xEF74,v,st);
 assert(out&&out->transparent_resource&&out->transparent_skipped==2U);
 assert(st.code_comparison_byte_2a816==4U);
+out=CombatOriginalClippedRasterModel::draw_2a6b0(
+    vga,src,clip,0,0,0,0xEF74,v,st,&code_image);
+assert(out&&code_image.writable_code_object1[0x2A816U]==0x04U);
 assert(vga.read(0xA0000U+1U,0U)==0xCC);
 assert(vga.read(0xA0000U,0U)==1U);
 
@@ -97,6 +112,11 @@ assert(st.top_skip_bytes_f00d==before.top_skip_bytes_f00d);
 record(clip,0,0,1,0,0,8);
 v.page_base_f001=0xB0000;
 assert(!CombatOriginalClippedRasterModel::draw_2a6b0(vga,src,clip,0,0,0,0xEF74,v,st));
+// Original 2A7A4 patches executable code BEFORE any VGA memory
+// preflight: rejected host aperture must leave the patched key.
+assert(!CombatOriginalClippedRasterModel::draw_2a6b0(
+    vga,src,clip,0,0,0,0xEF74,v,st,&code_image));
+assert(code_image.writable_code_object1[0x2A816U]==0xFFU);
 assert(vga.read(0xA0000U,0)==0x78);
 std::puts("2A6B0 source-order clipped sprite fixtures: PASS");
 }
