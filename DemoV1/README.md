@@ -1,5 +1,33 @@
 # Ravenloft Demo Build v1
 
+## Current original DDA4 callback checkpoint — spell state and IRQ queue
+
+The [3DE4/3EA4/1C21C checkpoint](LEVEL22_DDA4_SPELL_IRQ_CHECKPOINT.md)
+adds source-backed, **read-only** C++ projections for the two
+different original level-dependent spell-state byte sweeps and
+the independently timed `1C21C` message enqueue. All three
+original spell/count tables are read from an owned CODE.2 and
+fingerprint-checked; original copy/expiry behavior uses a
+32-bit IRQ-tick observation and the exact +0x5A deadline,
+without a substituted host clock.
+
+The original-code ledger now contains **457 named opcode
+checks, 449 distinct instruction addresses**, one directly
+verified Strength table, seven hashed DGROUP tables and one
+hashed CS jump table. The 50 new source-byte signatures and
+three original table hashes passed. A separate strict C++17
+Debug/Release/UBSan source-equivalent differential verifier
+passed 960 original-table-driven actor-state cases and IRQ
+deadline checks; the **full checked-in CMake test suite and
+Windows application have NOT been rebuilt**.
+
+These models do not yet execute the original live DDA4
+level-up sequence, which additionally requires actual
+3210F formatted output and 1C258..1C326 message
+presentation/expiry behavior. Faithful-demo release
+acceptance remains **20% (1/5 major gates)**.
+
+
 ## New DC7C level-up HP reconstruction — original CODE.2
 
 The [DC7C HP checkpoint](LEVEL22_DC7C_HP_PROGRESSION_CHECKPOINT.md)
