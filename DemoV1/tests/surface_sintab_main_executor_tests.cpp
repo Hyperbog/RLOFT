@@ -83,6 +83,10 @@ int main() {
     assert(report.vga_calls==2U);
     assert(report.source_reads==2U);
     assert(report.indexed_writes==4U);
+    assert(video.sequencer_map_mask_02().has_value());
+    assert(*video.sequencer_map_mask_02()==0x03U);
+    assert(video.last_sequencer_raw_mask_02().has_value());
+    assert(*video.last_sequencer_raw_mask_02()==0x03U);
     assert(t.scale_blocks[0].rasterizer_x86==original_code);
     constexpr auto dest=VgaPlanarMemory::kPhysicalBase+
         VgaPlanarMemory::kPageBytes+328U;
