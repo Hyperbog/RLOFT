@@ -1398,6 +1398,15 @@ int run_exploration(
                 L" | Cell " + std::to_wstring(column) +
                 L"," + std::to_wstring(row) +
                 L" | Facing " + std::to_wstring(session.facing) +
+                L" | SINTAB walls " +
+                std::to_wstring(
+                    presented.surface_coverage.sintab_main_runs_rasterized) +
+                L"/" + std::to_wstring(
+                    presented.surface_coverage.sintab_main_runs_rasterized +
+                    presented.surface_coverage.sintab_main_runs_pending) +
+                L" | Wall errors " +
+                std::to_wstring(
+                    presented.surface_coverage.sintab_main_runs_failed) +
                 L" | Arrow keys / Numpad | Esc to exit";
             if (caption != last_preview_title) {
                 SetWindowTextW(host.hwnd(), caption.c_str());
