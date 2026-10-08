@@ -121,7 +121,7 @@ int main() {
     mem.clear(0x5AU);
     assert(!CombatOriginalVgaCopyModel::copy_2a078(
         mem,s,CombatOriginalVgaCopyRect{
-            1U,399U,0U,400U,0U,2U,4U}));
+            1U,399U,0U,410U,0U,2U,4U}));
     assert(mem.read(0xA0000U+399U*80U,0U)==0x5AU);
     assert(s.selected_page_efe9==0U);
     assert(*s.graphics_mode_index05==0x17U);
