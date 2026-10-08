@@ -143,6 +143,16 @@ The read-only [damage dice and C910 models](LEVEL22_DAMAGE_DICE_AND_WEAPON_GATE_
 - **Variable-host display:** compare the same recorded simulation input on 60/70/120/144-Hz displays and under throttled rendering. The *original game-state tick trace* should match regardless of monitor refresh.
 - **Tolerances and evidence:** establish frame/tick-accurate matching where original data proves discrete counts. For real-time variability, report observed distribution and hardware/driver configuration; do not invent a universal fixed tolerance or claim exact DOS timing where none has been measured.
 
+## Latest original E0F8 model boundary
+
+The [read-only E0F8 source model](LEVEL22_E0F8_RESPAWN_SOURCE_CHECKPOINT.md)
+models 290D0's zero-low16 BIOS fallback and the exact original
+coordinate/HP dice draw order. It does **not** observe a real IRQ tick,
+update the shared game RNG, invoke native combat, or change world state.
+Do not replace the 30700 IRQ observation with A7E4 maintenance time,
+VGA refresh, or an invented fixed host clock. No time-series DOS/native
+validation has been completed for this new model.
+
 ## Current implementation boundary and next actions
 
 1. Preserve current original-derived event/state reconstruction; do not enable attacks until timing of `24478/26018/E5F0` plus hand state and damage/feedback order is modeled.
