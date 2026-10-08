@@ -17,10 +17,15 @@ main-wall rasterization can leave some foliage/walls/scene pixels absent.
 The preview is not a full gameplay demo.
 
 [Walkaround instructions, implementation and acceptance checklist](EXPLORATION_WALKAROUND_CHECKPOINT.md).
-**Checkpoint acceptance: 80% (4/5 defined gates)**: [Windows build #602](https://github.com/Hyperbog/RLOFT/actions/runs/37716513471)
-passed 101/101 CTests and published the direct-entry EXE plus one-click launcher.
-A real installed-game walkaround smoke test remains outstanding. Overall demo
-acceptance remains **20% (1/5 major release gates)**.
+**Initial walkaround checkpoint: 100% (5/5 bounded gates)**:
+[Windows build #602](https://github.com/Hyperbog/RLOFT/actions/runs/37716513471)
+passed 101/101 CTests and published the direct-entry EXE with a launcher.
+User-provided Windows screenshots subsequently confirmed original-asset outdoor
+scenery, HUD, expanded top menu and automap. These captures also show an
+unresolved black-background character panel and questionable automap/modal
+background isolation. Locomotion fidelity, wall rasterization, complete
+gameplay and original DOS indexed-frame equality remain unverified.
+Overall faithful-demo acceptance is still **20% (1/5 major release gates)**.
 
 
 Goal: reproduce the original shipped behavior from boot through character creation while reading assets from a legally installed/owned copy of *Ravenloft: Strahd's Possession*.
