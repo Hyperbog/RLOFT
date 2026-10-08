@@ -10,6 +10,16 @@ CombatNpcInjuryPreludeModel::inspect(
     CombatNpcInjuryPreludeResult out{};
     out.next_hp=in.previous_hp;
     out.next_packed_state_14=in.previous_packed_state_14;
+    // Original 3ACDC NPC type classifier: type <0x22 or ==0x50.
+    // E317: BYTE [npc+0B] &=0xCF, then |=0x10. As a DWORD
+    // at npc+08 this clears bits28/29 then sets bit28.
+    out.classification_state_applied=
+        in.npc_type_id<0x22U || in.npc_type_id==0x50U;
+    out.next_runtime_flags=in.previous_runtime_flags;
+    if (out.classification_state_applied) {
+        out.next_runtime_flags=
+            (out.next_runtime_flags&~0x30000000U)|0x10000000U;
+    }
     // E284:E290..E2C1: nonzero reaction-mode chooses 1, zero
     // chooses 2. NPC definition BYTE+1C controls packed bits 1/2.
     out.next_action_countdown_10=
