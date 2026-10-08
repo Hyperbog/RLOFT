@@ -140,11 +140,47 @@ int main() {
         party,altered,2U,1,CombatSingleHandContext{0xFFU}
     ).eligible);
 
-    // No synthetic semantics for original out-of-range object[-1]
-    // raw memory read until its original pointer context is known.
+    // 23E58(-1)/23F50(-1) both read the original raw OBJECTS
+    // pointer minus 0x12. With that BYTE supplied explicitly,
+    // the original -1 path is deterministic, not a universal
+    // "unarmed weapon" inference. No underlying party mutation.
+    for(const auto category :
+        {0U,8U,9U,10U,11U,12U,13U,15U,255U}) {
+        const bool classified =
+            category==9U || category==10U || category==11U ||
+            category==13U || category==15U;
+        const auto first =
+            CombatSingleHandEligibilityModel::evaluate(
+                party,catalog,0U,-1,CombatSingleHandContext{0xFFU},
+                static_cast<std::uint8_t>(category));
+        assert(first.eligible);
+        assert(first.classified==classified);
+        const auto third =
+            CombatSingleHandEligibilityModel::evaluate(
+                party,catalog,2U,-1,CombatSingleHandContext{0xFFU},
+                static_cast<std::uint8_t>(category));
+        assert(third.eligible==!classified);
+        assert(third.classified==classified);
+        const auto mode_other =
+            CombatSingleHandEligibilityModel::evaluate(
+                party,catalog,2U,-1,CombatSingleHandContext{0U},
+                static_cast<std::uint8_t>(category));
+        assert(mode_other.eligible);
+    }
+    set_status(party,0U,0x8000U);
+    set_status(party,1U,0x8000U);
+    const auto disabled_pair =
+        CombatSingleHandEligibilityModel::evaluate(
+            party,catalog,2U,-1,CombatSingleHandContext{0xFFU},
+            std::uint8_t{9U});
+    assert(disabled_pair.eligible && disabled_pair.classified);
+    set_status(party,0U,0U);
+    set_status(party,1U,0U);
+
+    // No synthetic default for the unknown pre-OBJECTS memory.
     bool rejected=false;
     try {(void)check(0U,-1);}
-    catch(const std::out_of_range&) {rejected=true;}
+    catch(const std::invalid_argument&) {rejected=true;}
     assert(rejected);
     rejected=false;
     try {(void)check(4U,1);}
