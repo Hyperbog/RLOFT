@@ -34,7 +34,7 @@ source. Do not treat its tests as validation of current HEAD.
 
 The current source-only work includes
 [original attack/target preflight and offline verification](LEVEL22_COMBAT_ENTRY_CHECKPOINT.md).
-An original-asset offline byte audit now covers **212 original CODE.2
+An original-asset offline byte audit now covers **226 original CODE.2
 machine-code anchors**. Sixteen new combat C++ test targets are registered,
 but **have not been executed** since the private-repository build pause.
 The [conditional 24478 hand-eligibility model](LEVEL22_HAND_PAIR_RAW_HEAP_MODEL_CHECKPOINT.md)
@@ -74,6 +74,29 @@ Overall faithful-demo acceptance is still **20% (1/5 major release gates)**.
 
 Goal: reproduce the original shipped behavior from boot through character creation while reading assets from a legally installed/owned copy of *Ravenloft: Strahd's Possession*.
 
+## Recovered Strength table and HARM/E284 event ordering
+
+The [Strength, HARM and E284 classification checkpoint](LEVEL22_STRENGTH_HARM_E284_CLASSIFICATION_CHECKPOINT.md)
+recovers the **exact signed DGROUP:684B modifiers for scores 0–25**
+from immutable CODE.2 object-2 data. The original modifier for
+Strength 18 without a qualifying exceptional-strength class is
+**+2**, and the E5F0 percentile branch remains separate.
+Unsupported scores 26–255 require actual adjacent DGROUP
+bytes because the executable performs no index bounds check.
+
+The new `CombatHarmPreludeModel` preserves the original
+**1d4 → conditional direct HP clamp → provisional zero damage
+→ C910 minimum-one injury → E284 second HP write** sequence.
+It does not roll dice or mutate an NPC merely to inspect it.
+
+The shared `E284` injury prelude now also applies the original
+`3ACDC` NPC type classification to BYTE `npc+0x0B`, *before*
+the HP-positive/death branch. This applies to the Level 22
+Assassin on both nonlethal and lethal damage and preserves the
+existing four-quest-item drop handling. The source-only offline
+audit is now **226 x86 instruction anchors and one 26-byte
+DGROUP data anchor**. No new Actions build has been run.
+
 ## Original 22E40, Rod and E284 injury reconstruction
 
 The [class-level, Rod and E284 injury checkpoint](LEVEL22_CLASS_LEVEL_ROD_INJURY_CHECKPOINT.md)
@@ -96,10 +119,10 @@ closes three additional original combat source dependencies:
   prelude before its established XP, death sound, and four drops.
 
 **39 additional immutable CODE.2 opcode signatures** were checked
-locally, bringing the audit to **212**. The source and CMake targets
-are committed but have not received a new Windows build; raw
-`DGROUP:684B` Strength table bytes, full `E284` creature-specific
-effects, actual RNG/tick traces and playable attack input remain open.
+locally, bringing the audit to **212**. The source and CMake targets are committed but have not received
+a new Windows build. The normal-score **DGROUP:684B Strength
+table has since been recovered**; full E284 creature death effects,
+actual RNG/tick traces and playable attack input remain open.
 
 ## E5F0 damage dice and C910 weapon restrictions — source checkpoint
 
@@ -112,15 +135,15 @@ modifier thresholds, and the `C910` creature/weapon damage gate.
 The model handles HARM's special pre-gate NPC-HP-clamp decision
 without applying it prematurely, and distinguishes Rod of Smiting's
 separate `0x4A` charge/type branch. Character modifiers that use
-the signed loaded DGROUP table `0x684B` still requires original
-observed bytes; **Vampiric Touch's `22E40` class-level helper is now
-reconstructed directly from the party record**.
+the **original DGROUP `0x684B` Strength modifiers for scores 0–25**
+have since been recovered byte-for-byte from CODE.2 object 2;
+Vampiric Touch's `22E40` class-level helper is also reconstructed.
 
 The new models **do not roll dice, change NPC health, change hand
 recovery timers, or launch an animation**. Three new C++ test targets
 are registered for later intentional verification; the original
 that earlier source stage added 47 verified signatures (then 173);
-the current audit has **212**.
+the current audit has **226 instruction anchors plus one data-table anchor**.
 Overall faithful-demo acceptance remains **20% (1/5 major gates)**.
 
 ## Pre-attack status service E578 — original actor effects
@@ -235,7 +258,7 @@ the allocator-adjacent **runtime byte value** is still unknown. Conditional
 original heap values and connecting timed attack input** remain prerequisites
 to live attacks.
 The [offline original-byte audit](tools/verify_combat_entry_bytes.py)
-had reached **87 opcode anchors at that earlier checkpoint**; the [current verifier](tools/verify_combat_entry_bytes.py) contains **212**, including the 15 then-newly audited `24478` empty/pseudo short-circuit instructions (both original party-status checks remain distinct) matched
+had reached **87 opcode anchors at that earlier checkpoint**; the [current verifier](tools/verify_combat_entry_bytes.py) contains **226**, including the 15 then-newly audited `24478` empty/pseudo short-circuit instructions (both original party-status checks remain distinct) matched
 against original CODE.2. This is source evidence, not a new game build.
 
 **Bounded nonnegative `240A8` checkpoint: 75%** (compiled/original-runtime
