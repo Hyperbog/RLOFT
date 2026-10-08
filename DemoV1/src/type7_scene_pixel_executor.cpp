@@ -15,6 +15,10 @@ Type7PixelDrawReport Type7ScenePixelExecutor::draw(
     const RendererTables& tables,
     VgaPlanarMemory& video) {
     Type7PixelDrawReport report{};
+    // Validate every original mask, descriptor run boundary and carried
+    // lookup word before applying ANY VGA writes. This is especially
+    // important when used outside the presenter's additional transaction.
+    Type7VgaTraceValidator::validate_scene(trace, plan);
     if (trace.runs.empty()) {
         if (!plan.visible_runs.empty()) {
             throw std::logic_error(
