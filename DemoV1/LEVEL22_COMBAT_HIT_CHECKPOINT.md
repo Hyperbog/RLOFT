@@ -35,3 +35,8 @@ The full original orchestration is `E5F0..EA81`, including `DB94` target choice,
 **Scope acceptance:** the original hit-check arithmetic is implemented, and the synthetic deterministic regression suite passed Windows x64 CTest in [run #617](https://github.com/Hyperbog/RLOFT/actions/runs/37718023346), 102/102 total tests. Real DOS combat tracing and the `E5F0` attack orchestrator remain unverified and unimplemented, respectively. A completed arithmetic primitive does not close the major combat release gate.
 
 **Completion:** bounded combat-hit arithmetic milestone **100% (3/3: opcode reconstruction, CTest coverage and successful Windows build/test)**. Overall five-gate faithful demo **20%**, pending end-to-end gameplay acceptance.
+
+
+## Original C80C return ABI — 2026-10-08 extension
+
+The hit calculation still records the separate modified d20 for auditing, but its original x86 **EAX return is exactly 0 or 1**. `C81E` and `C8EA` return 1; `C8F9` returns 0; `C900..C908` returns `SETGE` 0/1. The native `CombatHitCheckResult::original_eax_return` now exposes that actual DWORD separately from the modified die. The downstream `E5F0` Rod of Smiting literal-20 comparison therefore cannot trigger the original charge/critical path. See [original Rod audit](LEVEL22_CLASS_LEVEL_ROD_INJURY_CHECKPOINT.md). This is source-registered and awaits a new compiled run.
