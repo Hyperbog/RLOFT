@@ -224,3 +224,31 @@ time, timer approximations or synthetic retries** when this
 is later connected to the live DDA4 event sequence.
 Original 1C258..1C326 display effects and original 3210F
 message bytes are separate remaining acceptance gates.
+
+
+## DDA4 original message creation and IRQ display cadence (2026-10-08)
+
+CODE.2 `DDA4:DF54` formats the original string `%s gains a
+level.` through `3210F` from DGROUP `+548` to buffer
+`+759C`, then `1C21C` queues it with the actual independent
+`30700` IRQ read and a `+0x5A` deadline. The renderer
+call at `1C2C4` enters `1C258` first and draws a pending
+message (if `CF59!=0`), clearing the pending byte only after
+the original compositing call `1A8C8` has returned.
+**Only after this stage** does `1C2CC` call `30700`
+to check expiration. The unsigned comparator checks
+`current_IRQ_tick > DWORD[CF54]`. Erase writes the
+`0xFFFFFFFF` deadline sentinel **before** the second
+`1A8C8` compositor call.
+
+This means a single update may both display and erase a
+message when drawing took enough original IRQ ticks.
+Do not sample time once at the start of a frame, substitute
+A7E4 gameplay ticks, or normalize unsigned timer wrap.
+See [source audit](LEVEL22_DDA4_MESSAGE_FORMAT_DISPLAY_CHECKPOINT.md).
+
+The current native 3210F and display-lifecycle models only
+plan source-verified actions. Renderer services 291B0,
+2939C, 3060C, and 1A8C8 and shared-global re-reads
+must be integrated in their original observed temporal order
+before declaring a timed level-up message implementation.
