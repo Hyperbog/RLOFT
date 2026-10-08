@@ -139,6 +139,14 @@ int main() {
     }
     assert(correctly_rejected);
     assert(world.npcs[0].current_hp==5);
+    // E31F branches to E553 for HP>0; E50F never scans filters.
+    // A matching type does not block a nonlethal hit.
+    auto survivor=world;
+    const auto surviving_hit=rloft::Level22EncounterModel::damage_assassin(
+        survivor,unsupported,0U,2U,0U,0U,npc_catalog(),tables,{});
+    assert(surviving_hit.damaged && !surviving_hit.died);
+    assert(survivor.npcs[0].current_hp==3);
+    assert(world.npcs[0].current_hp==5);
     // A signed -1 tracker must also NOT match type 0xFFFF.
     level.header[0x294U]=0U;
     level.header[0x295U]=0U;
