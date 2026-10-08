@@ -200,7 +200,7 @@ An authenticated GitHub comparison of `373c7f10e6fc0f29c1e805125ef048150fcc7ba7.
 | `DatFiles/` | 12 | 11 previous Markdown audit/reference files modified; 1 new Markdown workflow note |
 | `Runtime/` | 1 | `CODE_OBJECT_MAP.md` documentation correction |
 | `TechnicalArchive/` | 8 | Former superseded docs removed from the active documentation branch |
-| `Code1/`, `Code2/`, `Resources/`, `Tools/` | **0** | No tracked changes in these primary reconstruction/asset-extraction areas |
+| `Code1/`, `Code2/`, `Resources/`, `Tools/` | **0 at initial comparison snapshot** | Snapshot before a later concurrent extractor-tool commit; see §18 for live branch correction |
 
 **Important nuance:** the original binary fixture inputs supplied in the present workspace are separate from repository Markdown. The file comparison excludes silent original-binary rewrites in the tracked Git tree (none are listed); the local 9/9 SHA-256 and 35/35 byte/structure checks independently defend the fixtures tested here. Removing obsolete `TechnicalArchive/` **from the active documentation branch** is an intentional prior branch-scope decision, not erasure of the frozen history.
 
@@ -265,7 +265,8 @@ Chapter-qualified C records     43            four duplicate label strings
 Original available files         9 / 9         size and SHA-256 verified
 Fresh byte/structure assertions  35 / 35       passed
 Frozen backup branch             exact baseline retained
-Code1/Code2/Resources/Tools      no tracked changes from frozen baseline
+Code1/Code2/Resources            no tracked changes from frozen baseline
+Tools/                           changed later in a concurrent, separately authored tool commit (§18)
 ```
 
 **Publication safeguard:** these figures are *registry integrity checks*, not a count of all possible gameplay paths, resource byte accesses or dynamic device behaviors. The original resource workstream's previously certified corpus remains controlling where its original files were not supplied again for this audit.
@@ -294,3 +295,23 @@ The **additional requested evidence** for an independent rerun comprises `RES0..
 Original resource code/data was documented in earlier certified audits, but the other **32 resources of the 33-file Resources manifest** are not mounted in this Project inventory for a new independent check. The stronger resource-audit gate is therefore pending the user-provided original corpus, **not failed**.
 
 **Status remains bounded:** original-game static reconstruction is extensively documented and cross-referenced. A fresh entire original-resource replay and measured driver/hardware/runtime equivalence remain open until their actual source inputs or execution traces are available. Do not issue an unqualified 100% certificate on these results alone.
+
+
+## 18. Live-branch correction: concurrent tool changes after the initial comparison
+
+**Correction A-21.1:** The §12 baseline comparison is a historical snapshot, not a guaranteed live-branch invariant. During this final audit, another GitHub commit **[`fd989dbe`](https://github.com/Hyperbog/RLOFT/commit/fd989dbe796722852def2495205bc02e4cf19501)** landed on `code1-decompilation` with message *“tools: keep extractor actions visible and scroll settings when resized”*. The current baseline→branch diff consequently reports **47 tracked changed paths**, not the earlier 43.
+
+New paths in the live comparison:
+
+```text
+Tools/anm/app.py                     modified
+Tools/anm/gui.py                     modified
+Tools/anm/scrollable_tabs.py         added
+Tools/anm/test_scrollable_tabs.py    added
+```
+
+The historical documentation steps in this thread did not create, rewrite or revert these tool files. They are a **separate concurrent workstream change on the same branch**, notwithstanding Chapter 00's stated intention to leave Tools untouched. Preserve the commit and coordinate branch isolation before final archival branch freeze; do not silently erase someone else's extractor improvements.
+
+The same current GitHub comparison reports **no tracked changes under Code1/, Code2/ or Resources/** from the frozen evidence baseline. Existing CODE and resource interpretation evidence remains sourced to immutable originals, unaffected by these GUI-only path changes. This discrepancy is a **branch-scope/process issue**, not a demonstrated DOS executable semantics contradiction.
+
+**Final gate:** either explicitly accept the four tool paths on this documentation branch with provenance or, by separate project-authorized branch management, move their changes to the intended tool-development branch without destroying history. An entirely unqualified *frozen documentation branch contains documentation only* claim is false until resolved.
