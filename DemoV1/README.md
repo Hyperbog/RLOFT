@@ -73,6 +73,20 @@ Overall faithful-demo acceptance is still **20% (1/5 major release gates)**.
 
 Goal: reproduce the original shipped behavior from boot through character creation while reading assets from a legally installed/owned copy of *Ravenloft: Strahd's Possession*.
 
+## Original 24478 empty/pseudo short circuits
+
+The [empty/pseudo early-gate checkpoint](LEVEL22_HAND_PAIR_EARLY_GATES_CHECKPOINT.md)
+models original `244CE..246E9` and distinguishes its first-actor
+`status >= 0x4000` threshold from `240A8`'s **separate**
+`status == 0x8000` branch. The `24478` pair evaluator now
+supports **both hands empty**, but only with the original observed
+OBJECTS pre-base category byte, or **both hands holding pseudo
+spell items `0x7E..0x86`**; both shortcut directly to their distinct
+action-state busy checks. Mixed empty/pseudo/ordinary pairs remain
+gated until raw heap-adjacent item qualifiers and original execution
+traces are understood. No attack is enabled and current source
+has not been compiled since private CI was paused.
+
 ## Original 24478 ordinary two-hand arbitration
 
 The [ordinary two-hand arbitration checkpoint](LEVEL22_HAND_PAIR_ARBITRATION_CHECKPOINT.md)
@@ -112,7 +126,7 @@ the allocator-adjacent **runtime byte value** is still unknown. The positive
 two-item subset of `24478` is implemented separately; complete `-1` and
 pseudo-hand arbitration remain prerequisites to live attacks.
 The [offline original-byte audit](tools/verify_combat_entry_bytes.py)
-registers **72 exact opcode anchors**, including 21 single-hand, 11 pair-arbitration and 7 OBJECTS loader/heap sequences matched
+registers **87 exact opcode anchors**, including the 15 newly audited `24478` empty/pseudo short-circuit instructions (both original party-status checks remain distinct) matched
 against original CODE.2. This is source evidence, not a new game build.
 
 **Bounded nonnegative `240A8` checkpoint: 75%** (compiled/original-runtime
