@@ -371,3 +371,23 @@ These are also asserted by `type7_scene_pixel_executor_tests` when `RLOFT_SINTAB
 The original SINTAB scale-step histogram is `0:2015, 1:4128, 2:4128, 3:4128, 4:1984`; therefore a normal projected source-column run never exceeds four pixels. The original patch offset tables contain **4,669 adjacent equal-offset pairs**. An EB patch across such an alias can create `EB FE` (jump to itself); interpreter execution is guarded and the new unit test checks this failure mode.
 
 **Remaining limitations:** reference matching covers deterministic SINTAB code inputs, not full live RES3 DOS screenshot equivalence. Surface/wall and prepass SINTAB rendering remains incomplete. The new repository C++ tests are still not independently build-certified because GitHub Actions fails before executing steps.
+
+## Local verification when GitHub Actions is unavailable
+
+GitHub Actions runner capacity or billing limits are **not a source-code commit blocker**. Continue committing validated changes to `demo-v1`; do not report zero-step Actions failures as C++ compiler/test failures.
+
+The following command runs the original-data bytecode, pixel-fingerprint, descriptor-patch, and CODE.2 VGA-mask audits entirely **offline** with Python 3:
+
+```sh
+python3 DemoV1/tools/verify_renderer_offline.py /path/to/SINTAB /path/to/CODE.2
+```
+
+On Windows, use `py -3` in place of `python3`. Original binaries stay outside Git. The runner checks both canonical SHA-256 identities, all 127 SINTAB blocks, six original instruction forms, 16,383 patch boundaries, 28 CODE.2 phase/run masks, both whole-corpus pixel fingerprints, and the three real descriptor-cutoff vectors. It stops with a nonzero exit status if a check fails.
+
+An asset-free offline regression exercises the CODE.2 mask verification logic with synthetic fixture bytes, including corruption cases:
+
+```sh
+python3 DemoV1/tools/test_offline_renderer_verify.py
+```
+
+CTest also registers this asset-free Python regression automatically when Python is installed. **Do not conflate** these original-data checks with compiling the C++ renderer or successfully running the full demo; those remain separate requirements.
