@@ -118,3 +118,18 @@ applies only when DDA4 actually reaches a level change; its 50DC
 selector may then legitimately return -1 for other reasons.
 The revised, exact committed files passed strict Debug and Release
 C++17 isolated testing again.
+
+
+## Subsequent DC7C implementation checkpoint
+
+The original DC7C six-class, two Constitution-bank, single-die
+and multiclass HP arithmetic is now reconstructed as a read-only
+model. Its original-code byte ledger totals **407 named checks
+at 399 distinct instruction addresses**, with two new DGROUP
+SHA256 table checks and a CS six-target dispatch SHA256.
+The [detailed DC7C checkpoint](LEVEL22_DC7C_HP_PROGRESSION_CHECKPOINT.md)
+records 16,416 original-byte-driven tests, strict Debug,
+Release and UBSan results. The full game has **not** had its
+live actor/RNG timeline wired or a fresh Windows EXE build;
+3EA4, 3DE4 and timed message side effects still block native
+progression acceptance.
