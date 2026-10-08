@@ -90,6 +90,7 @@ int main() {
     for (const auto& run : grouped.runs) {
         rloft::Type7VgaTraceValidator::validate(run);
     }
+    rloft::Type7VgaTraceValidator::validate_scene(grouped, p);
     assert(grouped.runs[0].width==2U);
     assert(!grouped.runs[0].individual_columns_mode);
     assert(!grouped.runs[1].individual_columns_mode);
@@ -118,6 +119,7 @@ int main() {
     for (const auto& run : individual.runs) {
         rloft::Type7VgaTraceValidator::validate(run);
     }
+    rloft::Type7VgaTraceValidator::validate_scene(individual, p);
     assert(individual.runs[0].individual_columns_mode);
     assert(individual.runs[1].individual_columns_mode);
     assert(individual.runs[0].dispatch.calls.size()==2U);
