@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <optional>
 #include <cstdint>
 #include <vector>
 
@@ -25,6 +26,14 @@ public:
     VgaPlanarMemory();
 
     void clear(std::uint8_t value = 0U) noexcept;
+
+    // The DOS sprite loop writes sequencer register index 02h via
+    // OUT DX,AX at port 03C4h for every source-plane pass. The
+    // register remains observable after the pixels are written.
+    // Its initial value is UNKNOWN until a source-backed OUT occurs.
+    void set_sequencer_map_mask_02(std::uint8_t plane_mask);
+    [[nodiscard]] std::optional<std::uint8_t>
+    sequencer_map_mask_02() const noexcept;
     void write(
         std::uint32_t physical_address,
         std::uint8_t plane_mask,
@@ -48,6 +57,7 @@ private:
         std::uint32_t physical_address);
     [[nodiscard]] static std::size_t page_start(unsigned page);
     std::array<std::vector<std::uint8_t>, 4> planes_;
+    std::optional<std::uint8_t> sequencer_map_mask_02_{};
 };
 
 } // namespace rloft
