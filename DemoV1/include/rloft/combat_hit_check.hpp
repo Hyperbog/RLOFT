@@ -25,6 +25,10 @@ struct CombatHitCheckInputs final {
 
 struct CombatHitCheckResult final {
     bool hit{};
+    // Exact DWORD EAX return at CODE.2 C80C. Original returns
+    // only 0/1, NOT its raw or modified d20. E5F0 stores this
+    // field and Rod of Smiting incorrectly compares it to 20.
+    std::uint32_t original_eax_return{};
     bool auto_hit_held{};
     int burden_penalty{};
     int threshold{};
