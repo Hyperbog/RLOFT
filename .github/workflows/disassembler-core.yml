@@ -1,5 +1,5 @@
 name: Windows DOS disassembler core smoke tests
-# Manually trigger in GitHub Actions only; no automatic push/PR builds.
+# Manual only — no GitHub Actions minutes on push or PR.
 on:
   workflow_dispatch:
 permissions:
@@ -21,12 +21,39 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet build tests/DosDis.Smoke/DosDis.Smoke.csproj --configuration Release
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build Windows desktop and persistence smoke project
+        shell: pwsh
+        working-directory: Tools/Disassembler
+        run: |
+          dotnet build src/DosDis.Desktop/DosDis.Desktop.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet build tests/DosDis.ProjectSmoke/DosDis.ProjectSmoke.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Run synthetic smoke test suite (no game files)
         shell: pwsh
         working-directory: Tools/Disassembler
         run: |
           dotnet run --project tests/DosDis.Smoke --configuration Release --no-build
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run SQLite project persistence smoke tests
+        shell: pwsh
+        working-directory: Tools/Disassembler
+        run: |
+          dotnet run --project tests/DosDis.ProjectSmoke --configuration Release --no-build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Publish Windows desktop preview
+        shell: pwsh
+        working-directory: Tools/Disassembler
+        run: |
+          dotnet publish src/DosDis.Desktop/DosDis.Desktop.csproj --configuration Release --runtime win-x64 --self-contained true --output dist/windows-desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload Windows desktop preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DOSDis-Desktop-win-x64-preview
+          path: Tools/Disassembler/dist/windows-desktop/
+          if-no-files-found: error
+          retention-days: 30
       - name: Publish portable self-contained Windows CLI
         shell: pwsh
         working-directory: Tools/Disassembler

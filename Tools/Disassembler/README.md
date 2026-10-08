@@ -18,7 +18,7 @@ dotnet run --project tests/DosDis.Smoke
 dotnet run --project tests/DosDis.Smoke -- /path/to/CODE.1 /path/to/CODE.2
 ```
 
-**Windows-only policy (2026-10-08):** CI runs only on Windows and publishes only `DOSDis-CLI-win-x64-preview`. Linux build, test and publish jobs have been disabled at the project owner's request. This is a preview, not an endorsed production release.
+**Windows-only, manual CI:** Only `workflow_dispatch` starts the Windows x64 job. Pushes and pull requests do not trigger the disassembler build. No Linux jobs or releases are produced. These are experimental CLI previews, not production certifications.
 
 `inspect` emits JSON with immutable source SHA-256, LE module/object/page mappings, entry point, and evidence-tagged File Intelligence fields. `disasm` emits structured instruction records (original bytes, object offset, assembly, flow-control category).
 
@@ -32,7 +32,7 @@ Input is limited to 128 MiB in this prototype as an explicit safety bound. The s
 - Initial assembly decode targets x86 **32-bit LE executable objects** only. The broader 16-bit DOS path needs a dedicated real-mode/segmented loader and execution context.
 - CLI listing is *linear disassembly of a researcher-selected address*, not a verified automatic code/data or function discovery pass. It must not be treated as proof that selected bytes were executable.
 - File Intelligence fields are identified by full SHA-256 where available; known embedded extender strings are reported as strings, not a proved minimum DOS version.
-- No SQLite project, WPF interface, CFG, resource VM decoding, Ghidra import, or binary comparison has been implemented yet. These belong to later milestones.
+- The original Part 14 baseline had no SQLite project, WPF interface or CFG. Parts 16–18 add candidate CFG, reference recovery, a SQLite source implementation and an initial WPF source shell. VM decoding, Ghidra import, and binary comparison remain future milestones.
 
 ## Evidence boundary
 
@@ -88,12 +88,16 @@ Earlier sections of this README describe the Part 14 baseline; Part 15 and Part 
 
 ### Part 16 original-game checkpoint
 
-A historical Part 16 Linux x64 artifact was run separately against the uploaded, SHA-256-verified original CODE files (not uploaded to CI). That previous test is retained as evidence; no further Linux builds are planned. Entry-seeded static analysis identified 10,997 candidate CODE.1 instructions and 41,720 candidate CODE.2 instructions, with no instruction-budget truncation at 100,000. The known CODE.2 shared-return test passed. These counts **are not complete original-game instruction inventories** and are not behavior-fidelity percentages. See [Part 16 checkpoint](docs/CFG_ANALYSIS_CHECKPOINT.md).
+The earlier Part 16 evidence archive includes an authorized original-binary run from before the Windows-only CI decision. The original files were not uploaded to CI. Entry-seeded static analysis identified 10,997 candidate CODE.1 instructions and 41,720 candidate CODE.2 instructions, with no instruction-budget truncation at 100,000. The known CODE.2 shared-return test passed. These counts **are not complete original-game instruction inventories** and are not behavior-fidelity percentages. See [Part 16 checkpoint](docs/CFG_ANALYSIS_CHECKPOINT.md).
 
-## Post-final-release research only: AI assistant
+## Part 17: indirect control-flow and data cross-references
 
-**Deferred until after the completed disassembler's final release and subsequent explicit approval by the project owner.** Do not implement AI provider integrations, account connection, chat UI, model selectors, tool bridges, AI-specific data models, SDK dependencies, or related tests during core development or the initial release cycle. Existing research is archived in [docs/AI_ASSISTANCE_ARCHITECTURE.md](docs/AI_ASSISTANCE_ARCHITECTURE.md), to be revalidated if and when this separate post-release feature is authorized. Continue prioritizing accurate DOS disassembly, preservation evidence, File Intelligence, function/CFG analysis, persistence, a Windows 11 UI, and release certification. High-level language generation also remains outside initial scope.
+The core now recognizes LE relocation-backed absolute indirect calls/jumps and indexed 32-bit pointer tables (at least 2 consecutive valid entries; max 128), plus object-relative xrefs from absolute memory operands and source fixups embedded in code. All findings are **candidates**. Ambiguous unbounded indirect control flow remains unresolved; candidate-only instructions carry separate provenance labels. `analyze` JSON contains `DataReferences` and `JumpTables`. See [Part 17 details](docs/INDIRECT_REFERENCE_CHECKPOINT.md).
 
-## Part 17: relocation-backed indirect control flow and data references
+**AI assistance remains deferred until after the finished application's final release and explicit authorization.** No model or provider code is added in this milestone. See the repository's archival AI research document for non-active future reference.
 
-A conservative evidence-backed reference pass now records object-relative absolute memory references, LE fixup-sourced encoded address operands, 32-bit absolute indirect calls/jumps, and candidate indexed dword jump tables (at least two contiguous relocations, bounded to 128 entries). **Candidate indirect targets are not certified runtime flow.** Unresolved indirect edges and source-byte unknowns are retained; analyst-protected pointer data remains protected. JSON `analyze` includes `DataReferences` and `JumpTables`. See [Part 17 reference recovery checkpoint](docs/INDIRECT_REFERENCE_CHECKPOINT.md). This Windows-only application still has no AI features, which remain postponed until after final release.
+## Part 18: SQLite research projects and Windows desktop source preview
+
+The first Windows-only WPF source shell and versioned SQLite `.ddproj` project storage have been added. Save candidate CFG snapshots and analyst comments without altering original bytes; reopen requires matching original artifact SHA-256. See [Part 18 implementation note](docs/PERSISTENCE_AND_WINDOWS_DESKTOP.md) for limitations and verification instructions. **These additions have not yet been compiled in a Windows environment.**
+
+**GitHub Actions is now opt-in, `workflow_dispatch` only.** No push/PR triggers; do not trigger hosted CI unless explicitly requested. Use `build-windows.ps1` for manual local builds and optional authorized Ravenloft binary tests. No AI work before final release.
