@@ -22,7 +22,8 @@ CombatAttackTimingPlan CombatAttackTimingModel::inspect(
     std::size_t actor,
     std::size_t hand,
     std::int32_t dispatched_item_id,
-    std::uint32_t gameplay_maintenance_tick_a7e4,
+    std::uint32_t gameplay_tick_a7e4_before_hit_write,
+    std::uint32_t gameplay_tick_a7e4_after_presentation,
     bool hit_succeeded,
     std::int32_t computed_damage) {
     if (actor>=PartyImage::kActorCount || hand>=2U) {
@@ -58,15 +59,23 @@ CombatAttackTimingPlan CombatAttackTimingModel::inspect(
     CombatAttackTimingPlan result{};
     result.animation_interval=interval;
 
-    // E5F0:1EA2E..1EA5C: only a nonzero C80C hit result
-    // reads 29CC4 (A7E4) and writes:
-    // [actor +19Eh + hand*4] = A7E4 + interval/2
-    // [actor +1AAh + hand*4] = post-damage value.
-    // Preserve 32-bit wrap exactly; no host time conversion.
+    // E5F0:EA2E..EA5C: only a C80C hit reads 29CC4(A7E4)
+    // and writes selected actor +19E hand-ready and +1AA damage.
     if (hit_succeeded) {
         result.hand_ready_deadline=
-            gameplay_maintenance_tick_a7e4+(interval/2U);
+            gameplay_tick_a7e4_before_hit_write+(interval/2U);
         result.stored_damage=computed_damage;
+    }
+
+    // E5F0:EA63 invokes CODE.2 logical 24B48 (objdump 34B48).
+    // 24B48 presents the action graphics first, THEN, if the
+    // interval is nonzero, reads the current A7E4 and writes
+    // actor+10B action-state = current tick + FULL interval.
+    // This happens even after a miss or no target. The second
+    // clock observation may differ from the earlier hit-only one.
+    if (interval!=0U) {
+        result.action_state_deadline=
+            gameplay_tick_a7e4_after_presentation+interval;
     }
     return result;
 }
