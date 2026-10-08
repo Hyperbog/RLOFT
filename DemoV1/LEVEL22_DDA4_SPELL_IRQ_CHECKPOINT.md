@@ -127,3 +127,23 @@ message bytes and integrate the callback sequence in strict
 observations from modeled inputs, and preserve all original
 character state and RNG side effects before enabling
 live XP/HP mutation.
+
+
+## Subsequent exact message and renderer lifecycle reconstruction
+
+The [source-backed 3210F/1C258/1C2C4 checkpoint](LEVEL22_DDA4_MESSAGE_FORMAT_DISPLAY_CHECKPOINT.md)
+closes the earlier message *format provenance* and display
+*call-order* questions for the original DDA4 level-up path:
+`%s gains a level.` is certified from CODE.2 DGROUP +548,
+referenced through DWORD +67E4; 3210F terminates its output
+in +759C, 1C21C enqueues the text, and 1C258/1C2C4 draw
+and expire the queue using the **post-render** independent IRQ
+tick. The associated renderer calls remain deferred and the
+shared state has not yet been mutated in the native game.
+
+The current original-byte ledger has **487 named checks,
+479 distinct instruction locations**, one direct Strength
+data anchor, nine hashed DGROUP spans and one hashed CS span.
+Debug, Release and UBSan source-equivalent tests passed for
+the new message and display source files; complete repository
+and reference-DOS gameplay acceptance remain outstanding.
