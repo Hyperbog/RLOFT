@@ -83,6 +83,7 @@ int main() {
         0x00078000U;
     assassin.current_hp = 5;
     assassin.packed_runtime_state = 0x8000U; // preserve unrelated original packed state
+    assassin.runtime_flags = 0xE0000001U; // pre-existing byte+0B flags
     world.npcs.push_back(assassin);
 
     // Nonlethal damage uses the reaction sound and reaction animation/count.
@@ -109,6 +110,7 @@ int main() {
     assert(world.npcs[0].action_state_countdown == 2);
     assert((world.npcs[0].packed_runtime_state & 6U) == 6U);
     assert((world.npcs[0].packed_runtime_state & 0x8000U) != 0U);
+    assert(world.npcs[0].runtime_flags == 0xD0000001U);
 
     // Lethal damage spawns all four story items; failed placement probes make
     // each fall back to the corpse coordinates.
@@ -136,6 +138,7 @@ int main() {
     assert(damage.experience_award == 200);
     assert(damage.spawned_loose_items == 4);
     assert((world.npcs[0].runtime_flags & 0x02000000U) != 0U);
+    assert(world.npcs[0].runtime_flags == 0xD2000001U);
     assert(world.loose_items.size() == 4);
     assert(world.loose_items[0].object_type_id == 0x88);
     assert(world.loose_items[1].object_type_id == 0x87);
