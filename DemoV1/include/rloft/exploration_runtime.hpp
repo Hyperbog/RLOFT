@@ -41,6 +41,7 @@ struct ExplorationRuntimeFrame final {
     ExplorationSceneSnapshot scene{};
     std::vector<ViewSweepRecord> sweep_records;
     std::vector<WorldSceneRecord> world_scene_records;
+    std::uint64_t world_scene_revision{};
     std::vector<WorldSceneDrawCall> world_scene_draw_calls;
     std::vector<WorldSceneRenderPlan> world_scene_render_plans;
     std::optional<Type7VgaFrameTrace> scene_vga_trace;
@@ -121,9 +122,10 @@ public:
     // actual Level 22 encounter. Attack actions pass flags=0 so loose
     // pickups do not occlude NPC combat; pickup actions pass flags=1.
     // Both still honor the original highest-render-rank hit order.
+    // Snapshot revisions reject selections after item array compaction.
     [[nodiscard]] std::optional<NpcDamageResult>
     damage_level22_assassin_at(
-        const std::vector<WorldSceneRecord>& records,
+        const ExplorationRuntimeFrame& frame,
         int row,
         int column,
         std::uint16_t amount,
@@ -132,7 +134,7 @@ public:
 
     [[nodiscard]] std::optional<LooseItemPickupResult>
     pickup_level22_loose_item_at(
-        const std::vector<WorldSceneRecord>& records,
+        const ExplorationRuntimeFrame& frame,
         int row,
         int column);
 
@@ -167,6 +169,7 @@ private:
     bool scene_individual_columns_mode_{};
     std::unordered_map<std::uint16_t, Type7SceneShape> scene_shape_cache_;
     OriginalRandom original_random_{};
+    std::uint64_t world_scene_revision_{};
     LevelWorldState world_{};
     InventoryRuntimeState inventory_{};
 };
