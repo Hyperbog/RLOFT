@@ -57,6 +57,7 @@ add_library(rloft_boot_flow
     src/combat_npc_injury_prelude.cpp
     src/combat_npc_death_followon.cpp
     src/combat_npc_respawn.cpp
+    src/combat_xp_distribution.cpp
     src/combat_harm_prelude.cpp
     src/combat_damage_stat_bonus.cpp
     src/combat_weapon_damage_gate.cpp
@@ -254,6 +255,9 @@ add_test(NAME combat_npc_death_followon_tests COMMAND combat_npc_death_followon_
 add_executable(combat_npc_respawn_tests tests/combat_npc_respawn_tests.cpp)
 target_link_libraries(combat_npc_respawn_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_npc_respawn_tests COMMAND combat_npc_respawn_tests)
+add_executable(combat_xp_distribution_tests tests/combat_xp_distribution_tests.cpp)
+target_link_libraries(combat_xp_distribution_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_xp_distribution_tests COMMAND combat_xp_distribution_tests)
 add_executable(combat_harm_prelude_tests tests/combat_harm_prelude_tests.cpp)
 target_link_libraries(combat_harm_prelude_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_harm_prelude_tests COMMAND combat_harm_prelude_tests)
@@ -641,6 +645,7 @@ set(RLOFT_TEST_TARGETS
     combat_npc_injury_prelude_tests
     combat_npc_death_followon_tests
     combat_npc_respawn_tests
+    combat_xp_distribution_tests
     combat_harm_prelude_tests
     combat_damage_stat_bonus_tests
     combat_weapon_damage_gate_tests
