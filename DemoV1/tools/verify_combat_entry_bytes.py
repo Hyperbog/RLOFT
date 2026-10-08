@@ -412,6 +412,20 @@ DATA_ANCHORS = {
 }
 
 
+# Full original class threshold/coefficient bytes are NOT committed to
+# this repository. The hashes independently verify source asset tables.
+DATA_HASH_ANCHORS = {
+    "DGROUP +7D9C six class level threshold rows": (
+        0x7D9C, 240,
+        "61e4f494c427a51e457a52da8e704477f1e5e7fff823e09b162fab7c5c701308",
+    ),
+    "DGROUP +6827 six class attack coefficient pairs": (
+        0x6827, 12,
+        "096e8cc68d13fba7899b37774f0e66c8f412869aacc4d77be93877835bead8d1",
+    ),
+}
+
+
 def verify(original: bytes) -> int:
     actual_sha = hashlib.sha256(original).hexdigest()
     if actual_sha != EXPECTED_SHA256:
@@ -439,6 +453,15 @@ def verify(original: bytes) -> int:
                 f"expected={expected.hex()} actual={actual.hex()}"
             )
 
+    for title, (logical, count, expected_hash) in DATA_HASH_ANCHORS.items():
+        start = DATA_OBJECT_START + logical
+        actual_bytes = original[start:start + count]
+        actual_hash = hashlib.sha256(actual_bytes).hexdigest()
+        if len(actual_bytes) != count or actual_hash != expected_hash:
+            raise ValueError(
+                f"{title}: original data-table SHA mismatch at {start:#x}"
+            )
+
     base = 0x218E0
     assert 0x21A7E - base == 0x19E, "215E9 hand-ready offset"
     assert 0x219EB - base == 0x10B, "26037 per-hand action-state offset"
@@ -453,6 +476,7 @@ if __name__ == "__main__":
     total = verify(Path(sys.argv[1]).read_bytes())
     print(
         f"PASS: {total} original CODE.2 combat/hand opcode anchors; "
-        f"{len(DATA_ANCHORS)} original data tables; "
+        f"{len(DATA_ANCHORS)} direct data tables + "
+        f"{len(DATA_HASH_ANCHORS)} hashed data tables; "
         "party offsets 19E/10B/12B; no build executed"
     )
