@@ -38,12 +38,23 @@ int main() {
             session, tables) ==
         694U);
 
-    // The dedicated stride-2 path quantizes through 45-degree sectors.
+    // CODE.2 2B52D..2B5A0: with a centered target and facing
+    // zero, relative angle -180+22 normalizes to 202 degrees.
+    // Integer 202/45=4; 4 modulo 8 modulo 2 selects subframe ZERO.
+    assert(
+        rloft::SceneShapeSelectorModel::select_bank_local(
+            100U, 160U, 0U, 1U, 2U, 2U,
+            session, tables) ==
+        100U);
+    // A 45-degree relative change crosses to sector 5; 5%2 selects
+    // subframe one. Exercise both parity cases from original IDIV.
+    session.facing = 45U;
     assert(
         rloft::SceneShapeSelectorModel::select_bank_local(
             100U, 160U, 0U, 1U, 2U, 2U,
             session, tables) ==
         101U);
+    session.facing = 0U;
 
     // Level 22 class-1 types 62..64 are outside the mutable cache groups.
     // Type 62 is also inside 2B188's 0x3C..0x43 stride-16 mirror range.
