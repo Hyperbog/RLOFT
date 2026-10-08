@@ -278,3 +278,27 @@ and DOS VGA-plane/IRQ reference comparison. Local strict
 C++17 builds passed; a new full Windows CTest and EXE
 build are **still required** for this newer codebase.
 No private Actions runner was triggered here.
+
+
+## Native 1A8C8 signed overlay compositor wrapper — 2026-10-08
+
+The [latest source checkpoint](LEVEL22_CODE2_COMPOSITE_1A8C8_CHECKPOINT.md)
+reconstructs the original 1A8C8 **direct** and
+**buffered overlay** paths, distinguishing native
+row/column order, inclusive signed intersection with
+32×16 original overlay extents, A6BA busy-state
+writes, 9E37 reference counting, active-page switching
+and exact 0x400 backing copy through 30CD4.
+A new `bind_irq_display_1a8c8` adapter runs it
+under the earlier 1C258 timed-message callback
+without advancing 30700 ahead of rendering.
+
+31 additional CODE.2 x86 instructions were verified
+(684 named / 676 distinct). Isolated C++17 tests
+passed; consolidated current-HEAD Windows tests and
+DOS reference pixels are **not** claimed. The next
+core-graphics shared-engine item is exact 2A078
+VGA sequencer/graphics-controller rectangle-copy,
+then nested 1A288/1AB20 overlay effects and DOS
+A/B frame/IRQ testing. Formal demo acceptance stays
+1/5 gates; engineering percentage is unmeasured.
