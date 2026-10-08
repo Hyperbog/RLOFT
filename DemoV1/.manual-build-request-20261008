@@ -2,3 +2,5 @@ Authorized one-time Windows demo-v1 CI build and CTest request on 2026-10-08.
 Do not make this marker a recurring CI trigger.
 
 Rebuild #2: verified fixes for the three Windows MSVC regression compilation failures.
+
+Rebuild #3: actor0 status fixture corrected for CODE.2 2459C mask; verify 130 Windows CTests.
