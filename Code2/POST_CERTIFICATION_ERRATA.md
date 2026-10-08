@@ -135,3 +135,10 @@ increments at `0x114D7` and `0x114DF`.
 Executable-byte coverage/accounting is unchanged. The source-level automap
 placement semantics are corrected on the current branch; historical
 certification hashes remain provenance for the pre-erratum snapshot.
+
+
+## Cross-branch source reconciliation (2026-10-07)
+
+A full text comparison of the `code1-decompilation` certified snapshot (`c3f16122e79c3c464382e4511d9d932f6fcd694a`) and the demo reconstruction (`87f6638921c53a32bde59735515fbc175e2c96ee`) found **exactly the two semantic edits detailed in Errata 001 and 002**, with no other changed source region. Independently hashed original `CODE.2` has SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`. Both ranges were re-disassembled directly from that original file. The historical main branch adopted the existing exact demo blob in commit [`c952e9a`](https://github.com/Hyperbog/RLOFT/commit/c952e9adb152007208951da3b0030c7439fd72b9); GitHub file SHA checks confirm both branches now share `87f6638921c53a32bde59735515fbc175e2c96ee`.
+
+The correction is instruction-supported and changes no original executable bytes or byte-accounting totals. A new whole-file strict C++17 syntax check and complete original-vs-native gameplay verification remain separate, unclaimed acceptance tests.
