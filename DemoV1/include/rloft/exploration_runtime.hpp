@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -52,6 +53,10 @@ struct ExplorationRuntimeFrame final {
     std::vector<WorldSceneDrawCall> world_scene_draw_calls;
     std::vector<WorldSceneRenderPlan> world_scene_render_plans;
     std::optional<Type7VgaFrameTrace> scene_vga_trace;
+    // This trace is diagnostics/pixel rendering, NOT a prerequisite for
+    // computing movement, world state, HUD or original hit-test records.
+    // Keep its failure visible instead of aborting an otherwise valid frame.
+    std::optional<std::string> scene_vga_trace_failure;
     std::uint8_t scene_video_page{};
     bool scene_individual_columns_mode{};
     std::vector<ViewSweepRun> sweep_runs;
