@@ -73,6 +73,21 @@ Overall faithful-demo acceptance is still **20% (1/5 major release gates)**.
 
 Goal: reproduce the original shipped behavior from boot through character creation while reading assets from a legally installed/owned copy of *Ravenloft: Strahd's Possession*.
 
+## Full 24478 pair decision — conditionally reconstructed
+
+The [raw-heap-conditioned original hand decision model](LEVEL22_HAND_PAIR_RAW_HEAP_MODEL_CHECKPOINT.md)
+now accounts for ordinary, pseudo, both-empty and mixed negative-item
+`24478` paths **as a side-effect-free candidate calculation**.
+A negative item reads raw bytes before the original allocator base;
+the model demands the actual observed original category alone for
+both-empty, or category/weight/qualifier for a mixed pair.
+This does not make unarmed attacks playable: raw DOS heap values,
+attack/use event ordering, hit/damage, audio and recovery timing are
+unverified.
+
+**Bounded original pair-decision source checkpoint: 67% (4/6 gates)**.
+Overall faithful-demo release acceptance remains **20%**.
+
 ## Original 24478 empty/pseudo short circuits
 
 The [empty/pseudo early-gate checkpoint](LEVEL22_HAND_PAIR_EARLY_GATES_CHECKPOINT.md)
@@ -82,10 +97,14 @@ models original `244CE..246E9` and distinguishes its first-actor
 supports **both hands empty**, but only with the original observed
 OBJECTS pre-base category byte, or **both hands holding pseudo
 spell items `0x7E..0x86`**; both shortcut directly to their distinct
-action-state busy checks. Mixed **positive pseudo+ordinary** pairs also follow the normal
-qualifier/weight arbiter after pseudo overrides. Only a mixed `-1`
-with any nonempty hand remains gated until raw heap-adjacent item
-qualifiers and original execution traces are understood. No attack is enabled and current source
+action-state busy checks. Mixed **positive pseudo+ordinary** pairs follow the normal
+qualifier/weight arbiter after pseudo overrides. A mixed `-1`
+with any nonempty hand can also be **modeled** when its actual
+original allocator-adjacent category, weight and qualifier bytes
+are supplied explicitly; absent evidence is rejected.
+[Original heap-conditional pair checkpoint](LEVEL22_HAND_PAIR_RAW_HEAP_MODEL_CHECKPOINT.md)
+documents the exact three byte offsets. The authentic DOS heap values
+and temporal combat execution remain outstanding. No attack is enabled and current source
 has not been compiled since private CI was paused.
 
 ## Original 24478 ordinary two-hand arbitration
