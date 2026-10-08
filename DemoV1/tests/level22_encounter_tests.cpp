@@ -1,4 +1,5 @@
 #include "rloft/level22_encounter.hpp"
+#include "rloft/combat_npc_death_followon.hpp"
 
 #include <cassert>
 #include <cstddef>
@@ -68,6 +69,23 @@ rloft::ObjectCatalog object_catalog() {
 }  // namespace
 
 int main() {
+    // Ensure the newly source-driven E284 four-drop plan and the
+    // previously reconstructed Level22 quest/pickup definitions
+    // continue to agree in both object IDs AND screen seeds.
+    const auto original_death =
+        rloft::CombatNpcDeathFollowOnModel::inspect(
+            9U,0,90U,22U,200U,0U,0U);
+    assert(original_death.drop_count==4U);
+    assert(original_death.set_story_dword_bf44);
+    for(std::size_t i=0U;i<4U;++i) {
+        const auto legacy_drop=
+            rloft::Level22Story::assassin_death_drops()[i];
+        assert(original_death.drops[i].object_id==
+               legacy_drop.object_id);
+        assert(original_death.drops[i].screen_seed==
+               legacy_drop.screen_seed);
+    }
+
     rloft::RendererTables tables{};
     // Synthetic Q16 unit factors sufficient for heading 0 test.
     tables.sine_q16_signmag.fill(0);
