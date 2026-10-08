@@ -55,7 +55,10 @@ signed level-9 exception and both modes.
 `CombatLevelChangeSequenceModel::inspect` accepts a verified
 party snapshot **after the level WORD is written, before 50DC**.
 It requires an actual old/new level difference, a matching
-new level in the observed class lane and a valid actor.
+new level in the observed class lane, a valid actor, **and a qualifying
+DDA4 status word (status & F240 == 0)**. The surrounding DDA4
+routine skips blocked actors before any class-level callbacks,
+even though a direct 50DC call would return -1.
 It reports the ordered service list, with or without optional
 3EA4/3DE4. It does not execute any presentation, IRQ,
 RNG or HP mutation.
@@ -70,8 +73,8 @@ data before later reads and before final DBD4 recomputation.
 
 - 18 new `50DC` instruction signatures and 13 new
   `DDA4/DC7C` instruction signatures matched immutable
-  CODE.2 bytes: **31 new, 378 cumulative original opcode
-  signatures**. There is still one direct Strength data
+  CODE.2 bytes: **31 new named checks; 378 cumulative checks covering 370
+  distinct original logical instruction addresses**. There is still one direct Strength data
   signature plus two hashed original class data tables.
 - Both committed model/source and test files were copied
   verbatim into a standalone C++17 harness, and each
@@ -97,3 +100,21 @@ final DBD4 recomputation.
 
 **Five-major-gate demo acceptance remains 20% (1/5).**
 No automatic private GitHub Actions builds were triggered.
+
+
+## Post-audit correctness clarification
+
+The opcode ledger contains **378 named checks at 370 distinct logical
+addresses**. Eight addresses are intentionally repeated under earlier
+semantic labels, including one overlapping short/long byte window.
+Neither the verifier nor the documentation should interpret this as
+378 independent instruction locations.
+
+The service planner was also hardened after a direct DDA4:DE0F..DE21
+review: original DDA4 **never reaches** DF1F for an actor whose status
+matches the F240 exclusion mask. The planner now rejects that snapshot
+before emitting any services. The always-call 3210F/1C21C/DC7C rule
+applies only when DDA4 actually reaches a level change; its 50DC
+selector may then legitimately return -1 for other reasons.
+The revised, exact committed files passed strict Debug and Release
+C++17 isolated testing again.
