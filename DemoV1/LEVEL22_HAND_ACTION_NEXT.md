@@ -30,7 +30,7 @@ The original `214B8` wrapper, directly re-disassembled:
 
 1. Add a separate native hit model for exact above four actor hand-pair rectangles, keeping lane 1/3 priority and cursor/inventory region separation.
 2. Confirm the original keyboard/mouse input event-to-bit mapping in `229CC` / the pointer queue, then route the `0x08` swap gesture only after the exact category and handedness checks are reconstructed. **Do not assume which Win32 mouse button owns `0x08` solely from a UI convention.**
-3. Reuse `InventoryRuntimeState` authoritative item/known pair, preserve hand readiness at actor `+0x15E`/the live `0x21A7E` address, and re-render inventory/HUD graphics. Keep special equipment/container cases pending.
+3. Reuse `InventoryRuntimeState` authoritative item/known pair, preserve hand readiness at actor `+0x18E + 4*hand` (live `0x21A7E + 4*hand`), and re-render inventory/HUD graphics. Keep special equipment/container cases pending.
 4. Connect the *distinct* `0x01` action route to `C80C` accuracy only after the original `E5F0` attack dispatcher, `DB94` target selection, damage dice, `C910` category gate and cooldown/feedback are implemented.
 5. Replay original-game input and indexed screenshots before labeling a working combat step.
 
