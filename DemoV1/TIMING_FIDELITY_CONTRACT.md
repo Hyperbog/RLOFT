@@ -46,6 +46,14 @@ The native `E5F0` source audit now proves **two independent hand time consequenc
 
 This is a **positive behavioral rule** for all combat implementation and regression acceptance. A missed swing is *not* instantaneous availability for another swing; conversely the hit-ready dword is not a replacement for the full action-busy dword. Neither may be implemented as a generic Windows frame delay. The source-only [combat target and timing checkpoint](LEVEL22_ATTACK_TARGET_AND_TIMING_CHECKPOINT.md) and original [CODE.2 continuity archive](../Code2/CODE2_CONTINUITY_ADDENDUM.md) record exact PC and machine-byte evidence; actual DOS tick calibration and native temporal traces remain required.
 
+## Original combat RNG and damage-effect ordering
+
+The original `E5F0:E6C9..E963` branch is reached **only after C80C hit success**. Once that branch executes, its item-specific original `1C328` dice recipes call `30CA2` RNG once per die, preserving the original count, per-die modifiers, and final modifier ordering. An attack that misses the initial hit check **must not roll or advance the damage RNG** merely to stage an effect, while its **nonzero-duration action-state lockout still runs later** through `24B48`.
+
+Temporary spell hands `0x7E..0x86` have independent original dice and some authoring-time effects. `0x7F` (Vampiric Touch) needs `22E40` to determine its dynamic die count; `0x84` (HARM) may first clamp an NPC's HP before `C910` sets minimum outgoing injury to one; literal weapon `0x4A` (Rod of Smiting) follows a separate target-type/hit-roll/charge branch rather than C910. **Do not normalize these into a common generic damage formula or reorder their visual/audio feedback, RNG calls, target HP writes and action-clock observations.**
+
+The read-only [damage dice and C910 models](LEVEL22_DAMAGE_DICE_AND_WEAPON_GATE_CHECKPOINT.md) register the original parameters and branch distinctions, but **do not** execute them in a live combat timeline. Acceptance still requires actual DOS input/RNG/clock/render/audio traces, including missed attacks, spell-hand effects and creature-protected targets.
+
 ## Measurable timing acceptance and regression plan
 
 - Original DOS **reference traces**: record a representative sequence of timestamps, original tick counts, player 16.16 coordinates/heading, action flags, displayed page/palette, animation frame IDs, sound cues and modal transitions under recorded input. Distinguish measured values from inferences and note DOSBox/hardware/audio configuration.
