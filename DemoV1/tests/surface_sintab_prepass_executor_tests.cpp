@@ -96,7 +96,9 @@ int main() {
     assert(video.read(base+81U,0U)==0xA3U);
     assert(video.read(base+81U,1U)==0xA3U);
     assert(video.read(base+160U,3U)==0xA4U);
-    assert(video.read(base+160U,1U)==0xA4U);
+    // Second 369D8 mask pass increments the *VGA byte address*,
+    // so both low/high raster stores land at base+81 / base+161.
+    assert(video.read(base+161U,1U)==0xA4U);
     assert(video.read(base+80U,2U)==0U);
     assert(video.read(rloft::VgaPlanarMemory::kPhysicalBase+328U+80U,
                       3U)==0U); // page zero untouched
