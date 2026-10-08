@@ -34,8 +34,11 @@ source. Do not treat its tests as validation of current HEAD.
 
 The current source-only work includes
 [original attack/target preflight and offline verification](LEVEL22_COMBAT_ENTRY_CHECKPOINT.md).
-An original-asset offline byte audit checked 18 original CODE.2 machine-code
-anchors; three new C++ test targets are registered but **not yet executed**.
+An original-asset offline byte audit now covers **33 original CODE.2
+machine-code anchors** (18 prior + 15 additional verified); four new C++
+test targets are registered but **not yet executed**. The new
+[24478 two-hand eligibility research checkpoint](LEVEL22_HAND_PAIR_ELIGIBILITY_CHECKPOINT.md)
+implements three original helper predicates, not the full attack-approval rule.
 This deliberate pause does not alter the **overall faithful-demo
 acceptance: 20% (1/5 release gates)**.
 
