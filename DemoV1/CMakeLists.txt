@@ -43,6 +43,7 @@ add_library(rloft_boot_flow
     src/npc_catalog.cpp
     src/level22_story.cpp
     src/level22_encounter.cpp
+    src/level22_viewport_target.cpp
     src/level_world_state.cpp
     src/inventory_screen.cpp
     src/inventory_runtime.cpp
@@ -185,6 +186,10 @@ add_test(NAME level22_story_tests COMMAND level22_story_tests)
 add_executable(level22_encounter_tests tests/level22_encounter_tests.cpp)
 target_link_libraries(level22_encounter_tests PRIVATE rloft_boot_flow)
 add_test(NAME level22_encounter_tests COMMAND level22_encounter_tests)
+
+add_executable(level22_viewport_target_tests tests/level22_viewport_target_tests.cpp)
+target_link_libraries(level22_viewport_target_tests PRIVATE rloft_boot_flow)
+add_test(NAME level22_viewport_target_tests COMMAND level22_viewport_target_tests)
 
 add_executable(level_world_state_tests tests/level_world_state_tests.cpp)
 target_link_libraries(level_world_state_tests PRIVATE rloft_boot_flow)
@@ -532,6 +537,7 @@ set(RLOFT_TEST_TARGETS
     npc_catalog_tests
     level22_story_tests
     level22_encounter_tests
+    level22_viewport_target_tests
     level_world_state_tests
     inventory_screen_tests
     inventory_runtime_tests
