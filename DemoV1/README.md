@@ -1,6 +1,49 @@
 # Ravenloft Demo Build v1
 
 
+## Native original clipped VGA sprite renderer (CODE.2 2A6B0)
+
+[Source checkpoint](LEVEL22_CODE2_2A6B0_CLIPPED_VGA_CHECKPOINT_20261008.md):
+the original `2A6B0` clipped-sprite backend used by
+`29414` now has native **four-plane VGA pixel copying**.
+It reads the six-DWORD `29414` clipping record,
+reproduces mutable `F00D–F031` graphics counters,
+frame-transparent sentinels, per-plane sequencer masks,
+forward source order and the unusual case where
+a plane-3 rollover changes the number of physical
+bytes drawn on subsequent planes.
+
+The `2A7A4` original self-modification is also
+implemented: when original mutable CODE.2 bytes
+are supplied, the live comparison key changes
+the **single code byte at 2A816**. The injected
+service under `29414` is now source-backed;
+existing full `2A380` raster remains connected.
+
+**154/154 original CODE.2 instruction signatures**
+were verified, bringing the cumulative executable
+audit to **1,263 named / 1,255 distinct
+instruction locations**. The exact committed
+`2A6B0` core and callback binder passed
+isolated strict C++17 Debug, Release and UBSan
+tests against interface-compatible original
+memory/VGA captures. Two new assertion-enabled
+CTests are CMake-registered, **not yet included
+in a consolidated Windows MSVC build**.
+
+Next: audit `2A8A0` color-adjusted clipped
+sprite copying, including its separate
+code-patched immediates `2AA0D/2AA12` and
+the SHL-vs-ROL plane mask difference; continue
+authentic DOS pointer/game-state integration
+and reference pixel/IRQ comparisons.
+
+**Demo acceptance remains 1/5 formal gates**.
+Engine progress has increased without yet
+passing another end-to-end acceptance gate.
+
+
+
 ## Latest source-backed overlay predicates and sprite clipping (29414)
 
 [Original CODE.2 29414/2AD18/2ADE0 checkpoint](LEVEL22_CODE2_29414_PREDICATES_CHECKPOINT_20261008.md)
