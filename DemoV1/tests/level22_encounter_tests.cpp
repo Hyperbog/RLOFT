@@ -172,4 +172,51 @@ int main() {
     assert(pickup.known == 0);
     assert(pickup.level22_mist_sequence);
     assert(inventory.held.object_id == 0xE9);
+
+    // New end-to-end native interaction slice: 21704 takes one of
+    // the Assassin's four dropped objects into the held cursor, and
+    // 117A0 places it in the first free ordinary inventory slot.
+    // The fourth pickup must still trigger 223F4's exact set
+    // predicate with the first three already owned by the party.
+    auto fresh_world = rloft::LevelWorldState{};
+    fresh_world.loose_items = {
+        world.loose_items[0],
+        world.loose_items[1],
+    };
+    // Re-create all four exact source object types in a separate
+    // staged world; the earlier test already consumed the parchment.
+    fresh_world.loose_items.clear();
+    for (const auto drop : rloft::Level22Story::assassin_death_drops()) {
+        rloft::LiveObjectRecord item{};
+        item.object_type_id = drop.object_id;
+        fresh_world.loose_items.push_back(item);
+    }
+    rloft::InventoryRuntimeState staged_inventory{};
+    rloft::PartyImage staged_party{};
+    staged_party.bytes.fill(0xFFU);
+    staged_party.bytes[0x10U]=0U;
+    staged_party.bytes[0x11U]=0U;
+    for (std::size_t i=0U;i<4U;++i) {
+        assert(staged_inventory.held.object_id==-1);
+        const auto result =
+            rloft::Level22EncounterModel::pickup_loose_item(
+                fresh_world,0U,staged_inventory,staged_party,objects);
+        assert(result.object_id ==
+            static_cast<std::int16_t>(
+                rloft::Level22Story::assassin_death_drops()[i].object_id));
+        assert(result.level22_mist_sequence==(i==3U));
+        if(i<3U) {
+            assert(staged_inventory.swap_ordinary_slot(
+                       staged_party,objects,0U,i)==
+                   rloft::InventoryOrdinarySwapStatus::Swapped);
+            assert(staged_inventory.held.object_id==-1);
+        }
+    }
+    assert(fresh_world.loose_items.empty());
+    assert(staged_inventory.held.object_id==0x74);
+    for(const auto relic : rloft::Level22Story::quest_objects()) {
+        assert(staged_inventory.has_object(
+            staged_party,objects,
+            static_cast<std::int16_t>(relic)));
+    }
 }
