@@ -60,6 +60,8 @@ the game simulation. Keep GitHub Actions manual-only while private.
 
    - **`24478` early-return completion:** original machine code `244CE..246E9` now independently modeled with tests: both-empty and both-pseudo pair shortcuts; single pseudo/empty candidate overrides; the `0x7240` actor-status gate; and the separate first-two-actor status threshold **`>=0x4000`**, which must not be confused with `240A8`'s earlier exact `0x8000` test. Two complete short-circuit pair cases now reach their own final busy checks ([checkpoint](LEVEL22_HAND_PAIR_EARLY_GATES_CHECKPOINT.md)). The consolidated offline signature count is **87**, no Actions builds. Remaining mixed pairs may read raw pre-OBJECTS memory.
 
+   - **`24478` conditioned full source closure:** The pair model now handles ordinary/pseudo/empty combinations, including mixed `-1` hand cases by taking **real observed** original allocator-adjacent item category (`OBJECTS_PTR-0x12`), weight (`-0x11`) and qualifier (`-0x0C & 3`) fields ([checkpoint](LEVEL22_HAND_PAIR_RAW_HEAP_MODEL_CHECKPOINT.md)). No serialized OBJECTS.DAT content is invented to fill these bytes. Live DOS heap capture, source compilation, event/cooldown integration and time-series comparison are still mandatory before playable attacks.
+
 5. **R-078 story transition:** compare CODE.2 Level 22 event sequence to the native last-relic state machine and run the original 22-frame transition with correct Level 23 load and consumed relics.
 
 ## Current acceptance boundary
