@@ -315,3 +315,26 @@ The historical documentation steps in this thread did not create, rewrite or rev
 The same current GitHub comparison reports **no tracked changes under Code1/, Code2/ or Resources/** from the frozen evidence baseline. Existing CODE and resource interpretation evidence remains sourced to immutable originals, unaffected by these GUI-only path changes. This discrepancy is a **branch-scope/process issue**, not a demonstrated DOS executable semantics contradiction.
 
 **Final gate:** either explicitly accept the four tool paths on this documentation branch with provenance or, by separate project-authorized branch management, move their changes to the intended tool-development branch without destroying history. An entirely unqualified *frozen documentation branch contains documentation only* claim is false until resolved.
+
+
+## 19. Fresh original resource corpus verified; patch evidence supplemented
+
+The Project user supplied complete original ZIP inputs for the formerly unavailable resource corpus and the launcher/audio side data. This supersedes the **availability limitation** in §17 as of this new input: the other 32 previously absent resource bytes are now accessible in the new uploaded ZIP attachments.
+
+**Fresh identity verification — all PASS:**
+
+| Group | Original members | Rehashed against authoritative SHA-256 |
+|---|---:|---|
+| `CINE00..CINE12.ANM` | 13 | **13/13** |
+| `RES0..RES12` | 13 | **13/13** |
+| `INIT`, `COLORS`, `T`, `SAMPLE.AD`, `GM1.BNK`, `GM2.BNK`, `SINTAB` | 7 | **7/7** |
+| **Total previously certified 33-file corpus** | **33** | **33/33 exact size and complete SHA-256** |
+
+All files were read directly out of ZIP containers, with no executable launch and no alteration of original data. The two independent ZIP-packaged instances of `SAMPLE.AD` are also identical. All 18 supplied audio DLLs are available for static follow-up. Original `R.EXE` was checked separately: its MD5 agrees with the historical 1.2a reference, closing the prior R.EXE uncertainty in Chapter 19.
+
+The two additional `rlftdk11.zip` and `rlftdk12.zip` archives are specifically **floppy-edition installers**. Their internal ARJ manifests identify 1.1's `CODE.1`, `CODE.2`, `R.EXE` and 1.2's `CODE.2`; the 1.2a program bytes supplied for this Project have different CODE.2 size/CRC. ARJ header CRC checks passed, but compressed code payloads have **not yet been independently decompressed and SHA-256 verified**. Full member details and historical citations are maintained in [Chapter 19 §§18–20](19_RELEASE_MEDIA_BUILD_PROVENANCE_AND_DREAMFORGE_LINEAGE.md).
+
+**Updated remaining original inputs:** `SOUND.CFG` was not found in any of the new ZIPs; as an installer-generated game-specific configuration, it can be supplied separately if an actual configured DOS/GOG installation is available. The independently identifiable CD-ROM patch variants `rlftcd11.zip`/`rlftcd12.zip` are preferable for CD-specific version comparisons. An authenticated 1.0 executable/media image would improve release archaeology, but is not required to preserve the fully verified current 1.2a build.
+
+**Scope ruling:** full resource **identity revalidation** is now **PASS**. Whole-corpus format parser/round-trip replay, ARJ executable extraction, original hardware audio timing and the historical 1.0/1.1/1.2 exact delta graph remain separate tests. Do not conflate byte-identical originals with having executed every prior parser/test anew in this pass.
+
