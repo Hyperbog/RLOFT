@@ -13,7 +13,8 @@ namespace rloft {
 // the ORIGINAL pauseable gameplay-maintenance clock A7E4. It is
 // not VGA refresh, the IRQ F58C tick, milliseconds, or host frames.
 struct CombatAttackTimingPlan final {
-    // Integer argument passed to 34B48 for the action animation.
+    // Integer interval passed to CODE.2 logical 24B48 for
+    // presentation and subsequent action-state scheduling.
     std::uint32_t animation_interval{};
     // Only a nonzero C80C hit writes +19E hand-ready and damage.
     std::optional<std::uint32_t> hand_ready_deadline;
@@ -28,7 +29,9 @@ public:
     // This pure function does not roll the original RNG, select a
     // target, write party fields, emit sounds, or advance a clock.
     // The caller supplies the item ID captured by 26018 and passed
-    // to E5F0, A7E4 from 29CC4, the C80C hit result and damage.
+    // to E5F0, two separate A7E4 values from 29CC4 (before
+    // the hit-only write and after action presentation), plus the
+    // C80C hit result and post-weapon damage.
     [[nodiscard]] static CombatAttackTimingPlan inspect(
         const PartyImage& party,
         const ObjectCatalog& objects,
