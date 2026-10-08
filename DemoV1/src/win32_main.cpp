@@ -16,6 +16,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string>
 #include <string_view>
 #include <thread>
 #include <utility>
@@ -36,6 +37,7 @@
 #include "rloft/character_transfer.hpp"
 #include "rloft/exploration_legacy_input.hpp"
 #include "rloft/exploration_presenter.hpp"
+#include "rloft/exploration_preview.hpp"
 #include "rloft/exploration_runtime.hpp"
 #include "rloft/party_modal_presenter.hpp"
 #include "rloft/party_panel_controls.hpp"
@@ -794,7 +796,8 @@ std::uint32_t code1_tick_count(Clock::time_point epoch) {
 int run_exploration(
     Host& host,
     rloft::RavenloftBootAssets& assets,
-    const std::vector<std::uint8_t>& chars) {
+    const std::vector<std::uint8_t>& chars,
+    bool exploration_preview = false) {
     auto runtime =
         rloft::ExplorationRuntime::load_fresh(
             assets.source(), chars);
@@ -826,7 +829,11 @@ int run_exploration(
     host.set_exploration_input(&input);
     SetWindowTextW(
         host.hwnd(),
-        L"Ravenloft: Strahd's Possession - Exploration");
+        exploration_preview
+            ? L"Ravenloft - Level 22 Walkaround Preview | "
+              L"Arrow keys / Numpad to move | Esc to exit"
+            : L"Ravenloft: Strahd's Possession - Exploration");
+    std::wstring last_preview_title;
 
     // Native host cadence follows the same nominal VGA retrace pacing already
     // used by the reconstructed startup/character presenters. Input axes are
@@ -1114,7 +1121,8 @@ int run_exploration(
                 // class-2 action-flags bit via the Level 22 runtime API.
                 // Do not synthesize an attack from a clicked NPC: damage
                 // requires the original combat controller's hit roll.
-                if (!opened_actor_panel &&
+                if (!exploration_preview &&
+                    !opened_actor_panel &&
                     displayed_scene_frame.has_value() &&
                     runtime.session().level_id ==
                         rloft::Level22Story::kLevelId &&
@@ -1240,6 +1248,27 @@ int run_exploration(
         host.present(
             presenter.framebuffer(),
             presented.palette);
+        if (exploration_preview) {
+            // Explicitly native-only diagnostic HUD in the window
+            // caption; the original 320x400 indexed framebuffer stays
+            // untouched. Show location changes without flooding Win32.
+            const auto& session = runtime.session();
+            const auto column = static_cast<std::int32_t>(
+                session.coordinate_a) >> 16;
+            const auto row = static_cast<std::int32_t>(
+                session.coordinate_b) >> 16;
+            const auto caption =
+                std::wstring(L"Ravenloft - Exploration Preview | Level ") +
+                std::to_wstring(session.level_id) +
+                L" | Cell " + std::to_wstring(column) +
+                L"," + std::to_wstring(row) +
+                L" | Facing " + std::to_wstring(session.facing) +
+                L" | Arrow keys / Numpad | Esc to exit";
+            if (caption != last_preview_title) {
+                SetWindowTextW(host.hwnd(), caption.c_str());
+                last_preview_title = caption;
+            }
+        }
         displayed_scene_frame = std::move(frame);
 
         next_frame += std::chrono::duration_cast<Clock::duration>(
@@ -1451,21 +1480,48 @@ std::optional<rloft::GameSource> choose_valid_install(HWND owner) {
     }
 }
 
-std::optional<std::filesystem::path> command_line_source() {
+struct DemoCommandLine final {
+    std::optional<std::filesystem::path> source;
+    bool explore_level22{};
+};
+
+DemoCommandLine command_line_options() {
     int argc = 0;
     LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-    if (!argv) return std::nullopt;
-
-    std::optional<std::filesystem::path> result;
-    if (argc >= 2) result = std::filesystem::path(argv[1]);
+    if (!argv) {
+        throw std::runtime_error(
+            "Unable to parse Ravenloft command-line arguments");
+    }
+    DemoCommandLine result{};
+    try {
+        for (int index = 1; index < argc; ++index) {
+            const std::wstring_view arg(argv[index]);
+            if (arg == L"--explore-level22" || arg == L"--explore") {
+                result.explore_level22 = true;
+            } else if (!arg.empty() && arg.front() == L'-') {
+                throw std::invalid_argument(
+                    "Unknown command-line option. Use --explore-level22 "
+                    "and optionally one Ravenloft installation path.");
+            } else if (result.source.has_value()) {
+                throw std::invalid_argument(
+                    "Specify at most one Ravenloft installation path");
+            } else {
+                result.source = std::filesystem::path(argv[index]);
+            }
+        }
+    } catch (...) {
+        LocalFree(argv);
+        throw;
+    }
     LocalFree(argv);
     return result;
 }
 
 int run(HINSTANCE instance) {
+    const auto options = command_line_options();
     rloft::GameSource source;
 
-    if (const auto explicit_path = command_line_source()) {
+    if (const auto explicit_path = options.source) {
         source = rloft::GameSource::open(*explicit_path);
         save_preferred_install(source.location().install_root);
     } else {
@@ -1537,6 +1593,18 @@ int run(HINSTANCE instance) {
 
     rloft::Palette6 black{};
     host.present(presenter.framebuffer(), black);
+
+    // Voluntary native walkaround: bypass original character creation
+    // WITHOUT creating or overwriting the user's writable CHARS file.
+    // Existing valid party bytes are reused, otherwise two clearly
+    // synthetic actors exist only for the lifetime of this process.
+    // Keep the original startup/menu route unchanged by default.
+    if (options.explore_level22) {
+        const auto preview = rloft::ExplorationPreview::party(
+            startup_chars);
+        return run_exploration(
+            host, assets, preview.chars, true);
+    }
 
     if (startup_chars) {
         if (flow.snapshot().stage !=
