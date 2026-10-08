@@ -63,6 +63,17 @@ The original `CODE.2` phase-3/width-3 mask triplet is
   Failures never silently count as successful rendering.
 - `338C8` remains active exclusively for extents above 508.
 
+## Subsequent bounded original width-8 finding
+
+[See the original-code width audit](LEVEL22_CODE2_WIDE_MAIN_SURFACE_MASK_BOUNDARY_20261008.md).
+The executable's coalesced main-wall run does not auto-split at 7;
+the immutable CODE.2 three-table mask lookup supports exactly eight
+consecutive plane bits at phases 0–2. The new native wall-only
+accessor covers those cases. Phase 3 width 8 reads beyond the
+three captured 32-byte tables and selects nine physical pixels in
+the initial original image. Widths 9+ also remain unsupported.
+Do not infer an original 7-column splitter.
+
 ## Verification and remaining acceptance
 
 Registered `surface_sintab_main_executor_tests` covers actual lane
