@@ -190,3 +190,26 @@ at a previous source commit is unaffected and does not
 test these two newly registered CTests. A new explicit
 Windows build will be needed to claim full integrated
 CMake/CTest acceptance of this newer source.
+
+
+## 2AB38 exact sprite destination and planar write prerequisites
+
+The original `2A380/2A584` sprite primitives use
+`2AB38` to calculate the destination video byte and
+plane from the current row/column and mutable `EFED`,
+`EFF1` and `F001` globals. The
+[checkpoint](LEVEL22_ORIGINAL_GLYPH_SPRITE_RENDERER_CHECKPOINT.md)
+has a tested, source-backed C++ implementation preserving
+both x86 variable-SHL counts, unsigned column SHR,
+byte-plane low bits and wrapping physical address.
+The executable audit has 577 named/569 distinct sites.
+
+A subsequent exact sprite implementation must now reproduce
+the 2A380/2A584 raster formats, VGA sequencer mask OUTs,
+transparent/packed sprite byte behavior, shade self-patches,
+and source-driven refreshes **before** feeding verified
+planes into the native framebuffer/compositor. It must not
+equate the 2AB38 address projection or the existing
+VgaPlanarMemory with completed DOS sprite rasterization.
+No new full Windows CI run has been triggered by this
+source-only addition.
