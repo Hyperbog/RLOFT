@@ -213,3 +213,33 @@ equate the 2AB38 address projection or the existing
 VgaPlanarMemory with completed DOS sprite rasterization.
 No new full Windows CI run has been triggered by this
 source-only addition.
+
+
+## 2A380/2A584 raster pixel path closed at bounded component level
+
+The [2026-10-08 source checkpoint](LEVEL22_CODE2_SPRITE_RASTER_CHECKPOINT.md)
+adds a reusable native sprite raster that writes original
+opaque/transparent bytes to the existing four-plane
+VGA memory. Both normal 2A380 and shaded 2A584
+paths are covered, with exact original resource-header
+fields, four rotating sequencer mask planes, transparent
+sentinel, DWORD frame addressing and EFF9 row pitch.
+Shaded output uses **original byte lookup memory**
+via the actual 32-bit patched shader pointer, not an
+invented palette or brightness adjustment.
+
+This closes source-level sprite *copy/lookup arithmetic*
+but **not** live DOS asset binding, actual CODE.2
+self-modifying instruction operand writes, persistent
+sequencer-register state, 1A8C8 compositing, 2E758
+refresh implementation, or reference-DOS pixel/frame
+comparison. Existing native sprite and font dispatchers
+should call this reusable raster on observed original
+memory views, rather than reimplementing incompatible
+Level 22-specific drawing.
+
+The combat byte verifier has **648 named/640 unique**
+original CODE.2 instruction checks; exact implementation
+source passed isolated Debug/Release/UBSan tests.
+No new private Windows runner build was triggered.
+Faithful demo acceptance remains **20% (1/5)**.
