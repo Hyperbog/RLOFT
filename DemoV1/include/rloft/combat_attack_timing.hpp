@@ -15,10 +15,12 @@ namespace rloft {
 struct CombatAttackTimingPlan final {
     // Integer argument passed to 34B48 for the action animation.
     std::uint32_t animation_interval{};
-    // Only C80C-successful attacks write a hand-ready deadline and
-    // the resulting damage state. Miss/no-target leaves them alone.
+    // Only a nonzero C80C hit writes +19E hand-ready and damage.
     std::optional<std::uint32_t> hand_ready_deadline;
     std::optional<std::int32_t> stored_damage;
+    // 24B48 writes the OTHER action-state dword (+10B) for any
+    // nonzero interval, EVEN ON A MISS, after graphics presentation.
+    std::optional<std::uint32_t> action_state_deadline;
 };
 
 class CombatAttackTimingModel final {
@@ -33,7 +35,8 @@ public:
         std::size_t actor,
         std::size_t hand,
         std::int32_t dispatched_item_id,
-        std::uint32_t gameplay_maintenance_tick_a7e4,
+        std::uint32_t gameplay_tick_a7e4_before_hit_write,
+        std::uint32_t gameplay_tick_a7e4_after_presentation,
         bool hit_succeeded,
         std::int32_t computed_damage);
 };
