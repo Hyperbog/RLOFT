@@ -63,6 +63,7 @@ add_library(rloft_boot_flow
     src/combat_level_change_sequence.cpp
     src/combat_level_up_hp.cpp
     src/combat_level_spell_tables.cpp
+    src/combat_irq_message.cpp
     src/combat_harm_prelude.cpp
     src/combat_damage_stat_bonus.cpp
     src/combat_weapon_damage_gate.cpp
@@ -278,6 +279,9 @@ add_test(NAME combat_level_up_hp_tests COMMAND combat_level_up_hp_tests)
 add_executable(combat_level_spell_tables_tests tests/combat_level_spell_tables_tests.cpp)
 target_link_libraries(combat_level_spell_tables_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_level_spell_tables_tests COMMAND combat_level_spell_tables_tests)
+add_executable(combat_irq_message_tests tests/combat_irq_message_tests.cpp)
+target_link_libraries(combat_irq_message_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_irq_message_tests COMMAND combat_irq_message_tests)
 add_executable(combat_harm_prelude_tests tests/combat_harm_prelude_tests.cpp)
 target_link_libraries(combat_harm_prelude_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_harm_prelude_tests COMMAND combat_harm_prelude_tests)
@@ -671,6 +675,7 @@ set(RLOFT_TEST_TARGETS
     combat_level_change_sequence_tests
     combat_level_up_hp_tests
     combat_level_spell_tables_tests
+    combat_irq_message_tests
     combat_harm_prelude_tests
     combat_damage_stat_bonus_tests
     combat_weapon_damage_gate_tests
