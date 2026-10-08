@@ -70,18 +70,20 @@ jobs:
         run: cmake --build build/demo-v1 --config Release
       - name: Test
         run: ctest --test-dir build/demo-v1 -C Release --output-on-failure
-      - name: Stage Level 22 walkaround launcher
+      - name: Stage Level 22 walkaround and capture launchers
         shell: pwsh
         run: |
           Copy-Item DemoV1/Windows/Explore-Level22.cmd build/demo-v1/Release/Explore-Level22.cmd -Force
+          Copy-Item DemoV1/Windows/Capture-Level22.cmd build/demo-v1/Release/Capture-Level22.cmd -Force
 
-      - name: Publish Windows executable and walkaround launcher
+      - name: Publish Windows executable and Level 22 launchers
         uses: actions/upload-artifact@v4
         with:
           name: Ravenloft-Demo-v1-Windows-x64
           path: |
             build/demo-v1/Release/ravenloft_demo_v1.exe
             build/demo-v1/Release/Explore-Level22.cmd
+            build/demo-v1/Release/Capture-Level22.cmd
           if-no-files-found: error
 
       - name: Keep Windows executable in git
