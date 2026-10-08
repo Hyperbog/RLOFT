@@ -478,3 +478,26 @@ original `1C2C4` IRQ read must still run
 in source order; no synthetic host clock is
 introduced. See
 [2E590/2E5D4 checkpoint](LEVEL22_CODE2_VGA_PAGE_STACK_CHECKPOINT.md).
+
+
+## Original 292BC/2932C overlay backing clip sequence
+
+The page-stacked original 1A288/1AB20 overlay
+code now has source-backed signed backing-clip
+wrappers. Both use signed DWORD row/column
+positions, clipped first against zero and then
+against signed WORD EF3F/EF41 limits, preserving
+DWORD LEA/ADD wrap. They pass the original
+unadjusted backing pointer to the actual next
+`2A114` capture or `2A178` restore service.
+
+Original `292BC` skips the backend when final
+column count is zero (`JLE`), but original
+`2932C` does **not** (`JL`). That restore
+may therefore issue VGA sequencer writes
+despite a zero logical column count.
+This distinction must survive future pixel
+rendering, page-stack callbacks and the
+post-render `30700` IRQ observation; no
+short-circuit modern graphics clipping should
+replace it. [Checkpoint](LEVEL22_CODE2_OVERLAY_BACKING_CLIP_CHECKPOINT.md).
