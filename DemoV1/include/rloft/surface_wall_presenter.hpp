@@ -21,6 +21,12 @@ public:
     explicit SurfaceWallPresenter(const GameSource& source)
         : textures_(source) {}
 
+    // Shares the same original decoded RES4 texture source with the
+    // separate SINTAB prepass; no second archive decoder is needed.
+    [[nodiscard]] SurfaceTexture texture(int resource_id) const {
+        return textures_.texture(resource_id);
+    }
+
     void draw_main_runs(
         IndexedFramebuffer& framebuffer,
         const std::vector<ViewSweepRun>& runs,
