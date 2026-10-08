@@ -48,13 +48,13 @@ struct CombatOriginalSpriteRasterResult final {
     std::uint32_t transparent_bytes_skipped{};
 };
 
-// CODE.2 2A380..2A477: source-backed opaque/transparent four-plane
-// sprite copy into actual VgaPlanarMemory. This is the NORMAL path;
-// the separate shaded/self-patching 2A584 path is not implied.
+// CODE.2 2A380..2A477 and 2A584..2A6B0: source-backed
+// opaque/transparent four-plane sprite copies into VgaPlanarMemory.
+// Shaded calls use the *original* 256-entry lookup table.
 class CombatOriginalSpriteRasterModel final {
 public:
     // No fallback graphics and no invented DOS memory reads. If header,
-// source span or VGA aperture is incomplete, returns nullopt without
+    // source span or VGA aperture is incomplete, returns nullopt without
     // modifying any planes. Successful writes preserve source order.
     [[nodiscard]] static std::optional<CombatOriginalSpriteRasterResult>
     draw_2a380(
