@@ -52,6 +52,27 @@ An exact original CODE.2 audit proves `C80C` returns a **Boolean DWORD** (0/1), 
 
 The first part of original `E284` NPC injury now also reproduces reaction-state/countdown and special type-8/type-15 HP arithmetic. The Level 22 Assassin (type9) shares this prelude. All resulting HP, animations, reaction frames and actual game-time effects still require compiled native and original DOS comparison.
 
+## Respawn RNG and IRQ-clock ordering inside NPC death
+
+Original CODE.2 logical `E0F8`, invoked *only if* a matching
+`E284:E50F` tracked NPC type is found, uses its own original
+`30700` IRQ-clock read, calls `290D0`, and draws
+**two original 30CA2 RNG results per candidate coordinate**.
+It allows at most three placement attempts, rejecting occupied
+map cells and candidates too near the party. When a slot is
+successfully initialized, it performs an **additional original
+1C328 NPC HP dice roll**, then reports success; otherwise it
+returns zero. Such success changes whether the original corpse
+flag is written at `E539`.
+
+This sits **between death-presentation `38110` and corpse
+marking `E539`**, and is not interchangeable with the separate
+`A7E4` hand recovery timebase or a host-managed respawn timer.
+Do not consume placeholder random numbers, skip failed-placement
+RNG attempts or normalize respawn to a fixed delay. Native source
+currently keeps the result as an externally observed dependency;
+see the [E284/E0F8 checkpoint](LEVEL22_E284_DEATH_FOLLOWON_CHECKPOINT.md).
+
 ## NPC death follow-on: original event and presentation order
 
 Original CODE.2 `E284:E31F..E577` branches on the **signed**
