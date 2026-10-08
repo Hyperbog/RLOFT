@@ -52,6 +52,33 @@ An exact original CODE.2 audit proves `C80C` returns a **Boolean DWORD** (0/1), 
 
 The first part of original `E284` NPC injury now also reproduces reaction-state/countdown and special type-8/type-15 HP arithmetic. The Level 22 Assassin (type9) shares this prelude. All resulting HP, animations, reaction frames and actual game-time effects still require compiled native and original DOS comparison.
 
+## NPC death follow-on: original event and presentation order
+
+Original CODE.2 `E284:E31F..E577` branches on the **signed**
+resulting NPC HP only *after* the `3ACDC` reaction flag update.
+For a positive-HP NPC, immediately request the original `38110`
+presentation with `NPC_DEF WORD+0x41 + global 0x258C0`
+and return. A dead NPC instead runs its type-specific script
+and drops **before** the common death presentation with
+`NPC_DEF WORD+0x43 + global 0x258BC`.
+
+The Assassin type `0x09` creates four exact loose items through
+`3195C` in order and writes story `BF44=1` after the fourth,
+then enters common death presentation. The later
+`E0F8`-conditioned three-slot respawn check controls whether
+`NPC+0x0B` bit02 is set, followed by `1DDA4(DEF WORD+0x23)`.
+Do **not** move a drop after its death graphic, attach the
+nonlethal `+0x41` asset to a corpse, invent an unconditional
+respawn result, or model these as a single instantaneous host
+event. TYPE `0x18` may return earlier after a separate
+world-state/RNG sequence.
+
+The [E284 death-follow-on checkpoint](LEVEL22_E284_DEATH_FOLLOWON_CHECKPOINT.md)
+contains the original PC ledger and byte checks. Native source
+currently plans this order and supplies type9 drop definitions;
+the `38110/1DDA4` temporal hooks and DOS frame/sound reference
+are outstanding release gates.
+
 ## HARM staged HP writes and NPC reaction sequencing
 
 The original spell-hand HARM branch (`E5F0:E815..E83B`) is
