@@ -32,6 +32,7 @@ public sealed class LeImage
         _relocatedMemory = new Lazy<IReadOnlyDictionary<int, byte[]>>(BuildRelocatedMemory);
     }
 
+    public string ArtifactSha256 => _artifact.Sha256;
     public long ModuleOrigin { get; }
     public long HeaderOffset { get; }
     public uint PageSize { get; }

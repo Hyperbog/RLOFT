@@ -133,6 +133,55 @@ try
     Fails(() => LeImage.Load(BinaryArtifact.FromBytes(invalidHeader)), "invalid object offset");
     var tooShort = new byte[] { (byte)'M', (byte)'Z' };
     Fails(() => LeImage.Load(BinaryArtifact.FromBytes(tooShort)), "truncated MZ");
+    // Part 16: only reachable code is proposed. Literal gaps stay unknown,
+    // while explicit analyst-protected data cannot be decoded accidentally.
+    var graphBytes = MakeFixture(false);
+    Dword(graphBytes, 0x80 + 0xc4, 32);
+    Dword(graphBytes, 0x80 + 0x2c, 32);
+    int dataStart = 0x200;
+    new byte[] { 0xE8, 0x0B, 0, 0, 0, 0xC3 }.CopyTo(graphBytes, dataStart);
+    new byte[] { 0xDE, 0xAD, 0xBE, 0xEF }.CopyTo(graphBytes, dataStart + 6);
+    new byte[] { 0x75, 0xF3, 0xFF, 0xE0 }.CopyTo(graphBytes, dataStart + 0x10);
+    var graphImage = LeImage.Load(BinaryArtifact.FromBytes(graphBytes));
+    var graph = ControlFlowAnalysis.Analyze(graphImage, protectedData: new[] {
+        new ProtectedDataRange(1, 6, 10, "synthetic-known-data") });
+    Equal(graph.ArtifactSha256, BinaryArtifact.FromBytes(graphBytes).Sha256, "graph source identity");
+    Equal(graph.Instructions.Count, 4, "reachable-only decoded starts");
+    Equal(graph.Blocks.Count, 4, "basic blocks and branch leaders");
+    Equal(graph.FunctionCandidates.Count, 2, "call target discovers candidate callee");
+    Equal(graph.Edges.Any(e => e.Kind == "call" && e.Destination?.Offset == 0x10), true, "direct call reference");
+    Equal(graph.Edges.Any(e => e.Kind == "branch-taken" && e.Destination?.Offset == 5), true, "backward branch into shared RET");
+    Equal(graph.Edges.Any(e => e.Kind == "unresolved-indirect-jump" && e.Destination is null), true, "indirect branch stays unresolved");
+    Equal(graph.FunctionCandidates.All(f => f.Blocks.Contains(new FlowAddress(1, 5))), true,
+        "shared return block may belong to multiple candidates");
+    Equal(graph.Ranges.Any(r => r.Begin <= 6 && r.EndExclusive >= 10 && r.Classification == "protected-data"), true,
+        "analyst protected literal preserved");
+    Equal(graph.Ranges.Any(r => r.Begin <= 10 && r.EndExclusive >= 0x10 && r.Classification == "unknown-file-backed"), true,
+        "unvisited bytes remain unknown, not guessed data or code");
+    Equal(graph.Instructions.All(x => x.Evidence == "candidate-reachable-from-seed"), true,
+        "reachability isn't promoted to proof");
+    Equal(graph.ProtectedData[0].Provenance, "synthetic-known-data", "protected range provenance retained");
+    bool invalidRangeRejected = false;
+    try { ControlFlowAnalysis.Analyze(graphImage, protectedData: new[] {
+        new ProtectedDataRange(1, 31, 35) }); }
+    catch (ArgumentException) { invalidRangeRejected = true; }
+    Equal(invalidRangeRejected, true, "protected data out of object bounds rejected");
+    var overlapping = ControlFlowAnalysis.Analyze(graphImage, new[] {
+        new FlowAddress(1, 0), new FlowAddress(1, 2) });
+    Equal(overlapping.Diagnostics.Any(d => d.Code == "mid-instruction-target"), true,
+        "mid-instruction overlapping seed reported");
+    Equal(overlapping.Instructions.Any(x => x.Address.Offset == 2), false,
+        "mid-instruction seed not emitted as verified instruction");
+    var blocked = ControlFlowAnalysis.Analyze(graphImage, new[] { new FlowAddress(1, 0x10) },
+        new[] { new ProtectedDataRange(1, 5, 6) });
+    Equal(blocked.Diagnostics.Any(d => d.Code == "protected-data-target"), true,
+        "branch targeting protected data is halted");
+    Equal(blocked.Instructions.Any(x => x.Address.Offset == 5), false,
+        "protected byte not decoded");
+    var limited = ControlFlowAnalysis.Analyze(graphImage, maxInstructions: 1);
+    Equal(limited.Truncated, true, "analysis budget truncation is disclosed");
+    Equal(limited.Instructions.Count, 1, "analysis respects budget");
+    Console.WriteLine("PASS: recursive CFG, function candidates, shared-tail ownership, protected data, conflicts and budgets");
     Console.WriteLine("PASS: synthetic nested/flat LE, address maps, decoder, immutability and malformed fixtures");
 
     if (args.Length == 2)
@@ -166,6 +215,19 @@ try
         var lines = Disassembly.Decode(code2, 1, 0x2975c, 4);
         Equal(lines[0].ObjectOffset, 0x2975cU, "CODE.2 wrapper instruction start");
         Equal(lines[0].Bytes, "FF742414", "CODE.2 wrapper first instruction bytes");
+        // The graph is still a candidate traversal, not a complete disassembly
+        // or a replacement for the verified CODE.2 audit. Include the proven
+        // shared-return RET located immediately BEFORE the selected wrapper.
+        var wrapper = ControlFlowAnalysis.Analyze(code2, new[] { new FlowAddress(1, 0x2975c) },
+            maxInstructions: 3000);
+        Equal(wrapper.Instructions.Any(x => x.Address.Offset == 0x2975c), true,
+            "CODE.2 wrapper reached");
+        Equal(wrapper.Instructions.Any(x => x.Address.Offset == 0x2975a && x.Assembly == "ret"), true,
+            "CODE.2 backward shared return recognized");
+        Equal(wrapper.Edges.Any(x => x.Source.Offset == 0x2976e &&
+            x.Destination?.Offset == 0x2975a && x.Kind == "branch-taken"), true,
+            "CODE.2 backward return-edge preserved");
+        Console.WriteLine("PASS: CODE.2 shared-return wrapper recursive reachability against original bytes");
         Console.WriteLine("PASS: RLOFT original CODE.1/CODE.2 hashes/geometry/addresses/decoder fixtures");
     }
     Console.WriteLine("ALL SMOKE TESTS PASSED");
