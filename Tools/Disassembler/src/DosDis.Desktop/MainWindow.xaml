@@ -26,6 +26,7 @@
           <Button x:Name="SaveProjectButton" Content="Save project" Click="SaveProject_Click"/>
           <Button x:Name="BackupProjectButton" Content="Backup project" Click="BackupProject_Click"/>
           <Button x:Name="AnalyzeButton" Content="Analyze" Click="Analyze_Click"/>
+          <Button x:Name="CancelAnalysisButton" Content="Cancel analysis" Click="CancelAnalysis_Click" IsEnabled="False"/>
         </StackPanel>
       </DockPanel>
     </Border>

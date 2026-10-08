@@ -69,6 +69,23 @@ try
         Require(reopened.LoadLatestAnalysis(new string('0', 64)) == null,
             "unrelated artifact incorrectly matched");
     }
+    // A malformed project must not display metadata inconsistent with the cached graph.
+    string inconsistent = Path.Combine(folder, "inconsistent-snapshot.ddproj");
+    using (var original = ProjectStore.Open(path)) original.CreateBackup(inconsistent);
+    using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={inconsistent}"))
+    {
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE analysis_runs SET instruction_count=instruction_count+1;";
+        Require(command.ExecuteNonQuery() == 1, "synthetic metadata mismatch fixture missing");
+    }
+    using (var modified = ProjectStore.Open(inconsistent))
+    {
+        bool mismatchRejected = false;
+        try { modified.LoadLatestAnalysis(artifact.Sha256); }
+        catch (InvalidDataException) { mismatchRejected = true; }
+        Require(mismatchRejected, "inconsistent cached analysis metadata was trusted");
+    }
     // Do not guess how to interpret newer project schemas.
     string incompatible = Path.Combine(folder, "future-schema.ddproj");
     using (var future = ProjectStore.Open(incompatible)) { }
@@ -110,7 +127,7 @@ try
             "original binary content changed during project regression");
         Console.WriteLine($"PASS: {originalArtifact.Name} bounded original-binary project round trip");
     }
-    Console.WriteLine("PASS: SQLite identity, WAL-safe backup, schema guard, analysis round-trip, annotation conflict, integrity and reopen");
+    Console.WriteLine("PASS: SQLite identity, WAL-safe backup, schema guard, snapshot metadata, analysis round-trip, annotation conflict, integrity and reopen");
     return 0;
 }
 catch (Exception error)

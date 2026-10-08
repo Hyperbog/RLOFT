@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private IReadOnlyList<AssemblyRow> _rows = Array.Empty<AssemblyRow>();
     private bool _working;
     private long _commentRevision;
+    private CancellationTokenSource? _analysisCancellation;
 
     public MainWindow()
     {
@@ -26,6 +27,7 @@ public partial class MainWindow : Window
         SaveProjectButton.IsEnabled = false;
         BackupProjectButton.IsEnabled = false;
         SaveNoteButton.IsEnabled = false;
+        CancelAnalysisButton.IsEnabled = false;
     }
 
     private sealed record AssemblyRow(int Object, uint Offset, string Bytes,
@@ -48,6 +50,7 @@ public partial class MainWindow : Window
         SaveNoteButton.IsEnabled = !value && _artifact != null && _project != null && AssemblyGrid.SelectedItem is AssemblyRow;
         AssemblyGrid.IsEnabled = !value;
         FunctionsList.IsEnabled = !value;
+        CancelAnalysisButton.IsEnabled = value && _analysisCancellation is not null;
         if (status != null) StatusText.Text = status;
     }
     private void Error(string context, Exception error)
@@ -120,11 +123,19 @@ public partial class MainWindow : Window
     private async void Analyze_Click(object sender, RoutedEventArgs e)
     {
         if (_image is null || _artifact is null || _working) return;
+        _analysisCancellation = new CancellationTokenSource();
+        CancellationTokenSource cancellation = _analysisCancellation;
         SetWorking(true, "Analyzing direct and relocation-backed control flow…");
         try
         {
             LeImage image = _image;
-            var graph = await Task.Run(() => ControlFlowAnalysis.Analyze(image, maxInstructions: 100_000));
+            var graph = await Task.Run(() => ControlFlowAnalysis.Analyze(image, maxInstructions: 100_000,
+                cancellationToken: cancellation.Token));
+            cancellation.Token.ThrowIfCancellationRequested();
+            // Analysis has completed; do not advertise cancellation while saving
+            // a finished snapshot to the project database.
+            _analysisCancellation = null;
+            CancelAnalysisButton.IsEnabled = false;
             _graph = graph;
             ShowAnalysis(graph);
             if (_project != null)
@@ -136,8 +147,25 @@ public partial class MainWindow : Window
                 $"{graph.JumpTables.Count:N0} table candidates. " +
                 (graph.Truncated ? "TRUNCATED by instruction budget." : "Remaining bytes are not automatically code.");
         }
+        catch (OperationCanceledException)
+        {
+            StatusText.Text = "Analysis cancelled; previous project findings preserved.";
+        }
         catch (Exception ex) { Error("Analysis failed", ex); }
-        finally { SetWorking(false); }
+        finally
+        {
+            _analysisCancellation = null;
+            cancellation.Dispose();
+            SetWorking(false);
+        }
+    }
+
+    private void CancelAnalysis_Click(object sender, RoutedEventArgs e)
+    {
+        if (_analysisCancellation is null) return;
+        _analysisCancellation.Cancel();
+        CancelAnalysisButton.IsEnabled = false;
+        StatusText.Text = "Cancellation requested; retaining previous findings…";
     }
 
     private void ShowAnalysis(FlowAnalysisResult graph)
@@ -379,5 +407,19 @@ public partial class MainWindow : Window
         }
         catch (Exception ex) { Error("Annotation was not saved", ex); }
     }
-    private void Window_Closing(object? sender, CancelEventArgs e) => _project?.Dispose();
+    private void Window_Closing(object? sender, CancelEventArgs e)
+    {
+        if (_working)
+        {
+            // A background import or project save may still hold the project
+            // connection. Never dispose it until the operation finishes.
+            _analysisCancellation?.Cancel();
+            e.Cancel = true;
+            StatusText.Text = _analysisCancellation is null
+                ? "Finish the current file/project operation before closing."
+                : "Cancelling analysis before closing. Close again when it finishes.";
+            return;
+        }
+        _project?.Dispose();
+    }
 }

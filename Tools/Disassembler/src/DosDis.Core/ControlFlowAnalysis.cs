@@ -46,8 +46,9 @@ public static class ControlFlowAnalysis
         IEnumerable<FlowAddress>? seeds = null,
         IEnumerable<ProtectedDataRange>? protectedData = null,
         int maxInstructions = 100_000,
-        bool relocated = false)
+        bool relocated = false, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(image);
         if (maxInstructions is < 1 or > 1_000_000)
             throw new ArgumentOutOfRangeException(nameof(maxInstructions));
@@ -66,6 +67,7 @@ public static class ControlFlowAnalysis
         long total = 0;
         foreach (var obj in image.Objects.Where(o => (o.Flags & 4u) != 0))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (obj.VirtualSize > MaxRegionBytes || (total += obj.VirtualSize) > MaxRegionBytes)
                 throw new NotSupportedException("Prototype CFG analysis is bounded to 16 MiB of executable objects.");
             var o = new int[checked((int)obj.VirtualSize)];
@@ -81,11 +83,15 @@ public static class ControlFlowAnalysis
         }
         foreach (var range in explicitData)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!status.TryGetValue(range.Object, out byte[]? classifications) ||
                 range.Begin >= range.EndExclusive || range.EndExclusive > classifications.Length)
                 throw new ArgumentException("Protected range must lie inside one executable object.", nameof(protectedData));
             for (uint i = range.Begin; i < range.EndExclusive; i++)
+            {
+                if ((i & 4095u) == 0) cancellationToken.ThrowIfCancellationRequested();
                 classifications[checked((int)i)] = 2;
+            }
         }
 
         var instructions = new SortedDictionary<FlowAddress, FlowInstruction>(
@@ -125,6 +131,7 @@ public static class ControlFlowAnalysis
 
         while (pending.Count > 0)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             FlowAddress cursor = pending.Dequeue();
             if (instructions.ContainsKey(cursor)) continue;
             if (!IsExecutable(cursor)) continue;
@@ -307,6 +314,7 @@ public static class ControlFlowAnalysis
         var blockOf = new Dictionary<FlowAddress, FlowAddress>();
         foreach (FlowAddress leader in leaders.OrderBy(x => x.Object).ThenBy(x => x.Offset))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (blockOf.ContainsKey(leader)) continue;
             var members = new List<FlowAddress>();
             FlowAddress at = leader;
@@ -354,12 +362,14 @@ public static class ControlFlowAnalysis
         var functions = new List<FunctionCandidate>();
         foreach (FlowAddress entry in functionEntries.OrderBy(x => x.Object).ThenBy(x => x.Offset))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!blockOf.TryGetValue(entry, out var start)) continue;
             var reachable = new HashSet<FlowAddress>();
             var frontier = new Queue<FlowAddress>();
             frontier.Enqueue(start);
             while (frontier.Count > 0)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var b = frontier.Dequeue();
                 if (!reachable.Add(b)) continue;
                 if (blockEdges.TryGetValue(b, out var links))
@@ -377,14 +387,20 @@ public static class ControlFlowAnalysis
         var regions = new List<ClassifiedRange>();
         foreach (var (number, marks) in status.OrderBy(p => p.Key))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             int i = 0;
             while (i < marks.Length)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 byte state = marks[i];
                 bool backed = image.ToFileOffset(number, (uint)i) != null;
                 int j = i + 1;
                 while (j < marks.Length && marks[j] == state &&
-                       (image.ToFileOffset(number, (uint)j) != null) == backed) j++;
+                       (image.ToFileOffset(number, (uint)j) != null) == backed)
+                {
+                    if ((j & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    j++;
+                }
                 string cls = state switch { 1 => "candidate-code", 2 => "protected-data", _ when backed => "unknown-file-backed", _ => "unbacked-virtual" };
                 string evidence = state switch { 1 => "reachable-from-seed", 2 => "analyst-specified", _ => "unclassified" };
                 regions.Add(new ClassifiedRange(number, (uint)i, (uint)j, cls, evidence));

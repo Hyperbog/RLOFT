@@ -183,16 +183,20 @@ public sealed class ProjectStore : IDisposable
     {
         using var command = _db.CreateCommand();
         command.CommandText = """
-            SELECT uncompressed_bytes,payload_brotli FROM analysis_runs
+            SELECT truncated,instruction_count,uncompressed_bytes,payload_brotli FROM analysis_runs
             WHERE artifact_sha=$hash ORDER BY id DESC LIMIT 1;
             """;
         command.Parameters.AddWithValue("$hash", artifactSha);
         using var reader = command.ExecuteReader();
         if (!reader.Read()) return null;
-        long expected = reader.GetInt64(0);
+        long storedTruncated = reader.GetInt64(0);
+        long storedInstructionCount = reader.GetInt64(1);
+        long expected = reader.GetInt64(2);
+        if (storedTruncated is not (0 or 1) || storedInstructionCount < 0 || storedInstructionCount > 1_000_000)
+            throw new InvalidDataException("Invalid stored analysis metadata.");
         if (expected < 0 || expected > MaximumSnapshotBytes)
             throw new InvalidDataException("Invalid stored analysis snapshot length.");
-        using var input = new MemoryStream((byte[])reader.GetValue(1), writable: false);
+        using var input = new MemoryStream((byte[])reader.GetValue(3), writable: false);
         using var decompressed = new BrotliStream(input, CompressionMode.Decompress);
         using var output = new MemoryStream();
         var chunk = new byte[32 * 1024];
@@ -209,6 +213,12 @@ public sealed class ProjectStore : IDisposable
             ?? throw new InvalidDataException("Stored analysis payload is empty.");
         if (!string.Equals(result.ArtifactSha256, artifactSha, StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("Stored snapshot artifact identity mismatch.");
+        if (result.Instructions is null || result.Edges is null || result.Blocks is null ||
+            result.FunctionCandidates is null || result.Ranges is null || result.Diagnostics is null ||
+            result.DataReferences is null || result.JumpTables is null || result.Seeds is null ||
+            result.ProtectedData is null || result.Instructions.Count != storedInstructionCount ||
+            result.Truncated != (storedTruncated == 1))
+            throw new InvalidDataException("Stored analysis payload disagrees with its metadata.");
         return result;
     }
 

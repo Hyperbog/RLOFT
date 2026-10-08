@@ -143,6 +143,14 @@ try
     new byte[] { 0xDE, 0xAD, 0xBE, 0xEF }.CopyTo(graphBytes, dataStart + 6);
     new byte[] { 0x75, 0xF3, 0xFF, 0xE0 }.CopyTo(graphBytes, dataStart + 0x10);
     var graphImage = LeImage.Load(BinaryArtifact.FromBytes(graphBytes));
+    using (var cancelled = new CancellationTokenSource())
+    {
+        cancelled.Cancel();
+        bool cancelledAsRequested = false;
+        try { ControlFlowAnalysis.Analyze(graphImage, cancellationToken: cancelled.Token); }
+        catch (OperationCanceledException) { cancelledAsRequested = true; }
+        Require(cancelledAsRequested, "cancelled analysis must stop without publishing partial findings");
+    }
     var graph = ControlFlowAnalysis.Analyze(graphImage, protectedData: new[] {
         new ProtectedDataRange(1, 6, 10, "synthetic-known-data") });
     Equal(graph.ArtifactSha256, BinaryArtifact.FromBytes(graphBytes).Sha256, "graph source identity");
