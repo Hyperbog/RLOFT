@@ -122,6 +122,9 @@ ExplorationPresentedFrame ExplorationPresenter::present(
         fill_table_,
         frame.scene.frame.renderer_fill_base_b);
 
+    auto output_coverage =
+        surface_coverage(frame, tables);
+
     // CODE.2 335DC first renders any valid extra surface prepass,
     // before 336F7 performs the ordinary wall pass. The prepass calls
     // 32620 with the actual RES4 texture column and original SINTAB
@@ -164,6 +167,10 @@ ExplorationPresentedFrame ExplorationPresenter::present(
                         plan.resource_id,
                         std::move(texture)).first;
                 }
+                if (output_coverage.sintab_prepass_runs_pending == 0U) {
+                    throw std::logic_error(
+                        "surface prepass coverage underflow");
+                }
                 const auto report =
                     SurfaceSintabPrepassExecutor::draw(
                         plan,
@@ -176,10 +183,6 @@ ExplorationPresentedFrame ExplorationPresenter::present(
                 ++output_coverage.sintab_prepass_runs_rasterized;
                 output_coverage.sintab_prepass_indexed_writes +=
                     report.indexed_writes;
-                if (output_coverage.sintab_prepass_runs_pending == 0U) {
-                    throw std::logic_error(
-                        "surface prepass coverage underflow");
-                }
                 --output_coverage.sintab_prepass_runs_pending;
             } catch (const std::exception& error) {
                 ++output_coverage.sintab_prepass_runs_failed;
@@ -195,17 +198,15 @@ ExplorationPresentedFrame ExplorationPresenter::present(
     }
 
     // This presenter currently draws the exact 338C8 fallback path for
-    // extents above SINTAB's runtime lookup boundary. <= boundary runs remain
-    // deliberately untouched until the generated rasterizer translation is
-    // byte-validated.
+    // extents above SINTAB's runtime lookup boundary. The ordinary
+    // <= boundary main-pass runs remain pending; the separate prepass
+    // now uses validated original SINTAB bytecode for supported runs.
     walls_.draw_main_runs(
         framebuffer_,
         frame.sweep_runs,
         frame.surface_shades,
         tables);
 
-    auto output_coverage =
-        surface_coverage(frame, tables);
     std::vector<Type7SceneRasterFailure> raster_failures;
 
 
