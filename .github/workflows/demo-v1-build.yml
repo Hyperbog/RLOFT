@@ -98,13 +98,22 @@ jobs:
       - name: Keep Windows executable in git
         shell: pwsh
         run: |
+          # Documentation-only commits can land after the Windows
+          # checkout but before the 6-minute native build completes.
+          # Refresh to the latest branch HEAD BEFORE copying the
+          # already-built EXE, so the binary commit has a fast-forward
+          # parent rather than silently losing concurrent documentation.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin demo-v1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git checkout -B demo-v1 origin/demo-v1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
           New-Item -ItemType Directory -Force -Path DemoV1/Windows | Out-Null
           Copy-Item build/demo-v1/Release/ravenloft_demo_v1.exe DemoV1/Windows/ravenloft_demo_v1.exe -Force
           $hash = (Get-FileHash DemoV1/Windows/ravenloft_demo_v1.exe -Algorithm SHA256).Hash.ToLower()
           Set-Content -NoNewline -Path DemoV1/Windows/ravenloft_demo_v1.exe.sha256 -Value "$hash  ravenloft_demo_v1.exe"
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add DemoV1/Windows/ravenloft_demo_v1.exe DemoV1/Windows/ravenloft_demo_v1.exe.sha256
           git diff --cached --quiet
           if ($LASTEXITCODE -eq 1) {
