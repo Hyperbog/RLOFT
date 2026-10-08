@@ -2,6 +2,7 @@
 #undef NDEBUG
 #endif
 #include "rloft/combat_original_composite.hpp"
+#include "rloft/combat_irq_display_runtime.hpp"
 
 #include <cassert>
 #include <cstdint>
@@ -158,4 +159,54 @@ int main() {
     };
     assert(Model::run_1a8c8(state,rect,check_high)==
            Route::DirectWithoutOverlay);
+
+    // Actual shared original call chain: 1C258 presents a pending
+    // message, calls 1A8C8 with (page,0x106,0x20,0x0C,0x100),
+    // and only THEN 1C2C4 reads 30700 for deadline comparison.
+    CombatOriginalCompositeState overlay{};
+    overlay.enabled_85fc=0U;
+    overlay.redraw_busy_a6ba=0x1234U;
+    std::vector<std::string> integrated;
+    CombatOriginalCompositeServices original{};
+    original.copy_rect_2a078=[&](
+        std::uint32_t page,std::uint32_t x1,std::uint32_t y1,
+        std::uint32_t x2,std::uint32_t y2,
+        std::uint32_t width,std::uint32_t height) {
+        integrated.emplace_back("2A078");
+        assert(page==1U && x1==0x106U && x2==0x106U);
+        assert(y1==0x20U && y2==0x20U);
+        assert(width==0x0CU && height==0x100U);
+    };
+    CombatIrqDisplayRuntime display{};
+    display.active_render_mode_c050=0U;
+    display.pending_cf59=1U;
+    display.deadline_cf54=500U;
+    display.queued_message_14580={'X',0U};
+    CombatIrqDisplayServices renderer{};
+    renderer.select_vga_page_291b0=[&](std::uint8_t) {
+        integrated.emplace_back("291B0");
+    };
+    renderer.draw_background_2939c=[&](
+        std::uint32_t,std::uint32_t,std::uint32_t,std::uint32_t) {
+        integrated.emplace_back("2939C");
+    };
+    renderer.draw_text_3060c=[&](
+        std::uint32_t,std::uint32_t,
+        const std::vector<std::uint8_t>&,std::uint32_t) {
+        integrated.emplace_back("3060C");
+    };
+    renderer.composite_1a8c8=Model::bind_irq_display_1a8c8(
+        overlay,original);
+    renderer.observed_irq_tick_30700=[&](){
+        integrated.emplace_back("30700");
+        assert(display.pending_cf59==0U);
+        return 500U;
+    };
+    CombatIrqDisplayRuntimeModel::update(display,renderer);
+    assert((integrated==std::vector<std::string>{
+        "291B0","2939C","3060C","2A078","30700"
+    }));
+    assert(display.deadline_cf54==500U &&
+           display.pending_cf59==0U);
+    assert(overlay.redraw_busy_a6ba==0x1234U);
 }
