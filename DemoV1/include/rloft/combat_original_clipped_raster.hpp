@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <optional>
 #include "rloft/combat_original_sprite_raster.hpp"
+#include "rloft/combat_original_sprite_machine.hpp"
 #include "rloft/combat_original_dgroup_move.hpp"
 
 namespace rloft {
@@ -45,6 +46,7 @@ public:
         std::uint32_t column,
         std::uint32_t scratch_pointer,
         const CombatOriginalSpriteVideoState& video,
-        CombatOriginalClippedRasterState& original_state);
+        CombatOriginalClippedRasterState& original_state,
+        CombatOriginalSpriteMachineState* mutable_code_image=nullptr);
 };
 } // namespace rloft
