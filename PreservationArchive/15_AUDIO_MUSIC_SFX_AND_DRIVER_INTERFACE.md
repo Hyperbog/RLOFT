@@ -757,3 +757,43 @@ The driver descriptor word/dword at `+0x20` is the original AIL/32 `svc_rate`, s
 The supplied `SOUND.CFG` selects `A32MT32.DLL` and `A32SBPDG.DLL`; it does **not** contain their respective `svc_rate` descriptor values. Those values are driver-file/runtime evidence, not fields to extrapolate from address/IRQ/DMA configuration words. Runtime IRQ cadence and game FPS therefore remain uncertified. No native-port implementation should hard-wire either player's music driver or digital audio driver to an inferred callback period.
 
 This source correlation resolves one previously bounded item—**meaning and unit of the vendor timer service-rate field**—without resolving all SOUND.CFG installer field labels, device-specific callback values, or audio completion timing. The archival source for actual game-facing scheduling remains the immutable CODE.2 binary; the vendor code provides nomenclature and an independent structural explanation.
+
+
+## 54. Recovered MT-32, SC-55 and SB16 SOUND.CFG profiles
+
+**New direct-source evidence (2026-10-08):** a user-uploaded archive `Ravenloft_-_Strahds_Possession_1994 - Copy.zip` contains four 59-byte `SOUND.CFG` files in directory names `MT32/`, `SC55/`, `SB16/`, and the installation root. The root file and `SB16/SOUND.CFG` are byte-identical. Thus there are **three unique configurations**, not four independent hardware profiles.
+
+| Preset / archived member | SHA-256 of all 59 bytes | Music driver `+0x16` | Digital driver `+0x24` |
+|---|---|---|---|
+| `MT32/SOUND.CFG` | `228bf1adc3e41ffc88d21641e1a25b6dd9e3e58d26cb529757ce5a419c275baf` | `a32mt32.dll` | `a32sbpdg.dll` |
+| `SC55/SOUND.CFG` | `b373f84879c0dfe524009526989a3b6562f518a9a64280b4ee282673cb0474cc` | `a32mt32.dll` | `a32sbpdg.dll` |
+| `SB16/SOUND.CFG` = root | `4ab0f21be1e84b4359b5962303e85bffdac28d4dcb865a9055a499403e27ce51` | `a32sp2fm.dll` | `a32sbpdg.dll` |
+
+**SC55 is an exact match** for the previously archived 59-byte `SOUND.CFG` sample from §3 and `Runtime/AUDIO_INTERFACE_DEPENDENCY_AUDIT.md`. All three referenced drivers (`A32MT32.DLL`, `A32SP2FM.DLL`, `A32SBPDG.DLL`) are present in the independently supplied `RLOFT_DLL.zip`; source identity was checked by naming, size and SHA-256. A matching **driver filename is not proof that every underlying MIDI synthesizer or physical ISA device was available** on an original machine.
+
+The archive additionally contains a 524-byte `dosbox.conf` beginning `# Config file for Dosbox-ECE r4230`, with SDL/video/mixer/MT32 SoundFont emulator configuration. ZIP timestamps for the four `SOUND.CFG` members are **August 2018**, and for `dosbox.conf` **October 2019**. These are **modern configuration-bundle dates**, not original 1994 source/build or 1.0-version evidence. The name `Ravenloft ... 1994` denotes a game title/year and cannot establish that an original 1.0 executable is contained in this tiny archive: **no CODE.1/CODE.2/R.EXE is present in it**.
+
+## 55. Exact config field variation matrix and bounded semantics
+
+The original CODE.2's 59-byte loader and two audio initialization groups were established in §§4–6. Here are **all variable 16-bit fields** and the unchanged second group independently confirmed against three configured fixtures. Integers are physical little-endian binary words, not inferred field names.
+
+| SOUND.CFG field | MT32 | SC55 | SB16 | Interpretation at current evidence level |
+|---|---:|---:|---:|---|
+| `+0x00` (group A word 0) | `0x0330` | `0x0330` | `0x0220` | Music-device-specific numeric setting (plausible I/O base, original writer label unverified) |
+| `+0x02` (group A word 1) | `0xFFFF` | `0x0002` | `0x0007` | Music-device-specific setting |
+| `+0x04` (group A word 2) | `0xFFFF` | `0xFFFF` | `0x0001` | Music-device-specific setting |
+| `+0x06` (group A word 3) | `0xFFFF` | `0xFFFF` | `0x0001` | Music-device-specific setting |
+| `+0x08` (group A word 4) | `0x0069` | `0x0078` | `0x007A` | Independently proved extra device-special-case input, not a driver `svc_rate` |
+| `+0x0A..+0x12` (group B, five words) | `0220 0007 0001 0001 007A` | same | same | Unchanged digital configuration in all three; alone cannot identify numeric meanings |
+| `+0x14` | `0x0001` | `0x0001` | `0x0001` | Nonzero conditional digital initialization selector |
+| `+0x32` (trailer word 0) | `0x0003` | `0x0004` | `0x0002` | Distinct preset/device identifier candidate; exact installer/source name **UNKNOWN** |
+| `+0x34` (trailer word 1) | `0x0003` | `0x0003` | `0x0003` | Invariant under this sample |
+| `+0x36` (trailer word 2) | `0x0008` | `0x0008` | `0x0008` | Invariant under this sample |
+| `+0x38` (trailer word 3) | `0x0002` | `0x0002` | `0x000B` | Music-family-dependent setting; exact interpretation **UNKNOWN** |
+| `+0x3A` (last byte) | `0x00` | `0x00` | `0x00` | Preserve zero byte; cannot infer arbitrary padding |
+
+Both driver names occupy fixed **14-byte** NUL-padded regions at `+0x16..+0x23` and `+0x24..+0x31`. The group A/B numeric words are not identical physical sources: the music side varies and the digital side is stable across this set. The actual active sound driver service frequency and device completion behavior cannot be read from these `SOUND.CFG` bytes, because AIL/32 obtains `svc_rate` at run time from each loaded driver's own descriptor `+0x20`. Chapter 17 owns that middleware contract.
+
+**Evidence gain / U-015 disposition:** the exact physical 59-byte geometry, the separation of configurable music/digital groups, the fixed-string slot widths, and the meaningful presence of additional trailer selectors are now **cross-sample corroborated**. Their historical installer field names, the precise values-to-hardware mapping beyond driver filenames, error paths and dynamic callback timing remain **bounded UNKNOWNs**. Do not promote plausible MPU/IRQ/DMA labels to machine-proven semantics without reverse engineering the installer writer or a documented AIL driver consumer.
+
+**Recommended native-port fixture test:** round-trip all three raw configurations without changing a byte; verify that their driver names and four trailer words do not get truncated; keep the original DOS device-selection UI as an optional legacy compatibility layer, while modern audio backends preserve observable game music/SFX selection.
