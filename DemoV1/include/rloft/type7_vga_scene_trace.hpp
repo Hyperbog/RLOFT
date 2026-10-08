@@ -19,6 +19,10 @@ struct Type7VgaSceneRun final {
     std::size_t source_column_index{};
     std::size_t viewport_x{};
     std::uint16_t width{};
+    // The original CODE.2 C029 dispatcher branch. Essential even for a
+    // single-pixel run: the grouped branch swaps the global ECX word,
+    // whereas the individual branch restores it.
+    bool individual_columns_mode{};
     std::vector<Type7MicrocodeDraw> descriptors;
     Type7VgaRasterDispatch dispatch{};
 };
