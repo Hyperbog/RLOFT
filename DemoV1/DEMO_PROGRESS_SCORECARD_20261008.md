@@ -33,3 +33,23 @@ The **653 named CODE.2 instruction-byte checks at 645 distinct sites** are evide
 5. Add a numerical engineering-completion estimate only after defining and weighting the remaining subsystem work, or explicitly mark it as a low-confidence subjective planning estimate.
 
 **Bottom line:** Saying only “20% overall complete” understates the real source-reconstruction progress while overstating what the single passing release gate measures. Retain **20% as formal acceptance only**; the development-completion percentage is **not yet objectively measured**.
+
+
+## Subsequent source checkpoint: original 1A8C8 composition (2026-10-08)
+
+The [CODE.2 1A8C8 checkpoint](LEVEL22_CODE2_COMPOSITE_1A8C8_CHECKPOINT.md)
+adds signed original overlay-intersection and
+original 1,024-byte backing-buffer movement order
+to the native timed-message rendering pipeline.
+It also connects the compositor's callback interface
+to the existing 1C258 message renderer. This is
+genuine additional reusable-engine implementation;
+the nested 2A078/1A288/1AB20 visual effects and
+reference-DOS framebuffer comparisons remain open.
+
+The original executable-byte audit now has 684 named
+checks at 676 unique sites. The newly added CTest
+is registered but has not been included in a fresh
+full Windows build. Thus the formal acceptance
+score remains **1/5**; engineering completion remains
+**unmeasured**, not 20%.
