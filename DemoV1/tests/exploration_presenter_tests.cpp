@@ -92,4 +92,14 @@ int main() {
     failed_prepass.sintab_prepass_runs_rasterized = 1U;
     failed_prepass.sintab_prepass_indexed_writes = 2U;
     assert(failed_prepass.complete());
+
+    // A failed ordinary wall raster remains incomplete even if its
+    // original run was attempted and its renderer reported some writes.
+    auto failed_main = complete;
+    failed_main.sintab_main_runs_failed = 1U;
+    failed_main.sintab_main_runs_rasterized = 1U;
+    failed_main.sintab_main_indexed_writes = 3U;
+    assert(!failed_main.complete());
+    failed_main.sintab_main_runs_failed = 0U;
+    assert(failed_main.complete());
 }
