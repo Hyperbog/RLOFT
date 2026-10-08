@@ -206,7 +206,95 @@ int main() {
     } catch(const std::out_of_range&) {rejected=true;}
     assert(rejected);
 
+    // 244CE: BOTH empty hands can be resolved without touching
+    // OBJECTS[-1] weight/qualifier because the original jumps to
+    // the final busy dwords. The original -1 category byte MUST
+    // be supplied: the 240A8 helper reads outside the buffer.
+    set16(p,0U,0x40U+14U*2U,0xFFFFU);
+    set16(p,0U,0x40U+15U*2U,0xFFFFU);
+    rejected=false;
+    try {(void)evaluate(objects);}
+    catch(const std::invalid_argument&) {rejected=true;}
+    assert(rejected);
+    auto empty_pair=CombatHandPairEligibilityModel::evaluate(
+        p,objects,0U,0U,CombatSingleHandContext{0U},
+        std::uint8_t{0U});
+    assert(empty_pair.first_eligible && empty_pair.second_eligible);
+    assert(!empty_pair.first_classified && !empty_pair.second_classified);
+    set32(p,0U,0x10BU,3U);
+    empty_pair=CombatHandPairEligibilityModel::evaluate(
+        p,objects,0U,0U,CombatSingleHandContext{0U},
+        std::uint8_t{0U});
+    assert(!empty_pair.first_eligible && empty_pair.second_eligible);
+    set32(p,0U,0x10BU,0U);
+
+    // 24522: a pair of pseudo-spell hands force both candidates
+    // true before bypassing 7240 actor status and item arbitration.
+    set16(p,0U,0x40U+14U*2U,0x007EU);
+    set16(p,0U,0x40U+15U*2U,0x0086U);
+    set16(p,0U,0x10U,0x7240U);
+    auto pseudo_pair=evaluate(objects);
+    assert(pseudo_pair.first_eligible && pseudo_pair.second_eligible);
+    assert(pseudo_pair.first_classified && pseudo_pair.second_classified);
+    assert(pseudo_pair.selected_eligible);
+    set16(p,0U,0x10U,0U);
+
+    // Original 240A8 modeFF gate is EXACT 8000h for both first
+    // actor statuses. 24478's independent empty/pseudo early
+    // gate allows both statuses >=4000h. Exercise the distinction.
+    set16(p,0U,0x10U,0x4000U);
+    set16(p,1U,0x10U,0x4000U);
+    set16(p,2U,0x10U,0x7240U);
+    set32(p,2U,0x10BU,0U);
+    set32(p,2U,0x10FU,0U);
+    set16(p,2U,0x40U+14U*2U,0x007EU);
+    set16(p,2U,0x40U+15U*2U,0x0086U);
+    pseudo_pair=CombatHandPairEligibilityModel::evaluate(
+        p,objects,2U,0U,CombatSingleHandContext{0xFFU});
+    assert(pseudo_pair.first_eligible && pseudo_pair.second_eligible);
+    set16(p,0U,0x10U,0x3FFFU);
+    pseudo_pair=CombatHandPairEligibilityModel::evaluate(
+        p,objects,2U,0U,CombatSingleHandContext{0xFFU});
+    assert(!pseudo_pair.first_eligible && !pseudo_pair.second_eligible);
+    set16(p,0U,0x10U,0x4000U);
+
+    // Both empty, mode FF, pre-base category9: 240A8 vetoes on
+    // the earlier EXACT 8000 equality, even though 24478's
+    // later >=4000 check is satisfied. A category0 raw byte
+    // classifies as non-attack and leaves both candidate flags.
+    set16(p,2U,0x40U+14U*2U,0xFFFFU);
+    set16(p,2U,0x40U+15U*2U,0xFFFFU);
+    empty_pair=CombatHandPairEligibilityModel::evaluate(
+        p,objects,2U,0U,CombatSingleHandContext{0xFFU},
+        std::uint8_t{9U});
+    assert(!empty_pair.first_eligible && !empty_pair.second_eligible);
+    empty_pair=CombatHandPairEligibilityModel::evaluate(
+        p,objects,2U,0U,CombatSingleHandContext{0xFFU},
+        std::uint8_t{0U});
+    assert(empty_pair.first_eligible && empty_pair.second_eligible);
+    set16(p,0U,0x10U,0x8000U);
+    set16(p,1U,0x10U,0x8000U);
+    empty_pair=CombatHandPairEligibilityModel::evaluate(
+        p,objects,2U,0U,CombatSingleHandContext{0xFFU},
+        std::uint8_t{9U});
+    assert(empty_pair.first_eligible && empty_pair.second_eligible);
+
+    // Mixed empty+positive still may dereference -1 weight/qualifier
+    // during ordinary arbitration. It must remain unsupported.
+    set16(p,2U,0x40U+15U*2U,1U);
+    rejected=false;
+    try {
+        (void)CombatHandPairEligibilityModel::evaluate(
+            p,objects,2U,0U,CombatSingleHandContext{0U},
+            std::uint8_t{0U});
+    } catch(const std::invalid_argument&) {rejected=true;}
+    assert(rejected);
+
+    // No observable mutation from any of the short-circuit paths.
     const auto before=p.bytes;
-    (void)evaluate(objects);
+    rejected=false;
+    try {(void)evaluate(objects);}
+    catch(const std::invalid_argument&) {rejected=true;}
+    assert(rejected);
     assert(p.bytes==before);
 }
