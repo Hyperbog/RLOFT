@@ -82,3 +82,30 @@ the 290D0 reseed from original IRQ timing is equally material.
 **Bounded E0F8 source-model milestone:** coded, locally exercised and
 committed, **not live integrated**. Overall five-major-gate faithful-demo
 acceptance is unchanged: **20% (1/5)**.
+
+## Subsequent Level 22 tracker closure (2026-10-08)
+
+**Important correction to the historical unresolved-tracker statements above:**
+original `LEVELS.DAT` (SHA-256 `50d0b1d13f81733a1ac55296d00fcba9aef002202bc00341f1062c37fd017d91`)
+and `LEV022.DAT` (SHA-256 `f88b033ff4cdafdd89620e0fac51ff2fb81bce103a6d31a26b91464532c9f51e`)
+BOTH store the three original signed tracker WORDs as **(-1,-1,-1)** in
+fixed header offsets `+292/+294/+296`. This header is loaded to
+DGROUP `25618` (therefore `258AA/258AC/258AE`). These values were
+independently extracted from archive level 22 (record `0x5AD83`, header
+at `+0x1D`) and direct `LEV022.DAT` (header at file `0x1D`).
+
+Direct original `CODE.2` opcode checks at logical `E50F, E516, E51A,
+E51C, E51F, E52F, E539` prove the signed-tracker comparison and
+three-slot no-match corpse flag. **Assassin type 9 cannot match -1**, so
+this specific Level 22 path DOES NOT call E0F8 or consume its RNG draws.
+The earlier 30x15 geometry statement is only about hypothetical E0F8
+invocations and must not be mistaken for normal Assassin behavior.
+
+The current native Level22 encounter now accepts original `LevelState`,
+reads its three signed header words, and rejects an unsupported matching
+tracker **before** mutation. When no tracker matches, it uses the existing
+source-audited `CombatNpcDeathFollowOnModel::death_runtime_flags` marker
+logic, without fabricated respawn callbacks. Its test fixture contains
+these values and includes a matched-tracker rejection case. Full C++
+Windows build and DOS runtime acceptance still await explicit execution;
+there is no claim that this checkpoint completes full gameplay fidelity.
