@@ -12,6 +12,10 @@ describes the full current scope.
 The original SINTAB 127-block rasterizer interpreter, original RES3 type-7
 pixel execution path, and whole-scene VGA trace integrity are documented in
 [TYPE7_RENDERER_CHECKPOINT.md](TYPE7_RENDERER_CHECKPOINT.md).
+The separate original CODE.2 surface-prepass lookup audit and its
+signed/unsigned SINTAB underflow boundary are tracked in
+[SURFACE_PREPASS_CHECKPOINT.md](SURFACE_PREPASS_CHECKPOINT.md).
+The original wall/prepass pixel renderer remains unfinished.
 Viewport-selected Assassin damage and loose-item pickup bindings, including
 snapshot-invalidating world state, are documented in
 [LEVEL22_VIEWPORT_ACTION_CHECKPOINT.md](LEVEL22_VIEWPORT_ACTION_CHECKPOINT.md).
