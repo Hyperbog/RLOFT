@@ -26,6 +26,12 @@ struct ObjectDefinition final {
     // Keep the complete little-endian source word, not only the
     // +35h qualifier mask consumed by 240A8/24478.
     std::uint16_t raw_word_35{};
+    // Original E5F0 ordinary weapon dice source at serialized
+    // OBJECTS record bytes +38/+39/+3A, passed in that order
+    // to original 1C328(count,sides,per_die_bonus,final_bonus).
+    std::uint8_t damage_dice_count{};
+    std::uint8_t damage_dice_sides{};
+    std::uint8_t damage_per_die_bonus{};
     std::uint8_t weight_half_units{};
     std::int8_t container_state_index{};
     std::uint8_t enchantment{};
