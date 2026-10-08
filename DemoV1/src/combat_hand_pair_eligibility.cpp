@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 
 namespace rloft {
@@ -36,7 +37,8 @@ CombatHandPairEligibility CombatHandPairEligibilityModel::evaluate(
     const ObjectCatalog& objects,
     std::size_t actor,
     std::size_t selected_hand,
-    CombatSingleHandContext context) {
+    CombatSingleHandContext context,
+    std::optional<std::uint8_t> empty_prebase_category) {
     if (actor >= PartyImage::kActorCount || selected_hand >= 2U) {
         throw std::out_of_range("CODE.2 24478 actor/hand");
     }
@@ -47,22 +49,31 @@ CombatHandPairEligibility CombatHandPairEligibilityModel::evaluate(
     const auto second_id=
         static_cast<std::int16_t>(word(rec+0x40U+15U*2U));
 
-    // This bounded 24478 slice excludes original pseudo-hand special
-    // branches 24522,24641/24693 and their 23F34 classifier, as well
-    // as OBJECTS[-1] raw pre-base memory for an empty hand.
-    if (first_id < 0 || second_id < 0 ||
-        (first_id>=0x7E && first_id<=0x86) ||
-        (second_id>=0x7E && second_id<=0x86)) {
+    const auto pseudo=[](std::int32_t id) noexcept {
+        return id>=0x7E && id<=0x86;
+    };
+    const bool both_empty=first_id==-1 && second_id==-1;
+    const bool both_pseudo=pseudo(first_id) && pseudo(second_id);
+    // 244CE and 24522 bypass the qualifier/weight arbiter.
+    // The other mixed sentinel/pseudo branches may read original
+    // heap-adjacent OBJECTS[-1] +30/+35 values; reject them until
+    // those bytes are captured from the original runtime.
+    if ((first_id<0 || second_id<0 ||
+         pseudo(first_id) || pseudo(second_id)) &&
+        !both_empty && !both_pseudo) {
         throw std::invalid_argument(
-            "CODE.2 24478 empty/pseudo hand requires separate branch");
+            "CODE.2 24478 mixed empty/pseudo pair unresolved");
     }
-
-    const auto& a=objects.at(static_cast<std::size_t>(first_id));
-    const auto& b=objects.at(static_cast<std::size_t>(second_id));
+    if (both_empty && !empty_prebase_category) {
+        throw std::invalid_argument(
+            "CODE.2 24478 both-empty requires raw OBJECTS[-1] byte");
+    }
     const auto initial_a=CombatSingleHandEligibilityModel::evaluate(
-        party,objects,actor,first_id,context);
+        party,objects,actor,first_id,context,
+        empty_prebase_category);
     const auto initial_b=CombatSingleHandEligibilityModel::evaluate(
-        party,objects,actor,second_id,context);
+        party,objects,actor,second_id,context,
+        empty_prebase_category);
 
     CombatHandPairEligibility result{};
     result.first_classified=initial_a.classified;
@@ -79,6 +90,23 @@ CombatHandPairEligibility CombatHandPairEligibilityModel::evaluate(
         result.first_eligible,result.second_eligible);
     result.first_eligible=early.first_eligible;
     result.second_eligible=early.second_eligible;
+
+    if (early.skip_object_arbitration) {
+        // 244CE or 24522 jumps directly to 24A58. Never read the
+        // fictional OBJECTS[-1] qualifier/weight or discard the
+        // paired-pseudo candidate override. Hand busy vetoes still
+        // execute on both early-return routes.
+        if (dword(rec+0x10BU)!=0U)
+            result.first_eligible=false;
+        if (dword(rec+0x10FU)!=0U)
+            result.second_eligible=false;
+        result.selected_eligible=selected_hand==0U
+            ? result.first_eligible : result.second_eligible;
+        return result;
+    }
+
+    const auto& a=objects.at(static_cast<std::size_t>(first_id));
+    const auto& b=objects.at(static_cast<std::size_t>(second_id));
 
     // 346E9..34A56: arbitrate classification flags in the
     // exact CODE.2 branch order. These operations only suppress
