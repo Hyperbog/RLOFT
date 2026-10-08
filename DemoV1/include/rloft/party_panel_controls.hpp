@@ -33,6 +33,16 @@ public:
     [[nodiscard]] static const std::array<PartyPanelHitRect, 4>&
     gameplay_inventory_regions() noexcept;
 
+    struct GameplayHandHit final {
+        std::size_t actor{};
+        std::size_t hand{};  // 0 or 1
+    };
+
+    // CODE.2 DGROUP D684 regions (1,3),(5,7),(9,11),(13,15),
+    // routed through 229CC to 214B8. No inferred overlap or gutters.
+    [[nodiscard]] static std::optional<GameplayHandHit>
+    gameplay_hand_at(int row, int column) noexcept;
+
     [[nodiscard]] static std::optional<std::size_t>
     gameplay_actor_at(
         int row,
