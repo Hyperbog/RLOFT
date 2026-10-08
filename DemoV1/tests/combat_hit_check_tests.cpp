@@ -13,7 +13,7 @@ int main() {
     input.npc_armor_class = 2;
     input.raw_d20 = 11U;
     auto result = CombatHitCheckModel::resolve(input);
-    assert(!result.hit);
+    assert(!result.hit && result.original_eax_return==0U);
     assert(result.threshold == 12);
     assert(result.modified_d20 == 11);
     input.raw_d20 = 12U;
@@ -28,6 +28,9 @@ int main() {
     assert(result.roll_bonus == 1);
     assert(result.modified_d20 == 20);
     assert(result.hit);
+    // Returning the 20 here instead of 1 would wrongly enable
+    // shipped but unreachable Rod of Smiting charge branches.
+    assert(result.original_eax_return==1U);
 
     // Conversely a natural 1 is NOT automatically missed when
     // the original effect bonus turns it into 2.
@@ -49,6 +52,7 @@ int main() {
     input.burden_rank = 255U;
     result = CombatHitCheckModel::resolve(input);
     assert(result.hit && result.auto_hit_held);
+    assert(result.original_eax_return==1U);
     assert(result.modified_d20 == 0);
     input.live_npc_runtime_flags = 0U;
 
