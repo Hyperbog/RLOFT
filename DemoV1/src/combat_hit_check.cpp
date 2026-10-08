@@ -11,6 +11,7 @@ CombatHitCheckResult CombatHitCheckModel::resolve(
     // before touching weapon, burden, character effects or RNG.
     if ((inputs.live_npc_runtime_flags & 0x08U) != 0U) {
         result.hit = true;
+        result.original_eax_return = 1U;
         result.auto_hit_held = true;
         return result;
     }
@@ -59,6 +60,7 @@ CombatHitCheckResult CombatHitCheckModel::resolve(
         result.modified_d20 >= 20 ||
         (result.modified_d20 != 1 &&
          result.modified_d20 >= result.threshold);
+    result.original_eax_return=result.hit ? 1U : 0U;
     return result;
 }
 
