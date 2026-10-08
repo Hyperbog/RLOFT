@@ -139,7 +139,11 @@ ExplorationRuntime::damage_level22_assassin_at(
     // 223F4's bit-0 source-class-2 gate must remain clear during
     // combat selection: loose items are pickup targets, not enemies.
     if (!gameplay_state_initialized_ ||
-        frame.world_scene_revision != world_scene_revision_) {
+        frame.world_scene_revision != world_scene_revision_ ||
+        frame.source_coordinate_a != session_.coordinate_a ||
+        frame.source_coordinate_b != session_.coordinate_b ||
+        frame.source_facing != session_.facing ||
+        frame.source_level_id != session_.level_id) {
         throw std::logic_error(
             "Assassin target was selected from a stale world frame");
     }
@@ -162,7 +166,11 @@ ExplorationRuntime::pickup_level22_loose_item_at(
     int column) {
     // 224EF requires bit 0 for class-2 hit-test eligibility.
     if (!gameplay_state_initialized_ ||
-        frame.world_scene_revision != world_scene_revision_) {
+        frame.world_scene_revision != world_scene_revision_ ||
+        frame.source_coordinate_a != session_.coordinate_a ||
+        frame.source_coordinate_b != session_.coordinate_b ||
+        frame.source_facing != session_.facing ||
+        frame.source_level_id != session_.level_id) {
         throw std::logic_error(
             "pickup target was selected from a stale world frame");
     }
@@ -226,6 +234,10 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
     const std::array<std::uint16_t, 32>& rng15) {
     ExplorationRuntimeFrame out{};
     out.world_scene_revision = world_scene_revision_;
+    out.source_coordinate_a = session_.coordinate_a;
+    out.source_coordinate_b = session_.coordinate_b;
+    out.source_facing = session_.facing;
+    out.source_level_id = session_.level_id;
     out.scene_video_page = scene_video_page_;
     out.scene_individual_columns_mode =
         scene_individual_columns_mode_;
