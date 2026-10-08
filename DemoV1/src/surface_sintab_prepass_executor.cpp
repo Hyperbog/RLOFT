@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -97,7 +98,8 @@ SurfaceSintabPrepassReport SurfaceSintabPrepassExecutor::draw(
             static_cast<std::int64_t>(VgaPlanarMemory::kRowBytes);
     if (destination < 0 ||
         destination >
-            static_cast<std::int64_t>(UINT32_MAX) - 2) {
+            static_cast<std::int64_t>(
+                std::numeric_limits<std::uint32_t>::max()) - 2) {
         throw std::out_of_range(
             "CODE.2 prepass VGA destination arithmetic overflow");
     }
