@@ -48,6 +48,7 @@ add_library(rloft_boot_flow
     src/inventory_screen.cpp
     src/inventory_runtime.cpp
     src/combat_hit_check.cpp
+    src/combat_hand_dispatch.cpp
     src/party_hud.cpp
     src/party_panel_controls.cpp
     src/party_modal_presenter.cpp
@@ -208,6 +209,9 @@ add_test(NAME inventory_runtime_tests COMMAND inventory_runtime_tests)
 add_executable(combat_hit_check_tests tests/combat_hit_check_tests.cpp)
 target_link_libraries(combat_hit_check_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_hit_check_tests COMMAND combat_hit_check_tests)
+add_executable(combat_hand_dispatch_tests tests/combat_hand_dispatch_tests.cpp)
+target_link_libraries(combat_hand_dispatch_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_hand_dispatch_tests COMMAND combat_hand_dispatch_tests)
 
 add_executable(party_hud_tests tests/party_hud_tests.cpp)
 target_link_libraries(party_hud_tests PRIVATE rloft_boot_flow)
@@ -556,6 +560,7 @@ set(RLOFT_TEST_TARGETS
     inventory_screen_tests
     inventory_runtime_tests
     combat_hit_check_tests
+    combat_hand_dispatch_tests
     party_hud_tests
     party_panel_controls_tests
     top_edge_menu_tests
