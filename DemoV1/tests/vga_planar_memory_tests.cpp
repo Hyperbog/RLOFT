@@ -22,6 +22,17 @@ int main() {
     }
 
     rloft::VgaPlanarMemory video;
+    assert(!video.sequencer_map_mask_02()); // original initial state unknown
+    video.set_sequencer_map_mask_02(0x09U);
+    assert(video.sequencer_map_mask_02() &&
+           *video.sequencer_map_mask_02()==0x09U);
+    video.clear(0x11U);
+    assert(*video.sequencer_map_mask_02()==0x09U);
+    bool bad_sequencer=false;
+    try { video.set_sequencer_map_mask_02(0x10U); }
+    catch(const std::out_of_range&) {bad_sequencer=true;}
+    assert(bad_sequencer);
+    assert(*video.sequencer_map_mask_02()==0x09U);
     video.import_page(source, 0U);
 
     rloft::IndexedFramebuffer recovered;
