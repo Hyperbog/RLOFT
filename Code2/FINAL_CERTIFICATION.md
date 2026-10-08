@@ -1,3 +1,5 @@
+> **Post-certification correction record (2026-10-07):** the 2026-10-05 binary byte-accounting certification and original source hashes below are historical results. The supplied immutable CODE.2 was re-disassembled at `0139C` (automap coordinate increments) and `2975C` (five-argument graphics wrapper); both source-level semantics were corrected by adopting the originally demo-branch version. Both branches now have `Code2/Code2.cpp` blob `87f6638921c53a32bde59735515fbc175e2c96ee`. See [`POST_CERTIFICATION_GRAPHICS_CORRECTIONS_2026-10-07.md`](POST_CERTIFICATION_GRAPHICS_CORRECTIONS_2026-10-07.md) for the exact original instruction evidence. A fresh whole-file C++ syntax check is not asserted for the synchronized revision. The original certified hash is preserved, not reattributed to the new file.
+
 # CODE.2 final certification
 
 ## Status
