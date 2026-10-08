@@ -82,6 +82,11 @@ static std::optional<CombatOriginalSpriteRasterResult> draw_sprite_impl(
     // A transparent zero byte counter enters a DEC/JNE loop
     // whose iterations cannot be bounded by the supplied capture.
     if (transparent && bytes_per_row==0U) return std::nullopt;
+    // Unlike 2A380's REP MOVSW, 2A584's opaque loop performs
+    // LODSB before DEC ECX/JNE; CX=0 underflows the counter and
+    // reads far beyond any bounded source capture. Reject it.
+    if (shader!=nullptr && !transparent && bytes_per_row==0U)
+        return std::nullopt;
 
     const auto required=static_cast<std::uint64_t>(height)*
         static_cast<std::uint64_t>(bytes_per_row)*4U+
