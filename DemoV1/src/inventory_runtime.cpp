@@ -219,6 +219,74 @@ InventoryRuntimeState InventoryRuntimeState::fresh(
     return out;
 }
 
+InventoryOrdinarySwapStatus InventoryRuntimeState::swap_ordinary_slot(
+    PartyImage& party,
+    const ObjectCatalog& objects,
+    std::size_t actor,
+    std::size_t slot) {
+    if (actor >= PartyImage::kActorCount || slot >= 12U) {
+        throw std::out_of_range("CODE.2 ordinary inventory actor/slot");
+    }
+    if (!party.active(actor)) {
+        return InventoryOrdinarySwapStatus::Unsupported;
+    }
+
+    const auto current = party_item(party,actor,slot);
+    const auto incoming = held.object_id;
+    if (current == -1 && incoming == -1) {
+        return InventoryOrdinarySwapStatus::NoChange;
+    }
+
+    // The original 117A0 calls context-dependent 21404 for a held
+    // item over a container, and has special paths for the 0x35
+    // potion and 0xA6 spell-item families. Do not silently turn
+    // those interactions into an ordinary exchange.
+    if ((current >= 0x7E && current <= 0x86) ||
+        (incoming >= 0x7E && incoming <= 0x86) ||
+        current == 0x35 || current == 0xA6 ||
+        incoming == 0x35 || incoming == 0xA6 ||
+        (current < -1) || (incoming < -1)) {
+        return InventoryOrdinarySwapStatus::Unsupported;
+    }
+    if (current >= 0) {
+        const auto& definition =
+            objects.at(static_cast<std::size_t>(current));
+        if (incoming != -1 && definition.item_category == 1U) {
+            return InventoryOrdinarySwapStatus::Unsupported;
+        }
+    }
+    if (incoming >= 0) {
+        (void)objects.at(static_cast<std::size_t>(incoming));
+    }
+
+    const auto base = actor * PartyImage::kActorSize;
+    const auto bit = std::uint32_t{1} << slot;
+    const auto known_at = base + 0x12BU;
+    const std::uint32_t before =
+        static_cast<std::uint32_t>(party.bytes[known_at]) |
+        (static_cast<std::uint32_t>(party.bytes[known_at+1U]) << 8U) |
+        (static_cast<std::uint32_t>(party.bytes[known_at+2U]) << 16U) |
+        (static_cast<std::uint32_t>(party.bytes[known_at+3U]) << 24U);
+    const auto old_known =
+        static_cast<std::uint8_t>((before & bit) != 0U);
+    const auto updated =
+        static_cast<std::uint32_t>(
+            (before & ~bit) |
+            (held.known != 0U ? bit : 0U));
+
+    // All model preflight occurs before the first write. Commit the
+    // authoritative 21-item party record, four-byte known bitset and
+    // held cursor identity together. Do not synthesize 117A0's
+    // separate renderer refresh/sound effects in this core routine.
+    set_party_item(party,actor,slot,incoming);
+    for (unsigned b=0U;b<4U;++b) {
+        party.bytes[known_at+b] =
+            static_cast<std::uint8_t>(updated >> (8U*b));
+    }
+    held = {current,old_known};
+    return InventoryOrdinarySwapStatus::Swapped;
+}
+
 bool InventoryRuntimeState::has_object(
     const PartyImage& party,
     const ObjectCatalog& objects,
