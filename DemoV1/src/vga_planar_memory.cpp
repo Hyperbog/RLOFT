@@ -43,11 +43,26 @@ void VgaPlanarMemory::set_sequencer_map_mask_02(
         throw std::out_of_range(
             "original VGA sequencer map-mask register exceeds four planes");
     sequencer_map_mask_02_=plane_mask;
+    sequencer_last_raw_mask_02_=plane_mask;
 }
 
 std::optional<std::uint8_t>
 VgaPlanarMemory::sequencer_map_mask_02() const noexcept {
     return sequencer_map_mask_02_;
+}
+
+void VgaPlanarMemory::write_sequencer_raw_mask_02(
+    std::uint8_t original_ah) noexcept {
+    // Original CODE.2 2A1DA writes AH=FF via OUT DX,AX;
+    // reserved high bits are not additional VGA planes.
+    sequencer_last_raw_mask_02_=original_ah;
+    sequencer_map_mask_02_=static_cast<std::uint8_t>(
+        original_ah&0x0FU);
+}
+
+std::optional<std::uint8_t>
+VgaPlanarMemory::last_sequencer_raw_mask_02() const noexcept {
+    return sequencer_last_raw_mask_02_;
 }
 
 std::size_t VgaPlanarMemory::offset_for(
