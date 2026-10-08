@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -37,9 +38,19 @@ struct ExplorationSurfaceCoverage final {
     }
 };
 
+// A failed draw is not silently equated with an occluded object. Preserve
+// the original source identity and exact reason for offline diagnosis.
+struct Type7SceneRasterFailure final {
+    std::uint16_t resource_id{};
+    std::uint16_t source_class{};
+    std::uint16_t source_index{};
+    std::string reason;
+};
+
 struct ExplorationPresentedFrame final {
     Palette6 palette{};
     ExplorationSurfaceCoverage surface_coverage{};
+    std::vector<Type7SceneRasterFailure> type7_failures;
 };
 
 class ExplorationPresenter final {
