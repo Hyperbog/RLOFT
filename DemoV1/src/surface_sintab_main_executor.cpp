@@ -86,6 +86,9 @@ SurfaceSintabMainReport SurfaceSintabMainExecutor::draw(
     for (std::size_t pass = 0U; pass < lanes.planes.size(); ++pass) {
         const auto mask = lanes.planes[pass];
         if (pass != 0U && mask == 0U) continue;
+        // 3285E..3293C: each active pass emits OUT 03C4h,
+        // AX=(mask<<8)|02h before calling generated code.
+        staged.set_sequencer_map_mask_02(mask);
         const auto result = SintabPixelMicrocode::execute(
             code, 0U, texture.texels_column_major,
             static_cast<std::int64_t>(
