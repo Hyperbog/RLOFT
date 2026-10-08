@@ -102,6 +102,36 @@ int main() {
     assert(video.read(VgaPlanarMemory::kPhysicalBase+
                       328U+80U,3U)==0U);
 
+    // Original unsplit FCD0=0 group width 8 is genuinely present
+    // in the immutable CODE.2 mask bytes for phases 0..2.
+    // The three masks together cover exactly eight consecutive pixels.
+    for (std::size_t phase=0U; phase<3U; ++phase) {
+        run.first_ray=phase;
+        run.ray_count=8U;
+        VgaPlanarMemory wide_video{};
+        const auto wide_report=SurfaceSintabMainExecutor::draw(
+            run,source,t,shades,lane_masks,1U,wide_video);
+        assert(wide_report.vga_calls==(phase==0U?2U:3U));
+        assert(wide_report.source_reads==wide_report.vga_calls);
+        assert(wide_report.indexed_writes==wide_report.vga_calls*2U);
+        const auto low=phase==1U?0xA4U:0xA3U;
+        const auto high=phase==1U?0xA3U:0xA4U;
+        for(std::size_t dx=0U;dx<8U;++dx) {
+            const auto x=phase+dx;
+            const auto addr=static_cast<std::uint32_t>(
+                dest+(x>>2U));
+            const auto plane=static_cast<std::uint8_t>(x&3U);
+            assert(wide_video.read(addr+80U,plane)==low);
+            assert(wide_video.read(addr+160U,plane)==high);
+        }
+        const auto next=phase+8U;
+        assert(wide_video.read(
+            static_cast<std::uint32_t>(
+                dest+(next>>2U)+80U),
+            static_cast<std::uint8_t>(next&3U))==0U);
+    }
+    run=main_run();
+
     // Bounds and source-byte authenticity are checked BEFORE drawing.
     auto bad=run;
     bad.pass=SweepRenderPass::Prepass;
