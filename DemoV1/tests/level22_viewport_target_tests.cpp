@@ -5,6 +5,7 @@
 #include <cassert>
 #include <optional>
 #include <stdexcept>
+#include <vector>
 
 int main() {
     rloft::LevelWorldState world{};
@@ -53,6 +54,47 @@ int main() {
         std::nullopt,world));
     assert(!rloft::Level22ViewportTargetModel::loose_item_index(
         std::nullopt,world));
+
+    // Exercise the actual 223F4 rectangle selection before resolving
+    // the live encounter target. An item above the Assassin is ignored
+    // for an attack (action bit 0 clear), but selected by pickup clicks
+    // (action bit 0 set). Neither path bypasses rank ordering.
+    const rloft::Type7Geometry geometry{
+        64U,15,51,27,128
+    };
+    const auto lookup=[geometry](std::uint16_t) {
+        return geometry;
+    };
+    std::vector<rloft::WorldSceneRecord> scene(2U);
+    scene[0].screen_x=128U;
+    scene[0].projected_extent=400U;
+    scene[0].resource_id=100U;
+    scene[0].source_class=0U;
+    scene[0].source_index=1U;
+    scene[0].render_order=0U;
+    scene[1]=scene[0];
+    scene[1].source_class=2U;
+    scene[1].source_index=0U;
+    scene[1].resource_id=200U;
+    scene[1].render_order=1U;
+
+    const auto attack_target =
+        rloft::WorldSceneSelectionModel::target_at(
+            scene,115,128,0U,lookup);
+    assert(rloft::Level22ViewportTargetModel::assassin_index(
+        attack_target,world)==1U);
+    assert(!rloft::Level22ViewportTargetModel::loose_item_index(
+        attack_target,world));
+
+    const auto pickup_target =
+        rloft::WorldSceneSelectionModel::target_at(
+            scene,115,128,0x01U,lookup);
+    assert(rloft::Level22ViewportTargetModel::loose_item_index(
+        pickup_target,world)==0U);
+    assert(!rloft::Level22ViewportTargetModel::assassin_index(
+        pickup_target,world));
+    assert(!rloft::WorldSceneSelectionModel::target_at(
+        scene,114,128,0x01U,lookup));
 
     // A cached viewport record can become stale after an Assassin death
     // or item removal. Fail explicitly instead of attacking/picking
