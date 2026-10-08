@@ -34,7 +34,7 @@ source. Do not treat its tests as validation of current HEAD.
 
 The current source-only work includes
 [original attack/target preflight and offline verification](LEVEL22_COMBAT_ENTRY_CHECKPOINT.md).
-An original-asset offline byte audit now covers **258 original CODE.2
+An original-asset offline byte audit now covers **273 original CODE.2
 machine-code anchors plus one signed Strength data table**. Seventeen combat C++ test targets are registered,
 but **have not been executed** since the private-repository build pause.
 The [conditional 24478 hand-eligibility model](LEVEL22_HAND_PAIR_RAW_HEAP_MODEL_CHECKPOINT.md)
@@ -85,13 +85,20 @@ type `0x09` now uses the audited `E284` four-drop ID and
 placement-seed plan (`88/6E,87/78,E9/82,74/8C`), removing
 a second hardcoded death-spawn loop.
 
+The original `E0F8` respawn routine is now **instruction-audited**:
+it samples the independent `30700` IRQ tick, draws two `30CA2`
+values for each of up to three placement attempts, checks map
+collision/proximity, and can roll new NPC HP on success.
+This source evidence **does not imply native E0F8 integration**.
+
 The `0x258AA` three-entry signed type tracker and `E0F8`
 respawn callback are modeled **only with observed caller inputs**;
 type `0x18` still requires external condition/RNG evidence.
 Original global story `BF44`, presentation/audio `38110`,
 and `1DDA4` award consequences are not yet fully connected.
-**32 exact additional original opcodes matched**, bringing the
-offline verifier to **258 instructions plus one data table**.
+**32 original E284 death-branch opcodes** and **15 subsequent E0F8
+respawn-body opcodes** have been verified, bringing the cumulative
+offline verifier to **273 instructions plus one data table**.
 The tests are source-registered and not yet compiled in Windows.
 
 ## Recovered Strength table and HARM/E284 event ordering
@@ -278,7 +285,7 @@ the allocator-adjacent **runtime byte value** is still unknown. Conditional
 original heap values and connecting timed attack input** remain prerequisites
 to live attacks.
 The [offline original-byte audit](tools/verify_combat_entry_bytes.py)
-had reached **87 opcode anchors at that earlier checkpoint**; the [current verifier](tools/verify_combat_entry_bytes.py) contains **258**, including the 15 then-newly audited `24478` empty/pseudo short-circuit instructions (both original party-status checks remain distinct) matched
+had reached **87 opcode anchors at that earlier checkpoint**; the [current verifier](tools/verify_combat_entry_bytes.py) contains **273**, including the 15 then-newly audited `24478` empty/pseudo short-circuit instructions (both original party-status checks remain distinct) matched
 against original CODE.2. This is source evidence, not a new game build.
 
 **Bounded nonnegative `240A8` checkpoint: 75%** (compiled/original-runtime
