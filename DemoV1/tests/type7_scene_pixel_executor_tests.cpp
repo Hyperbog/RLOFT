@@ -52,6 +52,9 @@ int main() {
         128,rloft::VgaPlanarMemory::kPhysicalBase,
         0x0102U,0x01U,0U
     });
+    // Grouped CODE.2 36B14 always swaps AL/AH in its saved ECX after
+    // the entire descriptor list, even when the run is one pixel wide.
+    run.dispatch.lookup_after_dispatch = 0x0201U;
     trace.runs.push_back(run);
 
     rloft::VgaPlanarMemory video;
@@ -71,6 +74,10 @@ int main() {
     // A 2-plane grouped pass duplicates each indexed SINTAB write in the
     // two selected VGA lanes without inventing a different source color.
     rloft::VgaPlanarMemory grouped;
+    // A true two-lane mask belongs to a TWO-pixel grouped run. The
+    // original 36A2B tables cannot generate mask 0x03 for width one.
+    plan.visible_runs[0].width = 2U;
+    trace.runs[0].width = 2U;
     trace.runs[0].dispatch.calls[0].sequencer_mask=0x03U;
     const auto two=rloft::Type7ScenePixelExecutor::draw(
         plan,trace,{0xA5U,0xB1U},tables,grouped);
@@ -79,6 +86,12 @@ int main() {
         rloft::VgaPlanarMemory::kPhysicalBase+80U,1U)==0xAFU);
     assert(grouped.read(
         rloft::VgaPlanarMemory::kPhysicalBase+160U,1U)==0xB0U);
+
+    // Revert to an ordinary one-pixel mask to test source-mismatch
+    // rejection without triggering an independent mask inconsistency.
+    plan.visible_runs[0].width = 1U;
+    trace.runs[0].width = 1U;
+    trace.runs[0].dispatch.calls[0].sequencer_mask=0x01U;
 
     // A trace cannot be applied to unrelated visible scene columns.
     auto bad=plan;
@@ -141,6 +154,7 @@ int main() {
             0x01U,
             0U,
         });
+        real_run.dispatch.lookup_after_dispatch = 0x0201U;
         real_trace.runs.push_back(real_run);
 
         std::vector<std::uint8_t> source(4096U);
