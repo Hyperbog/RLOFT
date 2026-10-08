@@ -1,4 +1,4 @@
-name: DOS disassembler core smoke tests
+name: Windows DOS disassembler core smoke tests
 on:
   push:
     paths:
@@ -8,54 +8,40 @@ on:
     paths:
       - 'Tools/Disassembler/**'
       - '.github/workflows/disassembler-core.yml'
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  core:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+  windows-core:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
       - name: Build core CLI and synthetic fixtures
-        shell: bash
+        shell: pwsh
         working-directory: Tools/Disassembler
         run: |
+          $ErrorActionPreference = 'Stop'
           dotnet build src/DosDis.Cli/DosDis.Cli.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet build tests/DosDis.Smoke/DosDis.Smoke.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Run synthetic smoke test suite (no game files)
-        shell: bash
-        working-directory: Tools/Disassembler
-        run: dotnet run --project tests/DosDis.Smoke --configuration Release --no-build
-      - name: Publish portable self-contained Linux CLI
-        if: runner.os == 'Linux'
-        shell: bash
+        shell: pwsh
         working-directory: Tools/Disassembler
         run: |
-          dotnet publish src/DosDis.Cli/DosDis.Cli.csproj --configuration Release --runtime linux-x64 --self-contained true -p:PublishSingleFile=true --output dist/linux-x64
-          cp README.md THIRD_PARTY_NOTICES.md dist/linux-x64/
-      - name: Upload Linux CLI preview artifact
-        if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: DOSDis-CLI-linux-x64-preview
-          path: Tools/Disassembler/dist/linux-x64/
-          if-no-files-found: error
-          retention-days: 30
+          dotnet run --project tests/DosDis.Smoke --configuration Release --no-build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Publish portable self-contained Windows CLI
-        if: runner.os == 'Windows'
-        shell: bash
+        shell: pwsh
         working-directory: Tools/Disassembler
         run: |
           dotnet publish src/DosDis.Cli/DosDis.Cli.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output dist/win-x64
-          cp README.md THIRD_PARTY_NOTICES.md dist/win-x64/
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item README.md,THIRD_PARTY_NOTICES.md -Destination dist/win-x64/
       - name: Upload Windows CLI preview artifact
-        if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: DOSDis-CLI-win-x64-preview
