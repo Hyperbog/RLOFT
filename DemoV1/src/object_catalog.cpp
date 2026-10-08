@@ -55,8 +55,9 @@ ObjectCatalog ObjectCatalog::parse(
             rec[0x2B];
         object.ui_graphic_index = u16(rec + 0x2D);
         object.item_category = rec[0x2F];
+        object.raw_word_35 = u16(rec + 0x35);
         object.raw_byte_35_low2 =
-            static_cast<std::uint8_t>(rec[0x35] & 0x03U);
+            static_cast<std::uint8_t>(object.raw_word_35 & 0x03U);
         object.weight_half_units = rec[0x30];
         object.container_state_index =
             static_cast<std::int8_t>(rec[0x31]);
