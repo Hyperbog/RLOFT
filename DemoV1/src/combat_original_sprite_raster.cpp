@@ -32,7 +32,8 @@ static std::optional<CombatOriginalSpriteRasterResult> draw_sprite_impl(
     const CombatOriginalSpriteMemory& source,
     std::uint32_t frame_bits,
     const CombatOriginalSpriteVideoState& video,
-    const CombatOriginalShaderMemory* shader) {
+    const CombatOriginalShaderMemory* shader,
+    CombatOriginalSpriteMachineState* original_machine) {
     // Original 2A584 writes a lookup ADDRESS into two four-byte
     // instruction operands; MOV AL,[EBX+address] reads the full
     // captured table. An incomplete shader capture is unsupported
@@ -145,6 +146,11 @@ static std::optional<CombatOriginalSpriteRasterResult> draw_sprite_impl(
         // shaded 2A5F3/2A62C or 2A64F/2A6A3. OUT 03C4h,
         // indexed register 02h, BEFORE any writes on this pass.
         vga.set_sequencer_map_mask_02(mask);
+        // Transparent original 2A42B/2A651 executes MOV [F009],
+        // ECX immediately after the FIRST sequencer OUT, even
+        // before any transparent/sentinel pixel comparisons.
+        if(transparent && plane==0U && original_machine!=nullptr)
+            original_machine->transparent_row_count_f009=height;
         auto dst=plane_start;
         for(std::uint32_t y=0U;y<height;++y) {
             for(std::uint32_t x=0U;x<bytes_per_row;++x) {
@@ -184,8 +190,9 @@ CombatOriginalSpriteRasterModel::draw_2a380(
     VgaPlanarMemory& vga,
     const CombatOriginalSpriteMemory& source,
     std::uint32_t frame_bits,
-    const CombatOriginalSpriteVideoState& video) {
-    return draw_sprite_impl(vga,source,frame_bits,video,nullptr);
+    const CombatOriginalSpriteVideoState& video,
+    CombatOriginalSpriteMachineState* machine) {
+    return draw_sprite_impl(vga,source,frame_bits,video,nullptr,machine);
 }
 
 std::optional<CombatOriginalSpriteRasterResult>
@@ -194,8 +201,16 @@ CombatOriginalSpriteRasterModel::draw_2a584(
     const CombatOriginalSpriteMemory& source,
     std::uint32_t frame_bits,
     const CombatOriginalSpriteVideoState& video,
-    const CombatOriginalShaderMemory& shader) {
-    return draw_sprite_impl(vga,source,frame_bits,video,&shader);
+    const CombatOriginalShaderMemory& shader,
+    CombatOriginalSpriteMachineState* machine) {
+    // 2A590/2A595 execute before 2AB38, shader backing checks,
+    // or source raster work. A later unsupported DOS-memory
+    // capture may therefore still leave these code operands patched.
+    if(machine!=nullptr &&
+       !CombatOriginalSpriteCodePatchModel::patch_2a584(
+           *machine,shader.original_lookup_pointer))
+        return std::nullopt;
+    return draw_sprite_impl(vga,source,frame_bits,video,&shader,machine);
 }
 
 } // namespace rloft
