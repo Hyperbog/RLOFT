@@ -204,6 +204,33 @@ ANCHORS = {
     "C910 category11 signed minus2 second cmp": (0xC98C, "83fafe"),
     "C910 universal damage minimum one": (0xC993, "83f801"),
     "C910 final force minimum damage": (0xC998, "b801000000"),
+    # 22E40 original first-matching signed class-level lookup.
+    "22E40 actor stride": (0x22E40, "6944240848020000"),
+    "22E40 class lane zero MOVSX": (0x22E48, "0fbe90f5180200"),
+    "22E40 level lane zero MOVSX": (0x22E55, "0fbf8000190200"),
+    "22E40 class lane one MOVSX": (0x22E5D, "0fbe90f6180200"),
+    "22E40 level lane one MOVSX": (0x22E6A, "0fbf8002190200"),
+    "22E40 class lane two MOVSX": (0x22E72, "0fbe90f7180200"),
+    "22E40 level lane two MOVSX": (0x22E7F, "0fbf8004190200"),
+    "22E40 unmatched class returns one": (0x22E87, "b801000000"),
+    "E845 vampiric calls exact 22E40": (0xE84F, "e8ec450100"),
+    "E856 vampiric level sign shift": (0xE856, "c1fa1f"),
+    "E85B vampiric divide by two": (0xE85B, "d1f8"),
+    "E860 vampiric adds one die": (0xE860, "40"),
+    # Rod of Smiting 4Ah E8BB..E957 compares BOOLEAN C80C
+    # return to 20; the charged critical branch cannot execute.
+    "C80C held returns literal one": (0xC81E, "b801000000"),
+    "C80C modified-twenty returns one": (0xC8EA, "b801000000"),
+    "C80C miss returns zero": (0xC8F9, "31c0"),
+    "C80C ordinary result setge bool": (0xC900, "39e80f9dc00fb6c0"),
+    "Rod special NPC type field": (0xE8C4, "0fb7470e"),
+    "Rod special compares C80C return20": (0xE8D2, "837c240814"),
+    "Rod charge decrement unreachable": (0xE8F8, "fe88ec670000"),
+    "Rod actual special extra 2d8 +6 per die": (0xE900, "6a006a066a086a02"),
+    "Rod ordinary compares C80C return20": (0xE912, "837c240814"),
+    "Rod indexed charge test unreachable": (0xE92B, "80b8ec67000000"),
+    "Rod ordinary charge decrement unreachable": (0xE93D, "fe88ec670000"),
+    "Rod nonrod branches to C910": (0xE947, "55ff74240856e8bedfffff"),
 }
 
 
