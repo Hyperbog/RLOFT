@@ -30,6 +30,27 @@ Overall faithful-demo acceptance is still **20% (1/5 major release gates)**.
 
 Goal: reproduce the original shipped behavior from boot through character creation while reading assets from a legally installed/owned copy of *Ravenloft: Strahd's Possession*.
 
+## Level 22 live HUD item handling (original CODE.2 214B8 / 211D8)
+
+The [live HUD hand and actor-panel checkpoint](LEVEL22_HAND_INTERACTION_CHECKPOINT.md)
+extends ordinary full-inventory swaps into the playable world UI. Supported
+normal-gameplay **right-click hand tiles** exchange their held items, preserving
+item identity, the identified bit and the original selected-hand ready-deadline
+reset. A **right-click on the actor inventory panel** places an ordinary
+held item in the actor's first free ordinary slot without opening the modal.
+An inventory-full result leaves the item safely on the cursor. These native
+right-click bindings are provisional pending DOS event-flag trace confirmation.
+
+The original `0F238` known-bit early return and `211D8` direct-stash
+known-bit non-update are preserved rather than replaced by generic inventory
+semantics. Special equipment, container and spell-hand branches remain
+explicitly unsupported. The original `214B8` separate use/attack path is
+not yet enabled: original target selection, damage, cooldown and feedback
+must be reconstructed first.
+
+**Live HUD hand/actor-panel checkpoint: 60% (3/5 bounded gates)** before fresh
+Windows CI and a real installed-game playtest. Overall faithful demo: **20%**.
+
 ## Level 22 functional gameplay integration (ordinary inventory)
 
 The next [inventory interaction checkpoint](LEVEL22_INVENTORY_INTERACTION_CHECKPOINT.md)
