@@ -71,12 +71,17 @@ try
     if (args.Length == 2)
     {
         string[] names = { "CODE.1", "CODE.2" };
+        string[] expectedHashes = {
+            "fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed",
+            "853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314"
+        };
         long[] starts = { 0x2c724, 0x3af24 };
         uint[] sizes = { 0x11302, 0x3a852 };
         uint[] entries = { 0xcc1c, 0x353a0 };
         for (int i = 0; i < 2; i++)
         {
             var art = BinaryArtifact.Open(args[i]);
+            Equal(art.Sha256, expectedHashes[i], names[i] + " original SHA-256");
             var image = LeImage.Load(art);
             Equal(image.ModuleOrigin, 0x25d24L, names[i] + " module");
             Equal(image.HeaderOffset, 0x27bdcL, names[i] + " LE");

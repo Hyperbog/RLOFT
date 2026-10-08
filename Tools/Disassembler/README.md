@@ -18,6 +18,8 @@ dotnet run --project tests/DosDis.Smoke
 dotnet run --project tests/DosDis.Smoke -- /path/to/CODE.1 /path/to/CODE.2
 ```
 
+On the Windows CI job, a self-contained `DOSDis-CLI-win-x64-preview` build artifact is uploaded for testing (not an endorsed production release).
+
 `inspect` emits JSON with immutable source SHA-256, LE module/object/page mappings, entry point, and evidence-tagged File Intelligence fields. `disasm` emits structured instruction records (original bytes, object offset, assembly, flow-control category).
 
 Input is limited to 128 MiB in this prototype as an explicit safety bound. The stored image is copied into memory and never written back. Use an isolated authorized copy of any proprietary original game files; do not add them to this repository.
