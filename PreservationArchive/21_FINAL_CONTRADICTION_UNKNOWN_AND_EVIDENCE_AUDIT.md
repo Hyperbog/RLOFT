@@ -338,3 +338,16 @@ The two additional `rlftdk11.zip` and `rlftdk12.zip` archives are specifically *
 
 **Scope ruling:** full resource **identity revalidation** is now **PASS**. Whole-corpus format parser/round-trip replay, ARJ executable extraction, original hardware audio timing and the historical 1.0/1.1/1.2 exact delta graph remain separate tests. Do not conflate byte-identical originals with having executed every prior parser/test anew in this pass.
 
+
+
+## 20. Additional configuration presets recovered; no new 1.0 executable
+
+A later user attachment named `Ravenloft_-_Strahds_Possession_1994 - Copy.zip` was inspected in full. It contains **nine ZIP entries, including four `SOUND.CFG` paths (three unique 59-byte profiles) and one DOSBox-ECE `dosbox.conf`**. It contains **no `CODE.1`, `CODE.2`, `R.EXE`, original retail-media image, or version 1.0 executable**. ZIP member timestamps for the audio profiles are from 2018, and for DOSBox-ECE from 2019; neither is 1994 build metadata.
+
+The presets are labeled `MT32`, `SC55` and `SB16`; the top-level `SOUND.CFG` is byte-identical to the SB16 preset. The SC55 preset is **byte-identical to the earlier certified SOUND.CFG sample** already documented by Chapters 15 and Runtime. Both MT32 and SC55 select `A32MT32.DLL` but differ in the music-side numeric words; SB16 selects `A32SP2FM.DLL`; all use `A32SBPDG.DLL` for digital output. Each referenced DLL filename is present in the previously supplied driver ZIP.
+
+The directly run structural validator passed **12/12 tests** covering unique-source counts, byte lengths and duplicate identity, baseline SHA-256, invariant digital settings, valid NUL-terminated driver-name slots, driver-file availability, and observed trailer selector values. Source table and full hashes are in [Chapter 15 §§54–55](15_AUDIO_MUSIC_SFX_AND_DRIVER_INTERFACE.md).
+
+**Effect on U-015:** the distinction between configurable music and digital driver groups is now corroborated by three independent real-world profile samples. Original installer field names, driver-callback service rates and hardware-dependent completion/timing behavior remain unproved. This upload **partially strengthens** the audio-interface documentation but does not establish historical version 1.0 or eliminate the remaining driver/dynamic evidence category.
+
+**No further uploads required for the three SOUND.CFG presets.** The earlier §19 request for SOUND.CFG is now satisfied. A verified original 1.0 release or authentic CD-specific 1.1/1.2 patch would remain optional historical evidence; the current 1.2a original-build documentation is not blocked by their absence.
