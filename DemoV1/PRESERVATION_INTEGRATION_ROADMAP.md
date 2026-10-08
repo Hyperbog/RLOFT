@@ -464,3 +464,36 @@ four source-level CTests, including a composed
 1A288 overlay chain, are CMake-registered.
 Full current-HEAD Windows build and original DOS
 reference framebuffer/IRQ validation remain open.
+
+
+## Original 29414 clip record and 2AD18/2ADE0 type predicates
+
+[Source and integration checkpoint](LEVEL22_CODE2_29414_PREDICATES_CHECKPOINT_20261008.md):
+The previous original hit-test service predicates
+are now real source-backed native models,
+including the 1C1DC live DOS world-state bitset
+at DGROUP 22200 and exact 3A/3B/3C special
+cases. The 29804 draw-record callback now can
+invoke 29414's 24-byte scratch-record clipping,
+source viewport bounds EF55/EF59/EF5D/EF61,
+output WORDs EF69/EF6B/EF6D/EF6F and full
+versus clipped 2A380/2A6B0 dispatch.
+
+105 new CODE.2 instruction bytes were verified,
+for a cumulative **1109 named / 1101 unique**
+original object-1 offsets. Exact core sources
+passed isolated strict C++17 Debug, optimized
+Release and UBSan tests. Three more
+assertion-enabled CTests are registered, including
+a composed 2AE30→1A288→29804→29414 callback
+with real original resource `880D`. No current
+full Windows build or DOS A/B frame result
+is claimed for these new changes.
+
+The next shared rendering task is native
+2A6B0 clipped four-plane VGA rasterization
+with original transparency mask and scratch
+record registers. Follow with original
+33C90/1F820 pointer effects, authentic
+runtime resource/state binding, and DOS
+frame/IRQ comparisons.
