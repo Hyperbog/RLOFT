@@ -1,5 +1,37 @@
 # Ravenloft Demo Build v1
 
+## Current original 1A8C8 compositor checkpoint — signed row/column overlap
+
+The [1A8C8 original compositor checkpoint](LEVEL22_CODE2_COMPOSITE_1A8C8_CHECKPOINT.md)
+adds a reusable native **original source-order compositor wrapper**
+with direct/no-overlay, direct/outside-overlay and
+buffered/overlap paths. It preserves the original signed
+32-row × 16-column overlay intersection, full WORD
+reference counter, temporary 9E39 active page, A6BA
+busy writes, and original 1,024-byte backing-buffer
+transfer through `30CD4`. An adapter connects the wrapper
+to the previously reconstructed `1C258` timed-message
+renderer without sampling 30700 IRQ time early.
+
+The actual `2A078` VGA graphics-controller plane copy
+and nested `1A288/1AB20` original overlay services
+remain injected, **not** replaced with guessed pixels.
+An additional **31/31 executable instruction checks**
+passed against owned `CODE.2`; the cumulative ledger is
+**684 named checks at 676 distinct code addresses**.
+An isolated C++17 source-equivalent smoke regression
+passed Debug, optimized Release and UBSan; the new
+checked-in CMake/CTest target has **not** yet run on Windows.
+Prior Windows 130/130 CTest certification belongs to its
+earlier pinned source SHA only.
+
+**Project progress:** 1/5 formal demo acceptance gates
+remain completed, while implementation progress is
+tracked separately and is not assigned an unsupported
+overall engineering percentage. See the
+[progress scorecard](DEMO_PROGRESS_SCORECARD_20261008.md).
+
+
 ## Progress reporting — acceptance is not development completion
 
 **Formal release acceptance: 1 of 5 major demo gates (20%).**
