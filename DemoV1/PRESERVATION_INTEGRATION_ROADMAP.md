@@ -29,7 +29,7 @@ The certified archive documents 22/22 numbered *historical static* chapters 00�
 ## Implementation order, using the archive to avoid rediscovery
 
 1. **R-072 follow-through:** CODE.2 branch divergence is reconciled (above). Continue original-offset traceability for Level 22 native routines; isolate remaining inferred behavior and run a fresh whole-file CODE.2 strict syntax check when a compiler is available.
-2. **R-076 visible fidelity:** use Ch.04 and certified rasterizer evidence to finish the type-6 walls/prepass and compare exact indexed pixels against original DOS reference scenes. Current synthetic SINTAB tests do not replace this acceptance criterion.
+2. **R-076 visible fidelity:** transactional original-SINTAB RES4 prepass pixel execution is integrated for modeled 1..7-column runs, with strict original-plane masks and diagnostics ([checkpoint](SURFACE_PREPASS_CHECKPOINT.md)). Finish ordinary type-6 main-wall SINTAB rendering and compare exact indexed pixels against original DOS reference scenes. Synthetic tests alone do not replace this acceptance criterion.
 3. **R-061/R-079 pointer and item behavior:** use Ch.07 §15–24 and §31–55 to implement correctly ordered hand/cursor swap and inventory panel inputs. The current host click→loose-item bridge intentionally refuses pickup while holding another item.
 4. **R-045/R-075 combat:** implement the original attack hit/damage model from Ch.12 and actor state from Ch.11 before enabling arbitrary viewport attack clicks. Never synthesize a damage roll merely because an NPC is clicked.
 5. **R-078 story transition:** compare CODE.2 Level 22 event sequence to the native last-relic state machine and run the original 22-frame transition with correct Level 23 load and consumed relics.
