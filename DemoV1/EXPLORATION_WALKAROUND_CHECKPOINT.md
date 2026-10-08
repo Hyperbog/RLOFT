@@ -44,14 +44,14 @@ ravenloft_demo_v1.exe --explore-level22 "C:\\GOG Games\\Ravenloft Strahds Posses
 
 ## Acceptance and limitations
 
-**Implementation is committed, not yet a certified playable Windows build.** A fresh Windows CI compile, passing CTest, downloadable executable containing the new flag, and actual user walkaround with original assets must still be established. The main `FCD0=0` SINTAB wall pass and per-pixel DOS comparison remain outstanding. Accordingly, outdoors can show original sky/ground/environment primitives while **some walls, foliage, or scene elements can be missing or incorrectly drawn**. Do not claim full environmental or game fidelity.
+**Windows build and automated tests are now verified.** GitHub Actions run [#602](https://github.com/Hyperbog/RLOFT/actions/runs/37716513471) built Windows x64 successfully, completed the CODE.2 syntax gate, and passed **101/101 CTest cases** including `exploration_preview_tests` and `surface_sintab_prepass_executor_tests`. The produced EXE was checked as an x64 PE image containing the UTF-16 `--explore-level22` option, and the Windows archive includes `Explore-Level22.cmd`. A real interactive walkaround with the original installed game files is still awaiting user acceptance. The main `FCD0=0` SINTAB wall pass and per-pixel DOS comparison remain outstanding. Accordingly, outdoors can show original sky/ground/environment primitives while **some walls, foliage, or scene elements can be missing or incorrectly drawn**. Do not claim full environmental or game fidelity.
 
 ### Walkaround-specific gates
 
 1. [x] Direct opt-in Level 22 route, independent of saved CHARS.
 2. [x] Read-only preview party / no game-file writes / no pickup in preview.
 3. [x] Launcher staged alongside exe in Windows artifact.
-4. [ ] Fresh Windows build and regression suite confirmed passing.
+4. [x] Fresh Windows build and regression suite confirmed passing (run #602, 101/101).
 5. [ ] Real playable smoke test against installed original game resources.
 
-**Walkaround checkpoint: 60% accepted (3/5 gates)**, awaiting binary/run confirmation. **Overall demo end-to-end acceptance: 20% (1/5 major release gates)**, unchanged by this opt-in exploration slice.
+**Walkaround checkpoint: 80% accepted (4/5 gates)**, pending a real game-file smoke test. **Overall demo end-to-end acceptance: 20% (1/5 major release gates)**, unchanged by this opt-in exploration slice.
