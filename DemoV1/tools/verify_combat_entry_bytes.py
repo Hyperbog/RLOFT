@@ -185,6 +185,25 @@ ANCHORS = {
     "E5F0 rod of smiting item 4A": (0xE8BB, "83fd4a"),
     "E5F0 nonrod postdamage C910": (0xE94D, "e8bedfffff"),
     "E5F0 NPC injury E284": (0xE963, "e81cf9ffff"),
+    # C910: original weapon-vs-creature damage filter and
+    # signed -2 comparisons on zero-extended enchantment bytes.
+    "C910 NPC definition flags word +31": (0xC919, "8b4931"),
+    "C910 missing hand item sentinel": (0xC91C, "837c2410ff"),
+    "C910 weapon item category +2F": (0xC936, "0fb65a2f"),
+    "C910 checks item enchantment +37": (0xC93A, "807a3700"),
+    "C910 enchanted category 11": (0xC940, "bb0b000000"),
+    "C910 unarmed category 9": (0xC947, "bb09000000"),
+    "C910 category comparison ten": (0xC94C, "83fb0a"),
+    "C910 category9 NPC flag bit15": (0xC95F, "f6c580"),
+    "C910 category10 NPC flag bit14": (0xC966, "f6c540"),
+    "C910 category11 NPC flag bit17": (0xC96D, "f7c100000200"),
+    "C910 movzx enchanted BYTE bit17": (0xC975, "0fb65a37"),
+    "C910 compares uint8 enchant to signed minus2": (0xC979, "83fbfe"),
+    "C910 category11 NPC flag bit18": (0xC980, "f7c100000400"),
+    "C910 movzx enchanted BYTE bit18": (0xC988, "0fb65237"),
+    "C910 category11 signed minus2 second cmp": (0xC98C, "83fafe"),
+    "C910 universal damage minimum one": (0xC993, "83f801"),
+    "C910 final force minimum damage": (0xC998, "b801000000"),
 }
 
 
