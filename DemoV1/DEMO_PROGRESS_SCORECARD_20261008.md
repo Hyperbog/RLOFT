@@ -98,3 +98,27 @@ DOS timing/pixel equivalence remain unaccepted,
 so **1 of 5 formal release gates** is still the
 correct discrete acceptance score, not the
 percentage of engineering completed.
+
+
+## Original VGA page-stack progression — 2026-10-08
+
+New source-backed 2E590/2E5D4 native execution
+now preserves the actual BYTE F0D0 page-stack,
+saved EF4D distinct from EFE9, and dynamic
+F001 addressing through original F005.
+The overlay presentation callbacks can use
+this shared VGA selector for both suspend and
+restore, and the binding synchronizes actual
+2A078 copy-model page addresses. The code
+byte verifier now has **826 named checks at
+818 distinct addresses**.
+
+The exact committed implementation and binder
+passed isolated strict C++17 Debug, Release and
+UBSan tests; the new integrated repository CTests
+are registered but await a current-HEAD Windows
+build. The original overlay backing read/write
+service pixels and DOS reference comparisons
+remain unaccepted. **Formal release acceptance
+is still 1/5 gates**, while engineering completion
+is not objectively weighted.
