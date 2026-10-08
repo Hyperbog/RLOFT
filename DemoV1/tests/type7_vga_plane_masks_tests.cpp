@@ -87,6 +87,37 @@ int main() {
         }
     }
 
+    // Original CODE.2 3263C uses these SAME arrays for ordinary
+    // walls. Its unsplit eight-column reads for phases 0,1,2 use
+    // slots 8,16,24 (the next phase group's zero-index entry).
+    for (std::uint32_t phase=0U; phase<3U; ++phase) {
+        const auto m=model.for_surface_main_run(phase,8U);
+        const auto at=static_cast<std::size_t>(phase)*8U+8U;
+        assert(m.column_count==8U && m.screen_phase==phase);
+        assert(m.planes[0]==kFirst[at]);
+        assert(m.planes[1]==kSecond[at]);
+        assert(m.planes[2]==kThird[at]);
+        assert(count_bits(m.planes[0])+
+               count_bits(m.planes[1])+
+               count_bits(m.planes[2])==8U);
+    }
+    // Phase 3 width 8 indexes byte 32, past each captured
+    // 32-byte array. No synthetic split or mask alias is valid.
+    bool eight_rejected=false;
+    try {(void)model.for_surface_main_run(3U,8U);}
+    catch(const std::out_of_range&) {eight_rejected=true;}
+    assert(eight_rejected);
+    eight_rejected=false;
+    try {(void)model.for_surface_main_run(0U,9U);}
+    catch(const std::out_of_range&) {eight_rejected=true;}
+    assert(eight_rejected);
+    // Sprite callers continue to use the independently verified 1..7
+    // domain; do not inadvertently widen their dispatch.
+    eight_rejected=false;
+    try {(void)model.for_run(0U,8U);}
+    catch(const std::out_of_range&) {eight_rejected=true;}
+    assert(eight_rejected);
+
     // The first 369D8 call always occurs; follow-up calls depend on mask.
     assert(model.for_run(0, 1).active_call_count() == 1U);
     assert(model.for_run(0, 5).active_call_count() == 2U);
@@ -138,6 +169,13 @@ int main() {
     assert(rejected);
 
     auto corrupt = code2;
+    // A mutated eight-column lane must also fail at original load.
+    corrupt[kDataFileStart+kLocations[2]+16U] = 0U;
+    rejected=false;
+    try {(void)rloft::Type7VgaPlaneMaskModel::from_code2(corrupt);}
+    catch (const std::runtime_error&) {rejected=true;}
+    assert(rejected);
+    corrupt = code2;
     corrupt[kDataFileStart + kLocations[0] + 1U] = 0xFFU;
     rejected = false;
     try { (void)rloft::Type7VgaPlaneMaskModel::from_code2(corrupt); }
