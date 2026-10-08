@@ -301,3 +301,24 @@ records 48 additional verified x86 instruction signatures and
 focused strict Debug/Release/UBSan tests. No later Windows
 CI pass is claimed. Preserve the current 30700 post-draw
 IRQ observation, independent of Windows frame time.
+
+
+## 2AB38 variable video addressing and plane selection
+
+The original sprite draw at 2A380/2A584 invokes 2AB38,
+which reads mutable runtime `DWORD[EFED]`,
+`DWORD[EFF1]` and `DWORD[F001]`; it computes
+two sequential low-five-bit CL shifts from the row,
+adds unsigned `column>>2` to its linear VGA page base
+and returns `column&3` as VGA plane. The native pure
+address model now matches those original instructions
+and x86 DWORD wrapping. No fixed 80-byte scanline
+or A8000 page should be inserted unless the **original
+runtime** has selected that exact shift/page state.
+
+See [source and tests](LEVEL22_ORIGINAL_GLYPH_SPRITE_RENDERER_CHECKPOINT.md).
+This address projection is not the original plane-mask
+pixel write itself, nor a new timing source. Original
+303C8 per-glyph callbacks, F0C8 refresh, 1A8C8
+composition and IRQ-after-render ordering are still
+mandatory for faithful timed message output.
