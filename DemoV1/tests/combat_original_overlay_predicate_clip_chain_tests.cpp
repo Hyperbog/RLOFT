@@ -74,18 +74,18 @@ int main() {
     };
     draw_raster.read_sprite_word=[&](std::uint32_t address)
         ->std::optional<std::uint16_t> {
-        assert(address==0x1004U);return 2U;
+        assert(address==0x8811U);return 2U;
     };
     draw_raster.read_sprite_byte=[&](std::uint32_t address)
         ->std::optional<std::uint8_t> {
-        assert(address==0x1006U);return 1U;
+        assert(address==0x8813U);return 1U;
     };
     draw_raster.full_sprite_2a380=[&](
         std::uint32_t mode,std::uint32_t row,
         std::uint32_t column,std::uint32_t resource) {
         trace.push_back('F');
         assert(mode==expected_draw_mode&&row==10U&&column==20U);
-        assert(resource==0x1000U);
+        assert(resource==0x880DU);
         assert(depth.nested_record_depth_efd4==1U);
     };
     auto draw_services=CombatOriginalSpriteClipBinder::bind_29804(
