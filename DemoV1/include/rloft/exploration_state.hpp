@@ -50,6 +50,26 @@ struct LevelState final {
     std::int16_t render_threshold_floor{1};
     std::uint8_t music_sequence{};
 
+    // Original CODE.2 level loader copies the fixed 0x2A4-byte header
+    // to DGROUP:25618. E284:E50F then reads three SIGNED type words
+    // at DGROUP:258AA (header +292/+294/+296).
+    [[nodiscard]] std::array<std::int16_t,3> respawn_npc_types() const noexcept {
+        std::array<std::int16_t,3> types{};
+        for (std::size_t i=0;i<types.size();++i) {
+            const auto at=0x292U+i*2U;
+            const auto raw=static_cast<std::uint16_t>(
+                static_cast<std::uint16_t>(header[at]) |
+                (static_cast<std::uint16_t>(header[at+1U])<<8U));
+            // Convert explicitly without implementation-defined out-of-range
+            // unsigned->signed narrowing: x86 MOVSX WORD 0xFFFF means -1.
+            types[i]=static_cast<std::int16_t>(
+                raw<=0x7FFFU ? static_cast<std::int32_t>(raw) :
+                static_cast<std::int32_t>(raw)-0x10000);
+        }
+        return types;
+    }
+
+
     std::vector<std::uint16_t> cell_words;
     std::vector<CellControlRecord> group1;
     std::vector<CellControlRecord> group2;
