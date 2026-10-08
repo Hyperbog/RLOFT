@@ -49,6 +49,20 @@ inventory interaction playtest remain separate acceptance gates.
 **Inventory subcheckpoint: 67% (4/6 bounded gates)** before new CI.
 **Overall faithful-demo release acceptance: 20% (1/5 gates)**.
 
+## Level 22 combat accuracy — original hit test
+
+The separate [CODE.2 C80C combat hit-check checkpoint](LEVEL22_COMBAT_HIT_CHECKPOINT.md)
+implements the original ordered player-to-NPC threshold calculation as a
+bounded, deterministic native primitive: held-target auto-hit, weapon and
+Strength adjustments, burden, Slow, Bless/Aid, Stone Giant Gauntlets and
+the original **modified-d20** automatic-hit/miss rules. Synthetic tests
+are registered in CMake, but the input command, hit target, RNG, damage,
+weapon category gate, NPC reaction and hand cooldown have **not** been
+connected. Attacks are intentionally not dispatched by arbitrary clicks.
+
+**Hit-check arithmetic subcheckpoint: 67% (2/3 bounded gates)** until
+fresh CI; overall faithful-demo acceptance remains 20%.
+
 ## Extended integration milestone — Level 22
 
 The demo's original boot/character-creation milestone has been extended to
