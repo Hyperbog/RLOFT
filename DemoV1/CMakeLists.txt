@@ -73,6 +73,7 @@ add_library(rloft_boot_flow
     src/combat_original_sprite_machine.cpp
     src/combat_original_sprite_raster_binding.cpp
     src/combat_original_composite.cpp
+    src/combat_original_vga_copy.cpp
     src/combat_level_message.cpp
     src/combat_harm_prelude.cpp
     src/combat_damage_stat_bonus.cpp
@@ -322,6 +323,9 @@ add_test(NAME combat_original_sprite_raster_binding_tests COMMAND combat_origina
 add_executable(combat_original_composite_tests tests/combat_original_composite_tests.cpp)
 target_link_libraries(combat_original_composite_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_original_composite_tests COMMAND combat_original_composite_tests)
+add_executable(combat_original_vga_copy_tests tests/combat_original_vga_copy_tests.cpp)
+target_link_libraries(combat_original_vga_copy_tests PRIVATE rloft_boot_flow)
+add_test(NAME combat_original_vga_copy_tests COMMAND combat_original_vga_copy_tests)
 add_executable(combat_harm_prelude_tests tests/combat_harm_prelude_tests.cpp)
 target_link_libraries(combat_harm_prelude_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_harm_prelude_tests COMMAND combat_harm_prelude_tests)
@@ -725,6 +729,7 @@ set(RLOFT_TEST_TARGETS
     combat_original_sprite_machine_tests
     combat_original_sprite_raster_binding_tests
     combat_original_composite_tests
+    combat_original_vga_copy_tests
     combat_level_message_tests
     combat_harm_prelude_tests
     combat_damage_stat_bonus_tests
