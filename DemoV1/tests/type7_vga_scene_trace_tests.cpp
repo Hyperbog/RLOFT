@@ -1,4 +1,5 @@
 #include "rloft/type7_vga_scene_trace.hpp"
+#include "rloft/type7_vga_trace_validation.hpp"
 
 #include <cassert>
 #include <cstddef>
@@ -86,6 +87,9 @@ int main() {
         rloft::Type7VgaSceneTraceModel::build(
             p, sh, t, m, 0U, false);
     assert(grouped.runs.size()==2U);
+    for (const auto& run : grouped.runs) {
+        rloft::Type7VgaTraceValidator::validate(run);
+    }
     assert(grouped.runs[0].width==2U);
     assert(!grouped.runs[0].individual_columns_mode);
     assert(!grouped.runs[1].individual_columns_mode);
@@ -111,6 +115,9 @@ int main() {
     const auto individual =
         rloft::Type7VgaSceneTraceModel::build(
             p, sh, t, m, 1U, true);
+    for (const auto& run : individual.runs) {
+        rloft::Type7VgaTraceValidator::validate(run);
+    }
     assert(individual.runs[0].individual_columns_mode);
     assert(individual.runs[1].individual_columns_mode);
     assert(individual.runs[0].dispatch.calls.size()==2U);
