@@ -131,6 +131,12 @@ ExplorationPresentedFrame ExplorationPresenter::present(
     // generated code. Unsupported original memory geometry, unavailable
     // resources and invalid selectors remain explicitly PENDING.
     std::vector<SurfacePrepassRasterFailure> prepass_failures;
+    for (const auto& failure : frame.prepass_plan_failures) {
+        prepass_failures.push_back(SurfacePrepassRasterFailure{
+            failure.resource_id, failure.first_ray, failure.reason,
+        });
+        ++output_coverage.sintab_prepass_runs_failed;
+    }
     if (!frame.prepass_plans.empty()) {
         VgaPlanarMemory prepass_video;
         prepass_video.import_page(framebuffer_, frame.scene_video_page);
