@@ -31,6 +31,11 @@ public:
     // OUT DX,AX at port 03C4h for every source-plane pass. The
     // register remains observable after the pixels are written.
     // Its initial value is UNKNOWN until a source-backed OUT occurs.
+    // Original 2A114 selects graphics-controller read-map register
+    // index 04h via OUT DX,AX. The selector survives the capture.
+    void set_graphics_read_map_04(std::uint8_t selected_plane);
+    [[nodiscard]] std::optional<std::uint8_t>
+    graphics_read_map_04() const noexcept;
     void set_sequencer_map_mask_02(std::uint8_t plane_mask);
     [[nodiscard]] std::optional<std::uint8_t>
     sequencer_map_mask_02() const noexcept;
@@ -58,6 +63,7 @@ private:
     [[nodiscard]] static std::size_t page_start(unsigned page);
     std::array<std::vector<std::uint8_t>, 4> planes_;
     std::optional<std::uint8_t> sequencer_map_mask_02_{};
+    std::optional<std::uint8_t> graphics_read_map_04_{};
 };
 
 } // namespace rloft
