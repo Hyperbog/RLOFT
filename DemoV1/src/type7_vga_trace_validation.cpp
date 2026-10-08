@@ -67,10 +67,13 @@ void Type7VgaTraceValidator::validate(
             CallGroup{calls[at].destination_column,at,end});
         at=end;
     }
-    const bool individual=groups.size()==run.width;
-    if(groups.size()!=1U && !individual) {
+    const bool individual=run.individual_columns_mode;
+    const auto required_groups=individual
+        ? static_cast<std::size_t>(run.width)
+        : 1U;
+    if(groups.size()!=required_groups) {
         throw std::invalid_argument(
-            "type-7 VGA call trace contains an incomplete destination run");
+            "type-7 VGA call trace does not match the CODE.2 C029 mode");
     }
     if(groups.size()==1U && groups[0].column!=start) {
         throw std::invalid_argument(
