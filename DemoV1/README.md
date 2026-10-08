@@ -1,5 +1,35 @@
 # Ravenloft Demo Build v1
 
+## Latest verified Windows build — 130/130 CTests passed
+
+The actual [Windows x64 GitHub Actions run #634](https://github.com/Hyperbog/RLOFT/actions/runs/37788168281)
+**passed compilation, all 130 CTests, Windows EXE artifact
+upload, and committed the refreshed EXE**.
+The executable SHA-256 is
+`09a3ce4cb5e5d804eee4647413915be7c871789f22cf26e72f13e3f71ff59b35`.
+Initial run #632 revealed three outdated regression-test
+compilation errors; #633 compiled but identified one
+test fixture incompatible with the original `0x7240`
+actor mask. Both were corrected without altering DOS
+gameplay rules. Full chronology:
+[2026-10-08 build and renderer checkpoint](WINDOWS_BUILD_AND_IRQ_RENDERER_CHECKPOINT_20261008.md).
+
+**Source after this verified Windows run:** added an
+independently tested original `1C258/1C2C4` renderer
+callback execution bridge and `291B0` VGA-page calculation.
+The bridge executes the original collaborators in temporal
+order with a post-render IRQ observation, but does **not**
+implement their underlying image/text/GDI/VGA pixel effects.
+It adds 22 verified executable opcode anchors, bringing
+the audit to **509 named checks / 501 distinct addresses**.
+The newly added CTest has strict isolated C++17
+Debug/Release/UBSan validation, **not** a second complete
+Windows build. The green 130/130 result belongs to
+the precise earlier source SHA `40e3f14b1072a7a0180ea1b0b4c1cea437137631`.
+Faithful-demo DOS gameplay acceptance remains **20% (1/5)**.
+GitHub Actions is restored to manual-only operation.
+
+
 ## Latest source checkpoint — DDA4 level-up text and IRQ display lifecycle
 
 The [3210F / 1C258 / 1C2C4 checkpoint](LEVEL22_DDA4_MESSAGE_FORMAT_DISPLAY_CHECKPOINT.md)
