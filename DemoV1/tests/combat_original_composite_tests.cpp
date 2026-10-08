@@ -118,6 +118,7 @@ int main() {
     rect.row=120U;
     rect.rows=5U;
     rect.column=184U;
+    rect.columns=16U; // 184+16 meets the overlay's inclusive left edge (200).
     assert(Model::inspect_1a8c8(state,rect)==
            Route::BufferedOverlayOverlap);
     rect.column=183U;
