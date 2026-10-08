@@ -1,5 +1,35 @@
 # Ravenloft Demo Build v1
 
+## Latest source checkpoint — DDA4 level-up text and IRQ display lifecycle
+
+The [3210F / 1C258 / 1C2C4 checkpoint](LEVEL22_DDA4_MESSAGE_FORMAT_DISPLAY_CHECKPOINT.md)
+closes the **original level-up message source**: CODE.2 DGROUP
++67E4 points to the verified format `%s gains a level.` at +548.
+The original 3210F wrapper writes its final NUL in buffer
++759C and 1C21C copies it to the timed queue +14580.
+A new read-only C++ model preserves the actor name's DOS
+bytes, destination-buffer tail and unsupported out-of-bounds
+source cases.
+
+The original `1C258` display and `1C2C4` expiration sequence
+now has a separately tested **ordered event model**. It records
+the original render-service calls, the pending-flag clear
+**after** drawing, and the later original IRQ observation.
+An expired message may be displayed and erased in the same
+call. No renderer, real-time clock or global state mutation
+is substituted for the verified original calls.
+
+Original executable audit: **487 named x86 byte checks at
+479 distinct logical instruction addresses**, one direct
+Strength table, nine hashed DGROUP data spans and one hashed
+CS data span. The new 30 opcodes and two original format/data
+hashes passed. The exact committed model sources and headers
+passed focused strict Debug, optimized Release and UBSan
+compilation/execution using original CODE.2. **No complete
+repository CMake/CTest or Windows EXE build was executed**.
+The five-main-gate faithful demo acceptance remains **20%**.
+
+
 ## Current original DDA4 callback checkpoint — spell state and IRQ queue
 
 The [3DE4/3EA4/1C21C checkpoint](LEVEL22_DDA4_SPELL_IRQ_CHECKPOINT.md)
