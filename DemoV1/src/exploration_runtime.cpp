@@ -4,6 +4,7 @@
 #include "rloft/resource_assets.hpp"
 #include "rloft/options_menu.hpp"
 
+#include <exception>
 #include <stdexcept>
 #include <utility>
 
@@ -427,14 +428,24 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
             !run.drawable()) {
             continue;
         }
-        const auto plan =
-            SurfacePrepassModel::build(
-                run,
-                session_.level,
-                renderer_tables_,
-                out.surface_shades);
-        if (plan.has_value()) {
-            out.prepass_plans.push_back(*plan);
+        try {
+            const auto plan =
+                SurfacePrepassModel::build(
+                    run,
+                    session_.level,
+                    renderer_tables_,
+                    out.surface_shades);
+            if (plan.has_value()) {
+                out.prepass_plans.push_back(*plan);
+            }
+        } catch (const std::exception& error) {
+            // A failed *optional* rendering plan does not invalidate
+            // movement, world visibility, automap or interaction state.
+            // Keep the original run pending, with its precise error.
+            out.prepass_plan_failures.push_back(
+                SurfacePrepassPlanFailure{
+                    run.resource_id, run.first_ray, error.what(),
+                });
         }
     }
 
