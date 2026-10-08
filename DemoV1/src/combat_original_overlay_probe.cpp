@@ -44,10 +44,11 @@ std::optional<std::int32_t> CombatOriginalOverlayProbeModel::probe_2ae30(
             records+i*0x16U);
         const auto flags=calls.original_word(addr+8U);
         if(!flags)return std::nullopt;
-        const auto id=calls.original_word(addr+6U);
-        if(!id)return std::nullopt;
         std::optional<std::uint16_t> first_type;
         if(*flags==0U) {
+            // 2AEA6 fetches the ID only for flag-zero records.
+            const auto id=calls.original_word(addr+6U);
+            if(!id)return std::nullopt;
             first_type=calls.original_word(
                 static_cast<std::uint32_t>(
                     0x14D8EU+static_cast<std::uint32_t>(*id)*0x16U));
@@ -92,6 +93,9 @@ std::optional<std::int32_t> CombatOriginalOverlayProbeModel::probe_2ae30(
             if(*first_type<0x22U || *first_type==0x50U)
                 return 1;
         } else if(*flags==1U) {
+            // 2B000 fetches ID only AFTER both hit rectangles pass.
+            const auto id=calls.original_word(addr+6U);
+            if(!id)return std::nullopt;
             const auto second_type=calls.original_word(
                 static_cast<std::uint32_t>(
                     0x22246U+static_cast<std::uint32_t>(*id)*0x16U));
