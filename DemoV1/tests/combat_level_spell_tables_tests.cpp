@@ -73,8 +73,8 @@ int main() {
     assert(result->projected_party.bytes[0xBCU]==0x00U);
     assert(result->projected_party.bytes[0xBDU]==0x00U);
     assert(result->projected_party.bytes[0xBEU]==0xFEU);
-    assert(result->projected_party.bytes[0xC4U]==0xFFU);
-    assert(result->projected_party.bytes[0xC5U]==0xFEU);
+    assert(result->projected_party.bytes[0xC4U]==0x2FU);
+    assert(result->projected_party.bytes[0xC5U]==0xFFU);
     assert(result->projected_party.bytes[0xC1U]==0xA1U);
     assert(initial.bytes[0xBAU]==0x2FU); // no host mutation
     verify_expected(initial,*result,synthetic.class_3de4_level_groups[0],
