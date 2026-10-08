@@ -23,6 +23,10 @@ int main() {
 
     rloft::VgaPlanarMemory video;
     assert(!video.sequencer_map_mask_02()); // original initial state unknown
+    assert(!video.last_sequencer_raw_mask_02());
+    video.write_sequencer_raw_mask_02(0xFFU);
+    assert(*video.sequencer_map_mask_02()==0x0FU);
+    assert(*video.last_sequencer_raw_mask_02()==0xFFU);
     video.set_sequencer_map_mask_02(0x09U);
     assert(video.sequencer_map_mask_02() &&
            *video.sequencer_map_mask_02()==0x09U);
