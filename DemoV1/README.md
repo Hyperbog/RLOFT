@@ -48,8 +48,10 @@ explicitly unsupported. The original `214B8` separate use/attack path is
 not yet enabled: original target selection, damage, cooldown and feedback
 must be reconstructed first.
 
-**Live HUD hand/actor-panel checkpoint: 60% (3/5 bounded gates)** before fresh
-Windows CI and a real installed-game playtest. Overall faithful demo: **20%**.
+**Live HUD hand/actor-panel checkpoint: 80% (4/5 bounded gates)** after
+[Windows CI run #631](https://github.com/Hyperbog/RLOFT/actions/runs/37719712911)
+passed **102/102 CTests** and published the Windows x64 EXE.
+A real installed-game interaction/DOS-input comparison remains. Overall faithful demo: **20%**.
 
 ## Level 22 functional gameplay integration (ordinary inventory)
 
