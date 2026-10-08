@@ -187,12 +187,19 @@ int main() {
     try {(void)evaluate(objects);}
     catch(const std::invalid_argument&) {rejected=true;}
     assert(rejected);
+    // Mixed pseudo+ordinary uses the normal 246E9 qualifier/weight
+    // stage AFTER the 24641/24693 pseudo candidate override.
+    // The actual original 7E..86 records have weight0/qualifier0.
     set16(p,0U,0x40U+14U*2U,0x007EU);
-    rejected=false;
-    try {(void)evaluate(objects);}
-    catch(const std::invalid_argument&) {rejected=true;}
-    assert(rejected);
+    result=evaluate(objects);
+    assert(result.first_eligible && !result.second_eligible);
+    assert(result.first_classified && result.second_classified);
     set16(p,0U,0x40U+14U*2U,1U);
+    set16(p,0U,0x40U+15U*2U,0x0086U);
+    result=evaluate(objects);
+    assert(!result.first_eligible && result.second_eligible);
+    assert(result.first_classified && result.second_classified);
+    set16(p,0U,0x40U+15U*2U,2U);
     rejected=false;
     try {
         (void)CombatHandPairEligibilityModel::evaluate(
