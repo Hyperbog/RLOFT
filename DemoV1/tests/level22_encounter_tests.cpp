@@ -179,13 +179,8 @@ int main() {
     // The fourth pickup must still trigger 223F4's exact set
     // predicate with the first three already owned by the party.
     auto fresh_world = rloft::LevelWorldState{};
-    fresh_world.loose_items = {
-        world.loose_items[0],
-        world.loose_items[1],
-    };
     // Re-create all four exact source object types in a separate
     // staged world; the earlier test already consumed the parchment.
-    fresh_world.loose_items.clear();
     for (const auto drop : rloft::Level22Story::assassin_death_drops()) {
         rloft::LiveObjectRecord item{};
         item.object_type_id = drop.object_id;
