@@ -2,6 +2,7 @@
 
 #include "rloft/combat_irq_display_runtime.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <stdexcept>
 
