@@ -191,6 +191,71 @@ int main() {
     assert(runtime.held.object_id==5);
     assert(runtime.held.known==1U);
 
+    // CODE.2 214B8 original HUD-hand swap, independent of the
+    // 12 ordinary inventory tiles. Populate both hand deadlines to
+    // establish which original 4-byte field gets reset.
+    set_item(party,0,14U,3);
+    set_item(party,0,15U,4);
+    const auto dead0 = 0x18EU;
+    const auto dead1 = 0x192U;
+    for(std::size_t b=0U;b<4U;++b) {
+        party.bytes[dead0+b]=0xABU;
+        party.bytes[dead1+b]=0xCDU;
+    }
+    // Hand A contains identified item3; held unidentified item5.
+    party.bytes[known_at+1U]=0x40U;
+    runtime.held={5,0U};
+    assert(runtime.swap_hand_slot(party,catalog,0U,0U)==
+           rloft::InventoryHandSwapStatus::Swapped);
+    assert(get_item(party,0,14U)==5);
+    assert(get_item(party,0,15U)==4);
+    assert(runtime.held.object_id==3);
+    assert(runtime.held.known==1U);
+    assert((party.bytes[known_at+1U] & 0x40U)==0U);
+    for(std::size_t b=0U;b<4U;++b) {
+        assert(party.bytes[dead0+b]==0U);
+        assert(party.bytes[dead1+b]==0xCDU);
+    }
+
+    // Take from hand B to an empty cursor: 0F238 returns early
+    // and preserves the prior hand known bit in the now empty slot.
+    runtime.held={-1,0U};
+    party.bytes[known_at+1U] |= 0x80U;
+    assert(runtime.swap_hand_slot(party,catalog,0U,1U)==
+           rloft::InventoryHandSwapStatus::Swapped);
+    assert(get_item(party,0,15U)==-1);
+    assert(runtime.held.object_id==4);
+    assert(runtime.held.known==1U);
+    assert((party.bytes[known_at+1U] & 0x80U)!=0U);
+    for(std::size_t b=0U;b<4U;++b)
+        assert(party.bytes[dead1+b]==0U);
+
+    // Hand swap refuses equipment types 3..8, category-1
+    // container menu state, and temporary spell-hand pseudo-items.
+    auto unmovable = objects();
+    runtime.held={2,1U};
+    const auto unchanged=party.bytes;
+    assert(runtime.swap_hand_slot(party,unmovable,0U,0U)==
+           rloft::InventoryHandSwapStatus::Unsupported);
+    assert(party.bytes==unchanged);
+    assert(runtime.held.object_id==2);
+
+    set_item(party,0,15U,0x7EU);
+    runtime.held={5,1U};
+    const auto pseudo=party.bytes;
+    assert(runtime.swap_hand_slot(party,catalog,0U,1U)==
+           rloft::InventoryHandSwapStatus::Unsupported);
+    assert(party.bytes==pseudo);
+    assert(runtime.held.object_id==5);
+
+    bool hand_out_of_range=false;
+    try {
+        (void)runtime.swap_hand_slot(party,catalog,0U,2U);
+    } catch(const std::out_of_range&) {
+        hand_out_of_range=true;
+    }
+    assert(hand_out_of_range);
+
     // Inactive actor and invalid slots cannot mutate an unrelated
     // party member's inventory, held item, or identification bitset.
     assert(runtime.swap_ordinary_slot(party,catalog,2U,1U)==
