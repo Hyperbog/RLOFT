@@ -32,6 +32,6 @@ The full original orchestration is `E5F0..EA81`, including `DB94` target choice,
 4. Calculate weapon/unarmed/touch damage, special effects and cooldown *before* calling the already existing `Level22EncounterModel::damage_assassin` mutation.
 5. Run deterministic original DOS trace comparisons plus real input playtest before enabling player attacks.
 
-**Scope acceptance:** original hit-check arithmetic is implemented with synthetic regression tests; fresh CI and original DOS combat trace equivalence have not yet been certified. This alone does not close the major combat release gate.
+**Scope acceptance:** the original hit-check arithmetic is implemented, and the synthetic deterministic regression suite passed Windows x64 CTest in [run #617](https://github.com/Hyperbog/RLOFT/actions/runs/37718023346), 102/102 total tests. Real DOS combat tracing and the `E5F0` attack orchestrator remain unverified and unimplemented, respectively. A completed arithmetic primitive does not close the major combat release gate.
 
-**Completion:** bounded combat-hit arithmetic milestone **67% (2/3: opcode reconstruction and test registration; fresh CI unverified)**. Overall five-gate faithful demo **20%** pending end-to-end gameplay acceptance.
+**Completion:** bounded combat-hit arithmetic milestone **100% (3/3: opcode reconstruction, CTest coverage and successful Windows build/test)**. Overall five-gate faithful demo **20%**, pending end-to-end gameplay acceptance.
