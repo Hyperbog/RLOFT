@@ -733,3 +733,15 @@ The supplied immutable `CODE.2` bytes (SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92
 - In the ordinary `FCD0=0` path at `3285B..3294C`, depths at or below runtime `C730` likewise enter SINTAB through `32620`; larger depths dispatch the generic fallback `338C8`. These are **different** surface paths and must not be conflated with type-7 `369D8` scene descriptor execution.
 
 These observations are directly established by executable instructions, not modern render heuristics. They do not establish that the native demo has completed original-vs-native frame equivalence. The demo implementation is recorded at `demo-v1:DemoV1/SURFACE_PREPASS_CHECKPOINT.md`; it must separately validate the executable source texture, original generated-code mutation, planar passes, and observed output.
+
+
+## 2026-10-07 inventory swap and identified-bit ordering audit — `117A0` / `0F238`
+
+Audited immutable original CODE.2 SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314` against the native Level 22 item-stash implementation.
+
+- Original `117A0`, code addresses `117AF..117E3`, computes `actor*0x248`, retrieves `item[slot]` at `0x21920 + actor*0x248 + 2*slot` and `known[slot]` at `0x21A0B + actor*0x248`. It separately retrieves held item/known globals at `0x8600` and `0x8602`. The current-slot spell-effect range `0x7E..0x86` is explicitly excluded at `117E8..117F9`.
+- The original ordinary exchange at `1194C` writes the new held object into `item[slot]` **before** calling the `0F238` known-bit update at `11953`. This call receives actor/slot/incoming-known state.
+- **Crucial and surprising:** the first `0F238` branch at `0F24D..0F250` compares the **now updated** slot object ID to `-1` and immediately exits if empty, without clearing or writing the 32-bit `+0x12B` known-bit word. Consequently, taking an item from inventory into an empty cursor leaves that slot's previous known bit **stale**. Returning an item to a non-empty slot correctly replaces the corresponding known bit.
+- The *old* slot object's known value is captured before mutation and transferred with that object into the held cursor at `11A34..11A4D`. The other object-sensitive branches (such as special potion/spell objects, nested container insertion and inventory side effects) must not be collapsed into universal swaps.
+
+The native DemoV1 `InventoryRuntimeState::swap_ordinary_slot` now preserves the stale-known-bit case explicitly for this bounded ordinary-grid interaction and tests it. UI routing and full combat remain separately pending. This finding refines the inventory archival understanding but does not change the original source byte-accounting certification.
