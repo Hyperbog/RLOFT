@@ -1014,8 +1014,54 @@ int run_exploration(
                         ui.toggle_party_panel(*actor);
                     }
                 }
-                // All item/equipment click branches in CODE.2 12E70 remain
-                // intentionally inert for this read-only milestone.
+                else if (const auto hit =
+                             rloft::PartyPanelControlModel::
+                                 modal_ordinary_slot_at(
+                                     click->row, click->column)) {
+                    // CODE.2 12E70/117A0: ordinary inventory identity
+                    // and known-bit exchange. Character-mode columns,
+                    // inactive actors, typed equipment and container
+                    // insertion remain outside this bounded route.
+                    if (!ui.party_panel_character_mode(hit->actor) &&
+                        runtime.session().party.active(hit->actor)) {
+                        const auto status =
+                            runtime.inventory().swap_ordinary_slot(
+                                runtime.session().party,
+                                runtime.object_catalog(),
+                                hit->actor,
+                                hit->slot);
+                        if (status ==
+                            rloft::InventoryOrdinarySwapStatus::Swapped) {
+                            // Party equipment and cursor state are now
+                            // different. Never act on a stale world hit
+                            // snapshot after inventory mutations.
+                            displayed_scene_frame.reset();
+                            const auto held=runtime.inventory().held;
+                            const auto text =
+                                held.object_id == -1
+                                    ? std::wstring(
+                                        L"Ravenloft - Inventory | "
+                                        L"Cursor empty")
+                                    : std::wstring(
+                                        L"Ravenloft - Inventory | "
+                                        L"Held item ID ") +
+                                        std::to_wstring(held.object_id) +
+                                        (held.known != 0
+                                            ? L" (identified)"
+                                            : L" (unknown)");
+                            SetWindowTextW(host.hwnd(),text.c_str());
+                        } else if (status ==
+                            rloft::InventoryOrdinarySwapStatus::Unsupported) {
+                            SetWindowTextW(
+                                host.hwnd(),
+                                L"Ravenloft - Inventory | "
+                                L"Special/container interaction pending");
+                        }
+                    }
+                }
+                // Equipment, nested containers, spells and modal-key
+                // actions remain intentionally gated: do not invent
+                // arbitrary replacement or irreversible state changes.
             }
 
             (void)party_modal_presenter.draw(
