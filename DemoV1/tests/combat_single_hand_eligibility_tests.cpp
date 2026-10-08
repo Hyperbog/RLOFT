@@ -40,6 +40,7 @@ rloft::ObjectCatalog objects() {
     set_category(0x31U,11U);
     set_category(0x32U,9U);
     set_category(0x2EU,2U);
+    set_category(0x59U,11U); // 23EE4 paired exception and attack item
     return rloft::ObjectCatalog::parse(bytes);
 }
 
@@ -73,7 +74,8 @@ int main() {
     // class5 combinations OR 34060 with 33FC4 only in one branch.
     set_class(party,0U,0U,4);
     assert(!check(0U,1).eligible);
-    assert(check(0U,0x31).eligible);
+    assert(check(0U,0x59).eligible); // 34060, actually classified
+    assert(check(0U,0x31).eligible); // nonclassified, different path
     assert(!check(0U,0x30).eligible);
     set_class(party,0U,1U,5);
     assert(check(0U,0x30).eligible);
