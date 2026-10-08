@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace {
@@ -98,4 +99,25 @@ int main() {
     // A scene that is not projected never needs a shape lookup callback.
     assert(rloft::Type7VgaFrameTraceModel::build(
         {},t,masks,0U,true,{}).scene_calls.empty());
+
+    // Type-7 tracing is optional presentation diagnostics. Runtime
+    // construction must capture a malformed page or missing RES3
+    // lookup without losing an otherwise valid exploration frame.
+    auto success=rloft::Type7VgaFrameTraceModel::try_build(
+        {visible,wide,hidden},t,masks,0U,true,lookup);
+    assert(success.trace.has_value());
+    assert(!success.failure.has_value());
+    assert(success.trace->unresolved_wide_runs==1U);
+
+    auto failure=rloft::Type7VgaFrameTraceModel::try_build(
+        {visible},t,masks,2U,true,lookup);
+    assert(!failure.trace.has_value());
+    assert(failure.failure.has_value());
+    assert(failure.failure->find("VGA page")!=std::string::npos);
+
+    failure=rloft::Type7VgaFrameTraceModel::try_build(
+        {visible},t,masks,0U,true,{});
+    assert(!failure.trace.has_value());
+    assert(failure.failure.has_value());
+    assert(failure.failure->find("shape lookup")!=std::string::npos);
 }
