@@ -135,6 +135,9 @@ six-way jump-table DWORD values**. It independently checks the die,
 post-division increase, two 16-bit HP sums, and subsequent RNG state.
 
 All **16,416/16,416** original-byte-driven comparisons passed.
+The same committed source/test also passed a strict C++17
+`-fsanitize=undefined -fno-sanitize-recover=all` run
+against the original file, with all matrix assertions active.
 The corrected exact committed test Git blob SHA is
 `aa187a3b86ec37688693bbc289536d47e3ded8b8`,
 and both strict C++17 Debug and optimized Release modes passed
