@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -51,6 +52,7 @@ struct ExplorationPresentedFrame final {
     Palette6 palette{};
     ExplorationSurfaceCoverage surface_coverage{};
     std::vector<Type7SceneRasterFailure> type7_failures;
+    std::optional<std::string> type7_trace_failure;
 };
 
 class ExplorationPresenter final {
