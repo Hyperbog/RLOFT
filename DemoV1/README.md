@@ -34,11 +34,12 @@ source. Do not treat its tests as validation of current HEAD.
 
 The current source-only work includes
 [original attack/target preflight and offline verification](LEVEL22_COMBAT_ENTRY_CHECKPOINT.md).
-An original-asset offline byte audit now covers **87 original CODE.2
-machine-code anchors**; seven new C++ test targets have been registered
-but **not yet executed** after the private-repository build pause. The new
-[24478 two-hand eligibility research checkpoint](LEVEL22_HAND_PAIR_ELIGIBILITY_CHECKPOINT.md)
-implements three original helper predicates, not the full attack-approval rule.
+An original-asset offline byte audit now covers **108 original CODE.2
+machine-code anchors**. Nine new combat C++ test targets are registered,
+but **have not been executed** since the private-repository build pause.
+The [conditional 24478 hand-eligibility model](LEVEL22_HAND_PAIR_RAW_HEAP_MODEL_CHECKPOINT.md)
+preserves the original requirement for observed DOS heap-adjacent
+bytes; it is not yet connected to live attacks.
 This deliberate pause does not alter the **overall faithful-demo
 acceptance: 20% (1/5 release gates)**.
 
@@ -72,6 +73,29 @@ Overall faithful-demo acceptance is still **20% (1/5 major release gates)**.
 
 
 Goal: reproduce the original shipped behavior from boot through character creation while reading assets from a legally installed/owned copy of *Ravenloft: Strahd's Possession*.
+
+## Original E5F0 target selection and attack timing — source checkpoint
+
+[Attack target and timing checkpoint](LEVEL22_ATTACK_TARGET_AND_TIMING_CHECKPOINT.md)
+now reconstructs the original explicit-target-vs-`DB94` preference
+order, special rear-party `+0x35 & 3 == 2` restriction and action
+recovery based on the **full original OBJECTS WORD +0x35 bits 2..5**.
+The result is **9 × ((word >> 2) & 15)** gameplay maintenance ticks
+for a regular item, or 18 for an empty/pseudo hand, optionally halved
+by the original actor effect mask. On a successful hit the original
+`E5F0` adds half that interval to pauseable tick counter `A7E4`
+and stores a damage value; it still passes the action interval to
+its animation routine separately.
+
+The new native routines are **side-effect-free**, consume the
+**captured dispatched item ID** as original E5F0 does, and do not
+change the character state, choose invented damage or run animations.
+Timing may not be equated with VGA refresh or host milliseconds.
+Both new C++ regression targets await a deliberate consolidated build;
+21 additional original executable signatures passed local byte audit.
+
+**Bounded E5F0 target/timing source checkpoint: 67% (4/6)**.
+Overall faithful-demo acceptance remains **20% (1/5 release gates)**.
 
 ## Full 24478 pair decision — conditionally reconstructed
 
