@@ -101,6 +101,7 @@ NpcDamageResult ExplorationRuntime::damage_level22_assassin(
     ++world_scene_revision_;
     return Level22EncounterModel::damage_assassin(
         world_,
+        session_.level,
         npc_index,
         amount,
         reaction_mode,
