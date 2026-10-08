@@ -94,6 +94,24 @@ def _gui_self_test() -> int:
         if getattr(app, "_edit_menu", None) is None:
             app.destroy()
             return 32
+        # Every page must scroll independently and keep its extraction button
+        # fixed below the viewport. This reproduces the previously clipped
+        # layout on short/laptop-size Windows clients.
+        pages = getattr(app, "_tab_pages", {})
+        if len(pages) != 5 or len(app._action_buttons) < 5:
+            app.destroy()
+            return 33
+        for page in pages.values():
+            if not page.canvas.winfo_exists() or not page.action_bar.winfo_exists():
+                app.destroy()
+                return 34
+        app.geometry("920x550")
+        app.update_idletasks()
+        app.update()
+        for page in pages.values():
+            if page.action_bar.winfo_manager() != "grid":
+                app.destroy()
+                return 35
 
         # Exercise the same Tk resize path used by the decorative right border.
         from types import SimpleNamespace

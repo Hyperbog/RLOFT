@@ -19,6 +19,7 @@ import game_source
 import master_dumper
 import media_inventory
 import runtime_paths
+import scrollable_tabs
 import support_dumper
 import tooltips
 import title_skin
@@ -70,7 +71,7 @@ class RavenloftExtractorGui(tk.Tk):
         launch_w = max(900, int(BASE_WIDTH * launch_scale))
         launch_h = max(680, int(BASE_HEIGHT * launch_scale))
         self.geometry(f"{launch_w}x{launch_h}")
-        self.minsize(max(860, int(900 * launch_scale)), max(650, int(680 * launch_scale)))
+        self.minsize(max(820, int(850 * launch_scale)), max(520, int(560 * launch_scale)))
         self.resizable(True, True)
         self.configure(background=BG)
         self._resolution_scale = launch_scale
@@ -148,6 +149,7 @@ class RavenloftExtractorGui(tk.Tk):
 
         self._events: queue.Queue[tuple] = queue.Queue()
         self._action_buttons: list[ttk.Button] = []
+        self._tab_pages: dict[ttk.Frame, scrollable_tabs.ScrollableNotebookPage] = {}
         self._wrap_labels: list[ttk.Label] = []
         self._skin_photo: ImageTk.PhotoImage | None = None
         self._skin_job: str | None = None
@@ -160,6 +162,11 @@ class RavenloftExtractorGui(tk.Tk):
 
         self._build_styles()
         self._build_ui()
+        # Mouse wheels over tab content (including ttk labels/frames) scroll
+        # the tab viewport; listboxes and dropdowns retain native scrolling.
+        self.bind_all("<MouseWheel>", self._on_tab_mousewheel, add="+")
+        self.bind_all("<Button-4>", self._on_tab_mousewheel, add="+")
+        self.bind_all("<Button-5>", self._on_tab_mousewheel, add="+")
         self._refresh_native_timing_text()
         self._edit_menu = edit_menu.install(self)
         self._tooltips = tooltips.install(self)
@@ -622,15 +629,43 @@ class RavenloftExtractorGui(tk.Tk):
         self.after(30, self._sync_maximize_button)
 
     def _new_tab(self, title: str) -> ttk.Frame:
-        tab = ttk.Frame(self.notebook, padding=14)
+        page = scrollable_tabs.ScrollableNotebookPage(
+            self.notebook, title, background=BG, padding=14
+        )
+        tab = page.content
+        self._tab_pages[tab] = page
         self._padding_widgets.append((tab, (14,)))
-        tab.columnconfigure(0, weight=1)
-        # Reserve a flexible middle row and keep the current action at the
-        # bottom edge of the visible tab. This prevents Extract/Dump controls
-        # from drifting below the client area as the window is shortened.
-        tab.rowconfigure(98, weight=1)
-        self.notebook.add(tab, text=title)
         return tab
+
+    def _add_tab_action(self, tab: ttk.Frame, title: str, command) -> None:
+        # The extraction control remains visible while the settings scroll.
+        # This is critical at 720p, with Windows display scaling, and when
+        # resizing the window smaller than the tab's natural content height.
+        footer = self._tab_pages[tab].action_bar
+        button = ttk.Button(footer, text=title, command=command)
+        button.grid(row=1, column=1, sticky="e", pady=(0, 2))
+        self._action_buttons.append(button)
+
+    def _on_tab_mousewheel(self, event) -> str | None:
+        widget = getattr(event, "widget", None)
+        if widget is None:
+            return None
+        # Do not hijack mouse-wheel selections in resource lists or dropdowns.
+        if isinstance(widget, (tk.Listbox, tk.Text, ttk.Combobox)):
+            return None
+        current = widget
+        while current is not None:
+            if isinstance(current, scrollable_tabs.ScrollableNotebookPage):
+                if getattr(event, "num", None) == 4:
+                    delta = 120
+                elif getattr(event, "num", None) == 5:
+                    delta = -120
+                else:
+                    delta = int(getattr(event, "delta", 0))
+                current.scroll(delta)
+                return "break"
+            current = getattr(current, "master", None)
+        return None
 
     def _folder_row(self, parent, row: int, label: str, variable: tk.StringVar) -> None:
         parent.columnconfigure(1, weight=1)
@@ -759,9 +794,7 @@ class RavenloftExtractorGui(tk.Tk):
         ttk.Checkbutton(flags, text="Preserve original ANM", variable=self.cin_native).pack(side="left", padx=(16, 0))
 
         self._note(tab, 2, "Native timing is variable-rate, not one fixed FPS. Sampled ANM SFX commands are muxed from RES6/RES10 at their reconstructed frame timestamps. Timeline/original files use the metadata destination above.")
-        button = ttk.Button(tab, text="Extract Selected Cinematics", command=self._start_cinematics)
-        button.grid(row=99, column=0, sticky="se", pady=(10, 0))
-        self._action_buttons.append(button)
+        self._add_tab_action(tab, "Extract Selected Cinematics", self._start_cinematics)
         self._update_timing_state()
         self._update_video_state()
 
@@ -865,9 +898,7 @@ class RavenloftExtractorGui(tk.Tk):
             1,
             "Automatic palette routing is recommended. Multipart grouping follows NPCS.DAT, OBJECTS.DAT, INIT, and the reconstructed RES3 renderer rather than image similarity. Each group receives a manifest; optional contact sheets, GIF previews, and shared-resource maps are generated for modding/upscaling. NPC/object grouping is skipped with a manifest warning if those DAT files are not beside the selected resources.",
         )
-        button = ttk.Button(tab, text="Extract Selected Graphics", command=self._start_graphics)
-        button.grid(row=99, column=0, sticky="se", pady=(10, 0))
-        self._action_buttons.append(button)
+        self._add_tab_action(tab, "Extract Selected Graphics", self._start_graphics)
 
     def _build_audio_tab(self) -> None:
         tab = self._new_tab("Audio & Music")
@@ -895,9 +926,7 @@ class RavenloftExtractorGui(tk.Tk):
         ttk.Checkbutton(box, text="GM1.BNK / GM2.BNK ARIA banks", variable=self.dump_aria_var).grid(row=4, column=2, columnspan=2, sticky="w", pady=(6, 0))
         self._folder_row(box, 5, "Destination", self.audio_dest)
         self._note(tab, 1, "Select individual RES audio/music files or All for the complete category.")
-        button = ttk.Button(tab, text="Extract Selected Audio & Music", command=self._start_audio)
-        button.grid(row=99, column=0, sticky="se", pady=(10, 0))
-        self._action_buttons.append(button)
+        self._add_tab_action(tab, "Extract Selected Audio & Music", self._start_audio)
 
     def _build_support_tab(self) -> None:
         tab = self._new_tab("Support Assets")
@@ -914,9 +943,7 @@ class RavenloftExtractorGui(tk.Tk):
         for row, (text, variable) in enumerate(options):
             ttk.Checkbutton(box, text=text, variable=variable).grid(row=row, column=0, sticky="w", pady=3)
         self._folder_row(box, len(options), "Destination", self.support_dest)
-        button = ttk.Button(tab, text="Extract Selected Support Assets", command=self._start_support)
-        button.grid(row=99, column=0, sticky="se", pady=(10, 0))
-        self._action_buttons.append(button)
+        self._add_tab_action(tab, "Extract Selected Support Assets", self._start_support)
 
     def _build_all_tab(self) -> None:
         tab = self._new_tab("Dump All")
@@ -930,9 +957,7 @@ class RavenloftExtractorGui(tk.Tk):
         ttk.Checkbutton(box, text="Sync sampled cinematic SFX", variable=self.all_sync_audio).grid(row=3, column=0, sticky="w", pady=(5, 0))
         ttk.Checkbutton(box, text="Standalone support assets", variable=self.all_support).grid(row=4, column=0, sticky="w", pady=(5, 0))
         self._folder_row(box, 5, "Destination", self.all_dest)
-        button = ttk.Button(tab, text="Dump Everything", command=self._start_all)
-        button.grid(row=99, column=0, sticky="se", pady=(10, 0))
-        self._action_buttons.append(button)
+        self._add_tab_action(tab, "Dump Everything", self._start_all)
 
     def _resize_wraps_for_width(self, window_width: int) -> None:
         # Keep explanatory text inside the current client area. The value is
