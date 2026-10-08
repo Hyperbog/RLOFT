@@ -122,3 +122,19 @@ not a Level 22 hardcoded drawing shortcut.
 
 **Overall faithful-demo acceptance remains 20% (1/5).**
 The private Windows workflow remains **manual-only**.
+
+
+## Subsequent 1A8C8 overlay composition source milestone
+
+See [original 1A8C8 checkpoint](LEVEL22_CODE2_COMPOSITE_1A8C8_CHECKPOINT.md).
+The normal and shaded original sprite pixel paths
+now have a **reusable compositor wrapper** upstream
+of the original 2A078 rectangle-copy service, with
+source-verified signed overlay intersection, callback
+timing, and 1024-byte backing-buffer copy arguments.
+The source checker is up to **684 named instruction
+signatures at 676 distinct logical offsets**.
+
+This does not implement 2A078's actual VGA copy or
+the nested 1A288/1AB20 overlay effects and does not
+raise formal demo acceptance from 1/5.
