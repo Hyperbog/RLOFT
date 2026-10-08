@@ -123,3 +123,9 @@ The first Windows release roadmap now includes user-initiated **disassembly and 
 This source-only checkpoint stages SQLite project backups as separate same-directory files, validates database integrity and foreign keys, switches to standalone journal mode, and exposes the final `.ddproj` **only after** a non-overwriting rename. It also preserves the previous displayed CFG if the project's `SaveAnalysis` fails. Regression assertions cover backup staging cleanup and the immutability of existing backup destinations. The local PowerShell script accepts `-LocalLogDirectory` for a **local-only** build transcript (may contain paths; inspect before sharing). See [Part 21](docs/PART21_CHECKPOINT.md).
 
 **No .NET 10/WPF compilation was executed for this checkpoint.** Estimated release progress remains **30%** pending actual Windows build/GUI validation. GitHub Actions stays manual-only and Windows-only, and AI remains postponed until after final release.
+
+## Part 22: repair desktop cross-references and streamline manual Windows builds
+
+The desktop reference grid formerly accessed `FlowEdge.Target` (nonexistent); this source/API mismatch is corrected to `FlowEdge.Destination`. References are now indexed once per analyzed graph rather than scanning every edge on selection, and double-clicking a resolved reference navigates to it. Unknown/indirect references remain visibly unresolved. The opt-in Windows GitHub workflow no longer duplicates build, tests or same-name desktop artifact uploads. Local `build-windows.ps1 -Publish` packages the Windows desktop in `dist/DOSDis-Windows11-x64-preview.zip` with a SHA-256 manifest. See [Part 22 verification checkpoint](docs/PART22_CHECKPOINT.md).
+
+**Status: source checked but no Windows/.NET GUI build performed; release progress remains 30%.** No GitHub Actions triggered; Linux and AI development remain out of scope.

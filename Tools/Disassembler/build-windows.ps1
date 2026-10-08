@@ -47,6 +47,14 @@ try {
         Invoke-Dotnet -Arguments @('publish', 'src/DosDis.Cli/DosDis.Cli.csproj', '-c', 'Release',
             '-r', 'win-x64', '--self-contained', 'true', '-p:PublishSingleFile=true', '--output', 'dist/windows-cli')
         Copy-Item README.md,THIRD_PARTY_NOTICES.md -Destination dist/windows-cli/ -ErrorAction Stop
+        Copy-Item README.md,THIRD_PARTY_NOTICES.md -Destination dist/windows-desktop/ -ErrorAction Stop
+        $package = 'dist/DOSDis-Windows11-x64-preview.zip'
+        if (Test-Path $package) { Remove-Item $package -Force }
+        Compress-Archive -Path 'dist/windows-desktop/*' -DestinationPath $package -CompressionLevel Optimal -ErrorAction Stop
+        $digest = (Get-FileHash -Path $package -Algorithm SHA256).Hash.ToLowerInvariant()
+        Set-Content -Path "$package.sha256" -Value "$digest  $(Split-Path $package -Leaf)" -Encoding ascii
+        Write-Host "Local Windows desktop package: $package" -ForegroundColor Green
+        Write-Host "SHA-256: $digest" -ForegroundColor Green
     }
     Write-Host 'Local build and tests complete.' -ForegroundColor Green
 }

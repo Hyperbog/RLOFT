@@ -16,6 +16,8 @@ public partial class MainWindow : Window
     private FlowAnalysisResult? _graph;
     private ProjectStore? _project;
     private IReadOnlyList<AssemblyRow> _rows = Array.Empty<AssemblyRow>();
+    private IReadOnlyDictionary<FlowAddress, IReadOnlyList<ReferenceRow>> _referenceIndex =
+        new Dictionary<FlowAddress, IReadOnlyList<ReferenceRow>>();
     private bool _working;
     private long _commentRevision;
     private CancellationTokenSource? _analysisCancellation;
@@ -36,7 +38,8 @@ public partial class MainWindow : Window
         public string AddressText => $"{Object}:0x{Offset:X8}";
     }
     private sealed record FunctionRow(FlowAddress Address, string DisplayName);
-    private sealed record ReferenceRow(string Direction, string AddressText, string Kind, string Evidence);
+    private sealed record ReferenceRow(string Direction, string AddressText, string Kind,
+        string Evidence, FlowAddress? NavigationTarget);
     private sealed record IntelligenceRow(string Name, string DisplayValue, string Evidence);
 
     private void SetWorking(bool value, string? status = null)
@@ -90,6 +93,7 @@ public partial class MainWindow : Window
             _artifact = result.artifact;
             _image = result.image;
             _graph = null;
+            _referenceIndex = new Dictionary<FlowAddress, IReadOnlyList<ReferenceRow>>();
             if (_project != null && !_project.ListArtifacts().Any(a => a.Sha256 == _artifact.Sha256))
             {
                 _project.Dispose();
@@ -171,8 +175,39 @@ public partial class MainWindow : Window
         StatusText.Text = "Cancellation requested; retaining previous findings…";
     }
 
+    private static IReadOnlyDictionary<FlowAddress, IReadOnlyList<ReferenceRow>> IndexReferences(
+        FlowAnalysisResult graph)
+    {
+        var index = new Dictionary<FlowAddress, List<ReferenceRow>>();
+        void Add(FlowAddress source, ReferenceRow reference)
+        {
+            if (!index.TryGetValue(source, out var refs))
+            {
+                refs = new List<ReferenceRow>();
+                index.Add(source, refs);
+            }
+            refs.Add(reference);
+        }
+        foreach (var edge in graph.Edges)
+        {
+            Add(edge.Source, new ReferenceRow("Outgoing", Format(edge.Destination),
+                edge.Kind, edge.Evidence, edge.Destination));
+            if (edge.Destination is { } destination)
+                Add(destination, new ReferenceRow("Incoming", Format(edge.Source),
+                    edge.Kind, edge.Evidence, edge.Source));
+        }
+        foreach (var reference in graph.DataReferences)
+            Add(reference.Source, new ReferenceRow("Data", Format(reference.Target),
+                reference.Kind, reference.Evidence, reference.Target));
+        return index.ToDictionary(x => x.Key,
+            x => (IReadOnlyList<ReferenceRow>)x.Value.ToArray());
+    }
+
     private void ShowAnalysis(FlowAnalysisResult graph)
     {
+        // Build reverse references once. Scanning every graph edge when a row
+        // changes selection can make the GUI unresponsive on large DOS images.
+        _referenceIndex = IndexReferences(graph);
         SetRows(graph.Instructions.Select(x => new AssemblyRow(x.Address.Object, x.Address.Offset,
             x.OriginalBytes, x.Assembly, x.Evidence)).ToArray());
         FunctionsList.ItemsSource = graph.FunctionCandidates.Select(f => new FunctionRow(f.Entry,
@@ -200,17 +235,8 @@ public partial class MainWindow : Window
         var address = new FlowAddress(row.Object, row.Offset);
         SelectedAddressText.Text = row.AddressText;
         AddressBox.Text = $"{row.Object}:0x{row.Offset:X}";
-        var refs = new List<ReferenceRow>();
-        if (_graph != null)
-        {
-            refs.AddRange(_graph.Edges.Where(x => x.Source == address).Select(x =>
-                new ReferenceRow("Outgoing", Format(x.Target), x.Kind, x.Evidence)));
-            refs.AddRange(_graph.Edges.Where(x => x.Destination == address).Select(x =>
-                new ReferenceRow("Incoming", Format(x.Source), x.Kind, x.Evidence)));
-            refs.AddRange(_graph.DataReferences.Where(x => x.Source == address).Select(x =>
-                new ReferenceRow("Data", Format(x.Target), x.Kind, x.Evidence)));
-        }
-        ReferencesGrid.ItemsSource = refs;
+        ReferencesGrid.ItemsSource = _referenceIndex.TryGetValue(address, out var refs)
+            ? refs : Array.Empty<ReferenceRow>();
         RenderHex(address);
         _commentRevision = 0;
         NoteEditor.Text = string.Empty;
@@ -221,6 +247,13 @@ public partial class MainWindow : Window
         }
         SaveNoteButton.IsEnabled = !_working && _project != null;
     }
+    private void ReferencesGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (_working) return;
+        if (ReferencesGrid.SelectedItem is ReferenceRow { NavigationTarget: { } target })
+            Navigate(target);
+    }
+
     private static string Format(FlowAddress? at) =>
         at is { } a ? $"{a.Object}:0x{a.Offset:X8}" : "unresolved";
 
@@ -371,6 +404,7 @@ public partial class MainWindow : Window
                 _project = next;
                 BackupProjectButton.IsEnabled = true;
                 _graph = saved;
+                _referenceIndex = new Dictionary<FlowAddress, IReadOnlyList<ReferenceRow>>();
                 if (saved != null)
                 {
                     ShowAnalysis(saved);

@@ -81,7 +81,8 @@
                      HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="12"/>
           </TabItem>
           <TabItem Header="References">
-            <DataGrid x:Name="ReferencesGrid">
+            <DataGrid x:Name="ReferencesGrid" MouseDoubleClick="ReferencesGrid_MouseDoubleClick"
+                      ToolTip="Double-click a resolved reference to navigate to its object-relative address">
               <DataGrid.Columns>
                 <DataGridTextColumn Header="Direction" Binding="{Binding Direction}" Width="100"/>
                 <DataGridTextColumn Header="Location" Binding="{Binding AddressText}" Width="140"/>
