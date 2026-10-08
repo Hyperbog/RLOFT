@@ -39,12 +39,14 @@ SurfacePrepassModel::entry_selection(
         if (static_cast<std::uint32_t>(sum) >= target) {
             break;
         }
-        --slot;
-        if (slot >= 0) {
-            continue;
+        // Original CODE.2 337EF..337F9 exits the search after
+        // decrementing below zero and returns patch selector zero;
+        // it does not signal a failed render. The final unconditional
+        // decrement/clamp at 337F4..337F9 is reproduced below.
+        if (slot == 0) {
+            break;
         }
-        throw std::runtime_error(
-            "SINTAB scale-step table cannot reach prepass row shift");
+        --slot;
     }
 
     if (slot >= 1) {
