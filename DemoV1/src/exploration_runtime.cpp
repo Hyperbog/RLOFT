@@ -4,6 +4,7 @@
 #include "rloft/resource_assets.hpp"
 #include "rloft/options_menu.hpp"
 
+#include <exception>
 #include <stdexcept>
 #include <utility>
 
@@ -397,14 +398,23 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
                 out.sweep_records,
                 shape_for_id);
         if (scene_vga_masks_.has_value()) {
-            out.scene_vga_trace =
-                Type7VgaFrameTraceModel::build(
-                    out.world_scene_render_plans,
-                    renderer_tables_,
-                    *scene_vga_masks_,
-                    scene_video_page_,
-                    scene_individual_columns_mode_,
-                    shape_for_id);
+            try {
+                out.scene_vga_trace =
+                    Type7VgaFrameTraceModel::build(
+                        out.world_scene_render_plans,
+                        renderer_tables_,
+                        *scene_vga_masks_,
+                        scene_video_page_,
+                        scene_individual_columns_mode_,
+                        shape_for_id);
+            } catch (const std::exception& error) {
+                // The type-7 VGA trace is secondary to gameplay state,
+                // viewport ray/surface drawing and target selection.
+                // Unverified bytes may suppress sprite pixels, but may
+                // never suppress the entire exploration frame.
+                out.scene_vga_trace.reset();
+                out.scene_vga_trace_failure = error.what();
+            }
         }
     }
 
