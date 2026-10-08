@@ -411,3 +411,29 @@ However, the original portable type-7 pixel executor trusted an externally built
 `Type7ScenePixelExecutor::draw` runs the **whole-scene validation before any generated-code mutation or planar video writes**, so an inconsistent trace cannot produce even a partial direct-call render. The presenter continues to supply an additional per-scene transactional framebuffer copy for exceptions during actual SINTAB execution. The new `type7_vga_trace_validation_tests` target includes adversarial altered masks, pass indices, addresses, reordered/missing columns, incorrect ECX values and both one-column mode outcomes. Existing original-dispatch and scene-executor tests now also invoke these checks.
 
 **Validation boundary:** Source/test registration and GitHub commits are confirmed, but a complete local CMake build is still required to certify these C++ changes. GitHub Actions runner availability remains independent of the development commits.
+
+## Transactional type-7 pixel execution and Level 22 viewport actions
+
+October 7, 2026 continuation.
+
+### A failure after a successful pixel write no longer corrupts VGA memory
+
+CODE.2 `369D8` enumerates one original RES3 display-list descriptor at a time; for each descriptor it temporarily inserts the stop `RET` byte and executes the scale-code for up to three planar masks before restoring the byte. A reread of `369C0..36B12` confirmed that **descriptor-major, plane-pass-minor** order already used by `Type7ScenePixelExecutor` is correct.
+
+Previously `Type7ScenePixelExecutor::draw` wrote into the caller's `VgaPlanarMemory` directly. A malformed late descriptor could throw after an earlier descriptor had written pixels; only the caller in `ExplorationPresenter` protected against this. The executor now stages the *entire* scene's 4-plane VGA buffer and commits it only after all passes and SINTAB code-restoration checks complete. This makes **direct API calls transactional too**. A new regression starts with deliberately nonzero plane pixels, allows the first descriptor to write, then supplies an out-of-bounds signed source offset to the second descriptor; it requires the original plane bytes to survive unchanged.
+
+The exploration presenter no longer performs a redundant second 256-KiB VGA copy. Resource-cache allocation occurs before the atomic executor invocation, avoiding misreporting a completed render if cache allocation subsequently fails.
+
+### Level 22 viewport combat and loose-item dispatch
+
+`Level22ViewportTargetModel` resolves the original CODE.2 `223F4` selection outcome to its **live NPC or loose-item source index**; the screen record index is not a native family record index. The resolver admits an Assassin only for source class 0 with original `Level22Story::kAssassinNpcType`, and a loose item only for source class 2. Stale out-of-bounds records raise an explicit error rather than redirecting an action to the wrong game object.
+
+`ExplorationRuntime` now provides `damage_level22_assassin_at` and `pickup_level22_loose_item_at`, connecting its pre-existing target selection and faithful damage/loot mutations. The attack action uses **flags=0**, ignoring source-class-2 pickups and preserving click rank among eligible NPCs; pickup uses **flags=1**, enabling the original class-2 gate. Both reuse the existing original hit rectangles and live encounter routines. The new test covers source class and live index validity as well as overlapping NPC/item rectangles and render ranks.
+
+These methods are now available to the input/UI layer; **binding physical mouse actions to these methods and validating the full Assassin death-to-relic-to-mist sequence remains pending**. This change is not a claim that entire combat is playable yet.
+
+### Runtime diagnostics without GitHub Actions
+
+`ExplorationPresentedFrame::type7_failures` now contains the failed original RES3 resource ID, source class/index, and exception message. The original coverage pending counts remain unchanged when a sprite fails. A missing original source, invalid SINTAB instruction, or wrong trace no longer disappears behind a generic failed-count statistic.
+
+All changes and new tests are committed directly to `demo-v1`. The full project C++ build is still unverified because GitHub Actions jobs have been failing before any steps execute.
