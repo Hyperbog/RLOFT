@@ -169,11 +169,15 @@ int main() {
     assert(rejected);
 
     auto corrupt = code2;
-    // A mutated eight-column lane must also fail at original load.
+    // A mutated eight-column lane must fail only when the main-wall
+    // 8-wide path requests it. Normal 1..7 sprite table loading and
+    // its independent validation remain backward compatible.
     corrupt[kDataFileStart+kLocations[2]+16U] = 0U;
     rejected=false;
-    try {(void)rloft::Type7VgaPlaneMaskModel::from_code2(corrupt);}
-    catch (const std::runtime_error&) {rejected=true;}
+    try {
+        (void)rloft::Type7VgaPlaneMaskModel::
+            from_code2(corrupt).for_surface_main_run(1U,8U);
+    } catch (const std::runtime_error&) {rejected=true;}
     assert(rejected);
     corrupt = code2;
     corrupt[kDataFileStart + kLocations[0] + 1U] = 0xFFU;
