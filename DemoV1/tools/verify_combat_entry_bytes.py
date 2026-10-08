@@ -50,6 +50,28 @@ ANCHORS = {
     "24478 hand0 action state": (0x24A5E, "83b8eb19020000"),
     "24478 hand1 action state": (0x24A6F, "83beef19020000"),
     "24478 selected hand flag": (0x24A7A, "837c243800"),
+    # Original 240A8 single-hand candidate: class/level/party-mode.
+    "240A8 candidate prologue": (0x240A8, "53565755"),
+    "240BE call attack predicate": (0x240BE, "e895fdffff"),
+    "240C6 store candidate classification": (0x240C6, "894500"),
+    "240CE call special item predicate": (0x240CE, "e87dfeffff"),
+    "240E3 compares empty item": (0x240E3, "83feff"),
+    "240EC checks class4": (0x240EC, "6a04"),
+    "2411D checks class1": (0x2411D, "6a01"),
+    "24179 calls 34060 list": (0x24179, "56"),
+    "24185 calls 33FC4 list": (0x24185, "e83afeffff"),
+    "24201 reads object category": (0x24201, "0fb644282f"),
+    "24214 checks party mode FF": (0x24214, "3dff000000"),
+    "2425D reads item qualifier byte35": (0x2425D, "668b440335"),
+    "24264 qualifier low bits": (0x24264, "2403"),
+    "24266 qualifier equals two": (0x24266, "663d0200"),
+    "2428A spell lower bound A7": (0x2428A, "81fea7000000"),
+    "24296 spell upper bound C9": (0x24296, "81fec9000000"),
+    "242DD signed class level word": (0x242DD, "0fbf8600190200"),
+    "2433E spell second range CA": (0x2433E, "81feca000000"),
+    "2434E special spell 12D": (0x2434E, "81fe2d010000"),
+    "3407F 34060 list item31": (0x2407F, "83fb31"),
+    "34005 33FC4 list item29": (0x24005, "83fb29"),
 }
 
 
