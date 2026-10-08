@@ -6,7 +6,7 @@
 
 ## Byte provenance
 
-Verified against the supplied original DOS `CODE.2` SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`, object-1 physical base `0x3AF24`. The checked-in standalone script `tools/verify_combat_entry_bytes.py` accepts the user's original `CODE.2` and checks **18 exact executable-byte anchors** without GitHub Actions or requiring a Windows build. All 18 anchors independently passed against the provided source archive.
+Verified against the supplied original DOS `CODE.2` SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`, object-1 physical base `0x3AF24`. The checked-in standalone script `tools/verify_combat_entry_bytes.py` accepts the user's original `CODE.2` and now covers **33 exact executable-byte anchors** without GitHub Actions or a Windows build. Its original 18 anchors were previously checked, and the 15 newly added `24478/23EAC/23EE4/23E58` anchors were checked directly against the supplied archive. [The subsequent eligibility checkpoint](LEVEL22_HAND_PAIR_ELIGIBILITY_CHECKPOINT.md) provides the per-branch audit. The additions are not a C++ compile or gameplay certification.
 
 ### Critical original party-address correction
 
@@ -52,7 +52,7 @@ The new `CombatTargetPriorityModel` and `CombatVisibleTargetModel` implement the
 | `tests/combat_target_priority_tests.cpp` | parity, first-group success, fallback, missing targets |
 | `include/rloft/combat_visible_target.hpp` / `src/combat_visible_target.cpp` | ranked `DACC` projected actor filtering |
 | `tests/combat_visible_target_tests.cpp` | original group split, rank, flags, projection cutoff, fallback |
-| `tools/verify_combat_entry_bytes.py` | portable offline 18-opcode signature and offset verification |
+| `tools/verify_combat_entry_bytes.py` | portable offline 33-opcode signature and offset verification |
 | `CMakeLists.txt` | all three new test targets registered for future manual Windows CI |
 
 ## Acceptance / release boundary
