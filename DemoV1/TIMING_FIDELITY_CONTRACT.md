@@ -449,3 +449,32 @@ callback, 16-bit counter and page restoration order.
 All this work happens before the original 1C2C4
 `30700` IRQ observation. See
 [the original-overlay checkpoint](LEVEL22_CODE2_OVERLAY_1A288_1AB20_CHECKPOINT.md).
+
+
+## 2E590/2E5D4 live VGA page stack and temporal page writes
+
+Original CODE.2 `2E590` checks BYTE F0D0 for
+depth **exactly 10**, invokes 2F580(1358h) on that
+condition, then rereads the depth, saves original
+BYTE EF4D at 2B644+depth, increments depth
+modulo 256, and calls 291B0 on the requested
+page low byte. The matching 2E5D4 tests
+depth zero, calls 2F580(136Ch) if needed,
+then **still decrements** F0D0 modulo 256,
+reads the saved byte and calls 291B0.
+The diagnostics are real original callbacks, not
+a host-side clamp or exception in normal DOS flow.
+
+The shared native binding exposes these exact
+page transitions to the earlier `1A288/1AB20`
+overlay timing callbacks. Critically it reads
+the live video model's F005 **at the 2AB6C
+call site** and updates the same EFE9/F001
+registers subsequently consumed by 2A078.
+The separate EF4D register is never conflated
+with EFE9, which can change without EF4D.
+Any original sprite/page/copy work and the
+original `1C2C4` IRQ read must still run
+in source order; no synthetic host clock is
+introduced. See
+[2E590/2E5D4 checkpoint](LEVEL22_CODE2_VGA_PAGE_STACK_CHECKPOINT.md).
