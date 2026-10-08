@@ -32,11 +32,11 @@ Original source was checked directly at the logical addresses below. `23F34` is 
 ## New bounded native model and integration
 
 - `include/rloft/combat_hand_pair_early_gate.hpp`, `src/combat_hand_pair_early_gate.cpp`: immutable input `PartyImage`, party actor, both item IDs, original `0x258A8` byte, and the **two separately computed initial eligibility values**. Output contains both post-gate candidates and a Boolean `skip_object_arbitration` for the original short circuits.
-- The existing `CombatHandPairEligibilityModel` (which deliberately allows only two ordinary **nonnegative, non-pseudo IDs**) now invokes the shared early gate instead of duplicating the actor `0x7240` veto. Its own qualification/weight algorithm is unchanged.
-- `tests/combat_hand_pair_early_gate_tests.cpp` covers `0x3FFF/0x4000/0x8000` boundaries, both-empty preservation/veto, both-pseudo shortcut and bypass of `0x7240`, independent pseudo overrides after `0x7240`, one-empty differences, pseudo boundaries `0x7D/0x7E/0x86/0x87`, state nonmutation and invalid inputs. Tests are registered in `DemoV1/CMakeLists.txt`, but **not yet compiled or executed** under private-repository no-auto-build policy.
+- The existing `CombatHandPairEligibilityModel` now invokes the shared early gate instead of duplicating the actor `0x7240` veto. It also **implements the complete both-empty and both-pseudo early-return paths** through the final `+0x10B/+0x10F` action-state vetoes, without attempting the bypassed OBJECTS qualifier/weight arbitration. Both-empty requires the caller-supplied raw `OBJECTS_POINTER-0x12` category byte for each `240A8(-1)` preflight. Its ordinary positive-item qualifier/weight algorithm is unchanged.
+- `tests/combat_hand_pair_early_gate_tests.cpp` covers `0x3FFF/0x4000/0x8000` boundaries, both-empty preservation/veto, both-pseudo shortcut and bypass of `0x7240`, independent pseudo overrides after `0x7240`, one-empty differences, pseudo boundaries `0x7D/0x7E/0x86/0x87`, state nonmutation and invalid inputs. The updated `combat_hand_pair_eligibility_tests.cpp` also exercises **both full short circuits** including `240A8` classification, final busy-state dwords, actual-prebase-byte requirement and the difference between the two status tests. These tests are registered in `DemoV1/CMakeLists.txt`, but **not yet compiled or executed** under private-repository no-auto-build policy.
 - The offline `tools/verify_combat_entry_bytes.py` now has **87 exact original-code signature anchors** (72 prior + 15 additional directly verified `244CE..246E9` instructions, including the critical `cmp 0x4000` bytes). They verify source bytes, not unit-test execution, frame pacing, or the original DOS runtime.
 
-**Do not let the preliminary early-gate result authorize an attack:** it does not supply `240A8(-1)`'s original heap-adjacent byte, does not model OBJECTS[-1] qualifier/weight reads in `246E9`, does not fully reconcile mixed pseudo/ordinary pairs, and does not reproduce `26018`, damage, target selection or original per-action timing.
+**Do not let either preliminary early-gate output or the newly closed short-circuit pair results authorize a live attack:** both-empty explicitly requires an actual observed `240A8(-1)` heap-adjacent byte. Mixed empty/pseudo/ordinary pairs may reach OBJECTS[-1] qualifier/weight reads at `246E9` and remain unsupported; other action/cooldown, damage, targeting and original frame/tick ordering are also unfinished.
 
 ## Remaining work and completion
 
@@ -44,7 +44,7 @@ Original source was checked directly at the logical addresses below. `23F34` is 
 - [x] Native deterministic early-gate model with original short-circuit indication.
 - [x] Focused original-boundary tests added and CMake registration.
 - [x] Shared early gate integrated into normal positive-item pair model.
-- [ ] Full `24478` empty/pseudo/ordinary composition with observed heap memory and original original-runtime traces.
+- [ ] Full `24478` **mixed** empty/pseudo/ordinary composition with observed heap memory and original runtime traces; the two pure short circuits are now modeled through the final busy-state checks.
 - [ ] Execute compiled test suite on a consolidated user-authorized build, then verify DOS-vs-native timing and gameplay actions.
 
 **Bounded early-gate source checkpoint: 67% (4/6 gates)**. **Overall faithful-demo acceptance remains 20% (1/5 major release gates)**. No Windows build or new EXE has been generated.
