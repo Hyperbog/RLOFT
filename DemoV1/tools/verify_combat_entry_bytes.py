@@ -72,6 +72,18 @@ ANCHORS = {
     "2434E special spell 12D": (0x2434E, "81fe2d010000"),
     "3407F 34060 list item31": (0x2407F, "83fb31"),
     "34005 33FC4 list item29": (0x24005, "83fb29"),
+    # Original 24478 final ordinary pair arbitration and empty sentinel.
+    "24478 same item qualifiers": (0x24742, "6639c20f8511"),
+    "24478 matched qualifier two": (0x2474B, "663d0200"),
+    "24478 paired exception first": (0x247A2, "e83df7ffff"),
+    "24478 paired exception second": (0x247B2, "e82df7ffff"),
+    "24478 weight comparison": (0x247E2, "3a4830"),
+    "24478 unequal qualifier branch": (0x2485C, "0f86d9000000"),
+    "24478 first qualifier equals two": (0x24862, "6683fa02"),
+    "24478 classified first only": (0x24A0A, "837c240400"),
+    "24478 classified second only": (0x24A30, "833c2400"),
+    "240A8 empty hand before class": (0x240E3, "83feff"),
+    "240A8 empty hand party veto": (0x24248, "83feff"),
 }
 
 
