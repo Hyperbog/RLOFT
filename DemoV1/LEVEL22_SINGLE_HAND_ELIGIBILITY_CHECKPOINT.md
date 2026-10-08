@@ -4,7 +4,7 @@
 
 Continue the original `24478` two-hand legality audit without shortcutting its `240A8` per-hand candidate initializer. The native port now reconstructs **the instruction-accounted nonnegative-object-ID paths** through `240A8`, `33FC4`, and `34060`. This is one candidate calculation, **not complete two-hand permission**, combat execution, or correct hand-use timing. Attacks remain disabled.
 
-The original shipped `CODE.2` SHA-256 is `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`; its object-1 file base is `0x3AF24`. Source evidence was obtained by disassembling logical offsets `240A8..243DD` (virtual objdump addresses `340A8..343DD`), together with the helper functions `33FC4` and `34060`. Newly checked: **21 exact original instruction-byte anchors**, all matching the supplied original. The offline CODE.2 verifier now registers **54 anchors total (33 previous + 21 additional)** without GitHub Actions.
+The original shipped `CODE.2` SHA-256 is `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`; its object-1 file base is `0x3AF24`. Source evidence was obtained by disassembling logical offsets `240A8..243DD` (virtual objdump addresses `340A8..343DD`), together with the helper functions `33FC4` and `34060`. Newly checked: **21 exact original instruction-byte anchors**, all matching the supplied original. This checkpoint added **21 original anchors to the prior 33**. Subsequent [pair arbitration and heap-loader audits](LEVEL22_HAND_PAIR_ARBITRATION_CHECKPOINT.md) expanded the consolidated offline verifier to **72 anchors total**, without GitHub Actions.
 
 ## Original contract: `240A8(actor,item,&classification)`
 
@@ -44,7 +44,7 @@ The original OBJECTS loader has since been traced: `268C8..2692C` allocates `cou
 - `include/rloft/object_catalog.hpp` and `src/object_catalog.cpp` now decode only the verified OBJECTS record `+0x35 & 3` bits; no invented name/meaning is assigned to its upper bits.
 - `tests/combat_single_hand_eligibility_tests.cpp` contains synthetic regression cases for class combinations and vetoes, helper-set OR, exact thresholds `0xA7,0xC9,0xCA,0xE4,0x12D`, class-5 level boundary 9/10, global `0x258A8` gating, exact `0x8000` first-party statuses, item qualifier `2`, input validation and party nonmutation.
 - `DemoV1/CMakeLists.txt` registers this model and tests for a **later manual** CMake/CTest run. They are source-registered, **not compiled/tested with MSVC yet**; do not cite the earlier 102/102 Windows pass as their verification.
-- `tools/verify_combat_entry_bytes.py` registers 54 exact original opcode anchors. The **21 newly added** byte sequences were checked directly against original `CODE.2` and passed; this verifies controlling bytes, not new C++ execution.
+- `tools/verify_combat_entry_bytes.py` now registers 72 exact original opcode anchors. Its 21 original 240A8-specific byte sequences were checked directly against original `CODE.2` and passed; 18 later pair-arbitration/loader checks were added subsequently. This verifies controlling bytes, not new C++ execution.
 
 ## Unfinished pair eligibility and future integration
 
