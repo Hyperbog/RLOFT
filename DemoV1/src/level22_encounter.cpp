@@ -2,6 +2,7 @@
 #include "rloft/combat_npc_injury_prelude.hpp"
 #include "rloft/combat_npc_death_followon.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
