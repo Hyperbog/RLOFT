@@ -1,4 +1,5 @@
 #include "rloft/combat_hand_pair_eligibility.hpp"
+#include "rloft/combat_hand_pair_early_gate.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -69,11 +70,15 @@ CombatHandPairEligibility CombatHandPairEligibilityModel::evaluate(
     result.first_eligible=initial_a.eligible;
     result.second_eligible=initial_b.eligible;
 
-    // 3459C..345B9: the original status mask clears both candidates.
-    if ((party.status_word(actor) & 0x7240U) != 0U) {
-        result.first_eligible=false;
-        result.second_eligible=false;
-    }
+    // 244CE..246E9 is a common early-gate stage. The supported
+    // ordinary two-positive-item subset reaches only its 2459C
+    // actor-status branch, but call the shared audited stage so
+    // the mask is not implemented differently in separate paths.
+    const auto early=CombatHandPairEarlyGateModel::apply(
+        party,actor,first_id,second_id,context.party_mode_258a8,
+        result.first_eligible,result.second_eligible);
+    result.first_eligible=early.first_eligible;
+    result.second_eligible=early.second_eligible;
 
     // 346E9..34A56: arbitrate classification flags in the
     // exact CODE.2 branch order. These operations only suppress
