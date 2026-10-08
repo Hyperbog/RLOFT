@@ -46,13 +46,14 @@ int main() {
     set32(party,0x132U,0U);
     const auto plan=[&](unsigned hand,bool hit,
                         std::uint32_t now=100U,
-                        std::int32_t damage=7) {
+                        std::int32_t damage=7,
+                        std::uint32_t rendered_at=100U) {
         const auto offset=0x40U+2U*(14U+hand);
         const auto item=static_cast<std::int16_t>(
             static_cast<std::uint16_t>(party.bytes[offset]) |
             (static_cast<std::uint16_t>(party.bytes[offset+1U])<<8U));
         return CombatAttackTimingModel::inspect(
-            party,objects,0U,hand,item,now,hit,damage);
+            party,objects,0U,hand,item,now,rendered_at,hit,damage);
     };
 
     // E5F0:1E9E9 unarmed and pseudo spell hand are exactly 18,
@@ -63,6 +64,7 @@ int main() {
     assert(p.animation_interval==18U);
     assert(p.hand_ready_deadline==109U);
     assert(p.stored_damage==7);
+    assert(p.action_state_deadline==118U);
     p=plan(1U,true);
     assert(p.animation_interval==18U && p.hand_ready_deadline==109U);
 
@@ -76,6 +78,10 @@ int main() {
         assert(p.animation_interval==expected[item]);
         assert(p.hand_ready_deadline==
                100U+expected[item]/2U);
+        if (expected[item]==0U)
+            assert(!p.action_state_deadline);
+        else
+            assert(p.action_state_deadline==100U+expected[item]);
     }
     assert(objects.at(1U).raw_word_35==0x0019U);
     assert(objects.at(1U).raw_byte_35_low2==1U);
@@ -89,6 +95,7 @@ int main() {
     p=plan(0U,true);
     assert(p.animation_interval==31U);
     assert(p.hand_ready_deadline==115U);
+    assert(p.action_state_deadline==131U);
     set32(party,0x132U,0x01000000U);
     p=plan(0U,true);
     assert(p.animation_interval==31U);
@@ -102,15 +109,25 @@ int main() {
     p=plan(0U,false,100U,-20);
     assert(p.animation_interval==63U);
     assert(!p.hand_ready_deadline && !p.stored_damage);
+    // 24B48 still sets +10B action busy, including on a MISS.
+    // Presentation can advance A7E4 between the hit-only
+    // deadline read and this later second clock observation.
+    assert(p.action_state_deadline==163U);
+    p=plan(0U,false,100U,-20,220U);
+    assert(!p.hand_ready_deadline && !p.stored_damage);
+    assert(p.action_state_deadline==283U);
     p=plan(0U,true,0xFFFFFFFDU,-12);
     assert(p.hand_ready_deadline==28U); // unsigned wrap +31
+    assert(p.action_state_deadline==163U); // second clock sample is 100
     assert(p.stored_damage==-12);
 
     // E5F0 retains the exact item already captured by 26018.
     set16(party,0x40U+14U*2U,1U);
     const auto captured=CombatAttackTimingModel::inspect(
-        party,objects,0U,0U,3,100U,true,7);
+        party,objects,0U,0U,3,100U,110U,true,7);
     assert(captured.animation_interval==63U);
+    assert(captured.hand_ready_deadline==131U);
+    assert(captured.action_state_deadline==173U);
     assert(plan(0U,true).animation_interval==54U);
 
     // Planning never modifies original character bytes or A7E4.
@@ -120,7 +137,7 @@ int main() {
 
     bool rejected=false;
     try { (void)CombatAttackTimingModel::inspect(
-        party,objects,4U,0U,0,0U,false,0); }
+        party,objects,4U,0U,0,0U,0U,false,0); }
     catch(const std::out_of_range&) {rejected=true;}
     assert(rejected);
     rejected=false;
