@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "rloft/vga_planar_memory.hpp"
+#include "rloft/combat_original_sprite_machine.hpp"
 
 namespace rloft {
 
@@ -61,20 +62,23 @@ public:
         VgaPlanarMemory& memory,
         const CombatOriginalSpriteMemory& source,
         std::uint32_t original_frame_index_bits,
-        const CombatOriginalSpriteVideoState& video);
+        const CombatOriginalSpriteVideoState& video,
+        CombatOriginalSpriteMachineState* original_machine=nullptr);
 
     // CODE.2 2A584..2A6B0: original shaded sprite uses a full
     // 256-byte table indexed by RAW source color, not SUB or tint.
     // Transparency compares its unmodified sentinel BEFORE lookup.
-    // The result reports the source-code operand pointer to be
-    // patched in real DOS code memory by a later execution layer.
+    // If original_machine is supplied, patch its captured CODE.2
+    // operands at entry before trying sprite resource reads; the
+    // actual original routine modifies code before raster work.
     [[nodiscard]] static std::optional<CombatOriginalSpriteRasterResult>
     draw_2a584(
         VgaPlanarMemory& memory,
         const CombatOriginalSpriteMemory& source,
         std::uint32_t original_frame_index_bits,
         const CombatOriginalSpriteVideoState& video,
-        const CombatOriginalShaderMemory& shader);
+        const CombatOriginalShaderMemory& shader,
+        CombatOriginalSpriteMachineState* original_machine=nullptr);
 };
 
 } // namespace rloft
