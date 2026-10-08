@@ -231,6 +231,22 @@ ANCHORS = {
     "Rod indexed charge test unreachable": (0xE92B, "80b8ec67000000"),
     "Rod ordinary charge decrement unreachable": (0xE93D, "fe88ec670000"),
     "Rod nonrod branches to C910": (0xE947, "55ff74240856e8bedfffff"),
+    # E284 initial NPC mutation with type8/type15 exceptions.
+    "E284 NPC injury function entry": (0xE284, "53565755"),
+    "E284 reacts to nonzero mode": (0xE290, "837c242400"),
+    "E284 NPC definition animation byte": (0xE29B, "80781c00"),
+    "E284 sets reaction bits 06": (0xE2A1, "804e1406"),
+    "E284 standard countdown two": (0xE2A5, "66c746100200"),
+    "E284 urgent countdown one": (0xE2BB, "66c746100100"),
+    "E284 tests immune NPC type 0F": (0xE2C5, "83f80f"),
+    "E284 tests special NPC type 08": (0xE2CA, "83f808"),
+    "E284 masks type8 packed state C0": (0xE2D5, "80e4c0"),
+    "E284 tests special state C000": (0xE2D8, "663d00c0"),
+    "E284 tests signed HP greater than ten": (0xE2DE, "0fbf4612"),
+    "E284 special type8 HP subtract": (0xE2E7, "8b44242066294612"),
+    "E284 special type8 HP minimum ten": (0xE2F6, "66c746120a00"),
+    "E284 generic NPC HP deduct as word": (0xE2FE, "8b44242066294612"),
+    "E284 next NPC type classifier": (0xE306, "0fb7460e"),
 }
 
 
