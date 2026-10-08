@@ -64,6 +64,12 @@ int main() {
     try {(void)CombatVisibleTargetModel::scan(2U,scene,flags);}
     catch(const std::out_of_range&) {bad=true;}
     assert(bad);
+    bad=false;
+    try {
+        (void)CombatVisibleTargetModel::scan(
+            0U,std::vector<CombatProjectedTarget>(401),flags);
+    } catch(const std::out_of_range&) {bad=true;}
+    assert(bad);
     auto missing_rank=scene;
     missing_rank[1].draw_rank=5U;
     bad=false;
