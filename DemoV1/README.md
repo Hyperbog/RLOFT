@@ -1,5 +1,40 @@
 # Ravenloft Demo Build v1
 
+## Latest original sprite raster checkpoint — real four-plane VGA writes
+
+The [2A380/2A584 raster source checkpoint](LEVEL22_CODE2_SPRITE_RASTER_CHECKPOINT.md)
+extends the original `291B0 -> 2939C/293EC -> 2A380/2A584`
+path beyond callback planning: the new native source **writes actual
+opaque and transparent sprite bytes into `VgaPlanarMemory`** using
+the original frame header, width/height, four-plane write mask,
+`EFF9` row pitch, transparent sentinel and DWORD frame addressing.
+
+A key disassembly correction: shaded `2A584` performs a lookup
+through an **original 256-entry DOS byte table**, whose 32-bit
+pointer is self-patched into two CODE.2 instructions. It does not
+perform a generic tint or arithmetic subtraction. The model uses
+only caller-captured table bytes, preserves sentinel checks before
+lookup, and reports the code-patch pointer for future live-state
+integration. Malformed inputs fail closed rather than inventing pixels.
+
+The original-byte audit now includes **648 named instruction checks
+at 640 distinct logical code sites**. All **71 new** normal/shaded
+raster checks matched the supplied original `CODE.2`.
+The **exact committed implementation source** passed isolated strict
+C++17 Debug, Release and UBSan harness tests with a compatible
+VGA memory interface, including all 320 starting columns. These
+commits have **NOT** received a new full Windows CMake/CTest build.
+The previous green 130/130 Windows run #634 applies to its
+earlier pinned source SHA only.
+
+The current blocker is **live DOS sprite/resource/shader memory
+binding, original VGA sequencer and self-modifying-code state,
+`1A8C8` composition, and pixel/timing comparison against DOS**.
+Until then this is real source-backed component rasterization,
+not a certified end-to-end playable HUD. Overall fidelity-demo
+acceptance remains **20% (1/5 major gates)**.
+
+
 ## Current DOS message renderer frontier — exact glyph and sprite callbacks
 
 The [303C8/2939C/293EC original renderer checkpoint](LEVEL22_ORIGINAL_GLYPH_SPRITE_RENDERER_CHECKPOINT.md)
