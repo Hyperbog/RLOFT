@@ -2,7 +2,7 @@
 
 ## 21 — Final Contradiction, UNKNOWN, and Evidence Certification
 
-**Status:** ACTIVE / FINAL AUDIT FOUNDATION — link integrity and primary-evidence boundaries checked; semantic contradiction/cross-chapter certification IN PROGRESS  
+**Status:** FINAL EVIDENCE AUDIT — 16 UNKNOWNs classified, heading collision corrected; final link/semantic gates remain OPEN  
 **Working branch:** `code1-decompilation`  
 **Frozen original-source baseline:** `373c7f10e6fc0f29c1e805125ef048150fcc7ba7`  
 **Audit subject:** current Chapters 00–20, original CODE.1/CODE.2 and supplied DAT/SINTAB fixtures, plus the certified original Resources and Runtime audits.  
@@ -82,3 +82,91 @@ Every new proposed correction must identify: prior claim; exact primary byte/ins
 6. **Publication decision:** explicitly distinguish “100% of available source documented,” “historical source UNKNOWN,” and “native execution fully integrated”; none is a substitute for the others.
 
 **Checkpoint:** This is the **start of the final contradiction/UNKNOWN phase**, with structural/path integrity checked and several previously apparent conflicts classified. **No final 100% archival certification has yet been issued.**
+
+
+## 7. Disposition of all 16 foundational UNKNOWNs
+
+**State codes for this table:**
+
+- **B — BOUNDED:** the supplied original binary/format proves the operative geometry or behavior; the missing name or historical motivation is not needed to read and faithfully preserve the data.
+- **H — HISTORICAL/ALTERNATE ORIGINAL REQUIRED:** source/editor, old executable or old media needed to identify an earlier feature's intent, producer or revision.
+- **D — DRIVER/DYNAMIC EVIDENCE REQUIRED:** middleware backend, additional configuration or instrumented real/emulated execution needed for specific behavior.
+- **O — OPTIONAL THIRD-PARTY ARCHAEOLOGY:** original project scope defers this without declaring it valueless.
+
+Codes describe the **remaining unproved aspect**, not the status of the entire format. A row marked B is not being claimed “solved” merely because a current-format consumer is known.
+
+| Scope ID | Disposition | Proven current boundary | Specific missing evidence |
+|---|---|---|---|
+| **U-001** | B/H | NPC flags preserved; category-11 `0x20000/0x40000` weapon gate behavior measured statically | Original symbolic names and any alternate-build producer rules |
+| **U-002** | B/H | NPC `+0x3B/+0x3C` zero in 83 records, no direct consumer proved | Original definition/editor or alternate revision with populated values |
+| **U-003** | B/H | NPC directional-vector, animation and cell-influence arithmetic documented | Original design/editor nomenclature |
+| **U-004** | B/H | Hand-pair classes 0/1/2 numeric behavior; class 2 paired-hand-exclusive | Source enum names for classes 0/1 |
+| **U-005** | B/H | OBJECTS `+0x2C` zero across 336 records, no current consumer | Original authoring purpose / another revision |
+| **U-006** | B/H | OBJECTS range bytes, scene influence and duplicate item mappings encoded and preserved | Physical unit names and object-table historical changes |
+| **U-007** | B/H | LEVELS/LEV geometry, legacy `0x54→0x58`, cell `0x2000`, 40 saved-cache mismatches bounded | Editor/revision or runtime trace explaining legacy cache provenance |
+| **U-008** | B/H | SAVE fixed/variable fields, status low bits, opaque character `+0x1BA` carried losslessly | Producer for residual status/auxiliary words or original source names |
+| **U-009** | B/H | Second RES9 word bank persisted; supplied CODE.2 never consumes it | Editor/older executable producer or consumer |
+| **U-010** | B/H | Two RES1 terminal raw `0x00000060` records and empty neighbors preserved | Historical portrait resource producer/significance |
+| **U-011** | H | RES11/RES12 pre-split families and RES12→RES9 migration demonstrated | Exact producer/editor/older executable, hash-matched |
+| **U-012** | B/H | Type-5 EH loader contract reconstructed; no shipped type-5 resource | Type-5 example or authoring source naming payload fields |
+| **U-013** | B/H | ANM packet-4 seeking/repetition machine behavior reconstructed; zero shipped instances | Actual authored packet or producer format |
+| **U-014** | O/D | GM1/GM2 identified as ARIA bank material, bytes retained | Driver/source or documented ARIA inner-bank specification |
+| **U-015** | D | SOUND.CFG layout and AIL/32 `svc_rate` Hz/microseconds contract identified | Driver descriptor values, numeric config labels, real callback and error path traces |
+| **U-016** | O | Optional installer/18 audio drivers separated from core game logic | Targeted driver decompilation only where a substantive original ABI question remains |
+
+**Reconciliation:** all **16/16 IDs** from Chapter 00 are now explicitly disposed. The evidence improved since their first recording (especially U-001, U-007, U-011, U-015), but the residual historical/source-name portions have **not** been relabeled as proved. This is an accounting closure, **not** a claim of recovering every original author intent. Chapter [18](18_ORIGINAL_QUIRKS_LATENT_FEATURES_AND_LEGACY_DATA.md) remains the detailed quirk/source preservation ledger.
+
+## 8. Finding A-14.1: duplicate section identity in the event/wordcode chapter
+
+A current source-and-document scan identified a **real editorial conflict** in [Chapter 14](14_EVENT_WORDCODE_DIALOGUE_AND_STORY_STATE.md):
+
+- §§1–75 originally progressed normally.
+- A later **independent content block** restarted its section count at §51 and continued through §114.
+- **25 pairs** of distinct topics were labeled §51–§75, making reference by numeric section ambiguous.
+
+This is **not duplicate source data or a bug in CODE.2**. Neither content block was deleted. On 2026-10-07, correction **A-14.1** repaired the second block's section numbering by adding 25: later §51→current §76, …, later §114→current §139. The original first §§1–75 remain unchanged. Original correction labels `C-28..C-32`, original byte addresses, images and citations were left intact.
+
+A cross-document citation in Chapter 18's **Q-08** formerly pointed to ambiguous Chapter-14 §77 and now points to **§102**, the section that describes the reserved LEVELS event-11 dispatcher. This is tracked under the Chapter-18 rule requiring chapter-qualified correction references, not silent rewrite of past commit history.
+
+**Verification:** the corrected Chapter 14 has **139/139 sequential unique numbered sections**, and a scan of all **22** archive chapters (00–21, before this new text) found **no second chapter with duplicate or out-of-order numbered sections**. Existing intra-document prose references and external commit-era hyperlinks may still need citation-migration treatment if new ones surface; the explicit formula above remains available.
+
+## 9. Fresh original-file witness check, 35/35 PASS
+
+The project-mount originals were read independently from the documentation and tested against hashes and structure fields in Chapter 19:
+
+```text
+9/9 original file sizes and SHA-256:
+  CODE.1 / CODE.2 / INFO.DAT / LEVELS.DAT / LEV022.DAT
+  OBJECTS.DAT / NPCS.DAT / SAVE.DAT / SINTAB
+
+CODE.2 embedded "Ver 1.2a" byte string
+CODE.1 and CODE.2 published 1.2a reference MD5 matches
+Corrected INFO.DAT MD5 and exact 13-character selector + 2-byte path
+CODE.1 / CODE.2 common bound-loader prefix to 0x27BF0
+OBJECTS 336 × 0x41 and quiver ID 329/selector 62
+NPCS 83 × 0x45 and GHOUL LORD ID 18
+LEVELS count 32 and strictly increasing in-file record offsets
+SAVE 0x2448 fixture, level 22 and clock values 1899 / 14:00 / 1735
+SAVE zero live transient records and four verified occupancy status words
+SINTAB full zero trailer
+SAVE 32-byte (256-bit) persistent event-flag block
+
+TOTAL: 35/35 original-byte assertions passed
+```
+
+The checks establish these fields for **the nine available original binary inputs**. They **do not rerun** the independent 33-resource RES/ANM audit, driver hardware timing, native game integration or old-release diff tests. Time stamps on the mounted files are runtime upload metadata, **not** trusted 1994 build evidence.
+
+## 10. Current contradiction disposition and next gates
+
+Cross-chapter comparison has now examined: LE executable geometry and object origin, save/CHARS image sizes, fixed versus variable SAVE offsets, original status-word bit domains, script opcode/fixed-slot distinctions, RES bank-local IDs, runtime-vs-legacy archive selection, rendering microcode dependencies, game clock ownership, and release/middleware version boundaries.
+
+**Confirmed new problem:** the Chapter-14 section-number collision, now repaired with a migration record. **No additional unresolved contradiction in those selected canonical field families has been established by this pass.** This is **not** proof that every sentence or example in Chapters 00–20 has been adversarially reverified instruction-by-instruction.
+
+**Still required before a defensible final publication certificate:**
+
+1. Verify the complete current relative-link manifest (including the new Chapter 21) and check dangling source-path/section references; treat public remote-link uptime as a separate matter.
+2. Complete a field-level cross-reference of *all* previously recorded correction entries and the surviving historical UNKNOWN register; ensure original-bit identities never collide across unrelated owner types.
+3. Produce a canonical file/edition integrity manifest that distinguishes currently-mounted originals from previously audited 33 resource files and unavailable third-party driver binaries.
+4. Decide and document explicit gates for required native regressions and unsupplied original-media/runtime timing research, without pretending to have executed them.
+5. Only then issue a scoped static documentation completeness decision. Do not equate it with 100% native game behavior testing or 100% historical provenance recovery.
+
