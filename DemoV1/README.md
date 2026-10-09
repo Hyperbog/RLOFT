@@ -1,5 +1,34 @@
 # Ravenloft Demo Build v1
 
+## Current development: 56.25% Demo-v1 engineering source coverage
+
+[Canonical 32-milestone engineering tracker and faster manual builds](ENGINEERING_PROGRESS_AND_FAST_BUILD_20261009.md):
+**12 source-implemented, 12 partial, 8 open**. The transparent
+rule awards one point per source-implemented bounded deliverable
+and half a point per partial: `(12 + 12×0.5)/32 = 56.25%`.
+A partial milestone becoming source-complete advances the
+tracker by **1.5625 percentage points**. The earlier repeated
+"20%" meant just **one of five giant formal acceptance gates**,
+and was misleading as an engineering-progress number.
+All older 20% statements below are historical acceptance
+references, not current developer progress.
+
+**Verified Windows:** last green manual #640 (160/160 at an
+older commit); current expected 164 CTests unbuilt.
+**DOS fidelity:** original screenshots still disagree in
+movement, ground/trees, NPCs, inventory and combat.
+These three measures must remain separate.
+
+[Manual demo-v1 workflow](https://github.com/Hyperbog/RLOFT/actions/workflows/demo-v1-build.yml)
+now offers **Quick (default)** and **Full** build modes.
+Quick builds the EXE/ground probe and nine focused tests;
+Full builds all 164 tests. MSVC compilation is parallelized,
+with best-effort incremental build cache. The #640
+7m40s job spent **6m26s compiling**, only 16 seconds
+testing, so reducing compiled test binaries is the
+immediate optimization. Neither mode runs automatically;
+no new build speed has been measured yet.
+
 ## Current source milestone — live original 34A74 forest floor in open Level22
 
 [Complete guarded live raster checkpoint](LEVEL22_LIVE_ORIGINAL_34A74_OPENFIELD_GROUND_20261008.md):
