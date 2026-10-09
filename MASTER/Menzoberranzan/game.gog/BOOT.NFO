@@ -1,0 +1,16 @@
+ 
+n
+; Memory Type, 0 = Neither, 1 = Expanded, 2 = Extended, 3 = Either
+2
+; Game Dir
+MENZO
+; Game Start Command
+MENZO
+; Use QEMM is avail?
+0
+; Use Smartdrive is avail?
+0
+; Files
+25
+; Buffers
+25

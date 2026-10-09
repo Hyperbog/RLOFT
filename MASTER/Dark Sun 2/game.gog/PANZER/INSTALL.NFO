@@ -1,0 +1,31 @@
+; INSTALL.NFO v2.13, created 9/7/1994
+; Game Name
+Panzer General DEMO
+; Default game directory.
+\PANZER + DATA.A00
+; Game bytes needed.
+9000000
+; ARJ method.
+1
+; Command to start game.
+START
+; CD info. 0 = Disk, 1 = CD
+0
+; Conventional memory needed.
+590
+; XMS needed.
+2048
+; EMS needed.
+2048
+; VESA needed.
+1
+; Mouse needed.
+1
+; Joystick needed.
+0
+; DOS ver needed.
+5.0
+; System Detection
+0
+; Run Sound Install?
+1

@@ -1,0 +1,202 @@
+@BEGIN
+Conventional Memory
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  R.A.M. or Random Access Memory is located on your computer's motherboard.
+Base RAM is recognized as the first 640k or 655,360 bytes (a K=1024 bytes).
+If you have insufficent Base RAM, your computer may be loading extraneous
+programs that occupy this memory.
+
+  During each and every startup, your computer searches for 'startup' files
+(i.e. the CONFIG.SYS and AUTOEXEC.BAT files). These files, programmed by
+the user at an earlier time, contain the instructions to load programs and
+configure the computer. The solution to free more Base RAM is to either
+modify those startup files or create alternative startup files
+specifically configured for your game.
+This can be accomplished by creating a 'boot disk' with new startup files.
+Those startup files will be called CONFIG.SYS and AUTOEXEC.BAT.
+
+There are two ways you can create a 'boot' disk:
+
+1) You can automatically create a boot disk by selecting the
+   'Create Boot Disk' icon in the install menu. You will need a blank disk
+   of the appropriate size for your A: drive.
+
+2) You can manually create a boot disk by following the instructions below:
+    A. Place a floppy disk in drive A.
+    B. From the C: prompt type FORMAT A: /S <Enter>
+    C. After the format is complete and the system has been transferred,
+        type A: <Enter>
+    D. Type EDIT CONFIG.SYS <Enter>. When the blue screen appears type
+        in the lines just as they appear in the sample CONFIG.SYS in your
+        users guide.  Once this is done, choose Save from under the File
+        menu, and then exit.
+    E. Type EDIT AUTOEXEC.BAT <Enter>. When the blue screen appears type
+        in the lines just as they appear in the sample AUTOEXEC.BAT in your
+        data card. Once this is done, choose Save from under the File menu,
+        and then exit.
+@END
+
+
+
+@BEGIN
+Extended Memory (XMS)
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  Your total extended memory is equal to all the memory above one Megabyte.
+If you know your computer has the required total, yet the Install detects
+it as being insufficient, your computer may not have the amount *free* or
+available.
+
+  There are programs or drivers (such as SMARTDRV.EXE and EMM386.EXE) that
+use your extended memory. If you have the required total memory, but have
+insufficent *free* memory, you will have to disable any extraneous drivers
+that are occupying your extended memory. A simple solution is a
+'boot disk.'
+
+See CONVENTIONAL memory help for creating a 'boot disk'.
+@END
+
+
+
+@BEGIN
+Expanded Memory (EMS)
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  Some programs require EMS memory to functions properly. EMS or expanded
+memory exists only if a certain program or driver is activated. This
+driver, under DOS, is called EMM386.EXE. It must be included in one of
+your startup files called CONFIG.SYS.
+  The EMM386 driver converts a specified amount of extended memory into
+expanded memory. If you do not have the required amount of FREE EMS, your
+EMM386 driver may not have specified the minimum amount in your CONFIG.SYS
+file. To verify that this is the problem, follow these instructions:
+
+  1) Access your C: drive by typing C: <Enter>
+
+  2) Type EDIT CONFIG.SYS <Enter>
+
+  3) A window will appear, and you will be editing a file called
+     CONFIG.SYS.
+
+  4) Look for the EMM386.EXE command. There should be a number following
+     the command.
+     For example: DEVICE = C:\DOS\EMM386.EXE 1024
+     The 1024 represents the amount of extended memory which is being
+     requested to be converted to expanded memory. The amount is measured
+     in K, so in our example above, the amount requested is exactly
+     1 Megabyte. If the amount is not set to the minimum required, or if
+     the EMM386.EXE command does not exist in your CONFIG.SYS file, the
+     problem can be solved using one of the options below:
+
+      A)  Adjust the amount to satisfy the minimum required by our game
+          and be sure that the word RAM appears after the amount. This
+          allows your system to load programs such as your mouse driver
+          'high' and is essential for most systems.
+
+      B)  Create a boot disk using our boot disk creator.  The boot disk
+          program will create a CONFIG.SYS and AUTOEXEC.BAT file
+          appropriate for the game.  To run the boot disk creator program,
+          click on 'Continue' from the main detection screen. When the
+          INSTALL appears, click on 'Create Book Disk'.
+
+      C)  Users of MS-DOS 6.0 and above can try running Microsoft's
+          MEMMAKER program to give DOS a chance to make the corrections
+          automatically. Choose 'Y' when MEMMAKER asks whether you have any
+          programs that use Expanded Memory.
+@END
+
+
+
+@BEGIN
+Hard Drive Space
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  If you do not have the required hard drive space to install the game, you
+will need to delete enough programs from your hard drive to free the
+required amount of space. This can be done with the 'DEL' command. Please
+see your DOS manual if you are not familiar on how to use this command.
+@END
+
+
+
+@BEGIN
+Video Adapter
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  This program will detect the model, type, and capabilities of your video
+card. It will also determine whether it supports the mode required by the
+game. If your card does not support the mode necessary for the game to
+run, you will need to correct this before proceeding.
+
+  This may be as simple as installing a VESA driver, or you may need to
+upgrade your video card.
+@END
+
+
+
+@BEGIN
+VESA
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  A VESA (Video Electronics Standards Association) driver is a standard to
+which all video card manufacturers comply to produce a variety of video
+modes. Video cards can have VESA drivers built into the card, or available
+separately on a disk included with the card. If after the game installation
+our install program does not detect a VESA driver present, a program called
+VINSTALL will be run. It will suggest a VESA driver for your particular
+video card, and allow you to install it. If the suggested VESA driver does
+not work, or none of the drivers listed are compatible with your video
+card, check the software that accompanied your video card for a VESA driver
+and refer to the video card manual for further instructions.
+@END
+
+
+
+@BEGIN
+Mouse
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+  Some of our games require a mouse; the game may not run if the mouse
+isn't activated. If you have problems, and know you have the mouse
+properly connected, verify that the mouse driver is loaded by typing
+MEM /C | MORE <Enter> at the C: prompt.
+
+  If you do not see the mouse driver listed, you'll need to find the
+directory that holds the mouse driver. (This is usually the MOUSE
+directory; you may need to refer to your mouse manual for help finding it
+if the name is different.) Once located, type the appropriate command to
+enable your mouse (usually MOUSE) and press <Enter>.  Please be aware that
+Microsoft Windows has its own built-in mouse drivers that *do not*
+function outside of Windows. You must have the mouse driver loaded in DOS
+to play our games.
+@END
+
+
+@BEGIN
+Joystick
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+Possible causes for disabled joystick(s):
+ - The joystick is not properly connected. Double-check the connections
+   and reboot your machine.
+ - The joystick port on the sound card or game card is disabled. Refer to
+   your sound card or game card manual for instructions on how to enable
+   the port.
+ - You may have two joystick ports enabled. This can cause a conflict
+   between the two ports, and in most cases neither will operate properly.
+   The solution would be to disable one of them.
+ - If you are having problems using two joysticks using a 'Y' (or splitter)
+   cable, you may have an older version of the 'Y' cable that is
+   incompatible with the new joystick ports on many newer sound cards. Try
+   using a new splitter cable. Please be aware that when using a 'Y' (or
+   splitter) cable, only two buttons on each joystick function.
+@END
+
+
+
+@BEGIN
+DOS Version
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  If you do not have the required operating system version, (the operating
+system usually referred to as DOS) you will need to upgrade for the game to
+run properly.
+
+  Unless specified otherwise, we do not recommend running the game through
+the Windows environment.
+@END
+

@@ -1,0 +1,17 @@
+ 
+n
+; Memory Type, 0 = Neither, 1 = Expanded, 2 = Extended, 3 = Either
+3
+; Game Dir
+RAVAGER
+; Game Start Command
+RAVAGER
+; Use QEMM is avail?
+0
+; Use Smartdrive is avail?
+0
+; Files
+30
+; Buffers
+25
+

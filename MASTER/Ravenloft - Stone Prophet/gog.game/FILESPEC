@@ -1,0 +1,29 @@
+SETTITLE
+Small: Takes 3 MB of disk space, slowest game play.
+ENDTITLE
+install.nfo
+
+SETTITLE
+Medium: Takes 17 MB of disk space, average game play.
+ENDTITLE
+res0.
+res1.
+res2.
+res3.
+res4.
+res5.
+res7.
+res8.
+
+SETTITLE
+Large: Takes 28 MB of disk space, faster game play.
+ENDTITLE
+res0.
+res1.
+res2.
+res3.
+res4.
+res5.
+res6.
+res7.
+res8.

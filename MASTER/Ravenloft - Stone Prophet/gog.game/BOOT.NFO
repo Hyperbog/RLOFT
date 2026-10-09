@@ -1,0 +1,16 @@
+ 
+n
+; Mem: 0 = Neither, 1 = EMS, 2 = XMS, 3 = Either, 4 = XMS w/o EMM386
+3
+; Game Dir
+PROPHET
+; Game Start Command
+PROPHET
+; Use QEMM is avail?
+0
+; Use Smartdrive is avail?
+0
+; Files
+25
+; Buffers
+25

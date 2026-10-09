@@ -1,0 +1,31 @@
+; INSTALL.NFO v2.13, created 9/7/1994
+; Game Name
+Menzoberranzan DEMO
+; Default game directory.
+\MENZO + DATA.A00
+; Game bytes needed.
+10000000
+; ARJ method.
+1
+; Command to start game.
+MENZO
+; CD info. 0 = Disk, 1 = CD
+0
+; Conventional memory needed.
+550
+; XMS needed.
+1024
+; EMS needed.
+1024
+; VESA needed.
+0
+; Mouse needed.
+0
+; Joystick needed.
+0
+; DOS ver needed.
+5.0
+; System Detection
+0
+; Run Sound Install?
+1
