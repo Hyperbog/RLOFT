@@ -10,6 +10,7 @@
 
 #include "rloft/exploration_runtime_motion.hpp"
 #include "rloft/inventory_runtime.hpp"
+#include "rloft/inventory_save_codec.hpp"
 #include "rloft/inventory_world_drop.hpp"
 #include "rloft/inventory_party_order.hpp"
 #include "rloft/level_world_state.hpp"
@@ -150,6 +151,26 @@ public:
     [[nodiscard]] bool gameplay_state_initialized() const noexcept {
         return gameplay_state_initialized_;
     }
+
+    // This deliberately is NOT a general game SAVE/LOAD operation.
+    // For an already initialized, matching level/pose/TOD with zero
+    // moving effects and inactive 6FA0 containers, apply only
+    // CODE.2's inventory-owned serialized state. Keep the source
+    // SAVE image for lossless re-emission; unsupported saves fail
+    // before changing the live session. No file IO or menu action.
+    void import_matching_save_inventory(
+        const std::vector<std::uint8_t>& original_save);
+
+    // Requires an import plus unchanged source world revision/pose.
+    // Emits a full original-format byte image over the preserved
+    // backing, but only inventory-owned bytes have been refreshed.
+    // Callers must NOT present this as a complete game save.
+    [[nodiscard]] std::vector<std::uint8_t>
+    export_matching_save_inventory() const;
+
+    [[nodiscard]] bool has_inventory_save_backing() const noexcept {
+        return inventory_save_backing_.has_value();
+    }
     [[nodiscard]] LevelWorldState& world() noexcept { return world_; }
     [[nodiscard]] const LevelWorldState& world() const noexcept { return world_; }
     [[nodiscard]] InventoryRuntimeState& inventory() noexcept { return inventory_; }
@@ -238,6 +259,8 @@ private:
     std::uint64_t world_scene_revision_{};
     LevelWorldState world_{};
     InventoryRuntimeState inventory_{};
+    std::optional<InventorySaveSnapshot> inventory_save_backing_;
+    std::uint64_t inventory_save_world_revision_{};
     bool inventory_drop_c02f_center_fraction_{};
 };
 
