@@ -275,6 +275,7 @@ public:
         }
         exploration_input_ = controller;
         exploration_click_.reset();
+        exploration_release_.reset();
         exploration_secondary_click_.reset();
 
         if (!exploration_input_) {
@@ -324,6 +325,12 @@ public:
     std::optional<NativePoint> consume_exploration_click() {
         auto result = exploration_click_;
         exploration_click_.reset();
+        return result;
+    }
+
+    std::optional<NativePoint> consume_exploration_release() {
+        auto result=exploration_release_;
+        exploration_release_.reset();
         return result;
     }
 
@@ -690,6 +697,19 @@ private:
                 }
                 return 0;
 
+            case WM_LBUTTONUP:
+                if(exploration_input_) {
+                    const int row=native_y_from_client(
+                        GET_Y_LPARAM(lparam));
+                    const int column=native_x_from_client(
+                        GET_X_LPARAM(lparam));
+                    if(row>=0 && column>=0) {
+                        character_pointer_=NativePoint{row,column};
+                        exploration_release_=*character_pointer_;
+                    }
+                }
+                return 0;
+
             case WM_RBUTTONDOWN:
                 if (exploration_input_) {
                     const int row =
@@ -751,6 +771,7 @@ private:
     std::optional<int> clicked_{};
     std::optional<NativePoint> character_click_{};
     std::optional<NativePoint> exploration_click_{};
+    std::optional<NativePoint> exploration_release_{};
     std::optional<NativePoint> exploration_secondary_click_{};
     std::optional<NativePoint> character_pointer_{};
     std::deque<int> key_events_{};
@@ -833,6 +854,7 @@ int run_exploration(
     std::optional<rloft::AutomapModalController> automap;
     std::optional<std::uint32_t> quit_random_seed;
     std::optional<std::size_t> inventory_encumbrance_actor;
+    std::optional<std::size_t> inventory_party_drag_source;
     // Hit-testing is performed against the frame the player ACTUALLY saw,
     // never against a freshly reconstructed scene after the click arrives.
     std::optional<rloft::ExplorationRuntimeFrame> displayed_scene_frame;
@@ -1039,6 +1061,7 @@ int run_exploration(
                 // D680=0; 13118 then leaves the modal loop.
                 ui.close_screen();
                 inventory_encumbrance_actor.reset();
+                inventory_party_drag_source.reset();
                 input.clear();
                 continue;
             }
