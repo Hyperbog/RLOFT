@@ -1,5 +1,32 @@
 # Ravenloft Demo Build v1
 
+## Long-term integration requirement — one complete game
+
+**The current level demo is a vertical slice of the complete
+original game, not a standalone product.** The required
+release flow is the original CODE.2 startup/cinematics →
+CODE.1 character creation (or valid existing CHARS) →
+shared CODE.2 exploration/Level 22 → original in-game
+cinematics and events → subsequent authored levels,
+with **the same persistent party and game state** across
+all transitions. Each future level must enter through
+the preceding level's original event/exit and return
+control to the same game session; developer preview
+switches cannot replace the actual startup pipeline.
+
+The verified source already routes CHARS-present startup,
+newly completed character creation, and opt-in preview
+into one `run_exploration()`. A general in-session
+level-transition/persistent-world lifecycle is **not yet
+implemented**, so "seamless" is a binding completion
+target, not a claim of existing runtime acceptance.
+
+**[Read the permanent continuous-game integration
+contract](CONTINUOUS_GAME_INTEGRATION_CONTRACT_20261009.md).**
+All changes are committed; Windows builds remain
+manual and user-authorized.
+
+
 ## Part 8 continuation — native Level16 event 8 now connected
 
 The four original `SEED OF MORNINGLORD`
