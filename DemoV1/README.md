@@ -1,5 +1,31 @@
 # Ravenloft Demo Build v1
 
+## Original DOS screenshot correction: freshly created party, NOT a saved game
+
+The player's nine original DOSBox screenshots depict a party **freshly
+created through CODE.1** and entering Level 22. They are *not*
+a restored SAVE.DAT party. See the new
+[original DOS screenshot fidelity specification](ORIGINAL_DOS_FRESH_PARTY_FIDELITY_REFERENCE_20261008.md).
+
+The default fidelity path must remain: new game -> CODE.1
+character selection/stat generation/equipment -> 0x920-byte CHARS
+handoff -> CODE.2 fresh startup -> Level22 exploration. An attempted
+SAVE.DAT party substitution in the optional walkaround was
+**reverted**; only a future explicit LOAD GAME flow may use saved
+party records. The opt-in diagnostic shortcut uses real CHARS if
+present, otherwise explicitly synthetic actors.
+
+**Unbuilt source-only repairs currently staged:** host simulation
+is no longer advanced on every VGA refresh (CODE.2 original two
+IRQ-tick loop; provisional host tick interval); 2C800 NPC and
+2CC88 placed-object/tree collision follows 2D5D0 cell checks;
+Release-enabled tests cover both model changes and lossless
+two-actor CHARS handoff. Original 34A74 textured forest foreground
+remains unimplemented and cannot be represented as graphics parity.
+The original screenshot also exposes incomplete NPC simulation,
+starting-pose verification, inventory and attack animation.
+None of this advances the formal acceptance above 1/5.
+
 ## Windows #640 source-matched Level 22 ray correction verified
 
 [Detailed 16-frame post-fix audit](LEVEL22_640_POSTFIX_RENDER_AUDIT_AND_EXTENDED_CAPTURE_20261008.md):
