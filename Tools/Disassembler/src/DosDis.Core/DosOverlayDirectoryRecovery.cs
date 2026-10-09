@@ -104,9 +104,10 @@ public static class DosOverlayDirectoryRecovery
                 "mz-resident-trap-marker;checked-procedure-stubs;unique-contiguous-extent"));
             next = checked(candidate.OverlayOffset + candidate.CodeBytes + candidate.FixupBytes);
         }
-        if (units.Count == 0 || next != header.OriginalFileLength)
+        if (units.Count == 0 || next != header.OriginalFileLength ||
+            !units.Any(unit => unit.ProcedureCount > 0))
             throw new InvalidDataException(
-                "No complete unambiguous overlay unit chain covers the original payload.");
+                "Overlay unit chain is incomplete or lacks a validated resident procedure stub.");
         return new DosOverlayDirectory(header.Format, resident.SourceSha256,
             header.SourceSha256, header.HeaderBytes,
             header.OriginalFileLength - header.HeaderBytes,
