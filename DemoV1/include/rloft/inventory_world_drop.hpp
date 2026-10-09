@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <string_view>
 #include "rloft/exploration_session.hpp"
 #include "rloft/inventory_runtime.hpp"
 #include "rloft/level_world_state.hpp"
@@ -40,8 +41,15 @@ struct Level16SeedRitualCheck final {
         Level16SeedRitualStatus::NotLevel16};
     std::array<bool,4> present{};
     static constexpr std::size_t kEventBit=0x44U;
-    // First 13EF8(8) runs numbered interactive event 8.
+    // CODE.2 13EF8(8) -> 13AD8(8) -> 139AC(8) copies
+    // its object-1 literal CINE00.ANM at 0x131D0 then
+    // formats the tens/ones digits. Event 8 therefore
+    // resolves to CINE08.ANM (182 authored ANM frames).
+    // This is the actual resource identity, not an
+    // invented T dialogue record or RES index.
     static constexpr std::uint32_t kNumberedEventId=8U;
+    static constexpr std::string_view kNumberedEventFilename=
+        "CINE08.ANM";
     // Then 15050(0x73) grants the HOLY SYMBOL OF RAVENKIND
     // (OBJECTS.DAT record 115), using cursor -> first free
     // party slot -> family-C world fallback in that order.
