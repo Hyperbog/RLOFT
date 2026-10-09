@@ -1,0 +1,62 @@
+system,subsystem,source,implementation,live,regression,dos_acceptance,evidence,next_gate
+Startup and supervisor,CODE2 startup and title flow,20,20,20,20,0,boot_flow.cpp and win32_main.cpp,Current-head DOS end-to-end playback
+Startup and supervisor,CINE00 CINE12 intro sequencing,20,20,20,20,0,anm_cinematic.cpp and win32_main.cpp,Reference skip and frame chronology
+Startup and supervisor,Existing CHARS gameplay entry,20,20,20,20,0,exploration_session.cpp,Live original-party replay
+Startup and supervisor,Title menu choices and sound,20,20,20,10,0,startup_presenter.cpp,Full menu sound and timing acceptance
+Startup and supervisor,CODE1 to CODE2 supervisor return,20,20,20,20,0,boot_flow.cpp and character_transfer.cpp,Real original full-flow trace
+Character creation,Opening scene and palette,20,20,20,20,0,character_creation_presenter.cpp,DOS frame comparison
+Character creation,Race class alignment and restrictions,20,20,20,20,0,character_creation_flow.cpp,Full original decision matrix
+Character creation,Attributes rolls edits and modifiers,20,20,20,20,0,character_stats.cpp,Original RNG replay
+Character creation,Portrait names and character visuals,20,20,20,20,0,character_creation_presenter.cpp,Exact original UI comparison
+Character creation,Initial gear and resources,20,20,20,10,0,character_transfer.cpp,Original equipment byte comparison
+Character creation,CHARS binary serialization,20,20,20,20,0,character_transfer.cpp,Full party DOS runtime roundtrip
+Party stats and progression,Actor record and status flags,20,20,20,20,0,exploration_state.cpp,Original live actor comparison
+Party stats and progression,Character stats sheet and XP display,20,20,20,20,0,character_sheet.cpp,HUD pixel acceptance
+Party stats and progression,Reordering actor lanes,20,20,20,20,0,inventory_party_order.cpp,Source mouse drag timing
+Party stats and progression,HP injury death and conditions,20,20,10,20,0,combat_npc_injury_prelude.cpp,Full character life-cycle wiring
+Party stats and progression,Experience and level thresholds,20,20,10,20,0,combat_xp_distribution.cpp,Complete XP award runtime chain
+Party stats and progression,Rest recovery and level-up UI,10,10,0,10,0,combat_level_change_sequence.cpp,Original rest and progression modal
+Level lifecycle and continuity,Original fresh Level22 entry,20,20,20,20,0,exploration_session.cpp,DOS startup to level A B
+Level lifecycle and continuity,LEVELS and LEVnnn source loading,20,20,20,20,0,exploration_session.cpp,All original level variants acceptance
+Level lifecycle and continuity,Original NPC and object expansion,20,20,20,20,0,level_world_state.cpp,All authored level types
+Level lifecycle and continuity,Authored exit and portal discovery,20,10,0,10,0,level22_story.cpp,Wire source exit transitions
+Level lifecycle and continuity,In-session level-switch lifecycle,10,0,0,0,0,CONTINUOUS_GAME_INTEGRATION_CONTRACT,General transition_to_level API
+Level lifecycle and continuity,Level reentry and persistent worlds,10,0,0,0,0,level_world_state.cpp,Per-level persistence
+Movement and collision,Q16 movement and turning,20,20,20,20,0,exploration_motion.cpp,Original DOS movement timings
+Movement and collision,Grid walking and facing,20,20,20,20,0,exploration_locomotion.cpp,Original directional input traces
+Movement and collision,Wall and door collision geometry,20,20,20,20,0,exploration_collision.cpp,DOS corridor comparisons
+Movement and collision,Entity occupancy and blocking,20,20,10,20,0,original_entity_collision.cpp,Moving NPC collision acceptance
+Movement and collision,Movement-triggered events and doors,20,10,10,10,0,exploration_world.cpp,Complete authored door event chain
+Movement and collision,Movement and game IRQ synchronization,20,20,10,20,0,exploration_gameplay_cadence.cpp,Real source IRQ timing
+Mutable world and objects,Cell flags and control records,20,20,20,20,0,exploration_world.cpp,Original door and cell mutation trace
+Mutable world and objects,NPC record expansion and HP,20,20,20,20,0,level_world_state.cpp,NPC spawn and death comparison
+Mutable world and objects,Placed map objects and state,20,20,10,20,0,placed_scene_catalog.cpp,General object use script wiring
+Mutable world and objects,Loose item drop pickup and location,20,20,20,20,0,inventory_world_drop.cpp,Whole-game item action acceptance
+Mutable world and objects,NPC and object respawn logic,20,20,10,20,0,combat_npc_respawn.cpp,All original respawn cases
+Mutable world and objects,World carryover across level transitions,10,10,0,0,0,LevelWorldState and save research,Build persistent per-level store
+Perspective and visibility,SINTAB fixed-point perspective,20,20,20,20,0,fixed_projection.cpp,Full DOS perspective trace
+Perspective and visibility,Wall traversal and visibility,20,20,20,20,0,view_sweep_traversal.cpp,Reference occlusion coverage
+Perspective and visibility,Ground RES4 raster identity,20,20,20,20,0,original_ground_res4_audit.cpp,Ground pixel DOS alignment
+Perspective and visibility,Main wall raster composition,20,10,10,20,0,surface_sintab_main_executor.cpp,Complete original wall pixels
+Perspective and visibility,Sprite depth occlusion and sorting,20,20,10,20,0,world_scene_selection.cpp,Visible world ordering acceptance
+Perspective and visibility,Full framebuffer equivalence,20,10,10,10,0,exploration_presenter.cpp,DOS indexed capture comparison
+VGA and graphics resources,RES archive decode and images,20,20,20,20,0,resource_assets.cpp,Complete original source asset acceptance
+VGA and graphics resources,VGA planar masks and sequencing,20,20,10,20,0,vga_planar_memory.cpp,DOS plane trace integration
+VGA and graphics resources,Sprite transparency clipping and blits,20,20,10,20,0,combat_original_sprite_raster.cpp,Real scene overlay timing
+VGA and graphics resources,Palette shading and fades,20,20,10,20,0,startup_presenter.cpp,Source 6-bit DAC chronology
+VGA and graphics resources,RES3 type7 raster machine,20,20,10,20,0,type7_scene_pixel_executor.cpp,DOS sprite raster acceptance
+VGA and graphics resources,Page stacking and final composition,20,10,10,10,0,combat_original_overlay.cpp,Original composite and teardown
+HUD menus and overlays,In-game HUD and portraits,20,20,20,20,0,party_hud.cpp,Original HUD framebuffer comparison
+HUD menus and overlays,Top-edge menu and actions,20,20,10,20,0,top_edge_menu.cpp,Complete rest and save menus
+HUD menus and overlays,Party and inventory modal,20,20,20,20,0,party_modal_presenter.cpp,Full DOS modal pixel and timing
+HUD menus and overlays,Mouse keyboard and hit regions,20,20,20,20,0,party_panel_controls.cpp,Original mouse event mapping
+HUD menus and overlays,Quit confirmation and menus,20,20,20,20,0,quit_confirm.cpp,Original modal exit acceptance
+HUD menus and overlays,Options rest pray memorize load save,10,10,0,10,0,options_menu.cpp,Bind original game actions
+Inventory and equipment,Object definitions and item metadata,20,20,20,20,0,object_catalog.cpp,Full original object category actions
+Inventory and equipment,Cursor and slot identified state,20,20,20,20,0,inventory_runtime.cpp,Original rare inventory edge cases
+Inventory and equipment,Equipment hand and class gates,20,20,20,20,0,inventory_runtime.cpp,Original all-class matrix
+Inventory and equipment,Nested containers and capacity,20,20,20,20,0,inventory_runtime.cpp,Timing and DOS nested UI
+Inventory and equipment,Four actor container persistence,20,20,20,20,0,inventory_save_codec.cpp,Multiple actor source runtime replay
+Inventory and equipment,Encumbrance and party order,20,20,20,20,0,inventory_encumbrance.cpp,Reference weight item cases
+Inventory and equipment,World drop pickup routing,20,20,20,20,0,inventory_world_drop.cpp,All levels object actions
+Inventory and equipment,Special item use and charges,20,10,10,10,0,inventory_runtime.cpp,Remaining use classes and charge semantics
