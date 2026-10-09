@@ -1,13 +1,8 @@
 using System.Buffers.Binary;
-using Iced.Intel;
 
 namespace DosDis.Core;
 
 public sealed record DosMzRelocation(ushort Segment, ushort Offset, long SourceFileOffset);
-public sealed record DosMzDecodedInstruction(
-    ushort Segment, uint Offset, long SourceFileOffset, string OriginalBytes,
-    string Assembly, string FlowControl, bool Valid);
-
 /// <summary>
 /// Validates the on-disk MZ load module and reports original-byte addresses.
 /// No PSP address, runtime segment base, BSS, or relocation values are guessed.
@@ -93,39 +88,16 @@ public sealed class DosMzImage
     /// Analyst-requested 16-bit linear decode. Not proof of a function,
     /// reachable entry or DOS runtime relocation state.
     /// </summary>
-    public IReadOnlyList<DosMzDecodedInstruction> Decode(
+    public IReadOnlyList<Dos16Instruction> Decode(
         ushort segment, ushort offset, int instructionCount = 32)
     {
-        if (instructionCount is < 1 or > 1024)
-            throw new ArgumentOutOfRangeException(nameof(instructionCount));
-        long start = (long)segment * 16 + offset;
-        if (start >= FileBackedImageLength)
-            throw new ArgumentOutOfRangeException(nameof(offset), "No file-backed bytes at the requested 16-bit segmented address.");
-        int available = checked((int)Math.Min(
-            (long)FileBackedImageLength - start,
-            Math.Min((long)instructionCount * 15, 0x10000L - offset)));
-        byte[] data = _original.Data.Slice(checked((int)(LoadImageFileOffset + start)), available).ToArray();
-        var reader = new ByteArrayCodeReader(data);
-        var decoder = Decoder.Create(16, reader);
-        decoder.IP = offset;
-        var formatter = new NasmFormatter();
-        formatter.Options.SpaceAfterOperandSeparator = true;
-        var result = new List<DosMzDecodedInstruction>();
-        var output = new StringOutput();
-        int used = 0;
-        while (result.Count < instructionCount && reader.CanReadByte)
-        {
-            decoder.Decode(out var instruction);
-            if (instruction.Length <= 0 || used + instruction.Length > data.Length)
-                break;
-            formatter.Format(instruction, output);
-            result.Add(new DosMzDecodedInstruction(segment, checked((uint)(offset + used)),
-                LoadImageFileOffset + start + used,
-                Convert.ToHexString(data.AsSpan(used, instruction.Length)),
-                output.ToStringAndReset(), instruction.FlowControl.ToString(),
-                instruction.Code != Code.INVALID));
-            used += instruction.Length;
-        }
-        return result;
+        long linear = (long)segment * 16 + offset;
+        if (linear >= FileBackedImageLength)
+            throw new ArgumentOutOfRangeException(nameof(offset),
+                "No file-backed bytes at requested MZ segment:offset.");
+        return X86RealModeDecoder.Decode(_original,
+            checked((int)(LoadImageFileOffset + linear)),
+            checked((int)(FileBackedImageLength - linear)),
+            segment, offset, instructionCount);
     }
 }
