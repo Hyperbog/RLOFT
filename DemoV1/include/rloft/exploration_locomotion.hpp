@@ -1,10 +1,12 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 
 #include "rloft/exploration_motion.hpp"
 #include "rloft/exploration_session.hpp"
 #include "rloft/exploration_world.hpp"
+#include "rloft/original_entity_collision.hpp"
 
 namespace rloft {
 
@@ -26,6 +28,10 @@ struct AppliedExplorationMotion final {
 
 class ExplorationLocomotionModel final {
 public:
+    // Optional original post-cell entity footprint probe. Existing
+    // standalone movement fixtures may omit it.
+    using EntityProbe=std::function<
+        OriginalEntityContact(std::uint32_t,std::uint32_t)>;
     static constexpr std::uint32_t kPartyCollisionHalfExtent = 0x5800U;
 
     // Applies CODE.2 2DBAC's movement-attempt order to the authoritative
@@ -38,7 +44,8 @@ public:
     // reported via suppressed_side_effect and is not executed.
     [[nodiscard]] static AppliedExplorationMotion apply(
         ExplorationSessionState& session,
-        const ExplorationMotionStep& step);
+        const ExplorationMotionStep& step,
+        const EntityProbe& entity_probe = {});
 
 private:
     enum class GeometryResult {
