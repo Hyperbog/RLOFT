@@ -672,3 +672,84 @@ inventory milestone stays **PARTIAL**, engineering
 progress **56.25%**, **169 registered CTests** and
 **19 Quick tests**; the next Windows **Full** build is
 still deferred under the user's explicit rule.
+
+
+## Part 8 continuation — CODE.2 11630 message/ribbon and 13184 expiry
+
+**Original byte verification:** immutable local
+`CODE.2` SHA-256
+`853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
+Object-1 physical `3AF24+116D5..11798` calls
+`1C368(T spell id 0x42+bank*10+entry)` for success,
+appends the DGROUP `6DA0` source text, or selects
+DGROUP `6D9C` for capacity failure and `6DA4`
+for an already-known spell. The actual object-2
+`75F24+6D9C/6DA0/6DA4` DWORDs are `05A4`,
+`05D4`, `05E4`, referring to:
+
+- `6D9C → "you do not understand this spell to scribe it."`
+- `6DA0 → " SPELL SCRIBED."` (appended to T name)
+- `6DA4 → "that spell is already in your spell book."`
+
+Original `11717/1176A` writes
+`BYTE[6DAC]=1` then `DWORD[6DA8]=30700()+0x36`,
+and calls `F790`. Original `F790:F7B4` detects
+the pending message before attempting ordinary held
+item description; `F66C` draws it with an original
+text call `30508(0x65,0,...)`. The original inventory
+modal `13118` resets `6DA8=0`/`6DAC=0`
+on entry. Every modal input iteration at
+`13184..131BB` checks the unsigned IRQ tick
+and expires *only if* `now > deadline`, then
+clears both globals *before* calling `F790`
+to restore the default description. Equality
+is not expiry, nor is original arithmetic
+wrap-corrected.
+
+The native source now:
+
+1. Resolves all three error/success strings from
+   the **real object-2 pointer table** with bounded
+   NUL termination; damaged or truncated data
+   fail rather than supplying invented text.
+2. Maintains `MageScribeFeedback` containing
+   the original branch, T spell-name resource
+   ID, copied source message and `6DAC/6DA8`
+   projection. Only a supplied 30700 IRQ
+   observation schedules a deadline.
+3. Uses `code1_tick_count(exploration_epoch)`
+   (existing host BIOS-cadence approximation)
+   when called by Win32; no host wall-clock
+   duration substitutes for the literal `0x36`.
+4. Resets pending state at PartyPanels entry
+   and expires after unsigned `tick > deadline`.
+   The presenter draws feedback in preference
+   to ordinary item descriptions even when
+   the newly learned scroll leaves an empty
+   held cursor, then restores the ordinary
+   item text when the deadline passes.
+5. Adds focused existing-target assertions
+   for the pointer-derived exact strings,
+   `T["ARMOR"]` success prefix, duplicate/full
+   branch identity, event flag persistence,
+   deadline at 100→154, no expiry at 154,
+   expiry at 155, and original DWORD overflow
+   behavior, plus pending-message reset.
+
+**Limitations:** the VGA ribbon/ornament from
+original `F66C/2975C` and exact font/color
+palette still lack faithful DOS comparison;
+the native renderer reuses the *existing
+provisional inventory ribbon* with source text
+at row `0x65`. The Win32 exploration-epoch IRQ
+proxy is not proven identical to an observed
+DOS IRQ phase. Other inventory actions,
+Level16 item `0x89`, SAVE/LOAD roundtrips,
+and timing/visual acceptance remain open.
+
+**Build/test status unchanged:** current source
+has not been compiled, CTest-run, or DOS
+pixel-compared. 169 registered CTests; manual
+Quick 19; source engineering 56.25%; inventory
+is PARTIAL. Do not dispatch the Windows build
+until all inventory acceptance gates are closed.
