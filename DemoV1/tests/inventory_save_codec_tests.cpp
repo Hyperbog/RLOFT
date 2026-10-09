@@ -69,6 +69,13 @@ rloft::InventoryRuntimeState original_template() {
     rloft::InventoryRuntimeState state{};
     for(std::size_t i=0;i<63U;++i) {
         state.containers[i].slot_count=kOriginalSlotCounts[i];
+        // Source CODE.2 7330 families: 4/6/8 slots map 2/3/4
+        // columns. The active-view decoder requires usable
+        // original presentation geometry, not just item count.
+        state.containers[i].ui_columns=
+            kOriginalSlotCounts[i]==4U ? 2U :
+            kOriginalSlotCounts[i]==6U ? 3U :
+            kOriginalSlotCounts[i]==8U ? 4U : 0U;
         state.containers[i].items.assign(kOriginalSlotCounts[i],-1);
         state.containers[i].subtype=static_cast<std::uint8_t>(i%7U);
     }
