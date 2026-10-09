@@ -1,5 +1,28 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+## Opt-in reusable development slice (current implementation)
+
+Level22 is the first integrated testbed. An explicit
+`--explore-level22 --dev-inspect` invocation now
+activates **read-only**, five-domain state diagnostics
+(camera, raw party, inventory/containers, mutable
+world, story flags) in the Win32 window title.
+The diagnostics do **not** manufacture gameplay,
+save CHARS, change original VGA pixels or bypass
+real character creation in the normal startup.
+They are intended to be reused during subsequent
+level transition testing to detect accidental
+party/inventory/quest resets without changing
+the underlying authoritative session.
+
+Source: [Level22 dev-level testing
+matrix](DEV_LEVEL_TESTBED_20261009.md).
+Registered CTests now **171** / Quick **19**,
+but the new source has not been built or run.
+Engineering score **56.25%** and inventory
+PARTIAL remain unchanged.
+
+
 **Established:** 2026-10-09  
 **Target:** faithful, complete *Ravenloft: Strahd's Possession* gameplay—not a self-contained Level 22 demo or a collection of disconnected level executables.  
 **Branch:** `demo-v1`. This is a forward-looking integration/acceptance contract. It does **not** claim all transitions are already implemented or play-tested.
