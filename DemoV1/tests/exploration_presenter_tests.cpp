@@ -153,6 +153,49 @@ int main() {
     assert(classified[2]==
            rloft::Type7SceneRenderOutcome::TraceUnavailable);
 
+    // CODE.2 335C8 writes sentinel depth 0x800. When all 256
+    // original rays are the outdoor 0x93 non-drawable material,
+    // 1F2A5/1F372 leaves FF50=128, enabling the original 34A74
+    // raster at lower viewport y259..132. Do NOT apply the whole
+    // 128-row span when rays or exact original RES4 bytes are missing.
+    rloft::ExplorationRuntimeFrame outdoors{};
+    outdoors.source_level_id=22;
+    outdoors.ground_source_verified=true;
+    outdoors.ground_perspective_ready=true;
+    outdoors.ground_raster_source.assign(4098U,0U);
+    outdoors.sweep_records.resize(256U);
+    for(auto& ray:outdoors.sweep_records) {
+        ray.resource_inner=0x93U;
+        ray.resource_outer=0x93U;
+    }
+    assert(rloft::ExplorationPresenter::original_full_ground_eligible(
+        outdoors));
+    outdoors.ground_raster_source.pop_back();
+    assert(!rloft::ExplorationPresenter::original_full_ground_eligible(
+        outdoors));
+    outdoors.ground_raster_source.push_back(0U);
+    outdoors.sweep_records[17U].resource_outer=19U;
+    assert(!rloft::ExplorationPresenter::original_full_ground_eligible(
+        outdoors));
+    outdoors.sweep_records[17U].resource_outer=0x93U;
+    outdoors.sweep_records[29U].resource_inner=73U;
+    assert(!rloft::ExplorationPresenter::original_full_ground_eligible(
+        outdoors));
+    outdoors.sweep_records[29U].resource_inner=0x93U;
+    outdoors.sweep_records.pop_back();
+    assert(!rloft::ExplorationPresenter::original_full_ground_eligible(
+        outdoors));
+    outdoors.sweep_records.emplace_back();
+    outdoors.sweep_records.back().resource_inner=0x93U;
+    outdoors.sweep_records.back().resource_outer=0x93U;
+    outdoors.ground_source_verified=false;
+    assert(!rloft::ExplorationPresenter::original_full_ground_eligible(
+        outdoors));
+    outdoors.ground_source_verified=true;
+    outdoors.source_level_id=21;
+    assert(!rloft::ExplorationPresenter::original_full_ground_eligible(
+        outdoors));
+
     // Clean frames with no RES3 source or raster failure remain complete.
     assert(complete.complete());
 }
