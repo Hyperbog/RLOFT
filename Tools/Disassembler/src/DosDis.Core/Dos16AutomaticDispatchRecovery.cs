@@ -130,86 +130,136 @@ public static class Dos16AutomaticDispatchRecovery
                         foreach (var shift in shifts)
                         {
                             if (validatedTable is not null) break;
-                            foreach (int branchBytes in new[] { 2, 4 })
+                            // Optional exact MOV BX,r16 propagates the already
+                            // guarded register value without changing flags.
+                            // 89 /r or 8B /r register-register forms only;
+                            // no memory, partial registers or arithmetic.
+                            var transfers = new List<(Dos16FlowInstruction? Copy,
+                                byte CompareModRm, string RegisterName)>
                             {
-                                int at = shift.Address.Offset - branchBytes;
-                                if (at < region.Origin ||
-                                    !byOffset.TryGetValue((ushort)at, out var guard) ||
-                                    guard.FlowControl != "ConditionalBranch")
-                                    continue;
-                                long guardAt = (long)region.FileOffset +
-                                    guard.Address.Offset - region.Origin;
-                                if (guard.SourceFileOffset != guardAt ||
-                                    guardAt < region.FileOffset ||
-                                    guardAt + branchBytes >
-                                        (long)region.FileOffset + region.ByteLength)
-                                    continue;
-                                byte[] guardBytes = region.Source.Data.Slice(
-                                    checked((int)guardAt), branchBytes).ToArray();
-                                bool ja = branchBytes == 2
-                                    ? guardBytes[0] == 0x77
-                                    : guardBytes[0] == 0x0F && guardBytes[1] == 0x87;
-                                bool jae = branchBytes == 2
-                                    ? guardBytes[0] == 0x73
-                                    : guardBytes[0] == 0x0F && guardBytes[1] == 0x83;
-                                if ((!ja && !jae) || !FileMatches(guard, guardBytes) ||
-                                    !SingleIncoming(shift.Address.Offset, guard.Address.Offset,
-                                        "branch-not-taken") ||
-                                    !graph.Edges.Any(e =>
-                                        e.Source == guard.Address && e.Kind == "branch-taken" &&
-                                        e.Destination is not null &&
-                                        e.Destination.Value.Offset != shift.Address.Offset &&
-                                        e.Destination.Value.Offset != site.Address.Offset))
-                                    continue;
-                                foreach (int compareBytes in new[] { 3, 4 })
+                                (null, 0xFB, "BX")
+                            };
+                            int copyAt = shift.Address.Offset - 2;
+                            if (copyAt >= region.Origin &&
+                                byOffset.TryGetValue((ushort)copyAt, out var copy))
+                                foreach (var reg in new[] {
+                                    (Code: 0, Name: "AX"),
+                                    (Code: 1, Name: "CX"),
+                                    (Code: 2, Name: "DX"),
+                                    (Code: 6, Name: "SI"),
+                                    (Code: 7, Name: "DI")
+                                })
                                 {
-                                    int cmpAt = guard.Address.Offset - compareBytes;
-                                    if (cmpAt < region.Origin ||
-                                        !byOffset.TryGetValue((ushort)cmpAt, out var compare))
+                                    byte form89 = (byte)(0xC3 | (reg.Code << 3));
+                                    byte form8B = (byte)(0xD8 | reg.Code);
+                                    if (FileMatches(copy, 0x89, form89) ||
+                                        FileMatches(copy, 0x8B, form8B))
+                                        transfers.Add((copy, (byte)(0xF8 + reg.Code), reg.Name));
+                                }
+
+                            foreach (var transfer in transfers)
+                            {
+                                if (validatedTable is not null) break;
+                                ushort afterGuard = transfer.Copy?.Address.Offset ??
+                                    shift.Address.Offset;
+                                if (transfer.Copy is not null &&
+                                    !SingleIncoming(shift.Address.Offset,
+                                        transfer.Copy.Address.Offset, "fallthrough"))
+                                    continue;
+                                foreach (int branchBytes in new[] { 2, 4 })
+                                {
+                                    if (validatedTable is not null) break;
+                                    int at = afterGuard - branchBytes;
+                                    if (at < region.Origin ||
+                                        !byOffset.TryGetValue((ushort)at, out var guard) ||
+                                        guard.FlowControl != "ConditionalBranch")
                                         continue;
-                                    long cmpPhysical = (long)region.FileOffset +
-                                        compare.Address.Offset - region.Origin;
-                                    if (compare.SourceFileOffset != cmpPhysical ||
-                                        cmpPhysical < region.FileOffset ||
-                                        cmpPhysical + compareBytes >
+                                    long guardAt = (long)region.FileOffset +
+                                        guard.Address.Offset - region.Origin;
+                                    if (guard.SourceFileOffset != guardAt ||
+                                        guardAt < region.FileOffset ||
+                                        guardAt + branchBytes >
                                             (long)region.FileOffset + region.ByteLength)
                                         continue;
-                                    var cmpRaw = region.Source.Data.Slice(
-                                        checked((int)cmpPhysical), compareBytes).ToArray();
-                                    int max = -1;
-                                    if (compareBytes == 3 &&
-                                        cmpRaw[0] == 0x83 && cmpRaw[1] == 0xFB &&
-                                        cmpRaw[2] <= 0x7F)
-                                        max = cmpRaw[2];
-                                    if (compareBytes == 4 &&
-                                        cmpRaw[0] == 0x81 && cmpRaw[1] == 0xFB)
-                                        max = BinaryPrimitives.ReadUInt16LittleEndian(cmpRaw.AsSpan(2));
-                                    if (max < 0 || max > 255 || !FileMatches(compare, cmpRaw) ||
-                                        !SingleIncoming(guard.Address.Offset,
-                                            compare.Address.Offset, "fallthrough"))
+                                    byte[] guardBytes = region.Source.Data.Slice(
+                                        checked((int)guardAt), branchBytes).ToArray();
+                                    bool ja = branchBytes == 2
+                                        ? guardBytes[0] == 0x77
+                                        : guardBytes[0] == 0x0F && guardBytes[1] == 0x87;
+                                    bool jae = branchBytes == 2
+                                        ? guardBytes[0] == 0x73
+                                        : guardBytes[0] == 0x0F && guardBytes[1] == 0x83;
+                                    if ((!ja && !jae) || !FileMatches(guard, guardBytes) ||
+                                        !SingleIncoming(afterGuard, guard.Address.Offset,
+                                            "branch-not-taken") ||
+                                        !graph.Edges.Any(e =>
+                                            e.Source == guard.Address &&
+                                            e.Kind == "branch-taken" &&
+                                            e.Destination is not null &&
+                                            e.Destination.Value.Offset != afterGuard &&
+                                            e.Destination.Value.Offset != site.Address.Offset))
                                         continue;
-                                    int count = ja ? max + 1 : max;
-                                    int stride = far ? 4 : 2;
-                                    if (count is < 2 or > 256 ||
-                                        (long)table + (long)count * stride > region.EndExclusive ||
-                                        (long)(count - 1) * stride > ushort.MaxValue)
-                                        continue;
-                                    entryCount = count;
-                                    var manifest = new Dos16TableManifest(1, region.SourceSha256,
-                                        new[] { new Dos16TableRequest(site.Address.Offset,
-                                            table, count, pointerKind,
-                                            "automatic:unsigned-cmp-bx;ja-or-jae;shl-bx-stride") });
-                                    var evidence = Dos16DispatchTableRecovery.Inspect(region, graph,
-                                        manifest, mz, simulated).Findings[0];
-                                    reason = evidence.Status == "candidate-entries-source-backed"
-                                        ? "candidate-guarded-CS-BX-table"
-                                        : "rejected-guarded-table-storage-or-fixups";
-                                    if (evidence.Status == "candidate-entries-source-backed")
+                                    foreach (int compareBytes in new[] { 3, 4 })
                                     {
-                                        validatedTable = evidence;
-                                        candidates++;
+                                        int cmpAt = guard.Address.Offset - compareBytes;
+                                        if (cmpAt < region.Origin ||
+                                            !byOffset.TryGetValue((ushort)cmpAt, out var compare))
+                                            continue;
+                                        long cmpPhysical = (long)region.FileOffset +
+                                            compare.Address.Offset - region.Origin;
+                                        if (compare.SourceFileOffset != cmpPhysical ||
+                                            cmpPhysical < region.FileOffset ||
+                                            cmpPhysical + compareBytes >
+                                                (long)region.FileOffset + region.ByteLength)
+                                            continue;
+                                        var cmpRaw = region.Source.Data.Slice(
+                                            checked((int)cmpPhysical), compareBytes).ToArray();
+                                        int max = -1;
+                                        if (compareBytes == 3 &&
+                                            cmpRaw[0] == 0x83 &&
+                                            cmpRaw[1] == transfer.CompareModRm &&
+                                            cmpRaw[2] <= 0x7F)
+                                            max = cmpRaw[2];
+                                        if (compareBytes == 4 &&
+                                            cmpRaw[0] == 0x81 &&
+                                            cmpRaw[1] == transfer.CompareModRm)
+                                            max = BinaryPrimitives.ReadUInt16LittleEndian(
+                                                cmpRaw.AsSpan(2));
+                                        if (max < 0 || max > 255 ||
+                                            !FileMatches(compare, cmpRaw) ||
+                                            !SingleIncoming(guard.Address.Offset,
+                                                compare.Address.Offset, "fallthrough"))
+                                            continue;
+                                        int count = ja ? max + 1 : max;
+                                        int stride = far ? 4 : 2;
+                                        if (count is < 2 or > 256 ||
+                                            (long)table + (long)count * stride >
+                                                region.EndExclusive ||
+                                            (long)(count - 1) * stride > ushort.MaxValue)
+                                            continue;
+                                        entryCount = count;
+                                        var manifest = new Dos16TableManifest(1,
+                                            region.SourceSha256,
+                                            new[] { new Dos16TableRequest(
+                                                site.Address.Offset, table, count,
+                                                pointerKind!,
+                                                "automatic:unsigned-cmp-" +
+                                                transfer.RegisterName +
+                                                ";ja-or-jae;optional-mov-bx;shl-bx-stride") });
+                                        var evidence = Dos16DispatchTableRecovery.Inspect(
+                                            region, graph, manifest, mz, simulated).Findings[0];
+                                        reason = evidence.Status ==
+                                            "candidate-entries-source-backed"
+                                            ? "candidate-guarded-CS-BX-table"
+                                            : "rejected-guarded-table-storage-or-fixups";
+                                        if (evidence.Status ==
+                                            "candidate-entries-source-backed")
+                                        {
+                                            validatedTable = evidence;
+                                            candidates++;
+                                        }
+                                        break;
                                     }
-                                    break;
                                 }
                             }
                         }
