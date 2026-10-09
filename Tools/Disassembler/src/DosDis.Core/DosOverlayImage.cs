@@ -31,6 +31,15 @@ public sealed class DosOverlayImage
 
     public DosOverlayEnvelope Envelope { get; }
 
+    internal byte[] ReadStoredBytes(int originalFileOffset, int count)
+    {
+        if (originalFileOffset < Envelope.HeaderBytes || count < 0 ||
+            (long)originalFileOffset + count > _source.Length)
+            throw new ArgumentOutOfRangeException(nameof(originalFileOffset),
+                "Requested overlay storage span is not backed by original payload bytes.");
+        return _source.Data.Slice(originalFileOffset, count).ToArray();
+    }
+
     public static DosOverlayImage LoadEnvelope(BinaryArtifact artifact)
     {
         ArgumentNullException.ThrowIfNull(artifact);
