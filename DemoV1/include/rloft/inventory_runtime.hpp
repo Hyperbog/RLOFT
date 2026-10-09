@@ -62,6 +62,7 @@ enum class InventoryHandSwapStatus : std::uint8_t {
 enum class InventoryOrdinarySwapStatus : std::uint8_t {
     NoChange,
     Swapped,
+    InsertedInContainer,
     Unsupported
 };
 
@@ -116,6 +117,17 @@ struct InventoryRuntimeState final {
         const PartyImage& party, const ObjectCatalog& objects);
     [[nodiscard]] InventoryContainerStatus take_open_container_slot(
         const PartyImage& party, const ObjectCatalog& objects,
+        std::size_t slot);
+    // Original 11C3C cell-click semantics: take, insert or exchange
+    // through the selected source-descriptor slot and known bit.
+    [[nodiscard]] InventoryContainerStatus swap_open_container_slot(
+        const PartyImage& party, const ObjectCatalog& objects,
+        std::size_t slot);
+    [[nodiscard]] InventoryContainerStatus
+    insert_held_into_container_object(
+        const ObjectCatalog& objects, std::int16_t object_id);
+    [[nodiscard]] InventoryContainerStatus put_held_in_container_slot(
+        const ObjectCatalog& objects, std::int16_t object_id,
         std::size_t slot);
     [[nodiscard]] std::uint32_t container_weight_half_units(
         const ObjectCatalog& objects,std::size_t descriptor_index) const;
