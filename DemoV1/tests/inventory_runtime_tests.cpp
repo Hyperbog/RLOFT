@@ -636,6 +636,116 @@ int main() {
     assert(nested.held.known==1U);
     assert(nested.container_weight_half_units(nested_catalog,0U)==5U);
 
+    // Original inventory 117A0: the object in the backpack
+    // slot is 0x35 TOME OF EVIL ARTIFACTS AND CURSED ITEMS.
+    // Held 0x61..0x64 are four different PARCHMENT FRAGMENT
+    // objects. 11866 calls 1C124(index0..3), which ORs exactly
+    // one bit into original DGROUP 22200 persistent event vector.
+    // The original 1A344(-1,0) clears the hand/cursor. The Tome,
+    // its known bit and all other story flags stay untouched.
+    std::vector<std::uint8_t> special_bytes(4U+202U*65U,0U);
+    put32(special_bytes,0U,202U);
+    const auto special_catalog=
+        rloft::ObjectCatalog::parse(special_bytes);
+    rloft::InventoryRuntimeState special_inventory{};
+    rloft::PartyImage special_party{};
+    special_party.bytes.fill(0xFFU);
+    special_party.bytes[0x10U]=0U;
+    special_party.bytes[0x11U]=0U;
+    set_item(special_party,0U,0U,0x35);
+    special_party.bytes[0x12BU]=0xA5U;
+    std::array<std::uint8_t,32> story_flags{};
+    story_flags.fill(0x80U);
+    const auto initial_party=special_party.bytes;
+    for(int fragment=0x61; fragment<=0x64; ++fragment) {
+        special_inventory.held={
+            static_cast<std::int16_t>(fragment),1U};
+        assert(special_inventory.swap_ordinary_slot(
+            special_party,special_catalog,0U,0U,&story_flags)==
+            rloft::InventoryOrdinarySwapStatus::ConsumedStoryFragment);
+        assert(special_inventory.held.object_id==-1);
+        assert(special_inventory.held.known==0U);
+        assert(special_party.bytes==initial_party);
+        assert(story_flags[0U]==
+            static_cast<std::uint8_t>(
+                0x80U|((1U<<(fragment-0x61+1))-1U)));
+        for(std::size_t i=1U;i<story_flags.size();++i)
+            assert(story_flags[i]==0x80U);
+    }
+    // Applying an already-recorded fragment is idempotent on
+    // the story flags, but still consumes the held fragment.
+    special_inventory.held={0x61,0U};
+    assert(special_inventory.swap_ordinary_slot(
+        special_party,special_catalog,0U,0U,&story_flags)==
+        rloft::InventoryOrdinarySwapStatus::ConsumedStoryFragment);
+    assert(story_flags[0U]==0x8FU);
+    assert(special_party.bytes==initial_party);
+
+    // No attached original 0x22200 vector means the runtime
+    // cannot safely discard a quest fragment.
+    special_inventory.held={0x64,1U};
+    const auto before_story=story_flags;
+    assert(special_inventory.swap_ordinary_slot(
+        special_party,special_catalog,0U,0U)==
+        rloft::InventoryOrdinarySwapStatus::Unsupported);
+    assert(special_inventory.held.object_id==0x64);
+    assert(story_flags==before_story);
+    assert(special_party.bytes==initial_party);
+
+    // The original checks CURRENT slot == 0x35. Holding a Tome
+    // is not itself the special event: the Tome can be put in
+    // a free ordinary slot and taken back through 117A0.
+    special_inventory.held={-1,0U};
+    assert(special_inventory.swap_ordinary_slot(
+        special_party,special_catalog,0U,0U,&story_flags)==
+        rloft::InventoryOrdinarySwapStatus::Swapped);
+    assert(special_inventory.held.object_id==0x35);
+    assert(get_item(special_party,0U,0U)==-1);
+    assert(special_inventory.swap_ordinary_slot(
+        special_party,special_catalog,0U,0U,&story_flags)==
+        rloft::InventoryOrdinarySwapStatus::Swapped);
+    assert(get_item(special_party,0U,0U)==0x35);
+    assert(special_inventory.held.object_id==-1);
+
+    // The special fragment IDs do not automatically fire when
+    // the destination is an unrelated ordinary object.
+    set_item(special_party,0U,1U,3);
+    special_inventory.held={0x61,1U};
+    const auto flags_prior_to_normal_swap=story_flags;
+    assert(special_inventory.swap_ordinary_slot(
+        special_party,special_catalog,0U,1U,&story_flags)==
+        rloft::InventoryOrdinarySwapStatus::Swapped);
+    assert(get_item(special_party,0U,1U)==0x61);
+    assert(special_inventory.held.object_id==3);
+    assert(story_flags==flags_prior_to_normal_swap);
+
+    // CODE.2 11808..11852: a Mage Spell Book in the source
+    // slot 0xA6 delegates held Mage scrolls 0xA7..0xC9 to
+    // 11630, checking spell class/level and capacity. That
+    // branch must never become a generic destructive swap
+    // until full spell-list mutation is reconstructed.
+    set_item(special_party,0U,2U,0xA6);
+    for(const int held_id : {-1,0xA7,0xC9,0xCA}) {
+        special_inventory.held={
+            static_cast<std::int16_t>(held_id),1U};
+        const auto unchanged=special_party.bytes;
+        assert(special_inventory.swap_ordinary_slot(
+            special_party,special_catalog,0U,2U,&story_flags)==
+            rloft::InventoryOrdinarySwapStatus::Unsupported);
+        assert(special_party.bytes==unchanged);
+        assert(special_inventory.held.object_id==held_id);
+        assert(story_flags==flags_prior_to_normal_swap);
+    }
+    // Conversely, holding the book and clicking an ordinary
+    // empty cell is NOT the special 11808 source branch.
+    set_item(special_party,0U,2U,-1);
+    special_inventory.held={0xA6,0U};
+    assert(special_inventory.swap_ordinary_slot(
+        special_party,special_catalog,0U,2U,&story_flags)==
+        rloft::InventoryOrdinarySwapStatus::Swapped);
+    assert(get_item(special_party,0U,2U)==0xA6);
+    assert(special_inventory.held.object_id==-1);
+
     // CODE.2 raw WORD +35 low2 class1 is allowed, class2 rejected.
     nested.containers[0U].capacity_pounds=20U;
     nested.held={10,0U};
