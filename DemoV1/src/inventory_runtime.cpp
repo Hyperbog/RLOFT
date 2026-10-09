@@ -723,29 +723,81 @@ InventoryContainerStatus InventoryRuntimeState::put_held_in_container_slot(
 
     const auto& next=objects.at(
         static_cast<std::size_t>(held.object_id));
-    // A container must not be nested into itself (or recursively).
-    // Nested category-1 item support requires further CODE.2 11C3C
-    // rule proof. Do not corrupt global descriptor ownership.
-    if(next.item_category==1U ||
-       !source_container_type_compatible(
-           dest.subtype,next.item_category) ||
-       (dest.subtype<=1U && next.raw_byte_35_low2!=0U)) {
+    // Original CODE.2 11C3C (physical 4CC89..4CCC4) permits
+    // category-1 containers INSIDE a container of a different
+    // descriptor subtype. Equal subtypes are explicitly rejected.
+    // For generic subtype 0/1 it rejects hand-pair class 2/3,
+    // NOT hand-pair class 1 (4CC76..4CC83).
+    if(!source_container_type_compatible(dest.subtype,next.item_category) ||
+       (dest.subtype<=1U && next.raw_byte_35_low2>=2U)) {
         return InventoryContainerStatus::Incompatible;
     }
     const auto previous=dest.items[slot];
     if(previous < -1)
         return InventoryContainerStatus::Unsupported;
+
+    auto object_burden=[&](std::int16_t id)->std::uint64_t {
+        if(id<0)return 0U;
+        const auto& definition=objects.at(static_cast<std::size_t>(id));
+        std::uint64_t weight=definition.weight_half_units;
+        if(definition.item_category==1U) {
+            if(definition.container_state_index<0)
+                throw std::runtime_error("negative nested container selector");
+            weight+=container_weight_half_units(
+                objects,static_cast<std::size_t>(
+                    definition.container_state_index));
+        }
+        return weight;
+    };
+
+    if(next.item_category==1U) {
+        const int nested=next.container_state_index;
+        if(nested<0 || nested>=static_cast<int>(containers.size()))
+            return InventoryContainerStatus::Unsupported;
+        if(held.object_id==container_id ||
+           containers[static_cast<std::size_t>(nested)].subtype==
+               dest.subtype) {
+            return InventoryContainerStatus::Incompatible;
+        }
+        // Prevent indirect cycles. Unlike the DOS original, never
+        // trust potentially corrupted imported container contents.
+        // Check the prospective child graph BEFORE modifying either
+        // global container state or the held cursor item.
+        std::array<bool,kRuntimeDescriptorCount> visited{};
+        std::function<bool(std::int16_t)> would_cycle =
+            [&](std::int16_t root)->bool {
+            if(root==container_id)return true;
+            if(root<0)return false;
+            const auto& node=objects.at(static_cast<std::size_t>(root));
+            if(node.item_category!=1U)return false;
+            if(node.container_state_index<0 ||
+               node.container_state_index>=
+                   static_cast<int>(containers.size()))return true;
+            const auto index=static_cast<std::size_t>(
+                node.container_state_index);
+            if(visited[index])return true;
+            visited[index]=true;
+            for(const auto child:containers[index].items) {
+                if(child!=-1 && would_cycle(child))return true;
+            }
+            visited[index]=false;
+            return false;
+        };
+        if(would_cycle(held.object_id))
+            return InventoryContainerStatus::Incompatible;
+    }
+    // Original 11C3C 4CD57..4CE18 compares the current contents
+    // weight minus the outgoing object's FULL recursive burden
+    // plus incoming object's full recursive burden to capacity*2.
     const auto total=container_weight_half_units(objects,state_index);
-    const auto removed=previous>=0
-        ? objects.at(static_cast<std::size_t>(previous)).weight_half_units
-        : 0U;
-    const auto proposed=static_cast<std::int64_t>(total)-
-        static_cast<std::int64_t>(removed)+
-        static_cast<std::int64_t>(next.weight_half_units);
-    if(proposed>static_cast<std::int64_t>(dest.capacity_pounds)*2) {
+    const auto removed=object_burden(previous);
+    const auto added=object_burden(held.object_id);
+    if(total<removed)
+        return InventoryContainerStatus::Unsupported;
+    const auto proposed=static_cast<std::uint64_t>(total)-removed+added;
+    if(proposed>static_cast<std::uint64_t>(dest.capacity_pounds)*2U) {
         return InventoryContainerStatus::TooHeavy;
     }
-    if(proposed<0) return InventoryContainerStatus::Unsupported;
     const auto mask=static_cast<std::uint8_t>(
         1U<<(slot&7U));
     const auto previous_known=static_cast<std::uint8_t>(
