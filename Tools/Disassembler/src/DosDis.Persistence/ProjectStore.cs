@@ -51,6 +51,54 @@ public sealed class ProjectStore : IDisposable
         return new ProjectStore(path);
     }
 
+    /// <summary>
+    /// Publishes a complete new project only after verifying its staged SQLite
+    /// data. Replacement is always explicit, atomic, and refused while the
+    /// destination has SQLite journal sidecars.
+    /// </summary>
+    public static ProjectStore CreateNew(string path, BinaryArtifact artifact,
+        FlowAnalysisResult? graph = null, bool overwrite = false)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(artifact);
+        string destination = Path.GetFullPath(path);
+        string? parent = Path.GetDirectoryName(destination);
+        if (parent is null || !Directory.Exists(parent))
+            throw new DirectoryNotFoundException("Research project directory does not exist.");
+        string temporary = Path.Combine(parent,
+            "." + Path.GetFileName(destination) + "." +
+            Guid.NewGuid().ToString("N") + ".part");
+        try
+        {
+            using (var staged = Open(temporary))
+            {
+                staged.EnsureArtifact(artifact);
+                if (graph is not null) staged.SaveAnalysis(graph);
+                staged.VerifyIntegrity();
+            }
+            if (File.Exists(temporary + "-wal") || File.Exists(temporary + "-shm"))
+                throw new IOException("Staged SQLite project still has journal files.");
+            if (overwrite && File.Exists(destination))
+            {
+                ProjectFilePaths.RequireSafeReplacement(destination);
+                File.Replace(temporary, destination, null);
+            }
+            else
+                File.Move(temporary, destination, overwrite: false);
+            return Open(destination);
+        }
+        finally
+        {
+            foreach (string suffix in new[] { "", "-wal", "-shm" })
+            {
+                string fragment = temporary + suffix;
+                try { if (File.Exists(fragment)) File.Delete(fragment); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+    }
+
     private void Exec(string sql)
     {
         using var command = _db.CreateCommand();
@@ -341,14 +389,16 @@ public sealed class ProjectStore : IDisposable
     /// This prevents a crash or a concurrent new file from exposing an
     /// incomplete backup as a saved research project.
     /// </summary>
-    public void CreateBackup(string destinationPath)
+    public void CreateBackup(string destinationPath, bool overwrite = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         string destination = Path.GetFullPath(destinationPath);
         if (string.Equals(destination, FilePath, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("A project backup must have a different path.");
-        if (File.Exists(destination))
+        if (File.Exists(destination) && !overwrite)
             throw new IOException("Backup destination exists; refusing to overwrite a project.");
+        if (overwrite)
+            ProjectFilePaths.RequireSafeReplacement(destination);
         string? parent = Path.GetDirectoryName(destination);
         if (parent is null || !Directory.Exists(parent))
             throw new DirectoryNotFoundException("Backup destination directory does not exist.");
@@ -410,9 +460,16 @@ public sealed class ProjectStore : IDisposable
                     throw new InvalidDataException("Standalone SQLite backup failed validation.");
             }
 
-            // File.Move with overwrite:false refuses an existing destination,
-            // including one created by another process after our first check.
-            File.Move(temporary, destination, overwrite: false);
+            // Stage, close, and verify the full copy before publishing it.
+            // File.Replace performs an atomic overwrite only after a separate
+            // user confirmation; the default remains refuse-to-overwrite.
+            if (overwrite && File.Exists(destination))
+            {
+                ProjectFilePaths.RequireSafeReplacement(destination);
+                File.Replace(temporary, destination, null);
+            }
+            else
+                File.Move(temporary, destination, overwrite: false);
         }
         finally
         {
