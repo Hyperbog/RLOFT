@@ -151,6 +151,37 @@ int main() {
     assert(!fs::exists(dir/"frame_0002.idx"));
     std::fprintf(stderr,"capture-test: invalid-source rejection verified\n");
 
+    // The new RES3 run telemetry must distinguish a long C029=1
+    // source run from unsupported grouped raster-mask lookup.
+    frame.scene_individual_columns_mode=true;
+    frame.source_coordinate_a=0x00041234U;
+    frame.source_coordinate_b=0x00054321U;
+    frame.source_facing=261U;
+    frame.world_scene_render_plans[0].source_unresolved=false;
+    frame.world_scene_render_plans[0].visible_runs.push_back(
+        Type7VisibleRun{32U,0U,128U,12U});
+    presentation.type7_scene_outcomes[0]=
+        Type7SceneRenderOutcome::TraceUnavailable;
+    ExplorationFrameCapture::write(
+        dir,{3U,22U,4,5,261U},frame,presentation,image,code2);
+    std::ifstream third(dir/"frame_0003.tsv",std::ios::binary);
+    assert(third);
+    const std::string third_tsv{
+        std::istreambuf_iterator<char>(third),
+        std::istreambuf_iterator<char>()};
+    assert(third_tsv.find("scene_individual_columns_mode\t1")!=
+           std::string::npos);
+    assert(third_tsv.find("source_coordinate_fixed\t266804\t344865")!=
+           std::string::npos);
+    assert(third_tsv.find("source_facing_raw\t261")!=
+           std::string::npos);
+    assert(third_tsv.find("scene_run\t0\t32\t0\t128\t12\tindividual\tsupported")!=
+           std::string::npos);
+    assert(third_tsv.find("scene_outcome\t0\t1\t4\t445\ttrace-unavailable")!=
+           std::string::npos);
+    third.close();
+    assert(!third.is_open());
+
     // Unlike POSIX, Win32 file deletion cannot unlink these captures
     // while ifstream handles remain open. End all three read sessions
     // BEFORE cleaning the temporary test directory. This is test-only
@@ -159,7 +190,7 @@ int main() {
     pal.close();
     metadata.close();
     assert(!indexed.is_open() && !pal.is_open() && !metadata.is_open());
-    assert(fs::remove_all(dir) == 4U); // directory + idx + pal + tsv
+    assert(fs::remove_all(dir) == 7U); // directory + 2*(idx + pal + tsv)
     assert(!fs::exists(dir));
     std::fprintf(stderr,"capture-test: all streams closed and directory removed\n");
 }
