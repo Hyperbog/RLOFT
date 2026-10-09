@@ -227,3 +227,85 @@ fix and re-run instead of certifying the feature.
 The original game branch remains immutable. Formal
 Demo-v1 overall engineering 32-unit tracker currently
 keeps inventory at PARTIAL while the above work remains.
+
+
+## Subsequent direct-binary closure: nested containers and exact equipment-hit regions
+
+The original `CODE.2` file was disassembled again, at the
+instruction level, to remove two earlier native generalizations.
+
+**Nested containers — CODE.2 physical 0x4CB60..0x4CECA
+(original logical 0x11C3C):**
+
+- Specialized descriptor subtypes 3, 4, 5, and 6 require
+  incoming `OBJECTS.DAT +0x2F` categories 13, 14,
+  12 and 15 respectively.
+- Generic subtype **0/1** admits an incoming object only
+  when its original `OBJECTS.DAT +0x35 & 3` hand-pair
+  class is **0 or 1**. Classes 2 and 3 are rejected.
+  Previous native code incorrectly rejected class 1.
+  The exact instructions are physical `0x4CC69..0x4CC83`.
+- Original physical `0x4CC89..0x4CCC4` checks an
+  **incoming category-1** nested container's descriptor
+  subtype. If it matches the destination subtype,
+  the operation is rejected; differing subtypes proceed.
+  Previous native code rejected every nested container.
+- Physical `0x4CD57..0x4CE18` computes the destination
+  contents' current **recursive** burden, removes the
+  old occupying object's full recursively contained burden,
+  adds the new held object's full recursively contained burden,
+  and checks capacity in original half-pound units.
+  Prior native swapping accounted for direct weight only.
+- Native `put_held_in_container_slot` now implements all
+  these rules. In addition, to safely handle corrupt or
+  recursively invalid modern/imported state, a bounded
+  63-descriptor visited set rejects self and indirect
+  container cycles *before* any mutation.
+- Expanded `inventory_runtime_tests` covers accepted
+  different-subtype container-in-container, rejected same
+  subtype, rejected indirect cycle with byte-state
+  preservation, original low-bit classes 1/2, and replacing
+  a recursively heavy container with a lighter item.
+
+**Equipment pickup — CODE.2 physical 0x4DDDF..0x4DE02,
+0x4D252..0x4D2A9 (logical 0x12E70 / 0x12180):**
+
+- Original source routine `0F368`, physical
+  `0x4A28C..0x4A2B2`, returns **0** for race
+  codes 2/3/4, else **1**.
+- The modal sets live `DGROUP:0x12C00` to the exact
+  10-descriptor array at `DGROUP:0x6EA0` for codes
+  2/3/4, or `DGROUP:0x6DB0` for other races.
+- Every descriptor is six little-endian 32-bit words:
+  `slot, accepted mouse flags, min row, min local column,
+  max row, max local column`. Physical source file
+  offsets start at `0x75F24+0x6DB0` and
+  `0x75F24+0x6EA0`. All twenty descriptors have
+  source click-mask 1; duplicate slot20 rectangles
+  represent separate left/right bracer graphics.
+- Original source accepts **inclusive** rectangle
+  bounds, skips empty equipment slots, tests the
+  pointer flag, and scans all ten descriptor rows
+  in original order.
+- `OriginalEquipmentHitTables::from_code2` parses
+  both immutable source tables, bounds-checks
+  every descriptor, and exposes exact priority and
+  mask semantics. `PartyModalPresenter::equipment_hit_at`
+  now uses that source model for an **empty cursor**;
+  it no longer guesses a pickup target based on sprite
+  width/height.
+- `party_panel_controls_tests` includes all 20 exact
+  descriptor values from the original supplied
+  executable, compares both races, and tests first
+  and last pixels, gaps, mouse flags, and empty slot
+  rejection on every region.
+
+Source evidence: original binary `CODE.2`,
+SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
+Both improvements are committed, **not yet compiled
+or checked against the nine original DOS screenshots**.
+They substantially close source-behavior unknowns in
+earlier blockers 2 and 4, but do not certify
+the full inventory without real Windows tests and
+visual comparison. The user's full inventory build
+remains deferred as requested.
