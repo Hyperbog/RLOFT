@@ -155,6 +155,45 @@ bool remove_recursive(
 
 }  // namespace
 
+MageScrollScribeSource MageScrollScribeSource::from_code2(
+    const std::vector<std::uint8_t>& code2) {
+    // Object-1 physical 3AF24 + EEB0, NOT object-2 physical
+    // 75F24 + EEB0. All twelve values are literal signed-ID
+    // [last,first] range pairs used by original 11630.
+    constexpr std::size_t ranges_at=0x3AF24U+0xEEB0U;
+    constexpr std::size_t capacities_at=0x75F24U+0x6153U;
+    if(code2.size()<ranges_at+12U*4U ||
+       code2.size()<capacities_at+21U)
+        throw std::runtime_error(
+            "CODE.2 Mage scroll source tables truncated");
+    MageScrollScribeSource source{};
+    for(std::size_t i=0;i<12U;++i)
+        source.id_ranges[i]=u32(
+            code2.data()+ranges_at+i*4U);
+    std::copy_n(code2.begin()+
+        static_cast<std::ptrdiff_t>(capacities_at),
+        source.intelligence_capacities.size(),
+        source.intelligence_capacities.begin());
+
+    // The 1.2a original defines exactly 35 scrolls (A7..C9)
+    // in six nonoverlapping, contiguous spell-level banks.
+    // Reject an unrelated corpus rather than inventing a mapping.
+    std::uint32_t first=0xA7U;
+    for(std::size_t bank=0;bank<6U;++bank) {
+        const auto high=source.id_ranges[bank*2U];
+        const auto low=source.id_ranges[bank*2U+1U];
+        if(low!=first || high<low || high>0xC9U ||
+           high-low>=10U)
+            throw std::runtime_error(
+                "CODE.2 Mage scroll range table mismatch");
+        first=high+1U;
+    }
+    if(first!=0xCAU)
+        throw std::runtime_error(
+            "CODE.2 Mage scroll ranges do not cover 35 IDs");
+    return source;
+}
+
 InventoryRuntimeState InventoryRuntimeState::fresh(
     const GameSource& source) {
     const auto code2 = source.read("CODE.2");
@@ -220,6 +259,14 @@ InventoryRuntimeState InventoryRuntimeState::fresh(
         }
     }
 
+    // Partial synthetic test CODE.2 files may intentionally omit
+    // executable text literals. Enable 11630 only when its authentic
+    // range prefix is present; never treat object-2 zero-fill
+    // at EEB0 as scroll mapping.
+    constexpr std::size_t range_at=0x3AF24U+0xEEB0U;
+    if(code2.size()>=range_at+12U*4U &&
+       u32(code2.data()+range_at)==173U)
+        out.mage_scroll_source=MageScrollScribeSource::from_code2(code2);
     return out;
 }
 
@@ -250,12 +297,62 @@ InventoryOrdinarySwapStatus InventoryRuntimeState::swap_ordinary_slot(
         current < -1 || incoming < -1) {
         return InventoryOrdinarySwapStatus::Unsupported;
     }
-    // 11808..11852: the source tests only the SLOT'S 0xA6 Mage
-    // Spell Book. It only accepts held 0xA7..0xC9 scrolls, and
-    // invokes 11630 (spell learning, capacity, duplicate checks).
-    // Do not fake spell acquisition or fall through to a swap.
+    // CODE.2 11808..11852: current SLOT contains 0xA6
+    // Mage Spell Book, held scroll 0xA7..0xC9. The 11630
+    // routine maps the scroll by the *object-1* EEB0 12-DWORD
+    // range table, not by the scroll's item category or ID
+    // arithmetic over a single spell bank.
     if (current == 0xA6) {
-        return InventoryOrdinarySwapStatus::Unsupported;
+        if (incoming < 0xA7 || incoming > 0xC9 ||
+            persistent_event_flags==nullptr ||
+            !mage_scroll_source)
+            return InventoryOrdinarySwapStatus::Unsupported;
+        (void)objects.at(static_cast<std::size_t>(current));
+        (void)objects.at(static_cast<std::size_t>(incoming));
+        const auto& src=*mage_scroll_source;
+        std::size_t bank=0U,entry=0U;
+        bool mapped=false;
+        for(;bank<6U;++bank) {
+            const auto hi=src.id_ranges[2U*bank];
+            const auto lo=src.id_ranges[2U*bank+1U];
+            if(static_cast<std::uint32_t>(incoming)<=hi &&
+               static_cast<std::uint32_t>(incoming)>=lo) {
+                entry=static_cast<std::size_t>(
+                    static_cast<std::uint32_t>(incoming)-lo);
+                mapped=true;break;
+            }
+        }
+        if(!mapped || entry>=10U)
+            return InventoryOrdinarySwapStatus::Unsupported;
+        const auto base=actor*PartyImage::kActorSize;
+        const auto intelligence=party.bytes[base+0x39U];
+        // Original 6153 is a 21-byte lookup. Out-of-range input
+        // is corrupt/unsupported, never a license to index BSS.
+        if(intelligence>=src.intelligence_capacities.size())
+            return InventoryOrdinarySwapStatus::Unsupported;
+        const auto at=base+0x6AU+bank*10U+entry;
+        std::size_t available=0U;
+        for(std::size_t i=0U;i<10U;++i)
+            if((party.bytes[base+0x6AU+bank*10U+i]&0x0FU)!=0x0FU)
+                ++available;
+
+        // 1166F calls 1C124(0xBA) BEFORE the availability,
+        // capacity and duplicate checks. This event flag is
+        // therefore set even when 11630 returns zero. In original
+        // DGROUP 22200 it is byte 23, bit 2.
+        (*persistent_event_flags)[0xBAU/8U] |=
+            static_cast<std::uint8_t>(1U<<(0xBAU%8U));
+        // Original 116B0 compares equality (not >=) and 116CD
+        // requires low nibble 0xF before scribing. Neither
+        // failure consumes a scroll. Message/IRQ UI omitted.
+        if(available==src.intelligence_capacities[intelligence] ||
+           (party.bytes[at]&0x0FU)!=0x0FU)
+            return InventoryOrdinarySwapStatus::MageScrollRejected;
+        // 11748 ANDs the entire spell byte with zero: not just
+        // the low nibble. 1183A then clears held ID and known.
+        party.bytes[at]=0U;
+        held={-1,0U};
+        return InventoryOrdinarySwapStatus::LearnedMageSpell;
     }
     // 11857..11891: slot 0x35 is specifically the Tome of Evil
     // Artifacts and Cursed Items, not a potion. Four distinct held
