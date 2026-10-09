@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <string>
 
 namespace rloft {
 namespace {
@@ -244,8 +245,23 @@ ViewSweepRecord ViewSweepTraversalModel::trace_ray(
 
     for (;;) {
         if (++guard > guard_limit) {
+            // Forensic-only failure text: retain actual ray and state so
+            // the next screenshot identifies the failing path and angle.
+            // Never turn an unproven wide/near-cardinal traversal into an
+            // invented wall hit or silently skip visibility updates.
             throw std::runtime_error(
-                "first-person sweep failed to leave malformed level");
+                "first-person sweep exceeded traversal guard"
+                " (ray=" + std::to_string(ray.ray_index) +
+                ", angle_tenths=" + std::to_string(ray.angle_tenths) +
+                ", state=" + std::to_string(static_cast<int>(state)) +
+                ", left_cell=" + std::to_string(left_expr) +
+                ", right_cell=" + std::to_string(right_expr) +
+                ", cx=" + std::to_string(cx) +
+                ", bx=" + std::to_string(bx) +
+                ", origin_a=" + std::to_string(basis.origin_a) +
+                ", origin_b=" + std::to_string(basis.origin_b) +
+                ", width=" + std::to_string(level.width) +
+                ", height=" + std::to_string(level.height) + ")");
         }
 
         if (state == SweepState::CompareLeft) {
