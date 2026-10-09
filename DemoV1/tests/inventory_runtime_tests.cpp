@@ -399,8 +399,10 @@ int main() {
     assert(get_item(nested_party,0U,14U)==-1);
     assert(runtime.held.object_id==2);
     assert(!runtime.open_container.has_value());
+    // CODE.2 21648 transfer clears ALL 4 bytes; do not
+    // conflate with the animated 110B4 post-close state.
     assert(runtime.party_container_ui_contexts[0U].raw==
-        (std::array<std::uint8_t,4>{{0xFFU,0xFFU,0U,0xFFU}}));
+        (std::array<std::uint8_t,4>{{0xFFU,0xFFU,0xFFU,0xFFU}}));
     assert(runtime.open_hand_container(
         nested_party,catalog,0U,0U)==
            rloft::InventoryContainerStatus::NoChange);
@@ -422,6 +424,14 @@ int main() {
         nested_party,catalog,0U,0U)==
            rloft::InventoryContainerStatus::Opened);
     assert(runtime.party_container_ui_contexts[0U].fully_open());
+    // The 21648 direct replacement explicitly clears all four,
+    // unlike the 110B4 animated close.
+    auto transfer_probe=runtime;
+    transfer_probe.reset_actor_context_21648(0U);
+    assert(transfer_probe.party_container_ui_contexts[0U].raw==
+        (std::array<std::uint8_t,4>{{
+            0xFFU,0xFFU,0xFFU,0xFFU}}));
+    assert(!transfer_probe.open_container);
     // Original 6FA0 has four independent actors. Opening a
     // second active actor's hand container must not close or
     // rewrite actor 0's phase3 view, and its slot clicks must
