@@ -25,6 +25,51 @@ std::size_t source_offset(std::uint32_t u,std::uint32_t v) noexcept {
     return static_cast<std::size_t>(
         ((v >> 26U) << 6U) | (u >> 26U));
 }
+
+// Original CODE.2 34270 first subtracts 270, then falls into
+// 34275: normalize a 360-degree angle, fold into 0..90, take the
+// LOW 16 bits of a 32-bit SINTAB sine entry, compute (n+1)>>2,
+// and negate quadrants 2 and 3. This returns the signed 16-bit
+// patch value stored at 34A11/34A27/34A3D/34A54.
+std::int16_t ground_sine(
+    const RendererTables& tables,
+    std::int64_t degrees,
+    bool subtract_270) {
+    degrees-=subtract_270?270:0;
+    degrees%=360;
+    if(degrees<0) degrees+=360;
+    auto folded=degrees;
+    int quadrant=0;
+    if(degrees>=270) {
+        quadrant=3;
+        folded=360-degrees;
+    } else if(degrees>=180) {
+        quadrant=2;
+        folded=degrees-180;
+    } else if(degrees>=90) {
+        quadrant=1;
+        folded=180-degrees;
+    }
+    const auto source_index=static_cast<std::size_t>(folded);
+    const auto magnitude=static_cast<std::uint32_t>(
+        static_cast<std::uint16_t>(
+            tables.sine_q16_signmag[source_index]))+1U;
+    const auto scaled=static_cast<std::int32_t>(magnitude>>2U);
+    const auto signed_value=(quadrant&2)!=0 ? -scaled : scaled;
+    return static_cast<std::int16_t>(signed_value);
+}
+
+// Signed IMUL DX (16-bit) followed by SHLD DX,AX,3. The low
+// 16 bits equal bits 13..28 of the 32-bit signed product.
+std::uint16_t original_step(
+    std::int16_t angle_factor,
+    std::uint16_t source_scale) noexcept {
+    const auto product=static_cast<std::uint32_t>(
+        static_cast<std::int32_t>(angle_factor)*
+        static_cast<std::int32_t>(
+            static_cast<std::int16_t>(source_scale)));
+    return static_cast<std::uint16_t>(product>>13U);
+}
 } // namespace
 
 GroundTextureShadeTable GroundTextureShadeTable::from_code2(
@@ -55,6 +100,44 @@ OriginalGroundTextureRaster::decode_ff58(
         const auto* record=original_ff58.data()+row*6U;
         out[row]={word(record),word(record+2U),
                   record[4],record[5]};
+    }
+    return out;
+}
+
+std::array<GroundPerspectiveRow,GroundTextureRasterSpec::kMaxRows>
+OriginalGroundTextureRaster::generate_ff58(
+    const RendererTables& tables,std::uint32_t heading) {
+    if(heading>=360U) {
+        throw std::out_of_range(
+            "CODE.2 34998 heading C658 must be 0..359");
+    }
+    // 349A8 EAX=0x168-C658; 349B4 -=0x20 (angle for
+    // the 8-bit U/V origins); 349D7 +=0x5A (16-bit deltas).
+    const auto relative=static_cast<std::int64_t>(360U-heading);
+    const auto initial=relative-32;
+    const auto delta_angle=relative+90;
+
+    const auto v_origin=ground_sine(tables,initial,true);
+    const auto u_origin=ground_sine(tables,initial,false);
+    const auto v_delta=ground_sine(tables,delta_angle,true);
+    const auto u_delta=ground_sine(tables,delta_angle,false);
+
+    std::array<GroundPerspectiveRow,
+        GroundTextureRasterSpec::kMaxRows> out{};
+    for(std::size_t i=0U;i<out.size();++i) {
+        // CODE.2 startup 3838..38C3 copies SINTAB projection_a
+        // to 19660, then projection_b to 193E0. 34998 reads
+        // each as a signed 16-bit source scale before IMUL.
+        const auto base_scale=tables.projection_b[i];
+        const auto step_scale=tables.projection_a[i];
+        out[i]=GroundPerspectiveRow{
+            original_step(u_delta,step_scale),
+            original_step(v_delta,step_scale),
+            static_cast<std::uint8_t>(
+                original_step(u_origin,base_scale)),
+            static_cast<std::uint8_t>(
+                original_step(v_origin,base_scale)),
+        };
     }
     return out;
 }
