@@ -461,6 +461,78 @@ int main() {
     assert(reward_inv.held.object_id==
         actual_held_before.object_id);
 
+    // The integrated 15050 reward helper can now complete its
+    // source-order family-C world fallback without an event stub
+    // or cursor mutation. The event-8 callback remains the
+    // separate prerequisite for any actual Level16 completion.
+    auto integrated_party=reward_party;
+    auto integrated_inv=reward_inv;
+    auto integrated_world=reward_world;
+    const auto integrated_party_before=integrated_party.bytes;
+    const auto integrated_held_before=integrated_inv.held;
+    const auto prior_world_front=integrated_world.loose_items.front().
+        object_type_id;
+    const auto combined=rloft::HolySymbolRewardModel::
+        grant_with_world_15050(
+            integrated_party,integrated_inv,integrated_world,
+            reward_session,definitions,tables,reject_forward);
+    assert(combined.status==RewardStatus::SpawnedInWorld);
+    assert(combined.loose_item_index==0x12BU);
+    assert(integrated_world.loose_items.size()==0x12CU);
+    assert(integrated_world.loose_items.front().object_type_id!=
+        prior_world_front);
+    assert(integrated_world.loose_items.back().object_type_id==0x73U);
+    assert(integrated_world.loose_items.back().packed_runtime_state==0U);
+    assert(integrated_party.bytes==integrated_party_before);
+    assert(integrated_inv.held.object_id==
+        integrated_held_before.object_id);
+    assert(integrated_inv.held.known==
+        integrated_held_before.known);
+    assert(reward_session.persistent_event_flags[0x44U/8U]==0U);
+
+    // A missing level-cell backing rejects only the world
+    // fallback; it may not clear party items, evict a loose
+    // entry or consume the held cursor.
+    const auto combined_before=integrated_world.loose_items.size();
+    const auto combined_front=integrated_world.loose_items.front().
+        object_type_id;
+    const auto refused=rloft::HolySymbolRewardModel::
+        grant_with_world_15050(
+            integrated_party,integrated_inv,integrated_world,
+            invalid_reward_session,definitions,tables,reject_forward);
+    assert(refused.status==RewardStatus::WorldPlacementRejected);
+    assert(integrated_party.bytes==integrated_party_before);
+    assert(integrated_inv.held.object_id==
+        integrated_held_before.object_id);
+    assert(integrated_world.loose_items.size()==combined_before);
+    assert(integrated_world.loose_items.front().object_type_id==
+        combined_front);
+
+    // When the cursor is empty, even an invalid world geometry
+    // must NOT prevent original 15050's cursor-first grant.
+    integrated_inv.held={-1,1U};
+    const auto cursor_first=rloft::HolySymbolRewardModel::
+        grant_with_world_15050(
+            integrated_party,integrated_inv,integrated_world,
+            invalid_reward_session,definitions,tables,reject_forward);
+    assert(cursor_first.status==RewardStatus::GivenToCursor);
+    assert(integrated_inv.held.object_id==0x73);
+    assert(integrated_inv.held.known==0U);
+    assert(integrated_world.loose_items.size()==combined_before);
+
+    // Actor-slot reward priority also wins over invalid world
+    // state, without a change to the original held object.
+    integrated_inv.held={9,1U};
+    put_item(integrated_party,2U,5U,-1);
+    const auto party_first=rloft::HolySymbolRewardModel::
+        grant_with_world_15050(
+            integrated_party,integrated_inv,integrated_world,
+            invalid_reward_session,definitions,tables,reject_forward);
+    assert(party_first.status==RewardStatus::GivenToPartySlot);
+    assert(party_first.actor==2U && party_first.slot==5U);
+    assert(integrated_inv.held.object_id==9);
+    assert(integrated_world.loose_items.size()==combined_before);
+
     // Invalid/outside-level and unknown objects must be rejected without
     // consuming the cursor or discarding the oldest world object.
     inventory.held={310,1U};
