@@ -6,7 +6,8 @@ ExplorationRuntimeMotionResult ExplorationRuntimeMotionModel::tick(
     ExplorationSessionState& session,
     ExplorationRuntimeMotionState& runtime,
     ExplorationMotionInputs inputs,
-    const RendererTables& tables) {
+    const RendererTables& tables,
+    const ExplorationLocomotionModel::EntityProbe& entity_probe) {
     // C658 is authoritative. Re-seed the integrator heading from the current
     // session so future transition/event code can change facing without
     // desynchronizing input integration.
@@ -20,7 +21,8 @@ ExplorationRuntimeMotionResult ExplorationRuntimeMotionModel::tick(
 
     out.applied = ExplorationLocomotionModel::apply(
         session,
-        out.integrated);
+        out.integrated,
+        entity_probe);
 
     runtime.integrator = out.integrated.state;
     runtime.integrator.heading = session.facing;
