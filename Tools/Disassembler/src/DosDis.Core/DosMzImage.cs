@@ -75,6 +75,19 @@ public sealed class DosMzImage
     }
 
     /// <summary>
+    /// Read source-backed resident load-module bytes for independent metadata
+    /// inspection. This never applies relocations or supplies a runtime base.
+    /// </summary>
+    public byte[] ReadStoredImageBytes(int imageOffset, int length)
+    {
+        if (imageOffset < 0 || length < 0 ||
+            (long)imageOffset + length > FileBackedImageLength)
+            throw new ArgumentOutOfRangeException(nameof(imageOffset),
+                "MZ load-module read exceeds original-file-backed bytes.");
+        return _original.Data.Slice(checked(LoadImageFileOffset + imageOffset), length).ToArray();
+    }
+
+    /// <summary>
     /// Returns null for unbacked or non-image offsets. The value is the
     /// original file offset; no inferred process segment base is included.
     /// </summary>
