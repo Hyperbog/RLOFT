@@ -61,7 +61,8 @@ internal static class Dos16RegisterTransferSmoke
         Check(Is(Dos16WordRegister.AX, 0x1234) &&
             Value(Dos16WordRegister.BX).Kind == Dos16ValueKind.Unknown,
             "MOV AX immediate changes only AX");
-        Check(first.SourceOrigin?.SourceSha256 == region.SourceSha256 &&
+        Check(first.SourceOrigin is not null &&
+            first.SourceOrigin.SourceSha256 == region.SourceSha256 &&
             first.SourceOrigin.SourceFileOffset == 0 && first.FlagsPreserved,
             "machine-byte backed origin and flag retention");
 
