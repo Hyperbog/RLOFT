@@ -132,6 +132,55 @@ bool InventoryWorldDropModel::placement_passable_2d5d0(
 }
 
 
+Level16SeedRitualCheck Level16SeedRitualModel::evaluate_21880(
+    const ExplorationSessionState& session,
+    const LevelWorldState& world,
+    const LiveObjectRecord* candidate,
+    bool evict_oldest) noexcept {
+    Level16SeedRitualCheck result{};
+    if(session.level_id!=16U) {
+        result.status=Level16SeedRitualStatus::NotLevel16;
+        return result;
+    }
+    // Original 2189F calls 1C1DC(0x44) and returns early
+    // whenever that bit is already set in persistent 0x22200.
+    constexpr auto byte=Level16SeedRitualCheck::kEventBit/8U;
+    constexpr auto mask=static_cast<std::uint8_t>(
+        1U<<(Level16SeedRitualCheck::kEventBit%8U));
+    if((session.persistent_event_flags[byte]&mask)!=0U) {
+        result.status=Level16SeedRitualStatus::AlreadyFlagged;
+        return result;
+    }
+    const auto add=[&](const LiveObjectRecord& record) {
+        if(record.object_type_id!=kSeedObjectId)return;
+        // 218DB..218F7: cmp source unsigned XY byte against
+        // WORD at live 0x17618+6 (x high word) and +2 (y high
+        // word). Low fixed-point fractions do NOT matter.
+        const auto x=static_cast<std::uint16_t>(
+            record.x_position_16_16>>16U);
+        const auto y=static_cast<std::uint16_t>(
+            record.y_position_16_16>>16U);
+        for(std::size_t i=0U;i<kSourceCells.size();++i)
+            if(x==kSourceCells[i][0] &&
+               y==kSourceCells[i][1])
+                result.present[i]=true;
+    };
+    // 2195C evicts the oldest record before appending when
+    // the source array reaches 0x12C entries. The pure check
+    // must audit the POST-eviction state, not the old source.
+    for(std::size_t i=evict_oldest?1U:0U;
+        i<world.loose_items.size();++i)
+        add(world.loose_items[i]);
+    if(candidate)add(*candidate);
+    bool complete=true;
+    for(const bool present:result.present)
+        if(!present)complete=false;
+    result.status=complete
+        ? Level16SeedRitualStatus::ReadyForSourceActions
+        : Level16SeedRitualStatus::MissingSeed;
+    return result;
+}
+
 InventoryWorldDropResult InventoryWorldDropModel::drop(
     LevelWorldState& world,
     const ExplorationSessionState& session,
@@ -146,16 +195,6 @@ InventoryWorldDropResult InventoryWorldDropModel::drop(
     if(held.object_id<0 ||
        static_cast<std::size_t>(held.object_id)>=objects.size()) {
         result.status=InventoryWorldDropStatus::InvalidInventoryObject;
-        return result;
-    }
-    // CODE.2 2195C calls original 21880 only for object 0x89.
-    // At 21880 (physical 5C7B6) the first executable branch exits
-    // unless current level == 16. Only Level16 requires extra
-    // authored condition checks, event flag 0x44 and potential
-    // original 4EE1C/4FF74 actions. Outside Level16 the source
-    // action returns immediately, so the ordinary drop is safe.
-    if(held.object_id==0x89 && session.level_id==16U) {
-        result.status=InventoryWorldDropStatus::SourceSpecialActionPending;
         return result;
     }
     if(session.level.width<=0 || session.level.height<=0 ||
@@ -207,9 +246,6 @@ InventoryWorldDropResult InventoryWorldDropModel::drop(
     // Model 2195C append/evict first, then clear the exact
     // original global cursor object/known byte. The new record
     // has no reused slot's unknown high packed bits.
-    if(world.loose_items.size()==0x12CU) {
-        world.loose_items.erase(world.loose_items.begin());
-    }
     LiveObjectRecord next{};
     next.y_position_16_16=y;
     next.x_position_16_16=x;
@@ -218,6 +254,24 @@ InventoryWorldDropResult InventoryWorldDropModel::drop(
     // Original 2195C clears 0x05F8 and uses (known&1)<<10.
     next.packed_runtime_state=static_cast<std::uint16_t>(
         (held.known&1U)<<10U);
+    // 2195C invokes 21880 only AFTER creating item 0x89.
+    // Unfinished source follow-on calls 13EF8(8) and
+    // 15050(0x73) must not be skipped when the fourth site
+    // becomes occupied. Preflight the would-be appended
+    // record; permit the other Level16 seed drops normally.
+    if(held.object_id==Level16SeedRitualModel::kSeedObjectId) {
+        const auto ritual=Level16SeedRitualModel::evaluate_21880(
+            session,world,&next,
+            world.loose_items.size()==0x12CU);
+        if(ritual.status==
+           Level16SeedRitualStatus::ReadyForSourceActions) {
+            result.status=
+                InventoryWorldDropStatus::SourceSpecialActionPending;
+            return result;
+        }
+    }
+    if(world.loose_items.size()==0x12CU)
+        world.loose_items.erase(world.loose_items.begin());
     world.loose_items.push_back(next);
     inventory.held={-1,0U};
     result.status=InventoryWorldDropStatus::Dropped;
