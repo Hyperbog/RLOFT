@@ -530,6 +530,19 @@ try
     Equal(Dos16AutomaticDispatchRecovery.Inspect(
         jbeTaken.Region, duplicatedFailureExit).GuardedTableCandidates, 0,
         "duplicate exit instruction claims cannot satisfy unique guard proof");
+    Equal(Dos16UniqueTransparentPath.UpstreamCandidates(
+        jbeTaken.Region, duplicatedFailureExit,
+        new Dos16Address(0, 0x108)).Count, 0,
+        "duplicate decoded starts must fail closed before predecessor traversal");
+    var duplicatedGuardInstruction = automaticGraph with {
+        Instructions = automaticGraph.Instructions.Concat(
+            automaticGraph.Instructions.Where(i =>
+                i.Address.Offset == 0x103)).ToArray()
+    };
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(
+        automaticRegion, duplicatedGuardInstruction).GuardedTableCandidates, 0,
+        "duplicate decoded guard instructions cannot authorize automatic tables");
+
 
     // Identical file bytes with a forged control-flow label must not be
     // accepted as a valid CMP, scale, transparent NOP or rejected branch.
@@ -932,6 +945,12 @@ try
         "one unverified table entry rejects the entire automatically bounded table");
     Equal(failedFourthReport.Sites[0].StoredTable, null,
         "partially checked tables must not expose an unsafe target list");
+    Equal(failedFourthReport.Sites[0].EntryCount, (int?)null,
+        "rejected table must not expose an unvalidated proposed entry count");
+    Equal(failedFourthReport.Sites[0].Status,
+        "rejected-guarded-table:rejected-unverified-entry",
+        "site rejection must preserve the exact pointer validation failure");
+
     var overlapAuto = (byte[])automaticBytes.Clone();
     overlapAuto[10] = 0x07; overlapAuto[11] = 0x01;
     var overlapRegion = DosComImage.LoadExplicit(
@@ -963,6 +982,30 @@ try
     Equal(Dos16AutomaticDispatchRecovery.Inspect(automaticRegion,
         automaticGraph with { Truncated = true }).GuardedTableCandidates, 0,
         "truncated CFG cannot claim complete predecessor and guard evidence");
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(automaticRegion,
+        automaticGraph with { Truncated = true }).AnalysisStatus.Contains(
+            "incomplete-input-graph", StringComparison.Ordinal), true,
+        "report status must explicitly identify an incomplete input graph");
+
+    var manyIndirectSites = automaticGraph with {
+        Instructions = automaticGraph.Instructions.Concat(
+            Enumerable.Range(0, 129).Select(i =>
+                automaticGraph.Instructions.Single(x => x.Address.Offset == 0x107)
+                    with { Address = new Dos16Address(0, (ushort)(0x900 + i)) }))
+            .ToArray()
+    };
+    var cappedSiteReport = Dos16AutomaticDispatchRecovery.Inspect(
+        automaticRegion, manyIndirectSites);
+    Equal(cappedSiteReport.IndirectSites, 130,
+        "site-report budget retains total original discovered indirect-site count");
+    Equal(cappedSiteReport.Sites.Count, 128,
+        "site-report budget caps emitted per-site findings");
+    Equal(cappedSiteReport.Truncated, true,
+        "site-report cap is explicit rather than silent");
+    Equal(cappedSiteReport.AnalysisStatus.Contains(
+        "site-report-truncated", StringComparison.Ordinal), true,
+        "report status exposes the reason sites were truncated");
+
 
 
     // Four-byte FAR entries require a SHL BX,2 and distinct MZ selector
