@@ -133,7 +133,7 @@ void ExplorationRuntime::import_matching_save_inventory(
         throw std::logic_error(
             "inventory-only LOAD requires closed live containers");
     InventorySaveCodec::apply_to_matching_session(
-        incoming,session_,inventory_);
+        incoming,session_,inventory_,&object_catalog_);
     inventory_save_backing_=std::move(incoming);
     // Live hand/cursor and party model changed; reject any
     // stale pre-LOAD world hit-test snapshot.
@@ -150,7 +150,7 @@ ExplorationRuntime::export_matching_save_inventory() const {
         throw std::logic_error(
             "inventory-only SAVE cannot preserve changed world effects");
     const auto snapshot=InventorySaveCodec::capture_matching_session(
-        *inventory_save_backing_,session_,inventory_);
+        *inventory_save_backing_,session_,inventory_,&object_catalog_);
     return InventorySaveCodec::encode(snapshot);
 }
 
