@@ -490,3 +490,54 @@ been performed. All GitHub builds remain
 manual-only, and the user's request is to
 build **only after** every inventory
 acceptance blocker has been addressed.
+
+
+## Part 8 — original mode-0x190 drop collision integrated in native source
+
+Immutable `CODE.2` SHA-256:
+`853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
+Verified by direct machine-code disassembly of the supplied
+`2D5D0..2D9F8`, `2C800..2C8E1`, `2C9DC..2CA5B` and
+`1E8C8..1E99E`. Logical CODE.2 object-1 file offset begins
+at `0x3AF24`.
+
+**Fixed source bug:** the original `2D5D0(y,x,0x190)`
+third argument is actor/mode `0x190`, **not** the radius.
+The original routine uses a constant Q16 footprint
+`-0x5800..+0x5800` around each axis with inclusive signed
+cell bounds (`2D5E2..2D629`). The previous Win32 path
+incorrectly used `0x190` for the footprint and only checked
+low-six-bit map geometry.
+
+New `InventoryWorldDropModel::placement_passable_2d5d0`
+models the source's group-1/group-2 descriptor precedence,
+group-2 dynamic position, bits `0x0080`, `0x0800`,
+`0x1000`, low-six solidity and control-type-1/type-8
+exceptions. Off-map cells are skipped during traversal, as
+in `2D693..2D6BB`. Subsequent `2C800` applies NPC
+`NPCS+0x16 + 0x3E8` overlap, omitting inactive `+0x0B&2`
+NPCs; mode `0x190` skips placed-object `2CC88` but
+still applies player `2C9DC` proximity `+/-0x8FA0`.
+Blocked placements keep original `2195C` player-position
+fallback semantics.
+
+`ExplorationRuntime::drop_held_inventory_item` now
+uses this original-backed predicate by default; Win32
+no longer supplies the approximate geometry lambda.
+The prior explicit predicate remains injectable for
+deterministic tests. Expanded existing
+`inventory_world_drop_tests` covers source footprint
+cell seams, modes, dynamic/group-2 variants,
+bit-0x0800/0x1000, NPC overlap and player exclusion.
+
+**Boundary:** original mutable `DGROUP:F048` scripted
+early-skip state is not yet represented by this runtime
+path; this is not a generalized replacement for every
+`2D5D0` caller or authoring-time side-effect routine.
+Other inventory blockers include Level16 special
+item `0x89`, spell/item uses, SAVE/load persistent
+inventory and live DOS palette, hit/visual and timing
+comparisons. **No Windows build or DOS runtime
+validation was performed.** Same 169 registered
+CTests/19 manual Quick tests, 56.25% engineering
+source coverage; inventory still PARTIAL.
