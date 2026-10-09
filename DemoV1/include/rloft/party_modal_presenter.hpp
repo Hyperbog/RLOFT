@@ -13,6 +13,7 @@
 #include "rloft/inventory_screen.hpp"
 #include "rloft/inventory_runtime.hpp"
 #include "rloft/inventory_item_description.hpp"
+#include "rloft/inventory_encumbrance.hpp"
 #include "rloft/object_catalog.hpp"
 #include "rloft/party_presentation.hpp"
 #include "rloft/resource_assets.hpp"
