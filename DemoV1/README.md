@@ -5,28 +5,15 @@
 The [Original-Game Code Reconstruction Charter](ORIGINAL_EXECUTION_FIDELITY_CHARTER.md) is binding. **Complete the full code recreation necessary to execute the entire original game faithfully** before considering anything modern. This encompasses every original subsystem, startup/character creation, level, encounter, mechanic, event, cinematic, ending and SAVE/LOAD operation, including the original bugs and quirks. The native code being built is this reconstruction—not merely disposable research and not a preliminary Phase I. Check its behavior against the original DOS game; it need not literally run the original DOS instruction stream. **Only after the complete original game recreation is done** may a separate modern branch be considered for changes, fixes, features, modding or QoL. No modernization is authorized yet.
 
 
-## Level22 diagnostic flight recorder — authored, awaiting manual build
+## Level22 diagnostic flight recorder — Windows Full #649 verified
 
-A new opt-in **`--dev-trace`** mode and **`Diagnose-Level22.cmd`** launcher record source-referenced renderer captures, original 320×400 indexed frames from **inventory, automap, viewport, top menus and quit confirmation**, input/UI events, state hashes, a source-ordered **per-draw Type1 sprite/fill/restore operation TSV** for diagnosing overlapping party UI, and an **F12 defect-marker screenshot plus the 256 preceding event records**. The launcher waits for the game to exit and packages the bounded session as **one ZIP** in `%TEMP%\\RLOFT-Demo-Diagnostics`. The gameplay state and original files are untouched. [Usage, format, bounds and status](LEVEL22_DEV_TRACE_CHECKPOINT_20261009.md). **179 CTests authored/registered; the flight recorder has NOT been compiled or user-tested yet.** Last green manually authorized Full Windows build remains #648, 178/178. Do not mistake authored tests for completed build/parity acceptance.
+A new opt-in **`--dev-trace`** mode and **`Diagnose-Level22.cmd`** launcher record source-referenced renderer captures, original 320×400 indexed frames from **inventory, automap, viewport, top menus and quit confirmation**, input/UI events, state hashes, a source-ordered **per-draw Type1 sprite/fill/restore operation TSV** for diagnosing overlapping party UI, and an **F12 defect-marker screenshot plus the 256 preceding event records**. The launcher waits for the game to exit and packages the bounded session as **one ZIP** in `%TEMP%\\RLOFT-Demo-Diagnostics`. The gameplay state and original files are untouched. [Usage, format, bounds and status](LEVEL22_DEV_TRACE_CHECKPOINT_20261009.md). **Full Windows build #649 passed 179/179 CTests**, including `dev_session_trace_tests`; the resulting Windows artifact includes `Diagnose-Level22.cmd`. [Exact binary and test provenance](FULL_WINDOWS_BUILD_CHECKPOINT_20261009_RUN649.md). **Manual recorder ZIP testing and original-DOS equivalence remain outstanding.**
 
 ## Current verified build and continuing game-engine checkpoint
 
-**Full Windows build #648 passed 178/178 registered CTests**
-at source commit `fb0912346a831dad21d2960e99863cc8f446173a`. The
-Windows executable and Level22 developer launchers are published:
-[successful Full build and artifact](https://github.com/Hyperbog/RLOFT/actions/runs/37998467852).
-[Build provenance and SHA-256 audit](FULL_WINDOWS_BUILD_CHECKPOINT_20261009_RUN648.md).
+**Full Windows build #649 passed 179/179 registered CTests** at source commit `6241a807baf53449256e5517687430283fdf2ca3` on 2026-10-09. The Windows executable and the new forensic launcher `Diagnose-Level22.cmd` are included in the [successful build artifact](https://github.com/Hyperbog/RLOFT/actions/runs/38003217534). [Build provenance and SHA-256 audit](FULL_WINDOWS_BUILD_CHECKPOINT_20261009_RUN649.md). The old #648 record remains for historical comparison.
 
-The temporary, explicitly authorized CI trigger was removed and the
-`demo-v1` workflow restored **byte-for-byte to manual-only**. All
-previously registered Level22 and Part 9 sources now compile and pass
-native CTests. **Original DOS visual/timing/playability acceptance is
-still outstanding**, so Level22 is not yet certified playable.
-The ordinary production startup and real CODE.1 character
-creation remain unchanged. Development testing continues
-through the original `--explore-level22` path, optionally
-with read-only `--dev-inspect` and source-backed
-`--dev-interact`.
+The one-time marker was removed and the workflow restored **byte-for-byte to manual-only**. Full native CTest acceptance is **179/179**, but **Level22 visual/UI trace validation, full original gameplay, and original DOS parity are not yet accepted**.
 
 ## Required completion scoreboard — every engine system and subsystem
 

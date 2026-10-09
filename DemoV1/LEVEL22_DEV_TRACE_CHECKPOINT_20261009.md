@@ -2,7 +2,7 @@
 
 **Scope:** Level22 playability and original DOS parity troubleshooting. Instrumentation is opt-in and HOST-ONLY; no original game action, fixed-point gameplay value, asset file or save byte is changed.
 
-## User workflow (available after the next explicitly authorized Full Windows build)
+## User workflow (available now in verified Windows Full build #649)
 
 1. Unpack the Windows-x64 build artifact, keeping `Diagnose-Level22.cmd` next to `ravenloft_demo_v1.exe`.
 2. Double-click **Diagnose-Level22.cmd**. It supplies `--explore-level22 --dev-inspect --dev-interact --dev-trace`. An optional quoted game installation path is forwarded untouched; the existing remembered GOG/game folder continues working.
@@ -38,6 +38,6 @@ An existing `CHARS` is used if present. In `--explore-level22`, missing `CHARS` 
 
 ## Regression and build discipline
 
-`dev_session_trace_tests` verifies original-frame sizes, palette bytes, screen changes, source revision, state fingerprint capture, F12 preservation and event snapshot, JSON escaping, independent marker limit, auto viewport cap, later quit-modal snapshot reservation and clean close, plus source-order Type1 sprite/fill/restore operation capture, extent/frame metadata and bounded draw-call overflow reporting. `CMakeLists.txt` now registers **179** distinct CTests (old Full #648: 178/178, successful at checkout `fb091234`). The workflow stages/archives the new launcher only during explicit user-authorized builds. **No new build dispatched**. Runtime file/zip behavior and eventual DOS fidelity remain unaccepted until the user tests the new executable.
+`dev_session_trace_tests` verifies original-frame sizes, palette bytes, screen changes, source revision, state fingerprint capture, F12 preservation and event snapshot, JSON escaping, independent marker limit, auto viewport cap, later quit-modal snapshot reservation and clean close, plus source-order Type1 sprite/fill/restore operation capture, extent/frame metadata and bounded draw-call overflow reporting. `CMakeLists.txt` now registers **179** distinct CTests (old Full #648: 178/178, successful at checkout `fb091234`). The launcher was staged and published by explicitly authorized [Full Windows build #649](https://github.com/Hyperbog/RLOFT/actions/runs/38003217534), which passed **179/179 CTests**. The temporary push trigger has been removed and the workflow restored to manual-only. **Actual end-user diagnostic folder and ZIP creation still need field verification**, as does original-DOS fidelity.
 
 **Development priority:** Fully playable source-faithful Level22 through the original mist sequence; absolutely no independent Level23 gameplay work.

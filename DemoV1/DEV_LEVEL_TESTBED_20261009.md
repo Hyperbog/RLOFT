@@ -1,19 +1,12 @@
 # Level 22 — reusable native development testbed
 
-## Native Level22 opt-in diagnostic session (pending next manual build)
+## Native Level22 opt-in diagnostic session — build #649 verified
 
-The source now includes [`--dev-trace` / `Diagnose-Level22.cmd`](LEVEL22_DEV_TRACE_CHECKPOINT_20261009.md): source-identity manifests, per-screen indexed 320×400 captures, palette bytes, state hashes, native Type1 sprite/fill/restore call ordering and destination coordinates, input and modal transitions, F12 marker/recent-event snapshots, existing RES3/SINTAB renderer traces, and a single automatically ZIP-packaged session. The original file tree remains read-only. The new `dev_session_trace_tests` brings the current authored registry to **179**, compared with **178 verified in Full build #648**. **Source is unbuilt; no Windows or DOS behavior acceptance claimed.**
+The source now includes [`--dev-trace` / `Diagnose-Level22.cmd`](LEVEL22_DEV_TRACE_CHECKPOINT_20261009.md): source-identity manifests, per-screen indexed 320×400 captures, palette bytes, state hashes, native Type1 sprite/fill/restore call ordering and destination coordinates, input and modal transitions, F12 marker/recent-event snapshots, existing RES3/SINTAB renderer traces, and a single automatically ZIP-packaged session. The original file tree remains read-only. The new `dev_session_trace_tests` passed with all **179/179 CTests** in [Full Windows build #649](https://github.com/Hyperbog/RLOFT/actions/runs/38003217534); the artifact includes `Diagnose-Level22.cmd`. **Actual user diagnostic capture/ZIP review and original-DOS behavior remain unaccepted.**
 
 ## Current status and universal percentage tracking
 
-**Green Full Windows checkpoint:** [build #648](
-https://github.com/Hyperbog/RLOFT/actions/runs/37998467852)
-compiled and passed all **178/178 registered CTests**
-at source revision `fb0912346a831dad21d2960e99863cc8f446173a`. The
-Windows executable was published and committed, and the
-workflow restored **manual-only**.
-[Exact EXE SHA-256/build provenance](FULL_WINDOWS_BUILD_CHECKPOINT_20261009_RUN648.md).
-**No original DOS visual/timing/gameplay acceptance is claimed**.
+**Green Full Windows checkpoint:** [build #649](https://github.com/Hyperbog/RLOFT/actions/runs/38003217534) compiled and passed **179/179 CTests** at source revision `6241a807baf53449256e5517687430283fdf2ca3`. The Windows EXE and `Diagnose-Level22.cmd` were published and the EXE committed to Git. The workflow is **manual-only** again. [EXE SHA-256 and provenance](FULL_WINDOWS_BUILD_CHECKPOINT_20261009_RUN649.md). **No original DOS parity or manual Level22 diagnostic ZIP acceptance is claimed.**
 
 **Post-build development:** the production runtime now
 selects original RES4 ground textures using the
@@ -34,7 +27,7 @@ lifecycle and continuity is **47.9%**; Verification
 and developer testbed is **50.0%**. The historical
 **56.25%** 32-task engineering metric remains separate.
 
-**Current source CTest registry:** 179 (one unbuilt trace regression); Quick: 19. Full Windows #648 compiled and passed **178/178**, including original Level22 pickup-message source and event-timing targets. This is not original-DOS parity or evidence of a completed playable Level22. Future builds are manual unless explicitly
+**Current source CTest registry:** 179 (**179/179 Full Windows #649 verified**); Quick: 19. Full Windows #648 compiled and passed **178/178**, including original Level22 pickup-message source and event-timing targets. This is not original-DOS parity or evidence of a completed playable Level22. Future builds are manual unless explicitly
 authorized. An opted-in `--explore-level22 --dev-inspect
 --dev-interact` run is available for human interaction
 tests using the published executable.
