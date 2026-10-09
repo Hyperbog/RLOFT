@@ -45,15 +45,29 @@ int main(int argc,char** argv) {
                     "No original game found; pass RLOFT installation path");
                 return std::move(*found);
             }();
+        const auto original_code1=source.read("CODE.1");
         const auto table=rloft::CharacterTransferTables::
             from_original_bytes(
-                source.read("CODE.1"),source.read("OBJECTS.DAT"));
+                original_code1,source.read("OBJECTS.DAT"));
+        // Exact SHA-256 of the original 2,520-byte source span is
+        // recorded in the archival document. The lightweight FNV
+        // fingerprint helps detect an alternate/modified original
+        // executable without exporting original game data.
+        constexpr std::size_t kTableAt=0x3E724U+0x0988U;
+        constexpr std::size_t kTableBytes=15U*6U*14U*2U;
+        std::uint32_t table_fingerprint=2166136261U;
+        for(std::size_t i=0;i<kTableBytes;++i) {
+            table_fingerprint^=original_code1[kTableAt+i];
+            table_fingerprint*=16777619U;
+        }
         const auto objects=rloft::ObjectCatalog::load(source);
         std::size_t populated=0U,items=0U;
         std::cout<<"Original CODE.1 5F4C starting equipment\n"
                  <<"SOURCE=CODE.1_DGROUP_0988\n"
                  <<"OBJECT_COUNT="<<objects.size()<<"\n"
-                 <<"FAMILY_COUNT=15\nRACE_COUNT=6\n";
+                 <<"FAMILY_COUNT=15\nRACE_COUNT=6\n"
+                 <<"CODE1_STARTING_TABLE_FNV1A32_DEC="
+                 <<table_fingerprint<<"\n";
         for(std::size_t family=0;family<kFamily.size();++family) {
             for(std::size_t race=0;race<kRace.size();++race) {
                 const auto kit=table.starting_loadout(family,race);
@@ -80,7 +94,8 @@ int main(int argc,char** argv) {
         // Original 1.2a data are 44 source-populated class/race rows.
         // Fail loudly on a different executable rather than creating
         // a deceptive "complete" report from an unknown version.
-        if(populated!=44U || objects.size()!=336U) {
+        if(populated!=44U || objects.size()!=336U ||
+           table_fingerprint!=0x96084605U) {
             std::cerr<<"Source-version warning: shipped CODE.1/OBJECTS"
                          " corpus differs from the audited 1.2a baseline\n";
             return 3;
