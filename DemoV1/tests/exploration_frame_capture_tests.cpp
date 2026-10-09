@@ -83,5 +83,15 @@ int main() {
     } catch(const std::invalid_argument&) {rejected=true;}
     assert(rejected);
     assert(!fs::exists(dir/"frame_0002.idx"));
-    fs::remove_all(dir);
+
+    // Unlike POSIX, Win32 file deletion cannot unlink these captures
+    // while ifstream handles remain open. End all three read sessions
+    // BEFORE cleaning the temporary test directory. This is test-only
+    // resource lifetime handling; the capture writer is unchanged.
+    indexed.close();
+    pal.close();
+    metadata.close();
+    assert(!indexed.is_open() && !pal.is_open() && !metadata.is_open());
+    assert(fs::remove_all(dir) == 4U); // directory + idx + pal + tsv
+    assert(!fs::exists(dir));
 }
