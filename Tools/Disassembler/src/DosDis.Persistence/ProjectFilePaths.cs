@@ -40,8 +40,11 @@ public static class ProjectFilePaths
         string? parent = Path.GetDirectoryName(destination);
         if (parent is null || !Directory.Exists(parent))
             throw new DirectoryNotFoundException("Export destination directory does not exist.");
+        // Keep the actual requested extension: the JSON/TXT exporters
+        // validate it even when writing a private, uniquely named staging file.
         string temporary = Path.Combine(parent, "." +
-            Path.GetFileName(destination) + "." + Guid.NewGuid().ToString("N") + ".part");
+            Path.GetFileNameWithoutExtension(destination) + "." +
+            Guid.NewGuid().ToString("N") + Path.GetExtension(destination));
         try
         {
             writeNew(temporary);
