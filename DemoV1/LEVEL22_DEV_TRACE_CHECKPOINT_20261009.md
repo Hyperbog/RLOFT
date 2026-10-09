@@ -28,7 +28,8 @@ An existing `CHARS` is used if present. In `--explore-level22`, missing `CHARS` 
 
 - 16,384 persistent JSONL event records with a 256-event in-memory recent ring. Event writes flush to disk to survive unexpected native termination.
 - 96 automatic indexed frame/palette/JSON capture triplets, of which **at most 64** are viewport/top-edge frames, reserving 32 slots for later modal-screen captures.
-- Up to 1,024 source-ordered per-presentation indexed drawing operations recorded for each captured frame, with an explicit omitted-call count; opt-in only, including original party/inventory modal drawing calls. The same draw records are saved for F12 snapshots.\n- 16 independent F12 indexed frame/palette/JSON triplets, unaffected by exhaustion of the 96 automatic snapshot budget.
+- Up to 1,024 source-ordered per-presentation indexed drawing operations recorded for each captured frame, with an explicit omitted-call count; opt-in only, including original party/inventory modal drawing calls. The same draw records are saved for F12 snapshots.
+- 16 independent F12 indexed frame/palette/JSON triplets, unaffected by exhaustion of the 96 automatic snapshot budget.
 - Dynamic world/time changes are decimated to one automatic frame per nine original-style IRQ ticks unless a screen change/input occurs. This avoids using the budget on 70-Hz paints while preserving meaningful user-triggered changes.
 - All frame data uses source bytes, not encoded BMPs, modern UI overlays or surrogate thumbnails. Captured output writes to `%TEMP%\\RLOFT-Demo-Diagnostics\\<session-id>` only, never to the original game directory.
 - `latest-session.txt` is written outside the individual ZIP solely for the CMD launcher. The launcher packages only that session after the game exits.
