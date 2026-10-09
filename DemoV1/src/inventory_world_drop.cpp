@@ -8,6 +8,130 @@
 
 namespace rloft {
 
+namespace {
+
+// 1E8C8 prefers an active group-1 record; otherwise it scans
+// group-2. Its group-1 sentinel can be type zero with bit 0x10
+// set, while group-2 terminates at the first zero type.
+const CellControlRecord* source_control_at(
+    const LevelState& level,int row,int col) noexcept {
+    for(const auto& rec:level.group1) {
+        if(rec.kind()==0U && (rec.control()&0x10U)==0U)break;
+        if(rec.row()==row && rec.column()==col)return &rec;
+    }
+    for(const auto& rec:level.group2) {
+        if(rec.kind()==0U)break;
+        if(rec.row()==row && rec.column()==col)return &rec;
+    }
+    return nullptr;
+}
+
+// Original 1E930 independently reads the group-2 position byte
+// +6, returning 0x8000 for a missing record.
+std::uint32_t source_dynamic_position(
+    const LevelState& level,int row,int col) noexcept {
+    for(const auto& rec:level.group2) {
+        if(rec.kind()==0U)break;
+        if(rec.row()==row && rec.column()==col)
+            return static_cast<std::uint32_t>(rec.raw[6])<<12U;
+    }
+    return 0x8000U;
+}
+
+bool source_unsigned_overlap(
+    std::uint32_t coordinate,std::uint32_t center,
+    std::uint32_t half_extent) noexcept {
+    return coordinate>=center-half_extent &&
+           coordinate<=center+half_extent;
+}
+} // namespace
+
+bool InventoryWorldDropModel::placement_passable_2d5d0(
+    const ExplorationSessionState& session,
+    const LevelWorldState& world,
+    const NpcCatalog& npcs,
+    std::uint32_t y,std::uint32_t x,
+    std::uint32_t actor_mode) {
+    // Original CODE.2 2D5D0 uses 0x190 as an ACTOR INDEX / MODE.
+    // Its rectangle is fixed at +/-0x5800 Q16 (2D5E2..2D629),
+    // regardless of the actor index. This is the mode used by 2195C.
+    if(actor_mode!=0x190U || session.level.width<=0 ||
+       session.level.height<=0 ||
+       session.level.cell_words.empty())return false;
+    constexpr std::uint32_t kHalfExtent=0x5800U;
+    const auto signed_cell=[](std::uint32_t coord)->int {
+        const auto hi=static_cast<std::uint16_t>(coord>>16U);
+        return hi<=0x7FFFU ? static_cast<int>(hi) :
+               static_cast<int>(hi)-0x10000;
+    };
+    const int low_row=signed_cell(y-kHalfExtent);
+    const int high_row=signed_cell(y+kHalfExtent);
+    const int low_col=signed_cell(x-kHalfExtent);
+    const int high_col=signed_cell(x+kHalfExtent);
+    const auto& level=session.level;
+
+    // 2D647..2D93F: scan inclusive square; off-map cells are
+    // skipped by the original instructions, not treated as walls.
+    // F048 scripted early-exit is not active in a fresh game and
+    // remains unmodeled for mutable save/script state.
+    for(int col=low_col;col<=high_col;++col) {
+        for(int row=low_row;row<=high_row;++row) {
+            if(row<0 || col<0 || row>=level.height ||
+               col>=level.width)continue;
+            const auto index=static_cast<std::size_t>(row)*
+                static_cast<std::size_t>(level.width)+
+                static_cast<std::size_t>(col);
+            if(index>=level.cell_words.size())return false;
+            const auto word=level.cell_words[index];
+            const CellControlRecord* record=nullptr;
+            if((word&0x0080U)!=0U || (word&0x1000U)!=0U)
+                record=source_control_at(level,row,col);
+
+            // 2D6DC..2D811: dynamic record, its group-2
+            // position/status, and the mode-0x190 conservative
+            // blocked branch; type-8 record is explicitly skipped.
+            if((word&0x0080U)!=0U &&
+               source_dynamic_position(level,row,col)!=0U &&
+               record!=nullptr && record->kind()!=8U)
+                return false;
+
+            // 2D811..2D93A: bit0x0800 blocks mode 0x190;
+            // bit0x1000 allows missing/type1 controls, blocks
+            // type8 and other records. Otherwise all low-six
+            // nonzero geometry codes block.
+            if((word&0x003FU)!=0U) {
+                if((word&0x0800U)!=0U)return false;
+                if((word&0x1000U)!=0U) {
+                    if(record && record->kind()!=1U)return false;
+                } else return false;
+            }
+        }
+    }
+
+    // 2D94E..2D971 calls 2C800 even for actor mode 0x190.
+    // Exclude source NPC +0x0B bit 02; compare each original
+    // unsigned Q16 rectangle with NPCS +0x16 plus 0x3E8.
+    for(const auto& npc:world.npcs) {
+        if((npc.runtime_flags&0x02000000U)!=0U)continue;
+        const auto extent=static_cast<std::uint32_t>(
+            npcs.at(npc.npc_type_id).collision_half_extent)+0x3E8U;
+        if(source_unsigned_overlap(x,npc.x_position_16_16,extent) &&
+           source_unsigned_overlap(y,npc.y_position_16_16,extent))
+            return false;
+    }
+
+    // 2D972 skips placed-object 2CC88 only in mode 0x190.
+    // 2D9B0..2D9D5 still invokes 2C9DC: the player's own
+    // +/-0x8FA0 Q16 collision square independently vetoes
+    // a forward position, causing 2195C to fall back to
+    // the actual player coordinates.
+    if(source_unsigned_overlap(x,session.coordinate_a,0x8FA0U) &&
+       source_unsigned_overlap(y,session.coordinate_b,0x8FA0U))
+        return false;
+    return true;
+}
+
+
 InventoryWorldDropResult InventoryWorldDropModel::drop(
     LevelWorldState& world,
     const ExplorationSessionState& session,
