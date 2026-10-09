@@ -392,6 +392,54 @@ void PartyModalPresenter::draw_character_centered_text(
     }
 }
 
+std::optional<PartyModalPresenter::EquipmentHit>
+PartyModalPresenter::equipment_hit_at(
+    const PartyImage& party,
+    const InventoryRuntimeState& inventory,
+    int row,int column) const {
+    if(row<0x6E || row>0x123 ||
+       column<0 || column>=320)
+        return std::nullopt;
+    const auto actor=static_cast<std::size_t>(column/0x50);
+    if(actor>=PartyImage::kActorCount || !party.active(actor))
+        return std::nullopt;
+    const int local=column-static_cast<int>(actor)*0x50;
+    if(local<2 || local>0x4D)return std::nullopt;
+    if(inventory.held.object_id>=0) {
+        const auto& object=objects_.at(
+            static_cast<std::size_t>(inventory.held.object_id));
+        const auto side=local<0x28?0U:1U;
+        const auto slot=InventoryRuntimeState::original_equipment_target(
+            object,inventory.held.object_id,side);
+        return EquipmentHit{actor,slot};
+    }
+    // Original 12180 has two table variants selected by panel state.
+    // For taking existing equipment, use the actual original UI
+    // raster dimensions and placement as a conservative hit surface;
+    // do not allow arbitrary empty-body clicks to fabricate items.
+    const auto info=PartyPresentationModel::actor(party,actor);
+    const auto model=InventoryScreenModel::build(
+        info,objects_,res1_object_base_);
+    for(auto it=model.draws.rbegin();it!=model.draws.rend();++it) {
+        const auto& draw=*it;
+        if(draw.role==InventoryDrawRole::Ordinary ||
+           draw.temporarily_flip_sprite)continue;
+        const auto raster=assets_.type1(1,draw.absolute_res1_id);
+        int item_column=draw.y;
+        if(draw.bottom_align_bias) {
+            item_column=static_cast<int>(actor)*0x50+
+                *draw.bottom_align_bias-raster.width;
+        }
+        if(row>=draw.x &&
+           row<draw.x+raster.height &&
+           column>=item_column &&
+           column<item_column+raster.width) {
+            return EquipmentHit{actor,draw.slot};
+        }
+    }
+    return std::nullopt;
+}
+
 void PartyModalPresenter::draw_open_container(
     IndexedFramebuffer& framebuffer,
     const InventoryRuntimeState& inventory) const {
