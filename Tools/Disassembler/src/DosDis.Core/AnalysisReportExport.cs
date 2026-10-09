@@ -37,6 +37,9 @@ public static class AnalysisReportExport
             counts = new { instructions = graph.Instructions.Count, functions = graph.FunctionCandidates.Count,
                 edges = graph.Edges.Count, references = graph.DataReferences.Count,
                 jumpTables = graph.JumpTables.Count, diagnostics = graph.Diagnostics.Count,
+                indirectCallTables = graph.JumpTables.Count(x => x.DispatchKind == "indirect-call-table"),
+                indirectJumpTables = graph.JumpTables.Count(x => x.DispatchKind == "indirect-jump-table"),
+                unclassifiedDispatchTables = graph.JumpTables.Count(x => x.DispatchKind == "unclassified-indirect-table"),
                 unresolvedIndirectCalls = graph.Edges.Count(e => e.Kind == "unresolved-indirect-call"),
                 unresolvedIndirectJumps = graph.Edges.Count(e => e.Kind == "unresolved-indirect-jump"),
                 truncated = graph.Truncated },
@@ -118,16 +121,27 @@ public static class AnalysisReportExport
         foreach (var reference in graph.DataReferences)
             text.Append(Format(reference.Source)).Append(" -> ").Append(Format(reference.Target))
                 .Append(" | ").Append(Safe(reference.Kind)).Append(" | ").AppendLine(Safe(reference.Evidence));
-        text.AppendLine("[JUMP TABLE CANDIDATES]");
+        text.AppendLine("[INDIRECT DISPATCH TABLE CANDIDATES — CALL / JMP]");
         foreach (var table in graph.JumpTables)
-            text.Append(Format(table.Source)).Append(" table=").Append(Format(table.Table))
+            text.Append(Format(table.Source)).Append(" kind=").Append(Safe(table.DispatchKind))
+                .Append(" table=").Append(Format(table.Table))
                 .Append(" width=").Append(table.EntryWidth).Append(" candidates=")
                 .Append(string.Join(", ", table.CandidateTargets.Select(x => Format(x))))
                 .Append(" | ").AppendLine(Safe(table.Evidence));
         text.AppendLine("[DIAGNOSTICS]");
         foreach (var item in graph.Diagnostics)
+        {
             text.Append(Format(item.Address)).Append(" | ").Append(Safe(item.Code))
                 .Append(" | ").AppendLine(Safe(item.Description));
+            if (item.Conflict is { } conflict)
+                text.Append("  proposed=").Append(Safe(conflict.ProposedAssembly))
+                    .Append(" retained=").Append(conflict.RetainedStart is { } retained
+                        ? Format(retained) : "(analyst-protected-data)")
+                    .Append(" retained-assembly=").Append(Safe(conflict.RetainedAssembly ?? "none"))
+                    .Append(" reason=").Append(Safe(conflict.RejectionReason))
+                    .Append(" disposition=").Append(Safe(conflict.Disposition))
+                    .Append(" unresolved=").AppendLine(conflict.RemainsUnresolved ? "yes" : "no");
+        }
         return text.ToString();
     }
 

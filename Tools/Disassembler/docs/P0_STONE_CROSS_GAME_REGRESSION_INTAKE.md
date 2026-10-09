@@ -1,4 +1,4 @@
-# P0 — Stone Prophet cross-game regression intake (Strahd pending)
+# P0 — Stone Prophet cross-game regression intake (Strahd supplied; see three-game baseline)
 
 **Evidence class:** observations relayed from an external candidate-only
 analysis export, **not verified against the original Stone Prophet binary**

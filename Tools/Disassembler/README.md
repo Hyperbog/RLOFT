@@ -228,3 +228,23 @@ candidate destinations were found. Additive fields do not change the
 were added but **not run**; no build was requested. See
 [Stone/Strahd intake and gap priorities](docs/P0_STONE_CROSS_GAME_REGRESSION_INTAKE.md).
 First-release estimate remains **43%**.
+
+## Strahd CODE.1 three-game regression intake (source checkpoint)
+
+The supplied Strahd `CODE.1` candidate export reports 16,711 instructions,
+331 function candidates, 1 relocation-backed **indirect-call table**, 19
+unresolved indirect calls, five unresolved jumps, and one rejected overlapping
+decode at `1:0xB04B`. These are exported candidate counts, not independently
+certified executable coverage. The identity hash matches the separately
+archived Strahd CODE.1 binary, which has a **70,402-byte object-1** audit with
+**69,361 verified instruction bytes and 1,041 proven non-code bytes**.
+
+The former `jumpTableCandidates` serialized list now preserves explicit
+`DispatchKind` labels for indirect CALL versus JMP (legacy name retained for
+readers of older reports); JSON counts distinguish both. Overlap diagnostics
+now carry proposed and retained assembly, rejection reason, and unresolved
+status when an alternative decode is rejected. Both have new synthetic checks,
+**not compiled or run**. See [Strahd/Stone/Menzo baseline](docs/P0_THREE_GAME_VALIDATION_BASELINE.md).
+Original Strahd research is a separate reference, never automatically promoted
+to Menzo/Stone facts. Overall estimate remains **43%**, Windows only, no
+build requested.

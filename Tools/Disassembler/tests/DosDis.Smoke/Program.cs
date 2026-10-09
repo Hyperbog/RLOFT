@@ -300,6 +300,10 @@ try
         var root = exported.RootElement;
         Equal(root.GetProperty("format").GetString(), "dosdis-analysis-report", "versioned report identity");
         Equal(root.GetProperty("analysisStatus").GetString(), "candidate-unverified", "export cannot promote candidates");
+        Equal(root.GetProperty("counts").GetProperty("indirectCallTables").GetInt32(), 0,
+            "ordinary graph has no candidate call table");
+        Equal(root.GetProperty("counts").GetProperty("indirectJumpTables").GetInt32(), 0,
+            "ordinary graph has no candidate jump table");
         Equal(root.GetProperty("counts").GetProperty("unresolvedIndirectJumps").GetInt32(), 1,
             "report tallies unresolved jumps independent of diagnostics event cap");
         Equal(root.GetProperty("counts").GetProperty("unresolvedIndirectCalls").GetInt32(), 0,
@@ -375,6 +379,12 @@ try
         true, "mid-instruction conflict has typed reason");
     Equal(overlapping.Diagnostics.Any(d => d.Code == "mid-instruction-target"), true,
         "mid-instruction overlapping seed reported");
+    var overlapDetailGraph = ControlFlowAnalysis.Analyze(graphImage, new[] {
+        new FlowAddress(1, 2), new FlowAddress(1, 0) });
+    Equal(overlapDetailGraph.Diagnostics.Any(d => d.Code == "overlapping-interpretation" &&
+        d.Conflict is { ProposedAssembly.Length: > 0, RetainedAssembly: not null,
+            Disposition: "candidate-rejected", RemainsUnresolved: true }),
+        true, "overlap diagnostic retains both interpretations and rejected status");
     Equal(overlapping.Instructions.Any(x => x.Address.Offset == 2), false,
         "mid-instruction seed not emitted as verified instruction");
     var protectedTrace = new AnalysisDecisionTrace();
@@ -465,6 +475,8 @@ try
     Equal(boundedGraph.JumpTables.Count, 1, "unsigned guarded literal table found");
     Equal(boundedGraph.JumpTables[0].CandidateTargets.Count, 7,
         "CMP eax,6 bounds seven possible entries");
+    Equal(boundedGraph.JumpTables[0].DispatchKind, "indirect-jump-table",
+        "guarded jump tables retain dispatch type");
     Equal(boundedGraph.JumpTables[0].Evidence.Contains("no-relocation-proof"),
         true, "unrelocated table remains a candidate");
     Equal(boundedGraph.Edges.Count(e => e.Kind == "candidate-indirect-jump"), 7,
@@ -521,6 +533,27 @@ try
     Equal(tableGraph.JumpTables.Count, 1, "LE relocation-backed table recognized");
     Equal(tableGraph.JumpTables[0].Table, new FlowAddress(1, 0x40), "jump table address");
     Equal(tableGraph.JumpTables[0].CandidateTargets.Count, 3, "three jump table candidates");
+    Equal(tableGraph.JumpTables[0].DispatchKind, "indirect-jump-table",
+        "relocation-backed jump retains dispatch type");
+    var indexedCallBytes = (byte[])tableBytes.Clone();
+    indexedCallBytes[0x200] = 0xFF;
+    indexedCallBytes[0x201] = 0x14;
+    indexedCallBytes[0x202] = 0x85; // call dword [eax*4+0x10040]
+    var indexedCallGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(indexedCallBytes)));
+    Equal(indexedCallGraph.JumpTables.Count, 1, "relocation-backed call table recovered");
+    Equal(indexedCallGraph.JumpTables[0].DispatchKind, "indirect-call-table",
+        "indexed indirect CALL is not mislabeled as an indirect JMP");
+    Equal(indexedCallGraph.JumpTables[0].CandidateTargets.Count, 3,
+        "indexed call table preserves its candidate destinations");
+    using (var indexedCallReport = JsonDocument.Parse(AnalysisReportExport.BuildJson(indexedCallGraph)))
+    {
+        Equal(indexedCallReport.RootElement.GetProperty("counts").GetProperty("indirectCallTables").GetInt32(),
+            1, "call table count in machine-readable report");
+        Equal(indexedCallReport.RootElement.GetProperty("jumpTableCandidates")[0]
+            .GetProperty("DispatchKind").GetString(), "indirect-call-table",
+            "legacy dispatch table collection identifies call versus jump");
+    }
     Equal(tableGraph.Instructions.Count, 4, "table candidates recursively decoded");
     Equal(tableGraph.Instructions.Where(x => x.Address.Offset is 0x20 or 0x28 or 0x30)
         .All(x => x.Evidence == "candidate-relocation-backed-indirect"), true,

@@ -7,8 +7,11 @@ namespace DosDis.Core;
 /// Candidate indirect targets are never promoted to verified functions or data.</summary>
 public sealed record DataCrossReference(FlowAddress Source, FlowAddress Target,
     string Kind, string Evidence);
+/// <summary>A shared indirect dispatch-table candidate, for CALL or JMP.</summary>
+/// <remarks>The default keeps legacy stored candidate snapshots unclassified.</remarks>
 public sealed record JumpTableCandidate(FlowAddress Source, FlowAddress Table,
-    IReadOnlyList<FlowAddress> CandidateTargets, int EntryWidth, string Evidence);
+    IReadOnlyList<FlowAddress> CandidateTargets, int EntryWidth, string Evidence,
+    string DispatchKind = "unclassified-indirect-table");
 internal sealed record IndirectCandidate(FlowAddress Target, string Kind, string Evidence);
 internal sealed record RecoveredReferenceSet(
     IReadOnlyList<DataCrossReference> Data,
@@ -177,7 +180,9 @@ internal sealed class ReferenceRecovery
                 data.Add(new DataCrossReference(address, absolute.Value, "indexed-pointer-table-base",
                     "indexed-memory-operand;contiguous-LE-internal-fixups"));
                 table = new JumpTableCandidate(address, absolute.Value, candidates.ToArray(), 4,
-                    "candidate-relocation-backed-table;index-bound-unproven");
+                    "candidate-relocation-backed-table;index-bound-unproven",
+                    insn.FlowControl == FlowControl.IndirectCall
+                        ? "indirect-call-table" : "indirect-jump-table");
                 foreach (var target in candidates.Distinct())
                     indirect.Add(new IndirectCandidate(target, "indexed-pointer-table",
                         "candidate-relocation-backed-table;index-bound-unproven"));
@@ -220,7 +225,7 @@ internal sealed class ReferenceRecovery
                     data.Add(new DataCrossReference(address, absolute.Value,
                         "indexed-pointer-table-base", evidence));
                     table = new JumpTableCandidate(address, absolute.Value,
-                        literalTargets.ToArray(), 4, evidence);
+                        literalTargets.ToArray(), 4, evidence, "indirect-jump-table");
                     foreach (var target in literalTargets.Distinct())
                         indirect.Add(new IndirectCandidate(target, "guarded-literal-table", evidence));
                 }

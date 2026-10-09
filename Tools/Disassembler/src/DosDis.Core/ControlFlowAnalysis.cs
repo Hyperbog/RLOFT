@@ -16,7 +16,12 @@ public sealed record FunctionCandidate(FlowAddress Entry,
     IReadOnlyList<FlowAddress> Blocks, string Evidence);
 public sealed record ClassifiedRange(int Object, uint Begin, uint EndExclusive,
     string Classification, string Evidence);
-public sealed record FlowDiagnostic(FlowAddress Address, string Code, string Description);
+/// <summary>One rejected candidate versus an already retained interpretation.</summary>
+public sealed record FlowConflictEvidence(string ProposedAssembly,
+    FlowAddress? RetainedStart, string? RetainedAssembly,
+    string RejectionReason, string Disposition, bool RemainsUnresolved);
+public sealed record FlowDiagnostic(FlowAddress Address, string Code, string Description,
+    FlowConflictEvidence? Conflict = null);
 public sealed record FlowAnalysisResult(
     string ArtifactSha256,
     IReadOnlyList<FlowAddress> Seeds,
@@ -88,10 +93,11 @@ public static class ControlFlowAnalysis
                 throw new ArgumentException($"Seed {seed} is outside an executable LE object.", nameof(seeds));
         decisionTrace?.Begin(image);
         var diagnostics = new List<FlowDiagnostic>();
-        void Report(FlowAddress at, string code, string message)
+        void Report(FlowAddress at, string code, string message,
+            FlowConflictEvidence? conflict = null)
         {
             if (diagnostics.Count < MaxDiagnostics)
-                diagnostics.Add(new FlowDiagnostic(at, code, message));
+                diagnostics.Add(new FlowDiagnostic(at, code, message, conflict));
         }
         foreach (var range in explicitData)
         {
@@ -220,7 +226,33 @@ public static class ControlFlowAnalysis
             {
                 decisionTrace?.Record(image, AnalysisDecisionRule.ByteOwnership,
                     AnalysisDecisionOutcome.OverlappingDecodeRejected, cursor);
-                Report(cursor, "overlapping-interpretation", "Instruction overlaps another instruction or protected data.");
+                // Preserve which candidate was rejected and the retained
+                // interpretation, without promoting either to verified code.
+                int firstConflict = -1;
+                for (int i = pos; i < pos + size; i++)
+                    if (classifications[i] == 2 || ownership[i] >= 0)
+                    {
+                        firstConflict = i;
+                        break;
+                    }
+                int ownerStart = firstConflict >= 0 ? ownership[firstConflict] : -1;
+                FlowAddress? retainedStart = ownerStart >= 0
+                    ? new FlowAddress(cursor.Object, (uint)ownerStart) : null;
+                string? retainedAssembly = retainedStart is { } retained &&
+                    instructions.TryGetValue(retained, out var existing)
+                        ? existing.Assembly : null;
+                var rejectedFormatter = new NasmFormatter();
+                rejectedFormatter.Options.SpaceAfterOperandSeparator = true;
+                var rejectedText = new StringOutput();
+                rejectedFormatter.Format(instruction, rejectedText);
+                var conflictDetail = new FlowConflictEvidence(rejectedText.ToStringAndReset(),
+                    retainedStart, retainedAssembly,
+                    firstConflict >= 0 && classifications[firstConflict] == 2
+                        ? "analyst-protected-data" : "instruction-byte-ownership",
+                    "candidate-rejected", true);
+                Report(cursor, "overlapping-interpretation",
+                    "Instruction overlaps another instruction or protected data.",
+                    conflictDetail);
                 continue;
             }
             var formatter = new NasmFormatter();
