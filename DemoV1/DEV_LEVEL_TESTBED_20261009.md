@@ -1,5 +1,25 @@
 # Level 22 — reusable native development testbed
 
+## Universal percentage tracking
+
+All work on this dev slice, including original startup,
+character creation, inventory, movement, pixels, audio,
+puzzles, combat and later-level handoffs, is tracked
+through **120 individually scored subsystems** in
+20 major groups. The canonical percentage table and
+per-subsystem blockers are maintained in
+[the progress scorecard](PROGRESS_SUBSYSTEM_REPORT_20261009.md).
+Provisional readiness at adoption **48.8%**;
+the older 56.25% engineering ledger remains
+independent. On every source checkpoint, update
+the applicable subsystem percentage and its
+roll-up, without treating unexecuted tests as passes.
+
+CTest registration **172** (including the offline
+scorecard consistency check), Quick **19**.
+No build, CI or test was initiated.
+
+
 **Branch:** `demo-v1`  
 **Scope:** a small, source-faithful vertical slice used to exercise each original game subsystem before the same runtime is expanded to the other levels.  
 **Status:** development instrumentation added; Windows build and 171 registered CTests **not yet executed**.  
