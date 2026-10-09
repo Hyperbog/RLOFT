@@ -642,7 +642,9 @@ InventoryHandSwapStatus InventoryRuntimeState::swap_hand_slot(
     // The container view may no longer refer to its old hand object.
     // The caller opens the new container explicitly, after a successful
     // original hand transfer; we never retain a stale view across swaps.
-    close_actor_container(actor);
+    // CODE.2 21648..21670: hand-transfer clears all four
+    // 6FA0 bytes, unlike 110B4's animated phase-zero close.
+    reset_actor_context_21648(actor);
     if(incoming>=0) {
         const auto& equipped=objects.at(
             static_cast<std::size_t>(incoming));
@@ -907,10 +909,10 @@ InventoryContainerStatus InventoryRuntimeState::open_hand_container(
        containers[index].slot_count==0U ||
        containers[index].items.size()!=containers[index].slot_count)
         return InventoryContainerStatus::Unsupported;
-    // Replacing this actor's own view closes/replaces only their
-    // context. CODE.2 stores all four 6FA0 records independently;
-    // selecting another actor must not close unrelated panels.
-    close_actor_container(actor);
+    // CODE.2 21648 resets only this actor's saved context
+    // before directly creating the new phase3 hand panel.
+    // Other characters' 6FA0 records remain intact.
+    reset_actor_context_21648(actor);
     open_container=OpenInventoryContainer{actor,hand,id,index};
     // CODE.2 21693 establishes phase 3 directly for a container
     // transferred into a hand. A native inventory click presents
