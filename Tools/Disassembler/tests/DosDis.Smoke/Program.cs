@@ -139,6 +139,24 @@ try
         "SOUND.COM");
     Equal(BinaryFormatDetector.Inspect(comCandidate).FormatId, "unknown-headerless",
         "a COM extension alone never proves a flat load context");
+    var comAssumed = DosComImage.LoadExplicit(comCandidate, 0x100);
+    Equal(comAssumed.ToFileOffset(0x100), 0L,
+        "explicit COM origin maps the first original file byte");
+    Equal(comAssumed.ToFileOffset(0x102), 2L,
+        "COM image-relative addresses preserve physical source offsets");
+    Equal(comAssumed.ToFileOffset(0x0FF), (long?)null,
+        "COM PSP bytes before the declared origin are never invented");
+    var comInstructions = comAssumed.Decode(0x100, 2);
+    Equal(comInstructions.Count, 2, "COM 16-bit mode decodes requested instructions only");
+    Equal(comInstructions[0].OriginalBytes, "B8004C", "COM x86-16 MOV immediate bytes");
+    Equal(comInstructions[1].OriginalBytes, "CD21", "COM DOS INT instruction bytes");
+    bool comPastSourceRejected = false;
+    try { comAssumed.Decode(0x0FF); }
+    catch (ArgumentOutOfRangeException) { comPastSourceRejected = true; }
+    Equal(comPastSourceRejected, true, "COM cannot decode outside declared image origin");
+    Fails(() => DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(new byte[0x10000]), 0x100),
+        "oversized single-segment COM image cannot silently wrap memory");
 
     byte[] mzBytes = new byte[512];
     mzBytes[0] = (byte)'M'; mzBytes[1] = (byte)'Z';
@@ -182,6 +200,11 @@ try
         "LX audio driver is detected without PE interpretation");
     Fails(() => DosMzImage.Load(lxArtifact),
         "MZ parser must not decode an identified LX wrapper as flat DOS real-mode code");
+    Fails(() => DosComImage.LoadExplicit(lxArtifact),
+        "COM manual mode refuses an already identified LX executable");
+    Fails(() => DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(System.Text.Encoding.ASCII.GetBytes("FBOV"))),
+        "COM manual mode refuses an overlay container signature");
     Console.WriteLine("PASS: signature-only overlay/resource/LX detection and bounded 16-bit MZ metadata/decoding");
 
     // Exact-byte identity catalogs label sources but never change decoding.
