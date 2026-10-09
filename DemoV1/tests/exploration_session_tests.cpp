@@ -4,6 +4,7 @@
 #include "rloft/exploration_session.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <cassert>
 #include <stdexcept>
 #include <utility>
