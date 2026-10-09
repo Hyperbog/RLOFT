@@ -58,4 +58,43 @@ int main() {
     assert(!invalid.uses_existing_chars);
     assert(invalid.chars == generated);
     assert(rloft::ExplorationPreview::synthetic_party()==generated);
+
+    // Original SAVE.DAT owns the four 0x248 character records at +0x77
+    // (after the 0x77-byte global prefix). Its equipment and portraits
+    // must NOT be replaced by the invented empty EXPLORER/GUIDE records.
+    std::vector<std::uint8_t> save(
+        0x77U+rloft::PartyImage::kSize,0U);
+    save[0x52U]=22U; // original level-22 quick-start save
+    auto save_party=generated;
+    save_party[0U]='E';
+    save_party[1U]='H';
+    save_party[2U]='L';
+    save_party[0x12U]=13U;
+    save_party[0x40U]=0xA6U; // original party item ID 166
+    save_party[0x41U]=0U;
+    std::copy(save_party.begin(),save_party.end(),
+              save.begin()+0x77U);
+    const auto from_save=rloft::ExplorationPreview::party(
+        std::nullopt,save);
+    assert(!from_save.uses_existing_chars);
+    assert(from_save.uses_original_save_party);
+    assert(from_save.chars==save_party);
+    assert(rloft::PartyImage::from_bytes(from_save.chars)
+           .name(0)=="EHLORER");
+    assert(u16(from_save.chars,0x40U)==166U);
+    assert(from_save.chars[0x12U]==13U);
+
+    // Actual CHARS takes precedence: never replace an imported
+    // character-creation party with an unrelated saved party.
+    const auto chars_wins=rloft::ExplorationPreview::party(
+        existing,save);
+    assert(chars_wins.uses_existing_chars);
+    assert(!chars_wins.uses_original_save_party);
+    assert(chars_wins.chars==existing);
+    save[0x52U]=21U;
+    assert(!rloft::ExplorationPreview::party(
+        std::nullopt,save).uses_original_save_party);
+    save.resize(0x77U+rloft::PartyImage::kSize-1U);
+    assert(!rloft::ExplorationPreview::party(
+        std::nullopt,save).uses_original_save_party);
 }
