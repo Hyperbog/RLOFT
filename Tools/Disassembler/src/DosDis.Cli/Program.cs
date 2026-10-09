@@ -42,7 +42,8 @@ try
         Console.Error.WriteLine("Usage: dosdis inspect|mz|mz-disasm|mz-analyze|mz-relocate|mz-cross|com|com-disasm|com-analyze|overlay|overlay-map|overlay-disasm|overlay-analyze|overlay-fixups|fixups|memory|disasm|analyze|report <file> [options]\n" +
             "MZ relocation simulation: mz-relocate --load-segment HEX [--max 100]; mz-analyze [--load-segment HEX] (candidate FAR annotations)\n" +
             "MZ cross-segment review: mz-cross --load-segment HEX [--max-entries 16] [--per-entry-instructions 1024]\n" +
-            "16-bit CFG: mz-analyze|com-analyze|overlay-analyze [--entry HEX] [--max-instructions 100000]\n" +
+            "16-bit CFG: mz-analyze|com-analyze|overlay-analyze [--entry HEX] [--max-instructions 100000] [--indirect]\n" +
+            "CS-memory pointers: --indirect adds evidence-only near/FAR candidates; FAR pointers require MZ --load-segment\n" +
             "Overlay: container inspection; overlay-map|overlay-fixups --resident START.EXE (validated MZ directory)\n" +
             "Overlay-disasm: --regions manifest.json --region ID [--offset 0] [--count 32]\n" +
             "COM: explicitly selected headerless mode [--origin 100] (hex); com-disasm [--offset 100] [--count 32]\n" +
@@ -133,9 +134,14 @@ try
                         simulated.Summary.AnalysisStatus
                     },
                     FarImmediateCandidates = DosMzFarTargetRecovery.Inspect(mz, graph16, simulated),
-                    Note = "Far targets are separate, non-enqueued candidates; original CFG unresolved edges remain."
+                    IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(
+                        region, graph16, mz, simulated),
+                    Note = "All FAR and CS-indirect targets are separate, non-enqueued candidates; original CFG unresolved edges remain."
                 });
             }
+            else if (args.Contains("--indirect", StringComparer.Ordinal))
+                Print(new { CandidateGraph = graph16,
+                    IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(region, graph16) });
             else Print(graph16);
         }
         else
@@ -162,7 +168,12 @@ try
             ushort entry = checked((ushort)Hex(Option(args, "--entry",
                 origin.ToString("X", CultureInfo.InvariantCulture))));
             int budget = int.Parse(Option(args, "--max-instructions", "100000"), CultureInfo.InvariantCulture);
-            Print(Dos16ControlFlowAnalysis.Analyze(com.CreateCodeRegion(), entry, budget));
+            var region = com.CreateCodeRegion();
+            var graph16 = Dos16ControlFlowAnalysis.Analyze(region, entry, budget);
+            if (args.Contains("--indirect", StringComparer.Ordinal))
+                Print(new { CandidateGraph = graph16,
+                    IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(region, graph16) });
+            else Print(graph16);
         }
         else
         {
@@ -209,7 +220,11 @@ try
                 ushort entry = checked((ushort)Hex(Option(args, "--entry",
                     region.Origin.ToString("X", CultureInfo.InvariantCulture))));
                 int budget = int.Parse(Option(args, "--max-instructions", "100000"), CultureInfo.InvariantCulture);
-                Print(Dos16ControlFlowAnalysis.Analyze(region, entry, budget));
+                var graph16 = Dos16ControlFlowAnalysis.Analyze(region, entry, budget);
+                if (args.Contains("--indirect", StringComparer.Ordinal))
+                    Print(new { CandidateGraph = graph16,
+                        IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(region, graph16) });
+                else Print(graph16);
             }
             else
             {
