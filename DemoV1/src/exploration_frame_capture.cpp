@@ -30,6 +30,21 @@ void write_binary(const std::filesystem::path& path,
             "Unable to write native exploration capture: "+path.string());
     }
 }
+const char* scene_outcome_name(Type7SceneRenderOutcome outcome) {
+    switch(outcome) {
+        case Type7SceneRenderOutcome::PlanningFailed:
+            return "planning-failed";
+        case Type7SceneRenderOutcome::FullyOccluded:
+            return "occluded";
+        case Type7SceneRenderOutcome::TraceUnavailable:
+            return "trace-unavailable";
+        case Type7SceneRenderOutcome::Rasterized:
+            return "rasterized";
+        case Type7SceneRenderOutcome::RasterFailed:
+            return "raster-failed";
+    }
+    throw std::invalid_argument("unknown native RES3 scene outcome");
+}
 std::string clean(std::string value) {
     for (auto& c:value) {
         if (c=='\t' || c=='\r' || c=='\n') c=' ';
@@ -50,7 +65,9 @@ void ExplorationFrameCapture::write(
         static_cast<std::size_t>(IndexedFramebuffer::kWidth)*
         IndexedFramebuffer::kHeight;
     if (pixels.size()!=kPixelCount ||
-        code2.size()<kCode2DgroupBase+0xC6C8U+1U) {
+        code2.size()<kCode2DgroupBase+0xC6C8U+1U ||
+        presented.type7_scene_outcomes.size()!=
+            runtime.world_scene_render_plans.size()) {
         throw std::invalid_argument(
             "Exploration capture requires indexed 320x400 and original CODE.2");
     }
@@ -149,6 +166,19 @@ void ExplorationFrameCapture::write(
                 <<"\t"<<failure.source_index
                 <<"\t"<<failure.resource_id
                 <<"\t"<<clean(failure.reason)<<"\n";
+    }
+    // Call-aligned native raster results, including calls that were
+    // projected but not displayed because a trace is still unverified.
+    for(std::size_t index=0U;
+        index<presented.type7_scene_outcomes.size(); ++index) {
+        const auto& call=runtime.world_scene_render_plans[index].call;
+        manifest<<"scene_outcome\t"<<index
+                <<"\t"<<call.source_class
+                <<"\t"<<call.source_index
+                <<"\t"<<call.resource_id
+                <<"\t"<<scene_outcome_name(
+                    presented.type7_scene_outcomes[index])
+                <<"\n";
     }
     if(runtime.scene_vga_trace_failure.has_value()) {
         manifest<<"scene_trace_failure\t"
