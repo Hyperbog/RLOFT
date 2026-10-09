@@ -1,5 +1,47 @@
 # Ravenloft Demo Build v1
 
+## Developer Level22 testbed — read-only cross-system instrumentation
+
+The current **small slice** is an opt-in testbed for
+the future full original game, not a separate release
+engine. The existing `--explore-level22` preview
+now accepts **`--dev-inspect`** to show read-only
+party, inventory, world and story-flag counts and
+stable diagnostic digests in the **Win32 window
+caption**, alongside existing live render coverage
+and coordinates. It never changes CHARS, the
+original 320×400 framebuffer, item placements,
+original event flags, or gameplay timers. The
+flag is **invalid outside the explicit preview
+path**, so the real startup and character creation
+remain unaffected.
+
+The reusable `DevLevelDiagnostics` API fingerprints
+five separate domains (camera/clock, party raw
+bytes, inventory/6FA0 containers, mutable level
+world and story flags). Existing snapshot data
+can be compared to detect accidental state
+resets during combat, puzzle actions, cinematic
+handoffs or future cross-level transitions.
+These hashes are **diagnostics**, not original
+game SAVE checksums.
+
+A new `dev_level_diagnostics_tests` target
+covers independent mutations, source level
+event/control records, NPC HP, item coordinates,
+inventory/cursor state, story flag 0x44,
+and returning to an identical snapshot.
+**171 CTests now registered; Quick remains 19.
+All changes are committed, not yet compiled
+or executed.** Engineering fidelity remains
+**56.25%**, inventory **PARTIAL**.
+
+[Developer Level22 testbed and validation
+matrix](DEV_LEVEL_TESTBED_20261009.md) ·
+[Continuous-game integration contract](
+CONTINUOUS_GAME_INTEGRATION_CONTRACT_20261009.md).
+
+
 ## Long-term integration requirement — one complete game
 
 **The current level demo is a vertical slice of the complete
