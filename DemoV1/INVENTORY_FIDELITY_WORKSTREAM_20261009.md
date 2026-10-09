@@ -541,3 +541,63 @@ comparisons. **No Windows build or DOS runtime
 validation was performed.** Same 169 registered
 CTests/19 manual Quick tests, 56.25% engineering
 source coverage; inventory still PARTIAL.
+
+
+## Part 8 — CODE.2 Tome of Evil Artifacts and Parchment Fragment effect
+
+Independent read of the shipped immutable `CODE.2` object-1
+and real `OBJECTS.DAT` (SHA-256
+`f23f0e7c1856904aa0156b0bf174cab794a41a327352b6ca00c3591ae5f2eed0`)
+closed one formerly guarded inventory action.
+The `0x35` object is **Tome of Evil Artifacts and Cursed Items**;
+`0x61..0x64` are four separate Parchment Fragments.
+The earlier provisional label “0x35 potion” was wrong.
+
+At logical `CODE.2:117E8..117F9` the dispatcher rejects
+current temporary spell objects `0x7E..0x86`. At
+`11808..11852` it tests **current-slot** object
+`0xA6` Mage Spell Book. Held `0xA7..0xC9`
+Mage Scrolls route to `11630` spell learning, where
+duplicate/class/capacity state gates actual consumption.
+That complete effect remains unsupported; never turn a
+failed/unknown learn into a generic swap.
+
+At `11857..11891`, if the CURRENT ordinary slot contains
+`0x35` and the HELD cursor contains `0x61..0x64`,
+the source subtracts `0x61`, calls `1C124(index)`
+and then `1A344(-1,0)` and `0F790(-1,0)`.
+Routine `1C124` sets bit `index` in the first
+DWORD of `DGROUP:22200`; SAVE persists this
+32-byte 256-bit event vector. There is **no test
+for a previously set bit**, so repeat consumption
+is permitted. The Tome remains in place, its item-known
+word unchanged, and held identification clears.
+Otherwise `0x35` follows the ordinary source swap.
+
+**Native source changes:** `InventoryRuntimeState::swap_ordinary_slot`
+now accepts the actual session 32-byte persistent event vector
+and returns `ConsumedStoryFragment` after the original atomic
+flag/held update. The Win32 PartyPanels caller passes
+`runtime.session().persistent_event_flags`; its successful
+interaction branch refreshes the held UI. Missing flag state
+fails without discarding the fragment. The overbroad ban
+on moving held `0x35` or `0xA6` normally was removed,
+while the current-slot `0xA6` special action remains guarded.
+
+**Regression additions:** existing `inventory_runtime_tests`
+checks all four event bits, unrelated flag bytes,
+repeated fragment consumption, unchanged Tome/known
+state, no mutation if the vector is absent,
+ordinary Tome transfers, fragment non-Tome swaps,
+nonconsuming Mage-book scroll boundaries and
+ordinary placing of a held spell book.
+No new CTest executable is introduced: **169 total**,
+**19 Quick**. This is source-verified but **not yet
+MSVC built or DOS compared**.
+
+Remaining original inventory actions include complete
+`11630` spell-list transfer and UI, special item/spell
+effect timelines, Level16 item `0x89` scripted
+side effects, live SAVE/LOAD persistence and
+DOS visual/timing parity. **Do not dispatch Windows
+CI until all inventory blockers close**.
