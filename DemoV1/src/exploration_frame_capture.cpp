@@ -131,6 +131,14 @@ void ExplorationFrameCapture::write(
             <<"\t"<<coverage.sintab_prepass_runs_pending
             <<"\t"<<coverage.sintab_prepass_runs_failed<<"\n"
             <<"mask_origin\timmutable CODE.2 object-2, not DOS live RAM\n"
+            // Original 1F3CA decides whether to use 33DE0 flat
+            // fill (C026==0) or textured raster 34A74 (C026!=0).
+            // The present native foreground is STILL the flat
+            // fallback. Label that incompleteness rather than
+            // treating correctly decoded RES8 trees as full parity.
+            <<"original_C026_initial\t"
+            <<unsigned(code2[kCode2DgroupBase+0xC026U])<<"\n"
+            <<"native_lower_surface\tflat-fill-only;34A74-pending\n"
             <<"scene_records\t"<<runtime.world_scene_records.size()<<"\n"
             <<"scene_draw_calls\t"<<runtime.world_scene_draw_calls.size()<<"\n"
             <<"scene_render_plans\t"<<runtime.world_scene_render_plans.size()<<"\n"
