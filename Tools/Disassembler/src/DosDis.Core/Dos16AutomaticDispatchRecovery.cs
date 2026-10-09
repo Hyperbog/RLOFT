@@ -46,7 +46,6 @@ public static class Dos16AutomaticDispatchRecovery
                  simulated.Summary.Writes.Count != mz.Relocations.Count))))
             throw new InvalidDataException("Automatic dispatch cannot borrow another source's MZ relocations.");
 
-        var byOffset = graph.Instructions.ToDictionary(x => x.Address.Offset);
         var results = new List<Dos16GuardedDispatchSite>();
         int eligible = 0, candidates = 0;
         // The 128-table limit is visible in the report, never silent truncation.
@@ -72,14 +71,6 @@ public static class Dos16AutomaticDispatchRecovery
                     .SequenceEqual(expected);
         }
 
-        bool SingleIncoming(ushort destination, ushort predecessor, string kind)
-        {
-            var incoming = graph.Edges.Where(e => e.Destination ==
-                new Dos16Address(region.Segment, destination)).ToArray();
-            return incoming.Length == 1 &&
-                incoming[0].Source == new Dos16Address(region.Segment, predecessor) &&
-                incoming[0].Kind == kind;
-        }
 
         foreach (var site in indirect.Take(maximumSites))
         {
@@ -114,17 +105,15 @@ public static class Dos16AutomaticDispatchRecovery
                     {
                         // Either SHL BX,1 or the exact immediate shift.
                         var shifts = new List<Dos16FlowInstruction>();
-                        foreach (int bytesBack in new[] { 2, 3 })
+                        foreach (var shift in Dos16UniqueTransparentPath.UpstreamCandidates(
+                            region, graph, site.Address))
                         {
-                            int at = site.Address.Offset - bytesBack;
-                            if (at < region.Origin || !byOffset.TryGetValue((ushort)at, out var shift))
-                                continue;
-                            byte[] expected = bytesBack == 2
-                                ? new byte[] { 0xD1, 0xE3 }
-                                : new byte[] { 0xC1, 0xE3, (byte)requiredShift };
-                            if (bytesBack == 2 && requiredShift != 1) continue;
-                            if (FileMatches(shift, expected) &&
-                                SingleIncoming(site.Address.Offset, shift.Address.Offset, "fallthrough"))
+                            bool exactShift = requiredShift == 1 &&
+                                FileMatches(shift, 0xD1, 0xE3);
+                            exactShift |= FileMatches(shift, 0xC1, 0xE3,
+                                (byte)requiredShift);
+                            if (exactShift && Dos16UniqueTransparentPath.Connects(
+                                region, graph, shift.Address, site.Address, "fallthrough"))
                                 shifts.Add(shift);
                         }
                         foreach (var shift in shifts)
@@ -139,9 +128,8 @@ public static class Dos16AutomaticDispatchRecovery
                             {
                                 (null, 0xFB, "BX")
                             };
-                            int copyAt = shift.Address.Offset - 2;
-                            if (copyAt >= region.Origin &&
-                                byOffset.TryGetValue((ushort)copyAt, out var copy))
+                            foreach (var copy in Dos16UniqueTransparentPath.UpstreamCandidates(
+                                region, graph, shift.Address))
                                 foreach (var reg in new[] {
                                     (Code: 0, Name: "AX"),
                                     (Code: 1, Name: "CX"),
@@ -152,8 +140,11 @@ public static class Dos16AutomaticDispatchRecovery
                                 {
                                     byte form89 = (byte)(0xC3 | (reg.Code << 3));
                                     byte form8B = (byte)(0xD8 | reg.Code);
-                                    if (FileMatches(copy, 0x89, form89) ||
-                                        FileMatches(copy, 0x8B, form8B))
+                                    if ((FileMatches(copy, 0x89, form89) ||
+                                        FileMatches(copy, 0x8B, form8B)) &&
+                                        Dos16UniqueTransparentPath.Connects(
+                                            region, graph, copy.Address, shift.Address,
+                                            "fallthrough"))
                                         transfers.Add((copy, (byte)(0xF8 + reg.Code), reg.Name));
                                 }
 
@@ -162,16 +153,12 @@ public static class Dos16AutomaticDispatchRecovery
                                 if (validatedTable is not null) break;
                                 ushort afterGuard = transfer.Copy?.Address.Offset ??
                                     shift.Address.Offset;
-                                if (transfer.Copy is not null &&
-                                    !SingleIncoming(shift.Address.Offset,
-                                        transfer.Copy.Address.Offset, "fallthrough"))
-                                    continue;
-                                foreach (int branchBytes in new[] { 2, 4 })
+                                foreach (var guard in Dos16UniqueTransparentPath.UpstreamCandidates(
+                                    region, graph, new Dos16Address(region.Segment, afterGuard)))
                                 {
                                     if (validatedTable is not null) break;
-                                    int at = afterGuard - branchBytes;
-                                    if (at < region.Origin ||
-                                        !byOffset.TryGetValue((ushort)at, out var guard) ||
+                                    int branchBytes = guard.Length;
+                                    if (branchBytes is not (2 or 4) ||
                                         guard.FlowControl != "ConditionalBranch")
                                         continue;
                                     long guardAt = (long)region.FileOffset +
@@ -190,7 +177,9 @@ public static class Dos16AutomaticDispatchRecovery
                                         ? guardBytes[0] == 0x73
                                         : guardBytes[0] == 0x0F && guardBytes[1] == 0x83;
                                     if ((!ja && !jae) || !FileMatches(guard, guardBytes) ||
-                                        !SingleIncoming(afterGuard, guard.Address.Offset,
+                                        !Dos16UniqueTransparentPath.Connects(
+                                            region, graph, guard.Address,
+                                            new Dos16Address(region.Segment, afterGuard),
                                             "branch-not-taken") ||
                                         !graph.Edges.Any(e =>
                                             e.Source == guard.Address &&
@@ -199,11 +188,11 @@ public static class Dos16AutomaticDispatchRecovery
                                             e.Destination.Value.Offset != afterGuard &&
                                             e.Destination.Value.Offset != site.Address.Offset))
                                         continue;
-                                    foreach (int compareBytes in new[] { 3, 4 })
+                                    foreach (var compare in Dos16UniqueTransparentPath.UpstreamCandidates(
+                                        region, graph, guard.Address))
                                     {
-                                        int cmpAt = guard.Address.Offset - compareBytes;
-                                        if (cmpAt < region.Origin ||
-                                            !byOffset.TryGetValue((ushort)cmpAt, out var compare))
+                                        int compareBytes = compare.Length;
+                                        if (compareBytes is not (3 or 4))
                                             continue;
                                         long cmpPhysical = (long)region.FileOffset +
                                             compare.Address.Offset - region.Origin;
@@ -227,8 +216,9 @@ public static class Dos16AutomaticDispatchRecovery
                                                 cmpRaw.AsSpan(2));
                                         if (max < 0 || max > 255 ||
                                             !FileMatches(compare, cmpRaw) ||
-                                            !SingleIncoming(guard.Address.Offset,
-                                                compare.Address.Offset, "fallthrough"))
+                                            !Dos16UniqueTransparentPath.Connects(
+                                                region, graph, compare.Address, guard.Address,
+                                                "fallthrough"))
                                             continue;
                                         int count = ja ? max + 1 : max;
                                         int stride = far ? 4 : 2;
@@ -275,7 +265,8 @@ public static class Dos16AutomaticDispatchRecovery
             }
             results.Add(new Dos16GuardedDispatchSite(site.Address, reason,
                 pointerKind, entryCount,
-                "locally-unique-predecessors;exact-source-instruction-bytes;" +
+                "bounded-unique-predecessors;transparent-NOP-or-near-JMP-bridges;" +
+            "exact-source-instruction-bytes;" +
                 "index-value-and-runtime-pointer-mutation-unverified", validatedTable));
         }
         if (graph.Truncated) candidates = 0;
