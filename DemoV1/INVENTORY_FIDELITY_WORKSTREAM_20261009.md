@@ -753,3 +753,75 @@ pixel-compared. 169 registered CTests; manual
 Quick 19; source engineering 56.25%; inventory
 is PARTIAL. Do not dispatch the Windows build
 until all inventory acceptance gates are closed.
+
+
+## Part 8 continuation — original SAVE.DAT inventory section lossless codec
+
+**Independent original-file identity check** (supplied local uploads):
+- `SAVE.DAT` SHA-256 `f898cb92fca6447954f5e0b2bf6f8ad2435e4a64ae3b9de74f8bf75e0ed10d5d`
+- `CODE.2` SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`
+- supplied SAVE length `0x2448` / 9,288 bytes
+- transient class-3 effects `u32[0x997]=0`
+- persistent 62-container bank `0x09A7..0x0D50` / `0x3AA` bytes
+- source CODE.2 `DGROUP:7330` descriptor widths exactly 438
+  16-bit item slots, plus 62 known-bit bytes (876+62=938)
+- 5,879 bytes after the bank: two renderer dwords, 15 device
+  counters, ten 0x248 roster records and 16 final UI-context bytes
+- original held item at `0x74=-1`, known byte `0x76=0`,
+  32 event bytes `0x32..0x51` all zero, final 16 contexts FF
+- original 63rd CODE.2 descriptor (`62`) has zero slots and is
+  NEVER part of the 62-record SAVE bank. Its OBJECTS ID 329
+  source mismatch remains intentionally uncorrected.
+
+The new `InventorySaveCodec` is a **strict inventory projection
+over a retained original SAVE.DAT byte image**, not a new native
+format and not a general SAVE/LOAD gameplay implementation:
+
+- It finds the middle bank by reading the authentic 32-bit
+  effect count at `0x997`. Every transient record is 22
+  bytes; the following eight spell-UI bytes and four gameplay
+  tick bytes precede the first descriptor. Save file size must
+  be exactly `0x2448 + count*0x16`, with `count <= 0x96`.
+- It accepts original CODE.2-parsed
+  `InventoryRuntimeState` as the descriptor template;
+  validates exactly 62 4/6/8-slot records summing to 938
+  bytes, and copies out container item IDs and per-slot flags.
+- It decodes signed 16-bit held cursor ID and known byte,
+  copies the entire 4×0x248 party array including item-known
+  bits and the Mage scribing matrix, and all 32 persistent
+  story flag bytes. It also captures the four last 4-byte
+  party container UI contexts as **raw, not guessed hand UI**.
+- When writing back it overlays **only** those owned fields,
+  preserving all original description, map position,
+  independent clocks, transient class-3 records, renderer
+  controls, charged devices, saved roster, and unowned
+  character bytes verbatim. The 63rd descriptor stays out
+  of the serialized image.
+- Pending `6DAC/6DA8` Mage feedback and an active
+  `OpenInventoryContainer` runtime view are transient;
+  import clears them. The four original raw UI contexts
+  are retained, but safe hand/menu reconstruction on LOAD
+  remains a separate unresolved behavior.
+
+New `inventory_save_codec_tests` covers unchanged byte-for-byte
+encode(decode(...)), mutable cursor/known bits, Mage spellbook
+bytes, four fragment story flags, descriptor 0 and 61,
+unserialized descriptor 62, source UI tail bytes and exclusion
+of all non-inventory bytes. Synthetic saves with **0, 3 and
+150 transient records** exercise dynamic offsets. It rejects
+truncated files, invalid counts, wrong descriptor geometry
+and stale snapshot offsets. This is a **new registered CTest**,
+bringing source-defined tests from 169 to **170**;
+manual Quick remains 19.
+
+**Important engineering/acceptance boundary:** the codec
+is not yet wired to a fully original CODE.2 general
+save/load world-state and UI controller, nor are all
+per-actor container-open transition phases reconstructed.
+A returned snapshot is an inventory-scoped in-memory
+projection; no user-facing save menu or complete session
+restore is claimed. The other effects, Level16 item 0x89,
+item-use actions and DOS visual/timing parity remain open.
+Current source is **uncompiled/unexecuted on Windows**
+since old run #640. No manual CI run initiated, per user.
+Overall milestone score remains **56.25%** (inventory partial).
