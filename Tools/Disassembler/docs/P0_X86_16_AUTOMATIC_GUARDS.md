@@ -227,3 +227,28 @@ Synthetic negative fixtures corrupt the exit's physical file offset,
 replace its reported opcode bytes, or duplicate its decoded row.
 All must reject automatic table recovery without changing the
 underlying graph. These are source-only regressions until G1.
+
+## R1.4-R1.6 source integrity and report normalization
+
+The unique-path verifier now uses the pinned Iced x86-16 decoder to
+re-derive the instruction's length and control-flow category directly
+from original bytes. An instruction row with correct address and
+OriginalBytes but forged FlowControl (for example, a NOP mislabeled
+as an indirect jump) is rejected. This shared check covers CMP,
+register copy, scaling, NOP/near-JMP bridges, and decoded opposite
+guard exits; source rows are never trusted only because their
+reported hex string looks plausible.
+
+Graph snapshots with duplicate instruction starts now produce an
+unresolved result without throwing from the predecessor-map lookup.
+An automatic table's EntryCount appears only after **every pointer
+entry** passes the independent storage/relocation checker. Rejected
+tables retain that checker's exact reason and have no exposed target
+list or validated entry count. Input-graph truncation and capped
+per-site findings appear distinctly in the summary report.
+
+All new safety cases are source-only. Before any claim that this
+milestone is compiled or verified, run G1 as documented in
+[G1_X86_16_BATCH_VERIFICATION_MATRIX.txt](G1_X86_16_BATCH_VERIFICATION_MATRIX.txt)
+**after explicit owner authorization**. The prior Windows preview
+does not contain these changes.

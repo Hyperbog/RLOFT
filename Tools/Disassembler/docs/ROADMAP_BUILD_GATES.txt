@@ -255,12 +255,13 @@ Never claim an unseen original was tested.
 
 CURRENT NEXT ACTIONS
 --------------------
-NOW: R1.4-R1.6 source-only audit of accumulated guarded dispatch work,
-bound semantics, transparent direct edge proofs and report accounting.
-NEXT: small synthetic adversarial cases and guard-case refactor; commit.
-THEN: mark G1 READY with a concise test matrix. WAIT for explicit build
-authorization, or begin isolated R2 work if the owner wants to continue
-source-only without running G1 immediately.
+NOW: R1.4-R1.6 source batch is COMPLETE IN SOURCE ONLY; independent
+instruction re-decoding, duplicate-start safety and report accounting
+have synthetic regression cases pending execution.
+NEXT: G1 is READY, NOT AUTHORIZED. A single gate matrix is recorded in
+G1_X86_16_BATCH_VERIFICATION_MATRIX.txt. Do not build automatically.
+THEN: start R2 domain design source-only while holding the G1
+compilation/acceptance boundary open for explicit owner approval.
 
 WORK LOG APPEND FORMAT (MAINTAIN IN THIS FILE)
 ----------------------------------------------
@@ -288,3 +289,21 @@ synthetic stale-offset, spoofed-byte and duplicate-exit regressions.
 Status: SOURCE COMPLETE for this subtask; not compiled or executed.
 Last compiled Windows preview remains run 37887821656.
 R1.5-R1.6 and other R1 acceptance work remain open; G1 NOT AUTHORIZED.
+
+2026-10-09 | R1.4-R1.6 additional source-only batch:
+- Centralized 16-bit original-byte/length/physical/control-flow proof by
+  independently re-decoding every retained instruction used in guarded
+  paths. Graph metadata cannot forge safe sequential instructions.
+- Unique-predecessor recovery now returns unresolved for duplicate
+  candidate instruction starts rather than throwing during dictionary
+  construction.
+- Rejected table reports no longer expose a purported validated
+  EntryCount; keep full storage/fixup failure status from pointer validator.
+  Report explicit truncated CFG and capped 128-site output separately.
+- Added synthetic adversarial graph-label, duplicate-start, missing
+  table entry, precise rejection and output-cap cases. Source structure
+  audited; Windows compilation and all new smoke cases NOT EXECUTED.
+State: Phase 1 SOURCE COMPLETE for current batch, G1 READY but
+NOT AUTHORIZED. Last successfully built preview: run 37887821656.
+Next source-only track can proceed with isolated R2 range-domain design
+without implying G1 passed. See G1_X86_16_BATCH_VERIFICATION_MATRIX.txt.
