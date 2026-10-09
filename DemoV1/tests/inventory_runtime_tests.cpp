@@ -85,6 +85,10 @@ int main() {
 
     auto& state0 = runtime.containers[0];
     state0.slot_count = 4;
+    // CODE.2 descriptor geometry is required to reselect a
+    // source-open actor grid. The old synthetic fixture left
+    // columns=0, a malformed non-renderable descriptor.
+    state0.ui_columns = 2;
     state0.items = {{3, -1, -1, -1}};
     state0.per_slot_state_bits = 1;
 
