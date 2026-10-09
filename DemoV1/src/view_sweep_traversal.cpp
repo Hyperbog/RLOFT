@@ -264,7 +264,11 @@ ViewSweepRecord ViewSweepTraversalModel::trace_ray(
         }
 
         if (state == SweepState::Left) {
-            const auto raw_index = left_expr >> 1U;
+            // CODE.2 32BF6..32BFA computes ESI=cell index, then
+            // SHL ESI,1 for the 16-bit cell word address. The
+            // 32C1F SHR ESI,1 cancels that address scaling. left_expr
+            // already stores the INDEX, not a doubled byte address.
+            const auto raw_index = left_expr;
             if (raw_index >= cell_count) {
                 return empty_record();
             }
@@ -340,7 +344,12 @@ ViewSweepRecord ViewSweepTraversalModel::trace_ray(
             continue;
         }
 
-        const auto raw_index = right_expr >> 1U;
+        // CODE.2 32C07..32C10 computes EDI=cell index, then
+        // SHL EDI,1 for the 16-bit cell word address. 32D09
+        // SHR EDI,1 restores the exact index before bounds check.
+        // Halving right_expr here would probe unrelated cells and
+        // could trap near-cardinal rays in a false infinite sweep.
+        const auto raw_index = right_expr;
         if (raw_index >= cell_count) {
             return empty_record();
         }
