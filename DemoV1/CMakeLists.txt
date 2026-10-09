@@ -181,6 +181,7 @@ add_library(rloft_boot_flow
     src/surface_shading.cpp
     src/surface_fill.cpp
     src/original_ground_texture_raster.cpp
+    src/original_ground_res4_audit.cpp
     src/surface_wall_presenter.cpp
     src/surface_prepass.cpp
     src/surface_sintab_prepass_executor.cpp
@@ -708,6 +709,9 @@ add_test(NAME surface_fill_tests COMMAND surface_fill_tests)
 add_executable(original_ground_texture_raster_tests tests/original_ground_texture_raster_tests.cpp)
 target_link_libraries(original_ground_texture_raster_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_ground_texture_raster_tests COMMAND original_ground_texture_raster_tests)
+add_executable(original_ground_res4_audit_tests tests/original_ground_res4_audit_tests.cpp)
+target_link_libraries(original_ground_res4_audit_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_ground_res4_audit_tests COMMAND original_ground_res4_audit_tests)
 
 add_executable(surface_wall_presenter_tests tests/surface_wall_presenter_tests.cpp)
 target_link_libraries(surface_wall_presenter_tests PRIVATE rloft_boot_flow)
@@ -929,6 +933,7 @@ set(RLOFT_TEST_TARGETS
     surface_shading_tests
     surface_fill_tests
     original_ground_texture_raster_tests
+    original_ground_res4_audit_tests
     surface_wall_presenter_tests
     surface_prepass_tests
     surface_sintab_prepass_executor_tests
@@ -958,6 +963,10 @@ else()
         target_compile_options(${test_target} PRIVATE -UNDEBUG)
     endforeach()
 endif()
+
+add_executable(rloft_res4_ground_probe tools/rloft_res4_ground_probe.cpp)
+target_link_libraries(rloft_res4_ground_probe PRIVATE rloft_boot_flow)
+target_compile_features(rloft_res4_ground_probe PRIVATE cxx_std_17)
 
 if(WIN32)
     add_executable(
