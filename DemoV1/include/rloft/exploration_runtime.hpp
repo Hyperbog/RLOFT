@@ -153,11 +153,14 @@ public:
     }
 
     // This deliberately is NOT a general game SAVE/LOAD operation.
-    // For an already initialized, matching level/pose/TOD with zero
-    // moving effects and inactive 6FA0 containers, apply only
-    // CODE.2's inventory-owned serialized state. Keep the source
-    // SAVE image for lossless re-emission; unsupported saves fail
-    // before changing the live session. No file IO or menu action.
+    // For an already initialized matching level/pose/TOD with
+    // zero moving effects, accept the original 6FA0 four-byte
+    // per-actor inactive or verified phase3 container records.
+    // A selected OPEN live hand container prevents replacement;
+    // imported actor contexts need source OBJECTS/hand validation.
+    // Keep the SAVE image for lossless inventory-owned byte
+    // re-emission; unsupported world-state effects fail before
+    // changing the live session. No file IO or menu action.
     void import_matching_save_inventory(
         const std::vector<std::uint8_t>& original_save);
 
