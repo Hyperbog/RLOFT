@@ -96,3 +96,27 @@ specific constants.
 Owner interaction: **none yet**. Request one consolidated Windows build
 and synthetic regression gate only when explicitly authorized; original
 file-type or GUI checks will be requested separately if needed.
+
+## R2.3 hardening: wrapped IP and speculative continuations (source-only)
+
+Independent original-displacement checks now reject prefix-free relative
+Jcc, LOOP/JCXZ, CALL and JMP if the raw 16-bit instruction pointer plus
+the signed displacement falls outside 0..FFFF. x86 hardware can wrap its
+16-bit IP; the rejection is **a conservative analysis limitation**, not
+a statement that the instruction is invalid or that wrap cannot execute.
+The current single-window source mapping has not proved alias/segment
+continuity for that runtime case. No decoded target is promoted.
+
+The synthetic regression corpus now includes:
+- an explicit 64-KiB MZ load window with a JMP at IP FFFE whose raw
+  displacement wraps to 0002; no state may be published;
+- a direct near CALL with independently decoded callee and speculative
+  return, demonstrating that both edges lose unverified caller register
+  assumptions;
+- INT 21h with candidate continuation, likewise requiring Unknown;
+- a CS-prefix Jcc that remains outside the transfer whitelist and
+  therefore cannot retain register values.
+
+These assertions are **committed but not run**. No GUI test or original
+game file is required now. The next Windows gate must check both prior
+R2.3 smoke cases and these additional adversarial boundary cases.
