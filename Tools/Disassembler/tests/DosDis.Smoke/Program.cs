@@ -449,6 +449,25 @@ try
         "CMP BX,2 and JA give three nonnegative unsigned index possibilities");
     Equal(automaticTables.Sites[0].StoredTable?.Entries.Count, 3,
         "all three entries validated against original source bytes");
+    var addBxBx = (byte[])automaticBytes.Clone();
+    addBxBx[5] = 0x01; addBxBx[6] = 0xDB; // ADD BX,BX: r/m16, r16
+    var addDouble = DosComImage.LoadExplicit(BinaryArtifact.FromBytes(addBxBx));
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(addDouble.CreateCodeRegion(),
+        Dos16ControlFlowAnalysis.Analyze(addDouble.CreateCodeRegion(), 0x100))
+        .GuardedTableCandidates, 1,
+        "exact ADD BX,BX doubles the 16-bit near index after the unsigned guard");
+    addBxBx[5] = 0x03; // ADD BX,BX: r16, r/m16 alternate encoding
+    var addAlternate = DosComImage.LoadExplicit(BinaryArtifact.FromBytes(addBxBx));
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(addAlternate.CreateCodeRegion(),
+        Dos16ControlFlowAnalysis.Analyze(addAlternate.CreateCodeRegion(), 0x100))
+        .GuardedTableCandidates, 1,
+        "alternate ADD BX,BX form preserves same near-pointer stride");
+    addBxBx[6] = 0xCB; // ADD BX,CX does not double a known BX index
+    var wrongAdd = DosComImage.LoadExplicit(BinaryArtifact.FromBytes(addBxBx));
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(wrongAdd.CreateCodeRegion(),
+        Dos16ControlFlowAnalysis.Analyze(wrongAdd.CreateCodeRegion(), 0x100))
+        .GuardedTableCandidates, 0,
+        "adding another register cannot be treated as proven BX scaling");
 
     // A source-backed unique predecessor can include only bounded NOP
     // or direct unconditional jump bridges. These are intentionally
