@@ -1,5 +1,64 @@
 # Ravenloft Demo Build v1
 
+## Part 8 extended — Level16 Seed of Morninglord and Holy Symbol reward
+
+The supplied CODE.2 original source at `21880..2195A`
+and embedded object-1 bytes `207E0:0D 13 0B 15
+0D 17 0F 15` now define the exact Level16
+`SEED OF MORNINGLORD` four-site ritual
+predicate. The four source cells are
+(13,19), (11,21), (13,23), (15,21).
+A live loose item of original OBJECTS ID
+**137/0x89** must occupy every site
+(only the integer/high-16 bits of its
+original Q16 X and Y coordinates count).
+The source exits unless the level is 16
+and persistent event bit **0x44** is unset.
+
+A new `Level16SeedRitualModel` scans the
+source family-C loose-item records, handles
+duplicate placements and the original
+300-record oldest-item eviction rule,
+and projects the three verified completion
+actions: set bit 0x44; run numbered
+interactive event **8** through `13EF8`;
+and invoke `15050(0x73)` to grant the
+**HOLY SYMBOL OF RAVENKIND**. Ordinary
+non-completing Level16 drops are now enabled
+instead of being categorically blocked.
+A fourth/triggering seed returns explicit
+`SourceSpecialActionPending` without
+consuming the held item or prematurely
+setting event 0x44, because original event
+presentation remains unfinished.
+
+The original `15050` Holy Symbol reward
+case is now independently implemented
+through `HolySymbolRewardModel`: an
+empty cursor receives the unidentified
+object; otherwise the first empty ordinary
+inventory slot in active-actor order
+receives it and clears its known bit.
+If both cursor and ordinary slots are full,
+the helper reports its original world
+spawn fallback **without fabricating it**.
+The helper is not yet called by the
+unimplemented numbered-event sequence.
+
+Existing `inventory_world_drop_tests`
+has source-driven cases for the four
+locations, Q16 fractions, duplicate and
+wrong items, event flags, bounded world
+array eviction, final placement rollback,
+and reward cursor/party/world priority.
+**170 CTests and 19 Quick tests remain
+registered. No new build or tests have
+been executed.** The native game is still
+partial, including original event-8
+presentation and final reward integration.
+Engineering score stays **56.25%**.
+
+
 ## Part 8 extended — multi-actor original containers and phase artwork
 
 New CODE.2 source verification at `12E70/11C3C`
