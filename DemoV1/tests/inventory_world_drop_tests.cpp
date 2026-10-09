@@ -433,6 +433,60 @@ int main() {
     }
     assert(invalid_presenter);
 
+    // Three original sites are required BEFORE the candidate
+    // fourth Seed; an incomplete map is not permission to play
+    // CINE08, set 44h or preemptively grant a Holy Symbol.
+    auto missing_site_world=ritual_world;
+    missing_site_world.loose_items.pop_back(); // site (13,23)
+    const auto missing_size=missing_site_world.loose_items.size();
+    int incorrect_callbacks=0;
+    completed_inventory.held={0x89,1U};
+    const auto incomplete=rloft::Level16RitualCompletionModel::
+        complete_21880(
+            ritual_session,missing_site_world,completed_inventory,
+            definitions,tables,reject_forward,
+            [&]() {
+                ++incorrect_callbacks;
+                return Playback::Completed;
+            });
+    assert(incomplete.status==Completion::NotReady);
+    assert(incorrect_callbacks==0);
+    assert(missing_site_world.loose_items.size()==missing_size);
+    assert(completed_inventory.held.object_id==0x89);
+    assert(ritual_session.persistent_event_flags[0x44U/8U]==0U);
+
+    // Invalid original map/cell geometry must be rejected
+    // before the first event frame and without losing the Seed.
+    auto invalid_ritual_session=ritual_session;
+    invalid_ritual_session.level.cell_words.clear();
+    const auto invalid=rloft::Level16RitualCompletionModel::
+        complete_21880(
+            invalid_ritual_session,ritual_world,
+            completed_inventory,definitions,tables,reject_forward,
+            [&]() {
+                ++incorrect_callbacks;
+                return Playback::Completed;
+            });
+    assert(invalid.status==Completion::InvalidPlacement);
+    assert(incorrect_callbacks==0);
+    assert(completed_inventory.held.object_id==0x89);
+    assert(ritual_world.loose_items.size()==before_cancel);
+
+    // Original flag + event branch is specific to Level16.
+    auto wrong_level_session=ritual_session;
+    wrong_level_session.level_id=22U;
+    const auto other_level=rloft::Level16RitualCompletionModel::
+        complete_21880(
+            wrong_level_session,ritual_world,
+            completed_inventory,definitions,tables,reject_forward,
+            [&]() {
+                ++incorrect_callbacks;
+                return Playback::Completed;
+            });
+    assert(other_level.status==Completion::NotReady);
+    assert(incorrect_callbacks==0);
+    assert(completed_inventory.held.object_id==0x89);
+
     // Bounded 15050(0x73) source reward routing: after the
     // numbered event, the HOLY SYMBOL OF RAVENKIND is put on
     // an empty cursor; otherwise the first empty ordinary
