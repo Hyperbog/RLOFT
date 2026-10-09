@@ -478,3 +478,28 @@ LE pages or grant permission for standalone 16-bit MZ code recovery.
 Both original Strahd CODE files supplied to this Project reproduce
 the nested-header geometry. Tests were extended without being run.
 See [nested format checkpoint](docs/P0_NESTED_MZ_ORIGINAL_EVIDENCE.md).
+
+## P0 source checkpoint — shared extended module scanner and DOS launcher
+
+`MzExtendedModuleLocator` now drives both extended format detection
+and the LE loader's unambiguous module selection. `inspect` exposes
+all recognized MZ-bound nested candidate modules by original-file
+offset, without attempting to decode other formats.
+
+For outer DOS launcher research, opt into `DosMzImage.LoadLauncherStub`
+through the `--dos-stub` MZ CLI option. It validates the outer MZ
+header, relocation table, real-mode entry and the separation from
+later independently MZ-bound modules. A direct LE/LX/NE/PE module is
+**not** accepted as a launcher. Original CODE.1 and CODE.2 bytes
+confirm a 62,532-byte independently declared DOS MZ with 78 fixups,
+preceding their nested LE image. These are external regression facts,
+not analyzer special cases.
+
+```powershell
+DosDis.Cli.exe inspect CODE.1
+DosDis.Cli.exe mz CODE.1 --dos-stub
+DosDis.Cli.exe mz-analyze CODE.1 --dos-stub --max-instructions 1024
+```
+
+Source-only CLI examples: **not compiled, tested, or executed**.
+See [nested original-byte evidence](docs/P0_NESTED_MZ_ORIGINAL_EVIDENCE.md).

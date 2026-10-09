@@ -55,3 +55,19 @@ does not have network DNS access. This limits the independent original
 file audits currently possible here. No claim that those files are
 absent from GitHub is implied. Raw original binaries are not committed
 to the source branch.
+
+## Shared module scanning and explicit DOS launcher mode
+
+`MzExtendedModuleLocator` is the one structural scanner used by
+`BinaryFormatDetector` and `LeImage`. It reports original-file MZ
+origins, bounded module-local `e_lfanew` offsets, and recognized
+LE/LX/NE/PE signatures. Multiple module hits remain ambiguous.
+
+For a nested protected-mode file, analysts may explicitly request
+`mz <file> --dos-stub` or `mz-analyze <file> --dos-stub` to inspect
+**only** the independently declared DOS launcher load image. The outer
+MZ page/header/relocation geometry and CS:IP are validated, and its
+declared extent must end before the first nested module. A direct
+MZ-bound extended module cannot be masqueraded as an outer launcher.
+All x86-16 code remains tentative and original-byte backed. Module
+selection never depends on game identity, extension or SHA-256.

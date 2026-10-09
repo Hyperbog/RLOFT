@@ -9,10 +9,10 @@ This document supersedes the Part 14 loader-specific outline.
 | Component | Contract |
 | --- | --- |
 | Original source | `BinaryArtifact` snapshots immutable original bytes; SHA-256 and byte length anchor identity |
-| Format detector | `BinaryFormatDetector` recognizes signatures but never assumes a valid loader or executable instructions |
+| Format detector | `MzExtendedModuleLocator` and `BinaryFormatDetector` share bounded MZ/LE/LX/NE/PE signature locations without implying executable content |
 | File intelligence | `FileIntelligence` derives only structural facts and optional external catalog metadata, with distinct evidence statuses |
 | Optional game metadata | `SourceIdentityRegistry` reads versioned, size-limited JSON; no hardcoded game fingerprints |
-| MZ parser | `DosMzImage` validates original DOS MZ header, relocations, and original source offsets; requested x86-16 linear decoding is a candidate |
+| MZ parser | `DosMzImage` validates standalone DOS MZ source geometry; explicit launcher-stub mode isolates only an independent DOS load module preceding nested protected-mode data |
 | LE parser | `LeImage` maps validated MZ-bound LE objects/pages and fixups; 32-bit reachability is conservative and evidence-tagged |
 | Future OVR loaders | FBOV/TPOV markers are recognized but require complete mapping of overlay directory and load behavior |
 | Future LX/NE loaders | Recognize signatures, then parse distinct page/object/segment and relocation formats; never treat as MZ flat code |

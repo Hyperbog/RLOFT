@@ -153,3 +153,13 @@ Strahd CODE.1 and CODE.2 provide two byte-identical nested-header
 layout regressions, validated from the provided original bytes.
 No other original binary family has yet been fetched into this
 container for independent byte inspection.
+
+## Explicit outer DOS launcher inspection
+
+Wrapped DOS LE/LX/NE/PE inputs now expose independently scanned nested
+module locations in `inspect`. A separately declared outer DOS MZ
+launcher can be mapped only with opt-in `--dos-stub` on MZ CLI modes.
+The loader rejects overlapping outer MZ extents and direct extended
+modules; it never treats the embedded protected-mode image as 16-bit
+code. The original CODE.1/CODE.2 outer MZ geometry has been checked
+read-only, but no DOSDis binary was built or run.
