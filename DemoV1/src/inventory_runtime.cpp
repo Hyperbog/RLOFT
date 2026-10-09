@@ -227,7 +227,8 @@ InventoryOrdinarySwapStatus InventoryRuntimeState::swap_ordinary_slot(
     PartyImage& party,
     const ObjectCatalog& objects,
     std::size_t actor,
-    std::size_t slot) {
+    std::size_t slot,
+    std::array<std::uint8_t,32>* persistent_event_flags) {
     if (actor >= PartyImage::kActorCount || slot >= 12U) {
         throw std::out_of_range("CODE.2 ordinary inventory actor/slot");
     }
@@ -241,16 +242,41 @@ InventoryOrdinarySwapStatus InventoryRuntimeState::swap_ordinary_slot(
         return InventoryOrdinarySwapStatus::NoChange;
     }
 
-    // The original 117A0 calls context-dependent 21404 for a held
-    // item over a container, and has special paths for the 0x35
-    // potion and 0xA6 spell-item families. Do not silently turn
-    // those interactions into an ordinary exchange.
+    // Original 117E8..117F9 protects *current* temporary spell
+    // hands; a synthetic cursor spell is also outside a normal
+    // ordinary-slot swap. Never mutate invalid identifiers.
     if ((current >= 0x7E && current <= 0x86) ||
         (incoming >= 0x7E && incoming <= 0x86) ||
-        current == 0x35 || current == 0xA6 ||
-        incoming == 0x35 || incoming == 0xA6 ||
-        (current < -1) || (incoming < -1)) {
+        current < -1 || incoming < -1) {
         return InventoryOrdinarySwapStatus::Unsupported;
+    }
+    // 11808..11852: the source tests only the SLOT'S 0xA6 Mage
+    // Spell Book. It only accepts held 0xA7..0xC9 scrolls, and
+    // invokes 11630 (spell learning, capacity, duplicate checks).
+    // Do not fake spell acquisition or fall through to a swap.
+    if (current == 0xA6) {
+        return InventoryOrdinarySwapStatus::Unsupported;
+    }
+    // 11857..11891: slot 0x35 is specifically the Tome of Evil
+    // Artifacts and Cursed Items, not a potion. Four distinct held
+    // Parchment Fragments 0x61..0x64 invoke 1C124(fragment-0x61)
+    // on the 256-bit 0x22200 event vector, then 1A344(-1,0).
+    // Ordinary interactions with 0x35 and holding 0xA6 DO fall
+    // through to the ordinary 117A0 swap; only this pair is special.
+    if (current == 0x35 && incoming >= 0x61 &&
+        incoming <= 0x64) {
+        if (persistent_event_flags == nullptr)
+            return InventoryOrdinarySwapStatus::Unsupported;
+        (void)objects.at(static_cast<std::size_t>(current));
+        (void)objects.at(static_cast<std::size_t>(incoming));
+        const auto flag = static_cast<unsigned>(incoming-0x61);
+        // 1C124 uses low bit of its Dword-0 vector; repeated
+        // fragments simply OR the already-set bit before being
+        // consumed. Preserve every other story flag.
+        (*persistent_event_flags)[0] = static_cast<std::uint8_t>(
+            (*persistent_event_flags)[0] | (1U<<flag));
+        held={-1,0U};
+        return InventoryOrdinarySwapStatus::ConsumedStoryFragment;
     }
     if (current >= 0) {
         const auto& definition =
