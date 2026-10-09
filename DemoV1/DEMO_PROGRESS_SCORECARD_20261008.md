@@ -1,5 +1,29 @@
 # Demo v1 — development progress versus formal acceptance
 
+**Verified corrected-ray native capture (Windows #640):**
+Manual Actions #640 at source `47d5194a0c87109ff9c26df7794c960d492ccb99`
+passed **160/160 Windows CTests**. The new 16-frame
+user ZIP embeds that same revision in every manifest.
+It traverses cells (4,4) to (8,6) and exercises
+**2,127 rasterized RES3 scene calls**, 127 occluded
+calls, zero raster/trace/plan errors, 25,282 rasterized
+source columns, and 521,921 indexed VGA writes.
+Six exactly camera-matched comparisons against the old
+buggy-ray capture differ by 332–462 indexed pixels with
+unchanged palettes. This verifies measurable native
+rendering progress, **not DOS framebuffer parity**;
+no sweep failure is recorded in the 16 supplied frames.
+
+**Subsequent source-only capture extension:** original
+16-frame cap still cuts off before reaching the NPC
+at (13,7); new `--capture-frames=N` is validated for
+1..128 and the optional .cmd requests 64 captures,
+without affecting normal gameplay or uncapped fatal
+failure.tsv. The next Windows build is **manual-only**
+and must verify this changed source. Formal acceptance
+**remains 1/5 (20%)**.
+[Complete audit](LEVEL22_640_POSTFIX_RENDER_AUDIT_AND_EXTENDED_CAPTURE_20261008.md).
+
 **Second user native frame archive and uncapped fatal sweep telemetry
 (2026-10-08):** A new 16-frame ZIP covers outdoor Level22
 cells (4,4)→(19,4) at heading 270, with 1,157 successful
