@@ -40,6 +40,8 @@ public sealed class AnalysisDecisionTrace
     private long _sequence;
     private long _dropped;
     private bool _started;
+    private bool _completed;
+    private bool _analysisTruncated;
 
     public AnalysisDecisionTrace(int capacity = DefaultCapacity)
     {
@@ -59,6 +61,19 @@ public sealed class AnalysisDecisionTrace
             if (_started) throw new InvalidOperationException("Decision traces are single-use.");
             ArtifactSha256 = image.ArtifactSha256;
             _started = true;
+        }
+    }
+
+    // Only successful return from Analyze marks a trace complete.
+    // Cancelled/failed runs remain explicitly incomplete in JSON.
+    internal void Complete(bool truncated)
+    {
+        lock (_gate)
+        {
+            if (!_started || _completed)
+                throw new InvalidOperationException("Decision trace completion state is invalid.");
+            _completed = true;
+            _analysisTruncated = truncated;
         }
     }
 
@@ -100,17 +115,23 @@ public sealed class AnalysisDecisionTrace
         AnalysisDecisionEvent[] events;
         long dropped;
         string? source;
+        bool completed;
+        bool truncated;
         lock (_gate)
         {
             events = _events.ToArray();
             dropped = _dropped;
             source = ArtifactSha256;
+            completed = _completed;
+            truncated = _analysisTruncated;
         }
         return JsonSerializer.Serialize(new
         {
             format = "dosdis-analysis-decision-trace",
             schemaVersion = SchemaVersion,
             sourceSha256 = source,
+            analysisCompleted = completed,
+            analysisTruncated = truncated,
             recordedEvents = events.Length,
             droppedEvents = dropped,
             privacy = new

@@ -9,7 +9,9 @@ with optional `--trace-capacity N` (512 default; allowed range 8–4096).
 The new output is a separate local JSON evidence record. Existing analyze
 JSON on stdout is unchanged; export confirmation goes to stderr.
 The trace file records source SHA-256, object-relative and source-file offsets,
-typed outcomes, speculation markers and event/drop counts. No original bytes,
+typed outcomes, speculation markers, event/drop counts, and explicit
+`analysisCompleted` / `analysisTruncated` metadata. Cancelled and failed
+analyses are never mislabeled as successfully completed. No original bytes,
 source paths, private analyst comments or arbitrary exception messages are
 written into the trace. It is a bounded sample, **not** a complete execution
 history or a proven original-game disassembly.

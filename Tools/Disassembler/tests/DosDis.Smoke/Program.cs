@@ -246,6 +246,10 @@ try
     using (var traceJson = JsonDocument.Parse(trace.BuildJson()))
     {
         Equal(traceJson.RootElement.GetProperty("schemaVersion").GetInt32(), 1, "trace schema version");
+        Equal(traceJson.RootElement.GetProperty("analysisCompleted").GetBoolean(), true,
+            "normally returned analysis is recorded as completed");
+        Equal(traceJson.RootElement.GetProperty("analysisTruncated").GetBoolean(), false,
+            "full bounded fixture is not marked as instruction-budget truncated");
         Equal(traceJson.RootElement.GetProperty("sourceSha256").GetString(),
             graphImage.ArtifactSha256, "trace JSON source identity");
         Equal(traceJson.RootElement.GetProperty("privacy").GetProperty("originalBytesIncluded").GetBoolean(),
@@ -377,6 +381,13 @@ try
     var limited = ControlFlowAnalysis.Analyze(graphImage, maxInstructions: 1, decisionTrace: budgetTrace);
     Equal(budgetTrace.Snapshot().Any(x => x.Outcome == AnalysisDecisionOutcome.BudgetExceeded),
         true, "instruction budget stop is inspectable");
+    using (var budgetJson = JsonDocument.Parse(budgetTrace.BuildJson()))
+    {
+        Equal(budgetJson.RootElement.GetProperty("analysisCompleted").GetBoolean(), true,
+            "budget-stopped graph successfully returned despite truncation");
+        Equal(budgetJson.RootElement.GetProperty("analysisTruncated").GetBoolean(), true,
+            "instruction budget truncation is recorded in trace metadata");
+    }
     var invalidSeedTrace = new AnalysisDecisionTrace();
     bool invalidSeed = false;
     try
@@ -388,6 +399,9 @@ try
     Equal(invalidSeed, true, "out-of-object seed is rejected");
     Equal(invalidSeedTrace.ArtifactSha256 is null, true,
         "rejected seed does not consume the single-use trace");
+    using (var rejectedJson = JsonDocument.Parse(invalidSeedTrace.BuildJson()))
+        Equal(rejectedJson.RootElement.GetProperty("analysisCompleted").GetBoolean(),
+            false, "rejected analysis is never called completed");
     var recoveredTraceGraph = ControlFlowAnalysis.Analyze(graphImage,
         decisionTrace: invalidSeedTrace);
     Equal(recoveredTraceGraph.Instructions.Count, graph.Instructions.Count,

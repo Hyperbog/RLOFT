@@ -469,8 +469,10 @@ public static class ControlFlowAnalysis
                 i = j;
             }
         }
-        return new FlowAnalysisResult(image.ArtifactSha256, sourceSeeds, explicitData,
+        var result = new FlowAnalysisResult(image.ArtifactSha256, sourceSeeds, explicitData,
             instructions.Values.ToArray(), edges, blocks, functions, regions, diagnostics,
             dataReferences, jumpTables, truncated);
+        decisionTrace?.Complete(result.Truncated);
+        return result;
     }
 }
