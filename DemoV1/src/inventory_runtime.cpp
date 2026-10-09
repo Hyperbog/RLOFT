@@ -255,7 +255,14 @@ InventoryOrdinarySwapStatus InventoryRuntimeState::swap_ordinary_slot(
         const auto& definition =
             objects.at(static_cast<std::size_t>(current));
         if (incoming != -1 && definition.item_category == 1U) {
-            return InventoryOrdinarySwapStatus::Unsupported;
+            // CODE.2 117A0 invokes 21404 rather than overwriting an
+            // occupied ordinary container. A successful automatic
+            // insertion preserves the outer actor slot exactly.
+            const auto result=insert_held_into_container_object(
+                objects,current);
+            return result==InventoryContainerStatus::Inserted
+                ? InventoryOrdinarySwapStatus::InsertedInContainer
+                : InventoryOrdinarySwapStatus::Unsupported;
         }
     }
     if (incoming >= 0) {
@@ -425,6 +432,16 @@ InventoryHandSwapStatus InventoryRuntimeState::swap_hand_slot(
     // The caller opens the new container explicitly, after a successful
     // original hand transfer; we never retain a stale view across swaps.
     open_container.reset();
+    if(incoming>=0) {
+        const auto& equipped=objects.at(
+            static_cast<std::size_t>(incoming));
+        if(equipped.item_category==1U &&
+           equipped.container_state_index>=0) {
+            const auto ignored=open_hand_container(
+                party,objects,actor,hand);
+            (void)ignored;
+        }
+    }
     // 215E9 explicitly zeroes the selected hand's four-byte
     // ready deadline. Opposite hand remains unchanged.
     // DOS character base 218E0h; 21A7Eh-218E0h=019Eh.
