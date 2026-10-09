@@ -97,6 +97,31 @@ PartyPanelControlModel::modal_ordinary_slot_at(
     };
 }
 
+std::optional<PartyPanelControlModel::ContainerSlotHit>
+PartyPanelControlModel::modal_container_slot_at(
+    int row,int column,std::size_t actor,
+    std::uint8_t columns,std::uint8_t x_offset,
+    std::size_t slot_count) noexcept {
+    if(actor>=kActorCount || columns==0U ||
+       slot_count==0U || slot_count>8U ||
+       row<0xDB || column<0 || column>=320) {
+        return std::nullopt;
+    }
+    const auto local=column-static_cast<int>(actor)*kModalColumnWidth-
+        static_cast<int>(x_offset);
+    if(local<0) return std::nullopt;
+    const auto dx=local/0x12;
+    const auto dy=(row-0xDB)/0x22;
+    if(dx>=static_cast<int>(columns) || dy>=8 ||
+       local%0x12>=0x10 || (row-0xDB)%0x22>=0x20) {
+        return std::nullopt;
+    }
+    const auto slot=static_cast<std::size_t>(dy)*
+        columns+static_cast<std::size_t>(dx);
+    if(slot>=slot_count)return std::nullopt;
+    return ContainerSlotHit{actor,slot};
+}
+
 std::optional<std::size_t>
 PartyPanelControlModel::modal_toggle_actor_at(
     int row,
