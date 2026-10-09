@@ -393,6 +393,74 @@ int main() {
         cursor_before_reward.object_id);
     assert(reward_inv.held.known==cursor_before_reward.known);
 
+    // Original 15050 full-inventory fallback calls
+    // 2195C(0x80,0x73,0,playerX,playerY,1,0).
+    // Distinguish its final clear-held=0 from ordinary inventory
+    // D drops (clear-held=1). The emitted reward is a known=0
+    // family-C loose item, with the original placement fallback.
+    auto reward_session=session();
+    rloft::LevelWorldState reward_world{};
+    const auto actual_held_before=reward_inv.held;
+    const auto reject_forward=[](
+        std::uint32_t,std::uint32_t,std::uint32_t) {
+        return false;
+    };
+    auto spawned=rloft::InventoryWorldDropModel::
+        spawn_holy_symbol_reward_15050(
+            reward_world,reward_session,definitions,tables,
+            reject_forward);
+    assert(spawned.status==rloft::InventoryWorldDropStatus::Dropped);
+    assert(spawned.loose_item_index==0U);
+    assert(reward_world.loose_items.size()==1U);
+    assert(reward_world.loose_items.back().object_type_id==0x73U);
+    assert(reward_world.loose_items.back().x_position_16_16==
+        reward_session.coordinate_a);
+    assert(reward_world.loose_items.back().y_position_16_16==
+        reward_session.coordinate_b);
+    assert(reward_world.loose_items.back().packed_runtime_state==
+        0U); // 0x73 is emitted unidentified.
+    assert(reward_inv.held.object_id==
+        actual_held_before.object_id);
+    assert(reward_inv.held.known==actual_held_before.known);
+    // Same source 0x12C capacity/evict-first behavior as drops:
+    // the oldest family-C record disappears but the reward and
+    // held cursor remain unambiguously intact.
+    reward_world.loose_items.clear();
+    for(std::size_t i=0;i<0x12CU;++i) {
+        rloft::LiveObjectRecord record{};
+        record.object_type_id=static_cast<std::uint16_t>(
+            i+1U);
+        reward_world.loose_items.push_back(record);
+    }
+    spawned=rloft::InventoryWorldDropModel::
+        spawn_holy_symbol_reward_15050(
+            reward_world,reward_session,definitions,tables,
+            reject_forward);
+    assert(spawned.status==rloft::InventoryWorldDropStatus::Dropped);
+    assert(spawned.loose_item_index==0x12BU);
+    assert(reward_world.loose_items.size()==0x12CU);
+    assert(reward_world.loose_items.front().object_type_id==2U);
+    assert(reward_world.loose_items.back().object_type_id==0x73U);
+    assert(reward_inv.held.object_id==
+        actual_held_before.object_id);
+
+    // Failing original map coordinates is a pure rejection:
+    // do not evict any original record to make room and never
+    // mutate a party item or the held cursor.
+    const auto world_before_reject=reward_world.loose_items.size();
+    auto invalid_reward_session=reward_session;
+    invalid_reward_session.level.cell_words.clear();
+    spawned=rloft::InventoryWorldDropModel::
+        spawn_holy_symbol_reward_15050(
+            reward_world,invalid_reward_session,definitions,tables,
+            reject_forward);
+    assert(spawned.status==
+        rloft::InventoryWorldDropStatus::InvalidWorldPosition);
+    assert(reward_world.loose_items.size()==world_before_reject);
+    assert(reward_world.loose_items.back().object_type_id==0x73U);
+    assert(reward_inv.held.object_id==
+        actual_held_before.object_id);
+
     // Invalid/outside-level and unknown objects must be rejected without
     // consuming the cursor or discarding the oldest world object.
     inventory.held={310,1U};
