@@ -121,6 +121,29 @@ int main() {
     bad_raster.type7_calls_failed=1U;
     assert(!bad_raster.complete());
 
+    // A renderer-level failure is distinct from a trace that was never
+    // produced and a source fully occluded by original depth records.
+    auto scene_statuses=frame;
+    rloft::WorldSceneRenderPlan unplanned{};
+    unplanned.source_unresolved=true;
+    rloft::WorldSceneRenderPlan hidden{};
+    rloft::WorldSceneRenderPlan projected{};
+    projected.visible_columns.push_back(
+        rloft::Type7VisibleColumn{32U,0U,128U});
+    scene_statuses.world_scene_render_plans={
+        unplanned,hidden,projected
+    };
+    const auto classified=
+        rloft::ExplorationPresenter::initial_scene_outcomes(
+            scene_statuses);
+    assert(classified.size()==3U);
+    assert(classified[0]==
+           rloft::Type7SceneRenderOutcome::PlanningFailed);
+    assert(classified[1]==
+           rloft::Type7SceneRenderOutcome::FullyOccluded);
+    assert(classified[2]==
+           rloft::Type7SceneRenderOutcome::TraceUnavailable);
+
     // Clean frames with no RES3 source or raster failure remain complete.
     assert(complete.complete());
 }
