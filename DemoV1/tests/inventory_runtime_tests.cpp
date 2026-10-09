@@ -1,3 +1,6 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include "rloft/inventory_runtime.hpp"
 
 #include <cassert>
@@ -183,16 +186,19 @@ int main() {
     assert(runtime.held.object_id==held_protected.object_id);
     assert(runtime.held.known==held_protected.known);
 
-    // A held item over a category-1 container invokes original
-    // 21404 insertion, which is not yet implemented: do not swap it.
+    // CODE.2 117A0 -> 21404 automatically inserts an item dragged
+    // onto a filled ordinary container without replacing the bag.
     set_item(party,0,9U,2);
     runtime.held={5,1U};
     const auto before_container=party.bytes;
     assert(runtime.swap_ordinary_slot(party,catalog,0U,9U)==
-           rloft::InventoryOrdinarySwapStatus::Unsupported);
+           rloft::InventoryOrdinarySwapStatus::InsertedInContainer);
     assert(party.bytes==before_container);
-    assert(runtime.held.object_id==5);
-    assert(runtime.held.known==1U);
+    assert(state0.items[0]==-1);
+    assert(state0.items[1]==5);
+    assert((state0.per_slot_state_bits & 0x02U)!=0);
+    assert(runtime.held.object_id==-1);
+    assert(runtime.held.known==0U);
 
     // CODE.2 214B8 original HUD-hand swap, independent of the
     // 12 ordinary inventory tiles. Populate both hand deadlines to
@@ -334,4 +340,85 @@ int main() {
     }
     assert(runtime.quick_stash_held(quick_party,catalog,2U)==
            rloft::InventoryQuickStashStatus::Unsupported);
+
+    // Full original category-1 inventory:
+    // placing a bag in an empty hand opens its live descriptor; taking
+    // items from its UI, reinserting, and exchanging preserve IDs,
+    // known bits and unrelated party fields.
+    auto nested_party=party;
+    set_item(nested_party,0U,14U,-1);
+    set_item(nested_party,0U,15U,-1);
+    state0.items={3,-1,-1,-1};
+    state0.per_slot_state_bits=0x01U;
+    state0.capacity_pounds=8;
+    state0.subtype=0;
+    runtime.open_container.reset();
+    runtime.held={2,1U};
+    assert(runtime.swap_hand_slot(nested_party,catalog,0U,0U)==
+           rloft::InventoryHandSwapStatus::Swapped);
+    assert(get_item(nested_party,0U,14U)==2);
+    assert(runtime.open_container.has_value());
+    assert(runtime.open_container->descriptor_index==0U);
+    assert(runtime.held.object_id==-1);
+    assert(runtime.swap_open_container_slot(
+        nested_party,catalog,0U)==
+           rloft::InventoryContainerStatus::Taken);
+    assert(state0.items[0]==-1);
+    assert(runtime.held.object_id==3);
+    assert(runtime.held.known==1U);
+    assert(runtime.swap_open_container_slot(
+        nested_party,catalog,1U)==
+           rloft::InventoryContainerStatus::Inserted);
+    assert(state0.items[1]==3);
+    assert((state0.per_slot_state_bits&0x02U)!=0U);
+    assert(runtime.held.object_id==-1);
+
+    // Non-empty cursor exchanges with one individual container slot;
+    // both previous identified flags and inventory are maintained.
+    runtime.held={4,0U};
+    assert(runtime.swap_open_container_slot(
+        nested_party,catalog,1U)==
+           rloft::InventoryContainerStatus::Inserted);
+    assert(state0.items[1]==4);
+    assert((state0.per_slot_state_bits&0x02U)==0U);
+    assert(runtime.held.object_id==3);
+    assert(runtime.held.known==1U);
+    assert(runtime.container_weight_half_units(catalog,0U)==0U);
+
+    // An already occupied container hand can be picked up when the
+    // cursor is empty. Its open view closes with the transferred bag.
+    runtime.held={-1,0U};
+    assert(runtime.swap_hand_slot(nested_party,catalog,0U,0U)==
+           rloft::InventoryHandSwapStatus::Swapped);
+    assert(get_item(nested_party,0U,14U)==-1);
+    assert(runtime.held.object_id==2);
+    assert(!runtime.open_container.has_value());
+    assert(runtime.open_hand_container(
+        nested_party,catalog,0U,0U)==
+           rloft::InventoryContainerStatus::NoChange);
+
+    // Original specialized containers use exact item-category gates.
+    const auto specialized=objects();
+    state0.subtype=4; // Ivory Scroll Case: category 0x0E only
+    runtime.held={3,0U}; // ordinary category 0x00
+    assert(runtime.insert_held_into_container_object(
+        specialized,2)==rloft::InventoryContainerStatus::Incompatible);
+    assert(runtime.held.object_id==3);
+    state0.subtype=0;
+    runtime.held={-1,0U};
+
+    // Invalid descriptor, lost equipment and unsupported source
+    // special-state must leave cursor and party bytes untouched.
+    set_item(nested_party,0U,14U,2);
+    assert(runtime.open_hand_container(
+        nested_party,catalog,0U,0U)==
+           rloft::InventoryContainerStatus::Opened);
+    set_item(nested_party,0U,14U,-1);
+    runtime.held={5,1U};
+    const auto unsupported_cursor=runtime.held;
+    assert(runtime.swap_open_container_slot(
+        nested_party,catalog,2U)==
+           rloft::InventoryContainerStatus::Unsupported);
+    assert(runtime.held.object_id==unsupported_cursor.object_id);
+    assert(state0.items[2]==-1);
 }
