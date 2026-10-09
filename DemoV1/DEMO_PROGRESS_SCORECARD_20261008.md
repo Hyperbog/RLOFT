@@ -1,5 +1,29 @@
 # Demo v1 — development progress versus formal acceptance
 
+**Original RES4 ground source base RESOLVED (source-only):**
+Direct `CODE.2` 16E55..16E90 establishes
+`INIT+0x0E` as the initial resource base stored at
+`258F8`. The original `1F388` adds that base to
+the signed level header +7 selector and calls
+bank-4 type-1 resource resolution. The native
+Level22 startup now combines actual original
+`INIT`, loaded Level22 header and original RES4,
+validates the exact 64×64 source and records the
+selected entry or precise error in opt-in capture.
+The bundled manual RES4 probe also reports the
+source-selected tile, not merely plausible candidates.
+[Evidence and technical boundary](ORIGINAL_LEVEL22_RES4_INIT_BASE_RESOLUTION_20261008.md).
+
+**Still an open visual gate:** the exact selected
+texture is **not yet drawn by live exploration**.
+Original FF50 row-span and C026/C027 upper/lower
+drawing mode must be modeled before enabling the
+separate 34998/34A74 native raster. All changes
+require a new **manual** Windows build; #640
+(160 tests) was at older source, while 164
+CTest registrations are expected now. No formal
+accepted gate has advanced above 1/5 (20%).
+
 **Original Level 22 RES4 ground identification checkpoint:**
 A dedicated original-media inspector now enumerates decoded
 64×64 EH type-1 resources in real RES4 without exporting or
