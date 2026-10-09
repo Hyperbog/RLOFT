@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace {
@@ -753,7 +754,25 @@ int main() {
     // scrolls, with bank sizes 7,6,10,4,2,6.
     constexpr std::size_t source_at=0x3AF24U+0xEEB0U;
     constexpr std::size_t cap_at=0x75F24U+0x6153U;
-    std::vector<std::uint8_t> code2_spell(cap_at+21U,0U);
+    constexpr std::size_t text_ptr_at=0x75F24U+0x6D9CU;
+    std::vector<std::uint8_t> code2_spell(text_ptr_at+12U,0U);
+    // These are the original CODE.2 object-2 pointer offsets and
+    // exact message bytes recovered independently from the binary.
+    put32(code2_spell,text_ptr_at,0x5A4U);
+    put32(code2_spell,text_ptr_at+4U,0x5D4U);
+    put32(code2_spell,text_ptr_at+8U,0x5E4U);
+    const auto original_msg=[&](std::size_t offset,
+                                 const std::string& value) {
+        const auto first=0x75F24U+offset;
+        for(std::size_t i=0;i<value.size();++i)
+            code2_spell[first+i]=static_cast<std::uint8_t>(value[i]);
+        code2_spell[first+value.size()]=0U;
+    };
+    original_msg(0x5A4U,
+        "you do not understand this spell to scribe it.");
+    original_msg(0x5D4U," SPELL SCRIBED.");
+    original_msg(0x5E4U,
+        "that spell is already in your spell book.");
     const std::array<std::uint32_t,12> ranges{{
         173,167,179,174,189,180,193,190,195,194,201,196
     }};
@@ -768,6 +787,11 @@ int main() {
         rloft::MageScrollScribeSource::from_code2(code2_spell);
     assert(scribe_source.id_ranges==ranges);
     assert(scribe_source.intelligence_capacities==capacities);
+    assert(scribe_source.cannot_understand_text==
+        "you do not understand this spell to scribe it.");
+    assert(scribe_source.success_suffix==" SPELL SCRIBED.");
+    assert(scribe_source.already_known_text==
+        "that spell is already in your spell book.");
     // A zero-filled/incorrect object-1 range block cannot be
     // interpreted as a source-certified Mage spell table.
     code2_spell[source_at]=0U;
@@ -806,6 +830,15 @@ int main() {
     assert(scribe_party.bytes[0x6AU]==0U);
     assert(scribe_inventory.held.object_id==0xA7);
     assert(scribe_inventory.held.known==1U);
+    assert(scribe_inventory.mage_scribe_feedback.has_value());
+    const auto known_feedback=*scribe_inventory.mage_scribe_feedback;
+    assert(known_feedback.kind==
+        rloft::MageScribeFeedbackKind::AlreadyKnown);
+    assert(known_feedback.message("")==
+        "that spell is already in your spell book.");
+    // No observed 30700 tick: NEVER substitute host time.
+    assert(!known_feedback.deadline_6da8.has_value());
+    assert(!scribe_inventory.expire_scribe_feedback_13184(0xFFFFFFFFU));
     scribe_party.bytes[0x6AU]=0xFFU;
 
     // 116CD requires the target low nibble to be 0xF.
@@ -814,8 +847,20 @@ int main() {
     // held scroll and known byte. Party known bits persist.
     scribe_inventory.held={0xA7,1U};
     assert(scribe_inventory.swap_ordinary_slot(
-        scribe_party,special_catalog,0U,0U,&scribe_flags)==
+        scribe_party,special_catalog,0U,0U,&scribe_flags,100U)==
         rloft::InventoryOrdinarySwapStatus::LearnedMageSpell);
+    assert(scribe_inventory.mage_scribe_feedback.has_value());
+    const auto scribbled=*scribe_inventory.mage_scribe_feedback;
+    assert(scribbled.kind==rloft::MageScribeFeedbackKind::Scribed);
+    assert(scribbled.t_spell_name_index==0x42U);
+    assert(scribbled.message("ARMOR")=="ARMOR SPELL SCRIBED.");
+    assert(scribbled.pending_6dac==1U);
+    assert(scribbled.deadline_6da8==154U);
+    assert(!scribe_inventory.expire_scribe_feedback_13184(154U));
+    assert(scribe_inventory.mage_scribe_feedback.has_value());
+    assert(scribe_inventory.expire_scribe_feedback_13184(155U));
+    assert(!scribe_inventory.mage_scribe_feedback.has_value());
+    assert(!scribe_inventory.expire_scribe_feedback_13184(156U));
     assert(scribe_party.bytes[0x6AU]==0U);
     assert(get_item(scribe_party,0U,0U)==0xA6);
     assert(scribe_party.bytes[0x12BU]==scribe_original[0x12BU]);
@@ -857,6 +902,26 @@ int main() {
     assert(scribe_flags[0xBAU/8U]==0x04U);
     assert(scribe_party.bytes[0x6AU+6U]==0xFFU);
     assert(scribe_inventory.held.object_id==173);
+    assert(scribe_inventory.mage_scribe_feedback.has_value());
+    assert(scribe_inventory.mage_scribe_feedback->kind==
+        rloft::MageScribeFeedbackKind::CapacityReached);
+    assert(scribe_inventory.mage_scribe_feedback->message("")==
+        "you do not understand this spell to scribe it.");
+
+    // DOS 32-bit addition is NOT wrap-corrected; 13184 uses
+    // unsigned comparison, even across the DWORD boundary.
+    scribe_inventory.held={173,1U};
+    assert(scribe_inventory.swap_ordinary_slot(
+        scribe_party,special_catalog,0U,0U,&scribe_flags,
+        0xFFFFFFF0U)==
+        rloft::InventoryOrdinarySwapStatus::MageScrollRejected);
+    assert(scribe_inventory.mage_scribe_feedback->deadline_6da8==
+        0x26U);
+    assert(scribe_inventory.expire_scribe_feedback_13184(
+        0xFFFFFFF1U));
+    assert(!scribe_inventory.mage_scribe_feedback.has_value());
+    scribe_inventory.reset_scribe_feedback_13118();
+    assert(!scribe_inventory.mage_scribe_feedback.has_value());
 
     // Without persistent 0x22200 state or without authentic
     // CODE.2 tables, no scroll/matrix/held mutation is safe.
