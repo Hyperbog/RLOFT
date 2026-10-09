@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 namespace {
@@ -745,6 +746,130 @@ int main() {
         rloft::InventoryOrdinarySwapStatus::Swapped);
     assert(get_item(special_party,0U,2U)==0xA6);
     assert(special_inventory.held.object_id==-1);
+
+    // Original CODE.2 11630 scroll table is in object-1
+    // at physical 3AF24+EEB0, NOT object-2 at 75F24+EEB0.
+    // Six 2-DWORD [last,first] pairs cover all 35 Mage
+    // scrolls, with bank sizes 7,6,10,4,2,6.
+    constexpr std::size_t source_at=0x3AF24U+0xEEB0U;
+    constexpr std::size_t cap_at=0x75F24U+0x6153U;
+    std::vector<std::uint8_t> code2_spell(cap_at+21U,0U);
+    const std::array<std::uint32_t,12> ranges{{
+        173,167,179,174,189,180,193,190,195,194,201,196
+    }};
+    for(std::size_t i=0;i<ranges.size();++i)
+        put32(code2_spell,source_at+i*4U,ranges[i]);
+    const std::array<std::uint8_t,21> capacities{{
+        9,6,6,6,6,6,6,6,6,6,7,7,7,9,9,11,11,14,18,18,18
+    }};
+    for(std::size_t i=0;i<capacities.size();++i)
+        code2_spell[cap_at+i]=capacities[i];
+    const auto scribe_source=
+        rloft::MageScrollScribeSource::from_code2(code2_spell);
+    assert(scribe_source.id_ranges==ranges);
+    assert(scribe_source.intelligence_capacities==capacities);
+    // A zero-filled/incorrect object-1 range block cannot be
+    // interpreted as a source-certified Mage spell table.
+    code2_spell[source_at]=0U;
+    bool invalid_source=false;
+    try {
+        (void)rloft::MageScrollScribeSource::from_code2(
+            code2_spell);
+    } catch(const std::runtime_error&) {
+        invalid_source=true;
+    }
+    assert(invalid_source);
+
+    // Use a complete synthetic OBJECTS ID corpus with original
+    // Mage book (0xA6) and scrolls (0xA7..0xC9). All spell
+    // matrix cells start 0xFF: low nibble 0xF means unavailable.
+    rloft::InventoryRuntimeState scribe_inventory{};
+    scribe_inventory.mage_scroll_source=scribe_source;
+    rloft::PartyImage scribe_party{};
+    scribe_party.bytes.fill(0xFFU);
+    scribe_party.bytes[0x10U]=0U;
+    scribe_party.bytes[0x11U]=0U;
+    scribe_party.bytes[0x39U]=12U; // CODE.2 6153[12]=7
+    set_item(scribe_party,0U,0U,0xA6);
+    std::array<std::uint8_t,32> scribe_flags{};
+    scribe_flags.fill(0x10U);
+    const auto scribe_original=scribe_party.bytes;
+
+    // 11630 sets story flag 0xBA BEFORE capacity and duplicate
+    // checks. A duplicate returns false and keeps the scroll.
+    scribe_party.bytes[0x6AU]=0U; // Armor already known
+    scribe_inventory.held={0xA7,1U};
+    assert(scribe_inventory.swap_ordinary_slot(
+        scribe_party,special_catalog,0U,0U,&scribe_flags)==
+        rloft::InventoryOrdinarySwapStatus::MageScrollRejected);
+    assert(scribe_flags[0xBAU/8U]==0x14U);
+    assert(scribe_party.bytes[0x6AU]==0U);
+    assert(scribe_inventory.held.object_id==0xA7);
+    assert(scribe_inventory.held.known==1U);
+    scribe_party.bytes[0x6AU]=0xFFU;
+
+    // 116CD requires the target low nibble to be 0xF.
+    // A success zeroes the ENTIRE matrix byte (including
+    // any high nibble), does not remove the book and consumes
+    // held scroll and known byte. Party known bits persist.
+    scribe_inventory.held={0xA7,1U};
+    assert(scribe_inventory.swap_ordinary_slot(
+        scribe_party,special_catalog,0U,0U,&scribe_flags)==
+        rloft::InventoryOrdinarySwapStatus::LearnedMageSpell);
+    assert(scribe_party.bytes[0x6AU]==0U);
+    assert(get_item(scribe_party,0U,0U)==0xA6);
+    assert(scribe_party.bytes[0x12BU]==scribe_original[0x12BU]);
+    assert(scribe_inventory.held.object_id==-1);
+    assert(scribe_inventory.held.known==0U);
+    for(std::size_t i=0;i<scribe_flags.size();++i)
+        assert(scribe_flags[i]==(i==0xBAU/8U?0x14U:0x10U));
+
+    // Different source range banks index distinct 10-byte levels.
+    for(const auto mapping : {
+            std::array<int,3>{174,1,0},
+            std::array<int,3>{189,2,9},
+            std::array<int,3>{194,4,0},
+            std::array<int,3>{201,5,5}}) {
+        const auto at=0x6AU+static_cast<std::size_t>(
+            mapping[1]*10+mapping[2]);
+        assert(scribe_party.bytes[at]==0xFFU);
+        scribe_inventory.held={
+            static_cast<std::int16_t>(mapping[0]),0U};
+        assert(scribe_inventory.swap_ordinary_slot(
+            scribe_party,special_catalog,0U,0U,&scribe_flags)==
+            rloft::InventoryOrdinarySwapStatus::LearnedMageSpell);
+        assert(scribe_party.bytes[at]==0U);
+        assert(scribe_inventory.held.object_id==-1);
+    }
+
+    // Capacity at actor+0x39 indexes the original 6153
+    // 21-entry byte table. Exactly six known spells at INT3
+    // prevents the seventh; the 0xBA flag still commits.
+    scribe_party.bytes[0x39U]=3U;
+    for(std::size_t i=0;i<6U;++i)
+        scribe_party.bytes[0x6AU+i]=0U;
+    scribe_party.bytes[0x6AU+6U]=0xFFU;
+    scribe_inventory.held={173,1U};
+    scribe_flags[0xBAU/8U]=0U;
+    assert(scribe_inventory.swap_ordinary_slot(
+        scribe_party,special_catalog,0U,0U,&scribe_flags)==
+        rloft::InventoryOrdinarySwapStatus::MageScrollRejected);
+    assert(scribe_flags[0xBAU/8U]==0x04U);
+    assert(scribe_party.bytes[0x6AU+6U]==0xFFU);
+    assert(scribe_inventory.held.object_id==173);
+
+    // Without persistent 0x22200 state or without authentic
+    // CODE.2 tables, no scroll/matrix/held mutation is safe.
+    const auto before_no_flag=scribe_party.bytes;
+    assert(scribe_inventory.swap_ordinary_slot(
+        scribe_party,special_catalog,0U,0U)==
+        rloft::InventoryOrdinarySwapStatus::Unsupported);
+    assert(scribe_party.bytes==before_no_flag);
+    scribe_inventory.mage_scroll_source.reset();
+    assert(scribe_inventory.swap_ordinary_slot(
+        scribe_party,special_catalog,0U,0U,&scribe_flags)==
+        rloft::InventoryOrdinarySwapStatus::Unsupported);
+    assert(scribe_party.bytes==before_no_flag);
 
     // CODE.2 raw WORD +35 low2 class1 is allowed, class2 rejected.
     nested.containers[0U].capacity_pounds=20U;
