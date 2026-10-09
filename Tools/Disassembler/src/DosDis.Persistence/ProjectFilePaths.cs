@@ -6,6 +6,16 @@ namespace DosDis.Persistence;
 /// </summary>
 public static class ProjectFilePaths
 {
+    /// <summary>
+    /// Preserve non-extension suffixes: CODE.1 and CODE.2 are different
+    /// original binaries and must not both suggest CODE.ddproj.
+    /// </summary>
+    public static string DefaultProjectName(string originalFilename)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(originalFilename);
+        return Path.GetFileName(originalFilename) + ".ddproj";
+    }
+
     public static string NextAvailable(string selectedPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(selectedPath);
