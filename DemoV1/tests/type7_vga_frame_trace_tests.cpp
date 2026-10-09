@@ -175,6 +175,15 @@ int main() {
     assert(recovered.trace->scene_calls[2].has_value());
     assert(recovered.scene_failures.empty());
 
+    // Strict tracing must not accept a placeholder as proof of an
+    // original fully occluded object.
+    rejected=false;
+    try {
+        (void)rloft::Type7VgaFrameTraceModel::build(
+            {unplanned},t,masks,0U,true,selective_lookup);
+    } catch(const std::invalid_argument&) {rejected=true;}
+    assert(rejected);
+
     // The strict build API must continue reporting the original error.
     rejected=false;
     try {
