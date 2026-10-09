@@ -153,9 +153,9 @@ try
             }
             else if (args.Contains("--indirect", StringComparer.Ordinal) || tableManifest is not null)
                 Print(new { CandidateGraph = graph16,
-                    IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(region, graph16),
+                    IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(region, graph16, mz),
                     DispatchTableEvidence = tableManifest is null ? null :
-                        Dos16DispatchTableRecovery.Inspect(region, graph16, tableManifest) });
+                        Dos16DispatchTableRecovery.Inspect(region, graph16, tableManifest, mz) });
             else Print(graph16);
         }
         else
