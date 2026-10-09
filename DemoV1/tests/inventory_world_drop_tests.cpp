@@ -36,6 +36,74 @@ int main() {
     rloft::LevelWorldState world{};
     rloft::InventoryRuntimeState inventory{};
 
+
+    // Binary-verified 2D5D0 mode 0x190: the last argument is
+    // an actor selector, not a Q16 radius. The exact sweep bounds
+    // are +/-0x5800 Q16. Coordinate 3.E000 covers cells 3 and 4.
+    auto live_npcs=rloft::NpcCatalog::parse({0U,0U,0U,0U});
+    const auto& lev=s.level;
+    (void)lev;
+    assert(rloft::InventoryWorldDropModel::placement_passable_2d5d0(
+        s,world,live_npcs,0x00048000U,0x0003E000U,0x190U));
+    assert(!rloft::InventoryWorldDropModel::placement_passable_2d5d0(
+        s,world,live_npcs,0x00048000U,0x0003E000U,0U));
+
+    // Two adjacent original cells participate near the Q16 seam.
+    s.level.cell_words[4U*30U+4U]=0x0001U;
+    assert(!rloft::InventoryWorldDropModel::placement_passable_2d5d0(
+        s,world,live_npcs,0x00048000U,0x0003E000U,0x190U));
+    s.level.cell_words[4U*30U+4U]=0x0801U;
+    assert(!rloft::InventoryWorldDropModel::placement_passable_2d5d0(
+        s,world,live_npcs,0x00048000U,0x0003E000U,0x190U));
+
+    // A 0x1000 low-six wall defers to original 1E8C8 type
+    // control: type1 bypasses, type8 blocks, no record bypasses.
+    s.level.cell_words[4U*30U+4U]=0x1001U;
+    assert(rloft::InventoryWorldDropModel::placement_passable_2d5d0(
+        s,world,live_npcs,0x00048000U,0x0003E000U,0x190U));
+    rloft::CellControlRecord ctrl{};
+    ctrl.raw[0]=1U;ctrl.raw[4]=4U;ctrl.raw[5]=4U;
+    s.level.group2.push_back(ctrl);
+    assert(rloft::InventoryWorldDropModel::placement_passable_2d5d0(
+        s,world,live_npcs,0x00048000U,0x0003E000U,0x190U));
+    s.level.group2[0].raw[0]=8U;
+    assert(!rloft::InventoryWorldDropModel::placement_passable_2d5d0(
+        s,world,live_npcs,0x00048000U,0x0003E000U,0x190U));
+    s.level.group2[0].raw[0]=1U;
+    s.level.cell_words[4U*30U+4U]=0x0080U;
+    // 1E930 position byte 0 passes dynamic cell.
+    assert(rloft::InventoryWorldDropModel::placement_passable_2d5d0(
+        s,world,live_npcs,0x00048000U,0x0003E000U,0x190U));
+    // Position byte 8 generates 0x8000 and mode 0x190 blocks.
+    s.level.group2[0].raw[6]=8U;
+    assert(!rloft::InventoryWorldDropModel::placement_passable_2d5d0(
+        s,world,live_npcs,0x00048000U,0x0003E000U,0x190U));
+    s.level.group2.clear();
+    s.level.cell_words[4U*30U+4U]=0U;
+
+    // Original 2C800: NPCS +0x16 plus 0x3E8, excluding
+    // NPC runtime flag bit 02; the item is never consumed here.
+    std::vector<std::uint8_t> npc_bytes(4U+0x45U,0U);
+    npc_bytes[0]=1U;
+    npc_bytes[4U+0x16U]=0x00U;
+    npc_bytes[4U+0x17U]=0x02U; // 0x0200 Q16 half extent
+    live_npcs=rloft::NpcCatalog::parse(npc_bytes);
+    rloft::LiveNpcRecord npc{};
+    npc.npc_type_id=0U;
+    npc.y_position_16_16=0x00048000U;
+    npc.x_position_16_16=0x0003E000U;
+    world.npcs.push_back(npc);
+    assert(!rloft::InventoryWorldDropModel::placement_passable_2d5d0(
+        s,world,live_npcs,0x00048000U,0x0003E000U,0x190U));
+    world.npcs[0].runtime_flags=0x02000000U;
+    assert(rloft::InventoryWorldDropModel::placement_passable_2d5d0(
+        s,world,live_npcs,0x00048000U,0x0003E000U,0x190U));
+    world.npcs.clear();
+
+    // 2C9DC player proximity is a distinct +/-0x8FA0 test.
+    assert(!rloft::InventoryWorldDropModel::placement_passable_2d5d0(
+        s,world,live_npcs,s.coordinate_b,s.coordinate_a,0x190U));
+
     // Empty cursor does not emit phantom family-C records.
     auto result=rloft::InventoryWorldDropModel::drop(
         world,s,inventory,definitions,tables,{});
