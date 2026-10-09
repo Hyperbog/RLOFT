@@ -7,6 +7,7 @@
 #include <functional>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 
 namespace rloft {
 namespace {
@@ -160,6 +161,20 @@ std::string MageScribeFeedback::message(
     if(kind==MageScribeFeedbackKind::Scribed)
         return std::string(actual_t_spell_name)+source_text;
     return source_text;
+}
+
+bool InventoryRuntimeState::expire_scribe_feedback_13184(
+    std::uint32_t observed_irq_tick_30700) noexcept {
+    if(!mage_scribe_feedback ||
+       !mage_scribe_feedback->deadline_6da8 ||
+       observed_irq_tick_30700<=
+           *mage_scribe_feedback->deadline_6da8)
+        return false;
+    // CODE.2 131AA/131B4 writes the zero deadline and zero
+    // pending byte before calling F790. The native presenter
+    // resolves ordinary description text on its next draw.
+    mage_scribe_feedback.reset();
+    return true;
 }
 
 MageScrollScribeSource MageScrollScribeSource::from_code2(
