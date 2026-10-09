@@ -428,3 +428,23 @@ Last confirmed successful Windows build remains run 37887821656.
 - R2.4 evidence-only implementation PARTIAL SOURCE COMPLETE; integration
   of automatic guard/stride proof remains separate and unverified.
 Reference: R2_TABLE_INDEX_EVIDENCE_SOURCE_CHECKPOINT.md.
+
+2026-10-09 | Owner-authorized Windows run #37983534580 triage:
+- GitHub Actions run https://github.com/Hyperbog/RLOFT/actions/runs/37983534580
+  targeted disassembler-foundation SHA 08dd3322d48167c6ee87525714a5755e6cfce786.
+  Result: FAILURE at step 4, building tests/DosDis.Smoke.
+- Verified via Windows job 113999719471 logs: Core, CLI and WPF
+  Desktop Release projects compiled with 0 warnings/0 errors; the
+  DosDis.Smoke compilation emitted 10 CS0841 diagnostics at Program.cs
+  lines 579-674, all caused by reading local nopBeforeTable before its
+  declaration. Synthetic smoke execution, ProjectSmoke build, packaging
+  and both artifact uploads were skipped; zero artifacts produced.
+- Fixed by moving the single synthetic nopBeforeTable fixture initialization
+  above first use, keeping its source bytes, assertions and value unchanged.
+  Fix committed to disassembler-foundation as e432640d34016e16149633275c43a27f471b8d6c.
+- Run #37983534580 remains FAILED at its old SHA. No new build/CI run
+  executed in this correction; do not claim G1/G2 success until a new
+  workflow_dispatch build on the post-fix HEAD completes successfully.
+- User can start the existing workflow via GitHub Actions, branch
+  disassembler-foundation. Distinguish previously compiled application
+  libraries from still-unverified regression tests and preview artifacts.
