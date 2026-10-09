@@ -234,6 +234,9 @@ void InventorySaveCodec::apply_to_matching_session(
     ExplorationSessionState& session,
     InventoryRuntimeState& inventory) {
     verify_matching_world(source,session);
+    if(inventory.open_container)
+        throw std::runtime_error(
+            "inventory-only LOAD cannot replace an open live container");
     validate_descriptors(source.inventory);
     // Avoid mutating live state until all source checks and the
     // inventory copy have succeeded; preserve the actual byte
