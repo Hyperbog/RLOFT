@@ -531,6 +531,52 @@ try
         jbeTaken.Region, duplicatedFailureExit).GuardedTableCandidates, 0,
         "duplicate exit instruction claims cannot satisfy unique guard proof");
 
+    // Identical file bytes with a forged control-flow label must not be
+    // accepted as a valid CMP, scale, transparent NOP or rejected branch.
+    // Those graph rows may arise from stale or externally edited snapshots.
+    var retypedExit = jbeTaken.Graph with {
+        Instructions = jbeTaken.Graph.Instructions.Select(i =>
+            i.Address.Offset == 0x105
+                ? i with { FlowControl = "Next" } : i).ToArray()
+    };
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(
+        jbeTaken.Region, retypedExit).GuardedTableCandidates, 0,
+        "original RET byte cannot masquerade as a sequential exit");
+
+    var retypedCompare = automaticGraph with {
+        Instructions = automaticGraph.Instructions.Select(i =>
+            i.Address.Offset == 0x100
+                ? i with { FlowControl = "IndirectCall" } : i).ToArray()
+    };
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(
+        automaticRegion, retypedCompare).GuardedTableCandidates, 0,
+        "source-backed CMP with falsified indirect-call label cannot prove bounds");
+    var retypedStride = automaticGraph with {
+        Instructions = automaticGraph.Instructions.Select(i =>
+            i.Address.Offset == 0x105
+                ? i with { FlowControl = "Return" } : i).ToArray()
+    };
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(
+        automaticRegion, retypedStride).GuardedTableCandidates, 0,
+        "source-backed SHL with falsified return label must invalidate stride proof");
+    var retypedNop = nopBeforeTable.Graph with {
+        Instructions = nopBeforeTable.Graph.Instructions.Select(i =>
+            i.Address.Offset == 0x107
+                ? i with { FlowControl = "IndirectBranch" } : i).ToArray()
+    };
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(
+        nopBeforeTable.Region, retypedNop).GuardedTableCandidates, 0,
+        "original NOP with forged indirect jump label cannot bridge the path");
+    Equal(Dos16UniqueTransparentPath.IsOriginalDecoded(
+        nopBeforeTable.Region, nopBeforeTable.Graph.Instructions
+            .Single(i => i.Address.Offset == 0x107)), true,
+        "unchanged original NOP can pass exact decoded instruction proof");
+    Equal(Dos16UniqueTransparentPath.IsOriginalDecoded(
+        nopBeforeTable.Region, retypedNop.Instructions
+            .Single(i => i.Address.Offset == 0x107)), false,
+        "re-decoder explicitly rejects a forged control flow classification");
+
+
 
     var jbTaken = AnalyzeBridgedTable(new byte[] {
         0x83, 0xFB, 0x03, 0x72, 0x03, // CMP BX,3; JB +3
