@@ -1,40 +1,39 @@
-# Ravenloft: Strahd's Possession — Original-Execution Fidelity Charter
+# Ravenloft: Strahd's Possession — Original Game Code Reconstruction Charter
 
-**Project policy:** binding requirement from the project owner; takes precedence over demo convenience, implementation shortcuts, and modernization proposals.  
-**Authority:** original shipped DOS executable behavior and original game assets, with provenance by game version.  
-**Sequence:** **Phase I: 100% original execution and fidelity first. Phase II: separate modern port only after Phase I is accepted.**
+**Non-negotiable project objective:** **Finish recreating the code necessary to run the COMPLETE ORIGINAL game first.** Reconstruct all required code, systems and original runtime behavior into one integrated, executable game. Only **after that entire recreation is finished** may work turn to modern-port design, bug fixes, enhancements, modding or QoL features.
 
-## Phase I — preserve and reproduce the original game exactly
+**No separate preliminary "Phase I" deliverable is intended.** The full original-game code recreation **is the current, complete project objective**. Level 22 is a reusable development testbed within that work, not a separate product or completion milestone that permits modern development.
 
-The primary objective is complete **original** *Ravenloft: Strahd's Possession* execution and behavior, from the first boot through character creation, all level traversal, events, encounters, inventory, spells, combat, effects, cinematics, credits/endgame, and original saved-game behavior. The aim is **100%** and there is no permission to silently redefine the target as a merely playable, improved, approximate or visually similar game.
+**Reference authority:** original shipped *Ravenloft: Strahd's Possession* code and game files, with version provenance. Original DOS execution is the behavioral oracle used to validate the **recreated code**. The reconstructed executable need not execute the DOS binary's literal machine instructions to fulfill this goal; it must reproduce the original game's complete behavior accurately.
 
-1. **No gameplay redesign or intentional correction.** Preserve original rules, bugs, limitations, edge cases, overflow/wraparound, rounding, combat formulae, input handling, script order, object identity, procedural quirks, RNG, save and memory-layout behavior. Report contradictions between original versions explicitly instead of selecting a preferred modern behavior.
-2. **Exact visual and audiovisual reference.** Compare indexed pixels, original palettes, resolution/aspect presentation, sprite art, clipping, text, font, animation frames, timing, transitions, music/SFX routing, sequencing, synchronization, game-clock and IRQ-dependent behavior against original DOS evidence. A visually acceptable approximation is not certification.
-3. **Preserve content and execution provenance.** Original CODE.1/CODE.2/EXE/BAT/DLL bytes and DAT/RES/ANM/source media are the reference. For each reconstructed routine or workflow, identify original offsets, file/version/hashes where available, exact original preconditions and side effects, plus native and original-DOS replay evidence. Never fabricate level destinations, dialogue, assets, cinematics, triggers, drops, rewards, character state or alternate gameplay semantics.
-4. **One continuous original game.** Its complete startup, party creation/load, level visits, event graph, original transitions, same-game cinematics, save/load and ending must work in the game's defined order with source-authentic persistent world/party/timer state.
-5. **Do not conflate fidelity with compilation.** Reverse engineered source, generated C++, authored unit tests, CTest pass and a native EXE establish *different* evidence from actual original instruction execution or verified behavioral equivalence. A reconstructed C++ implementation does not literally run the original DOS machine instructions. Clearly label it **reconstruction/test harness** until the original full-runtime equivalence is demonstrated; never count it as a certified original execution merely because it is source-informed or automated tests pass.
-6. **Preserve original releases.** Keep original assets and executable files immutable, and record differences between original release/patch/media versions. Do not patch the archival baseline to make the modern demo easier to implement.
-7. **Gate every claimed completion.** An individual system can be called **100% original fidelity** only with original executable/source evidence, exact relevant state/control/pixel/timing tests, and verified end-to-end context. The entire original game is not certified until **every** system, level, event and beginning-to-ending path is proven; explicitly track unknowns, known mismatches and pending DOS comparisons.
-8. **Correct course when fidelity diverges.** If an existing modern helper, approximation, protective recovery path, guessed value or convenience transition differs from original behavior, keep it isolated as provisional developer tooling and replace/disable it in the faithful baseline after verifying the original. Do not promote modern safety fixes as authentic game behavior.
-9. **Development discipline.** Commit and push every code, evidence, test and continuity checkpoint to Git. Builds and GitHub Actions remain manual and user-authorized. Report exact build commit and tests; do not infer successful behavior from an unbuilt revision.
+## Required end state — a faithful complete-game code recreation
 
-### Role of the existing DemoV1 native C++ work
+Recreate and integrate the actual functionality of the original game from startup to ending:
 
-The ongoing `demo-v1` Windows implementation, testbed, diagnostics, source-backed models and general level-state helper are **valuable research and verification infrastructure**, but they do not by themselves establish 100% **original execution**. In particular, the Part 9 `transition_to_level` API is a provisional bridge without evidence of original event exits, precise state lifecycle or DOS acceptance. Preserve the work and avoid inventing original-game behavior; do not confuse engineering readiness percentages (currently separately tracked) with original execution completion.
+1. **Recreate the original code behavior, not a modern redesign.** Preserve the original mechanics, game rules, numerical calculations, ordering, persistence, bugs, quirks, limitations, edge cases, timing, random-number behavior and input semantics. Implement equivalents when the host platform demands different APIs, but keep the game-visible original behavior intact.
+2. **Recreate every system and subsystem.** CODE.1 character creation and transfer; CODE.2 startup and game loop; levels, movements, collisions, combat, magic, inventory, NPCs, events, controls, UI, automap, sound, music, cinematics, story and endings; original SAVE/LOAD and all associated state. Do not omit a subsystem because the current test level does not exercise it.
+3. **Use the original data, not fabricated replacements.** Levels, creatures, objects, events, messages, graphics, animation and music must be loaded/decoded and consumed according to the original EXE, BAT, DLL, CODE.1/CODE.2, DAT, RES, ANM and other game files. Retain original game assets unmodified; distinguish release/patch variants.
+4. **A single complete original game.** Original launch → original character creation/load → all source-defined levels and event transitions → original ending; all changes to party/inventory, quest flags, world, timers, RNG and saves remain continuous. No per-level mock games or developer-only teleport paths may substitute for authored progression.
+5. **Faithful presentation and execution.** Reconstruct the real original rasterization, palette, text, animation, audio, input/IRQ-dependent cadence and game-state updates. Use DOS original-runtime captures/traces and source evidence to detect and fix divergences. An approximation or unverified replacement is provisional.
+6. **Implementation evidence is not acceptance.** Independently track disassembly/source mapping, reconstructed code, integration, authored regressions, actual compiled/build-tested results, and original-game comparison. Reproducing every original instruction byte is **not** the requirement: reconstructing all code needed to **run the original game faithfully** is. Do not confuse CTest success or source-only completion with an accepted, end-to-end original-game recreation.
+7. **Finish the whole recreation before modern changes.** No intentional bug fixes, graphics refreshes, mechanics changes, new gameplay features, accessibility/QoL redesign, modding-facing game alterations or independent modern port in the original-game recreation effort. Diagnostics and extraction/decompilation tools supporting faithful reconstruction remain appropriate.
+8. **Record all gaps honestly.** Explicitly identify the original function/offset/data source where known, remaining unknowns, incomplete wiring, missing transitions, render/timing mismatches and unavailable original comparisons. A subsystem cannot be declared complete merely because its basic behavior has been imitated.
+9. **Commit every checkpoint.** All reconstruction, tests, evidence and documentation must be committed/pushed to Git. Builds and CI are manual, only with explicit user authorization; record precisely which source commit a verified build used.
 
-Where literal original instruction execution is required, use the preserved authentic original DOS binaries and an appropriate validated execution environment; where reconstructed source or native code is used, prove output equivalence instead of representing its instruction stream as original.
+## Current development method
 
-## Phase II — modern port, only after original certification
+Continue the existing `demo-v1` work as the **actual code-recreation effort** toward the complete original game. The Level 22 developer slice tests original systems together and must feed directly into normal startup/character creation, following cinematics and each original authored level. Keep the reconstructed shared engine and original assets/source references; avoid rewriting for modernization now.
 
-**Only after complete Phase I acceptance** create a **separate branch** for a modern port with newly written/adapted code, bug fixes, enhanced graphics or interface, accessibility and quality-of-life changes, extensibility, modding APIs/tools, and optional gameplay improvements.
+The general in-memory `transition_to_level` helper is a provisional implementation step: it still needs source-proven authored exits, exact effects and full original save/state behavior. A green 172-test prior Windows build and 173 currently registered tests do not certify the incomplete whole-game recreation.
 
-- Maintain a separate immutable/reference original-fidelity baseline, not a moving mixture of original and modern behaviors.
-- All improvements must be explicitly labeled modern changes with their own tests and acceptance criteria.
-- Do not backport modern gameplay changes or altered assets/semantics into the original-fidelity branch.
-- Original-preservation tooling may continue during Phase I for research, comparison and inspection. Such tooling is not permission to modernize original gameplay.
+## After the full original-game code recreation is finished
 
-## Acceptance and reporting language
+**Then, and only then**, reconsider modern-port goals. At that later point, maintain the fully recreated original game as a separately preserved fidelity baseline and develop any modern version on an **independent branch**, including rewrites, intentional bug fixes, modern features, QoL, visuals and modding tools.
 
-Report **(a)** original behavior proven, **(b)** reconstructed implementation done, **(c)** compiled/tested, **(d)** observed native-vs-original parity, and **(e)** remaining uncertainty separately. Percentage-based subsystem readiness remains an engineering diagnostic and **must not be presented as 100% original-execution completion** without original-runtime evidence.
+Do not begin those considerations or implementation during the original-game recreation. There is **no intermediate "Phase I complete" authorization** based on archival work, a vertical slice, or a percentage readiness score.
 
-This charter governs future Part 9 and later development and supersedes any earlier note that treats native demo feature completion as permission to modernize the original game before full fidelity.
+## Reporting
+
+Describe the objective as **"complete faithful code recreation to run the original game"**. State implemented, wired, test-registered, built/tested, original-DOS-compared and remaining work separately. Continue percentage completion for every system and subsystem without presenting engineering readiness as evidence that the whole original game now runs correctly.
+
+This charter supersedes the previous two-phase/literal-original-instruction-execution interpretation.

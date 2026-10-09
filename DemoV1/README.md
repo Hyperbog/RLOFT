@@ -1,8 +1,8 @@
 # Ravenloft Demo Build v1
 
-## Mandatory phase separation: exact original first
+## Mandatory objective: fully recreate the code to run the original game
 
-The [Original-Execution Fidelity Charter](ORIGINAL_EXECUTION_FIDELITY_CHARTER.md) is binding. **Phase I is complete, 100% original-game execution and fidelity** (including original bugs, quirks, audiovisual timing, UI, events and SAVE semantics). Native reimplementation and testbed progress do **not** certify literal original DOS execution or source-vs-DOS parity. **Only after that original baseline is fully accepted** will the project branch into a separate modern port for rewritten code, fixes, new features, modding and QoL. Do not change authentic gameplay to modernize the baseline.
+The [Original-Game Code Reconstruction Charter](ORIGINAL_EXECUTION_FIDELITY_CHARTER.md) is binding. **Complete the full code recreation necessary to execute the entire original game faithfully** before considering anything modern. This encompasses every original subsystem, startup/character creation, level, encounter, mechanic, event, cinematic, ending and SAVE/LOAD operation, including the original bugs and quirks. The native code being built is this reconstruction—not merely disposable research and not a preliminary Phase I. Check its behavior against the original DOS game; it need not literally run the original DOS instruction stream. **Only after the complete original game recreation is done** may a separate modern branch be considered for changes, fixes, features, modding or QoL. No modernization is authorized yet.
 
 
 ## Current verified build and continuing game-engine checkpoint

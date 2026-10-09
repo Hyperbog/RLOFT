@@ -1,11 +1,11 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
 
-## Highest-priority project requirement — original execution before modernization
+## Highest-priority project requirement — finish recreating the entire original game code
 
-**[Original-Execution Fidelity Charter](ORIGINAL_EXECUTION_FIDELITY_CHARTER.md) governs all work on this branch.** Phase I targets **100% original game execution and behavior** first: preserve original rules **including bugs and quirks**, data/graphics/sound, instruction-dependent numeric behavior, exact timing, story events, cinematics, SAVE/LOAD and the complete original gameplay progression. Native reconstructed C++ modules are research/test infrastructure until exact original-runtime equivalence is established; they are **not** by themselves literal execution of the DOS machine code or certified original fidelity.
+**[Original-Game Code Reconstruction Charter](ORIGINAL_EXECUTION_FIDELITY_CHARTER.md) governs this project.** The current goal is to **recreate all code needed to run the complete original Ravenloft game faithfully**: original startup, character creation, mechanics (including bugs and quirks), data/graphics/audio, timing, story, cinematics, gameplay transitions, endgame and SAVE/LOAD. This is the entire current development objective, **not a preliminary Phase I** or a completed research-only stage. Reconstructed native code is the implementation being built and compared against original DOS behavior; literal re-execution of each original DOS instruction is not required.
 
-**Only after full original fidelity is accepted** create a **different branch** for a separately identified modern port: newly written code, bug fixes, new features, modding interfaces and tools, UI and quality-of-life improvements. Do not blend modernization into the archival/original baseline or substitute convenient invented behavior. Preserve original game files unchanged. **Builds remain manually authorized and all work committed.**
+**Only once the full original-game code recreation is finished** will a modern port even be considered, on a **separate future branch**. Until then, do not implement intentional bug fixes, changed gameplay, new features, modding-facing game changes or QoL redesign. Preserve original assets unchanged. **Commit every checkpoint; builds require manual user authorization.**
 
 ## Mandatory system and subsystem percentage reporting
 
