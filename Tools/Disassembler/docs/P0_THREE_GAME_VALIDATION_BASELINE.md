@@ -71,3 +71,27 @@ alternative at Strahd `1:0xB04B`.
 **Never store Menzo/Stone originals in a Strahd fixture or identify either by
 the shared filename `CODE.1`.** The original Strahd game files were not
 committed or uploaded to CI. Build automation remains manual-only.
+
+## Source-bound known-answer validator (source checkpoint)
+
+`KnownAnswerValidator` now accepts JSON manifests for a single original
+executable (game ID, module, **complete** SHA-256, byte length, expected LE
+format, independent research source and typed known-answer expectations).
+A hash/length mismatch **rejects** validation rather than comparing a
+similarly named `CODE.1` from another game.
+
+The initial `tests/fixtures/strahd-code1-known-answer-v1.json` consists
+solely of independently archived observations: the one-byte `C3` callback
+at `1:0xFC97` and two embedded four-byte non-code literals. Optional archive
+and internal path are null because these fields are not established by the
+cited audit; never invent them. The validator does **not** modify seeds,
+code/data classifications, names, or original bytes.
+
+A comparison may report `match`, `missing`, `conflict`,
+`not-observed`, or `not-classified`. Unbenchmarked instructions are
+counted as such, **not** automatically marked incorrect. An independently
+verified callback that is absent from a one-seed traversal remains
+`not-observed`, not disproven. The CLI accepts `--known-answer
+reference.json --validation-out results.json` with `analyze` only. The
+result is JSON-only, created atomically without replacing existing evidence.
+Regression tests were added but **not executed**.

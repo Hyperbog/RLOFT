@@ -248,3 +248,30 @@ status when an alternative decode is rejected. Both have new synthetic checks,
 Original Strahd research is a separate reference, never automatically promoted
 to Menzo/Stone facts. Overall estimate remains **43%**, Windows only, no
 build requested.
+
+## P0: first source-bound known-answer validator (source checkpoint)
+
+The independent Strahd CODE.1 audit is represented in a **data-only,
+source-hash-gated** manifest at
+`tests/fixtures/strahd-code1-known-answer-v1.json`. It contains no original
+game bytes other than a single separately documented opcode expectation.
+`KnownAnswerValidator` compares explicitly documented instruction entries,
+non-code intervals, direct edges and LE fixups against a selected original
+and the candidate graph; it reports `match`, `conflict`, `missing`,
+`not-observed`, and `not-classified` rather than silently teaching
+Strahd's verified classifications to the analyzer.
+
+Example local CLI invocation (source only; **not compiled or tested**):
+
+```powershell
+DosDis.Cli.exe analyze "C:\\Games\\Strahd\\CODE.1" --known-answer tests/fixtures/strahd-code1-known-answer-v1.json --validation-out strahd-validation.json
+```
+
+The validator requires the **full** SHA-256 and byte length to match;
+Menzo/Stone are rejected when matched against the Strahd fixture. The manifest
+does not speculate about an unavailable original archive/internal path.
+The comparison result is local, machine-readable and non-overwriting, with no
+game-specific source names copied into another executable. An incomplete
+manifest does not establish negative/exhaustive instruction coverage.
+Version-to-version diff and comprehensive independently checked function
+boundaries remain future work. Overall progress remains **43%**.

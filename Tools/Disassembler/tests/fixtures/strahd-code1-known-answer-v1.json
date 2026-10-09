@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "gameId": "strahd",
+  "module": "CODE.1",
+  "sourceSha256": "fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed",
+  "sourceByteLength": 277787,
+  "executableFormat": "LE",
+  "sourceEvidence": "Code1/FINAL_BINARY_AUDIT.md;Code1/PROGRESS.md",
+  "verifiedInstructions": [
+    {
+      "address": {
+        "object": 1,
+        "offset": 64663
+      },
+      "originalHex": "C3",
+      "evidenceId": "CODE1-FINAL-FC97-RET-CALLBACK"
+    }
+  ],
+  "verifiedNonCode": [
+    {
+      "object": 1,
+      "begin": 63411,
+      "endExclusive": 63415,
+      "evidenceId": "CODE1-FINAL-F7B3-LITERAL"
+    },
+    {
+      "object": 1,
+      "begin": 63677,
+      "endExclusive": 63681,
+      "evidenceId": "CODE1-FINAL-F8BD-LITERAL"
+    }
+  ],
+  "verifiedEdges": [],
+  "verifiedFixups": [],
+  "sourceArchive": null,
+  "internalPath": null
+}

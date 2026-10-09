@@ -291,6 +291,75 @@ try
     }
     finally { Directory.Delete(traceFolder, recursive: true); }
     Console.WriteLine("PASS: opt-in atomic local decision trace export and overwrite protection");
+    // P0: independently supplied known-answer expectations are constrained to
+    // a full source SHA-256/length; they never rewrite candidate findings.
+    var expectations = new KnownAnswerManifest(
+        1, "synthetic", "CODE.1", graphImage.ArtifactSha256, graphBytes.Length,
+        "LE", "synthetic-fixture-research",
+        new[] {
+            new KnownInstructionExpectation(new FlowAddress(1, 0), "E80B000000", "verified-call"),
+            new KnownInstructionExpectation(new FlowAddress(1, 0x1D), "C3", "missing-entry")
+        },
+        new[] { new KnownNonCodeExpectation(1, 6, 10, "literal-data") },
+        new[] { new KnownEdgeExpectation(new FlowAddress(1, 0),
+            new FlowAddress(1, 0x10), "call", "verified-call-target") },
+        Array.Empty<KnownFixupExpectation>());
+    var validation = KnownAnswerValidator.Validate(graph, graphImage,
+        BinaryArtifact.FromBytes(graphBytes), expectations);
+    Equal(validation.GameId, "synthetic", "known-answer result keeps game namespace");
+    Equal(validation.Matched, 3, "one instruction, one data protection and one flow edge");
+    Equal(validation.NotObserved, 1, "unreached known entry does not become verified code");
+    Equal(validation.Conflicting, 0, "synthetic graph has no contradiction");
+    Equal(validation.UnbenchmarkedCandidateInstructions, 3,
+        "partial fixture does not certify other decoded instructions");
+    using (var validationJson = JsonDocument.Parse(KnownAnswerValidator.BuildJson(validation)))
+    {
+        Equal(validationJson.RootElement.GetProperty("analysisStatus").GetString(),
+            "candidate-comparison-not-certification", "reference comparison never certifies entire analysis");
+        Equal(validationJson.RootElement.GetProperty("findings").GetArrayLength(), 4,
+            "all independent expectations retain explicit results");
+    }
+    bool rejectedForeignSource = false;
+    try
+    {
+        KnownAnswerValidator.Validate(graph, graphImage, BinaryArtifact.FromBytes(graphBytes),
+            expectations with { SourceSha256 = new string('0', 64), GameId = "stone" });
+    }
+    catch (InvalidDataException) { rejectedForeignSource = true; }
+    Equal(rejectedForeignSource, true, "a Stone/Menzo manifest cannot silently validate Strahd or synthetic bytes");
+    var wrongByteExpectation = expectations with {
+        VerifiedInstructions = new[] {
+            new KnownInstructionExpectation(new FlowAddress(1, 0), "9090909090", "wrong-hex")
+        },
+        VerifiedNonCode = Array.Empty<KnownNonCodeExpectation>(),
+        VerifiedEdges = Array.Empty<KnownEdgeExpectation>()
+    };
+    var wrongByteReport = KnownAnswerValidator.Validate(graph, graphImage,
+        BinaryArtifact.FromBytes(graphBytes), wrongByteExpectation);
+    Equal(wrongByteReport.Conflicting, 1, "byte disagreement reported as conflict");
+    string validationFolder = Path.Combine(Path.GetTempPath(), "dosdis-known-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(validationFolder);
+    try
+    {
+        string manifestPath = Path.Combine(validationFolder, "expectations.json");
+        File.WriteAllText(manifestPath, JsonSerializer.Serialize(expectations,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        var restored = KnownAnswerValidator.ReadManifest(manifestPath);
+        Equal(restored.SourceSha256, graphImage.ArtifactSha256,
+            "known-answer manifest round-trip preserves original SHA-256");
+        string resultPath = Path.Combine(validationFolder, "result.json");
+        KnownAnswerValidator.WriteNew(resultPath, validation);
+        string resultBytes = File.ReadAllText(resultPath);
+        bool overwriteRejected = false;
+        try { KnownAnswerValidator.WriteNew(resultPath, validation); }
+        catch (IOException) { overwriteRejected = true; }
+        Equal(overwriteRejected, true, "known-answer report never overwrites older comparison");
+        Equal(File.ReadAllText(resultPath), resultBytes, "older validation report preserved");
+        Equal(Directory.EnumerateFiles(validationFolder, "*.part").Any(), false,
+            "validation export leaves no temporary files");
+    }
+    finally { Directory.Delete(validationFolder, recursive: true); }
+    Console.WriteLine("PASS: source-bound known-answer validation, uncertainty and nonoverwriting export");
     // Part 25: user-triggered offline exports preserve evidence classification,
     // omit potentially proprietary instruction bytes by default, and never
     // overwrite an existing analyst report.

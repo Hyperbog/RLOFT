@@ -41,7 +41,8 @@ try
     {
         Console.Error.WriteLine("Usage: dosdis inspect|fixups|memory|disasm|analyze|report <file> [options]\n" +
             "Analyze/report: [--seed 1:0x2975C] [--data 1:0x100:0x110] [--include-entry] [--max-instructions 100000] [--relocated]\n" +
-            "Analyze: [--max-output 300] [--trace-out decisions.json] [--trace-capacity 512];\n" +
+            "Analyze: [--max-output 300] [--trace-out decisions.json] [--trace-capacity 512]\n" +
+            "         [--known-answer reference.json --validation-out results.json];\n" +
             "Report: --out path.json|path.txt [--include-bytes] (no overwrite)");
         return 2;
     }
@@ -101,8 +102,25 @@ try
             ? new AnalysisDecisionTrace(int.Parse(
                 Option(args, "--trace-capacity", "512"), CultureInfo.InvariantCulture))
             : null;
+        bool hasReference = args.Contains("--known-answer", StringComparer.Ordinal);
+        bool hasValidationPath = args.Contains("--validation-out", StringComparer.Ordinal);
+        if (hasReference != hasValidationPath)
+            throw new ArgumentException("--known-answer and --validation-out must be supplied together.");
+        if (args[0] != "analyze" && hasReference)
+            throw new ArgumentException("Known-answer validation is supported only by analyze.");
+        if (args.Count(x => x == "--known-answer") > 1 ||
+            args.Count(x => x == "--validation-out") > 1)
+            throw new ArgumentException("Known-answer validation options cannot be repeated.");
+        KnownAnswerManifest? reference = hasReference
+            ? KnownAnswerValidator.ReadManifest(Option(args, "--known-answer", "")) : null;
         var graph = ControlFlowAnalysis.Analyze(image, seeds, data, maxInstructions,
             args.Contains("--relocated", StringComparer.Ordinal), decisionTrace: decisionTrace);
+        if (reference is not null)
+        {
+            var validation = KnownAnswerValidator.Validate(graph, image, artifact, reference);
+            KnownAnswerValidator.WriteNew(Option(args, "--validation-out", ""), validation);
+            Console.Error.WriteLine("Known-answer candidate comparison saved; source identity verified.");
+        }
         if (decisionTrace is not null)
         {
             decisionTrace.WriteNew(tracePath);
