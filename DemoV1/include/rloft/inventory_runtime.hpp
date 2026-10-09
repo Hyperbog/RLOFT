@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <vector>
 #include <optional>
+#include <string>
+#include <string_view>
 
 #include "rloft/exploration_state.hpp"
 #include "rloft/game_source.hpp"
@@ -84,9 +86,31 @@ enum class InventoryOrdinarySwapStatus : std::uint8_t {
 struct MageScrollScribeSource final {
     std::array<std::uint32_t,12> id_ranges{};
     std::array<std::uint8_t,21> intelligence_capacities{};
+    // Original CODE.2 object-2 DGROUP pointer literals 6D9C,
+    // 6DA0, 6DA4. Do not replace these with translated guesses.
+    std::string cannot_understand_text;
+    std::string success_suffix;
+    std::string already_known_text;
 
     [[nodiscard]] static MageScrollScribeSource from_code2(
         const std::vector<std::uint8_t>& code2);
+};
+
+// Source-order 116B4/11757 and 11717/1176A message branch.
+// The game writes 6DAC=1 and 6DA8=30700()+0x36 on BOTH success
+// and rejection. This is NOT the combat CF54 +0x5A timer.
+enum class MageScribeFeedbackKind : std::uint8_t {
+    Scribed, CapacityReached, AlreadyKnown
+};
+struct MageScribeFeedback final {
+    MageScribeFeedbackKind kind{MageScribeFeedbackKind::Scribed};
+    std::uint16_t t_spell_name_index{};
+    std::string source_text;
+    std::uint8_t pending_6dac{1U};
+    std::optional<std::uint32_t> deadline_6da8;
+    // Only success prefixes resource T[0x42 + bank*10 + slot].
+    [[nodiscard]] std::string message(
+        std::string_view actual_t_spell_name) const;
 };
 
 struct InventoryRuntimeState final {
@@ -95,6 +119,7 @@ struct InventoryRuntimeState final {
 
     HeldItemState held{};
     std::optional<MageScrollScribeSource> mage_scroll_source;
+    std::optional<MageScribeFeedback> mage_scribe_feedback;
     std::array<ContainerRuntimeState, kRuntimeDescriptorCount> containers{};
     std::optional<OpenInventoryContainer> open_container;
 
@@ -116,7 +141,8 @@ struct InventoryRuntimeState final {
         const ObjectCatalog& objects,
         std::size_t actor,
         std::size_t slot,
-        std::array<std::uint8_t,32>* persistent_event_flags=nullptr);
+        std::array<std::uint8_t,32>* persistent_event_flags=nullptr,
+        std::optional<std::uint32_t> observed_irq_tick_30700=std::nullopt);
 
     // CODE.2 211D8 flag 08h generic actor-panel fallback:
     // place a held ordinary object in the first empty slot 0..11,
