@@ -309,3 +309,54 @@ earlier blockers 2 and 4, but do not certify
 the full inventory without real Windows tests and
 visual comparison. The user's full inventory build
 remains deferred as requested.
+
+
+## Subsequent source-art breakthrough: original RES2 container surround
+
+A direct disassembly of `CODE.2` physical
+`0x4B994..0x4BADF` (logical `0x10A70`)
+established the original **decorative container surround**,
+not just its interior item rectangles.
+
+1. The original hand-container open routine at
+   physical `0x4BED0..0x4BF09` stores the
+   **container subtype** in actor-specific
+   `DGROUP:6FA0`, the actual descriptor index
+   in `6FA1` and the source object ID in `6FA3`.
+   These are distinct fields.
+2. When the container presentation selects mode 3,
+   original `0x4B9EF..0x4BA03` uses raster bank
+   **RES2** and absolute local entry **`9+subtype`**,
+   draws at VGA `row=0xCE` and actor-column
+   `actor*0x50` using `0x69434`.
+3. `0x69434` obtains the authentic raster
+   through `0x6A1C0`, then copies all original
+   decoded lines through `0x693C8`: this is
+   original **bitmap artwork**, not a solid-color
+   gray box or a per-cell rectangle.
+4. Only **after** the genuine RES2 surround does
+   `0x4BA48..0x4BA65` invoke the original
+   black indexed-VGA cell fill with dimensions
+   32 rows × 16 columns for each descriptor slot.
+   `0x4BA75..0x4BABD` then draws the matching
+   original RES1 object graphic in occupied cells.
+
+Native `PartyModalPresenter::draw_open_container`
+now draws `assets_.type1(2, 9 + desc.subtype)`
+at exact screen row `0xCE`, actor-column
+`actor*80`, before the black 32x16 slots and
+original RES1 inventory icons. The previously
+fabricated individual gray cell frames have been
+**removed**, avoiding a visible color/art difference.
+
+`InventoryScreenModel::original_container_res2_graphic`
+checks shipped subtype 0..6, returning exactly
+entries 9..15. Expanded
+`inventory_screen_tests` tests all seven mappings
+and rejects invalid subtype 7.
+
+This fixes the original source **container surround
+selection**. Actual DOS visual palette, clipping,
+the independent top item ribbon, and saved state
+still require manual Windows verification.
+No Windows build was initiated.
