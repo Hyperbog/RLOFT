@@ -1464,7 +1464,11 @@ int run_exploration(
                     presented.surface_coverage.type7_calls_rasterized) +
                 L"/" + std::to_wstring(
                     presented.surface_coverage.type7_calls_rasterized +
-                    presented.surface_coverage.type7_scene_calls_pending) +
+                    presented.surface_coverage.type7_scene_calls_pending +
+                    presented.surface_coverage.type7_plan_calls_failed) +
+                L" | RES3 plan errors " +
+                std::to_wstring(
+                    presented.surface_coverage.type7_plan_calls_failed) +
                 L" | RES3 trace errors " +
                 std::to_wstring(
                     frame.scene_vga_scene_failures.size() +
