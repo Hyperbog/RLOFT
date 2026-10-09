@@ -1094,41 +1094,10 @@ int run_exploration(
             // to 44h. Only this modal accepts world-drop commands.
             if(const auto key=host.consume_key_event()) {
                 if(*key==0x44) {
-                    const auto& level=runtime.session().level;
-                    const auto free_cell=[&](
-                        std::uint32_t y,std::uint32_t x,
-                        std::uint32_t radius) -> bool {
-                        // Source 2195C calls original 2D5D0(y,x,0x190).
-                        // This safety precheck rejects solid original
-                        // map cells. More detailed dynamic 2D5D0
-                        // actors/events still require source validation.
-                        const auto min_col=static_cast<std::int32_t>(
-                            static_cast<std::int16_t>(
-                                (x-radius)>>16U));
-                        const auto max_col=static_cast<std::int32_t>(
-                            static_cast<std::int16_t>(
-                                (x+radius)>>16U));
-                        const auto min_row=static_cast<std::int32_t>(
-                            static_cast<std::int16_t>(
-                                (y-radius)>>16U));
-                        const auto max_row=static_cast<std::int32_t>(
-                            static_cast<std::int16_t>(
-                                (y+radius)>>16U));
-                        for(int col=min_col;col<=max_col;++col)
-                            for(int row=min_row;row<=max_row;++row) {
-                                if(col<0 || row<0 ||
-                                   col>=level.width ||
-                                   row>=level.height)return false;
-                                const auto index=static_cast<std::size_t>(
-                                    row*level.width+col);
-                                if(index>=level.cell_words.size() ||
-                                   (level.cell_words[index]&0x3FU)!=0U)
-                                    return false;
-                            }
-                        return true;
-                    };
-                    const auto dropped=runtime.drop_held_inventory_item(
-                        free_cell);
+                    // Original 2D5D0(y,x,0x190) now belongs to the
+                    // runtime. The mode number must never be used
+                    // as a Q16 radius for a UI-side approximation.
+                    const auto dropped=runtime.drop_held_inventory_item();
                     if(dropped.status==
                         rloft::InventoryWorldDropStatus::Dropped) {
                         displayed_scene_frame.reset();
