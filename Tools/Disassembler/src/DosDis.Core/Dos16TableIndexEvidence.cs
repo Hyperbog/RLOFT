@@ -5,14 +5,15 @@ namespace DosDis.Core;
 /// CS:[BX+disp16] pointer storage. Never verified execution destinations.
 /// </summary>
 public sealed record Dos16TableIndexSiteEvidence(
-    Dos16Address Site, string Status, string PointerKind,
-    ushort Table, int DeclaredEntries, IReadOnlyList<int> PossibleIndices,
+    Dos16Address Site, string Status, string StorageValidationStatus,
+    string PointerKind, ushort Table, int DeclaredEntries,
+    IReadOnlyList<int> PossibleIndices,
     IReadOnlyList<Dos16TableEntry> CandidateStoredEntries, string Evidence);
 
 public sealed record Dos16TableIndexEvidenceReport(
     string SourceSha256, string MappingEvidence, string AnalysisStatus,
     bool Incomplete, int CandidateSites, int UnresolvedSites,
-    IReadOnlyList<Dos16TableIndexSiteEvidence> Sites);
+    int CodeDataConflicts, IReadOnlyList<Dos16TableIndexSiteEvidence> Sites);
 
 /// <summary>
 /// Read-only intersection of independently mapped pointer storage and
@@ -36,7 +37,7 @@ public static class Dos16TableIndexEvidence
         if (flow.Incomplete)
             return new Dos16TableIndexEvidenceReport(region.SourceSha256,
                 region.MappingEvidence, "incomplete-register-flow;" +
-                flow.AnalysisStatus, true, 0, 0,
+                flow.AnalysisStatus, true, 0, 0, 0,
                 Array.Empty<Dos16TableIndexSiteEvidence>());
 
         // The manifest's SHA, explicit count, near/far layout, original
@@ -105,14 +106,16 @@ public static class Dos16TableIndexEvidence
                 evidence = "site-not-reached-in-candidate-entry-flow";
             }
             results.Add(new Dos16TableIndexSiteEvidence(finding.Site,
-                status, finding.PointerKind, finding.Table, finding.RequestedCount,
-                indices, entries, evidence));
+                status, finding.Status, finding.PointerKind, finding.Table,
+                finding.RequestedCount, indices, entries, evidence));
         }
         int accepted = results.Count(x =>
             x.Status == "candidate-bounded-byte-offset-and-stored-entries");
         return new Dos16TableIndexEvidenceReport(region.SourceSha256,
             region.MappingEvidence,
             "candidate-unverified;external-bound;no-CFG-or-runtime-target-promotion",
-            false, accepted, results.Count - accepted, results.AsReadOnly());
+            false, accepted, results.Count - accepted,
+            results.Count(x => x.StorageValidationStatus == "rejected-code-data-overlap"),
+            results.AsReadOnly());
     }
 }
