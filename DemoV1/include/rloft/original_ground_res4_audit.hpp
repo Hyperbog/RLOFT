@@ -34,8 +34,14 @@ public:
     [[nodiscard]] static OriginalGroundRes4Report inspect(
         const ResArchive& archive);
 
-    // The binary's runtime base must be independently recovered.
-    // If the base is not proven, enumerate and report instead.
+    // CODE.2 16E58..16E90 reads 2 bytes from INIT +0x0E into
+    // a zeroed DWORD, then copies it verbatim to mutable 258F8.
+    [[nodiscard]] static int base_from_init(
+        const std::vector<std::uint8_t>& original_init);
+
+    // CODE.2 1F388 selects signed(level header+7) + INIT[0x0E].
+    // Only the value from the original INIT is accepted by the
+    // production caller; callers may inject bases in synthetic tests.
     [[nodiscard]] static int absolute_index(
         int source_relative_selector, int verified_runtime_base,
         int original_entry_count);
