@@ -142,3 +142,32 @@ original indexed-pixel equivalence.
 
 Formal demo acceptance remains **1/5 gates (20%)**;
 whole-game completion is not a meaningful percentage yet.
+
+## Safety hardening after initial source integration
+
+The RES4 scan now checks the original EH type-1 *descriptor
+shape* **before** calling the decompressor, avoiding
+unnecessary large allocations for unrelated portraits and
+backgrounds. It recognizes both original valid 64×64
+layouts:
+
+1. One 64-row, 64-pixel-width raster
+   (`count=1,height=64,width_units=8`).
+2. The original CODE.1 DC90 transform for 64 one-row
+   elements (`count=64,height=1,width_units=8,
+   transform!=0`), which the existing resource decoder
+   reconstructs as one 64-row image.
+
+The expanded synthetic CTest now compares **three**
+original-layout candidates—raw, compression-3 LZSS and
+DC90-transformed—all decoding into **identical 4096
+palette-index bytes**. Both malformed candidate bodies
+and non-64-square resources remain rejected or excluded.
+
+The command-line tool also reports each candidate's
+`implied_base_unverified = absolute_entry - 55`.
+This is **not** a measured value of `DGROUP:258F8`,
+and no candidate is selected automatically.
+
+These corrections remain unbuilt until the next
+manually dispatched Windows workflow.
