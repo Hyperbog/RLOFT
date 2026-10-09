@@ -94,3 +94,16 @@ actor/world state: those are required before declaring pixel parity.
 - Build new source on **manually triggered** GitHub Actions; keep Linux optional/off. No automatic builds or unsupported 100% claims.
 
 **Formal accepted demo gates remain 1/5 (20%).** This score reflects official acceptance only; it does not represent the total game engineering percentage.
+
+
+## Subsequent original-binary proof and collision hardening
+
+[See the source and gameplay checkpoint](ORIGINAL_FRESH_START_TIMING_COLLISION_AND_GROUND_AUDIT_20261008.md).
+Actual `CODE.2` bytes `2060C..2076D` establish the
+fresh-party default cell (4.5,4.5), level22 and heading270
+*independently of the unrelated SAVE.DAT*. The original
+entity collision model now respects the 0x54 object
+level/state gate and nonblocking fallthrough, rather
+than treating any overlap as an action. Pending manual
+Windows build, actual DOS IRQ timing and full 34A74
+textured-floor raster.
