@@ -1,5 +1,53 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Part 8 extended — original Level16 Seed ritual and Holy Symbol grant
+
+The original CODE.2 `21880` Level16
+item `0x89` predicate is reconstructed:
+the four embedded `207E0` site pairs
+(13,19), (11,21), (13,23), (15,21)
+each require a family-C loose object
+of type 137, using original Q16
+coordinate high words. Persistent
+story flag 0x44 suppresses repeat
+completion. The ordinary drop path
+now admits non-completing Level16
+seeds, correctly models source
+oldest-item eviction at 300 entries,
+and refuses only an actual triggering
+fourth placement until the authored
+follow-on calls are available.
+
+The original follow-on sequence is
+verified as `1C124(0x44)`,
+numbered interactive event `13EF8(8)`,
+and `15050(0x73)` rewarding
+the HOLY SYMBOL OF RAVENKIND.
+The latter reward-transfer operation
+is now separately source modeled
+for empty cursor, first free active
+actor ordinary slot 0..11 (known
+bit cleared), and guarded world
+spawn fallback. Reward transfer is
+NOT prematurely invoked on a
+blocked Level16 completion event.
+
+Expanded existing CTest assertions
+cover every site, flag gating,
+wrong/duplicate items, Q16 fraction,
+max-300 source eviction, fourth
+placement fail-closed behavior,
+item grant priority, and full-party
+fallback. No new CTest target:
+**170 registered tests / 19 Quick**.
+No Windows build or test execution
+has occurred for this source.
+Numbered event 8 presentation
+and full completion remain
+unimplemented; engineering tracker
+**56.25%**, inventory PARTIAL.
+
+
 ## Part 8 extended — concurrent actor container state and DOS phase art
 
 A direct CODE.2 x86 audit certified native 12E70
