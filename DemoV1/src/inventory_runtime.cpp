@@ -1,7 +1,10 @@
 #include "rloft/inventory_runtime.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <limits>
 #include <stdexcept>
 
 namespace rloft {
@@ -370,10 +373,12 @@ InventoryHandSwapStatus InventoryRuntimeState::swap_hand_slot(
         if (category >= 3U && category <= 8U) {
             return InventoryHandSwapStatus::Unsupported;
         }
-        // Hand1 container-item swaps update live 6FA0 panel state
-        // through 21648..216C4. Keep container changes pending
-        // until that live menu model is reconstructed.
-        if (category == 1U) {
+        // CODE.2 21648..216C4 selects the container's live
+        // descriptor when a category-1 object enters a hand. Only
+        // allow this route into an EMPTY hand; full hand-to-hand
+        // container exchange and its dynamic 6FA0 menu remain
+        // separate, source-bounded interactions.
+        if (category == 1U && current != -1) {
             return InventoryHandSwapStatus::Unsupported;
         }
     }
@@ -412,6 +417,10 @@ InventoryHandSwapStatus InventoryRuntimeState::swap_hand_slot(
             static_cast<std::uint8_t>(updated >> (b*8U));
     }
     held = {current, previous_known};
+    // The container view may no longer refer to its old hand object.
+    // The caller opens the new container explicitly, after a successful
+    // original hand transfer; we never retain a stale view across swaps.
+    open_container.reset();
     // 215E9 explicitly zeroes the selected hand's four-byte
     // ready deadline. Opposite hand remains unchanged.
     // DOS character base 218E0h; 21A7Eh-218E0h=019Eh.
@@ -422,6 +431,167 @@ InventoryHandSwapStatus InventoryRuntimeState::swap_hand_slot(
         party.bytes[deadline_at+b] = 0U;
     }
     return InventoryHandSwapStatus::Swapped;
+}
+
+namespace {
+
+// CODE.2 213AC: special-purpose descriptor subtypes 0,1,2 are
+// permitted to contain the following incoming object categories.
+bool source_container_type_compatible(
+    std::uint8_t subtype,std::uint8_t item_category) noexcept {
+    if (subtype==0U)
+        return item_category==3U || item_category==5U;
+    if (subtype==1U)
+        return item_category!=1U && item_category!=2U &&
+               item_category!=6U;
+    if (subtype==2U)
+        return item_category!=2U;
+    if (subtype==3U) return item_category==0x0DU;
+    if (subtype==4U) return item_category==0x0EU;
+    if (subtype==5U) return item_category==0x0CU;
+    if (subtype==6U) return item_category==0x0FU;
+    return false;
+}
+
+bool held_container_is_open(
+    const InventoryRuntimeState& runtime,
+    const PartyImage& party, const ObjectCatalog& objects) {
+    if(!runtime.open_container) return false;
+    const auto& opening=*runtime.open_container;
+    if(opening.actor>=PartyImage::kActorCount ||
+       opening.hand>=2U || !party.active(opening.actor) ||
+       party_item(party,opening.actor,14U+opening.hand)!=
+           opening.object_id) return false;
+    if(opening.object_id<0) return false;
+    const auto& entry=objects.at(
+        static_cast<std::size_t>(opening.object_id));
+    return entry.item_category==1U &&
+        entry.container_state_index>=0 &&
+        static_cast<std::size_t>(entry.container_state_index)==
+            opening.descriptor_index;
+}
+
+} // namespace
+
+std::uint32_t InventoryRuntimeState::container_weight_half_units(
+    const ObjectCatalog& objects,std::size_t descriptor_index) const {
+    if(descriptor_index>=containers.size())
+        throw std::out_of_range("original container state index");
+
+    std::array<bool,kRuntimeDescriptorCount> visited{};
+    std::function<std::uint32_t(std::size_t)> accumulate =
+        [&](std::size_t index)->std::uint32_t {
+        if(index>=containers.size() || visited[index])
+            throw std::runtime_error("original container cycle");
+        visited[index]=true;
+        std::uint32_t total=0U;
+        for(const auto id:containers[index].items) {
+            if(id==-1) continue;
+            if(id<0) throw std::out_of_range("negative container object id");
+            const auto& definition=objects.at(
+                static_cast<std::size_t>(id));
+            total+=definition.weight_half_units;
+            if(definition.item_category==1U &&
+                definition.container_state_index>=0) {
+                const auto child=static_cast<std::size_t>(
+                    definition.container_state_index);
+                total+=accumulate(child);
+            }
+        }
+        visited[index]=false;
+        return total;
+    };
+    return accumulate(descriptor_index);
+}
+
+InventoryContainerStatus InventoryRuntimeState::open_hand_container(
+    const PartyImage& party,const ObjectCatalog& objects,
+    std::size_t actor,std::size_t hand) {
+    if(actor>=PartyImage::kActorCount || hand>=2U)
+        throw std::out_of_range("original hand container actor/hand");
+    open_container.reset();
+    if(!party.active(actor)) return InventoryContainerStatus::Unsupported;
+    const auto id=party_item(party,actor,14U+hand);
+    if(id<0) return InventoryContainerStatus::NoChange;
+    const auto& obj=objects.at(static_cast<std::size_t>(id));
+    if(obj.item_category!=1U || obj.container_state_index<0)
+        return InventoryContainerStatus::Unsupported;
+    const auto index=static_cast<std::size_t>(obj.container_state_index);
+    if(index>=containers.size() ||
+       containers[index].slot_count==0U ||
+       containers[index].items.size()!=containers[index].slot_count)
+        return InventoryContainerStatus::Unsupported;
+    open_container=OpenInventoryContainer{actor,hand,id,index};
+    return InventoryContainerStatus::Opened;
+}
+
+InventoryContainerStatus InventoryRuntimeState::insert_held_into_open_container(
+    const PartyImage& party,const ObjectCatalog& objects) {
+    if(!held_container_is_open(*this,party,objects))
+        return InventoryContainerStatus::Unsupported;
+    if(held.object_id==-1) return InventoryContainerStatus::NoChange;
+    if(held.object_id<0)
+        return InventoryContainerStatus::Unsupported;
+    auto& opening=*open_container;
+    auto& dest=containers[opening.descriptor_index];
+    auto free_slot=dest.items.size();
+    for(std::size_t i=0U;i<dest.items.size();++i) {
+        if(dest.items[i]==-1){free_slot=i;break;}
+    }
+    if(free_slot==dest.items.size())
+        return InventoryContainerStatus::Full;
+    const auto& item=objects.at(static_cast<std::size_t>(held.object_id));
+    // CODE.2 21404 category/table restrictions, including scroll
+    // cases and quivers. A full nested-container state transition
+    // needs additional cross-descriptor side effects: reject it.
+    if(item.item_category==1U ||
+       !source_container_type_compatible(
+           dest.subtype,item.item_category))
+        return InventoryContainerStatus::Incompatible;
+    const auto& owner=objects.at(
+        static_cast<std::size_t>(opening.object_id));
+    const auto existing=container_weight_half_units(
+        objects,opening.descriptor_index);
+    // Original 2157B..215E2:
+    // current contents - owner-item weight + held-item weight
+    // compared against descriptor capacity * 2 in half-pound units.
+    const auto combined=static_cast<std::int64_t>(existing)-
+        static_cast<std::int64_t>(owner.weight_half_units)+
+        static_cast<std::int64_t>(item.weight_half_units);
+    if(combined>static_cast<std::int64_t>(dest.capacity_pounds)*2)
+        return InventoryContainerStatus::TooHeavy;
+
+    dest.items[free_slot]=held.object_id;
+    const auto mask=static_cast<std::uint8_t>(1U<<(free_slot&7U));
+    dest.per_slot_state_bits=static_cast<std::uint8_t>(
+        (dest.per_slot_state_bits&~mask)|
+        (held.known ? mask : 0U));
+    held={-1,0U};
+    return InventoryContainerStatus::Inserted;
+}
+
+InventoryContainerStatus InventoryRuntimeState::take_open_container_slot(
+    const PartyImage& party,const ObjectCatalog& objects,
+    std::size_t slot) {
+    if(!held_container_is_open(*this,party,objects))
+        return InventoryContainerStatus::Unsupported;
+    auto& dest=containers[open_container->descriptor_index];
+    if(slot>=dest.items.size())
+        throw std::out_of_range("original container slot index");
+    if(held.object_id!=-1)
+        return InventoryContainerStatus::Unsupported;
+    const auto id=dest.items[slot];
+    if(id==-1)return InventoryContainerStatus::NoChange;
+    if(id<0)return InventoryContainerStatus::Unsupported;
+    (void)objects.at(static_cast<std::size_t>(id));
+    const auto mask=static_cast<std::uint8_t>(1U<<(slot&7U));
+    const auto known=static_cast<std::uint8_t>(
+        (dest.per_slot_state_bits&mask)!=0U);
+    dest.items[slot]=-1;
+    dest.per_slot_state_bits=static_cast<std::uint8_t>(
+        dest.per_slot_state_bits&~mask);
+    held={id,known};
+    return InventoryContainerStatus::Taken;
 }
 
 bool InventoryRuntimeState::has_object(
