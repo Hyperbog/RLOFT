@@ -120,4 +120,48 @@ int main() {
     assert(!failure.trace.has_value());
     assert(failure.failure.has_value());
     assert(failure.failure->find("shape lookup")!=std::string::npos);
+
+    // One corrupt or unavailable RES3 shape must not discard unrelated
+    // valid scene traces later in the original CODE.2 draw order.
+    auto corrupt=plan(99U,2U);
+    corrupt.call.source_class=1U;
+    corrupt.call.source_index=43U;
+    unsigned valid_lookups=0U;
+    const auto selective_lookup=[&](std::uint16_t id)
+        -> const rloft::Type7SceneShape& {
+        if(id==99U) {
+            throw std::runtime_error("fixture missing RES3 scene");
+        }
+        assert(id==15U);
+        ++valid_lookups;
+        return sh;
+    };
+    auto partial=rloft::Type7VgaFrameTraceModel::try_build(
+        {visible,corrupt,wide,hidden,visible},
+        t,masks,0U,true,selective_lookup);
+    assert(partial.trace.has_value());
+    assert(!partial.failure.has_value());
+    assert(partial.trace->scene_calls.size()==5U);
+    assert(partial.trace->scene_calls[0].has_value());
+    assert(!partial.trace->scene_calls[1].has_value());
+    assert(!partial.trace->scene_calls[2].has_value());
+    assert(partial.trace->scene_calls[3].has_value());
+    assert(partial.trace->scene_calls[4].has_value());
+    assert(partial.trace->unresolved_wide_runs==1U);
+    assert(partial.scene_failures.size()==1U);
+    assert(partial.scene_failures[0].call_index==1U);
+    assert(partial.scene_failures[0].source_class==1U);
+    assert(partial.scene_failures[0].source_index==43U);
+    assert(partial.scene_failures[0].resource_id==99U);
+    assert(partial.scene_failures[0].reason.find(
+        "fixture missing RES3 scene")!=std::string::npos);
+    assert(valid_lookups==2U);
+
+    // The strict build API must continue reporting the original error.
+    rejected=false;
+    try {
+        (void)rloft::Type7VgaFrameTraceModel::build(
+            {visible,corrupt,visible},t,masks,0U,true,selective_lookup);
+    } catch(const std::runtime_error&) {rejected=true;}
+    assert(rejected);
 }
