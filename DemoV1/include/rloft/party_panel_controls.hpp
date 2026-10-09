@@ -64,13 +64,6 @@ public:
     [[nodiscard]] static std::optional<OrdinaryInventoryHit>
     modal_ordinary_slot_at(int row, int column) noexcept;
 
-    // Modal equipment-hand hit geometry from 12E70 -> 22180.
-    // Screen coordinates are row (vertical) and column (horizontal).
-    // Use the original actor-local hand hit regions, not the full
-    // 80-pixel party panel, to prevent accidental item transfer.
-    [[nodiscard]] static std::optional<GameplayHandHit>
-    modal_hand_at(int row,int column) noexcept;
-
     // CODE.2 12E70 -> 11AD8. Within the selected 80-pixel actor column the
     // inventory/character toggle is row 45h..60h, local column 39h..4Dh.
     [[nodiscard]] static std::optional<std::size_t>
