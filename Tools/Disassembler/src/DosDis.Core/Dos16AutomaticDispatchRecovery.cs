@@ -16,10 +16,12 @@ public sealed record Dos16GuardedDispatchReport(
 /// cmp bx,N; ja/jae default; shl bx,log2(stride);
 /// call/jmp [cs:bx+positive_disp16].
 ///
-/// All four instructions must be adjacent along the unique decoded CFG
-/// predecessors. The unsigned guard's taken edge must be a separate,
-/// file-backed destination. Entries remain candidates because runtime
-/// memory writes and true index values are not known.
+/// Each link must have unique, source-backed predecessor evidence; a
+/// bounded chain of NOP/near-JMP bridges is allowed. JA/JAE rejection
+/// guards select the fallthrough, and JB/JBE acceptance guards select
+/// the taken path. The opposite edge must remain a distinct mapped
+/// candidate. Entries stay unverified because runtime pointer writes
+/// and actual index values are not known.
 /// </summary>
 public static class Dos16AutomaticDispatchRecovery
 {
@@ -266,6 +268,16 @@ public static class Dos16AutomaticDispatchRecovery
                                             cmpRaw[1] == transfer.CompareModRm)
                                             max = BinaryPrimitives.ReadUInt16LittleEndian(
                                                 cmpRaw.AsSpan(2));
+                                        // 3D iw is the accumulator-specific
+                                        // CMP AX,imm16 encoding. It must be
+                                        // paired with the proven AX->BX copy;
+                                        // no high-half or 8-bit register
+                                        // truncation is accepted.
+                                        if (compareBytes == 3 &&
+                                            transfer.RegisterName == "AX" &&
+                                            cmpRaw[0] == 0x3D)
+                                            max = BinaryPrimitives.ReadUInt16LittleEndian(
+                                                cmpRaw.AsSpan(1, 2));
                                         if (max < 0 || max > 255 ||
                                             !FileMatches(compare, cmpRaw) ||
                                             !Dos16UniqueTransparentPath.Connects(
@@ -287,7 +299,7 @@ public static class Dos16AutomaticDispatchRecovery
                                                 pointerKind!,
                                                 "automatic:unsigned-cmp-" +
                                                 transfer.RegisterName +
-                                                ";unsigned-ja-jae-jb-jbe;optional-mov-bx;shl-bx-stride") });
+                                                ";unsigned-ja-jae-jb-jbe;optional-mov-bx;verified-bx-stride") });
                                         var evidence = Dos16DispatchTableRecovery.Inspect(
                                             region, graph, manifest, mz, simulated).Findings[0];
                                         reason = evidence.Status ==
