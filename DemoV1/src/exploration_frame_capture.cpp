@@ -66,7 +66,7 @@ void ExplorationFrameCapture::write(
     if (!manifest)
         throw std::runtime_error("Unable to write capture metadata");
     const auto& coverage=presented.surface_coverage;
-    manifest<<"format\trloft-native-indexed-capture-v1\n"
+    manifest<<"format\trloft-native-indexed-capture-v2\n"
             <<"provenance\tnative-preview-not-original-DOS\n"
             <<"dimensions\t320\t400\n"
             <<"palette\t256x3\tVGA-6bit-raw\n"
@@ -81,6 +81,16 @@ void ExplorationFrameCapture::write(
             <<"\t"<<coverage.sintab_prepass_runs_pending
             <<"\t"<<coverage.sintab_prepass_runs_failed<<"\n"
             <<"mask_origin\timmutable CODE.2 object-2, not DOS live RAM\n"
+            <<"scene_records\t"<<runtime.world_scene_records.size()<<"\n"
+            <<"scene_draw_calls\t"<<runtime.world_scene_draw_calls.size()<<"\n"
+            <<"scene_render_plans\t"<<runtime.world_scene_render_plans.size()<<"\n"
+            <<"scene_video_calls\t"<<coverage.type7_calls_rasterized
+            <<"\t"<<coverage.type7_scene_calls_pending
+            <<"\t"<<coverage.type7_calls_failed<<"\n"
+            <<"scene_columns\t"<<coverage.type7_columns_rasterized
+            <<"\t"<<coverage.type7_visible_columns_pending
+            <<"\t"<<coverage.type7_unvalidated_wide_runs<<"\n"
+            <<"scene_indexed_writes\t"<<coverage.type7_indexed_writes<<"\n"
             <<"run\tpass\tfirst_ray\twidth_C6F4\tphase\tmask_index"
             <<"\tC668\tC688\tC6A8\tdepth\tresource"
             <<"\ttexture_column\tshade_decrement\n";
@@ -106,6 +116,37 @@ void ExplorationFrameCapture::write(
         manifest<<"\t"<<run.depth<<"\t"<<run.resource_id
                 <<"\t"<<run.texture_column_index
                 <<"\t"<<run.shade_decrement<<"\n";
+    }
+    // These are original-world, source-indexed visibility decisions,
+    // distinct from environment backdrop placements or wall rays.
+    manifest<<"scene_record\tclass\tsource_index\tRES3_resource"
+            <<"\tscreen_x\tprojected_extent\trender_order\n";
+    for(const auto& record:runtime.world_scene_records) {
+        manifest<<"scene_record\t"<<record.source_class
+                <<"\t"<<record.source_index
+                <<"\t"<<record.resource_id
+                <<"\t"<<record.screen_x
+                <<"\t"<<record.projected_extent
+                <<"\t"<<record.render_order<<"\n";
+    }
+    manifest<<"scene_call\tclass\tsource_index\tRES3_resource"
+            <<"\tvisible_columns\tscale_extent\n";
+    for(const auto& plan:runtime.world_scene_render_plans) {
+        manifest<<"scene_call\t"<<plan.call.source_class
+                <<"\t"<<plan.call.source_index
+                <<"\t"<<plan.call.resource_id
+                <<"\t"<<plan.visible_columns.size()
+                <<"\t"<<plan.call.scale_extent<<"\n";
+    }
+    if(runtime.scene_vga_trace_failure.has_value()) {
+        manifest<<"scene_trace_failure\t"
+                <<clean(*runtime.scene_vga_trace_failure)<<"\n";
+    }
+    for(const auto& failure:presented.type7_failures) {
+        manifest<<"scene_raster_failure\t"<<failure.source_class
+                <<"\t"<<failure.source_index
+                <<"\t"<<failure.resource_id
+                <<"\t"<<clean(failure.reason)<<"\n";
     }
     manifest<<"failure\tpass\tresource\tfirst_ray\treason\n";
     for (const auto& failed:presented.surface_main_failures) {
