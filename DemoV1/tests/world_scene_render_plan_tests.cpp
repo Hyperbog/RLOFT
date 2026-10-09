@@ -138,5 +138,58 @@ int main() {
     }
     assert(rejected);
 
+    // Per-source recovery must not erase valid CODE.2 draw calls
+    // before or after an unsupported original RES3 object.
+    auto bad=first;
+    bad.resource_id=4020U;
+    bad.source_class=1U;
+    bad.source_index=17U;
+    auto last=second;
+    last.resource_id=4021U;
+    last.source_index=18U;
+    std::vector<std::uint16_t> visited;
+    const auto selective=[&](std::uint16_t id)
+        -> const rloft::Type7SceneShape& {
+        visited.push_back(id);
+        if(id==4020U)
+            throw std::runtime_error("original RES3 unavailable");
+        return native_shape;
+    };
+    const auto partial=rloft::WorldSceneRenderPlanModel::try_build(
+        {first,bad,last},t,rays,selective);
+    assert(partial.plans.size()==3U);
+    assert(partial.failures.size()==1U);
+    assert((visited==std::vector<std::uint16_t>{
+        4010U,4020U,4021U}));
+    assert(!partial.plans[0].source_unresolved);
+    assert(partial.plans[0].visible_columns.size()==1U);
+    assert(partial.plans[1].source_unresolved);
+    assert(partial.plans[1].call.resource_id==4020U);
+    assert(partial.plans[1].visible_columns.empty());
+    assert(partial.plans[2].call.resource_id==4021U);
+    assert(!partial.plans[2].source_unresolved);
+    assert(partial.plans[2].visible_columns.size()==3U);
+    assert(partial.failures[0].call_index==1U);
+    assert(partial.failures[0].source_class==1U);
+    assert(partial.failures[0].source_index==17U);
+    assert(partial.failures[0].resource_id==4020U);
+    assert(partial.failures[0].reason.find("RES3 unavailable")!=
+           std::string::npos);
+
+    // The strict API is still strict; its original throwing contract
+    // cannot silently become partial success.
+    rejected=false;
+    try {
+        (void)rloft::WorldSceneRenderPlanModel::build(
+            {first,bad,last},t,rays,selective);
+    } catch(const std::runtime_error&) {rejected=true;}
+    assert(rejected);
+    rejected=false;
+    try {
+        (void)rloft::WorldSceneRenderPlanModel::try_build(
+            {first},t,rays,{});
+    } catch(const std::invalid_argument&) {rejected=true;}
+    assert(rejected);
+
     return 0;
 }
