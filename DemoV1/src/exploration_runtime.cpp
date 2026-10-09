@@ -272,6 +272,7 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
         out.ground_res4_base=ground_source_->source_init_base;
         out.ground_res4_relative=ground_source_->signed_level_selector;
         out.ground_res4_absolute=ground_source_->absolute_archive_entry;
+        out.ground_raster_source=ground_source_->raster_source;
     }
     // CODE.2 1F1F5..1F223 takes high 8 of each low
     // 16.16 coordinate word as its C044/C048 texture phase.
