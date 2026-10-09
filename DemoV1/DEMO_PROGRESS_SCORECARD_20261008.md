@@ -1,5 +1,41 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Part 8 extended — concurrent actor container state and DOS phase art
+
+A direct CODE.2 x86 audit certified native 12E70
+inventory click selection from the clicked 0x50-wide
+actor column and the relevant original 6FA0
+actor-specific container record. All four active
+phase3 contexts can now be validated/restored
+against source OBJECTS hand identity, and can be
+selected/clicked independently without implicitly
+closing other actor panels. Source SAVE remains
+62 counted container records plus four original
+four-byte actor contexts; interaction selection
+itself adds NO invented serialized bytes.
+
+Original 21648 hand-transfer all-FF reset is now
+separate from the original 110B4 animated close
+result FF FF 00 FF. Native presenter also selects
+original RES2 bank2 phases 1/2 via
+0x14+2*subtype+phase-1 at row C4h and phase3
+9+subtype at row CEh. Regression cases extend
+existing inventory_save_codec_tests,
+inventory_runtime_tests and inventory_screen_tests
+for multiple actors, source hand binding, dual
+reset semantics and all animation resource IDs.
+
+**Still pending:** original VGA retrace/page-flip
+timing and DOS pixel comparisons; live replay
+of partial SAVED animation phases; all-world
+SAVE/LOAD and unrelated game state; Level16
+special item and other inventory interactions.
+No new CTest target: **170 registered / 19 Quick**.
+No Windows build, CTest or gameplay execution
+was initiated. Overall engineering **56.25%**,
+inventory PARTIAL; no formal acceptance upgrade.
+
+
 ## Part 8 checkpoint — saved container UI contexts
 
 The original CODE.2 6FA0 four-byte per-actor container UI
