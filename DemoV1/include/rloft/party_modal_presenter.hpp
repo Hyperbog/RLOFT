@@ -68,7 +68,8 @@ public:
         const std::array<bool, 4>& character_mode,
         std::size_t selected_actor,
         const InventoryRuntimeState* inventory=nullptr,
-        std::optional<InventoryPointer> pointer=std::nullopt) const;
+        std::optional<InventoryPointer> pointer=std::nullopt,
+        std::optional<std::size_t> encumbrance_actor=std::nullopt) const;
 
 private:
     void draw_res0_local(
