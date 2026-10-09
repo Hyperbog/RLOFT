@@ -176,23 +176,68 @@ public static class Dos16AutomaticDispatchRecovery
                                         continue;
                                     byte[] guardBytes = region.Source.Data.Slice(
                                         checked((int)guardAt), branchBytes).ToArray();
+                                    // Reject-outside guards JA/JAE feed the
+                                    // bounded fallthrough. Select-inside
+                                    // guards JB/JBE feed the bounded taken
+                                    // edge. These are not interchangeable:
+                                    // unsigned less-than excludes the CMP
+                                    // immediate, while below-or-equal includes
+                                    // it. Signed conditions remain unsupported.
                                     bool ja = branchBytes == 2
                                         ? guardBytes[0] == 0x77
                                         : guardBytes[0] == 0x0F && guardBytes[1] == 0x87;
                                     bool jae = branchBytes == 2
                                         ? guardBytes[0] == 0x73
                                         : guardBytes[0] == 0x0F && guardBytes[1] == 0x83;
-                                    if ((!ja && !jae) || !FileMatches(guard, guardBytes) ||
+                                    bool jb = branchBytes == 2
+                                        ? guardBytes[0] == 0x72
+                                        : guardBytes[0] == 0x0F && guardBytes[1] == 0x82;
+                                    bool jbe = branchBytes == 2
+                                        ? guardBytes[0] == 0x76
+                                        : guardBytes[0] == 0x0F && guardBytes[1] == 0x86;
+                                    if ((!ja && !jae && !jb && !jbe) ||
+                                        !FileMatches(guard, guardBytes))
+                                        continue;
+                                    bool insideTaken = jb || jbe;
+                                    string acceptedKind = insideTaken
+                                        ? "branch-taken" : "branch-not-taken";
+                                    int nextIp = guard.Address.Offset + branchBytes;
+                                    int delta = branchBytes == 2
+                                        ? unchecked((sbyte)guardBytes[1])
+                                        : BinaryPrimitives.ReadInt16LittleEndian(
+                                            guardBytes.AsSpan(2, 2));
+                                    int takenIp = nextIp + delta;
+                                    // Prove both actual outgoing edges from
+                                    // their stored relative displacement, not
+                                    // merely by trusting a mutable CFG label.
+                                    if (nextIp >= region.EndExclusive ||
+                                        takenIp < region.Origin ||
+                                        takenIp >= region.EndExclusive ||
+                                        nextIp == takenIp)
+                                        continue;
+                                    var takenTarget = new Dos16Address(
+                                        region.Segment, (ushort)takenIp);
+                                    var notTakenTarget = new Dos16Address(
+                                        region.Segment, (ushort)nextIp);
+                                    if (graph.Edges.Count(e =>
+                                            e.Source == guard.Address &&
+                                            e.Kind == "branch-taken" &&
+                                            e.Destination == takenTarget) != 1 ||
+                                        graph.Edges.Count(e =>
+                                            e.Source == guard.Address &&
+                                            e.Kind == "branch-not-taken" &&
+                                            e.Destination == notTakenTarget) != 1 ||
+                                        !graph.Instructions.Any(i =>
+                                            i.Address == (insideTaken
+                                                ? notTakenTarget : takenTarget)))
+                                        continue;
+                                    var exit = insideTaken ? notTakenTarget : takenTarget;
+                                    if (exit.Offset == afterGuard ||
+                                        exit.Offset == site.Address.Offset ||
                                         !Dos16UniqueTransparentPath.Connects(
                                             region, graph, guard.Address,
                                             new Dos16Address(region.Segment, afterGuard),
-                                            "branch-not-taken") ||
-                                        !graph.Edges.Any(e =>
-                                            e.Source == guard.Address &&
-                                            e.Kind == "branch-taken" &&
-                                            e.Destination is not null &&
-                                            e.Destination.Value.Offset != afterGuard &&
-                                            e.Destination.Value.Offset != site.Address.Offset))
+                                            acceptedKind))
                                         continue;
                                     foreach (var compare in Dos16UniqueTransparentPath.UpstreamCandidates(
                                         region, graph, guard.Address))
@@ -226,7 +271,7 @@ public static class Dos16AutomaticDispatchRecovery
                                                 region, graph, compare.Address, guard.Address,
                                                 "fallthrough"))
                                             continue;
-                                        int count = ja ? max + 1 : max;
+                                        int count = (ja || jbe) ? max + 1 : max;
                                         int stride = far ? 4 : 2;
                                         if (count is < 2 or > 256 ||
                                             (long)table + (long)count * stride >
@@ -241,7 +286,7 @@ public static class Dos16AutomaticDispatchRecovery
                                                 pointerKind!,
                                                 "automatic:unsigned-cmp-" +
                                                 transfer.RegisterName +
-                                                ";ja-or-jae;optional-mov-bx;shl-bx-stride") });
+                                                ";unsigned-ja-jae-jb-jbe;optional-mov-bx;shl-bx-stride") });
                                         var evidence = Dos16DispatchTableRecovery.Inspect(
                                             region, graph, manifest, mz, simulated).Findings[0];
                                         reason = evidence.Status ==
