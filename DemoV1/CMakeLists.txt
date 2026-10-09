@@ -57,6 +57,7 @@ add_library(rloft_boot_flow
     src/level_world_state.cpp
     src/inventory_screen.cpp
     src/inventory_runtime.cpp
+    src/inventory_save_codec.cpp
     src/inventory_item_description.cpp
     src/inventory_world_drop.cpp
     src/inventory_encumbrance.cpp
@@ -286,6 +287,9 @@ add_test(NAME inventory_screen_tests COMMAND inventory_screen_tests)
 add_executable(inventory_runtime_tests tests/inventory_runtime_tests.cpp)
 target_link_libraries(inventory_runtime_tests PRIVATE rloft_boot_flow)
 add_test(NAME inventory_runtime_tests COMMAND inventory_runtime_tests)
+add_executable(inventory_save_codec_tests tests/inventory_save_codec_tests.cpp)
+target_link_libraries(inventory_save_codec_tests PRIVATE rloft_boot_flow)
+add_test(NAME inventory_save_codec_tests COMMAND inventory_save_codec_tests)
 add_executable(inventory_item_description_tests tests/inventory_item_description_tests.cpp)
 target_link_libraries(inventory_item_description_tests PRIVATE rloft_boot_flow)
 add_test(NAME inventory_item_description_tests COMMAND inventory_item_description_tests)
