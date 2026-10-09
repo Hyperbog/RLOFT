@@ -1,5 +1,19 @@
 # Demo v1 — development progress versus formal acceptance
 
+**RES3 per-scene fault isolation (2026-10-08 source checkpoint):**
+Previous optional type-7 trace generation discarded every
+scene in a frame if any RES3 call threw. The updated
+`try_build` preserves independently valid ordered scene
+traces and reports only the failed source as a null slot
+with original class, index, resource, call order and reason.
+Unsupported wide calls remain unresolved; globally invalid
+page/resolver remains fatal. Existing frame trace and capture
+regressions now exercise partial recovery. The voluntary
+native preview title exposes RES3 call and trace-error
+counters. This patch **has not run on Windows CI** and
+adds no formal accepted gate.
+[Checkpoint](LEVEL22_RES3_SCENE_TRACE_ISOLATION_20261008.md).
+
 **Corrected Level 22 visual acceptance scope (2026-10-08):**
 Analysis of 30 user indexed frames and both immutable Level 22
 records shows all 7,649 emitted wall runs are non-drawable resource
