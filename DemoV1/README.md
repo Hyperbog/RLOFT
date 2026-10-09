@@ -1,5 +1,34 @@
 # Ravenloft Demo Build v1
 
+## Windows #640 source-matched Level 22 ray correction verified
+
+[Detailed 16-frame post-fix audit](LEVEL22_640_POSTFIX_RENDER_AUDIT_AND_EXTENDED_CAPTURE_20261008.md):
+manual Windows [build #640](https://github.com/Hyperbog/RLOFT/actions/runs/37872583683)
+compiled source `47d5194a0c87109ff9c26df7794c960d492ccb99`,
+passed **160/160** registered tests and matches the source revision
+in all frames of the new user ZIP `1791512367563.zip`.
+There is **no sweep failure** in these captured poses.
+
+The original index-scaling correction now has visible native
+effects: six camera-matched pre/post pairs differ by
+**332–462 exact indexed pixels**, and native RES3 raster calls
+increase (e.g. 105→167 at cell 4,4, facing 270).
+The new archive reports **2,127 successful RES3 scene draws**,
+**127 fully occluded** calls, zero source/trace/raster errors
+and 16 unique frames. This does **not** certify parity with DOS.
+
+The prior optional capture budget of 16 snapshots exhausts
+before reaching the Level 22 NPC at (13,7). A **new
+source-only** extension allows `--capture-frames=N`,
+strictly bounded from 1 through 128, with the
+`Capture-Level22.cmd` launcher requesting **64** changed-pose
+frames. Bare `--capture-render` still defaults to 16;
+the uncapped fatal `failure.tsv` remains independent
+of the image budget. This later extension **has not yet
+been compiled or tested by Windows CI** and still needs
+a future *manual-only* build. The formal 1/5 acceptance
+gate count remains unchanged.
+
 ## Second user capture — fatal ray forensics even after 16 snapshots
 
 [Latest 16-frame source audit](LEVEL22_SECOND_CAPTURE_AND_FATAL_SWEEP_EVIDENCE_20261008.md)
