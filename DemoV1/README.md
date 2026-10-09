@@ -1,37 +1,50 @@
 # Ravenloft Demo Build v1
 
+## Current verified build and continuing game-engine checkpoint
+
+**Full Windows build #647 passed 172/172 registered CTests**
+at source commit `fb4a0145`. The artifact contains the
+native executable and the Level22 developer launchers:
+[successful build and Windows artifact](
+https://github.com/Hyperbog/RLOFT/actions/runs/37987825463).
+
+The one-time CI trigger has been removed and the existing
+`demo-v1` workflow is **manual dispatch only** again.
+The subsequent multi-level RES4 source-binding change and
+its regression are committed but **not yet compiled**.
+The ordinary production startup and real CODE.1 character
+creation remain unchanged. Development testing continues
+through the original `--explore-level22` path, optionally
+with read-only `--dev-inspect` and source-backed
+`--dev-interact`.
+
 ## Required completion scoreboard — every engine system and subsystem
 
 The canonical [full percentage scorecard](
 PROGRESS_SUBSYSTEM_REPORT_20261009.md) now tracks
-**20 major game systems and 121 individual subsystems**,
-each with a separately scored source-research,
-native-implementation, live-integration, authored-test
-and current-head DOS-acceptance gate, plus evidence
-and the next blocking requirement.
-**Current integration gate:** a **manual Full Windows build is now essential** before adding another major gameplay feature, because CINE08 event integration, concurrent containers and developer state instrumentation remain uncompiled at this HEAD. The opt-in `--explore-level22 --dev-interact` option allows source-backed item pickup and hand exchange; `--dev-inspect` remains separate and read-only. Use the [manual-only build workflow](https://github.com/Hyperbog/RLOFT/actions/workflows/demo-v1-build.yml), branch `demo-v1`, **Full**, `run_linux=false`. Registered CTests **172** / Quick **19**; no job has been dispatched.
+**20 major systems and 122 independently scored subsystems**,
+each with original-source, native-implementation,
+live-wiring, authored-test and current-DOS-acceptance
+evidence plus the next blocker.
 
+**Current provisional weighted readiness: 48.9%.**
+The 40%-weighted original-DOS acceptance gate is still
+**0% at the current revision**. Full Windows CTest
+success validates native consistency, **not** original
+DOS pixels, timing, action or story equivalence.
+The separate historical 32-task engineering ledger
+remains **56.25% (18/32)** and must not be averaged
+with the readiness estimate.
 
-**New provisional weighted readiness baseline: 48.8%.**
-Its acceptance-weighted 40% DOS gate is still 0%,
-because the latest source has not been compiled,
-run or DOS-compared. This is a transparent readiness
-estimate, **not** an objective measure of completed
-game labor or the fraction of the full campaign.
-The earlier **56.25% (18/32)** engineering-task
-ledger is a separate and unchanged metric.
-
-Future commits affecting functionality must update
-the canonical [per-subsystem CSV](
-PROGRESS_SUBSYSTEMS.csv), calculate its parent-system
-and total rollups, and report the affected subsystem
-percentage before claiming progress. The offline
-`subsystem_progress_tracker_tests` assertion will
-check the scorecard against that CSV during a
-**user-authorized manual** test run. **172 CTests
-registered; 19 Quick**. No compilation, test run,
-CI dispatch or Windows build has been initiated.
-
+Future functionality changes update the [canonical
+per-subsystem CSV](PROGRESS_SUBSYSTEMS.csv), its
+20 parent percentages and global weighted roll-up
+in the same Git checkpoint. A registered offline
+`subsystem_progress_tracker_tests` check validates
+the authored report when Python3 is available at
+configure time. The current registry has **172 CTests**
+and the 19-test Quick selection is unchanged.
+Builds remain manual unless explicitly authorized.
 
 ## Developer Level22 testbed — read-only cross-system instrumentation
 
@@ -64,9 +77,10 @@ covers independent mutations, source level
 event/control records, NPC HP, item coordinates,
 inventory/cursor state, story flag 0x44,
 and returning to an identical snapshot.
-**171 CTests now registered; Quick remains 19.
-All changes are committed, not yet compiled
-or executed.** Engineering fidelity remains
+**172 CTests were registered and all passed in build
+#647 at `fb4a0145`.** Subsequent per-level terrain
+source changes require a future manual build.
+The historical engineering score remains
 **56.25%**, inventory **PARTIAL**.
 
 [Developer Level22 testbed and validation
