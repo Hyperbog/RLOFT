@@ -260,8 +260,10 @@ instruction re-decoding, duplicate-start safety and report accounting
 have synthetic regression cases pending execution.
 NEXT: G1 is READY, NOT AUTHORIZED. A single gate matrix is recorded in
 G1_X86_16_BATCH_VERIFICATION_MATRIX.txt. Do not build automatically.
-THEN: start R2 domain design source-only while holding the G1
-compilation/acceptance boundary open for explicit owner approval.
+THEN: R2.1 bounded value-domain model is SOURCE COMPLETE, NOT TESTED.
+NEXT SOURCE-ONLY: R2.2 exact instruction/register transfer design, with
+independent source mapping and alias invalidation. G1 remains READY and
+NOT AUTHORIZED; do not equate an R2 source checkpoint with G1 acceptance.
 
 WORK LOG APPEND FORMAT (MAINTAIN IN THIS FILE)
 ----------------------------------------------
@@ -307,3 +309,20 @@ State: Phase 1 SOURCE COMPLETE for current batch, G1 READY but
 NOT AUTHORIZED. Last successfully built preview: run 37887821656.
 Next source-only track can proceed with isolated R2 range-domain design
 without implying G1 passed. See G1_X86_16_BATCH_VERIFICATION_MATRIX.txt.
+
+2026-10-09 | R2.1 source-only value-domain foundation:
+- Added immutable 16-bit abstract values: bottom/top, unsigned singleton,
+  bounded finite sets and inclusive unsigned intervals; conservative join,
+  widening, unsigned restriction, exact modular small-set arithmetic and
+  fail-to-unknown interval carry/borrow handling.
+- Added SHA-bound, typed instruction observation labels and bounded
+  provenance with explicit truncation and cross-source refusal.
+- Wired synthetic regression source into the existing DosDis.Smoke entry.
+  All new fixtures remain NOT EXECUTED; no builds/tests, GUI, source-original
+  runs or hosted CI were initiated.
+- No CFG/dataflow transfer wiring, automatic table classification, DB
+  migration or project UI changes were made; unsupported semantics remain
+  unknown.
+State: R2.1 SOURCE COMPLETE. G1 READY / NOT AUTHORIZED. G2 not ready.
+Reference: R2_VALUE_DOMAIN_SOURCE_CHECKPOINT.md.
+Last successful Windows build remains run 37887821656.
