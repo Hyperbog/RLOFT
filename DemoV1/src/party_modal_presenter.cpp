@@ -459,11 +459,12 @@ void PartyModalPresenter::draw_encumbrance_panel(
     const auto values=encumbrance_.actor(
         party,inventory,objects_,actor);
     const int lane=static_cast<int>(actor)*0x50;
-    // Original 12988 paints panel at row 0x73, then writes the
-    // CODE.2 T labels (0x266 MAX, 0x267 CURRENT, 0x268+rank).
-    // A source-color fill is provisional while the 69434 palette
-    // plane and original ornamental panel graphic are traced.
-    framebuffer.fill_rect(0x73,lane+4,0x190-0x73,0x48,0x45);
+    // CODE.2 12988 physical 4D8D7..4D8E3 loads the ORIGINAL
+    // encumbrance dialog art: bank RES2, absolute entry 0x25,
+    // row 0x73, actor lane origin. The original is a bitmap,
+    // not an 0x45 flat red rectangle. The six real T labels and
+    // source-derived values are overlaid on this authentic art.
+    framebuffer.draw_frame(assets_.type1(2,0x25),0,0x73,lane);
     IndexedFontPresenter::draw(
         framebuffer,font1_,0x88,lane+7,assets_.text(0x266));
     IndexedFontPresenter::draw_right(
