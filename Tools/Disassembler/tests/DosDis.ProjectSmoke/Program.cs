@@ -262,6 +262,110 @@ try
             "cancelled analysis changed the previously stored valid snapshot");
     }
 
+    // Persist the last directory across desktop sessions, tolerating corrupt settings.
+    string settingsPath = Path.Combine(folder, "ui-preferences.json");
+    var preferences = new FileDialogPreferences(settingsPath);
+    Require(preferences.LastBinaryDirectory is null, "new file picker has no false history");
+    preferences.RememberBinary(Path.Combine(folder, "source.exe"));
+    Require(new FileDialogPreferences(settingsPath).LastBinaryDirectory == folder,
+        "previous file location must survive a restart");
+    File.WriteAllText(settingsPath, "not-valid-json");
+    Require(preferences.LastBinaryDirectory is null,
+        "damaged local preferences must not prevent opening files");
+    preferences.RememberBinary(Path.Combine(folder, "second.exe"));
+    Require(preferences.LastBinaryDirectory == folder, "settings repair must succeed");
+
+    // Keep both uses a numbered filename instead of showing an exception.
+    string duplicateName = Path.Combine(folder, "CODE.2.ddproj");
+    File.WriteAllText(duplicateName, "original researcher data");
+    string firstNumbered = ProjectFilePaths.NextAvailable(duplicateName);
+    Require(Path.GetFileName(firstNumbered) == "CODE.2 (1).ddproj",
+        "the first collision should append (1)");
+    File.WriteAllText(firstNumbered, "previous numbered file");
+    string secondNumbered = ProjectFilePaths.NextAvailable(duplicateName);
+    Require(Path.GetFileName(secondNumbered) == "CODE.2 (2).ddproj",
+        "subsequent collisions should increment the suffix");
+    Require(File.ReadAllText(duplicateName) == "original researcher data" &&
+        File.ReadAllText(firstNumbered) == "previous numbered file",
+        "Keep both may not modify original files");
+
+    // New projects are verified and published atomically, never implicitly replaced.
+    string newProject = Path.Combine(folder, "new-research.ddproj");
+    using (var created = ProjectStore.CreateNew(newProject, sourceArtifact, sourceGraph))
+    {
+        created.VerifyIntegrity();
+        Require(created.LoadLatestAnalysis(sourceArtifact.Sha256,
+            sourceImage)?.Instructions.Count == sourceGraph.Instructions.Count,
+            "source-verified analysis missing from staged project");
+        created.SaveAnnotation(sourceArtifact.Sha256, 1, 0,
+            "comment", "previous notes", 0);
+    }
+    bool noOverwriteConfirmed = false;
+    try
+    {
+        using var refused = ProjectStore.CreateNew(newProject, sourceArtifact, sourceGraph);
+    }
+    catch (IOException) { noOverwriteConfirmed = true; }
+    Require(noOverwriteConfirmed, "default new project must not replace existing data");
+    using (var older = ProjectStore.Open(newProject))
+        Require(older.GetAnnotation(sourceArtifact.Sha256, 1, 0, "comment")?.Body ==
+            "previous notes", "refused overwrite must not damage previous notes");
+    using (var replaced = ProjectStore.CreateNew(newProject,
+        sourceArtifact, sourceGraph, overwrite: true))
+        Require(replaced.GetAnnotation(sourceArtifact.Sha256, 1, 0, "comment") is null,
+            "confirmed replacement should publish a fresh complete project");
+
+    // A closed backup is replaced by a verified, standalone SQLite copy.
+    using (var original = ProjectStore.Open(newProject))
+    {
+        original.SaveAnnotation(sourceArtifact.Sha256, 1, 0,
+            "comment", "replaced backup content", 0);
+        original.CreateBackup(firstCommentBackup, overwrite: true);
+    }
+    using (var backup = ProjectStore.Open(firstCommentBackup))
+        Require(backup.GetAnnotation(sourceArtifact.Sha256, 1, 0, "comment")?.Body ==
+            "replaced backup content", "confirmed backup overwrite did not persist");
+
+    // A sidecar indicates a potentially active SQLite writer; refuse replacement.
+    string guarded = Path.Combine(folder, "active.ddproj");
+    File.WriteAllText(guarded, "old database");
+    File.WriteAllText(guarded + "-wal", "active WAL marker");
+    bool activeBlocked = false;
+    try { ProjectFilePaths.RequireSafeReplacement(guarded); }
+    catch (IOException) { activeBlocked = true; }
+    Require(activeBlocked, "SQLite sidecar must prevent overwriting active research");
+    File.Delete(guarded + "-wal");
+
+    // Report publication must retain the previous report if writing fails.
+    string reportPath = Path.Combine(folder, "previous-report.json");
+    File.WriteAllText(reportPath, "old report");
+    bool refusedReport = false;
+    try
+    {
+        ProjectFilePaths.PublishNewOrReplace(reportPath, false,
+            temp => File.WriteAllText(temp, "new report"));
+    }
+    catch (IOException) { refusedReport = true; }
+    Require(refusedReport && File.ReadAllText(reportPath) == "old report",
+        "unconfirmed report overwrite must not change the old report");
+    bool brokenWriter = false;
+    try
+    {
+        ProjectFilePaths.PublishNewOrReplace(reportPath, true,
+            temp => throw new InvalidOperationException("synthetic writer failure"));
+    }
+    catch (InvalidOperationException) { brokenWriter = true; }
+    Require(brokenWriter && File.ReadAllText(reportPath) == "old report",
+        "exception during export must preserve the previous report");
+    ProjectFilePaths.PublishNewOrReplace(reportPath, true, temp =>
+    {
+        Require(Path.GetExtension(temp) == ".json",
+            "staging must preserve JSON extension for the report validator");
+        File.WriteAllText(temp, "verified replacement");
+    });
+    Require(File.ReadAllText(reportPath) == "verified replacement",
+        "confirmed export replacement should publish the new report");
+
     // A malformed project must not display metadata inconsistent with the cached graph.
     string inconsistent = Path.Combine(folder, "inconsistent-snapshot.ddproj");
     using (var original = ProjectStore.Open(path)) original.CreateBackup(inconsistent);
