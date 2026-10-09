@@ -527,19 +527,39 @@ void PartyModalPresenter::draw_held_cursor_and_description(
     IndexedFramebuffer& framebuffer,
     const InventoryRuntimeState& inventory,
     std::optional<InventoryPointer> pointer) const {
-    if(inventory.held.object_id<0)return;
-    const auto id=inventory.held.object_id;
-    const auto description=InventoryItemDescriptionModel::describe(
-        objects_,id,inventory.held.known);
-    // The original display uses CODE.2 0FA9C's object text and a
-    // red inventory ribbon. Text and weights are source-derived.
-    // Exact ornamental ribbon ends remain pending sprite tracing.
+    // Original 116F5/11757 builds a 759C message then invokes
+    // F790 while 6DAC=1. F790 checks this byte FIRST; it paints
+    // the feedback rather than the normal held-item description.
+    // This remains visible after successful scribing empties the
+    // cursor, until 13184's unsigned IRQ deadline expires.
+    std::string description;
+    bool scribe_message=false;
+    if(inventory.mage_scribe_feedback &&
+       inventory.mage_scribe_feedback->pending_6dac!=0U) {
+        const auto& feedback=*inventory.mage_scribe_feedback;
+        const auto spell_name=
+            feedback.kind==MageScribeFeedbackKind::Scribed
+                ? assets_.text(feedback.t_spell_name_index)
+                : std::string{};
+        description=feedback.message(spell_name);
+        scribe_message=true;
+    } else {
+        if(inventory.held.object_id<0)return;
+        description=InventoryItemDescriptionModel::describe(
+            objects_,inventory.held.object_id,inventory.held.known);
+    }
+    // CODE.2 F66C -> 30508 places the actual message baseline
+    // at VGA row 0x65. The exact original decorative ribbon
+    // (F66C/2975C) still requires pixel-level DOS acceptance;
+    // reuse the existing native inventory strip provisionally,
+    // rather than inventing a second UI style.
     const int span=IndexedFontPresenter::measure(font1_,description);
     const int width=std::min(318,span+10);
     const int column=std::max(1,(320-width)/2);
     framebuffer.fill_rect(0x62,column,12,width,0x45);
     IndexedFontPresenter::draw_centered(
-        framebuffer,font1_,0x64,column,width,description);
+        framebuffer,font1_,scribe_message?0x65:0x64,
+        column,width,description);
 
     // The actual pointer sprite is composited AFTER presentation
     // by Win32 Host::set_game_cursor, using the original
