@@ -1043,6 +1043,28 @@ try
     Dword(looseSignature, 0x3C, uint.MaxValue);
     Equal(BinaryFormatDetector.Inspect(BinaryArtifact.FromBytes(looseSignature)).FormatId,
         "mz", "overflow-sized e_lfanew is ignored rather than dereferenced");
+    var mixedExtended = new byte[0x800];
+    MakeFixture(false).CopyTo(mixedExtended, 0);
+    var appendedLx = MakeFixture(false);
+    appendedLx[0x80] = (byte)'L';
+    appendedLx[0x81] = (byte)'X';
+    Array.Copy(appendedLx, 0, mixedExtended, 0x400, 0x100);
+    var mixedExtendedArtifact = BinaryArtifact.FromBytes(mixedExtended, "unlabeled-wrapped.bin");
+    var mixedLocations = MzExtendedModuleLocator.Scan(mixedExtendedArtifact);
+    Equal(mixedLocations.Count, 2,
+        "shared locator finds both independently bounded MZ extended modules");
+    Equal(mixedLocations[0].FormatId, "le-signature",
+        "first source-relative MZ module retains its LE format");
+    Equal(mixedLocations[1].FormatId, "lx",
+        "second source-relative MZ module retains its LX format");
+    Equal(BinaryFormatDetector.Inspect(mixedExtendedArtifact).FormatId,
+        "ambiguous-mz-extended",
+        "mixed extended formats are ambiguous rather than first-format-wins");
+    Fails(() => LeImage.Load(mixedExtendedArtifact),
+        "LE loader cannot ignore another valid MZ-bound extended module");
+    Fails(() => DosMzImage.LoadLauncherStub(mixedExtendedArtifact),
+        "a direct outer LE module must not become a fictional DOS launcher");
+
     Console.WriteLine("PASS: explicit DOS launcher isolation and shared nested MZ/LE locator");
 
     var ambiguousImage = new byte[0x800];
