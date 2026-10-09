@@ -1,5 +1,23 @@
 # Demo v1 — development progress versus formal acceptance
 
+**High-impact graphical fidelity checkpoint — original CODE.2
+C029 individual-column scene mode (2026-10-08):**
+The native RES3 scene pipeline now supports original source
+runs 8..255 wide when C029 selects per-pixel mode, which is
+**the value of the shipped original CODE.2 initial byte**.
+Previously the engine rejected all widths above 7
+indiscriminately, potentially suppressing large scene
+objects and NPCs on outdoor Level 22. The native pixel
+interpreter itself remains unchanged and now receives
+original per-pixel source runs without grouped-mask
+fabrication. The grouped/width-256 boundaries remain
+explicitly unverified. Tests cover actual planar VGA
+stores, shade swaps, original masks, descriptor sequence
+and ray viewport bounds. This source has **not been
+built on current-HEAD Windows CI** and no DOS frame was
+compared. Formal accepted gates **remain 1/5**.
+[Detailed source proof](LEVEL22_CODE2_C029_INDIVIDUAL_RES3_WIDE_PIXELS_20261008.md).
+
 **Larger original RES3 scene pipeline checkpoint (2026-10-08):**
 The last source pass fixed frame-wide failure propagation at
 *both* source-indexed RES3 planning and VGA tracing. Invalid
