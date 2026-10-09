@@ -107,8 +107,24 @@ int main() {
     assert(transform.transform==1U);
     assert(transform.decoded_fnv1a32==tile.decoded_fnv1a32);
 
-    // The original lookup is relative selector plus a runtime base.
-    // A bare Level 22 relative 55 is not proof of absolute RES4[55].
+    // Source proof: CODE.2 reads the original INIT word at +0x0E
+    // to DGROUP:258F8 before adding the Level 22 relative selector.
+    std::vector<std::uint8_t> init(0x10U,0U);
+    init[0x0EU]=0x34U;
+    init[0x0FU]=0x12U;
+    const auto original_base=
+        rloft::OriginalGroundRes4Audit::base_from_init(init);
+    assert(original_base==0x1234);
+    assert(rloft::OriginalGroundRes4Audit::absolute_index(
+        55,original_base,0x2000)==0x126B);
+    assert(throws([&] {
+        (void)rloft::OriginalGroundRes4Audit::base_from_init(
+            std::vector<std::uint8_t>(0x0FU,0U));
+    }));
+
+    // A bare Level 22 relative 55 is not proof of absolute RES4[55];
+    // the production source provides the parsed INIT word. Test the
+    // separate signed arithmetic on a small synthetic fixture.
     assert(rloft::OriginalGroundRes4Audit::absolute_index(
         55,-54,6)==1);
     assert(throws([&]{
