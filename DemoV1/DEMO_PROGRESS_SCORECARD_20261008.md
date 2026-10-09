@@ -1,5 +1,21 @@
 # Demo v1 — development progress versus formal acceptance
 
+**Second user native frame archive and uncapped fatal sweep telemetry
+(2026-10-08):** A new 16-frame ZIP covers outdoor Level22
+cells (4,4)→(19,4) at heading 270, with 1,157 successful
+RES3 draws, 369 occluded scenes and no captured RES3 errors.
+No RES3 width >=8 was used, and all 4,080 wall runs were
+non-drawable 0x93. The previous capture's **16-frame cap**
+still prevented recording the actual later sweep failure pose.
+Opt-in captures now append a `failure.tsv` for an exception
+from `build_frame()`, regardless of frame count, and stamp
+the checked-out source revision into normal frames.
+The new file and a regression for its exact source/pose/error
+metadata are committed but **not yet Windows-compiled**.
+Previous manual build #639 predates the earlier cell-index fix.
+[Capture and failure audit](LEVEL22_SECOND_CAPTURE_AND_FATAL_SWEEP_EVIDENCE_20261008.md).
+No additional accepted gate.
+
 **User-reported near-cardinal first-person sweep crash
 — source-addressing correction (2026-10-08):**
 Original CODE.2 32BF6/32BFA/32C1F and 32C07/32C10/32D09
