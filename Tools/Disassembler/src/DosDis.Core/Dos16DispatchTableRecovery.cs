@@ -96,7 +96,11 @@ public static class Dos16DispatchTableRecovery
             var entries = new List<Dos16TableEntry>();
             if (knownSites.TryGetValue(spec.Site, out var site) &&
                 site.Length == 5 && (site.FlowControl is "IndirectCall" or "IndirectBranch") &&
-                site.SourceFileOffset >= region.FileOffset &&
+                site.Address.Segment == region.Segment &&
+                site.Address.Offset == spec.Site &&
+                spec.Site >= region.Origin && spec.Site < region.EndExclusive &&
+                site.SourceFileOffset == (long)region.FileOffset +
+                    spec.Site - region.Origin &&
                 site.SourceFileOffset + 5 <= (long)region.FileOffset + region.ByteLength)
             {
                 var op = region.Source.Data.Slice(checked((int)site.SourceFileOffset), 5);

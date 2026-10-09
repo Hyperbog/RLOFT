@@ -79,7 +79,11 @@ public static class Dos16IndirectPointerRecovery
             string evidence = "register-indexed-or-segment-state-not-statically-established";
             long physical = instruction.SourceFileOffset;
             if (instruction.Length == 5 &&
-                (long)physical >= region.FileOffset &&
+                instruction.Address.Segment == region.Segment &&
+                instruction.Address.Offset >= region.Origin &&
+                instruction.Address.Offset < region.EndExclusive &&
+                physical == (long)region.FileOffset +
+                    instruction.Address.Offset - region.Origin &&
                 physical + 5 <= (long)region.FileOffset + region.ByteLength)
             {
                 var bytes = region.Source.Data.Slice(checked((int)physical), 5);
@@ -91,7 +95,9 @@ public static class Dos16IndirectPointerRecovery
                 bool appropriate = kind == "indirect-call"
                     ? selector is 0x16 or 0x1E
                     : selector is 0x26 or 0x2E;
-                if (bytes[0] == 0x2E && bytes[1] == 0xFF && appropriate)
+                if (bytes[0] == 0x2E && bytes[1] == 0xFF && appropriate &&
+                    instruction.OriginalBytes.Equals(Convert.ToHexString(bytes),
+                        StringComparison.OrdinalIgnoreCase))
                 {
                     int pointerOffset = BinaryPrimitives.ReadUInt16LittleEndian(bytes.Slice(3, 2));
                     int pointerSize = near ? 2 : 4;

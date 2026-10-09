@@ -271,6 +271,13 @@ try
         "CS near pointer target remains candidate");
     Equal(nearPointers.Candidates[0].TargetFileOffset, 0x20L,
         "CS near pointer destination maps original source bytes");
+    var mismatchedOpcodeLine = indirectGraph with {
+        Instructions = indirectGraph.Instructions.Select(x =>
+            x with { OriginalBytes = "DEADBEEF00" }).ToArray()
+    };
+    Equal(Dos16IndirectPointerRecovery.Inspect(
+        indirectRegion, mismatchedOpcodeLine).CandidateSites, 0,
+        "stale candidate instruction bytes cannot license source-backed pointer targets");
     Equal(indirectGraph.Instructions.Count, 1, "indirect candidate does not alter CFG");
     var dsBytes = (byte[])nearPointer.Clone();
     dsBytes[0] = 0x90;
@@ -345,6 +352,13 @@ try
         "last near table target retains original 16-bit offset");
     Equal(nearDispatch.Findings[0].Entries[0].PointerFileOffset, 0x20L,
         "first dispatch table entry retains original file offset");
+    var forgedIndexedSite = nearDispatchGraph with {
+        Instructions = nearDispatchGraph.Instructions.Select(x =>
+            x with { SourceFileOffset = x.SourceFileOffset + 1 }).ToArray()
+    };
+    Equal(Dos16DispatchTableRecovery.Inspect(nearDispatchRegion,
+        forgedIndexedSite, nearDispatchManifest).Candidates, 0,
+        "stale indexed site file offsets cannot recover otherwise backed tables");
     Equal(nearDispatchGraph.Instructions.Count, 1,
         "analyst table targets do not expand recursive code reachability");
     var invalidNearBounds = nearDispatchManifest with {
