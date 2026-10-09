@@ -182,3 +182,26 @@ local MSBuild objects on successive builds.
 The same distinction between **engineering coverage**,
 **verified Windows tests**, and **measured original DOS
 fidelity** must be reported in every future checkpoint.
+
+
+## Inventory workstream — original class/race starters
+
+[Exact CODE.1 family/race starter matrix](ORIGINAL_CODE1_ALL_CLASS_RACE_STARTING_EQUIPMENT_20261009.md):
+the original CODE.1 15×6 source has **44 populated
+and 46 unavailable entries**, all read dynamically
+from the original executable. The native
+CHARS builder now uses a single 21-slot
+source-backed loadout model; test coverage
+checks all 90 rows, both actors, starter special
+container suppression, and the reference Halfling/
+Gnome Cleric source bytes. The manual-only
+workflow now registers **165 tests** (including
+12 Quick targeted tests) and stages
+`Audit-Starting-Equipment.cmd` plus its CLI.
+
+This tightens **existing already-implemented**
+deliverable 07's fidelity. It does NOT arbitrarily
+award another whole-game percentage or claim
+inventory visual parity. Separate equipment
+interaction, descriptions, container UI,
+stats, encumbrance and source graphics remain open.
