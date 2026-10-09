@@ -321,6 +321,84 @@ try
         farMemoryMz, farMemoryMz.SimulateRelocations(0x2000)),
         "foreign MZ selector evidence must not cross source boundaries");
     Console.WriteLine("PASS: CS near and relocation-backed FAR indirect pointer hypotheses");
+    // A count supplied by an analyst permits bounded inspection but is
+    // NOT a verified runtime upper bound or an automatic CFG edge.
+    var nearDispatchBytes = new byte[0x40];
+    new byte[] { 0x2E, 0xFF, 0xA7, 0x20, 0x01 }
+        .CopyTo(nearDispatchBytes, 0); // JMP WORD PTR CS:[BX+0120h]
+    MzWord(nearDispatchBytes, 0x20, 0x130);
+    MzWord(nearDispatchBytes, 0x22, 0x131);
+    MzWord(nearDispatchBytes, 0x24, 0x132);
+    nearDispatchBytes[0x30] = nearDispatchBytes[0x31] =
+        nearDispatchBytes[0x32] = 0xC3;
+    var nearDispatchSource = BinaryArtifact.FromBytes(nearDispatchBytes, "anonymous.bin");
+    var nearDispatchRegion = DosComImage.LoadExplicit(nearDispatchSource).CreateCodeRegion();
+    var nearDispatchGraph = Dos16ControlFlowAnalysis.Analyze(nearDispatchRegion, 0x100);
+    var nearDispatchManifest = new Dos16TableManifest(1, nearDispatchSource.Sha256,
+        new[] { new Dos16TableRequest(0x100, 0x120, 3, "near16", "synthetic-analyst-bounds") });
+    var nearDispatch = Dos16DispatchTableRecovery.Inspect(
+        nearDispatchRegion, nearDispatchGraph, nearDispatchManifest);
+    Equal(nearDispatch.Candidates, 1, "explicit bounded CS-indexed near dispatch table");
+    Equal(nearDispatch.Findings[0].Entries.Count, 3,
+        "every near table entry is source-backed and counted");
+    Equal(nearDispatch.Findings[0].Entries[2].Target.Offset, (ushort)0x132,
+        "last near table target retains original 16-bit offset");
+    Equal(nearDispatch.Findings[0].Entries[0].PointerFileOffset, 0x20L,
+        "first dispatch table entry retains original file offset");
+    Equal(nearDispatchGraph.Instructions.Count, 1,
+        "analyst table targets do not expand recursive code reachability");
+    var invalidNearBounds = nearDispatchManifest with {
+        Tables = new[] { new Dos16TableRequest(0x100, 0x120, 4, "near16", "bound-unproven") } };
+    Equal(Dos16DispatchTableRecovery.Inspect(nearDispatchRegion, nearDispatchGraph,
+        invalidNearBounds).Candidates, 0,
+        "incomplete dispatch table cannot emit a partially validated target list");
+    Fails(() => Dos16DispatchTableRecovery.Inspect(nearDispatchRegion, nearDispatchGraph,
+        nearDispatchManifest with { SourceSha256 = new string('f', 64) }),
+        "indexed table manifest must match full source SHA-256");
+    var serializedNearManifest = JsonSerializer.Serialize(nearDispatchManifest,
+        new JsonSerializerOptions(JsonSerializerDefaults.Web));
+    Equal(Dos16DispatchTableRecovery.ParseManifest(serializedNearManifest).Tables.Count,
+        1, "source-bound indexed table manifests round trip");
+
+    var farDispatchBytes = (byte[])mzBytes.Clone();
+    MzWord(farDispatchBytes, 8, 3); // 48-byte MZ header for two fixups
+    MzWord(farDispatchBytes, 6, 2);
+    MzWord(farDispatchBytes, 0x1C, 0x32); MzWord(farDispatchBytes, 0x1E, 0);
+    MzWord(farDispatchBytes, 0x20, 0x36); MzWord(farDispatchBytes, 0x22, 0);
+    new byte[] { 0x2E, 0xFF, 0xAF, 0x30, 0x00 }
+        .CopyTo(farDispatchBytes, 0x30); // JMP FAR PTR CS:[BX+0030h]
+    MzWord(farDispatchBytes, 0x60, 0x40); MzWord(farDispatchBytes, 0x62, 0);
+    MzWord(farDispatchBytes, 0x64, 0x42); MzWord(farDispatchBytes, 0x66, 0);
+    farDispatchBytes[0x70] = farDispatchBytes[0x72] = 0xC3;
+    var farDispatchMz = DosMzImage.Load(BinaryArtifact.FromBytes(farDispatchBytes));
+    var farDispatchRegion = farDispatchMz.CreateEntryCodeRegion();
+    var farDispatchGraph = Dos16ControlFlowAnalysis.Analyze(farDispatchRegion, 0);
+    var farDispatchManifest = new Dos16TableManifest(1, farDispatchMz.SourceSha256,
+        new[] { new Dos16TableRequest(0, 0x30, 2, "far16", "synthetic-mz-pointer-table") });
+    var farDispatch = Dos16DispatchTableRecovery.Inspect(farDispatchRegion,
+        farDispatchGraph, farDispatchManifest, farDispatchMz,
+        farDispatchMz.SimulateRelocations(0x2000));
+    Equal(farDispatch.Candidates, 1,
+        "all FAR indexed entries require unique MZ selector relocation evidence");
+    Equal(farDispatch.Findings[0].Entries.Count, 2,
+        "both independently relocated far pointer entries validate");
+    Equal(farDispatch.Findings[0].Entries[1].FixupOrdinal, (int?)1,
+        "second table entry retains distinct MZ selector fixup");
+    Equal(Dos16DispatchTableRecovery.Inspect(farDispatchRegion,
+        farDispatchGraph, farDispatchManifest).Candidates, 0,
+        "FAR dispatch table requires MZ relocation and explicit load-base evidence");
+    var farMissingFixupBytes = (byte[])farDispatchBytes.Clone();
+    MzWord(farMissingFixupBytes, 0x20, 0x38);
+    var farMissingFixupMz = DosMzImage.Load(
+        BinaryArtifact.FromBytes(farMissingFixupBytes));
+    Equal(Dos16DispatchTableRecovery.Inspect(
+        farMissingFixupMz.CreateEntryCodeRegion(),
+        Dos16ControlFlowAnalysis.Analyze(farMissingFixupMz.CreateEntryCodeRegion(), 0),
+        farDispatchManifest with { SourceSha256 = farMissingFixupMz.SourceSha256 },
+        farMissingFixupMz, farMissingFixupMz.SimulateRelocations(0x2000)).Candidates,
+        0, "one unrelocated table selector rejects all candidate table targets");
+    Console.WriteLine("PASS: evidence-bound CS-indexed near and FAR table candidates");
+
 
     var crossReview = DosMzCrossSegmentAnalysis.Analyze(farImage,
         assumedLoadSegment: 0x2000, maxEntryGraphs: 4, instructionsPerEntry: 16);
