@@ -449,6 +449,34 @@ try
         "CMP BX,2 and JA give three nonnegative unsigned index possibilities");
     Equal(automaticTables.Sites[0].StoredTable?.Entries.Count, 3,
         "all three entries validated against original source bytes");
+    var jaeGuard = (byte[])automaticBytes.Clone();
+    jaeGuard[2] = 3; jaeGuard[3] = 0x73; // JAE after CMP BX,3 => BX in [0,2]
+    var jaeRegion = DosComImage.LoadExplicit(BinaryArtifact.FromBytes(jaeGuard)).CreateCodeRegion();
+    var jaeTable = Dos16AutomaticDispatchRecovery.Inspect(jaeRegion,
+        Dos16ControlFlowAnalysis.Analyze(jaeRegion, 0x100));
+    Equal(jaeTable.GuardedTableCandidates, 1,
+        "unsigned JAE comparator can establish a strict upper bound");
+    Equal(jaeTable.Sites[0].EntryCount, (int?)3,
+        "JAE excludes the compared value from possible table indices");
+    var imm16Guard = new byte[0x40];
+    new byte[] { 0x81, 0xFB, 0x02, 0x00, 0x77, 0x07, 0xD1, 0xE3,
+        0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3 }.CopyTo(imm16Guard, 0);
+    MzWord(imm16Guard, 0x20, 0x130);
+    MzWord(imm16Guard, 0x22, 0x131);
+    MzWord(imm16Guard, 0x24, 0x132);
+    imm16Guard[0x30] = imm16Guard[0x31] = imm16Guard[0x32] = 0xC3;
+    var imm16Region = DosComImage.LoadExplicit(BinaryArtifact.FromBytes(imm16Guard)).CreateCodeRegion();
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(imm16Region,
+        Dos16ControlFlowAnalysis.Analyze(imm16Region, 0x100)).GuardedTableCandidates,
+        1, "16-bit CMP BX,imm16 plus unsigned guard is supported");
+    var signExtended = (byte[])automaticBytes.Clone();
+    signExtended[2] = 0x80; // CMP BX,imm8 sign-extends negative immediate
+    var signExtendedRegion = DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(signExtended)).CreateCodeRegion();
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(signExtendedRegion,
+        Dos16ControlFlowAnalysis.Analyze(signExtendedRegion, 0x100)).GuardedTableCandidates,
+        0, "negative sign-extended immediate cannot prove a small unsigned BX bound");
+
     Equal(automaticGraph.Instructions.Any(x => x.Address.Offset == 0x130), false,
         "automatic tables do not enqueue inferred destinations in the CFG");
     var signedGuard = (byte[])automaticBytes.Clone();
@@ -500,6 +528,38 @@ try
         "one unverified table entry rejects the entire automatically bounded table");
     Equal(failedFourthReport.Sites[0].StoredTable, null,
         "partially checked tables must not expose an unsafe target list");
+    var overlapAuto = (byte[])automaticBytes.Clone();
+    overlapAuto[10] = 0x07; overlapAuto[11] = 0x01;
+    var overlapRegion = DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(overlapAuto)).CreateCodeRegion();
+    var overlapGraph = Dos16ControlFlowAnalysis.Analyze(overlapRegion, 0x100);
+    var overlapTable = new Dos16TableManifest(1, overlapRegion.SourceSha256,
+        new[] { new Dos16TableRequest(0x107, 0x107, 3, "near16", "synthetic-overlap") });
+    Equal(Dos16DispatchTableRecovery.Inspect(overlapRegion,
+        overlapGraph, overlapTable).Findings[0].Status,
+        "rejected-code-data-overlap",
+        "decoded instructions cannot be silently reclassified as immutable pointer table storage");
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(overlapRegion,
+        overlapGraph).GuardedTableCandidates, 0,
+        "automatic guard cannot override an existing source-code/data overlap");
+    var staleGuard = automaticGraph with {
+        Instructions = automaticGraph.Instructions.Select(x =>
+            x.Address.Offset == 0x103 ? x with { SourceFileOffset = long.MaxValue } : x).ToArray()
+    };
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(automaticRegion,
+        staleGuard).GuardedTableCandidates, 0,
+        "stale branch physical locations cannot authorize automatic tables");
+    var staleCompare = automaticGraph with {
+        Instructions = automaticGraph.Instructions.Select(x =>
+            x.Address.Offset == 0x100 ? x with { SourceFileOffset = long.MaxValue } : x).ToArray()
+    };
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(automaticRegion,
+        staleCompare).GuardedTableCandidates, 0,
+        "stale CMP physical locations are rejected without unsafe byte reads");
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(automaticRegion,
+        automaticGraph with { Truncated = true }).GuardedTableCandidates, 0,
+        "truncated CFG cannot claim complete predecessor and guard evidence");
+
 
     // Four-byte FAR entries require a SHL BX,2 and distinct MZ selector
     // fixups; a load segment is an explicit simulation assumption.
