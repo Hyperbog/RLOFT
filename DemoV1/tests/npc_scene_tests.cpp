@@ -123,6 +123,7 @@ int main() {
     assert(scene[0].resource_id == 319U);
     assert(scene[0].source_index == 0U);
     assert(scene[0].source_class == 0U);
+    assert(scene[0].source_type_id == 9U);
     assert(scene[0].render_scale_lookup_bias == 0U);
 
     // Damage/reaction state 1 selects the exact alternate block and
