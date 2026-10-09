@@ -23,6 +23,9 @@ PartyModalPresenter::PartyModalPresenter(
       font1_(assets.res0_font(1)),
       experience_table_(
           CharacterExperienceTable::from_code2(
+              assets.source().read("CODE.2"))),
+      encumbrance_(
+          InventoryEncumbranceModel::from_code2(
               assets.source().read("CODE.2"))) {}
 
 void PartyModalPresenter::draw_res0_local(
