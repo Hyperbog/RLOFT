@@ -177,3 +177,47 @@ before validating exact original indexed pixels.
 **Formal demo acceptance remains 1/5 gates (20%).**
 No GitHub Actions run was dispatched. Builds remain
 manual-only, with Linux off by default.
+
+## Level 22 selector provenance and asset access boundary
+
+The independently supplied original Level 22 header at
+`LEV022.DAT` physical file offset `0x1D` has signed
+ground selectors:
+
+- level header `+5 = 0xFFFF` (signed -1, upper selector);
+- level header `+7 = 0x0037` (decimal **55**, lower selector).
+
+Original `CODE.2 1F388..1F3C3` forms a runtime
+resource ID from **signed header+7 PLUS dynamic resource
+base `DGROUP:258F8`**, calls `2F29C(bank=4)`, and only
+after the original type-1 selector succeeds sets
+`FF54=C040+2` for the 64×64 source tile. The runtime
+base is initialized through `CODE.2 16E90` from a
+resource loader structure and is **not yet independently
+verified** at Level 22 fresh-entry time. Consequently
+**RES4 entry 55 is a relative selector, not yet a
+verified absolute texture ID**.
+
+The original **1,975,542-byte** Strahd RES4 binary is
+preserved in repository branch `DnD-Classics` under
+`MASTER/Ravenloft - Strahd's Possession/RLOFT/RES4`
+(Git object SHA `30d1b3377ddddd0e9ae44f6dc2fa9ca1d7f0fad0`).
+However, the present GitHub source connector decodes
+repository files as UTF-8 and cannot retrieve this
+binary file as raw bytes. Do not infer its tile
+contents, compression state or entry indexes from a
+different archive or a similarly named asset.
+
+At runtime, `ResArchive` already parses original
+RES offset tables and can decode original EH type-1
+entries. The current `RavenloftBootAssets::type1`
+dispatch intentionally does **not** expose RES4 as
+a standard 2D boot-image bank; it must be introduced
+as a dedicated, source-verified floor resource path.
+
+**Acceptance invariant:** never activate the
+34A74 floor in the live viewport until exact source
+entry, texture content and mutable C026/C027 and
+FF50 row-span state have all been checked. The
+current flat-fill image remains an explicitly
+incomplete diagnostic, not an authentic DOS forest.
