@@ -242,3 +242,21 @@ row. The Windows build includes `Probe-Level22-Ground.cmd`
 for reading actual original RES4 without GitHub connector
 UTF-8 binary limitations. All builds remain manual;
 164 CTests are now expected, unrun at current HEAD.
+
+## Follow-on: runtime RES4 base and selected tile resolved
+
+[Original INIT-base source proof](ORIGINAL_LEVEL22_RES4_INIT_BASE_RESOLUTION_20261008.md) now
+establishes the original `INIT+0x0E` value
+copied by CODE.2 to `258F8`. The native
+`OriginalGroundRes4Audit::resolve` combines
+that exact value with signed level header+7,
+parses real RES4 and validates the original
+decoded 64×64 indexed tile. Native fresh
+Level22 startup records the selection, with
+no guessed resource or crash on bad media.
+
+Only original FF50 span, C026/C027 dynamic
+branch state and draw order remain before
+live activation of the separate 34A74
+pixel interpreter. This is source-only
+and untested on the latest Windows build.
