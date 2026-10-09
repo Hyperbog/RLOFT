@@ -1,5 +1,25 @@
 # Demo v1 — development progress versus formal acceptance
 
+**Larger original RES3 scene pipeline checkpoint (2026-10-08):**
+The last source pass fixed frame-wide failure propagation at
+*both* source-indexed RES3 planning and VGA tracing. Invalid
+individual shapes remain unresolved without inventing pixels;
+other valid scene calls retain original order and can render.
+The static completion score now reports failed planning and
+failed rasterization, rather than conflating unknown objects
+with fully occluded scenes. Original catalog type IDs are
+retained as native metadata, and the opt-in capture includes
+per-source outcomes. A raw 320x400 indexed frame/6-bit DAC
+native-versus-real-DOS comparator was also added, with a new
+Python CTest and strict source/provenance checks.
+
+**Build status:** last passed manual #638 had 159/159 tests.
+These commits are **not yet tested** by a new workflow; 160
+CTest registrations are expected with Python. No new formal
+acceptance gate is passed, no actual DOS reference has been
+collected, and whole-game engineering completion is unknown.
+[Full checkpoint](LEVEL22_RES3_FULL_PIPELINE_CAPTURE_AND_COMPARE_20261008.md).
+
 **RES3 per-scene fault isolation (2026-10-08 source checkpoint):**
 Previous optional type-7 trace generation discarded every
 scene in a frame if any RES3 call threw. The updated
