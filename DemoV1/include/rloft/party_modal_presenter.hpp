@@ -3,12 +3,16 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <string>
 
 #include "rloft/character_sheet.hpp"
 #include "rloft/character_modal_stats.hpp"
 #include "rloft/exploration_hud_presenter.hpp"
 #include "rloft/indexed_font_presenter.hpp"
 #include "rloft/inventory_screen.hpp"
+#include "rloft/inventory_runtime.hpp"
+#include "rloft/inventory_item_description.hpp"
 #include "rloft/object_catalog.hpp"
 #include "rloft/party_presentation.hpp"
 #include "rloft/resource_assets.hpp"
@@ -29,6 +33,11 @@ struct PartyModalCoverage final {
     }
 };
 
+struct InventoryPointer final {
+    int row{};
+    int column{};
+};
+
 class PartyModalPresenter final {
 public:
     explicit PartyModalPresenter(
@@ -44,7 +53,9 @@ public:
         IndexedFramebuffer& framebuffer,
         const PartyImage& party,
         const std::array<bool, 4>& character_mode,
-        std::size_t selected_actor) const;
+        std::size_t selected_actor,
+        const InventoryRuntimeState* inventory=nullptr,
+        std::optional<InventoryPointer> pointer=std::nullopt) const;
 
 private:
     void draw_res0_local(
@@ -65,6 +76,14 @@ private:
     void draw_character_centered_text(
         IndexedFramebuffer& framebuffer,
         const CharacterSheet& sheet) const;
+
+    void draw_open_container(
+        IndexedFramebuffer& framebuffer,
+        const InventoryRuntimeState& inventory) const;
+    void draw_held_cursor_and_description(
+        IndexedFramebuffer& framebuffer,
+        const InventoryRuntimeState& inventory,
+        std::optional<InventoryPointer> pointer) const;
 
     const RavenloftBootAssets& assets_;
     ObjectCatalog objects_;
