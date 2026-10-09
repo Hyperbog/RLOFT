@@ -12,7 +12,7 @@ The Strahd CD contents have been uploaded in the **correct game directory**:
 MASTER/
   Ravenloft - Strahd's Possession/
     RLOFT/                  # separately imported installed game content
-    game.gog/               # extracted disc contents (directory, not disc image)
+    CD_Extracted/           # extracted disc contents (directory, not disc image)
       STATUS.ME
       RLOFT/
         CINE00.ANM ... CINE12.ANM
@@ -20,11 +20,11 @@ MASTER/
         ...
 ```
 
-The `game.gog/` directory contains **69 ordinary files** whose Git-reported sizes sum to **333,687,767 bytes**. It contains Strahd-specific `RLOFT/` game resources, including thirteen `CINExx.ANM` cinematic files, supporting resource archives `RES9` through `RES12`, `LEVELS.DAT`, and save/install support files.
+The `CD_Extracted/` directory contains **69 ordinary files** whose Git-reported sizes sum to **333,687,767 bytes**. It contains Strahd-specific `RLOFT/` game resources, including thirteen `CINExx.ANM` cinematic files, supporting resource archives `RES9` through `RES12`, `LEVELS.DAT`, and save/install support files.
 
 ## Comparison against existing `RLOFT/`
 
-Comparing Git blob SHAs of identically named files in the extracted `game.gog/RLOFT/` and the installed `RLOFT/` directories produced:
+Comparing Git blob SHAs of identically named files in the extracted `CD_Extracted/RLOFT/` and the installed `RLOFT/` directories produced:
 
 - **47 overlapping paths**, of which **42 have identical Git blob SHA-1 values** and matching sizes.
 - **5 differ**: `PATCHES.INI` (6,952 vs. 7,157 bytes), `README.BAT` (33 vs. 35), `README.TXT` (6,295 vs. 6,466), `RLOFT.BAT` (2,632 vs. 2,712), and `SOUND.BAT` (2,662 vs. 2,738). Values are extracted-disc then installed-game sizes. Possible newline/encoding normalization has **not** been confirmed.
@@ -35,10 +35,10 @@ These checks establish correct **game association and Git object equality** for 
 
 ## Preservation and naming
 
-**Important:** `game.gog/` here is a **directory of extracted CD filesystem files**, not the original `game.gog` disc-image byte stream. A Git tree and a Git blob cannot occupy the same name, so it is recommended to rename the extracted folder to `CD_Extracted/` **before** an eventual LFS import of a true `game.gog` image.
+**Renamed:** Commit `2e1dafb2ac74` moved the 69 files from the extracted directory `game.gog/` to `CD_Extracted/` without changing their Git blob IDs. The original `game.gog` disc-image byte stream is **not present**. The name is now free for a future original-disc-image import, if one is provided and verified.
 
 The original Strahd disc-image byte length/SHA-256 have **not yet been independently recorded for this workspace**. Do not guess them from extracted-file sizes; raw CD images may include filesystem headers, padding and other sector-level information.
 
 Strahd's Possession is **not** one of the 13 games counted by the separate `MASTER/MISSING_SOURCE_FILES.md` D&D collection manifest. This note does not alter the separate 1,529/1,533 original-file inventory status.
 
-**No folders were renamed, and no game binaries were changed during this audit.**
+**No game binary contents were modified by the folder rename.**
