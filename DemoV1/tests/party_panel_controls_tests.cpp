@@ -1,3 +1,6 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include "rloft/party_panel_controls.hpp"
 
 #include <cassert>
@@ -80,6 +83,44 @@ int main() {
            modal_ordinary_slot_at(0x129,0x4B));
     assert(!PartyPanelControlModel::
            modal_ordinary_slot_at(0x129,320));
+
+    // Original CODE.2 11C3C uses the LIVE ten-byte descriptor's
+    // exact x-offset and columns for hand-open containers.
+    // 4x2 chest/quiver, 3x2 scroll case, 2x2 pouch.
+    for(const std::size_t actor:{0U,1U,2U,3U}) {
+        for(const auto cols:{2U,3U,4U}) {
+            const auto size=cols*2U;
+            const int xoffset=cols==4U?5:14;
+            for(std::size_t slot=0;slot<size;++slot) {
+                const int row=0xDB+static_cast<int>(slot/cols)*0x22;
+                const int col=static_cast<int>(actor)*80+xoffset+
+                    static_cast<int>(slot%cols)*0x12;
+                const auto first=PartyPanelControlModel::
+                    modal_container_slot_at(
+                        row,col,actor,static_cast<std::uint8_t>(cols),
+                        static_cast<std::uint8_t>(xoffset),size);
+                const auto last=PartyPanelControlModel::
+                    modal_container_slot_at(
+                        row+31,col+15,actor,static_cast<std::uint8_t>(cols),
+                        static_cast<std::uint8_t>(xoffset),size);
+                assert(first && last);
+                assert(first->actor==actor && first->slot==slot);
+                assert(last->actor==actor && last->slot==slot);
+                assert(!PartyPanelControlModel::modal_container_slot_at(
+                    row+32,col,actor,static_cast<std::uint8_t>(cols),
+                    static_cast<std::uint8_t>(xoffset),size));
+                assert(!PartyPanelControlModel::modal_container_slot_at(
+                    row,col+16,actor,static_cast<std::uint8_t>(cols),
+                    static_cast<std::uint8_t>(xoffset),size));
+            }
+        }
+    }
+    assert(!PartyPanelControlModel::modal_container_slot_at(
+        0xDB,5,0,0U,5U,8U));
+    assert(!PartyPanelControlModel::modal_container_slot_at(
+        0xDA,5,0,4U,5U,8U));
+    assert(!PartyPanelControlModel::modal_container_slot_at(
+        0xDB,5,0,4U,5U,9U));
 
     // Original CODE.2 229CC actor hand-region table at D684, with
     // inclusive boundaries and deliberately separate spell lanes.
