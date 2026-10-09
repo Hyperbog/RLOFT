@@ -27,6 +27,7 @@ public static class AnalysisReportExport
         // Exports are archival statements of a candidate graph, never a
         // declaration that decoded bytes or recovered boundaries are correct.
         provenance ??= SourceProvenance.FromGraph(graph);
+        provenance.ValidateClaim();
         provenance.RequireGraph(graph);
         if (gaps is not null && !string.Equals(gaps.SourceSha256,
                 graph.ArtifactSha256, StringComparison.OrdinalIgnoreCase))
@@ -73,6 +74,7 @@ public static class AnalysisReportExport
     {
         ArgumentNullException.ThrowIfNull(graph);
         provenance ??= SourceProvenance.FromGraph(graph);
+        provenance.ValidateClaim();
         provenance.RequireGraph(graph);
         if (gaps is not null && !string.Equals(gaps.SourceSha256,
                 graph.ArtifactSha256, StringComparison.OrdinalIgnoreCase))
