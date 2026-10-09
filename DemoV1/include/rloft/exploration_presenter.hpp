@@ -75,12 +75,23 @@ struct SurfaceMainRasterFailure final {
     std::string reason;
 };
 
+enum class Type7SceneRenderOutcome : std::uint8_t {
+    PlanningFailed,
+    FullyOccluded,
+    TraceUnavailable,
+    Rasterized,
+    RasterFailed,
+};
+
 struct ExplorationPresentedFrame final {
     Palette6 palette{};
     ExplorationSurfaceCoverage surface_coverage{};
     std::vector<SurfacePrepassRasterFailure> surface_prepass_failures;
     std::vector<SurfaceMainRasterFailure> surface_main_failures;
     std::vector<Type7SceneRasterFailure> type7_failures;
+    // Per original call position. Native diagnostics only; this is
+    // not a replacement for original DOS VGA write order.
+    std::vector<Type7SceneRenderOutcome> type7_scene_outcomes;
     std::optional<std::string> type7_trace_failure;
 };
 
@@ -114,6 +125,12 @@ public:
     [[nodiscard]] static ExplorationSurfaceCoverage surface_coverage(
         const ExplorationRuntimeFrame& frame,
         const RendererTables& tables);
+
+    // Initial classification derived from original scene planning,
+    // before any VGA pixel execution. Tests can verify the distinction
+    // without requiring an entire installed DOS asset bundle.
+    [[nodiscard]] static std::vector<Type7SceneRenderOutcome>
+    initial_scene_outcomes(const ExplorationRuntimeFrame& frame);
 
 private:
     void draw_environment(
