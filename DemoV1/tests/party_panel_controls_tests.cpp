@@ -39,6 +39,24 @@ int main() {
     assert(PartyPanelControlModel::modal_actor_at_column(319) == 3U);
     assert(!PartyPanelControlModel::modal_actor_at_column(320).has_value());
 
+    // CODE.2 12E70 exactly routes 0x10..0x27 row and
+    // actor-local 0x44..0x4D to original 12988 MAX/CURRENT/
+    // encumbrance. The 0x2B..0x40 icons open *other* modals.
+    for(int actor=0;actor<4;++actor) {
+        const int base=actor*0x50;
+        assert(PartyPanelControlModel::modal_encumbrance_actor_at(
+            0x10,base+0x44)==static_cast<std::size_t>(actor));
+        assert(PartyPanelControlModel::modal_encumbrance_actor_at(
+            0x27,base+0x4D)==static_cast<std::size_t>(actor));
+        assert(!PartyPanelControlModel::modal_encumbrance_actor_at(
+            0x0F,base+0x44));
+        assert(!PartyPanelControlModel::modal_encumbrance_actor_at(
+            0x28,base+0x44));
+        assert(!PartyPanelControlModel::modal_encumbrance_actor_at(
+            0x2B,base+0x39));
+        assert(!PartyPanelControlModel::modal_encumbrance_actor_at(
+            0x10,base+0x43));
+    }
     // Inclusive 12E70 bounds.
     assert(PartyPanelControlModel::modal_toggle_actor_at(
                0x45, 0x39) == 0U);
