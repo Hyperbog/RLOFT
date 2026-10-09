@@ -118,14 +118,20 @@ internal sealed class ReferenceRecovery
 
         // Explicit segment overrides (such as FS, GS) require runtime segment
         // state. Address-size 16-bit and base-register addressing are unresolved.
-        if (insn.SegmentPrefix != Register.None || insn.MemoryBase != Register.None)
+        bool csIndexed = insn.SegmentPrefix == Register.CS &&
+            (insn.FlowControl is FlowControl.IndirectBranch or FlowControl.IndirectCall) &&
+            insn.MemoryIndex != Register.None && insn.MemoryIndexScale == 4;
+        if ((insn.SegmentPrefix != Register.None && !csIndexed) ||
+            insn.MemoryBase != Register.None)
             return new RecoveredReferenceSet(data, indirect, null);
         bool hasMemory = false;
         for (int i = 0; i < insn.OpCount; i++)
             if (insn.GetOpKind(i) == OpKind.Memory) { hasMemory = true; break; }
         if (!hasMemory || insn.MemoryDisplacement64 > uint.MaxValue)
             return new RecoveredReferenceSet(data, indirect, null);
-        FlowAddress? absolute = MapLinear(insn.MemoryDisplacement64);
+        FlowAddress? absolute = csIndexed
+            ? new FlowAddress(address.Object, checked((uint)insn.MemoryDisplacement64))
+            : MapLinear(insn.MemoryDisplacement64);
         // LE binaries often store an unrelocated disp32 in the original code.
         // For indirect transfers an internal absolute fixup at the *last four
         // encoded bytes* provides a stronger object-relative address than the
@@ -135,7 +141,9 @@ internal sealed class ReferenceRecovery
         {
             var displacementSlot = new FlowAddress(address.Object,
                 checked(address.Offset + (uint)(instructionLength - 4)));
-            if (fixups.TryGetValue(displacementSlot, out var relocation) && relocation.SourceType == 0x07)
+            if (fixups.TryGetValue(displacementSlot, out var relocation) &&
+                relocation.SourceType == 0x07 &&
+                (!csIndexed || relocation.TargetObject == address.Object))
             {
                 var obj = image.Objects[relocation.TargetObject - 1];
                 ulong offset = (ulong)relocation.TargetOffset + relocation.Additive;
@@ -209,7 +217,9 @@ internal sealed class ReferenceRecovery
                     }
                     uint rawPointer = BinaryPrimitives.ReadUInt32LittleEndian(
                         image.ReadStoredBytes(location.Object, location.Offset, 4));
-                    FlowAddress? target = MapLinear(rawPointer);
+                    FlowAddress? target = csIndexed
+                        ? new FlowAddress(address.Object, rawPointer)
+                        : MapLinear(rawPointer);
                     if (target is not { } resolved ||
                         (image.Objects[resolved.Object - 1].Flags & 4u) == 0 ||
                         !IsBackedRange(resolved, 1))
