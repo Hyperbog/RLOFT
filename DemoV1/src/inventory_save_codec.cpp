@@ -139,10 +139,13 @@ InventorySaveSnapshot InventorySaveCodec::decode(
     if(at!=layout.container_offset+kPersistentContainerBytes)
         throw std::runtime_error("SAVE container bank decode mismatch");
 
-    for(std::size_t actor=0U;actor<4U;++actor)
+    for(std::size_t actor=0U;actor<4U;++actor) {
         std::copy_n(original_save.begin()+
             layout.context_offset+actor*4U,4U,
             result.container_ui_contexts[actor].begin());
+        result.inventory.party_container_ui_contexts[actor].raw=
+            result.container_ui_contexts[actor];
+    }
     return result;
 }
 
@@ -213,18 +216,79 @@ void verify_matching_world(
         throw std::runtime_error(
             "inventory-only LOAD requires matching world pose/time");
 
-    // The original transient records and 6FA0 per-actor animation
-    // phases are retained byte-for-byte but not live-reconstructed.
-    // Reject them at the live bridge; the standalone codec continues
-    // to roundtrip these record types without losing source bytes.
+    // The original moving-effect records cannot be attached to
+    // native world runtime by an inventory-only import. Container
+    // phases are resolved independently and may be source-restored.
     if(layout.effects!=0U)
         throw std::runtime_error(
             "inventory-only LOAD cannot restore moving world effects");
-    for(const auto& context:source.container_ui_contexts)
-        for(const auto value:context)
-            if(value!=0xFFU)
+}
+
+// Original 6FA0+actor*4 stores subtype, descriptor index,
+// animation phase, then ONLY the low byte of the object ID.
+// The original 21648/10FAC callers are the authority on the
+// record layout. Hand ownership must be inferred from live
+// party item[14]/item[15], never from an invented fifth byte.
+std::optional<OpenInventoryContainer> resolve_saved_ui(
+    const std::array<std::array<std::uint8_t,4>,4>& contexts,
+    const PartyImage& party,
+    const InventoryRuntimeState& inventory,
+    const ObjectCatalog* objects) {
+    std::optional<OpenInventoryContainer> opening;
+    for(std::size_t actor=0U;actor<contexts.size();++actor) {
+        PartyContainerUiContext context{};
+        context.raw=contexts[actor];
+        if(context.inactive())continue;
+        if(!context.active() || context.raw[2]!=3U)
+            throw std::runtime_error(
+                "inventory-only LOAD cannot replay partial 6FA0 animation");
+        const auto idx=static_cast<std::size_t>(context.raw[1]);
+        if(idx>=InventoryRuntimeState::kSerializedContainerCount ||
+           idx>=inventory.containers.size())
+            throw std::runtime_error(
+                "6FA0 source container selector outside SAVE descriptor bank");
+        const auto& descriptor=inventory.containers[idx];
+        if(descriptor.slot_count==0U ||
+           descriptor.items.size()!=descriptor.slot_count ||
+           descriptor.subtype!=context.raw[0] ||
+           !party.active(actor))
+            throw std::runtime_error(
+                "6FA0 active container inconsistent with actor/descriptor");
+        if(objects==nullptr)
+            throw std::runtime_error(
+                "6FA0 active container needs the original object catalogue");
+        if(opening)
+            throw std::runtime_error(
+                "native inventory supports one active 6FA0 view");
+        std::optional<OpenInventoryContainer> match;
+        for(std::size_t hand=0U;hand<2U;++hand) {
+            const auto base=actor*PartyImage::kActorSize;
+            const auto item_at=base+0x40U+(14U+hand)*2U;
+            const auto id=signed16(static_cast<std::uint16_t>(
+                party.bytes[item_at] |
+                (static_cast<std::uint16_t>(
+                    party.bytes[item_at+1U])<<8U)));
+            // 6FA3 is 8-bit: preserve original truncation,
+            // but validate the COMPLETE hand item via OBJECTS.
+            if(id<0 || static_cast<std::uint8_t>(id)!=context.raw[3])
+                continue;
+            if(static_cast<std::size_t>(id)>=objects->size())
+                continue;
+            const auto& item=objects->at(static_cast<std::size_t>(id));
+            if(item.item_category!=1U ||
+               item.container_state_index!=static_cast<int>(idx))
+                continue;
+            if(match)
                 throw std::runtime_error(
-                    "inventory-only LOAD cannot restore open container phase");
+                    "6FA0 container matches both hands ambiguously");
+            match=OpenInventoryContainer{actor,hand,id,idx};
+        }
+        if(!match)
+            throw std::runtime_error(
+                "6FA0 source container cannot match an actor hand");
+        opening=*match;
+    }
+    return opening;
 }
 
 } // namespace
@@ -232,18 +296,25 @@ void verify_matching_world(
 void InventorySaveCodec::apply_to_matching_session(
     const InventorySaveSnapshot& source,
     ExplorationSessionState& session,
-    InventoryRuntimeState& inventory) {
+    InventoryRuntimeState& inventory,
+    const ObjectCatalog* objects) {
     verify_matching_world(source,session);
     if(inventory.open_container)
         throw std::runtime_error(
             "inventory-only LOAD cannot replace an open live container");
     validate_descriptors(source.inventory);
-    // Avoid mutating live state until all source checks and the
-    // inventory copy have succeeded; preserve the actual byte
-    // values for both spell matrices and all 21 inventory slots.
     auto replacement=source.inventory;
+    // A prior copied runtime view must NEVER win over the
+    // actual four trailing 6FA0 bytes in the source image.
+    for(std::size_t actor=0U;actor<4U;++actor)
+        replacement.party_container_ui_contexts[actor].raw=
+            source.container_ui_contexts[actor];
+    const auto restored_open=resolve_saved_ui(
+        source.container_ui_contexts,source.party,replacement,objects);
+    // Everything above is fallible and read-only; make the
+    // party, flags, context and cursor update as one commit.
     replacement.mage_scribe_feedback.reset();
-    replacement.open_container.reset();
+    replacement.open_container=restored_open;
     inventory=std::move(replacement);
     session.party=source.party;
     session.persistent_event_flags=source.persistent_event_flags;
@@ -252,19 +323,38 @@ void InventorySaveCodec::apply_to_matching_session(
 InventorySaveSnapshot InventorySaveCodec::capture_matching_session(
     const InventorySaveSnapshot& preserved,
     const ExplorationSessionState& session,
-    const InventoryRuntimeState& inventory) {
+    const InventoryRuntimeState& inventory,
+    const ObjectCatalog* objects) {
     verify_matching_world(preserved,session);
-    if(inventory.open_container)
-        throw std::runtime_error(
-            "inventory-only SAVE cannot persist an open hand container");
     validate_descriptors(inventory);
+    std::array<std::array<std::uint8_t,4>,4> contexts{};
+    for(std::size_t actor=0U;actor<4U;++actor)
+        contexts[actor]=inventory.party_container_ui_contexts[actor].raw;
+    const auto resolved=resolve_saved_ui(
+        contexts,session.party,inventory,objects);
+    // The native selected view must agree with what will actually
+    // be written to the original four actor-context records.
+    // There is no valid source encoding for an unmatched view.
+    if(static_cast<bool>(resolved)!=
+       static_cast<bool>(inventory.open_container))
+        throw std::runtime_error(
+            "native open container differs from original 6FA0 state");
+    if(resolved && inventory.open_container &&
+       (resolved->actor!=inventory.open_container->actor ||
+        resolved->hand!=inventory.open_container->hand ||
+        resolved->object_id!=inventory.open_container->object_id ||
+        resolved->descriptor_index!=
+            inventory.open_container->descriptor_index))
+        throw std::runtime_error(
+            "6FA0 selected hand does not match native container");
     auto snapshot=preserved;
     snapshot.party=session.party;
     snapshot.persistent_event_flags=session.persistent_event_flags;
     snapshot.inventory=inventory;
-    // These two runtime-only fields are not persisted by CODE.2.
+    snapshot.container_ui_contexts=contexts;
+    // Presentation feedback and pointer-selection cache do not
+    // have additional SAVE bytes beyond original 6FA0 contexts.
     snapshot.inventory.mage_scribe_feedback.reset();
-    snapshot.inventory.open_container.reset();
     return snapshot;
 }
 
