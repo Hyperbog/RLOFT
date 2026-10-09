@@ -59,6 +59,40 @@ try
     {
         project.EnsureArtifact(artifact);
         Require(project.ListArtifacts().Count == 1, "artifact identity missing");
+        var source = SourceProvenance.ForArtifact(artifact, gameId: "stone", module: "CODE.1");
+        project.EnsureSourceIdentity(source);
+        var analystName = project.SaveNamedSymbol(source, 1, 0,
+            "analyst", "analyst_start", "", 0);
+        var inferredName = project.SaveNamedSymbol(source, 1, 0,
+            "inferred", "possible_start", "candidate-cfg", 0);
+        var verifiedName = project.SaveNamedSymbol(source, 1, 0,
+            "verified", "fixture_start", "synthetic-independent-evidence", 0);
+        Require(analystName.Revision == 1 && inferredName.Revision == 1 &&
+            verifiedName.Revision == 1, "independent symbol tiers cannot be saved");
+        Require(project.ListNamedSymbols("stone", artifact.Sha256).Count == 3,
+            "three name provenance tiers must coexist at the same address");
+        Require(project.ListNamedSymbols("menzo", artifact.Sha256).Count == 0,
+            "a different game cannot inherit Stone's function names");
+        bool otherGameRejected = false;
+        try
+        {
+            project.EnsureSourceIdentity(source with {
+                GameId = "menzo",
+                IdentityStatus = "analyst-declared-game-unverified",
+                ResearchNamespace = "menzo/" + artifact.Sha256 });
+        }
+        catch (InvalidDataException) { otherGameRejected = true; }
+        Require(otherGameRejected, "same SHA-256 must not silently change game identity");
+        bool fakeVerifiedRejected = false;
+        try { project.EnsureSourceIdentity(source with {
+            IdentityStatus = "verified-sha256-fingerprint" }); }
+        catch (InvalidDataException) { fakeVerifiedRejected = true; }
+        Require(fakeVerifiedRejected, "unarchived fingerprint cannot become verified identity");
+        bool verifiedWithoutEvidenceRejected = false;
+        try { project.SaveNamedSymbol(source, 1, 2, "verified", "unproved", "", 0); }
+        catch (ArgumentException) { verifiedWithoutEvidenceRejected = true; }
+        Require(verifiedWithoutEvidenceRejected,
+            "evidence-backed name tiers require explicit research evidence");
         Require(project.SaveAnalysis(graph) >= 1, "analysis snapshot ID invalid");
         var note = project.SaveAnnotation(artifact.Sha256, 1, 0, "comment", "candidate, not verified", 0);
         Require(note.Revision == 1, "initial revision incorrect");
@@ -81,6 +115,8 @@ try
                 "WAL-safe backup lost analysis snapshot");
             Require(copy.GetAnnotation(artifact.Sha256, 1, 0, "comment")?.Body == "needs review",
                 "WAL-safe backup lost latest analyst note");
+            Require(copy.ListNamedSymbols("stone", artifact.Sha256).Count == 3,
+                "WAL-safe backup lost separate provenance names");
         }
         bool existingBackupRejected = false;
         try { project.CreateBackup(backup); }
@@ -104,8 +140,37 @@ try
         var note = reopened.GetAnnotation(artifact.Sha256, 1, 0, "comment");
         Require(note is not null && note.Revision == 2 && note.Body == "needs review",
             "analyst annotation failed round trip");
+        Require(reopened.ListNamedSymbols("stone", artifact.Sha256).Count == 3,
+            "separate verified/inferred/analyst names failed reopen");
         Require(reopened.LoadLatestAnalysis(new string('0', 64)) == null,
             "unrelated artifact incorrectly matched");
+    }
+    // Simulate an authentic V1 database using the earlier schema and reopen.
+    // Legacy notes survive migration, without silent promotion to verified names.
+    string legacyPath = Path.Combine(folder, "legacy-v1.ddproj");
+    using (var latest = ProjectStore.Open(path)) latest.CreateBackup(legacyPath);
+    using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={legacyPath}"))
+    {
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            DROP TABLE named_symbols;
+            DROP TABLE source_identities;
+            PRAGMA user_version=1;
+            """;
+        command.ExecuteNonQuery();
+    }
+    using (var upgraded = ProjectStore.Open(legacyPath))
+    {
+        upgraded.VerifyIntegrity();
+        Require(upgraded.GetAnnotation(artifact.Sha256, 1, 0, "comment")?.Body == "needs review",
+            "V1-to-V2 migration lost legacy annotations");
+        Require(upgraded.LoadLatestAnalysis(artifact.Sha256)?.Instructions.Count == 1,
+            "V1-to-V2 migration lost prior candidate analysis");
+        Require(upgraded.ListNamedSymbols("stone", artifact.Sha256).Count == 0,
+            "migration must not silently promote legacy notes into verified symbols");
+        upgraded.EnsureSourceIdentity(SourceProvenance.ForArtifact(artifact,
+            gameId: "stone", module: "CODE.1"));
     }
     // A matching SHA-256 and well-formed SQLite snapshot alone do not prove
     // that the CACHED instruction evidence matches the reopened original.
