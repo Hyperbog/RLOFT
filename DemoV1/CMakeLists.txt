@@ -196,6 +196,14 @@ add_library(rloft_boot_flow
 )
 target_include_directories(rloft_boot_flow PUBLIC include)
 target_compile_features(rloft_boot_flow PUBLIC cxx_std_17)
+# MSBuild's /m parallelizes projects, but the main static library is one
+# large project containing most game sources. Allow two cl.exe processes
+# within that project on private-repository Windows runners. Keep this
+# scoped to the library so all 164 individual test projects do not each
+# spawn extra compiler processes during full builds.
+if(MSVC)
+    target_compile_options(rloft_boot_flow PRIVATE /MP2)
+endif()
 
 if(WIN32)
     target_link_libraries(rloft_boot_flow PRIVATE Advapi32)
