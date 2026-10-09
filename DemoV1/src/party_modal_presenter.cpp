@@ -496,15 +496,16 @@ void PartyModalPresenter::draw_open_container(
     // Original 11C3C: slot positions are derived from live ten-byte
     // descriptor columns/x-offset. Source objects themselves are
     // always drawn with genuine RES1 + OBJECTS UI sprite indices.
-    // The simple slot border below is currently a source-palette
-    // presentation fallback: the original decorative RES0 surround
-    // still requires a specific 11C3C/11FB0 art-call trace.
+    // Original 10A70 mode3 4BA48..4BA65 clears EXACTLY a 32-row
+    // by 16-column black cell at each descriptor-derived location.
+    // It does not draw a gray border around every item cell.
+    // The separate original 0x69434 panel line/surround must be
+    // reconstructed independently; never fabricate per-cell rims.
     const int lane=static_cast<int>(context.actor)*0x50;
     for(std::size_t index=0U;index<desc.items.size();++index) {
         const int row=0xDB+static_cast<int>(index/desc.ui_columns)*0x22;
         const int column=lane+desc.ui_x_offset+
             static_cast<int>(index%desc.ui_columns)*0x12;
-        framebuffer.fill_rect(row-1,column-1,34,18,0x75);
         framebuffer.fill_rect(row,column,32,16,0);
         const auto id=desc.items[index];
         if(id<0)continue;
