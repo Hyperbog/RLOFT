@@ -413,3 +413,18 @@ Last successful Windows preview remains run 37887821656.
 Reference: R2_TABLE_INDEX_EVIDENCE_SOURCE_CHECKPOINT.md.
 Gate state: user build approval granted; run pending manual dispatch.
 Last confirmed successful Windows build remains run 37887821656.
+
+2026-10-09 | R2.4 source-only conflict and join evidence follow-up:
+- Preserve source table validator status per candidate index site and
+  expose an explicit CodeDataConflicts report count without changing
+  retained instruction ownership or runtime code/data classification.
+- Synthetic branch-join fixtures require both bounded predecessor BX
+  byte offsets to select two entries; when one path has an unsupported
+  partial-byte-register alias, Unknown must dominate and suppress
+  selected entries. Tests committed, not executed.
+- Manual Windows workflow dispatch still blocked from this session:
+  linked GitHub connector has no dispatch action; local dotnet absent.
+  No newly built or published artifact has been verified.
+- R2.4 evidence-only implementation PARTIAL SOURCE COMPLETE; integration
+  of automatic guard/stride proof remains separate and unverified.
+Reference: R2_TABLE_INDEX_EVIDENCE_SOURCE_CHECKPOINT.md.
