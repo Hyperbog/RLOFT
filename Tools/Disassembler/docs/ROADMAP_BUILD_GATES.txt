@@ -255,20 +255,16 @@ Never claim an unseen original was tested.
 
 CURRENT NEXT ACTIONS
 --------------------
-NOW: R1.4-R1.6 source batch is COMPLETE IN SOURCE ONLY; independent
-instruction re-decoding, duplicate-start safety and report accounting
-have synthetic regression cases pending execution.
-NEXT: G1 is READY, NOT AUTHORIZED. A single gate matrix is recorded in
-G1_X86_16_BATCH_VERIFICATION_MATRIX.txt. Do not build automatically.
-THEN: R2.1 bounded value-domain model is SOURCE COMPLETE, NOT TESTED.
-NOW: R2.1 value-domain and R2.2 first exact register transfers are
-SOURCE COMPLETE, STATIC REVIEW ONLY; all corresponding smoke suites
-remain NOT EXECUTED.
-NEXT SOURCE-ONLY: R2.3 bounded predecessor merge/worklist design with
-loop and partial-state safeguards; then R2.4 integration only behind
-complete source-backed path and table proof.
-G1 remains READY, NOT AUTHORIZED; G2 is NOT READY. No builds or tests
-without explicit owner approval.
+NOW: R1.4-R1.6 and R2.1-R2.3 source batches are COMPLETE
+IN SOURCE ONLY. Bounded register-value worklist, exact CFG edge
+re-decoding, incoming state joins, conservative loop widening, explicit
+budgets and adversarial synthetic fixtures are committed but NOT TESTED.
+NEXT SOURCE-ONLY: R2.3 hardening for speculative call/interrupt joins,
+prefix and IP-boundary edge cases, then R2.4 table integration only
+behind independently validated paths, indices and original source bytes.
+G1 remains READY / NOT AUTHORIZED; G2 NOT READY. The prior Windows
+preview predates this source batch. Do not build, test or package
+without explicit owner authorization.
 
 WORK LOG APPEND FORMAT (MAINTAIN IN THIS FILE)
 ----------------------------------------------
@@ -350,3 +346,25 @@ Last successful Windows build remains run 37887821656.
   integration. No Windows build, CI, original-binary test or packaging run.
 Reference: R2_REGISTER_TRANSFER_SOURCE_CHECKPOINT.md.
 Last successfully built preview remains run 37887821656.
+
+2026-10-09 | R2.3 x86-16 bounded source-only dataflow checkpoint:
+- Added opt-in 16-bit register-state worklist. Source SHA, physical region,
+  segment, origin, candidate instruction bytes and every cached edge are
+  independently checked. Missing, forged, orphaned or duplicate edges,
+  stale instructions, conflicting decoded ownership, undecoded destinations
+  and externally truncated graphs fail closed with zero published states.
+- Small exact, prefix-free Jcc/JMP transfers preserve register facts,
+  with unsigned/signed branch decision still unknown; calls, interrupts,
+  indirect transfers and all unsupported operations retain conservative
+  kill-all register behavior. No graph targets or functions are added.
+- Incoming candidate states join monotonically using the bounded value
+  domain. Repeated expansion widens to Unknown; instruction, edge and step
+  budgets suppress partial results instead of pretending completeness.
+- New synthetic fixtures include a two-branch register join, growing loop,
+  forged/missing edges, stale bytes, duplicate starts, null graphs,
+  truncated graph, cross-source mismatch, and explicit budget exhaustion.
+  DosDis.Smoke registration is committed; no suite has run.
+- Documentation updated; source-only static review is NOT compilation.
+Reference: R2_DATAFLOW_WORKLIST_SOURCE_CHECKPOINT.md.
+Gate status: G1 READY / NOT AUTHORIZED; G2 NOT READY.
+Last successful Windows preview remains run 37887821656.
