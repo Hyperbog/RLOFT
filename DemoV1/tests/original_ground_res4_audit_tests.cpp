@@ -35,8 +35,8 @@ std::vector<std::uint8_t> original_type1_64_tile() {
     return r;
 }
 rloft::ResArchive fixture() {
-    std::vector<std::uint8_t> bytes(4U+5U*4U,0U);
-    le32(bytes,0U,5U);
+    std::vector<std::uint8_t> bytes(4U+6U*4U,0U);
+    le32(bytes,0U,6U);
     const auto append=[&](int index,std::vector<std::uint8_t> part) {
         le32(bytes,4U+static_cast<std::size_t>(index)*4U,
              static_cast<std::uint32_t>(bytes.size()));
@@ -66,6 +66,15 @@ rloft::ResArchive fixture() {
                 static_cast<std::ptrdiff_t>(i+8U));
     }
     append(4,std::move(compressed));
+    // Native type-1 parser implements original DC90 one-row
+    // transposition: 64 images x 1 row become 1 image x 64 rows.
+    // This is also a valid 64x64 tile and must not be filtered out
+    // prematurely by the candidate descriptor scan.
+    auto transformed=valid;
+    transformed[5U]=64U; // original element count
+    transformed[7U]=1U;  // original height
+    transformed[12U]=1U; // original DC90 transform mode
+    append(5,std::move(transformed));
     return rloft::ResArchive(std::move(bytes));
 }
 template<class Fn> bool throws(Fn&& fn) {
@@ -75,12 +84,12 @@ template<class Fn> bool throws(Fn&& fn) {
 }
 int main() {
     const auto res4=fixture();
-    assert(res4.entry_count()==5);
+    assert(res4.entry_count()==6);
     const auto report=rloft::OriginalGroundRes4Audit::inspect(res4);
-    assert(report.total_entries==5);
-    assert(report.type1_entries==4);
+    assert(report.total_entries==6);
+    assert(report.type1_entries==5);
     assert(report.rejected_type1_entries==1);
-    assert(report.tiles_64x64.size()==2U);
+    assert(report.tiles_64x64.size()==3U);
     const auto& tile=report.tiles_64x64[0];
     assert(tile.absolute_entry==1);
     assert(tile.compressed_entry_bytes==4109U);
@@ -93,18 +102,22 @@ int main() {
     assert(packed.compression==3U);
     assert(packed.decoded_fnv1a32==tile.decoded_fnv1a32);
     assert(packed.transparent_index==tile.transparent_index);
+    const auto& transform=report.tiles_64x64[2];
+    assert(transform.absolute_entry==5);
+    assert(transform.transform==1U);
+    assert(transform.decoded_fnv1a32==tile.decoded_fnv1a32);
 
     // The original lookup is relative selector plus a runtime base.
     // A bare Level 22 relative 55 is not proof of absolute RES4[55].
     assert(rloft::OriginalGroundRes4Audit::absolute_index(
-        55,-54,5)==1);
+        55,-54,6)==1);
     assert(throws([&]{
         (void)rloft::OriginalGroundRes4Audit::absolute_index(
-            55,0,5);
+            55,0,6);
     }));
     assert(throws([&]{
         (void)rloft::OriginalGroundRes4Audit::absolute_index(
-            55,-60,5);
+            55,-60,6);
     }));
     assert(throws([&]{
         (void)rloft::OriginalGroundRes4Audit::absolute_index(
@@ -118,6 +131,8 @@ int main() {
         rloft::OriginalGroundRes4Audit::verified_tile_source(
             res4,4);
     assert(compressed_source==source);
+    assert(rloft::OriginalGroundRes4Audit::verified_tile_source(
+        res4,5)==source);
     assert(source[0]==0 && source[1]==0);
     for(std::size_t i=0;i<4096U;++i) {
         assert(source[2U+i]==static_cast<std::uint8_t>(i&255U));
