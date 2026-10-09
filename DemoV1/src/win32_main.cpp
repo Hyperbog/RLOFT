@@ -1459,6 +1459,16 @@ int run_exploration(
                 L" | Wall errors " +
                 std::to_wstring(
                     presented.surface_coverage.sintab_main_runs_failed) +
+                L" | RES3 calls " +
+                std::to_wstring(
+                    presented.surface_coverage.type7_calls_rasterized) +
+                L"/" + std::to_wstring(
+                    presented.surface_coverage.type7_calls_rasterized +
+                    presented.surface_coverage.type7_scene_calls_pending) +
+                L" | RES3 trace errors " +
+                std::to_wstring(
+                    frame.scene_vga_scene_failures.size() +
+                    (frame.scene_vga_trace_failure.has_value()?1U:0U)) +
                 L" | Arrow keys / Numpad | Esc to exit";
             if (capture_render) {
                 caption+=L" | Captures "+
