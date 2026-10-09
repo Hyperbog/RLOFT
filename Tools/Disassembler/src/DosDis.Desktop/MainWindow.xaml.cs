@@ -59,8 +59,11 @@ public partial class MainWindow : Window
         OpenProjectButton.IsEnabled = !value;
         AnalyzeButton.IsEnabled = !value && _image != null;
         SaveProjectButton.IsEnabled = !value && _artifact != null;
-        BackupProjectButton.IsEnabled = !value && _project != null;
-        SaveNoteButton.IsEnabled = !value && _artifact != null && _project != null && AssemblyGrid.SelectedItem is AssemblyRow;
+        // Both workflows can create a project on demand. A missing project
+        // must not strand an entered analyst comment behind a disabled button.
+        BackupProjectButton.IsEnabled = !value && _artifact != null;
+        SaveNoteButton.IsEnabled = !value && _artifact != null &&
+            AssemblyGrid.SelectedItem is AssemblyRow;
         AssemblyGrid.IsEnabled = !value;
         FunctionsList.IsEnabled = !value;
         CancelAnalysisButton.IsEnabled = value && _analysisCancellation is not null;
@@ -279,7 +282,7 @@ public partial class MainWindow : Window
             var note = _project.GetAnnotation(_artifact.Sha256, row.Object, row.Offset, "comment");
             if (note != null) { NoteEditor.Text = note.Body; _commentRevision = note.Revision; }
         }
-        SaveNoteButton.IsEnabled = !_working && _project != null;
+        SaveNoteButton.IsEnabled = !_working && _artifact != null;
     }
     private void ReferencesGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
@@ -464,46 +467,89 @@ public partial class MainWindow : Window
         finally { SetWorking(false); }
     }
 
+    /// <summary>
+    /// Create a new research database only after the analyst chooses a path.
+    /// A cancelled dialog has no side effects. The binary stays read-only;
+    /// only its identity and optional candidate analysis are persisted.
+    /// </summary>
+    private bool TryCreateProject(string action)
+    {
+        if (_project != null) return true;
+        if (_artifact is null) return false;
+        var picker = new SaveFileDialog
+        {
+            Title = "Create DOSDis research project to " + action,
+            DefaultExt = ".ddproj",
+            Filter = "DOSDis project (*.ddproj)|*.ddproj",
+            AddExtension = true,
+            OverwritePrompt = false,
+            FileName = Path.GetFileNameWithoutExtension(_artifact.Name) + ".ddproj"
+        };
+        if (picker.ShowDialog(this) != true) return false;
+        // Never attach annotations to an unrelated existing database or
+        // overwrite someone else's project. Use Open project instead.
+        if (File.Exists(picker.FileName))
+            throw new IOException(
+                "That research project already exists. Choose a new name, " +
+                "or use Open project to resume an existing project.");
+        var created = ProjectStore.Open(picker.FileName);
+        try
+        {
+            created.EnsureArtifact(_artifact);
+            if (_graph is not null) created.SaveAnalysis(_graph);
+            _project = created;
+            Trace(DiagnosticStage.ProjectSaved);
+            BackupProjectButton.IsEnabled = true;
+            return true;
+        }
+        catch
+        {
+            created.Dispose();
+            throw;
+        }
+    }
+
     private void SaveProject_Click(object sender, RoutedEventArgs e)
     {
         if (_artifact is null || _working) return;
         try
         {
-            if (_project is null)
+            bool alreadyOpen = _project is not null;
+            if (!TryCreateProject("save this binary's analysis")) return;
+            var project = _project ?? throw new InvalidOperationException("No research project.");
+            if (alreadyOpen)
             {
-                var picker = new SaveFileDialog
-                {
-                    Title = "Create DOSDis research project", DefaultExt = ".ddproj",
-                    Filter = "DOSDis project (*.ddproj)|*.ddproj", AddExtension = true
-                };
-                if (picker.ShowDialog(this) != true) return;
-                _project = ProjectStore.Open(picker.FileName);
+                project.EnsureArtifact(_artifact);
+                if (_graph is not null) project.SaveAnalysis(_graph);
+                Trace(DiagnosticStage.ProjectSaved);
             }
-            _project.EnsureArtifact(_artifact);
-            if (_graph != null) _project.SaveAnalysis(_graph);
-            Trace(DiagnosticStage.ProjectSaved);
-            StatusText.Text = $"Project saved: {_project.FilePath}. No complete original executable was embedded; instruction bytes remain in cached findings.";
-            BackupProjectButton.IsEnabled = true;
+            StatusText.Text = $"Project saved: {project.FilePath}. " +
+                "Original executable bytes are not embedded.";
             SaveNoteButton.IsEnabled = AssemblyGrid.SelectedItem is AssemblyRow;
         }
         catch (Exception ex) { Error("Project save failed", ex); }
     }
+
     private void BackupProject_Click(object sender, RoutedEventArgs e)
     {
-        if (_project is null || _working) return;
-        var picker = new SaveFileDialog
-        {
-            Title = "Create consistent DOSDis project backup",
-            DefaultExt = ".ddproj", Filter = "DOSDis project (*.ddproj)|*.ddproj",
-            AddExtension = true, OverwritePrompt = false,
-            FileName = Path.GetFileNameWithoutExtension(_project.FilePath) + "-backup.ddproj"
-        };
-        if (picker.ShowDialog(this) != true) return;
+        if (_artifact is null || _working) return;
         try
         {
-            _project.CreateBackup(picker.FileName);
+            if (!TryCreateProject("create a project backup")) return;
+            var project = _project ?? throw new InvalidOperationException("No research project.");
+            var picker = new SaveFileDialog
+            {
+                Title = "Create consistent DOSDis project backup",
+                DefaultExt = ".ddproj", Filter = "DOSDis project (*.ddproj)|*.ddproj",
+                AddExtension = true, OverwritePrompt = false,
+                FileName = Path.GetFileNameWithoutExtension(project.FilePath) + "-backup.ddproj"
+            };
+            if (picker.ShowDialog(this) != true) return;
+            project.CreateBackup(picker.FileName);
             Trace(DiagnosticStage.ProjectBackupSaved);
-            StatusText.Text = "Project backup saved (previously committed analysis/notes only): " + picker.FileName;
+            StatusText.Text =
+                "Project backup saved (previously committed analysis/notes only): " +
+                picker.FileName;
         }
         catch (Exception ex) { Error("Project backup failed", ex); }
     }
@@ -577,10 +623,14 @@ public partial class MainWindow : Window
     }
     private void SaveNote_Click(object sender, RoutedEventArgs e)
     {
-        if (_working || _artifact is null || _project is null || AssemblyGrid.SelectedItem is not AssemblyRow row) return;
+        if (_working || _artifact is null || AssemblyGrid.SelectedItem is not AssemblyRow row) return;
         try
         {
-            var note = _project.SaveAnnotation(_artifact.Sha256, row.Object, row.Offset,
+            // Keep the unsaved text in the editor while asking for a project;
+            // cancelling the dialog does not discard the draft.
+            if (!TryCreateProject("save this comment")) return;
+            var project = _project ?? throw new InvalidOperationException("No research project.");
+            var note = project.SaveAnnotation(_artifact.Sha256, row.Object, row.Offset,
                 "comment", NoteEditor.Text, _commentRevision);
             _commentRevision = note.Revision;
             Trace(DiagnosticStage.AnalystCommentSaved, row.Object, row.Offset);
