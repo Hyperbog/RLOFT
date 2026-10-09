@@ -1223,9 +1223,13 @@ int run_exploration(
                                 runtime.session().party,
                                 runtime.object_catalog(),
                                 hit->actor,
-                                hit->slot);
+                                hit->slot,
+                                &runtime.session().persistent_event_flags);
                         if (status ==
                             rloft::InventoryOrdinarySwapStatus::Swapped ||
+                            status ==
+                            rloft::InventoryOrdinarySwapStatus::
+                                ConsumedStoryFragment ||
                             status ==
                             rloft::InventoryOrdinarySwapStatus::
                                 InsertedInContainer) {
