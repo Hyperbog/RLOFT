@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
 project(RavenloftDemoV1 LANGUAGES CXX)
 
+# GitHub Actions passes the checked-out source SHA explicitly. A local
+# build deliberately declares itself unversioned rather than claiming
+# it contains the latest code on any branch.
+set(RLOFT_DEMO_SOURCE_SHA "local-unversioned" CACHE STRING
+    "Source commit compiled into the Windows demo executable")
+
 # Keep the Windows release self-contained: do not require a separately
 # installed Microsoft Visual C++ runtime on the user's machine.
 if(MSVC)
@@ -946,6 +952,8 @@ if(WIN32)
         src/win32_main.cpp
         src/win32_midi.cpp
     )
+    target_compile_definitions(ravenloft_demo_v1 PRIVATE
+        "RLOFT_DEMO_SOURCE_SHA=\"${RLOFT_DEMO_SOURCE_SHA}\"")
     target_link_libraries(
         ravenloft_demo_v1
         PRIVATE rloft_boot_flow User32 Gdi32 Shell32 Ole32 Advapi32 Winmm
