@@ -562,4 +562,90 @@ int main() {
         equip_party,weight_catalog,0U)==22U);
     assert(equip.actor_weight_half_units(
         equip_party,weight_catalog,2U)==0U);
+
+    // Original CODE.2 11C3C 4CC89..4CCC4: category-1 nested
+    // containers are admissible with DIFFERENT descriptor subtypes.
+    // Source 4CC76..4CC83 rejects generic pouch/sack items only
+    // for raw hand-pair flags 2/3; class 1 is still accepted.
+    std::vector<std::uint8_t> nested_bytes(4U+16U*65U,0U);
+    put32(nested_bytes,0U,16U);
+    const auto nested_object=[&](std::size_t id,int descriptor,
+                                 std::uint8_t half_weight) {
+        const auto at=4U+id*65U;
+        nested_bytes[at+0x2FU]=1U;
+        nested_bytes[at+0x30U]=half_weight;
+        nested_bytes[at+0x31U]=static_cast<std::uint8_t>(descriptor);
+    };
+    nested_object(2U,0,1U); // outer pouch, source state0
+    nested_object(8U,1,2U); // different-subtype sack, state1
+    nested_object(9U,2,2U); // same-subtype pouch, state2
+    nested_bytes[4U+10U*65U+0x30U]=5U;
+    nested_bytes[4U+10U*65U+0x35U]=1U; // hand-pair class1 accepted
+    nested_bytes[4U+11U*65U+0x30U]=3U;
+    nested_bytes[4U+11U*65U+0x35U]=2U; // class2 prohibited
+    const auto nested_catalog=
+        rloft::ObjectCatalog::parse(nested_bytes);
+    rloft::InventoryRuntimeState nested{};
+    for(std::size_t i=0U;i<3U;++i) {
+        nested.containers[i].slot_count=4U;
+        nested.containers[i].ui_columns=2U;
+        nested.containers[i].capacity_pounds=20U;
+        nested.containers[i].items={-1,-1,-1,-1};
+    }
+    nested.containers[0U].subtype=0U;
+    nested.containers[1U].subtype=1U;
+    nested.containers[2U].subtype=0U;
+    nested.containers[1U].items[0U]=10;
+    nested.held={8,1U};
+    assert(nested.insert_held_into_container_object(
+        nested_catalog,2)==
+        rloft::InventoryContainerStatus::Inserted);
+    assert(nested.containers[0U].items[0U]==8);
+    assert(nested.containers[0U].per_slot_state_bits==1U);
+    assert(nested.container_weight_half_units(nested_catalog,0U)==7U);
+    assert(nested.held.object_id==-1);
+
+    // Attempting to insert the outer pouch into its nested child
+    // would create a cycle. Both cursor and source slots must survive.
+    nested.held={2,0U};
+    assert(nested.insert_held_into_container_object(
+        nested_catalog,8)==
+        rloft::InventoryContainerStatus::Incompatible);
+    assert(nested.held.object_id==2);
+    assert(nested.containers[0U].items[0U]==8);
+    assert(nested.containers[1U].items[0U]==10);
+
+    // Distinct instances but equal source subtype are not nestable.
+    nested.held={9,0U};
+    assert(nested.put_held_in_container_slot(
+        nested_catalog,2,1U)==
+        rloft::InventoryContainerStatus::Incompatible);
+    assert(nested.containers[0U].items[1U]==-1);
+
+    // Original CODE.2 4CD85..4CE18 subtracts the FULL recursive
+    // outgoing burden, then adds the FULL incoming item's burden.
+    // An existing nested bag with weight 2+5=7 half-pounds can be
+    // swapped for item10 weight5 at capacity3lb (6 half-pounds).
+    nested.containers[0U].capacity_pounds=3U;
+    nested.held={10,0U};
+    assert(nested.put_held_in_container_slot(
+        nested_catalog,2,0U)==
+        rloft::InventoryContainerStatus::Inserted);
+    assert(nested.containers[0U].items[0U]==10);
+    assert(nested.held.object_id==8);
+    assert(nested.held.known==1U);
+    assert(nested.container_weight_half_units(nested_catalog,0U)==5U);
+
+    // CODE.2 raw WORD +35 low2 class1 is allowed, class2 rejected.
+    nested.containers[0U].capacity_pounds=20U;
+    nested.held={10,0U};
+    assert(nested.put_held_in_container_slot(
+        nested_catalog,2,1U)==
+        rloft::InventoryContainerStatus::Inserted);
+    nested.held={11,0U};
+    assert(nested.put_held_in_container_slot(
+        nested_catalog,2,2U)==
+        rloft::InventoryContainerStatus::Incompatible);
+    assert(nested.containers[0U].items[2U]==-1);
+    assert(nested.held.object_id==11);
 }
