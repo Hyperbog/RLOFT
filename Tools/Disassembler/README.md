@@ -405,3 +405,33 @@ See [16-bit CFG](docs/P0_X86_16_RECURSIVE_CFG_SOURCE.md),
 [format matrix](docs/FORMAT_SUPPORT_MATRIX.md). These are source-only CLI
 examples. **Compilation, smoke tests and original DOS file regressions have
 not been run.** Build execution remains user-requested only.
+
+## P0 source checkpoint: DOS MZ relocation and far candidate traversal
+
+The new `DosMzRebasedView` models DOS MZ segment-word fixups on a **copy**
+of original file-backed bytes, in exact relocation-table order. The caller
+supplies an assumed load segment; each write retains original/pre-write/
+post-write values, source-file offsets and duplicate/overlap evidence.
+Source bytes and runtime placement are never modified or inferred.
+
+`DosMzFarTargetRecovery` annotates candidate far `CALL`/`JMP` destinations
+only when their unprefixed 16:16 immediate selector has **exactly one
+resident MZ relocation** and a nonwrapped, file-backed destination under
+the assumed load segment. The ordinary CFG's unresolved far edge is retained.
+`DosMzCrossSegmentAnalysis` follows those candidates in independent,
+bounded x86-16 region graphs and records conflicting interpretations of
+shared physical file bytes rather than automatically merging code aliases.
+
+```powershell
+DosDis.Cli.exe mz-relocate MAIN.EXE --load-segment 2000 --max 100
+DosDis.Cli.exe mz-analyze MAIN.EXE --load-segment 2000
+DosDis.Cli.exe mz-cross MAIN.EXE --load-segment 2000 --max-entries 16 --per-entry-instructions 1024
+```
+
+The hexadecimal load segment is a **simulation assumption**, not a
+measured DOS runtime address. No DOS PSP, self-modifying code, overlay
+manager or far-indirect pointer resolution is implied. All source remains
+game-agnostic. See [MZ relocation model](docs/P0_MZ_RELOCATION_SIMULATION.md)
+and [cross-segment candidate review](docs/P0_MZ_CROSS_SEGMENT_CANDIDATES.md).
+Synthetic tests have been added but **not executed**; compilation remains
+manual-only by user request.

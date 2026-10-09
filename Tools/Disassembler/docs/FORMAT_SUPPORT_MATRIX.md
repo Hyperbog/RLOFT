@@ -5,7 +5,7 @@ not independently reverified by this source-only checkpoint.
 
 | Format family | Example from collection | Implementation status | Correct next gate |
 | --- | --- | --- | --- |
-| DOS MZ `.EXE` | Hillsfar `MAIN.EXE`; Dark Sun `DSUN.EXE` | Header/relocation map, requested x86-16 decoding, and bounded initial-CS candidate CFG in source | Real-file validation, complete relocation rebasing, additional segments and cross-segment CFG |
+| DOS MZ `.EXE` | Hillsfar `MAIN.EXE`; Dark Sun `DSUN.EXE` | Original-byte-backed x86-16 CFG, non-destructive MZ relocation simulation, exact-fixup far candidate annotations, bounded cross-segment review | Real-file validation, dynamic far/indirect flow, alias uncertainty and DOS runtime load semantics |
 | MZ-bound LE | `CODE.1`, `CODE.2` | Validated object/page mapping and x86-32 candidates in source | Fixup coverage, indirect-flow completeness |
 | FBOV | Pool of Radiance `GAME.OVR` | Envelope, 8-byte variant paired resident directory, opaque fixup audit, explicit source-bound region x86-16 CFG | Confirm original layout, runtime segment and relocation encodings; 16-byte variant remains envelope-only |
 | TPOV | Secret of the Silver Blades `GAME.OVR` | Envelope, paired resident MZ directory, opaque fixup audit, explicit source-bound region x86-16 CFG | Verify real files, fixup encoding and runtime overlay mapping |
@@ -98,3 +98,19 @@ provided, source-hash-bound region manifest with assumed segment/IP;
 the runtime loader's final segment values remain unknown.
 
 **All new code and fixtures remain unbuilt and unexecuted.**
+
+## MZ segment relocations and cross-segment candidates
+
+P0 now includes deterministic modeling of MZ fixup additions to a private
+copy of the stored DOS load module. The analyst-supplied load segment is a
+hypothesis, not a measured runtime location. Full SHA-256 and original file
+offsets are preserved; repeated or overlapping fixups remain visible.
+
+The 16-bit analyzer can identify relocation-supported unprefixed immediate
+far CALL/JMP **candidates**, then perform independent bounded source-backed
+traversals at those module-relative CS:IP addresses. It does not claim
+verification of those branches, merge segment aliases, decode opaque OVR
+fixup blobs, or reconstruct far-indirect calls.
+
+No original Dark Sun, Gold Box, Dungeon Hack, or other game receives special
+decoder logic. No Windows compilation or original-file replay has occurred.

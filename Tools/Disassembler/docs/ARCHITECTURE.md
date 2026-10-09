@@ -69,3 +69,13 @@ without modifying either source or assuming cross-segment execution.
 storage with original-source hashes, but overlay relocation *semantics*
 remain unknown. CPU decoding, loader geometry, and game identity still
 occupy independent layers.
+
+## DOS MZ load-base simulation and far flow (P0 source)
+
+The optional MZ loader model replays relocations in table order to a
+private copy of original file-backed bytes, keeping per-write evidence and
+full original source SHA-256. Only explicitly assumed load bases are used.
+A separate review can annotate far immediate operands with exact selector
+fixups and inspect further source-backed 16-bit regions as candidates.
+Source byte ownership collisions are reported. Actual runtime segment
+values and the meaning of opaque overlay relocation records are not known.

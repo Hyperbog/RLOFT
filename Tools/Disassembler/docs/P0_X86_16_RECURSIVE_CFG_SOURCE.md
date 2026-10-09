@@ -41,3 +41,17 @@ unclassified file-backed bytes, unresolved flow edges and diagnostics.
 
 The overlay region map's assumed `segment` is a *model parameter* and
 does not establish the original overlay manager's runtime selector.
+
+## Far immediate branch review
+
+The MZ source now has a separate `DosMzRebasedView` and
+`DosMzFarTargetRecovery`, enabled only with an explicit load-segment
+assumption. An unprefixed `9A` or `EA` far immediate pointer is eligible
+for annotation only when the selector operand has one exact MZ loader
+relocation and the resulting runtime selector maps without alias wrap into
+the original file-backed MZ image. The original unresolved graph edge remains.
+
+`DosMzCrossSegmentAnalysis` can follow those **candidate** links into
+separately decoded segment windows while retaining competing byte ownership
+evidence. This is neither general far-pointer symbolic execution nor
+a complete DOS memory model. No source-specific addresses are embedded.
