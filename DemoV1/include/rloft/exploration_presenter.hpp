@@ -31,6 +31,9 @@ struct ExplorationSurfaceCoverage final {
     std::size_t sintab_prepass_indexed_writes{};
     std::size_t sintab_prepass_runs_failed{};
     std::size_t type7_scene_calls_pending{};
+    // These calls could not be projected at all. Unlike fully occluded
+    // scenes, they cannot be classified as successfully completed.
+    std::size_t type7_plan_calls_failed{};
     std::size_t type7_visible_columns_pending{};
     std::size_t type7_unvalidated_wide_runs{};
     std::size_t type7_calls_rasterized{};
@@ -44,6 +47,8 @@ struct ExplorationSurfaceCoverage final {
                sintab_prepass_runs_pending == 0 &&
                sintab_prepass_runs_failed == 0 &&
                type7_scene_calls_pending == 0 &&
+               type7_plan_calls_failed == 0 &&
+               type7_calls_failed == 0 &&
                type7_visible_columns_pending == 0 &&
                type7_unvalidated_wide_runs == 0;
     }
