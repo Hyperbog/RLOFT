@@ -35,9 +35,9 @@ In particular, 20 points for “regression” means test cases are written and r
 | **Startup and supervisor** | **59.0%** | 5 | Full menu sound and timing acceptance |
 | **Character creation** | **59.2%** | 6 | Original equipment byte comparison |
 | **Party stats and progression** | **50.0%** | 6 | Original rest and progression modal |
-| **Level lifecycle and continuity** | **47.9%** | 7 | General transition_to_level API |
+| **Level lifecycle and continuity** | **47.9%** | 7 | Live original event-driven transitions and DOS acceptance |
 | **Movement and collision** | **52.5%** | 6 | Complete authored door event chain |
-| **Mutable world and objects** | **53.3%** | 6 | Build persistent per-level store |
+| **Mutable world and objects** | **53.3%** | 6 | Accept retained level mutations against original DOS |
 | **Perspective and visibility** | **50.8%** | 6 | DOS indexed capture comparison |
 | **VGA and graphics resources** | **49.2%** | 6 | Original composite and teardown |
 | **HUD menus and overlays** | **51.7%** | 6 | Bind original game actions |
@@ -49,11 +49,11 @@ In particular, 20 points for “regression” means test cases are written and r
 | **Cinematics and ANM** | **48.0%** | 5 | Bind all authored event IDs |
 | **Audio and music** | **48.0%** | 5 | Original live sound routing |
 | **Input timing and clock** | **49.2%** | 6 | Independent source clocks integration |
-| **Automap and navigation** | **51.0%** | 5 | Per-level persistent map caches |
+| **Automap and navigation** | **51.0%** | 5 | Compare saved/reentered original DOS automap state |
 | **SAVE LOAD and persistence** | **38.6%** | 7 | Multi-level backing across exits |
 | **Verification and developer testbed** | **50.0%** | 7 | Full original campaign milestone |
 
-**Part 9 continuation:** General in-memory level-transition and visited-world reentry are source-implemented. No original event exit, disk SAVE/LOAD or DOS fidelity has been accepted. Expected registry **173 CTests** (Quick 19), not yet compiled. See [Part 9 checkpoint](LEVEL_TRANSITION_STATE_CHECKPOINT_20261009.md).
+**Part 9 continuation:** General in-memory level-transition and visited-world reentry are source-implemented. No original event exit, disk SAVE/LOAD or DOS fidelity has been accepted. Current registry **176 CTests** (Quick 19), not yet compiled. See [Part 9 checkpoint](LEVEL_TRANSITION_STATE_CHECKPOINT_20261009.md).
 
 **Part 9 source audit update:** F540 duplicate-item removal now preserves the original F5C6→F5D9 continuation; the 21F70 camera staging and 22-frame Level22 mist story timeline are encoded in testable source models. The original LEVELS.DAT Level23 target is 64×64, but there is NO live mist playback or original-DOS acceptance yet. Registered total **176** CTests, 19 Quick, last green compiled **172** at older SHA `fb4a0145`. Engineering readiness unchanged at 49.8% pending live integration.
 
