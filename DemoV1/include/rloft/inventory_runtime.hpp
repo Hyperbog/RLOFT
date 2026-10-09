@@ -71,6 +71,32 @@ struct PartyContainerUiContext final {
     void mark_closed_110b4() noexcept {
         raw={{0xFFU,0xFFU,0U,0xFFU}};
     }
+    // Original 10FAC enters with phase zero and 11025 sets
+    // each 0..3 frame before calling 10BBC/1A724. A future
+    // DOS-renderer binding may drive these steps with actual
+    // 0xC050 page flip/draw callbacks. This layer only projects
+    // the exact serialized bytes, not those graphical effects.
+    void begin_open_10fac(std::uint8_t subtype,
+                          std::uint8_t descriptor,
+                          std::int16_t object_id) noexcept {
+        raw={{subtype,descriptor,0U,
+              static_cast<std::uint8_t>(object_id)}};
+    }
+    [[nodiscard]] bool advance_open_phase_10fac() noexcept {
+        if(!active() || raw[2]>=3U)return false;
+        ++raw[2];
+        return true;
+    }
+    // 110B4 draws phase 3,2,1,0. Only after phase 0 did
+    // 1116F/11176/1117D clear bytes 0,1,3; phase stays 0.
+    // Return true while one of those four original frame
+    // transitions remains to be consumed.
+    [[nodiscard]] bool advance_close_phase_110b4() noexcept {
+        if(!active() || raw[2]>3U)return false;
+        if(raw[2]>0U) --raw[2];
+        else mark_closed_110b4();
+        return true;
+    }
     // Original 21693..216C4 uses the *low byte* of object_id:
     // IDs >=256 therefore cannot be recovered from 6FA3 alone.
     void mark_open_21693(std::uint8_t subtype,
