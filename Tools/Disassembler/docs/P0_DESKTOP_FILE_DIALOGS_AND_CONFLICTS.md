@@ -15,6 +15,15 @@ and separate from project files and privacy-constrained diagnostic exports.
 It does not store the original executable or a list of recently opened
 file names. Game binaries remain read-only.
 
+## Distinct project names for distinct original sources
+
+The project file picker now uses the **entire source filename**, not
+`Path.GetFileNameWithoutExtension`. In particular, the original
+`CODE.1` and `CODE.2` previously both defaulted to `CODE.ddproj`;
+they now suggest `CODE.1.ddproj` and `CODE.2.ddproj`.
+Likewise, `GAME.EXE` suggests `GAME.EXE.ddproj`. This avoids one
+unnecessary cross-binary collision before the Save As prompt is shown.
+
 ## Existing destination: Windows-style prompt, not fatal exception
 
 The Save project, first-comment project creation, Backup project,
