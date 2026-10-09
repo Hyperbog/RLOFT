@@ -58,6 +58,7 @@ add_library(rloft_boot_flow
     src/inventory_screen.cpp
     src/inventory_runtime.cpp
     src/inventory_item_description.cpp
+    src/inventory_encumbrance.cpp
     src/combat_hit_check.cpp
     src/combat_hand_dispatch.cpp
     src/combat_attack_timing.cpp
@@ -286,6 +287,9 @@ add_test(NAME inventory_runtime_tests COMMAND inventory_runtime_tests)
 add_executable(inventory_item_description_tests tests/inventory_item_description_tests.cpp)
 target_link_libraries(inventory_item_description_tests PRIVATE rloft_boot_flow)
 add_test(NAME inventory_item_description_tests COMMAND inventory_item_description_tests)
+add_executable(inventory_encumbrance_tests tests/inventory_encumbrance_tests.cpp)
+target_link_libraries(inventory_encumbrance_tests PRIVATE rloft_boot_flow)
+add_test(NAME inventory_encumbrance_tests COMMAND inventory_encumbrance_tests)
 add_executable(combat_hit_check_tests tests/combat_hit_check_tests.cpp)
 target_link_libraries(combat_hit_check_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_hit_check_tests COMMAND combat_hit_check_tests)
@@ -825,6 +829,7 @@ set(RLOFT_TEST_TARGETS
     inventory_screen_tests
     inventory_runtime_tests
     inventory_item_description_tests
+    inventory_encumbrance_tests
     combat_hit_check_tests
     combat_hand_dispatch_tests
     combat_attack_timing_tests
