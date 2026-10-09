@@ -155,6 +155,13 @@ bool remove_recursive(
 
 }  // namespace
 
+std::string MageScribeFeedback::message(
+    std::string_view actual_t_spell_name) const {
+    if(kind==MageScribeFeedbackKind::Scribed)
+        return std::string(actual_t_spell_name)+source_text;
+    return source_text;
+}
+
 MageScrollScribeSource MageScrollScribeSource::from_code2(
     const std::vector<std::uint8_t>& code2) {
     // Object-1 physical 3AF24 + EEB0, NOT object-2 physical
@@ -191,6 +198,45 @@ MageScrollScribeSource MageScrollScribeSource::from_code2(
     if(first!=0xCAU)
         throw std::runtime_error(
             "CODE.2 Mage scroll ranges do not cover 35 IDs");
+
+    // Three CODE.2 object-2 DWORD pointers, populated by the
+    // shipped binary as 5A4h/5D4h/5E4h. Resolve them through
+    // the actual input data; never invent translatable text.
+    constexpr std::size_t dg_start=0x75F24U;
+    constexpr std::size_t text_ptr_at=dg_start+0x6D9CU;
+    if(code2.size()<text_ptr_at+12U)
+        throw std::runtime_error(
+            "CODE.2 Mage scribe message pointers truncated");
+    const auto read_dgroup_string=[&](std::size_t ptr_at) {
+        const auto offset=static_cast<std::size_t>(
+            u32(code2.data()+ptr_at));
+        if(offset>=code2.size()-dg_start)
+            throw std::runtime_error(
+                "CODE.2 Mage scribe message pointer invalid");
+        const auto start=dg_start+offset;
+        std::size_t end=start;
+        // The original strings have a first NUL within 80 bytes.
+        // Do not scan into unrelated DOS data on damaged input.
+        while(end<code2.size() && end-start<80U &&
+              code2[end]!=0U)++end;
+        if(end==code2.size() || end-start==80U)
+            throw std::runtime_error(
+                "CODE.2 Mage scribe message unterminated");
+        return std::string(
+            reinterpret_cast<const char*>(code2.data()+start),
+            end-start);
+    };
+    source.cannot_understand_text=read_dgroup_string(
+        text_ptr_at);
+    source.success_suffix=read_dgroup_string(
+        text_ptr_at+4U);
+    source.already_known_text=read_dgroup_string(
+        text_ptr_at+8U);
+    if(source.cannot_understand_text.empty() ||
+       source.success_suffix.empty() ||
+       source.already_known_text.empty())
+        throw std::runtime_error(
+            "CODE.2 Mage scribe message missing");
     return source;
 }
 
@@ -275,7 +321,8 @@ InventoryOrdinarySwapStatus InventoryRuntimeState::swap_ordinary_slot(
     const ObjectCatalog& objects,
     std::size_t actor,
     std::size_t slot,
-    std::array<std::uint8_t,32>* persistent_event_flags) {
+    std::array<std::uint8_t,32>* persistent_event_flags,
+    std::optional<std::uint32_t> observed_irq_tick_30700) {
     if (actor >= PartyImage::kActorCount || slot >= 12U) {
         throw std::out_of_range("CODE.2 ordinary inventory actor/slot");
     }
@@ -342,14 +389,39 @@ InventoryOrdinarySwapStatus InventoryRuntimeState::swap_ordinary_slot(
         // DGROUP 22200 it is byte 23, bit 2.
         (*persistent_event_flags)[0xBAU/8U] |=
             static_cast<std::uint8_t>(1U<<(0xBAU%8U));
-        // Original 116B0 compares equality (not >=) and 116CD
-        // requires low nibble 0xF before scribing. Neither
-        // failure consumes a scroll. Message/IRQ UI omitted.
-        if(available==src.intelligence_capacities[intelligence] ||
-           (party.bytes[at]&0x0FU)!=0x0FU)
+        // 116B0 checks equality, then 116CD checks target
+        // low nibble 0xF. Both failures construct a message.
+        // 11717/1176A sets 6DAC=1, 30700()+0x36 -> 6DA8
+        // and invokes F790 to show the 759C text ribbon.
+        const bool capacity_full=
+            available==src.intelligence_capacities[intelligence];
+        const bool already_known=
+            (party.bytes[at]&0x0FU)!=0x0FU;
+        const auto kind=capacity_full
+            ? MageScribeFeedbackKind::CapacityReached
+            : already_known
+                ? MageScribeFeedbackKind::AlreadyKnown
+                : MageScribeFeedbackKind::Scribed;
+        const std::uint16_t t_index=static_cast<std::uint16_t>(
+            0x42U+bank*10U+entry);
+        MageScribeFeedback feedback{};
+        feedback.kind=kind;
+        feedback.t_spell_name_index=t_index;
+        feedback.source_text=kind==MageScribeFeedbackKind::CapacityReached
+            ? src.cannot_understand_text
+            : kind==MageScribeFeedbackKind::AlreadyKnown
+                ? src.already_known_text
+                : src.success_suffix;
+        // Require a caller-observed original IRQ tick to project
+        // the countdown. Tests lacking a clock still retain
+        // the source message identity without inventing time.
+        if(observed_irq_tick_30700)
+            feedback.deadline_6da8=*observed_irq_tick_30700+0x36U;
+        mage_scribe_feedback=std::move(feedback);
+        if(capacity_full || already_known)
             return InventoryOrdinarySwapStatus::MageScrollRejected;
-        // 11748 ANDs the entire spell byte with zero: not just
-        // the low nibble. 1183A then clears held ID and known.
+        // 11748 clears the entire spell byte. 1183A then
+        // clears the held scroll ID and its identification byte.
         party.bytes[at]=0U;
         held={-1,0U};
         return InventoryOrdinarySwapStatus::LearnedMageSpell;
