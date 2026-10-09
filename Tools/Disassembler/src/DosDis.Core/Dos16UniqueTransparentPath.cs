@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Iced.Intel;
 
 namespace DosDis.Core;
 
@@ -12,6 +13,44 @@ namespace DosDis.Core;
 /// </summary>
 public static class Dos16UniqueTransparentPath
 {
+    /// <summary>
+    /// Require the retained graph instruction to match the same original
+    /// physical bytes, 16-bit decode length AND control-flow classification.
+    /// Graph metadata alone is never permission to bypass a call, return,
+    /// indirect jump or an invalid instruction. Does not assert execution.
+    /// </summary>
+    public static bool IsOriginalDecoded(Dos16CodeRegion region,
+        Dos16FlowInstruction instruction)
+    {
+        ArgumentNullException.ThrowIfNull(region);
+        ArgumentNullException.ThrowIfNull(instruction);
+        if (instruction.Length is < 1 or > 15 ||
+            instruction.Address.Segment != region.Segment ||
+            instruction.Address.Offset < region.Origin ||
+            (long)instruction.Address.Offset + instruction.Length >
+                region.EndExclusive)
+            return false;
+        long physical = (long)region.FileOffset +
+            instruction.Address.Offset - region.Origin;
+        if (instruction.SourceFileOffset != physical ||
+            physical < region.FileOffset ||
+            physical + instruction.Length > (long)region.FileOffset + region.ByteLength)
+            return false;
+        var bytes = region.Source.Data.Slice(checked((int)physical),
+            instruction.Length);
+        if (!string.Equals(instruction.OriginalBytes,
+                Convert.ToHexString(bytes), StringComparison.OrdinalIgnoreCase))
+            return false;
+        var reader = new ByteArrayCodeReader(bytes.ToArray());
+        var decoder = Decoder.Create(16, reader);
+        decoder.IP = instruction.Address.Offset;
+        decoder.Decode(out var actual);
+        return actual.Code != Code.INVALID &&
+            actual.Length == instruction.Length &&
+            string.Equals(instruction.FlowControl, actual.FlowControl.ToString(),
+                StringComparison.Ordinal);
+    }
+
     /// <summary>
     /// Enumerate the one and only already-decoded predecessor of a site,
     /// continuing backwards for at most a bounded number of checked NOP
@@ -74,8 +113,7 @@ public static class Dos16UniqueTransparentPath
             at + insn.Length > (long)region.FileOffset + region.ByteLength)
             return false;
         var bytes = region.Source.Data.Slice(checked((int)at), insn.Length);
-        if (!insn.OriginalBytes.Equals(Convert.ToHexString(bytes),
-            StringComparison.OrdinalIgnoreCase))
+        if (!IsOriginalDecoded(region, insn))
             return false;
         if (insn.Length == 1)
             return bytes[0] == 0x90 && edge.Kind == "fallthrough" &&
@@ -113,15 +151,12 @@ public static class Dos16UniqueTransparentPath
             physical + source.Length > (long)region.FileOffset + region.ByteLength)
             return false;
         var raw = region.Source.Data.Slice(checked((int)physical), source.Length);
-        if (!source.OriginalBytes.Equals(Convert.ToHexString(raw),
-                StringComparison.OrdinalIgnoreCase))
+        if (!IsOriginalDecoded(region, source))
             return false;
         int next = source.Address.Offset + source.Length;
         if (kind == "fallthrough")
             return destination.Offset == next &&
-                source.FlowControl is not
-                    ("ConditionalBranch" or "UnconditionalBranch" or
-                     "Return" or "Exception");
+                source.FlowControl == "Next";
         if (kind == "branch-not-taken")
             return source.FlowControl == "ConditionalBranch" &&
                 destination.Offset == next;
