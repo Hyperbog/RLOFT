@@ -1,42 +1,50 @@
 # Demo v1 — development progress versus formal acceptance
 
-## Canonical every-system/every-subsystem percentage requirement
+## Current verified build and canonical percentage reporting
 
-**Current source-readiness estimate: 48.8%, across
-20 systems / 121 individual subsystems.**
-Use the committed [subsystem-by-subsystem scorecard](
-PROGRESS_SUBSYSTEM_REPORT_20261009.md) and its
-[canonical CSV data](PROGRESS_SUBSYSTEMS.csv) for
-every checkpoint. Each subsystem has five explicit
-0/10/20 evidence gate marks. The weighted contribution
-of source mapping is 10%, native code 20%, runtime
-integration 20%, authored regression cases 10%
-and actual **current-head DOS acceptance 40%**.
-No current-head Windows build or DOS comparison
-has taken place, so the DOS acceptance gate remains
-0%. Every major system has its own calculated
-readiness percentage (not a handpicked rounded
-global value), and all 120 subcomponents have
-independent scores, evidence and blockers.
-**Manual build now essential before further large runtime integration:** choose `demo-v1`, `build_mode=full`, and `run_linux=false` in the [manual workflow](https://github.com/Hyperbog/RLOFT/actions/workflows/demo-v1-build.yml). The latest source has 172 CTests; Quick's 19 test targets do not include the newly added state inspector test or progress validator. No build or CI dispatch has occurred. Level22 preview supports an explicit `--dev-interact` flag for source-backed pickup and hand swaps, separate from read-only `--dev-inspect`. The 121st subsystem, **Opt-in Level22 world pickup and hand exchange**, is scored **60.0%** (source 20/20, native 20/20, live 20/20, authored tests 20/20, DOS acceptance 0/20); **Verification and developer testbed** rises from **47.5%** to **49.3%** across seven tracked subsystems. Overall readiness rounds to **48.8%** and the separate engineering ledger remains **56.25%**.
+**Last fully verified Windows source revision:** `fb4a0145`
+([Full build #647](https://github.com/Hyperbog/RLOFT/actions/runs/37987825463)):
+**172/172 registered CTests passed**, executable artifact
+published and build provenance committed. This is a
+Windows/native regression gate, **not original DOS
+graphics, timing, event or gameplay equivalence**.
+The workflow was restored to **manual dispatch only**.
+Subsequent generalization of current-level RES4
+terrain-resource binding, its regression, and these
+documentation changes have **not been rebuilt**.
 
+**Provisional weighted source-readiness: 48.9%**
+across **20 major systems and 122 separately scored
+subsystems**. Use the [complete per-subsystem report](
+PROGRESS_SUBSYSTEM_REPORT_20261009.md) and [canonical
+scores](PROGRESS_SUBSYSTEMS.csv) for all changes.
+Source mapping contributes 10%, native code 20%,
+live integration 20%, authored regression coverage
+10%, and full **current-revision DOS acceptance 40%**.
+The DOS gate remains 0% until independently proved
+against the original game, even after a green
+Windows CTest run.
 
-**DO NOT confuse metrics:** this source-readiness
-weighted baseline is NOT the historical engineering
-ledger's **56.25% = (12 + 12/2)/32**. Neither
-is an objective percent of human implementation
-hours or full-campaign gameplay completed.
-Both continue independently, with explicit evidence
-for each accepted new criterion.
+The Level22 opt-in `--dev-interact` and read-only
+`--dev-inspect` options remain separate from
+normal cold startup. The new **multi-level original
+RES4 ground selector** scores **50.0%**, and the
+expanded Level lifecycle/continuity system scores
+**37.9%** across seven named subsystems. Windows
+build reproducibility advances from 55.0% to
+**60.0%** on the verified CI evidence; the
+Verification/developer testbed system becomes
+**50.0%**. The global weighted readiness is
+**48.9%**, compared with 48.8% previously.
 
-Every future development checkpoint must update
-affected CSV rows, propagate system and overall
-percentages, and present a clear source/compile/
-test/DOS acceptance distinction. The scorecard
-validator is registered as one additional
-offline CTest; **172 registered**, Quick **19**.
-No build or tests initiated.
-
+The historical separate **32-task engineering ledger
+remains 56.25% = 18/32 task-equivalents**.
+These two metrics are not directly comparable and
+must never be averaged. The CTest catalog holds 172
+registered tests; its Quick selection remains 19.
+After each relevant code change, the canonical CSV,
+the 20 system percentages and the 122 individual
+subsystem scores must be kept consistent.
 
 ## Level22 dev testbed — read-only integration diagnostics
 
