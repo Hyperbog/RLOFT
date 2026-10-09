@@ -1,5 +1,57 @@
 # Ravenloft Demo Build v1
 
+## Part 8 continuation — original container UI 6FA0 state restored
+
+The original CODE.2 disassembly closed an important SAVE/UI
+compatibility gap. The final 16 SAVE.DAT bytes are **four
+independent 4-byte actor container contexts**:
+`[subtype,descriptor,phase,object_low_byte]`.
+The source opens through phases 0,1,2,3
+(`10FAC..110B3`), closes through 3,2,1,0
+(`110B4..1118A`), and may set phase3 directly on
+container-to-hand transfer (`21693`). **Closing leaves
+`FF FF 00 FF`, not `FF FF FF FF`**. Both inactive
+forms are now accepted by the guarded native
+inventory SAVE bridge and preserved byte-for-byte.
+
+A full-open phase3 SAVE can now restore its interactive
+hand container when the original OBJECTS definitions,
+source descriptor subtype/index, and exactly one of
+the actor's two signed-16-bit equipped hand objects
+agree. The saved object identity is deliberately
+only **one byte** (`6FA3`), so the binding explicitly
+checks low-byte collisions instead of assuming that
+the byte uniquely identifies a full object ID.
+It fails before mutation for missing/ambiguous object
+evidence, invalid selector, wrong subtype or owner.
+
+The native inventory tracks all four actor contexts,
+writes live context updates to original-format SAVE,
+preserves the post-close phase-0 sentinel, and carries
+context records along when party characters exchange
+positions. The presenter draws complete phase3
+container contents for every actor lane using the
+real original RES1/RES2 graphics. Native
+`open_container` still models only **one interactive
+selection**; complete multiple-active-context LOAD,
+multi-panel click dispatch and faithful original
+partial-animation VGA page timing remain pending.
+Those source bytes continue to roundtrip through
+the standalone codec, even when an interactive LOAD
+is rejected.
+
+Regression assertions for original 6FA0 phase progression,
+closed-state bytes, phase3 roundtrips, 8-bit ID aliasing,
+ambiguous/corrupt hand associations, source-safe rejection,
+and actor-context swaps were added to THREE existing test
+targets. **CTest total remains 170; Quick 19**;
+no Windows or DOS execution of current source has
+been claimed. The original SAVE inventory codec remains
+a bounded inventory-only integration, not the game's
+fully correct user-facing SAVE/LOAD workflow.
+Engineering 56.25%; inventory PARTIAL.
+
+
 ## Part 8 continuation — live inventory SAVE snapshot bridge
 
 `ExplorationRuntime` now exposes bounded inventory
