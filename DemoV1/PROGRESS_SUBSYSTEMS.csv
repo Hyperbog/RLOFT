@@ -58,7 +58,7 @@ Inventory and equipment,Equipment hand and class gates,20,20,20,20,0,inventory_r
 Inventory and equipment,Nested containers and capacity,20,20,20,20,0,inventory_runtime.cpp,Timing and DOS nested UI
 Inventory and equipment,Four actor container persistence,20,20,20,20,0,inventory_save_codec.cpp,Multiple actor source runtime replay
 Inventory and equipment,Encumbrance and party order,20,20,20,20,0,inventory_encumbrance.cpp,Reference weight item cases
-Inventory and equipment,World drop pickup routing,20,20,20,20,0,inventory_world_drop.cpp and level22_encounter.cpp and original_pickup_message.hpp,Connect original 1C21C pickup text/ribbon and manual DOS parity
+Inventory and equipment,World drop pickup routing,20,20,20,20,0,inventory_world_drop.cpp and level22_encounter.cpp and original_pickup_message.hpp and original_pickup_ribbon_text.cpp,Connect original 1C258 VGA ribbon rendering and DOS timing parity
 Inventory and equipment,Special item use and charges,20,10,10,10,0,inventory_runtime.cpp,Remaining use classes and charge semantics
 Magic and spellcasting,Mage spell book matrix and IDs,20,20,20,20,0,inventory_runtime.cpp,Original full spell bank roundtrip
 Magic and spellcasting,Mage scroll scribing intelligence gating,20,20,20,20,0,inventory_runtime.cpp,DOS original message and success case

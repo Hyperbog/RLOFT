@@ -37,4 +37,8 @@ After original `21704` invokes `1A344` to place the picked world object into the
 
 `original_pickup_message_tests` covers all ID cases, range endpoints and conditional flags. Existing `level22_encounter_tests` now checks Holy Symbol pickup with bit 51h set/clear. Production BF44 UI ribbon presenter and original source sound/clock remain pending—the result does **not** claim it renders original graphics.
 
-**CTest registration:** 177 total / 19 Quick, none of these newly authored tests run. Historical Windows Full #647 172/172 at old source `fb4a0145`. Completion percentages should not increase merely for a model without DOS/runtime acceptance.
+**CTest registration:** 178 total / 19 Quick, none of these newly authored tests run. Historical Windows Full #647 172/172 at old source `fb4a0145`. Completion percentages should not increase merely for a model without DOS/runtime acceptance.
+
+## Part 9 continuation: source pickup ribbon queue
+
+[CODE.2 original 22510..225DF and 1C21C message queue](LEVEL22_ORIGINAL_PICKUP_IRQ_RIBBON_20261009.md) now feeds the **actual native Level22 world pickup action**, uses the stored prefix from original CODE.2 object-2 DGROUP D67C and actual OBJECTS item name, and preserves the original IRQ deadline. The source `1C258 / 3060C` rendering/expiry remains the next level-22-specific player-visible gate. No independent Level23 development. **178 CTests registered (19 Quick); no build/visual acceptance yet.**

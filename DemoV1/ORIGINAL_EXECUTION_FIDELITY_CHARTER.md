@@ -28,7 +28,7 @@ Recreate and integrate the actual functionality of the original game from startu
 
 Continue the existing `demo-v1` work as the **actual code-recreation effort** toward the complete original game. The Level 22 developer slice tests original systems together and must feed directly into normal startup/character creation, following cinematics and each original authored level. Keep the reconstructed shared engine and original assets/source references; avoid rewriting for modernization now.
 
-The general in-memory `transition_to_level` helper is a provisional implementation step: it still needs source-proven authored exits, exact effects and full original save/state behavior. A green 172-test prior Windows build and 177 currently registered tests do not certify the incomplete whole-game recreation.
+The general in-memory `transition_to_level` helper is a provisional implementation step: it still needs source-proven authored exits, exact effects and full original save/state behavior. A green 172-test prior Windows build and 178 currently registered tests do not certify the incomplete whole-game recreation.
 
 ## After the full original-game code recreation is finished
 
