@@ -16,8 +16,15 @@ no unexpected inventory/flag mutation.
 
 The source also removes the overbroad ban on otherwise ordinary
 moving of `0x35` and held `0xA6` Mage Spell Book. The original
-`11808` book+scroll `0xA7..0xC9` learning branch remains
-safely blocked pending complete `11630` spell-list effect state.
+`11808` book+scroll `0xA7..0xC9` learning branch is now
+source-implemented through CODE.2 `11630` using its six
+original scroll-ID range pairs (object-1 `EEB0`),
+original `6153` Intelligence capacity, actor's 8×10
+Mage matrix, and unconditional `0xBA` story-flag update.
+Duplicate/full attempts leave the held scroll in place;
+success clears the scribed matrix byte and held scroll.
+Original timed popup/message presentation, native SAVE/LOAD
+and DOS acceptance remain outstanding.
 The earlier blanket classification of `0x35` as a potion was
 incorrect and is superseded. The exact `2D5D0` inventory
 drop predicate is source-implemented in the preceding checkpoint,
