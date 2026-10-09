@@ -1,5 +1,21 @@
 # Ravenloft Demo v1 — Inventory-only full behavior reconstruction
 
+> **Full-game integration invariant:** Every inventory,
+> party, spellbook, original SAVE, actor container and
+> quest-cinematic implementation in this workstream is
+> part of the **single continuous Ravenloft game**.
+> It must remain compatible with original startup,
+> CODE.1 character creation, CODE.2 gameplay entry,
+> and future level-to-level transitions without
+> reinitializing or replacing persistent characters.
+> The preview-only Level22 entry is not the release
+> architecture. See
+> [continuous-game integration contract](
+> CONTINUOUS_GAME_INTEGRATION_CONTRACT_20261009.md).
+> Development commits remain continuous; Windows
+> builds are manual and user-authorized.
+
+
 **Checkpoint date:** 2026-10-09 · **Branch:** `demo-v1`
 **User acceptance target:** all functionality visible in the user's
 original DOSBox screenshots AND all CODE.2 inventory behavior, not
