@@ -165,6 +165,10 @@ public:
         std::uint16_t reaction_mode,
         const Level22EncounterModel::PlacementProbe& can_place = {});
 
+    [[nodiscard]] InventoryPartyOrderResult exchange_party_order(
+        std::size_t first,std::size_t second,
+        std::array<bool,4>& per_actor_inventory_modes);
+
     [[nodiscard]] LooseItemPickupResult pickup_level22_loose_item(
         std::size_t item_index);
 
