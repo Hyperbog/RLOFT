@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include <optional>
 
 #include "rloft/exploration_state.hpp"
 #include "rloft/game_source.hpp"
@@ -24,6 +25,25 @@ struct ContainerRuntimeState final {
     std::uint8_t subtype{};
     std::uint8_t per_slot_state_bits{};
     std::vector<std::int16_t> items;
+};
+
+enum class InventoryContainerStatus : std::uint8_t {
+    NoChange,
+    Opened,
+    Closed,
+    Inserted,
+    Taken,
+    Full,
+    TooHeavy,
+    Incompatible,
+    Unsupported
+};
+
+struct OpenInventoryContainer final {
+    std::size_t actor{};
+    std::size_t hand{};
+    std::int16_t object_id{-1};
+    std::size_t descriptor_index{};
 };
 
 enum class InventoryQuickStashStatus : std::uint8_t {
@@ -51,6 +71,7 @@ struct InventoryRuntimeState final {
 
     HeldItemState held{};
     std::array<ContainerRuntimeState, kRuntimeDescriptorCount> containers{};
+    std::optional<OpenInventoryContainer> open_container;
 
     [[nodiscard]] static InventoryRuntimeState fresh(
         const GameSource& source);
@@ -83,6 +104,21 @@ struct InventoryRuntimeState final {
         const ObjectCatalog& objects,
         std::size_t actor,
         std::size_t hand);
+
+    // Original 21404: source category/slot-type gating and recursive
+    // half-pound weight capacity. The container is open only while
+    // its object still occupies the chosen party hand slot.
+    [[nodiscard]] InventoryContainerStatus open_hand_container(
+        const PartyImage& party, const ObjectCatalog& objects,
+        std::size_t actor, std::size_t hand);
+    void close_container() noexcept { open_container.reset(); }
+    [[nodiscard]] InventoryContainerStatus insert_held_into_open_container(
+        const PartyImage& party, const ObjectCatalog& objects);
+    [[nodiscard]] InventoryContainerStatus take_open_container_slot(
+        const PartyImage& party, const ObjectCatalog& objects,
+        std::size_t slot);
+    [[nodiscard]] std::uint32_t container_weight_half_units(
+        const ObjectCatalog& objects,std::size_t descriptor_index) const;
 
     [[nodiscard]] bool has_object(
         const PartyImage& party,
