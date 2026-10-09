@@ -4,6 +4,7 @@
 #include "rloft/exploration_frame_capture.hpp"
 
 #include <cassert>
+#include <cstdio>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -47,6 +48,7 @@ int main() {
 
     ExplorationFrameCapture::write(
         dir,{1U,22U,44,34,127U},frame,presentation,image,code2);
+    std::fprintf(stderr,"capture-test: exported native frame files\n");
 
     const auto basepath=dir/"frame_0001";
     std::ifstream indexed(basepath.string()+".idx",std::ios::binary);
@@ -56,12 +58,14 @@ int main() {
         std::istreambuf_iterator<char>()};
     assert(bytes.size()==128000U);
     assert(bytes.front()==0x39U && bytes.back()==0x39U);
+    std::fprintf(stderr,"capture-test: indexed pixels verified\n");
     std::ifstream pal(basepath.string()+".pal",std::ios::binary);
     assert(pal);
     const std::vector<std::uint8_t> palette{
         std::istreambuf_iterator<char>(pal),
         std::istreambuf_iterator<char>()};
     assert(palette.size()==768U && palette[3]==42U);
+    std::fprintf(stderr,"capture-test: palette verified\n");
     std::ifstream metadata(basepath.string()+".tsv",std::ios::binary);
     assert(metadata);
     const std::string tsv{
@@ -75,6 +79,7 @@ int main() {
            std::string::npos);
     assert(tsv.find("failure\tmain\t578\t3\tunsupported original wide run")!=
            std::string::npos);
+    std::fprintf(stderr,"capture-test: metadata verified\n");
 
     bool rejected=false;
     try {
@@ -83,6 +88,7 @@ int main() {
     } catch(const std::invalid_argument&) {rejected=true;}
     assert(rejected);
     assert(!fs::exists(dir/"frame_0002.idx"));
+    std::fprintf(stderr,"capture-test: invalid-source rejection verified\n");
 
     // Unlike POSIX, Win32 file deletion cannot unlink these captures
     // while ifstream handles remain open. End all three read sessions
@@ -94,4 +100,5 @@ int main() {
     assert(!indexed.is_open() && !pal.is_open() && !metadata.is_open());
     assert(fs::remove_all(dir) == 4U); // directory + idx + pal + tsv
     assert(!fs::exists(dir));
+    std::fprintf(stderr,"capture-test: all streams closed and directory removed\n");
 }
