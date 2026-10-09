@@ -138,6 +138,7 @@ add_library(rloft_boot_flow
     src/exploration_runtime_motion.cpp
     src/exploration_runtime.cpp
     src/exploration_preview.cpp
+    src/dev_level_diagnostics.cpp
     src/environment_view.cpp
     src/view_sweep_record.cpp
     src/view_sweep_setup.cpp
@@ -508,6 +509,9 @@ add_test(NAME exploration_frame_capture_tests COMMAND exploration_frame_capture_
 add_executable(exploration_preview_tests tests/exploration_preview_tests.cpp)
 target_link_libraries(exploration_preview_tests PRIVATE rloft_boot_flow)
 add_test(NAME exploration_preview_tests COMMAND exploration_preview_tests)
+add_executable(dev_level_diagnostics_tests tests/dev_level_diagnostics_tests.cpp)
+target_link_libraries(dev_level_diagnostics_tests PRIVATE rloft_boot_flow)
+add_test(NAME dev_level_diagnostics_tests COMMAND dev_level_diagnostics_tests)
 
 add_executable(exploration_world_tests tests/exploration_world_tests.cpp)
 target_link_libraries(exploration_world_tests PRIVATE rloft_boot_flow)
