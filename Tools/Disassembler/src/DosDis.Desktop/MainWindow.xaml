@@ -129,6 +129,7 @@
             <TextBlock x:Name="SelectedAddressText" Text="Select an instruction" FontSize="11"
                        Foreground="{StaticResource SecondaryTextBrush}" Margin="0,8,0,6"/>
             <TextBox x:Name="NoteEditor" AcceptsReturn="True" TextWrapping="Wrap" Height="100" FontFamily="Segoe UI"
+                     IsEnabled="False" ToolTip="Select an instruction to attach a comment to its exact address."
                      VerticalScrollBarVisibility="Auto"/>
             <Button x:Name="SaveNoteButton" Content="Save comment to project" Click="SaveNote_Click" Margin="0,9,0,0"
                     ToolTip="Select an instruction and save your comment. If needed, you will be asked to create a research project."/>
