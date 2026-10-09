@@ -3,6 +3,7 @@
 #include "rloft/exploration_state.hpp"
 
 #include <stdexcept>
+#include <utility>
 
 namespace rloft {
 
