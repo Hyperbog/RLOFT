@@ -72,3 +72,13 @@ type-9 NPC at (13,7). Use v2 `scene_video_calls`,
 `scene_call_trace_failure` rows to separate projection/occlusion,
 unvalidated generated-code widths and individual source failures.
 Formal demo acceptance is still **1/5 gates (20%)**.
+
+
+## Later larger pipeline continuation
+
+[Full source checkpoint](LEVEL22_RES3_FULL_PIPELINE_CAPTURE_AND_COMPARE_20261008.md)
+adds the earlier missing RES3 **planning** isolation, preserves
+unresolved call slots, prevents false completed/occluded classifications
+and introduces source-type/per-object capture outcomes. It also
+provides an independent raw indexed native-vs-DOS comparator.
+This follow-up is source-only pending new manual Windows CTest.
