@@ -108,11 +108,17 @@ public static class Dos16AutomaticDispatchRecovery
                         foreach (var shift in Dos16UniqueTransparentPath.UpstreamCandidates(
                             region, graph, site.Address))
                         {
-                            bool exactShift = requiredShift == 1 &&
-                                FileMatches(shift, 0xD1, 0xE3);
-                            exactShift |= FileMatches(shift, 0xC1, 0xE3,
+                            // Both ADD BX,BX register forms double BX
+                            // modulo 16 bits. The guarded <=255 entry range
+                            // precludes overflow for near 2-byte pointers.
+                            // No flags are consumed after the scaling step.
+                            bool exactStride = requiredShift == 1 &&
+                                (FileMatches(shift, 0xD1, 0xE3) ||
+                                 FileMatches(shift, 0x01, 0xDB) ||
+                                 FileMatches(shift, 0x03, 0xDB));
+                            exactStride |= FileMatches(shift, 0xC1, 0xE3,
                                 (byte)requiredShift);
-                            if (exactShift && Dos16UniqueTransparentPath.Connects(
+                            if (exactStride && Dos16UniqueTransparentPath.Connects(
                                 region, graph, shift.Address, site.Address, "fallthrough"))
                                 shifts.Add(shift);
                         }
