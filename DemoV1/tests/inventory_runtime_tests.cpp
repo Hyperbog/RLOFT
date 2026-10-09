@@ -4,6 +4,9 @@
 #include "rloft/inventory_runtime.hpp"
 
 #include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <exception>
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
@@ -11,6 +14,7 @@
 #include <vector>
 
 namespace {
+int g_inventory_test_phase=0; // diagnostic only; no gameplay mutation
 
 void put16(
     std::vector<std::uint8_t>& b,
@@ -79,6 +83,23 @@ rloft::ObjectCatalog objects() {
 }  // namespace
 
 int main() {
+    // Source-backed regression test: make an uncaught C++ failure
+    // actionable on MSVC where 0xC0000409 otherwise has no line.
+    std::set_terminate([]() noexcept {
+        std::fprintf(stderr,
+            "inventory_runtime_tests terminated in section %d\n",
+            g_inventory_test_phase);
+        if(const auto ex=std::current_exception()) {
+            try { std::rethrow_exception(ex); }
+            catch(const std::exception& e) {
+                std::fprintf(stderr,"C++ exception: %s\n",e.what());
+            } catch(...) {
+                std::fprintf(stderr,"Nonstandard exception\n");
+            }
+        }
+        std::fflush(stderr);
+        std::abort();
+    });
     auto catalog = objects();
     rloft::InventoryRuntimeState runtime{};
     runtime.held = {-1, 0};
@@ -442,6 +463,7 @@ int main() {
     state0.items[0]=3;
     state0.per_slot_state_bits=static_cast<std::uint8_t>(
         state0.per_slot_state_bits|0x01U);
+    g_inventory_test_phase=445;
     // Original 6FA0 has four independent actors. Opening a
     // second active actor's hand container must not close or
     // rewrite actor 0's phase3 view, and its slot clicks must
@@ -469,6 +491,7 @@ int main() {
     assert(runtime.open_container->actor==1U);
     assert(runtime.party_container_ui_contexts[0U].raw==source_actor0);
     assert(runtime.party_container_ui_contexts[1U].fully_open());
+    g_inventory_test_phase=472;
     // An invalid actor selection must leave the previously
     // selected native interaction context untouched.
     const auto selection_before=runtime.open_container->actor;
@@ -483,6 +506,7 @@ int main() {
         nested_party,catalog,0U)==
            rloft::InventoryContainerStatus::Opened);
     set_item(nested_party,1U,14U,-1);
+    g_inventory_test_phase=486;
     // The original actor0 container's test fixture was modified
     // by the shared state-index 0 nested take above; reset its
     // cursor/contents before the existing single-actor checks.
@@ -523,6 +547,7 @@ int main() {
     assert(runtime.held.object_id==unsupported_cursor.object_id);
     assert(state0.items[2]==-1);
 
+    g_inventory_test_phase=526;
     // Original CODE.2 12180 all nine equipment locations:
     // keep category routing separate from the source-rendered
     // click geometry. Every branch below is on original party
@@ -602,6 +627,7 @@ int main() {
         rloft::InventoryEquipmentStatus::Swapped);
     assert(get_item(equip_party,0U,16U)==11);
 
+    g_inventory_test_phase=605;
     // CODE.2 12128: a single class-code-4 actor cannot equip
     // category-4 body armor; a class-5 actor can only use the
     // five source-whitelisted armor object IDs.
@@ -664,6 +690,7 @@ int main() {
     assert(equip.actor_weight_half_units(
         equip_party,weight_catalog,2U)==0U);
 
+    g_inventory_test_phase=667;
     // Original CODE.2 11C3C 4CC89..4CCC4: category-1 nested
     // containers are admissible with DIFFERENT descriptor subtypes.
     // Source 4CC76..4CC83 rejects generic pouch/sack items only
@@ -723,6 +750,7 @@ int main() {
         rloft::InventoryContainerStatus::Incompatible);
     assert(nested.containers[0U].items[1U]==-1);
 
+    g_inventory_test_phase=726;
     // Original CODE.2 4CD85..4CE18 subtracts the FULL recursive
     // outgoing burden, then adds the FULL incoming item's burden.
     // An existing nested bag with weight 2+5=7 half-pounds can be
@@ -737,6 +765,7 @@ int main() {
     assert(nested.held.known==1U);
     assert(nested.container_weight_half_units(nested_catalog,0U)==5U);
 
+    g_inventory_test_phase=740;
     // Original inventory 117A0: the object in the backpack
     // slot is 0x35 TOME OF EVIL ARTIFACTS AND CURSED ITEMS.
     // Held 0x61..0x64 are four different PARCHMENT FRAGMENT
@@ -820,6 +849,7 @@ int main() {
     assert(special_inventory.held.object_id==3);
     assert(story_flags==flags_prior_to_normal_swap);
 
+    g_inventory_test_phase=823;
     // CODE.2 11808..11852: a Mage Spell Book in the source
     // slot 0xA6 delegates held Mage scrolls 0xA7..0xC9 to
     // 11630, checking spell class/level and capacity. That
@@ -847,6 +877,7 @@ int main() {
     assert(get_item(special_party,0U,2U)==0xA6);
     assert(special_inventory.held.object_id==-1);
 
+    g_inventory_test_phase=850;
     // Original CODE.2 11630 scroll table is in object-1
     // at physical 3AF24+EEB0, NOT object-2 at 75F24+EEB0.
     // Six 2-DWORD [last,first] pairs cover all 35 Mage
@@ -1035,6 +1066,7 @@ int main() {
         rloft::InventoryOrdinarySwapStatus::Unsupported);
     assert(scribe_party.bytes==before_no_flag);
 
+    g_inventory_test_phase=1038;
     // CODE.2 raw WORD +35 low2 class1 is allowed, class2 rejected.
     nested.containers[0U].capacity_pounds=20U;
     nested.held={10,0U};
