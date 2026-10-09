@@ -281,6 +281,70 @@ try
         "portable source-bound overlay map preserves its region boundaries");
     Console.WriteLine("PASS: conservative FBOV/TPOV envelope variants and source-bound explicit regions");
 
+    // Resident Turbo Pascal overlay directory: no source-specific offsets,
+    // synthetic EXE + separate OVR original bytes and exact chain closure.
+    byte[] residentOverlayBytes = (byte[])mzBytes.Clone();
+    const int residentDescriptor = 0x80;
+    new byte[] { 0xCD, 0x3F, 0, 0 }.CopyTo(residentOverlayBytes, residentDescriptor);
+    Dword(residentOverlayBytes, residentDescriptor + 4, 4); // first TPOV payload
+    MzWord(residentOverlayBytes, residentDescriptor + 8, 4); // code length
+    MzWord(residentOverlayBytes, residentDescriptor + 10, 2); // fixup length
+    MzWord(residentOverlayBytes, residentDescriptor + 12, 1); // one stub
+    MzWord(residentOverlayBytes, residentDescriptor + 14, 7); // opaque unit number
+    residentOverlayBytes[residentDescriptor + 32] = 0xCD;
+    residentOverlayBytes[residentDescriptor + 33] = 0x3F;
+    var residentOverlayImage = DosMzImage.Load(
+        BinaryArtifact.FromBytes(residentOverlayBytes, "START.EXE"));
+    byte[] syntheticTpOverlay = { (byte)'T', (byte)'P', (byte)'O', (byte)'V',
+        0xB8, 0x34, 0x12, 0xC3, 0xCD, 0x3F };
+    var mappedTpOverlay = DosOverlayImage.LoadEnvelope(
+        BinaryArtifact.FromBytes(syntheticTpOverlay, "GAME.OVR"));
+    var resolvedDirectory = DosOverlayDirectoryRecovery.Recover(
+        residentOverlayImage, mappedTpOverlay);
+    Equal(resolvedDirectory.Units.Count, 1, "one complete resident-derived overlay unit");
+    Equal(resolvedDirectory.Units[0].ResidentDescriptorFileOffset, 0x80L,
+        "resident descriptor retains exact original EXE file offset");
+    Equal(resolvedDirectory.Units[0].OverlayCodeFileOffset, 4,
+        "resident descriptor's overlay code offset is preserved");
+    Equal(resolvedDirectory.Units[0].OverlayFixupFileOffset, 8,
+        "overlay relocation blob is not confused with candidate instructions");
+    Equal(resolvedDirectory.Units[0].FixupByteLength, 2,
+        "overlay fixup bytes remain separately accounted");
+    Equal(resolvedDirectory.Units[0].ProcedureCount, 1,
+        "procedure-trap stubs validated from resident MZ bytes");
+    Equal(resolvedDirectory.CoveredPayloadBytes, 6,
+        "stored code plus fixups must cover every overlay payload byte");
+    Equal(resolvedDirectory.ResidentSourceSha256, residentOverlayImage.SourceSha256,
+        "resident original identity retained independently of overlay");
+    Equal(resolvedDirectory.OverlaySourceSha256, mappedTpOverlay.Envelope.SourceSha256,
+        "overlay original identity retained independently of resident");
+    Fails(() => DosOverlayDirectoryRecovery.Recover(mzImage, mappedTpOverlay),
+        "unrelated MZ without a resident directory cannot invent overlay boundaries");
+    var missingDescriptor = (byte[])residentOverlayBytes.Clone();
+    Dword(missingDescriptor, residentDescriptor + 4, 5);
+    Fails(() => DosOverlayDirectoryRecovery.Recover(
+        DosMzImage.Load(BinaryArtifact.FromBytes(missingDescriptor)), mappedTpOverlay),
+        "overlay descriptor with a one-byte coverage gap must be rejected");
+    var duplicateDescriptor = (byte[])residentOverlayBytes.Clone();
+    Array.Copy(duplicateDescriptor, residentDescriptor, duplicateDescriptor, 0xE0, 37);
+    Fails(() => DosOverlayDirectoryRecovery.Recover(
+        DosMzImage.Load(BinaryArtifact.FromBytes(duplicateDescriptor)), mappedTpOverlay),
+        "ambiguous duplicate resident descriptors must not select an arbitrary map");
+    var badStub = (byte[])residentOverlayBytes.Clone();
+    badStub[residentDescriptor + 32] = 0x90;
+    Fails(() => DosOverlayDirectoryRecovery.Recover(
+        DosMzImage.Load(BinaryArtifact.FromBytes(badStub)), mappedTpOverlay),
+        "resident overlay descriptors require structurally matching trap stubs");
+    var wrongFixupSize = (byte[])residentOverlayBytes.Clone();
+    MzWord(wrongFixupSize, residentDescriptor + 10, 3);
+    Fails(() => DosOverlayDirectoryRecovery.Recover(
+        DosMzImage.Load(BinaryArtifact.FromBytes(wrongFixupSize)), mappedTpOverlay),
+        "overlay directory cannot claim code/fixup bytes past source end");
+    Fails(() => DosOverlayDirectoryRecovery.Recover(
+        residentOverlayImage, DosOverlayImage.LoadEnvelope(BinaryArtifact.FromBytes(expandedFbov))),
+        "16-byte FBOV variant cannot silently reuse TPOV manager descriptor layout");
+    Console.WriteLine("PASS: resident MZ overlay descriptors form a unique gap-free TPOV directory");
+
     // Exact-byte identity catalogs label sources but never change decoding.
     string syntheticCatalogJson = JsonSerializer.Serialize(new {
         schemaVersion = 1,
