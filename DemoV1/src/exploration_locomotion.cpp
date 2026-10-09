@@ -200,7 +200,8 @@ ExplorationLocomotionModel::party_geometry(
 
 AppliedExplorationMotion ExplorationLocomotionModel::apply(
     ExplorationSessionState& session,
-    const ExplorationMotionStep& step) {
+    const ExplorationMotionStep& step,
+    const EntityProbe& entity_probe) {
     AppliedExplorationMotion out{};
     session.facing = step.state.heading;
     out.facing = session.facing;
@@ -256,6 +257,19 @@ AppliedExplorationMotion ExplorationLocomotionModel::apply(
         }
         if (geometry != GeometryResult::Clear) {
             continue;
+        }
+
+        // Original 2D5D0 next invokes 2C800 (live NPCs) and 2CC88
+        // (class-1 object footprints), before accepting movement.
+        if (entity_probe) {
+            const auto contact=entity_probe(attempt.a,attempt.b);
+            if (contact==OriginalEntityContact::RequiresSideEffect) {
+                suppressed=true;
+                continue;
+            }
+            if (contact==OriginalEntityContact::Blocked) {
+                continue;
+            }
         }
 
         session.coordinate_a = attempt.a;
