@@ -83,6 +83,56 @@ internal static class Dos16TableIndexEvidenceSmoke
             unknownReport.Sites[0].Status == "unresolved-BX-not-small-exact-set",
             "unsupported byte register alias cannot seed a table index");
 
+        // A control-flow join is permitted only when EVERY predecessor
+        // gives a small exact and aligned BX byte offset. A single unsafe
+        // incoming path must poison the entire joined value.
+        (Dos16CodeRegion Region, Dos16FlowResult Graph,
+            Dos16TableManifest Manifest) JoinedFixture(bool killAlternate)
+        {
+            byte[] bytes = new byte[0x50];
+            byte[] instructions = {
+                0xBB, 0x00, 0x00, // 00 MOV BX,0
+                0x83, 0xFB, 0x00, // 03 CMP BX,0
+                0x74, 0x05,       // 06 JE 0x10D (unknown direction)
+                0xBB, 0x00, 0x00, // 08 MOV BX,0
+                0xEB, 0x03,       // 11 JMP 0x110
+                0xBB, 0x02, 0x00, // 13 MOV BX,2 or unsupported bytes
+                0x2E, 0xFF, 0xA7, 0x20, 0x01 // 16 JMP CS:[BX+0120h]
+            };
+            if (killAlternate)
+            {
+                instructions[13] = 0xB0;
+                instructions[14] = 0x7F;
+                instructions[15] = 0x90;
+            }
+            instructions.CopyTo(bytes, 0);
+            bytes[0x20] = 0x30; bytes[0x21] = 0x01;
+            bytes[0x22] = 0x32; bytes[0x23] = 0x01;
+            var image = BinaryArtifact.FromBytes(bytes, "synthetic-join.com");
+            var region = DosComImage.LoadExplicit(image).CreateCodeRegion();
+            var graph = Dos16ControlFlowAnalysis.Analyze(region, 0x100);
+            var manifest = new Dos16TableManifest(1, image.Sha256,
+                new[] { new Dos16TableRequest(0x110, 0x120, 2,
+                    "near16", "synthetic-merged-branch-count") });
+            return (region, graph, manifest);
+        }
+
+        var both = JoinedFixture(killAlternate: false);
+        var bothReport = Dos16TableIndexEvidence.Inspect(
+            both.Region, both.Graph, both.Manifest);
+        Check(!bothReport.Incomplete && bothReport.CandidateSites == 1 &&
+            bothReport.Sites[0].PossibleIndices.SequenceEqual(new[] { 0, 1 }) &&
+            bothReport.Sites[0].CandidateStoredEntries.Count == 2,
+            "two backed incoming byte offsets remain distinct and bounded");
+
+        var poisoned = JoinedFixture(killAlternate: true);
+        var poisonedReport = Dos16TableIndexEvidence.Inspect(
+            poisoned.Region, poisoned.Graph, poisoned.Manifest);
+        Check(!poisonedReport.Incomplete && poisonedReport.CandidateSites == 0 &&
+            poisonedReport.Sites[0].Status == "unresolved-BX-not-small-exact-set" &&
+            poisonedReport.Sites[0].CandidateStoredEntries.Count == 0,
+            "one unsupported incoming path invalidates all table index evidence");
+
         var forgedEdges = good.Graph.Edges.Select(x =>
             x with { Kind = "branch" }).ToArray();
         var unsafeReport = Dos16TableIndexEvidence.Inspect(good.Region,
