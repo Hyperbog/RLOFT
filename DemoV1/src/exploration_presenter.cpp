@@ -58,6 +58,8 @@ ExplorationPresenter::surface_coverage(
         out.type7_unvalidated_wide_runs =
             frame.scene_vga_trace->unresolved_wide_runs;
     }
+    out.type7_plan_calls_failed =
+        frame.scene_plan_failures.size();
     // This static pre-presentation estimate marks every visible type-7
     // scene call pending. present() subtracts successful canonical SINTAB
     // rasterizations and reports any transactional draw failure separately.
