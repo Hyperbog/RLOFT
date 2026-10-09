@@ -352,9 +352,12 @@ int main() {
     assert(fails([&]{
         C::apply_to_matching_session(active_ui,session,inventory);
     }));
-    assert(fails([&]{
-        (void)C::capture_matching_session(active_ui,session,inventory);
-    }));
+    // Export must use the CURRENT live 6FA0 array, not a stale
+    // actor context copied into the preserved snapshot. This is
+    // intentionally different from LOAD, which consumes the
+    // serialized context stored in the imported snapshot.
+    assert(C::encode(C::capture_matching_session(
+        active_ui,session,inventory))==emitted);
     inventory.open_container=rloft::OpenInventoryContainer{};
     assert(fails([&]{
         C::apply_to_matching_session(snapshot,session,inventory);
