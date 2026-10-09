@@ -920,6 +920,7 @@ int run_exploration(
     // Opt-in source-neutral diagnostic, separate from the DOS
     // framebuffer and from writable game state.
     std::optional<rloft::DevLevelSnapshot> last_dev_snapshot;
+    std::uint64_t dev_change_sequence=0U;
 
     // Opt-in native-only forensic captures. No file I/O is performed
     // during ordinary game launches. One frame per changed cell/facing
@@ -1902,6 +1903,37 @@ int run_exploration(
                 if (capture_failure.has_value()) {
                     caption+=L" | Capture error";
                 }
+            }
+            if (dev_inspect) {
+                // Additional developer-only metadata lives ONLY in
+                // the Win32 title bar. It cannot change original
+                // 320x400 VGA pixels, actor bytes, item IDs or story.
+                const auto snapshot=rloft::DevLevelDiagnostics::capture(
+                    runtime.session(),runtime.world(),runtime.inventory());
+                if(last_dev_snapshot &&
+                   rloft::DevLevelDiagnostics::compare(
+                       *last_dev_snapshot,snapshot).any())
+                    ++dev_change_sequence;
+                last_dev_snapshot=snapshot;
+                const auto short_hex=[](std::uint64_t digest) {
+                    const auto code=rloft::DevLevelSnapshot::digest8(digest);
+                    return std::wstring(code.begin(),code.end());
+                };
+                caption+=L" | DEV Actors "+
+                    std::to_wstring(snapshot.active_actors)+
+                    L" NPC "+std::to_wstring(snapshot.npc_count)+
+                    L" Fixed "+std::to_wstring(snapshot.placed_object_count)+
+                    L" Loose "+std::to_wstring(snapshot.loose_item_count)+
+                    L" Open "+std::to_wstring(
+                        snapshot.active_container_views)+
+                    L" Flags "+std::to_wstring(
+                        snapshot.set_story_flags)+
+                    L" | Party "+short_hex(snapshot.party_hash)+
+                    L" Inv "+short_hex(snapshot.inventory_hash)+
+                    L" World "+short_hex(snapshot.world_hash)+
+                    L" Story "+short_hex(snapshot.flags_hash)+
+                    L" | State changes "+
+                    std::to_wstring(dev_change_sequence);
             }
             if (caption != last_preview_title) {
                 SetWindowTextW(host.hwnd(), caption.c_str());
