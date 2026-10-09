@@ -528,9 +528,10 @@ int main() {
         }));
     }
 
-    // The one-view native modal cannot currently display two
-    // independently open actor contexts. Preserve their bytes,
-    // but reject live application until multi-lane renderer exists.
+    // Original 12E70 clicks and 10EEC draws independently
+    // per actor. With two saved phase3 contexts, both source
+    // records must survive import, native actor selection and
+    // export; no fabricated selected-owner SAVE byte exists.
     auto two_actor_views=open_original;
     two_actor_views[0x77U+0x248U+0x10U]=0U;
     two_actor_views[0x77U+0x248U+0x11U]=0U;
@@ -539,9 +540,62 @@ int main() {
     const auto many=C::decode(two_actor_views,baseline);
     assert(C::encode(many)==two_actor_views);
     live=baseline;
+    C::apply_to_matching_session(many,clean,live,&objs);
+    assert(live.open_container.has_value());
+    assert(live.open_container->actor==0U); // deterministic native selection
+    assert(live.party_container_ui_contexts[0].fully_open());
+    assert(live.party_container_ui_contexts[1].fully_open());
+    assert(C::encode(C::capture_matching_session(
+        many,clean,live,&objs))==two_actor_views);
+    assert(live.select_container_actor(clean.party,objs,1U)==
+        rloft::InventoryContainerStatus::Opened);
+    assert(live.open_container->actor==1U);
+    assert(live.party_container_ui_contexts[0].fully_open());
+    assert(live.party_container_ui_contexts[1].fully_open());
+    assert(C::encode(C::capture_matching_session(
+        many,clean,live,&objs))==two_actor_views);
+    // The click of actor 1 must route its real container rather
+    // than retaining actor 0 as an implicit selected slot owner.
+    const auto click_status=live.swap_actor_container_slot(
+        clean.party,objs,1U,0U);
+    assert(click_status==rloft::InventoryContainerStatus::Taken);
+    assert(live.open_container->actor==1U);
+    assert(live.containers[0].items[0]==-1);
+    assert(live.held.object_id==0);
+    assert(live.party_container_ui_contexts[0].fully_open());
+    live.close_container();
+    assert(!live.party_container_ui_contexts[1].active());
+    assert(live.party_container_ui_contexts[0].fully_open());
+    assert(live.select_container_actor(clean.party,objs,0U)==
+        rloft::InventoryContainerStatus::Opened);
+    assert(live.open_container->actor==0U);
+    assert(!live.party_container_ui_contexts[1].active());
+    // Restore the persisted multi-view source and confirm the
+    // second actor can close without erasing actor 0's context.
+    live=baseline;
+    C::apply_to_matching_session(many,clean,live,&objs);
+    assert(live.select_container_actor(clean.party,objs,1U)==
+        rloft::InventoryContainerStatus::Opened);
+    live.close_container();
+    auto reduced=C::capture_matching_session(many,clean,live,&objs);
+    const auto reduced_bytes=C::encode(reduced);
+    assert(reduced_bytes[reduced_bytes.size()-16U+4U]==0xFFU);
+    assert(reduced_bytes[reduced_bytes.size()-16U+6U]==0U);
+    assert(reduced_bytes[reduced_bytes.size()-16U+0U]==0U);
+
+    // The OTHER actor still needs valid source object evidence,
+    // and malformed second actor context rejects atomically.
+    auto bad_second=two_actor_views;
+    set_hand_in_save(bad_second,1U,0U,-1);
+    auto invalid_multi=C::decode(bad_second,baseline);
+    const auto before_party=clean.party.bytes;
+    const auto before_held=live.held.object_id;
     assert(fails([&]{
-        C::apply_to_matching_session(many,clean,live,&objs);
+        C::apply_to_matching_session(
+            invalid_multi,clean,live,&objs);
     }));
+    assert(clean.party.bytes==before_party);
+    assert(live.held.object_id==before_held);
 
     // Reject mismatch between persisted subtype/index and the
     // original CODE.2 descriptor without silently repairing SAVE.
