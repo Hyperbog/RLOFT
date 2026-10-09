@@ -39,6 +39,7 @@ endif()
 add_library(rloft_boot_flow
     src/anm_cinematic.cpp
     src/assassin_relic_transition.cpp
+    src/level22_mist_timeline.cpp
     src/boot_flow.cpp
     src/character_creation_flow.cpp
     src/character_creation_presenter.cpp
@@ -1041,6 +1042,10 @@ if(WIN32)
         target_compile_options(ravenloft_demo_v1 PRIVATE /W4 /permissive-)
     endif()
 endif()
+
+add_executable(level22_mist_timeline_tests tests/level22_mist_timeline_tests.cpp)
+target_link_libraries(level22_mist_timeline_tests PRIVATE rloft_boot_flow)
+add_test(NAME level22_mist_timeline_tests COMMAND level22_mist_timeline_tests)
 
 add_executable(assassin_relic_transition_tests tests/assassin_relic_transition_tests.cpp)
 target_link_libraries(assassin_relic_transition_tests PRIVATE rloft_boot_flow)

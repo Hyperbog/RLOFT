@@ -18,3 +18,7 @@
 `level_continuity_tests` is registered in CMake and asserts rejected transitions do not modify live state, preserving party/clock/flags, NPC HP, removed loose items, cell edits and automap caches through a roundtrip. Registration increases the expected total from **172 to 173 CTests**; the Quick subset stays 19. All newly authored tests remain **uncompiled/unexecuted** until an authorized build. The last verified Full Windows build was #647 (172/172), source `fb4a0145`.
 
 **Still open:** original CODE.2 authored exit/event routing, exact transition cutscenes/palette/music/IRQ, complete level-local event effects, full-world SAVE.DAT serialization and reload, live native Level22→actual next event route→return acceptance, DOS pixel/timing/state comparison. Only an in-memory engine bridge exists; it must not be described as a complete original cross-level lifecycle.
+
+## Next original-code checkpoint (still source-only)
+
+The [CODE.2 original mist timeline](LEVEL22_ORIGINAL_MIST_FRAME_SEQUENCE_20261009.md) adds an independently testable **source-order** event plan for 21F70..223F0. The storyboard does not display synthetic mist or execute a guessed duration. Registered CTests increase to **174**, Quick stays **19**. The 22-frame event and current level-continuity source are unbuilt and not DOS-accepted.
