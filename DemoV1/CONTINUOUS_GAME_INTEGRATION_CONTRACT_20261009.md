@@ -3,27 +3,45 @@
 
 ## Mandatory system and subsystem percentage reporting
 
-Every ongoing native-development checkpoint must maintain a
-percentage **for every one of the 20 major systems and all
-121 named subsystems** (expand the list as new subsystems are
-discovered). The [canonical progress scorecard](
-PROGRESS_SUBSYSTEM_REPORT_20261009.md) records source tracing,
-implementation, runtime integration, authored regression and
-DOS-current-revision acceptance using a fixed evidence-weighted
-score. The [scoring CSV](PROGRESS_SUBSYSTEMS.csv) is the
-canonical input, cross-checked by the
-`subsystem_progress_tracker_tests` CTest.
-**Current essential acceptance checkpoint:** Before extending the next major gameplay feature, the user should manually perform a Full Windows build/CTest pass of `demo-v1` HEAD, which now has 172 registered tests. This is needed to validate cross-system compatibility of the new runtime cinematic flow and testbed instrumentation. No automatic CI dispatch is authorized. `--dev-interact` is opt-in for Level22 preview item actions, whereas `--dev-inspect` remains a read-only caption diagnostic; normal cold startup through CODE.1 character creation is unchanged. The newest 121-subsystem roll-up remains **48.8%**, with the dev-testbed system **49.3%**.
+Every ongoing native-development checkpoint maintains
+independent percentages for **20 major systems and
+122 named subsystems** (expanding the list when a real
+new subsystem is found). The [canonical scorecard](
+PROGRESS_SUBSYSTEM_REPORT_20261009.md) and its
+[CSV data](PROGRESS_SUBSYSTEMS.csv) distinguish
+original source proof, native code, live runtime,
+authored regression and current-head DOS acceptance.
+These evidence-weighted estimates are **not**
+percentages of total developer effort.
 
+**Current baseline: 48.9% weighted readiness.**
+Level lifecycle and continuity is **37.9%** across
+seven subcomponents. The newly generalized authentic
+per-level RES4 ground selector is **50.0%** with a
+source-authenticated Level23-like archive selection
+test, but **no live next-level traversal yet**.
+The original 32-task engineering ledger remains
+**56.25% (18/32)**, independent of this score.
 
-Current baseline **48.8% provisional readiness**, distinct from
-the historical **56.25% (18/32)** task score. DOS acceptance is
-currently **0% at this revision** because no current-head
-build or DOS comparison has been run. Source-only changes
-cannot promote that acceptance score. Test registrations
-now **172** (Quick 19); CI/build execution remains
-user-authorized and manual.
+**Last verified Windows build:** [Full #647](
+https://github.com/Hyperbog/RLOFT/actions/runs/37987825463)
+compiled and passed **172 of 172 CTests** at source
+commit `fb4a0145`; artifact and provenance published.
+The post-build Level23 terrain-binding change and
+associated test have **not yet been rebuilt**.
+Original DOS acceptance stays **0%** at current
+source revision. The temporary push trigger was
+removed; CI/builds are again **manual dispatch
+only**, except when newly authorized by the user.
 
+`--dev-inspect` remains read-only and
+`--dev-interact` explicitly opts into normal
+production item interactions inside the Level22
+testbed. Neither bypasses the original production
+startup or CODE.1 character creation. True
+source-defined cross-level transitions, retained
+worlds, full SAVE/LOAD and DOS visual/IRQ acceptance
+remain open engineering milestones.
 
 ## Opt-in reusable development slice (current implementation)
 
@@ -42,8 +60,9 @@ the underlying authoritative session.
 
 Source: [Level22 dev-level testing
 matrix](DEV_LEVEL_TESTBED_20261009.md).
-Registered CTests now **171** / Quick **19**,
-but the new source has not been built or run.
+Registered CTests: **172** / Quick **19**;
+Full build #647 passed all at `fb4a0145`.
+The later cross-level ground change is source-only.
 Engineering score **56.25%** and inventory
 PARTIAL remain unchanged.
 
