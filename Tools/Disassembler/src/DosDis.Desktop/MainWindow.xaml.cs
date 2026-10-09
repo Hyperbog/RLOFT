@@ -412,11 +412,20 @@ public partial class MainWindow : Window
             MessageBoxImage.Question, MessageBoxResult.No);
         if (bytesChoice == MessageBoxResult.Cancel) return;
         FlowAnalysisResult graph = _graph ?? throw new InvalidOperationException("No analysis to export.");
+        BinaryArtifact artifact = _artifact ?? throw new InvalidOperationException("Original source is not open.");
+        LeImage image = _image ?? throw new InvalidOperationException("LE object map is not available.");
         SetWorking(true, "Exporting evidence-tagged candidate analysis…");
         try
         {
-            await Task.Run(() => AnalysisReportExport.WriteNew(picker.FileName, graph,
-                json, bytesChoice == MessageBoxResult.Yes));
+            await Task.Run(() =>
+            {
+                // Snapshot the already opened original's identity, never a
+                // guessed game name or an absolute local source path.
+                var provenance = SourceProvenance.ForArtifact(artifact, image);
+                var gaps = ExecutableGapAnalysis.Analyze(graph, image);
+                AnalysisReportExport.WriteNew(picker.FileName, graph,
+                    json, bytesChoice == MessageBoxResult.Yes, provenance, gaps);
+            });
             Trace(DiagnosticStage.AnalysisReportExported);
             StatusText.Text = $"Analysis report saved: {picker.FileName}. Original executable untouched.";
         }
