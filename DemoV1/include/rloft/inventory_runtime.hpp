@@ -48,6 +48,39 @@ struct OpenInventoryContainer final {
     std::size_t descriptor_index{};
 };
 
+// Runtime CODE.2 DGROUP:6FA0, one raw four-byte record per
+// character. This is SAVE state, unlike native open_container.
+// Original 10FAC opens through phases 0,1,2,3. Original 110B4
+// closes via 3,2,1,0, then writes FF FF 00 FF (NOT all FF).
+// Original 21648 may establish phase 3 directly on hand transfer.
+struct PartyContainerUiContext final {
+    std::array<std::uint8_t,4> raw{{0xFFU,0xFFU,0xFFU,0xFFU}};
+    [[nodiscard]] bool active() const noexcept {
+        return raw[0]!=0xFFU;
+    }
+    [[nodiscard]] bool fully_open() const noexcept {
+        return active() && raw[2]==3U;
+    }
+    [[nodiscard]] bool inactive() const noexcept {
+        return raw[0]==0xFFU && raw[1]==0xFFU &&
+            raw[3]==0xFFU &&
+            (raw[2]==0xFFU || raw[2]==0U);
+    }
+    // The DOS closing loop 110B4 retains a zero phase byte
+    // even though the other three bytes return to -1.
+    void mark_closed_110b4() noexcept {
+        raw={{0xFFU,0xFFU,0U,0xFFU}};
+    }
+    // Original 21693..216C4 uses the *low byte* of object_id:
+    // IDs >=256 therefore cannot be recovered from 6FA3 alone.
+    void mark_open_21693(std::uint8_t subtype,
+                          std::uint8_t descriptor,
+                          std::int16_t object_id) noexcept {
+        raw={{subtype,descriptor,3U,
+              static_cast<std::uint8_t>(object_id)}};
+    }
+};
+
 enum class InventoryQuickStashStatus : std::uint8_t {
     NothingHeld,
     Stashed,
@@ -130,6 +163,10 @@ struct InventoryRuntimeState final {
         mage_scribe_feedback.reset();
     }
     std::array<ContainerRuntimeState, kRuntimeDescriptorCount> containers{};
+    std::array<PartyContainerUiContext,PartyImage::kActorCount>
+        party_container_ui_contexts{};
+    // Native currently supports one interactive container view at a
+    // time. The source independently saves four raw actor contexts.
     std::optional<OpenInventoryContainer> open_container;
 
     [[nodiscard]] static InventoryRuntimeState fresh(
@@ -188,7 +225,13 @@ struct InventoryRuntimeState final {
     [[nodiscard]] InventoryContainerStatus open_hand_container(
         const PartyImage& party, const ObjectCatalog& objects,
         std::size_t actor, std::size_t hand);
-    void close_container() noexcept { open_container.reset(); }
+    void close_container() noexcept {
+        if(open_container &&
+           open_container->actor<party_container_ui_contexts.size())
+            party_container_ui_contexts[open_container->actor].
+                mark_closed_110b4();
+        open_container.reset();
+    }
     [[nodiscard]] InventoryContainerStatus insert_held_into_open_container(
         const PartyImage& party, const ObjectCatalog& objects);
     [[nodiscard]] InventoryContainerStatus take_open_container_slot(
