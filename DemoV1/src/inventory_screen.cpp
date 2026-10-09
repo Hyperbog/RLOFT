@@ -80,6 +80,15 @@ InventoryItemDraw make_item(
 
 }  // namespace
 
+int InventoryScreenModel::original_container_res2_graphic(
+    std::uint8_t subtype) {
+    if(subtype>6U) {
+        throw std::out_of_range(
+            "unsupported original CODE.2 container art subtype");
+    }
+    return 9+static_cast<int>(subtype);
+}
+
 InventoryScreenModel InventoryScreenModel::build(
     const PartyActorPresentation& actor,
     const ObjectCatalog& objects,
