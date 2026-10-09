@@ -40,6 +40,13 @@ Type7VgaSceneTrace Type7VgaSceneTraceModel::build(
             throw std::out_of_range(
                 "scene VGA invocation has unvalidated run width");
         }
+        if (run.viewport_x >= 256U ||
+            run.width > 256U - run.viewport_x) {
+            // The original 36CEC source traversal clips to the
+            // 256-ray viewport BEFORE it invokes 36B14.
+            throw std::out_of_range(
+                "scene VGA run exceeds original 256-ray viewport");
+        }
         // One representative destination column is sufficient to recover
         // the source display-list entry/stop patch operands. The original
         // 369D8 walks every descriptor for each VGA mask pass, while 36B14
