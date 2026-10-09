@@ -1,0 +1,1 @@
+One user-authorized FULL Windows build for the current Level22 diagnostic flight recorder. Expected all 179 CTests; include Diagnose-Level22.cmd in the Windows artifact. Remove this marker and restore the manual-only workflow immediately after queuing.
