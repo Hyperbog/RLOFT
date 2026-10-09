@@ -2,6 +2,7 @@
 
 #include "rloft/party_hud.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdio>
 #include <cstdint>
@@ -391,11 +392,78 @@ void PartyModalPresenter::draw_character_centered_text(
     }
 }
 
+void PartyModalPresenter::draw_open_container(
+    IndexedFramebuffer& framebuffer,
+    const InventoryRuntimeState& inventory) const {
+    if(!inventory.open_container)return;
+    const auto& context=*inventory.open_container;
+    if(context.actor>=PartyImage::kActorCount ||
+       context.descriptor_index>=inventory.containers.size())
+        return;
+    const auto& desc=inventory.containers[context.descriptor_index];
+    if(desc.ui_columns==0U || desc.slot_count==0U ||
+       desc.items.size()!=desc.slot_count)return;
+    // Original 11C3C: slot positions are derived from live ten-byte
+    // descriptor columns/x-offset. Source objects themselves are
+    // always drawn with genuine RES1 + OBJECTS UI sprite indices.
+    // The simple slot border below is currently a source-palette
+    // presentation fallback: the original decorative RES0 surround
+    // still requires a specific 11C3C/11FB0 art-call trace.
+    const int lane=static_cast<int>(context.actor)*0x50;
+    for(std::size_t index=0U;index<desc.items.size();++index) {
+        const int row=0xDB+static_cast<int>(index/desc.ui_columns)*0x22;
+        const int column=lane+desc.ui_x_offset+
+            static_cast<int>(index%desc.ui_columns)*0x12;
+        framebuffer.fill_rect(row-1,column-1,34,18,0x75);
+        framebuffer.fill_rect(row,column,32,16,0);
+        const auto id=desc.items[index];
+        if(id<0)continue;
+        const auto& object=objects_.at(static_cast<std::size_t>(id));
+        const auto raster=assets_.type1(
+            1,static_cast<int>(res1_object_base_)+
+              object.ui_graphic_index);
+        framebuffer.draw_frame(raster,0,row,column);
+    }
+}
+
+void PartyModalPresenter::draw_held_cursor_and_description(
+    IndexedFramebuffer& framebuffer,
+    const InventoryRuntimeState& inventory,
+    std::optional<InventoryPointer> pointer) const {
+    if(inventory.held.object_id<0)return;
+    const auto id=inventory.held.object_id;
+    const auto description=InventoryItemDescriptionModel::describe(
+        objects_,id,inventory.held.known);
+    // The original display uses CODE.2 0FA9C's object text and a
+    // red inventory ribbon. Text and weights are source-derived.
+    // Exact ornamental ribbon ends remain pending sprite tracing.
+    const int span=IndexedFontPresenter::measure(font1_,description);
+    const int width=std::min(318,span+10);
+    const int column=std::max(1,(320-width)/2);
+    framebuffer.fill_rect(0x62,column,12,width,0x45);
+    IndexedFontPresenter::draw_centered(
+        framebuffer,font1_,0x64,column,width,description);
+
+    if(pointer) {
+        const auto& object=objects_.at(static_cast<std::size_t>(id));
+        const auto raster=assets_.type1(
+            1,static_cast<int>(res1_object_base_)+
+              object.ui_graphic_index);
+        if(pointer->row>=0 && pointer->row<400 &&
+           pointer->column>=0 && pointer->column<320) {
+            framebuffer.draw_frame(
+                raster,0,pointer->row,pointer->column);
+        }
+    }
+}
+
 PartyModalCoverage PartyModalPresenter::draw(
     IndexedFramebuffer& framebuffer,
     const PartyImage& party,
     const std::array<bool, 4>& character_mode,
-    std::size_t selected_actor) const {
+    std::size_t selected_actor,
+    const InventoryRuntimeState* inventory,
+    std::optional<InventoryPointer> pointer) const {
     if (selected_actor >= PartyImage::kActorCount) {
         throw std::out_of_range(
             "party modal selected actor");
@@ -464,6 +532,11 @@ PartyModalCoverage PartyModalPresenter::draw(
         0x50,
         0x1A);
 
+    if(inventory!=nullptr) {
+        draw_open_container(framebuffer,*inventory);
+        draw_held_cursor_and_description(
+            framebuffer,*inventory,pointer);
+    }
     return coverage;
 }
 
