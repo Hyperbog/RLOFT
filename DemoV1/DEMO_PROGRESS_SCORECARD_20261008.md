@@ -1,5 +1,41 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Canonical every-system/every-subsystem percentage requirement
+
+**Current source-readiness estimate: 48.8%, across
+20 systems / 120 individual subsystems.**
+Use the committed [subsystem-by-subsystem scorecard](
+PROGRESS_SUBSYSTEM_REPORT_20261009.md) and its
+[canonical CSV data](PROGRESS_SUBSYSTEMS.csv) for
+every checkpoint. Each subsystem has five explicit
+0/10/20 evidence gate marks. The weighted contribution
+of source mapping is 10%, native code 20%, runtime
+integration 20%, authored regression cases 10%
+and actual **current-head DOS acceptance 40%**.
+No current-head Windows build or DOS comparison
+has taken place, so the DOS acceptance gate remains
+0%. Every major system has its own calculated
+readiness percentage (not a handpicked rounded
+global value), and all 120 subcomponents have
+independent scores, evidence and blockers.
+
+**DO NOT confuse metrics:** this source-readiness
+weighted baseline is NOT the historical engineering
+ledger's **56.25% = (12 + 12/2)/32**. Neither
+is an objective percent of human implementation
+hours or full-campaign gameplay completed.
+Both continue independently, with explicit evidence
+for each accepted new criterion.
+
+Every future development checkpoint must update
+affected CSV rows, propagate system and overall
+percentages, and present a clear source/compile/
+test/DOS acceptance distinction. The scorecard
+validator is registered as one additional
+offline CTest; **172 registered**, Quick **19**.
+No build or tests initiated.
+
+
 ## Level22 dev testbed — read-only integration diagnostics
 
 A dedicated **opt-in** `--explore-level22
