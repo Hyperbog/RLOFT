@@ -22,6 +22,8 @@ public partial class MainWindow : Window
     private bool _working;
     private long _commentRevision;
     private CancellationTokenSource? _analysisCancellation;
+    private readonly FileDialogPreferences _filePreferences = new();
+    private string? _openedBinaryPath;
 
     private void Trace(DiagnosticStage stage, int? objectNumber = null,
         uint? objectOffset = null, int? instructionCount = null)
@@ -86,6 +88,7 @@ public partial class MainWindow : Window
         {
             Title = "Open original DOS executable (read-only)",
             Filter = "All files (*.*)|*.*|Executables (*.exe;*.com)|*.exe;*.com",
+            InitialDirectory = _filePreferences.LastBinaryDirectory ?? string.Empty,
             CheckFileExists = true
         };
         if (picker.ShowDialog(this) != true) return;
@@ -110,6 +113,8 @@ public partial class MainWindow : Window
                 return (artifact, image, intelligence, preview);
             });
             _artifact = result.artifact;
+            _openedBinaryPath = Path.GetFullPath(picker.FileName);
+            _filePreferences.RememberBinary(_openedBinaryPath);
             _image = result.image;
             Trace(_image is null ? DiagnosticStage.FileOpenedRaw : DiagnosticStage.FileOpenedLe);
             _graph = null;
@@ -477,9 +482,61 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Create a new research database only after the analyst chooses a path.
-    /// A cancelled dialog has no side effects. The binary stays read-only;
-    /// only its identity and optional candidate analysis are persisted.
+    /// A regular filename conflict is not an error. Offer Replace, Keep both,
+    /// or Cancel. The default is Keep both, which chooses a numbered filename.
+    /// Never allow the open original game binary to be overwritten.
+    /// </summary>
+    private (string Path, bool Overwrite)? ChooseSaveDestination(
+        string selectedPath, string purpose)
+    {
+        string destination = Path.GetFullPath(selectedPath);
+        if (!File.Exists(destination) && !Directory.Exists(destination))
+            return (destination, false);
+        string numbered = ProjectFilePaths.NextAvailable(destination);
+        if (Directory.Exists(destination))
+        {
+            MessageBox.Show(this,
+                "A folder already uses that name. The new file will be saved as:\n\n" +
+                Path.GetFileName(numbered),
+                "Keep both", MessageBoxButton.OK, MessageBoxImage.Information);
+            return (numbered, false);
+        }
+        bool original = _openedBinaryPath is not null &&
+            string.Equals(_openedBinaryPath, destination,
+                StringComparison.OrdinalIgnoreCase);
+        bool currentProject = _project is not null &&
+            string.Equals(_project.FilePath, destination,
+                StringComparison.OrdinalIgnoreCase);
+        if (original || (currentProject && purpose == "project backup"))
+        {
+            MessageBox.Show(this,
+                (original
+                    ? "Original executable files are always read-only. "
+                    : "The active research project cannot be replaced by its own backup. ") +
+                "The new file will be saved as:\n\n" + Path.GetFileName(numbered),
+                "Keep both", MessageBoxButton.OK, MessageBoxImage.Information);
+            return (numbered, false);
+        }
+        var answer = MessageBox.Show(this,
+            "A file named " + Path.GetFileName(destination) + " already exists.\n\n" +
+            "YES — Replace the existing file (previous contents are lost).\n" +
+            "NO — Keep both by saving as " + Path.GetFileName(numbered) + ".\n" +
+            "CANCEL — Do not save.\n\n" +
+            "Replacing a project requires that no other application has it open.",
+            "File already exists — " + purpose,
+            MessageBoxButton.YesNoCancel, MessageBoxImage.Question,
+            MessageBoxResult.No);
+        return answer switch
+        {
+            MessageBoxResult.Yes => (destination, true),
+            MessageBoxResult.No => (numbered, false),
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// A cancelled Save As dialog leaves all typed comments intact. New
+    /// projects are staged and verified before publishing the database file.
     /// </summary>
     private bool TryCreateProject(string action)
     {
@@ -495,27 +552,13 @@ public partial class MainWindow : Window
             FileName = Path.GetFileNameWithoutExtension(_artifact.Name) + ".ddproj"
         };
         if (picker.ShowDialog(this) != true) return false;
-        // Never attach annotations to an unrelated existing database or
-        // overwrite someone else's project. Use Open project instead.
-        if (File.Exists(picker.FileName))
-            throw new IOException(
-                "That research project already exists. Choose a new name, " +
-                "or use Open project to resume an existing project.");
-        var created = ProjectStore.Open(picker.FileName);
-        try
-        {
-            created.EnsureArtifact(_artifact);
-            if (_graph is not null) created.SaveAnalysis(_graph);
-            _project = created;
-            Trace(DiagnosticStage.ProjectSaved);
-            BackupProjectButton.IsEnabled = true;
-            return true;
-        }
-        catch
-        {
-            created.Dispose();
-            throw;
-        }
+        var destination = ChooseSaveDestination(picker.FileName, "new project");
+        if (destination is null) return false;
+        _project = ProjectStore.CreateNew(destination.Value.Path, _artifact,
+            _graph, overwrite: destination.Value.Overwrite);
+        Trace(DiagnosticStage.ProjectSaved);
+        BackupProjectButton.IsEnabled = true;
+        return true;
     }
 
     private void SaveProject_Click(object sender, RoutedEventArgs e)
@@ -554,11 +597,14 @@ public partial class MainWindow : Window
                 FileName = Path.GetFileNameWithoutExtension(project.FilePath) + "-backup.ddproj"
             };
             if (picker.ShowDialog(this) != true) return;
-            project.CreateBackup(picker.FileName);
+            var destination = ChooseSaveDestination(picker.FileName, "project backup");
+            if (destination is null) return;
+            project.CreateBackup(destination.Value.Path,
+                overwrite: destination.Value.Overwrite);
             Trace(DiagnosticStage.ProjectBackupSaved);
             StatusText.Text =
                 "Project backup saved (previously committed analysis/notes only): " +
-                picker.FileName;
+                destination.Value.Path;
         }
         catch (Exception ex) { Error("Project backup failed", ex); }
     }
