@@ -1,5 +1,8 @@
 #include "rloft/party_panel_controls.hpp"
 
+#include <cstdint>
+#include <stdexcept>
+
 namespace rloft {
 namespace {
 
@@ -23,6 +26,75 @@ constexpr std::array<std::array<PartyPanelHitRect,2>,4>
     }};
 
 }  // namespace
+
+OriginalEquipmentHitTables OriginalEquipmentHitTables::from_code2(
+    const std::vector<std::uint8_t>& code2) {
+    constexpr std::size_t kDgroupFileBase=0x75F24U;
+    constexpr std::array<std::size_t,2> kTableOffsets{
+        0x6DB0U,0x6EA0U
+    };
+    constexpr std::size_t kDescriptorBytes=24U;
+    OriginalEquipmentHitTables result{};
+    for(std::size_t which=0U;which<kTableOffsets.size();++which) {
+        for(std::size_t i=0U;i<kDescriptorsPerTable;++i) {
+            const auto at=kDgroupFileBase+kTableOffsets[which]+
+                i*kDescriptorBytes;
+            if(at>code2.size() ||
+               kDescriptorBytes>code2.size()-at) {
+                throw std::runtime_error(
+                    "CODE.2 is truncated before equipment descriptor tables");
+            }
+            const auto read=[&](std::size_t offset)->std::uint32_t {
+                const auto* p=code2.data()+at+offset;
+                return static_cast<std::uint32_t>(p[0]) |
+                       (static_cast<std::uint32_t>(p[1])<<8U) |
+                       (static_cast<std::uint32_t>(p[2])<<16U) |
+                       (static_cast<std::uint32_t>(p[3])<<24U);
+            };
+            auto& d=result.tables_[which][i];
+            d.slot=static_cast<std::int32_t>(read(0U));
+            d.accepted_pointer_flags=read(4U);
+            d.rect.row_min=static_cast<std::int32_t>(read(8U));
+            d.rect.column_min=static_cast<std::int32_t>(read(12U));
+            d.rect.row_max=static_cast<std::int32_t>(read(16U));
+            d.rect.column_max=static_cast<std::int32_t>(read(20U));
+            if(d.slot<12 || d.slot>20 ||
+               d.accepted_pointer_flags==0U ||
+               d.rect.row_min<0 ||
+               d.rect.column_min<0 ||
+               d.rect.row_max>=400 ||
+               d.rect.column_max>=80 ||
+               d.rect.row_min>d.rect.row_max ||
+               d.rect.column_min>d.rect.column_max) {
+                throw std::runtime_error(
+                    "Invalid original CODE.2 equipment descriptor");
+            }
+        }
+    }
+    return result;
+}
+
+const OriginalEquipmentHitDescriptor&
+OriginalEquipmentHitTables::descriptor(
+    bool short_race,std::size_t index) const {
+    if(index>=kDescriptorsPerTable)
+        throw std::out_of_range("original equipment descriptor index");
+    return tables_[short_race?1U:0U][index];
+}
+
+std::optional<std::size_t> OriginalEquipmentHitTables::occupied_hit(
+    bool short_race,int row,int local_column,
+    std::uint32_t mouse_flags,
+    const std::array<std::int16_t,21>& actor_items) const noexcept {
+    if(mouse_flags==0U)return std::nullopt;
+    for(const auto& d:tables_[short_race?1U:0U]) {
+        if((d.accepted_pointer_flags&mouse_flags)==0U ||
+           !d.rect.contains(row,local_column))continue;
+        const auto slot=static_cast<std::size_t>(d.slot);
+        if(actor_items[slot]>=0) return slot;
+    }
+    return std::nullopt;
+}
 
 const std::array<PartyPanelHitRect, 4>&
 PartyPanelControlModel::gameplay_inventory_regions() noexcept {
