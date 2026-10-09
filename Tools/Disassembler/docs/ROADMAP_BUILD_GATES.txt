@@ -1,0 +1,281 @@
+DOSDIS — SOURCE DEVELOPMENT ROADMAP AND BUILD-GATE POLICY
+Version: 1.0 | 2026-10-09
+Canonical branch: disassembler-foundation
+Source repository: https://github.com/Hyperbog/RLOFT
+Original DOS game collection: DnD-Classics / MASTER
+
+PURPOSE
+-------
+Advance substantial batches of game-agnostic reverse engineering work without
+building Windows previews or invoking CI after every small source checkpoint.
+Treat source commits, successful compilation, synthetic verification, original
+byte verification, and user GUI acceptance as DIFFERENT levels of evidence.
+
+POLICY (NORMATIVE)
+------------------
+1. "Continue" authorizes source editing, documentation, source-only regression
+   fixtures and commits. It does NOT authorize building, running tests, GitHub
+   Actions, publishing executables or modifying original game files.
+2. Build, execute tests, publish a preview or run CI ONLY after the owner
+   explicitly asks/approves. A roadmap gate marked READY is a request for
+   authorization, NOT permission to run the gate.
+3. Batch related changes (normally several coherent commits) before asking for
+   Windows execution. Stop earlier only for a significant runtime/ABI/schema
+   change, a safety concern, or a user request for an interactive preview.
+4. Every source-only commit receives lightweight STATIC review: original-byte
+   boundaries, overflow checks, null/malformed-input policy, public contracts,
+   source identity, status/evidence labels, bounds, documentation, regression
+   fixture creation, branch HEAD and workflow manual-only state.
+   Such checks are not compilation and MUST NOT be reported as tests passed.
+5. No proprietary game bytes or executable archive content in development
+   commits, synthetic fixtures, published artifacts or hosted CI. Known-answer
+   manifests are external comparison input only, never decoder seeds.
+6. The engine remains title/filename independent. Distinguish physical file
+   offsets, MZ module offsets, 16-bit segment:offset, LE object offsets and
+   simulated runtime addresses. Keep all inferred execution unverified.
+7. Owner-supplied original game collection is available in DnD-Classics/MASTER.
+   Ask for specific original files only when real-byte validation is blocked;
+   unavailable archives do not imply missing usable game files.
+8. Update this roadmap as evidence changes; do not silently call an item DONE
+   because source exists. Preserve rejected/unknown paths and missing coverage.
+
+EVIDENCE STATES
+---------------
+PLANNED: scoped, no source change.
+IN PROGRESS: active implementation.
+SOURCE COMPLETE: committed; static review only; tests not run for that batch.
+COMPILED: owner-authorized Windows compile passed at the cited commit.
+SYNTHETIC VERIFIED: corresponding generated regression suites executed.
+ORIGINAL VERIFIED: exact-hash game source was checked and results recorded.
+GUI VERIFIED: the user exercised the named UI interaction successfully.
+BLOCKED: concrete blocker and requested input recorded.
+DEFERRED: out of current release scope.
+
+BASELINE (at roadmap creation)
+------------------------------
+Latest branch HEAD before roadmap: cd0d7d9640b5e17698b125e16a1c00c99b556ef1.
+Last confirmed successful Windows build: GitHub Actions run 37887821656.
+That preview predates the newer 16-bit unique-path, JA/JAE/JB/JBE bounds,
+CMP AX,imm16 and two-stage far-pointer stride source changes.
+The user manually confirmed four GUI cases from the last build:
+last Open Binary folder, Replace/Keep both/Cancel, numbered names, and
+application remaining open after dismissing dialogs.
+Recent 16-bit source work is SOURCE COMPLETE, not yet compiled/tested.
+Prior overall "43%" estimate was approximate, NOT a measured coverage metric.
+Do not manufacture a new percentage; measure coverage per format and gate.
+
+PHASE 0 — FOUNDATION AND REGRESSION CONTROL (ACTIVE, SOURCE-ONLY)
+----------------------------------------------------------------
+R0.1 Keep repo contract, source-hash evidence and supported format matrix current.
+R0.2 Maintain positive, negative, malformed, truncation, collision, source-offset
+     and adversarial graph mutation cases using exclusively synthetic bytes.
+R0.3 Keep manual-only GitHub workflow and fixed Windows build recipe; ensure
+     smoke suites return nonzero on any assertion failure.
+R0.4 Record last compiled HEAD, original validation hashes, release artifacts
+     and manual GUI acceptance separately from today's source HEAD.
+R0.5 Add a compact machine-readable checkpoint ledger only if it can be
+     maintained without automatically executing code or duplicating facts.
+Exit: documented reliable baseline and no unsupported verification claims.
+Gate: NONE. Documentation and fixtures do not justify standalone builds.
+
+PHASE 1 — COMPLETE P0 X86-16 GUARDED DISPATCH BATCH (ACTIVE)
+------------------------------------------------------------
+R1.1 Review the accumulated uniquely backed NOP/near-JMP chains,
+     original-instruction bytes and exact predecessor proof.
+R1.2 Review the unsigned JA/JAE not-taken and JB/JBE taken semantics,
+     including short/near16 encodings and inclusive/exclusive counts.
+R1.3 Review register copies, CMP AX,imm16 accumulator form and BX scaling
+     by SHL and ADD; validate two-step four-byte FAR table scaling.
+R1.4 Audit off-by-one, zero/wrap, graph entry, signed-immediate,
+     mutation-of-flags, out-of-range, competing predecessor and code/data
+     overlap rejection. Verify source-relative pointer offsets.
+R1.5 Refactor duplicated validation WITHOUT making edge/candidate promotion
+     implicit; add regression fixtures for any discovered boundary.
+R1.6 Normalize per-site reasons and evidence provenance; distinguish no
+     candidate, unsupported format, truncated analysis and rejected data.
+Exit: all P0 16-bit guarded-dispatch cases source complete, static-audited,
+negative tests written, no game-specific constants.
+Next gate: G1, but only after a worthwhile contiguous set of R1 work is ready.
+
+G1 — WINDOWS X86-16 INTEGRATION GATE (OWNER AUTHORIZATION REQUIRED)
+-------------------------------------------------------------------
+One manually requested Windows build of desktop, CLI and both synthetic suites;
+validate previous and new x86-16 fixtures together. If a failure occurs, fix
+the source and rerun THIS GATE, not a new build for each isolated fix.
+When available, perform optional exact-source smoke probes on original MZ/COM
+and CODE.1/CODE.2 DOS launcher bytes. Do not put originals into CI.
+Deliver SHA-labeled artifacts only if requested; record evidence in roadmap.
+Fail condition: compiler error, regression, unsafe inferred target, unsupported
+binary silently decoded, or provenance lost.
+
+PHASE 2 — GENERAL-PURPOSE 16-BIT VALUE/RANGE ANALYSIS (P0)
+----------------------------------------------------------
+R2.1 Introduce a bounded abstract value domain: unknown, validated constant,
+     unsigned interval and small finite set, with provenance at each origin.
+R2.2 Implement exact x86-16 transfer functions for a small explicit opcode
+     subset; kill values on partial register writes, alias/memory writes,
+     flags clobber, unknown interrupts and unsupported transfers.
+R2.3 Compute CFG predecessor merges with monotone convergence and iteration,
+     block, path and memory budgets; widen to unknown rather than inventing
+     dominance or infinite loop certainty.
+R2.4 Restrict table-index mapping to proven bounds/stride and immutable
+     file-backed entries; model a clear code/data conflict ledger.
+R2.5 Keep intersegment state and runtime selector/loading hypotheses separate.
+R2.6 Add synthetic positive/negative joined-branch, loops, aliases,
+     signed/wrap, stale edge and path-explosion fixtures.
+Exit: stable source-bound candidate semantics that never auto-seed the CFG.
+Gate: G2 after several coherent subfeatures; ask owner before execution.
+
+G2 — RANGE DATAFLOW ACCEPTANCE (OWNER AUTHORIZATION REQUIRED)
+-------------------------------------------------------------
+Compile, run synthetic tests, compare before/after candidate output on a
+representative corpus, inspect newly accepted AND newly rejected targets;
+original-file validation only if exact bytes are available. Investigate
+regressions before approving broader format work.
+
+PHASE 3 — DOS MZ, COM, CROSS-SEGMENT AND OVERLAY COMPLETENESS (P0)
+------------------------------------------------------------------
+R3.1 Extend optional load-base/rebased view correctness and x86-16 indirect
+     CALL/JMP recovery without inventing DOS runtime register values.
+R3.2 Reconcile same-file physical byte ownership across segmented graphs;
+     explicit alias/overlap diagnostics and bounded continuation policy.
+R3.3 Complete source-backed TPOV and both FBOV envelope variants where
+     format evidence supports it; avoid assuming opaque fixup semantics.
+R3.4 Separate resident executable, overlay code, opaque relocation/fixup
+     spans and original disk offsets in all maps and exports.
+R3.5 Keep COM origins explicit; research DOS drivers only behind a separate
+     analyst-supplied load/calling-convention context.
+R3.6 Add synthetic MZ relocation edge cases, standalone/wrapped MZ,
+     COM, TPOV, FBOV, cut-off records and adversarial offsets.
+Exit: bounded loader and overlay safety contract source complete.
+Gate: G3 original-byte acceptance on a small cross-title set.
+
+G3 — ORIGINAL DOS BINARY / OVERLAY GATE (OWNER AUTHORIZATION REQUIRED)
+----------------------------------------------------------------------
+Run synthetic Windows regression first; then request only necessary exact
+originals, preferably the following already documented fixture families:
+Hillsfar MAIN.EXE, a Gold Box START.EXE plus paired GAME.OVR, a second
+TPOV/FBOV variant, Dark Sun DSUN.EXE and a headerless SOUND.COM.
+Check loader maps, fixups, original offsets, UNKNOWN statuses and
+SHA-bound artifact identity. No hardcoded game-specific decoder branches.
+
+PHASE 4 — LE/X86-32 ENGINE AND VALIDATION QUALITY (P0)
+------------------------------------------------------
+R4.1 Audit LE object/page/fixup backing, virtual-only tails and unsupported
+     record types; preserve unknown map states instead of fallbacks.
+R4.2 Improve generic indirect call/jump references and table evidence.
+R4.3 Reconcile function candidates, code/data gaps, conflict diagnostics
+     and partially backed executable objects.
+R4.4 Maintain independent known-answer manifest diffing (match, missing,
+     conflict, not-observed, not-classified) without changing analysis.
+R4.5 Compare Strahd, Menzo and Stone candidate results as independent
+     sources; no cross-title borrowed symbol names, addresses or counts.
+R4.6 Performance-budget large CODE.2 candidate scans; protect UI cancel,
+     memory growth and read-only project durability.
+Exit: stable LE candidate engine and machine-readable regression diffs.
+Gate: G4 when substantial LE-core improvements are ready.
+
+G4 — LE CROSS-GAME AND DESKTOP GATE (OWNER AUTHORIZATION REQUIRED)
+------------------------------------------------------------------
+One Windows compile/synthetic run; optional exact-hash original CODE files
+run separately, checking unresolved counts, gaps, conflicts and data
+reference drift with provenance. Manual WPF checks only for affected
+controls: launch/open/analyze, hex/addresses, project notes, save, restore,
+backup, exports, diagnostics, responsiveness. Do not re-test unrelated
+GUI interactions on every engine-only batch.
+
+PHASE 5 — ADDITIONAL EXECUTABLE FAMILIES (P1)
+--------------------------------------------
+R5.1 LX metadata loader: validated headers, object/page maps, entry points
+     and relocation semantics. Signature recognition alone is NOT support.
+R5.2 NE metadata loader with explicit segmented address semantics.
+R5.3 Dedicated PE/modern-host classification; avoid DOS x86-16 fallthrough.
+R5.4 Detect packed/self-extracting executables conservatively: recognize
+     wrappers, never blindly unpack or classify embedded signatures as code.
+R5.5 Driver/TSR interfaces only with a proven load model; otherwise raw hex.
+Exit: supported/fail-closed loaders with exact evidence boundaries.
+Gate: G5 synthetic and targeted LX/NE original samples; manual authorization.
+
+PHASE 6 — RESOURCE AND VM DISASSEMBLERS (P2)
+------------------------------------------
+R6.1 AESOP/16 container structure and instruction format as a distinct VM.
+R6.2 GFF/GFFI directory/offset and resource graph mapping, scripts only
+     when independently identified.
+R6.3 DAX/Gold Box events, Unlimited Adventures resource formats and related
+     game data via separate engines, not x86 heuristic decoding.
+R6.4 Resource/code distinction, cross-file references, unknown gaps and
+     source-backed validation manifests for each family.
+Exit: deterministic parsers and VM decoders tested with synthetic fixtures.
+Gate: G6 after EACH FORMAT FAMILY is coherent, not after every opcode.
+
+PHASE 7 — RESEARCH PROJECTS, WORKFLOW AND INTERFACE (P1/P2)
+-----------------------------------------------------------
+R7.1 Project schema compatibility/migration, incremental save, revisions,
+     exact-source relinking, atomic backup/overwrite safety.
+R7.2 Analyst classifications, named symbols, searchable xrefs, function
+     comparison and evidence navigation with no guess of code truth.
+R7.3 Virtualized hex/disassembly, responsive cancellation, bounded jobs,
+     keyboard access, window/DPI behavior, actionable nonfatal errors.
+R7.4 Improve batch exports, diagnostics privacy and safe external review.
+Exit: user workflows with tested recoverability; game binaries stay read-only.
+Gate: G7 user-facing preview only when there are meaningful UI changes.
+
+PHASE 8 — RELEASE AND LONG-TERM MAINTENANCE (P3)
+-----------------------------------------------
+R8.1 Deterministic Windows publish, licensing/third-party notice audit,
+     release notes and source-to-artifact traceability.
+R8.2 Signed binaries if owner establishes a signing pipeline; do not claim
+     signing without one.
+R8.3 Recovery from malicious/corrupt files; invalid bounds, huge inputs,
+     untrusted manifests and interrupted SQLite writes.
+R8.4 Automated offline, opt-in corpus validation with owners' originals
+     staying outside public CI.
+Exit: reproducible release candidate with verified required formats.
+Gate: G8 final full build, all synthetic suites, authorized original corpus
+and owner GUI/release acceptance before claiming a final release.
+
+SCHEDULE / BATCH RULES
+----------------------
+Default: 3–8 cohesive source commits per review batch; no arbitrary calendar
+deadline or promised progress %. Publish short status with completed scope,
+risk, unresolved cases, last source HEAD and last BUILT HEAD.
+A build gate should execute after a coherent major analyzer capability,
+a new loader/parser family, a persistence schema change requiring migration,
+a serious correctness/safety bug, or explicit user request. Not after
+documentation, fixture-only additions or routine parser refactors.
+At a ready gate, ASK for build authorization. Do not call CI implicitly.
+
+REQUEST ORIGINAL FILES ONLY WHEN NECESSARY
+------------------------------------------
+Original bytes are needed for targeted G3/G4/G5/G6 checks, not for building
+source-only algorithms or synthetic tests. Prefer the already accessible
+DnD-Classics MASTER tree. If GitHub connector cannot transfer opaque bytes,
+identify the smallest named files and precise hash/version required.
+Never claim an unseen original was tested.
+
+CURRENT NEXT ACTIONS
+--------------------
+NOW: R1.4-R1.6 source-only audit of accumulated guarded dispatch work,
+bound semantics, transparent direct edge proofs and report accounting.
+NEXT: small synthetic adversarial cases and guard-case refactor; commit.
+THEN: mark G1 READY with a concise test matrix. WAIT for explicit build
+authorization, or begin isolated R2 work if the owner wants to continue
+source-only without running G1 immediately.
+
+WORK LOG APPEND FORMAT (MAINTAIN IN THIS FILE)
+----------------------------------------------
+Date:
+Branch HEAD:
+Batch / ticket IDs:
+Source changes:
+Static-review outcome:
+Pending synthetic/original tests:
+Last successfully built HEAD and run:
+New blockers:
+Next gate and owner approval status:
+
+WORK LOG
+--------
+2026-10-09 | Roadmap created from repo contracts, existing format matrix,
+source checkpoints and confirmed Windows preview 37887821656. No new
+build/test requested or run. Immediate batch: R1.4-R1.6.

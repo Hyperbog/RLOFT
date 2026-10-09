@@ -563,3 +563,14 @@ candidate-only. Additional positive and negative synthetic cases
 have been added, **not run**.
 
 [Technical guard and stride evidence](docs/P0_X86_16_AUTOMATIC_GUARDS.md).
+
+## Development roadmap and manual build gates
+
+The canonical plain-text milestone and validation policy is
+[ROADMAP_BUILD_GATES.txt](docs/ROADMAP_BUILD_GATES.txt).
+Routine `Continue` work means **source, documentation and synthetic
+fixture creation only**. Windows compilation, synthetic test execution,
+GitHub Actions and executable packaging occur **only on explicit user
+authorization**, ideally after several related checkpoints reach an
+integration gate. Each report distinguishes latest source HEAD from
+last successfully built HEAD.
