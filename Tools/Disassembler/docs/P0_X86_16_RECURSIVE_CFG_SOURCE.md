@@ -55,3 +55,13 @@ the original file-backed MZ image. The original unresolved graph edge remains.
 separately decoded segment windows while retaining competing byte ownership
 evidence. This is neither general far-pointer symbolic execution nor
 a complete DOS memory model. No source-specific addresses are embedded.
+
+## Opt-in CS indirect-pointer and indexed-table review
+
+When analyzing a mapped 16-bit segment, `--indirect` can add separate
+candidate evidence and per-site unresolved statuses for exact explicit-CS
+memory-pointer transfers. `--table-map` adds a hash-bound, analyst-sized
+CS-indexed dispatch table review. Neither review modifies recursive
+reachability. Near pointers must remain file-backed within the declared
+segment; far pointers must have unique MZ selector fixups and an explicitly
+assumed load segment. See [indirect recovery](P0_X86_16_INDIRECT_RECOVERY.md).

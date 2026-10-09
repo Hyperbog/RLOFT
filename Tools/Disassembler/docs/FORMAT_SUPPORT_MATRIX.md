@@ -114,3 +114,18 @@ fixup blobs, or reconstruct far-indirect calls.
 
 No original Dark Sun, Gold Box, Dungeon Hack, or other game receives special
 decoder logic. No Windows compilation or original-file replay has occurred.
+
+## Generic x86-16 indirect CALL/JMP candidate recovery (P0 source)
+
+Explicit-CS displacement-only near memory pointers now produce
+source-backed **candidate** destinations, not proven runtime edges. Far
+pointers require exact MZ selector fixups and a user-supplied load-base
+simulation. Indexed CS indirect CALL/JMP sites can be paired with optional,
+SHA-256-bound manifests specifying table storage, entry count and evidence.
+Complete source backing of all table entries is enforced; runtime index
+bounds, data mutation and code reachability are **not** established.
+
+Other 16-bit addressing forms remain unresolved; the app does not
+special-case Gold Box, Dark Sun, Krynn, Pools, Ravenloft or any title.
+A separate bounded dataflow pass remains necessary for automatic indexed
+table recovery, and authentic executable/overlay regression remains pending.

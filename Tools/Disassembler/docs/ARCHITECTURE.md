@@ -79,3 +79,12 @@ A separate review can annotate far immediate operands with exact selector
 fixups and inspect further source-backed 16-bit regions as candidates.
 Source byte ownership collisions are reported. Actual runtime segment
 values and the meaning of opaque overlay relocation records are not known.
+
+## Indexed dispatch and source evidence (P0)
+
+The shared 16-bit instruction decoder now has **separate evidence-only
+passes** for exact-CS direct pointer operands and explicitly described
+indexed tables. Both require source file positions and preserve unknown
+register/segment values; neither makes CFG edges verified or uses
+game-specific addresses. This remains deliberately incomplete until
+general bounded value/range propagation can validate index limits.

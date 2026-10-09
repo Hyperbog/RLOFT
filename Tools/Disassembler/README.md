@@ -435,3 +435,18 @@ game-agnostic. See [MZ relocation model](docs/P0_MZ_RELOCATION_SIMULATION.md)
 and [cross-segment candidate review](docs/P0_MZ_CROSS_SEGMENT_CANDIDATES.md).
 Synthetic tests have been added but **not executed**; compilation remains
 manual-only by user request.
+
+## P0 16-bit indirect control-flow evidence (source only)
+
+`Dos16IndirectPointerRecovery` now reports source-backed candidate targets
+for a narrow, explicit-CS direct memory-pointer CALL/JMP family.
+`Dos16DispatchTableRecovery` additionally validates bounded CS-indexed
+near/far pointer tables supplied in a **full-SHA-256-bound research
+manifest**. Far candidates require separate MZ relocation and
+assumed-load-segment evidence; index bounds and runtime table values are
+never inferred. Neither mechanism replaces unresolved CFG edges or
+automatically seeds code. The CLI options `--indirect` and
+`--table-map research.json` are available for MZ, explicit COM and
+analyst-mapped overlay analysis. See
+[indirect recovery constraints](docs/P0_X86_16_INDIRECT_RECOVERY.md).
+No builds or tests have run; the release workflow remains manual-only.
