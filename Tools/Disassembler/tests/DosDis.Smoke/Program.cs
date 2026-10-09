@@ -253,6 +253,40 @@ try
     }
     Equal(trace.BuildJson().Contains("synthetic-known-data", StringComparison.Ordinal),
         false, "analyst prose is not included in trace");
+
+    // Part 33: local decision trace export is opt-in, atomic, bounded
+    // and never overwrites analyst evidence.
+    string traceFolder = Path.Combine(Path.GetTempPath(),
+        "dosdis-decision-trace-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(traceFolder);
+    try
+    {
+        string tracePath = Path.Combine(traceFolder, "decisions.json");
+        trace.WriteNew(tracePath);
+        string previous = File.ReadAllText(tracePath);
+        Equal(previous, trace.BuildJson(), "saved trace matches evidence snapshot");
+        Equal(previous.Contains("synthetic-known-data", StringComparison.Ordinal),
+            false, "export excludes private analyst provenance");
+        bool overwriteDenied = false;
+        try { trace.WriteNew(tracePath); }
+        catch (IOException) { overwriteDenied = true; }
+        Equal(overwriteDenied, true, "decision trace cannot overwrite previous export");
+        Equal(File.ReadAllText(tracePath), previous, "prior trace preserved on refused overwrite");
+        bool extensionDenied = false;
+        try { trace.WriteNew(Path.Combine(traceFolder, "decisions.txt")); }
+        catch (ArgumentException) { extensionDenied = true; }
+        Equal(extensionDenied, true, "decision trace rejects unrelated export extensions");
+        bool emptyDenied = false;
+        try { new AnalysisDecisionTrace().WriteNew(Path.Combine(traceFolder, "empty.json")); }
+        catch (InvalidOperationException) { emptyDenied = true; }
+        Equal(emptyDenied, true, "unstarted trace cannot be exported");
+        Equal(Directory.EnumerateFiles(traceFolder, "*.part").Any(), false,
+            "decision trace staging residue cleaned");
+        Equal(graphImage.ArtifactSha256, graph.ArtifactSha256,
+            "export leaves original source identity unchanged");
+    }
+    finally { Directory.Delete(traceFolder, recursive: true); }
+    Console.WriteLine("PASS: opt-in atomic local decision trace export and overwrite protection");
     // Part 25: user-triggered offline exports preserve evidence classification,
     // omit potentially proprietary instruction bytes by default, and never
     // overwrite an existing analyst report.

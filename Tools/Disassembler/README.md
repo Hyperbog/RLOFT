@@ -179,3 +179,22 @@ The Part 30 bounded operation history, opt-in `Diagnostics…` JSON export and b
 The optional `AnalysisDecisionTrace` records typed, bounded analyzer decisions, addresses and candidate provenance without original bytes, local paths or private comments. **Not yet Windows-built**; the completion estimate stays **43%**. See [Part 32](docs/PART32_ANALYZER_DECISION_TRACE.md). GitHub Actions remains manual-only.
 
 Part 32 source audit: branch edge trace outcomes now distinguish fresh versus previously seen targets and non-executable versus unbacked virtual destinations. Invalid seed/range requests no longer consume the single-use trace. Static review only; no build was requested or run.
+
+## Part 33: opt-in offline analyzer trace export (source checkpoint)
+
+The CLI `analyze` command can now request a bounded decision trace as a
+**separate local JSON file**, without embedding original game bytes or analyst
+comments. This is source-only, not a verified build:
+
+```sh
+dotnet run --project src/DosDis.Cli -- analyze /path/to/CODE.2 --trace-out decisions.json --trace-capacity 1024
+```
+
+Default capacity is 512 events (range 8–4096); older records are dropped with
+an explicit count. The export is limited to 8 MiB, uses same-directory staging,
+and refuses to replace an existing file. Without `--trace-out`, analysis does
+not allocate a decision trace and stdout retains its existing JSON output.
+The new CLI only exposes static-analysis decisions, not live game execution.
+See [Part 33 source checkpoint](docs/PART33_TRACE_EXPORT_SOURCE.md).
+**No build or test execution has been requested or performed.**
+First-release completion estimate stays at **43%**.

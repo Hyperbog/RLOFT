@@ -41,7 +41,8 @@ try
     {
         Console.Error.WriteLine("Usage: dosdis inspect|fixups|memory|disasm|analyze|report <file> [options]\n" +
             "Analyze/report: [--seed 1:0x2975C] [--data 1:0x100:0x110] [--include-entry] [--max-instructions 100000] [--relocated]\n" +
-            "Analyze: [--max-output 300]; Report: --out path.json|path.txt [--include-bytes] (no overwrite)");
+            "Analyze: [--max-output 300] [--trace-out decisions.json] [--trace-capacity 512];\n" +
+            "Report: --out path.json|path.txt [--include-bytes] (no overwrite)");
         return 2;
     }
     var artifact = BinaryArtifact.Open(args[1]);
@@ -82,8 +83,34 @@ try
         int maxInstructions = int.Parse(Option(args, "--max-instructions", "100000"), CultureInfo.InvariantCulture);
         int maxOutput = int.Parse(Option(args, "--max-output", "300"), CultureInfo.InvariantCulture);
         if (maxOutput is < 0 or > 10000) throw new ArgumentOutOfRangeException(nameof(maxOutput));
+        bool traceRequested = args.Contains("--trace-out", StringComparer.Ordinal);
+        bool capacitySpecified = args.Contains("--trace-capacity", StringComparer.Ordinal);
+        if (args[0] != "analyze" && (traceRequested || capacitySpecified))
+            throw new ArgumentException("Decision tracing is only supported by analyze.");
+        if (capacitySpecified && !traceRequested)
+            throw new ArgumentException("--trace-capacity requires --trace-out.");
+        if (args.Count(x => x == "--trace-out") > 1 ||
+            args.Count(x => x == "--trace-capacity") > 1)
+            throw new ArgumentException("Decision trace options cannot be repeated.");
+        string tracePath = traceRequested ? Option(args, "--trace-out", "") : "";
+        if (traceRequested &&
+            (string.IsNullOrWhiteSpace(tracePath) ||
+             !string.Equals(Path.GetExtension(tracePath), ".json", StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException("--trace-out requires a .json destination.");
+        var decisionTrace = traceRequested
+            ? new AnalysisDecisionTrace(int.Parse(
+                Option(args, "--trace-capacity", "512"), CultureInfo.InvariantCulture))
+            : null;
         var graph = ControlFlowAnalysis.Analyze(image, seeds, data, maxInstructions,
-            args.Contains("--relocated", StringComparer.Ordinal));
+            args.Contains("--relocated", StringComparer.Ordinal), decisionTrace: decisionTrace);
+        if (decisionTrace is not null)
+        {
+            decisionTrace.WriteNew(tracePath);
+            // Keep machine-readable analyze JSON on stdout only.
+            Console.Error.WriteLine("Decision trace exported: " +
+                decisionTrace.Snapshot().Count.ToString(CultureInfo.InvariantCulture) +
+                " retained candidate decision events (earlier events may be dropped).");
+        }
         if (args[0] == "report")
         {
             string output = Option(args, "--out", "");
@@ -140,7 +167,7 @@ try
     }
     return 0;
 }
-catch (Exception ex) when (ex is IOException or ArgumentException or OverflowException or NotSupportedException)
+catch (Exception ex) when (ex is IOException or ArgumentException or FormatException or OverflowException or NotSupportedException)
 {
     Console.Error.WriteLine($"Analysis failed: {ex.Message}");
     return 1;

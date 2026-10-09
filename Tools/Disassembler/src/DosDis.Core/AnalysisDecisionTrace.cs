@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 
 namespace DosDis.Core;
@@ -32,6 +33,7 @@ public sealed class AnalysisDecisionTrace
 {
     public const int SchemaVersion = 1;
     public const int DefaultCapacity = 512;
+    private const int MaximumExportBytes = 8 * 1024 * 1024;
     private readonly object _gate = new();
     private readonly Queue<AnalysisDecisionEvent> _events = new();
     private readonly int _capacity;
@@ -132,5 +134,48 @@ public sealed class AnalysisDecisionTrace
                 isSpeculative = e.IsSpeculative
             })
         }, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    /// <summary>
+    /// Explicit, bounded, local-only export. Stage in the target directory and
+    /// never replace an existing decision trace or leave a partial final file.
+    /// </summary>
+    public void WriteNew(string outputPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+        lock (_gate)
+        {
+            if (!_started)
+                throw new InvalidOperationException("Run an analysis before exporting its trace.");
+        }
+        string destination = Path.GetFullPath(outputPath);
+        if (!string.Equals(Path.GetExtension(destination), ".json", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Decision traces require a .json filename.", nameof(outputPath));
+        string folder = Path.GetDirectoryName(destination)!;
+        if (!Directory.Exists(folder))
+            throw new DirectoryNotFoundException("Decision trace export directory does not exist.");
+        if (File.Exists(destination) || Directory.Exists(destination))
+            throw new IOException("Decision trace destination already exists; nothing was overwritten.");
+        string json = BuildJson();
+        if (Encoding.UTF8.GetByteCount(json) > MaximumExportBytes)
+            throw new InvalidDataException("Decision trace exceeds the 8 MiB export bound.");
+        string staging = Path.Combine(folder, "." + Path.GetFileName(destination) + "." +
+            Guid.NewGuid().ToString("N") + ".part");
+        try
+        {
+            using (var stream = new FileStream(staging, FileMode.CreateNew,
+                       FileAccess.Write, FileShare.None))
+            using (var writer = new StreamWriter(stream, new UTF8Encoding(false)))
+            {
+                writer.Write(json);
+                writer.Flush();
+                stream.Flush(flushToDisk: true);
+            }
+            File.Move(staging, destination); // no overwrite, even if another process raced
+        }
+        finally
+        {
+            if (File.Exists(staging)) File.Delete(staging);
+        }
     }
 }
