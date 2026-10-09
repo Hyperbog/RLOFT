@@ -78,7 +78,10 @@ DosDis.Cli.exe overlay-analyze GAME.OVR --regions overlay-map.json --region entr
 
 The MZ `--load-segment` is a hypothesis, not a runtime observation.
 A user-provided table manifest is not an independent validation of the
-bounds it claims. Future work includes bounded index/range propagation,
-source-backed table discovery without analyst manifests, dynamic dataflow,
+bounds it claims. A narrow automatic unsigned-guard and BX-stride pass now exists as
+a separate opt-in evidence-only analyzer, described in
+[automatic dispatch](P0_X86_16_AUTOMATIC_GUARDS.md). Broader work includes
+multi-block interval/index propagation, table discovery beyond that narrow
+pattern, dynamic dataflow,
 actual segment registers, confidence-ranked automatic reachability,
 and reproducing results on original MZ, COM and overlay files.

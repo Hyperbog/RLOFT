@@ -450,3 +450,21 @@ automatically seeds code. The CLI options `--indirect` and
 analyst-mapped overlay analysis. See
 [indirect recovery constraints](docs/P0_X86_16_INDIRECT_RECOVERY.md).
 No builds or tests have run; the release workflow remains manual-only.
+
+## P0 source-only: automatic unsigned BX table bounds
+
+`Dos16AutomaticDispatchRecovery` now recognizes a **narrow**
+unsigned `CMP -> JA/JAE -> optional MOV BX,r16 -> SHL BX,stride ->
+CS:[BX+positive_disp16]` chain when all original bytes and locally
+unique CFG predecessor edges corroborate it. It supports near-pointer
+stride 2 and FAR-pointer stride 4 and validates **all** source-backed
+entries using the independent table verifier; FAR entries still require
+MZ selector fixups and an explicitly assumed load segment. A rejected
+entry or code/data overlap exposes no partial table. No decoded target
+is added to the CFG and runtime mutation remains unknown.
+
+The CLI has opt-in `--auto-tables` for `mz-analyze`, `com-analyze`
+and `overlay-analyze`. This is a small, source-only register/bounds
+propagation pass, not a claim of complete indirect-flow recovery.
+See [automatic guard requirements](docs/P0_X86_16_AUTOMATIC_GUARDS.md).
+**Manual-only builds; synthetic tests written but not run.**

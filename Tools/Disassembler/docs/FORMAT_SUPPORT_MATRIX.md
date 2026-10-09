@@ -129,3 +129,15 @@ Other 16-bit addressing forms remain unresolved; the app does not
 special-case Gold Box, Dark Sun, Krynn, Pools, Ravenloft or any title.
 A separate bounded dataflow pass remains necessary for automatic indexed
 table recovery, and authentic executable/overlay regression remains pending.
+
+## Automatic guarded index/stride source checkpoint
+
+A generic `Dos16AutomaticDispatchRecovery` now validates local unsigned
+JA/JAE bounds on BX or on a register copied immediately into BX, proves
+the exact 16-bit SHL multiplication required by near or FAR entry size,
+and checks every original-source-backed pointer before returning a
+candidate. This avoids treating 16-bit `[BX+disp16]` as implicitly
+scaled. The analyzer does **not** follow its candidates, infer arbitrary
+register ranges, merge code/data interpretations or interpret game
+identities as branch evidence. See
+[guarded table requirements](P0_X86_16_AUTOMATIC_GUARDS.md).
