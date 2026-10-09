@@ -361,6 +361,10 @@ int main() {
     assert(get_item(nested_party,0U,14U)==2);
     assert(runtime.open_container.has_value());
     assert(runtime.open_container->descriptor_index==0U);
+    // Original CODE.2 21693 initializes the independent actor
+    // context directly to subtype/index/phase3/object-lowbyte.
+    assert(runtime.party_container_ui_contexts[0U].raw==
+        (std::array<std::uint8_t,4>{{0U,0U,3U,2U}}));
     assert(runtime.held.object_id==-1);
     assert(runtime.swap_open_container_slot(
         nested_party,catalog,0U)==
@@ -395,6 +399,8 @@ int main() {
     assert(get_item(nested_party,0U,14U)==-1);
     assert(runtime.held.object_id==2);
     assert(!runtime.open_container.has_value());
+    assert(runtime.party_container_ui_contexts[0U].raw==
+        (std::array<std::uint8_t,4>{{0xFFU,0xFFU,0U,0xFFU}}));
     assert(runtime.open_hand_container(
         nested_party,catalog,0U,0U)==
            rloft::InventoryContainerStatus::NoChange);
@@ -412,6 +418,14 @@ int main() {
     // Invalid descriptor, lost equipment and unsupported source
     // special-state must leave cursor and party bytes untouched.
     set_item(nested_party,0U,14U,2);
+    assert(runtime.open_hand_container(
+        nested_party,catalog,0U,0U)==
+           rloft::InventoryContainerStatus::Opened);
+    assert(runtime.party_container_ui_contexts[0U].fully_open());
+    runtime.close_container();
+    assert(runtime.party_container_ui_contexts[0U].raw==
+        (std::array<std::uint8_t,4>{{0xFFU,0xFFU,0U,0xFFU}}));
+    assert(!runtime.open_container);
     assert(runtime.open_hand_container(
         nested_party,catalog,0U,0U)==
            rloft::InventoryContainerStatus::Opened);
