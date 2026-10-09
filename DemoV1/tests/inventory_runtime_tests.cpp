@@ -422,6 +422,59 @@ int main() {
         nested_party,catalog,0U,0U)==
            rloft::InventoryContainerStatus::Opened);
     assert(runtime.party_container_ui_contexts[0U].fully_open());
+    // Original 6FA0 has four independent actors. Opening a
+    // second active actor's hand container must not close or
+    // rewrite actor 0's phase3 view, and its slot clicks must
+    // select the clicked actor without modifying the other.
+    const auto source_actor0=runtime.party_container_ui_contexts[0U].raw;
+    const auto actor1_base=rloft::PartyImage::kActorSize;
+    nested_party.bytes[actor1_base+0x10U]=0U;
+    nested_party.bytes[actor1_base+0x11U]=0U;
+    set_item(nested_party,1U,14U,2);
+    set_item(nested_party,1U,15U,-1);
+    assert(runtime.open_hand_container(
+        nested_party,catalog,1U,0U)==
+           rloft::InventoryContainerStatus::Opened);
+    assert(runtime.open_container && runtime.open_container->actor==1U);
+    assert(runtime.party_container_ui_contexts[0U].raw==source_actor0);
+    assert(runtime.party_container_ui_contexts[1U].fully_open());
+    assert(runtime.select_container_actor(
+        nested_party,catalog,0U)==
+           rloft::InventoryContainerStatus::Opened);
+    assert(runtime.open_container->actor==0U);
+    assert(runtime.party_container_ui_contexts[1U].fully_open());
+    assert(runtime.swap_actor_container_slot(
+        nested_party,catalog,1U,0U)==
+           rloft::InventoryContainerStatus::Taken);
+    assert(runtime.open_container->actor==1U);
+    assert(runtime.party_container_ui_contexts[0U].raw==source_actor0);
+    assert(runtime.party_container_ui_contexts[1U].fully_open());
+    // An invalid actor selection must leave the previously
+    // selected native interaction context untouched.
+    const auto selection_before=runtime.open_container->actor;
+    assert(runtime.select_container_actor(
+        nested_party,catalog,2U)==
+           rloft::InventoryContainerStatus::Unsupported);
+    assert(runtime.open_container->actor==selection_before);
+    runtime.close_container();
+    assert(runtime.party_container_ui_contexts[1U].inactive());
+    assert(runtime.party_container_ui_contexts[0U].fully_open());
+    assert(runtime.select_container_actor(
+        nested_party,catalog,0U)==
+           rloft::InventoryContainerStatus::Opened);
+    set_item(nested_party,1U,14U,-1);
+    // The original actor0 container's test fixture was modified
+    // by the shared state-index 0 nested take above; reset its
+    // cursor/contents before the existing single-actor checks.
+    runtime.held={-1,0U};
+    state0.items={3,-1,-1,-1};
+    state0.per_slot_state_bits=0x01U;
+    runtime.close_container();
+    assert(runtime.party_container_ui_contexts[0U].inactive());
+    assert(runtime.party_container_ui_contexts[1U].inactive());
+    assert(runtime.open_hand_container(
+        nested_party,catalog,0U,0U)==
+           rloft::InventoryContainerStatus::Opened);
     runtime.close_container();
     assert(runtime.party_container_ui_contexts[0U].raw==
         (std::array<std::uint8_t,4>{{0xFFU,0xFFU,0U,0xFFU}}));
