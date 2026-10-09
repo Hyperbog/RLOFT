@@ -88,3 +88,14 @@ indexed tables. Both require source file positions and preserve unknown
 register/segment values; neither makes CFG edges verified or uses
 game-specific addresses. This remains deliberately incomplete until
 general bounded value/range propagation can validate index limits.
+
+## Bounded 16-bit predecessor chains (P0 source milestone)
+
+`Dos16UniqueTransparentPath` is a general x86-16, original-byte-
+backed helper for unambiguous NOP/direct-relative-JMP links. It
+validates input source identity, decoded byte ownership and
+predecessor uniqueness before the separate automatic indexed-table
+pass uses those paths to connect the CMP/guard, MOV, stride and
+indirect jump. The path bound is four transparent intermediates by
+default. It is not a generic interprocedural analysis, does not
+infer arbitrary dominance, and adds no CFG edges.

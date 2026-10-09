@@ -518,3 +518,20 @@ opened game file cannot be overwritten by these workflows.
 See [desktop file-dialog behavior](docs/P0_DESKTOP_FILE_DIALOGS_AND_CONFLICTS.md).
 **Source changes and synthetic tests are written; a new Windows build
 and manual UI retest remain pending.**
+
+## P0 source checkpoint — bounded multi-block 16-bit guarded tables
+
+The opt-in `--auto-tables` mode now accepts local **uniquely backed**
+NOP / `JMP rel8` / `JMP rel16` bridges between a supported unsigned
+CMP/JA/JAE index guard, optional register copy, BX scaling, and
+CS-indexed indirect CALL/JMP. A maximum of four transparent
+intermediates is used for each connection. New near-table stride
+alternatives include `ADD BX,BX` (`01 DB` or `03 DB`).
+
+Unknown or competing predecessor paths, stale original byte evidence,
+register-changing intermediates and incomplete CFGs remain unresolved.
+The existing CLI option is unchanged; runtime call targets stay
+**candidate-only** and are never enqueued automatically.
+
+See [guard and unique-path contract](docs/P0_X86_16_AUTOMATIC_GUARDS.md).
+The new regressions are source-only; **no new build has been run**.

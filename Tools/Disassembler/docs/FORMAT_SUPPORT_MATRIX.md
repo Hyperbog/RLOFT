@@ -163,3 +163,17 @@ The loader rejects overlapping outer MZ extents and direct extended
 modules; it never treats the embedded protected-mode image as 16-bit
 code. The original CODE.1/CODE.2 outer MZ geometry has been checked
 read-only, but no DOSDis binary was built or run.
+
+## Unique-path 16-bit index recovery — source-only addition
+
+Automatic table inference now tolerates bounded transparent NOP and
+direct near-JMP bridges across candidate basic blocks. Only source-
+matched, uniquely incoming, nonwrapping transfers preserve the
+previously proved unsigned bounds and exact register-copy/stride
+pattern. Near-pointer stride 2 also accepts `ADD BX,BX` when bounds
+exclude overflow. The implementation rejects joins, unmodeled
+register changes, dynamic call returns, and trampoline chains beyond
+the hop budget; no candidate is promoted to an executable CFG edge.
+
+No new Windows compilation, smoke-test run, or authentic DOS binary
+validation has been performed for this particular source milestone.

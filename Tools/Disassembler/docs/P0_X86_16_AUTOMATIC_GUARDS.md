@@ -27,10 +27,16 @@ call word ptr cs:[bx+table_disp16]
 ```
 
 The bound source may be BX directly or AX, CX, DX, SI, or DI when there
-is exactly one adjacent, file-backed, register-to-register `MOV BX,r16`
-(`89`/`8B` with exact ModRM) on the locally unique guarded path.
-The copy does not modify flags. No arbitrary register propagation is
-performed.
+is exactly one file-backed, register-to-register `MOV BX,r16` (`89`/`8B`
+with exact ModRM) on the locally unique guarded path. The copy does not
+modify flags. A bounded `Dos16UniqueTransparentPath` pass now permits
+up to four transparent NOP/near-jump instructions **between** the
+compare, conditional guard, optional copy, scaling step, and indirect
+call/jump. Each transparent instruction must have exact original bytes,
+a physical source-file location consistent with its decoded address,
+and a unique incoming CFG edge. Other register and flag mutations,
+joins, indirect transfers, and unknown call returns are not transparent.
+No arbitrary register propagation is performed.
 
 Supported unsigned guards are `JA` and `JAE` (short or near) following
 `CMP r16,imm8/imm16` in the explicitly supported encodings. The imm8
@@ -45,7 +51,12 @@ truncated CFGs and stale decoded bytes cannot prove the bound.
 16-bit `[BX+disp16]` has **no automatic index scale**. A checked
 `SHL BX,1` encodes stride 2 (near pointer) and `SHL BX,2` encodes
 stride 4 (far pointer); the supported encodings are `D1 E3` and
-`C1 E3 imm8`. This pass rejects unsigned-negative disp16 values
+`C1 E3 imm8`. Near pointers also accept exact `ADD BX,BX`
+encodings `01 DB` or `03 DB`: with a proven at-most-256-entry
+unsigned bound, doubling cannot overflow 16 bits. The scaling step
+may modify flags because the unsigned branch was already evaluated,
+and a transparent path to the indirect transfer does not consume them.
+This pass rejects unsigned-negative disp16 values
 (`disp16 > 0x7FFF`), any unproven scaling, and table spans that could
 wrap or exceed the original file-backed segment.
 
@@ -97,7 +108,8 @@ never guessed from a file name.
 ## Known limitations / next generalization
 
 General interval dataflow, variable index increments, aliases through
-memory, branch joins, negative offsets, multi-basic-block propagation,
+memory, branch joins, negative offsets, **arbitrary multi-basic-block**
+propagation beyond uniquely proven short NOP/JMP bridges,
 non-power-of-two strides, source-backed register constants, 32-bit mixed
 code, self-modifying tables, overlay loader fixups and emulator traces
 remain incomplete. Engine- or game-specific hardcoded recognizers are
@@ -108,3 +120,29 @@ The synthetic fixtures cover JA, JAE, imm16 CMP, sign-extended negative
 imm8, AX/CX-to-BX copy, mismatched copy, SHL stride, signed branch,
 wrong ModRM, bypassed guards, missing table entries, overlap, stale
 file offsets and FAR MZ-selector requirements. **They have not run.**
+
+## Bounded cross-basic-block evidence (next source milestone)
+
+`Dos16UniqueTransparentPath` recognizes only unprefixed `NOP`,
+`JMP rel8` (`EB cb`), and `JMP rel16` (`E9 cw`) as transparent
+bridge instructions. It verifies the exact original instruction bytes
+and physical offset, recomputes each branch destination from its
+signed displacement, rejects 16-bit IP wrapping, and requires exactly
+one incoming edge at each intermediate instruction. Revisiting an
+address, encountering a truncated graph, or exceeding the default
+four-intermediate-instruction bound causes rejection.
+
+The guard, copy, stride, and table may therefore live in different
+candidate basic blocks, but **only across a single unambiguous chain**.
+The original CFG remains unchanged. The separate evidence analyzer
+cannot prove that the observed file-backed table is immutable at
+runtime or that an indirect branch is actually executed.
+
+New synthetic fixtures include: NOP between guard and stride, NOP
+between stride and table, short and near16 JMP bridges, copied-register
+bounds across harmless instructions, an alternate incoming edge,
+`INC BX` invalidation, over-budget paths, stale bridge bytes, both
+`ADD BX,BX` encodings and unrelated-register arithmetic rejection.
+
+**These newly added fixtures have not been compiled or executed.**
+Previous Windows preview builds did not include this milestone.
