@@ -27,9 +27,11 @@
           <Button x:Name="ExportAnalysisButton" Content="Export…" Click="ExportAnalysis_Click" ToolTip="Export evidence-tagged analysis as JSON or text; excludes the original executable"/>
           <Button x:Name="ExportDiagnosticButton" Content="Diagnostics…" Click="ExportDiagnostic_Click"
                   ToolTip="Export bounded session events without paths, source bytes, comments or exception messages."/>
-          <Button x:Name="BackupProjectButton" Content="Backup project" Click="BackupProject_Click"/>
+          <Button x:Name="BackupProjectButton" Content="Backup project" Click="BackupProject_Click"
+                  ToolTip="Back up your research project. If none exists, you can create one first."/>
           <Button x:Name="AnalyzeButton" Style="{StaticResource PrimaryActionButtonStyle}" Content="Analyze" Click="Analyze_Click"/>
-          <Button x:Name="CancelAnalysisButton" Content="Cancel analysis" Click="CancelAnalysis_Click" IsEnabled="False"/>
+          <Button x:Name="CancelAnalysisButton" Content="Cancel analysis" Click="CancelAnalysis_Click" IsEnabled="False"
+                  ToolTip="Only enabled while analysis is running. Small originals may complete before cancellation is possible."/>
         </StackPanel>
       </DockPanel>
     </Border>
@@ -128,7 +130,8 @@
                        Foreground="{StaticResource SecondaryTextBrush}" Margin="0,8,0,6"/>
             <TextBox x:Name="NoteEditor" AcceptsReturn="True" TextWrapping="Wrap" Height="100" FontFamily="Segoe UI"
                      VerticalScrollBarVisibility="Auto"/>
-            <Button x:Name="SaveNoteButton" Content="Save comment to project" Click="SaveNote_Click" Margin="0,9,0,0"/>
+            <Button x:Name="SaveNoteButton" Content="Save comment to project" Click="SaveNote_Click" Margin="0,9,0,0"
+                    ToolTip="Select an instruction and save your comment. If needed, you will be asked to create a research project."/>
             <TextBlock Text="Analysis remains candidate evidence. Comments never modify original bytes."
                        TextWrapping="Wrap" FontSize="10" Margin="0,10,0,0"
                        Foreground="{StaticResource SecondaryTextBrush}"/>
