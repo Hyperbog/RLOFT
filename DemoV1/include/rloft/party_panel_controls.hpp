@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <optional>
+#include <cstdint>
 
 namespace rloft {
 
@@ -63,6 +64,20 @@ public:
     // Preserve the two-pixel gutters: they are not item clicks.
     [[nodiscard]] static std::optional<OrdinaryInventoryHit>
     modal_ordinary_slot_at(int row, int column) noexcept;
+
+    struct ContainerSlotHit final {
+        std::size_t actor{};
+        std::size_t slot{};
+    };
+
+    // CODE.2 12E70/11C3C open container at row 0xDB plus 0x22
+    // per grid row, with descriptor-specific columns and x-offset.
+    // The caller supplies the ORIGINAL 10-byte descriptor's layout.
+    [[nodiscard]] static std::optional<ContainerSlotHit>
+    modal_container_slot_at(
+        int row,int column,std::size_t actor,
+        std::uint8_t columns,std::uint8_t x_offset,
+        std::size_t slot_count) noexcept;
 
     // CODE.2 12E70 -> 11AD8. Within the selected 80-pixel actor column the
     // inventory/character toggle is row 45h..60h, local column 39h..4Dh.
