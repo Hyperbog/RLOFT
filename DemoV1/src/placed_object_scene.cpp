@@ -95,6 +95,7 @@ PlacedObjectSceneModel::build(
             static_cast<std::uint16_t>(
                 object_index);
         record.source_class = 1U;
+        record.source_type_id = object.object_type_id;
         record.render_scale_lookup_bias = 0U;
 
         // 2BBA0 only precomputes 21BF0 rectangles for four class-1 type IDs
