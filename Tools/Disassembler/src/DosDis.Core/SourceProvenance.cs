@@ -63,6 +63,30 @@ public sealed record SourceProvenance(
             sourceArchive, internalPath);
     }
 
+    /// <summary>Reject forged verified fingerprints and namespace mismatches.</summary>
+    public void ValidateClaim()
+    {
+        ValidateHash(SourceSha256);
+        ValidateSlug(GameId, nameof(GameId));
+        ValidateModule(Module);
+        ValidateRelative(SourceArchive, nameof(SourceArchive));
+        ValidateRelative(InternalPath, nameof(InternalPath));
+        if (SchemaVersion != CurrentSchema ||
+            ResearchNamespace != GameId + "/" + SourceSha256.ToLowerInvariant() ||
+            ByteLength is < 1)
+            throw new InvalidDataException("Inconsistent source provenance namespace or schema.");
+        if (Known.TryGetValue(SourceSha256, out var known) &&
+            (GameId != known.Game || Module != known.Module ||
+             (known.Size > 0 && ByteLength != known.Size)))
+            throw new InvalidDataException("Known source hash cannot be assigned to another game or module.");
+        if (IdentityStatus == "verified-sha256-fingerprint" &&
+            !Known.ContainsKey(SourceSha256))
+            throw new InvalidDataException("Only independently archived fingerprints can be marked verified.");
+        if (IdentityStatus is not ("verified-sha256-fingerprint" or
+            "analyst-declared-game-unverified" or "source-hash-only-game-unassigned"))
+            throw new InvalidDataException("Unsupported source identity evidence status.");
+    }
+
     public void RequireGraph(FlowAnalysisResult graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
