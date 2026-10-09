@@ -214,8 +214,12 @@ int main() {
 
     // Runtime C048/C044 bytes patch origin AL/DL, preserving wrap.
     spec.row_count=1U;
-    spec.phase_u=1U;
-    spec.phase_v=1U;
+    // FF58 origin and the mutable C048/C044 phase bytes
+    // occupy the high Q32 byte; 34350 samples bits 26..31.
+    // One TEXEL phase shift therefore requires +4 source
+    // bytes (4<<24 == 1<<26), not +1.
+    spec.phase_u=4U;
+    spec.phase_v=4U;
     fb.clear(0xDDU);
     const auto phase=OriginalGroundTextureRaster::draw(
         fb,source,shades,records,spec);
