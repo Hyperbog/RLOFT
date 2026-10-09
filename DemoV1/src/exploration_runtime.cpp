@@ -63,15 +63,15 @@ void ExplorationRuntime::initialize_gameplay_state(
     scene_shape_archive_.emplace(source.read("RES3"));
     scene_shape_cache_.clear();
 
-    // Fresh Level22: faithfully mirror CODE.2 16E90 (INIT+0x0E
-    // => DGROUP 258F8) and 1F388 (signed level.header+7
-    // plus 258F8). Validate the *real* original type-1 RES4
-    // 64x64 tile. Any unsupported source is recorded rather
-    // than replaced with guessed art or raised during gameplay.
+    // CODE.2 16E90 establishes the RES4 base from INIT+0x0E;
+    // 1F388 adds the signed selector from the CURRENT level's
+    // header+7. Neither source routine hardcodes Level22.
+    // Preserve one authenticated 64x64 type-1 resource identity
+    // for every loaded level, including future Level23, without
+    // guessing artwork or silently substituting a texture.
     ground_source_.reset();
     ground_source_failure_.clear();
-    if (session_.level_id==22 &&
-        source.contains("INIT") && source.contains("RES4")) {
+    if (source.contains("INIT") && source.contains("RES4")) {
         try {
             const ResArchive res4(source.read("RES4"));
             ground_source_=OriginalGroundRes4Audit::resolve(
