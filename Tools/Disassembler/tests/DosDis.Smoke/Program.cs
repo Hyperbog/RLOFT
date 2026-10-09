@@ -1733,7 +1733,18 @@ try
         {
             var art = BinaryArtifact.Open(args[i]);
             Equal(art.Sha256, expectedHashes[i], names[i] + " original SHA-256");
+            var detected = BinaryFormatDetector.Inspect(art);
+            Equal(detected.FormatId, "le-signature",
+                names[i] + " nested protected-mode module is recognized from generic signatures");
+            Equal(detected.SignatureFileOffset, 0x27bdcL,
+                names[i] + " nested LE header is at its original physical file offset");
+            Equal(detected.LoaderStatus, "le-validation-required",
+                names[i] + " signature detection must not claim validated LE pages");
+            Fails(() => DosMzImage.Load(art),
+                names[i] + " outer DOS launcher is not a standalone 16-bit MZ");
             var image = LeImage.Load(art);
+            Equal(BinaryFormatDetector.Inspect(art, image).FormatId, "le",
+                names[i] + " fully validated LE supersedes signature-only evidence");
             Equal(image.ModuleOrigin, 0x25d24L, names[i] + " module");
             Equal(image.HeaderOffset, 0x27bdcL, names[i] + " LE");
             Equal(image.Objects[0].VirtualSize, sizes[i], names[i] + " object size");
