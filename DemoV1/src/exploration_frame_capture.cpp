@@ -53,6 +53,31 @@ std::string clean(std::string value) {
 }
 } // namespace
 
+std::size_t ExplorationFrameCapture::parse_frame_limit(
+    std::wstring_view decimal) {
+    if (decimal.empty()) {
+        throw std::invalid_argument(
+            "--capture-frames must be an integer from 1 to 128");
+    }
+    std::size_t count=0U;
+    for (const wchar_t digit:decimal) {
+        if(digit < L'0' || digit > L'9') {
+            throw std::invalid_argument(
+                "--capture-frames must be an integer from 1 to 128");
+        }
+        count=count*10U+static_cast<std::size_t>(digit-L'0');
+        if(count>128U) {
+            throw std::invalid_argument(
+                "--capture-frames must be an integer from 1 to 128");
+        }
+    }
+    if(count==0U) {
+        throw std::invalid_argument(
+            "--capture-frames must be an integer from 1 to 128");
+    }
+    return count;
+}
+
 void ExplorationFrameCapture::write(
     const std::filesystem::path& directory,
     const ExplorationCapturePosition& position,
