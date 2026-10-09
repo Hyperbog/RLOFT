@@ -4,7 +4,7 @@
 **Branch:** `demo-v1`  
 **Scope:** Level 22 reusable development testbed and systems needed for the full original game.  
 **Source of truth:** [editable scoring data](PROGRESS_SUBSYSTEMS.csv).  
-**Current revision acceptance:** Full Windows build #647 **passed all 172 CTests** at source `fb4a0145`; the subsequent current-level RES4 binding changes and scorecard edits are **committed but not yet compiled**. No current-source DOS visual/gameplay comparison has passed.  
+**Current revision acceptance:** Full Windows build #647 **passed all 172 CTests** at source `fb4a0145`; the subsequent RES4 binding and Part 9 live in-memory continuity code/tests are **committed but not yet compiled**. No current-source DOS visual/gameplay comparison has passed.  
 **Separate historical metric:** the pre-existing 32-task engineering ledger remains **56.25% (18/32)**. It is NOT numerically comparable to these weighted readiness estimates.
 
 ## Scoring rules — fixed for future checkpoints
@@ -17,16 +17,16 @@ In particular, 20 points for “regression” means test cases are written and r
 
 ## Current quantified baseline
 
-**122 named subsystems across 20 major systems. Provisional weighted readiness: 48.9%.** This is deliberately distinct from the **56.25%** original 32-task engineering completion ledger. The 40%-weighted DOS acceptance component is **0% at this HEAD**; the weighted baseline reflects source archaeology, code, wiring and authored (but unexecuted) assertions. It should not be advertised as a finished game percentage.
+**122 named subsystems across 20 major systems. Provisional weighted readiness: 49.8%.** This is deliberately distinct from the **56.25%** original 32-task engineering completion ledger. The 40%-weighted DOS acceptance component is **0% at this HEAD**; the weighted baseline reflects source archaeology, code, wiring and authored (but unexecuted) assertions. It should not be advertised as a finished game percentage.
 
 | Assessment gate | Average completion within gate | Contribution to overall score |
 | --- | ---: | ---: |
 | Source mapping | 96.3% | 9.6% |
-| Native implementation | 85.2% | 17.0% |
-| Live runtime wiring | 69.3% | 13.9% |
-| Authored regression coverage | 83.6% | 8.4% |
+| Native implementation | 87.7% | 17.5% |
+| Live runtime wiring | 70.9% | 14.2% |
+| Authored regression coverage | 84.8% | 8.5% |
 | Current-head DOS acceptance | 0.0% | 0.0% |
-| **Total weighted readiness** | | **48.9%** |
+| **Total weighted readiness** | | **49.8%** |
 
 ## Major-system completion percentages
 
@@ -35,9 +35,9 @@ In particular, 20 points for “regression” means test cases are written and r
 | **Startup and supervisor** | **59.0%** | 5 | Full menu sound and timing acceptance |
 | **Character creation** | **59.2%** | 6 | Original equipment byte comparison |
 | **Party stats and progression** | **50.0%** | 6 | Original rest and progression modal |
-| **Level lifecycle and continuity** | **37.9%** | 7 | General transition_to_level API |
+| **Level lifecycle and continuity** | **47.9%** | 7 | General transition_to_level API |
 | **Movement and collision** | **52.5%** | 6 | Complete authored door event chain |
-| **Mutable world and objects** | **49.2%** | 6 | Build persistent per-level store |
+| **Mutable world and objects** | **53.3%** | 6 | Build persistent per-level store |
 | **Perspective and visibility** | **50.8%** | 6 | DOS indexed capture comparison |
 | **VGA and graphics resources** | **49.2%** | 6 | Original composite and teardown |
 | **HUD menus and overlays** | **51.7%** | 6 | Bind original game actions |
@@ -49,9 +49,11 @@ In particular, 20 points for “regression” means test cases are written and r
 | **Cinematics and ANM** | **48.0%** | 5 | Bind all authored event IDs |
 | **Audio and music** | **48.0%** | 5 | Original live sound routing |
 | **Input timing and clock** | **49.2%** | 6 | Independent source clocks integration |
-| **Automap and navigation** | **47.0%** | 5 | Per-level persistent map caches |
+| **Automap and navigation** | **51.0%** | 5 | Per-level persistent map caches |
 | **SAVE LOAD and persistence** | **38.6%** | 7 | Multi-level backing across exits |
 | **Verification and developer testbed** | **50.0%** | 7 | Full original campaign milestone |
+
+**Part 9 continuation:** General in-memory level-transition and visited-world reentry are source-implemented. No original event exit, disk SAVE/LOAD or DOS fidelity has been accepted. Expected registry **173 CTests** (Quick 19), not yet compiled. See [Part 9 checkpoint](LEVEL_TRANSITION_STATE_CHECKPOINT_20261009.md).
 
 ## Every subsystem — individual readiness percentages
 
@@ -97,8 +99,8 @@ Each row's five gate marks are out of 20; the weighted readiness column is an in
 | LEVELS and LEVnnn source loading | **60.0%** | 20/20/20/20/0 | `exploration_session.cpp` | All original level variants acceptance |
 | Original NPC and object expansion | **60.0%** | 20/20/20/20/0 | `level_world_state.cpp` | All authored level types |
 | Authored exit and portal discovery | **25.0%** | 20/10/0/10/0 | `level22_story.cpp` | Wire source exit transitions |
-| In-session level-switch lifecycle | **5.0%** | 10/0/0/0/0 | `CONTINUOUS_GAME_INTEGRATION_CONTRACT` | General transition_to_level API |
-| Level reentry and persistent worlds | **5.0%** | 10/0/0/0/0 | `level_world_state.cpp` | Per-level persistence |
+| In-session level-switch lifecycle | **40.0%** | 10/20/10/10/0 | `level_continuity.cpp and exploration_runtime.cpp` | Connect original event exits and verify DOS transition |
+| Level reentry and persistent worlds | **40.0%** | 10/20/10/10/0 | `level_continuity.cpp and level_continuity_tests.cpp` | Native original side effects and return visit acceptance |
 | Multi-level source-authenticated RES4 ground selection | **50.0%** | 20/20/10/20/0 | `original_ground_res4_audit.cpp and exploration_runtime.cpp` | Validate live Level22 to Level23 transition and ground pixels against original DOS |
 
 ### Movement and collision — 52.5% (6 subsystems)
@@ -121,7 +123,7 @@ Each row's five gate marks are out of 20; the weighted readiness column is an in
 | Placed map objects and state | **50.0%** | 20/20/10/20/0 | `placed_scene_catalog.cpp` | General object use script wiring |
 | Loose item drop pickup and location | **60.0%** | 20/20/20/20/0 | `inventory_world_drop.cpp` | Whole-game item action acceptance |
 | NPC and object respawn logic | **50.0%** | 20/20/10/20/0 | `combat_npc_respawn.cpp` | All original respawn cases |
-| World carryover across level transitions | **15.0%** | 10/10/0/0/0 | `LevelWorldState and save research` | Build persistent per-level store |
+| World carryover across level transitions | **40.0%** | 10/20/10/10/0 | `level_continuity.cpp and exploration_runtime.cpp` | Original NPC and world item reentry comparison |
 
 ### Perspective and visibility — 50.8% (6 subsystems)
 
@@ -252,7 +254,7 @@ Each row's five gate marks are out of 20; the weighted readiness column is an in
 | Level cell discovery and visited cache | **60.0%** | 20/20/20/20/0 | `exploration_world.cpp` | Full source exploration trace |
 | Map labels markers and geometry | **60.0%** | 20/20/20/20/0 | `automap_annotation_presenter.cpp` | Original on-screen DOS comparison |
 | Automap modal input and pan controls | **60.0%** | 20/20/20/20/0 | `automap_modal.cpp + automap_controls.cpp` | Source mouse exit and pointer timing |
-| Map reset and state across levels | **20.0%** | 10/10/0/10/0 | `automap_screen_state.cpp` | Per-level persistent map caches |
+| Map reset and state across levels | **40.0%** | 10/20/10/10/0 | `level_continuity.cpp and level_continuity_tests.cpp` | Original DOS level-local automap comparison |
 | Special map overlays and triggers | **35.0%** | 20/10/10/10/0 | `automap_presentation.cpp` | All authored special map indicators |
 
 ### SAVE LOAD and persistence — 38.6% (7 subsystems)

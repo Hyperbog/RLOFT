@@ -25,7 +25,7 @@ PROGRESS_SUBSYSTEM_REPORT_20261009.md) tracks
 **122 individual subsystems and 20 parent systems**
 with original-source, implementation, runtime,
 authored-test and DOS-equivalence gates.
-**Provisional readiness: 48.9%.** New authenticated
+**Provisional readiness: 49.8%.** New authenticated
 cross-level ground selection is **50.0%**; Level
 lifecycle and continuity is **37.9%**; Verification
 and developer testbed is **50.0%**. The historical

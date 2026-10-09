@@ -20,8 +20,8 @@ Level lifecycle and continuity,Original fresh Level22 entry,20,20,20,20,0,explor
 Level lifecycle and continuity,LEVELS and LEVnnn source loading,20,20,20,20,0,exploration_session.cpp,All original level variants acceptance
 Level lifecycle and continuity,Original NPC and object expansion,20,20,20,20,0,level_world_state.cpp,All authored level types
 Level lifecycle and continuity,Authored exit and portal discovery,20,10,0,10,0,level22_story.cpp,Wire source exit transitions
-Level lifecycle and continuity,In-session level-switch lifecycle,10,0,0,0,0,CONTINUOUS_GAME_INTEGRATION_CONTRACT,General transition_to_level API
-Level lifecycle and continuity,Level reentry and persistent worlds,10,0,0,0,0,level_world_state.cpp,Per-level persistence
+Level lifecycle and continuity,In-session level-switch lifecycle,10,20,10,10,0,level_continuity.cpp and exploration_runtime.cpp,Connect original event exits and verify DOS transition
+Level lifecycle and continuity,Level reentry and persistent worlds,10,20,10,10,0,level_continuity.cpp and level_continuity_tests.cpp,Native original side effects and return visit acceptance
 Movement and collision,Q16 movement and turning,20,20,20,20,0,exploration_motion.cpp,Original DOS movement timings
 Movement and collision,Grid walking and facing,20,20,20,20,0,exploration_locomotion.cpp,Original directional input traces
 Movement and collision,Wall and door collision geometry,20,20,20,20,0,exploration_collision.cpp,DOS corridor comparisons
@@ -33,7 +33,7 @@ Mutable world and objects,NPC record expansion and HP,20,20,20,20,0,level_world_
 Mutable world and objects,Placed map objects and state,20,20,10,20,0,placed_scene_catalog.cpp,General object use script wiring
 Mutable world and objects,Loose item drop pickup and location,20,20,20,20,0,inventory_world_drop.cpp,Whole-game item action acceptance
 Mutable world and objects,NPC and object respawn logic,20,20,10,20,0,combat_npc_respawn.cpp,All original respawn cases
-Mutable world and objects,World carryover across level transitions,10,10,0,0,0,LevelWorldState and save research,Build persistent per-level store
+Mutable world and objects,World carryover across level transitions,10,20,10,10,0,level_continuity.cpp and exploration_runtime.cpp,Original NPC and world item reentry comparison
 Perspective and visibility,SINTAB fixed-point perspective,20,20,20,20,0,fixed_projection.cpp,Full DOS perspective trace
 Perspective and visibility,Wall traversal and visibility,20,20,20,20,0,view_sweep_traversal.cpp,Reference occlusion coverage
 Perspective and visibility,Ground RES4 raster identity,20,20,20,20,0,original_ground_res4_audit.cpp,Ground pixel DOS alignment
@@ -104,7 +104,7 @@ Input timing and clock,State restoration after suspend and resume,20,10,10,10,0,
 Automap and navigation,Level cell discovery and visited cache,20,20,20,20,0,exploration_world.cpp,Full source exploration trace
 Automap and navigation,Map labels markers and geometry,20,20,20,20,0,automap_annotation_presenter.cpp,Original on-screen DOS comparison
 Automap and navigation,Automap modal input and pan controls,20,20,20,20,0,automap_modal.cpp + automap_controls.cpp,Source mouse exit and pointer timing
-Automap and navigation,Map reset and state across levels,10,10,0,10,0,automap_screen_state.cpp,Per-level persistent map caches
+Automap and navigation,Map reset and state across levels,10,20,10,10,0,level_continuity.cpp and level_continuity_tests.cpp,Original DOS level-local automap comparison
 Automap and navigation,Special map overlays and triggers,20,10,10,10,0,automap_presentation.cpp,All authored special map indicators
 SAVE LOAD and persistence,CHARS preservation and startup load,20,20,20,20,0,character_transfer.cpp + GameSource,Original end-to-end file behavior
 SAVE LOAD and persistence,Inventory SAVE codec 62 containers,20,20,20,20,0,inventory_save_codec.cpp,Full DOS byte-range roundtrip

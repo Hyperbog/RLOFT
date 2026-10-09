@@ -14,8 +14,8 @@ authored regression and current-head DOS acceptance.
 These evidence-weighted estimates are **not**
 percentages of total developer effort.
 
-**Current baseline: 48.9% weighted readiness.**
-Level lifecycle and continuity is **37.9%** across
+**Current baseline: 49.8% weighted readiness.**
+Level lifecycle and continuity is **47.9%** across
 seven subcomponents. The newly generalized authentic
 per-level RES4 ground selector is **50.0%** with a
 source-authenticated Level23-like archive selection
@@ -42,6 +42,8 @@ startup or CODE.1 character creation. True
 source-defined cross-level transitions, retained
 worlds, full SAVE/LOAD and DOS visual/IRQ acceptance
 remain open engineering milestones.
+
+**Part 9 update:** The source now contains in-memory visited-world snapshots and `ExplorationRuntime::transition_to_level` for event-provided destinations. It is not yet called by an authored original exit; current-source compilation, original DOS acceptance and complete disk-world persistence remain outstanding. Registered CTests: 173.
 
 ## Opt-in reusable development slice (current implementation)
 

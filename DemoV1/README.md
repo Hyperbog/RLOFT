@@ -27,7 +27,7 @@ each with original-source, native-implementation,
 live-wiring, authored-test and current-DOS-acceptance
 evidence plus the next blocker.
 
-**Current provisional weighted readiness: 48.9%.**
+**Current provisional weighted readiness: 49.8%.**
 The 40%-weighted original-DOS acceptance gate is still
 **0% at the current revision**. Full Windows CTest
 success validates native consistency, **not** original
@@ -42,9 +42,12 @@ per-subsystem CSV](PROGRESS_SUBSYSTEMS.csv), its
 in the same Git checkpoint. A registered offline
 `subsystem_progress_tracker_tests` check validates
 the authored report when Python3 is available at
-configure time. The current registry has **172 CTests**
-and the 19-test Quick selection is unchanged.
+configure time. The current registry has **173 CTests** and the 19-test Quick selection is unchanged. The Part 9 continuity changes remain uncompiled; build #647 verified only the previous 172-test source.
 Builds remain manual unless explicitly authorized.
+
+## Part 9 — reusable level state and in-session engine bridge
+
+[Continuity checkpoint](LEVEL_TRANSITION_STATE_CHECKPOINT_20261009.md): Guarded `ExplorationRuntime::transition_to_level` and an in-memory visited-level store preserve original party, inventory, event flags, time, NPC and object mutations, and automap. **No source event exit invokes this yet, and full disk SAVE/LOAD remains open.** Builds are manual.
 
 ## Developer Level22 testbed — read-only cross-system instrumentation
 
