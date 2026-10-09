@@ -49,6 +49,18 @@ public:
     //
     // Text emitted by 0FF3C/10158 and the 3A258 mirrored-equipment transform
     // remain explicitly coverage-bounded rather than approximated.
+    struct EquipmentHit final {
+        std::size_t actor{};
+        std::size_t slot{};
+    };
+    // Equipment click targeting: CODE.2's original category dispatcher
+    // for a held object; for an empty cursor, hit actual source-rendered
+    // item sprite extents rather than an invented generic mannequin box.
+    [[nodiscard]] std::optional<EquipmentHit> equipment_hit_at(
+        const PartyImage& party,
+        const InventoryRuntimeState& inventory,
+        int row,int column) const;
+
     [[nodiscard]] PartyModalCoverage draw(
         IndexedFramebuffer& framebuffer,
         const PartyImage& party,
