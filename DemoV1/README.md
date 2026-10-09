@@ -1,5 +1,32 @@
 # Ravenloft Demo Build v1
 
+## Full RES3 source-isolated planning and indexed comparison (current source)
+
+[Large source checkpoint](LEVEL22_RES3_FULL_PIPELINE_CAPTURE_AND_COMPARE_20261008.md):
+both independent RES3 per-object planning **and** VGA trace generation
+now preserve valid later scene objects when an unrelated source fails.
+Planning failures occupy their correct original CODE.2 draw slots,
+never count as fully occluded, and fail the completeness score. The
+presenter additionally records per-call `planning-failed`,
+`occluded`, `trace-unavailable`, `rasterized`, and
+`raster-failed` classifications.
+
+Optional Level 22 captures now include native metadata for the
+original source catalog type (NPC 9, placed 62/63/64), original
+resource and source indices, per-source stage/outcome and all
+explicit failures, without altering the exact 320x400 indexed image.
+A new asset-free Python tool
+[`tools/compare_indexed_captures.py`](tools/compare_indexed_captures.py)
+can compare native raw frames against **separately supplied** DOS
+pixel and six-bit VGA palette captures, rejecting incorrect
+provenance labels, lengths, duplicate poses and unmatched frames.
+It never fabricates a DOS reference.
+
+All builds remain manual-only. A new Windows build is required
+to check these changes; previously green run #638 contained
+159 tests, while the updated source expects **160 CTests**
+with Python available. **Formal acceptance remains 1/5 gates.**
+
 ## RES3 source-isolated Level 22 scene tracing — next manual build
 
 [Source checkpoint](LEVEL22_RES3_SCENE_TRACE_ISOLATION_20261008.md):
