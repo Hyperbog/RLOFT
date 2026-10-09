@@ -39,6 +39,7 @@ int main() {
     scene.screen_x=112U;
     scene.projected_extent=80U;
     scene.render_order=2U;
+    scene.source_type_id=62U;
     frame.world_scene_records.push_back(scene);
     WorldSceneDrawCall draw{};
     draw.source_class=1U;
@@ -124,7 +125,7 @@ int main() {
     assert(tsv.find("scene_video_calls\t1\t0\t1")!=std::string::npos);
     assert(tsv.find("scene_columns\t1\t0\t0")!=std::string::npos);
     assert(tsv.find("scene_indexed_writes\t18")!=std::string::npos);
-    assert(tsv.find("scene_record\t1\t4\t445\t112\t80\t2")!=
+    assert(tsv.find("scene_record\t1\t4\t445\t112\t80\t2\t62")!=
            std::string::npos);
     assert(tsv.find("scene_call\t1\t4\t445\t1\t80\tunresolved")!=
            std::string::npos);
