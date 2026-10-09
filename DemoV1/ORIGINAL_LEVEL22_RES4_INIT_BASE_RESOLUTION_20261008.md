@@ -137,3 +137,19 @@ state-accurate activation and pixel validation.
 
 **Formal acceptance stays 1/5 gates (20%).**
 No automatic build was started.
+
+
+## Subsequent guarded live Level22 composition
+
+[Original CODE.2 34A74 now conditionally used in
+native first-person output](LEVEL22_LIVE_ORIGINAL_34A74_OPENFIELD_GROUND_20261008.md).
+Verified INIT+0x0E and signed header+7 RES4 tile
+is passed to the original SINTAB texture raster,
+but **only** on exact full 256-ray 0x93
+outdoor source records with original C026
+textured mode. Original 335C8/1F2A5/1F372
+then prove original FF50=128. Other modes
+remain on an explicitly reported flat fallback.
+
+This is an unbuilt source change, not DOS
+framebuffer pixel equivalence.
