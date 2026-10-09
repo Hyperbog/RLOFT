@@ -28,6 +28,12 @@ if(Python3_Interpreter_FOUND)
         NAME indexed_capture_comparison_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_compare_indexed_captures.py")
+    # Scorecard consistency is checked during USER-AUTHORIZED
+    # CTest runs. Registration never triggers a build or CI.
+    add_test(
+        NAME subsystem_progress_tracker_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_subsystem_progress_tracker.py")
 endif()
 
 add_library(rloft_boot_flow
