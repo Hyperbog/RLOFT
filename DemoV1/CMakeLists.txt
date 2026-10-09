@@ -61,6 +61,7 @@ add_library(rloft_boot_flow
     src/level22_encounter.cpp
     src/level22_viewport_target.cpp
     src/level_world_state.cpp
+    src/level_continuity.cpp
     src/inventory_screen.cpp
     src/inventory_runtime.cpp
     src/inventory_save_codec.cpp
@@ -552,6 +553,10 @@ add_test(NAME exploration_runtime_motion_tests COMMAND exploration_runtime_motio
 add_executable(exploration_gameplay_cadence_tests tests/exploration_gameplay_cadence_tests.cpp)
 target_link_libraries(exploration_gameplay_cadence_tests PRIVATE rloft_boot_flow)
 add_test(NAME exploration_gameplay_cadence_tests COMMAND exploration_gameplay_cadence_tests)
+
+add_executable(level_continuity_tests tests/level_continuity_tests.cpp)
+target_link_libraries(level_continuity_tests PRIVATE rloft_boot_flow)
+add_test(NAME level_continuity_tests COMMAND level_continuity_tests)
 
 add_executable(exploration_runtime_tests tests/exploration_runtime_tests.cpp)
 target_link_libraries(exploration_runtime_tests PRIVATE rloft_boot_flow)
