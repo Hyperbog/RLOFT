@@ -546,17 +546,12 @@ void PartyModalPresenter::draw_held_cursor_and_description(
     IndexedFontPresenter::draw_centered(
         framebuffer,font1_,0x64,column,width,description);
 
-    if(pointer) {
-        const auto& object=objects_.at(static_cast<std::size_t>(id));
-        const auto raster=assets_.type1(
-            1,static_cast<int>(res1_object_base_)+
-              object.ui_graphic_index);
-        if(pointer->row>=0 && pointer->row<400 &&
-           pointer->column>=0 && pointer->column<320) {
-            framebuffer.draw_frame(
-                raster,0,pointer->row,pointer->column);
-        }
-    }
+    // The actual pointer sprite is composited AFTER presentation
+    // by Win32 Host::set_game_cursor, using the original
+    // RES1 image for the currently held item. Do not also bake
+    // the same object into the 320x400 background (which leaves
+    // a duplicated ghost when the hardware pointer moves).
+    (void)pointer;
 }
 
 PartyModalCoverage PartyModalPresenter::draw(
