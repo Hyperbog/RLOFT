@@ -314,6 +314,12 @@ try
         "procedure-trap stubs validated from resident MZ bytes");
     Equal(resolvedDirectory.CoveredPayloadBytes, 6,
         "stored code plus fixups must cover every overlay payload byte");
+    var opaqueAudit = DosOverlayFixupAudit.Analyze(mappedTpOverlay, resolvedDirectory);
+    Equal(opaqueAudit.TotalCodeBytes, 4, "overlay code remains a distinct stored span");
+    Equal(opaqueAudit.TotalOpaqueFixupBytes, 2, "opaque fixup span is accounted for");
+    Equal(opaqueAudit.Units[0].CodeSha256?.Length, 64, "stored code has a complete source SHA-256");
+    Equal(opaqueAudit.Units[0].FixupSha256?.Length, 64, "opaque fixup span has source SHA-256");
+
     Equal(resolvedDirectory.ResidentSourceSha256, residentOverlayImage.SourceSha256,
         "resident original identity retained independently of overlay");
     Equal(resolvedDirectory.OverlaySourceSha256, mappedTpOverlay.Envelope.SourceSha256,
