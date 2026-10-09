@@ -97,10 +97,12 @@ Type7VgaRasterDispatchModel::build(
     std::uint32_t ecx_lookup,
     bool individual_columns_mode) {
     if (run_width == 0U ||
-        run_width > 7U) {
-        // 369D8's 4-by-8 mask tables have validated nonempty slots
-        // only for lengths 1..7; wider original 36B14 groups require
-        // an independently recovered segmentation plan.
+        (!individual_columns_mode && run_width > 7U)) {
+        // Original 36B1A grouped path sends the WHOLE run width to
+        // 369D8, whose mask table is verified only for lengths 1..7.
+        // Original 36B42 individual path resets 105DF=1 per pixel,
+        // so a wider original run uses ONLY certified one-pixel masks.
+        // Do not split/reinterpret grouped calls as individual ones.
         throw std::out_of_range(
             "unvalidated type-7 VGA raster run length");
     }
