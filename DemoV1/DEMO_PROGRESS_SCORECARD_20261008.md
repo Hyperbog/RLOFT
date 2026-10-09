@@ -1,5 +1,49 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Part 8 — Level16 ritual live CINE08 event pipeline
+
+The original fourth-`SEED OF MORNINGLORD`
+inventory-drop event (CODE.2 `21880`)
+now enters a live native event-8 cinematic
+callback. The already reconstructed
+world-item `2195C` constructor, persistent
+story bit `0x44`, original `CINE08.ANM`
+(182 frames) and `15050(0x73)` HOLY
+SYMBOL OF RAVENKIND reward are now
+integrated in the executable's original
+source ordering. Separate preflights
+prevent invalid world placement or
+reward loss. Completed playback awards
+one Holy Symbol, in original
+cursor → active-party ordinary slot →
+family-C world order, with unidentified
+bit and source 300-item capacity.
+
+The Win32 modal now reuses its existing
+native cinematic/AUDIO/MIDI player
+instances, suspends inventory clicks
+during event 8, restores input afterward,
+stops cinematic audio and invalidates
+stale scene caches. Escaped, Quit, missing
+or invalid event resources and callback
+exceptions do not mark a quest completed.
+Cancellation rolls back the temporary
+live seed+flag state as a **native
+safety policy**; original `13C88`
+DOS teardown/cancellation behavior
+remains acceptance-unverified.
+
+Existing regression targets received
+source-order, once-only completion and
+abort/retry assertions; total
+**170 CTests / 19 Quick** unchanged.
+No Windows build, CTest execution, or
+DOS-vs-native playback comparison was
+performed. Engineering tracker
+**56.25%**, inventory **PARTIAL**.
+Manual Windows builds remain user-controlled.
+
+
 ## Part 8 continuation — full isolated Holy Symbol reward allocation
 
 A new original `15050(0x73)` fallback bound to the
