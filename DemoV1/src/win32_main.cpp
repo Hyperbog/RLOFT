@@ -1059,6 +1059,8 @@ int run_exploration(
                     const auto& inv=runtime.inventory();
                     if(!inv.open_container) return std::nullopt;
                     const auto& open=*inv.open_container;
+                    if(ui.party_panel_character_mode(open.actor))
+                        return std::nullopt;
                     if(open.descriptor_index>=inv.containers.size())
                         return std::nullopt;
                     const auto& grid=inv.containers[
