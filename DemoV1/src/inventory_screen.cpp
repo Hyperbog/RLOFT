@@ -89,6 +89,16 @@ int InventoryScreenModel::original_container_res2_graphic(
     return 9+static_cast<int>(subtype);
 }
 
+int InventoryScreenModel::original_container_transition_res2_graphic(
+    std::uint8_t subtype,std::uint8_t phase) {
+    if(subtype>6U || phase<1U || phase>2U)
+        throw std::out_of_range(
+            "invalid original CODE.2 container animation subtype/phase");
+    // 10AA7: (2*subtype+0x14)+phase-1.
+    return 0x14+static_cast<int>(subtype)*2+
+        static_cast<int>(phase)-1;
+}
+
 InventoryScreenModel InventoryScreenModel::build(
     const PartyActorPresentation& actor,
     const ObjectCatalog& objects,
