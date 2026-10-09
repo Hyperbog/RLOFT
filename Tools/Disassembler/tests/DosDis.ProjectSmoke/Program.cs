@@ -215,6 +215,53 @@ try
     Require(sourceArtifact.Sha256 == BinaryArtifact.FromBytes(MakeStoredLeFixture()).Sha256,
         "source-byte verifier changed the original artifact");
 
+    // Desktop first-comment workflow: there is no pre-existing research
+    // project when the analyst selects and comments on an instruction.
+    // The selected source and current candidate graph are attached to a
+    // newly created project before the comment is saved. A later backup
+    // must include both, without embedding original executable bytes.
+    string firstCommentPath = Path.Combine(folder, "first-comment-created-project.ddproj");
+    string firstCommentBackup = Path.Combine(folder, "first-comment-backup.ddproj");
+    using (var firstComment = ProjectStore.Open(firstCommentPath))
+    {
+        firstComment.EnsureArtifact(sourceArtifact);
+        firstComment.SaveAnalysis(sourceGraph);
+        var initialComment = firstComment.SaveAnnotation(sourceArtifact.Sha256, 1, 0,
+            "comment", "first comment before using Save project", 0);
+        Require(initialComment.Revision == 1,
+            "the first comment cannot be persisted in a newly created project");
+        firstComment.CreateBackup(firstCommentBackup);
+    }
+    using (var restoredFirstComment = ProjectStore.Open(firstCommentBackup))
+    {
+        restoredFirstComment.VerifyIntegrity();
+        Require(restoredFirstComment.GetAnnotation(sourceArtifact.Sha256, 1, 0,
+            "comment")?.Body == "first comment before using Save project",
+            "on-demand project backup lost the first analyst comment");
+        Require(restoredFirstComment.LoadLatestAnalysis(sourceArtifact.Sha256,
+            sourceImage)?.Instructions.Count == sourceGraph.Instructions.Count,
+            "on-demand project backup lost the matching source-verified analysis");
+    }
+    using (var restoredProject = ProjectStore.Open(firstCommentPath))
+    {
+        restoredProject.VerifyIntegrity();
+        using var alreadyCancelled = new CancellationTokenSource();
+        alreadyCancelled.Cancel();
+        bool cancellationWasObserved = false;
+        try
+        {
+            var unexpected = ControlFlowAnalysis.Analyze(sourceImage,
+                cancellationToken: alreadyCancelled.Token);
+            restoredProject.SaveAnalysis(unexpected);
+        }
+        catch (OperationCanceledException) { cancellationWasObserved = true; }
+        Require(cancellationWasObserved,
+            "pre-cancelled analysis did not stop deterministically");
+        Require(restoredProject.LoadLatestAnalysis(sourceArtifact.Sha256,
+            sourceImage)?.Instructions.Count == sourceGraph.Instructions.Count,
+            "cancelled analysis changed the previously stored valid snapshot");
+    }
+
     // A malformed project must not display metadata inconsistent with the cached graph.
     string inconsistent = Path.Combine(folder, "inconsistent-snapshot.ddproj");
     using (var original = ProjectStore.Open(path)) original.CreateBackup(inconsistent);
