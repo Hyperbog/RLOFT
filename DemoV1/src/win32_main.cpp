@@ -1186,27 +1186,44 @@ int run_exploration(
                                  rloft::PartyPanelControlModel::
                                     ContainerSlotHit> {
                     const auto& inv=runtime.inventory();
-                    if(!inv.open_container) return std::nullopt;
-                    const auto& open=*inv.open_container;
-                    if(ui.party_panel_character_mode(open.actor))
+                    // Original CODE.2 12E70 resolves actor from the
+                    // CLICKED column (signed division by 0x50)
+                    // and reads that actor's own 6FA0 state. A
+                    // previously clicked different actor must not
+                    // hijack the container slot dispatch.
+                    const auto actor=
+                        rloft::PartyPanelControlModel::
+                            modal_actor_at_column(click->column);
+                    if(!actor || ui.party_panel_character_mode(*actor) ||
+                       !runtime.session().party.active(*actor))
                         return std::nullopt;
-                    if(open.descriptor_index>=inv.containers.size())
+                    const auto& context=
+                        inv.party_container_ui_contexts[*actor];
+                    if(!context.fully_open())
                         return std::nullopt;
-                    const auto& grid=inv.containers[
-                        open.descriptor_index];
+                    const auto index=static_cast<std::size_t>(
+                        context.raw[1]);
+                    if(index>=inv.containers.size())
+                        return std::nullopt;
+                    const auto& grid=inv.containers[index];
+                    if(grid.subtype!=context.raw[0])
+                        return std::nullopt;
                     return rloft::PartyPanelControlModel::
                         modal_container_slot_at(
-                            click->row,click->column,open.actor,
+                            click->row,click->column,*actor,
                             grid.ui_columns,grid.ui_x_offset,
                             grid.items.size());
                 }()) {
-                    // Original CODE.2 12E70 -> 11C3C is modal and
-                    // operates on the opened HAND container's exact
-                    // indexed cells, not the ordinary backpack.
+                    // Original CODE.2 12E70 -> 11C3C routes by
+                    // ACTOR, not by whichever container the cursor
+                    // touched last. Revalidate both real hand
+                    // candidates before selecting that actor's
+                    // phase3 source-backed container grid.
                     const auto result=runtime.inventory().
-                        swap_open_container_slot(
+                        swap_actor_container_slot(
                             runtime.session().party,
                             runtime.object_catalog(),
+                            container_hit->actor,
                             container_hit->slot);
                     if(result==rloft::InventoryContainerStatus::Inserted ||
                        result==rloft::InventoryContainerStatus::Taken) {
