@@ -49,6 +49,7 @@ try
             "Overlay-disasm: --regions manifest.json --region ID [--offset 0] [--count 32]\n" +
             "COM: explicitly selected headerless mode [--origin 100] (hex); com-disasm [--offset 100] [--count 32]\n" +
             "MZ: verified DOS MZ header/relocations; mz-disasm [--segment 0] [--offset 0] [--count 32] (x86-16 candidates)\n" +
+            "MZ launcher: add --dos-stub to mz|mz-disasm|mz-analyze|mz-relocate|mz-cross for explicit outer DOS MZ analysis\n" +
             "Analyze/report: [--seed 1:0x2975C] [--data 1:0x100:0x110] [--include-entry] [--max-instructions 100000] [--relocated]\n" +
             "Analyze: [--max-output 300] [--trace-out decisions.json] [--trace-capacity 512]\n" +
             "         [--known-answer reference.json --validation-out results.json];\n" +
@@ -61,6 +62,11 @@ try
     if (args.Contains("--auto-tables", StringComparer.Ordinal) &&
         args[0] is not ("mz-analyze" or "com-analyze" or "overlay-analyze"))
         throw new ArgumentException("--auto-tables requires a 16-bit analysis action.");
+    if (args.Count(x => x == "--dos-stub") > 1)
+        throw new ArgumentException("--dos-stub cannot be repeated.");
+    if (args.Contains("--dos-stub", StringComparer.Ordinal) &&
+        args[0] is not ("mz" or "mz-disasm" or "mz-analyze" or "mz-relocate" or "mz-cross"))
+        throw new ArgumentException("--dos-stub only applies to explicit MZ analysis actions.");
     if (args.Count(x => x == "--table-map") > 1)
         throw new ArgumentException("--table-map cannot be repeated.");
     if (args.Contains("--table-map", StringComparer.Ordinal) &&
@@ -83,12 +89,14 @@ try
     }
     if (args[0] is "mz" or "mz-disasm" or "mz-analyze" or "mz-relocate" or "mz-cross")
     {
-        var mz = DosMzImage.Load(artifact);
+        var mz = args.Contains("--dos-stub", StringComparer.Ordinal)
+            ? DosMzImage.LoadLauncherStub(artifact) : DosMzImage.Load(artifact);
         if (args[0] == "mz")
         {
             int maximum = int.Parse(Option(args, "--max", "100"), CultureInfo.InvariantCulture);
             if (maximum is < 0 or > 4096) throw new ArgumentOutOfRangeException(nameof(maximum));
-            Print(new { artifact.Sha256, Format = "dos-mz-16", mz.LoadImageFileOffset,
+            Print(new { artifact.Sha256, Format = "dos-mz-16",
+                mz.IsLauncherStub, mz.LoadImageFileOffset,
                 mz.FileBackedImageLength, mz.DeclaredExecutableFileLength,
                 mz.InitialCs, mz.InitialIp, mz.InitialSs, mz.InitialSp,
                 mz.HasTrailingOverlayData, RelocationCount = mz.Relocations.Count,

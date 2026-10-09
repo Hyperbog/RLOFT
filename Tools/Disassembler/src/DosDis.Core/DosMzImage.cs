@@ -140,7 +140,9 @@ public sealed class DosMzImage
         int available = checked((int)Math.Min(0x10000L, FileBackedImageLength - start));
         return new Dos16CodeRegion(_original, checked((int)(LoadImageFileOffset + start)),
             available, relativeCodeSegment, 0,
-            "MZ-module-relative-CS;file-backed;runtime-base-and-relocations-not-applied");
+            IsLauncherStub
+                ? "explicit-outer-DOS-MZ-launcher;module-relative-CS;protected-mode-module-excluded"
+                : "MZ-module-relative-CS;file-backed;runtime-base-and-relocations-not-applied");
     }
 
     /// <summary>Initial CS load window, not a verified code-section inventory.</summary>
