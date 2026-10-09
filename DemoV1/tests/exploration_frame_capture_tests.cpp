@@ -32,10 +32,37 @@ int main() {
     wall.texture_column_index=7U;
     wall.shade_decrement=2U;
     frame.sweep_runs.push_back(wall);
+    WorldSceneRecord scene{};
+    scene.source_class=1U; // shipped Level 22 placed-object class
+    scene.source_index=4U;
+    scene.resource_id=445U;
+    scene.screen_x=112U;
+    scene.projected_extent=80U;
+    scene.render_order=2U;
+    frame.world_scene_records.push_back(scene);
+    WorldSceneDrawCall draw{};
+    draw.source_class=1U;
+    draw.source_index=4U;
+    draw.resource_id=445U;
+    draw.screen_x=112U;
+    draw.scale_extent=80U;
+    frame.world_scene_draw_calls.push_back(draw);
+    WorldSceneRenderPlan plan{};
+    plan.call=draw;
+    plan.visible_columns.push_back(Type7VisibleColumn{32U,0U,128U});
+    frame.world_scene_render_plans.push_back(plan);
+    frame.scene_vga_trace_failure="unsupported original scene descriptor";
     ExplorationPresentedFrame presentation{};
     presentation.palette.rgb[3U]=42U;
     presentation.surface_coverage.sintab_main_runs_pending=1U;
     presentation.surface_coverage.sintab_main_runs_failed=1U;
+    presentation.surface_coverage.type7_calls_rasterized=1U;
+    presentation.surface_coverage.type7_columns_rasterized=1U;
+    presentation.surface_coverage.type7_indexed_writes=18U;
+    presentation.surface_coverage.type7_calls_failed=1U;
+    presentation.type7_failures.push_back({
+        445U,1U,4U,"unsupported original scene descriptor"
+    });
     presentation.surface_main_failures.push_back({
         0x242U,3U,"unsupported original wide run"
     });
@@ -71,6 +98,8 @@ int main() {
     const std::string tsv{
         std::istreambuf_iterator<char>(metadata),
         std::istreambuf_iterator<char>()};
+    assert(tsv.find("format\trloft-native-indexed-capture-v2")!=
+           std::string::npos);
     assert(tsv.find("provenance\tnative-preview-not-original-DOS")!=
            std::string::npos);
     assert(tsv.find("mask_origin\timmutable CODE.2 object-2")!=
@@ -78,6 +107,20 @@ int main() {
     assert(tsv.find("run\tmain\t3\t9\t3\t33\t15\t5\t243\t64\t578\t7\t2")!=
            std::string::npos);
     assert(tsv.find("failure\tmain\t578\t3\tunsupported original wide run")!=
+           std::string::npos);
+    assert(tsv.find("scene_records\t1")!=std::string::npos);
+    assert(tsv.find("scene_draw_calls\t1")!=std::string::npos);
+    assert(tsv.find("scene_render_plans\t1")!=std::string::npos);
+    assert(tsv.find("scene_video_calls\t1\t0\t1")!=std::string::npos);
+    assert(tsv.find("scene_columns\t1\t0\t0")!=std::string::npos);
+    assert(tsv.find("scene_indexed_writes\t18")!=std::string::npos);
+    assert(tsv.find("scene_record\t1\t4\t445\t112\t80\t2")!=
+           std::string::npos);
+    assert(tsv.find("scene_call\t1\t4\t445\t1\t80")!=
+           std::string::npos);
+    assert(tsv.find("scene_trace_failure\tunsupported original scene descriptor")!=
+           std::string::npos);
+    assert(tsv.find("scene_raster_failure\t1\t4\t445\tunsupported original scene descriptor")!=
            std::string::npos);
     std::fprintf(stderr,"capture-test: metadata verified\n");
 
