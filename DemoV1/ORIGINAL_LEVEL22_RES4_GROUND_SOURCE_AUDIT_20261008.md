@@ -1,5 +1,25 @@
 # Original RES4 forest-ground selection — source-backed candidate audit
 
+## Subsequent definitive source resolution (overrides earlier uncertainty)
+
+Earlier sections were written while the mutable DOS
+`258F8` base was unknown. This has now been
+resolved by direct original machine-code audit:
+`CODE.2 16E55..16E90` reads the **word at INIT+0x0E**
+and stores it at `258F8`.
+`CODE.2 1F388` adds signed level header +7
+to that word to obtain the actual RES4 absolute
+resource ID. The native production runtime now
+resolves and strictly validates the selected 64×64
+tile from the original installed media, and the
+standalone probe reads `LEVELS.DAT` to do the same.
+See the
+[definitive CODE.2 INIT/RES4 resolution](ORIGINAL_LEVEL22_RES4_INIT_BASE_RESOLUTION_20261008.md).
+
+The remaining obstacle is not tile ID but the
+dynamic FF50/C026/C027 original display-state
+model. No live floor pixels are changed yet.
+
 **Branch:** `demo-v1` · **Status:** original RES4 candidate inspector,
 unit test, standalone Windows diagnostic program and artifact launcher
 committed. **Current HEAD remains unbuilt.** GitHub Actions is manual-only.
