@@ -523,6 +523,32 @@ std::uint32_t InventoryRuntimeState::container_weight_half_units(
     return accumulate(descriptor_index);
 }
 
+std::uint32_t InventoryRuntimeState::actor_weight_half_units(
+    const PartyImage& party,const ObjectCatalog& objects,
+    std::size_t actor) const {
+    if(actor>=PartyImage::kActorCount)
+        throw std::out_of_range("original actor weight index");
+    if(!party.active(actor))return 0U;
+    std::uint64_t total=0U;
+    for(std::size_t slot=0U;slot<21U;++slot) {
+        const auto id=party_item(party,actor,slot);
+        if(id==-1)continue;
+        if(id<0)throw std::out_of_range("negative character object");
+        const auto& item=objects.at(static_cast<std::size_t>(id));
+        total+=item.weight_half_units;
+        if(item.item_category==1U &&
+           item.container_state_index>=0) {
+            total+=container_weight_half_units(
+                objects,static_cast<std::size_t>(
+                    item.container_state_index));
+        }
+    }
+    if(total>std::numeric_limits<std::uint32_t>::max()) {
+        throw std::overflow_error("original actor burden overflow");
+    }
+    return static_cast<std::uint32_t>(total);
+}
+
 InventoryContainerStatus InventoryRuntimeState::open_hand_container(
     const PartyImage& party,const ObjectCatalog& objects,
     std::size_t actor,std::size_t hand) {
