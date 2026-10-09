@@ -37,9 +37,10 @@ static void Print(object payload) => Console.WriteLine(JsonSerializer.Serialize(
 
 try
 {
-    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report" or "mz" or "mz-disasm" or "com" or "com-disasm" or "overlay" or "overlay-disasm" or "overlay-map"))
+    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report" or "mz" or "mz-disasm" or "mz-analyze" or "com" or "com-disasm" or "com-analyze" or "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze"))
     {
-        Console.Error.WriteLine("Usage: dosdis inspect|mz|mz-disasm|com|com-disasm|overlay|overlay-disasm|fixups|memory|disasm|analyze|report <file> [options]\n" +
+        Console.Error.WriteLine("Usage: dosdis inspect|mz|mz-disasm|mz-analyze|com|com-disasm|com-analyze|overlay|overlay-map|overlay-disasm|overlay-analyze|fixups|memory|disasm|analyze|report <file> [options]\n" +
+            "16-bit CFG: mz-analyze|com-analyze|overlay-analyze [--entry HEX] [--max-instructions 100000]\n" +
             "Overlay: container inspection; overlay-map --resident START.EXE (validated MZ directory)\n" +
             "Overlay-disasm: --regions manifest.json --region ID [--offset 0] [--count 32]\n" +
             "COM: explicitly selected headerless mode [--origin 100] (hex); com-disasm [--offset 100] [--count 32]\n" +
@@ -59,13 +60,13 @@ try
     var catalog = args.Contains("--identity-catalog", StringComparer.Ordinal)
         ? SourceIdentityRegistry.ReadFile(Option(args, "--identity-catalog", "")) : null;
     LeImage? image = null;
-    if (args[0] is not ("mz" or "mz-disasm" or "com" or "com-disasm" or "overlay" or "overlay-disasm" or "overlay-map"))
+    if (args[0] is not ("mz" or "mz-disasm" or "mz-analyze" or "com" or "com-disasm" or "com-analyze" or "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze"))
     {
         try { image = LeImage.Load(artifact); }
         catch (InvalidDataException) when (args[0] == "inspect") { /* Identify signature, not fake mapped code. */ }
         catch (NotSupportedException) when (args[0] == "inspect") { /* Unsupported LE page variant. */ }
     }
-    if (args[0] == "mz" || args[0] == "mz-disasm")
+    if (args[0] is "mz" or "mz-disasm" or "mz-analyze")
     {
         var mz = DosMzImage.Load(artifact);
         if (args[0] == "mz")
@@ -79,6 +80,14 @@ try
                 Relocations = mz.Relocations.Take(maximum),
                 Status = "header-validated;not-verified-runtime-code" });
         }
+        else if (args[0] == "mz-analyze")
+        {
+            var region = mz.CreateEntryCodeRegion();
+            ushort entry = checked((ushort)Hex(Option(args, "--entry",
+                mz.InitialIp.ToString("X", CultureInfo.InvariantCulture))));
+            int budget = int.Parse(Option(args, "--max-instructions", "100000"), CultureInfo.InvariantCulture);
+            Print(Dos16ControlFlowAnalysis.Analyze(region, entry, budget));
+        }
         else
         {
             ushort segment = checked((ushort)Hex(Option(args, "--segment", mz.InitialCs.ToString("X", CultureInfo.InvariantCulture))));
@@ -90,7 +99,7 @@ try
                 Instructions = mz.Decode(segment, offset, count) });
         }
     }
-    else if (args[0] == "com" || args[0] == "com-disasm")
+    else if (args[0] is "com" or "com-disasm" or "com-analyze")
     {
         ushort origin = checked((ushort)Hex(Option(args, "--origin", "100")));
         var com = DosComImage.LoadExplicit(artifact, origin);
@@ -98,6 +107,13 @@ try
             Print(new { artifact.Sha256, Format = "headerless-explicit-com-mode",
                 com.Origin, com.FileBackedImageLength,
                 Status = "analyst-assumed-16-bit-origin;no-header-or-relocations" });
+        else if (args[0] == "com-analyze")
+        {
+            ushort entry = checked((ushort)Hex(Option(args, "--entry",
+                origin.ToString("X", CultureInfo.InvariantCulture))));
+            int budget = int.Parse(Option(args, "--max-instructions", "100000"), CultureInfo.InvariantCulture);
+            Print(Dos16ControlFlowAnalysis.Analyze(com.CreateCodeRegion(), entry, budget));
+        }
         else
         {
             ushort offset = checked((ushort)Hex(Option(args, "--offset",
@@ -109,7 +125,7 @@ try
                 Instructions = com.Decode(offset, count) });
         }
     }
-    else if (args[0] is "overlay" or "overlay-disasm" or "overlay-map")
+    else if (args[0] is "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze")
     {
         var overlay = DosOverlayImage.LoadEnvelope(artifact);
         if (args[0] == "overlay")
@@ -130,17 +146,28 @@ try
             if (args.Count(x => x == "--regions") != 1 ||
                 args.Count(x => x == "--region") != 1)
                 throw new ArgumentException(
-                    "overlay-disasm requires one --regions manifest.json and one --region ID.");
+                    "Overlay decoding requires one --regions manifest.json and one --region ID.");
             var regions = DosOverlayImage.ReadRegionManifest(Option(args, "--regions", ""));
             string id = Option(args, "--region", "");
-            ushort offset = checked((ushort)Hex(Option(args, "--offset", "0")));
-            int count = int.Parse(Option(args, "--count", "32"), CultureInfo.InvariantCulture);
-            Print(new {
-                overlay.Envelope, SelectedRegion = id,
-                MappingStatus = "analyst-explicit-source-hash-bound-unverified",
-                AnalysisStatus = "requested-linear-candidate-unverified",
-                Instructions = overlay.DecodeExplicit(regions, id, offset, count)
-            });
+            if (args[0] == "overlay-analyze")
+            {
+                var region = overlay.CreateCodeRegion(regions, id);
+                ushort entry = checked((ushort)Hex(Option(args, "--entry",
+                    region.Origin.ToString("X", CultureInfo.InvariantCulture))));
+                int budget = int.Parse(Option(args, "--max-instructions", "100000"), CultureInfo.InvariantCulture);
+                Print(Dos16ControlFlowAnalysis.Analyze(region, entry, budget));
+            }
+            else
+            {
+                ushort offset = checked((ushort)Hex(Option(args, "--offset", "0")));
+                int count = int.Parse(Option(args, "--count", "32"), CultureInfo.InvariantCulture);
+                Print(new {
+                    overlay.Envelope, SelectedRegion = id,
+                    MappingStatus = "analyst-explicit-source-hash-bound-unverified",
+                    AnalysisStatus = "requested-linear-candidate-unverified",
+                    Instructions = overlay.DecodeExplicit(regions, id, offset, count)
+                });
+            }
         }
     }
     else if (args[0] == "inspect")
