@@ -997,6 +997,54 @@ try
         Equal(BinaryFormatDetector.Inspect(artifact, LeImage.Load(artifact)).FormatId,
             "le", "validated LE loader supersedes signature-only classification");
     }
+    // Explicit DOS-launcher mode must not mix the outer 16-bit stub
+    // with an independently MZ-bound protected-mode module.
+    byte[] launcherBytes = MakeFixture(nested: true);
+    MzWord(launcherBytes, 2, 0x100); // 256-byte original DOS MZ extent
+    MzWord(launcherBytes, 4, 1);
+    MzWord(launcherBytes, 6, 0); // no outer DOS fixups
+    MzWord(launcherBytes, 8, 2); // 32-byte outer DOS header
+    MzWord(launcherBytes, 0x14, 0); // DOS entry 0000:0000
+    MzWord(launcherBytes, 0x16, 0);
+    launcherBytes[0x20] = 0xC3; // independent real-mode RET fixture
+    var launcherArtifact = BinaryArtifact.FromBytes(launcherBytes, "launcher-with-nested-module.bin");
+    Equal(BinaryFormatDetector.Inspect(launcherArtifact).FormatId, "le-signature",
+        "outer DOS launcher is still classified by the nested module signature");
+    var dosLauncher = DosMzImage.LoadLauncherStub(launcherArtifact);
+    Equal(dosLauncher.IsLauncherStub, true, "explicit launcher mode carries a separate evidence label");
+    Equal(dosLauncher.DeclaredExecutableFileLength, 0x100,
+        "outer DOS MZ declared extent is separate from later protected-mode bytes");
+    Equal(dosLauncher.LoadImageFileOffset, 0x20,
+        "DOS launcher header geometry remains a normal source-backed MZ module");
+    Equal(dosLauncher.Decode(0, 0, 1)[0].OriginalBytes, "C3",
+        "opt-in outer DOS launcher can decode its own declared real-mode entry");
+    Equal(Dos16ControlFlowAnalysis.Analyze(dosLauncher.CreateEntryCodeRegion(), 0)
+        .MappingEvidence.Contains("explicit-outer-DOS-MZ-launcher", StringComparison.Ordinal),
+        true, "launcher CFG retains explicit DOS-stub scope rather than protected-mode identity");
+    Fails(() => DosMzImage.Load(launcherArtifact),
+        "default MZ loader never silently treats nested protected-mode inputs as 16-bit code");
+
+    byte[] ambiguousOuterExtent = (byte[])launcherBytes.Clone();
+    MzWord(ambiguousOuterExtent, 2, 0); // declared MZ extent now 512 bytes
+    Fails(() => DosMzImage.LoadLauncherStub(
+        BinaryArtifact.FromBytes(ambiguousOuterExtent)),
+        "DOS launcher declared load extent cannot overlap an embedded MZ module");
+    Fails(() => DosMzImage.LoadLauncherStub(
+        BinaryArtifact.FromBytes(MakeFixture(false))),
+        "a direct MZ/LE module has no separate outer DOS launcher to map");
+
+    // Bare accidental LE bytes do not identify a nested module without a
+    // corresponding well-bounded nested MZ and e_lfanew.
+    var looseSignature = new byte[0x180];
+    looseSignature[0] = (byte)'M'; looseSignature[1] = (byte)'Z';
+    looseSignature[0x80] = (byte)'L'; looseSignature[0x81] = (byte)'E';
+    Equal(BinaryFormatDetector.Inspect(BinaryArtifact.FromBytes(looseSignature)).FormatId,
+        "mz", "a stray LE marker without a linked MZ header is not trusted");
+    Dword(looseSignature, 0x3C, uint.MaxValue);
+    Equal(BinaryFormatDetector.Inspect(BinaryArtifact.FromBytes(looseSignature)).FormatId,
+        "mz", "overflow-sized e_lfanew is ignored rather than dereferenced");
+    Console.WriteLine("PASS: explicit DOS launcher isolation and shared nested MZ/LE locator");
+
     var ambiguousImage = new byte[0x800];
     MakeFixture(false).CopyTo(ambiguousImage, 0);
     byte[] extraMZ = MakeFixture(false);
