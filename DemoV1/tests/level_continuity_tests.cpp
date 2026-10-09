@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstdint>
 #include <stdexcept>
+#include <utility>
 
 namespace {
 rloft::LevelContinuityEntry entry(

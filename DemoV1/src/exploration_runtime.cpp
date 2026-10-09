@@ -116,6 +116,62 @@ void ExplorationRuntime::initialize_gameplay_state(
     ++world_scene_revision_;
 }
 
+void ExplorationRuntime::transition_to_level(
+    const GameSource& source,
+    const LevelTransitionLocation& target) {
+    if (!gameplay_state_initialized_)
+        throw std::logic_error(
+            "level transition requires initialized gameplay state");
+    // Do not bypass original hand-container close/cancel semantics.
+    if (inventory_.open_container)
+        throw std::logic_error(
+            "level transition requires closed inventory container");
+
+    // Restore a visited mutable world rather than reinitializing it.
+    // Fresh levels use CODE.2 181B4 LEVnnn -> LEVELS source precedence.
+    auto destination = level_continuity_.recall(target.level_id);
+    auto staged_rng = original_random_;
+    if (!destination) {
+        LevelContinuityEntry loaded{};
+        loaded.level = ExplorationSessionLoader::load_level(
+            source, target.level_id, &loaded.from_direct_save);
+        loaded.world = LevelWorldStateCodec::build(
+            loaded.level, npc_catalog_,
+            [&staged_rng](std::uint8_t count, std::uint8_t sides) {
+                return staged_rng.dice(count, sides);
+            });
+        destination = std::move(loaded);
+    }
+
+    // Resolve original INIT/header-derived terrain for the destination.
+    // A missing RES4 source is exposed, never silently synthesized.
+    std::optional<OriginalGroundRes4Selection> staged_ground{};
+    std::string staged_ground_failure{};
+    if (source.contains("INIT") && source.contains("RES4")) {
+        try {
+            const ResArchive archive(source.read("RES4"));
+            staged_ground = OriginalGroundRes4Audit::resolve(
+                source.read("INIT"), destination->level, archive);
+        } catch (const std::exception& error) {
+            staged_ground_failure = error.what();
+        }
+    }
+
+    // All validation and potentially throwing snapshot allocations
+    // precede mutation of the current live level/party/world.
+    level_continuity_.enter(
+        session_, world_, target, std::move(*destination));
+    original_random_ = staged_rng;
+    ground_source_ = std::move(staged_ground);
+    ground_source_failure_ = std::move(staged_ground_failure);
+    scene_shape_cache_.clear();
+    motion_state_.integrator.heading = session_.facing;
+    // Inventory-only SAVE cannot safely carry a different world.
+    inventory_save_backing_.reset();
+    inventory_save_world_revision_ = 0U;
+    ++world_scene_revision_;
+}
+
 void ExplorationRuntime::import_matching_save_inventory(
     const std::vector<std::uint8_t>& original_save) {
     if(!gameplay_state_initialized_)

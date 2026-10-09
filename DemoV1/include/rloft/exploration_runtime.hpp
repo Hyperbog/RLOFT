@@ -14,6 +14,7 @@
 #include "rloft/inventory_world_drop.hpp"
 #include "rloft/inventory_party_order.hpp"
 #include "rloft/level_world_state.hpp"
+#include "rloft/level_continuity.hpp"
 #include "rloft/level22_encounter.hpp"
 #include "rloft/level22_viewport_target.hpp"
 #include "rloft/npc_catalog.hpp"
@@ -152,6 +153,15 @@ public:
         return gameplay_state_initialized_;
     }
 
+    // Engine-only entry: the caller must have proven this destination from
+    // original CODE.2 event/exit code. No invented portals or level order.
+    void transition_to_level(
+        const GameSource& source, const LevelTransitionLocation& target);
+
+    [[nodiscard]] std::size_t stored_level_count() const noexcept {
+        return level_continuity_.stored_count();
+    }
+
     // This deliberately is NOT a general game SAVE/LOAD operation.
     // For an already initialized matching level/pose/TOD with
     // zero moving effects, accept the original 6FA0 four-byte
@@ -270,6 +280,7 @@ private:
     OriginalRandom original_random_{};
     std::uint64_t world_scene_revision_{};
     LevelWorldState world_{};
+    LevelContinuityStore level_continuity_{};
     InventoryRuntimeState inventory_{};
     std::optional<InventorySaveSnapshot> inventory_save_backing_;
     std::uint64_t inventory_save_world_revision_{};
