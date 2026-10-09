@@ -1,5 +1,31 @@
 # Ravenloft Demo Build v1
 
+## Second user capture — fatal ray forensics even after 16 snapshots
+
+[Latest 16-frame source audit](LEVEL22_SECOND_CAPTURE_AND_FATAL_SWEEP_EVIDENCE_20261008.md)
+follows original Level 22 cells (4,4)→(19,4), heading 270.
+The new ZIP logs **1,157 successful RES3 scene raster calls**,
+369 occluded calls, zero RES3 errors, and only expected
+non-drawable 0x93 outdoor boundary walls. All generated RES3
+source widths in that archive are 1–4, so it does **not**
+test the new 8–255 individual-mode raster support. Its last
+captured pose is NOT the later exception's identified pose.
+
+The ZIP also demonstrates a forensic blind spot: ordinary
+`--capture-render` stops after 16 successful frame captures,
+so a later sweep exception is absent from the archive.
+The optional capture mode now writes independent
+`failure.tsv` in the same session directory if
+`runtime.build_frame()` fails, regardless of the snapshot
+budget. It preserves exact source revision, raw camera,
+map dimensions and original exception/ray diagnostics.
+Normal frame TSVs now carry `source_revision` as well.
+
+**No current-HEAD Windows build has run.** Build #639 is
+an older pre-sweep-fix binary. Start a NEW manual `demo-v1`
+workflow rather than rerunning #639, and use the newly
+downloaded Windows artifact. Acceptance remains 1/5 gates.
+
 ## Crash fix: original CODE.2 ray-cell addressing (next manual build)
 
 [Verified binary-source diagnosis](LEVEL22_SWEEP_CELL_INDEX_CORRECTION_20261008.md):
