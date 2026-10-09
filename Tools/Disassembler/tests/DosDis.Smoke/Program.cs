@@ -1790,6 +1790,25 @@ try
                 names[i] + " signature detection must not claim validated LE pages");
             Fails(() => DosMzImage.Load(art),
                 names[i] + " outer DOS launcher is not a standalone 16-bit MZ");
+            var outerDos = DosMzImage.LoadLauncherStub(art);
+            Equal(outerDos.IsLauncherStub, true,
+                names[i] + " outer DOS program is isolated only by explicit launcher mode");
+            Equal(outerDos.DeclaredExecutableFileLength, 62532,
+                names[i] + " independently inspected outer DOS MZ declared extent");
+            Equal(outerDos.LoadImageFileOffset, 512,
+                names[i] + " original DOS MZ header length");
+            Equal(outerDos.Relocations.Count, 78,
+                names[i] + " outer DOS relocation count");
+            Equal(outerDos.InitialCs, (ushort)0x1BD,
+                names[i] + " outer DOS entry segment");
+            Equal(outerDos.InitialIp, (ushort)0x2382,
+                names[i] + " outer DOS entry offset");
+            Equal(outerDos.IsLauncherStub &&
+                outerDos.CreateEntryCodeRegion().MappingEvidence.Contains(
+                    "protected-mode-module-excluded", StringComparison.Ordinal),
+                true, names[i] + " launcher CFG remains distinct from the LE object");
+            Equal(outerDos.SimulateRelocations(0x2000).Summary.RelocationWriteCount,
+                78, names[i] + " outer DOS fixup count reproduced without editing original bytes");
             var image = LeImage.Load(art);
             Equal(BinaryFormatDetector.Inspect(art, image).FormatId, "le",
                 names[i] + " fully validated LE supersedes signature-only evidence");
