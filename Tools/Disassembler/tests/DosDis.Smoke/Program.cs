@@ -45,6 +45,7 @@ static byte[] MakeFixture(bool nested)
 
 try
 {
+    Dos16AbstractValueSmoke.Run();
     // Diagnostics are bounded and safe to share by default: no executable
     // contents, source paths, exception messages, private comments or stacks.
     const string diagnosticHash = "fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed";
