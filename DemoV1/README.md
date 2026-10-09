@@ -1,5 +1,43 @@
 # Ravenloft Demo Build v1
 
+## Part 8 continuation — live inventory SAVE snapshot bridge
+
+`ExplorationRuntime` now exposes bounded inventory
+`import_matching_save_inventory` /
+`export_matching_save_inventory` backed by the
+original-format `InventorySaveCodec`. Imported live
+state includes the complete party actor array (items,
+item-known bits and Mage spell matrices), 32 story
+flags, cursor identity/known and CODE.2-defined
+persistent container contents/state. Subsequent
+inventory actions can be overlaid onto the retained
+unaltered original SAVE image.
+
+**Deliberately fail-closed:** an inventory-only
+operation requires initialized native gameplay and
+a saved level, coordinates, facing and time-of-day
+exactly matching the active world; source moving
+effects, non-inactive original 6FA0 container phases
+and native open-container views are not accepted.
+Export additionally requires no world-scene revision
+since import. This avoids presenting an internally
+inconsistent partial reconstruction as a valid
+whole-world SAVE. No user-facing LOAD/SAVE menu
+or disk-file IO has been enabled.
+
+The original supplied SAVE is verified as
+`0x2448` bytes, with its 62-state bank at
+`0x9A7..0xD50`, 438 serializable item words,
+and inactive trailing UI contexts. Existing
+`inventory_save_codec_tests` and
+`exploration_runtime_tests` now include
+positive live-state roundtrips and source-world/
+container rejection cases. **170 registered
+CTests; 19 Quick**. No Windows compilation/test
+was initiated. Inventory remains PARTIAL,
+and engineering score remains **56.25%**.
+
+
 ## Part 8 continuation — lossless original SAVE.DAT inventory projection
 
 Original shipped `SAVE.DAT` and `CODE.2` hashes have
