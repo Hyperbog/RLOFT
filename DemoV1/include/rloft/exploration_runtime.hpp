@@ -10,6 +10,7 @@
 
 #include "rloft/exploration_runtime_motion.hpp"
 #include "rloft/inventory_runtime.hpp"
+#include "rloft/inventory_party_order.hpp"
 #include "rloft/level_world_state.hpp"
 #include "rloft/level22_encounter.hpp"
 #include "rloft/level22_viewport_target.hpp"
