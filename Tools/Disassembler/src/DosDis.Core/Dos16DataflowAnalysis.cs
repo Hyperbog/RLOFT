@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using Iced.Intel;
 
 namespace DosDis.Core;
@@ -88,6 +89,25 @@ public static class Dos16DataflowAnalysis
             decoder.Decode(out var decoded);
             if (decoded.Code == Code.INVALID || decoded.Length != candidate.Length)
                 return Incomplete("rejected-independent-decode-mismatch");
+
+            // Iced expresses 16-bit near destinations after applying the
+            // CPU's IP mask. Do not mistake a wrapped runtime branch for
+            // a proven in-region source edge. Derive displacement again
+            // from exact original bytes, independently of the CFG cache.
+            int? displacement = null;
+            if (raw.Length == 2 &&
+                (raw[0] is >= 0x70 and <= 0x7F or >= 0xE0 and <= 0xE3
+                    or 0xEB))
+                displacement = unchecked((sbyte)raw[1]);
+            else if (raw.Length == 3 && raw[0] is 0xE8 or 0xE9)
+                displacement = BinaryPrimitives.ReadInt16LittleEndian(raw.AsSpan(1, 2));
+            else if (raw.Length == 4 && raw[0] == 0x0F &&
+                     raw[1] is >= 0x80 and <= 0x8F)
+                displacement = BinaryPrimitives.ReadInt16LittleEndian(raw.AsSpan(2, 2));
+            if (displacement is int signedDisplacement &&
+                ((long)candidate.Address.Offset + candidate.Length +
+                    signedDisplacement is < 0 or > ushort.MaxValue))
+                return Incomplete("rejected-wrapped-near16-relative-target");
 
             int after = candidate.Address.Offset + candidate.Length;
             bool near = decoded.Op0Kind is OpKind.NearBranch16 or OpKind.NearBranch32;
