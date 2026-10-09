@@ -82,6 +82,40 @@ int main() {
         (void)OriginalGroundTextureRaster::generate_ff58(t,360U);
     }));
 
+    // Independent immutable SINTAB source checkpoints:
+    // sine[32]=0x87A8, sine[58]=0xD919, sine[90]=0xFFFF.
+    // Projection A/B at rows 0,79,80,127 were read directly
+    // from the original 333,757-byte SINTAB fixed prefix.
+    // These are NOT derived from the C++ implementation being tested.
+    RendererTables original_prefix{};
+    original_prefix.sine_q16_signmag[32U]=0x87A8U;
+    original_prefix.sine_q16_signmag[58U]=0xD919U;
+    original_prefix.sine_q16_signmag[90U]=0xFFFFU;
+    original_prefix.projection_a[0U]=0x0135U;
+    original_prefix.projection_a[79U]=0x02F9U;
+    original_prefix.projection_a[80U]=0x0307U;
+    original_prefix.projection_a[127U]=0x1AAFU;
+    original_prefix.projection_b[0U]=0x0125U;
+    original_prefix.projection_b[79U]=0x02D2U;
+    original_prefix.projection_b[80U]=0x02E0U;
+    original_prefix.projection_b[127U]=0x1959U;
+    const auto original_west=
+        OriginalGroundTextureRaster::generate_ff58(
+            original_prefix,270U);
+    assert(original_west[0].delta_u==0U);
+    assert(original_west[0].delta_v==0xFD96U);
+    assert(original_west[0].origin_u==0xF0U);
+    assert(original_west[0].origin_v==0x36U);
+    assert(original_west[79].delta_v==0xFA0EU);
+    assert(original_west[79].origin_u==0xC8U);
+    assert(original_west[79].origin_v==0xFDU);
+    assert(original_west[80].delta_v==0xF9F2U);
+    assert(original_west[80].origin_u==0xE0U);
+    assert(original_west[80].origin_v==0x0CU);
+    assert(original_west[127].delta_v==0xCAA2U);
+    assert(original_west[127].origin_u==0xFDU);
+    assert(original_west[127].origin_v==0xDDU);
+
     // Exact original 0x300-byte FF58 row layout.
     std::vector<std::uint8_t> ff58(128U*6U,0U);
     for(std::size_t row=0U;row<128U;++row) {
