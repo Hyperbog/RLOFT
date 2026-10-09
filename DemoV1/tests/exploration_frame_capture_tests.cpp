@@ -52,6 +52,9 @@ int main() {
     plan.visible_columns.push_back(Type7VisibleColumn{32U,0U,128U});
     frame.world_scene_render_plans.push_back(plan);
     frame.scene_vga_trace_failure="unsupported original scene descriptor";
+    frame.scene_vga_scene_failures.push_back({
+        0U,1U,4U,445U,"per-call RES3 shape lookup unavailable"
+    });
     ExplorationPresentedFrame presentation{};
     presentation.palette.rgb[3U]=42U;
     presentation.surface_coverage.sintab_main_runs_pending=1U;
@@ -119,6 +122,9 @@ int main() {
     assert(tsv.find("scene_call\t1\t4\t445\t1\t80")!=
            std::string::npos);
     assert(tsv.find("scene_trace_failure\tunsupported original scene descriptor")!=
+           std::string::npos);
+    assert(tsv.find(
+        "scene_call_trace_failure\t0\t1\t4\t445\tper-call RES3 shape lookup unavailable")!=
            std::string::npos);
     assert(tsv.find("scene_raster_failure\t1\t4\t445\tunsupported original scene descriptor")!=
            std::string::npos);
