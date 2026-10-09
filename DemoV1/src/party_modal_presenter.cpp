@@ -493,14 +493,31 @@ void PartyModalPresenter::draw_open_container(
     for(std::size_t actor=0U;actor<PartyImage::kActorCount;++actor) {
         if(character_mode[actor])continue;
         const auto& ui=inventory.party_container_ui_contexts[actor];
+        // CODE.2 10A70: phases 1 and 2 draw the ORIGINAL
+        // RES2 frame (0x14 + subtype*2 + phase - 1) at row
+        // C4h. Phase 0 draws nothing. This models the source
+        // animation artwork, not the still-pending 10FAC/110B4
+        // VGA retrace schedule and buffer-flip ordering.
+        if(ui.active() && (ui.raw[2]==1U || ui.raw[2]==2U)) {
+            if(ui.raw[0]<7U) {
+                const auto graphic=0x14U+
+                    static_cast<unsigned>(ui.raw[0])*2U+
+                    static_cast<unsigned>(ui.raw[2])-1U;
+                const int lane=static_cast<int>(actor)*0x50;
+                framebuffer.draw_frame(
+                    assets_.type1(2,static_cast<int>(graphic)),
+                    0,0xC4,lane);
+            }
+            continue;
+        }
         std::size_t state_index=inventory.containers.size();
         if(ui.fully_open())
             state_index=ui.raw[1];
-        else if(inventory.open_container &&
+        else if(ui.inactive() && inventory.open_container &&
                 inventory.open_container->actor==actor)
-            // Backward compatibility for existing deliberately
-            // synthetic native-test inventory snapshots which
-            // set open_container without a 6FA0 source record.
+            // Synthetic legacy tests may provide an interactive
+            // selection without a 6FA0 state. Never fall back to
+            // phase3 art for a real partial phase0/1/2 context.
             state_index=inventory.open_container->descriptor_index;
         if(state_index>=inventory.containers.size())continue;
         const auto& desc=inventory.containers[state_index];
