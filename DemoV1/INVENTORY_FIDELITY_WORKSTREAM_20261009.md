@@ -1161,3 +1161,121 @@ SAVE menu yet.
 No Windows build or CTest was started. The registered
 total remains **170 CTests / 19 Quick**, and engineering
 progress remains **56.25%** with inventory PARTIAL.
+
+
+## Part 8 extended checkpoint — CODE.2 Level16 object 0x89 four-Seed ritual
+
+**This checkpoint upgrades the prior broad Level16 object 0x89
+"special action pending" guard to an exact, source-backed
+read-only condition model. The ultimate event/cinematic
+side effects remain unimplemented and are still guarded.**
+
+### Primary executable evidence
+
+Direct inspection of the uploaded CODE.2 object-1
+(SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`)
+identified the complete `21880..2195A` test, called
+directly by world-item constructor `2195C` after
+appending OBJECTS ID **`0x89` / decimal 137 /
+`SEED OF MORNINGLORD`**.
+
+The original conditions are exactly:
+
+1. `21892` compares the live level `C6C8` to
+   **0x10 (Level 16)**. Other levels return immediately.
+2. `2189F..218AB` calls `1C1DC(0x44)` to test
+   persistent event/story bit **`0x44`**. If already
+   set, it exits. Native bit projection:
+   `persistent_event_flags[0x44/8] & (1 << (0x44%8))`.
+3. `2188B..21892` copies eight original embedded
+   object-1 bytes from logical `0x207E0`:
+   **`0D 13 0B 15 0D 17 0F 15`**,
+   interpreted as four `(x,y)` site coordinates:
+   **(13,19), (11,21), (13,23), (15,21)**.
+   `30D30(...,0,0x10)` zeroes four DWORD hit markers
+   without overwriting the adjacent eight-byte site list.
+4. The loop `218C7..21918` scans all live
+   `0x16`-byte family-C loose-item records at
+   `0x17618+index*0x16`, comparing the
+   **object ID word at +0x0E** to `0x0089`.
+   It compares each unsigned source x byte against
+   `WORD[record+6]` (high half of Q16 coordinate A)
+   and each unsigned source y byte against
+   `WORD[record+2]` (high half of coordinate B).
+   **Fractional coordinate bits do not matter.**
+   Matching an item at a site sets that site's own
+   distinct DWORD marker; repeated items at just
+   one site cannot complete the other three.
+5. `2191A..21933` requires **all four** marker
+   DWORDs nonzero. On success `21935..21950` calls
+   `1C124(0x44)` (set persistent story flag),
+   `13EF8(8)`, then `15050(0x73)` in that order.
+   These last two routines are separate authored
+   effects; treating them as optional or immediately
+   marking the story completed would be unfaithful.
+6. The caller at `21AC7..21AD6` invokes this
+   check after a successful `2195C` append only
+   when the incoming item ID is `0x89`. The world
+   loose-item array is bounded at **`0x12C` (300)**
+   entries, with first-record eviction before append.
+   A faithful *candidate* check must therefore ignore
+   an evicted first seed rather than count it.
+
+### Native implementation
+
+`Level16SeedRitualModel::evaluate_21880()` now
+projects the exact source behavior without mutating
+world state or event flags:
+- source level and `0x44` flag gates;
+- original four site coordinates;
+- source loose-item object ID and Q16 high-word
+  comparisons, ignoring low fraction;
+- four independent hit markers and
+  `ReadyForSourceActions` only when all four present;
+- optional newly inserted seed candidate and correct
+  300-record first-item eviction modeling;
+- literal pending follow-on arguments **8** and
+  **0x73**, explicitly tied to
+  `13EF8` and `15050`.
+
+`InventoryWorldDropModel::drop()` now performs
+ordinary original position/geometry/overflow
+validation and constructs the source-correct
+candidate record for Level16 as for any other
+level. It then checks the POST-append ritual
+state *without first changing the world*:
+
+- no completed ritual: **ordinary world drop
+  succeeds**, adds item 0x89 and consumes the
+  cursor, including Level16;
+- event flag 0x44 already set: original returns
+  early from the ritual and the ordinary item
+  drop proceeds, with no repeated story action;
+- a new placement would complete all four
+  source sites while flag 0x44 is unset:
+  **`SourceSpecialActionPending`**, with
+  original world array and held cursor unchanged,
+  because native `13EF8(8)` /
+  `15050(0x73)` effect bindings are still absent.
+  The native port does NOT mark the story flag,
+  drop the triggering fourth seed, or falsely
+  claim the original sequence occurred.
+
+New focused assertions are in the existing
+`inventory_world_drop_tests` target:
+zero/one/three/four sites, wrong objects, duplicates,
+Q16 fractional-coordinate independence, event
+flag gate, original effect-argument identity,
+successful non-triggering Level16 drops,
+blocked fourth triggering drop without consuming
+cursor, success after flag-set, max-300 eviction,
+and not-on-Level16 bypass.
+
+**Acceptance:** predicate and non-triggering
+Level16 world drops are source-modeled;
+the fourth-seed cinematic/effect transition remains
+a hard missing integration, not an implied
+completed quest. No Windows build or CTest
+run was initiated. Registered CTests **170**,
+Quick **19**, engineering tracker **56.25%**,
+inventory **PARTIAL**.
