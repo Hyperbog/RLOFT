@@ -1401,7 +1401,31 @@ int run_exploration(
                 motion_inputs);
         }
 
-        auto frame = runtime.build_frame();
+        auto frame = [&]() {
+            try {
+                return runtime.build_frame();
+            } catch (const std::exception& exc) {
+                // The ordinary frame_0001..0016 cap is not a fatal-log
+                // cap. Preserve the ACTUAL failing camera and native
+                // error even if the last captured successful pose was
+                // many cells or several minutes earlier.
+                if (capture_render) {
+                    try {
+                        const auto& session=runtime.session();
+                        rloft::ExplorationFrameCapture::write_failure(
+                            capture_directory,
+                            {static_cast<std::uint32_t>(session.level_id),
+                             session.coordinate_a,session.coordinate_b,
+                             session.facing,session.level.width,
+                             session.level.height,capture_count,
+                             RLOFT_DEMO_SOURCE_SHA,exc.what()});
+                    } catch(const std::exception& write_error) {
+                        OutputDebugStringA(write_error.what());
+                    }
+                }
+                throw; // Never hide original unknown sweep behavior.
+            }
+        }();
         const auto presented = presenter.present(
             frame,
             runtime.renderer_tables());
@@ -1427,7 +1451,7 @@ int run_exploration(
                          cell_x,cell_y,
                          static_cast<std::uint32_t>(session.facing)},
                         frame,presented,presenter.framebuffer(),
-                        capture_code2);
+                        capture_code2,RLOFT_DEMO_SOURCE_SHA);
                     ++capture_count;
                     last_capture_position=key;
                 } catch(const std::exception& error) {
