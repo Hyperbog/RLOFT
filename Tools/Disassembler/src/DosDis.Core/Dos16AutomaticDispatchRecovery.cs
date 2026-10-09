@@ -100,7 +100,6 @@ public static class Dos16AutomaticDispatchRecovery
                     eligible++;
                     bool far = modrm is 0x9F or 0xAF;
                     pointerKind = far ? "far16" : "near16";
-                    int requiredShift = far ? 2 : 1;
                     ushort table = BinaryPrimitives.ReadUInt16LittleEndian(bytes.Slice(3, 2));
                     reason = "rejected-no-unique-unsigned-BX-guard-and-stride";
                     if (table <= 0x7FFF)
@@ -353,7 +352,7 @@ public static class Dos16AutomaticDispatchRecovery
             results.Add(new Dos16GuardedDispatchSite(site.Address, reason,
                 pointerKind, entryCount,
                 "bounded-unique-predecessors;transparent-NOP-or-near-JMP-bridges;" +
-            "exact-source-instruction-bytes;" +
+                "exact-source-instruction-bytes;" +
                 "index-value-and-runtime-pointer-mutation-unverified", validatedTable));
         }
         if (graph.Truncated) candidates = 0;
