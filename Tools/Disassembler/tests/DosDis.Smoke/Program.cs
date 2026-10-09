@@ -458,6 +458,46 @@ try
         "unsigned JAE comparator can establish a strict upper bound");
     Equal(jaeTable.Sites[0].EntryCount, (int?)3,
         "JAE excludes the compared value from possible table indices");
+    var transferredBound = new byte[0x40];
+    new byte[] { 0x83, 0xF8, 0x02, 0x77, 0x09, 0x89, 0xC3,
+        0xD1, 0xE3, 0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3 }
+        .CopyTo(transferredBound, 0); // CMP AX,2; JA; MOV BX,AX; SHL BX,1; CS:JMP [BX+120]
+    MzWord(transferredBound, 0x20, 0x130);
+    MzWord(transferredBound, 0x22, 0x131);
+    MzWord(transferredBound, 0x24, 0x132);
+    transferredBound[0x30] = transferredBound[0x31] =
+        transferredBound[0x32] = 0xC3;
+    var copiedBoundRegion = DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(transferredBound)).CreateCodeRegion();
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(copiedBoundRegion,
+        Dos16ControlFlowAnalysis.Analyze(copiedBoundRegion, 0x100))
+        .GuardedTableCandidates, 1,
+        "guarded AX range propagates through one exact MOV BX,AX");
+    var copiedFromWrongRegister = (byte[])transferredBound.Clone();
+    copiedFromWrongRegister[6] = 0xCB; // MOV BX,CX, but CMP still bounds AX
+    var wrongCopyRegion = DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(copiedFromWrongRegister)).CreateCodeRegion();
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(wrongCopyRegion,
+        Dos16ControlFlowAnalysis.Analyze(wrongCopyRegion, 0x100))
+        .GuardedTableCandidates, 0,
+        "register copy must match the exact register bounded by unsigned CMP");
+    var guardedCx = (byte[])copiedFromWrongRegister.Clone();
+    guardedCx[1] = 0xF9; // CMP CX,2; MOV BX,CX
+    var guardedCxRegion = DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(guardedCx)).CreateCodeRegion();
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(guardedCxRegion,
+        Dos16ControlFlowAnalysis.Analyze(guardedCxRegion, 0x100))
+        .GuardedTableCandidates, 1,
+        "bound on CX is propagated through MOV BX,CX");
+    var reversedMov = (byte[])transferredBound.Clone();
+    reversedMov[5] = 0x8B; reversedMov[6] = 0xD8; // MOV BX,AX alternate encoding
+    var alternateMoveRegion = DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(reversedMov)).CreateCodeRegion();
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(alternateMoveRegion,
+        Dos16ControlFlowAnalysis.Analyze(alternateMoveRegion, 0x100))
+        .GuardedTableCandidates, 1,
+        "alternate exact MOV BX,AX encoding preserves unsigned bound");
+
     var imm16Guard = new byte[0x40];
     new byte[] { 0x81, 0xFB, 0x02, 0x00, 0x77, 0x07, 0xD1, 0xE3,
         0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3 }.CopyTo(imm16Guard, 0);
