@@ -444,3 +444,49 @@ now **source-implemented with bounded exceptions**,
 not an empty placeholder, but must NOT be called
 fully DOS-accepted until original `2D5D0`
 and special effects are verified.
+
+
+## Subsequent source refinements: original encumbrance bitmap and Level16-only drop event
+
+**Encumbrance art:** Direct original CODE.2 instruction review
+of `12988` at physical `0x4D8D7..0x4D8E3`
+shows the distinct modal weight-panel background
+comes from exact source **RES2[0x25]**, rendered
+at `row=0x73` and actor column `actor*0x50`
+via source raster helper `69434`, *before* the
+original T-text labels `0x266/0x267/0x268+rank`
+are overlaid. The live
+`PartyModalPresenter::draw_encumbrance_panel`
+now uses the **actual RES2 bitmap**, removing
+the earlier guessed solid `0x45` red panel fill.
+This is source art selection, not a claim of
+checked DOS color/pixel parity.
+
+**Special world-drop item 0x89:** Original
+`CODE.2 2195C` invokes `21880` after
+dropping item `0x89`. The first test in
+`21880` at physical `0x5C7B6` returns
+immediately unless original level ID is
+**16**. The native bounded event gate is
+now appropriately narrow: item `0x89`
+drops normally on all other levels,
+including fresh Level22, but on Level16
+does **not** mutate world/cursor until the
+authored four-position event flag condition
+and its `4EE1C/4FF74` effect can be
+handled correctly. Expanded world-drop tests
+exercise both branches.
+
+The prior blanket block on item `0x89`
+was too restrictive for Level22 and is
+superseded by this exact source branch.
+
+**Current source inventory test footprint:**
+**169 registered CTests**, **19 Quick**
+test executables, Full all tests.
+Neither a new MSVC build nor a DOS
+inventory-screen pixel parity run has
+been performed. All GitHub builds remain
+manual-only, and the user's request is to
+build **only after** every inventory
+acceptance blocker has been addressed.
