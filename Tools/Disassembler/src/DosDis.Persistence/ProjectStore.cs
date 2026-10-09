@@ -71,6 +71,9 @@ public sealed class ProjectStore : IDisposable
         if (version is not (0 or 1 or SchemaVersion))
             throw new InvalidDataException($"Unsupported research project schema version {version}; expected {SchemaVersion}. No migration attempted.");
         if (version == SchemaVersion) return;
+        if (version == 1 &&
+            ScalarInt("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('artifacts','analysis_runs','annotations');") != 3)
+            throw new InvalidDataException("Legacy project is missing required V1 research tables.");
         if (version == 0)
         {
         // Refuse to import another SQLite database merely because it has user_version=0.
