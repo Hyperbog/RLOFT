@@ -1476,6 +1476,39 @@ int run_exploration(
             host.present(
                 presenter.framebuffer(),
                 exploration_palette);
+            // Report the live authoritative inventory even while
+            // its original modal is open. This is exclusively
+            // text in the opt-in developer Windows title bar.
+            if(exploration_preview && dev_inspect) {
+                const auto snapshot=rloft::DevLevelDiagnostics::capture(
+                    runtime.session(),runtime.world(),runtime.inventory());
+                if(last_dev_snapshot &&
+                   rloft::DevLevelDiagnostics::compare(
+                       *last_dev_snapshot,snapshot).any())
+                    ++dev_change_sequence;
+                last_dev_snapshot=snapshot;
+                const auto hex=[](std::uint64_t digest) {
+                    const auto code=rloft::DevLevelSnapshot::digest8(digest);
+                    return std::wstring(code.begin(),code.end());
+                };
+                const auto title=
+                    std::wstring(L"Ravenloft - DEV Inventory | Actors ")+
+                    std::to_wstring(snapshot.active_actors)+
+                    L" | Open "+std::to_wstring(
+                        snapshot.active_container_views)+
+                    L" | Cursor "+std::to_wstring(
+                        runtime.inventory().held.object_id)+
+                    L" | Party "+hex(snapshot.party_hash)+
+                    L" Inv "+hex(snapshot.inventory_hash)+
+                    L" World "+hex(snapshot.world_hash)+
+                    L" Story "+hex(snapshot.flags_hash)+
+                    L" | State changes "+
+                    std::to_wstring(dev_change_sequence);
+                SetWindowTextW(host.hwnd(),title.c_str());
+                // Restore the 3D preview title after modal exit,
+                // even when no state domain changed.
+                last_preview_title.clear();
+            }
 
             next_frame +=
                 std::chrono::duration_cast<Clock::duration>(
@@ -1720,6 +1753,39 @@ int run_exploration(
             host.present(
                 presenter.framebuffer(),
                 exploration_palette);
+            // Report the live authoritative inventory even while
+            // its original modal is open. This is exclusively
+            // text in the opt-in developer Windows title bar.
+            if(exploration_preview && dev_inspect) {
+                const auto snapshot=rloft::DevLevelDiagnostics::capture(
+                    runtime.session(),runtime.world(),runtime.inventory());
+                if(last_dev_snapshot &&
+                   rloft::DevLevelDiagnostics::compare(
+                       *last_dev_snapshot,snapshot).any())
+                    ++dev_change_sequence;
+                last_dev_snapshot=snapshot;
+                const auto hex=[](std::uint64_t digest) {
+                    const auto code=rloft::DevLevelSnapshot::digest8(digest);
+                    return std::wstring(code.begin(),code.end());
+                };
+                const auto title=
+                    std::wstring(L"Ravenloft - DEV Inventory | Actors ")+
+                    std::to_wstring(snapshot.active_actors)+
+                    L" | Open "+std::to_wstring(
+                        snapshot.active_container_views)+
+                    L" | Cursor "+std::to_wstring(
+                        runtime.inventory().held.object_id)+
+                    L" | Party "+hex(snapshot.party_hash)+
+                    L" Inv "+hex(snapshot.inventory_hash)+
+                    L" World "+hex(snapshot.world_hash)+
+                    L" Story "+hex(snapshot.flags_hash)+
+                    L" | State changes "+
+                    std::to_wstring(dev_change_sequence);
+                SetWindowTextW(host.hwnd(),title.c_str());
+                // Restore the 3D preview title after modal exit,
+                // even when no state domain changed.
+                last_preview_title.clear();
+            }
 
             next_frame +=
                 std::chrono::duration_cast<Clock::duration>(
