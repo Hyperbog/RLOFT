@@ -25,7 +25,8 @@ public:
         ExplorationSessionState& session,
         ExplorationRuntimeMotionState& runtime,
         ExplorationMotionInputs inputs,
-        const RendererTables& tables);
+        const RendererTables& tables,
+        const ExplorationLocomotionModel::EntityProbe& entity_probe = {});
 };
 
 }  // namespace rloft
