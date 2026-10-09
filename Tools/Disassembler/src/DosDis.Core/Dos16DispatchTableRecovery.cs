@@ -124,6 +124,25 @@ public static class Dos16DispatchTableRecovery
                     if (spec.Table >= region.Origin &&
                         (long)spec.Table + spec.Count * width <= region.EndExclusive)
                     {
+                        long tablePhysical = (long)region.FileOffset +
+                            spec.Table - region.Origin;
+                        long tableEnd = tablePhysical + spec.Count * width;
+                        // A region cannot simultaneously be decoded candidate
+                        // instruction bytes and a validated immutable pointer
+                        // table without recording a code/data conflict.
+                        bool decodedOverlap = graph.Instructions.Any(x =>
+                            x.SourceFileOffset < tableEnd &&
+                            x.SourceFileOffset + x.Length > tablePhysical);
+                        if (decodedOverlap)
+                        {
+                            findings.Add(new Dos16TableFinding(
+                                new Dos16Address(region.Segment, spec.Site),
+                                spec.Table, spec.Count, spec.PointerKind,
+                                "rejected-code-data-overlap",
+                                "already-decoded-source-bytes-overlap-proposed-pointer-storage;" +
+                                spec.EvidenceId, Array.Empty<Dos16TableEntry>()));
+                            continue;
+                        }
                         bool complete = true;
                         for (int i = 0; i < spec.Count; i++)
                         {

@@ -137,11 +137,15 @@ public static class Dos16AutomaticDispatchRecovery
                                     !byOffset.TryGetValue((ushort)at, out var guard) ||
                                     guard.FlowControl != "ConditionalBranch")
                                     continue;
-                                byte[] guardBytes = branchBytes == 2
-                                    ? region.Source.Data.Slice(
-                                        checked((int)guard.SourceFileOffset), 2).ToArray()
-                                    : region.Source.Data.Slice(
-                                        checked((int)guard.SourceFileOffset), 4).ToArray();
+                                long guardAt = (long)region.FileOffset +
+                                    guard.Address.Offset - region.Origin;
+                                if (guard.SourceFileOffset != guardAt ||
+                                    guardAt < region.FileOffset ||
+                                    guardAt + branchBytes >
+                                        (long)region.FileOffset + region.ByteLength)
+                                    continue;
+                                byte[] guardBytes = region.Source.Data.Slice(
+                                    checked((int)guardAt), branchBytes).ToArray();
                                 bool ja = branchBytes == 2
                                     ? guardBytes[0] == 0x77
                                     : guardBytes[0] == 0x0F && guardBytes[1] == 0x87;
@@ -163,8 +167,15 @@ public static class Dos16AutomaticDispatchRecovery
                                     if (cmpAt < region.Origin ||
                                         !byOffset.TryGetValue((ushort)cmpAt, out var compare))
                                         continue;
+                                    long cmpPhysical = (long)region.FileOffset +
+                                        compare.Address.Offset - region.Origin;
+                                    if (compare.SourceFileOffset != cmpPhysical ||
+                                        cmpPhysical < region.FileOffset ||
+                                        cmpPhysical + compareBytes >
+                                            (long)region.FileOffset + region.ByteLength)
+                                        continue;
                                     var cmpRaw = region.Source.Data.Slice(
-                                        checked((int)compare.SourceFileOffset), compareBytes).ToArray();
+                                        checked((int)cmpPhysical), compareBytes).ToArray();
                                     int max = -1;
                                     if (compareBytes == 3 &&
                                         cmpRaw[0] == 0x83 && cmpRaw[1] == 0xFB &&
