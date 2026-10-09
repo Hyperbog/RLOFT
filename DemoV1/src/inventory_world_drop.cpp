@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 
 namespace rloft {
 
@@ -383,6 +384,133 @@ HolySymbolGrantResult HolySymbolRewardModel::grant_with_world_15050(
         reward.status=HolySymbolGrantStatus::WorldPlacementRejected;
     }
     return reward;
+}
+
+Level16RitualCompletion Level16RitualCompletionModel::complete_21880(
+    ExplorationSessionState& session,
+    LevelWorldState& world,
+    InventoryRuntimeState& inventory,
+    const ObjectCatalog& objects,
+    const RendererTables& tables,
+    const InventoryWorldDropModel::PlacementProbe& can_place,
+    const Event8Playback& present_event_8,
+    bool center_fraction) {
+    if(!present_event_8)
+        throw std::invalid_argument(
+            "original event 8 requires a real playback callback");
+    Level16RitualCompletion output{};
+    if(session.level_id!=16U ||
+       inventory.held.object_id!=
+           Level16SeedRitualModel::kSeedObjectId)
+        return output;
+
+    // The ordinary native D-key path has already returned
+    // SourceSpecialActionPending. Recheck against CURRENT
+    // source world before any irreversible external playback.
+    auto simulated_world=world;
+    auto simulated_held=inventory;
+    const auto check=InventoryWorldDropModel::drop(
+        simulated_world,session,simulated_held,objects,
+        tables,can_place,center_fraction);
+    if(check.status!=InventoryWorldDropStatus::SourceSpecialActionPending) {
+        output.status=
+            check.status==InventoryWorldDropStatus::InvalidWorldPosition
+            ? Level16RitualCompletionStatus::InvalidPlacement
+            : Level16RitualCompletionStatus::NotReady;
+        return output;
+    }
+
+    // Original 21880 sets event flag 44h only AFTER the
+    // family-C fourth seed is appended. Re-use 2195C with a
+    // session where 44h is SET, bypassing its own recursive
+    // source 21880 completion hook during the projection.
+    // All writes here operate solely on disposable copies.
+    auto seeded_session=session;
+    seeded_session.persistent_event_flags[0x44U/8U] |=
+        static_cast<std::uint8_t>(1U<<(0x44U%8U));
+    auto seeded_world=world;
+    auto seeded_inventory=inventory;
+    const auto placed=InventoryWorldDropModel::drop(
+        seeded_world,seeded_session,seeded_inventory,
+        objects,tables,can_place,center_fraction);
+    if(placed.status!=InventoryWorldDropStatus::Dropped) {
+        output.status=Level16RitualCompletionStatus::InvalidPlacement;
+        return output;
+    }
+    output.placed_seed_index=placed.loose_item_index;
+
+    // Preflight 15050's cursor-first/party-first/world-fallback
+    // allocation on copies, too. When the final seed would
+    // occupy the 300th slot, 15050's later 2195C append may
+    // evict another oldest source record. Do not play the
+    // 182-frame event and then discover a broken inventory.
+    auto preview_world=seeded_world;
+    auto preview_inventory=seeded_inventory;
+    auto preview_party=seeded_session.party;
+    const auto grant_preview=HolySymbolRewardModel::
+        grant_with_world_15050(
+            preview_party,preview_inventory,preview_world,
+            seeded_session,objects,tables,can_place,center_fraction);
+    if(grant_preview.status==
+        HolySymbolGrantStatus::WorldPlacementRejected ||
+       grant_preview.status==HolySymbolGrantStatus::NeedsWorldSpawn) {
+        output.status=
+            Level16RitualCompletionStatus::RewardPlacementRejected;
+        return output;
+    }
+
+    // At this exact boundary CODE.2 2195C has appended the
+    // seed and 21880 has set 44h, but has NOT yet called
+    // 13EF8(8) or granted object 73h. Preserve that order
+    // for the event callback, which may read live state.
+    const auto source_world=world;
+    const auto source_inventory=inventory;
+    const auto source_session=session;
+    world=std::move(seeded_world);
+    inventory=std::move(seeded_inventory);
+    session.persistent_event_flags=
+        seeded_session.persistent_event_flags;
+
+    const auto restore=[&]() {
+        world=source_world;
+        inventory=source_inventory;
+        session=source_session;
+    };
+    try {
+        const auto event_status=present_event_8();
+        if(event_status!=Level16RitualPlayback::Completed) {
+            // The complete DOS cancellation behavior of 13EF8
+            // remains outside the current native transcript.
+            // Native failure-atomic policy: no completed quest,
+            // duplicate grant or stuck 44h bit after Escape/Quit.
+            restore();
+            output.status=
+                event_status==Level16RitualPlayback::Quit
+                ? Level16RitualCompletionStatus::Quit
+                : Level16RitualCompletionStatus::Escaped;
+            return output;
+        }
+        // 21880: AFTER 13EF8 returns, invoke 15050(0x73).
+        // No world effect is fabricated; the full 15050 branch
+        // is now source-backed through cursor, party or 2195C.
+        output.reward=HolySymbolRewardModel::grant_with_world_15050(
+            session.party,inventory,world,session,
+            objects,tables,can_place,center_fraction);
+        if(output.reward.status==
+                HolySymbolGrantStatus::WorldPlacementRejected ||
+           output.reward.status==
+                HolySymbolGrantStatus::NeedsWorldSpawn) {
+            restore();
+            output.status=
+                Level16RitualCompletionStatus::RewardPlacementRejected;
+            return output;
+        }
+    } catch(...) {
+        restore();
+        throw;
+    }
+    output.status=Level16RitualCompletionStatus::Completed;
+    return output;
 }
 
 } // namespace rloft
