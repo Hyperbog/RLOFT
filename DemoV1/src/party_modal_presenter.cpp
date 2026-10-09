@@ -462,8 +462,11 @@ PartyModalPresenter::equipment_hit_at(
 
 void PartyModalPresenter::draw_open_container(
     IndexedFramebuffer& framebuffer,
-    const InventoryRuntimeState& inventory) const {
+    const InventoryRuntimeState& inventory,
+    const std::array<bool,4>& character_mode) const {
     if(!inventory.open_container)return;
+    if(inventory.open_container->actor>=character_mode.size() ||
+       character_mode[inventory.open_container->actor])return;
     const auto& context=*inventory.open_container;
     if(context.actor>=PartyImage::kActorCount ||
        context.descriptor_index>=inventory.containers.size())
@@ -601,7 +604,7 @@ PartyModalCoverage PartyModalPresenter::draw(
         0x1A);
 
     if(inventory!=nullptr) {
-        draw_open_container(framebuffer,*inventory);
+        draw_open_container(framebuffer,*inventory,character_mode);
         draw_held_cursor_and_description(
             framebuffer,*inventory,pointer);
     }
