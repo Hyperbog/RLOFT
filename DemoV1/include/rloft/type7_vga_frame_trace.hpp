@@ -20,9 +20,22 @@ struct Type7VgaFrameTrace final {
     std::size_t unresolved_wide_runs{};
 };
 
+// A local failure must never discard already-valid, independently
+// recoverable original draw calls from a different RES3 source.
+struct Type7VgaSceneTraceFailure final {
+    std::size_t call_index{};
+    std::uint16_t source_class{};
+    std::uint16_t source_index{};
+    std::uint16_t resource_id{};
+    std::string reason;
+};
+
 struct Type7VgaFrameTraceAttempt final {
     std::optional<Type7VgaFrameTrace> trace;
+    // Fatal frame-wide validation errors (e.g. an invalid VGA page).
     std::optional<std::string> failure;
+    // Nonfatal, source-indexed errors; corresponding trace slots are null.
+    std::vector<Type7VgaSceneTraceFailure> scene_failures;
 };
 
 class Type7VgaFrameTraceModel final {
