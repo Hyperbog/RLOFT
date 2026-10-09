@@ -330,4 +330,28 @@ InventoryWorldDropResult InventoryWorldDropModel::drop(
     return result;
 }
 
+InventoryWorldDropResult
+InventoryWorldDropModel::spawn_holy_symbol_reward_15050(
+    LevelWorldState& world,
+    const ExplorationSessionState& session,
+    const ObjectCatalog& objects,
+    const RendererTables& tables,
+    const PlacementProbe& can_place,
+    bool center_fraction) {
+    // Original 15050 falls through 1511F ONLY when cursor
+    // and all eligible ordinary party slots are occupied.
+    // 1511F..1513C calls 2195C(0x80,0x73,0,player_x,
+    // player_y,1,0). Its final clear-held argument is ZERO.
+    // Project the same original 2195C placement via an
+    // ephemeral object cursor. The caller's actual held
+    // item is neither passed nor changed, and even an
+    // unsuccessful world placement cannot lose the reward.
+    InventoryRuntimeState source_parameters{};
+    source_parameters.held={
+        static_cast<std::int16_t>(
+            Level16SeedRitualCheck::kGrantedObjectId),0U};
+    return drop(world,session,source_parameters,
+                objects,tables,can_place,center_fraction);
+}
+
 } // namespace rloft
