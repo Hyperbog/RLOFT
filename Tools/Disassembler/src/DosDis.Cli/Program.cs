@@ -37,10 +37,11 @@ static void Print(object payload) => Console.WriteLine(JsonSerializer.Serialize(
 
 try
 {
-    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report" or "mz" or "mz-disasm" or "com" or "com-disasm" or "overlay" or "overlay-disasm"))
+    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report" or "mz" or "mz-disasm" or "com" or "com-disasm" or "overlay" or "overlay-disasm" or "overlay-map"))
     {
         Console.Error.WriteLine("Usage: dosdis inspect|mz|mz-disasm|com|com-disasm|overlay|overlay-disasm|fixups|memory|disasm|analyze|report <file> [options]\n" +
-            "Overlay: envelope inspection; overlay-disasm --regions manifest.json --region ID [--offset 0] [--count 32]\n" +
+            "Overlay: container inspection; overlay-map --resident START.EXE (validated MZ directory)\n" +
+            "Overlay-disasm: --regions manifest.json --region ID [--offset 0] [--count 32]\n" +
             "COM: explicitly selected headerless mode [--origin 100] (hex); com-disasm [--offset 100] [--count 32]\n" +
             "MZ: verified DOS MZ header/relocations; mz-disasm [--segment 0] [--offset 0] [--count 32] (x86-16 candidates)\n" +
             "Analyze/report: [--seed 1:0x2975C] [--data 1:0x100:0x110] [--include-entry] [--max-instructions 100000] [--relocated]\n" +
@@ -58,7 +59,7 @@ try
     var catalog = args.Contains("--identity-catalog", StringComparer.Ordinal)
         ? SourceIdentityRegistry.ReadFile(Option(args, "--identity-catalog", "")) : null;
     LeImage? image = null;
-    if (args[0] is not ("mz" or "mz-disasm" or "com" or "com-disasm" or "overlay" or "overlay-disasm"))
+    if (args[0] is not ("mz" or "mz-disasm" or "com" or "com-disasm" or "overlay" or "overlay-disasm" or "overlay-map"))
     {
         try { image = LeImage.Load(artifact); }
         catch (InvalidDataException) when (args[0] == "inspect") { /* Identify signature, not fake mapped code. */ }
@@ -108,13 +109,21 @@ try
                 Instructions = com.Decode(offset, count) });
         }
     }
-    else if (args[0] == "overlay" || args[0] == "overlay-disasm")
+    else if (args[0] is "overlay" or "overlay-disasm" or "overlay-map")
     {
         var overlay = DosOverlayImage.LoadEnvelope(artifact);
         if (args[0] == "overlay")
         {
             Print(new { overlay.Envelope, MappingStatus =
                 "container-envelope-only;internal-code-and-fixups-unverified" });
+        }
+        else if (args[0] == "overlay-map")
+        {
+            if (args.Count(x => x == "--resident") != 1)
+                throw new ArgumentException("overlay-map requires exactly one --resident EXE path.");
+            var residentArtifact = BinaryArtifact.Open(Option(args, "--resident", ""));
+            var resident = DosMzImage.Load(residentArtifact);
+            Print(DosOverlayDirectoryRecovery.Recover(resident, overlay));
         }
         else
         {
