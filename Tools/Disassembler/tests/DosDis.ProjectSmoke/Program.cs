@@ -83,6 +83,12 @@ try
         }
         catch (InvalidDataException) { otherGameRejected = true; }
         Require(otherGameRejected, "same SHA-256 must not silently change game identity");
+        bool conflictingModuleRejected = false;
+        try { project.SaveNamedSymbol(source with { Module = "ANOTHER.CODE.1" },
+            1, 2, "analyst", "foreign-module-name", "", 0); }
+        catch (InvalidDataException) { conflictingModuleRejected = true; }
+        Require(conflictingModuleRejected,
+            "function labels cannot be saved under conflicting source module metadata");
         bool fakeVerifiedRejected = false;
         try { project.EnsureSourceIdentity(source with {
             IdentityStatus = "verified-sha256-fingerprint" }); }
