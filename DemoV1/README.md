@@ -1,5 +1,51 @@
 # Ravenloft Demo Build v1
 
+## Part 8 extended — multi-actor original containers and phase artwork
+
+New CODE.2 source verification at `12E70/11C3C`
+closes the original per-actor click-routing gap:
+inventory container grid clicks now select the
+actor at the clicked 80-pixel column, verify that
+actor's `6FA0` subtype/index/full-width equipped
+hand item, and use the source descriptor grid.
+One open actor panel no longer closes another.
+The native selected `open_container` is an
+interaction convenience, NOT a saved global owner.
+
+Original SAVEs can now restore **multiple fully
+open phase3 actor containers** when each matches
+its own original OBJECTS descriptor/hand unambiguously.
+The 62 serialized container records, all four
+raw 6FA0 contexts and all other original SAVE
+bytes retain their original encoding. A currently
+unselected native view does not invalidate other
+active source contexts.
+
+A new original disassembly distinction is also
+preserved: **110B4 animated closure** leaves
+`FF FF 00 FF`, whereas **21648 hand transfer**
+writes `FF FF FF FF` before an optional direct
+phase3 reopen. These paths no longer share an
+incorrect sentinel. Source CODE.2 `10AA7`
+transition art for phases 1/2 is now rendered
+using original RES2 bank 2 graphic
+`0x14+2*subtype+phase-1` at row `0xC4`;
+phase3 keeps original `9+subtype` artwork
+at row `0xCE`.
+
+Existing SAVE, inventory, hit-testing and
+inventory-screen assertions now cover cross-actor
+selection, simultaneous state roundtrips,
+close/reset semantics, corrupt context rejection,
+and all seven source transition-art subtypes.
+**Registered CTests remain 170; Quick 19**.
+No build or test execution was dispatched.
+The original animation phase/IRQ/page timing
+and full-world SAVE/LOAD are still pending.
+Inventory and game fidelity remain **partial**;
+engineering tracker **56.25%**.
+
+
 ## Part 8 continuation — original container UI 6FA0 state restored
 
 The original CODE.2 disassembly closed an important SAVE/UI
@@ -32,13 +78,15 @@ context records along when party characters exchange
 positions. The presenter draws complete phase3
 container contents for every actor lane using the
 real original RES1/RES2 graphics. Native
-`open_container` still models only **one interactive
-selection**; complete multiple-active-context LOAD,
-multi-panel click dispatch and faithful original
-partial-animation VGA page timing remain pending.
-Those source bytes continue to roundtrip through
-the standalone codec, even when an interactive LOAD
-is rejected.
+`open_container` denotes only the **current clicked
+interaction selection**. All four original actor
+contexts now load and remain independent; pointer
+clicks switch selection by the clicked 80-pixel
+actor column, and original SAVE export verifies each
+active context. Interrupted partial-animation SAVE
+states still roundtrip as raw bytes but remain
+load-unsupported until original page-flip/IRQ
+progression is integrated.
 
 Regression assertions for original 6FA0 phase progression,
 closed-state bytes, phase3 roundtrips, 8-bit ID aliasing,
