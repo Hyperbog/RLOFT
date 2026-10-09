@@ -1288,3 +1288,70 @@ completed quest. No Windows build or CTest
 run was initiated. Registered CTests **170**,
 Quick **19**, engineering tracker **56.25%**,
 inventory **PARTIAL**.
+
+
+### Source-bounded Holy Symbol reward transfer (CODE.2 15050)
+
+Further original CODE.2 disassembly at `15050..15142`
+confirmed exactly how the reward item from
+the four-Seed ritual is distributed.
+The supplied OBJECTS.DAT record **0x73 (115)**
+is the **HOLY SYMBOL OF RAVENKIND**.
+For this argument, unrelated `15050` special
+cases for object IDs `0x90/0x78/0x9B` do
+not fire. The source follows this sequence:
+
+1. `150AB..150C8`: if signed cursor item at
+   `0x8600` is **-1**, call `1A344(0x73,0)`,
+   equipping the reward on the *cursor* as
+   **unidentified (known byte zero)**. No party
+   or world item is modified.
+2. Otherwise `150C9..1511D` walks **active**
+   actor records in exact order **0,1,2,3**,
+   skipping character status `0x8000`.
+   For each actor it checks **ordinary inventory
+   slots 0..11** (NOT all 21 equipment/hand
+   slots), selects the first signed `-1`
+   item ID, writes `WORD=0x0073`, then calls
+   `0F238(actor,slot,0)` to **clear only the
+   corresponding known/identified bit**. The
+   previously held cursor is left unchanged.
+3. If the cursor is occupied and every eligible
+   ordinary slot is occupied, `1511F..1513C`
+   invokes `2195C` to append a **family-C
+   loose/world reward** at the current position
+   with source action `0x80` and no fabricated
+   inventory slot. This invokes the usual
+   authored placement/eviction semantics.
+
+The new `HolySymbolRewardModel::grant_15050()`
+implements only this verified `0x73` case:
+the empty-cursor and first-free-party routes
+mutate exactly their source-owned item/known
+bytes; `NeedsWorldSpawn` returns without any
+mutation when the original world-placement
+fallback is required. The latter remains
+a separate effect handoff, not a dropped reward.
+
+**Important**: the Level16 4-seed completion
+still returns `SourceSpecialActionPending`
+without setting event `0x44`. The new
+reward helper is *not invoked prematurely*
+because original numbered event `13EF8(8)`
+must execute before reward routine `15050`.
+This avoids skipping original story presentation
+while preserving a fully source-backed future
+reward-transfer implementation.
+
+`inventory_world_drop_tests` now additionally
+covers cursor-known reset on receipt, first
+empty ordinary slot, actor 0→3 priority
+with inactive characters skipped, slot
+known-bit clearing, held cursor preservation
+during party insertion, and nonmutating
+full-party/full-cursor world fallback.
+This is an expansion of the existing CTest,
+not a new registered test. Registered
+**170 CTests / 19 Quick**, still unexecuted
+on current source. The engineering score
+remains **56.25%** and inventory is PARTIAL.
