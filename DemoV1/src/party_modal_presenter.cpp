@@ -500,13 +500,12 @@ void PartyModalPresenter::draw_open_container(
         // VGA retrace schedule and buffer-flip ordering.
         if(ui.active() && (ui.raw[2]==1U || ui.raw[2]==2U)) {
             if(ui.raw[0]<7U) {
-                const auto graphic=0x14U+
-                    static_cast<unsigned>(ui.raw[0])*2U+
-                    static_cast<unsigned>(ui.raw[2])-1U;
+                const auto graphic=InventoryScreenModel::
+                    original_container_transition_res2_graphic(
+                        ui.raw[0],ui.raw[2]);
                 const int lane=static_cast<int>(actor)*0x50;
                 framebuffer.draw_frame(
-                    assets_.type1(2,static_cast<int>(graphic)),
-                    0,0xC4,lane);
+                    assets_.type1(2,graphic),0,0xC4,lane);
             }
             continue;
         }
