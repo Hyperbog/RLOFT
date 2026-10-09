@@ -271,6 +271,19 @@ try
         "CS near pointer target remains candidate");
     Equal(nearPointers.Candidates[0].TargetFileOffset, 0x20L,
         "CS near pointer destination maps original source bytes");
+    var mzNearFixup = (byte[])mzBytes.Clone();
+    new byte[] { 0x2E, 0xFF, 0x26, 0x10, 0x00 }
+        .CopyTo(mzNearFixup, 0x20); // CS:[0010h]
+    MzWord(mzNearFixup, 0x30, 0x20);
+    mzNearFixup[0x40] = 0xC3;
+    MzWord(mzNearFixup, 0x1C, 0x10); // MZ loader relocates near word itself
+    var mzNearSource = DosMzImage.Load(BinaryArtifact.FromBytes(mzNearFixup));
+    var mzNearRegion = mzNearSource.CreateEntryCodeRegion();
+    var mzNearGraph = Dos16ControlFlowAnalysis.Analyze(mzNearRegion, 0);
+    Equal(Dos16IndirectPointerRecovery.Inspect(mzNearRegion, mzNearGraph,
+        mzNearSource).CandidateSites, 0,
+        "near CS pointer with overlapping MZ loader fixup is not source-stable");
+
     var mismatchedOpcodeLine = indirectGraph with {
         Instructions = indirectGraph.Instructions.Select(x =>
             x with { OriginalBytes = "DEADBEEF00" }).ToArray()
@@ -401,6 +414,9 @@ try
     Equal(Dos16DispatchTableRecovery.Inspect(farDispatchRegion,
         farDispatchGraph, farDispatchManifest).Candidates, 0,
         "FAR dispatch table requires MZ relocation and explicit load-base evidence");
+    Equal(Dos16DispatchTableRecovery.Inspect(farDispatchRegion,
+        farDispatchGraph, farDispatchManifest, farDispatchMz).Candidates, 0,
+        "MZ geometry alone cannot invent relocated FAR table selectors");
     var farMissingFixupBytes = (byte[])farDispatchBytes.Clone();
     MzWord(farMissingFixupBytes, 0x20, 0x38);
     var farMissingFixupMz = DosMzImage.Load(
