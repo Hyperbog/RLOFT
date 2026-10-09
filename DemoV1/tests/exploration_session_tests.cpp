@@ -1,8 +1,12 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include "rloft/exploration_session.hpp"
 
 #include <algorithm>
 #include <cassert>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 int main() {
@@ -57,6 +61,45 @@ int main() {
         session.persistent_event_flags.begin(),
         session.persistent_event_flags.end(),
         [](std::uint8_t value) { return value == 0; }));
+
+    // Fresh CODE.1 -> CHARS -> CODE.2 transfer must preserve BOTH
+    // created actors byte for byte: portraits, starting equipment,
+    // class/stats and the unowned raw state. SAVE.DAT is NOT a source.
+    auto created=chars;
+    const auto actor1=rloft::PartyImage::kActorSize;
+    std::fill(created.begin()+static_cast<std::ptrdiff_t>(actor1),
+              created.begin()+static_cast<std::ptrdiff_t>(actor1+16U),0U);
+    created[actor1]='B';
+    created[actor1+1U]='E';
+    created[actor1+0x10U]=0U;
+    created[actor1+0x11U]=0U;
+    created[0x12U]=7U;
+    created[actor1+0x12U]=9U;
+    created[0x40U]=0x2AU;
+    created[0x41U]=0U;
+    created[actor1+0x40U]=0x3BU;
+    created[actor1+0x41U]=0U;
+    rloft::LevelState fresh_level{};
+    fresh_level.width=30;
+    fresh_level.height=15;
+    fresh_level.cell_words.assign(450U,0U);
+    auto fresh=rloft::ExplorationSessionState::fresh_party(
+        rloft::PartyImage::from_bytes(created),
+        std::move(fresh_level));
+    assert(fresh.party.name(0)=="ANN");
+    assert(fresh.party.name(1)=="BE");
+    assert(fresh.party.active(0));
+    assert(fresh.party.active(1));
+    assert(fresh.party.bytes[0x12U]==7U);
+    assert(fresh.party.bytes[actor1+0x12U]==9U);
+    assert(fresh.party.bytes[0x40U]==0x2AU);
+    assert(fresh.party.bytes[actor1+0x40U]==0x3BU);
+    assert(std::equal(created.begin(),created.end(),
+                      fresh.party.bytes.begin()));
+    assert(fresh.level_id==rloft::ExplorationSessionState::kFreshLevelId);
+    assert(fresh.coordinate_a==rloft::ExplorationSessionState::kFreshCoordinateA);
+    assert(fresh.coordinate_b==rloft::ExplorationSessionState::kFreshCoordinateB);
+    assert(fresh.facing==rloft::ExplorationSessionState::kFreshFacing);
 
     rejected = false;
     try {
