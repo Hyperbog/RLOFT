@@ -102,4 +102,25 @@ int main() {
     assert(!failed_main.complete());
     failed_main.sintab_main_runs_failed = 0U;
     assert(failed_main.complete());
+
+    // A RES3 source that fails before projection has unknown visibility.
+    // It must not be reported as a completely occluded or complete frame.
+    auto failed_plan_frame=frame;
+    failed_plan_frame.scene_plan_failures.push_back(
+        rloft::WorldSceneRenderPlanFailure{
+            0U,1U,17U,4020U,"original RES3 unavailable"
+        });
+    const auto bad_plan_coverage=
+        rloft::ExplorationPresenter::surface_coverage(
+            failed_plan_frame,tables);
+    assert(bad_plan_coverage.type7_plan_calls_failed==1U);
+    assert(bad_plan_coverage.type7_scene_calls_pending==0U);
+    assert(!bad_plan_coverage.complete());
+
+    auto bad_raster=complete;
+    bad_raster.type7_calls_failed=1U;
+    assert(!bad_raster.complete());
+
+    // Clean frames with no RES3 source or raster failure remain complete.
+    assert(complete.complete());
 }
