@@ -642,7 +642,7 @@ InventoryHandSwapStatus InventoryRuntimeState::swap_hand_slot(
     // The container view may no longer refer to its old hand object.
     // The caller opens the new container explicitly, after a successful
     // original hand transfer; we never retain a stale view across swaps.
-    close_container();
+    close_actor_container(actor);
     if(incoming>=0) {
         const auto& equipped=objects.at(
             static_cast<std::size_t>(incoming));
@@ -788,7 +788,7 @@ InventoryEquipmentStatus InventoryRuntimeState::swap_equipment_slot(
     if(open_container &&
        open_container->actor==actor &&
        open_container->object_id==current) {
-        close_container();
+        close_actor_container(actor);
     }
     return InventoryEquipmentStatus::Swapped;
 }
@@ -907,9 +907,10 @@ InventoryContainerStatus InventoryRuntimeState::open_hand_container(
        containers[index].slot_count==0U ||
        containers[index].items.size()!=containers[index].slot_count)
         return InventoryContainerStatus::Unsupported;
-    // If a former actor's menu is replaced, 110B4 leaves that
-    // actor's phase zero. Other actor contexts remain untouched.
-    close_container();
+    // Replacing this actor's own view closes/replaces only their
+    // context. CODE.2 stores all four 6FA0 records independently;
+    // selecting another actor must not close unrelated panels.
+    close_actor_container(actor);
     open_container=OpenInventoryContainer{actor,hand,id,index};
     // CODE.2 21693 establishes phase 3 directly for a container
     // transferred into a hand. A native inventory click presents
@@ -919,6 +920,60 @@ InventoryContainerStatus InventoryRuntimeState::open_hand_container(
         containers[index].subtype,
         static_cast<std::uint8_t>(index),id);
     return InventoryContainerStatus::Opened;
+}
+
+InventoryContainerStatus InventoryRuntimeState::select_container_actor(
+    const PartyImage& party,const ObjectCatalog& objects,
+    std::size_t actor) {
+    if(actor>=PartyImage::kActorCount)
+        throw std::out_of_range("6FA0 actor selector");
+    const auto& context=party_container_ui_contexts[actor];
+    if(!context.fully_open() || !party.active(actor))
+        return InventoryContainerStatus::Unsupported;
+    const auto index=static_cast<std::size_t>(context.raw[1]);
+    if(index>=kSerializedContainerCount || index>=containers.size())
+        return InventoryContainerStatus::Unsupported;
+    const auto& descriptor=containers[index];
+    if(descriptor.slot_count==0U || descriptor.ui_columns==0U ||
+       descriptor.slot_count%descriptor.ui_columns!=0U ||
+       descriptor.items.size()!=descriptor.slot_count ||
+       descriptor.subtype!=context.raw[0])
+        return InventoryContainerStatus::Unsupported;
+
+    // 6FA3 stores only the low eight bits of the original item
+    // ID. Check the COMPLETE 16-bit hand contents and OBJECTS
+    // state selector; never choose arbitrarily if both hands
+    // qualify (e.g. IDs 2 and 258 share the low byte).
+    std::optional<OpenInventoryContainer> match;
+    for(std::size_t hand=0U;hand<2U;++hand) {
+        const auto id=party_item(party,actor,14U+hand);
+        if(id<0 || static_cast<std::uint8_t>(id)!=context.raw[3] ||
+           static_cast<std::size_t>(id)>=objects.size())
+            continue;
+        const auto& item=objects.at(static_cast<std::size_t>(id));
+        if(item.item_category!=1U || item.container_state_index<0 ||
+           static_cast<std::size_t>(item.container_state_index)!=index)
+            continue;
+        if(match) return InventoryContainerStatus::Unsupported;
+        match=OpenInventoryContainer{actor,hand,id,index};
+    }
+    if(!match)return InventoryContainerStatus::Unsupported;
+    open_container=*match;
+    return InventoryContainerStatus::Opened;
+}
+
+InventoryContainerStatus InventoryRuntimeState::swap_actor_container_slot(
+    const PartyImage& party,const ObjectCatalog& objects,
+    std::size_t actor,std::size_t slot) {
+    if(actor>=PartyImage::kActorCount)
+        throw std::out_of_range("CODE.2 container click actor");
+    // Switching native selection does not close or rewrite the
+    // previous actor's saved 6FA0 context. The precise 11C3C
+    // transfer still goes through the existing guarded swap.
+    if(select_container_actor(party,objects,actor)!=
+       InventoryContainerStatus::Opened)
+        return InventoryContainerStatus::Unsupported;
+    return swap_open_container_slot(party,objects,slot);
 }
 
 InventoryContainerStatus InventoryRuntimeState::put_held_in_container_slot(
