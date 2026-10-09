@@ -1,5 +1,30 @@
 # Ravenloft Demo Build v1
 
+## Current next-build graphical milestone — original C029 wide RES3 pixels
+
+[Full original-code checkpoint](LEVEL22_CODE2_C029_INDIVIDUAL_RES3_WIDE_PIXELS_20261008.md):
+the supplied CODE.2 initial `C029=1` enables an original
+**one-pixel-at-a-time RES3 sprite raster mode**. Previously, the
+native engine incorrectly rejected ALL RES3 source runs wider
+than seven even in this mode. It now keeps the original run
+width unchanged and executes certified width-one VGA passes
+and generated SINTAB code for each destination column,
+supporting source spans **8..255** when C029 is individual.
+Grouped mode continues to reject unsupported widths above
+seven; a 256-column source span still needs separate proof.
+
+Tests cover actual eight-pixel, two-VGA-byte indexed SINTAB
+raster output, 12-column complete descriptors, 19/255-column
+VGA masks, exact ECX odd-column parity, and original
+256-ray clipping. The opt-in capture additionally reports
+the active C029 mode, original unsplit scene run widths
+and 16.16 source camera coordinates. No approximations
+or changes to copyrighted resources were introduced.
+
+**Source-only until a new manually initiated Windows build.**
+Last green run #638 preceded this renderer update; full
+DOS pixel/IRQ parity and acceptance remain pending.
+
 ## Full RES3 source-isolated planning and indexed comparison (current source)
 
 [Large source checkpoint](LEVEL22_RES3_FULL_PIPELINE_CAPTURE_AND_COMPARE_20261008.md):
