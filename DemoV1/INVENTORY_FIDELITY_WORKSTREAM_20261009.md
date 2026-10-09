@@ -1210,9 +1210,16 @@ The original conditions are exactly:
    DWORDs nonzero. On success `21935..21950` calls
    `1C124(0x44)` (set persistent story flag),
    `13EF8(8)`, then `15050(0x73)` in that order.
-   These last two routines are separate authored
-   effects; treating them as optional or immediately
-   marking the story completed would be unfaithful.
+   Cross-references certify `13EF8` as the numbered
+   interactive presentation runner, so **8 is the
+   original numbered event**. Direct disassembly of
+   `15050..15142` establishes that `0x73` is a
+   granted OBJECTS ID, **HOLY SYMBOL OF RAVENKIND**
+   in the supplied object database. It first offers
+   the reward to an empty cursor, otherwise the first
+   free party inventory slot, otherwise family-C
+   world placement. Do not skip or prematurely set
+   the persistent quest flag without those actions.
 6. The caller at `21AC7..21AD6` invokes this
    check after a successful `2195C` append only
    when the incoming item ID is `0x89`. The world
@@ -1234,9 +1241,10 @@ world state or event flags:
   `ReadyForSourceActions` only when all four present;
 - optional newly inserted seed candidate and correct
   300-record first-item eviction modeling;
-- literal pending follow-on arguments **8** and
-  **0x73**, explicitly tied to
-  `13EF8` and `15050`.
+- the original follow-ons: numbered interactive
+  event **8** through `13EF8`, followed by
+  `15050(0x73)`, granting object 115
+  **HOLY SYMBOL OF RAVENKIND**.
 
 `InventoryWorldDropModel::drop()` now performs
 ordinary original position/geometry/overflow
@@ -1255,8 +1263,9 @@ state *without first changing the world*:
   source sites while flag 0x44 is unset:
   **`SourceSpecialActionPending`**, with
   original world array and held cursor unchanged,
-  because native `13EF8(8)` /
-  `15050(0x73)` effect bindings are still absent.
+  because native numbered-event-8 presentation
+  and original HOLY SYMBOL OF RAVENKIND reward
+  grant bindings are still absent.
   The native port does NOT mark the story flag,
   drop the triggering fourth seed, or falsely
   claim the original sequence occurred.
