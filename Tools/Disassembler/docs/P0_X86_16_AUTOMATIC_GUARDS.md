@@ -179,3 +179,35 @@ forged nonadjacent fallthrough, and a graph-entry backedge.
 **This is source-only:** no new Windows build, synthetic suite execution
 or real original-binary validation occurred in this checkpoint. All
 returned targets remain unverified candidates.
+
+## Exact accumulator comparison and two-step far16 stride
+
+The unsigned `CMP AX,imm16` accumulator encoding `3D iw` is recognized
+as an alternative to the longer ModRM encoding **only** if an exact
+source-backed `MOV BX,AX` follows the proven guard. `CMP AX,imm8` or
+8-bit accumulator instructions are not implicitly widened; the immediate
+bound remains limited to 0–255 and the branch must use its exact
+unsigned condition. A bound on AX cannot be transferred through
+`MOV BX,CX`.
+
+Four-byte FAR pointer tables now also accept **two provably linked BX
+doublings** (for example `SHL BX,1; SHL BX,1`, or `ADD BX,BX;
+SHL BX,1`) instead of only `SHL BX,2`. Each doubling must match one
+of `D1 E3`, `C1 E3 01`, `01 DB` or `03 DB`. Both must appear along
+a uniquely validated, bounded original-byte path; no intervening
+register-writing instruction is allowed. The small unsigned index bound
+guarantees fourfold scaling does not wrap a 16-bit register.
+
+**Crucially, neither the extra encoding nor the stride pattern bypasses
+far pointer verification:** every 4-byte table entry must still have
+independent MZ relocation evidence at its selector field and an
+explicitly hypothesized DOS load segment for address mapping.
+An unsupported/missing fixup, wrong-register ADD, single doubling,
+unsupported count, source overlap or incomplete graph rejects
+the table without CFG or function-promotion.
+
+Synthetic cases cover valid accumulator CMP, excessive immediate,
+incorrect AX register copy, two SHL variants, mixed ADD/SHL scaling,
+unrelated-register arithmetic, a single insufficient scale and
+missing relocation simulation. These cases are **added to source but
+not compiled or executed**; previous releases predate them.

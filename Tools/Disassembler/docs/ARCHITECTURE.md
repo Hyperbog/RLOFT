@@ -110,3 +110,15 @@ displacement, both outgoing CFG edges are checked, and the opposite
 edge must lead to a distinct decoded instruction. This narrows the
 space of speculative path reports without changing the CFG or
 promoting runtime addresses.
+
+## Accumulator bounds and composed x86-16 index scaling
+
+For 16-bit indexed dispatch analysis, `CMP AX,imm16` in the compact
+`3D iw` encoding is admitted only with the exact guard-specific
+`MOV BX,AX` evidence. Four-byte far-pointer indexing may use
+two uniquely connected, exact BX-doubling instructions; the index
+bound caps fourfold scaling. The same unmodified pointer validator
+still enforces every stored selector relocation and assumed load
+context. These are **local symbolic bounds**, not generalized
+register-range dataflow, proof of immutable memory or executable
+candidate reachability.

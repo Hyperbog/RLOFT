@@ -188,3 +188,14 @@ must have precisely two source-matched CFG outcomes and a uniquely
 backed selected path. Signed conditions, mismatched destinations,
 failure-path joins, unknown register state and untrusted edges remain
 unresolved. No inferred target is promoted into the recursive CFG.
+
+## Exact accumulator comparison and doubled far16 stride — source only
+
+The automatic unsigned bound pass now supports `CMP AX,imm16`
+(`3D iw`) when an independently proven `MOV BX,AX` carries
+the value to the table index. FAR stride of four can be constructed
+by two uniquely linked `SHL BX,1` or `ADD BX,BX` instructions as
+an alternative to `SHL BX,2`. Original-byte, 16-bit overflow,
+pointer-storage, MZ selector-fixup and source identity checks remain
+mandatory. This does **not** establish runtime reachability and
+does not add CFG edges.

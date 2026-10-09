@@ -549,3 +549,17 @@ edges cause rejection; dynamic or unprovable targets remain unresolved.
 [Updated guard proof and failure modes](docs/P0_X86_16_AUTOMATIC_GUARDS.md).
 Added synthetic regression cases are **not yet executed**. The last
 published Windows preview predates these source changes.
+
+## P0 source checkpoint — accumulator CMP and far index scaling
+
+Generic 16-bit automatic table recovery now also recognizes the exact
+accumulator `CMP AX,imm16` (`3D iw`) paired with a validated
+`MOV BX,AX` guard. Far pointer arrays accept either `SHL BX,2`
+or two separate source-backed `BX *= 2` operations using
+`SHL BX,1` / `ADD BX,BX`, provided the selected path is unique.
+Every FAR selector still requires a matching MZ relocation and
+an explicit simulated load segment; runtime transfer paths remain
+candidate-only. Additional positive and negative synthetic cases
+have been added, **not run**.
+
+[Technical guard and stride evidence](docs/P0_X86_16_AUTOMATIC_GUARDS.md).
