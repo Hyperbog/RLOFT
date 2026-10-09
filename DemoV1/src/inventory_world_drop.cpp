@@ -354,4 +354,35 @@ InventoryWorldDropModel::spawn_holy_symbol_reward_15050(
                 objects,tables,can_place,center_fraction);
 }
 
+HolySymbolGrantResult HolySymbolRewardModel::grant_with_world_15050(
+    PartyImage& party,
+    InventoryRuntimeState& inventory,
+    LevelWorldState& world,
+    const ExplorationSessionState& session,
+    const ObjectCatalog& objects,
+    const RendererTables& tables,
+    const std::function<bool(
+        std::uint32_t,std::uint32_t,std::uint32_t)>& can_place,
+    bool center_fraction) {
+    // Source 15050 first tries held cursor, then first ordinary
+    // inventory slot among active party members. Only the
+    // unoccupied/full-party case reaches 1511F world creation.
+    auto reward=grant_15050(party,inventory);
+    if(reward.status!=HolySymbolGrantStatus::NeedsWorldSpawn)
+        return reward;
+    const auto spawn=InventoryWorldDropModel::
+        spawn_holy_symbol_reward_15050(
+            world,session,objects,tables,can_place,center_fraction);
+    if(spawn.status==InventoryWorldDropStatus::Dropped) {
+        reward.status=HolySymbolGrantStatus::SpawnedInWorld;
+        reward.loose_item_index=spawn.loose_item_index;
+    } else {
+        // Not a completed original 15050 reward. The call did
+        // not make irreversible changes to cursor, party or
+        // world; leave event-8 completion orchestration pending.
+        reward.status=HolySymbolGrantStatus::WorldPlacementRejected;
+    }
+    return reward;
+}
+
 } // namespace rloft
