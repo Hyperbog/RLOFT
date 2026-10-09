@@ -493,15 +493,20 @@ void PartyModalPresenter::draw_open_container(
     const auto& desc=inventory.containers[context.descriptor_index];
     if(desc.ui_columns==0U || desc.slot_count==0U ||
        desc.items.size()!=desc.slot_count)return;
-    // Original 11C3C: slot positions are derived from live ten-byte
-    // descriptor columns/x-offset. Source objects themselves are
-    // always drawn with genuine RES1 + OBJECTS UI sprite indices.
-    // Original 10A70 mode3 4BA48..4BA65 clears EXACTLY a 32-row
-    // by 16-column black cell at each descriptor-derived location.
-    // It does not draw a gray border around every item cell.
-    // The separate original 0x69434 panel line/surround must be
-    // reconstructed independently; never fabricate per-cell rims.
+    // CODE.2 10A70 4B9EF..4BA03 resolves bank 2, graphic
+    // 0x09+the live container subtype, then 69434 paints it at
+    // VGA row 0xCE / character column origin. This is the REAL
+    // original ornamental surround (including gray shaped rim)
+    // observed in DOS: never replace it with procedural borders.
     const int lane=static_cast<int>(context.actor)*0x50;
+    const auto panel_art=assets_.type1(
+        2,InventoryScreenModel::original_container_res2_graphic(
+            desc.subtype));
+    framebuffer.draw_frame(panel_art,0,0xCE,lane);
+
+    // CODE.2 10A70 4BA48..4BA65 then clears each 32-row by
+    // 16-column black cell on TOP of the RES2 surround, using
+    // original descriptor columns/x-offset and original item art.
     for(std::size_t index=0U;index<desc.items.size();++index) {
         const int row=0xDB+static_cast<int>(index/desc.ui_columns)*0x22;
         const int column=lane+desc.ui_x_offset+
