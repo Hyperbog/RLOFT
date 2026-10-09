@@ -248,6 +248,17 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
     out.source_coordinate_b = session_.coordinate_b;
     out.source_facing = session_.facing;
     out.source_level_id = session_.level_id;
+    // CODE.2 1F1F5..1F223 takes high 8 of each low
+    // 16.16 coordinate word as its C044/C048 texture phase.
+    // 34998 regenerates FF58 when heading changes; deriving it
+    // here is idempotent and exact for this original C658 value.
+    out.ground_phase_u=static_cast<std::uint8_t>(
+        (session_.coordinate_a >> 8U)&0xFFU);
+    out.ground_phase_v=static_cast<std::uint8_t>(
+        (session_.coordinate_b >> 8U)&0xFFU);
+    out.ground_ff58=OriginalGroundTextureRaster::generate_ff58(
+        renderer_tables_,session_.facing);
+    out.ground_perspective_ready=true;
     out.scene_video_page = scene_video_page_;
     out.scene_individual_columns_mode =
         scene_individual_columns_mode_;
