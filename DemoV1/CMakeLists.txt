@@ -1043,6 +1043,10 @@ if(WIN32)
     endif()
 endif()
 
+add_executable(original_numbered_effect_flags_tests tests/original_numbered_effect_flags_tests.cpp)
+target_link_libraries(original_numbered_effect_flags_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_numbered_effect_flags_tests COMMAND original_numbered_effect_flags_tests)
+
 add_executable(original_mist_staging_tests tests/original_mist_staging_tests.cpp)
 target_link_libraries(original_mist_staging_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_mist_staging_tests COMMAND original_mist_staging_tests)
