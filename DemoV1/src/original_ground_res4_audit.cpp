@@ -82,6 +82,17 @@ OriginalGroundRes4Report OriginalGroundRes4Audit::inspect(
     return result;
 }
 
+int OriginalGroundRes4Audit::base_from_init(
+    const std::vector<std::uint8_t>& original_init) {
+    if(original_init.size()<0x10U) {
+        throw std::invalid_argument(
+            "original INIT truncated before CODE.2 RES4 base at +0x0E");
+    }
+    return static_cast<int>(
+        static_cast<std::uint16_t>(original_init[0x0EU]) |
+        (static_cast<std::uint16_t>(original_init[0x0FU])<<8U));
+}
+
 int OriginalGroundRes4Audit::absolute_index(
     int source_relative_selector, int verified_runtime_base,
     int original_entry_count) {
