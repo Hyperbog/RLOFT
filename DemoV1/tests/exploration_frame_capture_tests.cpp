@@ -112,6 +112,8 @@ int main() {
            std::string::npos);
     assert(tsv.find("provenance\tnative-preview-not-original-DOS")!=
            std::string::npos);
+    assert(tsv.find("source_revision\tlocal-unversioned")!=
+           std::string::npos);
     assert(tsv.find("mask_origin\timmutable CODE.2 object-2")!=
            std::string::npos);
     assert(tsv.find("run\tmain\t3\t9\t3\t33\t15\t5\t243\t64\t578\t7\t2")!=
@@ -163,12 +165,15 @@ int main() {
     presentation.type7_scene_outcomes[0]=
         Type7SceneRenderOutcome::TraceUnavailable;
     ExplorationFrameCapture::write(
-        dir,{3U,22U,4,5,261U},frame,presentation,image,code2);
+        dir,{3U,22U,4,5,261U},frame,presentation,image,code2,
+        "abcdef0123456789");
     std::ifstream third(dir/"frame_0003.tsv",std::ios::binary);
     assert(third);
     const std::string third_tsv{
         std::istreambuf_iterator<char>(third),
         std::istreambuf_iterator<char>()};
+    assert(third_tsv.find("source_revision\tabcdef0123456789")!=
+           std::string::npos);
     assert(third_tsv.find("scene_individual_columns_mode\t1")!=
            std::string::npos);
     assert(third_tsv.find("source_coordinate_fixed\t266804\t344865")!=
@@ -182,6 +187,35 @@ int main() {
     third.close();
     assert(!third.is_open());
 
+    // Regression: the failure sidecar does not depend on successful
+    // frame export or the 16 indexed-frame cap. Preserve the actual
+    // failing pose and exception text, not the last rendered pose.
+    ExplorationFrameCapture::write_failure(
+        dir,{22U,1263210U,294912U,270U,30,15,16U,
+             "abcdef0123456789",
+             "first-person sweep exceeded guard (ray=42,\tstate=Left)\n"});
+    std::ifstream failure_file(dir/"failure.tsv",std::ios::binary);
+    assert(failure_file);
+    const std::string failure_text{
+        std::istreambuf_iterator<char>(failure_file),
+        std::istreambuf_iterator<char>()};
+    assert(failure_text.find(
+        "format\trloft-native-exploration-failure-v1")!=std::string::npos);
+    assert(failure_text.find(
+        "source_revision\tabcdef0123456789")!=std::string::npos);
+    assert(failure_text.find("coordinate_fixed\t1263210\t294912")!=
+           std::string::npos);
+    assert(failure_text.find("cell\t19\t4")!=std::string::npos);
+    assert(failure_text.find("facing\t270")!=std::string::npos);
+    assert(failure_text.find("prior_frames_written\t16")!=
+           std::string::npos);
+    assert(failure_text.find(
+        "exception\tfirst-person sweep exceeded guard (ray=42, state=Left) ")
+        !=std::string::npos);
+    assert(!fs::exists(dir/"frame_0017.idx"));
+    failure_file.close();
+    assert(!failure_file.is_open());
+
     // Unlike POSIX, Win32 file deletion cannot unlink these captures
     // while ifstream handles remain open. End all three read sessions
     // BEFORE cleaning the temporary test directory. This is test-only
@@ -190,7 +224,7 @@ int main() {
     pal.close();
     metadata.close();
     assert(!indexed.is_open() && !pal.is_open() && !metadata.is_open());
-    assert(fs::remove_all(dir) == 7U); // directory + 2*(idx + pal + tsv)
+    assert(fs::remove_all(dir) == 8U); // directory + 2*(idx + pal + tsv) + failure
     assert(!fs::exists(dir));
     std::fprintf(stderr,"capture-test: all streams closed and directory removed\n");
 }
