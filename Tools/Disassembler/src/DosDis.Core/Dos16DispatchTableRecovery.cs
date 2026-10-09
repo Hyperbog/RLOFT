@@ -108,8 +108,14 @@ public static class Dos16DispatchTableRecovery
                 var op = region.Source.Data.Slice(checked((int)site.SourceFileOffset), 5);
                 int slash = site.FlowControl == "IndirectCall" ?
                     (width == 2 ? 2 : 3) : (width == 2 ? 4 : 5);
+                // 16-bit ModRM mod=10 r/m=111 is [BX+disp16].
+                // Other r/m forms have a different effective address and
+                // must not be treated as a contiguous BX-indexed table.
+                // Only nonnegative literal displacement is modeled; a
+                // signed-negative disp16 needs independent address evidence.
                 bool match = op[0] == 0x2E && op[1] == 0xFF &&
-                    (op[2] >> 6) == 2 && ((op[2] >> 3) & 7) == slash &&
+                    (op[2] >> 6) == 2 && (op[2] & 7) == 7 &&
+                    ((op[2] >> 3) & 7) == slash && spec.Table <= 0x7FFF &&
                     BinaryPrimitives.ReadUInt16LittleEndian(op.Slice(3, 2)) == spec.Table &&
                     site.OriginalBytes.Equals(Convert.ToHexString(op), StringComparison.OrdinalIgnoreCase);
                 if (match)
