@@ -270,6 +270,7 @@ NpcSceneModel::build(
             static_cast<std::uint16_t>(
                 npc_index);
         emission.source_class = 0U;
+        emission.source_type_id = npc.npc_type_id;
         emission.render_scale_lookup_bias =
             definition.render_scale_lookup_bias;
         out.push_back(emission);
