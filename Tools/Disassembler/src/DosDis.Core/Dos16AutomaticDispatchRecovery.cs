@@ -319,7 +319,10 @@ public static class Dos16AutomaticDispatchRecovery
                                                 region.EndExclusive ||
                                             (long)(count - 1) * stride > ushort.MaxValue)
                                             continue;
-                                        entryCount = count;
+                                        // This is a proposed bound only.
+                                        // Do not publish an entry count until
+                                        // the complete source-backed table and
+                                        // every selector fixup are validated.
                                         var manifest = new Dos16TableManifest(1,
                                             region.SourceSha256,
                                             new[] { new Dos16TableRequest(
@@ -331,15 +334,21 @@ public static class Dos16AutomaticDispatchRecovery
                                                 scaling.Evidence) });
                                         var evidence = Dos16DispatchTableRecovery.Inspect(
                                             region, graph, manifest, mz, simulated).Findings[0];
-                                        reason = evidence.Status ==
-                                            "candidate-entries-source-backed"
-                                            ? "candidate-guarded-CS-BX-table"
-                                            : "rejected-guarded-table-storage-or-fixups";
                                         if (evidence.Status ==
                                             "candidate-entries-source-backed")
                                         {
+                                            reason = "candidate-guarded-CS-BX-table";
+                                            entryCount = count;
                                             validatedTable = evidence;
                                             candidates++;
+                                        }
+                                        else
+                                        {
+                                            // Preserve the validator's precise
+                                            // storage, fixup or overlap reason
+                                            // instead of a generic failure.
+                                            reason = "rejected-guarded-table:" +
+                                                evidence.Status;
                                         }
                                         break;
                                     }
@@ -363,9 +372,15 @@ public static class Dos16AutomaticDispatchRecovery
                 "index-value-and-runtime-pointer-mutation-unverified", validatedTable));
         }
         if (graph.Truncated) candidates = 0;
+        string reportStatus =
+            "candidate-unverified;unsigned-BX-guard-exact-stride-only;" +
+            "no-runtime-execution-proof;no-CFG-edges-added";
+        if (graph.Truncated)
+            reportStatus += ";incomplete-input-graph";
+        if (indirect.Length > maximumSites)
+            reportStatus += ";site-report-truncated";
         return new Dos16GuardedDispatchReport(region.SourceSha256,
-            region.MappingEvidence, "candidate-unverified;unsigned-BX-guard-exact-stride-only;" +
-            "no-runtime-execution-proof;no-CFG-edges-added",
+            region.MappingEvidence, reportStatus,
             indirect.Length, eligible, candidates, indirect.Length - candidates,
             truncated, results);
     }
