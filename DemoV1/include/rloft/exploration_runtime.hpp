@@ -71,6 +71,11 @@ struct ExplorationRuntimeFrame final {
     int ground_res4_relative{};
     int ground_res4_absolute{-1};
     std::string ground_source_failure;
+    // Authenticated source ID and original 4096 pixel indices. Exactly
+    // 4098 bytes with 2 unused CODE.2 C040+2 addressing spacer bytes.
+    // The live presenter uses it only under the original no-wall
+    // 0x22220=0x800 full-span gating rule.
+    std::vector<std::uint8_t> ground_raster_source;
     std::uint8_t ground_phase_u{};
     std::uint8_t ground_phase_v{};
     std::array<GroundPerspectiveRow,
