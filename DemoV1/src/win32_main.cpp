@@ -1121,15 +1121,95 @@ int run_exploration(
                     }else if(dropped.status==
                         rloft::InventoryWorldDropStatus::
                             SourceSpecialActionPending) {
-                        // CODE.2 21880 found all four Level16
-                        // SEED OF MORNINGLORD sites; event 8 and
-                        // 15050(0x73) Holy Symbol grant are still
-                        // pending original presentation bindings.
-                        // Host title is diagnostic, not an invented
-                        // in-world DOS dialogue string.
-                        SetWindowTextW(host.hwnd(),
-                            L"Ravenloft - Level 16 | "
-                            L"Seed ritual: event 8 / Holy Symbol pending");
+                        // Source CODE.2 21880 executes:
+                        // fourth Seed append -> flag 44h ->
+                        // 13EF8(8) / CINE08.ANM -> 15050(73h).
+                        // Only this event-specific inventory action
+                        // re-enters the already native ANM player.
+                        // Original file is 182 frames and its source
+                        // payload must load BEFORE starting the
+                        // transactional world/party mutation.
+                        try {
+                            rloft::AnmCinematic cine08(
+                                assets.source().read(
+                                    rloft::Level16SeedRitualCheck::
+                                        kNumberedEventFilename),
+                                static_cast<int>(
+                                    rloft::Level16SeedRitualCheck::
+                                        kNumberedEventId),
+                                assets);
+                            const auto completed=
+                                runtime.complete_pending_seed_ritual(
+                                    [&]() {
+                                        // The original 13EF8 event
+                                        // takes full display ownership.
+                                        // Prevent stale modal pointer
+                                        // input and item cursor over
+                                        // the full-screen animation.
+                                        host.set_exploration_input(nullptr);
+                                        host.set_inventory_mode(false);
+                                        host.set_game_cursor(
+                                            normal_inventory_cursor);
+                                        const auto result=play_cinematic(
+                                            host,cine08,assets,
+                                            audio_player,midi_player);
+                                        audio_player.stop_all();
+                                        midi_player.stop();
+                                        host.set_exploration_input(&input);
+                                        host.set_inventory_mode(true);
+                                        if(result==CinematicResult::Quit)
+                                            return rloft::
+                                                Level16RitualPlayback::Quit;
+                                        if(result==CinematicResult::Escaped)
+                                            return rloft::
+                                                Level16RitualPlayback::Escaped;
+                                        return rloft::
+                                            Level16RitualPlayback::Completed;
+                                    });
+                            // 13C88's complete DOS graphics teardown
+                            // still needs standalone pixel/tick audit.
+                            // Reset the host's presented-frame cache and
+                            // retrace pacing after blocking event8.
+                            displayed_scene_frame.reset();
+                            inventory_cursor_last_id.reset();
+                            next_frame=Clock::now();
+                            if(completed.status==
+                                rloft::Level16RitualCompletionStatus::
+                                    Quit) {
+                                host.set_exploration_input(nullptr);
+                                return 0;
+                            }
+                            if(completed.status==
+                                rloft::Level16RitualCompletionStatus::
+                                    Completed) {
+                                SetWindowTextW(host.hwnd(),
+                                    L"Ravenloft - Level 16 | "
+                                    L"Seed ritual completed");
+                            }else if(completed.status==
+                                rloft::Level16RitualCompletionStatus::
+                                    Escaped) {
+                                SetWindowTextW(host.hwnd(),
+                                    L"Ravenloft - Level 16 | "
+                                    L"Event 8 interrupted; Seed restored");
+                            }else {
+                                SetWindowTextW(host.hwnd(),
+                                    L"Ravenloft - Level 16 | "
+                                    L"Seed ritual placement unresolved");
+                            }
+                        }catch(const std::exception&) {
+                            // Event file decode or graphics/audio failure:
+                            // the core transaction restores world/cursor/
+                            // story bit before this branch is reached.
+                            host.set_exploration_input(&input);
+                            host.set_inventory_mode(true);
+                            host.set_game_cursor(normal_inventory_cursor);
+                            inventory_cursor_last_id.reset();
+                            displayed_scene_frame.reset();
+                            next_frame=Clock::now();
+                            SetWindowTextW(host.hwnd(),
+                                L"Ravenloft - Level 16 | "
+                                L"Original event 8 unavailable");
+                        }
                     }
                 }
             }
