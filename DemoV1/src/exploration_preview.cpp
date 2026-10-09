@@ -71,37 +71,18 @@ std::vector<std::uint8_t> ExplorationPreview::synthetic_party() {
 }
 
 ExplorationPreviewParty ExplorationPreview::party(
-    const std::optional<std::vector<std::uint8_t>>& existing,
-    const std::optional<std::vector<std::uint8_t>>& original_save) {
+    const std::optional<std::vector<std::uint8_t>>& existing) {
+    // Existing CHARS is the exact CODE.1 -> CODE.2 transfer image;
+    // never replace it with an unrelated SAVE.DAT party.
     if (existing.has_value() &&
         existing->size() == PartyImage::kSize) {
-        return {*existing,true,false};
+        return {*existing,true};
     }
 
-    // SAVE.DAT contains 0x77 bytes of original global state followed by
-    // four verbatim 0x248-byte active-party records. In a Level22
-    // comparison, those real portraits, items, abilities and conditions
-    // are preferable to invented EXPLORER/GUIDE characters. Preserve the
-    // unmodified original bytes; this is NOT a full save restore.
-    constexpr std::size_t kSavePartyAt=0x77U;
-    constexpr std::size_t kLevelAt=0x52U;
-    constexpr std::size_t kPartyEnd=kSavePartyAt+PartyImage::kSize;
-    if (original_save.has_value() &&
-        original_save->size() >= kPartyEnd) {
-        const auto& save=*original_save;
-        const auto level=static_cast<std::uint32_t>(save[kLevelAt]) |
-            (static_cast<std::uint32_t>(save[kLevelAt+1U])<<8U) |
-            (static_cast<std::uint32_t>(save[kLevelAt+2U])<<16U) |
-            (static_cast<std::uint32_t>(save[kLevelAt+3U])<<24U);
-        if(level==ExplorationSessionState::kFreshLevelId) {
-            auto begin=save.begin()+
-                static_cast<std::ptrdiff_t>(kSavePartyAt);
-            return {std::vector<std::uint8_t>(
-                begin,begin+static_cast<std::ptrdiff_t>(PartyImage::kSize)),
-                false,true};
-        }
-    }
-    return {synthetic_party(),false,false};
+    // This is for the opt-in direct walkaround only. The normal
+    // character-creation path must produce CHARS before entering
+    // gameplay; no SAVE.DAT shortcut is permitted here.
+    return {synthetic_party(),false};
 }
 
 } // namespace rloft
