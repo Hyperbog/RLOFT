@@ -142,3 +142,15 @@ The preview window title also shows RES3 rasterized/pending
 call counts and distinct trace-error counts. These are
 native-only diagnostics and require a new **manual**
 Windows build before they can be observed.
+
+
+## Full per-object outcomes and raw frame comparator
+
+[Follow-up checkpoint](LEVEL22_RES3_FULL_PIPELINE_CAPTURE_AND_COMPARE_20261008.md)
+adds exact original catalog source types to scene records, missing
+RES3 plan errors, per-call `scene_outcome` rows and a strict
+raw indexed-frame comparison utility. The v2 TSV maintains all
+original v1 fields; `.idx` and `.pal` remain lossless and
+unchanged. Provenance manifest labels alone are not independent
+proof of actual DOS capture; original emulator evidence and
+matching animation/state timing are still outstanding.
