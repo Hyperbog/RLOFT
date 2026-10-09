@@ -181,6 +181,56 @@ Level16SeedRitualCheck Level16SeedRitualModel::evaluate_21880(
     return result;
 }
 
+HolySymbolGrantResult HolySymbolRewardModel::grant_15050(
+    PartyImage& party,InventoryRuntimeState& inventory) {
+    HolySymbolGrantResult out{};
+    constexpr std::int16_t kHolySymbolId=0x73;
+    if(inventory.held.object_id==-1) {
+        // CODE.2 150AB..150C8: empty 8600 -> 1A344(0x73,0).
+        inventory.held={kHolySymbolId,0U};
+        out.status=HolySymbolGrantStatus::GivenToCursor;
+        return out;
+    }
+
+    // Original 150C9..1511D visits character actor indices 0..3,
+    // ignoring the +0x10 status-word 0x8000 empty-character bit,
+    // then scans only ordinary slots 0..11 for the first -1.
+    for(std::size_t actor=0U;actor<PartyImage::kActorCount;++actor) {
+        if(!party.active(actor))continue;
+        const auto base=actor*PartyImage::kActorSize;
+        for(std::size_t slot=0U;slot<12U;++slot) {
+            const auto at=base+0x40U+slot*2U;
+            const auto raw=static_cast<std::uint16_t>(
+                party.bytes[at] |
+                (static_cast<std::uint16_t>(
+                    party.bytes[at+1U])<<8U));
+            if(raw!=0xFFFFU)continue;
+            // Original 150F4 stores DI and invokes
+            // 0F238(actor,slot,0). That helper clears just
+            // the corresponding item-known bit when the
+            // freshly stored slot is nonempty.
+            party.bytes[at]=static_cast<std::uint8_t>(
+                kHolySymbolId);
+            party.bytes[at+1U]=0U;
+            const auto bits_at=base+0x12BU+(slot/8U);
+            const auto mask=static_cast<std::uint8_t>(
+                1U<<(slot%8U));
+            party.bytes[bits_at]=static_cast<std::uint8_t>(
+                party.bytes[bits_at]&~mask);
+            out.status=HolySymbolGrantStatus::GivenToPartySlot;
+            out.actor=actor;
+            out.slot=slot;
+            return out;
+        }
+    }
+    // 1511F..1513C invokes original 2195C to create an
+    // ordinary loose world item when party+cursor are full.
+    // Do NOT invent the world placement or consume the
+    // pending reward before the original event runner exists.
+    out.status=HolySymbolGrantStatus::NeedsWorldSpawn;
+    return out;
+}
+
 InventoryWorldDropResult InventoryWorldDropModel::drop(
     LevelWorldState& world,
     const ExplorationSessionState& session,
