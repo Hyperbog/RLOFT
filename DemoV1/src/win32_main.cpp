@@ -1106,9 +1106,15 @@ int run_exploration(
                     }else if(dropped.status==
                         rloft::InventoryWorldDropStatus::
                             SourceSpecialActionPending) {
+                        // CODE.2 21880 found all four Level16
+                        // SEED OF MORNINGLORD sites; event 8 and
+                        // 15050(0x73) Holy Symbol grant are still
+                        // pending original presentation bindings.
+                        // Host title is diagnostic, not an invented
+                        // in-world DOS dialogue string.
                         SetWindowTextW(host.hwnd(),
-                            L"Ravenloft - Inventory | "
-                            L"Special drop action not reconstructed");
+                            L"Ravenloft - Level 16 | "
+                            L"Seed ritual: event 8 / Holy Symbol pending");
                     }
                 }
             }
