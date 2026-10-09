@@ -116,8 +116,9 @@ internal sealed class ReferenceRecovery
             }
         }
 
-        // Explicit segment overrides (such as FS, GS) require runtime segment
-        // state. Address-size 16-bit and base-register addressing are unresolved.
+        // A CS-indexed transfer addresses the current executable LE object.
+        // Other segment selectors and register-base address calculations remain
+        // unresolved: the runtime selector base is not reconstructed.
         bool csIndexed = insn.SegmentPrefix == Register.CS &&
             (insn.FlowControl is FlowControl.IndirectBranch or FlowControl.IndirectCall) &&
             insn.MemoryIndex != Register.None && insn.MemoryIndexScale == 4;
@@ -185,15 +186,16 @@ internal sealed class ReferenceRecovery
             }
             if (candidates.Count >= 2)
             {
-                data.Add(new DataCrossReference(address, absolute.Value, "indexed-pointer-table-base",
-                    "indexed-memory-operand;contiguous-LE-internal-fixups"));
+                string evidence = csIndexed
+                    ? "candidate-relocation-backed-table;cs-object-relative;index-bound-unproven"
+                    : "candidate-relocation-backed-table;index-bound-unproven";
+                data.Add(new DataCrossReference(address, absolute.Value,
+                    "indexed-pointer-table-base", evidence));
                 table = new JumpTableCandidate(address, absolute.Value, candidates.ToArray(), 4,
-                    "candidate-relocation-backed-table;index-bound-unproven",
-                    insn.FlowControl == FlowControl.IndirectCall
+                    evidence, insn.FlowControl == FlowControl.IndirectCall
                         ? "indirect-call-table" : "indirect-jump-table");
                 foreach (var target in candidates.Distinct())
-                    indirect.Add(new IndirectCandidate(target, "indexed-pointer-table",
-                        "candidate-relocation-backed-table;index-bound-unproven"));
+                    indirect.Add(new IndirectCandidate(target, "indexed-pointer-table", evidence);
             }
             else if (insn.FlowControl == FlowControl.IndirectBranch &&
                      boundedDispatch is { } bound && bound.Index == insn.MemoryIndex &&
@@ -231,7 +233,9 @@ internal sealed class ReferenceRecovery
                 }
                 if (valid && literalTargets.Distinct().Count() >= 2)
                 {
-                    const string evidence = "candidate-guarded-literal-table;unsigned-ja-bound;no-relocation-proof";
+                    string evidence = csIndexed
+                        ? "candidate-guarded-literal-table;cs-object-relative;unsigned-ja-bound;no-relocation-proof"
+                        : "candidate-guarded-literal-table;unsigned-ja-bound;no-relocation-proof";
                     data.Add(new DataCrossReference(address, absolute.Value,
                         "indexed-pointer-table-base", evidence));
                     table = new JumpTableCandidate(address, absolute.Value,
