@@ -260,6 +260,17 @@ struct InventoryRuntimeState final {
         if(open_container && open_container->actor==actor)
             open_container.reset();
     }
+    // Hand-transfer branch 21648 is NOT animated close 110B4:
+    // it explicitly writes FF to all four 6FA0 bytes before
+    // optionally establishing a new phase3 context.
+    void reset_actor_context_21648(std::size_t actor) noexcept {
+        if(actor>=party_container_ui_contexts.size()) return;
+        if(party_container_ui_contexts[actor].active())
+            party_container_ui_contexts[actor].raw=
+                {{0xFFU,0xFFU,0xFFU,0xFFU}};
+        if(open_container && open_container->actor==actor)
+            open_container.reset();
+    }
     void close_container() noexcept {
         if(open_container)
             close_actor_container(open_container->actor);
