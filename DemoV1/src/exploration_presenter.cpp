@@ -58,8 +58,17 @@ ExplorationPresenter::surface_coverage(
         out.type7_unvalidated_wide_runs =
             frame.scene_vga_trace->unresolved_wide_runs;
     }
-    out.type7_plan_calls_failed =
-        frame.scene_plan_failures.size();
+    const auto unresolved_slots=static_cast<std::size_t>(
+        std::count_if(
+            frame.world_scene_render_plans.begin(),
+            frame.world_scene_render_plans.end(),
+            [](const WorldSceneRenderPlan& plan) {
+                return plan.source_unresolved;
+            }));
+    // Source-plan slots are the authoritative failure state. A missing
+    // metadata entry must never turn an unknown sprite into occlusion.
+    out.type7_plan_calls_failed=std::max(
+        unresolved_slots,frame.scene_plan_failures.size());
     // This static pre-presentation estimate marks every visible type-7
     // scene call pending. present() subtracts successful canonical SINTAB
     // rasterizations and reports any transactional draw failure separately.
