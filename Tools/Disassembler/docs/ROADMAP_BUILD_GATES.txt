@@ -259,9 +259,12 @@ NOW: R1.4-R1.6 and R2.1-R2.3 source batches are COMPLETE
 IN SOURCE ONLY. Bounded register-value worklist, exact CFG edge
 re-decoding, incoming state joins, conservative loop widening, explicit
 budgets and adversarial synthetic fixtures are committed but NOT TESTED.
-NEXT SOURCE-ONLY: R2.3 hardening for speculative call/interrupt joins,
-prefix and IP-boundary edge cases, then R2.4 table integration only
-behind independently validated paths, indices and original source bytes.
+NEXT SOURCE-ONLY: R2.3 speculative CALL/INT, prefixed Jcc and
+IP-wrap hardening is committed as source plus unexecuted regressions.
+Advance to R2.4 with a separate evidence-only table integration design;
+never use a locally valid register value as global CFG/path proof.
+Any unresolved indirect transfer, incomplete path or stale index origin
+must block automatic target promotion.
 G1 remains READY / NOT AUTHORIZED; G2 NOT READY. The prior Windows
 preview predates this source batch. Do not build, test or package
 without explicit owner authorization.
@@ -367,4 +370,19 @@ Last successfully built preview remains run 37887821656.
 - Documentation updated; source-only static review is NOT compilation.
 Reference: R2_DATAFLOW_WORKLIST_SOURCE_CHECKPOINT.md.
 Gate status: G1 READY / NOT AUTHORIZED; G2 NOT READY.
+Last successful Windows preview remains run 37887821656.
+
+2026-10-09 | R2.3 follow-up source-only correctness hardening:
+- Re-derive unprefixed relative Jcc/LOOP/JCXZ, CALL and JMP offsets from
+  immutable original bytes. A mathematical destination outside unsigned
+  16-bit IP is reported rejected before an Iced-normalized wrapped target
+  can be used for dataflow; wrapped execution itself is valid hardware
+  behavior but not source-proven by the current candidate load model.
+- Add synthetic 64-KiB MZ boundary, speculative near CALL and INT 21h
+  continuation, and prefixed Jcc invalidation regression fixtures.
+- No runtime assertions were executed; original files, CI, Windows build,
+  desktop and released archives were not touched.
+- R2.1-R2.3 still SOURCE COMPLETE ONLY; G1 READY / NOT AUTHORIZED;
+  G2 NOT READY. Continue R2.4 evidence-bound integration source-only.
+Reference: R2_DATAFLOW_WORKLIST_SOURCE_CHECKPOINT.md.
 Last successful Windows preview remains run 37887821656.
