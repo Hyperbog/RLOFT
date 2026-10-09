@@ -72,7 +72,21 @@ enum class InventoryOrdinarySwapStatus : std::uint8_t {
     Swapped,
     InsertedInContainer,
     ConsumedStoryFragment,
+    LearnedMageSpell,
+    MageScrollRejected,
     Unsupported
+};
+
+// CODE.2 11630 copies six [highID, lowID] DWORD pairs from
+// object-1 logical EEB0 and obtains actor Intelligence capacity
+// from object-2 DGROUP 6153. The table mapping is not the
+// object's spell dispatch enum.
+struct MageScrollScribeSource final {
+    std::array<std::uint32_t,12> id_ranges{};
+    std::array<std::uint8_t,21> intelligence_capacities{};
+
+    [[nodiscard]] static MageScrollScribeSource from_code2(
+        const std::vector<std::uint8_t>& code2);
 };
 
 struct InventoryRuntimeState final {
@@ -80,6 +94,7 @@ struct InventoryRuntimeState final {
     static constexpr std::size_t kRuntimeDescriptorCount = 63;
 
     HeldItemState held{};
+    std::optional<MageScrollScribeSource> mage_scroll_source;
     std::array<ContainerRuntimeState, kRuntimeDescriptorCount> containers{};
     std::optional<OpenInventoryContainer> open_container;
 
@@ -91,8 +106,11 @@ struct InventoryRuntimeState final {
     // calls 1C124 to set one bit in the persistent 0x22200 vector,
     // then consumes ONLY the held fragment. Supply the actual
     // session's 32-byte event vector to enable this verified action.
-    // The Mage Spell Book(0xA6) -> scroll(0xA7..0xC9)
-    // 11630 learning path remains guarded pending complete spell state.
+    // Mage Spell Book(0xA6) + held scroll(0xA7..0xC9)
+    // enters 11630: event flag 0xBA is set even on a failed
+    // capacity/duplicate check; a successful scribe clears
+    // precisely the matrix-A spell byte and consumes the scroll.
+    // UI dialogue/IRQ scheduling is not claimed here.
     [[nodiscard]] InventoryOrdinarySwapStatus swap_ordinary_slot(
         PartyImage& party,
         const ObjectCatalog& objects,
