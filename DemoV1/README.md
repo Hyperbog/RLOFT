@@ -1,5 +1,42 @@
 # Ravenloft Demo Build v1
 
+## Original RES4 forest-floor identification — next manual build
+
+[Original RES4 source-candidate audit](ORIGINAL_LEVEL22_RES4_GROUND_SOURCE_AUDIT_20261008.md):
+the original game files are preserved in `DnD-Classics`,
+and the native `ResArchive` can already parse EH type-1
+raster entries from those binary bytes at runtime.
+
+The newly committed `OriginalGroundRes4Audit` scans the
+actual installed `RES4` for all decodable, one-image,
+64×64 indexed sources, identifies raw versus LZSS
+compression, flags invalid entries, and fingerprints
+each original decoded tile. It never assumes that the
+Level 22 signed *relative* selector `55` means
+absolute `RES4[55]`; original `CODE.2 1F388`
+adds mutable `258F8` before looking up the texture.
+
+The next manual Windows artifact will include
+`rloft_res4_ground_probe.exe` and
+`Probe-Level22-Ground.cmd`. Running that launcher
+with original installed media produces a small
+non-extractive report of source indexes, checksums
+and **unverified** implied bases. Synthetic regression
+fixtures exercise authentic type-1 raw/LZSS resource
+framing and the 34A74 indexed sampler. **164 CTests
+are expected**, with Python installed.
+
+The original SINTAB ground projection and textured
+raster cores are implemented separately, but the
+live Level 22 foreground remains **flat** until
+original runtime bank selection and row-span state
+are independently verified. No estimated terrain
+pixels or procedural graphics are introduced.
+The new source is **not yet built**; #640 is the
+latest successful earlier Windows run.
+Formal acceptance remains **1/5 gates (20%)**.
+No Actions run was started.
+
 ## Original DOS forest floor — source-backed 34A74 raster core now implemented
 
 [Full CODE.2 34998/34A74 reconstruction](ORIGINAL_CODE2_34A74_TEXTURED_GROUND_PIPELINE_20261008.md):
