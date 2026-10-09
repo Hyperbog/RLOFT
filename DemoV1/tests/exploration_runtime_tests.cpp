@@ -64,6 +64,24 @@ int main() {
     assert(premature_export);
     assert(!runtime.has_inventory_save_backing());
 
+    // A premature Level16 cinematic callback must NEVER run
+    // without the original initialized world and object tables.
+    // This is a native guard, not a synthetic quest acceptance.
+    int uninitialized_events=0;
+    bool premature_ritual=false;
+    try {
+        (void)runtime.complete_pending_seed_ritual(
+            [&]() {
+                ++uninitialized_events;
+                return rloft::Level16RitualPlayback::Completed;
+            });
+    } catch(const std::logic_error&) {
+        premature_ritual=true;
+    }
+    assert(premature_ritual);
+    assert(uninitialized_events==0);
+    assert(runtime.session().level_id==22U);
+
     // The CODE.2 VGA page and dispatcher mode are mutable runtime
     // values; the live input path will eventually toggle these fields.
     assert(runtime.scene_video_page() == 0U);
