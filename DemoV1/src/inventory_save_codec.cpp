@@ -344,12 +344,10 @@ InventorySaveSnapshot InventorySaveCodec::capture_matching_session(
     // not just the currently clicked actor. The selected native
     // view must be among them, but selection itself is NOT
     // serialized in any fifth or global SAVE field.
-    std::size_t opened_count=0U;
-    for(const auto& candidate:resolved)
-        if(candidate)++opened_count;
-    if(static_cast<bool>(inventory.open_container)!=(opened_count!=0U))
-        throw std::runtime_error(
-            "native selected view differs from original 6FA0 state");
+    // Selection itself is not serialized. It may be empty after
+    // closing the last clicked actor even while another actor's
+    // original 6FA0 record is still open and visible. It must
+    // nevertheless match source data whenever nonempty.
     if(inventory.open_container) {
         const auto actor=inventory.open_container->actor;
         if(actor>=resolved.size() || !resolved[actor] ||
