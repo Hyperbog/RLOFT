@@ -392,12 +392,14 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
                             static_cast<int>(resource_id)));
                 return inserted.first->second;
             };
-        out.world_scene_render_plans =
-            WorldSceneRenderPlanModel::build(
-                out.world_scene_draw_calls,
-                renderer_tables_,
-                out.sweep_records,
-                shape_for_id);
+        // An unsupported individual RES3 asset should not discard
+        // the complete ordered original scene; preserve its failed
+        // slot and the original record identity for diagnostics.
+        auto plans = WorldSceneRenderPlanModel::try_build(
+            out.world_scene_draw_calls, renderer_tables_,
+            out.sweep_records, shape_for_id);
+        out.world_scene_render_plans = std::move(plans.plans);
+        out.scene_plan_failures = std::move(plans.failures);
         if (scene_vga_masks_.has_value()) {
             // A malformed or unsupported diagnostic VGA trace must
             // never suppress walls, controls or game interaction.
