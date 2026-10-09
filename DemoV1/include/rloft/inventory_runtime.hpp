@@ -131,6 +131,11 @@ struct InventoryRuntimeState final {
         std::size_t slot);
     [[nodiscard]] std::uint32_t container_weight_half_units(
         const ObjectCatalog& objects,std::size_t descriptor_index) const;
+    // Original recursive OBJECTS +0x30 item burden through each of the
+    // actor's 21 canonical CHARS slots, including nested containers.
+    [[nodiscard]] std::uint32_t actor_weight_half_units(
+        const PartyImage& party,const ObjectCatalog& objects,
+        std::size_t actor) const;
 
     [[nodiscard]] bool has_object(
         const PartyImage& party,
