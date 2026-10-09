@@ -188,6 +188,87 @@ try
     Equal(mzLines[0].OriginalBytes, "B83412", "16-bit MOV immediate instruction bytes");
     Equal(mzLines[1].OriginalBytes, "C3", "16-bit return instruction bytes");
     Equal(mzLines[1].SourceFileOffset, 35L, "second instruction source offset");
+    // DOS MZ relocation values are simulated in table order, never
+    // applied to the archived original executable.
+    var simulatedMz = mzImage.SimulateRelocations(0x2000);
+    Equal(simulatedMz.Summary.SourceSha256, mzArtifact.Sha256,
+        "MZ simulation preserves exact source identity");
+    Equal(simulatedMz.Summary.AssumedEntryCs, (ushort)0x2000,
+        "assumed runtime entry segment recorded without changing original CS");
+    Equal(simulatedMz.Summary.RelocationWriteCount, 1,
+        "DOS loader relocation table entries are modeled explicitly");
+    Equal(simulatedMz.Summary.Writes[0].OriginalStoredWord, (ushort)0x1234,
+        "MZ fixup preserves the original selector word");
+    Equal(simulatedMz.Summary.Writes[0].ValueAfterWrite, (ushort)0x3234,
+        "MZ relocation adds the assumed load segment");
+    Equal(simulatedMz.ReadRelocatedWord(1), (ushort)0x3234,
+        "simulated load-module copy contains relocated bytes");
+    Equal(mzImage.Decode(0, 0, 1)[0].OriginalBytes, "B83412",
+        "non-destructive relocation must not edit the original binary");
+    Equal(simulatedMz.MapRuntimeFarPointer(0x2000, 0)?.OriginalFileOffset, 32L,
+        "nonwrapped MZ runtime selector maps to the original file");
+    Equal(simulatedMz.MapRuntimeFarPointer(0x1FFF, 0), null,
+        "wrapped or below-base runtime selectors are not guessed");
+    Equal(simulatedMz.MapRuntimeFarPointer(0x2000, 0xFFFF), null,
+        "runtime mapping never invents file-backed bytes");
+    Equal(mzImage.SimulateRelocations(0xF000).ReadRelocatedWord(1), (ushort)0x0234,
+        "DOS MZ loader additions use 16-bit modular arithmetic");
+
+    // Loader table order is important: a repeated relocation location is
+    // accounted for twice and prominently flagged as overlapping evidence.
+    byte[] doubleFixup = (byte[])mzBytes.Clone();
+    MzWord(doubleFixup, 8, 3); // relocation table has space in 48-byte header
+    MzWord(doubleFixup, 6, 2);
+    MzWord(doubleFixup, 0x20, 1); MzWord(doubleFixup, 0x22, 0);
+    doubleFixup[0x30] = 0xB8; MzWord(doubleFixup, 0x31, 0x1234);
+    doubleFixup[0x33] = 0xC3;
+    var repeatedImage = DosMzImage.Load(BinaryArtifact.FromBytes(doubleFixup));
+    var repeated = repeatedImage.SimulateRelocations(0x2000);
+    Equal(repeated.Summary.OverlappingRelocationWrites, true,
+        "duplicate MZ relocation writes are not silently collapsed");
+    Equal(repeated.Summary.Writes[1].ValueBeforeWrite, (ushort)0x3234,
+        "second fixup observes the first applied value");
+    Equal(repeated.ReadRelocatedWord(1), (ushort)0x5234,
+        "repeated original MZ fixup is modeled in table order");
+
+    // Unprefixed 16:16 far CALL/JMP requires exactly one resident MZ selector
+    // relocation. The candidate never replaces an unresolved runtime edge.
+    byte[] farBytes = (byte[])mzBytes.Clone();
+    MzWord(farBytes, 0x1C, 3); // selector imm16 starts at source image offset 3
+    new byte[] { 0x9A, 0x10, 0, 0, 0, 0xC3 }.CopyTo(farBytes, 0x20);
+    farBytes[0x30] = 0xC3;
+    var farImage = DosMzImage.Load(BinaryArtifact.FromBytes(farBytes));
+    var farGraph = Dos16ControlFlowAnalysis.Analyze(
+        farImage.CreateEntryCodeRegion(), farImage.InitialIp);
+    var farView = farImage.SimulateRelocations(0x2000);
+    var farCandidates = DosMzFarTargetRecovery.Inspect(farImage, farGraph, farView);
+    Equal(farCandidates.Count, 1, "unique source-backed relocated FAR CALL candidate recovered");
+    Equal(farCandidates[0].TransferKind, "far-immediate-call",
+        "far candidate keeps transfer type");
+    Equal(farCandidates[0].RelativeTarget, new Dos16Address(0, 0x10),
+        "relocation-backed far CALL resolves original module-relative location");
+    Equal(farCandidates[0].TargetFileOffset, 0x30L,
+        "relocation-backed FAR target maps to original file bytes");
+    Equal(farGraph.Edges.Any(e => e.Kind == "unresolved-far-call"),
+        true, "original FAR CFG edge remains conservatively unresolved");
+    var farJumpBytes = (byte[])farBytes.Clone();
+    farJumpBytes[0x20] = 0xEA;
+    var farJumpImage = DosMzImage.Load(BinaryArtifact.FromBytes(farJumpBytes));
+    var farJumpGraph = Dos16ControlFlowAnalysis.Analyze(
+        farJumpImage.CreateEntryCodeRegion(), farJumpImage.InitialIp);
+    Equal(DosMzFarTargetRecovery.Inspect(farJumpImage, farJumpGraph,
+        farJumpImage.SimulateRelocations(0x2000))[0].TransferKind, "far-immediate-jump",
+        "unprefixed FAR JMP is classified separately from FAR CALL");
+    var absentSelectorFixup = (byte[])farBytes.Clone();
+    MzWord(absentSelectorFixup, 0x1C, 0x10);
+    var noSelectorImage = DosMzImage.Load(BinaryArtifact.FromBytes(absentSelectorFixup));
+    Equal(DosMzFarTargetRecovery.Inspect(noSelectorImage,
+        Dos16ControlFlowAnalysis.Analyze(noSelectorImage.CreateEntryCodeRegion(), 0),
+        noSelectorImage.SimulateRelocations(0x2000)).Count, 0,
+        "far pointer with unrelated fixup cannot be asserted as known target");
+    Fails(() => DosMzFarTargetRecovery.Inspect(mzImage, farGraph, farView),
+        "foreign MZ binary cannot inherit another source's far-branch annotations");
+    Console.WriteLine("PASS: non-mutating ordered MZ relocation and evidence-bound far-call/jump hypotheses");
     var invalidMz = (byte[])mzBytes.Clone();
     MzWord(invalidMz, 6, 2); // table would exceed 32-byte header
     Fails(() => DosMzImage.Load(BinaryArtifact.FromBytes(invalidMz)),
