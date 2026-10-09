@@ -153,6 +153,17 @@ DevLevelSnapshot DevLevelDiagnostics::capture(
     source_world.size(session.level.cell_words.size());
     for(const auto word:session.level.cell_words)
         source_world.word(static_cast<std::uint16_t>(word));
+    // Source original level event/control records are mutable
+    // 10-byte records, not merely world-object decorations.
+    // A script setting a door/control bit must affect the world
+    // fingerprint even if camera and loose items are unchanged.
+    source_world.size(session.level.group1.size());
+    for(const auto& record:session.level.group1)
+        for(const auto value:record.raw)source_world.byte(value);
+    source_world.size(session.level.group2.size());
+    for(const auto& record:session.level.group2)
+        for(const auto value:record.raw)source_world.byte(value);
+    source_world.byte(session.level.active_animation_count);
     source_world.size(world.npcs.size());
     for(const auto& npc:world.npcs)hash_npc(source_world,npc);
     source_world.size(world.placed_objects.size());
