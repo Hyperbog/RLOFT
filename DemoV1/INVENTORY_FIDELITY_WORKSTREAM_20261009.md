@@ -899,3 +899,141 @@ phase, full moving/effect/roster/global serialization,
 actual LOAD/SAVE menu/IO atomicity, native world
 reconciliation, Level16 item 0x89, other special
 inventory item use and original DOS UI comparisons.
+
+
+## Part 8 continuation — exhaustive CODE.2 6FA0 context/phase integration
+
+**Primary evidence:** original supplied `CODE.2`, object-1
+SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`
+(file image code-object1 physical base `0x3AF24`).
+The relevant x86 instructions were inspected directly with
+`objdump -D -b binary -m i386 -M intel`:
+
+| Logical routine | Original 6FA0 behavior |
+|---|---|
+| `10A70..10BB4` | per-actor phase-switch renderer: phase 1/2 rim/panels, phase 3 descriptor-backed contents and category-specific item graphics |
+| `10FAC..110B3` | initializes context bytes +0/+1/+3 and then sets phase byte +2 to **0, 1, 2, 3** in order; each pass calls `10BBC`, `1A724` and page logic; phase remains 3 |
+| `110B4..1118A` | starts from **3**, renders 3,2,1,0, then clears ONLY bytes **+0, +1, +3** to FF; +2 remains **0** |
+| `10EEC..10F06` | per-character inventory display reads signed +0 to detect active context and signed +2 to route phase rendering |
+| `11268..11316` | draws all four independent actor panels rather than a single global open-container panel |
+| `21648..216C4` | on the special item-to-hand path, clears a formerly active record to FF×4 and, when item category==1, copies descriptor +4 into +0, OBJECTS +31 into +1, stores **literal phase 3**, stores the **low byte** of object ID in +3 |
+| `12E70..12F16` | accesses character-local context +0 before forwarding the active container cell rectangle to `11C3C` |
+| `12470` | swaps complete four-byte `6FA0` contexts alongside the party actor images |
+| `066E8` serializer / `06CBA` loader | persists/restores all **four** records as the final 16 bytes of original SAVE.DAT |
+
+**Critical correction to the earlier partial implementation:**
+an inactive per-actor context is **not** necessarily
+`FF FF FF FF`. That form is the fresh initialization.
+After `110B4` closes a container, the executable leaves
+**`FF FF 00 FF`**, because it does not clear phase byte +2
+after its last phase-0 draw. Previous fail-closed bridge logic
+incorrectly rejected this reachable original state.
+The normalized native compatibility model now explicitly
+recognizes BOTH original inactive forms, while keeping them
+different at the original byte layer.
+
+**Another essential source constraint:** `6FA3` is a
+**one-byte object ID**, despite the equipped hand being a
+signed 16-bit OBJECTS ID. For example object 258 must be
+saved in `6FA3` as 2, and object 329 as 73. The four-byte
+context contains **NO hand index**. Restoring a native open
+container must therefore inspect BOTH original actor hand
+slots (item slots 14, 15), compare original low-ID bytes,
+then verify full object identity via the loaded
+`OBJECTS.DAT` catalogue: category 1,
+`container_state_index` must select source descriptor
+`6FA1`, and its descriptor subtype must equal
+`6FA0`. If zero or two hands match, reject the live
+restore rather than guessing or migrating an item. The
+source state-61/62 mismatch remains **unmodified** and
+selector 62 is not accepted as a serializable container.
+
+**Implemented in native source (this checkpoint):**
+
+1. `PartyContainerUiContext` preserves four raw bytes and
+   exposes fresh/closed/phase3 states without losing
+   `FF FF 00 FF`. Explicit `begin_open_10fac`,
+   `advance_open_phase_10fac`, and
+   `advance_close_phase_110b4` project the exact
+   frame-phase transitions **without fabricating DOS IRQ
+   timing or VGA rendering callbacks**.
+2. `InventoryRuntimeState` now holds FOUR separately
+   persistent actor `6FA0` contexts as well as its
+   existing one-selected native interactive
+   `open_container`. Category-1 item transfer/opening
+   sets `[subtype,index,3,lowID]`; closing the selected
+   view records `[FF,FF,00,FF]` for the same actor
+   instead of discarding source UI metadata.
+3. The original SAVE codec maps final 16 raw SAVE bytes
+   into all four source runtime contexts on decode;
+   during live export, it writes the **current runtime**
+   contexts into the byte-preserved original SAVE image.
+   A currently displayed native hand container must
+   match the persisted actor/index/hand/object record.
+4. `apply_to_matching_session` accepts two inactive
+   historical states and may restore **one fully-open
+   phase3 view**, if exactly one hand has the original
+   category/index/subtype/low-ID identity. A source
+   OBJECTS catalogue is mandatory for active restoration.
+   The entire restore is preflighted before mutating live
+   inventory, event flags or the actor images.
+5. `capture_matching_session` now supports exporting a
+   genuinely open and uniquely resolved native hand
+   container instead of rejecting **all** open containers.
+   It still refuses a mismatch between the raw 6FA0
+   records and the selected native view.
+6. `PartyModalPresenter` now draws fully-open phase3
+   contents from each actor's original source context,
+   using original RES2 `9+subtype` surround and RES1
+   item graphic IDs. This corrects a previous
+   single-actor-only drawing assumption. Character
+   mode still suppresses container art for its lane.
+7. `InventoryPartyOrderModel::exchange` swaps all four
+   raw bytes of the affected actor contexts; the
+   selected native open context changes actor index
+   simultaneously.
+
+**Bounded unsupported cases:**
+- original interrupted `10FAC/110B4` phase 0/1/2
+  animation can be **decoded and byte-roundtripped**,
+  but live restore rejects it until actual original
+  10BBC/1A724 page-flip art and time ordering are bound;
+- original SAVE may contain multiple concurrently open
+  actor contexts, which remain preserved byte-for-byte,
+  but the single active native click controller does not
+  yet support interacting with multiple open lanes.
+  Such a live LOAD is explicitly rejected rather than
+  displaying one container while silently dropping others;
+- the 6FA0 state alone does not prove all hand-side/menu
+  input semantics or the complete DOS status frame.
+  Exact mouse clicks, partial animation rendering and
+  multi-lane content interaction remain open;
+- **all previous full-world SAVE safety rules remain:**
+  no moving effects in the live inventory-only bridge,
+  same level/camera/facing/time, unchanged world revision,
+  no full-game SAVE/LOAD menu claim.
+
+**Regression coverage committed (not executed):**
+existing `inventory_save_codec_tests` gained source
+FF FF 00 FF decode/encode, direct 0→3/3→0 transition
+machine, live phase3 import/export, closing and saving,
+low-byte aliasing (IDs 2/258), valid and ambiguous
+hand matches, no OBJECTS evidence, subtype/index
+mismatches, interrupted phase rejection, multi-actor
+open-state rejection, and previously covered original
+0/3/150 transient-effect dynamic SAVE byte preservation.
+Existing `inventory_runtime_tests` checks live source
+phase3 and exact post-close bytes; existing
+`inventory_party_order_tests` verifies complete actor
+context exchange and reversibility. No new target was
+registered: **170 CTests, 19 Quick**. All added tests
+remain uncompiled/unexecuted; Windows build remains
+deliberately deferred under the user's request.
+
+**Inventory fidelity remains PARTIAL; engineering progress
+remains 56.25%.** Next gated steps: multiple interactive
+character-lane container views; true 10FAC/110B4 VGA
+animation/timing; native complete SAVE/LOAD through other
+world/effect/clock domains; Level16 seed/item side effects;
+remaining original item action categories and DOS visual
+acceptance.
