@@ -142,6 +142,16 @@ void ExplorationFrameCapture::write(
         manifest<<"scene_trace_failure\t"
                 <<clean(*runtime.scene_vga_trace_failure)<<"\n";
     }
+    // Partial trace failure does not prevent unrelated original objects
+    // drawing. Preserve exact call index and source identity for replay.
+    for(const auto& failure:runtime.scene_vga_scene_failures) {
+        manifest<<"scene_call_trace_failure\t"
+                <<failure.call_index<<"\t"
+                <<failure.source_class<<"\t"
+                <<failure.source_index<<"\t"
+                <<failure.resource_id<<"\t"
+                <<clean(failure.reason)<<"\n";
+    }
     for(const auto& failure:presented.type7_failures) {
         manifest<<"scene_raster_failure\t"<<failure.source_class
                 <<"\t"<<failure.source_index
