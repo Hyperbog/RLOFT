@@ -139,6 +139,11 @@ void ExplorationFrameCapture::write(
             <<"original_C026_initial\t"
             <<unsigned(code2[kCode2DgroupBase+0xC026U])<<"\n"
             <<"native_lower_surface\tflat-fill-only;34A74-pending\n"
+            <<"ground_ff58_ready\t"
+            <<unsigned(runtime.ground_perspective_ready?1U:0U)<<"\n"
+            <<"ground_C048_C044\t"
+            <<unsigned(runtime.ground_phase_u)<<"\t"
+            <<unsigned(runtime.ground_phase_v)<<"\n"
             <<"scene_records\t"<<runtime.world_scene_records.size()<<"\n"
             <<"scene_draw_calls\t"<<runtime.world_scene_draw_calls.size()<<"\n"
             <<"scene_render_plans\t"<<runtime.world_scene_render_plans.size()<<"\n"
@@ -153,6 +158,23 @@ void ExplorationFrameCapture::write(
             <<"run\tpass\tfirst_ray\twidth_C6F4\tphase\tmask_index"
             <<"\tC668\tC688\tC6A8\tdepth\tresource"
             <<"\ttexture_column\tshade_decrement\n";
+
+    // The authentic 34998 FF58 intermediate has 128 six-byte
+    // perspective rows. The four boundary samples include the
+    // 80/48 transition from 342E4 to 34954 plane grouping.
+    if(runtime.ground_perspective_ready) {
+        manifest<<"ground_ff58_row\tindex\tdu\tdv\tu0\tv0\n";
+        for(const auto index:{
+            std::size_t{0U},std::size_t{79U},
+            std::size_t{80U},std::size_t{127U}}) {
+            const auto& row=runtime.ground_ff58[index];
+            manifest<<"ground_ff58_row\t"<<index
+                    <<"\t"<<row.delta_u
+                    <<"\t"<<row.delta_v
+                    <<"\t"<<unsigned(row.origin_u)
+                    <<"\t"<<unsigned(row.origin_v)<<"\n";
+        }
+    }
 
     for (const auto& run:runtime.sweep_runs) {
         const std::uint64_t index=
