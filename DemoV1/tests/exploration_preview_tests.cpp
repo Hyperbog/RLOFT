@@ -66,9 +66,9 @@ int main() {
         0x77U+rloft::PartyImage::kSize,0U);
     save[0x52U]=22U; // original level-22 quick-start save
     auto save_party=generated;
-    save_party[0U]='E';
-    save_party[1U]='H';
-    save_party[2U]='L';
+    std::fill(save_party.begin(),save_party.begin()+16U,0U);
+    constexpr char kSavedName[]="EHLIANNA";
+    std::copy_n(kSavedName,8U,save_party.begin());
     save_party[0x12U]=13U;
     save_party[0x40U]=0xA6U; // original party item ID 166
     save_party[0x41U]=0U;
@@ -80,7 +80,7 @@ int main() {
     assert(from_save.uses_original_save_party);
     assert(from_save.chars==save_party);
     assert(rloft::PartyImage::from_bytes(from_save.chars)
-           .name(0)=="EHLORER");
+           .name(0)=="EHLIANNA");
     assert(u16(from_save.chars,0x40U)==166U);
     assert(from_save.chars[0x12U]==13U);
 
