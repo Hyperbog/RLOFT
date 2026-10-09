@@ -212,6 +212,15 @@ ExplorationPresentedFrame ExplorationPresenter::present(
         }
     }
     if(!ground_textured_rasterized) {
+        if(ground_render_failure.empty() &&
+           original_c026_initial_enabled_) {
+            ground_render_failure=frame.ground_source_verified
+                ? "original full 128-row 34A74 requires all 256"
+                  " sweep rays to carry 0x93"
+                : (frame.ground_source_failure.empty()
+                   ? "original RES4 ground source not verified"
+                   : frame.ground_source_failure);
+        }
         SurfaceFillModel::draw_lower(
             framebuffer_,fill_table_,
             frame.scene.frame.renderer_fill_base_b);
