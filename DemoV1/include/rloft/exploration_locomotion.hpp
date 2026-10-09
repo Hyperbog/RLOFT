@@ -38,10 +38,10 @@ public:
     // session: full delta, Y-only, X-only, then restore. Heading has already
     // been updated by 2E120 and is committed even when translation is blocked.
     //
-    // This Demo-v1 boundary deliberately does not activate the excluded
-    // NPC/world-object/event side effects that follow the static geometry
-    // checks in 2D5D0/2DBAC. Geometry that would invoke a transition is
-    // reported via suppressed_side_effect and is not executed.
+    // The live caller provides the original NPC and class-1 object
+    // footprint probe, preserving 2C800/2CC88 collision rejection after
+    // cell geometry. Authored transitions, NPC AI and event mutations
+    // remain unimplemented and are reported as suppressed_side_effect.
     [[nodiscard]] static AppliedExplorationMotion apply(
         ExplorationSessionState& session,
         const ExplorationMotionStep& step,
