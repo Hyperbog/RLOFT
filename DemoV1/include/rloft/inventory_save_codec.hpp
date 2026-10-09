@@ -65,9 +65,10 @@ public:
     // restored by this subsystem. Refuse a source-world mismatch or
     // nonzero moving-effect count. The four original 6FA0 contexts
     // ARE retained: inactive FF FF FF FF and post-close FF FF 00 FF
-    // are both valid; a single fully-open phase3 view may be restored
-    // with an unambiguous source-object hand match. Partially animated
-    // or multiple concurrently open contexts remain load-unsupported.
+    // are both valid; all four fully-open phase3 views may be
+    // restored when each actor has exactly one source-matching hand
+    // object. Partially animated phase0/1/2 contexts remain unsafe
+    // to resume live until their original VGA timing is integrated.
     // The unchanged original SAVE byte image is retained as backing.
     // An OBJECTS.DAT catalogue is needed when any serialized 6FA0
     // context is fully open: the record holds only an 8-bit object ID
