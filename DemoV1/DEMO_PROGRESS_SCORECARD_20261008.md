@@ -1,5 +1,33 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Active one-system-at-a-time inventory workstream
+
+[Detailed source and DOS acceptance boundaries](INVENTORY_FIDELITY_WORKSTREAM_20261009.md).
+The native inventory now has source implementations
+for the full CODE.1 class/race starter matrix,
+original equipment-hit tables (20 descriptors),
+all ordinary/typed equipment swaps, live RES1
+held item, original RES2 subtyped container
+surrounds and burden-panel backdrop, recursive
+nested-container item/known/capacity exchanges,
+stats, encumbrance, party reorder and D-key
+family-C world drops.
+
+**Not accepted:** current implementation still
+has special item/quest effects, original 2D5D0
+collision, SAVE/load persistence, effects modals,
+and unverified DOS colors/frames. **169 registered
+CTests, no current Windows CI pass.** The earlier
+last green run #640 is older source.
+GitHub Actions remains manual only;
+user specifically requests building only once
+the **entire** inventory is complete.
+
+**Overall engineering source tracker remains
+56.25%** until its separately defined partial
+inventory milestone becomes source-complete;
+this does not mean 56.25% DOS-faithful behavior.
+
 ## Inventory focus: source systems integrated, DOS parity not yet verified
 
 [Detailed CODE.2 inventory reconstruction and completion gates](INVENTORY_FIDELITY_WORKSTREAM_20261009.md).
