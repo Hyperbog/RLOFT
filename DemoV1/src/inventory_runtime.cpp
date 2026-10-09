@@ -527,49 +527,95 @@ InventoryContainerStatus InventoryRuntimeState::open_hand_container(
     return InventoryContainerStatus::Opened;
 }
 
+InventoryContainerStatus InventoryRuntimeState::put_held_in_container_slot(
+    const ObjectCatalog& objects,std::int16_t container_id,
+    std::size_t slot) {
+    if(container_id<0 || held.object_id<0) {
+        return InventoryContainerStatus::NoChange;
+    }
+    const auto& owner=objects.at(
+        static_cast<std::size_t>(container_id));
+    if(owner.item_category!=1U || owner.container_state_index<0) {
+        return InventoryContainerStatus::Unsupported;
+    }
+    const auto state_index=static_cast<std::size_t>(
+        owner.container_state_index);
+    if(state_index>=containers.size())
+        return InventoryContainerStatus::Unsupported;
+    auto& dest=containers[state_index];
+    if(dest.slot_count==0U || dest.items.size()!=dest.slot_count) {
+        return InventoryContainerStatus::Unsupported;
+    }
+    if(slot>=dest.items.size())
+        throw std::out_of_range("original container target slot");
+
+    const auto& next=objects.at(
+        static_cast<std::size_t>(held.object_id));
+    // A container must not be nested into itself (or recursively).
+    // Nested category-1 item support requires further CODE.2 11C3C
+    // rule proof. Do not corrupt global descriptor ownership.
+    if(next.item_category==1U ||
+       !source_container_type_compatible(
+           dest.subtype,next.item_category) ||
+       (dest.subtype<=1U && next.raw_byte_35_low2!=0U)) {
+        return InventoryContainerStatus::Incompatible;
+    }
+    const auto previous=dest.items[slot];
+    if(previous < -1)
+        return InventoryContainerStatus::Unsupported;
+    const auto total=container_weight_half_units(objects,state_index);
+    const auto removed=previous>=0
+        ? objects.at(static_cast<std::size_t>(previous)).weight_half_units
+        : 0U;
+    const auto proposed=static_cast<std::int64_t>(total)-
+        static_cast<std::int64_t>(removed)+
+        static_cast<std::int64_t>(next.weight_half_units);
+    if(proposed>static_cast<std::int64_t>(dest.capacity_pounds)*2) {
+        return InventoryContainerStatus::TooHeavy;
+    }
+    if(proposed<0) return InventoryContainerStatus::Unsupported;
+    const auto mask=static_cast<std::uint8_t>(
+        1U<<(slot&7U));
+    const auto previous_known=static_cast<std::uint8_t>(
+        (dest.per_slot_state_bits&mask)!=0U);
+    dest.items[slot]=held.object_id;
+    dest.per_slot_state_bits=static_cast<std::uint8_t>(
+        (dest.per_slot_state_bits&~mask) |
+        (held.known!=0U?mask:0U));
+    held={previous,previous_known};
+    return InventoryContainerStatus::Inserted;
+}
+
+InventoryContainerStatus InventoryRuntimeState::insert_held_into_container_object(
+    const ObjectCatalog& objects,std::int16_t object_id) {
+    if(held.object_id==-1)return InventoryContainerStatus::NoChange;
+    if(object_id<0)return InventoryContainerStatus::Unsupported;
+    const auto& owner=objects.at(
+        static_cast<std::size_t>(object_id));
+    if(owner.item_category!=1U || owner.container_state_index<0)
+        return InventoryContainerStatus::Unsupported;
+    const auto index=static_cast<std::size_t>(
+        owner.container_state_index);
+    if(index>=containers.size())
+        return InventoryContainerStatus::Unsupported;
+    auto& dest=containers[index];
+    if(dest.slot_count==0U || dest.items.size()!=dest.slot_count)
+        return InventoryContainerStatus::Unsupported;
+    for(std::size_t slot=0;slot<dest.items.size();++slot) {
+        if(dest.items[slot]==-1) {
+            return put_held_in_container_slot(
+                objects,object_id,slot);
+        }
+    }
+    return InventoryContainerStatus::Full;
+}
+
 InventoryContainerStatus InventoryRuntimeState::insert_held_into_open_container(
     const PartyImage& party,const ObjectCatalog& objects) {
     if(!held_container_is_open(*this,party,objects))
         return InventoryContainerStatus::Unsupported;
-    if(held.object_id==-1) return InventoryContainerStatus::NoChange;
-    if(held.object_id<0)
-        return InventoryContainerStatus::Unsupported;
-    auto& opening=*open_container;
-    auto& dest=containers[opening.descriptor_index];
-    auto free_slot=dest.items.size();
-    for(std::size_t i=0U;i<dest.items.size();++i) {
-        if(dest.items[i]==-1){free_slot=i;break;}
-    }
-    if(free_slot==dest.items.size())
-        return InventoryContainerStatus::Full;
-    const auto& item=objects.at(static_cast<std::size_t>(held.object_id));
-    // CODE.2 21404 category/table restrictions, including scroll
-    // cases and quivers. A full nested-container state transition
-    // needs additional cross-descriptor side effects: reject it.
-    if(item.item_category==1U ||
-       !source_container_type_compatible(
-           dest.subtype,item.item_category))
-        return InventoryContainerStatus::Incompatible;
-    const auto& owner=objects.at(
-        static_cast<std::size_t>(opening.object_id));
-    const auto existing=container_weight_half_units(
-        objects,opening.descriptor_index);
-    // Original 2157B..215E2:
-    // current contents - owner-item weight + held-item weight
-    // compared against descriptor capacity * 2 in half-pound units.
-    const auto combined=static_cast<std::int64_t>(existing)-
-        static_cast<std::int64_t>(owner.weight_half_units)+
-        static_cast<std::int64_t>(item.weight_half_units);
-    if(combined>static_cast<std::int64_t>(dest.capacity_pounds)*2)
-        return InventoryContainerStatus::TooHeavy;
-
-    dest.items[free_slot]=held.object_id;
-    const auto mask=static_cast<std::uint8_t>(1U<<(free_slot&7U));
-    dest.per_slot_state_bits=static_cast<std::uint8_t>(
-        (dest.per_slot_state_bits&~mask)|
-        (held.known ? mask : 0U));
-    held={-1,0U};
-    return InventoryContainerStatus::Inserted;
+    return insert_held_into_container_object(
+        objects,open_container->object_id);
 }
 
 InventoryContainerStatus InventoryRuntimeState::take_open_container_slot(
@@ -594,6 +640,20 @@ InventoryContainerStatus InventoryRuntimeState::take_open_container_slot(
         dest.per_slot_state_bits&~mask);
     held={id,known};
     return InventoryContainerStatus::Taken;
+}
+
+InventoryContainerStatus InventoryRuntimeState::swap_open_container_slot(
+    const PartyImage& party,const ObjectCatalog& objects,
+    std::size_t slot) {
+    if(!held_container_is_open(*this,party,objects))
+        return InventoryContainerStatus::Unsupported;
+    const auto& opened=*open_container;
+    if(slot>=containers[opened.descriptor_index].items.size())
+        throw std::out_of_range("original open container grid slot");
+    if(held.object_id==-1)
+        return take_open_container_slot(party,objects,slot);
+    return put_held_in_container_slot(
+        objects,opened.object_id,slot);
 }
 
 bool InventoryRuntimeState::has_object(
