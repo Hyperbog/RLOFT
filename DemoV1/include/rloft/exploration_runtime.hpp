@@ -64,6 +64,8 @@ struct ExplorationRuntimeFrame final {
     // computing movement, world state, HUD or original hit-test records.
     // Keep its failure visible instead of aborting an otherwise valid frame.
     std::optional<std::string> scene_vga_trace_failure;
+    // Failures isolated to one original source, not fatal to the frame.
+    std::vector<Type7VgaSceneTraceFailure> scene_vga_scene_failures;
     std::uint8_t scene_video_page{};
     bool scene_individual_columns_mode{};
     std::vector<ViewSweepRun> sweep_runs;
