@@ -26,7 +26,9 @@ PartyModalPresenter::PartyModalPresenter(
               assets.source().read("CODE.2"))),
       encumbrance_(
           InventoryEncumbranceModel::from_code2(
-              assets.source().read("CODE.2"))) {}
+              assets.source().read("CODE.2"))),
+      equipment_hits_(OriginalEquipmentHitTables::from_code2(
+          assets.source().read("CODE.2"))) {}
 
 void PartyModalPresenter::draw_res0_local(
     IndexedFramebuffer& framebuffer,
@@ -436,30 +438,16 @@ PartyModalPresenter::equipment_hit_at(
             object,inventory.held.object_id,side);
         return EquipmentHit{actor,slot};
     }
-    // Original 12180 has two table variants selected by panel state.
-    // For taking existing equipment, use the actual original UI
-    // raster dimensions and placement as a conservative hit surface;
-    // do not allow arbitrary empty-body clicks to fabricate items.
+    // Original CODE.2 12180 4D252..4D2A9 reads ten 24-byte
+    // equipment hit descriptors selected by the 0F368 race predicate.
+    // A clicked existing item is taken only within its original
+    // inclusive descriptor and if its slot is actually occupied.
     const auto info=PartyPresentationModel::actor(party,actor);
-    const auto model=InventoryScreenModel::build(
-        info,objects_,res1_object_base_);
-    for(auto it=model.draws.rbegin();it!=model.draws.rend();++it) {
-        const auto& draw=*it;
-        if(draw.role==InventoryDrawRole::Ordinary ||
-           draw.temporarily_flip_sprite)continue;
-        const auto raster=assets_.type1(1,draw.absolute_res1_id);
-        int item_column=draw.y;
-        if(draw.bottom_align_bias) {
-            item_column=static_cast<int>(actor)*0x50+
-                *draw.bottom_align_bias-raster.width;
-        }
-        if(row>=draw.x &&
-           row<draw.x+raster.height &&
-           column>=item_column &&
-           column<item_column+raster.width) {
-            return EquipmentHit{actor,draw.slot};
-        }
-    }
+    const bool short_race=info.race_code==2U ||
+        info.race_code==3U || info.race_code==4U;
+    const auto slot=equipment_hits_.occupied_hit(
+        short_race,row,local,1U,info.items);
+    if(slot)return EquipmentHit{actor,*slot};
     return std::nullopt;
 }
 
