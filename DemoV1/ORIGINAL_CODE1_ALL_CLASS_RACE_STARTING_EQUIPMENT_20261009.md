@@ -14,6 +14,11 @@ from `5D90`, then indexes an original 14-word equipment
 record at `DGROUP:0x0988 + family*0xA8 + race*0x1C`.
 Its physical CODE.1 object-2 file offset starts at
 `0x3E724 + 0x0988 = 0x3F0AC`.
+The original complete **2,520-byte** table's SHA-256 is
+`1a89e459d32d9005affa578e1c77589a8c087f70611c3f40bea16ff210d1fb75`;
+its FNV-1a32 audit fingerprint is `0x96084605`.
+The Windows source probe checks this fingerprint before
+certifying the 1.2a source corpus.
 
 All **90 rows are decoded**: **44 populated source rows** and
 **46 all-FFFF rows**. The empty rows are prohibited
