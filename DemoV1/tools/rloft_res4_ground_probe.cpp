@@ -5,7 +5,9 @@
 #include <iomanip>
 #include <iostream>
 #include <optional>
+#include <stdexcept>
 #include <string>
+#include <utility>
 
 int main(int argc,char** argv) {
     try {
