@@ -116,4 +116,29 @@ int main() {
     } catch (const std::runtime_error&) { rejected = true; }
     assert(rejected && world.npcs.at(0).current_hp == 5);
     assert(store.stored_count() == snapshot);
+
+    // Original CODE.2 22386 Level22 mist target, checked against
+    // supplied original LEVELS.DAT level23 header (64x64). Column9,
+    // row58 is valid for Level23 and INVALID for Level22 geometry.
+    {
+        rloft::ExplorationSessionState original22{};
+        original22.level_id=22U;
+        original22.coordinate_a=0x00048000U;
+        original22.coordinate_b=0x00048000U;
+        original22.level_from_direct_save=true;
+        const auto start22=entry(30,15,22);
+        original22.level=start22.level;
+        auto mutable22=start22.world;
+        rloft::LevelContinuityStore original_store{};
+        const auto original23=entry(64,64,23);
+        original_store.enter(original22,mutable22,
+            {23,0x00098000U,0x003A8000U,180U},original23);
+        assert(original22.level_id==23U);
+        assert(original22.level.width==64 && original22.level.height==64);
+        assert(original22.coordinate_a==0x00098000U);
+        assert(original22.coordinate_b==0x003A8000U);
+        assert(original22.facing==180U);
+        assert(!original22.level_from_direct_save);
+        assert(original_store.recall(22)->from_direct_save);
+    }
 }

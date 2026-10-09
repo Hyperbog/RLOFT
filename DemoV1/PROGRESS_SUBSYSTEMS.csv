@@ -80,7 +80,7 @@ NPC encounters and AI,Encounter target selection and priority,20,20,10,20,0,comb
 NPC encounters and AI,Assassin Level22 behavior,20,20,20,20,0,level22_encounter.cpp,Original assassin full interaction
 NPC encounters and AI,Respawn and scripted return,20,20,10,20,0,combat_npc_respawn.cpp,All level authored spawn events
 Story events and puzzles,Event flag bitset read and write,20,20,20,20,0,inventory_runtime.cpp + exploration_session.cpp,Original source story sequences
-Story events and puzzles,Level22 relic and mist script,20,20,10,20,0,level22_story.cpp,Live cinematic and next-level transition
+Story events and puzzles,Level22 relic and mist script,20,20,10,20,0,level22_story.cpp and level22_mist_timeline.cpp and original_mist_staging.hpp,Wire original cutscene renderer and gameplay event plus DOS comparison
 Story events and puzzles,Source-triggered doors traps and switches,20,10,10,10,0,exploration_world.cpp,Complete authored event set
 Story events and puzzles,Level16 four-Seed ritual condition,20,20,20,20,0,inventory_world_drop.cpp,Source playback DOS trace
 Story events and puzzles,Level16 Holy Symbol reward,20,20,20,20,0,inventory_world_drop.cpp,Cinematic teardown and accepted reward

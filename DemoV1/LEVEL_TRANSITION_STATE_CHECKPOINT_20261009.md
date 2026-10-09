@@ -22,3 +22,7 @@
 ## Next original-code checkpoint (still source-only)
 
 The [CODE.2 original mist timeline](LEVEL22_ORIGINAL_MIST_FRAME_SEQUENCE_20261009.md) adds an independently testable **source-order** event plan for 21F70..223F0. The storyboard does not display synthetic mist or execute a guessed duration. Registered CTests increase to **174**, Quick stays **19**. The 22-frame event and current level-continuity source are unbuilt and not DOS-accepted.
+
+## Part 9 continuation — original exit data now established
+
+The CODE.2 Level22 mist caller/source order is verified from original bytes; the [frame timeline](LEVEL22_ORIGINAL_MIST_FRAME_SEQUENCE_20261009.md) and [staged camera](LEVEL22_ORIGINAL_MIST_STAGING_20261009.md) models preserve its original operations. [LEVELS.DAT metadata](ORIGINAL_LEVEL23_DESTINATION_AUDIT_20261009.md) confirms the stage destination is a 64×64 original Level23. **No invented portal, timed mist renderer, or manually triggered level skip has been added.** 175 CTests registered; current source remains unbuilt.

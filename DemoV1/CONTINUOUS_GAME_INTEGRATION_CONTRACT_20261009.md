@@ -44,12 +44,11 @@ only**, except when newly authorized by the user.
 `--dev-interact` explicitly opts into normal
 production item interactions inside the Level22
 testbed. Neither bypasses the original production
-startup or CODE.1 character creation. True
-source-defined cross-level transitions, retained
-worlds, full SAVE/LOAD and DOS visual/IRQ acceptance
-remain open engineering milestones.
+startup or CODE.1 character creation. Live source-event-driven cross-level transitions, complete retained-world runtime behavior, full SAVE/LOAD and DOS visual/IRQ acceptance remain open engineering milestones.
 
-**Part 9 update:** The source now contains in-memory visited-world snapshots and `ExplorationRuntime::transition_to_level` for event-provided destinations. It is not yet called by an authored original exit; current-source compilation, original DOS acceptance and complete disk-world persistence remain outstanding. Registered CTests: 173.
+**Part 9 update:** The source now contains in-memory visited-world snapshots and `ExplorationRuntime::transition_to_level` for event-provided destinations. It is not yet called by an authored original exit; current-source compilation, original DOS acceptance and complete disk-world persistence remain outstanding. Registered CTests: 175.
+
+**Subsequent original-source work:** The CODE.2 `21F70..223F0` camera-stage and 22-frame Level22 mist order have been reconstructed as typed source traces; source archive confirms the original Level23 64×64 destination (9.5,58.5), facing 180. These models and the direct-item F540 fidelity repair are **not built/accepted**. [Mist timeline](LEVEL22_ORIGINAL_MIST_FRAME_SEQUENCE_20261009.md) · [Camera staging](LEVEL22_ORIGINAL_MIST_STAGING_20261009.md) · [Level23 archive audit](ORIGINAL_LEVEL23_DESTINATION_AUDIT_20261009.md).
 
 ## Opt-in reusable development slice (current implementation)
 
@@ -68,8 +67,8 @@ the underlying authoritative session.
 
 Source: [Level22 dev-level testing
 matrix](DEV_LEVEL_TESTBED_20261009.md).
-Registered CTests: **172** / Quick **19**;
-Full build #647 passed all at `fb4a0145`.
+Currently registered CTests: **175** / Quick **19**;
+Full build #647 verified the earlier 172 CTests at `fb4a0145`.
 The later cross-level ground change is source-only.
 Engineering score **56.25%** and inventory
 PARTIAL remain unchanged.

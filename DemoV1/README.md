@@ -47,8 +47,12 @@ per-subsystem CSV](PROGRESS_SUBSYSTEMS.csv), its
 in the same Git checkpoint. A registered offline
 `subsystem_progress_tracker_tests` check validates
 the authored report when Python3 is available at
-configure time. The current registry has **173 CTests** and the 19-test Quick selection is unchanged. The Part 9 continuity changes remain uncompiled; build #647 verified only the previous 172-test source.
+configure time. The current registry has **175 CTests** and the 19-test Quick selection is unchanged. The Part 9 continuity changes remain uncompiled; build #647 verified only the previous 172-test source.
 Builds remain manual unless explicitly authorized.
+
+## Part 9 — original Level22 mist code reconstruction
+
+The [original source-order mist sequence](LEVEL22_ORIGINAL_MIST_FRAME_SEQUENCE_20261009.md) recreates the exact **22-frame command order** and Level23 load after frame index 20; the [original camera staging model](LEVEL22_ORIGINAL_MIST_STAGING_20261009.md) reconstructs 10-degree turns and whole-cell steps before the effect. A direct [original Level23 archive audit](ORIGINAL_LEVEL23_DESTINATION_AUDIT_20261009.md) confirms 64×64 geometry and the source-authenticated (9.5,58.5), facing 180 destination. The [F540 item-removal correction](LEVEL22_F540_DUPLICATE_ITEM_REMOVAL_AUDIT_20261009.md) preserves original direct-item duplicate scanning. These are **unbuilt source/test changes**, not a fabricated working cinematic.
 
 ## Part 9 — reusable level state and in-session engine bridge
 

@@ -38,3 +38,7 @@ A dedicated `Level22MistTimeline` generates a typed, source-offset-indexed comma
 Do **not** install a synthetic mist effect or fast-forward Level 23 for the sake of a playable demo.
 
 **Source status:** 174 registered CTests after this checkpoint (19 Quick). Current HEAD source is **not compiled nor executed**; last verified Windows build #647 compiled 172 tests at older commit `fb4a0145`. **Scorecard:** unchanged provisional **49.8%**, 20 systems / 122 individually scored subsystems / current-head original DOS acceptance **0%**, because this code is a source-order reconstruction with no new live gameplay or verified parity.
+
+## Reconstructed stage movement and destination archive
+
+[Original 21F70 stage camera trace](LEVEL22_ORIGINAL_MIST_STAGING_20261009.md) reproduces the source heading and grid-step branches (including 63 draw/present pairs from the original fresh Level22 start). [The original archive audit](ORIGINAL_LEVEL23_DESTINATION_AUDIT_20261009.md) confirms destination Level23's 64×64 geometry and signed +17 RES4 selector. Both remain unbuilt and not wired to playable story presentation. Registry now contains **175** CTests.

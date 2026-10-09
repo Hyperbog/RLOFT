@@ -4,7 +4,7 @@
 **Branch:** `demo-v1`  
 **Scope:** Level 22 reusable development testbed and systems needed for the full original game.  
 **Source of truth:** [editable scoring data](PROGRESS_SUBSYSTEMS.csv).  
-**Current revision acceptance:** Full Windows build #647 **passed all 172 CTests** at source `fb4a0145`; the subsequent RES4 binding and Part 9 live in-memory continuity code/tests are **committed but not yet compiled**. No current-source DOS visual/gameplay comparison has passed.  
+**Current revision acceptance:** Full Windows build #647 **passed all 172 CTests** at source `fb4a0145`; subsequent RES4, Part 9 level continuity, original CODE.2 mist-frame/staging models and F540 correction are **committed but not yet compiled** (175 CTests now registered). No current-source DOS visual/gameplay comparison has passed.  
 **Separate historical metric:** the pre-existing 32-task engineering ledger remains **56.25% (18/32)**. It is NOT numerically comparable to these weighted readiness estimates.
 
 ## Scoring rules — fixed for future checkpoints
@@ -54,6 +54,8 @@ In particular, 20 points for “regression” means test cases are written and r
 | **Verification and developer testbed** | **50.0%** | 7 | Full original campaign milestone |
 
 **Part 9 continuation:** General in-memory level-transition and visited-world reentry are source-implemented. No original event exit, disk SAVE/LOAD or DOS fidelity has been accepted. Expected registry **173 CTests** (Quick 19), not yet compiled. See [Part 9 checkpoint](LEVEL_TRANSITION_STATE_CHECKPOINT_20261009.md).
+
+**Part 9 source audit update:** F540 duplicate-item removal now preserves the original F5C6→F5D9 continuation; the 21F70 camera staging and 22-frame Level22 mist story timeline are encoded in testable source models. The original LEVELS.DAT Level23 target is 64×64, but there is NO live mist playback or original-DOS acceptance yet. Registered total **175** CTests, 19 Quick, last green compiled **172** at older SHA `fb4a0145`. Engineering readiness unchanged at 49.8% pending live integration.
 
 ## Every subsystem — individual readiness percentages
 
@@ -210,7 +212,7 @@ Each row's five gate marks are out of 20; the weighted readiness column is an in
 | Subsystem | Readiness | S/N/L/T/D | Source implementation evidence | Next acceptance blocker |
 | --- | ---: | --- | --- | --- |
 | Event flag bitset read and write | **60.0%** | 20/20/20/20/0 | `inventory_runtime.cpp + exploration_session.cpp` | Original source story sequences |
-| Level22 relic and mist script | **50.0%** | 20/20/10/20/0 | `level22_story.cpp` | Live cinematic and next-level transition |
+| Level22 relic and mist script | **50.0%** | 20/20/10/20/0 | `level22_story.cpp and level22_mist_timeline.cpp and original_mist_staging.hpp` | Wire original cutscene renderer and gameplay event plus DOS comparison |
 | Source-triggered doors traps and switches | **35.0%** | 20/10/10/10/0 | `exploration_world.cpp` | Complete authored event set |
 | Level16 four-Seed ritual condition | **60.0%** | 20/20/20/20/0 | `inventory_world_drop.cpp` | Source playback DOS trace |
 | Level16 Holy Symbol reward | **60.0%** | 20/20/20/20/0 | `inventory_world_drop.cpp` | Cinematic teardown and accepted reward |
