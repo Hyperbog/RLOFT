@@ -131,6 +131,24 @@ int main() {
         initial,rloft::DevLevelDiagnostics::capture(
             session,world,inventory)).world);
     session.level.cell_words[2]=0U;
+    rloft::CellControlRecord control{};
+    control.raw[0]=0x01U;
+    control.raw[1]=0x20U;
+    session.level.group1.push_back(control);
+    assert(rloft::DevLevelDiagnostics::compare(
+        initial,rloft::DevLevelDiagnostics::capture(
+            session,world,inventory)).world);
+    session.level.group1.clear();
+    session.level.group2.push_back(control);
+    assert(rloft::DevLevelDiagnostics::compare(
+        initial,rloft::DevLevelDiagnostics::capture(
+            session,world,inventory)).world);
+    session.level.group2.clear();
+    session.level.active_animation_count=2U;
+    assert(rloft::DevLevelDiagnostics::compare(
+        initial,rloft::DevLevelDiagnostics::capture(
+            session,world,inventory)).world);
+    session.level.active_animation_count=0U;
 
     const auto restored=rloft::DevLevelDiagnostics::capture(
         session,world,inventory);
