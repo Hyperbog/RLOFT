@@ -3,8 +3,12 @@
 #endif
 #include "rloft/party_panel_controls.hpp"
 
+#include <array>
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
+#include <stdexcept>
+#include <vector>
 
 int main() {
     using rloft::PartyPanelControlModel;
@@ -166,4 +170,109 @@ int main() {
     assert(!PartyPanelControlModel::gameplay_hand_at(276,21));
     assert(!PartyPanelControlModel::gameplay_hand_at(315,4));
     assert(!PartyPanelControlModel::gameplay_hand_at(300,320));
+
+    // Original CODE.2 12E70 stores the address of one of these two
+    // EXACT 10x24-byte tables into live DGROUP:12C00. Original
+    // physical CODE.2 data offsets are 75F24+6DB0 (race other than
+    // 2/3/4), 75F24+6EA0 (race 2/3/4).
+    constexpr int encoded[2][10][6]={{
+        {17,1,128,30,153,49},
+        {18,1,154,34,170,44},
+        {16,1,154,27,291,52},
+        {19,1,130,17,163,31},
+        {20,1,178,16,195,27},
+        {20,1,178,52,195,63},
+        {12,1,248,3,279,18},
+        {13,1,248,61,279,76},
+        {14,1,110,3,291,26},
+        {15,1,110,53,291,76}
+    },{
+        {17,1,146,30,171,49},
+        {18,1,172,34,188,44},
+        {16,1,172,27,291,52},
+        {19,1,148,17,181,31},
+        {20,1,196,16,213,27},
+        {20,1,196,52,213,63},
+        {12,1,248,3,279,18},
+        {13,1,248,61,279,76},
+        {14,1,128,3,291,26},
+        {15,1,128,53,291,76}
+    }};
+    constexpr std::size_t base=0x75F24U;
+    constexpr std::size_t position[2]{0x6DB0U,0x6EA0U};
+    std::vector<std::uint8_t> original_code2(
+        base+0x6EA0U+10U*24U,0U);
+    const auto dword=[&](std::size_t at,std::uint32_t value) {
+        for(std::size_t b=0U;b<4U;++b) {
+            original_code2.at(at+b)=
+                static_cast<std::uint8_t>(value>>(8U*b));
+        }
+    };
+    for(std::size_t table=0U;table<2U;++table) {
+        for(std::size_t i=0U;i<10U;++i) {
+            for(std::size_t field=0U;field<6U;++field) {
+                dword(base+position[table]+i*24U+field*4U,
+                      static_cast<std::uint32_t>(
+                          encoded[table][i][field]));
+            }
+        }
+    }
+    const auto hit_tables=rloft::OriginalEquipmentHitTables::
+        from_code2(original_code2);
+    for(std::size_t table=0U;table<2U;++table) {
+        for(std::size_t i=0U;i<10U;++i) {
+            const auto& d=hit_tables.descriptor(table!=0U,i);
+            assert(d.slot==encoded[table][i][0]);
+            assert(d.accepted_pointer_flags==1U);
+            assert(d.rect.row_min==encoded[table][i][2]);
+            assert(d.rect.column_min==encoded[table][i][3]);
+            assert(d.rect.row_max==encoded[table][i][4]);
+            assert(d.rect.column_max==encoded[table][i][5]);
+            std::array<std::int16_t,21U> items{};
+            items.fill(-1);
+            const auto slot=static_cast<std::size_t>(d.slot);
+            // Empty descriptor boxes do NOT pick up phantom items.
+            assert(!hit_tables.occupied_hit(
+                table!=0U,d.rect.row_min,d.rect.column_min,
+                1U,items));
+            items[slot]=5;
+            const auto low=hit_tables.occupied_hit(
+                table!=0U,d.rect.row_min,d.rect.column_min,
+                1U,items);
+            const auto high=hit_tables.occupied_hit(
+                table!=0U,d.rect.row_max,d.rect.column_max,
+                1U,items);
+            assert(low && *low==slot);
+            assert(high && *high==slot);
+            // All ten shipped descriptors accept original left-click
+            // flags=1, not flag2 or a synthesized key state.
+            assert(!hit_tables.occupied_hit(
+                table!=0U,d.rect.row_min,d.rect.column_min,
+                2U,items));
+            assert(!hit_tables.occupied_hit(
+                table!=0U,d.rect.row_min-1,d.rect.column_min,
+                1U,items));
+            assert(!hit_tables.occupied_hit(
+                table!=0U,d.rect.row_min,d.rect.column_min-1,
+                1U,items));
+        }
+    }
+    // The original race variant is meaningful: head/hand/armor
+    // rows shift down by 18 pixels, while rings remain unchanged.
+    assert(hit_tables.descriptor(false,0U).rect.row_min==128);
+    assert(hit_tables.descriptor(true,0U).rect.row_min==146);
+    assert(hit_tables.descriptor(false,6U).rect.row_min==248);
+    assert(hit_tables.descriptor(true,6U).rect.row_min==248);
+    bool invalid=false;
+    try {
+        (void)hit_tables.descriptor(false,10U);
+    }catch(const std::out_of_range&){invalid=true;}
+    assert(invalid);
+    original_code2.pop_back();
+    invalid=false;
+    try {
+        (void)rloft::OriginalEquipmentHitTables::from_code2(
+            original_code2);
+    }catch(const std::runtime_error&){invalid=true;}
+    assert(invalid);
 }
