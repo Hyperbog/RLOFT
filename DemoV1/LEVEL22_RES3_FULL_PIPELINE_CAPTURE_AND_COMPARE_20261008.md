@@ -184,3 +184,24 @@ at the `demo-v1` branch HEAD and that the workflow is still
 `workflow_dispatch` only. GitHub Actions run #638 remains the
 latest completed run, so **none of this new code is claimed to
 have passed a current-HEAD Windows CTest or DOS parity check**.
+
+
+## Follow-up: source-authenticated C029 wide RES3 pixel dispatch
+
+[Original CODE.2 C029 per-column checkpoint](
+LEVEL22_CODE2_C029_INDIVIDUAL_RES3_WIDE_PIXELS_20261008.md)
+corrects the former unconditional seven-column ceiling in
+the sprite pipeline. In the immutable shipped CODE.2
+DGROUP image, C029 initially equals 1. The original
+36B42 individual mode sends **one** width-one masked VGA
+raster call per pixel, even when its source run is wider
+than seven. Certified source widths 8..255 now execute
+original per-pixel masked SINTAB instructions; grouped
+C029=0 still caps at original verified width seven.
+A full pixel executor test spans eight columns and checks
+VGA masks, shade parity and both destination byte addresses.
+
+The capture v2 TSV adds C029 mode, unsplit original scene
+run width/phase/provenance, raw 16.16 camera coordinates
+and raw facing to support future exact DOS comparison.
+This follow-up is committed code, not a green new CI build.
