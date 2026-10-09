@@ -119,45 +119,102 @@ void validate_actor(
 
 }  // namespace
 
-CharacterTransferTables CharacterTransferTables::from_assets(
-    const RavenloftBootAssets& assets) {
-    CharacterTransferTables tables;
+bool CharacterStartingLoadout::has_shipped_items() const noexcept {
+    return std::any_of(slots.begin(),slots.end(),
+                       [](std::int16_t item) {return item!=-1;});
+}
 
-    for (std::size_t family = 0;
-         family < tables.family_race_words.size();
-         ++family) {
-        for (std::size_t race = 0;
-             race < tables.family_race_words[family].size();
-             ++race) {
-            for (std::size_t word = 0; word < 14U; ++word) {
-                tables.family_race_words[family][race][word] =
-                    assets.code1_u16(
-                        0x0988U +
-                        family * 0xA8U +
-                        race * 0x1CU +
-                        word * 2U);
+CharacterStartingLoadout CharacterTransferTables::starting_loadout(
+    std::size_t family,std::size_t race) const {
+    if(family>=family_race_words.size() ||
+       race>=family_race_words[0].size()) {
+        throw std::out_of_range("original CODE.1 starter family/race");
+    }
+    CharacterStartingLoadout out{};
+    out.family=family;
+    out.race=race;
+    out.slots.fill(-1);
+    const auto& words=family_race_words[family][race];
+    // CODE.1 function_5F4C takes four equipped words at
+    // 098C,098E,098A,0988, then ten ordinary item words
+    // at 0990..09A2. Slot 14/15 = hands; 16 = robe/armor;
+    // 17 = headwear. Actor slots 10..13 and 18..20 are FF.
+    constexpr std::array<std::size_t,4> equipped{{2,3,1,0}};
+    for(std::size_t slot=0;slot<10U;++slot) {
+        out.slots[slot]=static_cast<std::int16_t>(words[4U+slot]);
+    }
+    for(std::size_t i=0;i<equipped.size();++i) {
+        out.slots[14U+i]=static_cast<std::int16_t>(
+            words[equipped[i]]);
+    }
+    return out;
+}
+
+CharacterTransferTables CharacterTransferTables::from_original_bytes(
+    const std::vector<std::uint8_t>& code1,
+    const std::vector<std::uint8_t>& objects) {
+    constexpr std::size_t kCode1Dgroup=0x3E724U;
+    constexpr std::size_t kOriginalStarterAt=0x0988U;
+    constexpr std::size_t kFamilyStride=0xA8U;
+    constexpr std::size_t kRaceStride=0x1CU;
+    constexpr std::size_t kFamilyCount=15U;
+    constexpr std::size_t kRaceCount=6U;
+    constexpr std::size_t kWords=14U;
+    constexpr std::size_t kEnd=kCode1Dgroup+kOriginalStarterAt+
+        kFamilyStride*kFamilyCount;
+    if(code1.size()<kEnd) {
+        throw std::runtime_error(
+            "CODE.1 truncated before all original 90 starting loadouts");
+    }
+    if(objects.size()<4U) {
+        throw std::runtime_error("OBJECTS.DAT is truncated");
+    }
+    const auto count=static_cast<std::size_t>(le32(objects.data()));
+    if(count>(objects.size()-4U)/65U ||
+       4U+count*65U!=objects.size()) {
+        throw std::runtime_error(
+            "OBJECTS.DAT size disagrees with original counted records");
+    }
+
+    CharacterTransferTables tables{};
+    static_assert(kFamilyCount==15U && kRaceCount==6U);
+    for(std::size_t family=0;family<kFamilyCount;++family) {
+        for(std::size_t race=0;race<kRaceCount;++race) {
+            const auto offset=kCode1Dgroup+kOriginalStarterAt+
+                family*kFamilyStride+race*kRaceStride;
+            for(std::size_t word=0;word<kWords;++word) {
+                tables.family_race_words[family][race][word]=
+                    static_cast<std::uint16_t>(code1[offset+2U*word]) |
+                    (static_cast<std::uint16_t>(
+                        code1[offset+2U*word+1U])<<8U);
             }
         }
     }
-
-    const auto objects = assets.source().read("OBJECTS.DAT");
-    if (objects.size() < 4U) {
-        throw std::runtime_error("OBJECTS.DAT is truncated");
-    }
-
-    const auto count = static_cast<std::size_t>(le32(objects.data()));
-    const auto required = 4ULL + static_cast<unsigned long long>(count) * 65ULL;
-    if (required > objects.size()) {
-        throw std::runtime_error("OBJECTS.DAT record array is truncated");
-    }
-
     tables.object_conflict_flag.resize(count);
-    for (std::size_t i = 0; i < count; ++i) {
-        tables.object_conflict_flag[i] =
-            objects[4U + i * 65U + 0x2FU];
+    for(std::size_t i=0;i<count;++i) {
+        tables.object_conflict_flag[i]=
+            objects[4U+i*65U+0x2FU];
     }
-
+    // All nonempty entries must reference actual shipped OBJECTS.DAT
+    // IDs. A corrupted row must never become random starter equipment.
+    for(std::size_t family=0;family<kFamilyCount;++family) {
+        for(std::size_t race=0;race<kRaceCount;++race) {
+            for(const auto id:tables.family_race_words[family][race]) {
+                if(id!=0xFFFFU && id>=count) {
+                    throw std::runtime_error(
+                        "CODE.1 starting item exceeds OBJECTS.DAT count");
+                }
+            }
+        }
+    }
     return tables;
+}
+
+CharacterTransferTables CharacterTransferTables::from_assets(
+    const RavenloftBootAssets& assets) {
+    return from_original_bytes(
+        assets.source().read("CODE.1"),
+        assets.source().read("OBJECTS.DAT"));
 }
 
 CharacterTransferImage build_character_transfer(
@@ -270,15 +327,16 @@ CharacterTransferImage build_character_transfer(
             throw std::logic_error("CODE.1 class-family index exceeds table");
         }
 
-        const auto& words = tables.family_race_words[fam][race];
-
-        // q4 = 098C,098E,098A,0988 => source words 2,3,1,0.
-        constexpr std::array<std::size_t, 4> q4{{2, 3, 1, 0}};
-        for (std::size_t j = 0; j < q4.size(); ++j) {
-            put16(out, base + 0x5CU + j * 2U, words[q4[j]]);
-        }
-        for (std::size_t j = 0; j < 10U; ++j) {
-            put16(out, base + 0x40U + j * 2U, words[4U + j]);
+        const auto loadout=tables.starting_loadout(fam,race);
+        // CODE.1 5F4C authentic family/race loadout, preserving all
+        // fourteen original words and the 7 untouched empty slots.
+        // Both actor records receive exactly the same mapping;
+        // the source's separate second-actor conflict pass follows.
+        for(std::size_t j=0U;j<loadout.slots.size();++j) {
+            if(j>=10U && j<=13U) continue;
+            if(j>=18U) continue;
+            put16(out,base+0x40U+j*2U,
+                  static_cast<std::uint16_t>(loadout.slots[j]));
         }
     }
 
