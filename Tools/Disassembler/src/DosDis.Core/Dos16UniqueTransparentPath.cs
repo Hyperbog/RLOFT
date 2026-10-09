@@ -67,8 +67,9 @@ public static class Dos16UniqueTransparentPath
             throw new ArgumentOutOfRangeException(nameof(maximumTransparent));
         if (!MatchesRegion(region, graph) || site.Segment != region.Segment)
             return Array.Empty<Dos16FlowInstruction>();
-        var known = graph.Instructions.ToDictionary(x => x.Address);
-        if (!known.ContainsKey(site)) return Array.Empty<Dos16FlowInstruction>();
+        var known = UniqueInstructions(graph);
+        if (known is null || !known.ContainsKey(site))
+            return Array.Empty<Dos16FlowInstruction>();
         var found = new List<Dos16FlowInstruction>();
         var visited = new HashSet<Dos16Address> { site };
         var cursor = site;
@@ -86,6 +87,21 @@ public static class Dos16UniqueTransparentPath
                 break;
             cursor = prior.Address;
         }
+        return found;
+    }
+
+    /// <summary>
+    /// A graph with two interpretations starting at the same address is
+    /// ambiguous. Return an unresolved candidate instead of allowing
+    /// ToDictionary to throw while processing externally edited snapshots.
+    /// </summary>
+    private static Dictionary<Dos16Address, Dos16FlowInstruction>? UniqueInstructions(
+        Dos16FlowResult graph)
+    {
+        var found = new Dictionary<Dos16Address, Dos16FlowInstruction>();
+        foreach (var instruction in graph.Instructions)
+            if (!found.TryAdd(instruction.Address, instruction))
+                return null;
         return found;
     }
 
@@ -187,9 +203,10 @@ public static class Dos16UniqueTransparentPath
             successor.Segment != region.Segment ||
             !MatchesRegion(region, graph))
             return false;
-        var known = graph.Instructions.ToDictionary(i => i.Address);
-        if (!known.ContainsKey(predecessor) || !known.ContainsKey(successor) ||
-            successor == graph.Entry && predecessor != successor)
+        var known = UniqueInstructions(graph);
+        if (known is null ||
+            !known.ContainsKey(predecessor) || !known.ContainsKey(successor) ||
+            (successor == graph.Entry && predecessor != successor))
             return false;
 
         var visited = new HashSet<Dos16Address> { successor };
