@@ -1,5 +1,28 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+
+## Mandatory system and subsystem percentage reporting
+
+Every ongoing native-development checkpoint must maintain a
+percentage **for every one of the 20 major systems and all
+120 named subsystems** (expand the list as new subsystems are
+discovered). The [canonical progress scorecard](
+PROGRESS_SUBSYSTEM_REPORT_20261009.md) records source tracing,
+implementation, runtime integration, authored regression and
+DOS-current-revision acceptance using a fixed evidence-weighted
+score. The [scoring CSV](PROGRESS_SUBSYSTEMS.csv) is the
+canonical input, cross-checked by the
+`subsystem_progress_tracker_tests` CTest.
+
+Current baseline **48.8% provisional readiness**, distinct from
+the historical **56.25% (18/32)** task score. DOS acceptance is
+currently **0% at this revision** because no current-head
+build or DOS comparison has been run. Source-only changes
+cannot promote that acceptance score. Test registrations
+now **172** (Quick 19); CI/build execution remains
+user-authorized and manual.
+
+
 ## Opt-in reusable development slice (current implementation)
 
 Level22 is the first integrated testbed. An explicit
