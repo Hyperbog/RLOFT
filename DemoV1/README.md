@@ -1,5 +1,26 @@
 # Ravenloft Demo Build v1
 
+## RES3 source-isolated Level 22 scene tracing — next manual build
+
+[Source checkpoint](LEVEL22_RES3_SCENE_TRACE_ISOLATION_20261008.md):
+the optional type-7 VGA trace builder no longer drops all
+visible scene objects when an unrelated RES3 draw call has a
+malformed/unsupported descriptor. It retains original call
+order, successful per-source traces, unsupported-wide null
+slots and the exact failed source identity. The strict original
+verification API remains fail-fast.
+
+New v2 opt-in TSV rows `scene_call_trace_failure` show
+call index, original source class/index, absolute RES3 ID
+and error reason. The Level 22 preview title now reports
+`RES3 calls rendered/total` and `RES3 trace errors`
+in addition to SINTAB wall counts. No original framebuffer
+pixels were approximated or source asset data modified.
+
+**Not yet manually built/tested on Windows at current HEAD.**
+Last green manual Windows build #638 (159/159 tests) predates
+this patch; formal acceptance remains **1/5 gates (20%)**.
+
 ## Level 22 original-content correction — native capture evidence
 
 [Audit of 30 user-supplied indexed frames](LEVEL22_CAPTURE_AUDIT_20261008.md):
