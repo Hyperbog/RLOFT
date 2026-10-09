@@ -91,6 +91,11 @@ private:
         IndexedFramebuffer& framebuffer,
         const CharacterSheet& sheet) const;
 
+    void draw_encumbrance_panel(
+        IndexedFramebuffer& framebuffer,
+        const PartyImage& party,
+        const InventoryRuntimeState& inventory,
+        std::size_t actor) const;
     void draw_open_container(
         IndexedFramebuffer& framebuffer,
         const InventoryRuntimeState& inventory,
