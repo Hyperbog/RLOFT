@@ -537,7 +537,8 @@ PartyModalCoverage PartyModalPresenter::draw(
     const std::array<bool, 4>& character_mode,
     std::size_t selected_actor,
     const InventoryRuntimeState* inventory,
-    std::optional<InventoryPointer> pointer) const {
+    std::optional<InventoryPointer> pointer,
+    std::optional<std::size_t> encumbrance_actor) const {
     if (selected_actor >= PartyImage::kActorCount) {
         throw std::out_of_range(
             "party modal selected actor");
