@@ -37,11 +37,11 @@ static void Print(object payload) => Console.WriteLine(JsonSerializer.Serialize(
 
 try
 {
-    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report" or "mz" or "mz-disasm" or "mz-analyze" or "com" or "com-disasm" or "com-analyze" or "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze"))
+    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report" or "mz" or "mz-disasm" or "mz-analyze" or "com" or "com-disasm" or "com-analyze" or "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze" or "overlay-fixups"))
     {
         Console.Error.WriteLine("Usage: dosdis inspect|mz|mz-disasm|mz-analyze|com|com-disasm|com-analyze|overlay|overlay-map|overlay-disasm|overlay-analyze|fixups|memory|disasm|analyze|report <file> [options]\n" +
             "16-bit CFG: mz-analyze|com-analyze|overlay-analyze [--entry HEX] [--max-instructions 100000]\n" +
-            "Overlay: container inspection; overlay-map --resident START.EXE (validated MZ directory)\n" +
+            "Overlay: container inspection; overlay-map|overlay-fixups --resident START.EXE (validated MZ directory)\n" +
             "Overlay-disasm: --regions manifest.json --region ID [--offset 0] [--count 32]\n" +
             "COM: explicitly selected headerless mode [--origin 100] (hex); com-disasm [--offset 100] [--count 32]\n" +
             "MZ: verified DOS MZ header/relocations; mz-disasm [--segment 0] [--offset 0] [--count 32] (x86-16 candidates)\n" +
@@ -60,7 +60,7 @@ try
     var catalog = args.Contains("--identity-catalog", StringComparer.Ordinal)
         ? SourceIdentityRegistry.ReadFile(Option(args, "--identity-catalog", "")) : null;
     LeImage? image = null;
-    if (args[0] is not ("mz" or "mz-disasm" or "mz-analyze" or "com" or "com-disasm" or "com-analyze" or "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze"))
+    if (args[0] is not ("mz" or "mz-disasm" or "mz-analyze" or "com" or "com-disasm" or "com-analyze" or "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze" or "overlay-fixups"))
     {
         try { image = LeImage.Load(artifact); }
         catch (InvalidDataException) when (args[0] == "inspect") { /* Identify signature, not fake mapped code. */ }
@@ -125,7 +125,7 @@ try
                 Instructions = com.Decode(offset, count) });
         }
     }
-    else if (args[0] is "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze")
+    else if (args[0] is "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze" or "overlay-fixups")
     {
         var overlay = DosOverlayImage.LoadEnvelope(artifact);
         if (args[0] == "overlay")
@@ -133,13 +133,17 @@ try
             Print(new { overlay.Envelope, MappingStatus =
                 "container-envelope-only;internal-code-and-fixups-unverified" });
         }
-        else if (args[0] == "overlay-map")
+        else if (args[0] is "overlay-map" or "overlay-fixups")
         {
             if (args.Count(x => x == "--resident") != 1)
-                throw new ArgumentException("overlay-map requires exactly one --resident EXE path.");
+                throw new ArgumentException("Overlay directory analysis requires exactly one --resident EXE path.");
             var residentArtifact = BinaryArtifact.Open(Option(args, "--resident", ""));
             var resident = DosMzImage.Load(residentArtifact);
-            Print(DosOverlayDirectoryRecovery.Recover(resident, overlay));
+            var directory = DosOverlayDirectoryRecovery.Recover(resident, overlay);
+            if (args[0] == "overlay-fixups")
+                Print(DosOverlayFixupAudit.Analyze(overlay, directory));
+            else
+                Print(directory);
         }
         else
         {
