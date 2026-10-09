@@ -1,5 +1,33 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Part 8 continued — original Mage inventory message state
+
+Original `CODE.2 116D5..11798` Mage scroll scribing
+now emits the exact original success, already-known
+or Intelligence-capacity failure text from the
+object-2 `6D9C/6DA0/6DA4` source pointers.
+Success prefixes the real `T` spell name.
+`6DAC` pending and `6DA8=30700()+0x36`
+are projected; the modal `13118/13184`
+resets this state on entry and expires it only
+on an **unsigned IRQ tick greater than the
+deadline**, restoring the ordinary held-item
+description. The native modal displays the
+source text even when the success path clears
+the cursor.
+
+**Acceptance remains open:** ribbon artwork,
+palette and glyph parity versus DOS; host
+IRQ phase is an existing BIOS-cadence proxy;
+the other inventory item actions and native
+SAVE/LOAD path remain unfinished. New assertion
+cases are committed but not execution-tested.
+169 registered CTests (Quick 19), old Windows
+green #640 is not current; 56.25% engineering
+milestones, inventory PARTIAL. Full build
+deferred per user instruction.
+
+
 ## Part 8 source checkpoint — original Mage scroll learning
 
 The live inventory now includes original CODE.2
