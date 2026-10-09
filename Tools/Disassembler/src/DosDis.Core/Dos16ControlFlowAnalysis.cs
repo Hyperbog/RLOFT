@@ -142,7 +142,11 @@ public static class Dos16ControlFlowAnalysis
                 physical, decodedLine.OriginalBytes, decodedLine.Assembly, decodedLine.FlowControl));
             int after = current + length;
             bool isNear = instruction.Op0Kind is OpKind.NearBranch16 or OpKind.NearBranch32;
-            int? direct = isNear ? checked((int)instruction.NearBranchTarget) : null;
+            // Operand-size overrides may produce a 32-bit destination.
+            // Do not overflow or truncate it into a fabricated 16-bit IP.
+            ulong nearTarget = instruction.NearBranchTarget;
+            int? direct = isNear && nearTarget <= ushort.MaxValue
+                ? (int)nearTarget : null;
             const string relativeEvidence = "16-bit-relative-target;original-bytes;same-segment-hypothesis";
 
             switch (instruction.FlowControl)
@@ -183,6 +187,12 @@ public static class Dos16ControlFlowAnalysis
                     break;
                 case FlowControl.Return:
                 case FlowControl.Exception:
+                    break;
+                case FlowControl.XbeginXabortXend:
+                    Edge(current, null, "unresolved-transaction-control",
+                        "Transactional control transfer is not modeled in DOS x86-16 candidate flow.");
+                    Edge(current, after, "transaction-fallthrough-candidate",
+                        "Sequential continuation is conditional on unsupported transactional semantics.");
                     break;
                 default:
                     Edge(current, after, "fallthrough", "candidate-sequential-execution");

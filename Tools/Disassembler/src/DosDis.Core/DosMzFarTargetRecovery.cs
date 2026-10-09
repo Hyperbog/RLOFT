@@ -25,6 +25,23 @@ public static class DosMzFarTargetRecovery
                 StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("Cannot combine a foreign graph, MZ image or relocated view.");
 
+        if (simulation.Summary.Writes.Count != image.Relocations.Count)
+            throw new InvalidDataException("Relocation simulation and original MZ table have different record counts.");
+
+        // Each instruction probes at most six possible overlapping fixup
+        // source offsets. Pre-index once instead of scanning the full MZ
+        // relocation table for every candidate far instruction.
+        var relocationOrdinals = new Dictionary<long, List<int>>();
+        for (int index = 0; index < image.Relocations.Count; index++)
+        {
+            long start = image.Relocations[index].SourceFileOffset;
+            if (!relocationOrdinals.TryGetValue(start, out var locations))
+            {
+                locations = new List<int>();
+                relocationOrdinals.Add(start, locations);
+            }
+            locations.Add(index);
+        }
         var candidates = new List<DosMzFarCandidate>();
         foreach (var instruction in graph.Instructions)
         {
@@ -46,15 +63,17 @@ public static class DosMzFarTargetRecovery
             ushort targetSelectorStored = (ushort)(stored[3] | (stored[4] << 8));
             // Any unknown/overlapping relocation in the far immediate bytes
             // would invalidate the single-selector interpretation.
-            var touching = image.Relocations.Select((fixup, ordinal) =>
-                (fixup, ordinal)).Where(x =>
-                x.fixup.SourceFileOffset < physical + 5 &&
-                x.fixup.SourceFileOffset + 2 > physical).ToArray();
-            if (touching.Length != 1 || touching[0].fixup.SourceFileOffset != physical + 3)
+            var touchingOrdinals = new List<int>(2);
+            for (long slot = physical - 1; slot < physical + 5; slot++)
+                if (relocationOrdinals.TryGetValue(slot, out var entries))
+                    touchingOrdinals.AddRange(entries);
+            if (touchingOrdinals.Count != 1 ||
+                image.Relocations[touchingOrdinals[0]].SourceFileOffset != physical + 3)
                 continue;
-            DosMzRelocationWrite? applied = simulation.Summary.Writes
-                .SingleOrDefault(x => x.Ordinal == touching[0].ordinal);
-            if (applied is null || applied.ValueBeforeWrite != targetSelectorStored)
+            int ordinal = touchingOrdinals[0];
+            DosMzRelocationWrite applied = simulation.Summary.Writes[ordinal];
+            if (applied.Ordinal != ordinal ||
+                applied.ValueBeforeWrite != targetSelectorStored)
                 continue;
             var target = simulation.MapRuntimeFarPointer(applied.ValueAfterWrite, targetOffset);
             if (target is null) continue;
@@ -62,7 +81,7 @@ public static class DosMzFarTargetRecovery
                 new Dos16Address(target.RelativeSegment, targetOffset),
                 stored[0] == 0x9A ? "far-immediate-call" : "far-immediate-jump",
                 physical, target.OriginalFileOffset, targetSelectorStored,
-                applied.ValueAfterWrite, targetOffset, touching[0].ordinal,
+                applied.ValueAfterWrite, targetOffset, ordinal,
                 "exact-9A-or-EA-original-bytes;unique-MZ-selector-fixup;" +
                 "assumed-load-segment;nonwrapped-file-backed-target;candidate-unverified"));
         }
