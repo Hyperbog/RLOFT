@@ -195,7 +195,7 @@ not proven byte-identical DOS interrupt phase. In particular,
 this is not a completed 2975C/F66C VGA ribbon reconstruction.
 
 **All current-revision tests remain unexecuted on Windows;**
-169 registered CTests, 19 manual Quick tests. Inventory and
+170 registered CTests, 19 manual Quick tests. Inventory and
 SAVE/LOAD remain incomplete; per the user's request no manual
 Windows build has been dispatched. Engineering 56.25%.
 
