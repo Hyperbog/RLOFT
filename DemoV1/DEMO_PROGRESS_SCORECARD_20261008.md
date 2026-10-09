@@ -1,5 +1,30 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Architecture gate — integrated original complete-game path
+
+The demo is the first vertical slice of **one continuous
+native Ravenloft game**, never an independently shipped
+Level 22 application. Full acceptance requires the original
+boot and cinematics, CODE.1 party creation (or valid CHARS),
+the shared gameplay runtime, and original level-to-level
+transitions preserving all party/world/event/time state.
+Original CODE.2 level/event graph, not numerical level
+order, controls progression. Developer direct-to-Level22
+preview is test-only.
+
+**Existing in source:** cold-start and CHARS-present
+paths, character-image transfer, shared exploration entry,
+and internal CINE08 event presentation. **Not yet accepted:
+general in-session level transition, complete world
+SAVE/LOAD, cross-level continuity and end-to-end
+start-to-finish original runtime testing.**
+No change to engineering **56.25%**, inventory **PARTIAL**,
+or user's manual-only build policy.
+
+See [continuous-game integration contract](
+CONTINUOUS_GAME_INTEGRATION_CONTRACT_20261009.md).
+
+
 ## Part 8 — Level16 ritual live CINE08 event pipeline
 
 The original fourth-`SEED OF MORNINGLORD`
