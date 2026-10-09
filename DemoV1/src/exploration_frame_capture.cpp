@@ -84,6 +84,7 @@ void ExplorationFrameCapture::write(
             <<"scene_records\t"<<runtime.world_scene_records.size()<<"\n"
             <<"scene_draw_calls\t"<<runtime.world_scene_draw_calls.size()<<"\n"
             <<"scene_render_plans\t"<<runtime.world_scene_render_plans.size()<<"\n"
+            <<"scene_plan_failures\t"<<runtime.scene_plan_failures.size()<<"\n"
             <<"scene_video_calls\t"<<coverage.type7_calls_rasterized
             <<"\t"<<coverage.type7_scene_calls_pending
             <<"\t"<<coverage.type7_calls_failed<<"\n"
@@ -130,13 +131,22 @@ void ExplorationFrameCapture::write(
                 <<"\t"<<record.render_order<<"\n";
     }
     manifest<<"scene_call\tclass\tsource_index\tRES3_resource"
-            <<"\tvisible_columns\tscale_extent\n";
+            <<"\tvisible_columns\tscale_extent\tplan_status\n";
     for(const auto& plan:runtime.world_scene_render_plans) {
         manifest<<"scene_call\t"<<plan.call.source_class
                 <<"\t"<<plan.call.source_index
                 <<"\t"<<plan.call.resource_id
                 <<"\t"<<plan.visible_columns.size()
-                <<"\t"<<plan.call.scale_extent<<"\n";
+                <<"\t"<<plan.call.scale_extent
+                <<"\t"<<(plan.source_unresolved?"unresolved":"planned")
+                <<"\n";
+    }
+    for(const auto& failure:runtime.scene_plan_failures) {
+        manifest<<"scene_plan_failure\t"<<failure.call_index
+                <<"\t"<<failure.source_class
+                <<"\t"<<failure.source_index
+                <<"\t"<<failure.resource_id
+                <<"\t"<<clean(failure.reason)<<"\n";
     }
     if(runtime.scene_vga_trace_failure.has_value()) {
         manifest<<"scene_trace_failure\t"
