@@ -57,6 +57,7 @@ add_library(rloft_boot_flow
     src/level_world_state.cpp
     src/inventory_screen.cpp
     src/inventory_runtime.cpp
+    src/inventory_item_description.cpp
     src/combat_hit_check.cpp
     src/combat_hand_dispatch.cpp
     src/combat_attack_timing.cpp
@@ -282,6 +283,9 @@ add_test(NAME inventory_screen_tests COMMAND inventory_screen_tests)
 add_executable(inventory_runtime_tests tests/inventory_runtime_tests.cpp)
 target_link_libraries(inventory_runtime_tests PRIVATE rloft_boot_flow)
 add_test(NAME inventory_runtime_tests COMMAND inventory_runtime_tests)
+add_executable(inventory_item_description_tests tests/inventory_item_description_tests.cpp)
+target_link_libraries(inventory_item_description_tests PRIVATE rloft_boot_flow)
+add_test(NAME inventory_item_description_tests COMMAND inventory_item_description_tests)
 add_executable(combat_hit_check_tests tests/combat_hit_check_tests.cpp)
 target_link_libraries(combat_hit_check_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_hit_check_tests COMMAND combat_hit_check_tests)
@@ -820,6 +824,7 @@ set(RLOFT_TEST_TARGETS
     level_world_state_tests
     inventory_screen_tests
     inventory_runtime_tests
+    inventory_item_description_tests
     combat_hit_check_tests
     combat_hand_dispatch_tests
     combat_attack_timing_tests
