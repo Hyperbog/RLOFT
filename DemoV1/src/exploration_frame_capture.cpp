@@ -121,14 +121,16 @@ void ExplorationFrameCapture::write(
     // These are original-world, source-indexed visibility decisions,
     // distinct from environment backdrop placements or wall rays.
     manifest<<"scene_record\tclass\tsource_index\tRES3_resource"
-            <<"\tscreen_x\tprojected_extent\trender_order\n";
+            <<"\tscreen_x\tprojected_extent\trender_order"
+            <<"\tsource_type_id\n";
     for(const auto& record:runtime.world_scene_records) {
         manifest<<"scene_record\t"<<record.source_class
                 <<"\t"<<record.source_index
                 <<"\t"<<record.resource_id
                 <<"\t"<<record.screen_x
                 <<"\t"<<record.projected_extent
-                <<"\t"<<record.render_order<<"\n";
+                <<"\t"<<record.render_order
+                <<"\t"<<record.source_type_id<<"\n";
     }
     manifest<<"scene_call\tclass\tsource_index\tRES3_resource"
             <<"\tvisible_columns\tscale_extent\tplan_status\n";
