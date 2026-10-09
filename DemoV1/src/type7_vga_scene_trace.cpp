@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -28,10 +29,14 @@ Type7VgaSceneTrace Type7VgaSceneTraceModel::build(
 
     out.runs.reserve(plan.visible_runs.size());
     for (const auto& run : plan.visible_runs) {
-        if (run.width == 0U || run.width > 7U) {
-            // The 32-byte CODE.2 plane tables contain only 1..7 runs.
-            // Do not narrow a larger scene span and accidentally alias a
-            // valid table slot before proving original run segmentation.
+        if (run.width == 0U ||
+            run.width > std::numeric_limits<std::uint8_t>::max() ||
+            (!individual_columns_mode && run.width > 7U)) {
+            // Grouped original 36B14 calls require validated 1..7
+            // sequencer masks. In individual C029 mode, 36B42 loops
+            // one 369D8 invocation PER pixel and uses width=1 masks;
+            // preserve the unsplit original run up to uint8 capacity.
+            // Exact 256-column C029 iteration is not yet modeled.
             throw std::out_of_range(
                 "scene VGA invocation has unvalidated run width");
         }
