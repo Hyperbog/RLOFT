@@ -191,8 +191,10 @@ struct InventoryRuntimeState final {
     std::array<ContainerRuntimeState, kRuntimeDescriptorCount> containers{};
     std::array<PartyContainerUiContext,PartyImage::kActorCount>
         party_container_ui_contexts{};
-    // Native currently supports one interactive container view at a
-    // time. The source independently saves four raw actor contexts.
+    // Four independent source contexts may be concurrently open.
+    // This optional is the CURRENT interaction selection only, not
+    // a source-backed global owner. Switching actors must not close
+    // other characters' 6FA0 panels or mutate their saved records.
     std::optional<OpenInventoryContainer> open_container;
 
     [[nodiscard]] static InventoryRuntimeState fresh(
@@ -251,13 +253,28 @@ struct InventoryRuntimeState final {
     [[nodiscard]] InventoryContainerStatus open_hand_container(
         const PartyImage& party, const ObjectCatalog& objects,
         std::size_t actor, std::size_t hand);
-    void close_container() noexcept {
-        if(open_container &&
-           open_container->actor<party_container_ui_contexts.size())
-            party_container_ui_contexts[open_container->actor].
-                mark_closed_110b4();
-        open_container.reset();
+    void close_actor_container(std::size_t actor) noexcept {
+        if(actor>=party_container_ui_contexts.size()) return;
+        if(party_container_ui_contexts[actor].active())
+            party_container_ui_contexts[actor].mark_closed_110b4();
+        if(open_container && open_container->actor==actor)
+            open_container.reset();
     }
+    void close_container() noexcept {
+        if(open_container)
+            close_actor_container(open_container->actor);
+    }
+
+    // Original 12E70 selects an actor by column/80 and reads that
+    // actor's 6FA0 record before calling 11C3C. Resolve a single
+    // source-verified hand owner without changing another lane.
+    [[nodiscard]] InventoryContainerStatus select_container_actor(
+        const PartyImage& party, const ObjectCatalog& objects,
+        std::size_t actor);
+    [[nodiscard]] InventoryContainerStatus swap_actor_container_slot(
+        const PartyImage& party, const ObjectCatalog& objects,
+        std::size_t actor, std::size_t slot);
+
     [[nodiscard]] InventoryContainerStatus insert_held_into_open_container(
         const PartyImage& party, const ObjectCatalog& objects);
     [[nodiscard]] InventoryContainerStatus take_open_container_slot(
