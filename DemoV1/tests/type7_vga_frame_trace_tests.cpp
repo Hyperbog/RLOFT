@@ -157,6 +157,24 @@ int main() {
         "fixture missing RES3 scene")!=std::string::npos);
     assert(valid_lookups==2U);
 
+    // Earlier planning failure: retain the original source slot, but
+    // never reinterpret it as a fully occluded (successful) scene.
+    auto unplanned=plan(67U,1U);
+    unplanned.call.source_class=1U;
+    unplanned.call.source_index=7U;
+    unplanned.source_unresolved=true;
+    unplanned.visible_runs.clear();
+    unplanned.visible_columns.clear();
+    const auto recovered=rloft::Type7VgaFrameTraceModel::try_build(
+        {visible,unplanned,visible},
+        t,masks,0U,true,selective_lookup);
+    assert(recovered.trace.has_value());
+    assert(recovered.trace->scene_calls.size()==3U);
+    assert(recovered.trace->scene_calls[0].has_value());
+    assert(!recovered.trace->scene_calls[1].has_value());
+    assert(recovered.trace->scene_calls[2].has_value());
+    assert(recovered.scene_failures.empty());
+
     // The strict build API must continue reporting the original error.
     rejected=false;
     try {
