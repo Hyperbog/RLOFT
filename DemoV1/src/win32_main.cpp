@@ -1052,6 +1052,36 @@ int run_exploration(
                         ui.toggle_party_panel(*actor);
                     }
                 }
+                else if (const auto container_hit =
+                             [&]() -> std::optional<
+                                 rloft::PartyPanelControlModel::
+                                    ContainerSlotHit> {
+                    const auto& inv=runtime.inventory();
+                    if(!inv.open_container) return std::nullopt;
+                    const auto& open=*inv.open_container;
+                    if(open.descriptor_index>=inv.containers.size())
+                        return std::nullopt;
+                    const auto& grid=inv.containers[
+                        open.descriptor_index];
+                    return rloft::PartyPanelControlModel::
+                        modal_container_slot_at(
+                            click->row,click->column,open.actor,
+                            grid.ui_columns,grid.ui_x_offset,
+                            grid.items.size());
+                }()) {
+                    // Original CODE.2 12E70 -> 11C3C is modal and
+                    // operates on the opened HAND container's exact
+                    // indexed cells, not the ordinary backpack.
+                    const auto result=runtime.inventory().
+                        swap_open_container_slot(
+                            runtime.session().party,
+                            runtime.object_catalog(),
+                            container_hit->slot);
+                    if(result==rloft::InventoryContainerStatus::Inserted ||
+                       result==rloft::InventoryContainerStatus::Taken) {
+                        displayed_scene_frame.reset();
+                    }
+                }
                 else if (const auto hit =
                              rloft::PartyPanelControlModel::
                                  modal_ordinary_slot_at(
@@ -1069,7 +1099,10 @@ int run_exploration(
                                 hit->actor,
                                 hit->slot);
                         if (status ==
-                            rloft::InventoryOrdinarySwapStatus::Swapped) {
+                            rloft::InventoryOrdinarySwapStatus::Swapped ||
+                            status ==
+                            rloft::InventoryOrdinarySwapStatus::
+                                InsertedInContainer) {
                             // Party equipment and cursor state are now
                             // different. Never act on a stale world hit
                             // snapshot after inventory mutations.
@@ -1102,11 +1135,18 @@ int run_exploration(
                 // arbitrary replacement or irreversible state changes.
             }
 
+            const auto pointer=host.exploration_pointer();
+            const auto modal_pointer=pointer
+                ? std::optional<rloft::InventoryPointer>{
+                      rloft::InventoryPointer{
+                          pointer->row,pointer->column}}
+                : std::nullopt;
             (void)party_modal_presenter.draw(
                 presenter.framebuffer(),
                 runtime.session().party,
                 ui.state().party_panel_character_mode,
-                ui.state().selected_party_actor);
+                ui.state().selected_party_actor,
+                &runtime.inventory(),modal_pointer);
             host.present(
                 presenter.framebuffer(),
                 exploration_palette);
@@ -1336,11 +1376,18 @@ int run_exploration(
             rloft::ExplorationUiScreen::PartyPanels) {
             // The opening actor-panel click is consumed above. Render the
             // modal immediately and do not advance 1FC14/2E120 locomotion.
+            const auto pointer=host.exploration_pointer();
+            const auto modal_pointer=pointer
+                ? std::optional<rloft::InventoryPointer>{
+                      rloft::InventoryPointer{
+                          pointer->row,pointer->column}}
+                : std::nullopt;
             (void)party_modal_presenter.draw(
                 presenter.framebuffer(),
                 runtime.session().party,
                 ui.state().party_panel_character_mode,
-                ui.state().selected_party_actor);
+                ui.state().selected_party_actor,
+                &runtime.inventory(),modal_pointer);
             host.present(
                 presenter.framebuffer(),
                 exploration_palette);
