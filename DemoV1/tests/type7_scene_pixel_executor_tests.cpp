@@ -99,6 +99,51 @@ int main() {
     assert(grouped.read(
         rloft::VgaPlanarMemory::kPhysicalBase+160U,1U)==0xB0U);
 
+    // Original C029 individual mode: ONE 369D8 call per physical
+    // pixel, including source runs wider than the grouped 7-column
+    // mask-table domain. Execute real SINTAB bytes into eight VGA
+    // plane destinations rather than merely validating call geometry.
+    auto wide_plan=plan;
+    auto wide_trace=trace;
+    wide_plan.visible_runs[0].width=8U;
+    wide_trace.runs[0].width=8U;
+    wide_trace.runs[0].individual_columns_mode=true;
+    wide_plan.microcode_draws.clear();
+    wide_trace.runs[0].dispatch.calls.clear();
+    for(unsigned i=0U;i<8U;++i) {
+        for(auto entry:wide_trace.runs[0].descriptors) {
+            entry.viewport_x=128U+i;
+            wide_plan.microcode_draws.push_back(entry);
+        }
+        const auto x=128U+i;
+        wide_trace.runs[0].dispatch.calls.push_back({
+            static_cast<std::int32_t>(x),
+            rloft::VgaPlanarMemory::kPhysicalBase+(i/4U),
+            (i&1U)?0x0201U:0x0102U,
+            static_cast<std::uint8_t>(1U<<(i&3U)),
+            0U
+        });
+    }
+    wide_trace.runs[0].dispatch.lookup_after_dispatch=0x0102U;
+    wide_trace.final_lookup_word=0x0102U;
+    rloft::VgaPlanarMemory wide_video;
+    const auto wide_pixels=rloft::Type7ScenePixelExecutor::draw(
+        wide_plan,wide_trace,{0xA5U,0xB1U},tables,wide_video);
+    assert(wide_pixels.descriptor_invocations==16U);
+    assert(wide_pixels.vga_passes==16U);
+    assert(wide_pixels.source_reads==16U);
+    assert(wide_pixels.indexed_writes==24U);
+    for(unsigned i=0U;i<8U;++i) {
+        const auto addr=rloft::VgaPlanarMemory::kPhysicalBase+(i/4U);
+        const auto lane=static_cast<std::uint8_t>(i&3U);
+        assert(wide_video.read(addr+80U,lane)==
+               (i&1U?0xB0U:0xAFU));
+        assert(wide_video.read(addr+160U,lane)==
+               (i&1U?0xAFU:0xB0U));
+    }
+    assert(wide_video.read(
+        rloft::VgaPlanarMemory::kPhysicalBase+80U+2U,0U)==0U);
+
     // Revert to an ordinary one-pixel mask to test source-mismatch
     // rejection without triggering an independent mask inconsistency.
     plan.visible_runs[0].width = 1U;
