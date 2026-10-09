@@ -275,6 +275,12 @@ try
     preferences.RememberBinary(Path.Combine(folder, "second.exe"));
     Require(preferences.LastBinaryDirectory == folder, "settings repair must succeed");
 
+    Require(ProjectFilePaths.DefaultProjectName("CODE.1") == "CODE.1.ddproj" &&
+        ProjectFilePaths.DefaultProjectName("CODE.2") == "CODE.2.ddproj",
+        "different DOS binary numeric extensions must not share a default project name");
+    Require(ProjectFilePaths.DefaultProjectName("GAME.EXE") == "GAME.EXE.ddproj",
+        "a normal extension remains part of the source-bound default name");
+
     // Keep both uses a numbered filename instead of showing an exception.
     string duplicateName = Path.Combine(folder, "CODE.2.ddproj");
     File.WriteAllText(duplicateName, "original researcher data");
