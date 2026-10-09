@@ -678,6 +678,14 @@ int main() {
     weight_bytes[4U+18U*0x41U+0x30U]=3U;
     weight_bytes[4U+10U*0x41U+0x30U]=9U;
     const auto weight_catalog=rloft::ObjectCatalog::parse(weight_bytes);
+    // This weight fixture uses a SMALL 40-ID OBJECTS catalog.
+    // Earlier inventory tests intentionally put pseudo-spell
+    // object 0x7E into the reused actor's ordinary slots.
+    // Remove those unrelated stale fixture items; retaining
+    // them would correctly make catalog.at(0x7E) throw, and
+    // would not measure the controlled 22-half-unit burden.
+    for(std::size_t slot=0U;slot<12U;++slot)
+        set_item(equip_party,0U,slot,-1);
     set_item(equip_party,0U,0U,16);
     set_item(equip_party,0U,1U,10);
     set_item(equip_party,0U,2U,18);
