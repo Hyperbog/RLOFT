@@ -1,5 +1,33 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Inventory focus: source systems integrated, DOS parity not yet verified
+
+[Detailed CODE.2 inventory reconstruction and completion gates](INVENTORY_FIDELITY_WORKSTREAM_20261009.md).
+Normal fresh-party class/race equipment, inventory
+slots and known bits, nonspell equipment placement,
+nested hand-container item movement, original half-pound
+weights/encumbrance, per-class stats, original RES1
+held-item cursor, drag-party ordering and world
+actor-reference remapping are now integrated in source.
+Current source registers **168 CTests**, including
+the new item-description, 21-row encumbrance and
+party-reorder tests. All newer changes remain UNBUILT.
+
+The user specifically requires the **ENTIRE original
+inventory system functioning before building**. Eight
+tracked gates remain open: original palette/ornaments,
+descriptor-exact equipment hit geometry, special
+item actions, general nested containers, world
+dropping, persistent save/load inventory state,
+ancillary modal controls and DOS live parity.
+No Windows workflow was dispatched.
+
+Keep the original 32-unit demo engineering baseline
+separate; this pass adds substantial code inside the
+already-partial inventory milestone but does not
+certify it complete by fiat. Legacy 1/5 formal
+acceptance is not a development-progress percentage.
+
 ## Inventory-first milestone: original starting class/race loadouts
 
 [Source/coverage checkpoint](ORIGINAL_CODE1_ALL_CLASS_RACE_STARTING_EQUIPMENT_20261009.md) uses the
