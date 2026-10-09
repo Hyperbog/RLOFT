@@ -19,6 +19,7 @@
 #include "rloft/object_catalog.hpp"
 #include "rloft/original_random.hpp"
 #include "rloft/original_ground_texture_raster.hpp"
+#include "rloft/original_ground_res4_audit.hpp"
 #include "rloft/placed_scene_catalog.hpp"
 #include "rloft/placed_object_scene.hpp"
 #include "rloft/scene_source_banks.hpp"
@@ -62,6 +63,14 @@ struct ExplorationRuntimeFrame final {
     // NOT equivalent to completed 34A74 ground pixels until the live
     // RES4 class-4 resource selector and texture are bound.
     bool ground_perspective_ready{};
+    // Exact original CODE.2 INIT+0x0E / level-header+7 RES4 lookup.
+    // This records source identity only; the 34A74 live pixel mode
+    // also requires FF50 and C026/C027 runtime decisions.
+    bool ground_source_verified{};
+    int ground_res4_base{-1};
+    int ground_res4_relative{};
+    int ground_res4_absolute{-1};
+    std::string ground_source_failure;
     std::uint8_t ground_phase_u{};
     std::uint8_t ground_phase_v{};
     std::array<GroundPerspectiveRow,
@@ -199,6 +208,8 @@ private:
     SceneSourceBanks scene_source_banks_{};
     PlacedSceneCatalog placed_scene_catalog_{};
     std::optional<ResArchive> scene_shape_archive_;
+    std::optional<OriginalGroundRes4Selection> ground_source_;
+    std::string ground_source_failure_;
     std::optional<Type7VgaPlaneMaskModel> scene_vga_masks_;
     std::uint8_t scene_video_page_{};
     bool scene_individual_columns_mode_{};
