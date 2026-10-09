@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -34,8 +35,8 @@ std::vector<std::uint8_t> original_type1_64_tile() {
     return r;
 }
 rloft::ResArchive fixture() {
-    std::vector<std::uint8_t> bytes(4U+4U*4U,0U);
-    le32(bytes,0U,4U);
+    std::vector<std::uint8_t> bytes(4U+5U*4U,0U);
+    le32(bytes,0U,5U);
     const auto append=[&](int index,std::vector<std::uint8_t> part) {
         le32(bytes,4U+static_cast<std::size_t>(index)*4U,
              static_cast<std::uint32_t>(bytes.size()));
@@ -50,6 +51,21 @@ rloft::ResArchive fixture() {
     auto invalid=valid;
     invalid.pop_back(); // malformed payload, must not be a candidate
     append(3,invalid);
+    // A type-1 with original compression code 3: LZSS flags FF
+    // describe eight literal bytes per control packet. The decoded
+    // payload MUST match the uncompressed candidate byte for byte.
+    std::vector<std::uint8_t> compressed(
+        valid.begin(),valid.begin()+13U);
+    compressed[11U]=3U;
+    for(std::size_t i=0;i<4096U;i+=8U) {
+        compressed.push_back(0xFFU);
+        compressed.insert(
+            compressed.end(),valid.begin()+13U+
+                static_cast<std::ptrdiff_t>(i),
+            valid.begin()+13U+
+                static_cast<std::ptrdiff_t>(i+8U));
+    }
+    append(4,std::move(compressed));
     return rloft::ResArchive(std::move(bytes));
 }
 template<class Fn> bool throws(Fn&& fn) {
@@ -59,12 +75,12 @@ template<class Fn> bool throws(Fn&& fn) {
 }
 int main() {
     const auto res4=fixture();
-    assert(res4.entry_count()==4);
+    assert(res4.entry_count()==5);
     const auto report=rloft::OriginalGroundRes4Audit::inspect(res4);
-    assert(report.total_entries==4);
-    assert(report.type1_entries==3);
+    assert(report.total_entries==5);
+    assert(report.type1_entries==4);
     assert(report.rejected_type1_entries==1);
-    assert(report.tiles_64x64.size()==1U);
+    assert(report.tiles_64x64.size()==2U);
     const auto& tile=report.tiles_64x64[0];
     assert(tile.absolute_entry==1);
     assert(tile.compressed_entry_bytes==4109U);
@@ -72,18 +88,23 @@ int main() {
     assert(tile.transform==0U);
     assert(tile.transparent_index==0xFFU);
     assert(tile.decoded_fnv1a32!=0U);
+    const auto& packed=report.tiles_64x64[1];
+    assert(packed.absolute_entry==4);
+    assert(packed.compression==3U);
+    assert(packed.decoded_fnv1a32==tile.decoded_fnv1a32);
+    assert(packed.transparent_index==tile.transparent_index);
 
     // The original lookup is relative selector plus a runtime base.
     // A bare Level 22 relative 55 is not proof of absolute RES4[55].
     assert(rloft::OriginalGroundRes4Audit::absolute_index(
-        55,-54,4)==1);
+        55,-54,5)==1);
     assert(throws([&]{
         (void)rloft::OriginalGroundRes4Audit::absolute_index(
-            55,0,4);
+            55,0,5);
     }));
     assert(throws([&]{
         (void)rloft::OriginalGroundRes4Audit::absolute_index(
-            55,-60,4);
+            55,-60,5);
     }));
     assert(throws([&]{
         (void)rloft::OriginalGroundRes4Audit::absolute_index(
@@ -93,6 +114,10 @@ int main() {
     const auto source=
         rloft::OriginalGroundRes4Audit::verified_tile_source(res4,1);
     assert(source.size()==4098U);
+    const auto compressed_source=
+        rloft::OriginalGroundRes4Audit::verified_tile_source(
+            res4,4);
+    assert(compressed_source==source);
     assert(source[0]==0 && source[1]==0);
     for(std::size_t i=0;i<4096U;++i) {
         assert(source[2U+i]==static_cast<std::uint8_t>(i&255U));
