@@ -360,3 +360,87 @@ selection**. Actual DOS visual palette, clipping,
 the independent top item ribbon, and saved state
 still require manual Windows verification.
 No Windows build was initiated.
+
+
+## Subsequent original inventory D-key / loose-world-item implementation
+
+The original inventory keyboard path has now been reconstructed
+from actual `CODE.2`, including a shipped lookup-table audit:
+
+- At physical `0x4E06C..0x4E0A5`, original `13118`
+  calls `6BA64`, requires **logical key `0x44`**,
+  requires an occupied held cursor, and calls `2195C`
+  with **screen seed `0x80`**, the exact held object ID,
+  identified byte, original player coordinate DWORDs,
+  forward-offset flag 1 and cursor-clear flag 1.
+- `6BA64` reads the original 32-bit key translation table
+  at `DGROUP:0xF590 + scan*4`. Direct examination of
+  the shipped bytes established **scan code `0x20`
+  (D key) → logical `0x44`**, while scan `0x44`
+  (F10) maps to **`0x144`**, and therefore F10 is
+  NOT the inventory drop command.
+- At `2195C` (physical `0x5C880..0x5C9FF`),
+  the original heading is `facing -
+  trunc((0x80-0xA0)/3) = facing+10` in
+  source's 360-degree domain. The routine projects
+  signed SINTAB Q16 direction by `0x00018000`,
+  conditionally centers both low coordinate words
+  when source `C02F` mode is nonzero, and calls
+  placement predicate `2D5D0(y,x,0x190)`.
+  Failed placement reverts to original player
+  coordinates.
+- The successful loose item is a genuine 22-byte
+  family-C `LiveObjectRecord` using original
+  `x=DGROUP:255D0`, `y=DGROUP:255D4`,
+  cached world-cell index and OBJECTS ID. Source
+  clears packed `0x05F8`, installs original
+  `(known&1)<<10`, removes the **oldest** of
+  exactly 300 loose records before appending a
+  new one, and clears global held ID/known.
+- Original object `0x89` invokes an additional
+  `21880` gameplay effect after the drop.
+  Until its effect is implemented, the native
+  model returns `SourceSpecialActionPending`
+  and **does not lose or mutate** that special
+  item in world/held state.
+
+Native `InventoryWorldDropModel::drop` implements
+the above bounded source semantics; `ExplorationRuntime::
+drop_held_inventory_item` owns the live mutation
+and increments world-scene revision **only after
+successful drop**.
+
+Win32 modal `PartyPanels` now owns an explicit
+inventory keyboard mode. It queues a single
+logical `0x44` for a real **D keydown** (not
+auto-repeat), drains it while inventory is
+open, and discards queued inventory keys when
+leaving the screen. Successful drops invalidate
+previous world-hit/render snapshots; the next
+normal world frame includes the new family-C item.
+
+**Important remaining original parity limitation:**
+the live caller's temporary collision predicate
+checks the original surrounding map-cell words at
+the original `0x190` footprint and returns a safe
+collision fallback. This is NOT yet a full
+implementation of original `2D5D0` dynamic
+entity, scripted transition, and side-effect
+rules. The special object `0x89` effect
+also remains blocked. Both must close before
+claiming the inventory world-drop parity gate.
+
+The new `inventory_world_drop_tests` exercises
+empty cursor, real signed direction and radius,
+original x/y, known-bit10, collision fallback,
+C02F Q16 center, 300-record FIFO and special
+`0x89` rejection; new CMake total is
+**169 registered CTests** and manual Quick
+target is **19 focused tests**. No Windows
+build or acceptance test has yet run.
+
+The earlier open-world-drop checklist entry is
+now **source-implemented with bounded exceptions**,
+not an empty placeholder, but must NOT be called
+fully DOS-accepted until original `2D5D0`
+and special effects are verified.
