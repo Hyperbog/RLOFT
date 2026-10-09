@@ -1,5 +1,35 @@
 # Ravenloft Demo Build v1
 
+## Current source checkpoint — faithful fresh-party movement and blocking
+
+[Original CODE.2 binary-backed audit](ORIGINAL_FRESH_START_TIMING_COLLISION_AND_GROUND_AUDIT_20261008.md) confirms the fresh
+CODE.1->CHARS->CODE.2 entry is **level 22 at (4.5,4.5),
+facing 270**, directly from `CODE.2` instructions,
+not inferred from `SAVE.DAT`. Do NOT shift the starting
+cell arbitrarily to match an outdoor screenshot; align
+original camera, timer, NPC live state and texture raster.
+
+The staged source separates original two-IRQ-tick
+gameplay movement from VGA refresh and connects NPC and
+placed-object collision after cell geometry. The
+original `2CC88` conditional class-1 type 0x54
+transition is now gated on **state 0x40 and level
+0x17 or 0x0A**; other overlap cases continue without
+blocking. Type 0x7A retains its unimplemented authored
+action, rather than fabricated collision effects.
+
+**Visual gap still open:** supplied `CODE.2` initially
+sets `C026=1` and `0x34A74` draws textured ground.
+The native presenter still uses flat `0x33DE0` fill.
+Forest terrain, NPC AI, inventory and weapon/hand
+animations are not yet DOS-equivalent.
+
+**Build:** newer source-only work has NOT been Windows
+compiled; latest green manual #640 passed 160 tests at
+an older commit. 162 CTests are now registered when
+Python3 is present. GitHub Actions is **manual-only**.
+Formal acceptance stays **1/5 gates (20%)**.
+
 ## Original DOS screenshot correction: freshly created party, NOT a saved game
 
 The player's nine original DOSBox screenshots depict a party **freshly
