@@ -428,7 +428,7 @@ public partial class MainWindow : Window
             "Export privacy options", MessageBoxButton.YesNoCancel,
             MessageBoxImage.Question, MessageBoxResult.No);
         if (bytesChoice == MessageBoxResult.Cancel) return;
-        var selected = ChooseSaveDestination(picker.FileName, "analysis export");
+        var selected = ChooseSaveDestination(picker.FileName, "analysis export", json ? ".json" : ".txt");
         if (selected is null) return;
         string destination = selected.Value.Path;
         bool overwrite = selected.Value.Overwrite;
@@ -474,7 +474,7 @@ public partial class MainWindow : Window
             FileName = "dosdis-diagnostic-session.json"
         };
         if (picker.ShowDialog(this) != true) return;
-        var selected = ChooseSaveDestination(picker.FileName, "diagnostic export");
+        var selected = ChooseSaveDestination(picker.FileName, "diagnostic export", ".json");
         if (selected is null) return;
         string destination = selected.Value.Path;
         bool overwrite = selected.Value.Overwrite;
@@ -498,9 +498,19 @@ public partial class MainWindow : Window
     /// Never allow the open original game binary to be overwritten.
     /// </summary>
     private (string Path, bool Overwrite)? ChooseSaveDestination(
-        string selectedPath, string purpose)
+        string selectedPath, string purpose, string requiredExtension)
     {
         string destination = Path.GetFullPath(selectedPath);
+        if (!string.Equals(Path.GetExtension(destination), requiredExtension,
+            StringComparison.OrdinalIgnoreCase))
+        {
+            MessageBox.Show(this,
+                "This output must use " + requiredExtension +
+                ". Choose a different filename.",
+                "Unsupported destination extension", MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return null;
+        }
         if (!File.Exists(destination) && !Directory.Exists(destination))
             return (destination, false);
         string numbered = ProjectFilePaths.NextAvailable(destination);
@@ -563,7 +573,7 @@ public partial class MainWindow : Window
             FileName = ProjectFilePaths.DefaultProjectName(_artifact.Name)
         };
         if (picker.ShowDialog(this) != true) return false;
-        var destination = ChooseSaveDestination(picker.FileName, "new project");
+        var destination = ChooseSaveDestination(picker.FileName, "new project", ".ddproj");
         if (destination is null) return false;
         _project = ProjectStore.CreateNew(destination.Value.Path, _artifact,
             _graph, overwrite: destination.Value.Overwrite);
@@ -608,7 +618,7 @@ public partial class MainWindow : Window
                 FileName = Path.GetFileNameWithoutExtension(project.FilePath) + "-backup.ddproj"
             };
             if (picker.ShowDialog(this) != true) return;
-            var destination = ChooseSaveDestination(picker.FileName, "project backup");
+            var destination = ChooseSaveDestination(picker.FileName, "project backup", ".ddproj");
             if (destination is null) return;
             project.CreateBackup(destination.Value.Path,
                 overwrite: destination.Value.Overwrite);
