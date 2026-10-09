@@ -299,6 +299,13 @@ int main() {
     assert(result.status==rloft::InventoryWorldDropStatus::Dropped);
     assert(ritual_world.loose_items.size()==before_ritual+1U);
     assert(ritual_inv.held.object_id==-1);
+    // The flag-set branch above deliberately inserted a fourth
+    // seed. Remove that test-only instance before the separate
+    // ritual-completion test starts: CODE.2 must begin with
+    // exactly THREE original occupied sites, not a leftover
+    // fourth that invalidates the incomplete-site regression.
+    ritual_world.loose_items.pop_back();
+    assert(ritual_world.loose_items.size()==before_ritual);
 
     // 2195C evicts the earliest loose-object record when full
     // BEFORE calling 21880. The pure candidate audit models
