@@ -67,6 +67,26 @@ public:
         bool evict_oldest=false) noexcept;
 };
 
+// CODE.2 15050..15142 source item-grant path, restricted here
+// to original object 0x73 HOLY SYMBOL OF RAVENKIND. Other item
+// IDs 0x78, 0x90, 0x9B have special branches and MUST NOT be
+// treated as this neutral 0x73 grant. The original gives an
+// empty cursor priority, then active-party ordinary slots
+// 0..11, then requests 2195C world spawn as fallback.
+enum class HolySymbolGrantStatus : std::uint8_t {
+    GivenToCursor, GivenToPartySlot, NeedsWorldSpawn
+};
+struct HolySymbolGrantResult final {
+    HolySymbolGrantStatus status{HolySymbolGrantStatus::NeedsWorldSpawn};
+    std::size_t actor{};
+    std::size_t slot{};
+};
+class HolySymbolRewardModel final {
+public:
+    [[nodiscard]] static HolySymbolGrantResult grant_15050(
+        PartyImage& party,InventoryRuntimeState& inventory);
+};
+
 // CODE.2 13118, logical key 0x44 (D scancode 0x20) dispatches to
 // 2195C with screen seed 0x80, held OBJECTS ID and known bit,
 // original player coordinate words, forward-placement flag 1,
