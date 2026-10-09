@@ -18,6 +18,7 @@
 #include "rloft/loose_item_scene.hpp"
 #include "rloft/object_catalog.hpp"
 #include "rloft/original_random.hpp"
+#include "rloft/original_ground_texture_raster.hpp"
 #include "rloft/placed_scene_catalog.hpp"
 #include "rloft/placed_object_scene.hpp"
 #include "rloft/scene_source_banks.hpp"
@@ -57,6 +58,14 @@ struct ExplorationRuntimeFrame final {
     std::uint32_t source_coordinate_b{};
     std::uint32_t source_facing{};
     int source_level_id{};
+    // Fully source-derived CODE.2 34998 perspective rows. These are
+    // NOT equivalent to completed 34A74 ground pixels until the live
+    // RES4 class-4 resource selector and texture are bound.
+    bool ground_perspective_ready{};
+    std::uint8_t ground_phase_u{};
+    std::uint8_t ground_phase_v{};
+    std::array<GroundPerspectiveRow,
+        GroundTextureRasterSpec::kMaxRows> ground_ff58{};
     std::vector<WorldSceneDrawCall> world_scene_draw_calls;
     std::vector<WorldSceneRenderPlan> world_scene_render_plans;
     // A bad source must not suppress unrelated RES3 draw calls.
