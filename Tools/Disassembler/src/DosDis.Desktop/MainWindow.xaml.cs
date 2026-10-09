@@ -428,7 +428,10 @@ public partial class MainWindow : Window
             "Export privacy options", MessageBoxButton.YesNoCancel,
             MessageBoxImage.Question, MessageBoxResult.No);
         if (bytesChoice == MessageBoxResult.Cancel) return;
-        string destination = picker.FileName; // UI-thread snapshot before worker dispatch
+        var selected = ChooseSaveDestination(picker.FileName, "analysis export");
+        if (selected is null) return;
+        string destination = selected.Value.Path;
+        bool overwrite = selected.Value.Overwrite;
         FlowAnalysisResult graph = _graph ?? throw new InvalidOperationException("No analysis to export.");
         BinaryArtifact artifact = _artifact ?? throw new InvalidOperationException("Original source is not open.");
         LeImage image = _image ?? throw new InvalidOperationException("LE object map is not available.");
@@ -441,11 +444,12 @@ public partial class MainWindow : Window
                 // guessed game name or an absolute local source path.
                 var provenance = SourceProvenance.ForArtifact(artifact, image);
                 var gaps = ExecutableGapAnalysis.Analyze(graph, image);
-                AnalysisReportExport.WriteNew(destination, graph,
-                    json, bytesChoice == MessageBoxResult.Yes, provenance, gaps);
+                ProjectFilePaths.PublishNewOrReplace(destination, overwrite, temporary =>
+                    AnalysisReportExport.WriteNew(temporary, graph,
+                        json, bytesChoice == MessageBoxResult.Yes, provenance, gaps));
             });
             Trace(DiagnosticStage.AnalysisReportExported);
-            StatusText.Text = $"Analysis report saved: {picker.FileName}. Original executable untouched.";
+            StatusText.Text = $"Analysis report saved: {destination}. Original executable untouched.";
         }
         catch (Exception ex) { Error("Analysis report export failed", ex); }
         finally { SetWorking(false); }
@@ -470,12 +474,19 @@ public partial class MainWindow : Window
             FileName = "dosdis-diagnostic-session.json"
         };
         if (picker.ShowDialog(this) != true) return;
+        var selected = ChooseSaveDestination(picker.FileName, "diagnostic export");
+        if (selected is null) return;
+        string destination = selected.Value.Path;
+        bool overwrite = selected.Value.Overwrite;
         SetWorking(true, "Exporting bounded diagnostic events…");
         try
         {
-            await Task.Run(() => App.Diagnostics.WriteReportNew(picker.FileName));
+            await Task.Run(() =>
+                ProjectFilePaths.PublishNewOrReplace(destination, overwrite,
+                    temporary => App.Diagnostics.WriteReportNew(temporary)));
             Trace(DiagnosticStage.DiagnosticReportExported);
-            StatusText.Text = "Diagnostic session exported (no binary bytes, comments or file paths).";
+            StatusText.Text = "Diagnostic session exported to " + destination +
+                " (no binary bytes, comments or source paths in the report).";
         }
         catch (Exception ex) { Error("Diagnostic export failed", ex); }
         finally { SetWorking(false); }
