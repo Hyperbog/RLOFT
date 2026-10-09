@@ -1,5 +1,35 @@
 # Ravenloft Demo Build v1
 
+## Part 8 — Tome/Parchment persistent-flag interaction (source only)
+
+The original CODE.2 `117A0/11857..11891` inventory dispatcher
+uses object `0x35`, **Tome of Evil Artifacts and Cursed Items**,
+with exactly four held Parchment Fragments `0x61..0x64`.
+It invokes `1C124(fragment-0x61)` to OR story-event bits 0..3
+into the persistent 32-byte DGROUP `0x22200` vector and calls
+`1A344(-1,0)` to clear the cursor, leaving the Tome in place.
+This exact event mutation is now connected to the live
+`ExplorationSessionState::persistent_event_flags` through
+`InventoryRuntimeState::swap_ordinary_slot` and the Win32 modal,
+with source-specific regressions for all four, repeats and
+no unexpected inventory/flag mutation.
+
+The source also removes the overbroad ban on otherwise ordinary
+moving of `0x35` and held `0xA6` Mage Spell Book. The original
+`11808` book+scroll `0xA7..0xC9` learning branch remains
+safely blocked pending complete `11630` spell-list effect state.
+The earlier blanket classification of `0x35` as a potion was
+incorrect and is superseded. The exact `2D5D0` inventory
+drop predicate is source-implemented in the preceding checkpoint,
+but its mutable global `F048` behavior remains open.
+
+**Unbuilt current source:** 169 registered CTests and 19 manual
+Quick tests. No new Windows build, DOS parity proof or SAVE
+roundtrip has been performed. Overall engineering 56.25%;
+inventory milestone still partial. Manual Full build remains
+deferred until complete original inventory behavior and visual
+acceptance blockers are closed.
+
 ## Current inventory-only source checkpoint (full completion still pending)
 
 [Original inventory fidelity workstream](INVENTORY_FIDELITY_WORKSTREAM_20261009.md)
