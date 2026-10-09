@@ -213,6 +213,11 @@ try
         "runtime mapping never invents file-backed bytes");
     Equal(mzImage.SimulateRelocations(0xF000).ReadRelocatedWord(1), (ushort)0x0234,
         "DOS MZ loader additions use 16-bit modular arithmetic");
+    var nearA20Boundary = mzImage.SimulateRelocations(0xFFF0);
+    Equal(nearA20Boundary.MapRuntimeFarPointer(0xFFF0, 0xFF)?.ImageOffset, 255,
+        "last nonwrapped 20-bit DOS address can map to backed original bytes");
+    Equal(nearA20Boundary.MapRuntimeFarPointer(0xFFF0, 0x100), null,
+        "A20-dependent or 1 MiB-wrapped far pointers remain unresolved");
 
     // Loader table order is important: a repeated relocation location is
     // accounted for twice and prominently flagged as overlapping evidence.
