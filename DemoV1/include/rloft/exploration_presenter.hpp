@@ -85,6 +85,9 @@ enum class Type7SceneRenderOutcome : std::uint8_t {
 
 struct ExplorationPresentedFrame final {
     Palette6 palette{};
+    bool ground_textured_rasterized{};
+    std::size_t ground_indexed_writes{};
+    std::string ground_render_failure;
     ExplorationSurfaceCoverage surface_coverage{};
     std::vector<SurfacePrepassRasterFailure> surface_prepass_failures;
     std::vector<SurfaceMainRasterFailure> surface_main_failures;
@@ -132,6 +135,13 @@ public:
     [[nodiscard]] static std::vector<Type7SceneRenderOutcome>
     initial_scene_outcomes(const ExplorationRuntimeFrame& frame);
 
+    // Original CODE.2 335C8 => 22220=0x800 when all original
+    // 256 ray records are non-drawable 0x93. Then 1F2A5/1F372
+    // resolves FF50=128 rows. Never infer that from an empty
+    // or partially sampled frame or a different level.
+    [[nodiscard]] static bool original_full_ground_eligible(
+        const ExplorationRuntimeFrame& frame);
+
 private:
     void draw_environment(
         const ExplorationRuntimeFrame& frame);
@@ -141,6 +151,8 @@ private:
     ExplorationHudPresenter hud_;
     SurfaceWallPresenter walls_;
     SurfaceFillTable fill_table_{};
+    GroundTextureShadeTable ground_shades_{};
+    bool original_c026_initial_enabled_{};
     Type7VgaPlaneMaskModel surface_vga_masks_;
     std::unordered_map<std::uint32_t, SurfaceTexture>
         surface_texture_cache_;
