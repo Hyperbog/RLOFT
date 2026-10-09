@@ -1,5 +1,41 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Level22 dev testbed — read-only integration diagnostics
+
+A dedicated **opt-in** `--explore-level22
+--dev-inspect` mode now extends the existing
+development preview *window title only*.
+`DevLevelDiagnostics` captures stable, separate
+64-bit FNV-1a fingerprints of original party
+image bytes, cursor/inventory/container state,
+live level/world state (NPCs, objects, cell
+words, ten-byte control records, animation count),
+story event flags and current camera/clock.
+It reports counts and diagnostic hex digests,
+allowing future level-transition tests to see
+whether unrelated character/quest state has
+been rebuilt. It writes no original game
+state and is prohibited during normal startup
+or CODE.1 character creation.
+
+New `dev_level_diagnostics_tests` covers
+separately changed domains and restoration to
+unchanged digest. **CTest registry: 171**
+(previous checkpoint 170), **Quick 19**.
+Current source and new assertions remain
+uncompiled and unexecuted on Windows.
+No build or CI job was invoked.
+
+This is test instrumentation, **not a new
+DOS fidelity gate completion**: engineering
+score stays **56.25%**, inventory PARTIAL.
+The slice still needs end-to-end original
+startup acceptance, in-session level transition,
+full-world persistence and DOS visual checks.
+See [dev testbed acceptance matrix](
+DEV_LEVEL_TESTBED_20261009.md).
+
+
 ## Architecture gate — integrated original complete-game path
 
 The demo is the first vertical slice of **one continuous
