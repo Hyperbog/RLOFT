@@ -116,6 +116,20 @@ internal static class Dos16DataflowSmoke
                 joinedGraph with { Instructions = missingNode }).Incomplete,
             "an undecoded branch destination cannot silently disappear");
 
+        var malformed = Dos16DataflowAnalysis.Analyze(joinedRegion,
+            joinedGraph with { Instructions = null! });
+        Check(malformed.Incomplete && malformed.States.Count == 0 &&
+            malformed.AnalysisStatus == "rejected-malformed-graph",
+            "deserialized null instruction inventory fails closed");
+        var malformedEdge = Dos16DataflowAnalysis.Analyze(joinedRegion,
+            joinedGraph with
+            {
+                Edges = joinedGraph.Edges.Concat(new Dos16FlowEdge[] { null! })
+                    .ToArray()
+            });
+        Check(malformedEdge.Incomplete && malformedEdge.States.Count == 0,
+            "deserialized null edge fails closed");
+
         var otherRegion = Region(0x90, 0xC3);
         var wrongSource = Dos16DataflowAnalysis.Analyze(otherRegion, joinedGraph);
         Check(wrongSource.Incomplete &&
