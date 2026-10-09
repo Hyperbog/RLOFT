@@ -184,3 +184,21 @@ character portraits/inventory and attack animations.
 **No newly accepted formal gate.** Formal demo score is
 still **1/5 (20%)** and is not a whole-project
 completion estimate.
+
+
+## Follow-on completed source model (not live pixels)
+
+[Original 34998/34A74 raster milestone](ORIGINAL_CODE2_34A74_TEXTURED_GROUND_PIPELINE_20261008.md)
+recovers 128 six-byte FF58 ground-perspective records
+from the already-loaded real SINTAB sine/projection
+arrays, and implements the 64×64 indexed texel sampler
+with original FE15 shade table, four-plane/paired-plane
+VGA write masks, viewport destinations and rollback.
+No synthetic terrain artwork is introduced. Per-frame
+FF58 rows and camera phases are now available for
+native-vs-DOS forensic capture.
+
+The current live lower surface remains flat until the
+exact original RES4 bank-4 **type-1** source selection
+(and dynamic 258F8 base) is established. Full original
+environment pixels remain an OPEN acceptance gate.
