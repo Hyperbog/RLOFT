@@ -96,6 +96,10 @@ public sealed class DosMzRebasedView
         ushort load = Summary.AssumedLoadSegment;
         if (selector < load) return null; // wrapped segment aliases need A20/runtime evidence
         ushort relative = checked((ushort)(selector - load));
+        // A20 status and real-mode 20-bit physical wrap are unknown.
+        // Reject physical addresses that require either assumption.
+        long absoluteRealModeAddress = (long)selector * 16 + offset;
+        if (absoluteRealModeAddress >= 0x100000L) return null;
         long imageOffset = (long)relative * 16 + offset;
         if (imageOffset >= _relocated.Length) return null;
         return new DosMzRuntimeMapping(load, selector, offset, relative,
