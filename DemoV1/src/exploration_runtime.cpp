@@ -98,6 +98,10 @@ void ExplorationRuntime::initialize_gameplay_state(
         npc_catalog_,
         roll);
     inventory_ = InventoryRuntimeState::fresh(source);
+    // A fresh world invalidates prior SAVE backing and its origin
+    // revision; never export an inventory over stale global state.
+    inventory_save_backing_.reset();
+    inventory_save_world_revision_=0U;
     inventory_drop_c02f_center_fraction_=false;
     if(source.contains("CODE.2")) {
         const auto code2=source.read("CODE.2");
@@ -110,6 +114,44 @@ void ExplorationRuntime::initialize_gameplay_state(
     }
     gameplay_state_initialized_ = true;
     ++world_scene_revision_;
+}
+
+void ExplorationRuntime::import_matching_save_inventory(
+    const std::vector<std::uint8_t>& original_save) {
+    if(!gameplay_state_initialized_)
+        throw std::logic_error(
+            "inventory-only LOAD requires initialized original world");
+
+    // Decode and preflight the ENTIRE input before mutating the
+    // live party/inventory. This cannot recreate moved monsters,
+    // ambient effects or a different source world level.
+    auto incoming=InventorySaveCodec::decode(
+        original_save,inventory_);
+    // An already active runtime hand-container menu has no
+    // lossless source-backed SAVE transition at present.
+    if(inventory_.open_container)
+        throw std::logic_error(
+            "inventory-only LOAD requires closed live containers");
+    InventorySaveCodec::apply_to_matching_session(
+        incoming,session_,inventory_);
+    inventory_save_backing_=std::move(incoming);
+    // Live hand/cursor and party model changed; reject any
+    // stale pre-LOAD world hit-test snapshot.
+    ++world_scene_revision_;
+    inventory_save_world_revision_=world_scene_revision_;
+}
+
+std::vector<std::uint8_t>
+ExplorationRuntime::export_matching_save_inventory() const {
+    if(!gameplay_state_initialized_ || !inventory_save_backing_)
+        throw std::logic_error(
+            "inventory-only SAVE requires a compatible imported image");
+    if(world_scene_revision_!=inventory_save_world_revision_)
+        throw std::logic_error(
+            "inventory-only SAVE cannot preserve changed world effects");
+    const auto snapshot=InventorySaveCodec::capture_matching_session(
+        *inventory_save_backing_,session_,inventory_);
+    return InventorySaveCodec::encode(snapshot);
 }
 
 NpcDamageResult ExplorationRuntime::damage_level22_assassin(
