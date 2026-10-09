@@ -299,6 +299,20 @@ int main() {
     assert(fails([&]{
         (void)C::capture_matching_session(snapshot,wrong_pose,inventory);
     }));
+    for(int changed=0;changed<3;++changed) {
+        auto wrong=session;
+        if(changed==0)wrong.level_id+=1U;
+        if(changed==1)wrong.facing+=90U;
+        if(changed==2)wrong.time_of_day_16_16_hours+=0x10000U;
+        assert(fails([&]{
+            C::apply_to_matching_session(snapshot,wrong,inventory);
+        }));
+        assert(wrong.party.bytes==party_before);
+        assert(inventory.held.object_id==held_before.object_id);
+        assert(fails([&]{
+            (void)C::capture_matching_session(snapshot,wrong,inventory);
+        }));
+    }
 
     auto moving=C::decode(source_fixture(3U),baseline);
     assert(fails([&]{
@@ -314,6 +328,11 @@ int main() {
         (void)C::capture_matching_session(active_ui,session,inventory);
     }));
     inventory.open_container=rloft::OpenInventoryContainer{};
+    assert(fails([&]{
+        C::apply_to_matching_session(snapshot,session,inventory);
+    }));
+    assert(session.party.bytes==party_before);
+    assert(inventory.held.object_id==held_before.object_id);
     assert(fails([&]{
         (void)C::capture_matching_session(snapshot,session,inventory);
     }));
