@@ -1724,3 +1724,46 @@ event callback, consume a seed, or set bit
 No compilation/CI/user-triggered build has
 occurred. All source and docs committed to Git.
 
+
+
+## Cross-workstream checkpoint — noninvasive Level22 development state inspection
+
+The entire inventory reconstruction is one subsystem of the
+reusable full-game Level22 vertical slice, not a second isolated
+inventory application. A new opt-in native flag
+`--explore-level22 --dev-inspect` exposes a read-only caption
+view of the actual live authoritative game state. It captures
+separately:
+
+- all four original `0x248` actor records;
+- current cursor and 63 original container descriptor runtime
+  contexts, including every actor's `6FA0` phase bytes;
+- original 32-byte story flag bank including Level16 bit 0x44;
+- live LevelWorldState NPCs, loose/placed items, Q16 coordinates,
+  level cell words, dynamic group1/group2 10-byte controls and
+  authored animation counts;
+- original level/camera/facing/time data.
+
+Each domain is fingerprinted with explicit little-endian
+64-bit FNV-1a; the opt-in host caption shows shortened
+eight-digit hexadecimal diagnostics, item/NPC and flag counts
+and a change counter. Hashes are **developer diagnostics only**,
+not a replacement for source SAVE bytes, a security checksum,
+or DOS gameplay data. They do not allocate/drop items,
+modify CHARS, mutate story flags, write disk captures,
+change original indexed pixels, or alter production startup.
+
+The new `dev_level_diagnostics_tests` checks one-domain
+mutations, stable repeat captures and restored fingerprints.
+It becomes CTest registration **171**, while manual Quick
+remains 19. None of the current source has been built or
+executed. Fidelity score **56.25%**, inventory PARTIAL.
+This milestone aids eventual original cold-start →
+character-creation → continuous level-transition testing
+without claiming any currently missing inventory behavior
+is completed.
+
+[Permanent developer testbed acceptance matrix](
+DEV_LEVEL_TESTBED_20261009.md) ·
+[Continuous-game integration contract](
+CONTINUOUS_GAME_INTEGRATION_CONTRACT_20261009.md).
