@@ -37,6 +37,34 @@ constexpr std::array<std::uint8_t,63> kOriginalSlotCounts{{
     4,8,8,6,6,8,8,8,4,8,8,8,6,8,4,6,8,8,6,8,0
 }};
 
+// Source OBJECTS.DAT 0x41-byte records used to authenticate
+// active 6FA0 context ownership. Object 2 and object 258 share
+// low byte 0x02, so this also tests the original 6FA3 truncation.
+rloft::ObjectCatalog source_objects() {
+    constexpr std::size_t count=260U;
+    std::vector<std::uint8_t> bytes(4U+count*0x41U,0U);
+    put32(bytes,0U,static_cast<std::uint32_t>(count));
+    for(const auto id:{2U,258U}) {
+        const auto at=4U+id*0x41U;
+        bytes[at+0x2FU]=1U; // category: container
+        bytes[at+0x31U]=0U; // descriptor state 0
+    }
+    return rloft::ObjectCatalog::parse(bytes);
+}
+void set_hand_in_save(std::vector<std::uint8_t>& save,
+                      std::size_t actor,std::size_t hand,
+                      std::int16_t object_id) {
+    const auto at=0x77U+actor*0x248U+
+                  0x40U+(14U+hand)*2U;
+    put16(save,at,static_cast<std::uint16_t>(object_id));
+}
+void set_ui_in_save(std::vector<std::uint8_t>& save,
+                    std::size_t actor,
+                    const std::array<std::uint8_t,4>& bytes) {
+    const auto at=save.size()-16U+4U*actor;
+    for(std::size_t i=0U;i<4U;++i)save[at+i]=bytes[i];
+}
+
 rloft::InventoryRuntimeState original_template() {
     rloft::InventoryRuntimeState state{};
     for(std::size_t i=0;i<63U;++i) {
@@ -341,4 +369,157 @@ int main() {
     // allowed after closing the transient hand-container UI.
     assert(C::encode(C::capture_matching_session(
         snapshot,session,inventory))==emitted);
+
+    // Source 110B4 CLOSE DOES NOT write FF FF FF FF.
+    // It steps 3,2,1,0, then only bytes +0/+1/+3
+    // are reset to FF. The native bridge must restore this
+    // actually reachable inactive 6FA0 record without requiring
+    // any object-catalogue/hand association.
+    auto closed_original=source_fixture(0U);
+    set_ui_in_save(closed_original,0U,{{0xFFU,0xFFU,0U,0xFFU}});
+    const auto closed=C::decode(closed_original,baseline);
+    assert(closed.inventory.party_container_ui_contexts[0].inactive());
+    assert(!closed.inventory.party_container_ui_contexts[0].active());
+    assert(C::encode(closed)==closed_original);
+    auto closed_inv=baseline;
+    C::apply_to_matching_session(closed,session,closed_inv);
+    assert(!closed_inv.open_container);
+    assert(closed_inv.party_container_ui_contexts[0].raw==
+        (std::array<std::uint8_t,4>{{0xFFU,0xFFU,0U,0xFFU}}));
+    assert(C::encode(C::capture_matching_session(
+        closed,session,closed_inv))==closed_original);
+
+    // DOS 21693 creates source 6FA0 {subtype,index,phase3,
+    // LOW8(object ID)}. An active UI is a true saved state:
+    // accept only a single unambiguous hand owning a
+    // category-1 item whose descriptor/subtype match.
+    const auto objs=source_objects();
+    auto open_original=source_fixture(0U);
+    // Status word: actor 0 active (no 0x8000 empty sentinel).
+    open_original[0x77U+0x10U]=0U;
+    open_original[0x77U+0x11U]=0U;
+    set_hand_in_save(open_original,0U,0U,2);
+    set_hand_in_save(open_original,0U,1U,-1);
+    set_ui_in_save(open_original,0U,{{0U,0U,3U,2U}});
+    auto opened=C::decode(open_original,baseline);
+    assert(C::encode(opened)==open_original);
+    auto live_original=C::decode(source_fixture(0U),baseline);
+    rloft::ExplorationSessionState clean{};
+    clean.level_id=22U;
+    clean.coordinate_a=0x48000U;
+    clean.coordinate_b=0x48000U;
+    clean.facing=270U;
+    clean.time_of_day_16_16_hours=0xE0000U;
+    auto live=baseline;
+    assert(fails([&]{
+        C::apply_to_matching_session(opened,clean,live);
+    })); // Cannot guess hand without OBJECTS metadata.
+    C::apply_to_matching_session(opened,clean,live,&objs);
+    assert(live.open_container.has_value());
+    assert(live.open_container->actor==0U);
+    assert(live.open_container->hand==0U);
+    assert(live.open_container->object_id==2);
+    assert(live.open_container->descriptor_index==0U);
+    assert(live.party_container_ui_contexts[0].raw==
+        (std::array<std::uint8_t,4>{{0U,0U,3U,2U}}));
+    assert(C::encode(C::capture_matching_session(
+        opened,clean,live,&objs))==open_original);
+    assert(fails([&]{
+        (void)C::capture_matching_session(opened,clean,live);
+    })); // An active hand needs source OBJECTS validation.
+
+    // Closing a native fully-open view generates 110B4's
+    // exact inactive bytes and leaves saved container contents.
+    live.close_container();
+    assert(!live.open_container.has_value());
+    assert(live.party_container_ui_contexts[0].raw==
+        (std::array<std::uint8_t,4>{{0xFFU,0xFFU,0U,0xFFU}}));
+    auto closed_after_open=C::encode(
+        C::capture_matching_session(opened,clean,live));
+    assert(closed_after_open.size()==open_original.size());
+    assert(closed_after_open[closed_after_open.size()-16U]==0xFFU);
+    assert(closed_after_open[closed_after_open.size()-14U]==0U);
+    assert(C::encode(C::decode(closed_after_open,baseline))==
+        closed_after_open);
+
+    // Original 6FA3 is only one byte, even though party item
+    // IDs occupy a 16-bit signed slot. With OBJECTS available
+    // an ID 258 may legally own context object byte 2.
+    auto high_id=open_original;
+    set_hand_in_save(high_id,0U,0U,258);
+    const auto high_snapshot=C::decode(high_id,baseline);
+    live=baseline;
+    C::apply_to_matching_session(high_snapshot,clean,live,&objs);
+    assert(live.open_container->object_id==258);
+    assert(C::encode(C::capture_matching_session(
+        high_snapshot,clean,live,&objs))==high_id);
+
+    // No arbitrary hand choice when both candidates share the
+    // same low byte + category + descriptor. Reject atomically.
+    auto both_hands=high_id;
+    set_hand_in_save(both_hands,0U,1U,2);
+    auto ambiguous=C::decode(both_hands,baseline);
+    live.close_container();
+    const auto live_before=clean.party.bytes;
+    const auto held_pre=live.held.object_id;
+    assert(fails([&]{
+        C::apply_to_matching_session(ambiguous,clean,live,&objs);
+    }));
+    assert(clean.party.bytes==live_before);
+    assert(live.held.object_id==held_pre);
+
+    // An interrupted original opening or closing animation is
+    // source-preserved by raw codec, but not falsely presented
+    // as an already-open graphical native view.
+    for(const auto phase:{0U,1U,2U}) {
+        auto partial=open_original;
+        set_ui_in_save(partial,0U,
+            {{0U,0U,static_cast<std::uint8_t>(phase),2U}});
+        const auto original_partial=C::decode(partial,baseline);
+        assert(C::encode(original_partial)==partial);
+        live=baseline;
+        assert(fails([&]{
+            C::apply_to_matching_session(
+                original_partial,clean,live,&objs);
+        }));
+    }
+
+    // The one-view native modal cannot currently display two
+    // independently open actor contexts. Preserve their bytes,
+    // but reject live application until multi-lane renderer exists.
+    auto two_actor_views=open_original;
+    two_actor_views[0x77U+0x248U+0x10U]=0U;
+    two_actor_views[0x77U+0x248U+0x11U]=0U;
+    set_hand_in_save(two_actor_views,1U,0U,2);
+    set_ui_in_save(two_actor_views,1U,{{0U,0U,3U,2U}});
+    const auto many=C::decode(two_actor_views,baseline);
+    assert(C::encode(many)==two_actor_views);
+    live=baseline;
+    assert(fails([&]{
+        C::apply_to_matching_session(many,clean,live,&objs);
+    }));
+
+    // Reject mismatch between persisted subtype/index and the
+    // original CODE.2 descriptor without silently repairing SAVE.
+    auto bad_subtype=open_original;
+    set_ui_in_save(bad_subtype,0U,{{1U,0U,3U,2U}});
+    assert(fails([&]{
+        live=baseline;
+        C::apply_to_matching_session(
+            C::decode(bad_subtype,baseline),clean,live,&objs);
+    }));
+    auto bad_index=open_original;
+    set_ui_in_save(bad_index,0U,{{0U,62U,3U,2U}});
+    assert(fails([&]{
+        live=baseline;
+        C::apply_to_matching_session(
+            C::decode(bad_index,baseline),clean,live,&objs);
+    }));
+    auto no_hand=open_original;
+    set_hand_in_save(no_hand,0U,0U,-1);
+    assert(fails([&]{
+        live=baseline;
+        C::apply_to_matching_session(
+            C::decode(no_hand,baseline),clean,live,&objs);
+    }));
 }
