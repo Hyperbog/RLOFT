@@ -133,12 +133,19 @@ void ExplorationFrameCapture::write(
             <<"mask_origin\timmutable CODE.2 object-2, not DOS live RAM\n"
             // Original 1F3CA decides whether to use 33DE0 flat
             // fill (C026==0) or textured raster 34A74 (C026!=0).
-            // The present native foreground is STILL the flat
-            // fallback. Label that incompleteness rather than
-            // treating correctly decoded RES8 trees as full parity.
+            // The original full 128-row lower texture is now
+            // executable only for authenticated no-wall Level22
+            // frames. Non-open/cropped states remain flat/pending.
             <<"original_C026_initial\t"
             <<unsigned(code2[kCode2DgroupBase+0xC026U])<<"\n"
-            <<"native_lower_surface\tflat-fill-only;34A74-pending\n"
+            <<"native_lower_surface\t"
+            <<(presented.ground_textured_rasterized
+               ?"original-34A74-128row-open-field"
+               :"flat-fill-fallback;other-modes-pending")<<"\n"
+            <<"ground_raster_indexed_writes\t"
+            <<presented.ground_indexed_writes<<"\n"
+            <<"ground_raster_error\t"
+            <<clean(presented.ground_render_failure)<<"\n"
             <<"ground_original_res4_verified\t"
             <<unsigned(runtime.ground_source_verified?1U:0U)<<"\n"
             <<"ground_original_res4_base_from_INIT\t"
