@@ -1,5 +1,24 @@
 # Demo v1 — development progress versus formal acceptance
 
+**Binary-backed current fresh-game milestone (2026-10-08):**
+The original `CODE.2` bootstrap `2060C..2076D`
+sets fresh level22, cell (4.5,4.5), heading 270
+independently of SAVE.DAT; default new-party startup
+still passes full 0x920 CODE.1 CHARS into CODE.2.
+Native preview SAVE.DAT character splicing has been
+removed. Source now gates movement on the original
+two-game-tick schedule rather than every VGA retrace,
+and connects original `2C800` live NPC + `2CC88`
+placed-object footprints to the walking integrator.
+Original class-1 0x54 conditional transitions now
+respect live state `&0x1C0==0x40` and levels
+0x17/0x0A before triggering. Tests are registered
+but the newer branch is UNBUILT (162 expected CTests).
+The original 0x34A74 textured lower renderer
+is a significant remaining visual acceptance gap,
+not a completed flat-fill equivalence.
+[Full original binary audit](ORIGINAL_FRESH_START_TIMING_COLLISION_AND_GROUND_AUDIT_20261008.md).
+
 **Original DOS screenshots and critical user clarification (2026-10-08):**
 The screenshots are the original *freshly created party* entering
 the forest and using inventory, automap and combat—not the supplied
