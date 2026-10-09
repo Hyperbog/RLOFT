@@ -48,6 +48,8 @@ int main() {
     // has been initialized, or exporting without a compatible
     // imported image, must refuse without mutating any state.
     assert(!runtime.has_inventory_save_backing());
+    // Actual supplied CODE.2 object-2 initial BF44 is zero.
+    assert(runtime.original_story_message_bf44()==0U);
     bool premature_import=false;
     try {
         runtime.import_matching_save_inventory({});

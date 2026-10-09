@@ -98,6 +98,10 @@ void ExplorationRuntime::initialize_gameplay_state(
         npc_catalog_,
         roll);
     inventory_ = InventoryRuntimeState::fresh(source);
+    // Original CODE.2 object-2 stored initial DWORD BF44=0.
+    // Preserve original global value across the normal Level22
+    // combat and pickup handlers, not a separate UI-only mock.
+    original_story_message_bf44_ = 0U;
     // A fresh world invalidates prior SAVE backing and its origin
     // revision; never export an inventory over stale global state.
     inventory_save_backing_.reset();
@@ -225,7 +229,7 @@ NpcDamageResult ExplorationRuntime::damage_level22_assassin(
     // before a later source-data or placement error throws. Invalidate
     // prior scene indices before starting, even on exceptional exit.
     ++world_scene_revision_;
-    return Level22EncounterModel::damage_assassin(
+    const auto result=Level22EncounterModel::damage_assassin(
         world_,
         session_.level,
         npc_index,
@@ -235,6 +239,10 @@ NpcDamageResult ExplorationRuntime::damage_level22_assassin(
         npc_catalog_,
         renderer_tables_,
         can_place);
+    // Original E436 writes literal 1 to BF44 after its FOUR
+    // Level22 type9 death drops; nonlethal E284 leaves it alone.
+    if(result.died) original_story_message_bf44_=1U;
+    return result;
 }
 
 InventoryPartyOrderResult ExplorationRuntime::exchange_party_order(
@@ -322,7 +330,7 @@ LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
     // 21704 mutates held inventory and compacts the loose-item array
     // before checking Level 22 story completion. Invalidate first.
     ++world_scene_revision_;
-    return Level22EncounterModel::pickup_loose_item(
+    const auto result=Level22EncounterModel::pickup_loose_item(
         world_,
         item_index,
         inventory_,
@@ -330,6 +338,9 @@ LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
         object_catalog_,
         (session_.persistent_event_flags[0x51U / 8U] &
          static_cast<std::uint8_t>(1U << (0x51U % 8U))) != 0U);
+    if(result.message_assignment_bf44.has_value())
+        original_story_message_bf44_=*result.message_assignment_bf44;
+    return result;
 }
 
 std::optional<NpcDamageResult>

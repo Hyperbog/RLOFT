@@ -153,6 +153,14 @@ public:
         return gameplay_state_initialized_;
     }
 
+    // Original CODE.2 object-2 DGROUP BF44 story/message selector.
+    // Shipped CODE.2 initializes it to zero. Existing Level22
+    // pickup/death code now writes the original source values.
+    // Rendering 1C21C and other global writers remain to be wired.
+    [[nodiscard]] std::uint32_t original_story_message_bf44() const noexcept {
+        return original_story_message_bf44_;
+    }
+
     // Engine-only entry: the caller must have proven this destination from
     // original CODE.2 event/exit code. No invented portals or level order.
     void transition_to_level(
@@ -266,6 +274,7 @@ private:
     EnvironmentPhaseState environment_phase_state_{};
     ExplorationRuntimeMotionState motion_state_{};
     bool gameplay_state_initialized_{};
+    std::uint32_t original_story_message_bf44_{};
     NpcCatalog npc_catalog_{};
     ObjectCatalog object_catalog_{};
     SceneSourceBanks scene_source_banks_{};
