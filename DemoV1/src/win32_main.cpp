@@ -25,6 +25,7 @@
 
 #include "rloft/anm_cinematic.hpp"
 #include "rloft/dev_level_diagnostics.hpp"
+#include "rloft/dev_level_interaction_policy.hpp"
 #include "rloft/automap_modal.hpp"
 #include "rloft/automap_screen_presenter.hpp"
 #include "rloft/level_display.hpp"
@@ -873,7 +874,8 @@ int run_exploration(
     bool exploration_preview = false,
     bool capture_render = false,
     std::size_t capture_limit = 16U,
-    bool dev_inspect = false) {
+    bool dev_inspect = false,
+    bool dev_interact = false) {
     auto runtime =
         rloft::ExplorationRuntime::load_fresh(
             assets.source(), chars);
@@ -1612,7 +1614,8 @@ int run_exploration(
                 // class-2 action-flags bit via the Level 22 runtime API.
                 // Do not synthesize an attack from a clicked NPC: damage
                 // requires the original combat controller's hit roll.
-                if (!exploration_preview &&
+                if (rloft::DevLevelInteractionPolicy::allow(
+                        exploration_preview,dev_interact) &&
                     !opened_actor_panel &&
                     displayed_scene_frame.has_value() &&
                     runtime.session().level_id ==
@@ -1659,7 +1662,8 @@ int run_exploration(
                 rloft::ExplorationUiScreen::Viewport) {
             if (const auto secondary =
                     host.consume_exploration_secondary_click()) {
-                if (!exploration_preview) {
+                if (rloft::DevLevelInteractionPolicy::allow(
+                        exploration_preview,dev_interact)) {
                     if (const auto hand =
                             rloft::PartyPanelControlModel::
                                 gameplay_hand_at(
@@ -2192,6 +2196,7 @@ struct DemoCommandLine final {
     std::optional<std::filesystem::path> source;
     bool explore_level22{};
     bool dev_inspect{};
+    bool dev_interact{};
     bool capture_render{};
     std::size_t capture_limit{16U};
     bool custom_capture_limit{};
@@ -2212,6 +2217,8 @@ DemoCommandLine command_line_options() {
                 result.explore_level22 = true;
             } else if (arg == L"--dev-inspect") {
                 result.dev_inspect = true;
+            } else if (arg == L"--dev-interact") {
+                result.dev_interact = true;
             } else if (arg == L"--capture-render") {
                 result.capture_render = true;
             } else if (arg.substr(0U,17U) == L"--capture-frames=") {
@@ -2222,7 +2229,8 @@ DemoCommandLine command_line_options() {
             } else if (!arg.empty() && arg.front() == L'-') {
                 throw std::invalid_argument(
                     "Unknown command-line option. Use --explore-level22 "
-                    "[--dev-inspect] [--capture-render] [--capture-frames=64] "
+                    "[--dev-inspect] [--dev-interact] "
+                    "[--capture-render] [--capture-frames=64] "
                     "and optionally one Ravenloft installation path.");
             } else if (result.source.has_value()) {
                 throw std::invalid_argument(
@@ -2236,6 +2244,11 @@ DemoCommandLine command_line_options() {
         throw;
     }
     LocalFree(argv);
+    if(!rloft::DevLevelInteractionPolicy::valid(
+           result.explore_level22,result.dev_interact)) {
+        throw std::invalid_argument(
+            "--dev-interact requires explicit --explore-level22");
+    }
     if(result.dev_inspect && !result.explore_level22) {
         throw std::invalid_argument(
             "--dev-inspect is developer-only and requires --explore-level22");
@@ -2342,7 +2355,8 @@ int run(HINSTANCE instance) {
             startup_chars);
         return run_exploration(
             host, assets, audio_player, midi_player, preview.chars, true, options.capture_render,
-            options.capture_limit, options.dev_inspect);
+            options.capture_limit, options.dev_inspect,
+            options.dev_interact);
     }
 
     if (startup_chars) {
