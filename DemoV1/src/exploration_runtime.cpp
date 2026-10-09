@@ -1,6 +1,7 @@
 #include "rloft/exploration_runtime.hpp"
 
 #include "rloft/exploration_world.hpp"
+#include "rloft/original_pickup_ribbon_text.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/options_menu.hpp"
 
@@ -102,6 +103,8 @@ void ExplorationRuntime::initialize_gameplay_state(
     // Preserve original global value across the normal Level22
     // combat and pickup handlers, not a separate UI-only mock.
     original_story_message_bf44_ = 0U;
+    original_pickup_ribbon_prefix_.clear();
+    original_pickup_ribbon_.reset();
     // A fresh world invalidates prior SAVE backing and its origin
     // revision; never export an inventory over stale global state.
     inventory_save_backing_.reset();
@@ -109,6 +112,9 @@ void ExplorationRuntime::initialize_gameplay_state(
     inventory_drop_c02f_center_fraction_=false;
     if(source.contains("CODE.2")) {
         const auto code2=source.read("CODE.2");
+        if(const auto prefix=
+            OriginalPickupRibbonTextModel::source_prefix_from_code2(code2))
+            original_pickup_ribbon_prefix_=*prefix;
         constexpr auto initial_at=0x75F24U+0xC02FU;
         if(code2.size()<=initial_at)
             throw std::runtime_error(
@@ -320,12 +326,26 @@ ExplorationRuntime::complete_pending_seed_ritual(
 }
 
 LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
-    std::size_t item_index) {
+    std::size_t item_index,
+    std::optional<std::uint32_t> original_irq_tick_30700) {
     if (!gameplay_state_initialized_) {
         throw std::logic_error("gameplay state is not initialized");
     }
     if (session_.level_id != Level22Story::kLevelId) {
         throw std::logic_error("Level 22 pickup outside Level 22");
+    }
+    // Original 22510..225DF composes the live item description
+    // after 21704 transfer and before the relic completion branch.
+    // Preflight source-only data without changing game state;
+    // the eventual 1C21C queue write happens after the pickup.
+    std::optional<std::vector<std::uint8_t>> pickup_text;
+    if (original_irq_tick_30700 &&
+        !original_pickup_ribbon_prefix_.empty()) {
+        const auto& item=world_.loose_items.at(item_index);
+        const auto& definition=object_catalog_.at(item.object_type_id);
+        const bool known=(item.packed_runtime_state & 0x0400U)!=0U;
+        pickup_text=OriginalPickupRibbonTextModel::compose_unenchanted(
+            original_pickup_ribbon_prefix_,definition,known);
     }
     // 21704 mutates held inventory and compacts the loose-item array
     // before checking Level 22 story completion. Invalidate first.
@@ -340,6 +360,15 @@ LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
          static_cast<std::uint8_t>(1U << (0x51U % 8U))) != 0U);
     if(result.message_assignment_bf44.has_value())
         original_story_message_bf44_=*result.message_assignment_bf44;
+    if(pickup_text && original_irq_tick_30700) {
+        // 1C21C writes a source string into original 14580,
+        // schedules its unsigned 30700 tick deadline +5Ah and
+        // marks CF59. Existing CombatIrqMessageModel owns those
+        // exact source semantics; no modern animation timer.
+        original_pickup_ribbon_=CombatIrqMessageModel::queue({
+            *original_irq_tick_30700,*pickup_text,
+            std::vector<std::uint8_t>(pickup_text->size(),0U)});
+    }
     return result;
 }
 
@@ -378,7 +407,8 @@ std::optional<LooseItemPickupResult>
 ExplorationRuntime::pickup_level22_loose_item_at(
     const ExplorationRuntimeFrame& frame,
     int row,
-    int column) {
+    int column,
+    std::optional<std::uint32_t> original_irq_tick_30700) {
     // 224EF requires bit 0 for class-2 hit-test eligibility.
     if (!gameplay_state_initialized_ ||
         frame.world_scene_revision != world_scene_revision_ ||
@@ -397,7 +427,8 @@ ExplorationRuntime::pickup_level22_loose_item_at(
     if (!item_index.has_value()) {
         return std::nullopt;
     }
-    return pickup_level22_loose_item(*item_index);
+    return pickup_level22_loose_item(
+        *item_index,original_irq_tick_30700);
 }
 
 std::optional<WorldSceneTarget>

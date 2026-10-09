@@ -1628,7 +1628,8 @@ int run_exploration(
                             runtime.pickup_level22_loose_item_at(
                                 *displayed_scene_frame,
                                 click->row,
-                                click->column);
+                                click->column,
+                                code1_tick_count(exploration_epoch));
                         if (pickup.has_value()) {
                             // Family-C erase compacts source indices. The
                             // old displayed frame is invalid immediately.

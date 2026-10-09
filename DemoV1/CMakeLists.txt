@@ -60,6 +60,7 @@ add_library(rloft_boot_flow
     src/npc_catalog.cpp
     src/level22_story.cpp
     src/level22_encounter.cpp
+    src/original_pickup_ribbon_text.cpp
     src/level22_viewport_target.cpp
     src/level_world_state.cpp
     src/level_continuity.cpp
@@ -276,6 +277,10 @@ add_test(NAME npc_catalog_tests COMMAND npc_catalog_tests)
 add_executable(level22_story_tests tests/level22_story_tests.cpp)
 target_link_libraries(level22_story_tests PRIVATE rloft_boot_flow)
 add_test(NAME level22_story_tests COMMAND level22_story_tests)
+
+add_executable(original_pickup_ribbon_text_tests tests/original_pickup_ribbon_text_tests.cpp)
+target_link_libraries(original_pickup_ribbon_text_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_pickup_ribbon_text_tests COMMAND original_pickup_ribbon_text_tests)
 
 add_executable(original_pickup_message_tests tests/original_pickup_message_tests.cpp)
 target_link_libraries(original_pickup_message_tests PRIVATE rloft_boot_flow)

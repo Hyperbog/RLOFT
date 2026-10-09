@@ -10,6 +10,7 @@
 
 #include "rloft/exploration_runtime_motion.hpp"
 #include "rloft/inventory_runtime.hpp"
+#include "rloft/combat_irq_message.hpp"
 #include "rloft/inventory_save_codec.hpp"
 #include "rloft/inventory_world_drop.hpp"
 #include "rloft/inventory_party_order.hpp"
@@ -161,6 +162,14 @@ public:
         return original_story_message_bf44_;
     }
 
+    // Actual original CODE.2 225DF -> 1C21C queued source text,
+    // with CF54=original IRQ30700+0x5A and CF59=1. The source
+    // message drawing/compositor 1C258 remains unfinished.
+    [[nodiscard]] const std::optional<CombatIrqMessageProjection>&
+    original_pickup_ribbon() const noexcept {
+        return original_pickup_ribbon_;
+    }
+
     // Engine-only entry: the caller must have proven this destination from
     // original CODE.2 event/exit code. No invented portals or level order.
     void transition_to_level(
@@ -213,7 +222,8 @@ public:
         std::array<bool,4>& per_actor_inventory_modes);
 
     [[nodiscard]] LooseItemPickupResult pickup_level22_loose_item(
-        std::size_t item_index);
+        std::size_t item_index,
+        std::optional<std::uint32_t> original_irq_tick_30700 = std::nullopt);
 
     // Original CODE.2 inventory 13118, logical D key 0x44 ->
     // 2195C family-C loose item creation. The default probe
@@ -251,7 +261,8 @@ public:
     pickup_level22_loose_item_at(
         const ExplorationRuntimeFrame& frame,
         int row,
-        int column);
+        int column,
+        std::optional<std::uint32_t> original_irq_tick_30700 = std::nullopt);
 
     [[nodiscard]] std::optional<WorldSceneTarget> world_scene_target_at(
         const std::vector<WorldSceneRecord>& records,
@@ -275,6 +286,8 @@ private:
     ExplorationRuntimeMotionState motion_state_{};
     bool gameplay_state_initialized_{};
     std::uint32_t original_story_message_bf44_{};
+    std::vector<std::uint8_t> original_pickup_ribbon_prefix_;
+    std::optional<CombatIrqMessageProjection> original_pickup_ribbon_;
     NpcCatalog npc_catalog_{};
     ObjectCatalog object_catalog_{};
     SceneSourceBanks scene_source_banks_{};
