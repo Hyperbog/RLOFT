@@ -689,6 +689,34 @@ try
     Equal(tableGraph.JumpTables[0].CandidateTargets.Count, 3, "three jump table candidates");
     Equal(tableGraph.JumpTables[0].DispatchKind, "indirect-jump-table",
         "relocation-backed jump retains dispatch type");
+    // Explicit CS table addressing is within the current LE object, not
+    // an arbitrary linear memory address. Other segments remain unresolved.
+    var csBytes = (byte[])tableBytes.Clone();
+    new byte[] { 0x2E, 0xFF, 0x24, 0x85, 0x40, 0x00, 0x00, 0x00 }
+        .CopyTo(csBytes, 0x200);
+    var csGraph = ControlFlowAnalysis.Analyze(LeImage.Load(BinaryArtifact.FromBytes(csBytes)));
+    Equal(csGraph.JumpTables.Count, 1, "CS indexed relocation table is discoverable");
+    Equal(csGraph.JumpTables[0].CandidateTargets.Count, 3,
+        "CS table retains all relocation-backed candidate destinations");
+    Equal(csGraph.JumpTables[0].Evidence.Contains("cs-object-relative", StringComparison.Ordinal),
+        true, "CS-base assumption must appear in evidence");
+    var fsBytes = (byte[])csBytes.Clone();
+    fsBytes[0x200] = 0x64;
+    Equal(ControlFlowAnalysis.Analyze(LeImage.Load(BinaryArtifact.FromBytes(fsBytes)))
+        .JumpTables.Count, 0, "FS selector base must not be guessed");
+    var csGuardedBytes = (byte[])boundedBytes.Clone();
+    csGuardedBytes[0x200 + 4] = 0x08; // JA over extra CS prefix
+    new byte[] { 0x2E, 0xFF, 0x24, 0x85, 0x40, 0, 0, 0, 0xC3 }
+        .CopyTo(csGuardedBytes, 0x200 + 5);
+    for (int i = 0; i < 7; i++)
+        Dword(csGuardedBytes, 0x200 + 0x40 + i * 4, (uint)(0x20 + i * 4));
+    var csBoundedGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(csGuardedBytes)));
+    Equal(csBoundedGraph.JumpTables.Count, 1,
+        "guarded CS-relative literal table remains a conservative candidate");
+    Equal(csBoundedGraph.JumpTables[0].CandidateTargets.Count, 7,
+        "guarded CS-relative table recovers all seven validated offsets");
+
     var indexedCallBytes = (byte[])tableBytes.Clone();
     indexedCallBytes[0x200] = 0xFF;
     indexedCallBytes[0x201] = 0x14;
