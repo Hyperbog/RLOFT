@@ -40,8 +40,14 @@ struct Level16SeedRitualCheck final {
         Level16SeedRitualStatus::NotLevel16};
     std::array<bool,4> present{};
     static constexpr std::size_t kEventBit=0x44U;
-    static constexpr std::uint32_t kFirstFollowOnArg=8U; // call 13EF8
-    static constexpr std::uint32_t kSecondFollowOnArg=0x73U; // 15050
+    // First 13EF8(8) runs numbered interactive event 8.
+    static constexpr std::uint32_t kNumberedEventId=8U;
+    // Then 15050(0x73) grants the HOLY SYMBOL OF RAVENKIND
+    // (OBJECTS.DAT record 115), using cursor -> first free
+    // party slot -> family-C world fallback in that order.
+    static constexpr std::uint16_t kGrantedObjectId=0x73U;
+    static constexpr std::uint32_t kFirstFollowOnArg=kNumberedEventId;
+    static constexpr std::uint32_t kSecondFollowOnArg=kGrantedObjectId;
 };
 class Level16SeedRitualModel final {
 public:
