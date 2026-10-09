@@ -219,6 +219,42 @@ InventoryWorldDropResult ExplorationRuntime::drop_held_inventory_item(
     return result;
 }
 
+Level16RitualCompletion
+ExplorationRuntime::complete_pending_seed_ritual(
+    const Level16RitualCompletionModel::Event8Playback& present_event_8,
+    const InventoryWorldDropModel::PlacementProbe& can_place) {
+    if(!gameplay_state_initialized_)
+        throw std::logic_error(
+            "Level16 event 8 requires initialized original world");
+
+    auto placement=can_place;
+    if(!placement) {
+        placement=[this](std::uint32_t y,std::uint32_t x,
+                         std::uint32_t actor_mode) {
+            return InventoryWorldDropModel::placement_passable_2d5d0(
+                session_,world_,npc_catalog_,y,x,actor_mode);
+        };
+    }
+    try {
+        const auto result=Level16RitualCompletionModel::complete_21880(
+            session_,world_,inventory_,object_catalog_,renderer_tables_,
+            placement,present_event_8,inventory_drop_c02f_center_fraction_);
+        // A successful ritual appends the fourth seed, changes the
+        // original actor/item and rewards the Holy Symbol. Aborted
+        // presentation rolls back all persistent data but may have
+        // temporarily displayed a different in-memory scene.
+        // Force source render/hit-test freshness either way.
+        if(result.status==Level16RitualCompletionStatus::Completed ||
+           result.status==Level16RitualCompletionStatus::Escaped ||
+           result.status==Level16RitualCompletionStatus::Quit)
+            ++world_scene_revision_;
+        return result;
+    } catch(...) {
+        ++world_scene_revision_;
+        throw;
+    }
+}
+
 LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
     std::size_t item_index) {
     if (!gameplay_state_initialized_) {
