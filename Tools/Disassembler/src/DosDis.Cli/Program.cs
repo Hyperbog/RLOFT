@@ -44,6 +44,7 @@ try
             "Analyze: [--max-output 300] [--trace-out decisions.json] [--trace-capacity 512]\n" +
             "         [--known-answer reference.json --validation-out results.json];\n" +
             "Analyze/report: [--game-id menzo] [--module CODE.1] [--source-archive name.zip] [--internal-path folder/CODE.1]\n" +
+            "Analyze/report: [--gap-out gaps.json] [--min-gap-bytes 256] [--max-gaps 100]\n" +
             "Report: --out path.json|path.txt [--include-bytes] (no overwrite)");
         return 2;
     }
@@ -124,6 +125,16 @@ try
             ? KnownAnswerValidator.ReadManifest(Option(args, "--known-answer", "")) : null;
         var graph = ControlFlowAnalysis.Analyze(image, seeds, data, maxInstructions,
             args.Contains("--relocated", StringComparer.Ordinal), decisionTrace: decisionTrace);
+        int minimumGapBytes = int.Parse(Option(args, "--min-gap-bytes", "256"), CultureInfo.InvariantCulture);
+        int maximumGaps = int.Parse(Option(args, "--max-gaps", "100"), CultureInfo.InvariantCulture);
+        var gapLedger = ExecutableGapAnalysis.Analyze(graph, image, minimumGapBytes, maximumGaps);
+        if (args.Contains("--gap-out", StringComparer.Ordinal))
+        {
+            if (args.Count(x => x == "--gap-out") != 1)
+                throw new ArgumentException("--gap-out cannot be repeated.");
+            ExecutableGapAnalysis.WriteNew(Option(args, "--gap-out", ""), gapLedger);
+            Console.Error.WriteLine("Source-bound executable gap ledger exported.");
+        }
         if (reference is not null)
         {
             var validation = KnownAnswerValidator.Validate(graph, image, artifact, reference);
@@ -148,7 +159,7 @@ try
             if (!asJson && !string.Equals(extension, ".txt", StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("Report path must have a .json or .txt extension.");
             bool includeBytes = args.Contains("--include-bytes", StringComparer.Ordinal);
-            AnalysisReportExport.WriteNew(output, graph, asJson, includeBytes, provenance);
+            AnalysisReportExport.WriteNew(output, graph, asJson, includeBytes, provenance, gapLedger);
             Console.WriteLine($"Candidate analysis report exported ({graph.Instructions.Count} instructions, " +
                 $"bytes {(includeBytes ? "included" : "omitted")}). Original executable unchanged.");
         }
@@ -160,17 +171,22 @@ try
                 FunctionCandidates = graph.FunctionCandidates.Count, Edges = graph.Edges.Count,
                 Regions = graph.Ranges.Count, Diagnostics = graph.Diagnostics.Count,
                 DataReferences = graph.DataReferences.Count, JumpTables = graph.JumpTables.Count,
+                UnknownFileBackedBytes = gapLedger.UnknownFileBackedBytes,
+                UnknownGaps = gapLedger.EligibleGaps,
+                OmittedGaps = gapLedger.OmittedGaps,
                 UnresolvedIndirectCalls = graph.Edges.Count(e => e.Kind == "unresolved-indirect-call"),
                 UnresolvedIndirectJumps = graph.Edges.Count(e => e.Kind == "unresolved-indirect-jump"),
                 OmittedOutput = graph.Instructions.Count > maxOutput || graph.Edges.Count > maxOutput ||
                     graph.Blocks.Count > maxOutput || graph.FunctionCandidates.Count > maxOutput ||
                     graph.Ranges.Count > maxOutput || graph.Diagnostics.Count > maxOutput ||
-                    graph.DataReferences.Count > maxOutput || graph.JumpTables.Count > maxOutput
+                    graph.DataReferences.Count > maxOutput || graph.JumpTables.Count > maxOutput ||
+                    gapLedger.Gaps.Count > maxOutput
             },
             Instructions = graph.Instructions.Take(maxOutput), Edges = graph.Edges.Take(maxOutput),
             Blocks = graph.Blocks.Take(maxOutput), FunctionCandidates = graph.FunctionCandidates.Take(maxOutput),
             Ranges = graph.Ranges.Take(maxOutput), Diagnostics = graph.Diagnostics.Take(maxOutput),
-            DataReferences = graph.DataReferences.Take(maxOutput), JumpTables = graph.JumpTables.Take(maxOutput)
+            DataReferences = graph.DataReferences.Take(maxOutput), JumpTables = graph.JumpTables.Take(maxOutput),
+            UnknownGaps = gapLedger.Gaps.Take(maxOutput)
         });
     }
     else if (args[0] == "memory")

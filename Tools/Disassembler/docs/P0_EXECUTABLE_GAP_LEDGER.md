@@ -20,3 +20,14 @@ The Stone Prophet reported unknown span in object 1 near
 Stone binary/export is available. The reported length and endpoints remain
 unconfirmed. Synthetic source tests cover byte accounting, exclusion of
 protected bytes, SHA-256 mismatch rejection, and export no-overwrite.
+
+## CLI and candidate report integration
+
+CLI analyze and report now compute the source-authenticated gap ledger.
+`analyze` exposes unknown-file-backed byte totals and the largest
+candidate gaps in JSON output; `report` embeds `gapAnalysis` in its
+machine-readable JSON or annotated text section.
+`--gap-out gaps.json` additionally creates an independent non-overwriting
+gap evidence file. `--min-gap-bytes` (default 256) and `--max-gaps`
+(default 100) bound detailed output; aggregate byte accounting is never
+truncated by these display controls. No actual binary was processed here.

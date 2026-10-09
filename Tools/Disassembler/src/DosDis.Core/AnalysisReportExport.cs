@@ -21,13 +21,16 @@ public static class AnalysisReportExport
     };
 
     public static string BuildJson(FlowAnalysisResult graph, bool includeInstructionBytes = false,
-        SourceProvenance? provenance = null)
+        SourceProvenance? provenance = null, ExecutableGapReport? gaps = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
         // Exports are archival statements of a candidate graph, never a
         // declaration that decoded bytes or recovered boundaries are correct.
         provenance ??= SourceProvenance.FromGraph(graph);
         provenance.RequireGraph(graph);
+        if (gaps is not null && !string.Equals(gaps.SourceSha256,
+                graph.ArtifactSha256, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Gap ledger belongs to another original executable.");
         return JsonSerializer.Serialize(new
         {
             format = "dosdis-analysis-report",
@@ -59,17 +62,21 @@ public static class AnalysisReportExport
             functionCandidates = graph.FunctionCandidates,
             classifiedRanges = graph.Ranges,
             diagnostics = graph.Diagnostics,
+            gapAnalysis = gaps,
             dataReferences = graph.DataReferences,
             jumpTableCandidates = graph.JumpTables
         }, JsonOptions);
     }
 
     public static string BuildText(FlowAnalysisResult graph, bool includeInstructionBytes = false,
-        SourceProvenance? provenance = null)
+        SourceProvenance? provenance = null, ExecutableGapReport? gaps = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
         provenance ??= SourceProvenance.FromGraph(graph);
         provenance.RequireGraph(graph);
+        if (gaps is not null && !string.Equals(gaps.SourceSha256,
+                graph.ArtifactSha256, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Gap ledger belongs to another original executable.");
         var text = new StringBuilder();
         text.AppendLine("DOSDis candidate analysis report — schema 1");
         text.AppendLine("Classification: CANDIDATE / UNVERIFIED — not a faithful decompilation");
@@ -134,6 +141,25 @@ public static class AnalysisReportExport
             text.Append(Format(range.Object, range.Begin)).Append("..0x")
                 .Append(range.EndExclusive.ToString("X8", CultureInfo.InvariantCulture))
                 .Append(" | ").Append(Safe(range.Classification)).Append(" | ").AppendLine(Safe(range.Evidence));
+        if (gaps is not null)
+        {
+            text.AppendLine("[EXECUTABLE OBJECT GAPS — UNKNOWN / UNVERIFIED]");
+            text.Append("Executable bytes: ").Append(gaps.ExecutableObjectBytes)
+                .Append(" | candidate code: ").Append(gaps.CandidateInstructionBytes)
+                .Append(" | protected: ").Append(gaps.AnalystProtectedBytes)
+                .Append(" | file-backed unknown: ").Append(gaps.UnknownFileBackedBytes)
+                .Append(" | virtual unbacked: ").Append(gaps.UnbackedVirtualBytes)
+                .Append(" | omitted gap entries: ").AppendLine(gaps.OmittedGaps.ToString(CultureInfo.InvariantCulture));
+            foreach (var gap in gaps.Gaps)
+                text.Append(Format(gap.Begin)).Append("..0x")
+                    .Append(gap.EndExclusive.ToString("X8", CultureInfo.InvariantCulture))
+                    .Append(" bytes=").Append(gap.Length)
+                    .Append(" fixup-sources=").Append(gap.RelocationSources)
+                    .Append(" fixup-targets=").Append(gap.RelocationTargets)
+                    .Append(" incoming-edges=").Append(gap.IncomingEdges)
+                    .Append(" data-xrefs=").Append(gap.DataReferences)
+                    .Append(" | ").AppendLine(Safe(gap.Explanation));
+        }
         text.AppendLine("[DATA REFERENCES]");
         foreach (var reference in graph.DataReferences)
             text.Append(Format(reference.Source)).Append(" -> ").Append(Format(reference.Target))
@@ -165,7 +191,7 @@ public static class AnalysisReportExport
     /// <summary>Never replaces an existing export or leaves a partial final file.</summary>
     public static void WriteNew(string outputPath, FlowAnalysisResult graph,
         bool asJson, bool includeInstructionBytes = false,
-        SourceProvenance? provenance = null)
+        SourceProvenance? provenance = null, ExecutableGapReport? gaps = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         ArgumentNullException.ThrowIfNull(graph);
@@ -173,8 +199,8 @@ public static class AnalysisReportExport
         string expectedExt = asJson ? ".json" : ".txt";
         if (!string.Equals(Path.GetExtension(destination), expectedExt, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException($"Expected a {expectedExt} report filename.", nameof(outputPath));
-        string data = asJson ? BuildJson(graph, includeInstructionBytes, provenance)
-            : BuildText(graph, includeInstructionBytes, provenance);
+        string data = asJson ? BuildJson(graph, includeInstructionBytes, provenance, gaps)
+            : BuildText(graph, includeInstructionBytes, provenance, gaps);
         if (Encoding.UTF8.GetByteCount(data) > MaximumExportBytes)
             throw new InvalidDataException("Analysis report exceeds the 128 MiB export safety limit.");
         string directory = Path.GetDirectoryName(destination)!;

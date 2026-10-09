@@ -475,6 +475,23 @@ try
         true, "gaps retain original-source file offsets");
     Equal(gapLedger.Gaps.All(g => g.Classification == "unknown-file-backed"),
         true, "gap ranking never promotes unknown bytes to code");
+    using (var gapReportJson = JsonDocument.Parse(AnalysisReportExport.BuildJson(
+        graph, gaps: gapLedger)))
+    {
+        var gapSection = gapReportJson.RootElement.GetProperty("gapAnalysis");
+        Equal(gapSection.GetProperty("SourceSha256").GetString(), graph.ArtifactSha256,
+            "candidate report cannot detach gap ledger from original source");
+        Equal(gapSection.GetProperty("UnknownFileBackedBytes").GetInt64(),
+            gapLedger.UnknownFileBackedBytes, "report exposes full unknown byte total");
+    }
+    Equal(AnalysisReportExport.BuildText(graph, gaps: gapLedger)
+        .Contains("[EXECUTABLE OBJECT GAPS", StringComparison.Ordinal), true,
+        "text report carries ranked unknown gap evidence");
+    bool foreignLedgerDenied = false;
+    try { AnalysisReportExport.BuildJson(graph, gaps: gapLedger with {
+        SourceSha256 = new string('f', 64) }); }
+    catch (InvalidDataException) { foreignLedgerDenied = true; }
+    Equal(foreignLedgerDenied, true, "candidate report rejects gaps from another source");
     Equal(gapLedger.Gaps.All(g => g.Begin.Offset >= 10 || g.EndExclusive <= 6),
         true, "analyst-protected data never reappears as unknown gap");
     bool gapForeignSourceRejected = false;
