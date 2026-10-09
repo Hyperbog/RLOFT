@@ -850,9 +850,24 @@ std::uint32_t code1_tick_count(Clock::time_point epoch) {
         elapsed.count() / 54925LL);
 }
 
+enum class CinematicResult {
+    Completed,
+    Escaped,
+    Quit,
+};
+
+CinematicResult play_cinematic(
+    Host& host,
+    rloft::AnmCinematic& cinematic,
+    const rloft::RavenloftBootAssets& assets,
+    rloft::Win32AudioPlayer& audio_player,
+    rloft::Win32MidiPlayer& midi_player);
+
 int run_exploration(
     Host& host,
     rloft::RavenloftBootAssets& assets,
+    rloft::Win32AudioPlayer& audio_player,
+    rloft::Win32MidiPlayer& midi_player,
     const std::vector<std::uint8_t>& chars,
     bool exploration_preview = false,
     bool capture_render = false,
@@ -1859,12 +1874,6 @@ bool code1_palette_reveal(
     return true;
 }
 
-enum class CinematicResult {
-    Completed,
-    Escaped,
-    Quit,
-};
-
 CinematicResult play_cinematic(
     Host& host,
     rloft::AnmCinematic& cinematic,
@@ -2161,7 +2170,7 @@ int run(HINSTANCE instance) {
         const auto preview = rloft::ExplorationPreview::party(
             startup_chars);
         return run_exploration(
-            host, assets, preview.chars, true, options.capture_render,
+            host, assets, audio_player, midi_player, preview.chars, true, options.capture_render,
             options.capture_limit);
     }
 
@@ -2175,7 +2184,7 @@ int run(HINSTANCE instance) {
         }
         return run_exploration(
             host,
-            assets,
+            assets, audio_player, midi_player,
             *startup_chars);
     }
 
@@ -3346,7 +3355,7 @@ int run(HINSTANCE instance) {
                                 host.set_character_mode(false);
                                 return run_exploration(
                                     host,
-                                    assets,
+                                    assets, audio_player, midi_player,
                                     std::vector<std::uint8_t>(
                                         image.begin(),
                                         image.end()));
