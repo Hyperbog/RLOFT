@@ -812,7 +812,8 @@ int run_exploration(
     rloft::RavenloftBootAssets& assets,
     const std::vector<std::uint8_t>& chars,
     bool exploration_preview = false,
-    bool capture_render = false) {
+    bool capture_render = false,
+    std::size_t capture_limit = 16U) {
     auto runtime =
         rloft::ExplorationRuntime::load_fresh(
             assets.source(), chars);
@@ -1431,7 +1432,7 @@ int run_exploration(
             runtime.renderer_tables());
 
         if (capture_render && !capture_failure.has_value() &&
-            capture_count < 16U) {
+            capture_count < capture_limit) {
             const auto& session=runtime.session();
             const auto cell_x=static_cast<std::int32_t>(
                 session.coordinate_a)>>16;
@@ -1513,7 +1514,8 @@ int run_exploration(
                 L" | Arrow keys / Numpad | Esc to exit";
             if (capture_render) {
                 caption+=L" | Captures "+
-                    std::to_wstring(capture_count)+L"/16";
+                    std::to_wstring(capture_count)+L"/"+
+                    std::to_wstring(capture_limit);
                 if (capture_failure.has_value()) {
                     caption+=L" | Capture error";
                 }
@@ -1738,6 +1740,8 @@ struct DemoCommandLine final {
     std::optional<std::filesystem::path> source;
     bool explore_level22{};
     bool capture_render{};
+    std::size_t capture_limit{16U};
+    bool custom_capture_limit{};
 };
 
 DemoCommandLine command_line_options() {
@@ -1755,10 +1759,22 @@ DemoCommandLine command_line_options() {
                 result.explore_level22 = true;
             } else if (arg == L"--capture-render") {
                 result.capture_render = true;
+            } else if (arg.substr(0U,17U) == L"--capture-frames=") {
+                const auto count = arg.substr(17U);
+                std::size_t parsed=0U;
+                const auto value=std::stoul(std::wstring(count), &parsed, 10);
+                if (parsed != count.size() || value < 1UL ||
+                    value > 128UL) {
+                    throw std::invalid_argument(
+                        "--capture-frames must be an integer from 1 to 128");
+                }
+                result.capture_limit=static_cast<std::size_t>(value);
+                result.custom_capture_limit=true;
             } else if (!arg.empty() && arg.front() == L'-') {
                 throw std::invalid_argument(
                     "Unknown command-line option. Use --explore-level22 "
-                    "[--capture-render] and optionally one Ravenloft installation path.");
+                    "[--capture-render] [--capture-frames=64] "
+                    "and optionally one Ravenloft installation path.");
             } else if (result.source.has_value()) {
                 throw std::invalid_argument(
                     "Specify at most one Ravenloft installation path");
@@ -1774,6 +1790,10 @@ DemoCommandLine command_line_options() {
     if(result.capture_render && !result.explore_level22) {
         throw std::invalid_argument(
             "--capture-render requires --explore-level22");
+    }
+    if(result.custom_capture_limit && !result.capture_render) {
+        throw std::invalid_argument(
+            "--capture-frames requires --capture-render");
     }
     return result;
 }
@@ -1864,7 +1884,8 @@ int run(HINSTANCE instance) {
         const auto preview = rloft::ExplorationPreview::party(
             startup_chars);
         return run_exploration(
-            host, assets, preview.chars, true, options.capture_render);
+            host, assets, preview.chars, true, options.capture_render,
+            options.capture_limit);
     }
 
     if (startup_chars) {
