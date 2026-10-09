@@ -1,5 +1,18 @@
 # Demo v1 — development progress versus formal acceptance
 
+**Corrected Level 22 visual acceptance scope (2026-10-08):**
+Analysis of 30 user indexed frames and both immutable Level 22
+records shows all 7,649 emitted wall runs are non-drawable resource
+0x93 in an open-field perimeter level. No SINTAB main-wall
+visual improvement can be demonstrated in the captured Level 22
+views, irrespective of engine backend status. The source archive
+holds one type-9 NPC and 110 placed objects: future Level 22
+visual evidence must prioritize original RES3 sprite/scene
+coverage, not RES4 walls. The optional capture TSV is extended
+to v2 with source-indexed scene counts and failures (source-only,
+new Windows build pending).
+[Full audit](LEVEL22_CAPTURE_AUDIT_20261008.md).
+
 **Optional native diagnostic capture checkpoint (2026-10-08):**
 A `--capture-render` Level 22 mode and packaged
 `Capture-Level22.cmd` launcher now serialize up to 16 changed-pose
