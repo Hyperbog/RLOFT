@@ -2,7 +2,7 @@
 
 ## Native Level22 opt-in diagnostic session (pending next manual build)
 
-The source now includes [`--dev-trace` / `Diagnose-Level22.cmd`](LEVEL22_DEV_TRACE_CHECKPOINT_20261009.md): source-identity manifests, per-screen indexed 320×400 captures, palette bytes, state hashes, input and modal transitions, F12 marker/recent-event snapshots, existing RES3/SINTAB renderer traces, and a single automatically ZIP-packaged session. The original file tree remains read-only. The new `dev_session_trace_tests` brings the current authored registry to **179**, compared with **178 verified in Full build #648**. **Source is unbuilt; no Windows or DOS behavior acceptance claimed.**
+The source now includes [`--dev-trace` / `Diagnose-Level22.cmd`](LEVEL22_DEV_TRACE_CHECKPOINT_20261009.md): source-identity manifests, per-screen indexed 320×400 captures, palette bytes, state hashes, native Type1 sprite/fill/restore call ordering and destination coordinates, input and modal transitions, F12 marker/recent-event snapshots, existing RES3/SINTAB renderer traces, and a single automatically ZIP-packaged session. The original file tree remains read-only. The new `dev_session_trace_tests` brings the current authored registry to **179**, compared with **178 verified in Full build #648**. **Source is unbuilt; no Windows or DOS behavior acceptance claimed.**
 
 ## Current status and universal percentage tracking
 

@@ -11,7 +11,7 @@
 
 ## Level22 user-assisted forensic diagnostics
 
-The [opt-in developer flight recorder](LEVEL22_DEV_TRACE_CHECKPOINT_20261009.md) is source-authored: `--dev-trace` and `Diagnose-Level22.cmd` capture real UI/Win32 input, exact original-resolution indexed native pixels/palette, per-domain state hashes and code2 source-derived raster TSV, with F12 markers and a ZIP on exit. It does **not** alter the actual game or create new game mechanics. This addresses the user-observed broken inventory/portrait placement and incomplete automap while preserving the independent original-DOS comparison requirement. **179 authored CTests, one beyond the last 178/178 Windows Full build; no new build authorized or dispatched.**
+The [opt-in developer flight recorder](LEVEL22_DEV_TRACE_CHECKPOINT_20261009.md) is source-authored: `--dev-trace` and `Diagnose-Level22.cmd` capture real UI/Win32 input, exact original-resolution indexed native pixels/palette, per-domain state hashes, native modal Type1 sprite/fill/restore command coordinates and code2 source-derived raster TSV, with F12 markers and a ZIP on exit. It does **not** alter the actual game or create new game mechanics. This addresses the user-observed broken inventory/portrait placement and incomplete automap while preserving the independent original-DOS comparison requirement. **179 authored CTests, one beyond the last 178/178 Windows Full build; no new build authorized or dispatched.**
 
 ## Explicit Level22-first delivery gate
 

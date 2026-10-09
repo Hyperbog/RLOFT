@@ -14,12 +14,32 @@ struct IndexedRegion {
     std::vector<std::uint8_t> pixels;
 };
 
+// Native forensic metadata only. Does not change indexed pixels or
+// resource lookup; bounds/frames correspond to original VGA units.
+struct IndexedDrawAuditCall final {
+    const char* operation{};
+    int frame{};
+    int y{};
+    int x{};
+    int height{};
+    int width{};
+    int parameter_a{};
+    int parameter_b{};
+};
+
 class IndexedFramebuffer final {
 public:
     static constexpr int kWidth = 320;
     static constexpr int kHeight = 400;
 
     IndexedFramebuffer();
+
+    using DrawAuditCallback = void (*)(void*,const IndexedDrawAuditCall&);
+    void set_draw_audit(
+        DrawAuditCallback callback,void* context) noexcept {
+        audit_callback_=callback;
+        audit_context_=context;
+    }
 
     void clear(std::uint8_t color = 0);
     void draw_frame(const Type1Raster& raster, int frame, int y, int x);
@@ -61,7 +81,12 @@ public:
     [[nodiscard]] std::vector<std::uint8_t>& mutable_pixels() noexcept { return pixels_; }
 
 private:
+    void audit(const IndexedDrawAuditCall& call) const {
+        if(audit_callback_)audit_callback_(audit_context_,call);
+    }
     std::vector<std::uint8_t> pixels_;
+    DrawAuditCallback audit_callback_{};
+    void* audit_context_{};
 };
 
 class StartupPresenter final {

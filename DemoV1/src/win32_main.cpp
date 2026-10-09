@@ -943,8 +943,12 @@ int run_exploration(
     std::unique_ptr<rloft::DevSessionTrace> trace;
     struct TraceHostDetach final {
         Host& host;
-        ~TraceHostDetach() {host.set_session_trace(nullptr);}
-    } trace_detach{host};
+        rloft::IndexedFramebuffer& framebuffer;
+        ~TraceHostDetach() {
+            framebuffer.set_draw_audit(nullptr,nullptr);
+            host.set_session_trace(nullptr);
+        }
+    } trace_detach{host,presenter.framebuffer()};
     if(dev_trace) {
         const auto root=std::filesystem::temp_directory_path()/
             "RLOFT-Demo-Diagnostics";
@@ -960,6 +964,16 @@ int run_exploration(
                              std::ios::binary|std::ios::trunc);
         if(latest)latest<<folder.string()<<"\n";
         host.set_session_trace(trace.get());
+        presenter.framebuffer().set_draw_audit(
+            [](void* context,const rloft::IndexedDrawAuditCall& draw) {
+                try {
+                    static_cast<rloft::DevSessionTrace*>(
+                        context)->indexed_draw(draw);
+                }catch(...) {
+                    // Instrumentation must never interrupt original
+                    // indexed framebuffer drawing.
+                }
+            },trace.get());
     }
     std::optional<std::size_t> inventory_encumbrance_actor;
     std::optional<std::size_t> inventory_party_drag_source;
@@ -1089,6 +1103,7 @@ int run_exploration(
             }catch(const std::exception& exc) {
                 OutputDebugStringA(exc.what());
                 host.set_session_trace(nullptr);
+                presenter.framebuffer().set_draw_audit(nullptr,nullptr);
                 trace.reset();
             }
         }

@@ -115,7 +115,7 @@ SAVE LOAD and persistence,In-game SAVE LOAD menus and slots,20,0,0,0,0,options_m
 SAVE LOAD and persistence,Level re-entry and multiple-world saves,10,0,0,0,0,CONTINUOUS_GAME_INTEGRATION_CONTRACT,Multi-level backing across exits
 Verification and developer testbed,Original file provenance and byte audits,20,20,20,20,0,source archive docs + DAT CODE audits,Complete all remaining original unknowns
 Verification and developer testbed,Automated regression test catalog,20,20,20,20,0,CMakeLists.txt 179 CTests (trace one unbuilt),Original DOS cross-comparison and current-head build
-Verification and developer testbed,Opt-in Level22 state diagnostics,20,20,20,20,0,dev_level_diagnostics.cpp and dev_session_trace.cpp and win32_main.cpp,Full Windows build and user session ZIP validation
+Verification and developer testbed,Opt-in Level22 state diagnostics,20,20,20,20,0,dev_level_diagnostics.cpp and dev_session_trace.cpp and startup_presenter.cpp and win32_main.cpp,Full Windows build and user diagnostic ZIP draw-order validation
 Verification and developer testbed,Visual DOS captures and comparisons,20,20,10,10,0,exploration_frame_capture.cpp,Complete DOS/native pixel comparison
 Verification and developer testbed,Manual Windows build reproducibility,20,20,20,20,0,github workflow and CMakeLists.txt,Full Windows build 648 passed 178 of 178; trace code now needs next manual build
 Verification and developer testbed,Original start to game-end acceptance,10,0,0,0,0,CONTINUOUS_GAME_INTEGRATION_CONTRACT,Full original campaign milestone

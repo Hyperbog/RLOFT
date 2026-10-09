@@ -30,7 +30,16 @@ int main() {
     {
         rloft::DevSessionTrace trace(root,"source-revision-synthetic","loose");
         rloft::IndexedFramebuffer framebuffer{};
+        framebuffer.set_draw_audit(
+            [](void* context,const rloft::IndexedDrawAuditCall& draw) {
+                static_cast<rloft::DevSessionTrace*>(
+                    context)->indexed_draw(draw);
+            },&trace);
         framebuffer.clear(13U);
+        // Use the same source-neutral type-1 framebuffer entry point
+        // as the real party portrait/equipment renderers.
+        rloft::Type1Raster sprite{1,2,2,0xFFU,{1U,2U,3U,4U}};
+        framebuffer.draw_frame(sprite,0,23,45);
         rloft::Palette6 palette{};
         palette.rgb[2]=42U;
         rloft::DevLevelSnapshot state{};
@@ -53,6 +62,11 @@ int main() {
             read(root/"frame_0001.pal")[2])==42U);
         assert(read(root/"frame_0001.json").find(
             "\"screen\":\"viewport\"")!=std::string::npos);
+        const auto draw_log=read(root/"frame_0001.draws.tsv");
+        assert(draw_log.find("clear")!=std::string::npos);
+        assert(draw_log.find("type1.frame\t0\t45\t23\t2\t2")
+               !=std::string::npos);
+        assert(draw_log.find("omitted\t0")!=std::string::npos);
         assert(read(root/"manifest.json").find(
             "source-revision-synthetic")!=std::string::npos);
 
@@ -101,7 +115,15 @@ int main() {
                rloft::DevSessionTrace::kMaxViewportSnapshots+3U);
         assert(!fs::exists(root/"frame_0068.idx"));
         // F12 marker slots remain available independent of auto budget.
+        // Source draw metadata is bounded independently on EVERY frame.
+        for(std::size_t i=0U;
+            i<rloft::DevSessionTrace::kMaxDrawsPerPresent+6U;++i) {
+            trace.indexed_draw({
+                "type1.frame",0,3,4,16,12,0xFF,1});
+        }
         trace.observe("quit_confirm",framebuffer,palette,state,3000U);
+        assert(read(root/"frame_0068.draws.tsv").find(
+            "omitted\t6")!=std::string::npos);
         assert(trace.snapshot_count()==
                rloft::DevSessionTrace::kMaxViewportSnapshots+4U);
         trace.error("build_frame","synthetic-error");

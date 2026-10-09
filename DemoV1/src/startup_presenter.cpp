@@ -12,6 +12,7 @@ IndexedFramebuffer::IndexedFramebuffer()
     : pixels_(static_cast<std::size_t>(kWidth) * kHeight, 0) {}
 
 void IndexedFramebuffer::clear(std::uint8_t color) {
+    audit({"clear",-1,0,0,kHeight,kWidth,static_cast<int>(color),0});
     std::fill(pixels_.begin(), pixels_.end(), color);
 }
 
@@ -20,6 +21,8 @@ void IndexedFramebuffer::draw_frame(
     if (frame < 0 || frame >= raster.count) {
         throw std::out_of_range("type-1 frame index");
     }
+    audit({"type1.frame",frame,y,x,raster.height,raster.width,
+           raster.transparent_index,raster.count});
 
     const auto frame_stride =
         static_cast<std::size_t>(raster.width) * raster.height;
@@ -46,6 +49,8 @@ void IndexedFramebuffer::draw_frame_mirrored(
     if (frame < 0 || frame >= raster.count) {
         throw std::out_of_range("type-1 frame index");
     }
+    audit({"type1.mirrored",frame,y,x,raster.height,raster.width,
+           raster.transparent_index,raster.count});
 
     // CODE.1 A5C8 is not a left/right mirror. It reverses the scanline
     // order inside each VGA plane, which is a vertical flip once the planar
@@ -82,6 +87,8 @@ void IndexedFramebuffer::draw_frame_mapped(
     if (frame < 0 || frame >= raster.count) {
         throw std::out_of_range("type-1 mapped frame index");
     }
+    audit({"type1.mapped",frame,y,x,raster.height,raster.width,
+           raster.transparent_index,raster.count});
 
     const auto frame_stride =
         static_cast<std::size_t>(raster.width) * raster.height;
@@ -123,6 +130,8 @@ void IndexedFramebuffer::draw_frame_scaled_horizontal(
     if (numerator < 0 || denominator <= 0) {
         throw std::invalid_argument("invalid horizontal scale ratio");
     }
+    audit({"type1.scaled",frame,y,x,raster.height,raster.width,
+           numerator,denominator});
 
     const auto frame_stride =
         static_cast<std::size_t>(raster.width) * raster.height;
@@ -194,6 +203,7 @@ void IndexedFramebuffer::restore(
                 static_cast<std::size_t>(region.width)) {
         throw std::invalid_argument("invalid indexed region");
     }
+    audit({"restore",-1,y,x,region.height,region.width,0,0});
 
     for (int row = 0; row < region.height; ++row) {
         const int dy = y + row;
@@ -219,6 +229,7 @@ void IndexedFramebuffer::restore_mapped(
                 static_cast<std::size_t>(region.width)) {
         throw std::invalid_argument("invalid indexed mapped region");
     }
+    audit({"restore.mapped",-1,y,x,region.height,region.width,0,0});
 
     for (int row = 0; row < region.height; ++row) {
         const int dy = y + row;
@@ -251,6 +262,8 @@ void IndexedFramebuffer::restore_scaled_horizontal(
     if (numerator < 0 || denominator <= 0) {
         throw std::invalid_argument("invalid region scale ratio");
     }
+    audit({"restore.scaled",-1,y,x,region.height,region.width,
+           numerator,denominator});
 
     int accumulator = denominator / 2;
     int dx_offset = 0;
@@ -277,6 +290,7 @@ void IndexedFramebuffer::restore_scaled_horizontal(
 void IndexedFramebuffer::fill_rect(
     int y, int x, int height, int width, std::uint8_t color) {
     if (height <= 0 || width <= 0) return;
+    audit({"fill.rect",-1,y,x,height,width,static_cast<int>(color),0});
     for (int row = 0; row < height; ++row) {
         const int dy = y + row;
         if (dy < 0 || dy >= kHeight) continue;

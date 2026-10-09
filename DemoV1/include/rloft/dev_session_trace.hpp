@@ -7,6 +7,7 @@
 #include <fstream>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "rloft/dev_level_diagnostics.hpp"
 #include "rloft/resource_assets.hpp"
@@ -24,6 +25,7 @@ public:
     static constexpr std::size_t kMaxEvents=16384U;
     static constexpr std::size_t kRecentEvents=256U;
     static constexpr std::size_t kFramebufferBytes=320U*400U;
+    static constexpr std::size_t kMaxDrawsPerPresent=1024U;
 
     DevSessionTrace(const std::filesystem::path& directory,
                     std::string_view source_revision,
@@ -49,6 +51,9 @@ public:
                std::int64_t a=0,
                std::int64_t b=0);
     void request_marker();
+    // The IndexedFramebuffer's optional native drawing API observer.
+    // This changes NO raster bytes, order, or original game state.
+    void indexed_draw(const IndexedDrawAuditCall& call);
     void observe(std::string_view screen,
                  const IndexedFramebuffer& framebuffer,
                  const Palette6& palette,
@@ -69,6 +74,8 @@ private:
     std::filesystem::path directory_;
     std::ofstream log_;
     std::deque<std::string> recent_;
+    std::vector<IndexedDrawAuditCall> drawn_this_present_;
+    std::size_t draws_discarded_{};
     std::string last_screen_;
     std::uint64_t last_camera_{};
     std::uint64_t last_party_{};

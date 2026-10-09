@@ -105,6 +105,13 @@ void DevSessionTrace::event(
     dirty_=true;
 }
 
+void DevSessionTrace::indexed_draw(const IndexedDrawAuditCall& call) {
+    if(finished_)return;
+    if(drawn_this_present_.size()<kMaxDrawsPerPresent)
+        drawn_this_present_.push_back(call);
+    else ++draws_discarded_;
+}
+
 void DevSessionTrace::request_marker() {
     if(!finished_ && markers_<kMaxMarkers) {
         // Marker has its OWN 16-slot budget. Do not accidentally
@@ -175,6 +182,30 @@ void DevSessionTrace::capture(
     if(!metadata)throw std::runtime_error(
         "unable to write frame metadata");
 
+    // Render-order audit for the exact indexed framebuffer API:
+    // captures original modal sprite placements, fills, scaled draws
+    // and backing-rectangle restores. Separate CODE.2 RES3/SINTAB
+    // per-column traces live in renderer/*.tsv and are not folded
+    // into this higher-level call list.
+    std::ofstream calls(path.string()+".draws.tsv",
+                        std::ios::binary|std::ios::trunc);
+    if(!calls)throw std::runtime_error(
+        "unable to create native draw audit");
+    calls<<"order\top\tframe\tx\ty\twidth\theight"
+         <<"\tparameter_a\tparameter_b\n";
+    for(std::size_t i=0U;i<drawn_this_present_.size();++i) {
+        const auto& call=drawn_this_present_[i];
+        calls<<i<<"\t"<<call.operation
+             <<"\t"<<call.frame
+             <<"\t"<<call.x<<"\t"<<call.y
+             <<"\t"<<call.width<<"\t"<<call.height
+             <<"\t"<<call.parameter_a
+             <<"\t"<<call.parameter_b<<"\n";
+    }
+    calls<<"omitted\t"<<draws_discarded_<<"\n";
+    if(!calls)throw std::runtime_error(
+        "unable to write native draw audit");
+
     if(is_marker) {
         std::ofstream recent(directory_/(stem+"_recent.jsonl"),
                              std::ios::binary|std::ios::trunc);
@@ -244,6 +275,8 @@ void DevSessionTrace::observe(
     last_world_=snapshot.world_hash;
     last_flags_=snapshot.flags_hash;
     dirty_=false;
+    drawn_this_present_.clear();
+    draws_discarded_=0U;
 }
 
 void DevSessionTrace::error(
