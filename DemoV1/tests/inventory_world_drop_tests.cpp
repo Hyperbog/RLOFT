@@ -317,6 +317,82 @@ int main() {
         ritual_session,crowded,&final_seed);
     assert(ritual.status==SeedStatus::NotLevel16);
 
+    // Bounded 15050(0x73) source reward routing: after the
+    // numbered event, the HOLY SYMBOL OF RAVENKIND is put on
+    // an empty cursor; otherwise the first empty ordinary
+    // slot in active actor order; otherwise 2195C world-spawn
+    // is requested and NO unbound world action is fabricated.
+    rloft::PartyImage reward_party{};
+    reward_party.bytes.fill(0xFFU);
+    reward_party.bytes[0x10U]=0U;
+    reward_party.bytes[0x11U]=0U; // actor0 active
+    rloft::InventoryRuntimeState reward_inv{};
+    reward_inv.held={-1,1U}; // known must be reset to zero
+    using RewardStatus=rloft::HolySymbolGrantStatus;
+    auto grant=rloft::HolySymbolRewardModel::grant_15050(
+        reward_party,reward_inv);
+    assert(grant.status==RewardStatus::GivenToCursor);
+    assert(reward_inv.held.object_id==0x73);
+    assert(reward_inv.held.known==0U);
+    assert(reward_party.bytes[0x40U]==0xFFU);
+
+    const auto put_item=[](rloft::PartyImage& party,
+                           std::size_t actor,std::size_t slot,
+                           std::int16_t id) {
+        const auto at=actor*rloft::PartyImage::kActorSize+
+            0x40U+2U*slot;
+        const auto raw=static_cast<std::uint16_t>(id);
+        party.bytes[at]=static_cast<std::uint8_t>(raw);
+        party.bytes[at+1U]=static_cast<std::uint8_t>(raw>>8U);
+    };
+    reward_inv.held={7,1U};
+    reward_party.bytes[0x12BU]=0xFFU;
+    grant=rloft::HolySymbolRewardModel::grant_15050(
+        reward_party,reward_inv);
+    assert(grant.status==RewardStatus::GivenToPartySlot);
+    assert(grant.actor==0U && grant.slot==0U);
+    assert(reward_party.bytes[0x40U]==0x73U);
+    assert(reward_party.bytes[0x41U]==0U);
+    assert(reward_party.bytes[0x12BU]==0xFEU);
+    assert(reward_inv.held.object_id==7);
+    assert(reward_inv.held.known==1U);
+
+    // CODE.2 150C9..1511D skips actors whose status word
+    // contains 8000h. Actor0 has all 12 ordinary slots
+    // occupied; actor1 remains inactive. Actor2 is active
+    // and the first free slot is slot5. Actor3 is inactive.
+    for(std::size_t slot=0U;slot<12U;++slot)
+        put_item(reward_party,0U,slot,7);
+    const auto actor2=2U*rloft::PartyImage::kActorSize;
+    reward_party.bytes[actor2+0x10U]=0U;
+    reward_party.bytes[actor2+0x11U]=0U;
+    for(std::size_t slot=0U;slot<12U;++slot)
+        put_item(reward_party,2U,slot,7);
+    put_item(reward_party,2U,5U,-1);
+    reward_party.bytes[actor2+0x12BU]=0xFFU;
+    grant=rloft::HolySymbolRewardModel::grant_15050(
+        reward_party,reward_inv);
+    assert(grant.status==RewardStatus::GivenToPartySlot);
+    assert(grant.actor==2U && grant.slot==5U);
+    assert(reward_party.bytes[actor2+0x40U+5U*2U]==0x73U);
+    assert(reward_party.bytes[actor2+0x12BU]==0xDFU);
+    assert(reward_inv.held.object_id==7);
+
+    // Even if the actor inventory is completely full, the
+    // unimplemented 2195C world fallback cannot lose the
+    // pending reward or overwrite the held item.
+    for(std::size_t slot=0U;slot<12U;++slot)
+        put_item(reward_party,2U,slot,7);
+    const auto party_before_reward=reward_party.bytes;
+    const auto cursor_before_reward=reward_inv.held;
+    grant=rloft::HolySymbolRewardModel::grant_15050(
+        reward_party,reward_inv);
+    assert(grant.status==RewardStatus::NeedsWorldSpawn);
+    assert(reward_party.bytes==party_before_reward);
+    assert(reward_inv.held.object_id==
+        cursor_before_reward.object_id);
+    assert(reward_inv.held.known==cursor_before_reward.known);
+
     // Invalid/outside-level and unknown objects must be rejected without
     // consuming the cursor or discarding the oldest world object.
     inventory.held={310,1U};
