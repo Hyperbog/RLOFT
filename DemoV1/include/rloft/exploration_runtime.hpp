@@ -203,6 +203,15 @@ public:
     [[nodiscard]] InventoryWorldDropResult drop_held_inventory_item(
         const InventoryWorldDropModel::PlacementProbe& can_place={});
 
+    // Original Level16 item-89 completion is the ONLY route that
+    // invokes CODE.2 numbered event 8 from an inventory D drop.
+    // The caller supplies actual CINE08 playback; the runtime
+    // stages source order, preflights reward, and rolls back on
+    // interrupted playback to avoid half-completed native quests.
+    [[nodiscard]] Level16RitualCompletion complete_pending_seed_ritual(
+        const Level16RitualCompletionModel::Event8Playback& present_event_8,
+        const InventoryWorldDropModel::PlacementProbe& can_place={});
+
     // Bind the previously reconstructed 223F4 viewport hit test to the
     // actual Level 22 encounter. Attack actions pass flags=0 so loose
     // pickups do not occlude NPC combat; pickup actions pass flags=1.
