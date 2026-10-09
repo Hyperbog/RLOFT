@@ -25,6 +25,7 @@ Only these byte-level operations are modeled:
 | `05 iw`, `2D iw` | ADD/SUB AX,imm16, flags become unmodeled |
 | `81 /0,/5`, `83 /0,/5`, register ModRM only | ADD/SUB r16,imm16 or signed imm8 |
 | `3D iw`, `81 /7`, `83 /7`, register ModRM only | CMP without changing registers; flags unmodeled |
+| Exact `70..7F cb`, `0F 80..8F cw`, `EB cb`, `E9 cw` | Direct Jcc/JMP preserves word registers and flags; no path predicate inferred |
 
 All effects are candidate values and do not assert runtime execution.
 The `FlagsPreserved` marker says only that the instruction does not
@@ -32,7 +33,7 @@ change flags, **not** that any flag is known to the analysis.
 
 Any instruction outside that exhaustive subset (including partial byte
 register aliases, memory operands, 32-bit overrides, prefixes, calls,
-interrupts, stack operations, conditional control flow and unknown flags)
+interrupts, stack operations, unsupported conditional control flow and unknown flags)
 sets **all** tracked registers to Unknown and invalidates flag knowledge.
 This deliberate precision loss is safer than retaining stale register
 hypotheses across an unmodeled instruction.
@@ -53,7 +54,7 @@ synthetic COM bytes. Coverage includes:
 - sign-extended negative imm8 ADD/SUB, word immediates and compare;
 - byte alias invalidation and NOP preservation;
 - known values after invalidation, arithmetic near 16-bit wrap;
-- conservative JMP/RET invalidation;
+- exact relative JMP preservation and RET invalidation;
 - rejected forged original bytes, physical offsets and flow-control;
 - rejected state from the same source at a different assumed origin,
   and from an entirely different source SHA-256.
@@ -78,3 +79,13 @@ all graph paths and source-backed table entries are independently proven.
 and automated synthetic regression gate will need owner authorization
 after a meaningful additional analysis batch. No user GUI interaction
 is required by this source-only change.
+
+## R2.3 source-only extension
+
+Exact, prefix-free short/near16 relative Jcc/JMP are now conservatively
+recognized as register- and flag-preserving. The caller remains responsible
+for independent original-byte validation of the corresponding CFG edges;
+no flag truth or branch feasibility is inferred. Unsupported conditional
+forms still kill tracked values. A new opt-in bounded worklist is described
+in [R2_DATAFLOW_WORKLIST_SOURCE_CHECKPOINT.md](R2_DATAFLOW_WORKLIST_SOURCE_CHECKPOINT.md).
+These additions have **not** been compiled or tested on Windows.
