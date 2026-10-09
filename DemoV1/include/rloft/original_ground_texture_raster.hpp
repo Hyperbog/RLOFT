@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "rloft/startup_presenter.hpp"
+#include "rloft/renderer_tables.hpp"
 
 namespace rloft {
 
@@ -63,6 +64,15 @@ public:
     [[nodiscard]] static std::array<
         GroundPerspectiveRow,GroundTextureRasterSpec::kMaxRows>
     decode_ff58(const std::vector<std::uint8_t>& original_ff58);
+
+    // Execute original CODE.2 34998: reconstruct the six-byte FF58
+    // perspective rows using original SINTAB projection_a/b and
+    // sine values copied by CODE.2 3838 -> 389D into runtime
+    // 19660/193E0 and C65C, respectively.
+    // The heading is the original 0..359 mutable C658 value.
+    [[nodiscard]] static std::array<
+        GroundPerspectiveRow,GroundTextureRasterSpec::kMaxRows>
+    generate_ff58(const RendererTables& tables,std::uint32_t heading);
 
     // Emulates 34A74 -> 342E4 / 34954 -> the unrolled 34350.
     // Each texture must include original 2-byte header followed by
