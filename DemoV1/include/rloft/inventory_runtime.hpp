@@ -71,6 +71,7 @@ enum class InventoryOrdinarySwapStatus : std::uint8_t {
     NoChange,
     Swapped,
     InsertedInContainer,
+    ConsumedStoryFragment,
     Unsupported
 };
 
@@ -85,15 +86,19 @@ struct InventoryRuntimeState final {
     [[nodiscard]] static InventoryRuntimeState fresh(
         const GameSource& source);
 
-    // CODE.2 117A0 verified ordinary-slot identity + 0x12B known-bit
-    // transfer. The caller must have already resolved a 12E70 3x4
-    // ordinary-grid hit; unsupported container insertion or special
-    // object interactions are rejected without mutating either state.
+    // CODE.2 117A0 ordinary-slot/0x12B known-bit swaps.
+    // Its 11857 Tome(0x35)+Parchment Fragment(0x61..0x64) branch
+    // calls 1C124 to set one bit in the persistent 0x22200 vector,
+    // then consumes ONLY the held fragment. Supply the actual
+    // session's 32-byte event vector to enable this verified action.
+    // The Mage Spell Book(0xA6) -> scroll(0xA7..0xC9)
+    // 11630 learning path remains guarded pending complete spell state.
     [[nodiscard]] InventoryOrdinarySwapStatus swap_ordinary_slot(
         PartyImage& party,
         const ObjectCatalog& objects,
         std::size_t actor,
-        std::size_t slot);
+        std::size_t slot,
+        std::array<std::uint8_t,32>* persistent_event_flags=nullptr);
 
     // CODE.2 211D8 flag 08h generic actor-panel fallback:
     // place a held ordinary object in the first empty slot 0..11,
