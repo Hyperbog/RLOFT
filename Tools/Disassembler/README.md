@@ -314,3 +314,21 @@ ranges totaling 1,041 bytes**, plus the independently documented callback at
 See [expanded P0 checkpoint](docs/P0_EXPANDED_SOURCE_CHECKPOINT.md).
 **Completion stays 43%** until Windows compilation, synthetic regression
 execution and original-binary comparisons are expressly requested.
+
+## Format-generalization checkpoint (source-only)
+
+`BinaryFormatDetector` now reports MZ, LE/LX/NE/PE wrapper signatures,
+FBOV/TPOV overlay signatures, AESOP/16, GFFI, and unknown/headerless data.
+These are *detections*, not silently validated executable mappings. The new
+`DosMzImage` validates standalone MZ headers, relocation positions and
+original-file offsets; its explicit x86-16 linear decode returns only
+candidate instructions. `mz` and `mz-disasm` CLI modes expose these
+facts separately from the current 32-bit LE analyzer.
+
+`FileIntelligence` no longer embeds any game-specific source fingerprints.
+Use the optional `--identity-catalog catalog.json` for external SHA-256
+and size-bound file identification. The catalog never changes code discovery.
+See [format-support matrix](docs/FORMAT_SUPPORT_MATRIX.md) and
+[architecture contract](docs/GAME_AGNOSTIC_ARCHITECTURE_CONTRACT.md).
+No builds, test execution or proprietary original-file regressions were
+performed. First-release completion remains **43% pending verification**.

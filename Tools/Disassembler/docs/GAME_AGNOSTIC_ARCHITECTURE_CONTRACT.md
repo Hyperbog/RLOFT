@@ -63,3 +63,12 @@ Duplicates, malformed records, conflicting lengths and oversized files fail.
 Windows-only delivery remains the current release target. Build and test
 execution remain manual, only when the user explicitly requests them.
 AI assistance is postponed until after the initial final release.
+
+## File-format roadmap from the wider DOS game collection
+
+P0 includes standalone 16-bit MZ executables, conservative FBOV/TPOV
+container mapping, explicit headerless COM assumptions, and automatic
+signature-first detection. LX/NE/driver loaders and packed executable
+recognition follow as P1; AESOP and GFF/DAX bytecode/resource engines as P2.
+The core parser must never special-case game titles. See
+[format matrix](FORMAT_SUPPORT_MATRIX.md).

@@ -1,47 +1,59 @@
-# Part 14 — Core executable loader and disassembly implementation
+# DOSDis — multi-format DOS executable and bytecode analysis architecture
 
-## Components
+**Scope:** a general-purpose, evidence-first DOS reverse-engineering platform.
+This document supersedes the Part 14 loader-specific outline.
+**Verification:** new source is not Windows-compiled or regression-tested.
 
-| Package | Purpose | Current status |
-|---|---|---|
-| `DosDis.Core/BinaryArtifact` | Bounded original-byte read-only snapshot and SHA-256 | Implemented |
-| `DosDis.Core/LeImage` | Bounded MZ→LE scanning, object/page decoding, file↔object offsets | Implemented for ordinary stored pages |
-| `DosDis.Core/Disassembly` | iced-x86 disassembly at a supplied 32-bit object offset | Implemented linear decode only |
-| `DosDis.Core/FileIntelligence` | Evidence-tagged known-fingerprint and extender-string facts | Implemented, limited database |
-| `DosDis.Cli` | JSON inspect / disasm commands | Implemented |
-| `DosDis.Smoke` | Synthetic fixtures and optional original-binary tests | Implemented |
+## Separated responsibilities
 
-## Address-space contract
+| Component | Contract |
+| --- | --- |
+| Original source | `BinaryArtifact` snapshots immutable original bytes; SHA-256 and byte length anchor identity |
+| Format detector | `BinaryFormatDetector` recognizes signatures but never assumes a valid loader or executable instructions |
+| File intelligence | `FileIntelligence` derives only structural facts and optional external catalog metadata, with distinct evidence statuses |
+| Optional game metadata | `SourceIdentityRegistry` reads versioned, size-limited JSON; no hardcoded game fingerprints |
+| MZ parser | `DosMzImage` validates original DOS MZ header and relocation layout; explicitly requested x86-16 linear decoding is only a candidate |
+| LE parser | `LeImage` maps validated MZ-bound LE objects/pages and fixups; 32-bit reachability is conservative and evidence-tagged |
+| Future OVR loaders | FBOV/TPOV markers are recognized but require complete mapping of overlay directory and load behavior |
+| Future LX/NE loaders | Recognize signatures, then parse distinct page/object/segment and relocation formats; never treat as MZ flat code |
+| Future headerless loaders | COM and DRV need explicit load segment, CPU mode, entry point, origin and environment assumptions |
+| Resource/VM parsers | AESOP/16, GFF, DAX, Gold Box scripts and other data are separate instruction/container formats |
+| Analyzer engines | Current iced-x86 x86-16 requested decode and x86-32 LE recursive candidate analysis; VM engines separate |
+| Research/export | Source-bound known answers, independent project symbol tiers, gap ledger, diagnostics and provenance |
 
-- A file offset is the physical index in the original complete file.
-- `ModuleOrigin` is the position of the embedded MZ; `HeaderOffset` is the LE signature in the same physical file.
-- Object offsets are `LE object N + displacement`, **not** file offsets or unqualified process linear addresses.
-- For an ordinary LE page record, the three-byte big-endian page ordinal is 1-based. With ordinal `p`, original file offset = `ModuleOrigin + DataPagesOffset + (p-1)*PageSize + PageOffset`.
-- Each object's `FirstPage`/`PageCount` selects the corresponding entries in the executable's global page map. Unmapped/zero-fill virtual tails do not receive fictional source offsets.
-- Relocations do not rewrite stored bytes. A future relocated-image type will carry a separate mapping and fixup provenance.
-- The interface uses `ToFileOffset(object, offset) → null` to distinguish non-file-backed addresses.
+## Load/address policy
 
-## Error policy
+Original physical offsets, DOS MZ load-module offsets, 16-bit segment:offset
+addresses, LE object-relative offsets, and process linear addresses are
+distinct types of facts. No operation may silently substitute one for another.
+File-backed versus virtual-only storage remains explicit; original data is
+never rewritten by relocation resolution or speculative analysis.
 
-- Truncated headers, offset overflow, invalid object/page geometry: fail, no partial pretend success.
-- Unsupported page flags or ambiguous LE candidates: explicit error, no chosen fallback.
-- Disassembly of arbitrary addresses is *requested linear decoding*, not a verified executable classification.
-- Exact DOS version, compiler revision and ambiguous historical claims remain `Unknown`.
+The detector favors validated structural evidence over filenames. A file
+extension is a suggestion at most. Ambiguous headerless data must remain
+unclassified until an analyst explicitly supplies load and decode context.
 
-## Near-term acceptance work
+A recognized `FBOV`, `TPOV`, `LX`, or `AESOP/16` signature is **not**
+permission to decode from offset zero with x86. Unknown content retains a
+read-only physical hex view.
 
-1. Compile/test under .NET 10 on Linux and Windows in CI; fix all warnings/errors.
-2. Verify real CODE.1/CODE.2 object page maps and first instruction vectors from authorized originals.
-3. Add full LE fixup table and relocation decoding with independently reconstructed RLOFT witnesses.
-4. Add a typed distinction between physical, object, segmented, and runtime addresses, followed by recursive control-flow traversal.
-5. Add versioned SQLite persistence for user annotations, provenance, and candidate-versus-verified classifications.
-6. Add a dedicated 16-bit MZ/.COM loader rather than applying 32-bit LE assumptions.
-7. Implement WPF interface and File Intelligence pane after loader correctness gates.
+## Research isolation
 
-## Reference sources
+All original executables are distinguished by full SHA-256 and length.
+External catalogs, source editions and archived research can identify a
+particular game/version, but cannot cause the analyzer to insert a known
+function boundary, jump target, byte classification or expected conclusion.
+An analyst-approved verified name is separately stored with a source
+reference, never propagated by matching filenames or structural similarity.
+No proprietary originals are committed to the tool or CI.
 
-- IBM/OS2 LX/LE object format: https://openwatcom.org/ftp/devel/docs/lxomf.pdf
-- Open Watcom source: https://github.com/open-watcom/open-watcom-v2
-- iced-x86 .NET examples: https://github.com/icedland/iced/tree/master/src/csharp
-- RLOFT object map: ../../../../Runtime/CODE_OBJECT_MAP.md
-- RLOFT original source audits: ../../../../Code1/FINAL_BINARY_AUDIT.md and ../../../../Code2/FINAL_CERTIFICATION.md
+## Verification and release policy
+
+Current release target: Windows desktop and CLI, manual-only build workflow.
+No builds unless the user explicitly requests one. Source-level structural
+checks are not compilation or runtime acceptance.
+
+Initial integration fixtures should include standalone DOS MZ, LE, FBOV,
+TPOV, LX, raw COM/DRV, AESOP/16, GFF, and eventually other bytecode
+containers, each with positive, negative, truncated, ambiguous and identity
+collision checks. Generalized recovery takes priority over interface polish.
