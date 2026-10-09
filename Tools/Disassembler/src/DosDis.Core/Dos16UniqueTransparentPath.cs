@@ -35,6 +35,7 @@ public static class Dos16UniqueTransparentPath
         var cursor = site;
         for (int i = 0; i <= maximumTransparent; i++)
         {
+            if (cursor == graph.Entry) break;
             var incoming = graph.Edges.Where(x => x.Destination == cursor)
                 .Take(2).ToArray();
             if (incoming.Length != 1 || !visited.Add(incoming[0].Source) ||
@@ -91,6 +92,54 @@ public static class Dos16UniqueTransparentPath
             expected < region.EndExclusive && expected == target.Offset;
     }
 
+    /// <summary>
+    /// Verify a direct edge from its original instruction bytes, not only
+    /// the editable graph's Kind field. This also forbids treating an
+    /// independently seeded graph entry as a uniquely reached successor.
+    /// </summary>
+    private static bool DirectEdgeMatches(Dos16CodeRegion region,
+        Dos16FlowInstruction source, Dos16Address destination, string kind)
+    {
+        if (source.Address.Segment != region.Segment ||
+            destination.Segment != region.Segment ||
+            source.Address.Offset < region.Origin ||
+            source.Address.Offset >= region.EndExclusive ||
+            source.Length is < 1 or > 15)
+            return false;
+        long physical = (long)region.FileOffset +
+            source.Address.Offset - region.Origin;
+        if (source.SourceFileOffset != physical ||
+            physical < region.FileOffset ||
+            physical + source.Length > (long)region.FileOffset + region.ByteLength)
+            return false;
+        var raw = region.Source.Data.Slice(checked((int)physical), source.Length);
+        if (!source.OriginalBytes.Equals(Convert.ToHexString(raw),
+                StringComparison.OrdinalIgnoreCase))
+            return false;
+        int next = source.Address.Offset + source.Length;
+        if (kind == "fallthrough")
+            return destination.Offset == next &&
+                source.FlowControl is not
+                    ("ConditionalBranch" or "UnconditionalBranch" or
+                     "Return" or "Exception");
+        if (kind == "branch-not-taken")
+            return source.FlowControl == "ConditionalBranch" &&
+                destination.Offset == next;
+        if (kind != "branch-taken" ||
+            source.FlowControl != "ConditionalBranch") return false;
+
+        int displacement;
+        if (source.Length == 2 && raw[0] is >= 0x70 and <= 0x7F)
+            displacement = unchecked((sbyte)raw[1]);
+        else if (source.Length == 4 && raw[0] == 0x0F &&
+                 raw[1] is >= 0x80 and <= 0x8F)
+            displacement = BinaryPrimitives.ReadInt16LittleEndian(raw.Slice(2, 2));
+        else return false;
+        int expected = next + displacement;
+        return expected >= region.Origin &&
+            expected < region.EndExclusive && destination.Offset == expected;
+    }
+
     public static bool Connects(Dos16CodeRegion region, Dos16FlowResult graph,
         Dos16Address predecessor, Dos16Address successor, string sourceEdgeKind,
         int maximumIntermediate = 4)
@@ -104,13 +153,15 @@ public static class Dos16UniqueTransparentPath
             !MatchesRegion(region, graph))
             return false;
         var known = graph.Instructions.ToDictionary(i => i.Address);
-        if (!known.ContainsKey(predecessor) || !known.ContainsKey(successor))
+        if (!known.ContainsKey(predecessor) || !known.ContainsKey(successor) ||
+            successor == graph.Entry && predecessor != successor)
             return false;
 
         var visited = new HashSet<Dos16Address> { successor };
         var cursor = successor;
         for (int i = 0; i <= maximumIntermediate; i++)
         {
+            if (cursor == graph.Entry) return false;
             // Exactly one incoming graph edge is essential: any alternate
             // predecessor can bypass the register guard or stride.
             var incoming = graph.Edges.Where(e => e.Destination == cursor)
@@ -118,7 +169,9 @@ public static class Dos16UniqueTransparentPath
             if (incoming.Length != 1) return false;
             var edge = incoming[0];
             if (edge.Source == predecessor)
-                return edge.Kind == sourceEdgeKind;
+                return edge.Kind == sourceEdgeKind &&
+                    DirectEdgeMatches(region, known[predecessor],
+                        cursor, sourceEdgeKind);
             if (i == maximumIntermediate || !visited.Add(edge.Source) ||
                 !known.TryGetValue(edge.Source, out var insn) ||
                 !Transparent(region, graph, insn, edge, cursor))
