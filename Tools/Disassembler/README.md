@@ -210,3 +210,21 @@ tables remain preferred. Literal entries are labeled
 Synthetic seven-entry positive and malformed/signed-guard negative cases are
 added; no original Menzo executable was verified here. Source-only:
 **no build or tests run**, and completion remains **43%**.
+
+## Stone Prophet regression intake — P0 control-flow correctness (source checkpoint)
+
+Stone Prophet `CODE.1` export measurements supplied by the analyst: 13,615
+candidate instructions, 42 unresolved indirect calls, five unresolved indirect
+jumps, zero recovered tables, zero diagnostic entries; a 23,761-byte unexplored
+interval in executable object 1 was also reported. These are **external report
+claims**; original Stone bytes have not been independently rechecked here.
+The source audit confirms current recovery excludes `cs:`-overridden indexed
+jumps and computed register-indexed calls. They remain P0.
+
+Unresolved indirect calls/jumps are now surfaced as bounded CFG diagnostics
+and counted explicitly in JSON, text and CLI summary exports even when some
+candidate destinations were found. Additive fields do not change the
+`candidate-unverified` analysis classification. New synthetic assertions
+were added but **not run**; no build was requested. See
+[Stone/Strahd intake and gap priorities](docs/P0_STONE_CROSS_GAME_REGRESSION_INTAKE.md).
+First-release estimate remains **43%**.

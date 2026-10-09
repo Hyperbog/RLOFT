@@ -132,6 +132,8 @@ try
                 FunctionCandidates = graph.FunctionCandidates.Count, Edges = graph.Edges.Count,
                 Regions = graph.Ranges.Count, Diagnostics = graph.Diagnostics.Count,
                 DataReferences = graph.DataReferences.Count, JumpTables = graph.JumpTables.Count,
+                UnresolvedIndirectCalls = graph.Edges.Count(e => e.Kind == "unresolved-indirect-call"),
+                UnresolvedIndirectJumps = graph.Edges.Count(e => e.Kind == "unresolved-indirect-jump"),
                 OmittedOutput = graph.Instructions.Count > maxOutput || graph.Edges.Count > maxOutput ||
                     graph.Blocks.Count > maxOutput || graph.FunctionCandidates.Count > maxOutput ||
                     graph.Ranges.Count > maxOutput || graph.Diagnostics.Count > maxOutput ||

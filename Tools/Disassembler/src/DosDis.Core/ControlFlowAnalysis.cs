@@ -327,8 +327,16 @@ public static class ControlFlowAnalysis
                         Report(cursor, "unresolved-target", $"{kind} destination {destination} is not backed executable code in this object.");
                     }
                 }
-                else decisionTrace?.Record(image, AnalysisDecisionRule.FlowTarget,
-                    AnalysisDecisionOutcome.RuntimeTargetUnresolved, cursor);
+                else
+                {
+                    decisionTrace?.Record(image, AnalysisDecisionRule.FlowTarget,
+                        AnalysisDecisionOutcome.RuntimeTargetUnresolved, cursor);
+                    // An unresolved transfer is a real analysis limitation even
+                    // when no source byte is invalid. Surface the limitation
+                    // without pretending candidate targets close runtime flow.
+                    if (kind is "unresolved-indirect-call" or "unresolved-indirect-jump")
+                        Report(cursor, kind, "Dynamic control-flow target remains unproven; any recovered candidates are not exhaustive.");
+                }
             }
             void Continuation(string kind = "fallthrough")
             {

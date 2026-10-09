@@ -37,6 +37,8 @@ public static class AnalysisReportExport
             counts = new { instructions = graph.Instructions.Count, functions = graph.FunctionCandidates.Count,
                 edges = graph.Edges.Count, references = graph.DataReferences.Count,
                 jumpTables = graph.JumpTables.Count, diagnostics = graph.Diagnostics.Count,
+                unresolvedIndirectCalls = graph.Edges.Count(e => e.Kind == "unresolved-indirect-call"),
+                unresolvedIndirectJumps = graph.Edges.Count(e => e.Kind == "unresolved-indirect-jump"),
                 truncated = graph.Truncated },
             seeds = graph.Seeds,
             protectedRanges = graph.ProtectedData,
@@ -72,6 +74,10 @@ public static class AnalysisReportExport
             .Append(" | Data references: ").Append(graph.DataReferences.Count)
             .Append(" | Jump-table candidates: ").Append(graph.JumpTables.Count)
             .Append(" | Diagnostics: ").Append(graph.Diagnostics.Count)
+            .Append(" | Unresolved indirect calls: ")
+            .Append(graph.Edges.Count(e => e.Kind == "unresolved-indirect-call"))
+            .Append(" | Unresolved indirect jumps: ")
+            .Append(graph.Edges.Count(e => e.Kind == "unresolved-indirect-jump"))
             .Append(" | Truncated: ").AppendLine(graph.Truncated ? "yes" : "no");
         text.AppendLine();
         text.AppendLine("[SEEDS]");

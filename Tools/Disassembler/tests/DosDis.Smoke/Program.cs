@@ -300,6 +300,10 @@ try
         var root = exported.RootElement;
         Equal(root.GetProperty("format").GetString(), "dosdis-analysis-report", "versioned report identity");
         Equal(root.GetProperty("analysisStatus").GetString(), "candidate-unverified", "export cannot promote candidates");
+        Equal(root.GetProperty("counts").GetProperty("unresolvedIndirectJumps").GetInt32(), 1,
+            "report tallies unresolved jumps independent of diagnostics event cap");
+        Equal(root.GetProperty("counts").GetProperty("unresolvedIndirectCalls").GetInt32(), 0,
+            "report distinguishes indirect calls from jumps");
         Equal(root.GetProperty("source").GetProperty("sha256").GetString(), graph.ArtifactSha256, "export source hash");
         Equal(root.GetProperty("source").GetProperty("sourceBinaryIncluded").GetBoolean(), false, "no complete original in report");
         Equal(root.GetProperty("source").GetProperty("sourcePathIncluded").GetBoolean(), false, "no original path in report");
@@ -345,6 +349,11 @@ try
     Equal(graph.Edges.Any(e => e.Kind == "call" && e.Destination?.Offset == 0x10), true, "direct call reference");
     Equal(graph.Edges.Any(e => e.Kind == "branch-taken" && e.Destination?.Offset == 5), true, "backward branch into shared RET");
     Equal(graph.Edges.Any(e => e.Kind == "unresolved-indirect-jump" && e.Destination is null), true, "indirect branch stays unresolved");
+    Equal(graph.Diagnostics.Any(d => d.Code == "unresolved-indirect-jump" &&
+        d.Address == new FlowAddress(1, 0x12)), true,
+        "unresolved indirect branches appear explicitly in diagnostics");
+    Equal(AnalysisReportExport.BuildText(graph).Contains("Unresolved indirect jumps: 1", StringComparison.Ordinal),
+        true, "human-readable report counts unresolved transfers");
     Equal(graph.FunctionCandidates.All(f => f.Blocks.Contains(new FlowAddress(1, 5))), true,
         "shared return block may belong to multiple candidates");
     Equal(graph.Ranges.Any(r => r.Begin <= 6 && r.EndExclusive >= 10 && r.Classification == "protected-data"), true,
@@ -587,6 +596,11 @@ try
         "relocation-backed absolute indirect call recognized");
     Equal(pointerGraph.Edges.Any(e => e.Kind == "unresolved-indirect-call"), true,
         "indirect call still carries unresolved runtime possibility");
+    Equal(pointerGraph.Diagnostics.Any(d => d.Code == "unresolved-indirect-call"),
+        true, "relocation-backed indirect calls still appear in unresolved diagnostics");
+    using (var pointerExport = JsonDocument.Parse(AnalysisReportExport.BuildJson(pointerGraph)))
+        Equal(pointerExport.RootElement.GetProperty("counts").GetProperty("unresolvedIndirectCalls").GetInt32(),
+            1, "report records unresolved call despite candidate recovery");
     Equal(pointerGraph.FunctionCandidates.Any(f => f.Entry == new FlowAddress(1, 0x20) &&
         f.Evidence == "relocation-backed-indirect-call-candidate"), true,
         "indirect call candidate distinguished from direct call");
