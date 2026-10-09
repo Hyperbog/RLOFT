@@ -62,6 +62,24 @@ void ExplorationRuntime::initialize_gameplay_state(
     placed_scene_catalog_ = PlacedSceneCatalog::load(source);
     scene_shape_archive_.emplace(source.read("RES3"));
     scene_shape_cache_.clear();
+
+    // Fresh Level22: faithfully mirror CODE.2 16E90 (INIT+0x0E
+    // => DGROUP 258F8) and 1F388 (signed level.header+7
+    // plus 258F8). Validate the *real* original type-1 RES4
+    // 64x64 tile. Any unsupported source is recorded rather
+    // than replaced with guessed art or raised during gameplay.
+    ground_source_.reset();
+    ground_source_failure_.clear();
+    if (session_.level_id==22 &&
+        source.contains("INIT") && source.contains("RES4")) {
+        try {
+            const ResArchive res4(source.read("RES4"));
+            ground_source_=OriginalGroundRes4Audit::resolve(
+                source.read("INIT"),session_.level,res4);
+        } catch(const std::exception& error) {
+            ground_source_failure_=error.what();
+        }
+    }
     // A real DOS install supplies CODE.2. Tests with partial synthetic
     // resource sets can omit it, leaving the diagnostic VGA trace absent.
     scene_vga_masks_.reset();
@@ -248,6 +266,13 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
     out.source_coordinate_b = session_.coordinate_b;
     out.source_facing = session_.facing;
     out.source_level_id = session_.level_id;
+    out.ground_source_verified=ground_source_.has_value();
+    out.ground_source_failure=ground_source_failure_;
+    if(ground_source_) {
+        out.ground_res4_base=ground_source_->source_init_base;
+        out.ground_res4_relative=ground_source_->signed_level_selector;
+        out.ground_res4_absolute=ground_source_->absolute_archive_entry;
+    }
     // CODE.2 1F1F5..1F223 takes high 8 of each low
     // 16.16 coordinate word as its C044/C048 texture phase.
     // 34998 regenerates FF58 when heading changes; deriving it
