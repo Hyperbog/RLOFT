@@ -463,6 +463,34 @@ PartyModalPresenter::equipment_hit_at(
     return std::nullopt;
 }
 
+void PartyModalPresenter::draw_encumbrance_panel(
+    IndexedFramebuffer& framebuffer,
+    const PartyImage& party,
+    const InventoryRuntimeState& inventory,
+    std::size_t actor) const {
+    const auto values=encumbrance_.actor(
+        party,inventory,objects_,actor);
+    const int lane=static_cast<int>(actor)*0x50;
+    // Original 12988 paints panel at row 0x73, then writes the
+    // CODE.2 T labels (0x266 MAX, 0x267 CURRENT, 0x268+rank).
+    // A source-color fill is provisional while the 69434 palette
+    // plane and original ornamental panel graphic are traced.
+    framebuffer.fill_rect(0x73,lane+4,0x190-0x73,0x48,0x45);
+    IndexedFontPresenter::draw(
+        framebuffer,font1_,0x88,lane+7,assets_.text(0x266));
+    IndexedFontPresenter::draw_right(
+        framebuffer,font1_,0x88,lane+0x45,
+        std::to_string(values.maximum_pounds));
+    IndexedFontPresenter::draw(
+        framebuffer,font1_,0x96,lane+7,assets_.text(0x267));
+    IndexedFontPresenter::draw_right(
+        framebuffer,font1_,0x96,lane+0x45,
+        std::to_string(values.carried_pounds));
+    IndexedFontPresenter::draw_centered(
+        framebuffer,font1_,0xA4,lane,0x50,
+        assets_.text(0x268+values.burden_rank));
+}
+
 void PartyModalPresenter::draw_open_container(
     IndexedFramebuffer& framebuffer,
     const InventoryRuntimeState& inventory,
