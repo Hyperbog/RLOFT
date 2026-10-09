@@ -108,6 +108,28 @@ int main() {
     bad.width=8U;
     assert(rejected(bad));
 
+    // The same wide source geometry is valid in original C029=1:
+    // eight separate 369D8 calls, all from certified width-one slots.
+    auto longer=individual();
+    longer.width=8U;
+    longer.dispatch.calls.insert(
+        longer.dispatch.calls.end(),{
+            {134,0xA0121U,0x1234U,0x04U,0U},
+            {135,0xA0121U,0x3412U,0x08U,0U},
+            {136,0xA0122U,0x1234U,0x01U,0U},
+            {137,0xA0122U,0x3412U,0x02U,0U},
+        });
+    rloft::Type7VgaTraceValidator::validate(longer);
+    bad=longer;
+    bad.dispatch.calls[6].physical_address--;
+    assert(rejected(bad));
+    bad=longer;
+    bad.viewport_x=253U;
+    assert(rejected(bad)); // cannot overrun the 256-ray scene view
+    bad=longer;
+    bad.individual_columns_mode=false;
+    assert(rejected(bad));
+
     // Original lookup is carried between source-column draws, not
     // reloaded independently from each run. Two grouped runs swap the
     // bytes twice, restoring the original scene-level lookup word.
