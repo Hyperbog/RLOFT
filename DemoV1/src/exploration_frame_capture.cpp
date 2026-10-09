@@ -260,8 +260,8 @@ void ExplorationFrameCapture::write_failure(
             <<"level\t"<<failure.level<<"\n"
             <<"coordinate_fixed\t"<<failure.coordinate_a
             <<"\t"<<failure.coordinate_b<<"\n"
-            <<"cell\t"<<static_cast<std::int32_t>(failure.coordinate_a)>>16
-            <<"\t"<<static_cast<std::int32_t>(failure.coordinate_b)>>16
+            <<"cell\t"<<(static_cast<std::int32_t>(failure.coordinate_a)>>16)
+            <<"\t"<<(static_cast<std::int32_t>(failure.coordinate_b)>>16)
             <<"\n"
             <<"facing\t"<<failure.facing<<"\n"
             <<"dimensions\t"<<failure.map_width
