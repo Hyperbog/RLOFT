@@ -18,6 +18,10 @@ if(Python3_Interpreter_FOUND)
         NAME offline_renderer_verifier_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_offline_renderer_verify.py")
+    add_test(
+        NAME indexed_capture_comparison_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_compare_indexed_captures.py")
 endif()
 
 add_library(rloft_boot_flow
