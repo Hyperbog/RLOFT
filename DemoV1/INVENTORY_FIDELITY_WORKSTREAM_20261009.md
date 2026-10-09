@@ -1,5 +1,37 @@
 # Ravenloft Demo v1 — Inventory-only full behavior reconstruction
 
+
+## Inventory percentage accounting (new mandatory tracker)
+
+The inventory subsystem now has an explicit **56.9%
+weighted readiness estimate** across **eight independently
+scored subcomponents** in the [20-system/120-subsystem
+completion matrix](PROGRESS_SUBSYSTEM_REPORT_20261009.md).
+This is not the historical global 56.25% engineering
+task figure and not a DOS-certified gameplay completion
+rate. The eight source-mapped components are original
+item catalog, cursor/known bits, equipment/class gates,
+nested container capacity, four actor 6FA0 SAVEs,
+encumbrance/party order, world item drop/pickup, and
+special item/charge actions. Seven currently have
+**60.0%** evidence-weighted readiness (their unexecuted
+DOS acceptance gate remains zero); special item
+actions remain **35.0%** because source-backed
+implementation and runtime coverage are incomplete.
+
+Any further inventory source/code/test/checkpoint changes
+must update the named row in [canonical CSV](
+PROGRESS_SUBSYSTEMS.csv) and recompute all parent/overall
+percentages before reporting. The new offline tracker
+test checks this relationship on user-triggered CTest
+runs. Registered CTests **172**, Quick **19**.
+The opt-in `--explore-level22 --dev-inspect`
+caption now observes party/inventory state **while
+the inventory modal is open**, using a shared helper
+for both native modal draw paths; original pixels
+and normal entry flow are unchanged.
+
+
 > **Full-game integration invariant:** Every inventory,
 > party, spellbook, original SAVE, actor container and
 > quest-cinematic implementation in this workstream is
