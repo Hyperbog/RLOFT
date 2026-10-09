@@ -484,42 +484,53 @@ void PartyModalPresenter::draw_open_container(
     IndexedFramebuffer& framebuffer,
     const InventoryRuntimeState& inventory,
     const std::array<bool,4>& character_mode) const {
-    if(!inventory.open_container)return;
-    if(inventory.open_container->actor>=character_mode.size() ||
-       character_mode[inventory.open_container->actor])return;
-    const auto& context=*inventory.open_container;
-    if(context.actor>=PartyImage::kActorCount ||
-       context.descriptor_index>=inventory.containers.size())
-        return;
-    const auto& desc=inventory.containers[context.descriptor_index];
-    if(desc.ui_columns==0U || desc.slot_count==0U ||
-       desc.items.size()!=desc.slot_count)return;
-    // CODE.2 10A70 4B9EF..4BA03 resolves bank 2, graphic
-    // 0x09+the live container subtype, then 69434 paints it at
-    // VGA row 0xCE / character column origin. This is the REAL
-    // original ornamental surround (including gray shaped rim)
-    // observed in DOS: never replace it with procedural borders.
-    const int lane=static_cast<int>(context.actor)*0x50;
-    const auto panel_art=assets_.type1(
-        2,InventoryScreenModel::original_container_res2_graphic(
-            desc.subtype));
-    framebuffer.draw_frame(panel_art,0,0xCE,lane);
+    // 112EC draws all FOUR actor panels. 10EEC reads 6FA0
+    // independently for each actor and 10A70 draws its content
+    // only when phase==3. Rendering just the single selected
+    // native open_container silently discarded other source
+    // contexts. The current native click handler still selects
+    // one view at a time; this is source-backed presentation.
+    for(std::size_t actor=0U;actor<PartyImage::kActorCount;++actor) {
+        if(character_mode[actor])continue;
+        const auto& ui=inventory.party_container_ui_contexts[actor];
+        std::size_t state_index=inventory.containers.size();
+        if(ui.fully_open())
+            state_index=ui.raw[1];
+        else if(inventory.open_container &&
+                inventory.open_container->actor==actor)
+            // Backward compatibility for existing deliberately
+            // synthetic native-test inventory snapshots which
+            // set open_container without a 6FA0 source record.
+            state_index=inventory.open_container->descriptor_index;
+        if(state_index>=inventory.containers.size())continue;
+        const auto& desc=inventory.containers[state_index];
+        if(desc.ui_columns==0U || desc.slot_count==0U ||
+           desc.items.size()!=desc.slot_count)continue;
 
-    // CODE.2 10A70 4BA48..4BA65 then clears each 32-row by
-    // 16-column black cell on TOP of the RES2 surround, using
-    // original descriptor columns/x-offset and original item art.
-    for(std::size_t index=0U;index<desc.items.size();++index) {
-        const int row=0xDB+static_cast<int>(index/desc.ui_columns)*0x22;
-        const int column=lane+desc.ui_x_offset+
-            static_cast<int>(index%desc.ui_columns)*0x12;
-        framebuffer.fill_rect(row,column,32,16,0);
-        const auto id=desc.items[index];
-        if(id<0)continue;
-        const auto& object=objects_.at(static_cast<std::size_t>(id));
-        const auto raster=assets_.type1(
-            1,static_cast<int>(res1_object_base_)+
-              object.ui_graphic_index);
-        framebuffer.draw_frame(raster,0,row,column);
+        // 10A70/10ACB source: RES2[9 + subtype] at VGA row CEh,
+        // character column 80*actor. Retain original surround
+        // art and only phase-3 content. Partial 0/1/2 animation
+        // frames are reserved for original 10FAC/110B4 renderer.
+        const int lane=static_cast<int>(actor)*0x50;
+        const auto panel_art=assets_.type1(
+            2,InventoryScreenModel::original_container_res2_graphic(
+                desc.subtype));
+        framebuffer.draw_frame(panel_art,0,0xCE,lane);
+        for(std::size_t index=0U;index<desc.items.size();++index) {
+            const int row=0xDB+
+                static_cast<int>(index/desc.ui_columns)*0x22;
+            const int column=lane+desc.ui_x_offset+
+                static_cast<int>(index%desc.ui_columns)*0x12;
+            framebuffer.fill_rect(row,column,32,16,0);
+            const auto id=desc.items[index];
+            if(id<0)continue;
+            const auto& object=objects_.at(
+                static_cast<std::size_t>(id));
+            const auto raster=assets_.type1(
+                1,static_cast<int>(res1_object_base_)+
+                  object.ui_graphic_index);
+            framebuffer.draw_frame(raster,0,row,column);
+        }
     }
 }
 
