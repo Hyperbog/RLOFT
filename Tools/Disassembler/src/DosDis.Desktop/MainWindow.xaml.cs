@@ -64,6 +64,8 @@ public partial class MainWindow : Window
         BackupProjectButton.IsEnabled = !value && _artifact != null;
         SaveNoteButton.IsEnabled = !value && _artifact != null &&
             AssemblyGrid.SelectedItem is AssemblyRow;
+        NoteEditor.IsEnabled = !value && _artifact != null &&
+            AssemblyGrid.SelectedItem is AssemblyRow;
         AssemblyGrid.IsEnabled = !value;
         FunctionsList.IsEnabled = !value;
         CancelAnalysisButton.IsEnabled = value && _analysisCancellation is not null;
@@ -257,6 +259,7 @@ public partial class MainWindow : Window
         ReferencesGrid.ItemsSource = null;
         _commentRevision = 0;
         SaveNoteButton.IsEnabled = false;
+        NoteEditor.IsEnabled = false;
         NoteEditor.Text = string.Empty;
         SelectedAddressText.Text = "Select an instruction";
         HexView.Text = string.Empty;
@@ -268,7 +271,13 @@ public partial class MainWindow : Window
     }
     private void AssemblyGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (AssemblyGrid.SelectedItem is not AssemblyRow row || _artifact is null) return;
+        if (AssemblyGrid.SelectedItem is not AssemblyRow row || _artifact is null)
+        {
+            SaveNoteButton.IsEnabled = false;
+            NoteEditor.IsEnabled = false;
+            return;
+        }
+        NoteEditor.IsEnabled = !_working;
         var address = new FlowAddress(row.Object, row.Offset);
         SelectedAddressText.Text = row.AddressText;
         AddressBox.Text = $"{row.Object}:0x{row.Offset:X}";
