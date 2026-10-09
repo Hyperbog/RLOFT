@@ -116,6 +116,8 @@ public static class ControlFlowAnalysis
         var dataReferences = new List<DataCrossReference>();
         var jumpTables = new List<JumpTableCandidate>();
         var referenceRecovery = new ReferenceRecovery(image);
+        // Only direct, decoded evidence may bound a literal pointer table.
+        var decodedDetails = new Dictionary<FlowAddress, Instruction>();
         var indirectFunctionEntries = new HashSet<FlowAddress>();
         var queued = new HashSet<FlowAddress>();
         var pending = new Queue<FlowAddress>();
@@ -239,7 +241,43 @@ public static class ControlFlowAnalysis
                 classifications[i] = 1;
             }
 
-            var references = referenceRecovery.Inspect(cursor, size, instruction);
+            // Accept only the exact, adjacent unsigned switch shape:
+            // CMP index, N -> JA default -> JMP [index*4 + absolute].
+            // Branches entering mid-sequence, signed tests or missing bytes
+            // do not justify a literal table candidate.
+            BoundedDispatchHint? dispatchBound = null;
+            if (instruction.FlowControl == FlowControl.IndirectBranch &&
+                instruction.MemoryBase == Register.None &&
+                instruction.MemoryIndex != Register.None &&
+                instruction.MemoryIndexScale == 4)
+            {
+                var incoming = edges.Where(e => e.Destination == cursor).ToArray();
+                if (incoming.Length == 1 && incoming[0].Kind == "branch-not-taken" &&
+                    decodedDetails.TryGetValue(incoming[0].Source, out var guard) &&
+                    guard.Mnemonic == Mnemonic.Ja)
+                {
+                    var toGuard = edges.Where(e => e.Destination == incoming[0].Source).ToArray();
+                    if (toGuard.Length == 1 && toGuard[0].Kind == "fallthrough" &&
+                        decodedDetails.TryGetValue(toGuard[0].Source, out var compare) &&
+                        compare.Mnemonic == Mnemonic.Cmp &&
+                        compare.Op0Kind == OpKind.Register &&
+                        compare.Op0Register == instruction.MemoryIndex)
+                    {
+                        uint limit = compare.Op1Kind switch
+                        {
+                            OpKind.Immediate8 => compare.Immediate8,
+                            OpKind.Immediate8to32 => compare.Immediate8,
+                            OpKind.Immediate32 => compare.Immediate32,
+                            _ => uint.MaxValue
+                        };
+                        if (limit is >= 1 and < 128)
+                            dispatchBound = new BoundedDispatchHint(instruction.MemoryIndex,
+                                checked((int)limit + 1));
+                    }
+                }
+            }
+            decodedDetails[cursor] = instruction;
+            var references = referenceRecovery.Inspect(cursor, size, instruction, dispatchBound);
             dataReferences.AddRange(references.Data);
             if (references.Table is not null)
             {

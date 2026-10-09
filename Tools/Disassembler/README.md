@@ -198,3 +198,15 @@ The new CLI only exposes static-analysis decisions, not live game execution.
 See [Part 33 source checkpoint](docs/PART33_TRACE_EXPORT_SOURCE.md).
 **No build or test execution has been requested or performed.**
 First-release completion estimate stays at **43%**.
+
+## P0: guarded literal jump-table candidates (source checkpoint)
+
+The CFG analyzer can now infer a **candidate** contiguous literal-dword jump
+table when an immediately adjacent unsigned `cmp index,N; ja default;
+jmp [index*4+absolute]` sequence provides a bounded entry count and **every**
+pointer uniquely maps to backed executable LE code. LE relocation-backed
+tables remain preferred. Literal entries are labeled
+`no-relocation-proof` and the unresolved runtime edge is preserved.
+Synthetic seven-entry positive and malformed/signed-guard negative cases are
+added; no original Menzo executable was verified here. Source-only:
+**no build or tests run**, and completion remains **43%**.

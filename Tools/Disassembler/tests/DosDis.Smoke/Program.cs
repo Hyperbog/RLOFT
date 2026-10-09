@@ -433,6 +433,51 @@ try
         "unbacked virtual destination has no invented file offset");
     Equal(limited.Truncated, true, "analysis budget truncation is disclosed");
     Equal(limited.Instructions.Count, 1, "analysis respects budget");
+    // P0: a range-guarded switch can contain literal dword targets without
+    // LE fixups. Require the exact CMP reg,6; JA default; indexed JMP
+    // chain and seven fully backed executable destinations.
+    var boundedBytes = MakeFixture(false);
+    Dword(boundedBytes, 0x80 + 0xc4, 0x80);
+    Dword(boundedBytes, 0x80 + 0x2c, 0x80);
+    new byte[] {
+        0x83, 0xF8, 0x06,             // cmp eax,6
+        0x77, 0x07,                   // ja default at +0x0C
+        0xFF, 0x24, 0x85, 0x40, 0x00, 0x01, 0x00, // jmp [eax*4+0x10040]
+        0xC3                          // default ret
+    }.CopyTo(boundedBytes, 0x200);
+    for (int i = 0; i < 7; i++)
+    {
+        uint target = (uint)(0x20 + i * 4);
+        boundedBytes[0x200 + (int)target] = 0xC3;
+        Dword(boundedBytes, 0x200 + 0x40 + i * 4, 0x10000 + target);
+    }
+    var boundedImage = LeImage.Load(BinaryArtifact.FromBytes(boundedBytes));
+    var boundedGraph = ControlFlowAnalysis.Analyze(boundedImage);
+    Equal(boundedGraph.JumpTables.Count, 1, "unsigned guarded literal table found");
+    Equal(boundedGraph.JumpTables[0].CandidateTargets.Count, 7,
+        "CMP eax,6 bounds seven possible entries");
+    Equal(boundedGraph.JumpTables[0].Evidence.Contains("no-relocation-proof"),
+        true, "unrelocated table remains a candidate");
+    Equal(boundedGraph.Edges.Count(e => e.Kind == "candidate-indirect-jump"), 7,
+        "seven candidate jump targets retained");
+    Equal(boundedGraph.Edges.Any(e => e.Kind == "unresolved-indirect-jump"),
+        true, "unproven runtime control flow remains unresolved");
+    Equal(boundedGraph.Instructions.Count, 11,
+        "default and seven literal case targets are discovered without a gap sweep");
+    var nonguardedBytes = (byte[])boundedBytes.Clone();
+    nonguardedBytes[0x200 + 3] = 0x75; // jne != unsigned JA
+    Equal(ControlFlowAnalysis.Analyze(LeImage.Load(BinaryArtifact.FromBytes(nonguardedBytes)))
+        .JumpTables.Count, 0, "other conditional tests cannot establish unsigned table bounds");
+    var invalidPointerBytes = (byte[])boundedBytes.Clone();
+    Dword(invalidPointerBytes, 0x200 + 0x40 + 3 * 4, 0xDEADBEEF);
+    Equal(ControlFlowAnalysis.Analyze(LeImage.Load(BinaryArtifact.FromBytes(invalidPointerBytes)))
+        .JumpTables.Count, 0, "one invalid literal target rejects the entire table");
+    var objectOffsetBytes = (byte[])boundedBytes.Clone();
+    Dword(objectOffsetBytes, 0x200 + 0x40, 0x20);
+    Equal(ControlFlowAnalysis.Analyze(LeImage.Load(BinaryArtifact.FromBytes(objectOffsetBytes)))
+        .JumpTables.Count, 0, "object-relative-looking literal is not assumed runtime linear");
+    Console.WriteLine("PASS: guarded unsigned literal jump-table candidates and negative controls");
+
     // Part 17: relocation-backed, indexed dword jump tables are CANDIDATES,
     // not proof of all runtime index values. The synthetic fixture uses an
     // explicit absolute LE fixup at every table element.
