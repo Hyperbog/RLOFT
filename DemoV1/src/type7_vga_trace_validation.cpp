@@ -46,7 +46,9 @@ void Type7VgaTraceValidator::validate(
        (!run.individual_columns_mode && run.width>7U) ||
        run.viewport_x>static_cast<std::size_t>(
            std::numeric_limits<std::int32_t>::max())-
-           static_cast<std::size_t>(run.width-1U)) {
+           static_cast<std::size_t>(run.width-1U) ||
+       run.viewport_x>=256U ||
+       run.width>256U-run.viewport_x) {
         throw std::out_of_range(
             "type-7 VGA trace has unverified width or column");
     }
