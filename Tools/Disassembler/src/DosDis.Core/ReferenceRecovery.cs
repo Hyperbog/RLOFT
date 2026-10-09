@@ -195,7 +195,7 @@ internal sealed class ReferenceRecovery
                     evidence, insn.FlowControl == FlowControl.IndirectCall
                         ? "indirect-call-table" : "indirect-jump-table");
                 foreach (var target in candidates.Distinct())
-                    indirect.Add(new IndirectCandidate(target, "indexed-pointer-table", evidence);
+                    indirect.Add(new IndirectCandidate(target, "indexed-pointer-table", evidence));
             }
             else if (insn.FlowControl == FlowControl.IndirectBranch &&
                      boundedDispatch is { } bound && bound.Index == insn.MemoryIndex &&
