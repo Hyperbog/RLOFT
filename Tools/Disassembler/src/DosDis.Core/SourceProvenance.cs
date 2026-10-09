@@ -50,6 +50,13 @@ public sealed record SourceProvenance(
         if (known && module is not null && !string.Equals(module, knownSource.Module, StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("The requested module identity conflicts with a verified source fingerprint.");
         if (!known && module is not null) labelModule = module;
+        // The local basename is metadata, not a trusted identity. Files with
+        // spaces/non-ASCII names must remain analyzable without a fake module.
+        if (!known && module is null &&
+            (labelModule.Length > 128 ||
+             !labelModule.All(c => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z'
+                 or >= '0' and <= '9' or '.' or '_' or '-')))
+            labelModule = "unassigned";
         ValidateSlug(labelGame, nameof(gameId));
         ValidateModule(labelModule);
         ValidateRelative(sourceArchive, nameof(sourceArchive));
