@@ -49,8 +49,12 @@ int main() {
     frame.world_scene_draw_calls.push_back(draw);
     WorldSceneRenderPlan plan{};
     plan.call=draw;
+    plan.source_unresolved=true;
     plan.visible_columns.push_back(Type7VisibleColumn{32U,0U,128U});
     frame.world_scene_render_plans.push_back(plan);
+    frame.scene_plan_failures.push_back({
+        0U,1U,4U,445U,"shape source unavailable"
+    });
     frame.scene_vga_trace_failure="unsupported original scene descriptor";
     frame.scene_vga_scene_failures.push_back({
         0U,1U,4U,445U,"per-call RES3 shape lookup unavailable"
@@ -114,12 +118,15 @@ int main() {
     assert(tsv.find("scene_records\t1")!=std::string::npos);
     assert(tsv.find("scene_draw_calls\t1")!=std::string::npos);
     assert(tsv.find("scene_render_plans\t1")!=std::string::npos);
+    assert(tsv.find("scene_plan_failures\t1")!=std::string::npos);
+    assert(tsv.find("scene_plan_failure\t0\t1\t4\t445\tshape source unavailable")!=
+           std::string::npos);
     assert(tsv.find("scene_video_calls\t1\t0\t1")!=std::string::npos);
     assert(tsv.find("scene_columns\t1\t0\t0")!=std::string::npos);
     assert(tsv.find("scene_indexed_writes\t18")!=std::string::npos);
     assert(tsv.find("scene_record\t1\t4\t445\t112\t80\t2")!=
            std::string::npos);
-    assert(tsv.find("scene_call\t1\t4\t445\t1\t80")!=
+    assert(tsv.find("scene_call\t1\t4\t445\t1\t80\tunresolved")!=
            std::string::npos);
     assert(tsv.find("scene_trace_failure\tunsupported original scene descriptor")!=
            std::string::npos);
