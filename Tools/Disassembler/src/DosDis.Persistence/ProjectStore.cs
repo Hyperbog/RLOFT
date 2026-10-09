@@ -425,6 +425,117 @@ public sealed class ProjectStore : IDisposable
         }
     }
 
+    /// <summary>
+    /// Binds one game research namespace to an existing immutable artifact.
+    /// Rejects conflicting claims; never trusts the filename as identity.
+    /// </summary>
+    public void EnsureSourceIdentity(SourceProvenance identity)
+    {
+        ArgumentNullException.ThrowIfNull(identity);
+        identity.ValidateClaim();
+        if (identity.GameId == "unassigned" || identity.ByteLength is not long length)
+            throw new ArgumentException("A named research namespace requires an explicit game identity.");
+        using var tx = _db.BeginTransaction();
+        using (var insert = _db.CreateCommand())
+        {
+            insert.Transaction = tx;
+            insert.CommandText = """
+                INSERT OR IGNORE INTO source_identities
+                    (sha256,game_id,module,byte_length,identity_status,source_archive,internal_path)
+                VALUES($hash,$game,$module,$length,$status,$archive,$internal);
+                """;
+            insert.Parameters.AddWithValue("$hash",identity.SourceSha256);
+            insert.Parameters.AddWithValue("$game",identity.GameId);
+            insert.Parameters.AddWithValue("$module",identity.Module);
+            insert.Parameters.AddWithValue("$length",length);
+            insert.Parameters.AddWithValue("$status",identity.IdentityStatus);
+            insert.Parameters.AddWithValue("$archive",(object?)identity.SourceArchive ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$internal",(object?)identity.InternalPath ?? DBNull.Value);
+            insert.ExecuteNonQuery();
+        }
+        using (var read = _db.CreateCommand())
+        {
+            read.Transaction = tx;
+            read.CommandText = """
+                SELECT game_id,module,byte_length,identity_status,source_archive,internal_path
+                FROM source_identities WHERE sha256=$hash;
+                """;
+            read.Parameters.AddWithValue("$hash",identity.SourceSha256);
+            using var row = read.ExecuteReader();
+            if (!row.Read() || row.GetString(0) != identity.GameId ||
+                row.GetString(1) != identity.Module || row.GetInt64(2) != length ||
+                row.GetString(3) != identity.IdentityStatus ||
+                (row.IsDBNull(4) ? null : row.GetString(4)) != identity.SourceArchive ||
+                (row.IsDBNull(5) ? null : row.GetString(5)) != identity.InternalPath)
+                throw new InvalidDataException("Conflicting persistent game/source namespace assignment.");
+        }
+        tx.Commit();
+    }
+
+    public IReadOnlyList<ProjectNamedSymbol> ListNamedSymbols(string gameId,string sourceSha)
+    {
+        using var command = _db.CreateCommand();
+        command.CommandText = """
+            SELECT object_no,object_offset,role,name,evidence_id,revision,updated_utc
+            FROM named_symbols WHERE game_id=$game AND artifact_sha=$hash
+            ORDER BY object_no,object_offset,role;
+            """;
+        command.Parameters.AddWithValue("$game",gameId);
+        command.Parameters.AddWithValue("$hash",sourceSha);
+        using var reader = command.ExecuteReader();
+        var items = new List<ProjectNamedSymbol>();
+        while(reader.Read())
+            items.Add(new ProjectNamedSymbol(gameId,sourceSha,reader.GetInt32(0),
+                checked((uint)reader.GetInt64(1)),reader.GetString(2),
+                reader.GetString(3),reader.GetString(4),
+                reader.GetInt64(5),reader.GetString(6)));
+        return items;
+    }
+
+    /// <summary>Separate mutable analyst, inferred and evidence-backed name tiers.</summary>
+    public ProjectNamedSymbol SaveNamedSymbol(SourceProvenance source,
+        int objectNumber,uint offset,string role,string name,
+        string evidenceId,long expectedRevision)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        source.ValidateClaim();
+        if (source.GameId == "unassigned" ||
+            role is not ("analyst" or "inferred" or "verified") ||
+            string.IsNullOrWhiteSpace(name) || name.Length > 128 ||
+            evidenceId is null || evidenceId.Length > 512 ||
+            (role == "verified" && string.IsNullOrWhiteSpace(evidenceId)) ||
+            objectNumber < 1 || expectedRevision < 0)
+            throw new ArgumentException("Invalid source-bound symbol name, role or evidence.");
+        using var tx = _db.BeginTransaction();
+        using var cmd = _db.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = expectedRevision == 0 ? """
+            INSERT OR IGNORE INTO named_symbols
+                (artifact_sha,game_id,object_no,object_offset,role,name,evidence_id,revision,updated_utc)
+            VALUES($hash,$game,$object,$offset,$role,$name,$evidence,1,$time);
+            """ : """
+            UPDATE named_symbols SET name=$name,evidence_id=$evidence,
+                revision=revision+1,updated_utc=$time
+            WHERE artifact_sha=$hash AND game_id=$game AND object_no=$object
+                AND object_offset=$offset AND role=$role AND revision=$expected;
+            """;
+        cmd.Parameters.AddWithValue("$hash",source.SourceSha256);
+        cmd.Parameters.AddWithValue("$game",source.GameId);
+        cmd.Parameters.AddWithValue("$object",objectNumber);
+        cmd.Parameters.AddWithValue("$offset",(long)offset);
+        cmd.Parameters.AddWithValue("$role",role);
+        cmd.Parameters.AddWithValue("$name",name);
+        cmd.Parameters.AddWithValue("$evidence",evidenceId);
+        string now = UtcNow();
+        cmd.Parameters.AddWithValue("$time",now);
+        if(expectedRevision!=0)cmd.Parameters.AddWithValue("$expected",expectedRevision);
+        if(cmd.ExecuteNonQuery()!=1)
+            throw new InvalidOperationException("Named symbol changed or its source namespace was not registered.");
+        tx.Commit();
+        return new ProjectNamedSymbol(source.GameId,source.SourceSha256,
+            objectNumber,offset,role,name,evidenceId,expectedRevision+1,now);
+    }
+
     public void VerifyIntegrity()
     {
         using var command = _db.CreateCommand();
@@ -450,3 +561,6 @@ public sealed class ProjectStore : IDisposable
 public sealed record ProjectArtifact(string Sha256,string OriginalName,long Length);
 public sealed record ProjectAnnotation(string ArtifactSha256,int ObjectNumber,uint Offset,
     string Kind,string Body,long Revision,string UpdatedUtc);
+public sealed record ProjectNamedSymbol(string GameId,string ArtifactSha256,
+    int ObjectNumber,uint Offset,string Role,string Name,string EvidenceId,
+    long Revision,string UpdatedUtc);
