@@ -1629,3 +1629,82 @@ remains **56.25%**, inventory **PARTIAL**, and
 the user's manual-build-only rule remains in force.
 Every source, test and documentation edit was
 committed directly to `demo-v1` as it was made.
+
+
+### CODE.2 13C88 exit audit — event 8 uses shared cleanup, not a transition branch
+
+A new direct `objdump -D -b binary -m i386 -M intel`
+audit of the supplied `CODE.2` object-1 code at
+`0x13AD8..0x13C61`, `0x13C88..0x13EF5`, and
+`0x13EF8..0x13F60` closed an important source
+branch-selection uncertainty.
+
+- `13EF8` calls `13AD8` with the numbered
+  event and runs the `13834` ANM processor.
+  It then forwards the returned interaction
+  result and saved setup state into `13C88`
+  before returning to the caller at `21880`.
+- `13AD8` saves current audio state through
+  `29048`, `29050`, `29098`, and `290A0`;
+  it configures event resource/audio startup
+  (including globals `7F78/7F7C/7F84`).
+  Event 8 follows the ordinary numbered-event
+  path, not special event-2, event-10, or
+  event-12 selection branches.
+- `13C88` indexes a **nine-entry, DWORD
+  jump table at logical 0x13C64** by
+  `(event_number-1)`. The exact decoded
+  entries are:
+
+  | Event ID | post-event dispatch target |
+  |---|---|
+  | 1 | `0x13D0E` |
+  | 2 | `0x13D1D` |
+  | 3 | `0x13D1D` |
+  | 4 | `0x13D1D` |
+  | 5 | `0x13D1D` |
+  | 6 | `0x13D69` |
+  | 7 | `0x13DB5` |
+  | **8** | **`0x13E33`** |
+  | 9 | `0x13E17` |
+
+  Thus **event 8 does not take the event-2/6/7/9
+  hard-coded coordinate/level relocation branches**
+  and does not call any of their `181B4` level
+  loaders from this post-event dispatcher.
+- At `13E33`, event 8 takes the ordinary
+  post-presentation graphics/audio restoration:
+  `325B0` data/palette path over C054,
+  `29234` raster/resource refresh, conditional
+  `29050/28DCC/28EF0/28CE8` music handling,
+  `29008`, `28F58`, `28E58` saved-state
+  application when permitted, followed by
+  common `1F8FC` input reset and `19CF4`
+  teardown. Earlier in `13C88` it also calls
+  `310B0`, `312DC`, `27FF0`,
+  `28DCC(0x9C4)`, `20294`,
+  `30D30(C054,0,0x300)`, `29234`,
+  and `1A288`.
+- Therefore the new native Win32 event-8
+  wrapper is **correct not to hard-code a
+  level relocation at cinematic exit**.
+  However the current host's
+  `audio_player.stop_all()`, `midi_player.stop()`,
+  restored pointer input and normal exploration
+  render refresh are **NOT** a fully source-exact
+  reconstruction of the `13C88` palette/music/
+  VGA and cursor-state restoration. They are
+  provisional safety cleanup pending a live
+  DOS-vs-native transition trace.
+
+Additional regression assertions in existing
+`inventory_world_drop_tests` now deny
+`CINE08` if the fourth Seed would not complete
+all four sites, the source level cell geometry
+is corrupt, or the active level is not 16.
+These negative calls must not dispatch an
+event callback, consume a seed, or set bit
+`0x44`. Still **170 CTests / 19 Quick**.
+No compilation/CI/user-triggered build has
+occurred. All source and docs committed to Git.
+
