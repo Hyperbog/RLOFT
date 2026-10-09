@@ -45,8 +45,13 @@ public:
         int level_id,
         bool* used_direct_save = nullptr);
 
-    // Normal CODE.2 fresh-party entry defaults from the startup path around
-    // 20608..20773, after CODE.1 has produced the 0x920-byte CHARS image.
+    // Verified directly against supplied original CODE.2 object-1:
+    // 2060C sets EBP=22 (level), 20616 sets ESI=4 (both cell axes),
+    // 2061B sets EBX=270 (heading), and 2074C/20755 set both
+    // low coordinate words to 0x8000 before 2075E/20766 write SI/DI.
+    // Therefore actual CODE.1 fresh-party bootstrap is Level22,
+    // (4.5,4.5), facing 270; these constants are NOT inferred from
+    // the unrelated supplied quick-start SAVE.DAT party.
     [[nodiscard]] static ExplorationSessionState load_fresh_party(
         const GameSource& source,
         const std::vector<std::uint8_t>& chars);
