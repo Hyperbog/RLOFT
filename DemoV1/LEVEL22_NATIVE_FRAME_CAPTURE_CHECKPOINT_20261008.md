@@ -75,3 +75,27 @@ frame/palette and `C6F4`/mask memory traces in an emulator. Only
 then compare indexed pixels and infer live wide-run behavior.
 Never fabricate DOS reference frames. Formal demo acceptance remains
 **1 of 5 gates (20%)**.
+
+
+## Windows CTest run #637 triage (2026-10-08)
+
+[Failed run](https://github.com/Hyperbog/RLOFT/actions/runs/37862065209)
+compiled the entire Demo v1 Windows target successfully. CTest reported
+**158 passing of 159**, with only `exploration_frame_capture_tests`
+failing, exit code `0xC0000409`; no source-level assertion location
+was reported by the Windows test harness. Therefore the exact throw or
+assertion is not independently known from that log.
+
+The new test previously kept three `std::ifstream` handles open while
+calling `std::filesystem::remove_all` on their containing directory.
+Windows ordinarily forbids deletion of such still-open files,
+unlike POSIX's unlink semantics. The test now explicitly closes its
+index, palette and TSV streams before cleanup and checks that their
+handles have closed. It also prints phase checkpoints to standard
+error, available in CTest output if a future Windows run fails.
+
+This is a **targeted, unverified test correction**, not a claim
+that build #637 passed or that the original game renderer changed.
+Do not rerun the old failure job; start a new manual workflow on the
+latest `demo-v1` source SHA when ready. The new regression must pass
+on Windows before its capture artifact is considered usable.
