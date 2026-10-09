@@ -256,6 +256,72 @@ try
         "relocation-backed FAR target maps to original file bytes");
     Equal(farGraph.Edges.Any(e => e.Kind == "unresolved-far-call"),
         true, "original FAR CFG edge remains conservatively unresolved");
+    // Synthetic CS-memory pointer recovery, never CFG reachability proof.
+    var nearPointer = new byte[0x24];
+    new byte[] { 0x2E, 0xFF, 0x26, 0x10, 0x01 }.CopyTo(nearPointer, 0);
+    MzWord(nearPointer, 0x10, 0x120);
+    nearPointer[0x20] = 0xC3;
+    var indirectCom = DosComImage.LoadExplicit(BinaryArtifact.FromBytes(nearPointer));
+    var indirectRegion = indirectCom.CreateCodeRegion();
+    var indirectGraph = Dos16ControlFlowAnalysis.Analyze(indirectRegion, 0x100);
+    var nearPointers = Dos16IndirectPointerRecovery.Inspect(indirectRegion, indirectGraph);
+    Equal(nearPointers.IndirectSites, 1, "CS near pointer site counted");
+    Equal(nearPointers.CandidateSites, 1, "CS direct memory pointer candidate");
+    Equal(nearPointers.Candidates[0].Target, new Dos16Address(0, 0x120),
+        "CS near pointer target remains candidate");
+    Equal(nearPointers.Candidates[0].TargetFileOffset, 0x20L,
+        "CS near pointer destination maps original source bytes");
+    Equal(indirectGraph.Instructions.Count, 1, "indirect candidate does not alter CFG");
+    var dsBytes = (byte[])nearPointer.Clone();
+    dsBytes[0] = 0x90;
+    var ds = DosComImage.LoadExplicit(BinaryArtifact.FromBytes(dsBytes));
+    var dsRegion = ds.CreateCodeRegion();
+    Equal(Dos16IndirectPointerRecovery.Inspect(dsRegion,
+        Dos16ControlFlowAnalysis.Analyze(dsRegion, 0x101)).CandidateSites,
+        0, "DS memory pointer is not silently considered CS");
+    var indexed = DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(new byte[] { 0x2E, 0xFF, 0x27, 0xC3 }));
+    Equal(Dos16IndirectPointerRecovery.Inspect(indexed.CreateCodeRegion(),
+        Dos16ControlFlowAnalysis.Analyze(indexed.CreateCodeRegion(), 0x100)).CandidateSites,
+        0, "CS indexed pointer requires separate bounded dataflow");
+    Fails(() => Dos16IndirectPointerRecovery.Inspect(
+        DosComImage.LoadExplicit(BinaryArtifact.FromBytes(new byte[] { 0xC3 })).CreateCodeRegion(),
+        indirectGraph), "indirect evidence cannot be transferred to another source hash");
+
+    var farMemoryBytes = (byte[])mzBytes.Clone();
+    new byte[] { 0x2E, 0xFF, 0x1E, 0x10, 0x00, 0xC3 }
+        .CopyTo(farMemoryBytes, 0x20);
+    MzWord(farMemoryBytes, 0x30, 0x20);
+    MzWord(farMemoryBytes, 0x32, 0);
+    MzWord(farMemoryBytes, 0x1C, 0x12);
+    farMemoryBytes[0x40] = 0xC3;
+    var farMemoryMz = DosMzImage.Load(BinaryArtifact.FromBytes(farMemoryBytes));
+    var farMemoryRegion = farMemoryMz.CreateEntryCodeRegion();
+    var farMemoryGraph = Dos16ControlFlowAnalysis.Analyze(farMemoryRegion, 0);
+    Equal(Dos16IndirectPointerRecovery.Inspect(farMemoryRegion,
+        farMemoryGraph).CandidateSites, 0,
+        "CS FAR memory pointer cannot be claimed without a load base");
+    var farMemoryPointers = Dos16IndirectPointerRecovery.Inspect(farMemoryRegion,
+        farMemoryGraph, farMemoryMz, farMemoryMz.SimulateRelocations(0x2000));
+    Equal(farMemoryPointers.CandidateSites, 1,
+        "source-backed CS FAR pointer selector fixup candidate");
+    Equal(farMemoryPointers.Candidates[0].SelectorFixupOrdinal, (int?)0,
+        "MZ FAR selector fixup ordinal preserved");
+    Equal(farMemoryPointers.Candidates[0].TargetFileOffset, 0x40L,
+        "relocated FAR memory pointer resolves backed original bytes");
+    var wrongSelectorBytes = (byte[])farMemoryBytes.Clone();
+    MzWord(wrongSelectorBytes, 0x1C, 0x18);
+    var wrongSelectorMz = DosMzImage.Load(BinaryArtifact.FromBytes(wrongSelectorBytes));
+    Equal(Dos16IndirectPointerRecovery.Inspect(
+        wrongSelectorMz.CreateEntryCodeRegion(),
+        Dos16ControlFlowAnalysis.Analyze(wrongSelectorMz.CreateEntryCodeRegion(), 0),
+        wrongSelectorMz, wrongSelectorMz.SimulateRelocations(0x2000)).CandidateSites,
+        0, "unrelated MZ fixup does not prove CS FAR pointer");
+    Fails(() => Dos16IndirectPointerRecovery.Inspect(indirectRegion, indirectGraph,
+        farMemoryMz, farMemoryMz.SimulateRelocations(0x2000)),
+        "foreign MZ selector evidence must not cross source boundaries");
+    Console.WriteLine("PASS: CS near and relocation-backed FAR indirect pointer hypotheses");
+
     var crossReview = DosMzCrossSegmentAnalysis.Analyze(farImage,
         assumedLoadSegment: 0x2000, maxEntryGraphs: 4, instructionsPerEntry: 16);
     Equal(crossReview.SourceSha256, farImage.SourceSha256,
