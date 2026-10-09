@@ -127,3 +127,18 @@ No game-rendering code, party data or DOS behavior changes. An
 assertion-enabled updated 159th CTest checks the v2 additions.
 This source patch is not included in prior run #638 or the user's
 uploaded capture; rerun manually only when requested.
+
+
+## Source-indexed RES3 per-call trace faults
+
+The follow-up [RES3 per-scene isolation checkpoint](
+LEVEL22_RES3_SCENE_TRACE_ISOLATION_20261008.md) added an
+append-only `scene_call_trace_failure` row to TSV v2,
+with call order, source class/index, absolute RES3 ID
+and original error reason. Previously a single descriptor
+failure discarded all frame traces; partial recovery
+retains other valid call traces without fabricating pixels.
+The preview window title also shows RES3 rasterized/pending
+call counts and distinct trace-error counts. These are
+native-only diagnostics and require a new **manual**
+Windows build before they can be observed.
