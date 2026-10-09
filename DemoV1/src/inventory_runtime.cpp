@@ -1,5 +1,6 @@
 #include "rloft/inventory_runtime.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -452,6 +453,134 @@ InventoryHandSwapStatus InventoryRuntimeState::swap_hand_slot(
         party.bytes[deadline_at+b] = 0U;
     }
     return InventoryHandSwapStatus::Swapped;
+}
+
+std::size_t InventoryRuntimeState::original_equipment_target(
+    const ObjectDefinition& definition,std::int16_t object_id,
+    std::size_t hand_side) {
+    if(hand_side>=2U)
+        throw std::out_of_range("CODE.2 12180 equipment hand side");
+    switch(definition.item_category) {
+        case 3U: return 17U;  // helmet / headgear
+        case 4U:
+        case 8U: return 16U;  // body armor or robe
+        case 5U: return 12U+hand_side;  // two ring slots
+        case 6U: return 18U;  // accessory
+        case 7U: return 20U;  // bracers/gauntlets
+        default: break;
+    }
+    // CODE.2 0F168: exact original QUIVER object-ID predicate,
+    // only on side A. Other categories route to normal hand A/B.
+    constexpr std::array<int,13> quivers{{
+        6,265,270,288,295,305,308,309,315,317,321,326,327
+    }};
+    if(hand_side==0U && std::find(quivers.begin(),quivers.end(),
+                                  object_id)!=quivers.end()) {
+        return 19U;
+    }
+    return 14U+hand_side;
+}
+
+InventoryEquipmentStatus InventoryRuntimeState::swap_equipment_slot(
+    PartyImage& party,const ObjectCatalog& objects,
+    std::size_t actor,std::size_t slot) {
+    if(actor>=PartyImage::kActorCount ||
+       slot<12U || slot>20U) {
+        throw std::out_of_range("CODE.2 12180 equipment actor/slot");
+    }
+    if(!party.active(actor))return InventoryEquipmentStatus::Unsupported;
+    const auto current=party_item(party,actor,slot);
+    const auto incoming=held.object_id;
+    if(current==-1 && incoming==-1)
+        return InventoryEquipmentStatus::NoChange;
+    if(current< -1 || incoming< -1 ||
+       (current>=0x7E && current<=0x86) ||
+       (incoming>=0x7E && incoming<=0x86)) {
+        return InventoryEquipmentStatus::Unsupported;
+    }
+    if(current>=0)(void)objects.at(
+        static_cast<std::size_t>(current));
+    if(incoming>=0) {
+        const auto& item=objects.at(
+            static_cast<std::size_t>(incoming));
+        const auto eligible_a=original_equipment_target(
+            item,incoming,0U);
+        const auto eligible_b=original_equipment_target(
+            item,incoming,1U);
+        if(slot!=eligible_a && slot!=eligible_b)
+            return InventoryEquipmentStatus::WrongSlot;
+        if(item.item_category==4U) {
+            // Original 12180 -> 23EAC(5) + 12128 item whitelist.
+            const auto base=actor*PartyImage::kActorSize;
+            const auto first=party.bytes[base+0x15U];
+            const auto second=party.bytes[base+0x16U];
+            const auto third=party.bytes[base+0x17U];
+            if(first==4U && second==0xFFU)
+                return InventoryEquipmentStatus::ClassRestricted;
+            const bool has_class5=
+                first==5U || second==5U || third==5U;
+            constexpr std::array<int,5> allowed{{
+                0x0C,0x10,0x5F,0xEC,0xEE
+            }};
+            if(has_class5 &&
+               std::find(allowed.begin(),allowed.end(),incoming)==
+                   allowed.end()) {
+                return InventoryEquipmentStatus::ClassRestricted;
+            }
+        }
+        if((slot==14U || slot==15U) &&
+           (item.raw_byte_35_low2&2U)!=0U) {
+            const auto other=party_item(
+                party,actor,29U-slot); // 14 <-> 15
+            if(other!=-1)return InventoryEquipmentStatus::Unsupported;
+        }
+        if(slot==14U || slot==15U) {
+            const auto other=party_item(party,actor,29U-slot);
+            if(other>=0 &&
+               (objects.at(static_cast<std::size_t>(other))
+                 .raw_byte_35_low2&2U)!=0U) {
+                return InventoryEquipmentStatus::Unsupported;
+            }
+        }
+    }
+
+    if(slot==14U || slot==15U) {
+        const auto result=swap_hand_slot(
+            party,objects,actor,slot-14U);
+        return result==InventoryHandSwapStatus::Swapped
+            ? InventoryEquipmentStatus::Swapped
+            : (result==InventoryHandSwapStatus::NoChange
+               ? InventoryEquipmentStatus::NoChange
+               : InventoryEquipmentStatus::Unsupported);
+    }
+
+    const auto base=actor*PartyImage::kActorSize;
+    const auto known_at=base+0x12BU;
+    const auto mask=std::uint32_t{1}<<slot;
+    std::uint32_t bits=0U;
+    for(unsigned i=0U;i<4U;++i) {
+        bits|=static_cast<std::uint32_t>(
+            party.bytes[known_at+i])<<(8U*i);
+    }
+    const auto old_known=static_cast<std::uint8_t>(
+        (bits&mask)!=0U);
+    // CODE.2 0F238 returns without updating known bits when
+    // new item is empty; preserve exact legacy stale-bit state.
+    if(incoming!=-1) {
+        bits=(bits&~mask)|(held.known!=0U?mask:0U);
+    }
+    set_party_item(party,actor,slot,incoming);
+    for(unsigned i=0U;i<4U;++i) {
+        party.bytes[known_at+i]=static_cast<std::uint8_t>(
+            bits>>(8U*i));
+    }
+    held={current,old_known};
+    if(open_container &&
+       open_container->actor==actor &&
+       open_container->object_id==current) {
+        open_container.reset();
+    }
+    return InventoryEquipmentStatus::Swapped;
 }
 
 namespace {
