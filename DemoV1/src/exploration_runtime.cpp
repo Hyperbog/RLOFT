@@ -98,6 +98,16 @@ void ExplorationRuntime::initialize_gameplay_state(
         npc_catalog_,
         roll);
     inventory_ = InventoryRuntimeState::fresh(source);
+    inventory_drop_c02f_center_fraction_=false;
+    if(source.contains("CODE.2")) {
+        const auto code2=source.read("CODE.2");
+        constexpr auto initial_at=0x75F24U+0xC02FU;
+        if(code2.size()<=initial_at)
+            throw std::runtime_error(
+                "CODE.2 truncated before original drop grid mode C02F");
+        inventory_drop_c02f_center_fraction_=
+            code2[initial_at]!=0U;
+    }
     gameplay_state_initialized_ = true;
     ++world_scene_revision_;
 }
@@ -139,6 +149,20 @@ InventoryPartyOrderResult ExplorationRuntime::exchange_party_order(
         session_.party,world_,inventory_,
         per_actor_inventory_modes,first,second);
     if(result.changed)++world_scene_revision_;
+    return result;
+}
+
+InventoryWorldDropResult ExplorationRuntime::drop_held_inventory_item(
+    const InventoryWorldDropModel::PlacementProbe& can_place) {
+    if(!gameplay_state_initialized_) {
+        throw std::logic_error(
+            "inventory drop requires initialized original world");
+    }
+    const auto result=InventoryWorldDropModel::drop(
+        world_,session_,inventory_,object_catalog_,renderer_tables_,
+        can_place,inventory_drop_c02f_center_fraction_);
+    if(result.status==InventoryWorldDropStatus::Dropped)
+        ++world_scene_revision_;
     return result;
 }
 
