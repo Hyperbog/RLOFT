@@ -153,6 +153,34 @@ int main() {
     assert(get_item(party, 0, 1) == -1);
     assert((party.bytes[known_at] & 0x02U) != 0U);
 
+    // Binary CODE.2 F540:F5B1..F5C6: direct party matches do not
+    // stop the 21-slot loop. The original continues at F5D9 and
+    // removes EVERY direct duplicate, across slots and actors, while
+    // preserving stale item-known flags. The previously emitted native
+    // `break` silently diverged for duplicates within one actor.
+    {
+        auto multi_party=party;
+        auto multi_runtime=runtime;
+        multi_runtime.held={-1,0U};
+        multi_party.bytes[rloft::PartyImage::kActorSize+0x10U]=0U;
+        multi_party.bytes[rloft::PartyImage::kActorSize+0x11U]=0U;
+        set_item(multi_party,0,2U,5);
+        set_item(multi_party,0,7U,5);
+        set_item(multi_party,1,3U,5);
+        // Identified bits are not erased by F238 on cleared slots.
+        multi_party.bytes[known_at]=0x84U;
+        const auto actor1_known=
+            rloft::PartyImage::kActorSize+known_at;
+        multi_party.bytes[actor1_known]=0x08U;
+        multi_runtime.remove_object(multi_party,catalog,5);
+        assert(get_item(multi_party,0,2U)==-1);
+        assert(get_item(multi_party,0,7U)==-1);
+        assert(get_item(multi_party,1,3U)==-1);
+        assert(multi_party.bytes[known_at]==0x84U);
+        assert(multi_party.bytes[actor1_known]==0x08U);
+        assert(!multi_runtime.has_object(multi_party,catalog,5));
+    }
+
     // CODE.2 117A0 ordinary-grid exchange: identified state follows
     // the object from the actor's 32-bit +12B bitset onto the held cursor.
     // Actor 0 slot 3 occupied and identified, cursor empty.

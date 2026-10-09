@@ -1231,10 +1231,13 @@ void InventoryRuntimeState::remove_object(
                     actor,
                     slot,
                     -1);
-                // CODE.2 then calls 0F238(actor, slot, 0). Because the
-                // slot is already -1, that routine returns before changing
-                // the actor item-known bitfield. Preserve that ordering.
-                break;
+                // CODE.2 F540:F5B1..F5C6 calls F238(actor,slot,0)
+                // and jumps to F5D9 (advance to the NEXT slot). It does
+                // NOT exit the actor slot loop: duplicates in different
+                // slots are ALL cleared. Nested F40C matches instead
+                // branch to F5EF and terminate the entire search.
+                // F238 sees -1 and leaves the stale known bit unchanged.
+                continue;
             }
 
             if (remove_recursive(
