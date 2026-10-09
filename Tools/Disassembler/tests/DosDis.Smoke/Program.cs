@@ -488,6 +488,93 @@ try
             Dos16AutomaticDispatchRecovery.Inspect(region, graph));
     }
 
+    // In-range branch guards can select the table instead of rejecting
+    // out-of-range indexes. The branch target must be byte-backed,
+    // uniquely reached, and its opposite path a distinct decoded exit.
+    var jbeTaken = AnalyzeBridgedTable(new byte[] {
+        0x83, 0xFB, 0x02, 0x76, 0x03, // CMP BX,2; JBE +3 (to stride)
+        0xC3, 0x90, 0x90,             // false path returns
+        0xD1, 0xE3,                   // true: SHL BX,1
+        0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    });
+    Equal(jbeTaken.Report.GuardedTableCandidates, 1,
+        "JBE taken edge proves inclusive unsigned index bound");
+    Equal(jbeTaken.Report.Sites[0].EntryCount, (int?)3,
+        "CMP BX,2 plus JBE accepts exactly 0,1,2");
+    Equal(jbeTaken.Report.Sites[0].StoredTable?.Entries.Count, 3,
+        "selected in-range branch validates every stored pointer");
+
+    var jbTaken = AnalyzeBridgedTable(new byte[] {
+        0x83, 0xFB, 0x03, 0x72, 0x03, // CMP BX,3; JB +3
+        0xC3, 0x90, 0x90,
+        0xD1, 0xE3,
+        0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    });
+    Equal(jbTaken.Report.GuardedTableCandidates, 1,
+        "JB taken edge proves exclusive unsigned index bound");
+    Equal(jbTaken.Report.Sites[0].EntryCount, (int?)3,
+        "CMP BX,3 plus JB excludes the immediate");
+
+    var jbeNearTaken = AnalyzeBridgedTable(new byte[] {
+        0x83, 0xFB, 0x02, 0x0F, 0x86, 0x04, 0x00,
+        0xC3, 0x90, 0x90, 0x90,   // near JBE rel16 +4 to offset 11
+        0xD1, 0xE3,
+        0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    });
+    Equal(jbeNearTaken.Report.GuardedTableCandidates, 1,
+        "near16 JBE taken edge can select a bounded table block");
+    var jbNearTaken = AnalyzeBridgedTable(new byte[] {
+        0x83, 0xFB, 0x03, 0x0F, 0x82, 0x04, 0x00,
+        0xC3, 0x90, 0x90, 0x90,
+        0xD1, 0xE3,
+        0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    });
+    Equal(jbNearTaken.Report.GuardedTableCandidates, 1,
+        "near16 JB taken edge enforces strict less-than bound");
+
+    var signedTaken = AnalyzeBridgedTable(new byte[] {
+        0x83, 0xFB, 0x02, 0x7E, 0x03, // JLE is signed; cannot bound BX unsigned
+        0xC3, 0x90, 0x90, 0xD1, 0xE3,
+        0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    });
+    Equal(signedTaken.Report.GuardedTableCandidates, 0,
+        "signed JLE taken edge cannot establish unsigned table index bound");
+
+    var invertedOpcode = AnalyzeBridgedTable(new byte[] {
+        0x83, 0xFB, 0x02, 0x73, 0x03, // JAE taken => BX>=2, not in range
+        0xC3, 0x90, 0x90, 0xD1, 0xE3,
+        0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    });
+    Equal(invertedOpcode.Report.GuardedTableCandidates, 0,
+        "wrong unsigned polarity cannot justify taking the table edge");
+
+    var extraBranchEdge = jbeTaken.Graph with {
+        Edges = jbeTaken.Graph.Edges.Append(new Dos16FlowEdge(
+            new Dos16Address(0, 0x103), new Dos16Address(0, 0x10A),
+            "branch-taken", "synthetic-extra-edge")).ToArray()
+    };
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(
+        jbeTaken.Region, extraBranchEdge).GuardedTableCandidates, 0,
+        "spurious additional taken edge must invalidate guard evidence");
+    var spoofedTakenEdge = jbeTaken.Graph with {
+        Edges = jbeTaken.Graph.Edges.Select(e =>
+            e.Source.Offset == 0x103 && e.Kind == "branch-taken"
+                ? e with { Destination = new Dos16Address(0, 0x109) } : e)
+                .ToArray()
+    };
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(
+        jbeTaken.Region, spoofedTakenEdge).GuardedTableCandidates, 0,
+        "a modified branch target must disagree with the real displacement");
+    var exitIntoTable = (byte[])new byte[] {
+        0x83, 0xFB, 0x02, 0x76, 0x03,
+        0xEB, 0x03, 0x90, 0xD1, 0xE3,
+        0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    };
+    var mergedFailure = AnalyzeBridgedTable(exitIntoTable);
+    Equal(mergedFailure.Report.GuardedTableCandidates, 0,
+        "out-of-range branch rejoining the table invalidates unique predecessor proof");
+    Console.WriteLine("PASS: exact JA/JAE reject-outside and JB/JBE select-inside bounds");
+
     // CMP; JA default; NOP; SHL BX,1; CS-indexed JMP.
     var nopBeforeShift = AnalyzeBridgedTable(new byte[] {
         0x83, 0xFB, 0x02, 0x77, 0x08,
