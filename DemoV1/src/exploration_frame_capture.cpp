@@ -91,6 +91,12 @@ void ExplorationFrameCapture::write(
             <<"cell\t"<<position.cell_x<<"\t"<<position.cell_y<<"\n"
             <<"facing\t"<<position.facing<<"\n"
             <<"scene_video_page\t"<<unsigned(runtime.scene_video_page)<<"\n"
+            <<"scene_individual_columns_mode\t"
+            <<unsigned(runtime.scene_individual_columns_mode?1U:0U)<<"\n"
+            <<"source_coordinate_fixed\t"
+            <<runtime.source_coordinate_a<<"\t"
+            <<runtime.source_coordinate_b<<"\n"
+            <<"source_facing_raw\t"<<runtime.source_facing<<"\n"
             <<"main_runs\t"<<coverage.sintab_main_runs_rasterized
             <<"\t"<<coverage.sintab_main_runs_pending
             <<"\t"<<coverage.sintab_main_runs_failed<<"\n"
@@ -151,7 +157,10 @@ void ExplorationFrameCapture::write(
     }
     manifest<<"scene_call\tclass\tsource_index\tRES3_resource"
             <<"\tvisible_columns\tscale_extent\tplan_status\n";
-    for(const auto& plan:runtime.world_scene_render_plans) {
+    for(std::size_t call_index=0U;
+        call_index<runtime.world_scene_render_plans.size();
+        ++call_index) {
+        const auto& plan=runtime.world_scene_render_plans[call_index];
         manifest<<"scene_call\t"<<plan.call.source_class
                 <<"\t"<<plan.call.source_index
                 <<"\t"<<plan.call.resource_id
@@ -159,6 +168,25 @@ void ExplorationFrameCapture::write(
                 <<"\t"<<plan.call.scale_extent
                 <<"\t"<<(plan.source_unresolved?"unresolved":"planned")
                 <<"\n";
+        // 36B14's source-column runs must retain original width.
+        // In C029=1 an eight-plus-pixel source run is a sequence
+        // of exact width-1 original 369D8 calls, NOT a grouped
+        // VGA mask-table overread. Preserve this distinction in TSV.
+        for(const auto& run:plan.visible_runs) {
+            const auto supported=run.width!=0U &&
+                run.width<=255U &&
+                (runtime.scene_individual_columns_mode ||
+                    run.width<=7U);
+            manifest<<"scene_run\t"<<call_index
+                    <<"\t"<<run.source_x
+                    <<"\t"<<run.source_column_index
+                    <<"\t"<<run.viewport_x
+                    <<"\t"<<run.width
+                    <<"\t"<<(runtime.scene_individual_columns_mode
+                           ?"individual":"grouped")
+                    <<"\t"<<(supported?"supported":"unverified")
+                    <<"\n";
+        }
     }
     for(const auto& failure:runtime.scene_plan_failures) {
         manifest<<"scene_plan_failure\t"<<failure.call_index
