@@ -105,28 +105,50 @@ public static class Dos16AutomaticDispatchRecovery
                     reason = "rejected-no-unique-unsigned-BX-guard-and-stride";
                     if (table <= 0x7FFF)
                     {
-                        // Either SHL BX,1 or the exact immediate shift.
-                        var shifts = new List<Dos16FlowInstruction>();
-                        foreach (var shift in Dos16UniqueTransparentPath.UpstreamCandidates(
+                        // BX has no implicit addressing scale in x86-16.
+                        // A near word table needs one exact doubling; a far
+                        // four-byte table needs either SHL BX,2 or two exact
+                        // source-backed doublings. Each doubling can be
+                        // SHL BX,1 or ADD BX,BX, and the unique CFG path
+                        // between both steps must contain no mutations.
+                        // The <=255 bound means 4 * index < 2^16.
+                        bool DoublesBx(Dos16FlowInstruction instruction) =>
+                            FileMatches(instruction, 0xD1, 0xE3) ||
+                            FileMatches(instruction, 0xC1, 0xE3, 0x01) ||
+                            FileMatches(instruction, 0x01, 0xDB) ||
+                            FileMatches(instruction, 0x03, 0xDB);
+
+                        var scalings = new List<(Dos16FlowInstruction First,
+                            Dos16FlowInstruction Last, string Evidence)>();
+                        foreach (var last in Dos16UniqueTransparentPath.UpstreamCandidates(
                             region, graph, site.Address))
                         {
-                            // Both ADD BX,BX register forms double BX
-                            // modulo 16 bits. The guarded <=255 entry range
-                            // precludes overflow for near 2-byte pointers.
-                            // No flags are consumed after the scaling step.
-                            bool exactStride = requiredShift == 1 &&
-                                (FileMatches(shift, 0xD1, 0xE3) ||
-                                 FileMatches(shift, 0x01, 0xDB) ||
-                                 FileMatches(shift, 0x03, 0xDB));
-                            exactStride |= FileMatches(shift, 0xC1, 0xE3,
-                                (byte)requiredShift);
-                            if (exactStride && Dos16UniqueTransparentPath.Connects(
-                                region, graph, shift.Address, site.Address, "fallthrough"))
-                                shifts.Add(shift);
+                            if (!Dos16UniqueTransparentPath.Connects(
+                                region, graph, last.Address, site.Address, "fallthrough"))
+                                continue;
+                            if (far && FileMatches(last, 0xC1, 0xE3, 0x02))
+                                scalings.Add((last, last, "shl-bx-two"));
+                            if (!DoublesBx(last)) continue;
+                            if (!far)
+                            {
+                                scalings.Add((last, last, "one-proven-bx-doubling"));
+                                continue;
+                            }
+                            foreach (var first in Dos16UniqueTransparentPath.UpstreamCandidates(
+                                region, graph, last.Address))
+                                if (DoublesBx(first) &&
+                                    Dos16UniqueTransparentPath.Connects(
+                                        region, graph, first.Address, last.Address,
+                                        "fallthrough"))
+                                    scalings.Add((first, last,
+                                        "two-proven-bx-doublings"));
                         }
-                        foreach (var shift in shifts)
+                        foreach (var scaling in scalings)
                         {
                             if (validatedTable is not null) break;
+                            // Recover the unsigned index before the FIRST
+                            // scaling operation, never between two doublings.
+                            var shift = scaling.First;
                             // Optional exact MOV BX,r16 propagates the already
                             // guarded register value without changing flags.
                             // 89 /r or 8B /r register-register forms only;
@@ -299,7 +321,8 @@ public static class Dos16AutomaticDispatchRecovery
                                                 pointerKind!,
                                                 "automatic:unsigned-cmp-" +
                                                 transfer.RegisterName +
-                                                ";unsigned-ja-jae-jb-jbe;optional-mov-bx;verified-bx-stride") });
+                                                ";unsigned-ja-jae-jb-jbe;optional-mov-bx;" +
+                                                scaling.Evidence) });
                                         var evidence = Dos16DispatchTableRecovery.Inspect(
                                             region, graph, manifest, mz, simulated).Findings[0];
                                         reason = evidence.Status ==
@@ -335,7 +358,7 @@ public static class Dos16AutomaticDispatchRecovery
         }
         if (graph.Truncated) candidates = 0;
         return new Dos16GuardedDispatchReport(region.SourceSha256,
-            region.MappingEvidence, "candidate-unverified;unsigned-BX-guard-stride-only;" +
+            region.MappingEvidence, "candidate-unverified;unsigned-BX-guard-exact-stride-only;" +
             "no-runtime-execution-proof;no-CFG-edges-added",
             indirect.Length, eligible, candidates, indirect.Length - candidates,
             truncated, results);
