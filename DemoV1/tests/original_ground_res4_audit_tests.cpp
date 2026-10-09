@@ -117,6 +117,31 @@ int main() {
     assert(original_base==0x1234);
     assert(rloft::OriginalGroundRes4Audit::absolute_index(
         55,original_base,0x2000)==0x126B);
+
+    // The production selector is original level.header[7..8],
+    // *not* an assumed 55. A signed -54 with INIT base 55
+    // selects the exact original-layout resource at archive[1].
+    rloft::LevelState level{};
+    level.header[7U]=0xCAU; // -54 low byte
+    level.header[8U]=0xFFU;
+    init[0x0EU]=55U;
+    init[0x0FU]=0U;
+    const auto resolved=
+        rloft::OriginalGroundRes4Audit::resolve(
+            init,level,res4);
+    assert(resolved.source_init_base==55);
+    assert(resolved.signed_level_selector==-54);
+    assert(resolved.absolute_archive_entry==1);
+    assert(resolved.raster_source==
+        rloft::OriginalGroundRes4Audit::verified_tile_source(res4,1));
+    // A Level22-like positive +55 field with the same small
+    // synthetic archive must fail rather than try an arbitrary tile.
+    level.header[7U]=55U;
+    level.header[8U]=0U;
+    assert(throws([&] {
+        (void)rloft::OriginalGroundRes4Audit::resolve(
+            init,level,res4);
+    }));
     assert(throws([&] {
         (void)rloft::OriginalGroundRes4Audit::base_from_init(
             std::vector<std::uint8_t>(0x0FU,0U));
