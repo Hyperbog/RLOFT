@@ -59,6 +59,8 @@ struct ExplorationRuntimeFrame final {
     int source_level_id{};
     std::vector<WorldSceneDrawCall> world_scene_draw_calls;
     std::vector<WorldSceneRenderPlan> world_scene_render_plans;
+    // A bad source must not suppress unrelated RES3 draw calls.
+    std::vector<WorldSceneRenderPlanFailure> scene_plan_failures;
     std::optional<Type7VgaFrameTrace> scene_vga_trace;
     // This trace is diagnostics/pixel rendering, NOT a prerequisite for
     // computing movement, world state, HUD or original hit-test records.
