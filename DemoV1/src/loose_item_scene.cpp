@@ -97,6 +97,7 @@ LooseItemSceneModel::build(
             static_cast<std::uint16_t>(
                 item_index);
         record.source_class = 2U;
+        record.source_type_id = item.object_type_id;
         record.render_scale_lookup_bias = 0U;
         out.push_back(record);
     }
