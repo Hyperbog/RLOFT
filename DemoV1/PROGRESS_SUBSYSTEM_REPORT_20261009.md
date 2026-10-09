@@ -4,7 +4,7 @@
 **Branch:** `demo-v1`  
 **Scope:** Level 22 reusable development testbed and systems needed for the full original game.  
 **Source of truth:** [editable scoring data](PROGRESS_SUBSYSTEMS.csv).  
-**Current revision acceptance:** Full Windows build #647 **passed all 172 CTests** at source `fb4a0145`; subsequent RES4, Part 9 level continuity, original CODE.2 mist-frame/staging models and F540 correction are **committed but not yet compiled** (176 CTests now registered). No current-source DOS visual/gameplay comparison has passed.  
+**Current revision acceptance:** Full Windows build #647 **passed all 172 CTests** at source `fb4a0145`; subsequent RES4, Part 9 level continuity, original CODE.2 mist-frame/staging models and F540 correction are **committed but not yet compiled** (177 CTests now registered). No current-source DOS visual/gameplay comparison has passed.  
 **Separate historical metric:** the pre-existing 32-task engineering ledger remains **56.25% (18/32)**. It is NOT numerically comparable to these weighted readiness estimates.
 
 ## Scoring rules — fixed for future checkpoints
@@ -27,6 +27,8 @@ In particular, 20 points for “regression” means test cases are written and r
 | Authored regression coverage | 84.8% | 8.5% |
 | Current-head DOS acceptance | 0.0% | 0.0% |
 | **Total weighted readiness** | | **49.8%** |
+
+**Level22-first binding gate:** No independent Level23 content/gameplay work before the complete original Level22 is playable from startup through its original mist ending. The original frame-20 Level23 loader is only a required end-of-Level22 boundary. The latest source also reconstructs original pickup BF44 message assignments and the Assassin death BF44=1 mutation. These are not yet a complete original ribbon renderer or accepted original-DOS behavior. See [Level22 acceptance gate](LEVEL22_COMPLETION_AND_PICKUP_FEEDBACK_GATE_20261009.md) and [BF44 runtime integration](LEVEL22_BF44_LIVE_GLOBAL_20261009.md). **177 authored/registered CTests** (Quick 19), last compiled Full still 172.
 
 ## Major-system completion percentages
 
@@ -53,9 +55,9 @@ In particular, 20 points for “regression” means test cases are written and r
 | **SAVE LOAD and persistence** | **38.6%** | 7 | Multi-level backing across exits |
 | **Verification and developer testbed** | **50.0%** | 7 | Full original campaign milestone |
 
-**Part 9 continuation:** General in-memory level-transition and visited-world reentry are source-implemented. No original event exit, disk SAVE/LOAD or DOS fidelity has been accepted. Current registry **176 CTests** (Quick 19), not yet compiled. See [Part 9 checkpoint](LEVEL_TRANSITION_STATE_CHECKPOINT_20261009.md).
+**Part 9 continuation:** General in-memory level-transition and visited-world reentry are source-implemented. No original event exit, disk SAVE/LOAD or DOS fidelity has been accepted. Current registry **177 CTests** (Quick 19), not yet compiled. See [Part 9 checkpoint](LEVEL_TRANSITION_STATE_CHECKPOINT_20261009.md).
 
-**Part 9 source audit update:** F540 duplicate-item removal now preserves the original F5C6→F5D9 continuation; the 21F70 camera staging and 22-frame Level22 mist story timeline are encoded in testable source models. The original LEVELS.DAT Level23 target is 64×64, but there is NO live mist playback or original-DOS acceptance yet. Registered total **176** CTests, 19 Quick, last green compiled **172** at older SHA `fb4a0145`. Engineering readiness unchanged at 49.8% pending live integration.
+**Part 9 source audit update:** F540 duplicate-item removal now preserves the original F5C6→F5D9 continuation; the 21F70 camera staging and 22-frame Level22 mist story timeline are encoded in testable source models. The original LEVELS.DAT Level23 target is 64×64, but there is NO live mist playback or original-DOS acceptance yet. Registered total **177** CTests, 19 Quick, last green compiled **172** at older SHA `fb4a0145`. Engineering readiness unchanged at 49.8% pending live integration.
 
 ## Every subsystem — individual readiness percentages
 
@@ -170,7 +172,7 @@ Each row's five gate marks are out of 20; the weighted readiness column is an in
 | Nested containers and capacity | **60.0%** | 20/20/20/20/0 | `inventory_runtime.cpp` | Timing and DOS nested UI |
 | Four actor container persistence | **60.0%** | 20/20/20/20/0 | `inventory_save_codec.cpp` | Multiple actor source runtime replay |
 | Encumbrance and party order | **60.0%** | 20/20/20/20/0 | `inventory_encumbrance.cpp` | Reference weight item cases |
-| World drop pickup routing | **60.0%** | 20/20/20/20/0 | `inventory_world_drop.cpp` | All levels object actions |
+| World drop pickup routing | **60.0%** | 20/20/20/20/0 | `inventory_world_drop.cpp and level22_encounter.cpp and original_pickup_message.hpp` | Connect original 1C21C pickup text/ribbon and manual DOS parity |
 | Special item use and charges | **35.0%** | 20/10/10/10/0 | `inventory_runtime.cpp` | Remaining use classes and charge semantics |
 
 ### Magic and spellcasting — 35.8% (6 subsystems)
@@ -212,7 +214,7 @@ Each row's five gate marks are out of 20; the weighted readiness column is an in
 | Subsystem | Readiness | S/N/L/T/D | Source implementation evidence | Next acceptance blocker |
 | --- | ---: | --- | --- | --- |
 | Event flag bitset read and write | **60.0%** | 20/20/20/20/0 | `inventory_runtime.cpp + exploration_session.cpp` | Original source story sequences |
-| Level22 relic and mist script | **50.0%** | 20/20/10/20/0 | `level22_story.cpp and level22_mist_timeline.cpp and original_mist_staging.hpp and original_numbered_effect_flags.hpp` | Wire source 1CD48 and 22-frame original cutscene runtime plus DOS comparison |
+| Level22 relic and mist script | **50.0%** | 20/20/10/20/0 | `level22_story.cpp and level22_mist_timeline.cpp and original_mist_staging.hpp and original_numbered_effect_flags.hpp and exploration_runtime.cpp` | Finish Level22 player combat and original mist ending before Level23 |
 | Source-triggered doors traps and switches | **35.0%** | 20/10/10/10/0 | `exploration_world.cpp` | Complete authored event set |
 | Level16 four-Seed ritual condition | **60.0%** | 20/20/20/20/0 | `inventory_world_drop.cpp` | Source playback DOS trace |
 | Level16 Holy Symbol reward | **60.0%** | 20/20/20/20/0 | `inventory_world_drop.cpp` | Cinematic teardown and accepted reward |

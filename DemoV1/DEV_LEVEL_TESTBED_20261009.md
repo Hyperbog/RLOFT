@@ -27,11 +27,11 @@ with original-source, implementation, runtime,
 authored-test and DOS-equivalence gates.
 **Provisional readiness: 49.8%.** New authenticated
 cross-level ground selection is **50.0%**; Level
-lifecycle and continuity is **37.9%**; Verification
+lifecycle and continuity is **47.9%**; Verification
 and developer testbed is **50.0%**. The historical
 **56.25%** 32-task engineering metric remains separate.
 
-**CTest registry:** 172; Quick: 19. Full Windows
+**Current source CTest registry:** 177; Quick: 19. The last verified Windows Full build compiled the older 172-test source, NOT the new 177. Source-only original Level22 combat and pickup feedback changes have yet to be built and tested. Full Windows
 verification passed on the identified earlier source
 revision. Future builds are manual unless explicitly
 authorized. An opted-in `--explore-level22 --dev-inspect
@@ -41,6 +41,10 @@ tests using the published executable.
 **Branch:** `demo-v1`  
 **Scope:** small source-faithful vertical slice; all proven runtime code is reused as later levels are integrated.  
 **Architecture reference:** [continuous-game contract](CONTINUOUS_GAME_INTEGRATION_CONTRACT_20261009.md).
+
+## Level22 completion gate before Level23
+
+The current mandate is to make **all of original Level22 fully playable first**, using original mechanics and DOS comparison—not only to create a graphical development environment. The real Level22 finale may run through the original mist's 22 frames and its source-mandated frame-20 loader boundary, but **no independent Level23 gameplay development begins until the Level22 acceptance gate is closed**. The [Level22-original completion matrix](LEVEL22_COMPLETION_AND_PICKUP_FEEDBACK_GATE_20261009.md) records that rule. Original message assignments and `BF44` live state are now source-reconstructed but not yet drawn through the original message renderer.
 
 ## Rules of this testbed
 

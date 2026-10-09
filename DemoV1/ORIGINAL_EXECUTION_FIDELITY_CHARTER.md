@@ -20,11 +20,15 @@ Recreate and integrate the actual functionality of the original game from startu
 8. **Record all gaps honestly.** Explicitly identify the original function/offset/data source where known, remaining unknowns, incomplete wiring, missing transitions, render/timing mismatches and unavailable original comparisons. A subsystem cannot be declared complete merely because its basic behavior has been imitated.
 9. **Commit every checkpoint.** All reconstruction, tests, evidence and documentation must be committed/pushed to Git. Builds and CI are manual, only with explicit user authorization; record precisely which source commit a verified build used.
 
+## Required Level22-first sequence
+
+**Before beginning independent Level23 gameplay work, first finish a complete and source-faithful playable Level22.** This includes all original gameplay systems needed there and the authentic end-of-level mist sequence. The original sequence calls the Level23 loader after frame 20; implementing/accepting that exact handoff as part of the Level22 ending does **not** authorize premature work on Level23 encounters, environments or progression. See [Level22 playability acceptance](LEVEL22_COMPLETION_AND_PICKUP_FEEDBACK_GATE_20261009.md).
+
 ## Current development method
 
 Continue the existing `demo-v1` work as the **actual code-recreation effort** toward the complete original game. The Level 22 developer slice tests original systems together and must feed directly into normal startup/character creation, following cinematics and each original authored level. Keep the reconstructed shared engine and original assets/source references; avoid rewriting for modernization now.
 
-The general in-memory `transition_to_level` helper is a provisional implementation step: it still needs source-proven authored exits, exact effects and full original save/state behavior. A green 172-test prior Windows build and 176 currently registered tests do not certify the incomplete whole-game recreation.
+The general in-memory `transition_to_level` helper is a provisional implementation step: it still needs source-proven authored exits, exact effects and full original save/state behavior. A green 172-test prior Windows build and 177 currently registered tests do not certify the incomplete whole-game recreation.
 
 ## After the full original-game code recreation is finished
 

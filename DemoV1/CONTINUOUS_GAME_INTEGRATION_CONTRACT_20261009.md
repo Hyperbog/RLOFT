@@ -7,6 +7,10 @@
 
 **Only once the full original-game code recreation is finished** will a modern port even be considered, on a **separate future branch**. Until then, do not implement intentional bug fixes, changed gameplay, new features, modding-facing game changes or QoL redesign. Preserve original assets unchanged. **Commit every checkpoint; builds require manual user authorization.**
 
+## Explicit Level22-first delivery gate
+
+**Complete the full original Level22 as a playable and verified single slice before any independent Level23 gameplay, AI, asset or story implementation.** The Level22 ending is allowed to include its real 22-frame mist effect and the original `181B4(23)` handoff after frame index 20; that obligatory source instruction does not mean the project has begun Level23 gameplay work. Prioritize original combat, interaction, inventory, HUD/menu, original pickup-message codes, exact Assassin and relic flow, and the entire original mist sequence. Keep all work in the same original executable integration path. [Level22 gate and original BF44 source audit](LEVEL22_COMPLETION_AND_PICKUP_FEEDBACK_GATE_20261009.md).
+
 ## Mandatory system and subsystem percentage reporting
 
 Every ongoing native-development checkpoint maintains
@@ -46,11 +50,13 @@ production item interactions inside the Level22
 testbed. Neither bypasses the original production
 startup or CODE.1 character creation. Live source-event-driven cross-level transitions, complete retained-world runtime behavior, full SAVE/LOAD and DOS visual/IRQ acceptance remain open engineering milestones.
 
-**Part 9 update:** The source now contains in-memory visited-world snapshots and `ExplorationRuntime::transition_to_level` for event-provided destinations. It is not yet called by an authored original exit; current-source compilation, original DOS acceptance and complete disk-world persistence remain outstanding. Registered CTests: 176.
+**Part 9 update:** The source now contains in-memory visited-world snapshots and `ExplorationRuntime::transition_to_level` for event-provided destinations. It is not yet called by an authored original exit; current-source compilation, original DOS acceptance and complete disk-world persistence remain outstanding. Registered CTests: 177.
 
 **Subsequent original-source work:** The CODE.2 `21F70..223F0` camera-stage and 22-frame Level22 mist order have been reconstructed as typed source traces; source archive confirms the original Level23 64×64 destination (9.5,58.5), facing 180. These models and the direct-item F540 fidelity repair are **not built/accepted**. [Mist timeline](LEVEL22_ORIGINAL_MIST_FRAME_SEQUENCE_20261009.md) · [Camera staging](LEVEL22_ORIGINAL_MIST_STAGING_20261009.md) · [Level23 archive audit](ORIGINAL_LEVEL23_DESTINATION_AUDIT_20261009.md).
 
 The original `1CD48` effect dispatch event-history check has been decoded and recreated for original-mist event ID 2 (persistent flag `0x82`). This is a **source-only gate** pending the actual effect interpreter. [Event history audit](ORIGINAL_NUMBERED_EFFECT_1CD48_AUDIT_20261009.md).
+
+The runtime also now tracks original CODE.2 BF44 from Level22 Assassin death (literal 1) and conditional pickup-message writes, and exposes the value without fabricating graphics. **177 CTests registered, not built.** [BF44 integration](LEVEL22_BF44_LIVE_GLOBAL_20261009.md).
 
 ## Opt-in reusable development slice (current implementation)
 
@@ -69,7 +75,7 @@ the underlying authoritative session.
 
 Source: [Level22 dev-level testing
 matrix](DEV_LEVEL_TESTBED_20261009.md).
-Currently registered CTests: **176** / Quick **19**;
+Currently registered CTests: **177** / Quick **19**;
 Full build #647 verified the earlier 172 CTests at `fb4a0145`.
 The later cross-level ground change is source-only.
 Engineering score **56.25%** and inventory

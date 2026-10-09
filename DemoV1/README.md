@@ -47,8 +47,14 @@ per-subsystem CSV](PROGRESS_SUBSYSTEMS.csv), its
 in the same Git checkpoint. A registered offline
 `subsystem_progress_tracker_tests` check validates
 the authored report when Python3 is available at
-configure time. The current registry has **176 CTests** and the 19-test Quick selection is unchanged. The Part 9 continuity changes remain uncompiled; build #647 verified only the previous 172-test source.
+configure time. The current registry has **177 CTests** and the 19-test Quick selection is unchanged. The Part 9 continuity changes remain uncompiled; build #647 verified only the previous 172-test source.
 Builds remain manual unless explicitly authorized.
+
+## Level22-first acceptance rule — complete playability before Level23
+
+**Level22 must be fully playable and faithful before independent Level23 game development.** The original mist sequence and its necessary Level23 load call at frame index 20 are treated as the END of Level22, not a new Level23 workstream. Finish original gameplay combat/use, Assassin defeat and drops, four relics, menus/UI, pickup/source feedback, original effect and 22-frame mist, and current-head DOS parity first. See the [binding Level22 gate and pickup audit](LEVEL22_COMPLETION_AND_PICKUP_FEEDBACK_GATE_20261009.md).
+
+**Part 9 source checkpoint:** original CODE.2 `21704` conditional `BF44` pickup messages have been reconstructed, and the authoritative runtime now retains original BF44 from Assassin death through pickups. The renderer for original `1C21C` text/ribbon is still incomplete. [Original message global audit](LEVEL22_BF44_LIVE_GLOBAL_20261009.md). **177 CTests authored/registered, not yet built**; old verified Windows Full build #647 remains 172/172 at older source.
 
 ## Part 9 — original Level22 mist code reconstruction
 
