@@ -141,3 +141,15 @@ scaled. The analyzer does **not** follow its candidates, infer arbitrary
 register ranges, merge code/data interpretations or interpret game
 identities as branch evidence. See
 [guarded table requirements](P0_X86_16_AUTOMATIC_GUARDS.md).
+
+## Nested protected-mode modules
+
+The detector now discovers an independently MZ-bound LE/LX/NE/PE header
+embedded after a DOS launcher and reports the exact extended-header
+file offset without relying on e_lfanew at file offset zero. The
+standalone DOS MZ loader rejects those files until a dedicated
+launcher-stub isolation mode is explicitly requested. Original
+Strahd CODE.1 and CODE.2 provide two byte-identical nested-header
+layout regressions, validated from the provided original bytes.
+No other original binary family has yet been fetched into this
+container for independent byte inspection.

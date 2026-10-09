@@ -468,3 +468,13 @@ and `overlay-analyze`. This is a small, source-only register/bounds
 propagation pass, not a claim of complete indirect-flow recovery.
 See [automatic guard requirements](docs/P0_X86_16_AUTOMATIC_GUARDS.md).
 **Manual-only builds; synthetic tests written but not run.**
+
+## Nested MZ/LE detection from original-byte evidence (source-only)
+
+Signature-first detection now recognizes bounded MZ-bound extended
+headers, including nested LE modules behind DOS launcher stubs, and
+reports ambiguous multiple modules. A signature match does not validate
+LE pages or grant permission for standalone 16-bit MZ code recovery.
+Both original Strahd CODE files supplied to this Project reproduce
+the nested-header geometry. Tests were extended without being run.
+See [nested format checkpoint](docs/P0_NESTED_MZ_ORIGINAL_EVIDENCE.md).
