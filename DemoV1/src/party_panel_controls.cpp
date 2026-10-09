@@ -123,6 +123,16 @@ PartyPanelControlModel::modal_container_slot_at(
 }
 
 std::optional<std::size_t>
+PartyPanelControlModel::modal_encumbrance_actor_at(
+    int row,int column) noexcept {
+    const auto actor=modal_actor_at_column(column);
+    if(!actor || row<0x2B || row>0x40)return std::nullopt;
+    const auto local=column-static_cast<int>(*actor)*0x50;
+    if(local<0x39 || local>0x42)return std::nullopt;
+    return actor;
+}
+
+std::optional<std::size_t>
 PartyPanelControlModel::modal_toggle_actor_at(
     int row,
     int column) noexcept {
