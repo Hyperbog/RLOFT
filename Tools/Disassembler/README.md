@@ -355,3 +355,24 @@ DosDis.Cli.exe mz-disasm \"MAIN.EXE\" --count 32
 All offset/origin parameters shown are hexadecimal. These commands are
 source implementation examples, **not verified executable results**.
 The original-file loader policy and signature detection remain format-driven.
+
+## Paired FBOV/TPOV resident directory recovery (source-only checkpoint)
+
+The `overlay` CLI command inspects an FBOV/TPOV envelope without decoding
+container bytes. `overlay-map FILE.OVR --resident PROGRAM.EXE` now attempts
+a **strictly unambiguous, gap-free Turbo Pascal-style overlay directory**
+using trap descriptors in a separately supplied standalone MZ executable.
+It returns original EXE descriptor offsets, source OVR code/fixup byte extents,
+procedure-trap counts, and **two independent SHA-256 identities**. This
+recovery is limited to TPOV and 8-byte FBOV envelopes; the distinct 16-byte
+FBOV variant is not interpreted using the Turbo Pascal descriptor layout.
+
+The existing `overlay-disasm --regions manifest.json --region ID` requires a
+separately authored, source-hash-bound region map; it returns only
+unverified 16-bit instruction candidates. The directory parser **does not**
+automatically promote its code extents to verified functions or infer runtime
+segment locations. No Gold Box game receives any special-case logic.
+
+See [overlay envelope contract](docs/P0_FBOV_TPOV_OVERLAY_ENVELOPES.md) and
+[resident overlay directory recovery](docs/P0_TP_RESIDENT_OVERLAY_DIRECTORY.md).
+**No builds or tests were run.** Progress remains 43% pending verification.

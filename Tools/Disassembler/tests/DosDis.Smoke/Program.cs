@@ -335,6 +335,11 @@ try
     Fails(() => DosOverlayDirectoryRecovery.Recover(
         DosMzImage.Load(BinaryArtifact.FromBytes(badStub)), mappedTpOverlay),
         "resident overlay descriptors require structurally matching trap stubs");
+    var zeroProcedures = (byte[])residentOverlayBytes.Clone();
+    MzWord(zeroProcedures, residentDescriptor + 12, 0);
+    Fails(() => DosOverlayDirectoryRecovery.Recover(
+        DosMzImage.Load(BinaryArtifact.FromBytes(zeroProcedures)), mappedTpOverlay),
+        "trap-marker-only overlay candidates without checked procedure stubs are insufficient");
     var wrongFixupSize = (byte[])residentOverlayBytes.Clone();
     MzWord(wrongFixupSize, residentDescriptor + 10, 3);
     Fails(() => DosOverlayDirectoryRecovery.Recover(

@@ -30,3 +30,17 @@ Synthetic fixture source cases cover full chain acceptance and missing,
 duplicate, truncated, and mis-typed descriptors. They are **not executed**.
 No original game binaries were present on the DnD-Classics repository branch
 for this specific source-only development step.
+
+## CLI availability
+
+```powershell
+DosDis.Cli.exe overlay GAME.OVR
+DosDis.Cli.exe overlay-map GAME.OVR --resident START.EXE
+DosDis.Cli.exe overlay-disasm GAME.OVR --regions source-bound-map.json --region candidate-1 --count 32
+```
+
+The `overlay-map` response includes both source identities and candidate
+stored unit extents. It does not export original bytes, automatically decode
+overlay code, or execute an overlay manager. Paired resident MZs may be
+compressed or use an unsupported overlay manager; such cases explicitly fail
+rather than fabricating a directory. The runtime segment base is unknown.

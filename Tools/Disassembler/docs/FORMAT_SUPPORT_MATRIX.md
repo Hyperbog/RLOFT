@@ -7,8 +7,8 @@ not independently reverified by this source-only checkpoint.
 | --- | --- | --- | --- |
 | DOS MZ `.EXE` | Hillsfar `MAIN.EXE`; Dark Sun `DSUN.EXE` | Header/relocation map and requested x86-16 linear decode in source | Real-file validation, complete MZ rebase and recursive CFG |
 | MZ-bound LE | `CODE.1`, `CODE.2` | Validated object/page mapping and x86-32 candidates in source | Fixup coverage, indirect-flow completeness |
-| Gold Box FBOV | Pool of Radiance `GAME.OVR` | Signature recognized only | Overlay directory, segment/code tables, runtime load mapping |
-| Gold Box TPOV | Secret of the Silver Blades `GAME.OVR` | Signature recognized only | Independently validated alternative overlay mapping |
+| FBOV | Pool of Radiance `GAME.OVR` | Validated envelope and resident-descriptor recovery for 8-byte variant; 16-byte variant envelope-only | Confirm actual game variant and runtime load/relocation semantics |
+| TPOV | Secret of the Silver Blades `GAME.OVR` | Envelope and resident MZ descriptor-chain recovery in source | Confirm actual file/layout, fixups, runtime code locations |
 | Headerless COM | Pools of Darkness `SOUND.COM` | Explicit 16-bit origin mapping and requested candidate decoder; never auto-enabled by extension | Real DOS PSP/runtime assumptions, interrupt/driver analysis |
 | Headerless/structured DRV | Pools of Darkness `VGA.DRV` | Unknown/headerless by default | Driver calling/initialization conventions and detection |
 | MZ-bound LX | `A32ADLIB.DLL`, other AIL/32 drivers | Signature recognized only | LX object/page/rebase/entry mapping |
@@ -69,3 +69,13 @@ structure is independently identified.
 MZ and COM use the same `X86RealModeDecoder` on bounded original bytes.
 This is **linear, analyst-requested candidate decoding**; a 16-bit recursive
 CFG and runtime relocation emulation remain future work.
+
+## Paired overlay recovery caveat
+
+`overlay-map GAME.OVR --resident START.EXE` is a general-purpose, paired
+Turbo Pascal overlay directory check, **not** a loader for every file
+with an OVR extension. It requires a validated source MZ and an exact,
+unique resident descriptor chain covering the overlay payload, with at
+least one checked procedure trap stub. The 16-byte FBOV variant uses a
+different manager and remains envelope-only. Stored code/fixup extents
+are not evidence of runtime-segment assignments or fully resolved calls.
