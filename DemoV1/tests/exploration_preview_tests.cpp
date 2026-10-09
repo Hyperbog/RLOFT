@@ -1,3 +1,6 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include "rloft/exploration_preview.hpp"
 #include "rloft/exploration_state.hpp"
 
