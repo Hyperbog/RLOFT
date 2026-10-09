@@ -12,7 +12,7 @@ on:
         type: boolean
         default: false
       build_mode:
-        description: "Quick = demo + 17 focused inventory/game tests; full = all 167 tests"
+        description: "Quick = demo + 18 focused inventory/game tests; full = all 168 tests"
         required: true
         type: choice
         options:
@@ -86,7 +86,7 @@ jobs:
       - name: Configure
         # Compile the checkout revision, not a later bot refresh commit.
         run: cmake -S DemoV1 -B build/demo-v1 -A x64 -DRLOFT_DEMO_SOURCE_SHA=${{ github.sha }}
-      - name: Build quick (demo, source audits, 17 focused tests)
+      - name: Build quick (demo, source audits, 18 focused tests)
         if: ${{ inputs.build_mode == 'quick' }}
         run: >-
           cmake --build build/demo-v1 --config Release --parallel 2 --target
@@ -94,18 +94,18 @@ jobs:
           rloft_starting_equipment_probe
           character_transfer_tests character_starting_equipment_tests
           inventory_runtime_tests inventory_item_description_tests
-          inventory_encumbrance_tests inventory_screen_tests
+          inventory_encumbrance_tests inventory_party_order_tests inventory_screen_tests
           party_panel_controls_tests character_modal_stats_tests
           exploration_session_tests exploration_preview_tests
           exploration_gameplay_cadence_tests original_entity_collision_tests
           exploration_runtime_motion_tests original_ground_texture_raster_tests
           original_ground_res4_audit_tests exploration_presenter_tests
           exploration_frame_capture_tests
-      - name: Test quick (17 focused CTests only)
+      - name: Test quick (18 focused CTests only)
         if: ${{ inputs.build_mode == 'quick' }}
         shell: pwsh
         run: |
-          ctest --test-dir build/demo-v1 -C Release --output-on-failure --parallel 2 -R "^(exploration_session_tests|exploration_preview_tests|exploration_gameplay_cadence_tests|original_entity_collision_tests|exploration_runtime_motion_tests|original_ground_texture_raster_tests|original_ground_res4_audit_tests|exploration_presenter_tests|exploration_frame_capture_tests|character_transfer_tests|character_starting_equipment_tests|inventory_runtime_tests|inventory_item_description_tests|inventory_encumbrance_tests|inventory_screen_tests|party_panel_controls_tests|character_modal_stats_tests)$"
+          ctest --test-dir build/demo-v1 -C Release --output-on-failure --parallel 2 -R "^(exploration_session_tests|exploration_preview_tests|exploration_gameplay_cadence_tests|original_entity_collision_tests|exploration_runtime_motion_tests|original_ground_texture_raster_tests|original_ground_res4_audit_tests|exploration_presenter_tests|exploration_frame_capture_tests|character_transfer_tests|character_starting_equipment_tests|inventory_runtime_tests|inventory_item_description_tests|inventory_encumbrance_tests|inventory_party_order_tests|inventory_screen_tests|party_panel_controls_tests|character_modal_stats_tests)$"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build full (all C++ regression targets)
         if: ${{ inputs.build_mode == 'full' }}
