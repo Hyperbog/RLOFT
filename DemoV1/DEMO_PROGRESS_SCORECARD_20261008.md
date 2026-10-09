@@ -1,5 +1,30 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Inventory-first milestone: original starting class/race loadouts
+
+[Source/coverage checkpoint](ORIGINAL_CODE1_ALL_CLASS_RACE_STARTING_EQUIPMENT_20261009.md) uses the
+original immutable CODE.1 0988h starting-equipment
+table and original OBJECTS.DAT (336 definitions).
+All **90 family/race rows**, including **44 real
+loadouts** and **46 source-empty rows**, are now
+exposed through one shared source-backed model
+used by normal fresh-party CHARS creation. All
+21 runtime item slots and the asymmetrical
+same-class/race second-actor category-1 duplicate
+suppression are validated by expanded model
+tests. A new Windows source-probe reports every
+authentic named starting item and original slot.
+
+**Source complete for starting equipment, not the
+inventory interface.** Current HEAD is unbuilt,
+expects 165 registered CTests and 12 Quick
+tests; latest successful Windows #640 ran 160.
+No new DOS screenshot parity is claimed and
+no GitHub Actions build was triggered.
+The bounded 32-task demo engineering source baseline
+remains 56.25%, tracked separately from per-subsystem
+source completeness and compile/DOS verification.
+
 ## Current engineering progress: 56.25% (32 fixed task units)
 
 [Canonical auditable engineering checklist](ENGINEERING_PROGRESS_AND_FAST_BUILD_20261009.md)
