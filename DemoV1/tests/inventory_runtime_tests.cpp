@@ -421,4 +421,145 @@ int main() {
            rloft::InventoryContainerStatus::Unsupported);
     assert(runtime.held.object_id==unsupported_cursor.object_id);
     assert(state0.items[2]==-1);
+
+    // Original CODE.2 12180 all nine equipment locations:
+    // keep category routing separate from the source-rendered
+    // click geometry. Every branch below is on original party
+    // item[12..20], not an invented UI-only equipment array.
+    auto equipment_bytes=std::vector<std::uint8_t>(
+        4U+40U*0x41U,0U);
+    put32(equipment_bytes,0U,40U);
+    const auto set_category=[&](std::size_t id,std::uint8_t value) {
+        equipment_bytes[4U+id*0x41U+0x2FU]=value;
+    };
+    set_category(10U,3U); // head
+    set_category(11U,4U); // armor
+    set_category(12U,5U); // ring
+    set_category(13U,6U); // accessory
+    set_category(14U,7U); // bracer
+    set_category(15U,8U); // robe
+    set_category(16U,9U); // weapon
+    set_category(17U,9U); // two-handed weapon
+    equipment_bytes[4U+17U*0x41U+0x35U]=2U;
+    set_category(18U,1U); // quiver class
+    equipment_bytes[4U+18U*0x41U+0x31U]=1U;
+    const auto equipped_catalog=
+        rloft::ObjectCatalog::parse(equipment_bytes);
+    for(const auto spec:{
+        std::array<int,3>{10,17,17},
+        std::array<int,3>{11,16,16},
+        std::array<int,3>{12,12,13},
+        std::array<int,3>{13,18,18},
+        std::array<int,3>{14,20,20},
+        std::array<int,3>{15,16,16},
+        std::array<int,3>{16,14,15}}) {
+        const auto& definition=equipped_catalog.at(
+            static_cast<std::size_t>(spec[0]));
+        assert(rloft::InventoryRuntimeState::
+            original_equipment_target(definition,
+                static_cast<std::int16_t>(spec[0]),0U)==
+            static_cast<std::size_t>(spec[1]));
+        assert(rloft::InventoryRuntimeState::
+            original_equipment_target(definition,
+                static_cast<std::int16_t>(spec[0]),1U)==
+            static_cast<std::size_t>(spec[2]));
+    }
+
+    auto equip_party=party;
+    equip_party.bytes[0x15U]=0U; // Fighter
+    equip_party.bytes[0x16U]=0xFFU;
+    equip_party.bytes[0x17U]=0xFFU;
+    for(std::size_t slot=12U;slot<21U;++slot)
+        set_item(equip_party,0U,slot,-1);
+    rloft::InventoryRuntimeState equip{};
+    equip.held={12,1U};
+    assert(equip.swap_equipment_slot(
+        equip_party,equipped_catalog,0U,12U)==
+        rloft::InventoryEquipmentStatus::Swapped);
+    assert(get_item(equip_party,0U,12U)==12);
+    assert((equip_party.bytes[0x12BU+1U]&0x10U)!=0U);
+    assert(equip.held.object_id==-1);
+    equip.held={12,0U};
+    assert(equip.swap_equipment_slot(
+        equip_party,equipped_catalog,0U,13U)==
+        rloft::InventoryEquipmentStatus::Swapped);
+    assert(get_item(equip_party,0U,13U)==12);
+    assert((equip_party.bytes[0x12BU+1U]&0x20U)==0U);
+    assert(equip.held.object_id==-1);
+    assert(equip.swap_equipment_slot(
+        equip_party,equipped_catalog,0U,12U)==
+        rloft::InventoryEquipmentStatus::Swapped);
+    assert(equip.held.object_id==12);
+    assert(equip.held.known==1U);
+    equip.held={11,0U};
+    assert(equip.swap_equipment_slot(
+        equip_party,equipped_catalog,0U,17U)==
+        rloft::InventoryEquipmentStatus::WrongSlot);
+    assert(get_item(equip_party,0U,17U)==-1);
+    assert(equip.swap_equipment_slot(
+        equip_party,equipped_catalog,0U,16U)==
+        rloft::InventoryEquipmentStatus::Swapped);
+    assert(get_item(equip_party,0U,16U)==11);
+
+    // CODE.2 12128: a single class-code-4 actor cannot equip
+    // category-4 body armor; a class-5 actor can only use the
+    // five source-whitelisted armor object IDs.
+    set_item(equip_party,0U,16U,-1);
+    equip_party.bytes[0x15U]=4U;
+    equip.held={11,0U};
+    assert(equip.swap_equipment_slot(
+        equip_party,equipped_catalog,0U,16U)==
+        rloft::InventoryEquipmentStatus::ClassRestricted);
+    assert(equip.held.object_id==11);
+    equip_party.bytes[0x15U]=0U;
+    equip_party.bytes[0x16U]=5U;
+    assert(equip.swap_equipment_slot(
+        equip_party,equipped_catalog,0U,16U)==
+        rloft::InventoryEquipmentStatus::ClassRestricted);
+    // The original source whitelist includes item ID 0x0C (12).
+    // Re-tag the synthetic object as body armor to test that branch.
+    set_category(12U,4U);
+    const auto whitelisted=rloft::ObjectCatalog::parse(
+        equipment_bytes);
+    equip.held={12,0U};
+    assert(equip.swap_equipment_slot(
+        equip_party,whitelisted,0U,16U)==
+        rloft::InventoryEquipmentStatus::Swapped);
+    assert(get_item(equip_party,0U,16U)==12);
+
+    // Source raw item +35h low 2 bits encode a paired-hand class;
+    // paired-hand-exclusive class 2 cannot coexist with offhand item.
+    equip_party.bytes[0x15U]=0U;
+    equip_party.bytes[0x16U]=0xFFU;
+    set_item(equip_party,0U,15U,16);
+    equip.held={17,0U};
+    assert(equip.swap_equipment_slot(
+        equip_party,equipped_catalog,0U,14U)==
+        rloft::InventoryEquipmentStatus::Unsupported);
+    assert(get_item(equip_party,0U,14U)==-1);
+    set_item(equip_party,0U,15U,-1);
+    assert(equip.swap_equipment_slot(
+        equip_party,equipped_catalog,0U,14U)==
+        rloft::InventoryEquipmentStatus::Swapped);
+    assert(get_item(equip_party,0U,14U)==17);
+    assert(equip.held.object_id==-1);
+
+    // Burden is the 21 source equipment items + nested descriptor
+    // contents, all measured in OBJECTS half-pound units.
+    auto weight_bytes=equipment_bytes;
+    weight_bytes[4U+16U*0x41U+0x30U]=5U;
+    weight_bytes[4U+18U*0x41U+0x30U]=3U;
+    weight_bytes[4U+10U*0x41U+0x30U]=9U;
+    const auto weight_catalog=rloft::ObjectCatalog::parse(weight_bytes);
+    set_item(equip_party,0U,0U,16);
+    set_item(equip_party,0U,1U,10);
+    set_item(equip_party,0U,2U,18);
+    equip.containers[1U].slot_count=4U;
+    equip.containers[1U].ui_columns=2U;
+    equip.containers[1U].capacity_pounds=8U;
+    equip.containers[1U].items={16,-1,-1,-1};
+    assert(equip.actor_weight_half_units(
+        equip_party,weight_catalog,0U)>=27U);
+    assert(equip.actor_weight_half_units(
+        equip_party,weight_catalog,2U)==0U);
 }
