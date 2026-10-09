@@ -41,7 +41,12 @@ InventoryPartyOrderResult InventoryPartyOrderModel::exchange(
     for(std::size_t i=0U;i<PartyImage::kActorSize;++i) {
         std::swap(party.bytes[left+i],party.bytes[right+i]);
     }
-    // Original CODE.2 12470 also swaps 6FA0 actor panel context.
+    // Original CODE.2 12470 swaps the FULL four-byte 6FA0
+    // actor records together with their associated party order.
+    // Never leave an active container view attached to the
+    // character lane that formerly occupied the index.
+    std::swap(inventory.party_container_ui_contexts[first],
+              inventory.party_container_ui_contexts[second]);
     std::swap(panel_modes[first],panel_modes[second]);
     if(inventory.open_container) {
         auto& owner=inventory.open_container->actor;
