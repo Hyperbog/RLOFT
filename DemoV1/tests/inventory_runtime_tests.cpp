@@ -194,9 +194,9 @@ int main() {
     assert(runtime.swap_ordinary_slot(party,catalog,0U,9U)==
            rloft::InventoryOrdinarySwapStatus::InsertedInContainer);
     assert(party.bytes==before_container);
-    assert(state0.items[0]==-1);
-    assert(state0.items[1]==5);
-    assert((state0.per_slot_state_bits & 0x02U)!=0);
+    assert(state0.items[0]==5);
+    assert(state0.items[1]==-1);
+    assert((state0.per_slot_state_bits & 0x01U)!=0);
     assert(runtime.held.object_id==-1);
     assert(runtime.held.known==0U);
 
