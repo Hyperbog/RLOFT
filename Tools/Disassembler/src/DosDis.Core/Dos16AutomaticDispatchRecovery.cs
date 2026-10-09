@@ -70,30 +70,10 @@ public static class Dos16AutomaticDispatchRecovery
                 insn.OriginalBytes.Equals(Convert.ToHexString(expected),
                     StringComparison.OrdinalIgnoreCase) &&
                 region.Source.Data.Slice(checked((int)at), expected.Length)
-                    .SequenceEqual(expected);
+                    .SequenceEqual(expected) &&
+                Dos16UniqueTransparentPath.IsOriginalDecoded(region, insn);
         }
 
-
-        // A decoded exit must be backed by the same exact source bytes as
-        // the selected path. A graph address alone is not provenance.
-        bool OriginalDecodedExit(Dos16FlowInstruction instruction)
-        {
-            if (instruction.Length is < 1 or > 15 ||
-                instruction.Address.Segment != region.Segment ||
-                instruction.Address.Offset < region.Origin ||
-                instruction.Address.Offset >= region.EndExclusive ||
-                (long)instruction.Address.Offset + instruction.Length >
-                    region.EndExclusive)
-                return false;
-            long physical = (long)region.FileOffset +
-                instruction.Address.Offset - region.Origin;
-            if (physical < region.FileOffset ||
-                physical + instruction.Length >
-                    (long)region.FileOffset + region.ByteLength)
-                return false;
-            return FileMatches(instruction, region.Source.Data.Slice(
-                checked((int)physical), instruction.Length).ToArray());
-        }
 
         foreach (var site in indirect.Take(maximumSites))
         {
@@ -280,7 +260,8 @@ public static class Dos16AutomaticDispatchRecovery
                                     var exits = graph.Instructions.Where(i =>
                                         i.Address == exit).Take(2).ToArray();
                                     if (exits.Length != 1 ||
-                                        !OriginalDecodedExit(exits[0]))
+                                        !Dos16UniqueTransparentPath.IsOriginalDecoded(
+                                            region, exits[0]))
                                         continue;
                                     if (exit.Offset == afterGuard ||
                                         exit.Offset == site.Address.Offset ||
