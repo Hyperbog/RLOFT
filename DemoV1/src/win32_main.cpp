@@ -1200,6 +1200,10 @@ int run_exploration(
                             // Event file decode or graphics/audio failure:
                             // the core transaction restores world/cursor/
                             // story bit before this branch is reached.
+                            // Never leave looping CINE08 audio playing
+                            // over the resumed original inventory panel.
+                            audio_player.stop_all();
+                            midi_player.stop();
                             host.set_exploration_input(&input);
                             host.set_inventory_mode(true);
                             host.set_game_cursor(normal_inventory_cursor);
