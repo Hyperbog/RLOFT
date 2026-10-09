@@ -12,7 +12,7 @@ on:
         type: boolean
         default: false
       build_mode:
-        description: "Quick = demo + 19 focused inventory/game tests; full = all 169 tests"
+        description: "Quick = demo + 19 focused tests; Full = complete CTest registry (up to 172)"
         required: true
         type: choice
         options:
