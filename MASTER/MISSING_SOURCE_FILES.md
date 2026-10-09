@@ -2,7 +2,7 @@
 
 **Verified:** 2026-10-08 (America/New_York)  
 **Branch:** `DnD-Classics`  
-**Source snapshot:** `5bc398ad7b74` (after `dbcfaf0a78c5`, the `DS2` import)  
+**Source snapshot:** `2e1dafb2ac74` (after renaming all extracted-image directories)  
 **Scope:** the 13-game collection's `SOURCE_INVENTORY.csv` files. Ravenloft: Strahd's Possession is maintained separately.
 
 All 13 game directories exist. **1,529 of 1,533 original inventory file paths are present; exactly four are missing.** These counts reflect presence in Git trees, **not SHA-256 validation**.
@@ -49,16 +49,16 @@ These 104 are **not missing**. They must be byte-audited and, if altered, restor
 
 ## Extracted disc folders added on 2026-10-08
 
-The `game.gog;gog.game` commit (`a9fb6ab091af967415fb2dc2840aa5bf88174e5e`) added **extracted CD filesystem contents** as directories, under the **correct games**:
+The `game.gog;gog.game` commit (`a9fb6ab091af967415fb2dc2840aa5bf88174e5e`) added **extracted CD filesystem contents** as directories under the correct games. Commit `2e1dafb2ac74` subsequently renamed all four extracted folders to `CD_Extracted/`, preserving the Git blob SHA for every contained file:
 
 | Game | Current extracted-directory path | Number of files | Sum of committed file sizes | Classification |
 | --- | --- | ---: | ---: | --- |
-| Dark Sun 2 | `MASTER/Dark Sun 2/game.gog/` | 264 | 93,526,520 bytes | Extracted disc files; NOT the original `game.gog` image |
-| Menzoberranzan | `MASTER/Menzoberranzan/game.gog/` | 72 | 340,458,998 bytes | Extracted disc files; NOT the original `game.gog` image |
-| Ravenloft - Stone Prophet | `MASTER/Ravenloft - Stone Prophet/gog.game/` | 98 | 436,345,876 bytes | Extracted disc files; NOT the original `gog.game` image |
+| Dark Sun 2 | `MASTER/Dark Sun 2/CD_Extracted/` | 264 | 93,526,520 bytes | Extracted disc files; NOT the original `game.gog` image |
+| Menzoberranzan | `MASTER/Menzoberranzan/CD_Extracted/` | 72 | 340,458,998 bytes | Extracted disc files; NOT the original `game.gog` image |
+| Ravenloft - Stone Prophet | `MASTER/Ravenloft - Stone Prophet/CD_Extracted/` | 98 | 436,345,876 bytes | Extracted disc files; NOT the original `gog.game` image |
 
 Spot-checked distinctive contents: Dark Sun 2 has `DSUN.EXE`, `RESOURCE.GFF`, cinematics and speech; Menzoberranzan has `DATA.A00`, `RES10`, `CGEN/` and `CINE/`; Stone Prophet has `LEVELS.DAT`, `OBJECTS.DAT`, `RES10`, and cinematics. These paths are appropriately associated with their game, and this classification does **not** assert each extracted file is byte-identical to original CD sectors or ZIP contents.
 
-**Naming issue:** Git cannot store both a directory named `game.gog/` and a blob named `game.gog` at the same path. Likewise for Stone Prophet's `gog.game/`. Before importing the actual large disc images via Git LFS, rename the extracted directories to `CD_Extracted/` (or another clearly distinct name) in their respective game folders, retaining their relative internal structure. Do not mistake these extracted directories for the original `.gog` or `.game` byte sequences. **No rename was performed by this audit.**
+**Naming issue resolved:** The extracted-disc directories now use `CD_Extracted/`, so there is no longer a path collision with future original `game.gog` or `gog.game` files. The original disc-image byte sequences **have not been uploaded as Git blobs or LFS objects**. The four exact-original archive entries above remain missing; extracted CD filesystem contents do not replace them.
 
 The user confirms that **Stone Prophet's `gog.zip` is a ZIP containing `gog.game`**, not a second distinct disc filesystem. It remains a separate exact-original source-inventory entry for byte-preservation purposes. A newly recompressed ZIP is not guaranteed to reproduce the source archive's SHA-256. The four original file paths listed above therefore remain pending for exact archival completeness, even though the exposed disc contents are now present as directories.
