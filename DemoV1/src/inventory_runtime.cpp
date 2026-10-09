@@ -642,7 +642,7 @@ InventoryHandSwapStatus InventoryRuntimeState::swap_hand_slot(
     // The container view may no longer refer to its old hand object.
     // The caller opens the new container explicitly, after a successful
     // original hand transfer; we never retain a stale view across swaps.
-    open_container.reset();
+    close_container();
     if(incoming>=0) {
         const auto& equipped=objects.at(
             static_cast<std::size_t>(incoming));
@@ -788,7 +788,7 @@ InventoryEquipmentStatus InventoryRuntimeState::swap_equipment_slot(
     if(open_container &&
        open_container->actor==actor &&
        open_container->object_id==current) {
-        open_container.reset();
+        close_container();
     }
     return InventoryEquipmentStatus::Swapped;
 }
@@ -893,7 +893,10 @@ InventoryContainerStatus InventoryRuntimeState::open_hand_container(
     std::size_t actor,std::size_t hand) {
     if(actor>=PartyImage::kActorCount || hand>=2U)
         throw std::out_of_range("original hand container actor/hand");
-    open_container.reset();
+    // If a former actor's menu is replaced, 110B4 leaves that
+    // actor's +2 phase zero. Other actor contexts are retained;
+    // CODE.2 saves all four even though native draws one view.
+    close_container();
     if(!party.active(actor)) return InventoryContainerStatus::Unsupported;
     const auto id=party_item(party,actor,14U+hand);
     if(id<0) return InventoryContainerStatus::NoChange;
@@ -906,6 +909,13 @@ InventoryContainerStatus InventoryRuntimeState::open_hand_container(
        containers[index].items.size()!=containers[index].slot_count)
         return InventoryContainerStatus::Unsupported;
     open_container=OpenInventoryContainer{actor,hand,id,index};
+    // CODE.2 21693 establishes phase 3 directly for a container
+    // transferred into a hand. A native inventory click presents
+    // the fully-open original RES2 art immediately; do not claim
+    // the DOS 10FAC four-frame animation was executed.
+    party_container_ui_contexts[actor].mark_open_21693(
+        containers[index].subtype,
+        static_cast<std::uint8_t>(index),id);
     return InventoryContainerStatus::Opened;
 }
 
