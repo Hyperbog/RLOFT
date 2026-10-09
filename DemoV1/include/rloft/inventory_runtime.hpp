@@ -59,6 +59,14 @@ enum class InventoryHandSwapStatus : std::uint8_t {
     Unsupported
 };
 
+enum class InventoryEquipmentStatus : std::uint8_t {
+    NoChange,
+    Swapped,
+    WrongSlot,
+    ClassRestricted,
+    Unsupported
+};
+
 enum class InventoryOrdinarySwapStatus : std::uint8_t {
     NoChange,
     Swapped,
@@ -105,6 +113,16 @@ struct InventoryRuntimeState final {
         const ObjectCatalog& objects,
         std::size_t actor,
         std::size_t hand);
+
+    // CODE.2 12180..1246E: original category-directed equipment
+    // destination, hard-coded QUIVER list, single-class Mage guard,
+    // and class-5 armor whitelist. Slot 14/15 delegates 214B8.
+    [[nodiscard]] static std::size_t original_equipment_target(
+        const ObjectDefinition& definition,std::int16_t object_id,
+        std::size_t hand_side);
+    [[nodiscard]] InventoryEquipmentStatus swap_equipment_slot(
+        PartyImage& party,const ObjectCatalog& objects,
+        std::size_t actor,std::size_t slot);
 
     // Original 21404: source category/slot-type gating and recursive
     // half-pound weight capacity. The container is open only while
