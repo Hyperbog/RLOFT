@@ -301,3 +301,16 @@ analyst seeds. Each gap stays **unknown**, even when references are present.
 Output is bounded and optional; JSON export refuses overwrite.
 See [P0 gap ledger](docs/P0_EXECUTABLE_GAP_LEDGER.md).
 No builds or test execution requested; completion estimate remains 43%.
+
+## Expanded P0 source-only batch — provenance, gap recovery, CS dispatch and namespaces
+
+The branch now contains independent game/SHA-256 provenance, bounded gap
+analysis with CLI and WPF report integration, a conservative CS-relative
+indexed dispatch path, and SQLite V2 project symbol namespaces with migration
+logic. The Strahd known-answer fixture now contains **282 verified non-code
+ranges totaling 1,041 bytes**, plus the independently documented callback at
+`1:0xFC97`. A byte-accounting audit verified these range lengths against
+`Code1/RESIDUAL_LEDGER.md`; the software regression suite has **not** run.
+See [expanded P0 checkpoint](docs/P0_EXPANDED_SOURCE_CHECKPOINT.md).
+**Completion stays 43%** until Windows compilation, synthetic regression
+execution and original-binary comparisons are expressly requested.

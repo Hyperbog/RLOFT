@@ -80,9 +80,12 @@ format, independent research source and typed known-answer expectations).
 A hash/length mismatch **rejects** validation rather than comparing a
 similarly named `CODE.1` from another game.
 
-The initial `tests/fixtures/strahd-code1-known-answer-v1.json` consists
-solely of independently archived observations: the one-byte `C3` callback
-at `1:0xFC97` and two embedded four-byte non-code literals. Optional archive
+The expanded `tests/fixtures/strahd-code1-known-answer-v1.json` now
+contains all **282 independently classified non-code ranges** in the
+archived `Code1/RESIDUAL_LEDGER.md`, accounting for exactly **1,041**
+object-1 bytes (575 alignment, 204 table bytes, 262 generic non-code).
+It also contains the one-byte `C3` callback at `1:0xFC97`.
+These are known-answer reference **ranges**, not original executable bytes. Optional archive
 and internal path are null because these fields are not established by the
 cited audit; never invent them. The validator does **not** modify seeds,
 code/data classifications, names, or original bytes.
@@ -95,3 +98,16 @@ verified callback that is absent from a one-seed traversal remains
 reference.json --validation-out results.json` with `analyze` only. The
 result is JSON-only, created atomically without replacing existing evidence.
 Regression tests were added but **not executed**.
+
+
+## Large P0 source-only batch notes
+
+The provenance API now binds reports to full SHA-256 and byte length where
+the original is open. The read-only gap ledger ranks unknown file-backed
+executable ranges with relocation and flow evidence, without decoding them.
+The new project schema V2 adds independent analyst/inferred/evidence-backed
+names, retaining V1 annotations and cached analysis without reclassification.
+CS-relative indexed calls and jumps can be recognized conservatively when
+their table entries validate in the executing LE object; non-CS segment
+overrides remain unresolved. These additions have **not been Windows-built**
+or executed against the three real original binaries.

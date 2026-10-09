@@ -75,3 +75,17 @@ P3: interface polish.
 **Verification status:** source-only review and new regression assertions;
 no Windows compilation, test execution, proprietary executable upload or
 GitHub Actions trigger. Await Strahd's separate evidence. 43% estimate unchanged.
+
+
+## Follow-up source-only P0 implementation
+
+The segment-prefixed early return above describes the **prior** version.
+The current analyzer accepts narrowly scoped `CS:[index*4+disp32]`
+indirect call/jump candidates, resolving offset in the currently executing
+LE object only, with explicit `cs-object-relative` evidence. It does not
+guess dynamic FS/GS selector values. Register-transformed indirect calls
+such as Stone `0x61A0` still need bounded data-flow analysis, and none of
+the original Stone source bytes have been retested.
+
+Ranked executable gaps and explicit unresolved indirect transfer diagnostic
+counts are now separately available. All changes remain uncompiled.
