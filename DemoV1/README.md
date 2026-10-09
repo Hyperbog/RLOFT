@@ -1,5 +1,60 @@
 # Ravenloft Demo Build v1
 
+## Part 8 continuation — complete Holy Symbol item placement and CINE08 source identity
+
+Original CODE.2 `1511F..1513C` calls the original
+`2195C` world-item constructor when the
+`HOLY SYMBOL OF RAVENKIND` (object 0x73)
+cannot fit in either the empty cursor or
+the first free ordinary party slot.
+The call's **final clear-held flag is zero**;
+unlike an ordinary dropped inventory item,
+the reward world spawn cannot consume or
+replace the player's currently held object.
+
+Native `InventoryWorldDropModel::
+spawn_holy_symbol_reward_15050` now
+reuses the original forward-placement,
+player-position fallback, Q16/cell validation,
+known-bit = 0, 300-object oldest-first
+eviction and family-C append semantics.
+`HolySymbolRewardModel::grant_with_world_15050`
+provides the complete original allocation
+precedence: cursor, ordinary party slot,
+and real world fallback. A failed fallback
+returns `WorldPlacementRejected` without
+mutating the party, cursor or live world.
+
+Further original CODE.2 audit establishes the
+numbered presentation at `13EF8(8)` resolves
+to **`CINE08.ANM`** through `13AD8/139AC`
+and the `CINE00.ANM` executable template.
+The original animation is **182 frames**.
+Existing native `AnmCinematic` decoding and
+Win32 startup playback already support the
+ANM format; a safe exploration-modal event-8
+handoff with source-order flag/cursor/reward
+updates and quit/Escape behavior is still
+required. The final triggering fourth seed
+remains deliberately unconsumed with
+`SourceSpecialActionPending` until that
+handoff can run. Do not call the reward
+helper without the original event.
+
+Existing inventory-world-drop assertions
+now include the source world-spawn reward
+branch, correct unidentified 0x73 record,
+unchanged original held object, original
+300-entry eviction, no partial mutation on
+rejected placement and cursor/party priority
+even with invalid world geometry. **Registered
+tests remain 170 / Quick 19.** Source has
+not been compiled or CTest-executed for this
+checkpoint. No build was initiated.
+Engineering remains **56.25%** and inventory
+remains **PARTIAL**.
+
+
 ## Part 8 extended — Level16 Seed of Morninglord and Holy Symbol reward
 
 The supplied CODE.2 original source at `21880..2195A`
