@@ -14,7 +14,7 @@ namespace DosDis.Persistence;
 /// </summary>
 public sealed class ProjectStore : IDisposable
 {
-    private const int SchemaVersion = 1;
+    private const int SchemaVersion = 2;
     private const int MaximumSnapshotBytes = 128 * 1024 * 1024;
     private readonly SqliteConnection _db;
     private bool _disposed;
@@ -68,9 +68,11 @@ public sealed class ProjectStore : IDisposable
     private void InitializeSchema()
     {
         int version = ScalarInt("PRAGMA user_version;");
-        if (version != 0 && version != SchemaVersion)
+        if (version is not (0 or 1 or SchemaVersion))
             throw new InvalidDataException($"Unsupported research project schema version {version}; expected {SchemaVersion}. No migration attempted.");
         if (version == SchemaVersion) return;
+        if (version == 0)
+        {
         // Refuse to import another SQLite database merely because it has user_version=0.
         if (ScalarInt("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';") != 0)
             throw new InvalidDataException("This SQLite file is not a new DOSDis project.");
@@ -109,6 +111,42 @@ public sealed class ProjectStore : IDisposable
             """;
         command.ExecuteNonQuery();
         tx.Commit();
+        }
+
+        // V1 projects retain cached graphs and legacy analyst labels verbatim.
+        // No old label is silently promoted into an evidence-verified name.
+        using var namesTx = _db.BeginTransaction();
+        using var namesCommand = _db.CreateCommand();
+        namesCommand.Transaction = namesTx;
+        namesCommand.CommandText = """
+            CREATE TABLE source_identities (
+                sha256 TEXT PRIMARY KEY NOT NULL REFERENCES artifacts(sha256),
+                game_id TEXT NOT NULL,
+                module TEXT NOT NULL,
+                byte_length INTEGER NOT NULL CHECK(byte_length>=0),
+                identity_status TEXT NOT NULL,
+                source_archive TEXT,
+                internal_path TEXT,
+                UNIQUE(sha256,game_id)
+            ) STRICT;
+            CREATE TABLE named_symbols (
+                artifact_sha TEXT NOT NULL,
+                game_id TEXT NOT NULL,
+                object_no INTEGER NOT NULL CHECK(object_no>=1),
+                object_offset INTEGER NOT NULL CHECK(object_offset>=0),
+                role TEXT NOT NULL CHECK(role IN ('analyst','inferred','verified')),
+                name TEXT NOT NULL,
+                evidence_id TEXT NOT NULL,
+                revision INTEGER NOT NULL CHECK(revision>=1),
+                updated_utc TEXT NOT NULL,
+                PRIMARY KEY(artifact_sha,game_id,object_no,object_offset,role),
+                FOREIGN KEY(artifact_sha,game_id)
+                    REFERENCES source_identities(sha256,game_id)
+            ) STRICT;
+            PRAGMA user_version=2;
+            """;
+        namesCommand.ExecuteNonQuery();
+        namesTx.Commit();
     }
 
     public void EnsureArtifact(BinaryArtifact artifact)
