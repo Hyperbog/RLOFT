@@ -11,6 +11,14 @@ on:
         required: false
         type: boolean
         default: false
+      build_mode:
+        description: "Quick = demo + focused regression tests; full = all 164 tests"
+        required: true
+        type: choice
+        options:
+          - quick
+          - full
+        default: quick
 
 # Prevent two intentionally requested manual builds competing for minutes.
 concurrency:
@@ -39,6 +47,17 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      # Keep generated MSVC .obj/.lib files between *manual* builds.
+      # Restoring this cache is optional: the initial cold build is
+      # still valid, while follow-up edits rebuild only changed sources.
+      - name: Restore incremental Windows C++ build cache
+        uses: actions/cache@v4
+        with:
+          path: build/demo-v1
+          key: demo-v1-msvc-x64-v1-${{ hashFiles('DemoV1/CMakeLists.txt') }}-${{ github.sha }}
+          restore-keys: |
+            demo-v1-msvc-x64-v1-${{ hashFiles('DemoV1/CMakeLists.txt') }}-
+            demo-v1-msvc-x64-v1-
       - name: Verify CODE.2 faithful C++17 reconstruction syntax
         shell: pwsh
         run: |
@@ -67,10 +86,28 @@ jobs:
       - name: Configure
         # Compile the checkout revision, not a later bot refresh commit.
         run: cmake -S DemoV1 -B build/demo-v1 -A x64 -DRLOFT_DEMO_SOURCE_SHA=${{ github.sha }}
-      - name: Build
-        run: cmake --build build/demo-v1 --config Release
-      - name: Test
-        run: ctest --test-dir build/demo-v1 -C Release --output-on-failure
+      - name: Build quick (demo, RES4 probe, 9 targeted test executables)
+        if: ${{ inputs.build_mode == 'quick' }}
+        run: >-
+          cmake --build build/demo-v1 --config Release --parallel 2 --target
+          ravenloft_demo_v1 rloft_res4_ground_probe
+          exploration_session_tests exploration_preview_tests
+          exploration_gameplay_cadence_tests original_entity_collision_tests
+          exploration_runtime_motion_tests original_ground_texture_raster_tests
+          original_ground_res4_audit_tests exploration_presenter_tests
+          exploration_frame_capture_tests
+      - name: Test quick (9 focused CTests only)
+        if: ${{ inputs.build_mode == 'quick' }}
+        shell: pwsh
+        run: |
+          ctest --test-dir build/demo-v1 -C Release --output-on-failure --parallel 2 -R "^(exploration_session_tests|exploration_preview_tests|exploration_gameplay_cadence_tests|original_entity_collision_tests|exploration_runtime_motion_tests|original_ground_texture_raster_tests|original_ground_res4_audit_tests|exploration_presenter_tests|exploration_frame_capture_tests)$"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build full (all C++ regression targets)
+        if: ${{ inputs.build_mode == 'full' }}
+        run: cmake --build build/demo-v1 --config Release --parallel 2
+      - name: Test full (all registered CTests)
+        if: ${{ inputs.build_mode == 'full' }}
+        run: ctest --test-dir build/demo-v1 -C Release --output-on-failure --parallel 2
       - name: Stage Level 22 walkaround and capture launchers
         shell: pwsh
         run: |
@@ -80,6 +117,7 @@ jobs:
           # A machine-readable matching provenance file is shipped next to
           # the exe and launchers for users reporting crash screenshots.
           Set-Content -NoNewline -Path build/demo-v1/Release/build-source-sha.txt -Value "${{ github.sha }}"
+          Set-Content -NoNewline -Path build/demo-v1/Release/build-verification-mode.txt -Value "${{ inputs.build_mode }}"
 
       - name: Publish Windows executable and Level 22 launchers
         uses: actions/upload-artifact@v4
@@ -92,6 +130,7 @@ jobs:
             build/demo-v1/Release/Probe-Level22-Ground.cmd
             build/demo-v1/Release/rloft_res4_ground_probe.exe
             build/demo-v1/Release/build-source-sha.txt
+            build/demo-v1/Release/build-verification-mode.txt
           if-no-files-found: error
 
       - name: Keep Windows executable in git
