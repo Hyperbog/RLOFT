@@ -1,5 +1,38 @@
 # Ravenloft Demo Build v1
 
+## Original DOS forest floor — source-backed 34A74 raster core now implemented
+
+[Full CODE.2 34998/34A74 reconstruction](ORIGINAL_CODE2_34A74_TEXTURED_GROUND_PIPELINE_20261008.md):
+the original DOS forest terrain does **not** use a uniform
+palette fill. The native source now reconstructs all **128**
+authentic six-byte perspective rows from SINTAB
+`sine_q16_signmag` and `projection_a/b` (source
+`CODE.2 3838,34270,34998`). It also implements the
+original pixel kernel `34A74 -> 342E4/34954 -> 34350`:
+64×64 texture wrapping, FE15..FF14 shading, 256-pixel
+clipped viewport, 80 four-plane rows plus 48 paired-plane
+rows, with transactional validation.
+
+Actual original SINTAB values at perspective rows
+**0,79,80,127** are now regression fixtures. Every
+native exploration snapshot generates original FF58
+row steps and camera texture phases, and the optional
+TSV records them for DOS parity investigation.
+
+**The old flat lower fill is NOT yet replaced in live
+pixels.** The original RES4 bank-4/type-1 ground texture
+selector depends on a mutable resource base at `258F8`
+and per-level signed selector at `2561F`; its exact
+runtime selection is still under examination. Neither
+a guessed RES4 type-6 wall tile nor procedural grass
+may be substituted. The real RES4 archive is preserved
+in the DnD-Classics Git branch.
+
+These are source-only changes pending the next manual
+Windows CI run. The prior green #640 is older;
+**163 CTests are expected** in a standard Python-enabled
+build. Formal acceptance remains **1/5 gates**.
+
 ## Current source checkpoint — faithful fresh-party movement and blocking
 
 [Original CODE.2 binary-backed audit](ORIGINAL_FRESH_START_TIMING_COLLISION_AND_GROUND_AUDIT_20261008.md) confirms the fresh
