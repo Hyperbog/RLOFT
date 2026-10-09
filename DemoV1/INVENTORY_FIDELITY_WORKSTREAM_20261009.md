@@ -1496,3 +1496,136 @@ target is expanded; **170 registered CTests,
 19 Quick** remain. Engineering tracker **56.25%**,
 inventory milestone **PARTIAL** pending full
 acceptance and runtime validation.
+
+
+## Part 8 continuation — live Level16 CINE08 ritual event and source-order reward (October 9)
+
+**Supersedes the preceding "pending CINE08 integration" checkpoint.**
+CODE.2's original 0x89 fourth-seed event is now connected
+across the native inventory model, exploration runtime,
+existing Win32 cinematic player and original audio/MIDI bridges.
+No invented scene text, reward object, or playback resource
+is substituted. The executable evidence remains:
+`2195C -> 21880 -> 1C124(0x44) -> 13EF8(8) ->
+15050(0x73)`. Numbered event 8 resolves through
+`13AD8/139AC` to original **`CINE08.ANM`**, whose
+source archive contains 182 original animation frames.
+
+### Source-order completion transaction
+
+New `Level16RitualCompletionModel::complete_21880`
+is invoked ONLY after a genuine pending ordinary D-key drop:
+
+1. Validate `level==16`, held item `0x89`, original
+   loose-object site configuration, placement geometry,
+   existing persistent event bit and source world capacity.
+   On a copy of the original live state, first verify that
+   the regular `2195C` call returns
+   `SourceSpecialActionPending`.
+2. Preflight actual fourth-seed placement on copies.
+   Set `0x44` on a copied session before invoking the
+   existing faithful `2195C` constructor so its recursive
+   `21880` probe terminates; verify the fourth seed was
+   appended/oldest item evicted as in the original source.
+3. Preflight the subsequent `15050(0x73)` allocation on
+   copied state, including the identified-bit and 300-item
+   family-C world fallback. Failed placement returns
+   `RewardPlacementRejected` WITHOUT showing the event
+   or mutating original world/party/cursor/story flags.
+4. Commit the fourth seed to the live world, consume the
+   actual held `0x89`, and set live persistent flag
+   `0x44` BEFORE beginning numbered event 8. The event
+   callback sees the original source-order intermediate state:
+   seed placed, cursor now empty, flag set, and no Holy
+   Symbol prematurely granted.
+5. Call the supplied event-8 presenter synchronously.
+   On `Completed`, run `15050(0x73)` AFTER cinematic
+   completion: reward the previously empty cursor, else
+   the first eligible active actor/ordinary slot, else
+   source `2195C` world spawn. Report the actual reward
+   destination; never grant the reward twice.
+6. On `Escaped`, `Quit`, presentation exceptions, or
+   failed post-event grant, restore the complete pre-event
+   in-memory party, source world, held cursor, and 32
+   original story flag bytes. This is a **deliberate
+   native fail-safe policy**, NOT yet a proven emulation
+   of 13EF8's exact DOS Escape semantics. A missing
+   presentation callback is rejected as invalid, rather
+   than being treated as successful silent playback.
+
+Separate strongly typed playback outcomes and ritual status
+records disambiguate `NotReady`, `InvalidPlacement`,
+`RewardPlacementRejected`, `Escaped`, `Quit` and
+`Completed`.
+
+### Native live-world and Windows integration
+
+- `ExplorationRuntime::complete_pending_seed_ritual()`
+  injects its existing CODE.2 `2D5D0(y,x,0x190)`
+  collision predicate, original object definitions,
+  renderer tables and C02F coordinate-rounding mode.
+  Success, Escape and Quit invalidate previously
+  displayed world hit tests by incrementing the scene
+  revision; presentation exceptions do likewise.
+- `win32_main.cpp` passes the SAME native
+  `Win32AudioPlayer` / `Win32MidiPlayer` instances
+  already used at startup into `run_exploration`.
+  All three existing exploration entry callers
+  (preview, CHARS-present startup, new-character entry)
+  received the additional arguments.
+- On the precise `SourceSpecialActionPending` D-key
+  result in the inventory modal, the host loads and
+  parses `CINE08.ANM` before starting the transaction.
+  The existing `play_cinematic()` displays authored
+  ANM frames, palettes, subtitle/raster packets,
+  audio/MIDI commands and waits. During playback,
+  live modal hit input is detached, the inventory
+  pointer art is hidden, and the native inventory
+  mode is suspended. On normal return or error the
+  original modal input and cursor are reattached,
+  audio/MIDI are stopped, the rendered-scene cache
+  is invalidated and host frame pacing reset.
+- `CinematicResult::Completed` awards the actual
+  source Holy Symbol and resumes the modal; Escape
+  aborts without recording a completed quest; Quit
+  aborts and closes exploration. Failure to load
+  or decode the original ANM is guarded and reports
+  a **host-only diagnostic title**, never invented
+  original DOS story dialogue.
+- The existing native cinematic player still needs
+  the exact original `13C88` teardown / CINE08
+  interaction-result / palette timing acceptance
+  audit. World state is currently rolled back on
+  canceled presentation for safety rather than
+  claiming that these cancellation semantics are
+  certified by DOS traces.
+
+### Regression tests — committed, NOT executed
+
+The existing `inventory_world_drop_tests` was
+extended with the source-order live callback
+assertions (fourth seed before callback, bit 0x44
+set during callback, cursor emptied, reward absent
+until callback completes), successful once-only
+Holy Symbol award, repeat-event suppression,
+Escape and Quit rollback, exception recovery, and
+missing-callback rejection. The existing
+`exploration_runtime_tests` checks that an
+uninitialized world cannot invoke an event
+callback or change gameplay state. No new CTest
+target was created; **170 CTests registered,
+19 Quick** remain.
+
+**Honest acceptance boundary:** this is the first
+complete native *source-wired* Level16 ritual
+pipeline. Neither compilation nor any Windows
+or DOS behavioral playback of the new source
+has occurred. Exact original CINE08 interactive
+presentation semantics, cinematic cancellation/
+teardown, IRQ scheduling, level transitions,
+and full game save/reload continue to require
+actual acceptance testing. Engineering tracker
+remains **56.25%**, inventory **PARTIAL**, and
+the user's manual-build-only rule remains in force.
+Every source, test and documentation edit was
+committed directly to `demo-v1` as it was made.
