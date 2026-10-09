@@ -893,10 +893,9 @@ InventoryContainerStatus InventoryRuntimeState::open_hand_container(
     std::size_t actor,std::size_t hand) {
     if(actor>=PartyImage::kActorCount || hand>=2U)
         throw std::out_of_range("original hand container actor/hand");
-    // If a former actor's menu is replaced, 110B4 leaves that
-    // actor's +2 phase zero. Other actor contexts are retained;
-    // CODE.2 saves all four even though native draws one view.
-    close_container();
+    // Preflight the new actor/hand/descriptor BEFORE closing the
+    // former context: a rejected/non-container probe should not
+    // erase an unrelated actor's valid saved 6FA0 context.
     if(!party.active(actor)) return InventoryContainerStatus::Unsupported;
     const auto id=party_item(party,actor,14U+hand);
     if(id<0) return InventoryContainerStatus::NoChange;
@@ -908,6 +907,9 @@ InventoryContainerStatus InventoryRuntimeState::open_hand_container(
        containers[index].slot_count==0U ||
        containers[index].items.size()!=containers[index].slot_count)
         return InventoryContainerStatus::Unsupported;
+    // If a former actor's menu is replaced, 110B4 leaves that
+    // actor's phase zero. Other actor contexts remain untouched.
+    close_container();
     open_container=OpenInventoryContainer{actor,hand,id,index};
     // CODE.2 21693 establishes phase 3 directly for a container
     // transferred into a hand. A native inventory click presents
