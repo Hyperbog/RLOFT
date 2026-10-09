@@ -16,6 +16,7 @@
 #include "rloft/inventory_encumbrance.hpp"
 #include "rloft/object_catalog.hpp"
 #include "rloft/party_presentation.hpp"
+#include "rloft/party_panel_controls.hpp"
 #include "rloft/resource_assets.hpp"
 #include "rloft/startup_presenter.hpp"
 
@@ -114,6 +115,7 @@ private:
     Type2Font font1_{};
     CharacterExperienceTable experience_table_{};
     InventoryEncumbranceModel encumbrance_{};
+    OriginalEquipmentHitTables equipment_hits_{};
 };
 
 }  // namespace rloft
