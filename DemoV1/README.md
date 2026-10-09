@@ -1,5 +1,10 @@
 # Ravenloft Demo Build v1
 
+## Mandatory phase separation: exact original first
+
+The [Original-Execution Fidelity Charter](ORIGINAL_EXECUTION_FIDELITY_CHARTER.md) is binding. **Phase I is complete, 100% original-game execution and fidelity** (including original bugs, quirks, audiovisual timing, UI, events and SAVE semantics). Native reimplementation and testbed progress do **not** certify literal original DOS execution or source-vs-DOS parity. **Only after that original baseline is fully accepted** will the project branch into a separate modern port for rewritten code, fixes, new features, modding and QoL. Do not change authentic gameplay to modernize the baseline.
+
+
 ## Current verified build and continuing game-engine checkpoint
 
 **Full Windows build #647 passed 172/172 registered CTests**

@@ -1,6 +1,12 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
 
+## Highest-priority project requirement — original execution before modernization
+
+**[Original-Execution Fidelity Charter](ORIGINAL_EXECUTION_FIDELITY_CHARTER.md) governs all work on this branch.** Phase I targets **100% original game execution and behavior** first: preserve original rules **including bugs and quirks**, data/graphics/sound, instruction-dependent numeric behavior, exact timing, story events, cinematics, SAVE/LOAD and the complete original gameplay progression. Native reconstructed C++ modules are research/test infrastructure until exact original-runtime equivalence is established; they are **not** by themselves literal execution of the DOS machine code or certified original fidelity.
+
+**Only after full original fidelity is accepted** create a **different branch** for a separately identified modern port: newly written code, bug fixes, new features, modding interfaces and tools, UI and quality-of-life improvements. Do not blend modernization into the archival/original baseline or substitute convenient invented behavior. Preserve original game files unchanged. **Builds remain manually authorized and all work committed.**
+
 ## Mandatory system and subsystem percentage reporting
 
 Every ongoing native-development checkpoint maintains
