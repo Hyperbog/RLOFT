@@ -230,7 +230,8 @@ ExplorationRuntimeMotionResult ExplorationRuntime::tick_motion(
     if (gameplay_state_initialized_) {
         probe=[this](std::uint32_t a,std::uint32_t b) {
             return OriginalEntityCollisionModel::party_contact(
-                world_,npc_catalog_,placed_scene_catalog_,a,b);
+                world_,npc_catalog_,placed_scene_catalog_,
+                session_.level_id,a,b);
         };
     }
     return ExplorationRuntimeMotionModel::tick(
