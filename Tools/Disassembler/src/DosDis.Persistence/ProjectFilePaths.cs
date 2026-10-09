@@ -27,6 +27,43 @@ public static class ProjectFilePaths
     }
 
     /// <summary>
+    /// Atomically publishes a completed export, preserving an old report if
+    /// the writer fails. File replacement must already have been confirmed by
+    /// the user in the desktop Save As dialog.
+    /// </summary>
+    public static void PublishNewOrReplace(string selectedPath, bool overwrite,
+        Action<string> writeNew)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(selectedPath);
+        ArgumentNullException.ThrowIfNull(writeNew);
+        string destination = Path.GetFullPath(selectedPath);
+        string? parent = Path.GetDirectoryName(destination);
+        if (parent is null || !Directory.Exists(parent))
+            throw new DirectoryNotFoundException("Export destination directory does not exist.");
+        string temporary = Path.Combine(parent, "." +
+            Path.GetFileName(destination) + "." + Guid.NewGuid().ToString("N") + ".part");
+        try
+        {
+            writeNew(temporary);
+            if (!File.Exists(temporary) || new FileInfo(temporary).Length == 0)
+                throw new InvalidDataException("Export did not produce a complete output file.");
+            if (overwrite && File.Exists(destination))
+            {
+                RequireSafeReplacement(destination);
+                File.Replace(temporary, destination, null);
+            }
+            else
+                File.Move(temporary, destination, overwrite: false);
+        }
+        finally
+        {
+            try { if (File.Exists(temporary)) File.Delete(temporary); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    /// <summary>
     /// Replacing a project with live SQLite WAL sidecars risks losing
     /// research transactions. Explicit replacement is forbidden in this case.
     /// </summary>
