@@ -288,6 +288,9 @@ try
             artifact.Sha256,
             Format = detected.FormatId,
             FormatDetection = detected,
+            ExtendedModuleCandidates = artifact.Data.StartsWith("MZ"u8)
+                ? MzExtendedModuleLocator.Scan(artifact)
+                : Array.Empty<MzExtendedModuleLocation>(),
             Module = image == null ? null : new {
                 image.ModuleOrigin, image.HeaderOffset, image.PageSize,
                 image.EntryObject, image.EntryOffset, image.Objects, Pages = image.Pages,
