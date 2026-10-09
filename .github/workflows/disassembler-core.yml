@@ -1,7 +1,11 @@
 name: Windows DOS disassembler core smoke tests
-# Manual only — no GitHub Actions minutes on push or PR.
+# Temporary scoped trigger for explicit user-authorized build retry; immediately restore manual-only.
 on:
   workflow_dispatch:
+  push:
+    branches: [disassembler-foundation]
+    paths:
+      - 'Tools/Disassembler/.ci-build-once-20261009-r2'
 permissions:
   contents: read
 jobs:
