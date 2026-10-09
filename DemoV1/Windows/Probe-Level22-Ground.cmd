@@ -16,8 +16,10 @@ type "%REPORT%"
 echo.
 echo Report: "%REPORT%"
 echo.
-echo This report enumerates 64x64 source-backed RES4 texture CANDIDATES.
-echo It does NOT assert which one the original DOS runtime selected.
+echo This report resolves the actual Level22 ground texture using
+echo original LEVELS.DAT header+7 and original INIT+0x0E.
+echo It also enumerates other 64x64 candidates for source auditing.
+echo It does not modify the rendered demo or any original game data.
 echo.
 pause
 exit /b %RESULT%
