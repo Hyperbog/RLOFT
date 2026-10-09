@@ -1130,9 +1130,43 @@ int run_exploration(
                         }
                     }
                 }
-                // Equipment, nested containers, spells and modal-key
-                // actions remain intentionally gated: do not invent
-                // arbitrary replacement or irreversible state changes.
+                else if (const auto equipment_hit =
+                    party_modal_presenter.equipment_hit_at(
+                        runtime.session().party,
+                        runtime.inventory(),
+                        click->row,click->column)) {
+                    if(!ui.party_panel_character_mode(
+                           equipment_hit->actor)) {
+                        const auto result=runtime.inventory().
+                            swap_equipment_slot(
+                                runtime.session().party,
+                                runtime.object_catalog(),
+                                equipment_hit->actor,
+                                equipment_hit->slot);
+                        if(result==
+                            rloft::InventoryEquipmentStatus::Swapped) {
+                            // CODE.2 12180: original category-driven
+                            // slot exchange preserves the known bit.
+                            // An equipped category-1 hand object opens
+                            // its own live nested container view.
+                            displayed_scene_frame.reset();
+                        } else if(result==
+                            rloft::InventoryEquipmentStatus::ClassRestricted) {
+                            SetWindowTextW(host.hwnd(),
+                                L"Ravenloft - Inventory | "
+                                L"Class cannot equip this armor");
+                        } else if(result==
+                            rloft::InventoryEquipmentStatus::WrongSlot) {
+                            SetWindowTextW(host.hwnd(),
+                                L"Ravenloft - Inventory | "
+                                L"Wrong equipment slot");
+                        }
+                    }
+                }
+                // Remaining original spell-use, world-drop, nested
+                // category-1 exceptions and scripted effects remain
+                // distinct paths. Do not silently coerce them into
+                // a generic item exchange.
             }
 
             const auto pointer=host.exploration_pointer();
