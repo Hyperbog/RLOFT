@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "rloft/resource_assets.hpp"
+#include "rloft/exploration_state.hpp"
 
 namespace rloft {
 
