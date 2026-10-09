@@ -17,6 +17,10 @@
 
 **Status:** source patch and test committed, but **not yet Windows-built**. Currently **180 registered CTests**, compared to **179/179 passing** in prior Full Windows build #649. No automatic build triggered. Re-test the real Level22 encumbrance and container UI only after explicit next build authorization. Exact DOS appearance and original menu timing remain separate acceptance requirements.
 
+## User-uploaded diagnostic ZIP confirms the exact interaction
+
+[Forensic audit of `1791588336634-20980.zip`](LEVEL22_DIAGNOSTIC_SESSION_1791588336634_AUDIT_20261009.md) shows terminal input `mouse.left.down a=68 b=16` on `party_panels`, followed immediately by `session.finish` without another drawn frame. This is **exactly** the original first-actor encumbrance control: row `0x10..0x27`, actor-local column `0x44..0x4D`. Thus the source path into `assets_.type1(2,0x25)` is corroborated independently by the uploaded user session and exception screenshot. The recorder initially missed the actual error text because the native modal draw threw before `present_traced`; new trace wiring now emits `party.encumbrance.open` and captures `party_modal.draw` exceptions prior to rethrowing. These new diagnostics remain unbuilt.
+
 ## Where diagnostic ZIPs are saved
 
 The new `Diagnose-Level22.cmd` launcher uses `%TEMP%\\RLOFT-Demo-Diagnostics`. On game exit it writes `<timestamp>-<process-id>.zip` next to the timestamped source capture folder and prints its path. `latest-session.txt` in the parent directory points to that folder. If ZIP creation failed, compress the timestamped folder manually and upload it to this conversation. Nothing is automatically uploaded to ChatGPT. A crash before `--dev-trace` initializes could leave no folder, but this encumbrance error is entered after the normal exploration setup and typically after recorder creation; check the folder.

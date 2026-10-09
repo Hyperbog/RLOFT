@@ -1434,6 +1434,12 @@ int run_exploration(
                         modal_encumbrance_actor_at(
                             click->row,click->column)) {
                     if(runtime.session().party.active(*weight_actor)) {
+                        if(trace) {
+                            try {trace->event(
+                                "party.encumbrance.open",
+                                static_cast<std::int64_t>(*weight_actor));}
+                            catch(...) {}
+                        }
                         inventory_encumbrance_actor=*weight_actor;
                     }
                 }
@@ -1620,13 +1626,25 @@ int run_exploration(
                       rloft::InventoryPointer{
                           pointer->row,pointer->column}}
                 : std::nullopt;
-            (void)party_modal_presenter.draw(
-                presenter.framebuffer(),
-                runtime.session().party,
-                ui.state().party_panel_character_mode,
-                ui.state().selected_party_actor,
-                &runtime.inventory(),modal_pointer,
-                inventory_encumbrance_actor);
+            try {
+                (void)party_modal_presenter.draw(
+                    presenter.framebuffer(),
+                    runtime.session().party,
+                    ui.state().party_panel_character_mode,
+                    ui.state().selected_party_actor,
+                    &runtime.inventory(),modal_pointer,
+                    inventory_encumbrance_actor);
+            } catch(const std::exception& exc) {
+                // The modal renderer can throw before present_traced()
+                // observes a frame (as on #649's missing RES2 bank).
+                // Persist source stage and reason in the F12 session
+                // while preserving the original exception behavior.
+                if(trace) {
+                    try {trace->error("party_modal.draw",exc.what());}
+                    catch(...) {}
+                }
+                throw;
+            }
             present_traced(presenter.framebuffer(),exploration_palette);
             // Report the live authoritative inventory even while
             // its original modal is open. This is exclusively
@@ -1880,13 +1898,25 @@ int run_exploration(
                       rloft::InventoryPointer{
                           pointer->row,pointer->column}}
                 : std::nullopt;
-            (void)party_modal_presenter.draw(
-                presenter.framebuffer(),
-                runtime.session().party,
-                ui.state().party_panel_character_mode,
-                ui.state().selected_party_actor,
-                &runtime.inventory(),modal_pointer,
-                inventory_encumbrance_actor);
+            try {
+                (void)party_modal_presenter.draw(
+                    presenter.framebuffer(),
+                    runtime.session().party,
+                    ui.state().party_panel_character_mode,
+                    ui.state().selected_party_actor,
+                    &runtime.inventory(),modal_pointer,
+                    inventory_encumbrance_actor);
+            } catch(const std::exception& exc) {
+                // The modal renderer can throw before present_traced()
+                // observes a frame (as on #649's missing RES2 bank).
+                // Persist source stage and reason in the F12 session
+                // while preserving the original exception behavior.
+                if(trace) {
+                    try {trace->error("party_modal.draw",exc.what());}
+                    catch(...) {}
+                }
+                throw;
+            }
             present_traced(presenter.framebuffer(),exploration_palette);
             // Report the live authoritative inventory even while
             // its original modal is open. This is exclusively

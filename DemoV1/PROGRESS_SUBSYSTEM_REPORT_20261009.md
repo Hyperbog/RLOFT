@@ -11,6 +11,8 @@
 
 **Level22 user-test crash diagnosis and source repair:** The encumbrance click invoked original `RES2:0x25`, but `RavenloftBootAssets::type1` did not support bank 2. Source now lazy-loads/caches the actual original RES2 archive for encumbrance/container type-1 frames. `original_res2_asset_bank_tests` brings registry to **180** (not yet compiled; prior Full #649 179/179). [Source evidence, test and ZIP guidance](LEVEL22_RES2_ENCUMBRANCE_CRASH_20261009.md). **The weighted completion percentages remain unchanged; no current-revision DOS visual/functional acceptance is claimed.**
 
+**User Level22 ZIP forensic checkpoint:** the first actual diagnostic upload is valid: 52 native indexed frames, 4 F12 marks, 16 renderer captures and 125 events. The last `party_panels` input `(68,16)` is **exactly** the original encumbrance hit area and confirms the missing RES2 route fixed in current source. The draw TSV proves unexpected **320-pixel-wide × 1-row / 200-frame** blits in the incomplete inventory UI; automap records real explored tiles. [Full source-grounded incident findings](LEVEL22_DIAGNOSTIC_SESSION_1791588336634_AUDIT_20261009.md). Modal exceptions will now be explicitly logged before rethrow. **180 CTests registered; latest green Full #649 remains 179/179.** Original DOS/UI acceptance remains 0%.
+
 ## Scoring rules — fixed for future checkpoints
 
 **Weights:** original behavior mapped **10%**; native source implementation **20%**; runtime integration **20%**; regression assertions present **10%**; current-revision original DOS behavioral acceptance **40%**.
