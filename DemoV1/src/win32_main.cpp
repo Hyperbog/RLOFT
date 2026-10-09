@@ -1881,7 +1881,7 @@ int run(HINSTANCE instance) {
     // Keep the original startup/menu route unchanged by default.
     if (options.explore_level22) {
         const auto preview = rloft::ExplorationPreview::party(
-            startup_chars);
+            startup_chars,assets.source().read_runtime("SAVE.DAT"));
         return run_exploration(
             host, assets, preview.chars, true, options.capture_render,
             options.capture_limit);
