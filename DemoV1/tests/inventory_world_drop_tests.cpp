@@ -258,6 +258,8 @@ int main() {
     assert(ritual.kEventBit==0x44U);
     assert(ritual.kFirstFollowOnArg==8U);
     assert(ritual.kSecondFollowOnArg==0x73U);
+    assert(ritual.kNumberedEventId==8U);
+    assert(ritual.kGrantedObjectId==115U);
     // The predicate alone NEVER changes the 0x44 story flag.
     assert(ritual_session.persistent_event_flags[0x44U/8U]==0U);
 
