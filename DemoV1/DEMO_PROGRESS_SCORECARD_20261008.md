@@ -1,5 +1,27 @@
 # Demo v1 — development progress versus formal acceptance
 
+**Original DOS screenshots and critical user clarification (2026-10-08):**
+The screenshots are the original *freshly created party* entering
+the forest and using inventory, automap and combat—not the supplied
+quick-start SAVE.DAT. Fidelity acceptance therefore requires the
+entire original CODE.1 creation -> CHARS transfer -> CODE.2 new-party
+Level 22 path and matching initial actor, inventory, world and
+camera state. Any SAVE.DAT party substitution in the opt-in
+walkaround was **removed**. The existing CODE.1 transfer path
+is integrated into the Win32 default flow, but NOT certified
+visually against those screenshots.
+
+**Source-only gameplay improvements awaiting manual build:**
+CODE.2 201A7 two-game-tick motion pacing replaces motion-on-every-VGA
+retrace; 2D5D0 checks incorporate original 2C800 NPC and 2CC88
+placed-object/tree footprints; a strengthened Release-enabled
+character-entry regression checks lossless 0x920-byte CHARS.
+Original 34A74 textured forest floor, NPC motion, combat/
+equipment-hand animation and pixel-exact outdoor layering are
+unresolved. No automatic workflow dispatch, no new Windows build,
+and **no new accepted gate**.
+[Fresh-party reference and gap register](ORIGINAL_DOS_FRESH_PARTY_FIDELITY_REFERENCE_20261008.md).
+
 **Verified corrected-ray native capture (Windows #640):**
 Manual Actions #640 at source `47d5194a0c87109ff9c26df7794c960d492ccb99`
 passed **160/160 Windows CTests**. The new 16-frame
