@@ -1073,6 +1073,17 @@ int run_exploration(
                     // click before returning to ordinary PartyPanels.
                     inventory_encumbrance_actor.reset();
                 }
+                else if(click->row>=0 && click->row<0x10 &&
+                        click->column>=0 && click->column<320) {
+                    // CODE.2 12E70 -> 12470 starts actor-column
+                    // drag in the first 16 source VGA rows. Finish
+                    // only when Win32 reports the matching release.
+                    const auto actor=static_cast<std::size_t>(
+                        click->column/0x50);
+                    if(runtime.session().party.active(actor)) {
+                        inventory_party_drag_source=actor;
+                    }
+                }
                 else if(const auto weight_actor=
                     rloft::PartyPanelControlModel::
                         modal_encumbrance_actor_at(
@@ -1207,6 +1218,27 @@ int run_exploration(
                 // category-1 exceptions and scripted effects remain
                 // distinct paths. Do not silently coerce them into
                 // a generic item exchange.
+            }
+            if (const auto release=host.consume_exploration_release()) {
+                if(inventory_party_drag_source) {
+                    if(release->row>=0 && release->row<0x10 &&
+                       release->column>=0 && release->column<320) {
+                        const auto target=static_cast<std::size_t>(
+                            release->column/0x50);
+                        const auto source=*inventory_party_drag_source;
+                        if(target!=source) {
+                            auto panel_modes=
+                                ui.state().party_panel_character_mode;
+                            const auto done=runtime.exchange_party_order(
+                                source,target,panel_modes);
+                            if(done.changed) {
+                                ui.exchange_party_panel_state(source,target);
+                                displayed_scene_frame.reset();
+                            }
+                        }
+                    }
+                    inventory_party_drag_source.reset();
+                }
             }
 
             const auto pointer=host.exploration_pointer();
