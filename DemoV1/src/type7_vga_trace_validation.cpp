@@ -42,9 +42,11 @@ std::array<std::uint8_t,3> expected_masks(
 
 void Type7VgaTraceValidator::validate(
     const Type7VgaSceneRun& run) {
-    if(run.width<1U || run.width>7U ||
+    if(run.width<1U || run.width>255U ||
+       (!run.individual_columns_mode && run.width>7U) ||
        run.viewport_x>static_cast<std::size_t>(
-           std::numeric_limits<std::int32_t>::max()-7)) {
+           std::numeric_limits<std::int32_t>::max())-
+           static_cast<std::size_t>(run.width-1U)) {
         throw std::out_of_range(
             "type-7 VGA trace has unverified width or column");
     }
