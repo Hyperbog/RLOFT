@@ -3,7 +3,7 @@
 ## Canonical every-system/every-subsystem percentage requirement
 
 **Current source-readiness estimate: 48.8%, across
-20 systems / 120 individual subsystems.**
+20 systems / 121 individual subsystems.**
 Use the committed [subsystem-by-subsystem scorecard](
 PROGRESS_SUBSYSTEM_REPORT_20261009.md) and its
 [canonical CSV data](PROGRESS_SUBSYSTEMS.csv) for
@@ -18,6 +18,8 @@ has taken place, so the DOS acceptance gate remains
 readiness percentage (not a handpicked rounded
 global value), and all 120 subcomponents have
 independent scores, evidence and blockers.
+**Manual build now essential before further large runtime integration:** choose `demo-v1`, `build_mode=full`, and `run_linux=false` in the [manual workflow](https://github.com/Hyperbog/RLOFT/actions/workflows/demo-v1-build.yml). The latest source has 172 CTests; Quick's 19 test targets do not include the newly added state inspector test or progress validator. No build or CI dispatch has occurred. Level22 preview supports an explicit `--dev-interact` flag for source-backed pickup and hand swaps, separate from read-only `--dev-inspect`. The 121st subsystem, **Opt-in Level22 world pickup and hand exchange**, is scored **60.0%** (source 20/20, native 20/20, live 20/20, authored tests 20/20, DOS acceptance 0/20); **Verification and developer testbed** rises from **47.5%** to **49.3%** across seven tracked subsystems. Overall readiness rounds to **48.8%** and the separate engineering ledger remains **56.25%**.
+
 
 **DO NOT confuse metrics:** this source-readiness
 weighted baseline is NOT the historical engineering
