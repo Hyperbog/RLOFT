@@ -370,6 +370,41 @@ int main() {
     assert(C::encode(C::capture_matching_session(
         snapshot,session,inventory))==emitted);
 
+    // Direct reconstructed 10FAC and 110B4 phase machine.
+    // No invented host-time delays: each explicit advance models
+    // precisely one original 10BBC/1A724 presentation phase.
+    rloft::PartyContainerUiContext context{};
+    assert(context.inactive());
+    assert(!context.active());
+    context.begin_open_10fac(4U,7U,258);
+    assert(context.raw==
+        (std::array<std::uint8_t,4>{{4U,7U,0U,2U}}));
+    for(std::uint8_t phase=1U;phase<=3U;++phase) {
+        assert(context.advance_open_phase_10fac());
+        assert(context.raw[2]==phase);
+        assert(context.active());
+    }
+    assert(context.fully_open());
+    assert(!context.advance_open_phase_10fac());
+    assert(context.raw[2]==3U);
+    for(int phase=2;phase>=0;--phase) {
+        assert(context.advance_close_phase_110b4());
+        assert(context.raw[0]==4U);
+        assert(context.raw[1]==7U);
+        assert(context.raw[2]==static_cast<std::uint8_t>(phase));
+        assert(context.raw[3]==2U);
+    }
+    assert(context.advance_close_phase_110b4());
+    assert(context.raw==
+        (std::array<std::uint8_t,4>{{
+            0xFFU,0xFFU,0U,0xFFU}}));
+    assert(context.inactive());
+    assert(!context.advance_close_phase_110b4());
+    context.mark_open_21693(2U,1U,329);
+    assert(context.raw==
+        (std::array<std::uint8_t,4>{{2U,1U,3U,73U}}));
+    assert(context.fully_open());
+
     // Source 110B4 CLOSE DOES NOT write FF FF FF FF.
     // It steps 3,2,1,0, then only bytes +0/+1/+3
     // are reset to FF. The native bridge must restore this
