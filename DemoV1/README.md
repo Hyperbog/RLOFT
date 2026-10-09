@@ -1,5 +1,36 @@
 # Ravenloft Demo Build v1
 
+## Required completion scoreboard — every engine system and subsystem
+
+The canonical [full percentage scorecard](
+PROGRESS_SUBSYSTEM_REPORT_20261009.md) now tracks
+**20 major game systems and 120 individual subsystems**,
+each with a separately scored source-research,
+native-implementation, live-integration, authored-test
+and current-head DOS-acceptance gate, plus evidence
+and the next blocking requirement.
+
+**New provisional weighted readiness baseline: 48.8%.**
+Its acceptance-weighted 40% DOS gate is still 0%,
+because the latest source has not been compiled,
+run or DOS-compared. This is a transparent readiness
+estimate, **not** an objective measure of completed
+game labor or the fraction of the full campaign.
+The earlier **56.25% (18/32)** engineering-task
+ledger is a separate and unchanged metric.
+
+Future commits affecting functionality must update
+the canonical [per-subsystem CSV](
+PROGRESS_SUBSYSTEMS.csv), calculate its parent-system
+and total rollups, and report the affected subsystem
+percentage before claiming progress. The offline
+`subsystem_progress_tracker_tests` assertion will
+check the scorecard against that CSV during a
+**user-authorized manual** test run. **172 CTests
+registered; 19 Quick**. No compilation, test run,
+CI dispatch or Windows build has been initiated.
+
+
 ## Developer Level22 testbed — read-only cross-system instrumentation
 
 The current **small slice** is an opt-in testbed for
