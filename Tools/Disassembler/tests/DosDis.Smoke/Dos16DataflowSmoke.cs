@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using DosDis.Core;
 
 internal static class Dos16DataflowSmoke
@@ -135,6 +136,77 @@ internal static class Dos16DataflowSmoke
         Check(wrongSource.Incomplete &&
             wrongSource.AnalysisStatus == "rejected-source-or-mapping-mismatch",
             "same offset in a different hash cannot borrow candidate values");
+
+        // A direct CALL/INT must not leak old register values into
+        // speculative continuation blocks or the candidate callee.
+        var callRegion = Region(
+            0xBB, 0x34, 0x12, // MOV BX,1234h
+            0xE8, 0x03, 0x00, // CALL near 0x109
+            0x89, 0xD8,       // MOV AX,BX (speculative return)
+            0xC3,             // RET
+            0xC3);            // callee RET
+        var callReport = Dos16DataflowAnalysis.Analyze(callRegion,
+            Dos16ControlFlowAnalysis.Analyze(callRegion, 0x100));
+        Check(!callReport.Incomplete &&
+            At(callReport, 6).Before.Get(Dos16WordRegister.BX).Kind ==
+                Dos16ValueKind.Unknown &&
+            At(callReport, 6).After.Get(Dos16WordRegister.AX).Kind ==
+                Dos16ValueKind.Unknown &&
+            At(callReport, 9).Before.Get(Dos16WordRegister.BX).Kind ==
+                Dos16ValueKind.Unknown,
+            "neither candidate call edge retains caller register assumptions");
+
+        var interruptRegion = Region(
+            0xBB, 0x34, 0x12, // MOV BX,1234h
+            0xCD, 0x21,       // INT 21h
+            0x89, 0xD8,       // MOV AX,BX (candidate interrupt return)
+            0xC3);
+        var interruptReport = Dos16DataflowAnalysis.Analyze(interruptRegion,
+            Dos16ControlFlowAnalysis.Analyze(interruptRegion, 0x100));
+        Check(!interruptReport.Incomplete &&
+            At(interruptReport, 5).Before.Get(Dos16WordRegister.BX).Kind ==
+                Dos16ValueKind.Unknown &&
+            At(interruptReport, 5).After.Get(Dos16WordRegister.AX).Kind ==
+                Dos16ValueKind.Unknown,
+            "interrupt return is speculative and cannot preserve registers");
+
+        // Valid prefixed Jcc is deliberately unsupported by the minimal
+        // transfer subset. Decoder-backed CFG edges alone do not authorize
+        // retention of register hypotheses through a prefixed branch.
+        var prefixedRegion = Region(
+            0xBB, 0x34, 0x12, // MOV BX,1234h
+            0x2E, 0x74, 0x00, // CS: JE +0 (prefix makes transfer unsupported)
+            0x89, 0xD8,       // MOV AX,BX
+            0xC3);
+        var prefixedReport = Dos16DataflowAnalysis.Analyze(prefixedRegion,
+            Dos16ControlFlowAnalysis.Analyze(prefixedRegion, 0x100));
+        Check(!prefixedReport.Incomplete &&
+            At(prefixedReport, 6).Before.Get(Dos16WordRegister.BX).Kind ==
+                Dos16ValueKind.Unknown,
+            "prefix-bearing conditional branch does not retain unsafe facts");
+
+        // The MZ loader permits a full 64 KiB candidate code window.
+        // A branch physically ending at IP FFFF must not make an edge
+        // wrapped to 0002 look like a proven nonwrapped file offset.
+        byte[] highIpBytes = new byte[0x10020];
+        highIpBytes[0] = (byte)'M';
+        highIpBytes[1] = (byte)'Z';
+        BinaryPrimitives.WriteUInt16LittleEndian(
+            highIpBytes.AsSpan(2, 2), 32); // 129 pages, final page 32 bytes
+        BinaryPrimitives.WriteUInt16LittleEndian(
+            highIpBytes.AsSpan(4, 2), 129);
+        BinaryPrimitives.WriteUInt16LittleEndian(
+            highIpBytes.AsSpan(8, 2), 2); // 32-byte header, 65536-byte load
+        highIpBytes[0x20 + 2] = 0xC3;
+        highIpBytes[0x20 + 0xFFFE] = 0xEB;
+        highIpBytes[0x20 + 0xFFFF] = 0x02; // runtime IP wraps from 10000 to 0002
+        var highIpRegion = DosMzImage.Load(BinaryArtifact.FromBytes(
+            highIpBytes, "high-ip-synthetic.exe")).CreateEntryCodeRegion();
+        var highIpGraph = Dos16ControlFlowAnalysis.Analyze(highIpRegion, 0xFFFE);
+        var highIpReport = Dos16DataflowAnalysis.Analyze(highIpRegion, highIpGraph);
+        Check(highIpReport.Incomplete && highIpReport.States.Count == 0 &&
+            highIpReport.AnalysisStatus == "rejected-wrapped-near16-relative-target",
+            "wrapped 16-bit relative JMP cannot publish dataflow");
 
         Console.WriteLine(
             "PASS: bounded x86-16 joins, loop widening and graph-integrity rejection");
