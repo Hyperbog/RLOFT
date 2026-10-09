@@ -576,6 +576,12 @@ try
     Equal(Dos16AutomaticDispatchRecovery.Inspect(
         automaticRegion, retypedStride).GuardedTableCandidates, 0,
         "source-backed SHL with falsified return label must invalidate stride proof");
+    // CMP; JA default; SHL BX,1; NOP; CS-indexed JMP.
+    var nopBeforeTable = AnalyzeBridgedTable(new byte[] {
+        0x83, 0xFB, 0x02, 0x77, 0x08,
+        0xD1, 0xE3, 0x90, 0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    });
+
     var retypedNop = nopBeforeTable.Graph with {
         Instructions = nopBeforeTable.Graph.Instructions.Select(i =>
             i.Address.Offset == 0x107
@@ -705,11 +711,6 @@ try
         new Dos16Address(0, 0x106), "branch-not-taken"), true,
         "one unique fallthrough plus a source-backed NOP proves the guard path");
 
-    // CMP; JA default; SHL BX,1; NOP; CS-indexed JMP.
-    var nopBeforeTable = AnalyzeBridgedTable(new byte[] {
-        0x83, 0xFB, 0x02, 0x77, 0x08,
-        0xD1, 0xE3, 0x90, 0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
-    });
     Equal(nopBeforeTable.Report.GuardedTableCandidates, 1,
         "NOP between index scaling and table still yields original-backed candidates");
     Equal(Dos16UniqueTransparentPath.Connects(nopBeforeTable.Region,
