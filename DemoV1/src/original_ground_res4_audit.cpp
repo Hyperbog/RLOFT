@@ -24,6 +24,27 @@ bool is_source_ground_shape(const Type1Raster& decoded) noexcept {
 }
 } // namespace
 
+OriginalGroundRes4Selection OriginalGroundRes4Audit::resolve(
+    const std::vector<std::uint8_t>& original_init,
+    const LevelState& original_level,
+    const ResArchive& archive) {
+    const auto base=base_from_init(original_init);
+    // Original CODE.2 1F388 MOVSX WORD [2561F]. The decoded level
+    // header was copied to 25618 by the original loader, so +7 is
+    // the authored signed RES4 selector.
+    const auto raw=static_cast<std::uint16_t>(
+        static_cast<std::uint16_t>(original_level.header[7U]) |
+        (static_cast<std::uint16_t>(original_level.header[8U])<<8U));
+    const auto selector=raw<=0x7FFFU
+        ? static_cast<int>(raw)
+        : static_cast<int>(raw)-0x10000;
+    const auto absolute=absolute_index(
+        selector,base,archive.entry_count());
+    return OriginalGroundRes4Selection{
+        base,selector,absolute,verified_tile_source(archive,absolute)
+    };
+}
+
 OriginalGroundRes4Report OriginalGroundRes4Audit::inspect(
     const ResArchive& archive) {
     OriginalGroundRes4Report result{};
