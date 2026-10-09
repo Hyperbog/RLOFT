@@ -1,5 +1,33 @@
 # Demo v1 — development progress versus formal acceptance
 
+**First source-backed LIVE original forest floor integration
+(2026-10-08):** Original CODE.2 16E90 copies
+`INIT+0x0E` to resource base 258F8; 1F388
+adds signed Level22 ground selector +55 and loads
+RES4 type1. Native now resolves that exact original
+tile and conditionally executes original 34A74
+textured lower-surface raster **in the live first-person
+framebuffer**. It requires all 256 ray records to be
+open-field 0x93, original C026 textured mode and
+verified SINTAB perspective, matching CODE.2 335C8
+sentinel and full 128-row FF50 calculation.
+Any unverified/mixed geometry uses flat fallback,
+with explicit status in the preview title and TSV.
+The source-backed pixel kernel writes 32,768
+indexed palette entries, respecting original
+four-plane/paired-plane split.
+
+**Status is SOURCE-ONLY:** current HEAD has not
+passed MSVC CI, and the actual RES4 texture has
+not yet been captured from a user-run executable
+nor compared with original DOS indexed frames.
+Other clipped-ground, upper texture, NPC, inventory,
+combat and portrait parity work remains open.
+164 CTests are expected if Python is installed;
+last green run #640 (160/160) used older code.
+Official acceptance **remains 1/5 gates (20%)**.
+[Complete checkpoint](LEVEL22_LIVE_ORIGINAL_34A74_OPENFIELD_GROUND_20261008.md).
+
 **Original RES4 ground source base RESOLVED (source-only):**
 Direct `CODE.2` 16E55..16E90 establishes
 `INIT+0x0E` as the initial resource base stored at
