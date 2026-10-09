@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "rloft/exploration_session.hpp"
 #include "rloft/exploration_state.hpp"
 #include "rloft/inventory_runtime.hpp"
 
@@ -56,6 +57,23 @@ public:
     // saved party roster, timing and unknown bytes are untouched.
     [[nodiscard]] static std::vector<std::uint8_t> encode(
         const InventorySaveSnapshot& snapshot);
+
+    // Strict runtime bridge, not a full LOAD/SAVE implementation.
+    // The native world, position, TOD, class-3 effects and 6FA0 modal
+    // phases are NOT restored by this subsystem. Refuse an import or
+    // export unless source world pose/time match the live session,
+    // effects count is zero, and all original container UI contexts
+    // are inactive FF FF FF FF; this avoids applying stale globals.
+    // The unchanged original SAVE byte image is retained as backing.
+    static void apply_to_matching_session(
+        const InventorySaveSnapshot& source,
+        ExplorationSessionState& session,
+        InventoryRuntimeState& inventory);
+
+    [[nodiscard]] static InventorySaveSnapshot capture_matching_session(
+        const InventorySaveSnapshot& preserved,
+        const ExplorationSessionState& session,
+        const InventoryRuntimeState& inventory);
 };
 
 } // namespace rloft
