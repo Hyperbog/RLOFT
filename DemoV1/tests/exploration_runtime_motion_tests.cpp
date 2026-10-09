@@ -102,4 +102,27 @@ int main() {
         assert(s.coordinate_b == 0x00018000U);
         assert(s.facing == 270);
     }
+
+    {
+        // RuntimeMotionModel must forward the real original entity probe
+        // through 2E120->2DBAC instead of silently ignoring trees/NPCs.
+        auto s=session();
+        s.facing=270;
+        rloft::ExplorationRuntimeMotionState runtime{};
+        rloft::ExplorationMotionInputs input{};
+        input.velocity=0x10000/0x64;
+        input.grid_mode=true;
+        unsigned probes=0U;
+        const auto block_npc=[&](std::uint32_t,std::uint32_t) {
+            ++probes;
+            return rloft::OriginalEntityContact::Blocked;
+        };
+        const auto result=rloft::ExplorationRuntimeMotionModel::tick(
+            s,runtime,input,t,block_npc);
+        assert(probes>=1U);
+        assert(result.applied.acceptance !=
+               rloft::LocomotionAcceptance::Full);
+        assert(s.coordinate_a==0x00018000U);
+        assert(s.coordinate_b==0x00018000U);
+    }
 }
