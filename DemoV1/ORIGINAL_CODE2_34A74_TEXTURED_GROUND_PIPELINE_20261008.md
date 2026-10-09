@@ -260,3 +260,16 @@ branch state and draw order remain before
 live activation of the separate 34A74
 pixel interpreter. This is source-only
 and untested on the latest Windows build.
+
+
+## Follow-on 2026-10-08 source: guarded 34A74 live raster
+
+[Native Level22 original open-field terrain integration](LEVEL22_LIVE_ORIGINAL_34A74_OPENFIELD_GROUND_20261008.md)
+now connects the exact source-selected RES4 tile,
+SINTAB 34998 FF58 perspective and authentic
+FE15 shading to the live lower viewport.
+Only full 256-ray sentinel 0x93 Level22 cases
+draw the original 128-row surface; all other
+conditions remain flat fallback with diagnostic
+reason. Live rendering is **source-committed**
+but not yet MSVC compiled or compared to DOS.
