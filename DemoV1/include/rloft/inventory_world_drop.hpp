@@ -151,4 +151,43 @@ public:
         const PlacementProbe& can_place,
         bool original_c02f_center_fraction=false);
 };
+
+// Original 21880 calls 1C124(0x44) and 13EF8(8) before
+// granting item 0x73 through 15050. This transaction is
+// intentionally separate from the ordinary 2195C drop:
+// a missing or interrupted event cannot be marked complete.
+enum class Level16RitualPlayback : std::uint8_t {
+    Completed, Escaped, Quit
+};
+enum class Level16RitualCompletionStatus : std::uint8_t {
+    NotReady, Completed, Escaped, Quit,
+    InvalidPlacement, RewardPlacementRejected
+};
+struct Level16RitualCompletion final {
+    Level16RitualCompletionStatus status{
+        Level16RitualCompletionStatus::NotReady};
+    HolySymbolGrantResult reward{};
+    std::size_t placed_seed_index{};
+};
+class Level16RitualCompletionModel final {
+public:
+    using Event8Playback=std::function<Level16RitualPlayback()>;
+
+    // All fallible physical placement and reward availability
+    // are preflighted against copies; the real world receives
+    // the fourth seed and the 0x44 story bit BEFORE event 8,
+    // matching original CODE.2 call ordering. Escape/Quit or
+    // an event callback exception rolls the in-memory source
+    // world/party/cursor/flag back, with no grant.
+    // A missing callback is invalid (not silently "completed").
+    [[nodiscard]] static Level16RitualCompletion complete_21880(
+        ExplorationSessionState& session,
+        LevelWorldState& world,
+        InventoryRuntimeState& inventory,
+        const ObjectCatalog& objects,
+        const RendererTables& tables,
+        const InventoryWorldDropModel::PlacementProbe& can_place,
+        const Event8Playback& present_event_8,
+        bool original_c02f_center_fraction=false);
+};
 }
