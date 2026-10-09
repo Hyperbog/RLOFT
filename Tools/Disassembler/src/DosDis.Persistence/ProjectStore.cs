@@ -506,6 +506,9 @@ public sealed class ProjectStore : IDisposable
             (role == "verified" && string.IsNullOrWhiteSpace(evidenceId)) ||
             objectNumber < 1 || expectedRevision < 0)
             throw new ArgumentException("Invalid source-bound symbol name, role or evidence.");
+        // Check the complete game/module/length claim, not just the foreign
+        // key's hash+game pair, before admitting another independent name.
+        EnsureSourceIdentity(source);
         using var tx = _db.BeginTransaction();
         using var cmd = _db.CreateCommand();
         cmd.Transaction = tx;
