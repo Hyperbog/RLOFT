@@ -43,9 +43,9 @@ OriginalEntityContact OriginalEntityCollisionModel::party_contact(
     // 2CC88: INIT class-1 descriptor +2 gives the source-authored
     // overlap half-extent. Zero and one are nonblocking. On overlap
     // ordinary class-1 types return one (collision blocked) in
-    // party mode -1, but special 0x54/0x7A objects enter authored
-    // transition/action branches; never silently treat those as an
-    // ordinary immovable tree without their event conditions.
+    // party mode -1. Type 54h has a runtime-state + level predicate
+    // before its authored transition (and otherwise CONTINUES scan);
+    // type 7Ah unconditionally enters its separate special action.
     for (const auto& object:world.placed_objects) {
         const auto& definition=placed.at(object.object_type_id);
         const auto extent=static_cast<std::uint32_t>(
