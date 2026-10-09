@@ -72,11 +72,16 @@ public sealed class DosMzImage
             throw new InvalidDataException("MZ header, declared length, or original file is inconsistent.");
         if (isLauncherStub)
         {
-            var nested = MzExtendedModuleLocator.Scan(artifact)
-                .Where(x => x.ModuleOrigin > 0).ToArray();
-            if (nested.Length == 0 || (long)declared > nested.Min(x => x.ModuleOrigin))
+            var locations = MzExtendedModuleLocator.Scan(artifact);
+            // A file whose outer MZ itself links to an extended module is
+            // not an independent DOS launcher, even if another nested
+            // module signature occurs later in the same source.
+            var nested = locations.Where(x => x.ModuleOrigin > 0).ToArray();
+            if (nested.Length == 0 ||
+                locations.Any(x => x.ModuleOrigin == 0) ||
+                (long)declared > nested.Min(x => x.ModuleOrigin))
                 throw new InvalidDataException(
-                    "Outer DOS MZ declared extent is missing or overlaps a nested extended module.");
+                    "Outer DOS MZ is not independent of the bounded nested extended module.");
         }
         if (relocationCount != 0 &&
             ((long)relocTable < 0x1C || (long)relocTable + relocationCount * 4 > headerBytes))
