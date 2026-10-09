@@ -54,9 +54,17 @@
 #include "rloft/win32_midi.hpp"
 #include "rloft/xmidi.hpp"
 
+// Printed in native diagnostics to distinguish a newly compiled EXE from
+// the previously published checked-in executable. The workflow stamps
+// the exact source checkout; local builds self-identify as unversioned.
+#ifndef RLOFT_DEMO_SOURCE_SHA
+#define RLOFT_DEMO_SOURCE_SHA "local-unversioned"
+#endif
+
 namespace {
 
 using Clock = std::chrono::steady_clock;
+
 
 // VGA mode timing used by Ravenloft's 320x400 planar presentation path.
 // CODE.1 AF64 programs the CRTC start address and then AF34 waits for the
@@ -71,6 +79,10 @@ std::wstring widen(std::string_view text) {
     MultiByteToWideChar(
         CP_UTF8, 0, text.data(), static_cast<int>(text.size()), out.data(), count);
     return out;
+}
+
+std::wstring executable_source_revision() {
+    return widen(std::string_view(RLOFT_DEMO_SOURCE_SHA).substr(0, 12));
 }
 
 class Host final {
@@ -1445,8 +1457,9 @@ int run_exploration(
             const auto row = static_cast<std::int32_t>(
                 session.coordinate_b) >> 16;
             auto caption =
-                std::wstring(L"Ravenloft - Exploration Preview | Level ") +
-                std::to_wstring(session.level_id) +
+                std::wstring(L"Ravenloft - Exploration Preview | Build ") +
+                executable_source_revision() +
+                L" | Level " + std::to_wstring(session.level_id) +
                 L" | Cell " + std::to_wstring(column) +
                 L"," + std::to_wstring(row) +
                 L" | Facing " + std::to_wstring(session.facing) +
@@ -3081,7 +3094,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     try {
         return run(instance);
     } catch (const std::exception& exc) {
-        const auto text = widen(exc.what());
+        const auto text =
+            widen(std::string(exc.what()) +
+                  "\n\nExecutable source revision: " +
+                  std::string(RLOFT_DEMO_SOURCE_SHA).substr(0, 12) +
+                  "\nA previous build does not include later fixes.");
         MessageBoxW(
             nullptr,
             text.c_str(),
