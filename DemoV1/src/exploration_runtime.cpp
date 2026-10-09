@@ -158,9 +158,20 @@ InventoryWorldDropResult ExplorationRuntime::drop_held_inventory_item(
         throw std::logic_error(
             "inventory drop requires initialized original world");
     }
+    // In the live game, use the original CODE.2 2D5D0 mode-0x190
+    // geometry/control/NPC/player predicate, NOT a guessed caller
+    // rectangle. Keep the explicit probe injection for tests.
+    auto placement=can_place;
+    if(!placement) {
+        placement=[this](std::uint32_t y,std::uint32_t x,
+                         std::uint32_t actor_mode) {
+            return InventoryWorldDropModel::placement_passable_2d5d0(
+                session_,world_,npc_catalog_,y,x,actor_mode);
+        };
+    }
     const auto result=InventoryWorldDropModel::drop(
         world_,session_,inventory_,object_catalog_,renderer_tables_,
-        can_place,inventory_drop_c02f_center_fraction_);
+        placement,inventory_drop_c02f_center_fraction_);
     if(result.status==InventoryWorldDropStatus::Dropped)
         ++world_scene_revision_;
     return result;
