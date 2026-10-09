@@ -12,7 +12,7 @@ public sealed class DosMzImage
     private readonly BinaryArtifact _original;
     private DosMzImage(BinaryArtifact artifact, int imageStart, int imageLength,
         int declaredFileBytes, ushort cs, ushort ip, ushort ss, ushort sp,
-        IReadOnlyList<DosMzRelocation> relocations)
+        IReadOnlyList<DosMzRelocation> relocations, bool isLauncherStub)
     {
         _original = artifact;
         LoadImageFileOffset = imageStart;
@@ -20,6 +20,7 @@ public sealed class DosMzImage
         DeclaredExecutableFileLength = declaredFileBytes;
         InitialCs = cs; InitialIp = ip; InitialSs = ss; InitialSp = sp;
         Relocations = relocations;
+        IsLauncherStub = isLauncherStub;
     }
 
     public string SourceSha256 => _original.Sha256;
@@ -31,17 +32,32 @@ public sealed class DosMzImage
     public ushort InitialSs { get; }
     public ushort InitialSp { get; }
     public IReadOnlyList<DosMzRelocation> Relocations { get; }
+    public bool IsLauncherStub { get; }
     public bool HasTrailingOverlayData => DeclaredExecutableFileLength < _original.Length;
 
-    public static DosMzImage Load(BinaryArtifact artifact)
+    public static DosMzImage Load(BinaryArtifact artifact) =>
+        LoadCore(artifact, isLauncherStub: false);
+
+    /// <summary>
+    /// Explicitly interpret only the outer DOS MZ declared load module,
+    /// rejecting any declared byte extent overlapping an embedded program.
+    /// It does not identify or decode the protected-mode module.
+    /// </summary>
+    public static DosMzImage LoadLauncherStub(BinaryArtifact artifact) =>
+        LoadCore(artifact, isLauncherStub: true);
+
+    private static DosMzImage LoadCore(BinaryArtifact artifact, bool isLauncherStub)
     {
         ArgumentNullException.ThrowIfNull(artifact);
         var bytes = artifact.Data;
-        // A bound LE/LX/NE/PE module is not to be relabeled as a DOS
-        // real-mode program merely because its wrapper begins with MZ.
         string type = BinaryFormatDetector.Inspect(artifact).FormatId;
-        if (type != "mz")
-            throw new NotSupportedException("A standalone MZ loader requires a DOS MZ header without an identified extended module.");
+        if (!isLauncherStub && type != "mz")
+            throw new NotSupportedException(
+                "Standalone MZ mode rejects nested protected-mode images; use the explicit DOS launcher mode.");
+        if (isLauncherStub && type is not
+            ("le-signature" or "lx" or "ne" or "pe" or "ambiguous-mz-extended"))
+            throw new NotSupportedException(
+                "DOS launcher mode requires a source-backed nested MZ-bound extended module.");
         if (bytes.Length < 0x1C)
             throw new InvalidDataException("Truncated MZ header.");
         ushort Read(int offset) => BinaryPrimitives.ReadUInt16LittleEndian(artifact.Data.Slice(offset, 2));
@@ -54,6 +70,14 @@ public sealed class DosMzImage
         int headerBytes = checked(headerParagraphs * 16);
         if (headerBytes > declared || declared > bytes.Length)
             throw new InvalidDataException("MZ header, declared length, or original file is inconsistent.");
+        if (isLauncherStub)
+        {
+            var nested = MzExtendedModuleLocator.Scan(artifact)
+                .Where(x => x.ModuleOrigin > 0).ToArray();
+            if (nested.Length == 0 || (long)declared > nested.Min(x => x.ModuleOrigin))
+                throw new InvalidDataException(
+                    "Outer DOS MZ declared extent is missing or overlaps a nested extended module.");
+        }
         if (relocationCount != 0 &&
             ((long)relocTable < 0x1C || (long)relocTable + relocationCount * 4 > headerBytes))
             throw new InvalidDataException("MZ relocation table exceeds the declared executable header.");
@@ -71,7 +95,8 @@ public sealed class DosMzImage
         long entry = (long)cs * 16 + ip;
         if (entry >= loadLength)
             throw new InvalidDataException("MZ initial CS:IP has no file-backed instruction byte; manual loader context required.");
-        return new DosMzImage(artifact, headerBytes, loadLength, declared, cs, ip, ss, sp, fixups);
+        return new DosMzImage(artifact, headerBytes, loadLength, declared,
+            cs, ip, ss, sp, fixups, isLauncherStub);
     }
 
     /// <summary>

@@ -64,22 +64,14 @@ public sealed class LeImage
         var b = artifact.Data;
         if (b.Length < 0x40 || U16(b, 0) != 0x5A4D)
             throw new InvalidDataException("Not an MZ executable.");
-        // DOS/4GW-bound executables can embed a second MZ and a nested LE.
-        // Probe candidate MZ headers; require a bounded e_lfanew and LE\0\0 signature.
-        var candidates = new List<(long Module, long Header)>();
-        for (long m = 0; m <= b.Length - 0x40; ++m)
-        {
-            if (b[(int)m] != (byte)'M' || b[(int)m + 1] != (byte)'Z') continue;
-            uint lfanew = U32(b, m + 0x3c);
-            if (lfanew < 0x40 || lfanew > b.Length - m - 4) continue;
-            long h = m + lfanew;
-            if (b[(int)h] == (byte)'L' && b[(int)h + 1] == (byte)'E' &&
-                b[(int)h + 2] == 0 && b[(int)h + 3] == 0)
-                candidates.Add((m, h));
-        }
-        if (candidates.Count != 1)
-            throw new InvalidDataException($"Expected one valid MZ/LE module, found {candidates.Count}; ambiguous and unsupported layouts are not guessed.");
-        var (module, hdr) = candidates[0];
+        // Share generic MZ-bound module offsets with signature detection.
+        // Ambiguous extra modules are not silently ignored by the LE loader.
+        var locations = MzExtendedModuleLocator.Scan(artifact);
+        if (locations.Count != 1 || locations[0].FormatId != "le-signature")
+            throw new InvalidDataException(
+                $"Expected one unambiguous MZ/LE module, found {locations.Count} supported extensions.");
+        long module = locations[0].ModuleOrigin;
+        long hdr = locations[0].HeaderOffset;
         uint pageCount = U32(b, hdr + 0x14);
         uint entryObject = U32(b, hdr + 0x18);
         uint entryOffset = U32(b, hdr + 0x1c);

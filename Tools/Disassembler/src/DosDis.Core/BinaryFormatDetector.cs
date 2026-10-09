@@ -1,5 +1,3 @@
-using System.Buffers.Binary;
-
 namespace DosDis.Core;
 
 /// <summary>
@@ -41,57 +39,32 @@ public static class BinaryFormatDetector
 
         if (bytes.Length >= 2 && bytes[0] == (byte)'M' && bytes[1] == (byte)'Z')
         {
-            // An outer DOS launcher may append an independent MZ-bound
-            // LE/LX/NE/PE module. Never declare the outer header a standalone
-            // 16-bit program merely because its e_lfanew is not usable.
-            // Every candidate must have its OWN MZ at the module origin and
-            // its OWN bounded e_lfanew at module+0x3c.
-            // Recognition is still weaker than a validated format loader.
-            string? detected = null;
-            long moduleStart = -1, extensionAt = -1;
-            int candidates = 0;
-            for (int origin = 0; origin <= bytes.Length - 0x40; origin++)
-            {
-                if (bytes[origin] != (byte)'M' || bytes[origin + 1] != (byte)'Z')
-                    continue;
-                uint relative = BinaryPrimitives.ReadUInt32LittleEndian(
-                    bytes.Slice(origin + 0x3c, 4));
-                if (relative < 0x40 || (ulong)relative + 4 > (ulong)bytes.Length - (uint)origin)
-                    continue;
-                int at = checked(origin + (int)relative);
-                var header = bytes.Slice(at, 4);
-                string? family = header.SequenceEqual("LE\0\0"u8) ? "le-signature" :
-                    header.SequenceEqual("LX\0\0"u8) ? "lx" :
-                    header[0] == (byte)'N' && header[1] == (byte)'E' ? "ne" :
-                    header.SequenceEqual("PE\0\0"u8) ? "pe" : null;
-                if (family is null) continue;
-                candidates++;
-                detected = family;
-                moduleStart = origin;
-                extensionAt = at;
-                if (candidates > 1) break;
-            }
-            if (candidates > 1)
+            // All supported loaders share the same source-backed MZ/extension
+            // geometry. Multiple plausible modules remain ambiguous.
+            var modules = MzExtendedModuleLocator.Scan(artifact);
+            if (modules.Count > 1)
                 return new("ambiguous-mz-extended", "multiple MZ-bound extended headers",
                     0, "not-assumed", "manual-module-selection-required",
                     "Multiple embedded module signatures; do not guess which program is executed.");
-            if (candidates == 1)
+            if (modules.Count == 1)
             {
-                string status = detected switch
+                var module = modules[0];
+                string status = module.FormatId switch
                 {
                     "le-signature" => "le-validation-required",
                     "lx" => "lx-parser-required",
                     "ne" => "ne-parser-required",
                     _ => "pe-parser-required"
                 };
-                string decoder = detected switch
+                string decoder = module.FormatId switch
                 {
                     "le-signature" => "x86-32-candidate",
                     "ne" => "x86-16-candidate",
                     _ => "unknown-until-loader-mapped"
                 };
-                return new(detected!, $"MZ at 0x{moduleStart:X} links to embedded extended header",
-                    extensionAt, decoder, status,
+                return new(module.FormatId,
+                    $"MZ at 0x{module.ModuleOrigin:X} links to embedded extended header",
+                    module.HeaderOffset, decoder, status,
                     "Signature-only identification; object/segment maps need independent validation. " +
                     "The outer DOS launcher is not classified as a standalone executable.");
             }
