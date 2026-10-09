@@ -101,8 +101,12 @@ internal static class Dos16RegisterTransferSmoke
         Check(Is(Dos16WordRegister.BX, 0xFFFD), "SUB of signed imm8 -1 is addition");
         Step(35);
         Check(Is(Dos16WordRegister.BX, 0xFFFD), "83 /7 compare leaves BX intact");
-        Check(Step(38).RegistersInvalidated, "unmodeled JMP kills known state");
-        Check(Step(40).RegistersInvalidated, "RET cannot imply a preserved call context");
+        var jump = Step(38);
+        Check(!jump.RegistersInvalidated && jump.FlagsPreserved &&
+            Is(Dos16WordRegister.BX, 0xFFFD),
+            "byte-verified direct JMP preserves register state");
+        Check(Step(40).RegistersInvalidated,
+            "RET cannot imply a preserved call context");
 
         var valid = graph.Instructions.Single(x => x.Address.Offset == 0x100);
         BadSource(() => Dos16RegisterTransfer.Apply(region,
