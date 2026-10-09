@@ -37,9 +37,10 @@ static void Print(object payload) => Console.WriteLine(JsonSerializer.Serialize(
 
 try
 {
-    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report" or "mz" or "mz-disasm"))
+    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report" or "mz" or "mz-disasm" or "com" or "com-disasm"))
     {
-        Console.Error.WriteLine("Usage: dosdis inspect|mz|mz-disasm|fixups|memory|disasm|analyze|report <file> [options]\n" +
+        Console.Error.WriteLine("Usage: dosdis inspect|mz|mz-disasm|com|com-disasm|fixups|memory|disasm|analyze|report <file> [options]\n" +
+            "COM: explicitly selected headerless mode [--origin 100] (hex); com-disasm [--offset 100] [--count 32]\n" +
             "MZ: verified DOS MZ header/relocations; mz-disasm [--segment 0] [--offset 0] [--count 32] (x86-16 candidates)\n" +
             "Analyze/report: [--seed 1:0x2975C] [--data 1:0x100:0x110] [--include-entry] [--max-instructions 100000] [--relocated]\n" +
             "Analyze: [--max-output 300] [--trace-out decisions.json] [--trace-capacity 512]\n" +
@@ -56,7 +57,7 @@ try
     var catalog = args.Contains("--identity-catalog", StringComparer.Ordinal)
         ? SourceIdentityRegistry.ReadFile(Option(args, "--identity-catalog", "")) : null;
     LeImage? image = null;
-    if (args[0] is not ("mz" or "mz-disasm"))
+    if (args[0] is not ("mz" or "mz-disasm" or "com" or "com-disasm"))
     {
         try { image = LeImage.Load(artifact); }
         catch (InvalidDataException) when (args[0] == "inspect") { /* Identify signature, not fake mapped code. */ }
@@ -85,6 +86,25 @@ try
                 AddressAssumptions = "initial-module-relative-segment;original-unrelocated-bytes",
                 AnalysisStatus = "requested-linear-candidate-unverified",
                 Instructions = mz.Decode(segment, offset, count) });
+        }
+    }
+    else if (args[0] == "com" || args[0] == "com-disasm")
+    {
+        ushort origin = checked((ushort)Hex(Option(args, "--origin", "100")));
+        var com = DosComImage.LoadExplicit(artifact, origin);
+        if (args[0] == "com")
+            Print(new { artifact.Sha256, Format = "headerless-explicit-com-mode",
+                com.Origin, com.FileBackedImageLength,
+                Status = "analyst-assumed-16-bit-origin;no-header-or-relocations" });
+        else
+        {
+            ushort offset = checked((ushort)Hex(Option(args, "--offset",
+                origin.ToString("X", CultureInfo.InvariantCulture))));
+            int count = int.Parse(Option(args, "--count", "32"), CultureInfo.InvariantCulture);
+            Print(new { artifact.Sha256, Format = "headerless-explicit-com-mode",
+                OriginalSourceOrigin = origin, Offset = offset,
+                AnalysisStatus = "requested-linear-candidate-unverified",
+                Instructions = com.Decode(offset, count) });
         }
     }
     else if (args[0] == "inspect")
