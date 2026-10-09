@@ -1,5 +1,36 @@
 # Ravenloft Demo Build v1
 
+## Part 8 continuation — lossless original SAVE.DAT inventory projection
+
+Original shipped `SAVE.DAT` and `CODE.2` hashes have
+been reverified. The new `inventory_save_codec.hpp/.cpp`
+preserves the original SAVE layout while decoding and
+re-encoding inventory-owned data: the 4×0x248 character
+records (including all 21 inventory IDs/known bits and
+Mage spell matrix), held item/known pair, 32 global
+event bytes, 62 variable-width container records and
+four raw container-UI context records. Class-3
+transient-effect count `N` shifts later original offsets
+by `N*0x16`; the codec rejects mis-sized/corrupt input
+rather than using the original zero-effect fixture's
+offsets universally.
+
+The source CODE.2 63rd descriptor remains **unserialized**;
+the unusual state-61/62 object selector is preserved.
+The emitter keeps every non-inventory SAVE byte unchanged,
+including independent clocks, level/world position,
+effect records, roster and charged items. New regression
+cases cover exact roundtrips and 0,3,150 dynamic records.
+This is an **inventory-only byte codec**, not a completed
+native save UI or full world-state load: original container
+open/menu phase restoration, live session integration,
+and complete on-disk SAVE acceptance remain pending.
+**170 registered CTests**, 19 Quick; the new test and
+other current source are NOT Windows build-verified.
+User-requested manual Full build is still deferred.
+Overall source progress remains 56.25%; inventory PARTIAL.
+
+
 ## Part 8 continuation — original Mage scribing messages and IRQ expiry
 
 The original CODE.2 source at `116D5..11798` and
