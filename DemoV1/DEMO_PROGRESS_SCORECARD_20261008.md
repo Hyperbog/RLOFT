@@ -1,5 +1,18 @@
 # Demo v1 — development progress versus formal acceptance
 
+**User-reported near-cardinal first-person sweep crash
+— source-addressing correction (2026-10-08):**
+Original CODE.2 32BF6/32BFA/32C1F and 32C07/32C10/32D09
+confirm flattened cell indices are converted to 16-bit
+byte addresses with SHL and restored with SHR. Native
+`trace_ray` previously applied the SHR again, halving
+both indices and selecting incorrect cells. This explains
+the replayed guard exhaustion and makes prior native
+visibility, occlusion and pixel captures **non-certifying**.
+Both branches are fixed and a source-backed Level 22
+regression added; **current-HEAD Windows build pending**.
+[Root cause and evidence](LEVEL22_SWEEP_CELL_INDEX_CORRECTION_20261008.md).
+
 **High-impact graphical fidelity checkpoint — original CODE.2
 C029 individual-column scene mode (2026-10-08):**
 The native RES3 scene pipeline now supports original source
