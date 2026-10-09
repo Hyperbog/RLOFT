@@ -24,6 +24,7 @@ public:
         const LevelWorldState& world,
         const NpcCatalog& npcs,
         const PlacedSceneCatalog& placed,
+        std::uint32_t current_level_id,
         std::uint32_t coordinate_a,
         std::uint32_t coordinate_b);
 };
