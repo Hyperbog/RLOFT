@@ -560,7 +560,7 @@ public partial class MainWindow : Window
             Filter = "DOSDis project (*.ddproj)|*.ddproj",
             AddExtension = true,
             OverwritePrompt = false,
-            FileName = Path.GetFileNameWithoutExtension(_artifact.Name) + ".ddproj"
+            FileName = ProjectFilePaths.DefaultProjectName(_artifact.Name)
         };
         if (picker.ShowDialog(this) != true) return false;
         var destination = ChooseSaveDestination(picker.FileName, "new project");
