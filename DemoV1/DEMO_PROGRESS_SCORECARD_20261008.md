@@ -1,5 +1,31 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Part 8 — guarded inventory SAVE runtime integration
+
+The source now binds the original-byte `InventorySaveCodec`
+to the initialized `ExplorationRuntime`, importing
+a compatible original SAVE into live actor equipment,
+Mage spell cells, known flags, cursor, 32 story
+flags and 62 persistent containers, and overlaying
+subsequent inventory state onto the original image.
+
+**Compatibility guards:** equal source/world level,
+A/B coordinates, facing and 16.16 time; no saved
+moving/transient effect records; original 6FA0
+contexts entirely inactive; native hand container
+closed. Export also rejects a changed world-scene
+revision. The incomplete full-game save menu is
+not wired to this partial interface.
+
+Existing tests gain positive state capture and
+failure-atomic world mismatch cases. Total CTests
+remain **170**, Quick **19**; all added current
+code is still unbuilt/unexecuted on Windows.
+Engineering milestones remain **56.25%**;
+inventory remains **PARTIAL**. The next Full
+Windows build stays deferred by user request.
+
+
 ## Part 8 — original SAVE inventory read/write byte projection
 
 Original `SAVE.DAT` is 9,288 bytes with 62 persistent
