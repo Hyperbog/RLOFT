@@ -411,6 +411,7 @@ public partial class MainWindow : Window
             "Export privacy options", MessageBoxButton.YesNoCancel,
             MessageBoxImage.Question, MessageBoxResult.No);
         if (bytesChoice == MessageBoxResult.Cancel) return;
+        string destination = picker.FileName; // UI-thread snapshot before worker dispatch
         FlowAnalysisResult graph = _graph ?? throw new InvalidOperationException("No analysis to export.");
         BinaryArtifact artifact = _artifact ?? throw new InvalidOperationException("Original source is not open.");
         LeImage image = _image ?? throw new InvalidOperationException("LE object map is not available.");
@@ -423,7 +424,7 @@ public partial class MainWindow : Window
                 // guessed game name or an absolute local source path.
                 var provenance = SourceProvenance.ForArtifact(artifact, image);
                 var gaps = ExecutableGapAnalysis.Analyze(graph, image);
-                AnalysisReportExport.WriteNew(picker.FileName, graph,
+                AnalysisReportExport.WriteNew(destination, graph,
                     json, bytesChoice == MessageBoxResult.Yes, provenance, gaps);
             });
             Trace(DiagnosticStage.AnalysisReportExported);
