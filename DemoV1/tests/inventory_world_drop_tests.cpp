@@ -2,6 +2,7 @@
 #undef NDEBUG
 #endif
 #include "rloft/inventory_world_drop.hpp"
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -176,10 +177,10 @@ int main() {
     assert(world.loose_items.back().object_type_id==53U);
     assert(result.loose_item_index==299U);
 
-    // The extra original 21880 item0x89 event returns immediately
-    // outside Level16. Therefore an item0x89 drop on Level22 behaves
-    // as an ordinary drop. On Level16 its four-position/flag check
-    // is still bounded rather than omitted.
+    // CODE.2 21880 only enters the special 4-site check on
+    // Level16. It returns immediately elsewhere; non-completing
+    // Level16 drops are also ordinary, while the fourth seed
+    // needs 13EF8(8) and 15050(0x73) effects.
     s.level_id=22U;
     inventory.held={0x89,1U};
     result=rloft::InventoryWorldDropModel::drop(
@@ -192,11 +193,127 @@ int main() {
     inventory.held={0x89,1U};
     const auto before_special=world.loose_items.size();
     result=rloft::InventoryWorldDropModel::drop(
-        world,s,inventory,definitions,tables,{});
+        world,s,inventory,definitions,tables,
+        [](std::uint32_t,std::uint32_t,std::uint32_t){
+            return false;});
+    assert(result.status==rloft::InventoryWorldDropStatus::Dropped);
+    assert(world.loose_items.size()==before_special);
+    assert(world.loose_items.back().object_type_id==0x89U);
+    assert(inventory.held.object_id==-1);
+
+    // Original object-1 logical 0x207E0 8-byte source table:
+    // 0D 13, 0B 15, 0D 17, 0F 15. 218DB checks high
+    // 16 bits of each family-C object's X then Y, and
+    // requires all FOUR distinct source locations.
+    auto ritual_session=session();
+    ritual_session.level_id=16U;
+    ritual_session.level.width=32;
+    ritual_session.level.height=32;
+    ritual_session.level.cell_words.assign(1024U,0U);
+    ritual_session.persistent_event_flags.fill(0U);
+    rloft::LevelWorldState ritual_world{};
+    const auto seed_at=[](std::uint16_t x,std::uint16_t y,
+                          std::uint16_t id=0x89U,
+                          std::uint16_t low_x=0U,
+                          std::uint16_t low_y=0U) {
+        rloft::LiveObjectRecord obj{};
+        obj.object_type_id=id;
+        obj.x_position_16_16=
+            (static_cast<std::uint32_t>(x)<<16U)|low_x;
+        obj.y_position_16_16=
+            (static_cast<std::uint32_t>(y)<<16U)|low_y;
+        return obj;
+    };
+    using SeedStatus=rloft::Level16SeedRitualStatus;
+    using SeedModel=rloft::Level16SeedRitualModel;
+    auto ritual=SeedModel::evaluate_21880(
+        ritual_session,ritual_world);
+    assert(ritual.status==SeedStatus::MissingSeed);
+    assert(ritual.present==
+        (std::array<bool,4>{{false,false,false,false}}));
+    // Fractions are irrelevant. Wrong object class and duplicate
+    // seed at a single site cannot satisfy a different site.
+    ritual_world.loose_items.push_back(
+        seed_at(13U,19U,0x89U,0xBAADU,0xC0DEU));
+    ritual_world.loose_items.push_back(seed_at(13U,19U));
+    ritual_world.loose_items.push_back(seed_at(11U,21U,0x8AU));
+    ritual=SeedModel::evaluate_21880(
+        ritual_session,ritual_world);
+    assert(ritual.status==SeedStatus::MissingSeed);
+    assert(ritual.present==
+        (std::array<bool,4>{{true,false,false,false}}));
+    ritual_world.loose_items.push_back(seed_at(11U,21U));
+    ritual_world.loose_items.push_back(seed_at(13U,23U));
+    ritual=SeedModel::evaluate_21880(
+        ritual_session,ritual_world);
+    assert(ritual.status==SeedStatus::MissingSeed);
+    assert(ritual.present==
+        (std::array<bool,4>{{true,true,true,false}}));
+    const auto final_seed=seed_at(15U,21U,0x89U,0x8000U,0x1234U);
+    ritual=SeedModel::evaluate_21880(
+        ritual_session,ritual_world,&final_seed);
+    assert(ritual.status==SeedStatus::ReadyForSourceActions);
+    assert(ritual.present==
+        (std::array<bool,4>{{true,true,true,true}}));
+    assert(ritual.kEventBit==0x44U);
+    assert(ritual.kFirstFollowOnArg==8U);
+    assert(ritual.kSecondFollowOnArg==0x73U);
+    // The predicate alone NEVER changes the 0x44 story flag.
+    assert(ritual_session.persistent_event_flags[0x44U/8U]==0U);
+
+    // 2195C must avoid committing the fourth seed because its
+    // cinematic/level-effect dispatcher is not implemented yet.
+    // The first three source sites already contain seeds.
+    ritual_session.coordinate_a=0x000F8000U;
+    ritual_session.coordinate_b=0x00158000U;
+    rloft::InventoryRuntimeState ritual_inv{};
+    ritual_inv.held={0x89,1U};
+    const auto before_ritual=ritual_world.loose_items.size();
+    result=rloft::InventoryWorldDropModel::drop(
+        ritual_world,ritual_session,ritual_inv,definitions,tables,
+        [](std::uint32_t,std::uint32_t,std::uint32_t){
+            return false;});
     assert(result.status==
         rloft::InventoryWorldDropStatus::SourceSpecialActionPending);
-    assert(world.loose_items.size()==before_special);
-    assert(inventory.held.object_id==0x89);
+    assert(ritual_world.loose_items.size()==before_ritual);
+    assert(ritual_inv.held.object_id==0x89);
+    assert(ritual_inv.held.known==1U);
+    // Setting bit 0x44 reproduces original 2189F early
+    // return: an ordinary fourth seed drop is then allowed.
+    ritual_session.persistent_event_flags[0x44U/8U]=
+        static_cast<std::uint8_t>(1U<<(0x44U%8U));
+    ritual=SeedModel::evaluate_21880(
+        ritual_session,ritual_world,&final_seed);
+    assert(ritual.status==SeedStatus::AlreadyFlagged);
+    result=rloft::InventoryWorldDropModel::drop(
+        ritual_world,ritual_session,ritual_inv,definitions,tables,
+        [](std::uint32_t,std::uint32_t,std::uint32_t){
+            return false;});
+    assert(result.status==rloft::InventoryWorldDropStatus::Dropped);
+    assert(ritual_world.loose_items.size()==before_ritual+1U);
+    assert(ritual_inv.held.object_id==-1);
+
+    // 2195C evicts the earliest loose-object record when full
+    // BEFORE calling 21880. The pure candidate audit models
+    // that behavior rather than counting an evicted seed.
+    ritual_session.persistent_event_flags.fill(0U);
+    rloft::LevelWorldState crowded{};
+    crowded.loose_items.push_back(seed_at(13U,19U));
+    for(std::size_t i=1U;i<0x12CU;++i)
+        crowded.loose_items.push_back(seed_at(4U,4U,0x20U));
+    crowded.loose_items[1U]=seed_at(11U,21U);
+    crowded.loose_items[2U]=seed_at(13U,23U);
+    ritual=SeedModel::evaluate_21880(
+        ritual_session,crowded,&final_seed,true);
+    assert(ritual.status==SeedStatus::MissingSeed);
+    assert(!ritual.present[0U]);
+    ritual=SeedModel::evaluate_21880(
+        ritual_session,crowded,&final_seed,false);
+    assert(ritual.status==SeedStatus::ReadyForSourceActions);
+    ritual_session.level_id=22U;
+    ritual=SeedModel::evaluate_21880(
+        ritual_session,crowded,&final_seed);
+    assert(ritual.status==SeedStatus::NotLevel16);
 
     // Invalid/outside-level and unknown objects must be rejected without
     // consuming the cursor or discarding the oldest world object.
