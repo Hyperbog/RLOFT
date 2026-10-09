@@ -1,0 +1,82 @@
+{
+    "buildId": "52095461861559797",
+    "clientId": "51260262349250162",
+    "gameId": "1432649588",
+    "language": "English",
+    "languages": [
+        "en-US"
+    ],
+    "name": "Gateway to the Savage Frontier",
+    "playTasks": [
+        {
+            "arguments": "-conf \"..\\dosbox_gateway.conf\" -conf \"..\\dosbox_gateway_single.conf\" -noconsole -c \"exit\"",
+            "category": "game",
+            "isPrimary": true,
+            "languages": [
+                "*"
+            ],
+            "name": "Gateway to the Savage Frontier",
+            "path": "DOSBOX\\dosbox.exe",
+            "type": "FileTask",
+            "workingDir": "DOSBOX"
+        },
+        {
+            "arguments": "1432649588",
+            "category": "tool",
+            "languages": [
+                "*"
+            ],
+            "name": "Graphic Mode Setup",
+            "path": "DOSBOX\\GOGDOSConfig.exe",
+            "type": "FileTask",
+            "workingDir": "DOSBOX"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "link": "http://www.gog.com/support/forgotten_realms_the_archives_collection_two",
+            "name": "Support",
+            "type": "URLTask"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "name": "Manual",
+            "path": "Rulebook.pdf",
+            "type": "FileTask"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "name": "Cluebook",
+            "path": "Cluebook.pdf",
+            "type": "FileTask"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "name": "Adventurer's Journal",
+            "path": "Journal.pdf",
+            "type": "FileTask"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "name": "Protection Codes",
+            "path": "passwords.pdf",
+            "type": "FileTask"
+        }
+    ],
+    "rootGameId": "1432649588",
+    "version": 1
+}

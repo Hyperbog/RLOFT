@@ -1,0 +1,91 @@
+{
+    "buildId": "52095402405777333",
+    "clientId": "51260260863415873",
+    "gameId": "1432642138",
+    "language": "English",
+    "languages": [
+        "en-US"
+    ],
+    "name": "Curse of the Azure Bonds",
+    "playTasks": [
+        {
+            "arguments": "-conf \"..\\dosbox_coab.conf\" -conf \"..\\dosbox_coab_single.conf\" -noconsole -c \"exit\"",
+            "category": "game",
+            "isPrimary": true,
+            "languages": [
+                "*"
+            ],
+            "name": "Curse of the Azure Bonds",
+            "path": "DOSBOX\\dosbox.exe",
+            "type": "FileTask",
+            "workingDir": "DOSBOX"
+        },
+        {
+            "arguments": "1432642138",
+            "category": "tool",
+            "languages": [
+                "*"
+            ],
+            "name": "Graphic Mode Setup",
+            "path": "DOSBOX\\GOGDOSConfig.exe",
+            "type": "FileTask",
+            "workingDir": "DOSBOX"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "link": "http://www.gog.com/support/forgotten_realms_the_archives_collection_two",
+            "name": "Support",
+            "type": "URLTask"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "name": "Manual",
+            "path": "Manual.pdf",
+            "type": "FileTask"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "name": "Cluebook",
+            "path": "Cluebook.pdf",
+            "type": "FileTask"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "name": "Adventurer's Journal",
+            "path": "Adventurers Journal.pdf",
+            "type": "FileTask"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "name": "Quick Reference Card",
+            "path": "Quick Reference Card.pdf",
+            "type": "FileTask"
+        },
+        {
+            "category": "tool",
+            "languages": [
+                "*"
+            ],
+            "name": "Codewheel",
+            "path": "codewheel.exe",
+            "type": "FileTask"
+        }
+    ],
+    "rootGameId": "1432642138",
+    "version": 1
+}

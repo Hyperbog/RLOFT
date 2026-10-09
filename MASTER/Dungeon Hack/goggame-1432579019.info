@@ -1,0 +1,55 @@
+{
+    "buildId": "52095439896910389",
+    "clientId": "49014013753449729",
+    "gameId": "1432579019",
+    "language": "English",
+    "languages": [
+        "en-US"
+    ],
+    "name": "Dungeon Hack",
+    "playTasks": [
+        {
+            "arguments": "-conf \"..\\dosbox_dhack.conf\" -conf \"..\\dosbox_dhack_single.conf\" -noconsole -c \"exit\"",
+            "category": "game",
+            "isPrimary": true,
+            "languages": [
+                "*"
+            ],
+            "name": "Dungeon Hack",
+            "path": "DOSBOX\\dosbox.exe",
+            "type": "FileTask",
+            "workingDir": "DOSBOX"
+        },
+        {
+            "arguments": "1432579019",
+            "category": "tool",
+            "languages": [
+                "*"
+            ],
+            "name": "Graphic Mode Setup",
+            "path": "DOSBOX\\GOGDOSConfig.exe",
+            "type": "FileTask",
+            "workingDir": "DOSBOX"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "link": "http://www.gog.com/support/forgotten_realms_the_archives_collection_three",
+            "name": "Support",
+            "type": "URLTask"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "name": "Manual",
+            "path": "Manual.pdf",
+            "type": "FileTask"
+        }
+    ],
+    "rootGameId": "1432579019",
+    "version": 1
+}

@@ -1,0 +1,73 @@
+{
+    "buildId": "52095466796673263",
+    "clientId": "51260261365317933",
+    "gameId": "1432640506",
+    "language": "English",
+    "languages": [
+        "en-US"
+    ],
+    "name": "Hillsfar",
+    "playTasks": [
+        {
+            "arguments": "-conf \"..\\dosbox_hillsfar.conf\" -conf \"..\\dosbox_hillsfar_single.conf\" -noconsole -c \"exit\"",
+            "category": "game",
+            "isPrimary": true,
+            "languages": [
+                "*"
+            ],
+            "name": "Hillsfar",
+            "path": "DOSBOX\\dosbox.exe",
+            "type": "FileTask",
+            "workingDir": "DOSBOX"
+        },
+        {
+            "arguments": "1432640506",
+            "category": "tool",
+            "languages": [
+                "*"
+            ],
+            "name": "Graphic Mode Setup",
+            "path": "DOSBOX\\GOGDOSConfig.exe",
+            "type": "FileTask",
+            "workingDir": "DOSBOX"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "link": "http://www.gog.com/support/forgotten_realms_the_archives_collection_two",
+            "name": "Support",
+            "type": "URLTask"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "name": "Manual",
+            "path": "Manual.pdf",
+            "type": "FileTask"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "name": "Cluebook",
+            "path": "Cluebook.pdf",
+            "type": "FileTask"
+        },
+        {
+            "category": "tool",
+            "languages": [
+                "*"
+            ],
+            "name": "Codewheel",
+            "path": "Codewheel.exe",
+            "type": "FileTask"
+        }
+    ],
+    "rootGameId": "1432640506",
+    "version": 1
+}

@@ -1,0 +1,3363 @@
+
+Advanced Dungeons & Dragons <TM> Unlimited Adventures
+Designer's Guide Supplement
+A Technical Manual for Adventure Design
+
+by Scott D. Gries and MicroMagic Inc.
+
+Copyright 1993 Strategic Simulations, Inc. All Rights Reserved.
+Unlimited Adventures is Copyright 1993 Strategic Simulations, Inc.
+
+
+AUTHOR'S NOTES
+
+GENERAL NOTES AND ERRATA
+This Supplement is meant as an addition to the documentation which
+comes with Unlimited Adventures, not a replacement for it.  Many basic
+features, as well as tutorials, are included in the original
+Designer's Guide and are not discussed here.
+
+There are several pre-drawn dungeon maps included in the Heirs to
+Skull Crag adventure.  Look at the end of the module list for
+additional maps not used in the adventure.  These modules all have
+names beginning with an asterisk (*).
+
+On the IBM version, display access will not always display correctly.
+
+Some sprites and pictures are permanently associated with a monster,
+and share that monster's name.  Such images can only be renamed in the
+monster editor, not in the art gallery.  The sprite "BLACK PUDDING"
+cannot be renamed in the second tutorial of the chapter entitled
+"Customizing Art".  Simply press LEAVE and select "PICTURES", the try
+renaming a picture such as "BIT O' MOANDER".
+
+Throughout this supplement, references are made to which artwork can
+be chosen for various options.  In all cases, COMBAT ICONS are not
+available for these choices.  Combat icons only appear during actual
+combat, and cannot be displayed at any other time.
+
+NOTATION
+All text which appears in UA is shown in capital letters.  Buttons
+which lead to choices are surrounded by square brackets.  For short
+lists of options or ranges of values, all options are shown within the
+same square brackets.  Different choices are separated by slashes. 
+Examples:
+
+STARTING EQUIPMENT [AVERAGE]
+DISTANCE [UP CLOSE/NEARBY/FAR AWAY]
+
+Options with an On/Off button are designated with asterisks. Example:
+
+* DO EVENT ONLY ONCE
+* EXECUTE EVENT AT DESTINATION
+
+Where a numerical range is possible, the range is given between square
+brackets. Example:
+
+HEIGHT/WIDTH [11 TO 50]
+
+
+CREATE NEW DESIGN (GAME SETTINGS)
+
+The Create New Design and Game Settings options are virtually
+identical.  All options within are the same.  The main difference is
+that the first option will let you create a brand new design, while
+the second only lets you edit the primary characteristics of an
+existing design.
+
+PAGE 1
+ADVENTURE DESIGN NAME
+Type the full name as the PLAYER will see it. If you are creating a
+new design (as opposed to just editing Game Settings), UA will
+automatically make a directory name which fits (if a similar name
+exists, it alters enough letters to make it unique).
+
+THE ADVENTURE BEGINS IN [Dungeon 01] AT ENTRY POINT [1 to 8].
+Select one of 36 dungeons or 4 overland areas in which to start. A
+starting entry point (as opposed to a coordinate location) must be
+designated.
+
+EACH PARTY MEMBER STARTS WITH
+[0 to 30 million] EXPERIENCE POINTS
+STARTING EQUIPMENT [none to +4]
+PLATINUM [0 to 5000]
+Gems [0 to 5000]
+Jewelry [0 to 5000]
+
+Experience points determine the starting level of each new character
+(multi-class characters have their experience divided by the number of
+classes before figuring out the starting level). Platinum, Gems, and
+Jewelry determine starting wealth. The equipment that a party starts
+with is determined by the option selected.  The possible options for
+Starting Equipment are None, Poor, Modest, Average, Prosperous, and +1
+through +4.  Note that no magic items at ALL are given (even to magic
+users/clerics) until the +1 Equipment level.  For a complete list of
+the items each character class receives at each setting, see Appendix
+A.
+Protection Password
+This will cause your adventure to become LOCKED.  Once this is done,
+the only way someone (including you) can modify (select any of the
+right hand buttons) the game is by entering the same password. For
+convenience, a designer should avoid using this feature until the
+adventure is completed.
+
+PAGE 2
+Keys in Special Inventory
+These are item names for special keys used to in getting through
+various locked doors (or opening special chests, etc.) in the game.
+They never actually exist as items in a character's ITEM inventory,
+but are listed in the party inventory (shown by selecting INV at the
+main menu in the game). They don't even necessarily have to be called
+"keys" - that's just a convenient reference.
+
+PAGE 3
+Other Special Inventory Items
+Similar to the keys above, but in a more generic manner. These are
+"Quest" items which can be checked for in various EVENTS. As with the
+keys, the actual names are up to you (samples are shown as defaults).
+
+
+ART GALLERY
+
+Unlimited Adventures comes with a substantial library of artwork,
+including some animation, for use in adventures.  To enhance this
+aspect of the game and allow designers to truly customize their
+adventures, new artwork can be imported to replaced unused pictures. 
+UA specifically supports art drawn in Electronic Arts' DeluxePaint IIª
+and ZSoft's PC Paintbrushª.  Artwork from other programs may work as
+well.
+
+DRAWING ART FOR IMPORT
+On the IBM-PC, all art must be drawn in 256 color mode.  Many programs
+default to a 16 color mode.  Make sure your paint program is in a 256
+color mode.
+
+Palette cycling can only be specified in DeluxePaint II.  All color
+cycles you set up in the paint program will be used.  Cycling only
+works on PICs and BIGPICs.
+
+To be able to import color art on the Macintosh version, you must set
+the amount of memory for the program to 2000.  Use the Get Info
+command in the Finder to set this number.  Macintosh color art can be
+drawn in any program that will save a picture as a PICT file.  For
+PICs and CPICs, any color close to the transparent color in shade will
+become transparent.  Macintosh Mono art can be drawn in any program
+that will save as a MacPaint file.
+
+Imported art will not transfer correctly between the IBM-PC version
+and the Mac version.  The remainder of a design and all saved
+characters and games are transferable.
+
+There are nine types of art which can appear in UA.  Each has a
+predetermined number of slots in the Art Gallery.  Most of the images
+can be replaced by Importing, but the total number of slots can never
+be changed.
+
+PICTURE (155 slots) - Usually shown as NPC pictures, Towns, Towers,
+and similar small graphic images.
+
+SPRITE (38 slots) - These are usually a collection of three monster
+images.  When displayed in the game (especially in an encounter with
+Auto Approach turned on), the monsters appear to be charging the
+party.
+
+COMBAT ICON (127 slots) - These icons appear during combat sequences
+and represent monsters and NPCs.  There are always two icons in a set
+- the monster at "Ready" and the monster taking "Action."
+
+BIG PICTURE (8 slots) - The showpieces of the Art Gallery, these
+images take up the upper half of the screen.
+
+OVERLAND MAP (5 slots) - All travel outside of dungeons takes place on
+one of these maps, which also takes up the top half of the screen.
+
+DUNGEON (5 slots) - These are the wall styles shown in non-outdoor
+combat.
+
+WILDERNESS (4 slots) - These styles determine the combat surroundings
+in outdoor combat.
+
+WALL SET (16 slots) - Each wall set contains up to 5 images for use in
+dungeon modules.  Up to three wall sets can be used in any single
+module.
+
+BACKDROP (19 slots) - Backdrops are used in dungeon modules as the
+floor and "ceiling" against the wall sets in the 3-D view.
+
+Note that the Dungeon, Wilderness, Wall Set, and Backdrop graphics
+cannot be changed.  The Import option is removed when viewing these
+pictures.
+
+
+ART TEMPLATES
+UA includes several templates, in both PCX and LBM format, for use in
+importing artwork.  The templates, or copies of them, must be used for
+the new artwork -- UA uses portions of the templates to determine the
+size and shape of the imported art.  Note that the PCX template for
+COMBAT ICONs which come with version 1.0 is bad.  The LBM template can
+be converted using any program which performs a LBM->PCX conversion. 
+Additionally, a correct PCX template can be downloaded from the
+Unlimited Adventures area on America Online (keyword: UA).
+
+The templates included are (in both LBM and PCX format -- see note
+above):
+DRAWBPIC - For Big Picture artwork
+DRAWCPIC - For Combat Icon artwork
+DRAWPIC - For Picture artwork
+DRAWSPRITE - For Sprite artwork
+
+Two sample templates, TOWN.LBM and TOWN.PCX, are also included for use
+in the Designer's Guide tutorial.
+
+MONSTER EDITOR
+
+As mentioned in the Designers book, there are exactly 127 available
+slots for Monsters and ALL slots are currently filled. To create a new
+monster or NPC, you will need to edit an existing slot.  Those wishing
+to share their monster designs can find altered monsters in the
+appropriate DSN directory labeled MONST###.DAT. While you cannot
+directly (from DOS) copy monsters from one design to another (you can
+- but it doesn't change the monster name within the design), you could
+put together an "adventure" which exists purely as a holder for edited
+monsters (no Module designs) and upload a zipped version of that
+directory for other designers to copy.
+
+COPY
+Prompts you to select another design. Once there, you get a list of
+all monsters in that design.  When you COPY a monster, it copies over
+ALL the data for that monster EXCEPT for the battle icon (and any
+other images associated - see ART GALLERY for a discussion on changing
+images), including the name. As with edited or renamed monsters,
+selecting DEFAULT returns it to the normal state.
+
+RENAME
+Renames the highlighted monster.
+
+EDIT
+There are three types of monsters you can edit. Regular (most of
+them), "Complex" (called "big" monsters in the Designer's Guide -
+those with a "*" to the left of their name), and NPCs (which have a #
+in their name). Regular and Complex monsters will be discussed
+together, since there are few differences. NPCs will be discussed
+separately.
+
+EDITING REGULAR AND COMPLEX MONSTERS
+PAGE 1
+Name
+Acts just like the RENAME command to change the name of the selected
+monster.
+
+RACE
+Either a player race or "monster." The race has little effect on the
+functioning of a monster, as the racial characteristics of the player
+races are embodied in various monster effects and monsters are not
+subject to race/class level limitations.  Note that monsters of race
+"monster" are not vulnerable to "Hold Person" and "Charm Person"
+spells.
+
+GENDER
+Male or Female. No functional effect. (There are no spells or effects
+which affect only one gender or the other.)
+
+ALIGNMENT
+One of the 9 game alignments. This will not affect whether a monster
+is an ENEMY or not, but gives immunity or vulnerability to certain
+spells and effects in the game. (Protection vs. Good/Evil, etc.)
+
+CLASS
+One of 15 selections. This primarily affects the monster's saving
+throw tables and some other resistances, as appropriate. (It is NOT
+used to calculate THAC0; that must be manually set later.) The player
+is unaware of what the class is, so impossible combinations in AD&D
+(e.g., Gnome Paladin) are possible here. Note: monsters of class MAGE
+will not move during combat.
+
+HIT POINTS [1 to 255]
+
+AGE [1 to 1200]
+The only material effect of age is that "haste" spells or Potions of
+Speed may cause monsters to die of old age.
+
+MAGIC RESISTANCE [0 to 100]
+Number indicates percent.  Magic Resistance is determined BEFORE
+saving throws. If a monster makes its Magic Resistance roll, it
+suffers no effects at ALL from a specific spell. If it fails, then
+regular saving throws are applied.  Magic Resistance is specified for
+spells cast by an 11th level character; each level the caster is
+higher or lower than 11th modifies the magic resistance by 5%.
+
+LEVEL [0 to 40]
+Non-editable. This is the highest class level from Page 2. Included
+here for reference only.
+
+Stats
+All stats range from 3-30 (18 is the normal human maximum). The
+percentage (0 to 100) behind the Strength statistic only applies if
+the strength is exactly 18. Stats higher than 18 can produce enhanced
+effects (more spells, lower AC, etc.) based on the stat so raised.
+
+PAGE 2
+LEVEL [0 to 40]
+This affects things like the number and type of spells possible to
+memorize.  Note that you can put visual contradictions here. For
+example, you may have a monster defined as a "Thief" on the previous
+page, but give it some level of ability as a Mage and/or Cleric which
+gives it some spell-casting ability (perhaps for a new race of
+creatures which are not literally mages, but can all cast Shocking
+Grasp several times a day).
+
+Misc Options
+The party gets [0 to 65000] experience when monster is killed.
+This is PER creature involved, so be sure to avoid unbalancing the
+game this way.
+
+UNDEAD TYPE [NOT UNDEAD through SPECIAL]
+This does not change the monster's literal abilities, but anything
+except "Not Undead" may allow a Cleric or Paladin to TURN the monster,
+causing it to flee or be destroyed. ("Special" undead are a class
+almost impossible to TURN, even under normal circumstances.)
+
+PAGE 3
+ATTRIBUTE OPTIONS
+Multiple, even contradictory (e.g., Mammal and Snake) options may be
+selected.
+
+Form
+* MAMMAL
+Indicates whether the monster is vulnerable to the second level Druid
+Spell "Charm Person or Mammal."
+
+* ANIMAL
+Determines whether the monster is susceptible to the first level Druid
+spell "Invisibility to Animals."
+
+* SNAKE
+Determines whether the monster is vulnerable to the second level
+Clerical spell "Snake Charm."
+
+* TRUE GIANT
+Indicates whether the monster takes extra damage from a Long Sword vs
+Giants.
+
+* LARGE EVEN IF ICON 1 BY 1
+Monster receives weapon damage based on the "Large" column on the
+damage table.  All monsters with wide, tall, or big icons are
+automatically considered larger than man-sized.
+
+Penalties
+
+* DWARF AC
+Indicates that creatures with the effect "Dwarf AC bonus" (e.g.
+dwarves) get an AC bonus of +4 when attacked by the monster.
+
+* GNOME AC
+Indicates that creatures with the effect "Gnome AC bonus" (e.g.
+gnomes) get an AC bonus of +4 when attacked by the monster.
+
+* DWARF THAC0
+Indicates that creatures with the effect "Dwarf THAC0 +1" (e.g.
+dwarves) get a THAC0 bonus of +1 when attacking the monster.
+
+* GNOME THAC0
+Indicates that creatures with the effect "Gnome THAC0 +1" (e.g.
+gnomes) get a THAC0 bonus of +1 when attacking the monster.
+
+* RANGER DAMAGE
+Indicates that creatures with the effect "Ranger Gnt Bonus" (e.g.
+rangers) get a damage bonus equal to their ranger levels whenever they
+hit the monster.
+
+IMMUNE TO
+
+* POISON
+Indicates that the monster is immune to poison, including "stinking
+cloud".
+
+* DEATH
+Indicates that the monster is immune to all death magic, including
+"Cloudkill."
+
+* CONFUSION
+Indicates that confusion wands, spells, and gazes have no effect on
+the monster.
+
+* VORPAL SWORDS
+Indicates that the monster cannot be decapitated by a vorpal blade.
+
+MISC OPTIONS
+
+* MAY BE HELD OR CHARMED
+Indicates that the monster is vulnerable to charm or hold spells. 
+Note that the monster is also invulnerable to "Hold Person" spells if
+it is of race "monster"; only humans and similar races are susceptible
+to "Hold Person."
+
+* AFFECTED BY DISPEL EVIL
+Indicates that the monster is summoned from another plane of existence
+and may be affected by the fifth level clerical spell "Dispel Evil".
+
+PAGE 4
+MONSTER ATTACKS
+ATTACK TYPE 1
+[0 to 50] BLOWS EVERY 2 ROUNDS
+OF [0 to 50] [1 to 99] SIDED DICE + [0 to 99]
+For example, "5 10 sided dice + 6" will cause a damage computation as
+if a 10-sided die was rolled five times, summed up, and then 6 points
+added to the final total. Note that this allows for a maximum damage
+PER ATTACK of 5049 points of damage! Use with care - remember the
+maximum player HP is also 255.
+
+An odd number of blows causes a blow to be skipped (or added) every
+second round. E.g., 3 Blows per 2 rounds causes 1 blow the first
+round, 2 the second, 1 the third, etc.
+
+ATTACK TYPE 2
+This is structured just like Attack Type 1.  This is meant to be the
+monster's secondary attack.  For example, a lion might have Attack
+Type 1 set as 4 blows per 2 rounds (indicating 2 claw attacks each
+single round) and Attack Type 2 set as 2 blows per 2 rounds
+(indicating one bite attack each round).
+
+MORE COMBAT OPTIONS
+BASE THAC0 [-50 to 50] PLUS STR BONUS
+This is the minimum die roll needed to hit a target with Armor Class
+0. The lower the better. Modifications are made for each attack based
+on Strength, and numerous combat circumstances (hit from behind, Held,
+actual AC, etc.) to decide the final chance to hit.
+
+BASE AC [-20 to 20] PLUS DEX BONUS
+The lower the AC, the harder this monster will be to hit. "10" is the
+normal "worst" armor class - comparable to a human wearing street
+clothes (no protection at all).
+
+
+BASE MOVEMENT [0 to 60 (0 to 12 in v1.0)]
+Zero makes a monster stationary. It will not be able to move at all in
+combat.
+
+PAGE 5
+THE MONSTER HAS
+PLATINUM [0 to 65000]
+GEMS [0 to 65000]
+JEWELRY [0 to 65000]
+
+ITEM/REG Note - COMPLEX monsters have 6 total slots of each, compared
+to only 3 slots of each for regular monsters.
+
+ITEM
+These are the items which each monster will have available to it for
+combat. Selections of armor, weapons, and usable miscellaneous magic
+items (Dart of Hornets Nest, wands, etc.) will be used appropriately
+in combat (a +2 Sword will be used for attacks, armor will lower AC).
+It is possible to give a monster an extra item (e.g., a second sword,
+or a potion) in one of these slots to give a standard "treasure" bonus
+for this monster class (avoiding the need for a COMBAT TREASURE
+event).
+
+REG
+For most items, this has no effect.  For items with charges (e.g.,
+wands) or a quantity (e.g., arrows) associated with them this button
+can alter the default amount. "REG" (Regular) means to use the default
+amount (so 10 Arrows will really be 10 arrows). Selecting a number
+forces the quantity or charges to that amount. All wands have 20
+charges as a default value.
+
+PAGE 6
+EFFECT
+Complex monsters can have up to 10 effects. Regular monsters only get
+5.  Individual effects areas are discussed broadly below.  An itemized
+list of each type of effect can be found in Appendix B.
+
+SPELLS
+Affects monster exactly as if the named Clerical or Mage spell had
+been cast immediately before combat started.  However, these effects
+do not wear off over time and cannot be dispelled with "Dispel Magic."
+
+ITEMS
+These effects are automatically placed when the generating items are
+readied by a character; use the effects only when they are inherent in
+a monster (such as "Cloak Displace" for a displacer beast).
+
+PLAY CHARS
+These effects are attributes of various player character races and
+classes.  They must be explicitly given to monsters of those races or
+classes.
+
+DEFENSE BONUSES
+The effects can make monsters more difficult, or even impossible, to
+attack by various means, as well as adding other protective
+capabilities.
+
+ATTACKS
+Some attacks are contingent upon attack #1 hitting or attack #2
+hitting.  Other attacks are conducted independently of normal melee
+attacks.
+
+HAZARDS
+These effects introduce special vulnerabilities to the monsters.
+
+
+MEMORIZED [0 to 140]
+The number of spells currently memorized by this monster.  The monster
+must be at least Level 1 in Magic-User (for Mage spells), Cleric (for
+Cleric Spells), Paladin (for Cleric Spells), and/or Ranger (for Mage
+and Druid spells) to receive certain spells. Class level does NOT
+affect the number of spells or spell-levels permitted to be memorized.
+(E.g, a 1st-level mage can learn 9th-level spells, for example).
+However, be aware that most spells have durations, ranges, and effects
+based on the ACTUAL level of the spell-caster - so low-level mages
+casting high-level spells are either wasting their time (a 1 die
+"Fireball" is good for toasting marshmallows, and not much else) or
+endangering their lives (a 1st level mage cannot cast "Cloudkill" far
+enough away to exclude his breathing space).
+
+
+EDITING NPCS
+If you select to edit an NPC (a monster with a "#" in front of its
+name), you are immediately asked:
+RE-CREATE NPC?  [YES/NO]
+
+Selecting NO (i.e., edit the CURRENT NPC - do not create a new one)
+takes you through the following two pages:
+
+PAGE 1
+The ONLY thing a designer can change on this page is the name of the
+NPC (the only light-grey field). Other fields on this page are
+identical to those of regular monsters, although they are not editable
+at this time (only when creating a new NPC).
+
+PAGE 2
+PLATINUM, GEMS, and JEWELRY are editable as with regular monsters.
+
+ITEMS are also treated the same way except that an NPC can start with
+up to 8 total items (compared to 3 for a regular monster and 6 for a
+complex monster).
+
+SPELLS MEMORIZED [0 to 140]
+This option works the same way as spells for regular monsters.
+
+Selecting YES on the Edit Monster screen indicates that you wish to
+create an entirely new NPC.  (Note that a bug in version 1.0 creates
+NPCs with a very low morale.  The effect of this bug is that NPCs will
+almost always immediately flee or surrender in combat unless
+controlled by a high-level player character.)  You are now asked a
+number of questions:
+
+EXPERIENCE[0 to 99999999]
+This will determine the NPC's level (if multiclass, experience is
+divided by the number of classes before levels are determined). Press
+ENTER when ready.
+
+PICK RACE/ALIGNMENT/GENDER/CLASS
+Same restrictions as if you were creating a regular character.  Select
+DONE when finished on this screen.
+
+REROLL STATS
+Determines the NPC's statistics.  MODIFY is permitted here (didn't
+work in 1.0).  Select DONE when you are satisfied with the NPC's stats
+or EXIT to stop creating a new PC (goes to Page 1 of the "Edit Current
+NPC" series of pages).
+
+CHARACTER NAME
+15 characters permitted, just like regular characters.  The name must
+start with a letter, but numbers can be used elsewhere in it.
+
+TRY TO CHANGE CLASS
+This option only appears if NPC is a Human.  This, if successful, will
+create a Dual-Classed NPC.  Normal Dual-Class restrictions apply.
+PICK NEW CLASS
+Only appears if NPC is Human, YES is chosen for the previous question,
+and the NPC meets AD&D's dual-classed human requirements with his or
+her statistics.  A list of eligible classes will appear.
+
+EXPERIENCE [0 to 99999999]
+If a new class is selected above, the experience earned in that second
+class is required. Note that a dual-classed human does not regain the
+abilities of the original class unless he or she surpasses the old
+class level in the new class, so be sure to assign the original class
+experience low enough that the NPC will be at least one level higher
+in the new class.
+
+PAGES 1 and 2 follow, and are identical in function and appearance to
+the pages which appear if you are only editing an existing NPC.
+
+
+EDIT MODULES
+
+The options described below are all covered in varying degrees of
+detail in the original Designer's Guide.  Extra detail has been added
+where it seems useful.
+
+FILE MENU
+
+OPEN
+Opens a new module (overland or dungeon). If you have not saved your
+current module, you will be prompted to:
+SAVE (and open the new module)
+DON'T SAVE (and open the new module anyway)
+CANCEL (return to the current module).
+
+SAVE
+Saves all changes in the current module to disk, and returns to the
+edit screen.
+
+WRITE TO
+Save the data from this module under one of the other module names
+(effectively duplicating the module).
+
+COPY FROM
+Copy data from another module into the current module (effectively
+duplicating the other module).
+
+REVERT TO SAVED
+Ignore all changes and reload this module from disk.
+
+GLOBAL INFO
+Information changed in here applies to all locations in the current
+module.
+
+PAGE 1
+
+ADVENTURE MODULE NAME
+For the designer's purpose only. Players do not see this name.
+
+HEIGHT/WIDTH [11 to 50]
+(Dungeon modules only) The total area (Height times Width) must be 576
+or less.
+
+* ALLOW AREA VIEW?
+(Dungeon modules only) Selecting this option will allow players to see
+a basic overhead map of the module they are currently traversing.
+
+SUMMONED MONSTER [goblin]
+Determines which monster appears to fight for the party if a mage
+casts the 9th level spell "Monster Summoning."
+
+ZONE NAMES [zone 1 through zone 8]
+Again, only for the designer's viewing. See the Designer's Guide for
+the use of Zones.  Naming them here permits the designer to be able to
+better discern different needs and areas within the modules.
+
+PAGE 2
+(The next two options exist for OVERLAND modules only.)
+
+PICK MAP ART
+Choose one of the five maps available.  (Note that you can import new
+maps.  See ART GALLERY section for a discussion on importing graphics.
+Importing a new map will replace one of the current maps.)
+
+PICK OUTDOOR COMBAT ART FOR EACH ZONE
+One function of Zoning is to allow combat graphics to be altered
+universally. These selections will choose what art is used during
+combat for locations marked as "Outside."
+
+
+(The next three options are for DUNGEON modules only.)
+
+PICK WALL ART SETS
+Selects up to three wall sets (maximum 15 different walls) .  These
+are the pictures seen in the 3-D view by the players.
+
+PICK FLOOR AND CEILING ART
+Select up to four different backdrops.  These are seen in the 3-D view
+against the wall art selected above.
+
+PICK COMBAT ART (Indoor/Outdoor)
+This selects the combat background used (based on whether the current
+zone is Indoors or Outdoors).
+
+PAGES 3 through 6
+
+ZONE MESSAGES 1 through 8
+These are the messages a player will get when attempting to cross into
+either of these zones from any other zone in the module.  (A blank
+text field indicates no indication is given that the player has
+changed zones.)
+
+PAGE 7
+
+DEFINE STEP EVENTS 1-3
+A total of 8 different step events can be defined each module.  A step
+event is, literally, an event which takes place each time the player
+has taken a specified number of STEPS in that particular zone. Steps
+are cumulative - if you take 8 steps in Zone 1 and leave for Zone 2,
+when you return to Zone 1 you continue with step 9.  Definition of
+each step event is the same - you can choose up to 8 different zones
+(and combination) in which that event will occur.  You then choose the
+number of steps until the event is triggered (range - 1 to 50000). 
+You then choose the event type (discussed later).  Note that even
+though only 8 Step Events themselves can be defined, by chaining
+events you can produce far more than 8 ACTUAL events related to player
+steps.
+
+PAGE 8
+
+DEFINE STEP EVENTS 4-6
+As above.
+
+PAGE 9
+
+DEFINE STEP EVENTS 7-8
+As above.
+
+MORE MAP OPTIONS
+
+UNDEAD ARE MORE DIFFICULT TO TURN BY [0 to 250]
+The higher the number, the more difficult clerics will find it to turn
+undead in this module (above 20 is practically impossible for any
+level cleric).
+
+CAMP PICTURE [camp 2]
+This is the picture shown when the party has ENCAMPED.  You can
+actually choose nearly any artwork (except the large pictures),
+although there are three CAMP pictures specifically available.
+
+TREASURE PICTURE [treasure 3]
+As Camp Picture, but this artwork is shown after a successful combat
+encounter when treasure is available.  Two standard Treasure pictures
+are available.
+
+PAGES 10 and 11
+
+DEFINE REST EVENTS FOR ZONES 1-8
+For each zone, a different event can be defined to occur if the party
+attempts to rest.  The options are:
+IN ZONE 1 A [choose event] EVENT HAS A [0 to 100] % CHANCE OF
+OCCURRING EVERY [1 to 250] MINUTES.
+Note that a bug exists in IBM version 1.0 which causes the event to
+occur 100% of the time after the first time period expires.  For
+example, if the event is set to happen 50% of the time every 100
+minutes, then the first 100 minutes a party rests the event actually
+only has a 50% chance of happening.  However, on the 101st minute of
+the rest period, the chance of the event happening becomes 100%.
+
+* CAN'T REST
+Select this to refuse the party any chance of resting in this zone. 
+(The REST and FIX options are removed from the ENCAMP menu.)
+
+PRINT
+Prints out an ASCII map of the module and text from all events in that
+module.  Note that on the IBM version 1.0, only line feeds are sent to
+the printer.  Most printers handle this with no problem.  Others may
+need to be set to automatically include a Carriage Return (CR) with
+each line feed (LF).  This problem is fixed in v1.1.
+
+LEAVE
+Stop editing modules.  If you have not saved your module, you will be
+prompted to do so before exiting to the main screen.
+
+MAP MENU
+
+3-D VIEW
+This option is not available when editing Overland modules.  In
+Dungeon modules, selecting this will switch the screen to a 3-D view
+on the left with a small overhead view on the right.
+
+AREA VIEW
+The only viewing option for Overland modules.  This shows an overhead
+perspective (up to 21 blocks wide by 21 blocks high) of the current
+map (whether Overland or Dungeon).
+
+BLOCK PLACEMENT/WALL PLACEMENT
+Select this function for placing blocks (impassable areas) on an
+overland map.  For Dungeon modules, select this function to place one
+of up to 15 wall pictures. Note that in 3-D mode, placing a Wall only
+places it from the side you on -- in the "inside" of the location, so
+speak -- so that looking into that location from the other side of
+that wall placement will show nothing.  However, placing walls in Area
+mode puts the wall art on both sides of the same location, so that it
+is visible no matter from which direction the party arrives.
+
+BACKDROP PLACEMENT
+Lets you select any of the four backdrops for the locations you
+specify.  When players step into these areas, the appropriate backdrop
+will display above and below the selected walls.
+
+ZONE PLACEMENT
+This lets you define different zone areas within the dungeon.  Zones
+help segment the dungeon into sections so that you can easily modify
+Step and Rest events across a whole area without the need to edit each
+location.  All locations of a single zone do not need to be connected. 
+For example, Zone 8 could be internally called "SAFE REST ZONE" with a
+Rest Event defined for Zone 8 areas as No Event.  Single locations of
+Zone 8 could be scattered throughout the dungeon (in closets and other
+out of the way places) to signify quiet and safe places for the party
+to heal and rememorize spells.
+
+EVENT PLACEMENT
+Allows the placement of events and event chains throughout the module. 
+Individual Events are described at the end of this document.
+
+MOVE THROUGH WALLS
+Only valid in 3-D mode.  When this selection is active (checked), the
+designer can move the mark (yellow arrow) around without consideration
+of the Obstruction status of any location.  This does not affect
+actual game play.
+
+UTILITIES MENU
+
+DISPLAY ACCESS
+Dungeon modules only.  Selecting this shows where a player can travel
+from the current MARK.  Access is color-coded by type (freely
+accessible, locked - key needed, etc.).  Because a recursive,
+memory-constrained algorithm is used to to calculate accessible areas,
+the IBM version may not correctly show access in very large open areas
+or very long corridors.
+
+REPLACE GLOBALLY
+Dungeon modules only.  This function permits wholesale replacing of
+entire wall pictures, backdrops, and zones with a different selection. 
+It is not UNDOable.  You cannot globally replace events.  Select the
+the new art or zone BEFORE choosing "REPLACE GLOBALLY."  After
+selecting the new art and then activating Global replacement, choose
+the art or zone to replace.
+
+CLEAR MODULE
+
+[CLEAR AND RESIZE THE ENTIRE MAP]
+This erases everything from the module and sizes it to the
+specifications entered below.
+
+[CLEAR EVENTS ONLY]
+Leaves all sections of the map untouched, but removes all events
+defined for the module.
+
+NEW HEIGHT/WIDTH [0 to 49]
+Same effect as the Global Info.  Only has an effect if the first
+option is chosen above.
+
+ENTRY POINTS
+Up to 8 entry points can be defined.  These entry points theoretically
+permit shortcuts to be taken with teleports, stairs, and transfer
+module events.  However, with IBM version 1.0 only the TRANSFER MODULE
+event actually uses entry points correctly.  Select a map location,
+then select an entry point from the list which appears.  Entry points
+can only exist in one location at a time, although multiple entry
+points can share the same location (although only the lowest-numbered
+entry point is shown on screen).
+
+PLACE ENTRY POINT
+This places an entry point (from a vertical list) at the MARK's
+current location and facing.  This function is identical to the Entry
+Points option above,  but can be selected in any placement mode.
+
+TEST MODULE
+Loads a party from the SAVE directory into the module AT THE CURRENT
+LOCATION AND FACING OF THE MARK. Note that the manual implies that
+Test Module uses Entry Points to determine where the party is placed. 
+However, this is not the case.  To test the module, place the Mark
+exactly where you wish your test party to be located and then select
+Utilities|Test Module.  You cannot test the destination portion of a
+TRANSFER MODULE event, as you cannot leave the module you are
+currently testing; attempting to do so will simply end the test.
+
+
+EVENTS
+
+There are 35 different types of events in Unlimited Adventures.  With
+creative chaining of events and different definitions, an infinite
+number of event actions can be developed -- only your creativity and
+understanding of the tools available limit the available actions you
+can present to the game player.  As with all other areas described in
+these documents, each event will be presented separately and discussed
+page by page, starting with Page 2.  All events have the exact same
+Page 1 setup, as described below.
+
+Using Event Variables
+There are three kinds of variables: Keys, Items, and Quests.  Only
+keys may be used as conditions for opening specially-locked doors, as
+defined in wall placement.  Only keys and items appear in the party's
+INVentory.  Any type of variable may be used as a condition for an
+event (on Page 1 of the event) or as a quest.  Variables may have
+values from 0 to 255; values may be altered with QUEST, SPECIAL ITEM,
+and UTILITIES events.  For all variables, a value of 0 signifies that
+the party does not possess the variable, while any other values
+signifies that the party possesses it.  This distinction is used both
+in the party's INVentory, and in the page 1 execution options of all
+events.
+
+
+PAGE 1 (All Events)
+Page 1 of all events provides choices for execution and chaining
+criteria; the format of page 1 is the same for all events.  There are
+three separate choices on page 1: whether the event will only happen
+once, or whether it may happen every time the party enters the
+location of the event; the conditions which must be met for the event
+to happen; and the conditions under which the event will chain to the
+next event in sequence (these conditions do not apply to special
+chains from events such as QUEST STAGE or QUESTION-YES/NO).  Note that
+the "do event only once" and "event happens if" choices only determine
+whether the event itself will happen, and not whether a chained event
+will happen.
+
+The "chain control" options allow you to specify whether an event will
+always chain, or whether it will only chain if the event control
+conditions allowed (or did not allow) the event to happen.  Note that
+in an event which always goes to a special chain if the event happens,
+such as an ENCOUNTER event, the normal chain may only be reached if
+the event control conditions prevent the event from happening.  These
+conditions may also be superseded in a QUEST STAGE event; such an
+event will always chain to the standard chain if the selected quest is
+not at the indicated stage.  The chain control options also allow you
+to select the type of event you wish to chain to (if any) in the
+standard chain.
+
+EVENT CONTROL
+
+* DO EVENT ONLY ONCE
+If this option is selected, the event will only happen a single time
+during game play, and never again.
+
+EVENT HAPPENS IF...
+
+[ALWAYS HAPPENS]
+No criteria is applied.  If the party reaches this point in the chain,
+this event will always occur.
+
+[PARTY HAS SPECIAL ITEM]
+Activates "Item/Quest" option described below. This item must be in
+the party's possession in order for the event to happen.
+
+[PARTY DOESN'T HAVE SPECIAL ITEM]
+As above, except the event only happens if the party does NOT have the
+item defined in Item/Quest.
+
+[DAY TIME]
+Event only occurs during daytime hours (6 AM to 8 PM).
+
+[NIGHT TIME]
+As above, but only occurs from 8 PM to 6 AM.
+
+[RANDOM PERCENT CHANCE]
+Activates the "Percent Change" option described below.  Each time this
+part of the event chain is reached, a random number from 1 to 100 is
+compared against the value given below.  If the random number is equal
+to or below the number specified, the event occurs.
+
+[PARTY IS SEARCHING]
+Event only occurs if the party is moving with the SEARCH function
+turned on.
+
+[PARTY IS NOT SEARCHING]
+As above, but party is moving without searching.
+
+[FACING CORRECT DIRECTION]
+Activates "Facing" below.  The party must be facing the indicated
+direction(s) in order for this event to happen.
+
+[QUEST COMPLETE]
+Activates "Item/Quest" option.  Quests can only be set to Completed or
+Failed in a Quest Stage event.
+
+[QUEST FAILED]
+As above.  However, the party must have had the quest set to "Failure"
+in a Quest Stage event.
+
+[QUEST IN PROGRESS]
+A "Quest in Progress" state will be valid if the quest variable has a
+non-zero value but the quest has neither been completed nor failed.
+
+[PARTY IS DETECTING TRAPS]
+Party must have a "Detect Traps" effect or spell activated for this
+event to occur.
+
+[PARTY IS NOT DETECTING TRAPS]
+As above, but no "Detect Traps" effect or spell is activated.
+
+[PARTY CAN SEE INVISIBLE]
+The party must have a "See Invisible" spell or effect activated for
+this event.
+
+[PARTY CANNOT SEE INVISIBLE]
+As above, no "See Invisible" active.
+
+[SPECIFIED CLASS IS IN PARTY]
+Activates "Class" option described below.  At least one character or
+party NPC must be of the defined class and have an OK state in order
+to trigger this event.
+
+[SPECIFIED RACE IS IN PARTY]
+Activates "Race" option described below. At least one character or
+party NPC must be of the defined race and have an OK state in order to
+trigger this event.
+
+ITEM/QUEST [item 1]
+Only triggered by certain qualifications above.  Selecting this pulls
+up a vertical list of possible keys, items, and quests.  Only a single
+selection is possible, and it should match the qualification type.
+
+PERCENT CHANCE [1 to 99]
+Only triggered by the RANDOM PERCENT CHANCE qualification.
+
+FACING [front]
+Only triggered by the FACING CORRECT DIRECTION qualification. Every
+possible combination of facing choices (from 1 to 4 directions) is
+selectable here.
+
+CLASS [cleric]
+Only triggered by the SPECIFIED CLASS IS IN PARTY qualification.
+Select one of the six primary classes.
+
+RACE [elf]
+Only triggered by the SPECIFIED RACE IS IN PARTY qualification. Select
+one of the six primary races.
+
+CHAIN CONTROL
+
+CHAIN [ALWAYS/IF EVENT HAPPENS/IF EVENT DOESN'T HAPPEN]
+This control determines whether or not the chain of events continues
+after the current event is reached.
+
+CHAIN EVENT [NO EVENT]
+The chain ends here unless another event is selected (and all
+conditions are met for continuing).
+
+
+ADD NPC
+Allows the designer to add an NPC "monster" into the party at this
+point.  If the party already has that NPC, or the party is full (8
+total characters), this event is ignored and the page 1 chaining
+behaves as if the condition was not met.
+
+PAGE 2
+
+PLAYER SEES: [vala]
+Any monster art can be shown at this point.  It is not necessary to
+show the player a picture of the actual NPC  about to be added.  Note
+that you cannot display sprites in an overland module.
+
+DISTANCE - [Up Close/Nearby/Far Away]
+This only has an effect if the art chosen above is a sprite. In other
+cases, this option is ignored.
+
+PLAYER READS
+Text shown when the picture is displayed.
+
+ADD NPC - [vala]
+Selecting this option brings up a list of only NPCs (monsters with a
+"#" to the left of the name).  [NO NPC] can be selected, in which case
+the player gets the message but no addition to the party.  (The same
+thing can be accomplished with a TEXT event.)
+
+WITH [1-100] % OF MAX HIT POINTS
+Less than 100% indicates that the NPC is injured in some way.  Maximum
+hit points are still obtainable by the player through healing of the
+NPC or resting.
+
+
+CAMP
+This event FORCES the party into Encamp mode, but the effect is the
+same as if the player had manually selected to Encamp, except that
+different artwork and text may be shown.  By chaining a WHO PAYS event
+to a CAMP event, you can create a simple inn.
+
+PAGE 2
+
+PLAYER SEES [camp 1]
+Select the artwork to be displayed while the party is camping.
+
+* BACK UP ONE STEP WHEN LEAVING
+Forces the party to retreat to the location they were in previous to
+the current location (after exiting Camp).
+
+PLAYER READS
+Text shown as the party encamps.
+
+
+CHAIN
+This event is used to branch a chain to two different sequences of
+events.  If the event control conditions allow the event to happen,
+the page 2 chain will be followed; otherwise, the page 1 chain will be
+followed.
+
+PAGE 2
+
+CHAIN TO [no event]
+Select an event to activate if the qualifications on Page 1 are met.
+
+
+COMBAT
+This is the only way to trigger combat in the game, outside of the
+PICK ONE COMBAT, which is very similar.  Up to six different monster
+types can be present (and up to 3 of those types can fight on the side
+of the party).
+
+PAGE 2
+
+BEFORE COMBAT BEGINS
+
+PLAYER SEES [no art]
+ANY artwork, even the large pictures, can be shown here.
+
+PLAYER READS
+Text which appears before the combat starts.
+
+IN COMBAT
+
+MONSTERS ARE [UP CLOSE/NEARBY/FAR AWAY]
+This determines how close initially the monsters are to the party on
+the combat map.
+
+AND [IN FRONT] OF THE PARTY
+This determines the placement of the monsters on the combat map.  IN
+FRONT will automatically place the monsters in the direction the party
+was last facing (as if the party had literally run into them).  All
+other potential direction combinations are available, for a variety of
+ways to surround the party.  (For example, if you know the party is
+moving East, the monsters can come in front the West as if they were
+running after the party.)  Note that if impossible directions are
+selected, or if there isn't enough room for all monsters to appear in
+the designated locations, some monsters may not appear in the battle. 
+In indoor combats, it is possible to make selections which result in
+monsters appearing on the other side of walls with no access to the
+party; if this happens, try adjusting the range and direction (or put
+more doors in the map).
+
+SURPRISED [NEITHER/PARTY/MONSTER]
+If one of the sides is surprised, that side gets NO turns during the
+first round of combat.
+
+* AUTO APPROACH
+If selected, monsters automatically run forward before combat starts
+(and enter combat in UP CLOSE position, no matter where previously
+set).  If a sprite is chosen for art, the monsters will be shown
+racing toward the party before the battle begins.
+
+* OUTDOORS
+Forces the combat to occur outdoors, using trees, et cetera on the
+combat map, instead of indoor wall art.
+
+PAGE 3
+
+MONSTERS ENCOUNTERED 1-3
+These are always enemy monsters.  A maximum of 50 monsters total can
+be in a single battle, including friendly monsters.  Note that Complex
+monsters (those with a "*" to the left of their names) each count as
+TWO monsters towards that maximum.
+
+NUMBER [0 to 31]
+The number of monsters of the selected type.
+
+TYPE [goblin]
+The specific monster in the encounter.  NPCs are not available for
+these selections.
+
+PAGE 4
+
+MONSTERS ENCOUNTERED 4-6
+This page acts just like the previous one (and monsters selected are
+counted towards the maximum of 50). The main difference is that one or
+more monsters selected can be "friendly" towards the party.  Note that
+it is NOT required to have all three monster selections on Page 3
+activated before choosing Monsters 4 through 6.
+
+NUMBER [0 to 31]
+As Page 3.
+
+TYPE
+As Page 3.
+
+* FRIENDLY
+If selected, monsters fight on the side of the party unless charmed.
+
+
+PAGE 5
+
+MORE COMBAT OPTIONS
+
+* NO TREASURE FROM MONSTERS
+No matter what items exist on the monster definitions, no treasure
+will be gained from the monsters after this battle.  Note that if a
+COMBAT TREASURE event occurs anywhere before this battle, that
+treasure will still be given out.  This option ONLY affects specific
+monster treasure.
+
+* PARTY NEVER DIES
+The party cannot be wiped out in this battle.  If the party loses the
+battle, all characters who were conscious at the beginning of the
+battle are restored to life after the battle with 1 hit point each.
+
+* MAGIC DOESN'T WORK
+No spell-casting is possible.  This includes item effects!  (The CAST
+and USE functions do not appear at all in the combat menus.)
+
+MONSTER MORALE [1 to 100]
+This determines how much damage the monsters must sustain before they
+flee combat or surrender, measured as a percentage of their total
+starting hit points.  The higher the morale, the more damage the
+monsters will take before giving up; monsters at 100 morale should
+never surrender or flee.  Some slow, stupid monsters may not flee or
+surrender even after their morale has been exceeded, and many powerful
+monsters and types of monster such as undead have their own personal
+morale, which may keep them fighting after other monsters have fled or
+surrendered.
+
+ADDITIONAL DIFFICULTY IN TURNING UNDEAD
+[None/Harder/Difficult/Impossible]
+This affects Clerics and Paladins using the TURN option. The number
+shown is added to the number required to be "rolled" for the attempt
+to succeed.  This reduction is cumulative with any additional
+difficulty specified in the module's Global Information.
+
+
+COMBAT TREASURE
+This is treasure found above and beyond that specified by each Monster
+description. (Monster treasure is always received unless the
+appropriate option is selected on Page 5 of the Combat event.)  This
+event should be placed immediately before the combat event.  If more
+than one combat treasure event is placed before a combat event, the
+party will receive the complete set of treasure.  
+
+PAGE 2
+
+THE PARTY FINDS
+PLATINUM	[0 to 1 million]
+GEMS		[0 to 50000]
+JEWELRY	[0 to 100000]
+
+THE ITEMS THEY GET
+Up to 8 different items can be added to the treasure list.  Unlike the
+Monster items, you cannot control the quantity of charges (wands) or
+multiple items items (arrows).
+
+* ITEMS ARE IDENTIFIED
+No effect on non-magical items.  However, magical items will normally
+be unidentified (e.g., a WAND OF MAGIC MISSILES would normally be
+shown as WAND) unless this option is selected.
+
+PAGE 3
+Text explaining the use of a Combat Treasure Event.
+
+
+DAMAGE
+This event is used to inflict damage on the party outside of combat,
+from traps, avalanches, or thrown boulders, for example.  A WHO TRIES
+event chained to a DAMAGE event, under appropriate conditions, can be
+used to represent a simple, unavoidable trap, and a QUESTION-BUTTON
+event chained to a combination of events, including WHO TRIES/DAMAGE
+chains, may be developed for a more complex trap.
+
+PAGE 2
+
+PLAYER SEES [no art]
+Choose a picture, if appropriate.
+
+[UP CLOSE/NEARBY/FAR AWAY]
+Only valid for sprites.  An example of use is an event where a Goblin
+shoots an arrow at the party from the end of the hall and then runs
+away.  In that case, FAR AWAY would be chosen along with the GOBLIN
+art.
+
+PLAYER READS
+Any text you wish displayed.
+
+ATTACKS
+Number of Complete Attacks [1 to 100]
+The number of attempts made to damage the party (all attempts will be
+tried, although not all may succeed).
+
+[IS ON THE ENTIRE PARTY]
+If it succeeds, the whole party takes the damage,
+
+[IS ON THE ACTIVE CHARACTER]
+Only affects the highlighted character,
+
+[IS ON ONE PARTY MEMBER AT RANDOM]
+Random choice by computer,
+
+[HAS A PERCENT CHANCE ON EACH]
+Uses the number in the next field to determine likelihood of each
+individual party member being affected.
+
+PERCENT CHANCE ON EACH [1 to 99]
+Only valid if the last option is selected above.
+
+PAGE 3
+
+THE DAMAGE ROLL HAS [1 to 250] DICE OF [1 to 250] SIDES PLUS [0 to
+250]
+This could add up very quickly.  Be sure to calculate the maximum
+possible damage to avoid obliterating the party (unless that is the
+intention).
+
+[NO SAVING THROW]
+If the damage occurs, the full damage rolled is always taken.
+
+[SAVE FOR HALF DAMAGE]
+If the saving throw type selected below is made, only half damage is
+taken.
+
+[SAVE FOR NO DAMAGE]
+As above, but no damage is taken at all.
+
+[HITS BASED ON THAC0]
+Appropriate if the party is being attacked by a weapon or object. 
+This gives the better armored party members a good chance to avoid
+damage.
+
+SAVING THROW TYPE [POISON/PETRIFICATION/WAND/BREATH/SPELL]
+This selects the type of saving throw to be made.  Different character
+classes have differing saving throws (all of which get better at
+higher levels).
+
+ADD TO SAVING THROW [0 to 15]
+The higher the number, the easier it will be for the character to make
+the saving throw.
+
+THAC0 OF ATTACK [-20 to 20]
+Only valid if Hits Based on THAC0 is chosen above. This determines the
+attack's ability to hit Armor Class 0, which is then modified for the
+effective armor class of the character in question.
+
+
+ENCOUNTER
+This is not necessarily a Combat encounter (although it can lead to
+one).  It can be used to trigger events based on the party's choices
+as defined in the event itself.
+
+PAGE 2
+
+PLAYER SEES [no art]
+Choose appropriate artwork.
+
+PLAYER READS
+The text you wish read for the start of the encounter.
+
+MONSTERS START [FAR AWAY/NEARBY/UP CLOSE]
+Determines starting position of monsters.
+
+MONSTER SPEED [1 to 50]
+Determines if the party can escape or not. (48 is the absolute maximum
+party speed, so a Monster speed of 50 would ALWAYS succeed in keeping
+the party from fleeing.)
+
+CHAIN DEFINITIONS
+
+ON COMBAT [no event]
+Go to this event if the party chooses the COMBAT option.
+
+ON TALK [no event]
+As above, with Talk option.
+
+ON ESCAPE [no event]
+As above, with Escape option.
+
+PAGE 3
+
+APPROACH
+
+* BUTTON IS PRESENT
+Determines if this option is available.
+
+* NOT ALLOWED WHEN UP CLOSE
+If selected, removes this option when monster become UP CLOSE.
+
+BUTTON WILL...
+
+[DECREASE RANGE]
+Moves monsters one position closer (FAR AWAY to NEARBY, or NEARBY to
+UP CLOSE) - Monsters already UP CLOSE go to RANGE ZERO and trigger
+that option.
+
+[COMBAT, NO SURPRISE]
+Trigger Combat chain (Page 2) with no surprise on either side.
+
+[PARTY SURPRISED, IF SLOW PARTY]
+Trigger Combat chain, but only if the monsters are faster than the
+slowest party member.  Neither side is surprised if the party is not
+SLOW.  Unconscious, poisoned, stoned, and dead party members have a
+speed of 0; the speed of other party members depends upon their armor,
+encumbrance, Haste spells, and Boots or Potions of Speed. 
+
+[MONSTERS SURPRISED, IF FAST PARTY]
+As above, but only if party is faster than the monsters.  Neither side
+is surprised if the party is slow.
+
+[TALK]
+Triggers TALK chain from Page 2.
+
+[ESCAPE, IF FAST PARTY, ELSE COMBAT]
+If the party is faster than the monsters, trigger the ESCAPE chain
+from Page 2.  Otherwise, trigger the COMBAT chain from Page 2.
+
+[HAVE NO EFFECT]
+Does nothing at all (original menu re-appears).
+
+RETREAT
+
+* BUTTON IS PRESENT
+As "Approach."
+
+BUTTON WILL...
+As "Approach."
+
+FIGHT
+
+* BUTTON IS PRESENT
+As "Approach."
+
+* ONLY ALLOWED WHEN UP CLOSE
+As "Approach."
+
+BUTTON WILL...
+Options act identically to those under "Approach."
+
+PAGE 4
+
+WAIT
+
+* BUTTON IS PRESENT
+As "Approach."
+
+BUTTON WILL...
+Options act identically to those under "Approach."
+
+TALK
+* BUTTON IS PRESENT
+As "Approach."
+
+* ONLY ALLOWED WHEN UP CLOSE
+As "Approach."
+
+BUTTON WILL...
+Options act identically to those under "Approach."
+
+IF RANGE GOES TO ZERO
+Options as previous settings, except DECREASE RANGE and NO EFFECT are
+no longer available.
+
+
+ENTER PASSWORD
+Useful for making sure the party has been elsewhere in the game
+without using up a Quest by making the player enter a password which
+has been revealed in a different area.
+
+PAGE 2
+
+PLAYER SEES [no art]
+Choose any artwork.
+
+PLAYER READS
+Introductory text.
+
+PLAYER MUST ENTER
+
+PASSWORD
+1 to 25 characters in length.
+
+NUMBER OF TRIES [1 to 50]
+Indicates how many times the password can be entered incorrectly
+before a FAILURE event is triggered.
+
+TELEPORT DESTINATION
+There is only one teleport destination, regardless of whether it is
+used on Success, Failure, both or neither.
+
+COL/ROW [0 to 49]
+Must be legitimate coordinates for the current module.
+
+FACING [North/East/South/West]
+Direction the party will be facing at the new location.
+
+* EXECUTE EVENT AT DESTINATION
+If the party is teleported onto a location which also contains an
+Event, that event is only triggered if this option is active. 
+Otherwise, the party must leave the new location and return to it in
+order to receive the new event.
+
+PAGE 3
+
+IF PASSWORD ENTERED CORRECTLY, PLAYER READS
+Text to be displayed.
+
+AFTER TEXT...
+
+[DO NOTHING]
+No additional effect.
+
+[CHAIN]
+Execute the event specified below.
+
+[TELEPORT]
+Move the party to the coordinates and facing specified on Page 2.
+
+[BACKUP ONE STEP]
+Move the party to its previous location.
+
+SUCCESS CHAIN [No Event]
+Select an event to occur if "CHAIN" is selected above.
+
+PAGE 4
+
+IF PASSWORD ENTERED INCORRECTLY
+Settings on this page perform identically to those on Page 3. 
+However, they are only triggered if a password FAILURE occurs (i.e.,
+the wrong password is entered on all tries permitted).
+
+
+GAIN EXPERIENCE
+This event is useful for giving the party experience for completing
+major or special portions of the game (rescuing the fair monsters from
+evil maidens, etc.).
+
+PAGE 2
+
+THE PLAYER WILL...
+
+HEAR [no Sound]
+Select one sound or theme only.
+
+SEE [No Art]
+Any artwork can be chosen except the large pictures.
+
+AND READ
+Enter appropriate text to display, if any.
+
+THE [ENTIRE PARTY/ACTIVE MEMBER] RECEIVES [1 to 10 million] EXPERIENCE
+POINTS.
+
+
+GIVE TREASURE
+Useful for granting the party treasure items without requiring a
+combat to occur (wands found in a pile of rubble, for example).
+
+PAGE 2
+
+PARTY FINDS
+
+PLATINUM [0 to 1 million]
+GEMS [0 to 50000]
+JEWELRY [0 to 50000]
+
+THE ITEMS THEY GET
+Up to 8 items can be selected (see Item List in Appendix A).
+
+* ITEMS ARE IDENTIFIED
+If not selected, magical items will show generic names until
+identified by a shopkeeper.
+
+
+GUIDED TOUR
+Tours do not work in Overland modules (they require the 3-D view to be
+functional).  The Guided Tour events are ONLY used for actually moving
+the party around.  For more excitement, they should be chained with
+SOUND and other events (including multiple Guided Tour events).
+
+PAGE 2
+
+NUMBER OF STEPS [1 to 24]
+Up to 24 sequential actions can be taken, as defined on the later
+pages.
+
+STARTING LOCATION
+
+* USE STARTING LOCATION 
+If not checked, the guided tour begins wherever the event is triggered
+(this could lead to illegal moves if the event can be triggered in
+multiple locations).
+
+COL/ROW [0 to 49]
+Must be a valid coordinate for the dungeon module. Ignored unless
+above button is checked.
+
+FACING [North/East/South/West]
+This option is ignored unless above button is checked.
+
+* EXECUTE EVENT AT DESTINATION
+If the Guided Tour ends in a location with an Event, that new event
+will only be triggered if this option is active.  Otherwise, the party
+will need to leave the location and return in order to trigger that
+event.
+
+PAGES 3 through 5
+List of Steps to take in order from 1 to 24.  Each step can make the
+party move FORWARD, turn RIGHT or LEFT, or PAUSE for a moment.
+
+PAGE 6
+
+TEXT 1 BEFORE STEP [1 to 25]
+Text which appears at before the indicated step is taken.  To display
+text at the end of a guided tour, select the step after the last step.
+
+TEXT 2 BEFORE STEP [1 to 25]
+As Text 1.
+
+
+NPC SAYS
+This has an NPC who is already in the party with an OK status say
+something (displayed on screen).  If the NPC selected is not in the
+party or not OK, the event will not happen.
+
+PAGE 2
+
+IF [VALA] IS IN THE PARTY, THE PLAYER WILL
+Choose an NPC from the list displayed.
+
+SEE [NO ART]
+Choose any artwork in the game, even large pictures.
+
+[UP CLOSE/NEARBY/FAR AWAY]
+Valid only for triple-image monsters.
+
+HEAR [no sound]
+Choose any game sound or theme, if desired.
+
+AND READ
+Enter the text you wish displayed.
+
+* MUST PRESS RETURN
+Prompts the player to press RETURN after reading the text.  Note that
+the game automatically forces the player to press return when the
+window is full of text; you need not worry about failing to display
+text because you have filled the window.
+
+* HIGHLIGHT
+Displays the entire text in this section in the highlight text color
+(light cyan).  When possible, we generally use highlighting to
+designate text which is being spoken by a character or monster, as
+opposed to text which merely describes events or surroundings to the
+player.
+
+PAGES 3 and 4
+
+TEXTS 2 through 5
+Second through fifth text sections.  Note that text is linked directly
+following previous text defined, unless PRESS RETURN is indicated, so
+be sure to put a space at the end of each text section, or they will
+run together on screen.
+
+* MUST PRESS RETURN
+As above.
+
+* HIGHLIGHT
+As above.
+
+
+PASS TIME
+A way to force the party to wait a certain period of time (or indicate
+that several days go by in travelling, to make spells on party members
+wear off, etc.).
+
+PAGE 2 
+
+PLAYER READS
+The text to be displayed.
+
+HOW MUCH TIME SHOULD PASS...
+DAYS [0 to 250]
+HOURS [0 to 23]
+MINUTES [0 to 59]
+
+
+PICK ONE COMBAT
+NOTE - This event is referred to in the DESIGNER'S GUIDE as a "RANDOM
+COMBAT EVENT."  This event like the COMBAT event, except there are no
+friendly monsters possible, and ALL monsters do not appear in each
+battle.  Instead, the computer randomly picks a monster group
+(numbered 1 through 6) and presents the party with only a single group
+to fight.  Groups containing no monsters will not be selected.  Note
+that only one sprite or picture can be shown to the player, so a more
+complex event chain consisting of several different PICK ONE COMBAT
+events may be necessary to present the players with a wide variety
+pictures and different monster types.  Options shown below are
+identical to the COMBAT event except where noted.
+
+PAGE 2
+
+BEFORE COMBAT BEGINS
+
+PLAYER SEES [no art]
+Choose any artwork in the game.
+
+PLAYER READS
+Text displayed before each combat.
+
+IN COMBAT
+
+MONSTERS ARE [UP CLOSE/NEARBY/FAR AWAY]
+Select the starting distance for the monsters.
+
+AND [IN FRONT/various compass positions] OF THE PARTY.
+
+SURPRISED [NEITHER/PARTY/MONSTER]
+
+* AUTO APPROACH
+Monsters "run" up to the party and enter combat Up Close.
+
+* OUTDOORS
+Uses outdoor combat terrain.
+
+PAGE 3
+There is a brief explanation of PICK ONE COMBAT event on this Page.
+
+* NO TREASURE FROM MONSTERS
+The party will not gain any of the treasure carried by the monsters;
+only treasure specified in a previous COMBAT TREASURE event.
+
+* PARTY NEVER DIES
+As discussed before - if the party is defeated, the game doesn't end.
+
+* MAGIC DOESN'T WORK
+Disables (removes) CAST and USE functions from combat.
+
+MONSTER MORALE [1 to 100]
+The higher the morale, the more damage the monsters must take before
+they attempt to flee or surrender.
+
+ADDITIONAL DIFFICULTY IN TURNING UNDEAD [0 to 100]
+Gives normal, hard, difficult, or impossible chances for Clerics and
+Paladins to turn Undead.  This is in addition to the difficulty set in
+the module's Global Information.
+
+PAGE 4 and 5
+
+MONSTERS THAT MAY BE ENCOUNTERED (1-3 and 4-6)
+These sections work just like pages 3 and 4 in the COMBAT Event
+description, except Monsters 4-6 cannot be selected as FRIENDLY.
+
+
+QUEST STAGE
+This is the event which guides the party through the various Quests in
+the game.  A Quest can only be set as COMPLETED through this Quest,
+and it can only be advanced (for multi-stage Quests) through this
+stage.  With up to 44 Quests in one adventure, and up to 100 stages
+with each Quest, much can be done through the use of this single
+event.  A QUEST STAGE event only occurs if the Quest in question (set
+on Page 2) is at the previous stage marked on Page 2.  (For example,
+if on Page 2 you set the Stage to 5, the Quest's current stage must be
+4 in order for this event to occur.)
+
+A simple heroic quest generally starts with an "accept on yes" QUEST
+STAGE (the queen asks the party to rescue her son, who has been
+kidnapped by a dragon), which may have "quest fails upon rejection"
+selected (*loud belch* from under volcano); followed by one or more
+"accept automatic (no question)" QUEST STAGEs associated with heroic
+deeds (locating the shepherd who knows the secret path to the dragon's
+lair, slaying the fearsome beast, and striking the chains from the
+prince before the volcano explodes); and finally an "accept automatic
+(no question)" QUEST STAGE with "quest completed upon acceptance"
+selected (reuniting the tearful, happy royalty and hauling off the
+loot before lava covers palace).  For a complex example of this sort
+of quest, examine Yemandra's quarters at column 3, row 27 of dungeon 4
+in "The Heirs to Skull Crag."  Note that quest 4 is the rescue of
+Morudel, quest 5 is used to keep track of how many item quests have
+been completed, and quest 10 is used to determine whether the party
+may be offered another item quest at this time; the actual quest for
+the Lance of the Roadwarden is quest 3.
+
+PAGE 2
+
+PLAYER SEES [no art]
+Choose any artwork in the game.
+
+PLAYER READS
+Text to be displayed.
+
+ACCEPT...
+For all below options except the last two, the player is given YES and
+NO buttons for response to the text displayed.
+
+[IMPOSSIBLE]
+The text is displayed, but the whether the player selects YES OR NO,
+the option is set to REJECTION.
+
+[ON YES]
+If players select YES, this stage is considered completed.
+
+[ON NO]
+If players select NO, this stage is considered completed.
+
+[ON YES OR NO]
+No matter which option the player selects, the stage is considered
+completed.
+
+[IMPOSSIBLE (NO QUESTION)]
+The text is not displayed, the player does not get a choice, and the
+option is set to REJECTION.
+
+[AUTOMATIC (NO QUESTION)]
+The text is not displayed, the player does not get a choice, and the
+option is set to ACCEPTANCE.
+
+* QUEST COMPLETED UPON ACCEPTANCE
+If the selected condition results in ACCEPTANCE, this Quest is
+considered successfully completed.
+
+* QUEST FAILS UPON REJECTION
+If the selected condition results in REJECTION, the Quest has ended in
+failure.
+
+WHICH QUEST [quest 1]
+Choose a Quest.
+
+STAGE [1 to 100]
+This determines when this event can occur (the party's current stage
+must be this value minus 1 for it to occur).  All previous stages must
+be passed before this stage can occur.  All Quests are at Stage 0
+until modified by a Quest Stage or Utilities event.
+
+PAGE 3
+
+CHAIN ON ACCEPT [no event]
+Next event if conditions on the previous page cause an ACCEPTANCE
+result.
+
+CHAIN ON REJECT [no event]
+Next event if the conditions on the previous page cause a REJECTION
+result.
+
+There is also brief help text about this event on this Page.
+
+
+QUESTION-BUTTON
+This event provides the player with text and a horizontal list of up
+to five options to select.  Each option can chain to a separate event.  
+Note that each button must start with a letter unique from the first
+letter of any other button.  (Note: In version 1.0 Do not use ANY
+numbers, they cause the buttons to be stacked strangely.  Be sure to
+use only alphabetic characters and some symbols.) The maximum number
+of letters in all button labels combined must not exceed 34 characters
+(including spaces in multi-word buttons).  All five buttons do not
+need to be used.  Standard uses for QUESTION-BUTTON events include
+complex traps, atypical monster encounters, and customized towns in
+overland.
+
+PAGE 2
+
+PLAYER SEES [no art]
+Choose any artwork, if desired.
+
+PLAYER READS
+Text displayed above the options.
+
+BUTTON 1
+
+LABEL
+Up to 15 letters.  First letter must be unique from other buttons.
+
+CHAIN EVENT [no event]
+Event to activate if this option is selected.
+
+AFTER CHAIN...
+
+* RETURN TO QUESTION EVENT
+If selected, the game will return to the original question event after
+all events in "CHAIN EVENT" are completed.
+
+* BACKUP ONE STEP
+If selected, the party will backup one step after the event is
+completed.
+
+PAGES 3 and 4
+
+BUTTONS 2 through 5
+Same options as Button 1.
+
+
+QUESTION-LIST
+This event provides the player with a vertical list of options. 
+Unlike QUESTION-BUTTONS, the answers do not need to start with unique
+letters.  All 5 answers do not need to be used.
+
+PAGE 2
+
+PLAYER SEES [no art]
+Choose any artwork from the game.
+
+PLAYER READS
+Up to 36 characters to be displayed as a heading or one-line
+description.
+
+ANSWER 1
+Up to 34 characters of descriptive text.
+
+CHAIN EVENT [no event]
+The next event if this answer is selected.
+
+AFTER CHAIN...
+
+* RETURN TO QUESTION EVENT
+If selected, the game returns to the original question after event
+chains are completed.
+
+* BACKUP ONE STEP
+After all events are completed, backup the party to its previous
+location.
+
+PAGES 3 and 4
+
+ANSWERS 2 through 5
+Same options are Answer 1.
+
+
+QUESTION-YES/NO
+For giving the player a simple Yes or No question.  YES and NO buttons
+are automatically displayed.  (This event is labeled "ASK A YES/NO
+QUESTION" on its edit pages.)
+
+PAGE 2
+
+PLAYER SEES [no art]
+Choose any artwork, if desired.
+
+PLAYER READS
+Text to display.
+
+PAGE 3
+
+IF PLAYER ANSWERS "YES" THEY READ
+Text to display.
+
+CHAIN TO [no event]
+Event to chain to on a YES answer.
+
+AFTER CHAIN...
+
+[NOTHING]
+Perform no additional action.
+
+[REPEAT QUESTION]
+Return to the start of the event.
+
+[BACKUP ONE STEP]
+Return the party to its previous location.
+
+PAGE 4
+
+IF PLAYER ANSWERS "NO" THEY READ
+Text to display.
+
+CHAIN TO [no event]
+Event to chain to on NO answer.
+
+AFTER CHAIN...
+Same options as Page 3.
+
+
+REMOVE NPC
+For removing an NPC from the party. If the specified NPC is not in the
+party, this event is as not happening for page 1 conditions.
+
+PAGE 2
+
+PLAYER SEES [no art]
+Choose any artwork from the game.
+
+[UP CLOSE/NEARBY/FAR AWAY]
+Valid only with sprites.
+
+PLAYER READS
+Text to display.
+
+REMOVE NPC [vala]
+Choose which NPC to remove from the party.  If [no monster] is
+selected, the first NPC in the party will be removed.
+
+
+SHOP
+For selling (or perhaps giving) the party any of the various objects
+available in the game.  Each shop has a maximum number of total
+objects available (up to 4 of the total 16 sets of objects), and
+specific items can be selected from each set when building this event.
+
+PAGE 2
+
+THEY SEE: [SHOPKEEPER]
+All non-large art available.
+
+COST FACTOR [NORMAL]
+The cost, in platinum, of the items available for sale.  NORMAL does
+not change the prices at all.  FREE changes all prices to 0.  Other
+multipliers and dividers (from Multiple by 100 down to Divide by 100)
+are available.  A full list of items with Normal prices is available
+in Appendix D.
+
+* BACKUP ONE STEP WHEN LEAVING
+Returns the party to its previous location.
+
+PICK THE FOUR TYPES OF ITEMS IN STOCK...
+TYPES 1 to 4
+It IS possible to select the same item group multiple times, but this
+does not change the appearance of the items in the list. NOTE:  If you
+set all Types to NONE (and do not customize the default settings), a
+shop with only VIEW POOL APPRAISE EXIT will appear in the game.
+
+PAGES 3 through 6
+A list of all the items in the group chosen for each TYPE appear here. 
+A TYPE set to NONE shows a list of the objects from +0 WEAPONS A (with
+all items unselected).  If a specific item group was chosen, all items
+are initially selected (red button).  The designer can deselect any
+combination of items to customize the shop.
+
+
+SMALL TOWN
+Use this event to provide a town's services and supplies to travellers
+on the Overland maps (although it can be used in Dungeon modules as
+well) without the need to build a full-blown town.  You may want to
+chain a QUESTION-YES/NO event to a SMALL TOWN (via the "yes" chain) to
+provide some description of the town and offer the party the choice of
+whether or not to enter the town.
+
+PAGE 2
+
+PLAYER SEES [TOWN 2]
+All artwork is available.
+
+PLAYER READS
+The text to be displayed above the button choices.
+
+WHAT IS IN THE SMALL TOWN...
+Each of the following items are initially selected (red button).
+
+* TEMPLE
+Where healing spells may be purchased.
+
+* TRAINING HALL
+Where the party can train for higher levels, and also where character
+and game functions may be used (Add/Delete character, Save/Load game,
+etc.)
+
+* SHOP
+Where items may be purchased, identified, and sold.  Only two
+categories of items may be sold at any SMALL TOWN shop.
+
+* INN
+Same functions available as ENCAMPING, but with no chance of
+encounters.
+
+* TAVERN
+Small version of TAVERN event (no drink choices, only one tale)
+
+* VAULT
+Where characters may store items and money (the party may recover the
+items and money at any vault, not just the vault where they deposited
+their possessions).
+
+PAGE 3
+
+COST FACTORS
+SHOP [Free to Normal to Multiplied by 100].
+Affects only items in the shop.
+
+TRAINING HALL & TEMPLE [Free to Normal to Multiplied by 100].
+Affects both Training Hall (normal is 1000 Platinum) and Temple fees.
+
+HIGHEST TEMPLE SPELL LEVEL [1 to 7]
+See the Appendix C for a list of spells available for each level.
+
+WHICH CLASSES MAY TRAIN...
+Each class is initially selected. This can be used to specialize the
+type of training (it may be a town of Knights, or only mage-types,
+etc.).
+* CLERIC
+* FIGHTER
+* PALADIN
+* RANGER
+* MAGE
+* THIEF
+
+PAGE 4
+
+TAVERN TALE
+The text displayed while the party is drinking in the tavern.  Note -
+If a TAVERN TALES event is placed immediately before the SMALL TOWN
+event, additional Tavern Tales can be added to this text.  Tales are
+shown sequentially - the Small Town Tavern Tale first, followed, in
+order, by the TAVERN TALES event tales.
+
+SHOP ITEMS...
+TYPES 1 and 2
+Up to two different types of items are available.  A full list of
+available items is shown in Appendix A.
+
+PAGES 5 and 6
+For customization of the item choices, as described in the SHOP event.
+
+
+SOUNDS
+For playing up to 10 sounds and themes in a row.  Multiple sound
+effects in a row can simulate distant (or nearby) battles or set the
+stage for a new scenario in the game.  Only sound effects and themes
+from previous Gold Box games area available -- new sounds cannot be
+substituted.
+
+PAGES 2 and 3
+Select from one of the 21 sounds and themes (or NO SOUND) available
+for each of SOUND slots 1 through 10.  Sounds are always played in the
+order shown.
+
+
+SPECIAL ITEM
+Used for giving or removing a special item or key from the party. The
+arithmetic effect is to assign a value of 1 to the item variable if it
+is given to the party, or 0 if it is taken away.  This event only
+counts as happening for page 1 chaining if the party doesn't already
+have the item (for give) or already has the item (for take).
+
+PAGE 2
+
+PLAYER SEES [NO ART]
+Any artwork in the game.
+
+PLAYER READS
+Text to be displayed.
+
+[GIVE ITEM TO PARTY]
+Adds the selected item to the party's inventory list.
+
+[TAKE ITEM FROM PARTY]
+Removes the selected item from the party's inventory list.
+
+ITEM [item 1]
+Brings up a list of 8 keys and 12 items to select.
+
+
+STAIRS
+Used to let the party move to different locations within a single
+module.  A STAIRS event happens as the party tries to enter the
+location containing the event, so the party never actually enters the
+location.  This allows you to put a STAIRS event behind a wall-set
+image of a stairway and have the STAIRS event happen when the party
+attempts to move across the "stairway" wall, without letting the party
+see what's on the other side of the wall.  Note: ENTRY POINTS do not
+work for Stairs in IBM version 1.0.
+
+PAGE 2
+
+BEFORE ENTERING STAIRWELL
+
+PARTY SEES [NO ART]
+All artwork is available.
+
+* ASK "YES/NO" QUESTION
+Display the text entered below and give YES and NO buttons.
+
+TRANSFER ON [YES or NO]
+Determines which answer causes the transfer.
+
+ASK
+Text to display.  Note that this is displayed whether or not ASK
+"YES/NO" QUESTION is selected.  If not selected, a PRESS RETURN prompt
+is given and transfer takes place immediately afterwards.
+
+PAGE 3
+
+WHEN ENTERING STAIRWELL
+
+PLACE [DIRECTLY (COL, ROW)/AT AN ENTRY POINT]
+See warning above about the Entry Point bug in IBM version 1.0.
+
+COL/ROW [0 to 49]
+Must be a valid coordinate for the module.  Only used if PLACE
+DIRECTLY is selected above.
+
+FACING [EAST/SOUTH/WEST/NORTH]
+Only used if PLACE DIRECTLY is selected above.
+
+ENTRY POINT [1 to 8]
+Only valid if AT AN ENTRY POINT is selected above.
+
+THE PLAYER READS
+Text to be displayed AFTER the transfer takes place and the party is
+at the new location.
+
+* EXECUTE EVENT AT DESTINATION
+If there is an event on the new location, selecting this option will
+automatically execute that event (otherwise, the event is only
+triggered if the player leaves the location and re-enters it).
+
+
+TAVERN
+This event is used to create a public house where the party may
+socialize with the inhabitants of the local demesne (start a fight),
+share tales of wondrous events (eavesdrop), and sample local
+concoctions (use your imagination).  The party's options in a tavern
+are indicated by buttons at the bottom of the screen.  This event can
+be modified by placing a TAVERN TALES event immediately preceding it
+(to add up to six more tales to those defined within).
+
+PAGE 2
+
+PLAYER SEES [BARTENDER]
+All artwork available.
+
+PLAYER READS
+Text displayed on entry. This is not a Tale -- it is usually a
+description of the Tavern.
+
+FIGHTS...
+
+* ALLOW FIGHTS
+If selected, a FIGHT option is available in the Tavern.
+
+ON FIGHT, CHAIN TO [no event]
+Select an event (usually combat, but can be anything).
+
+* BACK UP ONE STEP WHEN LEAVING
+If selected, players are returned to their previous location.
+
+PAGE 3
+
+SHOW TAVERN TALES...
+
+[IN ORDER]
+With each successive TALK selection, the next Tale in order will be
+shown.  If a TAVERN TALES event directly precedes the TAVERN event,
+those additional TALES are shown AFTER the tales defined in this
+event.  Only one TAVERN TALES event can precede a TAVERN event.  If
+more exist, only the most recent set of Tales are used.
+
+[AT RANDOM]
+Randomly chooses a tale (including any in a preceding TAVERNS TALES
+event) to display.  Tales can be repeating without seeing the entire
+list (each time TALK is selected, the entire list of possible tales is
+randomly searched).
+
+TAVERN TALES 1 and 2
+Text of those two tales.
+
+PAGE 4
+TAVERN TALES 3 and 4
+Text of additional tales.
+
+PAGE 5
+
+DRINKS
+
+* ALLOW DRINKS
+If not selected, the only options available are TALK and LEAVE (and
+possibly FIGHT).
+
+...CHAIN TO [NO EVENT]
+This selection is only valid if you have at least one named drink.  It
+is activated when a character gains 60 or more "consumption" point. 
+(Drink points are described on this Page in the editor)  If you want a
+certain event to occur after the characters have been drinking a
+while, any event can be chosen for this item.
+
+DRINK NAMES 1 to 5
+A maximum of 34 characters can be used TOTAL for all drink names
+(including spaces).  Each drink name itself can be up to 15 characters
+(keeping the total in mind). Each drink name must start with a unique
+letter.  Note that Drink Names are ignored unless ALLOW DRINKS is
+activated.  (Note: In version 1.0 as with the QUESTION-BUTTONS event,
+only letters should be used in drink names -- numbers cause the names
+to show up strangely in the game.)
+
+
+TAVERN TALES
+This event ONLY has an effect on the game if a SMALL TOWN (with the
+Tavern option turned on) or a TAVERN event immediately follows it. Its
+purpose is to add additional tales to the Tavern.  Only one TAVERN
+TALES event can be added before each of the above events.
+
+PAGES 2 through 4
+Enter the text of up to six additional Tavern Tales.
+
+PAGE 5
+Brief help text about this event.
+
+
+TELEPORTER
+This event functions in exactly the same fashion as a STAIRS event,
+except that it takes place as the party moves into or LOOKs at the
+location of the event, whereas a STAIRS event happens when the party
+attempts to leave an adjoining location to enter the event's location;
+thus, in a TELEPORTER, the party will be able see the walls of the
+location containing the event from the location itself, which is not
+possible in a STAIRS event.  (Note that, as with Stairs, the ENTRY
+POINT method of teleport does not work properly in IBM version 1.0. 
+Only coordinate points should be used for teleportation with that
+version.)
+
+PAGE 2
+
+BEFORE THE PARTY TELEPORTS
+IT SEES [GATEWAY 2]
+All artwork available.
+
+* ASK "YES/NO" QUESTION
+Select if the party is to get a YES or NO option about teleporting. 
+(Otherwise, teleportation is automatic.)
+
+TRANSFER ON [YES or NO]
+Determines which answer causes the transfer.  Only valid if the above
+option is selected.
+
+ASK
+Text to be displayed to the party.  This is displayed whether or not
+ASK "YES/NO" QUESTION is active.  If it is not active, a PRESS RETURN
+prompt is shown, with teleportation taking place immediately
+afterwards.
+
+PAGE 3
+
+WHEN THE PARTY TELEPORTS
+
+PLACE...
+
+[DIRECTLY (COL, ROW)]
+Go to specific coordinates.
+
+[AT AN ENTRY POINT]
+Should move the party to one of 8 entry points.
+
+COL/ROW [0 to 49]
+Must be valid for the current module.  Only active if DIRECTLY is
+chosen above.
+
+FACING [EAST/SOUTH/WEST/NORTH]
+The facing of the party at the new coordinates.  Only active if
+DIRECTLY is chosen above.
+
+ENTRY POINT [1 to 8]
+Only valid if AT AN ENTRY POINT is chosen above.
+
+THE PLAYER READS
+Text displayed AFTER the teleportation.
+
+* EXECUTE EVENT AT DESTINATION
+If there is an event on the arrival point, it is only triggered
+automatically if this option is selected (otherwise, the party must
+leave the location and return to trigger that event).
+
+
+TEMPLE
+Outside of objects and personal spells, this is the only way
+characters can be healed of various afflictions in the game.  Note
+that for the "Fix" button (which automatically heals all possible
+damage to party members) to be available to the party, the highest
+spell level must be set to "7" and the cost factor must be set to
+"free."
+
+PAGE 2
+
+PLAYER SEES [TEMPLE PRIEST]
+All small artwork available.
+
+PLAYER READS
+Text to be displayed on entry.  (PRESS RETURN is displayed and
+necessary before an actual Temple menu appears.)
+
+
+HIGHEST SPELL LEVEL OFFERED [1 to 7]
+Spell levels are cumulative.  See Appendix C for a list of spells
+available, along with their normal cost.
+
+COST FACTOR [NORMAL]
+If not NORMAL or FREE, this determines the multiple or divisor used on
+the NORMAL prices.
+
+* ALLOW DONATIONS
+This option lets the party donate platinum pieces to the temple
+(possibly triggering an event below).
+
+WHEN [1 to 10 million] PLATINUM HAS BEEN DONATED
+This total is cumulative throughout the life of the game at any temple
+event.  The chained event will not happen until the party starts to
+leave the temple after donating the requisite amount of platinum.
+
+CHAIN TO [no event]
+Select an event to chain to, if desired, when the above number has
+been reached.  Only valid if ALLOW DONATIONS is active.
+
+PAGE 3
+
+WHILE IN TEMPLE, PLAYER READS
+Text to be displayed after pressing RETURN on the first text.
+
+* BACK UP ONE STEP WHEN LEAVING
+If active, returns the party to its previous location upon exiting
+from the Temple.
+
+
+TEXT STATEMENT
+Useful for describing events or occurrences which may chain after the
+text statement or setting the mood.
+
+PAGE 2
+
+PLAYER WILL...
+
+HEAR [NO SOUND]
+Select any sound or theme, if desired.
+
+SEE [NO ART]
+All artwork is available.
+
+DISTANCE [UP CLOSE/NEARBY/FAR AWAY]
+Only valid for sprites.
+
+* BACK UP ONE STEP WHEN DONE
+Returns party to previous location if active.
+
+PLAYER READS...
+
+TEXT 1
+Text to be displayed.  Remember that each text section is directly
+linked to the preceding text section unless MUST PRESS RETURN is
+active.  Be sure to place a space after each text item to avoid
+crowding of sentences.
+
+* MUST PRESS RETURN
+Forces player to press return before next text section (or event) is
+displayed.
+
+* HIGHLIGHT
+Turns text in that section light cyan.
+
+PAGES 3 and 4
+
+TEXTS 2 through 5
+Additional text to display, each with the same options as TEXT 1.
+
+
+TRAINING HALL
+The only place characters can train to go to higher levels (plus the
+training hall possible in a Small Town event).  The menus in the
+Training Halls also allow for character removals or additions, and
+modifications (for characters who haven't gained any experience yet).
+
+PAGE 2
+
+WHICH CLASSES MAY TRAIN
+Determines who may train at this particular Hall.
+* CLERIC
+* FIGHTER
+* PALADIN
+* RANGER
+* MAGE
+* THIEF
+
+COST [FREE]
+Up to 100,000 Platinum may be charged for a character to train a
+single level.
+
+PLAYER SEES [ARMS MASTER]
+Any small artwork may be chosen.
+
+PLAYER READS
+Text to display.
+
+* BACK UP ONE STEP WHEN LEAVING
+Returns party to previous location on exit.
+
+
+TRANSFER MODULE
+This is the only way in which a party may move from one module
+(Overland or Dungeon) to another module (Overland or Dungeon).  Unlike
+the Stairs and Teleport events, there are no problems using ENTRY
+POINTS with the Transfer Module events in version 1.0.
+
+PAGE 2
+
+TRANSFER THE PARTY WHEN IT...
+
+[ATTEMPTS TO ENTER] THE CELL
+Event activates when the party attempts to move in a direction which
+would place it in that same location as the event (the party never
+actually completes the step).
+
+[IS IN] THE CELL
+Event does not activate until the party physically moves into the
+location of the event.
+
+BEFORE THE PARTY TRANSFERS
+
+IT SEES [NO ART]
+All artwork is available.
+
+* ASK "YES/NO" QUESTION
+Places YES and NO buttons at the bottom, giving the party the chance
+to stay.
+
+TRANSFER ON [YES or NO]
+Determines which answer causes the transfer.  Ignored if the above
+option isn't selected.
+
+ASK
+Text to display to the party.  This text is ALWAYS displayed.  If the
+above option is not active, a PRESS RETURN option is given to the
+party, and the transfer takes place immediately afterwards.
+
+* DESTROY DROW EQUIPMENT
+Drow equipment (armor and weapons) is not supposed to survive the
+light of day.  If the party is transferring to an outside (visible to
+real sunlight) area (whether Overland or "dungeon" module) and Drow
+equipment is actually available in the game, the designer should
+activate this option.
+
+PAGE 3
+
+WHEN THE PARTY TRANSFERS...
+DESTINATION MODULE [dungeon 01]
+Any of the 4 Overland or 36 Dungeon modules can be selected as the
+destination of the party.
+
+PLACE...
+
+[DIRECTLY (COL, ROW)]
+Places the party at the coordinates indicated below when the new
+module is loaded in.
+
+[AT AN ENTRY POINT]
+Places the party at the below designated Entry Point when the new
+module is loaded in.
+
+COL/ROW [0 to 49]
+New location of the party if DIRECTLY is selected above.  Must be
+valid for the new module.
+
+FACING [EAST/SOUTH/WEST/NORTH]
+The direction the party will be facing in the new module, if DIRECTLY
+is selected above.  Note that this is ignored for Overland modules,
+which have no Facing.
+
+ENTRY POINT [1 to 8]
+The entry point where the party starts the new dungeon if AT AN ENTRY
+POINT is selected above.
+
+THE PLAYER READS
+Text to be displayed AFTER the transfer has taken place.
+
+* EXECUTE EVENT AT DESTINATION
+If there is an event in the new location of the party, it will only be
+triggered if this option is set.  Otherwise, the party must leave the
+location and return to trigger that event.
+
+
+UTILITIES
+This event is used for arithmetic and logical operations on variables,
+and for ending an adventure.  You may perform each of the three types
+of operation in a single UTILITIES event, although it is rather
+pointless to perform any other operations if you are ending the
+adventure.
+
+The first type of operation is arithmetic.  An arithmetic operation
+allows you to add, subtract, or store a specific value in the variable
+you select.  Values must be positive integers between 0 and 255. 
+Remember that a value of zero indicates that the party does not
+possess a given item, while any other value indicates that the party
+does possess the item.
+
+The second operation is ending the adventure, which exits play.  It is
+recommended that you warn the player before ending the adventure, and
+provide an opportunity to save the characters in the party, if they
+are to be allowed further adventures.
+
+The third operation is a multi-item check.  This allows you to check
+whether the party has any or all of any six items and, if they do,
+give them a seventh item.  If you are checking fewer than six items,
+simply check one of the items several times.  This operation may be
+useful for determining whether the party has completed any of several
+tasks required to proceed, or whether the party has completed all of
+the tasks required to proceed, as the case may be.
+
+PAGE 2
+
+MATH
+
+[0 to 255]
+This value is used in the below operations.
+
+[NO OPERATION]
+Value above is ignored and no special operation occurs.
+
+[STORED IN]
+Value above is placed into the item below, overwriting (erasing) any
+value previously stored there.
+
+[ADDED TO]
+Value above is added to any value already in the item below.
+
+[SUBTRACTED FROM]
+Value above is subtracted from any value already in the item below.
+
+[Item 1]
+The item which is used for the math functions above.  This can be an
+Item, Key, or Quest.
+
+MISC
+
+* EXIT PLAY NOW
+Ends the game play immediately (no chance to save) and returns player
+to initial UA menu.
+
+PAGE 3
+
+MULTI-ITEM CHECK
+
+OPERATION...
+
+[NONE]
+Ignores any checks selected below.
+
+[ALL ITEMS PRESENT]
+If all items shown in the checks below are present in the party, the
+item selected below is given to the party.
+
+[ANY ONE OR MORE PRESENT]
+As above, but only at least one listed item must actually be present
+for the action to take place.
+
+CHECKS 1 through 6
+Select the keys or items which the party must currently have in order
+for the operation to take place.  (Ignored if NONE is chosen above.)
+
+STORE RESULT IN [item 1]
+Choose an Item, Key or Quest.  Once a value is stored in this
+selection, the party will have that item, or be at stage 1 of the
+designated Quest.
+
+
+VAULT
+As with the Small Town event's Vault, this is where players may store
+excess money and items.  There can only be a single "real" Vault in
+the game, so anything stored in one vault becomes available from any
+other vault placed into the game.
+
+PAGE 2
+
+PLAYER SEES [SASHA]
+Small artwork is available.
+
+PLAYER READS
+Text to be displayed on entry.
+
+* BACK UP ONE STEP WHEN LEAVING
+Returns the party to its previous location if active.
+
+
+WHO PAYS
+This event is used to allow the player to select a party member to pay
+a specified price.  If a selected party member has sufficient wealth
+to pay the price, the price is deducted from the party member's
+wealth, and the party has succeeded.  If the party exits without
+paying, they have failed.
+
+PAGE 2
+
+PLAYER SEES [BARTENDER]
+Small artwork is available.
+
+PLAYER READS
+Text to be displayed at start of transaction.
+
+NEEDED FOR SUCCESS...
+
+[IMPOSSIBLE]
+No matter how much platinum is contributed, a FAILURE will result.
+
+[SUFFICIENT GEMS]
+A number of gems equivalent to the amount entered below must be
+contributed for SUCCESS.
+
+[SUFFICIENT JEWELRY]
+As above, but with a jewelry contribution.
+
+[SUFFICIENT PLATINUM]
+As above, but with a platinum contribution.
+
+AMOUNT THEY MUST PAY [0 to 10000]
+Zero guarantees SUCCESS, unless IMPOSSIBLE is chosen above. 
+Otherwise, this amount must be contributed for a SUCCESS result.
+
+TELEPORT DESTINATION
+The party is only teleported if the SUCCESS or FAILURE (Pages 3 and 4)
+result demands it.
+
+COL/ROW [0 to 49]
+Must be a valid destination in the current module.
+
+FACING [EAST/SOUTH/WEST/NORTH]
+Facing of the party in the new location.
+
+* EXECUTE EVENT AT DESTINATION
+If there is an event at the new location, it will be triggered
+automatically if this option is active.  Otherwise, the party must
+leave the location and return to activate the new event.
+
+PAGE 3
+
+ON SUCCESS
+Actions on this page occur only if a SUCCESS result is obtained on
+Page 2.
+
+PLAYER READS
+Text to display.
+
+AFTER TEXT...
+
+[DO NOTHING]
+Perform no additional action.
+
+[CHAIN]
+Activate the event selected below.
+
+[TELEPORT]
+Teleport the party to the coordinates entered on Page 2.
+
+[BACKUP ONE STEP]
+Move the party back to its previous location.
+
+SUCCESS CHAIN [no event]
+Event to activate if CHAIN is selected above.
+
+PAGE 4
+
+ON FAILURE
+Exact same functions as on Page 3, but these are only triggered if the
+party fails to contribute the correct amount (or IMPOSSIBLE is chosen
+on Page 2.)
+
+
+WHO TRIES
+For having characters pick locks, sneak across a room, force open a
+door, etc.
+
+PAGE 2
+
+PLAYER SEES [BARTENDER]
+Small artwork is available.
+
+PLAYER READS
+Text to be displayed prior to selection.
+
+CHECK...
+
+[ALWAYS SUCCEEDS]
+No matter who tries, the attempt will be a SUCCESS.
+
+[ALWAYS FAILS]
+As above, but attempt will be a FAILURE.
+
+[STRENGTH]
+The character's strength must be equal to or greater than the number
+entered below.
+
+[INTELLIGENCE]
+As above, but for Intelligence.
+
+[WISDOM]
+As above, but for Wisdom.
+
+[DEXTERITY]
+As above, but for Dexterity.
+
+[CONSTITUTION]
+As above, but for Constitution.
+
+[CHARISMA]
+As above, but for Charisma.
+
+[THIEF-PICK POCKETS]
+Character must be a Thief class and his or her PICK POCKETS skill must
+be equal to or higher than the amount entered below.
+
+[THIEF-OPEN LOCKS]
+As above, but using the OPEN LOCKS skill.
+
+[THIEF-FIND/REMOVE TRAPS]
+As above.
+
+[THIEF-MOVE SILENTLY]
+As above.
+
+[THIEF-HIDE IN SHADOWS]
+As above.
+
+[THIEF-HEAR NOISE]
+As above.
+
+[THIEF-CLIMB WALLS]
+As above.
+
+[THIEF-READ LANGUAGES]
+As above.
+
+[COMPARE TO DIE]
+If selected, a die is rolled with the number of sides indicated to the
+right.  The "Check" option above must be equal to the resulting number
+or higher than it for SUCCESS.
+
+[MUST HAVE]
+If selected, there is no random element.  The character must have the
+indicated amount in the "Check" option above or a higher amount for
+SUCCESS.
+
+[0 to 100]
+The number of sides on the die, or the number the character must match
+or beat in the chosen skill/statistic for SUCCESS.
+
+% STR [0 to 100]
+Only valid if STRENGTH is chosen above and 18 is entered to the left. 
+This is the percentile of 18/xx strength a character must have for
+SUCCESS.
+
+NUMBER OF TRIES [1 to 100]
+Number of attempts which can be made until a FAILURE is the result. 
+(Really useful with a COMPARE TO DIE selection above.  Without a
+random element, any given character will FAIL every try if he fails on
+the first try but other characters may still try.)
+
+TELEPORT DESTINATION
+Only used if the SUCCESS or FAILURE options demand it.
+
+COL/ROW [0 to 49]
+Must be a valid destination in the current module.
+
+FACING [EAST/SOUTH/WEST/NORTH]
+Party facing in the new location.
+
+* EXECUTE EVENT AT DESTINATION
+If there is an event at the new location, it will be triggered
+automatically if this option is active.  Otherwise, the party must
+leave the location and return to activate the new event.
+
+PAGE 3
+
+ON SUCCESS
+These actions are only taken if a SUCCESS result is determined on Page
+2.
+
+PLAYER READS
+Text to be displayed.
+
+AFTER TEXT...
+
+[DO NOTHING]
+Take no further action.
+
+[CHAIN]
+Active the event specified below.
+
+[TELEPORT]
+Move the party to the destination specified on Page 2.
+
+[BACKUP ONE STEP]
+Return to the party to its previous location.
+
+SUCCESS CHAIN [NO EVENT]
+Event to chain to on a SUCCESS result and if CHAIN is selected above.
+
+PAGE 4
+
+ON FAILURE
+Same types of actions as on Page 3, except they are only triggered
+with a FAILURE result on Page 2.
+
+
+APPENDIX A - Item List for Starting Characters;
+
+Under Game Settings, equipment for new characters can be defined as
+"None" up through +4.  If None is selected, no equipment is received
+at all for new characters.  The following lists show exactly what
+equipment is received by each character class at all other levels.
+
+Clerics - This list includes full Clerics and Cleric/Magic-Users.
+Poor - Helm, Club
+Modest - Shield, Ring Mail, Mace
+Average - Hammer, Shield, Chain Mail, Mace
+Prosperous - Shield, Plate Mail, Staff Sling, Flail
++1 - Staff Sling +1, Shield +1, Banded Mail +1, Mace +1
++2 - Helm +2, Shield +2, Hammer +2, Banded Mail +2, Mace +2
++3 - Helm +3, Shield +3, Staff Sling +3, Banded Mail +3, Mace +3
++4 - Helm +4, Staff Sling +4, Shield +4, Banded Mail +4, Flail +4
+
+Fighters - This list includes full Fighters, Paladins, Rangers,
+Cleric/Fighters, Cleric/Fighter/Magic-Users, Cleric/Rangers,
+Fighter/Magic-Users, Fighter/Thieves, and Fighter/Magic-User/Thieves.
+Poor - Ring Mail, Spear
+Modest - Shield, Scale Mail, Broad Sword
+Average - 20 Arrows, Long Bow, Shield, Banded Mail, Long Sword
+Prosperous - 20 Arrows, Composite Long Bow, Plate Mail, Two-Handed
+Sword
++1 - Helm +1, Shield +1, 10 Arrows +1, Composite Long Bow +1, Plate
+Mail +1, Long Sword +1
++2 - Helm +2, Composite Long Bow +2, 40 Arrows +2, Shield +2, Plate
+Mail +2, Long Sword +2
++3 - Helm +3, Shield +3, Composite Long Bow +3, 10 Arrows +3, Plate
+Mail +3, Long Sword +3
++4 - Composite Long Bow +4, 10 Arrows +4, Helm +4, Shield +4, Plate
+Mail +4, Long Sword +4
+
+Magic-Users - This list includes only full Magic-Users (no
+multi-classed characters).
+Poor - 10 Darts
+Modest - Dagger, 10 Darts
+Average - Robe, Quarterstaff, 10 Darts
+Prosperous - Robe, Cloak, Quarterstaff, 10 Darts
++1 - Cloak of Prot. +1, Bracers of AC 6, 10 Darts +1, Dagger +1
++2 - Cloak of Prot. +2, Bracers of AC 4, 40 Darts +2, Quarterstaff +2
++3 - Cloak of Prot. +3, Bracers of AC 2, 10 Darts +3, Dagger +3
++4 - Cloak of Prot. +4, Bracers of AC 2, Dart of Hornet's Nest, Dart
+of Hornet's Nest, Quarterstaff +4
+
+Thieves - This list includes full Thieves and Magic-User/Thieves.
+Poor - Club
+Modest - Leather Armor, Short Sword
+Average - Sling, Leather Armor, Broad Sword
+Prosperous - Elfin Chain, 20 Arrows, Composite Short Bow, Long Sword
++1 - 10 Arrows +1, Composite Short Bow +1, Elfin Chain +1, Long Sword
++1
++2 - Elfin Chain +2, Sling +2, Long Sword +2
++3 - Elfin Chain +3, Sling +3, Long Sword +3
++4 - Cloak of Prot. +4, Bracers of AC 2, Sling +4, Long Sword +4
+
+
+APPENDIX B - Monster Effects List;
+
+The following list describes in detail each effect which can be used
+in the Monster Editor on Page 6.
+
+SPELLS
+
+[Blink]  This is the effect of the third level mage spell "Blink."
+
+[Invisible]  This is the effect of the second level mage spell
+"Invisibility."  It is dispelled when the invisible character attacks.
+
+[Iron Skin]  This is the effect of the fifth level mage spell "Iron
+Skin."
+
+[Prot vs Evil]  This is the effect of the first level clerical spell
+"Protection from Evil."
+
+[Prot vs Good]  This is the effect of the first level clerical spell
+"Protection from Good."
+
+[Prot vs Evil 10 ft]  This is the effect of the fourth level clerical
+spell "Protection from Evil, 10 Foot Radius."
+
+[Prot vs Good 10 ft]  This is the effect of the fourth level clerical
+spell "Protection from Good, 10 Foot Radius," (which does not actually
+exist in gold box games).
+
+[See Invisible]  This is the effect of the second level mage spell
+"See Invisible."
+
+ITEMS
+
+[Cloak Displaced]  This is the effect generated by a Cloak of
+Displacement.  The first attack upon the monster always misses, and
+subsequent attacks have a -2 penalty to THAC0.
+
+[Mirror Readied]  Allows reflection of gaze attacks from other
+monsters.
+
+PLAYer CHARS
+
+[Constitution 19]  Allows character to regenerate one hit point per
+hour.
+
+[Dwarf AC Bonus]  Gives character bonus of +4 AC vs certain large,
+clumsy monsters.
+
+[Dwarf thac0 +1]  Character has +1 THAC0 bonus vs certain foes of
+dwarves.
+
+[Elf MR]  Elves have 90% resistance vs. sleep and charm spells.
+
+[Gnome AC Bonus]  Gives character bonus of +4 AC vs certain large,
+clumsy monsters.
+
+[Dwarf thac0 +1]  Character has +1 THAC0 bonus vs certain foes of
+gnomes.
+
+[Half-Elf MR]  30% resistance vs. sleep/charm effects.
+
+[Halfling Resist]  Character gets a bonus to saving throws vs wands
+and spells, based on constitution.
+
+[Rngr Gnt Bonus]  Character gets a damage bonus vs giant class
+characters equal to character's ranger level.
+
+DEFENSE BONUSES
+
+[+3 Full Damage]  Weapons do half damage to monster unless they are +3
+or better.
+
+[+4 Full Damage]  Weapons do half damage to monster unless they are +4
+or better.
+
+[Efreet Fire Res]  Immune to normal fire. Magical fire damage is at -1
+per damage die.
+
+[Elec Growth]  Monster gains 8 hit points whenever hit by electrical
+attack.  Does not confer immunity to electrical attacks.
+
+[Half Dam-Blunt]  Only takes half damage from blunt weapons (like a
+club).  All other weapons do normal damage.
+
+[Half Dam-Cut]  Like above, but cutting weapons (sword, etc).  All
+other weapons do normal damage.
+
+[Half Dam Mag Wp]  Like above vs. magical weapons.  All other weapons
+do normal damage.
+
+[Half Dam Weapons]  Like above, but vs. ALL weapons.
+
+[Immune All Weap]  Monster takes no damage from melee or missile
+attacks.
+
+[Immune Disease]  Cannot be diseased (via spell or mummy)
+
+[Immun Drag Brth]  Cannot take damage from dragon breath effects.
+
+[Immun Norm Weap]  Takes no damage from non-magical weapons or from
+attacks by monsters under 5 hit dice.
+
+[Immune Paralyze]  Cannot be paralyzed.
+
+[Immun Psn/Paral]  Cannot be paralyzed or poisoned.
+
+[Immun Slep/Chrm]  Unaffected by sleep and charm spells.
+
+[Immune to Cold]  No damage from cold attacks like CONE OF COLD.
+
+[Immune to Elec]  No damage from Lightning & similar electrical
+attacks.
+
+[Immune to Fear]  No effect from Cause Fear, Dragon Fear.
+
+[Immune to Fire]  No damage from fire effects (fireball,etc.)
+
+[Immune to Weap <+2]  Takes no damage from weapons less than +2 and
+monsters with fewer than seven hit dice.
+
+[Immune to Weap <+3]  Takes no damage from weapons less than +3 and
+monsters with fewer than nine hit dice.
+
+[Iron Golem MR]  Healed by Fireballs, Slowed for 3 rounds by
+Lightning. Immune to ALL other spells.
+
+[Prot vs Gaze]  Cannot be affected by Gaze attacks.
+
+[Rakshasa MR]  Unaffected by spells lower than 8th level.
+
+[Res Fire & Cold]  Takes half damage from fire or cold if saving throw
+failed; no damage if saving throw made.
+
+[Troll Get Up]  Monster comes back to life with full hit points 3-6
+rounds after being killed, if not slain by fire or acid and nobody is
+standing where monster was standing when slain.
+
+[Troll Regen HP]  All damage is regenerated at the rate of 3 HP per
+combat turn.
+
+ATTACKS
+
+[+2D6 Fire Dam]  If attack #2 hits, target takes 2-12 extra points of
+magical fire damage; target may save for half damage.
+
+[+4D6 Fire Dam]  If attack #2 hits, target takes 4-24 extra points of
+magical fire damage; target may save for half damage.
+
+[Marilith Attack]  The first six attacks from attack #1 each round do
+damage as different weapons: the first is a 2-Handed Sword +4; the
+second is a Bastard Sword +4; the third is a Long Sword +4; the fourth
+is a Scimitar +4; the fifth is a Dagger +4; and the sixth is a Spear
++4.
+
+[Beholder Attack]  These attacks are in addition to normal attacks.
+The monster may make up to four of the following magical attacks:
+"disintegrate" vs a target within a range of 2; "flesh to stone" vs a
+target within a range of 3; "death ray" vs a target within a range of
+4; "cause serious wounds" vs a target within a range of 5; "fear" at
+any target(s) in sight; "slow" at any target(s) in sight; and "sleep"
+at any target(s) in sight.
+
+[Blak Pud Attack]  If attack #1 or attack #2 hits, target's armor (if
+any) has its bonus permanently reduced by 1 instead of taking normal
+damage; chain mail or worse is dissolved when it reaches -1 bonus;
+banded or plate mail is dissolved when it reaches -2 bonus.  If target
+is not wearing armor, target takes normal damage from the attack.
+
+[Charm Gaze]  Separate attack each round to attempt to charm a random
+enemy.
+
+[Dragon Acid]  This attack is instead of normal attacks, and may not
+be used more than three times in one battle.  Monster breathes a cone
+of acid, doing acid damage equal to monster's maximum hit points to
+all targets within the cone; targets may save vs. dragon breath for
+half damage.
+
+[Dragon Cold]  As acid, but as cone of cold.
+
+[Dragon Fear Att]  This attack takes effect at the beginning of a
+battle.  All opponents with fewer than three hit dice are paralyzed
+(unable to move or attack, but still taking damage normally) for 4-6
+rounds if they fail to save vs spells; opponents with three to five
+hit dice have -2 THAC0 and damage penalties for 4-6 rounds if they
+fail to save vs. spells; opponents with six or more hit dice are
+unaffected.  Opponents must save vs each monster with this effect, but
+the effects of multiple failures are not cumulative.
+
+[Dragon Fire]  As acid, but like a cone of fire.
+
+[Dragon Lightnin]  As acid, but lightning bolt effect (including
+rebounds off walls).
+
+[Dragon Poison]  As acid, but poison cloud.
+
+[Drain 1 Level]  Successful attacks remove one level (permanent until
+RESTORED) from victim, along with associated hit points, spells, and
+similar abilities.
+
+[Drain 2 Levels]  As above, but 2 levels per attack.
+
+[Ghoul Para Att]  If attack #1 hits, target must save vs poison or be
+paralyzed for 10 rounds.  While target is paralyzed, target will be
+slain by any attack.
+
+[Gorgon Attack]  This attack is instead of normal attacks, and may
+only be used up to four times per battle.  All targets within the cone
+of effect muse save vs petrification or turn to stone.
+
+[Hell Hound Brth]  This attack is in addition to normal attacks, and
+may be used every round.  The target takes 7 points of fire damage (3
+points if saving throw vs dragon breath is made).
+
+[Lethal Poison]  Save vs. poison on a successful attack #2 or be
+poisoned.
+
+[Mummy Disease]  If attack #1 or attack #2 hits, target is afflicted
+with a rotting disease and cannot be healed by cure wounds spells
+until the disease is cured.  Target will suffer a loss of charisma
+over time from the disease, and will die in 1-6 months, if not cured.
+
+[Mummy Fear Aura]  At beginning of a battle, all foes of the monster
+must save vs poison or be paralyzed for 1-4 rounds.  While victims are
+paralyzed, they will be slain by any attack.
+
+[Owl Bear Hug]  If attack #1 hits with a die roll of 18 or better,
+target is held in the monster's grasp.  The target cannot move away,
+and monster does 2d8 crushing damage to target each round, instead of
+normal damage.
+ 
+[Paralyze Attack]  If attack #2 hits, target must save vs poison or be
+paralyzed for 10 rounds.
+
+[Paralyze Gaze]  This attack is in addition to normal attacks.  Target
+must save vs petrification with a bonus of +3 or be paralyzed for 10
+rounds.
+
+[Paralyze on Hit]  Whenever attack #1 or attack #2 hits, target must
+save vs poison or be paralyzed for 10 rounds.
+
+[Petrify Attack]  Save vs. Petrification on successful attack or be
+turned to stone.
+
+[Petrify Gaze]  This attack is in addition to normal attacks.  Target
+must save petrification or have "Iron Golem MR" effect or be turned to
+stone.
+
+[Phase Spdr Poison]  Save vs. Lethal Poison at -2 or die.
+
+[Carrion Stench]  Whenever it's monster's turn to move, all opponents
+adjacent to monster must save vs spells or suffer a -2 THAC0 penalty.
+
+[Rnd Bonus Atts]  Each round, monster has a 75% chance of doing two
+attacks with attack #2 and a 25% chance of doing four attacks with
+attack #2.
+
+[Sham Mnd Engulf]  Whenever attack #1 hits twice in one round, the
+target is engulfed.  The target may not move away from the monster,
+the monster will attack the target twice each round for 2-16 points of
+damage (instead of normal attacks), and, in 2-4 rounds, the target
+will suffocate and die.
+
+[Umber Hulk Gaze]  This attack is in addition to normal attacks.  The
+target must be adjacent to the monster.  If the target fails to save
+vs spells, the target is confused for 3-12 rounds.  This attack is not
+reflectable.
+
+HAZARDS
+
+[Reflectble Gaze]  Gaze attack can be reflected back to the monster by
+readied mirrors and Silver Shields.
+
+[Slew Blesd Blts]  Instantly killed if hit by a Blessed Crossbow Bolt
+- no saving throws or immunities apply.
+
+[Vuln To Fire]  1 extra point of damage per die taken from all
+fire-based attacks.
+
+
+APPENDIX C - Temple Spells;
+
+The following spells (with their NORMAL prices) are available in
+Temples.  Spell levels are cumulative, so a Temple set to Level 4
+spells also includes spells from levels 1 through 3.
+
+Levels 1 & 2
+Cure Light Wounds -- 20 Platinum
+
+Level 3
+Cure Blindness -- 200 Platinum
+Cure Disease -- 200 Platinum
+Remove Curse -- 700 Platinum
+
+Level 4
+Neutralize Poison -- 200 Platinum
+Cure Serious Wounds -- 70 Platinum
+
+Level 5
+Cure Critical Wounds -- 120 Platinum
+Raise Dead -- 1100 Platinum
+
+Level 6
+Heal -- 1000 Platinum
+Stone to Flesh -- 400 Platinum
+
+Level 7
+Restoration -- 1500 Platinum
+Resurrection -- 2000 Platinum
+
+APPENDIX D - ITEM LIST
+
+ITEM LIST
+The follow list shows all items available in the game and their
+REGULAR prices. Prices can be modified almost everywhere to range from
+FREE to various divisions of the regular price to REGULAR to various
+multiplications of the regular price up to 100 times the regular
+price.  When items (even those found or given as Treasure) are sold to
+a shop, the player receives half price for it.
+
+Prices are shown in parenthesis and are in platinum pieces.
+
++0 WEAPONS A
+20 Arrows (40), Battle Axe (2), Hand Axe (2), Composite Short Bow
+(30), Composite Long Bow (50), Long Bow (24), Short Bow (6), Club (2),
+Light Crossbow (4), Dagger (2), 10 Darts (20), Flail (2), Halberd (4),
+Hammer (2), 5 Javelins (10), Mace (4), Morning Star (2), Military Pick
+(4), Awl Pike (2), 20 Bolts (40)
+
++0 WEAPONS B
+Scimitar (6), Sling (2), Spear (2), Quarter Staff (2), Staff Sling
+(2), Bastard Sword (10), Broad Sword (4), Long Sword (6), Short Sword
+(4), Two-Handed Sword (12), Trident (2)
+
++0 ARMOR
+Belt (2), Boots (2), Cloak (2), Robe (2), Banded Mail (36), Chain Mail
+(30), Helm (6), Leather Armor (2), Plate Mail (160), Ring Mail (12),
+Scale Mail (18), Shield (6), Elfin Chain (100), Mirror (8)
+
++1 WEAPONS
+10 Arrows +1 (60), Battle Axe +1 (1000), Composite Short Bow +1
+(1400), Composite Long Bow +1 (1600), Light Crossbow +1 (1400), Dagger
++1 (200), 10 Darts +1 (200), Flail +1 (1600), Hammer +1 (1000), 2
+Javelins +1 (1600), Mace +1 (1200), 10 Bolts +1 (60), Scimitar +1
+(800), Sling +1 (1400), Quarter Staff +1 (800), Staff Sling +1 (1600),
+Long Sword +1 (1000), Short Sword +1 (800), Two-Handed Sword +1
+(1000), Trident +1 (800)
+
++2 WEAPONS
+10 Arrows +2 (120), Battle Axe +2 (2000), Composite Short Bow +2
+(3000), Composite Long Bow +2 (3600), Light Crossbow +2 (3000), Dagger
++2 (600), 10 Darts +2 (500), Flail +2 (3600), Hammer +2 (2400), 2
+Javelins +2 (4000), Mace +2 (1800), 10 Bolts +2 (120), Scimitar +2
+(2400), Sling +2 (3000), Quarter Staff +2 (1600), Staff Sling +2
+(3600), Long Sword +2 (2000), Short Sword +2 (1600), Two-Handed Sword
++2 (2000), Trident +2 (1600)
+
++3 WEAPONS
+10 Arrows +3 (180), Battle Axe +3 (3600), Composite Short Bow +3
+(5000), Composite Long Bow +3 (6000), Light Crossbow +3 (5000), Dagger
++3 (1000), 10 Darts +3 (2400), Flail +3 (3200), Hammer +3 (3200), 2
+Javelins +3 (6000), Mace +3 (4000), 10 Bolts +3 (180), Scimitar +3
+(4000), Sling +3 (5000), Quarter Staff +3 (2800), Staff Sling +3
+(6000), Long Sword +3 (3600), Short Sword +3 (2800), Two-Handed Sword
++3 (3600), Trident +3 (2800)
+
++4 WEAPONS
+10 Arrows +4 (240), Battle Axe +4 (5000), Composite Short Bow +4
+(4000), Composite Long Bow +4 (5000), Light Crossbow +4 (4000), Dagger
++4 (4000), 10 Darts +4 (2000), Flail +4 (3200), Hammer +4 (4000), 2
+Javelins +4 (10000), Mace +4 (8000), 10 Bolts +4 (240), Scimitar +4
+(8000), Sling +4 (4000), Quarter Staff +4 (4000), Staff Sling +4
+(5000), Long Sword +4 (5000), Short Sword +4 (4000), Two-Handed Sword
+(5000), Trident +4 (4000)
+
+
++5 WEAPONS
+10 Arrows +5 (300), Battle Axe +5 (8000), Composite Short Bow +5
+(8000), Composite Long Bow +5 (10000), Light Crossbow +5 (8000),
+Dagger +5 (8000), 10 Darts +5 (3200), Flail +5 (11000), Hammer +5
+(12000), 2 Javelins +5 (20000), Mace +5 (12000), 10 Bolts +5 (300),
+Scimitar +5 (12000), Sling +5 (8000), Quarter Staff +5 (6000), Staff
+Sling +5 (10000), Long Sword +5 (8000), Short Sword +5 (6000),
+Two-Handed Sword +5 (8000), Trident +5 (6000)
+
++1, +2 ARMOR
+Cloak of Prot +1 (4000), Banded Mail +1 (1800), Chain Mail +1 (1400),
+Helm +1 (1000), Leather Armor +1 (800), Plate Mail +1 (2000), Ring
+Mail +1 (1000), Scale Mail +1 (1200), Shield +1 (1000), Elfin Chain +1
+(3000), Cloak of Prot +2 (8000), Helm +2 (2000), Leather Armor +2
+(3000), Plate Mail +2 (4200), Ring Mail +2 (2400), Scale Mail +2
+(2700), Shield +2 (2000), Elfin Chain +2 (5000)
+
++3, +4 ARMOR
+Cloak of Prot +3 (12000), Banded Mail +3 (5600), Chain Mail +3 (5000),
+Helm +3 (3200), Leather Armor +3 (5000), Plate Mail +3 (6200), Ring
+Mail +3 (2800), Scale Mail +3 (3200), Shield +3 (3200), Elfin Chain +3
+(8000), Cloak of Prot +4 (16000), Banded Mail +4 (14000), Chain Mail
++4 (12000), Helm +4 (4800), Leather Armor +4 (10000), Plate Mail +4
+(8200), Ring Mail +4 (5600), Scale Mail +4 (6400), Shield +4 (4800),
+Elfin Chain +4 (12000)
+
+SPECIAL A
+Cloak of Prot +5 (20000), Banded Mail +5 (24000), Chain Mail +5
+(20000), Helm +5 (7000), Leather Armor +5  (20000), Plate Mail +5
+(11000), Ring Mail +5 (10000), Scale Mail +5 (8000), Shield +5 (7000),
+Elfin Chain +5 (20000), Fine Long Bow (10000), 2 Blessed Bolts (2000),
+Dart of Hornet's Nest (3000), Cloak of Displacement (7000), Silver
+Shield +3 (6400), Silver Shield +4 (14000), Belt of Prot +3 (12000),
+Girdle of Giant Strength (1000), Periapt of Health (4000)
+
+SPECIAL B
+Javelin of Lightning (1200), Stone of Good Luck (10000), Necklace of
+Missiles (1200), Eyes of Charming (9600), Bracers AC 6 (4800), Bracers
+AC 4 (7200), Bracers AC 2 (9600), Long Sword vs Giants (2200), Vorpal
+Long Sword (20000), Drow Long Sword +1 (2), Drow Long Sword +3 (2),
+Drow Long Sword +4 (2), Drow Chain +1 (2), Drow Chain +3 (2), Drow
+Chain +4 (2), Fine Long Bow +2 (16000), Gauntlets of Ogre Power
+(6000), Light Crossbow Cursed -3 (1000)
+Note that DROW items should not be able to be purchased in a game to
+keep with "normal" Drow practices.  This is one reason why their items
+are so cheap.  Another is that Drow items normally dissolve in
+sunlight.
+
+RINGS
+Ring (200), Ring of Vulnerability (800), Ring of Prot +1 (4000), Ring
+of Prot +2 (5000), Ring of Prot +3 (6000), Ring of Prot +4 (7000),
+Ring of Prot +5 (8000), Ring of Cold Resistance (2000), Ring of
+Electric Immunity (2000), Ring of Fire Resistance (2000), Ring of
+Invisibility (3000), Ring of Blinking (2000), Ring of Wizardry
+(20000), Ring of Prot From Evil (2000)
+
+WANDS
+Wand of Ice Storm (8000), Wand of Fireballs (6400), Wand of Lightning
+(6400), Wand of Magic Missiles (14000), Wand of Paralyzation (10000)
+
+POTIONS
+Potion of Speed (180), Potion of Healing (160), Potion of Extra
+Healing (320), Potion of Invisibility (200), Potion of Giant Strength
+(560), Elixir of Youth (4000)
+
+
+SCROLLS
+Scroll of Prot Dragon Breath (8000)
+Cleric Scroll 3 Spells (2520) - 7th Level: Restoration, Resurrection,
+Restoration
+Cleric Scroll 3 Spells (2520) - 7th Level: Destruction, Energy Drain.
+6th Level: Blade Barrier
+Mage Scroll 3 Spells (1800) - 5th Level: Hold Monsters, Fire Touch,
+Iron Skin
+Mage Scroll 3 Spells (2160) - 6th Level: Death Spell, Globe of
+Invulnerability, Stone to Flesh
+Mage Scroll 3 Spells (3480) - 7th Level: Delayed Blast Fireball. 9th
+Level: Monster Summoning, Power Word Kill
+Mage Scroll 3 Spells (6000) - 3rd Level: Dispel Magic. 2nd Level:
+Stinking Cloud. 3rd Level: Invisibility, 10' Radius
+ 
