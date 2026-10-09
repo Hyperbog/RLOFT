@@ -23,11 +23,15 @@ public static class DosOverlayFixupAudit
     /// Checks a previously recovered paired-directory against its original
     /// overlay source. No fixup word format is guessed.
     /// </summary>
-    public static DosOverlayStorageAudit Analyze(DosOverlayImage overlay,
-        DosOverlayDirectory directory)
+    public static DosOverlayStorageAudit Analyze(DosMzImage resident,
+        DosOverlayImage overlay)
     {
+        ArgumentNullException.ThrowIfNull(resident);
         ArgumentNullException.ThrowIfNull(overlay);
-        ArgumentNullException.ThrowIfNull(directory);
+        // Independently rederive every descriptor and stored extent from
+        // the actual original resident EXE before reporting either SHA.
+        // A caller can never forge a directory and certify its fixup blobs.
+        DosOverlayDirectory directory = DosOverlayDirectoryRecovery.Recover(resident, overlay);
         var original = overlay.Envelope;
         if (!string.Equals(directory.OverlaySourceSha256, original.SourceSha256,
                 StringComparison.OrdinalIgnoreCase) ||

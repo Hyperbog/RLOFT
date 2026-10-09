@@ -141,7 +141,7 @@ try
             var resident = DosMzImage.Load(residentArtifact);
             var directory = DosOverlayDirectoryRecovery.Recover(resident, overlay);
             if (args[0] == "overlay-fixups")
-                Print(DosOverlayFixupAudit.Analyze(overlay, directory));
+                Print(DosOverlayFixupAudit.Analyze(resident, overlay));
             else
                 Print(directory);
         }

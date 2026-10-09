@@ -2,8 +2,10 @@
 
 **Source implementation only: Windows compilation and execution not performed.**
 
-`DosOverlayFixupAudit.Analyze` consumes an original-source-backed overlay
-envelope and a complete, unique resident-directory map. It enforces exact
+`DosOverlayFixupAudit.Analyze(residentMz, overlay)` requires both original
+binaries and **independently rebuilds** the resident directory rather than
+trusting a supplied directory DTO. It then consumes an original-source-backed
+overlay envelope and a complete, unique resident-directory map. It enforces exact
 overlay source hash, format, header and payload bounds; each unit's ordered
 physical code/fixup file offsets; and total payload coverage.
 
