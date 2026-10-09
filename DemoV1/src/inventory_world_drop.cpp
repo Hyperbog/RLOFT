@@ -47,8 +47,11 @@ InventoryWorldDropResult InventoryWorldDropModel::drop(
         static_cast<std::int32_t>(session.facing)-correction);
     const auto delta=ExplorationMotionModel::direction_vector(
         0x00018000U,angle,false,tables);
-    auto y=session.coordinate_a+delta.delta_y;
-    auto x=session.coordinate_b+delta.delta_x;
+    // The original inventory caller pushes DGROUP:255D4 as the
+    // fifth coordinate (Y) and 255D0 as the fourth coordinate (X).
+    // Preserve the actual CALL operand order.
+    auto x=session.coordinate_a+delta.delta_x;
+    auto y=session.coordinate_b+delta.delta_y;
     // Original C02F source mode forces both Q16 low words to
     // 0x8000 before passing the 2D5D0 placement predicate.
     if(center_fraction) {
@@ -56,8 +59,8 @@ InventoryWorldDropResult InventoryWorldDropModel::drop(
         x=(x&0xFFFF0000U)|0x8000U;
     }
     if(can_place && !can_place(y,x,0x190U)) {
-        y=session.coordinate_a;
-        x=session.coordinate_b;
+        x=session.coordinate_a;
+        y=session.coordinate_b;
     }
     const auto cell_y=static_cast<std::int16_t>(y>>16U);
     const auto cell_x=static_cast<std::int16_t>(x>>16U);
