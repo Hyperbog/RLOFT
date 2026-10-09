@@ -14,13 +14,19 @@ single-use AnalysisDecisionTrace argument to ControlFlowAnalysis.Analyze.
 - Logs explicit entry seeds, protected data, rejected/overlapping/invalid
   instruction hypotheses, accepted candidate instructions, analysis budget
   stops, relocation-backed indirect targets, pointer tables and unresolved
-  branch destinations.
+  branch destinations. Newly queued and previously known targets have
+  separate outcomes; non-executable destinations are distinguished from
+  virtual-but-unbacked executable addresses.
+- Validates caller-supplied seeds and protected ranges before consuming an
+  opt-in single-use trace, so invalid requests do not strand trace objects.
 - Never serializes original bytes, source paths, arbitrary provenance text,
   analyst comments or exception messages. No uploads or automatic files.
   Findings remain *candidate/unverified*, not proof of runtime execution.
 
-Synthetic regression source verifies original graph equivalence, evidence
-offsets, bounds, rejection reasons, speculative classification and privacy.
+Synthetic regression source includes checks for graph equivalence, evidence
+offsets, bounds, duplicate queue classification, non-executable versus
+unbacked destinations, rejected-input trace reuse, speculative markers
+and privacy.
 **Not yet verified:** Windows compilation, smoke test execution, CODE.1/CODE.2
 original-file regression, GUI trace inspection, replay or stepping.
 

@@ -17,7 +17,9 @@ public enum AnalysisDecisionOutcome
     SeedQueued, ProtectedRangeDeclared, ProtectedTargetRejected,
     MidInstructionRejected, UnbackedTargetRejected, InvalidInstructionRejected,
     OverlappingDecodeRejected, DecodedCandidate, PointerTableCandidate,
-    DirectTargetQueued, IndirectTargetQueued, UnbackedFlowTargetRejected,
+    DirectTargetQueued, IndirectTargetQueued,
+    DirectTargetAlreadyKnown, IndirectTargetAlreadyKnown,
+    UnbackedFlowTargetRejected, NonExecutableTargetRejected,
     RuntimeTargetUnresolved, BudgetExceeded
 }
 

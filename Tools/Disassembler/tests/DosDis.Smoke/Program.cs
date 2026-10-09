@@ -234,6 +234,9 @@ try
         new ProtectedDataRange(1, 6, 10, "synthetic-known-data") }, decisionTrace: trace);
     Equal(traced.Instructions.Count, graph.Instructions.Count, "tracing preserves decoded candidates");
     Equal(traced.Edges.Count, graph.Edges.Count, "tracing preserves CFG edges");
+    Equal(trace.Snapshot().Any(x => x.Outcome == AnalysisDecisionOutcome.DirectTargetAlreadyKnown &&
+        x.Destination == new FlowAddress(1, 5)), true,
+        "shared-return edge is not mislabeled as a newly queued address");
     Equal(trace.ArtifactSha256, graphImage.ArtifactSha256, "trace source identity");
     Equal(trace.Snapshot().Any(x => x.Outcome == AnalysisDecisionOutcome.ProtectedRangeDeclared),
         true, "protected range is evidence-linked");
@@ -340,6 +343,46 @@ try
     var limited = ControlFlowAnalysis.Analyze(graphImage, maxInstructions: 1, decisionTrace: budgetTrace);
     Equal(budgetTrace.Snapshot().Any(x => x.Outcome == AnalysisDecisionOutcome.BudgetExceeded),
         true, "instruction budget stop is inspectable");
+    var invalidSeedTrace = new AnalysisDecisionTrace();
+    bool invalidSeed = false;
+    try
+    {
+        ControlFlowAnalysis.Analyze(graphImage, seeds: new[] { new FlowAddress(1, 0x100) },
+            decisionTrace: invalidSeedTrace);
+    }
+    catch (ArgumentException) { invalidSeed = true; }
+    Equal(invalidSeed, true, "out-of-object seed is rejected");
+    Equal(invalidSeedTrace.ArtifactSha256 is null, true,
+        "rejected seed does not consume the single-use trace");
+    var recoveredTraceGraph = ControlFlowAnalysis.Analyze(graphImage,
+        decisionTrace: invalidSeedTrace);
+    Equal(recoveredTraceGraph.Instructions.Count, graph.Instructions.Count,
+        "trace remains usable after rejected input");
+
+    // Object offset 0x30 is either outside the 0x20-byte executable region,
+    // or virtual-but-unbacked when the object is extended to 0x40 bytes.
+    var outOfScopeBytes = (byte[])graphBytes.Clone();
+    outOfScopeBytes[dataStart + 0x10] = 0xEB; // jmp short +0x1e -> 0x30
+    outOfScopeBytes[dataStart + 0x11] = 0x1E;
+    var nonExecutableImage = LeImage.Load(BinaryArtifact.FromBytes(outOfScopeBytes));
+    var nonExecutableTrace = new AnalysisDecisionTrace();
+    ControlFlowAnalysis.Analyze(nonExecutableImage, decisionTrace: nonExecutableTrace);
+    Equal(nonExecutableTrace.Snapshot().Any(x =>
+        x.Outcome == AnalysisDecisionOutcome.NonExecutableTargetRejected &&
+        x.Destination == new FlowAddress(1, 0x30)), true,
+        "out-of-executable target is not mislabeled as unbacked virtual memory");
+    Dword(outOfScopeBytes, 0x80 + 0xc4, 0x40);
+    var unbackedImage = LeImage.Load(BinaryArtifact.FromBytes(outOfScopeBytes));
+    var unbackedTrace = new AnalysisDecisionTrace();
+    ControlFlowAnalysis.Analyze(unbackedImage, decisionTrace: unbackedTrace);
+    Equal(unbackedTrace.Snapshot().Any(x =>
+        x.Outcome == AnalysisDecisionOutcome.UnbackedFlowTargetRejected &&
+        x.Destination == new FlowAddress(1, 0x30)), true,
+        "virtual-but-unbacked target has distinct evidence");
+    Equal(unbackedTrace.Snapshot().Any(x =>
+        x.Outcome == AnalysisDecisionOutcome.UnbackedFlowTargetRejected &&
+        x.DestinationFileOffset is null), true,
+        "unbacked virtual destination has no invented file offset");
     Equal(limited.Truncated, true, "analysis budget truncation is disclosed");
     Equal(limited.Instructions.Count, 1, "analysis respects budget");
     // Part 17: relocation-backed, indexed dword jump tables are CANDIDATES,

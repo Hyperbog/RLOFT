@@ -177,3 +177,5 @@ The Part 30 bounded operation history, opt-in `Diagnostics…` JSON export and b
 ## Part 32: bounded evidence-linked analyzer decisions (source checkpoint)
 
 The optional `AnalysisDecisionTrace` records typed, bounded analyzer decisions, addresses and candidate provenance without original bytes, local paths or private comments. **Not yet Windows-built**; the completion estimate stays **43%**. See [Part 32](docs/PART32_ANALYZER_DECISION_TRACE.md). GitHub Actions remains manual-only.
+
+Part 32 source audit: branch edge trace outcomes now distinguish fresh versus previously seen targets and non-executable versus unbacked virtual destinations. Invalid seed/range requests no longer consume the single-use trace. Static review only; no build was requested or run.

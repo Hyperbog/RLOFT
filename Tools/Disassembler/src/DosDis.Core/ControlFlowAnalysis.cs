@@ -60,9 +60,6 @@ public static class ControlFlowAnalysis
         var explicitData = (protectedData ?? Array.Empty<ProtectedDataRange>()).ToArray();
         if (explicitData.Length > 100_000)
             throw new ArgumentOutOfRangeException(nameof(protectedData));
-        // Completely opt-in: no decision history is recorded by ordinary analysis.
-        decisionTrace?.Begin(image);
-
         // A separate ownership array for each executable object. -1 = no
         // instruction; a nonnegative value identifies an instruction start.
         var owners = new Dictionary<int, int[]>();
@@ -78,6 +75,18 @@ public static class ControlFlowAnalysis
             owners[obj.Number] = o;
             status[obj.Number] = new byte[o.Length];
         }
+        // Validate every caller-supplied address before consuming a single-use
+        // trace. Failed requests must not make the trace unusable on retry.
+        foreach (var range in explicitData)
+        {
+            if (!status.TryGetValue(range.Object, out var marks) ||
+                range.Begin >= range.EndExclusive || range.EndExclusive > marks.Length)
+                throw new ArgumentException("Protected range must lie inside one executable object.", nameof(protectedData));
+        }
+        foreach (var seed in sourceSeeds)
+            if (!owners.TryGetValue(seed.Object, out var ownership) || seed.Offset >= ownership.Length)
+                throw new ArgumentException($"Seed {seed} is outside an executable LE object.", nameof(seeds));
+        decisionTrace?.Begin(image);
         var diagnostics = new List<FlowDiagnostic>();
         void Report(FlowAddress at, string code, string message)
         {
@@ -119,14 +128,16 @@ public static class ControlFlowAnalysis
         bool IsExecutable(FlowAddress loc) =>
             owners.TryGetValue(loc.Object, out int[]? arr) && loc.Offset < arr.Length;
 
-        void QueueCandidate(FlowAddress loc, bool speculative = false)
+        bool QueueCandidate(FlowAddress loc, bool speculative = false)
         {
-            if (!IsExecutable(loc)) return;
+            if (!IsExecutable(loc)) return false;
             if (!speculativeOnly.TryGetValue(loc, out bool previouslySpeculative))
                 speculativeOnly[loc] = speculative;
             else if (previouslySpeculative && !speculative)
                 speculativeOnly[loc] = false;
-            if (queued.Add(loc)) pending.Enqueue(loc);
+            if (!queued.Add(loc)) return false;
+            pending.Enqueue(loc);
+            return true;
         }
         foreach (var seed in sourceSeeds)
         {
@@ -257,17 +268,23 @@ public static class ControlFlowAnalysis
                 {
                     if (IsExecutable(destination) && image.ToFileOffset(destination.Object, destination.Offset) is not null)
                     {
-                        QueueCandidate(destination, candidateIndirect);
+                        bool newlyQueued = QueueCandidate(destination, candidateIndirect);
                         decisionTrace?.Record(image, candidateIndirect
                                 ? AnalysisDecisionRule.RelocationReference : AnalysisDecisionRule.FlowTarget,
-                            candidateIndirect ? AnalysisDecisionOutcome.IndirectTargetQueued
-                                : AnalysisDecisionOutcome.DirectTargetQueued,
+                            candidateIndirect
+                                ? (newlyQueued ? AnalysisDecisionOutcome.IndirectTargetQueued
+                                    : AnalysisDecisionOutcome.IndirectTargetAlreadyKnown)
+                                : (newlyQueued ? AnalysisDecisionOutcome.DirectTargetQueued
+                                    : AnalysisDecisionOutcome.DirectTargetAlreadyKnown),
                             cursor, destination, speculative: candidateIndirect);
                     }
                     else
                     {
-                        decisionTrace?.Record(image, AnalysisDecisionRule.FileBacking,
-                            AnalysisDecisionOutcome.UnbackedFlowTargetRejected,
+                        decisionTrace?.Record(image,
+                            IsExecutable(destination) ? AnalysisDecisionRule.FileBacking
+                                : AnalysisDecisionRule.FlowTarget,
+                            IsExecutable(destination) ? AnalysisDecisionOutcome.UnbackedFlowTargetRejected
+                                : AnalysisDecisionOutcome.NonExecutableTargetRejected,
                             cursor, destination, speculative: candidateIndirect);
                         Report(cursor, "unresolved-target", $"{kind} destination {destination} is not backed executable code in this object.");
                     }
