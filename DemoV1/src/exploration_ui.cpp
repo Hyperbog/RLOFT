@@ -114,6 +114,20 @@ void ExplorationUiController::toggle_party_panel(
     state_.selected_party_actor = actor_index;
 }
 
+void ExplorationUiController::exchange_party_panel_state(
+    std::size_t first,std::size_t second) {
+    if(first>=state_.party_panel_character_mode.size() ||
+       second>=state_.party_panel_character_mode.size())
+        throw std::out_of_range("party inventory reorder actor");
+    if(first==second)return;
+    std::swap(state_.party_panel_character_mode[first],
+              state_.party_panel_character_mode[second]);
+    if(state_.selected_party_actor==first)
+        state_.selected_party_actor=second;
+    else if(state_.selected_party_actor==second)
+        state_.selected_party_actor=first;
+}
+
 bool ExplorationUiController::party_panel_character_mode(
     std::size_t actor_index) const {
     if (actor_index >= PartyImage::kActorCount) {
