@@ -1,5 +1,37 @@
 # Ravenloft Demo Build v1
 
+## Current inventory-only source checkpoint (full completion still pending)
+
+[Original inventory fidelity workstream](INVENTORY_FIDELITY_WORKSTREAM_20261009.md)
+tracks the user's nine DOS inventory screenshots as the
+active **single-system development priority**. Since
+the last milestone, source-backed corrections now
+include: original CODE.2 **20 equipment pickup
+rectangles** from both race-dependent 12C00 arrays;
+**different-subtype recursive container nesting**
+with original weight/hand-pair rules and cycle
+preflight; original **RES2[9+subtype]** container
+surrounds and **RES2[0x25]** MAX/CURRENT burden
+panel; and a live **D-key → family-C world drop**
+using original 2195C position/facing, known state
+and 300-item FIFO.
+
+These are committed source, not a finished original
+inventory. CODE.2 special item uses, Level16 item
+0x89 quest side effect, exact 2D5D0 drop collision,
+mutable open-container SAVE/LOAD roundtrips,
+ancillary effects/condition popups and final
+pixel/color/character comparisons remain open.
+**169 CTests** are registered, and the manual-only
+Quick mode now covers **19** focused tests.
+No current-source Windows build has run.
+Per user direction, DO NOT dispatch the Windows
+build until every original inventory behavior and
+visual acceptance blocker is addressed.
+The 32-milestone overall Demo-v1 engineering
+score has not been artificially raised for
+submilestone changes.
+
 ## Inventory-only workstream — functionality in source, not DOS accepted
 
 [Current full inventory implementation and remaining 8 acceptance blockers](INVENTORY_FIDELITY_WORKSTREAM_20261009.md).
