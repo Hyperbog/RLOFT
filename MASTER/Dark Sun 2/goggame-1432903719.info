@@ -1,0 +1,64 @@
+{
+    "buildId": "52095422060333615",
+    "clientId": "51260260969247556",
+    "gameId": "1432903719",
+    "language": "English",
+    "languages": [
+        "en-US"
+    ],
+    "name": "Dark Sun 2: Wake of the Ravager",
+    "playTasks": [
+        {
+            "arguments": "-conf \"..\\dosbox_darksun2.conf\" -conf \"..\\dosbox_darksun2_single.conf\" -noconsole -c \"exit\"",
+            "category": "game",
+            "isPrimary": true,
+            "languages": [
+                "*"
+            ],
+            "name": "Dark Sun 2: Wake of the Ravager",
+            "path": "DOSBOX\\dosbox.exe",
+            "type": "FileTask",
+            "workingDir": "DOSBOX"
+        },
+        {
+            "arguments": "1432903719",
+            "category": "tool",
+            "languages": [
+                "*"
+            ],
+            "name": "Graphic Mode Setup",
+            "path": "DOSBOX\\GOGDOSConfig.exe",
+            "type": "FileTask",
+            "workingDir": "DOSBOX"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "link": "http://www.gog.com/support/dungeons_dragons_dark_sun_series",
+            "name": "Support",
+            "type": "URLTask"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "name": "Manual",
+            "path": "Manual.pdf",
+            "type": "FileTask"
+        },
+        {
+            "category": "document",
+            "languages": [
+                "*"
+            ],
+            "name": "Cluebook",
+            "path": "Cluebook.pdf",
+            "type": "FileTask"
+        }
+    ],
+    "rootGameId": "1432903719",
+    "version": 1
+}
