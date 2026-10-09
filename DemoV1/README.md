@@ -1,5 +1,66 @@
 # Ravenloft Demo Build v1
 
+## Part 8 continuation — native Level16 event 8 now connected
+
+The four original `SEED OF MORNINGLORD`
+locations at Level16 now reach a native
+source-order complete-event handoff rather than
+the previous diagnostic-only pending state.
+The original `21880` chain is:
+
+`2195C` adds the fourth item 0x89 →
+`1C124(0x44)` sets persistent story event bit →
+`13EF8(8)` plays **`CINE08.ANM`** (182
+original frames) →
+`15050(0x73)` grants **HOLY SYMBOL OF
+RAVENKIND**. The earlier CODE.2-derived
+cursor/party/world reward implementation is
+now called AFTER real event playback, with
+original item ID, source identification bits
+and family-C 300-record fallback.
+
+`Level16RitualCompletionModel` preflights
+original placement and reward branches
+without prematurely modifying the game.
+The world, cursor and story flag are then
+advanced in source order for event playback.
+The existing `AnmCinematic` and Win32
+`play_cinematic` host function load and
+display the supplied event-8 resource using
+the startup audio/MIDI bridges. The inventory
+modal hides its cursor and detaches gameplay
+click input during the blocking cinematic,
+then restores input, cursor, audio/palette
+presentation flow, scene-cache freshness
+and retrace pacing afterward.
+
+Native Escape, Quit, missing resource, and
+failed playback have explicit recovery paths:
+the current in-memory fourth seed, story bit
+and reward are rolled back to avoid duplicate
+or incomplete quest completion. This is a
+**native safety choice**, not yet a
+DOS-certified cancellation/teardown behavior.
+
+Extended assertions in existing
+`inventory_world_drop_tests` verify the
+original flag/seed/reward order during
+callbacks, repeat-event suppression,
+Escape/Quit/exception recovery and no
+silent completion without an event presenter.
+The existing exploration-runtime tests
+check no invocation before world
+initialization. **No builds or tests were
+run.** Registered CTests **170**, Quick
+**19**; engineering score **56.25%**,
+inventory milestone **PARTIAL**.
+
+The next acceptance work includes the exact
+original `13C88` event cleanup, CINE08
+palette/audio/timing comparisons, DOS Escape
+semantics and full-world SAVE/LOAD integration.
+
+
 ## Part 8 continuation — complete Holy Symbol item placement and CINE08 source identity
 
 Original CODE.2 `1511F..1513C` calls the original
