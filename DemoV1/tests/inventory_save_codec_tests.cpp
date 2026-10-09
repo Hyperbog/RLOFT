@@ -58,6 +58,15 @@ std::vector<std::uint8_t> source_fixture(std::uint32_t effects) {
     for(std::size_t i=0;i<b.size();++i)
         b[i]=static_cast<std::uint8_t>((i*37U+19U)&0xFFU);
     put32(b,C::kTransientCountAt,effects);
+    // The live-only bridge deliberately requires world consistency.
+    // Match CODE.2 fresh Level22 (4.5,4.5), facing 270, time 14:00.
+    put32(b,0x52U,22U);
+    put32(b,0x56U,0x00048000U);
+    put32(b,0x5AU,0x00048000U);
+    put32(b,0x5EU,270U);
+    put32(b,0x70U,0x000E0000U);
+    // The source's four inactive 6FA0 modal contexts.
+    for(std::size_t i=b.size()-16U;i<b.size();++i)b[i]=0xFFU;
     put16(b,0x74U,0xFFFFU);
     b[0x76U]=0U;
     const auto bank=0x9A7U+
@@ -215,4 +224,102 @@ int main() {
     assert(fails([&]{
         (void)C::encode(loaded);
     }));
+
+    // Native session bridge: only previously verified inventory
+    // components may be applied over a CURRENT, matching world.
+    // Both copies of character state (SAVE fixture and live
+    // runtime session) must remain internally consistent.
+    auto original_save=source_fixture(0U);
+    const auto snapshot=C::decode(original_save,baseline);
+    rloft::ExplorationSessionState session{};
+    session.level_id=22U;
+    session.coordinate_a=0x00048000U;
+    session.coordinate_b=0x00048000U;
+    session.facing=270U;
+    session.time_of_day_16_16_hours=0x000E0000U;
+    session.party.bytes.fill(0xAAU);
+    session.persistent_event_flags.fill(0x55U);
+    auto inventory=baseline;
+    inventory.held={150,1U};
+    C::apply_to_matching_session(snapshot,session,inventory);
+    assert(session.party.bytes==snapshot.party.bytes);
+    assert(session.persistent_event_flags==
+        snapshot.persistent_event_flags);
+    assert(inventory.held.object_id==-1);
+    assert(inventory.held.known==0U);
+    assert(inventory.containers[61].items[0]==57);
+    assert(inventory.containers[62].per_slot_state_bits==0xD3U);
+
+    // After live inventory actions, projection must collect
+    // CURRENT party/flags/containers/held, not stale imported
+    // snapshot fields. The original independent world bytes are
+    // preserved exactly from the source SAVE.
+    session.party.bytes[0x6AU]=0U; // learned Mage spell
+    session.party.bytes[0x12BU]=0x04U; // item known bits
+    session.persistent_event_flags[0U]=0x0FU;
+    inventory.held={0x61,1U};
+    inventory.containers[0].items[1]=0x62;
+    inventory.containers[0].per_slot_state_bits=0x02U;
+    const auto from_live=C::capture_matching_session(
+        snapshot,session,inventory);
+    const auto emitted=C::encode(from_live);
+    assert(emitted[0x77U+0x6AU]==0U);
+    assert(emitted[0x77U+0x12BU]==0x04U);
+    assert(emitted[0x32U]==0x0FU);
+    assert(get16(emitted,0x74U)==0x61U);
+    assert(emitted[0x76U]==1U);
+    assert(get16(emitted,0x9A7U+2U)==0x62U);
+    assert(C::decode(emitted,baseline).party.bytes==
+        session.party.bytes);
+    for(std::size_t i=0;i<emitted.size();++i) {
+        const bool inventory_owned=
+            (i>=0x32U && i<0x52U) ||
+            (i>=0x74U && i<=0x76U) ||
+            (i>=0x77U && i<0x77U+C::kPartyBytes) ||
+            (i>=0x9A7U && i<0x9A7U+C::kPersistentContainerBytes) ||
+            (i>=emitted.size()-16U);
+        if(!inventory_owned)assert(emitted[i]==original_save[i]);
+    }
+
+    // Fail closed: an import for a DIFFERENT level/pose/time
+    // never changes either live character or held cursor state.
+    const auto party_before=session.party.bytes;
+    const auto event_before=session.persistent_event_flags;
+    const auto held_before=inventory.held;
+    const auto containers_before=inventory.containers[0].items;
+    auto wrong_pose=session;
+    wrong_pose.coordinate_a+=0x10000U;
+    assert(fails([&]{
+        C::apply_to_matching_session(snapshot,wrong_pose,inventory);
+    }));
+    assert(wrong_pose.party.bytes==party_before);
+    assert(wrong_pose.persistent_event_flags==event_before);
+    assert(inventory.held.object_id==held_before.object_id);
+    assert(inventory.containers[0].items==containers_before);
+    assert(fails([&]{
+        (void)C::capture_matching_session(snapshot,wrong_pose,inventory);
+    }));
+
+    auto moving=C::decode(source_fixture(3U),baseline);
+    assert(fails([&]{
+        C::apply_to_matching_session(moving,session,inventory);
+    }));
+    assert(session.party.bytes==party_before);
+    auto active_ui=snapshot;
+    active_ui.container_ui_contexts[0][0]=2U;
+    assert(fails([&]{
+        C::apply_to_matching_session(active_ui,session,inventory);
+    }));
+    assert(fails([&]{
+        (void)C::capture_matching_session(active_ui,session,inventory);
+    }));
+    inventory.open_container=rloft::OpenInventoryContainer{};
+    assert(fails([&]{
+        (void)C::capture_matching_session(snapshot,session,inventory);
+    }));
+    inventory.open_container.reset();
+    // Standard zero-effect, unchanged-world roundtrip remains
+    // allowed after closing the transient hand-container UI.
+    assert(C::encode(C::capture_matching_session(
+        snapshot,session,inventory))==emitted);
 }
