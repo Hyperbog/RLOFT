@@ -8,6 +8,17 @@
 #include <utility>
 
 namespace rloft {
+namespace {
+bool original_initial_ground_enabled(const GameSource& source) {
+    const auto code2=source.read("CODE.2");
+    constexpr auto source_at=0x75F24U+0xC026U;
+    if(code2.size()<=source_at) {
+        throw std::runtime_error(
+            "CODE.2 initial C026 ground-mode byte is missing");
+    }
+    return code2[source_at]!=0U;
+}
+} // namespace
 
 ExplorationPresenter::ExplorationPresenter(
     const RavenloftBootAssets& assets)
@@ -17,6 +28,11 @@ ExplorationPresenter::ExplorationPresenter(
       fill_table_(
           SurfaceFillTable::from_code2(
               assets.source().read("CODE.2"))),
+      ground_shades_(
+          GroundTextureShadeTable::from_code2(
+              assets.source().read("CODE.2"))),
+      original_c026_initial_enabled_(
+          original_initial_ground_enabled(assets.source())),
       surface_vga_masks_(
           Type7VgaPlaneMaskModel::load(assets.source())),
       res0_raster_base_(assets.init_u16(0x00U)),
@@ -102,6 +118,32 @@ ExplorationPresenter::initial_scene_outcomes(
     return out;
 }
 
+bool ExplorationPresenter::original_full_ground_eligible(
+    const ExplorationRuntimeFrame& frame) {
+    if(frame.source_level_id!=22 ||
+       !frame.ground_source_verified ||
+       !frame.ground_perspective_ready ||
+       frame.ground_raster_source.size()!=
+           GroundTextureRasterSpec::kTextureHeaderBytes+
+           GroundTextureRasterSpec::kTextureBytes ||
+       frame.sweep_records.size()!=256U) {
+        return false;
+    }
+    // CODE.2 335C8 starts the closest wall-depth value at 0x800.
+    // Every original ray in Level22's open field is a sentinel
+    // material 0x93, so the wall-depth update at 330F5 is never
+    // taken: 1F2A5 sets FF50=128, the 1F372 lower half retains
+    // 128 rows, and 1F3C3 calls exactly 34A74. A missing ray or
+    // different resource prevents this original open-field proof.
+    return std::all_of(
+        frame.sweep_records.begin(),
+        frame.sweep_records.end(),
+        [](const ViewSweepRecord& ray) {
+            return ray.resource_outer==0x93U &&
+                   ray.resource_inner==0x93U;
+        });
+}
+
 void ExplorationPresenter::draw_environment(
     const ExplorationRuntimeFrame& frame) {
     if (!frame.scene.environment_commands.empty()) {
@@ -145,10 +187,35 @@ ExplorationPresentedFrame ExplorationPresenter::present(
 
     draw_environment(frame);
 
-    SurfaceFillModel::draw_lower(
-        framebuffer_,
-        fill_table_,
-        frame.scene.frame.renderer_fill_base_b);
+    bool ground_textured_rasterized=false;
+    std::size_t ground_indexed_writes=0U;
+    std::string ground_render_failure;
+    if (original_c026_initial_enabled_ &&
+        original_full_ground_eligible(frame)) {
+        try {
+            GroundTextureRasterSpec ground{};
+            ground.phase_u=frame.ground_phase_u;
+            ground.phase_v=frame.ground_phase_v;
+            // Open-field sentinel makes original FF50 exactly 128.
+            // Other depths/modes must NOT be given a guessed span.
+            ground.row_count=128U;
+            const auto report=OriginalGroundTextureRaster::draw(
+                framebuffer_,frame.ground_raster_source,
+                ground_shades_,frame.ground_ff58,ground);
+            ground_textured_rasterized=true;
+            ground_indexed_writes=report.indexed_writes;
+        } catch(const std::exception& error) {
+            // Preserve the old lower fill if any original texel
+            // lookup/row-bound validation fails. This does not turn
+            // an unsupported source into invented grass.
+            ground_render_failure=error.what();
+        }
+    }
+    if(!ground_textured_rasterized) {
+        SurfaceFillModel::draw_lower(
+            framebuffer_,fill_table_,
+            frame.scene.frame.renderer_fill_base_b);
+    }
 
     auto output_coverage =
         surface_coverage(frame, tables);
@@ -387,6 +454,9 @@ ExplorationPresentedFrame ExplorationPresenter::present(
         panels);
 
     ExplorationPresentedFrame out{};
+    out.ground_textured_rasterized=ground_textured_rasterized;
+    out.ground_indexed_writes=ground_indexed_writes;
+    out.ground_render_failure=std::move(ground_render_failure);
     out.palette =
         assets_.colors_palette(
             frame.scene.palette_index);
