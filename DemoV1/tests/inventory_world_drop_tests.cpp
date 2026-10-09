@@ -108,15 +108,26 @@ int main() {
     assert(world.loose_items.back().object_type_id==53U);
     assert(result.loose_item_index==299U);
 
-    // Original item 0x89 is a special-script trigger inside 2195C;
-    // it cannot be silently dropped without the associated callback.
+    // The extra original 21880 item0x89 event returns immediately
+    // outside Level16. Therefore an item0x89 drop on Level22 behaves
+    // as an ordinary drop. On Level16 its four-position/flag check
+    // is still bounded rather than omitted.
+    s.level_id=22U;
     inventory.held={0x89,1U};
-    const auto before_world=world.loose_items;
+    result=rloft::InventoryWorldDropModel::drop(
+        world,s,inventory,definitions,tables,
+        [](std::uint32_t,std::uint32_t,std::uint32_t){return false;});
+    assert(result.status==rloft::InventoryWorldDropStatus::Dropped);
+    assert(world.loose_items.back().object_type_id==0x89);
+    assert(inventory.held.object_id==-1);
+    s.level_id=16U;
+    inventory.held={0x89,1U};
+    const auto before_special=world.loose_items.size();
     result=rloft::InventoryWorldDropModel::drop(
         world,s,inventory,definitions,tables,{});
     assert(result.status==
         rloft::InventoryWorldDropStatus::SourceSpecialActionPending);
-    assert(world.loose_items.size()==before_world.size());
+    assert(world.loose_items.size()==before_special);
     assert(inventory.held.object_id==0x89);
 
     // Invalid/outside-level and unknown objects must be rejected without
