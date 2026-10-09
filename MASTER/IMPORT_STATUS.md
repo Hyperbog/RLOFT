@@ -29,6 +29,8 @@ Counts were obtained by comparing committed Git tree paths and byte sizes to eac
 
 See [MISSING_SOURCE_FILES.md](MISSING_SOURCE_FILES.md) for the exact four missing filenames, required original sizes, SHA-256 values, source archives, and the separate size-mismatch backlog.
 
+**Extracted-disc folder rename completed:** Commit `2e1dafb2ac74` renamed the extracted CD contents for Dark Sun 2, Menzoberranzan, Stone Prophet, and Strahd's Possession to per-game `CD_Extracted/` folders. It preserved all 503 file blobs without modification. The **four original 13-game disc-image/archive files remain absent** despite the extracted contents being available for research. Strahd's separate disc-image state is tracked in its own `CD_EXTRACTION_STATUS.md`.
+
 ## Files requiring Git LFS (over GitHub's 100 MiB regular Git limit)
 
 | Relative path under `MASTER/` | Bytes | Expected original SHA-256 |
