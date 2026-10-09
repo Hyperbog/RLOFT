@@ -1,5 +1,25 @@
 # Demo v1 — development progress versus formal acceptance
 
+**Original Level 22 RES4 ground identification checkpoint:**
+A dedicated original-media inspector now enumerates decoded
+64×64 EH type-1 resources in real RES4 without exporting or
+substituting their pixel data. It records valid/invalid
+entries, raw/LZSS compression, exact 4096-byte pixel
+counts and FNV-1a diagnostic hashes. Its standalone
+Windows console tool and `Probe-Level22-Ground.cmd`
+ship in the **next manually built** executable artifact.
+The source-backed test includes both raw and LZSS
+synthetic RES4 entries and exact indexed drawing checks.
+
+Original `CODE.2 1F388..1F398` selects relative Level22
+ground ID **55 plus mutable resource base 258F8**.
+The runtime base is still unverified; no absolute tile
+is assumed and the original live 34A74 floor remains
+unconnected. Current HEAD has **164 expected tests**
+but has not passed MSVC CI; #640 (160 tests) is the
+last verified manual run. **No acceptance gate passed.**
+[Full source and diagnostic checkpoint](ORIGINAL_LEVEL22_RES4_GROUND_SOURCE_AUDIT_20261008.md).
+
 **Source milestone: original 34998/34A74 textured terrain**
 (2026-10-08): Disassembly recovered the source of the two
 128-word perspective arrays: original CODE.2 startup copies
