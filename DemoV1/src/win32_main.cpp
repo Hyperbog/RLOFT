@@ -1880,18 +1880,12 @@ int run(HINSTANCE instance) {
     // synthetic actors exist only for the lifetime of this process.
     // Keep the original startup/menu route unchanged by default.
     if (options.explore_level22) {
-        // Writable DOS SAVE.DAT wins over packaged immutable media.
-        // Some GOG/Steam CD images ship the original quick-start SAVE
-        // only inside game.gog rather than the loose RLOFT directory.
-        // This restores PARTY RECORDS ONLY, never fabricates a complete
-        // loaded save-world, NPC AI, clock or active game state.
-        auto saved_party_bytes=assets.source().read_runtime("SAVE.DAT");
-        if (!saved_party_bytes &&
-            assets.source().contains("SAVE.DAT")) {
-            saved_party_bytes=assets.source().read("SAVE.DAT");
-        }
+        // --explore-level22 is an explicitly opted-in diagnostic
+        // shortcut only. A newly created DOS party must pass through
+        // CODE.1 character creation -> exact CHARS -> CODE.2 startup,
+        // never splice unrelated characters out of SAVE.DAT.
         const auto preview = rloft::ExplorationPreview::party(
-            startup_chars,saved_party_bytes);
+            startup_chars);
         return run_exploration(
             host, assets, preview.chars, true, options.capture_render,
             options.capture_limit);
