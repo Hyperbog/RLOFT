@@ -46,7 +46,8 @@ public static class ControlFlowAnalysis
         IEnumerable<FlowAddress>? seeds = null,
         IEnumerable<ProtectedDataRange>? protectedData = null,
         int maxInstructions = 100_000,
-        bool relocated = false, CancellationToken cancellationToken = default)
+        bool relocated = false, CancellationToken cancellationToken = default,
+        AnalysisDecisionTrace? decisionTrace = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(image);
@@ -59,6 +60,8 @@ public static class ControlFlowAnalysis
         var explicitData = (protectedData ?? Array.Empty<ProtectedDataRange>()).ToArray();
         if (explicitData.Length > 100_000)
             throw new ArgumentOutOfRangeException(nameof(protectedData));
+        // Completely opt-in: no decision history is recorded by ordinary analysis.
+        decisionTrace?.Begin(image);
 
         // A separate ownership array for each executable object. -1 = no
         // instruction; a nonnegative value identifies an instruction start.
@@ -87,6 +90,9 @@ public static class ControlFlowAnalysis
             if (!status.TryGetValue(range.Object, out byte[]? classifications) ||
                 range.Begin >= range.EndExclusive || range.EndExclusive > classifications.Length)
                 throw new ArgumentException("Protected range must lie inside one executable object.", nameof(protectedData));
+            decisionTrace?.Record(image, AnalysisDecisionRule.AnalystProtection,
+                AnalysisDecisionOutcome.ProtectedRangeDeclared,
+                new FlowAddress(range.Object, range.Begin));
             for (uint i = range.Begin; i < range.EndExclusive; i++)
             {
                 if ((i & 4095u) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -127,6 +133,8 @@ public static class ControlFlowAnalysis
             if (!IsExecutable(seed))
                 throw new ArgumentException($"Seed {seed} is outside an executable LE object.", nameof(seeds));
             QueueCandidate(seed);
+            decisionTrace?.Record(image, AnalysisDecisionRule.EntrySeed,
+                AnalysisDecisionOutcome.SeedQueued, seed);
         }
 
         while (pending.Count > 0)
@@ -140,17 +148,23 @@ public static class ControlFlowAnalysis
             int pos = checked((int)cursor.Offset);
             if (classifications[pos] == 2)
             {
+                decisionTrace?.Record(image, AnalysisDecisionRule.AnalystProtection,
+                    AnalysisDecisionOutcome.ProtectedTargetRejected, cursor);
                 Report(cursor, "protected-data-target", "Traversal would enter analyst-protected data; not decoded.");
                 continue;
             }
             if (ownership[pos] >= 0)
             {
+                decisionTrace?.Record(image, AnalysisDecisionRule.ByteOwnership,
+                    AnalysisDecisionOutcome.MidInstructionRejected, cursor);
                 Report(cursor, "mid-instruction-target", $"Control flow enters instruction at 0x{ownership[pos]:X}; alternate decode not assumed.");
                 continue;
             }
             if (instructions.Count >= maxInstructions)
             {
                 truncated = true;
+                decisionTrace?.Record(image, AnalysisDecisionRule.AnalysisBudget,
+                    AnalysisDecisionOutcome.BudgetExceeded, cursor);
                 break;
             }
 
@@ -162,6 +176,8 @@ public static class ControlFlowAnalysis
                 length++;
             if (length == 0)
             {
+                decisionTrace?.Record(image, AnalysisDecisionRule.FileBacking,
+                    AnalysisDecisionOutcome.UnbackedTargetRejected, cursor);
                 Report(cursor, "unbacked-target", "No original-file bytes for this address.");
                 continue;
             }
@@ -173,6 +189,8 @@ public static class ControlFlowAnalysis
             int size = instruction.Length;
             if (instruction.Code == Code.INVALID || size is < 1 or > 15 || size > length)
             {
+                decisionTrace?.Record(image, AnalysisDecisionRule.X86Decoder,
+                    AnalysisDecisionOutcome.InvalidInstructionRejected, cursor);
                 Report(cursor, "invalid-instruction", "Instruction could not be decoded without speculation.");
                 continue;
             }
@@ -187,6 +205,8 @@ public static class ControlFlowAnalysis
             }
             if (conflict)
             {
+                decisionTrace?.Record(image, AnalysisDecisionRule.ByteOwnership,
+                    AnalysisDecisionOutcome.OverlappingDecodeRejected, cursor);
                 Report(cursor, "overlapping-interpretation", "Instruction overlaps another instruction or protected data.");
                 continue;
             }
@@ -199,6 +219,9 @@ public static class ControlFlowAnalysis
                 instruction.FlowControl.ToString(),
                 speculativeOnly.GetValueOrDefault(cursor) ? "candidate-relocation-backed-indirect" :
                 "candidate-reachable-from-seed"));
+            decisionTrace?.Record(image, AnalysisDecisionRule.Reachability,
+                AnalysisDecisionOutcome.DecodedCandidate, cursor,
+                speculative: speculativeOnly.GetValueOrDefault(cursor));
             for (int i = pos; i < pos + size; i++)
             {
                 ownership[i] = pos;
@@ -207,7 +230,13 @@ public static class ControlFlowAnalysis
 
             var references = referenceRecovery.Inspect(cursor, size, instruction);
             dataReferences.AddRange(references.Data);
-            if (references.Table is not null) jumpTables.Add(references.Table);
+            if (references.Table is not null)
+            {
+                jumpTables.Add(references.Table);
+                decisionTrace?.Record(image, AnalysisDecisionRule.RelocationReference,
+                    AnalysisDecisionOutcome.PointerTableCandidate, cursor,
+                    references.Table.Table, speculative: true);
+            }
 
             FlowAddress next = new(cursor.Object, checked(cursor.Offset + (uint)size));
             bool hasNext = IsExecutable(next);
@@ -223,12 +252,28 @@ public static class ControlFlowAnalysis
             void AddEdge(FlowAddress? target, string kind, string evidence = "decoded-flow")
             {
                 edges.Add(new FlowEdge(cursor, target, kind, evidence));
-                if (target is not null)
+                bool candidateIndirect = kind.StartsWith("candidate-indirect-", StringComparison.Ordinal);
+                if (target is { } destination)
                 {
-                    if (IsExecutable(target.Value) && image.ToFileOffset(target.Value.Object, target.Value.Offset) != null)
-                        QueueCandidate(target.Value, kind.StartsWith("candidate-indirect-", StringComparison.Ordinal));
-                    else Report(cursor, "unresolved-target", $"{kind} destination {target.Value} is not backed executable code in this object.");
+                    if (IsExecutable(destination) && image.ToFileOffset(destination.Object, destination.Offset) is not null)
+                    {
+                        QueueCandidate(destination, candidateIndirect);
+                        decisionTrace?.Record(image, candidateIndirect
+                                ? AnalysisDecisionRule.RelocationReference : AnalysisDecisionRule.FlowTarget,
+                            candidateIndirect ? AnalysisDecisionOutcome.IndirectTargetQueued
+                                : AnalysisDecisionOutcome.DirectTargetQueued,
+                            cursor, destination, speculative: candidateIndirect);
+                    }
+                    else
+                    {
+                        decisionTrace?.Record(image, AnalysisDecisionRule.FileBacking,
+                            AnalysisDecisionOutcome.UnbackedFlowTargetRejected,
+                            cursor, destination, speculative: candidateIndirect);
+                        Report(cursor, "unresolved-target", $"{kind} destination {destination} is not backed executable code in this object.");
+                    }
                 }
+                else decisionTrace?.Record(image, AnalysisDecisionRule.FlowTarget,
+                    AnalysisDecisionOutcome.RuntimeTargetUnresolved, cursor);
             }
             void Continuation(string kind = "fallthrough")
             {

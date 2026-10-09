@@ -228,6 +228,28 @@ try
     }
     var graph = ControlFlowAnalysis.Analyze(graphImage, protectedData: new[] {
         new ProtectedDataRange(1, 6, 10, "synthetic-known-data") });
+    // Part 32: opt-in evidence must not alter the existing CFG analysis.
+    var trace = new AnalysisDecisionTrace();
+    var traced = ControlFlowAnalysis.Analyze(graphImage, protectedData: new[] {
+        new ProtectedDataRange(1, 6, 10, "synthetic-known-data") }, decisionTrace: trace);
+    Equal(traced.Instructions.Count, graph.Instructions.Count, "tracing preserves decoded candidates");
+    Equal(traced.Edges.Count, graph.Edges.Count, "tracing preserves CFG edges");
+    Equal(trace.ArtifactSha256, graphImage.ArtifactSha256, "trace source identity");
+    Equal(trace.Snapshot().Any(x => x.Outcome == AnalysisDecisionOutcome.ProtectedRangeDeclared),
+        true, "protected range is evidence-linked");
+    Equal(trace.Snapshot().Any(x => x.Outcome == AnalysisDecisionOutcome.DecodedCandidate &&
+        x.Address == new FlowAddress(1, 0) && x.FileOffset == graphImage.ToFileOffset(1, 0)),
+        true, "candidate has original file and object offsets");
+    using (var traceJson = JsonDocument.Parse(trace.BuildJson()))
+    {
+        Equal(traceJson.RootElement.GetProperty("schemaVersion").GetInt32(), 1, "trace schema version");
+        Equal(traceJson.RootElement.GetProperty("sourceSha256").GetString(),
+            graphImage.ArtifactSha256, "trace JSON source identity");
+        Equal(traceJson.RootElement.GetProperty("privacy").GetProperty("originalBytesIncluded").GetBoolean(),
+            false, "trace contains no original opcode bytes");
+    }
+    Equal(trace.BuildJson().Contains("synthetic-known-data", StringComparison.Ordinal),
+        false, "analyst prose is not included in trace");
     // Part 25: user-triggered offline exports preserve evidence classification,
     // omit potentially proprietary instruction bytes by default, and never
     // overwrite an existing analyst report.
@@ -296,19 +318,28 @@ try
         new ProtectedDataRange(1, 31, 35) }); }
     catch (ArgumentException) { invalidRangeRejected = true; }
     Equal(invalidRangeRejected, true, "protected data out of object bounds rejected");
+    var overlapTrace = new AnalysisDecisionTrace();
     var overlapping = ControlFlowAnalysis.Analyze(graphImage, new[] {
-        new FlowAddress(1, 0), new FlowAddress(1, 2) });
+        new FlowAddress(1, 0), new FlowAddress(1, 2) }, decisionTrace: overlapTrace);
+    Equal(overlapTrace.Snapshot().Any(x => x.Outcome == AnalysisDecisionOutcome.MidInstructionRejected),
+        true, "mid-instruction conflict has typed reason");
     Equal(overlapping.Diagnostics.Any(d => d.Code == "mid-instruction-target"), true,
         "mid-instruction overlapping seed reported");
     Equal(overlapping.Instructions.Any(x => x.Address.Offset == 2), false,
         "mid-instruction seed not emitted as verified instruction");
+    var protectedTrace = new AnalysisDecisionTrace();
     var blocked = ControlFlowAnalysis.Analyze(graphImage, new[] { new FlowAddress(1, 0x10) },
-        new[] { new ProtectedDataRange(1, 5, 6) });
+        new[] { new ProtectedDataRange(1, 5, 6) }, decisionTrace: protectedTrace);
+    Equal(protectedTrace.Snapshot().Any(x => x.Outcome == AnalysisDecisionOutcome.ProtectedTargetRejected &&
+        x.Address == new FlowAddress(1, 5)), true, "protected target rejection traced");
     Equal(blocked.Diagnostics.Any(d => d.Code == "protected-data-target"), true,
         "branch targeting protected data is halted");
     Equal(blocked.Instructions.Any(x => x.Address.Offset == 5), false,
         "protected byte not decoded");
-    var limited = ControlFlowAnalysis.Analyze(graphImage, maxInstructions: 1);
+    var budgetTrace = new AnalysisDecisionTrace();
+    var limited = ControlFlowAnalysis.Analyze(graphImage, maxInstructions: 1, decisionTrace: budgetTrace);
+    Equal(budgetTrace.Snapshot().Any(x => x.Outcome == AnalysisDecisionOutcome.BudgetExceeded),
+        true, "instruction budget stop is inspectable");
     Equal(limited.Truncated, true, "analysis budget truncation is disclosed");
     Equal(limited.Instructions.Count, 1, "analysis respects budget");
     // Part 17: relocation-backed, indexed dword jump tables are CANDIDATES,
@@ -335,7 +366,13 @@ try
         BinaryPrimitives.WriteUInt16LittleEndian(tableBytes.AsSpan(at + 5, 2), (ushort)(0x20 + i * 8));
     }
     var tableImage = LeImage.Load(BinaryArtifact.FromBytes(tableBytes));
-    var tableGraph = ControlFlowAnalysis.Analyze(tableImage);
+    var tableTrace = new AnalysisDecisionTrace(capacity: 8);
+    var tableGraph = ControlFlowAnalysis.Analyze(tableImage, decisionTrace: tableTrace);
+    Equal(tableTrace.Snapshot().Count, 8, "bounded event capacity");
+    Equal(tableTrace.DroppedEvents > 0, true, "older event eviction disclosed");
+    Equal(tableTrace.Snapshot().Any(x => x.Outcome == AnalysisDecisionOutcome.IndirectTargetQueued &&
+        x.IsSpeculative && x.Destination is not null), true,
+        "relocation-backed target remains speculative");
     Equal(tableGraph.JumpTables.Count, 1, "LE relocation-backed table recognized");
     Equal(tableGraph.JumpTables[0].Table, new FlowAddress(1, 0x40), "jump table address");
     Equal(tableGraph.JumpTables[0].CandidateTargets.Count, 3, "three jump table candidates");
@@ -424,6 +461,7 @@ try
         "analyst-protected table data can still supply fixup evidence");
     Equal(protectedTableGraph.Ranges.Any(r => r.Begin <= 0x40 && r.EndExclusive >= 0x4C &&
         r.Classification == "protected-data"), true, "protected table classification retained");
+    Console.WriteLine("PASS: opt-in bounded analyzer decision trace, privacy and evidence offsets");
     Console.WriteLine("PASS: relocation-backed indirect calls, indexed jump tables, data xrefs and conservative uncertainty");
     Console.WriteLine("PASS: recursive CFG, function candidates, shared-tail ownership, protected data, conflicts and budgets");
     Console.WriteLine("PASS: synthetic nested/flat LE, address maps, decoder, immutability and malformed fixtures");

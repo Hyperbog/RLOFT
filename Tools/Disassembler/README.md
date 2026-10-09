@@ -173,3 +173,7 @@ The initial diagnostic roadmap now has source-level implementation: a **bounded 
 ## Part 31: Windows-verified diagnostic session reports
 
 The Part 30 bounded operation history, opt-in `Diagnostics…` JSON export and best-effort local incident hooks have now compiled on the Windows .NET 10 runner and **passed both synthetic regression suites**: [successful build 37861762919](https://github.com/Hyperbog/RLOFT/actions/runs/37861762919). Published desktop and CLI artifacts were downloaded and their ZIP contents verified. **Interactive diagnostic-button behavior and actual crash incident capture are still untested on Windows**. The temporary one-time workflow trigger was removed and Actions remains strictly manual-only. Estimated first-final-release completion: **43% overall**, increased from 41% for verified testing. See [Part 31 checkpoint](docs/PART31_WINDOWS_DIAGNOSTIC_VERIFICATION.md).
+
+## Part 32: bounded evidence-linked analyzer decisions (source checkpoint)
+
+The optional `AnalysisDecisionTrace` records typed, bounded analyzer decisions, addresses and candidate provenance without original bytes, local paths or private comments. **Not yet Windows-built**; the completion estimate stays **43%**. See [Part 32](docs/PART32_ANALYZER_DECISION_TRACE.md). GitHub Actions remains manual-only.
