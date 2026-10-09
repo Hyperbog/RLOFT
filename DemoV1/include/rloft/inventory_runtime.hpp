@@ -120,6 +120,15 @@ struct InventoryRuntimeState final {
     HeldItemState held{};
     std::optional<MageScrollScribeSource> mage_scroll_source;
     std::optional<MageScribeFeedback> mage_scribe_feedback;
+    // Original CODE.2 13184..131BB: only unsigned IRQ tick >
+    // deadline_6da8 clears 6DAC and 6DA8 and calls F790 to
+    // restore the ordinary cursor item description. Equality
+    // must NOT expire the message; DWORD wrap is not corrected.
+    [[nodiscard]] bool expire_scribe_feedback_13184(
+        std::uint32_t observed_irq_tick_30700) noexcept;
+    void reset_scribe_feedback_13118() noexcept {
+        mage_scribe_feedback.reset();
+    }
     std::array<ContainerRuntimeState, kRuntimeDescriptorCount> containers{};
     std::optional<OpenInventoryContainer> open_container;
 
