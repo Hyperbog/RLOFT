@@ -73,6 +73,10 @@ Type7VgaFrameTrace Type7VgaFrameTraceModel::build(
     Type7VgaFrameTrace out{};
     out.scene_calls.reserve(plans.size());
     for (const auto& plan : plans) {
+        if (plan.source_unresolved) {
+            throw std::invalid_argument(
+                "strict VGA scene trace cannot accept unresolved RES3 plan");
+        }
         out.scene_calls.push_back(build_scene(
             plan, tables, masks, video_page, individual_columns_mode,
             shape_lookup, out.unresolved_wide_runs));
