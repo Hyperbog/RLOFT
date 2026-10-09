@@ -45,27 +45,34 @@ try
             "         [--known-answer reference.json --validation-out results.json];\n" +
             "Analyze/report: [--game-id menzo] [--module CODE.1] [--source-archive name.zip] [--internal-path folder/CODE.1]\n" +
             "Analyze/report: [--gap-out gaps.json] [--min-gap-bytes 256] [--max-gaps 100]\n" +
+            "All supported actions: [--identity-catalog fingerprints.json] (opt-in; original bytes not uploaded)\n" +
             "Report: --out path.json|path.txt [--include-bytes] (no overwrite)");
         return 2;
     }
     var artifact = BinaryArtifact.Open(args[1]);
+    if (args.Count(x => x == "--identity-catalog") > 1)
+        throw new ArgumentException("--identity-catalog cannot be repeated.");
+    var catalog = args.Contains("--identity-catalog", StringComparer.Ordinal)
+        ? SourceIdentityRegistry.ReadFile(Option(args, "--identity-catalog", "")) : null;
     LeImage? image = null;
     try { image = LeImage.Load(artifact); }
     catch (InvalidDataException) when (args[0] == "inspect") { /* Unsupported format: report only confirmed fields. */ }
     catch (NotSupportedException) when (args[0] == "inspect") { /* Unsupported LE page variant. */ }
     if (args[0] == "inspect")
     {
+        var detected = BinaryFormatDetector.Inspect(artifact, image);
         Print(new {
             artifact.Name,
             artifact.Length,
             artifact.Sha256,
-            Format = image == null ? "unrecognized-or-not-yet-supported" : "DOS LE",
+            Format = detected.FormatId,
+            FormatDetection = detected,
             Module = image == null ? null : new {
                 image.ModuleOrigin, image.HeaderOffset, image.PageSize,
                 image.EntryObject, image.EntryOffset, image.Objects, Pages = image.Pages,
                 FixupCount = image.Relocations.Count
             },
-            Intelligence = FileIntelligence.Inspect(artifact, image)
+            Intelligence = FileIntelligence.Inspect(artifact, image, catalog)
         });
     }
     else if (args[0] == "fixups")
@@ -83,7 +90,8 @@ try
             args.Contains("--game-id", StringComparer.Ordinal) ? Option(args, "--game-id", "") : null,
             args.Contains("--module", StringComparer.Ordinal) ? Option(args, "--module", "") : null,
             args.Contains("--source-archive", StringComparer.Ordinal) ? Option(args, "--source-archive", "") : null,
-            args.Contains("--internal-path", StringComparer.Ordinal) ? Option(args, "--internal-path", "") : null);
+            args.Contains("--internal-path", StringComparer.Ordinal) ? Option(args, "--internal-path", "") : null,
+            catalog);
         foreach (string option in new[] { "--game-id", "--module", "--source-archive", "--internal-path" })
             if (args.Count(x => x == option) > 1)
                 throw new ArgumentException("Provenance options cannot be repeated.");
