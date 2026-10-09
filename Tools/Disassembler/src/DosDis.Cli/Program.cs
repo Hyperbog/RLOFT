@@ -37,9 +37,10 @@ static void Print(object payload) => Console.WriteLine(JsonSerializer.Serialize(
 
 try
 {
-    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report"))
+    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report" or "mz" or "mz-disasm"))
     {
-        Console.Error.WriteLine("Usage: dosdis inspect|fixups|memory|disasm|analyze|report <file> [options]\n" +
+        Console.Error.WriteLine("Usage: dosdis inspect|mz|mz-disasm|fixups|memory|disasm|analyze|report <file> [options]\n" +
+            "MZ: verified DOS MZ header/relocations; mz-disasm [--segment 0] [--offset 0] [--count 32] (x86-16 candidates)\n" +
             "Analyze/report: [--seed 1:0x2975C] [--data 1:0x100:0x110] [--include-entry] [--max-instructions 100000] [--relocated]\n" +
             "Analyze: [--max-output 300] [--trace-out decisions.json] [--trace-capacity 512]\n" +
             "         [--known-answer reference.json --validation-out results.json];\n" +
@@ -55,10 +56,38 @@ try
     var catalog = args.Contains("--identity-catalog", StringComparer.Ordinal)
         ? SourceIdentityRegistry.ReadFile(Option(args, "--identity-catalog", "")) : null;
     LeImage? image = null;
-    try { image = LeImage.Load(artifact); }
-    catch (InvalidDataException) when (args[0] == "inspect") { /* Unsupported format: report only confirmed fields. */ }
-    catch (NotSupportedException) when (args[0] == "inspect") { /* Unsupported LE page variant. */ }
-    if (args[0] == "inspect")
+    if (args[0] is not ("mz" or "mz-disasm"))
+    {
+        try { image = LeImage.Load(artifact); }
+        catch (InvalidDataException) when (args[0] == "inspect") { /* Identify signature, not fake mapped code. */ }
+        catch (NotSupportedException) when (args[0] == "inspect") { /* Unsupported LE page variant. */ }
+    }
+    if (args[0] == "mz" || args[0] == "mz-disasm")
+    {
+        var mz = DosMzImage.Load(artifact);
+        if (args[0] == "mz")
+        {
+            int maximum = int.Parse(Option(args, "--max", "100"), CultureInfo.InvariantCulture);
+            if (maximum is < 0 or > 4096) throw new ArgumentOutOfRangeException(nameof(maximum));
+            Print(new { artifact.Sha256, Format = "dos-mz-16", mz.LoadImageFileOffset,
+                mz.FileBackedImageLength, mz.DeclaredExecutableFileLength,
+                mz.InitialCs, mz.InitialIp, mz.InitialSs, mz.InitialSp,
+                mz.HasTrailingOverlayData, RelocationCount = mz.Relocations.Count,
+                Relocations = mz.Relocations.Take(maximum),
+                Status = "header-validated;not-verified-runtime-code" });
+        }
+        else
+        {
+            ushort segment = checked((ushort)Hex(Option(args, "--segment", mz.InitialCs.ToString("X", CultureInfo.InvariantCulture))));
+            ushort offset = checked((ushort)Hex(Option(args, "--offset", mz.InitialIp.ToString("X", CultureInfo.InvariantCulture))));
+            int count = int.Parse(Option(args, "--count", "32"), CultureInfo.InvariantCulture);
+            Print(new { artifact.Sha256, Format = "dos-mz-16",
+                AddressAssumptions = "initial-module-relative-segment;original-unrelocated-bytes",
+                AnalysisStatus = "requested-linear-candidate-unverified",
+                Instructions = mz.Decode(segment, offset, count) });
+        }
+    }
+    else if (args[0] == "inspect")
     {
         var detected = BinaryFormatDetector.Inspect(artifact, image);
         Print(new {
