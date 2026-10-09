@@ -81,10 +81,10 @@ public:
 
     // CODE.2 12E70 -> 11AD8. Within the selected 80-pixel actor column the
     // inventory/character toggle is row 45h..60h, local column 39h..4Dh.
-    // CODE.2 12E70 0x2B..0x40 row, actor-local
-    // 0x39..0x42 column opens the MAX/CURRENT/encumbrance panel
-    // at original 0x12C20. Unlike the stats/inventory toggle
-    // at 0x45..0x60, this is a distinct modal action.
+    // CODE.2 12E70 row 0x10..0x27 and actor-local col
+    // 0x44..0x4D directly calls original 0x12988, which
+    // renders MAX/CURRENT/rank from 0FD84,0FE44,0FDE4.
+    // The 0x2B..0x40 icons are separate status/effect screens.
     [[nodiscard]] static std::optional<std::size_t>
     modal_encumbrance_actor_at(int row,int column) noexcept;
 
