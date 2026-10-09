@@ -448,3 +448,35 @@ Reference: R2_TABLE_INDEX_EVIDENCE_SOURCE_CHECKPOINT.md.
 - User can start the existing workflow via GitHub Actions, branch
   disassembler-foundation. Distinguish previously compiled application
   libraries from still-unverified regression tests and preview artifacts.
+
+2026-10-09 | G1 Windows build/regression gate PASSED — run #37987465368:
+- Verified GitHub workflow_dispatch on disassembler-foundation at exact
+  source SHA 9f605e36581b2c6db72a6a47248ea5af31611506.
+  https://github.com/Hyperbog/RLOFT/actions/runs/37987465368
+  Windows job 114012917508 completed SUCCESS.
+- CLI, Desktop, DosDis.Smoke and DosDis.ProjectSmoke Release builds
+  all passed. Job logs contain ALL SMOKE TESTS PASSED and a successful
+  SQLite project persistence/round-trip regression line.
+- The R2.1 bounded-value, R2.2 register-transfer, R2.3 worklist and
+  R2.4 exact BX/table-index synthetic smoke groups each printed PASS.
+  This establishes Windows synthetic verification of precisely the
+  tested 9f605e36 commit, not original DOS runtime semantics.
+- Windows desktop artifact DOSDis-Desktop-win-x64-preview
+  artifact ID 11643333249, 66,853,976 bytes; CLI artifact
+  DOSDis-CLI-win-x64-preview artifact ID 11643707879, 33,576,931
+  bytes. Both uploads successful, expiry 2026-11-08 UTC.
+- G1 compilation and synthetic acceptance PASS at tested commit.
+  R2 experimental subset also Windows compiled/synthetic tested at
+  this commit; do not mark the entirety of G2 complete or claim
+  original-game/GUI acceptance without separate evidence.
+- The earlier failed run #37983534580 remains historically failed
+  at its old source SHA. Compile-order issue was corrected before
+  this passing run.
+- Next user validation: download Desktop preview from successful
+  run; use synthetic or user-owned original only in a local session,
+  exercise Open Binary, cautious 16-bit candidate navigation, error
+  dialogs and project persistence; record exact fixture/hash,
+  expected vs observed, screenshots for deviations. No original
+  files in hosted CI or distributed artifacts.
+Last successfully VERIFIED Windows build: run 37987465368 at
+9f605e36581b2c6db72a6a47248ea5af31611506.
