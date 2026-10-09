@@ -1,7 +1,11 @@
 name: Windows DOS disassembler core smoke tests
-# Manual only — no GitHub Actions minutes on push or PR.
+# Single user-authorized follow-up GUI bugfix build; restore manual-only immediately.
 on:
   workflow_dispatch:
+  push:
+    branches: [disassembler-foundation]
+    paths:
+      - 'Tools/Disassembler/.ci-build-once-20261009-ui-fix'
 permissions:
   contents: read
 jobs:
