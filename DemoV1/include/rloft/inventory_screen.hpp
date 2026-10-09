@@ -51,6 +51,12 @@ struct InventoryScreenModel final {
     int equipment_side{};
     std::vector<InventoryItemDraw> draws;
 
+    // CODE.2 10A70 physical 4B9EF: selected open-container subtype
+    // uses RES2 bank, source graphic (9+subtype), rendered at VGA
+    // row 0xCE, the character's own 80-pixel column origin.
+    [[nodiscard]] static int original_container_res2_graphic(
+        std::uint8_t subtype);
+
     [[nodiscard]] static InventoryScreenModel build(
         const PartyActorPresentation& actor,
         const ObjectCatalog& objects,
