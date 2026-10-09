@@ -41,6 +41,15 @@ int main() {
     image.clear(0x39U);
     ExplorationRuntimeFrame frame{};
     frame.scene_video_page=1U;
+    // Authentic original 34998 SINTAB-derived perspective exists even
+    // though the RES4 ground source is not yet routed into presentation.
+    frame.ground_perspective_ready=true;
+    frame.ground_phase_u=0x12U;
+    frame.ground_phase_v=0x34U;
+    frame.ground_ff58[0]={0x1234U,0x5678U,0x9AU,0xBCU};
+    frame.ground_ff58[79]={0x11U,0x22U,0x33U,0x44U};
+    frame.ground_ff58[80]={0x55U,0x66U,0x77U,0x88U};
+    frame.ground_ff58[127]={0x99U,0xAAU,0xBBU,0xCCU};
     ViewSweepRun wall{};
     wall.pass=SweepRenderPass::Main;
     wall.first_ray=3U;
@@ -138,6 +147,16 @@ int main() {
     assert(tsv.find("mask_origin\timmutable CODE.2 object-2")!=
            std::string::npos);
     assert(tsv.find("original_C026_initial\t1")!=std::string::npos);
+    assert(tsv.find("ground_ff58_ready\t1")!=std::string::npos);
+    assert(tsv.find("ground_C048_C044\t18\t52")!=std::string::npos);
+    assert(tsv.find("ground_ff58_row\t0\t4660\t22136\t154\t188")!=
+           std::string::npos);
+    assert(tsv.find("ground_ff58_row\t79\t17\t34\t51\t68")!=
+           std::string::npos);
+    assert(tsv.find("ground_ff58_row\t80\t85\t102\t119\t136")!=
+           std::string::npos);
+    assert(tsv.find("ground_ff58_row\t127\t153\t170\t187\t204")!=
+           std::string::npos);
     assert(tsv.find(
         "native_lower_surface\tflat-fill-only;34A74-pending")!=
            std::string::npos);
