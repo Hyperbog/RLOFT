@@ -74,17 +74,39 @@ public:
 // empty cursor priority, then active-party ordinary slots
 // 0..11, then requests 2195C world spawn as fallback.
 enum class HolySymbolGrantStatus : std::uint8_t {
-    GivenToCursor, GivenToPartySlot, NeedsWorldSpawn
+    GivenToCursor,
+    GivenToPartySlot,
+    NeedsWorldSpawn,
+    SpawnedInWorld,
+    WorldPlacementRejected
 };
 struct HolySymbolGrantResult final {
     HolySymbolGrantStatus status{HolySymbolGrantStatus::NeedsWorldSpawn};
     std::size_t actor{};
     std::size_t slot{};
+    std::size_t loose_item_index{};
 };
 class HolySymbolRewardModel final {
 public:
     [[nodiscard]] static HolySymbolGrantResult grant_15050(
         PartyImage& party,InventoryRuntimeState& inventory);
+
+    // Complete the 15050 reward's inventory/world transfer ONLY:
+    // the external caller must already have run event 13EF8(8).
+    // This method itself never changes event 0x44, performs
+    // interactive presentation or consumes a ritual Seed.
+    // On world-placement failure the party, cursor and original
+    // family-C item array remain exactly unchanged.
+    [[nodiscard]] static HolySymbolGrantResult grant_with_world_15050(
+        PartyImage& party,
+        InventoryRuntimeState& inventory,
+        LevelWorldState& world,
+        const ExplorationSessionState& session,
+        const ObjectCatalog& objects,
+        const RendererTables& tables,
+        const std::function<bool(
+            std::uint32_t,std::uint32_t,std::uint32_t)>& can_place,
+        bool original_c02f_center_fraction=false);
 };
 
 // CODE.2 13118, logical key 0x44 (D scancode 0x20) dispatches to
