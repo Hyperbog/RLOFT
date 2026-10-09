@@ -96,6 +96,9 @@ int main() {
     });
     constexpr std::size_t base=0x75F24U;
     std::vector<std::uint8_t> code2(base+0xC6A8U+64U,0U);
+    // Original CODE.2 C026 initially enables the outdoor textured
+    // lower renderer (34A74), which the native foreground still lacks.
+    code2[base+0xC026U]=1U;
     const auto mask_index=(3U<<3U)+9U;
     code2[base+0xC668U+mask_index]=0x0FU;
     code2[base+0xC688U+mask_index]=0x05U;
@@ -133,6 +136,10 @@ int main() {
     assert(tsv.find("source_revision\tlocal-unversioned")!=
            std::string::npos);
     assert(tsv.find("mask_origin\timmutable CODE.2 object-2")!=
+           std::string::npos);
+    assert(tsv.find("original_C026_initial\t1")!=std::string::npos);
+    assert(tsv.find(
+        "native_lower_surface\tflat-fill-only;34A74-pending")!=
            std::string::npos);
     assert(tsv.find("run\tmain\t3\t9\t3\t33\t15\t5\t243\t64\t578\t7\t2")!=
            std::string::npos);
