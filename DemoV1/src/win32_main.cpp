@@ -37,6 +37,7 @@
 #include "rloft/character_stats.hpp"
 #include "rloft/character_transfer.hpp"
 #include "rloft/exploration_legacy_input.hpp"
+#include "rloft/exploration_gameplay_cadence.hpp"
 #include "rloft/exploration_presenter.hpp"
 #include "rloft/exploration_frame_capture.hpp"
 #include "rloft/exploration_preview.hpp"
@@ -869,10 +870,13 @@ int run_exploration(
             "RLOFT-Demo-Captures"/std::to_string(session_id);
     }
 
-    // Native host cadence follows the same nominal VGA retrace pacing already
-    // used by the reconstructed startup/character presenters. Input axes are
-    // persistent, so every retrace advances the original 1FC14 -> 2E120 path
-    // even when no new Windows message arrived.
+    // Original CODE.2 201A7..201F7 anchors the simulation/input cycle
+    // to a TWO-game-IRQ-tick deadline. The VGA page may be presented
+    // at ~70 Hz, but running 1FC14/2E120 on EVERY retrace moved the
+    // party roughly eight times too fast. BIOS 54,925-us tick duration
+    // is a provisional source-backed fallback until real PIT data is
+    // captured. Leave all original fixed-point movement math unchanged.
+    rloft::ExplorationGameplayCadence gameplay_cadence;
     const auto exploration_epoch = Clock::now();
     auto next_frame = exploration_epoch;
 
@@ -1395,7 +1399,8 @@ int run_exploration(
             continue;
         }
 
-        if (hovered_menu < 0) {
+        if (hovered_menu < 0 &&
+            gameplay_cadence.should_integrate(Clock::now())) {
             const auto motion_inputs =
                 input.tick(false);
             (void)runtime.tick_motion(
