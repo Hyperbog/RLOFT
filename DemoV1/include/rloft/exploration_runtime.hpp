@@ -10,6 +10,7 @@
 
 #include "rloft/exploration_runtime_motion.hpp"
 #include "rloft/inventory_runtime.hpp"
+#include "rloft/inventory_world_drop.hpp"
 #include "rloft/inventory_party_order.hpp"
 #include "rloft/level_world_state.hpp"
 #include "rloft/level22_encounter.hpp"
@@ -172,6 +173,14 @@ public:
     [[nodiscard]] LooseItemPickupResult pickup_level22_loose_item(
         std::size_t item_index);
 
+    // Original CODE.2 inventory 13118, logical D key 0x44 ->
+    // 2195C family-C loose item creation. A caller-provided
+    // 2D5D0 collision predicate can veto the forward offset
+    // without losing the object. World revision changes only
+    // after a committed original item drop.
+    [[nodiscard]] InventoryWorldDropResult drop_held_inventory_item(
+        const InventoryWorldDropModel::PlacementProbe& can_place={});
+
     // Bind the previously reconstructed 223F4 viewport hit test to the
     // actual Level 22 encounter. Attack actions pass flags=0 so loose
     // pickups do not occlude NPC combat; pickup actions pass flags=1.
@@ -228,6 +237,7 @@ private:
     std::uint64_t world_scene_revision_{};
     LevelWorldState world_{};
     InventoryRuntimeState inventory_{};
+    bool inventory_drop_c02f_center_fraction_{};
 };
 
 }  // namespace rloft
