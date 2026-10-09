@@ -232,8 +232,8 @@ incorrect and is superseded. The exact `2D5D0` inventory
 drop predicate is source-implemented in the preceding checkpoint,
 but its mutable global `F048` behavior remains open.
 
-**Unbuilt current source:** 169 registered CTests and 19 manual
-Quick tests. No new Windows build, DOS parity proof or SAVE
+**At that earlier source checkpoint:** 169 registered CTests
+and 19 manual Quick tests. No new Windows build, DOS parity proof or SAVE
 roundtrip has been performed. Overall engineering 56.25%;
 inventory milestone still partial. Manual Full build remains
 deferred until complete original inventory behavior and visual
@@ -261,8 +261,9 @@ inventory. CODE.2 special item uses, Level16 item
 mutable open-container SAVE/LOAD roundtrips,
 ancillary effects/condition popups and final
 pixel/color/character comparisons remain open.
-**169 CTests** are registered, and the manual-only
-Quick mode now covers **19** focused tests.
+**At that earlier checkpoint, 169 CTests** were registered,
+and the manual-only Quick mode covered **19** focused tests.
+The latest source registry is now 170 CTests.
 No current-source Windows build has run.
 Per user direction, DO NOT dispatch the Windows
 build until every original inventory behavior and
