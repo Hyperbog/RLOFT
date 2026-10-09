@@ -190,4 +190,79 @@ std::vector<std::uint8_t> InventorySaveCodec::encode(
     return result;
 }
 
+namespace {
+
+// These four values were saved by CODE.2 at 0x52/56/5A/5E/70.
+// An inventory-only restore cannot change the active world level,
+// camera, orientation or clock and then claim full-world consistency.
+// Treat every mismatch as an explicit unsupported integration case.
+void verify_matching_world(
+    const InventorySaveSnapshot& source,
+    const ExplorationSessionState& session) {
+    const auto layout=validate_layout(source.preserved_save_bytes);
+    if(source.container_bank_offset!=layout.container_offset ||
+       source.transient_effect_count!=layout.effects)
+        throw std::runtime_error(
+            "inventory SAVE backing layout changed");
+    const auto& bytes=source.preserved_save_bytes;
+    if(read32(bytes,0x52U)!=session.level_id ||
+       read32(bytes,0x56U)!=session.coordinate_a ||
+       read32(bytes,0x5AU)!=session.coordinate_b ||
+       read32(bytes,0x5EU)!=session.facing ||
+       read32(bytes,0x70U)!=session.time_of_day_16_16_hours)
+        throw std::runtime_error(
+            "inventory-only LOAD requires matching world pose/time");
+
+    // The original transient records and 6FA0 per-actor animation
+    // phases are retained byte-for-byte but not live-reconstructed.
+    // Reject them at the live bridge; the standalone codec continues
+    // to roundtrip these record types without losing source bytes.
+    if(layout.effects!=0U)
+        throw std::runtime_error(
+            "inventory-only LOAD cannot restore moving world effects");
+    for(const auto& context:source.container_ui_contexts)
+        for(const auto value:context)
+            if(value!=0xFFU)
+                throw std::runtime_error(
+                    "inventory-only LOAD cannot restore open container phase");
+}
+
+} // namespace
+
+void InventorySaveCodec::apply_to_matching_session(
+    const InventorySaveSnapshot& source,
+    ExplorationSessionState& session,
+    InventoryRuntimeState& inventory) {
+    verify_matching_world(source,session);
+    validate_descriptors(source.inventory);
+    // Avoid mutating live state until all source checks and the
+    // inventory copy have succeeded; preserve the actual byte
+    // values for both spell matrices and all 21 inventory slots.
+    auto replacement=source.inventory;
+    replacement.mage_scribe_feedback.reset();
+    replacement.open_container.reset();
+    inventory=std::move(replacement);
+    session.party=source.party;
+    session.persistent_event_flags=source.persistent_event_flags;
+}
+
+InventorySaveSnapshot InventorySaveCodec::capture_matching_session(
+    const InventorySaveSnapshot& preserved,
+    const ExplorationSessionState& session,
+    const InventoryRuntimeState& inventory) {
+    verify_matching_world(preserved,session);
+    if(inventory.open_container)
+        throw std::runtime_error(
+            "inventory-only SAVE cannot persist an open hand container");
+    validate_descriptors(inventory);
+    auto snapshot=preserved;
+    snapshot.party=session.party;
+    snapshot.persistent_event_flags=session.persistent_event_flags;
+    snapshot.inventory=inventory;
+    // These two runtime-only fields are not persisted by CODE.2.
+    snapshot.inventory.mage_scribe_feedback.reset();
+    snapshot.inventory.open_container.reset();
+    return snapshot;
+}
+
 } // namespace rloft
