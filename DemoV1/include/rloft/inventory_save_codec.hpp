@@ -59,21 +59,30 @@ public:
         const InventorySaveSnapshot& snapshot);
 
     // Strict runtime bridge, not a full LOAD/SAVE implementation.
-    // The native world, position, TOD, class-3 effects and 6FA0 modal
-    // phases are NOT restored by this subsystem. Refuse an import or
-    // export unless source world pose/time match the live session,
-    // effects count is zero, and all original container UI contexts
-    // are inactive FF FF FF FF; this avoids applying stale globals.
+    // The native world, position, TOD and class-3 effects are NOT
+    // restored by this subsystem. Refuse a source-world mismatch or
+    // nonzero moving-effect count. The four original 6FA0 contexts
+    // ARE retained: inactive FF FF FF FF and post-close FF FF 00 FF
+    // are both valid; a single fully-open phase3 view may be restored
+    // with an unambiguous source-object hand match. Partially animated
+    // or multiple concurrently open contexts remain load-unsupported.
     // The unchanged original SAVE byte image is retained as backing.
+    // An OBJECTS.DAT catalogue is needed when any serialized 6FA0
+    // context is fully open: the record holds only an 8-bit object ID
+    // and NO hand index. Resolve against the character's two hand
+    // slots, object category, container descriptor and subtype;
+    // reject ambiguous matches rather than inventing ownership.
     static void apply_to_matching_session(
         const InventorySaveSnapshot& source,
         ExplorationSessionState& session,
-        InventoryRuntimeState& inventory);
+        InventoryRuntimeState& inventory,
+        const ObjectCatalog* objects=nullptr);
 
     [[nodiscard]] static InventorySaveSnapshot capture_matching_session(
         const InventorySaveSnapshot& preserved,
         const ExplorationSessionState& session,
-        const InventoryRuntimeState& inventory);
+        const InventoryRuntimeState& inventory,
+        const ObjectCatalog* objects=nullptr);
 };
 
 } // namespace rloft
