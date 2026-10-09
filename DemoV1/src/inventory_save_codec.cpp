@@ -249,6 +249,8 @@ std::optional<OpenInventoryContainer> resolve_saved_ui(
                 "6FA0 source container selector outside SAVE descriptor bank");
         const auto& descriptor=inventory.containers[idx];
         if(descriptor.slot_count==0U ||
+           descriptor.ui_columns==0U ||
+           descriptor.slot_count%descriptor.ui_columns!=0U ||
            descriptor.items.size()!=descriptor.slot_count ||
            descriptor.subtype!=context.raw[0] ||
            !party.active(actor))
