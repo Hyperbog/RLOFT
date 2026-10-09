@@ -25,13 +25,32 @@ int main(int argc,char** argv) {
                 }
                 return std::move(*found);
             }();
+        const auto original_init=source.read("INIT");
+        const auto original_base=
+            rloft::OriginalGroundRes4Audit::base_from_init(
+                original_init);
         const rloft::ResArchive res4(source.read("RES4"));
         const auto report=rloft::OriginalGroundRes4Audit::inspect(res4);
+        // This is the source-authenticated CODE.2 1F388 lookup,
+        // not a guess derived from shape, color or screenshot.
+        constexpr int kLevel22RelativeGround=55;
+        const auto original_selected=
+            rloft::OriginalGroundRes4Audit::absolute_index(
+                kLevel22RelativeGround,original_base,
+                res4.entry_count());
+        const auto original_tile=
+            rloft::OriginalGroundRes4Audit::verified_tile_source(
+                res4,original_selected);
         std::cout<<"RLOFT original RES4 ground candidates"
                  <<" [native diagnostic, not DOS live selector]\n"
                  <<"source_archive=RES4\n"
                  <<"original_Level22_header_plus7_relative_selector=55\n"
-                 <<"mutable_CODE2_base=258F8 (not yet resolved)\n"
+                 <<"source_CODE2_base=INIT+0x0E -> DGROUP_258F8\n"
+                 <<"verified_INIT_base="<<original_base<<"\n"
+                 <<"verified_Level22_absolute_ground_entry="
+                 <<original_selected<<"\n"
+                 <<"verified_decoded_ground_pixel_bytes="
+                 <<original_tile.size()-2U<<"\n"
                  <<"entry_count="<<report.total_entries<<"\n"
                  <<"type1_count="<<report.type1_entries<<"\n"
                  <<"invalid_type1_count="<<report.rejected_type1_entries<<"\n"
@@ -49,8 +68,8 @@ int main(int argc,char** argv) {
                      <<"fnv1a32=0x"<<std::hex<<std::setfill('0')
                      <<std::setw(8)<<c.decoded_fnv1a32<<std::dec<<"\n";
         }
-        std::cout<<"interpretation=enumeration only;"
-                 <<" no entry selected; no scene pixels changed\n";
+        std::cout<<"interpretation=source-selected Level22 ground identified;"
+                 <<" no scene pixels changed\n";
         return 0;
     } catch(const std::exception& error) {
         std::cerr<<"Original RES4 probe error: "<<error.what()<<"\n";
