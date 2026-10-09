@@ -913,6 +913,66 @@ try
         "unsigned CMP BX,1 bounds two FAR table entries");
     Equal(automaticFarResult.Sites[0].StoredTable?.Entries[1].TargetFileOffset, 0x72L,
         "MZ FAR table target preserves independently backed original file position");
+
+    // Four-byte FAR pointer addressing also permits two independently
+    // verified BX doublings. The far selector relocation requirements
+    // are unchanged; only the explicitly guarded stride is generalized.
+    byte[] MakeDoubleScaledFarBytes(byte first0, byte first1,
+        byte second0, byte second1)
+    {
+        var source = (byte[])automaticFarBytes.Clone();
+        new byte[] {
+            0x83, 0xFB, 0x01, 0x77, 0x09,
+            first0, first1, second0, second1,
+            0x2E, 0xFF, 0xAF, 0x30, 0x00, 0xC3
+        }.CopyTo(source, 0x30);
+        return source;
+    }
+
+    Dos16GuardedDispatchReport AnalyzeDoubleScaledFar(byte[] bytes,
+        bool useRelocations = true)
+    {
+        var image = DosMzImage.Load(BinaryArtifact.FromBytes(bytes));
+        var region = image.CreateEntryCodeRegion();
+        var graph = Dos16ControlFlowAnalysis.Analyze(region, image.InitialIp);
+        return Dos16AutomaticDispatchRecovery.Inspect(region, graph,
+            image, useRelocations ? image.SimulateRelocations(0x2000) : null);
+    }
+
+    var farTwoShifts = AnalyzeDoubleScaledFar(
+        MakeDoubleScaledFarBytes(0xD1, 0xE3, 0xD1, 0xE3));
+    Equal(farTwoShifts.GuardedTableCandidates, 1,
+        "two uniquely connected SHL BX,1 instructions establish far16 stride four");
+    Equal(farTwoShifts.Sites[0].EntryCount, (int?)2,
+        "two doubled steps retain the unsigned CMP BX,1 table bound");
+    Equal(farTwoShifts.Sites[0].StoredTable?.Entries.Count, 2,
+        "four-byte FAR pointers still require each selector relocation");
+
+    var farMixedDoubling = AnalyzeDoubleScaledFar(
+        MakeDoubleScaledFarBytes(0xD1, 0xE3, 0x01, 0xDB));
+    Equal(farMixedDoubling.GuardedTableCandidates, 1,
+        "SHL BX,1 then ADD BX,BX is an exact four-byte FAR index stride");
+    var farMixedAlternate = AnalyzeDoubleScaledFar(
+        MakeDoubleScaledFarBytes(0x03, 0xDB, 0xD1, 0xE3));
+    Equal(farMixedAlternate.GuardedTableCandidates, 1,
+        "alternate ADD BX,BX followed by SHL BX,1 also proves far index scale");
+
+    var farUnrelatedAdder = AnalyzeDoubleScaledFar(
+        MakeDoubleScaledFarBytes(0xD1, 0xE3, 0x03, 0xCB));
+    Equal(farUnrelatedAdder.GuardedTableCandidates, 0,
+        "ADD BX,CX cannot serve as a second proven FAR-table scaling step");
+    var farOnlyOneShift = AnalyzeDoubleScaledFar(
+        MakeDoubleScaledFarBytes(0x90, 0x90, 0xD1, 0xE3));
+    Equal(farOnlyOneShift.GuardedTableCandidates, 0,
+        "single BX doubling cannot index a four-byte FAR pointer array");
+
+    var farMissingDoubleFixups = AnalyzeDoubleScaledFar(
+        MakeDoubleScaledFarBytes(0xD1, 0xE3, 0xD1, 0xE3),
+        useRelocations: false);
+    Equal(farMissingDoubleFixups.GuardedTableCandidates, 0,
+        "proven FAR stride cannot override missing selector relocation proof");
+    Console.WriteLine("PASS: exact one/two-step x86-16 pointer table scaling");
+
     Equal(Dos16AutomaticDispatchRecovery.Inspect(automaticFarRegion,
         automaticFarGraph, automaticFarMz).GuardedTableCandidates, 0,
         "no runtime load base means no FAR selector target recovery");
