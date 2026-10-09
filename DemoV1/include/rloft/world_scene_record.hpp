@@ -14,10 +14,6 @@ struct WorldSceneRecord final {
     std::uint16_t resource_id{};
     std::uint16_t source_index{};
     std::uint16_t source_class{};
-    // Native forensic metadata only: original catalog entry that
-    // produced this scene record (NPC, placed-object or loose-item).
-    // Not an additional field in CODE.2's serialized 0x16-byte record.
-    std::uint16_t source_type_id{};
     std::uint16_t render_order{};
     std::uint16_t render_scale_lookup_bias{};
 
@@ -27,6 +23,12 @@ struct WorldSceneRecord final {
     std::uint16_t bottom{};
     std::uint16_t left{};
     std::uint16_t right{};
+
+    // Native forensic metadata only: original catalog entry that
+    // produced this scene record (NPC, placed-object or loose-item).
+    // This is not an original serialized 0x16-byte field. Keep it
+    // at the END to preserve every existing positional aggregate init.
+    std::uint16_t source_type_id{};
 };
 
 class WorldSceneOrderModel final {
