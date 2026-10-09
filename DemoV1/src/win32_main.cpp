@@ -832,6 +832,7 @@ int run_exploration(
     rloft::ExplorationUiController ui;
     std::optional<rloft::AutomapModalController> automap;
     std::optional<std::uint32_t> quit_random_seed;
+    std::optional<std::size_t> inventory_encumbrance_actor;
     // Hit-testing is performed against the frame the player ACTUALLY saw,
     // never against a freshly reconstructed scene after the click arrives.
     std::optional<rloft::ExplorationRuntimeFrame> displayed_scene_frame;
@@ -1037,13 +1038,27 @@ int run_exploration(
                 // CODE.2 12E70 cleanup on flags&2 calls 1F8FC, which sets
                 // D680=0; 13118 then leaves the modal loop.
                 ui.close_screen();
+                inventory_encumbrance_actor.reset();
                 input.clear();
                 continue;
             }
 
             if (const auto click =
                     host.consume_exploration_click()) {
-                if (const auto actor =
+                if(inventory_encumbrance_actor) {
+                    // Original 12988 weight modal consumes the next
+                    // click before returning to ordinary PartyPanels.
+                    inventory_encumbrance_actor.reset();
+                }
+                else if(const auto weight_actor=
+                    rloft::PartyPanelControlModel::
+                        modal_encumbrance_actor_at(
+                            click->row,click->column)) {
+                    if(runtime.session().party.active(*weight_actor)) {
+                        inventory_encumbrance_actor=*weight_actor;
+                    }
+                }
+                else if (const auto actor =
                         rloft::PartyPanelControlModel::
                             modal_toggle_actor_at(
                                 click->row,
@@ -1182,7 +1197,8 @@ int run_exploration(
                 runtime.session().party,
                 ui.state().party_panel_character_mode,
                 ui.state().selected_party_actor,
-                &runtime.inventory(),modal_pointer);
+                &runtime.inventory(),modal_pointer,
+                inventory_encumbrance_actor);
             host.present(
                 presenter.framebuffer(),
                 exploration_palette);
@@ -1423,7 +1439,8 @@ int run_exploration(
                 runtime.session().party,
                 ui.state().party_panel_character_mode,
                 ui.state().selected_party_actor,
-                &runtime.inventory(),modal_pointer);
+                &runtime.inventory(),modal_pointer,
+                inventory_encumbrance_actor);
             host.present(
                 presenter.framebuffer(),
                 exploration_palette);
