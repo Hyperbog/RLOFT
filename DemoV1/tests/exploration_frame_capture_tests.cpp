@@ -151,10 +151,10 @@ int main() {
     assert(tsv.find("mask_origin\timmutable CODE.2 object-2")!=
            std::string::npos);
     assert(tsv.find("original_C026_initial\t1")!=std::string::npos);
-    assert(tsv.find("ground_original_res4_verified\\t1")!=std::string::npos);
-    assert(tsv.find("ground_original_res4_base_from_INIT\\t123")!=std::string::npos);
-    assert(tsv.find("ground_original_res4_signed_level_selector\\t55")!=std::string::npos);
-    assert(tsv.find("ground_original_res4_absolute_entry\\t178")!=std::string::npos);
+    assert(tsv.find("ground_original_res4_verified\t1")!=std::string::npos);
+    assert(tsv.find("ground_original_res4_base_from_INIT\t123")!=std::string::npos);
+    assert(tsv.find("ground_original_res4_signed_level_selector\t55")!=std::string::npos);
+    assert(tsv.find("ground_original_res4_absolute_entry\t178")!=std::string::npos);
     assert(tsv.find("ground_ff58_ready\t1")!=std::string::npos);
     assert(tsv.find("ground_C048_C044\t18\t52")!=std::string::npos);
     assert(tsv.find("ground_ff58_row\t0\t4660\t22136\t154\t188")!=
@@ -226,8 +226,8 @@ int main() {
     const std::string third_tsv{
         std::istreambuf_iterator<char>(third),
         std::istreambuf_iterator<char>()};
-    assert(third_tsv.find("ground_original_res4_verified\\t0")!=std::string::npos);
-    assert(third_tsv.find("ground_original_res4_error\\toriginal RES4 tile invalid; blocked")!=std::string::npos);
+    assert(third_tsv.find("ground_original_res4_verified\t0")!=std::string::npos);
+    assert(third_tsv.find("ground_original_res4_error\toriginal RES4 tile invalid; blocked")!=std::string::npos);
     assert(third_tsv.find("source_revision\tabcdef0123456789")!=
            std::string::npos);
     assert(third_tsv.find("scene_individual_columns_mode\t1")!=
