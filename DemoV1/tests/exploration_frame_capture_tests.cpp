@@ -92,6 +92,8 @@ int main() {
         0U,1U,4U,445U,"per-call RES3 shape lookup unavailable"
     });
     ExplorationPresentedFrame presentation{};
+    presentation.ground_textured_rasterized=true;
+    presentation.ground_indexed_writes=32768U;
     presentation.palette.rgb[3U]=42U;
     presentation.surface_coverage.sintab_main_runs_pending=1U;
     presentation.surface_coverage.sintab_main_runs_failed=1U;
@@ -166,7 +168,9 @@ int main() {
     assert(tsv.find("ground_ff58_row\t127\t153\t170\t187\t204")!=
            std::string::npos);
     assert(tsv.find(
-        "native_lower_surface\tflat-fill-only;34A74-pending")!=
+        "native_lower_surface\toriginal-34A74-128row-open-field")!=
+           std::string::npos);
+    assert(tsv.find("ground_raster_indexed_writes\t32768")!=
            std::string::npos);
     assert(tsv.find("run\tmain\t3\t9\t3\t33\t15\t5\t243\t64\t578\t7\t2")!=
            std::string::npos);
@@ -208,6 +212,10 @@ int main() {
     // The new RES3 run telemetry must distinguish a long C029=1
     // source run from unsupported grouped raster-mask lookup.
     frame.scene_individual_columns_mode=true;
+    presentation.ground_textured_rasterized=false;
+    presentation.ground_indexed_writes=0U;
+    presentation.ground_render_failure=
+        "source tile unverified; flat fallback";
     frame.ground_source_verified=false;
     frame.ground_source_failure="original RES4 tile invalid; blocked";
     frame.source_coordinate_a=0x00041234U;
@@ -226,6 +234,14 @@ int main() {
     const std::string third_tsv{
         std::istreambuf_iterator<char>(third),
         std::istreambuf_iterator<char>()};
+    assert(third_tsv.find(
+        "native_lower_surface\tflat-fill-fallback;other-modes-pending")!=
+           std::string::npos);
+    assert(third_tsv.find("ground_raster_indexed_writes\t0")!=
+           std::string::npos);
+    assert(third_tsv.find(
+        "ground_raster_error\tsource tile unverified; flat fallback")!=
+           std::string::npos);
     assert(third_tsv.find("ground_original_res4_verified\t0")!=std::string::npos);
     assert(third_tsv.find("ground_original_res4_error\toriginal RES4 tile invalid; blocked")!=std::string::npos);
     assert(third_tsv.find("source_revision\tabcdef0123456789")!=
