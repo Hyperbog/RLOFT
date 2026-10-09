@@ -41,35 +41,63 @@ public static class BinaryFormatDetector
 
         if (bytes.Length >= 2 && bytes[0] == (byte)'M' && bytes[1] == (byte)'Z')
         {
-            // e_lfanew is advisory until the extended header is validated
-            // by its own dedicated loader.
-            if (bytes.Length >= 0x40)
+            // An outer DOS launcher may append an independent MZ-bound
+            // LE/LX/NE/PE module. Never declare the outer header a standalone
+            // 16-bit program merely because its e_lfanew is not usable.
+            // Every candidate must have its OWN MZ at the module origin and
+            // its OWN bounded e_lfanew at module+0x3c.
+            // Recognition is still weaker than a validated format loader.
+            string? detected = null;
+            long moduleStart = -1, extensionAt = -1;
+            int candidates = 0;
+            for (int origin = 0; origin <= bytes.Length - 0x40; origin++)
             {
-                uint offset = BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(0x3C, 4));
-                if ((ulong)offset + 2 <= (ulong)bytes.Length && offset >= 0x40)
-                {
-                    var signature = bytes.Slice((int)offset);
-                    if (signature.StartsWith("LE"u8))
-                        return new("le-signature", "MZ/e_lfanew points to LE signature",
-                            offset, "x86-32-candidate", "le-validation-required",
-                            "Signature recognition is not a verified LE object/page map.");
-                    if (signature.StartsWith("LX"u8))
-                        return new("lx", "MZ/e_lfanew points to LX signature",
-                            offset, "unknown-until-lx-mapped", "lx-parser-required",
-                            "Do not treat an LX module as Windows PE or raw code.");
-                    if (signature.StartsWith("NE"u8))
-                        return new("ne", "MZ/e_lfanew points to NE signature",
-                            offset, "x86-16-candidate", "ne-parser-required",
-                            "NE segments and relocations require a dedicated loader.");
-                    if (signature.Length >= 4 && signature.StartsWith("PE\0\0"u8))
-                        return new("pe", "MZ/e_lfanew points to PE signature",
-                            offset, "unknown-until-pe-mapped", "pe-parser-required",
-                            "Separate supporting software from original DOS executable targets.");
-                }
+                if (bytes[origin] != (byte)'M' || bytes[origin + 1] != (byte)'Z')
+                    continue;
+                uint relative = BinaryPrimitives.ReadUInt32LittleEndian(
+                    bytes.Slice(origin + 0x3c, 4));
+                if (relative < 0x40 || (ulong)relative + 4 > (ulong)bytes.Length - (uint)origin)
+                    continue;
+                int at = checked(origin + (int)relative);
+                var header = bytes.Slice(at, 4);
+                string? family = header.SequenceEqual("LE\0\0"u8) ? "le-signature" :
+                    header.SequenceEqual("LX\0\0"u8) ? "lx" :
+                    header[0] == (byte)'N' && header[1] == (byte)'E' ? "ne" :
+                    header.SequenceEqual("PE\0\0"u8) ? "pe" : null;
+                if (family is null) continue;
+                candidates++;
+                detected = family;
+                moduleStart = origin;
+                extensionAt = at;
+                if (candidates > 1) break;
             }
-            return new("mz", "MZ at offset zero", 0, "x86-16-candidate",
-                "mz-header-validation-required",
-                "DOS MZ metadata and relocation validation required before image-relative decoding.");
+            if (candidates > 1)
+                return new("ambiguous-mz-extended", "multiple MZ-bound extended headers",
+                    0, "not-assumed", "manual-module-selection-required",
+                    "Multiple embedded module signatures; do not guess which program is executed.");
+            if (candidates == 1)
+            {
+                string status = detected switch
+                {
+                    "le-signature" => "le-validation-required",
+                    "lx" => "lx-parser-required",
+                    "ne" => "ne-parser-required",
+                    _ => "pe-parser-required"
+                };
+                string decoder = detected switch
+                {
+                    "le-signature" => "x86-32-candidate",
+                    "ne" => "x86-16-candidate",
+                    _ => "unknown-until-loader-mapped"
+                };
+                return new(detected!, $"MZ at 0x{moduleStart:X} links to embedded extended header",
+                    extensionAt, decoder, status,
+                    "Signature-only identification; object/segment maps need independent validation. " +
+                    "The outer DOS launcher is not classified as a standalone executable.");
+            }
+            return new("mz", "MZ at offset zero; no recognized bounded extended module",
+                0, "x86-16-candidate", "mz-header-validation-required",
+                "Standalone DOS MZ header/relocations still require validation; appended data may exist.");
         }
 
         return Known("unknown-headerless", "no supported executable signature at offset zero",
