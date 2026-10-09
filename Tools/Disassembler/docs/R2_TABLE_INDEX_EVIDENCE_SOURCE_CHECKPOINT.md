@@ -75,3 +75,23 @@ on the `disassembler-foundation` branch if a build is wanted now.
 Then provide its run link or ID for verification; no new GitHub Actions
 trigger was added. No application GUI testing is needed for this
 source-only component until a current Windows preview is validated.
+
+## Conflict-ledger and predecessor hardening
+
+The read-only R2.4 report now retains `StorageValidationStatus` for
+every indexed site, separate from its register-index `Status`, and
+exposes a bounded `CodeDataConflicts` count. A table rejected by the
+storage validator as overlapping candidate decoded instructions is
+reported explicitly instead of being reduced to an unspecified
+unresolved index. No code/data classification is rewritten.
+
+Additional synthetic regression source checks the intersection of two
+joined predecessor paths containing BX byte offsets 0 and 2, requiring
+both independently bounded pointer entries; a second version uses a
+partial-byte register instruction on one predecessor and must produce
+**no selected entry**, even though the other path is perfectly aligned.
+The cases are committed but **not compiled or executed**.
+
+The build remains dependent on the owner manually initiating
+`workflow_dispatch` through GitHub Actions. A run result is not
+available to this session and must not be invented.
