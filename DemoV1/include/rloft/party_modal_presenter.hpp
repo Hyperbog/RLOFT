@@ -55,9 +55,9 @@ public:
         std::size_t actor{};
         std::size_t slot{};
     };
-    // Equipment click targeting: CODE.2's original category dispatcher
-    // for a held object; for an empty cursor, hit actual source-rendered
-    // item sprite extents rather than an invented generic mannequin box.
+    // Equipment click targeting: CODE.2 12180 category routing when
+    // holding an object; for an empty cursor, exact race-selected
+    // original 12C00 ten-descriptor table, not sprite-dimension guesses.
     [[nodiscard]] std::optional<EquipmentHit> equipment_hit_at(
         const PartyImage& party,
         const InventoryRuntimeState& inventory,
