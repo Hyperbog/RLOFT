@@ -75,6 +75,12 @@ public sealed class DosMzImage
     }
 
     /// <summary>
+    /// Non-mutating fixup simulation for a caller-assumed DOS load segment.
+    /// </summary>
+    public DosMzRebasedView SimulateRelocations(ushort assumedLoadSegment) =>
+        DosMzRebasedView.Simulate(this, assumedLoadSegment);
+
+    /// <summary>
     /// Read source-backed resident load-module bytes for independent metadata
     /// inspection. This never applies relocations or supplies a runtime base.
     /// </summary>
