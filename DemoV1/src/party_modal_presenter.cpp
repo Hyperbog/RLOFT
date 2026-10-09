@@ -611,6 +611,12 @@ PartyModalCoverage PartyModalPresenter::draw(
         draw_open_container(framebuffer,*inventory,character_mode);
         draw_held_cursor_and_description(
             framebuffer,*inventory,pointer);
+        if(encumbrance_actor &&
+           *encumbrance_actor<PartyImage::kActorCount &&
+           party.active(*encumbrance_actor)) {
+            draw_encumbrance_panel(
+                framebuffer,party,*inventory,*encumbrance_actor);
+        }
     }
     return coverage;
 }
