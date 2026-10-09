@@ -79,9 +79,17 @@ public sealed record SourceProvenance(
         ValidateRelative(SourceArchive, nameof(SourceArchive));
         ValidateRelative(InternalPath, nameof(InternalPath));
         if (SchemaVersion != CurrentSchema ||
-            ResearchNamespace != GameId + "/" + SourceSha256.ToLowerInvariant() ||
-            ByteLength is < 1)
+            ResearchNamespace != GameId + "/" + SourceSha256.ToLowerInvariant())
             throw new InvalidDataException("Inconsistent source provenance namespace or schema.");
+        if (ByteLength is null)
+        {
+            if (GameId != "unassigned" || Module != "unassigned" ||
+                IdentityStatus != "source-hash-only-game-unassigned")
+                throw new InvalidDataException("Unbound graph-only provenance cannot assert game identity.");
+            return;
+        }
+        if (ByteLength < 1)
+            throw new InvalidDataException("Source length must be positive.");
         if (Known.TryGetValue(SourceSha256, out var known) &&
             (GameId != known.Game || Module != known.Module ||
              (known.Size > 0 && ByteLength != known.Size)))
