@@ -1,5 +1,40 @@
 # Ravenloft Demo Build v1
 
+## Current source milestone — live original 34A74 forest floor in open Level22
+
+[Complete guarded live raster checkpoint](LEVEL22_LIVE_ORIGINAL_34A74_OPENFIELD_GROUND_20261008.md):
+native first-person presentation now conditionally renders the
+**actual original RES4 type-1 64×64 indexed terrain texture**
+with original SINTAB FF58 perspective, 34A74 four-plane/
+two-plane VGA pixel loop and FE15..FF14 shading.
+
+The live path is restricted to an independently
+source-backed condition: fresh Level22, authentic
+`INIT+0x0E` + signed level header +7 resource
+selection, verified decoded 4096-byte original tile,
+128 original perspective rows, original C026=1,
+and **all 256** source sweep rays with both
+resources equal to non-drawable **0x93**.
+Original CODE.2 335C8 / 1F2A5 / 1F372 proves
+the no-wall sentinel requires exactly **128**
+full lower terrain scanlines.
+
+Any missing/malformed resource, partial sweep,
+non-0x93 wall or unsupported clipped/dynamic
+ground state leaves the previous flat fallback
+unchanged and reports the source-specific reason.
+The opt-in capture metadata records real ground
+VGA writes, selected source IDs and current
+render/fallback status; the window title shows
+`Ground RES4 textured` versus `Ground flat fallback`.
+
+**This is committed source, NOT yet a built or
+DOS-verified visual release.** 164 registered
+CTests are expected in the next manually dispatched
+Windows build; latest successful Windows run #640
+was at older source. Other visual/combat/inventory
+gaps remain. Formal accepted gates still **1/5**.
+
 ## Original ground RES4 absolute source now resolved from INIT
 
 [Source/disassembly checkpoint](ORIGINAL_LEVEL22_RES4_INIT_BASE_RESOLUTION_20261008.md):
