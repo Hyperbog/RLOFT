@@ -259,12 +259,17 @@ NOW: R1.4-R1.6 and R2.1-R2.3 source batches are COMPLETE
 IN SOURCE ONLY. Bounded register-value worklist, exact CFG edge
 re-decoding, incoming state joins, conservative loop widening, explicit
 budgets and adversarial synthetic fixtures are committed but NOT TESTED.
-NEXT SOURCE-ONLY: R2.3 speculative CALL/INT, prefixed Jcc and
-IP-wrap hardening is committed as source plus unexecuted regressions.
-Advance to R2.4 with a separate evidence-only table integration design;
-never use a locally valid register value as global CFG/path proof.
-Any unresolved indirect transfer, incomplete path or stale index origin
-must block automatic target promotion.
+NEXT: owner authorized a Windows build, but the connected GitHub
+interface cannot dispatch workflow runs; the available Linux container
+has no dotnet SDK or GitHub network path. Owner can manually trigger
+the existing workflow_dispatch on disassembler-foundation; no new run
+has been verified here.
+NOW: R2.4 external-bound, small exact BX byte-offset/table intersection
+is committed SOURCE ONLY; it does not seed any CFG target or prove
+runtime table immutability. G1 and R2 smoke cases remain UNEXECUTED.
+NEXT SOURCE-ONLY: R2.4 adversarial index-merge, code/data conflict
+ledger and memory/clobber proof restrictions. Keep G2 not ready until
+owner-authorized Windows compilation and regressions are observed.
 G1 remains READY / NOT AUTHORIZED; G2 NOT READY. The prior Windows
 preview predates this source batch. Do not build, test or package
 without explicit owner authorization.
@@ -386,3 +391,25 @@ Last successful Windows preview remains run 37887821656.
   G2 NOT READY. Continue R2.4 evidence-bound integration source-only.
 Reference: R2_DATAFLOW_WORKLIST_SOURCE_CHECKPOINT.md.
 Last successful Windows preview remains run 37887821656.
+
+2026-10-09 | User requested Windows build and continuation:
+- Owner explicitly authorized a build. Existing disassembler-core.yml
+  remains workflow_dispatch ONLY and includes Windows Release builds,
+  synthetic smoke suites and CLI/Desktop preview artifact publishing.
+- GitHub connector exposed workflow log/artifact reads but did not expose
+  a new run dispatch action; local container lacks dotnet and GitHub DNS.
+  Therefore no new build was started, and no passing smoke, published
+  artifact or run identifier is claimed by this session.
+- Manual Actions workflow entry:
+  https://github.com/Hyperbog/RLOFT/actions/workflows/disassembler-core.yml
+  Choose branch disassembler-foundation; then capture run link/ID.
+- R2.4 source-only work continued: opt-in join of fully checked CFG,
+  bounded BX register facts and independently analyst-bound immutable
+  near/far pointer *storage*. Exact finite BX byte offsets must align
+  and fit every validated table entry; Unknown/range or any stale evidence
+  refuses selection. Output does not alter CFG, source, GUI or runtime
+  claims. Synthetic positive and adversarial fixtures added and wired.
+- R2.4 partial SOURCE COMPLETE ONLY, not compiled/tested.
+Reference: R2_TABLE_INDEX_EVIDENCE_SOURCE_CHECKPOINT.md.
+Gate state: user build approval granted; run pending manual dispatch.
+Last confirmed successful Windows build remains run 37887821656.
