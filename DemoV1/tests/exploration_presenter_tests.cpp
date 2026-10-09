@@ -117,6 +117,15 @@ int main() {
     assert(bad_plan_coverage.type7_scene_calls_pending==0U);
     assert(!bad_plan_coverage.complete());
 
+    // Fail closed even when a synthetic caller omits the diagnostic list.
+    auto orphan_plan=frame;
+    orphan_plan.world_scene_render_plans[0].source_unresolved=true;
+    const auto orphan_coverage=
+        rloft::ExplorationPresenter::surface_coverage(
+            orphan_plan,tables);
+    assert(orphan_coverage.type7_plan_calls_failed==1U);
+    assert(!orphan_coverage.complete());
+
     auto bad_raster=complete;
     bad_raster.type7_calls_failed=1U;
     assert(!bad_raster.complete());
