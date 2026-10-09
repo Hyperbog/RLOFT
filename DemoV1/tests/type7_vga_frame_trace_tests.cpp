@@ -66,7 +66,9 @@ int main() {
     const auto t=tables();
     const auto sh=shape();
     auto visible=plan(15U,2U);
-    auto wide=plan(16U,8U);
+    // Width 256 exceeds the one-byte native dispatch argument in either
+    // mode. A width of eight is now supported in C029 individual mode.
+    auto wide=plan(16U,256U);
     auto hidden=plan(17U,1U);
     hidden.visible_runs.clear();
 
@@ -88,6 +90,22 @@ int main() {
     assert(trace.scene_calls[2].has_value());
     assert(trace.scene_calls[2]->runs.empty());
     assert(lookups==1U);
+
+    // Even when the source-column width exceeds the grouped mask limit,
+    // default C029!=0 draws each pixel through a certified width-1 mask.
+    const auto individual_wide=plan(15U,8U);
+    const auto eight_trace=rloft::Type7VgaFrameTraceModel::build(
+        {individual_wide},t,masks,0U,true,lookup);
+    assert(eight_trace.unresolved_wide_runs==0U);
+    assert(eight_trace.scene_calls.size()==1U);
+    assert(eight_trace.scene_calls[0].has_value());
+    assert(eight_trace.scene_calls[0]->runs.size()==1U);
+    assert(eight_trace.scene_calls[0]->runs[0].width==8U);
+    assert(eight_trace.scene_calls[0]->runs[0].dispatch.calls.size()==8U);
+    const auto eight_grouped=rloft::Type7VgaFrameTraceModel::build(
+        {individual_wide},t,masks,0U,false,lookup);
+    assert(eight_grouped.unresolved_wide_runs==1U);
+    assert(!eight_grouped.scene_calls[0].has_value());
 
     bool rejected=false;
     try {
