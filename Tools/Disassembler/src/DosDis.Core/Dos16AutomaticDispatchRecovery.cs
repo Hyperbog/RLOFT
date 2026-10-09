@@ -219,12 +219,13 @@ public static class Dos16AutomaticDispatchRecovery
                                         region.Segment, (ushort)takenIp);
                                     var notTakenTarget = new Dos16Address(
                                         region.Segment, (ushort)nextIp);
-                                    if (graph.Edges.Count(e =>
-                                            e.Source == guard.Address &&
+                                    var outgoing = graph.Edges.Where(e =>
+                                        e.Source == guard.Address).ToArray();
+                                    if (outgoing.Length != 2 ||
+                                        outgoing.Count(e =>
                                             e.Kind == "branch-taken" &&
                                             e.Destination == takenTarget) != 1 ||
-                                        graph.Edges.Count(e =>
-                                            e.Source == guard.Address &&
+                                        outgoing.Count(e =>
                                             e.Kind == "branch-not-taken" &&
                                             e.Destination == notTakenTarget) != 1 ||
                                         !graph.Instructions.Any(i =>
