@@ -3,6 +3,7 @@
 #endif
 
 #include "rloft/dev_level_diagnostics.hpp"
+#include "rloft/dev_level_interaction_policy.hpp"
 
 #include <array>
 #include <cassert>
@@ -11,6 +12,20 @@
 #include <string>
 
 int main() {
+    // Mode gating must be enforced before a preview can mutate
+    // inventory or live world. Inspection remains independent.
+    using Policy=rloft::DevLevelInteractionPolicy;
+    static_assert(Policy::valid(false,false));
+    static_assert(!Policy::valid(false,true));
+    static_assert(Policy::valid(true,true));
+    static_assert(Policy::valid(true,false));
+    static_assert(Policy::allow(false,false)); // production unchanged
+    static_assert(Policy::allow(false,true));
+    static_assert(!Policy::allow(true,false)); // preview safe default
+    static_assert(Policy::allow(true,true));   // deliberate dev opt-in
+    assert(!Policy::allow(true,false));
+    assert(Policy::allow(true,true));
+
     rloft::ExplorationSessionState session{};
     session.level_id=22U;
     session.coordinate_a=0x00048000U;
