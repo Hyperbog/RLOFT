@@ -825,3 +825,77 @@ item-use actions and DOS visual/timing parity remain open.
 Current source is **uncompiled/unexecuted on Windows**
 since old run #640. No manual CI run initiated, per user.
 Overall milestone score remains **56.25%** (inventory partial).
+
+
+## Part 8 continuation — bounded live inventory SAVE session bridge
+
+**Branch:** `demo-v1`. Independent local original-file check:
+`SAVE.DAT` (9288 bytes, SHA-256
+`f898cb92fca6447954f5e0b2bf6f8ad2435e4a64ae3b9de74f8bf75e0ed10d5d`)
+has `u32[0x997]=0`, starts its container bank at
+`0x9A7`, reaches `0xD51` after **938 bytes**,
+ends with four `FF FF FF FF` inactive UI contexts,
+and holds source level 22, coordinates `0x48000/0x48000`,
+facing 270 and time `0xE0000`. Direct CODE.2
+descriptor-table bytes confirm **63 descriptors**;
+0..61 comprise **9 four-slot, 11 six-slot, 42
+eight-slot** entries, totaling **438 item words**;
+descriptor 62 is zero and remains unpersisted.
+
+`InventorySaveCodec::apply_to_matching_session` now
+copies a *validated* source snapshot's full four
+0x248-byte actors, all 32 persistent event-flag bytes
+and CODE.2-backed inventory runtime (held identity/known,
+62 persistent containers, Mage table/source metadata)
+into the live session, while resetting transient
+scribe-feedback and open-container views. The reverse
+`capture_matching_session` overlays the current
+session/held/containers/known/flags on the original
+byte-preserved snapshot; `encode` preserves unknown
+and non-inventory source bytes unchanged.
+
+Safety gates explicitly **reject without state mutation**:
+- inconsistent source saved level, coordinates A/B, heading
+  or time-of-day against the current initialized native world;
+- any source `0x16` transient/moving-effect records
+  (the *standalone byte codec* still supports them);
+- original 6FA0 per-actor contexts other than
+  four inactive `FF FF FF FF` records;
+- any currently open native hand-container view;
+- damaged 62-descriptor geometry / malformed SAVE lengths.
+
+`ExplorationRuntime::import_matching_save_inventory` and
+`export_matching_save_inventory` are now the **actual
+native runtime bindings**. Import requires initialized
+gameplay, preserves the original byte image internally,
+then invalidates stale world-hit frames by incrementing
+`world_scene_revision_`. Export requires an imported
+backing image, the *unchanged* world-scene revision, and
+the same saved camera/clock state. Reinitializing
+gameplay clears any prior backing. The runtime does
+**not** wire these methods to the incomplete native
+SAVE/LOAD menu, because doing so would falsely imply
+that NPCs, level mutations, world effects, other globals,
+roster and independent clocks have been fully restored.
+These routines must not be used as general gameplay
+save slots yet.
+
+The existing `inventory_save_codec_tests` exercises
+the new positive live copy/roundtrip with mutable
+inventory/known flags, Mage matrix and story flags,
+as well as failed imports for level/position/facing/time,
+moving effects, stale UI states, and open views.
+`exploration_runtime_tests` also asserts that an
+uninitialized runtime refuses import/export without
+acquiring a backing image. No new test executable:
+**170 registered CTests; 19 Quick**.
+
+**Unverified by native compilation or execution.**
+The user's deferred Windows build has not been
+dispatched. Inventory and full SAVE/LOAD are NOT
+accepted; engineering tracker **56.25%**. Further
+requirements: restore original 6FA0 open-container
+phase, full moving/effect/roster/global serialization,
+actual LOAD/SAVE menu/IO atomicity, native world
+reconciliation, Level16 item 0x89, other special
+inventory item use and original DOS UI comparisons.
