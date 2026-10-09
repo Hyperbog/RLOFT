@@ -30,8 +30,22 @@ struct OriginalGroundRes4Report final {
     std::vector<OriginalGroundRes4Candidate> tiles_64x64;
 };
 
+// An original archive image PLUS the exact binary source IDs that
+// selected it. There is no manual "try texture 55" fallback.
+struct OriginalGroundRes4Selection final {
+    int source_init_base{};
+    int signed_level_selector{};
+    int absolute_archive_entry{};
+    std::vector<std::uint8_t> raster_source;
+};
+
 class OriginalGroundRes4Audit final {
 public:
+    [[nodiscard]] static OriginalGroundRes4Selection resolve(
+        const std::vector<std::uint8_t>& original_init,
+        const LevelState& original_level,
+        const ResArchive& archive);
+
     [[nodiscard]] static OriginalGroundRes4Report inspect(
         const ResArchive& archive);
 
