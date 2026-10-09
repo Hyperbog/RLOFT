@@ -261,9 +261,14 @@ have synthetic regression cases pending execution.
 NEXT: G1 is READY, NOT AUTHORIZED. A single gate matrix is recorded in
 G1_X86_16_BATCH_VERIFICATION_MATRIX.txt. Do not build automatically.
 THEN: R2.1 bounded value-domain model is SOURCE COMPLETE, NOT TESTED.
-NEXT SOURCE-ONLY: R2.2 exact instruction/register transfer design, with
-independent source mapping and alias invalidation. G1 remains READY and
-NOT AUTHORIZED; do not equate an R2 source checkpoint with G1 acceptance.
+NOW: R2.1 value-domain and R2.2 first exact register transfers are
+SOURCE COMPLETE, STATIC REVIEW ONLY; all corresponding smoke suites
+remain NOT EXECUTED.
+NEXT SOURCE-ONLY: R2.3 bounded predecessor merge/worklist design with
+loop and partial-state safeguards; then R2.4 integration only behind
+complete source-backed path and table proof.
+G1 remains READY, NOT AUTHORIZED; G2 is NOT READY. No builds or tests
+without explicit owner approval.
 
 WORK LOG APPEND FORMAT (MAINTAIN IN THIS FILE)
 ----------------------------------------------
@@ -326,3 +331,22 @@ without implying G1 passed. See G1_X86_16_BATCH_VERIFICATION_MATRIX.txt.
 State: R2.1 SOURCE COMPLETE. G1 READY / NOT AUTHORIZED. G2 not ready.
 Reference: R2_VALUE_DOMAIN_SOURCE_CHECKPOINT.md.
 Last successful Windows build remains run 37887821656.
+
+2026-10-09 | R2.2 x86-16 source-backed transfer checkpoint:
+- Added immutable per-region AX/CX/DX/BX/SP/BP/SI/DI candidate snapshot.
+  Exact original bytes, physical offsets, SHA/segment/origin and pinned
+  decoder flow classification must match before applying any transfer.
+- Prefix-free MOV word immediate, MOV register word, selected ADD/SUB word
+  and CMP immediate forms have an explicit finite instruction whitelist.
+  Any memory, partial 8-bit register alias, prefix, call/return/interrupt,
+  unsupported operation or unknown flags kills all tracked register facts.
+  No runtime flag values, memory or segment state is invented.
+- New synthetic fixtures cover both MOV directions, imm8 sign extension,
+  arithmetic, source tampering, 8-bit aliases, jump/return invalidation,
+  and cross-region / cross-hash rejects. Added test entry to existing
+  DosDis.Smoke; tests remain NOT EXECUTED.
+- Current CFG, projects, desktop, and indirect pointer tables are unchanged.
+  G1 ready but not authorized; G2 awaits substantial worklist/dataflow
+  integration. No Windows build, CI, original-binary test or packaging run.
+Reference: R2_REGISTER_TRANSFER_SOURCE_CHECKPOINT.md.
+Last successfully built preview remains run 37887821656.
