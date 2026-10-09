@@ -1,5 +1,30 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Part 8 — original SAVE inventory read/write byte projection
+
+Original `SAVE.DAT` is 9,288 bytes with 62 persistent
+container states holding 438 item slots and 62 state
+bitsets. Original `CODE.2` descriptor 62 is excluded.
+A new source-backed `InventorySaveCodec` decodes and
+re-encodes the original cursor, 4×0x248 actor inventory
+and Mage matrices, identified-item bitsets, 32 story
+flag bytes, 62 container contents/slot flags and four
+raw trailing UI contexts while preserving all other
+SAVE bytes, including independent clock and transient
+effects. Original variable-length effect count is
+honored; synthetic tests cover 0/3/150 effects and
+malformed boundaries. Exactly one new CTest is
+registered: **170 total; Quick remains 19**.
+
+**This is not live full SAVE/LOAD.** Original per-actor
+container phase restoration, complete session/world
+state and native menu integration remain open. No
+current Windows compilation, CTest run or DOS
+roundtrip is claimed; deferred Full build policy
+unchanged. Engineering tracker remains 56.25%
+and inventory milestone remains partial.
+
+
 ## Part 8 continued — original Mage inventory message state
 
 Original `CODE.2 116D5..11798` Mage scroll scribing
