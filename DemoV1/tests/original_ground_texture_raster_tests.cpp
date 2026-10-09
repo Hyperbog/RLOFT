@@ -124,11 +124,14 @@ int main() {
         ff58[row*6U+2U]=0U;
         ff58[row*6U+3U]=0U;
         ff58[row*6U+4U]=0U;    // origin U0
-        ff58[row*6U+5U]=2U;    // origin V2
+        // Source FF58 byte occupies Q32 bits 24..31.
+        // 34350 texel index uses bits 26..31, so V texel 2
+        // is encoded as byte 8 (not byte 2).
+        ff58[row*6U+5U]=8U;    // origin V2 (8 >> 2)
     }
     const auto records=OriginalGroundTextureRaster::decode_ff58(ff58);
     assert(records[0].delta_u==0x400U);
-    assert(records[127].origin_v==2U);
+    assert(records[127].origin_v==8U);
     assert(rejected([&] {
         (void)OriginalGroundTextureRaster::decode_ff58(
             std::vector<std::uint8_t>(127U*6U,0U));
