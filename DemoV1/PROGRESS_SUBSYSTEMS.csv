@@ -40,7 +40,7 @@ Perspective and visibility,Ground RES4 raster identity,20,20,20,20,0,original_gr
 Perspective and visibility,Main wall raster composition,20,10,10,20,0,surface_sintab_main_executor.cpp,Complete original wall pixels
 Perspective and visibility,Sprite depth occlusion and sorting,20,20,10,20,0,world_scene_selection.cpp,Visible world ordering acceptance
 Perspective and visibility,Full framebuffer equivalence,20,10,10,10,0,exploration_presenter.cpp,DOS indexed capture comparison
-VGA and graphics resources,RES archive decode and images,20,20,20,20,0,resource_assets.cpp,Complete original source asset acceptance
+VGA and graphics resources,RES archive decode and images,20,20,20,20,0,resource_assets.cpp and original_res2_asset_bank_tests.cpp,Verify original RES2 modal/encumbrance art in Windows and DOS
 VGA and graphics resources,VGA planar masks and sequencing,20,20,10,20,0,vga_planar_memory.cpp,DOS plane trace integration
 VGA and graphics resources,Sprite transparency clipping and blits,20,20,10,20,0,combat_original_sprite_raster.cpp,Real scene overlay timing
 VGA and graphics resources,Palette shading and fades,20,20,10,20,0,startup_presenter.cpp,Source 6-bit DAC chronology

@@ -1,5 +1,9 @@
 # Level 22 — reusable native development testbed
 
+## Encumbrance-click crash correction (requires next manual build)
+
+Full Windows #649 contains a **missing original RES2 archive routing** defect. It triggers when the real Level22 inventory encumbrance or container overlay calls the original RES2 type-1 bitmap; this is a renderer/asset-router omission, not a corrupt original installation. `RavenloftBootAssets::type1(2,index)` now lazily loads the authentic RES2 from the same selected game media. A new regression brings the current authored CTest registry to **180**, still **unbuilt** after the 179/179 success of #649. [Source/debug/diagnostic ZIP checkpoint](LEVEL22_RES2_ENCUMBRANCE_CRASH_20261009.md).
+
 ## Native Level22 opt-in diagnostic session — build #649 verified
 
 The source now includes [`--dev-trace` / `Diagnose-Level22.cmd`](LEVEL22_DEV_TRACE_CHECKPOINT_20261009.md): source-identity manifests, per-screen indexed 320×400 captures, palette bytes, state hashes, native Type1 sprite/fill/restore call ordering and destination coordinates, input and modal transitions, F12 marker/recent-event snapshots, existing RES3/SINTAB renderer traces, and a single automatically ZIP-packaged session. The original file tree remains read-only. The new `dev_session_trace_tests` passed with all **179/179 CTests** in [Full Windows build #649](https://github.com/Hyperbog/RLOFT/actions/runs/38003217534); the artifact includes `Diagnose-Level22.cmd`. **Actual user diagnostic capture/ZIP review and original-DOS behavior remain unaccepted.**

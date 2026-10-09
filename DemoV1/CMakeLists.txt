@@ -789,6 +789,10 @@ target_link_libraries(surface_sintab_main_executor_tests PRIVATE rloft_boot_flow
 add_test(NAME surface_sintab_main_executor_tests
     COMMAND surface_sintab_main_executor_tests)
 
+add_executable(original_res2_asset_bank_tests tests/original_res2_asset_bank_tests.cpp)
+target_link_libraries(original_res2_asset_bank_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_res2_asset_bank_tests COMMAND original_res2_asset_bank_tests)
+
 add_executable(game_source_tests tests/game_source_tests.cpp)
 target_link_libraries(game_source_tests PRIVATE rloft_boot_flow)
 add_test(NAME game_source_tests COMMAND game_source_tests)

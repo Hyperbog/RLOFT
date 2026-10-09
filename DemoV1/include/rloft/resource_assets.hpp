@@ -133,6 +133,9 @@ private:
     GameSource source_;
     ResArchive res0_;
     ResArchive res1_;
+    // Original CODE.2 12988 / 10A70/110B4 draw from RES2.
+    // Load on first inventory/encumbrance/container use, not startup.
+    mutable std::optional<ResArchive> res2_;
     mutable std::optional<ResArchive> res3_;
     ResArchive res5_;
     ResArchive res6_;

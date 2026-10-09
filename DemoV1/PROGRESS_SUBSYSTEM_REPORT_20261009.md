@@ -9,6 +9,8 @@
 
 **Diagnostic recorder build checkpoint:** the opt-in Level22 [flight recorder](LEVEL22_DEV_TRACE_CHECKPOINT_20261009.md) captures indexed VGA pixels/palettes, ordered Type1 drawing calls, input/state hashes, original RES3 source traces and F12 markers. Source and new regression have now passed **179/179 Windows Full CTests (#649)**; the diagnostic EXE and launcher are published, but user-supplied ZIP playback/interpretation and DOS pixel/gameplay acceptance are still open. **No readiness percentage change solely for native build success.**
 
+**Level22 user-test crash diagnosis and source repair:** The encumbrance click invoked original `RES2:0x25`, but `RavenloftBootAssets::type1` did not support bank 2. Source now lazy-loads/caches the actual original RES2 archive for encumbrance/container type-1 frames. `original_res2_asset_bank_tests` brings registry to **180** (not yet compiled; prior Full #649 179/179). [Source evidence, test and ZIP guidance](LEVEL22_RES2_ENCUMBRANCE_CRASH_20261009.md). **The weighted completion percentages remain unchanged; no current-revision DOS visual/functional acceptance is claimed.**
+
 ## Scoring rules — fixed for future checkpoints
 
 **Weights:** original behavior mapped **10%**; native source implementation **20%**; runtime integration **20%**; regression assertions present **10%**; current-revision original DOS behavioral acceptance **40%**.
@@ -148,7 +150,7 @@ Each row's five gate marks are out of 20; the weighted readiness column is an in
 
 | Subsystem | Readiness | S/N/L/T/D | Source implementation evidence | Next acceptance blocker |
 | --- | ---: | --- | --- | --- |
-| RES archive decode and images | **60.0%** | 20/20/20/20/0 | `resource_assets.cpp` | Complete original source asset acceptance |
+| RES archive decode and images | **60.0%** | 20/20/20/20/0 | `resource_assets.cpp and original_res2_asset_bank_tests.cpp` | Verify original RES2 modal/encumbrance art in Windows and DOS |
 | VGA planar masks and sequencing | **50.0%** | 20/20/10/20/0 | `vga_planar_memory.cpp` | DOS plane trace integration |
 | Sprite transparency clipping and blits | **50.0%** | 20/20/10/20/0 | `combat_original_sprite_raster.cpp` | Real scene overlay timing |
 | Palette shading and fades | **50.0%** | 20/20/10/20/0 | `startup_presenter.cpp` | Source 6-bit DAC chronology |

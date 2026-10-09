@@ -792,6 +792,14 @@ Type1Raster RavenloftBootAssets::type1(int archive, int index) const {
     switch (archive) {
         case 0: return res0_.decode_type1(index);
         case 1: return res1_.decode_type1(index);
+        case 2:
+            // The original inventory and encumbrance presenters call
+            // RES2:0x25 and RES2:0x14..0x24 respectively. This is the
+            // actual shipped resource bank, not a synthetic fallback.
+            if (!res2_.has_value()) {
+                res2_.emplace(source_.read("RES2"));
+            }
+            return res2_->decode_type1(index);
         case 7: return res7_.decode_type1(index);
         case 8: return res8_.decode_type1(index);
         default:
