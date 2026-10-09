@@ -860,10 +860,10 @@ Safety gates explicitly **reject without state mutation**:
 - any source `0x16` transient/moving-effect records
   (the *standalone byte codec* still supports them);
 - unsupported `6FA0` contexts: interrupted phase-0/1/2
-  animations, ambiguous/missing original hand-object evidence,
-  or multiple simultaneously open interactive views. Both
-  fresh `FF FF FF FF` and post-close `FF FF 00 FF` now
-  load; one phase-3 context can source-restore from OBJECTS;
+  animation replay, ambiguous/missing original hand-object
+  evidence. Both fresh `FF FF FF FF` and post-close
+  `FF FF 00 FF` load; **all four** phase-3 contexts may
+  source-restore when each resolves uniquely from OBJECTS;
 - a currently open native hand-container view **on import**.
   Export may persist an active view once it matches `6FA0`;
 - damaged 62-descriptor geometry / malformed SAVE lengths.
@@ -975,10 +975,11 @@ selector 62 is not accepted as a serializable container.
    A currently displayed native hand container must
    match the persisted actor/index/hand/object record.
 4. `apply_to_matching_session` accepts two inactive
-   historical states and may restore **one fully-open
-   phase3 view**, if exactly one hand has the original
-   category/index/subtype/low-ID identity. A source
-   OBJECTS catalogue is mandatory for active restoration.
+   historical states and independently validates each
+   **fully-open phase3 view**. Each actor must have a
+   unique hand matching original category/index/subtype/
+   low-ID identity. A source OBJECTS catalogue is
+   mandatory for active restoration.
    The entire restore is preflighted before mutating live
    inventory, event flags or the actor images.
 5. `capture_matching_session` now supports exporting a
@@ -1003,11 +1004,11 @@ selector 62 is not accepted as a serializable container.
   but live restore rejects it until actual original
   10BBC/1A724 page-flip art and time ordering are bound;
 - original SAVE may contain multiple concurrently open
-  actor contexts, which remain preserved byte-for-byte,
-  but the single active native click controller does not
-  yet support interacting with multiple open lanes.
-  Such a live LOAD is explicitly rejected rather than
-  displaying one container while silently dropping others;
+  actor contexts. The subsequent checkpoint now supports
+  source-validating and interacting with all four separately.
+  The source still serializes NO selected native pointer,
+  so the first open actor is selected on import, and click
+  dispatch selects the actually clicked actor;
 - the 6FA0 state alone does not prove all hand-side/menu
   input semantics or the complete DOS status frame.
   Exact mouse clicks, partial animation rendering and
@@ -1041,3 +1042,122 @@ animation/timing; native complete SAVE/LOAD through other
 world/effect/clock domains; Level16 seed/item side effects;
 remaining original item action categories and DOS visual
 acceptance.
+
+
+## Part 8 extended checkpoint — simultaneous actor containers, actual CODE.2 click routing and phase artwork
+
+**This section supersedes the earlier "one native interactive
+view" limitation, without claiming complete DOS animation.**
+Directly re-disassembled the supplied CODE.2 object-1
+at `12E70..12F1C`, `10EEC..10F06`, `10A70..10BB4`,
+`21648..216C4`, and `110B4..11185`.
+
+### Source instruction evidence
+
+- `12E7B..12E89`: clicked VGA column is **signed-divided by
+  0x50** to select character actor, *not* resolved through a
+  previously selected global container context.
+- `12EDE` reads `signed byte [6FA0+actor*4]` to check
+  whether that actor's container UI is present. When
+  mouse row is `0xDB..0x11F` and actor-local column is
+  `5..0x4D`, `12F0C` dispatches `11C3C(actor,row,
+  local_column,flags)`. Other lanes remain independent.
+- `10EE0..10F01` reads both `[6FA0+actor*4]` and
+  `[6FA2+actor*4]` and calls `10A70(actor,phase)`.
+- `10A8F..10AA2`: phase `0` means no additional
+  container drawing; phases **1 and 2** dispatch the
+  original transition RES2 graphic at **row `0xC4`**.
+  `10AA7..10AC6` computes the resource index exactly as
+  `0x14+2*subtype+phase-1` (bank 2).
+- `10ACB..10BAE`: phase **3** selects the original
+  RES2 frame `9+subtype` at **row `0xCE`** and renders
+  the descriptor's grid contents in its 80-pixel actor
+  lane using the original `0x12` horizontal and
+  `0x22` vertical cell spacing, rather than an
+  invented procedural container UI.
+- **Two different source close/reset paths:**
+  `110B4..1117D` plays the animated
+  `3→2→1→0` sequence, then clears only offsets
+  `+0,+1,+3`, leaving
+  `FF FF 00 FF`. In contrast,
+  `21648..21670`, used when transferring hand items,
+  clears all four bytes to **`FF FF FF FF`**, and
+  optionally initializes a new `phase=3` context at
+  `21693..216BD`. Conflating these two paths would
+  corrupt SAVE bytes.
+
+### Native source changes
+
+1. `InventoryRuntimeState` retains all four original
+   `6FA0` records; `open_container` is now explicitly
+   the **current interaction selection**, not the sole
+   source-open view. The new
+   `select_container_actor(party,objects,actor)`
+   matches the selected actor's saved subtype, signed
+   descriptor selector, category-1 original hand object,
+   8-bit low object ID and both possible full-width
+   hand IDs. It fails without changing the selection if
+   the match is ambiguous, invalid or inactive.
+2. `swap_actor_container_slot` selects by actor and
+   then invokes existing bounded `11C3C` item/known-bit
+   transfer. The Win32 inventory pointer route now
+   derives the actor from the **clicked column**, checks
+   the actor's original phase3 `6FA0` context and
+   uses its descriptor's grid geometry. Clicking a
+   different open actor does not close the other panel.
+3. The existing hand-container opening path now resets
+   only the target actor's `6FA0` state. Other actor
+   contexts continue to exist. `close_actor_container`
+   retains `110B4` phase-zero close semantics. A
+   distinct `reset_actor_context_21648` implements
+   hand-transfer all-FF reset; taking a container out
+   of a hand no longer incorrectly writes `FF FF 00 FF`.
+4. SAVE input now validates **all four independent**
+   source contexts and permits simultaneous phase-3
+   views. It selects the first open actor only as a
+   *native interaction default*; it does **not** emit
+   an invented "selected actor" byte. A later click
+   can select any valid open actor. SAVE capture
+   validates every active context and accepts no
+   selected pointer when remaining actors' valid
+   contexts are open (e.g. following a close).
+5. Modal presentation preserves all actor-lane phase3
+   RES1/RES2 item displays, adds the EXACT phase1/2
+   RES2 artwork at VGA row `0xC4`, and suppresses
+   legacy fallback of a phase3 panel when a source
+   context is actually in partial phase 0/1/2.
+   `InventoryScreenModel` exposes the source
+   `original_container_transition_res2_graphic()`
+   formula with full subtype/phase bounds.
+6. Regression assertions in existing
+   `inventory_save_codec_tests` cover importing
+   two simultaneous actor contexts, switching click
+   selection without closing the other view, clearing
+   only the chosen actor, preserving both source
+   records across original-format export, and rejecting
+   a corrupt second context without session mutation.
+   `inventory_runtime_tests` covers independent
+   actor selections and original transfer/close byte
+   differences. `inventory_screen_tests` verifies
+   every phase1/2 graphic for all **seven** source
+   subtypes, and rejects invalid phases and subtypes.
+
+### Acceptance still open
+
+The original `10FAC/110B4` multi-frame animation
+includes drawing, page switching, and timing through
+`10BBC/1A724/2F29C`. The source has phase progression
+and correct per-phase graphic **identity**, but still
+needs DOS-vs-native pixel and timing acceptance.
+Mid-animation SAVE contexts remain losslessly decoded,
+but live restoration rejects incomplete phase-0/1/2
+animation instead of falsely treating it as a completed
+panel. Unowned SAVE world/effect/clock domains and
+remaining special-item actions are still incomplete.
+No source/build provenance guarantees a fully usable
+SAVE menu yet.
+
+**Git commits are continuous and separate from builds.**
+No Windows build or CTest was started. The registered
+total remains **170 CTests / 19 Quick**, and engineering
+progress remains **56.25%** with inventory PARTIAL.
