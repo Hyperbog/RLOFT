@@ -113,6 +113,7 @@ private:
     std::uint16_t res1_portrait_base_{};
     Type2Font font1_{};
     CharacterExperienceTable experience_table_{};
+    InventoryEncumbranceModel encumbrance_{};
 };
 
 }  // namespace rloft
