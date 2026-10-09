@@ -1,5 +1,28 @@
 # Ravenloft Demo Build v1
 
+## Crash fix: original CODE.2 ray-cell addressing (next manual build)
+
+[Verified binary-source diagnosis](LEVEL22_SWEEP_CELL_INDEX_CORRECTION_20261008.md):
+the user-provided 16-frame Level 22 capture and screenshot exposed
+a repeatable near-cardinal `first-person sweep failed to leave
+malformed level` exception. The level is authentic and well-formed.
+Original CODE.2 doubles flattened cell indices for 16-bit
+word addressing and then undoes the doubling before the bounds
+check. The native code wrongly halved those already-undoubled
+indices, traversing incorrect cells and sometimes looping.
+
+Both original left/right ray paths now preserve the source
+cell index. A new assertion-enabled regression uses the
+original Level 22 perimeter, exact source SINTAB sine/tangent
+constants and a camera from the user's archive. Existing
+fixture expectations were corrected. No world data or
+original DOS assets were modified.
+
+**Source fix requires a fresh manual Windows build.**
+Previously green #639 predates the fix. All earlier native
+ray visibility/occlusion and framebuffer captures were
+affected by this bug and cannot certify DOS parity.
+
 ## Current next-build graphical milestone — original C029 wide RES3 pixels
 
 [Full original-code checkpoint](LEVEL22_CODE2_C029_INDIVIDUAL_RES3_WIDE_PIXELS_20261008.md):
