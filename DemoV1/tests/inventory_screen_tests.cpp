@@ -103,4 +103,35 @@ int main(){
      invalid=true;
  }
  assert(invalid);
+
+ // Original CODE.2 10AA7/10ACB has two distinct RES2 banks
+ // for one container subtype: phases 1 and 2 have consecutive
+ // graphics beginning at 0x14+2*subtype (row C4h); phase3
+ // returns to 9+subtype (row CEh). Check every shipped subtype.
+ for(std::uint8_t subtype=0U;subtype<=6U;++subtype) {
+     const auto early=rloft::InventoryScreenModel::
+         original_container_transition_res2_graphic(subtype,1U);
+     const auto late=rloft::InventoryScreenModel::
+         original_container_transition_res2_graphic(subtype,2U);
+     assert(early==0x14+2*static_cast<int>(subtype));
+     assert(late==early+1);
+     assert(rloft::InventoryScreenModel::
+         original_container_res2_graphic(subtype)==
+         9+static_cast<int>(subtype));
+ }
+ for(const auto phase:{0U,3U,4U}) {
+     bool rejected=false;
+     try {
+         (void)rloft::InventoryScreenModel::
+             original_container_transition_res2_graphic(
+                 0U,static_cast<std::uint8_t>(phase));
+     } catch(const std::out_of_range&) { rejected=true; }
+     assert(rejected);
+ }
+ bool rejected_subtype=false;
+ try {
+     (void)rloft::InventoryScreenModel::
+         original_container_transition_res2_graphic(7U,1U);
+ } catch(const std::out_of_range&) { rejected_subtype=true; }
+ assert(rejected_subtype);
 }
