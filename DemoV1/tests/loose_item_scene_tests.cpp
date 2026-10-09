@@ -82,6 +82,7 @@ int main() {
     assert(scene[0].resource_id == 4010U);
     assert(scene[0].source_index == 0U);
     assert(scene[0].source_class == 2U);
+    assert(scene[0].source_type_id == 0x88U);
     assert(scene[0].render_scale_lookup_bias == 0U);
 
     session.level.cell_words[0] = 0U;
