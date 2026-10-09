@@ -318,6 +318,121 @@ int main() {
         ritual_session,crowded,&final_seed);
     assert(ritual.status==SeedStatus::NotLevel16);
 
+    const auto reject_forward=[](
+        std::uint32_t,std::uint32_t,std::uint32_t) {
+        return false;
+    };
+
+    // SOURCE-ORDER complete 21880:
+    // 2195C appends fourth Seed and clears the 0x89 cursor,
+    // 1C124 sets flag 44h, 13EF8 runs numbered CINE08,
+    // then 15050(73h) grants exactly one reward.
+    // No callback may see the Holy Symbol before the event.
+    ritual_session.level_id=16U;
+    ritual_session.persistent_event_flags.fill(0U);
+    ritual_session.coordinate_a=0x000F8000U;
+    ritual_session.coordinate_b=0x00158000U;
+    using Completion=rloft::Level16RitualCompletionStatus;
+    using Playback=rloft::Level16RitualPlayback;
+    const auto unchanged_ritual_world=ritual_world.loose_items.size();
+    rloft::InventoryRuntimeState completed_inventory{};
+    completed_inventory.held={0x89,1U};
+    bool event_seen=false;
+    const auto completed=rloft::Level16RitualCompletionModel::
+        complete_21880(
+            ritual_session,ritual_world,completed_inventory,
+            definitions,tables,reject_forward,
+            [&]() {
+                event_seen=true;
+                assert(ritual_world.loose_items.size()==
+                    unchanged_ritual_world+1U);
+                assert(ritual_world.loose_items.back().object_type_id==
+                    0x89U);
+                assert(ritual_session.persistent_event_flags[0x44U/8U]&
+                    (1U<<(0x44U%8U)));
+                assert(completed_inventory.held.object_id==-1);
+                return Playback::Completed;
+            });
+    assert(event_seen);
+    assert(completed.status==Completion::Completed);
+    assert(completed.reward.status==
+        rloft::HolySymbolGrantStatus::GivenToCursor);
+    assert(completed_inventory.held.object_id==0x73);
+    assert(completed_inventory.held.known==0U);
+    assert(ritual_world.loose_items.size()==
+        unchanged_ritual_world+1U);
+    assert(ritual_session.persistent_event_flags[0x44U/8U]&
+        (1U<<(0x44U%8U)));
+
+    // Already completed: another identical event must NOT play
+    // and cannot grant a second Holy Symbol.
+    completed_inventory.held={0x89,1U};
+    int events_called=0;
+    const auto once=rloft::Level16RitualCompletionModel::
+        complete_21880(
+            ritual_session,ritual_world,completed_inventory,
+            definitions,tables,reject_forward,
+            [&]() {++events_called;return Playback::Completed;});
+    assert(once.status==Completion::NotReady);
+    assert(events_called==0);
+    assert(completed_inventory.held.object_id==0x89);
+
+    // Native Escape/quit safety: restore original source world,
+    // cursor and event flags atomically, with no hidden reward.
+    ritual_world.loose_items.pop_back();
+    ritual_session.persistent_event_flags.fill(0U);
+    const auto before_cancel=ritual_world.loose_items.size();
+    for(const auto event_result:{Playback::Escaped,Playback::Quit}) {
+        completed_inventory.held={0x89,1U};
+        int calls=0;
+        const auto cancelled=rloft::Level16RitualCompletionModel::
+            complete_21880(
+                ritual_session,ritual_world,completed_inventory,
+                definitions,tables,reject_forward,
+                [&]() {
+                    ++calls;
+                    assert(ritual_world.loose_items.size()==
+                        before_cancel+1U);
+                    assert(completed_inventory.held.object_id==-1);
+                    return event_result;
+                });
+        assert(calls==1);
+        assert(cancelled.status==
+            (event_result==Playback::Quit
+             ? Completion::Quit : Completion::Escaped));
+        assert(ritual_world.loose_items.size()==before_cancel);
+        assert(ritual_session.persistent_event_flags[0x44U/8U]==0U);
+        assert(completed_inventory.held.object_id==0x89);
+        assert(completed_inventory.held.known==1U);
+    }
+
+    // An event resource or rendering exception must NOT leave the
+    // quest flagged, the seed missing, or a reward half-granted.
+    bool event_threw=false;
+    try {
+        (void)rloft::Level16RitualCompletionModel::complete_21880(
+            ritual_session,ritual_world,completed_inventory,
+            definitions,tables,reject_forward,
+            []() -> Playback {
+                throw std::runtime_error("corrupt event 8 resource");
+            });
+    } catch(const std::runtime_error&) { event_threw=true; }
+    assert(event_threw);
+    assert(ritual_world.loose_items.size()==before_cancel);
+    assert(ritual_session.persistent_event_flags[0x44U/8U]==0U);
+    assert(completed_inventory.held.object_id==0x89);
+
+    // No event callback is not equivalent to Completed.
+    bool invalid_presenter=false;
+    try {
+        (void)rloft::Level16RitualCompletionModel::complete_21880(
+            ritual_session,ritual_world,completed_inventory,
+            definitions,tables,reject_forward,{});
+    } catch(const std::invalid_argument&) {
+        invalid_presenter=true;
+    }
+    assert(invalid_presenter);
+
     // Bounded 15050(0x73) source reward routing: after the
     // numbered event, the HOLY SYMBOL OF RAVENKIND is put on
     // an empty cursor; otherwise the first empty ordinary
@@ -402,10 +517,7 @@ int main() {
     auto reward_session=session();
     rloft::LevelWorldState reward_world{};
     const auto actual_held_before=reward_inv.held;
-    const auto reject_forward=[](
-        std::uint32_t,std::uint32_t,std::uint32_t) {
-        return false;
-    };
+
     auto spawned=rloft::InventoryWorldDropModel::
         spawn_holy_symbol_reward_15050(
             reward_world,reward_session,definitions,tables,
