@@ -1,5 +1,46 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Part 8 continuation — full isolated Holy Symbol reward allocation
+
+A new original `15050(0x73)` fallback bound to the
+already reconstructed `2195C` world-item constructor
+completes the **isolated** HOLY SYMBOL OF RAVENKIND
+reward's three allocation routes: empty held cursor,
+first free ordinary slot of the first active actor,
+and a real unidentified family-C loose-item spawn
+when inventory is full. The world fallback uses the
+original `2195C` arguments including screen seed
+`0x80`, known `0`, forward placement `1`,
+and **do-not-clear-cursor `0`**. The source's
+300-loose-item eviction and collision/coordinate
+fallback rules remain shared with ordinary drops.
+An unusable world leaves original cursor/party/
+world unchanged and reports a distinct rejection.
+
+The `13EF8(8) → 13AD8 → 139AC` call chain is now
+tied to the source's literal `CINE00.ANM` filename
+template and **`CINE08.ANM`** resource, which the
+original ANM inventory lists as **182 frames**.
+The native ANM decoder and startup playback path
+exist, but the exploration-modal handoff and its
+source-order flag/reward transaction are not
+connected. The fourth Seed-of-Morninglord drop
+therefore remains **pending**, not a completed
+ritual. The new world reward helper is NOT called
+in the pending branch.
+
+Expanded assertions cover source reward full-world
+placement, held-object preservation, known-byte
+zero, eviction, world-failure atomicity and
+cursor/party first choices, plus the source movie
+identity. No new CTest target; **170 CTests
+registered / 19 Quick**. No manual build,
+CTest run or live game acceptance was initiated.
+Formal inventory **PARTIAL**, engineering
+**56.25%**, awaiting event-8 handoff and
+remaining DOS fidelity gates.
+
+
 ## Part 8 extended — original Level16 Seed ritual and Holy Symbol grant
 
 The original CODE.2 `21880` Level16
