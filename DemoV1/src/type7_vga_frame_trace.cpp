@@ -29,7 +29,8 @@ std::optional<Type7VgaSceneTrace> build_scene(
     }
     bool unsupported = false;
     for (const auto& run : plan.visible_runs) {
-        if (run.width == 0U || run.width > 7U) {
+        if (run.width == 0U || run.width > 255U ||
+            (!individual_columns_mode && run.width > 7U)) {
             ++unresolved_wide_runs;
             unsupported = true;
         }
