@@ -221,3 +221,24 @@ entry, texture content and mutable C026/C027 and
 FF50 row-span state have all been checked. The
 current flat-fill image remains an explicitly
 incomplete diagnostic, not an authentic DOS forest.
+
+
+## Dedicated original RES4 candidate probe (subsequent source continuation)
+
+[Original-source audit and manual Windows probe](ORIGINAL_LEVEL22_RES4_GROUND_SOURCE_AUDIT_20261008.md)
+now enumerate valid raw/LZSS EH type-1 64×64 tiles directly
+from the user's original installed `RES4`, report
+resource indexes and diagnostic decoded-image fingerprints,
+and preserve the strict relative selector + **unverified
+258F8 base** boundary. `verified_tile_source`
+bridges only explicitly selected original 4096-byte pixels
+into the existing 34A74 raster, with no fabricated texels.
+It is not connected to live display until the exact
+original DOS resource base and row-span are known.
+
+A new CTest verifies real EH header, offset table,
+type-1 decompression and the original 34A74 first
+row. The Windows build includes `Probe-Level22-Ground.cmd`
+for reading actual original RES4 without GitHub connector
+UTF-8 binary limitations. All builds remain manual;
+164 CTests are now expected, unrun at current HEAD.
