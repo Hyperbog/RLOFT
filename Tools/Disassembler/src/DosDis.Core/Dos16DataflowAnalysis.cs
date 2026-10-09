@@ -104,10 +104,13 @@ public static class Dos16DataflowAnalysis
             else if (raw.Length == 4 && raw[0] == 0x0F &&
                      raw[1] is >= 0x80 and <= 0x8F)
                 displacement = BinaryPrimitives.ReadInt16LittleEndian(raw.AsSpan(2, 2));
-            if (displacement is int signedDisplacement &&
-                ((long)candidate.Address.Offset + candidate.Length +
-                    signedDisplacement is < 0 or > ushort.MaxValue))
-                return Incomplete("rejected-wrapped-near16-relative-target");
+            if (displacement is int signedDisplacement)
+            {
+                long unwrapped = (long)candidate.Address.Offset +
+                    candidate.Length + signedDisplacement;
+                if (unwrapped < 0 || unwrapped > ushort.MaxValue)
+                    return Incomplete("rejected-wrapped-near16-relative-target");
+            }
 
             int after = candidate.Address.Offset + candidate.Length;
             bool near = decoded.Op0Kind is OpKind.NearBranch16 or OpKind.NearBranch32;
