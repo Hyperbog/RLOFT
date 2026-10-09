@@ -209,7 +209,9 @@ struct InventoryRuntimeState final {
     // enters 11630: event flag 0xBA is set even on a failed
     // capacity/duplicate check; a successful scribe clears
     // precisely the matrix-A spell byte and consumes the scroll.
-    // UI dialogue/IRQ scheduling is not claimed here.
+    // Original message and 6DAC/6DA8 +0x36 IRQ feedback
+    // are separately projected in mage_scribe_feedback.
+    // Exact DOS ribbon ornament/pixel timing is still pending.
     [[nodiscard]] InventoryOrdinarySwapStatus swap_ordinary_slot(
         PartyImage& party,
         const ObjectCatalog& objects,
