@@ -99,3 +99,14 @@ pass uses those paths to connect the CMP/guard, MOV, stride and
 indirect jump. The path bound is four transparent intermediates by
 default. It is not a generic interprocedural analysis, does not
 infer arbitrary dominance, and adds no CFG edges.
+
+## Unsigned guard-edge verification (P0 source milestone)
+
+The 16-bit indexed-dispatch pass now treats bound guards as
+edge-sensitive proofs: `JA/JAE` requires the conditional's
+sequential edge, whereas `JB/JBE` requires its taken edge.
+The exact branch target is recomputed from the original relative
+displacement, both outgoing CFG edges are checked, and the opposite
+edge must lead to a distinct decoded instruction. This narrows the
+space of speculative path reports without changing the CFG or
+promoting runtime addresses.

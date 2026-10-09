@@ -535,3 +535,17 @@ The existing CLI option is unchanged; runtime call targets stay
 
 See [guard and unique-path contract](docs/P0_X86_16_AUTOMATIC_GUARDS.md).
 The new regressions are source-only; **no new build has been run**.
+
+## P0 source checkpoint — unsigned in-range dispatch selection
+
+`--auto-tables` can now recognize a second common bounded 16-bit
+dispatch idiom: `CMP BX,N; JB/JBE in_range`, where the **taken**
+path enters the checked table block. The existing `JA/JAE`
+out-of-range rejection pattern remains supported. Literal operands,
+unsigned entry counts, both branch edges, original code bytes and
+uniquely backed NOP/JMP bridges are checked. Extra or falsified
+edges cause rejection; dynamic or unprovable targets remain unresolved.
+
+[Updated guard proof and failure modes](docs/P0_X86_16_AUTOMATIC_GUARDS.md).
+Added synthetic regression cases are **not yet executed**. The last
+published Windows preview predates these source changes.

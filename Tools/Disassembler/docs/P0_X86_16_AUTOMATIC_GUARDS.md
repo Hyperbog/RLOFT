@@ -38,10 +38,25 @@ and a unique incoming CFG edge. Other register and flag mutations,
 joins, indirect transfers, and unknown call returns are not transparent.
 No arbitrary register propagation is performed.
 
-Supported unsigned guards are `JA` and `JAE` (short or near) following
-`CMP r16,imm8/imm16` in the explicitly supported encodings. The imm8
-value must be nonnegative after sign extension. Comparisons are bounded
-to at most 256 candidate entries. The register copy, optional direct BX
+Supported unsigned guards are `JA`, `JAE`, `JB` and `JBE`
+(short or near16) following `CMP r16,imm8/imm16` in the explicitly
+supported encodings. The immediate must be nonnegative after sign
+extension. Comparisons are bounded to at most 256 candidate entries.
+
+| Guard and proven path | Accepted BX values | Validated entry count |
+| --- | --- | --- |
+| `JA` not taken | `BX <= N` | `N+1` |
+| `JAE` not taken | `BX < N` | `N` |
+| `JB` taken | `BX < N` | `N` |
+| `JBE` taken | `BX <= N` | `N+1` |
+
+The branch-direction proof uses exactly two original-source-matched
+outgoing edges: one taken and one fallthrough. The 8- or 16-bit signed
+displacement is decoded independently from the original bytes, and
+the opposite edge must lead to a separately decoded, file-backed
+instruction rather than rejoining the table's unique path. Both
+target and sequential IP must remain within the explicit segment;
+16-bit wrapping and artificially added/rewritten edges are rejected. The register copy, optional direct BX
 use, shift, conditional branch and CMP must have exact original file
 bytes, match their declared physical offsets, and have unique incoming
 CFG edges along the local path. A distinct file-backed guard-failure
@@ -146,3 +161,21 @@ bounds across harmless instructions, an alternate incoming edge,
 
 **These newly added fixtures have not been compiled or executed.**
 Previous Windows preview builds did not include this milestone.
+
+## In-range branch selection (current source checkpoint)
+
+In addition to the existing out-of-range rejection idiom, the generic
+source pass recognizes an unsigned branch that explicitly selects the
+in-range table path, including a table block reached through separately
+validated NOP/near-JMP bridges. `JB` is a strict bound and `JBE`
+is inclusive; the code never assumes a signed condition or treats
+`JA/JAE` taken as an accepted in-range path. Original-byte verification
+covers both edges and the full relative target operand. New synthetic
+fixtures include short and near16 `JB/JBE`, signed guard rejection,
+wrong-polarity rejection, a fabricated additional edge, a tampered
+branch destination, an out-of-range path rejoining the dispatch, a
+forged nonadjacent fallthrough, and a graph-entry backedge.
+
+**This is source-only:** no new Windows build, synthetic suite execution
+or real original-binary validation occurred in this checkpoint. All
+returned targets remain unverified candidates.

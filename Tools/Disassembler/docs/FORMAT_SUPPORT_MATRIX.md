@@ -177,3 +177,14 @@ the hop budget; no candidate is promoted to an executable CFG edge.
 
 No new Windows compilation, smoke-test run, or authentic DOS binary
 validation has been performed for this particular source milestone.
+
+## Both directions of unsigned 16-bit dispatch guards — source only
+
+The bounded x86-16 index analyzer now accepts `JA/JAE` out-of-range
+guards when the **not-taken** path reaches the table, and `JB/JBE`
+in-range selectors when the **taken** path reaches the table. Exact
+unsigned inclusive/exclusive entry counts are verified. Each guard
+must have precisely two source-matched CFG outcomes and a uniquely
+backed selected path. Signed conditions, mismatched destinations,
+failure-path joins, unknown register state and untrusted edges remain
+unresolved. No inferred target is promoted into the recursive CFG.
