@@ -1761,14 +1761,8 @@ DemoCommandLine command_line_options() {
                 result.capture_render = true;
             } else if (arg.substr(0U,17U) == L"--capture-frames=") {
                 const auto count = arg.substr(17U);
-                std::size_t parsed=0U;
-                const auto value=std::stoul(std::wstring(count), &parsed, 10);
-                if (parsed != count.size() || value < 1UL ||
-                    value > 128UL) {
-                    throw std::invalid_argument(
-                        "--capture-frames must be an integer from 1 to 128");
-                }
-                result.capture_limit=static_cast<std::size_t>(value);
+                result.capture_limit=
+                    rloft::ExplorationFrameCapture::parse_frame_limit(count);
                 result.custom_capture_limit=true;
             } else if (!arg.empty() && arg.front() == L'-') {
                 throw std::invalid_argument(
