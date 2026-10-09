@@ -42,6 +42,9 @@ public:
     void open_inventory(std::size_t actor_index);
     void open_party_panels(std::size_t actor_index);
     void toggle_party_panel(std::size_t actor_index);
+    // CODE.2 12470 swaps four-byte panel contexts when actors reorder.
+    // This mirrors the original per-actor modal mode and selection.
+    void exchange_party_panel_state(std::size_t first,std::size_t second);
     [[nodiscard]] bool party_panel_character_mode(
         std::size_t actor_index) const;
     void close_screen() noexcept;
