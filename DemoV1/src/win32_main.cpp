@@ -13,6 +13,7 @@
 #include <exception>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -25,6 +26,7 @@
 
 #include "rloft/anm_cinematic.hpp"
 #include "rloft/dev_level_diagnostics.hpp"
+#include "rloft/dev_session_trace.hpp"
 #include "rloft/dev_level_interaction_policy.hpp"
 #include "rloft/automap_modal.hpp"
 #include "rloft/automap_screen_presenter.hpp"
@@ -362,6 +364,10 @@ public:
         inventory_mode_=enabled;
     }
 
+    void set_session_trace(rloft::DevSessionTrace* trace) noexcept {
+        session_trace_=trace;
+    }
+
     bool quit_requested() const noexcept { return quit_; }
     HWND hwnd() const noexcept { return hwnd_; }
 
@@ -592,6 +598,17 @@ private:
                 return 1;
 
             case WM_KEYDOWN:
+                if(session_trace_ &&
+                   (static_cast<std::uint64_t>(lparam)&(1ULL<<30U))==0U) {
+                    try {
+                        if(wparam==VK_F12) {
+                            session_trace_->request_marker();
+                            return 0;
+                        }
+                        session_trace_->event("key.down",
+                            static_cast<std::int64_t>(wparam));
+                    }catch(...) { session_trace_=nullptr; }
+                }
                 if (wparam == VK_ESCAPE) {
                     escape_pressed_ = true;
                     return 0;
@@ -634,6 +651,13 @@ private:
                 return 0;
 
             case WM_KEYUP:
+                if(session_trace_ && wparam==VK_F12)return 0;
+                if(session_trace_) {
+                    try {
+                        session_trace_->event("key.up",
+                            static_cast<std::int64_t>(wparam));
+                    }catch(...) {session_trace_=nullptr;}
+                }
                 if (exploration_input_) {
                     if(inventory_mode_ && wparam=='D')return 0;
                     if (const auto scan = legacy_scan_from_vk(wparam)) {
@@ -694,6 +718,13 @@ private:
                 return 0;
 
             case WM_LBUTTONDOWN:
+                if(session_trace_ && exploration_input_) {
+                    try {
+                        session_trace_->event("mouse.left.down",
+                            native_x_from_client(GET_X_LPARAM(lparam)),
+                            native_y_from_client(GET_Y_LPARAM(lparam)));
+                    }catch(...) {session_trace_=nullptr;}
+                }
                 if (menu_mode_ && selection_ >= 0) {
                     clicked_ = selection_;
                 }
@@ -720,6 +751,13 @@ private:
                 return 0;
 
             case WM_LBUTTONUP:
+                if(session_trace_ && exploration_input_) {
+                    try {
+                        session_trace_->event("mouse.left.up",
+                            native_x_from_client(GET_X_LPARAM(lparam)),
+                            native_y_from_client(GET_Y_LPARAM(lparam)));
+                    }catch(...) {session_trace_=nullptr;}
+                }
                 if(exploration_input_) {
                     const int row=native_y_from_client(
                         GET_Y_LPARAM(lparam));
@@ -733,6 +771,13 @@ private:
                 return 0;
 
             case WM_RBUTTONDOWN:
+                if(session_trace_ && exploration_input_) {
+                    try {
+                        session_trace_->event("mouse.right.down",
+                            native_x_from_client(GET_X_LPARAM(lparam)),
+                            native_y_from_client(GET_Y_LPARAM(lparam)));
+                    }catch(...) {session_trace_=nullptr;}
+                }
                 if (exploration_input_) {
                     const int row =
                         native_y_from_client(GET_Y_LPARAM(lparam));
@@ -790,6 +835,7 @@ private:
     bool character_mode_{false};
     bool inventory_mode_{false};
     rloft::ExplorationLegacyInputController* exploration_input_{nullptr};
+    rloft::DevSessionTrace* session_trace_{nullptr};
     int selection_{-1};
     std::optional<int> clicked_{};
     std::optional<NativePoint> character_click_{};
@@ -875,7 +921,8 @@ int run_exploration(
     bool capture_render = false,
     std::size_t capture_limit = 16U,
     bool dev_inspect = false,
-    bool dev_interact = false) {
+    bool dev_interact = false,
+    bool dev_trace = false) {
     auto runtime =
         rloft::ExplorationRuntime::load_fresh(
             assets.source(), chars);
@@ -893,6 +940,27 @@ int run_exploration(
     rloft::ExplorationUiController ui;
     std::optional<rloft::AutomapModalController> automap;
     std::optional<std::uint32_t> quit_random_seed;
+    std::unique_ptr<rloft::DevSessionTrace> trace;
+    struct TraceHostDetach final {
+        Host& host;
+        ~TraceHostDetach() {host.set_session_trace(nullptr);}
+    } trace_detach{host};
+    if(dev_trace) {
+        const auto root=std::filesystem::temp_directory_path()/
+            "RLOFT-Demo-Diagnostics";
+        const auto stamp=std::chrono::duration_cast<
+            std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
+        const auto folder=root/
+            (std::to_string(stamp)+"-"+std::to_string(GetCurrentProcessId()));
+        trace=std::make_unique<rloft::DevSessionTrace>(
+            folder,RLOFT_DEMO_SOURCE_SHA,
+            rloft::to_string(assets.source().kind()));
+        std::ofstream latest(root/"latest-session.txt",
+                             std::ios::binary|std::ios::trunc);
+        if(latest)latest<<folder.string()<<"\n";
+        host.set_session_trace(trace.get());
+    }
     std::optional<std::size_t> inventory_encumbrance_actor;
     std::optional<std::size_t> inventory_party_drag_source;
     // CODE.2 uses RES1 + OBJECTS item graphic for a held cursor,
@@ -968,13 +1036,16 @@ int run_exploration(
         last_capture_position;
     std::size_t capture_count=0U;
     std::optional<std::string> capture_failure;
+    capture_render = capture_render || dev_trace;
     if (capture_render) {
         capture_code2=assets.source().read("CODE.2");
         const auto session_id=std::chrono::duration_cast<
             std::chrono::milliseconds>(
                 std::chrono::system_clock::now().time_since_epoch()).count();
-        capture_directory=std::filesystem::temp_directory_path()/
-            "RLOFT-Demo-Captures"/std::to_string(session_id);
+        capture_directory=trace
+            ? trace->directory()/"renderer"
+            : std::filesystem::temp_directory_path()/
+                "RLOFT-Demo-Captures"/std::to_string(session_id);
     }
 
     // Original CODE.2 201A7..201F7 anchors the simulation/input cycle
@@ -986,6 +1057,43 @@ int run_exploration(
     rloft::ExplorationGameplayCadence gameplay_cadence;
     const auto exploration_epoch = Clock::now();
     auto next_frame = exploration_epoch;
+    const auto screen_name=[&]() -> const char* {
+        switch(ui.state().screen) {
+            case rloft::ExplorationUiScreen::Viewport:return "viewport";
+            case rloft::ExplorationUiScreen::Rest:return "rest";
+            case rloft::ExplorationUiScreen::Pray:return "pray";
+            case rloft::ExplorationUiScreen::Memorize:return "memorize";
+            case rloft::ExplorationUiScreen::Automap:return "automap";
+            case rloft::ExplorationUiScreen::Load:return "load";
+            case rloft::ExplorationUiScreen::Save:return "save";
+            case rloft::ExplorationUiScreen::QuitConfirm:return "quit_confirm";
+            case rloft::ExplorationUiScreen::Options:return "options";
+            case rloft::ExplorationUiScreen::Character:return "character";
+            case rloft::ExplorationUiScreen::Inventory:return "inventory";
+            case rloft::ExplorationUiScreen::PartyPanels:return "party_panels";
+        }
+        return "unknown";
+    };
+    const auto present_traced=[&](
+        const rloft::IndexedFramebuffer& framebuffer,
+        const rloft::Palette6& palette,
+        const char* override_screen=nullptr) {
+        if(trace) {
+            try {
+                const auto snapshot=rloft::DevLevelDiagnostics::capture(
+                    runtime.session(),runtime.world(),runtime.inventory());
+                trace->observe(
+                    override_screen?override_screen:screen_name(),
+                    framebuffer,palette,snapshot,
+                    code1_tick_count(exploration_epoch));
+            }catch(const std::exception& exc) {
+                OutputDebugStringA(exc.what());
+                host.set_session_trace(nullptr);
+                trace.reset();
+            }
+        }
+        host.present(framebuffer,palette);
+    };
 
     while (host.pump()) {
         if (host.consume_escape()) {
@@ -1050,9 +1158,7 @@ int run_exploration(
                 runtime.renderer_tables(),
                 automap->state(),
                 automap->annotation_overlay_enabled());
-            host.present(
-                presenter.framebuffer(),
-                exploration_palette);
+            present_traced(presenter.framebuffer(),exploration_palette);
 
             next_frame +=
                 std::chrono::duration_cast<Clock::duration>(
@@ -1093,9 +1199,7 @@ int run_exploration(
                         presenter.framebuffer(),
                         *quit_random_seed,
                         choice);
-                    host.present(
-                        presenter.framebuffer(),
-                        exploration_palette);
+                    present_traced(presenter.framebuffer(),exploration_palette);
                     if (!host.pause_frame(
                             std::chrono::duration<double>(
                                 1.0 / kVgaRefreshHz))) {
@@ -1118,9 +1222,7 @@ int run_exploration(
             quit_presenter.draw(
                 presenter.framebuffer(),
                 *quit_random_seed);
-            host.present(
-                presenter.framebuffer(),
-                exploration_palette);
+            present_traced(presenter.framebuffer(),exploration_palette);
 
             next_frame +=
                 std::chrono::duration_cast<Clock::duration>(
@@ -1510,9 +1612,7 @@ int run_exploration(
                 ui.state().selected_party_actor,
                 &runtime.inventory(),modal_pointer,
                 inventory_encumbrance_actor);
-            host.present(
-                presenter.framebuffer(),
-                exploration_palette);
+            present_traced(presenter.framebuffer(),exploration_palette);
             // Report the live authoritative inventory even while
             // its original modal is open. This is exclusively
             // text in the opt-in developer Windows title bar.
@@ -1554,6 +1654,10 @@ int run_exploration(
                         click->row);
 
             if (pressed_menu >= 0) {
+                if(trace) {
+                    try {trace->event("top_menu.select",pressed_menu);}
+                    catch(...) {}
+                }
                 const auto action =
                     rloft::TopEdgeMenuModel::
                         action_for_selection(
@@ -1631,6 +1735,13 @@ int run_exploration(
                                 click->column,
                                 code1_tick_count(exploration_epoch));
                         if (pickup.has_value()) {
+                            if(trace) {
+                                try {
+                                    trace->event("world.pickup",
+                                        pickup->object_id,
+                                        pickup->level22_mist_sequence?1:0);
+                                }catch(...) {}
+                            }
                             // Family-C erase compacts source indices. The
                             // old displayed frame is invalid immediately.
                             displayed_scene_frame.reset();
@@ -1761,9 +1872,7 @@ int run_exploration(
                 ui.state().selected_party_actor,
                 &runtime.inventory(),modal_pointer,
                 inventory_encumbrance_actor);
-            host.present(
-                presenter.framebuffer(),
-                exploration_palette);
+            present_traced(presenter.framebuffer(),exploration_palette);
             // Report the live authoritative inventory even while
             // its original modal is open. This is exclusively
             // text in the opt-in developer Windows title bar.
@@ -1787,9 +1896,7 @@ int run_exploration(
             quit_presenter.draw(
                 presenter.framebuffer(),
                 quit_random_seed.value_or(1U));
-            host.present(
-                presenter.framebuffer(),
-                exploration_palette);
+            present_traced(presenter.framebuffer(),exploration_palette);
             next_frame +=
                 std::chrono::duration_cast<Clock::duration>(
                     std::chrono::duration<double>(
@@ -1810,9 +1917,7 @@ int run_exploration(
                 runtime.renderer_tables(),
                 automap->state(),
                 automap->annotation_overlay_enabled());
-            host.present(
-                presenter.framebuffer(),
-                exploration_palette);
+            present_traced(presenter.framebuffer(),exploration_palette);
             next_frame +=
                 std::chrono::duration_cast<Clock::duration>(
                     std::chrono::duration<double>(
@@ -1839,6 +1944,10 @@ int run_exploration(
                 // cap. Preserve the ACTUAL failing camera and native
                 // error even if the last captured successful pose was
                 // many cells or several minutes earlier.
+                if(trace) {
+                    try {trace->error("build_frame",exc.what());}
+                    catch(...) {}
+                }
                 if (capture_render) {
                     try {
                         const auto& session=runtime.session();
@@ -1856,9 +1965,17 @@ int run_exploration(
                 throw; // Never hide original unknown sweep behavior.
             }
         }();
-        const auto presented = presenter.present(
-            frame,
-            runtime.renderer_tables());
+        const auto presented = [&]() {
+            try {
+                return presenter.present(frame,runtime.renderer_tables());
+            }catch(const std::exception& exc) {
+                if(trace) {
+                    try {trace->error("present_viewport",exc.what());}
+                    catch(...) {}
+                }
+                throw;
+            }
+        }();
 
         if (capture_render && !capture_failure.has_value() &&
             capture_count < capture_limit) {
@@ -1898,9 +2015,8 @@ int run_exploration(
                 pressed_menu);
         }
 
-        host.present(
-            presenter.framebuffer(),
-            presented.palette);
+        present_traced(presenter.framebuffer(),presented.palette,
+            hovered_menu>=0 ? "top_edge_menu" : "viewport");
         if (exploration_preview) {
             // Explicitly native-only diagnostic HUD in the window
             // caption; the original 320x400 indexed framebuffer stays
@@ -2198,6 +2314,7 @@ struct DemoCommandLine final {
     bool explore_level22{};
     bool dev_inspect{};
     bool dev_interact{};
+    bool dev_trace{};
     bool capture_render{};
     std::size_t capture_limit{16U};
     bool custom_capture_limit{};
@@ -2220,6 +2337,8 @@ DemoCommandLine command_line_options() {
                 result.dev_inspect = true;
             } else if (arg == L"--dev-interact") {
                 result.dev_interact = true;
+            } else if (arg == L"--dev-trace") {
+                result.dev_trace = true;
             } else if (arg == L"--capture-render") {
                 result.capture_render = true;
             } else if (arg.substr(0U,17U) == L"--capture-frames=") {
@@ -2230,7 +2349,7 @@ DemoCommandLine command_line_options() {
             } else if (!arg.empty() && arg.front() == L'-') {
                 throw std::invalid_argument(
                     "Unknown command-line option. Use --explore-level22 "
-                    "[--dev-inspect] [--dev-interact] "
+                    "[--dev-inspect] [--dev-interact] [--dev-trace] "
                     "[--capture-render] [--capture-frames=64] "
                     "and optionally one Ravenloft installation path.");
             } else if (result.source.has_value()) {
@@ -2258,10 +2377,13 @@ DemoCommandLine command_line_options() {
         throw std::invalid_argument(
             "--capture-render requires --explore-level22");
     }
-    if(result.custom_capture_limit && !result.capture_render) {
+    if(result.custom_capture_limit &&
+       !result.capture_render && !result.dev_trace) {
         throw std::invalid_argument(
-            "--capture-frames requires --capture-render");
+            "--capture-frames requires --capture-render or --dev-trace");
     }
+    if(result.dev_trace && !result.custom_capture_limit)
+        result.capture_limit=64U;
     return result;
 }
 
@@ -2357,7 +2479,7 @@ int run(HINSTANCE instance) {
         return run_exploration(
             host, assets, audio_player, midi_player, preview.chars, true, options.capture_render,
             options.capture_limit, options.dev_inspect,
-            options.dev_interact);
+            options.dev_interact, options.dev_trace);
     }
 
     if (startup_chars) {
@@ -2371,7 +2493,7 @@ int run(HINSTANCE instance) {
         return run_exploration(
             host,
             assets, audio_player, midi_player,
-            *startup_chars);
+            *startup_chars,false,false,16U,false,false,options.dev_trace);
     }
 
     bool skipped = false;
@@ -3544,7 +3666,9 @@ int run(HINSTANCE instance) {
                                     assets, audio_player, midi_player,
                                     std::vector<std::uint8_t>(
                                         image.begin(),
-                                        image.end()));
+                                        image.end()),
+                                    false,false,16U,false,false,
+                                    options.dev_trace);
                             }
 
                             if (character_flow.state() ==

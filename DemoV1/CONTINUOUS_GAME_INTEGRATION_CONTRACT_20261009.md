@@ -9,6 +9,10 @@
 
 **Build verified:** [Full Windows #648](https://github.com/Hyperbog/RLOFT/actions/runs/37998467852) passed **178/178 CTests** at checkout `fb091234`. Native EXE SHA-256 `b2d868b35f9e283c24746aa96b1aa94d671377be81008b1433277ef359468f16`. The manual-only workflow was restored and the one-time trigger removed. [Full provenance](FULL_WINDOWS_BUILD_CHECKPOINT_20261009_RUN648.md). **DOS acceptance stays 0%.**
 
+## Level22 user-assisted forensic diagnostics
+
+The [opt-in developer flight recorder](LEVEL22_DEV_TRACE_CHECKPOINT_20261009.md) is source-authored: `--dev-trace` and `Diagnose-Level22.cmd` capture real UI/Win32 input, exact original-resolution indexed native pixels/palette, per-domain state hashes and code2 source-derived raster TSV, with F12 markers and a ZIP on exit. It does **not** alter the actual game or create new game mechanics. This addresses the user-observed broken inventory/portrait placement and incomplete automap while preserving the independent original-DOS comparison requirement. **179 authored CTests, one beyond the last 178/178 Windows Full build; no new build authorized or dispatched.**
+
 ## Explicit Level22-first delivery gate
 
 **Complete the full original Level22 as a playable and verified single slice before any independent Level23 gameplay, AI, asset or story implementation.** The Level22 ending is allowed to include its real 22-frame mist effect and the original `181B4(23)` handoff after frame index 20; that obligatory source instruction does not mean the project has begun Level23 gameplay work. Prioritize original combat, interaction, inventory, HUD/menu, original pickup-message codes, exact Assassin and relic flow, and the entire original mist sequence. Keep all work in the same original executable integration path. [Level22 gate and original BF44 source audit](LEVEL22_COMPLETION_AND_PICKUP_FEEDBACK_GATE_20261009.md).

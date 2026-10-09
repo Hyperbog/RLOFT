@@ -1,5 +1,9 @@
 # Level 22 — reusable native development testbed
 
+## Native Level22 opt-in diagnostic session (pending next manual build)
+
+The source now includes [`--dev-trace` / `Diagnose-Level22.cmd`](LEVEL22_DEV_TRACE_CHECKPOINT_20261009.md): source-identity manifests, per-screen indexed 320×400 captures, palette bytes, state hashes, input and modal transitions, F12 marker/recent-event snapshots, existing RES3/SINTAB renderer traces, and a single automatically ZIP-packaged session. The original file tree remains read-only. The new `dev_session_trace_tests` brings the current authored registry to **179**, compared with **178 verified in Full build #648**. **Source is unbuilt; no Windows or DOS behavior acceptance claimed.**
+
 ## Current status and universal percentage tracking
 
 **Green Full Windows checkpoint:** [build #648](
@@ -30,7 +34,7 @@ lifecycle and continuity is **47.9%**; Verification
 and developer testbed is **50.0%**. The historical
 **56.25%** 32-task engineering metric remains separate.
 
-**Current source CTest registry:** 178; Quick: 19. Full Windows #648 compiled and passed **178/178**, including original Level22 pickup-message source and event-timing targets. This is not original-DOS parity or evidence of a completed playable Level22. Future builds are manual unless explicitly
+**Current source CTest registry:** 179 (one unbuilt trace regression); Quick: 19. Full Windows #648 compiled and passed **178/178**, including original Level22 pickup-message source and event-timing targets. This is not original-DOS parity or evidence of a completed playable Level22. Future builds are manual unless explicitly
 authorized. An opted-in `--explore-level22 --dev-inspect
 --dev-interact` run is available for human interaction
 tests using the published executable.

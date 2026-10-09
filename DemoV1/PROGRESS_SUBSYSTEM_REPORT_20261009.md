@@ -7,6 +7,8 @@
 **Current revision acceptance:** Full Windows build [#648](https://github.com/Hyperbog/RLOFT/actions/runs/37998467852) **passed all 178 CTests** at source `fb0912346a831dad21d2960e99863cc8f446173a`, including the Part 9 continuity, mist staging, original pickup-message and IRQ ribbon reconstruction. The [exact build/EXE provenance](FULL_WINDOWS_BUILD_CHECKPOINT_20261009_RUN648.md) is archived. **No current-source original-DOS visual, state, timing or complete Level22 gameplay acceptance has passed.**  
 **Separate historical metric:** the pre-existing 32-task engineering ledger remains **56.25% (18/32)**. It is NOT numerically comparable to these weighted readiness estimates.
 
+**Post-build trace checkpoint (unverified source):** the opt-in Level22 session [flight recorder](LEVEL22_DEV_TRACE_CHECKPOINT_20261009.md) now captures indexed VGA pixels/palettes from viewport and modal screens, event/state hashes, original RES3/raster manifests and F12 defect markers, packaged as one ZIP by the new launcher. Source CTests now number **179**, with `dev_session_trace_tests` unbuilt. **Last accepted Full Windows build remains #648 (178/178)**; no original DOS pixel/gameplay acceptance and no score changes.
+
 ## Scoring rules — fixed for future checkpoints
 
 **Weights:** original behavior mapped **10%**; native source implementation **20%**; runtime integration **20%**; regression assertions present **10%**; current-revision original DOS behavioral acceptance **40%**.
@@ -280,11 +282,11 @@ Each row's five gate marks are out of 20; the weighted readiness column is an in
 | Subsystem | Readiness | S/N/L/T/D | Source implementation evidence | Next acceptance blocker |
 | --- | ---: | --- | --- | --- |
 | Original file provenance and byte audits | **60.0%** | 20/20/20/20/0 | `source archive docs + DAT CODE audits` | Complete all remaining original unknowns |
-| Automated regression test catalog | **60.0%** | 20/20/20/20/0 | `CMakeLists.txt 172 CTests` | Original DOS cross-comparison and post-build code changes |
-| Opt-in Level22 state diagnostics | **60.0%** | 20/20/20/20/0 | `dev_level_diagnostics.cpp and win32_main.cpp` | Manual gameplay inspector validation |
+| Automated regression test catalog | **60.0%** | 20/20/20/20/0 | `CMakeLists.txt 179 CTests (trace one unbuilt)` | Original DOS cross-comparison and current-head build |
+| Opt-in Level22 state diagnostics | **60.0%** | 20/20/20/20/0 | `dev_level_diagnostics.cpp and dev_session_trace.cpp and win32_main.cpp` | Full Windows build and user session ZIP validation |
 | Opt-in Level22 world pickup and hand exchange | **60.0%** | 20/20/20/20/0 | `dev_level_interaction_policy.hpp and win32_main.cpp` | Current-head manual interaction trace and DOS source behavior |
 | Visual DOS captures and comparisons | **45.0%** | 20/20/10/10/0 | `exploration_frame_capture.cpp` | Complete DOS/native pixel comparison |
-| Manual Windows build reproducibility | **60.0%** | 20/20/20/20/0 | `github workflow and CMakeLists.txt` | Full Windows build 647 passed 172 of 172; DOS acceptance still outstanding |
+| Manual Windows build reproducibility | **60.0%** | 20/20/20/20/0 | `github workflow and CMakeLists.txt` | Full Windows build 648 passed 178 of 178; trace code now needs next manual build |
 | Original start to game-end acceptance | **5.0%** | 10/0/0/0/0 | `CONTINUOUS_GAME_INTEGRATION_CONTRACT` | Full original campaign milestone |
 
 ## Mandatory reporting format for ALL future checkpoints

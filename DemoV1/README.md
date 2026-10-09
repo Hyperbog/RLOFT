@@ -5,6 +5,10 @@
 The [Original-Game Code Reconstruction Charter](ORIGINAL_EXECUTION_FIDELITY_CHARTER.md) is binding. **Complete the full code recreation necessary to execute the entire original game faithfully** before considering anything modern. This encompasses every original subsystem, startup/character creation, level, encounter, mechanic, event, cinematic, ending and SAVE/LOAD operation, including the original bugs and quirks. The native code being built is this reconstruction—not merely disposable research and not a preliminary Phase I. Check its behavior against the original DOS game; it need not literally run the original DOS instruction stream. **Only after the complete original game recreation is done** may a separate modern branch be considered for changes, fixes, features, modding or QoL. No modernization is authorized yet.
 
 
+## Level22 diagnostic flight recorder — authored, awaiting manual build
+
+A new opt-in **`--dev-trace`** mode and **`Diagnose-Level22.cmd`** launcher record source-referenced renderer captures, original 320×400 indexed frames from **inventory, automap, viewport, top menus and quit confirmation**, input/UI events, state hashes, and an **F12 defect-marker screenshot plus the 256 preceding event records**. The launcher waits for the game to exit and packages the bounded session as **one ZIP** in `%TEMP%\\RLOFT-Demo-Diagnostics`. The gameplay state and original files are untouched. [Usage, format, bounds and status](LEVEL22_DEV_TRACE_CHECKPOINT_20261009.md). **179 CTests authored/registered; the flight recorder has NOT been compiled or user-tested yet.** Last green manually authorized Full Windows build remains #648, 178/178. Do not mistake authored tests for completed build/parity acceptance.
+
 ## Current verified build and continuing game-engine checkpoint
 
 **Full Windows build #648 passed 178/178 registered CTests**
@@ -48,7 +52,7 @@ per-subsystem CSV](PROGRESS_SUBSYSTEMS.csv), its
 in the same Git checkpoint. A registered offline
 `subsystem_progress_tracker_tests` check validates
 the authored report when Python3 is available at
-configure time. The current registry has **178 CTests** and the 19-test Quick selection is unchanged. All 178 registered tests passed in Full Windows build #648; original-DOS equivalence remains unaccepted.
+configure time. The current source registry has **179 CTests** (one unbuilt new diagnostic test). and the 19-test Quick selection is unchanged. All 178 registered tests passed in Full Windows build #648; original-DOS equivalence remains unaccepted.
 Builds remain manual unless explicitly authorized.
 
 ## Level22-first acceptance rule — complete playability before Level23
