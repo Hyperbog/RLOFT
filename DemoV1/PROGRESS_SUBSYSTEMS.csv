@@ -60,3 +60,62 @@ Inventory and equipment,Four actor container persistence,20,20,20,20,0,inventory
 Inventory and equipment,Encumbrance and party order,20,20,20,20,0,inventory_encumbrance.cpp,Reference weight item cases
 Inventory and equipment,World drop pickup routing,20,20,20,20,0,inventory_world_drop.cpp,All levels object actions
 Inventory and equipment,Special item use and charges,20,10,10,10,0,inventory_runtime.cpp,Remaining use classes and charge semantics
+Magic and spellcasting,Mage spell book matrix and IDs,20,20,20,20,0,inventory_runtime.cpp,Original full spell bank roundtrip
+Magic and spellcasting,Mage scroll scribing intelligence gating,20,20,20,20,0,inventory_runtime.cpp,DOS original message and success case
+Magic and spellcasting,Cleric memorization and preparation,20,10,0,10,0,combat_level_spell_tables.cpp,Original interactive prayer UI
+Magic and spellcasting,Spell target selection and range,20,10,0,10,0,combat_hand_dispatch.cpp,Source target and LOS action wiring
+Magic and spellcasting,Active spells and magic combat effects,20,10,0,10,0,combat_original_text_runtime.cpp,Implement verified effect dispatcher
+Magic and spellcasting,Spell recovery and timer advancement,10,10,0,10,0,spell and time source notes,Faithful rest and active duration handling
+Combat and damage,Combat hit and miss calculation,20,20,10,20,0,combat_hit_check.cpp,Wire original gameplay hand action
+Combat and damage,Weapon and class eligibility,20,20,10,20,0,combat_hand_dispatch.cpp,Input hand resolution integration
+Combat and damage,Damage dice and bonuses,20,20,10,20,0,combat_damage_dice.cpp,Source combat timing and live RNG
+Combat and damage,Attack timing and cooldown,20,20,10,20,0,combat_attack_timing.cpp,Source IRQ synchronization
+Combat and damage,NPC health injury and death,20,20,20,20,0,combat_npc_death_followon.cpp,DOS casualty state comparison
+Combat and damage,Kill rewards XP and loot,20,20,10,20,0,combat_xp_distribution.cpp,Live source-ordered award chain
+Combat and damage,Level-up progression and HP,20,20,10,20,0,combat_level_up_hp.cpp,Connect level-up to party modal
+Combat and damage,Full input attack to reward loop,20,10,0,10,0,combat_* model workstream,End-to-end player attack pipeline
+NPC encounters and AI,NPC catalog and original records,20,20,20,20,0,npc_catalog.cpp,Original full level archive comparison
+NPC encounters and AI,NPC actions movement and pursuit,20,10,10,10,0,level22_encounter.cpp,Full AI decision and tick integration
+NPC encounters and AI,Encounter target selection and priority,20,20,10,20,0,combat_target_priority.cpp,Source live combat replay
+NPC encounters and AI,Assassin Level22 behavior,20,20,20,20,0,level22_encounter.cpp,Original assassin full interaction
+NPC encounters and AI,Respawn and scripted return,20,20,10,20,0,combat_npc_respawn.cpp,All level authored spawn events
+Story events and puzzles,Event flag bitset read and write,20,20,20,20,0,inventory_runtime.cpp + exploration_session.cpp,Original source story sequences
+Story events and puzzles,Level22 relic and mist script,20,20,10,20,0,level22_story.cpp,Live cinematic and next-level transition
+Story events and puzzles,Source-triggered doors traps and switches,20,10,10,10,0,exploration_world.cpp,Complete authored event set
+Story events and puzzles,Level16 four-Seed ritual condition,20,20,20,20,0,inventory_world_drop.cpp,Source playback DOS trace
+Story events and puzzles,Level16 Holy Symbol reward,20,20,20,20,0,inventory_world_drop.cpp,Cinematic teardown and accepted reward
+Story events and puzzles,Quest event graph all levels,20,10,0,10,0,CODE.2 research archive,Implement authored event graph
+Cinematics and ANM,Original ANM packet and frame decode,20,20,20,20,0,anm_cinematic.cpp,All event resource acceptance
+Cinematics and ANM,Intro event 0 and 12 playback,20,20,20,20,0,win32_main.cpp,Original frame music and skip timings
+Cinematics and ANM,Event8 in-game live scene handoff,20,20,20,20,0,inventory_world_drop.cpp + win32_main.cpp,DOS event cancellation comparison
+Cinematics and ANM,Event audio palette and graphics teardown,20,10,10,10,0,CODE.2 13C88 audit,Exact original 13C88 state restore
+Cinematics and ANM,Other story cinematics and transitions,20,10,0,10,0,CINE data archive and CODE.2 graph,Bind all authored event IDs
+Audio and music,VOC sample decode and play,20,20,20,20,0,voc_decoder.cpp + win32_audio.cpp,Original SFX timing and channel check
+Audio and music,XMIDI sequence playback,20,20,20,20,0,xmidi.cpp + win32_midi.cpp,Original tick and output comparison
+Audio and music,Startup and creation audio routing,20,20,20,20,0,win32_main.cpp,Source fade stop and loop verification
+Audio and music,Music transitions and scene restoration,20,10,10,10,0,win32_midi.cpp + CODE.2 13C88 audit,Full event audio and volume rollback
+Audio and music,Positional in-world SFX and prioritization,20,10,0,10,0,sound_config.cpp + source sound research,Original live sound routing
+Input timing and clock,Mouse and keyboard input decoding,20,20,20,20,0,exploration_legacy_input.cpp,DOS physical control traces
+Input timing and clock,Party inventory modal event sequencing,20,20,20,20,0,win32_main.cpp + party_panel_controls.cpp,Original press hold and release mapping
+Input timing and clock,Movement IRQ cadence,20,20,10,20,0,exploration_gameplay_cadence.cpp,Source real PIT frequency trace
+Input timing and clock,Cinematic IRQ and frame waits,20,20,20,10,0,anm_cinematic.cpp,Original event pause and frame pacing
+Input timing and clock,Timed spell combat and event effects,20,10,10,10,0,combat_irq_display_runtime.cpp,Independent source clocks integration
+Input timing and clock,State restoration after suspend and resume,20,10,10,10,0,win32_main.cpp,CINE08 DOS mode exit acceptance
+Automap and navigation,Level cell discovery and visited cache,20,20,20,20,0,exploration_world.cpp,Full source exploration trace
+Automap and navigation,Map labels markers and geometry,20,20,20,20,0,automap_annotation_presenter.cpp,Original on-screen DOS comparison
+Automap and navigation,Automap modal input and pan controls,20,20,20,20,0,automap_modal.cpp + automap_controls.cpp,Source mouse exit and pointer timing
+Automap and navigation,Map reset and state across levels,10,10,0,10,0,automap_screen_state.cpp,Per-level persistent map caches
+Automap and navigation,Special map overlays and triggers,20,10,10,10,0,automap_presentation.cpp,All authored special map indicators
+SAVE LOAD and persistence,CHARS preservation and startup load,20,20,20,20,0,character_transfer.cpp + GameSource,Original end-to-end file behavior
+SAVE LOAD and persistence,Inventory SAVE codec 62 containers,20,20,20,20,0,inventory_save_codec.cpp,Full DOS byte-range roundtrip
+SAVE LOAD and persistence,Four 6FA0 container actor SAVE records,20,20,20,20,0,inventory_save_codec.cpp,Source active animated-save acceptance
+SAVE LOAD and persistence,Story event flag and clock state SAVE,20,20,10,20,0,inventory_save_codec.cpp,Full source world timeline restore
+SAVE LOAD and persistence,World NPC effects loose items SAVE,20,10,0,10,0,level_world_state.cpp,Implement global persistent full SAVE
+SAVE LOAD and persistence,In-game SAVE LOAD menus and slots,20,0,0,0,0,options_menu.cpp,Original serialized file I O and menu wiring
+SAVE LOAD and persistence,Level re-entry and multiple-world saves,10,0,0,0,0,CONTINUOUS_GAME_INTEGRATION_CONTRACT,Multi-level backing across exits
+Verification and developer testbed,Original file provenance and byte audits,20,20,20,20,0,source archive docs + DAT CODE audits,Complete all remaining original unknowns
+Verification and developer testbed,Automated regression test catalog,20,20,20,20,0,CMakeLists.txt 171 CTests,Execute current branch full suite
+Verification and developer testbed,Opt-in Level22 state diagnostics,20,20,20,20,0,dev_level_diagnostics.cpp and win32_main.cpp,Manual gameplay inspector validation
+Verification and developer testbed,Visual DOS captures and comparisons,20,20,10,10,0,exploration_frame_capture.cpp,Complete DOS/native pixel comparison
+Verification and developer testbed,Manual Windows build reproducibility,20,20,20,10,0,github workflow and CMakeLists.txt,Compile latest source via user-run workflow
+Verification and developer testbed,Original start to game-end acceptance,10,0,0,0,0,CONTINUOUS_GAME_INTEGRATION_CONTRACT,Full original campaign milestone
