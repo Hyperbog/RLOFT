@@ -4,11 +4,13 @@
 
 The canonical [full percentage scorecard](
 PROGRESS_SUBSYSTEM_REPORT_20261009.md) now tracks
-**20 major game systems and 120 individual subsystems**,
+**20 major game systems and 121 individual subsystems**,
 each with a separately scored source-research,
 native-implementation, live-integration, authored-test
 and current-head DOS-acceptance gate, plus evidence
 and the next blocking requirement.
+**Current integration gate:** a **manual Full Windows build is now essential** before adding another major gameplay feature, because CINE08 event integration, concurrent containers and developer state instrumentation remain uncompiled at this HEAD. The opt-in `--explore-level22 --dev-interact` option allows source-backed item pickup and hand exchange; `--dev-inspect` remains separate and read-only. Use the [manual-only build workflow](https://github.com/Hyperbog/RLOFT/actions/workflows/demo-v1-build.yml), branch `demo-v1`, **Full**, `run_linux=false`. Registered CTests **172** / Quick **19**; no job has been dispatched.
+
 
 **New provisional weighted readiness baseline: 48.8%.**
 Its acceptance-weighted 40% DOS gate is still 0%,
