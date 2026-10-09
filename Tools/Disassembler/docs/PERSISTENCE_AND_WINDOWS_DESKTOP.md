@@ -44,3 +44,22 @@ The last command creates `dist/windows-desktop/DosDis.Desktop.exe` and `dist/win
 7. Manually trigger GitHub Actions only if the owner wishes to consume minutes; otherwise build locally.
 
 This is a source checkpoint, **not** a release certificate.
+
+## Current follow-up — last folder and collision recovery
+
+The October 9 desktop follow-up adds `FileDialogPreferences`, numbered
+`ProjectFilePaths`, and confirmed atomic replacement for project
+and report output. The two original Save As controls that previously
+threw a generic file-exists exception now offer Keep both by default.
+The desktop can prompt for first-project creation from comment/backup
+workflows, without changing original game binaries. The user-owned
+last-opened folder is stored only in local app preferences; no source
+paths are placed in the diagnostic export.
+
+These changes supersede the older blanket statement that backups
+cannot be explicitly replaced: the default remains refuse-overwrite,
+but a distinct opt-in overwrite parameter is available after an
+interactive confirmation and SQLite safety checks.
+
+[File dialog and collision report](P0_DESKTOP_FILE_DIALOGS_AND_CONFLICTS.md).
+This batch has not yet been compiled or executed.

@@ -503,3 +503,18 @@ DosDis.Cli.exe mz-analyze CODE.1 --dos-stub --max-instructions 1024
 
 Source-only CLI examples: **not compiled, tested, or executed**.
 See [nested original-byte evidence](docs/P0_NESTED_MZ_ORIGINAL_EVIDENCE.md).
+
+## Desktop file-picker usability — source checkpoint
+
+Open Binary now remembers its last successfully loaded directory across
+restarts via a small local preference. Existing filenames in **Save
+project**, first-comment creation, **Backup project**, analysis export,
+and diagnostic export now prompt to replace, keep both with `(1)`,
+`(2)` suffixes, or cancel. New project and backup replacement occurs
+only after explicit confirmation and staged SQLite integrity checks;
+live journal sidecars prevent an unsafe overwrite. The original
+opened game file cannot be overwritten by these workflows.
+
+See [desktop file-dialog behavior](docs/P0_DESKTOP_FILE_DIALOGS_AND_CONFLICTS.md).
+**Source changes and synthetic tests are written; a new Windows build
+and manual UI retest remain pending.**
