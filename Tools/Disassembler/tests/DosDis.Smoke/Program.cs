@@ -727,6 +727,42 @@ try
         Dos16ControlFlowAnalysis.Analyze(copiedBoundRegion, 0x100))
         .GuardedTableCandidates, 1,
         "guarded AX range propagates through one exact MOV BX,AX");
+
+    // 3D iw is CMP AX,imm16, a different exact instruction encoding
+    // from 81 F8 iw and 83 F8 ib. The AX -> BX copy must still be
+    // present on the one uniquely bounded path.
+    var accumulatorCompare = (byte[])transferredBound.Clone();
+    accumulatorCompare[0] = 0x3D; // CMP AX,0002h
+    accumulatorCompare[1] = 0x02;
+    accumulatorCompare[2] = 0x00;
+    var accumulatorRegion = DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(accumulatorCompare)).CreateCodeRegion();
+    var accumulatorGraph = Dos16ControlFlowAnalysis.Analyze(accumulatorRegion, 0x100);
+    var accumulatorReport = Dos16AutomaticDispatchRecovery.Inspect(
+        accumulatorRegion, accumulatorGraph);
+    Equal(accumulatorReport.GuardedTableCandidates, 1,
+        "accumulator-specific CMP AX,imm16 proves AX bound before MOV BX,AX");
+    Equal(accumulatorReport.Sites[0].EntryCount, (int?)3,
+        "CMP AX,2; JA default admits three candidate pointer entries");
+
+    var nonBoundedAccumulator = (byte[])accumulatorCompare.Clone();
+    nonBoundedAccumulator[2] = 0x01; // CMP AX,0102h > supported index bound
+    var largeAccumulatorRegion = DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(nonBoundedAccumulator)).CreateCodeRegion();
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(largeAccumulatorRegion,
+        Dos16ControlFlowAnalysis.Analyze(largeAccumulatorRegion, 0x100))
+        .GuardedTableCandidates, 0,
+        "large CMP AX,imm16 cannot become a fabricated small dispatch count");
+
+    var wrongAccumulatorCopy = (byte[])accumulatorCompare.Clone();
+    wrongAccumulatorCopy[6] = 0xCB; // MOV BX,CX instead of MOV BX,AX
+    var mismatchAccumulatorRegion = DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(wrongAccumulatorCopy)).CreateCodeRegion();
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(mismatchAccumulatorRegion,
+        Dos16ControlFlowAnalysis.Analyze(mismatchAccumulatorRegion, 0x100))
+        .GuardedTableCandidates, 0,
+        "accumulator CMP bound cannot flow through an unrelated register copy");
+
     var copiedFromWrongRegister = (byte[])transferredBound.Clone();
     copiedFromWrongRegister[6] = 0xCB; // MOV BX,CX, but CMP still bounds AX
     var wrongCopyRegion = DosComImage.LoadExplicit(
