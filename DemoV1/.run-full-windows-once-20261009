@@ -1,1 +1,0 @@
-Manually authorized by user on 2026-10-09: one Full Windows CTest and demo EXE build. This single marker push exists solely to invoke the CI workflow; return to manual-only after run is queued. Expected 178 registered CTests. User requested: Build.
