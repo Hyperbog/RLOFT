@@ -1,5 +1,28 @@
 # Demo v1 — development progress versus formal acceptance
 
+**Source milestone: original 34998/34A74 textured terrain**
+(2026-10-08): Disassembly recovered the source of the two
+128-word perspective arrays: original CODE.2 startup copies
+them verbatim from SINTAB projection A/B. A source-backed
+FF58 generator and original 64×64 palette-index rasterizer
+now support camera phase, sine quadrant folding, signed
+fixed-point interpolation, FE15 shade tables, and the
+original 80 four-plane / 48 paired-plane viewport writes.
+Tests include unmodified SINTAB numeric checkpoints.
+The runtime frame generates all 128 source steps, and
+capture v2 exports seam rows 0/79/80/127.
+
+**Not yet live visual fidelity:** the original selected
+RES4 type-1 ground resource and dynamic bank selector
+are not yet proven in the native renderer, which still
+draws a flat lower fill. Correct samples in a synthetic
+test are not DOS viewport parity. Last successful
+Windows build was #640 (160 tests) at older source;
+163 tests are now expected, current HEAD **unbuilt**.
+Manual GitHub Actions only. Formal 1/5 accepted gate
+count unchanged.
+[Source trace and raster checkpoint](ORIGINAL_CODE2_34A74_TEXTURED_GROUND_PIPELINE_20261008.md).
+
 **Binary-backed current fresh-game milestone (2026-10-08):**
 The original `CODE.2` bootstrap `2060C..2076D`
 sets fresh level22, cell (4.5,4.5), heading 270
