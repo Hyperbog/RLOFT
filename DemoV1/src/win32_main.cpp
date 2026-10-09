@@ -1232,6 +1232,12 @@ int run_exploration(
                                 ConsumedStoryFragment ||
                             status ==
                             rloft::InventoryOrdinarySwapStatus::
+                                LearnedMageSpell ||
+                            status ==
+                            rloft::InventoryOrdinarySwapStatus::
+                                MageScrollRejected ||
+                            status ==
+                            rloft::InventoryOrdinarySwapStatus::
                                 InsertedInContainer) {
                             // Party equipment and cursor state are now
                             // different. Never act on a stale world hit
