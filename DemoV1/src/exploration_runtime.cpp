@@ -129,6 +129,19 @@ NpcDamageResult ExplorationRuntime::damage_level22_assassin(
         can_place);
 }
 
+InventoryPartyOrderResult ExplorationRuntime::exchange_party_order(
+    std::size_t first,std::size_t second,
+    std::array<bool,4>& per_actor_inventory_modes) {
+    if(!gameplay_state_initialized_)
+        throw std::logic_error(
+            "CODE.2 party reorder requires live gameplay state");
+    const auto result=InventoryPartyOrderModel::exchange(
+        session_.party,world_,inventory_,
+        per_actor_inventory_modes,first,second);
+    if(result.changed)++world_scene_revision_;
+    return result;
+}
+
 LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
     std::size_t item_index) {
     if (!gameplay_state_initialized_) {
