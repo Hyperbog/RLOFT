@@ -33,6 +33,75 @@ No build, CI or test was initiated.
 4. **One working engine.** Inventory, combat, world events, spells, renderers and cinematics authored for the testbed are implemented in reusable production modules. Later levels are selected through original level resources and scripts, not separate game forks.
 5. **No build during normal development.** Commit code/tests/docs continuously. Windows builds and any CI execution are user-authorized/manual, and new or unexecuted assertions do not imply passed tests.
 
+## Source-backed developer interactions (new)
+
+An additional **`--dev-interact`** option makes the small
+Level22 preview useful for testing live item behavior.
+Invoke it explicitly alongside `--explore-level22`:
+
+```text
+ravenloft_demo_v1.exe --explore-level22 --dev-inspect --dev-interact <original installation directory>
+```
+
+When enabled, the preview permits **only the original
+existing production gameplay handlers** previously
+blocked in the preview: clicking a loose Level22 world
+item when the cursor is empty, and exchanging an item
+on a character's hand tile with the pointer's
+secondary click. Neither handler fakes a hit, monster
+death, item spawning, identified status, quest event,
+or saving. Existing original object, collision,
+stale-frame and held-cursor guards still apply.
+
+This is **not** the same as `--dev-inspect`.
+The inspector continues to be read-only, and a
+plain `--explore-level22` retains the earlier
+noninteractive-preview restrictions. `--dev-interact`
+is rejected unless the command also explicitly
+requests `--explore-level22`. Normal startup,
+character creation and CHARS gameplay retain their
+preexisting permissions. This mode never writes
+original CHARS or SAVE data. A source-backed live
+world state may change in memory because the user
+explicitly performs an ordinary gameplay action.
+
+`DevLevelInteractionPolicy` supplies small C++17
+constexpr permission predicates. Assertions in the
+existing `dev_level_diagnostics_tests` check the
+entire valid/invalid mode matrix, including that
+normal gameplay remains enabled and a preview
+without `--dev-interact` stays protected.
+
+**Build-essential checkpoint:** The current HEAD
+contains the previously uncompiled in-game CINE08
+runtime event handoff, multi-actor container UI,
+state inspection and this new interactive preview.
+Before extending integration or claiming demo
+acceptance, the user should manually dispatch
+the Windows [Demo v1 build workflow](
+https://github.com/Hyperbog/RLOFT/actions/workflows/demo-v1-build.yml)
+on branch **`demo-v1`** with **`build_mode=full`**;
+keep `run_linux=false` unless explicitly wanted.
+Full is necessary to compile/execute both new
+developer diagnostics and the Python progress
+validator; Quick's 19 focused tests exclude them.
+Do not dispatch automatically. Any failure must be
+addressed at its exact build SHA before advancing
+new gameplay acceptance scores.
+
+The canonical subsystem table now tracks **121**
+individual subsystems. The added **opt-in world
+pickup and hand exchange** subsystem has provisional
+readiness **60.0%** (20/20/20/20/0, source,
+implementation, live wiring, authored tests and
+unexecuted DOS acceptance); the
+**Verification and developer testbed** parent
+is **49.3%** across seven rows. The weighted
+overall remains **48.8%** after rounding,
+the prior 56.25% engineering-task metric is
+unchanged, and the CTest registry remains
+**172 / Quick 19**.
+
 ## Opt-in developer inspection
 
 Use an original legal installation with:
