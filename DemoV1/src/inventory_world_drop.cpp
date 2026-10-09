@@ -24,10 +24,13 @@ InventoryWorldDropResult InventoryWorldDropModel::drop(
         result.status=InventoryWorldDropStatus::InvalidInventoryObject;
         return result;
     }
-    // Original 2195C calls 21880 for item 0x89 after spawning.
-    // Until that state-specific side effect is modeled, reject
-    // without dropping or losing the object in the cursor.
-    if(held.object_id==0x89) {
+    // CODE.2 2195C calls original 21880 only for object 0x89.
+    // At 21880 (physical 5C7B6) the first executable branch exits
+    // unless current level == 16. Only Level16 requires extra
+    // authored condition checks, event flag 0x44 and potential
+    // original 4EE1C/4FF74 actions. Outside Level16 the source
+    // action returns immediately, so the ordinary drop is safe.
+    if(held.object_id==0x89 && session.level_id==16U) {
         result.status=InventoryWorldDropStatus::SourceSpecialActionPending;
         return result;
     }
