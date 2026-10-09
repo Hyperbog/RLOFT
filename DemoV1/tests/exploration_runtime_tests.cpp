@@ -50,6 +50,9 @@ int main() {
     assert(!runtime.has_inventory_save_backing());
     // Actual supplied CODE.2 object-2 initial BF44 is zero.
     assert(runtime.original_story_message_bf44()==0U);
+    // Original 1C21C pickup ribbon is initially absent; only an
+    // actual queued Level22 item action with observed IRQ creates it.
+    assert(!runtime.original_pickup_ribbon().has_value());
     bool premature_import=false;
     try {
         runtime.import_matching_save_inventory({});
