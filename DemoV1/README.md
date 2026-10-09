@@ -1,5 +1,39 @@
 # Ravenloft Demo Build v1
 
+## Inventory-only development focus: every original class/race starter kit
+
+[Full original CODE.1 starter-equipment matrix](ORIGINAL_CODE1_ALL_CLASS_RACE_STARTING_EQUIPMENT_20261009.md).
+The original 1.2a CODE.1 stores **15 class families × 6 races
+= 90 source rows**: 44 have real starting equipment;
+46 are all-FFFF prohibited combinations. The native
+`CharacterTransferTables` now parses and validates the
+entire table and `build_character_transfer` directly
+uses its **exact 21-slot starting-loadout model**
+for both newly created party members. Native startup
+continues to use original CODE.1 → CHARS → CODE.2,
+never unrelated `SAVE.DAT` party equipment.
+
+All 15 class families, all six races, complete
+14-word→21-slot mapping, source-correct second actor
+category-1 duplicate-item removal, and the original
+Halfling/Gnome Cleric examples are covered in the new
+`character_starting_equipment_tests`.
+
+The next **manual-only** Windows build now expects
+**165 CTests**, including this exhaustive equipment
+test. The default Quick mode includes twelve targeted
+CTests, the existing full mode runs everything.
+`Audit-Starting-Equipment.cmd` prints literal
+OBJECTS.DAT item names and IDs for all 44 kits
+from the user's original installed media.
+This code is **committed but currently unbuilt**.
+
+**Next inventory work:** original equipment slots,
+held-item labels, container UI, stat/encumbrance and
+visual/palette fidelity against the nine original
+DOS inventory screenshots. No claiming full
+inventory parity from starter-loadout completeness.
+
 ## Current development: 56.25% Demo-v1 engineering source coverage
 
 [Canonical 32-milestone engineering tracker and faster manual builds](ENGINEERING_PROGRESS_AND_FAST_BUILD_20261009.md):
