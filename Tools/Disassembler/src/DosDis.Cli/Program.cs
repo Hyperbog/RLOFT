@@ -44,7 +44,7 @@ try
             "MZ cross-segment review: mz-cross --load-segment HEX [--max-entries 16] [--per-entry-instructions 1024]\n" +
             "16-bit CFG: mz-analyze|com-analyze|overlay-analyze [--entry HEX] [--max-instructions 100000] [--indirect]\n" +
             "CS-memory pointers: --indirect adds near/FAR pointer candidates; FAR requires MZ --load-segment\n" +
-            "Indexed CS dispatch: --table-map manifest.json (analyst-supplied count and exact source SHA-256; no auto-reachability)\n" +
+            "Indexed CS dispatch: --table-map manifest.json (analyst-supplied bound) or --auto-tables (guarded unsigned BX subset)\n" +
             "Overlay: container inspection; overlay-map|overlay-fixups --resident START.EXE (validated MZ directory)\n" +
             "Overlay-disasm: --regions manifest.json --region ID [--offset 0] [--count 32]\n" +
             "COM: explicitly selected headerless mode [--origin 100] (hex); com-disasm [--offset 100] [--count 32]\n" +
@@ -58,6 +58,9 @@ try
             "Report: --out path.json|path.txt [--include-bytes] (no overwrite)");
         return 2;
     }
+    if (args.Contains("--auto-tables", StringComparer.Ordinal) &&
+        args[0] is not ("mz-analyze" or "com-analyze" or "overlay-analyze"))
+        throw new ArgumentException("--auto-tables requires a 16-bit analysis action.");
     if (args.Count(x => x == "--table-map") > 1)
         throw new ArgumentException("--table-map cannot be repeated.");
     if (args.Contains("--table-map", StringComparer.Ordinal) &&
@@ -148,14 +151,19 @@ try
                     DispatchTableEvidence = tableManifest is null ? null :
                         Dos16DispatchTableRecovery.Inspect(region, graph16,
                             tableManifest, mz, simulated),
+                    AutomaticDispatchEvidence = args.Contains("--auto-tables", StringComparer.Ordinal) ?
+                        Dos16AutomaticDispatchRecovery.Inspect(region, graph16, mz, simulated) : null,
                     Note = "All FAR and CS-indirect targets are separate, non-enqueued candidates; original CFG unresolved edges remain."
                 });
             }
-            else if (args.Contains("--indirect", StringComparer.Ordinal) || tableManifest is not null)
+            else if (args.Contains("--indirect", StringComparer.Ordinal) ||
+                     tableManifest is not null || args.Contains("--auto-tables", StringComparer.Ordinal))
                 Print(new { CandidateGraph = graph16,
                     IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(region, graph16, mz),
                     DispatchTableEvidence = tableManifest is null ? null :
-                        Dos16DispatchTableRecovery.Inspect(region, graph16, tableManifest, mz) });
+                        Dos16DispatchTableRecovery.Inspect(region, graph16, tableManifest, mz),
+                    AutomaticDispatchEvidence = args.Contains("--auto-tables", StringComparer.Ordinal) ?
+                        Dos16AutomaticDispatchRecovery.Inspect(region, graph16, mz) : null });
             else Print(graph16);
         }
         else
@@ -184,11 +192,14 @@ try
             int budget = int.Parse(Option(args, "--max-instructions", "100000"), CultureInfo.InvariantCulture);
             var region = com.CreateCodeRegion();
             var graph16 = Dos16ControlFlowAnalysis.Analyze(region, entry, budget);
-            if (args.Contains("--indirect", StringComparer.Ordinal) || tableManifest is not null)
+            if (args.Contains("--indirect", StringComparer.Ordinal) || tableManifest is not null ||
+                args.Contains("--auto-tables", StringComparer.Ordinal))
                 Print(new { CandidateGraph = graph16,
                     IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(region, graph16),
                     DispatchTableEvidence = tableManifest is null ? null :
-                        Dos16DispatchTableRecovery.Inspect(region, graph16, tableManifest) });
+                        Dos16DispatchTableRecovery.Inspect(region, graph16, tableManifest),
+                    AutomaticDispatchEvidence = args.Contains("--auto-tables", StringComparer.Ordinal) ?
+                        Dos16AutomaticDispatchRecovery.Inspect(region, graph16) : null });
             else Print(graph16);
         }
         else
@@ -237,11 +248,14 @@ try
                     region.Origin.ToString("X", CultureInfo.InvariantCulture))));
                 int budget = int.Parse(Option(args, "--max-instructions", "100000"), CultureInfo.InvariantCulture);
                 var graph16 = Dos16ControlFlowAnalysis.Analyze(region, entry, budget);
-                if (args.Contains("--indirect", StringComparer.Ordinal) || tableManifest is not null)
+                if (args.Contains("--indirect", StringComparer.Ordinal) || tableManifest is not null ||
+                    args.Contains("--auto-tables", StringComparer.Ordinal))
                     Print(new { CandidateGraph = graph16,
                         IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(region, graph16),
                         DispatchTableEvidence = tableManifest is null ? null :
-                            Dos16DispatchTableRecovery.Inspect(region, graph16, tableManifest) });
+                            Dos16DispatchTableRecovery.Inspect(region, graph16, tableManifest),
+                        AutomaticDispatchEvidence = args.Contains("--auto-tables", StringComparer.Ordinal) ?
+                            Dos16AutomaticDispatchRecovery.Inspect(region, graph16) : null });
                 else Print(graph16);
             }
             else
