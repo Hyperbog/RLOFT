@@ -5,7 +5,7 @@
 
 The inventory subsystem now has an explicit **56.9%
 weighted readiness estimate** across **eight independently
-scored subcomponents** in the [20-system/120-subsystem
+scored subcomponents** in the [20-system/122-subsystem
 completion matrix](PROGRESS_SUBSYSTEM_REPORT_20261009.md).
 This is not the historical global 56.25% engineering
 task figure and not a DOS-certified gameplay completion
@@ -25,6 +25,19 @@ PROGRESS_SUBSYSTEMS.csv) and recompute all parent/overall
 percentages before reporting. The new offline tracker
 test checks this relationship on user-triggered CTest
 runs. Registered CTests **172**, Quick **19**.
+**Full Windows build #647 passed all 172 tests**
+at source revision `fb4a0145` after correcting
+test fixture representations for original item
+catalog indices, the four actor 6FA0 container
+grid and source 16.16 world placement. The
+last remaining weight regression inherited a
+pseudo-spell ID outside its synthetic 40-object
+catalog and now starts with a clean ordinary grid.
+These are test-fixture repairs, not a relaxation
+of live game item-ID validation. Full DOS acceptance
+remains open. All post-build Level23 terrain
+binding changes are unrebuilt; the whole-game
+readiness matrix is currently **48.9%**.
 The opt-in `--explore-level22 --dev-inspect`
 caption now observes party/inventory state **while
 the inventory modal is open**, using a shared helper
