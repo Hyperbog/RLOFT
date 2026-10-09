@@ -36,12 +36,14 @@ public static class Dos16IndirectPointerRecovery
             graph.MappingEvidence != region.MappingEvidence ||
             graph.Entry.Segment != region.Segment)
             throw new InvalidDataException("Indirect recovery requires the exact source and decoded region.");
-        if ((mz is null) != (simulation is null))
-            throw new ArgumentException("MZ image and its relocated copy must be supplied together.");
+        if (simulation is not null && mz is null)
+            throw new ArgumentException("Relocated view requires the matching original MZ.");
         if (mz is not null &&
             (!string.Equals(region.SourceSha256, mz.SourceSha256, StringComparison.OrdinalIgnoreCase) ||
-             !string.Equals(region.SourceSha256, simulation!.Summary.SourceSha256, StringComparison.OrdinalIgnoreCase) ||
-             simulation.Summary.Writes.Count != mz.Relocations.Count))
+             (simulation is not null &&
+                (!string.Equals(region.SourceSha256, simulation.Summary.SourceSha256,
+                    StringComparison.OrdinalIgnoreCase) ||
+                 simulation.Summary.Writes.Count != mz.Relocations.Count))))
             throw new InvalidDataException("MZ selector relocation evidence belongs to a different source.");
 
         var indexedRelocations = new Dictionary<long, List<int>>();
@@ -123,7 +125,7 @@ public static class Dos16IndirectPointerRecovery
                             status = "candidate-cs-near-pointer";
                             evidence = "stored-word-candidate;runtime-writes-not-proven-absent";
                         }
-                        else if (far && mz is not null &&
+                        else if (far && mz is not null && simulation is not null &&
                             fixups.Count == 1 &&
                             mz.Relocations[fixups[0]].SourceFileOffset == pointerFile + 2)
                         {

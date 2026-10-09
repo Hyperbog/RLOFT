@@ -55,12 +55,14 @@ public static class Dos16DispatchTableRecovery
             graph.FileOffset != region.FileOffset || graph.RegionByteLength != region.ByteLength ||
             graph.Entry.Segment != region.Segment || graph.MappingEvidence != region.MappingEvidence)
             throw new InvalidDataException("Dispatch manifest does not belong to this original mapped CFG.");
-        if ((mz is null) != (rebased is null))
-            throw new ArgumentException("MZ and relocated view must be supplied together.");
+        if (rebased is not null && mz is null)
+            throw new ArgumentException("Relocated view requires the matching original MZ.");
         if (mz is not null &&
             (!string.Equals(mz.SourceSha256, region.SourceSha256, StringComparison.OrdinalIgnoreCase) ||
-             !string.Equals(rebased!.Summary.SourceSha256, region.SourceSha256, StringComparison.OrdinalIgnoreCase) ||
-             rebased.Summary.Writes.Count != mz.Relocations.Count))
+             (rebased is not null &&
+                (!string.Equals(rebased.Summary.SourceSha256, region.SourceSha256,
+                    StringComparison.OrdinalIgnoreCase) ||
+                 rebased.Summary.Writes.Count != mz.Relocations.Count))))
             throw new InvalidDataException("MZ relocation evidence belongs to a different source.");
 
         var knownSites = graph.Instructions.ToDictionary(i => i.Address.Offset);
@@ -135,7 +137,7 @@ public static class Dos16DispatchTableRecovery
                             }
                             else
                             {
-                                if (mz is null || touching.Count != 1 ||
+                                if (mz is null || rebased is null || touching.Count != 1 ||
                                     mz.Relocations[touching[0]].SourceFileOffset != at + 2)
                                 { complete = false; break; }
                                 int n = touching[0];
