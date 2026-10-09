@@ -223,11 +223,18 @@ ExplorationRuntime::world_scene_target_at(
 
 ExplorationRuntimeMotionResult ExplorationRuntime::tick_motion(
     ExplorationMotionInputs inputs) {
+    // The original 2D5D0 checks live NPC/placed-object footprints
+    // after the map-cell geometry probe. Do not supply guessed sources
+    // to startup fixtures that have not loaded real gameplay state.
+    ExplorationLocomotionModel::EntityProbe probe{};
+    if (gameplay_state_initialized_) {
+        probe=[this](std::uint32_t a,std::uint32_t b) {
+            return OriginalEntityCollisionModel::party_contact(
+                world_,npc_catalog_,placed_scene_catalog_,a,b);
+        };
+    }
     return ExplorationRuntimeMotionModel::tick(
-        session_,
-        motion_state_,
-        inputs,
-        renderer_tables_);
+        session_,motion_state_,inputs,renderer_tables_,probe);
 }
 
 ExplorationRuntimeFrame ExplorationRuntime::build_frame(
