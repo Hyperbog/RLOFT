@@ -134,6 +134,26 @@ int main() {
     assert(resolved.absolute_archive_entry==1);
     assert(resolved.raster_source==
         rloft::OriginalGroundRes4Audit::verified_tile_source(res4,1));
+    // The source selector is level HEADER data rather than a
+    // hardcoded Level22 identity. A later Level23-like level
+    // with a different signed header selector MUST bind its
+    // own authentic RES4 entry, including LZSS-compressed
+    // type-1 ground. It must not keep the previous level's
+    // indexed resource, palette contents or host test fallback.
+    auto destination_level=level;
+    destination_level.header[7U]=0xCDU; // signed -51
+    destination_level.header[8U]=0xFFU;
+    const auto destination_ground=
+        rloft::OriginalGroundRes4Audit::resolve(
+            init,destination_level,res4);
+    assert(destination_ground.source_init_base==55);
+    assert(destination_ground.signed_level_selector==-51);
+    assert(destination_ground.absolute_archive_entry==4);
+    assert(destination_ground.absolute_archive_entry!=
+           resolved.absolute_archive_entry);
+    assert(destination_ground.raster_source==resolved.raster_source);
+    assert(destination_level.header[7U]==0xCDU);
+    assert(level.header[7U]==0xCAU);
     // A Level22-like positive +55 field with the same small
     // synthetic archive must fail rather than try an arbitrary tile.
     level.header[7U]=55U;
