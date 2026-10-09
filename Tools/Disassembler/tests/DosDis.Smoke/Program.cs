@@ -449,6 +449,106 @@ try
         "CMP BX,2 and JA give three nonnegative unsigned index possibilities");
     Equal(automaticTables.Sites[0].StoredTable?.Entries.Count, 3,
         "all three entries validated against original source bytes");
+
+    // A source-backed unique predecessor can include only bounded NOP
+    // or direct unconditional jump bridges. These are intentionally
+    // separate from the immediate-adjacency tests above.
+    (Dos16CodeRegion Region, Dos16FlowResult Graph,
+        Dos16GuardedDispatchReport Report) AnalyzeBridgedTable(byte[] instructions)
+    {
+        byte[] input = new byte[0x40];
+        instructions.CopyTo(input, 0);
+        MzWord(input, 0x20, 0x130);
+        MzWord(input, 0x22, 0x131);
+        MzWord(input, 0x24, 0x132);
+        input[0x30] = input[0x31] = input[0x32] = 0xC3;
+        var region = DosComImage.LoadExplicit(
+            BinaryArtifact.FromBytes(input, "anonymous-com.bin")).CreateCodeRegion();
+        var graph = Dos16ControlFlowAnalysis.Analyze(region, 0x100);
+        return (region, graph,
+            Dos16AutomaticDispatchRecovery.Inspect(region, graph));
+    }
+
+    // CMP; JA default; NOP; SHL BX,1; CS-indexed JMP.
+    var nopBeforeShift = AnalyzeBridgedTable(new byte[] {
+        0x83, 0xFB, 0x02, 0x77, 0x08,
+        0x90, 0xD1, 0xE3, 0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    });
+    Equal(nopBeforeShift.Report.GuardedTableCandidates, 1,
+        "NOP between unsigned guard and stride does not invalidate flags or BX");
+    Equal(Dos16UniqueTransparentPath.Connects(nopBeforeShift.Region,
+        nopBeforeShift.Graph, new Dos16Address(0, 0x103),
+        new Dos16Address(0, 0x106), "branch-not-taken"), true,
+        "one unique fallthrough plus a source-backed NOP proves the guard path");
+
+    // CMP; JA default; SHL BX,1; NOP; CS-indexed JMP.
+    var nopBeforeTable = AnalyzeBridgedTable(new byte[] {
+        0x83, 0xFB, 0x02, 0x77, 0x08,
+        0xD1, 0xE3, 0x90, 0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    });
+    Equal(nopBeforeTable.Report.GuardedTableCandidates, 1,
+        "NOP between index scaling and table still yields original-backed candidates");
+    Equal(Dos16UniqueTransparentPath.Connects(nopBeforeTable.Region,
+        nopBeforeTable.Graph, new Dos16Address(0, 0x105),
+        new Dos16Address(0, 0x108), "fallthrough"), true,
+        "table predecessor can be bridged by a checked NOP");
+
+    // CMP; JA default; JMP short stride; unreachable padding; SHL BX,1;
+    // CS-indexed JMP. Unique unconditional branch traverses basic blocks.
+    var jumpBeforeShift = AnalyzeBridgedTable(new byte[] {
+        0x83, 0xFB, 0x02, 0x77, 0x0C,
+        0xEB, 0x03, 0x90, 0x90, 0x90,
+        0xD1, 0xE3, 0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    });
+    Equal(jumpBeforeShift.Report.GuardedTableCandidates, 1,
+        "short unconditional jump preserves bound when it uniquely leads to stride");
+    Equal(Dos16UniqueTransparentPath.Connects(jumpBeforeShift.Region,
+        jumpBeforeShift.Graph, new Dos16Address(0, 0x103),
+        new Dos16Address(0, 0x10A), "branch-not-taken"), true,
+        "guard path crosses a validated short JMP to another basic block");
+
+    // CMP; JA default; SHL BX,1; JMP short dispatch; padding;
+    // CS-indexed JMP. JMP rel16 uses the same bounded transparency proof.
+    var jumpBeforeTable = AnalyzeBridgedTable(new byte[] {
+        0x83, 0xFB, 0x02, 0x77, 0x0D,
+        0xD1, 0xE3, 0xEB, 0x04, 0x90, 0x90, 0x90, 0x90,
+        0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    });
+    Equal(jumpBeforeTable.Report.GuardedTableCandidates, 1,
+        "short unconditional jump after stride can reach distinct indirect branch block");
+    var nearJumpBeforeTable = AnalyzeBridgedTable(new byte[] {
+        0x83, 0xFB, 0x02, 0x77, 0x0D,
+        0xD1, 0xE3, 0xE9, 0x03, 0x00, 0x90, 0x90, 0x90,
+        0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    });
+    Equal(nearJumpBeforeTable.Report.GuardedTableCandidates, 1,
+        "unprefixed near16 unconditional jump preserves exact source bounds");
+
+    var bxMutation = AnalyzeBridgedTable(new byte[] {
+        0x83, 0xFB, 0x02, 0x77, 0x08,
+        0x43, 0xD1, 0xE3, 0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    });
+    Equal(bxMutation.Report.GuardedTableCandidates, 0,
+        "INC BX between guard and stride invalidates the bounded index");
+
+    var manyNops = AnalyzeBridgedTable(new byte[] {
+        0x83, 0xFB, 0x02, 0x77, 0x0D, 0xD1, 0xE3,
+        0x90, 0x90, 0x90, 0x90, 0x90, 0x90,
+        0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    });
+    Equal(manyNops.Report.GuardedTableCandidates, 0,
+        "candidate path exceeding the transparent hop budget stays unresolved");
+
+    var staleBridgedGraph = jumpBeforeTable.Graph with {
+        Instructions = jumpBeforeTable.Graph.Instructions.Select(x =>
+            x.Address.Offset == 0x107
+                ? x with { SourceFileOffset = long.MaxValue } : x).ToArray()
+    };
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(jumpBeforeTable.Region,
+        staleBridgedGraph).GuardedTableCandidates, 0,
+        "stale bridge opcode provenance cannot license indirect table recovery");
+    Console.WriteLine("PASS: bounded unique NOP/JMP paths across basic blocks");
+
     var jaeGuard = (byte[])automaticBytes.Clone();
     jaeGuard[2] = 3; jaeGuard[3] = 0x73; // JAE after CMP BX,3 => BX in [0,2]
     var jaeRegion = DosComImage.LoadExplicit(BinaryArtifact.FromBytes(jaeGuard)).CreateCodeRegion();
