@@ -1,5 +1,31 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Part 8 source checkpoint — original Mage scroll learning
+
+The live inventory now includes original CODE.2
+`11630` Mage Spell Book scribing for 35 authored scroll
+IDs, authenticated object-1 `EEB0` range table and
+object-2 `6153` Intelligence capacity, actor spell
+matrix low-nibble tests, and persistent event bit
+`0xBA` even when a scribe attempt fails. Valid
+learning clears the exact matrix byte and consumes
+the held scroll; a known/full target retains it.
+The previous Tome/Parchment Fragment `0x35` +
+`0x61..0x64` persistent flags and Mode-0x190
+`2D5D0` world-drop checks are also implemented
+in native source with documented limitations.
+
+**Source-only and incomplete:** original spell-learning
+messages/timing, SAVE/LOAD roundtrips, Level16
+`0x89` side effect, other item spells and DOS visual/
+temporal parity remain open. Neither the existing
+CTest count (169; Quick 19) nor the 32-task
+engineering score (56.25%) is increased by these
+submilestone edits. The latest Windows-green build
+is still older #640 (160/160). Manual Windows
+Full build remains deferred as requested.
+
+
 ## Active one-system-at-a-time inventory workstream
 
 [Detailed source and DOS acceptance boundaries](INVENTORY_FIDELITY_WORKSTREAM_20261009.md).
