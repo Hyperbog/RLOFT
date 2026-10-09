@@ -412,6 +412,8 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
             out.scene_vga_trace = std::move(attempt.trace);
             out.scene_vga_trace_failure =
                 std::move(attempt.failure);
+            out.scene_vga_scene_failures =
+                std::move(attempt.scene_failures);
         }
     }
 
