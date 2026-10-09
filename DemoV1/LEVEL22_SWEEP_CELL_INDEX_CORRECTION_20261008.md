@@ -127,3 +127,60 @@ near-90° rays, and check for the absence of the
 previous exception. Compare corrected scene
 projection/occlusion and exact indexed output to
 real DOS emulator captures separately.
+
+
+## Repeated screenshot / duplicate archive — build provenance (2026-10-08)
+
+The follow-up user message again displays the identical legacy error
+text `first-person sweep failed to leave malformed level` and
+supplies `1791508927564.zip`. The newly uploaded archive's SHA-256
+is **exactly the same** as the previous capture:
+`4cae065ba0c045664a446f0f46fb0671376ef90577d438c27c6b823b634656ba`.
+It therefore provides **no new post-fix capture evidence**.
+
+The latest observed **completed Windows build is #639**, compiled at
+source commit `1561d634859e2afaf948e97f672a15a6d06203f3`.
+That commit **predates** the actual original-index source fix
+(`5eeb471ce6d87ea13d596039a66bfd0902f9d9ee`).
+The branch source correction has **never been compiled by
+GitHub Actions as of this inspection**. A checked-in Windows EXE
+refreshed by #639 or that workflow artifact is not corrected,
+regardless of a newer source/document HEAD.
+
+To eliminate the ambiguity, the next manually built executable now
+embeds the checked-out `github.sha` as
+`RLOFT_DEMO_SOURCE_SHA` via CMake. The optional exploration preview
+caption includes `Build <sha12>`, and any Win32 unhandled-exception
+dialog includes `Executable source revision: <sha12>`.
+The workflow artifact also carries `build-source-sha.txt`,
+stamped from the same checked-out SHA. Local CMake builds identify
+themselves as `local-unversioned`, not falsely as current HEAD.
+
+The native ray-iteration guard still throws rather than approximating
+a sprite/wall or hiding a source discrepancy. In an executable built
+from the new HEAD, the throw includes original ray index, angular
+tenths, sweep state, both candidate flattened indices, axis cells,
+fixed-point camera origins and map dimensions. This is diagnostic
+only: it does not alter a successful original cell lookup.
+
+### Required manual test
+
+1. Open GitHub Actions **Demo v1 build**, select `demo-v1`, and
+   start a **new** workflow dispatch on the current HEAD.
+   Do not `Re-run jobs` for #639 because that rebuilds its old SHA.
+2. Check that all registered Windows CTests pass before using its EXE.
+   Linux checkbox can remain disabled as requested.
+3. Download **Ravenloft-Demo-v1-Windows-x64** from the **new run**,
+   extract to a new folder (do not accidentally launch the old
+   repository copy), and check `build-source-sha.txt` against
+   that run's `head_sha`.
+4. Start the newly extracted `Capture-Level22.cmd`. The window
+   title must show `Build <first-12-source-SHA>`.
+5. If failure recurs, upload the new error screenshot and the new
+   capture directory; the error must include its checked-out source
+   SHA and failing ray metadata. If those additions are absent,
+   an old executable is still running.
+
+**Do not mark this regression fixed in a Windows binary** until the
+new workflow passes and a post-fix runtime exploration is observed.
+Manual-only Actions policy remains unchanged.
