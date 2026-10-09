@@ -436,6 +436,12 @@ int main() {
         (std::array<std::uint8_t,4>{{
             0xFFU,0xFFU,0xFFU,0xFFU}}));
     assert(!transfer_probe.open_container);
+    // The shared descriptor's first slot was emptied by the
+    // earlier nested transfer. Populate a real item before the
+    // subsequent click asserts source 11C3C status Taken.
+    state0.items[0]=3;
+    state0.per_slot_state_bits=static_cast<std::uint8_t>(
+        state0.per_slot_state_bits|0x01U);
     // Original 6FA0 has four independent actors. Opening a
     // second active actor's hand container must not close or
     // rewrite actor 0's phase3 view, and its slot clicks must
