@@ -859,9 +859,13 @@ Safety gates explicitly **reject without state mutation**:
   or time-of-day against the current initialized native world;
 - any source `0x16` transient/moving-effect records
   (the *standalone byte codec* still supports them);
-- original 6FA0 per-actor contexts other than
-  four inactive `FF FF FF FF` records;
-- any currently open native hand-container view;
+- unsupported `6FA0` contexts: interrupted phase-0/1/2
+  animations, ambiguous/missing original hand-object evidence,
+  or multiple simultaneously open interactive views. Both
+  fresh `FF FF FF FF` and post-close `FF FF 00 FF` now
+  load; one phase-3 context can source-restore from OBJECTS;
+- a currently open native hand-container view **on import**.
+  Export may persist an active view once it matches `6FA0`;
 - damaged 62-descriptor geometry / malformed SAVE lengths.
 
 `ExplorationRuntime::import_matching_save_inventory` and
