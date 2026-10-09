@@ -290,3 +290,14 @@ Research namespaces contain **both** game ID and complete source SHA:
 unknown source length honestly. No cross-game routine names are inferred.
 See [P0 provenance checkpoint](docs/P0_PROVENANCE_NAMESPACES.md).
 No build requested; static source only.
+
+## P0 executable object gap ledger (source checkpoint)
+
+`ExecutableGapAnalysis` now accounts for every executable LE object byte as
+candidate code, analyst-protected data, unclassified file-backed bytes or
+unbacked virtual memory. Ranked unknown spans link to original file offsets,
+relocation sources and targets, incoming candidate edges, data references and
+analyst seeds. Each gap stays **unknown**, even when references are present.
+Output is bounded and optional; JSON export refuses overwrite.
+See [P0 gap ledger](docs/P0_EXECUTABLE_GAP_LEDGER.md).
+No builds or test execution requested; completion estimate remains 43%.

@@ -458,6 +458,45 @@ try
         true, "human-readable report counts unresolved transfers");
     Equal(graph.FunctionCandidates.All(f => f.Blocks.Contains(new FlowAddress(1, 5))), true,
         "shared return block may belong to multiple candidates");
+    // P0: unknown executable bytes are ranked, not silently classified as code.
+    var gapLedger = ExecutableGapAnalysis.Analyze(graph, graphImage,
+        minimumGapBytes: 1, maximumGaps: 5);
+    Equal(gapLedger.ExecutableObjectBytes, graphImage.Objects
+        .Where(o => (o.Flags & 4u) != 0).Sum(o => (long)o.VirtualSize),
+        "gap ledger covers the entire executable object");
+    Equal(gapLedger.ExecutableObjectBytes,
+        gapLedger.CandidateInstructionBytes + gapLedger.AnalystProtectedBytes +
+        gapLedger.UnknownFileBackedBytes + gapLedger.UnbackedVirtualBytes,
+        "gap classifications close exactly without invented byte ownership");
+    Equal(gapLedger.UnknownFileBackedBytes > 0, true,
+        "analyzer retains unknown file-backed bytes");
+    Equal(gapLedger.Gaps.Any(g => g.Begin.Object == 1 &&
+        g.FirstFileOffset == graphImage.ToFileOffset(g.Begin.Object, g.Begin.Offset)),
+        true, "gaps retain original-source file offsets");
+    Equal(gapLedger.Gaps.All(g => g.Classification == "unknown-file-backed"),
+        true, "gap ranking never promotes unknown bytes to code");
+    Equal(gapLedger.Gaps.All(g => g.Begin.Offset >= 10 || g.EndExclusive <= 6),
+        true, "analyst-protected data never reappears as unknown gap");
+    bool gapForeignSourceRejected = false;
+    try { ExecutableGapAnalysis.Analyze(graph with {
+        ArtifactSha256 = new string('0', 64) }, graphImage); }
+    catch (InvalidDataException) { gapForeignSourceRejected = true; }
+    Equal(gapForeignSourceRejected, true, "gap ledger rejects another original source identity");
+    string gapDir = Path.Combine(Path.GetTempPath(), "dosdis-gaps-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(gapDir);
+    try
+    {
+        string gapPath = Path.Combine(gapDir, "gaps.json");
+        ExecutableGapAnalysis.WriteNew(gapPath, gapLedger);
+        Equal(File.ReadAllText(gapPath).Contains("dosdis-executable-gap-ledger",
+            StringComparison.Ordinal), true, "exported gap ledger uses named schema");
+        bool gapOverwriteDenied = false;
+        try { ExecutableGapAnalysis.WriteNew(gapPath, gapLedger); }
+        catch (IOException) { gapOverwriteDenied = true; }
+        Equal(gapOverwriteDenied, true, "ranked gap exports cannot replace prior evidence");
+    }
+    finally { Directory.Delete(gapDir, recursive: true); }
+    Console.WriteLine("PASS: ranked unknown executable gap accounting and source-backed evidence");
     Equal(graph.Ranges.Any(r => r.Begin <= 6 && r.EndExclusive >= 10 && r.Classification == "protected-data"), true,
         "analyst protected literal preserved");
     Equal(graph.Ranges.Any(r => r.Begin <= 10 && r.EndExclusive >= 0x10 && r.Classification == "unknown-file-backed"), true,
