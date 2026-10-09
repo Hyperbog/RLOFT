@@ -44,6 +44,10 @@ int main() {
     // Authentic original 34998 SINTAB-derived perspective exists even
     // though the RES4 ground source is not yet routed into presentation.
     frame.ground_perspective_ready=true;
+    frame.ground_source_verified=true;
+    frame.ground_res4_base=123;
+    frame.ground_res4_relative=55;
+    frame.ground_res4_absolute=178;
     frame.ground_phase_u=0x12U;
     frame.ground_phase_v=0x34U;
     frame.ground_ff58[0]={0x1234U,0x5678U,0x9AU,0xBCU};
@@ -147,6 +151,10 @@ int main() {
     assert(tsv.find("mask_origin\timmutable CODE.2 object-2")!=
            std::string::npos);
     assert(tsv.find("original_C026_initial\t1")!=std::string::npos);
+    assert(tsv.find("ground_original_res4_verified\\t1")!=std::string::npos);
+    assert(tsv.find("ground_original_res4_base_from_INIT\\t123")!=std::string::npos);
+    assert(tsv.find("ground_original_res4_signed_level_selector\\t55")!=std::string::npos);
+    assert(tsv.find("ground_original_res4_absolute_entry\\t178")!=std::string::npos);
     assert(tsv.find("ground_ff58_ready\t1")!=std::string::npos);
     assert(tsv.find("ground_C048_C044\t18\t52")!=std::string::npos);
     assert(tsv.find("ground_ff58_row\t0\t4660\t22136\t154\t188")!=
@@ -200,6 +208,8 @@ int main() {
     // The new RES3 run telemetry must distinguish a long C029=1
     // source run from unsupported grouped raster-mask lookup.
     frame.scene_individual_columns_mode=true;
+    frame.ground_source_verified=false;
+    frame.ground_source_failure="original RES4 tile invalid; blocked";
     frame.source_coordinate_a=0x00041234U;
     frame.source_coordinate_b=0x00054321U;
     frame.source_facing=261U;
@@ -216,6 +226,8 @@ int main() {
     const std::string third_tsv{
         std::istreambuf_iterator<char>(third),
         std::istreambuf_iterator<char>()};
+    assert(third_tsv.find("ground_original_res4_verified\\t0")!=std::string::npos);
+    assert(third_tsv.find("ground_original_res4_error\\toriginal RES4 tile invalid; blocked")!=std::string::npos);
     assert(third_tsv.find("source_revision\tabcdef0123456789")!=
            std::string::npos);
     assert(third_tsv.find("scene_individual_columns_mode\t1")!=
