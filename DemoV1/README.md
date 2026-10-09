@@ -1,5 +1,36 @@
 # Ravenloft Demo Build v1
 
+## Part 8 continuation — original Mage scribing messages and IRQ expiry
+
+The original CODE.2 source at `116D5..11798` and
+`13118..131BB` now drives native scribe feedback. Original
+object-2 `6D9C/6DA0/6DA4` DWORD pointers resolve the
+**exact original success, full-capacity, and already-known
+text**, rather than hardcoded approximations. Success prefixes
+`T[0x42+bank*10+entry]` and appends ` SPELL SCRIBED.`.
+Both success and rejection set `6DAC=1` and `6DA8=
+30700() + 0x36`. The inventory loop expires only when the
+unsigned observed IRQ tick is **greater than** the deadline,
+restoring the ordinary item ribbon. Entry to `13118` resets
+the pending message. The native presenter now renders this
+message even after successful scribing empties the held cursor.
+
+The new source-backed state and existing inventory CTest target
+include assertions for all three message strings, T prefix,
+timer equality, expiration, no observed tick and original
+unsigned DWORD wrap behavior. Rendering retains the
+**previously provisional** native ribbon backing and font
+until DOS screenshot/pixel parity work; the Win32 observed
+IRQ tick is an exploration-epoch BIOS-cadence fallback,
+not proven byte-identical DOS interrupt phase. In particular,
+this is not a completed 2975C/F66C VGA ribbon reconstruction.
+
+**All current-revision tests remain unexecuted on Windows;**
+169 registered CTests, 19 manual Quick tests. Inventory and
+SAVE/LOAD remain incomplete; per the user's request no manual
+Windows build has been dispatched. Engineering 56.25%.
+
+
 ## Part 8 — Tome/Parchment persistent-flag interaction (source only)
 
 The original CODE.2 `117A0/11857..11891` inventory dispatcher
@@ -23,8 +54,10 @@ original `6153` Intelligence capacity, actor's 8×10
 Mage matrix, and unconditional `0xBA` story-flag update.
 Duplicate/full attempts leave the held scroll in place;
 success clears the scribed matrix byte and held scroll.
-Original timed popup/message presentation, native SAVE/LOAD
-and DOS acceptance remain outstanding.
+Original message text and IRQ expiration are now source-modeled
+and shown in the provisional native item ribbon. Exact DOS
+font/decorative pixels, tick phase, SAVE/LOAD and runtime
+acceptance remain outstanding.
 The earlier blanket classification of `0x35` as a potion was
 incorrect and is superseded. The exact `2D5D0` inventory
 drop predicate is source-implemented in the preceding checkpoint,
