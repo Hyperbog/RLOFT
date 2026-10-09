@@ -17,14 +17,14 @@ In particular, 20 points for “regression” means test cases are written and r
 
 ## Current quantified baseline
 
-**120 named subsystems across 20 major systems. Provisional weighted readiness: 48.8%.** This is deliberately distinct from the **56.25%** original 32-task engineering completion ledger. The 40%-weighted DOS acceptance component is **0% at this HEAD**; the weighted baseline reflects source archaeology, code, wiring and authored (but unexecuted) assertions. It should not be advertised as a finished game percentage.
+**121 named subsystems across 20 major systems. Provisional weighted readiness: 48.8%.** This is deliberately distinct from the **56.25%** original 32-task engineering completion ledger. The 40%-weighted DOS acceptance component is **0% at this HEAD**; the weighted baseline reflects source archaeology, code, wiring and authored (but unexecuted) assertions. It should not be advertised as a finished game percentage.
 
 | Assessment gate | Average completion within gate | Contribution to overall score |
 | --- | ---: | ---: |
 | Source mapping | 96.3% | 9.6% |
-| Native implementation | 85.0% | 17.0% |
-| Live runtime wiring | 69.2% | 13.8% |
-| Authored regression coverage | 82.9% | 8.3% |
+| Native implementation | 85.1% | 17.0% |
+| Live runtime wiring | 69.4% | 13.9% |
+| Authored regression coverage | 83.1% | 8.3% |
 | Current-head DOS acceptance | 0.0% | 0.0% |
 | **Total weighted readiness** | | **48.8%** |
 
@@ -51,7 +51,7 @@ In particular, 20 points for “regression” means test cases are written and r
 | **Input timing and clock** | **49.2%** | 6 | Independent source clocks integration |
 | **Automap and navigation** | **47.0%** | 5 | Per-level persistent map caches |
 | **SAVE LOAD and persistence** | **38.6%** | 7 | Multi-level backing across exits |
-| **Verification and developer testbed** | **47.5%** | 6 | Full original campaign milestone |
+| **Verification and developer testbed** | **49.3%** | 7 | Full original campaign milestone |
 
 ## Every subsystem — individual readiness percentages
 
@@ -266,13 +266,14 @@ Each row's five gate marks are out of 20; the weighted readiness column is an in
 | In-game SAVE LOAD menus and slots | **10.0%** | 20/0/0/0/0 | `options_menu.cpp` | Original serialized file I O and menu wiring |
 | Level re-entry and multiple-world saves | **5.0%** | 10/0/0/0/0 | `CONTINUOUS_GAME_INTEGRATION_CONTRACT` | Multi-level backing across exits |
 
-### Verification and developer testbed — 47.5% (6 subsystems)
+### Verification and developer testbed — 49.3% (7 subsystems)
 
 | Subsystem | Readiness | S/N/L/T/D | Source implementation evidence | Next acceptance blocker |
 | --- | ---: | --- | --- | --- |
 | Original file provenance and byte audits | **60.0%** | 20/20/20/20/0 | `source archive docs + DAT CODE audits` | Complete all remaining original unknowns |
 | Automated regression test catalog | **60.0%** | 20/20/20/20/0 | `CMakeLists.txt 171 CTests` | Execute current branch full suite |
 | Opt-in Level22 state diagnostics | **60.0%** | 20/20/20/20/0 | `dev_level_diagnostics.cpp and win32_main.cpp` | Manual gameplay inspector validation |
+| Opt-in Level22 world pickup and hand exchange | **60.0%** | 20/20/20/20/0 | `dev_level_interaction_policy.hpp and win32_main.cpp` | Current-head manual interaction trace and DOS source behavior |
 | Visual DOS captures and comparisons | **45.0%** | 20/20/10/10/0 | `exploration_frame_capture.cpp` | Complete DOS/native pixel comparison |
 | Manual Windows build reproducibility | **55.0%** | 20/20/20/10/0 | `github workflow and CMakeLists.txt` | Compile latest source via user-run workflow |
 | Original start to game-end acceptance | **5.0%** | 10/0/0/0/0 | `CONTINUOUS_GAME_INTEGRATION_CONTRACT` | Full original campaign milestone |
