@@ -68,6 +68,8 @@ int main() {
     presentation.surface_coverage.type7_columns_rasterized=1U;
     presentation.surface_coverage.type7_indexed_writes=18U;
     presentation.surface_coverage.type7_calls_failed=1U;
+    presentation.type7_scene_outcomes.push_back(
+        Type7SceneRenderOutcome::PlanningFailed);
     presentation.type7_failures.push_back({
         445U,1U,4U,"unsupported original scene descriptor"
     });
@@ -121,6 +123,8 @@ int main() {
     assert(tsv.find("scene_render_plans\t1")!=std::string::npos);
     assert(tsv.find("scene_plan_failures\t1")!=std::string::npos);
     assert(tsv.find("scene_plan_failure\t0\t1\t4\t445\tshape source unavailable")!=
+           std::string::npos);
+    assert(tsv.find("scene_outcome\t0\t1\t4\t445\tplanning-failed")!=
            std::string::npos);
     assert(tsv.find("scene_video_calls\t1\t0\t1")!=std::string::npos);
     assert(tsv.find("scene_columns\t1\t0\t0")!=std::string::npos);
