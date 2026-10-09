@@ -65,7 +65,8 @@ jobs:
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
       - name: Configure
-        run: cmake -S DemoV1 -B build/demo-v1 -A x64
+        # Compile the checkout revision, not a later bot refresh commit.
+        run: cmake -S DemoV1 -B build/demo-v1 -A x64 -DRLOFT_DEMO_SOURCE_SHA=${{ github.sha }}
       - name: Build
         run: cmake --build build/demo-v1 --config Release
       - name: Test
@@ -75,6 +76,9 @@ jobs:
         run: |
           Copy-Item DemoV1/Windows/Explore-Level22.cmd build/demo-v1/Release/Explore-Level22.cmd -Force
           Copy-Item DemoV1/Windows/Capture-Level22.cmd build/demo-v1/Release/Capture-Level22.cmd -Force
+          # A machine-readable matching provenance file is shipped next to
+          # the exe and launchers for users reporting crash screenshots.
+          Set-Content -NoNewline -Path build/demo-v1/Release/build-source-sha.txt -Value "${{ github.sha }}"
 
       - name: Publish Windows executable and Level 22 launchers
         uses: actions/upload-artifact@v4
@@ -84,6 +88,7 @@ jobs:
             build/demo-v1/Release/ravenloft_demo_v1.exe
             build/demo-v1/Release/Explore-Level22.cmd
             build/demo-v1/Release/Capture-Level22.cmd
+            build/demo-v1/Release/build-source-sha.txt
           if-no-files-found: error
 
       - name: Keep Windows executable in git
