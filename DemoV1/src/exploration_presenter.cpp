@@ -76,6 +76,23 @@ ExplorationPresenter::surface_coverage(
     return out;
 }
 
+std::vector<Type7SceneRenderOutcome>
+ExplorationPresenter::initial_scene_outcomes(
+    const ExplorationRuntimeFrame& frame) {
+    std::vector<Type7SceneRenderOutcome> out;
+    out.reserve(frame.world_scene_render_plans.size());
+    for (const auto& plan:frame.world_scene_render_plans) {
+        if(plan.source_unresolved) {
+            out.push_back(Type7SceneRenderOutcome::PlanningFailed);
+        } else if(plan.visible_columns.empty()) {
+            out.push_back(Type7SceneRenderOutcome::FullyOccluded);
+        } else {
+            out.push_back(Type7SceneRenderOutcome::TraceUnavailable);
+        }
+    }
+    return out;
+}
+
 void ExplorationPresenter::draw_environment(
     const ExplorationRuntimeFrame& frame) {
     if (!frame.scene.environment_commands.empty()) {
@@ -267,7 +284,7 @@ ExplorationPresentedFrame ExplorationPresenter::present(
         tables);
 
     std::vector<Type7SceneRasterFailure> raster_failures;
-
+    auto scene_outcomes=initial_scene_outcomes(frame);
 
     // The original draw order places world-scene type-7 shapes after
     // the environment and wall surfaces, but before party-panel chrome.
@@ -320,6 +337,7 @@ ExplorationPresentedFrame ExplorationPresenter::present(
                         tables,
                         video);
                 any_rasterized = true;
+                scene_outcomes[index]=Type7SceneRenderOutcome::Rasterized;
                 ++output_coverage.type7_calls_rasterized;
                 output_coverage.type7_columns_rasterized +=
                     plan.visible_columns.size();
@@ -333,6 +351,7 @@ ExplorationPresentedFrame ExplorationPresenter::present(
                 // Do not discard the reason: without working CI, runtime
                 // output must name the exact RES3 source that failed.
                 ++output_coverage.type7_calls_failed;
+                scene_outcomes[index]=Type7SceneRenderOutcome::RasterFailed;
                 raster_failures.push_back(Type7SceneRasterFailure{
                     plan.call.resource_id,
                     plan.call.source_class,
@@ -369,6 +388,7 @@ ExplorationPresentedFrame ExplorationPresenter::present(
     out.surface_main_failures =
         std::move(main_failures);
     out.type7_failures = std::move(raster_failures);
+    out.type7_scene_outcomes = std::move(scene_outcomes);
     out.type7_trace_failure =
         frame.scene_vga_trace_failure;
     return out;
