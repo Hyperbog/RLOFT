@@ -119,6 +119,112 @@ try
     Equal(invalidRawOffset, true, "reject past-EOF raw seek");
     Console.WriteLine("PASS: raw bytes, EOF, physical-offset hex navigation and unsupported-format capability label");
 
+    // P0: signature detection is never permission to decode an overlay,
+    // resource container, LX module or headerless COM driver as flat x86.
+    foreach (var candidate in new[] {
+        (Signature: "FBOV", Name: "GAME.OVR", Expected: "fbov"),
+        (Signature: "TPOV", Name: "GAME.OVR", Expected: "tpov"),
+        (Signature: "AESOP/16 V1.00", Name: "HACK.RES", Expected: "aesop-resource"),
+        (Signature: "GFFI", Name: "RESOURCE.GFF", Expected: "gff-container")
+    })
+    {
+        var sample = BinaryArtifact.FromBytes(System.Text.Encoding.ASCII.GetBytes(candidate.Signature),
+            candidate.Name);
+        var detected = BinaryFormatDetector.Inspect(sample);
+        Equal(detected.FormatId, candidate.Expected, "signature-first container type");
+        Equal(detected.LoaderStatus.EndsWith("-required", StringComparison.Ordinal), true,
+            "known container is not passed to an unvalidated x86 loader");
+    }
+    var comCandidate = BinaryArtifact.FromBytes(new byte[] { 0xB8, 0, 0x4C, 0xCD, 0x21 },
+        "SOUND.COM");
+    Equal(BinaryFormatDetector.Inspect(comCandidate).FormatId, "unknown-headerless",
+        "a COM extension alone never proves a flat load context");
+
+    byte[] mzBytes = new byte[512];
+    mzBytes[0] = (byte)'M'; mzBytes[1] = (byte)'Z';
+    static void MzWord(byte[] data, int at, ushort value) =>
+        BinaryPrimitives.WriteUInt16LittleEndian(data.AsSpan(at, 2), value);
+    MzWord(mzBytes, 2, 0);      // final page fully occupied
+    MzWord(mzBytes, 4, 1);      // 512 bytes in the declared MZ file
+    MzWord(mzBytes, 6, 1);      // one internal relocation source
+    MzWord(mzBytes, 8, 2);      // 32-byte DOS MZ header
+    MzWord(mzBytes, 0x14, 0);   // CS:IP = 0000:0000
+    MzWord(mzBytes, 0x16, 0);
+    MzWord(mzBytes, 0x18, 0x1C); // relocation entries at 0x1C
+    MzWord(mzBytes, 0x1C, 1);   // 0000:0001 (imm16 of MOV)
+    MzWord(mzBytes, 0x1E, 0);
+    mzBytes[0x20] = 0xB8; mzBytes[0x21] = 0x34; mzBytes[0x22] = 0x12;
+    mzBytes[0x23] = 0xC3; // mov ax,1234h; ret
+    var mzArtifact = BinaryArtifact.FromBytes(mzBytes, "MAIN.EXE");
+    Equal(BinaryFormatDetector.Inspect(mzArtifact).FormatId, "mz",
+        "standalone DOS MZ signature identified");
+    var mzImage = DosMzImage.Load(mzArtifact);
+    Equal(mzImage.LoadImageFileOffset, 32, "DOS header paragraph mapping");
+    Equal(mzImage.FileBackedImageLength, 480, "MZ declared load module length");
+    Equal(mzImage.Relocations.Count, 1, "MZ relocation count");
+    Equal(mzImage.Relocations[0].SourceFileOffset, 33L, "MZ relocation original file offset");
+    Equal(mzImage.ToFileOffset(0, 0), 32L, "DOS 16-bit segment:offset source mapping");
+    Equal(mzImage.ToFileOffset(0x30, 0), (long?)null, "unbacked MZ address cannot map to a fictional file offset");
+    var mzLines = mzImage.Decode(0, 0, 2);
+    Equal(mzLines.Count, 2, "requested 16-bit linear candidate count");
+    Equal(mzLines[0].OriginalBytes, "B83412", "16-bit MOV immediate instruction bytes");
+    Equal(mzLines[1].OriginalBytes, "C3", "16-bit return instruction bytes");
+    Equal(mzLines[1].SourceFileOffset, 35L, "second instruction source offset");
+    var invalidMz = (byte[])mzBytes.Clone();
+    MzWord(invalidMz, 6, 2); // table would exceed 32-byte header
+    Fails(() => DosMzImage.Load(BinaryArtifact.FromBytes(invalidMz)),
+        "truncated/oversized MZ relocation table rejected");
+    var lxBytes = (byte[])mzBytes.Clone();
+    Dword(lxBytes, 0x3C, 0x80);
+    lxBytes[0x80] = (byte)'L'; lxBytes[0x81] = (byte)'X';
+    var lxArtifact = BinaryArtifact.FromBytes(lxBytes, "A32ADLIB.DLL");
+    Equal(BinaryFormatDetector.Inspect(lxArtifact).FormatId, "lx",
+        "LX audio driver is detected without PE interpretation");
+    Fails(() => DosMzImage.Load(lxArtifact),
+        "MZ parser must not decode an identified LX wrapper as flat DOS real-mode code");
+    Console.WriteLine("PASS: signature-only overlay/resource/LX detection and bounded 16-bit MZ metadata/decoding");
+
+    // Exact-byte identity catalogs label sources but never change decoding.
+    string syntheticCatalogJson = JsonSerializer.Serialize(new {
+        schemaVersion = 1,
+        entries = new[] { new {
+            sha256 = mzArtifact.Sha256, byteLength = mzArtifact.Length,
+            gameId = "fixture", module = "MAIN.EXE",
+            sourceEvidence = "synthetic-mz-header",
+            software = "Generic test fixture"
+        } }
+    });
+    var identityRegistry = SourceIdentityRegistry.FromJson(syntheticCatalogJson);
+    Equal(identityRegistry.Count, 1, "one registry entry accepted");
+    Equal(identityRegistry.Find(mzArtifact)?.GameId, "fixture",
+        "catalog matches exact SHA-256 and byte length");
+    Equal(FileIntelligence.Inspect(mzArtifact, registry: identityRegistry)["software"].Status,
+        "external-catalog-exact-hash", "catalog facts are distinct from binary structural evidence");
+    Equal(FileIntelligence.Inspect(mzArtifact).ContainsKey("software"), false,
+        "no game identity is hardcoded into file intelligence");
+    var catalogIdentity = SourceProvenance.ForArtifact(mzArtifact, gameId: "fixture",
+        registry: identityRegistry);
+    Equal(catalogIdentity.IdentityStatus, "catalog-matched-analyst-supplied",
+        "catalog match is not automatic code verification");
+    Equal(DosMzImage.Load(mzArtifact).Decode(0, 0, 2).Count, mzLines.Count,
+        "presence of an identity registry cannot change decoded instructions");
+    bool wrongCatalogGameRejected = false;
+    try { SourceProvenance.ForArtifact(mzArtifact, gameId: "foreign",
+        registry: identityRegistry); }
+    catch (InvalidDataException) { wrongCatalogGameRejected = true; }
+    Equal(wrongCatalogGameRejected, true,
+        "catalog fingerprint prevents contradictory game labels");
+    Fails(() => SourceIdentityRegistry.FromJson(JsonSerializer.Serialize(new {
+        schemaVersion = 1,
+        entries = new[] {
+            new { sha256 = mzArtifact.Sha256, byteLength = mzArtifact.Length,
+                gameId = "fixture", module = "MAIN.EXE", sourceEvidence = "first" },
+            new { sha256 = mzArtifact.Sha256, byteLength = mzArtifact.Length,
+                gameId = "other", module = "GAME.EXE", sourceEvidence = "second" }
+        }
+    })), "conflicting duplicate fingerprint catalog entries rejected");
+    Console.WriteLine("PASS: optional hash/length catalogs, namespace isolation and decoder independence");
+
     foreach (bool nested in new[] { false, true })
     {
         byte[] raw = MakeFixture(nested);
