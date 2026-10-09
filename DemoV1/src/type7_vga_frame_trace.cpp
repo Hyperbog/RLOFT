@@ -22,6 +22,11 @@ std::optional<Type7VgaSceneTrace> build_scene(
     bool individual_columns_mode,
     const Type7VgaFrameTraceModel::ShapeLookup& shape_lookup,
     std::size_t& unresolved_wide_runs) {
+    if (plan.source_unresolved) {
+        // A planning failure must never be interpreted as a fully
+        // hidden, successfully traced object.
+        return std::nullopt;
+    }
     bool unsupported = false;
     for (const auto& run : plan.visible_runs) {
         if (run.width == 0U || run.width > 7U) {
