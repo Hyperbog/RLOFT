@@ -36,9 +36,11 @@ subsequent inventory state onto the original image.
 **Compatibility guards:** equal source/world level,
 A/B coordinates, facing and 16.16 time; no saved
 moving/transient effect records; original 6FA0
-contexts entirely inactive; native hand container
-closed. Export also rejects a changed world-scene
-revision. The incomplete full-game save menu is
+contexts now permit both historical inactive forms
+and one unambiguously resolved fully-open phase3
+record. A pre-existing native hand container prevents
+import; validated active views may be exported.
+Export also rejects a changed world-scene revision. The incomplete full-game save menu is
 not wired to this partial interface.
 
 Existing tests gain positive state capture and
