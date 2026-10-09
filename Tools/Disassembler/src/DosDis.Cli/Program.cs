@@ -37,10 +37,11 @@ static void Print(object payload) => Console.WriteLine(JsonSerializer.Serialize(
 
 try
 {
-    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report" or "mz" or "mz-disasm" or "mz-analyze" or "mz-relocate" or "com" or "com-disasm" or "com-analyze" or "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze" or "overlay-fixups"))
+    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report" or "mz" or "mz-disasm" or "mz-analyze" or "mz-relocate" or "mz-cross" or "com" or "com-disasm" or "com-analyze" or "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze" or "overlay-fixups"))
     {
-        Console.Error.WriteLine("Usage: dosdis inspect|mz|mz-disasm|mz-analyze|mz-relocate|com|com-disasm|com-analyze|overlay|overlay-map|overlay-disasm|overlay-analyze|overlay-fixups|fixups|memory|disasm|analyze|report <file> [options]\n" +
-            "MZ relocation simulation: mz-relocate --load-segment HEX [--max 100]; mz-analyze [--load-segment HEX] (only candidate FAR annotations)\n" +
+        Console.Error.WriteLine("Usage: dosdis inspect|mz|mz-disasm|mz-analyze|mz-relocate|mz-cross|com|com-disasm|com-analyze|overlay|overlay-map|overlay-disasm|overlay-analyze|overlay-fixups|fixups|memory|disasm|analyze|report <file> [options]\n" +
+            "MZ relocation simulation: mz-relocate --load-segment HEX [--max 100]; mz-analyze [--load-segment HEX] (candidate FAR annotations)\n" +
+            "MZ cross-segment review: mz-cross --load-segment HEX [--max-entries 16] [--per-entry-instructions 1024]\n" +
             "16-bit CFG: mz-analyze|com-analyze|overlay-analyze [--entry HEX] [--max-instructions 100000]\n" +
             "Overlay: container inspection; overlay-map|overlay-fixups --resident START.EXE (validated MZ directory)\n" +
             "Overlay-disasm: --regions manifest.json --region ID [--offset 0] [--count 32]\n" +
@@ -61,13 +62,13 @@ try
     var catalog = args.Contains("--identity-catalog", StringComparer.Ordinal)
         ? SourceIdentityRegistry.ReadFile(Option(args, "--identity-catalog", "")) : null;
     LeImage? image = null;
-    if (args[0] is not ("mz" or "mz-disasm" or "mz-analyze" or "mz-relocate" or "com" or "com-disasm" or "com-analyze" or "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze" or "overlay-fixups"))
+    if (args[0] is not ("mz" or "mz-disasm" or "mz-analyze" or "mz-relocate" or "mz-cross" or "com" or "com-disasm" or "com-analyze" or "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze" or "overlay-fixups"))
     {
         try { image = LeImage.Load(artifact); }
         catch (InvalidDataException) when (args[0] == "inspect") { /* Identify signature, not fake mapped code. */ }
         catch (NotSupportedException) when (args[0] == "inspect") { /* Unsupported LE page variant. */ }
     }
-    if (args[0] is "mz" or "mz-disasm" or "mz-analyze" or "mz-relocate")
+    if (args[0] is "mz" or "mz-disasm" or "mz-analyze" or "mz-relocate" or "mz-cross")
     {
         var mz = DosMzImage.Load(artifact);
         if (args[0] == "mz")
@@ -80,6 +81,17 @@ try
                 mz.HasTrailingOverlayData, RelocationCount = mz.Relocations.Count,
                 Relocations = mz.Relocations.Take(maximum),
                 Status = "header-validated;not-verified-runtime-code" });
+        }
+        else if (args[0] == "mz-cross")
+        {
+            if (args.Count(x => x == "--load-segment") != 1)
+                throw new ArgumentException("mz-cross requires one explicitly assumed --load-segment HEX.");
+            ushort load = checked((ushort)Hex(Option(args, "--load-segment", "")));
+            int maxEntries = int.Parse(Option(args, "--max-entries", "16"),
+                CultureInfo.InvariantCulture);
+            int perEntry = int.Parse(Option(args, "--per-entry-instructions", "1024"),
+                CultureInfo.InvariantCulture);
+            Print(DosMzCrossSegmentAnalysis.Analyze(mz, load, maxEntries, perEntry));
         }
         else if (args[0] == "mz-relocate")
         {
