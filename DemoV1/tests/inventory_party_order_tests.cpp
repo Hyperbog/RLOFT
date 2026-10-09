@@ -31,6 +31,16 @@ int main() {
     inventory.open_container=rloft::OpenInventoryContainer{
         1U,0U,2,1U
     };
+    // Original CODE.2 12470 swaps complete 6FA0 4-byte
+    // actor menu contexts, not merely the selected viewer.
+    inventory.party_container_ui_contexts[1].raw=
+        {{3U,1U,3U,2U}};
+    inventory.party_container_ui_contexts[2].raw=
+        {{0xFFU,0xFFU,0U,0xFFU}};
+    const auto context_one=
+        inventory.party_container_ui_contexts[1].raw;
+    const auto context_two=
+        inventory.party_container_ui_contexts[2].raw;
     std::array<bool,4> modes{{false,true,false,true}};
     const auto result=rloft::InventoryPartyOrderModel::exchange(
         party,world,inventory,modes,1U,2U);
@@ -52,12 +62,16 @@ int main() {
     assert(world.loose_items[3].packed_runtime_state==0x180CU);
     assert(world.placed_objects[0].packed_runtime_state==0x100DU);
     assert(inventory.open_container->actor==2U);
+    assert(inventory.party_container_ui_contexts[1].raw==context_two);
+    assert(inventory.party_container_ui_contexts[2].raw==context_one);
     assert(modes[1]==false && modes[2]==true);
     const auto undone=rloft::InventoryPartyOrderModel::exchange(
         party,world,inventory,modes,1U,2U);
     assert(undone.changed);
     assert(party.bytes==original);
     assert(inventory.open_container->actor==1U);
+    assert(inventory.party_container_ui_contexts[1].raw==context_one);
+    assert(inventory.party_container_ui_contexts[2].raw==context_two);
     assert(modes[1]==true && modes[2]==false);
     assert(world.npcs[1].packed_runtime_state==0x0802U);
     assert(world.loose_items[2].packed_runtime_state==0x100BU);
