@@ -211,3 +211,19 @@ incorrect AX register copy, two SHL variants, mixed ADD/SHL scaling,
 unrelated-register arithmetic, a single insufficient scale and
 missing relocation simulation. These cases are **added to source but
 not compiled or executed**; previous releases predate them.
+
+## Rejected guard exit must be original-byte backed
+
+R1.4 review identified a provenance gap: requiring a decoded instruction
+at the guard's rejected target did not itself prove that decoded row
+still pointed to its original physical bytes. The rejected edge now
+must have exactly one matching decoded instruction, a bounded file
+offset, a valid 1-15 byte length, matching original bytes, and no
+source mapping discrepancy. This applies to JA/JAE and JB/JBE
+acceptance polarity alike. The accepted path continues to require
+its separate unique predecessor and exact branch proof.
+
+Synthetic negative fixtures corrupt the exit's physical file offset,
+replace its reported opcode bytes, or duplicate its decoded row.
+All must reject automatic table recovery without changing the
+underlying graph. These are source-only regressions until G1.

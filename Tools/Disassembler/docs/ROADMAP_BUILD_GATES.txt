@@ -279,3 +279,12 @@ WORK LOG
 2026-10-09 | Roadmap created from repo contracts, existing format matrix,
 source checkpoints and confirmed Windows preview 37887821656. No new
 build/test requested or run. Immediate batch: R1.4-R1.6.
+
+2026-10-09 | R1.4 original-source exit hardening: the *rejected*
+conditional side now requires exactly one decoded instruction with a valid
+mapped source offset and byte-for-byte source match. This closes the
+previous address-only check that could accept an altered CFG row. Added
+synthetic stale-offset, spoofed-byte and duplicate-exit regressions.
+Status: SOURCE COMPLETE for this subtask; not compiled or executed.
+Last compiled Windows preview remains run 37887821656.
+R1.5-R1.6 and other R1 acceptance work remain open; G1 NOT AUTHORIZED.
