@@ -159,3 +159,28 @@ with v2 telemetry and inspect source-indexed projections
 around actual placed objects and original NPC. Then obtain
 actual DOS indexed frames and compare exact bytes, with
 separate IRQ/state-tick parity evidence.
+
+
+## Final static-audit hardening before manual build
+
+A final source pass hardened two fail-closed invariants:
+
+- Strict `Type7VgaFrameTraceModel::build` explicitly rejects a
+  `source_unresolved` native planning placeholder with
+  `std::invalid_argument`. Its optional `try_build` still keeps
+  that call as a null trace, preserving valid neighbors.
+- `ExplorationPresenter::surface_coverage` counts the greater of
+  logged planning failures and actual unresolved plan slots,
+  preventing a missing error-list entry from making an unknown
+  sprite appear fully occluded. Regression tests include both
+  the strict exception and the missing-metadata case.
+- The frame comparator returns a nonzero CLI status for *any*
+  unmatched pose even when all overlapping poses match bytes.
+  A partial intersection is a diagnostic, never proof of
+  full captured-sequence equivalence.
+
+The latest audit verified that the updated source and tests exist
+at the `demo-v1` branch HEAD and that the workflow is still
+`workflow_dispatch` only. GitHub Actions run #638 remains the
+latest completed run, so **none of this new code is claimed to
+have passed a current-HEAD Windows CTest or DOS parity check**.
