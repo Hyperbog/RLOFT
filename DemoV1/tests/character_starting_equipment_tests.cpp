@@ -118,6 +118,56 @@ int main(){
             }
         }
     }
+    // Direct original CODE.1 0988h data snapshots for the two
+    // newly created CLERIC characters in the player's DOS reference:
+    // race 3 = Halfling, race 4 = Gnome. These object IDs are read
+    // from the immutable shipped CODE.1 1.2a family-3 table, not
+    // guessed from visible inventory icon silhouettes.
+    std::vector<std::uint8_t> original_baseline(
+        kBase+kTable+kFamilies*0xA8U,0xFFU);
+    constexpr std::array<std::uint16_t,14> halfling_cleric{{
+        0xFFFFU,0x0008U,0x0025U,0x0022U,
+        0x0031U,0x00CEU,0x00DCU,0x00DDU,0x0137U,
+        0xFFFFU,0xFFFFU,0xFFFFU,0xFFFFU,0xFFFFU
+    }};
+    constexpr std::array<std::uint16_t,14> gnome_cleric{{
+        0x001BU,0x000CU,0x0100U,0x0021U,
+        0x00D9U,0x003CU,0xFFFFU,0xFFFFU,0xFFFFU,
+        0xFFFFU,0xFFFFU,0xFFFFU,0xFFFFU,0xFFFFU
+    }};
+    for(std::size_t w=0U;w<14U;++w) {
+        word(original_baseline,kBase+kTable+3U*0xA8U+
+             3U*0x1CU+w*2U,halfling_cleric[w]);
+        word(original_baseline,kBase+kTable+3U*0xA8U+
+             4U*0x1CU+w*2U,gnome_cleric[w]);
+    }
+    const auto original_table=rloft::CharacterTransferTables::
+        from_original_bytes(original_baseline,objects);
+    const std::array<rloft::CharacterTransferActor,2> original_pair{{
+        actor(0,3,{{3,-1,-1}}),
+        actor(1,4,{{3,-1,-1}})
+    }};
+    const auto reference_chars=rloft::build_character_transfer(
+        original_pair,original_table);
+    const std::array<std::uint16_t,21> halfling_slots{{
+        49U,206U,220U,221U,311U,
+        0xFFFFU,0xFFFFU,0xFFFFU,0xFFFFU,0xFFFFU,
+        0xFFFFU,0xFFFFU,0xFFFFU,0xFFFFU,
+        37U,34U,8U,0xFFFFU,
+        0xFFFFU,0xFFFFU,0xFFFFU
+    }};
+    const std::array<std::uint16_t,21> gnome_slots{{
+        217U,60U,0xFFFFU,0xFFFFU,0xFFFFU,
+        0xFFFFU,0xFFFFU,0xFFFFU,0xFFFFU,0xFFFFU,
+        0xFFFFU,0xFFFFU,0xFFFFU,0xFFFFU,
+        256U,33U,12U,27U,
+        0xFFFFU,0xFFFFU,0xFFFFU
+    }};
+    for(std::size_t slot=0U;slot<21U;++slot) {
+        assert(read(reference_chars,0U,slot)==halfling_slots[slot]);
+        assert(read(reference_chars,1U,slot)==gnome_slots[slot]);
+    }
+
     // Source-unavailable class/race row is all FFFF, not an
     // invented generic loadout or a copy of a human fighter kit.
     const auto empty_at=kBase+kTable+1U*0xA8U+5U*0x1CU;
