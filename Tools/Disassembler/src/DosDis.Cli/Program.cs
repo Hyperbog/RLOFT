@@ -43,6 +43,7 @@ try
             "Analyze/report: [--seed 1:0x2975C] [--data 1:0x100:0x110] [--include-entry] [--max-instructions 100000] [--relocated]\n" +
             "Analyze: [--max-output 300] [--trace-out decisions.json] [--trace-capacity 512]\n" +
             "         [--known-answer reference.json --validation-out results.json];\n" +
+            "Analyze/report: [--game-id menzo] [--module CODE.1] [--source-archive name.zip] [--internal-path folder/CODE.1]\n" +
             "Report: --out path.json|path.txt [--include-bytes] (no overwrite)");
         return 2;
     }
@@ -77,6 +78,14 @@ try
     else if (args[0] is "analyze" or "report")
     {
         image ??= LeImage.Load(artifact);
+        var provenance = SourceProvenance.ForArtifact(artifact, image,
+            args.Contains("--game-id", StringComparer.Ordinal) ? Option(args, "--game-id", "") : null,
+            args.Contains("--module", StringComparer.Ordinal) ? Option(args, "--module", "") : null,
+            args.Contains("--source-archive", StringComparer.Ordinal) ? Option(args, "--source-archive", "") : null,
+            args.Contains("--internal-path", StringComparer.Ordinal) ? Option(args, "--internal-path", "") : null);
+        foreach (string option in new[] { "--game-id", "--module", "--source-archive", "--internal-path" })
+            if (args.Count(x => x == option) > 1)
+                throw new ArgumentException("Provenance options cannot be repeated.");
         var seeds = RepeatedOption(args, "--seed").Select(ParseSeed).ToList();
         if (seeds.Count == 0 || args.Contains("--include-entry", StringComparer.Ordinal))
             seeds.Insert(0, new FlowAddress((int)image.EntryObject, image.EntryOffset));
@@ -139,11 +148,12 @@ try
             if (!asJson && !string.Equals(extension, ".txt", StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("Report path must have a .json or .txt extension.");
             bool includeBytes = args.Contains("--include-bytes", StringComparer.Ordinal);
-            AnalysisReportExport.WriteNew(output, graph, asJson, includeBytes);
+            AnalysisReportExport.WriteNew(output, graph, asJson, includeBytes, provenance);
             Console.WriteLine($"Candidate analysis report exported ({graph.Instructions.Count} instructions, " +
                 $"bytes {(includeBytes ? "included" : "omitted")}). Original executable unchanged.");
         }
         else Print(new {
+            Provenance = provenance,
             graph.ArtifactSha256, graph.Seeds, graph.ProtectedData, graph.Truncated,
             Summary = new {
                 Instructions = graph.Instructions.Count, Blocks = graph.Blocks.Count,

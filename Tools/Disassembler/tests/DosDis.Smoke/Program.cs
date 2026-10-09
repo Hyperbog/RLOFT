@@ -363,12 +363,41 @@ try
     // Part 25: user-triggered offline exports preserve evidence classification,
     // omit potentially proprietary instruction bytes by default, and never
     // overwrite an existing analyst report.
-    string exportJson = AnalysisReportExport.BuildJson(graph);
+    var unknownSourceProvenance = SourceProvenance.ForArtifact(
+        BinaryArtifact.FromBytes(graphBytes, "CODE.1"), graphImage, "stone",
+        sourceArchive: "StoneProphet.zip", internalPath: "stone/CODE.1");
+    Equal(unknownSourceProvenance.ResearchNamespace,
+        "stone/" + graphImage.ArtifactSha256, "source namespace tied to full hash and game");
+    Equal(unknownSourceProvenance.IdentityStatus, "analyst-declared-game-unverified",
+        "unknown game identification is not promoted to verified fingerprint");
+    Equal(unknownSourceProvenance.SourceArchive, "StoneProphet.zip",
+        "source archive explicitly preserved without absolute host path");
+    var menzoProvenance = SourceProvenance.ForArtifact(
+        BinaryArtifact.FromBytes(graphBytes, "CODE.1"), graphImage, "menzo");
+    Equal(menzoProvenance.ResearchNamespace == unknownSourceProvenance.ResearchNamespace,
+        false, "matching filenames and bytes never merge research namespaces");
+    bool rejectedRelativeTraversal = false;
+    try { SourceProvenance.ForArtifact(BinaryArtifact.FromBytes(graphBytes, "CODE.1"),
+        graphImage, "stone", internalPath: "../other/CODE.1"); }
+    catch (ArgumentException) { rejectedRelativeTraversal = true; }
+    Equal(rejectedRelativeTraversal, true, "provenance rejects parent-directory traversal");
+    bool rejectedUnmatchedReport = false;
+    try { AnalysisReportExport.BuildJson(graph, provenance: unknownSourceProvenance
+        with { SourceSha256 = new string('0', 64) }); }
+    catch (InvalidDataException) { rejectedUnmatchedReport = true; }
+    Equal(rejectedUnmatchedReport, true, "reports cannot label another artifact's identity");
+    string exportJson = AnalysisReportExport.BuildJson(graph, provenance: unknownSourceProvenance);
     using (var exported = JsonDocument.Parse(exportJson))
     {
         var root = exported.RootElement;
         Equal(root.GetProperty("format").GetString(), "dosdis-analysis-report", "versioned report identity");
         Equal(root.GetProperty("analysisStatus").GetString(), "candidate-unverified", "export cannot promote candidates");
+        Equal(root.GetProperty("provenance").GetProperty("GameId").GetString(), "stone",
+            "report embeds explicit game namespace");
+        Equal(root.GetProperty("provenance").GetProperty("SourceSha256").GetString(), graph.ArtifactSha256,
+            "report source provenance includes full SHA-256");
+        Equal(root.GetProperty("provenance").GetProperty("IdentityStatus").GetString(),
+            "analyst-declared-game-unverified", "game label is not verified by filename alone");
         Equal(root.GetProperty("counts").GetProperty("indirectCallTables").GetInt32(), 0,
             "ordinary graph has no candidate call table");
         Equal(root.GetProperty("counts").GetProperty("indirectJumpTables").GetInt32(), 0,

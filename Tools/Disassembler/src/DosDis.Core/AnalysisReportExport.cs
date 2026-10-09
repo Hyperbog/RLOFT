@@ -20,11 +20,14 @@ public static class AnalysisReportExport
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public static string BuildJson(FlowAnalysisResult graph, bool includeInstructionBytes = false)
+    public static string BuildJson(FlowAnalysisResult graph, bool includeInstructionBytes = false,
+        SourceProvenance? provenance = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
         // Exports are archival statements of a candidate graph, never a
         // declaration that decoded bytes or recovered boundaries are correct.
+        provenance ??= SourceProvenance.FromGraph(graph);
+        provenance.RequireGraph(graph);
         return JsonSerializer.Serialize(new
         {
             format = "dosdis-analysis-report",
@@ -32,6 +35,7 @@ public static class AnalysisReportExport
             generatedUtc = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture),
             toolVersion = typeof(AnalysisReportExport).Assembly.GetName().Version?.ToString() ?? "unknown",
             analysisStatus = "candidate-unverified",
+            provenance,
             source = new { sha256 = graph.ArtifactSha256, sourceBinaryIncluded = false,
                 sourcePathIncluded = false, instructionBytesIncluded = includeInstructionBytes },
             counts = new { instructions = graph.Instructions.Count, functions = graph.FunctionCandidates.Count,
@@ -60,13 +64,26 @@ public static class AnalysisReportExport
         }, JsonOptions);
     }
 
-    public static string BuildText(FlowAnalysisResult graph, bool includeInstructionBytes = false)
+    public static string BuildText(FlowAnalysisResult graph, bool includeInstructionBytes = false,
+        SourceProvenance? provenance = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
+        provenance ??= SourceProvenance.FromGraph(graph);
+        provenance.RequireGraph(graph);
         var text = new StringBuilder();
         text.AppendLine("DOSDis candidate analysis report — schema 1");
         text.AppendLine("Classification: CANDIDATE / UNVERIFIED — not a faithful decompilation");
         text.Append("Source SHA-256: ").AppendLine(graph.ArtifactSha256);
+        text.Append("Game: ").Append(Safe(provenance.GameId))
+            .Append(" | Module: ").Append(Safe(provenance.Module))
+            .Append(" | Namespace: ").AppendLine(Safe(provenance.ResearchNamespace));
+        text.Append("Identity status: ").Append(Safe(provenance.IdentityStatus))
+            .Append(" | Byte length: ").Append(provenance.ByteLength?.ToString(CultureInfo.InvariantCulture) ?? "unknown")
+            .Append(" | Format: ").AppendLine(Safe(provenance.ExecutableFormat));
+        if (provenance.SourceArchive is not null)
+            text.Append("Source archive (analyst-supplied): ").AppendLine(Safe(provenance.SourceArchive));
+        if (provenance.InternalPath is not null)
+            text.Append("Internal path (analyst-supplied): ").AppendLine(Safe(provenance.InternalPath));
         text.AppendLine("No original executable, source file path, or project comments included.");
         text.AppendLine(includeInstructionBytes
             ? "Original instruction-byte excerpts: explicitly included"
@@ -147,7 +164,8 @@ public static class AnalysisReportExport
 
     /// <summary>Never replaces an existing export or leaves a partial final file.</summary>
     public static void WriteNew(string outputPath, FlowAnalysisResult graph,
-        bool asJson, bool includeInstructionBytes = false)
+        bool asJson, bool includeInstructionBytes = false,
+        SourceProvenance? provenance = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         ArgumentNullException.ThrowIfNull(graph);
@@ -155,7 +173,8 @@ public static class AnalysisReportExport
         string expectedExt = asJson ? ".json" : ".txt";
         if (!string.Equals(Path.GetExtension(destination), expectedExt, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException($"Expected a {expectedExt} report filename.", nameof(outputPath));
-        string data = asJson ? BuildJson(graph, includeInstructionBytes) : BuildText(graph, includeInstructionBytes);
+        string data = asJson ? BuildJson(graph, includeInstructionBytes, provenance)
+            : BuildText(graph, includeInstructionBytes, provenance);
         if (Encoding.UTF8.GetByteCount(data) > MaximumExportBytes)
             throw new InvalidDataException("Analysis report exceeds the 128 MiB export safety limit.");
         string directory = Path.GetDirectoryName(destination)!;

@@ -275,3 +275,18 @@ game-specific source names copied into another executable. An incomplete
 manifest does not establish negative/exhaustive instruction coverage.
 Version-to-version diff and comprehensive independently checked function
 boundaries remain future work. Overall progress remains **43%**.
+
+## P0 provenance: game / SHA-256 namespace (source checkpoint)
+
+All new candidate JSON and text reports include a source-provenance record.
+CLI `analyze` and `report` accept `--game-id`, `--module`,
+`--source-archive` and `--internal-path`. Local absolute paths are
+**never** captured automatically. The exact original SHA-256 remains the
+identity anchor; a game label supplied for an unrecognized hash stays
+`analyst-declared-game-unverified`. Verified Strahd CODE.1/2 fingerprints
+reject contradictory game names. An absent game ID is `unassigned`.
+Research namespaces contain **both** game ID and complete source SHA:
+`game-id/64-character-sha`. Provenance on saved graph-only reports marks
+unknown source length honestly. No cross-game routine names are inferred.
+See [P0 provenance checkpoint](docs/P0_PROVENANCE_NAMESPACES.md).
+No build requested; static source only.
