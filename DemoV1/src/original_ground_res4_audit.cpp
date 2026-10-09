@@ -39,6 +39,28 @@ OriginalGroundRes4Report OriginalGroundRes4Audit::inspect(
             ++result.rejected_type1_entries;
             continue;
         }
+        // Only decompress the ORIGINAL header shapes that can possibly
+        // become a 64x64 type-1 tile. Other RES4 type-1 images may be
+        // very large portraits/backgrounds; decoding all of them
+        // wastes time and exposes this diagnostics-only tool to an
+        // avoidable allocation of unrelated resources.
+        const auto count=static_cast<std::int16_t>(
+            static_cast<std::uint16_t>(raw[5U]) |
+            (static_cast<std::uint16_t>(raw[6U])<<8U));
+        const auto height=static_cast<std::int16_t>(
+            static_cast<std::uint16_t>(raw[7U]) |
+            (static_cast<std::uint16_t>(raw[8U])<<8U));
+        const auto width_units=raw[9U];
+        const bool ordinary=count==1 && height==64 &&
+                            width_units==8U;
+        const bool original_dc90_transform=raw[12U]!=0U &&
+            count==64 && height==1 && width_units==8U;
+        if(!ordinary && !original_dc90_transform) {
+            if(count<=0 || height<=0 || width_units==0U) {
+                ++result.rejected_type1_entries;
+            }
+            continue;
+        }
         try {
             const auto decoded=archive.decode_type1(i);
             if(!is_source_ground_shape(decoded)) {
