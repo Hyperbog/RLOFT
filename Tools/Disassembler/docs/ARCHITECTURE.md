@@ -58,3 +58,14 @@ Initial integration fixtures should include standalone DOS MZ, LE, FBOV,
 TPOV, LX, raw COM/DRV, AESOP/16, GFF, and eventually other bytecode
 containers, each with positive, negative, truncated, ambiguous and identity
 collision checks. Generalized recovery takes priority over interface polish.
+
+## P0 x86-16 CFG on loader-proven original storage
+
+The common `Dos16CodeRegion` source contract is now supported by MZ,
+explicit COM, and source-bound overlay regions. `Dos16ControlFlowAnalysis`
+performs conservative, bounded, same-segment recursive candidate decoding
+without modifying either source or assuming cross-segment execution.
+`DosOverlayFixupAudit` inventories paired unit code and opaque fixup
+storage with original-source hashes, but overlay relocation *semantics*
+remain unknown. CPU decoding, loader geometry, and game identity still
+occupy independent layers.

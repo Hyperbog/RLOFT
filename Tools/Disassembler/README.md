@@ -376,3 +376,32 @@ segment locations. No Gold Box game receives any special-case logic.
 See [overlay envelope contract](docs/P0_FBOV_TPOV_OVERLAY_ENVELOPES.md) and
 [resident overlay directory recovery](docs/P0_TP_RESIDENT_OVERLAY_DIRECTORY.md).
 **No builds or tests were run.** Progress remains 43% pending verification.
+
+## P0 generic 16-bit recursive control flow and overlay storage audit
+
+The source now contains `Dos16ControlFlowAnalysis`, operating identically
+on bounded `Dos16CodeRegion` hypotheses produced by validated DOS MZ,
+analyst-selected COM, or a source-bound overlay code-region manifest.
+Near CALL/JMP/conditional transfers receive candidate edges; far/indirect
+calls and jumps, interrupts, rejected overlapping decodes and out-of-region
+targets retain explicit unresolved evidence. The ledger separately counts
+decoded and unknown file-backed bytes. The analyzer **never assigns a game-
+specific function, callback address, runtime segment or relocation**.
+
+The new `DosOverlayFixupAudit` verifies paired overlay directory code/fixup
+extents, reports SHA-256 fingerprints of each stored unit's code and **opaque**
+relocation payload, and distinguishes the paired EXE and OVR identities.
+It does **not** decode fixup semantics or feed fixup blobs to x86.
+
+```powershell
+DosDis.Cli.exe mz-analyze MAIN.EXE --max-instructions 20000
+DosDis.Cli.exe com-analyze SOUND.COM --origin 100 --entry 100
+DosDis.Cli.exe overlay-analyze GAME.OVR --regions map.json --region entry
+DosDis.Cli.exe overlay-fixups GAME.OVR --resident START.EXE
+```
+
+See [16-bit CFG](docs/P0_X86_16_RECURSIVE_CFG_SOURCE.md),
+[overlay fixup audit](docs/P0_OVERLAY_FIXUP_STORAGE_AUDIT.md) and the
+[format matrix](docs/FORMAT_SUPPORT_MATRIX.md). These are source-only CLI
+examples. **Compilation, smoke tests and original DOS file regressions have
+not been run.** Build execution remains user-requested only.

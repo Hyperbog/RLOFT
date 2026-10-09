@@ -5,11 +5,11 @@ not independently reverified by this source-only checkpoint.
 
 | Format family | Example from collection | Implementation status | Correct next gate |
 | --- | --- | --- | --- |
-| DOS MZ `.EXE` | Hillsfar `MAIN.EXE`; Dark Sun `DSUN.EXE` | Header/relocation map and requested x86-16 linear decode in source | Real-file validation, complete MZ rebase and recursive CFG |
+| DOS MZ `.EXE` | Hillsfar `MAIN.EXE`; Dark Sun `DSUN.EXE` | Header/relocation map, requested x86-16 decoding, and bounded initial-CS candidate CFG in source | Real-file validation, complete relocation rebasing, additional segments and cross-segment CFG |
 | MZ-bound LE | `CODE.1`, `CODE.2` | Validated object/page mapping and x86-32 candidates in source | Fixup coverage, indirect-flow completeness |
-| FBOV | Pool of Radiance `GAME.OVR` | Validated envelope and resident-descriptor recovery for 8-byte variant; 16-byte variant envelope-only | Confirm actual game variant and runtime load/relocation semantics |
-| TPOV | Secret of the Silver Blades `GAME.OVR` | Envelope and resident MZ descriptor-chain recovery in source | Confirm actual file/layout, fixups, runtime code locations |
-| Headerless COM | Pools of Darkness `SOUND.COM` | Explicit 16-bit origin mapping and requested candidate decoder; never auto-enabled by extension | Real DOS PSP/runtime assumptions, interrupt/driver analysis |
+| FBOV | Pool of Radiance `GAME.OVR` | Envelope, 8-byte variant paired resident directory, opaque fixup audit, explicit source-bound region x86-16 CFG | Confirm original layout, runtime segment and relocation encodings; 16-byte variant remains envelope-only |
+| TPOV | Secret of the Silver Blades `GAME.OVR` | Envelope, paired resident MZ directory, opaque fixup audit, explicit source-bound region x86-16 CFG | Verify real files, fixup encoding and runtime overlay mapping |
+| Headerless COM | Pools of Darkness `SOUND.COM` | Explicit 16-bit origin, requested decode, and bounded same-segment candidate CFG; never auto-detected from filename | Real DOS PSP/runtime assumptions, interrupt/driver and callback analysis |
 | Headerless/structured DRV | Pools of Darkness `VGA.DRV` | Unknown/headerless by default | Driver calling/initialization conventions and detection |
 | MZ-bound LX | `A32ADLIB.DLL`, other AIL/32 drivers | Signature recognized only | LX object/page/rebase/entry mapping |
 | NE / PE | Other MZ-bound binaries | Signature recognized only | Dedicated NE/PE metadata loaders and host-platform distinction |
@@ -79,3 +79,22 @@ unique resident descriptor chain covering the overlay payload, with at
 least one checked procedure trap stub. The 16-byte FBOV variant uses a
 different manager and remains envelope-only. Stored code/fixup extents
 are not evidence of runtime-segment assignments or fully resolved calls.
+
+## Universal 16-bit recursive CFG (source-only)
+
+CLI `mz-analyze`, `com-analyze`, and `overlay-analyze` now share a
+single analyzer. They use original file offsets and a **declared segment
+window**; only reachable near branches/calls within that validated window
+receive candidate destination edges. Far/indirect transfers, DOS interrupts,
+unbacked destinations, rejected overlaps and instruction-budget truncation
+receive separate evidence/diagnostic statuses. The original bytes, code/data
+uncertainty and independent file identities remain intact.
+
+`overlay-fixups GAME.OVR --resident START.EXE` returns source-authenticated,
+separate **code span and opaque fixup span fingerprints**, never guessed
+relocation values. It first requires a complete resident directory.
+The paired overlay code-map analysis still requires a user- or research-
+provided, source-hash-bound region manifest with assumed segment/IP;
+the runtime loader's final segment values remain unknown.
+
+**All new code and fixtures remain unbuilt and unexecuted.**
