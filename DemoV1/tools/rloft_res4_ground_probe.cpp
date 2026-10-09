@@ -37,8 +37,12 @@ int main(int argc,char** argv) {
                  <<"invalid_type1_count="<<report.rejected_type1_entries<<"\n"
                  <<"eligible_64x64_count="<<report.tiles_64x64.size()<<"\n";
         for(const auto& c:report.tiles_64x64) {
-            std::cout<<"candidate\t"<<c.absolute_entry<<"\t"
-                     <<c.compressed_entry_bytes<<"\t"
+            // The arithmetic difference is only a hypothesis.
+            // It is not a measured DOS 258F8 runtime value.
+            const auto implied_base=c.absolute_entry-55;
+            std::cout<<"candidate\t"<<c.absolute_entry
+                     <<"\timplied_base_unverified="<<implied_base
+                     <<"\t"<<c.compressed_entry_bytes<<"\t"
                      <<unsigned(c.compression)<<"\t"
                      <<unsigned(c.transform)<<"\t"
                      <<unsigned(c.transparent_index)<<"\t"
