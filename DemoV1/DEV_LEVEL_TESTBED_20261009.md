@@ -1,29 +1,46 @@
 # Level 22 — reusable native development testbed
 
-## Universal percentage tracking
+## Current status and universal percentage tracking
 
-All work on this dev slice, including original startup,
-character creation, inventory, movement, pixels, audio,
-puzzles, combat and later-level handoffs, is tracked
-through **120 individually scored subsystems** in
-20 major groups. The canonical percentage table and
-per-subsystem blockers are maintained in
-[the progress scorecard](PROGRESS_SUBSYSTEM_REPORT_20261009.md).
-Provisional readiness at adoption **48.8%**;
-the older 56.25% engineering ledger remains
-independent. On every source checkpoint, update
-the applicable subsystem percentage and its
-roll-up, without treating unexecuted tests as passes.
+**Green Full Windows checkpoint:** [build #647](
+https://github.com/Hyperbog/RLOFT/actions/runs/37987825463)
+compiled and passed all **172/172 registered CTests**
+at source revision `fb4a0145`. The native Windows
+executable was published, build provenance recorded
+in Git, and the workflow restored to **manual-only**.
+**No original DOS visual/timing acceptance is claimed**.
 
-CTest registration **172** (including the offline
-scorecard consistency check), Quick **19**.
-No build, CI or test was initiated.
+**Post-build development:** the production runtime now
+selects original RES4 ground textures using the
+currently loaded level's signed header selector and
+the original INIT resource base, instead of rejecting
+all levels other than 22. A synthetic Level23 selector
+fixture validates archive identity without fallback
+artwork. This post-build source change **has not
+yet been rebuilt or tested**, and playable transitions
+are still incomplete.
 
+The canonical [percentage report](
+PROGRESS_SUBSYSTEM_REPORT_20261009.md) tracks
+**122 individual subsystems and 20 parent systems**
+with original-source, implementation, runtime,
+authored-test and DOS-equivalence gates.
+**Provisional readiness: 48.9%.** New authenticated
+cross-level ground selection is **50.0%**; Level
+lifecycle and continuity is **37.9%**; Verification
+and developer testbed is **50.0%**. The historical
+**56.25%** 32-task engineering metric remains separate.
+
+**CTest registry:** 172; Quick: 19. Full Windows
+verification passed on the identified earlier source
+revision. Future builds are manual unless explicitly
+authorized. An opted-in `--explore-level22 --dev-inspect
+--dev-interact` run is available for human interaction
+tests using the published executable.
 
 **Branch:** `demo-v1`  
-**Scope:** a small, source-faithful vertical slice used to exercise each original game subsystem before the same runtime is expanded to the other levels.  
-**Status:** development instrumentation added; Windows build and 171 registered CTests **not yet executed**.  
-**Architecture reference:** [complete-game integration contract](CONTINUOUS_GAME_INTEGRATION_CONTRACT_20261009.md).
+**Scope:** small source-faithful vertical slice; all proven runtime code is reused as later levels are integrated.  
+**Architecture reference:** [continuous-game contract](CONTINUOUS_GAME_INTEGRATION_CONTRACT_20261009.md).
 
 ## Rules of this testbed
 
@@ -72,8 +89,12 @@ entire valid/invalid mode matrix, including that
 normal gameplay remains enabled and a preview
 without `--dev-interact` stays protected.
 
-**Build-essential checkpoint:** The current HEAD
-contains the previously uncompiled in-game CINE08
+**Build checkpoint accepted:** Full Windows build
+#647 passed all 172 CTests at `fb4a0145`, and
+the original one-shot trigger has been removed.
+The current HEAD has additional source-only
+per-level ground binding changes. The earlier HEAD
+contained the previously uncompiled in-game CINE08
 runtime event handoff, multi-actor container UI,
 state inspection and this new interactive preview.
 Before extending integration or claiming demo
@@ -89,7 +110,7 @@ Do not dispatch automatically. Any failure must be
 addressed at its exact build SHA before advancing
 new gameplay acceptance scores.
 
-The canonical subsystem table now tracks **121**
+The canonical subsystem table now tracks **122**
 individual subsystems. The added **opt-in world
 pickup and hand exchange** subsystem has provisional
 readiness **60.0%** (20/20/20/20/0, source,
@@ -97,7 +118,7 @@ implementation, live wiring, authored tests and
 unexecuted DOS acceptance); the
 **Verification and developer testbed** parent
 is **49.3%** across seven rows. The weighted
-overall remains **48.8%** after rounding,
+overall now measures **48.9%** after rounding,
 the prior 56.25% engineering-task metric is
 unchanged, and the CTest registry remains
 **172 / Quick 19**.
