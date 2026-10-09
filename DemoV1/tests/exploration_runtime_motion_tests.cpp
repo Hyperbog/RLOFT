@@ -1,3 +1,6 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include "rloft/exploration_runtime_motion.hpp"
 
 #include <cassert>
