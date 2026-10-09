@@ -1,6 +1,6 @@
 # D&D Classics — Original Collection Workspace
 
-**STATUS: inventories committed; original game payloads NOT YET committed to this branch.**
+**STATUS (2026-10-08): partial original-file import — 1,103 of 1,533 inventory paths present, 430 missing, and 74 present files have source-size differences. Byte-for-byte SHA-256 verification remains pending. See [IMPORT_STATUS.md](IMPORT_STATUS.md).**
 
 This directory contains one isolated folder per game. Each `SOURCE_INVENTORY.csv` records original relative paths, source ZIP identity, file size, CRC-32, and SHA-256, based on the independently validated uploaded collection. The inventories are references, not substitutes for the original files.
 
@@ -22,7 +22,7 @@ This directory contains one isolated folder per game. Each `SOURCE_INVENTORY.csv
 
 **Total original regular files: 1,533 (13 games).** The existing `README.md` in each game directory is a research scaffold, not an original game file.
 
-To import the exact game content into these folders, use [Tools/CollectionImport](../Tools/CollectionImport/README.md). That importer verifies the six original source hashes, keeps filenames/paths segregated, uses Git LFS for four oversized files, and batches 80 files per commit. The importer requires running from an authenticated Git clone with the source ZIP archives present on disk.
+An initial import has populated ten game directories and two Menzoberranzan binaries. For the remaining files, see [IMPORT_STATUS.md](IMPORT_STATUS.md) and [Tools/CollectionImport](../Tools/CollectionImport/README.md). **The existing importer refuses all existing destinations and is not yet safe for direct resume against the current partially populated branch; enhance and validate its resume/repair logic before using `--apply`.** Its LFS implementation is intended for the four files above GitHub's regular-file size limit.
 
 Do not substitute Strahd's Possession reference binaries for any file in the Menzo or Stone source inventories. Source provenance must be game-specific.
 
