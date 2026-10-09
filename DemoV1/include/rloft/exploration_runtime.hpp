@@ -174,10 +174,11 @@ public:
         std::size_t item_index);
 
     // Original CODE.2 inventory 13118, logical D key 0x44 ->
-    // 2195C family-C loose item creation. A caller-provided
-    // 2D5D0 collision predicate can veto the forward offset
-    // without losing the object. World revision changes only
-    // after a committed original item drop.
+    // 2195C family-C loose item creation. The default probe
+    // now reconstructs 2D5D0 mode 0x190's original collision
+    // rectangle, source cell flags and live NPC/player checks.
+    // Tests may inject a different probe. The world revision
+    // changes only after a successful drop.
     [[nodiscard]] InventoryWorldDropResult drop_held_inventory_item(
         const InventoryWorldDropModel::PlacementProbe& can_place={});
 
