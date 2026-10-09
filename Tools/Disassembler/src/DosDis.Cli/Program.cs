@@ -43,7 +43,8 @@ try
             "MZ relocation simulation: mz-relocate --load-segment HEX [--max 100]; mz-analyze [--load-segment HEX] (candidate FAR annotations)\n" +
             "MZ cross-segment review: mz-cross --load-segment HEX [--max-entries 16] [--per-entry-instructions 1024]\n" +
             "16-bit CFG: mz-analyze|com-analyze|overlay-analyze [--entry HEX] [--max-instructions 100000] [--indirect]\n" +
-            "CS-memory pointers: --indirect adds evidence-only near/FAR candidates; FAR pointers require MZ --load-segment\n" +
+            "CS-memory pointers: --indirect adds near/FAR pointer candidates; FAR requires MZ --load-segment\n" +
+            "Indexed CS dispatch: --table-map manifest.json (analyst-supplied count and exact source SHA-256; no auto-reachability)\n" +
             "Overlay: container inspection; overlay-map|overlay-fixups --resident START.EXE (validated MZ directory)\n" +
             "Overlay-disasm: --regions manifest.json --region ID [--offset 0] [--count 32]\n" +
             "COM: explicitly selected headerless mode [--origin 100] (hex); com-disasm [--offset 100] [--count 32]\n" +
@@ -57,6 +58,14 @@ try
             "Report: --out path.json|path.txt [--include-bytes] (no overwrite)");
         return 2;
     }
+    if (args.Count(x => x == "--table-map") > 1)
+        throw new ArgumentException("--table-map cannot be repeated.");
+    if (args.Contains("--table-map", StringComparer.Ordinal) &&
+        args[0] is not ("mz-analyze" or "com-analyze" or "overlay-analyze"))
+        throw new ArgumentException("--table-map requires a 16-bit analysis action.");
+    Dos16TableManifest? tableManifest = args.Contains("--table-map", StringComparer.Ordinal)
+        ? Dos16DispatchTableRecovery.ReadManifest(Option(args, "--table-map", ""))
+        : null;
     var artifact = BinaryArtifact.Open(args[1]);
     if (args.Count(x => x == "--identity-catalog") > 1)
         throw new ArgumentException("--identity-catalog cannot be repeated.");
@@ -136,12 +145,17 @@ try
                     FarImmediateCandidates = DosMzFarTargetRecovery.Inspect(mz, graph16, simulated),
                     IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(
                         region, graph16, mz, simulated),
+                    DispatchTableEvidence = tableManifest is null ? null :
+                        Dos16DispatchTableRecovery.Inspect(region, graph16,
+                            tableManifest, mz, simulated),
                     Note = "All FAR and CS-indirect targets are separate, non-enqueued candidates; original CFG unresolved edges remain."
                 });
             }
-            else if (args.Contains("--indirect", StringComparer.Ordinal))
+            else if (args.Contains("--indirect", StringComparer.Ordinal) || tableManifest is not null)
                 Print(new { CandidateGraph = graph16,
-                    IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(region, graph16) });
+                    IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(region, graph16),
+                    DispatchTableEvidence = tableManifest is null ? null :
+                        Dos16DispatchTableRecovery.Inspect(region, graph16, tableManifest) });
             else Print(graph16);
         }
         else
@@ -170,9 +184,11 @@ try
             int budget = int.Parse(Option(args, "--max-instructions", "100000"), CultureInfo.InvariantCulture);
             var region = com.CreateCodeRegion();
             var graph16 = Dos16ControlFlowAnalysis.Analyze(region, entry, budget);
-            if (args.Contains("--indirect", StringComparer.Ordinal))
+            if (args.Contains("--indirect", StringComparer.Ordinal) || tableManifest is not null)
                 Print(new { CandidateGraph = graph16,
-                    IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(region, graph16) });
+                    IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(region, graph16),
+                    DispatchTableEvidence = tableManifest is null ? null :
+                        Dos16DispatchTableRecovery.Inspect(region, graph16, tableManifest) });
             else Print(graph16);
         }
         else
@@ -221,9 +237,11 @@ try
                     region.Origin.ToString("X", CultureInfo.InvariantCulture))));
                 int budget = int.Parse(Option(args, "--max-instructions", "100000"), CultureInfo.InvariantCulture);
                 var graph16 = Dos16ControlFlowAnalysis.Analyze(region, entry, budget);
-                if (args.Contains("--indirect", StringComparer.Ordinal))
+                if (args.Contains("--indirect", StringComparer.Ordinal) || tableManifest is not null)
                     Print(new { CandidateGraph = graph16,
-                        IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(region, graph16) });
+                        IndirectPointerEvidence = Dos16IndirectPointerRecovery.Inspect(region, graph16),
+                        DispatchTableEvidence = tableManifest is null ? null :
+                            Dos16DispatchTableRecovery.Inspect(region, graph16, tableManifest) });
                 else Print(graph16);
             }
             else
