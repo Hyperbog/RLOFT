@@ -2,7 +2,7 @@
 
 Game-by-game workspace for the 13 Dungeons & Dragons titles identified in the verified collection inventory.
 
-This directory contains the original research scaffolds. The separate [MASTER game archive](../MASTER/) is partially populated with original binaries and game content. As of 2026-10-08, 1,103 of 1,533 original-file paths are present; 430 are missing, and 74 present files have source-size differences. See the [current import and integrity audit](../MASTER/IMPORT_STATUS.md). Original commercial game material must remain private unless redistribution is authorized.
+This directory contains the original research scaffolds. The separate [MASTER game archive](../MASTER/) is partially populated with original binaries and game content. As of 2026-10-08, 1,264 of 1,533 original-file paths are present; 269 are missing, and 94 present files have source-size differences. See the [current import and integrity audit](../MASTER/IMPORT_STATUS.md). Original commercial game material must remain private unless redistribution is authorized.
 
 ## Games and source archives
 

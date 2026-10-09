@@ -1,6 +1,6 @@
 # D&D Classics: Import and Byte-Fidelity Audit
 
-**Audit date:** 2026-10-08 (America/New_York)  
+**Audit date:** 2026-10-08 (America/New_York); updated after commit `f0c3aa0`  
 **Branch:** `DnD-Classics`  
 **Scope:** Original 13-game collection under `MASTER/`. Strahd's Possession is a separate, additional workspace.
 
@@ -14,16 +14,18 @@
 | Dungeon Hack | 54 | 54 | 0 | 8 |
 | Gateway to the Savage Frontier | 115 | 115 | 0 | 7 |
 | Hillsfar | 90 | 90 | 0 | 7 |
-| Menzoberranzan | 83 | 2 | 81 | 0 |
+| Menzoberranzan | 83 | 82 | 1 | 8 |
 | Pool of Radiance | 188 | 188 | 0 | 6 |
 | Pools of Darkness | 101 | 101 | 0 | 8 |
-| Ravenloft - Stone Prophet | 83 | 0 | 83 | 0 |
+| Ravenloft - Stone Prophet | 83 | 81 | 2 | 12 |
 | Secret of the Silver Blades | 85 | 85 | 0 | 7 |
 | Treasures of the Savage Frontier | 101 | 101 | 0 | 6 |
 | Unlimited Adventures | 141 | 141 | 0 | 7 |
-| **Total** | **1,533** | **1,103** | **430** | **74** |
+| **Total** | **1,533** | **1,264** | **269** | **94** |
 
-Counts were obtained by comparing committed Git tree paths and byte sizes to each game's `SOURCE_INVENTORY.csv`. A file with the same size is **not yet certified SHA-256 identical**; all 1,533 files need original-byte verification. The 74 size mismatches are not independently proven to be newline normalization and must be recovered/verified from sources.
+A new `Remaining files` commit (`f0c3aa0`) added 80 previously missing Menzoberranzan original paths and 81 Stone Prophet original paths. Its extra `MASTER/Ravenloft - Stone Prophet/PROPHET/dosdis-candidate-analysis.json` is not part of the original source inventory and should remain explicitly categorized as research output rather than original content.
+
+Counts were obtained by comparing committed Git tree paths and byte sizes to each game's `SOURCE_INVENTORY.csv`. A file with the same size is **not yet certified SHA-256 identical**; all 1,533 files need original-byte verification. The 94 size mismatches are not independently proven to be newline normalization and must be recovered/verified from sources.
 
 ## Files requiring Git LFS (over GitHub's 100 MiB regular Git limit)
 
@@ -42,10 +44,12 @@ The original ZIP archives from a preceding chat are not accessible to the curren
 
 - `D&D Games 1.zip` — includes Dark Sun 2 and six of the games with mismatches.
 - `D&D Games 2.zip` — needed to verify/repair the other four imported games.
-- `Menzoberranzan.zip` — needed for 81 missing files.
+- `Menzoberranzan.zip` — needed for the one missing oversized file and byte-accurate validation of the other 82.
 - `Ravenloft - Stone Prophet.zip.001`
 - `Ravenloft - Stone Prophet.zip.002`
 - `Ravenloft - Stone Prophet.zip.003`
+
+Stone Prophet now has 81 of 83 original paths present; the two absent files are the oversized `gog.game` and `gog.zip`.
 
 The last three parts must be available together to reconstruct the original Stone Prophet archive.
 
