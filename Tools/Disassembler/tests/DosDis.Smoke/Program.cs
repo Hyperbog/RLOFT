@@ -429,6 +429,106 @@ try
         0, "one unrelocated table selector rejects all candidate table targets");
     Console.WriteLine("PASS: evidence-bound CS-indexed near and FAR table candidates");
 
+    // A genuinely guarded indexed dispatch: CMP BX,2; unsigned JA default;
+    // SHL BX,1; JMP word ptr CS:[BX+120h]. No manual table manifest exists.
+    var automaticBytes = new byte[0x40];
+    new byte[] { 0x83, 0xFB, 0x02, 0x77, 0x07, 0xD1, 0xE3,
+        0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3 }.CopyTo(automaticBytes, 0);
+    MzWord(automaticBytes, 0x20, 0x130);
+    MzWord(automaticBytes, 0x22, 0x131);
+    MzWord(automaticBytes, 0x24, 0x132);
+    automaticBytes[0x30] = automaticBytes[0x31] =
+        automaticBytes[0x32] = 0xC3;
+    var automaticSource = BinaryArtifact.FromBytes(automaticBytes, "unidentified-headerless.bin");
+    var automaticRegion = DosComImage.LoadExplicit(automaticSource).CreateCodeRegion();
+    var automaticGraph = Dos16ControlFlowAnalysis.Analyze(automaticRegion, 0x100);
+    var automaticTables = Dos16AutomaticDispatchRecovery.Inspect(automaticRegion, automaticGraph);
+    Equal(automaticTables.GuardedTableCandidates, 1,
+        "unsigned BX guard and one-shift produces an automatic table candidate");
+    Equal(automaticTables.Sites[0].EntryCount, (int?)3,
+        "CMP BX,2 and JA give three nonnegative unsigned index possibilities");
+    Equal(automaticTables.Sites[0].StoredTable?.Entries.Count, 3,
+        "all three entries validated against original source bytes");
+    Equal(automaticGraph.Instructions.Any(x => x.Address.Offset == 0x130), false,
+        "automatic tables do not enqueue inferred destinations in the CFG");
+    var signedGuard = (byte[])automaticBytes.Clone();
+    signedGuard[3] = 0x7F; // JG is signed, not the unsigned JA condition
+    var signedRegion = DosComImage.LoadExplicit(BinaryArtifact.FromBytes(signedGuard)).CreateCodeRegion();
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(signedRegion,
+        Dos16ControlFlowAnalysis.Analyze(signedRegion, 0x100)).GuardedTableCandidates,
+        0, "signed comparison cannot validate unsigned BX table bounds");
+    var unscaled = (byte[])automaticBytes.Clone();
+    unscaled[5] = 0x90; unscaled[6] = 0x90;
+    var unscaledRegion = DosComImage.LoadExplicit(BinaryArtifact.FromBytes(unscaled)).CreateCodeRegion();
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(unscaledRegion,
+        Dos16ControlFlowAnalysis.Analyze(unscaledRegion, 0x100)).GuardedTableCandidates,
+        0, "16-bit BX pointer table requires a proven stride transformation");
+    var changedRegister = (byte[])automaticBytes.Clone();
+    changedRegister[1] = 0xF8; // CMP AX,2 cannot bound BX
+    var changedRegisterRegion = DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(changedRegister)).CreateCodeRegion();
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(changedRegisterRegion,
+        Dos16ControlFlowAnalysis.Analyze(changedRegisterRegion, 0x100)).GuardedTableCandidates,
+        0, "bounds from a different register cannot be assigned to BX");
+    var alternateModrm = (byte[])automaticBytes.Clone();
+    alternateModrm[9] = 0xA6; // JMP word ptr CS:[BP+disp16], not [BX+disp16]
+    var alternateModrmRegion = DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(alternateModrm)).CreateCodeRegion();
+    var alternateModrmGraph = Dos16ControlFlowAnalysis.Analyze(alternateModrmRegion, 0x100);
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(alternateModrmRegion,
+        alternateModrmGraph).GuardedTableCandidates, 0,
+        "different 16-bit ModRM base register cannot be interpreted as BX");
+    var alternateManifest = new Dos16TableManifest(1, alternateModrmRegion.SourceSha256,
+        new[] { new Dos16TableRequest(0x107, 0x120, 3, "near16", "synthetic") });
+    Equal(Dos16DispatchTableRecovery.Inspect(alternateModrmRegion,
+        alternateModrmGraph, alternateManifest).Candidates, 0,
+        "manual manifest cannot override a non-BX ModRM encoding");
+    var ambiguousGuard = (byte[])automaticBytes.Clone();
+    ambiguousGuard[4] = 0x00; // JA taken and not taken both reach SHL
+    var ambiguousRegion = DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(ambiguousGuard)).CreateCodeRegion();
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(ambiguousRegion,
+        Dos16ControlFlowAnalysis.Analyze(ambiguousRegion, 0x100)).GuardedTableCandidates,
+        0, "multiple incoming flow edges prevent falsely claiming a unique guard");
+    var failedFourthEntry = (byte[])automaticBytes.Clone();
+    failedFourthEntry[2] = 0x03; // CMP BX,3 permits a fourth, invalid entry
+    var failedFourthRegion = DosComImage.LoadExplicit(
+        BinaryArtifact.FromBytes(failedFourthEntry)).CreateCodeRegion();
+    var failedFourthReport = Dos16AutomaticDispatchRecovery.Inspect(failedFourthRegion,
+        Dos16ControlFlowAnalysis.Analyze(failedFourthRegion, 0x100));
+    Equal(failedFourthReport.GuardedTableCandidates, 0,
+        "one unverified table entry rejects the entire automatically bounded table");
+    Equal(failedFourthReport.Sites[0].StoredTable, null,
+        "partially checked tables must not expose an unsafe target list");
+
+    // Four-byte FAR entries require a SHL BX,2 and distinct MZ selector
+    // fixups; a load segment is an explicit simulation assumption.
+    var automaticFarBytes = (byte[])mzBytes.Clone();
+    MzWord(automaticFarBytes, 8, 3); MzWord(automaticFarBytes, 6, 2);
+    MzWord(automaticFarBytes, 0x1C, 0x32); MzWord(automaticFarBytes, 0x1E, 0);
+    MzWord(automaticFarBytes, 0x20, 0x36); MzWord(automaticFarBytes, 0x22, 0);
+    new byte[] { 0x83, 0xFB, 0x01, 0x77, 0x08, 0xC1, 0xE3, 0x02,
+        0x2E, 0xFF, 0xAF, 0x30, 0x00, 0xC3 }.CopyTo(automaticFarBytes, 0x30);
+    MzWord(automaticFarBytes, 0x60, 0x40); MzWord(automaticFarBytes, 0x62, 0);
+    MzWord(automaticFarBytes, 0x64, 0x42); MzWord(automaticFarBytes, 0x66, 0);
+    automaticFarBytes[0x70] = automaticFarBytes[0x72] = 0xC3;
+    var automaticFarMz = DosMzImage.Load(BinaryArtifact.FromBytes(automaticFarBytes));
+    var automaticFarRegion = automaticFarMz.CreateEntryCodeRegion();
+    var automaticFarGraph = Dos16ControlFlowAnalysis.Analyze(automaticFarRegion, 0);
+    var automaticFarResult = Dos16AutomaticDispatchRecovery.Inspect(automaticFarRegion,
+        automaticFarGraph, automaticFarMz, automaticFarMz.SimulateRelocations(0x2000));
+    Equal(automaticFarResult.GuardedTableCandidates, 1,
+        "MZ FAR indexed table requires matching unsigned guard, BX stride and selectors");
+    Equal(automaticFarResult.Sites[0].EntryCount, (int?)2,
+        "unsigned CMP BX,1 bounds two FAR table entries");
+    Equal(automaticFarResult.Sites[0].StoredTable?.Entries[1].TargetFileOffset, 0x72L,
+        "MZ FAR table target preserves independently backed original file position");
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(automaticFarRegion,
+        automaticFarGraph, automaticFarMz).GuardedTableCandidates, 0,
+        "no runtime load base means no FAR selector target recovery");
+    Console.WriteLine("PASS: automatic BX unsigned-guard and proven near/FAR table stride");
+
+
 
     var crossReview = DosMzCrossSegmentAnalysis.Analyze(farImage,
         assumedLoadSegment: 0x2000, maxEntryGraphs: 4, instructionsPerEntry: 16);
