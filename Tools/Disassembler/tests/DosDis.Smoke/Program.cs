@@ -504,6 +504,34 @@ try
     Equal(jbeTaken.Report.Sites[0].StoredTable?.Entries.Count, 3,
         "selected in-range branch validates every stored pointer");
 
+    // Even the rejected side of a guard must be backed by valid original
+    // decoded instruction bytes, not merely a matching graph address.
+    var staleFailureExit = jbeTaken.Graph with {
+        Instructions = jbeTaken.Graph.Instructions.Select(i =>
+            i.Address.Offset == 0x105
+                ? i with { SourceFileOffset = long.MaxValue } : i).ToArray()
+    };
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(
+        jbeTaken.Region, staleFailureExit).GuardedTableCandidates, 0,
+        "unsigned in-range dispatch rejects an exit with a stale physical offset");
+    var rewrittenFailureExit = jbeTaken.Graph with {
+        Instructions = jbeTaken.Graph.Instructions.Select(i =>
+            i.Address.Offset == 0x105
+                ? i with { OriginalBytes = "90" } : i).ToArray()
+    };
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(
+        jbeTaken.Region, rewrittenFailureExit).GuardedTableCandidates, 0,
+        "unsigned in-range dispatch rejects byte-spoofed exit instructions");
+    var duplicatedFailureExit = jbeTaken.Graph with {
+        Instructions = jbeTaken.Graph.Instructions.Concat(
+            jbeTaken.Graph.Instructions.Where(i =>
+                i.Address.Offset == 0x105)).ToArray()
+    };
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(
+        jbeTaken.Region, duplicatedFailureExit).GuardedTableCandidates, 0,
+        "duplicate exit instruction claims cannot satisfy unique guard proof");
+
+
     var jbTaken = AnalyzeBridgedTable(new byte[] {
         0x83, 0xFB, 0x03, 0x72, 0x03, // CMP BX,3; JB +3
         0xC3, 0x90, 0x90,
