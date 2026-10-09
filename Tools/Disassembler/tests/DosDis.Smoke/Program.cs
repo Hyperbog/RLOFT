@@ -245,7 +245,7 @@ try
         Regions = new[] { mappedRegion with { AssumedOffset = 0xFFFE } } }),
         "overlay region must fit the declared 16-bit address space");
     Fails(() => fbov.DecodeExplicit(regionManifest with {
-        Regions = new[] { mappedRegion with { Role = "data-candidate" } },
+        Regions = new[] { mappedRegion with { Role = "data-candidate" } } },
         "entry", 0, 2),
         "explicitly marked data must not be decoded as candidate code");
 
