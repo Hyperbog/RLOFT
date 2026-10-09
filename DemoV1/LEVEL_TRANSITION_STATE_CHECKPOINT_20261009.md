@@ -26,3 +26,7 @@ The [CODE.2 original mist timeline](LEVEL22_ORIGINAL_MIST_FRAME_SEQUENCE_2026100
 ## Part 9 continuation — original exit data now established
 
 The CODE.2 Level22 mist caller/source order is verified from original bytes; the [frame timeline](LEVEL22_ORIGINAL_MIST_FRAME_SEQUENCE_20261009.md) and [staged camera](LEVEL22_ORIGINAL_MIST_STAGING_20261009.md) models preserve its original operations. [LEVELS.DAT metadata](ORIGINAL_LEVEL23_DESTINATION_AUDIT_20261009.md) confirms the stage destination is a 64×64 original Level23. **No invented portal, timed mist renderer, or manually triggered level skip has been added.** 175 CTests registered; current source remains unbuilt.
+
+## Original numbered event dispatcher continuation
+
+[CODE.2 1CD48 event gate](ORIGINAL_NUMBERED_EFFECT_1CD48_AUDIT_20261009.md) is now modeled with the original event+0x80 persistent bit semantics. Mist event2 uses bit0x82; it is not set on a synthetic pickup shortcut. Total registered CTests **176** (Quick19). Live original effect execution and DOS parity are still open.

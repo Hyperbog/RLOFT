@@ -42,3 +42,7 @@ Do **not** install a synthetic mist effect or fast-forward Level 23 for the sake
 ## Reconstructed stage movement and destination archive
 
 [Original 21F70 stage camera trace](LEVEL22_ORIGINAL_MIST_STAGING_20261009.md) reproduces the source heading and grid-step branches (including 63 draw/present pairs from the original fresh Level22 start). [The original archive audit](ORIGINAL_LEVEL23_DESTINATION_AUDIT_20261009.md) confirms destination Level23's 64×64 geometry and signed +17 RES4 selector. Both remain unbuilt and not wired to playable story presentation. Registry now contains **175** CTests.
+
+## Original effect history gate
+
+The [original 1CD48 flag audit](ORIGINAL_NUMBERED_EFFECT_1CD48_AUDIT_20261009.md) proves that the numbered effect 2 is associated with persisted bit **0x82** in DGROUP 22200; the source checks that bit to suppress repeated audiovisual effect execution and sets it afterward. The code model is separate from the still unimplemented live original effect dispatcher. **176** CTests now registered, unbuilt.
