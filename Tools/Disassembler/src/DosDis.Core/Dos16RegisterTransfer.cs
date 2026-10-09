@@ -175,6 +175,17 @@ public static class Dos16RegisterTransfer
         if (opcode == 0x3D && bytes.Length == 3)
             return Result(before, "exact-compare-flags-unknown", false);
 
+        // Direct, prefix-free relative control transfers do not modify
+        // 16-bit general registers or flags. The CFG must separately prove
+        // exact destinations and both sides of conditional branches.
+        if ((bytes.Length == 2 &&
+                (opcode is >= 0x70 and <= 0x7F || opcode == 0xEB)) ||
+            (bytes.Length == 4 && opcode == 0x0F &&
+                bytes[1] is >= 0x80 and <= 0x8F) ||
+            (bytes.Length == 3 && opcode == 0xE9))
+            return Result(before, "exact-direct-branch-preserve",
+                flagsPreserved: true);
+
         // Includes byte-register aliases (AH/AL...), memory writes, strings,
         // CALL/RET, interrupts, prefixed opcodes, unknown flag consumers and
         // unmodeled operand widths. Conservative even when needlessly broad.
