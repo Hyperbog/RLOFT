@@ -438,7 +438,6 @@ int main() {
     set_ui_in_save(open_original,0U,{{0U,0U,3U,2U}});
     auto opened=C::decode(open_original,baseline);
     assert(C::encode(opened)==open_original);
-    auto live_original=C::decode(source_fixture(0U),baseline);
     rloft::ExplorationSessionState clean{};
     clean.level_id=22U;
     clean.coordinate_a=0x48000U;
