@@ -103,5 +103,22 @@ public:
         const RendererTables& tables,
         const PlacementProbe& can_place,
         bool original_c02f_center_fraction=false);
+
+    // 15050(0x73) -> 1511F..1513C -> 2195C:
+    // source screen seed 0x80, item ID 0x73, known=0,
+    // current player Q16 location, forward probe=1,
+    // clear-held-cursor=0. Unlike the ordinary inventory
+    // drop this does NOT take any item from the hand/cursor.
+    // The returned index identifies a new family-C world
+    // item; the caller must still serialize/present world
+    // updates and must run numbered event 8 beforehand.
+    [[nodiscard]] static InventoryWorldDropResult
+    spawn_holy_symbol_reward_15050(
+        LevelWorldState& world,
+        const ExplorationSessionState& session,
+        const ObjectCatalog& objects,
+        const RendererTables& tables,
+        const PlacementProbe& can_place,
+        bool original_c02f_center_fraction=false);
 };
 }
