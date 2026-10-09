@@ -350,6 +350,93 @@ try
         "16-byte FBOV variant cannot silently reuse TPOV manager descriptor layout");
     Console.WriteLine("PASS: resident MZ overlay descriptors form a unique gap-free TPOV directory");
 
+    // P0 universal 16-bit candidate graph: direct calls, branch targets,
+    // interrupts and indirect calls retain different uncertainty classes.
+    var mz16Graph = Dos16ControlFlowAnalysis.Analyze(
+        mzImage.CreateEntryCodeRegion(), mzImage.InitialIp);
+    Equal(mz16Graph.Instructions.Count, 2, "MZ entry CS produces a bounded two-instruction graph");
+    Equal(mz16Graph.Instructions[0].SourceFileOffset, 32L,
+        "MZ flow nodes preserve original physical file positions");
+    Equal(mz16Graph.AnalysisStatus.Contains("candidate-unverified", StringComparison.Ordinal),
+        true, "16-bit graph never asserts independently verified code");
+
+    byte[] cfg16Bytes = {
+        0x83, 0xF8, 0x02, // 0100: cmp ax,2
+        0x77, 0x05,       // 0103: ja 010A
+        0xE8, 0x06, 0x00, // 0105: call 010E
+        0xCD, 0x21,       // 0108: int 21
+        0xFF, 0xD0,       // 010A: call ax
+        0xC3,             // 010C: ret
+        0x90,             // 010D: unknown / not traversed
+        0xC3              // 010E: target ret
+    };
+    var cfg16Source = BinaryArtifact.FromBytes(cfg16Bytes, "some-headerless-input.bin");
+    var cfg16Com = DosComImage.LoadExplicit(cfg16Source);
+    var cfg16 = Dos16ControlFlowAnalysis.Analyze(cfg16Com.CreateCodeRegion(), 0x100);
+    Equal(cfg16.SourceSha256, cfg16Source.Sha256,
+        "one original source hash scopes the generic x86-16 graph");
+    Equal(cfg16.Instructions.Count, 7,
+        "recursive flow follows near calls and conditional branches, not gap sweep");
+    Equal(cfg16.CandidateInstructionBytes, 14,
+        "16-bit candidate ownership counts only decoded bytes");
+    Equal(cfg16.UnknownFileBackedBytes, 1,
+        "undecoded executable-region byte remains explicitly unknown");
+    Equal(cfg16.Edges.Any(e => e.Kind == "branch-taken" &&
+        e.Destination == new Dos16Address(0, 0x10A)), true,
+        "16-bit near branch target is mapped to same segment");
+    Equal(cfg16.Edges.Any(e => e.Kind == "call" &&
+        e.Destination == new Dos16Address(0, 0x10E)), true,
+        "16-bit direct near call destination is recovered");
+    Equal(cfg16.Edges.Any(e => e.Kind == "unresolved-indirect-call" &&
+        e.Destination is null), true, "dynamic x86-16 calls remain unresolved");
+    Equal(cfg16.Edges.Any(e => e.Kind == "unresolved-interrupt" &&
+        e.Destination is null), true, "DOS interrupt return semantics are not fabricated");
+    Equal(cfg16.Edges.Any(e => e.Kind == "interrupt-return-candidate"), true,
+        "possible post-interrupt continuation stays explicitly speculative");
+    Equal(cfg16.Instructions.Any(x => x.Address.Offset == 0x10D), false,
+        "unreachable filler is not automatically classified as code");
+
+    var budgetGraph16 = Dos16ControlFlowAnalysis.Analyze(cfg16Com.CreateCodeRegion(),
+        0x100, maxInstructions: 1);
+    Equal(budgetGraph16.Truncated, true, "small 16-bit analysis budget reports truncation");
+    Equal(budgetGraph16.Instructions.Count, 1,
+        "instruction budget bounds recursive decode");
+
+    var midTargetSource = BinaryArtifact.FromBytes(new byte[] {
+        0xB8, 0x34, 0x12, // mov ax,1234h
+        0xEB, 0xFC        // short jmp 0101, inside MOV
+    }, "mid-target.com");
+    var midGraph16 = Dos16ControlFlowAnalysis.Analyze(
+        DosComImage.LoadExplicit(midTargetSource).CreateCodeRegion(), 0x100);
+    Equal(midGraph16.Diagnostics.Any(x => x.Code == "mid-instruction-target"),
+        true, "overlapping x86-16 branch target rejected rather than reinterpreting MOV");
+    Equal(midGraph16.Instructions.Count, 2,
+        "rejected mid-instruction target is not another decoded instruction");
+
+    var escapedSource = BinaryArtifact.FromBytes(new byte[] { 0xEB, 0x7F },
+        "unbacked-branch.com");
+    var escapedGraph = Dos16ControlFlowAnalysis.Analyze(
+        DosComImage.LoadExplicit(escapedSource).CreateCodeRegion(), 0x100);
+    Equal(escapedGraph.Edges.Any(e => e.Kind == "out-of-region-branch"),
+        true, "control transfer outside backed load window is unresolved");
+    Equal(escapedGraph.Instructions.Count, 1,
+        "out-of-region branch cannot create fictional code");
+
+    var overlaid16 = Dos16ControlFlowAnalysis.Analyze(
+        fbov.CreateCodeRegion(regionManifest, "entry"), 0x100);
+    Equal(overlaid16.Instructions.Count, 2,
+        "hash-bound overlay code region uses identical generic x86-16 CFG engine");
+    Equal(overlaid16.Instructions[1].SourceFileOffset, 11L,
+        "overlay graph retains original code bytes and physical source offsets");
+    bool overlayDataGraphDenied = false;
+    try { fbov.CreateCodeRegion(regionManifest with {
+        Regions = new[] { mappedRegion with { Role = "data-candidate" } }
+    }, "entry"); }
+    catch (NotSupportedException) { overlayDataGraphDenied = true; }
+    Equal(overlayDataGraphDenied, true,
+        "data-marked overlay region cannot be promoted to code CFG implicitly");
+    Console.WriteLine("PASS: universal MZ COM and overlay x86-16 candidate CFG/uncertainty controls");
+
     // Exact-byte identity catalogs label sources but never change decoding.
     string syntheticCatalogJson = JsonSerializer.Serialize(new {
         schemaVersion = 1,
