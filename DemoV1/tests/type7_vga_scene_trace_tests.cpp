@@ -144,6 +144,42 @@ int main() {
     assert(individual.runs[0].dispatch.calls[1].
            physical_address==vga_base);
 
+    // C029=1 uses one original 369D8/width=1 invocation for every
+    // destination pixel. A 12-column source run is not a grouped
+    // width-12 mask lookup, and all expanded SINTAB descriptors must
+    // agree with the original per-destination render plan.
+    auto long_plan=p;
+    long_plan.visible_runs={{31U,0U,128U,12U}};
+    long_plan.visible_columns.clear();
+    for (std::size_t i=0U;i<12U;++i)
+        long_plan.visible_columns.push_back(
+            {31U,0U,128U+i});
+    long_plan.microcode_draws=
+        rloft::Type7MicrocodePlanModel::build(
+            sh,long_plan.traversal,
+            long_plan.visible_columns,t);
+    const auto long_individual=
+        rloft::Type7VgaSceneTraceModel::build(
+            long_plan,sh,t,m,1U,true);
+    assert(long_individual.runs.size()==1U);
+    assert(long_individual.runs[0].width==12U);
+    assert(long_individual.runs[0].dispatch.calls.size()==12U);
+    for (std::size_t i=0U;i<12U;++i) {
+        const auto& pass=long_individual.runs[0].dispatch.calls[i];
+        assert(pass.destination_column==static_cast<int>(128U+i));
+        assert(pass.sequencer_mask==(1U<<(i&3U)));
+        assert(pass.ecx_lookup==
+               ((i&1U)!=0U?0x3412U:0x1234U));
+    }
+    rloft::Type7VgaTraceValidator::validate_scene(
+        long_individual,long_plan);
+    bool rejected_long=false;
+    try {
+        (void)rloft::Type7VgaSceneTraceModel::build(
+            long_plan,sh,t,m,1U,false);
+    } catch(const std::out_of_range&) {rejected_long=true;}
+    assert(rejected_long);
+
     auto skipped=p;
     skipped.visible_runs.clear();
     assert(rloft::Type7VgaSceneTraceModel::build(
