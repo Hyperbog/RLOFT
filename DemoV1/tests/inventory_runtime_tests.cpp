@@ -429,6 +429,18 @@ int main() {
     assert(runtime.open_hand_container(
         nested_party,catalog,0U,0U)==
            rloft::InventoryContainerStatus::Opened);
+    // Failed attempts to open a different empty/non-container
+    // hand must not discard a valid 6FA0 view belonging to the
+    // actor's other hand.
+    const auto raw_before_invalid=
+        runtime.party_container_ui_contexts[0U].raw;
+    assert(runtime.open_hand_container(
+        nested_party,catalog,0U,1U)==
+           rloft::InventoryContainerStatus::NoChange);
+    assert(runtime.open_container.has_value());
+    assert(runtime.open_container->hand==0U);
+    assert(runtime.party_container_ui_contexts[0U].raw==
+           raw_before_invalid);
     set_item(nested_party,0U,14U,-1);
     runtime.held={5,1U};
     const auto unsupported_cursor=runtime.held;
