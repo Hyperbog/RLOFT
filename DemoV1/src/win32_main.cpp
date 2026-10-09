@@ -855,6 +855,11 @@ int run_exploration(
     std::optional<std::uint32_t> quit_random_seed;
     std::optional<std::size_t> inventory_encumbrance_actor;
     std::optional<std::size_t> inventory_party_drag_source;
+    // CODE.2 uses RES1 + OBJECTS item graphic for a held cursor,
+    // returning to the original RES0 arrow after inventory closes.
+    const auto normal_inventory_cursor=assets.res0_type1(
+        static_cast<int>(assets.init_u16(0x00U))+0x2F);
+    std::optional<std::int16_t> inventory_cursor_last_id;
     // Hit-testing is performed against the frame the player ACTUALLY saw,
     // never against a freshly reconstructed scene after the click arrives.
     std::optional<rloft::ExplorationRuntimeFrame> displayed_scene_frame;
@@ -1054,8 +1059,33 @@ int run_exploration(
             continue;
         }
 
+        if (ui.state().screen !=
+            rloft::ExplorationUiScreen::PartyPanels &&
+            inventory_cursor_last_id) {
+            host.set_game_cursor(normal_inventory_cursor);
+            inventory_cursor_last_id.reset();
+        }
         if (ui.state().screen ==
             rloft::ExplorationUiScreen::PartyPanels) {
+            const auto held_cursor_id=runtime.inventory().held.object_id;
+            if(!inventory_cursor_last_id ||
+               *inventory_cursor_last_id!=held_cursor_id) {
+                if(held_cursor_id>=0) {
+                    const auto& object=runtime.object_catalog().at(
+                        static_cast<std::size_t>(held_cursor_id));
+                    try {
+                        const auto sprite=assets.type1(
+                            1,static_cast<int>(assets.init_u16(0x02U))+
+                              object.ui_graphic_index);
+                        host.set_game_cursor(sprite);
+                    }catch(const std::exception&) {
+                        host.set_game_cursor(normal_inventory_cursor);
+                    }
+                } else {
+                    host.set_game_cursor(normal_inventory_cursor);
+                }
+                inventory_cursor_last_id=held_cursor_id;
+            }
             if (host.consume_exploration_secondary_click()) {
                 // CODE.2 12E70 cleanup on flags&2 calls 1F8FC, which sets
                 // D680=0; 13118 then leaves the modal loop.
