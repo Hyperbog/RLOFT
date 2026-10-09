@@ -49,7 +49,7 @@ public sealed class DosMzImage
             throw new NotSupportedException("A standalone MZ loader requires a DOS MZ header without an identified extended module.");
         if (bytes.Length < 0x1C)
             throw new InvalidDataException("Truncated MZ header.");
-        ushort Read(int offset) => BinaryPrimitives.ReadUInt16LittleEndian(bytes.Slice(offset, 2));
+        ushort Read(int offset) => BinaryPrimitives.ReadUInt16LittleEndian(artifact.Data.Slice(offset, 2));
         ushort lastPageBytes = Read(2), pages = Read(4), relocationCount = Read(6);
         ushort headerParagraphs = Read(8), ss = Read(0x0E), sp = Read(0x10);
         ushort ip = Read(0x14), cs = Read(0x16), relocTable = Read(0x18);
