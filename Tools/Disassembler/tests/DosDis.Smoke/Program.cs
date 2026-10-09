@@ -978,6 +978,35 @@ try
     })), "conflicting duplicate fingerprint catalog entries rejected");
     Console.WriteLine("PASS: optional hash/length catalogs, namespace isolation and decoder independence");
 
+    // Format classification must discover bounded nested MZ/LE modules,
+    // even when the outer DOS launcher has no standard e_lfanew.
+    // This prevents a 16-bit loader from misreading the embedded module.
+    foreach (bool embedded in new[] { false, true })
+    {
+        byte[] fixture = MakeFixture(embedded);
+        var artifact = BinaryArtifact.FromBytes(fixture, "neutral-binary.dat");
+        var signature = BinaryFormatDetector.Inspect(artifact);
+        Equal(signature.FormatId, "le-signature",
+            "nested and direct MZ-bound LE modules receive the same format family");
+        Equal(signature.SignatureFileOffset, embedded ? 0x200L : 0x80L,
+            "the extended header position must be source-physical, not guessed relative to outer MZ");
+        Equal(signature.LoaderStatus, "le-validation-required",
+            "LE signature alone is not proof of a validated object/page loader");
+        Fails(() => DosMzImage.Load(artifact),
+            "nested protected-mode image must not silently become a standalone 16-bit MZ");
+        Equal(BinaryFormatDetector.Inspect(artifact, LeImage.Load(artifact)).FormatId,
+            "le", "validated LE loader supersedes signature-only classification");
+    }
+    var ambiguousImage = new byte[0x800];
+    MakeFixture(false).CopyTo(ambiguousImage, 0);
+    byte[] extraMZ = MakeFixture(false);
+    Array.Copy(extraMZ, 0, ambiguousImage, 0x400, 0x100);
+    // Relocate the second MZ-bound LE header consistently with its
+    // module-local e_lfanew, providing two distinct nested signatures.
+    Equal(BinaryFormatDetector.Inspect(BinaryArtifact.FromBytes(ambiguousImage)).FormatId,
+        "ambiguous-mz-extended",
+        "multiple extended module candidates require manual selection");
+
     foreach (bool nested in new[] { false, true })
     {
         byte[] raw = MakeFixture(nested);
