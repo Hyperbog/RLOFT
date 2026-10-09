@@ -76,6 +76,7 @@ jobs:
         run: |
           Copy-Item DemoV1/Windows/Explore-Level22.cmd build/demo-v1/Release/Explore-Level22.cmd -Force
           Copy-Item DemoV1/Windows/Capture-Level22.cmd build/demo-v1/Release/Capture-Level22.cmd -Force
+          Copy-Item DemoV1/Windows/Probe-Level22-Ground.cmd build/demo-v1/Release/Probe-Level22-Ground.cmd -Force
           # A machine-readable matching provenance file is shipped next to
           # the exe and launchers for users reporting crash screenshots.
           Set-Content -NoNewline -Path build/demo-v1/Release/build-source-sha.txt -Value "${{ github.sha }}"
@@ -88,6 +89,8 @@ jobs:
             build/demo-v1/Release/ravenloft_demo_v1.exe
             build/demo-v1/Release/Explore-Level22.cmd
             build/demo-v1/Release/Capture-Level22.cmd
+            build/demo-v1/Release/Probe-Level22-Ground.cmd
+            build/demo-v1/Release/rloft_res4_ground_probe.exe
             build/demo-v1/Release/build-source-sha.txt
           if-no-files-found: error
 
