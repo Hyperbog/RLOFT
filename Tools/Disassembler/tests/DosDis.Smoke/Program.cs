@@ -207,6 +207,80 @@ try
         "COM manual mode refuses an overlay container signature");
     Console.WriteLine("PASS: signature-only overlay/resource/LX detection and bounded 16-bit MZ metadata/decoding");
 
+    // FBOV/TPOV containers are never recursively decoded. Only a
+    // full-hash-bound explicit region can authorize requested linear decode.
+    byte[] syntheticFbovBytes = new byte[24];
+    System.Text.Encoding.ASCII.GetBytes("FBOV").CopyTo(syntheticFbovBytes, 0);
+    Dword(syntheticFbovBytes, 4, 16); // payload excludes the eight-byte envelope
+    new byte[] { 0xB8, 0x34, 0x12, 0xC3 }.CopyTo(syntheticFbovBytes, 8);
+    var syntheticFbov = BinaryArtifact.FromBytes(syntheticFbovBytes, "GAME.OVR");
+    var fbov = DosOverlayImage.LoadEnvelope(syntheticFbov);
+    Equal(fbov.Envelope.Format, "fbov", "FBOV envelope validated from magic");
+    Equal(fbov.Envelope.HeaderBytes, 8, "eight-byte FBOV header checked");
+    Equal(fbov.Envelope.PayloadBytes, 16, "FBOV header excludes payload length");
+    var mappedRegion = new DosOverlayRegion("entry", 8, 4, 0x200,
+        0x100, "code-candidate", "synthetic-analyst-map");
+    var regionManifest = new DosOverlayRegionManifest(1, syntheticFbov.Sha256,
+        syntheticFbov.Length, "fbov", new[] { mappedRegion });
+    Equal(fbov.ValidateRegions(regionManifest).Count, 1,
+        "source-bound FBOV candidate region accepted without decoding the header");
+    var mappedInstructions = fbov.DecodeExplicit(regionManifest, "entry", 0, 2);
+    Equal(mappedInstructions.Count, 2, "only explicit region instructions decoded");
+    Equal(mappedInstructions[0].OriginalBytes, "B83412", "overlay original 16-bit bytes");
+    Equal(mappedInstructions[1].SourceFileOffset, 11L,
+        "overlay code retains its original physical file offset");
+    Equal(mappedInstructions[0].Segment, (ushort)0x200,
+        "assumed overlay segment kept separate from file position");
+    Fails(() => fbov.ValidateRegions(regionManifest with {
+        SourceSha256 = new string('f', 64) }),
+        "another game's overlay mapping cannot be applied by matching filename");
+    Fails(() => fbov.ValidateRegions(regionManifest with {
+        Regions = new[] { mappedRegion with { FileOffset = 4 } } }),
+        "an overlay region must not decode envelope bytes");
+    Fails(() => fbov.ValidateRegions(regionManifest with {
+        Regions = new[] { mappedRegion,
+            mappedRegion with { Id = "overlap", FileOffset = 10 } } }),
+        "two overlapping candidate code maps cannot assign the same physical byte");
+    Fails(() => fbov.ValidateRegions(regionManifest with {
+        Regions = new[] { mappedRegion with { AssumedOffset = 0xFFFE } } }),
+        "overlay region must fit the declared 16-bit address space");
+    Fails(() => fbov.DecodeExplicit(regionManifest with {
+        Regions = new[] { mappedRegion with { Role = "data-candidate" } },
+        "entry", 0, 2),
+        "explicitly marked data must not be decoded as candidate code");
+
+    byte[] malformedFbov = (byte[])syntheticFbovBytes.Clone();
+    Dword(malformedFbov, 4, 15);
+    Fails(() => DosOverlayImage.LoadEnvelope(BinaryArtifact.FromBytes(malformedFbov)),
+        "incorrect FBOV payload size cannot be silently guessed");
+    byte[] expandedFbov = new byte[24];
+    System.Text.Encoding.ASCII.GetBytes("FBOV").CopyTo(expandedFbov, 0);
+    Dword(expandedFbov, 4, 8);
+    var extendedEnvelope = DosOverlayImage.LoadEnvelope(BinaryArtifact.FromBytes(expandedFbov));
+    Equal(extendedEnvelope.Envelope.Variant, "fbov-sixteen-byte-envelope",
+        "extended FBOV variant remains distinct from eight-byte envelope");
+
+    var tpovArtifact = BinaryArtifact.FromBytes(
+        System.Text.Encoding.ASCII.GetBytes("TPOV").Concat(new byte[] { 0x90, 0xC3 }).ToArray(),
+        "GAME.OVR");
+    var tpov = DosOverlayImage.LoadEnvelope(tpovArtifact);
+    Equal(tpov.Envelope.Format, "tpov", "TPOV signature detected");
+    Equal(tpov.Envelope.HeaderBytes, 4, "TPOV minimum signature envelope");
+    Equal(tpov.Envelope.Confidence.Contains("unverified", StringComparison.Ordinal),
+        true, "TPOV signature never promises known internal segmentation");
+    Fails(() => tpov.ValidateRegions(regionManifest),
+        "TPOV and FBOV sources cannot reuse each other's region maps");
+    var tpovRegion = new DosOverlayRegionManifest(1, tpovArtifact.Sha256,
+        tpovArtifact.Length, "tpov",
+        new[] { new DosOverlayRegion("candidate", 4, 2, 0, 0, "code-candidate", "synthetic") });
+    Equal(tpov.DecodeExplicit(tpovRegion, "candidate", 0, 2)[1].OriginalBytes,
+        "C3", "TPOV explicitly mapped region can use shared x86-16 decoder");
+    var regionRoundtrip = DosOverlayImage.ParseRegionManifest(
+        JsonSerializer.Serialize(regionManifest, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+    Equal(fbov.ValidateRegions(regionRoundtrip).Count, 1,
+        "portable source-bound overlay map preserves its region boundaries");
+    Console.WriteLine("PASS: conservative FBOV/TPOV envelope variants and source-bound explicit regions");
+
     // Exact-byte identity catalogs label sources but never change decoding.
     string syntheticCatalogJson = JsonSerializer.Serialize(new {
         schemaVersion = 1,
