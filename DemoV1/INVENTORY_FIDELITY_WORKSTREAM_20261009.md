@@ -601,3 +601,74 @@ effect timelines, Level16 item `0x89` scripted
 side effects, live SAVE/LOAD persistence and
 DOS visual/timing parity. **Do not dispatch Windows
 CI until all inventory blockers close**.
+
+
+## Part 8 continuation — original Mage Spell Book 11630 scribing integrated (source-only)
+
+Direct disassembly of immutable CODE.2 SHA-256
+`853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`
+audited the executable at logical `11630..1179F`
+(physical `0x4C554..0x4C6C3`), and its inventory caller
+`11808..11852`. The original object-1 data literal
+**at physical `0x3AF24+0xEEB0 = 0x49DD4`** has the
+six literal DWORD pairs:
+`[173,167], [179,174], [189,180], [193,190], [195,194], [201,196]`.
+Caution: object-2's *different* `0x75F24+0xEEB0`
+address contains zero-fill and **must not** be treated as
+the mapping table. Independent original OBJECTS.DAT
+names confirm `0xA6` Mage Spell Book and exactly
+`0xA7..0xC9` (35) individual Mage Scrolls.
+
+The source's actor `+0x39` byte indexes a
+21-entry Intelligence-derived capacity table
+in object-2 `DGROUP:6153`
+(physical `0x75F24+0x6153`):
+`9,6,6,6,6,6,6,6,6,6,7,7,7,9,9,11,11,14,18,18,18`.
+The 8×10 Mage spell matrix starts at actor `+0x6A`.
+`1168C..116B2` counts that bank's low-nibble
+non-`0xF` cells and rejects only when **count equals
+capacity** (the original compares equality, not >=).
+`116C5..116CF` rejects an already available target
+(low nibble other than `0xF`). On success
+`11748` clears the **entire target byte** to zero
+(high and low nibbles), and caller `1183A..1184F`
+clears held scroll ID and known byte.
+
+**Ordering matters:** `1166F..11679` invokes
+`1C124(0xBA)` **before either failed check**,
+setting byte 23 bit 2 of the persistent 32-byte
+event vector even when no scroll is consumed.
+The native `InventoryRuntimeState` now loads source
+tables from the correct two original CODE.2 objects,
+maps each Mage scroll, performs the exact bank-capacity
+and low-nibble test, records the flag and updates the
+real 0x248-byte party matrix/held cursor on successful
+scribing. It returns distinct `LearnedMageSpell` and
+`MageScrollRejected` statuses. Win32 PartyPanels
+refreshes the inventory after either status. Missing
+source table, missing session event vector and
+corrupt Intelligence index produce an explicit
+unsupported result **without consuming an item**.
+The Mage book stays in its inventory slot.
+
+The existing `inventory_runtime_tests` target now has
+synthetic fixtures for both source table locations,
+all scroll-bank offsets (including top bank),
+successful scribing, previously-known and full-capacity
+rejections, event flag `0xBA` on rejection, cursor
+identity, and missing-source safety. They have been
+**registered as assertions, not run or compiled**.
+
+**Remaining fidelity gaps:** original `11630`
+also selects message text via `1C368/3210F`,
+updates `6DAC`, `6DA8 = IRQ_tick+0x36` and invokes
+`0F790` with held object metadata. That timed
+presentation/diagnostic UI is not reconstructed.
+Spellbook persistence through native SAVE/LOAD, original
+CODE.2 mutable global flag/clock scheduling,
+all other item/spell-use actions and exact DOS screenshot
+parity remain outstanding. Therefore the source-only
+inventory milestone stays **PARTIAL**, engineering
+progress **56.25%**, **169 registered CTests** and
+**19 Quick tests**; the next Windows **Full** build is
+still deferred under the user's explicit rule.
