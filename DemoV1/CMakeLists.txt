@@ -786,6 +786,9 @@ add_test(NAME character_modal_stats_tests COMMAND character_modal_stats_tests)
 add_executable(character_transfer_tests tests/character_transfer_tests.cpp)
 target_link_libraries(character_transfer_tests PRIVATE rloft_boot_flow)
 add_test(NAME character_transfer_tests COMMAND character_transfer_tests)
+add_executable(character_starting_equipment_tests tests/character_starting_equipment_tests.cpp)
+target_link_libraries(character_starting_equipment_tests PRIVATE rloft_boot_flow)
+add_test(NAME character_starting_equipment_tests COMMAND character_starting_equipment_tests)
 
 add_executable(character_palette_remap_tests tests/character_palette_remap_tests.cpp)
 target_link_libraries(character_palette_remap_tests PRIVATE rloft_boot_flow)
@@ -958,6 +961,7 @@ set(RLOFT_TEST_TARGETS
     character_sheet_tests
     character_modal_stats_tests
     character_transfer_tests
+    character_starting_equipment_tests
     character_palette_remap_tests
     sound_config_tests
     options_menu_tests
