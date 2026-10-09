@@ -6,53 +6,71 @@ public sealed record IntelligenceField(string Value, string Status, string Evide
 
 public static class FileIntelligence
 {
-    private static readonly Dictionary<string, (string Title, string Version)> Known = new()
+    /// <summary>
+    /// Only an opt-in catalog supplies game metadata. Format signatures
+    /// provide separate evidence, never executable behavior assertions.
+    /// </summary>
+    public static IReadOnlyDictionary<string, IntelligenceField> Inspect(
+        BinaryArtifact artifact, LeImage? le = null, SourceIdentityRegistry? registry = null)
     {
-        ["fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed"] =
-            ("Ravenloft: Strahd's Possession / CODE.1", "1.2a executable set"),
-        ["853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314"] =
-            ("Ravenloft: Strahd's Possession / CODE.2", "1.2a")
-    };
-
-    public static IReadOnlyDictionary<string, IntelligenceField> Inspect(BinaryArtifact artifact,
-        LeImage? le = null)
-    {
+        ArgumentNullException.ThrowIfNull(artifact);
         var fields = new SortedDictionary<string, IntelligenceField>();
-        fields["sha256"] = new(artifact.Sha256, "direct", "SHA-256 over input bytes");
+        fields["sha256"] = new(artifact.Sha256, "direct", "SHA-256 over immutable input bytes");
         fields["size_bytes"] = new(artifact.Length.ToString(), "direct", "Input byte length");
+
+        var detected = BinaryFormatDetector.Inspect(artifact, le);
+        fields["file_format"] = new(detected.FormatId, "signature-derived", detected.SignatureEvidence);
+        fields["format_loader_status"] = new(detected.LoaderStatus,
+            "tool-capability", detected.Qualification);
         fields["analysis_support"] = le is null
-            ? new("Raw hexadecimal only (no supported LE image)", "tool-capability",
-                "Any original file can be inspected byte-for-byte; no architecture or instruction boundaries are guessed.")
+            ? new("Read-only bytes and format detection; no validated LE candidate analysis",
+                "tool-capability",
+                "Non-LE instruction decoding requires a separate validated loader and explicit address mapping.")
             : new("32-bit LE object-mapped candidate analysis", "tool-capability",
                 "Only bounded MZ/LE executable mapping is currently supported for recursive disassembly.");
-        if (Known.TryGetValue(artifact.Sha256, out var identity))
+
+        SourceIdentityEntry? identity = registry?.Find(artifact);
+        if (identity is not null)
         {
-            fields["software"] = new(identity.Title, "verified-fingerprint", "RLOFT preserved 1.2a SHA-256 corpus");
-            fields["game_version"] = new(identity.Version, "verified-fingerprint", "RLOFT source identity manifest");
-            fields["developer"] = new("DreamForge Intertainment", "documented", "RLOFT preservation archive, chapter 19");
-            fields["publisher"] = new("Strategic Simulations, Inc. (SSI)", "documented", "RLOFT preservation archive, chapter 19");
-            fields["original_year"] = new("1994", "documented", "RLOFT preservation archive, chapter 19");
-            fields["engine_family"] = new("DreamForge RPG lineage", "documented", "RLOFT preservation archive, chapter 19");
+            const string status = "external-catalog-exact-hash";
+            string evidence = identity.SourceEvidence;
+            fields["game_id"] = new(identity.GameId, status, evidence);
+            fields["module"] = new(identity.Module, status, evidence);
+            void Add(string key, string? value)
+            {
+                if (value is not null)
+                    fields[key] = new IntelligenceField(value, status, evidence);
+            }
+            Add("software", identity.Software);
+            Add("game_version", identity.Version);
+            Add("developer", identity.Developer);
+            Add("publisher", identity.Publisher);
+            Add("original_year", identity.OriginalYear);
+            Add("engine_family", identity.EngineFamily);
         }
-        if (le != null)
-        {
-            fields["executable_format"] = new("MZ-bound LE", "direct", $"Nested MZ at 0x{le.ModuleOrigin:X}, LE header at 0x{le.HeaderOffset:X}");
-            fields["architecture"] = new("x86 32-bit protected-mode application", "header-derived", "LE application object geometry; runtime context requires validation");
-            fields["entry_point"] = new($"object {le.EntryObject} + 0x{le.EntryOffset:X}", "direct", "LE entry object/offset fields");
-        }
-        // A string signature establishes its presence in the file, not the
-        // minimum DOS version, original compiler version, or runtime parity.
-        string content = Encoding.Latin1.GetString(artifact.Data);
-        if (content.Contains("DOS/4GW Professional Protected Mode Run-time", StringComparison.Ordinal))
-            fields["dos_extender"] = new("DOS/4GW Professional", "embedded-string", "Exact original executable banner");
+
+        // Embedded strings are hints; they do not establish interpreter,
+        // runtime version, compiler identity or a unique source edition.
+        string binaryText = Encoding.Latin1.GetString(artifact.Data);
+        if (binaryText.Contains("DOS/4GW Professional Protected Mode Run-time", StringComparison.Ordinal))
+            fields["dos_extender"] = new("DOS/4GW Professional", "embedded-string",
+                "Literal extender banner appears in the original file");
         if (fields.ContainsKey("dos_extender") &&
-            content.Contains("Feb 17 1994 11:54:25", StringComparison.Ordinal))
-            fields["extender_build_stamp"] = new("Feb 17 1994 11:54:25", "embedded-string", "DOS/4GW bound-runtime identification");
-        if (le != null)
+            binaryText.Contains("Feb 17 1994 11:54:25", StringComparison.Ordinal))
+            fields["extender_build_stamp"] = new("Feb 17 1994 11:54:25", "embedded-string",
+                "Literal timestamp appears alongside an extender banner");
+        if (le is not null)
         {
-            // These questions do not apply to arbitrary DAT/RES/raw data files.
-            fields["minimum_dos_version"] = new("Unknown", "unknown", "Not inferred from DOS API usage or extender version");
-            fields["compiler_exact_version"] = new("Unknown", "unknown", "Version-specific compiler signature verification pending");
+            fields["executable_format"] = new("MZ-bound LE", "validated-loader",
+                $"Nested MZ at 0x{le.ModuleOrigin:X}, LE header at 0x{le.HeaderOffset:X}");
+            fields["architecture"] = new("x86 32-bit protected-mode application", "header-derived",
+                "LE object geometry; runtime context still requires validation");
+            fields["entry_point"] = new($"object {le.EntryObject} + 0x{le.EntryOffset:X}",
+                "header-derived", "LE entry object/offset");
+            fields["minimum_dos_version"] = new("Unknown", "unknown",
+                "Not inferred from DOS API usage or extender banner");
+            fields["compiler_exact_version"] = new("Unknown", "unknown",
+                "Version-specific compiler signatures are not proven");
         }
         return fields;
     }
