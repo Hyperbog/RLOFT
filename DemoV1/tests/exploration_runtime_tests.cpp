@@ -43,6 +43,27 @@ int main() {
         renderer(),
         {});
 
+    // The public bridge is intentionally not a general SAVE/LOAD:
+    // importing a byte image before the original world/catalogue
+    // has been initialized, or exporting without a compatible
+    // imported image, must refuse without mutating any state.
+    assert(!runtime.has_inventory_save_backing());
+    bool premature_import=false;
+    try {
+        runtime.import_matching_save_inventory({});
+    } catch(const std::logic_error&) {
+        premature_import=true;
+    }
+    assert(premature_import);
+    bool premature_export=false;
+    try {
+        (void)runtime.export_matching_save_inventory();
+    } catch(const std::logic_error&) {
+        premature_export=true;
+    }
+    assert(premature_export);
+    assert(!runtime.has_inventory_save_backing());
+
     // The CODE.2 VGA page and dispatcher mode are mutable runtime
     // values; the live input path will eventually toggle these fields.
     assert(runtime.scene_video_page() == 0U);
