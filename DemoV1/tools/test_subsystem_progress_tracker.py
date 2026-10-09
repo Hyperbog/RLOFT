@@ -78,9 +78,10 @@ def main() -> None:
                 "Unaccepted DOS behavior scored too highly"
             )
         by_system[identity[0]].append((row, readiness))
+        score_cell = "/".join(str(x) for x in marks)
         subtotal_marker = (
             f"| {identity[1]} | **{pct(readiness)}** | "
-            "/".join(str(x) for x in marks) + " |"
+            f"{score_cell} |"
         )
         assert subtotal_marker in report, (
             f"CSV versus detailed report drift: {identity}"
