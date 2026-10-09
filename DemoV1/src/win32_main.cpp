@@ -1512,6 +1512,9 @@ int run_exploration(
                 L" | RES3 plan errors " +
                 std::to_wstring(
                     presented.surface_coverage.type7_plan_calls_failed) +
+                L" | Ground " +
+                (presented.ground_textured_rasterized
+                 ? L"RES4 textured" : L"flat fallback") +
                 L" | RES3 trace errors " +
                 std::to_wstring(
                     frame.scene_vga_scene_failures.size() +
