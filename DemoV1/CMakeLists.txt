@@ -980,6 +980,10 @@ add_executable(rloft_res4_ground_probe tools/rloft_res4_ground_probe.cpp)
 target_link_libraries(rloft_res4_ground_probe PRIVATE rloft_boot_flow)
 target_compile_features(rloft_res4_ground_probe PRIVATE cxx_std_17)
 
+add_executable(rloft_starting_equipment_probe tools/rloft_starting_equipment_probe.cpp)
+target_link_libraries(rloft_starting_equipment_probe PRIVATE rloft_boot_flow)
+target_compile_features(rloft_starting_equipment_probe PRIVATE cxx_std_17)
+
 if(WIN32)
     add_executable(
         ravenloft_demo_v1 WIN32
