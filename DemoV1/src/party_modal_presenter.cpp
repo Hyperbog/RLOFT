@@ -413,7 +413,7 @@ void PartyModalPresenter::draw_character_centered_text(
         IndexedFontPresenter::draw_right(
             framebuffer,font1_,
             xp.needed_row,column+0x49,
-            std::to_string(xp.needed));
+            std::to_string(xp.needed_for_next));
     }
 }
 
