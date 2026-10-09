@@ -18,7 +18,7 @@
 Use an original legal installation with:
 
 ```text
-RavenloftDemoV1.exe --explore-level22 --dev-inspect <original installation directory>
+ravenloft_demo_v1.exe --explore-level22 --dev-inspect <original installation directory>
 ```
 
 `--explore-level22` is the preexisting source-backed dev walkaround, while the **new** `--dev-inspect` switch enables additional read-only state instrumentation. It is **rejected unless the explicit preview flag is also present**, so production startup/character creation cannot silently acquire developer instrumentation.
