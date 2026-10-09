@@ -39,6 +39,49 @@ int main() {
     assert(shades.subtract[254]==254U);
     assert(shades.subtract[255]==255U);
 
+    // CODE.2 3838 copies projection_a into 19660, projection_b
+    // into 193E0. The self-patched 34998 routine reads low SINTAB
+    // sine WORDs, folds quadrants using 34270/34275, IMUL16 and
+    // SHLD DX,AX,3. This synthetic basis makes every expected
+    // signed 16-bit/byte result independently calculable.
+    RendererTables t{};
+    t.sine_q16_signmag[32U]=0x4000U;
+    t.sine_q16_signmag[58U]=0x7FFFU;
+    t.sine_q16_signmag[90U]=0xFFFFU;
+    for(std::size_t row=0U;row<128U;++row) {
+        t.projection_a[row]=0x0200U;
+        t.projection_b[row]=0x001FU;
+    }
+    const auto west=OriginalGroundTextureRaster::generate_ff58(
+        t,270U);
+    // relative heading 90: initial angle 58; delta angle 180.
+    // U origin: (8192*31)>>13=31
+    // V origin: (4096*31)>>13=15
+    // U delta: sin(180)=0; V delta: sin(270)=-16384,
+    // (-16384*512)>>13=-1024 => two's complement 0xFC00.
+    assert(west[0].origin_u==31U);
+    assert(west[0].origin_v==15U);
+    assert(west[0].delta_u==0U);
+    assert(west[0].delta_v==0xFC00U);
+    assert(west[127].delta_v==0xFC00U);
+
+    const auto north=OriginalGroundTextureRaster::generate_ff58(
+        t,0U);
+    // Relative=360: initial328 => U=-sin(32), V=sin(58).
+    assert(north[0].origin_u==0xF0U);
+    assert(north[0].origin_v==31U);
+    assert(north[0].delta_u==0x0400U);
+    assert(north[0].delta_v==0U);
+    const auto east=OriginalGroundTextureRaster::generate_ff58(
+        t,90U);
+    assert(east[0].origin_u==static_cast<std::uint8_t>(-31));
+    assert(east[0].origin_v==0xF0U);
+    assert(east[0].delta_u==0U);
+    assert(east[0].delta_v==0x0400U);
+    assert(rejected([&] {
+        (void)OriginalGroundTextureRaster::generate_ff58(t,360U);
+    }));
+
     // Exact original 0x300-byte FF58 row layout.
     std::vector<std::uint8_t> ff58(128U*6U,0U);
     for(std::size_t row=0U;row<128U;++row) {
