@@ -74,6 +74,27 @@ public static class Dos16AutomaticDispatchRecovery
         }
 
 
+        // A decoded exit must be backed by the same exact source bytes as
+        // the selected path. A graph address alone is not provenance.
+        bool OriginalDecodedExit(Dos16FlowInstruction instruction)
+        {
+            if (instruction.Length is < 1 or > 15 ||
+                instruction.Address.Segment != region.Segment ||
+                instruction.Address.Offset < region.Origin ||
+                instruction.Address.Offset >= region.EndExclusive ||
+                (long)instruction.Address.Offset + instruction.Length >
+                    region.EndExclusive)
+                return false;
+            long physical = (long)region.FileOffset +
+                instruction.Address.Offset - region.Origin;
+            if (physical < region.FileOffset ||
+                physical + instruction.Length >
+                    (long)region.FileOffset + region.ByteLength)
+                return false;
+            return FileMatches(instruction, region.Source.Data.Slice(
+                checked((int)physical), instruction.Length).ToArray());
+        }
+
         foreach (var site in indirect.Take(maximumSites))
         {
             string reason = "rejected-not-exact-CS-BX-indexed-dispatch";
@@ -250,12 +271,17 @@ public static class Dos16AutomaticDispatchRecovery
                                             e.Destination == takenTarget) != 1 ||
                                         outgoing.Count(e =>
                                             e.Kind == "branch-not-taken" &&
-                                            e.Destination == notTakenTarget) != 1 ||
-                                        !graph.Instructions.Any(i =>
-                                            i.Address == (insideTaken
-                                                ? notTakenTarget : takenTarget)))
+                                            e.Destination == notTakenTarget) != 1)
                                         continue;
                                     var exit = insideTaken ? notTakenTarget : takenTarget;
+                                    // Do not accept a fabricated "decoded exit"
+                                    // with the correct address but stale bytes,
+                                    // a bad physical source or duplicated record.
+                                    var exits = graph.Instructions.Where(i =>
+                                        i.Address == exit).Take(2).ToArray();
+                                    if (exits.Length != 1 ||
+                                        !OriginalDecodedExit(exits[0]))
+                                        continue;
                                     if (exit.Offset == afterGuard ||
                                         exit.Offset == site.Address.Offset ||
                                         !Dos16UniqueTransparentPath.Connects(
