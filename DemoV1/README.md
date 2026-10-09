@@ -1,5 +1,41 @@
 # Ravenloft Demo Build v1
 
+## Original ground RES4 absolute source now resolved from INIT
+
+[Source/disassembly checkpoint](ORIGINAL_LEVEL22_RES4_INIT_BASE_RESOLUTION_20261008.md):
+original `CODE.2 16E55..16E90` reads the RES4 bank
+base from `INIT+0x0E` and stores it at `258F8`.
+`CODE.2 1F388..1F398` adds that value to the
+**signed level-header+7** ground selector. This is
+now implemented in `OriginalGroundRes4Audit::resolve`:
+the real media's `INIT`, `LEVELS.DAT` Level 22
+and `RES4` determine the exact original type-1
+64×64 tile, with strict decoded-byte validation.
+
+Level 22 native gameplay startup now loads and
+validates the actual selected tile (once), recording
+any failure rather than substituting unrelated art.
+Optional capture TSV v2 includes actual RES4 base,
+signed relative selector, absolute entry and error.
+`Probe-Level22-Ground.cmd` now prints the resolved
+entry from original files as well as other candidates.
+These are **source-only**, awaiting the next manual
+Windows build and original-resource capture.
+
+**The live lower surface remains flat**, not
+because the texture index is unknown anymore,
+but because original `FF50` dynamic row clipping,
+`C026/C027` branch state and upper/lower draw
+composition still require an independent faithful
+runtime model. The original `34998/34A74` core
+and decoded source bytes are available to complete
+that step, without generating procedural grass.
+There are **164 registered CTests expected** if
+Python is installed; last successful manual #640
+at an older SHA ran 160/160. Formal acceptance
+remains **1/5 gates (20%)**. No automatic build
+has been initiated.
+
 ## Original RES4 forest-floor identification — next manual build
 
 [Original RES4 source-candidate audit](ORIGINAL_LEVEL22_RES4_GROUND_SOURCE_AUDIT_20261008.md):
