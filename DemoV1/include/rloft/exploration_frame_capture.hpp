@@ -40,6 +40,11 @@ struct ExplorationCaptureFailure final {
 // Mask bytes are from immutable shipped CODE.2, NOT live DOS RAM.
 class ExplorationFrameCapture final {
 public:
+    // Pure portable validation used by the optional Windows command line;
+    // never permit an unbounded disk-writing diagnostic mode.
+    [[nodiscard]] static std::size_t parse_frame_limit(
+        std::wstring_view decimal);
+
     static void write(
         const std::filesystem::path& directory,
         const ExplorationCapturePosition& position,
