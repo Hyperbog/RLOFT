@@ -1,8 +1,12 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include "rloft/inventory_screen.hpp"
 
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 namespace {
@@ -82,4 +86,21 @@ int main(){
    }
  }
  assert(saw_ring&&saw_special_hand&&saw_quiver&&saw_bottom);
+
+ // Original CODE.2 10A70 4B9EF RES2 graphic ID =9+the selected
+ // subtype (0..6). The panel under the nested black item cells
+ // is original RES2 artwork, not a generic invented gray frame.
+ for(std::uint8_t subtype=0;subtype<=6U;++subtype) {
+     assert(rloft::InventoryScreenModel::
+         original_container_res2_graphic(subtype)==
+         9+static_cast<int>(subtype));
+ }
+ bool invalid=false;
+ try {
+     (void)rloft::InventoryScreenModel::
+         original_container_res2_graphic(7U);
+ }catch(const std::out_of_range&) {
+     invalid=true;
+ }
+ assert(invalid);
 }
