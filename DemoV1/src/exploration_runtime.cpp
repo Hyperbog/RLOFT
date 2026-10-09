@@ -327,7 +327,9 @@ LooseItemPickupResult ExplorationRuntime::pickup_level22_loose_item(
         item_index,
         inventory_,
         session_.party,
-        object_catalog_);
+        object_catalog_,
+        (session_.persistent_event_flags[0x51U / 8U] &
+         static_cast<std::uint8_t>(1U << (0x51U % 8U))) != 0U);
 }
 
 std::optional<NpcDamageResult>

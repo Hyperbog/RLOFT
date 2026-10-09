@@ -277,6 +277,10 @@ add_executable(level22_story_tests tests/level22_story_tests.cpp)
 target_link_libraries(level22_story_tests PRIVATE rloft_boot_flow)
 add_test(NAME level22_story_tests COMMAND level22_story_tests)
 
+add_executable(original_pickup_message_tests tests/original_pickup_message_tests.cpp)
+target_link_libraries(original_pickup_message_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_pickup_message_tests COMMAND original_pickup_message_tests)
+
 add_executable(level22_encounter_tests tests/level22_encounter_tests.cpp)
 target_link_libraries(level22_encounter_tests PRIVATE rloft_boot_flow)
 add_test(NAME level22_encounter_tests COMMAND level22_encounter_tests)

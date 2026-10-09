@@ -1,6 +1,7 @@
 #include "rloft/level22_encounter.hpp"
 #include "rloft/combat_npc_injury_prelude.hpp"
 #include "rloft/combat_npc_death_followon.hpp"
+#include "rloft/original_pickup_message.hpp"
 
 #include <array>
 #include <cstddef>
@@ -241,7 +242,8 @@ Level22EncounterModel::pickup_loose_item(
     std::size_t item_index,
     InventoryRuntimeState& inventory,
     PartyImage& party,
-    const ObjectCatalog& objects) {
+    const ObjectCatalog& objects,
+    bool original_event_51_set) {
     if (item_index >=
         world.loose_items.size()) {
         throw std::out_of_range(
@@ -270,6 +272,19 @@ Level22EncounterModel::pickup_loose_item(
         world.loose_items.begin() +
         static_cast<std::ptrdiff_t>(
             item_index));
+
+    // CODE.2 21767..2187E follows 1A344 and family-C
+    // compaction. Query Tome 35h only for scroll fragments;
+    // 21866 requires the original persistent bit 51h for 74h.
+    // The message selector does not invent a new screen or event.
+    const bool tome_present =
+        item.object_type_id >= 0x61U &&
+        item.object_type_id <= 0x64U &&
+        inventory.has_object(party, objects, 0x35);
+    result.message_assignment_bf44 =
+        OriginalPickupMessageModel::assignment_21704(
+            item.object_type_id, tome_present,
+            original_event_51_set);
 
     result.level22_mist_sequence =
         Level22Story::pickup_completes_set(

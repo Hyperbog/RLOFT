@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <optional>
 
 #include "rloft/exploration_motion.hpp"
 #include "rloft/inventory_runtime.hpp"
@@ -33,6 +34,10 @@ struct LooseItemPickupResult final {
     std::int16_t object_id{-1};
     std::uint8_t known{};
     bool level22_mist_sequence{};
+    // CODE.2 21767..2187E conditional write to global BF44.
+    // Absence means the original global retains its previous value;
+    // this value is NOT itself a rendered original message.
+    std::optional<std::uint32_t> message_assignment_bf44;
 };
 
 class Level22EncounterModel final {
@@ -62,7 +67,8 @@ public:
         std::size_t item_index,
         InventoryRuntimeState& inventory,
         PartyImage& party,
-        const ObjectCatalog& objects);
+        const ObjectCatalog& objects,
+        bool original_event_51_set = false);
 };
 
 }  // namespace rloft

@@ -323,6 +323,32 @@ int main() {
             assert(quick_party.bytes[0x12BU]==0U);
         }
     }
+    // CODE.2 21704 source conditional BF44 write is recovered
+    // separately from display. Lord Dhelt's Holy Symbol only selects
+    // original message 2Fh when persistent quest bit 51h is set.
+    {
+        rloft::LevelWorldState msg_world{};
+        rloft::LiveObjectRecord holy{};
+        holy.object_type_id=0x74U;
+        msg_world.loose_items.push_back(holy);
+        rloft::InventoryRuntimeState msg_inventory{};
+        rloft::PartyImage msg_party{};
+        msg_party.bytes.fill(0xFFU);
+        msg_party.bytes[0x10U]=0U;
+        msg_party.bytes[0x11U]=0U;
+        const auto before_event=
+            rloft::Level22EncounterModel::pickup_loose_item(
+                msg_world,0U,msg_inventory,msg_party,objects,false);
+        assert(before_event.object_id==0x74);
+        assert(!before_event.message_assignment_bf44);
+        msg_world.loose_items.push_back(holy);
+        const auto after_event=
+            rloft::Level22EncounterModel::pickup_loose_item(
+                msg_world,0U,msg_inventory,msg_party,objects,true);
+        assert(after_event.message_assignment_bf44==0x2FU);
+        assert(msg_inventory.held.object_id==0x74);
+    }
+
     assert(quick_world.loose_items.empty());
     assert(quick_inventory.held.object_id==0x74);
     for(const auto relic:rloft::Level22Story::quest_objects()) {
