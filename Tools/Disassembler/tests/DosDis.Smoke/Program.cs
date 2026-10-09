@@ -524,6 +524,27 @@ try
     Equal(nearJumpBeforeTable.Report.GuardedTableCandidates, 1,
         "unprefixed near16 unconditional jump preserves exact source bounds");
 
+    // The same bounded proof must work around a copied-register guard:
+    // CMP AX; NOP; JA default; MOV BX,AX; NOP; SHL; NOP; indexed JMP.
+    var copiedAcrossNops = AnalyzeBridgedTable(new byte[] {
+        0x83, 0xF8, 0x02, 0x90, 0x77, 0x0B,
+        0x89, 0xC3, 0x90, 0xD1, 0xE3, 0x90,
+        0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
+    });
+    Equal(copiedAcrossNops.Report.GuardedTableCandidates, 1,
+        "source-backed NOPs preserve flags and exact AX to BX register copy");
+    Equal(copiedAcrossNops.Report.Sites[0].EntryCount, (int?)3,
+        "copied register still carries the unsigned three-entry bound");
+
+    var competingPath = nopBeforeTable.Graph with {
+        Edges = nopBeforeTable.Graph.Edges.Append(new Dos16FlowEdge(
+            new Dos16Address(0, 0x100), new Dos16Address(0, 0x108),
+            "branch", "synthetic-unverified-extra-incoming")).ToArray()
+    };
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(nopBeforeTable.Region,
+        competingPath).GuardedTableCandidates, 0,
+        "competing predecessor into bridged table blocks automatic index proof");
+
     var bxMutation = AnalyzeBridgedTable(new byte[] {
         0x83, 0xFB, 0x02, 0x77, 0x08,
         0x43, 0xD1, 0xE3, 0x2E, 0xFF, 0xA7, 0x20, 0x01, 0xC3
