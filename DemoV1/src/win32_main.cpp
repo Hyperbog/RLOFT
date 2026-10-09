@@ -351,6 +351,15 @@ public:
         key_events_.clear();
     }
 
+    // CODE.2 full party inventory is modal D680=1. Keypress D is
+    // command 0x44 ONLY while this mode owns the event queue;
+    // prevent stale gameplay or character-creation D keys from
+    // turning into a later world drop.
+    void set_inventory_mode(bool enabled) {
+        if(inventory_mode_!=enabled)key_events_.clear();
+        inventory_mode_=enabled;
+    }
+
     bool quit_requested() const noexcept { return quit_; }
     HWND hwnd() const noexcept { return hwnd_; }
 
@@ -587,6 +596,16 @@ private:
                 }
 
                 if (exploration_input_) {
+                    if(inventory_mode_ && wparam=='D') {
+                        // Original scan 20h -> translated 44h; ignore
+                        // WM_KEYDOWN auto-repeat bit30 to drop once
+                        // per physical key press, not once per VGA frame.
+                        if((static_cast<std::uint64_t>(lparam)&
+                            (1ULL<<30U))==0U) {
+                            key_events_.push_back(0x44);
+                        }
+                        return 0;
+                    }
                     if (const auto scan = legacy_scan_from_vk(wparam)) {
                         exploration_input_->press(*scan);
                     }
@@ -614,6 +633,7 @@ private:
 
             case WM_KEYUP:
                 if (exploration_input_) {
+                    if(inventory_mode_ && wparam=='D')return 0;
                     if (const auto scan = legacy_scan_from_vk(wparam)) {
                         exploration_input_->release(*scan);
                     }
@@ -766,6 +786,7 @@ private:
     bool escape_pressed_{false};
     bool menu_mode_{false};
     bool character_mode_{false};
+    bool inventory_mode_{false};
     rloft::ExplorationLegacyInputController* exploration_input_{nullptr};
     int selection_{-1};
     std::optional<int> clicked_{};
@@ -1059,6 +1080,8 @@ int run_exploration(
             continue;
         }
 
+        host.set_inventory_mode(
+            ui.state().screen==rloft::ExplorationUiScreen::PartyPanels);
         if (ui.state().screen !=
             rloft::ExplorationUiScreen::PartyPanels &&
             inventory_cursor_last_id) {
@@ -1067,6 +1090,59 @@ int run_exploration(
         }
         if (ui.state().screen ==
             rloft::ExplorationUiScreen::PartyPanels) {
+            // CODE.2 13118 -> 6BA64 maps scan 20h (the D key)
+            // to 44h. Only this modal accepts world-drop commands.
+            if(const auto key=host.consume_key_event()) {
+                if(*key==0x44) {
+                    const auto& level=runtime.session().level;
+                    const auto free_cell=[&](
+                        std::uint32_t y,std::uint32_t x,
+                        std::uint32_t radius) -> bool {
+                        // Source 2195C calls original 2D5D0(y,x,0x190).
+                        // This safety precheck rejects solid original
+                        // map cells. More detailed dynamic 2D5D0
+                        // actors/events still require source validation.
+                        const auto min_col=static_cast<std::int32_t>(
+                            static_cast<std::int16_t>(
+                                (x-radius)>>16U));
+                        const auto max_col=static_cast<std::int32_t>(
+                            static_cast<std::int16_t>(
+                                (x+radius)>>16U));
+                        const auto min_row=static_cast<std::int32_t>(
+                            static_cast<std::int16_t>(
+                                (y-radius)>>16U));
+                        const auto max_row=static_cast<std::int32_t>(
+                            static_cast<std::int16_t>(
+                                (y+radius)>>16U));
+                        for(int col=min_col;col<=max_col;++col)
+                            for(int row=min_row;row<=max_row;++row) {
+                                if(col<0 || row<0 ||
+                                   col>=level.width ||
+                                   row>=level.height)return false;
+                                const auto index=static_cast<std::size_t>(
+                                    row*level.width+col);
+                                if(index>=level.cell_words.size() ||
+                                   (level.cell_words[index]&0x3FU)!=0U)
+                                    return false;
+                            }
+                        return true;
+                    };
+                    const auto dropped=runtime.drop_held_inventory_item(
+                        free_cell);
+                    if(dropped.status==
+                        rloft::InventoryWorldDropStatus::Dropped) {
+                        displayed_scene_frame.reset();
+                        SetWindowTextW(host.hwnd(),
+                            L"Ravenloft - Inventory | Item dropped");
+                    }else if(dropped.status==
+                        rloft::InventoryWorldDropStatus::
+                            SourceSpecialActionPending) {
+                        SetWindowTextW(host.hwnd(),
+                            L"Ravenloft - Inventory | "
+                            L"Special drop action not reconstructed");
+                    }
+                }
+            }
             const auto held_cursor_id=runtime.inventory().held.object_id;
             if(!inventory_cursor_last_id ||
                *inventory_cursor_last_id!=held_cursor_id) {
