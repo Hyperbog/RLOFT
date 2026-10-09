@@ -119,3 +119,16 @@ grass or SAVE.DAT substitution is used. Live Level 22
 still needs the source-selected original RES4 type-1
 tile, so do not mark the supplied fresh-game screenshot
 as matched or the live forest floor as completed.
+
+
+## Follow-on forest floor acceptance checkpoint
+
+[CODE.2 34A74 authentic live open-field path](LEVEL22_LIVE_ORIGINAL_34A74_OPENFIELD_GROUND_20261008.md)
+now conditionally draws original RES4 source
+terrain on Level22 when every original ray
+matches the 0x93 outdoor sentinel. This
+does not use synthetic grass or a guessed
+initial SAVE.DAT state. The normal CODE.1
+fresh-party path is unchanged. Original
+DOS images/IRQ timing and new Windows
+compilation must still confirm exact fidelity.
