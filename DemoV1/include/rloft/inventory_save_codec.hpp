@@ -24,8 +24,10 @@ struct InventorySaveSnapshot final {
     std::array<std::uint8_t,32> persistent_event_flags{};
     InventoryRuntimeState inventory{};
     // CODE.2 writes four raw 4-byte 6FA0 actor UI contexts at EOF.
-    // They remain raw: the hand association and half-open transition
-    // must be reconstructed before live modal reactivation on LOAD.
+    // Always retain all bytes, including FF FF 00 FF after closing.
+    // The live bridge may resolve one fully-open phase3 context
+    // with source-verified actor/hand/OBJECTS identity. Intermediate
+    // animation phases and multiple views stay opaque/rejected live.
     std::array<std::array<std::uint8_t,4>,4> container_ui_contexts{};
 };
 
