@@ -16,6 +16,24 @@
 int main() {
     namespace fs=std::filesystem;
     using namespace rloft;
+    // The native capture launcher uses the explicitly bounded extended
+    // sampling mode, without allowing arbitrary filesystem growth.
+    for (const auto count:{1U,16U,64U,128U}) {
+        assert(ExplorationFrameCapture::parse_frame_limit(
+            std::to_wstring(count))==count);
+    }
+    for (const auto invalid:{
+        L"",L"0",L"129",L"999999999999999999999",
+        L"-1",L"+16",L"16x",L" 16",L"1.6"
+    }) {
+        bool failed=false;
+        try {
+            (void)ExplorationFrameCapture::parse_frame_limit(invalid);
+        } catch(const std::invalid_argument&) {
+            failed=true;
+        }
+        assert(failed);
+    }
     const auto dir=fs::temp_directory_path()/
         "rloft_exploration_frame_capture_test";
     fs::remove_all(dir);
