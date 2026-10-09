@@ -597,6 +597,59 @@ int main() {
     assert(clean.party.bytes==before_party);
     assert(live.held.object_id==before_held);
 
+    // Stress all FOUR original actor 6FA0 records concurrently,
+    // including high original object IDs whose saved +3 byte
+    // collides with the low object ID of another character.
+    auto four_actor_views=two_actor_views;
+    for(std::size_t actor=2U;actor<4U;++actor) {
+        four_actor_views[
+            0x77U+actor*0x248U+0x10U]=0U;
+        four_actor_views[
+            0x77U+actor*0x248U+0x11U]=0U;
+        const auto id=actor==2U ? 258 : 2;
+        set_hand_in_save(four_actor_views,actor,0U,id);
+        set_hand_in_save(four_actor_views,actor,1U,-1);
+        set_ui_in_save(four_actor_views,actor,
+            {{0U,0U,3U,2U}});
+    }
+    const auto full=C::decode(four_actor_views,baseline);
+    assert(C::encode(full)==four_actor_views);
+    live=baseline;
+    C::apply_to_matching_session(full,clean,live,&objs);
+    for(std::size_t actor=0U;actor<4U;++actor) {
+        assert(live.party_container_ui_contexts[actor].fully_open());
+        assert(live.select_container_actor(
+            clean.party,objs,actor)==
+               rloft::InventoryContainerStatus::Opened);
+        assert(live.open_container->actor==actor);
+        assert(live.open_container->object_id==
+            (actor==2U ? 258 : 2));
+    }
+    assert(C::encode(C::capture_matching_session(
+        full,clean,live,&objs))==four_actor_views);
+    // Close selected actor 3 only; actors 0/1/2 remain phase3,
+    // yet the native selection is now absent and unsaved.
+    live.close_container();
+    assert(!live.open_container);
+    assert(live.party_container_ui_contexts[3U].inactive());
+    for(std::size_t actor=0U;actor<3U;++actor)
+        assert(live.party_container_ui_contexts[actor].fully_open());
+    const auto after_close=C::encode(
+        C::capture_matching_session(full,clean,live,&objs));
+    assert(after_close[after_close.size()-16U+12U]==0xFFU);
+    assert(after_close[after_close.size()-16U+14U]==0U);
+    assert(after_close[after_close.size()-16U+8U]==0U);
+    assert(C::encode(C::decode(after_close,baseline))==
+        after_close);
+    // No invented actor-selection byte is persisted: reimport
+    // chooses the first still-open actor for native interaction.
+    const auto three=C::decode(after_close,baseline);
+    live=baseline;
+    C::apply_to_matching_session(three,clean,live,&objs);
+    assert(live.open_container && live.open_container->actor==0U);
+    for(std::size_t actor=0U;actor<3U;++actor)
+        assert(live.party_container_ui_contexts[actor].fully_open());
+
     // Reject mismatch between persisted subtype/index and the
     // original CODE.2 descriptor without silently repairing SAVE.
     auto bad_subtype=open_original;
