@@ -26,31 +26,24 @@ int main(int argc,char** argv) {
                 return std::move(*found);
             }();
         const auto original_init=source.read("INIT");
-        const auto original_base=
-            rloft::OriginalGroundRes4Audit::base_from_init(
-                original_init);
+        const auto level22=rloft::ExplorationStateCodec::parse_archive_level(
+            source.read("LEVELS.DAT"),22);
         const rloft::ResArchive res4(source.read("RES4"));
+        // Every input below is read from original user-owned media.
+        const auto selected=rloft::OriginalGroundRes4Audit::resolve(
+            original_init,level22,res4);
         const auto report=rloft::OriginalGroundRes4Audit::inspect(res4);
-        // This is the source-authenticated CODE.2 1F388 lookup,
-        // not a guess derived from shape, color or screenshot.
-        constexpr int kLevel22RelativeGround=55;
-        const auto original_selected=
-            rloft::OriginalGroundRes4Audit::absolute_index(
-                kLevel22RelativeGround,original_base,
-                res4.entry_count());
-        const auto original_tile=
-            rloft::OriginalGroundRes4Audit::verified_tile_source(
-                res4,original_selected);
         std::cout<<"RLOFT original RES4 ground candidates"
                  <<" [native diagnostic, not DOS live selector]\n"
                  <<"source_archive=RES4\n"
-                 <<"original_Level22_header_plus7_relative_selector=55\n"
+                 <<"original_Level22_header_plus7_relative_selector="
+                 <<selected.signed_level_selector<<"\n"
                  <<"source_CODE2_base=INIT+0x0E -> DGROUP_258F8\n"
-                 <<"verified_INIT_base="<<original_base<<"\n"
+                 <<"verified_INIT_base="<<selected.source_init_base<<"\n"
                  <<"verified_Level22_absolute_ground_entry="
-                 <<original_selected<<"\n"
+                 <<selected.absolute_archive_entry<<"\n"
                  <<"verified_decoded_ground_pixel_bytes="
-                 <<original_tile.size()-2U<<"\n"
+                 <<selected.raster_source.size()-2U<<"\n"
                  <<"entry_count="<<report.total_entries<<"\n"
                  <<"type1_count="<<report.type1_entries<<"\n"
                  <<"invalid_type1_count="<<report.rejected_type1_entries<<"\n"
