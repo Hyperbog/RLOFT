@@ -107,3 +107,15 @@ level/state gate and nonblocking fallthrough, rather
 than treating any overlap as an action. Pending manual
 Windows build, actual DOS IRQ timing and full 34A74
 textured-floor raster.
+
+
+## Follow-on original floor rendering progress
+
+[CODE.2 34998 + 34A74 native terrain research](ORIGINAL_CODE2_34A74_TEXTURED_GROUND_PIPELINE_20261008.md)
+has implemented the original SINTAB perspective row
+generator and indexed 4-plane/2-plane texture sampling
+core with source-backed regression checks. No generated
+grass or SAVE.DAT substitution is used. Live Level 22
+still needs the source-selected original RES4 type-1
+tile, so do not mark the supplied fresh-game screenshot
+as matched or the live forest floor as completed.
