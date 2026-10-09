@@ -17,3 +17,11 @@ Targets for future independent fixtures: MZ/EXE, FBOV and TPOV Gold Box
 overlays, explicit COM and DRV, LX sound drivers, AESOP VM resources,
 and GFF containers. This source checkpoint is not a parser implementation
 for the latter formats, nor an independently executed runtime test.
+
+## Manual headerless selection
+
+A source identified only by a `.COM` or `.DRV` extension remains unknown.
+The analyst can explicitly choose the `com` / `com-disasm` CLI mode and
+set the 16-bit origin. The source must fit the declared segment without
+wrapping; recognized executable/container signatures cannot be overridden
+silently. This is **not** a general driver loader or runtime emulator.

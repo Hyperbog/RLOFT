@@ -9,7 +9,7 @@ not independently reverified by this source-only checkpoint.
 | MZ-bound LE | `CODE.1`, `CODE.2` | Validated object/page mapping and x86-32 candidates in source | Fixup coverage, indirect-flow completeness |
 | Gold Box FBOV | Pool of Radiance `GAME.OVR` | Signature recognized only | Overlay directory, segment/code tables, runtime load mapping |
 | Gold Box TPOV | Secret of the Silver Blades `GAME.OVR` | Signature recognized only | Independently validated alternative overlay mapping |
-| Headerless COM | Pools of Darkness `SOUND.COM` | Unknown/headerless by default | Explicit 16-bit origin/PSP/entry assumption mode, no extension guessing |
+| Headerless COM | Pools of Darkness `SOUND.COM` | Explicit 16-bit origin mapping and requested candidate decoder; never auto-enabled by extension | Real DOS PSP/runtime assumptions, interrupt/driver analysis |
 | Headerless/structured DRV | Pools of Darkness `VGA.DRV` | Unknown/headerless by default | Driver calling/initialization conventions and detection |
 | MZ-bound LX | `A32ADLIB.DLL`, other AIL/32 drivers | Signature recognized only | LX object/page/rebase/entry mapping |
 | NE / PE | Other MZ-bound binaries | Signature recognized only | Dedicated NE/PE metadata loaders and host-platform distinction |
@@ -54,3 +54,18 @@ they can be cataloged separately as supporting software.
 
 **Source checkpoint only:** no Windows build, no original files processed and
 no regression suite executed here.
+
+## Explicit headerless COM research mode
+
+`com` and `com-disasm` CLI modes require the analyst to opt into a
+single-segment 16-bit load layout. The conventional default origin is
+`0x100`, explicitly overridable with `--origin`; `--offset` selects a
+requested instruction address. No PSP bytes are inferred and no DOS runtime
+segment is invented. A conflicting recognized MZ/LX/FBOV/TPOV/resource
+signature is rejected even in explicit COM mode. An ordinary `inspect`
+operation still reports such a file as `unknown-headerless` unless its
+structure is independently identified.
+
+MZ and COM use the same `X86RealModeDecoder` on bounded original bytes.
+This is **linear, analyst-requested candidate decoding**; a 16-bit recursive
+CFG and runtime relocation emulation remain future work.

@@ -17,3 +17,11 @@ MZ loader until their own object/segment metadata is validated.
 The loader does not trust `.EXE` extensions as evidence.
 
 No Windows build or synthetic regression execution has been requested.
+
+## Shared real-mode decoder
+
+The 16-bit decode loop now lives in `X86RealModeDecoder`, which accepts
+validated physical file offsets and explicit 16-bit instruction-pointer
+contexts from MZ and COM loaders. The decoder does not inspect game names
+or infer which bytes are executable. Both loaders retain source file offsets
+and enforce the 64 KiB IP boundary. Runtime relocations are not applied.

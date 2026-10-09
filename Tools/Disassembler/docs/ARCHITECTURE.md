@@ -12,13 +12,14 @@ This document supersedes the Part 14 loader-specific outline.
 | Format detector | `BinaryFormatDetector` recognizes signatures but never assumes a valid loader or executable instructions |
 | File intelligence | `FileIntelligence` derives only structural facts and optional external catalog metadata, with distinct evidence statuses |
 | Optional game metadata | `SourceIdentityRegistry` reads versioned, size-limited JSON; no hardcoded game fingerprints |
-| MZ parser | `DosMzImage` validates original DOS MZ header and relocation layout; explicitly requested x86-16 linear decoding is only a candidate |
+| MZ parser | `DosMzImage` validates original DOS MZ header, relocations, and original source offsets; requested x86-16 linear decoding is a candidate |
 | LE parser | `LeImage` maps validated MZ-bound LE objects/pages and fixups; 32-bit reachability is conservative and evidence-tagged |
 | Future OVR loaders | FBOV/TPOV markers are recognized but require complete mapping of overlay directory and load behavior |
 | Future LX/NE loaders | Recognize signatures, then parse distinct page/object/segment and relocation formats; never treat as MZ flat code |
-| Future headerless loaders | COM and DRV need explicit load segment, CPU mode, entry point, origin and environment assumptions |
+| Explicit COM loader | `DosComImage` supports analyst-selected 16-bit origin and request-only decode without claiming a DOS runtime segment |
+| Future driver loaders | DRV and other special modules need proven calling conventions and runtime load rules |
 | Resource/VM parsers | AESOP/16, GFF, DAX, Gold Box scripts and other data are separate instruction/container formats |
-| Analyzer engines | Current iced-x86 x86-16 requested decode and x86-32 LE recursive candidate analysis; VM engines separate |
+| Analyzer engines | Shared `X86RealModeDecoder` supplies bounded x86-16 MZ/COM candidate decode; iced-x86 x86-32 LE recursive analysis remains separate; VM engines require their own instruction sets |
 | Research/export | Source-bound known answers, independent project symbol tiers, gap ledger, diagnostics and provenance |
 
 ## Load/address policy

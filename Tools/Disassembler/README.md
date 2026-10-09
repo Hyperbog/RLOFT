@@ -332,3 +332,26 @@ See [format-support matrix](docs/FORMAT_SUPPORT_MATRIX.md) and
 [architecture contract](docs/GAME_AGNOSTIC_ARCHITECTURE_CONTRACT.md).
 No builds, test execution or proprietary original-file regressions were
 performed. First-release completion remains **43% pending verification**.
+
+## Explicit headerless 16-bit COM mode (source-only checkpoint)
+
+`DosComImage` offers a manual, one-segment load origin (default `0x100`)
+for `com` and `com-disasm` CLI operations. Normal `inspect` does not
+silently accept a `.COM` suffix as a confirmed executable format.
+MZ and COM use the same original-byte-backed `X86RealModeDecoder`.
+No PSP bytes, runtime relocation, executable reachability, or driver
+interface semantics are fabricated.
+
+Examples for a future **manual** Windows build:
+
+```powershell
+DosDis.Cli.exe inspect \"SOUND.COM\"
+DosDis.Cli.exe com \"SOUND.COM\" --origin 100
+DosDis.Cli.exe com-disasm \"SOUND.COM\" --origin 100 --offset 100 --count 32
+DosDis.Cli.exe mz \"MAIN.EXE\" --max 100
+DosDis.Cli.exe mz-disasm \"MAIN.EXE\" --count 32
+```
+
+All offset/origin parameters shown are hexadecimal. These commands are
+source implementation examples, **not verified executable results**.
+The original-file loader policy and signature detection remain format-driven.
