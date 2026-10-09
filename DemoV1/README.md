@@ -1,5 +1,24 @@
 # Ravenloft Demo Build v1
 
+## Level 22 original-content correction — native capture evidence
+
+[Audit of 30 user-supplied indexed frames](LEVEL22_CAPTURE_AUDIT_20261008.md):
+Level 22 is an original 30×15 **outdoor/open-field map** with
+**0x93** non-drawable perimeter resources. All **7,649**
+captured wall-run rows were non-drawable. No expected wall pixels
+were suppressed by the new SINTAB backend in those views.
+Thus do not use Level 22 for ordinary RES4 wall-render fidelity;
+use an actually wall-bearing level instead.
+
+Level 22 source-data priorities are **RES3 world-scene sprites**:
+one type-9 NPC at (13,7), 110 placed objects (52 type 62,
+42 type 63, 16 type 64), with appropriate DOS pixel and
+interaction verification. The opt-in `--capture-render`
+TSV now reports **v2 scene-record/draw-call/type-7 raster
+diagnostics** without changing the original-resolution pixels.
+The v2 source change has not been rebuilt; previously green
+Windows run #638 was at earlier source.
+
 ## Diagnostic build: raw Level 22 frame export
 
 [Capture checkpoint](LEVEL22_NATIVE_FRAME_CAPTURE_CHECKPOINT_20261008.md):
