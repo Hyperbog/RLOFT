@@ -42,6 +42,9 @@ internal static class Dos16TableIndexEvidenceSmoke
             report.UnresolvedSites == 0 && report.Sites.Count == 1,
             "exact CS indexed site with independent analyst bound");
         var site = report.Sites[0];
+        Check(site.StorageValidationStatus == "candidate-entries-source-backed" &&
+            report.CodeDataConflicts == 0,
+            "independent storage evidence is retained in accepted report");
         Check(site.Status == "candidate-bounded-byte-offset-and-stored-entries" &&
             site.PossibleIndices.SequenceEqual(new[] { 1 }) &&
             site.CandidateStoredEntries.Count == 1 &&
@@ -107,9 +110,11 @@ internal static class Dos16TableIndexEvidenceSmoke
         var conflict = Dos16TableIndexEvidence.Inspect(
             overlap.Region, overlap.Graph, overlap.Manifest);
         Check(!conflict.Incomplete && conflict.CandidateSites == 0 &&
+            conflict.CodeDataConflicts == 1 &&
             conflict.Sites[0].Status == "unresolved-stored-table" &&
+            conflict.Sites[0].StorageValidationStatus == "rejected-code-data-overlap" &&
             conflict.Sites[0].CandidateStoredEntries.Count == 0,
-            "code/data overlap cannot be presented as an indexed target");
+            "code/data overlap is separately recorded and cannot seed a target");
 
         Console.WriteLine(
             "PASS: bounded source-backed x86-16 table-index candidate evidence");
