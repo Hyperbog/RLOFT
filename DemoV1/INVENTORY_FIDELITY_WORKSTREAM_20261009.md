@@ -1355,3 +1355,144 @@ not a new registered test. Registered
 **170 CTests / 19 Quick**, still unexecuted
 on current source. The engineering score
 remains **56.25%** and inventory is PARTIAL.
+
+
+## Part 8 continuation — source-correct 15050 world fallback and CINE08 event identity
+
+**Primary binary source revalidation:** CODE.2 object-1
+`2195C..21AD9`, `21880..2195A`, `15050..15142`,
+`139AC..13A5C`, `13AD8..13BB1`,
+`13EF8..13F60` were freshly inspected as original
+x86 instructions. The original immutable upload remains
+SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
+No generated or guessed bytes substitute for the source.
+
+### 15050 reward's WORLD fallback is now source-bound
+
+The prior model implemented 15050's empty-cursor and
+active-character first-free ordinary-slot routes but
+returned `NeedsWorldSpawn` without placing the original
+HOLY SYMBOL OF RAVENKIND when all those destinations
+were unavailable.
+
+Direct `1511F..1513C` disassembly establishes the exact
+downstream `2195C` argument sequence:
+
+```text
+push 0          ; do NOT clear live cursor (last 2195C arg)
+push 1          ; forward-position attempt enabled
+push [255D4]    ; source current player Y (Q16)
+push [255D0]    ; source current player X (Q16)
+push 0          ; object known/identified byte
+push 0x73       ; object ID 115: HOLY SYMBOL OF RAVENKIND
+push 0x80       ; source screen-direction seed
+call 2195C      ; original family-C loose-item constructor
+```
+
+By contrast, the modal **D** inventory drop at
+`13118` invokes `2195C` with clear-held flag 1.
+The original 2195C implementation computes heading,
+attempts `2D5D0(...,0x190)`, falls back to player
+location when denied, appends a 22-byte family-C
+record with `(known&1)<<10` in its packed state,
+and if already at 300 loose items evicts the oldest
+record before appending.
+
+This checkpoint implements:
+
+- `InventoryWorldDropModel::spawn_holy_symbol_reward_15050`
+  reuses the **same** previously reconstructed
+  `2195C` placement/validation/eviction logic using
+  ephemeral original source parameters
+  `held={0x73,0}`, so the **actual** held cursor
+  is never passed to a clearing drop routine.
+  The method returns the real spawned family-C
+  index or an explicit invalid-position rejection;
+  it doesn't run story event 8 or alter flag 0x44.
+- `HolySymbolRewardModel::grant_with_world_15050`
+  completes the original inventory transfer precedence:
+  empty cursor → first free ordinary slot in active
+  actor order → source `2195C` world fallback.
+  Successful fallback returns `SpawnedInWorld`
+  with its actual index. Rejected world placement
+  returns `WorldPlacementRejected` with **no**
+  change to party, held item, known flags, or
+  original family-C records. The earlier
+  `grant_15050` pure inventory route and
+  `NeedsWorldSpawn` status remain available
+  to callers that have not yet bound a live
+  `LevelWorldState`.
+- Regression assertions verify the world reward's
+  object ID 0x73, unidentified bit, exact Q16
+  fallback to player coordinates, source 300-entry
+  evict-first behavior, unchanged actual cursor
+  and party state, corrupt-world no-eviction
+  guarantees, and cursor/party precedence over
+  even an invalid world backing.
+
+**IMPORTANT:** the combined reward helper is NOT
+yet wired into a ritual completion. The original
+`21880` performs its three steps synchronously
+*after the fourth 0x89 seed is appended and cleared
+from the cursor*: sets bit `0x44`, plays numbered
+event 8, **then** calls `15050(0x73)`. The current
+native `InventoryWorldDropModel::drop` deliberately
+returns `SourceSpecialActionPending` before the
+fourth seed is committed because the live native
+cinematic/event handoff is still incomplete. The
+source-backed grant helper must never be called
+before that event has been completed.
+
+### Event 8 resource and extant native ANM support
+
+Original `139AC` copies its eleven-byte
+`CINE00.ANM\0` filename template from CODE.2
+logical `0x131D0`; replacing its two decimal
+digits with number 8 results in **`CINE08.ANM`**.
+The call chain is unambiguous:
+
+```text
+21880 -> 13EF8(8)
+          -> 13AD8(8)
+              -> 139AC(8)  => CINE08.ANM
+          -> 13834 frame/packet interpreter
+          -> 13C88 post-presentation cleanup
+       -> 15050(0x73) reward grant
+```
+
+Repository `Resources/ANM/INVENTORY.md` records
+`CINE08.ANM` as a 9,255,472-byte original animation
+containing **182 frames** (SHA-256
+`cfbc8b5835906ceedcf74e8c202430cd0b5b4e4d4c7c00054d42b934def817f3`).
+The existing native `AnmCinematic` decoder and
+Win32 `play_cinematic()` already support the original
+packet/timeline presentation for startup event 0
+and event 12; they are not yet connected to the
+inventory modal's fourth-seed completion. Code now
+pins `Level16SeedRitualCheck::kNumberedEventFilename`
+to the source exact `CINE08.ANM`, and tests its
+identity alongside event ID 8 and reward ID 115.
+
+**Next integration requirement:** thread a safe, explicit
+game-session event-8 presentation handoff through
+the native inventory modal, preserving original
+story-flag order, consuming the last seed exactly
+once, giving exactly one Holy Symbol reward through
+`grant_with_world_15050`, and then rebuilding
+native gameplay/audio/scene state after cinematic
+teardown. The general `run_exploration` entry does
+not currently receive the Win32 audio/MIDI presenters;
+blindly invoking a startup-only cinematic helper
+would be an unsafe partial implementation.
+Cinematic Escape/quit, resource failure, and
+world fallback must also be distinctly handled.
+No such live completion is claimed in this checkpoint.
+
+**Git policy:** every code/test/doc change committed
+to `demo-v1`. **Build policy:** user-managed;
+no Windows CI, local compile, or test execution
+initiated. The same existing `inventory_world_drop_tests`
+target is expanded; **170 registered CTests,
+19 Quick** remain. Engineering tracker **56.25%**,
+inventory milestone **PARTIAL** pending full
+acceptance and runtime validation.
