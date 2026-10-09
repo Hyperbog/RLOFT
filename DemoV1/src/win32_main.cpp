@@ -1112,6 +1112,11 @@ int run_exploration(
                     }
                 }
             }
+            // CODE.2 13184..131BB compares unsigned 30700 tick
+            // against 6DA8 once per modal loop, restoring the
+            // item ribbon only after tick > deadline.
+            (void)runtime.inventory().expire_scribe_feedback_13184(
+                code1_tick_count(exploration_epoch));
             const auto held_cursor_id=runtime.inventory().held.object_id;
             if(!inventory_cursor_last_id ||
                *inventory_cursor_last_id!=held_cursor_id) {
@@ -1224,7 +1229,8 @@ int run_exploration(
                                 runtime.object_catalog(),
                                 hit->actor,
                                 hit->slot,
-                                &runtime.session().persistent_event_flags);
+                                &runtime.session().persistent_event_flags,
+                                code1_tick_count(exploration_epoch));
                         if (status ==
                             rloft::InventoryOrdinarySwapStatus::Swapped ||
                             status ==
@@ -1427,6 +1433,8 @@ int run_exploration(
                                 click->column)) {
                     if (runtime.session().party.active(*actor)) {
                         ui.open_party_panels(*actor);
+                        // 13118 resets 6DA8/6DAC at modal entry.
+                        runtime.inventory().reset_scribe_feedback_13118();
                         input.clear();
                         opened_actor_panel = true;
                     }
