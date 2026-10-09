@@ -385,7 +385,11 @@ InventoryHandSwapStatus InventoryRuntimeState::swap_hand_slot(
     if (current >= 0) {
         const auto& definition =
             objects.at(static_cast<std::size_t>(current));
-        if (definition.item_category == 1U) {
+        if (definition.item_category == 1U && incoming != -1) {
+            // The original open-container hand state cannot be
+            // overwritten with another item without taking its
+            // distinct 21648 handler. Taking it into an empty
+            // cursor is an ordinary 214B8 pickup.
             return InventoryHandSwapStatus::Unsupported;
         }
     }
@@ -439,13 +443,11 @@ namespace {
 // permitted to contain the following incoming object categories.
 bool source_container_type_compatible(
     std::uint8_t subtype,std::uint8_t item_category) noexcept {
-    if (subtype==0U)
-        return item_category==3U || item_category==5U;
-    if (subtype==1U)
-        return item_category!=1U && item_category!=2U &&
-               item_category!=6U;
-    if (subtype==2U)
-        return item_category!=2U;
+    // Original 21404 / 11C3C general pouch, sack and chest
+    // containers accept ordinary object categories subject to
+    // separate attack-profile and nesting constraints. The first
+    // two categories also reject hand-pair special items.
+    if (subtype<=2U) return true;
     if (subtype==3U) return item_category==0x0DU;
     if (subtype==4U) return item_category==0x0EU;
     if (subtype==5U) return item_category==0x0CU;
