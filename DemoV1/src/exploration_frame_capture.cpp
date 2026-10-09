@@ -59,7 +59,8 @@ void ExplorationFrameCapture::write(
     const ExplorationRuntimeFrame& runtime,
     const ExplorationPresentedFrame& presented,
     const IndexedFramebuffer& framebuffer,
-    const std::vector<std::uint8_t>& code2) {
+    const std::vector<std::uint8_t>& code2,
+    std::string_view source_revision) {
     const auto& pixels=framebuffer.pixels();
     constexpr std::size_t kPixelCount=
         static_cast<std::size_t>(IndexedFramebuffer::kWidth)*
@@ -85,6 +86,7 @@ void ExplorationFrameCapture::write(
     const auto& coverage=presented.surface_coverage;
     manifest<<"format\trloft-native-indexed-capture-v2\n"
             <<"provenance\tnative-preview-not-original-DOS\n"
+            <<"source_revision\t"<<clean(std::string(source_revision))<<"\n"
             <<"dimensions\t320\t400\n"
             <<"palette\t256x3\tVGA-6bit-raw\n"
             <<"level\t"<<position.level<<"\n"
@@ -241,6 +243,33 @@ void ExplorationFrameCapture::write(
     }
     if(!manifest)
         throw std::runtime_error("Unable to complete capture metadata");
+}
+
+void ExplorationFrameCapture::write_failure(
+    const std::filesystem::path& directory,
+    const ExplorationCaptureFailure& failure) {
+    std::filesystem::create_directories(directory);
+    std::ofstream manifest(
+        directory/"failure.tsv", std::ios::binary|std::ios::trunc);
+    if (!manifest)
+        throw std::runtime_error("Unable to write native sweep failure capture");
+    manifest<<"format\trloft-native-exploration-failure-v1\n"
+            <<"provenance\tnative-preview-not-original-DOS\n"
+            <<"source_revision\t"<<clean(failure.source_revision)<<"\n"
+            <<"stage\tbuild_frame\n"
+            <<"level\t"<<failure.level<<"\n"
+            <<"coordinate_fixed\t"<<failure.coordinate_a
+            <<"\t"<<failure.coordinate_b<<"\n"
+            <<"cell\t"<<static_cast<std::int32_t>(failure.coordinate_a)>>16
+            <<"\t"<<static_cast<std::int32_t>(failure.coordinate_b)>>16
+            <<"\n"
+            <<"facing\t"<<failure.facing<<"\n"
+            <<"dimensions\t"<<failure.map_width
+            <<"\t"<<failure.map_height<<"\n"
+            <<"prior_frames_written\t"<<failure.frames_written<<"\n"
+            <<"exception\t"<<clean(failure.reason)<<"\n";
+    if (!manifest)
+        throw std::runtime_error("Unable to complete native sweep failure capture");
 }
 
 } // namespace rloft
