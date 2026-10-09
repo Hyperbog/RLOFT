@@ -4,7 +4,7 @@
 **Branch:** `demo-v1`  
 **Scope:** Level 22 reusable development testbed and systems needed for the full original game.  
 **Source of truth:** [editable scoring data](PROGRESS_SUBSYSTEMS.csv).  
-**Current revision acceptance:** Full Windows build #647 **passed all 172 CTests** at source `fb4a0145`; subsequent RES4, Part 9 level continuity, original CODE.2 mist-frame/staging models and F540 correction are **committed but not yet compiled** (178 CTests now registered). No current-source DOS visual/gameplay comparison has passed.  
+**Current revision acceptance:** Full Windows build [#648](https://github.com/Hyperbog/RLOFT/actions/runs/37998467852) **passed all 178 CTests** at source `fb0912346a831dad21d2960e99863cc8f446173a`, including the Part 9 continuity, mist staging, original pickup-message and IRQ ribbon reconstruction. The [exact build/EXE provenance](FULL_WINDOWS_BUILD_CHECKPOINT_20261009_RUN648.md) is archived. **No current-source original-DOS visual, state, timing or complete Level22 gameplay acceptance has passed.**  
 **Separate historical metric:** the pre-existing 32-task engineering ledger remains **56.25% (18/32)**. It is NOT numerically comparable to these weighted readiness estimates.
 
 ## Scoring rules — fixed for future checkpoints
@@ -28,7 +28,7 @@ In particular, 20 points for “regression” means test cases are written and r
 | Current-head DOS acceptance | 0.0% | 0.0% |
 | **Total weighted readiness** | | **49.8%** |
 
-**Level22-first binding gate:** No independent Level23 content/gameplay work before the complete original Level22 is playable from startup through its original mist ending. The original frame-20 Level23 loader is only a required end-of-Level22 boundary. The latest source also reconstructs original pickup BF44 message assignments and the Assassin death BF44=1 mutation. These are not yet a complete original ribbon renderer or accepted original-DOS behavior. See [Level22 acceptance gate](LEVEL22_COMPLETION_AND_PICKUP_FEEDBACK_GATE_20261009.md) and [BF44 runtime integration](LEVEL22_BF44_LIVE_GLOBAL_20261009.md). **177 authored/registered CTests** (Quick 19), last compiled Full still 172.
+**Level22-first binding gate:** No independent Level23 content/gameplay work before the complete original Level22 is playable from startup through its original mist ending. The original frame-20 Level23 loader is only a required end-of-Level22 boundary. The latest source also reconstructs original pickup BF44 message assignments and the Assassin death BF44=1 mutation. These are not yet a complete original ribbon renderer or accepted original-DOS behavior. See [Level22 acceptance gate](LEVEL22_COMPLETION_AND_PICKUP_FEEDBACK_GATE_20261009.md) and [BF44 runtime integration](LEVEL22_BF44_LIVE_GLOBAL_20261009.md). **177 authored/registered CTests** (Quick 19), last compiled Full 178/178 (#648).
 
 **Next Level22 work:** authentic picked-object message source bytes are now assembled at the original actual click path and IRQ `30700+0x5A` queue state is retained, using the previously verified source service. No VGA ribbon rendering or original DOS pixel/time comparison is accepted. [Code/evidence](LEVEL22_ORIGINAL_PICKUP_IRQ_RIBBON_20261009.md). The project continues to block independent Level23 work until the full playable Level22 ending.
 
@@ -59,7 +59,7 @@ In particular, 20 points for “regression” means test cases are written and r
 
 **Part 9 continuation:** General in-memory level-transition and visited-world reentry are source-implemented. No original event exit, disk SAVE/LOAD or DOS fidelity has been accepted. Current registry **178 CTests** (Quick 19), not yet compiled. See [Part 9 checkpoint](LEVEL_TRANSITION_STATE_CHECKPOINT_20261009.md).
 
-**Part 9 source audit update:** F540 duplicate-item removal now preserves the original F5C6→F5D9 continuation; the 21F70 camera staging and 22-frame Level22 mist story timeline are encoded in testable source models. The original LEVELS.DAT Level23 target is 64×64, but there is NO live mist playback or original-DOS acceptance yet. Registered total **178** CTests, 19 Quick, last green compiled **172** at older SHA `fb4a0145`. Engineering readiness unchanged at 49.8% pending live integration.
+**Part 9 source audit update:** F540 duplicate-item removal now preserves the original F5C6→F5D9 continuation; the 21F70 camera staging and 22-frame Level22 mist story timeline are encoded in testable source models. The original LEVELS.DAT Level23 target is 64×64, but there is NO live mist playback or original-DOS acceptance yet. Registered total **178** CTests, 19 Quick, last green compiled **178** at source SHA `fb091234`. Engineering readiness unchanged at 49.8% pending live integration.
 
 ## Every subsystem — individual readiness percentages
 

@@ -7,6 +7,8 @@
 
 **Only once the full original-game code recreation is finished** will a modern port even be considered, on a **separate future branch**. Until then, do not implement intentional bug fixes, changed gameplay, new features, modding-facing game changes or QoL redesign. Preserve original assets unchanged. **Commit every checkpoint; builds require manual user authorization.**
 
+**Build verified:** [Full Windows #648](https://github.com/Hyperbog/RLOFT/actions/runs/37998467852) passed **178/178 CTests** at checkout `fb091234`. Native EXE SHA-256 `b2d868b35f9e283c24746aa96b1aa94d671377be81008b1433277ef359468f16`. The manual-only workflow was restored and the one-time trigger removed. [Full provenance](FULL_WINDOWS_BUILD_CHECKPOINT_20261009_RUN648.md). **DOS acceptance stays 0%.**
+
 ## Explicit Level22-first delivery gate
 
 **Complete the full original Level22 as a playable and verified single slice before any independent Level23 gameplay, AI, asset or story implementation.** The Level22 ending is allowed to include its real 22-frame mist effect and the original `181B4(23)` handoff after frame index 20; that obligatory source instruction does not mean the project has begun Level23 gameplay work. Prioritize original combat, interaction, inventory, HUD/menu, original pickup-message codes, exact Assassin and relic flow, and the entire original mist sequence. Keep all work in the same original executable integration path. [Level22 gate and original BF44 source audit](LEVEL22_COMPLETION_AND_PICKUP_FEEDBACK_GATE_20261009.md).

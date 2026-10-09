@@ -7,16 +7,17 @@ The [Original-Game Code Reconstruction Charter](ORIGINAL_EXECUTION_FIDELITY_CHAR
 
 ## Current verified build and continuing game-engine checkpoint
 
-**Full Windows build #647 passed 172/172 registered CTests**
-at source commit `fb4a0145`. The artifact contains the
-native executable and the Level22 developer launchers:
-[successful build and Windows artifact](
-https://github.com/Hyperbog/RLOFT/actions/runs/37987825463).
+**Full Windows build #648 passed 178/178 registered CTests**
+at source commit `fb0912346a831dad21d2960e99863cc8f446173a`. The
+Windows executable and Level22 developer launchers are published:
+[successful Full build and artifact](https://github.com/Hyperbog/RLOFT/actions/runs/37998467852).
+[Build provenance and SHA-256 audit](FULL_WINDOWS_BUILD_CHECKPOINT_20261009_RUN648.md).
 
-The one-time CI trigger has been removed and the existing
-`demo-v1` workflow is **manual dispatch only** again.
-The subsequent multi-level RES4 source-binding change and
-its regression are committed but **not yet compiled**.
+The temporary, explicitly authorized CI trigger was removed and the
+`demo-v1` workflow restored **byte-for-byte to manual-only**. All
+previously registered Level22 and Part 9 sources now compile and pass
+native CTests. **Original DOS visual/timing/playability acceptance is
+still outstanding**, so Level22 is not yet certified playable.
 The ordinary production startup and real CODE.1 character
 creation remain unchanged. Development testing continues
 through the original `--explore-level22` path, optionally
@@ -47,7 +48,7 @@ per-subsystem CSV](PROGRESS_SUBSYSTEMS.csv), its
 in the same Git checkpoint. A registered offline
 `subsystem_progress_tracker_tests` check validates
 the authored report when Python3 is available at
-configure time. The current registry has **178 CTests** and the 19-test Quick selection is unchanged. The Part 9 continuity changes remain uncompiled; build #647 verified only the previous 172-test source.
+configure time. The current registry has **178 CTests** and the 19-test Quick selection is unchanged. All 178 registered tests passed in Full Windows build #648; original-DOS equivalence remains unaccepted.
 Builds remain manual unless explicitly authorized.
 
 ## Level22-first acceptance rule — complete playability before Level23

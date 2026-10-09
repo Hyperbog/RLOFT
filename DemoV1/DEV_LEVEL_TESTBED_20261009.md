@@ -2,13 +2,14 @@
 
 ## Current status and universal percentage tracking
 
-**Green Full Windows checkpoint:** [build #647](
-https://github.com/Hyperbog/RLOFT/actions/runs/37987825463)
-compiled and passed all **172/172 registered CTests**
-at source revision `fb4a0145`. The native Windows
-executable was published, build provenance recorded
-in Git, and the workflow restored to **manual-only**.
-**No original DOS visual/timing acceptance is claimed**.
+**Green Full Windows checkpoint:** [build #648](
+https://github.com/Hyperbog/RLOFT/actions/runs/37998467852)
+compiled and passed all **178/178 registered CTests**
+at source revision `fb0912346a831dad21d2960e99863cc8f446173a`. The
+Windows executable was published and committed, and the
+workflow restored **manual-only**.
+[Exact EXE SHA-256/build provenance](FULL_WINDOWS_BUILD_CHECKPOINT_20261009_RUN648.md).
+**No original DOS visual/timing/gameplay acceptance is claimed**.
 
 **Post-build development:** the production runtime now
 selects original RES4 ground textures using the
@@ -16,9 +17,7 @@ currently loaded level's signed header selector and
 the original INIT resource base, instead of rejecting
 all levels other than 22. A synthetic Level23 selector
 fixture validates archive identity without fallback
-artwork. This post-build source change **has not
-yet been rebuilt or tested**, and playable transitions
-are still incomplete.
+artwork. This source-binding change and its regression **passed the Full #648 Windows native build**; original playable transition and DOS acceptance remain incomplete.
 
 The canonical [percentage report](
 PROGRESS_SUBSYSTEM_REPORT_20261009.md) tracks
@@ -31,9 +30,7 @@ lifecycle and continuity is **47.9%**; Verification
 and developer testbed is **50.0%**. The historical
 **56.25%** 32-task engineering metric remains separate.
 
-**Current source CTest registry:** 178; Quick: 19. The last verified Windows Full build compiled the older 172-test source, NOT the new 177. Source-only original Level22 combat and pickup feedback changes have yet to be built and tested. Full Windows
-verification passed on the identified earlier source
-revision. Future builds are manual unless explicitly
+**Current source CTest registry:** 178; Quick: 19. Full Windows #648 compiled and passed **178/178**, including original Level22 pickup-message source and event-timing targets. This is not original-DOS parity or evidence of a completed playable Level22. Future builds are manual unless explicitly
 authorized. An opted-in `--explore-level22 --dev-inspect
 --dev-interact` run is available for human interaction
 tests using the published executable.
