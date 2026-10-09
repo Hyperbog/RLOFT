@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "sha256": "fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed",
+      "byteLength": 277787,
+      "gameId": "strahd",
+      "module": "CODE.1",
+      "sourceEvidence": "Code1/FINAL_BINARY_AUDIT.md",
+      "software": "Ravenloft: Strahd's Possession / CODE.1",
+      "version": "1.2a executable set",
+      "developer": "DreamForge Intertainment",
+      "publisher": "Strategic Simulations, Inc. (SSI)",
+      "originalYear": "1994",
+      "engineFamily": "DreamForge RPG lineage"
+    }
+  ]
+}
