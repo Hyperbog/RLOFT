@@ -565,6 +565,33 @@ try
     Equal(Dos16AutomaticDispatchRecovery.Inspect(
         jbeTaken.Region, spoofedTakenEdge).GuardedTableCandidates, 0,
         "a modified branch target must disagree with the real displacement");
+
+    var skippedSourceBytes = nopBeforeTable.Graph with {
+        Edges = nopBeforeTable.Graph.Edges
+            .Where(e => !(e.Source.Offset == 0x107 &&
+                e.Kind == "fallthrough"))
+            .Append(new Dos16FlowEdge(
+                new Dos16Address(0, 0x105), new Dos16Address(0, 0x108),
+                "fallthrough", "synthetic-nonadjacent-fallthrough"))
+            .ToArray()
+    };
+    Equal(Dos16UniqueTransparentPath.Connects(nopBeforeTable.Region,
+        skippedSourceBytes, new Dos16Address(0, 0x105),
+        new Dos16Address(0, 0x108), "fallthrough"), false,
+        "claimed direct fallthrough must match the actual next IP");
+    Equal(Dos16AutomaticDispatchRecovery.Inspect(
+        nopBeforeTable.Region, skippedSourceBytes).GuardedTableCandidates, 0,
+        "graph edges skipping an unmodeled byte may not forge a bounded table");
+
+    var syntheticEntryBackEdge = automaticGraph with {
+        Edges = automaticGraph.Edges.Append(new Dos16FlowEdge(
+            new Dos16Address(0, 0x105), automaticGraph.Entry,
+            "branch", "synthetic-entry-backedge")).ToArray()
+    };
+    Equal(Dos16UniqueTransparentPath.Connects(automaticRegion,
+        syntheticEntryBackEdge, new Dos16Address(0, 0x105),
+        automaticGraph.Entry, "branch"), false,
+        "the independently seeded entry is not a uniquely reached successor");
     var exitIntoTable = (byte[])new byte[] {
         0x83, 0xFB, 0x02, 0x76, 0x03,
         0xEB, 0x03, 0x90, 0xD1, 0xE3,
