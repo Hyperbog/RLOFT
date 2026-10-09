@@ -1,5 +1,38 @@
 # Ravenloft Demo Build v1
 
+## Inventory-only workstream — functionality in source, not DOS accepted
+
+[Current full inventory implementation and remaining 8 acceptance blockers](INVENTORY_FIDELITY_WORKSTREAM_20261009.md).
+The original class/race starting equipment matrix, 12 ordinary item
+slots, category-directed 9 equipment slots, original hand-open
+containers and nested slot swaps, item description and dynamic RES1
+held cursor, original CODE.2 Strength-based carrying limits,
+and drag-and-release party reordering are now connected to the live
+`PartyPanels` native view.
+
+Important original CODE.2 source evidence:
+`12E70` inventory dispatch, `117A0` known-bit swap,
+`12180` equipment classification, `11C3C`
+container cells, `21404` insertion, `12988`
+encumbrance panel, `12470` party order, and
+`7E8C` 21×5 carrying-strength table.
+The MAX140/CURRENT17 example in the user's original
+screenshot follows Strength12 and 34 half-pound units exactly.
+
+**Inventory is not yet complete or verified.**
+Open gates include original red and stone panel graphics/palette,
+special item/spell use, nested category-1 recursion, original
+world item dropping, persistent SAVE behavior, complete source
+hit-descriptor variants and live DOS pixel comparisons.
+These are explicit blockers before the user-requested
+**manual Full Windows build**.
+
+Current source has **168 CTests** registered; the Quick
+manual mode has 18 focused tests. These newer source changes
+are NOT yet MSVC-compiled. Last green manual #640 was at
+an older source revision. Do not dispatch a build or
+announce entire inventory functioning yet.
+
 ## Inventory-only development focus: every original class/race starter kit
 
 [Full original CODE.1 starter-equipment matrix](ORIGINAL_CODE1_ALL_CLASS_RACE_STARTING_EQUIPMENT_20261009.md).
