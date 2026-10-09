@@ -251,6 +251,38 @@ try
         "relocation-backed FAR target maps to original file bytes");
     Equal(farGraph.Edges.Any(e => e.Kind == "unresolved-far-call"),
         true, "original FAR CFG edge remains conservatively unresolved");
+    var crossReview = DosMzCrossSegmentAnalysis.Analyze(farImage,
+        assumedLoadSegment: 0x2000, maxEntryGraphs: 4, instructionsPerEntry: 16);
+    Equal(crossReview.SourceSha256, farImage.SourceSha256,
+        "cross-segment review retains the actual original MZ hash");
+    Equal(crossReview.IndependentEntryGraphs.Count, 2,
+        "relocation-backed FAR CALL may seed one independent target graph");
+    Equal(crossReview.CrossSegmentCandidates.Count, 1,
+        "one uniquely relocated far transfer seeds candidate reachability");
+    Equal(crossReview.CrossSegmentCandidates[0].Destination,
+        new Dos16Address(0, 0x10), "cross-segment target retains relative CS:IP");
+    Equal(crossReview.UniqueDecodedBytes, 7,
+        "cross-segment ledger deduplicates decoded original physical bytes");
+    Equal(crossReview.PhysicalConflicts.Count, 0,
+        "separate nonoverlapping far target has no physical interpretation conflict");
+    Equal(crossReview.Truncated, false,
+        "bounded far CALL plus return target closes without reaching graph budget");
+    var cappedCrossReview = DosMzCrossSegmentAnalysis.Analyze(farImage,
+        0x2000, maxEntryGraphs: 1, instructionsPerEntry: 16);
+    Equal(cappedCrossReview.Truncated, true,
+        "unprocessed FAR target is reported when cross-segment budget is exhausted");
+    Equal(cappedCrossReview.IndependentEntryGraphs.Count, 1,
+        "cross-segment graph limit prevents unrestricted source traversal");
+    var conflictingFarBytes = (byte[])farBytes.Clone();
+    conflictingFarBytes[0x21] = 1; // FAR call now targets interior of itself
+    var conflictImage = DosMzImage.Load(BinaryArtifact.FromBytes(conflictingFarBytes));
+    var overlappingReview = DosMzCrossSegmentAnalysis.Analyze(conflictImage,
+        0x2000, maxEntryGraphs: 2, instructionsPerEntry: 5);
+    Equal(overlappingReview.PhysicalConflicts.Count > 0, true,
+        "distinct segment/IP interpretations of the same source bytes are recorded");
+    Equal(overlappingReview.PhysicalConflicts[0].Status.Contains(
+        "neither-verified", StringComparison.Ordinal), true,
+        "conflicting x86-16 decode hypotheses must never be silently promoted");
     var farJumpBytes = (byte[])farBytes.Clone();
     farJumpBytes[0x20] = 0xEA;
     var farJumpImage = DosMzImage.Load(BinaryArtifact.FromBytes(farJumpBytes));
