@@ -104,10 +104,6 @@ public sealed class DosMzImage
     }
 
     /// <summary>
-    /// Analyst-requested 16-bit linear decode. Not proof of a function,
-    /// reachable entry or DOS runtime relocation state.
-    /// </summary>
-    /// <summary>
     /// A candidate 64 KiB instruction window in the stored DOS MZ load image,
     /// keyed by module-relative CS. The caller must supply any non-entry CS.
     /// </summary>
@@ -125,6 +121,10 @@ public sealed class DosMzImage
     /// <summary>Initial CS load window, not a verified code-section inventory.</summary>
     public Dos16CodeRegion CreateEntryCodeRegion() => CreateCodeRegion(InitialCs);
 
+    /// <summary>
+    /// Analyst-requested 16-bit linear decode. Not proof of a function,
+    /// reachable entry or DOS runtime relocation state.
+    /// </summary>
     public IReadOnlyList<Dos16Instruction> Decode(
         ushort segment, ushort offset, int instructionCount = 32)
     {
