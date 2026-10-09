@@ -1,5 +1,29 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Part 8 checkpoint — saved container UI contexts
+
+The original CODE.2 6FA0 four-byte per-actor container UI
+state is now preserved and source-restored. Both fresh
+FF FF FF FF and post-close FF FF 00 FF inactive forms
+are accepted. Full-open phase3 records can be bound to
+one unambiguous hand by the original OBJECTS catalogue,
+descriptor selector and subtype. The original record
+contains only the object's low ID byte; aliasing is
+explicitly checked. The per-actor renderer draws
+phase3 container contents across all four panels,
+and party reordering swaps their original records.
+
+Original 0..3 open and 3..0 close phase transitions
+are modeled, but partial animation timing, multiple
+concurrent interactive views and full session SAVE/LOAD
+are still unfinished. Regression assertions were
+added to three existing tests. Registered CTests 170,
+Quick tests 19. Current source is uncompiled and
+unexecuted on Windows, as the manual build remains
+deferred. Engineering progress is still 56.25%;
+inventory milestone remains partial.
+
+
 ## Part 8 — guarded inventory SAVE runtime integration
 
 The source now binds the original-byte `InventorySaveCodec`
