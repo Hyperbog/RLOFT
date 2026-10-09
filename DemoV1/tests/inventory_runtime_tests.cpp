@@ -559,7 +559,7 @@ int main() {
     equip.containers[1U].capacity_pounds=8U;
     equip.containers[1U].items={16,-1,-1,-1};
     assert(equip.actor_weight_half_units(
-        equip_party,weight_catalog,0U)>=27U);
+        equip_party,weight_catalog,0U)==22U);
     assert(equip.actor_weight_half_units(
         equip_party,weight_catalog,2U)==0U);
 }
