@@ -354,6 +354,15 @@ void PartyModalPresenter::draw_character_centered_text(
             base);
     }
 
+    // CODE.2 10158 derived armor class status at the exact
+    // character-column section above the hit-point line. Use the
+    // existing canonical character record's AC byte, not a hardcoded
+    // armor value or a second inventory stat cache.
+    IndexedFontPresenter::draw_centered(
+        framebuffer,font1_,0x105,column,0x50,
+        "A.C. "+std::to_string(
+            static_cast<int>(sheet.base_armor_class)));
+
     // 10158 HP line: label + space + current/max, centered around
     // actor-column +28h, which is equivalent to a centered 50h-span draw.
     IndexedFontPresenter::draw_centered(
@@ -389,6 +398,17 @@ void PartyModalPresenter::draw_character_centered_text(
             xp.needed_row,
             column + 0x22,
             class_name);
+        // Original 3E70C integer formatter prints the per-class
+        // current and next-level XP counts, WITHOUT mixing totals
+        // between multiclass tracks. Align at actor-local +0x49.
+        IndexedFontPresenter::draw_right(
+            framebuffer,font1_,
+            xp.current_row,column+0x49,
+            std::to_string(xp.experience));
+        IndexedFontPresenter::draw_right(
+            framebuffer,font1_,
+            xp.needed_row,column+0x49,
+            std::to_string(xp.needed));
     }
 }
 
