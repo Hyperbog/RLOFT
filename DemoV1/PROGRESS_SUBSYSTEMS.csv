@@ -114,7 +114,7 @@ SAVE LOAD and persistence,World NPC effects loose items SAVE,20,10,0,10,0,level_
 SAVE LOAD and persistence,In-game SAVE LOAD menus and slots,20,0,0,0,0,options_menu.cpp,Original serialized file I O and menu wiring
 SAVE LOAD and persistence,Level re-entry and multiple-world saves,10,0,0,0,0,CONTINUOUS_GAME_INTEGRATION_CONTRACT,Multi-level backing across exits
 Verification and developer testbed,Original file provenance and byte audits,20,20,20,20,0,source archive docs + DAT CODE audits,Complete all remaining original unknowns
-Verification and developer testbed,Automated regression test catalog,20,20,20,20,0,CMakeLists.txt 171 CTests,Execute current branch full suite
+Verification and developer testbed,Automated regression test catalog,20,20,20,20,0,CMakeLists.txt 172 CTests,Original DOS cross-comparison and post-build code changes
 Verification and developer testbed,Opt-in Level22 state diagnostics,20,20,20,20,0,dev_level_diagnostics.cpp and win32_main.cpp,Manual gameplay inspector validation
 Verification and developer testbed,Visual DOS captures and comparisons,20,20,10,10,0,exploration_frame_capture.cpp,Complete DOS/native pixel comparison
 Verification and developer testbed,Manual Windows build reproducibility,20,20,20,20,0,github workflow and CMakeLists.txt,Full Windows build 647 passed 172 of 172; DOS acceptance still outstanding
