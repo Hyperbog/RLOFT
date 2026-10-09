@@ -36,6 +36,11 @@ public sealed class DosComImage
         return candidate < _artifact.Length ? candidate : null;
     }
 
+    /// <summary>Explicit original-byte region; no PSP or process base invented.</summary>
+    public Dos16CodeRegion CreateCodeRegion() =>
+        new(_artifact, 0, _artifact.Length, 0, Origin,
+            "analyst-explicit-COM-load-origin;file-backed;runtime-unverified");
+
     public IReadOnlyList<Dos16Instruction> Decode(ushort offset, int count = 32)
     {
         long? physical = ToFileOffset(offset);

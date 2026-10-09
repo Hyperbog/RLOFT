@@ -101,6 +101,17 @@ public sealed class DosMzImage
     /// Analyst-requested 16-bit linear decode. Not proof of a function,
     /// reachable entry or DOS runtime relocation state.
     /// </summary>
+    /// <summary>Initial CS load window, not a verified code-section inventory.</summary>
+    public Dos16CodeRegion CreateEntryCodeRegion()
+    {
+        long start = (long)InitialCs * 16;
+        if (start >= FileBackedImageLength)
+            throw new InvalidDataException("Initial CS has no file-backed MZ code window.");
+        int available = checked((int)Math.Min(0x10000L, FileBackedImageLength - start));
+        return new Dos16CodeRegion(_original, checked((int)(LoadImageFileOffset + start)),
+            available, InitialCs, 0, "MZ-initial-CS;file-backed;relocations-not-applied");
+    }
+
     public IReadOnlyList<Dos16Instruction> Decode(
         ushort segment, ushort offset, int instructionCount = 32)
     {

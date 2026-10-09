@@ -139,6 +139,20 @@ public sealed class DosOverlayImage
         return byFileStart;
     }
 
+    /// <summary>Read-only, analyst-provided code region for 16-bit CFG analysis.</summary>
+    public Dos16CodeRegion CreateCodeRegion(
+        DosOverlayRegionManifest manifest, string regionId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
+        var region = ValidateRegions(manifest).SingleOrDefault(r => r.Id == regionId)
+            ?? throw new ArgumentException("Unknown source-backed overlay region.", nameof(regionId));
+        if (region.Role != "code-candidate")
+            throw new NotSupportedException("Protected overlay data cannot become CFG code implicitly.");
+        return new Dos16CodeRegion(_source, region.FileOffset, region.ByteLength,
+            region.AssumedSegment, region.AssumedOffset,
+            "analyst-source-hash-bound-overlay-region:" + region.EvidenceId);
+    }
+
     public IReadOnlyList<Dos16Instruction> DecodeExplicit(
         DosOverlayRegionManifest manifest, string regionId,
         ushort regionRelativeOffset, int instructionCount)
