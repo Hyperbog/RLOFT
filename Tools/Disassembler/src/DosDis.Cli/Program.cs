@@ -37,9 +37,10 @@ static void Print(object payload) => Console.WriteLine(JsonSerializer.Serialize(
 
 try
 {
-    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report" or "mz" or "mz-disasm" or "mz-analyze" or "com" or "com-disasm" or "com-analyze" or "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze" or "overlay-fixups"))
+    if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report" or "mz" or "mz-disasm" or "mz-analyze" or "mz-relocate" or "com" or "com-disasm" or "com-analyze" or "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze" or "overlay-fixups"))
     {
-        Console.Error.WriteLine("Usage: dosdis inspect|mz|mz-disasm|mz-analyze|com|com-disasm|com-analyze|overlay|overlay-map|overlay-disasm|overlay-analyze|fixups|memory|disasm|analyze|report <file> [options]\n" +
+        Console.Error.WriteLine("Usage: dosdis inspect|mz|mz-disasm|mz-analyze|mz-relocate|com|com-disasm|com-analyze|overlay|overlay-map|overlay-disasm|overlay-analyze|overlay-fixups|fixups|memory|disasm|analyze|report <file> [options]\n" +
+            "MZ relocation simulation: mz-relocate --load-segment HEX [--max 100]; mz-analyze [--load-segment HEX] (only candidate FAR annotations)\n" +
             "16-bit CFG: mz-analyze|com-analyze|overlay-analyze [--entry HEX] [--max-instructions 100000]\n" +
             "Overlay: container inspection; overlay-map|overlay-fixups --resident START.EXE (validated MZ directory)\n" +
             "Overlay-disasm: --regions manifest.json --region ID [--offset 0] [--count 32]\n" +
@@ -60,13 +61,13 @@ try
     var catalog = args.Contains("--identity-catalog", StringComparer.Ordinal)
         ? SourceIdentityRegistry.ReadFile(Option(args, "--identity-catalog", "")) : null;
     LeImage? image = null;
-    if (args[0] is not ("mz" or "mz-disasm" or "mz-analyze" or "com" or "com-disasm" or "com-analyze" or "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze" or "overlay-fixups"))
+    if (args[0] is not ("mz" or "mz-disasm" or "mz-analyze" or "mz-relocate" or "com" or "com-disasm" or "com-analyze" or "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze" or "overlay-fixups"))
     {
         try { image = LeImage.Load(artifact); }
         catch (InvalidDataException) when (args[0] == "inspect") { /* Identify signature, not fake mapped code. */ }
         catch (NotSupportedException) when (args[0] == "inspect") { /* Unsupported LE page variant. */ }
     }
-    if (args[0] is "mz" or "mz-disasm" or "mz-analyze")
+    if (args[0] is "mz" or "mz-disasm" or "mz-analyze" or "mz-relocate")
     {
         var mz = DosMzImage.Load(artifact);
         if (args[0] == "mz")
@@ -80,13 +81,50 @@ try
                 Relocations = mz.Relocations.Take(maximum),
                 Status = "header-validated;not-verified-runtime-code" });
         }
+        else if (args[0] == "mz-relocate")
+        {
+            if (args.Count(x => x == "--load-segment") != 1)
+                throw new ArgumentException("mz-relocate requires one explicitly assumed --load-segment HEX.");
+            ushort load = checked((ushort)Hex(Option(args, "--load-segment", "")));
+            var simulation = mz.SimulateRelocations(load);
+            int max = int.Parse(Option(args, "--max", "100"), CultureInfo.InvariantCulture);
+            if (max is < 0 or > 4096) throw new ArgumentOutOfRangeException(nameof(max));
+            Print(new { simulation.Summary.SourceSha256,
+                simulation.Summary.AssumedLoadSegment, simulation.Summary.AssumedEntryCs,
+                simulation.Summary.AssumedStackSs, simulation.Summary.InitialIp,
+                simulation.Summary.InitialSp, simulation.Summary.RelocationWriteCount,
+                simulation.Summary.OverlappingRelocationWrites,
+                simulation.Summary.AnalysisStatus,
+                OmittedDetails = Math.Max(0, simulation.Summary.Writes.Count - max),
+                Writes = simulation.Summary.Writes.Take(max) });
+        }
         else if (args[0] == "mz-analyze")
         {
             var region = mz.CreateEntryCodeRegion();
             ushort entry = checked((ushort)Hex(Option(args, "--entry",
                 mz.InitialIp.ToString("X", CultureInfo.InvariantCulture))));
             int budget = int.Parse(Option(args, "--max-instructions", "100000"), CultureInfo.InvariantCulture);
-            Print(Dos16ControlFlowAnalysis.Analyze(region, entry, budget));
+            var graph16 = Dos16ControlFlowAnalysis.Analyze(region, entry, budget);
+            if (args.Contains("--load-segment", StringComparer.Ordinal))
+            {
+                if (args.Count(x => x == "--load-segment") != 1)
+                    throw new ArgumentException("--load-segment cannot be repeated.");
+                ushort load = checked((ushort)Hex(Option(args, "--load-segment", "")));
+                var simulated = mz.SimulateRelocations(load);
+                Print(new {
+                    CandidateGraph = graph16,
+                    RelocationModel = new {
+                        simulated.Summary.SourceSha256,
+                        simulated.Summary.AssumedLoadSegment,
+                        simulated.Summary.RelocationWriteCount,
+                        simulated.Summary.OverlappingRelocationWrites,
+                        simulated.Summary.AnalysisStatus
+                    },
+                    FarImmediateCandidates = DosMzFarTargetRecovery.Inspect(mz, graph16, simulated),
+                    Note = "Far targets are separate, non-enqueued candidates; original CFG unresolved edges remain."
+                });
+            }
+            else Print(graph16);
         }
         else
         {
