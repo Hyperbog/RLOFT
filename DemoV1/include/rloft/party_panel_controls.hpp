@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <optional>
 #include <cstdint>
+#include <vector>
 
 namespace rloft {
 
@@ -21,6 +22,36 @@ struct PartyPanelHitRect final {
                column >= column_min &&
                column <= column_max;
     }
+};
+
+// CODE.2 12180 reads ten 24-byte (slot,flags,rowMin,colMin,
+// rowMax,colMax) descriptors through live DGROUP:12C00. CODE.2
+// 12E70 sets that pointer to the original data tables at 6DB0 or
+// 6EA0 based on source 0F368(race): 2/3/4 use 6EA0; other races
+// use 6DB0. These are item pickup rectangles, not sprite bounds.
+struct OriginalEquipmentHitDescriptor final {
+    std::int32_t slot{};
+    std::uint32_t accepted_pointer_flags{};
+    PartyPanelHitRect rect{};
+};
+
+class OriginalEquipmentHitTables final {
+public:
+    static constexpr std::size_t kTableCount=2U;
+    static constexpr std::size_t kDescriptorsPerTable=10U;
+    [[nodiscard]] static OriginalEquipmentHitTables from_code2(
+        const std::vector<std::uint8_t>& original_code2);
+    [[nodiscard]] const OriginalEquipmentHitDescriptor& descriptor(
+        bool short_race,std::size_t index) const;
+    [[nodiscard]] std::optional<std::size_t> occupied_hit(
+        bool short_race,int row,int local_column,
+        std::uint32_t mouse_flags,
+        const std::array<std::int16_t,21>& actor_items) const noexcept;
+private:
+    // Index 0: original 6DB0 (non-short races);
+    // index 1: original 6EA0 (race 2,3,4).
+    std::array<std::array<OriginalEquipmentHitDescriptor,
+        kDescriptorsPerTable>,kTableCount> tables_{};
 };
 
 class PartyPanelControlModel final {
