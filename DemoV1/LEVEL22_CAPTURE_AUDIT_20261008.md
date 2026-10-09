@@ -96,3 +96,17 @@ engineering progress is unmeasured.
 4. Test ordinary SINTAB wall fidelity using a **different**
    actual wall-bearing level; do not use open Level 22 as
    its acceptance fixture.
+
+## Opt-in telemetry follow-up (source-only)
+
+The above user captures use TSV v1, whose schema does **not**
+include `world_scene_records` or type-7 raster counts. Therefore
+their visible trees cannot be attributed to RES3 scene execution
+or RES8 environment overlays from TSV alone.
+
+New TSV v2 opt-in instrumentation adds the original-world scene
+record/draw-call pipeline, source indexes, resource IDs, visible
+columns, executed/failed type-7 raster counts and failure reasons.
+Only optional metadata output changed. The source patch has not
+been checked by a new Windows CI run; build #638 remains the
+last observed successful binary.
