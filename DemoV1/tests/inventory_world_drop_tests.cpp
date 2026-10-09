@@ -30,7 +30,11 @@ rloft::ExplorationSessionState session() {
 int main() {
     rloft::RendererTables tables{};
     tables.sine_q16_signmag.fill(0U);
-    tables.sine_q16_signmag[0]=0x00010000U; // at 0 degrees
+    // Original SINTAB fixed point is a 16-bit fractional
+    // magnitude in the LOW WORD; 0x00010000 has magnitude
+    // zero and cannot represent sine/cosine 1. Use the
+    // largest representable positive source fraction.
+    tables.sine_q16_signmag[0]=0x0000FFFFU; // near 1 at 0 degrees
     tables.sine_q16_signmag[90]=0U;
     auto s=session();
     auto definitions=catalog();
@@ -117,7 +121,7 @@ int main() {
         [](std::uint32_t y,std::uint32_t x,std::uint32_t radius) {
             assert(radius==0x190U);
             assert(y==0x00048000U);
-            assert(x==0x00030000U);
+            assert(x==0x00030002U);
             return true;
         });
     assert(result.status==rloft::InventoryWorldDropStatus::Dropped);
@@ -125,7 +129,7 @@ int main() {
     assert(inventory.held.object_id==-1);
     assert(inventory.held.known==0U);
     assert(world.loose_items[0].object_type_id==50U);
-    assert(world.loose_items[0].x_position_16_16==0x00030000U);
+    assert(world.loose_items[0].x_position_16_16==0x00030002U);
     assert(world.loose_items[0].y_position_16_16==0x00048000U);
     assert(world.loose_items[0].cached_cell_index==123U);
     assert(result.cached_cell_index==123U);
