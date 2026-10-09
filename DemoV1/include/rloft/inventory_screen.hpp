@@ -57,6 +57,13 @@ struct InventoryScreenModel final {
     [[nodiscard]] static int original_container_res2_graphic(
         std::uint8_t subtype);
 
+    // CODE.2 10AA7..10AC6: phases 1/2 draw the original bank-2
+    // surround at VGA row C4h, with 2 consecutive frames per
+    // descriptor subtype. Phase 0 has no frame, phase 3 uses
+    // original_container_res2_graphic() at row CEh instead.
+    [[nodiscard]] static int original_container_transition_res2_graphic(
+        std::uint8_t subtype,std::uint8_t phase);
+
     [[nodiscard]] static InventoryScreenModel build(
         const PartyActorPresentation& actor,
         const ObjectCatalog& objects,
