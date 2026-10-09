@@ -10,16 +10,6 @@ public sealed record SourceProvenance(
     string ResearchNamespace, string? SourceArchive, string? InternalPath)
 {
     public const int CurrentSchema = 1;
-    private static readonly IReadOnlyDictionary<string, (string Game, string Module, int Size)> Known =
-        new Dictionary<string, (string, string, int)>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed"] =
-                ("strahd", "CODE.1", 277787),
-            // Strahd CODE.2 is recognized only by its complete archived SHA.
-            ["853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314"] =
-                ("strahd", "CODE.2", 0)
-        };
-
     public static SourceProvenance FromGraph(FlowAnalysisResult graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
@@ -32,7 +22,8 @@ public sealed record SourceProvenance(
 
     public static SourceProvenance ForArtifact(BinaryArtifact artifact,
         LeImage? image = null, string? gameId = null, string? module = null,
-        string? sourceArchive = null, string? internalPath = null)
+        string? sourceArchive = null, string? internalPath = null,
+        SourceIdentityRegistry? registry = null)
     {
         ArgumentNullException.ThrowIfNull(artifact);
         ValidateHash(artifact.Sha256);
@@ -40,19 +31,17 @@ public sealed record SourceProvenance(
                 StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("Provenance LE image belongs to another binary.");
 
-        bool known = Known.TryGetValue(artifact.Sha256, out var knownSource);
-        if (known && knownSource.Size != 0 && artifact.Length != knownSource.Size)
-            throw new InvalidDataException("Archived fingerprint has inconsistent size.");
-        string labelGame = known ? knownSource.Game : gameId ?? "unassigned";
-        string labelModule = known ? knownSource.Module : module ?? artifact.Name;
-        if (known && gameId is not null && gameId != knownSource.Game)
-            throw new InvalidDataException("The requested game identity conflicts with a verified source fingerprint.");
-        if (known && module is not null && !string.Equals(module, knownSource.Module, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidDataException("The requested module identity conflicts with a verified source fingerprint.");
-        if (!known && module is not null) labelModule = module;
-        // The local basename is metadata, not a trusted identity. Files with
-        // spaces/non-ASCII names must remain analyzable without a fake module.
-        if (!known && module is null &&
+        SourceIdentityEntry? matched = registry?.Find(artifact);
+        if (matched is not null && gameId is not null && gameId != matched.GameId)
+            throw new InvalidDataException("Game ID conflicts with this external catalog's exact source fingerprint.");
+        if (matched is not null && module is not null &&
+            !string.Equals(module, matched.Module, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Module conflicts with this external catalog's exact source fingerprint.");
+        string labelGame = matched?.GameId ?? gameId ?? "unassigned";
+        string labelModule = matched?.Module ?? module ?? artifact.Name;
+        // A host filename never supplies unique identity; retain unsupported
+        // basenames as unassigned rather than refusing to inspect the bytes.
+        if (matched is null && module is null &&
             (labelModule.Length > 128 ||
              !labelModule.All(c => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z'
                  or >= '0' and <= '9' or '.' or '_' or '-')))
@@ -64,8 +53,9 @@ public sealed record SourceProvenance(
 
         return new SourceProvenance(CurrentSchema, labelGame, labelModule,
             artifact.Sha256, artifact.Length, image is null ? "unknown" : "LE",
-            known ? "verified-sha256-fingerprint"
-                  : gameId is null ? "source-hash-only-game-unassigned" : "analyst-declared-game-unverified",
+            matched is not null ? "catalog-matched-analyst-supplied"
+                : gameId is null ? "source-hash-only-game-unassigned"
+                    : "analyst-declared-game-unverified",
             labelGame + "/" + artifact.Sha256,
             sourceArchive, internalPath);
     }
@@ -90,16 +80,15 @@ public sealed record SourceProvenance(
         }
         if (ByteLength < 1)
             throw new InvalidDataException("Source length must be positive.");
-        if (Known.TryGetValue(SourceSha256, out var known) &&
-            (GameId != known.Game || Module != known.Module ||
-             (known.Size > 0 && ByteLength != known.Size)))
-            throw new InvalidDataException("Known source hash cannot be assigned to another game or module.");
-        if (IdentityStatus == "verified-sha256-fingerprint" &&
-            !Known.ContainsKey(SourceSha256))
-            throw new InvalidDataException("Only independently archived fingerprints can be marked verified.");
-        if (IdentityStatus is not ("verified-sha256-fingerprint" or
+        // The identity catalog itself is analyst supplied; even an exact
+        // match is not automatic proof of any executable's semantics.
+        if (IdentityStatus is not ("catalog-matched-analyst-supplied" or
             "analyst-declared-game-unverified" or "source-hash-only-game-unassigned"))
             throw new InvalidDataException("Unsupported source identity evidence status.");
+        if (IdentityStatus == "source-hash-only-game-unassigned" && GameId != "unassigned")
+            throw new InvalidDataException("Unassigned identity status cannot claim a named game.");
+        if (IdentityStatus != "source-hash-only-game-unassigned" && GameId == "unassigned")
+            throw new InvalidDataException("Named identity status must supply a game ID.");
     }
 
     public void RequireGraph(FlowAnalysisResult graph)
