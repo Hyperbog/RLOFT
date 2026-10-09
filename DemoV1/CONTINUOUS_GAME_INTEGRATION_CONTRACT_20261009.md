@@ -5,7 +5,7 @@
 
 Every ongoing native-development checkpoint must maintain a
 percentage **for every one of the 20 major systems and all
-120 named subsystems** (expand the list as new subsystems are
+121 named subsystems** (expand the list as new subsystems are
 discovered). The [canonical progress scorecard](
 PROGRESS_SUBSYSTEM_REPORT_20261009.md) records source tracing,
 implementation, runtime integration, authored regression and
@@ -13,6 +13,8 @@ DOS-current-revision acceptance using a fixed evidence-weighted
 score. The [scoring CSV](PROGRESS_SUBSYSTEMS.csv) is the
 canonical input, cross-checked by the
 `subsystem_progress_tracker_tests` CTest.
+**Current essential acceptance checkpoint:** Before extending the next major gameplay feature, the user should manually perform a Full Windows build/CTest pass of `demo-v1` HEAD, which now has 172 registered tests. This is needed to validate cross-system compatibility of the new runtime cinematic flow and testbed instrumentation. No automatic CI dispatch is authorized. `--dev-interact` is opt-in for Level22 preview item actions, whereas `--dev-inspect` remains a read-only caption diagnostic; normal cold startup through CODE.1 character creation is unchanged. The newest 121-subsystem roll-up remains **48.8%**, with the dev-testbed system **49.3%**.
+
 
 Current baseline **48.8% provisional readiness**, distinct from
 the historical **56.25% (18/32)** task score. DOS acceptance is
