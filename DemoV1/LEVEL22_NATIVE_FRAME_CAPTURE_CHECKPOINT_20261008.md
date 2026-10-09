@@ -99,3 +99,31 @@ that build #637 passed or that the original game renderer changed.
 Do not rerun the old failure job; start a new manual workflow on the
 latest `demo-v1` source SHA when ready. The new regression must pass
 on Windows before its capture artifact is considered usable.
+
+## Subsequent source-only TSV v2 extension (30-frame user audit)
+
+The real 30-frame user capture showed **all 7,649 main surface runs**
+were source `0x93` (non-drawable), with zero SINTAB wall calls.
+Original `LEV022.DAT` and archive `LEVELS.DAT` independently prove
+the level is open field with a `0x93`-encoded perimeter. See
+[full native capture audit](LEVEL22_CAPTURE_AUDIT_20261008.md).
+
+To diagnose **the actual Level 22 content**, the opt-in TSV capture
+now reports `rloft-native-indexed-capture-v2`, preserving all v1
+data rows and binary `.idx`/`.pal` formats while adding:
+
+- `scene_records`, `scene_draw_calls`, `scene_render_plans`
+  (counts of projected original world-scene candidates and calls).
+- `scene_video_calls`: original type-7 SINTAB calls rasterized,
+  pending and failed, distinguished rather than reported as walls.
+- `scene_columns`: rasterized, pending, and unresolved wide-run
+  columns; `scene_indexed_writes` for actual indexed VGA stores.
+- Source-indexed `scene_record` and `scene_call` rows with resource
+  ID, screen coordinate, projected extent and visible-column count.
+- Explicit `scene_trace_failure` and `scene_raster_failure` rows
+  preserving original resource/source identities and error reasons.
+
+No game-rendering code, party data or DOS behavior changes. An
+assertion-enabled updated 159th CTest checks the v2 additions.
+This source patch is not included in prior run #638 or the user's
+uploaded capture; rerun manually only when requested.
