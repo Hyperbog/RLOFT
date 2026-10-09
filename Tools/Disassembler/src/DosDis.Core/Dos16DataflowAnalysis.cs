@@ -34,12 +34,16 @@ public static class Dos16DataflowAnalysis
             new(region.SourceSha256, region.MappingEvidence, status, true,
                 steps, merges, widened, unresolved, Array.Empty<Dos16DataflowState>());
 
+        if (graph.Instructions is null || graph.Edges is null ||
+            graph.Instructions.Any(x => x is null) ||
+            graph.Edges.Any(x => x is null))
+            return Incomplete("rejected-malformed-graph");
         if (graph.Truncated)
             return Incomplete("incomplete-input-graph-truncated");
         if (graph.Instructions.Count > maximumInstructions ||
             graph.Edges.Count > maximumEdges)
             return Incomplete("incomplete-input-graph-budget");
-        if (!graph.SourceSha256.Equals(region.SourceSha256,
+        if (!string.Equals(graph.SourceSha256, region.SourceSha256,
                 StringComparison.OrdinalIgnoreCase) ||
             graph.MappingEvidence != region.MappingEvidence ||
             graph.FileOffset != region.FileOffset ||
@@ -47,8 +51,8 @@ public static class Dos16DataflowAnalysis
             graph.Entry.Segment != region.Segment ||
             graph.Entry.Offset < region.Origin ||
             graph.Entry.Offset >= region.EndExclusive ||
-            !graph.AnalysisStatus.StartsWith("candidate-unverified",
-                StringComparison.Ordinal))
+            graph.AnalysisStatus?.StartsWith("candidate-unverified",
+                StringComparison.Ordinal) != true)
             return Incomplete("rejected-source-or-mapping-mismatch");
 
         var instructions = new Dictionary<Dos16Address, Dos16FlowInstruction>();
