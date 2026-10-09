@@ -80,7 +80,7 @@ def main() -> None:
         by_system[identity[0]].append((row, readiness))
         subtotal_marker = (
             f"| {identity[1]} | **{pct(readiness)}** | "
-            f'{"\u002f".join(str(x) for x in marks)} |'
+            "/".join(str(x) for x in marks) + " |"
         )
         assert subtotal_marker in report, (
             f"CSV versus detailed report drift: {identity}"
