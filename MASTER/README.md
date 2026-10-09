@@ -1,6 +1,6 @@
 # D&D Classics — Original Collection Workspace
 
-**STATUS (2026-10-08): partial original-file import — 1,264 of 1,533 inventory paths present, 269 missing, and 94 present files have source-size differences. Byte-for-byte SHA-256 verification remains pending. See [IMPORT_STATUS.md](IMPORT_STATUS.md).**
+**STATUS (2026-10-08): partial original-file import — 1,529 of 1,533 inventory paths present, 4 missing, and 104 present files have source-size differences. Byte-for-byte SHA-256 verification remains pending. See [IMPORT_STATUS.md](IMPORT_STATUS.md) and the exact [missing-source checklist](MISSING_SOURCE_FILES.md).**
 
 This directory contains one isolated folder per game. Each `SOURCE_INVENTORY.csv` records original relative paths, source ZIP identity, file size, CRC-32, and SHA-256, based on the independently validated uploaded collection. The inventories are references, not substitutes for the original files.
 
@@ -22,7 +22,7 @@ This directory contains one isolated folder per game. Each `SOURCE_INVENTORY.csv
 
 **Total original regular files: 1,533 (13 games).** The existing `README.md` in each game directory is a research scaffold, not an original game file.
 
-The initial and subsequent imports have populated 10 collection game directories completely by path, and Menzoberranzan and Stone Prophet partially. Dark Sun 2's 266 original files and the three oversized Menzo/Stone files remain absent. For the remaining files, see [IMPORT_STATUS.md](IMPORT_STATUS.md) and [Tools/CollectionImport](../Tools/CollectionImport/README.md). **The existing importer refuses all existing destinations and is not yet safe for direct resume against the current partially populated branch; enhance and validate its resume/repair logic before using `--apply`.** Its LFS implementation is intended for the four files above GitHub's regular-file size limit.
+The initial and subsequent imports have populated 10 collection game directories completely by path, and Dark Sun 2, Menzoberranzan, and Stone Prophet partially. **Only four oversized originals remain absent**, listed in [MISSING_SOURCE_FILES.md](MISSING_SOURCE_FILES.md). For the remaining files, see [IMPORT_STATUS.md](IMPORT_STATUS.md) and [Tools/CollectionImport](../Tools/CollectionImport/README.md). **The existing importer refuses all existing destinations and is not yet safe for direct resume against the current partially populated branch; enhance and validate its resume/repair logic before using `--apply`.** Its LFS implementation is intended for the four files above GitHub's regular-file size limit.
 
 Do not substitute Strahd's Possession reference binaries for any file in the Menzo or Stone source inventories. Source provenance must be game-specific.
 
