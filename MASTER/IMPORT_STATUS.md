@@ -40,7 +40,7 @@ Total original large-file payload: 1,180,513,662 bytes. The existing importer in
 
 The original ZIP archives from a preceding chat are not accessible to the current conversation's working filesystem, project-file list, or Library listing. The existing importer expects these six original archive files, each with an audited SHA-256:
 
-- `D&D Games 1.zip` — includes Dark Sun 2 and five of the games with mismatches.
+- `D&D Games 1.zip` — includes Dark Sun 2 and six of the games with mismatches.
 - `D&D Games 2.zip` — needed to verify/repair the other four imported games.
 - `Menzoberranzan.zip` — needed for 81 missing files.
 - `Ravenloft - Stone Prophet.zip.001`
