@@ -55,10 +55,14 @@ run.** Registered CTests **170**, Quick
 **19**; engineering score **56.25%**,
 inventory milestone **PARTIAL**.
 
-The next acceptance work includes the exact
-original `13C88` event cleanup, CINE08
-palette/audio/timing comparisons, DOS Escape
-semantics and full-world SAVE/LOAD integration.
+The source `13C88` branch is now audited:
+original event 8 selects common exit target
+`0x13E33` from nine post-event DWORD entries,
+not the event-specific level-relocation cases.
+Actual `13C88` music/palette/resource
+restoration, DOS Escape semantics, frame/tick
+comparisons and full-world SAVE/LOAD still
+require live native-vs-DOS acceptance.
 
 
 ## Part 8 continuation — complete Holy Symbol item placement and CINE08 source identity
