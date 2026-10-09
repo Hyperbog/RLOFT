@@ -55,34 +55,48 @@ int main() {
     npc.y_position_16_16=y;
     world.npcs.push_back(npc);
     assert(OriginalEntityCollisionModel::party_contact(
-        world,catalog,placed,x,y)==OriginalEntityContact::Blocked);
+        world,catalog,placed,22U,x,y)==OriginalEntityContact::Blocked);
     assert(OriginalEntityCollisionModel::party_contact(
-        world,catalog,placed,x+0x28E8U,y)==OriginalEntityContact::Blocked);
+        world,catalog,placed,22U,x+0x28E8U,y)==OriginalEntityContact::Blocked);
     assert(OriginalEntityCollisionModel::party_contact(
-        world,catalog,placed,x+0x28E9U,y)==OriginalEntityContact::Clear);
+        world,catalog,placed,22U,x+0x28E9U,y)==OriginalEntityContact::Clear);
     world.npcs[0].runtime_flags=0x02000000U;
     assert(OriginalEntityCollisionModel::party_contact(
-        world,catalog,placed,x,y)==OriginalEntityContact::Clear);
+        world,catalog,placed,22U,x,y)==OriginalEntityContact::Clear);
 
     // 2CC88: original placed-object footprint comes from INIT class-1
     // record +2; a tree is solid even in an otherwise empty level cell.
     world.placed_objects.push_back(object(62U,x,y));
     assert(OriginalEntityCollisionModel::party_contact(
-        world,catalog,placed,x,y)==OriginalEntityContact::Blocked);
+        world,catalog,placed,22U,x,y)==OriginalEntityContact::Blocked);
     assert(OriginalEntityCollisionModel::party_contact(
-        world,catalog,placed,x+0x4800U,y)==OriginalEntityContact::Blocked);
+        world,catalog,placed,22U,x+0x4800U,y)==OriginalEntityContact::Blocked);
     assert(OriginalEntityCollisionModel::party_contact(
-        world,catalog,placed,x+0x4801U,y)==OriginalEntityContact::Clear);
+        world,catalog,placed,22U,x+0x4801U,y)==OriginalEntityContact::Clear);
     world.placed_objects.clear();
     world.placed_objects.push_back(object(63U,x,y));
     assert(OriginalEntityCollisionModel::party_contact(
-        world,catalog,placed,x,y)==OriginalEntityContact::Clear);
+        world,catalog,placed,22U,x,y)==OriginalEntityContact::Clear);
     world.placed_objects[0].object_type_id=0x54U;
+    // At Level 22 even a colliding 54h object is not a transition:
+    // original 2CD99 accepts only level 0x17 or 0x0A with state 0x40.
     assert(OriginalEntityCollisionModel::party_contact(
-        world,catalog,placed,x,y)==OriginalEntityContact::RequiresSideEffect);
+        world,catalog,placed,22U,x,y)==OriginalEntityContact::Clear);
+    world.placed_objects[0].packed_runtime_state=0x40U;
+    assert(OriginalEntityCollisionModel::party_contact(
+        world,catalog,placed,22U,x,y)==OriginalEntityContact::Clear);
+    assert(OriginalEntityCollisionModel::party_contact(
+        world,catalog,placed,0x17U,x,y)==
+        OriginalEntityContact::RequiresSideEffect);
+    assert(OriginalEntityCollisionModel::party_contact(
+        world,catalog,placed,0x0AU,x,y)==
+        OriginalEntityContact::RequiresSideEffect);
+    world.placed_objects[0].packed_runtime_state=0U;
+    assert(OriginalEntityCollisionModel::party_contact(
+        world,catalog,placed,0x17U,x,y)==OriginalEntityContact::Clear);
     world.placed_objects[0].object_type_id=0x7AU;
     assert(OriginalEntityCollisionModel::party_contact(
-        world,catalog,placed,x,y)==OriginalEntityContact::RequiresSideEffect);
+        world,catalog,placed,22U,x,y)==OriginalEntityContact::RequiresSideEffect);
 
     // The real host 2DBAC movement retry must use the same entity
     // probe as the world runtime, not only open cell words.
@@ -100,7 +114,7 @@ int main() {
         62U,0x00028000U,0x00028000U));
     const auto probe=[&](std::uint32_t a,std::uint32_t b) {
         return OriginalEntityCollisionModel::party_contact(
-            world,catalog,placed,a,b);
+            world,catalog,placed,22U,a,b);
     };
     const auto adjusted=ExplorationLocomotionModel::apply(
         s,move,probe);
@@ -110,7 +124,7 @@ int main() {
     // Special side effects are NOT silently played as normal walking.
     s.coordinate_a=0x00018000U;
     s.coordinate_b=0x00018000U;
-    world.placed_objects[0].object_type_id=0x54U;
+    world.placed_objects[0].object_type_id=0x7AU;
     const auto special=ExplorationLocomotionModel::apply(
         s,move,probe);
     assert(special.suppressed_side_effect);
