@@ -122,7 +122,12 @@ def main() -> int:
         print(output, end="")
     if report["matched_count"] == 0:
         return 2
-    return int(report["matched_count"] != report["exact_matches"])
+    # A partial matched subset is diagnostic, never an all-frame pass.
+    return int(
+        report["matched_count"] != report["exact_matches"]
+        or bool(report["unmatched_native"])
+        or bool(report["unmatched_reference"])
+    )
 
 
 if __name__ == "__main__":
