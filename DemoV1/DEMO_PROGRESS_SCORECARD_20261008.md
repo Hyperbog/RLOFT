@@ -1,5 +1,32 @@
 # Demo v1 — development progress versus formal acceptance
 
+## Current engineering progress: 56.25% (32 fixed task units)
+
+[Canonical auditable engineering checklist](ENGINEERING_PROGRESS_AND_FAST_BUILD_20261009.md)
+counts **12 narrowly defined source-implemented tasks, 12
+partly reconstructed tasks and 8 open tasks**, for
+`(12 + 12/2)/32 = 56.25%`. This is the first
+transparent source-engineering baseline; it is NOT
+20% rising to 56% on the same metric, nor a claim
+that the entire game is 56% faithful. Future
+updates increase or decrease by a known 1.5625
+percentage points per partial milestone transition
+after a real bounded engineering outcome.
+
+**Last full Windows verification:** manual #640 at
+160/160; new branch has 164 registered CTests that
+are not yet compiled. The user-supplied original
+DOS screenshots still demonstrate substantial
+mismatches. Legacy `1/5 = 20%` statements in
+historical entries below refer **only to coarse
+acceptance gates**, not development completion.
+
+[Manual Windows build workflow](https://github.com/Hyperbog/RLOFT/actions/workflows/demo-v1-build.yml)
+offers new default `quick` executable + 9 focused
+test build and explicit `full` ALL_BUILD+164 tests.
+MSBuild is parallelized and can restore experimental
+incremental cache. No workflow is auto-triggered.
+
 **First source-backed LIVE original forest floor integration
 (2026-10-08):** Original CODE.2 16E90 copies
 `INIT+0x0E` to resource base 258F8; 1F388
