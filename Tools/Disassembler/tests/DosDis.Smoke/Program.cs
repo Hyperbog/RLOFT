@@ -2174,6 +2174,90 @@ try
         .JumpTables.Count, 0, "object-relative-looking literal is not assumed runtime linear");
     Console.WriteLine("PASS: guarded unsigned literal jump-table candidates and negative controls");
 
+    // Generic LE/x86-32 guarded byte switch:
+    // SUB AL,2; CMP AL,9; JA default; MOVZX EAX,AL;
+    // JMP DWORD PTR CS:[EAX*4+0040h].
+    // This deliberately models *no* Strahd addresses or game-specific
+    // pointers. CMP overrides the SUB flags, so the post-subtraction
+    // value alone is bounded (0..9) by unsigned JA and zero extension.
+    var byteSwitchBytes = MakeFixture(false);
+    Dword(byteSwitchBytes, 0x80 + 0xc4, 0x100);
+    Dword(byteSwitchBytes, 0x80 + 0x2c, 0x100);
+    new byte[] {
+        0x2C, 0x02,       // SUB AL,2: 8-bit wrap is retained as context
+        0x3C, 0x09,       // CMP AL,9: compare post-subtraction byte
+        0x77, 0x0B,       // JA default RET at offset 0x11
+        0x0F, 0xB6, 0xC0, // MOVZX EAX,AL: exact 8-to-32 zero extension
+        0x2E, 0xFF, 0x24, 0x85, 0x40, 0, 0, 0, // JMP CS:[EAX*4+40h]
+        0xC3              // default RET
+    }.CopyTo(byteSwitchBytes, 0x200);
+    for (int entry = 0; entry < 10; entry++)
+    {
+        Dword(byteSwitchBytes, 0x200 + 0x40 + entry * 4,
+            (uint)(0x80 + entry));
+        byteSwitchBytes[0x200 + 0x80 + entry] = 0xC3;
+    }
+    var byteSwitchGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(byteSwitchBytes)));
+    Equal(byteSwitchGraph.JumpTables.Count, 1,
+        "unsigned CMP AL/JA/MOVZX EAX guarded LE table is recovered");
+    Equal(byteSwitchGraph.JumpTables[0].CandidateTargets.Count, 10,
+        "post-8-bit-subtraction bound selects exactly ten candidate pointers");
+    Equal(byteSwitchGraph.JumpTables[0].CandidateTargets[0],
+        new FlowAddress(1, 0x80),
+        "first generic guarded candidate remains object relative");
+    Equal(byteSwitchGraph.JumpTables[0].CandidateTargets[9],
+        new FlowAddress(1, 0x89),
+        "last generic guarded candidate remains object relative");
+    Equal(byteSwitchGraph.JumpTables[0].Evidence.Contains(
+        "byte-register-MOVZX-zeroextend"), true,
+        "zero extension proof is separately labeled in table evidence");
+    Equal(byteSwitchGraph.JumpTables[0].Evidence.Contains(
+        "unsigned-ja-bound"), true,
+        "literal table evidence preserves source-backed unsigned JA count");
+    Equal(byteSwitchGraph.Edges.Count(e => e.Kind == "candidate-indirect-jump"), 10,
+        "ten candidate cases retained without asserting runtime execution");
+    Equal(byteSwitchGraph.Edges.Any(e =>
+        e.Kind == "unresolved-indirect-jump"), true,
+        "guarded switch keeps the unresolved runtime indirect jump");
+    Equal(byteSwitchGraph.Edges.Any(e =>
+        e.Kind == "branch-taken" &&
+        e.Source == new FlowAddress(1, 4) &&
+        e.Destination == new FlowAddress(1, 0x11)), true,
+        "unsigned guard retains its original out-of-range default branch");
+
+    var signedByteSwitch = (byte[])byteSwitchBytes.Clone();
+    signedByteSwitch[0x200 + 4] = 0x7F; // JG, signed rather than JA
+    Equal(ControlFlowAnalysis.Analyze(LeImage.Load(
+        BinaryArtifact.FromBytes(signedByteSwitch))).JumpTables.Count, 0,
+        "signed guard cannot prove unsigned byte switch bounds");
+    var otherByteGuard = (byte[])byteSwitchBytes.Clone();
+    otherByteGuard[0x200 + 4] = 0x75; // JNZ cannot prove upper bound
+    Equal(ControlFlowAnalysis.Analyze(LeImage.Load(
+        BinaryArtifact.FromBytes(otherByteGuard))).JumpTables.Count, 0,
+        "inequality guard cannot stand in for an unsigned JA");
+    var signExtendSwitch = (byte[])byteSwitchBytes.Clone();
+    signExtendSwitch[0x200 + 7] = 0xBE; // MOVSX EAX,AL
+    Equal(ControlFlowAnalysis.Analyze(LeImage.Load(
+        BinaryArtifact.FromBytes(signExtendSwitch))).JumpTables.Count, 0,
+        "MOVSX may sign-extend and does not match safe byte MOVZX proof");
+    var wrongByteSource = (byte[])byteSwitchBytes.Clone();
+    wrongByteSource[0x200 + 8] = 0xC3; // MOVZX EAX,BL
+    Equal(ControlFlowAnalysis.Analyze(LeImage.Load(
+        BinaryArtifact.FromBytes(wrongByteSource))).JumpTables.Count, 0,
+        "MOVZX source register must exactly match compared byte");
+    var wrongIndexTarget = (byte[])byteSwitchBytes.Clone();
+    wrongIndexTarget[0x200 + 8] = 0xC8; // MOVZX ECX,AL, JMP still indexes EAX
+    Equal(ControlFlowAnalysis.Analyze(LeImage.Load(
+        BinaryArtifact.FromBytes(wrongIndexTarget))).JumpTables.Count, 0,
+        "MOVZX destination must exactly match indexed jump register");
+    var wrongSegmentSwitch = (byte[])byteSwitchBytes.Clone();
+    wrongSegmentSwitch[0x200 + 9] = 0x3E; // DS instead of CS override
+    Equal(ControlFlowAnalysis.Analyze(LeImage.Load(
+        BinaryArtifact.FromBytes(wrongSegmentSwitch))).JumpTables.Count, 0,
+        "CS object-relative table proof is not borrowed by DS");
+    Console.WriteLine("PASS: guarded LE byte-width SUB/CMP/JA/MOVZX switch and negative controls");
+
     // Part 17: relocation-backed, indexed dword jump tables are CANDIDATES,
     // not proof of all runtime index values. The synthetic fixture uses an
     // explicit absolute LE fixup at every table element.
