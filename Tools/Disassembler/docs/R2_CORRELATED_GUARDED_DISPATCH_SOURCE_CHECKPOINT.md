@@ -143,3 +143,35 @@ unexpected published target or missing artifact fails the gate.
 
 Only the exact workflow SHA can be marked verified. An artifact compiled
 before these additional commits cannot certify the new source.
+
+## R2.6 cached-coverage and bounded-correlation hardening (source-only)
+
+A dataflow graph now checks its reported candidate instruction-byte count
+against the sum of independently decoded, nonoverlapping original source
+instructions, and its reported unknown byte count against the difference
+from the mapped region length. Either mismatch returns
+`rejected-inconsistent-byte-coverage` and **zero register snapshots**.
+Graph byte-count summaries remain metadata, not code or reachability proof.
+
+The opt-in correlated guarded table pass now accepts optional explicit
+`maximumInstructions`, `maximumSteps`, and `maximumEdges` resource
+budgets (the existing bounded dataflow defaults remain unchanged). It
+passes them to the source-verifying dataflow worklist, and returns a
+single **incomplete, zero-sites** report when any budget is exceeded.
+It never publishes the partially accumulated table-selection results.
+
+New synthetic tests assert:
+- forged decoded-byte count or unknown-gap count blocks dataflow;
+- a forged coverage summary blocks the guarded-table correlation;
+- step, edge and instruction budget exhaustion each suppress all
+  correlated pointer selections;
+- `MOV DS,AX` and `POP DS` invalidate unsupported segment/register
+  assumptions before otherwise valid unsigned guard/stride patterns;
+- `66 D1 E3` (operand-size override to `SHL EBX,1`) does **not**
+  qualify as exact 16-bit `SHL BX,1` and cannot establish a table stride.
+
+These checks are all **committed as source**, not compiled or executed.
+They do not establish any runtime DS/ES/SS/CS value, pointer memory
+immutability, original-game behavior or verified execution path.
+The Windows G2 gate must be run at the exact new source SHA to validate
+this work; G1 build #35 remains verified only for its earlier commit.
