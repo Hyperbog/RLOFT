@@ -437,3 +437,8 @@ Fresh direct disassembly of the immutable original `CODE.1` reconciled the VGA s
 CODE.1 object-1 byte classification is closed at 70,402 / 70,402 bytes, and the sequential semantic audit has reconciled the complete logical address span `00000..11301`. Post-closure checkpoint 10o performed an additional hardening pass over the final CRT/heap/stream runtime and corrected residual normalized behavior without changing byte accounting. There is no remaining CODE.1 sequential audit frontier.
 
 Future CODE.1 work should therefore be evidence-driven backtracking only if new contradictory binary evidence appears. The next major decompilation phase is CODE.2, using the same immutable-source, exact-width/signedness, selector/far-pointer, register-alias, stack-slot, shared-tail, and syntax-verification rules documented above.
+
+
+### 2026-10-10 post-certification F790 stack-local text pre-read correction
+
+CODE.2 original F790 F7CC..F7DA performs an original T[3F] indexed file read into its 16-byte SS:ESP local even on non-pending empty-hand calls, before comparing held item to -1. The canonical Code2.cpp lacked this side effect and was corrected on code1-decompilation using a typed local-stack 1C368 external boundary. Original machine bytes and source T index passed; whole-file syntax and native DOS equivalence pending. Cross-workstream note: the native demo-v1 conversation may need to account for the original text-reader side effects, but its branch was not altered. [Source proof](../Code2/F790_STACK_LOCAL_TEXT_PREREAD_20261010.md).
