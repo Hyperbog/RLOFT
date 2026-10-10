@@ -10,7 +10,8 @@ internal static class Dos16CorrelatedDispatchSmoke
 
     private static (Dos16CodeRegion Region, Dos16FlowResult Graph,
         BinaryArtifact Artifact) Guarded(byte[] setup, byte[] stride, ushort table = 0x120,
-            byte[]? afterGuard = null, bool far = false)
+            byte[]? afterGuard = null, bool far = false,
+            byte segmentOverride = 0x2E)
     {
         byte[] bytes = new byte[0x50];
         int offset = 0;
@@ -32,7 +33,7 @@ internal static class Dos16CorrelatedDispatchSmoke
         stride.CopyTo(bytes, offset);
         offset += stride.Length;
         // CS:[BX+positive-disp16], /4 near or /5 far indirect JMP.
-        bytes[offset++] = 0x2E;
+        bytes[offset++] = segmentOverride;
         bytes[offset++] = 0xFF;
         bytes[offset++] = far ? (byte)0xAF : (byte)0xA7;
         bytes[offset++] = (byte)table;
@@ -128,8 +129,8 @@ internal static class Dos16CorrelatedDispatchSmoke
             "unmodeled memory write invalidates the apparent finite BX index");
 
         // The transparent guard-to-scaling bridge must contain no
-        // unsupported memory-side effects, even if a later MOV happens
-        // to set BX back to a small literal value.
+        // unsupported memory-side effects, regardless of the old BX
+        // value that was known before the guard.
         var corruptedPath = Guarded(
             new byte[] { 0xBB, 0x01, 0x00 },
             new byte[] { 0xD1, 0xE3 },
@@ -162,6 +163,32 @@ internal static class Dos16CorrelatedDispatchSmoke
             farReport.BoundedIndexSites == 0 &&
             farReport.Sites[0].CandidateStoredEntries.Count == 0,
             "far pointer storage without MZ selector fixups stays unresolved");
+
+        var wrongSegment = Guarded(new byte[] { 0xBB, 0x01, 0x00 },
+            new byte[] { 0xD1, 0xE3 }, segmentOverride: 0x3E);
+        var wrongSegmentReport = Dos16CorrelatedDispatchRecovery.Inspect(
+            wrongSegment.Region, wrongSegment.Graph);
+        Check(!wrongSegmentReport.Incomplete &&
+            wrongSegmentReport.GuardedStorageSites == 0 &&
+            wrongSegmentReport.BoundedIndexSites == 0,
+            "DS-prefixed table cannot borrow CS source-backed storage");
+
+        var unrelated = BinaryArtifact.FromBytes(
+            new byte[] { 0x90, 0xC3 }, "different-input.com");
+        var unrelatedRegion = DosComImage.LoadExplicit(
+            unrelated).CreateCodeRegion();
+        var wrongHash = Dos16CorrelatedDispatchRecovery.Inspect(
+            unrelatedRegion, good.Graph);
+        Check(wrongHash.Incomplete && wrongHash.Sites.Count == 0,
+            "original source SHA mismatch blocks all table correlation");
+
+        int untouchedEdges = good.Graph.Edges.Count;
+        var repeated = Dos16CorrelatedDispatchRecovery.Inspect(
+            good.Region, good.Graph);
+        Check(repeated.BoundedIndexSites == 1 &&
+            good.Graph.Edges.Count == untouchedEdges &&
+            good.Graph.Edges.Any(edge => edge.Kind == "unresolved-indirect-jump"),
+            "stored entry correlation does not resolve or rewrite CFG edges");
 
         var stale = Dos16CorrelatedDispatchRecovery.Inspect(
             good.Region, good.Graph with { Truncated = true });
