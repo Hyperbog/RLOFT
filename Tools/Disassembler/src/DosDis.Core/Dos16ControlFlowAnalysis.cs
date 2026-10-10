@@ -112,7 +112,7 @@ public static class Dos16ControlFlowAnalysis
             kind == OpKind.Memory ? CaptureMemory(instruction) : null);
     }
 
-    private static Dos16InstructionFacts CaptureFacts(Instruction instruction) =>
+    internal static Dos16InstructionFacts CaptureFacts(Instruction instruction) =>
         new(instruction.Mnemonic.ToString(), instruction.OpCount,
             instruction.OpCount >= 1 ? CaptureOperand(instruction, 0) : null,
             instruction.OpCount >= 2 ? CaptureOperand(instruction, 1) : null);
