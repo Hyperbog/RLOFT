@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Security.Cryptography;
 
 namespace DosDis.Core;
 
@@ -20,7 +21,13 @@ public sealed record DosMzRebaseSummary(
     string SourceSha256, int OriginalFileBackedBytes, ushort AssumedLoadSegment,
     ushort AssumedEntryCs, ushort AssumedStackSs, ushort InitialIp, ushort InitialSp,
     int RelocationWriteCount, bool OverlappingRelocationWrites,
-    string AnalysisStatus, IReadOnlyList<DosMzRelocationWrite> Writes);
+    string AnalysisStatus, IReadOnlyList<DosMzRelocationWrite> Writes)
+{
+    // Hash of the COPY after assumed DOS fixup additions, including only
+    // source-file-backed MZ load bytes. No runtime address or original
+    // byte content is included in this status-neutral fingerprint.
+    public string SimulatedFileBackedImageSha256 { get; init; } = "";
+}
 
 /// <summary>
 /// Independent, non-destructive simulation of DOS MZ fixup additions.
@@ -75,7 +82,11 @@ public sealed class DosMzRebasedView
             overlapping
                 ? "simulated-MZ-relocations;overlapping-fixups;runtime-base-assumed;not-verified"
                 : "simulated-MZ-relocations;runtime-base-assumed;not-verified",
-            writes);
+            writes)
+        {
+            SimulatedFileBackedImageSha256 =
+                Convert.ToHexString(SHA256.HashData(copied)).ToLowerInvariant()
+        };
         return new DosMzRebasedView(copied, image.LoadImageFileOffset, summary);
     }
 
