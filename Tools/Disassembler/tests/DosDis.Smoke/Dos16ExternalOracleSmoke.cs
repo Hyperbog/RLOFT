@@ -154,6 +154,19 @@ internal static class Dos16ExternalOracleSmoke
         Equal(immediateMismatch.Findings[0].DetailCode,
             "candidate-structured-operands-disagree-with-external-oracle",
             "operand-value disagreement has a machine-readable finding");
+        var wrongSignedValue = operandManifest with {
+            ExpectedInstructions = new[] {
+                operandManifest.ExpectedInstructions[2] with {
+                    ExpectedFacts = CmpBxSigned() with {
+                        Operand1 = new Dos16OperandFact(
+                            "Immediate8to16", ImmediateValue: -1)
+                    }
+                }
+            }
+        };
+        Equal(Dos16ExternalOracleValidator.Compare(
+            operandRegion, operandGraph, wrongSignedValue).Conflicting, 1,
+            "validly encoded but incorrect signed immediate is a semantic conflict");
         var wrongSignExtension = operandManifest with {
             ExpectedInstructions = new[] {
                 operandManifest.ExpectedInstructions[2] with {
