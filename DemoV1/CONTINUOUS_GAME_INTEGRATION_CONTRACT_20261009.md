@@ -1,5 +1,9 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+## 2026-10-10 source-proof of actor-toggle original F790 event (11B63)
+
+Independently confirmed original `12F8F→11AD8` actor panel click source and `11B63→F790` event against immutable CODE.2, including exact native-matching hit rectangle. Found two original 11AD8 paths: bit-2 actor-mode propagation to all four panels versus normal one-actor toggle; both repaint actors then invoke one F790 global-held event. Native currently exposes only the single-actor path and does not prove DOS input flag 2 or live F790; no speculative gameplay change was committed. [Source gate/handoff](LEVEL22_F790_ACTOR_TOGGLE_SOURCE_CONTRACT_20261010.md). Existing CI/native/DOS acceptance unchanged.
+
 ## 2026-10-10 Windows Full #652 C++17 standalone test target fix
 
 Authorized [Full #652](https://github.com/Hyperbog/RLOFT/actions/runs/38078746990) FAILED during compile, before CTest, because standalone C++ F790 test targets did not inherit `cxx_std_17` from `rloft_boot_flow`. Ninety-two MSVC errors cascaded from unavailable `std::optional` and `std::string_view` despite proper header includes. Set `CMAKE_CXX_STANDARD=17` globally with `CMAKE_CXX_STANDARD_REQUIRED=ON`, add source-only regression guard; no original game behavior altered. **Fix not yet rebuilt**; last successful Full remains #651 182/182 on older source. [Full #652 failure and repair](FULL_WINDOWS_BUILD_652_CXX17_REPAIR_20261010.md). CI manual-only was restored after #652. Original DOS parity and subsystem percentages unchanged.
