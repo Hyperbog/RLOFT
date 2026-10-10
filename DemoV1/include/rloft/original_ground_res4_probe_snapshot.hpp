@@ -3,6 +3,7 @@
 #include "rloft/original_ground_res4_audit.hpp"
 
 #include <algorithm>
+#include <exception>
 #include <cstdint>
 #include <iomanip>
 #include <ostream>
