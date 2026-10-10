@@ -19,7 +19,8 @@ internal sealed record RecoveredReferenceSet(
     JumpTableCandidate? Table);
 
 // Only passed when CFG proves CMP index,constant -> JA default -> indexed JMP.
-internal readonly record struct BoundedDispatchHint(Register Index, int EntryCount);
+internal readonly record struct BoundedDispatchHint(Register Index, int EntryCount,
+    string Pattern = "direct-unsigned-compare");
 
 /// <summary>
 /// Narrow x86-32 LE recognition: absolute DS memory operands; internal
@@ -186,15 +187,33 @@ internal sealed class ReferenceRecovery
             }
             if (candidates.Count >= 2)
             {
+                // The relocation walk discovers stored candidates, not
+                // dynamic index bounds. Only the independently checked
+                // unsigned JA proof can limit *which* source-backed
+                // pointer slots the candidate control transfer indexes.
+                // A short relocation run cannot satisfy a larger guard.
+                bool bounded = insn.FlowControl == FlowControl.IndirectBranch &&
+                    boundedDispatch is { } bound &&
+                    bound.Index == insn.MemoryIndex &&
+                    bound.EntryCount >= 2 &&
+                    bound.EntryCount <= candidates.Count;
+                var selected = bounded
+                    ? candidates.Take(boundedDispatch!.Value.EntryCount).ToArray()
+                    : candidates.ToArray();
                 string evidence = csIndexed
-                    ? "candidate-relocation-backed-table;cs-object-relative;index-bound-unproven"
-                    : "candidate-relocation-backed-table;index-bound-unproven";
+                    ? "candidate-relocation-backed-table;cs-object-relative"
+                    : "candidate-relocation-backed-table";
+                evidence += bounded
+                    ? ";index-bounded-by-source-backed-unsigned-ja;" +
+                      boundedDispatch!.Value.Pattern +
+                      ";runtime-execution-unverified"
+                    : ";index-bound-unproven";
                 data.Add(new DataCrossReference(address, absolute.Value,
                     "indexed-pointer-table-base", evidence));
-                table = new JumpTableCandidate(address, absolute.Value, candidates.ToArray(), 4,
+                table = new JumpTableCandidate(address, absolute.Value, selected, 4,
                     evidence, insn.FlowControl == FlowControl.IndirectCall
                         ? "indirect-call-table" : "indirect-jump-table");
-                foreach (var target in candidates.Distinct())
+                foreach (var target in selected.Distinct())
                     indirect.Add(new IndirectCandidate(target, "indexed-pointer-table", evidence));
             }
             else if (insn.FlowControl == FlowControl.IndirectBranch &&
@@ -236,6 +255,7 @@ internal sealed class ReferenceRecovery
                     string evidence = csIndexed
                         ? "candidate-guarded-literal-table;cs-object-relative;unsigned-ja-bound;no-relocation-proof"
                         : "candidate-guarded-literal-table;unsigned-ja-bound;no-relocation-proof";
+                    evidence += ";" + bound.Pattern + ";runtime-execution-unverified";
                     data.Add(new DataCrossReference(address, absolute.Value,
                         "indexed-pointer-table-base", evidence));
                     table = new JumpTableCandidate(address, absolute.Value,
