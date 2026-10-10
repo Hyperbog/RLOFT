@@ -115,6 +115,33 @@ def audit_original(path:Path)->None:
     for address,hexbytes in address_reads.items():
         wanted=bytes.fromhex(hexbytes)
         assert obj[address:address+len(wanted)]==wanted,hex(address)
+    # Original graphics callback slot F0C8 is mutable DGROUP
+    # data, shipped as NULL. 2E74C stores a caller-provided pointer;
+    # 2E758 invokes it when nonnull. 2F868 performs the same check
+    # in the frame tail. The callback target's FF50 write footprint
+    # CANNOT be inferred from the initial null value.
+    f0c8=bytes.fromhex("c8f00000")
+    locations=[]
+    scan_at=0
+    while True:
+        scan_at=obj.find(f0c8,scan_at)
+        if scan_at<0:break
+        locations.append(scan_at)
+        scan_at+=1
+    assert locations==[0x2E751,0x2E75A,0x2E763,0x2F86F,0x2F878]
+    assert b[0x75F24+0xF0C8:0x75F24+0xF0CC]==bytes(4)
+    windows={
+        0x2E74C:"8b442404a3c8f00000c3",  # user pointer setter
+        0x2E758:"833dc8f00000007406ff15c8f00000c3",
+        0x2F86D:"833dc8f00000007406ff15c8f00000",
+        0x29867:"e9ec4e0000",  # 29838 wrapper jumps to 2E758
+        0x29573:"e8e0510000",  # 29564 enters 2E758
+    }
+    for address,expected_hex in windows.items():
+        expected=bytes.fromhex(expected_hex)
+        assert obj[address:address+len(expected)]==expected,hex(address)
+    print("PASS: F0C8 default NULL, setter, two indirect callsites (5 source references)")
+    print("OPEN: runtime-installed pointer and callback FF50/VGA effects")
     print("PASS: complete 296C0 geometry and 2AB38 destination helper bodies")
     print("BOUND: 296C0 direct globals EF55/EF59/EF5D/EF61; 2AB38 reads F001")
     print("PASS: overlay facing/RNG/IRQ reseed and fixed F6F4 alias (12 windows)")
@@ -133,6 +160,8 @@ def audit_repository()->None:
     assert "0x00003039U" in native_rng
     assert "state_ *" in native_rng
     for term in ("296C0","2AB38","EF55","F001","indirect"):
+        assert term in doc,term
+    for term in ("F0C8","2E74C","2E758","2F868","indirect"):
         assert term in doc,term
     print("PASS: source callback evidence and CTest registration")
 

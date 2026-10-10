@@ -6,6 +6,10 @@ The native 256-ray traversal now distinguishes original CODE.2 `32F4C` sentinel 
 
 
 
+## 2026-10-10 original graphics F0C8 optional indirect callback must not be elided
+
+Original CODE.2 has **mutable `F0C8` function pointer**, initially zero in shipped object-2, a setter at `2E74C`, and two independent `FF 15 [F0C8]` indirect call sites: wrapper/trampoline `2E758` and frame tail `2F868`. Native drawing `29838` reaches trampoline by tail jump and `29564` calls it. All five F0C8 literal references, original initializer and exact machine instructions verified. Installed target and indirect FF50/VGA/IRQ writes remain unproven; no speculative callback behavior or DOS parity claim. Added original-byte oracle checks to existing upper-callback CTest (registration count unchanged). [Source callgraph boundary](LEVEL22_FF50_UPPER_CALLBACK_BOUNDARY_AUDIT_20261010.md). Manual-only CI unchanged.
+
 ## 2026-10-10 original upper-geometry helper direct store bounds confirmed
 
 Independent full-byte/RET original CODE.2 audit closes leaf **296C0** (117 bytes; original upper animated callback 314B0) as four EFxx geometry setup stores `EF59/EF5D/EF61/EF55`, not FF50, and leaf **2AB38** (52 bytes; 29B40 coordinate helper) as a register-only destination calculation reading `EFED/EFF1/F001` with no original data-memory stores. Both complete function hashes, original store/read instruction signatures and no direct FF50 operands independently passed. The 29B40 output pointer and ES/segment aliases and animated `29838/2986C→2A478/29564` drawing helpers remain open; no premature dynamic FF50 or DOS equivalence claim. Extended the previously registered callback original-byte oracle (CTest count unchanged). [Source evidence](LEVEL22_FF50_UPPER_CALLBACK_BOUNDARY_AUDIT_20261010.md). CI manual-only.

@@ -43,6 +43,14 @@ Two additional CODE.2 original machine-code bodies were independently disassembl
 
 Both functions' exact source bytes, all four `EFxx` stores, three `EFxx/F001` pointer reads, no literal `FF50` operands, and RET boundaries were added to the existing Python binary oracle. This narrows the alias surface, but **does not prove the later caller writes through `EBX`/ES to a framebuffer cannot alias DGROUP**, or that other animated overlay helpers `29838/2986C→2A478/29564` preserve `FF50`. Their transitive callgraph remains the next gate. Neither helper was changed in native gameplay.
 
+## Dynamic framebuffer callback hook F0C8 is not an immutable no-op
+
+The original CODE.2 object-2 initialized `DWORD[F0C8]=0`, but the executable also provides an original **mutable setter `2E74C`**: `mov eax,[esp+4]; mov [F0C8],eax; ret`. Its **`2E758` trampoline** checks `[F0C8]` for zero and executes original `call DWORD PTR [F0C8]` when installed. In addition, the original final frame renderer `2F868` directly performs the same conditional indirect call at `2F876`. The source-instruction direct C++ regression now verifies **all five absolute F0C8 operand positions**, exact setter/trampoline/tail opcodes, and the initial original DGROUP value.
+
+The `29838` drawing wrapper reaches `2E758` by tail jump `29867`; original `29564` calls it at `29573`. Thus the indirect callback may execute during animated texture drawing, not merely in an unrelated subsystem. **The installed target, calling frame and its pointer aliases have not been proven** from current files; absence of a nonzero initial pointer is not proof that the callback can never be installed. This is a concrete remaining indirect runtime execution boundary before closing FF50 side effects, framebuffer aliasing or IRQ timing.
+
+The existing `original_ground_upper_callback_boundary_tests` original binary oracle has been extended with these exact observations; CTest count unchanged. The native rendering engine has **not** been modified to invent a pointer target, and the original source-independent 34A74 full-floor test remains valid for its bounded field scenario.
+
 ## Independent regression and next gate
 
 `tools/verify_original_ground_upper_callback_boundary.py --original-code2 /path/to/CODE.2` validates original file identity, the five complete code entry-to-RET ranges, their literal FF50 reference counts, 17 exact near-E8 destinations, original `1F377` reload and four original 34A74 self-modifying targets. The script passed against the uploaded immutable original. Registered Python CTest without original media checks the accompanying documentation and source registration. This is **source-only**: CI Windows build remains manual-only and last certified Windows Full #658 passed 214/214 on earlier checkout.
