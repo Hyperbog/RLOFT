@@ -34,6 +34,11 @@ if(Python3_Interpreter_FOUND)
         NAME subsystem_progress_tracker_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_subsystem_progress_tracker.py")
+    # Original CODE.2 F790 category table and description-completeness gate.
+    add_test(
+        NAME original_f790_item_description_dispatch_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_item_description_dispatch.py")
     # CODE.2 112EC -> 292BC and F790 -> 2932C VGA save/restore provenance.
     add_test(
         NAME original_f790_background_contract_tests
@@ -842,6 +847,12 @@ add_executable(original_f790_modal_sequence_tests
     tests/original_f790_modal_sequence_tests.cpp)
 target_link_libraries(original_f790_modal_sequence_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_f790_modal_sequence_tests COMMAND original_f790_modal_sequence_tests)
+
+# Exact original F790 ten-entry category dispatch; textual branches remain gated.
+add_executable(original_f790_item_category_route_tests
+    tests/original_f790_item_category_route_tests.cpp)
+target_include_directories(original_f790_item_category_route_tests PRIVATE include)
+add_test(NAME original_f790_item_category_route_tests COMMAND original_f790_item_category_route_tests)
 
 add_executable(original_res2_asset_bank_tests tests/original_res2_asset_bank_tests.cpp)
 target_link_libraries(original_res2_asset_bank_tests PRIVATE rloft_boot_flow)
