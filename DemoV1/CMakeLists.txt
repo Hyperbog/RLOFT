@@ -27,6 +27,12 @@ enable_testing()
 # It runs on local machines even when GitHub Actions runner quotas are spent.
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    # Read-only process safety tests; no build dispatch, original-media copy,
+    # DOS parity claim, or mutation of gameplay state.
+    add_test(
+        NAME native_research_preflight_self_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_research_preflight.py")
     add_test(
         NAME offline_renderer_verifier_tests
         COMMAND "${Python3_EXECUTABLE}"

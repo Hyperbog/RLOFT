@@ -11,7 +11,7 @@ This is the active project entry point. Historical development updates have been
 | --- | --- |
 | Original executable | `CODE.1` / `CODE.2` reconstructed and byte-accounted; **not exhaustively semantically verified**, and post-accounting corrections remain possible |
 | Native Windows Full build | [#658](https://github.com/Hyperbog/RLOFT/actions/runs/38085278540) passed **214/214** tests **on its earlier checkout** |
-| Current source test catalog | **227** unique `add_test` declarations in the current source (Python-conditional tests require an installed interpreter); current changes **not** accepted by Windows CI |
+| Current source test catalog | Run the [read-only preflight](tools/research_preflight.py) for current CMake declarations; source registration and passing Windows CTest are separate gates. |
 | Level 22 viewport | Original `RES4[655]` full-open ground confirmed in 64/64 native capture frames; source-accurate partial clipping and DOS framebuffer equivalence remain pending |
 | Original DOS acceptance | No accepted full indexed-frame/palette/IRQ/RNG/complete-game parity; do not infer fidelity from synthetic tests or a successful native build |
 | Working score | Provisional **49.8% engineering readiness** is **not** 49.8% original-game completeness; preserve independent DOS parity gates |
@@ -24,6 +24,7 @@ The latest native source includes a read-only, provenance-checked source `22220/
 2. [Active game integration contract](CONTINUOUS_GAME_INTEGRATION_CONTRACT_20261009.md) — up-to-date blockers, branch ownership, manual CI requirements and source-to-native gates.
 3. [Subsystem readiness and acceptance](PROGRESS_SUBSYSTEM_REPORT_20261009.md) — tracked engineering readiness; keep it distinct from DOS equivalence.
 4. [Preservation and integration roadmap](PRESERVATION_INTEGRATION_ROADMAP.md) — full-game scope and inter-system dependencies.
+5. [Research iteration playbook](RESEARCH_ITERATION_PLAYBOOK.md) — repeatable preflight, faster original-byte oracles, safe concurrent commits and measurable process corrections.
 
 **Source priority:** the original version-identified game binaries/files control; `Code1/Code1.cpp` and `Code2/Code2.cpp` are the primary reconstructed implementation references, never substitutes for independent executable-byte and DOS-behavior validation. Do not fill unknown behavior with invented gameplay or placeholder artwork.
 
