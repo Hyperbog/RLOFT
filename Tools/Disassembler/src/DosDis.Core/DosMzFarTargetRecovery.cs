@@ -40,11 +40,17 @@ public static class DosMzFarTargetRecovery
             graph.Entry.Offset >= region.EndExclusive ||
             graph.AnalysisStatus?.StartsWith("candidate-unverified",
                 StringComparison.Ordinal) != true ||
-            graph.Truncated || graph.Instructions is null ||
+            graph.Instructions is null ||
             graph.Edges is null || graph.Instructions.Any(x => x is null) ||
             graph.Edges.Any(x => x is null))
             throw new InvalidDataException(
                 "FAR candidate graph is stale, truncated, malformed or not from the requested MZ code window.");
+
+        // A bounded upstream traversal may stop with a partial CFG.
+        // Preserve the higher-level truncated review, but never publish
+        // FAR destinations from a partially enumerated instruction set.
+        if (graph.Truncated)
+            return Array.Empty<DosMzFarCandidate>();
 
         // Each instruction probes at most six possible overlapping fixup
         // source offsets. Pre-index once instead of scanning the full MZ
