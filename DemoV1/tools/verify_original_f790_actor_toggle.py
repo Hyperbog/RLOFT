@@ -20,7 +20,10 @@ OBJECT1_LENGTH = 0x3A852
 
 # Small source-owned instruction signatures, never a copied disassembly.
 WINDOWS = {
-    0x12F76: "83fe457c2083fe607f1b83fb397c1683fb4d7f11",
+    0x22D49: "8b5c241066899a40a60000", # queued signed WORD flags
+    0x22DC1: "0fbf8840a60000",       # dequeue sign-extended WORD flags
+    0x22E1D: "515356e84b00ffff", # flags passed to CODE.2 modal
+    0x12F76: "83fe457c2083fe607f1b83fb4d7f11",
     0x12F8A: "ff74241857e844ebffff",  # flags, actor; call 11AD8
     0x11AE9: "f6442418027440",       # test original flags bit 2
     0x11B02: "6683f701e8a5760100", # low WORD xor once in broadcast branch
@@ -32,6 +35,7 @@ WINDOWS = {
     0x11BA2: "ff3550c00000e8038a0000803550c0000001",  # extra global path
 }
 CALLS = {
+    0x22E20: 0x12E70,
     0x12F8F: 0x11AD8,
     0x11B06: 0x291B0,
     0x11B20: 0x11268,
@@ -67,7 +71,8 @@ def verify_original(path: Path) -> None:
         raise AssertionError("broadcast loop exit bound not original")
     if code[0x11AEE:0x11AF0] != bytes.fromhex("7440"):
         raise AssertionError("flag-2 absent must branch to single actor")
-    print("PASS: 10 actor-pane instruction windows, 7 original near-call targets")
+    print("PASS: 13 actor-pane/input-queue instruction windows, 8 original near-call targets")
+    print("PASS: original input flags enqueued, dequeued, forwarded unmodified")
     print("PASS: one XOR then four actor redraws versus one actor redraw")
     print("PASS: one 11B63 F790 event before bit-2-only follow-on")
 
