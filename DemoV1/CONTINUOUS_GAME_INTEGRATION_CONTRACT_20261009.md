@@ -1,5 +1,9 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+## 2026-10-10 original 34A74 clipped-raster 79/80/81 boundary regression
+
+Bounded original CODE.2 instruction bytes independently reverified: `34ABF` limits first four-plane phase to 80 rows, `34B4D/34B53` runs second paired-plane phase only when **signed `FF50-80>0`**. Extended the existing native original-ground raster C++ regression to exercise authentic row budgets **1/79/80/81/128**, per-phase single/pair row counts, source sample reads, exactly 256 indexed writes per row, final-row palette indices and untouched next scanline/side gutters. Python original-byte oracle updated with both branch instruction windows and native regression-presence assertions; **CTest catalog unchanged**, no gameplay pixel path modified, new test source not Windows Full built. This independently safeguards raster clipping *after* source-accurate dynamic FF50 is available; does not authorize currently unproven FF50/ES/frame state or DOS pixel parity. [Original sampler/clip audit](LEVEL22_ORIGINAL_34A74_UNROLLED_PLANAR_RASTER_AUDIT_20261010.md). CI manual-only.
+
 ## 2026-10-10 Part 12 VGA page and F0C8/F0CC setter research
 
 Immutable original CODE.2 checks verify source 29930 VGA-page initialization, 2AB6C page-derived F001 base, 2AB38 planar byte-offset calculation, 2AB98 conditional VGA clear, and the separate F0CC event hook versus F0C8 drawing hook. Four full-body SHA checks, 30 opcode windows and three original E8 page-switch callsites passed locally. Both callback setters have zero raw object-1 E8/E9 target or embedded DWORD-entry candidates, but external/indirect installs and protected-mode ES/DS alias safety remain open. Existing original-byte regression extended, no gameplay change or CTest registration; Windows Full manual/unrun on current source, DOS parity pending. [Source audit](LEVEL22_FF50_UPPER_CALLBACK_BOUNDARY_AUDIT_20261010.md).

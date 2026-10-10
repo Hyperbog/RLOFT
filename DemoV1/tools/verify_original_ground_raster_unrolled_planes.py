@@ -51,6 +51,14 @@ def audit_original(path:Path)->None:
     assert obj[0x34aa7:0x34ab4]==bytes.fromhex("a140c0000083c002a354ff0000")
     assert obj[0x34ab9:0x34abf]==bytes.fromhex("8b0d50ff0000")
     assert obj[0x34b47:0x34b4d]==bytes.fromhex("8b0d50ff0000")
+    # 34ABF caps first phase at 80, and 34B4D draws paired
+    # planes iff the signed residual FF50-80 is positive.
+    # A source-proven positive FF50 count remains a strict caller
+    # responsibility: this oracle cannot establish live wall mode.
+    assert obj[0x34ABF:0x34AC9]==bytes.fromhex(
+        "83f9507c05b950000000")
+    assert obj[0x34B4D:0x34B55]==bytes.fromhex(
+        "83e95083f9007e55")
     print("PASS: original 34350 has exactly 64 identical 24-byte texel samplers")
     print("PASS: 4 single-plane masks and 2 paired masks; 5 E8s plus fourth-plane fall-through")
     # The caller 1F1C8 computes the original planar VGA page base
@@ -100,6 +108,13 @@ def audit_native()->None:
         assert token in src,token
     for token in ("fall-through","34350","34A74","FF50","ES","03C4"):
         assert token in doc,token
+    cpp=(ROOT/"DemoV1/tests/original_ground_texture_raster_tests.cpp").read_text()
+    for term in ("{1U,79U,80U,81U,128U}",
+                 "single_rows*256U+",
+                 "paired_rows*128U",
+                 "cropped_rows*256U",
+                 "pixel(fb,y-1,32)==0x6DU"):
+        assert term in cpp,term
     print("PASS: native source unrolled planar sampler metadata contract")
 
 if __name__=="__main__":

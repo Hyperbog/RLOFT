@@ -191,6 +191,54 @@ int main() {
     assert(pixel(fb,259,31)==0xEEU);
     assert(pixel(fb,259,288)==0xEEU);
 
+    // Original 34ABF/34AC4 first-phase cap at 80 rows, followed
+    // by original 34B4D/34B53 signed (FF50-80)>0 paired-phase
+    // gate. These are SOURCE-AUTHENTIC raster row counts, not
+    // permission to set FF50 from unverified native wall geometry.
+    // Test 79/80/81 transition plus first and full 128-row limits.
+    for(const std::size_t cropped_rows : {1U,79U,80U,81U,128U}) {
+        fb.clear(0x6DU);
+        spec.row_count=cropped_rows;
+        const auto clipped=OriginalGroundTextureRaster::draw(
+            fb,source,shades,records,spec);
+        const auto single_rows=
+            cropped_rows<80U ? cropped_rows : 80U;
+        const auto paired_rows=cropped_rows-single_rows;
+        assert(clipped.rows==cropped_rows);
+        assert(clipped.individual_plane_rows==single_rows);
+        assert(clipped.paired_plane_rows==paired_rows);
+        assert(clipped.source_reads==single_rows*256U+
+                                    paired_rows*128U);
+        assert(clipped.indexed_writes==cropped_rows*256U);
+
+        const auto final_row=cropped_rows-1U;
+        const auto y=259-static_cast<int>(final_row);
+        const auto shade_at_final=
+            static_cast<std::uint8_t>(final_row);
+        const auto expected_first=static_cast<std::uint8_t>(
+            128U-shade_at_final);
+        const auto expected_second=static_cast<std::uint8_t>(
+            (final_row<80U ? 129U : 128U)-shade_at_final);
+        assert(pixel(fb,259,32)==128U);
+        assert(pixel(fb,y,32)==expected_first);
+        assert(pixel(fb,y,33)==expected_second);
+        if(final_row>=80U) {
+            const auto expected_third=static_cast<std::uint8_t>(
+                130U-shade_at_final);
+            assert(pixel(fb,y,34)==expected_third);
+            assert(pixel(fb,y,35)==expected_third);
+        }
+        // The original positive FF50 row limit must never alter
+        // the first undrawn scanline or horizontal side gutters.
+        assert(pixel(fb,y-1,32)==0x6DU);
+        assert(pixel(fb,260,32)==0x6DU);
+        assert(pixel(fb,259,31)==0x6DU);
+        assert(pixel(fb,259,288)==0x6DU);
+    }
+    // Restore full source-authenticated row budget for the original
+    // upper-case test following this bounded cropped floor fixture.
+    spec.row_count=GroundTextureRasterSpec::kMaxRows;
+
     // Original upper textured strip at 1F343/1F352 uses +80 and
     // +1 shade index steps rather than reversed gradient indexing.
     fb.clear(0xE9U);

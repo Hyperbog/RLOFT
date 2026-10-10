@@ -26,6 +26,14 @@ The new `verify_original_ground_raster_unrolled_planes.py` checks original CODE.
 
 **Build discipline:** Registered standalone Python CTest `original_ground_raster_unrolled_plane_tests` adds one test to this source branch. No Windows Full CI dispatched; workflow must remain manual-only. No original game bytes, artwork, gameplay pixels or source timing were changed.
 
+## 2026-10-10 source-clipped raster 80/81 row transition regression
+
+The original `34ABF` compares current `FF50` with `0x50` and caps the **first 4-plane phase** at 80 rows; exact instruction bytes `34ABF..34AC8 = 83 F9 50 7C 05 B9 50 00 00 00`. Original `34B4D` subtracts `0x50` and `34B50/34B53` enters the **second paired-plane phase only for signed positive** residual: exact `34B4D..34B54 = 83 E9 50 83 F9 00 7E 55`. These bounded branches were reverified against the immutable original and added to the existing Python binary oracle.
+
+The pre-existing native `OriginalGroundTextureRaster::draw` already supports 1–128 source-authenticated rows. The expanded existing C++ raster regression now **explicitly** checks positive `FF50` budgets **1, 79, 80, 81 and 128** without inventing wall geometry. It requires exactly `min(rows,80)` single-plane rows, `max(rows-80,0)` paired-plane rows, sample counts `256*single+128*paired`, output indexed writes `256*rows`, and source texel/shading samples at the final drawn row. Crucially, it checks the next *undrawn* row and side gutters remain unchanged. This guards against a regression at the original 80→81 plane-mask transition and premature drawing outside a source-proven clipped band. Full-height existing field acceptance remains separate.
+
+**This is not live partial-ground acceptance**: the original runtime `22220`, post-upper callback `FF50`, C026/C027, mutable graphics callback and ES state remain unproven across all DOS scenes. This is a **test-only** change; current native source has not undergone Windows Full compilation. The original game binary remains outside Git.
+
 ## Next investigation
 
 Trace original destination `ES` and `FF48/FDBC/FF44` update paths through `34A74` callers and 34350 helpers, resolve indirect `F0C8` installed target from original startup/callback lifecycle, and then independently capture matched original DOS indexed framebuffer and tick state. Only after those gates can dynamic FF50 pixel rendering be integrated without speculative substitutions.
