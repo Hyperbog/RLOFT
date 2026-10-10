@@ -144,6 +144,50 @@ internal static class Dos16ExternalOracleSmoke
         Equal(DosMzImage.Load(mzSourceA).HasTrailingOverlayData, true,
             "synthetic source difference remains outside declared MZ module");
 
+        // A separate MZ loader can use a DIFFERENT module-relative CS and
+        // different physical region offset but the SAME entry IP/code bytes.
+        // This resembles distinct DOS executables sharing a startup routine.
+        var mzRebasedCs = new byte[53];
+        Array.Copy(mzResidentWithOverlayA, mzRebasedCs, 32);
+        mzRebasedCs[2] = 52;     // declared MZ extent (32+16+4)
+        mzRebasedCs[22] = 1;     // initial CS=1; entry IP still 0000
+        Array.Copy(mzResidentWithOverlayA, 32, mzRebasedCs, 48, 4);
+        mzRebasedCs[52] = 0x33; // unbacked MZ overlay
+        var mzRebasedArtifact = BinaryArtifact.FromBytes(mzRebasedCs,
+            "synthetic-same-resident-sample-different-CS.exe");
+        var mzRebasedImage = DosMzImage.Load(mzRebasedArtifact);
+        var mzRebasedRegion = mzRebasedImage.CreateEntryCodeRegion();
+        Equal(mzRebasedRegion.FileOffset, 48,
+            "different MZ CS maps source entry to new physical offset");
+        Equal(mzRebasedRegion.Segment, (ushort)1,
+            "original CS remains source-relative, not a runtime load segment");
+        Equal(mzRebasedRegion.Origin, (ushort)0,
+            "MZ code IP origin is zero in both independent containers");
+        var mzRebasedManifest = mzManifestA with {
+            SourceSha256 = mzRebasedArtifact.Sha256,
+            SourceByteLength = mzRebasedArtifact.Length,
+            RegionFileOffset = mzRebasedRegion.FileOffset,
+            RegionByteLength = mzRebasedRegion.ByteLength,
+            Segment = mzRebasedRegion.Segment,
+            ExpectedInstructions = new[] {
+                mzManifestA.ExpectedInstructions[0] with { SourceFileOffset = 48 },
+                mzManifestA.ExpectedInstructions[1] with { SourceFileOffset = 50 }
+            }
+        };
+        var mzRebasedReport = Dos16ExternalOracleValidator.Compare(
+            mzRebasedRegion,
+            Dos16ControlFlowAnalysis.Analyze(mzRebasedRegion, 0),
+            mzRebasedManifest);
+        Equal(mzRebasedReport.Matched, 2,
+            "original-backed instruction assertions survive different source CS mapping");
+        Equal(mzRebasedReport.SourceSha256 == mzReportA.SourceSha256, false,
+            "distinct MZ source containers retain distinct full-file identity");
+        Equal(mzRebasedReport.MappedRegionSha256, mzReportA.MappedRegionSha256,
+            "byte-identical mapped code does not gain independence from CS relocation");
+        Equal(mzRebasedReport.BenchmarkedInstructionBytesSha256,
+            mzReportA.BenchmarkedInstructionBytesSha256,
+            "same IP and instruction bytes cannot be double-counted across MZ layouts");
+
         Equal(report.SourceByteLength, artifact.Length,
             "comparison report retains independently measured file length");
         Equal(report.RegionFileOffset, region.FileOffset,
