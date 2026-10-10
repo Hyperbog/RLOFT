@@ -42,6 +42,12 @@ int main() {
     screen.clear(0x20U);
     screen.fill_rect(0x62,0,16,320,0x30U);
     modal.capture_after_actor_columns_112ec(screen);
+    // 112EC is a one-shot modal entry; a second capture would freeze
+    // previously drawn feedback into the page used for 2932C restores.
+    refused=false;
+    try {modal.capture_after_actor_columns_112ec(screen);}
+    catch(const std::logic_error&) {refused=true;}
+    assert(refused);
     const auto initial_rng=rng.state();
     modal.source_event_f790(screen,false,-1,"",tiles,font,rng,tick);
     assert(modal.f790_event_count()==1U && rng.state()==initial_rng);

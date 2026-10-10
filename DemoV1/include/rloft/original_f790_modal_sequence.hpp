@@ -25,6 +25,10 @@ public:
 
     // 112EC captures exactly once AFTER the four party actor columns.
     void capture_after_actor_columns_112ec(const IndexedFramebuffer& framebuffer) {
+        // Original 13133 invokes 112EC once at modal entry; recapturing
+        // during a host VGA refresh would overwrite the clean saved page.
+        if (background_.ready())
+            throw std::logic_error("duplicate original 112EC backing capture");
         background_.capture_112ec(framebuffer);
     }
 
