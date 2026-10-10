@@ -1,7 +1,10 @@
 name: Windows DOS disassembler core smoke tests
-# Manual only — no GitHub Actions minutes on push or PR.
+# TEMPORARY: owner-authorized G2 build on isolated PR only; canonical branch remains manual-only.
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - disassembler-foundation
 permissions:
   contents: read
 jobs:
