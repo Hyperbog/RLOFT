@@ -82,7 +82,10 @@ public static class ControlFlowAnalysis
                         "Final traced LE graph disagrees with stable candidate proof.");
                 return traced;
             }
-            if (!contradicted.Any(disabled.Add))
+            bool progress = false;
+            foreach (var invalidSite in contradicted)
+                progress |= disabled.Add(invalidSite);
+            if (!progress)
                 throw new InvalidDataException(
                     "Nonconvergent LE guarded-table source audit.");
         }
