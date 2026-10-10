@@ -1,6 +1,12 @@
 # Ravenloft Demo Build v1
 
 
+## 2026-10-10 next terrain gate: original FF50 partial-depth clipping reconstructed, unhooked
+
+The **64/64** user Full #658 native renderer frames already show the authentic original Level22 `RES4[655]` textured ground under the source all-0x93 open-field case, but dynamic wall-occluded `FF50` is not implemented. Original CODE.2's `03838` generated `15618` wall-depth table and `1F255..1F384` upper/lower `FF50` row calculation are now independently matched byte-for-byte with shipped SINTAB (C738=127). The bounded `OriginalGroundFF50SourceModel` and C++/Python regressions preserve exact original 128-row sentinel and shorter non-sentinel row spans, **without changing the live renderer** until source `22220` / mutable C026-C027 are fully reconstructed. Expected registry **216 CTests**, last approved [Full #658](https://github.com/Hyperbog/RLOFT/actions/runs/38085278540) **214/214 on older checkout**; new FF50 tests unbuilt, no build fired. Original DOS 320x400 indexed-frame, IRQ and RNG parity still zero. [Source proof and numeric boundaries](LEVEL22_ORIGINAL_FF50_SOURCE_CLIPPING_SPAN_20261010.md).
+
+
+
 ## 2026-10-10 supplied original RES4 ground root cause identified; source corrected
 
 Direct original files prove `INIT[0x0E]=600`, fresh Level22 signed selector `+55`, and selected **RES4[655]**. Every original RES4 disk record is **EH6**. Original CODE.2 `37590→37700` decodes EH6 LZSS, and `2EF38` then changes the loaded resource's **runtime** type to 1 before `2F29C`; the former native `decode_type1` was incorrectly applied to the on-disk EH6 stream. Independent original-media decoding returned 4096 original 64×64 indexed texels with SHA256 `2266dc05fa40037116bb7e6914624ee1d1deb0d636d4d404f58e3da3be94a0a0`. The new native EH6 decoder and ground-selection/inspection correction are source-committed, with original-byte and synthetic CTests (**214 expected with Python**). Previously authorized Windows Full #655 passed **212/212** on earlier code; **new source NOT yet Windows-built or DOS-accepted**, and the live terrain's dynamic eligibility remains a separate gate. [Exact original binary proof, hash evidence and next acceptance steps](LEVEL22_RES4_EH6_ORIGINAL_MEDIA_DECODE_20261010.md). Builds remain manually authorized.
