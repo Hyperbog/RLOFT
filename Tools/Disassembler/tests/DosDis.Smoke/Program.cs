@@ -2516,7 +2516,8 @@ try
     // unproven table: no phantom candidate edges or decoded case code.
     foreach (var (target, rel8) in new[] {
         (Target: 9u, Rel8: (byte)0xF5), // 0x12 EB F5 -> indexed JMP at 0x09
-        (Target: 6u, Rel8: (byte)0xF2)  // 0x12 EB F2 -> MOVZX at 0x06
+        (Target: 6u, Rel8: (byte)0xF2), // 0x12 EB F2 -> MOVZX at 0x06
+        (Target: 4u, Rel8: (byte)0xF0)  // 0x12 EB F0 -> unsigned JA at 0x04
     })
     {
         var lateBypass = (byte[])byteSwitchBytes.Clone();
@@ -2543,6 +2544,31 @@ try
             e.Outcome == AnalysisDecisionOutcome.PointerTableCandidate), false,
             "final decision trace must not expose superseded provisional tables");
     }
+
+    // A backedge entering CMP AL itself is different: CMP resets
+    // flags on every path before JA is executed, so the guard remains
+    // valid. Rejecting *all* loops or late edges would be imprecise.
+    var reenterCompare = (byte[])byteSwitchBytes.Clone();
+    reenterCompare[0x200 + 0x11] = 0x90;
+    reenterCompare[0x200 + 0x12] = 0xEB;
+    reenterCompare[0x200 + 0x13] = 0xEE; // 0x14-0x12 -> CMP at 0x02
+    var compareLoop = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(reenterCompare)));
+    Equal(compareLoop.JumpTables.Count, 1,
+        "return to CMP preserves the independent unsigned guard");
+    Equal(compareLoop.JumpTables[0].CandidateTargets.Count, 10,
+        "loop back to CMP must not arbitrarily reduce finite table entries");
+
+    // Resource exhaustion AFTER provisional table discovery must
+    // withdraw any bounded evidence, not return partial pointer
+    // targets whose alternate CFG paths were not all examined.
+    var budgetLimited = ControlFlowAnalysis.Analyze(
+        byteSwitchImage, maxInstructions: 6);
+    Equal(budgetLimited.JumpTables.Count, 0,
+        "partial worklist cannot publish a guarded literal switch table");
+    Equal(budgetLimited.Edges.Any(e =>
+        e.Kind == "candidate-indirect-jump"), false,
+        "limited worklist replay must not leave provisional pointer edges");
 
     var signedByteSwitch = (byte[])byteSwitchBytes.Clone();
     signedByteSwitch[0x200 + 4] = 0x7F; // JG, signed rather than JA
