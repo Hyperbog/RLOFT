@@ -1,5 +1,10 @@
 # Ravenloft Demo Build v1
 
+## 2026-10-10 source-labelled original 22220 / FF50 F12 field projection
+
+Level22 native `RES4[655]` full-open textured ground was already field-confirmed 64/64 frames in [Full #658](https://github.com/Hyperbog/RLOFT/actions/runs/38085278540), but original wall-cropped `FF50` is still pending. The current F12 indexed-frame TSV now carries a **read-only**, original CODE.2 provenance-checked `22220` nearest-depth replay and initial upper/lower `FF50` values, derived from original SINTAB C6D8/C738. Materializers and the original 32F4C sentinel writer are distinguished; a source-unknown or out-of-range projection explicitly says `unverified`. Native gameplay/rendering stays unchanged. A new C++ projection test, Python immutable binary/metadata contract and extended actual TSV export regression are source-committed. The CMake registry is **223 CTests with Python**, most recent Windows Full #658 **214/214 on earlier checkout**. No new build or original DOS acceptance. [Complete checkpoint and the 32954 cache-hit limitation](LEVEL22_NATIVE_GROUND_22220_FF50_FIELD_PROJECTION_20261010.md).
+
+
 
 ## 2026-10-10 upper/lower surface drawing modes: original source-ordered dispatch isolated
 
