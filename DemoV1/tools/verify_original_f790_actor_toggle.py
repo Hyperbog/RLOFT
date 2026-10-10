@@ -72,7 +72,7 @@ def verify_original(path: Path) -> None:
     if code[0x11AEE:0x11AF0] != bytes.fromhex("7440"):
         raise AssertionError("flag-2 absent must branch to single actor")
     print("PASS: 13 actor-pane/input-queue instruction windows, 8 original near-call targets")
-    print("PASS: original input flags enqueued, dequeued, forwarded unmodified")
+    print("PASS: flag low WORD enqueued, sign-extended on dequeue, passed to 12E70")
     print("PASS: one XOR then four actor redraws versus one actor redraw")
     print("PASS: one 11B63 F790 event before bit-2-only follow-on")
 
