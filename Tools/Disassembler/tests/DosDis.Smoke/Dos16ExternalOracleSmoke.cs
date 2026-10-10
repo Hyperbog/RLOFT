@@ -54,6 +54,37 @@ internal static class Dos16ExternalOracleSmoke
         Equal(report.AnalysisStatus, "candidate-comparison-not-certification",
             "candidate comparisons never certify execution or full code recovery");
         Equal(report.SourceSha256, artifact.Sha256, "report binds original source SHA");
+        Equal(report.MappedRegionSha256, artifact.Sha256,
+            "COM region is the entire original file in this fixture");
+        Equal(report.BenchmarkedInstructionBytesSha256,
+            "cc662e9a5057407053a11ed44a6974cb8b97b3e85b1ca3f6ba20df75d986e01d",
+            "fixed independent SHA of ordered IP/length/original-byte samples");
+
+        // Distinct full original file identities can have the exact same
+        // benchmarked instructions: only skipped/unbenchmarked bytes differ.
+        // They must not be counted as two independent source observations.
+        var changedGap = (byte[])bytes.Clone();
+        changedGap[2] = 0xCC;
+        changedGap[3] = 0xCC;
+        var changedArtifact = BinaryArtifact.FromBytes(changedGap,
+            "same-jmp-ret-different-unbenchmarked-gap.com");
+        var changedRegion = DosComImage.LoadExplicit(changedArtifact).CreateCodeRegion();
+        var changedGraph = Dos16ControlFlowAnalysis.Analyze(changedRegion, 0x100);
+        var changedManifest = manifest with {
+            SourceSha256 = changedArtifact.Sha256
+        };
+        var changedReport = Dos16ExternalOracleValidator.Compare(
+            changedRegion, changedGraph, changedManifest);
+        Equal(changedReport.Matched, 2,
+            "same observed sample retains matching original instructions");
+        Equal(changedReport.SourceSha256 == report.SourceSha256, false,
+            "different whole-file bytes produce distinct source identity");
+        Equal(changedReport.MappedRegionSha256 == report.MappedRegionSha256, false,
+            "changed unmapped-for-decoding source gap changes mapped-region digest");
+        Equal(changedReport.BenchmarkedInstructionBytesSha256,
+            report.BenchmarkedInstructionBytesSha256,
+            "identical original sampled bytes retain one shared benchmark identity");
+
         Equal(report.SourceByteLength, artifact.Length,
             "comparison report retains independently measured file length");
         Equal(report.RegionFileOffset, region.FileOffset,
