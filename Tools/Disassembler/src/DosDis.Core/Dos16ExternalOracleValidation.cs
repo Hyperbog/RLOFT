@@ -78,6 +78,33 @@ public static class Dos16ExternalOracleValidator
         }
     }
 
+    // Complete, source-relative 16-bit ModR/M addressing forms only.
+    // The default DS/SS selection is deliberately not asserted:
+    // SegmentOverride is null unless a prefix byte selected a segment.
+    private static void ValidateMemory(Dos16MemoryAddressFact memory)
+    {
+        bool baseOK = memory.Base is null or "BX" or "BP" or "SI" or "DI";
+        bool indexOK = memory.Index is null or "SI" or "DI";
+        bool pairOK = memory.Index is null || memory.Base is "BX" or "BP";
+        bool segmentOK = memory.SegmentOverride is null or
+            "CS" or "DS" or "ES" or "SS" or "FS" or "GS";
+        bool displacementOK = memory.DisplacementSize switch
+        {
+            0 => memory.Displacement == 0,
+            1 => memory.Displacement <= 0x7F ||
+                memory.Displacement >= 0xFF80 && memory.Displacement <= 0xFFFF,
+            2 => memory.Displacement <= 0xFFFF,
+            _ => false
+        };
+        if (!baseOK || !indexOK || !pairOK || !segmentOK ||
+            !displacementOK ||
+            (memory.Base is null && memory.Index is null &&
+                memory.DisplacementSize != 2) ||
+            memory.Size is not ("UInt8" or "UInt16" or "UInt32"))
+            throw new InvalidDataException(
+                "External memory operand exceeds exact supported 16-bit ModRM scope.");
+    }
+
     private static void ValidateOperand(Dos16OperandFact? operand)
     {
         if (operand is null ||
@@ -88,6 +115,7 @@ public static class Dos16ExternalOracleValidator
         if (kind == OpKind.Register)
         {
             if (operand.Register is null || operand.ImmediateValue is not null ||
+                operand.Memory is not null ||
                 !Enum.TryParse<Register>(operand.Register, false, out var register) ||
                 register == Register.None ||
                 !string.Equals(Enum.GetName(register), operand.Register,
@@ -95,11 +123,19 @@ public static class Dos16ExternalOracleValidator
                 throw new InvalidDataException(
                     "External register operand requires a canonical register name.");
         }
+        else if (kind == OpKind.Memory)
+        {
+            if (operand.Register is not null || operand.ImmediateValue is not null ||
+                operand.Memory is null)
+                throw new InvalidDataException(
+                    "External memory operand must have complete address facts.");
+            ValidateMemory(operand.Memory);
+        }
         else
         {
-            if (operand.Register is not null)
+            if (operand.Register is not null || operand.Memory is not null)
                 throw new InvalidDataException(
-                    "Only register operands can assert register identity.");
+                    "Immediate operands cannot also assert register or memory facts.");
             bool valid = kind switch
             {
                 OpKind.Immediate8 => operand.ImmediateValue is >= 0 and <= 255,
@@ -275,7 +311,16 @@ public static class Dos16ExternalOracleValidator
             }
             else if (expected.ExpectedFacts is not null &&
                      (row.DecoderFacts!.OperandCount > 2 ||
-                      !Equals(row.DecoderFacts, expected.ExpectedFacts)))
+                      (expected.ExpectedFacts.Operand0?.Kind == "Memory" &&
+                       row.DecoderFacts.Operand0?.Memory is null) ||
+                      (expected.ExpectedFacts.Operand1?.Kind == "Memory" &&
+                       row.DecoderFacts.Operand1?.Memory is null)))
+            {
+                status = "not-observed";
+                detail = "candidate-memory-address-facts-outside-supported-scope";
+            }
+            else if (expected.ExpectedFacts is not null &&
+                     !Equals(row.DecoderFacts, expected.ExpectedFacts))
             {
                 status = "conflict";
                 detail = "candidate-structured-operands-disagree-with-external-oracle";
