@@ -202,6 +202,41 @@ internal static class Dos16CorrelatedDispatchSmoke
             farReport.Sites[0].CandidateStoredEntries.Count == 0,
             "far pointer storage without MZ selector fixups stays unresolved");
 
+        // Real-mode segment-register state is not available to this
+        // candidate engine. MOV DS,AX and POP DS must both invalidate
+        // stale register facts, despite nearby syntactic guard evidence.
+        var writeDs = Guarded(new byte[] {
+            0xBB, 0x01, 0x00, 0x8E, 0xD8 // MOV BX,1; MOV DS,AX
+        }, new byte[] { 0xD1, 0xE3 });
+        var writeDsReport = Dos16CorrelatedDispatchRecovery.Inspect(
+            writeDs.Region, writeDs.Graph);
+        Check(!writeDsReport.Incomplete &&
+            writeDsReport.BoundedIndexSites == 0 &&
+            writeDsReport.Sites[0].CandidateStoredEntries.Count == 0,
+            "unmodeled DS assignment cannot preserve prior BX assumptions");
+
+        var popDs = Guarded(new byte[] {
+            0xBB, 0x01, 0x00, 0x1F // MOV BX,1; POP DS
+        }, new byte[] { 0xD1, 0xE3 });
+        var popDsReport = Dos16CorrelatedDispatchRecovery.Inspect(
+            popDs.Region, popDs.Graph);
+        Check(!popDsReport.Incomplete &&
+            popDsReport.BoundedIndexSites == 0 &&
+            popDsReport.Sites[0].CandidateStoredEntries.Count == 0,
+            "POP DS must not invent a usable segment or BX provenance");
+
+        // Operand-size override SHL EBX is not a 16-bit SHL BX and cannot
+        // satisfy the source-exact stride whitelist, despite a familiar
+        // assembly mnemonic. Never truncate a 32-bit value into BX.
+        var shiftEbx = Guarded(new byte[] { 0xBB, 0x01, 0x00 },
+            new byte[] { 0x66, 0xD1, 0xE3 });
+        var shiftEbxReport = Dos16CorrelatedDispatchRecovery.Inspect(
+            shiftEbx.Region, shiftEbx.Graph);
+        Check(!shiftEbxReport.Incomplete &&
+            shiftEbxReport.GuardedStorageSites == 0 &&
+            shiftEbxReport.BoundedIndexSites == 0,
+            "operand-size overridden shift cannot masquerade as proven BX stride");
+
         var wrongSegment = Guarded(new byte[] { 0xBB, 0x01, 0x00 },
             new byte[] { 0xD1, 0xE3 }, segmentOverride: 0x3E);
         var wrongSegmentReport = Dos16CorrelatedDispatchRecovery.Inspect(
