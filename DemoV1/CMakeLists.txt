@@ -837,6 +837,12 @@ add_executable(original_f790_background_page_tests
 target_link_libraries(original_f790_background_page_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_f790_background_page_tests COMMAND original_f790_background_page_tests)
 
+# Unwired source-defined 112EC -> 2932C -> F790 -> F66C coordinator.
+add_executable(original_f790_modal_sequence_tests
+    tests/original_f790_modal_sequence_tests.cpp)
+target_link_libraries(original_f790_modal_sequence_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_f790_modal_sequence_tests COMMAND original_f790_modal_sequence_tests)
+
 add_executable(original_res2_asset_bank_tests tests/original_res2_asset_bank_tests.cpp)
 target_link_libraries(original_res2_asset_bank_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_res2_asset_bank_tests COMMAND original_res2_asset_bank_tests)
