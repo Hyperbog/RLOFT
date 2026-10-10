@@ -20,6 +20,18 @@ ROOT=Path(__file__).resolve().parents[1]
 CODE2_SHA256="853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314"
 ORIGINAL_OBJECT1=0x3AF24
 F790_READ_BYTES=bytes.fromhex("6a3f8d44240450e890cb000083c408")
+# ALL 21 direct near-call instructions in original F790, decoded
+# independently from the immutable object, not inferred from C++.
+F790_DIRECT_CALLS={
+    0xF7AC:0x2932C, 0xF7C2:0xF66C, 0xF7D3:0x1C368,
+    0xF857:0x2E6F0, 0xF91C:0x1C368, 0xF954:0x2E6F0,
+    0xF9A8:0x2E6F0, 0xFA27:0x2E6F0, 0xFA7B:0x2E6F0,
+    0xFA9D:0x1C368, 0xFAE5:0x2E6F0, 0xFB5A:0x1C368,
+    0xFB84:0xF5F8, 0xFB9F:0x2E70C, 0xFC78:0x1C368,
+    0xFCC1:0x2E6F0, 0xFD27:0x2E6F0, 0xFD59:0x30CC4,
+    0xFD66:0xF66C, 0xFD6E:0x30700, 0xFD74:0x30CC4,
+}
+assert len(F790_DIRECT_CALLS)==21
 
 def source_contract(source:Path)->None:
     text=source.read_text(encoding="utf-8")
@@ -37,7 +49,16 @@ def source_contract(source:Path)->None:
     empty=body.index("if(item==-1)return;")
     assert pending<fetch<empty, "original pending -> local T[3F] -> empty order lost"
     assert body.count("call_2c368_local")==2, "unexpected local read sites"
-    print("PASS canonical Code2.cpp: F790 scratch T[3F] order and stack-local reader")
+    # Reconcile the existing lifted helpers with all original external
+    # direct calls, including the previously missing T[3F] reader.
+    assert body.count("app21_resource(m,b,0x759Cu") == 4
+    assert body.count("app21_number(m,b,0x759Cu") == 8
+    assert body.count("function_0f66c(m,b,") == 2
+    assert body.count("if(b.call_40cc4)") == 2
+    assert body.count("b.call_40700?") == 1
+    assert body.count("function_0f5f8(m,") == 1
+    assert body.count("app21_weight(m,b,") == 1
+    print("PASS canonical Code2.cpp: 21 direct-call classes, original local T[3F] order")
 
 def source_binary(path:Path)->None:
     full=path.read_bytes()
@@ -51,12 +72,16 @@ def source_binary(path:Path)->None:
     displacement=struct.unpack_from("<i",object1,0xF7D4)[0]
     assert 0xF7D3+5+displacement==0x1C368
     assert object1[0xF7DB:0xF7E4]==bytes.fromhex("83fbff0f8498050000")
+    for callsite,target in F790_DIRECT_CALLS.items():
+        assert object1[callsite]==0xE8,hex(callsite)
+        assert callsite+5+struct.unpack_from("<i",object1,callsite+1)[0]==target,(
+            hex(callsite),hex(target))
     # The called 1C368 reads through original DS:22224 stream handle,
     # terminates the result, and XOR-decodes its bytes with 0xDC.
     assert object1[0x1C36C:0x1C374]==bytes.fromhex("8b5c24108b442414")
     assert object1[0x1C3E2:0x1C3F1]==bytes.fromhex(
         "0fb7442404c604030066837c240400")
-    print("PASS original CODE.2: F790 16-byte local and T[3F] E8 before empty ID")
+    print("PASS original CODE.2: all 21 F790 E8 calls including T[3F] before empty ID")
     
 def t_archive(path:Path)->None:
     raw=path.read_bytes()
