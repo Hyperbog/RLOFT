@@ -572,6 +572,29 @@ public static class ControlFlowAnalysis
             .ToDictionary(group => group.Key, group => group.ToArray());
         var outgoingBySource = edges.GroupBy(e => e.Source)
             .ToDictionary(group => group.Key, group => group.ToArray());
+        // A branch into the interior of a retained instruction is a
+        // competing source interpretation, not a trustworthy path into
+        // its decoded start. Capture every such destination before
+        // finalizing a guarded CMP/JA/MOVZX proof.
+        var incomingOffsets = edges.Where(e => e.Destination is not null)
+            .Select(e => e.Destination!.Value)
+            .GroupBy(e => e.Object)
+            .ToDictionary(g => g.Key,
+                g => g.Select(e => e.Offset).Distinct()
+                    .OrderBy(offset => offset).ToArray());
+        bool NoInteriorIngress(FlowAddress start)
+        {
+            if (!instructions.TryGetValue(start, out var line))
+                return false;
+            if (line.Length <= 1 ||
+                !incomingOffsets.TryGetValue(start.Object, out var offsets))
+                return true;
+            int from = Array.BinarySearch(offsets, checked(start.Offset + 1));
+            if (from < 0) from = ~from;
+            return from >= offsets.Length ||
+                (ulong)offsets[from] >= (ulong)start.Offset +
+                    (uint)line.Length;
+        }
         bool UniqueIncoming(FlowAddress destination, FlowAddress source,
             string edgeKind) =>
             incomingByDestination.TryGetValue(destination, out var links) &&
@@ -592,6 +615,11 @@ public static class ControlFlowAnalysis
                     (ulong)dest.Offset >= (ulong)site.Offset +
                         (uint)siteLine.Length);
             bool pathValid = forwardGuard &&
+                NoInteriorIngress(proof.Compare) &&
+                NoInteriorIngress(proof.Guard) &&
+                NoInteriorIngress(site) &&
+                (proof.Extension is not { } extensionStart ||
+                    NoInteriorIngress(extensionStart)) &&
                 UniqueIncoming(proof.Guard, proof.Compare, "fallthrough") &&
                 !explicitEntries.Contains(site) &&
                 !explicitEntries.Contains(proof.Guard) &&
