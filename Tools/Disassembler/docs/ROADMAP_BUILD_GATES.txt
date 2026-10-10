@@ -311,24 +311,25 @@ Never claim an unseen original was tested.
 
 CURRENT NEXT ACTIONS
 --------------------
-NOW: R1.4-R1.6 and R2.1-R2.3 source batches are COMPLETE
-IN SOURCE ONLY. Bounded register-value worklist, exact CFG edge
-re-decoding, incoming state joins, conservative loop widening, explicit
-budgets and adversarial synthetic fixtures are committed but NOT TESTED.
-NEXT: owner authorized a Windows build, but the connected GitHub
-interface cannot dispatch workflow runs; the available Linux container
-has no dotnet SDK or GitHub network path. Owner can manually trigger
-the existing workflow_dispatch on disassembler-foundation; no new run
-has been verified here.
-NOW: R2.4 external-bound, small exact BX byte-offset/table intersection
-is committed SOURCE ONLY; it does not seed any CFG target or prove
-runtime table immutability. G1 and R2 smoke cases remain UNEXECUTED.
-NEXT SOURCE-ONLY: R2.4 adversarial index-merge, code/data conflict
-ledger and memory/clobber proof restrictions. Keep G2 not ready until
-owner-authorized Windows compilation and regressions are observed.
-G1 remains READY / NOT AUTHORIZED; G2 NOT READY. The prior Windows
-preview predates this source batch. Do not build, test or package
-without explicit owner authorization.
+LAST VERIFIED WINDOWS BASELINE: G1 run 37987465368 at
+9f605e36581b2c6db72a6a47248ea5af31611506. Desktop, CLI and
+synthetic regression suites passed at this exact SHA; the owner reported
+acceptance of the tested GUI workflows. That result does NOT apply to
+later source-only commits.
+NOW: R2 x86-16 range/correlation, LE guard/source provenance,
+and external-oracle structural/semantic comparison enhancements are
+committed SOURCE ONLY. In the latest Part 4 continuation, would-be
+oracle matches also re-decode the original x86-16 bytes to reject
+jointly forged cached semantics, flow labels and direct edges. Bare
+BP without an encoded displacement is rejected from ModR/M expectations.
+The new integrity negatives are authored but NOT EXECUTED.
+NEXT: static-review current G2 code/fixtures; a separately implemented
+x86-16 decoder and original-byte independent expectations are still
+required, as is an owner-authorized G2 Windows build and smoke run.
+Independent discrepancy review, source-specific denominators and
+exact-built-SHA evidence must precede any G2 accuracy acceptance.
+Current G2: NOT BUILT / NOT INDEPENDENTLY VERIFIED. The manual-only
+GitHub Actions policy and original-game isolation remain unchanged.
 
 WORK LOG APPEND FORMAT (MAINTAIN IN THIS FILE)
 ----------------------------------------------
@@ -1205,3 +1206,31 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   separately scoped external-oracle expected counts.
 - Still no Windows compile, smoke execution, actual independent
   decoder run or current-source accuracy acceptance. G2 pending.
+
+2026-10-10 | Part 4 source-only external-oracle original-byte integrity:
+- Reviewed remote disassembler-foundation and prior G1 acceptance. Last
+  verified Windows build remains #37987465368, SHA
+  9f605e36581b2c6db72a6a47248ea5af31611506.
+- Audit found a false-match possibility: original instruction bytes
+  could agree with an external reference, while both the cached graph's
+  declared operand/flow facts and the reference, or a fabricated edge
+  and its expected target, agreed on a false interpretation.
+- Made original source-backed fact capture available to the validator.
+  A potential source/graph/oracle match now re-decodes the original
+  byte window using the internal Iced decoder and demands agreement
+  on instruction length, flow, retained structured facts and encoded
+  direct target (when externally asserted). Conflicts remain explicit.
+- Hardened the external ModR/M manifest contract: displacement-free
+  [BP] has no 16-bit mod=00 encoding and is rejected, while existing
+  BP+disp8 positive fixtures remain.
+- Authored adversarial synthetic regressions for two mutually forged
+  semantic records, an injected matching false direct edge, a jointly
+  falsified return/branch category and impossible [BP] addressing.
+- Updated INDEPENDENT_VALIDATION_POLICY.md and the external-oracle
+  comparison reference. Same-decoder rechecking is internal integrity
+  defense, not an independent disassembler or CPU-runtime oracle.
+- All changes are committed SOURCE ONLY. No dotnet build, smoke test,
+  GitHub Actions dispatch, original-file execution, independent
+  decoder comparison, reviewer approval or artifact publication was run.
+  G2 accuracy gate remains PENDING until explicitly authorized and
+  externally checked at the exact compiled SHA.
