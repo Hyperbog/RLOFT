@@ -19,6 +19,17 @@ CALLS_F790 = (
     0x119FC, 0x11B63, 0x11F47, 0x127EC, 0x128A3, 0x12AFA,
     0x12BA4, 0x12D50, 0x12DFD, 0x130DE, 0x131BB,
 )
+# Each original direct E8 F790 call has one of four source argument
+# families. These byte-backed groups are intentionally not yet conflated
+# with native Win32 event dispatch.
+GLOBAL_HELD_8600_8602 = (
+    0x1134C, 0x1173B, 0x1178E, 0x11B63, 0x127EC, 0x128A3,
+    0x12AFA, 0x12BA4, 0x12D50, 0x12DFD, 0x131BB,
+)
+CONSTANT_EMPTY_HAND = (0x1184A, 0x11882, 0x118FF)
+STACK_LOCAL_HELD = (0x119FC, 0x11F47)
+INDEX_SELECTED_HELD = (0x130DE,)
+
 # Original execution paths and exact machine-code windows, not a synthetic
 # 70-Hz time model. 13118->112EC->F790 draws one initial modal ribbon;
 # 13184 checks an UNSIGNED deadline, zeroes pending/deadline then redraws.
@@ -54,9 +65,26 @@ def check_binary(path: Path) -> None:
         actual = binary[logical:logical + len(expected)]
         assert actual == expected, f"original CODE.2 machine window 0x{logical:05X}"
     assert direct_rel32_calls(binary, 0xF790) == CALLS_F790, "F790 direct calls changed"
+    groups = (
+        GLOBAL_HELD_8600_8602, CONSTANT_EMPTY_HAND,
+        STACK_LOCAL_HELD, INDEX_SELECTED_HELD)
+    assert tuple(sorted(at for group in groups for at in group)) == CALLS_F790, (
+        "original F790 argument source classification incomplete")
+    for at in GLOBAL_HELD_8600_8602:
+        window = binary[at - 55:at]
+        assert b"\x0f\xb6\x05\x02\x86\x00\x00" in window, (
+            f"global held known byte 8602 missing at {at:05X}")
+        assert b"\x0f\xbf\x05\x00\x86\x00\x00" in window, (
+            f"global held item word 8600 missing at {at:05X}")
+    for at in CONSTANT_EMPTY_HAND:
+        assert binary[at - 4:at] == bytes.fromhex("6a006aff"), (
+            f"empty-hand F790 immediate argument pair missing at {at:05X}")
+    assert binary[0x119FC - 5:0x119FC] == bytes.fromhex("ff342455")
+    assert binary[0x11F47 - 8:0x11F47] == bytes.fromhex("ff742408ff742414")
+    assert binary[0x130DE - 3:0x130DE] == bytes.fromhex("6a0053")
     assert direct_rel32_calls(binary, 0x112EC) == (0x13133,), "112EC direct call changed"
     assert direct_rel32_calls(binary, 0x13118) == (0x214AC,), "13118 entry changed"
-    print("PASS: immutable CODE.2 9 cadence/RNG windows + 17 F790 event callsites + unique entry links")
+    print("PASS: immutable CODE.2 9 cadence/RNG windows + 17 F790 event callsites (11 global, 3 empty, 2 local, 1 selected) + entry links")
 
 def check_source() -> None:
     host = (ROOT / "DemoV1/src/win32_main.cpp").read_text(encoding="utf-8")
