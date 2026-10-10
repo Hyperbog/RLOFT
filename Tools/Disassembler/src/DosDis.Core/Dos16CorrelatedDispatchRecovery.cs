@@ -96,7 +96,8 @@ public static class Dos16CorrelatedDispatchRecovery
                         "correlated:source-backed-unsigned-guard-and-stride"))
                     .ToArray());
             selected = Dos16TableIndexEvidence.Inspect(
-                region, graph, tableManifest, mz, simulation);
+                region, graph, tableManifest, mz, simulation,
+                maximumInstructions, maximumSteps, maximumEdges);
             if (selected.Incomplete ||
                 selected.Sites.Count != accepted.Count)
                 return Incomplete("independent-table-index-recheck-incomplete");
