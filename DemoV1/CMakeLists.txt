@@ -51,6 +51,12 @@ if(Python3_Interpreter_FOUND)
         NAME original_f790_candidate_coverage_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/analyze_original_f790_candidate_coverage.py")
+    # Source 12E70 actor rectangle, 11AD8 mode bit 2 and 11B63 F790.
+    # Source-only by default; optional original CODE.2 oracle is private.
+    add_test(
+        NAME original_f790_actor_toggle_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_actor_toggle.py")
     # Source 117A0 fanout multiplicity: successful scribe calls F790 TWICE.
     add_test(
         NAME original_f790_ordinary_slot_event_oracle_tests
