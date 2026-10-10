@@ -32,7 +32,10 @@ public sealed record Dos16ExternalOracleFinding(
 
 public sealed record Dos16ExternalOracleReport(
     string Format, int SchemaVersion, string SourceSha256,
-    string GameId, string Module, string DecoderName, string DecoderVersion,
+    int SourceByteLength, int RegionFileOffset, int RegionByteLength,
+    ushort Segment, ushort Origin, ushort AnalysisEntry,
+    string MappingEvidence, string GameId, string Module,
+    string DecoderName, string DecoderVersion, string DecoderConfiguration,
     string OracleEvidenceId, string IndependenceStatus,
     string AnalysisStatus, bool Truncated, int Expected,
     int Matched, int Missing, int Conflicting, int NotObserved,
@@ -160,7 +163,9 @@ public static class Dos16ExternalOracleValidator
             graph.FileOffset != region.FileOffset ||
             graph.RegionByteLength != region.ByteLength ||
             graph.MappingEvidence != region.MappingEvidence ||
-            graph.Entry.Segment != region.Segment)
+            graph.Entry.Segment != region.Segment ||
+            graph.Entry.Offset < region.Origin ||
+            graph.Entry.Offset >= region.EndExclusive)
             throw new InvalidDataException(
                 "External x86-16 oracle/CFG/source region identity mismatch.");
 
@@ -229,9 +234,13 @@ public static class Dos16ExternalOracleValidator
             .Select(e => e.Offset).ToHashSet();
         return new Dos16ExternalOracleReport(
             "dosdis-x86-16-external-oracle-comparison", SchemaVersion,
-            region.SourceSha256, manifest.GameId, manifest.Module,
+            region.SourceSha256, region.Source.Length,
+            region.FileOffset, region.ByteLength, region.Segment, region.Origin,
+            graph.Entry.Offset, region.MappingEvidence,
+            manifest.GameId, manifest.Module,
             manifest.DecoderName, manifest.DecoderVersion,
-            manifest.OracleEvidenceId, "claimed-external-not-reviewed",
+            manifest.DecoderConfiguration, manifest.OracleEvidenceId,
+            "claimed-external-not-reviewed",
             "candidate-comparison-not-certification",
             graph.Truncated, findings.Count,
             findings.Count(f => f.Status == "match"),
