@@ -76,6 +76,12 @@ if(Python3_Interpreter_FOUND)
         NAME original_ground_sentinel_fill_binary_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_sentinel_fill.py")
+    # Immutable original 32F4C/335C8 source, and read-only
+    # 22220/FF50 native F12 metadata projection provenance.
+    add_test(
+        NAME original_ground_source_projection_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_source_projection.py")
     # Original CODE.2 37590 EH6 -> 2FB04/37700 LZSS -> 2EF38
     # runtime type1 conversion; optional private CODE.2 binary oracle.
     add_test(
