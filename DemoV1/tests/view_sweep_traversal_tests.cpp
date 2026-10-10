@@ -62,6 +62,7 @@ int main() {
     const auto& rec = records[0];
     assert(rec.cell_index == 20);
     assert(rec.original_materializer_executed);
+    assert(!rec.original_sentinel_initializer_executed);
     assert(rec.resource_outer == 40);
     assert(rec.resource_inner == 30);
     assert(rec.prepass == 1);
@@ -89,6 +90,10 @@ int main() {
     assert(hidden_records.size() == 1);
     assert(hidden_records[0].resource_outer == 0x93);
     assert(hidden_records[0].resource_inner == 0x93);
+    // The out-of-bounds ray reached the source CODE.2 32F4C
+    // seven-field sentinel writer, not any four 22220 materializers.
+    assert(hidden_records[0].original_sentinel_initializer_executed);
+    assert(!hidden_records[0].original_materializer_executed);
     assert((s.level.cell_words[20] & 0x0440U) == 0x0440U);
 
     // Asset-free reproduction of the near-cardinal failure after the

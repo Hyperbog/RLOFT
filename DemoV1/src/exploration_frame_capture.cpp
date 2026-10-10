@@ -110,6 +110,7 @@ void ExplorationFrameCapture::write(
         throw std::runtime_error("Unable to write capture metadata");
     const auto& coverage=presented.surface_coverage;
     std::size_t ground_source_materialized=0U;
+    std::size_t ground_source_sentinel_initializer=0U;
     std::size_t ground_native_synthetic=0U;
     std::size_t ground_main_nonsentinel=0U;
     std::size_t ground_active_outer_nonsentinel=0U;
@@ -117,6 +118,8 @@ void ExplorationFrameCapture::write(
     std::size_t ground_invalid_prepass=0U;
     for(const auto& ray:runtime.sweep_records) {
         if(ray.original_materializer_executed)++ground_source_materialized;
+        else if(ray.original_sentinel_initializer_executed)
+            ++ground_source_sentinel_initializer;
         else ++ground_native_synthetic;
         if(ray.resource_inner!=0x93U)++ground_main_nonsentinel;
         if(ray.prepass==1U) {
@@ -170,10 +173,14 @@ void ExplorationFrameCapture::write(
             // All four counts are diagnostic only, never a DOS RAM dump.
             <<"ground_sweep_ray_count\t"
             <<runtime.sweep_records.size()<<"\n"
-            // Read-only materializer provenance. A native empty_record
-            // sentinel must not be replayed as an original 22220 store.
+            // Read-only source provenance: original 32F4C sentinel
+            // initialization is distinct from source materializers,
+            // and from native-only default/unknown test records.
+            // Only the four materializer tails change 22220.
             <<"ground_sweep_source_materialized\t"
             <<ground_source_materialized<<"\n"
+            <<"ground_sweep_source_sentinel_initializer\t"
+            <<ground_source_sentinel_initializer<<"\n"
             <<"ground_sweep_native_synthetic\t"
             <<ground_native_synthetic<<"\n"
             <<"ground_sweep_main_nonsentinel\t"

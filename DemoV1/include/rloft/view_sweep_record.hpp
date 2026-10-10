@@ -17,6 +17,10 @@ struct ViewSweepRecord final {
  // materialization actually executed. Synthetic empty_record()
  // must not be replayed as an original 22220 side effect.
  bool original_materializer_executed{};
+ // Original CODE.2 32F4C writes a 28-byte sentinel ray record.
+ // It is a real DOS routine but does NOT write global nearest 22220.
+ // A default-constructed native test record sets neither provenance.
+ bool original_sentinel_initializer_executed{};
 };
 struct SweepMaterializationInput final {
  SweepSide side{SweepSide::Right};

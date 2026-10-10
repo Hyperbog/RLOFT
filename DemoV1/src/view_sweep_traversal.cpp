@@ -126,7 +126,8 @@ ViewSweepRecord empty_record() noexcept {
     ViewSweepRecord out{};
     out.resource_outer = 0x93U;
     out.resource_inner = 0x93U;
-    out.original_materializer_executed=false; // Native placeholder, no proved DOS materializer
+    out.original_materializer_executed=false;
+    out.original_sentinel_initializer_executed=true; // CODE.2 32F4C writes original 0x93 filler; no 22220 update
     return out;
 }
 ViewSweepRecord biased_record(

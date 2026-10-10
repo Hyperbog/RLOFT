@@ -7,6 +7,10 @@ After Full #658 authentic 64/64 native open-field `RES4[655]` ground activation,
 
 
 
+## 2026-10-10 original 32F4C sentinel-ray writer distinguished from 22220 materializers
+
+New original-byte audit proves **CODE.2 32F4C is itself an original 63-byte 28-byte-slot sentinel initializer**, reached by original left `32C2F` and right `32D19` E8 callers. It sets slot depth=0, both material IDs=0x93 and remaining fields=0, but **does not write global 22220**. Native `empty_record()` mirrors this original routine, so 'native invented placeholder' was an inaccurate description. Added separate `original_sentinel_initializer_executed` flag; native 22220 materializer flag remains false, with read-only three-class renderer TSV provenance, traversal/capture regressions and independent immutable original-byte oracle. No gameplay effect or FPS/pixel/IRQ/RNG change. [Full original-source evidence](LEVEL22_ORIGINAL_32F4C_SENTINEL_SOURCE_AUDIT_20261010.md). New Windows build/testing and original DOS parity pending; CI manual-only.
+
 ## 2026-10-10 source 22220 materializer provenance exported read-only
 
 The native sweep record now carries **`original_materializer_executed`**: source-backed ordinary record materialization (`ViewSweepRecordModel::materialize`, CODE.2 `330E7/33278`) and source-backed special materialization (`biased_record`, `3337F/33487`) set it true; synthetic `empty_record()` explicitly leaves it false. The native renderer capture TSV gains `ground_sweep_source_materialized` and `ground_sweep_native_synthetic` counts; exact C++ tests verify provenance in ordinary records and native capture metadata. These counters enable a future source-ordered nearest `22220` replay without falsely treating native boundary fillers as DOS writes. **No live FF50 clipping, 34A74 draw order, gameplay pixels, RNG or IRQ mutations**; source compiled locally only where otherwise stated, **new source awaits authorized full Windows CMake/CTest**. Original main open-field Build #658 accepted 64/64 remains unaffected. [Source materializer/22220 audit](LEVEL22_ORIGINAL_22220_MATERIALIZER_SOURCE_REPLAY_20261010.md).

@@ -72,6 +72,11 @@ int main() {
     ViewSweepRecord native_placeholder{};
     native_placeholder.resource_inner=0x93U;
     frame.sweep_records.push_back(native_placeholder);
+    ViewSweepRecord source_sentinel{};
+    source_sentinel.resource_outer=0x93U;
+    source_sentinel.resource_inner=0x93U;
+    source_sentinel.original_sentinel_initializer_executed=true;
+    frame.sweep_records.push_back(source_sentinel);
     WorldSceneRecord scene{};
     scene.source_class=1U; // shipped Level 22 placed-object class
     scene.source_index=4U;
@@ -169,6 +174,8 @@ int main() {
     assert(tsv.find("ground_ff58_ready\t1")!=std::string::npos);
     assert(tsv.find("ground_sweep_source_materialized\t1")!=std::string::npos);
     assert(tsv.find("ground_sweep_native_synthetic\t1")!=std::string::npos);
+    assert(tsv.find("ground_sweep_source_sentinel_initializer\t1")!=
+           std::string::npos);
     assert(tsv.find("ground_C048_C044\t18\t52")!=std::string::npos);
     assert(tsv.find("ground_ff58_row\t0\t4660\t22136\t154\t188")!=
            std::string::npos);

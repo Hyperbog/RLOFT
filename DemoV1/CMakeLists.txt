@@ -70,6 +70,12 @@ if(Python3_Interpreter_FOUND)
         NAME original_ground_surface_dispatch_binary_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_surface_dispatch.py")
+    # Original CODE.2 32F4C seven-store 28-byte ray sentinel
+    # initializer: unlike four source materializers it never updates 22220.
+    add_test(
+        NAME original_ground_sentinel_fill_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_sentinel_fill.py")
     # Original CODE.2 37590 EH6 -> 2FB04/37700 LZSS -> 2EF38
     # runtime type1 conversion; optional private CODE.2 binary oracle.
     add_test(
