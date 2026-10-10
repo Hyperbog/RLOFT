@@ -51,6 +51,12 @@ if(Python3_Interpreter_FOUND)
         NAME original_f790_candidate_coverage_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/analyze_original_f790_candidate_coverage.py")
+    # Original CODE.2 37590 EH6 -> 2FB04/37700 LZSS -> 2EF38
+    # runtime type1 conversion; optional private CODE.2 binary oracle.
+    add_test(
+        NAME original_res4_eh6_runtime_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_res4_eh6_dispatch.py")
     # Build-free original RES4 selected-entry/header triage (synthetic media).
     # This never runs the original game or claims decoded/DOS raster parity.
     add_test(
