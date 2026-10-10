@@ -17,7 +17,7 @@ This document makes review and feedback improvements **durable across sessions**
 
 ## One-command reproducible ground-source audits
 
-The pinned `DemoV1/tools/run_original_ground_proof_batch.py` runs **10 existing** isolated ground-renderer oracles. It validates the original immutable CODE.2 and SINTAB hashes **before** the first test, then reports each result and optional JSON. No copyrighted game binaries or local paths are committed.
+The pinned `DemoV1/tools/run_original_ground_proof_batch.py` runs **12 pinned** isolated ground-renderer oracles. It validates the original immutable CODE.2 and SINTAB hashes **before** the first test, then reports each result and optional JSON. No copyrighted game binaries or local paths are committed.
 
 Original byte **and** source contracts (preferred on a machine with legally installed originals):
 
@@ -48,7 +48,8 @@ The manifest is explicit, not discovered via a permissive filename glob. When ad
 | RNG seemed disconnected from graphics | Preserve original `314B0 → 30CA2/30CC4 → 30700` RNG/tick ordering |
 | Concurrent commits moved branch HEAD | Compare-and-swap update ref; read, reconcile and rerun affected checks |
 | Tests registered but latest Windows build older | Report authored/local, Windows compiled, field-tested and DOS-matched statuses separately |
-| Repeated ten single-script invocations waste time | Use explicit, SHA-pinned source proof batch with JSON report; do not downgrade original evidence |
+| Cache-hit rays might be reused but `22220` was freshly reset | Verify `334C4→335C8→32954` prepass and all four DWORD gates; never infer nearest depth from cached records on the source early-return branch |
+| Repeated single-script invocations waste time | Use explicit, SHA-pinned source proof batch with JSON report; do not downgrade original evidence |
 
 ## Metrics to report, never guess
 
