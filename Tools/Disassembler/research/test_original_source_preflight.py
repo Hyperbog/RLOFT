@@ -89,12 +89,12 @@ class OriginalSourcePreflightSmoke(unittest.TestCase):
                 )
 
     def test_direct_description_cannot_claim_a_foreign_sha(self):
-        source = b"\\x90\\xc3"
+        source = b"\x90\xc3"
         actual = hashlib.sha256(source).hexdigest()
         verified, _ = describe(source, actual.upper(), "com", "fixture")
         self.assertEqual(verified["original_sha256"], actual)
         with self.assertRaises(SourceValidationError):
-            describe(source, hashlib.sha256(b"\\xc3\\x90").hexdigest(),
+            describe(source, hashlib.sha256(b"\xc3\x90").hexdigest(),
                      "com", "forged-source")
         with self.assertRaises(SourceValidationError):
             describe(source, "not-a-sha", "com", "forged-source")
@@ -129,7 +129,7 @@ class OriginalSourcePreflightSmoke(unittest.TestCase):
             simulate_mz_relocations(source, True)
 
     def test_no_relocations_preserves_original_stored_mz_image(self):
-        source = synthetic_mz(cs=1, overlay=b"\\x19")
+        source = synthetic_mz(cs=1, overlay=b"\x19")
         result = simulate_mz_relocations(source, 0x2345)
         self.assertEqual(result["relocation_write_count"], 0)
         self.assertEqual(result["original_file_backed_image_bytes"], 20)
@@ -149,12 +149,12 @@ class OriginalSourcePreflightSmoke(unittest.TestCase):
         struct.pack_into("<H", header, 0x18, 0x1C)
         struct.pack_into("<HH", header, 0x1C, 0, 0)
         struct.pack_into("<HH", header, 0x20, 1, 0)
-        source = bytes(header) + b"\\x00" * 4
+        source = bytes(header) + b"\x00" * 4
         simulation = simulate_mz_relocations(source, 1)
         self.assertEqual(simulation["relocation_write_count"], 2)
         self.assertTrue(simulation["overlapping_relocation_writes"])
         self.assertEqual(simulation["simulated_file_backed_image_sha256"],
-                         hashlib.sha256(b"\\x01\\x01\\x00\\x00").hexdigest())
+                         hashlib.sha256(b"\x01\x01\x00\x00").hexdigest())
 
     def test_prefix_divergence_is_not_classified_as_instructions(self):
         first = b"\xe9\x00\x00" + b"\x90" * 280 + b"\x01" + b"\x90"
