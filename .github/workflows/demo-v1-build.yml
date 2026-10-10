@@ -4,13 +4,6 @@ name: Demo v1 build
 # source or documentation commits. Run this workflow manually only.
 # Reconsider the push trigger once the repository is public.
 on:
-  # One-shot user-authorized Full Windows regression of source-active
-  # Level22 ground sweep eligibility. Restore manual-only after trigger.
-  push:
-    branches:
-      - demo-v1
-    paths:
-      - 'DemoV1/.authorized-full-build-trigger-20261010-ground-ray'
   workflow_dispatch:
     inputs:
       run_linux:
@@ -115,10 +108,10 @@ jobs:
           ctest --test-dir build/demo-v1 -C Release --output-on-failure --parallel 2 -R "^(exploration_session_tests|exploration_preview_tests|exploration_gameplay_cadence_tests|original_entity_collision_tests|exploration_runtime_motion_tests|original_ground_texture_raster_tests|original_ground_res4_audit_tests|exploration_presenter_tests|exploration_frame_capture_tests|character_transfer_tests|character_starting_equipment_tests|inventory_runtime_tests|inventory_item_description_tests|inventory_world_drop_tests|inventory_encumbrance_tests|inventory_party_order_tests|inventory_screen_tests|party_panel_controls_tests|character_modal_stats_tests)$"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build full (all C++ regression targets)
-        if: ${{ inputs.build_mode == 'full' || github.event_name == 'push' }}
+        if: ${{ inputs.build_mode == 'full' }}
         run: cmake --build build/demo-v1 --config Release --parallel 2
       - name: Test full (all registered CTests)
-        if: ${{ inputs.build_mode == 'full' || github.event_name == 'push' }}
+        if: ${{ inputs.build_mode == 'full' }}
         run: ctest --test-dir build/demo-v1 -C Release --output-on-failure --parallel 2
       - name: Stage Level 22 walkaround and capture launchers
         shell: pwsh
@@ -131,7 +124,7 @@ jobs:
           # A machine-readable matching provenance file is shipped next to
           # the exe and launchers for users reporting crash screenshots.
           Set-Content -NoNewline -Path build/demo-v1/Release/build-source-sha.txt -Value "${{ github.sha }}"
-          Set-Content -NoNewline -Path build/demo-v1/Release/build-verification-mode.txt -Value "${{ github.event_name == 'push' && 'full' || inputs.build_mode }}"
+          Set-Content -NoNewline -Path build/demo-v1/Release/build-verification-mode.txt -Value "${{ inputs.build_mode }}"
 
       - name: Publish Windows executable and Level 22 launchers
         uses: actions/upload-artifact@v4
