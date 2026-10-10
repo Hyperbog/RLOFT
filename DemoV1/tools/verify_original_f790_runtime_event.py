@@ -56,6 +56,8 @@ def check_source()->None:
     runtime=(ROOT/"DemoV1/include/rloft/original_f790_runtime_description.hpp").read_text()
     tests=(ROOT/"DemoV1/tests/original_f790_runtime_description_tests.cpp").read_text()
     host=(ROOT/"DemoV1/src/win32_main.cpp").read_text()
+    presenter=(ROOT/"DemoV1/src/party_modal_presenter.cpp").read_text()
+    presenter_header=(ROOT/"DemoV1/include/rloft/party_modal_presenter.hpp").read_text()
     cmake=(ROOT/"DemoV1/CMakeLists.txt").read_text()
     for sample in ("args.pending_6dac","pending_text_759c",
                    "args.item_id,args.known","sequence.source_event_f790",
@@ -64,10 +66,23 @@ def check_source()->None:
     assert "live_inventory.container_weight_half_units" in runtime
     assert "original_count!=objects.size()" in runtime
     assert "intentionally_invalid" in tests and "EXACT 759C" in tests
+    # The original text-only branch can run at host redraw cadence:
+    # unlike F66C it never samples shared RNG or 30700. Actual F790
+    # events and the RES2 ribbon stay explicitly NOT live-wired.
+    assert "OriginalF790RuntimeDescription::compose(" in presenter
+    assert 'original_objects_bytes_(assets.source().read("OBJECTS.DAT"))' in presenter
+    assert 'original_code2_descriptions_(assets.source().read("CODE.2"))' in presenter
+    assert 'original_t_descriptions_(assets.source().read("T"))' in presenter
+    assert "original_objects_bytes_" in presenter_header
+    assert "OriginalF790RuntimeEvent" not in presenter
+    assert "OriginalF790ModalSequence" not in presenter
+    assert "original_random_" not in presenter and "next15(" not in presenter
+    assert "framebuffer,font1_,0x65," in presenter
     assert "OriginalF790RuntimeEvent" not in host, "unverified live F790 hookup"
     assert "original_f790_runtime_description_tests" in cmake
     assert "original_f790_runtime_event_contract_tests" in cmake
-    print("PASS: caller-owned inputs, mutable weight and pending-message source gate")
+    print("PASS: live original F790 text-only, cached DATA/T and mutable inventory")
+    print("PASS: no live F790 event or gameplay RNG at VGA presentation cadence")
 
 def main()->None:
     ap=argparse.ArgumentParser(description=__doc__)
