@@ -638,6 +638,29 @@ internal static class Dos16ExternalOracleSmoke
             var roundTrip = Dos16ExternalOracleValidator.ReadManifest(input);
             Equal(roundTrip.SourceSha256, artifact.Sha256,
                 "JSON manifest import preserves original SHA-256");
+
+            // Web-default JSON deserialization is case-insensitive and would
+            // otherwise silently select one of two conflicting claims.
+            // Reject duplicate names at the root and nested instruction level.
+            var serializedManifest = File.ReadAllText(input);
+            const string schemaAnchor = "\"schemaVersion\":1,";
+            const string hexAnchor = "\"originalHex\":\"EB02\"";
+            Equal(serializedManifest.Contains(schemaAnchor, StringComparison.Ordinal),
+                true, "fixture exposes an unambiguous source schema key");
+            Equal(serializedManifest.Contains(hexAnchor, StringComparison.Ordinal),
+                true, "fixture exposes the first original instruction key");
+            string duplicateRoot = Path.Combine(directory, "ambiguous-root.json");
+            File.WriteAllText(duplicateRoot, serializedManifest.Replace(
+                schemaAnchor, "\"schemaVersion\":1,\"SCHEMAVERSION\":1,",
+                StringComparison.Ordinal));
+            Denied(() => Dos16ExternalOracleValidator.ReadManifest(duplicateRoot),
+                "duplicated case-insensitive root identity field must be rejected");
+            string duplicateInstruction = Path.Combine(directory, "ambiguous-instruction.json");
+            File.WriteAllText(duplicateInstruction, serializedManifest.Replace(
+                hexAnchor, "\"originalHex\":\"EB02\",\"ORIGINALHEX\":\"EB03\"",
+                StringComparison.Ordinal));
+            Denied(() => Dos16ExternalOracleValidator.ReadManifest(duplicateInstruction),
+                "conflicting original-byte claims in one nested instruction must be rejected");
             string output = Path.Combine(directory, "comparison.json");
             Dos16ExternalOracleValidator.WriteNew(output, report);
             using var json = JsonDocument.Parse(File.ReadAllText(output));
