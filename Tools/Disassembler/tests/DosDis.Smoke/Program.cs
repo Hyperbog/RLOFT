@@ -205,6 +205,11 @@ try
         "assumed runtime entry segment recorded without changing original CS");
     Equal(simulatedMz.Summary.RelocationWriteCount, 1,
         "DOS loader relocation table entries are modeled explicitly");
+    Equal(simulatedMz.Summary.SimulatedFileBackedImageSha256,
+        "b32c35c2120a3765fa6d182bdfc4b55ea2a805603dc21d1b4dc149219b6cfa26",
+        "MZ assumed-base relocated image SHA agrees with independently calculated synthetic bytes");
+    Equal(simulatedMz.Summary.SimulatedFileBackedImageSha256.Length, 64,
+        "source-backed MZ relocated copy fingerprint retains fixed SHA256 shape");
     Equal(simulatedMz.Summary.Writes[0].OriginalStoredWord, (ushort)0x1234,
         "MZ fixup preserves the original selector word");
     Equal(simulatedMz.Summary.Writes[0].ValueAfterWrite, (ushort)0x3234,
@@ -243,6 +248,14 @@ try
         "second fixup observes the first applied value");
     Equal(repeated.ReadRelocatedWord(1), (ushort)0x5234,
         "repeated original MZ fixup is modeled in table order");
+    Equal(repeated.Summary.SimulatedFileBackedImageSha256,
+        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+            Enumerable.Range(0, repeatedImage.FileBackedImageLength)
+                .Select(i => i == 1 ? (byte)0x34 :
+                    i == 2 ? (byte)0x52 :
+                    repeatedImage.ReadStoredImageBytes(i, 1)[0])
+                .ToArray())).ToLowerInvariant(),
+        "overlapping MZ fixup checksum reflects ordered writes without editing source");
 
     // Unprefixed 16:16 far CALL/JMP requires exactly one resident MZ selector
     // relocation. The candidate never replaces an unresolved runtime edge.
