@@ -311,25 +311,32 @@ Never claim an unseen original was tested.
 
 CURRENT NEXT ACTIONS
 --------------------
-LAST VERIFIED WINDOWS BASELINE: G1 run 37987465368 at
-9f605e36581b2c6db72a6a47248ea5af31611506. Desktop, CLI and
-synthetic regression suites passed at this exact SHA; the owner reported
-acceptance of the tested GUI workflows. That result does NOT apply to
-later source-only commits.
-NOW: R2 x86-16 range/correlation, LE guard/source provenance,
-and external-oracle structural/semantic comparison enhancements are
-committed SOURCE ONLY. In the latest Part 4 continuation, would-be
-oracle matches also re-decode the original x86-16 bytes to reject
-jointly forged cached semantics, flow labels and direct edges. Bare
-BP without an encoded displacement is rejected from ModR/M expectations.
-The new integrity negatives are authored but NOT EXECUTED.
-NEXT: static-review current G2 code/fixtures; a separately implemented
-x86-16 decoder and original-byte independent expectations are still
-required, as is an owner-authorized G2 Windows build and smoke run.
-Independent discrepancy review, source-specific denominators and
-exact-built-SHA evidence must precede any G2 accuracy acceptance.
-Current G2: NOT BUILT / NOT INDEPENDENTLY VERIFIED. The manual-only
-GitHub Actions policy and original-game isolation remain unchanged.
+LAST VERIFIED WINDOWS BUILD: owner-authorized PR #5 run #38
+38088066909, completed SUCCESS on 2026-10-10. Exact runner checkout:
+d8c404c56fed675457f5497859f242002e863732 (temporary workflow
+merge); disassembler CODE/TEST SOURCE matched canonical commit
+2945b1474289cb42c167000628255848b77b7896.
+- Desktop/CLI and both smoke test projects COMPILED; DosDis.Smoke and
+  DosDis.ProjectSmoke SYNTHETIC VERIFIED at the recorded merge SHA.
+- Windows preview artifacts uploaded with retained SHA256 and IDs
+  in the work log below. Manual GUI for this preview NOT TESTED.
+- Two earlier authorized attempts #36/#37 FAILED compilation and
+  are retained as separate evidence, not hidden by the passing retry.
+- No original-file DOSDis run or independent outside-decoder
+  comparison has been executed at this compiled SHA. G2 INDEPENDENT
+  ACCURACY ACCEPTANCE REMAINS PENDING, not passed.
+NOW: private Strahd CODE.2 x86-16 entry window was independently
+decoded with GNU objdump 2.44 for a bounded 11-instruction comparison
+manifest (9 structured operand assertions). Its SHA, original bytes,
+and manifest remain outside Git/CI. It is a PREPARED external reference,
+not an executed DOSDis-vs-oracle comparison.
+NEXT: owner-local exact-SHA original MZ/COM comparison, second evidence
+class/ISA checks, discrepancy review, negative controls and reviewer
+approval. Keep other titles' originals and names independently scoped.
+TEMP CI: verification PR #5 CLOSED. Its detached branch now points to
+the canonical HEAD and retains workflow_dispatch only. Main branch's
+workflow was never switched to PR/push triggers. No further Actions
+runs without fresh owner authorization.
 
 WORK LOG APPEND FORMAT (MAINTAIN IN THIS FILE)
 ----------------------------------------------
@@ -1234,3 +1241,50 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   decoder comparison, reviewer approval or artifact publication was run.
   G2 accuracy gate remains PENDING until explicitly authorized and
   externally checked at the exact compiled SHA.
+
+2026-10-10 | Owner-authorized G2 Windows build and synthetic regression gate:
+- Request: "You may build then continue." Local container had no .NET SDK
+  and no direct GitHub network access. Authorized temporary isolated PR #5
+  targeted canonical disassembler-foundation without changing its manual-only
+  workflow. The PR introduced one ephemeral pull_request trigger only.
+- Run #36 (38087806828) FAILED compile CS0104: ambiguous Decoder reference
+  Iced.Intel.Decoder versus System.Text.Decoder in the oracle validator.
+  Canonical source correction: 7f28d91145ca3350c1d0c759e174a58293af9d68.
+- Run #37 (38087928768) compiled CLI/WPF but FAILED test project compile
+  CS0136: duplicate local variable name 'blocked' in LE guarded-dispatch
+  synthetic fixture. Canonical correction:
+  2945b1474289cb42c167000628255848b77b7896.
+- Final run #38 (38088066909) COMPLETED SUCCESS on Windows .NET 10:
+  four Release project builds passed with zero compiler errors;
+  DosDis.Smoke: ALL SMOKE TESTS PASSED; DosDis.ProjectSmoke SQLite
+  project identity/backup/reopen smoke PASS. The oracle comparison smoke
+  and deterministic algebra/guard/LE negative-control groups printed PASS.
+- Exact runner checkout (the PR merge commit):
+  d8c404c56fed675457f5497859f242002e863732; PR head:
+  e41090e2f414cb246f04e305764e6c0a9c852d5c. PR merged source
+  from canonical 2945b1474289cb42c167000628255848b77b7896;
+  the only non-source difference was the temporary workflow trigger.
+- Preview desktop: artifact ID 11683335775, 66,885,279 bytes;
+  uploaded archive SHA256:
+  a8741d6be4c82d3e01ef60d7711220a2b6e1d51df9a0269b7816b26ea83fb69e.
+- Preview CLI: artifact ID 11683220862, 33,608,973 bytes;
+  uploaded archive SHA256:
+  5beec56d3d0c913aa8f25703bcb3e6f3a6014b8d2a027b160cfd55bc5a29c86f.
+  Both artifact links are under
+  https://github.com/Hyperbog/RLOFT/actions/runs/38088066909
+  with posted expiry 2026-11-09 UTC.
+- The build ran synthetic/public fixtures only; neither CODE.1 nor CODE.2,
+  proprietary game files, outside G2 oracle execution, Windows interactive
+  GUI acceptance, human discrepancy review or original DOS runtime behavior
+  were tested in the hosted run. G2 independent ACCEPTANCE still PENDING.
+- A standalone owner-local Strahd CODE.2 outer DOS MZ entry sample was
+  independently decoded with GNU objdump 2.44. Original SHA256
+  853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314;
+  11 sample instructions and 9 structured expectations prepared outside Git.
+  No comparison with DOSDis yet; do not treat as a passed oracle result.
+- Closed temporary PR #5 after success and force-with-lease reset its
+  isolated branch to the canonical source commit. Verified its workflow
+  once again has workflow_dispatch only. No push/PR CI trigger remains.
+- These docs-only continuity commits postdate the tested source SHA and
+  should not be labeled themselves as compiled. Next accuracy checkpoint
+  requires explicit independent original-file comparison and review.
