@@ -820,6 +820,12 @@ add_executable(original_feedback_ribbon_epoch_tests tests/original_feedback_ribb
 target_include_directories(original_feedback_ribbon_epoch_tests PRIVATE include)
 add_test(NAME original_feedback_ribbon_epoch_tests COMMAND original_feedback_ribbon_epoch_tests)
 
+# Original CODE.2 F66C tiled RES2:3 raster, cached across VGA presents.
+add_executable(original_feedback_ribbon_raster_tests
+    tests/original_feedback_ribbon_raster_tests.cpp src/original_random.cpp)
+target_link_libraries(original_feedback_ribbon_raster_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_feedback_ribbon_raster_tests COMMAND original_feedback_ribbon_raster_tests)
+
 add_executable(original_res2_asset_bank_tests tests/original_res2_asset_bank_tests.cpp)
 target_link_libraries(original_res2_asset_bank_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_res2_asset_bank_tests COMMAND original_res2_asset_bank_tests)
