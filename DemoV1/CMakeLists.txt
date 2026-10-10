@@ -973,6 +973,15 @@ target_include_directories(original_ground_ff50_source_span_tests PRIVATE includ
 add_test(NAME original_ground_ff50_source_span_tests
     COMMAND original_ground_ff50_source_span_tests)
 
+# CODE.2 1F227..1F3DA upper overlay/texture/mode selection and
+# post-upper-callback FF50 lower branch. Isolated, no live host behavior.
+add_executable(original_ground_surface_dispatch_tests
+    tests/original_ground_surface_dispatch_tests.cpp)
+target_include_directories(original_ground_surface_dispatch_tests PRIVATE include)
+target_compile_features(original_ground_surface_dispatch_tests PRIVATE cxx_std_17)
+add_test(NAME original_ground_surface_dispatch_tests
+    COMMAND original_ground_surface_dispatch_tests)
+
 # Original CODE.2 DS + original T archive + injected MUTABLE nested weights.
 add_executable(original_f790_resolved_description_tests
     tests/original_f790_resolved_description_tests.cpp)
