@@ -28,6 +28,9 @@ FUNCTION_CALLERS={
 }
 EXPECTED={at:parent for parent,calls in FUNCTION_CALLERS.items() for at in calls}
 assert len(EXPECTED)==17
+# Original source-bounded island: after 1309E RET+NOP, before 13118.
+MISSING_ISLAND_START=0x130A0
+MISSING_ISLAND_END=0x13118  # exclusive; 120 bytes
 
 def original_check(path:Path)->None:
     raw=path.read_bytes()
@@ -36,6 +39,10 @@ def original_check(path:Path)->None:
     actual={i for i in range(len(b)-4)
             if b[i]==0xE8 and i+5+struct.unpack_from("<i",b,i+1)[0]==0xF790}
     assert actual==set(EXPECTED),"original E8 F790 inventory changed"
+    assert b[0x1309E:0x130A5]==bytes.fromhex("c3905356beffff")
+    assert b[0x13115:0x1311A]==bytes.fromhex("5e5bc36a00")
+    assert b[0x130DE]==0xE8
+    assert 0x130DE+5+struct.unpack_from("<i",b,0x130DF)[0]==0xF790
 
 def report_check(path:Path)->tuple[int,int]:
     doc=json.loads(path.read_text(encoding="utf-8"))
@@ -71,6 +78,14 @@ def report_check(path:Path)->tuple[int,int]:
             assert candidates=={parent},(hex(at),candidates,hex(parent))
             matched+=1
     assert missing==[0x130DE]
+    # Confirm the analyzer omits the entire original 120-byte
+    # selection routine, not merely a function parent at 130DE.
+    assert not any(i["Address"]["Object"]==1 and
+                   MISSING_ISLAND_START<=i["Address"]["Offset"]<MISSING_ISLAND_END
+                   for i in doc["instructions"]), "source island now has instructions"
+    assert not any(block["Start"]["Object"]==1 and
+                   MISSING_ISLAND_START<=block["Start"]["Offset"]<MISSING_ISLAND_END
+                   for block in doc["blocks"]), "source island now has candidate blocks"
     return matched,len(missing)
 
 def source_check()->None:
@@ -99,7 +114,13 @@ def main()->None:
         matched,gaps=report_check(args.code2_report)
         summary={"original_e8_f790_calls":17,"candidate_matched":matched,
                  "candidate_missing":["0x130de"],
-                 "candidate_status":"candidate-unverified"}
+                 "candidate_status":"candidate-unverified",
+                 "uncovered_original_island":{
+                     "entry":"0x130a0","end_exclusive":"0x13118",
+                     "bytes":120,"f790_call":"0x130de",
+                     "original_source_verified":bool(args.original_code2),
+                     "candidate_instructions":0,"candidate_blocks":0,
+                     "caller_into_island":"not-proven"}}
         if args.json:print(json.dumps(summary,sort_keys=True))
         else:print("PASS: 17 original F790 E8; 16 candidate parents; gap 130DE")
     if args.binary_only and not(args.original_code2 and args.code2_report):
