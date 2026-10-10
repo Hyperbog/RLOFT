@@ -1168,3 +1168,29 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   independent reviewer acceptance or executable publication.
   Last verified Windows baseline remains run #35 at SHA
   9f605e36581b2c6db72a6a47248ea5af31611506.
+
+2026-10-10 | G2 external x86-16 oracle: narrow 16-bit ModRM source facts:
+- Source-only extension captures ordinary 16-bit base/index
+  addressing (BX/BP and SI/DI), direct disp16, displacement
+  encoded size and canonical 16-bit modulo value, scalar
+  memory operand width and explicit source segment override.
+  Runtime selector/default memory state is never inferred.
+- The external manifest may assert these facts as a complete
+  Memory operand. Impossible base/index combinations, invalid
+  displacements/widths, invented override segments and incomplete
+  memory source provenance are denied; unsupported 67h
+  32-bit-address operands remain NOT OBSERVED, not verified.
+- Added standalone synthetic COM contracts: MOV AX,[BX+SI-2],
+  MOV AX,DS:[BP+0], MOV AX,[1234h], MOV AL,[BX], unsupported
+  MOV AX,[EAX] address-size override, plus RET. Negative
+  cases check valid-but-wrong base/displacement/width/segment
+  expectations, malformed 16-bit address forms and graphs
+  missing captured facts. Structured operand counts remain
+  distinct from byte/CFG comparison denominators.
+- Updated independent oracle, G2 scope and technical documentation.
+  The implementation remains game-agnostic and only asserts
+  source-encoded machine-code facts, not general executable
+  reachability or runtime memory addresses.
+- SOURCE ONLY: no compilation, tests, second decoder run,
+  original file validation, human accuracy review or
+  GitHub Actions dispatch. G2 independent acceptance PENDING.
