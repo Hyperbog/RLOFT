@@ -252,7 +252,7 @@ public static class Dos16ExternalOracleValidator
             return false;
         int physical = checked(region.FileOffset + expected.Offset - region.Origin);
         var originalBytes = region.Source.Data.Slice(physical, row.Length).ToArray();
-        var decoder = Decoder.Create(16, new ByteArrayCodeReader(originalBytes));
+        var decoder = Iced.Intel.Decoder.Create(16, new ByteArrayCodeReader(originalBytes));
         decoder.IP = expected.Offset;
         decoder.Decode(out var original);
         if (original.Code == Code.INVALID || original.Length != row.Length ||
