@@ -46,7 +46,7 @@ def check_original(path:Path)->None:
     assert b[LOCAL[0]-4:LOCAL[0]]==bytes.fromhex("ff342455")
     assert b[LOCAL[1]-8:LOCAL[1]]==bytes.fromhex("ff742408ff742414")
     assert b[SELECTED[0]-3:SELECTED[0]]==bytes.fromhex("6a0053")
-    assert b[0xF7B4:0xF7B4+16]==bytes.fromhex("803dac6d000000740f689c750000e8")
+    assert b[0xF7B4:0xF7B4+15]==bytes.fromhex("803dac6d000000740f689c750000e8")
     assert b[0xF7DB:0xF7DB+9]==bytes.fromhex("83fbff0f8498050000")
     print("PASS: 17 original E8 callers: 11 global, 3 empty, 2 local, 1 selected")
     print("PASS: pending 6DAC precedence and ordinary -1 empty-hand gate")
