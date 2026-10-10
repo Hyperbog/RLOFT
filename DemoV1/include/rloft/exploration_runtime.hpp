@@ -55,6 +55,11 @@ struct SurfacePrepassPlanFailure final {
 struct ExplorationRuntimeFrame final {
     ExplorationSceneSnapshot scene{};
     std::vector<ViewSweepRecord> sweep_records;
+    // Read-only diagnostic inputs, taken from the ORIGINAL loaded SINTAB
+    // through RendererTables (CODE.2 C6D8 and C738 respectively).
+    // Not gameplay state and never a live copy of DOS 22220 RAM.
+    std::size_t original_c6d8_ray_count{};
+    std::uint32_t original_c738_scale_count{};
     std::vector<WorldSceneRecord> world_scene_records;
     std::uint64_t world_scene_revision{};
     // The public session() accessor permits camera motion independently
