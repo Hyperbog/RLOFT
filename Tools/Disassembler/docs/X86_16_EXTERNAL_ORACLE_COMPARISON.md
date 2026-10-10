@@ -1,6 +1,6 @@
 # DOSDis x86-16 external-decoder comparison
 
-**Status:** Windows compiled and synthetic-verified at run #38 (tested source `2945b147`, PR merge `d8c404c5`); subsequent strict JSON-import source changes are **NOT COMPILED / NOT RUN**. Independent original-byte comparison remains **PENDING**.  
+**Status (2026-10-10):** Windows/Linux compile and both synthetic suites **PASSED** [run #40](https://github.com/Hyperbog/RLOFT/actions/runs/38091963405), tested source `7fa76f82`, merge checkout `5eaa1fb0`; strict oracle JSON import checks and controlled invalid-input CLI return were built. Owner-local original Strahd x86-16 samples **28/28 instructions, 15/15 structured operands, 5/5 edges MATCHED**, with 8/8 negative controls. **G2-wide independent accuracy/reviewer approval remains PENDING.** See [G2 original validation record](G2_STRAHD_ORIGINAL_VALIDATION_RECORD_20261010.md).  
 **Scope:** COM, MZ entry-code-region and explicitly mapped overlay x86-16 candidate graphs.  
 **Not:** a decoder, a general 16-bit known-answer certification, an external decoder invocation, a runtime trace or a passed G2 gate.
 
