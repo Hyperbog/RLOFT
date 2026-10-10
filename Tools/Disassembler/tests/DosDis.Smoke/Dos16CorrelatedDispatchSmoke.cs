@@ -274,6 +274,48 @@ internal static class Dos16CorrelatedDispatchSmoke
             exactBudgetReport.Sites[0].CandidateIndices.SequenceEqual(new[] { 1 }),
             "matching tight budgets must validate both guarded and index passes");
 
+        // Feedback sweep: all resource limits BELOW the complete
+        // graph's instruction/edge inventory must fail closed. Exact
+        // limits and relaxed limits must produce identical candidate
+        // indices; the limits are not semantic feature toggles.
+        for (int allowed = 1; allowed < good.Graph.Instructions.Count; allowed++)
+        {
+            var restricted = Dos16CorrelatedDispatchRecovery.Inspect(
+                good.Region, good.Graph, maximumInstructions: allowed);
+            Check(restricted.Incomplete &&
+                restricted.BoundedIndexSites == 0 && restricted.Sites.Count == 0,
+                "resource-pattern instruction-budget=" + allowed +
+                " cannot admit a partial indexed table");
+        }
+        for (int allowed = 1; allowed < good.Graph.Edges.Count; allowed++)
+        {
+            var restricted = Dos16CorrelatedDispatchRecovery.Inspect(
+                good.Region, good.Graph, maximumEdges: allowed);
+            Check(restricted.Incomplete &&
+                restricted.BoundedIndexSites == 0 && restricted.Sites.Count == 0,
+                "resource-pattern edge-budget=" + allowed +
+                " cannot admit a partial indexed table");
+        }
+        for (int allowed = 1; allowed < good.Graph.Instructions.Count; allowed++)
+        {
+            var restricted = Dos16CorrelatedDispatchRecovery.Inspect(
+                good.Region, good.Graph, maximumSteps: allowed);
+            Check(restricted.Incomplete &&
+                restricted.BoundedIndexSites == 0 && restricted.Sites.Count == 0,
+                "resource-pattern worklist-step-budget=" + allowed +
+                " cannot admit a partial indexed table");
+        }
+        var relaxedBudget = Dos16CorrelatedDispatchRecovery.Inspect(
+            good.Region, good.Graph,
+            maximumInstructions: good.Graph.Instructions.Count + 2,
+            maximumSteps: good.Graph.Instructions.Count + 2,
+            maximumEdges: good.Graph.Edges.Count + 2);
+        Check(!relaxedBudget.Incomplete &&
+            relaxedBudget.Sites.Count == 1 &&
+            relaxedBudget.Sites[0].CandidateIndices.SequenceEqual(
+                exactBudgetReport.Sites[0].CandidateIndices),
+            "budget increases above the complete graph preserve table evidence");
+
         var limitedSteps = Dos16CorrelatedDispatchRecovery.Inspect(
             good.Region, good.Graph, maximumSteps: 1);
         Check(limitedSteps.Incomplete &&
