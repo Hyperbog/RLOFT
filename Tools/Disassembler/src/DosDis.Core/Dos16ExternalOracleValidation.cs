@@ -41,6 +41,7 @@ public sealed record Dos16ExternalOracleReport(
     string AnalysisStatus, bool Truncated, int Expected,
     int Matched, int Missing, int Conflicting, int NotObserved,
     int UnbenchmarkedCandidates,
+    int StructuredOperandExpectations, int FullyMatchedOperandExpectations,
     IReadOnlyList<Dos16ExternalOracleFinding> Findings);
 
 /// <summary>
@@ -316,6 +317,11 @@ public static class Dos16ExternalOracleValidator
             findings.Count(f => f.Status == "conflict"),
             findings.Count(f => f.Status == "not-observed"),
             decoded.Keys.Count(offset => !expectedOffsets.Contains(offset)),
+            manifest.ExpectedInstructions.Count(e => e.ExpectedFacts is not null),
+            manifest.ExpectedInstructions.Zip(findings,
+                (expected, finding) =>
+                    expected.ExpectedFacts is not null && finding.Status == "match")
+                .Count(matched => matched),
             findings);
     }
 
