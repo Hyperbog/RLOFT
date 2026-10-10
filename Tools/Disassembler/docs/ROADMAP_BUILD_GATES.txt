@@ -604,3 +604,32 @@ Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
   9f605e36581b2c6db72a6a47248ea5af31611506 on run 37987465368,
   not this post-G1 development HEAD. G2 is still pending.
 Reference: R2_DETERMINISTIC_FEEDBACK_LOOP.md.
+
+2026-10-10 | Phase 2 deterministic feedback hardening and algebraic oracles:
+- Audited the first generated feedback fixture and corrected a weak
+  low-order LCG cycle by switching its repeatable seed 0x16D05D15
+  to a bounded Xorshift32 generator. Added 28 directed high-bit,
+  wrap and mixed-quotient interval cases that cannot be skipped
+  by the generated input distribution.
+- Corrected x86-16 worklist validation to compare exact decoded
+  outgoing (kind,destination) pairs independently of graph row order.
+  Every expected pair must occur precisely once; missing, duplicated
+  and forged semantic edges still produce an incomplete empty
+  register-state report. Added a positive shuffled-branch regression
+  and a negative duplicate-conditional-target fixture.
+- Strengthened the metamorphic guarded-table corpus to permute
+  both the instruction order and outgoing-edge records while
+  requiring invariant bounded finite-pointer candidate selections.
+- Added and wired Dos16AlgebraicFeedbackSmoke: 256 bounded
+  independent concrete-domain pairs test join and widening
+  soundness, modular 16-bit ADD/SUB, and exact unsigned restrictions;
+  explicit carry/borrow boundary examples supplement random cases.
+- Proactively resolved a C# ref-capture lambda issue in the
+  newly authored test source before handing it to the Windows gate.
+- Existing Windows workflow remains manual-only. No build, test,
+  Actions dispatch, original game-file execution, or distribution
+  was performed during this source-only continuation.
+- Last verified Windows run remains #37987465368 at source
+  9f605e36581b2c6db72a6a47248ea5af31611506. All later changes
+  need a new, separately authorized G2 build and synthetic validation.
+Reference: R2_DETERMINISTIC_FEEDBACK_LOOP.md.
