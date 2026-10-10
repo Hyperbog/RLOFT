@@ -1,5 +1,9 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+## 2026-10-10 Part 2 original 32954 cache-hit 22220 reset boundary
+
+Original supplied CODE.2 independent SHA-pinned byte verifier proves source `335C8` unconditionally writes `22220=0x800` **before** calling `32954`; that callee clears `FCE8/FCEC`, compares `CF50==0`, facing `C658==FD04` and cached coordinates `FCFC==255D0`, `FD00==255D4`, then on hit returns at `329A7` without executing 256-ray materializer traversal. Thus a hit preserves prior records but not necessarily their formerly computed nearest-depth scalar: at the `335D7` boundary `22220` is freshly reset to `0x800`. This **blocks applying** per-frame nearest replay over cached records as original runtime state; verify caller lifecycle and all intervening mutations before live FF50 clipping. A standalone original-byte checker passed locally; new audit/checker committed without live-game change, Windows Full build, CTest registration, DOS acceptance or readiness change. [Bounded original proof](LEVEL22_ORIGINAL_32954_CACHE_HIT_22220_RESET_AUDIT_20261010.md). Manual CI only.
+
 ## 2026-10-10 C050 original VGA page register width and mutation census
 
 Uploaded authentic CODE.2 object-1 has exactly **339** little-endian C050 literal address operands (282 reads, **56 XOR BYTE 1**, **one XOR DWORD EBP at 16221**). The single DWORD write follows source **160E1 mov EBP,1**, but intervening call / indirect callback preservation remains unproved; source 1F1D6 reads the complete DWORD to compute FDBC. New original-byte oracle checks every opcode class, 13 original instruction windows and initializer; binary-only check passed locally. Pinned ground-proof batch expanded to 11 cases and one Python source-only CTest registered; no gameplay change. Current Windows Full and original DOS acceptance still pending. [Detailed audit](LEVEL22_ORIGINAL_VGA_C050_PAGE_TOGGLE_AUDIT_20261010.md).
