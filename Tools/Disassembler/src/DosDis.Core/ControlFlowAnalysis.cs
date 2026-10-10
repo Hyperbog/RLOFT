@@ -45,6 +45,10 @@ public static class ControlFlowAnalysis
 {
     private const int MaxRegionBytes = 16 * 1024 * 1024;
     private const int MaxSeeds = 4096;
+    private const int MaxProtectedRanges = 100_000;
+    // A replay can visit up to the full supported 16 MiB LE code
+    // inventory. Its cap must not scale with the 4,096 seed limit.
+    private const int MaxGuardReplayPasses = 32;
     private const int MaxDiagnostics = 2000;
 
     public static FlowAnalysisResult Analyze(LeImage image,
@@ -54,15 +58,29 @@ public static class ControlFlowAnalysis
         bool relocated = false, CancellationToken cancellationToken = default,
         AnalysisDecisionTrace? decisionTrace = null)
     {
-        // Materialize caller-supplied single-use seed/range enumerables
-        // once. Each source-only pass sees identical analyst evidence.
-        var seedArray = seeds?.ToArray();
-        var rangeArray = protectedData?.ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(image);
+        if (maxInstructions is < 1 or > 1_000_000)
+            throw new ArgumentOutOfRangeException(nameof(maxInstructions));
+
+        // Materialize untrusted one-shot enumerations with explicit
+        // cardinality bounds. Never allow infinite/huge iterator inputs
+        // to be consumed before the first analysis budget check.
+        // Count supplied rows, not just unique values: duplicates
+        // must not bypass the input resource limit.
+        var seedArray = seeds?.Take(MaxSeeds + 1).ToArray();
+        if (seedArray is { Length: > MaxSeeds })
+            throw new ArgumentOutOfRangeException(nameof(seeds),
+                "At most 4096 source entry rows may be supplied.");
+        var rangeArray = protectedData?.Take(MaxProtectedRanges + 1).ToArray();
+        if (rangeArray is { Length: > MaxProtectedRanges })
+            throw new ArgumentOutOfRangeException(nameof(protectedData),
+                "At most 100000 protected range rows may be supplied.");
         var disabled = new HashSet<FlowAddress>();
         // Every unsuccessful iteration must disable at least one newly
         // contradicted bound. Never return a graph whose earlier bounded
         // table recovery depended on a now-invalid incomplete CFG.
-        for (int attempt = 0; attempt <= MaxSeeds; attempt++)
+        for (int attempt = 0; attempt < MaxGuardReplayPasses; attempt++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var candidate = AnalyzePass(image, seedArray, rangeArray,
@@ -90,7 +108,7 @@ public static class ControlFlowAnalysis
                     "Nonconvergent LE guarded-table source audit.");
         }
         throw new InvalidDataException(
-            "LE guarded-table source audit exceeded bounded retries.");
+            "LE guarded-table source audit exceeded 32 bounded passes.");
     }
 
     private static FlowAnalysisResult AnalyzePass(LeImage image,
@@ -110,7 +128,7 @@ public static class ControlFlowAnalysis
         if (sourceSeeds.Length is < 1 or > MaxSeeds)
             throw new ArgumentOutOfRangeException(nameof(seeds), "Provide 1 to 4096 entry seeds.");
         var explicitData = (protectedData ?? Array.Empty<ProtectedDataRange>()).ToArray();
-        if (explicitData.Length > 100_000)
+        if (explicitData.Length > MaxProtectedRanges)
             throw new ArgumentOutOfRangeException(nameof(protectedData));
         // A separate ownership array for each executable object. -1 = no
         // instruction; a nonnegative value identifies an instruction start.
