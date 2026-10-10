@@ -994,6 +994,16 @@ target_compile_features(original_ground_surface_dispatch_tests PRIVATE cxx_std_1
 add_test(NAME original_ground_surface_dispatch_tests
     COMMAND original_ground_surface_dispatch_tests)
 
+# Read-only original 335C8/32F4C source 22220 and generated FF50
+# F12 projection: never changes gameplay, pixels, RNG or DOS state.
+add_executable(original_ground_source_projection_tests
+    tests/original_ground_source_projection_tests.cpp)
+target_include_directories(original_ground_source_projection_tests
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_compile_features(original_ground_source_projection_tests PRIVATE cxx_std_17)
+add_test(NAME original_ground_source_projection_tests
+    COMMAND original_ground_source_projection_tests)
+
 # Original CODE.2 DS + original T archive + injected MUTABLE nested weights.
 add_executable(original_f790_resolved_description_tests
     tests/original_f790_resolved_description_tests.cpp)
