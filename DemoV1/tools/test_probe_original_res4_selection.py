@@ -130,4 +130,4 @@ if __name__=="__main__":
     test_decode()
     test_model()
     test_cli()
-    print("PASS: independent CODE.2 EH6 disk→runtime type1/LZSS oracle")
+    print("PASS: independent CODE.2 EH6 disk-to-runtime type1/LZSS oracle")
