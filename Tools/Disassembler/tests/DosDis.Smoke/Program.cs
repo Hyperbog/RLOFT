@@ -1991,6 +1991,30 @@ try
         "gap classifications close exactly without invented byte ownership");
     Equal(gapLedger.UnknownFileBackedBytes > 0, true,
         "analyzer retains unknown file-backed bytes");
+    int expectedShortSpans = graph.Ranges.Count(r =>
+        r.Classification == "unknown-file-backed" &&
+        (long)r.EndExclusive - r.Begin is >= 64 and <= 255);
+    long expectedShortBytes = graph.Ranges.Where(r =>
+        r.Classification == "unknown-file-backed" &&
+        (long)r.EndExclusive - r.Begin is >= 64 and <= 255)
+        .Sum(r => (long)r.EndExclusive - r.Begin);
+    Equal(gapLedger.UnknownSpans64To255, expectedShortSpans,
+        "short unknown span counter reconciles to classified source ranges");
+    Equal(gapLedger.UnknownBytes64To255, expectedShortBytes,
+        "short unknown byte total reconciles independently to source ranges");
+    Equal(gapLedger.SpansBelowMinimumGap, 0,
+        "minimum gap one cannot suppress any unknown file-backed span");
+    var defaultGapLedger = ExecutableGapAnalysis.Analyze(graph, graphImage,
+        minimumGapBytes: 256, maximumGaps: 5);
+    Equal(defaultGapLedger.UnknownSpans64To255, expectedShortSpans,
+        "default 256-byte cutoff retains short unknown summary statistics");
+    Equal(defaultGapLedger.SpansBelowMinimumGap,
+        graph.Ranges.Count(r => r.Classification == "unknown-file-backed" &&
+            (long)r.EndExclusive - r.Begin < 256),
+        "filtered unknown spans are counted, not silently removed");
+    Equal(defaultGapLedger.CandidateInstructionBytes,
+        gapLedger.CandidateInstructionBytes,
+        "gap reporting threshold cannot change decoded code byte coverage");
     Equal(gapLedger.Gaps.Any(g => g.Begin.Object == 1 &&
         g.FirstFileOffset == graphImage.ToFileOffset(g.Begin.Object, g.Begin.Offset)),
         true, "gaps retain original-source file offsets");
@@ -2004,10 +2028,20 @@ try
             "candidate report cannot detach gap ledger from original source");
         Equal(gapSection.GetProperty("UnknownFileBackedBytes").GetInt64(),
             gapLedger.UnknownFileBackedBytes, "report exposes full unknown byte total");
+        Equal(gapSection.GetProperty("UnknownSpans64To255").GetInt32(),
+            expectedShortSpans, "JSON exports disclose 64..255-byte unknown spans");
+        Equal(gapSection.GetProperty("UnknownBytes64To255").GetInt64(),
+            expectedShortBytes, "JSON exports disclose short unknown byte totals");
+        Equal(gapSection.GetProperty("SpansBelowMinimumGap").GetInt32(),
+            0, "JSON exports preserve explicit threshold-filter count");
     }
     Equal(AnalysisReportExport.BuildText(graph, gaps: gapLedger)
         .Contains("[EXECUTABLE OBJECT GAPS", StringComparison.Ordinal), true,
         "text report carries ranked unknown gap evidence");
+    Equal(AnalysisReportExport.BuildText(graph, gaps: defaultGapLedger)
+        .Contains("Short unknown spans (64..255 bytes): " +
+            expectedShortSpans, StringComparison.Ordinal), true,
+        "text report visibly discloses short spans omitted by default ranking");
     bool foreignLedgerDenied = false;
     try { AnalysisReportExport.BuildJson(graph, gaps: gapLedger with {
         SourceSha256 = new string('f', 64) }); }
