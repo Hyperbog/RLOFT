@@ -2636,6 +2636,16 @@ try
     Equal(exactDisplacementGraph.JumpTables[0].CandidateTargets.Count, 10,
         "exact relocated CS base still requires every ten source-backed slots");
 
+    var relativeDisplacementFixup = (byte[])exactDisplacementFixup.Clone();
+    relativeDisplacementFixup[0x80 + 0xE8] = 0x08;
+    var relativeDisplacementGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(relativeDisplacementFixup)));
+    Equal(relativeDisplacementGraph.JumpTables.Count, 0,
+        "exact LE relative fixup cannot be treated as an absolute CS table base");
+    Equal(relativeDisplacementGraph.Edges.Any(e =>
+        e.Kind == "unresolved-indirect-jump"), true,
+        "relative effective address remains runtime-unproven");
+
     // A loader relocation rewriting any byte of CMP/JA/MOVZX or
     // the jump opcode invalidates a source-byte guard, even when
     // original-file decoding still shows the expected instruction.
