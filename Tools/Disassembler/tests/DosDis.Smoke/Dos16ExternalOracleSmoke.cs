@@ -85,6 +85,65 @@ internal static class Dos16ExternalOracleSmoke
             report.BenchmarkedInstructionBytesSha256,
             "identical original sampled bytes retain one shared benchmark identity");
 
+        // Two different MZ containers can carry literally the SAME entire
+        // source-backed resident image. Their extra trailing overlay
+        // bytes alter whole-file hashes but MUST NOT manufacture two
+        // independent decoded-code samples or two mapped-region digests.
+        var mzResidentWithOverlayA = new byte[37];
+        mzResidentWithOverlayA[0] = (byte)'M';
+        mzResidentWithOverlayA[1] = (byte)'Z';
+        mzResidentWithOverlayA[2] = 36; // one declared 36-byte file page
+        mzResidentWithOverlayA[4] = 1;
+        mzResidentWithOverlayA[8] = 2;  // 32-byte MZ header
+        mzResidentWithOverlayA[32] = 0xEB;
+        mzResidentWithOverlayA[33] = 0x00;
+        mzResidentWithOverlayA[34] = 0xC3;
+        mzResidentWithOverlayA[35] = 0x90;
+        mzResidentWithOverlayA[36] = 0x11; // trailing, not part of MZ load image
+        var mzResidentWithOverlayB = (byte[])mzResidentWithOverlayA.Clone();
+        mzResidentWithOverlayB[36] = 0x22;
+        var mzSourceA = BinaryArtifact.FromBytes(mzResidentWithOverlayA,
+            "synthetic-shared-mz-with-overlay-A.exe");
+        var mzSourceB = BinaryArtifact.FromBytes(mzResidentWithOverlayB,
+            "synthetic-shared-mz-with-overlay-B.exe");
+        var mzRegionA = DosMzImage.Load(mzSourceA).CreateEntryCodeRegion();
+        var mzRegionB = DosMzImage.Load(mzSourceB).CreateEntryCodeRegion();
+        var mzManifestA = manifest with {
+            SourceSha256 = mzSourceA.Sha256,
+            SourceByteLength = mzSourceA.Length,
+            RegionFileOffset = mzRegionA.FileOffset,
+            RegionByteLength = mzRegionA.ByteLength,
+            Segment = mzRegionA.Segment,
+            Origin = mzRegionA.Origin,
+            ExpectedInstructions = new[] {
+                new Dos16ExternalExpectedInstruction(0, 32, "EB00",
+                    "UnconditionalBranch", "source-backed-outer-mz-short-jmp",
+                    "branch", 2),
+                new Dos16ExternalExpectedInstruction(2, 34, "C3",
+                    "Return", "source-backed-outer-mz-ret")
+            }
+        };
+        var mzReportA = Dos16ExternalOracleValidator.Compare(
+            mzRegionA, Dos16ControlFlowAnalysis.Analyze(mzRegionA, 0),
+            mzManifestA);
+        var mzReportB = Dos16ExternalOracleValidator.Compare(
+            mzRegionB, Dos16ControlFlowAnalysis.Analyze(mzRegionB, 0),
+            mzManifestA with { SourceSha256 = mzSourceB.Sha256 });
+        Equal(mzReportA.Matched, 2,
+            "first synthetic MZ declared launcher rows remain source backed");
+        Equal(mzReportB.Matched, 2,
+            "second MZ has same resident code despite different appended data");
+        Equal(mzReportA.SourceSha256 == mzReportB.SourceSha256, false,
+            "distinct outer MZ containers retain distinct full-file hashes");
+        Equal(mzReportA.MappedRegionSha256,
+            mzReportB.MappedRegionSha256,
+            "identical MZ mapped resident bytes share one source window identity");
+        Equal(mzReportA.BenchmarkedInstructionBytesSha256,
+            mzReportB.BenchmarkedInstructionBytesSha256,
+            "identical MZ instruction samples cannot inflate independent coverage");
+        Equal(DosMzImage.Load(mzSourceA).HasTrailingOverlayData, true,
+            "synthetic source difference remains outside declared MZ module");
+
         Equal(report.SourceByteLength, artifact.Length,
             "comparison report retains independently measured file length");
         Equal(report.RegionFileOffset, region.FileOffset,
