@@ -2308,6 +2308,24 @@ try
     Dword(objectOffsetBytes, 0x200 + 0x40, 0x20);
     Equal(ControlFlowAnalysis.Analyze(LeImage.Load(BinaryArtifact.FromBytes(objectOffsetBytes)))
         .JumpTables.Count, 0, "object-relative-looking literal is not assumed runtime linear");
+    // A fixup at table+1 overlaps the first DWORD without appearing
+    // at any aligned DWORD slot address. Legacy exact-start checks
+    // would accept all the unrelocated literal pointers incorrectly.
+    var overlappingLiteralFixup = (byte[])boundedBytes.Clone();
+    Dword(overlappingLiteralFixup, 0x80 + 0x68, 0xE0);
+    Dword(overlappingLiteralFixup, 0x80 + 0x6C, 0xE8);
+    Dword(overlappingLiteralFixup, 0x80 + 0xE4, 7);
+    new byte[] {
+        0x07, 0x00, 0x41, 0x00, 0x01, 0x20, 0x00
+    }.CopyTo(overlappingLiteralFixup, 0x80 + 0xE8);
+    var overlapLiteralGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(overlappingLiteralFixup)));
+    Equal(overlapLiteralGraph.JumpTables.Count, 0,
+        "a fixup starting at table+1 invalidates a nominally literal DWORD");
+    Equal(overlapLiteralGraph.Edges.Any(e =>
+        e.Kind == "unresolved-indirect-jump"), true,
+        "overlapping literal-table relocation does not resolve runtime jump");
+
     Console.WriteLine("PASS: guarded unsigned literal jump-table candidates and negative controls");
 
     // Generic LE/x86-32 guarded byte switch:
