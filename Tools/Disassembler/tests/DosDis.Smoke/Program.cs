@@ -1848,6 +1848,84 @@ try
     }
     catch (InvalidDataException) { rejectedForeignSource = true; }
     Equal(rejectedForeignSource, true, "a Stone/Menzo manifest cannot silently validate Strahd or synthetic bytes");
+    // Known-answer comparison cannot be tricked by a restored
+    // graph with the same advertised artifact SHA but forged row
+    // bytes: the independently reopened original LE page controls.
+    var originalInstruction = graph.Instructions.Single(i =>
+        i.Address == new FlowAddress(1, 0));
+    var forgedRowGraph = graph with {
+        Instructions = graph.Instructions.Select(i =>
+            i.Address == new FlowAddress(1, 0)
+                ? i with { OriginalBytes = "9090909090" }
+                : i).ToArray()
+    };
+    var forgedRowManifest = expectations with {
+        VerifiedInstructions = new[] {
+            new KnownInstructionExpectation(new FlowAddress(1, 0),
+                "9090909090", "forged-evidence")
+        },
+        VerifiedNonCode = Array.Empty<KnownNonCodeExpectation>(),
+        VerifiedEdges = Array.Empty<KnownEdgeExpectation>()
+    };
+    var forgedRowCheck = KnownAnswerValidator.Validate(forgedRowGraph,
+        graphImage, BinaryArtifact.FromBytes(graphBytes), forgedRowManifest);
+    Equal(forgedRowCheck.Conflicting, 1,
+        "same-sha forged graph row and manifest cannot override original LE bytes");
+    Equal(forgedRowCheck.Matched, 0,
+        "forged matching hex strings alone cannot claim known-answer match");
+
+    var wrongLengthGraph = graph with {
+        Instructions = graph.Instructions.Select(i =>
+            i.Address == new FlowAddress(1, 0)
+                ? i with { Length = originalInstruction.Length - 1 }
+                : i).ToArray()
+    };
+    var wrongLengthCheck = KnownAnswerValidator.Validate(wrongLengthGraph,
+        graphImage, BinaryArtifact.FromBytes(graphBytes), expectations);
+    Equal(wrongLengthCheck.Conflicting, 1,
+        "expected instruction byte-length mismatch is an explicit conflict");
+    var flowExpectation = expectations with {
+        VerifiedInstructions = new[] {
+            new KnownInstructionExpectation(new FlowAddress(1, 0),
+                "E80B000000", "external-flow-call",
+                ExpectedFlowControl: "Call")
+        }
+    };
+    var correctFlow = KnownAnswerValidator.Validate(graph, graphImage,
+        BinaryArtifact.FromBytes(graphBytes), flowExpectation);
+    Equal(correctFlow.Matched, 3,
+        "expected source-backed flow class agrees with original CALL encoding");
+    var forgedFlowGraph = graph with {
+        Instructions = graph.Instructions.Select(i =>
+            i.Address == new FlowAddress(1, 0)
+                ? i with { FlowControl = "Return" }
+                : i).ToArray()
+    };
+    var wrongFlow = KnownAnswerValidator.Validate(forgedFlowGraph,
+        graphImage, BinaryArtifact.FromBytes(graphBytes), flowExpectation);
+    Equal(wrongFlow.Conflicting, 1,
+        "known-answer external flow category rejects incorrect graph classification");
+
+    var invalidFlowExpectation = flowExpectation with {
+        VerifiedInstructions = new[] {
+            new KnownInstructionExpectation(new FlowAddress(1, 0),
+                "E80B000000", "invalid-flow-class",
+                ExpectedFlowControl: "TrustMeVerified")
+        }
+    };
+    Fails(() => KnownAnswerValidator.Validate(graph, graphImage,
+        BinaryArtifact.FromBytes(graphBytes), invalidFlowExpectation),
+        "unknown external flow-control categories cannot claim comparison success");
+
+    var duplicateInstructionGraph = graph with {
+        Instructions = graph.Instructions.Concat(new[] {
+            originalInstruction
+        }).ToArray()
+    };
+    Fails(() => KnownAnswerValidator.Validate(duplicateInstructionGraph,
+        graphImage, BinaryArtifact.FromBytes(graphBytes), expectations),
+        "known-answer validation rejects duplicate decoded instruction starts");
+
     var wrongByteExpectation = expectations with {
         VerifiedInstructions = new[] {
             new KnownInstructionExpectation(new FlowAddress(1, 0), "9090909090", "wrong-hex")
