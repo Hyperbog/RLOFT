@@ -51,6 +51,13 @@ if(Python3_Interpreter_FOUND)
         NAME original_f790_candidate_coverage_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/analyze_original_f790_candidate_coverage.py")
+    # Original CODE.2 039D0/03A20 generated 15618 table and
+    # 1F255..1F384 FF50 partial upper/lower span. Both modes are
+    # source-only; actual DOS ground depth / C026/C027 remain unhooked.
+    add_test(
+        NAME original_ground_ff50_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_ff50_source_span.py")
     # Original CODE.2 37590 EH6 -> 2FB04/37700 LZSS -> 2EF38
     # runtime type1 conversion; optional private CODE.2 binary oracle.
     add_test(
