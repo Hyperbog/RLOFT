@@ -43,7 +43,7 @@ int main() {
     const auto t=original_spell_fixture();
     rloft::InventoryRuntimeState inv{};
     inv.held={74,1U};
-    assert(!Snapshot::after_scribe(Status::NoChange,inv,t));
+    assert(!Snapshot::after_scribe(Status::NoChange,inv,t,inv.held));
     assert(!Snapshot::after_expiry(false,inv));
 
     rloft::MageScribeFeedback pending{};
@@ -53,8 +53,10 @@ int main() {
     pending.pending_6dac=1U;
     pending.deadline_6da8=123U;
     inv.mage_scribe_feedback=pending;
+    const auto before_scroll=inv.held;
+    inv.held={-1,0U}; // 1183E already consumed it by method return
     const auto success=Snapshot::after_scribe(
-        Status::LearnedMageSpell,inv,t);
+        Status::LearnedMageSpell,inv,t,before_scroll);
     assert(success && success->source_e8_offset==0x1173bU);
     assert(success->owned_text_759c=="FIREBALL LEARNED!");
     assert(success->pending_6dac && success->item_id==74);
@@ -63,11 +65,11 @@ int main() {
     assert(args.pending_text_759c=="FIREBALL LEARNED!");
     assert(args.item_id==74 && args.known && args.pending_6dac);
 
-    // The source's success branch consumed the scroll BEFORE F790.
-    inv.held={-1,0U};
+    // The first (1173B) call PRECEDES consumption; the *second*
+    // at 1184A passes explicit empty arguments after 1183E.
     const auto consumed=Snapshot::after_scribe(
-        Status::LearnedMageSpell,inv,t);
-    assert(consumed && consumed->item_id==-1);
+        Status::LearnedMageSpell,inv,t,before_scroll);
+    assert(consumed && consumed->item_id==before_scroll.object_id);
     assert(consumed->owned_text_759c=="FIREBALL LEARNED!");
 
     for(const auto kind:
@@ -77,7 +79,7 @@ int main() {
             ? "CANNOT UNDERSTAND" : "ALREADY KNOWN";
         inv.mage_scribe_feedback=pending;
         const auto reject=Snapshot::after_scribe(
-            Status::MageScrollRejected,inv,t);
+            Status::MageScrollRejected,inv,t,inv.held);
         assert(reject && reject->source_e8_offset==0x1178eU);
         assert(reject->pending_6dac);
         assert(reject->owned_text_759c==pending.source_text);
@@ -103,7 +105,9 @@ int main() {
     pending.source_text=" LEARNED!";
     inv.mage_scribe_feedback=pending;
     inv.held={90,0U};
-    auto owned=Snapshot::after_scribe(Status::LearnedMageSpell,inv,t);
+    const auto before_owned=inv.held;
+    inv.held={-1,0U};
+    auto owned=Snapshot::after_scribe(Status::LearnedMageSpell,inv,t,before_owned);
     assert(owned && owned->item_id==90);
     inv.mage_scribe_feedback.reset();
     inv.held={-1,1U};

@@ -5,6 +5,7 @@
 #include "rloft/original_t_text_archive.hpp"
 
 #include <cstdint>
+#include <stdexcept>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -31,19 +32,31 @@ struct OriginalF790FeedbackSourceSnapshot final {
     after_scribe(
         InventoryOrdinarySwapStatus status,
         const InventoryRuntimeState& current,
-        const OriginalTTextArchive& original_t) {
+        const OriginalTTextArchive& original_t,
+        HeldItemState before_transaction_hand_8600) {
+        // CODE.2 11630 calls F790 at 1173B while the scroll is
+        // STILL HELD. The surrounding 117A0 then consumes that
+        // scroll at 1183E, and invokes F790 again at 1184A
+        // with explicit (-1,0). A post-transaction inventory
+        // alone cannot reconstruct 1173B's real input pair.
         const auto edge=OriginalF790FeedbackEdges::after_ordinary_slot_117a0(
             status,current);
         if(!edge)return std::nullopt;
-        const auto args=OriginalF790RuntimeEvent::arguments_for_direct_call(
-            edge->source_e8_offset,current,-1,false,true,{});
         const auto& feedback=*current.mage_scribe_feedback;
+        if(status==InventoryOrdinarySwapStatus::LearnedMageSpell &&
+           (current.held.object_id!=-1 || current.held.known!=0U))
+            throw std::logic_error("source 1183E must consume held scroll");
+        if(status==InventoryOrdinarySwapStatus::MageScrollRejected &&
+           (current.held.object_id!=before_transaction_hand_8600.object_id ||
+            current.held.known!=before_transaction_hand_8600.known))
+            throw std::logic_error("source rejection must retain held scroll");
         const std::string spell_name=
             feedback.kind==MageScribeFeedbackKind::Scribed
                 ? original_t.decoded(feedback.t_spell_name_index)
                 : std::string{};
         return OriginalF790FeedbackSourceSnapshot{
-            edge->source_e8_offset,args.item_id,args.known,true,
+            edge->source_e8_offset,before_transaction_hand_8600.object_id,
+            before_transaction_hand_8600.known!=0U,true,
             feedback.message(spell_name)};
     }
 
