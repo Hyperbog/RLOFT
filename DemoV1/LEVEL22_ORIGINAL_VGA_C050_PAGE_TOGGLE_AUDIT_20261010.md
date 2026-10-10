@@ -64,3 +64,52 @@ the binary oracle as `c050_page`.
 last previously accepted build (214/214 on an older SHA); the present
 changes are not Windows-built or accepted against original DOS
 indexed frames, palettes, VGA ES/DS mappings, IRQ or RNG.
+
+## 2026-10-10 EBP local save/restore and dynamic callback reachability
+
+**Original source:** authenticated CODE.2 (same SHA-256 as above),
+object-1 physical base `0x3AF24`. Independently re-disassembled the
+`1608C..1624A` selection loop, `14218..14308` drawing helper,
+`16400..16523` draw-body slice, `1A1F4..1A21C` input polling
+wrapper and `1A5B0..1A723` page-flip helper. The source oracle
+now guards **five bounded slice hashes, 24 exact opcode windows, six
+E8 call destinations and three cross-address branches**. A targeted
+original-byte check passed locally on the supplied original.
+
+The entry at `1608C` pushes `EBX/ESI/EDI/EBP` and at
+`160E1` explicitly sets `EBP=1` for the event loop. Two
+source-proven callees locally restore it:
+
+- `14218` saves `EBP` at `1421B`, independently sets
+  `EBP=0x12C20` at `1425A` for item/card drawing, then
+  restores at `14304` and returns at `14308`.
+- `16400` saves `EBP` at `16403`, clears it at
+  `16411`, and takes cross-range exits `16431→15FA3`,
+  `164BF→15FA3`, or `1651F→15F9B` on the checked
+  paths. The shared epilogue at `1602C..16033` restores
+  `EBP` via `pop ebp` at `1602F`. The contiguous
+  `16400..16523` byte hash is a *slice*, **not a conventional
+  whole-function boundary**, because the function has shared
+  predecessor-address tails.
+
+The `1A5B0..1A723` page-flip helper itself has no EBP register
+assignment in the independently disassembled body and preserves only
+EBX/ESI locally. It invokes several other helpers and does **not**
+provide end-to-end proof that every nested callee preserves EBP.
+
+**Important reachable indirection:** after `160E1` sets EBP=1,
+`160E8→1A1F4` and `1A1F4→2F868` are exact original near calls.
+At `2F86D`, when `F0C8` is nonzero, original `2F876` invokes
+`call DWORD PTR [F0C8]`. Neither its installed target nor all
+transitive register effects have been established. This blocks
+claiming that the `16221 xor DWORD[C050],EBP` is *always*
+semantically identical to `xor BYTE[C050],1`, even though its
+local initialization and two important helpers strongly suggest
+ordinary preservation conventions.
+
+**Acceptance:** source-byte check passed locally; the same registered
+`original_ground_c050_page_toggle_tests` and pinned proof-batch
+entry now cover these checks. No CTest was added and no gameplay
+source changed. Current-revision Windows Full build and matched DOS
+page-state, ES/DS, framebuffer, input/IRQ acceptance remain open.
+

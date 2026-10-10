@@ -86,6 +86,65 @@ def audit_original(path:Path)->None:
     for at,hex_op in source_windows.items():
         expected=bytes.fromhex(hex_op)
         assert obj[at:at+len(expected)]==expected,hex(at)
+    # Source-proven EBP preservation edges, NOT transitive ABI or callback
+    # safety. 16400 enters a shared older-address epilogue (1602C).
+    ebp_bounded_spans={
+        (0x1608C,0x1624B):"06a38753b857225922bdcd64fc227240236235b49885277f98cd86c3fd876a59",
+        (0x14218,0x14309):"26ac89581eed8a55c40a5a7e1f97c676b759a6132cb89fd7284c6dd70bd020ce",
+        (0x16400,0x16524):"89ca8b9e8be1c00d726d68a0339e4ee4906782e9189292f2ea24d1e5694ffc71",
+        (0x1A1F4,0x1A21D):"fc11e3acbaeb44a13b97555470d0c4fe9985889f86cd70e62d695f131182bbdd",
+        (0x1A5B0,0x1A724):"2c1e3cf2a887bdcda658487698fe113b34d487dda4038050bd69f0cca14427c6",
+    }
+    for (start,end),sha in ebp_bounded_spans.items():
+        assert hashlib.sha256(obj[start:end]).hexdigest()==sha,hex(start)
+    ebp_windows={
+        0x1608C:"53565755",0x160E1:"bd01000000",
+        0x160E8:"e807410000",0x161F7:"e804020000",
+        0x161FC:"5557e815e0ffff",0x1621C:"e88f430000",
+        0x16221:"312d50c00000",
+        0x14218:"53565755",0x1425A:"bd202c0100",
+        0x14304:"5d5f5e5bc3",
+        0x16400:"53565755",0x16411:"31ed",
+        0x16431:"0f8d6cfbffff",0x164BF:"0f85defaffff",
+        0x1651F:"e977faffff",
+        0x15FA3:"834424085083c504",
+        0x1602C:"83c40c5d5f5e5bc3",
+        0x1A1F4:"e86f560100",
+        0x2F868:"565783ec50",
+        0x2F86D:"833dc8f0000000",
+        0x2F876:"ff15c8f00000",
+        0x1A5B0:"535683ec08",
+        0x1A6E8:"83c4085e5bc3",
+        0x1A71E:"83c4085e5bc3",
+    }
+    for at,hex_code in ebp_windows.items():
+        expected=bytes.fromhex(hex_code)
+        assert obj[at:at+len(expected)]==expected,hex(at)
+    ebp_calls={
+        0x160E8:0x1A1F4, 0x1A1F4:0x2F868,
+        0x161F7:0x16400, 0x161FE:0x14218,
+        0x1621C:0x1A5B0, 0x14224:0x291B0,
+    }
+    for at,dest in ebp_calls.items():
+        assert obj[at]==0xE8,hex(at)
+        actual=at+5+struct.unpack_from("<i",obj,at+1)[0]
+        assert actual==dest,(hex(at),hex(actual),hex(dest))
+    ebp_tail_branches={
+        0x16431:(6,0x15FA3),
+        0x164BF:(6,0x15FA3),
+        0x1651F:(5,0x15F9B),
+    }
+    for at,(length,dest) in ebp_tail_branches.items():
+        if length==6:
+            assert obj[at:at+2] in (b"\x0f\x8d",b"\x0f\x85")
+            displacement=struct.unpack_from("<i",obj,at+2)[0]
+        else:
+            assert obj[at]==0xE9
+            displacement=struct.unpack_from("<i",obj,at+1)[0]
+        assert at+length+displacement==dest,(hex(at),hex(dest))
+    print("ORIGINAL_PASS: 5 EBP source spans, 24 opcodes, 6 E8 edges, 3 cross-tail branches")
+    print("BOUND: 14218 and 16400 locally preserve EBP; 16400 uses 1602C shared epilogue")
+    print("OPEN: intervening callback/callee effects, especially 160E8->1A1F4->2F868->F0C8")
     print("ORIGINAL_PASS: original CODE.2 SHA and C050=1 initializer")
     print("ORIGINAL_PASS: 339 C050 operands: 282 reads, 56 byte toggles, 1 DWORD EBP toggle")
     print("BOUND: EBP=1 at 160E1; original call preservation and aliases remain open")
@@ -98,6 +157,8 @@ def audit_repository()->None:
     assert '"c050_page", "verify_original_ground_c050_page_toggle.py"' in runner
     for word in ("339","56","16221","160E1","FDBC","indirect","EBP"):
         assert word in doc,word
+    for term in ("14218","16400","1602C","1A1F4","2F868","F0C8"):
+        assert term in doc,term
     print("SOURCE_ONLY_PASS: registered CTest, original ground batch and audit notes")
 
 if __name__=="__main__":
