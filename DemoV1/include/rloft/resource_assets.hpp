@@ -91,6 +91,11 @@ public:
     [[nodiscard]] int entry_count() const noexcept;
     [[nodiscard]] std::vector<std::uint8_t> entry(int index) const;
     [[nodiscard]] Type1Raster decode_type1(int index) const;
+    // Original CODE.2 2ECB4 EH type-6 -> 37590 -> 2FB04/37700:
+    // u16 decoded length followed by source LZSS. Original 2EF38
+    // reclassifies the loaded cache record as runtime type 1; 2F29C
+    // returns a pointer to THIS 2-byte-header + decoded body.
+    [[nodiscard]] std::vector<std::uint8_t> decode_type6_block(int index) const;
     [[nodiscard]] Type2Font decode_type2(int index) const;
     [[nodiscard]] std::vector<std::uint8_t> decode_type3(int index) const;
     [[nodiscard]] std::vector<std::uint8_t> decode_type4(int index) const;
