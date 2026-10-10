@@ -2672,6 +2672,22 @@ try
     Equal(relocatedExactCodeGraph.JumpTables[0].CandidateTargets.Count, 10,
         "relocated decoder retains ten independently source-backed cases");
 
+    // A four-byte fixup starting exactly AFTER the complete indexed
+    // jump does not alter any bytes used by the compare/guard/MOVZX or
+    // displacement proof. Do not over-reject unrelated loader writes.
+    var afterInstructionFixup = (byte[])byteSwitchBytes.Clone();
+    Dword(afterInstructionFixup, 0x80 + 0x68, 0xE0);
+    Dword(afterInstructionFixup, 0x80 + 0x6C, 0xE8);
+    Dword(afterInstructionFixup, 0x80 + 0xE4, 7);
+    new byte[] { 0x07, 0, 0x11, 0, 1, 0x40, 0 }
+        .CopyTo(afterInstructionFixup, 0x80 + 0xE8);
+    var afterInstructionGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(afterInstructionFixup)));
+    Equal(afterInstructionGraph.JumpTables.Count, 1,
+        "LE fixup beginning after the JMP must not modify guard evidence");
+    Equal(afterInstructionGraph.JumpTables[0].CandidateTargets.Count, 10,
+        "unrelated loader writes preserve validated finite index count");
+
     var signedByteSwitch = (byte[])byteSwitchBytes.Clone();
     signedByteSwitch[0x200 + 4] = 0x7F; // JG, signed rather than JA
     Equal(ControlFlowAnalysis.Analyze(LeImage.Load(
