@@ -20,6 +20,17 @@ WINDOWS = {
     0xF748: "6a01ff74241c68400100006a006a65e8ac0d0200",
     0xF7B4: "803dac6d000000740f689c750000e8a5feffffe9ad050000",
     0x30CA2: "e8f5ffffff85c0741869106d4ec64181c239300000891089d0c1e81025ff7f0000c3",
+    # 112EC invokes F790 AFTER 4 actor columns and VGA backing.
+    0x11316: "6800140000e82cfd010083c40468400100006a106a006a6250a3687f0000e8837f010083c4140fb60502860000500fbf050086000050e83fe4ffff",
+    # 30288: RES0 font metrics, signed-byte glyph index, unsigned widths.
+    0x30288: "53568b357cb602008b5c240c6a00ff742414e8fdefff",
+    0x302A6: "85db741489f1803b00740d0fbe030fb64401044301c2ebee89d089357cb602005e5bc3",
+    # 30508: source signed SAR-1 centering; font widths are summed first.
+    0x30547: "31d285db74188b0d7cb60200803b00740d0fbe030fb64401044301c2ebee8b44241029d08b54240cd1f8ff74241801c2ff742418891580b60200e842feffff",
+    # 30C9C always returns the shared DGROUP RNG address, 0xF6F4.
+    # 30CA2's zero-pointer branch is unreachable in this executable.
+    0x30C9C: "b8f4f60000c3",
+    0x30CC4: "e8d3ffffff85c074068b5424048910c3",
 }
 
 def verify(path: Path) -> None:

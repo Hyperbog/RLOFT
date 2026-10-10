@@ -805,6 +805,11 @@ add_executable(original_feedback_ribbon_layout_tests tests/original_feedback_rib
 target_include_directories(original_feedback_ribbon_layout_tests PRIVATE include)
 add_test(NAME original_feedback_ribbon_layout_tests COMMAND original_feedback_ribbon_layout_tests)
 
+# Original CODE.2 F66C -> 30288/30508, isolated pending renderer cadence proof.
+add_executable(original_feedback_ribbon_text_tests tests/original_feedback_ribbon_text_tests.cpp)
+target_include_directories(original_feedback_ribbon_text_tests PRIVATE include)
+add_test(NAME original_feedback_ribbon_text_tests COMMAND original_feedback_ribbon_text_tests)
+
 add_executable(original_res2_asset_bank_tests tests/original_res2_asset_bank_tests.cpp)
 target_link_libraries(original_res2_asset_bank_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_res2_asset_bank_tests COMMAND original_res2_asset_bank_tests)
