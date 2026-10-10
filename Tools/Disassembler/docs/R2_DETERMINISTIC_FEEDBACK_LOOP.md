@@ -74,6 +74,33 @@ D&D executable bytes. They **do not** prove CPU runtime state,
 selector values, the immutability of writable memory, or that a
 candidate jump target actually executed.
 
+## Coverage improvements after the first feedback checkpoint
+
+- The deterministic generator is now **Xorshift32** rather than an
+  LCG whose low-order bits can cycle too narrowly when subsequently
+  reduced modulo 8 or 16. Its fixed seed is unchanged.
+- A further 28 **directed** shift scenarios guarantee that high-bit
+  values, `0xFFFF`, 0/1/2/7/8/15-bit shifts, and intervals crossing
+  16-bit modular boundaries are exercised on every invocation.
+- Outgoing CFG edge pairs are validated without assuming a stable
+  serialization order. Missing, duplicated or forged source-backed
+  pairs are still rejected. The metamorphic inventory test reverses
+  both the order of source groups and the order of each group's edges,
+  and requires the same finite-index candidate set.
+- A second smoke suite, `Dos16AlgebraicFeedbackSmoke`, uses 256
+  generated abstract-domain pairs and separate exact 16-bit concrete
+  arithmetic oracles; every pair exercises set joins, loop widening,
+  addition/subtraction, and unsigned restriction. Known extreme
+  carry/borrow cases are also guaranteed explicitly.
+- Regression failures still report the exact family, source encoding,
+  seed and case number. These additions generate no original-game
+  content and do not promote candidate targets to executable code.
+
+**Verification state:** all these changes are source-only until a
+subsequent owner-authorized Windows run at their exact commit SHA.
+Do not infer compilation or semantic correctness merely because test
+source is committed.
+
 ## Human-supervised agentic feedback procedure
 
 1. **Observe** a specifically authorized build/test run or a reproduced
