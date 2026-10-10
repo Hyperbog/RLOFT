@@ -152,6 +152,11 @@ public static class AnalysisReportExport
                 .Append(" | file-backed unknown: ").Append(gaps.UnknownFileBackedBytes)
                 .Append(" | virtual unbacked: ").Append(gaps.UnbackedVirtualBytes)
                 .Append(" | omitted gap entries: ").AppendLine(gaps.OmittedGaps.ToString(CultureInfo.InvariantCulture));
+            text.Append("Short unknown spans (64..255 bytes): ")
+                .Append(gaps.UnknownSpans64To255)
+                .Append(" | short unknown bytes: ").Append(gaps.UnknownBytes64To255)
+                .Append(" | spans below current minimum: ")
+                .AppendLine(gaps.SpansBelowMinimumGap.ToString(CultureInfo.InvariantCulture));
             foreach (var gap in gaps.Gaps)
                 text.Append(Format(gap.Begin)).Append("..0x")
                     .Append(gap.EndExclusive.ToString("X8", CultureInfo.InvariantCulture))
