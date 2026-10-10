@@ -122,6 +122,12 @@ def original_geometry(data: bytes, mode: str) -> dict:
 
 
 def describe(data: bytes, expected_sha: str, mode: str, label: str) -> tuple[dict, dict]:
+    # This function is reusable independently of read_bounded_original().
+    # Never turn an unchecked caller-supplied SHA into "original verified".
+    if re.fullmatch(r"[0-9A-Fa-f]{64}", expected_sha) is None:
+        raise SourceValidationError("described original requires a 64-digit SHA256")
+    if _sha(data) != expected_sha.lower():
+        raise SourceValidationError("described original SHA256 mismatch")
     geom = original_geometry(data, mode)
     begin = geom["mapped_region_file_offset"]
     end = begin + geom["mapped_region_bytes"]
@@ -133,6 +139,40 @@ def describe(data: bytes, expected_sha: str, mode: str, label: str) -> tuple[dic
         "geometry": geom,
         "accuracy_status": "source-identity-and-geometry-only",
     }, geom
+
+
+def simulate_mz_relocations(data: bytes, assumed_load_segment: int) -> dict:
+    """Independently calculate DOS MZ word additions on a PRIVATE copy.
+
+    This is a source-only expected-value oracle. No relocated bytes,
+    original word values, selectors, paths, or physical runtime addresses
+    are emitted. The actual loader placement is unknown.
+    """
+    if not isinstance(assumed_load_segment, int) or isinstance(assumed_load_segment, bool) or not (
+        0 <= assumed_load_segment <= 0xFFFF
+    ):
+        raise SourceValidationError("assumed MZ load segment must fit uint16")
+    geometry = original_geometry(data, "mz")
+    header = geometry["header_bytes"]
+    length = geometry["file_backed_load_bytes"]
+    relocated = bytearray(data[header:header + length])
+    table = geometry["relocation_directory_start"]
+    if table is not None:
+        for index in range(geometry["relocation_count"]):
+            offset = _u16(data, table + index * 4)
+            relative_segment = _u16(data, table + index * 4 + 2)
+            at = relative_segment * 16 + offset
+            before = _u16(relocated, at)
+            struct.pack_into("<H", relocated, at,
+                             (before + assumed_load_segment) & 0xFFFF)
+    return {
+        "status": "simulated-relocations;assumed-segment;not-runtime-proof",
+        "assumed_load_segment": assumed_load_segment,
+        "relocation_write_count": geometry["relocation_count"],
+        "overlapping_relocation_writes": geometry["relocation_overlaps"] > 0,
+        "original_file_backed_image_bytes": length,
+        "simulated_file_backed_image_sha256": _sha(bytes(relocated)),
+    }
 
 
 def compare_entries(first: bytes, a: dict, second: bytes, b: dict, limit: int) -> dict:
@@ -161,6 +201,7 @@ def main() -> int:
     parser.add_argument("--peer-mode", choices=("mz", "com"))
     parser.add_argument("--peer-label", default="source-b")
     parser.add_argument("--entry-prefix-limit", type=int, default=512)
+    parser.add_argument("--assumed-mz-load-segment", type=lambda s: int(s, 0))
     args = parser.parse_args()
     if not 1 <= args.entry_prefix_limit <= MAX_ENTRY_PREFIX:
         parser.error("entry prefix limit must be 1..4096 bytes")
@@ -168,6 +209,10 @@ def main() -> int:
         (args.peer is None) != (args.peer_mode is None)
     ):
         parser.error("--peer, --peer-sha256 and --peer-mode must appear together")
+    if args.assumed_mz_load_segment is not None and (
+        args.mode != "mz" or not 0 <= args.assumed_mz_load_segment <= 0xFFFF
+    ):
+        parser.error("--assumed-mz-load-segment requires MZ mode and uint16 value")
     if any(not re.fullmatch(r"[A-Za-z0-9_.-]{1,48}", label)
            for label in (args.label, args.peer_label)):
         parser.error("source labels must be short neutral identifiers")
@@ -182,8 +227,13 @@ def main() -> int:
             "independent_decoder_or_execution": False,
             "originals": [item_a],
             "shared_entry_prefix": None,
+            "assumed_mz_relocation_simulation": None,
             "g2_accuracy_status": "not-certified",
         }
+        if args.assumed_mz_load_segment is not None:
+            result["assumed_mz_relocation_simulation"] = simulate_mz_relocations(
+                original, args.assumed_mz_load_segment
+            )
         if args.peer is not None:
             peer = read_bounded_original(args.peer, args.peer_sha256)
             item_b, geom_b = describe(
