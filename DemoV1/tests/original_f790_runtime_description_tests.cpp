@@ -209,6 +209,15 @@ int main() {
     catch(const std::invalid_argument&) {rejected=true;}
     assert(rejected);
     rejected=false;
+    // Identity guard also rejects stale source names when category,
+    // weight, subtype and enchantment happen to match.
+    rejected=false;
+    damaged=original_objects;
+    damaged[4U]='X';
+    try { (void)Gateway::compose(damaged,parsed,inventory,0,false,
+                                  original_code2,original_t); }
+    catch(const std::invalid_argument&) {rejected=true;}
+    assert(rejected);
     damaged=original_objects;
     damaged[0]=0U;
     try { (void)Gateway::compose(damaged,parsed,inventory,0,false,

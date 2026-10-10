@@ -52,6 +52,16 @@ struct OriginalF790RuntimeDescription final {
         const auto start=4U+static_cast<std::size_t>(held_id)*raw.size();
         std::copy_n(original_objects_bytes.begin()+start,raw.size(),raw.begin());
         const auto& parsed=objects.at(static_cast<std::size_t>(held_id));
+        // A catalog constructed from another OBJECTS image is NOT a
+        // valid basis for F790. Verify the actual NUL-terminated name
+        // as well as the record fields that the display consumes.
+        std::size_t name_bytes=0U;
+        while(name_bytes<40U && raw[name_bytes]!=0U)++name_bytes;
+        if(name_bytes==40U ||
+           parsed.name!=std::string(
+               reinterpret_cast<const char*>(raw.data()),name_bytes))
+            throw std::invalid_argument(
+                "F790 source item name and catalog diverged");
         if(parsed.item_category!=raw[0x2f] ||
            parsed.weight_half_units!=raw[0x30] ||
            static_cast<std::uint8_t>(parsed.container_state_index)!=
