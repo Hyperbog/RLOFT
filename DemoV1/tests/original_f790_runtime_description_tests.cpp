@@ -129,6 +129,56 @@ int main() {
             args,raw,parsed,inventory,original_code2,original_t);
     };
     inventory.held={1,1U}; // intentionally different source caller
+
+    // All 17 original E8 callers are represented and use the right
+    // argument source, rather than copying the GUI cursor blindly.
+    using Origin=rloft::OriginalF790ArgumentOrigin;
+    const auto& original_calls=rloft::OriginalF790CallerCatalog::kDirectCalls;
+    assert(original_calls.size()==17U);
+    std::array<int,4> ownership_counts{};
+    for(std::size_t i=0;i<original_calls.size();++i) {
+        const auto& call=original_calls[i];
+        assert(i==0U || original_calls[i-1U].e8_offset<call.e8_offset);
+        const auto maybe=rloft::OriginalF790CallerCatalog::arguments_at(
+            call.e8_offset);
+        assert(maybe && *maybe==call.argument_origin);
+        const auto args=rloft::OriginalF790RuntimeEvent::arguments_for_direct_call(
+            call.e8_offset,inventory,74,true,false,{});
+        switch(call.argument_origin) {
+        case Origin::GlobalHeld8600_8602:
+            ++ownership_counts[0];
+            assert(args.item_id==1 && args.known);
+            break;
+        case Origin::ExplicitEmpty:
+            ++ownership_counts[1];
+            assert(args.item_id==-1 && !args.known);
+            break;
+        case Origin::StackLocal:
+            ++ownership_counts[2];
+            assert(args.item_id==74 && args.known);
+            break;
+        case Origin::SelectedKnownZero:
+            ++ownership_counts[3];
+            assert(args.item_id==74 && !args.known);
+            break;
+        }
+    }
+    assert((ownership_counts==std::array<int,4>{{11,3,2,1}}));
+    assert(!rloft::OriginalF790CallerCatalog::arguments_at(0x1134dU));
+    bool unknown_site=false;
+    try {
+        (void)rloft::OriginalF790RuntimeEvent::arguments_for_direct_call(
+            0x12345U,inventory,74,true,false,{});
+    } catch(const std::out_of_range&) {unknown_site=true;}
+    assert(unknown_site);
+    const auto pending_args=
+        rloft::OriginalF790RuntimeEvent::arguments_for_direct_call(
+            0x1184aU,inventory,74,true,true,"PENDING SOURCE 759C");
+    assert(pending_args.item_id==-1 && !pending_args.known);
+    assert(pending_args.pending_6dac);
+    assert(source_message(pending_args,original_objects)==
+           "PENDING SOURCE 759C");
+
     assert(source_message({2,true,false,{}},original_objects)==
            "ARMOR +3; A.C. BONUS: 2; ");
     assert(source_message({3,false,false,{}},original_objects)==
