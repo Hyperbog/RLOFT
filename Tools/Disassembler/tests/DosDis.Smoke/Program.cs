@@ -2636,6 +2636,42 @@ try
     Equal(exactDisplacementGraph.JumpTables[0].CandidateTargets.Count, 10,
         "exact relocated CS base still requires every ten source-backed slots");
 
+    // A loader relocation rewriting any byte of CMP/JA/MOVZX or
+    // the jump opcode invalidates a source-byte guard, even when
+    // original-file decoding still shows the expected instruction.
+    // The exact terminal disp32 relocation is the one allowed
+    // exception and has an independent positive control above.
+    foreach (uint sourceOffset in new uint[] {
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+    })
+    {
+        var mutatedInstructionFixup = (byte[])byteSwitchBytes.Clone();
+        Dword(mutatedInstructionFixup, 0x80 + 0x68, 0xE0);
+        Dword(mutatedInstructionFixup, 0x80 + 0x6C, 0xE8);
+        Dword(mutatedInstructionFixup, 0x80 + 0xE4, 7);
+        new byte[] {
+            0x07, 0, (byte)sourceOffset, 0, 1, 0x40, 0
+        }.CopyTo(mutatedInstructionFixup, 0x80 + 0xE8);
+        var relocatedInstructionGraph = ControlFlowAnalysis.Analyze(
+            LeImage.Load(BinaryArtifact.FromBytes(mutatedInstructionFixup)));
+        Equal(relocatedInstructionGraph.JumpTables.Count, 0,
+            "LE fixup rewriting guarded instruction source at 0x" +
+            sourceOffset.ToString("X2") + " cannot prove unsigned index");
+        Equal(relocatedInstructionGraph.Edges.Any(e =>
+            e.Kind == "unresolved-indirect-jump"), true,
+            "rewritten LE compare/branch/index retains runtime unknown");
+        Equal(relocatedInstructionGraph.Edges.Any(e =>
+            e.Kind == "candidate-indirect-jump"), false,
+            "relocation-mutated guard cannot retain speculative literal pointers");
+    }
+    var relocatedExactCodeGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(exactDisplacementFixup)),
+        relocated: true);
+    Equal(relocatedExactCodeGraph.JumpTables.Count, 1,
+        "isolated terminal disp32 fixup works when decoding relocated view");
+    Equal(relocatedExactCodeGraph.JumpTables[0].CandidateTargets.Count, 10,
+        "relocated decoder retains ten independently source-backed cases");
+
     var signedByteSwitch = (byte[])byteSwitchBytes.Clone();
     signedByteSwitch[0x200 + 4] = 0x7F; // JG, signed rather than JA
     Equal(ControlFlowAnalysis.Analyze(LeImage.Load(
