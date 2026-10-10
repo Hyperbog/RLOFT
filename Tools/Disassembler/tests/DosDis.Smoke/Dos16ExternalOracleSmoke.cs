@@ -661,6 +661,41 @@ internal static class Dos16ExternalOracleSmoke
                 StringComparison.Ordinal));
             Denied(() => Dos16ExternalOracleValidator.ReadManifest(duplicateInstruction),
                 "conflicting original-byte claims in one nested instruction must be rejected");
+
+            // Unknown names are also prohibited: silently ignoring a typo
+            // in an optional edge or operand assertion would reduce the
+            // reference denominator without the reviewer's knowledge.
+            const string edgeAnchor = "\"directEdgeKind\":\"branch\"";
+            Equal(serializedManifest.Contains(edgeAnchor, StringComparison.Ordinal),
+                true, "fixture contains a required direct-edge assertion");
+            string missingEdgeClaim = Path.Combine(directory, "misspelled-edge.json");
+            File.WriteAllText(missingEdgeClaim, serializedManifest.Replace(
+                edgeAnchor, "\"directEdgeKnd\":\"branch\"",
+                StringComparison.Ordinal));
+            Denied(() => Dos16ExternalOracleValidator.ReadManifest(missingEdgeClaim),
+                "misspelled optional expected direct-edge kind cannot be silently ignored");
+
+            string semanticJson = JsonSerializer.Serialize(operandManifest,
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            const string factsAnchor = "\"expectedFacts\":{";
+            Equal(semanticJson.Contains(factsAnchor, StringComparison.Ordinal),
+                true, "fixture contains a structured operand expectation");
+            string lostFacts = Path.Combine(directory, "misspelled-facts.json");
+            File.WriteAllText(lostFacts, semanticJson.Replace(
+                factsAnchor, "\"expectedFakts\":{", StringComparison.Ordinal));
+            Denied(() => Dos16ExternalOracleValidator.ReadManifest(lostFacts),
+                "misspelled expectedFacts cannot silently remove semantic assertions");
+
+            string memoryJson = JsonSerializer.Serialize(memoryManifest,
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            const string memoryAnchor = "\"displacementSize\":1";
+            Equal(memoryJson.Contains(memoryAnchor, StringComparison.Ordinal),
+                true, "fixture includes a source-encoded memory displacement width");
+            string lostMemory = Path.Combine(directory, "misspelled-memory.json");
+            File.WriteAllText(lostMemory, memoryJson.Replace(
+                memoryAnchor, "\"displacmentSize\":1", StringComparison.Ordinal));
+            Denied(() => Dos16ExternalOracleValidator.ReadManifest(lostMemory),
+                "misspelled optional memory width cannot be silently ignored");
             string output = Path.Combine(directory, "comparison.json");
             Dos16ExternalOracleValidator.WriteNew(output, report);
             using var json = JsonDocument.Parse(File.ReadAllText(output));
