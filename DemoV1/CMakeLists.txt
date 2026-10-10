@@ -816,7 +816,7 @@ target_include_directories(original_feedback_ribbon_text_tests PRIVATE include)
 add_test(NAME original_feedback_ribbon_text_tests COMMAND original_feedback_ribbon_text_tests)
 
 # Source-verified F790 event-only ribbon preparation; not live-wired.
-add_executable(original_feedback_ribbon_epoch_tests tests/original_feedback_ribbon_epoch_tests.cpp)
+add_executable(original_feedback_ribbon_epoch_tests tests/original_feedback_ribbon_epoch_tests.cpp src/original_random.cpp)
 target_include_directories(original_feedback_ribbon_epoch_tests PRIVATE include)
 add_test(NAME original_feedback_ribbon_epoch_tests COMMAND original_feedback_ribbon_epoch_tests)
 

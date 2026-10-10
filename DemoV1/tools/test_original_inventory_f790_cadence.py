@@ -29,6 +29,11 @@ WINDOWS = {
     0x11717: "c605ac6d000001e8ddef010083c036a3a86d00000fb60502860000500fbf050086000050e850e0ffff",
     0x1133C: "0fb60502860000500fbf050086000050e83fe4ffff",
     0x130CB: "0fb60550c0000050e8d860010083c4046a0053e8adc6ffff83c408",
+    # F790 pending draws without reseed; ordinary held brackets F66C
+    # with 30CC4(held ID) and 30CC4(30700 current tick).
+    0xF7B4: "803dac6d000000740f689c750000e8a5feffffe9ad0500006a3f8d44240450e890cb000083c40883fbff0f8498050000",
+    0xFD58: "53e8660f020083c404689c750000e801f9ffff83c404e88d09020050e84b0f020083c40483c4105d5f5e5bc3",
+    0x30CC4: "e8d3ffffff85c074068b5424048910c3",
 }
 
 def direct_rel32_calls(binary: bytes, target: int) -> tuple[int, ...]:
@@ -51,13 +56,15 @@ def check_binary(path: Path) -> None:
     assert direct_rel32_calls(binary, 0xF790) == CALLS_F790, "F790 direct calls changed"
     assert direct_rel32_calls(binary, 0x112EC) == (0x13133,), "112EC direct call changed"
     assert direct_rel32_calls(binary, 0x13118) == (0x214AC,), "13118 entry changed"
-    print("PASS: immutable CODE.2 6 cadence windows + 17 F790 event callsites + unique entry links")
+    print("PASS: immutable CODE.2 9 cadence/RNG windows + 17 F790 event callsites + unique entry links")
 
 def check_source() -> None:
     host = (ROOT / "DemoV1/src/win32_main.cpp").read_text(encoding="utf-8")
     inventory = (ROOT / "DemoV1/src/inventory_runtime.cpp").read_text(encoding="utf-8")
     modal = (ROOT / "DemoV1/src/party_modal_presenter.cpp").read_text(encoding="utf-8")
     cmake = (ROOT / "DemoV1/CMakeLists.txt").read_text(encoding="utf-8")
+    epoch = (ROOT / "DemoV1/include/rloft/original_feedback_ribbon_epoch.hpp").read_text(encoding="utf-8")
+    random = (ROOT / "DemoV1/include/rloft/original_random.hpp").read_text(encoding="utf-8")
     assert "ui.open_party_panels(*actor);" in host
     assert "runtime.inventory().reset_scribe_feedback_13118();" in host
     assert "runtime.inventory().expire_scribe_feedback_13184(" in host
@@ -68,6 +75,12 @@ def check_source() -> None:
     assert "OriginalRandom" not in modal and "next15()" not in modal, (
         "renderer may not create separate RNG or consume RNG on VGA refresh")
     assert "add_test(NAME original_feedback_ribbon_epoch_tests COMMAND original_feedback_ribbon_epoch_tests)" in cmake
+    assert "src/original_random.cpp" in cmake
+    assert "if (!pending_6dac && held_id == -1)" in epoch
+    assert "shared_game_rng.seed(static_cast<std::uint32_t>(held_id));" in epoch
+    assert "shared_game_rng.next15()" in epoch
+    assert "std::forward<ObserveGameTick30700>(observe_tick_30700)()" in epoch
+    assert "void seed(std::uint32_t value) noexcept" in random
     print("PASS: native modal entry and unsigned feedback expiration, no presentation-local RNG")
 
 def main() -> None:
