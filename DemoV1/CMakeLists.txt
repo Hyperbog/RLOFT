@@ -77,6 +77,14 @@ if(Python3_Interpreter_FOUND)
         NAME original_ground_vga_page_base_reference_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_vga_page_refs.py")
+    # Deliberately source-only: batches ten existing Python contracts.
+    # ORIGINAL binary evidence requires explicit, identity-verified
+    # CODE.2 and SINTAB supplied outside CI and is NOT inferred here.
+    add_test(
+        NAME original_ground_source_proof_batch_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/run_original_ground_proof_batch.py"
+                --source-only)
     # Original 34A74 planar VGA 4-mask/2-mask helpers, exact 64x24
     # SHLD/LODS/STOS unroll and first-phase implicit fall-through.
     add_test(
