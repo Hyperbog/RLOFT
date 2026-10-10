@@ -58,6 +58,30 @@ public static class Dos16ExternalOracleValidator
     private static readonly JsonSerializerOptions JsonOptions =
         new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
+    // JsonSerializerDefaults.Web accepts case-insensitive field names. Without
+    // this guard, a duplicated property (including different casing) can
+    // silently replace an externally reviewed expectation during import.
+    // Preserve a single unambiguous claim at every JSON object level.
+    private static void RejectAmbiguousJsonProperties(JsonElement value)
+    {
+        if (value.ValueKind == JsonValueKind.Object)
+        {
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var property in value.EnumerateObject())
+            {
+                if (!names.Add(property.Name))
+                    throw new InvalidDataException(
+                        "External oracle JSON contains duplicated or case-colliding properties.");
+                RejectAmbiguousJsonProperties(property.Value);
+            }
+        }
+        else if (value.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in value.EnumerateArray())
+                RejectAmbiguousJsonProperties(item);
+        }
+    }
+
     public static Dos16ExternalOracleManifest ReadManifest(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -66,8 +90,12 @@ public static class Dos16ExternalOracleValidator
             throw new InvalidDataException("External x86-16 oracle manifest exceeds 512 KiB.");
         try
         {
-            var manifest = JsonSerializer.Deserialize<Dos16ExternalOracleManifest>(
-                File.ReadAllText(path), JsonOptions)
+            // Parse once so both the duplicate-field audit and the typed
+            // import inspect precisely the same source snapshot.
+            using var document = JsonDocument.Parse(File.ReadAllText(path));
+            RejectAmbiguousJsonProperties(document.RootElement);
+            var manifest = document.RootElement.Deserialize<Dos16ExternalOracleManifest>(
+                JsonOptions)
                 ?? throw new InvalidDataException("External oracle manifest was empty.");
             ValidateManifest(manifest);
             return manifest;
