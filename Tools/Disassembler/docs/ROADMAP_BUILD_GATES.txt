@@ -940,3 +940,29 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   Windows build #35 covering only original SHA
   9f605e36581b2c6db72a6a47248ea5af31611506.
 Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
+
+2026-10-10 | LE complete-CFG replay resource-budget boundary:
+- Audited the source-only bounded LE guarded-table contradiction
+  replay introduced since G1. Previous retry loop was tied to the
+  maximum 4096 analyst entry seeds; each retry could rerun a large
+  full executable-object analysis. This is a work amplification
+  hazard even though the guard disabled set grows monotonically.
+- Introduced a separate cap of 32 complete replay passes,
+  including the first pass, with a clear fail-closed exception
+  rather than accepting a nonconverged candidate graph.
+- Validated image and instruction budget before materializing
+  external analyst inputs. Consume one-shot seed and protected
+  range iterators once, capped at 4097 and 100001 supplied
+  rows respectively. Duplicate rows count toward resource
+  limits and do not permit over-limit iterator traversal.
+- Added source-only synthetic cases for one-shot seeds and
+  protected ranges through a traced final analysis, and for
+  rejection of 4097 duplicate seeds and 100001 duplicate
+  protected ranges without consuming the single-use trace.
+- Existing complete-CFG proof and relocation-byte uncertainty
+  invariants remain; no new title-specific rules were added.
+  No game originals modified, workflow dispatched, executable
+  built, smoke tests run or code coverage claimed. G2 pending.
+  Last verified Windows build #35 covers
+  9f605e36581b2c6db72a6a47248ea5af31611506 only.
+Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
