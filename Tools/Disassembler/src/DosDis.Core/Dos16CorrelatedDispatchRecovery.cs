@@ -99,8 +99,33 @@ public static class Dos16CorrelatedDispatchRecovery
                 region, graph, tableManifest, mz, simulation,
                 maximumInstructions, maximumSteps, maximumEdges);
             if (selected.Incomplete ||
-                selected.Sites.Count != accepted.Count)
+                selected.Sites.Count != accepted.Count ||
+                selected.CandidateSites + selected.UnresolvedSites != accepted.Count ||
+                selected.CodeDataConflicts != 0 ||
+                !string.Equals(selected.SourceSha256, region.SourceSha256,
+                    StringComparison.OrdinalIgnoreCase) ||
+                selected.MappingEvidence != region.MappingEvidence)
                 return Incomplete("independent-table-index-recheck-incomplete");
+
+            // The second storage pass must still agree with every
+            // independently accepted guarded site, its exact table
+            // displacement, width, and count. A source/geometry conflict
+            // is an integrity failure, not a permission to publish a
+            // partial or unverified replacement table.
+            var guardedBySite = accepted.ToDictionary(x => x.Address);
+            foreach (var index in selected.Sites)
+            {
+                if (!guardedBySite.TryGetValue(index.Site, out var original) ||
+                    index.PointerKind != original.PointerKind ||
+                    index.DeclaredEntries != original.EntryCount ||
+                    index.Table != original.StoredTable!.Table ||
+                    index.StorageValidationStatus !=
+                        "candidate-entries-source-backed" ||
+                    index.CandidateStoredEntries.Count != index.PossibleIndices.Count ||
+                    index.CandidateStoredEntries.Where((entry, i) =>
+                        entry.Index != index.PossibleIndices[i]).Any())
+                    return Incomplete("independent-table-index-evidence-disagrees");
+            }
         }
 
         var indexBySite = selected?.Sites.ToDictionary(x => x.Site) ??
