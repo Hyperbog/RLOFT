@@ -1408,10 +1408,12 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   The benchmark digest hashes ordered IP/length/source-backed bytes
   rather than the untrusted external OriginalHex. No new executable
   code or original bytes are disclosed in report digest fields.
-- Added synthetic source fixture comparing two distinct original COM
-  files with a byte-changed unbenchmarked gap: whole-file and region
-  hashes differ, but the benchmarked instruction sample hash agrees.
-  A contradictory oracle hex must not change a source-backed digest.
+- Added synthetic source fixtures: two COM inputs with a changed
+  unbenchmarked gap and stable sampled-instruction hash; plus two
+  standalone MZ containers with the SAME mapped DOS load image and
+  instruction samples, but DIFFERENT appended overlay bytes and
+  whole-file hashes. Conflicting external hex must not alter a
+  source-backed sampled-byte digest.
   JSON export now has explicit digest field checks in tests.
 - Updated G2 predeclared matrix, original source-evidence record and
   x86-16 comparator description. The new code/tests are SOURCE ONLY;
