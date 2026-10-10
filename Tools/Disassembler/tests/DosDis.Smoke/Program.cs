@@ -45,6 +45,7 @@ static byte[] MakeFixture(bool nested)
 
 try
 {
+    Dos16ExternalOracleSmoke.Run();
     Dos16AbstractValueSmoke.Run();
     Dos16RegisterTransferSmoke.Run();
     Dos16DataflowSmoke.Run();
