@@ -89,3 +89,86 @@ This code is only the comparison interface. To complete the G2 accuracy gate und
 - Retain the distinction between compiled, synthetic verified, original-file compared, and human-accepted independent accuracy
 
 A matching external comparison report alone never marks G2 or any release gate accepted.
+
+## Structured operand assertions (source-only extension)
+
+A manifest instruction may now include optional `expectedFacts` to check
+**decoder-reported, structured** x86-16 mnemonic and a deliberately
+restricted first-two-operand subset. Unlike formatted assembly text,
+these canonical fields compare register identity, operand encoding
+width and immediate value directly. The source CFG rows retain
+`decoderFacts` at the original decode site, derived from the
+embedded Iced decoder; an external oracle must be prepared
+independently from a separate decoder/manual ISA analysis.
+
+Example of an optional `expectedFacts` member inside an
+`expectedInstructions` entry for the standalone x86-16 bytes
+`B8 34 12` (MOV AX,1234h):
+
+```json
+{
+  "offset": 256,
+  "sourceFileOffset": 0,
+  "originalHex": "B83412",
+  "flowControl": "Next",
+  "evidenceId": "predeclared-external-mov-ax",
+  "expectedFacts": {
+    "mnemonic": "Mov",
+    "operandCount": 2,
+    "operand0": {
+      "kind": "Register",
+      "register": "AX",
+      "immediateValue": null
+    },
+    "operand1": {
+      "kind": "Immediate16",
+      "register": null,
+      "immediateValue": 4660
+    }
+  }
+}
+```
+
+Only **zero, one or two explicit operands** may be asserted in this
+version. Operand kinds supported for independent semantic agreement
+are `Register`, `Immediate8`, `Immediate16`,
+`Immediate32`, `Immediate8to16`, and
+`Immediate8to32`. Sign-extended 8-bit immediates are represented
+by their **signed semantic value** from -128 through 127:
+`83 FB FE` (CMP BX,-2) is
+`{"kind":"Immediate8to16","immediateValue":-2}`,
+not unsigned 254. Mnemonics and register identities use exact named
+Iced enum spelling only as a **normalization vocabulary**; this is
+not proof that an independent decoder ran.
+
+Memory base/index, displacement and size, address/operand-size prefixes,
+far and near branch operand encoding widths, instruction implicit operands,
+flags, runtime effects and three-or-more-operand instruction semantics
+are **not** validated by `expectedFacts`. Such cases need separate
+outside-oracle/ISA or original source evidence and may not be scored as
+fully verified operand semantics by this comparator. The existing
+`directEdgeKind`/`directTarget` checks are independent of this
+restricted explicit-register/immediate subset.
+
+Missing `expectedFacts` means **no structured operand assertion**
+was attempted, not a pass. If an older graph lacks `decoderFacts`
+but the oracle expects them, the result is `not-observed` with
+`candidate-structured-operand-facts-unavailable`, not `match`.
+A different mnemonic, operand count/kind, register or signed
+immediate results in `conflict` with
+`candidate-structured-operands-disagree-with-external-oracle`.
+Bad, numeric, out-of-range or inconsistent oracle fields fail closed.
+
+Reports carry separate `structuredOperandExpectations` and
+`fullyMatchedOperandExpectations` counters. The latter is
+**conservative**: an operand sample is counted only when the entire
+source/flow/optional-edge finding also matches. Do not divide
+the total instruction `matched` count by the number of operand
+assertions or treat the absence of an assertion as correct semantics.
+
+Synthetic coverage was added for MOV AX,1234h, CMP AX,1234h,
+signed CMP BX,-2 with imm8-to16 extension, wrong AX/BX,
+wrong immediate value, unsigned misinterpretation, unavailable
+old graph facts, forged structured facts and malformed oracle
+fields. These are source-only committed fixtures, **not a second
+decoder run or a G2 accuracy result**.
