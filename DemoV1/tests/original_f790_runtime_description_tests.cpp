@@ -225,11 +225,28 @@ int main() {
             sequence,framebuffer,args,original_objects,parsed,inventory,
             original_code2,original_t,ribbon,font,shared_rng,source_tick);
     };
+    // The earlier hardcoded x=0x44 was copied from the AA synthetic
+    // ribbon with 80-pixel A glyphs. The actual mutable POUCH item
+    // description has different original 30288 glyph width, so F681's
+    // F66C first-cap position is source-text dependent. Derive this
+    // expected first position through the independently tested F66C
+    // layout model without advancing the ONE gameplay RNG.
+    const auto source_ribbon_text=source_message(
+        {0,false,false,{}},original_objects);
+    const auto planned_source_ribbon=
+        rloft::OriginalFeedbackRibbonText::prepare(
+            font.widths,source_ribbon_text,
+            []()->std::uint16_t{return 0U;});
+    assert(!planned_source_ribbon.tiles.empty());
+    const int first_source_tile=planned_source_ribbon.tiles.front().column;
+    assert(first_source_tile>=0 && first_source_tile<320);
+
     fire({0,false,false,{}});
     assert(tick_observations==1);
     assert(shared_rng.state()==0x76543210U);
     assert(sequence.f790_event_count()==1U);
-    assert(framebuffer.pixels().at(0x62U*320U+0x44U)==10U);
+    assert(framebuffer.pixels().at(
+        0x62U*320U+static_cast<std::size_t>(first_source_tile))==10U);
 
     // Prebuilt 759C feedback takes priority over even an invalid
     // local item ID; pending feedback does not reseed from 30700.
@@ -249,7 +266,10 @@ int main() {
     fire({-1,false,false,{}});
     assert(sequence.f790_event_count()==3U);
     assert(shared_rng.state()==after_pending);
-    assert(framebuffer.pixels().at(0x62U*320U+0x44U)==0x40U);
+    // Verify empty F790 restored the ACTUAL earlier ribbon position,
+    // not an unrelated background pixel.
+    assert(framebuffer.pixels().at(
+        0x62U*320U+static_cast<std::size_t>(first_source_tile))==0x40U);
     sequence.leave_modal();
 
     // Full synthetic 117A0 transaction: 11630 draws 759C at 1173B

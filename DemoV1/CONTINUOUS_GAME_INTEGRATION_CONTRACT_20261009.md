@@ -1,5 +1,9 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+## 2026-10-10 Full #653 209/210 CTests: correct F66C test position
+
+[Windows Full #653](https://github.com/Hyperbog/RLOFT/actions/runs/38079341409) compiled all native targets and passed **209/210** registered CTests; `original_f790_runtime_description_tests` expected F66C frame-zero at x=`0x44`, copied from an unrelated AA/80-pixel-font synthetic test. The authentic mutable POUCH source text has a different width, so original F681 computes a different first-cap location. Corrected regression to assert the actual source-message-derived F66C tile and same-pixel empty restore with RNG-free test planning. **Fix unbuilt; no original gameplay code modified, no DOS parity increase.** [Full #653 finding](FULL_WINDOWS_BUILD_653_F66C_TEST_FIX_20261010.md). The 210-test registry is unchanged. Manual CI only.
+
 ## 2026-10-10 source-proof of actor-toggle original F790 event (11B63)
 
 Independently confirmed original `12F8F→11AD8` actor panel click source and `11B63→F790` event against immutable CODE.2, including exact native-matching hit rectangle. Found two original 11AD8 paths: bit-2 actor-mode propagation to all four panels versus normal one-actor toggle; both repaint actors then invoke one F790 global-held event. Native currently exposes only the single-actor path and does not prove DOS input flag 2 or live F790; no speculative gameplay change was committed. [Source gate/handoff](LEVEL22_F790_ACTOR_TOGGLE_SOURCE_CONTRACT_20261010.md). Existing CI/native/DOS acceptance unchanged.
