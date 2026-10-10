@@ -24,6 +24,10 @@ A strict local C++17 regression passed category branches, signed byte -2 and -12
 
 **194 registered CTests when Python is available**, up from 192. Latest actually completed Windows Full #651 passed 182/182 at an earlier revision. Current source is not Windows-built or user-accepted; no Level22 completion, original DOS parity or readiness percentage increase. Manual Windows builds require user permission.
 
+## Follow-on authentic resource closure
+
+Original CODE.2 LE data object 2 is physically at 0x75F24; original DS literals and pointer 6D98→598 and TEXT indexes 3D/3E/40/41 were independently recovered. Initial ten-byte container descriptors at 7330, F5F8 recursion and 67EC variant table are available through a source-verified parser. The new OriginalF790ResolvedDescription binds all immutable string labels and numeric branches with an **injected current nested-container weight**, rather than replaying stale initialized slot arrays. [Source identity, exact texts, tests and acceptance gates](LEVEL22_F790_AUTHENTIC_DATA_T_RESOURCES_20261010.md). Live event/raster integration remains deferred.
+
 ## Next source gates
 
 Resolve the original DS string storage/pointer initialization and decrypted T lookup for F790, plus the F5F8 nested-weight recursion and 0x7332/0x67EC tables from original startup/game-state data. Verify all original 17 F790 event-call argument contexts, wire a single event-owned rendering sequence with `ExplorationRuntime::original_random_`, then request a manual Windows build and original-DOS indexed-pixel/time comparison. No independent Level23 work or modernization.
