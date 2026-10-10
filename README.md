@@ -5,6 +5,7 @@ This branch owns the **game-agnostic DOS executable disassembler** and its indep
 ## Start here
 
 - [DOSDis project README](Tools/Disassembler/README.md) — supported formats, .NET/WPF components, validation gates and usage
+- [Current DOSDis checkpoint](Tools/Disassembler/docs/CURRENT_CHECKPOINT.md) and [continuous-improvement playbook](Tools/Disassembler/docs/CONTINUOUS_IMPROVEMENT_PLAYBOOK.md) — fastest evidence-backed resume path and accumulated defect-prevention lessons
 - [Independent verification policy](Tools/Disassembler/docs/INDEPENDENT_VALIDATION_POLICY.md) and [G2 validation record](Tools/Disassembler/docs/G2_STRAHD_ORIGINAL_VALIDATION_RECORD_20261010.md)
 - [Shared RLOFT project index](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/INDEX.md) — links to native game, executable reconstruction and other workstreams
 - [Branch ownership](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/BRANCH_OWNERSHIP.md) and [shared CODE sync register](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/SHARED_SOURCE_REGISTER.md)
