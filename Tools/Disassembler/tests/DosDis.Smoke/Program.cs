@@ -2068,6 +2068,58 @@ try
         Equal(gapOverwriteDenied, true, "ranked gap exports cannot replace prior evidence");
     }
     finally { Directory.Delete(gapDir, recursive: true); }
+    // An original-file-backed routine without an incoming candidate
+    // edge must remain unknown until explicitly analyst-seeded. The
+    // default long-gap ranking may hide it, but the short-span summary
+    // and the --min-gap-bytes override must reveal its existence.
+    // This is a generic synthetic LE code-island test, not a copy of
+    // any game's instruction sequence.
+    var islandBytes = MakeFixture(false);
+    Dword(islandBytes, 0x80 + 0xc4, 0x100);
+    Dword(islandBytes, 0x80 + 0x2c, 0x100);
+    new byte[] {
+        0xB8, 0x01, 0, 0, 0,       // 1:0040 MOV EAX,1
+        0xE8, 0x26, 0, 0, 0,       // 1:0045 CALL 1:0070
+        0xC3                         // 1:004A RET
+    }.CopyTo(islandBytes, 0x200 + 0x40);
+    islandBytes[0x200 + 0x70] = 0xC3;
+    var islandImage = LeImage.Load(BinaryArtifact.FromBytes(islandBytes));
+    var unseededIsland = ControlFlowAnalysis.Analyze(islandImage);
+    Equal(unseededIsland.Instructions.Any(i =>
+        i.Address == new FlowAddress(1, 0x40)), false,
+        "orphan LE routine is not promoted by scanning unknown bytes");
+    var hiddenIsland = ExecutableGapAnalysis.Analyze(
+        unseededIsland, islandImage, minimumGapBytes: 256);
+    Equal(hiddenIsland.Gaps.Count, 0,
+        "default 256-byte minimum does not rank the short unknown island");
+    Equal(hiddenIsland.UnknownSpans64To255 > 0, true,
+        "short unknown spans remain visible in default report statistics");
+    Equal(hiddenIsland.UnknownBytes64To255 >= 0x4B, true,
+        "short unknown byte totals include the complete unseeded routine");
+    var visibleIsland = ExecutableGapAnalysis.Analyze(
+        unseededIsland, islandImage, minimumGapBytes: 64);
+    Equal(visibleIsland.Gaps.Any(g => g.Begin.Offset <= 0x40 &&
+        g.EndExclusive > 0x4A), true,
+        "optional 64-byte minimum ranks the otherwise hidden code island");
+
+    var seededIsland = ControlFlowAnalysis.Analyze(islandImage, seeds: new[]
+    {
+        new FlowAddress(1, 0), new FlowAddress(1, 0x40)
+    });
+    Equal(seededIsland.Instructions.Any(i =>
+        i.Address == new FlowAddress(1, 0x45) &&
+        i.OriginalBytes == "E826000000"), true,
+        "explicit source-backed LE island seed decodes its real E8 bytes");
+    Equal(seededIsland.Edges.Any(e => e.Kind == "call" &&
+        e.Source == new FlowAddress(1, 0x45) &&
+        e.Destination == new FlowAddress(1, 0x70)), true,
+        "orphan-island near call destination is independently decoded");
+    Equal(seededIsland.Seeds.Count, 2,
+        "analyst seed remains a visible distinct code-discovery hypothesis");
+    Equal(seededIsland.Instructions.Any(i =>
+        i.Address == new FlowAddress(1, 0x40) &&
+        i.Evidence.Contains("candidate")), true,
+        "explicitly seeded orphan is still candidate, not proven runtime code");
     Console.WriteLine("PASS: ranked unknown executable gap accounting and source-backed evidence");
     Equal(graph.Ranges.Any(r => r.Begin <= 6 && r.EndExclusive >= 10 && r.Classification == "protected-data"), true,
         "analyst protected literal preserved");
