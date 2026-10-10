@@ -7,13 +7,15 @@
 
 namespace rloft {
 
-// A record that passed through original CODE.2 materializer
-// 330E7,33278,3337F,33487. Native empty_record() placeholders
-// MUST NOT be silently claimed to be original materialized rays.
+// One original 28-byte ray record in producer order. It is EITHER
+// a 330E7/33278/3337F/33487 source materializer OR a source 32F4C
+// sentinel writer (NO nearest 22220 update). Unknown native fixture
+// provenance must not be treated as either original execution path.
 struct OriginalGroundMaterializedRay final {
     std::int32_t depth_at_15a18{};
     std::uint32_t main_resource_at_15a20{};
     bool original_materializer_executed{};
+    bool original_sentinel_initializer_executed{};
 };
 
 struct OriginalGroundNearest22220 final {
@@ -21,6 +23,7 @@ struct OriginalGroundNearest22220 final {
     std::size_t sentinel_zero_resets{};
     std::size_t signed_min_updates{};
     std::size_t materialized_ray_count{};
+    std::size_t source_sentinel_fill_count{};
 };
 
 class OriginalGroundNearest22220SourceModel final {
@@ -40,6 +43,17 @@ public:
         OriginalGroundNearest22220 out{};
         out.nearest_depth=kInitialNearest;
         for(const auto& ray:rays) {
+            if(ray.original_sentinel_initializer_executed) {
+                // Original CODE.2 32F4C fills 28-byte ray slot with
+                // depth 0, main/outer 0x93 and zero remaining words.
+                // It DOES NOT read or write nearest global 22220.
+                if(ray.original_materializer_executed ||
+                   ray.depth_at_15a18!=0 ||
+                   ray.main_resource_at_15a20!=kEmptyMainResource)
+                    return std::nullopt;
+                ++out.source_sentinel_fill_count;
+                continue;
+            }
             if(!ray.original_materializer_executed)
                 return std::nullopt;
             // Original record+8 (main), not dormant alternate/prepass.

@@ -7,6 +7,10 @@ After Full #658 authentic 64/64 native open-field `RES4[655]` ground activation,
 
 
 
+## 2026-10-10 original 22220 replay accepts source 32F4C no-op without fabricating wall zero
+
+Isolated source-ordered `OriginalGroundNearest22220SourceModel` now handles original 32F4C sentinel-filled ray slots as a **no-op** on mutable nearest-depth 22220, while four verified materializer tails retain their signed min and active-main-0x93 zero-reset semantics. Original 32F4C writes record depth 0 and main 0x93 but never changes 22220. A source sentinel after a 256-depth materialized wall therefore preserves **256**; a source-materialized 0x93 instead resets to **0**. Invalid/unknown provenance and contradictory slot fields fail closed. Expanded exact C++/Python source oracle assertions; no Win32 gameplay callsite changed and no DOS parity accepted. [Updated source 32F4C evidence](LEVEL22_ORIGINAL_32F4C_SENTINEL_SOURCE_AUDIT_20261010.md). Authorized Windows compilation still outstanding.
+
 ## 2026-10-10 original 32F4C sentinel-ray writer distinguished from 22220 materializers
 
 New original-byte audit proves **CODE.2 32F4C is itself an original 63-byte 28-byte-slot sentinel initializer**, reached by original left `32C2F` and right `32D19` E8 callers. It sets slot depth=0, both material IDs=0x93 and remaining fields=0, but **does not write global 22220**. Native `empty_record()` mirrors this original routine, so 'native invented placeholder' was an inaccurate description. Added separate `original_sentinel_initializer_executed` flag; native 22220 materializer flag remains false, with read-only three-class renderer TSV provenance, traversal/capture regressions and independent immutable original-byte oracle. No gameplay effect or FPS/pixel/IRQ/RNG change. [Full original-source evidence](LEVEL22_ORIGINAL_32F4C_SENTINEL_SOURCE_AUDIT_20261010.md). New Windows build/testing and original DOS parity pending; CI manual-only.

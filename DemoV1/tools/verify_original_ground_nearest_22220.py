@@ -36,10 +36,12 @@ def native()->None:
     cm=(ROOT/"DemoV1/CMakeLists.txt").read_text()
     for part in ("OriginalGroundNearest22220SourceModel", "original_materializer_executed",
                  "main_resource_at_15a20", "depth_at_15a18",
-                 "out.nearest_depth=0", "ray.depth_at_15a18<out.nearest_depth"):
+                 "out.nearest_depth=0", "ray.depth_at_15a18<out.nearest_depth",
+                 "original_sentinel_initializer_executed", "source_sentinel_fill_count"):
         assert part in h,part
     for part in ("Ray{700,0x93U,true}", "Ray{-7,42U,true}",
-                 "original_materializer_executed=false", "count=256U"):
+                 "original_materializer_executed=false", "count=256U",
+                 "Ray{0,0x93U,false,true}", "filler->nearest_depth==256"):
         assert part in t,part
     assert "NAME original_ground_nearest_22220_tests" in cm
     assert "NAME original_ground_nearest_22220_binary_contract_tests" in cm
