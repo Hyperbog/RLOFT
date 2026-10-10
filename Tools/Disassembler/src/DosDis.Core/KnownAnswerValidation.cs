@@ -20,7 +20,7 @@ public sealed record KnownAnswerManifest(
 /// Expected original source bytes and optional externally researched
 /// decoder flow category. The latter is a canonical Iced FlowControl
 /// name, not arbitrary formatted assembly text.
-</summary>
+/// </summary>
 public sealed record KnownInstructionExpectation(
     FlowAddress Address, string OriginalHex, string EvidenceId,
     string? ExpectedFlowControl = null);
@@ -32,7 +32,8 @@ public sealed record KnownFixupExpectation(
     FlowAddress Source, FlowAddress Target, string EvidenceId);
 
 public sealed record KnownAnswerFinding(
-    string Category, FlowAddress Address, string Status, string EvidenceId);
+    string Category, FlowAddress Address, string Status, string EvidenceId,
+    string? DetailCode = null);
 
 public sealed record KnownAnswerValidationReport(
     string Format, int SchemaVersion, string GameId, string Module,
@@ -151,28 +152,31 @@ public static class KnownAnswerValidator
         foreach (var expected in manifest.VerifiedInstructions)
         {
             string state = "not-observed";
+            string? detail = "candidate-not-decoded";
             if (instructions.TryGetValue(expected.Address, out var found))
             {
-                bool originalMatches = false;
                 int expectedLength = expected.OriginalHex.Length / 2;
+                bool originalBacked = false;
+                bool originalMatches = false;
                 if (expected.Address.Object >= 1 &&
                     expected.Address.Object <= image.Objects.Count &&
                     (ulong)expected.Address.Offset + (uint)expectedLength <=
-                        image.Objects[expected.Address.Object - 1].VirtualSize &&
-                    found.Length == expectedLength)
+                        image.Objects[expected.Address.Object - 1].VirtualSize)
                 {
                     try
                     {
+                        var stored = image.ReadStoredBytes(
+                            expected.Address.Object, expected.Address.Offset,
+                            expectedLength);
+                        originalBacked = true;
                         originalMatches = string.Equals(
-                            Convert.ToHexString(image.ReadStoredBytes(
-                                expected.Address.Object, expected.Address.Offset,
-                                expectedLength)), expected.OriginalHex,
+                            Convert.ToHexString(stored), expected.OriginalHex,
                             StringComparison.OrdinalIgnoreCase);
                     }
                     catch (InvalidDataException)
                     {
-                        // A virtual-only or otherwise unmapped original byte
-                        // is contradictory evidence, never a known-answer match.
+                        // A virtual-only original span is not a verified
+                        // instruction even if the graph labels it code.
                     }
                 }
                 bool rowMatches = string.Equals(
@@ -181,11 +185,17 @@ public static class KnownAnswerValidator
                 bool flowMatches = expected.ExpectedFlowControl is null ||
                     string.Equals(found.FlowControl, expected.ExpectedFlowControl,
                         StringComparison.Ordinal);
-                state = originalMatches && rowMatches && flowMatches
-                    ? "match" : "conflict";
+                detail = !originalBacked ? "original-span-not-file-backed"
+                    : !originalMatches ? "oracle-hex-disagrees-with-original-file"
+                    : found.Length != expectedLength ? "decoded-instruction-length-mismatch"
+                    : !rowMatches ? "graph-row-hex-disagrees-with-oracle"
+                    : !flowMatches ? "decoded-flow-class-disagrees-with-oracle"
+                    : null;
+                state = detail is null ? "match" : "conflict";
             }
             findings.Add(new KnownAnswerFinding(
-                "verified-instruction", expected.Address, state, expected.EvidenceId));
+                "verified-instruction", expected.Address, state,
+                expected.EvidenceId, detail));
         }
         foreach (var expected in manifest.VerifiedNonCode)
         {
