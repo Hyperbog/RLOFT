@@ -343,10 +343,14 @@ and the same benchmark definition before assigning a shared sample
 identity. Extremely short byte windows have low entropy; retain
 full original-byte sample evidence privately.
 
-Synthetic-only source changes also create a second COM artifact with
+Synthetic-only source changes create a second COM artifact with
 an altered unbenchmarked gap while preserving both observed
 instructions. Its whole-file and mapped-region hashes differ,
-but the benchmark byte fingerprint must be identical. A deliberately
+but the benchmark byte fingerprint must be identical. A second pair
+of synthetic MZ files shares its entire resident launcher and
+benchmarked instruction bytes while differing only in an unbacked
+trailing overlay byte: the files' full SHA hashes MUST differ
+while both scoped digests MUST agree. A deliberately
 incorrect oracle hex must not change that source digest. All new
 hash fields and regression cases are **SOURCE ONLY, NOT BUILT OR
 EXECUTED** since the last authorized run #40.
