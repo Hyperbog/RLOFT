@@ -3,6 +3,7 @@
 #endif
 #include "rloft/original_f790_runtime_event.hpp"
 #include "rloft/original_f790_ordinary_slot_event_plan.hpp"
+#include "rloft/original_f790_ordinary_slot_dispatch.hpp"
 
 #include <array>
 #include <cassert>
@@ -274,8 +275,38 @@ int main() {
     assert(plan.at(0).owned_text_759c=="FIREBALL LEARNED!");
     assert(plan.at(1).owned_text_759c==plan.at(0).owned_text_759c);
     const auto before_scribe_ticks=tick_observations;
-    for(std::size_t i=0;i<plan.count;++i)
-        fire(plan.at(i).arguments_now());
+    // Native batch boundary: validate ALL original 117A0 F790 source
+    // events before touching the saved page, shared RNG or IRQ observer.
+    using Batch=rloft::OriginalF790OrdinarySlotDispatch;
+    const auto before_bad_rng=shared_rng.state();
+    const auto before_bad_events=sequence.f790_event_count();
+    auto malformed=plan;
+    malformed.events[1].source_e8_offset=0x1178eU;
+    bool rejected_pair=false;
+    try {
+        (void)Batch::dispatch(malformed,sequence,framebuffer,
+            original_objects,parsed,inventory,original_code2,original_t,
+            ribbon,font,shared_rng,source_tick);
+    } catch(const std::invalid_argument&) {rejected_pair=true;}
+    assert(rejected_pair && sequence.f790_event_count()==before_bad_events);
+    assert(shared_rng.state()==before_bad_rng);
+    assert(tick_observations==before_scribe_ticks);
+
+    malformed=plan;
+    malformed.events[1].item_id=74; // Original 1184A pushes -1
+    rejected_pair=false;
+    try {
+        (void)Batch::dispatch(malformed,sequence,framebuffer,
+            original_objects,parsed,inventory,original_code2,original_t,
+            ribbon,font,shared_rng,source_tick);
+    } catch(const std::invalid_argument&) {rejected_pair=true;}
+    assert(rejected_pair && sequence.f790_event_count()==before_bad_events);
+    assert(shared_rng.state()==before_bad_rng);
+
+    const auto dispatched=Batch::dispatch(
+        plan,sequence,framebuffer,original_objects,parsed,inventory,
+        original_code2,original_t,ribbon,font,shared_rng,source_tick);
+    assert(dispatched==2U);
     assert(sequence.f790_event_count()==2U);
     assert(tick_observations==before_scribe_ticks);
     const auto two_draw_rng=shared_rng.state();
