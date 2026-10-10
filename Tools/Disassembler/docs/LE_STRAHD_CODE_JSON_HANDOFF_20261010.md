@@ -136,3 +136,40 @@ test run, workflow dispatch, generated artifact or original-file
 acceptance. The code must pass the separately authorized manual
 Windows G2 test gate before marking any new result compiled or
 synthetically verified.
+
+## Subsequent source-only integrity hardening
+
+A further static audit found two independent acceptance risks:
+
+1. **Alternate analyst seeds bypass a guard.** A candidate
+   `CMP -> JA -> [MOVZX] -> indexed JMP` sequence can exist in
+   source bytes even when the analyst seeds the MOVZX or indexed JMP
+   as a separate executable-entry hypothesis. The guard does not
+   dominate that entry. The bounded-index recognizer now explicitly
+   refuses bound promotion when the indexed jump, or its intermediary
+   MOVZX, is independently seeded. Regressions exercise both seed
+   orders, direct `CMP EAX` and byte `CMP AL` variants. The generic
+   analyzer still does **not** implement a complete dominator model
+   for all future discovered alternate paths, so runtime index bounds
+   remain candidate evidence.
+2. **Gap totals can conceal a forged overlap/hole.** The prior
+   `ExecutableGapAnalysis` checked total executable bytes, but
+   overlapping ranges and a compensating missing byte can preserve
+   that total. Every executable object is now checked for an exact
+   source-object-local `[0, VirtualSize)` partition, with no
+   overlapping or unclassified offsets. This is independent of
+   ranking thresholds and accepts any ordering of serialized ranges.
+   Regression tests deliberately create an overlap and a hole while
+   keeping the old aggregate count unchanged; the ledger must reject
+   the input before publishing statistics.
+
+A byte-width guarded-table test also now covers the six-byte
+`0F 87 rel32` near unsigned JA encoding, in addition to the
+original two-byte `77 rel8` form. Both are expected to preserve
+the same source-backed selected entry count and the correct
+original default edge.
+
+These changes are **source only**, with no new compiler or CI
+evidence. In particular, do not report the original Strahd
+`1:F8CC` table as newly verified until the authorized Windows
+regression suite and an original-source re-export are checked.
