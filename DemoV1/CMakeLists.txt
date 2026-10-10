@@ -82,7 +82,13 @@ if(Python3_Interpreter_FOUND)
         NAME original_ground_vga_page_base_reference_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_vga_page_refs.py")
-    # Deliberately source-only: batches eleven existing Python contracts.
+    # Original 334C4 full prepass, 335C8 22220 reset and 32954 cache gate.
+    # Source-only pure model by default; independent immutable CODE.2 optional.
+    add_test(
+        NAME original_ground_cache_hit_22220_boundary_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_cache_hit_22220.py")
+    # Deliberately source-only: batches twelve pinned Python contracts.
     # ORIGINAL binary evidence requires explicit, identity-verified
     # CODE.2 and SINTAB supplied outside CI and is NOT inferred here.
     add_test(
