@@ -156,6 +156,7 @@ INDEPENDENT ACCURACY EXIT (MANDATORY): predeclared x86-16 instruction,
 CFG/guard and dataflow samples checked against independent instruction
 decoding and independently researched machine-byte/ISA expectations;
 record exact commit, binary SHA, mismatch and unsupported/unknown counts.
+Exact predeclared scope: docs/INDEPENDENT_VALIDATION_G2_PREDECLARED_SCOPE.md.
 If external comparison cannot be performed, keep G2's COMPILED/SYNTHETIC
 states separate and label independent correctness acceptance PENDING.
 
@@ -1042,3 +1043,41 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   CI or release has occurred. G1 #35 remains the last COMPILED /
   SYNTHETIC VERIFIED Windows source baseline, not an independent
   current-HEAD certification. Manual-only authorization preserved.
+
+2026-10-10 | Independent oracle framework first implementation checkpoint:
+- Source-only audit found KnownAnswerValidator accepted instruction
+  "match" if the supplied reference hex matched a caller-supplied
+  graph row, without separately comparing the row and expectation
+  against immutable original LE source bytes at the mapped object
+  offset. A forged same-SHA graph row plus forged manifest text
+  could create false source-backed matches.
+- Tightened each observed known-instruction comparison: expected
+  byte length must equal decoded length; original bytes must be
+  file-backed at the declared LE object:offset and equal the
+  predeclared reference; graph row hex must independently match;
+  optional canonical ExpectedFlowControl (Iced FlowControl category)
+  permits explicitly sourced control-flow classification checks.
+  Matches remain candidate comparison, NOT certified decoding.
+- Added stable KnownAnswerFinding.DetailCode for disagreements
+  (unbacked source, mismatched original bytes, wrong length, wrong
+  graph bytes, wrong flow class, not observed). Preserved earlier
+  report shape via an additive optional record field.
+- Refuse duplicate expected instruction starts, flow edges and
+  relocation pairs, overlapping expected non-code spans, and
+  instruction expected spans contradicting asserted non-code.
+  These could previously inflate matching denominators.
+- New synthetic negative source fixtures cover matching forged
+  graph+manifest hex with original mismatch, modified instruction
+  length, alternate FlowControl, unknown flow category, duplicate
+  decoded rows, duplicated manifest assertions and contradictory
+  code/non-code expectations. Source fixtures not executed.
+- Added a predeclared G2 scope matrix for x86-16 independent
+  decoder/spec/original-byte comparisons:
+  docs/INDEPENDENT_VALIDATION_G2_PREDECLARED_SCOPE.md.
+  G2 accuracy remains PENDING; a source-byte check by DOSDis
+  itself does not substitute for a second decoder or reviewer.
+- This is a SOURCE-ONLY policy implementation. No CI dispatch,
+  Windows compilation, synthetic execution, external Capstone/
+  Ghidra run, original-file re-export or accuracy acceptance.
+  The manual-only workflow is unchanged. Last verified Windows
+  G1 #35 tested SHA 9f605e36581b2c6db72a6a47248ea5af31611506.
