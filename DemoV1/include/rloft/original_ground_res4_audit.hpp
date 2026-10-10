@@ -21,12 +21,15 @@ struct OriginalGroundRes4Candidate final {
     std::uint8_t transform{};
     std::uint8_t transparent_index{};
     std::uint32_t decoded_fnv1a32{}; // noncryptographic triage checksum
+    std::uint8_t original_eh_type{1U}; // 1=EH1, 6=EH6 -> loaded runtime type1
 };
 
 struct OriginalGroundRes4Report final {
     int total_entries{};
     int type1_entries{};
     int rejected_type1_entries{};
+    int type6_entries{};
+    int rejected_type6_entries{};
     std::vector<OriginalGroundRes4Candidate> tiles_64x64;
 };
 
@@ -61,9 +64,11 @@ public:
         int source_relative_selector, int verified_runtime_base,
         int original_entry_count);
 
-    // For the 34A74 sampler: the CODE.2 loader provides a decoded
-    // resource body and 34AAC adds +2. The host prefixes an unused
-    // two-byte address spacer; actual 4096 texels remain unmodified.
+    // CODE.2 2ECB4 maps on-disk EH6 through 37590/37700 into a
+    // runtime type1 cache record (2EF38), so 2F29C can return its
+    // decoded block. Both original EH1 and EH6 paths can yield runtime
+    // type1. 34AAC skips the ORIGINAL two-byte block-length prefix;
+    // the 4096 palette indices are never substituted or fabricated.
     [[nodiscard]] static std::vector<std::uint8_t> verified_tile_source(
         const ResArchive& archive, int original_absolute_index);
 };
