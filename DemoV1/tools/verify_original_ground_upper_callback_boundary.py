@@ -49,6 +49,38 @@ def audit_original(path:Path)->None:
                       (0x34A8D,0x34AF6),(0x34A92,0x34B66)):
         assert obj[at]==0xA2
         assert struct.unpack_from("<I",obj,at+1)[0]==target
+    # Animated overlay 314B0 seeds an actual shared original LCG.
+    # 30700 is a READ of F58C (the interrupt entry 30708 is
+    # responsible for incrementing it); 30C9C returns fixed F6F4.
+    # 30CA2 and 30CC4 indirect [EAX] writes therefore have a
+    # statically resolved F6F4 destination, NOT a FF50 alias.
+    windows={
+        0x30700:"a18cf50000c3",
+        0x3071C:"ff058cf50000",
+        0x30C9C:"b8f4f60000c3",
+        0x30CA2:"e8f5ffffff",
+        0x30CAB:"69106d4ec641",
+        0x30CB1:"81c239300000",
+        0x30CB7:"8910",
+        0x30CC4:"e8d3ffffff",
+        0x30CCD:"8b5424048910",
+        0x314F7:"ff3558c60000",
+        0x3161A:"e8e1f0ffff",
+        0x31620:"e89ff6ffff",
+    }
+    for at,sig in windows.items():
+        want=bytes.fromhex(sig)
+        assert obj[at:at+len(want)]==want,hex(at)
+    # Reaffirm reseed/advance order using actual E8 destinations.
+    for call,dest in ((0x314FD,0x30CC4),
+                      (0x31532,0x30CA2),
+                      (0x3158D,0x30CA2),
+                      (0x315EA,0x30CA2),
+                      (0x3161A,0x30700),
+                      (0x31620,0x30CC4)):
+        assert obj[call]==0xE8
+        assert call+5+struct.unpack_from("<i",obj,call+1)[0]==dest
+    print("PASS: overlay facing/RNG/IRQ reseed and fixed F6F4 alias (12 windows)")
     print("PASS: 17 original callback E8 edges; 5 function boundaries")
     print("PASS: direct FF50 occurrences 0/0/0/2/0; 1F377 reload")
     print("UNRESOLVED: indirect aliases, transitive helpers and IRQ effects")
@@ -59,6 +91,10 @@ def audit_repository()->None:
     assert "NAME original_ground_upper_callback_boundary_tests" in cm
     for term in ("29B40","314B0","33E28","34A74","30700","1F377","indirect"):
         assert term in doc,term
+    native_rng=(ROOT/"DemoV1/src/original_random.cpp").read_text()
+    assert "0x41C64E6DU" in native_rng
+    assert "0x00003039U" in native_rng
+    assert "state_ *" in native_rng
     print("PASS: source callback evidence and CTest registration")
 
 if __name__=="__main__":

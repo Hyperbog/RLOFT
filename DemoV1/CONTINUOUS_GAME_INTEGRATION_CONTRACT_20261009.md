@@ -6,6 +6,10 @@ The native 256-ray traversal now distinguishes original CODE.2 `32F4C` sentinel 
 
 
 
+## 2026-10-10 animated upper overlay 314B0 reseeds shared RNG from facing and IRQ
+
+Verified 12 immutable original CODE.2 instruction windows: `30700` is a read-only getter for IRQ count `F58C` (handler `3071C` increments it); `30C9C` returns fixed pointer `F6F4`; `30CA2` advances and stores the original `0x41C64E6D/+0x3039` LCG; `30CC4` seeds **the same original `F6F4` state**. During original animated upper callback `314B0`, `314F7/314FD` seeds from facing `C658`, conditional `31532/3158D/315EA` calls advance RNG, then `3161A/31620` reads tick and reseeds from `F58C`. Thus these two computed `[EAX]` write aliases are **F6F4**, not FF50; other upper-renderer helpers remain open. Existing C++ OriginalRandom LCG constants match. This is an important source-driven **cross-render/gameplay RNG coupling**, not permission to guess frame timing; no code path wired or CI run. [Precise source/indirect alias contract](LEVEL22_FF50_UPPER_CALLBACK_BOUNDARY_AUDIT_20261010.md).
+
 ## 2026-10-10 CODE.2 upper callback near-call and FF50 alias boundary
 
 Audited exact native source upper callbacks `29B40/314B0/33E28/34A74` and graphic destination helper `2AB38`. Original source byte windows and **17 exact E8-rel32 destinations** were independently verified, including animated overlay `314B0→30700` original timer/IRQ source. Direct `FF50` literal operand counts are **0/0/0/2(reads)/0**, but computed-pointer and transitive helper/segment aliases still need closure. `34A74` additionally modifies four immediate instruction bytes in its own raster loop; `1F377` always reloads mutable post-upper `FF50`. Added bounded original-byte oracle and Python CTest. **No graphics or gameplay change, DOS parity pending, CI manual-only**. [Full source evidence](LEVEL22_FF50_UPPER_CALLBACK_BOUNDARY_AUDIT_20261010.md).
