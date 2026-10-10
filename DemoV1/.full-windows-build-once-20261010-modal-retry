@@ -1,1 +1,0 @@
-One authorized Full Windows retry after fixing a malformed quote in an opt-in diagnostic test, without altering any original gameplay code. Source baseline 338f4f180d5417853e3d689ca39ee8ceeb4e8e0f; run all 182 CTests.
