@@ -1,0 +1,101 @@
+DOSDIS G1 — BATCHED WINDOWS X86-16 VERIFICATION MATRIX
+====================================================
+Status: READY FOR OWNER AUTHORIZATION. NOT EXECUTED.
+Branch: disassembler-foundation
+Last successfully built preview (before this source batch):
+  GitHub Actions run 37887821656
+Reference roadmap: ROADMAP_BUILD_GATES.txt (Gate G1)
+
+SCOPE
+-----
+This single gate validates all source-only x86-16 guarded-dispatch
+changes accumulated since the last confirmed Windows preview. No game
+files are included in CI. No hosted action or local build is launched
+by creating this matrix.
+
+REQUIRED BUILD ACTION (only upon user approval)
+-----------------------------------------------
+- On the then-current source HEAD, compile in Release configuration:
+  DosDis.Core (through consuming projects), DosDis.Cli,
+  DosDis.Desktop, DosDis.Smoke, DosDis.ProjectSmoke.
+- Run the synthetic smoke suites only after successful compilation.
+- Fix problems in the SAME gate and rerun as needed. Capture actual
+  build commit, toolchain, test totals, failures and resolution commits.
+- If artifact publishing is requested, package desktop and CLI together
+  with source-commit provenance. Verify generated archive integrity.
+- Restore GitHub workflow to workflow_dispatch-only, including after
+  failure; no automatic push/PR builds.
+
+REQUIRED SYNTHETIC ACCEPTANCE CHECKS
+------------------------------------
+A. Existing near16 table baseline remains stable:
+   - CMP BX,imm8/imm16, JA/JAE not-taken range, near CS:[BX+disp16].
+   - CMP AX/CX/DX/SI/DI plus exact MOV BX,reg; wrong-copy rejection.
+   - Sign extension, signed condition, negative displacement and
+     wrap/backing checks.
+B. New unsigned branch directions:
+   - Short and near16 JB/JBE taken-edge selection; inclusive/exclusive
+     entry count correctly derived from original CMP.
+   - Both edges match original relative branch bytes, with a distinct
+     decoded non-dispatch exit.
+   - Wrong condition, bypass/merge, artificial extra edge, invalid
+     graph entry and tampered branch destination are rejected.
+C. Unique, byte-backed paths:
+   - NOP, JMP rel8 and JMP rel16 bridges with a bounded hop count.
+   - Altered source offsets/bytes, forged nonadjacent fallthrough,
+     competing predecessor, unsafe mutation and over-budget chain
+     do not authorize a candidate.
+D. Exact comparison/stride encodings:
+   - Accumulator CMP AX,imm16 (3D iw) plus proven MOV BX,AX.
+   - SHL BX,1, ADD BX,BX (both encodings), SHL BX,2, two linked
+     doublings for four-byte FAR pointers.
+   - Wrong register, single insufficient far doubling and large
+     immediate do not produce validated table targets.
+E. Pointer and storage evidence:
+   - Every near entry maps to source-backed same-segment storage.
+   - Every far entry has a unique exact MZ selector fixup and explicitly
+     requested load segment. Missing selector proof fails closed.
+   - Rejected data/code overlap yields no automatic CFG seeds.
+F. New reporting and graph-integrity checks:
+   - Forged instruction.FlowControl labels for RET/CMP/SHL/NOP
+     are rejected even when the byte stream is unchanged.
+   - Duplicate decoded starts return unresolved instead of throwing.
+   - The rejected conditional exit is byte-backed and unique.
+   - Rejected candidate has null EntryCount, null StoredTable,
+     and an explicit pointer-validator rejection reason.
+   - Truncated graph and >128 sites have distinct report indicators
+     and bounded per-site output without silent loss of totals.
+G. Unaffected functionality remains green:
+   - All existing synthetic LE page/fixup/CFG cases.
+   - DOS MZ/COM nested launcher separation and cross-segment checks.
+   - Project SQLite round-trip/backup, diagnostic privacy and CLI.
+   - Desktop compilation remains green; no manual UI testing is
+     needed unless G1 actually changes a user-visible behavior.
+
+OPTIONAL ORIGINAL-FILE PROBES (outside hosted CI)
+-------------------------------------------------
+1. CODE.1, CODE.2 only as explicitly consented local reads:
+   verify original SHA/length, nested MZ mapping, 16-bit launcher
+   selection with --dos-stub and candidate-only graph reporting.
+2. Representative authentic standalone DOS MZ and COM to check
+   false positives and bound handling (only if exact files accessible).
+3. FAR pointer/cross-segment probes need an explicitly supplied
+   load segment; never infer real runtime segment state from a name.
+No proprietary bytes are committed or shipped with the tool.
+
+FAIL-CLOSED / RELEASE BLOCKERS
+------------------------------
+- Compiler/smoke failure or an exception on deliberately malformed
+  graph input that should instead remain unresolved.
+- Reported verified executable reachability from candidate table entries.
+- Any source-identity mismatch accepted, original storage overwritten,
+  code/data conflict silently ignored, or missing MZ relocation accepted.
+- A public CI workflow left enabled on pushes/pull requests.
+- A status presented as tested when only static source review occurred.
+
+AFTER G1
+--------
+Log: exact compiled HEAD, Actions run/CLI output, actual test results,
+optional original hashes, any corrected source commit, unresolved risks
+and whether the gate passed. Do not mark SOURCE COMPLETE as COMPILED
+until the owner-authorized execution happens.

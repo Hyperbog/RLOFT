@@ -1,0 +1,1376 @@
+DOSDIS — SOURCE DEVELOPMENT ROADMAP AND BUILD-GATE POLICY
+Version: 1.1 | 2026-10-10
+Canonical branch: disassembler-foundation
+Source repository: https://github.com/Hyperbog/RLOFT
+Original DOS game collection: DnD-Classics / MASTER
+
+PURPOSE
+-------
+Advance substantial batches of game-agnostic reverse engineering work without
+building Windows previews or invoking CI after every small source checkpoint.
+Treat source commits, successful compilation, synthetic verification, original
+byte verification, and user GUI acceptance as DIFFERENT levels of evidence.
+
+POLICY (NORMATIVE)
+------------------
+1. "Continue" authorizes source editing, documentation, source-only regression
+   fixtures and commits. It does NOT authorize building, running tests, GitHub
+   Actions, publishing executables or modifying original game files.
+2. Build, execute tests, publish a preview or run CI ONLY after the owner
+   explicitly asks/approves. A roadmap gate marked READY is a request for
+   authorization, NOT permission to run the gate.
+3. Batch related changes (normally several coherent commits) before asking for
+   Windows execution. Stop earlier only for a significant runtime/ABI/schema
+   change, a safety concern, or a user request for an interactive preview.
+4. Every source-only commit receives lightweight STATIC review: original-byte
+   boundaries, overflow checks, null/malformed-input policy, public contracts,
+   source identity, status/evidence labels, bounds, documentation, regression
+   fixture creation, branch HEAD and workflow manual-only state.
+   Such checks are not compilation and MUST NOT be reported as tests passed.
+5. No proprietary game bytes or executable archive content in development
+   commits, synthetic fixtures, published artifacts or hosted CI. Known-answer
+   manifests are external comparison input only, never decoder seeds.
+6. The engine remains title/filename independent. Distinguish physical file
+   offsets, MZ module offsets, 16-bit segment:offset, LE object offsets and
+   simulated runtime addresses. Keep all inferred execution unverified.
+7. Owner-supplied original game collection is available in DnD-Classics/MASTER.
+   Ask for specific original files only when real-byte validation is blocked;
+   unavailable archives do not imply missing usable game files.
+8. Update this roadmap as evidence changes; do not silently call an item DONE
+   because source exists. Preserve rejected/unknown paths and missing coverage.
+9. INDEPENDENT VALIDATION IS A MANDATORY ACCEPTANCE REQUIREMENT for the
+   correctness/format portion of G2-G8 and for all first/final-release accuracy
+   claims. No test written from DOSDis's own outputs counts as an outside
+   correctness oracle. Use separately researched original-byte known answers,
+   published format/ISA semantics, and independently implemented decoders/
+   traces as appropriate; compare at the EXACT built SHA with provenance.
+   Failure, missing evidence or unexplained disagreement blocks independent
+   acceptance, not source editing or accurately reported build-only success.
+10. Apply docs/INDEPENDENT_VALIDATION_POLICY.md as the NORMATIVE oracle,
+    sampling, discrepancy, review and pass/fail contract. Use
+    docs/INDEPENDENT_VALIDATION_RECORD_TEMPLATE.md for each accepted scope.
+    Builds, original corpus execution and CI remain owner-authorized only.
+
+EVIDENCE STATES
+---------------
+PLANNED: scoped, no source change.
+IN PROGRESS: active implementation.
+SOURCE COMPLETE: committed; static review only; tests not run for that batch.
+COMPILED: owner-authorized Windows compile passed at the cited commit.
+SYNTHETIC VERIFIED: corresponding generated regression suites executed.
+ORIGINAL VERIFIED: exact-hash game source was checked and results recorded.
+GUI VERIFIED: the user exercised the named UI interaction successfully.
+INDEPENDENT VALIDATION PENDING: outside-oracle comparison not completed.
+INDEPENDENT VERIFIED: named feature/format scope passed independently authored
+  exact-source checks, mandatory negative cases, second evidence class and
+  discrepancy review at the cited compiled SHA; never a whole-image claim
+  unless a complete independently verified denominator exists.
+BLOCKED: concrete blocker and requested input recorded.
+DEFERRED: out of current release scope.
+
+BASELINE (at roadmap creation)
+------------------------------
+Latest branch HEAD before roadmap: cd0d7d9640b5e17698b125e16a1c00c99b556ef1.
+Last confirmed successful Windows build: GitHub Actions run 37887821656.
+That preview predates the newer 16-bit unique-path, JA/JAE/JB/JBE bounds,
+CMP AX,imm16 and two-stage far-pointer stride source changes.
+The user manually confirmed four GUI cases from the last build:
+last Open Binary folder, Replace/Keep both/Cancel, numbered names, and
+application remaining open after dismissing dialogs.
+Recent 16-bit source work is SOURCE COMPLETE, not yet compiled/tested.
+Prior overall "43%" estimate was approximate, NOT a measured coverage metric.
+Do not manufacture a new percentage; measure coverage per format and gate.
+
+PHASE 0 — FOUNDATION AND REGRESSION CONTROL (ACTIVE, SOURCE-ONLY)
+----------------------------------------------------------------
+R0.1 Keep repo contract, source-hash evidence and supported format matrix current.
+R0.2 Maintain positive, negative, malformed, truncation, collision, source-offset
+     and adversarial graph mutation cases using exclusively synthetic bytes.
+R0.3 Keep manual-only GitHub workflow and fixed Windows build recipe; ensure
+     smoke suites return nonzero on any assertion failure.
+R0.4 Record last compiled HEAD, original validation hashes, release artifacts
+     and manual GUI acceptance separately from today's source HEAD.
+R0.5 Add a compact machine-readable checkpoint ledger only if it can be
+     maintained without automatically executing code or duplicating facts.
+R0.6 Maintain independently sourced known-answer expectations, alternate
+     decoder/standard comparisons and reviewed disagreement records; never
+     derive the expected result from the same DOSDis output being checked.
+Exit: documented reliable baseline and no unsupported verification claims.
+Gate: NONE. Documentation and fixtures do not justify standalone builds.
+
+PHASE 1 — COMPLETE P0 X86-16 GUARDED DISPATCH BATCH (ACTIVE)
+------------------------------------------------------------
+R1.1 Review the accumulated uniquely backed NOP/near-JMP chains,
+     original-instruction bytes and exact predecessor proof.
+R1.2 Review the unsigned JA/JAE not-taken and JB/JBE taken semantics,
+     including short/near16 encodings and inclusive/exclusive counts.
+R1.3 Review register copies, CMP AX,imm16 accumulator form and BX scaling
+     by SHL and ADD; validate two-step four-byte FAR table scaling.
+R1.4 Audit off-by-one, zero/wrap, graph entry, signed-immediate,
+     mutation-of-flags, out-of-range, competing predecessor and code/data
+     overlap rejection. Verify source-relative pointer offsets.
+R1.5 Refactor duplicated validation WITHOUT making edge/candidate promotion
+     implicit; add regression fixtures for any discovered boundary.
+R1.6 Normalize per-site reasons and evidence provenance; distinguish no
+     candidate, unsupported format, truncated analysis and rejected data.
+Exit: all P0 16-bit guarded-dispatch cases source complete, static-audited,
+negative tests written, no game-specific constants.
+Next gate: G1, but only after a worthwhile contiguous set of R1 work is ready.
+
+G1 — WINDOWS X86-16 INTEGRATION GATE (OWNER AUTHORIZATION REQUIRED)
+-------------------------------------------------------------------
+One manually requested Windows build of desktop, CLI and both synthetic suites;
+validate previous and new x86-16 fixtures together. If a failure occurs, fix
+the source and rerun THIS GATE, not a new build for each isolated fix.
+When available, perform optional exact-source smoke probes on original MZ/COM
+and CODE.1/CODE.2 DOS launcher bytes. Do not put originals into CI.
+Deliver SHA-labeled artifacts only if requested; record evidence in roadmap.
+Fail condition: compiler error, regression, unsafe inferred target, unsupported
+binary silently decoded, or provenance lost.
+
+PHASE 2 — GENERAL-PURPOSE 16-BIT VALUE/RANGE ANALYSIS (P0)
+----------------------------------------------------------
+R2.1 Introduce a bounded abstract value domain: unknown, validated constant,
+     unsigned interval and small finite set, with provenance at each origin.
+R2.2 Implement exact x86-16 transfer functions for a small explicit opcode
+     subset; kill values on partial register writes, alias/memory writes,
+     flags clobber, unknown interrupts and unsupported transfers.
+R2.3 Compute CFG predecessor merges with monotone convergence and iteration,
+     block, path and memory budgets; widen to unknown rather than inventing
+     dominance or infinite loop certainty.
+R2.4 Restrict table-index mapping to proven bounds/stride and immutable
+     file-backed entries; model a clear code/data conflict ledger.
+R2.5 Keep intersegment state and runtime selector/loading hypotheses separate.
+R2.6 Add synthetic positive/negative joined-branch, loops, aliases,
+     signed/wrap, stale edge and path-explosion fixtures.
+Exit: stable source-bound candidate semantics that never auto-seed the CFG.
+Gate: G2 after several coherent subfeatures; ask owner before execution.
+
+G2 — RANGE DATAFLOW ACCEPTANCE (OWNER AUTHORIZATION REQUIRED)
+-------------------------------------------------------------
+Compile, run synthetic tests, compare before/after candidate output on a
+representative corpus, inspect newly accepted AND newly rejected targets;
+original-file validation only if exact bytes are available. Investigate
+regressions before approving broader format work.
+INDEPENDENT ACCURACY EXIT (MANDATORY): predeclared x86-16 instruction,
+CFG/guard and dataflow samples checked against independent instruction
+decoding and independently researched machine-byte/ISA expectations;
+record exact commit, binary SHA, mismatch and unsupported/unknown counts.
+Exact predeclared scope: docs/INDEPENDENT_VALIDATION_G2_PREDECLARED_SCOPE.md.
+First source-only comparator: docs/X86_16_EXTERNAL_ORACLE_COMPARISON.md;
+this does NOT run a second decoder, check operand semantics, compile
+the current source or permit independent gate acceptance by itself.
+If external comparison cannot be performed, keep G2's COMPILED/SYNTHETIC
+states separate and label independent correctness acceptance PENDING.
+
+PHASE 3 — DOS MZ, COM, CROSS-SEGMENT AND OVERLAY COMPLETENESS (P0)
+------------------------------------------------------------------
+R3.1 Extend optional load-base/rebased view correctness and x86-16 indirect
+     CALL/JMP recovery without inventing DOS runtime register values.
+R3.2 Reconcile same-file physical byte ownership across segmented graphs;
+     explicit alias/overlap diagnostics and bounded continuation policy.
+R3.3 Complete source-backed TPOV and both FBOV envelope variants where
+     format evidence supports it; avoid assuming opaque fixup semantics.
+R3.4 Separate resident executable, overlay code, opaque relocation/fixup
+     spans and original disk offsets in all maps and exports.
+R3.5 Keep COM origins explicit; research DOS drivers only behind a separate
+     analyst-supplied load/calling-convention context.
+R3.6 Add synthetic MZ relocation edge cases, standalone/wrapped MZ,
+     COM, TPOV, FBOV, cut-off records and adversarial offsets.
+Exit: bounded loader and overlay safety contract source complete.
+Gate: G3 original-byte acceptance on a small cross-title set.
+
+G3 — ORIGINAL DOS BINARY / OVERLAY GATE (OWNER AUTHORIZATION REQUIRED)
+----------------------------------------------------------------------
+Run synthetic Windows regression first; then request only necessary exact
+originals, preferably the following already documented fixture families:
+Hillsfar MAIN.EXE, a Gold Box START.EXE plus paired GAME.OVR, a second
+TPOV/FBOV variant, Dark Sun DSUN.EXE and a headerless SOUND.COM.
+Check loader maps, fixups, original offsets, UNKNOWN statuses and
+SHA-bound artifact identity. No hardcoded game-specific decoder branches.
+INDEPENDENT ACCURACY EXIT (MANDATORY): compare exact-hash samples and
+negative controls against published loader-format rules and independently
+checked physical/segment/overlay offsets and fixup expectations. Record
+every unsupported variant; no source-derived guess qualifies.
+
+PHASE 4 — LE/X86-32 ENGINE AND VALIDATION QUALITY (P0)
+------------------------------------------------------
+R4.1 Audit LE object/page/fixup backing, virtual-only tails and unsupported
+     record types; preserve unknown map states instead of fallbacks.
+R4.2 Improve generic indirect call/jump references and table evidence.
+R4.3 Reconcile function candidates, code/data gaps, conflict diagnostics
+     and partially backed executable objects.
+R4.4 Maintain independent known-answer manifest diffing (match, missing,
+     conflict, not-observed, not-classified) without changing analysis.
+R4.5 Compare Strahd, Menzo and Stone candidate results as independent
+     sources; no cross-title borrowed symbol names, addresses or counts.
+R4.6 Performance-budget large CODE.2 candidate scans; protect UI cancel,
+     memory growth and read-only project durability.
+R4.7 Predeclare independent x86-32 decoding windows, known data islands,
+     source fixups, exact branch targets and negative cases. Use a
+     separately implemented decoder plus prior original-byte research,
+     with one exact-source manifest per game/version, never by filename.
+Exit: stable LE candidate engine and machine-readable regression diffs.
+Gate: G4 when substantial LE-core improvements are ready.
+
+G4 — LE CROSS-GAME AND DESKTOP GATE (OWNER AUTHORIZATION REQUIRED)
+------------------------------------------------------------------
+One Windows compile/synthetic run; optional exact-hash original CODE files
+run separately, checking unresolved counts, gaps, conflicts and data
+reference drift with provenance. Manual WPF checks only for affected
+controls: launch/open/analyze, hex/addresses, project notes, save, restore,
+backup, exports, diagnostics, responsiveness. Do not re-test unrelated
+GUI interactions on every engine-only batch.
+INDEPENDENT ACCURACY EXIT (MANDATORY): separate exact-source Strahd,
+Stone Prophet and Menzoberranzan LE/code/data/fixup comparisons using
+independent known answers and a second x86-32 decoder. All required
+findings and discrepancies must be reviewed. Missing game samples are
+PENDING, not substituted or inferred from another game's CODE.1/.2.
+
+PHASE 5 — ADDITIONAL EXECUTABLE FAMILIES (P1)
+--------------------------------------------
+R5.1 LX metadata loader: validated headers, object/page maps, entry points
+     and relocation semantics. Signature recognition alone is NOT support.
+R5.2 NE metadata loader with explicit segmented address semantics.
+R5.3 Dedicated PE/modern-host classification; avoid DOS x86-16 fallthrough.
+R5.4 Detect packed/self-extracting executables conservatively: recognize
+     wrappers, never blindly unpack or classify embedded signatures as code.
+R5.5 Driver/TSR interfaces only with a proven load model; otherwise raw hex.
+Exit: supported/fail-closed loaders with exact evidence boundaries.
+Gate: G5 synthetic and targeted LX/NE original samples; manual authorization.
+Independent loader/ISA oracle checks and malformed controls are REQUIRED
+before each advertised executable format is accepted; unsupported remains so.
+
+PHASE 6 — RESOURCE AND VM DISASSEMBLERS (P2)
+------------------------------------------
+R6.1 AESOP/16 container structure and instruction format as a distinct VM.
+R6.2 GFF/GFFI directory/offset and resource graph mapping, scripts only
+     when independently identified.
+R6.3 DAX/Gold Box events, Unlimited Adventures resource formats and related
+     game data via separate engines, not x86 heuristic decoding.
+R6.4 Resource/code distinction, cross-file references, unknown gaps and
+     source-backed validation manifests for each family.
+Exit: deterministic parsers and VM decoders tested with synthetic fixtures.
+Gate: G6 after EACH FORMAT FAMILY is coherent, not after every opcode.
+Independent format/VM specification or prior original-byte oracle and
+negative controls REQUIRED per claimed resource/VM family.
+
+PHASE 7 — RESEARCH PROJECTS, WORKFLOW AND INTERFACE (P1/P2)
+-----------------------------------------------------------
+R7.1 Project schema compatibility/migration, incremental save, revisions,
+     exact-source relinking, atomic backup/overwrite safety.
+R7.2 Analyst classifications, named symbols, searchable xrefs, function
+     comparison and evidence navigation with no guess of code truth.
+R7.3 Virtualized hex/disassembly, responsive cancellation, bounded jobs,
+     keyboard access, window/DPI behavior, actionable nonfatal errors.
+R7.4 Improve batch exports, diagnostics privacy and safe external review.
+Exit: user workflows with tested recoverability; game binaries stay read-only.
+Gate: G7 user-facing preview only when there are meaningful UI changes.
+Independently check that UI/export/reopened source evidence matches exact
+original bytes and does not silently promote candidate claims to verified.
+
+PHASE 8 — RELEASE AND LONG-TERM MAINTENANCE (P3)
+-----------------------------------------------
+R8.1 Deterministic Windows publish, licensing/third-party notice audit,
+     release notes and source-to-artifact traceability.
+R8.2 Signed binaries if owner establishes a signing pipeline; do not claim
+     signing without one.
+R8.3 Recovery from malicious/corrupt files; invalid bounds, huge inputs,
+     untrusted manifests and interrupted SQLite writes.
+R8.4 Automated offline, opt-in corpus validation with owners' originals
+     staying outside public CI.
+R8.5 Retain exact-release SHA independent validation records for EVERY
+     advertised supported family, with reviewer, negative controls,
+     externally sourced expectations, discrepancy dispositions and
+     explicitly unbenchmarked candidate counts.
+Exit: reproducible release candidate with verified required formats AND
+documented, independently validated accuracy limited to stated scopes.
+Gate: G8 final full build, all synthetic suites, authorized original corpus,
+mandatory independent multi-oracle format validation and owner GUI/release
+acceptance before claiming a final release. Any missing or unexplained
+mandatory independent result BLOCKS G8, not just its documentation.
+
+SCHEDULE / BATCH RULES
+----------------------
+Default: 3–8 cohesive source commits per review batch; no arbitrary calendar
+deadline or promised progress %. Publish short status with completed scope,
+risk, unresolved cases, last source HEAD and last BUILT HEAD.
+A build gate should execute after a coherent major analyzer capability,
+a new loader/parser family, a persistence schema change requiring migration,
+a serious correctness/safety bug, or explicit user request. Not after
+documentation, fixture-only additions or routine parser refactors.
+At a ready gate, ASK for build authorization. Do not call CI implicitly.
+
+REQUEST ORIGINAL FILES ONLY WHEN NECESSARY
+------------------------------------------
+Original bytes are needed for targeted G3/G4/G5/G6 checks, not for building
+source-only algorithms or synthetic tests. Prefer the already accessible
+DnD-Classics MASTER tree. If GitHub connector cannot transfer opaque bytes,
+identify the smallest named files and precise hash/version required.
+Never claim an unseen original was tested.
+
+CURRENT NEXT ACTIONS
+--------------------
+LAST VERIFIED COMPILED/SYNTHETIC: owner-authorized PR #6 Actions
+run #40 (38091963405), completed SUCCESS Windows+Linux on
+2026-10-10; exact temporary PR merge checkout SHA
+5eaa1fb0798007dfca73e648f91bc1add42409e9,
+source-equivalent canonical code/test SHA
+7fa76f822e0aa56a4bf1c611076bc50e5e0a5389.
+- Windows desktop, CLI, DosDis.Smoke, DosDis.ProjectSmoke compiled and
+  synthetic tests PASSED; Linux CLI + both synthetic suites PASSED.
+  Self-contained Windows desktop/CLI and Linux CLI artifacts uploaded.
+- Strict JSON schema/duplicate rejection and CLI InvalidDataException
+  controlled failure are NOW compiled; #38 evidence is historical.
+- Proprietary game files were never uploaded to CI or committed.
+EXACT ORIGINAL SOURCE COMPARISON (owner-local after compiled #40):
+- Original Strahd CODE.2 SHA256
+  853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314.
+- Outer DOS MZ 01BD:2382 entry and 01BD:23D2–23FC branch/call samples
+  independently decoded using GNU objdump 2.44, then compared with the
+  compiled DOSDis CLI. NONOVERLAPPING 28/28 original-backed starts,
+  15/15 structured operands and 5/5 explicit direct edges matched.
+  No missing, conflicting or not-observed result; no truncation.
+- 8/8 owner-local negative cases had the expected discrepancies or
+  controlled exit 1; original input file preserved. An earlier build
+  exposed unhandled InvalidDataException/abort, fixed in canonical
+  7fa76f8 and verified after rebuild.
+- 6,512 of the 6,540 candidate instruction starts remain unbenchmarked
+  by these two selected windows; no whole-file accuracy claim.
+- Exact report: docs/G2_STRAHD_ORIGINAL_VALIDATION_RECORD_20261010.md.
+NEXT: independently predeclared original samples for broader 16-bit
+guard/indirect/MZ fixup, unsupported-data and separate titles, plus
+independent human review and explicit cross-file denominators.
+G2 INDEPENDENT ACCURACY ACCEPTANCE REMAINS PENDING.
+TEMP CI: PR #6 CLOSED / not merged. Canonical workflow remains
+workflow_dispatch-only. Owner approval is still required for each new
+build/CI gate; no recurring or PR-triggered CI authorized.
+
+WORK LOG APPEND FORMAT (MAINTAIN IN THIS FILE)
+----------------------------------------------
+Date:
+Branch HEAD:
+Batch / ticket IDs:
+Source changes:
+Static-review outcome:
+Pending synthetic/original tests:
+Last successfully built HEAD and run:
+New blockers:
+Next gate and owner approval status:
+
+WORK LOG
+--------
+2026-10-09 | Roadmap created from repo contracts, existing format matrix,
+source checkpoints and confirmed Windows preview 37887821656. No new
+build/test requested or run. Immediate batch: R1.4-R1.6.
+
+2026-10-09 | R1.4 original-source exit hardening: the *rejected*
+conditional side now requires exactly one decoded instruction with a valid
+mapped source offset and byte-for-byte source match. This closes the
+previous address-only check that could accept an altered CFG row. Added
+synthetic stale-offset, spoofed-byte and duplicate-exit regressions.
+Status: SOURCE COMPLETE for this subtask; not compiled or executed.
+Last compiled Windows preview remains run 37887821656.
+R1.5-R1.6 and other R1 acceptance work remain open; G1 NOT AUTHORIZED.
+
+2026-10-09 | R1.4-R1.6 additional source-only batch:
+- Centralized 16-bit original-byte/length/physical/control-flow proof by
+  independently re-decoding every retained instruction used in guarded
+  paths. Graph metadata cannot forge safe sequential instructions.
+- Unique-predecessor recovery now returns unresolved for duplicate
+  candidate instruction starts rather than throwing during dictionary
+  construction.
+- Rejected table reports no longer expose a purported validated
+  EntryCount; keep full storage/fixup failure status from pointer validator.
+  Report explicit truncated CFG and capped 128-site output separately.
+- Added synthetic adversarial graph-label, duplicate-start, missing
+  table entry, precise rejection and output-cap cases. Source structure
+  audited; Windows compilation and all new smoke cases NOT EXECUTED.
+State: Phase 1 SOURCE COMPLETE for current batch, G1 READY but
+NOT AUTHORIZED. Last successfully built preview: run 37887821656.
+Next source-only track can proceed with isolated R2 range-domain design
+without implying G1 passed. See G1_X86_16_BATCH_VERIFICATION_MATRIX.txt.
+
+2026-10-09 | R2.1 source-only value-domain foundation:
+- Added immutable 16-bit abstract values: bottom/top, unsigned singleton,
+  bounded finite sets and inclusive unsigned intervals; conservative join,
+  widening, unsigned restriction, exact modular small-set arithmetic and
+  fail-to-unknown interval carry/borrow handling.
+- Added SHA-bound, typed instruction observation labels and bounded
+  provenance with explicit truncation and cross-source refusal.
+- Wired synthetic regression source into the existing DosDis.Smoke entry.
+  All new fixtures remain NOT EXECUTED; no builds/tests, GUI, source-original
+  runs or hosted CI were initiated.
+- No CFG/dataflow transfer wiring, automatic table classification, DB
+  migration or project UI changes were made; unsupported semantics remain
+  unknown.
+State: R2.1 SOURCE COMPLETE. G1 READY / NOT AUTHORIZED. G2 not ready.
+Reference: R2_VALUE_DOMAIN_SOURCE_CHECKPOINT.md.
+Last successful Windows build remains run 37887821656.
+
+2026-10-09 | R2.2 x86-16 source-backed transfer checkpoint:
+- Added immutable per-region AX/CX/DX/BX/SP/BP/SI/DI candidate snapshot.
+  Exact original bytes, physical offsets, SHA/segment/origin and pinned
+  decoder flow classification must match before applying any transfer.
+- Prefix-free MOV word immediate, MOV register word, selected ADD/SUB word
+  and CMP immediate forms have an explicit finite instruction whitelist.
+  Any memory, partial 8-bit register alias, prefix, call/return/interrupt,
+  unsupported operation or unknown flags kills all tracked register facts.
+  No runtime flag values, memory or segment state is invented.
+- New synthetic fixtures cover both MOV directions, imm8 sign extension,
+  arithmetic, source tampering, 8-bit aliases, jump/return invalidation,
+  and cross-region / cross-hash rejects. Added test entry to existing
+  DosDis.Smoke; tests remain NOT EXECUTED.
+- Current CFG, projects, desktop, and indirect pointer tables are unchanged.
+  G1 ready but not authorized; G2 awaits substantial worklist/dataflow
+  integration. No Windows build, CI, original-binary test or packaging run.
+Reference: R2_REGISTER_TRANSFER_SOURCE_CHECKPOINT.md.
+Last successfully built preview remains run 37887821656.
+
+2026-10-09 | R2.3 x86-16 bounded source-only dataflow checkpoint:
+- Added opt-in 16-bit register-state worklist. Source SHA, physical region,
+  segment, origin, candidate instruction bytes and every cached edge are
+  independently checked. Missing, forged, orphaned or duplicate edges,
+  stale instructions, conflicting decoded ownership, undecoded destinations
+  and externally truncated graphs fail closed with zero published states.
+- Small exact, prefix-free Jcc/JMP transfers preserve register facts,
+  with unsigned/signed branch decision still unknown; calls, interrupts,
+  indirect transfers and all unsupported operations retain conservative
+  kill-all register behavior. No graph targets or functions are added.
+- Incoming candidate states join monotonically using the bounded value
+  domain. Repeated expansion widens to Unknown; instruction, edge and step
+  budgets suppress partial results instead of pretending completeness.
+- New synthetic fixtures include a two-branch register join, growing loop,
+  forged/missing edges, stale bytes, duplicate starts, null graphs,
+  truncated graph, cross-source mismatch, and explicit budget exhaustion.
+  DosDis.Smoke registration is committed; no suite has run.
+- Documentation updated; source-only static review is NOT compilation.
+Reference: R2_DATAFLOW_WORKLIST_SOURCE_CHECKPOINT.md.
+Gate status: G1 READY / NOT AUTHORIZED; G2 NOT READY.
+Last successful Windows preview remains run 37887821656.
+
+2026-10-09 | R2.3 follow-up source-only correctness hardening:
+- Re-derive unprefixed relative Jcc/LOOP/JCXZ, CALL and JMP offsets from
+  immutable original bytes. A mathematical destination outside unsigned
+  16-bit IP is reported rejected before an Iced-normalized wrapped target
+  can be used for dataflow; wrapped execution itself is valid hardware
+  behavior but not source-proven by the current candidate load model.
+- Add synthetic 64-KiB MZ boundary, speculative near CALL and INT 21h
+  continuation, and prefixed Jcc invalidation regression fixtures.
+- No runtime assertions were executed; original files, CI, Windows build,
+  desktop and released archives were not touched.
+- R2.1-R2.3 still SOURCE COMPLETE ONLY; G1 READY / NOT AUTHORIZED;
+  G2 NOT READY. Continue R2.4 evidence-bound integration source-only.
+Reference: R2_DATAFLOW_WORKLIST_SOURCE_CHECKPOINT.md.
+Last successful Windows preview remains run 37887821656.
+
+2026-10-09 | User requested Windows build and continuation:
+- Owner explicitly authorized a build. Existing disassembler-core.yml
+  remains workflow_dispatch ONLY and includes Windows Release builds,
+  synthetic smoke suites and CLI/Desktop preview artifact publishing.
+- GitHub connector exposed workflow log/artifact reads but did not expose
+  a new run dispatch action; local container lacks dotnet and GitHub DNS.
+  Therefore no new build was started, and no passing smoke, published
+  artifact or run identifier is claimed by this session.
+- Manual Actions workflow entry:
+  https://github.com/Hyperbog/RLOFT/actions/workflows/disassembler-core.yml
+  Choose branch disassembler-foundation; then capture run link/ID.
+- R2.4 source-only work continued: opt-in join of fully checked CFG,
+  bounded BX register facts and independently analyst-bound immutable
+  near/far pointer *storage*. Exact finite BX byte offsets must align
+  and fit every validated table entry; Unknown/range or any stale evidence
+  refuses selection. Output does not alter CFG, source, GUI or runtime
+  claims. Synthetic positive and adversarial fixtures added and wired.
+- R2.4 partial SOURCE COMPLETE ONLY, not compiled/tested.
+Reference: R2_TABLE_INDEX_EVIDENCE_SOURCE_CHECKPOINT.md.
+Gate state: user build approval granted; run pending manual dispatch.
+Last confirmed successful Windows build remains run 37887821656.
+
+2026-10-09 | R2.4 source-only conflict and join evidence follow-up:
+- Preserve source table validator status per candidate index site and
+  expose an explicit CodeDataConflicts report count without changing
+  retained instruction ownership or runtime code/data classification.
+- Synthetic branch-join fixtures require both bounded predecessor BX
+  byte offsets to select two entries; when one path has an unsupported
+  partial-byte-register alias, Unknown must dominate and suppress
+  selected entries. Tests committed, not executed.
+- Manual Windows workflow dispatch still blocked from this session:
+  linked GitHub connector has no dispatch action; local dotnet absent.
+  No newly built or published artifact has been verified.
+- R2.4 evidence-only implementation PARTIAL SOURCE COMPLETE; integration
+  of automatic guard/stride proof remains separate and unverified.
+Reference: R2_TABLE_INDEX_EVIDENCE_SOURCE_CHECKPOINT.md.
+
+2026-10-09 | Owner-authorized Windows run #37983534580 triage:
+- GitHub Actions run https://github.com/Hyperbog/RLOFT/actions/runs/37983534580
+  targeted disassembler-foundation SHA 08dd3322d48167c6ee87525714a5755e6cfce786.
+  Result: FAILURE at step 4, building tests/DosDis.Smoke.
+- Verified via Windows job 113999719471 logs: Core, CLI and WPF
+  Desktop Release projects compiled with 0 warnings/0 errors; the
+  DosDis.Smoke compilation emitted 10 CS0841 diagnostics at Program.cs
+  lines 579-674, all caused by reading local nopBeforeTable before its
+  declaration. Synthetic smoke execution, ProjectSmoke build, packaging
+  and both artifact uploads were skipped; zero artifacts produced.
+- Fixed by moving the single synthetic nopBeforeTable fixture initialization
+  above first use, keeping its source bytes, assertions and value unchanged.
+  Fix committed to disassembler-foundation as e432640d34016e16149633275c43a27f471b8d6c.
+- Run #37983534580 remains FAILED at its old SHA. No new build/CI run
+  executed in this correction; do not claim G1/G2 success until a new
+  workflow_dispatch build on the post-fix HEAD completes successfully.
+- User can start the existing workflow via GitHub Actions, branch
+  disassembler-foundation. Distinguish previously compiled application
+  libraries from still-unverified regression tests and preview artifacts.
+
+2026-10-09 | G1 Windows build/regression gate PASSED — run #37987465368:
+- Verified GitHub workflow_dispatch on disassembler-foundation at exact
+  source SHA 9f605e36581b2c6db72a6a47248ea5af31611506.
+  https://github.com/Hyperbog/RLOFT/actions/runs/37987465368
+  Windows job 114012917508 completed SUCCESS.
+- CLI, Desktop, DosDis.Smoke and DosDis.ProjectSmoke Release builds
+  all passed. Job logs contain ALL SMOKE TESTS PASSED and a successful
+  SQLite project persistence/round-trip regression line.
+- The R2.1 bounded-value, R2.2 register-transfer, R2.3 worklist and
+  R2.4 exact BX/table-index synthetic smoke groups each printed PASS.
+  This establishes Windows synthetic verification of precisely the
+  tested 9f605e36 commit, not original DOS runtime semantics.
+- Windows desktop artifact DOSDis-Desktop-win-x64-preview
+  artifact ID 11643333249, 66,853,976 bytes; CLI artifact
+  DOSDis-CLI-win-x64-preview artifact ID 11643707879, 33,576,931
+  bytes. Both uploads successful, expiry 2026-11-08 UTC.
+- G1 compilation and synthetic acceptance PASS at tested commit.
+  R2 experimental subset also Windows compiled/synthetic tested at
+  this commit; do not mark the entirety of G2 complete or claim
+  original-game/GUI acceptance without separate evidence.
+- The earlier failed run #37983534580 remains historically failed
+  at its old source SHA. Compile-order issue was corrected before
+  this passing run.
+- Next user validation: download Desktop preview from successful
+  run; use synthetic or user-owned original only in a local session,
+  exercise Open Binary, cautious 16-bit candidate navigation, error
+  dialogs and project persistence; record exact fixture/hash,
+  expected vs observed, screenshots for deviations. No original
+  files in hosted CI or distributed artifacts.
+Last successfully VERIFIED Windows build: run 37987465368 at
+9f605e36581b2c6db72a6a47248ea5af31611506.
+
+2026-10-10 | Manual Windows GUI acceptance of build #35:
+- Owner reported "All good" after being asked to test the successful
+  Windows Desktop preview from run #37987465368, built at source SHA
+  9f605e36581b2c6db72a6a47248ea5af31611506.
+- Scope of requested hands-on checks: opening CODE.1/CODE.2 separately
+  and navigating candidate disassembly; saving/reopening a research
+  project and its annotations; existing-name export handling via
+  Replace / Keep both / Cancel and continued app operation.
+- Record as OWNER-REPORTED GUI ACCEPTANCE of that preview and those
+  requested checks. This is not independently instrumented GUI testing,
+  a complete exhaustive UI audit, or original-game behavioral parity.
+- G1: Windows compilation, synthetic smoke/project regression and
+  owner-reported desktop checks completed at the pinned tested SHA.
+  R2.4 remains a bounded candidate-evidence prototype; broader G2
+  functionality and original-source semantic validation remain open.
+- No new build, workflow dispatch, game-file modification or release
+  publication occurred when recording this confirmation.
+
+2026-10-10 | R2.4 exact BX scaling and guarded dispatch correlation:
+- Resumed source-only work after owner acceptance of G1 Windows run
+  37987465368 at 9f605e36581b2c6db72a6a47248ea5af31611506.
+  This is the LAST VERIFIED COMPILED SOURCE SHA for this project track;
+  subsequent development commits are not covered by its PASS result.
+- Extended the bounded unsigned value lattice with unary modular SHL
+  for exact finite members and conservative interval shift widening.
+  Correlated BX self-doubling no longer treats its input as two
+  independent register values.
+- Added exact prefix-free decoder-backed transfers for D1 E3,
+  C1 E3 01/02, and 01 DB / 03 DB. Flags become unknown and original
+  instruction SHA/offset origins are retained; unsupported aliases
+  and memory operations still invalidate tracked registers.
+- Added optional source-only Dos16CorrelatedDispatchRecovery: a
+  complete independently validated candidate CFG is a precondition;
+  the existing uniquely backed unsigned guard/stride proof supplies
+  automatic bounded table counts; independently revalidated original
+  pointer storage and finite aligned BX byte offsets must all agree.
+  Truncated or forged graphs produce no correlation. Runtime execution,
+  pointer immutability and CFG target promotion are NOT inferred.
+- Added and wired synthetic positive and negative exact stride,
+  unknown index, out-of-bounds, source graph forgery, truncated graph
+  and code/data conflict cases to the existing DosDis.Smoke entry.
+- This continuation did not build, run smoke suites, dispatch Actions,
+  validate original binaries, ship new artifacts or test the desktop.
+  R2.4 correlation SOURCE COMPLETE for this narrowed subset only;
+  G2 for the new source remains NOT RUN / NOT ACCEPTED.
+Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
+Next recommended verification: owner-authorized Windows G2 build plus
+synthetic tests before classifying this newer HEAD as compiled.
+
+2026-10-10 | R2.5/R2.6 segment/memory/source-boundary hardening:
+- Extended the R2.4 opt-in correlation smoke corpus (SOURCE ONLY)
+  with synthetic diamond CFG predecessor joins before a source-backed
+  unsigned guard; 1/2 index values must merge into finite 2/4 byte
+  offsets, while an unmodeled AL write on one arm yields Unknown and
+  suppresses selected pointer entries.
+- Added memory alias/write invalidation both before the unsigned
+  compare and between guard/stride; unsupported operations cannot
+  be treated as transparent paths or preserve BX predictions.
+- Added negative independent windows: same original SHA with a
+  different COM origin, and different original SHA at the same origin.
+  A DS-override indirect access cannot reuse CS source-backed table
+  storage; FAR storage without an original validated MZ relocation and
+  rebased selector evidence remains unresolved.
+- Asserted that correlated entries never rewrite the source-backed
+  CFG's unresolved indirect transfer.
+- Hardened correlated result consistency: guarded status must match
+  a stored candidate, accepted counts must match guarded aggregate,
+  and unresolved totals must reconcile before publication. Mismatch
+  yields an empty explicit incomplete report.
+- The source tests are WRITTEN NOT EXECUTED; G2 for this newer HEAD
+  remains NOT BUILT / NOT PASSED. Last passing G1 Windows build #35
+  remains at 9f605e36581b2c6db72a6a47248ea5af31611506.
+Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
+
+2026-10-10 | R2.6 graph-summary provenance and budget isolation:
+- Dataflow preflight now independently sums the original-decoded
+  nonoverlapping x86-16 instruction lengths and requires equality with
+  graph.CandidateInstructionBytes. UnknownFileBackedBytes must equal
+  region.ByteLength minus this count. Inconsistent or stale graph
+  summaries produce an explicit incomplete result and zero values.
+- Opt-in R2.4 correlated guarded dispatch now exposes optional bounded
+  maximumInstructions/maximumSteps/maximumEdges forwarded to its
+  complete source-backed register worklist. Exhaustion yields no
+  published correlated sites or candidate stored pointers.
+- Synthetic negative cases cover both forged CFG coverage fields;
+  exhausted instruction, edge and step budgets; MOV DS,AX / POP DS
+  segment-state unknowns; and 66 D1 E3 32-bit operand-size override
+  which must not masquerade as exact x86-16 BX scaling.
+- Source changes and new synthetic regressions committed without
+  executing compilation, tests, GitHub Actions or original game files.
+  G1 Windows run 37987465368 still covers SHA
+  9f605e36581b2c6db72a6a47248ea5af31611506 only.
+- G2 remains NOT EXECUTED for this post-G1 batch; preserve candidate-
+  only interpretations and no CFG/loaded-selector promotions.
+Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
+
+2026-10-10 | Deterministic automated feedback loop and pattern matrix:
+- Added Dos16MetamorphicFeedbackSmoke to the existing manual Windows
+  synthetic smoke suite. Uses immutable seed 0x16D05D15; reports
+  per-pattern/case diagnostic context for reproducible minimized fixes.
+- Matrix includes 192 finite modular 16-bit SHL oracles, 192
+  enumerated interval soundness/precision checks, 24 four-encoding
+  guarded-table / six-BX-value pairings, 24 semantic-preserving
+  graph-record permutations and 24 falsified coverage reports.
+  Additional one-at-a-time mutations of each decoded instruction
+  record and every outgoing edge in a known-good graph must all
+  reject unsafe selected entries.
+- Test oracles distinguish original-byte / graph source identity,
+  unsigned guard count and pointer storage, tracked finite index
+  selection and CFG target uncertainty. Expected domain membership
+  is calculated independently of the abstract-domain Covers method.
+- Documented a human-supervised feedback cycle: observe exact
+  authorized run SHA -> cluster failure pattern -> replay and
+  minimize deterministic case -> repair -> obtain build authorization
+  -> inspect new CI evidence -> commit code/tests/roadmap to Git.
+  The loop has no autonomous builds, remote background agents,
+  live monitoring, proprietary fixture bytes, or scheduled CI runs.
+- This batch is SOURCE ONLY; no compilation, test execution,
+  GitHub workflow dispatch, or original game-file probe was
+  performed. The last compiled/synthetic-verified SHA remains
+  9f605e36581b2c6db72a6a47248ea5af31611506 on run 37987465368,
+  not this post-G1 development HEAD. G2 is still pending.
+Reference: R2_DETERMINISTIC_FEEDBACK_LOOP.md.
+
+2026-10-10 | Phase 2 deterministic feedback hardening and algebraic oracles:
+- Audited the first generated feedback fixture and corrected a weak
+  low-order LCG cycle by switching its repeatable seed 0x16D05D15
+  to a bounded Xorshift32 generator. Added 28 directed high-bit,
+  wrap and mixed-quotient interval cases that cannot be skipped
+  by the generated input distribution.
+- Corrected x86-16 worklist validation to compare exact decoded
+  outgoing (kind,destination) pairs independently of graph row order.
+  Every expected pair must occur precisely once; missing, duplicated
+  and forged semantic edges still produce an incomplete empty
+  register-state report. Added a positive shuffled-branch regression
+  and a negative duplicate-conditional-target fixture.
+- Strengthened the metamorphic guarded-table corpus to permute
+  both the instruction order and outgoing-edge records while
+  requiring invariant bounded finite-pointer candidate selections.
+- Added and wired Dos16AlgebraicFeedbackSmoke: 256 bounded
+  independent concrete-domain pairs test join and widening
+  soundness, modular 16-bit ADD/SUB, and exact unsigned restrictions;
+  explicit carry/borrow boundary examples supplement random cases.
+- Proactively resolved a C# ref-capture lambda issue in the
+  newly authored test source before handing it to the Windows gate.
+- Existing Windows workflow remains manual-only. No build, test,
+  Actions dispatch, original game-file execution, or distribution
+  was performed during this source-only continuation.
+- Last verified Windows run remains #37987465368 at source
+  9f605e36581b2c6db72a6a47248ea5af31611506. All later changes
+  need a new, separately authorized G2 build and synthetic validation.
+Reference: R2_DETERMINISTIC_FEEDBACK_LOOP.md.
+
+2026-10-10 | R2.6 independent budget propagation and table-corroboration:
+- Detected inconsistent resource-budgets across the two separate source-
+  backed validation passes: the public correlated table analysis honored
+  caller limits during its first dataflow pass, but the standalone
+  Dos16TableIndexEvidence recheck silently used fixed default budgets.
+- Fixed by forwarding the same optional worklist instruction/step/edge
+  limits through both independent checks, without changing the existing
+  defaults for callers that do not specify them.
+- A correlated guarded table now explicitly requires the independently
+  rerun original-file storage/finite-index report to agree on source SHA,
+  mapping, accepted and unresolved totals, table site/displacement,
+  pointer width, original table storage status and selected ordinals.
+  Any mismatch is incomplete and publishes no candidate entries.
+- New deterministic threshold regressions require exact sufficient
+  budgets to retain results; every smaller worklist/instruction/edge
+  budget must suppress partial pointer evidence. Extra budget may not
+  change source-backed selected index evidence.
+- These source/test/doc changes were committed and statically reviewed,
+  but NOT compiled, tested on Windows, built, published, or exercised
+  against original binaries. Existing workflow_dispatch remains manual.
+  G2 stays pending. Last verified Windows run #37987465368 tested
+  SHA 9f605e36581b2c6db72a6a47248ea5af31611506 only.
+Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
+
+2026-10-10 | R3.1/R3.2 source-only MZ far provenance and alias classification:
+- Audited the existing x86-16 CALL/interrupt/return transfer semantics:
+  source-only dataflow already invalidates tracked registers on these
+  unmodeled transfers; no unsound register-preservation expansion made.
+- Identified a real provenance weakness in public MZ FAR-immediate
+  candidate recovery: caller-supplied graph rows were compared to
+  original opcode bytes and selector relocation, but not fully bound
+  to the independently mapped source-relative CS:IP code window.
+- Hardened DosMzFarTargetRecovery.Inspect with full mapped window
+  origin/length/evidence checks, exact decoded source instruction
+  address/length/classification, original unresolved FAR CFG edge(s),
+  and matching selector relocation source coordinates and original
+  stored word. A truncated graph yields zero FAR candidates while
+  preserving the upstream truncated review.
+- Added additive bounded PhysicalAliases on cross-segment MZ reviews:
+  identical physical original instruction bytes decoded at different
+  relative CS:IP addresses remain separate alias hypotheses rather
+  than being silently merged or counted as decoding conflicts.
+  Conflict/alias ledgers retain separate explicit uncertainty labels.
+- Added synthetic negative checks for forged IP/window/relative CS,
+  stale mapping and FAR edge metadata, and instruction-budget
+  truncation. Added a cross-segment physical alias fixture where
+  relative 0000:0010 and 0001:0000 refer to the same original
+  0x30 file-backed RET. No runtime equivalence is inferred.
+- All changes are SOURCE ONLY, not Windows compiled or executed;
+  no GitHub workflow dispatched, original files modified or
+  proprietary test artifacts uploaded. G2 and later G3 stay pending.
+  Last compiled/synthetic verified baseline remains build #35 at
+  9f605e36581b2c6db72a6a47248ea5af31611506.
+Reference: P0_MZ_CROSS_SEGMENT_CANDIDATES.md.
+
+2026-10-10 | Owner correction — game-qualified CODE file provenance:
+- CODE.1 and CODE.2 file names are shared by multiple D&D titles,
+  including Ravenloft: Strahd's Possession, Ravenloft: Stone Prophet,
+  and Menzoberranzan. These base filenames alone do NOT identify a
+  specific title, executable revision, binary layout, or source SHA.
+- The particular CODE.1/CODE.2 files represented by the uploaded
+  Code1.json and Code2.json disassembler exports and cited in the
+  2026-10-10 DOSDis feedback handoff are from STRAHD'S POSSESSION.
+  The handoff's CODE.2 object-1 addresses, jump-table observations,
+  disassembly gap counts and source hashes must not be attributed
+  to Stone Prophet or Menzoberranzan.
+- For future shared-name binaries and exported reports, identify
+  provenance by game, file-relative path, game version, original
+  source SHA-256 and export/run identity when available; avoid
+  conflating equal filenames or relying on display names alone.
+- Keep DOSDis instruction, CFG, MZ/LE and resource engines reusable
+  across titles; use game-specific bytes as independently labeled
+  validation evidence only. Do not distribute proprietary originals
+  within CI smoke fixtures or portable application builds.
+- The R3 synthetic MZ alias/far-relocation tests remain independently
+  generated fixture bytes, not derived from any game's CODE files.
+
+2026-10-10 | LE/x86-32 Strahd CODE JSON handoff addressed in source:
+- Original input provenance: Code1.json and Code2.json in the supplied
+  2026-10-10 feedback are specifically Strahd's Possession snapshots,
+  NOT Stone Prophet or Menzoberranzan, despite shared CODE.1/2 names.
+  The handoff CODE.2 source SHA is
+  853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314;
+  do not infer the current CLI/app's results from older export snapshots.
+- Audited the generic x86-32 LE guarded table detector. It proved
+  only adjacent CMP index,N -> unsigned JA -> indexed JMP; the reported
+  Strahd object-1 F8BF SUB AL,2; F8C1 CMP AL,9; F8C3 JA;
+  F8C9 MOVZX EAX,AL; F8CC indexed CS table at F768 requires a
+  byte-register zero-extension bridge. Added exact source-decoded
+  CMP byte,N -> unsigned JA -> MOVZX DWORD index, same byte ->
+  indexed JMP recognizer with unique guarded predecessor edges.
+  It does not model pre-CMP SUB, infer runtime execution or bypass
+  unrelated instructions, segment overrides or mismatched aliases.
+- Relocation-backed LE indexed tables now consume the same bounded
+  guard proof as unrelocated literal table recovery. Select only
+  source-backed pointer slots within the demonstrated count and label
+  the proof pattern; if the original relocation run is insufficient,
+  retain the prior index-bound-unproven status, never invent slots.
+- Added generic synthetic LE fixtures for ten-way SUB/CMP/JA/MOVZX
+  literal dispatch, unsigned versus signed and equality guards,
+  MOVSX, byte source/dword destination mismatch, segment override,
+  relocation-backed three-way and narrowed two-way tables, and
+  shortage of independently verified pointer storage. Preserve the
+  unresolved runtime-jump edge in all valid candidate recoveries.
+- Added additive 64..255-byte unknown span/byte rollups and count
+  of spans hidden by the active minimum gap size to structured and
+  text LE gap reports, without changing the default 256-byte
+  selection threshold or code/unknown classification.
+- Added an explicit analyst-seeded original-file-backed synthetic
+  LE island with an E8 call. Entry-only analysis must leave it
+  unknown, a 64-byte gap report must reveal it, and an optional
+  seed must decode only CANDIDATE code, not establish execution.
+- Updated README front matter to distinguish current CLI/WPF preview
+  from early historical text. Created a game-qualified handoff note:
+  LE_STRAHD_CODE_JSON_HANDOFF_20261010.md with original repro
+  instructions, source hash and outstanding post-build checks.
+- The source and test additions are COMMITTED, STATICALLY REVIEWED,
+  NOT COMPILED or EXECUTED, and do not modify proprietary binaries.
+  No Windows workflow was dispatched. Manual G2 for this newer SHA
+  and re-export of the original Strahd files remain PENDING.
+  G1 baseline run 37987465368 verifies only
+  9f605e36581b2c6db72a6a47248ea5af31611506.
+
+2026-10-10 | LE handoff follow-on — graph seeds and exact gap partitions:
+- Post-handoff source audit found x86-32 unsigned guarded-table
+  promotion could ignore a separate analyst seed at the index
+  extension or indexed-jump instruction. The byte CMP -> JA ->
+  MOVZX -> indirect JMP path is not a dominating guard on such
+  alternate entry hypotheses. New exact seed membership checks
+  suppress index-bound promotion for both entry types while
+  retaining unproven pointer discovery.
+- Added positive LE synthetic near 0F87 JA rel32 proof in addition
+  to short 77 JA rel8 and checked exact default target offset.
+  Negative tests exercise both analyst seed input orderings, both
+  CMP EAX direct and CMP AL / MOVZX EAX guarded formats.
+- Discovered aggregate executable-gap byte counts alone allow
+  corrupted range inventories to hide matching-size overlap and
+  omission. Gap analysis now rejects any executable-object range
+  inventory that is not an exact nonoverlapping [0,VirtualSize)
+  partition even when the total byte sum still matches.
+  Added a control accepting shuffled source-range rows, and an
+  adversarial forged overlap/hole test conserving total bytes.
+- README and Strahd CODE report remain game-qualified; original
+  CODE.1/2 identities across Strahd, Stone Prophet and Menzo
+  stay separate. No proprietary bytes embedded in regression
+  fixtures or Windows artifacts. The verified baseline remains
+  Windows G1 #35 at SHA 9f605e36581b2c6db72a6a47248ea5af31611506.
+- All above changes are committed SOURCE ONLY. No Windows build,
+  synthetic test run, original-source reanalysis, CI workflow
+  dispatch, release or runtime/gameplay parity assertion occurred.
+  G2 at the new SHA is still NOT RUN; further general
+  dominator/reachability proof is deferred rather than guessed.
+Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
+
+2026-10-10 | LE unsigned JA taken-edge and seed provenance audit:
+- Strengthened the generic LE x86-32 CMP -> JA -> (MOVZX) -> indexed
+  table candidate recognizer: the guard itself cannot be a separate
+  analyst entry seed, since input flags then lack source-backed
+  compare provenance. Previously added MOVZX/jump seed exclusions
+  remain. It does not claim complete interprocedural dominators.
+- Explicitly require the unsigned guard's original branch-taken
+  default destination to skip the indexed JMP's complete source
+  instruction byte range, within the same LE object. A branch
+  directly to MOVZX/JMP, into a prefix/operand byte, or backwards
+  cannot bound runtime values; the original indirect control edge
+  remains unresolved even after local-source proof.
+- Added synthetic negative cases for alternative JA entry seeds
+  in both orders; unsigned JA displacements 0..10 that target the
+  guarded dispatch bytes; separate relocation-backed bypasses;
+  near 0F87 JA rel32 into the indexed JMP; and signed near JG
+  spoofing an unsigned JA. Retained positive short and near
+  forward-skipping JA examples.
+- Added exact original-byte assertions for SUB AL,2, CMP AL,9,
+  short JA, MOVZX EAX,AL, CS-indexed jump and near JA. These pin
+  opcode widths and provenance independently of reported table
+  targets. A static test-order audit corrected relocated bypass
+  fixtures to run after their source-byte setup.
+- Documented narrow forward-skip scope and remaining late-CFG
+  or runtime-mutation uncertainty. No Strahd bytes were embedded
+  in synthetic tests. Source-only commits and remote source checks
+  are not compile/test evidence. G2 Windows remains pending manual
+  authorization; latest accepted build #35 tested SHA
+  9f605e36581b2c6db72a6a47248ea5af31611506 only.
+Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
+
+2026-10-10 | LE completed-CFG guarded-dispatch contradiction replay:
+- Identified an order-dependent proof hazard: bounded literal/relocated
+  x86-32 index tables were recovered before every decoded predecessor
+  was known. An alternate edge decoded later could invalidate the JA
+  fallthrough/MOVZX chain after its candidate table had already seeded
+  additional speculative target code.
+- Introduced AnalyzePass plus public Analyze orchestration to reconcile
+  provisional compare/JA/MOVZX guard addresses with the complete
+  decoded predecessor and successor sets. Reject any late alternate
+  ingress into guard/MOVZX/jump, unknown out-of-range default, analyst
+  seed bypass or budget-truncated provisional proof.
+- A contradicted proof causes bounded replay from immutable source
+  bytes, with every newly rejected guard site disabled for the next
+  pass. Replaying discards old speculative literal-table edges and any
+  code reached solely through them. Relocation-backed pointer storage
+  remains candidate evidence, not a finite-index proof.
+- The disabled site set grows monotonically under a finite attempt
+  limit; source seeds and protected range inputs are materialized
+  once for deterministic replay. Source-bound incoming/outgoing
+  edges are indexed for efficient complete-CFG cross-checking.
+- Single-use decision traces are emitted from the final stable pass
+  only, not provisional intermediate analyses. No publication of a
+  superseded table or its speculative control edges is allowed.
+- New synthetic negative controls add delayed default-path JMP edges
+  into the JA, MOVZX and indirect JMP; assert absence of published
+  literal tables, candidate-indirect edges, case-only code and
+  discarded-pass trace entries. A safe loop back through CMP retains
+  its candidate index guard. A limited worklist suppresses partial
+  table findings.
+- Scope remains source-backed *decoded* graph only; hidden runtime
+  targets, code mutation, asynchronous state and complete dominance
+  are not proven. All source/test/doc additions were committed but
+  NOT COMPILED/EXECUTED. G2 and Strahd original re-export are pending.
+  The current last accepted Windows evidence is still G1 build #35.
+Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
+
+2026-10-10 | LE guarded replay post-audit: instruction interior arrivals:
+- Following completed-CFG reconciliation, added an original-object
+  destination-offset index so that direct edges into the interior
+  of the expected CMP/JA/MOVZX/indexed JMP instruction cannot be
+  missed when checking only exact instruction-start predecessor sets.
+- A late competing interior decode invalidates the finite index
+  guard and triggers bounded replay without the unsupported table
+  hint. This does not prove that the competing code actually runs;
+  both interpretations retain explicit candidate uncertainty.
+- Expanded the deterministic late-edge suite to target CMP byte 3,
+  JA byte 5, MOVZX byte 7 and JMP byte 10, in addition to complete
+  instruction-start bypasses and a safe loop through CMP start.
+  Require no provisional literal table edges, code-island targets
+  or intermediate trace evidence to survive an invalidated pass.
+- Source-only static checks and GitHub commits are not compiler or
+  Windows execution evidence. No CI dispatched, no proprietary
+  files modified, and G2 remains pending owner authorization.
+
+2026-10-10 | LE relocation pointer and operand byte-ownership hardening:
+- Independently inspected LE fixup parsing and pointer-recovery
+  coverage. Original LE fixups represent 4-byte object-local
+  destinations. Earlier candidate-pointer recovery checked only
+  whether a relocation started exactly at the table pointer; another
+  fixup beginning at offset X-3..X+3 can overlap those source bytes.
+- Added a fixed-width overlap predicate over every parsed absolute
+  or self-relative source fixup origin, scoped by LE object. A
+  relocation-backed candidate must have exactly one unambiguous
+  supported fixup at the pointer start, with no competing origin
+  within three bytes in either direction. A literal candidate must
+  have no fixup at any origin overlapping its four-byte storage.
+  Normal adjacent DWORD sources X and X+4 remain valid.
+- Applied the same source-ownership rejection to an indirect jump's
+  encoded four-byte displacement: an overlapping, missing-at-start,
+  unsupported or ambiguous fixup may not silently fall back to
+  the old literal effective address. An exact isolated supported
+  original displacement fixup still permits bounded candidates.
+  Evidence-linked direct instruction fixup xrefs follow this rule.
+- Added deterministic synthetic sweeps over seven overlapping
+  relocation origins for literal pointer tables and six distinct
+  overlapping origins for relocation-backed pointer tables. Added
+  six overlapping encoded-displacement negative cases and one
+  exact-relocation positive control, preserving unresolved runtime
+  targets on rejected cases.
+- Updated LE generic source comments and game-qualified Strahd
+  handoff documentation; no game-specific heuristics, original
+  binary bytes or proprietary hosted fixtures committed.
+- This is SOURCE-ONLY; no Windows compilation, synthetic smoke
+  execution, GitHub Actions dispatch or new Strahd original export.
+  G2 verification remains pending. Previous verified run #35 is
+  for SHA 9f605e36581b2c6db72a6a47248ea5af31611506 only.
+Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
+
+2026-10-10 | LE guard runtime-fixup byte provenance hardening:
+- Found an additional source-to-runtime ambiguity in the x86-32 LE
+  finite-table proof: CMP/JA/MOVZX instruction bytes were accepted
+  as immutable source-decoded guard evidence even when original LE
+  relocation records could rewrite opcode, compare immediate,
+  branch displacement or register-extension bytes at load time.
+- Added an original-object-relative relocation-origin index to the
+  completed-graph audit. Reject any provisional bound where a
+  four-byte LE relocation write intersects CMP, JA or MOVZX or
+  the indexed JMP opcode. Permit an exact relocation of the final
+  four-byte JMP displacement; its absolute table base must still
+  pass independent fixup validation by ReferenceRecovery.
+  A contradicted local proof is rebuilt from original bytes without
+  its bounded-dispatch hint, preserving runtime uncertainty.
+- Added generated LE smoke patterns placing one absolute fixup
+  at each source offset 0..12 of the synthetic guarded byte
+  switch. They must not publish source-backed bounded table
+  candidates or speculative pointer edges. An exact supported
+  terminal disp32 fixup must preserve ten candidates, including
+  when the opted-in relocated decoder is selected.
+- Added an exact-position self-relative source fixup as a negative
+  control: it cannot masquerade as an absolute CS table base.
+  Added a fixup starting immediately beyond the indexed JMP as a
+  positive control, verifying that an unrelated default-path
+  relocation does not overblock a valid local guard.
+- All source, test and provenance-documentation changes were
+  committed to disassembler-foundation with STATIC remote checks.
+  No compilation, execution, test runner, Actions dispatch,
+  proprietary original-file modification or Strahd re-export
+  was performed. G2 remains unverified, with last accepted
+  Windows build #35 covering only original SHA
+  9f605e36581b2c6db72a6a47248ea5af31611506.
+Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
+
+2026-10-10 | LE complete-CFG replay resource-budget boundary:
+- Audited the source-only bounded LE guarded-table contradiction
+  replay introduced since G1. Previous retry loop was tied to the
+  maximum 4096 analyst entry seeds; each retry could rerun a large
+  full executable-object analysis. This is a work amplification
+  hazard even though the guard disabled set grows monotonically.
+- Introduced a separate cap of 32 complete replay passes,
+  including the first pass, with a clear fail-closed exception
+  rather than accepting a nonconverged candidate graph.
+- Validated image and instruction budget before materializing
+  external analyst inputs. Consume one-shot seed and protected
+  range iterators once, capped at 4097 and 100001 supplied
+  rows respectively. Duplicate rows count toward resource
+  limits and do not permit over-limit iterator traversal.
+- Added source-only synthetic cases for one-shot seeds and
+  protected ranges through a traced final analysis, and for
+  rejection of 4097 duplicate seeds and 100001 duplicate
+  protected ranges without consuming the single-use trace.
+- Existing complete-CFG proof and relocation-byte uncertainty
+  invariants remain; no new title-specific rules were added.
+  No game originals modified, workflow dispatched, executable
+  built, smoke tests run or code coverage claimed. G2 pending.
+  Last verified Windows build #35 covers
+  9f605e36581b2c6db72a6a47248ea5af31611506 only.
+Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
+
+2026-10-10 | POLICY ADOPTION — independent accuracy validation is mandatory:
+- Owner explicitly required INDEPENDENT validation as a formal project
+  requirement. Adopted docs/INDEPENDENT_VALIDATION_POLICY.md and
+  docs/INDEPENDENT_VALIDATION_RECORD_TEMPLATE.md as normative gates.
+- Future G2-G8 correctness/format acceptance and G8 release are blocked
+  until predeclared outside-oracle evidence, exact binary+build SHA,
+  independent reviewer, negative-case outcomes and all required
+  discrepancy dispositions are recorded. Builds/tests may be separately
+  COMPILED or SYNTHETIC VERIFIED without being INDEPENDENT VERIFIED.
+- G2 must check 16-bit decoding and guard/dataflow; G3 loader and
+  overlays; G4 x86-32 LE across Strahd, Stone and Menzoberranzan with
+  separate original identities; G5/G6 per added executable/resource
+  family; G7 source-to-view/export fidelity; G8 all claimed families.
+  R0.6, R4.7 and R8.5 added to keep the requirement ongoing.
+- Iced.Intel supplies DOSDis's own decoder; independent comparison
+  requires a distinct decoder or prior specification-based research.
+  RLOFT historical 100% byte accounting is not current DOSDis accuracy.
+  One title's CODE.1/.2 names cannot justify another title's results.
+- This policy change is DOCS ONLY. No G2 compile, regression run,
+  original game comparison, independent secondary decoder execution,
+  CI or release has occurred. G1 #35 remains the last COMPILED /
+  SYNTHETIC VERIFIED Windows source baseline, not an independent
+  current-HEAD certification. Manual-only authorization preserved.
+
+2026-10-10 | Independent oracle framework first implementation checkpoint:
+- Source-only audit found KnownAnswerValidator accepted instruction
+  "match" if the supplied reference hex matched a caller-supplied
+  graph row, without separately comparing the row and expectation
+  against immutable original LE source bytes at the mapped object
+  offset. A forged same-SHA graph row plus forged manifest text
+  could create false source-backed matches.
+- Tightened each observed known-instruction comparison: expected
+  byte length must equal decoded length; original bytes must be
+  file-backed at the declared LE object:offset and equal the
+  predeclared reference; graph row hex must independently match;
+  optional canonical ExpectedFlowControl (Iced FlowControl category)
+  permits explicitly sourced control-flow classification checks.
+  Matches remain candidate comparison, NOT certified decoding.
+- Added stable KnownAnswerFinding.DetailCode for disagreements
+  (unbacked source, mismatched original bytes, wrong length, wrong
+  graph bytes, wrong flow class, not observed). Preserved earlier
+  report shape via an additive optional record field.
+- Refuse duplicate expected instruction starts, flow edges and
+  relocation pairs, overlapping expected non-code spans, and
+  instruction expected spans contradicting asserted non-code.
+  These could previously inflate matching denominators.
+- New synthetic negative source fixtures cover matching forged
+  graph+manifest hex with original mismatch, modified instruction
+  length, alternate FlowControl, unknown flow category, duplicate
+  decoded rows, duplicated manifest assertions and contradictory
+  code/non-code expectations. Source fixtures not executed.
+- Added a predeclared G2 scope matrix for x86-16 independent
+  decoder/spec/original-byte comparisons:
+  docs/INDEPENDENT_VALIDATION_G2_PREDECLARED_SCOPE.md.
+  G2 accuracy remains PENDING; a source-byte check by DOSDis
+  itself does not substitute for a second decoder or reviewer.
+- This is a SOURCE-ONLY policy implementation. No CI dispatch,
+  Windows compilation, synthetic execution, external Capstone/
+  Ghidra run, original-file re-export or accuracy acceptance.
+  The manual-only workflow is unchanged. Last verified Windows
+  G1 #35 tested SHA 9f605e36581b2c6db72a6a47248ea5af31611506.
+
+2026-10-10 | G2 x86-16 independent-oracle comparator (source-only):
+- Added a generic offline `Dos16ExternalOracleValidator` with
+  manifest schema v1, source SHA-256 and full length, physically
+  mapped file start/length, explicit segment:origin, tool/version/
+  decoder configuration and a bounded predeclared instruction list.
+  It does not itself run an external decoder or verify authorship.
+- Comparison checks exact original file-backed bytes and expected
+  physical offsets separately from candidate instruction bytes,
+  length and canonical flow class. Optional independently supplied
+  direct CALL/JMP/conditional-taken target is checked against a
+  retained source candidate edge. Sample denominator, unknown/
+  unobserved/missing/conflicting findings and unbenchmarked
+  candidate counts remain distinct; analysis truncation is retained.
+- Source/region/graph mismatch, duplicate or overlapping reference
+  instructions, unrecognized/numeric flow category, self-referential
+  Iced/DOSDis tool name, unsupported edge-kind or malformed bounds
+  are rejected. Reports always carry claimed-external-not-reviewed
+  and candidate-comparison-not-certification statuses, plus full
+  region, entry, source mapping and claimed tool configuration.
+- CLI added opt-in paired switches --external-oracle and
+  --external-report for mz-analyze, com-analyze and overlay-analyze.
+  JSON output is nonoverwriting, local and explicitly requested;
+  normal CFG output and manual-only CI rules remain unchanged.
+- Added Dos16ExternalOracleSmoke source with independent synthetic
+  contract data (a tiny COM near JMP/RET): expected matches,
+  incorrect original bytes, wrong category/branch target,
+  missing entry, truncated analysis, source/offset spoofing,
+  duplicate/overlapping expectations, bad tool metadata and
+  nonoverwriting export. Wired it into DosDis.Smoke.
+- Published docs/X86_16_EXTERNAL_ORACLE_COMPARISON.md and
+  updated policy, README and predeclared G2 matrix. Real outside
+  decoder execution, operand normalization, cross-title original
+  validation, human reviewer and G2 build all remain PENDING.
+- SOURCE ONLY. No compilation/tests, Actions dispatch, original
+  game modifications or independent accuracy certification.
+  G1 Windows #35 SHA 9f605e36581b2c6db72a6a47248ea5af31611506
+  remains the last verified executable baseline.
+
+2026-10-10 | G2 external x86-16 comparator: restricted operands (SOURCE ONLY):
+- The first source-backed outside-oracle comparator could compare
+  original instruction bytes, length, Iced flow category and optional
+  direct CALL/branch target, but not operand mnemonic, register
+  identity or immediate encoding/sign-extension facts.
+- Extended Dos16FlowInstruction with optional DecoderFacts produced
+  at the SAME original-byte decode site. Preserves normalized
+  mnemonic, explicit operand count and first two operand kinds,
+  register names and immediate semantic values without parsing
+  presentation NASM assembly. Existing constructor remains valid
+  for earlier stored/project callers; missing facts are unknown.
+- Extended predeclared external oracle with optional ExpectedFacts
+  and strict canonical named mnemonic/register/operand kinds for
+  two or fewer operands. Supported expected kinds: registers,
+  raw 8/16/32-bit immediate, signed imm8-to16 and imm8-to32.
+  Disallow numeric enums, wrong kinds/operand counts, unsigned
+  interpretation of sign-extended negative immediates and
+  unsupported memory/far/implicit semantic assertions.
+- Structured external expected facts are compared to CFG-published
+  decoder facts. Conflicts and absent evidence have separate
+  machine-readable detail codes. No oracle expectation -> no
+  operand check. A missing older graph fact is NOT OBSERVED.
+- Added distinct structuredOperandExpectations and
+  fullyMatchedOperandExpectations counters so pure byte/edge
+  matches cannot inflate the subset's semantic denominator.
+  A structured sample counts as fully matched only when all
+  its original-byte, candidate-flow, operand and optional
+  direct-edge expectations agree.
+- Synthetic standalone COM smoke fixtures specify MOV AX,1234h,
+  CMP AX,1234h, CMP BX,-2 (signed imm8->16) and RET.
+  Negative cases include wrong AX/BX, incorrect immediate,
+  unsigned 254 versus -2, malformed mnemonic/value kinds,
+  forged saved decoder facts and source-match-only legacy
+  rows missing semantic facts. The smoke suite has not run.
+- Updated X86_16_EXTERNAL_ORACLE_COMPARISON.md, normative
+  independent policy and G2 predeclared matrix. No claim of
+  memory base/index/displacement/size, prefixes, implicit operands,
+  flags, runtime effects, three-plus-operand semantics, second
+  actual decoder execution or full-disassembly accuracy.
+- SOURCE ONLY: all changes are committed and may be statically
+  checked, but no G2 Windows compilation, regression execution,
+  GitHub Actions, original game test, outside decoder invocation,
+  independent reviewer acceptance or executable publication.
+  Last verified Windows baseline remains run #35 at SHA
+  9f605e36581b2c6db72a6a47248ea5af31611506.
+
+2026-10-10 | G2 external x86-16 oracle: narrow 16-bit ModRM source facts:
+- Source-only extension captures ordinary 16-bit base/index
+  addressing (BX/BP and SI/DI), direct disp16, displacement
+  encoded size and canonical 16-bit modulo value, scalar
+  memory operand width and explicit source segment override.
+  Runtime selector/default memory state is never inferred.
+- The external manifest may assert these facts as a complete
+  Memory operand. Impossible base/index combinations, invalid
+  displacements/widths, invented override segments and incomplete
+  memory source provenance are denied; unsupported 67h
+  32-bit-address operands remain NOT OBSERVED, not verified.
+- Added standalone synthetic COM contracts: MOV AX,[BX+SI-2],
+  MOV AX,DS:[BP+0], MOV AX,[1234h], MOV AL,[BX], unsupported
+  MOV AX,[EAX] address-size override, plus RET. Negative
+  cases check valid-but-wrong base/displacement/width/segment
+  expectations, malformed 16-bit address forms and graphs
+  missing captured facts. Structured operand counts remain
+  distinct from byte/CFG comparison denominators.
+- Updated independent oracle, G2 scope and technical documentation.
+  The implementation remains game-agnostic and only asserts
+  source-encoded machine-code facts, not general executable
+  reachability or runtime memory addresses.
+- SOURCE ONLY: no compilation, tests, second decoder run,
+  original file validation, human accuracy review or
+  GitHub Actions dispatch. G2 independent acceptance PENDING.
+
+2026-10-10 | Source-only signed disp8 boundary follow-up:
+- Make 16-bit memory-displacement normalization explicit: for an
+  encoded disp8, interpret the original 8-bit value as signed,
+  then normalize to its modulo-65536 effective-address delta.
+  This avoids relying on Iced's host-width stored displacement.
+- Add synthetic -128 (FF80h) and +127 (007Fh) boundaries with
+  their exact original bytes, structured source facts and
+  separately scoped external-oracle expected counts.
+- Still no Windows compile, smoke execution, actual independent
+  decoder run or current-source accuracy acceptance. G2 pending.
+
+2026-10-10 | Part 4 source-only external-oracle original-byte integrity:
+- Reviewed remote disassembler-foundation and prior G1 acceptance. Last
+  verified Windows build remains #37987465368, SHA
+  9f605e36581b2c6db72a6a47248ea5af31611506.
+- Audit found a false-match possibility: original instruction bytes
+  could agree with an external reference, while both the cached graph's
+  declared operand/flow facts and the reference, or a fabricated edge
+  and its expected target, agreed on a false interpretation.
+- Made original source-backed fact capture available to the validator.
+  A potential source/graph/oracle match now re-decodes the original
+  byte window using the internal Iced decoder and demands agreement
+  on instruction length, flow, retained structured facts and encoded
+  direct target (when externally asserted). Conflicts remain explicit.
+- Hardened the external ModR/M manifest contract: displacement-free
+  [BP] has no 16-bit mod=00 encoding and is rejected, while existing
+  BP+disp8 positive fixtures remain.
+- Authored adversarial synthetic regressions for two mutually forged
+  semantic records, an injected matching false direct edge, a jointly
+  falsified return/branch category and impossible [BP] addressing.
+- Updated INDEPENDENT_VALIDATION_POLICY.md and the external-oracle
+  comparison reference. Same-decoder rechecking is internal integrity
+  defense, not an independent disassembler or CPU-runtime oracle.
+- All changes are committed SOURCE ONLY. No dotnet build, smoke test,
+  GitHub Actions dispatch, original-file execution, independent
+  decoder comparison, reviewer approval or artifact publication was run.
+  G2 accuracy gate remains PENDING until explicitly authorized and
+  externally checked at the exact compiled SHA.
+
+2026-10-10 | Owner-authorized G2 Windows build and synthetic regression gate:
+- Request: "You may build then continue." Local container had no .NET SDK
+  and no direct GitHub network access. Authorized temporary isolated PR #5
+  targeted canonical disassembler-foundation without changing its manual-only
+  workflow. The PR introduced one ephemeral pull_request trigger only.
+- Run #36 (38087806828) FAILED compile CS0104: ambiguous Decoder reference
+  Iced.Intel.Decoder versus System.Text.Decoder in the oracle validator.
+  Canonical source correction: 7f28d91145ca3350c1d0c759e174a58293af9d68.
+- Run #37 (38087928768) compiled CLI/WPF but FAILED test project compile
+  CS0136: duplicate local variable name 'blocked' in LE guarded-dispatch
+  synthetic fixture. Canonical correction:
+  2945b1474289cb42c167000628255848b77b7896.
+- Final run #38 (38088066909) COMPLETED SUCCESS on Windows .NET 10:
+  four Release project builds passed with zero compiler errors;
+  DosDis.Smoke: ALL SMOKE TESTS PASSED; DosDis.ProjectSmoke SQLite
+  project identity/backup/reopen smoke PASS. The oracle comparison smoke
+  and deterministic algebra/guard/LE negative-control groups printed PASS.
+- Exact runner checkout (the PR merge commit):
+  d8c404c56fed675457f5497859f242002e863732; PR head:
+  e41090e2f414cb246f04e305764e6c0a9c852d5c. PR merged source
+  from canonical 2945b1474289cb42c167000628255848b77b7896;
+  the only non-source difference was the temporary workflow trigger.
+- Preview desktop: artifact ID 11683335775, 66,885,279 bytes;
+  uploaded archive SHA256:
+  a8741d6be4c82d3e01ef60d7711220a2b6e1d51df9a0269b7816b26ea83fb69e.
+- Preview CLI: artifact ID 11683220862, 33,608,973 bytes;
+  uploaded archive SHA256:
+  5beec56d3d0c913aa8f25703bcb3e6f3a6014b8d2a027b160cfd55bc5a29c86f.
+  Both artifact links are under
+  https://github.com/Hyperbog/RLOFT/actions/runs/38088066909
+  with posted expiry 2026-11-09 UTC.
+- The build ran synthetic/public fixtures only; neither CODE.1 nor CODE.2,
+  proprietary game files, outside G2 oracle execution, Windows interactive
+  GUI acceptance, human discrepancy review or original DOS runtime behavior
+  were tested in the hosted run. G2 independent ACCEPTANCE still PENDING.
+- A standalone owner-local Strahd CODE.2 outer DOS MZ entry sample was
+  independently decoded with GNU objdump 2.44. Original SHA256
+  853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314;
+  11 sample instructions and 9 structured expectations prepared outside Git.
+  No comparison with DOSDis yet; do not treat as a passed oracle result.
+- Closed temporary PR #5 after success and force-with-lease reset its
+  isolated branch to the canonical source commit. Verified its workflow
+  once again has workflow_dispatch only. No push/PR CI trigger remains.
+- These docs-only continuity commits postdate the tested source SHA and
+  should not be labeled themselves as compiled. Next accuracy checkpoint
+  requires explicit independent original-file comparison and review.
+
+2026-10-10 | Part 4 G2 original-reference readiness, SOURCE ONLY:
+- Re-read the privately prepared external Strahd CODE.2 objdump 2.44
+  entry manifest (11 predeclared instructions; 9 structured facts).
+  Static inspection confirms its intended region: outer MZ CS:IP
+  01BD:2382, physical entry offset 0x4152, region physical start
+  0x1DD0 and 54,900 source-backed bytes. This is the original DOS
+  launcher, NOT protected-mode LE object code. No DOSDis original-file
+  comparison or new external decoder execution occurred.
+- Found an oracle-input reliability gap: System.Text.Json web defaults
+  allow duplicate JSON keys (including aliases differing only by case)
+  and silently ignore unknown optional fields. A misspelled
+  expectedFacts, directEdgeKind or memory field can shrink the semantic
+  denominator without a reviewer noticing.
+- Committed strict pre-deserialization audits of JSON field uniqueness
+  at all object depths and supported-schema names at every defined
+  oracle record level. Typed import uses the same parsed JSON snapshot.
+  New source-only synthetic negatives cover duplicate source/identity
+  properties and misspelled optional edge, semantic and memory fields.
+- Updated docs/X86_16_EXTERNAL_ORACLE_COMPARISON.md and
+  docs/INDEPENDENT_VALIDATION_POLICY.md with run #38 evidence boundaries
+  and new uncompiled input hardening. Created a local-only G2
+  original-source comparison and human-review runbook without embedding
+  proprietary executable bytes or a private manifest in Git.
+- Static source review only: no .NET compile, synthetic tests, CI,
+  DOSDis-original comparison, release packaging, or behavioral evidence.
+  Last VERIFIED Windows compile/synthetic remains #38 at exact PR merge
+  d8c404c56fed675457f5497859f242002e863732, canonical source
+  2945b1474289cb42c167000628255848b77b7896.
+- The private 11-instruction window has no direct branch target or
+  guarded indirect-table expectations; new independent original-code
+  samples and a distinct ISA evidence class must be predeclared before
+  they can be accepted for any additional named G2 scope.
+- Next gate: request owner approval only after a meaningful source batch.
+  Current strict-JSON source requires compile and synthetic re-verification
+  at its own SHA. Original-file comparisons and independent reviewer
+  acceptance require separate authorization. G2 independent PENDING.
+
+2026-10-10 | G2 owner-authorized source build, independent original sample:
+- Source beginning of gate: 45390a09349ed96e4247243575f56514344b7b6a.
+  Temporary private PR #6 used for hosted source builds only, with a
+  Linux artifact job to enable owner-local original-binary comparisons.
+  Canonical CI was NEVER changed to push/pull_request triggers.
+- Run #39 (38091746332): PASS Windows and Linux builds/synthetic suites.
+  Owner-local GNU objdump 2.44 source-identified Strahd CODE.2 outer
+  DOS MZ 11-instruction entry sample matched 11/11, 9/9 operand facts.
+  Second independently prepared conditional/call window matched
+  17/17, 6/6 structured facts and 5/5 direct edges. Both untruncated.
+- Eight local mutation/rejection controls were exercised. The older
+  CLI incorrectly aborted on invalid original SHA/mapping or malformed
+  manifest even though the source failed closed. Repaired user-input
+  InvalidDataException handling in canonical SHA
+  7fa76f822e0aa56a4bf1c611076bc50e5e0a5389.
+- Final run #40 (38091963405), EXACT built PR merge checkout
+  5eaa1fb0798007dfca73e648f91bc1add42409e9, PASSED:
+  Windows WPF/CLI and synthetic project builds, both smoke suites;
+  Linux CLI + synthetic project builds, both smoke suites; executable
+  packaging and artifacts. Linux CLI executable SHA256:
+  9a2ee2c8fd7d61aacfbd0702dbdd7f3cbb13fbf2554c60b2de43777577f0a036.
+- Re-ran BOTH private exact-SHA Strahd original comparison reports at
+  FINAL built Linux binary. 28/28 instruction starts, 15/15 structured
+  expectations, 5/5 direct branch/call edges matched; zero missing,
+  conflict, not-observed or truncation. 6,512 other retained starts
+  remain unbenchmarked by these two original samples.
+- Re-ran all eight negative controls: three deliberately incorrect
+  valid reference assertions yielded missing/conflicting reports;
+  five malformed/foreign inputs produced controlled CLI exit 1 and
+  no output comparison reports, not Linux process aborts.
+- Original file SHA256 and 16-bit MZ disk mapping independently verified.
+  No proprietary bytes, external oracle JSON or binary traces committed
+  or shipped through CI. No original executable was modified.
+- Temporary PR #6 closed without merge after successful source CI.
+  Owner-local evidence is recorded in private files and a metadata-only
+  repository record, G2_STRAHD_ORIGINAL_VALIDATION_RECORD_20261010.md.
+- This is independently IMPLEMENTED DECODER AGREEMENT on selected
+  original-backed x86-16 windows only, NOT a whole-module accuracy
+  assertion, emulator/runtime proof, human-reviewed oracle, independent
+  validation of LE x86-32 or cross-game coverage. G2 PENDING.
