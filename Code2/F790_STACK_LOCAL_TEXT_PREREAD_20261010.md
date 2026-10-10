@@ -33,7 +33,7 @@ Independently decoding the original `T` archive in `DnD-Classics/MASTER` confirm
 
 The previous `function_0f790` started with background restoration, checked `6DAC`, and then immediately returned for item `-1`; it contained no `T[0x3F]` read. The correction adds:
 
-- `Application21Boundary::call_2c368_local(u8* local_buffer, u32 text_index)`: an explicitly **stack-local** boundary for the original `1C368` call. Passing an invented DGROUP address to the old `call_2c368(u32 guest_offset,u32 index)` would incorrectly alias guest global memory, so the boundary is separate.
+- `Application21Boundary::call_1c368_local(u8* local_buffer, u32 text_index)`: an explicitly **stack-local** boundary for the original `1C368` call. Passing an invented DGROUP address to the old `call_1c368(u32 guest_offset,u32 index)` would incorrectly alias guest global memory, so the boundary is separate.
 - `u8 text_3f_stack_local[0x10u];` in `function_0f790`, matching the encoded 16-byte allocation (uninitialized as in original stack storage).
 - A conditional boundary invocation for `T[0x3F]` **after** the pending-message early exit but **before** the empty-hand return.
 
@@ -55,3 +55,8 @@ The new callback is optional, like the existing opaque CODE.2 external boundarie
 The decompilation reveals an original side effect previously absent from source-only F790 handling: **a non-pending empty-hand F790 call still performs the T[3F] indexed stream read before returning**. Pending `6DAC` calls skip this pre-read; non-empty ordinary calls also perform it. The native stream/text subsystem should consider that source observable call ordering during strict parity work, but **do not perform F790 on 70-Hz UI repaint** or introduce a new RNG seed. A separate native conversation owns any implementation or behavior verification. No changes to `demo-v1` were made here.
 
 Source code evidence: commit `972dee94221ccdd7e759aa4709591cf8c65ae543` (plus this documentation checkpoint). Canonical source path: `Code2/Code2.cpp`. Test: `Code2/verify_f790_stack_local_preread.py`.
+
+
+## Additional original address-identity repair (2026-10-10)
+
+The earlier `Application21Boundary` source named the resource-reader boundary `call_2c368`, despite all five original F790 reader E8 instructions (`F7D3`, `F91C`, `FA9D`, `FB5A`, `FC78`) targeting **`1C368`**. The original spell-scribe read at `116E2` also calls `1C368`, and canonical CODE.2 already implements `function_1c368`. A source-only rename corrected all **28 occurrences** of the stale boundary symbol to `call_1c368`, including the local-stack form; full before/after source comparison confirmed there were no other changes. Current canonical source Git blob: `5b0b4dd7b6a91bfcc99068970c3152f0f62ce54e`. All 21 original F790 direct E8 targets were checked; strict whole-file C++17 compilation of this updated source remains pending. These corrections belong to the decompilation branch; `demo-v1` was not modified.
