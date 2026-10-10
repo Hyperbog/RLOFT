@@ -113,3 +113,55 @@ entry now cover these checks. No CTest was added and no gameplay
 source changed. Current-revision Windows Full build and matched DOS
 page-state, ES/DS, framebuffer, input/IRQ acceptance remain open.
 
+## 2026-10-10 Original C050 scripted event-poller boundary
+
+**Source:** original Strahd `CODE.2`, SHA-256
+`853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`;
+object-1 logical offsets below. After original `160E1` assigns
+`EBP=1`, the selection loop calls `16034` at both
+`160F1` and `16105`. This is **not just a fixed drawing helper**.
+It scans five 12-byte timer/event records at `14024+0xC*i`
+(`EBX=0,0xC,..,0x30`, stop at `0x3C`).
+For active entries whose original tick `30700` exceeds the
+per-entry deadline `1402C+EBX`, it temporarily assigns the source
+event cursor `7FEC` from `14024+EBX`, repeatedly calls
+`15534` until its result is nonzero, restores `7FEC` and
+updates the next deadline using `14028+EBX`.
+
+**Independently proven indirect dispatch:** source `15534` checks
+`BYTE[8101]`, reads a **16-bit** script opcode from
+`WORD[13020+2*7FEC]`, increments `7FEC`, and performs an
+unsigned `cmp ax,0x29`. Opcodes `0..41` dispatch through
+`1556D: jmp DWORD PTR CS:[0x1548C+EAX*4]`; larger opcodes
+take the `1558E` fallback. The original table at
+`1548C..15533` contains **42 unique DWORD targets**; every
+source-stored entry points within `15534..15E37`.
+Example entries: opcode 0 `155D0`, 27 `1553F`,
+41 `156F2`. These values are verified **in original file
+bytes**, without assuming how the original DOS loader handles
+relocations or writable executable pages.
+
+The `16034..16089` timer wrapper directly saves/restores
+`EBX` and `ESI`; its decoded bounded body does not itself
+write `EBP`. The `15534..15574` dispatcher likewise contains
+no direct `EBP` manipulation, but it jumps into handlers that
+make further calls. This **adds a second concrete transitive
+uncertainty** beyond the installed `F0C8` graphics callback:
+the complete event handler and runtime-callback register effects
+are **not closed**. In particular, it remains unjustified to
+replace `16221 xor DWORD[C050],EBP` with a byte-only toggle.
+
+**Regression:** Extended the already pinned
+`verify_original_ground_c050_page_toggle.py` oracle with
+four SHA-pinned original code/table slices (including the
+42-entry table), 17 precise instruction windows, nine near-E8
+destinations and every source target's range/uniqueness.
+A separate direct original-byte check passed locally.
+The broad `15534..15E37` hash is a **bounded code slice**,
+not a claim that it is one function or exhausts transitive
+effects. No new CTest registration or native gameplay change.
+
+**Open:** handler and callback transitive side effects,
+protected-mode ES/DS and any original runtime C050 state,
+the current Windows Full build, and original DOS parity.
+

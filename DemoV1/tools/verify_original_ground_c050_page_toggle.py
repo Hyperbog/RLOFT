@@ -145,6 +145,60 @@ def audit_original(path:Path)->None:
     print("ORIGINAL_PASS: 5 EBP source spans, 24 opcodes, 6 E8 edges, 3 cross-tail branches")
     print("BOUND: 14218 and 16400 locally preserve EBP; 16400 uses 1602C shared epilogue")
     print("OPEN: intervening callback/callee effects, especially 160E8->1A1F4->2F868->F0C8")
+    # Event-loop 16034 is invoked after EBP=1 (160E1), and its
+    # eligible-timer branch enters a 42-way CS-qualified event opcode
+    # dispatcher. Authentication covers the source table and code
+    # slices, NOT runtime relocation, EBP-preservation by callees,
+    # script-handler effects, or any installed F0C8 callback.
+    event_vm_spans={
+        (0x1548C,0x15534):"4dae5ed51e8d92d1fb2bb4e8db756bcbfe758d2df07297cfae2bcb62100051f2",
+        (0x15534,0x15575):"566ea62a969cf82269f6054e44d67a8588046d9ac0174f322c8b86b71bd4b0e6",
+        (0x16034,0x1608A):"48e419ca3bcc773f65d5743742c125809d71011f7190a839c796f41e7f5d5827",
+        (0x15534,0x15E38):"b9862833b59f84137c2092e26c7a7044f545d27c8737c8b3b82a198ea11f496a",
+    }
+    for (start,end),expected_sha in event_vm_spans.items():
+        assert hashlib.sha256(obj[start:end]).hexdigest()==expected_sha,hex(start)
+    event_vm_windows={
+        0x15534:"5356",
+        0x15536:"803d0181000000",
+        0x15560:"663d2900",
+        0x15564:"0f8724000000",
+        0x1556A:"0fb7c0",
+        0x1556D:"2eff24858c540100",
+        0x16034:"535631db",
+        0x16038:"83bb24400100ff743e",
+        0x16041:"e8baa60100",
+        0x16046:"3b832c4001007631",
+        0x1604E:"8b83244001008b35ec7f0000a3ec7f0000",
+        0x1605F:"e8d0f4ffff",
+        0x16064:"85c074f7",
+        0x1606E:"e88da60100",
+        0x1607F:"83c30c",
+        0x16082:"83fb3c75b1",
+        0x16087:"5e5bc3",
+    }
+    for at,hex_code in event_vm_windows.items():
+        expected=bytes.fromhex(hex_code)
+        assert obj[at:at+len(expected)]==expected,hex(at)
+    event_vm_calls={
+        0x16041:0x30700, 0x1605F:0x15534, 0x1606E:0x30700,
+        0x15D16:0x15534, 0x15E0C:0x15534, 0x15E2D:0x15534,
+        0x160F1:0x16034, 0x16105:0x16034, 0x161DC:0x15534,
+    }
+    for at,target in event_vm_calls.items():
+        assert obj[at]==0xE8,hex(at)
+        assert at+5+struct.unpack_from("<i",obj,at+1)[0]==target,(hex(at),hex(target))
+    # Actual original DWORD entries, before loader relocation or
+    # any runtime executable mutation, not inferred function names.
+    event_vm_table=struct.unpack_from("<42I",obj,0x1548C)
+    assert len(set(event_vm_table))==42
+    assert all(0x15534<=target<0x15E38 for target in event_vm_table)
+    assert (event_vm_table[0],event_vm_table[27],event_vm_table[41])==(
+        0x155D0,0x1553F,0x156F2)
+    assert obj[0x16089]==0xC3
+    print("ORIGINAL_PASS: timer event-loop and 42 original CS opcode targets")
+    print("ORIGINAL_PASS: four source hashes, 17 op windows and nine near-E8 edges")
+    print("OPEN: VM handler callees, EBP/DS/ES effects and runtime callback target")
     print("ORIGINAL_PASS: original CODE.2 SHA and C050=1 initializer")
     print("ORIGINAL_PASS: 339 C050 operands: 282 reads, 56 byte toggles, 1 DWORD EBP toggle")
     print("BOUND: EBP=1 at 160E1; original call preservation and aliases remain open")
@@ -158,6 +212,8 @@ def audit_repository()->None:
     for word in ("339","56","16221","160E1","FDBC","indirect","EBP"):
         assert word in doc,word
     for term in ("14218","16400","1602C","1A1F4","2F868","F0C8"):
+        assert term in doc,term
+    for term in ("15534","1548C","42-way","16034","7FEC","F0C8"):
         assert term in doc,term
     print("SOURCE_ONLY_PASS: registered CTest, original ground batch and audit notes")
 
