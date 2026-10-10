@@ -2,6 +2,10 @@
 
 Faithful reconstruction of the original **Ravenloft: Strahd's Possession** game, including its executable code, data formats, and a native game engine. The goal is to recreate **the complete original game before modernization**. Current work is an in-progress reconstruction, **not** a semantically certified game or original-DOS-equivalent release.
 
+## Shared project coordination
+
+The [cross-workstream documentation index](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/INDEX.md), [current status](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/CURRENT_STATUS.md), [branch ownership](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/BRANCH_OWNERSHIP.md) and [shared CODE synchronization register](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/docs/SHARED_SOURCE_REGISTER.md) live on the default branch. **All original-game/native fidelity research, source offsets, tests and continuity documentation remain under `DemoV1/`**; the central index does not replace or move them.
+
 ## Start here
 
 | Project area | Active documentation |
