@@ -169,3 +169,40 @@ The next owner-authorized execution may run this preflight only
 as part of explicitly recorded external-original validation.
 Its results remain a separate source mapping evidence class,
 not confirmation of CPU behavior or full G2 correctness.
+
+## Source-only hardening: SHA identity and assumed MZ relocations
+
+The first source-review continuation found that direct library callers
+of `describe(data, expected_sha, mode, label)` could previously attach
+an unverified caller-supplied SHA to valid bytes, bypassing the CLI's
+`read_bounded_original` check. `describe` now recomputes the supplied
+bytes' SHA256 and rejects a missing, invalid or foreign digest.
+The new synthetic fixture checks both uppercase-valid SHA input and
+forged/ill-formed source identities. These edits are **NOT YET RUN**.
+
+An additional independent Python helper,
+`simulate_mz_relocations(original_bytes, assumed_load_segment)`,
+performs a private-copy MZ loader **word-addition** simulation.
+It validates the original stored header/relocation geometry first,
+then applies each relocated word's original table-order addition
+modulo 65536 at a **caller-assumed** 16-bit load segment. It reports
+only the simulated file-backed MZ image SHA256, load segment assumption,
+bounded relocation count, and overlap status. It never emits stored
+or relocated bytes, relocation word values, original file paths,
+runtime segment assertions or unbacked virtual/BSS memory.
+
+The optional CLI `--assumed-mz-load-segment 0x1234` enables this
+metadata on `--mode mz` only, and only after the source's
+original SHA256 has matched the supplied expected digest. Without
+this flag the command performs no relocation simulation.
+The number `0x1234` is an **example hypothetical load segment**,
+not an observed DOS allocation or executable address.
+
+This creates a second, separately implemented *future* expectation
+source for DOSDis's `DosMzRebasedView`. Correlating two independently
+calculated digests still does **not** establish runtime behavior,
+MZ standard compliance beyond the selected checks, or reviewer
+approval. Additional synthetic source-only cases cover modular
+wraparound, no-fixup identity, table-order overlapping writes,
+invalid assumed segments, and preservation of original input bytes.
+An original-game relocation comparison has **not** been executed.
