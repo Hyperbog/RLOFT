@@ -260,3 +260,36 @@ candidates and unsupported semantics remain unverified.
 binary analysis, actual external decoder execution, independent human
 adjudication or G2 acceptance occurred for this follow-up.
 
+## 14. Exact-build baseline and uncompiled JSON-schema import hardening
+
+Owner-authorized Windows [run #38](https://github.com/Hyperbog/RLOFT/actions/runs/38088066909)
+**PASSED** compilation of desktop, CLI and smoke projects and executed
+`DosDis.Smoke` and `DosDis.ProjectSmoke` at PR merge SHA
+`d8c404c56fed675457f5497859f242002e863732`.
+The corresponding canonical code SHA was
+`2945b1474289cb42c167000628255848b77b7896`.
+An initial compiler-ambiguity error in run #36 and a synthetic-project
+local-variable conflict in run #37 were repaired before passing run #38.
+The temporary PR was closed; canonical CI remains manual dispatch only.
+This is **COMPILED / SYNTHETIC VERIFIED**, not independently accepted G2
+accuracy or an original-binary DOSDis comparison.
+
+Subsequent uncompiled source now checks JSON property uniqueness
+(case-insensitive because the typed web-default import is
+case-insensitive), and rejects unfamiliar names at every supported
+oracle-manifest layer. A repeated field or misspelled optional edge,
+operand or memory key may otherwise lead to a misleading match by
+silently dropping a claimed expectation. New negative fixtures cover
+this precise import-boundary risk and remain **SOURCE ONLY** until
+an explicitly authorized Windows rerun at their exact SHA.
+
+The owner-local Strahd CODE.2 GNU objdump 2.44 outer-DOS-MZ entry
+reference is **PREPARED EXTERNALLY**, not run through DOSDis. Its eleven
+consecutive instructions and nine scoped structured expectations do
+not cover independent branch/guard/table acceptance, cross-title LE
+maps, or full executable code/data ownership. The next G2 source
+comparison must preserve the exact original SHA, mapped segment and
+file offset, tool versions, predeclared denominators and all
+not-observed/unsupported and conflicting results. Independent reviewer
+adjudication and a distinct ISA/original-source evidence class remain
+required before an independent verdict can change from PENDING.
