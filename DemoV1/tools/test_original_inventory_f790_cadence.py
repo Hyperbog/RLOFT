@@ -79,7 +79,7 @@ def check_binary(path: Path) -> None:
     for at in CONSTANT_EMPTY_HAND:
         assert binary[at - 4:at] == bytes.fromhex("6a006aff"), (
             f"empty-hand F790 immediate argument pair missing at {at:05X}")
-    assert binary[0x119FC - 5:0x119FC] == bytes.fromhex("ff342455")
+    assert binary[0x119FC - 4:0x119FC] == bytes.fromhex("ff342455")
     assert binary[0x11F47 - 8:0x11F47] == bytes.fromhex("ff742408ff742414")
     assert binary[0x130DE - 3:0x130DE] == bytes.fromhex("6a0053")
     assert direct_rel32_calls(binary, 0x112EC) == (0x13133,), "112EC direct call changed"
