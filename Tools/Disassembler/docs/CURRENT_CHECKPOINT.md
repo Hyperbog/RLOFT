@@ -49,6 +49,18 @@ normative evidence requirements or a Git status check.
 - Multigame original selection/relocation geometry records:
   **source hash/header verified only**; no new external-disassembler
   / DOSDis original-file comparison for the four other game files.
+- Source-only security and independent relocation audit:
+  `describe()` now rechecks the requested original SHA instead of
+  trusting a passed string. The independent Python preflight can
+  simulate original-backed DOS MZ 16-bit modular relocations at a
+  **caller-assumed** load segment and return only a transformed-image
+  SHA256, count and overlap metadata. DOSDis's separate C#
+  `DosMzRebasedView.Summary.SimulatedFileBackedImageSha256`
+  exposes the matching copied-image fingerprint in `mz-relocate`
+  and `mz-analyze --load-segment` output. Synthetic positive,
+  overlap, wrap, malformed-SHA and invalid-segment cases were
+  authored. **None are compiled or executed; no original game
+  relocation comparison has occurred.**
 - Project-side iteration protocol in
   [CONTINUOUS_IMPROVEMENT_PLAYBOOK.md](CONTINUOUS_IMPROVEMENT_PLAYBOOK.md):
   instructions to prevent repeated compile defects, circular oracles,
@@ -56,10 +68,12 @@ normative evidence requirements or a Git status check.
 
 ## Next highest-information steps
 
-1. STATIC-review and extend *source-only* G2 distinct original sample
-   expectations for Dungeon Hack's COM near transfer and MZ
-   relocation-bearing entry. Independently establish opcode/ISA
-   interpretation before reading new DOSDis candidate output.
+1. STATIC-review the new original-SHA rejection and independent
+   MZ relocation fingerprint handshake, then extend *source-only*
+   G2 distinct original sample expectations for Dungeon Hack's COM
+   near transfer and relocation-bearing MZ entry. Independently
+   establish opcode/ISA interpretation before reading new DOSDis
+   candidate output.
 2. Cover original-source mapping/rejection and 16-bit conditional,
    indirect and signed/unsigned guard behavior, retaining unknown
    paths and exact predeclared denominators.
