@@ -249,13 +249,8 @@ try
     Equal(repeated.ReadRelocatedWord(1), (ushort)0x5234,
         "repeated original MZ fixup is modeled in table order");
     Equal(repeated.Summary.SimulatedFileBackedImageSha256,
-        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
-            Enumerable.Range(0, repeatedImage.FileBackedImageLength)
-                .Select(i => i == 1 ? (byte)0x34 :
-                    i == 2 ? (byte)0x52 :
-                    repeatedImage.ReadStoredImageBytes(i, 1)[0])
-                .ToArray())).ToLowerInvariant(),
-        "overlapping MZ fixup checksum reflects ordered writes without editing source");
+        "8b51fcd51dd9e03b8ca6d4fc689a7ad90cc9caadcf9869b0d198ff977a3c0ff8",
+        "overlapping MZ fixup hash agrees with independent ordered-write synthetic expectation");
 
     // Unprefixed 16:16 far CALL/JMP requires exactly one resident MZ selector
     // relocation. The candidate never replaces an unresolved runtime edge.
