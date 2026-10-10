@@ -376,6 +376,21 @@ mappings/relocations/guard and unsupported-data cases and obtain
 separate human review. Owner authorization required for compiled
 G2 comparisons; preflight Python tool and synthetic fixtures SOURCE
 ONLY.
+NEW SOURCE-ONLY G2 RELOCATION EVIDENCE PATH:
+- `describe(data,sha,...)` independently checks its own SHA claim,
+  closing a bypass where calling the helper directly skipped the
+  preflight CLI's `read_bounded_original` identity check.
+- Python preflight now offers OPTIONAL, explicitly assumed MZ
+  16-bit word-addition simulation, returning a SHA256 digest of the
+  copied relocated file-backed bytes plus count/overlap status,
+  never the original/relocated bytes. New synthetic fixtures cover
+  invalid SHA, modulo wrap, overlap order, zero fixups and invalid base.
+- DOSDis's C# `DosMzRebasedView.Summary` also records the copied
+  relocated-image digest; `mz-relocate` and `mz-analyze --load-segment`
+  expose it for a future SAME-HASH/SAME-ASSUMED-SEGMENT comparison.
+- These changes and fixtures are UNBUILT/UNEXECUTED. Run #40 remains
+  the prior exact-source COMPILED/SYNTHETIC checkpoint; G2 acceptance
+  still PENDING.
 G2 INDEPENDENT ACCURACY ACCEPTANCE REMAINS PENDING.
 TEMP CI: PR #6 CLOSED / not merged. Canonical workflow remains
 workflow_dispatch-only. Owner approval is still required for each new
@@ -1483,3 +1498,29 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
 - No missing input blocks the next source-only research batch. New
   G2 original-file comparison and human reviewer acceptance remain
   explicitly pending; owner authorization is required for builds/tests.
+2026-10-10 | G2 second independent MZ relocation model + SHA trust fix:
+- STATIC review found a source-identity trust gap in the independent
+  original_source_preflight.describe() helper: unlike its CLI reader,
+  it accepted any user-asserted source SHA. The reusable helper now
+  checks format and recomputes SHA256, rejecting a forged claim.
+- Added separate Python MZ loader relocation simulation: read-only
+  original byte input, exact private copied-image fixup additions in
+  table order modulo 65536 at a caller-assumed load segment,
+  hash-only result, count and overlapping-word status. Does not
+  execute game code or infer runtime placement.
+- Added source-only synthetic Python cases for incorrect claimed SHA,
+  valid uppercase SHA, one exact/overflowed fixup, zero-fixup identity,
+  two overlapping fixups and invalid load assumptions.
+- Added C# computed SimulatedFileBackedImageSha256 in
+  DosMzRebasedView.Summary. Exposed property in CLI mz-relocate
+  and mz-analyze --load-segment JSON so the next authorized G2
+  comparison can match SHA across independently implemented loaders,
+  same exact original source identity and assumed load segment.
+- New C# synthetic expectations pin a known single-fixup and a
+  two-overlapping-fixup copied MZ image SHA. The values are derived
+  from independently specified synthetic bytes and modular additions.
+- STATUS: SOURCE ONLY, NOT COMPILED OR EXECUTED. Original-game
+  relocation comparison not done. #40 remains last validated
+  Windows/Linux run and last narrow original Strahd G2 sample.
+- No proprietary original bytes, original manifest, or original
+  sample excerpts added to Git or CI. No new CI/build authorization.
