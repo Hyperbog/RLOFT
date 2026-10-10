@@ -28,7 +28,9 @@ public static class Dos16CorrelatedDispatchRecovery
 {
     public static Dos16CorrelatedDispatchReport Inspect(
         Dos16CodeRegion region, Dos16FlowResult graph,
-        DosMzImage? mz = null, DosMzRebasedView? simulation = null)
+        DosMzImage? mz = null, DosMzRebasedView? simulation = null,
+        int maximumInstructions = 20_000, int maximumSteps = 100_000,
+        int maximumEdges = 80_000)
     {
         ArgumentNullException.ThrowIfNull(region);
         ArgumentNullException.ThrowIfNull(graph);
@@ -41,7 +43,8 @@ public static class Dos16CorrelatedDispatchRecovery
         // A complete independently checked candidate CFG is mandatory
         // before even asking the automatic guard analysis to inspect it.
         // This also rejects externally edited/duplicated graph snapshots.
-        var flow = Dos16DataflowAnalysis.Analyze(region, graph);
+        var flow = Dos16DataflowAnalysis.Analyze(region, graph,
+            maximumInstructions, maximumSteps, maximumEdges);
         if (flow.Incomplete)
             return Incomplete("register-flow-" + flow.AnalysisStatus);
 
