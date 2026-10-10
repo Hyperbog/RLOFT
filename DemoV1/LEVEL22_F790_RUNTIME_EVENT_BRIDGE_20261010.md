@@ -41,3 +41,8 @@ The new optional-original-Python `original_f790_runtime_event_contract_tests` pi
 ## Next bounded actions
 
 Continue mapping individual mutation statuses to original direct F790 calls while distinguishing redraw-only, swap, empty-hand and scribe expiry paths. When event causality is proved, bind original T and raw OBJECTS data once per session, call through the ONE existing ExplorationRuntime RNG, and reuse prepared raster on native present frames. Then request permission for a manual Windows build and user-assisted native/DOS screenshots, click sequences and IRQ deadline comparison. No independent Level23 or modernization work.
+
+
+## 2026-10-10 follow-on bounded live text presentation
+
+The ordinary held-item text branch of `PartyModalPresenter` now invokes the authentic source-backed `OriginalF790RuntimeDescription` with *current* container weights, leaving spell-feedback precedence and provisional ribbon art in place. This **does not** mean the `OriginalF790RuntimeEvent` event-to-RNG bridge is live. A constexpr direct-E8 caller catalog also prevents conflating 11 global held arguments with three empty, two local and one selected source call. See [current live text/caller audit](LEVEL22_F790_LIVE_TEXT_AND_CALLER_CATALOG_20261010.md). Latest Windows Full and DOS acceptance remain unadvanced.
