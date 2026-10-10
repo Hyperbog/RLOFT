@@ -512,6 +512,9 @@ internal static class Dos16ExternalOracleSmoke
         var changedBytes = Dos16ExternalOracleValidator.Compare(region, graph, wrongStored);
         Equal(changedBytes.Conflicting, 1,
             "wrong oracle bytes are compared against original, not just CFG row");
+        Equal(changedBytes.BenchmarkedInstructionBytesSha256,
+            report.BenchmarkedInstructionBytesSha256,
+            "sample identity hashes actual original bytes, never forged oracle hex");
         Equal(changedBytes.Findings[0].DetailCode,
             "external-oracle-bytes-disagree-with-original-file",
             "wrong reference-original mismatch is explicit");
@@ -733,6 +736,12 @@ internal static class Dos16ExternalOracleSmoke
             Equal(json.RootElement.GetProperty("independenceStatus").GetString(),
                 "claimed-external-not-reviewed",
                 "JSON export cannot self-attest reviewer independence");
+            Equal(json.RootElement.GetProperty("mappedRegionSha256").GetString(),
+                report.MappedRegionSha256,
+                "export includes exact original mapped-region digest");
+            Equal(json.RootElement.GetProperty("benchmarkedInstructionBytesSha256").GetString(),
+                report.BenchmarkedInstructionBytesSha256,
+                "export includes source-backed sampled-instruction digest");
             bool overwriteDenied = false;
             try { Dos16ExternalOracleValidator.WriteNew(output, report); }
             catch (IOException) { overwriteDenied = true; }
