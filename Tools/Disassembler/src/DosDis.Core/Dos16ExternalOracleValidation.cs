@@ -100,6 +100,10 @@ public static class Dos16ExternalOracleValidator
             !displacementOK ||
             (memory.Base is null && memory.Index is null &&
                 memory.DisplacementSize != 2) ||
+            // In 16-bit ModR/M, bare [BP] has no mod=00 encoding.
+            // It must be represented by an explicitly encoded disp8/16.
+            (memory.Base == "BP" && memory.Index is null &&
+                memory.DisplacementSize == 0) ||
             memory.Size is not ("UInt8" or "UInt16" or "UInt32"))
             throw new InvalidDataException(
                 "External memory operand exceeds exact supported 16-bit ModRM scope.");
@@ -236,6 +240,35 @@ public static class Dos16ExternalOracleValidator
         }
     }
 
+    // Integrity recheck, NOT a second independent decoder. A cached graph may
+    // have legitimate original hex while retaining forged flow/operand facts
+    // or an injected direct edge. Re-decode only this original file window
+    // using the embedded decoder before counting an external match.
+    private static bool CandidateMatchesOriginalDecode(
+        Dos16CodeRegion region, Dos16FlowInstruction row,
+        Dos16ExternalExpectedInstruction expected)
+    {
+        if (row.Length is < 1 or > 15)
+            return false;
+        int physical = checked(region.FileOffset + expected.Offset - region.Origin);
+        var originalBytes = region.Source.Data.Slice(physical, row.Length).ToArray();
+        var decoder = Decoder.Create(16, new ByteArrayCodeReader(originalBytes));
+        decoder.IP = expected.Offset;
+        decoder.Decode(out var original);
+        if (original.Code == Code.INVALID || original.Length != row.Length ||
+            !string.Equals(original.FlowControl.ToString(), row.FlowControl,
+                StringComparison.Ordinal))
+            return false;
+        if (row.DecoderFacts is not null &&
+            !Equals(Dos16ControlFlowAnalysis.CaptureFacts(original), row.DecoderFacts))
+            return false;
+        if (expected.DirectEdgeKind is not null &&
+            (original.Op0Kind is not (OpKind.NearBranch16 or OpKind.NearBranch32) ||
+             original.NearBranchTarget != expected.DirectTarget!.Value))
+            return false;
+        return true;
+    }
+
     public static Dos16ExternalOracleReport Compare(
         Dos16CodeRegion region, Dos16FlowResult graph,
         Dos16ExternalOracleManifest manifest)
@@ -334,6 +367,11 @@ public static class Dos16ExternalOracleValidator
             {
                 status = "missing";
                 detail = "externally-expected-direct-edge-not-found";
+            }
+            else if (!CandidateMatchesOriginalDecode(region, row, expected))
+            {
+                status = "conflict";
+                detail = "candidate-decoder-or-direct-edge-disagrees-with-original-bytes";
             }
             else
             {
