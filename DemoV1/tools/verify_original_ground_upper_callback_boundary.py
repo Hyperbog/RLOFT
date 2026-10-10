@@ -140,6 +140,55 @@ def audit_original(path:Path)->None:
     for address,expected_hex in windows.items():
         expected=bytes.fromhex(expected_hex)
         assert obj[address:address+len(expected)]==expected,hex(address)
+    # Part 12: bounded transitive paths from the original 314B0 overlay.
+    # Whole-body hashes cover two wrappers, their drawing adapter, and
+    # 2A478 raster, including their alternate RET exits.
+    transitive_bodies = {
+        (0x29838,0x2986C):"28afddf6df2439075906a63c88554f77909e30abc871aa9a40f9bdf407000f75",
+        (0x2986C,0x298B4):"a0d9cb0f247ad1f392f636c8dd28bb640cf51a22111f849c2ee1d6304592c7f7",
+        (0x29564,0x296BF):"d0427ed7069e0923d9d26fe873b7e6f58cd9d71e07b619b4559e853ce2ab15c4",
+        (0x2A478,0x2A584):"9744be2fcf7fe99842fc505850a31e49ad0b18f0b41110bf1b4f6e7ab3f441d9",
+    }
+    for (start,end),sha in transitive_bodies.items():
+        assert hashlib.sha256(obj[start:end]).hexdigest()==sha,hex(start)
+    for at in (0x296B8,0x296BE,0x2A51C,0x2A583):
+        assert obj[at]==0xC3,hex(at)
+    transitive_calls={
+        0x29840:0x2F29C,0x2985F:0x2A478,
+        0x29890:0x2F29C,0x298A5:0x29564,
+        0x29573:0x2E758,0x2A4A0:0x2AB38,
+    }
+    for call,dest in transitive_calls.items():
+        assert obj[call]==0xE8,hex(call)
+        actual=call+5+struct.unpack_from("<i",obj,call+1)[0]
+        assert actual==dest,(hex(call),hex(actual))
+    # 29838 performs a nonnull-resource blit before tail-JMP 2E758;
+    # 29564 invokes 2E758 before its source test at 29578.
+    assert obj[0x29848:0x2984C]==bytes.fromhex("85c074eb")
+    assert obj[0x29867:0x2986C]==bytes.fromhex("e9ec4e0000")
+    assert obj[0x29578:0x29580]==bytes.fromhex("85f60f8439010000")
+    for at,sig in {
+        0x2986C:"a1d4ef00006bd01840a3d4ef0000",
+        0x298AA:"ff0dd4ef0000",
+        0x2A481:"8b4518a2f6a40200",
+        0x2A489:"a24fa50200",
+        0x2A536:"890d09f00000",
+        0x2A55F:"8b0d09f00000",
+    }.items():
+        wanted=bytes.fromhex(sig)
+        assert obj[at:at+len(wanted)]==wanted,hex(at)
+    # 2A478 writes via STOS BYTE ES:[EDI] at two source branches;
+    # these are NOT proven unable to alias FF50/DGROUP at runtime.
+    assert obj[0x2A4F7]==0xAA and obj[0x2A550]==0xAA
+    # A full linear byte search finds no E8-rel32 immediate resolving
+    # to F0C8 setter 2E74C. Indirect CALL/JMP remains fully open.
+    setter_rel32=[at for at in range(len(obj)-4)
+                  if obj[at]==0xE8 and
+                  at+5+struct.unpack_from("<i",obj,at+1)[0]==0x2E74C]
+    assert not setter_rel32
+    print("PASS: original 29838/2986C/29564/2A478 bounded transitive paths")
+    print("BOUND: zero E8-rel32 candidates for 2E74C, NOT indirect reachability")
+    print("OPEN: original F0C8 target, ES aliasing, FF50 effects and DOS parity")
     print("PASS: F0C8 default NULL, setter, two indirect callsites (5 source references)")
     print("OPEN: runtime-installed pointer and callback FF50/VGA effects")
     print("PASS: complete 296C0 geometry and 2AB38 destination helper bodies")

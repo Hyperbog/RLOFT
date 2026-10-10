@@ -56,3 +56,52 @@ The existing `original_ground_upper_callback_boundary_tests` original binary ora
 `tools/verify_original_ground_upper_callback_boundary.py --original-code2 /path/to/CODE.2` validates original file identity, the five complete code entry-to-RET ranges, their literal FF50 reference counts, 17 exact near-E8 destinations, original `1F377` reload and four original 34A74 self-modifying targets. The script passed against the uploaded immutable original. Registered Python CTest without original media checks the accompanying documentation and source registration. This is **source-only**: CI Windows build remains manual-only and last certified Windows Full #658 passed 214/214 on earlier checkout.
 
 Next: investigate transitive write destinations and source-global register/segment aliases of the above helpers, especially `314B0→30700→30CC4`; preserve all original rendering/IRQ/RNG sequencing. Independent DOS matched indexed framebuffer/palette/ticks and variable-height ground remain **unaccepted**.
+
+## 2026-10-10 Part 12 bounded graphics-wrapper transitive audit
+
+**Original witness:** uploaded Strahd CODE.2, 558,689 bytes, SHA-256
+\`853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314\`;
+object-1 at physical 0x3AF24. The existing
+\`tools/verify_original_ground_upper_callback_boundary.py\` now checks full-body SHA-256
+of **29838..2986B (52 bytes)**, **2986C..298B3 (72 bytes)**,
+**29564..296BE (347 bytes)**, and **2A478..2A583 (268 bytes)**.
+Both alternate RET boundaries are checked for 29564 and 2A478;
+the source byte test passed locally against the uploaded original file.
+
+**Two distinct 314B0 rendering routes are now instruction-proven:**
+
+- **31553/315B3/31610 → 29838**: original \`29840→2F29C\` loads an image;
+  the non-null branch invokes \`2985F→2A478\`, which calls
+  \`2A4A0→2AB38\` for raster destination geometry. The wrapper then
+  **tail-jumps at 29867 to 2E758**, potentially executing installed
+  \`F0C8\` code *after* the raster.
+- **31766/3180B/31889 → 2986C**: original \`2986C\` increments
+  \`EFd4\` for temporary overlay-descriptor storage, calls
+  \`29890→2F29C\`, and then \`298A5→29564\`; it decrements
+  \`EFd4\` at 298AA. Original \`29573→2E758\` invokes the optional
+  callback **before** the later 29564 source-pointer test and raster body.
+  Thus the two wrappers have different callback order relative to drawing.
+
+**Original raster side effects:** \`2A478\` writes its own code-byte
+immediates at \`2A481/2A489\`, writes and reloads temporary DGROUP
+\`F009\` at \`2A536/2A55F\`, and executes indexed
+\`STOS BYTE ES:[EDI]\` at \`2A4F7\` and \`2A550\`.
+These destinations are byte-proven; **runtime ES/EDI alias safety is not**.
+The setter \`2E74C\` has **no byte-sequence E8-rel32 candidate targeting
+its entry across original object-1**. This is only a *direct near-call
+search bound*: indirect calls, address-taken references, external setup,
+or runtime installation remain possible. Original \`F0C8\` starts NULL,
+but can be changed by \`2E74C\`.
+
+**Acceptance:** Expanded the already registered callback source/binary
+oracle, with no gameplay modification and no new CTest registration.
+Local original-byte assertions passed. Current Windows Full build/CTest
+was **not dispatched**; last accepted Full #658 is 214/214 on older
+source. This audit does not justify simplifying the \`1F377\` mutable
+\`FF50\` reload, activating speculative partial-ground clipping, or
+claiming original DOS frame, VGA alias, IRQ or RNG parity.
+
+**Next required closure:** establish possible \`F0C8\` installation
+through indirect/initialization paths, validate ES base and destination
+pointer state through \`2AB38\`/framebuffer setup, then reproduce original
+draw and callback sequencing with matched DOS runtime evidence.
