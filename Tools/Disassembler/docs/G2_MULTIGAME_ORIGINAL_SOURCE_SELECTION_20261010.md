@@ -206,3 +206,27 @@ approval. Additional synthetic source-only cases cover modular
 wraparound, no-fixup identity, table-order overlapping writes,
 invalid assumed segments, and preservation of original input bytes.
 An original-game relocation comparison has **not** been executed.
+
+To provide a like-for-like comparison target, DOSDis's
+`DosMzRebasedView.Summary` now also contains
+`SimulatedFileBackedImageSha256`: the SHA256 of its private,
+copied MZ load image *after* applying the explicitly assumed
+load-segment fixups. The `mz-relocate --load-segment HEX`
+and `mz-analyze --load-segment HEX` CLI JSON projections now
+include the digest (no new byte dump). New C# synthetic
+fixtures pin separate expected SHA256 results for a single
+relocation and overlapping relocation writes. As with the
+Python oracle, this is **UNBUILT SOURCE**.
+
+At the next separately authorized compiled gate, compare Python's
+`simulated_file_backed_image_sha256` and DOSDis's
+`SimulatedFileBackedImageSha256` using the SAME exact-hash
+original, **same MZ mode** and **same explicitly assumed
+uint16 load segment**. Also compare stored image lengths,
+fixup counts, overlapping-write status and invalid/truncated
+input rejection; retain any disagreement in the discrepancy
+ledger. An equal digest means the two models produced the
+same private byte image under those assumptions, **not** that
+DOS allocated that segment, executed the program, or that
+all relocation semantics are correct. No such comparison
+has run yet.
