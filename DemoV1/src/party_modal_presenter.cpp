@@ -15,6 +15,9 @@ PartyModalPresenter::PartyModalPresenter(
     const RavenloftBootAssets& assets)
     : assets_(assets),
       objects_(ObjectCatalog::load(assets.source())),
+      original_objects_bytes_(assets.source().read("OBJECTS.DAT")),
+      original_code2_descriptions_(assets.source().read("CODE.2")),
+      original_t_descriptions_(assets.source().read("T")),
       portrait_maps_(
           ExplorationHudPresenter::portrait_maps_from_code2(
               assets.source().read("CODE.2"))),
@@ -579,8 +582,16 @@ void PartyModalPresenter::draw_held_cursor_and_description(
         scribe_message=true;
     } else {
         if(inventory.held.object_id<0)return;
-        description=InventoryItemDescriptionModel::describe(
-            objects_,inventory.held.object_id,inventory.held.known);
+        // Display-only fidelity improvement: native ordinary-held
+        // text now uses the original CODE.2 F790 category/field
+        // formatting, authentic CODE.2 DS punctuation and decoded T
+        // labels, plus MUTABLE container weights from inventory.
+        // This does NOT invoke F790, 30CA2, or source IRQ 30700
+        // during the host's 70-Hz presentation cadence.
+        description=OriginalF790RuntimeDescription::compose(
+            original_objects_bytes_,objects_,inventory,
+            inventory.held.object_id,inventory.held.known!=0U,
+            original_code2_descriptions_,original_t_descriptions_);
     }
     // CODE.2 F66C -> 30508 places the actual message baseline
     // at VGA row 0x65. The exact original decorative ribbon

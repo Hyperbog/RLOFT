@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "rloft/character_sheet.hpp"
 #include "rloft/character_modal_stats.hpp"
@@ -13,6 +14,7 @@
 #include "rloft/inventory_screen.hpp"
 #include "rloft/inventory_runtime.hpp"
 #include "rloft/inventory_item_description.hpp"
+#include "rloft/original_f790_runtime_description.hpp"
 #include "rloft/inventory_encumbrance.hpp"
 #include "rloft/object_catalog.hpp"
 #include "rloft/party_presentation.hpp"
@@ -119,6 +121,11 @@ private:
 
     const RavenloftBootAssets& assets_;
     ObjectCatalog objects_;
+    // Immutable source bytes for CODE.2 F790 text reconstruction;
+    // inventory/container contents themselves remain in live InventoryRuntimeState.
+    std::vector<std::uint8_t> original_objects_bytes_{};
+    OriginalF790StaticResources original_code2_descriptions_;
+    OriginalTTextArchive original_t_descriptions_;
     ExplorationHudPresenter::PortraitMaps portrait_maps_{};
     std::uint16_t res0_base_{};
     std::uint16_t res1_object_base_{};
