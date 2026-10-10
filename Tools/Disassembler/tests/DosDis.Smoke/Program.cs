@@ -2335,6 +2335,23 @@ try
     }
     var byteSwitchGraph = ControlFlowAnalysis.Analyze(
         LeImage.Load(BinaryArtifact.FromBytes(byteSwitchBytes)));
+    // The source-byte oracle prevents a seemingly passing pattern
+    // fixture from silently decoding a different opcode or crossing
+    // a prefix/branch boundary after future refactors.
+    foreach (var exact in new[] {
+        (Offset: 0u, Bytes: "2C02"),
+        (Offset: 2u, Bytes: "3C09"),
+        (Offset: 4u, Bytes: "770B"),
+        (Offset: 6u, Bytes: "0FB6C0"),
+        (Offset: 9u, Bytes: "2EFF248540000000")
+    })
+    {
+        Equal(byteSwitchGraph.Instructions.Single(insn =>
+            insn.Address == new FlowAddress(1, exact.Offset)).OriginalBytes,
+            exact.Bytes,
+            "guarded byte switch keeps original instruction at " +
+                exact.Offset.ToString("X"));
+    }
     Equal(byteSwitchGraph.JumpTables.Count, 1,
         "unsigned CMP AL/JA/MOVZX EAX guarded LE table is recovered");
     Equal(byteSwitchGraph.JumpTables[0].CandidateTargets.Count, 10,
@@ -2391,6 +2408,14 @@ try
     }.CopyTo(nearJaSwitch, 0x200 + 4);
     var nearJaGraph = ControlFlowAnalysis.Analyze(
         LeImage.Load(BinaryArtifact.FromBytes(nearJaSwitch)));
+    Equal(nearJaGraph.Instructions.Single(insn =>
+        insn.Address == new FlowAddress(1, 4)).OriginalBytes,
+        "0F870B000000",
+        "six-byte JA rel32 must be decoded from exact original source");
+    Equal(nearJaGraph.Instructions.Single(insn =>
+        insn.Address == new FlowAddress(1, 0x0D)).OriginalBytes,
+        "2EFF248540000000",
+        "long-form switch changes only control-flow offsets, not indexed operand");
     Equal(nearJaGraph.JumpTables.Count, 1,
         "near JA/CMP byte/MOVZX must preserve the same ten-way guard");
     Equal(nearJaGraph.JumpTables[0].CandidateTargets.Count, 10,
