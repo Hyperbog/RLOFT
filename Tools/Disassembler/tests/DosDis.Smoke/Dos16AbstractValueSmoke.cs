@@ -64,6 +64,32 @@ internal static class Dos16AbstractValueSmoke
                 Dos16AbstractValue.Interval(0, 5),
                 Dos16AbstractValue.Constant(2)).Kind == Dos16ValueKind.Unknown,
             "mixed-borrow subtraction is unknown");
+        Check(Dos16AbstractValue.ShiftLeft(
+                Dos16AbstractValue.Finite(1, 3), 1).Members
+                .SequenceEqual(new ushort[] { 2, 6 }),
+            "correlated self-doubling preserves exact finite outcomes");
+        Check(Dos16AbstractValue.ShiftLeft(
+                Dos16AbstractValue.Finite(0x8000, 0xFFFF), 1).Members
+                .SequenceEqual(new ushort[] { 0, 0xFFFE }),
+            "discrete modular word shift keeps wrapped outcomes");
+        Check(Dos16AbstractValue.ShiftLeft(
+                Dos16AbstractValue.Interval(2, 5), 2).Minimum == 8 &&
+            Dos16AbstractValue.ShiftLeft(
+                Dos16AbstractValue.Interval(2, 5), 2).Maximum == 20,
+            "nonwrapping shifted interval stays bounded");
+        Check(Dos16AbstractValue.ShiftLeft(
+                Dos16AbstractValue.Interval(0x3FFE, 0x4001), 2).Kind ==
+                Dos16ValueKind.Unknown,
+            "mixed modulo quotients invalidate shifted interval");
+        Check(Dos16AbstractValue.ShiftLeft(bottom, 1).Kind ==
+            Dos16ValueKind.Unreachable &&
+            Dos16AbstractValue.ShiftLeft(top, 2).Kind == Dos16ValueKind.Unknown,
+            "shift preserves bottom and top");
+        bool invalidShift = false;
+        try { Dos16AbstractValue.ShiftLeft(one, 16); }
+        catch (ArgumentOutOfRangeException) { invalidShift = true; }
+        Check(invalidShift, "out-of-domain shift count refused");
+
         Check(Dos16AbstractValue.Add(bottom, top).Kind == Dos16ValueKind.Unreachable,
             "unreachable arithmetic stays unreachable");
         Check(many.RestrictUnsigned(5, 10).Kind == Dos16ValueKind.Unreachable,
