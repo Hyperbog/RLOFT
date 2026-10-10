@@ -338,7 +338,22 @@ EXACT ORIGINAL SOURCE COMPARISON (owner-local after compiled #40):
 - 6,512 of the 6,540 candidate instruction starts remain unbenchmarked
   by these two selected windows; no whole-file accuracy claim.
 - Exact report: docs/G2_STRAHD_ORIGINAL_VALIDATION_RECORD_20261010.md.
-NEXT: independently predeclared original samples for broader 16-bit
+ORIGINAL SOURCE DEDUP AUDIT (this subsequent SOURCE-ONLY batch):
+- Supplied Strahd CODE.1 and CODE.2 are different complete files but
+  share every byte of the 62,532-byte original DOS MZ launcher and its
+  54,900-byte CS=01BD mapped x86-16 entry region. They also share
+  the entire 162,800-byte initial prefix.
+- Thus matching the same 28 launcher instructions in both full files
+  would NOT double the independent benchmark denominator. The earlier
+  28/28 result remains one set of shared source bytes.
+- Source-only external comparison report now adds original-byte
+  mappedRegionSha256 and benchmarkedInstructionBytesSha256 to make
+  shared mapped bytes and identical benchmark windows visible even
+  when whole-file hashes differ. Added COM metamorphic negative
+  cases and exported-field assertions; NOTHING in this batch is
+  COMPILED or SYNTHETIC VERIFIED yet.
+NEXT: select original x86-16 code that is genuinely distinct, and
+predeclare independently decoded samples for broader 16-bit
 guard/indirect/MZ fixup, unsupported-data and separate titles, plus
 independent human review and explicit cross-file denominators.
 G2 INDEPENDENT ACCURACY ACCEPTANCE REMAINS PENDING.
@@ -1374,3 +1389,35 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   original-backed x86-16 windows only, NOT a whole-module accuracy
   assertion, emulator/runtime proof, human-reviewed oracle, independent
   validation of LE x86-32 or cross-game coverage. G2 PENDING.
+2026-10-10 | G2 provenance and shared-launcher byte independence (SOURCE ONLY):
+- Audited freshly supplied Strahd CODE.1 and CODE.2 as read-only
+  originals. Full file sizes/hashes differ (277787 fd9b709c...fed;
+  558689 853e0a4d...314), but original MZ 62532-byte extents
+  are IDENTICAL, SHA256
+  37f3b1b3fc5e7a74d087a163f41e83dd5fc9184922a649d8a5eb128121f7204a.
+  Original mapped x86-16 CS=01BD region from 0x1DD0 for 54900 bytes
+  is IDENTICAL, SHA256
+  1be99d96f824922381da2c80faa74a58b45acaf025d072e48faa8bff16d3fa81.
+  Identical prefix ends at 0x27BF0, after 162800 shared bytes.
+- This is a correlation/denominator correction, NOT a new original
+  DOSDis comparison; original #40 results remain 28/28 ONE sampled
+  loader, 15/15 structured operand facts and 5/5 direct edges.
+  Two full-file hashes are not two independently sampled code paths.
+- Added source-only MappedRegionSha256 and
+  BenchmarkedInstructionBytesSha256 in x86-16 external-oracle reports.
+  The benchmark digest hashes ordered IP/length/source-backed bytes
+  rather than the untrusted external OriginalHex. No new executable
+  code or original bytes are disclosed in report digest fields.
+- Added synthetic source fixture comparing two distinct original COM
+  files with a byte-changed unbenchmarked gap: whole-file and region
+  hashes differ, but the benchmarked instruction sample hash agrees.
+  A contradictory oracle hex must not change a source-backed digest.
+  JSON export now has explicit digest field checks in tests.
+- Updated G2 predeclared matrix, original source-evidence record and
+  x86-16 comparator description. The new code/tests are SOURCE ONLY;
+  no build, smoke run, CI dispatch, executable packaging or DOSDis
+  original comparison is claimed. Run #40 remains the latest verified
+  compiled/synthetic/source-sample checkpoint for earlier source.
+- Further G2 acceptance requires independent original code behavior,
+  not merely alternate CODE.1/CODE.2 file containers, plus reviewer
+  assessment and additional original-source/ISA evidence.
