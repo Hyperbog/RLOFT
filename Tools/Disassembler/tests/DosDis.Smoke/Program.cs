@@ -2305,6 +2305,58 @@ try
         "CS table retains all relocation-backed candidate destinations");
     Equal(csGraph.JumpTables[0].Evidence.Contains("cs-object-relative", StringComparison.Ordinal),
         true, "CS-base assumption must appear in evidence");
+    // The same independently source-proven unsigned byte guard must
+    // also constrain a table whose stored entries are LE relocation
+    // records, not merely the unrelocated-literal fallback.
+    var relocatedByteSwitch = (byte[])tableBytes.Clone();
+    new byte[] {
+        0x2C, 0x02,       // SUB AL,2 (post-subtraction byte input)
+        0x3C, 0x02,       // CMP AL,2
+        0x77, 0x0B,       // JA default RET at 0x11
+        0x0F, 0xB6, 0xC0, // MOVZX EAX,AL
+        0x2E, 0xFF, 0x24, 0x85, 0x40, 0, 0, 0,
+        0xC3
+    }.CopyTo(relocatedByteSwitch, 0x200);
+    var relocatedByteGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(relocatedByteSwitch)));
+    Equal(relocatedByteGraph.JumpTables.Count, 1,
+        "relocation-backed byte guard still recognizes its table");
+    Equal(relocatedByteGraph.JumpTables[0].CandidateTargets.Count, 3,
+        "CMP AL,2 keeps exactly three source-backed relocated slots");
+    Equal(relocatedByteGraph.JumpTables[0].Evidence.Contains(
+        "index-bounded-by-source-backed-unsigned-ja"), true,
+        "relocation-backed table no longer mislabels proven index bounds");
+    Equal(relocatedByteGraph.JumpTables[0].Evidence.Contains(
+        "byte-register-MOVZX-zeroextend"), true,
+        "relocation-backed byte index retains its proof pattern");
+    Equal(relocatedByteGraph.Edges.Any(e =>
+        e.Kind == "unresolved-indirect-jump"), true,
+        "bounded relocated table remains runtime-unverified");
+
+    var shorterGuard = (byte[])relocatedByteSwitch.Clone();
+    shorterGuard[0x200 + 3] = 0x01; // CMP AL,1: only slots 0 and 1
+    var shortBoundGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(shorterGuard)));
+    Equal(shortBoundGraph.JumpTables.Count, 1,
+        "shorter guard retains relocation-backed pointer evidence");
+    Equal(shortBoundGraph.JumpTables[0].CandidateTargets.Count, 2,
+        "source-backed upper bound restricts larger stored relocation run");
+    Equal(shortBoundGraph.JumpTables[0].Evidence.Contains(
+        "index-bounded-by-source-backed-unsigned-ja"), true,
+        "shorter guarded relocation table is labeled bounded");
+
+    var oversizedGuard = (byte[])relocatedByteSwitch.Clone();
+    oversizedGuard[0x200 + 3] = 0x04; // CMP AL,4 needs five pointer slots
+    var incompleteSlots = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(oversizedGuard)));
+    Equal(incompleteSlots.JumpTables.Count, 1,
+        "original relocation-backed candidate table remains inspectable");
+    Equal(incompleteSlots.JumpTables[0].Evidence.Contains(
+        "index-bound-unproven"), true,
+        "guard count exceeding validated pointer slots cannot be claimed bounded");
+    Equal(incompleteSlots.JumpTables[0].CandidateTargets.Count, 3,
+        "an incomplete relocation run is not expanded to a speculative five slots");
+
     var fsBytes = (byte[])csBytes.Clone();
     fsBytes[0x200] = 0x64;
     Equal(ControlFlowAnalysis.Analyze(LeImage.Load(BinaryArtifact.FromBytes(fsBytes)))
