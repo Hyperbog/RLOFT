@@ -4,7 +4,13 @@
 
 ## Authoritative evidence
 
-The immutable original user-supplied `CODE.2` has 558,689 bytes and SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`; executable object 1 begins at physical `0x3AF24`. `tools/verify_original_f790_actor_toggle.py` independently passed **10 original instruction windows and seven E8-rel32 targets** against those bytes. Only small necessary instruction signatures are committed, never the original game executable.
+The immutable original user-supplied `CODE.2` has 558,689 bytes and SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`; executable object 1 begins at physical `0x3AF24`. `tools/verify_original_f790_actor_toggle.py` independently passed **13 original instruction windows and eight E8-rel32 targets** against those bytes. Only small necessary instruction signatures are committed, never the original game executable.
+
+## Original input-flag lineage (additional original-byte verification)
+
+The raw flag bit is not a UI-specific invention. Original CODE.2 `22CE0` takes the caller's input flags, and at `22D49..22D53` stores their **low 16 bits** to the input-event ring entry `A640+6*index`. At `22DC1`, the consumer **sign-extends** that stored WORD to `ECX`; at `22E1D..22E20` it pushes `ECX` as the third argument of `12E70` only under modal state `D680=1`. The input/actor procedure at `12F8A` forwards that argument to `11AD8`. The new verifier independently asserts these three upstream instruction windows and the `22E20→12E70` E8 target, in addition to the prior actor toggle checks.
+
+This establishes **bit-2 preservation along the original ring-buffer route**, not its external mouse-button/key meaning. That origin still requires separate caller and DOS event testing. In particular, the ring stores a truncated WORD and the consumer sign-extends it; it does not preserve arbitrary 32-bit input flag values unchanged.
 
 The exact source behavior is **not** a generic repaint:
 
