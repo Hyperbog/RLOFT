@@ -68,6 +68,9 @@ def run(name:str,scope:str,extra:tuple[str,...]):
 def main()->int:
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--code2",type=Path,help="private original CODE.2")
+    p.add_argument("--code1",type=Path,help="optional private original CODE.1")
+    p.add_argument("--code1-report",type=Path,
+                   help="optional corresponding candidate Code1.json")
     p.add_argument("--objects",type=Path,help="private original OBJECTS.DAT")
     p.add_argument("--candidate-report",type=Path,
                    help="candidate-unverified Code2.json cross-check")
@@ -77,11 +80,25 @@ def main()->int:
     args=p.parse_args()
     if (args.objects or args.candidate_report) and not args.code2:
         p.error("--objects and --candidate-report require --code2")
+    if bool(args.code1)!=bool(args.code1_report):
+        p.error("--code1 and --code1-report must be supplied together")
+    if args.code1 and not (args.code2 and args.candidate_report):
+        p.error("--code1 cross-report requires --code2 and --candidate-report")
     results=[run(name,"source-only",()) for name in SOURCE_SCRIPTS]
     if args.code2:
         for name,extra in original_cases(args.code2,args.objects,
                                           args.candidate_report):
             results.append(run(name,"immutable-original",extra))
+        if args.candidate_report:
+            argv=["--code2",str(args.code2),
+                  "--json2",str(args.candidate_report)]
+            if args.code1 is not None:
+                argv.extend(("--code1",str(args.code1),
+                             "--json1",str(args.code1_report)))
+            results.append(run(
+                "audit_disassembler_json_bytes.py",
+                "immutable-original-plus-candidate-json",
+                tuple(argv)))
     count=sum(bool(entry["passed"]) for entry in results)
     audit={"schema":"rloft-f790-source-feedback-loop-v1",
            "checks":results,"passed":count,"failed":len(results)-count,
