@@ -163,3 +163,33 @@ source classification and any release accuracy acceptance remain
 outstanding. See `X86_16_EXTERNAL_ORACLE_COMPARISON.md` and the
 predeclared G2 matrix. No build, tests or outside-decoder comparison
 were executed for this checkpoint.
+
+## 11. Restricted x86-16 register/immediate semantic assertions (source-only)
+
+The first operand-level extension records normalized **source-decoded**
+mnemonic, explicit operand count and the first two operand kinds,
+registers and immediate semantic values with the x86-16 candidate
+instructions. The external oracle may provide independent expectations
+for those precise facts; direct source-encoded JMP/CALL targets
+remain separately checked as CFG edges.
+
+Only `Register`, `Immediate8`, `Immediate16`,
+`Immediate32`, `Immediate8to16` and
+`Immediate8to32` expectations can currently claim
+structured operand agreement. Signed immediate extension is
+preserved, so `-2` is not silently equated with unsigned `254`.
+Invalid register names, inconsistent operand value/kind,
+numeric mnemonic aliases, or out-of-range immediates are rejected.
+
+The report has **separate** `structuredOperandExpectations` and
+`fullyMatchedOperandExpectations` counts. A source/flow/edge mismatch
+prevents counting an operand expectation as fully matched. No
+`expectedFacts` means *untested*, and a cached graph without
+`decoderFacts` is *not observed*, never silently correct. The
+analyzer produces these facts from Iced itself; the expected
+values must still come from an actually **independent** source
+and reviewer. This does not establish memory addressing,
+implicit effects, full instruction semantics, runtime reachability,
+or a release-grade outside-decoder benchmark.
+
+G2 execution and independent acceptance remain PENDING.
