@@ -44,6 +44,11 @@ if(Python3_Interpreter_FOUND)
         NAME original_f790_candidate_coverage_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/analyze_original_f790_candidate_coverage.py")
+    # Source 117A0 fanout multiplicity: successful scribe calls F790 TWICE.
+    add_test(
+        NAME original_f790_ordinary_slot_event_oracle_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_ordinary_slot_event_plan.py")
     # Three proved CODE.2 feedback F790 call edges and strict IRQ expiry.
     add_test(
         NAME original_f790_feedback_binary_contract_tests
