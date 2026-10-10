@@ -73,11 +73,16 @@ if(Python3_Interpreter_FOUND)
     # Exhaustive original object-1 absolute-address operands
     # for FDBC page base / FF48 source texture origin, bounded
     # against indirect alias and ES selector uncertainty.
+    # Read-only C050 original page toggle width and byte-literal audit.
+    add_test(
+        NAME original_ground_c050_page_toggle_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_c050_page_toggle.py")
     add_test(
         NAME original_ground_vga_page_base_reference_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_vga_page_refs.py")
-    # Deliberately source-only: batches ten existing Python contracts.
+    # Deliberately source-only: batches eleven existing Python contracts.
     # ORIGINAL binary evidence requires explicit, identity-verified
     # CODE.2 and SINTAB supplied outside CI and is NOT inferred here.
     add_test(

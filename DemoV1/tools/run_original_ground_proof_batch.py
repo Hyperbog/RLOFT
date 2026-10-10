@@ -30,6 +30,7 @@ CHECKS = (
     ("source_projection", "verify_original_ground_source_projection.py", True),
     ("surface_dispatch", "verify_original_ground_surface_dispatch.py", False),
     ("upper_callbacks", "verify_original_ground_upper_callback_boundary.py", False),
+    ("c050_page", "verify_original_ground_c050_page_toggle.py", False),
     ("vga_page_refs", "verify_original_ground_vga_page_refs.py", False),
 )
 
