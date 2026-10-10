@@ -6,6 +6,10 @@ The native 256-ray traversal now distinguishes original CODE.2 `32F4C` sentinel 
 
 
 
+## 2026-10-10 exact original FF50 direct read/write operand census
+
+Independent CODE.2 object-1 byte scan and instruction-prefix audit found exactly **seven** direct literal `DWORD[FF50]` operands (three writes, one compare, three reads); only `1F29D/1F2A5/1F37F` write directly, and `34A74` reads twice. No direct literal reference appears inside upper callback entry functions `29B40/314B0/33E28`, but **indirect pointer writes and nested callback effects remain open**, so native projected lower FF50 continues to be explicitly conditional. Bounded source oracle registered as new Python CTest; original immutable CODE.2 check passed locally. No renderer/gameplay changes, no CI build, DOS parity pending. [Exact evidence](LEVEL22_ORIGINAL_FF50_DIRECT_REFERENCE_AUDIT_20261010.md).
+
 ## 2026-10-10 source-depth F12 projection validation hardened
 
 Parallel source-only projection `OriginalGroundSourceProjectionModel` already handles native ray source ordering into original 22220 and bounded SINTAB FF50 calculations. This audit preserves that single model. Added strict validation of **all seven original CODE.2 32F4C sentinel record DWORD fields** (not merely main resource/depth), so corrupt source provenance cannot fabricate an original depth result. Fixed a projected-depth test's incorrect assertions after its fixture was reset from earlier negative/0x93 values to 42/3000; snapshot current immutable inputs instead. Capture TSV now also labels `ground_projection_lower_ff50_if_upper_unchanged`, since original 1F377 reloads mutable FF50 after opaque upper callbacks. No native gameplay/rendering change, no claim of original DOS RAM, Windows Full still not run on current source; CI manual-only. [Full source and test audit](LEVEL22_SOURCE_DEPTH_PROJECTION_HARDENING_20261010.md).

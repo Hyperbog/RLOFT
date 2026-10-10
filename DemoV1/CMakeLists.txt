@@ -58,6 +58,12 @@ if(Python3_Interpreter_FOUND)
         NAME original_ground_ff50_binary_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_ff50_source_span.py")
+    # Original CODE.2 all direct FF50 DWORD operand bytes, 1F1C8 and 34A74.
+    # Only direct addressing is bounded; callback pointer aliasing remains open.
+    add_test(
+        NAME original_ground_ff50_direct_reference_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_ff50_direct_references.py")
     # Original CODE.2 335C8 nearest 22220 and 4 exact ray
     # materializer zero/signed-min source windows.
     add_test(
