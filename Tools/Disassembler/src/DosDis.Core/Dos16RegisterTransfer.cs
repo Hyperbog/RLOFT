@@ -175,6 +175,24 @@ public static class Dos16RegisterTransfer
         if (opcode == 0x3D && bytes.Length == 3)
             return Result(before, "exact-compare-flags-unknown", false);
 
+        // Exact 16-bit BX scaling already recognized by the independent
+        // guarded-dispatch detector. Doubling is a correlated unary
+        // operation: summing BX with an independent BX set would invent
+        // cross-register combinations that cannot occur.
+        if ((bytes.Length == 2 &&
+                ((opcode == 0xD1 && bytes[1] == 0xE3) ||
+                 (opcode is 0x01 or 0x03 && bytes[1] == 0xDB))) ||
+            (bytes.Length == 3 && opcode == 0xC1 &&
+                bytes[1] == 0xE3 && bytes[2] is 0x01 or 0x02))
+        {
+            int shift = opcode == 0xC1 ? bytes[2] : 1;
+            return Set((int)Dos16WordRegister.BX,
+                Dos16AbstractValue.ShiftLeft(
+                    before.Get(Dos16WordRegister.BX), shift),
+                "exact-bx-self-scaling-modular-word",
+                false, Dos16ValueOriginKind.Arithmetic);
+        }
+
         // Direct, prefix-free relative control transfers do not modify
         // 16-bit general registers or flags. The CFG must separately prove
         // exact destinations and both sides of conditional branches.
