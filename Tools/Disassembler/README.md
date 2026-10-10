@@ -6,6 +6,27 @@ Evidence-first, game-agnostic DOS executable disassembly and reverse-engineering
 
 The project intentionally does not certify automatic full code coverage, verified runtime control flow or complete decompilation.
 
+## Required independent accuracy validation
+
+**Independent validation is a binding acceptance requirement** for accuracy/format
+claims at pending and future G2–G8 gates and before the final release. Passing
+the project's synthetic tests or using Iced.Intel to decode instructions does
+**not** independently verify DOSDis's loader, CFG, relocation, instruction
+classification or function discovery. Each supported scope must be compared
+at the **exact compiled commit and original binary SHA** against predeclared
+outside evidence (such as a separately implemented decoder, applicable
+format/ISA specifications, independently checked original-byte audits or
+reproducible execution traces), with reviewed mismatches and explicit blind
+spots. Strahd, Stone Prophet and Menzoberranzan share `CODE.1`/`CODE.2`
+filenames but need **separate** source identities and comparison records.
+
+Read the [normative independent validation policy](docs/INDEPENDENT_VALIDATION_POLICY.md)
+and [evidence record template](docs/INDEPENDENT_VALIDATION_RECORD_TEMPLATE.md).
+The [roadmap/build gates](docs/ROADMAP_BUILD_GATES.txt) define required
+acceptance per phase. This policy adds **no automatic build or test run**:
+owner authorization is still required. As of 2026-10-10 the current HEAD has
+**not** passed the new independent verification gate.
+
 ## Requirements
 
 - .NET 10 SDK (see `global.json`)
