@@ -1194,3 +1194,14 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
 - SOURCE ONLY: no compilation, tests, second decoder run,
   original file validation, human accuracy review or
   GitHub Actions dispatch. G2 independent acceptance PENDING.
+
+2026-10-10 | Source-only signed disp8 boundary follow-up:
+- Make 16-bit memory-displacement normalization explicit: for an
+  encoded disp8, interpret the original 8-bit value as signed,
+  then normalize to its modulo-65536 effective-address delta.
+  This avoids relying on Iced's host-width stored displacement.
+- Add synthetic -128 (FF80h) and +127 (007Fh) boundaries with
+  their exact original bytes, structured source facts and
+  separately scoped external-oracle expected counts.
+- Still no Windows compile, smoke execution, actual independent
+  decoder run or current-source accuracy acceptance. G2 pending.
