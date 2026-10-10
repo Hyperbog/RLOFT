@@ -2,6 +2,7 @@
 #undef NDEBUG
 #endif
 #include "rloft/original_f790_runtime_event.hpp"
+#include "rloft/original_f790_ordinary_slot_event_plan.hpp"
 
 #include <array>
 #include <cassert>
@@ -42,11 +43,11 @@ int main() {
     c[Static::kObject2DiskBase+0x67EC]=8U;
     const Static original_code2(c);
 
-    std::vector<std::uint8_t> ts(4U+0x42U*4U,0U);
-    put32(ts,0U,0x42U);
+    std::vector<std::uint8_t> ts(4U+0x43U*4U,0U);
+    put32(ts,0U,0x43U);
     const auto empty=ts.size();
     ts.push_back(0U);ts.push_back(0U);
-    for(std::size_t i=0;i<0x42U;++i)
+    for(std::size_t i=0;i<0x43U;++i)
         put32(ts,4U+4U*i,static_cast<std::uint32_t>(empty));
     const auto t=[&](std::size_t index,const std::string& label) {
         put32(ts,4U+4U*index,static_cast<std::uint32_t>(ts.size()));
@@ -58,6 +59,7 @@ int main() {
     t(0x3eU,"DAMAGE:");
     t(0x40U,"A.C. BONUS:");
     t(0x41U,"CAPACITY:");
+    t(0x42U,"FIREBALL"); // synthetic original-index 11630 source name
     const rloft::OriginalTTextArchive original_t(ts);
 
     constexpr std::size_t count=90U;
@@ -247,6 +249,46 @@ int main() {
     assert(shared_rng.state()==after_pending);
     assert(framebuffer.pixels().at(0x62U*320U+0x44U)==0x40U);
     sequence.leave_modal();
+
+    // Full synthetic 117A0 transaction: 11630 draws 759C at 1173B
+    // with pre-consumption held scroll, THEN 1183E clears the cursor
+    // and 1184A draws the SAME pending ribbon a second time.
+    sequence.enter_modal_13118();
+    framebuffer.clear(0x31U);
+    framebuffer.fill_rect(0x62,0,16,320,0x40U);
+    sequence.capture_after_actor_columns_112ec(framebuffer);
+    const rloft::HeldItemState scroll_before{0xA7,1U};
+    rloft::MageScribeFeedback successful_feedback{};
+    successful_feedback.kind=rloft::MageScribeFeedbackKind::Scribed;
+    successful_feedback.t_spell_name_index=0x42U;
+    successful_feedback.source_text=" LEARNED!";
+    successful_feedback.pending_6dac=1U;
+    successful_feedback.deadline_6da8=0x1234U;
+    inventory.mage_scribe_feedback=successful_feedback;
+    inventory.held={-1,0U};
+    const auto plan=rloft::OriginalF790OrdinarySlotEventPlan::after_117a0(
+        rloft::InventoryOrdinarySwapStatus::LearnedMageSpell,
+        scroll_before,{0xA6,0U},inventory,original_t);
+    assert(plan.count==2U);
+    assert(plan.at(0).item_id==0xA7 && plan.at(1).item_id==-1);
+    assert(plan.at(0).owned_text_759c=="FIREBALL LEARNED!");
+    assert(plan.at(1).owned_text_759c==plan.at(0).owned_text_759c);
+    const auto before_scribe_ticks=tick_observations;
+    for(std::size_t i=0;i<plan.count;++i)
+        fire(plan.at(i).arguments_now());
+    assert(sequence.f790_event_count()==2U);
+    assert(tick_observations==before_scribe_ticks);
+    const auto two_draw_rng=shared_rng.state();
+    for(int redraw=0;redraw<256;++redraw) {
+        framebuffer.clear(0x31U);
+        framebuffer.fill_rect(0x62,0,16,320,0x40U);
+        sequence.replay_after_host_redraw(framebuffer,ribbon,font);
+    }
+    assert(shared_rng.state()==two_draw_rng);
+    assert(sequence.f790_event_count()==2U);
+    assert(tick_observations==before_scribe_ticks);
+    sequence.leave_modal();
+    inventory.mage_scribe_feedback.reset();
 
     bool rejected=false;
     try { (void)describe(900); } catch(const std::out_of_range&) {rejected=true;}
