@@ -1,13 +1,13 @@
-"""Independent, read-only original RES4 selected-entry triage (no build needed).
+"""Independent original CODE.2 37590 EH6 / 37700 LZSS RES4 oracle.
 
-Usage:
-  python DemoV1/tools/probe_original_res4_selection.py \
-      --init /original/RLOFT/INIT --res4 /original/RLOFT/RES4 \
-      --lev022 /original/RLOFT/LEV022.DAT --json
+Read PRIVATE ORIGINAL files locally; no game assets are transmitted or
+written into Git. The exact Level22 selection is u16(INIT+0x0E) +
+signed(level header+7). This script decodes the selected 4096-byte
+source texture and fingerprints it independently from native C++.
+It does not prove the final native VGA, DOS pixels or IRQ equivalence.
 
-If LEV022.DAT is unavailable, explicitly pass --selector 55 for a
-fresh original Level 22 only. Do not use 55 as an absolute RES4 index.
-This reports raw EH headers, not decoded pixels or DOS graphics parity.
+python DemoV1/tools/probe_original_res4_selection.py \
+  --init INIT --res4 RES4 --lev022 LEV022.DAT --json
 """
 from __future__ import annotations
 
@@ -44,6 +44,58 @@ def entry(raw: bytes, offsets: list[int], index: int) -> bytes:
     return raw[start:stop]
 
 
+def eh6_layout(raw: bytes) -> tuple[int, int]:
+    if len(raw) < 7 or raw[:3] != b"EH\x06":
+        raise ValueError("source resource is not original EH6 block")
+    extended = struct.unpack_from("<h", raw, 3)[0]
+    if extended < 0 or extended > len(raw) - 7:
+        raise ValueError("invalid original EH6 extended header")
+    pos = 5 + extended
+    return pos + 2, struct.unpack_from("<H", raw, pos)[0]
+
+
+def original_37700_lzss(source: bytes, count: int) -> tuple[bytes, int]:
+    """Exact source bit control/backref order, independent of native C++."""
+    history = [-1] * 4096
+    history[:0xFEE] = [0xFE] * 0xFEE
+    ring = 0xFEE
+    inp = 0
+    flags = 0
+    result = bytearray()
+    while len(result) < count:
+        flags >>= 1
+        if not flags & 0x100:
+            if inp >= len(source):
+                raise ValueError("original EH6 LZSS control EOF")
+            flags = source[inp] | 0xFF00
+            inp += 1
+        if flags & 1:
+            if inp >= len(source):
+                raise ValueError("original EH6 LZSS literal EOF")
+            value = source[inp]
+            inp += 1
+            result.append(value)
+            history[ring] = value
+            ring = (ring + 1) & 0xFFF
+        else:
+            if inp + 1 >= len(source):
+                raise ValueError("original EH6 LZSS backref EOF")
+            low, high = source[inp:inp+2]
+            inp += 2
+            at = low | ((high & 0xF0) << 4)
+            length = (high & 15) + 3
+            for j in range(length):
+                if len(result) == count:
+                    break
+                value = history[(at + j) & 0xFFF]
+                if value < 0:
+                    raise ValueError("original EH6 LZSS undefined dictionary")
+                result.append(value)
+                history[ring] = value
+                ring = (ring + 1) & 0xFFF
+    return bytes(result), inp
+
+
 def classify(raw: bytes) -> dict:
     label = "not-EH"
     kind = -1
@@ -54,15 +106,24 @@ def classify(raw: bytes) -> dict:
         "type": label,
         "byte_count": len(raw),
         "first_13_bytes_hex": raw[:13].hex(" ").upper(),
-        "descriptor_64x64_shape": False,
+        "source_ground_candidate": False,
     }
-    if kind == 1 and len(raw) >= 13:
+    if kind == 6 and len(raw) >= 7:
+        try:
+            at, declared = eh6_layout(raw)
+            out.update(runtime_uncompressed_length=declared,
+                       original_eh6_payload_bytes=len(raw)-at,
+                       runtime_cache_type_after_2EF38=1)
+            out["source_ground_candidate"] = declared == 4096
+        except ValueError as exc:
+            out["header_error"] = str(exc)
+    elif kind == 1 and len(raw) >= 13:
         count, height = struct.unpack_from("<hh", raw, 5)
-        units, key, compressed, transformed = raw[9:13]
+        units, key, compression, transformed = raw[9:13]
         out.update(count=count, height=height, width_units=units,
-                   transparency=key, compression=compressed,
+                   transparency=key, compression=compression,
                    transform=transformed)
-        out["descriptor_64x64_shape"] = (
+        out["source_ground_candidate"] = (
             (count == 1 and height == 64 and units == 8)
             or (transformed != 0 and count == 64 and height == 1
                 and units == 8))
@@ -78,23 +139,51 @@ def inspect(original_init: bytes, res4: bytes, selector: int) -> dict:
     kind_count: dict[str, int] = {}
     candidates = []
     for i in range(len(offsets)):
-        meta = classify(entry(res4, offsets, i))
+        raw = entry(res4, offsets, i)
+        meta = classify(raw)
         kind_count[meta["type"]] = kind_count.get(meta["type"], 0) + 1
-        if meta["descriptor_64x64_shape"]:
+        if meta["source_ground_candidate"]:
             candidates.append({
                 "index": i,
+                "source_eh_type": meta["type"],
                 "implied_base_unverified": i - selector,
-                "compression": meta["compression"],
-                "transform": meta["transform"],
                 "byte_count": meta["byte_count"],
                 "source_selected": i == absolute,
             })
     inside = 0 <= absolute < len(offsets)
-    selected = classify(entry(res4, offsets, absolute)) if inside else None
-    valid_header = bool(selected and selected["descriptor_64x64_shape"])
+    selected_raw = entry(res4, offsets, absolute) if inside else b""
+    selected = classify(selected_raw) if inside else None
+    shape = bool(selected and selected["source_ground_candidate"])
+    original_pixels = None
+    bytes_consumed = None
+    err = ""
+    if not inside:
+        err = "selected entry outside original RES4 index"
+    elif not shape:
+        err = "source-selected entry not an original runtime 4096-byte candidate"
+    elif selected_raw[:3] == b"EH\x06":
+        try:
+            at, length = eh6_layout(selected_raw)
+            original_pixels, bytes_consumed = original_37700_lzss(
+                selected_raw[at:], length)
+            if bytes_consumed != len(selected_raw) - at:
+                raise ValueError("source EH6 stream contains unused trailing bytes")
+        except ValueError as exc:
+            err = str(exc)
+    else:
+        err = "EH1 selected: this independent probe only decodes EH6"
+    valid = original_pixels is not None and len(original_pixels) == 4096
+    fingerprint = (hashlib.sha256(original_pixels).hexdigest()
+                   if valid else None)
+    fnv = None
+    if valid:
+        value = 2166136261
+        for octet in original_pixels:
+            value = ((value ^ octet) * 16777619) & 0xFFFFFFFF
+        fnv = f"{value:08x}"
     return {
-        "schema": "rloft-res4-original-selection-triage-v1",
-        "source": "immutable-media-raw-headers-not-DOS-parity",
+        "schema": "rloft-res4-original-selection-triage-v2",
+        "source": "private-original-EH6-37700-decode-not-DOS-VGA-parity",
         "source_code2_rule": "u16(INIT+0x0E) + s16(LevelState.header+7)",
         "init_sha256": hashlib.sha256(original_init).hexdigest(),
         "res4_sha256": hashlib.sha256(res4).hexdigest(),
@@ -106,14 +195,14 @@ def inspect(original_init: bytes, res4: bytes, selector: int) -> dict:
         "type_counts": dict(sorted(kind_count.items())),
         "source_entry_in_bounds": inside,
         "source_selected_header": selected,
-        "source_selected_header_has_ground_shape": valid_header,
-        "selected_decode_verified": False,
+        "source_selected_header_has_ground_shape": shape,
+        "selected_decode_verified": valid,
+        "selected_uncompressed_pixels": 4096 if valid else 0,
+        "selected_payload_bytes_consumed": bytes_consumed,
+        "selected_pixels_sha256": fingerprint,
+        "selected_pixels_fnv1a32": fnv,
         "ground_shape_descriptor_candidates": candidates,
-        "error": ("selected entry outside original RES4 index"
-                  if not inside else
-                  ("source-selected entry is not an EH-1 64x64 header"
-                   if not valid_header else
-                   "descriptor shape matches; decode/pixels remain unverified")),
+        "error": "none" if valid else err,
     }
 
 
@@ -127,7 +216,6 @@ def main() -> int:
     args = ap.parse_args()
     if args.lev022 is None and args.selector is None:
         ap.error("provide original --lev022 or explicit --selector")
-    selector = None
     if args.lev022 is not None:
         lev = args.lev022.read_bytes()
         if len(lev) < 0x1D + 9:
@@ -143,7 +231,7 @@ def main() -> int:
     else:
         for key, value in result.items():
             print(f"{key}={json.dumps(value, sort_keys=True)}")
-    return 0 if result["source_selected_header_has_ground_shape"] else 1
+    return 0 if result["selected_decode_verified"] else 1
 
 
 if __name__ == "__main__":
