@@ -2467,22 +2467,6 @@ try
             " cannot authorize a bounded table");
     }
 
-    // Relocation-backed table pointers remain independently inspectable
-    // when the JA does not skip the dispatch. Their original fixups
-    // must not be misrepresented as proof of an indexed upper bound.
-    foreach (byte displacement in new byte[] { 0, 3, 10 })
-    {
-        var bypassRelocated = (byte[])relocatedByteSwitch.Clone();
-        bypassRelocated[0x200 + 5] = displacement;
-        var report = ControlFlowAnalysis.Analyze(
-            LeImage.Load(BinaryArtifact.FromBytes(bypassRelocated)));
-        Equal(report.JumpTables.Any(table =>
-            table.Evidence.Contains(
-                "index-bounded-by-source-backed-unsigned-ja")), false,
-            "relocation-backed candidate cannot inherit JA dispatch bypass +" +
-            displacement);
-    }
-
     var signedByteSwitch = (byte[])byteSwitchBytes.Clone();
     signedByteSwitch[0x200 + 4] = 0x7F; // JG, signed rather than JA
     Equal(ControlFlowAnalysis.Analyze(LeImage.Load(
@@ -2589,6 +2573,22 @@ try
     Equal(relocatedByteGraph.Edges.Any(e =>
         e.Kind == "unresolved-indirect-jump"), true,
         "bounded relocated table remains runtime-unverified");
+
+    // Relocation-backed table pointers remain independently inspectable
+    // when the JA does not skip the dispatch. Their original fixups
+    // must not be misrepresented as proof of an indexed upper bound.
+    foreach (byte displacement in new byte[] { 0, 3, 10 })
+    {
+        var bypassRelocated = (byte[])relocatedByteSwitch.Clone();
+        bypassRelocated[0x200 + 5] = displacement;
+        var report = ControlFlowAnalysis.Analyze(
+            LeImage.Load(BinaryArtifact.FromBytes(bypassRelocated)));
+        Equal(report.JumpTables.Any(table =>
+            table.Evidence.Contains(
+                "index-bounded-by-source-backed-unsigned-ja")), false,
+            "relocation-backed candidate cannot inherit JA dispatch bypass +" +
+            displacement);
+    }
 
     var shorterGuard = (byte[])relocatedByteSwitch.Clone();
     shorterGuard[0x200 + 3] = 0x01; // CMP AL,1: only slots 0 and 1
