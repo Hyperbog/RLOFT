@@ -69,6 +69,138 @@ internal static class Dos16ExternalOracleSmoke
         Equal(report.DecoderConfiguration, manifest.DecoderConfiguration,
             "report preserves unreviewed claimed external decoder settings");
 
+        // Canonical semantic evidence is derived at candidate decode time,
+        // never by reparsing formatted assembly, and is only compared
+        // when an independent manifest explicitly supplies the assertion.
+        // MOV AX,1234; CMP AX,1234; CMP BX,-2 (sign-extended imm8); RET.
+        var operandBytes = new byte[] {
+            0xB8, 0x34, 0x12,
+            0x3D, 0x34, 0x12,
+            0x83, 0xFB, 0xFE,
+            0xC3
+        };
+        var operandArtifact = BinaryArtifact.FromBytes(operandBytes,
+            "synthetic-operand-oracle.com");
+        var operandRegion = DosComImage.LoadExplicit(operandArtifact).CreateCodeRegion();
+        var operandGraph = Dos16ControlFlowAnalysis.Analyze(operandRegion, 0x100);
+        Dos16InstructionFacts MovAx(uint immediate) =>
+            new("Mov", 2, new Dos16OperandFact("Register", "AX"),
+                new Dos16OperandFact("Immediate16", ImmediateValue: immediate));
+        Dos16InstructionFacts CmpAx() =>
+            new("Cmp", 2, new Dos16OperandFact("Register", "AX"),
+                new Dos16OperandFact("Immediate16", ImmediateValue: 0x1234));
+        Dos16InstructionFacts CmpBxSigned() =>
+            new("Cmp", 2, new Dos16OperandFact("Register", "BX"),
+                new Dos16OperandFact("Immediate8to16", ImmediateValue: -2));
+        var operandManifest = manifest with {
+            SourceSha256 = operandArtifact.Sha256,
+            SourceByteLength = operandArtifact.Length,
+            RegionByteLength = operandRegion.ByteLength,
+            ExpectedInstructions = new[] {
+                new Dos16ExternalExpectedInstruction(0x100, 0, "B83412",
+                    "Next", "external-mov-ax-imm16",
+                    ExpectedFacts: MovAx(0x1234)),
+                new Dos16ExternalExpectedInstruction(0x103, 3, "3D3412",
+                    "Next", "external-cmp-ax-imm16",
+                    ExpectedFacts: CmpAx()),
+                new Dos16ExternalExpectedInstruction(0x106, 6, "83FBFE",
+                    "Next", "external-cmp-bx-imm8-signed",
+                    ExpectedFacts: CmpBxSigned()),
+                new Dos16ExternalExpectedInstruction(0x109, 9, "C3",
+                    "Return", "external-ret")
+            }
+        };
+        var operandMatch = Dos16ExternalOracleValidator.Compare(
+            operandRegion, operandGraph, operandManifest);
+        Equal(operandMatch.Matched, 4,
+            "external canonical mnemonic/register/immediate facts compare");
+        Equal(operandMatch.UnbenchmarkedCandidates, 0,
+            "operand sample identifies every retained candidate start");
+        Equal(operandGraph.Instructions.Single(i =>
+            i.Address.Offset == 0x106).DecoderFacts!.Operand1!.ImmediateValue,
+            -2L, "Iced-sourced semantic record preserves sign-extended imm8");
+
+        var wrongRegister = operandManifest with {
+            ExpectedInstructions = new[] {
+                operandManifest.ExpectedInstructions[0] with {
+                    ExpectedFacts = MovAx(0x1234) with {
+                        Operand0 = new Dos16OperandFact("Register", "BX")
+                    }
+                }
+            }
+        };
+        Equal(Dos16ExternalOracleValidator.Compare(
+            operandRegion, operandGraph, wrongRegister).Conflicting, 1,
+            "external AX/BX register discrepancy cannot pass by matching bytes");
+        var wrongImmediate = operandManifest with {
+            ExpectedInstructions = new[] {
+                operandManifest.ExpectedInstructions[0] with {
+                    ExpectedFacts = MovAx(0x1235)
+                }
+            }
+        };
+        var immediateMismatch = Dos16ExternalOracleValidator.Compare(
+            operandRegion, operandGraph, wrongImmediate);
+        Equal(immediateMismatch.Conflicting, 1,
+            "external immediate disagreement cannot pass by matching opcode text");
+        Equal(immediateMismatch.Findings[0].DetailCode,
+            "candidate-structured-operands-disagree-with-external-oracle",
+            "operand-value disagreement has a machine-readable finding");
+        var wrongSignExtension = operandManifest with {
+            ExpectedInstructions = new[] {
+                operandManifest.ExpectedInstructions[2] with {
+                    ExpectedFacts = CmpBxSigned() with {
+                        Operand1 = new Dos16OperandFact(
+                            "Immediate8to16", ImmediateValue: 254)
+                    }
+                }
+            }
+        };
+        Denied(() => Dos16ExternalOracleValidator.Compare(
+            operandRegion, operandGraph, wrongSignExtension),
+            "a sign-extended imm8 has a canonical -128..127 range");
+        var missingFactsGraph = operandGraph with {
+            Instructions = operandGraph.Instructions.Select(i =>
+                i.Address.Offset == 0x100
+                    ? i with { DecoderFacts = null } : i).ToArray()
+        };
+        var unavailable = Dos16ExternalOracleValidator.Compare(
+            operandRegion, missingFactsGraph, operandManifest);
+        Equal(unavailable.NotObserved, 1,
+            "old graph rows lacking structured facts cannot masquerade as a match");
+        Equal(unavailable.Findings[0].DetailCode,
+            "candidate-structured-operand-facts-unavailable",
+            "missing semantic evidence has explicit uncertainty status");
+        var forgedFactsGraph = operandGraph with {
+            Instructions = operandGraph.Instructions.Select(i =>
+                i.Address.Offset == 0x100
+                    ? i with { DecoderFacts = MovAx(0x1235) } : i).ToArray()
+        };
+        Equal(Dos16ExternalOracleValidator.Compare(
+            operandRegion, forgedFactsGraph, operandManifest).Conflicting, 1,
+            "forged same-source semantic record is not a verified decode");
+        Denied(() => Dos16ExternalOracleValidator.Compare(
+            operandRegion, operandGraph, operandManifest with {
+                ExpectedInstructions = new[] {
+                    operandManifest.ExpectedInstructions[0] with {
+                        ExpectedFacts = new Dos16InstructionFacts(
+                            "123", 2, new Dos16OperandFact("Register", "AX"),
+                            new Dos16OperandFact("Immediate16", ImmediateValue: 0x1234))
+                    }
+                }
+            }), "numeric mnemonic alias must not enter external oracle record");
+        Denied(() => Dos16ExternalOracleValidator.Compare(
+            operandRegion, operandGraph, operandManifest with {
+                ExpectedInstructions = new[] {
+                    operandManifest.ExpectedInstructions[0] with {
+                        ExpectedFacts = MovAx(0x1234) with {
+                            Operand0 = new Dos16OperandFact("Register", "AX",
+                                ImmediateValue: 4)
+                        }
+                    }
+                }
+            }), "register operand cannot also assert an immediate value");
+
         var wrongStored = manifest with {
             ExpectedInstructions = new[] {
                 manifest.ExpectedInstructions[0] with { OriginalHex = "EB03" }
