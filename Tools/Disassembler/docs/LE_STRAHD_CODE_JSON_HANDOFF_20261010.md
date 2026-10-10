@@ -209,3 +209,41 @@ Strahd's Possession, not Stone Prophet or Menzoberranzan.
 No Windows build, executable smoke regression, original-byte
 re-export, GitHub workflow dispatch or game-runtime parity test
 has been performed for these new cases. G2 remains unverified.
+
+## LE complete-graph index proof audit (source-only)
+
+A local unsigned JA pattern can look unique when its indirect-jump
+instruction is first decoded but gain an additional predecessor
+as the decoder continues exploring. Final reporting now checks
+the full decoded edge inventory before accepting that local proof.
+
+The implementation records provisional compare, JA and optional
+MOVZX addresses. After traversal it verifies that each expected
+fallthrough or branch-not-taken edge is the sole incoming edge to
+the guarded step. The JA taken target must still skip the whole
+indexed transfer. A truncated graph with provisional bounds is
+not accepted as a complete proof.
+
+A contradicted provisional finding causes the analysis to be
+recomputed from the immutable original bytes with that site's
+guarded hint disabled. All contradicted sites found in the same
+pass are disabled together. The disabled-site set only grows, so
+the repeated procedure has a finite cap. Invalid provisional
+literal-table edges and any case code discovered only through
+those edges do not survive the replacement graph. Source-backed
+relocation tables may remain as unbounded candidates.
+
+Single-use diagnostic traces are produced only for the stable
+final analysis, not for discarded intermediate interpretations.
+New synthetic cases exercise late branches back into JA, MOVZX
+or the indexed jump. A positive case loops back into the CMP
+itself: CMP refreshes its flags, retaining a valid local bound.
+Another case exercises a worklist limit after provisional table
+discovery.
+
+The approach audits the complete *decoded* graph, not every
+conceivable runtime path. It does not prove dynamic memory state,
+execution, or complete interprocedural dominance. It increases
+analysis work and still awaits an explicitly authorized Windows
+compile and synthetic test run. All provenance for the referenced
+CODE.1/CODE.2 handoff remains Strahd-specific.
