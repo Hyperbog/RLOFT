@@ -151,3 +151,44 @@ digests alone also do not prove semantic independence or correctness:
 additional external instruction/ISA checks and reviewer approval
 remain mandatory. See
 `G2_STRAHD_ORIGINAL_VALIDATION_RECORD_20261010.md`.
+
+## I. Verified cross-game DOS binary candidates (source-only selection)
+
+The original `DnD-Classics` branch was inspected at `MASTER/`,
+including the full original `SOURCE_INVENTORY.csv` records. Four
+different game/source paths were fetched as binary blobs and independently
+SHA-256 checked against their original archives' inventories:
+- Dungeon Hack `SBLASTER.COM`: 3904 bytes,
+  SHA256 `da5568671a4992b05a97b3d269900671fc0c0ab1332e7ba4ec4efe509ad97757`.
+- Dungeon Hack `CHECKSYS.EXE`: 15882 bytes,
+  SHA256 `60070e69c2ca61e1adb6fc82bf4a3ed2652a576e40d610ec4f2b83df237fdc22`.
+- Pool of Radiance `POOLRAD/START.EXE`: 65231 bytes,
+  SHA256 `d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd`.
+- Curse of the Azure Bonds `START.EXE`: 57789 bytes,
+  SHA256 `42fcefd6785679568b00bc1fb5b1d81ac2773416be4a35e0363920ddf6b78acd`.
+
+New independent-original samples are preselected from these distinct
+format/mapping cases: a headerless COM with an original near relative
+entry jump, a DOS MZ with 43 bounded relocation records, and two Gold Box
+MZ files whose original **first 283 stored bytes at the mapped entry
+are identical**. The identical Gold Box entry prefix is one shared
+byte-evidence class, NOT 283 instructions or two independent code samples.
+Do not infer a valid instruction boundary at the first differing byte,
+assign runtime reachability or double source-backed sample denominators.
+
+Full exact mapping, inventory verification, sample selection and
+read-only preflight instructions:
+`G2_MULTIGAME_ORIGINAL_SOURCE_SELECTION_20261010.md`.
+The standalone Python source preflight and its wholly synthetic
+regressions are SOURCE ONLY and have not run. No proprietary file
+was added to development commits/CI. These four selected raw binaries
+are accessible directly through GitHub; **no owner reupload is
+currently required**. The corpus-wide archive/image completeness
+issues in the collection audit do not invalidate the four independently
+SHA-matched files, but remain separate collection-audit work.
+
+Complete GNU objdump/another separate decoder and ISA semantic checks,
+DOSDis-vs-external exact-build comparisons, relocation values with an
+explicitly assumed load segment, unsupported/negative-case assertions
+and a human discrepancy review are still required for G2 acceptance.
+
