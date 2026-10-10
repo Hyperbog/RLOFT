@@ -25,6 +25,10 @@ and [evidence record template](docs/INDEPENDENT_VALIDATION_RECORD_TEMPLATE.md).
 The [roadmap/build gates](docs/ROADMAP_BUILD_GATES.txt) define required
 acceptance per phase. The [predeclared G2 independent test scope](docs/INDEPENDENT_VALIDATION_G2_PREDECLARED_SCOPE.md)
 specifies future x86-16 oracle comparisons without claiming they have run.
+An optional [external x86-16 oracle comparison interface](docs/X86_16_EXTERNAL_ORACLE_COMPARISON.md)
+is source-complete for `com-analyze`, `mz-analyze` and `overlay-analyze`;
+it compares predeclared exact-source manifests but does **not** execute an
+independent decoder, verify the claimed oracle author, or certify G2.
 This policy adds **no automatic build or test run**:
 owner authorization is still required. As of 2026-10-10 the current HEAD has
 **not** passed the new independent verification gate.
