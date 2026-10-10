@@ -595,6 +595,38 @@ public static class ControlFlowAnalysis
                 (ulong)offsets[from] >= (ulong)start.Offset +
                     (uint)line.Length;
         }
+        // Original instruction bytes alone cannot prove a guard when
+        // LE fixups rewrite its opcode, compare immediate, branch
+        // displacement or MOVZX operands in the loaded view.
+        // Index origins once per completed pass. A four-byte fixup
+        // intersects [IP, IP+length) if it begins in [IP-3, end-1].
+        var relocationOrigins = image.Relocations
+            .Where(f => f.SourceOffset >= 0 && f.SourceOffset <= uint.MaxValue)
+            .GroupBy(f => f.SourceObject)
+            .ToDictionary(g => g.Key,
+                g => g.Select(f => f.SourceOffset).Distinct().OrderBy(x => x)
+                    .ToArray());
+        bool GuardInstructionUnmodified(FlowAddress address,
+            bool permitExactTerminalDword)
+        {
+            if (!instructions.TryGetValue(address, out var decoded))
+                return false;
+            if (!relocationOrigins.TryGetValue(address.Object, out var starts))
+                return true;
+            long begin = address.Offset;
+            long end = begin + decoded.Length;
+            long first = Math.Max(0, begin - 3);
+            int index = Array.BinarySearch(starts, first);
+            if (index < 0) index = ~index;
+            long terminal = end - 4;
+            for (; index < starts.Length && starts[index] < end; index++)
+            {
+                if (!permitExactTerminalDword ||
+                    starts[index] != terminal)
+                    return false;
+            }
+            return true;
+        }
         bool UniqueIncoming(FlowAddress destination, FlowAddress source,
             string edgeKind) =>
             incomingByDestination.TryGetValue(destination, out var links) &&
@@ -615,6 +647,15 @@ public static class ControlFlowAnalysis
                     (ulong)dest.Offset >= (ulong)site.Offset +
                         (uint)siteLine.Length);
             bool pathValid = forwardGuard &&
+                GuardInstructionUnmodified(proof.Compare,
+                    permitExactTerminalDword: false) &&
+                GuardInstructionUnmodified(proof.Guard,
+                    permitExactTerminalDword: false) &&
+                (proof.Extension is null ||
+                    GuardInstructionUnmodified(proof.Extension.Value,
+                        permitExactTerminalDword: false)) &&
+                GuardInstructionUnmodified(site,
+                    permitExactTerminalDword: true) &&
                 NoInteriorIngress(proof.Compare) &&
                 NoInteriorIngress(proof.Guard) &&
                 NoInteriorIngress(site) &&
