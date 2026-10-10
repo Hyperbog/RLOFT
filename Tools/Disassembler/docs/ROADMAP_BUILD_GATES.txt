@@ -498,3 +498,34 @@ Last successfully VERIFIED Windows build: run 37987465368 at
   functionality and original-source semantic validation remain open.
 - No new build, workflow dispatch, game-file modification or release
   publication occurred when recording this confirmation.
+
+2026-10-10 | R2.4 exact BX scaling and guarded dispatch correlation:
+- Resumed source-only work after owner acceptance of G1 Windows run
+  37987465368 at 9f605e36581b2c6db72a6a47248ea5af31611506.
+  This is the LAST VERIFIED COMPILED SOURCE SHA for this project track;
+  subsequent development commits are not covered by its PASS result.
+- Extended the bounded unsigned value lattice with unary modular SHL
+  for exact finite members and conservative interval shift widening.
+  Correlated BX self-doubling no longer treats its input as two
+  independent register values.
+- Added exact prefix-free decoder-backed transfers for D1 E3,
+  C1 E3 01/02, and 01 DB / 03 DB. Flags become unknown and original
+  instruction SHA/offset origins are retained; unsupported aliases
+  and memory operations still invalidate tracked registers.
+- Added optional source-only Dos16CorrelatedDispatchRecovery: a
+  complete independently validated candidate CFG is a precondition;
+  the existing uniquely backed unsigned guard/stride proof supplies
+  automatic bounded table counts; independently revalidated original
+  pointer storage and finite aligned BX byte offsets must all agree.
+  Truncated or forged graphs produce no correlation. Runtime execution,
+  pointer immutability and CFG target promotion are NOT inferred.
+- Added and wired synthetic positive and negative exact stride,
+  unknown index, out-of-bounds, source graph forgery, truncated graph
+  and code/data conflict cases to the existing DosDis.Smoke entry.
+- This continuation did not build, run smoke suites, dispatch Actions,
+  validate original binaries, ship new artifacts or test the desktop.
+  R2.4 correlation SOURCE COMPLETE for this narrowed subset only;
+  G2 for the new source remains NOT RUN / NOT ACCEPTED.
+Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
+Next recommended verification: owner-authorized Windows G2 build plus
+synthetic tests before classifying this newer HEAD as compiled.
