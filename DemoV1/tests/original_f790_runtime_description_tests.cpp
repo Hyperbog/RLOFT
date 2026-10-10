@@ -1,7 +1,7 @@
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
-#include "rloft/original_f790_runtime_description.hpp"
+#include "rloft/original_f790_runtime_event.hpp"
 
 #include <array>
 #include <cassert>
@@ -118,6 +118,25 @@ int main() {
     assert(describe(3)=="SWORD; DAMAGE: 2-7/1-6");
     assert(describe(74,true)=="SPECIAL; WEIGHT:0.5; CHARGES: 8");
     assert(describe(-1).empty());
+
+    // F7B4 priorizes pending 759C even when the held-object argument
+    // is invalid. The original two local and one selected-ID F790
+    // callers must not be rewritten using inventory.held.
+    const auto source_message=[&](
+        rloft::OriginalF790SourceArguments args,
+        const std::vector<std::uint8_t>& raw) {
+        return rloft::OriginalF790RuntimeEvent::resolve_text_for_source_call(
+            args,raw,parsed,inventory,original_code2,original_t);
+    };
+    inventory.held={1,1U}; // intentionally different source caller
+    assert(source_message({2,true,false,{}},original_objects)==
+           "ARMOR +3; A.C. BONUS: 2; ");
+    assert(source_message({3,false,false,{}},original_objects)==
+           "SWORD; DAMAGE: 2-7/1-6");
+    assert(source_message({-1,false,false,{}},original_objects).empty());
+    const std::vector<std::uint8_t> intentionally_invalid{};
+    assert(source_message({900,true,true,"EXACT 759C"},
+                          intentionally_invalid)=="EXACT 759C");
 
     bool rejected=false;
     try { (void)describe(900); } catch(const std::out_of_range&) {rejected=true;}
