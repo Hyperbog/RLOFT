@@ -24,7 +24,9 @@ public static class Dos16TableIndexEvidence
 {
     public static Dos16TableIndexEvidenceReport Inspect(
         Dos16CodeRegion region, Dos16FlowResult graph, Dos16TableManifest manifest,
-        DosMzImage? mz = null, DosMzRebasedView? simulation = null)
+        DosMzImage? mz = null, DosMzRebasedView? simulation = null,
+        int maximumInstructions = 20_000, int maximumSteps = 100_000,
+        int maximumEdges = 80_000)
     {
         ArgumentNullException.ThrowIfNull(region);
         ArgumentNullException.ThrowIfNull(graph);
@@ -33,7 +35,8 @@ public static class Dos16TableIndexEvidence
         // Validate the entire candidate graph independently before passing
         // it to the existing table validator. This avoids trusting malformed
         // duplicates, stale edges, incomplete predecessor inventories, etc.
-        var flow = Dos16DataflowAnalysis.Analyze(region, graph);
+        var flow = Dos16DataflowAnalysis.Analyze(region, graph,
+            maximumInstructions, maximumSteps, maximumEdges);
         if (flow.Incomplete)
             return new Dos16TableIndexEvidenceReport(region.SourceSha256,
                 region.MappingEvidence, "incomplete-register-flow;" +
