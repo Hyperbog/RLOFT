@@ -7412,6 +7412,9 @@ struct Application21Boundary {
     void (*call_39b40)(u32,u32,u32,u32,u32)=nullptr;
     void (*call_2a5b0)(u32,s32,u32)=nullptr;
     void (*call_2a724)(u32,s32,u32,u32,u32,u32,u32)=nullptr;
+    // F7CC..F7D8: 1C368 receives an address in F790's own 16-byte
+    // SS:ESP local area (not a DGROUP guest-linear offset).
+    void (*call_2c368_local)(u8*,u32)=nullptr;
 };
 
 static void app21_copy_cstr(Machine& m,u32 dst,u32 src) noexcept {
@@ -7455,8 +7458,16 @@ void function_0f66c(Machine& m,Application21Boundary& b,u32 text) noexcept {
 static_assert(0x0F767u-0x0F66Cu==251u);
 
 void function_0f790(Machine& m,Application21Boundary& b,s32 item,u32 detailed) noexcept {
+    // 0F794 allocates 16 bytes of guest stack-local storage. It is not
+    // DGROUP and is separate from the 759C item-description buffer.
+    u8 text_3f_stack_local[0x10u];
     if(b.call_3932c)b.call_3932c(load_le32(dg(m,0x7F68u)),0x62u,0u,0x10u,0x140u);
     if(*dg(m,0x6DACu)!=0u){function_0f66c(m,b,0x759Cu);return;}
+    // 0F7CC..0F7D8 unconditionally calls original 1C368(dst,T[3F])
+    // on every NON-pending event, even when item == -1 (tested below).
+    // Retain the indexed text stream seek/read and local-byte write:
+    // dropping this unused scratch text changes the original call trace.
+    if(b.call_2c368_local)b.call_2c368_local(text_3f_stack_local,0x3Fu);
     if(item==-1)return;
     const u32 rec=load_le32(dg(m,0x255D8u))+static_cast<u32>(item)*65u;
     app21_copy_cstr(m,0x759Cu,rec);
