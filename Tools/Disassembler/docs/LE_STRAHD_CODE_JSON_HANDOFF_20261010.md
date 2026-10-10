@@ -269,3 +269,35 @@ phantom case code and superseded pointer evidence.
 This is a conservative response to ambiguous code ownership,
 not proof that the alternate interior decoding actually executes.
 It remains source-only until G2.
+
+## LE relocation source-slot overlap audit (source-only)
+
+LE fixup records identify four-byte writes within an LE object's
+source-relative address range. A code/data pointer slot starting at
+offset X cannot be treated as a unique original relocated value if
+another fixup starts at any offset X-3 through X+3. The other fixup's
+four-byte destination then overlaps at least one byte of the slot,
+even when no other fixup begins exactly at X.
+
+The source-backed pointer validator now indexes **all** parsed LE
+fixup origins, including self-relative fixups, by object-relative
+address. For a relocation-backed pointer it requires an unambiguous
+absolute fixup exactly at X and no other origin within X-3..X+3.
+For literal-table fallback it requires no LE fixup origin anywhere
+in that window. The original four-byte backing and target checks
+remain mandatory. Consecutive legitimate DWORD fixups at X and
+X+4 do not overlap and remain acceptable.
+
+New synthetic feedback covers all seven fixup origins X-3..X+3
+around an otherwise valid literal table and all six competing
+non-identical origins around a relocation-backed table slot.
+Every overlapping pattern must refrain from publishing a
+jump-table candidate and preserve the unresolved runtime branch.
+The fixtures contain generated LE headers and records only, not
+original Strahd, Stone Prophet or Menzoberranzan bytes.
+
+This check prevents one specific category of ambiguous original
+pointer-storage evidence. It is not a guarantee of immutable
+runtime data, loader behavior for unsupported fixup types or
+full runtime control-flow coverage. Source changes and negative
+tests are committed but have not been compiled or executed.
