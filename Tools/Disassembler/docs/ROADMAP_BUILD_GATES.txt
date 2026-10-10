@@ -1122,3 +1122,49 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   game modifications or independent accuracy certification.
   G1 Windows #35 SHA 9f605e36581b2c6db72a6a47248ea5af31611506
   remains the last verified executable baseline.
+
+2026-10-10 | G2 external x86-16 comparator: restricted operands (SOURCE ONLY):
+- The first source-backed outside-oracle comparator could compare
+  original instruction bytes, length, Iced flow category and optional
+  direct CALL/branch target, but not operand mnemonic, register
+  identity or immediate encoding/sign-extension facts.
+- Extended Dos16FlowInstruction with optional DecoderFacts produced
+  at the SAME original-byte decode site. Preserves normalized
+  mnemonic, explicit operand count and first two operand kinds,
+  register names and immediate semantic values without parsing
+  presentation NASM assembly. Existing constructor remains valid
+  for earlier stored/project callers; missing facts are unknown.
+- Extended predeclared external oracle with optional ExpectedFacts
+  and strict canonical named mnemonic/register/operand kinds for
+  two or fewer operands. Supported expected kinds: registers,
+  raw 8/16/32-bit immediate, signed imm8-to16 and imm8-to32.
+  Disallow numeric enums, wrong kinds/operand counts, unsigned
+  interpretation of sign-extended negative immediates and
+  unsupported memory/far/implicit semantic assertions.
+- Structured external expected facts are compared to CFG-published
+  decoder facts. Conflicts and absent evidence have separate
+  machine-readable detail codes. No oracle expectation -> no
+  operand check. A missing older graph fact is NOT OBSERVED.
+- Added distinct structuredOperandExpectations and
+  fullyMatchedOperandExpectations counters so pure byte/edge
+  matches cannot inflate the subset's semantic denominator.
+  A structured sample counts as fully matched only when all
+  its original-byte, candidate-flow, operand and optional
+  direct-edge expectations agree.
+- Synthetic standalone COM smoke fixtures specify MOV AX,1234h,
+  CMP AX,1234h, CMP BX,-2 (signed imm8->16) and RET.
+  Negative cases include wrong AX/BX, incorrect immediate,
+  unsigned 254 versus -2, malformed mnemonic/value kinds,
+  forged saved decoder facts and source-match-only legacy
+  rows missing semantic facts. The smoke suite has not run.
+- Updated X86_16_EXTERNAL_ORACLE_COMPARISON.md, normative
+  independent policy and G2 predeclared matrix. No claim of
+  memory base/index/displacement/size, prefixes, implicit operands,
+  flags, runtime effects, three-plus-operand semantics, second
+  actual decoder execution or full-disassembly accuracy.
+- SOURCE ONLY: all changes are committed and may be statically
+  checked, but no G2 Windows compilation, regression execution,
+  GitHub Actions, original game test, outside decoder invocation,
+  independent reviewer acceptance or executable publication.
+  Last verified Windows baseline remains run #35 at SHA
+  9f605e36581b2c6db72a6a47248ea5af31611506.
