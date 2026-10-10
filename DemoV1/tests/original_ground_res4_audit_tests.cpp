@@ -2,12 +2,15 @@
 #undef NDEBUG
 #endif
 #include "rloft/original_ground_res4_audit.hpp"
+#include "rloft/original_ground_res4_probe_snapshot.hpp"
 #include "rloft/original_ground_texture_raster.hpp"
 
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
+#include <sstream>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -206,6 +209,58 @@ int main() {
         (void)rloft::OriginalGroundRes4Audit::verified_tile_source(
             res4,3);
     }));
+
+    // Diagnostic regression from Windows Full #654: selected entry
+    // decode fails with "not an EH type-1 raster". The probe MUST
+    // still retain the original archive candidate list and raw bytes.
+    using Probe=rloft::OriginalGroundRes4ProbeSnapshot;
+    rloft::LevelState probe_level{};
+    probe_level.header[7U]=0U;
+    probe_level.header[8U]=0U;
+    const std::vector<std::uint8_t> zero_base_init(0x10U,0U);
+    const auto missing=Probe::capture(zero_base_init,probe_level,res4);
+    assert(!missing.verified);
+    assert(missing.source_base==0 && missing.source_entry==0);
+    assert(missing.selected_raw_bytes==7U);
+    assert(missing.selected_prefix_hex=="45 48 07 00 00 00 00");
+    assert(missing.error=="RES entry is not an EH type-1 raster");
+    assert(missing.archive.total_entries==6);
+    assert(missing.archive.tiles_64x64.size()==3U);
+    std::ostringstream failed_out;
+    missing.print(failed_out);
+    assert(failed_out.str().find("selection_error=RES entry is not an EH type-1 raster")!=
+           std::string::npos);
+    assert(failed_out.str().find("eligible_64x64_count=3")!=std::string::npos);
+    assert(failed_out.str().find("candidate\t1\t")!=std::string::npos);
+    assert(failed_out.str().find("source_selected=1")==std::string::npos);
+    assert(failed_out.str().find("selected_entry_first_13_bytes_hex=45 48 07")!=
+           std::string::npos);
+
+    auto probe_init=zero_base_init;
+    probe_init[0x0EU]=1U;
+    const auto valid_probe=Probe::capture(probe_init,probe_level,res4);
+    assert(valid_probe.verified);
+    assert(valid_probe.source_entry==1);
+    assert(valid_probe.verified_pixel_bytes==4096U);
+    assert(valid_probe.error.empty());
+    std::ostringstream valid_out;
+    valid_probe.print(valid_out);
+    assert(valid_out.str().find("candidate\t1\t")!=std::string::npos);
+    assert(valid_out.str().find("source_selected=1")!=std::string::npos);
+
+    probe_init[0x0EU]=250U;
+    const auto out_of_range_probe=Probe::capture(probe_init,probe_level,res4);
+    assert(!out_of_range_probe.verified);
+    assert(out_of_range_probe.source_base==250 &&
+           out_of_range_probe.source_entry==-1);
+    assert(out_of_range_probe.archive.tiles_64x64.size()==3U);
+    assert(out_of_range_probe.error.find("out of range")!=std::string::npos);
+    const auto short_init_probe=Probe::capture(
+        std::vector<std::uint8_t>(0x0FU,0U),probe_level,res4);
+    assert(!short_init_probe.verified);
+    assert(short_init_probe.source_base==-1);
+    assert(short_init_probe.archive.tiles_64x64.size()==3U);
+    assert(short_init_probe.error.find("truncated")!=std::string::npos);
 
     // Original texture consumes only payload pixels, never synthetic
     // host alignment bytes. Verify with actual 34A74 scanline writes.
