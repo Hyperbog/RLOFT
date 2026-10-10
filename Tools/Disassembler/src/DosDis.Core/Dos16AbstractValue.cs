@@ -134,6 +134,30 @@ public sealed class Dos16AbstractValue
     public static Dos16AbstractValue Subtract(Dos16AbstractValue left,
         Dos16AbstractValue right) => Arithmetic(left, right, subtract: true);
 
+    /// <summary>
+    /// Exact unary 16-bit modular left-shift for a bounded finite set.
+    /// Intervals retain a conservative hull only when every outcome lies
+    /// in the same 64-KiB quotient (no modular boundary crossing).
+    /// A register doubled from itself is correlated, not a cartesian sum.
+    /// </summary>
+    public static Dos16AbstractValue ShiftLeft(Dos16AbstractValue value, int count)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        if (count is < 0 or > 15)
+            throw new ArgumentOutOfRangeException(nameof(count));
+        if (value.Kind is Dos16ValueKind.Unreachable or Dos16ValueKind.Unknown ||
+            count == 0) return value;
+        if (value.Discrete)
+            return FromExact(value._members.Select(x =>
+                unchecked((ushort)(x << count))));
+        long minimum = (long)value.Minimum << count;
+        long maximum = (long)value.Maximum << count;
+        if (minimum / 65536 != maximum / 65536)
+            return Unknown;
+        return Interval(unchecked((ushort)minimum),
+            unchecked((ushort)maximum));
+    }
+
     private static Dos16AbstractValue Arithmetic(Dos16AbstractValue left,
         Dos16AbstractValue right, bool subtract)
     {
