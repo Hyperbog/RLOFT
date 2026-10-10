@@ -200,6 +200,15 @@ internal static class Dos16ExternalOracleSmoke
         Equal(Dos16ExternalOracleValidator.Compare(
             operandRegion, forgedFactsGraph, operandManifest).Conflicting, 1,
             "forged same-source semantic record is not a verified decode");
+        // A forged cached decoder fact can agree with an equally wrong
+        // manifest, but cannot change what the source bytes actually decode.
+        var jointlyWrongFacts = Dos16ExternalOracleValidator.Compare(
+            operandRegion, forgedFactsGraph, wrongImmediate);
+        Equal(jointlyWrongFacts.Conflicting, 1,
+            "two agreeing false operand records cannot validate original bytes");
+        Equal(jointlyWrongFacts.Findings[0].DetailCode,
+            "candidate-decoder-or-direct-edge-disagrees-with-original-bytes",
+            "cached semantic agreement must be independently re-decoded from source");
         Denied(() => Dos16ExternalOracleValidator.Compare(
             operandRegion, operandGraph, operandManifest with {
                 ExpectedInstructions = new[] {
@@ -453,6 +462,8 @@ internal static class Dos16ExternalOracleSmoke
             "invalid disp8 modulo16 representation cannot enter oracle");
         RejectMemory(new(null, null, 0, 0, "UInt16", null),
             "direct memory form must encode disp16");
+        RejectMemory(new("BP", null, 0, 0, "UInt16", null),
+            "bare BP cannot use mod=00 without an encoded displacement");
         RejectMemory(new("SI", "DI", 1, 2, "UInt16", null),
             "invalid 16-bit SI+DI register pairing cannot enter oracle");
         RejectMemory(new("EAX", null, 0, 0, "UInt16", null),
@@ -498,6 +509,41 @@ internal static class Dos16ExternalOracleSmoke
         Equal(wrongEdge.Findings[0].DetailCode,
             "externally-expected-direct-edge-not-found",
             "control-flow discrepancy is not counted as a matching decode");
+
+        // A fabricated graph edge can make a wrong outside target look
+        // present. Even then, its decoded direct target must agree with
+        // the unchanged original EB 02 instruction.
+        var forgedEdgeGraph = graph with {
+            Edges = graph.Edges.Concat(new[] {
+                new Dos16FlowEdge(new Dos16Address(region.Segment, 0x100),
+                    new Dos16Address(region.Segment, 0x103),
+                    "branch", "forged-cached-edge")
+            }).ToArray()
+        };
+        var falsePositiveEdge = Dos16ExternalOracleValidator.Compare(
+            region, forgedEdgeGraph, wrongTarget);
+        Equal(falsePositiveEdge.Conflicting, 1,
+            "cached false direct edge cannot manufacture an oracle match");
+        Equal(falsePositiveEdge.Findings[0].DetailCode,
+            "candidate-decoder-or-direct-edge-disagrees-with-original-bytes",
+            "re-decoded direct target is checked after graph presence");
+
+        // A forged graph flow label plus matching false oracle flow label
+        // must also conflict with the original jump opcode.
+        var forgedFlowGraph = graph with {
+            Instructions = graph.Instructions.Select(i => i.Address.Offset == 0x100
+                ? i with { FlowControl = "Return" } : i).ToArray()
+        };
+        var forgedFlowManifest = manifest with {
+            ExpectedInstructions = new[] {
+                manifest.ExpectedInstructions[0] with {
+                    FlowControl = "Return", DirectEdgeKind = null, DirectTarget = null
+                }
+            }
+        };
+        Equal(Dos16ExternalOracleValidator.Compare(
+            region, forgedFlowGraph, forgedFlowManifest).Conflicting, 1,
+            "same original jump bytes cannot pass as an invented return flow");
 
         var undiscovered = manifest with {
             ExpectedInstructions = new[] {
