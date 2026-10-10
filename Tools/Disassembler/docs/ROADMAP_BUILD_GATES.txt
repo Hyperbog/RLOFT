@@ -657,3 +657,34 @@ Reference: R2_DETERMINISTIC_FEEDBACK_LOOP.md.
   G2 stays pending. Last verified Windows run #37987465368 tested
   SHA 9f605e36581b2c6db72a6a47248ea5af31611506 only.
 Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
+
+2026-10-10 | R3.1/R3.2 source-only MZ far provenance and alias classification:
+- Audited the existing x86-16 CALL/interrupt/return transfer semantics:
+  source-only dataflow already invalidates tracked registers on these
+  unmodeled transfers; no unsound register-preservation expansion made.
+- Identified a real provenance weakness in public MZ FAR-immediate
+  candidate recovery: caller-supplied graph rows were compared to
+  original opcode bytes and selector relocation, but not fully bound
+  to the independently mapped source-relative CS:IP code window.
+- Hardened DosMzFarTargetRecovery.Inspect with full mapped window
+  origin/length/evidence checks, exact decoded source instruction
+  address/length/classification, original unresolved FAR CFG edge(s),
+  and matching selector relocation source coordinates and original
+  stored word. A truncated graph yields zero FAR candidates while
+  preserving the upstream truncated review.
+- Added additive bounded PhysicalAliases on cross-segment MZ reviews:
+  identical physical original instruction bytes decoded at different
+  relative CS:IP addresses remain separate alias hypotheses rather
+  than being silently merged or counted as decoding conflicts.
+  Conflict/alias ledgers retain separate explicit uncertainty labels.
+- Added synthetic negative checks for forged IP/window/relative CS,
+  stale mapping and FAR edge metadata, and instruction-budget
+  truncation. Added a cross-segment physical alias fixture where
+  relative 0000:0010 and 0001:0000 refer to the same original
+  0x30 file-backed RET. No runtime equivalence is inferred.
+- All changes are SOURCE ONLY, not Windows compiled or executed;
+  no GitHub workflow dispatched, original files modified or
+  proprietary test artifacts uploaded. G2 and later G3 stay pending.
+  Last compiled/synthetic verified baseline remains build #35 at
+  9f605e36581b2c6db72a6a47248ea5af31611506.
+Reference: P0_MZ_CROSS_SEGMENT_CANDIDATES.md.
