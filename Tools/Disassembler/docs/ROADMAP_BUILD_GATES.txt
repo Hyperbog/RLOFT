@@ -872,3 +872,37 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
 - Source-only static checks and GitHub commits are not compiler or
   Windows execution evidence. No CI dispatched, no proprietary
   files modified, and G2 remains pending owner authorization.
+
+2026-10-10 | LE relocation pointer and operand byte-ownership hardening:
+- Independently inspected LE fixup parsing and pointer-recovery
+  coverage. Original LE fixups represent 4-byte object-local
+  destinations. Earlier candidate-pointer recovery checked only
+  whether a relocation started exactly at the table pointer; another
+  fixup beginning at offset X-3..X+3 can overlap those source bytes.
+- Added a fixed-width overlap predicate over every parsed absolute
+  or self-relative source fixup origin, scoped by LE object. A
+  relocation-backed candidate must have exactly one unambiguous
+  supported fixup at the pointer start, with no competing origin
+  within three bytes in either direction. A literal candidate must
+  have no fixup at any origin overlapping its four-byte storage.
+  Normal adjacent DWORD sources X and X+4 remain valid.
+- Applied the same source-ownership rejection to an indirect jump's
+  encoded four-byte displacement: an overlapping, missing-at-start,
+  unsupported or ambiguous fixup may not silently fall back to
+  the old literal effective address. An exact isolated supported
+  original displacement fixup still permits bounded candidates.
+  Evidence-linked direct instruction fixup xrefs follow this rule.
+- Added deterministic synthetic sweeps over seven overlapping
+  relocation origins for literal pointer tables and six distinct
+  overlapping origins for relocation-backed pointer tables. Added
+  six overlapping encoded-displacement negative cases and one
+  exact-relocation positive control, preserving unresolved runtime
+  targets on rejected cases.
+- Updated LE generic source comments and game-qualified Strahd
+  handoff documentation; no game-specific heuristics, original
+  binary bytes or proprietary hosted fixtures committed.
+- This is SOURCE-ONLY; no Windows compilation, synthetic smoke
+  execution, GitHub Actions dispatch or new Strahd original export.
+  G2 verification remains pending. Previous verified run #35 is
+  for SHA 9f605e36581b2c6db72a6a47248ea5af31611506 only.
+Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
