@@ -1,10 +1,6 @@
 # G2 Strahd CODE.2 outer-MZ independent comparison — execution plan
 
-**Status (2026-10-10): PREPARED / NOT EXECUTED.** This is an
-owner-local validation recipe, not a test result or permission to run
-DOSDis against originals. See `ROADMAP_BUILD_GATES.txt` and
-`INDEPENDENT_VALIDATION_POLICY.md`. Continue alone does not authorize
-a new build or executable test.
+**Historical pre-execution plan, subsequently EXECUTED in the owner-authorized G2 build gate (2026-10-10).** The original 11-instruction MZ entry scope was matched 11/11, and an independently predeclared 17-instruction branch/call window matched 17/17. See [executed comparison and negative-control record](G2_STRAHD_ORIGINAL_VALIDATION_RECORD_20261010.md), exact tested source `7fa76f82`, [Windows/Linux run #40](https://github.com/Hyperbog/RLOFT/actions/runs/38091963405). Remaining G2 independent accuracy and human reviewer acceptance are PENDING. This document preserves the original plan; its future-tense sections describe the protocol used, not today's completion state.
 
 ## 1. Frozen source/sample identity
 
