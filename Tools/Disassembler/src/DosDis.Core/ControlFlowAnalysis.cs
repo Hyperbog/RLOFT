@@ -570,6 +570,8 @@ public static class ControlFlowAnalysis
         var incomingByDestination = edges.Where(e => e.Destination is not null)
             .GroupBy(e => e.Destination!.Value)
             .ToDictionary(group => group.Key, group => group.ToArray());
+        var outgoingBySource = edges.GroupBy(e => e.Source)
+            .ToDictionary(group => group.Key, group => group.ToArray());
         bool UniqueIncoming(FlowAddress destination, FlowAddress source,
             string edgeKind) =>
             incomingByDestination.TryGetValue(destination, out var links) &&
@@ -579,9 +581,11 @@ public static class ControlFlowAnalysis
         foreach (var (site, proof) in provisionalBoundPaths)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var guardEdges = edges.Where(e => e.Source == proof.Guard).ToArray();
-            bool forwardGuard = instructions.TryGetValue(site, out var siteLine) &&
-                guardEdges.Length == 2 &&
+            bool guardPresent = outgoingBySource.TryGetValue(
+                proof.Guard, out var guardEdges);
+            bool forwardGuard = guardPresent &&
+                instructions.TryGetValue(site, out var siteLine) &&
+                guardEdges!.Length == 2 &&
                 guardEdges.Count(e => e.Kind == "branch-not-taken") == 1 &&
                 guardEdges.Any(e => e.Kind == "branch-taken" &&
                     e.Destination is { } dest && dest.Object == site.Object &&
