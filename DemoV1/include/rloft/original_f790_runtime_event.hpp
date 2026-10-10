@@ -1,9 +1,11 @@
 #pragma once
 
 #include "rloft/original_f790_modal_sequence.hpp"
+#include "rloft/original_f790_caller_catalog.hpp"
 #include "rloft/original_f790_runtime_description.hpp"
 
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -28,6 +30,43 @@ struct OriginalF790SourceArguments final {
 // through MUTABLE nested weights and original text, to the existing
 // event-owned saved-background/RNG/ribbon sequence.
 struct OriginalF790RuntimeEvent final {
+    // Only invoke for an actual identified original F790 callsite, not
+    // a native repaint or a guessed click mapping. Explicit empty,
+    // locally saved and selected item arguments are not the cursor.
+    [[nodiscard]] static OriginalF790SourceArguments arguments_for_direct_call(
+        std::uint32_t source_e8_offset,
+        const InventoryRuntimeState& current_inventory,
+        std::int32_t local_or_selected_id,
+        bool local_known,
+        bool pending_6dac,
+        std::string_view pending_text_759c) {
+        const auto origin=OriginalF790CallerCatalog::arguments_at(
+            source_e8_offset);
+        if(!origin)throw std::out_of_range("unknown CODE.2 F790 E8 site");
+        OriginalF790SourceArguments args{};
+        args.pending_6dac=pending_6dac;
+        args.pending_text_759c=pending_text_759c;
+        switch(*origin) {
+        case OriginalF790ArgumentOrigin::GlobalHeld8600_8602:
+            args.item_id=current_inventory.held.object_id;
+            args.known=current_inventory.held.known!=0U;
+            break;
+        case OriginalF790ArgumentOrigin::ExplicitEmpty:
+            args.item_id=-1;
+            args.known=false;
+            break;
+        case OriginalF790ArgumentOrigin::StackLocal:
+            args.item_id=local_or_selected_id;
+            args.known=local_known;
+            break;
+        case OriginalF790ArgumentOrigin::SelectedKnownZero:
+            args.item_id=local_or_selected_id;
+            args.known=false;
+            break;
+        }
+        return args;
+    }
+
     [[nodiscard]] static std::string resolve_text_for_source_call(
         const OriginalF790SourceArguments& args,
         const std::vector<std::uint8_t>& raw_objects,
