@@ -295,6 +295,7 @@ public static class ControlFlowAnalysis
                 var incoming = edges.Where(e => e.Destination == cursor).ToArray();
                 FlowAddress? guardAddress = null;
                 Register comparedRegister = instruction.MemoryIndex;
+                bool viaByteZeroExtension = false;
                 if (incoming.Length == 1 &&
                     incoming[0].Kind == "branch-not-taken")
                 {
@@ -322,6 +323,7 @@ public static class ControlFlowAnalysis
                     {
                         guardAddress = toExtension[0].Source;
                         comparedRegister = extension.Op1Register;
+                        viaByteZeroExtension = true;
                     }
                 }
 
@@ -356,7 +358,10 @@ public static class ControlFlowAnalysis
                         };
                         if (limit is >= 1 and < 128)
                             dispatchBound = new BoundedDispatchHint(
-                                instruction.MemoryIndex, checked((int)limit + 1));
+                                instruction.MemoryIndex, checked((int)limit + 1),
+                                viaByteZeroExtension
+                                    ? "byte-register-MOVZX-zeroextend"
+                                    : "direct-unsigned-compare");
                     }
                 }
             }
