@@ -617,9 +617,13 @@ internal static class Dos16ExternalOracleSmoke
         RejectMemory(new("BX", null, 0, 0, "UInt16", "FSX"),
             "invented segment override cannot be asserted");
 
+        // Retain the SAME TWO sampled original instruction windows while
+        // forging only the first external hex claim. Otherwise a digest
+        // covering just one expected instruction is correctly different.
         var wrongStored = manifest with {
             ExpectedInstructions = new[] {
-                manifest.ExpectedInstructions[0] with { OriginalHex = "EB03" }
+                manifest.ExpectedInstructions[0] with { OriginalHex = "EB03" },
+                manifest.ExpectedInstructions[1]
             }
         };
         var changedBytes = Dos16ExternalOracleValidator.Compare(region, graph, wrongStored);
