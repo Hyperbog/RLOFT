@@ -1,5 +1,7 @@
 using System.Text;
 using System.Text.Json;
+using System.Buffers.Binary;
+using System.Security.Cryptography;
 using Iced.Intel;
 
 namespace DosDis.Core;
@@ -42,7 +44,13 @@ public sealed record Dos16ExternalOracleReport(
     int Matched, int Missing, int Conflicting, int NotObserved,
     int UnbenchmarkedCandidates,
     int StructuredOperandExpectations, int FullyMatchedOperandExpectations,
-    IReadOnlyList<Dos16ExternalOracleFinding> Findings);
+    IReadOnlyList<Dos16ExternalOracleFinding> Findings)
+{
+    // SOURCE byte fingerprints, not code identity or correctness claims.
+    // An unrelated whole-file hash does not prove a distinct sample.
+    public string MappedRegionSha256 { get; init; } = "";
+    public string BenchmarkedInstructionBytesSha256 { get; init; } = "";
+}
 
 /// <summary>
 /// Read-only, exact-source x86-16 comparison against a separately prepared
@@ -358,6 +366,33 @@ public static class Dos16ExternalOracleValidator
         return true;
     }
 
+    // Two source files may be different archives/executables while their
+    // inspected DOS launcher or sampled instruction bytes are identical.
+    // Hash exactly the mapped region and ordered (IP, length, ORIGINAL
+    // FILE bytes) samples. Neither digest includes filenames, source-wide
+    // hashes or externally claimed interpretation, so matching digests
+    // expose reused evidence instead of inflating independent coverage.
+    private static (string MappedRegion, string BenchmarkedInstructions)
+        CaptureSourceByteFingerprints(Dos16CodeRegion region,
+            Dos16ExternalOracleManifest manifest)
+    {
+        var source = region.Source.Data;
+        string regionHash = Convert.ToHexString(SHA256.HashData(
+            source.Slice(region.FileOffset, region.ByteLength))).ToLowerInvariant();
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        Span<byte> identity = stackalloc byte[4];
+        foreach (var expected in manifest.ExpectedInstructions.OrderBy(e => e.Offset))
+        {
+            int length = expected.OriginalHex.Length / 2;
+            BinaryPrimitives.WriteUInt16LittleEndian(identity, expected.Offset);
+            BinaryPrimitives.WriteUInt16LittleEndian(identity[2..], checked((ushort)length));
+            hash.AppendData(identity);
+            hash.AppendData(source.Slice(checked((int)expected.SourceFileOffset), length));
+        }
+        string sampleHash = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+        return (regionHash, sampleHash);
+    }
+
     public static Dos16ExternalOracleReport Compare(
         Dos16CodeRegion region, Dos16FlowResult graph,
         Dos16ExternalOracleManifest manifest)
@@ -473,6 +508,7 @@ public static class Dos16ExternalOracleValidator
 
         var expectedOffsets = manifest.ExpectedInstructions
             .Select(e => e.Offset).ToHashSet();
+        var fingerprints = CaptureSourceByteFingerprints(region, manifest);
         return new Dos16ExternalOracleReport(
             "dosdis-x86-16-external-oracle-comparison", SchemaVersion,
             region.SourceSha256, region.Source.Length,
@@ -494,7 +530,11 @@ public static class Dos16ExternalOracleValidator
                 (expected, finding) =>
                     expected.ExpectedFacts is not null && finding.Status == "match")
                 .Count(matched => matched),
-            findings);
+            findings)
+        {
+            MappedRegionSha256 = fingerprints.MappedRegion,
+            BenchmarkedInstructionBytesSha256 = fingerprints.BenchmarkedInstructions
+        };
     }
 
     public static string BuildJson(Dos16ExternalOracleReport report)
