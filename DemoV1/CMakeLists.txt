@@ -854,6 +854,13 @@ add_executable(original_f790_item_category_route_tests
 target_include_directories(original_f790_item_category_route_tests PRIVATE include)
 add_test(NAME original_f790_item_category_route_tests COMMAND original_f790_item_category_route_tests)
 
+# Full original CODE.2 F790 category-specific record arithmetic model.
+# Original source strings and tables remain injected, not fabricated.
+add_executable(original_f790_item_description_source_tests
+    tests/original_f790_item_description_source_tests.cpp)
+target_include_directories(original_f790_item_description_source_tests PRIVATE include)
+add_test(NAME original_f790_item_description_source_tests COMMAND original_f790_item_description_source_tests)
+
 add_executable(original_res2_asset_bank_tests tests/original_res2_asset_bank_tests.cpp)
 target_link_libraries(original_res2_asset_bank_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_res2_asset_bank_tests COMMAND original_res2_asset_bank_tests)
