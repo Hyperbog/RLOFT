@@ -576,3 +576,31 @@ Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
 - G2 remains NOT EXECUTED for this post-G1 batch; preserve candidate-
   only interpretations and no CFG/loaded-selector promotions.
 Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
+
+2026-10-10 | Deterministic automated feedback loop and pattern matrix:
+- Added Dos16MetamorphicFeedbackSmoke to the existing manual Windows
+  synthetic smoke suite. Uses immutable seed 0x16D05D15; reports
+  per-pattern/case diagnostic context for reproducible minimized fixes.
+- Matrix includes 192 finite modular 16-bit SHL oracles, 192
+  enumerated interval soundness/precision checks, 24 four-encoding
+  guarded-table / six-BX-value pairings, 24 semantic-preserving
+  graph-record permutations and 24 falsified coverage reports.
+  Additional one-at-a-time mutations of each decoded instruction
+  record and every outgoing edge in a known-good graph must all
+  reject unsafe selected entries.
+- Test oracles distinguish original-byte / graph source identity,
+  unsigned guard count and pointer storage, tracked finite index
+  selection and CFG target uncertainty. Expected domain membership
+  is calculated independently of the abstract-domain Covers method.
+- Documented a human-supervised feedback cycle: observe exact
+  authorized run SHA -> cluster failure pattern -> replay and
+  minimize deterministic case -> repair -> obtain build authorization
+  -> inspect new CI evidence -> commit code/tests/roadmap to Git.
+  The loop has no autonomous builds, remote background agents,
+  live monitoring, proprietary fixture bytes, or scheduled CI runs.
+- This batch is SOURCE ONLY; no compilation, test execution,
+  GitHub workflow dispatch, or original game-file probe was
+  performed. The last compiled/synthetic-verified SHA remains
+  9f605e36581b2c6db72a6a47248ea5af31611506 on run 37987465368,
+  not this post-G1 development HEAD. G2 is still pending.
+Reference: R2_DETERMINISTIC_FEEDBACK_LOOP.md.
