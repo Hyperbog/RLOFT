@@ -32,6 +32,18 @@ def check_code2(path:Path)->bytes:
     assert struct.unpack_from("<6I",code2,0x27BDC+0xC4)[3:5]==(1,59)
     assert struct.unpack_from("<6I",code2,0x27BDC+0xDC)[3:5]==(60,19)
     assert BASE==0x3AF24+59*0x1000
+    # Original F5F8 explicitly tests subtype 0x14 then reads
+    # object ID 0x50's +0x30 byte at 0x1480 (not its slot array).
+    instruction_windows={
+        0xF5FE:"837c2414147452",
+        0xF614:"0fbf0683f8ff742a6bc0418b15d8550200",
+        0xF637:"0fbe403150e8b7ffffff83c40401c3",
+        0xF657:"a1d8550200660fb698801400000fb7c3",
+    }
+    for offset,encoded in instruction_windows.items():
+        expected=bytes.fromhex(encoded)
+        actual=code2[0x3AF24+offset:0x3AF24+offset+len(expected)]
+        assert actual==expected,f"original F5F8 instruction 0x{offset:05X}"
     data=code2[BASE:]
     assert len(data)==LAST
     for off,literal in LITERALS.items():
@@ -126,5 +138,9 @@ def main()->None:
         assert "0x75F24" in static and "0x7330" in static
         assert "0xDCU" in decoded
         assert "original_f790_static_resource_contract_tests" in cmake
-        print("PASS: copyright-free source contract for original F790 resources")
+        inventory=(root/"DemoV1/src/inventory_runtime.cpp").read_text()
+        assert "if(index==0x14U)" in inventory
+        assert "return objects.at(0x50U).weight_half_units;" in inventory
+        assert "original_f5f8_special_weight_tests" in cmake
+        print("PASS: copyright-free F790 resources and original F5F8 native short-circuit")
 if __name__=="__main__":main()
