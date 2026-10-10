@@ -105,6 +105,9 @@ public static class Dos16ExternalOracleValidator
             throw new InvalidDataException(
                 "An external oracle cannot identify the embedded DOSDis/Iced decoder.");
 
+        if (manifest.ExpectedInstructions.Any(e => e is null))
+            throw new InvalidDataException(
+                "External x86-16 oracle contains a null instruction expectation.");
         var previousEnd = -1;
         foreach (var e in manifest.ExpectedInstructions.OrderBy(x => x.Offset))
         {
@@ -124,8 +127,13 @@ public static class Dos16ExternalOracleValidator
                 (e.DirectEdgeKind is not null && e.DirectEdgeKind is not
                     ("branch" or "branch-taken" or "call")) ||
                 (e.DirectEdgeKind is not null &&
-                    flow is not (FlowControl.Call or
-                        FlowControl.UnconditionalBranch or FlowControl.ConditionalBranch)) ||
+                    e.DirectEdgeKind != (flow switch
+                    {
+                        FlowControl.Call => "call",
+                        FlowControl.UnconditionalBranch => "branch",
+                        FlowControl.ConditionalBranch => "branch-taken",
+                        _ => null
+                    })) ||
                 e.Offset < previousEnd)
                 throw new InvalidDataException(
                     "External x86-16 oracle has an invalid, duplicated, or overlapping instruction.");
