@@ -689,15 +689,24 @@ Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
   9f605e36581b2c6db72a6a47248ea5af31611506.
 Reference: P0_MZ_CROSS_SEGMENT_CANDIDATES.md.
 
-2026-10-10 | Owner clarification — original CODE file provenance:
-- CODE.1 and CODE.2 referred to in this project are specifically
-  original Ravenloft: Strahd's Possession game assets. They are NOT
-  generic DOSDis fixture names, a cross-game executable convention,
-  or evidence that other D&D titles use the same binary layout.
-- Preserve Strahd-specific asset classification and provenance in
-  example workflows, manual desktop acceptance and corpus reports.
-  Keep reusable DOSDis decoders, x86 flow/data analysis and MZ/LE
-  validation game-agnostic. Do not distribute original proprietary
-  CODE files with portable Windows artifacts or hosted CI fixtures.
-- Current R3 synthetic MZ alias/far-relocation tests remain independent
-  generated fixture bytes, not derived from CODE.1 or CODE.2.
+2026-10-10 | Owner correction — game-qualified CODE file provenance:
+- CODE.1 and CODE.2 file names are shared by multiple D&D titles,
+  including Ravenloft: Strahd's Possession, Ravenloft: Stone Prophet,
+  and Menzoberranzan. These base filenames alone do NOT identify a
+  specific title, executable revision, binary layout, or source SHA.
+- The particular CODE.1/CODE.2 files represented by the uploaded
+  Code1.json and Code2.json disassembler exports and cited in the
+  2026-10-10 DOSDis feedback handoff are from STRAHD'S POSSESSION.
+  The handoff's CODE.2 object-1 addresses, jump-table observations,
+  disassembly gap counts and source hashes must not be attributed
+  to Stone Prophet or Menzoberranzan.
+- For future shared-name binaries and exported reports, identify
+  provenance by game, file-relative path, game version, original
+  source SHA-256 and export/run identity when available; avoid
+  conflating equal filenames or relying on display names alone.
+- Keep DOSDis instruction, CFG, MZ/LE and resource engines reusable
+  across titles; use game-specific bytes as independently labeled
+  validation evidence only. Do not distribute proprietary originals
+  within CI smoke fixtures or portable application builds.
+- The R3 synthetic MZ alias/far-relocation tests remain independently
+  generated fixture bytes, not derived from any game's CODE files.
