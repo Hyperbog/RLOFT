@@ -25,7 +25,8 @@ public sealed record Dos16ExternalOracleManifest(
 public sealed record Dos16ExternalExpectedInstruction(
     ushort Offset, long SourceFileOffset, string OriginalHex,
     string FlowControl, string EvidenceId,
-    string? DirectEdgeKind = null, ushort? DirectTarget = null);
+    string? DirectEdgeKind = null, ushort? DirectTarget = null,
+    Dos16InstructionFacts? ExpectedFacts = null);
 
 public sealed record Dos16ExternalOracleFinding(
     ushort Offset, string Status, string DetailCode, string EvidenceId);
@@ -74,6 +75,58 @@ public static class Dos16ExternalOracleValidator
         {
             throw new InvalidDataException("Malformed external x86-16 oracle JSON.", e);
         }
+    }
+
+    private static void ValidateOperand(Dos16OperandFact? operand)
+    {
+        if (operand is null ||
+            !Enum.TryParse<OpKind>(operand.Kind, false, out var kind) ||
+            !string.Equals(Enum.GetName(kind), operand.Kind,
+                StringComparison.Ordinal))
+            throw new InvalidDataException("Invalid normalized external operand kind.");
+        if (kind == OpKind.Register)
+        {
+            if (operand.Register is null || operand.ImmediateValue is not null ||
+                !Enum.TryParse<Register>(operand.Register, false, out var register) ||
+                register == Register.None ||
+                !string.Equals(Enum.GetName(register), operand.Register,
+                    StringComparison.Ordinal))
+                throw new InvalidDataException(
+                    "External register operand requires a canonical register name.");
+        }
+        else
+        {
+            if (operand.Register is not null)
+                throw new InvalidDataException(
+                    "Only register operands can assert register identity.");
+            bool valid = kind switch
+            {
+                OpKind.Immediate8 => operand.ImmediateValue is >= 0 and <= 255,
+                OpKind.Immediate16 => operand.ImmediateValue is >= 0 and <= 65535,
+                OpKind.Immediate32 => operand.ImmediateValue is >= 0 and <= uint.MaxValue,
+                OpKind.Immediate8to16 or OpKind.Immediate8to32 =>
+                    operand.ImmediateValue is >= -128 and <= 127,
+                _ => false
+            };
+            if (!valid)
+                throw new InvalidDataException(
+                    "External operand must be a register or a precisely sized immediate.");
+        }
+    }
+
+    private static void ValidateFacts(Dos16InstructionFacts facts)
+    {
+        if (facts.Mnemonic is null ||
+            !Enum.TryParse<Mnemonic>(facts.Mnemonic, false, out var mnemonic) ||
+            !string.Equals(Enum.GetName(mnemonic), facts.Mnemonic,
+                StringComparison.Ordinal) ||
+            facts.OperandCount is < 0 or > 2 ||
+            (facts.OperandCount >= 1) != (facts.Operand0 is not null) ||
+            (facts.OperandCount >= 2) != (facts.Operand1 is not null))
+            throw new InvalidDataException(
+                "Invalid or unsupported x86-16 mnemonic/operand expectation.");
+        if (facts.Operand0 is not null) ValidateOperand(facts.Operand0);
+        if (facts.Operand1 is not null) ValidateOperand(facts.Operand1);
     }
 
     private static void ValidateManifest(Dos16ExternalOracleManifest manifest)
@@ -140,6 +193,8 @@ public static class Dos16ExternalOracleValidator
                 e.Offset < previousEnd)
                 throw new InvalidDataException(
                     "External x86-16 oracle has an invalid, duplicated, or overlapping instruction.");
+            if (e.ExpectedFacts is not null)
+                ValidateFacts(e.ExpectedFacts);
             previousEnd = e.Offset + e.OriginalHex.Length / 2;
         }
     }
@@ -210,6 +265,19 @@ public static class Dos16ExternalOracleValidator
             {
                 status = "conflict";
                 detail = "candidate-flow-category-disagrees-with-external-oracle";
+            }
+            else if (expected.ExpectedFacts is not null &&
+                     row.DecoderFacts is null)
+            {
+                status = "not-observed";
+                detail = "candidate-structured-operand-facts-unavailable";
+            }
+            else if (expected.ExpectedFacts is not null &&
+                     (row.DecoderFacts!.OperandCount > 2 ||
+                      !Equals(row.DecoderFacts, expected.ExpectedFacts)))
+            {
+                status = "conflict";
+                detail = "candidate-structured-operands-disagree-with-external-oracle";
             }
             else if (expected.DirectEdgeKind is not null &&
                      !graph.Edges.Any(e => e.Source ==
