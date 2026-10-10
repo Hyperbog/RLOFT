@@ -16,7 +16,7 @@
 4. `1F372..1F384` computes **lower `FF50 = 256 - (EBX + upper FF50)`**, overwriting the upper count. Only when this signed value is **strictly positive** does `1F388..1F3C3` load original bank-4 ground selector and call `34A74` if `C026` permits it. The independent upper branch additionally depends on `C027` and `258A8/258B0/C028` event state.
 5. Original `34AB9..34AC9` emits the first `min(FF50,80)` original 4-plane rows, followed at `34B47..34B53` by `max(FF50-80,0)` paired-plane rows, using the original `FF58` perspective and `FE15` shading. Lower origin is `0x50F8` and row step is -80 VGA bytes.
 
-All **12 independently verified instruction windows** and the two source E8 call targets (`1F398→2F29C`, `1F3C3→34A74`) can be reproduced by:
+All **19 independently verified instruction windows** and the two source E8 call targets (`1F398→2F29C`, `1F3C3→34A74`) can be reproduced by:
 
 ```sh
 python DemoV1/tools/verify_original_ground_ff50_source_span.py \
@@ -39,6 +39,12 @@ python DemoV1/tools/verify_original_ground_ff50_source_span.py \
 The isolated `OriginalGroundFF50SourceModel::from_22220` reproduces the source rows exactly for generated indices **0..C738**, and original no-wall sentinel `0x800`. Out-of-bounds entries, negative or greater-than-sentinel wall-depth states are reported **unverified** rather than reading unrelated native heap memory as if it were the original DOS DGROUP table. The original executable itself does not perform an index bounds check at `1F273`; source execution for unreachable/unverified corrupt states is not represented by this safe bounded adapter.
 
 The new `original_ground_ff50_source_span_tests` CTest is a standalone C++17 regression verifying all **128 generated table entries** plus clipping boundaries, original sentinel, paired-plane split and rejection of unsupported depth. The separate `original_ground_ff50_binary_contract_tests` CTest checks native source and deliberate host isolation; optional original files enable exact machine-byte/SINTAB audits. Registry now **216 CTests when Python is installed**. New tests are authored but **not yet built by Windows CI**; last authorized Windows Full #658 passed **214/214** on its earlier checkout.
+
+### Additional nearest-depth producer control flow (verified after initial FF50 audit)
+
+Original `335C8` initializes nearest `22220=0x800` (open-field sentinel). The direct record materializers in reconstructed `Code2.cpp` are not an unconditional `min(all_ray_depths)`: at original `330E7→330F3` and `33487→33493`, an **inner source resource exactly `0x93` sets `22220=0`** before the routine compares the new record depth as a **signed DWORD** and stores it only if `depth < 22220` (`330FD..3310B` and `3349D..334AB`). This may leave `22220=0` even after later nonnegative records, and subsequent scene records have related writers. Original `Code2.cpp` `function_32f8c`, `function_333bc` and surrounding constructors confirm the semantics; the immutable binary verifier now independently checks **seven additional actual instruction windows** around the 0x93 reset, signed min and 0x800 initialization, for **19 windows total**.
+
+**Crucial:** A native `ViewSweepRun` with `resource_id==0x93` does not establish that one of those constructor-side reset writes occurred in the exact original order. The already-verified Full #658 open-field case remains 22220=0x800. Do not implement the new dynamic row plan by taking the host minimum of sweep depths or by blindly mapping all 0x93 rays to a zero reset; source-equivalent record production/order and `BF34` state still require a separate proof.
 
 ## Critical live integration / original DOS acceptance blockers
 
