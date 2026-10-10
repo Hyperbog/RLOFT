@@ -866,6 +866,18 @@ add_executable(original_f790_item_description_source_tests
 target_include_directories(original_f790_item_description_source_tests PRIVATE include)
 add_test(NAME original_f790_item_description_source_tests COMMAND original_f790_item_description_source_tests)
 
+# Authentic original CODE.2 object-2 DS resources and original T decoder.
+# Native CTests run synthetic fixtures; supplied originals can be tested locally.
+add_executable(original_f790_static_resources_tests
+    tests/original_f790_static_resources_tests.cpp)
+target_include_directories(original_f790_static_resources_tests PRIVATE include)
+add_test(NAME original_f790_static_resources_tests COMMAND original_f790_static_resources_tests)
+
+add_executable(original_t_text_archive_tests
+    tests/original_t_text_archive_tests.cpp)
+target_include_directories(original_t_text_archive_tests PRIVATE include)
+add_test(NAME original_t_text_archive_tests COMMAND original_t_text_archive_tests)
+
 add_executable(original_res2_asset_bank_tests tests/original_res2_asset_bank_tests.cpp)
 target_link_libraries(original_res2_asset_bank_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_res2_asset_bank_tests COMMAND original_res2_asset_bank_tests)
