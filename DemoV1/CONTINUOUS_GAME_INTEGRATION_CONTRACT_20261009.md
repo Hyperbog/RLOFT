@@ -1,5 +1,9 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+## 2026-10-10 F66C original RES2 ribbon layout — verified source model, not live wired
+
+After source-verified RES2 party-modal bank correction, the original CODE.2 feedback-ribbon path `F790→F66C` was independently decoded from the supplied immutable CODE.2. Eleven exact original instruction windows (including shared RNG `30CA2`) establish the original `RES2:3` tile frames 0/1/2..4/5, exact 8-pixel geometry, actor-lane seams, RNG draws only for interior tiles and final text at row `0x65`. A standalone, read-only C++17 layout model and source-derived test are committed, along with a reproducible original-binary verifier; the local test and all 11 source signatures passed. **The live presenter is intentionally NOT changed:** original RNG state, renderer cadence and font measurement must be integrated as a complete verified dependency before replacing its provisional held-item feedback strip. [Original bytes, source-to-model map, test and explicit blockers](LEVEL22_F66C_FEEDBACK_RIBBON_SOURCE_MODEL_20261010.md). **183 registered CTests**, newest source still **unbuilt since Full Windows #651 (182/182 at earlier revision)**; no unauthorized build, percentage increase, original-DOS parity claim, Level23 work or modernization.
+
 
 ## 2026-10-10 original RES2 archive-slot correction — source verified, unbuilt
 
