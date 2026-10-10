@@ -1,4 +1,7 @@
 # CODE.2 F790 scribe success, failure and expiry: automated parity contract
+
+> Follow-on correction: the original successful spell-scribing path calls F790 TWICE (1173B then 1184A), not just at 1173B; 1173B receives the pre-consumption held scroll, and 1184A receives explicit empty. Source-only after_scribe snapshots now require pre-transaction held state. See LEVEL22_F790_ORDINARY_SLOT_EVENT_SEQUENCE_20261010.md. The existing single-feedback-edge classification is not a complete transaction model.
+
 **Date:** 2026-10-10. **Scope:** three proved original feedback events only. Original DOS acceptance and full native event wiring remain pending.
 
 ## Source machine-code evidence
