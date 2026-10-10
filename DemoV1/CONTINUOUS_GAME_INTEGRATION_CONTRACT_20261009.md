@@ -1,5 +1,10 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+## 2026-10-10 user field diagnostic now projects source 22220 and FF50 without gameplay changes
+
+The native 256-ray traversal now distinguishes original CODE.2 `32F4C` sentinel writers from `32F8C/33124/332B4/333BC` real materializers. A new **read-only** `OriginalGroundSourceProjectionModel` maps provenance-labelled `ViewSweepRecord` entries through the original nearest-depth replay (initial 22220=0x800, 0x93 materializer zero reset, signed-min) and bounded FF50 source arithmetic. It takes the current original SINTAB `C6D8` and `C738` directly from `RendererTables`, never arbitrary host record count for authority. Optional native F12 `.tsv` emits original-source **projected** 22220, resets, sentinel fill count and FF50 first upper/lower/4-plane/paired-plane rows; unknown, contradictory or unsupported source inputs yield literal `unverified` rather than invented values. The actual exported `exploration_frame_capture_tests` now asserts both unavailable projection and the source fixture 800→408 nearest, upper 51 / lower 1, with a genuine non-depth-writing 32F4C filler. New standalone C++ regression and Python contract registered; **six immutable CODE.2 byte windows + original SINTAB C738=127** independently checked locally. **223 registered CTests with Python expected**, but no current Windows build: prior approved [Full #658](https://github.com/Hyperbog/RLOFT/actions/runs/38085278540) 214/214 on older checkout. Game renderer and original 34A74 open-field ground remain unchanged, DOS pixel/timing acceptance absent, 49.8% provisional readiness unchanged. The original 32954 camera cache-hit path is still a separate gate before applying any projected 22220 to live clipped texture. [Full source, tests, field metadata and acceptance boundaries](LEVEL22_NATIVE_GROUND_22220_FF50_FIELD_PROJECTION_20261010.md).
+
+
 
 ## 2026-10-10 source-verified two-stage 1F1C8 upper/lower ground mode dispatch (unhooked)
 
