@@ -51,6 +51,12 @@ if(Python3_Interpreter_FOUND)
         NAME original_f790_candidate_coverage_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/analyze_original_f790_candidate_coverage.py")
+    # Build-free original RES4 selected-entry/header triage (synthetic media).
+    # This never runs the original game or claims decoded/DOS raster parity.
+    add_test(
+        NAME original_res4_selection_probe_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_probe_original_res4_selection.py")
     # Source 12E70 actor rectangle, 11AD8 mode bit 2 and 11B63 F790.
     # Source-only by default; optional original CODE.2 oracle is private.
     add_test(
