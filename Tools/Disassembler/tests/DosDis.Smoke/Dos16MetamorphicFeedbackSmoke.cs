@@ -209,6 +209,49 @@ internal static class Dos16MetamorphicFeedbackSmoke
                 mutationCases++;
             }
         }
+        // Systematic one-at-a-time mutation sweep over a known-good
+        // graph. Every instruction-byte or outgoing-edge corruption is
+        // checked independently: no successful correlation may survive.
+        var baseline = Guarded(1, scalings[0]);
+        var baselineReport = Dos16CorrelatedDispatchRecovery.Inspect(
+            baseline.Region, baseline.Graph);
+        Check(!baselineReport.Incomplete && baselineReport.BoundedIndexSites == 1,
+            "mutation-baseline", 0, "known-good graph failed before mutation");
+
+        for (int instructionIndex = 0;
+            instructionIndex < baseline.Graph.Instructions.Count;
+            instructionIndex++)
+        {
+            var modified = baseline.Graph.Instructions.ToArray();
+            modified[instructionIndex] = modified[instructionIndex] with
+            {
+                OriginalBytes = "00"
+            };
+            var forged = Dos16CorrelatedDispatchRecovery.Inspect(
+                baseline.Region, baseline.Graph with { Instructions = modified });
+            Check(forged.Incomplete && forged.Sites.Count == 0 &&
+                forged.BoundedIndexSites == 0,
+                "original-byte-mutation", instructionIndex,
+                "changing retained bytes of any decoded node must fail closed");
+            mutationCases++;
+        }
+
+        for (int edgeIndex = 0; edgeIndex < baseline.Graph.Edges.Count; edgeIndex++)
+        {
+            var modified = baseline.Graph.Edges.ToArray();
+            modified[edgeIndex] = modified[edgeIndex] with
+            {
+                Kind = "synthetic-invalid-edge-kind"
+            };
+            var forged = Dos16CorrelatedDispatchRecovery.Inspect(
+                baseline.Region, baseline.Graph with { Edges = modified });
+            Check(forged.Incomplete && forged.Sites.Count == 0 &&
+                forged.BoundedIndexSites == 0,
+                "control-edge-mutation", edgeIndex,
+                "corrupted edge semantics must block every selected pointer");
+            mutationCases++;
+        }
+
         Console.WriteLine(
             "PASS: bounded deterministic x86-16 feedback " +
             "seed=0x" + Seed.ToString("X8") +
