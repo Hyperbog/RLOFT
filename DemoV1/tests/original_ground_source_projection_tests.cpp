@@ -97,6 +97,28 @@ int main() {
     assert(!invalid_sentinel.nearest);
 
     rays[3U].depth=0U;
+    // CODE.2 32F4C writes all seven fields, not just zero depth
+    // and 0x93 ordinary resource. Reject each corrupt source slot.
+    rays[3U].resource_outer=17U;
+    assert(!OriginalGroundSourceProjectionModel::evaluate(
+        rays,kOriginalC6D8,kOriginalC738).nearest);
+    rays[3U].resource_outer=0x93U;
+    rays[3U].prepass=1U;
+    assert(!OriginalGroundSourceProjectionModel::evaluate(
+        rays,kOriginalC6D8,kOriginalC738).nearest);
+    rays[3U].prepass=0U;
+    rays[3U].texture_column_offset=1U;
+    assert(!OriginalGroundSourceProjectionModel::evaluate(
+        rays,kOriginalC6D8,kOriginalC738).nearest);
+    rays[3U].texture_column_offset=0U;
+    rays[3U].cell_index=1U;
+    assert(!OriginalGroundSourceProjectionModel::evaluate(
+        rays,kOriginalC6D8,kOriginalC738).nearest);
+    rays[3U].cell_index=0U;
+    rays[3U].shade_decrement=1U;
+    assert(!OriginalGroundSourceProjectionModel::evaluate(
+        rays,kOriginalC6D8,kOriginalC738).nearest);
+    rays[3U].shade_decrement=0U;
     assert(!OriginalGroundSourceProjectionModel::evaluate(
         rays,kOriginalC6D8-1U,kOriginalC738).nearest);
     assert(!OriginalGroundSourceProjectionModel::evaluate(
@@ -110,6 +132,11 @@ int main() {
         ray.original_sentinel_initializer_executed=false;
     }
     rays[2U].depth=408U;
+    // Fixture has deliberately reset every ray to 42/3000.
+    // Snapshot actual input values at the projection call, not
+    // the superseded 0x93/negative earlier subtest values.
+    const auto before_main=rays[4U].resource_inner;
+    const auto before_depth=rays[5U].depth;
     const auto missing_lookup=OriginalGroundSourceProjectionModel::evaluate(
         rays,kOriginalC6D8,0U);
     assert(missing_lookup.nearest);
@@ -119,6 +146,7 @@ int main() {
 
     // The projection must not mutate the original ray metadata or
     // the original host camera, 70Hz counters, RNG or indexed VGA.
-    assert(rays[4U].resource_inner==0x93U);
-    assert(rays[5U].depth==0xFFFFFFF9U);
+    assert(before_main==42U && before_depth==3000U);
+    assert(rays[4U].resource_inner==before_main);
+    assert(rays[5U].depth==before_depth);
 }

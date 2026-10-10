@@ -55,6 +55,9 @@ def check_native()->None:
         "record.original_materializer_executed",
         "record.original_sentinel_initializer_executed",
         "result.unknown_origins",
+        "invalid_source_sentinel_fields",
+        "record.resource_outer!=0x93U",
+        "record.texture_column_offset!=0U",
     ):
         assert phrase in files["projection"],phrase
     for phrase in (
@@ -65,6 +68,8 @@ def check_native()->None:
         "lower_ff50==1",
         "nearest_depth==-7",
         "unknown_origins==1U",
+        "rays[3U].resource_outer=17U",
+        "before_main==42U && before_depth==3000U",
     ):
         assert phrase in files["tests"],phrase
     for phrase in (
@@ -76,6 +81,7 @@ def check_native()->None:
         "ground_projection_sentinel_fills",
         "ground_projection_upper_ff50",
         "ground_projection_lower_ff50",
+        "ground_projection_lower_ff50_if_upper_unchanged",
         '"unverified"',
     ):
         assert phrase in files["capture"],phrase

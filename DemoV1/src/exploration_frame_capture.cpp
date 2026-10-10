@@ -221,7 +221,14 @@ void ExplorationFrameCapture::write(
             <<(ground_projection.ff50
                ? std::to_string(ground_projection.ff50->upper_ff50)
                : "unverified")<<"\n"
+            // Backwards-compatible field above; its value is only
+            // the hypothetical lower span if original upper draw/
+            // overlay callbacks DO NOT mutate source mutable FF50.
             <<"ground_projection_lower_ff50\t"
+            <<(ground_projection.ff50
+               ? std::to_string(ground_projection.ff50->lower_ff50)
+               : "unverified")<<"\n"
+            <<"ground_projection_lower_ff50_if_upper_unchanged\t"
             <<(ground_projection.ff50
                ? std::to_string(ground_projection.ff50->lower_ff50)
                : "unverified")<<"\n"

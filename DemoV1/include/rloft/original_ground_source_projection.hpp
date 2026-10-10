@@ -40,12 +40,26 @@ public:
         result.native_ray_count=native_records.size();
         std::vector<OriginalGroundMaterializedRay> source_records;
         source_records.reserve(native_records.size());
+        bool invalid_source_sentinel_fields=false;
         for(const auto& record:native_records) {
             if(record.original_materializer_executed)
                 ++result.source_materializers;
             else if(record.original_sentinel_initializer_executed)
                 ++result.source_sentinel_writers;
             else ++result.unknown_origins;
+            // CODE.2 32F4C initializes ALL seven DWORD fields:
+            // depth=0, both source materials=0x93, and +0C..+18=0.
+            // The nearest replay alone sees only depth and inner,
+            // so reject a corrupt/partially synthesized filler here.
+            if(record.original_sentinel_initializer_executed &&
+               (record.depth!=0U ||
+                record.resource_outer!=0x93U ||
+                record.resource_inner!=0x93U ||
+                record.prepass!=0U ||
+                record.texture_column_offset!=0U ||
+                record.cell_index!=0U ||
+                record.shade_decrement!=0U))
+                invalid_source_sentinel_fields=true;
             // Signed x86 record depth: convert raw DWORD without
             // relying on implementation-defined uint32->int32 cast.
             const auto raw=record.depth;
@@ -59,6 +73,9 @@ public:
                 record.original_sentinel_initializer_executed
             });
         }
+        // Preserve truthful provenance counts, but do not emit a
+        // nearest-wall prediction from an invalid original filler.
+        if(invalid_source_sentinel_fields) return result;
         // The original replay rejects wrong counts, unknowns, and
         // contradictory provenance; no guessed nearest-depth fallback.
         result.nearest=OriginalGroundNearest22220SourceModel::replay(

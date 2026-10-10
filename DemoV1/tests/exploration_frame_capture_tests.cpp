@@ -181,6 +181,9 @@ int main() {
     assert(tsv.find("ground_projection_available\t0")!=std::string::npos);
     assert(tsv.find("ground_projection_22220\tunverified")!=std::string::npos);
     assert(tsv.find("ground_projection_lower_ff50\tunverified")!=std::string::npos);
+    assert(tsv.find(
+        "ground_projection_lower_ff50_if_upper_unchanged\tunverified")!=
+        std::string::npos);
     assert(tsv.find("ground_sweep_native_synthetic\t1")!=std::string::npos);
     assert(tsv.find("ground_sweep_source_sentinel_initializer\t1")!=
            std::string::npos);
