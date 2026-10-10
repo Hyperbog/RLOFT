@@ -47,4 +47,9 @@ All 239,698 executable object-1 bytes remain accounted for. This reconciliation 
 
 ## Post-certification semantic correction — F790 stack-local T[3F] pre-read (2026-10-10)
 
-Original CODE.2 F7CC..F7DA always calls 1C368 with T index 0x3F and a pointer into its 16-byte SS:ESP local after the pending 6DAC branch but before checking item==-1. The earlier canonical C++ omitted this IO call. Added `Application21Boundary::call_2c368_local(u8*,u32)` and the explicit stack-local read in `function_0f790`. Immutable binary SHA and exact 15-byte call window/target passed; original T[3F] decodes to `D`. Full-file strict C++17 recompile and DOS stream-state parity remain open gates. Object accounting and semantic certification totals are unchanged. [Complete source proof and native-engine handoff](F790_STACK_LOCAL_TEXT_PREREAD_20261010.md).
+Original CODE.2 F7CC..F7DA always calls 1C368 with T index 0x3F and a pointer into its 16-byte SS:ESP local after the pending 6DAC branch but before checking item==-1. The earlier canonical C++ omitted this IO call. Added `Application21Boundary::call_1c368_local(u8*,u32)` and the explicit stack-local read in `function_0f790`. Immutable binary SHA and exact 15-byte call window/target passed; original T[3F] decodes to `D`. Full-file strict C++17 recompile and DOS stream-state parity remain open gates. Object accounting and semantic certification totals are unchanged. [Complete source proof and native-engine handoff](F790_STACK_LOCAL_TEXT_PREREAD_20261010.md).
+
+
+### 2026-10-10 source callback-address correction
+
+Original F790 E8 sites `F7D3/F91C/FA9D/FB5A/FC78` and the spell-scribe reader at `116E2` all target `1C368`, **not** `2C368`. The canonical `Application21Boundary` had 28 stale textual references to `call_2c368`, now renamed to `call_1c368` / `call_1c368_local` without any other source edit. Original 21-edge F790 manifest passes; current source blob `5b0b4dd7b6a91bfcc99068970c3152f0f62ce54e`. Fresh full-file C++17 compilation and DOS runtime equivalence remain unverified; historical object-byte totals remain unchanged. See [original code proof](F790_STACK_LOCAL_TEXT_PREREAD_20261010.md).
