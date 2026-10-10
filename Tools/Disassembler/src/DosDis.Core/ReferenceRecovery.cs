@@ -18,7 +18,8 @@ internal sealed record RecoveredReferenceSet(
     IReadOnlyList<IndirectCandidate> IndirectTargets,
     JumpTableCandidate? Table);
 
-// Only passed when CFG proves CMP index,constant -> JA default -> indexed JMP.
+// Only passed for a source-backed unsigned CMP/JA guard, optionally
+// followed by an exact 8-to-32 MOVZX bridge. Runtime dominance is not implied.
 internal readonly record struct BoundedDispatchHint(Register Index, int EntryCount,
     string Pattern = "direct-unsigned-compare");
 
@@ -26,7 +27,8 @@ internal readonly record struct BoundedDispatchHint(Register Index, int EntryCou
 /// Narrow x86-32 LE recognition: absolute DS memory operands; internal
 /// relocation-backed immediate references; indirect calls/jumps through an
 /// absolute pointer; and relocation-backed, indexed dword tables.
-/// No symbolic index bounds, register value tracking or runtime memory model.
+/// Locally guarded index limits are candidate evidence only; there is
+/// no general register-value or mutable-runtime-memory model.
 /// </summary>
 internal sealed class ReferenceRecovery
 {
@@ -132,7 +134,10 @@ internal sealed class ReferenceRecovery
         for (int j = 0; j + 4 <= instructionLength; j++)
         {
             var location = new FlowAddress(address.Object, checked(address.Offset + (uint)j));
-            if (fixups.TryGetValue(location, out var relocation) && relocation.SourceType == 0x07)
+            if (!ambiguousFixups.Contains(location) &&
+                !HasOverlappingFixup(location, includeStart: false) &&
+                fixups.TryGetValue(location, out var relocation) &&
+                relocation.SourceType == 0x07)
             {
                 var obj = image.Objects[relocation.TargetObject - 1];
                 ulong offset = (ulong)relocation.TargetOffset + relocation.Additive;
@@ -169,14 +174,28 @@ internal sealed class ReferenceRecovery
         {
             var displacementSlot = new FlowAddress(address.Object,
                 checked(address.Offset + (uint)(instructionLength - 4)));
-            if (fixups.TryGetValue(displacementSlot, out var relocation) &&
-                relocation.SourceType == 0x07 &&
-                (!csIndexed || relocation.TargetObject == address.Object))
+            if (HasOverlappingFixup(displacementSlot, includeStart: true))
             {
-                var obj = image.Objects[relocation.TargetObject - 1];
-                ulong offset = (ulong)relocation.TargetOffset + relocation.Additive;
-                absolute = offset < obj.VirtualSize
-                    ? new FlowAddress(relocation.TargetObject, (uint)offset) : null;
+                // Any fixup reaching the displacement changes its
+                // runtime meaning. Never fall back to an unrelocated
+                // literal when the fixup is absent at the exact
+                // operand start, self-relative, duplicated or
+                // competing with another four-byte write.
+                if (ambiguousFixups.Contains(displacementSlot) ||
+                    HasOverlappingFixup(displacementSlot, includeStart: false) ||
+                    !fixups.TryGetValue(displacementSlot, out var relocation) ||
+                    relocation.SourceType != 0x07 ||
+                    (csIndexed && relocation.TargetObject != address.Object))
+                {
+                    absolute = null;
+                }
+                else
+                {
+                    var obj = image.Objects[relocation.TargetObject - 1];
+                    ulong offset = (ulong)relocation.TargetOffset + relocation.Additive;
+                    absolute = offset < obj.VirtualSize
+                        ? new FlowAddress(relocation.TargetObject, (uint)offset) : null;
+                }
             }
         }
         if (absolute is null || !IsBackedRange(absolute.Value, 1))
