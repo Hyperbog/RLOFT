@@ -17,6 +17,10 @@ User-provided shipped `CODE.2` length **558,689**, SHA-256 `853e0a4dfcabebcfeecb
 
 Exhaustive, five-byte E8-rel32 target scan of original object-1 finds exactly **17 direct F790 callsites**: `1134C 1173B 1178E 1184A 11882 118FF 119FC 11B63 11F47 127EC 128A3 12AFA 12BA4 12D50 12DFD 130DE 131BB`. Their instruction boundaries were independently inspected. The sole direct `112EC` caller is `13133`, and the sole direct `13118` caller is `214AC`. This is an inventory of **direct** rel32 instructions, not a claim excluding dynamically dispatched or indirect calls.
 
+## Follow-on saved VGA page and 17-source-argument audit
+
+Original 112EC captures a 0x1400-byte 320x16 VGA background via 292BC; original F790 restores it on every invocation via 2932C before deciding its feedback path. Ten byte-exact original instruction windows passed and the 17 E8-rel32 calls are now classified 11 global, 3 empty, 2 local, 1 selected-index; native event routing remains unresolved. The isolated native background-page component and regression are registered, with 189 CTests pending a user-authorized Windows Full build. See [source proof](LEVEL22_F790_BACKGROUND_2932C_20261010.md).
+
 ## Native implementation cross-check
 
 Existing `DemoV1/src/win32_main.cpp` already calls `InventoryRuntimeState::reset_scribe_feedback_13118()` when opening actor panels, and `expire_scribe_feedback_13184(code1_tick_count(exploration_epoch))` once per native modal loop. Existing `inventory_runtime.cpp` uses an unsigned strict `>` comparison and clears its pending message. Those behaviors should NOT be duplicated. The host draws the entire `PartyModalPresenter` at ~70 VGA frames/s, including twice via distinct initial/loop paths; original `F790` calls are input/state-event owned and must not be equated to those host draws.
