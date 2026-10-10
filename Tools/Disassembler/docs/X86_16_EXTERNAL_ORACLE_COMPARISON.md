@@ -237,3 +237,29 @@ The independent decoder, human evidence review, processor state,
 implicit memory accesses and full instruction semantics remain
 outside this source-only checkpoint. This extension adds **no**
 automatic release or accuracy certification.
+
+## Source-decode integrity for a would-be match (SOURCE ONLY)
+
+A cached CFG and an external expectation can contain the same wrong mnemonic,
+operand facts, flow label or branch target even while their instruction hex
+matches the original file. At the final matching stage DOSDis therefore
+re-decodes the original physical instruction bytes at the declared
+segment-relative IP. A would-be `match` is checked for source instruction
+length, normalized flow, every retained cached structured fact, and any
+expected direct near call/jump/conditional-taken target.
+
+A source re-decode discrepancy yields `conflict` and the stable detail code
+`candidate-decoder-or-direct-edge-disagrees-with-original-bytes`.
+Missing graph edges and unobserved cached semantic facts keep their distinct
+existing statuses and denominators. A memory manifest asserting a
+displacement-free bare BP address is now invalid: 16-bit ModR/M encodes
+`[BP+0]` using an explicit disp8 or disp16, never mod=00 BP-only.
+
+The synthetic source adds adversarial jointly-forged reference/candidate
+facts, fabricated matching branch edges, jointly-forged flow labels and an
+impossible BP memory address. These checks have **NOT** been compiled or run.
+The integrity check uses the same Iced decoder as DOSDis. It is **not** a
+Capstone/Ghidra comparison, a reviewer-approved independent oracle or proof
+of actual DOS execution; all G2 independent acceptance obligations remain
+open.
+
