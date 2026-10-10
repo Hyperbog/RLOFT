@@ -60,6 +60,7 @@ public static class ControlFlowAnalysis
             throw new ArgumentOutOfRangeException(nameof(maxInstructions));
         var sourceSeeds = (seeds ?? new[] { new FlowAddress((int)image.EntryObject, image.EntryOffset) })
             .Distinct().ToArray();
+        var explicitEntries = sourceSeeds.ToHashSet();
         if (sourceSeeds.Length is < 1 or > MaxSeeds)
             throw new ArgumentOutOfRangeException(nameof(seeds), "Provide 1 to 4096 entry seeds.");
         var explicitData = (protectedData ?? Array.Empty<ProtectedDataRange>()).ToArray();
@@ -290,8 +291,12 @@ public static class ControlFlowAnalysis
             if (instruction.FlowControl == FlowControl.IndirectBranch &&
                 instruction.MemoryBase == Register.None &&
                 instruction.MemoryIndex != Register.None &&
-                instruction.MemoryIndexScale == 4)
+                instruction.MemoryIndexScale == 4 &&
+                !explicitEntries.Contains(cursor))
             {
+                // An explicitly seeded jump can execute independently of
+                // this guard even if an incidental predecessor has been
+                // decoded. Never inherit bounds across that second entry.
                 var incoming = edges.Where(e => e.Destination == cursor).ToArray();
                 FlowAddress? guardAddress = null;
                 Register comparedRegister = instruction.MemoryIndex;
@@ -303,6 +308,7 @@ public static class ControlFlowAnalysis
                 }
                 else if (incoming.Length == 1 &&
                          incoming[0].Kind == "fallthrough" &&
+                         !explicitEntries.Contains(incoming[0].Source) &&
                          decodedDetails.TryGetValue(incoming[0].Source,
                              out var extension) &&
                          extension.Mnemonic == Mnemonic.Movzx &&
