@@ -54,6 +54,49 @@ public static class ControlFlowAnalysis
         bool relocated = false, CancellationToken cancellationToken = default,
         AnalysisDecisionTrace? decisionTrace = null)
     {
+        // Materialize caller-supplied single-use seed/range enumerables
+        // once. Each source-only pass sees identical analyst evidence.
+        var seedArray = seeds?.ToArray();
+        var rangeArray = protectedData?.ToArray();
+        var disabled = new HashSet<FlowAddress>();
+        // Every unsuccessful iteration must disable at least one newly
+        // contradicted bound. Never return a graph whose earlier bounded
+        // table recovery depended on a now-invalid incomplete CFG.
+        for (int attempt = 0; attempt <= MaxSeeds; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var candidate = AnalyzePass(image, seedArray, rangeArray,
+                maxInstructions, relocated, cancellationToken, null,
+                disabled, out var contradicted);
+            if (contradicted.Count == 0)
+            {
+                if (decisionTrace is null)
+                    return candidate;
+                // Decision traces are single-use. Record only the final
+                // stable interpretation, not abandoned speculative runs.
+                var traced = AnalyzePass(image, seedArray, rangeArray,
+                    maxInstructions, relocated, cancellationToken,
+                    decisionTrace, disabled, out var tracedContradictions);
+                if (tracedContradictions.Count != 0)
+                    throw new InvalidDataException(
+                        "Final traced LE graph disagrees with stable candidate proof.");
+                return traced;
+            }
+            if (!contradicted.Any(disabled.Add))
+                throw new InvalidDataException(
+                    "Nonconvergent LE guarded-table source audit.");
+        }
+        throw new InvalidDataException(
+            "LE guarded-table source audit exceeded bounded retries.");
+    }
+
+    private static FlowAnalysisResult AnalyzePass(LeImage image,
+        IEnumerable<FlowAddress>? seeds,
+        IEnumerable<ProtectedDataRange>? protectedData,
+        int maxInstructions, bool relocated, CancellationToken cancellationToken,
+        AnalysisDecisionTrace? decisionTrace, IReadOnlySet<FlowAddress> disabled,
+        out IReadOnlyList<FlowAddress> contradicted)
+    {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(image);
         if (maxInstructions is < 1 or > 1_000_000)
@@ -125,6 +168,8 @@ public static class ControlFlowAnalysis
         var referenceRecovery = new ReferenceRecovery(image);
         // Only direct, decoded evidence may bound a literal pointer table.
         var decodedDetails = new Dictionary<FlowAddress, Instruction>();
+        var provisionalBoundPaths = new Dictionary<FlowAddress,
+            (FlowAddress Compare, FlowAddress Guard, FlowAddress? Extension)>();
         var indirectFunctionEntries = new HashSet<FlowAddress>();
         var queued = new HashSet<FlowAddress>();
         var pending = new Queue<FlowAddress>();
@@ -292,7 +337,8 @@ public static class ControlFlowAnalysis
                 instruction.MemoryBase == Register.None &&
                 instruction.MemoryIndex != Register.None &&
                 instruction.MemoryIndexScale == 4 &&
-                !explicitEntries.Contains(cursor))
+                !explicitEntries.Contains(cursor) &&
+                !disabled.Contains(cursor))
             {
                 // An explicitly seeded jump can execute independently of
                 // this guard even if an incidental predecessor has been
@@ -377,11 +423,16 @@ public static class ControlFlowAnalysis
                             _ => uint.MaxValue
                         };
                         if (limit is >= 1 and < 128)
+                        {
                             dispatchBound = new BoundedDispatchHint(
                                 instruction.MemoryIndex, checked((int)limit + 1),
                                 viaByteZeroExtension
                                     ? "byte-register-MOVZX-zeroextend"
                                     : "direct-unsigned-compare");
+                            provisionalBoundPaths[cursor] = (
+                                toGuard[0].Source, guardLocation,
+                                viaByteZeroExtension ? incoming[0].Source : null);
+                        }
                     }
                 }
             }
@@ -507,6 +558,46 @@ public static class ControlFlowAnalysis
                     break;
             }
         }
+        // Reconcile provisional local CMP/JA/MOVZX paths against the
+        // COMPLETE decoded graph. The worklist may discover another
+        // predecessor after the index table was first recognized.
+        // That makes the first published candidate set unsound: the
+        // caller must rerun from original bytes without this site's
+        // provisional bound (not just relabel the old table).
+        var incomingByDestination = edges.Where(e => e.Destination is not null)
+            .GroupBy(e => e.Destination!.Value)
+            .ToDictionary(group => group.Key, group => group.ToArray());
+        bool UniqueIncoming(FlowAddress destination, FlowAddress source,
+            string edgeKind) =>
+            incomingByDestination.TryGetValue(destination, out var links) &&
+            links.Length == 1 && links[0].Source == source &&
+            links[0].Kind == edgeKind;
+        var lateInvalid = new List<FlowAddress>();
+        foreach (var (site, proof) in provisionalBoundPaths)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var guardEdges = edges.Where(e => e.Source == proof.Guard).ToArray();
+            bool forwardGuard = instructions.TryGetValue(site, out var siteLine) &&
+                guardEdges.Length == 2 &&
+                guardEdges.Count(e => e.Kind == "branch-not-taken") == 1 &&
+                guardEdges.Any(e => e.Kind == "branch-taken" &&
+                    e.Destination is { } dest && dest.Object == site.Object &&
+                    (ulong)dest.Offset >= (ulong)site.Offset +
+                        (uint)siteLine.Length);
+            bool pathValid = forwardGuard &&
+                UniqueIncoming(proof.Guard, proof.Compare, "fallthrough") &&
+                !explicitEntries.Contains(site) &&
+                !explicitEntries.Contains(proof.Guard) &&
+                (proof.Extension is { } extension
+                    ? !explicitEntries.Contains(extension) &&
+                      UniqueIncoming(extension, proof.Guard, "branch-not-taken") &&
+                      UniqueIncoming(site, extension, "fallthrough")
+                    : UniqueIncoming(site, proof.Guard, "branch-not-taken"));
+            if (truncated || !pathValid)
+                lateInvalid.Add(site);
+        }
+        contradicted = lateInvalid;
+
         // Edges and instructions are separate: a branch can target a byte
         // already owned by a different instruction. Preserve that conflict.
         var decodedStarts = new HashSet<FlowAddress>(instructions.Keys);
