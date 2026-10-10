@@ -64,6 +64,13 @@ if(Python3_Interpreter_FOUND)
         NAME original_ground_mode_option_bytes_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_mode_option_bytes.py")
+    # Exhaustive original object-1 absolute-address operands
+    # for FDBC page base / FF48 source texture origin, bounded
+    # against indirect alias and ES selector uncertainty.
+    add_test(
+        NAME original_ground_vga_page_base_reference_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_vga_page_refs.py")
     # Original 34A74 planar VGA 4-mask/2-mask helpers, exact 64x24
     # SHLD/LODS/STOS unroll and first-phase implicit fall-through.
     add_test(
