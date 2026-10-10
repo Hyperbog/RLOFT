@@ -88,9 +88,9 @@ public static class DosMzCrossSegmentAnalysis
                                 fileOffset, prior.Address, instruction.Address,
                                 "competing-original-byte-interpretations;neither-verified"));
                         else if (same && prior.Address != instruction.Address &&
+                            aliases.Count < 4096 &&
                             aliasInstructions.Add((prior.SourceFileOffset,
-                                prior.Address, instruction.Address)) &&
-                            aliases.Count < 4096)
+                                prior.Address, instruction.Address)))
                             aliases.Add(new DosMzPhysicalDecodeAlias(
                                 prior.SourceFileOffset, prior.Address,
                                 instruction.Address,
