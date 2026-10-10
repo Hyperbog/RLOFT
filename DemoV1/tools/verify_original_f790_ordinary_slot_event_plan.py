@@ -83,8 +83,14 @@ def verify_contract()->None:
     assert "original_f790_ordinary_slot_event_plan_tests" in cmake
     assert "NAME original_f790_ordinary_slot_event_oracle_tests" in cmake
     assert "verify_original_f790_ordinary_slot_event_plan.py" in runner
-    assert "OriginalF790OrdinarySlotEventPlan" not in host, (
-        "live native dispatch has changed: re-audit RNG/cadence before asserting parity")
+    # Source-owned *diagnostic projection*, not a VGA or RNG dispatch.
+    assert "ordinary_slot_before_117a0(" in host
+    assert "OriginalF790OrdinarySlotEventPlan::" in host
+    assert "f790_trace_t_archive" in host
+    assert 'trace->event("f790.source.ordinary"' in host
+    assert 'trace->event("f790.source.flags"' in host
+    assert "source_event_f790(" not in host
+    assert "dispatch_source_call(" not in host
     print("PASS: source status mapping, pre-consumption identity and")
     print("PASS: two-event scribe success, no premature host redraw/RNG binding")
 

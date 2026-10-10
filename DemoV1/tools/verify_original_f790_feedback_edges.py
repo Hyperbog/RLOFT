@@ -68,8 +68,12 @@ def verify_source()->None:
     assert "0x131bbU" in snapshot_test
     assert "inv.mage_scribe_feedback.reset();" in snapshot_test
     assert "NAME original_f790_feedback_binary_contract_tests" in cmake
-    assert "(void)runtime.inventory().expire_scribe_feedback_13184(" in host, (
-        "host expiry handler changed: re-audit original event/RNG cadence")
+    assert "const bool f790_expired=" in host
+    assert "if(trace && f790_expired)" in host
+    assert 'trace->event("f790.source.expiry"' in host
+    assert 'trace->event("f790.source.flags"' in host
+    assert "source_event_f790(" not in host
+    assert "dispatch_source_call(" not in host
     assert "OriginalF790FeedbackEdges" not in host
     print("PASS: source feedback transitions, strict unsigned expiry and unwired host boundary")
 

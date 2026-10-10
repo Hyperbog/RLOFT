@@ -47,6 +47,7 @@
 #include "rloft/exploration_preview.hpp"
 #include "rloft/exploration_runtime.hpp"
 #include "rloft/party_modal_presenter.hpp"
+#include "rloft/original_f790_ordinary_slot_event_plan.hpp"
 #include "rloft/party_panel_controls.hpp"
 #include "rloft/quit_confirm.hpp"
 #include "rloft/top_edge_menu_presenter.hpp"
@@ -975,6 +976,10 @@ int run_exploration(
                 }
             },trace.get());
     }
+    // Passive F12 diagnostic projections only; never invoke original
+    // F790 renderer or change gameplay RNG on a native frame refresh.
+    std::optional<rloft::OriginalTTextArchive> f790_trace_t_archive;
+    if(trace)f790_trace_t_archive.emplace(assets.source().read("T"));
     std::optional<std::size_t> inventory_encumbrance_actor;
     std::optional<std::size_t> inventory_party_drag_source;
     // CODE.2 uses RES1 + OBJECTS item graphic for a held cursor,
@@ -1380,8 +1385,25 @@ int run_exploration(
             // CODE.2 13184..131BB compares unsigned 30700 tick
             // against 6DA8 once per modal loop, restoring the
             // item ribbon only after tick > deadline.
-            (void)runtime.inventory().expire_scribe_feedback_13184(
-                code1_tick_count(exploration_epoch));
+            const bool f790_expired=
+                runtime.inventory().expire_scribe_feedback_13184(
+                    code1_tick_count(exploration_epoch));
+            if(trace && f790_expired) {
+                try {
+                    const auto event=
+                        rloft::OriginalF790FeedbackSourceSnapshot::
+                            after_expiry(true,runtime.inventory());
+                    if(event) {
+                        trace->event("f790.source.expiry",
+                            event->source_e8_offset,event->item_id);
+                        trace->event("f790.source.flags",
+                            event->known?1:0,event->pending_6dac?1:0);
+                    }
+                }catch(const std::exception& exc) {
+                    try{trace->error("f790.source.expiry",exc.what());}
+                    catch(...) {}
+                }
+            }
             const auto held_cursor_id=runtime.inventory().held.object_id;
             if(!inventory_cursor_last_id ||
                *inventory_cursor_last_id!=held_cursor_id) {
@@ -1511,6 +1533,17 @@ int run_exploration(
                     // insertion remain outside this bounded route.
                     if (!ui.party_panel_character_mode(hit->actor) &&
                         runtime.session().party.active(hit->actor)) {
+                        // Source 1173B receives the scroll BEFORE
+                        // the successful 1183E consumption. Preserve
+                        // that old cursor and the original actor slot
+                        // known bit before the native action mutates it.
+                        const auto f790_hand_before=
+                            runtime.inventory().held;
+                        const auto f790_slot_before=
+                            rloft::InventoryRuntimeState::
+                                ordinary_slot_before_117a0(
+                                    runtime.session().party,
+                                    hit->actor,hit->slot);
                         const auto status =
                             runtime.inventory().swap_ordinary_slot(
                                 runtime.session().party,
@@ -1519,6 +1552,33 @@ int run_exploration(
                                 hit->slot,
                                 &runtime.session().persistent_event_flags,
                                 code1_tick_count(exploration_epoch));
+                        if(trace && f790_trace_t_archive) {
+                            try {
+                                const auto projected=
+                                    rloft::OriginalF790OrdinarySlotEventPlan::
+                                        after_117a0(
+                                            status,f790_hand_before,
+                                            f790_slot_before,
+                                            runtime.inventory(),
+                                            *f790_trace_t_archive);
+                                for(std::size_t i=0;
+                                    i<projected.count;++i) {
+                                    const auto& event=projected.at(i);
+                                    // Log E8 source, item ID and flags,
+                                    // not pending message contents.
+                                    trace->event("f790.source.ordinary",
+                                        event.source_e8_offset,event.item_id);
+                                    trace->event("f790.source.flags",
+                                        event.known?1:0,
+                                        event.pending_6dac?1:0);
+                                }
+                            }catch(const std::exception& exc) {
+                                // Instrumentation must not break gameplay.
+                                try{trace->error(
+                                    "f790.source.ordinary",exc.what());}
+                                catch(...) {}
+                            }
+                        }
                         if (status ==
                             rloft::InventoryOrdinarySwapStatus::Swapped ||
                             status ==
