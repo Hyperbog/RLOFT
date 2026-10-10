@@ -3,11 +3,23 @@ using Iced.Intel;
 namespace DosDis.Core;
 
 public readonly record struct Dos16Address(ushort Segment, ushort Offset);
-/// <summary>Bounded x86-16 decoder facts, distinct from display assembly.
-/// Only the first two operands are represented; this is NOT a complete
-/// memory-address, implicit-operand, flags or execution semantics model.</summary>
+/// <summary>
+/// Only a 16-bit effective-address *encoding*: optional BX/BP, SI/DI,
+/// encoded displacement width and its modulo-65536 value, scalar
+/// memory operand width, and explicit segment override if present.
+/// No runtime selector or memory contents are inferred.
+/// </summary>
+public sealed record Dos16MemoryAddressFact(
+    string? Base, string? Index, int DisplacementSize,
+    uint Displacement, string Size, string? SegmentOverride);
+
+/// <summary>
+/// Structured explicit decoder facts, not a runtime semantic proof.
+/// Unsupported memory/addressing modes have Kind but no Memory facts.
+/// </summary>
 public sealed record Dos16OperandFact(string Kind,
-    string? Register = null, long? ImmediateValue = null);
+    string? Register = null, long? ImmediateValue = null,
+    Dos16MemoryAddressFact? Memory = null);
 public sealed record Dos16InstructionFacts(string Mnemonic, int OperandCount,
     Dos16OperandFact? Operand0, Dos16OperandFact? Operand1);
 public sealed record Dos16FlowInstruction(Dos16Address Address, int Length,
@@ -33,10 +45,45 @@ public sealed record Dos16FlowResult(
 /// </summary>
 public static class Dos16ControlFlowAnalysis
 {
-    // The semantic record is derived at the same decode site as the
-    // graph, not by reparsing presentation-formatted NASM assembly.
-    // Unsupported operand classes still report a Kind, but no claims
-    // about implicit operands, addressing displacement or memory width.
+    // Only original 16-bit ModR/M address forms with scalar memory
+    // widths are represented. Address-size overrides/VSIB/implicit
+    // string memory operands remain unasserted, not guessed.
+    private static Dos16MemoryAddressFact? CaptureMemory(Instruction ins)
+    {
+        Register baseReg = ins.MemoryBase;
+        Register indexReg = ins.MemoryIndex;
+        bool baseOK = baseReg is Register.None or Register.BX or Register.BP or
+            Register.SI or Register.DI;
+        bool indexOK = indexReg is Register.None or Register.SI or Register.DI;
+        bool pairOK = indexReg == Register.None ||
+            baseReg is Register.BX or Register.BP;
+        int size = ins.MemoryDisplSize;
+        uint value = size == 0 ? 0 : (uint)(ins.MemoryDisplacement64 & 0xFFFF);
+        bool displacementOK = size switch
+        {
+            0 => value == 0,
+            1 => value <= 0x7F || value >= 0xFF80,
+            2 => true,
+            _ => false
+        };
+        // A bare 16-bit direct address must be encoded as disp16.
+        if (!baseOK || !indexOK || !pairOK ||
+            ins.MemoryIndexScale != 1 || !displacementOK ||
+            (baseReg == Register.None && indexReg == Register.None && size != 2) ||
+            ins.MemorySize is not (MemorySize.UInt8 or MemorySize.UInt16 or
+                MemorySize.UInt32) ||
+            ins.SegmentPrefix is not (Register.None or Register.CS or Register.DS or
+                Register.ES or Register.SS or Register.FS or Register.GS))
+            return null;
+        return new Dos16MemoryAddressFact(
+            baseReg == Register.None ? null : baseReg.ToString(),
+            indexReg == Register.None ? null : indexReg.ToString(),
+            size, value, ins.MemorySize.ToString(),
+            ins.SegmentPrefix == Register.None ? null : ins.SegmentPrefix.ToString());
+    }
+
+    // The record is captured at the original decode site and is never
+    // derived by parsing formatter-produced assembler text.
     private static Dos16OperandFact CaptureOperand(
         Instruction instruction, int operand)
     {
@@ -52,7 +99,8 @@ public static class Dos16ControlFlowAnalysis
             _ => null
         };
         return new Dos16OperandFact(kind.ToString(),
-            kind == OpKind.Register ? reg.ToString() : null, immediate);
+            kind == OpKind.Register ? reg.ToString() : null, immediate,
+            kind == OpKind.Memory ? CaptureMemory(instruction) : null);
     }
 
     private static Dos16InstructionFacts CaptureFacts(Instruction instruction) =>
