@@ -45,6 +45,42 @@ internal static class Dos16DataflowSmoke
             joined.AnalysisStatus.Contains("candidate-unverified"),
             "join accounting and candidate-only provenance");
 
+        // A serializer may reorder outgoing records without changing
+        // any branch semantics. Preserve exact source-backed edge pairs,
+        // but do not mistake record ordering for CPU behavior.
+        var shuffledEdges = joinedGraph.Edges.GroupBy(x => x.Source)
+            .Reverse().SelectMany(g => g.Reverse()).ToArray();
+        var shuffled = Dos16DataflowAnalysis.Analyze(joinedRegion,
+            joinedGraph with {
+                Instructions = joinedGraph.Instructions.Reverse().ToArray(),
+                Edges = shuffledEdges
+            });
+        Check(!shuffled.Incomplete &&
+            shuffled.States.Count == joined.States.Count &&
+            At(shuffled, 16).Before.Get(Dos16WordRegister.AX).Members
+                .SequenceEqual(before.Members) &&
+            At(shuffled, 16).After.Get(Dos16WordRegister.BX).Members
+                .SequenceEqual(after.Members),
+            "reordered outgoing branch edges do not change the dataflow solution");
+
+        var conditionalEdges = joinedGraph.Edges.Where(e =>
+            e.Source.Offset == 0x106).ToArray();
+        Check(conditionalEdges.Length == 2,
+            "synthetic diamond has both conditional outgoing edges");
+        var duplicatedBranch = joinedGraph.Edges.Select(e =>
+            e.Source.Offset == 0x106 && e.Kind == "branch-not-taken"
+                ? e with {
+                    Kind = conditionalEdges[0].Kind,
+                    Destination = conditionalEdges[0].Destination
+                }
+                : e).ToArray();
+        var duplicateResult = Dos16DataflowAnalysis.Analyze(joinedRegion,
+            joinedGraph with { Edges = duplicatedBranch });
+        Check(duplicateResult.Incomplete &&
+            duplicateResult.AnalysisStatus == "rejected-forged-graph-edge" &&
+            duplicateResult.States.Count == 0,
+            "duplicated branch target cannot hide a missing conditional edge");
+
         // A backedge forms an increasing modular register sequence.
         // Once the finite domain exceeds the explicit revision budget,
         // widening must converge to Unknown (not a guessed loop count).
