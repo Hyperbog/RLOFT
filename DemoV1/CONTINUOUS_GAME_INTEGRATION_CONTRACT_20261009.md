@@ -6,6 +6,10 @@ The native 256-ray traversal now distinguishes original CODE.2 `32F4C` sentinel 
 
 
 
+## 2026-10-10 original mutable C026/C027 GAME.OPT floor/ceiling dispatch cross-check
+
+User-supplied original CODE.2 complete object-1 address audit verified **five direct references each** to mutable `C026/C027` (ten exact instruction windows), shipped DGROUP `1/1`, 6520 menu jump actions 1/2→`65C3/65DB`, original `65CF/65E7 XOR BYTE,1` only at row<0xA8, and downstream `1F227,1F305,1F369,34D46,34D95` surface guards. The existing native `OptionsState/OptionsMenuModel` already reconstruct source values and toggles; expanded **existing options_menu_tests** to cross options into isolated original upper/lower dispatcher for on/on, off/on, off/off, on/off cases, 34998 trigger and 33DE0 vs 34A74 selection. New original-byte Python CTest; no new gameplay wiring, no Windows build or original DOS parity claim. [Machine-byte and source-mode audit](LEVEL22_ORIGINAL_C026_C027_OPTIONS_GROUND_DISPATCH_20261010.md). CI manual-only.
+
 ## 2026-10-10 animated upper overlay 314B0 reseeds shared RNG from facing and IRQ
 
 Verified 12 immutable original CODE.2 instruction windows: `30700` is a read-only getter for IRQ count `F58C` (handler `3071C` increments it); `30C9C` returns fixed pointer `F6F4`; `30CA2` advances and stores the original `0x41C64E6D/+0x3039` LCG; `30CC4` seeds **the same original `F6F4` state**. During original animated upper callback `314B0`, `314F7/314FD` seeds from facing `C658`, conditional `31532/3158D/315EA` calls advance RNG, then `3161A/31620` reads tick and reseeds from `F58C`. Thus these two computed `[EAX]` write aliases are **F6F4**, not FF50; other upper-renderer helpers remain open. Existing C++ OriginalRandom LCG constants match. This is an important source-driven **cross-render/gameplay RNG coupling**, not permission to guess frame timing; no code path wired or CI run. [Precise source/indirect alias contract](LEVEL22_FF50_UPPER_CALLBACK_BOUNDARY_AUDIT_20261010.md).

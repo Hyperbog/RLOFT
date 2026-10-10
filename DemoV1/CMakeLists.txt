@@ -58,6 +58,12 @@ if(Python3_Interpreter_FOUND)
         NAME original_ground_ff50_binary_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_ff50_source_span.py")
+    # Original mutable 1F227/1F305/1F369/34D46/34D95 C026/C027
+    # mode reads, 065CF/065E7 GAME.OPT menu toggles, source defaults.
+    add_test(
+        NAME original_ground_mode_option_bytes_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_mode_option_bytes.py")
     # Bounded original upper callbacks: exact 17 near-E8 call edges,
     # five source bodies, 34A74 self-modifying immediate addresses.
     # NOT a proof of indirect mutable FF50 alias safety.
