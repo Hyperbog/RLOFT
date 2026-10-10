@@ -114,6 +114,44 @@ internal static class Dos16CorrelatedDispatchSmoke
             outReport.Sites[0].CandidateStoredEntries.Count == 0,
             "a candidate path inconsistent with the table count is unresolved");
 
+        // Both predecessor arms meet BEFORE the uniquely validated
+        // unsigned CMP/Jcc/SHL chain. The branch on AX is not pruned:
+        // two independently assigned BX values must survive the merge.
+        byte[] diamondSetup = {
+            0xBB, 0x01, 0x00, // 00 MOV BX,1
+            0x3D, 0x00, 0x00, // 03 CMP AX,0 (unknown branch decision)
+            0x74, 0x05,       // 06 JE 13
+            0xBB, 0x01, 0x00, // 08 MOV BX,1
+            0xEB, 0x03,       // 11 JMP 16
+            0xBB, 0x02, 0x00  // 13 MOV BX,2
+        };
+        var diamond = Guarded(diamondSetup, new byte[] { 0xD1, 0xE3 });
+        var diamondReport = Dos16CorrelatedDispatchRecovery.Inspect(
+            diamond.Region, diamond.Graph);
+        Check(!diamondReport.Incomplete &&
+            diamondReport.GuardedStorageSites == 1 &&
+            diamondReport.BoundedIndexSites == 1 &&
+            diamondReport.Sites[0].CandidateIndices.SequenceEqual(
+                new[] { 1, 2 }) &&
+            diamondReport.Sites[0].CandidateStoredEntries.Count == 2,
+            "joined predecessor BX=1/2 values select only two bounded entries");
+
+        // Replace one of the predecessor MOV BX instructions with MOV AL
+        // plus NOP. The partial-register alias invalidates all tracked
+        // words; Unknown must dominate at the join before CMP.
+        byte[] poisonedSetup = (byte[])diamondSetup.Clone();
+        poisonedSetup[13] = 0xB0; // MOV AL,7Fh
+        poisonedSetup[14] = 0x7F;
+        poisonedSetup[15] = 0x90;
+        var poison = Guarded(poisonedSetup, new byte[] { 0xD1, 0xE3 });
+        var poisonReport = Dos16CorrelatedDispatchRecovery.Inspect(
+            poison.Region, poison.Graph);
+        Check(!poisonReport.Incomplete &&
+            poisonReport.GuardedStorageSites == 1 &&
+            poisonReport.BoundedIndexSites == 0 &&
+            poisonReport.Sites[0].CandidateStoredEntries.Count == 0,
+            "unknown BX from one diamond predecessor poisons all index claims");
+
         // A known BX before an unsupported memory/segment operation is
         // not sufficient to infer a later table index: the transfer
         // invalidates all register values, independently of guard proof.
