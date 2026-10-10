@@ -216,3 +216,47 @@ only**, not an independently run decoder or observed runtime execution.
 Owner-authorized G2, actual Capstone/Ghidra checks, independent
 source selection, human adjudication and any correctness/release
 acceptance remain PENDING.
+
+## 13. Cached graph decode integrity (source-only follow-up, 2026-10-10)
+
+The comparison previously verified expected instruction hex against immutable
+file-backed source bytes, then trusted the cached graph's flow category,
+structured decoder facts and matching directed edge as-is. If a cached
+instruction's semantic fields were altered **together** with a manifest
+expectation, or an edge with the expected target were injected into the
+candidate graph, that agreement could be falsely counted as a match.
+
+After the ordinary external/source-row/graph-field checks, a potential match
+is now re-decoded from the same original physical file window at its
+declared 16-bit IP with the embedded Iced decoder. The check requires the
+actual instruction length, flow category and (where retained) complete cached
+structured facts to agree with that original decode. For a claimed direct
+near branch/call, the encoded original target must also equal the
+manifest's expected target; graph-edge presence alone is not sufficient.
+A contradiction is an explicit `conflict` with detail code
+`candidate-decoder-or-direct-edge-disagrees-with-original-bytes`.
+An absent expected direct edge retains its previous `missing` status,
+and older graph rows lacking structured facts remain `not-observed`
+where such facts are asserted.
+
+The 16-bit memory expectation validator now also rejects displacement-free
+`[BP]`. Bare BP cannot be encoded using the 16-bit ModR/M mod=00 form;
+a zero-valued [BP+0] address must still explicitly carry disp8 or disp16.
+Existing positive encoded BP+disp8 cases remain in the synthetic source
+matrix.
+
+New committed synthetic cases intentionally forge *matching* cached and
+external semantic facts, add a fabricated direct edge with the external
+target, and alter both cached and expected flow labels without changing
+original opcode bytes. These examples previously could produce a false
+matching result and must now fail closed. The target is comparison-integrity
+defense against corrupted/stale graph data, **not** executable-reachability
+proof, second-decoder agreement or oracle independence. It invokes the
+same Iced decoder embedded in DOSDis; no claim of independent accuracy
+may be based on this re-decode. Other source coverage, unbenchmarked
+candidates and unsupported semantics remain unverified.
+
+**Evidence state: SOURCE ONLY.** No Windows compile, smoke run, original
+binary analysis, actual external decoder execution, independent human
+adjudication or G2 acceptance occurred for this follow-up.
+
