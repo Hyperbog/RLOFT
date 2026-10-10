@@ -2509,6 +2509,41 @@ try
             " cannot authorize a bounded table");
     }
 
+    // Late-discovered CFG ingress: the out-of-range default initially
+    // passes the indirect JMP, then a NOP and short backwards JMP add
+    // a second path into that indexed transfer AFTER provisional table
+    // discovery. The final result must be RECOMPUTED without the
+    // unproven table: no phantom candidate edges or decoded case code.
+    foreach (var (target, rel8) in new[] {
+        (Target: 9u, Rel8: (byte)0xF5), // 0x12 EB F5 -> indexed JMP at 0x09
+        (Target: 6u, Rel8: (byte)0xF2)  // 0x12 EB F2 -> MOVZX at 0x06
+    })
+    {
+        var lateBypass = (byte[])byteSwitchBytes.Clone();
+        lateBypass[0x200 + 0x11] = 0x90; // default NOP: explored after MOVZX
+        lateBypass[0x200 + 0x12] = 0xEB; // JMP rel8: explored after indexed JMP
+        lateBypass[0x200 + 0x13] = rel8;
+        var lateImage = LeImage.Load(BinaryArtifact.FromBytes(lateBypass));
+        var lateTrace = new AnalysisDecisionTrace(capacity: 64);
+        var lateGraph = ControlFlowAnalysis.Analyze(lateImage,
+            decisionTrace: lateTrace);
+        Equal(lateGraph.JumpTables.Count, 0,
+            "late indirect-switch bypass must retract literal table evidence");
+        Equal(lateGraph.Edges.Any(e => e.Kind == "jump" &&
+            e.Source == new FlowAddress(1, 0x12) &&
+            e.Destination == new FlowAddress(1, target)), true,
+            "late alternate branch is decoded from original LE source");
+        Equal(lateGraph.Edges.Count(e =>
+            e.Kind == "candidate-indirect-jump"), 0,
+            "replayed CFG cannot retain phantom guarded case edges");
+        Equal(lateGraph.Instructions.Any(i =>
+            i.Address == new FlowAddress(1, 0x80)), false,
+            "late invalidation must also retract speculative case decoding");
+        Equal(lateTrace.Snapshot().Any(e =>
+            e.Outcome == AnalysisDecisionOutcome.PointerTableCandidate), false,
+            "final decision trace must not expose superseded provisional tables");
+    }
+
     var signedByteSwitch = (byte[])byteSwitchBytes.Clone();
     signedByteSwitch[0x200 + 4] = 0x7F; // JG, signed rather than JA
     Equal(ControlFlowAnalysis.Analyze(LeImage.Load(
