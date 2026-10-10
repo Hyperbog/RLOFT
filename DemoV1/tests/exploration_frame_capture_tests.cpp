@@ -293,6 +293,9 @@ int main() {
     assert(third_tsv.find("ground_projection_min_updates\t2")!=std::string::npos);
     assert(third_tsv.find("ground_projection_upper_ff50\t51")!=std::string::npos);
     assert(third_tsv.find("ground_projection_lower_ff50\t1")!=std::string::npos);
+    assert(third_tsv.find(
+        "ground_projection_lower_ff50_if_upper_unchanged\t1")!=
+        std::string::npos);
     assert(third_tsv.find("ground_projection_lower_four_plane_rows\t1")!=std::string::npos);
     assert(third_tsv.find("ground_projection_lower_paired_plane_rows\t0")!=std::string::npos);
     assert(third_tsv.find("source_facing_raw\t261")!=
