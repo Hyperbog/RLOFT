@@ -1,20 +1,22 @@
-# CODE.2 faithful decompilation
+# CODE.2 — byte-accounted executable reconstruction
 
 > **Post-certification erratum (2026-10-07):** native Demo integration rechecked immutable CODE.2 bytes and confirmed two source-level semantic defects: constant automap draw coordinates in `0139C` and a four-versus-five argument wrapper at `2975C`. The current source implements the encoded increments and five-argument contract. The certification hashes below identify the historical pre-erratum snapshot, not the current `Code2.cpp`. Byte accounting remains unchanged. See `Code2/POST_CERTIFICATION_ERRATA.md`. This two-hunk branch difference is now fully reconciled; the full original-byte comparison is recorded in the main branch.
 
-This directory contains the certified faithful C++ reconstruction of Ravenloft: Strahd's Possession `CODE.2`.
+This directory contains the **fully byte-accounted but still semantically corrigible** C++ reconstruction of Ravenloft: Strahd's Possession `CODE.2`. Completed byte accounting is **not** a claim of original DOS behavioral equivalence.
 
-## Final status
+## Historical accounting and verification record
 
 - Canonical source: `Code2/Code2.cpp`
 - Final certification record: `Code2/FINAL_CERTIFICATION.md`
 - Reconstruction/accounting: **239,698 / 239,698 = 100.0000%**
-- Semantic inspection: **100.0000%**
+- Historical instruction-inspection coverage: **100.0000%**; **not** a 100% semantic correctness or gameplay parity score
 - Unresolved object-1 bytes: **0**
 - Strict C++17 verification at certification: **0 errors, 0 warnings**
 - Certified `Code2.cpp` SHA-256: `b4ab60f12e0d5a3c986ef61ec3c2e5c6d68f0193a0e535ef35eb7af6f3aed4aa`
 - Original certified Git blob SHA (historical): `c3f16122e79c3c464382e4511d9d932f6fcd694a`
-- **Current corrected Git blob SHA (also on `code1-decompilation`): `87f6638921c53a32bde59735515fbc175e2c96ee`**
+- **2026-10-10 synchronized corrected `Code2.cpp` Git blob SHA: `5b0b4dd7b6a91bfcc99068970c3152f0f62ce54e`** (identical to `code1-decompilation` when synchronized)
+
+**2026-10-10 third semantic correction — F790:** original bytes at `F7CC..F7DA` unconditionally read `T[0x3F]` to a 16-byte stack local via `1C368` on the non-pending path, **before** the `item==-1` check. Stale `2C368` callback labels were also corrected. The corrected `Code2.cpp` has been synchronized to `demo-v1`. [Independent source contract and 21-call original E8 oracle](verify_f790_stack_local_preread.py) is registered in the native CTest catalog; local original binary disassembly confirms those 21 targets. Windows current-HEAD compile and original-DOS runtime sequencing remain unaccepted.
 
 The detailed historical audit/checkpoint documents are provenance. Temporary integration scripts and staged fragments are not canonical source artifacts; Git history preserves them.
 
@@ -57,8 +59,8 @@ For any future modification run:
 g++ -std=c++17 -Wall -Wextra -pedantic -fsyntax-only Code2/Code2.cpp
 ```
 
-Never destructively regenerate the certified source. Preserve a recoverable Git commit before any integration or semantic change.
+Never destructively regenerate the byte-accounted reconstructed source. Preserve a recoverable Git commit before any integration or semantic change.
 
 ## Historical documentation
 
-`DECOMPILATION_CONTINUITY.md`, `CODE2_CONTINUITY_ADDENDUM.md`, `PROGRESS.md`, audit checkpoints, closure records, and repair specifications document how the reconstruction was established. `FINAL_CERTIFICATION.md` is the authoritative final-state summary.
+`DECOMPILATION_CONTINUITY.md`, `CODE2_CONTINUITY_ADDENDUM.md`, `PROGRESS.md`, audit checkpoints, closure records, and repair specifications document how the reconstruction was established. `FINAL_CERTIFICATION.md` records the **historical accounting closure**, not a guarantee of current source semantics or DOS parity. Consult the current native integration contract and newer original-byte corrections.
