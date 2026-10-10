@@ -100,6 +100,12 @@ runtime/code provenance model.
 Further synthetic cases exercise both state flow and independent evidence
 boundaries, before any G2 build:
 
+- A synthetic diamond CFG that converges immediately before the
+  unsigned CMP/Jcc chain retains both exact predecessor BX values
+  (1 and 2), then proves candidate stored entries 1 and 2 after
+  the exact doubling stride. Replacing either path's BX assignment
+  with an unmodeled partial AL write must force Unknown at the join
+  and suppress all selected entries.
 - An unsupported `MOV [BX],AL` between the known BX source and the
   compare causes the register transfer layer to invalidate BX. The
   independently source-backed guard and stored table remain detectable,
