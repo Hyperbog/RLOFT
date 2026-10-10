@@ -273,10 +273,19 @@ public static class ControlFlowAnalysis
                 classifications[i] = 1;
             }
 
-            // Accept only the exact, adjacent unsigned switch shape:
-            // CMP index, N -> JA default -> JMP [index*4 + absolute].
-            // Branches entering mid-sequence, signed tests or missing bytes
-            // do not justify a literal table candidate.
+            // Candidate bounded indirect dispatch patterns:
+            //   CMP index,N -> JA default -> JMP [index*4 + absolute]
+            //   CMP byte,N  -> JA default -> MOVZX index,byte
+            //                                  -> JMP [index*4 + absolute]
+            // The latter is common in 32-bit LE code. The unsigned JA
+            // limits the *post-subtraction* byte value to 0..N; MOVZX
+            // copies it without sign extension. No arithmetic or flags
+            // inference before CMP is required or claimed.
+            //
+            // All intervening edges must be uniquely source-backed,
+            // so a second predecessor cannot bypass the guard. Do not
+            // recognize other moves, sign extension, 16-bit destinations,
+            // unknown index widths, calls, or intervening instructions.
             BoundedDispatchHint? dispatchBound = null;
             if (instruction.FlowControl == FlowControl.IndirectBranch &&
                 instruction.MemoryBase == Register.None &&
@@ -284,16 +293,59 @@ public static class ControlFlowAnalysis
                 instruction.MemoryIndexScale == 4)
             {
                 var incoming = edges.Where(e => e.Destination == cursor).ToArray();
-                if (incoming.Length == 1 && incoming[0].Kind == "branch-not-taken" &&
-                    decodedDetails.TryGetValue(incoming[0].Source, out var guard) &&
+                FlowAddress? guardAddress = null;
+                Register comparedRegister = instruction.MemoryIndex;
+                if (incoming.Length == 1 &&
+                    incoming[0].Kind == "branch-not-taken")
+                {
+                    guardAddress = incoming[0].Source;
+                }
+                else if (incoming.Length == 1 &&
+                         incoming[0].Kind == "fallthrough" &&
+                         decodedDetails.TryGetValue(incoming[0].Source,
+                             out var extension) &&
+                         extension.Mnemonic == Mnemonic.Movzx &&
+                         extension.Op0Kind == OpKind.Register &&
+                         extension.Op0Register == instruction.MemoryIndex &&
+                         extension.Op1Kind == OpKind.Register &&
+                         extension.Op1Register is
+                            (Register.AL or Register.CL or Register.DL or Register.BL or
+                             Register.AH or Register.CH or Register.DH or Register.BH))
+                {
+                    // Require exactly one predecessor of the MOVZX:
+                    // the JA not-taken branch. Any alternative path can
+                    // bypass the unsigned byte bound.
+                    var toExtension = edges.Where(e =>
+                        e.Destination == incoming[0].Source).ToArray();
+                    if (toExtension.Length == 1 &&
+                        toExtension[0].Kind == "branch-not-taken")
+                    {
+                        guardAddress = toExtension[0].Source;
+                        comparedRegister = extension.Op1Register;
+                    }
+                }
+
+                if (guardAddress is { } guardLocation &&
+                    decodedDetails.TryGetValue(guardLocation, out var guard) &&
                     guard.Mnemonic == Mnemonic.Ja)
                 {
-                    var toGuard = edges.Where(e => e.Destination == incoming[0].Source).ToArray();
-                    if (toGuard.Length == 1 && toGuard[0].Kind == "fallthrough" &&
-                        decodedDetails.TryGetValue(toGuard[0].Source, out var compare) &&
+                    // A source-decoded unsigned guard must retain both
+                    // original branch edges; a second route to the
+                    // extension/index is not acceptable.
+                    var guardEdges = edges.Where(e =>
+                        e.Source == guardLocation).ToArray();
+                    bool exactGuard = guardEdges.Length == 2 &&
+                        guardEdges.Count(e => e.Kind == "branch-not-taken") == 1 &&
+                        guardEdges.Count(e => e.Kind == "branch-taken") == 1;
+                    var toGuard = edges.Where(e =>
+                        e.Destination == guardLocation).ToArray();
+                    if (exactGuard && toGuard.Length == 1 &&
+                        toGuard[0].Kind == "fallthrough" &&
+                        decodedDetails.TryGetValue(toGuard[0].Source,
+                            out var compare) &&
                         compare.Mnemonic == Mnemonic.Cmp &&
                         compare.Op0Kind == OpKind.Register &&
-                        compare.Op0Register == instruction.MemoryIndex)
+                        compare.Op0Register == comparedRegister)
                     {
                         uint limit = compare.Op1Kind switch
                         {
@@ -303,8 +355,8 @@ public static class ControlFlowAnalysis
                             _ => uint.MaxValue
                         };
                         if (limit is >= 1 and < 128)
-                            dispatchBound = new BoundedDispatchHint(instruction.MemoryIndex,
-                                checked((int)limit + 1));
+                            dispatchBound = new BoundedDispatchHint(
+                                instruction.MemoryIndex, checked((int)limit + 1));
                     }
                 }
             }
