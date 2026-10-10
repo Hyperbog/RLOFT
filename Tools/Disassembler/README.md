@@ -1,6 +1,10 @@
-# DOS Disassembler — foundation (Part 14)
+# DOSDis — DOS Game Disassembler (research prototype)
 
-Evidence-first DOS disassembly research application. **Early prototype:** command-line analysis only, not yet a desktop app or certified full disassembly. Source files are original-byte read-only; no language generation.
+Evidence-first, game-agnostic DOS executable disassembly and reverse-engineering workstation. The source includes a .NET CLI, a Windows WPF desktop preview, a research-project persistence layer, and separate x86-16 / x86-32 analysis paths. Original game files are read-only, and candidate decoding is not proof of executed game behavior.
+
+**Verification note (2026-10-10):** The Windows desktop and synthetic suites passed at G1 build #35 (source SHA `9f605e36581b2c6db72a6a47248ea5af31611506`), with owner-reported desktop acceptance. The newer R2/LE/MZ analysis changes are **source-only and not yet G2-verified**. The canonical, current evidence states and gates are in [ROADMAP_BUILD_GATES.txt](docs/ROADMAP_BUILD_GATES.txt); older historical sections below reflect development at the time they were written. See also the [Strahd CODE export feedback handoff](docs/LE_STRAHD_CODE_JSON_HANDOFF_20261010.md) for a title-qualified x86-32 validation target.
+
+The project intentionally does not certify automatic full code coverage, verified runtime control flow or complete decompilation.
 
 ## Requirements
 
