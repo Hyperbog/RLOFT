@@ -921,6 +921,14 @@ add_executable(original_t_text_archive_tests
 target_include_directories(original_t_text_archive_tests PRIVATE include)
 add_test(NAME original_t_text_archive_tests COMMAND original_t_text_archive_tests)
 
+# Source CODE.2 11AD8..11B68 single/all-actor mode, 291B0/11268/F790
+# ordering. Isolated prefix only: no unproved live button mapping or item actions.
+add_executable(original_actor_modal_toggle_prefix_tests
+    tests/original_actor_modal_toggle_prefix_tests.cpp)
+target_include_directories(original_actor_modal_toggle_prefix_tests PRIVATE include)
+add_test(NAME original_actor_modal_toggle_prefix_tests
+    COMMAND original_actor_modal_toggle_prefix_tests)
+
 # Original CODE.2 DS + original T archive + injected MUTABLE nested weights.
 add_executable(original_f790_resolved_description_tests
     tests/original_f790_resolved_description_tests.cpp)
