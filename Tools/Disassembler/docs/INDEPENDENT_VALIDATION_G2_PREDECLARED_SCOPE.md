@@ -92,9 +92,33 @@ structured expectations. A graph row without facts is
 are compared as signed numbers; mismatched register identities
 are conflicts. See `X86_16_EXTERNAL_ORACLE_COMPARISON.md`.
 
-**Uncovered:** memory operand base/index/size/displacement,
-operand/address-size prefix details, implicit operands and flags,
-instructions with more than two operands, and runtime behavior.
+**Uncovered:** all memory addressing **outside the restricted
+16-bit ModR/M subset** below, runtime/default segment values,
+full operand/address-size override effects, implicit operands and
+flags, instructions with more than two operands, and runtime behavior.
 Independent x86-16 operand evidence must still come from a
 genuine separately implemented decoder and ISA reference;
 the feature is **SOURCE ONLY** and not a completed G2 test.
+
+## G. 16-bit ModR/M memory operand subset (SOURCE ONLY)
+
+Optional external structured assertions may now cover ordinary
+16-bit BX/BP and SI/DI ModR/M addressing combinations, direct
+disp16, encoded displacement widths 0/1/2, canonical 16-bit
+modulo displacement values, UInt8/UInt16/UInt32 scalar memory
+operand width and explicit source segment overrides. Null
+segment override means **no prefix**, not a verified runtime
+default or selector. A `67h` address-size override cannot be
+scored as a 16-bit ModR/M source match.
+
+The source-only regression matrix contains a negative disp8,
+explicit DS override on BP, direct disp16, byte memory access,
+and unsupported 32-bit address override. Malformed/falsified
+memory base, pairing, width, displacement and segment-prefix
+assertions must never count as correct.
+
+This does NOT execute an independent disassembler or address
+runtime segment/flags state. Complete Capstone/Ghidra comparison,
+independently reviewed original-file sample selection, negative
+runtime tests and owner-authorized Windows G2 are pending.
+See `X86_16_EXTERNAL_ORACLE_COMPARISON.md`.
