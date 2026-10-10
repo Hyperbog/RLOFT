@@ -80,6 +80,14 @@ private:
         int row,
         int column) const;
 
+    // Original CODE.2 2E510 expands the ENTIRE resource descriptor
+    // at its row and actor lane (unlike 2975C's one-frame blit).
+    void draw_res0_complete(
+        IndexedFramebuffer& framebuffer,
+        int local_resource,
+        int row,
+        int column) const;
+
     void draw_actor_base(
         IndexedFramebuffer& framebuffer,
         const PartyActorPresentation& actor) const;

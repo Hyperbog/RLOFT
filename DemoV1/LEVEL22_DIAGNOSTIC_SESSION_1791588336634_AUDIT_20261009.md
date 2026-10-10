@@ -49,7 +49,7 @@ Party panel frames **10, 11, 12, 13, 14, 15, 16, 51, 52** show the same large bl
 35	type1.frame	0	240	0	320	1	255	200
 ```
 
-The native presenter is repeatedly selecting only **frame 0** from type-1 rasters with descriptor **200 frames × 320 columns × 1 row**, and drawing them at unusual per-actor offsets. This is **proven** by the source-native draw call log, as is the resulting incomplete background composition. It is **not yet proven** whether these original RES0 entries should be played/drawn as full raster strips, whether they are being addressed through the wrong resource lookup, or whether original clip/column compositor semantics are missing. Correct this by deriving the original CODE.2 `0FF3C/1118C/10BBC/112EC` RES0 blit behavior; do **not** globally change `draw_frame` to `draw` or invent a modern panel background.
+The native presenter is repeatedly selecting only **frame 0** from type-1 rasters with descriptor **200 frames × 320 columns × 1 row**, and drawing them at unusual per-actor offsets. This is **proven** by the source-native draw call log, as is the resulting incomplete background composition. **Resolved by independent original executable disassembly:** CODE.2 `2E510:2E4A4` iterates *all descriptor frames*, advancing the output row by the descriptor's frame height. These RES0 actor backgrounds were therefore missing 199 of the intended 200 source scanlines. `2975C` remains a single-frame path. [Faithful native repair, call-site audit and targeted regression](LEVEL22_SOURCE_MODAL_FULLFRAME_REPAIR_20261009.md). This is source-verified but unbuilt; complete DOS modal pixel parity and remaining source compositing semantics still need testing.
 
 The two active party slots draw authentic RES1 portrait sprites and equipment. Their presence is evidence that archive reading works; their positions and incorrect panel backgrounds require separate original-DOS comparison.
 
@@ -70,3 +70,7 @@ The screenshot/session shows authentic sky/trees/NPC/ornate HUD/portraits. After
 5. Preserve Level22-first delivery gate: no independent Level23 gameplay work.
 
 **Current source status:** 180 existing registered CTests before this follow-up; prior Full #649 passed 179/179. New error instrumentation makes no change to gameplay acceptance or completion percentages. Build requires user's explicit authorization.
+
+## 2026-10-09 original CODE.2 follow-up: strip-render root cause closed
+
+The original graphics API's `2E510→2E4A4` whole-descriptor iteration is now proven from executable bytes and implemented for the party-modal background calls. `2975C` keeps its exact separate one-frame behavior. This is a source-code checkpoint, not a revised user diagnostic; all frame counts/data in the original session remain unchanged. [Full source audit and CTest](LEVEL22_SOURCE_MODAL_FULLFRAME_REPAIR_20261009.md). **181 registered**; current-head Full Windows and DOS acceptance pending.

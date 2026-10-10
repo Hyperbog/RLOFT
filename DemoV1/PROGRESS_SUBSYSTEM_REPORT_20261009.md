@@ -13,6 +13,8 @@
 
 **User Level22 ZIP forensic checkpoint:** the first actual diagnostic upload is valid: 52 native indexed frames, 4 F12 marks, 16 renderer captures and 125 events. The last `party_panels` input `(68,16)` is **exactly** the original encumbrance hit area and confirms the missing RES2 route fixed in current source. The draw TSV proves unexpected **320-pixel-wide × 1-row / 200-frame** blits in the incomplete inventory UI; automap records real explored tiles. [Full source-grounded incident findings](LEVEL22_DIAGNOSTIC_SESSION_1791588336634_AUDIT_20261009.md). Modal exceptions will now be explicitly logged before rethrow. **180 CTests registered; latest green Full #649 remains 179/179.** Original DOS/UI acceptance remains 0%.
 
+**Original-source party modal background repair:** the uploaded first Level22 session logged `200×320×1` frame-zero strips. Disassembly of original CODE.2 `2E510→2E4A4` confirms **whole-descriptor raster drawing**, while `2975C` remains a one-frame icon blit. Native party/inventory backgrounds now call the correct full-resource routine without changing other sprite call sites. [Exact original offsets and regression](LEVEL22_SOURCE_MODAL_FULLFRAME_REPAIR_20261009.md). Registered CTests **181** (two unbuilt since Full #649 passed 179). **49.8% weighted readiness unchanged; 0% current-DOS parity accepted.**
+
 ## Scoring rules — fixed for future checkpoints
 
 **Weights:** original behavior mapped **10%**; native source implementation **20%**; runtime integration **20%**; regression assertions present **10%**; current-revision original DOS behavioral acceptance **40%**.
@@ -165,7 +167,7 @@ Each row's five gate marks are out of 20; the weighted readiness column is an in
 | --- | ---: | --- | --- | --- |
 | In-game HUD and portraits | **60.0%** | 20/20/20/20/0 | `party_hud.cpp` | Original HUD framebuffer comparison |
 | Top-edge menu and actions | **50.0%** | 20/20/10/20/0 | `top_edge_menu.cpp` | Complete rest and save menus |
-| Party and inventory modal | **60.0%** | 20/20/20/20/0 | `party_modal_presenter.cpp` | Full DOS modal pixel and timing |
+| Party and inventory modal | **60.0%** | 20/20/20/20/0 | `party_modal_presenter.cpp and original_party_modal_blit.hpp` | Verify source 2E510 full-resource backgrounds against DOS modal pixels and timing |
 | Mouse keyboard and hit regions | **60.0%** | 20/20/20/20/0 | `party_panel_controls.cpp` | Original mouse event mapping |
 | Quit confirmation and menus | **60.0%** | 20/20/20/20/0 | `quit_confirm.cpp` | Original modal exit acceptance |
 | Options rest pray memorize load save | **20.0%** | 10/10/0/10/0 | `options_menu.cpp` | Bind original game actions |

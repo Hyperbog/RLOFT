@@ -1,5 +1,9 @@
 # Level 22 — reusable native development testbed
 
+## Reconstructed original actor/inventory full-raster background (unbuilt)
+
+An independent original CODE.2 disassembly shows `2E510` uses `2E4A4` to draw every frame of a raster, while `2975C` draws a single frame. The first real diagnostic ZIP captured the native mistake: only frame0 of the original `200×320×1` inventory backdrop was drawn. The modal presenter now uses the source-correct complete draw path for actor and equipment/backdrop calls only. New raster unit coverage brings **181 CTests registered**, compared to Full #649's 179/179 passing. [Original source callsites, evidence and test](LEVEL22_SOURCE_MODAL_FULLFRAME_REPAIR_20261009.md). Windows screenshot retest is required for original-DOS pixel parity.
+
 ## Encumbrance-click crash correction (requires next manual build)
 
 Full Windows #649 contains a **missing original RES2 archive routing** defect. It triggers when the real Level22 inventory encumbrance or container overlay calls the original RES2 type-1 bitmap; this is a renderer/asset-router omission, not a corrupt original installation. `RavenloftBootAssets::type1(2,index)` now lazily loads the authentic RES2 from the same selected game media. A new regression brings the current authored CTest registry to **180**, still **unbuilt** after the 179/179 success of #649. [Source/debug/diagnostic ZIP checkpoint](LEVEL22_RES2_ENCUMBRANCE_CRASH_20261009.md).

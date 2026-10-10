@@ -1,6 +1,7 @@
 #include "rloft/party_modal_presenter.hpp"
 
 #include "rloft/party_hud.hpp"
+#include "rloft/original_party_modal_blit.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -41,11 +42,19 @@ void PartyModalPresenter::draw_res0_local(
             0,
             static_cast<int>(res0_base_) +
                 local_resource);
-    framebuffer.draw_frame(
-        raster,
-        frame,
-        row,
-        column);
+    OriginalPartyModalBlit::frame_2975c(
+        framebuffer,raster,frame,row,column);
+}
+
+void PartyModalPresenter::draw_res0_complete(
+    IndexedFramebuffer& framebuffer,
+    int local_resource,
+    int row,
+    int column) const {
+    const auto raster=assets_.type1(
+        0,static_cast<int>(res0_base_)+local_resource);
+    OriginalPartyModalBlit::complete_2e510(
+        framebuffer,raster,row,column);
 }
 
 void PartyModalPresenter::draw_actor_base(
@@ -56,19 +65,17 @@ void PartyModalPresenter::draw_actor_base(
 
     if (!actor.active) {
         // 11268 inactive path: 3E510(0,dst,2,2).
-        draw_res0_local(
+        draw_res0_complete(
             framebuffer,
             2,
-            0,
             0,
             column);
         return;
     }
 
     // 0FF3C common actor-column base.
-    draw_res0_local(
+    draw_res0_complete(
         framebuffer,
-        0,
         0,
         0,
         column);
@@ -170,21 +177,19 @@ std::size_t PartyModalPresenter::draw_inventory(
         0,
         0x45,
         column + 0x38);
-    draw_res0_local(
+    draw_res0_complete(
         framebuffer,
         4,
-        0,
         0x128,
         column);
 
     // 10BBC body/equipment base. The selected local RES0 graphic is
     // sex + side*2 + 5.
-    draw_res0_local(
+    draw_res0_complete(
         framebuffer,
         static_cast<int>(actor.sex_code) +
             model.equipment_side * 2 +
             5,
-        0,
         0x72,
         column);
 

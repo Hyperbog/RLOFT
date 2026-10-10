@@ -48,7 +48,7 @@ VGA and graphics resources,RES3 type7 raster machine,20,20,10,20,0,type7_scene_p
 VGA and graphics resources,Page stacking and final composition,20,10,10,10,0,combat_original_overlay.cpp,Original composite and teardown
 HUD menus and overlays,In-game HUD and portraits,20,20,20,20,0,party_hud.cpp,Original HUD framebuffer comparison
 HUD menus and overlays,Top-edge menu and actions,20,20,10,20,0,top_edge_menu.cpp,Complete rest and save menus
-HUD menus and overlays,Party and inventory modal,20,20,20,20,0,party_modal_presenter.cpp,Full DOS modal pixel and timing
+HUD menus and overlays,Party and inventory modal,20,20,20,20,0,party_modal_presenter.cpp and original_party_modal_blit.hpp,Verify source 2E510 full-resource backgrounds against DOS modal pixels and timing
 HUD menus and overlays,Mouse keyboard and hit regions,20,20,20,20,0,party_panel_controls.cpp,Original mouse event mapping
 HUD menus and overlays,Quit confirmation and menus,20,20,20,20,0,quit_confirm.cpp,Original modal exit acceptance
 HUD menus and overlays,Options rest pray memorize load save,10,10,0,10,0,options_menu.cpp,Bind original game actions

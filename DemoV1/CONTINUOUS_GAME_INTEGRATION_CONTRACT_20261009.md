@@ -9,6 +9,10 @@
 
 **Build verified:** [Full Windows #649](https://github.com/Hyperbog/RLOFT/actions/runs/38003217534) passed **179/179 CTests** at checkout `6241a807`. Native EXE SHA-256 `087a0573962275e8cac3e826f3767b266bea4fba7b184da97d09c8b7c8b991f4`. The diagnostic ZIP launcher is now included in the artifact. Workflow restored manual-only; trigger marker removed. [Full provenance](FULL_WINDOWS_BUILD_CHECKPOINT_20261009_RUN649.md). **DOS acceptance stays 0%; no user ZIP verification yet.**
 
+## Level22 CODE.2 complete modal blits after first diagnostic ZIP
+
+The original `2E510→2E4A4` blitter renders all resource frames vertically; the `2975C` path renders only the chosen frame. `PartyModalPresenter` now uses the full original RES0 raster for active/inactive character lane bases, inventory grid and body/equipment backgrounds, instead of drawing a single 320-pixel-wide scanline. Single-frame badges remain unchanged; original RES files are unmodified. [Byte-level original CODE.2 audit and regression](LEVEL22_SOURCE_MODAL_FULLFRAME_REPAIR_20261009.md). **181 registered CTests; last verified Full Windows #649 179/179**. No build initiated or independent Level23 work.
+
 ## Level22 encumbrance/source bank fix after Full #649
 
 The source-backed `RES2:0x25` encumbrance bitmap path crashed in the manual #649 session because the native type-1 resource router omitted bank 2. The original RES2 is present in the immutable original game data. A lazy RES2 cache has now been implemented in `RavenloftBootAssets::type1` with a targeted source-format regression. [Root cause and exact test gate](LEVEL22_RES2_ENCUMBRANCE_CRASH_20261009.md). **180 CTests registered; the 180th is not built; #649 remains last 179/179 accepted native build.** No unauthorized build or Level23 gameplay work.
