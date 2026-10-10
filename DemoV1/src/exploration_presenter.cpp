@@ -129,18 +129,23 @@ bool ExplorationPresenter::original_full_ground_eligible(
        frame.sweep_records.size()!=256U) {
         return false;
     }
-    // CODE.2 335C8 starts the closest wall-depth value at 0x800.
-    // Every original ray in Level22's open field is a sentinel
-    // material 0x93, so the wall-depth update at 330F5 is never
-    // taken: 1F2A5 sets FF50=128, the 1F372 lower half retains
-    // 128 rows, and 1F3C3 calls exactly 34A74. A missing ray or
-    // different resource prevents this original open-field proof.
+    // CODE.2 335C8 starts nearest wall-depth at 0x800. Source
+    // 335DC reads resource_outer ONLY for an active +0C==1 prepass,
+    // while 336F7 uses resource_inner for every ordinary/main ray.
+    // An INACTIVE alternate bank value cannot lower original 22220
+    // or change FF50; demanding it be 0x93 was a false restriction.
+    // Native Full #657 field audit: all 54 views had only 0x93
+    // main runs and zero prepass runs, but failed the old both-bank
+    // guard. Preserve a strict 128-row proof: all source-ACTIVE
+    // material must be the original 0x93 non-drawable sentinel.
+    // Unknown +0C values fail closed rather than being guessed.
     return std::all_of(
         frame.sweep_records.begin(),
         frame.sweep_records.end(),
         [](const ViewSweepRecord& ray) {
-            return ray.resource_outer==0x93U &&
-                   ray.resource_inner==0x93U;
+            return ray.resource_inner==0x93U &&
+                   (ray.prepass==0U ||
+                    (ray.prepass==1U && ray.resource_outer==0x93U));
         });
 }
 

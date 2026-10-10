@@ -109,6 +109,22 @@ void ExplorationFrameCapture::write(
     if (!manifest)
         throw std::runtime_error("Unable to write capture metadata");
     const auto& coverage=presented.surface_coverage;
+    std::size_t ground_main_nonsentinel=0U;
+    std::size_t ground_active_outer_nonsentinel=0U;
+    std::size_t ground_inactive_outer_nonsentinel=0U;
+    std::size_t ground_invalid_prepass=0U;
+    for(const auto& ray:runtime.sweep_records) {
+        if(ray.resource_inner!=0x93U)++ground_main_nonsentinel;
+        if(ray.prepass==1U) {
+            if(ray.resource_outer!=0x93U)
+                ++ground_active_outer_nonsentinel;
+        } else if(ray.prepass==0U) {
+            if(ray.resource_outer!=0x93U)
+                ++ground_inactive_outer_nonsentinel;
+        } else {
+            ++ground_invalid_prepass;
+        }
+    }
     manifest<<"format\trloft-native-indexed-capture-v2\n"
             <<"provenance\tnative-preview-not-original-DOS\n"
             <<"source_revision\t"<<clean(std::string(source_revision))<<"\n"
@@ -146,6 +162,18 @@ void ExplorationFrameCapture::write(
             <<presented.ground_indexed_writes<<"\n"
             <<"ground_raster_error\t"
             <<clean(presented.ground_render_failure)<<"\n"
+            // Source sweep record +0C gates alternate/outer material.
+            // All four counts are diagnostic only, never a DOS RAM dump.
+            <<"ground_sweep_ray_count\t"
+            <<runtime.sweep_records.size()<<"\n"
+            <<"ground_sweep_main_nonsentinel\t"
+            <<ground_main_nonsentinel<<"\n"
+            <<"ground_sweep_active_outer_nonsentinel\t"
+            <<ground_active_outer_nonsentinel<<"\n"
+            <<"ground_sweep_inactive_outer_nonsentinel\t"
+            <<ground_inactive_outer_nonsentinel<<"\n"
+            <<"ground_sweep_invalid_prepass\t"
+            <<ground_invalid_prepass<<"\n"
             <<"ground_original_res4_verified\t"
             <<unsigned(runtime.ground_source_verified?1U:0U)<<"\n"
             <<"ground_original_res4_base_from_INIT\t"

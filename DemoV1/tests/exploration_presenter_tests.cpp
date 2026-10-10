@@ -174,10 +174,25 @@ int main() {
     assert(!rloft::ExplorationPresenter::original_full_ground_eligible(
         outdoors));
     outdoors.ground_raster_source.push_back(0U);
+    // The source only reads the alternate 6F/outer bank for an
+    // active +0C==1 prepass. A dormant alternate 19 cannot block
+    // 34A74 when every actual 336F7 main ray is sentinel 0x93.
     outdoors.sweep_records[17U].resource_outer=19U;
+    outdoors.sweep_records[17U].prepass=0U;
+    assert(rloft::ExplorationPresenter::original_full_ground_eligible(
+        outdoors));
+    // The same drawable alternate is unsafe if its prepass is ACTIVE.
+    outdoors.sweep_records[17U].prepass=1U;
     assert(!rloft::ExplorationPresenter::original_full_ground_eligible(
         outdoors));
     outdoors.sweep_records[17U].resource_outer=0x93U;
+    assert(rloft::ExplorationPresenter::original_full_ground_eligible(
+        outdoors));
+    // An unknown source prepass state cannot establish no-wall proof.
+    outdoors.sweep_records[17U].prepass=2U;
+    assert(!rloft::ExplorationPresenter::original_full_ground_eligible(
+        outdoors));
+    outdoors.sweep_records[17U].prepass=0U;
     outdoors.sweep_records[29U].resource_inner=73U;
     assert(!rloft::ExplorationPresenter::original_full_ground_eligible(
         outdoors));
