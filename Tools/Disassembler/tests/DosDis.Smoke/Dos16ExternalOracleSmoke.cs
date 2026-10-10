@@ -253,6 +253,175 @@ internal static class Dos16ExternalOracleSmoke
                 }
             }), "unmodeled memory address semantics cannot pass narrow oracle");
 
+        // 16-bit ModR/M memory address encoding oracle:
+        // MOV AX,[BX+SI-2]; MOV AX,DS:[BP+0] (explicit override);
+        // MOV AX,[1234h]; MOV AL,[BX]; MOV AX,[EAX] (67h override);
+        // RET. The 32-bit addressing override deliberately stays
+        // outside this exact 16-bit memory semantic subset.
+        byte[] memoryBytes = {
+            0x8B, 0x40, 0xFE,
+            0x3E, 0x8B, 0x46, 0x00,
+            0x8B, 0x06, 0x34, 0x12,
+            0x8A, 0x07,
+            0x67, 0x8B, 0x00,
+            0xC3
+        };
+        var memoryArtifact = BinaryArtifact.FromBytes(memoryBytes,
+            "synthetic-memory-oracle.com");
+        var memoryRegion = DosComImage.LoadExplicit(memoryArtifact).CreateCodeRegion();
+        var memoryGraph = Dos16ControlFlowAnalysis.Analyze(memoryRegion, 0x100);
+        Dos16InstructionFacts MemoryMov(string register,
+            string? baseReg, string? indexReg, int displacementSize,
+            uint displacement, string size, string? segment = null) =>
+            new("Mov", 2, new Dos16OperandFact("Register", register),
+                new Dos16OperandFact("Memory", Memory:
+                    new Dos16MemoryAddressFact(baseReg, indexReg,
+                        displacementSize, displacement, size, segment)));
+        var memoryManifest = manifest with {
+            SourceSha256 = memoryArtifact.Sha256,
+            SourceByteLength = memoryArtifact.Length,
+            RegionByteLength = memoryRegion.ByteLength,
+            ExpectedInstructions = new[] {
+                new Dos16ExternalExpectedInstruction(
+                    0x100, 0, "8B40FE", "Next", "base-index-negative-disp8",
+                    ExpectedFacts: MemoryMov("AX", "BX", "SI", 1, 0xFFFE, "UInt16")),
+                new Dos16ExternalExpectedInstruction(
+                    0x103, 3, "3E8B4600", "Next", "bp-explicit-ds-override",
+                    ExpectedFacts: MemoryMov("AX", "BP", null, 1, 0, "UInt16", "DS")),
+                new Dos16ExternalExpectedInstruction(
+                    0x107, 7, "8B063412", "Next", "direct-address-disp16",
+                    ExpectedFacts: MemoryMov("AX", null, null, 2, 0x1234, "UInt16")),
+                new Dos16ExternalExpectedInstruction(
+                    0x10B, 11, "8A07", "Next", "byte-memory-width",
+                    ExpectedFacts: MemoryMov("AL", "BX", null, 0, 0, "UInt8")),
+                new Dos16ExternalExpectedInstruction(
+                    0x10D, 13, "678B00", "Next", "32bit-address-override-unknown"),
+                new Dos16ExternalExpectedInstruction(
+                    0x110, 16, "C3", "Return", "memory-fixture-return")
+            }
+        };
+        var memoryReport = Dos16ExternalOracleValidator.Compare(
+            memoryRegion, memoryGraph, memoryManifest);
+        Equal(memoryReport.Matched, 6,
+            "independent memory-format candidates preserve expected source boundaries");
+        Equal(memoryReport.StructuredOperandExpectations, 4,
+            "memory form benchmark denominator excludes 67h unsupported addressing");
+        Equal(memoryReport.FullyMatchedOperandExpectations, 4,
+            "four explicit original 16-bit scalar memory forms match");
+        Equal(memoryGraph.Instructions.Single(i =>
+            i.Address.Offset == 0x10D).DecoderFacts!.Operand1!.Memory is null,
+            true, "32-bit address-size override is not an accepted 16-bit addressing fact");
+
+        var wrongMemoryRegister = memoryManifest with {
+            ExpectedInstructions = new[] {
+                memoryManifest.ExpectedInstructions[0] with {
+                    ExpectedFacts = MemoryMov("AX", "BP", "SI", 1, 0xFFFE, "UInt16")
+                }
+            }
+        };
+        Equal(Dos16ExternalOracleValidator.Compare(
+            memoryRegion, memoryGraph, wrongMemoryRegister).Conflicting, 1,
+            "different memory base register fails comparison with identical bytes");
+
+        var wrongMemoryDisplacement = memoryManifest with {
+            ExpectedInstructions = new[] {
+                memoryManifest.ExpectedInstructions[0] with {
+                    ExpectedFacts = MemoryMov("AX", "BX", "SI", 1, 0xFFFD, "UInt16")
+                }
+            }
+        };
+        Equal(Dos16ExternalOracleValidator.Compare(
+            memoryRegion, memoryGraph, wrongMemoryDisplacement).Conflicting, 1,
+            "a valid but incorrect negative disp8 cannot pass");
+
+        var wrongDisplacementWidth = memoryManifest with {
+            ExpectedInstructions = new[] {
+                memoryManifest.ExpectedInstructions[0] with {
+                    ExpectedFacts = MemoryMov("AX", "BX", "SI", 2, 0xFFFE, "UInt16")
+                }
+            }
+        };
+        Equal(Dos16ExternalOracleValidator.Compare(
+            memoryRegion, memoryGraph, wrongDisplacementWidth).Conflicting, 1,
+            "disp8 and disp16 encodings are independently distinguishable");
+
+        var wrongSegmentOverride = memoryManifest with {
+            ExpectedInstructions = new[] {
+                memoryManifest.ExpectedInstructions[1] with {
+                    ExpectedFacts = MemoryMov("AX", "BP", null, 1, 0, "UInt16")
+                }
+            }
+        };
+        Equal(Dos16ExternalOracleValidator.Compare(
+            memoryRegion, memoryGraph, wrongSegmentOverride).Conflicting, 1,
+            "explicit DS prefix is not interchangeable with default BP/SS");
+
+        var wrongMemorySize = memoryManifest with {
+            ExpectedInstructions = new[] {
+                memoryManifest.ExpectedInstructions[3] with {
+                    ExpectedFacts = MemoryMov("AL", "BX", null, 0, 0, "UInt16")
+                }
+            }
+        };
+        Equal(Dos16ExternalOracleValidator.Compare(
+            memoryRegion, memoryGraph, wrongMemorySize).Conflicting, 1,
+            "byte memory access cannot be reclassified as a 16-bit access");
+
+        var unsupportedOverride = memoryManifest with {
+            ExpectedInstructions = new[] {
+                memoryManifest.ExpectedInstructions[4] with {
+                    ExpectedFacts = MemoryMov("AX", "BX", null, 0, 0, "UInt16")
+                }
+            }
+        };
+        var unresolvedOverride = Dos16ExternalOracleValidator.Compare(
+            memoryRegion, memoryGraph, unsupportedOverride);
+        Equal(unresolvedOverride.NotObserved, 1,
+            "unsupported address-size override cannot claim 16-bit memory matching");
+        Equal(unresolvedOverride.Findings[0].DetailCode,
+            "candidate-memory-address-facts-outside-supported-scope",
+            "unsupported address size remains explicit unobserved evidence");
+
+        var noMemoryGraph = memoryGraph with {
+            Instructions = memoryGraph.Instructions.Select(i =>
+                i.Address.Offset == 0x100
+                    ? i with {
+                        DecoderFacts = i.DecoderFacts! with {
+                            Operand1 = new Dos16OperandFact("Memory")
+                        }
+                    } : i).ToArray()
+        };
+        Equal(Dos16ExternalOracleValidator.Compare(
+            memoryRegion, noMemoryGraph, memoryManifest).NotObserved, 1,
+            "legacy graph memory operand without address facts is unobserved");
+
+        void RejectMemory(Dos16MemoryAddressFact m, string why)
+        {
+            var invalid = memoryManifest with {
+                ExpectedInstructions = new[] {
+                    memoryManifest.ExpectedInstructions[0] with {
+                        ExpectedFacts = MemoryMov("AX", m.Base, m.Index,
+                            m.DisplacementSize, m.Displacement, m.Size,
+                            m.SegmentOverride)
+                    }
+                }
+            };
+            Denied(() => Dos16ExternalOracleValidator.Compare(
+                memoryRegion, memoryGraph, invalid), why);
+        }
+        RejectMemory(new("BX", "DI", 1, 0x1234, "UInt16", null),
+            "invalid disp8 modulo16 representation cannot enter oracle");
+        RejectMemory(new(null, null, 0, 0, "UInt16", null),
+            "direct memory form must encode disp16");
+        RejectMemory(new("SI", "DI", 1, 2, "UInt16", null),
+            "invalid 16-bit SI+DI register pairing cannot enter oracle");
+        RejectMemory(new("EAX", null, 0, 0, "UInt16", null),
+            "32-bit base register cannot be called a 16-bit address");
+        RejectMemory(new("BX", null, 0, 0, "Fword6", null),
+            "unsupported far-pointer width cannot be asserted");
+        RejectMemory(new("BX", null, 0, 0, "UInt16", "FSX"),
+            "invented segment override cannot be asserted");
+
         var wrongStored = manifest with {
             ExpectedInstructions = new[] {
                 manifest.ExpectedInstructions[0] with { OriginalHex = "EB03" }
