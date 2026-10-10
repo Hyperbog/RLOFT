@@ -633,3 +633,27 @@ Reference: R2_DETERMINISTIC_FEEDBACK_LOOP.md.
   9f605e36581b2c6db72a6a47248ea5af31611506. All later changes
   need a new, separately authorized G2 build and synthetic validation.
 Reference: R2_DETERMINISTIC_FEEDBACK_LOOP.md.
+
+2026-10-10 | R2.6 independent budget propagation and table-corroboration:
+- Detected inconsistent resource-budgets across the two separate source-
+  backed validation passes: the public correlated table analysis honored
+  caller limits during its first dataflow pass, but the standalone
+  Dos16TableIndexEvidence recheck silently used fixed default budgets.
+- Fixed by forwarding the same optional worklist instruction/step/edge
+  limits through both independent checks, without changing the existing
+  defaults for callers that do not specify them.
+- A correlated guarded table now explicitly requires the independently
+  rerun original-file storage/finite-index report to agree on source SHA,
+  mapping, accepted and unresolved totals, table site/displacement,
+  pointer width, original table storage status and selected ordinals.
+  Any mismatch is incomplete and publishes no candidate entries.
+- New deterministic threshold regressions require exact sufficient
+  budgets to retain results; every smaller worklist/instruction/edge
+  budget must suppress partial pointer evidence. Extra budget may not
+  change source-backed selected index evidence.
+- These source/test/doc changes were committed and statically reviewed,
+  but NOT compiled, tested on Windows, built, published, or exercised
+  against original binaries. Existing workflow_dispatch remains manual.
+  G2 stays pending. Last verified Windows run #37987465368 tested
+  SHA 9f605e36581b2c6db72a6a47248ea5af31611506 only.
+Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
