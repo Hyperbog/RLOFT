@@ -906,3 +906,37 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   G2 verification remains pending. Previous verified run #35 is
   for SHA 9f605e36581b2c6db72a6a47248ea5af31611506 only.
 Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
+
+2026-10-10 | LE guard runtime-fixup byte provenance hardening:
+- Found an additional source-to-runtime ambiguity in the x86-32 LE
+  finite-table proof: CMP/JA/MOVZX instruction bytes were accepted
+  as immutable source-decoded guard evidence even when original LE
+  relocation records could rewrite opcode, compare immediate,
+  branch displacement or register-extension bytes at load time.
+- Added an original-object-relative relocation-origin index to the
+  completed-graph audit. Reject any provisional bound where a
+  four-byte LE relocation write intersects CMP, JA or MOVZX or
+  the indexed JMP opcode. Permit an exact relocation of the final
+  four-byte JMP displacement; its absolute table base must still
+  pass independent fixup validation by ReferenceRecovery.
+  A contradicted local proof is rebuilt from original bytes without
+  its bounded-dispatch hint, preserving runtime uncertainty.
+- Added generated LE smoke patterns placing one absolute fixup
+  at each source offset 0..12 of the synthetic guarded byte
+  switch. They must not publish source-backed bounded table
+  candidates or speculative pointer edges. An exact supported
+  terminal disp32 fixup must preserve ten candidates, including
+  when the opted-in relocated decoder is selected.
+- Added an exact-position self-relative source fixup as a negative
+  control: it cannot masquerade as an absolute CS table base.
+  Added a fixup starting immediately beyond the indexed JMP as a
+  positive control, verifying that an unrelated default-path
+  relocation does not overblock a valid local guard.
+- All source, test and provenance-documentation changes were
+  committed to disassembler-foundation with STATIC remote checks.
+  No compilation, execution, test runner, Actions dispatch,
+  proprietary original-file modification or Strahd re-export
+  was performed. G2 remains unverified, with last accepted
+  Windows build #35 covering only original SHA
+  9f605e36581b2c6db72a6a47248ea5af31611506.
+Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
