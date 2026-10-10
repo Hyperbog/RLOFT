@@ -35,3 +35,8 @@ python DemoV1/tools/verify_original_f790_actor_toggle.py --original-code2 /path/
 The CTest registry is now **211** when Python is available, but the new test is not Windows-built or Windows-tested. Last previously accepted Windows Full was #651 (182/182 on older code). Runs #652 and #653 did not pass full acceptance; #654 was already user-authorized on an older source snapshot and was still running at this checkpoint. No additional build was dispatched. No DOS comparison, Level22 completion, readiness-percentage increase, or Level23 independent implementation is asserted.
 
 **Next:** identify the actual `12E70` input-flag producer and faithfully connect the full `11AD8` branch, including post-F790 side effects, one event and one shared game RNG; then run original-DOS indexed-image, timing and interaction comparison.
+
+
+## Follow-on native prefix and full input-return proof
+
+The historical **13 windows / 8 direct E8 targets** above describes this initial checkpoint. The subsequent [native prefix and cleanup-bypass audit](LEVEL22_F790_ACTOR_TOGGLE_NATIVE_PREFIX_20261010.md) expands the original-file oracle to **16 windows / 11 targets**. Original `12F94..12F9A` returns immediately after `11AD8` even for bit-2 input; generic flag-2 cleanup at `1307C..1309B` is a different path. A native `11AD8..11B68` adapter and C++ regression are now registered, bringing the CTest catalog to **212** (with Python), but do not connect Win32 input, live F790, or `11B6B..11C19` action callbacks. Strict local GCC/Clang tests and original CODE.2 byte/call checks passed; last authorized Windows Full #654 passed 210/210 on an older revision, with no new DOS acceptance.
