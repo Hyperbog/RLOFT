@@ -293,3 +293,39 @@ file offset, tool versions, predeclared denominators and all
 not-observed/unsupported and conflicting results. Independent reviewer
 adjudication and a distinct ISA/original-source evidence class remain
 required before an independent verdict can change from PENDING.
+
+## 15. Owner-authorized exact-source G2 comparison run #40 (2026-10-10)
+
+The previous section documents the **historical** uncompiled state after
+run #38. The subsequent owner-authorized temporary, unmerged PR #6
+executed GitHub Actions [run #40](https://github.com/Hyperbog/RLOFT/actions/runs/38091963405)
+successfully on both Windows and Linux. Exact runner merge SHA:
+`5eaa1fb0798007dfca73e648f91bc1add42409e9`;
+canonical equivalent source SHA:
+`7fa76f822e0aa56a4bf1c611076bc50e5e0a5389`.
+The strict x86-16 JSON key-import defenses compiled and passed
+synthetic tests. The CLI was also changed to handle expected
+`InvalidDataException` as an ordinary error with exit status 1,
+rather than an unhandled Linux process abort, verified locally
+with five malformed/foreign-reference cases.
+
+The newly compiled Linux CLI was run **locally** against the
+original hash-identified Strahd CODE.2 outer DOS MZ bytes, comparing
+two predeclared, nonoverlapping GNU binutils objdump 2.44 x86-16
+reference windows: 28/28 instructions, 15/15 structured operand
+assertions and 5/5 direct branch/call edges matched. No expected
+instruction was missing, conflicting or unobserved; graph was
+not truncated. A total of 6,512 other candidate instruction starts
+remain outside these benchmarks. Eight malformed/contradictory
+local negative controls had their expected output or errors.
+
+**The limited independently produced comparison data does not
+constitute an independently reviewer-approved G2 acceptance**.
+Original runtime reachability, broader guard and indirect-table
+recovery, MZ fixups, protected-mode LE x86-32, other games and
+unknown/code-data spans remain outside the two sampled windows.
+See `G2_STRAHD_ORIGINAL_VALIDATION_RECORD_20261010.md` for exact
+source mapping, denominators, preserved uncertainties and remaining
+review requirements. Proprietary bytes and external oracle manifests
+were never committed or used in hosted CI.
+
