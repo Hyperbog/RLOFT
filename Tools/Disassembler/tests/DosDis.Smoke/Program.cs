@@ -2655,6 +2655,23 @@ try
     Equal(tableTrace.Snapshot().Any(x => x.Outcome == AnalysisDecisionOutcome.IndirectTargetQueued &&
         x.IsSpeculative && x.Destination is not null), true,
         "relocation-backed target remains speculative");
+    // A second absolute fixup beginning at +1 overlaps an otherwise
+    // relocation-backed four-byte pointer. The individual relocation
+    // records are structurally legal, but the overlapping memory
+    // writes cannot prove a unique stored control pointer.
+    var overlappingRelocatedFixup = (byte[])tableBytes.Clone();
+    Dword(overlappingRelocatedFixup, 0x80 + 0xE4, 28);
+    new byte[] {
+        0x07, 0x00, 0x41, 0x00, 0x01, 0x20, 0x00
+    }.CopyTo(overlappingRelocatedFixup, 0x80 + 0xE8 + 21);
+    var overlapRelocatedGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(overlappingRelocatedFixup)));
+    Equal(overlapRelocatedGraph.JumpTables.Count, 0,
+        "overlapping LE absolute fixups cannot prove stored pointer table");
+    Equal(overlapRelocatedGraph.Edges.Any(e =>
+        e.Kind == "unresolved-indirect-jump"), true,
+        "overlapping relocated table retains dynamic unresolved jump");
+
     Equal(tableGraph.JumpTables.Count, 1, "LE relocation-backed table recognized");
     Equal(tableGraph.JumpTables[0].Table, new FlowAddress(1, 0x40), "jump table address");
     Equal(tableGraph.JumpTables[0].CandidateTargets.Count, 3, "three jump table candidates");
