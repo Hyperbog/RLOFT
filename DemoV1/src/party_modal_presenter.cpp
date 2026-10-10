@@ -570,7 +570,6 @@ void PartyModalPresenter::draw_held_cursor_and_description(
     // This remains visible after successful scribing empties the
     // cursor, until 13184's unsigned IRQ deadline expires.
     std::string description;
-    bool scribe_message=false;
     if(inventory.mage_scribe_feedback &&
        inventory.mage_scribe_feedback->pending_6dac!=0U) {
         const auto& feedback=*inventory.mage_scribe_feedback;
@@ -579,7 +578,6 @@ void PartyModalPresenter::draw_held_cursor_and_description(
                 ? assets_.text(feedback.t_spell_name_index)
                 : std::string{};
         description=feedback.message(spell_name);
-        scribe_message=true;
     } else {
         if(inventory.held.object_id<0)return;
         // Display-only fidelity improvement: native ordinary-held
@@ -603,7 +601,7 @@ void PartyModalPresenter::draw_held_cursor_and_description(
     const int column=std::max(1,(320-width)/2);
     framebuffer.fill_rect(0x62,column,12,width,0x45);
     IndexedFontPresenter::draw_centered(
-        framebuffer,font1_,scribe_message?0x65:0x64,
+        framebuffer,font1_,0x65,
         column,width,description);
 
     // The actual pointer sprite is composited AFTER presentation
