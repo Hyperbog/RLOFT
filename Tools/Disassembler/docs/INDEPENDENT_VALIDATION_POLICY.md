@@ -89,3 +89,39 @@ This is a **stage-gated standard**, not permission to execute unattended compari
 ## 8. Baseline on adoption
 
 As of adoption (2026-10-10), last compiled Windows G1 run #35 tested SHA `9f605e36581b2c6db72a6a47248ea5af31611506`. Many subsequent changes are **source-only**. Prior source-backed Strahd decompilation audits and original-file smoke runs are useful starting evidence, **not** proof that the current DOSDis HEAD satisfies this policy. **No G2 or G3/G4 independent comparison is claimed by adopting this document.**
+
+## 9. First source implementation checkpoint (2026-10-10)
+
+The existing LE `KnownAnswerValidator` has been hardened to check each
+**observed** claimed instruction against three distinct internal facts:
+the externally supplied reference bytes, the opened immutable LE
+object's original file-backed byte window, and the decoded graph row.
+Instruction length must also match. A reference may optionally carry
+`ExpectedFlowControl` as an exact canonical named Iced flow category
+(e.g., `Call` or `ConditionalBranch`); this tests category agreement
+without requiring assembler-specific formatted text. It does **not**
+check the complete instruction semantics, operand values or runtime
+reachability, and the reference category is only as independent as
+the evidence that produced it.
+
+Machine-readable `KnownAnswerFinding.DetailCode` values distinguish
+unbacked source bytes, reference/source disagreement, decoded length,
+decoded original-row bytes, and flow-class mismatch. Duplicate
+expected instruction starts, duplicate directed edge/fixup
+expectations, overlapping non-code spans and source-expectation
+contradictions are rejected instead of inflating the match rate.
+These additions are designed to preserve comparison integrity;
+the comparator **cannot itself establish that a human-authored
+reference is independent**.
+
+The predeclared [G2 comparison matrix](INDEPENDENT_VALIDATION_G2_PREDECLARED_SCOPE.md)
+lays out external x86-16 decoder/ISA/original-file obligations
+before next validation execution. The current known-answer mechanism
+is LE-object-relative only and is **not** a 16-bit external-decoder
+runner or a substitute for G2's outside-oracle checks.
+
+This checkpoint is **SOURCE ONLY**: reference-control regressions
+have been committed, not compiled or executed, and no independent
+third-party comparison or human discrepancy review was performed.
+G2 independent acceptance remains **PENDING**, and G8's
+independent release requirement remains BLOCKING.
