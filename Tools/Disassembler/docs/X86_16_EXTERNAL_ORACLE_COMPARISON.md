@@ -304,3 +304,53 @@ finite-index proofs, MZ fixup effect assertions, or full cross-game
 coverage. See `G2_STRAHD_ORIGINAL_COMPARISON_EXECUTION_PLAN.md`.
 No DOSDis-versus-original manifest execution or human discrepancy
 review is reported by this source-only follow-up.
+
+## Distinguishing identical source-backed samples across binaries (SOURCE ONLY)
+
+Whole-file hashes provide immutable **container** provenance but are
+not proof that code samples are independent. Owner-supplied Strahd
+`CODE.1` (277,787 bytes, SHA256 `fd9b709ceee190e6a70870f9012ebea3bc437cae6bc74e0150d6f922fa750fed`)
+and `CODE.2` (558,689 bytes, SHA256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`)
+share the **same 62,532-byte DOS outer-MZ launcher**, SHA256
+`37f3b1b3fc5e7a74d087a163f41e83dd5fc9184922a649d8a5eb128121f7204a`.
+The mapped 54,900-byte source-backed CS=`01BD` entry-code region
+at physical `0x1DD0` also has identical SHA256
+`1be99d96f824922381da2c80faa74a58b45acaf025d072e48faa8bff16d3fa81`.
+Those two original whole-file hashes must **not** be treated as two
+independent observations of the earlier 28 tested 16-bit launcher
+instructions.
+
+Source-only `Dos16ExternalOracleReport` now carries two additional
+non-certifying lowercase SHA256 fields, computed from **stored
+original bytes**, never from the oracle's asserted `originalHex`:
+
+- `mappedRegionSha256`: SHA256 of exactly `region.ByteLength`
+  original bytes starting at `region.FileOffset`. File names,
+  complete-file lengths and runtime load assumptions are not hashed.
+- `benchmarkedInstructionBytesSha256`: SHA256 of concatenated
+  per-expectation entries in ascending 16-bit IP order, each encoded
+  as `uint16(offset LE)`, `uint16(expected byte length LE)`,
+  then that many original physical file bytes mapped at the offset.
+  Expected mnemonic, flow, operands, evidence ID and whole-file
+  SHA are deliberately excluded from this fingerprint. Any wrong
+  asserted hex is still reported as a **conflict** separately.
+
+These fields can expose *reused sampled bytes* even when binary
+containers differ; distinct fingerprints alone do **not** prove
+independent code semantics, correct file mapping, reachability,
+decoder independence, or review. Compare only like-for-like regions
+and the same benchmark definition before assigning a shared sample
+identity. Extremely short byte windows have low entropy; retain
+full original-byte sample evidence privately.
+
+Synthetic-only source changes also create a second COM artifact with
+an altered unbenchmarked gap while preserving both observed
+instructions. Its whole-file and mapped-region hashes differ,
+but the benchmark byte fingerprint must be identical. A deliberately
+incorrect oracle hex must not change that source digest. All new
+hash fields and regression cases are **SOURCE ONLY, NOT BUILT OR
+EXECUTED** since the last authorized run #40.
+
+See [original-source G2 evidence and shared-launcher audit](G2_STRAHD_ORIGINAL_VALIDATION_RECORD_20261010.md)
+and [G2 predeclared matrix](INDEPENDENT_VALIDATION_G2_PREDECLARED_SCOPE.md).
+
