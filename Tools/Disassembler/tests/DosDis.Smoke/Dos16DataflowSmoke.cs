@@ -78,6 +78,26 @@ internal static class Dos16DataflowSmoke
         Check(truncated.Incomplete && truncated.States.Count == 0,
             "truncated original CFG blocks any dataflow publication");
 
+        var corruptedCodeCount = Dos16DataflowAnalysis.Analyze(
+            joinedRegion, joinedGraph with {
+                CandidateInstructionBytes = joinedGraph.CandidateInstructionBytes - 1
+            });
+        Check(corruptedCodeCount.Incomplete &&
+            corruptedCodeCount.AnalysisStatus ==
+                "rejected-inconsistent-byte-coverage" &&
+            corruptedCodeCount.States.Count == 0,
+            "cached code-byte count cannot disagree with exact decoded inventory");
+
+        var corruptedGapCount = Dos16DataflowAnalysis.Analyze(
+            joinedRegion, joinedGraph with {
+                UnknownFileBackedBytes = joinedGraph.UnknownFileBackedBytes + 1
+            });
+        Check(corruptedGapCount.Incomplete &&
+            corruptedGapCount.AnalysisStatus ==
+                "rejected-inconsistent-byte-coverage" &&
+            corruptedGapCount.States.Count == 0,
+            "unknown gap count must reconcile to original region byte length");
+
         var missing = Dos16DataflowAnalysis.Analyze(joinedRegion,
             joinedGraph with { Edges = joinedGraph.Edges.Skip(1).ToArray() });
         Check(missing.Incomplete && missing.AnalysisStatus ==
