@@ -28,3 +28,8 @@ New C++17 regression CTests cover unrelated actions, success, both rejection kin
 ## Remaining work
 
 Source-defined inventory event routing for the other **14** direct F790 sites remains incomplete. Even the three feedback event translators are isolated and **not wired to Win32**. Subsequent integration must bind the one existing `ExplorationRuntime::original_random_` only on authentic source events; sequence original 112EC capture, 2932C background restore and source `RES2:3` F66C selected tiles; and compare live Windows vs DOS event timing and pixels. Do not infer a source F790 call from a mere 70-Hz framebuffer refresh, and do not trigger manual Windows builds without explicit authorization.
+
+
+## Follow-on F12 source-projection tracing (2026-10-10)
+
+The native host no longer discards the expiry boolean: it uses the bool ONLY to log the source-projected 131BB event if an opt-in F12 DevSessionTrace is active. A normal redraw still only refreshes the existing presentation; no F790 graphics/RNG dispatch is live. Native ordinary-click trace projections record source-ordered 1173B/1184A, 1178E, 11882, 118FF and 119FC events from the original pre-action inputs. See [trace handoff](LEVEL22_F790_F12_EVENT_TRACE_20261010.md). Current Windows source remains unbuilt; old #651 182/182 cannot validate it.

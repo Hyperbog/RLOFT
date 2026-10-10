@@ -34,3 +34,7 @@ The independent verifier tools/verify_original_f790_ordinary_slot_event_plan.py 
 210 registered CTests with Python, up from 208. Current changed native C++ source remains NOT BUILT or run on Windows; last completed Full Windows #651 passed 182/182 at an older source revision. Original DOS rendering, IRQ timing and gameplay parity are NOT accepted; engineering readiness percentages remain unchanged. No Windows build was triggered.
 
 Next: at the native ordinary-slot input boundary, capture the held item and old actor slot known/ID BEFORE mutation. Only after the real status is returned, create the ordered event plan and ultimately dispatch events through the one shared ExplorationRuntime RNG following original 112EC capture and 2932C restore. Never dispatch F790 in the 70 Hz host repaint path. Remaining container/equipment/hand source calls and DOS pixel tests remain separate gates.
+
+## Follow-on (2026-10-10): passive Win32 event tracing
+
+The live native ordinary-slot click now supplies the pre-action source tuples to the bounded source event planner ONLY inside opt-in F12 diagnostic tracing. The current per-frame presenter and shared RNG still do not dispatch original F790 events. The expiry bool is now retained for a passive E8=131BB diagnostic record on actual expiration. [Trace identity and field-test contract](LEVEL22_F790_F12_EVENT_TRACE_20261010.md). Native Windows build and DOS acceptance pending.
