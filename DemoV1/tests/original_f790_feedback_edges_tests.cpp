@@ -3,6 +3,7 @@
 #endif
 #include "rloft/original_f790_feedback_edges.hpp"
 
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <stdexcept>
@@ -51,7 +52,7 @@ int main() {
 
     // Both original rejection reasons take 1176A->1178E, but do
     // not mutate ordinary item IDs or seed RNG in this model.
-    for(const auto kind:{Kind::CapacityReached,Kind::AlreadyKnown}) {
+    for(const auto kind:std::array<Kind,2>{{Kind::CapacityReached,Kind::AlreadyKnown}}) {
         pending.kind=kind;
         pending.pending_6dac=1U;
         pending.deadline_6da8=0xFFFFFFFEU;

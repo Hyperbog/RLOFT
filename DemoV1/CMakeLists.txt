@@ -34,6 +34,11 @@ if(Python3_Interpreter_FOUND)
         NAME subsystem_progress_tracker_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_subsystem_progress_tracker.py")
+    # Three proved CODE.2 feedback F790 call edges and strict IRQ expiry.
+    add_test(
+        NAME original_f790_feedback_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_feedback_edges.py")
     # F790's 17 E8 source argument families; guard against live host hookup.
     add_test(
         NAME original_f790_runtime_event_contract_tests
