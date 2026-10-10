@@ -352,10 +352,19 @@ ORIGINAL SOURCE DEDUP AUDIT (this subsequent SOURCE-ONLY batch):
   when whole-file hashes differ. Added COM metamorphic negative
   cases and exported-field assertions; NOTHING in this batch is
   COMPILED or SYNTHETIC VERIFIED yet.
-NEXT: select original x86-16 code that is genuinely distinct, and
-predeclare independently decoded samples for broader 16-bit
-guard/indirect/MZ fixup, unsupported-data and separate titles, plus
-independent human review and explicit cross-file denominators.
+NEXT: four independently SHA-matched executable candidates are now
+available in DnD-Classics/MASTER and preselected before a new DOSDis
+comparison: Dungeon Hack SBLASTER.COM (headerless near entry jump),
+Dungeon Hack CHECKSYS.EXE (MZ with 43 bounded unique relocations),
+Pool of Radiance POOLRAD/START.EXE, and Curse of the Azure Bonds
+START.EXE. The last two share 283 STORED ENTRY BYTES (not counted as
+separate independently decoded instructions). See
+docs/G2_MULTIGAME_ORIGINAL_SOURCE_SELECTION_20261010.md.
+NEXT: independently decode newly selected windows, check source
+mappings/relocations/guard and unsupported-data cases and obtain
+separate human review. Owner authorization required for compiled
+G2 comparisons; preflight Python tool and synthetic fixtures SOURCE
+ONLY.
 G2 INDEPENDENT ACCURACY ACCEPTANCE REMAINS PENDING.
 TEMP CI: PR #6 CLOSED / not merged. Canonical workflow remains
 workflow_dispatch-only. Owner approval is still required for each new
@@ -1423,3 +1432,43 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
 - Further G2 acceptance requires independent original code behavior,
   not merely alternate CODE.1/CODE.2 file containers, plus reviewer
   assessment and additional original-source/ISA evidence.
+2026-10-10 | G2 original other-DOS-game candidate inventory (SOURCE ONLY):
+- Followed owner permission to inspect other games from authenticated
+  DnD-Classics branch under MASTER/ without requesting redundant files.
+  Branch status warns of 4 missing oversized originals and 104
+  size-mismatch entries; selected individual executables were checked
+  independently against corresponding SOURCE_INVENTORY.csv SHA256.
+- Verified exact original sizes and 64-digit SHA256 for all FOUR:
+  Dungeon Hack SBLASTER.COM (3904; da556867...ad97757),
+  Dungeon Hack CHECKSYS.EXE (15882; 60070e69...fdc22),
+  Pool of Radiance POOLRAD/START.EXE (65231; d825df2b...a07bd),
+  Curse of the Azure Bonds START.EXE (57789; 42fcefd6...6b78acd).
+  Exact full SHA and title-qualified paths are in
+  docs/G2_MULTIGAME_ORIGINAL_SOURCE_SELECTION_20261010.md.
+- Independent read-only header audit: Dungeon Hack CHECKSYS has a
+  512-byte MZ header, initial 0000:0000 and 43 unique relocation
+  sites backed by original stored load bytes (none duplicated/out of
+  bounds). Pool/Curse START are 512-byte-header MZ candidates
+  with initial relative CS:IP 0F72:0012 / 0DAB:0012, zero MZ fixups.
+  Dungeon Hack SBLASTER is explicitly headerless COM origin 0100h,
+  with a source-backed initial near transfer to 0CF6h (physical 3062).
+- Pool and Curse have exactly 283 identical ORIGINAL STORED BYTES at
+  their mapped MZ entries, then diverge. This is not 283 verified
+  instructions; avoid accidentally counting shared startup behavior
+  twice as independent cross-title accuracy.
+- Wrote a standalone independent, READ-ONLY Python original-source
+  preflight with SHA-bound MZ/COM geometry, relocation-storage audit
+  and byte-only shared entry-prefix comparison, outputting metadata
+  only; no proprietary bytes/path disclosure or game execution.
+  Added SYNTHETIC-ONLY Python regression cases (MZ different CS
+  with identical mapped code, reloc bounds, COM explicit mode,
+  mismatch fail closed, 283-byte synthetic divergence). Also extended
+  C# synthetic external-oracle smoke to check MZ sample identity
+  despite different CS and physical mapped entry.
+- SOURCE ONLY: Python utility, Python tests, C# fixtures, and
+  fingerprint changes have NOT been compiled/executed in this batch.
+  Last owner-authorized Windows/Linux compiled/synthetic remains
+  run #40 source-equivalent 7fa76f822e0aa56a4bf1c611076bc50e5e0a5389.
+- No missing input blocks the next source-only research batch. New
+  G2 original-file comparison and human reviewer acceptance remain
+  explicitly pending; owner authorization is required for builds/tests.
