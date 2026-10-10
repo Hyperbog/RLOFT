@@ -209,6 +209,37 @@ internal static class Dos16ExternalOracleSmoke
                 }
             }), "register operand cannot also assert an immediate value");
 
+        var wrongMnemonic = operandManifest with {
+            ExpectedInstructions = new[] {
+                operandManifest.ExpectedInstructions[0] with {
+                    ExpectedFacts = MovAx(0x1234) with { Mnemonic = "Add" }
+                }
+            }
+        };
+        Equal(Dos16ExternalOracleValidator.Compare(
+            operandRegion, operandGraph, wrongMnemonic).Conflicting, 1,
+            "matching original bytes and registers do not excuse wrong mnemonic");
+        Denied(() => Dos16ExternalOracleValidator.Compare(
+            operandRegion, operandGraph, operandManifest with {
+                ExpectedInstructions = new[] {
+                    operandManifest.ExpectedInstructions[0] with {
+                        ExpectedFacts = MovAx(0x1234) with {
+                            OperandCount = 3
+                        }
+                    }
+                }
+            }), "three-operand expectations exceed explicit supported scope");
+        Denied(() => Dos16ExternalOracleValidator.Compare(
+            operandRegion, operandGraph, operandManifest with {
+                ExpectedInstructions = new[] {
+                    operandManifest.ExpectedInstructions[0] with {
+                        ExpectedFacts = MovAx(0x1234) with {
+                            Operand0 = new Dos16OperandFact("Memory")
+                        }
+                    }
+                }
+            }), "unmodeled memory address semantics cannot pass narrow oracle");
+
         var wrongStored = manifest with {
             ExpectedInstructions = new[] {
                 manifest.ExpectedInstructions[0] with { OriginalHex = "EB03" }
