@@ -182,9 +182,14 @@ public static class Dos16DataflowAnalysis
                 ? found : Array.Empty<Dos16FlowEdge>();
             if (actual.Length != expected.Count)
                 return Incomplete("rejected-missing-or-extra-graph-edge");
-            for (int i = 0; i < actual.Length; i++)
-                if (actual[i].Kind != expected[i].Kind ||
-                    actual[i].Destination != expected[i].Destination)
+            // Graph edge inventories are sets of independently decoded
+            // (kind,destination) pairs, not ordered instruction operands.
+            // Accept a serializer permutation while refusing duplicate,
+            // missing or forged pairs. Merely matching an edge count is
+            // insufficient when one branch is duplicated and another lost.
+            foreach (var edge in expected)
+                if (actual.Count(x => x.Kind == edge.Kind &&
+                    x.Destination == edge.Destination) != 1)
                     return Incomplete("rejected-forged-graph-edge");
 
             unresolvedEdges += expected.Count(e => e.Destination is null);
