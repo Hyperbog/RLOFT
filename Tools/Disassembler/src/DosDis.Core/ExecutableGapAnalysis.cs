@@ -15,7 +15,15 @@ public sealed record ExecutableGapReport(
     long AnalystProtectedBytes, long UnknownFileBackedBytes,
     long UnbackedVirtualBytes, int TotalUnknownSpans, int EligibleGaps,
     int OmittedGaps, bool AnalysisTruncated, int MinimumGapBytes,
-    IReadOnlyList<ExecutableGap> Gaps);
+    IReadOnlyList<ExecutableGap> Gaps)
+{
+    // Additive rollups: the ranked Gaps list is intentionally filtered,
+    // but analysts need to know when smaller unknown file-backed
+    // regions are present without treating them as discovered code.
+    public int UnknownSpans64To255 { get; init; }
+    public long UnknownBytes64To255 { get; init; }
+    public int SpansBelowMinimumGap { get; init; }
+}
 
 public static class ExecutableGapAnalysis
 {
@@ -89,7 +97,16 @@ public static class ExecutableGapAnalysis
         return new ExecutableGapReport("dosdis-executable-gap-ledger", SchemaVersion,
             graph.ArtifactSha256, total, code, protectedBytes, unknown, virtualBytes,
             unknownRanges.Length, eligible.Length, eligible.Length - gaps.Count,
-            graph.Truncated, minimumGapBytes, gaps);
+            graph.Truncated, minimumGapBytes, gaps)
+        {
+            UnknownSpans64To255 = unknownRanges.Count(r =>
+                (long)r.EndExclusive - r.Begin is >= 64 and <= 255),
+            UnknownBytes64To255 = unknownRanges.Where(r =>
+                (long)r.EndExclusive - r.Begin is >= 64 and <= 255)
+                .Sum(r => (long)r.EndExclusive - r.Begin),
+            SpansBelowMinimumGap = unknownRanges.Count(r =>
+                (long)r.EndExclusive - r.Begin < minimumGapBytes)
+        };
     }
 
     public static string BuildJson(ExecutableGapReport report)
