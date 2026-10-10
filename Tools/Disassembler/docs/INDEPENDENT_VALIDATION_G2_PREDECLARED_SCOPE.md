@@ -1,6 +1,6 @@
 # DOSDis G2 independent validation — predeclared scope
 
-**Status: PLANNED / NOT RUN (2026-10-10).** This defines comparison obligations and selection before any new current-HEAD validation run. It is **not** a test result or permission to compile, execute original binaries or dispatch GitHub Actions.
+**Current status (2026-10-10): PARTIALLY EXECUTED, NOT G2-ACCEPTED.** Windows/Linux compile and synthetic suites passed at [run #40](https://github.com/Hyperbog/RLOFT/actions/runs/38091963405), exact source SHA `7fa76f822e0aa56a4bf1c611076bc50e5e0a5389`. Two independently decoded original Strahd outer-MZ windows matched **28/28 instructions, 15/15 structured operands, 5/5 direct edges**; 8 negative controls behaved as expected. These are one shared launcher implementation and **not** whole-file, cross-game or reviewer-approved G2 coverage. The remaining matrix below is still an acceptance obligation, not authorization for further build/CI execution.
 
 **Authority:** [Independent Validation Policy](INDEPENDENT_VALIDATION_POLICY.md), [Roadmap](ROADMAP_BUILD_GATES.txt). Applies to Phase 2's x86-16 decoder, bounded register lattice, unsigned branch guards, indexed table source provenance and conservative unresolved state.
 
@@ -50,7 +50,7 @@ A successful Windows compile and previously verified synthetic suite may mark th
 
 The existing `KnownAnswerValidator` currently handles **LE object-relative comparisons**, not a blanket x86-16 external decoder driver. It must not be misrepresented as having completed G2. The newly added expected `ExpectedFlowControl` field and source-byte recheck are optional LE comparison safeguards; they are not a second decoder.
 
-No G2 source build, external-tool invocation, original-file comparison, machine-readable accuracy measurement or human review has yet been performed at this checkpoint.
+Historical note: those steps had not run when this initial matrix was written. Subsequent G2 run #40 executed the compiled/synthetic and bounded GNU objdump original-byte comparison portions; the broader coverage matrix, separate ISA evidence and independent human review remain PENDING.
 
 ## E. Source-only comparison interface (2026-10-10)
 
@@ -122,3 +122,32 @@ runtime segment/flags state. Complete Capstone/Ghidra comparison,
 independently reviewed original-file sample selection, negative
 runtime tests and owner-authorized Windows G2 are pending.
 See `X86_16_EXTERNAL_ORACLE_COMPARISON.md`.
+
+## H. Original-byte sample deduplication (2026-10-10, SOURCE ONLY)
+
+Do not infer *independent code behavior* from distinct filename,
+whole-file size or whole-file SHA alone. User-supplied original
+Strahd `CODE.1` and `CODE.2` have different full-file SHA256 values,
+but share their entire 62,532-byte original DOS MZ image (SHA256
+`37f3b1b3fc5e7a74d087a163f41e83dd5fc9184922a649d8a5eb128121f7204a`).
+Their explicitly mapped 54,900-byte CS=`01BD` 16-bit entry windows
+also share SHA256
+`1be99d96f824922381da2c80faa74a58b45acaf025d072e48faa8bff16d3fa81`.
+The two already independently sampled Strahd CODE.2 entry and
+branch/call windows are therefore the SAME implementation if decoded
+from CODE.1. They are **not a second 28-instruction benchmark**.
+Record whole-file source identity *and* mapped-region and exact
+sample-window byte identity; preserve unbenchmarked and shared
+denominators separately.
+
+DOSDis's external-oracle report source now exposes
+`mappedRegionSha256` (backed physical region bytes) and
+`benchmarkedInstructionBytesSha256` (ordered offset, encoded length
+and backing bytes for explicit expectations). These fields are
+**SOURCE ONLY** until another owner-authorized exact-SHA build.
+Matching digest values indicate reused bytes, NOT independent
+decoder accuracy or verified runtime reachability. Distinct sample
+digests alone also do not prove semantic independence or correctness:
+additional external instruction/ISA checks and reviewer approval
+remain mandatory. See
+`G2_STRAHD_ORIGINAL_VALIDATION_RECORD_20261010.md`.
