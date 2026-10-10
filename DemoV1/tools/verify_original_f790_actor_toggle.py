@@ -25,6 +25,7 @@ WINDOWS = {
     0x22E1D: "515356e84b00ffff", # flags passed to CODE.2 modal
     0x12F76: "83fe457c2083fe607f1b83fb4d7f11",
     0x12F8A: "ff74241857e844ebffff",  # flags, actor; call 11AD8
+    0x12F94: "83c4085f5e5bc3",    # handled actor action RETURNS here
     0x11AE9: "f6442418027440",       # test original flags bit 2
     0x11B02: "6683f701e8a5760100", # low WORD xor once in broadcast branch
     0x11B0E: "6bc35089be906f00005383c604a36c7f0000e843f7ff",
@@ -33,6 +34,8 @@ WINDOWS = {
     0x11B53: "0fb60502860000500fbf050086000050e828dcffff",
     0x11B6B: "f6442418027447",    # mode-dependent follow-on AFTER F790
     0x11BA2: "ff3550c00000e8038a0000803550c0000001",  # extra global path
+    0x1307C: "f6442418027418ff35687f0000e822e0010083c404e866c80000e8957d0000",
+    0x13091: "e866c80000e8957d0000",  # generic flag2 cleanup only
 }
 CALLS = {
     0x22E20: 0x12E70,
@@ -43,6 +46,9 @@ CALLS = {
     0x11B4B: 0x11268,
     0x11B63: 0xF790,
     0x11BA8: 0x1A5B0,
+    0x13089: 0x310B0,
+    0x13091: 0x1F8FC,
+    0x13096: 0x1AE30,
 }
 
 
@@ -71,7 +77,11 @@ def verify_original(path: Path) -> None:
         raise AssertionError("broadcast loop exit bound not original")
     if code[0x11AEE:0x11AF0] != bytes.fromhex("7440"):
         raise AssertionError("flag-2 absent must branch to single actor")
-    print("PASS: 13 actor-pane/input-queue instruction windows, 8 original near-call targets")
+    # 12F94 returns after actor dispatch and cannot fall through to
+    # generic 1307C flag-2 cleanup. The Win32 unconditional right-click
+    # modal close is therefore not an equivalent source actor action.
+    print("PASS: 16 actor-pane/input instruction windows, 11 original near-call targets")
+    print("PASS: 12F94 direct return bypasses generic 1307C flag2 cleanup")
     print("PASS: flag low WORD enqueued, sign-extended on dequeue, passed to 12E70")
     print("PASS: one XOR then four actor redraws versus one actor redraw")
     print("PASS: one 11B63 F790 event before bit-2-only follow-on")
