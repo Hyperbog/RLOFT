@@ -854,3 +854,21 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   NOT COMPILED/EXECUTED. G2 and Strahd original re-export are pending.
   The current last accepted Windows evidence is still G1 build #35.
 Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
+
+2026-10-10 | LE guarded replay post-audit: instruction interior arrivals:
+- Following completed-CFG reconciliation, added an original-object
+  destination-offset index so that direct edges into the interior
+  of the expected CMP/JA/MOVZX/indexed JMP instruction cannot be
+  missed when checking only exact instruction-start predecessor sets.
+- A late competing interior decode invalidates the finite index
+  guard and triggers bounded replay without the unsupported table
+  hint. This does not prove that the competing code actually runs;
+  both interpretations retain explicit candidate uncertainty.
+- Expanded the deterministic late-edge suite to target CMP byte 3,
+  JA byte 5, MOVZX byte 7 and JMP byte 10, in addition to complete
+  instruction-start bypasses and a safe loop through CMP start.
+  Require no provisional literal table edges, code-island targets
+  or intermediate trace evidence to survive an invalidated pass.
+- Source-only static checks and GitHub commits are not compiler or
+  Windows execution evidence. No CI dispatched, no proprietary
+  files modified, and G2 remains pending owner authorization.
