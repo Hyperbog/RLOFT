@@ -247,3 +247,25 @@ execution, or complete interprocedural dominance. It increases
 analysis work and still awaits an explicitly authorized Windows
 compile and synthetic test run. All provenance for the referenced
 CODE.1/CODE.2 handoff remains Strahd-specific.
+
+### Late edges into instruction interiors
+
+The final graph audit additionally collects exact destination offsets
+by LE object. A direct branch into a **non-start byte** of the
+retained CMP, JA, MOVZX or indexed JMP is a competing decode
+interpretation, not a clean predecessor of the retained instruction.
+Even if byte-count and instruction-start predecessor checks are
+otherwise satisfied, this conflicting candidate path disqualifies
+the finite-index guard and causes a source-only replay with the
+guarded hint disabled.
+
+The synthetic late-branch matrix covers instruction starts at
+object offsets 4, 6 and 9, and conflicting interior entries at
+offsets 3, 5, 7 and 10, in addition to the direct compare-loop
+positive control. The test requires the replayed report and
+single-use final trace to omit unsupported literal table claims,
+phantom case code and superseded pointer evidence.
+
+This is a conservative response to ambiguous code ownership,
+not proof that the alternate interior decoding actually executes.
+It remains source-only until G2.
