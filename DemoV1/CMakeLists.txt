@@ -34,6 +34,11 @@ if(Python3_Interpreter_FOUND)
         NAME subsystem_progress_tracker_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_subsystem_progress_tracker.py")
+    # CODE.2 original F790 0x41 item record arithmetic and literal/T gates.
+    add_test(
+        NAME original_f790_description_source_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_description_source.py")
     # Original CODE.2 F790 category table and description-completeness gate.
     add_test(
         NAME original_f790_item_description_dispatch_tests
