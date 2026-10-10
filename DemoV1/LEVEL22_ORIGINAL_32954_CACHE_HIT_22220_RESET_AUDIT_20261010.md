@@ -40,7 +40,46 @@ Command (local installed original only):
 python DemoV1/tools/verify_original_ground_cache_hit_22220.py --original-code2 /path/to/CODE.2
 ```
 
-Neither original binary nor derived gameplay pixels were committed. This checker is **not** yet registered in `run_original_ground_proof_batch.py` because its original-input-only contract would be mislabeled as a passing source-only test without additional source-structure gates. No C++ gameplay change, CTest addition, Windows Full CI dispatch, or DOS acceptance is claimed.
+Neither original binary nor derived gameplay pixels were committed. The initial original-only checker was subsequently expanded into an explicit two-mode, source-model plus original-binary contract and registered in the pinned batch and CTest. No C++ gameplay change, Windows Full CI dispatch, or DOS acceptance is claimed.
+
+## Part 2 follow-up: entire preparation path and pure cache-state contract
+
+Independent original-byte verification now also establishes the **actual frame caller**
+\`1F1F0 → 334C4\`. At \`334CB/334D2\`, the caller loads unsigned
+16-bit map dimensions \`25619/2561B\`, multiplies them into DWORD \`FD0C\`,
+then \`334E1..334F7\` clears bit \`0x40\` of each
+\`[0x198E0 + 2*cell_index]\` low flag byte. These writes and camera setup
+occur **before** the \`335C8\` reset and \`32954\` cache branch, and
+are not skipped on a normal cache-hit return. The pure model does not
+simulate the world-cell flag loop, since its complete runtime inputs and
+exceptional zero-count behavior have not been accepted.
+
+Original \`32954\` first writes \`FCE8=FCEC=0xFFFFFFFF\` even on a hit,
+and then compares original **full DWORDs**: \`CF50==0\`,
+\`C658==FD04\`, \`FCFC==255D0\`, \`FD00==255D4\`.
+A hit preserves \`22220=0x800\` at caller return and bypasses the
+ray-materializer loop. A miss only establishes *entry into* recomputation:
+the final depth and partial rays are explicitly unknown to this bounded model.
+The original \`1F255\` directly branches to \`1F2A5\` (FF50=128)
+when its *observed* nearest depth is still 0x800; intermediate indirect
+writes and conditional overlays remain separate proof gates.
+
+\`verify_original_ground_cache_hit_22220.py\` now accepts both
+source-only (pure model invariants; **SOURCE_ONLY_PASS**) and
+identity-verified \`--original-code2\` (**ORIGINAL_PASS**).
+The original check pins three complete bounded function windows
+(\`32954..329A8\`, \`334C4..334F8\`, \`335C8..335DC\`),
+the frame-to-preparation/caller call edges, map-clear loop,
+all four predicates, five branch targets, and direct FF50 sentinel guard.
+Validated locally against the supplied original CODE.2, in source-only
+mode, and with a deliberately corrupted binary (correctly rejected).
+
+Added to the explicitly pinned original-ground batch under
+\`cache_32954\` (**12 checks** as of this change) and as the
+\`original_ground_cache_hit_22220_boundary_tests\` source-only CTest.
+CTest is **registered, not Windows-run** on this current checkout.
+No Win32 gameplay code or source-FF50 live hook was changed.
+
 
 ## Remaining execution dependencies
 
