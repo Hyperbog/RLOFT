@@ -35,6 +35,16 @@ static ProtectedDataRange ParseData(string token)
 static void Print(object payload) => Console.WriteLine(JsonSerializer.Serialize(payload,
     new JsonSerializerOptions { WriteIndented = true }));
 
+static void ExportDos16Oracle(Dos16CodeRegion region, Dos16FlowResult graph,
+    string[] cliArgs)
+{
+    var manifest = Dos16ExternalOracleValidator.ReadManifest(
+        Option(cliArgs, "--external-oracle", ""));
+    var comparison = Dos16ExternalOracleValidator.Compare(region, graph, manifest);
+    Dos16ExternalOracleValidator.WriteNew(
+        Option(cliArgs, "--external-report", ""), comparison);
+}
+
 try
 {
     if (args.Length < 2 || args[0] is not ("inspect" or "disasm" or "fixups" or "memory" or "analyze" or "report" or "mz" or "mz-disasm" or "mz-analyze" or "mz-relocate" or "mz-cross" or "com" or "com-disasm" or "com-analyze" or "overlay" or "overlay-disasm" or "overlay-map" or "overlay-analyze" or "overlay-fixups"))
@@ -43,6 +53,7 @@ try
             "MZ relocation simulation: mz-relocate --load-segment HEX [--max 100]; mz-analyze [--load-segment HEX] (candidate FAR annotations)\n" +
             "MZ cross-segment review: mz-cross --load-segment HEX [--max-entries 16] [--per-entry-instructions 1024]\n" +
             "16-bit CFG: mz-analyze|com-analyze|overlay-analyze [--entry HEX] [--max-instructions 100000] [--indirect]\n" +
+            "16-bit outside-oracle comparison: --external-oracle reference.json --external-report diff.json (no overwrite; NOT a certification)\n" +
             "CS-memory pointers: --indirect adds near/FAR pointer candidates; FAR requires MZ --load-segment\n" +
             "Indexed CS dispatch: --table-map manifest.json (analyst-supplied bound) or --auto-tables (guarded unsigned BX subset)\n" +
             "Overlay: container inspection; overlay-map|overlay-fixups --resident START.EXE (validated MZ directory)\n" +
@@ -59,6 +70,17 @@ try
             "Report: --out path.json|path.txt [--include-bytes] (no overwrite)");
         return 2;
     }
+    bool externalOracle = args.Contains("--external-oracle", StringComparer.Ordinal);
+    bool externalReport = args.Contains("--external-report", StringComparer.Ordinal);
+    if (externalOracle != externalReport ||
+        args.Count(x => x == "--external-oracle") > 1 ||
+        args.Count(x => x == "--external-report") > 1)
+        throw new ArgumentException(
+            "--external-oracle and --external-report are both required exactly once.");
+    if (externalOracle &&
+        args[0] is not ("mz-analyze" or "com-analyze" or "overlay-analyze"))
+        throw new ArgumentException(
+            "Outside decoder comparisons require a 16-bit CFG analysis action.");
     if (args.Contains("--auto-tables", StringComparer.Ordinal) &&
         args[0] is not ("mz-analyze" or "com-analyze" or "overlay-analyze"))
         throw new ArgumentException("--auto-tables requires a 16-bit analysis action.");
@@ -138,6 +160,8 @@ try
                 mz.InitialIp.ToString("X", CultureInfo.InvariantCulture))));
             int budget = int.Parse(Option(args, "--max-instructions", "100000"), CultureInfo.InvariantCulture);
             var graph16 = Dos16ControlFlowAnalysis.Analyze(region, entry, budget);
+            if (externalOracle)
+                ExportDos16Oracle(region, graph16, args);
             if (args.Contains("--load-segment", StringComparer.Ordinal))
             {
                 if (args.Count(x => x == "--load-segment") != 1)
@@ -200,6 +224,8 @@ try
             int budget = int.Parse(Option(args, "--max-instructions", "100000"), CultureInfo.InvariantCulture);
             var region = com.CreateCodeRegion();
             var graph16 = Dos16ControlFlowAnalysis.Analyze(region, entry, budget);
+            if (externalOracle)
+                ExportDos16Oracle(region, graph16, args);
             if (args.Contains("--indirect", StringComparer.Ordinal) || tableManifest is not null ||
                 args.Contains("--auto-tables", StringComparer.Ordinal))
                 Print(new { CandidateGraph = graph16,
@@ -256,6 +282,8 @@ try
                     region.Origin.ToString("X", CultureInfo.InvariantCulture))));
                 int budget = int.Parse(Option(args, "--max-instructions", "100000"), CultureInfo.InvariantCulture);
                 var graph16 = Dos16ControlFlowAnalysis.Analyze(region, entry, budget);
+            if (externalOracle)
+                ExportDos16Oracle(region, graph16, args);
                 if (args.Contains("--indirect", StringComparer.Ordinal) || tableManifest is not null ||
                     args.Contains("--auto-tables", StringComparer.Ordinal))
                     Print(new { CandidateGraph = graph16,
