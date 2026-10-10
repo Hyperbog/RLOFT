@@ -85,7 +85,13 @@ struct OriginalF790OrdinarySlotEventPlan final {
             // 118FF: 11404 container insertion consumed held item.
             // Both original callsites PUSH 0; PUSH -1 after the
             // transaction; any existing pending 759C still wins.
-            if(after.held.object_id!=-1 || after.held.known!=0U)
+            // When native insertion swaps with an *empty* container
+            // cell, its legacy known bit can remain set. Original
+            // F790's 118FF still pushes explicit (-1,0), so ignore
+            // post-insertion known-bit residue whenever ID==-1.
+            if(after.held.object_id!=-1 ||
+               (status==InventoryOrdinarySwapStatus::ConsumedStoryFragment &&
+                after.held.known!=0U))
                 throw std::logic_error("original explicit-empty F790 after nonempty hand");
             put(0U,status==InventoryOrdinarySwapStatus::ConsumedStoryFragment
                   ? 0x11882U : 0x118ffU,-1,false,pending(),pending_text());

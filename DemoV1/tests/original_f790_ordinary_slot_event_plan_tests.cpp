@@ -96,6 +96,14 @@ int main(){
     calls=Plan::after_117a0(Status::InsertedInContainer,scroll,
                              prior_slot,inventory,text);
     assert(calls.count==1U && calls.at(0).source_e8_offset==0x118ffU);
+    // An empty destination slot may retain its old per-slot known
+    // bit. Native 11C3C can return held {-1,1}; original 118FF
+    // still explicitly passes (-1,0) to F790.
+    inventory.held={-1,1U};
+    calls=Plan::after_117a0(Status::InsertedInContainer,scroll,
+                             prior_slot,inventory,text);
+    assert(calls.count==1U && calls.at(0).source_e8_offset==0x118ffU);
+    assert(calls.at(0).item_id==-1 && !calls.at(0).known);
 
     inventory.held=prior_slot;
     calls=Plan::after_117a0(Status::Swapped,scroll,
