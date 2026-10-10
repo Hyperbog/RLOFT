@@ -3,6 +3,7 @@
 Run from a checkout:
   python DemoV1/tools/run_f790_source_feedback_loop.py
   python DemoV1/tools/run_f790_source_feedback_loop.py --code2 CODE.2 --objects OBJECTS.DAT --candidate-report Code2.json --json
+  python DemoV1/tools/run_f790_source_feedback_loop.py --code2 CODE.2 --candidate-report Code2.json --code1 CODE.1 --code1-report Code1.json --json
 
 Each check independently reports PASS/FAIL. Original binaries are optional,
 and neither source-only CTest checks nor the report manufacture parity.

@@ -54,6 +54,18 @@ I independently checked every exported direct near FlowControl=Call instruction 
 
 Thus the selected routine omission is **not evidence of a general near-call decoder or exporter corruption**. Do not damage the working near-call path while improving conservative reachability.
 
+## Reproducible cross-report original-byte audit added
+
+A separate tool now performs whole-export CODE.1 and CODE.2 original-byte checks and writes structured evidence. It reads but never copies the original game files to Git:
+
+~~~sh
+python DemoV1/tools/audit_disassembler_json_bytes.py \
+  --code1 /path/to/CODE.1 --json1 /path/to/Code1.json \
+  --code2 /path/to/CODE.2 --json2 /path/to/Code2.json --json
+~~~
+
+Its original-byte checks independently validate every reported near E8 target, SHA-256 and length, unique nonoverlapping instruction starts, unknown-range accounting, and F790 table/selected-call provenance. It reports candidate omissions and conservative bounds without treating orphan routines as executed. The on-demand aggregate accepts --code2/--candidate-report and optional --code1/--code1-report, with no Windows build or network access.
+
 ## Recommended handoff and repro
 
 This feedback was generated from original user files in /mnt/data, and relates to the CODE.2 LE 32-bit analyzer. In the other disassembler chat, ask it to compare these **exact addresses** with its current Build Game Disassembler branch, then add *source-agnostic* LE regression fixtures. Do not embed copyrighted CODE.1/CODE.2 or full disassembly in Git.

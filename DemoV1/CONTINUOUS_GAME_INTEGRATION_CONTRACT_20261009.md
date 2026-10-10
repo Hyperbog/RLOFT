@@ -1,5 +1,10 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+## 2026-10-10 original-byte DOSDis JSON audit integrated into source feedback loop
+
+Added tools/audit_disassembler_json_bytes.py to verify original CODE.1 and CODE.2 whole-export near E8 targets, unique starts, full source identities and gap totals, returning JSON evidence without source bytes. The on-demand F790 source feedback runner calls it when --candidate-report and --code2 are supplied, with optional CODE.1+Code1.json input. Its F790 candidate-parent differential now reports **newly recovered 130DE code as an improvement** instead of asserting the older export's omission indefinitely. Original uploaded binaries/reports independently pass 4,640/4,640 CODE.2 near calls and 1,205/1,205 CODE.1 near calls. [Disassembler handoff](DISASSEMBLER_JSON_CODE2_F790_FEEDBACK_20261010.md). No automatic build, game RNG changes or DOS parity claim; **208 registered CTests**, current Windows build still pending.
+
+
 ## 2026-10-10 transferable feedback to our separate DOSDis disassembler
 
 User confirmed uploaded Code1.json and Code2.json are our own disassembler's exports. Source-oriented audit shows **all 4,640 CODE.2 and 1,205 CODE.1 candidate direct E8 targets match original bytes**, and neither report has duplicate/overlapping decoded starts. Observed Code2.json omission of source routine 130A0..13117 including actual F790 at 130DE is a **candidate-coverage issue**, not proof of a runtime reachability bug; no direct E8/E9 into 130A0 was observed. The classified-range ledger includes 121 unknown bytes 1309F..13118, but the ranked-gap report omits this because its minimum is 256. Original F790 ten-entry table is discovered correctly but tagged index-bound-unproven despite source unsigned 8-bit SUB/CMP/JA bound. Snapshot age and conservative evidence labels matter. The independent disassembler thread's handoff is [DISASSEMBLER_JSON_CODE2_F790_FEEDBACK_20261010.md](DISASSEMBLER_JSON_CODE2_F790_FEEDBACK_20261010.md). Do not seed unknown code as executable without evidence or touch the 70-Hz host RNG on this basis. Manual Windows builds still require authorization.
