@@ -1917,6 +1917,17 @@ try
         BinaryArtifact.FromBytes(graphBytes), invalidFlowExpectation),
         "unknown external flow-control categories cannot claim comparison success");
 
+    var numericFlowExpectation = flowExpectation with {
+        VerifiedInstructions = new[] {
+            new KnownInstructionExpectation(new FlowAddress(1, 0),
+                "E80B000000", "numeric-enum-not-a-named-oracle",
+                ExpectedFlowControl: ((int)Iced.Intel.FlowControl.Call).ToString())
+        }
+    };
+    Fails(() => KnownAnswerValidator.Validate(graph, graphImage,
+        BinaryArtifact.FromBytes(graphBytes), numericFlowExpectation),
+        "numeric flow-category aliases cannot replace named external expectations");
+
     var duplicateInstructionGraph = graph with {
         Instructions = graph.Instructions.Concat(new[] {
             originalInstruction
