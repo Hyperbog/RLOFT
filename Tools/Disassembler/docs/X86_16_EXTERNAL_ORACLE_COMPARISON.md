@@ -141,10 +141,11 @@ not unsigned 254. Mnemonics and register identities use exact named
 Iced enum spelling only as a **normalization vocabulary**; this is
 not proof that an independent decoder ran.
 
-Memory base/index, displacement and size, address/operand-size prefixes,
-far and near branch operand encoding widths, instruction implicit operands,
-flags, runtime effects and three-or-more-operand instruction semantics
-are **not** validated by `expectedFacts`. Such cases need separate
+Memory addressing outside the explicitly supported 16-bit ModR/M
+subset described below, address/operand-size prefix semantics beyond
+the literal segment override, far and near branch operand encoding widths,
+instruction implicit operands, flags, runtime effects and three-or-more-
+operand semantics are **not** validated by `expectedFacts`. Such cases need separate
 outside-oracle/ISA or original source evidence and may not be scored as
 fully verified operand semantics by this comparator. The existing
 `directEdgeKind`/`directTarget` checks are independent of this
@@ -172,3 +173,67 @@ wrong immediate value, unsigned misinterpretation, unavailable
 old graph facts, forged structured facts and malformed oracle
 fields. These are source-only committed fixtures, **not a second
 decoder run or a G2 accuracy result**.
+
+## Narrow 16-bit ModR/M memory-address comparison (source-only)
+
+The optional `expectedFacts.operand0` or `operand1` may now use
+`"kind": "Memory"` with a **complete** `memory` object.
+Only source-encoded ordinary **16-bit effective addresses** and
+scalar `UInt8`, `UInt16`, or `UInt32` memory widths are accepted.
+Supported base/index forms are BX+SI, BX+DI, BP+SI, BP+DI, BX,
+BP, SI, DI and direct `disp16`. Encodings using an address-size
+override (`67h`), 32-bit effective-address registers, scaled x86-32
+indexes, VSIB or implicit string-memory operands are **outside scope**.
+
+A source-backed `MOV AX,[BX+SI-2]` example encoded by
+`8B 40 FE` has:
+
+```json
+{
+  "kind": "Memory",
+  "register": null,
+  "immediateValue": null,
+  "memory": {
+    "base": "BX",
+    "index": "SI",
+    "displacementSize": 1,
+    "displacement": 65534,
+    "size": "UInt16",
+    "segmentOverride": null
+  }
+}
+```
+
+**Displacement is a 16-bit modulo-address value**, not a signed
+host integer or an inferred runtime address. The example's disp8
+`FEh` sign-extends to `FFFEh` (65534) within the encoded 16-bit
+effective-address calculation. `displacementSize` is the **encoded**
+0, 1 or 2 byte displacement width; 1-byte displacements must
+be a canonical sign extension of -128 through 127. Direct memory
+`[1234h]` uses a 2-byte displacement with no base or index.
+
+`segmentOverride` reports an **explicit source prefix only**:
+`CS`, `DS`, `ES`, `SS`, `FS`, or `GS`. It is null when no
+segment-override prefix is encoded, including accesses using the
+default DS/SS selection. The comparator does **not** assert actual
+runtime segment register contents or effective physical addresses.
+For example, `3E 8B 46 00` (`MOV AX,DS:[BP+0]`) is different
+from the unprefixed BP-based default segment selection.
+
+An oracle memory operand with partial/invalid address facts, impossible
+16-bit register pairing, unsigned non-sign-extended disp8, invented
+memory width or segment override is **rejected**. A matching source
+graph with an unsupported 32-bit-address override or missing memory
+facts is **not-observed** with
+`candidate-memory-address-facts-outside-supported-scope`, rather
+than silently declared correct. Wrong-but-valid base, index,
+displacement, width or override facts are **conflicts**.
+
+The standalone synthetic fixtures cover four supported ModR/M
+memory forms, an intentionally unsupported `67h` address override,
+wrong-but-valid operand facts and malformed external expectations.
+These fixtures have been authored but **not compiled or run**.
+The independent decoder, human evidence review, processor state,
+implicit memory accesses and full instruction semantics remain
+outside this source-only checkpoint. This extension adds **no**
+automatic release or accuracy certification.
