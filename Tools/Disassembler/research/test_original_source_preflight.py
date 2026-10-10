@@ -156,6 +156,47 @@ class OriginalSourcePreflightSmoke(unittest.TestCase):
         self.assertEqual(simulation["simulated_file_backed_image_sha256"],
                          hashlib.sha256(b"\x01\x01\x00\x00").hexdigest())
 
+    def test_full_resident_digest_reference_matches_independent_dosdis_fixture(self):
+        # Deliberately mirrors only a simple PUBLISHED synthetic shape,
+        # not a DOSDis output. C# tests independently construct the same
+        # 480-byte expected resident image. All offsets are MZ file based.
+        single = bytearray(512)
+        single[0:2] = b"MZ"
+        struct.pack_into("<HHHH", single, 2, 0, 1, 1, 2)
+        struct.pack_into("<H", single, 0x18, 0x1C)
+        struct.pack_into("<HH", single, 0x1C, 1, 0)
+        single[32:36] = b"\xB8\x34\x12\xC3"
+
+        expected_single = bytearray(480)
+        expected_single[:4] = b"\xB8\x34\x32\xC3"
+        single_result = simulate_mz_relocations(bytes(single), 0x2000)
+        self.assertEqual(single_result["original_file_backed_image_bytes"], 480)
+        self.assertEqual(single_result["relocation_write_count"], 1)
+        self.assertFalse(single_result["overlapping_relocation_writes"])
+        self.assertEqual(single_result["simulated_file_backed_image_sha256"],
+                         hashlib.sha256(expected_single).hexdigest())
+
+        # Same original word twice, in table order, in a larger MZ header:
+        # 1234h + 2000h + 2000h = 5234h, preserving the original 464
+        # resident bytes count. This overlaps intentionally and is not
+        # generalized to runtime loader scheduling.
+        repeated = bytearray(512)
+        repeated[0:2] = b"MZ"
+        struct.pack_into("<HHHH", repeated, 2, 0, 1, 2, 3)
+        struct.pack_into("<H", repeated, 0x18, 0x1C)
+        struct.pack_into("<HH", repeated, 0x1C, 1, 0)
+        struct.pack_into("<HH", repeated, 0x20, 1, 0)
+        repeated[48:52] = b"\xB8\x34\x12\xC3"
+
+        expected_repeated = bytearray(464)
+        expected_repeated[:4] = b"\xB8\x34\x52\xC3"
+        repeated_result = simulate_mz_relocations(bytes(repeated), 0x2000)
+        self.assertEqual(repeated_result["original_file_backed_image_bytes"], 464)
+        self.assertEqual(repeated_result["relocation_write_count"], 2)
+        self.assertTrue(repeated_result["overlapping_relocation_writes"])
+        self.assertEqual(repeated_result["simulated_file_backed_image_sha256"],
+                         hashlib.sha256(expected_repeated).hexdigest())
+
     def test_prefix_divergence_is_not_classified_as_instructions(self):
         first = b"\xe9\x00\x00" + b"\x90" * 280 + b"\x01" + b"\x90"
         second = b"\xe9\x00\x00" + b"\x90" * 280 + b"\x02" + b"\x90"
