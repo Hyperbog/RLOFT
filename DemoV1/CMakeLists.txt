@@ -800,6 +800,11 @@ add_executable(original_party_modal_blit_tests tests/original_party_modal_blit_t
 target_link_libraries(original_party_modal_blit_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_party_modal_blit_tests COMMAND original_party_modal_blit_tests)
 
+# Source-proven CODE.2 F66C ribbon layout; not yet live-wired to RNG/rendering.
+add_executable(original_feedback_ribbon_layout_tests tests/original_feedback_ribbon_layout_tests.cpp)
+target_include_directories(original_feedback_ribbon_layout_tests PRIVATE include)
+add_test(NAME original_feedback_ribbon_layout_tests COMMAND original_feedback_ribbon_layout_tests)
+
 add_executable(original_res2_asset_bank_tests tests/original_res2_asset_bank_tests.cpp)
 target_link_libraries(original_res2_asset_bank_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_res2_asset_bank_tests COMMAND original_res2_asset_bank_tests)
