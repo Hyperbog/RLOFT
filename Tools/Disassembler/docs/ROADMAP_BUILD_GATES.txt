@@ -756,3 +756,34 @@ Reference: P0_MZ_CROSS_SEGMENT_CANDIDATES.md.
   and re-export of the original Strahd files remain PENDING.
   G1 baseline run 37987465368 verifies only
   9f605e36581b2c6db72a6a47248ea5af31611506.
+
+2026-10-10 | LE handoff follow-on — graph seeds and exact gap partitions:
+- Post-handoff source audit found x86-32 unsigned guarded-table
+  promotion could ignore a separate analyst seed at the index
+  extension or indexed-jump instruction. The byte CMP -> JA ->
+  MOVZX -> indirect JMP path is not a dominating guard on such
+  alternate entry hypotheses. New exact seed membership checks
+  suppress index-bound promotion for both entry types while
+  retaining unproven pointer discovery.
+- Added positive LE synthetic near 0F87 JA rel32 proof in addition
+  to short 77 JA rel8 and checked exact default target offset.
+  Negative tests exercise both analyst seed input orderings, both
+  CMP EAX direct and CMP AL / MOVZX EAX guarded formats.
+- Discovered aggregate executable-gap byte counts alone allow
+  corrupted range inventories to hide matching-size overlap and
+  omission. Gap analysis now rejects any executable-object range
+  inventory that is not an exact nonoverlapping [0,VirtualSize)
+  partition even when the total byte sum still matches.
+  Added a control accepting shuffled source-range rows, and an
+  adversarial forged overlap/hole test conserving total bytes.
+- README and Strahd CODE report remain game-qualified; original
+  CODE.1/2 identities across Strahd, Stone Prophet and Menzo
+  stay separate. No proprietary bytes embedded in regression
+  fixtures or Windows artifacts. The verified baseline remains
+  Windows G1 #35 at SHA 9f605e36581b2c6db72a6a47248ea5af31611506.
+- All above changes are committed SOURCE ONLY. No Windows build,
+  synthetic test run, original-source reanalysis, CI workflow
+  dispatch, release or runtime/gameplay parity assertion occurred.
+  G2 at the new SHA is still NOT RUN; further general
+  dominator/reachability proof is deferred rather than guessed.
+Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
