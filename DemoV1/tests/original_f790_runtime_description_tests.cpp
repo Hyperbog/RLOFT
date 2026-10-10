@@ -138,6 +138,66 @@ int main() {
     assert(source_message({900,true,true,"EXACT 759C"},
                           intentionally_invalid)=="EXACT 759C");
 
+    // Complete source-only event-to-VGA bridge, with the ACTUAL native
+    // framebuffer, prior modal capture, source-specific arguments,
+    // mutable item text and ONE original gameplay RNG.
+    rloft::IndexedFramebuffer framebuffer{};
+    framebuffer.clear(0x31U);
+    framebuffer.fill_rect(0x62,0,16,320,0x40U);
+    rloft::OriginalF790ModalSequence sequence;
+    sequence.enter_modal_13118();
+    sequence.capture_after_actor_columns_112ec(framebuffer);
+    rloft::OriginalRandom shared_rng(0x10203040U);
+    int tick_observations=0;
+    auto source_tick=[&]()->std::uint32_t {
+        ++tick_observations;
+        return 0x76543210U;
+    };
+    rloft::Type1Raster ribbon{};
+    ribbon.count=6;ribbon.width=8;ribbon.height=3;
+    ribbon.transparent_index=0xffU;
+    ribbon.pixels.resize(6U*8U*3U);
+    for(std::size_t i=0;i<ribbon.pixels.size();++i)
+        ribbon.pixels[i]=static_cast<std::uint8_t>(10U+i/24U);
+    rloft::Type2Font font{};
+    font.widths.fill(1U);
+    font.raster.count=128;
+    font.raster.width=1;
+    font.raster.height=1;
+    font.raster.transparent_index=0U;
+    font.raster.pixels.assign(128U,200U);
+    const auto fire=[&](rloft::OriginalF790SourceArguments args) {
+        rloft::OriginalF790RuntimeEvent::dispatch_source_call(
+            sequence,framebuffer,args,original_objects,parsed,inventory,
+            original_code2,original_t,ribbon,font,shared_rng,source_tick);
+    };
+    fire({0,false,false,{}});
+    assert(tick_observations==1);
+    assert(shared_rng.state()==0x76543210U);
+    assert(sequence.f790_event_count()==1U);
+    assert(framebuffer.pixels().at(0x62U*320U+0x44U)==10U);
+
+    // Prebuilt 759C feedback takes priority over even an invalid
+    // local item ID; pending feedback does not reseed from 30700.
+    fire({900,true,true,"EXACT 759C"});
+    assert(tick_observations==1);
+    assert(sequence.f790_event_count()==2U);
+    const auto after_pending=shared_rng.state();
+    for(int redraw=0;redraw<100;++redraw) {
+        framebuffer.clear(0x31U);
+        framebuffer.fill_rect(0x62,0,16,320,0x40U);
+        sequence.replay_after_host_redraw(framebuffer,ribbon,font);
+    }
+    assert(sequence.f790_event_count()==2U);
+    assert(shared_rng.state()==after_pending);
+    assert(tick_observations==1);
+
+    fire({-1,false,false,{}});
+    assert(sequence.f790_event_count()==3U);
+    assert(shared_rng.state()==after_pending);
+    assert(framebuffer.pixels().at(0x62U*320U+0x44U)==0x40U);
+    sequence.leave_modal();
+
     bool rejected=false;
     try { (void)describe(900); } catch(const std::out_of_range&) {rejected=true;}
     assert(rejected);
