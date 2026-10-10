@@ -228,6 +228,38 @@ internal static class Dos16CorrelatedDispatchSmoke
             good.Graph.Edges.Any(edge => edge.Kind == "unresolved-indirect-jump"),
             "stored entry correlation does not resolve or rewrite CFG edges");
 
+        var limitedSteps = Dos16CorrelatedDispatchRecovery.Inspect(
+            good.Region, good.Graph, maximumSteps: 1);
+        Check(limitedSteps.Incomplete &&
+            limitedSteps.AnalysisStatus.Contains("incomplete-worklist-step-budget") &&
+            limitedSteps.InspectedSites == 0 &&
+            limitedSteps.Sites.Count == 0,
+            "exhausted worklist step budget must not publish guarded entries");
+
+        var limitedInstructions = Dos16CorrelatedDispatchRecovery.Inspect(
+            good.Region, good.Graph, maximumInstructions: 2);
+        Check(limitedInstructions.Incomplete &&
+            limitedInstructions.AnalysisStatus.Contains("incomplete-input-graph-budget") &&
+            limitedInstructions.Sites.Count == 0,
+            "truncated allowed instruction inventory cannot yield table evidence");
+
+        var limitedEdges = Dos16CorrelatedDispatchRecovery.Inspect(
+            good.Region, good.Graph, maximumEdges: 1);
+        Check(limitedEdges.Incomplete &&
+            limitedEdges.AnalysisStatus.Contains("incomplete-input-graph-budget") &&
+            limitedEdges.Sites.Count == 0,
+            "truncated allowed edge inventory cannot yield table evidence");
+
+        var falseCoverage = Dos16CorrelatedDispatchRecovery.Inspect(
+            good.Region, good.Graph with {
+                CandidateInstructionBytes = good.Graph.CandidateInstructionBytes + 1
+            });
+        Check(falseCoverage.Incomplete &&
+            falseCoverage.AnalysisStatus.Contains("rejected-inconsistent-byte-coverage") &&
+            falseCoverage.BoundedIndexSites == 0 &&
+            falseCoverage.Sites.Count == 0,
+            "forged code/unknown coverage cannot authorize finite BX entries");
+
         var stale = Dos16CorrelatedDispatchRecovery.Inspect(
             good.Region, good.Graph with { Truncated = true });
         Check(stale.Incomplete && stale.Sites.Count == 0,
