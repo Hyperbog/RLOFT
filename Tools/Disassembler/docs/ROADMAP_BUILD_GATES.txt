@@ -480,3 +480,21 @@ Reference: R2_TABLE_INDEX_EVIDENCE_SOURCE_CHECKPOINT.md.
   files in hosted CI or distributed artifacts.
 Last successfully VERIFIED Windows build: run 37987465368 at
 9f605e36581b2c6db72a6a47248ea5af31611506.
+
+2026-10-10 | Manual Windows GUI acceptance of build #35:
+- Owner reported "All good" after being asked to test the successful
+  Windows Desktop preview from run #37987465368, built at source SHA
+  9f605e36581b2c6db72a6a47248ea5af31611506.
+- Scope of requested hands-on checks: opening CODE.1/CODE.2 separately
+  and navigating candidate disassembly; saving/reopening a research
+  project and its annotations; existing-name export handling via
+  Replace / Keep both / Cancel and continued app operation.
+- Record as OWNER-REPORTED GUI ACCEPTANCE of that preview and those
+  requested checks. This is not independently instrumented GUI testing,
+  a complete exhaustive UI audit, or original-game behavioral parity.
+- G1: Windows compilation, synthetic smoke/project regression and
+  owner-reported desktop checks completed at the pinned tested SHA.
+  R2.4 remains a bounded candidate-evidence prototype; broader G2
+  functionality and original-source semantic validation remain open.
+- No new build, workflow dispatch, game-file modification or release
+  publication occurred when recording this confirmation.
