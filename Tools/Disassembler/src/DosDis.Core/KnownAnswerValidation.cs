@@ -16,8 +16,14 @@ public sealed record KnownAnswerManifest(
     IReadOnlyList<KnownFixupExpectation> VerifiedFixups,
     string? SourceArchive = null, string? InternalPath = null);
 
+/// <summary>
+/// Expected original source bytes and optional externally researched
+/// decoder flow category. The latter is a canonical Iced FlowControl
+/// name, not arbitrary formatted assembly text.
+</summary>
 public sealed record KnownInstructionExpectation(
-    FlowAddress Address, string OriginalHex, string EvidenceId);
+    FlowAddress Address, string OriginalHex, string EvidenceId,
+    string? ExpectedFlowControl = null);
 public sealed record KnownNonCodeExpectation(
     int Object, uint Begin, uint EndExclusive, string EvidenceId);
 public sealed record KnownEdgeExpectation(
@@ -94,7 +100,11 @@ public static class KnownAnswerValidator
                 x.OriginalHex is null || x.OriginalHex.Length is < 2 or > 30 ||
                 (x.OriginalHex.Length & 1) != 0 ||
                 !x.OriginalHex.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F') ||
-                string.IsNullOrWhiteSpace(x.EvidenceId))
+                string.IsNullOrWhiteSpace(x.EvidenceId) ||
+                (x.ExpectedFlowControl is not null &&
+                 (!Enum.TryParse<Iced.Intel.FlowControl>(x.ExpectedFlowControl,
+                    ignoreCase: false, out var flowClass) ||
+                  !Enum.IsDefined(flowClass))))
                 throw new InvalidDataException("Invalid verified instruction expectation.");
         foreach (var x in manifest.VerifiedNonCode)
             if (x is null || x.Object < 1 || x.Begin >= x.EndExclusive ||
@@ -126,14 +136,56 @@ public static class KnownAnswerValidator
             throw new InvalidDataException("Known-answer source SHA-256 or byte length does not match the opened original.");
 
         var findings = new List<KnownAnswerFinding>();
-        var instructions = graph.Instructions.ToDictionary(x => x.Address);
+        // Reports may be built from restored or caller-supplied CFG rows.
+        // A source SHA on the *report* does not by itself bind each row
+        // to the actual opened artifact. Recheck the expected observed
+        // instruction at the physical bytes mapped from the original LE
+        // object, independently of the graph's OriginalBytes field.
+        var instructions = new Dictionary<FlowAddress, FlowInstruction>();
+        foreach (var row in graph.Instructions)
+        {
+            if (row is null || !instructions.TryAdd(row.Address, row))
+                throw new InvalidDataException(
+                    "Known-answer comparison requires unique nonnull CFG instruction rows.");
+        }
         foreach (var expected in manifest.VerifiedInstructions)
         {
-            string state = instructions.TryGetValue(expected.Address, out var found)
-                ? (string.Equals(found.OriginalBytes, expected.OriginalHex, StringComparison.OrdinalIgnoreCase)
-                    ? "match" : "conflict")
-                : "not-observed";
-            findings.Add(new KnownAnswerFinding("verified-instruction", expected.Address, state, expected.EvidenceId));
+            string state = "not-observed";
+            if (instructions.TryGetValue(expected.Address, out var found))
+            {
+                bool originalMatches = false;
+                int expectedLength = expected.OriginalHex.Length / 2;
+                if (expected.Address.Object >= 1 &&
+                    expected.Address.Object <= image.Objects.Count &&
+                    (ulong)expected.Address.Offset + (uint)expectedLength <=
+                        image.Objects[expected.Address.Object - 1].VirtualSize &&
+                    found.Length == expectedLength)
+                {
+                    try
+                    {
+                        originalMatches = string.Equals(
+                            Convert.ToHexString(image.ReadStoredBytes(
+                                expected.Address.Object, expected.Address.Offset,
+                                expectedLength)), expected.OriginalHex,
+                            StringComparison.OrdinalIgnoreCase);
+                    }
+                    catch (InvalidDataException)
+                    {
+                        // A virtual-only or otherwise unmapped original byte
+                        // is contradictory evidence, never a known-answer match.
+                    }
+                }
+                bool rowMatches = string.Equals(
+                    found.OriginalBytes, expected.OriginalHex,
+                    StringComparison.OrdinalIgnoreCase);
+                bool flowMatches = expected.ExpectedFlowControl is null ||
+                    string.Equals(found.FlowControl, expected.ExpectedFlowControl,
+                        StringComparison.Ordinal);
+                state = originalMatches && rowMatches && flowMatches
+                    ? "match" : "conflict";
+            }
+            findings.Add(new KnownAnswerFinding(
+                "verified-instruction", expected.Address, state, expected.EvidenceId));
         }
         foreach (var expected in manifest.VerifiedNonCode)
         {
