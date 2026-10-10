@@ -125,3 +125,41 @@ have been committed, not compiled or executed, and no independent
 third-party comparison or human discrepancy review was performed.
 G2 independent acceptance remains **PENDING**, and G8's
 independent release requirement remains BLOCKING.
+
+## 10. Generic x86-16 external-oracle comparison interface (source-only)
+
+The x86-16 `Dos16ExternalOracleValidator` provides a deliberately
+limited, offline mechanism to compare a candidate CFG against a
+predeclared, source-SHA/region-mapped outside-decoder expectation file.
+It supports ordinary COM, MZ entry code and explicitly mapped overlay
+candidate regions through opt-in CLI switches
+`--external-oracle` and `--external-report`.
+
+The manifest preserves source length, physical file mapping, explicit
+segment:origin and original instruction bytes, canonical normalized
+flow category, and optional named direct branch/call target. The
+report retains those mapping facts and records each exact-source
+match, conflict, missing direct edge or not-observed start; the
+entire test sample and unbenchmarked candidate count stay explicit.
+Duplicated/overlapping oracle instructions, unsupported decoder
+category names, incomplete source identity and mismatched source
+windows are rejected rather than silently excluded.
+
+An embedded Iced/DOSDis tool name cannot masquerade as the
+external decoder. **This is not authentication:** a different name,
+a matching expected byte sequence or a JSON export alone never
+proves that an outside decoder was executed or that a reviewer
+approved the result. All reports carry
+`claimed-external-not-reviewed` and
+`candidate-comparison-not-certification`.
+
+The CLI and comparison suite have been committed **SOURCE ONLY**.
+The smoke fixtures are deliberately constructed from small synthetic
+COM bytes, not an actual Capstone or Ghidra invocation.
+The interface currently checks original bytes, lengths, normalized
+flow categories and explicitly declared direct edges. Full operands,
+instruction semantics, CPU/runtime behavior, independently verified
+source classification and any release accuracy acceptance remain
+outstanding. See `X86_16_EXTERNAL_ORACLE_COMPARISON.md` and the
+predeclared G2 matrix. No build, tests or outside-decoder comparison
+were executed for this checkpoint.
