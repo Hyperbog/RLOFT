@@ -67,6 +67,16 @@ public static class Dos16DataflowAnalysis
                 return Incomplete("rejected-duplicate-overlap-or-stale-instruction");
             previousEnd = candidate.Address.Offset + candidate.Length;
         }
+        // These cached coverage totals are descriptive rather than
+        // executable proof, but they must agree with the independently
+        // checked nonoverlapping decoded byte spans. A stale summary
+        // cannot accompany a trusted register-state report.
+        long decodedBytes = 0;
+        foreach (var instruction in instructions.Values)
+            decodedBytes += instruction.Length;
+        if (decodedBytes != graph.CandidateInstructionBytes ||
+            (long)region.ByteLength - decodedBytes != graph.UnknownFileBackedBytes)
+            return Incomplete("rejected-inconsistent-byte-coverage");
         if (!instructions.ContainsKey(graph.Entry))
             return Incomplete("rejected-graph-entry-not-decoded");
         if (graph.Edges.Any(edge => !instructions.ContainsKey(edge.Source)))
