@@ -71,7 +71,7 @@ internal static class Dos16MetamorphicFeedbackSmoke
     {
         uint state = Seed;
         int finiteCases = 0, intervalCases = 0, correlatedCases = 0,
-            permutationCases = 0, mutationCases = 0;
+            permutationCases = 0, mutationCases = 0, directedCases = 0;
 
         // 192 finite cases: exact modular SHL is checked against plain
         // ushort arithmetic, not the abstract interpreter's own math.
@@ -136,6 +136,57 @@ internal static class Dos16MetamorphicFeedbackSmoke
                     "interval-wrap", caseId,
                     "mixed quotients must not infer a contiguous value range");
             intervalCases++;
+        }
+
+        // Directed high-bit and word-wrap families cannot be missed
+        // by an unlucky deterministic pseudo-random sequence.
+        ushort[][] boundaries = {
+            new ushort[] { 0, ushort.MaxValue },
+            new ushort[] { 1, 0x8000, 0xFFFF },
+            new ushort[] { 0x7FFF, 0x8000 },
+            new ushort[] { 0, 1, 0x7FFF, 0x8000, 0xFFFE, 0xFFFF }
+        };
+        foreach (ushort[] inputs in boundaries)
+            foreach (int shift in new[] { 0, 1, 2, 7, 8, 15 })
+            {
+                var actual = Dos16AbstractValue.ShiftLeft(
+                    Dos16AbstractValue.Finite(inputs), shift);
+                var expected = inputs.Select(x =>
+                    unchecked((ushort)(x << shift))).Distinct()
+                        .OrderBy(x => x).ToArray();
+                Check(actual.Members.SequenceEqual(expected),
+                    "directed-finite-boundary", directedCases,
+                    "shift=" + shift + " inputs=" +
+                    string.Join(",", inputs.Select(x => x.ToString("X4"))) +
+                    " expected=" + string.Join(",", expected.Select(
+                        x => x.ToString("X4"))));
+                directedCases++;
+            }
+        foreach (var range in new[] {
+            (Low: (ushort)0x3FFE, High: (ushort)0x4001, Shift: 2,
+                ExpectUnknown: true),
+            (Low: (ushort)0x7FFE, High: (ushort)0x8001, Shift: 1,
+                ExpectUnknown: true),
+            (Low: (ushort)0xFFFE, High: (ushort)0xFFFF, Shift: 1,
+                ExpectUnknown: false),
+            (Low: (ushort)0x8000, High: (ushort)0x8001, Shift: 1,
+                ExpectUnknown: false)
+        })
+        {
+            var actual = Dos16AbstractValue.ShiftLeft(
+                Dos16AbstractValue.Interval(range.Low, range.High),
+                range.Shift);
+            Check((actual.Kind == Dos16ValueKind.Unknown) ==
+                range.ExpectUnknown,
+                "directed-interval-boundary", directedCases,
+                "interval=" + range.Low + ":" + range.High +
+                " shift=" + range.Shift + " result=" + actual.Kind);
+            for (int value = range.Low; value <= range.High; value++)
+                Check(Contains(actual,
+                    unchecked((ushort)(value << range.Shift))),
+                    "directed-interval-soundness", directedCases,
+                    "value=" + value + " shift=" + range.Shift);
+            directedCases++;
         }
 
         // Independent guarded-index pattern matrix: four x86-16 scale
@@ -269,6 +320,7 @@ internal static class Dos16MetamorphicFeedbackSmoke
             "seed=0x" + Seed.ToString("X8") +
             " finite=" + finiteCases +
             " intervals=" + intervalCases +
+            " directed=" + directedCases +
             " guarded=" + correlatedCases +
             " permutations=" + permutationCases +
             " rejectedMutations=" + mutationCases);
