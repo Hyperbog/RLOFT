@@ -822,7 +822,7 @@ add_test(NAME original_feedback_ribbon_epoch_tests COMMAND original_feedback_rib
 
 # Original CODE.2 F66C tiled RES2:3 raster, cached across VGA presents.
 add_executable(original_feedback_ribbon_raster_tests
-    tests/original_feedback_ribbon_raster_tests.cpp src/original_random.cpp)
+    tests/original_feedback_ribbon_raster_tests.cpp)
 target_link_libraries(original_feedback_ribbon_raster_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_feedback_ribbon_raster_tests COMMAND original_feedback_ribbon_raster_tests)
 
