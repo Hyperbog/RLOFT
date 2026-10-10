@@ -360,3 +360,37 @@ original CODE exports.
 
 No compiler, Windows smoke test, original Strahd execution,
 GitHub Action or production artifact has been run for this batch.
+
+## LE guard replay resource limits and one-shot input safety
+
+The complete decoded-CFG reconciliation can discard a provisional
+analysis and decode it again when later edges contradict an unsigned
+index guard. Such a replay can traverse the full bounded executable
+inventory, so the number of passes must be independent of the
+maximum number of analyst entry seeds.
+
+The source orchestrator now permits at most **32 complete analysis
+passes**, including the initial traversal. Each unsuccessful pass
+must disable at least one newly contradicted guarded-dispatch site.
+A nonconvergent or exhausted sequence terminates with an explicit
+invalid-analysis error; no partial final candidate graph is
+published as a successful run.
+
+The public analyzer also validates the image and instruction budget
+before enumerating analyst collections, and consumes at most
+4,097 supplied seed rows or 100,001 supplied protected-range rows
+before rejecting an over-limit request. Repeated identical rows
+count toward these raw resource limits. Finite caller-provided
+enumerables are materialized only once, so later source-only
+replays and final optional trace generation never re-enumerate
+single-use seed or protected-range iterators.
+
+New synthetic smoke cases exercise single-use seed/protection
+generators with a final decision trace, oversized repeated seed
+rows, and oversized repeated protected-range rows. Both over-limit
+cases must fail before consuming a trace. This is a resource
+safety constraint, not a new instruction heuristic, a claim of
+runtime dominance, or a Strahd-specific loader assumption.
+
+These changes have not been compiled or executed on Windows and
+do not advance G2 acceptance.
