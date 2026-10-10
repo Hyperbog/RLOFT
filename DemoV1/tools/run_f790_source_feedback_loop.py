@@ -25,6 +25,7 @@ SOURCE_SCRIPTS=(
     "verify_original_f790_static_resources.py",
     "verify_original_f790_runtime_event.py",
     "analyze_original_f790_candidate_coverage.py",
+    "verify_original_f790_selected_poll.py",
 )
 # Real-source runners selected by the original script's own strict CLI.
 def original_cases(code2:Path,objects:Path|None,report:Path|None):
@@ -40,6 +41,7 @@ def original_cases(code2:Path,objects:Path|None,report:Path|None):
         ("verify_original_f790_static_resources.py",("--code2",str(code2))+(
             ("--objects",str(objects)) if objects else ())),
     ]
+    cases.append(("verify_original_f790_selected_poll.py",basic))
     if report is not None:
         cases.append(("analyze_original_f790_candidate_coverage.py",
                       ("--original-code2",str(code2),"--code2-report",

@@ -34,6 +34,11 @@ if(Python3_Interpreter_FOUND)
         NAME subsystem_progress_tracker_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_subsystem_progress_tracker.py")
+    # Source 130A0 polling transition and selected F790 130DE provenance.
+    add_test(
+        NAME original_f790_selected_poll_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_selected_poll.py")
     # Candidate-function coverage differential vs 17 original F790 E8 sites.
     add_test(
         NAME original_f790_candidate_coverage_tests
@@ -915,6 +920,12 @@ add_executable(original_f790_caller_catalog_tests
     tests/original_f790_caller_catalog_tests.cpp)
 target_include_directories(original_f790_caller_catalog_tests PRIVATE include)
 add_test(NAME original_f790_caller_catalog_tests COMMAND original_f790_caller_catalog_tests)
+
+# Isolated CODE.2 130A0 selected-poll 130DE F790 event projection.
+add_executable(original_f790_selected_poll_tests
+    tests/original_f790_selected_poll_tests.cpp)
+target_include_directories(original_f790_selected_poll_tests PRIVATE include)
+add_test(NAME original_f790_selected_poll_tests COMMAND original_f790_selected_poll_tests)
 
 # Original CODE.2 scribe success/rejection/strict-expiry F790 event edges.
 add_executable(original_f790_feedback_edges_tests
