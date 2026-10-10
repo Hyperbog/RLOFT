@@ -105,3 +105,64 @@ claiming original DOS frame, VGA alias, IRQ or RNG parity.
 through indirect/initialization paths, validate ES base and destination
 pointer state through `2AB38`/framebuffer setup, then reproduce original
 draw and callback sequencing with matched DOS runtime evidence.
+
+## 2026-10-10 Part 12 VGA page provenance and separate callback bounds
+
+Original witness: uploaded CODE.2, length 558,689, SHA-256
+`853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`;
+source object-1 physical base `0x3AF24`. The existing graphics-callback
+oracle now verifies **30 exact source instruction windows**, full-body hashes
+for four additional source routines, the three page-switch E8 destinations,
+and the distinct callback slots. An independent check against the uploaded
+original binary passed locally.
+
+Original `29930..29A83` sets `EFF9=0x50` (80 bytes per VGA
+planar row), `F001=0xA0000` linear framebuffer origin, `EFE9=0`
+page, `F005=0x400` page-stride parameter, `EFED=4` and `EFF1=2`.
+In graphics mode `EFE5==3`, it changes `F005` to `0x800`.
+The whole-body SHA-256 is
+`3d58e999aa3b0da42047b0e4c0de387a76e8795635aa3141b781887605110377`.
+
+Original `2AB6C..2AB94` (41 bytes, SHA-256
+`6a6c952b6f3947ce90eb89b3dbce89c5872f1dfd9b14dec1f532c090b3bb241a`)
+updates selected VGA page and computes
+`F001 = (((EAX & 0xff) * F005 + 0xA000) << 4)` with 32-bit
+arithmetic. The direct near calls to this function are at `29FF3`,
+`2A09A` and `2A0B4`. Source `2AB38` combines page base and
+coordinates into `EBX = F001 + (y << EFED) +
+((y << EFED) << EFF1) + (x >> 2)`, with `ECX = x & 3`.
+Under the documented initialization values this is
+`F001 + 80*y + floor(x/4)`. Runtime mutations of the
+shifts, page index, or VGA mode are not excluded.
+
+Original `2AB98..2ABC3` conditionally clears VGA memory using
+`EDI=0xA0000`, sequencer-port setup and `rep stosd ES:[EDI]`.
+The `29FEC..29FF9` function forwards the selected page to
+`2AB6C`. The separate `2A020` graphics copy routine uses
+`rep movsb` with VGA mode-register configuration. These observations
+establish the intended planar VGA destination model but do **not**
+prove original protected-mode ES/DS bases or bound every computed
+destination to exclude aliasing `FF50`.
+
+The separately initialized original `F0CC` event-callback slot has
+exactly three raw literal object-1 references (`2E745`, `2EDA7`,
+`2EDB5`), setter `2E740` and indirect call `2EDB3`. Graphics
+`F0C8` has its own setter `2E74C` and conditional calls.
+Neither setter has an `E8` or `E9` relative-target candidate
+or an embedded four-byte entry-address literal anywhere in original
+CODE.2 object-1. **This is only a direct-encoding negative result**:
+external modules, indirect dispatch, relocations, runtime address
+construction, and the actual callback target remain unverified.
+
+**Acceptance:** new original-byte checks passed locally, without
+native gameplay changes or another CTest declaration. Windows Full
+#658 remains the last accepted run (214/214 on a previous SHA).
+Current native source has not been Windows Full built; no original
+DOS indexed-pixel, palette, IRQ/RNG or runtime segment equivalence
+is claimed. Preserve original `1F377` post-callback mutable
+`FF50` reload and fail-closed partial-ground rendering.
+
+**Next:** validate off-object setter reachability and segment
+selector bases with immutable EXE/DLL or matched DOS evidence before
+connecting variable-height native ground rendering.
+

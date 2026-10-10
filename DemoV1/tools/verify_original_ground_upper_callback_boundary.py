@@ -186,6 +186,74 @@ def audit_original(path:Path)->None:
                   if obj[at]==0xE8 and
                   at+5+struct.unpack_from("<i",obj,at+1)[0]==0x2E74C]
     assert not setter_rel32
+    # Source-only VGA page / optional callback installation bounds.
+    # Authentication of the original file occurs at audit_original entry.
+    page_bodies={
+        (0x29930,0x29A84):"3d58e999aa3b0da42047b0e4c0de387a76e8795635aa3141b781887605110377",
+        (0x2AB6C,0x2AB95):"6a6c952b6f3947ce90eb89b3dbce89c5872f1dfd9b14dec1f532c090b3bb241a",
+        (0x2AB98,0x2ABC4):"adae5fd75cfc31c9975ede4f32fc2c04c2c20009f6d5cf8eb1da9df08c64c8d3",
+        (0x29FEC,0x29FFA):"f7af1478c3c6ae62753eef671c68e27d38831ec5e60d413f7b04e0a38003ff6e",
+    }
+    for (start,end),sha in page_bodies.items():
+        assert obj[end-1]==0xC3,hex(end)
+        assert hashlib.sha256(obj[start:end]).hexdigest()==sha,hex(start)
+    page_windows={
+        0x2995D:"c705f9ef000050000000",
+        0x29967:"c70501f0000000000a00",
+        0x29971:"c705e9ef000000000000",
+        0x29982:"c70505f0000000040000",
+        0x2998C:"c705edef000004000000",
+        0x29996:"c705f1ef000002000000",
+        0x299AE:"c70505f0000000080000",
+        0x29FF3:"e8740b0000",
+        0x2A04E:"66bac403",
+        0x2A052:"66b8020f",
+        0x2A062:"f3a4",
+        0x2A09A:"e8cd0a0000",
+        0x2A0B4:"e8b30a0000",
+        0x2AB43:"8b0dedef0000",
+        0x2AB4D:"8b0df1ef0000",
+        0x2AB59:"c1e802",
+        0x2AB63:"031d01f00000",
+        0x2AB6E:"25ff000000",
+        0x2AB73:"a3e9ef0000",
+        0x2AB78:"a1e9ef0000",
+        0x2AB7D:"8b1505f00000",
+        0x2AB83:"f7e2",
+        0x2AB85:"0500a00000",
+        0x2AB8A:"c1e004",
+        0x2AB8D:"a301f00000",
+        0x2ABAE:"bf00000a00",
+        0x2ABB8:"b900400000",
+        0x2ABBE:"f3ab",
+        0x2E740:"8b442404a3ccf00000c3",
+        0x2E74C:"8b442404a3c8f00000c3",
+    }
+    for at,signature in page_windows.items():
+        want=bytes.fromhex(signature)
+        assert obj[at:at+len(want)]==want,hex(at)
+    # Exactly three E8-rel32 candidates target this paging routine.
+    page_calls=[at for at in range(len(obj)-4)
+                if obj[at]==0xE8 and
+                at+5+struct.unpack_from("<i",obj,at+1)[0]==0x2AB6C]
+    assert page_calls==[0x29FF3,0x2A09A,0x2A0B4]
+    # Separate input/event F0CC hook is not the F0C8 graphics hook.
+    assert b[0x75F24+0xF0CC:0x75F24+0xF0D0]==bytes(4)
+    assert [at for at in range(len(obj)-3)
+            if obj[at:at+4]==bytes.fromhex("ccf00000")]==[
+                0x2E745,0x2EDA7,0x2EDB5]
+    assert obj[0x2EDB3:0x2EDB9]==bytes.fromhex("ff15ccf00000")
+    # Excludes only direct E8/E9 encodings and literal DWORDs in
+    # original object-1; dynamic callbacks and segment aliases remain.
+    for setter in (0x2E740,0x2E74C):
+        assert not [at for at in range(len(obj)-4)
+                    if obj[at] in (0xE8,0xE9) and
+                    at+5+struct.unpack_from("<i",obj,at+1)[0]==setter]
+        assert obj.find(struct.pack("<I",setter))==-1
+    print("PASS: 4 VGA/page bodies, 30 source windows, 3 page calls")
+    print("PASS: distinct F0CC event slot, direct setter forms absent")
+    print("OPEN: external/indirect callback installation and ES/DS aliasing")
+
     print("PASS: original 29838/2986C/29564/2A478 bounded transitive paths")
     print("BOUND: zero E8-rel32 candidates for 2E74C, NOT indirect reachability")
     print("OPEN: original F0C8 target, ES aliasing, FF50 effects and DOS parity")
@@ -211,6 +279,8 @@ def audit_repository()->None:
     for term in ("296C0","2AB38","EF55","F001","indirect"):
         assert term in doc,term
     for term in ("F0C8","2E74C","2E758","2F868","indirect"):
+        assert term in doc,term
+    for term in ("29930","2AB6C","2AB98","F0CC","EFED","F005","ES"):
         assert term in doc,term
     print("PASS: source callback evidence and CTest registration")
 

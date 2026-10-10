@@ -1,5 +1,9 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+## 2026-10-10 Part 12 VGA page and F0C8/F0CC setter research
+
+Immutable original CODE.2 checks verify source 29930 VGA-page initialization, 2AB6C page-derived F001 base, 2AB38 planar byte-offset calculation, 2AB98 conditional VGA clear, and the separate F0CC event hook versus F0C8 drawing hook. Four full-body SHA checks, 30 opcode windows and three original E8 page-switch callsites passed locally. Both callback setters have zero raw object-1 E8/E9 target or embedded DWORD-entry candidates, but external/indirect installs and protected-mode ES/DS alias safety remain open. Existing original-byte regression extended, no gameplay change or CTest registration; Windows Full manual/unrun on current source, DOS parity pending. [Source audit](LEVEL22_FF50_UPPER_CALLBACK_BOUNDARY_AUDIT_20261010.md).
+
 ## 2026-10-10 1F1C8 original VGA page pointer and 34A74 raster destination bounded
 
 Original CODE.2 source instruction proof now covers **13 additional exact windows**: `1F1C8` loads BYTE `C050` for 291B0, then **DWORD `C050`** for page base `FDBC=A0000+(C050<<15)` (shipped C050 DWORD=1). Upper `FF4C/FF44/FF48=+1/+80/0x148`; lower `-1/-80/0x50F8`; 34A74 computes `FF40=FDBC+FF48` and advances FF40 by FF44 each row. For valid page 0/1 and 128 rows, both 80-byte-stride destination spans lie fully inside the selected 32KiB VGA page, separate from original FF50 address **at the linear-pointer level**. **Live ES base, full C050 write provenance and optional F0C8 callback aliases remain open**: do not mistake page arithmetic for DOS alias closure. [Expanded sampler/page audit](LEVEL22_ORIGINAL_34A74_UNROLLED_PLANAR_RASTER_AUDIT_20261010.md). Existing original-byte oracle expanded, no extra CTest or CI build.
