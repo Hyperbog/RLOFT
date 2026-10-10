@@ -157,6 +157,9 @@ CFG/guard and dataflow samples checked against independent instruction
 decoding and independently researched machine-byte/ISA expectations;
 record exact commit, binary SHA, mismatch and unsupported/unknown counts.
 Exact predeclared scope: docs/INDEPENDENT_VALIDATION_G2_PREDECLARED_SCOPE.md.
+First source-only comparator: docs/X86_16_EXTERNAL_ORACLE_COMPARISON.md;
+this does NOT run a second decoder, check operand semantics, compile
+the current source or permit independent gate acceptance by itself.
 If external comparison cannot be performed, keep G2's COMPILED/SYNTHETIC
 states separate and label independent correctness acceptance PENDING.
 
@@ -1081,3 +1084,41 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   Ghidra run, original-file re-export or accuracy acceptance.
   The manual-only workflow is unchanged. Last verified Windows
   G1 #35 tested SHA 9f605e36581b2c6db72a6a47248ea5af31611506.
+
+2026-10-10 | G2 x86-16 independent-oracle comparator (source-only):
+- Added a generic offline `Dos16ExternalOracleValidator` with
+  manifest schema v1, source SHA-256 and full length, physically
+  mapped file start/length, explicit segment:origin, tool/version/
+  decoder configuration and a bounded predeclared instruction list.
+  It does not itself run an external decoder or verify authorship.
+- Comparison checks exact original file-backed bytes and expected
+  physical offsets separately from candidate instruction bytes,
+  length and canonical flow class. Optional independently supplied
+  direct CALL/JMP/conditional-taken target is checked against a
+  retained source candidate edge. Sample denominator, unknown/
+  unobserved/missing/conflicting findings and unbenchmarked
+  candidate counts remain distinct; analysis truncation is retained.
+- Source/region/graph mismatch, duplicate or overlapping reference
+  instructions, unrecognized/numeric flow category, self-referential
+  Iced/DOSDis tool name, unsupported edge-kind or malformed bounds
+  are rejected. Reports always carry claimed-external-not-reviewed
+  and candidate-comparison-not-certification statuses, plus full
+  region, entry, source mapping and claimed tool configuration.
+- CLI added opt-in paired switches --external-oracle and
+  --external-report for mz-analyze, com-analyze and overlay-analyze.
+  JSON output is nonoverwriting, local and explicitly requested;
+  normal CFG output and manual-only CI rules remain unchanged.
+- Added Dos16ExternalOracleSmoke source with independent synthetic
+  contract data (a tiny COM near JMP/RET): expected matches,
+  incorrect original bytes, wrong category/branch target,
+  missing entry, truncated analysis, source/offset spoofing,
+  duplicate/overlapping expectations, bad tool metadata and
+  nonoverwriting export. Wired it into DosDis.Smoke.
+- Published docs/X86_16_EXTERNAL_ORACLE_COMPARISON.md and
+  updated policy, README and predeclared G2 matrix. Real outside
+  decoder execution, operand normalization, cross-title original
+  validation, human reviewer and G2 build all remain PENDING.
+- SOURCE ONLY. No compilation/tests, Actions dispatch, original
+  game modifications or independent accuracy certification.
+  G1 Windows #35 SHA 9f605e36581b2c6db72a6a47248ea5af31611506
+  remains the last verified executable baseline.
