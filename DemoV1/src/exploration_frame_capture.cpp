@@ -1,4 +1,5 @@
 #include "rloft/exploration_frame_capture.hpp"
+#include "rloft/original_ground_source_projection.hpp"
 
 #include <array>
 #include <cstddef>
@@ -132,6 +133,14 @@ void ExplorationFrameCapture::write(
             ++ground_invalid_prepass;
         }
     }
+    // Source-ordered replay only. This does NOT read original DOS
+    // DGROUP 22220/FF50, alter any ray, affect game state, or draw
+    // pixels. Unknown source provenance remains explicitly unverified.
+    const auto ground_projection=
+        OriginalGroundSourceProjectionModel::evaluate(
+            runtime.sweep_records,
+            runtime.original_c6d8_ray_count,
+            runtime.original_c738_scale_count);
     manifest<<"format\trloft-native-indexed-capture-v2\n"
             <<"provenance\tnative-preview-not-original-DOS\n"
             <<"source_revision\t"<<clean(std::string(source_revision))<<"\n"
@@ -183,6 +192,47 @@ void ExplorationFrameCapture::write(
             <<ground_source_sentinel_initializer<<"\n"
             <<"ground_sweep_native_synthetic\t"
             <<ground_native_synthetic<<"\n"
+            // Original CODE.2 335C8/32F4C/330E7/etc. native
+            // ray record projection, NEVER observed DOS 22220 RAM.
+            // Original SINTAB C6D8/C738 bound the source calculation.
+            <<"ground_projection_original_c6d8\t"
+            <<runtime.original_c6d8_ray_count<<"\n"
+            <<"ground_projection_original_c738\t"
+            <<runtime.original_c738_scale_count<<"\n"
+            <<"ground_projection_available\t"
+            <<unsigned(ground_projection.source_replay_available()?1U:0U)<<"\n"
+            <<"ground_projection_22220\t"
+            <<(ground_projection.nearest
+               ? std::to_string(ground_projection.nearest->nearest_depth)
+               : "unverified")<<"\n"
+            <<"ground_projection_zero_resets\t"
+            <<(ground_projection.nearest
+               ? std::to_string(ground_projection.nearest->sentinel_zero_resets)
+               : "unverified")<<"\n"
+            <<"ground_projection_sentinel_fills\t"
+            <<(ground_projection.nearest
+               ? std::to_string(ground_projection.nearest->source_sentinel_fill_count)
+               : "unverified")<<"\n"
+            <<"ground_projection_min_updates\t"
+            <<(ground_projection.nearest
+               ? std::to_string(ground_projection.nearest->signed_min_updates)
+               : "unverified")<<"\n"
+            <<"ground_projection_upper_ff50\t"
+            <<(ground_projection.ff50
+               ? std::to_string(ground_projection.ff50->upper_ff50)
+               : "unverified")<<"\n"
+            <<"ground_projection_lower_ff50\t"
+            <<(ground_projection.ff50
+               ? std::to_string(ground_projection.ff50->lower_ff50)
+               : "unverified")<<"\n"
+            <<"ground_projection_lower_four_plane_rows\t"
+            <<(ground_projection.ff50
+               ? std::to_string(ground_projection.ff50->lower_four_plane_rows())
+               : "unverified")<<"\n"
+            <<"ground_projection_lower_paired_plane_rows\t"
+            <<(ground_projection.ff50
+               ? std::to_string(ground_projection.ff50->lower_paired_plane_rows())
+               : "unverified")<<"\n"
             <<"ground_sweep_main_nonsentinel\t"
             <<ground_main_nonsentinel<<"\n"
             <<"ground_sweep_active_outer_nonsentinel\t"
