@@ -263,6 +263,58 @@ try
         "relocation-backed FAR target maps to original file bytes");
     Equal(farGraph.Edges.Any(e => e.Kind == "unresolved-far-call"),
         true, "original FAR CFG edge remains conservatively unresolved");
+    // FAR relocation bytes do not license a fabricated CFG address or
+    // an unrelated MZ segment window. An old graph may share its full
+    // source SHA while pointing at the wrong original-file offset.
+    Fails(() => DosMzFarTargetRecovery.Inspect(farImage,
+        farGraph with { FileOffset = farGraph.FileOffset + 1 }, farView),
+        "FAR recovery rejects a misaligned original code-window offset");
+    Fails(() => DosMzFarTargetRecovery.Inspect(farImage,
+        farGraph with { RegionByteLength = farGraph.RegionByteLength - 1 },
+        farView), "FAR recovery rejects a stale source-backed window length");
+    Fails(() => DosMzFarTargetRecovery.Inspect(farImage,
+        farGraph with { MappingEvidence = "forged-MZ-mapping" }, farView),
+        "FAR recovery rejects borrowed source-mapping evidence");
+    Fails(() => DosMzFarTargetRecovery.Inspect(farImage,
+        farGraph with { Entry = new Dos16Address(1, 0) }, farView),
+        "FAR recovery rejects an unrelated MZ relative CS graph");
+
+    var forgedFarAddress = farGraph with {
+        Instructions = farGraph.Instructions.Select(insn =>
+            insn.Length == 5
+                ? insn with { Address = new Dos16Address(insn.Address.Segment, 1) }
+                : insn).ToArray()
+    };
+    Equal(DosMzFarTargetRecovery.Inspect(
+        farImage, forgedFarAddress, farView).Count, 0,
+        "relocated FAR bytes cannot be attributed to a forged instruction IP");
+
+    var staleFarEdge = farGraph with {
+        Edges = farGraph.Edges.Select(e =>
+            e.Kind == "unresolved-far-call"
+                ? e with { Kind = "call" }
+                : e).ToArray()
+    };
+    Equal(DosMzFarTargetRecovery.Inspect(
+        farImage, staleFarEdge, farView).Count, 0,
+        "resolved-looking graph edge cannot replace an unresolved FAR call");
+    var missingFarEdge = farGraph with {
+        Edges = farGraph.Edges.Where(e =>
+            e.Kind != "unresolved-far-call").ToArray()
+    };
+    Equal(DosMzFarTargetRecovery.Inspect(
+        farImage, missingFarEdge, farView).Count, 0,
+        "missing machine-backed FAR edge blocks target annotations");
+
+    Equal(DosMzFarTargetRecovery.Inspect(farImage,
+        farGraph with { Truncated = true }, farView).Count, 0,
+        "truncated candidate graph cannot publish FAR traversal destinations");
+    var shortCrossSegment = DosMzCrossSegmentAnalysis.Analyze(
+        farImage, 0x2000, maxEntryGraphs: 2, instructionsPerEntry: 1);
+    Equal(shortCrossSegment.Truncated, true,
+        "instruction-limited cross-segment review reports truncation");
+    Equal(shortCrossSegment.CrossSegmentCandidates.Count, 0,
+        "instruction-limited review retains no partially inferred FAR targets");
     // Synthetic CS-memory pointer recovery, never CFG reachability proof.
     var nearPointer = new byte[0x24];
     new byte[] { 0x2E, 0xFF, 0x26, 0x10, 0x01 }.CopyTo(nearPointer, 0);
