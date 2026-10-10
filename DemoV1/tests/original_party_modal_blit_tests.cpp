@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <vector>
 
 namespace {
@@ -100,6 +101,28 @@ int main() {
     assert(audit[0].y==396);
     assert(audit[1].y==398);
     assert(audit[2].y==400);
+
+    // Original CODE.2 12988 RES2 encumbrance bitmap at y=0x73,
+    // 10A70 phase 1/2 at y=0xC4 and phase 3 at y=0xCE.
+    // All three use 2E510 -> 2E4A4 and must draw their ENTIRE
+    // multi-frame resource, not frame 0 alone.
+    for(const int y : {0x73,0xC4,0xCE}) {
+        fb.clear(0U);
+        audit.clear();
+        rloft::OriginalPartyModalBlit::complete_2e510(
+            fb,two_rows,y,0x50);
+        for(int frame=0;frame<3;++frame) {
+            assert(pixel(fb,y+2*frame,0x50)==
+                   static_cast<std::uint8_t>(50+frame));
+            assert(pixel(fb,y+2*frame+1,0x57)==
+                   static_cast<std::uint8_t>(50+frame));
+        }
+        assert(pixel(fb,y+6,0x50)==0U);
+        assert(audit.size()==3U);
+        assert(audit[0].y==y);
+        assert(audit[1].y==y+2);
+        assert(audit[2].y==y+4);
+    }
     // Destroying/clearing the optional observer changes no game state.
     fb.set_draw_audit(nullptr,nullptr);
 }

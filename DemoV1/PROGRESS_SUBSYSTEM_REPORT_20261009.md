@@ -15,6 +15,8 @@
 
 **Original-source party modal background repair:** the uploaded first Level22 session logged `200×320×1` frame-zero strips. Disassembly of original CODE.2 `2E510→2E4A4` confirms **whole-descriptor raster drawing**, while `2975C` remains a one-frame icon blit. Native party/inventory backgrounds now call the correct full-resource routine without changing other sprite call sites. [Exact original offsets and regression](LEVEL22_SOURCE_MODAL_FULLFRAME_REPAIR_20261009.md). Registered CTests **181** (two unbuilt since Full #649 passed 179). **49.8% weighted readiness unchanged; 0% current-DOS parity accepted.**
 
+**2026-10-10 CODE.2 native modal compliance checkpoint:** original `CODE.2` binary/hash, four instruction callsite signatures and canonical C++ independently confirm `12988/10A70` all-frame RES2 art draws, `12988` burden label at `lane+6, width0x3C`, and `112EC/11268` actor-major container/outline ordering. Native party modal paths corrected; source-to-native contract test registered. [original CODE.2 modal/RES2, text-geometry and actor-order audit](LEVEL22_CODE2_MODAL_RES2_SOURCE_ORDER_AUDIT_20261010.md). **182 registered CTests; newest changes UNBUILT** (last green Full #649: 179/179). The 49.8% weighted engineering estimate and 0% original-DOS acceptance remain unchanged.
+
 ## Scoring rules — fixed for future checkpoints
 
 **Weights:** original behavior mapped **10%**; native source implementation **20%**; runtime integration **20%**; regression assertions present **10%**; current-revision original DOS behavioral acceptance **40%**.
@@ -167,7 +169,7 @@ Each row's five gate marks are out of 20; the weighted readiness column is an in
 | --- | ---: | --- | --- | --- |
 | In-game HUD and portraits | **60.0%** | 20/20/20/20/0 | `party_hud.cpp` | Original HUD framebuffer comparison |
 | Top-edge menu and actions | **50.0%** | 20/20/10/20/0 | `top_edge_menu.cpp` | Complete rest and save menus |
-| Party and inventory modal | **60.0%** | 20/20/20/20/0 | `party_modal_presenter.cpp and original_party_modal_blit.hpp` | Verify source 2E510 full-resource backgrounds against DOS modal pixels and timing |
+| Party and inventory modal | **60.0%** | 20/20/20/20/0 | `party_modal_presenter.cpp and original_party_modal_blit.hpp and test_original_modal_graphics_contract.py` | Verify 12988 and 10A70 RES2 modal source and 112EC per-actor draw order against DOS |
 | Mouse keyboard and hit regions | **60.0%** | 20/20/20/20/0 | `party_panel_controls.cpp` | Original mouse event mapping |
 | Quit confirmation and menus | **60.0%** | 20/20/20/20/0 | `quit_confirm.cpp` | Original modal exit acceptance |
 | Options rest pray memorize load save | **20.0%** | 10/10/0/10/0 | `options_menu.cpp` | Bind original game actions |
@@ -288,7 +290,7 @@ Each row's five gate marks are out of 20; the weighted readiness column is an in
 | Subsystem | Readiness | S/N/L/T/D | Source implementation evidence | Next acceptance blocker |
 | --- | ---: | --- | --- | --- |
 | Original file provenance and byte audits | **60.0%** | 20/20/20/20/0 | `source archive docs + DAT CODE audits` | Complete all remaining original unknowns |
-| Automated regression test catalog | **60.0%** | 20/20/20/20/0 | `CMakeLists.txt 179 CTests (trace one unbuilt)` | Original DOS cross-comparison and current-head build |
+| Automated regression test catalog | **60.0%** | 20/20/20/20/0 | `CMakeLists.txt 182 registered CTests (179 verified in Full 649)` | Execute latest-source Full Windows and original DOS comparison |
 | Opt-in Level22 state diagnostics | **60.0%** | 20/20/20/20/0 | `dev_level_diagnostics.cpp and dev_session_trace.cpp and startup_presenter.cpp and win32_main.cpp` | Full Windows build and user diagnostic ZIP draw-order validation |
 | Opt-in Level22 world pickup and hand exchange | **60.0%** | 20/20/20/20/0 | `dev_level_interaction_policy.hpp and win32_main.cpp` | Current-head manual interaction trace and DOS source behavior |
 | Visual DOS captures and comparisons | **45.0%** | 20/20/10/10/0 | `exploration_frame_capture.cpp` | Complete DOS/native pixel comparison |

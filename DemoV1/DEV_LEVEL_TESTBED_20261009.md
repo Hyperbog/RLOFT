@@ -1,5 +1,9 @@
 # Level 22 — reusable native development testbed
 
+## Level22 RES2 complete modal blits and draw ordering (verified source only)
+
+Authoritative `CODE.2` original bytes plus canonical `Code2.cpp` show `12988` encumbrance and both `10A70` container art paths invoke whole-resource `2E510`, not a single-frame `2975C` operation. The native modal now reproduces each full drawing call, the original `0xA4` burden-label text geometry, and actor-major `112EC→11268` container/selection-outline order. [original CODE.2 modal/RES2, text-geometry and actor-order audit](LEVEL22_CODE2_MODAL_RES2_SOURCE_ORDER_AUDIT_20261010.md). **182 CTests registered, unbuilt**, last Full Windows #649 **179/179**; on-machine and original DOS pixel/timing checks pending.
+
 ## Reconstructed original actor/inventory full-raster background (unbuilt)
 
 An independent original CODE.2 disassembly shows `2E510` uses `2E4A4` to draw every frame of a raster, while `2975C` draws a single frame. The first real diagnostic ZIP captured the native mistake: only frame0 of the original `200×320×1` inventory backdrop was drawn. The modal presenter now uses the source-correct complete draw path for actor and equipment/backdrop calls only. New raster unit coverage brings **181 CTests registered**, compared to Full #649's 179/179 passing. [Original source callsites, evidence and test](LEVEL22_SOURCE_MODAL_FULLFRAME_REPAIR_20261009.md). Windows screenshot retest is required for original-DOS pixel parity.

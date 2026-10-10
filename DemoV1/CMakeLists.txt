@@ -34,6 +34,13 @@ if(Python3_Interpreter_FOUND)
         NAME subsystem_progress_tracker_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_subsystem_progress_tracker.py")
+    # CODE.2 12988/10A70/11268/112EC + native modal operation
+    # contract. Optional external CODE.2 byte-check can be run with
+    # --original-code2; the original copyrighted file is not in CI.
+    add_test(
+        NAME original_modal_graphics_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_original_modal_graphics_contract.py")
 endif()
 
 add_library(rloft_boot_flow

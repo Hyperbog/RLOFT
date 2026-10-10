@@ -469,7 +469,10 @@ void PartyModalPresenter::draw_encumbrance_panel(
     // row 0x73, actor lane origin. The original is a bitmap,
     // not an 0x45 flat red rectangle. The six real T labels and
     // source-derived values are overlaid on this authentic art.
-    framebuffer.draw_frame(assets_.type1(2,0x25),0,0x73,lane);
+    // CODE.2 129BF -> 2E510(0x73,lane,0x25,RES2):
+    // the entire original descriptor, not its first frame.
+    OriginalPartyModalBlit::complete_2e510(
+        framebuffer,assets_.type1(2,0x25),0x73,lane);
     IndexedFontPresenter::draw(
         framebuffer,font1_,0x88,lane+7,assets_.text(0x266));
     IndexedFontPresenter::draw_right(
@@ -481,77 +484,77 @@ void PartyModalPresenter::draw_encumbrance_panel(
         framebuffer,font1_,0x96,lane+0x45,
         std::to_string(values.carried_pounds));
     IndexedFontPresenter::draw_centered(
-        framebuffer,font1_,0xA4,lane,0x50,
+        framebuffer,font1_,0xA4,lane+6,0x3C,
         assets_.text(0x268+values.burden_rank));
 }
 
 void PartyModalPresenter::draw_open_container(
     IndexedFramebuffer& framebuffer,
     const InventoryRuntimeState& inventory,
-    const std::array<bool,4>& character_mode) const {
-    // 112EC draws all FOUR actor panels. 10EEC reads 6FA0
-    // independently for each actor and 10A70 draws its content
-    // only when phase==3. Rendering just the single selected
-    // native open_container silently discarded other source
-    // contexts. The current native click handler still selects
-    // one view at a time; this is source-backed presentation.
-    for(std::size_t actor=0U;actor<PartyImage::kActorCount;++actor) {
-        if(character_mode[actor])continue;
-        const auto& ui=inventory.party_container_ui_contexts[actor];
-        // CODE.2 10A70: phases 1 and 2 draw the ORIGINAL
-        // RES2 frame (0x14 + subtype*2 + phase - 1) at row
-        // C4h. Phase 0 draws nothing. This models the source
-        // animation artwork, not the still-pending 10FAC/110B4
-        // VGA retrace schedule and buffer-flip ordering.
-        if(ui.active() && (ui.raw[2]==1U || ui.raw[2]==2U)) {
-            if(ui.raw[0]<7U) {
-                const auto graphic=InventoryScreenModel::
-                    original_container_transition_res2_graphic(
-                        ui.raw[0],ui.raw[2]);
-                const int lane=static_cast<int>(actor)*0x50;
-                framebuffer.draw_frame(
-                    assets_.type1(2,graphic),0,0xC4,lane);
-            }
-            continue;
+    const std::array<bool,4>& character_mode,
+    std::size_t actor) const {
+    // Original CODE.2 112EC calls 11268 for ONE actor lane at a
+    // time. 1118C -> 10BBC -> 10A70 draws that actor's container
+    // before 11268 draws its selection outline, then the next
+    // actor lane begins. Do not overlay every container afterward.
+    if(actor>=PartyImage::kActorCount || character_mode[actor])return;
+    const auto& ui=inventory.party_container_ui_contexts[actor];
+    // CODE.2 10A70: phases 1 and 2 draw the ORIGINAL
+    // RES2 frame (0x14 + subtype*2 + phase - 1) at row
+    // C4h. Phase 0 draws nothing. This models the source
+    // animation artwork, not the still-pending 10FAC/110B4
+    // VGA retrace schedule and buffer-flip ordering.
+    if(ui.active() && (ui.raw[2]==1U || ui.raw[2]==2U)) {
+        if(ui.raw[0]<7U) {
+            const auto graphic=InventoryScreenModel::
+                original_container_transition_res2_graphic(
+                    ui.raw[0],ui.raw[2]);
+            const int lane=static_cast<int>(actor)*0x50;
+            // CODE.2 10ABE -> 2E510(0xC4,lane,graphic,RES2)
+            OriginalPartyModalBlit::complete_2e510(
+                framebuffer,assets_.type1(2,graphic),0xC4,lane);
         }
-        std::size_t state_index=inventory.containers.size();
-        if(ui.fully_open())
-            state_index=ui.raw[1];
-        else if(ui.inactive() && inventory.open_container &&
-                inventory.open_container->actor==actor)
-            // Synthetic legacy tests may provide an interactive
-            // selection without a 6FA0 state. Never fall back to
-            // phase3 art for a real partial phase0/1/2 context.
-            state_index=inventory.open_container->descriptor_index;
-        if(state_index>=inventory.containers.size())continue;
-        const auto& desc=inventory.containers[state_index];
-        if(desc.ui_columns==0U || desc.slot_count==0U ||
-           desc.items.size()!=desc.slot_count)continue;
+        return;
+    }
+    std::size_t state_index=inventory.containers.size();
+    if(ui.fully_open())
+        state_index=ui.raw[1];
+    else if(ui.inactive() && inventory.open_container &&
+            inventory.open_container->actor==actor)
+        // Synthetic legacy tests may provide an interactive
+        // selection without a 6FA0 state. Never fall back to
+        // phase3 art for a real partial phase0/1/2 context.
+        state_index=inventory.open_container->descriptor_index;
+    if(state_index>=inventory.containers.size())return;
+    const auto& desc=inventory.containers[state_index];
+    if(desc.ui_columns==0U || desc.slot_count==0U ||
+       desc.items.size()!=desc.slot_count)return;
 
-        // 10A70/10ACB source: RES2[9 + subtype] at VGA row CEh,
-        // character column 80*actor. Retain original surround
-        // art and only phase-3 content. Partial 0/1/2 animation
-        // frames are reserved for original 10FAC/110B4 renderer.
-        const int lane=static_cast<int>(actor)*0x50;
-        const auto panel_art=assets_.type1(
-            2,InventoryScreenModel::original_container_res2_graphic(
-                desc.subtype));
-        framebuffer.draw_frame(panel_art,0,0xCE,lane);
-        for(std::size_t index=0U;index<desc.items.size();++index) {
-            const int row=0xDB+
-                static_cast<int>(index/desc.ui_columns)*0x22;
-            const int column=lane+desc.ui_x_offset+
-                static_cast<int>(index%desc.ui_columns)*0x12;
-            framebuffer.fill_rect(row,column,32,16,0);
-            const auto id=desc.items[index];
-            if(id<0)continue;
-            const auto& object=objects_.at(
-                static_cast<std::size_t>(id));
-            const auto raster=assets_.type1(
-                1,static_cast<int>(res1_object_base_)+
-                  object.ui_graphic_index);
-            framebuffer.draw_frame(raster,0,row,column);
-        }
+    // 10A70/10ACB source: RES2[9 + subtype] at VGA row CEh,
+    // character column 80*actor. Retain original surround
+    // art and only phase-3 content. Partial 0/1/2 animation
+    // frames are reserved for original 10FAC/110B4 renderer.
+    const int lane=static_cast<int>(actor)*0x50;
+    const auto panel_art=assets_.type1(
+        2,InventoryScreenModel::original_container_res2_graphic(
+            desc.subtype));
+    // CODE.2 10ADF -> 2E510(0xCE,lane,9+subtype,RES2)
+    OriginalPartyModalBlit::complete_2e510(
+        framebuffer,panel_art,0xCE,lane);
+    for(std::size_t index=0U;index<desc.items.size();++index) {
+        const int row=0xDB+
+            static_cast<int>(index/desc.ui_columns)*0x22;
+        const int column=lane+desc.ui_x_offset+
+            static_cast<int>(index%desc.ui_columns)*0x12;
+        framebuffer.fill_rect(row,column,32,16,0);
+        const auto id=desc.items[index];
+        if(id<0)continue;
+        const auto& object=objects_.at(
+            static_cast<std::size_t>(id));
+        const auto raster=assets_.type1(
+            1,static_cast<int>(res1_object_base_)+
+              object.ui_graphic_index);
+        framebuffer.draw_frame(raster,0,row,column);
     }
 }
 
@@ -629,6 +632,13 @@ PartyModalCoverage PartyModalPresenter::draw(
             actor);
 
         if (!actor.active) {
+            // CODE.2 11268 draws the selection outline even for
+            // inactive actor columns, after the inactive backdrop.
+            if(actor_index==selected_actor)
+                ExplorationHudPresenter::draw_outline(
+                    framebuffer,0,
+                    static_cast<int>(actor_index)*0x50,
+                    0x190,0x50,0x1A);
             continue;
         }
         ++coverage.active_columns;
@@ -664,21 +674,22 @@ PartyModalCoverage PartyModalPresenter::draw(
                 draw_inventory(
                     framebuffer,
                     actor);
+            // 1118C -> 10BBC -> 10A70: current actor's container
+            // before the original 11268 selection outline.
+            if(inventory!=nullptr)
+                draw_open_container(
+                    framebuffer,*inventory,character_mode,actor_index);
         }
+        // CODE.2 11268 draws the outline within the per-actor
+        // function, before 112EC advances to the next lane.
+        if(actor_index==selected_actor)
+            ExplorationHudPresenter::draw_outline(
+                framebuffer,0,
+                static_cast<int>(actor_index)*0x50,
+                0x190,0x50,0x1A);
     }
 
-    // 11268: selected party actor receives a 400x80 outline in color 1Ah.
-    ExplorationHudPresenter::draw_outline(
-        framebuffer,
-        0,
-        static_cast<int>(selected_actor) *
-            0x50,
-        0x190,
-        0x50,
-        0x1A);
-
     if(inventory!=nullptr) {
-        draw_open_container(framebuffer,*inventory,character_mode);
         draw_held_cursor_and_description(
             framebuffer,*inventory,pointer);
         if(encumbrance_actor &&

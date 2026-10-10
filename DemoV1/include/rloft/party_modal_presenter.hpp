@@ -108,7 +108,8 @@ private:
     void draw_open_container(
         IndexedFramebuffer& framebuffer,
         const InventoryRuntimeState& inventory,
-        const std::array<bool,4>& character_mode) const;
+        const std::array<bool,4>& character_mode,
+        std::size_t actor) const;
     void draw_held_cursor_and_description(
         IndexedFramebuffer& framebuffer,
         const InventoryRuntimeState& inventory,
