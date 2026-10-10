@@ -51,6 +51,45 @@ OriginalGroundRes4Report OriginalGroundRes4Audit::inspect(
     result.total_entries=archive.entry_count();
     for(int i=0;i<result.total_entries;++i) {
         const auto raw=archive.entry(i);
+        // Original installed Strahd RES4 stores EH6 blocks, not EH1
+        // raster descriptors. CODE.2 37590 LZSS-decodes these and
+        // 2EF38 marks the loaded cache record type 1. Only inspect
+        // source-declared 4096-byte blocks for the 34A74 floor tile.
+        if(raw.size()>=3U && raw[0]=='E' && raw[1]=='H' &&
+           raw[2]==6U) {
+            ++result.type6_entries;
+            if(raw.size()<7U) {
+                ++result.rejected_type6_entries;
+                continue;
+            }
+            const auto extension=static_cast<std::int16_t>(
+                static_cast<std::uint16_t>(raw[3U]) |
+                (static_cast<std::uint16_t>(raw[4U])<<8U));
+            if(extension<0 ||
+               static_cast<std::size_t>(extension)>raw.size()-7U) {
+                ++result.rejected_type6_entries;
+                continue;
+            }
+            const auto size_at=5U+static_cast<std::size_t>(extension);
+            const auto uncompressed=static_cast<std::uint16_t>(
+                static_cast<std::uint16_t>(raw[size_at]) |
+                (static_cast<std::uint16_t>(raw[size_at+1U])<<8U));
+            if(uncompressed!=4096U)continue;
+            try {
+                const auto block=archive.decode_type6_block(i);
+                if(block.size()!=4098U)
+                    throw std::runtime_error("EH6 original ground size mismatch");
+                const std::vector<std::uint8_t> pixels(
+                    block.begin()+2,block.end());
+                result.tiles_64x64.push_back(
+                    OriginalGroundRes4Candidate{
+                        i,raw.size(),3U,0U,0xFFU,fnv1a(pixels),6U
+                    });
+            } catch(const std::exception&) {
+                ++result.rejected_type6_entries;
+            }
+            continue;
+        }
         if(raw.size()<3U || raw[0]!='E' || raw[1]!='H' ||
            raw[2]!=1U) {
             continue;
@@ -133,17 +172,26 @@ int OriginalGroundRes4Audit::absolute_index(
 
 std::vector<std::uint8_t> OriginalGroundRes4Audit::verified_tile_source(
     const ResArchive& archive, int original_absolute_index) {
-    const auto decoded=archive.decode_type1(
-        original_absolute_index);
-    if(!is_source_ground_shape(decoded)) {
-        throw std::invalid_argument(
-            "selected RES4 type-1 source is not a decoded 64x64 tile");
+    const auto raw=archive.entry(original_absolute_index);
+    if(raw.size()>=3U && raw[0]=='E' && raw[1]=='H' && raw[2]==6U) {
+        // Original 37590 returns the *real* u16-length-prefixed
+        // decompressed block (rather than a host-created zero pad).
+        // 2EF38 reclassifies the loaded cache entry to type 1,
+        // satisfying 2F29C. 34A74 consumes exactly C040+2.
+        auto block=archive.decode_type6_block(original_absolute_index);
+        if(block.size()!=4098U)
+            throw std::invalid_argument(
+                "selected original EH6 RES4 ground is not 4096 bytes");
+        return block;
     }
-    // Host's dummy 2 bytes model the C040+2 addressing contract:
-    // the pixels themselves are the actual unmodified RES4 source.
+    // EH1 still produces a runtime type1 cache entry on the original
+    // 2ECB4 switch, even though this installed RES4 contains only EH6.
+    const auto decoded=archive.decode_type1(original_absolute_index);
+    if(!is_source_ground_shape(decoded))
+        throw std::invalid_argument(
+            "selected RES4 EH1 source is not a decoded 64x64 tile");
     std::vector<std::uint8_t> result{0U,0U};
-    result.insert(
-        result.end(),decoded.pixels.begin(),decoded.pixels.end());
+    result.insert(result.end(),decoded.pixels.begin(),decoded.pixels.end());
     return result;
 }
 
