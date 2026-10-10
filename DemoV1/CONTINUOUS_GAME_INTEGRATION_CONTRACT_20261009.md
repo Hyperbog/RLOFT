@@ -1,6 +1,10 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
 
+## 2026-10-10 Full Windows build #651 verified — 182/182 tests
+
+[Full #651](https://github.com/Hyperbog/RLOFT/actions/runs/38026056424) compiled and passed **all 182 CTests**, including original `RES2` loading, source-correct full-frame modal blits, `CODE.2` native contract and diagnostic-recorder regressions. Published artifact: `Ravenloft-Demo-v1-Windows-x64` with `Diagnose-Level22.cmd`; EXE SHA-256 `f622113e0813cd16826b8a2e92fc40ae31f7ea6358780191d822459738c09786`. [Full reproducibility, source SHA, failure/retry explanation and first user test instructions](FULL_WINDOWS_BUILD_CHECKPOINT_20261010_RUN651.md). **The fixed Level22 UI still awaits user interaction/diagnostic ZIP and original-DOS comparison.** No completion-percentage adjustment or independent Level23 work. Workflow restored **manual-only**.
+
 ## Binding pre-commit reconstruction protocol — read for EVERY native-code batch
 
 **Source of policy:** [original-game charter](ORIGINAL_EXECUTION_FIDELITY_CHARTER.md#mandatory-source-verification-gate--applies-before-every-gameplay-code-commit). The source-verified game baseline must never accept unverified gameplay code. This requirement already exists in our decompilation methodology; this section makes it enforceable for the separate native `DemoV1` integration.

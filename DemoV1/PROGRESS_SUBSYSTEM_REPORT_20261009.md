@@ -4,7 +4,7 @@
 **Branch:** `demo-v1`  
 **Scope:** Level 22 reusable development testbed and systems needed for the full original game.  
 **Source of truth:** [editable scoring data](PROGRESS_SUBSYSTEMS.csv).  
-**Current revision acceptance:** Full Windows build [#649](https://github.com/Hyperbog/RLOFT/actions/runs/38003217534) **passed all 179 CTests** at source `6241a807baf53449256e5517687430283fdf2ca3`, including new opt-in `dev_session_trace_tests` and the Level22 drawing-order recorder. [Exact build/EXE provenance](FULL_WINDOWS_BUILD_CHECKPOINT_20261009_RUN649.md). **No current-source original-DOS visual, state, timing, diagnostic ZIP/manual interaction, or complete Level22 gameplay acceptance has passed.**  
+**Current revision acceptance:** Full Windows build [#651](https://github.com/Hyperbog/RLOFT/actions/runs/38026056424) **passed all 182 CTests** at source revision `f9a13a7ac8c013f0752d300dcd78fbf8bb3d5419` (Gameplay baseline `338f4f18`; trigger metadata only beyond it), including original RES2, full-source modal blitter, CODE.2 contract and diagnostic-recorder tests. [EXE SHA-256/artifact/provenance](FULL_WINDOWS_BUILD_CHECKPOINT_20261010_RUN651.md). **No current-source original-DOS pixel/state/timing or complete Level22 gameplay acceptance has passed; new modal fixes still require manual field testing.**  
 **Separate historical metric:** the pre-existing 32-task engineering ledger remains **56.25% (18/32)**. It is NOT numerically comparable to these weighted readiness estimates.
 
 **Diagnostic recorder build checkpoint:** the opt-in Level22 [flight recorder](LEVEL22_DEV_TRACE_CHECKPOINT_20261009.md) captures indexed VGA pixels/palettes, ordered Type1 drawing calls, input/state hashes, original RES3 source traces and F12 markers. Source and new regression have now passed **179/179 Windows Full CTests (#649)**; the diagnostic EXE and launcher are published, but user-supplied ZIP playback/interpretation and DOS pixel/gameplay acceptance are still open. **No readiness percentage change solely for native build success.**
@@ -16,6 +16,8 @@
 **Original-source party modal background repair:** the uploaded first Level22 session logged `200×320×1` frame-zero strips. Disassembly of original CODE.2 `2E510→2E4A4` confirms **whole-descriptor raster drawing**, while `2975C` remains a one-frame icon blit. Native party/inventory backgrounds now call the correct full-resource routine without changing other sprite call sites. [Exact original offsets and regression](LEVEL22_SOURCE_MODAL_FULLFRAME_REPAIR_20261009.md). Registered CTests **181** (two unbuilt since Full #649 passed 179). **49.8% weighted readiness unchanged; 0% current-DOS parity accepted.**
 
 **2026-10-10 CODE.2 native modal compliance checkpoint:** original `CODE.2` binary/hash, four instruction callsite signatures and canonical C++ independently confirm `12988/10A70` all-frame RES2 art draws, `12988` burden label at `lane+6, width0x3C`, and `112EC/11268` actor-major container/outline ordering. Native party modal paths corrected; source-to-native contract test registered. [original CODE.2 modal/RES2, text-geometry and actor-order audit](LEVEL22_CODE2_MODAL_RES2_SOURCE_ORDER_AUDIT_20261010.md). **182 registered CTests; newest changes UNBUILT** (last green Full #649: 179/179). The 49.8% weighted engineering estimate and 0% original-DOS acceptance remain unchanged.
+
+**New Full Windows build acceptance (#651):** all **182/182** registered CTests passed, including the original source-contract modal regression, source-derived RES2 and complete-draw tests and recorder test. EXE checksum and launchers published. Previous #650 test syntax error fixed before successful retry. [Provenance](FULL_WINDOWS_BUILD_CHECKPOINT_20261010_RUN651.md). Source verification, actual Windows native regression pass, on-machine Level22 UX validation and original-DOS behavioral parity remain distinct. **49.8% provisional readiness unchanged; current DOS parity still 0%.**
 
 ## Scoring rules — fixed for future checkpoints
 
@@ -290,11 +292,11 @@ Each row's five gate marks are out of 20; the weighted readiness column is an in
 | Subsystem | Readiness | S/N/L/T/D | Source implementation evidence | Next acceptance blocker |
 | --- | ---: | --- | --- | --- |
 | Original file provenance and byte audits | **60.0%** | 20/20/20/20/0 | `source archive docs + DAT CODE audits` | Complete all remaining original unknowns |
-| Automated regression test catalog | **60.0%** | 20/20/20/20/0 | `CMakeLists.txt 182 registered CTests (179 verified in Full 649)` | Execute latest-source Full Windows and original DOS comparison |
-| Opt-in Level22 state diagnostics | **60.0%** | 20/20/20/20/0 | `dev_level_diagnostics.cpp and dev_session_trace.cpp and startup_presenter.cpp and win32_main.cpp` | Full Windows build and user diagnostic ZIP draw-order validation |
+| Automated regression test catalog | **60.0%** | 20/20/20/20/0 | `CMakeLists.txt 182 CTests (182 verified Full 651)` | Original DOS cross-comparison of current gameplay |
+| Opt-in Level22 state diagnostics | **60.0%** | 20/20/20/20/0 | `dev_level_diagnostics.cpp and dev_session_trace.cpp and startup_presenter.cpp and win32_main.cpp` | Full 651 native tests pass; retest latest visual F12 ZIP and original DOS |
 | Opt-in Level22 world pickup and hand exchange | **60.0%** | 20/20/20/20/0 | `dev_level_interaction_policy.hpp and win32_main.cpp` | Current-head manual interaction trace and DOS source behavior |
 | Visual DOS captures and comparisons | **45.0%** | 20/20/10/10/0 | `exploration_frame_capture.cpp` | Complete DOS/native pixel comparison |
-| Manual Windows build reproducibility | **60.0%** | 20/20/20/20/0 | `github workflow and CMakeLists.txt` | Full Windows build 648 passed 178 of 178; trace code now needs next manual build |
+| Manual Windows build reproducibility | **60.0%** | 20/20/20/20/0 | `github workflow and CMakeLists.txt` | Full Windows 651 passed 182 of 182; manual-only workflow restored |
 | Original start to game-end acceptance | **5.0%** | 10/0/0/0/0 | `CONTINUOUS_GAME_INTEGRATION_CONTRACT` | Full original campaign milestone |
 
 ## Mandatory reporting format for ALL future checkpoints

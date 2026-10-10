@@ -1,5 +1,9 @@
 # Level 22 — reusable native development testbed
 
+## 2026-10-10 Full Windows build #651 verified — 182/182 tests
+
+[Full #651](https://github.com/Hyperbog/RLOFT/actions/runs/38026056424) compiled and passed **all 182 CTests**, including original `RES2` loading, source-correct full-frame modal blits, `CODE.2` native contract and diagnostic-recorder regressions. Published artifact: `Ravenloft-Demo-v1-Windows-x64` with `Diagnose-Level22.cmd`; EXE SHA-256 `f622113e0813cd16826b8a2e92fc40ae31f7ea6358780191d822459738c09786`. [Full reproducibility, source SHA, failure/retry explanation and first user test instructions](FULL_WINDOWS_BUILD_CHECKPOINT_20261010_RUN651.md). **The fixed Level22 UI still awaits user interaction/diagnostic ZIP and original-DOS comparison.** No completion-percentage adjustment or independent Level23 work. Workflow restored **manual-only**.
+
 ## Level22 RES2 complete modal blits and draw ordering (verified source only)
 
 Authoritative `CODE.2` original bytes plus canonical `Code2.cpp` show `12988` encumbrance and both `10A70` container art paths invoke whole-resource `2E510`, not a single-frame `2975C` operation. The native modal now reproduces each full drawing call, the original `0xA4` burden-label text geometry, and actor-major `112EC→11268` container/selection-outline order. [original CODE.2 modal/RES2, text-geometry and actor-order audit](LEVEL22_CODE2_MODAL_RES2_SOURCE_ORDER_AUDIT_20261010.md). **182 CTests registered, unbuilt**, last Full Windows #649 **179/179**; on-machine and original DOS pixel/timing checks pending.
