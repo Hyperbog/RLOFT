@@ -906,6 +906,12 @@ add_executable(original_f790_caller_catalog_tests
 target_include_directories(original_f790_caller_catalog_tests PRIVATE include)
 add_test(NAME original_f790_caller_catalog_tests COMMAND original_f790_caller_catalog_tests)
 
+# Original CODE.2 scribe success/rejection/strict-expiry F790 event edges.
+add_executable(original_f790_feedback_edges_tests
+    tests/original_f790_feedback_edges_tests.cpp)
+target_link_libraries(original_f790_feedback_edges_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_f790_feedback_edges_tests COMMAND original_f790_feedback_edges_tests)
+
 # Original F5F8 subtype-0x14 early return must ignore mutable bag contents.
 add_executable(original_f5f8_special_weight_tests
     tests/original_f5f8_special_weight_tests.cpp)
