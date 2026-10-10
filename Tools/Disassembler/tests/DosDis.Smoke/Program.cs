@@ -2418,6 +2418,37 @@ try
                 "alternative seeded x86-32 entry cannot gain unsigned JA proof");
         }
 
+    // A separately entered JA uses flags from an unknown caller:
+    // CMP AL,9 does not dominate the guard and cannot bound the
+    // indirect transfer, even if its original fallthrough edge exists.
+    foreach (bool guardFirst in new[] { false, true })
+    {
+        var guardSeeds = guardFirst
+            ? new[] { new FlowAddress(1, 4), new FlowAddress(1, 0) }
+            : new[] { new FlowAddress(1, 0), new FlowAddress(1, 4) };
+        var independentGuard = ControlFlowAnalysis.Analyze(
+            byteSwitchImage, seeds: guardSeeds);
+        Equal(independentGuard.JumpTables.Count, 0,
+            "separately seeded unsigned JA cannot inherit CMP flags");
+    }
+
+    // Out-of-range JA must really escape *past* the indexed transfer.
+    // Jumping into MOVZX, directly into JMP, or backwards allows an
+    // uncontrolled index along the nominally out-of-range path.
+    foreach (var badGuard in new[] {
+        (Displacement: (byte)0x00, Label: "JA-to-MOVZX"),
+        (Displacement: (byte)0x03, Label: "JA-to-indirect-JMP"),
+        (Displacement: (byte)0xFC, Label: "JA-backwards-to-CMP")
+    })
+    {
+        var mutated = (byte[])byteSwitchBytes.Clone();
+        mutated[0x200 + 5] = badGuard.Displacement;
+        var unsafeGraph = ControlFlowAnalysis.Analyze(
+            LeImage.Load(BinaryArtifact.FromBytes(mutated)));
+        Equal(unsafeGraph.JumpTables.Count, 0,
+            badGuard.Label + " cannot prove a bounded indirect index");
+    }
+
     var signedByteSwitch = (byte[])byteSwitchBytes.Clone();
     signedByteSwitch[0x200 + 4] = 0x7F; // JG, signed rather than JA
     Equal(ControlFlowAnalysis.Analyze(LeImage.Load(
