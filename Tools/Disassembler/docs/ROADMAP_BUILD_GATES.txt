@@ -710,3 +710,49 @@ Reference: P0_MZ_CROSS_SEGMENT_CANDIDATES.md.
   within CI smoke fixtures or portable application builds.
 - The R3 synthetic MZ alias/far-relocation tests remain independently
   generated fixture bytes, not derived from any game's CODE files.
+
+2026-10-10 | LE/x86-32 Strahd CODE JSON handoff addressed in source:
+- Original input provenance: Code1.json and Code2.json in the supplied
+  2026-10-10 feedback are specifically Strahd's Possession snapshots,
+  NOT Stone Prophet or Menzoberranzan, despite shared CODE.1/2 names.
+  The handoff CODE.2 source SHA is
+  853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314;
+  do not infer the current CLI/app's results from older export snapshots.
+- Audited the generic x86-32 LE guarded table detector. It proved
+  only adjacent CMP index,N -> unsigned JA -> indexed JMP; the reported
+  Strahd object-1 F8BF SUB AL,2; F8C1 CMP AL,9; F8C3 JA;
+  F8C9 MOVZX EAX,AL; F8CC indexed CS table at F768 requires a
+  byte-register zero-extension bridge. Added exact source-decoded
+  CMP byte,N -> unsigned JA -> MOVZX DWORD index, same byte ->
+  indexed JMP recognizer with unique guarded predecessor edges.
+  It does not model pre-CMP SUB, infer runtime execution or bypass
+  unrelated instructions, segment overrides or mismatched aliases.
+- Relocation-backed LE indexed tables now consume the same bounded
+  guard proof as unrelocated literal table recovery. Select only
+  source-backed pointer slots within the demonstrated count and label
+  the proof pattern; if the original relocation run is insufficient,
+  retain the prior index-bound-unproven status, never invent slots.
+- Added generic synthetic LE fixtures for ten-way SUB/CMP/JA/MOVZX
+  literal dispatch, unsigned versus signed and equality guards,
+  MOVSX, byte source/dword destination mismatch, segment override,
+  relocation-backed three-way and narrowed two-way tables, and
+  shortage of independently verified pointer storage. Preserve the
+  unresolved runtime-jump edge in all valid candidate recoveries.
+- Added additive 64..255-byte unknown span/byte rollups and count
+  of spans hidden by the active minimum gap size to structured and
+  text LE gap reports, without changing the default 256-byte
+  selection threshold or code/unknown classification.
+- Added an explicit analyst-seeded original-file-backed synthetic
+  LE island with an E8 call. Entry-only analysis must leave it
+  unknown, a 64-byte gap report must reveal it, and an optional
+  seed must decode only CANDIDATE code, not establish execution.
+- Updated README front matter to distinguish current CLI/WPF preview
+  from early historical text. Created a game-qualified handoff note:
+  LE_STRAHD_CODE_JSON_HANDOFF_20261010.md with original repro
+  instructions, source hash and outstanding post-build checks.
+- The source and test additions are COMMITTED, STATICALLY REVIEWED,
+  NOT COMPILED or EXECUTED, and do not modify proprietary binaries.
+  No Windows workflow was dispatched. Manual G2 for this newer SHA
+  and re-export of the original Strahd files remain PENDING.
+  G1 baseline run 37987465368 verifies only
+  9f605e36581b2c6db72a6a47248ea5af31611506.
