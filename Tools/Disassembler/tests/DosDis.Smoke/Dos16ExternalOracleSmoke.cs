@@ -114,6 +114,10 @@ internal static class Dos16ExternalOracleSmoke
             operandRegion, operandGraph, operandManifest);
         Equal(operandMatch.Matched, 4,
             "external canonical mnemonic/register/immediate facts compare");
+        Equal(operandMatch.StructuredOperandExpectations, 3,
+            "structured operand denominator excludes RET with no operand assertion");
+        Equal(operandMatch.FullyMatchedOperandExpectations, 3,
+            "three explicit register/immediate semantic assertions agree");
         Equal(operandMatch.UnbenchmarkedCandidates, 0,
             "operand sample identifies every retained candidate start");
         Equal(operandGraph.Instructions.Single(i =>
@@ -143,6 +147,10 @@ internal static class Dos16ExternalOracleSmoke
             operandRegion, operandGraph, wrongImmediate);
         Equal(immediateMismatch.Conflicting, 1,
             "external immediate disagreement cannot pass by matching opcode text");
+        Equal(immediateMismatch.StructuredOperandExpectations, 1,
+            "single structured expectation retains its own denominator");
+        Equal(immediateMismatch.FullyMatchedOperandExpectations, 0,
+            "wrong immediate never scores a fully matched semantic expectation");
         Equal(immediateMismatch.Findings[0].DetailCode,
             "candidate-structured-operands-disagree-with-external-oracle",
             "operand-value disagreement has a machine-readable finding");
