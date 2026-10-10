@@ -841,6 +841,13 @@ std::uint32_t InventoryRuntimeState::container_weight_half_units(
     std::array<bool,kRuntimeDescriptorCount> visited{};
     std::function<std::uint32_t(std::size_t)> accumulate =
         [&](std::size_t index)->std::uint32_t {
+        // Exact original CODE.2 F5FE/F603/F657: subtype 0x14
+        // returns the weight byte of OBJECTS.DAT object #0x50,
+        // at offset 0x1480, WITHOUT descending into contents.
+        // This applies both to F790 held descriptions and the
+        // shared recursive inventory burden helper.
+        if(index==0x14U)
+            return objects.at(0x50U).weight_half_units;
         if(index>=containers.size() || visited[index])
             throw std::runtime_error("original container cycle");
         visited[index]=true;
