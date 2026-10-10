@@ -1,6 +1,12 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
 
+## 2026-10-10 source-verified two-stage 1F1C8 upper/lower ground mode dispatch (unhooked)
+
+After Full #658 authentic 64/64 native open-field `RES4[655]` ground activation, the original mode/overlay gate is now isolated as `OriginalGroundSurfaceDispatch`. Immutable `CODE.2 1F227..1F3DA` **13 exact instruction windows / 15 E8 targets** establish `C026/C027` gating of `34998`, active `258A8/258B0/C028` overlay priority (`29B40`, `314B0`, `33E28`), optional upper `34A74` and lower `C026` `33DE0`-vs-`34A74` choice. Crucial source-order boundary: original `1F377` reloads **current mutable FF50 after opaque upper callbacks**, not the earlier computed upper FF50. The new native `plan_upper` and separate `plan_lower(post_upper_FF50)` preserve this dependency and x86 32-bit signed gate without changing Win32 rendering. All original byte windows and near-call relationships passed locally. C++17 source regression and Python original-byte contract CTests are registered; CTest catalog **220 with Python** including parallel 22220 provenance tests. Last authorized Full #658 **214/214** on earlier checkout; new mode tests Windows-unbuilt, source-only, no build dispatched or DOS parity/readiness adjustment. [Full 1F1C8 byte/branch proof and remaining integration gate](LEVEL22_ORIGINAL_SURFACE_MODE_DISPATCH_20261010.md).
+
+
+
 ## 2026-10-10 source 22220 materializer provenance exported read-only
 
 The native sweep record now carries **`original_materializer_executed`**: source-backed ordinary record materialization (`ViewSweepRecordModel::materialize`, CODE.2 `330E7/33278`) and source-backed special materialization (`biased_record`, `3337F/33487`) set it true; synthetic `empty_record()` explicitly leaves it false. The native renderer capture TSV gains `ground_sweep_source_materialized` and `ground_sweep_native_synthetic` counts; exact C++ tests verify provenance in ordinary records and native capture metadata. These counters enable a future source-ordered nearest `22220` replay without falsely treating native boundary fillers as DOS writes. **No live FF50 clipping, 34A74 draw order, gameplay pixels, RNG or IRQ mutations**; source compiled locally only where otherwise stated, **new source awaits authorized full Windows CMake/CTest**. Original main open-field Build #658 accepted 64/64 remains unaffected. [Source materializer/22220 audit](LEVEL22_ORIGINAL_22220_MATERIALIZER_SOURCE_REPLAY_20261010.md).
