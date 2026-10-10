@@ -2449,6 +2449,40 @@ try
             badGuard.Label + " cannot prove a bounded indirect index");
     }
 
+    // Exhaustive local displacement sweep: all short-JA targets from
+    // MOVZX through the last byte of the indexed JMP are bypasses.
+    // A 'successful' table recovered from any of those would be a
+    // false upper-bound proof, irrespective of pointer plausibility.
+    for (byte displacement = 0; displacement < 11; displacement++)
+    {
+        var insideDispatch = (byte[])byteSwitchBytes.Clone();
+        insideDispatch[0x200 + 5] = displacement;
+        var blocked = ControlFlowAnalysis.Analyze(
+            LeImage.Load(BinaryArtifact.FromBytes(insideDispatch)));
+        Equal(blocked.JumpTables.Any(table =>
+            table.Evidence.Contains("unsigned-ja-bound") ||
+            table.Evidence.Contains(
+                "index-bounded-by-source-backed-unsigned-ja")), false,
+            "JA bypass into dispatch byte offset +" + displacement +
+            " cannot authorize a bounded table");
+    }
+
+    // Relocation-backed table pointers remain independently inspectable
+    // when the JA does not skip the dispatch. Their original fixups
+    // must not be misrepresented as proof of an indexed upper bound.
+    foreach (byte displacement in new byte[] { 0, 3, 10 })
+    {
+        var bypassRelocated = (byte[])relocatedByteSwitch.Clone();
+        bypassRelocated[0x200 + 5] = displacement;
+        var report = ControlFlowAnalysis.Analyze(
+            LeImage.Load(BinaryArtifact.FromBytes(bypassRelocated)));
+        Equal(report.JumpTables.Any(table =>
+            table.Evidence.Contains(
+                "index-bounded-by-source-backed-unsigned-ja")), false,
+            "relocation-backed candidate cannot inherit JA dispatch bypass +" +
+            displacement);
+    }
+
     var signedByteSwitch = (byte[])byteSwitchBytes.Clone();
     signedByteSwitch[0x200 + 4] = 0x7F; // JG, signed rather than JA
     Equal(ControlFlowAnalysis.Analyze(LeImage.Load(
