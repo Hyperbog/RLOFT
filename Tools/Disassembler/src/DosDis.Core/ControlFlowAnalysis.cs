@@ -618,8 +618,8 @@ public static class ControlFlowAnalysis
                 NoInteriorIngress(proof.Compare) &&
                 NoInteriorIngress(proof.Guard) &&
                 NoInteriorIngress(site) &&
-                (proof.Extension is not { } extensionStart ||
-                    NoInteriorIngress(extensionStart)) &&
+                (proof.Extension is null ||
+                    NoInteriorIngress(proof.Extension.Value)) &&
                 UniqueIncoming(proof.Guard, proof.Compare, "fallthrough") &&
                 !explicitEntries.Contains(site) &&
                 !explicitEntries.Contains(proof.Guard) &&
