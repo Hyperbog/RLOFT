@@ -51,7 +51,7 @@ def read_report(path: Path) -> dict:
             object_pairs_hook=_unique_properties,
             parse_constant=_reject_nonstandard_number,
         )
-    except (OSError, ValueError, UnicodeError) as exc:
+    except (OSError, ValueError, UnicodeError, RecursionError) as exc:
         if isinstance(exc, InvalidReport):
             raise
         raise InvalidReport("report is unreadable or invalid JSON") from exc
@@ -106,10 +106,14 @@ def compare(independent: dict, candidate: dict, expected_source_sha: str) -> dic
     simulation = _object(independent, "assumed_mz_relocation_simulation")
     if simulation.get("status") != "simulated-relocations;assumed-segment;not-runtime-proof":
         raise InvalidReport("independent relocation model status is unsupported")
-    if not isinstance(candidate.get("AnalysisStatus"), str) or not candidate[
-        "AnalysisStatus"
-    ].startswith("simulated-MZ-relocations;"):
-        raise InvalidReport("DOSDis report is not an assumed-base MZ simulation")
+    candidate_status = candidate.get("AnalysisStatus")
+    normal_status = "simulated-MZ-relocations;runtime-base-assumed;not-verified"
+    overlap_status = (
+        "simulated-MZ-relocations;overlapping-fixups;runtime-base-assumed;"
+        "not-verified"
+    )
+    if candidate_status not in (normal_status, overlap_status):
+        raise InvalidReport("DOSDis report has unsupported relocation evidence status")
     if _sha256(candidate.get("SourceSha256")) != expected:
         raise InvalidReport("DOSDis report belongs to a foreign original source")
 
@@ -143,6 +147,11 @@ def compare(independent: dict, candidate: dict, expected_source_sha: str) -> dic
             candidate.get("SimulatedFileBackedImageSha256")
         ),
     }
+    if candidate_status != (
+        overlap_status if candidate_facts["overlapping_relocation_writes"]
+        else normal_status
+    ):
+        raise InvalidReport("DOSDis relocation overlap status conflicts with its flag")
     if (
         independent_facts["original_file_backed_image_bytes"]
         != _uint(geometry.get("file_backed_load_bytes"), MAX_REPORT_BYTES * 64)
