@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 project(RavenloftDemoV1 LANGUAGES CXX)
 
+# Every independent source/oracle test needs the same C++17 dialect as
+# rloft_boot_flow. Standalone targets do not inherit its PUBLIC feature;
+# without this, MSVC silently compiles them in its older default mode
+# and reports missing std::optional/string_view (Full #652).
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # GitHub Actions passes the checked-out source SHA explicitly. A local
 # build deliberately declares itself unversioned rather than claiming
 # it contains the latest code on any branch.

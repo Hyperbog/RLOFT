@@ -118,6 +118,10 @@ def check_source() -> None:
         "renderer may not create separate RNG or consume RNG on VGA refresh")
     assert "add_test(NAME original_feedback_ribbon_epoch_tests COMMAND original_feedback_ribbon_epoch_tests)" in cmake
     assert "src/original_random.cpp" in cmake
+    # Windows Full #652: standalone C++ tests did not inherit C++17 from
+    # rloft_boot_flow; MSVC then rejected optional and string_view.
+    assert "set(CMAKE_CXX_STANDARD 17)" in cmake
+    assert "set(CMAKE_CXX_STANDARD_REQUIRED ON)" in cmake
     assert "if (!pending_6dac && held_id == -1)" in epoch
     assert "shared_game_rng.seed(static_cast<std::uint32_t>(held_id));" in epoch
     assert "shared_game_rng.next15()" in epoch

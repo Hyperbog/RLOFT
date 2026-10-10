@@ -1,5 +1,9 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+## 2026-10-10 Windows Full #652 C++17 standalone test target fix
+
+Authorized [Full #652](https://github.com/Hyperbog/RLOFT/actions/runs/38078746990) FAILED during compile, before CTest, because standalone C++ F790 test targets did not inherit `cxx_std_17` from `rloft_boot_flow`. Ninety-two MSVC errors cascaded from unavailable `std::optional` and `std::string_view` despite proper header includes. Set `CMAKE_CXX_STANDARD=17` globally with `CMAKE_CXX_STANDARD_REQUIRED=ON`, add source-only regression guard; no original game behavior altered. **Fix not yet rebuilt**; last successful Full remains #651 182/182 on older source. [Full #652 failure and repair](FULL_WINDOWS_BUILD_652_CXX17_REPAIR_20261010.md). CI manual-only was restored after #652. Original DOS parity and subsystem percentages unchanged.
+
 ## 2026-10-10 verified one-shot 13118→112EC→1134C original F790 modal-entry adapter
 
 Created `OriginalF790ModalEntry`: one original 13118 source entry resets the cached ribbon, paints 112EC party columns, captures the 320×16 row-0x62 clean background ONCE, then dispatches source 1134C through the existing single-game-RNG F790 sequence. A new opt-in `PartyModalPresenter::draw(...,source_f790_owns_ribbon=true)` suppresses only the interim native text strip, keeping the default running path unchanged. Added synthetic source/C++ regression for empty and held item, duplicate entry, tick reseed and 128 RNG-free VGA repaints; extended original CODE.2 source-byte cadence verifier at 11316. Original binary matches immutable shipped CODE.2; **new C++ changes NOT yet Windows-built or Win32-hooked**. 210 registered CTests with Python, last Full #651 182/182 older source. No DOS acceptance or percentage change. [Entry checkpoint](LEVEL22_F790_MODAL_ENTRY_20261010.md). Manual CI only; Level22-first.
