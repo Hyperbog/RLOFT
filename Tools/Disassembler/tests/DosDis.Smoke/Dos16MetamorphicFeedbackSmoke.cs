@@ -117,8 +117,8 @@ internal static class Dos16MetamorphicFeedbackSmoke
             long low = (long)start << shift;
             long high = (long)end << shift;
             if (low / 65536 == high / 65536)
-                Check(observed.Minimum == (ushort)low &&
-                    observed.Maximum == (ushort)high &&
+                Check(observed.Minimum == unchecked((ushort)low) &&
+                    observed.Maximum == unchecked((ushort)high) &&
                     observed.Kind != Dos16ValueKind.Unknown,
                     "interval-precision", caseId,
                     "start=" + start + " end=" + end + " shift=" + shift);
@@ -155,6 +155,9 @@ internal static class Dos16MetamorphicFeedbackSmoke
                     "guarded-pattern", id,
                     "scale=" + Convert.ToHexString(scale) +
                     " bx=" + bx + " expectedSelected=" + inBound +
+                    " actualGuarded=" + report.GuardedStorageSites +
+                    " actualBounded=" + report.BoundedIndexSites +
+                    " actualUnresolved=" + report.UnresolvedSites +
                     " status=" + report.AnalysisStatus);
                 var site = report.Sites.Single();
                 Check(inBound
