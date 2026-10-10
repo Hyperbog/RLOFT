@@ -36,7 +36,7 @@ int main() {
     ds(0x598,"; CHARGES: ");ds(0x610," +");ds(0x614,"; ");
     ds(0x618," ");ds(0x61C,"-");ds(0x620,"/");ds(0x624,".5");
     put32(c,Static::kObject2DiskBase+0x6D98,0x598U);
-    c[Static::kObject2DiskBase+0x7330]=2U;
+    c[Static::kObject2DiskBase+0x7330]=4U;
     c[Static::kObject2DiskBase+0x7332]=8U;
     c[Static::kObject2DiskBase+0x7330+20U*10U+2U]=0x7fU;
     c[Static::kObject2DiskBase+0x67EC]=8U;
