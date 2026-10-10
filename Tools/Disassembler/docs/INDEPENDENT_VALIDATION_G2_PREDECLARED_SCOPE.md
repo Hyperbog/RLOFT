@@ -76,3 +76,25 @@ independent operand/ISA semantic comparisons, reviewed
 original-game samples, exact current build/test SHA, human
 discrepancy adjudication and G2 owner authorization. Writing
 the comparison code does **not** satisfy this gate.
+
+## F. Restricted structured operand comparison (source-only)
+
+The x86-16 candidate decoder now records optional structured
+`decoderFacts` at instruction decoding: normalized mnemonic,
+explicit operand count and the first two operand kinds, registers
+and immediate semantic values. The outside-oracle manifest accepts
+predeclared `expectedFacts` for the same limited subset.
+
+The comparator reports mismatch in machine-readable form and
+separate counts for all structured expectations and fully matched
+structured expectations. A graph row without facts is
+`not-observed`, not implicitly matched. Sign-extended imm8 values
+are compared as signed numbers; mismatched register identities
+are conflicts. See `X86_16_EXTERNAL_ORACLE_COMPARISON.md`.
+
+**Uncovered:** memory operand base/index/size/displacement,
+operand/address-size prefix details, implicit operands and flags,
+instructions with more than two operands, and runtime behavior.
+Independent x86-16 operand evidence must still come from a
+genuine separately implemented decoder and ISA reference;
+the feature is **SOURCE ONLY** and not a completed G2 test.
