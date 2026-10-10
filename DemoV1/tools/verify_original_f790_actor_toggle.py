@@ -94,6 +94,34 @@ def verify_native_contract() -> None:
         assert part in tests, part
     assert ("{0x11b63U,OriginalF790ArgumentOrigin::GlobalHeld8600_8602}"
             in caller), "11B63 must read source-held WORD/known BYTE"
+    prefix=(ROOT/"DemoV1/include/rloft/original_actor_modal_toggle_prefix.hpp").read_text()
+    prefix_test=(ROOT/"DemoV1/tests/original_actor_modal_toggle_prefix_tests.cpp").read_text()
+    cmake=(ROOT/"DemoV1/CMakeLists.txt").read_text()
+    host=(ROOT/"DemoV1/src/win32_main.cpp").read_text()
+    for fragment in (
+        "std::array<std::uint32_t,4> mode_6f90",
+        "execute_11ad8_to_11b68(",
+        "state.mode_6f90[selected_actor]^1U",
+        "state.mode_6f90[selected_actor]^=1U",
+        "state.mode_6f90[actor]=mode",
+        "state.lane_7f6c=static_cast<std::uint32_t>(actor*0x50U)",
+        "std::forward<InvokeF790>(f790_11b63)()",
+        "static_cast<std::uint8_t>(state.c050)",
+    ):
+        assert fragment in prefix,fragment
+    for fragment in (
+        "0x12345679U","0x12345678U","0xCAFEB000U",
+        "11268:0","11268:3","291B0","F790",
+        "state.lane_7f6c==240U",
+    ):
+        assert fragment in prefix_test,fragment
+    assert "add_test(NAME original_actor_modal_toggle_prefix_tests" in cmake
+    assert "original_actor_modal_toggle_prefix_tests.cpp" in cmake
+    # The complete 11B6B..11C19 follow-on and verified DOS mouse mode
+    # mapping have not been connected: never count these source tests
+    # as evidence of live source F790 dispatch.
+    assert "OriginalActorModalTogglePrefix" not in host
+    print("PASS: isolated 11AD8 prefix, four DWORD contexts and one F790 callback")
     print("PASS: native actor hit rectangle and 11B63 argument origin")
     print("NOTE: live bit-2 input forwarding, post-F790 side effects and DOS parity remain open")
 
