@@ -787,3 +787,34 @@ Reference: P0_MZ_CROSS_SEGMENT_CANDIDATES.md.
   G2 at the new SHA is still NOT RUN; further general
   dominator/reachability proof is deferred rather than guessed.
 Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
+
+2026-10-10 | LE unsigned JA taken-edge and seed provenance audit:
+- Strengthened the generic LE x86-32 CMP -> JA -> (MOVZX) -> indexed
+  table candidate recognizer: the guard itself cannot be a separate
+  analyst entry seed, since input flags then lack source-backed
+  compare provenance. Previously added MOVZX/jump seed exclusions
+  remain. It does not claim complete interprocedural dominators.
+- Explicitly require the unsigned guard's original branch-taken
+  default destination to skip the indexed JMP's complete source
+  instruction byte range, within the same LE object. A branch
+  directly to MOVZX/JMP, into a prefix/operand byte, or backwards
+  cannot bound runtime values; the original indirect control edge
+  remains unresolved even after local-source proof.
+- Added synthetic negative cases for alternative JA entry seeds
+  in both orders; unsigned JA displacements 0..10 that target the
+  guarded dispatch bytes; separate relocation-backed bypasses;
+  near 0F87 JA rel32 into the indexed JMP; and signed near JG
+  spoofing an unsigned JA. Retained positive short and near
+  forward-skipping JA examples.
+- Added exact original-byte assertions for SUB AL,2, CMP AL,9,
+  short JA, MOVZX EAX,AL, CS-indexed jump and near JA. These pin
+  opcode widths and provenance independently of reported table
+  targets. A static test-order audit corrected relocated bypass
+  fixtures to run after their source-byte setup.
+- Documented narrow forward-skip scope and remaining late-CFG
+  or runtime-mutation uncertainty. No Strahd bytes were embedded
+  in synthetic tests. Source-only commits and remote source checks
+  are not compile/test evidence. G2 Windows remains pending manual
+  authorization; latest accepted build #35 tested SHA
+  9f605e36581b2c6db72a6a47248ea5af31611506 only.
+Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
