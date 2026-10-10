@@ -581,11 +581,11 @@ public static class ControlFlowAnalysis
         foreach (var (site, proof) in provisionalBoundPaths)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            bool guardPresent = outgoingBySource.TryGetValue(
-                proof.Guard, out var guardEdges);
-            bool forwardGuard = guardPresent &&
-                instructions.TryGetValue(site, out var siteLine) &&
-                guardEdges!.Length == 2 &&
+            FlowEdge[] guardEdges = outgoingBySource.TryGetValue(
+                proof.Guard, out var existingEdges)
+                    ? existingEdges : Array.Empty<FlowEdge>();
+            bool forwardGuard = instructions.TryGetValue(site, out var siteLine) &&
+                guardEdges.Length == 2 &&
                 guardEdges.Count(e => e.Kind == "branch-not-taken") == 1 &&
                 guardEdges.Any(e => e.Kind == "branch-taken" &&
                     e.Destination is { } dest && dest.Object == site.Object &&
