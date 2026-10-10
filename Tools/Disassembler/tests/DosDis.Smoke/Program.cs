@@ -1926,6 +1926,64 @@ try
         graphImage, BinaryArtifact.FromBytes(graphBytes), expectations),
         "known-answer validation rejects duplicate decoded instruction starts");
 
+    Equal(forgedRowCheck.Findings.Single().DetailCode,
+        "oracle-hex-disagrees-with-original-file",
+        "byte-level independent oracle discrepancy has a stable review code");
+    Equal(wrongLengthCheck.Findings.First().DetailCode,
+        "decoded-instruction-length-mismatch",
+        "byte count error distinguished from an incorrect original source");
+    Equal(wrongFlow.Findings.First().DetailCode,
+        "decoded-flow-class-disagrees-with-oracle",
+        "independent flow category discrepancy remains separately reviewable");
+
+    var duplicateExpectedInstruction = expectations with {
+        VerifiedInstructions = expectations.VerifiedInstructions.Concat(new[] {
+            expectations.VerifiedInstructions[0]
+        }).ToArray()
+    };
+    Fails(() => KnownAnswerValidator.Validate(graph, graphImage,
+        BinaryArtifact.FromBytes(graphBytes), duplicateExpectedInstruction),
+        "duplicate independently claimed instruction cannot inflate match denominator");
+
+    var duplicateExpectedEdge = expectations with {
+        VerifiedEdges = expectations.VerifiedEdges.Concat(new[] {
+            expectations.VerifiedEdges[0]
+        }).ToArray()
+    };
+    Fails(() => KnownAnswerValidator.Validate(graph, graphImage,
+        BinaryArtifact.FromBytes(graphBytes), duplicateExpectedEdge),
+        "duplicate flow-edge claim cannot inflate verified result count");
+
+    var overlappingExpectedData = expectations with {
+        VerifiedNonCode = new[] {
+            new KnownNonCodeExpectation(1, 6, 10, "first-noncode"),
+            new KnownNonCodeExpectation(1, 9, 12, "overlapping-noncode")
+        }
+    };
+    Fails(() => KnownAnswerValidator.Validate(graph, graphImage,
+        BinaryArtifact.FromBytes(graphBytes), overlappingExpectedData),
+        "overlapping reference data ranges cannot double-count their common bytes");
+
+    var contradictoryExpectedData = expectations with {
+        VerifiedNonCode = new[] {
+            new KnownNonCodeExpectation(1, 4, 8, "conflicts-with-known-call")
+        }
+    };
+    Fails(() => KnownAnswerValidator.Validate(graph, graphImage,
+        BinaryArtifact.FromBytes(graphBytes), contradictoryExpectedData),
+        "reference manifest cannot declare expected instruction bytes as non-code");
+
+    var duplicateExpectedFixup = expectations with {
+        VerifiedFixups = new[] {
+            new KnownFixupExpectation(new FlowAddress(1, 0),
+                new FlowAddress(1, 0x10), "fixup-evidence"),
+            new KnownFixupExpectation(new FlowAddress(1, 0),
+                new FlowAddress(1, 0x10), "duplicate-fixup")
+        }
+    };
+    Fails(() => KnownAnswerValidator.Validate(graph, graphImage,
+        BinaryArtifact.FromBytes(graphBytes), duplicateExpectedFixup),
+        "duplicate relocation reference cannot count as separate independently verified findings");
     var wrongByteExpectation = expectations with {
         VerifiedInstructions = new[] {
             new KnownInstructionExpectation(new FlowAddress(1, 0), "9090909090", "wrong-hex")
