@@ -8,8 +8,8 @@ internal static class Dos16CorrelatedDispatchSmoke
             throw new Exception("x86-16 correlated dispatch: " + label);
     }
 
-    private static (Dos16CodeRegion Region, Dos16FlowResult Graph)
-        Guarded(byte[] setup, byte[] stride, ushort table = 0x120,
+    private static (Dos16CodeRegion Region, Dos16FlowResult Graph,
+        BinaryArtifact Artifact) Guarded(byte[] setup, byte[] stride, ushort table = 0x120,
             byte[]? afterGuard = null, bool far = false)
     {
         byte[] bytes = new byte[0x50];
@@ -42,9 +42,11 @@ internal static class Dos16CorrelatedDispatchSmoke
         bytes[0x20] = 0x30; bytes[0x21] = 0x01;
         bytes[0x22] = 0x32; bytes[0x23] = 0x01;
         bytes[0x24] = 0x34; bytes[0x25] = 0x01;
-        var region = DosComImage.LoadExplicit(BinaryArtifact.FromBytes(
-            bytes, "synthetic-correlated-only.com")).CreateCodeRegion();
-        return (region, Dos16ControlFlowAnalysis.Analyze(region, 0x100));
+        var artifact = BinaryArtifact.FromBytes(
+            bytes, "synthetic-correlated-only.com");
+        var region = DosComImage.LoadExplicit(artifact).CreateCodeRegion();
+        return (region, Dos16ControlFlowAnalysis.Analyze(region, 0x100),
+            artifact);
     }
 
     internal static void Run()
@@ -142,8 +144,7 @@ internal static class Dos16CorrelatedDispatchSmoke
         // The same 16-bit source bytes with an alternate segment origin
         // must not be joined to a cached graph from the original window.
         var movedRegion = DosComImage.LoadExplicit(
-            BinaryArtifact.FromBytes(good.Region.Source.Data.ToArray(),
-                "synthetic-other-window.com"), 0x200).CreateCodeRegion();
+            good.Artifact, 0x200).CreateCodeRegion();
         var moved = Dos16CorrelatedDispatchRecovery.Inspect(
             movedRegion, good.Graph);
         Check(moved.Incomplete && moved.Sites.Count == 0,
