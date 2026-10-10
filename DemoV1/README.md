@@ -18,6 +18,10 @@ This is the active project entry point. Historical development updates have been
 
 The latest native source includes a read-only, provenance-checked source `22220/FF50` field projection. It does **not** yet use partial-depth calculations for gameplay rendering. Original `F790` stack-local text pre-read and callback identity have been synchronized from the verified decompilation branch; this is a **source correction**, not a passing end-to-end game test.
 
+## Current player field-test checkpoint
+
+**[M-PLAY-01 — First native boot-to-blocker playability assessment](MPLAY01_FIRST_NATIVE_BOOT_TO_BLOCKER_20261010.md)** is now tracked in [GitHub issue #7](https://github.com/Hyperbog/RLOFT/issues/7). Its purpose is to test an exact-source Windows build through the **ordinary intro/menu/character creation/Level 22 path**, determine the farthest genuinely playable action, and preserve a reproducible first blocker. The existing developer-only Level 22 launcher remains a **separate diagnostic**, not proof of normal game progression. The milestone is defined, not yet field-accepted; current Windows Full compilation and independent DOS parity gates are unchanged. No build is dispatched by creating this checkpoint.
+
 ## Mandatory development methodology
 
 1. [Original execution fidelity charter](ORIGINAL_EXECUTION_FIDELITY_CHARTER.md) — binding goal, immutable-game source verification and **pre-commit** proof requirements.
