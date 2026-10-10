@@ -105,7 +105,8 @@ public static class KnownAnswerValidator
                 (x.ExpectedFlowControl is not null &&
                  (!Enum.TryParse<Iced.Intel.FlowControl>(x.ExpectedFlowControl,
                     ignoreCase: false, out var flowClass) ||
-                  !Enum.IsDefined(flowClass))))
+                  !string.Equals(Enum.GetName(flowClass), x.ExpectedFlowControl,
+                      StringComparison.Ordinal))))
                 throw new InvalidDataException("Invalid verified instruction expectation.");
         foreach (var x in manifest.VerifiedNonCode)
             if (x is null || x.Object < 1 || x.Begin >= x.EndExclusive ||
