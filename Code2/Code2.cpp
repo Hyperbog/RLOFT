@@ -7401,7 +7401,7 @@ struct Application21Boundary {
     void (*call_3975c)(u32,u32,u32,u32,u32)=nullptr;
     void (*call_40508)(u32,u32,u32,u32,u32)=nullptr;
     void (*call_3932c)(u32,u32,u32,u32,u32)=nullptr;
-    void (*call_2c368)(u32,u32)=nullptr;
+    void (*call_1c368)(u32,u32)=nullptr;
     u32 (*call_3e6f0)(s32)=nullptr;
     u32 (*call_3e70c)(s32)=nullptr;
     void (*call_40cc4)(u32)=nullptr;
@@ -7412,6 +7412,9 @@ struct Application21Boundary {
     void (*call_39b40)(u32,u32,u32,u32,u32)=nullptr;
     void (*call_2a5b0)(u32,s32,u32)=nullptr;
     void (*call_2a724)(u32,s32,u32,u32,u32,u32,u32)=nullptr;
+    // F7CC..F7D8: 1C368 receives an address in F790's own 16-byte
+    // SS:ESP local area (not a DGROUP guest-linear offset).
+    void (*call_1c368_local)(u8*,u32)=nullptr;
 };
 
 static void app21_copy_cstr(Machine& m,u32 dst,u32 src) noexcept {
@@ -7425,7 +7428,7 @@ static void app21_append_cstr(Machine& m,u32 dst,u32 src) noexcept {
     app21_copy_cstr(m,app21_end(m,dst),src);
 }
 static void app21_resource(Machine& m,Application21Boundary& b,u32 dst,u32 id) noexcept {
-    if(b.call_2c368)b.call_2c368(app21_end(m,dst),id);
+    if(b.call_1c368)b.call_1c368(app21_end(m,dst),id);
 }
 static void app21_number(Machine& m,Application21Boundary& b,u32 dst,s32 value) noexcept {
     if(b.call_3e6f0)app21_append_cstr(m,dst,b.call_3e6f0(value));
@@ -7455,8 +7458,16 @@ void function_0f66c(Machine& m,Application21Boundary& b,u32 text) noexcept {
 static_assert(0x0F767u-0x0F66Cu==251u);
 
 void function_0f790(Machine& m,Application21Boundary& b,s32 item,u32 detailed) noexcept {
+    // 0F794 allocates 16 bytes of guest stack-local storage. It is not
+    // DGROUP and is separate from the 759C item-description buffer.
+    u8 text_3f_stack_local[0x10u];
     if(b.call_3932c)b.call_3932c(load_le32(dg(m,0x7F68u)),0x62u,0u,0x10u,0x140u);
     if(*dg(m,0x6DACu)!=0u){function_0f66c(m,b,0x759Cu);return;}
+    // 0F7CC..0F7D8 unconditionally calls original 1C368(dst,T[3F])
+    // on every NON-pending event, even when item == -1 (tested below).
+    // Retain the indexed text stream seek/read and local-byte write:
+    // dropping this unused scratch text changes the original call trace.
+    if(b.call_1c368_local)b.call_1c368_local(text_3f_stack_local,0x3Fu);
     if(item==-1)return;
     const u32 rec=load_le32(dg(m,0x255D8u))+static_cast<u32>(item)*65u;
     app21_copy_cstr(m,0x759Cu,rec);
@@ -7651,12 +7662,12 @@ void function_10158(Machine& m,Application22Boundary& b,u32 slot) noexcept {
     if(a&&a->call_3975c)a->call_3975c(0u,0x45u,dst+0x38u,0x24u,2u);
 
     *dg(m,0x6DACu)=0u;
-    if(a&&a->call_2c368)a->call_2c368(0x759Cu,0x3Au);
+    if(a&&a->call_1c368)a->call_1c368(0x759Cu,0x3Au);
     app22_draw_40508(m,b,0x126u);
-    if(a&&a->call_2c368)a->call_2c368(0x759Cu,0x3Bu);
+    if(a&&a->call_1c368)a->call_1c368(0x759Cu,0x3Bu);
     app22_draw_40508(m,b,0x15Bu);
 
-    if(a&&a->call_2c368)a->call_2c368(0x759Cu,static_cast<u32>(static_cast<s8>(*dg(m,0x218F5u+actor))+0x15));
+    if(a&&a->call_1c368)a->call_1c368(0x759Cu,static_cast<u32>(static_cast<s8>(*dg(m,0x218F5u+actor))+0x15));
     for(u32 i=1u;i<3u;++i) {
         const s32 cls=static_cast<s8>(*dg(m,0x218F5u+actor+i));
         if(cls<0)continue;
@@ -7665,7 +7676,7 @@ void function_10158(Machine& m,Application22Boundary& b,u32 slot) noexcept {
     }
     app22_draw_40508(m,b,0x7Bu);
 
-    if(a&&a->call_2c368)a->call_2c368(0x759Cu,0x3Cu);
+    if(a&&a->call_1c368)a->call_1c368(0x759Cu,0x3Cu);
     app22_append(m,0x628u);
     app22_number(m,b,static_cast<s16>(load_le16(dg(m,0x21900u+actor))));
     const s32 v1=static_cast<s16>(load_le16(dg(m,0x21902u+actor)));
@@ -7674,15 +7685,15 @@ void function_10158(Machine& m,Application22Boundary& b,u32 slot) noexcept {
     if(v2>0){app22_append(m,0x620u);app22_number(m,b,v2);}
     app22_draw_40508(m,b,0x88u);
 
-    if(a&&a->call_2c368)a->call_2c368(0x759Cu,static_cast<u32>(*dg(m,0x218FAu+actor))+0x1Du);
+    if(a&&a->call_1c368)a->call_1c368(0x759Cu,static_cast<u32>(*dg(m,0x218FAu+actor))+0x1Du);
     app22_draw_40508(m,b,0x95u);
-    if(a&&a->call_2c368)a->call_2c368(0x759Cu,static_cast<u32>(*dg(m,0x218F4u+actor))+0x0Fu);
+    if(a&&a->call_1c368)a->call_1c368(0x759Cu,static_cast<u32>(*dg(m,0x218F4u+actor))+0x0Fu);
     app22_append(m,0x618u);
     app22_resource(m,b,static_cast<u32>(*dg(m,0x218F3u+actor))+0x1Bu);
     app22_draw_40508(m,b,0xA2u);
 
     for(u32 i=0u,id=0x2Fu,y=0xB8u;i<6u;++i,++id,y+=0x0Cu) {
-        if(a&&a->call_2c368)a->call_2c368(0x759Cu,id);
+        if(a&&a->call_1c368)a->call_1c368(0x759Cu,id);
         if(b.call_4060c)b.call_4060c(y,dst+0x0Cu,0x759Cu,1u);
     }
 
@@ -7716,12 +7727,12 @@ void function_10158(Machine& m,Application22Boundary& b,u32 slot) noexcept {
         if(b.call_405a8)b.call_405a8(y,dst+0x43u,0x759Cu,1u);
     }
 
-    if(a&&a->call_2c368)a->call_2c368(0x759Cu,0x36u);
+    if(a&&a->call_1c368)a->call_1c368(0x759Cu,0x36u);
     app22_append(m,0x618u);
     app22_number(m,b,b.call_efa0?b.call_efa0(slot):0);
     app22_draw_40508(m,b,0x104u);
 
-    if(a&&a->call_2c368)a->call_2c368(0x759Cu,0x39u);
+    if(a&&a->call_1c368)a->call_1c368(0x759Cu,0x39u);
     app22_append(m,0x618u);
     const s32 current=static_cast<s16>(load_le16(dg(m,0x218FCu+actor)));
     const s32 maximum=static_cast<s16>(load_le16(dg(m,0x218FEu+actor)));
@@ -7755,7 +7766,7 @@ void function_10158(Machine& m,Application22Boundary& b,u32 slot) noexcept {
     s32 y2=y+0x35;
     for(u32 i=0u;i<tracks;++i,y+=0x0B,y2+=0x0B) {
         const s32 cls=static_cast<s8>(*dg(m,0x218F5u+actor+i));
-        if(a&&a->call_2c368)a->call_2c368(0x759Cu,static_cast<u32>(cls+0x15));
+        if(a&&a->call_1c368)a->call_1c368(0x759Cu,static_cast<u32>(cls+0x15));
         if(b.call_405a8)b.call_405a8(static_cast<u32>(y),dst+0x22u,0x759Cu,1u);
         if(b.call_405a8)b.call_405a8(static_cast<u32>(y2),dst+0x22u,0x759Cu,1u);
         const u32 xp=load_le32(dg(m,0x21906u+actor+i*4u));
@@ -8124,7 +8135,7 @@ static_assert(0x1162Eu-0x11404u==554u);
     if(used==limit)message=load_le32(dg(m,0x6D9Cu));
     else if((*dg(m,target)&0x0Fu)!=0x0Fu)message=load_le32(dg(m,0x6DA4u));
     else {
-        if(b.app21&&b.app21->call_2c368)b.app21->call_2c368(0x759Cu,gbase+0x42u+static_cast<u32>(offset));
+        if(b.app21&&b.app21->call_1c368)b.app21->call_1c368(0x759Cu,gbase+0x42u+static_cast<u32>(offset));
         u32 dst=0x759Cu; while(*dg(m,dst)!=0u)++dst;
         u32 src=load_le32(dg(m,0x6DA0u));
         for(;;){const u8 c=*dg(m,src++);*dg(m,dst++)=c;if(c==0u)break;}
