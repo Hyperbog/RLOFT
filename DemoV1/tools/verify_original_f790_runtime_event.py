@@ -53,6 +53,8 @@ def check_original(path:Path)->None:
 
 def check_source()->None:
     bridge=(ROOT/"DemoV1/include/rloft/original_f790_runtime_event.hpp").read_text()
+    catalog=(ROOT/"DemoV1/include/rloft/original_f790_caller_catalog.hpp").read_text()
+    catalog_test=(ROOT/"DemoV1/tests/original_f790_caller_catalog_tests.cpp").read_text()
     runtime=(ROOT/"DemoV1/include/rloft/original_f790_runtime_description.hpp").read_text()
     tests=(ROOT/"DemoV1/tests/original_f790_runtime_description_tests.cpp").read_text()
     host=(ROOT/"DemoV1/src/win32_main.cpp").read_text()
@@ -80,6 +82,14 @@ def check_source()->None:
     assert "framebuffer,font1_,0x65," in presenter
     assert "OriginalF790RuntimeEvent" not in host, "unverified live F790 hookup"
     assert "original_f790_runtime_description_tests" in cmake
+    assert "OriginalF790CallerCatalog::arguments_at" in bridge
+    assert "unknown CODE.2 F790 E8 site" in bridge
+    assert "kDirectCalls" in catalog
+    for at in ALL:
+        assert f"0x{at:05x}U" in catalog, f"source catalog missing {at:05X}"
+    assert "ownership_counts" in tests
+    assert "original_f790_caller_catalog_tests" in cmake
+    assert "verified_addresses" in catalog_test
     assert "original_f790_runtime_event_contract_tests" in cmake
     print("PASS: live original F790 text-only, cached DATA/T and mutable inventory")
     print("PASS: no live F790 event or gameplay RNG at VGA presentation cadence")

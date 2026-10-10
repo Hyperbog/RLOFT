@@ -900,6 +900,12 @@ add_executable(original_f790_runtime_description_tests
 target_link_libraries(original_f790_runtime_description_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_f790_runtime_description_tests COMMAND original_f790_runtime_description_tests)
 
+# Exact original CODE.2 direct-call argument provenance, no game assets.
+add_executable(original_f790_caller_catalog_tests
+    tests/original_f790_caller_catalog_tests.cpp)
+target_include_directories(original_f790_caller_catalog_tests PRIVATE include)
+add_test(NAME original_f790_caller_catalog_tests COMMAND original_f790_caller_catalog_tests)
+
 # Original F5F8 subtype-0x14 early return must ignore mutable bag contents.
 add_executable(original_f5f8_special_weight_tests
     tests/original_f5f8_special_weight_tests.cpp)
