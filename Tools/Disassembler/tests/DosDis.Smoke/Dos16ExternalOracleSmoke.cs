@@ -56,9 +56,19 @@ internal static class Dos16ExternalOracleSmoke
         Equal(report.SourceSha256, artifact.Sha256, "report binds original source SHA");
         Equal(report.MappedRegionSha256, artifact.Sha256,
             "COM region is the entire original file in this fixture");
+        // Explicit independently specified sample serialization:
+        // first 0100h / length 2 / EB02, then 0104h / length 1 / C3.
+        // Do not obtain expected hash input from the manifest or report.
+        byte[] independentSampleIdentity = {
+            0x00, 0x01, 0x02, 0x00, 0xEB, 0x02,
+            0x04, 0x01, 0x01, 0x00, 0xC3
+        };
+        string independentSampleDigest = Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData(independentSampleIdentity))
+            .ToLowerInvariant();
         Equal(report.BenchmarkedInstructionBytesSha256,
-            "cc662e9a5057407053a11ed44a6974cb8b97b3e85b1ca3f6ba20df75d986e01d",
-            "fixed independent SHA of ordered IP/length/original-byte samples");
+            independentSampleDigest,
+            "original instruction sample digest agrees with independent IP/length/byte serialization");
 
         // Distinct full original file identities can have the exact same
         // benchmarked instructions: only skipped/unbenchmarked bytes differ.
