@@ -34,6 +34,10 @@ internal sealed class ReferenceRecovery
     private readonly LeImage image;
     private readonly Dictionary<FlowAddress, LeRelocation> fixups = new();
     private readonly HashSet<FlowAddress> ambiguousFixups = new();
+    // Every original LE fixup origin, including self-relative sources.
+    // A 32-bit source slot can overlap an origin in either direction;
+    // checking only the exact slot start is not sufficient.
+    private readonly HashSet<FlowAddress> allFixupOrigins = new();
 
     public ReferenceRecovery(LeImage image)
     {
@@ -42,6 +46,7 @@ internal sealed class ReferenceRecovery
         {
             if (f.SourceOffset < 0 || f.SourceOffset > uint.MaxValue) continue;
             var key = new FlowAddress(f.SourceObject, (uint)f.SourceOffset);
+            allFixupOrigins.Add(key);
             if (ambiguousFixups.Contains(key)) continue;
             if (fixups.TryGetValue(key, out var previous) &&
                 (previous.SourceType != f.SourceType || previous.TargetObject != f.TargetObject ||
@@ -75,9 +80,30 @@ internal sealed class ReferenceRecovery
         return true;
     }
 
+    // A pointer occupies four bytes. Another relocation beginning at
+    // any of its three interior bytes OR at one of the preceding three
+    // byte offsets has an overlapping four-byte destination window.
+    // Refuse to infer immutable pointer storage from competing writes.
+    private bool HasOverlappingFixup(FlowAddress source, bool includeStart)
+    {
+        for (int delta = -3; delta <= 3; delta++)
+        {
+            if (delta == 0 && !includeStart) continue;
+            long offset = (long)source.Offset + delta;
+            if (offset < 0 || offset > uint.MaxValue) continue;
+            if (allFixupOrigins.Contains(
+                new FlowAddress(source.Object, (uint)offset)))
+                return true;
+        }
+        return false;
+    }
+
     private FlowAddress? ResolvePointer(FlowAddress source)
     {
-        if (!IsBackedRange(source, 4) || !fixups.TryGetValue(source, out var fixup) ||
+        if (!IsBackedRange(source, 4) ||
+            ambiguousFixups.Contains(source) ||
+            HasOverlappingFixup(source, includeStart: false) ||
+            !fixups.TryGetValue(source, out var fixup) ||
             fixup.SourceType != 0x07) return null;
         if (fixup.TargetObject < 1 || fixup.TargetObject > image.Objects.Count) return null;
         var targetObject = image.Objects[fixup.TargetObject - 1];
@@ -230,7 +256,7 @@ internal sealed class ReferenceRecovery
                     ulong slot = (ulong)absolute.Value.Offset + (uint)entry * 4;
                     if (slot > uint.MaxValue) { valid = false; break; }
                     var location = new FlowAddress(absolute.Value.Object, (uint)slot);
-                    if (fixups.ContainsKey(location) || ambiguousFixups.Contains(location) ||
+                    if (HasOverlappingFixup(location, includeStart: true) ||
                         !IsBackedRange(location, 4))
                     {
                         valid = false;
