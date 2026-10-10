@@ -54,6 +54,41 @@ internal static class Dos16TableIndexEvidenceSmoke
             report.AnalysisStatus.Contains("no-CFG-or-runtime-target-promotion"),
             "stored target remains non-executable candidate with exact pointer offset");
 
+        // Both the analyst-bound standalone validator and the
+        // automatic guarded correlator must honor the *same* explicitly
+        // supplied instruction, edge and step worklist budgets.
+        // Smaller resource allowances return no partial table evidence.
+        var exactBudgetReport = Dos16TableIndexEvidence.Inspect(
+            good.Region, good.Graph, good.Manifest,
+            maximumInstructions: good.Graph.Instructions.Count,
+            maximumSteps: good.Graph.Instructions.Count,
+            maximumEdges: good.Graph.Edges.Count);
+        Check(!exactBudgetReport.Incomplete &&
+            exactBudgetReport.CandidateSites == 1 &&
+            exactBudgetReport.Sites[0].PossibleIndices.SequenceEqual(new[] { 1 }),
+            "complete table-index inspection accepts tight sufficient budgets");
+
+        var lowStepReport = Dos16TableIndexEvidence.Inspect(
+            good.Region, good.Graph, good.Manifest, maximumSteps: 1);
+        Check(lowStepReport.Incomplete && lowStepReport.CandidateSites == 0 &&
+            lowStepReport.Sites.Count == 0 &&
+            lowStepReport.AnalysisStatus.Contains("incomplete-worklist-step-budget"),
+            "insufficient standalone index worklist budget yields zero candidates");
+
+        var lowInventoryReport = Dos16TableIndexEvidence.Inspect(
+            good.Region, good.Graph, good.Manifest, maximumInstructions: 1);
+        Check(lowInventoryReport.Incomplete &&
+            lowInventoryReport.AnalysisStatus.Contains("incomplete-input-graph-budget") &&
+            lowInventoryReport.Sites.Count == 0,
+            "bounded instruction inventory cannot be bypassed via pointer manifest");
+
+        var lowEdgeReport = Dos16TableIndexEvidence.Inspect(
+            good.Region, good.Graph, good.Manifest, maximumEdges: 1);
+        Check(lowEdgeReport.Incomplete &&
+            lowEdgeReport.AnalysisStatus.Contains("incomplete-input-graph-budget") &&
+            lowEdgeReport.Sites.Count == 0,
+            "bounded CFG edge inventory cannot be bypassed via pointer manifest");
+
         var first = Fixture(new byte[] { 0xBB, 0x00, 0x00 });
         var firstReport = Dos16TableIndexEvidence.Inspect(
             first.Region, first.Graph, first.Manifest);
