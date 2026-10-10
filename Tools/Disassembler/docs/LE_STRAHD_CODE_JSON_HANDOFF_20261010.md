@@ -324,3 +324,33 @@ unchanged, isolating source pointer ownership from guard shape.
 Original runtime addresses remain unverified.
 
 These checks are source-only, not G2 execution results.
+
+### Guard instruction relocation provenance
+
+The post-traversal LE guard audit now checks whether any original
+four-byte fixup destination overlaps the decoded CMP, JA, MOVZX, or
+indexed-JMP instruction bytes. An original stored instruction may
+decode as the expected unsigned guard while the LE loader rewrites
+its immediate, branch displacement, opcode or register operand at
+runtime. Such evidence is inadequate to license a finite index bound.
+
+Fixup source origins are indexed by original LE object and logical
+offset. A four-byte write beginning anywhere from three bytes before
+an instruction through its last byte intersects the instruction.
+The compare, guard, and optional MOVZX must be unmodified. The
+indexed JMP may have exactly one relocation beginning at its
+final four-byte displacement, because the separate table-base
+validator requires that displacement fixup to be supported and
+unambiguous. Competing, opcode-touching and overlapping fixups
+disqualify the bounded proof and force a source-only replay.
+
+Generic smoke fixtures install a single synthetic LE absolute
+fixup at each offset 0 through 12 of the byte switch and require
+that none publish a guarded literal table, including when the
+stored x86 instructions look correct. A separate positive case
+uses the supported exact jump displacement fixup and separately
+decodes the relocated view. Neither kind of synthetic case proves
+the behavior of Strahd's original CODE exports.
+
+No compiler, Windows smoke test, original Strahd execution,
+GitHub Action or production artifact has been run for this batch.
