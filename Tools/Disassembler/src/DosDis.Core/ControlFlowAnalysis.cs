@@ -334,6 +334,7 @@ public static class ControlFlowAnalysis
                 }
 
                 if (guardAddress is { } guardLocation &&
+                    !explicitEntries.Contains(guardLocation) &&
                     decodedDetails.TryGetValue(guardLocation, out var guard) &&
                     guard.Mnemonic == Mnemonic.Ja)
                 {
@@ -342,9 +343,22 @@ public static class ControlFlowAnalysis
                     // extension/index is not acceptable.
                     var guardEdges = edges.Where(e =>
                         e.Source == guardLocation).ToArray();
+                    // The taken/out-of-range JA arm must skip the
+                    // indirect jump entirely. JA pointing at the jump,
+                    // into its bytes, or backwards can feed an unbounded
+                    // register value into the same table. A complete
+                    // dominator analysis is not available here, so only
+                    // the narrow forward-skip shape earns a bound.
+                    var takenEdges = guardEdges.Where(e =>
+                        e.Kind == "branch-taken").ToArray();
+                    bool forwardSkip = takenEdges.Length == 1 &&
+                        takenEdges[0].Destination is { } defaultAddress &&
+                        defaultAddress.Object == cursor.Object &&
+                        (ulong)defaultAddress.Offset >=
+                            (ulong)cursor.Offset + (uint)size;
                     bool exactGuard = guardEdges.Length == 2 &&
                         guardEdges.Count(e => e.Kind == "branch-not-taken") == 1 &&
-                        guardEdges.Count(e => e.Kind == "branch-taken") == 1;
+                        forwardSkip;
                     var toGuard = edges.Where(e =>
                         e.Destination == guardLocation).ToArray();
                     if (exactGuard && toGuard.Length == 1 &&
