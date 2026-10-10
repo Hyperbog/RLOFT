@@ -889,6 +889,12 @@ add_executable(original_f790_resolved_description_tests
 target_include_directories(original_f790_resolved_description_tests PRIVATE include)
 add_test(NAME original_f790_resolved_description_tests COMMAND original_f790_resolved_description_tests)
 
+# Source-only original OBJECTS + mutable container F5F8 + original DATA/T text.
+add_executable(original_f790_runtime_description_tests
+    tests/original_f790_runtime_description_tests.cpp)
+target_link_libraries(original_f790_runtime_description_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_f790_runtime_description_tests COMMAND original_f790_runtime_description_tests)
+
 # Original F5F8 subtype-0x14 early return must ignore mutable bag contents.
 add_executable(original_f5f8_special_weight_tests
     tests/original_f5f8_special_weight_tests.cpp)
