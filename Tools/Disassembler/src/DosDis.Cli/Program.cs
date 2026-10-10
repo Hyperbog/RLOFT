@@ -473,7 +473,7 @@ try
     }
     return 0;
 }
-catch (Exception ex) when (ex is IOException or ArgumentException or FormatException or OverflowException or NotSupportedException)
+catch (Exception ex) when (ex is IOException or InvalidDataException or ArgumentException or FormatException or OverflowException or NotSupportedException)
 {
     Console.Error.WriteLine($"Analysis failed: {ex.Message}");
     return 1;
