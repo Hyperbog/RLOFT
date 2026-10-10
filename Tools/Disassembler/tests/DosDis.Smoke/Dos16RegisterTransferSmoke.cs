@@ -130,6 +130,39 @@ internal static class Dos16RegisterTransferSmoke
 
         Check(Value(Dos16WordRegister.AX).Kind == Dos16ValueKind.Unknown,
             "unknown transfer never leaves stale AX interpretation");
+        // Scaling proof uses exact decoder-backed BX instruction bytes,
+        // never the formatted assembly or the literal table name.
+        var scaleImage = BinaryArtifact.FromBytes(new byte[] {
+            0xBB, 0x01, 0x00, // MOV BX,1
+            0xC1, 0xE3, 0x02, // SHL BX,2
+            0x01, 0xDB,       // ADD BX,BX
+            0x03, 0xDB,       // ADD BX,BX (opposite encoding)
+            0xD1, 0xE3,       // SHL BX,1
+            0xC3
+        }, "synthetic-bx-scale.com");
+        var scaleRegion = DosComImage.LoadExplicit(scaleImage).CreateCodeRegion();
+        var scaleGraph = Dos16ControlFlowAnalysis.Analyze(scaleRegion, 0x100);
+        var scaled = Dos16RegisterSnapshot.UnknownFor(scaleRegion);
+        foreach (var (offset, expected) in new[] {
+            (0, (ushort)1), (3, (ushort)4),
+            (6, (ushort)8), (8, (ushort)16), (10, (ushort)32)
+        })
+        {
+            var instruction = scaleGraph.Instructions.Single(x =>
+                x.Address.Offset == 0x100 + offset);
+            var transfer = Dos16RegisterTransfer.Apply(
+                scaleRegion, instruction, scaled);
+            scaled = transfer.After;
+            Check(scaled.Get(Dos16WordRegister.BX).Kind ==
+                Dos16ValueKind.Constant &&
+                scaled.Get(Dos16WordRegister.BX).Minimum == expected,
+                "exact modular BX self-doubling/SHL sequence at " + offset);
+            if (offset != 0)
+                Check(!transfer.FlagsPreserved &&
+                    transfer.SourceOrigin?.Kind == Dos16ValueOriginKind.Arithmetic,
+                    "scaling instruction kills flag certainty, retains origin");
+        }
+
         Console.WriteLine("PASS: exact x86-16 register transfers, alias invalidation and source identity");
     }
 }
