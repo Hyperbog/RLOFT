@@ -1,1 +1,0 @@
-One explicitly authorized Full Windows build of Level22 modal source at f615302ec350618e74b3d4a606182559a1db2e4d. Run all 182 CTests and publish Diagnose-Level22.cmd with EXE; restore manual workflow and delete marker after queuing.
