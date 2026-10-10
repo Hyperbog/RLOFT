@@ -51,8 +51,8 @@ struct OriginalFeedbackRibbonText final {
             -1 - (-(remainder + 1)) / 2;
     }
 
-    // F66C computes width exactly once, then calls 2975C once for every
-    // selected tile and 30508 for the final string. The caller-supplied
+    // F66C calls 30288 for tile width and 2975C for each selected
+    // tile; 30508 re-measures the final text before centering it. The caller-supplied
     // next_rand15 MUST reference the *shared* original 30CA2 RNG state.
     // Re-executing prepare advances that state, just like another F66C call.
     template<class NextRandom15>
