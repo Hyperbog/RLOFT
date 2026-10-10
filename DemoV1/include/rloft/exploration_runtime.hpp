@@ -78,8 +78,11 @@ struct ExplorationRuntimeFrame final {
     std::string ground_source_failure;
     // Authenticated source ID and original 4096 pixel indices. Exactly
     // 4098 bytes with 2 unused CODE.2 C040+2 addressing spacer bytes.
-    // The live presenter uses it only under the original no-wall
-    // 0x22220=0x800 full-span gating rule.
+    // The live presenter currently uses this tile only under its
+    // source-active 0x93 material guard. DOS 335C8 initializes
+    // 22220=0x800; the four materializers can also explicitly set
+    // 22220=0 on 0x93. Both cases give FF50 lower rows=128; exact
+    // dynamic partial-depth clipping remains a separate source gate.
     std::vector<std::uint8_t> ground_raster_source;
     std::uint8_t ground_phase_u{};
     std::uint8_t ground_phase_v{};

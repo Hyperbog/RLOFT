@@ -153,11 +153,13 @@ int main() {
     assert(classified[2]==
            rloft::Type7SceneRenderOutcome::TraceUnavailable);
 
-    // CODE.2 335C8 writes sentinel depth 0x800. When all 256
-    // original rays are the outdoor 0x93 non-drawable material,
-    // 1F2A5/1F372 leaves FF50=128, enabling the original 34A74
-    // raster at lower viewport y259..132. Do NOT apply the whole
-    // 128-row span when rays or exact original RES4 bytes are missing.
+    // CODE.2 335C8 initializes 22220=0x800, but the four
+    // materializer tails explicitly reset it to zero for source
+    // main resource 0x93. Both 1F2A5's initial sentinel shortcut
+    // and the 15618[0]=0 dynamic lookup compute lower FF50=128.
+    // Preserve the original full 34A74 raster at y259..132 only
+    // under the already authenticated source-active no-wall gate,
+    // never for arbitrary dynamic depths or missing RES4 bytes.
     rloft::ExplorationRuntimeFrame outdoors{};
     outdoors.source_level_id=22;
     outdoors.ground_source_verified=true;

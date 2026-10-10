@@ -129,8 +129,11 @@ bool ExplorationPresenter::original_full_ground_eligible(
        frame.sweep_records.size()!=256U) {
         return false;
     }
-    // CODE.2 335C8 starts nearest wall-depth at 0x800. Source
-    // 335DC reads resource_outer ONLY for an active +0C==1 prepass,
+    // CODE.2 335C8 initializes nearest wall-depth at 0x800,
+    // but original 330F3/33284/3338B/33493 reset 22220 to ZERO
+    // when a materialized main resource equals 0x93. Either 0 or
+    // 0x800 produces 128 lower FF50 rows by DIFFERENT source paths.
+    // Source 335DC reads resource_outer ONLY for active +0C prepass,
     // while 336F7 uses resource_inner for every ordinary/main ray.
     // An INACTIVE alternate bank value cannot lower original 22220
     // or change FF50; demanding it be 0x93 was a false restriction.
@@ -201,7 +204,9 @@ ExplorationPresentedFrame ExplorationPresenter::present(
             GroundTextureRasterSpec ground{};
             ground.phase_u=frame.ground_phase_u;
             ground.phase_v=frame.ground_phase_v;
-            // Open-field sentinel makes original FF50 exactly 128.
+            // Verified all-source-active-0x93 open field produces
+            // original FF50=128 either by 1F2A5 (22220=0x800) or
+            // source 15618[0]=0 (materializer-set 22220=0).
             // Other depths/modes must NOT be given a guessed span.
             ground.row_count=128U;
             const auto report=OriginalGroundTextureRaster::draw(
