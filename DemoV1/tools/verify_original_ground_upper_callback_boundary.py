@@ -80,6 +80,43 @@ def audit_original(path:Path)->None:
                       (0x31620,0x30CC4)):
         assert obj[call]==0xE8
         assert call+5+struct.unpack_from("<i",obj,call+1)[0]==dest
+    # CODE.2 296C0 is the 314B0 geometry helper. Its fully
+    # disassembled 117 bytes write ONLY these four EFxx setup
+    # globals (plus a caller-owned stack-slot clamp), not FF50.
+    # 2AB38 is the 29B40 geometry helper: reads EFED/EFF1/F001
+    # to calculate EBX destination and ECX plane, with NO memory
+    # write in its 52-byte body. The *caller* may still write to
+    # an aliased framebuffer: this audit does NOT close ES aliases.
+    leafs=(
+        (0x296C0,0x29735,
+         "dc43d298f510365164f0b68c82bb954b83d8be8882a4c6fb0b659aaeffb0b9f7",0),
+        (0x2AB38,0x2AB6C,
+         "51b0f554019e0dcca8236ff9894358b7cea837c0f21defb69f5eeef067e623dd",0),
+    )
+    for begin,end,expected_sha,direct_ff50_count in leafs:
+        body=obj[begin:end]
+        assert hashlib.sha256(body).hexdigest()==expected_sha,hex(begin)
+        assert body.count(ff50)==direct_ff50_count,hex(begin)
+        assert body[-1]==0xC3,hex(end)
+    stores={
+        0x29715:"890d59ef0000",
+        0x2971E:"891d5def0000",
+        0x29728:"891561ef0000",
+        0x2972E:"a355ef0000",
+    }
+    for address,hexbytes in stores.items():
+        wanted=bytes.fromhex(hexbytes)
+        assert obj[address:address+len(wanted)]==wanted,hex(address)
+    address_reads={
+        0x2AB43:"8b0dedef0000",
+        0x2AB4D:"8b0df1ef0000",
+        0x2AB63:"031d01f00000",
+    }
+    for address,hexbytes in address_reads.items():
+        wanted=bytes.fromhex(hexbytes)
+        assert obj[address:address+len(wanted)]==wanted,hex(address)
+    print("PASS: complete 296C0 geometry and 2AB38 destination helper bodies")
+    print("BOUND: 296C0 direct globals EF55/EF59/EF5D/EF61; 2AB38 reads F001")
     print("PASS: overlay facing/RNG/IRQ reseed and fixed F6F4 alias (12 windows)")
     print("PASS: 17 original callback E8 edges; 5 function boundaries")
     print("PASS: direct FF50 occurrences 0/0/0/2/0; 1F377 reload")
@@ -95,6 +132,8 @@ def audit_repository()->None:
     assert "0x41C64E6DU" in native_rng
     assert "0x00003039U" in native_rng
     assert "state_ *" in native_rng
+    for term in ("296C0","2AB38","EF55","F001","indirect"):
+        assert term in doc,term
     print("PASS: source callback evidence and CTest registration")
 
 if __name__=="__main__":

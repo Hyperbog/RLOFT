@@ -6,6 +6,10 @@ The native 256-ray traversal now distinguishes original CODE.2 `32F4C` sentinel 
 
 
 
+## 2026-10-10 original upper-geometry helper direct store bounds confirmed
+
+Independent full-byte/RET original CODE.2 audit closes leaf **296C0** (117 bytes; original upper animated callback 314B0) as four EFxx geometry setup stores `EF59/EF5D/EF61/EF55`, not FF50, and leaf **2AB38** (52 bytes; 29B40 coordinate helper) as a register-only destination calculation reading `EFED/EFF1/F001` with no original data-memory stores. Both complete function hashes, original store/read instruction signatures and no direct FF50 operands independently passed. The 29B40 output pointer and ES/segment aliases and animated `29838/2986C→2A478/29564` drawing helpers remain open; no premature dynamic FF50 or DOS equivalence claim. Extended the previously registered callback original-byte oracle (CTest count unchanged). [Source evidence](LEVEL22_FF50_UPPER_CALLBACK_BOUNDARY_AUDIT_20261010.md). CI manual-only.
+
 ## 2026-10-10 original mutable C026/C027 GAME.OPT floor/ceiling dispatch cross-check
 
 User-supplied original CODE.2 complete object-1 address audit verified **five direct references each** to mutable `C026/C027` (ten exact instruction windows), shipped DGROUP `1/1`, 6520 menu jump actions 1/2→`65C3/65DB`, original `65CF/65E7 XOR BYTE,1` only at row<0xA8, and downstream `1F227,1F305,1F369,34D46,34D95` surface guards. The existing native `OptionsState/OptionsMenuModel` already reconstruct source values and toggles; expanded **existing options_menu_tests** to cross options into isolated original upper/lower dispatcher for on/on, off/on, off/off, on/off cases, 34998 trigger and 33DE0 vs 34A74 selection. New original-byte Python CTest; no new gameplay wiring, no Windows build or original DOS parity claim. [Machine-byte and source-mode audit](LEVEL22_ORIGINAL_C026_C027_OPTIONS_GROUND_DISPATCH_20261010.md). CI manual-only.
