@@ -941,6 +941,14 @@ target_include_directories(original_actor_modal_toggle_prefix_tests PRIVATE incl
 add_test(NAME original_actor_modal_toggle_prefix_tests
     COMMAND original_actor_modal_toggle_prefix_tests)
 
+# CODE.2 039D0/03A20 dynamic 15618 table and 1F255..1F384
+# source FF50 upper/lower span. Isolated - no unproved 22220 live hook.
+add_executable(original_ground_ff50_source_span_tests
+    tests/original_ground_ff50_source_span_tests.cpp)
+target_include_directories(original_ground_ff50_source_span_tests PRIVATE include)
+add_test(NAME original_ground_ff50_source_span_tests
+    COMMAND original_ground_ff50_source_span_tests)
+
 # Original CODE.2 DS + original T archive + injected MUTABLE nested weights.
 add_executable(original_f790_resolved_description_tests
     tests/original_f790_resolved_description_tests.cpp)
