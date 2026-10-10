@@ -41,6 +41,32 @@ int main(){
     const rloft::HeldItemState scroll{0xA7,1U};
     const rloft::HeldItemState prior_slot{0x35,0U};
 
+    // Real native CHARS-record preflight: item WORD +0x40+2*slot,
+    // original extracted known bit +0x12B. No mutation/side effects.
+    rloft::PartyImage party{};
+    constexpr std::size_t actor=2U, slot=5U;
+    const auto base=actor*rloft::PartyImage::kActorSize;
+    party.bytes[base+0x40U+slot*2U]=0xA7U;
+    party.bytes[base+0x40U+slot*2U+1U]=0x00U;
+    party.bytes[base+0x12BU]=static_cast<std::uint8_t>(1U<<slot);
+    const auto captured=
+        rloft::InventoryRuntimeState::ordinary_slot_before_117a0(
+            party,actor,slot);
+    assert(captured.object_id==0xA7 && captured.known==1U);
+    assert(party.bytes[base+0x40U+slot*2U]==0xA7U);
+    party.bytes[base+0x40U+slot*2U]=0xFFU;
+    party.bytes[base+0x40U+slot*2U+1U]=0xFFU;
+    const auto empty_but_known=
+        rloft::InventoryRuntimeState::ordinary_slot_before_117a0(
+            party,actor,slot);
+    assert(empty_but_known.object_id==-1 && empty_but_known.known==1U);
+    bool invalid_slot=false;
+    try {
+        (void)rloft::InventoryRuntimeState::ordinary_slot_before_117a0(
+            party,actor,12U);
+    } catch(const std::out_of_range&){invalid_slot=true;}
+    assert(invalid_slot);
+
     assert(Plan::after_117a0(Status::NoChange,scroll,prior_slot,
                              inventory,text).count==0U);
     assert(Plan::after_117a0(Status::Unsupported,scroll,prior_slot,

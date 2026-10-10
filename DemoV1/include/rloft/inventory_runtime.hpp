@@ -212,6 +212,13 @@ struct InventoryRuntimeState final {
     // Original message and 6DAC/6DA8 +0x36 IRQ feedback
     // are separately projected in mage_scribe_feedback.
     // Exact DOS ribbon ornament/pixel timing is still pending.
+    // Snapshot the ORIGINAL 117A0 input actor slot BEFORE mutating
+    // it. Word at CHARS +0x40+2*slot, known bit in DWORD +0x12B.
+    // Preserve even the stale known bit of an empty (-1) slot;
+    // original 119FC passes it separately from the signed ID.
+    [[nodiscard]] static HeldItemState ordinary_slot_before_117a0(
+        const PartyImage& party,std::size_t actor,std::size_t slot);
+
     [[nodiscard]] InventoryOrdinarySwapStatus swap_ordinary_slot(
         PartyImage& party,
         const ObjectCatalog& objects,

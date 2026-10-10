@@ -331,6 +331,17 @@ InventoryRuntimeState InventoryRuntimeState::fresh(
     return out;
 }
 
+HeldItemState InventoryRuntimeState::ordinary_slot_before_117a0(
+    const PartyImage& party,std::size_t actor,std::size_t slot) {
+    if(actor>=PartyImage::kActorCount || slot>=12U)
+        throw std::out_of_range("original 117A0 actor or ordinary slot");
+    const auto base=actor*PartyImage::kActorSize;
+    const auto known_bits=u32(party.bytes.data()+base+0x12BU);
+    const auto known=static_cast<std::uint8_t>(
+        (known_bits&(std::uint32_t{1}<<slot))!=0U);
+    return {party_item(party,actor,slot),known};
+}
+
 InventoryOrdinarySwapStatus InventoryRuntimeState::swap_ordinary_slot(
     PartyImage& party,
     const ObjectCatalog& objects,
