@@ -14,7 +14,7 @@
 namespace rloft {
 
 // Read-only forensic snapshot: preserve archive and selected-entry evidence
-// even when the original source-selected RES4 entry is not EH type-1.
+// even when the original source-selected RES4 entry cannot be decoded.
 // Never substitute an inspected candidate for the source-selected entry.
 struct OriginalGroundRes4ProbeSnapshot final {
     OriginalGroundRes4Report archive{};
@@ -33,7 +33,7 @@ struct OriginalGroundRes4ProbeSnapshot final {
         const ResArchive& res4) {
         OriginalGroundRes4ProbeSnapshot out{};
         // The former tool invoked resolve() before inspect(), losing ALL
-        // archive evidence on a failed type-1 decode. Inspect FIRST.
+        // archive evidence on any failed decode. Inspect FIRST.
         out.archive=OriginalGroundRes4Audit::inspect(res4);
         const auto selector=static_cast<std::uint16_t>(
             static_cast<std::uint16_t>(level.header[7U]) |
@@ -85,9 +85,12 @@ struct OriginalGroundRes4ProbeSnapshot final {
            <<"entry_count="<<archive.total_entries<<"\n"
            <<"type1_count="<<archive.type1_entries<<"\n"
            <<"invalid_type1_count="<<archive.rejected_type1_entries<<"\n"
+           <<"type6_count="<<archive.type6_entries<<"\n"
+           <<"invalid_type6_count="<<archive.rejected_type6_entries<<"\n"
            <<"eligible_64x64_count="<<archive.tiles_64x64.size()<<"\n";
         for(const auto& item:archive.tiles_64x64) {
             out<<"candidate\t"<<item.absolute_entry
+               <<"\tsource_EH_type="<<unsigned(item.original_eh_type)
                <<"\timplied_base_unverified="
                <<item.absolute_entry-signed_level_selector
                <<"\t"<<item.compressed_entry_bytes<<"\t"
