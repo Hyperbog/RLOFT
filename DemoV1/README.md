@@ -1,6 +1,12 @@
 # Ravenloft Demo Build v1
 
 
+## 2026-10-10 supplied original RES4 ground root cause identified; source corrected
+
+Direct original files prove `INIT[0x0E]=600`, fresh Level22 signed selector `+55`, and selected **RES4[655]**. Every original RES4 disk record is **EH6**. Original CODE.2 `37590→37700` decodes EH6 LZSS, and `2EF38` then changes the loaded resource's **runtime** type to 1 before `2F29C`; the former native `decode_type1` was incorrectly applied to the on-disk EH6 stream. Independent original-media decoding returned 4096 original 64×64 indexed texels with SHA256 `2266dc05fa40037116bb7e6914624ee1d1deb0d636d4d404f58e3da3be94a0a0`. The new native EH6 decoder and ground-selection/inspection correction are source-committed, with original-byte and synthetic CTests (**214 expected with Python**). Previously authorized Windows Full #655 passed **212/212** on earlier code; **new source NOT yet Windows-built or DOS-accepted**, and the live terrain's dynamic eligibility remains a separate gate. [Exact original binary proof, hash evidence and next acceptance steps](LEVEL22_RES4_EH6_ORIGINAL_MEDIA_DECODE_20261010.md). Builds remain manually authorized.
+
+
+
 ## 2026-10-10 original Level22 RES4 ground probe now preserves failure evidence
 
 The latest user diagnostic captures revealed an original RES4 ground-resource type-1 decode failure on Windows Full #654: the native forest floor is still an **unaccepted flat fallback**. The separate `Probe-Level22-Ground.cmd` utility exited before listing the archive because it attempted `resolve` before `inspect`. The new source-only forensic snapshot captures every original archive candidate and selected entry ID/raw-header/error even on failed source decode; the probe still exits nonzero. A **build-free, independent Python** reader (`tools/probe_original_res4_selection.py`) can report the same original `INIT`/RES4/LEV022 selection from a local game install without launching CI. Original-game CODE.2 and LEV022 selector +55 were independently verified; media-specific INIT and RES4 bytes are still required to identify the cause. Synthetic regressions registered; **213 CTests expected with Python**, last approved Windows Full #654 passed **210/210** on older checkout. No new build, DOS acceptance or progress scoring change. [Forensic report and run command](LEVEL22_RES4_PROBE_FAILURE_FORENSICS_20261010.md).
