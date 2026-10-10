@@ -325,11 +325,17 @@ merge); disassembler CODE/TEST SOURCE matched canonical commit
 - No original-file DOSDis run or independent outside-decoder
   comparison has been executed at this compiled SHA. G2 INDEPENDENT
   ACCURACY ACCEPTANCE REMAINS PENDING, not passed.
+NOW: subsequent owner-authorized-run-#38 source-only G2 work added
+strict oracle JSON import: duplicate/case-colliding names and unknown
+root/instruction/structured-operand/memory fields fail closed before
+comparison. Synthetic negative fixtures were authored, NOT EXECUTED;
+they do not inherit run #38's compiled/synthetic status.
 NOW: private Strahd CODE.2 x86-16 entry window was independently
 decoded with GNU objdump 2.44 for a bounded 11-instruction comparison
-manifest (9 structured operand assertions). Its SHA, original bytes,
-and manifest remain outside Git/CI. It is a PREPARED external reference,
-not an executed DOSDis-vs-oracle comparison.
+manifest (9 structured operand assertions). Its original excerpts and
+manifest remain outside Git/CI. A source-only execution/review plan is
+now at docs/G2_STRAHD_ORIGINAL_COMPARISON_EXECUTION_PLAN.md. The reference
+has NOT been compared against an exact-build DOSDis output.
 NEXT: owner-local exact-SHA original MZ/COM comparison, second evidence
 class/ISA checks, discrepancy review, negative controls and reviewer
 approval. Keep other titles' originals and names independently scoped.
@@ -1288,3 +1294,40 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
 - These docs-only continuity commits postdate the tested source SHA and
   should not be labeled themselves as compiled. Next accuracy checkpoint
   requires explicit independent original-file comparison and review.
+
+2026-10-10 | Part 4 G2 original-reference readiness, SOURCE ONLY:
+- Re-read the privately prepared external Strahd CODE.2 objdump 2.44
+  entry manifest (11 predeclared instructions; 9 structured facts).
+  Static inspection confirms its intended region: outer MZ CS:IP
+  01BD:2382, physical entry offset 0x4152, region physical start
+  0x1DD0 and 54,900 source-backed bytes. This is the original DOS
+  launcher, NOT protected-mode LE object code. No DOSDis original-file
+  comparison or new external decoder execution occurred.
+- Found an oracle-input reliability gap: System.Text.Json web defaults
+  allow duplicate JSON keys (including aliases differing only by case)
+  and silently ignore unknown optional fields. A misspelled
+  expectedFacts, directEdgeKind or memory field can shrink the semantic
+  denominator without a reviewer noticing.
+- Committed strict pre-deserialization audits of JSON field uniqueness
+  at all object depths and supported-schema names at every defined
+  oracle record level. Typed import uses the same parsed JSON snapshot.
+  New source-only synthetic negatives cover duplicate source/identity
+  properties and misspelled optional edge, semantic and memory fields.
+- Updated docs/X86_16_EXTERNAL_ORACLE_COMPARISON.md and
+  docs/INDEPENDENT_VALIDATION_POLICY.md with run #38 evidence boundaries
+  and new uncompiled input hardening. Created a local-only G2
+  original-source comparison and human-review runbook without embedding
+  proprietary executable bytes or a private manifest in Git.
+- Static source review only: no .NET compile, synthetic tests, CI,
+  DOSDis-original comparison, release packaging, or behavioral evidence.
+  Last VERIFIED Windows compile/synthetic remains #38 at exact PR merge
+  d8c404c56fed675457f5497859f242002e863732, canonical source
+  2945b1474289cb42c167000628255848b77b7896.
+- The private 11-instruction window has no direct branch target or
+  guarded indirect-table expectations; new independent original-code
+  samples and a distinct ISA evidence class must be predeclared before
+  they can be accepted for any additional named G2 scope.
+- Next gate: request owner approval only after a meaningful source batch.
+  Current strict-JSON source requires compile and synthetic re-verification
+  at its own SHA. Original-file comparisons and independent reviewer
+  acceptance require separate authorization. G2 independent PENDING.
