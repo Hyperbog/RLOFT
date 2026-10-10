@@ -1,5 +1,5 @@
 DOSDIS — SOURCE DEVELOPMENT ROADMAP AND BUILD-GATE POLICY
-Version: 1.0 | 2026-10-09
+Version: 1.1 | 2026-10-10
 Canonical branch: disassembler-foundation
 Source repository: https://github.com/Hyperbog/RLOFT
 Original DOS game collection: DnD-Classics / MASTER
@@ -38,6 +38,18 @@ POLICY (NORMATIVE)
    unavailable archives do not imply missing usable game files.
 8. Update this roadmap as evidence changes; do not silently call an item DONE
    because source exists. Preserve rejected/unknown paths and missing coverage.
+9. INDEPENDENT VALIDATION IS A MANDATORY ACCEPTANCE REQUIREMENT for the
+   correctness/format portion of G2-G8 and for all first/final-release accuracy
+   claims. No test written from DOSDis's own outputs counts as an outside
+   correctness oracle. Use separately researched original-byte known answers,
+   published format/ISA semantics, and independently implemented decoders/
+   traces as appropriate; compare at the EXACT built SHA with provenance.
+   Failure, missing evidence or unexplained disagreement blocks independent
+   acceptance, not source editing or accurately reported build-only success.
+10. Apply docs/INDEPENDENT_VALIDATION_POLICY.md as the NORMATIVE oracle,
+    sampling, discrepancy, review and pass/fail contract. Use
+    docs/INDEPENDENT_VALIDATION_RECORD_TEMPLATE.md for each accepted scope.
+    Builds, original corpus execution and CI remain owner-authorized only.
 
 EVIDENCE STATES
 ---------------
@@ -48,6 +60,11 @@ COMPILED: owner-authorized Windows compile passed at the cited commit.
 SYNTHETIC VERIFIED: corresponding generated regression suites executed.
 ORIGINAL VERIFIED: exact-hash game source was checked and results recorded.
 GUI VERIFIED: the user exercised the named UI interaction successfully.
+INDEPENDENT VALIDATION PENDING: outside-oracle comparison not completed.
+INDEPENDENT VERIFIED: named feature/format scope passed independently authored
+  exact-source checks, mandatory negative cases, second evidence class and
+  discrepancy review at the cited compiled SHA; never a whole-image claim
+  unless a complete independently verified denominator exists.
 BLOCKED: concrete blocker and requested input recorded.
 DEFERRED: out of current release scope.
 
@@ -75,6 +92,9 @@ R0.4 Record last compiled HEAD, original validation hashes, release artifacts
      and manual GUI acceptance separately from today's source HEAD.
 R0.5 Add a compact machine-readable checkpoint ledger only if it can be
      maintained without automatically executing code or duplicating facts.
+R0.6 Maintain independently sourced known-answer expectations, alternate
+     decoder/standard comparisons and reviewed disagreement records; never
+     derive the expected result from the same DOSDis output being checked.
 Exit: documented reliable baseline and no unsupported verification claims.
 Gate: NONE. Documentation and fixtures do not justify standalone builds.
 
@@ -132,6 +152,12 @@ Compile, run synthetic tests, compare before/after candidate output on a
 representative corpus, inspect newly accepted AND newly rejected targets;
 original-file validation only if exact bytes are available. Investigate
 regressions before approving broader format work.
+INDEPENDENT ACCURACY EXIT (MANDATORY): predeclared x86-16 instruction,
+CFG/guard and dataflow samples checked against independent instruction
+decoding and independently researched machine-byte/ISA expectations;
+record exact commit, binary SHA, mismatch and unsupported/unknown counts.
+If external comparison cannot be performed, keep G2's COMPILED/SYNTHETIC
+states separate and label independent correctness acceptance PENDING.
 
 PHASE 3 — DOS MZ, COM, CROSS-SEGMENT AND OVERLAY COMPLETENESS (P0)
 ------------------------------------------------------------------
@@ -158,6 +184,10 @@ Hillsfar MAIN.EXE, a Gold Box START.EXE plus paired GAME.OVR, a second
 TPOV/FBOV variant, Dark Sun DSUN.EXE and a headerless SOUND.COM.
 Check loader maps, fixups, original offsets, UNKNOWN statuses and
 SHA-bound artifact identity. No hardcoded game-specific decoder branches.
+INDEPENDENT ACCURACY EXIT (MANDATORY): compare exact-hash samples and
+negative controls against published loader-format rules and independently
+checked physical/segment/overlay offsets and fixup expectations. Record
+every unsupported variant; no source-derived guess qualifies.
 
 PHASE 4 — LE/X86-32 ENGINE AND VALIDATION QUALITY (P0)
 ------------------------------------------------------
@@ -172,6 +202,10 @@ R4.5 Compare Strahd, Menzo and Stone candidate results as independent
      sources; no cross-title borrowed symbol names, addresses or counts.
 R4.6 Performance-budget large CODE.2 candidate scans; protect UI cancel,
      memory growth and read-only project durability.
+R4.7 Predeclare independent x86-32 decoding windows, known data islands,
+     source fixups, exact branch targets and negative cases. Use a
+     separately implemented decoder plus prior original-byte research,
+     with one exact-source manifest per game/version, never by filename.
 Exit: stable LE candidate engine and machine-readable regression diffs.
 Gate: G4 when substantial LE-core improvements are ready.
 
@@ -183,6 +217,11 @@ reference drift with provenance. Manual WPF checks only for affected
 controls: launch/open/analyze, hex/addresses, project notes, save, restore,
 backup, exports, diagnostics, responsiveness. Do not re-test unrelated
 GUI interactions on every engine-only batch.
+INDEPENDENT ACCURACY EXIT (MANDATORY): separate exact-source Strahd,
+Stone Prophet and Menzoberranzan LE/code/data/fixup comparisons using
+independent known answers and a second x86-32 decoder. All required
+findings and discrepancies must be reviewed. Missing game samples are
+PENDING, not substituted or inferred from another game's CODE.1/.2.
 
 PHASE 5 — ADDITIONAL EXECUTABLE FAMILIES (P1)
 --------------------------------------------
@@ -195,6 +234,8 @@ R5.4 Detect packed/self-extracting executables conservatively: recognize
 R5.5 Driver/TSR interfaces only with a proven load model; otherwise raw hex.
 Exit: supported/fail-closed loaders with exact evidence boundaries.
 Gate: G5 synthetic and targeted LX/NE original samples; manual authorization.
+Independent loader/ISA oracle checks and malformed controls are REQUIRED
+before each advertised executable format is accepted; unsupported remains so.
 
 PHASE 6 — RESOURCE AND VM DISASSEMBLERS (P2)
 ------------------------------------------
@@ -207,6 +248,8 @@ R6.4 Resource/code distinction, cross-file references, unknown gaps and
      source-backed validation manifests for each family.
 Exit: deterministic parsers and VM decoders tested with synthetic fixtures.
 Gate: G6 after EACH FORMAT FAMILY is coherent, not after every opcode.
+Independent format/VM specification or prior original-byte oracle and
+negative controls REQUIRED per claimed resource/VM family.
 
 PHASE 7 — RESEARCH PROJECTS, WORKFLOW AND INTERFACE (P1/P2)
 -----------------------------------------------------------
@@ -219,6 +262,8 @@ R7.3 Virtualized hex/disassembly, responsive cancellation, bounded jobs,
 R7.4 Improve batch exports, diagnostics privacy and safe external review.
 Exit: user workflows with tested recoverability; game binaries stay read-only.
 Gate: G7 user-facing preview only when there are meaningful UI changes.
+Independently check that UI/export/reopened source evidence matches exact
+original bytes and does not silently promote candidate claims to verified.
 
 PHASE 8 — RELEASE AND LONG-TERM MAINTENANCE (P3)
 -----------------------------------------------
@@ -230,9 +275,16 @@ R8.3 Recovery from malicious/corrupt files; invalid bounds, huge inputs,
      untrusted manifests and interrupted SQLite writes.
 R8.4 Automated offline, opt-in corpus validation with owners' originals
      staying outside public CI.
-Exit: reproducible release candidate with verified required formats.
-Gate: G8 final full build, all synthetic suites, authorized original corpus
-and owner GUI/release acceptance before claiming a final release.
+R8.5 Retain exact-release SHA independent validation records for EVERY
+     advertised supported family, with reviewer, negative controls,
+     externally sourced expectations, discrepancy dispositions and
+     explicitly unbenchmarked candidate counts.
+Exit: reproducible release candidate with verified required formats AND
+documented, independently validated accuracy limited to stated scopes.
+Gate: G8 final full build, all synthetic suites, authorized original corpus,
+mandatory independent multi-oracle format validation and owner GUI/release
+acceptance before claiming a final release. Any missing or unexplained
+mandatory independent result BLOCKS G8, not just its documentation.
 
 SCHEDULE / BATCH RULES
 ----------------------
@@ -966,3 +1018,27 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   Last verified Windows build #35 covers
   9f605e36581b2c6db72a6a47248ea5af31611506 only.
 Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
+
+2026-10-10 | POLICY ADOPTION — independent accuracy validation is mandatory:
+- Owner explicitly required INDEPENDENT validation as a formal project
+  requirement. Adopted docs/INDEPENDENT_VALIDATION_POLICY.md and
+  docs/INDEPENDENT_VALIDATION_RECORD_TEMPLATE.md as normative gates.
+- Future G2-G8 correctness/format acceptance and G8 release are blocked
+  until predeclared outside-oracle evidence, exact binary+build SHA,
+  independent reviewer, negative-case outcomes and all required
+  discrepancy dispositions are recorded. Builds/tests may be separately
+  COMPILED or SYNTHETIC VERIFIED without being INDEPENDENT VERIFIED.
+- G2 must check 16-bit decoding and guard/dataflow; G3 loader and
+  overlays; G4 x86-32 LE across Strahd, Stone and Menzoberranzan with
+  separate original identities; G5/G6 per added executable/resource
+  family; G7 source-to-view/export fidelity; G8 all claimed families.
+  R0.6, R4.7 and R8.5 added to keep the requirement ongoing.
+- Iced.Intel supplies DOSDis's own decoder; independent comparison
+  requires a distinct decoder or prior specification-based research.
+  RLOFT historical 100% byte accounting is not current DOSDis accuracy.
+  One title's CODE.1/.2 names cannot justify another title's results.
+- This policy change is DOCS ONLY. No G2 compile, regression run,
+  original game comparison, independent secondary decoder execution,
+  CI or release has occurred. G1 #35 remains the last COMPILED /
+  SYNTHETIC VERIFIED Windows source baseline, not an independent
+  current-HEAD certification. Manual-only authorization preserved.
