@@ -32,6 +32,14 @@ WINDOWS={
     0x1F3C3:"e8ac560100",           # original 34A74 lower caller
     0x34AB9:"8b0d50ff000083f9507c05b950000000", # min 80 rows
     0x34B47:"8b0d50ff000083e95083f9007e55", # FF50-80 paired rows
+    0x330E7:"81be205a010093000000750a", # record inner resource==0x93
+    0x330F3:"c7052022020000000000",   # special 22220=0 reset
+    0x330FD:"8b86185a01003b05202202007d05a320220200", # signed min
+    0x33487:"81bf205a010093000000750a", # companion resource
+    0x33493:"c7052022020000000000",   # same reset
+    0x3349D:"8b87185a01003b05202202007d05a320220200", # same min
+    0x335C8:"c7052022020000080000",   # per-sweep 0x800 init
+
 }
 
 def verify_original_code2(path:Path)->None:
@@ -49,7 +57,12 @@ def verify_original_code2(path:Path)->None:
     assert code[0x1F3C3]==0xE8
     target=0x1F3C3+5+struct.unpack_from("<i",code,0x1F3C4)[0]
     assert target==0x34A74,"lower 34A74 caller"
-    print(f"PASS: {len(WINDOWS)} original FF50 instruction windows, 2 calls")
+    # Exact original sweep-record producers have an important non-min
+    # side effect: the inner material sentinel 0x93 resets 22220 to
+    # zero BEFORE the signed min(depth,22220) branch. A host-side
+    # min(all ray depths) is therefore not source-equivalent.
+    print(f"PASS: {len(WINDOWS)} original FF50 and 22220 source windows, 2 calls")
+    print("PASS: original 22220 0x93 reset-before-min and sweep 0x800 init")
 
 def verify_original_sintab(path:Path)->None:
     source=path.read_bytes()
