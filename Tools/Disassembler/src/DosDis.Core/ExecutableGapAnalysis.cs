@@ -65,6 +65,32 @@ public static class ExecutableGapAnalysis
         if (total != code + protectedBytes + unknown + virtualBytes)
             throw new InvalidDataException("Executable object byte accounting does not close.");
 
+        // Aggregate totals alone are insufficient: two fabricated ranges
+        // can overlap by N bytes and omit N other bytes yet still sum to
+        // the correct executable size. Enforce a complete, nonoverlapping
+        // partition independently for every executable object's virtual
+        // address interval. Keep this invariant even when the ranked
+        // output intentionally filters shorter unknown gaps.
+        var spansByObject = graph.Ranges.GroupBy(r => r.Object)
+            .ToDictionary(g => g.Key, g => g.OrderBy(r => r.Begin).ToArray());
+        foreach (var objectMap in objects.Values)
+        {
+            uint next = 0;
+            if (spansByObject.TryGetValue(objectMap.Number, out var spans))
+            {
+                foreach (var span in spans)
+                {
+                    if (span.Begin != next)
+                        throw new InvalidDataException(
+                            "Executable object ranges overlap or leave an unclassified hole.");
+                    next = span.EndExclusive;
+                }
+            }
+            if (next != objectMap.VirtualSize)
+                throw new InvalidDataException(
+                    "Executable object ranges do not cover the complete virtual object.");
+        }
+
         var unknownRanges = graph.Ranges
             .Where(r => r.Classification == "unknown-file-backed").ToArray();
         var eligible = unknownRanges.Where(r =>
