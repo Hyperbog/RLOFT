@@ -76,7 +76,7 @@ dosdis overlay-analyze /private/path/to/game.ovr --regions /private/regions.json
 
 For an MZ loader assumption, record initial CS:IP and exact mapped original module offsets; overlay regions must be explicitly identified from the authorized source. The CLI does not select oracle windows, run an outside decoder or upload original bytes. The comparison export is a separate **non-overwriting** JSON file and is not a pass/fail release decision. Source-file paths in working commands should be redacted from shareable records.
 
-The report includes each expected instruction's source/oracle/graph agreement status (`match`, `missing`, `conflict`, `not-observed`), a machine-readable discrepancy detail, sample denominator, unbenchmarked decoded starts, truncation marker and source identity. A candidate match is **not** proof that the instruction executes or that every instruction has been discovered.
+The report includes each expected instruction's source/oracle/graph agreement status (`match`, `missing`, `conflict`, `not-observed`), a machine-readable discrepancy detail, sample denominator, unbenchmarked decoded starts, truncation marker and source identity. It also retains the exact source file length, mapped physical start and extent, 16-bit segment/origin, analyzed entry offset, source-region mapping evidence, and the claimed external decoder configuration. A candidate match is **not** proof that the instruction executes or that every instruction has been discovered. The executable build SHA and human review are recorded separately in the independent validation record; a comparison JSON alone cannot assert either.
 
 ### Required independent G2 evidence still missing
 
