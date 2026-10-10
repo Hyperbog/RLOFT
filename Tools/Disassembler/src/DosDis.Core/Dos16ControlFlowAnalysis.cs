@@ -58,7 +58,16 @@ public static class Dos16ControlFlowAnalysis
         bool pairOK = indexReg == Register.None ||
             baseReg is Register.BX or Register.BP;
         int size = ins.MemoryDisplSize;
-        uint value = size == 0 ? 0 : (uint)(ins.MemoryDisplacement64 & 0xFFFF);
+        // A disp8 is sign-extended in a 16-bit effective-address
+        // calculation. Derive its modular value from the encoded low
+        // byte, not from the decoder's host-width extension convention.
+        uint value = size switch
+        {
+            0 => 0,
+            1 => unchecked((ushort)(sbyte)(byte)ins.MemoryDisplacement64),
+            2 => (uint)(ins.MemoryDisplacement64 & 0xFFFF),
+            _ => 0
+        };
         bool displacementOK = size switch
         {
             0 => value == 0,
