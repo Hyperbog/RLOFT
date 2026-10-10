@@ -94,3 +94,46 @@ behavior. Original DOS game executions and GUI/manual checks remain
 distinct from synthetic evidence. Do not convert speculative table
 entries into executable CFG paths without an independently accepted
 runtime/code provenance model.
+
+## R2.5 / R2.6 adversarial safety extension (source-only)
+
+Further synthetic cases exercise both state flow and independent evidence
+boundaries, before any G2 build:
+
+- An unsupported `MOV [BX],AL` between the known BX source and the
+  compare causes the register transfer layer to invalidate BX. The
+  independently source-backed guard and stored table remain detectable,
+  but the finite-index cross-check **must not select any entry**.
+- A memory write between Jcc and the exact BX scaling operation
+  breaks the unique transparent guard-to-stride proof. The output must
+  not claim a guarded storage table even if earlier BX was constant.
+- The same source hash loaded at a different explicit COM origin, or
+  a different source SHA at the same origin, is rejected before joining
+  graph/register state.
+- A DS-prefixed indirect table cannot masquerade as `CS:[BX+disp16]`
+  source storage. Literal displacement alone does not establish the
+  segment selector.
+- A FAR indexed table with exact `SHL BX,2` but no corresponding
+  original MZ selector-fixup and rebased mapping remains unresolved.
+  No intersegment target can be manufactured from raw pointer bytes.
+- The original indirect-jump edge remains unresolved after a positive
+  correlation; repeated analysis does not mutate the graph.
+
+These cases are committed as **unexecuted** Windows smoke fixtures.
+They do not validate true CPU flag behavior, volatile memory contents,
+runtime segment registers, original game binaries or desktop workflows.
+The existing Windows build #35 passed at a *previous SHA* and must not be
+represented as testing these additions.
+
+## G2 verification matrix
+
+Run the existing manual-only `.github/workflows/disassembler-core.yml`
+on the current branch when separately authorized. Confirm the Windows
+Core/CLI/Desktop, DosDis.Smoke and DosDis.ProjectSmoke builds, both
+synthetic test suites, and both artifact uploads succeed. Audit output
+for the newly added correlated-dispatch PASS line as well as the existing
+R2.1–R2.4 PASS lines. Any compiler diagnostic, unhandled synthetic case,
+unexpected published target or missing artifact fails the gate.
+
+Only the exact workflow SHA can be marked verified. An artifact compiled
+before these additional commits cannot certify the new source.
