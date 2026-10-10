@@ -2015,6 +2015,42 @@ try
     Equal(defaultGapLedger.CandidateInstructionBytes,
         gapLedger.CandidateInstructionBytes,
         "gap reporting threshold cannot change decoded code byte coverage");
+    // A total byte sum can be forged without covering the correct
+    // addresses: overlap one byte, omit another, and keep the same
+    // aggregate length. Reject before publishing ranked gap evidence.
+    var partitioned = ExecutableGapAnalysis.Analyze(
+        graph with { Ranges = graph.Ranges.Reverse().ToArray() },
+        graphImage, minimumGapBytes: 1, maximumGaps: 5);
+    Equal(partitioned.UnknownFileBackedBytes, gapLedger.UnknownFileBackedBytes,
+        "range serialization order cannot change executable unknown accounting");
+    var wideUnknown = graph.Ranges.First(r =>
+        r.Classification == "unknown-file-backed" &&
+        (long)r.EndExclusive - r.Begin >= 8);
+    uint midpoint = wideUnknown.Begin +
+        (wideUnknown.EndExclusive - wideUnknown.Begin) / 2;
+    var forgedRangeInventory = graph.Ranges
+        .Where(r => r != wideUnknown)
+        .Concat(new[] {
+            wideUnknown with { EndExclusive = midpoint + 1 },
+            wideUnknown with {
+                Begin = midpoint, EndExclusive = wideUnknown.EndExclusive - 1
+            }
+        }).ToArray();
+    Equal(forgedRangeInventory.Sum(r =>
+        (long)r.EndExclusive - r.Begin),
+        graph.Ranges.Sum(r => (long)r.EndExclusive - r.Begin),
+        "forged overlap and hole deliberately conserve the byte-count total");
+    bool forgedRangesDenied = false;
+    try
+    {
+        ExecutableGapAnalysis.Analyze(graph with {
+            Ranges = forgedRangeInventory
+        }, graphImage, minimumGapBytes: 1);
+    }
+    catch (InvalidDataException) { forgedRangesDenied = true; }
+    Equal(forgedRangesDenied, true,
+        "matching aggregate totals never authorize overlapping or missing regions");
+
     Equal(gapLedger.Gaps.Any(g => g.Begin.Object == 1 &&
         g.FirstFileOffset == graphImage.ToFileOffset(g.Begin.Object, g.Begin.Offset)),
         true, "gaps retain original-source file offsets");
