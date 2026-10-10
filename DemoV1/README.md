@@ -11,7 +11,7 @@ This is the active project entry point. Historical development updates have been
 | --- | --- |
 | Original executable | `CODE.1` / `CODE.2` reconstructed and byte-accounted; **not exhaustively semantically verified**, and post-accounting corrections remain possible |
 | Native Windows Full build | [#658](https://github.com/Hyperbog/RLOFT/actions/runs/38085278540) passed **214/214** tests **on its earlier checkout** |
-| Current source test catalog | **224** `add_test` registrations with Python installed; current changes **not** accepted by Windows CI |
+| Current source test catalog | **225** `add_test` registrations in the current source (Python-conditional tests require an installed interpreter); current changes **not** accepted by Windows CI |
 | Level 22 viewport | Original `RES4[655]` full-open ground confirmed in 64/64 native capture frames; source-accurate partial clipping and DOS framebuffer equivalence remain pending |
 | Original DOS acceptance | No accepted full indexed-frame/palette/IRQ/RNG/complete-game parity; do not infer fidelity from synthetic tests or a successful native build |
 | Working score | Provisional **49.8% engineering readiness** is **not** 49.8% original-game completeness; preserve independent DOS parity gates |
