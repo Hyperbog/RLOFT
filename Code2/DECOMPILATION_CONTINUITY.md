@@ -442,3 +442,10 @@ Future CODE.1 work should therefore be evidence-driven backtracking only if new 
 ## CODE.2 Batch 69 checkpoint
 
 Batch 69 adds **1,209 translated bytes** and **19 proven non-code bytes**, bringing cumulative accounting to **196,867 translated + 3,993 non-code = 200,860 / 239,698 = 83.7971% (83.80%)**. Sequential frontier: `2F580`. Preserve `2F0B4`'s minimum-u16 selection rule, the slot-independent `F0C0` exemption in `2F1E4`, `2F2E0`'s far-return callback semantics, and `2F2EC`'s signed-word/low-port behavior.
+
+
+## 2026-10-10 F790 indexed-text reader fidelity (post-certification)
+
+Original `CODE.2` object-1 `F790` contains 21 direct E8s, now independently byte-verified. One previously missing `F7D3→1C368` call decodes original `T[0x3F]` into a 16-byte SS:ESP local **after** the pending `6DAC` exit but **before** the `item==-1` return. The original T payload is one `D` byte; its visible text is discarded but source stream seek/read and stack-local writes still occur. Canonical C++ added `call_1c368_local(u8*,u32)` and explicit scratch storage.
+
+A second original address-identity defect was resolved at the same boundary: existing `Application21Boundary::call_2c368` text-resource callbacks were misnamed; original F790 E8 callsites `F7D3, F91C, FA9D, FB5A, FC78` and scribe E8 `116E2` point at **`1C368`**, which already has canonical `function_1c368`. Renamed all 28 textual uses to `call_1c368` or `call_1c368_local` without other changes. **Current canonical Git blob `5b0b4dd7b6a91bfcc99068970c3152f0f62ce54e`**. Both corrections are on `code1-decompilation` only; `demo-v1` must deliberately review the [cross-workstream handoff](F790_STACK_LOCAL_TEXT_PREREAD_20261010.md). Original object byte accounting remains 100%; fresh whole-file syntax and DOS-equivalence gates are **not passed**. No CI build was triggered.
