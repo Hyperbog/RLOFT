@@ -688,3 +688,16 @@ Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
   Last compiled/synthetic verified baseline remains build #35 at
   9f605e36581b2c6db72a6a47248ea5af31611506.
 Reference: P0_MZ_CROSS_SEGMENT_CANDIDATES.md.
+
+2026-10-10 | Owner clarification — original CODE file provenance:
+- CODE.1 and CODE.2 referred to in this project are specifically
+  original Ravenloft: Strahd's Possession game assets. They are NOT
+  generic DOSDis fixture names, a cross-game executable convention,
+  or evidence that other D&D titles use the same binary layout.
+- Preserve Strahd-specific asset classification and provenance in
+  example workflows, manual desktop acceptance and corpus reports.
+  Keep reusable DOSDis decoders, x86 flow/data analysis and MZ/LE
+  validation game-agnostic. Do not distribute original proprietary
+  CODE files with portable Windows artifacts or hosted CI fixtures.
+- Current R3 synthetic MZ alias/far-relocation tests remain independent
+  generated fixture bytes, not derived from CODE.1 or CODE.2.
