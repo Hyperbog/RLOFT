@@ -515,6 +515,11 @@ ExplorationRuntimeFrame ExplorationRuntime::build_frame(
     out.scene_individual_columns_mode =
         scene_individual_columns_mode_;
 
+    // For read-only field projections the source C6D8 and C738
+    // counts must come from the current loaded original SINTAB,
+    // never from native vector.size() or invented ray constants.
+    out.original_c6d8_ray_count=renderer_tables_.c6d8();
+    out.original_c738_scale_count=renderer_tables_.scale_block_count;
     out.sweep_records =
         ViewSweepTraversalModel::build(
             session_,
