@@ -2517,7 +2517,11 @@ try
     foreach (var (target, rel8) in new[] {
         (Target: 9u, Rel8: (byte)0xF5), // 0x12 EB F5 -> indexed JMP at 0x09
         (Target: 6u, Rel8: (byte)0xF2), // 0x12 EB F2 -> MOVZX at 0x06
-        (Target: 4u, Rel8: (byte)0xF0)  // 0x12 EB F0 -> unsigned JA at 0x04
+        (Target: 4u, Rel8: (byte)0xF0), // 0x12 EB F0 -> unsigned JA at 0x04
+        (Target: 3u, Rel8: (byte)0xEF), // alternate byte inside CMP
+        (Target: 5u, Rel8: (byte)0xF1), // alternate byte inside JA
+        (Target: 7u, Rel8: (byte)0xF3), // alternate byte inside MOVZX
+        (Target: 10u, Rel8: (byte)0xF6) // alternate byte inside indexed JMP
     })
     {
         var lateBypass = (byte[])byteSwitchBytes.Clone();
