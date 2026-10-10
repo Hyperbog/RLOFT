@@ -1,5 +1,11 @@
 # Ravenloft Demo Build v1
 
+
+## 2026-10-10 actor-modal mode prefix — source verified, Windows unbuilt
+
+Original CODE.2 `11AD8..11B68` is now an isolated native callback adapter with source-ordered `291B0`, 1-or-4 `11268` actor repaint calls and one deferred `11B63→F790` call. It preserves the full selected `6F90` DWORD on the flag-bit-2 four-actor route; normal mode toggles only one actor's low BYTE. The original binary check now proves **16 instruction windows and 11 near-call targets**, including the `12F94` return that prevents an actor-toggle bit-2 event from falling into the generic `1307C` modal cleanup. Standalone strict GCC/Clang native regression passed; CMake registry **212 tests**, while the last authorized Windows Full #654 remains **210/210 PASS on an earlier revision**. The actual DOS flag/button mapping, post-F790 `11B6B..11C19` actions, live Win32 drawing, RNG/IRQ and DOS acceptance are still blocked and **not** claimed implemented. No build dispatched. [Detailed checkpoint](LEVEL22_F790_ACTOR_TOGGLE_NATIVE_PREFIX_20261010.md).
+
+
 ## Repository-first instructions for every development continuation
 
 **Mandatory before implementing or committing gameplay code:** read the [original-source pre-commit verification charter](ORIGINAL_EXECUTION_FIDELITY_CHARTER.md#mandatory-source-verification-gate--applies-before-every-gameplay-code-commit) and [native continuity/pre-commit protocol](CONTINUOUS_GAME_INTEGRATION_CONTRACT_20261009.md#binding-pre-commit-reconstruction-protocol--read-for-every-native-code-batch). Use `Code1/Code1.cpp` and `Code2/Code2.cpp` as the **primary reconstructed implementation references**, then independently confirm all changed gameplay behaviors against original version-identified CODE and other game-file bytes. **No speculative original-game functionality is allowed into Git.** Record callsite/offset proof, dependencies and source-derived tests before committing, then track Windows build and DOS acceptance separately. The continuity documentation in Git is authoritative across conversations. Build and CI runs remain manually user-authorized. Prioritize full original Level22 playability through its mist ending before independent Level23 work; defer all modernization until original full-game recreation is complete.
