@@ -1,6 +1,12 @@
 # Ravenloft Demo Build v1
 
 
+## 2026-10-10 upper/lower surface drawing modes: original source-ordered dispatch isolated
+
+Original CODE.2 `1F1C8` can choose an active overlay (`29B40`/`314B0`), fallback upper `33E28`, or upper textured `34A74` based on source `C027/C028/258A8/258B0`. It then checks `C026` and optionally calculates lower ground `FF50`; **1F377 rereads FF50 after the upper callback**, which forbids assuming that callback left the upper-span count untouched. New native `OriginalGroundSurfaceDispatch` models exact two-stage branching and original DWORD arithmetic without invoking host VGA. Independent original CODE.2 audit: **13 instruction windows, 15 near-call targets passed**. Source-authored C++/Python tests raise expected registry to **220**; last approved Windows Full #658 **214/214** on prior checkout. Native F790, source nearest 22220, dynamic full clipped ground and original DOS pixels/IRQ/RNG are still unaccepted. No build triggered. [Source-mode audit](LEVEL22_ORIGINAL_SURFACE_MODE_DISPATCH_20261010.md).
+
+
+
 ## 2026-10-10 next terrain gate: original FF50 partial-depth clipping reconstructed, unhooked
 
 The **64/64** user Full #658 native renderer frames already show the authentic original Level22 `RES4[655]` textured ground under the source all-0x93 open-field case, but dynamic wall-occluded `FF50` is not implemented. Original CODE.2's `03838` generated `15618` wall-depth table and `1F255..1F384` upper/lower `FF50` row calculation are now independently matched byte-for-byte with shipped SINTAB (19 CODE.2 windows including 22220 producer quirk) (C738=127). Original `330F3/33493` can reset nearest depth to zero when a constructed record's inner material is 0x93, before signed minimum update; a generic host `min(ray depths)` is incorrect and remains unwired. The bounded `OriginalGroundFF50SourceModel` and C++/Python regressions preserve exact original 128-row sentinel and shorter non-sentinel row spans, **without changing the live renderer** until source `22220` / mutable C026-C027 are fully reconstructed. Expected registry **216 CTests**, last approved [Full #658](https://github.com/Hyperbog/RLOFT/actions/runs/38085278540) **214/214 on older checkout**; new FF50 tests unbuilt, no build fired. Original DOS 320x400 indexed-frame, IRQ and RNG parity still zero. [Source proof and numeric boundaries](LEVEL22_ORIGINAL_FF50_SOURCE_CLIPPING_SPAN_20261010.md).
