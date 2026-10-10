@@ -2401,6 +2401,23 @@ try
         e.Destination == new FlowAddress(1, 0x15)), true,
         "near JA retains exact default destination under changed code width");
 
+    // The long-form conditional is subject to the same forward-skip
+    // proof as JA rel8. A rel32 that lands on the indexed transfer
+    // cannot provide an out-of-range default path.
+    var nearJaBypass = (byte[])nearJaSwitch.Clone();
+    nearJaBypass[0x200 + 6] = 0x03; // next IP=0x0A, JMP begins at 0x0D
+    var nearBypassGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(nearJaBypass)));
+    Equal(nearBypassGraph.JumpTables.Count, 0,
+        "near JA rel32 into dispatch cannot license unsigned index bounds");
+
+    var nearSignedGuard = (byte[])nearJaSwitch.Clone();
+    nearSignedGuard[0x200 + 5] = 0x8F; // 0F 8F = JG, not unsigned JA
+    var nearSignedGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(nearSignedGuard)));
+    Equal(nearSignedGraph.JumpTables.Count, 0,
+        "near signed JG cannot satisfy unsigned guard proof");
+
     // Entrypoint hypotheses are unordered: neither an explicit MOVZX
     // seed nor an explicit indexed-JMP seed may inherit the guard in
     // either traversal order. This is independent of table contents.
