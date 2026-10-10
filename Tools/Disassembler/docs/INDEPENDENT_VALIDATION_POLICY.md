@@ -188,8 +188,31 @@ prevents counting an operand expectation as fully matched. No
 `decoderFacts` is *not observed*, never silently correct. The
 analyzer produces these facts from Iced itself; the expected
 values must still come from an actually **independent** source
-and reviewer. This does not establish memory addressing,
-implicit effects, full instruction semantics, runtime reachability,
-or a release-grade outside-decoder benchmark.
+and reviewer. The subsequent bounded memory-address subset below
+does not establish general memory semantics, implicit effects,
+runtime reachability or a release-grade outside-decoder benchmark.
 
 G2 execution and independent acceptance remain PENDING.
+
+## 12. Source-only ordinary x86-16 memory ModR/M comparison
+
+The comparator now accepts `expectedFacts` for one fully described
+16-bit `Memory` operand using BX/BP + SI/DI register forms,
+single BX/BP/SI/DI base, or direct 16-bit displacement.
+It compares encoded displacement byte count, 16-bit modular
+displacement, scalar memory width and **explicit** segment-override
+prefix with the source-decoded record. Source-based default DS/SS
+and actual segment state are intentionally not asserted.
+
+Only the supported exact encoded forms may score matching structured
+memory semantics. Address-size overrides and implicit/complex
+memory operands retain unknown status. Invalid reference
+memory pairings, displacement ranges and segment claims are rejected.
+Wrong-but-valid facts remain conflicts. The evidence denominator
+and predeclared source SHA/mapping controls remain unchanged.
+
+The attached tiny COM memory fixtures are **synthetic contract tests
+only**, not an independently run decoder or observed runtime execution.
+Owner-authorized G2, actual Capstone/Ghidra checks, independent
+source selection, human adjudication and any correctness/release
+acceptance remain PENDING.
