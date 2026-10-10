@@ -391,6 +391,18 @@ NEW SOURCE-ONLY G2 RELOCATION EVIDENCE PATH:
 - These changes and fixtures are UNBUILT/UNEXECUTED. Run #40 remains
   the prior exact-source COMPILED/SYNTHETIC checkpoint; G2 acceptance
   still PENDING.
+- Source-only fixture audit replaced opaque SHA literal test values
+  with independently specified original synthetic MZ images and
+  x86-16 ordered IP/length/byte serialization. Python and C# have
+  corresponding separately authored 480-/464-byte MZ source fixtures.
+- The MZ CLI projection now includes OriginalFileBackedBytes.
+  A new strict report comparator requires one pinned original SHA,
+  exactly five source/assumption/fixup/overlap/digest facts, and
+  noncertifying statuses; negative fixtures reject mismatches,
+  malformed JSON, invalid geometry and contradictory status labels.
+  See docs/G2_MULTIGAME_ORIGINAL_SOURCE_SELECTION_20261010.md.
+  Nothing in these changes has been compiled, tested or used against
+  original game bytes.
 G2 INDEPENDENT ACCURACY ACCEPTANCE REMAINS PENDING.
 TEMP CI: PR #6 CLOSED / not merged. Canonical workflow remains
 workflow_dispatch-only. Owner approval is still required for each new
@@ -1524,3 +1536,34 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   Windows/Linux run and last narrow original Strahd G2 sample.
 - No proprietary original bytes, original manifest, or original
   sample excerpts added to Git or CI. No new CI/build authorization.
+2026-10-10 | G2 transparent synthetic SHA expectations and preflight report reconciliation:
+- Reviewed previously unbuilt C# SHA fixtures. Replaced opaque
+  literal expectations with separately specified expected MZ image
+  bytes, for 480-byte one-word relocation 1234h+2000h=3234h and
+  464-byte twice-relocated word 1234h+2000h+2000h=5234h.
+  SHA256 is computed over those independent expected byte arrays,
+  never over the candidate relocated image to derive the oracle.
+- Mirrored those 480/464 original-free shapes in separately authored
+  Python synthetic fixtures for the second MZ relocation implementation.
+  Independently specified COM IP/length/byte hashing replaced a
+  fixed unexplained x86-16 benchmark digest literal.
+- Added OriginalFileBackedBytes to mz-relocate and mz-analyze
+  --load-segment JSON projections to reconcile image extent.
+- Added research/compare_mz_relocation_reports.py: source-only,
+  SHA-pinned, private-file report comparator for the independent
+  Python preflight and DOSDis mz-relocate --max 0 outputs.
+  Compares same assumed load segment, source-backed byte count,
+  relocation count, overlap status and copied-image SHA.
+  Invalid source identity, malformed/case-colliding JSON, wrong
+  primitive types, foreign MZ mode, unsupported/contradictory
+  analysis status or geometry inconsistency is rejected.
+  A five-field match is explicitly NOT a runtime/accuracy certificate.
+- Added test_compare_mz_relocation_reports.py with positive,
+  each-field mismatch, foreign SHA, malformed JSON and inconsistent
+  evidence status checks; no proprietary bytes. Documented the
+  exact-sha Dungeon Hack CHECKSYS invocation and matching hex load
+  segment assumptions without running original files.
+- STATUS: all edits SOURCE ONLY / not compiled or run. Last
+  compiled/synthetic owner-authorized test is still Actions #40
+  source-equivalent SHA 7fa76f822e0aa56a4bf1c611076bc50e5e0a5389.
+  G2 independent accuracy acceptance remains PENDING.
