@@ -23,7 +23,9 @@ filenames but need **separate** source identities and comparison records.
 Read the [normative independent validation policy](docs/INDEPENDENT_VALIDATION_POLICY.md)
 and [evidence record template](docs/INDEPENDENT_VALIDATION_RECORD_TEMPLATE.md).
 The [roadmap/build gates](docs/ROADMAP_BUILD_GATES.txt) define required
-acceptance per phase. This policy adds **no automatic build or test run**:
+acceptance per phase. The [predeclared G2 independent test scope](docs/INDEPENDENT_VALIDATION_G2_PREDECLARED_SCOPE.md)
+specifies future x86-16 oracle comparisons without claiming they have run.
+This policy adds **no automatic build or test run**:
 owner authorization is still required. As of 2026-10-10 the current HEAD has
 **not** passed the new independent verification gate.
 
