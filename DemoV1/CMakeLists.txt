@@ -34,6 +34,11 @@ if(Python3_Interpreter_FOUND)
         NAME subsystem_progress_tracker_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_subsystem_progress_tracker.py")
+    # Candidate-function coverage differential vs 17 original F790 E8 sites.
+    add_test(
+        NAME original_f790_candidate_coverage_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/analyze_original_f790_candidate_coverage.py")
     # Three proved CODE.2 feedback F790 call edges and strict IRQ expiry.
     add_test(
         NAME original_f790_feedback_binary_contract_tests
