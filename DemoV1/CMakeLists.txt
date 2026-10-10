@@ -58,6 +58,12 @@ if(Python3_Interpreter_FOUND)
         NAME original_ground_ff50_binary_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_ff50_source_span.py")
+    # Original CODE.2 335C8 nearest 22220 and 4 exact ray
+    # materializer zero/signed-min source windows.
+    add_test(
+        NAME original_ground_nearest_22220_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_nearest_22220.py")
     # Original CODE.2 37590 EH6 -> 2FB04/37700 LZSS -> 2EF38
     # runtime type1 conversion; optional private CODE.2 binary oracle.
     add_test(
@@ -853,6 +859,17 @@ add_test(NAME surface_shading_tests COMMAND surface_shading_tests)
 add_executable(surface_fill_tests tests/surface_fill_tests.cpp)
 target_link_libraries(surface_fill_tests PRIVATE rloft_boot_flow)
 add_test(NAME surface_fill_tests COMMAND surface_fill_tests)
+# Source-proven original 335C8 nearest-depth initialization and
+# four 330E7/33278/3337F/33487 materializer updates. This model is
+# intentionally UNHOOKED from live native sweep rays until original
+# empty-record materialization provenance is established.
+add_executable(original_ground_nearest_22220_tests
+    tests/original_ground_nearest_22220_tests.cpp)
+target_include_directories(original_ground_nearest_22220_tests
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_compile_features(original_ground_nearest_22220_tests PRIVATE cxx_std_17)
+add_test(NAME original_ground_nearest_22220_tests
+    COMMAND original_ground_nearest_22220_tests)
 add_executable(original_ground_texture_raster_tests tests/original_ground_texture_raster_tests.cpp)
 target_link_libraries(original_ground_texture_raster_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_ground_texture_raster_tests COMMAND original_ground_texture_raster_tests)
