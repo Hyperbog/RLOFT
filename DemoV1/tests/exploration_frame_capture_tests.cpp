@@ -40,6 +40,8 @@ int main() {
     IndexedFramebuffer image{};
     image.clear(0x39U);
     ExplorationRuntimeFrame frame{};
+    frame.original_c6d8_ray_count=3U; // synthetic C6D8 fixture
+    frame.original_c738_scale_count=127U; // original SINTAB fixture
     frame.scene_video_page=1U;
     // Authentic original 34998 SINTAB-derived perspective exists even
     // though the RES4 ground source is not yet routed into presentation.
@@ -173,6 +175,12 @@ int main() {
     assert(tsv.find("ground_original_res4_absolute_entry\t178")!=std::string::npos);
     assert(tsv.find("ground_ff58_ready\t1")!=std::string::npos);
     assert(tsv.find("ground_sweep_source_materialized\t1")!=std::string::npos);
+    // An UNKNOWN producer cannot authorize original FF50.
+    assert(tsv.find("ground_projection_original_c6d8\t3")!=std::string::npos);
+    assert(tsv.find("ground_projection_original_c738\t127")!=std::string::npos);
+    assert(tsv.find("ground_projection_available\t0")!=std::string::npos);
+    assert(tsv.find("ground_projection_22220\tunverified")!=std::string::npos);
+    assert(tsv.find("ground_projection_lower_ff50\tunverified")!=std::string::npos);
     assert(tsv.find("ground_sweep_native_synthetic\t1")!=std::string::npos);
     assert(tsv.find("ground_sweep_source_sentinel_initializer\t1")!=
            std::string::npos);
@@ -239,6 +247,13 @@ int main() {
     frame.source_coordinate_a=0x00041234U;
     frame.source_coordinate_b=0x00054321U;
     frame.source_facing=261U;
+    // All three native ray sources are identified here: min 800 -> 408
+    // followed by original 32F4C sentinel (no nearest reset).
+    frame.sweep_records[0].resource_inner=42U;
+    frame.sweep_records[0].depth=800U;
+    frame.sweep_records[1].resource_inner=42U;
+    frame.sweep_records[1].depth=408U;
+    frame.sweep_records[1].original_materializer_executed=true;
     frame.world_scene_render_plans[0].source_unresolved=false;
     frame.world_scene_render_plans[0].visible_runs.push_back(
         Type7VisibleRun{32U,0U,128U,12U});
@@ -268,6 +283,15 @@ int main() {
            std::string::npos);
     assert(third_tsv.find("source_coordinate_fixed\t266804\t344865")!=
            std::string::npos);
+    assert(third_tsv.find("ground_projection_available\t1")!=std::string::npos);
+    assert(third_tsv.find("ground_projection_22220\t408")!=std::string::npos);
+    assert(third_tsv.find("ground_projection_zero_resets\t0")!=std::string::npos);
+    assert(third_tsv.find("ground_projection_sentinel_fills\t1")!=std::string::npos);
+    assert(third_tsv.find("ground_projection_min_updates\t2")!=std::string::npos);
+    assert(third_tsv.find("ground_projection_upper_ff50\t51")!=std::string::npos);
+    assert(third_tsv.find("ground_projection_lower_ff50\t1")!=std::string::npos);
+    assert(third_tsv.find("ground_projection_lower_four_plane_rows\t1")!=std::string::npos);
+    assert(third_tsv.find("ground_projection_lower_paired_plane_rows\t0")!=std::string::npos);
     assert(third_tsv.find("source_facing_raw\t261")!=
            std::string::npos);
     assert(third_tsv.find("scene_run\t0\t32\t0\t128\t12\tindividual\tsupported")!=
