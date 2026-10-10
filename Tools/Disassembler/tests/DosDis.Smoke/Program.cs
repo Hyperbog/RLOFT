@@ -2312,6 +2312,23 @@ try
         e.Destination == new FlowAddress(1, 0x11)), true,
         "unsigned guard retains its original out-of-range default branch");
 
+    // An independently seeded MOVZX or indirect-jump site is a
+    // competing entry hypothesis, not evidence that the predecessor
+    // JA dominates its execution. Both must remain unbounded in this
+    // non-dominance-aware candidate analyzer.
+    var byteSwitchImage = LeImage.Load(
+        BinaryArtifact.FromBytes(byteSwitchBytes));
+    var bypassExtension = ControlFlowAnalysis.Analyze(byteSwitchImage,
+        seeds: new[] { new FlowAddress(1, 0), new FlowAddress(1, 6) });
+    Equal(bypassExtension.JumpTables.Any(t => t.Evidence.Contains(
+        "byte-register-MOVZX-zeroextend")), false,
+        "independent MOVZX entry seed cannot inherit another path's JA bound");
+    var bypassIndexedJump = ControlFlowAnalysis.Analyze(byteSwitchImage,
+        seeds: new[] { new FlowAddress(1, 0), new FlowAddress(1, 9) });
+    Equal(bypassIndexedJump.JumpTables.Any(t => t.Evidence.Contains(
+        "byte-register-MOVZX-zeroextend")), false,
+        "independent indexed-JMP seed cannot borrow upstream unsigned guard");
+
     var signedByteSwitch = (byte[])byteSwitchBytes.Clone();
     signedByteSwitch[0x200 + 4] = 0x7F; // JG, signed rather than JA
     Equal(ControlFlowAnalysis.Analyze(LeImage.Load(
