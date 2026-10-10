@@ -36,9 +36,11 @@ internal static class Dos16AlgebraicFeedbackSmoke
             return (Dos16AbstractValue.Constant(start), new[] { start });
         if (variant % 3 == 1)
         {
-            var elements = Enumerable.Range(0, 1 + (int)(Next(ref seed) % 6))
-                .Select(_ => Sample(ref seed)).Distinct().OrderBy(x => x)
-                .ToArray();
+            int count = 1 + (int)(Next(ref seed) % 6);
+            var samples = new ushort[count];
+            for (int j = 0; j < count; j++)
+                samples[j] = Sample(ref seed);
+            var elements = samples.Distinct().OrderBy(x => x).ToArray();
             return (Dos16AbstractValue.Finite(elements), elements);
         }
 
