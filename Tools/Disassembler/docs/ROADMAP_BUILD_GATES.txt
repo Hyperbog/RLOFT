@@ -554,3 +554,25 @@ synthetic tests before classifying this newer HEAD as compiled.
   remains NOT BUILT / NOT PASSED. Last passing G1 Windows build #35
   remains at 9f605e36581b2c6db72a6a47248ea5af31611506.
 Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
+
+2026-10-10 | R2.6 graph-summary provenance and budget isolation:
+- Dataflow preflight now independently sums the original-decoded
+  nonoverlapping x86-16 instruction lengths and requires equality with
+  graph.CandidateInstructionBytes. UnknownFileBackedBytes must equal
+  region.ByteLength minus this count. Inconsistent or stale graph
+  summaries produce an explicit incomplete result and zero values.
+- Opt-in R2.4 correlated guarded dispatch now exposes optional bounded
+  maximumInstructions/maximumSteps/maximumEdges forwarded to its
+  complete source-backed register worklist. Exhaustion yields no
+  published correlated sites or candidate stored pointers.
+- Synthetic negative cases cover both forged CFG coverage fields;
+  exhausted instruction, edge and step budgets; MOV DS,AX / POP DS
+  segment-state unknowns; and 66 D1 E3 32-bit operand-size override
+  which must not masquerade as exact x86-16 BX scaling.
+- Source changes and new synthetic regressions committed without
+  executing compilation, tests, GitHub Actions or original game files.
+  G1 Windows run 37987465368 still covers SHA
+  9f605e36581b2c6db72a6a47248ea5af31611506 only.
+- G2 remains NOT EXECUTED for this post-G1 batch; preserve candidate-
+  only interpretations and no CFG/loaded-selector promotions.
+Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
