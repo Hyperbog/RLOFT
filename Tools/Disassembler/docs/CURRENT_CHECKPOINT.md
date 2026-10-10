@@ -61,6 +61,26 @@ normative evidence requirements or a Git status check.
   overlap, wrap, malformed-SHA and invalid-segment cases were
   authored. **None are compiled or executed; no original game
   relocation comparison has occurred.**
+- Source-only evidence-reconciliation hardening:
+  C# synthetic MZ relocation tests no longer depend on opaque
+  prewritten SHA256 strings; their expected 480-/464-byte image
+  buffers are independently constructed from original synthetic
+  opcode/fixup arithmetic and hashed. Python has matching independently
+  built resident-image fixtures. The x86-16 benchmark digest fixture
+  similarly derives expected SHA from separately specified
+  offset/length/byte input, not a magic digest string.
+- New `research/compare_mz_relocation_reports.py` and synthetic-only
+  `test_compare_mz_relocation_reports.py` enforce exact pinned
+  original SHA and five metadata comparisons (assumed load segment,
+  file-backed byte count, fixup count, overlap indicator, relocated
+  image SHA256). Malformed/duplicate JSON, unsupported simulation
+  statuses and self-contradictory overlap claims fail closed.
+  `mz-relocate` and `mz-analyze --load-segment` now expose
+  `OriginalFileBackedBytes` for an independent length check.
+  This comparator is **SOURCE ONLY, NEVER EXECUTED**; agreement
+  must remain `metadata-agreement-not-certification`.
+  Reproduction and the synthetic test-discovery command are in
+  [the multigame G2 record](G2_MULTIGAME_ORIGINAL_SOURCE_SELECTION_20261010.md).
 - Project-side iteration protocol in
   [CONTINUOUS_IMPROVEMENT_PLAYBOOK.md](CONTINUOUS_IMPROVEMENT_PLAYBOOK.md):
   instructions to prevent repeated compile defects, circular oracles,
@@ -68,21 +88,25 @@ normative evidence requirements or a Git status check.
 
 ## Next highest-information steps
 
-1. STATIC-review the new original-SHA rejection and independent
-   MZ relocation fingerprint handshake, then extend *source-only*
-   G2 distinct original sample expectations for Dungeon Hack's COM
-   near transfer and relocation-bearing MZ entry. Independently
-   establish opcode/ISA interpretation before reading new DOSDis
-   candidate output.
-2. Cover original-source mapping/rejection and 16-bit conditional,
+1. Next approved exact-SHA G2 gate should first compile all
+   current source and run both synthetic suites, including
+   `python3 -m unittest discover -s research -p 'test_*.py'`.
+   Then compare independent Python versus DOSDis relocation metadata
+   for the exact-hash Dungeon Hack CHECKSYS MZ at a common hypothetical
+   load segment, retaining all discrepancies and status limitations.
+2. Until that gate is explicitly authorized, continue *source-only*
+   independently researched and predeclared x86-16 COM near-transfer
+   / MZ relocation-bearing original windows; never seed expectations
+   from new DOSDis output.
+3. Cover original-source mapping/rejection and 16-bit conditional,
    indirect and signed/unsigned guard behavior, retaining unknown
    paths and exact predeclared denominators.
-3. When the owner next **explicitly authorizes** a compiled test
+4. When the owner next **explicitly authorizes** a compiled test
    gate, build at one exact SHA, run synthetic negatives and the
    independent-source comparisons locally, without proprietary
    originals in hosted CI. Record disagreements and preserve
    authorizations/artifact SHA.
-4. Do not call **G2 INDEPENDENT VERIFIED** until all required
+5. Do not call **G2 INDEPENDENT VERIFIED** until all required
    feature/format samples, second evidence class and human reviewer
    adjudication pass. Current **G2-wide certification: PENDING**.
 
