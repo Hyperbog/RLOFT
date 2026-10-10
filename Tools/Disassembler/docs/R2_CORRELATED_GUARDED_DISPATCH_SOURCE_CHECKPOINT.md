@@ -175,3 +175,34 @@ They do not establish any runtime DS/ES/SS/CS value, pointer memory
 immutability, original-game behavior or verified execution path.
 The Windows G2 gate must be run at the exact new source SHA to validate
 this work; G1 build #35 remains verified only for its earlier commit.
+
+## R2.6 bounded recheck consistency and threshold feedback (source-only)
+
+A static integration audit found that the opt-in guarded/index correlation
+exposed custom worklist budgets, but its independently invoked table-index
+validator silently used the original default worklist limits. Both public
+inspectors now expose or forward the same bounded
+`maximumInstructions`, `maximumSteps` and `maximumEdges`
+arguments to every source-backed worklist recheck. Existing callers
+without explicit budgets retain unchanged default behavior.
+
+The combined report now **fails closed with zero sites** if the second
+storage and register-flow pass disagrees with the first on the original
+source SHA, region mapping, site/count totals, duplicate site geometry,
+pointer kind, displacement, original-file-backed storage status or
+selected-entry ordinal mapping. The two independent passes still run:
+a graph is never considered verified solely because an earlier
+candidate-return record said it was.
+
+New smoke feedback includes **exactly sufficient resource budgets**
+for positive analyst-bound and automatically guarded table evidence,
+all insufficient inventory/edge/step budget thresholds, and a relaxed
+positive budget. All insufficient cases must yield an explicit
+incomplete/zero-pointer report; increasing sufficient budgets may not
+change the candidate indices. The suite does not infer that any
+table target is executable or any runtime pointer array is immutable.
+
+This is a committed **source-only checkpoint**. It has not been
+compiled or executed on Windows or validated against original game
+bytes, and it does not supersede G1 build #35. G2 must validate
+the exact later HEAD and inspect every failure from the new matrix.
