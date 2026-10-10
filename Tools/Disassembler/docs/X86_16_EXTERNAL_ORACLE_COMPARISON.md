@@ -1,6 +1,6 @@
 # DOSDis x86-16 external-decoder comparison
 
-**Status:** SOURCE COMPLETE / UNCOMPILED / NOT RUN (2026-10-10).  
+**Status:** Windows compiled and synthetic-verified at run #38 (tested source `2945b147`, PR merge `d8c404c5`); subsequent strict JSON-import source changes are **NOT COMPILED / NOT RUN**. Independent original-byte comparison remains **PENDING**.  
 **Scope:** COM, MZ entry-code-region and explicitly mapped overlay x86-16 candidate graphs.  
 **Not:** a decoder, a general 16-bit known-answer certification, an external decoder invocation, a runtime trace or a passed G2 gate.
 
@@ -263,3 +263,44 @@ Capstone/Ghidra comparison, a reviewer-approved independent oracle or proof
 of actual DOS execution; all G2 independent acceptance obligations remain
 open.
 
+## Post-build strict oracle JSON input contract (SOURCE ONLY)
+
+The authorized Windows .NET 10 workflow
+[run #38](https://github.com/Hyperbog/RLOFT/actions/runs/38088066909)
+compiled the existing validator and passed synthetic x86-16 external-oracle
+comparison fixtures. The runner's exact PR merge SHA was
+`d8c404c56fed675457f5497859f242002e863732`, with code corresponding
+to canonical `2945b1474289cb42c167000628255848b77b7896`.
+This confirms compilation and synthetic contracts only. The runner did
+not receive proprietary original files or execute a second decoder.
+
+**Subsequent uncompiled source hardening** now rejects duplicate JSON
+properties at *every object depth*, including case-only collisions.
+Parsing checks one JSON snapshot before typed import, preventing an
+ambiguous reviewed `originalHex`, `sourceSha256` or operand field
+from being replaced by a second same-named field. Strict nested schema
+checking also rejects unknown/misspelled keys rather than permitting
+Web-default deserialization to ignore an intended assertion. Known
+field names are limited to the declared manifest, instruction,
+structured-facts, operand and memory objects; optional assertions may
+be explicitly absent or null, but typo-created unknown names must
+fail import.
+
+Committed, synthetic-only negative cases include duplicate root and
+nested instruction fields; misspelled `directEdgeKind`,
+`expectedFacts` and memory `displacementSize`. The validated-field
+set does not independently establish the claimed decoder producer or
+the instruction's runtime reachability. Those cases still require a
+new explicitly authorized compile and smoke test at the precise
+source SHA.
+
+A separately prepared owner-local GNU `objdump` 2.44 Strahd CODE.2
+outer-MZ entry reference contains **11 consecutive instruction starts**
+and **9 structured register/immediate assertions**. The manifest
+and original byte excerpts are not committed to this repository.
+This is an initial original-source comparison window only: it does
+not exercise direct branch/conditional targets, signed branch guards,
+finite-index proofs, MZ fixup effect assertions, or full cross-game
+coverage. See `G2_STRAHD_ORIGINAL_COMPARISON_EXECUTION_PLAN.md`.
+No DOSDis-versus-original manifest execution or human discrepancy
+review is reported by this source-only follow-up.
