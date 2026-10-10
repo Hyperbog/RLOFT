@@ -101,11 +101,21 @@ int main() {
         rays,kOriginalC6D8-1U,kOriginalC738).nearest);
     assert(!OriginalGroundSourceProjectionModel::evaluate(
         {},kOriginalC6D8,kOriginalC738).nearest);
-    assert(!OriginalGroundSourceProjectionModel::evaluate(
-        rays,kOriginalC6D8,0U).ff50.has_value() ||
-        // Source 22220 remains zero after 0x93 reset: index=0
-        OriginalGroundSourceProjectionModel::evaluate(
-            rays,kOriginalC6D8,0U).ff50->lower_ff50==128);
+    // An actual wall depth 408 requires a source C738 table slot
+    // 51. A fake zero-length C738 cannot authorize that lookup.
+    for(auto& ray:rays) {
+        ray.depth=3000U;
+        ray.resource_inner=42U;
+        ray.original_materializer_executed=true;
+        ray.original_sentinel_initializer_executed=false;
+    }
+    rays[2U].depth=408U;
+    const auto missing_lookup=OriginalGroundSourceProjectionModel::evaluate(
+        rays,kOriginalC6D8,0U);
+    assert(missing_lookup.nearest);
+    assert(missing_lookup.nearest->nearest_depth==408);
+    assert(!missing_lookup.ff50);
+    assert(!missing_lookup.source_replay_available());
 
     // The projection must not mutate the original ray metadata or
     // the original host camera, 70Hz counters, RNG or indexed VGA.
