@@ -301,3 +301,26 @@ pointer-storage evidence. It is not a guarantee of immutable
 runtime data, loader behavior for unsupported fixup types or
 full runtime control-flow coverage. Source changes and negative
 tests are committed but have not been compiled or executed.
+
+### LE indexed instruction operand relocation overlap
+
+The same four-byte fixup ownership rule now applies to the encoded
+displacement of an indirect indexed jump. In the source-only LE
+recognizer, an ambiguous or partially overlapping displacement
+fixup prevents fallback to the original unrelocated displacement,
+because the loader may change its runtime effective address.
+
+An exact, isolated supported absolute fixup can still identify
+an object-relative table base. A self-relative, non-start,
+ambiguous or competing displacement fixup cannot establish it.
+Evidence-linked instruction operand cross-references are likewise
+suppressed when the source fixup window overlaps another fixup.
+
+The generic ten-entry byte guarded LE switch fixture has six
+negative displacement origins at offsets X-3..X+3 excluding X,
+and a positive exact fixup at X. The table's original DWORD
+entries and remaining control-flow guards are deliberately
+unchanged, isolating source pointer ownership from guard shape.
+Original runtime addresses remain unverified.
+
+These checks are source-only, not G2 execution results.
