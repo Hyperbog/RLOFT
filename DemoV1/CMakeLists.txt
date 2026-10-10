@@ -58,6 +58,13 @@ if(Python3_Interpreter_FOUND)
         NAME original_ground_ff50_binary_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_ff50_source_span.py")
+    # Bounded original upper callbacks: exact 17 near-E8 call edges,
+    # five source bodies, 34A74 self-modifying immediate addresses.
+    # NOT a proof of indirect mutable FF50 alias safety.
+    add_test(
+        NAME original_ground_upper_callback_boundary_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_upper_callback_boundary.py")
     # Original CODE.2 all direct FF50 DWORD operand bytes, 1F1C8 and 34A74.
     # Only direct addressing is bounded; callback pointer aliasing remains open.
     add_test(

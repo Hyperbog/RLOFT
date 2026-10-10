@@ -6,6 +6,10 @@ The native 256-ray traversal now distinguishes original CODE.2 `32F4C` sentinel 
 
 
 
+## 2026-10-10 CODE.2 upper callback near-call and FF50 alias boundary
+
+Audited exact native source upper callbacks `29B40/314B0/33E28/34A74` and graphic destination helper `2AB38`. Original source byte windows and **17 exact E8-rel32 destinations** were independently verified, including animated overlay `314B0→30700` original timer/IRQ source. Direct `FF50` literal operand counts are **0/0/0/2(reads)/0**, but computed-pointer and transitive helper/segment aliases still need closure. `34A74` additionally modifies four immediate instruction bytes in its own raster loop; `1F377` always reloads mutable post-upper `FF50`. Added bounded original-byte oracle and Python CTest. **No graphics or gameplay change, DOS parity pending, CI manual-only**. [Full source evidence](LEVEL22_FF50_UPPER_CALLBACK_BOUNDARY_AUDIT_20261010.md).
+
 ## 2026-10-10 exact original FF50 direct read/write operand census
 
 Independent CODE.2 object-1 byte scan and instruction-prefix audit found exactly **seven** direct literal `DWORD[FF50]` operands (three writes, one compare, three reads); only `1F29D/1F2A5/1F37F` write directly, and `34A74` reads twice. No direct literal reference appears inside upper callback entry functions `29B40/314B0/33E28`, but **indirect pointer writes and nested callback effects remain open**, so native projected lower FF50 continues to be explicitly conditional. Bounded source oracle registered as new Python CTest; original immutable CODE.2 check passed locally. No renderer/gameplay changes, no CI build, DOS parity pending. [Exact evidence](LEVEL22_ORIGINAL_FF50_DIRECT_REFERENCE_AUDIT_20261010.md).
