@@ -8,12 +8,25 @@ public sealed record DosMzFarTraversalEdge(
     Dos16Address Source, Dos16Address Destination,
     string TransferKind, string Evidence);
 
+/// <summary>
+/// Two segment-relative instruction addresses refer to the same physical
+/// original instruction bytes. Not a proved runtime alias or control edge.
+/// </summary>
+public sealed record DosMzPhysicalDecodeAlias(
+    long OriginalFileOffset, Dos16Address First,
+    Dos16Address Alternate, string Status);
+
 public sealed record DosMzCrossSegmentReview(
     string SourceSha256, ushort AssumedLoadSegment, string AnalysisStatus,
     bool Truncated, int RequestedEntryCount, int UniqueDecodedBytes,
     IReadOnlyList<Dos16FlowResult> IndependentEntryGraphs,
     IReadOnlyList<DosMzFarTraversalEdge> CrossSegmentCandidates,
-    IReadOnlyList<DosMzPhysicalDecodeConflict> PhysicalConflicts);
+    IReadOnlyList<DosMzPhysicalDecodeConflict> PhysicalConflicts)
+{
+    // Additive field: preserve existing positional review consumers.
+    public IReadOnlyList<DosMzPhysicalDecodeAlias> PhysicalAliases { get; init; } =
+        Array.Empty<DosMzPhysicalDecodeAlias>();
+}
 
 /// <summary>
 /// Performs independent, bounded candidate traversals from a resident MZ
@@ -43,6 +56,8 @@ public static class DosMzCrossSegmentAnalysis
         var physicalOwners = new Dictionary<long, Dos16FlowInstruction>();
         var conflicts = new List<DosMzPhysicalDecodeConflict>();
         var conflictLocations = new HashSet<long>();
+        var aliases = new List<DosMzPhysicalDecodeAlias>();
+        var aliasInstructions = new HashSet<(long, Dos16Address, Dos16Address)>();
         bool truncated = false;
 
         while (pending.Count > 0)
@@ -72,6 +87,15 @@ public static class DosMzCrossSegmentAnalysis
                             conflicts.Add(new DosMzPhysicalDecodeConflict(
                                 fileOffset, prior.Address, instruction.Address,
                                 "competing-original-byte-interpretations;neither-verified"));
+                        else if (same && prior.Address != instruction.Address &&
+                            aliasInstructions.Add((prior.SourceFileOffset,
+                                prior.Address, instruction.Address)) &&
+                            aliases.Count < 4096)
+                            aliases.Add(new DosMzPhysicalDecodeAlias(
+                                prior.SourceFileOffset, prior.Address,
+                                instruction.Address,
+                                "identical-original-instruction;distinct-CS-IP-alias;" +
+                                "runtime-equivalence-unverified;not-merged"));
                     }
                 }
 
@@ -93,6 +117,9 @@ public static class DosMzCrossSegmentAnalysis
             "source-backed-far-candidates;independent-segment-graphs;" +
             "aliases-are-not-merged;runtime-and-relocations-assumed;unverified",
             truncated, enqueued.Count, physicalOwners.Count,
-            graphs, farEdges, conflicts);
+            graphs, farEdges, conflicts)
+        {
+            PhysicalAliases = aliases.AsReadOnly()
+        };
     }
 }
