@@ -77,6 +77,11 @@ class MzMetadataComparisonSmoke(unittest.TestCase):
             with self.subTest(key=key):
                 independent, dosdis = reports()
                 dosdis[key] = value
+                if key == "OverlappingRelocationWrites" and value is True:
+                    dosdis["AnalysisStatus"] = (
+                        "simulated-MZ-relocations;overlapping-fixups;"
+                        "runtime-base-assumed;not-verified"
+                    )
                 result = compare(independent, dosdis, SOURCE)
                 self.assertEqual(result["status"], "metadata-disagreement")
                 self.assertEqual(result["discrepancy_fields"], [name])
@@ -128,6 +133,25 @@ class MzMetadataComparisonSmoke(unittest.TestCase):
                 changed[name] = value
                 with self.assertRaises(InvalidReport):
                     compare(independent, changed, SOURCE)
+
+    def test_candidate_overlap_claim_must_match_status(self):
+        independent, dosdis = reports()
+        dosdis["OverlappingRelocationWrites"] = True
+        with self.assertRaises(InvalidReport):
+            compare(independent, dosdis, SOURCE)
+        independent, dosdis = reports()
+        dosdis["AnalysisStatus"] = (
+            "simulated-MZ-relocations;overlapping-fixups;"
+            "runtime-base-assumed;not-verified"
+        )
+        with self.assertRaises(InvalidReport):
+            compare(independent, dosdis, SOURCE)
+        independent, dosdis = reports()
+        dosdis["AnalysisStatus"] = (
+            "simulated-MZ-relocations;runtime-base-assumed;certified"
+        )
+        with self.assertRaises(InvalidReport):
+            compare(independent, dosdis, SOURCE)
 
     def test_json_import_rejects_duplicate_or_nonfinite_fields(self):
         with tempfile.TemporaryDirectory(prefix="dosdis-mz-meta-synthetic-") as d:
