@@ -349,8 +349,14 @@ fixup at each offset 0 through 12 of the byte switch and require
 that none publish a guarded literal table, including when the
 stored x86 instructions look correct. A separate positive case
 uses the supported exact jump displacement fixup and separately
-decodes the relocated view. Neither kind of synthetic case proves
-the behavior of Strahd's original CODE exports.
+decodes the relocated view. A negative case uses a self-relative
+source fixup at that identical operand offset; the source must
+not be mistaken for a supported absolute table base. A
+nonoverlapping relocation beginning exactly after the indexed
+jump is a positive precision control: unrelated default-path
+loader bytes must not invalidate the guarded table candidate.
+None of these synthetic cases proves the behavior of Strahd's
+original CODE exports.
 
 No compiler, Windows smoke test, original Strahd execution,
 GitHub Action or production artifact has been run for this batch.
