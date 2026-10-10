@@ -41,14 +41,17 @@ def source_contract(source:Path)->None:
     assert text.count(function)==1, "F790 entry changed"
     declaration=text.split(before,1)[1].split("};",1)[0]
     body=text.split(function,1)[1].split("static_assert(0x0FD84u",1)[0]
-    assert "void (*call_2c368_local)(u8*,u32)=nullptr;" in declaration
+    assert "void (*call_1c368)(u32,u32)=nullptr;" in declaration
+    assert "void (*call_1c368_local)(u8*,u32)=nullptr;" in declaration
+    assert "call_2c368" not in declaration
+    assert "void function_1c368(Machine& m,Application39Boundary& b,u32 dest,u32 index) noexcept" in text
     assert "u8 text_3f_stack_local[0x10u];" in body
-    assert "if(b.call_2c368_local)b.call_2c368_local(text_3f_stack_local,0x3Fu);" in body
+    assert "if(b.call_1c368_local)b.call_1c368_local(text_3f_stack_local,0x3Fu);" in body
     pending=body.index("if(*dg(m,0x6DACu)!=0u)")
-    fetch=body.index("if(b.call_2c368_local)")
+    fetch=body.index("if(b.call_1c368_local)")
     empty=body.index("if(item==-1)return;")
     assert pending<fetch<empty, "original pending -> local T[3F] -> empty order lost"
-    assert body.count("call_2c368_local")==2, "unexpected local read sites"
+    assert body.count("call_1c368_local")==2, "unexpected local read sites"
     # Reconcile the existing lifted helpers with all original external
     # direct calls, including the previously missing T[3F] reader.
     assert body.count("app21_resource(m,b,0x759Cu") == 4
