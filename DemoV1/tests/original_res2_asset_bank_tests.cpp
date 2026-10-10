@@ -15,6 +15,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <initializer_list>
 
 namespace {
 
@@ -32,23 +33,35 @@ void write_file(const std::filesystem::path& path,
                static_cast<std::streamsize>(bytes.size()));
     assert(file);
 }
-std::vector<std::uint8_t> res2_encumbrance_fixture() {
-    // RES2 entry 0x25 has an EH type-1 descriptor. Other slots are
-    // deliberately empty; a request for the wrong bank/ID fails.
+std::vector<std::uint8_t> original_res2_modal_fixture() {
+    // Immutable Resources/RES/INVENTORY.md: all 38 original RES2
+    // entries are EH type-1. This synthetic archive exercises the
+    // exact source-used indices, not any res0_base_ offset.
     constexpr std::size_t count=0x26U;
     constexpr std::size_t table_bytes=4U+4U*count;
     std::vector<std::uint8_t> bytes(table_bytes,0U);
     put32(bytes,0U,static_cast<std::uint32_t>(count));
-    for(std::size_t i=0;i<count;++i)
-        put32(bytes,4U+i*4U,static_cast<std::uint32_t>(table_bytes));
-    // EH type1, header_size=8, one frame, one row, 8 pixel columns,
-    // transparent key FF, original raw compression=0, transform=0.
-    const std::vector<std::uint8_t> original_style_record{
-        'E','H',1U,8U,0U,1U,0U,1U,0U,1U,0xFFU,0U,0U,
-        10U,20U,30U,40U,50U,60U,70U,80U
+    const auto is_source_modal_entry=[](std::size_t index) {
+        for(const std::size_t used : {
+                0U,1U,2U,4U,5U,6U,7U,8U,
+                0x12U,0x13U,0x24U,0x25U}) {
+            if(index==used)return true;
+        }
+        return false;
     };
-    bytes.insert(bytes.end(),
-                 original_style_record.begin(),original_style_record.end());
+    for(std::size_t i=0U;i<count;++i) {
+        put32(bytes,4U+4U*i,static_cast<std::uint32_t>(bytes.size()));
+        if(!is_source_modal_entry(i))continue;
+        // Original-style EH type1 descriptor: one frame, 8x1,
+        // no compression or transform. Unique pixel marker per ID
+        // proves the original bank-2 entry was used verbatim.
+        const std::vector<std::uint8_t> rec{
+            'E','H',1U,8U,0U,1U,0U,1U,0U,1U,0xFFU,0U,0U,
+            static_cast<std::uint8_t>(i+1U),20U,30U,40U,
+            50U,60U,70U,80U
+        };
+        bytes.insert(bytes.end(),rec.begin(),rec.end());
+    }
     return bytes;
 }
 
@@ -84,7 +97,7 @@ int main() {
         assert(!fs::exists(root/"RES2"));
 
         // Encumbrance: original CODE.2 12988 requests RES2:0x25.
-        write_file(root/"RES2",res2_encumbrance_fixture());
+        write_file(root/"RES2",original_res2_modal_fixture());
         const auto panel=assets.type1(2,0x25);
         assert(panel.count==1);
         assert(panel.width==8);
@@ -92,7 +105,20 @@ int main() {
         assert(panel.transparent_index==0xFFU);
         assert(panel.pixels==
                std::vector<std::uint8_t>(
-                   {10U,20U,30U,40U,50U,60U,70U,80U}));
+                   {0x26U,20U,30U,40U,50U,60U,70U,80U}));
+
+        // CODE.2 0FF3C,11268,1118C,10BBC and 10158 use these
+        // actual RES2 indices. None is remapped through INIT[0].
+        for(const int id : {
+                0,1,2,4,5,6,7,8,0x12,0x13,0x24,0x25}) {
+            const auto graphic=assets.type1(2,id);
+            assert(graphic.count==1);
+            assert(graphic.width==8);
+            assert(graphic.height==1);
+            assert(graphic.pixels.size()==8U);
+            assert(graphic.pixels.front()==
+                   static_cast<std::uint8_t>(id+1));
+        }
 
         // Archive is now cached; a later temporary source-media
         // disappearance cannot silently switch to another bank.
@@ -102,7 +128,7 @@ int main() {
 
         // Wrong original RES2 ID throws rather than loading RES0/1.
         bool missing=false;
-        try { (void)assets.type1(2,0x24); }
+        try { (void)assets.type1(2,0x23); }
         catch(const std::runtime_error&) { missing=true; }
         assert(missing);
 

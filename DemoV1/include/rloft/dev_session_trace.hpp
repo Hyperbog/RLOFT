@@ -25,7 +25,11 @@ public:
     static constexpr std::size_t kMaxEvents=16384U;
     static constexpr std::size_t kRecentEvents=256U;
     static constexpr std::size_t kFramebufferBytes=320U*400U;
-    static constexpr std::size_t kMaxDrawsPerPresent=1024U;
+    // Full party panels now invoke many one-row original RES2 frames.
+    // The first Build #651 field session recorded <=1,562 draws per
+    // presentation and truncated the final equipment/overlay calls.
+    // 4,096 retains those source-ordered ops while remaining bounded.
+    static constexpr std::size_t kMaxDrawsPerPresent=4096U;
 
     DevSessionTrace(const std::filesystem::path& directory,
                     std::string_view source_revision,

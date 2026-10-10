@@ -73,18 +73,20 @@ public:
         std::optional<std::size_t> encumbrance_actor=std::nullopt) const;
 
 private:
-    void draw_res0_local(
+    // CODE.2 slot 2 maps directly to the original RES2 archive:
+    // no INIT RES0 namespace offset is applied to these entry indices.
+    void draw_res2_local(
         IndexedFramebuffer& framebuffer,
-        int local_resource,
+        int resource,
         int frame,
         int row,
         int column) const;
 
-    // Original CODE.2 2E510 expands the ENTIRE resource descriptor
-    // at its row and actor lane (unlike 2975C's one-frame blit).
-    void draw_res0_complete(
+    // Original 2E510 draws every frame; 2975C draws a selected
+    // frame. Both resolve actual original RES2 archive indices.
+    void draw_res2_complete(
         IndexedFramebuffer& framebuffer,
-        int local_resource,
+        int resource,
         int row,
         int column) const;
 

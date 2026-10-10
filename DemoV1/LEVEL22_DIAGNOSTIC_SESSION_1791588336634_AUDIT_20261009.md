@@ -12,6 +12,18 @@
 - Modal/screens: 32 viewport, 9 party_panels, 7 top_edge_menu, 4 automap.
 - The session recorded and the launcher packaged the ZIP **successfully**. The user uploaded the ZIP separately; it was not uploaded from the EXE itself.
 
+## 2026-10-10 subsequent-build resource identity clarification
+
+Original source `2E7F0→2F29C` proves the actor backgrounds and
+inventory grids refer directly to **RES2** entries, NOT RES0+INIT.
+The Build #649 screenshot's 320×1, 200-frame raster descriptors
+were from the port's incorrect RES0 lookup; these are not proof that
+the *original RES2 actor images* have that descriptor geometry.
+The #651 field ZIP shows the fully drawn wrong RES0 artwork,
+including an inappropriately placed movement/control pad.
+[Current original-file verified resolution](LEVEL22_CODE2_RES2_BANK_ROUTING_FIELD_AUDIT_20261010.md).
+This erratum does not change the archived source/user ZIP data.
+
 ## Crash — exact event and source branch
 
 The terminal JSONL entries are:

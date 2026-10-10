@@ -31,28 +31,27 @@ PartyModalPresenter::PartyModalPresenter(
       equipment_hits_(OriginalEquipmentHitTables::from_code2(
           assets.source().read("CODE.2"))) {}
 
-void PartyModalPresenter::draw_res0_local(
+void PartyModalPresenter::draw_res2_local(
     IndexedFramebuffer& framebuffer,
-    int local_resource,
+    int resource,
     int frame,
     int row,
     int column) const {
-    const auto raster =
-        assets_.type1(
-            0,
-            static_cast<int>(res0_base_) +
-                local_resource);
+    // CODE.2 2975C -> 2F29C(item,slot); slot 2 is RES2,
+    // and item is an absolute RES2 entry, not RES0+INIT[0].
+    const auto raster=assets_.type1(2,resource);
     OriginalPartyModalBlit::frame_2975c(
         framebuffer,raster,frame,row,column);
 }
 
-void PartyModalPresenter::draw_res0_complete(
+void PartyModalPresenter::draw_res2_complete(
     IndexedFramebuffer& framebuffer,
-    int local_resource,
+    int resource,
     int row,
     int column) const {
-    const auto raster=assets_.type1(
-        0,static_cast<int>(res0_base_)+local_resource);
+    // CODE.2 2E510 -> 2F29C(resource,slot=2) -> 2E4A4
+    // iterates the complete RES2 graphic descriptor.
+    const auto raster=assets_.type1(2,resource);
     OriginalPartyModalBlit::complete_2e510(
         framebuffer,raster,row,column);
 }
@@ -65,7 +64,7 @@ void PartyModalPresenter::draw_actor_base(
 
     if (!actor.active) {
         // 11268 inactive path: 3E510(0,dst,2,2).
-        draw_res0_complete(
+        draw_res2_complete(
             framebuffer,
             2,
             0,
@@ -74,7 +73,7 @@ void PartyModalPresenter::draw_actor_base(
     }
 
     // 0FF3C common actor-column base.
-    draw_res0_complete(
+    draw_res2_complete(
         framebuffer,
         0,
         0,
@@ -140,7 +139,7 @@ void PartyModalPresenter::draw_actor_base(
 
     if (actor.condition_effect_flags != 0U) {
         // 0FF3C: local 13h, frame 0 at row 2Ah / column dst+44h.
-        draw_res0_local(
+        draw_res2_local(
             framebuffer,
             0x13,
             0,
@@ -150,7 +149,7 @@ void PartyModalPresenter::draw_actor_base(
 
     if ((actor.status_word & 0x1F00U) != 0U) {
         // 0FF3C: local 12h, frame 0 at row 2Ah / column dst+38h.
-        draw_res0_local(
+        draw_res2_local(
             framebuffer,
             0x12,
             0,
@@ -171,21 +170,21 @@ std::size_t PartyModalPresenter::draw_inventory(
         static_cast<int>(actor.actor_index) * 0x50;
 
     // 1118C fixed inventory chrome.
-    draw_res0_local(
+    draw_res2_local(
         framebuffer,
         1,
         0,
         0x45,
         column + 0x38);
-    draw_res0_complete(
+    draw_res2_complete(
         framebuffer,
         4,
         0x128,
         column);
 
-    // 10BBC body/equipment base. The selected local RES0 graphic is
+    // 10BBC body/equipment base. The selected original RES2 graphic is
     // sex + side*2 + 5.
-    draw_res0_complete(
+    draw_res2_complete(
         framebuffer,
         static_cast<int>(actor.sex_code) +
             model.equipment_side * 2 +
@@ -651,8 +650,8 @@ PartyModalCoverage PartyModalPresenter::draw(
             static_cast<int>(actor_index) *
             0x50;
         if (character_mode[actor_index]) {
-            // 10158 begins with local RES0 24h at row 45h, column dst+38h.
-            draw_res0_local(
+            // 10158: original RES2:0x24, frame0, row45h, x=dst+38h.
+            draw_res2_local(
                 framebuffer,
                 0x24,
                 0,

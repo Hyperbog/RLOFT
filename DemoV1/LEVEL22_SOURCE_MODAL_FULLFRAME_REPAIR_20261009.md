@@ -2,6 +2,21 @@
 
 **Development mandate:** finish entire original Level22 playably, through the original mist ending, before independent Level23 gameplay. No modernizations.
 
+## Critical original archive-slot erratum (2026-10-10)
+
+**Supersedes every claim below that the original `slot=2` party modal
+images come from `RES0[INIT[0]+resource]`.** Source `Code2/Code2.cpp`
+`2E7F0→2F29C`, independently matched original `CODE.2` instruction
+windows, resolves slot 2 to original file **RES2**, entries 0..37.
+The 200-frame × 320×1 strips observed in the first Build #649 ZIP
+came from the port's **wrong RES0 namespace**, not the original
+party-modal resource. The full-descriptor `2E510` semantics in this
+historical report remain byte-verified; the old *resource selection*
+in the original implementation was incorrect. The corrected native
+route is `assets_.type1(2,resource)` at every actor-modal
+source callsite, using no RES0 INIT offset. [Full six-window binary
+proof and post-#651 field evidence](LEVEL22_CODE2_RES2_BANK_ROUTING_FIELD_AUDIT_20261010.md).
+
 ## Reproducible native failure
 
 The user's first real `--dev-trace` ZIP, session `1791588336634-20980` from Full Windows Build #649, records black/partial inventory backgrounds, equipment and portrait graphics on isolated panel columns, and type-1 graphic draws of dimensions **320×1 with 200 frames**. `frame_0051.draws.tsv` shows repeated **frame 0 only** calls with row 0, 69, 114 and 296, and actor-lane columns 0, 80, 160 and 240. The native source `PartyModalPresenter::draw_res0_local` indiscriminately used `framebuffer.draw_frame(raster,0,...)`, so a 200-row original descriptor rendered only a one-pixel strip.

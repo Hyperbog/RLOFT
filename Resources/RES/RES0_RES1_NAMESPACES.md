@@ -121,6 +121,24 @@ The two raw `0x00000060` records remain runtime-unconsumed by the established CO
 - all 12 populated supplied SAVE character records resolve through the portrait formula to typed resources in both portrait namespaces;
 - the `T` labels establish the sex and race selector mappings above.
 
+## CODE.2 archive slot 2 is RES2, not the RES0 INIT namespace
+
+The original archive manager `2E7F0` constructs numbered `RES<i>`
+files by slot index. Its `2F29C(resource,slot)` resolver returns
+`RES<slot>[resource]` without rewriting `resource` through
+`INIT[0]`. In particular, party modal calls `0FF3C`,
+`1118C`, `11268`, `10BBC`, `10158` explicitly provide
+`slot=2`, and source-verified target indices `0,1,2,4,5..8,
+0x12,0x13,0x24,0x25` all lie within the original 38-entry
+`RES2` archive. Original instruction-window evidence:
+[Build #651 party-screen root cause and original CODE.2 six-window
+audit](../../DemoV1/LEVEL22_CODE2_RES2_BANK_ROUTING_FIELD_AUDIT_20261010.md).
+
+Therefore the `INIT[0]=15` RES0 raster base documented above applies
+**only to source CODE.2 paths that explicitly add it**. It is
+**not** a universal displacement for every raster and must
+**not** be added to any resource index passed with archive slot 2.
+
 ## Porting rule
 
 Keep the serialized local indexes local. A native port may expose resolved resource handles internally, but legacy import/export must preserve:

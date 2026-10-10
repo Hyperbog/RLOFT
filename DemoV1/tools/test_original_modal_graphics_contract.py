@@ -30,6 +30,13 @@ ORIGINAL_INSTRUCTION_SIGNATURES = {
     0x10ACE: "6a0283c50955ff356c7f000068ce000000e82cda0100",
     # Source text label is centered within lane+6, span 0x3C (not 0x50).
     0x12AC1: "6a01689c750000a16c7f00006a3c83c0065068a4000000e82bda0100",
+    # CODE.2 original bank slot 2 (RES2) at all modal UI callsites.
+    0x0FF48: "6a026a00ff356c7f00006a00e8b7e50100",
+    0x1118E: "6a02a16c7f00006a0183c038506a456a00e8b8850100",
+    0x111A7: "6a026a04ff356c7f00006828010000e855d30100",
+    0x11286: "6a026a02ff356c7f00006a00e879d20100",
+    0x10BEB: "6a0201c555ff356c7f00006a72e813d90100",
+    0x1015F: "6a02a16c7f00006a2483c038506a456a00e8e7950100",
 }
 
 
@@ -125,13 +132,67 @@ def check_source() -> None:
             "native original per-actor selection outline")
     assert "draw_open_container(framebuffer,*inventory,character_mode);" \
            not in native_draw, "post-loop container overlay violates original"
+    # Root cause of Build #651's overlapping movement-pad artwork:
+    # all original party-modal CODE.2 blits use archive SLOT 2.
+    # 2E7F0 constructs numbered RES0,RES1,RES2... archives in slot order.
+    # The native code had incorrectly added INIT's RES0 graphics base
+    # and sourced these from RES0. RES2 contains exactly 38 type-1s.
+    initialized = function(original, "function_2e7f0")
+    require(initialized,
+            "for(s32i=0;i<static_cast<s32>(raw_count);++i)",
+            "2E7F0 archived slot index")
+    require(initialized,
+            "app68_append_guest_z_pairs(m,name,function_2e6f0(*b.app67,iu))",
+            "2E7F0 numeric archive suffix")
+    inventory = (ROOT / "Resources/RES/INVENTORY.md").read_text(
+        encoding="utf-8")
+    assert "`RES2` | 63,736 | 38 | 0 | 0 | type 1: 38" in inventory, (
+        "original RES2 archive inventory differs")
+
+    actor_base = function(original, "function_0ff3c")
+    require(actor_base,
+            "b.call_3e510(0u,load_le32(dg(m,0x7F6Cu)),0u,2u)",
+            "0FF3C active actor RES2:0")
+    grid = function(original, "function_1118c")
+    require(grid,"b.app21->call_3975c(0u,0x45u,dst+0x38u,1u,2u)",
+            "1118C RES2:1 chrome")
+    require(grid,"b.app21->call_3e510(0x128u,dst,4u,2u)",
+            "1118C RES2:4 grid")
+    require(actor_fn,"b.app21->call_3e510(0u,dst,2u,2u)",
+            "11268 inactive RES2:2")
+    body = function(original, "function_10bbc")
+    require(body,"b.app21->call_3e510(0x72u,dst,frame,2u)",
+            "10BBC RES2:5..8 equipment bodies")
+    sheet = function(original, "function_10158")
+    require(sheet,"a->call_3975c(0u,0x45u,dst+0x38u,0x24u,2u)",
+            "10158 RES2:0x24 character chrome")
+    present = function(native,"PartyModalPresenter::draw_actor_base")
+    native_grid = function(native,"PartyModalPresenter::draw_inventory")
+    require(present,"draw_res2_complete(framebuffer,0,0,column)",
+            "native active party background RES2:0")
+    require(present,"draw_res2_complete(framebuffer,2,0,column)",
+            "native inactive party background RES2:2")
+    require(native_grid,"draw_res2_complete(framebuffer,4,0x128,column)",
+            "native inventory grid RES2:4")
+    require(native_grid,"draw_res2_local(framebuffer,1,0,0x45,column+0x38)",
+            "native inventory icon RES2:1")
+    require(native_draw,"draw_res2_local(framebuffer,0x24,0,0x45,column+0x38)",
+            "native character sheet chrome RES2:0x24")
+    for routine in ["draw_res2_local","draw_res2_complete"]:
+        f = function(native,"PartyModalPresenter::"+routine)
+        require(f,"assets_.type1(2,resource)",routine+" direct original RES2")
+        assert "res0_base_" not in f, "RES0 INIT offset must not enter RES2"
+    assert "assets_.type1(0," not in native, (
+        "party-modal original graphic still incorrectly sources RES0")
+    assert "draw_res0_" not in native, "old misleading RES0 modal route"
+
     require(compact(wrapper), "framebuffer.draw(resource,row,column)",
             "original complete-blit wrapper")
     require(compact(wrapper), "framebuffer.draw_frame(resource,frame,row,column)",
             "distinct selected-frame wrapper")
     require(compact(assets), 'res2_.emplace(source_.read("RES2"))',
             "load original RES2 not a mock or fallback")
-    print("PASS: 12988/10A70/2E510/2E4A4 canonical-to-native contract")
+    print("PASS: source CODE.2 RES2 slot routing, modal draw semantics, archive identity")
 
 
 def check_original(path: Path) -> None:
@@ -145,7 +206,7 @@ def check_original(path: Path) -> None:
                       OBJECT1_START + address + len(expected)]
         assert actual == expected, (
             f"CODE.2 original instruction mismatch at 0x{address:05X}")
-    print("PASS: immutable original CODE.2 hash and four binary callsite signatures")
+    print("PASS: immutable original CODE.2 hash and ten binary callsite signatures")
 
 
 def main() -> int:

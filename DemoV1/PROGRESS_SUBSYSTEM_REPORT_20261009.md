@@ -19,6 +19,10 @@
 
 **New Full Windows build acceptance (#651):** all **182/182** registered CTests passed, including the original source-contract modal regression, source-derived RES2 and complete-draw tests and recorder test. EXE checksum and launchers published. Previous #650 test syntax error fixed before successful retry. [Provenance](FULL_WINDOWS_BUILD_CHECKPOINT_20261010_RUN651.md). Source verification, actual Windows native regression pass, on-machine Level22 UX validation and original-DOS behavioral parity remain distinct. **49.8% provisional readiness unchanged; current DOS parity still 0%.**
 
+## 2026-10-10 original RES2 archive-slot correction — source verified, unbuilt
+
+The first manual **Build #651** diagnostic upload has **313 events, 96 indexed frames, 3 F12 markers and 48 renderer traces**; encumbrance opens without the former fatal error, but the party modal still shows movement/viewport art in the wrong actor columns. A full original `CODE.2` byte/hash audit and six exact instruction-window matches uncovered the root cause: source `2E7F0→2F29C` indexes the numbered **RES2** archive directly for all these actor chrome/background/inventory/equipment `slot=2` calls. The native presenter incorrectly used **RES0[INIT[0] + item]**. All affected native drawing wrappers now resolve **RES2[item]** exactly, without offsets; complete-versus-selected frame semantics remain unchanged. The tests cross-check **10 exact original instruction signatures** and twelve source-used RES2 IDs. Native-only diagnostic draw audit capacity is now **4,096** (was 1,024). [Source/trace evidence, original offsets and verification gates](LEVEL22_CODE2_RES2_BANK_ROUTING_FIELD_AUDIT_20261010.md). **Unbuilt since Full #651 (182/182); Windows UI and DOS parity pending**. No automatic build or Level23 work.
+
 ## Scoring rules — fixed for future checkpoints
 
 **Weights:** original behavior mapped **10%**; native source implementation **20%**; runtime integration **20%**; regression assertions present **10%**; current-revision original DOS behavioral acceptance **40%**.
@@ -171,7 +175,7 @@ Each row's five gate marks are out of 20; the weighted readiness column is an in
 | --- | ---: | --- | --- | --- |
 | In-game HUD and portraits | **60.0%** | 20/20/20/20/0 | `party_hud.cpp` | Original HUD framebuffer comparison |
 | Top-edge menu and actions | **50.0%** | 20/20/10/20/0 | `top_edge_menu.cpp` | Complete rest and save menus |
-| Party and inventory modal | **60.0%** | 20/20/20/20/0 | `party_modal_presenter.cpp and original_party_modal_blit.hpp and test_original_modal_graphics_contract.py` | Verify 12988 and 10A70 RES2 modal source and 112EC per-actor draw order against DOS |
+| Party and inventory modal | **60.0%** | 20/20/20/20/0 | `party_modal_presenter.cpp and original_party_modal_blit.hpp and test_original_modal_graphics_contract.py` | Rebuild and compare corrected RES2 slot2 actor backgrounds against DOS screenshots |
 | Mouse keyboard and hit regions | **60.0%** | 20/20/20/20/0 | `party_panel_controls.cpp` | Original mouse event mapping |
 | Quit confirmation and menus | **60.0%** | 20/20/20/20/0 | `quit_confirm.cpp` | Original modal exit acceptance |
 | Options rest pray memorize load save | **20.0%** | 10/10/0/10/0 | `options_menu.cpp` | Bind original game actions |
