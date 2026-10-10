@@ -2282,6 +2282,20 @@ try
         true, "unproven runtime control flow remains unresolved");
     Equal(boundedGraph.Instructions.Count, 11,
         "default and seven literal case targets are discovered without a gap sweep");
+    // A separately seeded direct indexed transfer bypasses the
+    // upstream CMP/JA, even though the decoder discovers both byte
+    // sequences from the same immutable LE source.
+    foreach (bool bypassFirst in new[] { false, true })
+    {
+        FlowAddress directJump = new(1, 5);
+        var seeds = bypassFirst
+            ? new[] { directJump, new FlowAddress(1, 0) }
+            : new[] { new FlowAddress(1, 0), directJump };
+        var unguardedSeedGraph = ControlFlowAnalysis.Analyze(
+            boundedImage, seeds: seeds);
+        Equal(unguardedSeedGraph.JumpTables.Count, 0,
+            "explicit direct-JMP entry never borrows unsigned JA index proof");
+    }
     var nonguardedBytes = (byte[])boundedBytes.Clone();
     nonguardedBytes[0x200 + 3] = 0x75; // jne != unsigned JA
     Equal(ControlFlowAnalysis.Analyze(LeImage.Load(BinaryArtifact.FromBytes(nonguardedBytes)))
