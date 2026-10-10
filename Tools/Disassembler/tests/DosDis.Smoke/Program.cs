@@ -315,6 +315,42 @@ try
         "instruction-limited cross-segment review reports truncation");
     Equal(shortCrossSegment.CrossSegmentCandidates.Count, 0,
         "instruction-limited review retains no partially inferred FAR targets");
+    // Two independently reached CS:IP addresses may map to the same
+    // original file byte. They are an explicit physical alias, not two
+    // contradictory decodings and not a verified runtime equivalence.
+    // Near CALL reaches 0000:0010, while relocated FAR JMP reaches
+    // 0001:0000; both address the same physical original RET byte.
+    byte[] physicalAliasBytes = (byte[])mzBytes.Clone();
+    new byte[] {
+        0xE8, 0x0D, 0x00,       // CALL 0000:0010
+        0xEA, 0x00, 0x00, 0x01, 0x00  // JMP FAR 0001:0000
+    }.CopyTo(physicalAliasBytes, 0x20);
+    physicalAliasBytes[0x30] = 0xC3;
+    MzWord(physicalAliasBytes, 0x1C, 6); // relocation of FAR selector word
+    var physicalAliasMz = DosMzImage.Load(
+        BinaryArtifact.FromBytes(physicalAliasBytes, "alias-only-synthetic.exe"));
+    var physicalAliasReview = DosMzCrossSegmentAnalysis.Analyze(
+        physicalAliasMz, 0x2000, maxEntryGraphs: 4, instructionsPerEntry: 16);
+    Equal(physicalAliasReview.Truncated, false,
+        "two full source-backed MZ alias graphs are within analysis budgets");
+    Equal(physicalAliasReview.CrossSegmentCandidates.Count, 1,
+        "original selector relocation independently supplies FAR alias entry");
+    Equal(physicalAliasReview.IndependentEntryGraphs.Count, 2,
+        "far candidate destination remains a separately analyzed code window");
+    Equal(physicalAliasReview.PhysicalConflicts.Count, 0,
+        "identical physical RET bytes do not fabricate a decoding conflict");
+    Equal(physicalAliasReview.PhysicalAliases.Count, 1,
+        "distinct segment-relative IP aliases are retained explicitly");
+    Equal(physicalAliasReview.PhysicalAliases[0].OriginalFileOffset, 0x30L,
+        "physical alias retains the original file-backed address");
+    Equal(physicalAliasReview.PhysicalAliases[0].First, new Dos16Address(0, 0x10),
+        "first aliased instruction retains its initial segment address");
+    Equal(physicalAliasReview.PhysicalAliases[0].Alternate,
+        new Dos16Address(1, 0),
+        "second aliased instruction retains independent relative CS:IP");
+    Equal(physicalAliasReview.PhysicalAliases[0].Status.Contains(
+        "runtime-equivalence-unverified"), true,
+        "alias reporting never promotes alternate CS:IP to verified execution");
     // Synthetic CS-memory pointer recovery, never CFG reachability proof.
     var nearPointer = new byte[0x24];
     new byte[] { 0x2E, 0xFF, 0x26, 0x10, 0x01 }.CopyTo(nearPointer, 0);
