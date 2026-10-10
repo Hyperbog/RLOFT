@@ -2597,6 +2597,45 @@ try
         e.Kind == "candidate-indirect-jump"), false,
         "limited worklist replay must not leave provisional pointer edges");
 
+    // The indexed JMP at object 1:0009 encodes its DWORD displacement
+    // at 1:000D. A competing relocation starting in the immediate,
+    // or as many as three bytes before its start, invalidates
+    // interpretation of the unrelocated literal table base. This
+    // negative test must not be confused with fixups *on* the table.
+    for (int delta = -3; delta <= 3; delta++)
+    {
+        if (delta == 0) continue;
+        var displacementOverlap = (byte[])byteSwitchBytes.Clone();
+        Dword(displacementOverlap, 0x80 + 0x68, 0xE0);
+        Dword(displacementOverlap, 0x80 + 0x6C, 0xE8);
+        Dword(displacementOverlap, 0x80 + 0xE4, 7);
+        new byte[] {
+            0x07, 0x00, (byte)(0x0D + delta), 0x00,
+            0x01, 0x40, 0x00
+        }.CopyTo(displacementOverlap, 0x80 + 0xE8);
+        var overlapCodeGraph = ControlFlowAnalysis.Analyze(
+            LeImage.Load(BinaryArtifact.FromBytes(displacementOverlap)));
+        Equal(overlapCodeGraph.JumpTables.Count, 0,
+            "overlapping JMP displacement fixup delta=" + delta +
+            " cannot reuse original unrelocated CS displacement");
+        Equal(overlapCodeGraph.Edges.Any(e =>
+            e.Kind == "unresolved-indirect-jump"), true,
+            "ambiguous relocated JMP displacement retains runtime unknown");
+    }
+
+    var exactDisplacementFixup = (byte[])byteSwitchBytes.Clone();
+    Dword(exactDisplacementFixup, 0x80 + 0x68, 0xE0);
+    Dword(exactDisplacementFixup, 0x80 + 0x6C, 0xE8);
+    Dword(exactDisplacementFixup, 0x80 + 0xE4, 7);
+    new byte[] { 0x07, 0, 0x0D, 0, 1, 0x40, 0 }
+        .CopyTo(exactDisplacementFixup, 0x80 + 0xE8);
+    var exactDisplacementGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(exactDisplacementFixup)));
+    Equal(exactDisplacementGraph.JumpTables.Count, 1,
+        "an unambiguous exact operand relocation preserves CS indexed table");
+    Equal(exactDisplacementGraph.JumpTables[0].CandidateTargets.Count, 10,
+        "exact relocated CS base still requires every ten source-backed slots");
+
     var signedByteSwitch = (byte[])byteSwitchBytes.Clone();
     signedByteSwitch[0x200 + 4] = 0x7F; // JG, signed rather than JA
     Equal(ControlFlowAnalysis.Analyze(LeImage.Load(
