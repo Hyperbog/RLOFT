@@ -12,7 +12,7 @@ from pathlib import Path
 
 from original_source_preflight import (
     SourceValidationError, compare_entries, describe,
-    original_geometry, read_bounded_original,
+    original_geometry, read_bounded_original, simulate_mz_relocations,
 )
 
 
@@ -87,6 +87,74 @@ class OriginalSourcePreflightSmoke(unittest.TestCase):
                 read_bounded_original(
                     path, hashlib.sha256(b"\x90\x90").hexdigest()
                 )
+
+    def test_direct_description_cannot_claim_a_foreign_sha(self):
+        source = b"\\x90\\xc3"
+        actual = hashlib.sha256(source).hexdigest()
+        verified, _ = describe(source, actual.upper(), "com", "fixture")
+        self.assertEqual(verified["original_sha256"], actual)
+        with self.assertRaises(SourceValidationError):
+            describe(source, hashlib.sha256(b"\\xc3\\x90").hexdigest(),
+                     "com", "forged-source")
+        with self.assertRaises(SourceValidationError):
+            describe(source, "not-a-sha", "com", "forged-source")
+
+    def test_assumed_mz_fixup_matches_independent_word_arithmetic(self):
+        source = synthetic_mz(relocations=1)
+        original_snapshot = bytes(source)
+        copied = bytearray(source[32:36])
+        # The synthetic MZ storage word is 0x9090. A DOS-style fixup adds
+        # the CALLER-ASSUMED segment modulo 2**16, not a guessed runtime CS.
+        struct.pack_into("<H", copied, 0, (0x9090 + 0x1234) & 0xFFFF)
+        expected = hashlib.sha256(copied).hexdigest()
+        result = simulate_mz_relocations(source, 0x1234)
+        self.assertEqual(result["relocation_write_count"], 1)
+        self.assertFalse(result["overlapping_relocation_writes"])
+        self.assertEqual(result["assumed_load_segment"], 0x1234)
+        self.assertEqual(result["simulated_file_backed_image_sha256"], expected)
+        self.assertEqual(source, original_snapshot,
+                         "independent simulation must not modify the source")
+
+        wrapped = bytearray(source[32:36])
+        struct.pack_into("<H", wrapped, 0, (0x9090 + 0xFFFF) & 0xFFFF)
+        result_wrap = simulate_mz_relocations(source, 0xFFFF)
+        self.assertEqual(result_wrap["simulated_file_backed_image_sha256"],
+                         hashlib.sha256(wrapped).hexdigest())
+
+        with self.assertRaises(SourceValidationError):
+            simulate_mz_relocations(source, 0x10000)
+        with self.assertRaises(SourceValidationError):
+            simulate_mz_relocations(source, -1)
+        with self.assertRaises(SourceValidationError):
+            simulate_mz_relocations(source, True)
+
+    def test_no_relocations_preserves_original_stored_mz_image(self):
+        source = synthetic_mz(cs=1, overlay=b"\\x19")
+        result = simulate_mz_relocations(source, 0x2345)
+        self.assertEqual(result["relocation_write_count"], 0)
+        self.assertEqual(result["original_file_backed_image_bytes"], 20)
+        self.assertEqual(result["simulated_file_backed_image_sha256"],
+                         hashlib.sha256(source[32:52]).hexdigest())
+
+    def test_overlapping_mz_fixups_report_overlap_and_table_order(self):
+        # A fresh 48-byte MZ header with two fixups at adjacent image bytes.
+        # Their 16-bit word writes overlap. Both are in-range, but the
+        # simulator must not hide overlap or reorder their additions.
+        header = bytearray(48)
+        header[:2] = b"MZ"
+        struct.pack_into("<H", header, 2, 52)
+        struct.pack_into("<H", header, 4, 1)
+        struct.pack_into("<H", header, 6, 2)
+        struct.pack_into("<H", header, 8, 3)
+        struct.pack_into("<H", header, 0x18, 0x1C)
+        struct.pack_into("<HH", header, 0x1C, 0, 0)
+        struct.pack_into("<HH", header, 0x20, 1, 0)
+        source = bytes(header) + b"\\x00" * 4
+        simulation = simulate_mz_relocations(source, 1)
+        self.assertEqual(simulation["relocation_write_count"], 2)
+        self.assertTrue(simulation["overlapping_relocation_writes"])
+        self.assertEqual(simulation["simulated_file_backed_image_sha256"],
+                         hashlib.sha256(b"\\x01\\x01\\x00\\x00").hexdigest())
 
     def test_prefix_divergence_is_not_classified_as_instructions(self):
         first = b"\xe9\x00\x00" + b"\x90" * 280 + b"\x01" + b"\x90"
