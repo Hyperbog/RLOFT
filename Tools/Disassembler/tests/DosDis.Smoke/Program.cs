@@ -2308,23 +2308,28 @@ try
     Dword(objectOffsetBytes, 0x200 + 0x40, 0x20);
     Equal(ControlFlowAnalysis.Analyze(LeImage.Load(BinaryArtifact.FromBytes(objectOffsetBytes)))
         .JumpTables.Count, 0, "object-relative-looking literal is not assumed runtime linear");
-    // A fixup at table+1 overlaps the first DWORD without appearing
-    // at any aligned DWORD slot address. Legacy exact-start checks
-    // would accept all the unrelocated literal pointers incorrectly.
-    var overlappingLiteralFixup = (byte[])boundedBytes.Clone();
-    Dword(overlappingLiteralFixup, 0x80 + 0x68, 0xE0);
-    Dword(overlappingLiteralFixup, 0x80 + 0x6C, 0xE8);
-    Dword(overlappingLiteralFixup, 0x80 + 0xE4, 7);
-    new byte[] {
-        0x07, 0x00, 0x41, 0x00, 0x01, 0x20, 0x00
-    }.CopyTo(overlappingLiteralFixup, 0x80 + 0xE8);
-    var overlapLiteralGraph = ControlFlowAnalysis.Analyze(
-        LeImage.Load(BinaryArtifact.FromBytes(overlappingLiteralFixup)));
-    Equal(overlapLiteralGraph.JumpTables.Count, 0,
-        "a fixup starting at table+1 invalidates a nominally literal DWORD");
-    Equal(overlapLiteralGraph.Edges.Any(e =>
-        e.Kind == "unresolved-indirect-jump"), true,
-        "overlapping literal-table relocation does not resolve runtime jump");
+    // Every four-byte fixup origin in [-3,+3] overlaps the first
+    // nominally literal DWORD, even if it does not start on the
+    // aligned source pointer. Neither an adjacent write to preceding
+    // bytes nor an interior fixup can be mistaken for stable storage.
+    for (int delta = -3; delta <= 3; delta++)
+    {
+        var overlappingLiteralFixup = (byte[])boundedBytes.Clone();
+        Dword(overlappingLiteralFixup, 0x80 + 0x68, 0xE0);
+        Dword(overlappingLiteralFixup, 0x80 + 0x6C, 0xE8);
+        Dword(overlappingLiteralFixup, 0x80 + 0xE4, 7);
+        new byte[] {
+            0x07, 0x00, (byte)(0x40 + delta), 0x00,
+            0x01, 0x20, 0x00
+        }.CopyTo(overlappingLiteralFixup, 0x80 + 0xE8);
+        var overlapLiteralGraph = ControlFlowAnalysis.Analyze(
+            LeImage.Load(BinaryArtifact.FromBytes(overlappingLiteralFixup)));
+        Equal(overlapLiteralGraph.JumpTables.Count, 0,
+            "overlapping literal DWORD fixup delta=" + delta);
+        Equal(overlapLiteralGraph.Edges.Any(e =>
+            e.Kind == "unresolved-indirect-jump"), true,
+            "overlapping literal relocation retains runtime uncertainty");
+    }
 
     Console.WriteLine("PASS: guarded unsigned literal jump-table candidates and negative controls");
 
@@ -2655,22 +2660,26 @@ try
     Equal(tableTrace.Snapshot().Any(x => x.Outcome == AnalysisDecisionOutcome.IndirectTargetQueued &&
         x.IsSpeculative && x.Destination is not null), true,
         "relocation-backed target remains speculative");
-    // A second absolute fixup beginning at +1 overlaps an otherwise
-    // relocation-backed four-byte pointer. The individual relocation
-    // records are structurally legal, but the overlapping memory
-    // writes cannot prove a unique stored control pointer.
-    var overlappingRelocatedFixup = (byte[])tableBytes.Clone();
-    Dword(overlappingRelocatedFixup, 0x80 + 0xE4, 28);
-    new byte[] {
-        0x07, 0x00, 0x41, 0x00, 0x01, 0x20, 0x00
-    }.CopyTo(overlappingRelocatedFixup, 0x80 + 0xE8 + 21);
-    var overlapRelocatedGraph = ControlFlowAnalysis.Analyze(
-        LeImage.Load(BinaryArtifact.FromBytes(overlappingRelocatedFixup)));
-    Equal(overlapRelocatedGraph.JumpTables.Count, 0,
-        "overlapping LE absolute fixups cannot prove stored pointer table");
-    Equal(overlapRelocatedGraph.Edges.Any(e =>
-        e.Kind == "unresolved-indirect-jump"), true,
-        "overlapping relocated table retains dynamic unresolved jump");
+    // Sweep all competing four-byte fixup starts overlapping the
+    // first relocated table slot. Exact-start duplicates are covered
+    // separately; the six distinct overlapping origins all fail.
+    for (int delta = -3; delta <= 3; delta++)
+    {
+        if (delta == 0) continue;
+        var overlappingRelocatedFixup = (byte[])tableBytes.Clone();
+        Dword(overlappingRelocatedFixup, 0x80 + 0xE4, 28);
+        new byte[] {
+            0x07, 0x00, (byte)(0x40 + delta), 0x00,
+            0x01, 0x20, 0x00
+        }.CopyTo(overlappingRelocatedFixup, 0x80 + 0xE8 + 21);
+        var overlapRelocatedGraph = ControlFlowAnalysis.Analyze(
+            LeImage.Load(BinaryArtifact.FromBytes(overlappingRelocatedFixup)));
+        Equal(overlapRelocatedGraph.JumpTables.Count, 0,
+            "overlapping relocated DWORD fixup delta=" + delta);
+        Equal(overlapRelocatedGraph.Edges.Any(e =>
+            e.Kind == "unresolved-indirect-jump"), true,
+            "overlapping relocation retains unresolved control flow");
+    }
 
     Equal(tableGraph.JumpTables.Count, 1, "LE relocation-backed table recognized");
     Equal(tableGraph.JumpTables[0].Table, new FlowAddress(1, 0x40), "jump table address");
