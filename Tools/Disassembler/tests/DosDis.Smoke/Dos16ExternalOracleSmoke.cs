@@ -54,6 +54,20 @@ internal static class Dos16ExternalOracleSmoke
         Equal(report.AnalysisStatus, "candidate-comparison-not-certification",
             "candidate comparisons never certify execution or full code recovery");
         Equal(report.SourceSha256, artifact.Sha256, "report binds original source SHA");
+        Equal(report.SourceByteLength, artifact.Length,
+            "comparison report retains independently measured file length");
+        Equal(report.RegionFileOffset, region.FileOffset,
+            "report retains original physical mapped base");
+        Equal(report.RegionByteLength, region.ByteLength,
+            "report retains candidate mapping byte extent");
+        Equal(report.Origin, region.Origin,
+            "report retains explicit 16-bit IP origin");
+        Equal(report.AnalysisEntry, (ushort)0x100,
+            "report retains exact candidate CFG entry");
+        Equal(report.MappingEvidence, graph.MappingEvidence,
+            "report retains analyst mapping assumption and status");
+        Equal(report.DecoderConfiguration, manifest.DecoderConfiguration,
+            "report preserves unreviewed claimed external decoder settings");
 
         var wrongStored = manifest with {
             ExpectedInstructions = new[] {
