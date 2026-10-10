@@ -2204,6 +2204,64 @@ try
         Equal(budgetJson.RootElement.GetProperty("analysisTruncated").GetBoolean(), true,
             "instruction budget truncation is recorded in trace metadata");
     }
+    // The public replay orchestrator must not enumerate a one-shot
+    // caller input more than once, including the final traced pass.
+    // Oversized duplicate rows must fail before consuming the trace.
+    int seedEnumerations = 0;
+    int rangeEnumerations = 0;
+    IEnumerable<FlowAddress> OneShotLeSeeds()
+    {
+        seedEnumerations++;
+        if (seedEnumerations != 1)
+            throw new InvalidOperationException("source seeds were re-enumerated");
+        yield return new FlowAddress(1, 0);
+    }
+    IEnumerable<ProtectedDataRange> OneShotLeRanges()
+    {
+        rangeEnumerations++;
+        if (rangeEnumerations != 1)
+            throw new InvalidOperationException("protected ranges were re-enumerated");
+        yield return new ProtectedDataRange(1, 6, 10, "synthetic-known-data");
+    }
+    var oneShotTrace = new AnalysisDecisionTrace();
+    var oneShotReport = ControlFlowAnalysis.Analyze(graphImage,
+        seeds: OneShotLeSeeds(), protectedData: OneShotLeRanges(),
+        decisionTrace: oneShotTrace);
+    Equal(seedEnumerations, 1,
+        "replayed traced analysis enumerates original seed input only once");
+    Equal(rangeEnumerations, 1,
+        "replayed traced analysis enumerates protection input only once");
+    Equal(oneShotReport.ArtifactSha256, graph.ArtifactSha256,
+        "one-shot seed source and final traced report agree");
+
+    var oversizedSeedTrace = new AnalysisDecisionTrace();
+    bool oversizedSeedDenied = false;
+    try
+    {
+        ControlFlowAnalysis.Analyze(graphImage,
+            seeds: Enumerable.Repeat(new FlowAddress(1, 0), 4097),
+            decisionTrace: oversizedSeedTrace);
+    }
+    catch (ArgumentOutOfRangeException) { oversizedSeedDenied = true; }
+    Equal(oversizedSeedDenied, true,
+        "4097 duplicate supplied LE seed rows cannot bypass input budget");
+    Equal(oversizedSeedTrace.ArtifactSha256 is null, true,
+        "input cardinality failure does not consume one-shot decision trace");
+
+    var oversizedRangeTrace = new AnalysisDecisionTrace();
+    bool oversizedRangesDenied = false;
+    try
+    {
+        ControlFlowAnalysis.Analyze(graphImage,
+            protectedData: Enumerable.Repeat(
+                new ProtectedDataRange(1, 6, 10), 100001),
+            decisionTrace: oversizedRangeTrace);
+    }
+    catch (ArgumentOutOfRangeException) { oversizedRangesDenied = true; }
+    Equal(oversizedRangesDenied, true,
+        "100001 duplicate protection rows cannot bypass input budget");
+    Equal(oversizedRangeTrace.ArtifactSha256 is null, true,
+        "oversized range input preserves unused trace for a valid retry");
     var invalidSeedTrace = new AnalysisDecisionTrace();
     bool invalidSeed = false;
     try
