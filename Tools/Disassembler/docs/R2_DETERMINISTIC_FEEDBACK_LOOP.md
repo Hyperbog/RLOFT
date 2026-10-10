@@ -14,7 +14,7 @@ suite or `workflow_dispatch` Windows build. This is not an autonomous
 background job, scheduled CI trigger, source-generating agent, or
 internet-dependent service.
 
-The stage uses a fixed `0x16D05D15` linear-congruential seed for
+The stage uses a fixed `0x16D05D15` Xorshift32 seed for
 repeatable generated inputs. When an assertion fails, the exception
 includes the pattern family, original seed, case number, inputs or
 encoding, expected property and observed value. The failing family
@@ -26,9 +26,47 @@ fixture before changing the decoder.
 | Finite modular shifts | 192 | Compare abstract finite-set results to independent native 16-bit shift arithmetic on each input |
 | Interval shifts | 192 | Enumerate every concrete short-range input; verify containment, plus exact hull when no modulo boundary is crossed and Unknown when one is crossed |
 | Guarded table encodings | 24 | Four byte-exact x86-16 stride encodings crossed with BX values 0–5; a separately backed CMP BX,3/JA table can select only valid indices 0–3 |
-| Inventory permutations | 24 | Reverse stored instruction order and reorder complete outgoing-edge groups; decoded byte truth, proof status and selected indices must not depend on row ordering |
+| Inventory permutations | 24 | Reverse stored instruction order, reorder outgoing-edge groups, and reverse each group's edge records; graph validation must compare exact edge pairs independently of row order |
 | Coverage mutations | 24 | Forge one decoded-byte total; correlation must be incomplete and publish no selected pointers |
 | Exhaustive node/edge mutation | Inventory-dependent | Tamper with each original decoded row and each outgoing edge in a small known-good graph, one at a time; all mutations must fail closed |
+
+## Independent lattice and ALU feedback
+
+`Dos16AlgebraicFeedbackSmoke` adds a second, independently seeded
+`0xA16E2026` feedback family of **256 bounded domain pairs**. It
+combines constants, small finite sets, and short unsigned intervals,
+including boundary-focused samples such as `0x0000`, `0x7FFF`,
+`0x8000`, and `0xFFFF`.
+
+For each pair, concrete enumeration checks that abstract `Join` and
+`Widen` contain every possible source value; modular `Add` and
+`Subtract` contain every independent 16-bit arithmetic outcome; and
+unsigned `RestrictUnsigned` retains exactly the values satisfying
+the supplied inclusive bounds. A separate directed case requires
+exact finite-set behavior across word carry and borrow. The suite
+prints its seed, domain pair count, concrete arithmetic comparisons,
+and unsigned restriction count.
+
+This checks abstract-domain invariants through independent concrete
+enumeration, without making the abstract `Covers` implementation its
+own test oracle. Both generators are fixed-seed and bounded, not
+statistical correctness claims. The full binary space is not exhaustively
+covered.
+
+## Graph edge serialization invariant
+
+The dataflow preflight now independently derives the exact
+`(kind,destination)` multiset per decoded instruction and requires
+**one** match for each expected pair, with exact total edge counts.
+Outgoing edge list order is intentionally ignored; missing, duplicate,
+or forged pairs are still rejected and report no states. The worklist
+continues using the independently decoded successor ordering.
+
+Both feedback suites reverse instruction records and outgoing branch
+edge order as metamorphic inputs; dedicated negative smoke cases
+attempt to duplicate a conditional edge while losing the other.
+This is a serializer-independence property, not permission to change
+actual machine-target bytes or edge semantics.
 
 The patterns are synthetic and deliberately small; they make source-
 identity and decision invariants measurable without exposing original
