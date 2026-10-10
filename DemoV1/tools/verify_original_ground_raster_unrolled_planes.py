@@ -53,6 +53,41 @@ def audit_original(path:Path)->None:
     assert obj[0x34b47:0x34b4d]==bytes.fromhex("8b0d50ff0000")
     print("PASS: original 34350 has exactly 64 identical 24-byte texel samplers")
     print("PASS: 4 single-plane masks and 2 paired masks; 5 E8s plus fourth-plane fall-through")
+    # The caller 1F1C8 computes the original planar VGA page base
+    # from a 32-bit C050 DWORD: FDBC=A0000+(C050<<15), and stores
+    # it before the upper/lower draw calls. 34A74 then adds FF48.
+    # These instruction-aligned page/row-step windows are distinct
+    # from ES segment-base proof.
+    source_windows={
+        0x1F1C9:"0fb60550c00000",               # BYTE C050 for 291B0
+        0x1F1D6:"a150c00000c1e00f0500000a00", # DWORD C050 page <<15
+        0x1F1E6:"a3bcfd0000",                 # store FDBC
+        0x1F32C:"c7054cff000001000000",       # upper FF4C=+1
+        0x1F336:"c70544ff000050000000",       # upper FF44=+80
+        0x1F343:"c70548ff000048010000",       # upper FF48=0x148
+        0x1F39D:"c7054cff0000ffffffff",       # lower FF4C=-1
+        0x1F3A7:"c70544ff0000b0ffffff",       # lower FF44=-80
+        0x1F3B4:"c70548ff0000f8500000",       # lower FF48=0x50F8
+        0x34A97:"a148ff00000305bcfd0000a340ff0000",
+        0x34AA7:"a140c0000083c002a354ff0000",
+        0x34B2D:"a144ff0000010540ff0000",
+        0x34B95:"a144ff0000010540ff0000",
+    }
+    for address,hexbytes in source_windows.items():
+        expected=bytes.fromhex(hexbytes)
+        assert obj[address:address+len(expected)]==expected,hex(address)
+    assert b[0x75F24+0xC050:0x75F24+0xC054]==bytes([1,0,0,0])
+    # Verify the *source* viewport destination ranges if C050 is
+    # the documented valid 0/1 page and 128 rows are drawn. This
+    # does not establish original live ES, DMA or DOS register state.
+    for page in (0,1):
+        for first,step in ((0x148,80),(0x50F8,-80)):
+            low=min(first,first+127*step)
+            high=max(first,first+127*step)+79
+            assert 0<=low<=high<0x8000
+            assert (0xA0000+(page<<15)+high)<0xB0000
+    print("PASS: 13 original 1F1C8/34A74 VGA page and row-step instruction windows")
+    print("BOUND: valid 0/1 page output offsets stay in A0000..AFFFF, ES alias unproven")
     print("PASS: original FF40/FF54 address setup, FF50 reads, no direct helper FF50 writes")
     print("OPEN: ES:[EDI] alias, mutable FF50 and independent DOS pixel parity")
 
