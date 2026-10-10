@@ -939,6 +939,12 @@ add_executable(original_f790_feedback_source_snapshot_tests
 target_link_libraries(original_f790_feedback_source_snapshot_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_f790_feedback_source_snapshot_tests COMMAND original_f790_feedback_source_snapshot_tests)
 
+# Preserve source 117A0 status->all F790 call edges (scribe success fires TWICE).
+add_executable(original_f790_ordinary_slot_event_plan_tests
+    tests/original_f790_ordinary_slot_event_plan_tests.cpp)
+target_link_libraries(original_f790_ordinary_slot_event_plan_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_f790_ordinary_slot_event_plan_tests COMMAND original_f790_ordinary_slot_event_plan_tests)
+
 # Original F5F8 subtype-0x14 early return must ignore mutable bag contents.
 add_executable(original_f5f8_special_weight_tests
     tests/original_f5f8_special_weight_tests.cpp)
