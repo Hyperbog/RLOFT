@@ -230,3 +230,69 @@ same private byte image under those assumptions, **not** that
 DOS allocated that segment, executed the program, or that
 all relocation semantics are correct. No such comparison
 has run yet.
+
+## Strict two-report reconciliation at a future authorized gate
+
+The SOURCE-ONLY `research/compare_mz_relocation_reports.py` utility
+will compare **five explicit** independent-Python vs DOSDis fields:
+`assumed_load_segment`, `original_file_backed_image_bytes`,
+`relocation_write_count`, `overlapping_relocation_writes`,
+and `simulated_file_backed_image_sha256`. It requires the *same
+third-party pinned* 64-hex source SHA256 in both reports, accepts
+only one MZ original in the independent report, rejects malformed
+JSON / duplicated or casing-colliding fields, validates integer
+and boolean types, and checks the independent simulation matches
+its separately parsed MZ geometry.
+
+A matching digest does NOT certify MZ format compliance, runtime
+placement or accurate game execution. Its JSON output contains
+only aggregate agreement/mismatch fields, the original SHA256 and
+an explicit `g2_accuracy_gate: pending`. It NEVER includes
+relocated bytes, original relocation word values or private paths.
+Discrepancies return nonzero exit status; invalid reports are
+rejected instead of silently skipping missing checks. It does
+not open original game executables itself.
+
+**Owner-authorized reproduction recipe** (not run or approved yet):
+
+```sh
+# Run under Tools/Disassembler, with one local original path.
+python3 research/original_source_preflight.py \
+  --source "<PRIVATE>/Dungeon Hack/CHECKSYS.EXE" \
+  --source-sha256 60070e69c2ca61e1adb6fc82bf4a3ed2652a576e40d610ec4f2b83df237fdc22 \
+  --mode mz --label dungeon-hack-checksys \
+  --assumed-mz-load-segment 0x2000 > "<PRIVATE>/independent-checksys.json"
+
+# Use an exact-SHA owner-authorized compiled DOSDis CLI.
+DosDis.Cli mz-relocate "<PRIVATE>/Dungeon Hack/CHECKSYS.EXE" \
+  --load-segment 2000 --max 0 > "<PRIVATE>/dosdis-checksys.json"
+
+python3 research/compare_mz_relocation_reports.py \
+  --independent "<PRIVATE>/independent-checksys.json" \
+  --dosdis "<PRIVATE>/dosdis-checksys.json" \
+  --expected-source-sha256 60070e69c2ca61e1adb6fc82bf4a3ed2652a576e40d610ec4f2b83df237fdc22
+```
+
+Here Python `0x2000` and DOSDis `2000` both mean **hexadecimal
+load segment 2000h**. The segment is a deliberately hypothetical
+common input, not a recovered real DOS load address.
+
+The newly added `OriginalFileBackedBytes` CLI field is intended
+to prevent equal digest results from hiding mismatched source extent.
+`--max 0` suppresses per-fixup word details in this DOSDis
+comparison report. Both comparison JSON files remain PRIVATE and
+are never uploaded or committed. Future independent review must
+check the exact original SHA, mapping assumptions and any
+discrepancy before upgrading its gate status.
+
+The synthetic-only scripts
+`test_original_source_preflight.py` and
+`test_compare_mz_relocation_reports.py` include the same
+independently authored 480-/464-byte resident MZ models as the
+C# smoke tests, plus negative hash, segment, size, count, overlap
+and malformed report cases. No fixtures use original game bytes.
+At a **separately authorized** gate, the Python-only suite can
+be invoked by
+`python3 -m unittest discover -s research -p 'test_*.py'`;
+this has **not** yet been executed.
+
