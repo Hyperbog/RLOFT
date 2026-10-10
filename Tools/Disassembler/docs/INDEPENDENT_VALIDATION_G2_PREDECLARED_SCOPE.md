@@ -51,3 +51,28 @@ A successful Windows compile and previously verified synthetic suite may mark th
 The existing `KnownAnswerValidator` currently handles **LE object-relative comparisons**, not a blanket x86-16 external decoder driver. It must not be misrepresented as having completed G2. The newly added expected `ExpectedFlowControl` field and source-byte recheck are optional LE comparison safeguards; they are not a second decoder.
 
 No G2 source build, external-tool invocation, original-file comparison, machine-readable accuracy measurement or human review has yet been performed at this checkpoint.
+
+## E. Source-only comparison interface (2026-10-10)
+
+A bounded comparison interface is now authored in
+`Dos16ExternalOracleValidation.cs`. The `com-analyze`,
+`mz-analyze` and `overlay-analyze` CLI actions accept an
+opt-in `--external-oracle file.json --external-report file.json`
+pair. The manifest declares an independently researched
+decoder provenance claim, exact original SHA-256 and region
+mapping, and predeclared original-byte instruction length,
+normalized flow category and optional direct edge.
+
+It checks the immutable source and the returned candidate graph,
+labels all reports `claimed-external-not-reviewed`, retains all
+not-observed/missing/conflicting findings, and never upgrades
+runtime reachability or G2 accuracy status. Its synthetic smoke
+matrix tests interface integrity only. See
+`X86_16_EXTERNAL_ORACLE_COMPARISON.md` for the supported
+JSON schema and manual execution recipe.
+
+**Still outstanding:** an actually executed second decoder,
+independent operand/ISA semantic comparisons, reviewed
+original-game samples, exact current build/test SHA, human
+discrepancy adjudication and G2 owner authorization. Writing
+the comparison code does **not** satisfy this gate.
