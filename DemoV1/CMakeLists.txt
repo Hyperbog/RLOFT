@@ -34,6 +34,11 @@ if(Python3_Interpreter_FOUND)
         NAME subsystem_progress_tracker_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_subsystem_progress_tracker.py")
+    # CODE.2 112EC -> 292BC and F790 -> 2932C VGA save/restore provenance.
+    add_test(
+        NAME original_f790_background_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_background_page.py")
     # CODE.2 13118/112EC/F790 cadence and existing native modal expiry guard.
     add_test(
         NAME original_inventory_f790_cadence_tests
@@ -825,6 +830,12 @@ add_executable(original_feedback_ribbon_raster_tests
     tests/original_feedback_ribbon_raster_tests.cpp)
 target_link_libraries(original_feedback_ribbon_raster_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_feedback_ribbon_raster_tests COMMAND original_feedback_ribbon_raster_tests)
+
+# Original CODE.2 112EC saves the 0x1400-byte VGA ribbon backing page.
+add_executable(original_f790_background_page_tests
+    tests/original_f790_background_page_tests.cpp)
+target_link_libraries(original_f790_background_page_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_f790_background_page_tests COMMAND original_f790_background_page_tests)
 
 add_executable(original_res2_asset_bank_tests tests/original_res2_asset_bank_tests.cpp)
 target_link_libraries(original_res2_asset_bank_tests PRIVATE rloft_boot_flow)
