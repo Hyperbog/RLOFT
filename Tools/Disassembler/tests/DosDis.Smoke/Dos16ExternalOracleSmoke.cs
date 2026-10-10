@@ -312,6 +312,46 @@ internal static class Dos16ExternalOracleSmoke
             i.Address.Offset == 0x10D).DecoderFacts!.Operand1!.Memory is null,
             true, "32-bit address-size override is not an accepted 16-bit addressing fact");
 
+        // Exact byte-width boundaries: signed disp8 -128 must map
+        // to FF80 in a 16-bit address, and +127 to 007F.
+        // Do not infer either from a formatter's signed/unsigned text.
+        var displacementBoundaryBytes = new byte[] {
+            0x8B, 0x40, 0x80, 0x8B, 0x40, 0x7F, 0xC3
+        };
+        var boundaryArtifact = BinaryArtifact.FromBytes(
+            displacementBoundaryBytes, "synthetic-disp8-boundaries.com");
+        var boundaryRegion = DosComImage.LoadExplicit(boundaryArtifact).CreateCodeRegion();
+        var boundaryGraph = Dos16ControlFlowAnalysis.Analyze(boundaryRegion, 0x100);
+        var boundaryManifest = manifest with {
+            SourceSha256 = boundaryArtifact.Sha256,
+            SourceByteLength = boundaryArtifact.Length,
+            RegionByteLength = boundaryRegion.ByteLength,
+            ExpectedInstructions = new[] {
+                new Dos16ExternalExpectedInstruction(
+                    0x100, 0, "8B4080", "Next", "negative-128-disp8",
+                    ExpectedFacts: MemoryMov("AX", "BX", "SI", 1,
+                        0xFF80, "UInt16")),
+                new Dos16ExternalExpectedInstruction(
+                    0x103, 3, "8B407F", "Next", "positive-127-disp8",
+                    ExpectedFacts: MemoryMov("AX", "BX", "SI", 1,
+                        0x007F, "UInt16")),
+                new Dos16ExternalExpectedInstruction(
+                    0x106, 6, "C3", "Return", "boundary-fixture-return")
+            }
+        };
+        var boundaryReport = Dos16ExternalOracleValidator.Compare(
+            boundaryRegion, boundaryGraph, boundaryManifest);
+        Equal(boundaryReport.Matched, 3,
+            "both valid signed disp8 extremes remain source-backed matches");
+        Equal(boundaryReport.FullyMatchedOperandExpectations, 2,
+            "two disp8 encoding-boundary oracle facts must agree");
+        Equal(boundaryGraph.Instructions.Single(i =>
+            i.Address.Offset == 0x100).DecoderFacts!.Operand1!.Memory!.Displacement,
+            0xFF80u, "negative 128 disp8 sign-extends modulo 16 bits");
+        Equal(boundaryGraph.Instructions.Single(i =>
+            i.Address.Offset == 0x103).DecoderFacts!.Operand1!.Memory!.Displacement,
+            0x007Fu, "positive 127 disp8 remains positive modulo 16 bits");
+
         var wrongMemoryRegister = memoryManifest with {
             ExpectedInstructions = new[] {
                 memoryManifest.ExpectedInstructions[0] with {
