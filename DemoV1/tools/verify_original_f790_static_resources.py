@@ -90,12 +90,26 @@ def check_t(path:Path)->None:
     sha1=hashlib.sha1(f"blob {len(raw)}\0".encode()+raw).hexdigest()
     assert sha1==T_GIT_BLOB, "wrong original T Git blob"
     assert len(raw)==133584 and u32(raw,0)==1073
+    count=u32(raw,0)
+    first_record=4+count*4
+    empty=0
+    max_length=0
+    zero_inside=0
+    for ix in range(count):
+        off=u32(raw,4+ix*4)
+        assert first_record<=off and off+2<=len(raw),(ix,off)
+        length=struct.unpack_from("<H",raw,off)[0]
+        assert off+2+length<=len(raw),(ix,length)
+        empty+=length==0
+        max_length=max(max_length,length)
+        zero_inside+=sum((b^0xDC)==0 for b in raw[off+2:off+2+length])
+    assert empty==25 and max_length==1040 and zero_inside==0
     for ix,label in EXPECTED_T.items():
         off=u32(raw,4+ix*4)
         length=struct.unpack_from("<H",raw,off)[0]
         text=bytes(b^0xDC for b in raw[off+2:off+2+length])
         assert text.decode("ascii")==label
-    print("PASS: original T blob, 1073 slots, F790 records 3D/3E/3F/40/41")
+    print("PASS: original T blob, all 1073 record boundaries, 25 empty, max length 1040, five F790 labels")
 
 def check_json(path:Path,sha:str,module:str,required:dict[int,str])->None:
     report=json.loads(path.read_text(encoding="utf-8"))
