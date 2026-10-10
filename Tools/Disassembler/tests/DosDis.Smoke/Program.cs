@@ -2365,6 +2365,45 @@ try
         "byte-register-MOVZX-zeroextend")), false,
         "independent indexed-JMP seed cannot borrow upstream unsigned guard");
 
+    // A near-form unsigned JA must have exactly the same semantics as
+    // its short encoding. Exercise the six-byte 0F87 rel32 guard, not
+    // just a mnemonic decoded from a two-byte short conditional.
+    var nearJaSwitch = (byte[])byteSwitchBytes.Clone();
+    new byte[] {
+        0x0F, 0x87, 0x0B, 0, 0, 0, // JA near +11, default at 1:0x15
+        0x0F, 0xB6, 0xC0,          // MOVZX EAX,AL
+        0x2E, 0xFF, 0x24, 0x85, 0x40, 0, 0, 0,
+        0xC3
+    }.CopyTo(nearJaSwitch, 0x200 + 4);
+    var nearJaGraph = ControlFlowAnalysis.Analyze(
+        LeImage.Load(BinaryArtifact.FromBytes(nearJaSwitch)));
+    Equal(nearJaGraph.JumpTables.Count, 1,
+        "near JA/CMP byte/MOVZX must preserve the same ten-way guard");
+    Equal(nearJaGraph.JumpTables[0].CandidateTargets.Count, 10,
+        "near JA proof never depends on short-branch encoding width");
+    Equal(nearJaGraph.Edges.Any(e =>
+        e.Kind == "branch-taken" &&
+        e.Source == new FlowAddress(1, 4) &&
+        e.Destination == new FlowAddress(1, 0x15)), true,
+        "near JA retains exact default destination under changed code width");
+
+    // Entrypoint hypotheses are unordered: neither an explicit MOVZX
+    // seed nor an explicit indexed-JMP seed may inherit the guard in
+    // either traversal order. This is independent of table contents.
+    foreach (uint bypass in new uint[] { 6, 9 })
+        foreach (bool extraFirst in new[] { false, true })
+        {
+            FlowAddress extra = new(1, bypass);
+            var alternativeSeeds = extraFirst
+                ? new[] { extra, new FlowAddress(1, 0) }
+                : new[] { new FlowAddress(1, 0), extra };
+            var withAlternative = ControlFlowAnalysis.Analyze(
+                byteSwitchImage, seeds: alternativeSeeds);
+            Equal(withAlternative.JumpTables.Any(t =>
+                t.Evidence.Contains("byte-register-MOVZX-zeroextend")), false,
+                "alternative seeded x86-32 entry cannot gain unsigned JA proof");
+        }
+
     var signedByteSwitch = (byte[])byteSwitchBytes.Clone();
     signedByteSwitch[0x200 + 4] = 0x7F; // JG, signed rather than JA
     Equal(ControlFlowAnalysis.Analyze(LeImage.Load(
