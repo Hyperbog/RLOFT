@@ -710,6 +710,31 @@ std::vector<std::uint8_t> ResArchive::decode_type4(int index) const {
     };
 }
 
+std::vector<std::uint8_t> ResArchive::decode_type6_block(int index) const {
+    const auto raw=entry(index);
+    if(raw.size()<7U || raw[0]!='E' || raw[1]!='H' || raw[2]!=6U)
+        throw std::runtime_error("RES entry is not an EH type-6 block");
+
+    // Original CODE.2 2EB60 reads five EH header bytes. A nonzero
+    // signed word at +3 is optional extended-header data read before
+    // 37590. Shipped RES4 has this length zero; keep source semantics.
+    const auto extended=s16(raw.data()+3);
+    if(extended<0 || static_cast<std::size_t>(extended)>raw.size()-7U)
+        throw std::runtime_error("Invalid original EH6 extended header");
+    const auto at=5U+static_cast<std::size_t>(extended);
+    const auto expected=static_cast<std::size_t>(u16(raw.data()+at));
+    // 37590 allocates exactly decoded_length+2 and preserves the
+    // original u16 size prefix at C040. 34A74 samples C040+2.
+    const auto decoded=lzss_4k(
+        raw.data()+at+2U,raw.size()-at-2U,expected);
+    std::vector<std::uint8_t> result;
+    result.reserve(expected+2U);
+    result.push_back(raw[at]);
+    result.push_back(raw[at+1U]);
+    result.insert(result.end(),decoded.begin(),decoded.end());
+    return result;
+}
+
 Type1Raster ResArchive::decode_type1(int index) const {
     const auto raw = entry(index);
     if (raw.size() < 13 || raw[0] != 'E' || raw[1] != 'H' || raw[2] != 1) {
