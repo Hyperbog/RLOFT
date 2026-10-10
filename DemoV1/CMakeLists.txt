@@ -131,6 +131,13 @@ if(Python3_Interpreter_FOUND)
         NAME original_f790_description_source_contract_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_f790_description_source.py")
+    # Original CODE.2 F790 F7CC text reader T[0x3F] is called
+    # before the item==-1 fast exit. F7D3 resolves to 1C368.
+    # Synced from byte-verified code1-decompilation, source-only in CI.
+    add_test(
+        NAME original_f790_stack_local_preread_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/../Code2/verify_f790_stack_local_preread.py")
     # Original CODE.2 F790 category table and description-completeness gate.
     add_test(
         NAME original_f790_item_description_dispatch_tests
