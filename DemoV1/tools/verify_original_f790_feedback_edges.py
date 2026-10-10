@@ -35,6 +35,8 @@ def verify_binary(path:Path)->None:
 def verify_source()->None:
     header=(ROOT/"DemoV1/include/rloft/original_f790_feedback_edges.hpp").read_text()
     cpp=(ROOT/"DemoV1/tests/original_f790_feedback_edges_tests.cpp").read_text()
+    snapshot=(ROOT/"DemoV1/include/rloft/original_f790_feedback_source_snapshot.hpp").read_text()
+    snapshot_test=(ROOT/"DemoV1/tests/original_f790_feedback_source_snapshot_tests.cpp").read_text()
     runtime=(ROOT/"DemoV1/src/inventory_runtime.cpp").read_text()
     host=(ROOT/"DemoV1/src/win32_main.cpp").read_text()
     cmake=(ROOT/"DemoV1/CMakeLists.txt").read_text()
@@ -54,6 +56,17 @@ def verify_source()->None:
     assert "inventory.expire_scribe_feedback_13184(0x1235U)" in cpp
     assert "inventory.expire_scribe_feedback_13184(0U)" in cpp
     assert "add_test(NAME original_f790_feedback_edges_tests COMMAND original_f790_feedback_edges_tests)" in cmake
+    assert "add_test(NAME original_f790_feedback_source_snapshot_tests COMMAND original_f790_feedback_source_snapshot_tests)" in cmake
+    for fragment in ("after_scribe(", "after_expiry(", "owned_text_759c",
+                     "feedback.message(spell_name)", "arguments_now()",
+                     "OriginalF790RuntimeEvent::arguments_for_direct_call"):
+        assert fragment in snapshot,fragment
+    assert "const auto t=original_spell_fixture();" in snapshot_test
+    assert 'FIREBALL LEARNED!' in snapshot_test
+    assert "0x1173bU" in snapshot_test
+    assert "0x1178eU" in snapshot_test
+    assert "0x131bbU" in snapshot_test
+    assert "inv.mage_scribe_feedback.reset();" in snapshot_test
     assert "NAME original_f790_feedback_binary_contract_tests" in cmake
     assert "(void)runtime.inventory().expire_scribe_feedback_13184(" in host, (
         "host expiry handler changed: re-audit original event/RNG cadence")
