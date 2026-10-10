@@ -263,6 +263,17 @@ internal static class Dos16CorrelatedDispatchSmoke
             good.Graph.Edges.Any(edge => edge.Kind == "unresolved-indirect-jump"),
             "stored entry correlation does not resolve or rewrite CFG edges");
 
+        var exactBudgetReport = Dos16CorrelatedDispatchRecovery.Inspect(
+            good.Region, good.Graph,
+            maximumInstructions: good.Graph.Instructions.Count,
+            maximumSteps: good.Graph.Instructions.Count,
+            maximumEdges: good.Graph.Edges.Count);
+        Check(!exactBudgetReport.Incomplete &&
+            exactBudgetReport.BoundedIndexSites == 1 &&
+            exactBudgetReport.GuardedStorageSites == 1 &&
+            exactBudgetReport.Sites[0].CandidateIndices.SequenceEqual(new[] { 1 }),
+            "matching tight budgets must validate both guarded and index passes");
+
         var limitedSteps = Dos16CorrelatedDispatchRecovery.Inspect(
             good.Region, good.Graph, maximumSteps: 1);
         Check(limitedSteps.Incomplete &&
