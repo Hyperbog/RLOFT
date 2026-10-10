@@ -80,6 +80,41 @@ rloft::ResArchive fixture() {
     append(5,std::move(transformed));
     return rloft::ResArchive(std::move(bytes));
 }
+// This is the actually SHIPPED RES4 format: EH6 on disk, decoded by
+// CODE.2 37590/37700 into a runtime type-1 cache block at 2EF38.
+// The compressed stream below uses 512 original LZSS control byte FF
+// groups of eight literal 64x64 indexed-pixel bytes.
+rloft::ResArchive eh6_fixture() {
+    std::vector<std::uint8_t> archive(4U+5U*4U,0U);
+    le32(archive,0U,5U);
+    const auto add=[&](std::size_t id,const std::vector<std::uint8_t>& bytes) {
+        le32(archive,4U+id*4U,
+             static_cast<std::uint32_t>(archive.size()));
+        archive.insert(archive.end(),bytes.begin(),bytes.end());
+    };
+    const auto encoded=[&](bool extended) {
+        std::vector<std::uint8_t> bytes{
+            'E','H',6U,static_cast<std::uint8_t>(extended?2U:0U),0U};
+        if(extended) {
+            bytes.push_back(0xA5U); bytes.push_back(0x5AU);
+        }
+        bytes.push_back(0U);bytes.push_back(0x10U);
+        for(std::size_t i=0;i<4096U;i+=8U) {
+            bytes.push_back(0xFFU);
+            for(std::size_t j=0;j<8U;++j)
+                bytes.push_back(static_cast<std::uint8_t>((i+j)&255U));
+        }
+        return bytes;
+    };
+    add(0U,{'E','H',7U,0U,0U,0U,0U});
+    add(1U,encoded(false));
+    auto broken=encoded(false);
+    broken.resize(8U);  // control FF without eight literals
+    add(2U,broken);
+    add(3U,{'E','H',6U,0U,0U,0U,0x20U}); // 8192, not 64x64
+    add(4U,encoded(true));
+    return rloft::ResArchive(std::move(archive));
+}
 template<class Fn> bool throws(Fn&& fn) {
     try {fn();} catch(const std::exception&) {return true;}
     return false;
@@ -109,6 +144,49 @@ int main() {
     assert(transform.absolute_entry==5);
     assert(transform.transform==1U);
     assert(transform.decoded_fnv1a32==tile.decoded_fnv1a32);
+
+    const auto real_eh6=eh6_fixture();
+    const auto eh6_report=rloft::OriginalGroundRes4Audit::inspect(real_eh6);
+    assert(eh6_report.total_entries==5);
+    assert(eh6_report.type1_entries==0);
+    assert(eh6_report.type6_entries==4);
+    assert(eh6_report.rejected_type6_entries==1);
+    assert(eh6_report.tiles_64x64.size()==2U);
+    assert(eh6_report.tiles_64x64[0].absolute_entry==1);
+    assert(eh6_report.tiles_64x64[0].original_eh_type==6U);
+    assert(eh6_report.tiles_64x64[1].absolute_entry==4);
+    assert(eh6_report.tiles_64x64[1].original_eh_type==6U);
+    const auto source_eh6=real_eh6.decode_type6_block(1);
+    assert(source_eh6.size()==4098U);
+    assert(source_eh6[0]==0U && source_eh6[1]==0x10U);
+    assert(real_eh6.decode_type6_block(4)==source_eh6);
+    for(std::size_t i=0;i<4096U;++i)
+        assert(source_eh6[i+2U]==static_cast<std::uint8_t>(i&255U));
+    assert(throws([&] {(void)real_eh6.decode_type6_block(0);}));
+    assert(throws([&] {(void)real_eh6.decode_type6_block(2);}));
+    assert(rloft::OriginalGroundRes4Audit::verified_tile_source(
+        real_eh6,1)==source_eh6);
+    // CODE.2 34A74 skips precisely two ORIGINAL EH6 size bytes.
+    rloft::LevelState eh6_level{};
+    eh6_level.header[7U]=55U;
+    std::vector<std::uint8_t> eh6_init(0x10U,0U);
+    eh6_init[0x0EU]=0xCAU;eh6_init[0x0FU]=0xFFU;
+    // Source base is unsigned. Use a signed selector -54 to resolve 1.
+    eh6_level.header[7U]=0xCAU;eh6_level.header[8U]=0xFFU;
+    eh6_init[0x0EU]=55U;eh6_init[0x0FU]=0U;
+    const auto resolved_eh6=rloft::OriginalGroundRes4Audit::resolve(
+        eh6_init,eh6_level,real_eh6);
+    assert(resolved_eh6.absolute_archive_entry==1);
+    assert(resolved_eh6.raster_source==source_eh6);
+    const auto probe_eh6=rloft::OriginalGroundRes4ProbeSnapshot::capture(
+        eh6_init,eh6_level,real_eh6);
+    assert(probe_eh6.verified && probe_eh6.source_entry==1);
+    assert(probe_eh6.verified_pixel_bytes==4096U);
+    std::ostringstream native_report;
+    probe_eh6.print(native_report);
+    assert(native_report.str().find("type6_count=4")!=std::string::npos);
+    assert(native_report.str().find("source_EH_type=6")!=std::string::npos);
+    assert(native_report.str().find("source_selected=1")!=std::string::npos);
 
     // Source proof: CODE.2 reads the original INIT word at +0x0E
     // to DGROUP:258F8 before adding the Level 22 relative selector.
