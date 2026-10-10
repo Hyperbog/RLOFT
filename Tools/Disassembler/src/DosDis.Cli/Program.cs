@@ -145,6 +145,7 @@ try
             int max = int.Parse(Option(args, "--max", "100"), CultureInfo.InvariantCulture);
             if (max is < 0 or > 4096) throw new ArgumentOutOfRangeException(nameof(max));
             Print(new { simulation.Summary.SourceSha256,
+                simulation.Summary.OriginalFileBackedBytes,
                 simulation.Summary.SimulatedFileBackedImageSha256,
                 simulation.Summary.AssumedLoadSegment, simulation.Summary.AssumedEntryCs,
                 simulation.Summary.AssumedStackSs, simulation.Summary.InitialIp,
@@ -173,6 +174,7 @@ try
                     CandidateGraph = graph16,
                     RelocationModel = new {
                         simulated.Summary.SourceSha256,
+                        simulated.Summary.OriginalFileBackedBytes,
                         simulated.Summary.SimulatedFileBackedImageSha256,
                         simulated.Summary.AssumedLoadSegment,
                         simulated.Summary.RelocationWriteCount,
