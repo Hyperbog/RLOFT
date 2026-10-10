@@ -132,7 +132,7 @@ int main() {
         trace.error("party_modal.draw",
                     "Demo v1 has no loaded type-1 archive for requested bank");
         assert(read(root/"events.jsonl").find(
-            "\\"stage\\":\\"party_modal.draw\\"")!=std::string::npos);
+            "\"stage\":\"party_modal.draw\"")!=std::string::npos);
         assert(read(root/"events.jsonl").find(
             "no loaded type-1 archive")!=std::string::npos);
         trace.finish();
