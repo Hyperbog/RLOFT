@@ -23,19 +23,19 @@ struct OriginalGroundFF50Span final {
     std::int32_t lower_ff50{};
     bool sentinel_open_field{};
 
-    [[nodiscard]] bool upper_has_textured_rows() const noexcept {
+    [[nodiscard]] constexpr bool upper_has_textured_rows() const noexcept {
         return upper_ff50 > 0;
     }
-    [[nodiscard]] bool lower_has_textured_rows() const noexcept {
+    [[nodiscard]] constexpr bool lower_has_textured_rows() const noexcept {
         return lower_ff50 > 0;
     }
     // Original 34ABF caps the FIRST phase at 0x50=80 rows and
     // 34B4D draws any remaining FF50-80 rows with paired planes.
-    [[nodiscard]] std::uint32_t lower_four_plane_rows() const noexcept {
+    [[nodiscard]] constexpr std::uint32_t lower_four_plane_rows() const noexcept {
         return lower_ff50 <= 0 ? 0U :
             static_cast<std::uint32_t>(lower_ff50 < 80 ? lower_ff50 : 80);
     }
-    [[nodiscard]] std::uint32_t lower_paired_plane_rows() const noexcept {
+    [[nodiscard]] constexpr std::uint32_t lower_paired_plane_rows() const noexcept {
         return lower_ff50 <= 80 ? 0U :
             static_cast<std::uint32_t>(lower_ff50 - 80);
     }
