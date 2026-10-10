@@ -3,8 +3,18 @@ using Iced.Intel;
 namespace DosDis.Core;
 
 public readonly record struct Dos16Address(ushort Segment, ushort Offset);
+/// <summary>Bounded x86-16 decoder facts, distinct from display assembly.
+/// Only the first two operands are represented; this is NOT a complete
+/// memory-address, implicit-operand, flags or execution semantics model.</summary>
+public sealed record Dos16OperandFact(string Kind,
+    string? Register = null, long? ImmediateValue = null);
+public sealed record Dos16InstructionFacts(string Mnemonic, int OperandCount,
+    Dos16OperandFact? Operand0, Dos16OperandFact? Operand1);
 public sealed record Dos16FlowInstruction(Dos16Address Address, int Length,
-    long SourceFileOffset, string OriginalBytes, string Assembly, string FlowControl);
+    long SourceFileOffset, string OriginalBytes, string Assembly, string FlowControl)
+{
+    public Dos16InstructionFacts? DecoderFacts { get; init; }
+}
 public sealed record Dos16FlowEdge(Dos16Address Source, Dos16Address? Destination,
     string Kind, string Evidence);
 public sealed record Dos16FlowDiagnostic(Dos16Address Address,
@@ -23,6 +33,33 @@ public sealed record Dos16FlowResult(
 /// </summary>
 public static class Dos16ControlFlowAnalysis
 {
+    // The semantic record is derived at the same decode site as the
+    // graph, not by reparsing presentation-formatted NASM assembly.
+    // Unsupported operand classes still report a Kind, but no claims
+    // about implicit operands, addressing displacement or memory width.
+    private static Dos16OperandFact CaptureOperand(
+        Instruction instruction, int operand)
+    {
+        OpKind kind = operand == 0 ? instruction.Op0Kind : instruction.Op1Kind;
+        Register reg = operand == 0 ? instruction.Op0Register : instruction.Op1Register;
+        long? immediate = kind switch
+        {
+            OpKind.Immediate8 => instruction.Immediate8,
+            OpKind.Immediate16 => instruction.Immediate16,
+            OpKind.Immediate32 => instruction.Immediate32,
+            OpKind.Immediate8to16 => instruction.Immediate8to16,
+            OpKind.Immediate8to32 => instruction.Immediate8to32,
+            _ => null
+        };
+        return new Dos16OperandFact(kind.ToString(),
+            kind == OpKind.Register ? reg.ToString() : null, immediate);
+    }
+
+    private static Dos16InstructionFacts CaptureFacts(Instruction instruction) =>
+        new(instruction.Mnemonic.ToString(), instruction.OpCount,
+            instruction.OpCount >= 1 ? CaptureOperand(instruction, 0) : null,
+            instruction.OpCount >= 2 ? CaptureOperand(instruction, 1) : null);
+
     public static Dos16FlowResult Analyze(Dos16CodeRegion region,
         ushort entry, int maxInstructions = 100_000)
     {
@@ -139,7 +176,8 @@ public static class Dos16ControlFlowAnalysis
             for (int i = relative; i < relative + length; i++) owners[i] = relative;
             var source = new Dos16Address(region.Segment, current);
             instructions.Add(current, new Dos16FlowInstruction(source, length,
-                physical, decodedLine.OriginalBytes, decodedLine.Assembly, decodedLine.FlowControl));
+                physical, decodedLine.OriginalBytes, decodedLine.Assembly, decodedLine.FlowControl)
+                { DecoderFacts = CaptureFacts(instruction) });
             int after = current + length;
             bool isNear = instruction.Op0Kind is OpKind.NearBranch16 or OpKind.NearBranch32;
             // Operand-size overrides may produce a 32-bit destination.
