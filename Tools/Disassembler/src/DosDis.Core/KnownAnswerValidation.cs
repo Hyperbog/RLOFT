@@ -120,6 +120,32 @@ public static class KnownAnswerValidator
             if (x is null || x.Source.Object < 1 || x.Target.Object < 1 ||
                 string.IsNullOrWhiteSpace(x.EvidenceId))
                 throw new InvalidDataException("Invalid verified relocation expectation.");
+
+        // Multiple copies of one favorable assertion must not inflate
+        // an independent benchmark's denominator or apparent match count.
+        if (manifest.VerifiedInstructions.Select(x => x.Address).Distinct().Count() !=
+                manifest.VerifiedInstructions.Count ||
+            manifest.VerifiedEdges.Select(x => (x.Source, x.Destination, x.Kind))
+                .Distinct().Count() != manifest.VerifiedEdges.Count ||
+            manifest.VerifiedFixups.Select(x => (x.Source, x.Target))
+                .Distinct().Count() != manifest.VerifiedFixups.Count)
+            throw new InvalidDataException(
+                "Known-answer manifest contains duplicate expectation identities.");
+
+        var orderedNonCode = manifest.VerifiedNonCode
+            .OrderBy(x => x.Object).ThenBy(x => x.Begin).ToArray();
+        for (int i = 1; i < orderedNonCode.Length; i++)
+            if (orderedNonCode[i - 1].Object == orderedNonCode[i].Object &&
+                orderedNonCode[i - 1].EndExclusive > orderedNonCode[i].Begin)
+                throw new InvalidDataException(
+                    "Known-answer non-code expectations overlap.");
+        foreach (var insn in manifest.VerifiedInstructions)
+            if (orderedNonCode.Any(span => span.Object == insn.Address.Object &&
+                (ulong)insn.Address.Offset < span.EndExclusive &&
+                (ulong)insn.Address.Offset + (uint)(insn.OriginalHex.Length / 2) >
+                    span.Begin))
+                throw new InvalidDataException(
+                    "Known-answer instruction conflicts with verified non-code evidence.");
     }
 
     public static KnownAnswerValidationReport Validate(
