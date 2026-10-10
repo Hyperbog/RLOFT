@@ -124,3 +124,48 @@ verified. New synthetic mapping/dedup test code remains **SOURCE ONLY**
 since last owner-authorized Windows/Linux run #40; no DOSDis build,
 synthetic test, external-tool instruction comparison or game execution
 was performed in this batch. G2 independent accuracy remains PENDING.
+
+## Reproducible, read-only local preflight (source-authored)
+
+`Tools/Disassembler/research/original_source_preflight.py` independently
+recalculates exact original SHA-256, parses only bounded MZ/COM disk
+geometry, checks MZ relocation storage, and compares **unclassified
+entry bytes** without decoding instructions. It has **no** dependency
+on DOSDis or Iced, never executes input bytes, and prints no original
+data, private paths, decoded instructions or relocation values.
+Caller-supplied public identifiers are included in JSON instead.
+
+Example with two owner-local verified Gold Box files (paths stay private):
+
+```sh
+python3 research/original_source_preflight.py \
+  --source "<PRIVATE>/Pool of Radiance/POOLRAD/START.EXE" \
+  --source-sha256 d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd \
+  --mode mz --label pool-radiance \
+  --peer "<PRIVATE>/Curse of the Azure Bonds/START.EXE" \
+  --peer-sha256 42fcefd6785679568b00bc1fb5b1d81ac2773416be4a35e0363920ddf6b78acd \
+  --peer-mode mz --peer-label curse-azure-bonds \
+  --entry-prefix-limit 512
+```
+
+To inspect the explicitly selected COM, use `--mode com`;
+headerless files are **not** inferred to be COM from a name alone.
+MZ mode reports storage-only relocation geometry, not live segment
+values. Both sources must pass exact SHA-256 input checks before any
+matching-byte count is reported. An unexpected source hash causes
+controlled rejection rather than output with degraded confidence.
+
+A companion synthetic-only fixture
+`research/test_original_source_preflight.py` covers changed
+whole-file identity but identical mapped MZ code, distinct initial
+CS/physical entry mapping, a bounded relocation-site positive/negative,
+explicit COM origin, wrong input SHA and a 283-byte **synthetic**
+prefix divergence. Its fixture bytes are invented, not copies of
+Gold Box or Dungeon Hack binaries. Both files are **SOURCE ONLY**;
+no Python test invocation, DOSDis build, or original-game run has
+occurred in this continuation.
+
+The next owner-authorized execution may run this preflight only
+as part of explicitly recorded external-original validation.
+Its results remain a separate source mapping evidence class,
+not confirmation of CPU behavior or full G2 correctness.
