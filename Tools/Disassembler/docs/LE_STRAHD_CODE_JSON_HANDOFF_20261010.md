@@ -173,3 +173,39 @@ These changes are **source only**, with no new compiler or CI
 evidence. In particular, do not report the original Strahd
 `1:F8CC` table as newly verified until the authorized Windows
 regression suite and an original-source re-export are checked.
+
+## Guard taken-edge and provenance follow-up (source-only)
+
+The LE/x86-32 local proof now also rejects independently seeded
+`JA` instructions: the compare does not dominate an entry starting
+at the conditional branch itself, where input flags are unknown.
+This complements prior exclusions for independent `MOVZX` and
+indirect-JMP seeds.
+
+A guard's **out-of-range/taken target** must be an original decoded
+branch target in the same object at or after the byte immediately
+following the entire indirect-jump instruction. A `JA` directed into
+the `MOVZX`, into the `CS:` prefix / indexed-jump bytes, or
+backwards cannot license an upper bound: one of its runtime arms
+could enter the indexed transfer without a bounded index. This
+is a **narrow forward-skip requirement**, not a general proof that
+the complete dynamic CFG has a dominating guard; later-discovered
+routes and mutable runtime state remain unresolved.
+
+New synthetic negative controls include independently seeded JA
+with both seed orders; three explicit non-skipping JA displacements;
+a complete 0..10 displacement sweep landing inside the byte
+MOVZX/indirect-JMP sequence; three analogous relocation-backed
+cases that must retain `index-bound-unproven`; long-form
+`0F 87 rel32` jumping into the index transfer; and near signed
+`0F 8F` masquerading as unsigned JA. Positive controls pin the
+exact original short/near instruction hex bytes and verify that
+near and short unsigned JA skip completely over their indexed
+instruction and retain candidate-only runtime edges.
+
+The source remains independent of Strahd-specific addresses and
+bytes. The uploaded `CODE.1`/`CODE.2` findings still refer to
+Strahd's Possession, not Stone Prophet or Menzoberranzan.
+No Windows build, executable smoke regression, original-byte
+re-export, GitHub workflow dispatch or game-runtime parity test
+has been performed for these new cases. G2 remains unverified.
