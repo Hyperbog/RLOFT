@@ -28,11 +28,12 @@ specifies future x86-16 oracle comparisons without claiming they have run.
 An optional [external x86-16 oracle comparison interface](docs/X86_16_EXTERNAL_ORACLE_COMPARISON.md)
 is source-complete for `com-analyze`, `mz-analyze` and `overlay-analyze`.
 It checks original mapped bytes, flow/direct edges and optional
-structured mnemonic/register/immediate facts (at most two explicit
-operands), with **separate semantic assertion denominators**. It does
-**not** execute an independent decoder, compare full memory addressing
-or implicit instruction effects, verify the claimed oracle author,
-or certify G2.
+structured mnemonic/register/immediate facts and a restricted
+16-bit ModR/M memory-address subset (at most two explicit operands),
+with **separate semantic assertion denominators**. It does **not**
+execute an independent decoder, model 32-bit address overrides or
+implicit memory effects, verify the claimed oracle author, infer
+runtime segment values, or certify G2.
 This policy adds **no automatic build or test run**:
 owner authorization is still required. As of 2026-10-10 the current HEAD has
 **not** passed the new independent verification gate.
