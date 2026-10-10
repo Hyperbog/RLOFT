@@ -11,6 +11,7 @@ int main(){
  rloft::CellControlRecord r{};r.raw[1]=2;r.raw[4]=0;r.raw[5]=1;l.group1.push_back(r);
  auto rec=rloft::ViewSweepRecordModel::materialize(l,{rloft::SweepSide::Right,{1,0},std::nullopt,123,0x200,false,true});
  assert(rec.depth==123&&rec.resource_outer==22&&rec.resource_inner==12);
+ assert(rec.original_materializer_executed);
  assert(rec.prepass==1&&rec.texture_column_offset==0x0DC0&&rec.cell_index==1&&rec.shade_decrement==2);
  assert((l.cell_words[1]&0x0440)==0x0440);
  rec=rloft::ViewSweepRecordModel::materialize(l,{rloft::SweepSide::Left,{1,0},std::nullopt,9,0x200,true,false});

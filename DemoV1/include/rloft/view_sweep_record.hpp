@@ -13,6 +13,10 @@ struct ViewSweepRecord final {
  std::uint32_t texture_column_offset{};
  std::uint32_t cell_index{};
  std::uint32_t shade_decrement{};
+ // True only when 330E7/33278/3337F/33487 source record
+ // materialization actually executed. Synthetic empty_record()
+ // must not be replayed as an original 22220 side effect.
+ bool original_materializer_executed{};
 };
 struct SweepMaterializationInput final {
  SweepSide side{SweepSide::Right};

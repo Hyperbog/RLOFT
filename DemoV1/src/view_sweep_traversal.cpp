@@ -126,6 +126,7 @@ ViewSweepRecord empty_record() noexcept {
     ViewSweepRecord out{};
     out.resource_outer = 0x93U;
     out.resource_inner = 0x93U;
+    out.original_materializer_executed=false; // Native placeholder, no proved DOS materializer
     return out;
 }
 ViewSweepRecord biased_record(
@@ -155,6 +156,7 @@ ViewSweepRecord biased_record(
     ViewSweepRecord out{};
     out.depth = depth_for(
         tables, basis, current_row_axis, current_column_axis);
+    out.original_materializer_executed=true; // Original CODE.2 3337F/33487 special branch
     out.resource_outer = banks.alternate_a[code];
     out.resource_inner = banks.primary_a[code];
     out.prepass = prepass ? 1U : 0U;

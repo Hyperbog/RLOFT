@@ -63,6 +63,15 @@ int main() {
     wall.texture_column_index=7U;
     wall.shade_decrement=2U;
     frame.sweep_runs.push_back(wall);
+    // One authentic materialization and one native-only placeholder:
+    // provenance must remain distinct from both having resource 0x93.
+    ViewSweepRecord materialized{};
+    materialized.original_materializer_executed=true;
+    materialized.resource_inner=0x93U;
+    frame.sweep_records.push_back(materialized);
+    ViewSweepRecord native_placeholder{};
+    native_placeholder.resource_inner=0x93U;
+    frame.sweep_records.push_back(native_placeholder);
     WorldSceneRecord scene{};
     scene.source_class=1U; // shipped Level 22 placed-object class
     scene.source_index=4U;
@@ -158,6 +167,8 @@ int main() {
     assert(tsv.find("ground_original_res4_signed_level_selector\t55")!=std::string::npos);
     assert(tsv.find("ground_original_res4_absolute_entry\t178")!=std::string::npos);
     assert(tsv.find("ground_ff58_ready\t1")!=std::string::npos);
+    assert(tsv.find("ground_sweep_source_materialized\t1")!=std::string::npos);
+    assert(tsv.find("ground_sweep_native_synthetic\t1")!=std::string::npos);
     assert(tsv.find("ground_C048_C044\t18\t52")!=std::string::npos);
     assert(tsv.find("ground_ff58_row\t0\t4660\t22136\t154\t188")!=
            std::string::npos);

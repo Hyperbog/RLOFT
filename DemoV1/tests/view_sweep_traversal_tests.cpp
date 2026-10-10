@@ -61,6 +61,7 @@ int main() {
     assert(records.size() == 1);
     const auto& rec = records[0];
     assert(rec.cell_index == 20);
+    assert(rec.original_materializer_executed);
     assert(rec.resource_outer == 40);
     assert(rec.resource_inner == 30);
     assert(rec.prepass == 1);

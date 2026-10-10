@@ -36,6 +36,7 @@ ViewSweepRecord ViewSweepRecordModel::materialize(LevelState& level,const SweepM
  const auto banks=EnvironmentViewModel::resource_banks(level);
  ViewSweepRecord out{};
  out.depth=in.depth;
+ out.original_materializer_executed=true; // Original CODE.2 330E7/33278 materializer
  out.prepass=in.prepass?1U:0U;
  out.texture_column_offset=offset;
  out.cell_index=static_cast<std::uint32_t>(index);
