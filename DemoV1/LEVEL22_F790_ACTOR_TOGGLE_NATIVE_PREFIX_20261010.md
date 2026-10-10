@@ -14,7 +14,7 @@ New `include/rloft/original_actor_modal_toggle_prefix.hpp` exposes four **DWORD*
 
 - **Flags without bit 2:** `11B30` XORs the selected actor's **low BYTE** at `6F90+4*actor`; `11B37..11B4B` selects current `C050` **BYTE** via `291B0` and redraws only that actor via `11268`. The existing `7F6C` lane remains unchanged.
 - **Flags with bit 2:** `11AF0` captures the selected actor's **entire DWORD** before any callback; `11B02` XORs only bit zero of its low WORD **once**, then `291B0` runs. `11B0E..11B2E` copies the resulting DWORD to each of four actor contexts, changes `7F6C` to `0,80,160,240`, and calls `11268` in that order. The back edge `11B2E: EB DE` returns to `11B0E`, not the XOR.
-- **Both paths:** `11B53` loads global held-ID WORD `8600` signed, then known BYTE `8602` unsigned, *after* repaint operations; `11B63` invokes `F790` exactly once. The adapter provides a deferred callback rather than caching held/known before `291B0` or `11268`. The callback must use the existing **single game RNG** and original 112EC saved page; host VGA frame refreshes cannot call it.
+- **Both paths:** `11B53` first loads known BYTE `8602` unsigned and pushes it, then loads held-ID WORD `8600` signed and pushes it, *after* repaint operations; `11B63` invokes `F790` exactly once. The adapter provides a deferred callback rather than caching held/known before `291B0` or `11268`. The callback must use the existing **single game RNG** and original 112EC saved page; host VGA frame refreshes cannot call it.
 
 The adapter has no fabricated rollback or host timing. If a source callback throws, already-applied prefix writes remain; invalid actor indices are rejected before mutation.
 
