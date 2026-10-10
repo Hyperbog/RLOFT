@@ -8,8 +8,17 @@ using DosDis.Core;
 internal static class Dos16MetamorphicFeedbackSmoke
 {
     private const uint Seed = 0x16D05D15;
-    private static uint Next(ref uint state) =>
-        state = unchecked(state * 1664525u + 1013904223u);
+    // Xorshift32 uses high AND low bits of the evolving seed. An LCG
+    // followed by modulo 8/16 couples the shortest sequences to a
+    // narrow repeating low-bit cycle and can silently miss patterns.
+    private static uint Next(ref uint state)
+    {
+        uint value = state;
+        value ^= value << 13;
+        value ^= value >> 17;
+        value ^= value << 5;
+        return state = value;
+    }
 
     private static void Check(bool condition, string family, int caseNumber,
         string detail)
@@ -173,13 +182,13 @@ internal static class Dos16MetamorphicFeedbackSmoke
 
                 // Permuting source instruction rows and entire edge
                 // groups must not change semantic results. Within a
-                // branch's edge group, the decoder's edge order is
-                // intentionally preserved as a separate invariant.
+                // branch's outgoing edges are also reversed, exercising
+                // semantic invariance under valid graph serialization.
                 var permuted = fixture.Graph with
                 {
                     Instructions = fixture.Graph.Instructions.Reverse().ToArray(),
                     Edges = fixture.Graph.Edges.GroupBy(x => x.Source)
-                        .Reverse().SelectMany(group => group).ToArray()
+                        .Reverse().SelectMany(group => group.Reverse()).ToArray()
                 };
                 var reordered = Dos16CorrelatedDispatchRecovery.Inspect(
                     fixture.Region, permuted);
