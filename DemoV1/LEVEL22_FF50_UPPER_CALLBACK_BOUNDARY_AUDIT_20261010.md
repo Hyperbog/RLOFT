@@ -83,7 +83,7 @@ the source byte test passed locally against the uploaded original file.
   Thus the two wrappers have different callback order relative to drawing.
 
 **Original raster side effects:** `2A478` writes its own code-byte
-immediates at `2A481/2A489`, writes and reloads temporary DGROUP
+immediates at `2A484/2A489`, writes and reloads temporary DGROUP
 `F009` at `2A536/2A55F`, and executes indexed
 `STOS BYTE ES:[EDI]` at `2A4F7` and `2A550`.
 These destinations are byte-proven; **runtime ES/EDI alias safety is not**.

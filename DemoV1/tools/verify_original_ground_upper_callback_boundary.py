@@ -170,7 +170,7 @@ def audit_original(path:Path)->None:
     for at,sig in {
         0x2986C:"a1d4ef00006bd01840a3d4ef0000",
         0x298AA:"ff0dd4ef0000",
-        0x2A481:"8b4518a2f6a40200",
+        0x2A484:"a2f6a40200",
         0x2A489:"a24fa50200",
         0x2A536:"890d09f00000",
         0x2A55F:"8b0d09f00000",
