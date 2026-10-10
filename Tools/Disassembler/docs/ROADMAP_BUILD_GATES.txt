@@ -529,3 +529,28 @@ Last successfully VERIFIED Windows build: run 37987465368 at
 Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
 Next recommended verification: owner-authorized Windows G2 build plus
 synthetic tests before classifying this newer HEAD as compiled.
+
+2026-10-10 | R2.5/R2.6 segment/memory/source-boundary hardening:
+- Extended the R2.4 opt-in correlation smoke corpus (SOURCE ONLY)
+  with synthetic diamond CFG predecessor joins before a source-backed
+  unsigned guard; 1/2 index values must merge into finite 2/4 byte
+  offsets, while an unmodeled AL write on one arm yields Unknown and
+  suppresses selected pointer entries.
+- Added memory alias/write invalidation both before the unsigned
+  compare and between guard/stride; unsupported operations cannot
+  be treated as transparent paths or preserve BX predictions.
+- Added negative independent windows: same original SHA with a
+  different COM origin, and different original SHA at the same origin.
+  A DS-override indirect access cannot reuse CS source-backed table
+  storage; FAR storage without an original validated MZ relocation and
+  rebased selector evidence remains unresolved.
+- Asserted that correlated entries never rewrite the source-backed
+  CFG's unresolved indirect transfer.
+- Hardened correlated result consistency: guarded status must match
+  a stored candidate, accepted counts must match guarded aggregate,
+  and unresolved totals must reconcile before publication. Mismatch
+  yields an empty explicit incomplete report.
+- The source tests are WRITTEN NOT EXECUTED; G2 for this newer HEAD
+  remains NOT BUILT / NOT PASSED. Last passing G1 Windows build #35
+  remains at 9f605e36581b2c6db72a6a47248ea5af31611506.
+Reference: R2_CORRELATED_GUARDED_DISPATCH_SOURCE_CHECKPOINT.md.
