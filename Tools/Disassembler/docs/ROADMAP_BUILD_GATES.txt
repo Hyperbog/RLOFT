@@ -4,6 +4,17 @@ Canonical branch: disassembler-foundation
 Source repository: https://github.com/Hyperbog/RLOFT
 Original DOS game collection: DnD-Classics / MASTER
 
+FAST RESUME ROUTE
+-----------------
+Before reading this long historical log, consult
+  docs/CURRENT_CHECKPOINT.md
+for the compact present compiled/source-only boundary and active next step;
+consult docs/CONTINUOUS_IMPROVEMENT_PLAYBOOK.md for the repeatable
+research -> source -> synthetic -> independent-original -> retrospective loop.
+Both are navigational/procedural supplements. This roadmap and the normative
+independent validation policy continue to control build authorization and
+accuracy claims. Confirm live Git HEAD instead of trusting a saved snapshot.
+
 PURPOSE
 -------
 Advance substantial batches of game-agnostic reverse engineering work without
