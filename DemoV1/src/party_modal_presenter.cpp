@@ -619,7 +619,8 @@ PartyModalCoverage PartyModalPresenter::draw(
     std::size_t selected_actor,
     const InventoryRuntimeState* inventory,
     std::optional<InventoryPointer> pointer,
-    std::optional<std::size_t> encumbrance_actor) const {
+    std::optional<std::size_t> encumbrance_actor,
+    bool source_f790_owns_ribbon) const {
     if (selected_actor >= PartyImage::kActorCount) {
         throw std::out_of_range(
             "party modal selected actor");
@@ -698,8 +699,12 @@ PartyModalCoverage PartyModalPresenter::draw(
     }
 
     if(inventory!=nullptr) {
-        draw_held_cursor_and_description(
-            framebuffer,*inventory,pointer);
+        // CODE.2 112EC captures source actor columns BEFORE F790.
+        // The legacy native strip must not enter the one-shot 7F68
+        // backing image; original F790 owns it in this opt-in path.
+        if(!source_f790_owns_ribbon)
+            draw_held_cursor_and_description(
+                framebuffer,*inventory,pointer);
         if(encumbrance_actor &&
            *encumbrance_actor<PartyImage::kActorCount &&
            party.active(*encumbrance_actor)) {

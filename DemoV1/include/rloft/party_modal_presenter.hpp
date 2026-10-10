@@ -65,6 +65,10 @@ public:
         const InventoryRuntimeState& inventory,
         int row,int column) const;
 
+    // source_f790_owns_ribbon=true draws the 112EC party base WITHOUT
+    // the native provisional feedback strip. It does not itself
+    // dispatch F790, capture 7F68 or advance the shared game RNG.
+    // The regular native host retains its prior default behavior.
     [[nodiscard]] PartyModalCoverage draw(
         IndexedFramebuffer& framebuffer,
         const PartyImage& party,
@@ -72,7 +76,8 @@ public:
         std::size_t selected_actor,
         const InventoryRuntimeState* inventory=nullptr,
         std::optional<InventoryPointer> pointer=std::nullopt,
-        std::optional<std::size_t> encumbrance_actor=std::nullopt) const;
+        std::optional<std::size_t> encumbrance_actor=std::nullopt,
+        bool source_f790_owns_ribbon=false) const;
 
 private:
     // CODE.2 slot 2 maps directly to the original RES2 archive:

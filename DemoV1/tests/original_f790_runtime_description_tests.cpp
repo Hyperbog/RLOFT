@@ -3,6 +3,7 @@
 #endif
 #include "rloft/original_f790_runtime_event.hpp"
 #include "rloft/original_f790_ordinary_slot_event_plan.hpp"
+#include "rloft/original_f790_modal_entry.hpp"
 #include "rloft/original_f790_ordinary_slot_dispatch.hpp"
 
 #include <array>
@@ -320,6 +321,61 @@ int main() {
     assert(tick_observations==before_scribe_ticks);
     sequence.leave_modal();
     inventory.mage_scribe_feedback.reset();
+
+    // Original 13118 entry order: clear feedback; run 112EC actor
+    // drawing; save the clean 320x16 source page; dispatch 1134C
+    // F790 once. Host VGA repaints never draw another source event.
+    inventory.held={-1,0U};
+    rloft::OriginalF790ModalSequence first_entry{};
+    rloft::IndexedFramebuffer entry_frame{};
+    std::size_t actor_draw_count=0U;
+    const auto before_entry_tick=tick_observations;
+    const auto before_entry_rng=shared_rng.state();
+    auto draw_actor_columns=[&](rloft::IndexedFramebuffer& fb) {
+        ++actor_draw_count;
+        fb.clear(0x12U);
+        fb.fill_rect(0x62,0,16,320,0x77U);
+    };
+    rloft::OriginalF790ModalEntry::enter_13118(
+        first_entry,entry_frame,draw_actor_columns,inventory,
+        original_objects,parsed,original_code2,original_t,ribbon,font,
+        shared_rng,source_tick);
+    assert(first_entry.captured() && first_entry.f790_event_count()==1U);
+    assert(actor_draw_count==1U && tick_observations==before_entry_tick);
+    assert(shared_rng.state()==before_entry_rng);
+    assert(entry_frame.pixels().at(0x62U*320U+0x44U)==0x77U);
+    bool duplicate_entry=false;
+    try {
+        rloft::OriginalF790ModalEntry::enter_13118(
+            first_entry,entry_frame,draw_actor_columns,inventory,
+            original_objects,parsed,original_code2,original_t,ribbon,font,
+            shared_rng,source_tick);
+    } catch(const std::logic_error&) {duplicate_entry=true;}
+    assert(duplicate_entry && actor_draw_count==1U);
+    assert(first_entry.f790_event_count()==1U);
+
+    // Held item entry is NOT a framebuffer refresh. Source F790
+    // reseeds shared RNG from the held ID, draws the original tiles,
+    // then reseeds from the observed original 30700 tick.
+    first_entry.leave_modal();
+    inventory.held={0,0U};
+    rloft::OriginalF790ModalEntry::enter_13118(
+        first_entry,entry_frame,draw_actor_columns,inventory,
+        original_objects,parsed,original_code2,original_t,ribbon,font,
+        shared_rng,source_tick);
+    assert(actor_draw_count==2U && first_entry.f790_event_count()==1U);
+    assert(tick_observations==before_entry_tick+1);
+    assert(shared_rng.state()==0x76543210U);
+    const auto after_open_rng=shared_rng.state();
+    for(int redraw=0;redraw<128;++redraw) {
+        draw_actor_columns(entry_frame);
+        first_entry.replay_after_host_redraw(entry_frame,ribbon,font);
+    }
+    assert(first_entry.f790_event_count()==1U);
+    assert(shared_rng.state()==after_open_rng);
+    assert(tick_observations==before_entry_tick+1);
+    first_entry.leave_modal();
+    inventory.held={-1,0U};
 
     bool rejected=false;
     try { (void)describe(900); } catch(const std::out_of_range&) {rejected=true;}

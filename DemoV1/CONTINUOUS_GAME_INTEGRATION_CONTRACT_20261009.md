@@ -1,5 +1,9 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+## 2026-10-10 verified one-shot 13118→112EC→1134C original F790 modal-entry adapter
+
+Created `OriginalF790ModalEntry`: one original 13118 source entry resets the cached ribbon, paints 112EC party columns, captures the 320×16 row-0x62 clean background ONCE, then dispatches source 1134C through the existing single-game-RNG F790 sequence. A new opt-in `PartyModalPresenter::draw(...,source_f790_owns_ribbon=true)` suppresses only the interim native text strip, keeping the default running path unchanged. Added synthetic source/C++ regression for empty and held item, duplicate entry, tick reseed and 128 RNG-free VGA repaints; extended original CODE.2 source-byte cadence verifier at 11316. Original binary matches immutable shipped CODE.2; **new C++ changes NOT yet Windows-built or Win32-hooked**. 210 registered CTests with Python, last Full #651 182/182 older source. No DOS acceptance or percentage change. [Entry checkpoint](LEVEL22_F790_MODAL_ENTRY_20261010.md). Manual CI only; Level22-first.
+
 ## 2026-10-10 isolated source-ordered original 117A0 F790 batch-dispatch boundary
 
 New `OriginalF790OrdinarySlotDispatch` composes source-time call snapshots, mutable object descriptions, the original saved VGA ribbon page, RES2:3/font-1 draw and ONE shared game RNG. It preflights both source calls in successful scribing (1173B, then 1184A) before any draw/IRQ/RNG mutation. Expanded existing C++ regression rejects malformed second-call sites and fabricated explicit-empty args. Immutable original CODE.2 six direct E8 call instructions independently matched original bytes. **Source only, NOT yet Windows-built or live-hooked**; 210 existing registered CTests with Python, last Full #651 182/182 on older source; DOS parity still unaccepted. See [batch-dispatch checkpoint](LEVEL22_F790_ORDINARY_BATCH_DISPATCH_20261010.md). CI remains manual-only; Level22-first.

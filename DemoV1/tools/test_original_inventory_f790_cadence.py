@@ -34,6 +34,9 @@ INDEX_SELECTED_HELD = (0x130DE,)
 # 70-Hz time model. 13118->112EC->F790 draws one initial modal ribbon;
 # 13184 checks an UNSIGNED deadline, zeroes pending/deadline then redraws.
 WINDOWS = {
+    # CODE.2 112EC allocates 0x1400, saves VGA row 62h, 320x16,
+    # then loads 8600/8602 and invokes original 1134C F790.
+    0x11316: "6800140000e82cfd010083c40468400100006a106a006a6250a3687f0000e8837f010083c4140fb60502860000500fbf050086000050e83fe4",
     0x13118: "6a00c705a86d000000000000c605ac6d000000e89c6b000083c404e8b4e1ffff",
     0x13184: "803dac6d0000007436e86ed501003b05a86d000076290fb60502860000500fbf050086000050c705a86d000000000000c605ac6d000000e8d0c5ffff83c408",
     0x21492: "f6442424017418668b80f018020030c080e4800fb7c085c07505e8671cffff",
@@ -93,6 +96,17 @@ def check_source() -> None:
     cmake = (ROOT / "DemoV1/CMakeLists.txt").read_text(encoding="utf-8")
     epoch = (ROOT / "DemoV1/include/rloft/original_feedback_ribbon_epoch.hpp").read_text(encoding="utf-8")
     random = (ROOT / "DemoV1/include/rloft/original_random.hpp").read_text(encoding="utf-8")
+    # A source-owned 112EC render must keep the provisional native
+    # text strip out of the immutable 7F68 backing picture. This is
+    # a source-only adapter, not a Win32 live F790 authorization.
+    entry = (ROOT / "DemoV1/include/rloft/original_f790_modal_entry.hpp").read_text(encoding="utf-8")
+    party_header = (ROOT / "DemoV1/include/rloft/party_modal_presenter.hpp").read_text(encoding="utf-8")
+    assert "0x1134CU" in entry
+    assert "capture_after_actor_columns_112ec(framebuffer)" in entry
+    assert "modal.source_event_f790(" in entry
+    assert "source_f790_owns_ribbon=false" in party_header
+    assert "if(!source_f790_owns_ribbon)" in modal
+    assert "OriginalF790ModalEntry" not in host
     assert "ui.open_party_panels(*actor);" in host
     assert "runtime.inventory().reset_scribe_feedback_13118();" in host
     assert "runtime.inventory().expire_scribe_feedback_13184(" in host
@@ -109,7 +123,7 @@ def check_source() -> None:
     assert "shared_game_rng.next15()" in epoch
     assert "std::forward<ObserveGameTick30700>(observe_tick_30700)()" in epoch
     assert "void seed(std::uint32_t value) noexcept" in random
-    print("PASS: native modal entry and unsigned feedback expiration, no presentation-local RNG")
+    print("PASS: source-owned 112EC clean-page adapter, native default unchanged and no presentation-local RNG")
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
