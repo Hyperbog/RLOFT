@@ -2728,9 +2728,9 @@ try
     {
         var insideDispatch = (byte[])byteSwitchBytes.Clone();
         insideDispatch[0x200 + 5] = displacement;
-        var blocked = ControlFlowAnalysis.Analyze(
+        var blockedJaGraph = ControlFlowAnalysis.Analyze(
             LeImage.Load(BinaryArtifact.FromBytes(insideDispatch)));
-        Equal(blocked.JumpTables.Any(table =>
+        Equal(blockedJaGraph.JumpTables.Any(table =>
             table.Evidence.Contains("unsigned-ja-bound") ||
             table.Evidence.Contains(
                 "index-bounded-by-source-backed-unsigned-ja")), false,
