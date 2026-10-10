@@ -205,9 +205,19 @@ try
         "assumed runtime entry segment recorded without changing original CS");
     Equal(simulatedMz.Summary.RelocationWriteCount, 1,
         "DOS loader relocation table entries are modeled explicitly");
+    // Independent expected image: the header declares 480 resident bytes;
+    // the only stored instruction is MOV AX,1234h; RET. Relocating the
+    // immediate by assumed load 2000h yields MOV AX,3234h; RET, followed
+    // by zeros. Do not obtain expected bytes from DosMzRebasedView.
+    var singleFixupExpectedImage = new byte[480];
+    new byte[] { 0xB8, 0x34, 0x32, 0xC3 }
+        .CopyTo(singleFixupExpectedImage, 0);
+    string singleFixupExpectedSha = Convert.ToHexString(
+        System.Security.Cryptography.SHA256.HashData(singleFixupExpectedImage))
+        .ToLowerInvariant();
     Equal(simulatedMz.Summary.SimulatedFileBackedImageSha256,
-        "b32c35c2120a3765fa6d182bdfc4b55ea2a805603dc21d1b4dc149219b6cfa26",
-        "MZ assumed-base relocated image SHA agrees with independently calculated synthetic bytes");
+        singleFixupExpectedSha,
+        "MZ assumed-base copied-image SHA agrees with independent specified relocated bytes");
     Equal(simulatedMz.Summary.SimulatedFileBackedImageSha256.Length, 64,
         "source-backed MZ relocated copy fingerprint retains fixed SHA256 shape");
     Equal(simulatedMz.Summary.Writes[0].OriginalStoredWord, (ushort)0x1234,
@@ -248,9 +258,19 @@ try
         "second fixup observes the first applied value");
     Equal(repeated.ReadRelocatedWord(1), (ushort)0x5234,
         "repeated original MZ fixup is modeled in table order");
+    // The 48-byte header leaves 464 file-backed image bytes. Both
+    // relocation records target the same immediate word: 1234h plus
+    // 2000h twice -> 5234h. Construct a separate expected image from
+    // that ISA/format arithmetic, never from the simulator's copy.
+    var repeatedExpectedImage = new byte[464];
+    new byte[] { 0xB8, 0x34, 0x52, 0xC3 }
+        .CopyTo(repeatedExpectedImage, 0);
+    string repeatedExpectedSha = Convert.ToHexString(
+        System.Security.Cryptography.SHA256.HashData(repeatedExpectedImage))
+        .ToLowerInvariant();
     Equal(repeated.Summary.SimulatedFileBackedImageSha256,
-        "8b51fcd51dd9e03b8ca6d4fc689a7ad90cc9caadcf9869b0d198ff977a3c0ff8",
-        "overlapping MZ fixup hash agrees with independent ordered-write synthetic expectation");
+        repeatedExpectedSha,
+        "repeated MZ fixup digest agrees with independent twice-added word");
 
     // Unprefixed 16:16 far CALL/JMP requires exactly one resident MZ selector
     // relocation. The candidate never replaces an unresolved runtime edge.
