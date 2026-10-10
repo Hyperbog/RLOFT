@@ -818,3 +818,39 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   authorization; latest accepted build #35 tested SHA
   9f605e36581b2c6db72a6a47248ea5af31611506 only.
 Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
+
+2026-10-10 | LE completed-CFG guarded-dispatch contradiction replay:
+- Identified an order-dependent proof hazard: bounded literal/relocated
+  x86-32 index tables were recovered before every decoded predecessor
+  was known. An alternate edge decoded later could invalidate the JA
+  fallthrough/MOVZX chain after its candidate table had already seeded
+  additional speculative target code.
+- Introduced AnalyzePass plus public Analyze orchestration to reconcile
+  provisional compare/JA/MOVZX guard addresses with the complete
+  decoded predecessor and successor sets. Reject any late alternate
+  ingress into guard/MOVZX/jump, unknown out-of-range default, analyst
+  seed bypass or budget-truncated provisional proof.
+- A contradicted proof causes bounded replay from immutable source
+  bytes, with every newly rejected guard site disabled for the next
+  pass. Replaying discards old speculative literal-table edges and any
+  code reached solely through them. Relocation-backed pointer storage
+  remains candidate evidence, not a finite-index proof.
+- The disabled site set grows monotonically under a finite attempt
+  limit; source seeds and protected range inputs are materialized
+  once for deterministic replay. Source-bound incoming/outgoing
+  edges are indexed for efficient complete-CFG cross-checking.
+- Single-use decision traces are emitted from the final stable pass
+  only, not provisional intermediate analyses. No publication of a
+  superseded table or its speculative control edges is allowed.
+- New synthetic negative controls add delayed default-path JMP edges
+  into the JA, MOVZX and indirect JMP; assert absence of published
+  literal tables, candidate-indirect edges, case-only code and
+  discarded-pass trace entries. A safe loop back through CMP retains
+  its candidate index guard. A limited worklist suppresses partial
+  table findings.
+- Scope remains source-backed *decoded* graph only; hidden runtime
+  targets, code mutation, asynchronous state and complete dominance
+  are not proven. All source/test/doc additions were committed but
+  NOT COMPILED/EXECUTED. G2 and Strahd original re-export are pending.
+  The current last accepted Windows evidence is still G1 build #35.
+Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
