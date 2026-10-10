@@ -34,6 +34,11 @@ if(Python3_Interpreter_FOUND)
         NAME subsystem_progress_tracker_tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_subsystem_progress_tracker.py")
+    # CODE.2 13118/112EC/F790 cadence and existing native modal expiry guard.
+    add_test(
+        NAME original_inventory_f790_cadence_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_original_inventory_f790_cadence.py")
     # CODE.2 12988/10A70/11268/112EC + native modal operation
     # contract. Optional external CODE.2 byte-check can be run with
     # --original-code2; the original copyrighted file is not in CI.
@@ -809,6 +814,11 @@ add_test(NAME original_feedback_ribbon_layout_tests COMMAND original_feedback_ri
 add_executable(original_feedback_ribbon_text_tests tests/original_feedback_ribbon_text_tests.cpp)
 target_include_directories(original_feedback_ribbon_text_tests PRIVATE include)
 add_test(NAME original_feedback_ribbon_text_tests COMMAND original_feedback_ribbon_text_tests)
+
+# Source-verified F790 event-only ribbon preparation; not live-wired.
+add_executable(original_feedback_ribbon_epoch_tests tests/original_feedback_ribbon_epoch_tests.cpp)
+target_include_directories(original_feedback_ribbon_epoch_tests PRIVATE include)
+add_test(NAME original_feedback_ribbon_epoch_tests COMMAND original_feedback_ribbon_epoch_tests)
 
 add_executable(original_res2_asset_bank_tests tests/original_res2_asset_bank_tests.cpp)
 target_link_libraries(original_res2_asset_bank_tests PRIVATE rloft_boot_flow)
