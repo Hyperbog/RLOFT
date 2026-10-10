@@ -82,6 +82,66 @@ public static class Dos16ExternalOracleValidator
         }
     }
 
+    // System.Text.Json ignores unknown properties by default. This is unsafe
+    // for an oracle: a typo in an optional expectedFacts or memory field
+    // would silently reduce the tested semantic denominator.
+    private static JsonElement? NamedMember(JsonElement obj, string name)
+    {
+        if (obj.ValueKind != JsonValueKind.Object)
+            return null;
+        foreach (var property in obj.EnumerateObject())
+            if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase))
+                return property.Value;
+        return null;
+    }
+
+    private static void RejectUnknownProperties(JsonElement obj,
+        params string[] allowed)
+    {
+        if (obj.ValueKind != JsonValueKind.Object)
+            return;
+        foreach (var property in obj.EnumerateObject())
+            if (!allowed.Contains(property.Name, StringComparer.OrdinalIgnoreCase))
+                throw new InvalidDataException(
+                    "External oracle JSON contains an unknown expectation property.");
+    }
+
+    private static void RejectUnknownOracleProperties(JsonElement root)
+    {
+        RejectUnknownProperties(root, "schemaVersion", "gameId", "module",
+            "sourceSha256", "sourceByteLength", "regionFileOffset",
+            "regionByteLength", "segment", "origin", "decoderName",
+            "decoderVersion", "decoderConfiguration", "oracleEvidenceId",
+            "expectedInstructions");
+        var rows = NamedMember(root, "expectedInstructions");
+        if (rows?.ValueKind != JsonValueKind.Array)
+            return; // Typed import rejects invalid or missing arrays.
+        foreach (var row in rows.Value.EnumerateArray())
+        {
+            RejectUnknownProperties(row, "offset", "sourceFileOffset",
+                "originalHex", "flowControl", "evidenceId",
+                "directEdgeKind", "directTarget", "expectedFacts");
+            var facts = NamedMember(row, "expectedFacts");
+            if (facts?.ValueKind != JsonValueKind.Object)
+                continue;
+            RejectUnknownProperties(facts.Value, "mnemonic",
+                "operandCount", "operand0", "operand1");
+            foreach (string name in new[] { "operand0", "operand1" })
+            {
+                var operand = NamedMember(facts.Value, name);
+                if (operand?.ValueKind != JsonValueKind.Object)
+                    continue;
+                RejectUnknownProperties(operand.Value, "kind", "register",
+                    "immediateValue", "memory");
+                var memory = NamedMember(operand.Value, "memory");
+                if (memory?.ValueKind == JsonValueKind.Object)
+                    RejectUnknownProperties(memory.Value, "base", "index",
+                        "displacementSize", "displacement", "size",
+                        "segmentOverride");
+            }
+        }
+    }
+
     public static Dos16ExternalOracleManifest ReadManifest(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -94,6 +154,7 @@ public static class Dos16ExternalOracleValidator
             // import inspect precisely the same source snapshot.
             using var document = JsonDocument.Parse(File.ReadAllText(path));
             RejectAmbiguousJsonProperties(document.RootElement);
+            RejectUnknownOracleProperties(document.RootElement);
             var manifest = document.RootElement.Deserialize<Dos16ExternalOracleManifest>(
                 JsonOptions)
                 ?? throw new InvalidDataException("External oracle manifest was empty.");
