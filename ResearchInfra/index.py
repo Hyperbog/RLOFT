@@ -11,7 +11,7 @@ import hashlib
 import json
 import re
 import sys
-from collections import deque
+from collections import Counter, deque
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -54,7 +54,6 @@ def closing(src: str, start: int, left: str, right: str) -> int:
 def extract(source: str, module: str, path: str) -> list[dict]:
     clean = scrub(source)
     result = []
-    offsets_seen: set[int] = set()
     for m in DEF.finditer(clean):
         logical = int(m.group(1), 16)
         open_paren = clean.find("(", m.start())
@@ -67,9 +66,6 @@ def extract(source: str, module: str, path: str) -> list[dict]:
             continue
         open_brace = close_paren + 1 + tail.start(1)
         close_brace = closing(clean, open_brace, "{", "}")
-        if logical in offsets_seen:
-            raise ValueError(f"{module}: duplicate definition of function_{logical:x}")
-        offsets_seen.add(logical)
         start = m.start()
         # Leading delimiter from the regex is not part of the function.
         if clean[start:start + 1] in ";}":
@@ -87,7 +83,19 @@ def extract(source: str, module: str, path: str) -> list[dict]:
             "calls": sorted({f"{module}:{int(x,16):05x}" for x in CALL.findall(body)}),
             "evidence": "source_structure_only",
         })
-    return sorted(result, key=lambda v: (v["module"], v["offset"]))
+    # The actual CODE.2 reconstruction contains more than one source-level
+    # wrapper for some original logical addresses (e.g. 29930). Retain both
+    # concrete definitions, but never silently choose one on an ambiguous call.
+    frequency = Counter(f["id"] for f in result)
+    ordinal: dict[str, int] = {}
+    for f in result:
+        address = f["id"]
+        if frequency[address] > 1:
+            ordinal[address] = ordinal.get(address, 0) + 1
+            f["id"] = f"{address}#variant{ordinal[address]}"
+            f["logical_address_id"] = address
+            f["address_alias_ambiguous"] = True
+    return sorted(result, key=lambda v: (v["module"], v["offset"], v["id"]))
 
 
 def build(root: Path) -> dict:
@@ -101,12 +109,17 @@ def build(root: Path) -> dict:
                         "sha256": digest(payload), "bytes": len(payload)})
         entries.extend(extract(text, module, relative))
     ids = {f["id"] for f in entries}
+    ambiguous_addresses = {f["logical_address_id"] for f in entries
+                           if f.get("address_alias_ambiguous")}
     edges = []
     unresolved = []
+    ambiguous = []
     for f in entries:
         for target in f["calls"]:
             edge = {"caller": f["id"], "callee": target}
-            if target in ids:
+            if target in ambiguous_addresses:
+                ambiguous.append(edge)  # Address alias: caller cannot pick an overload.
+            elif target in ids:
                 edges.append(edge)
             else:
                 unresolved.append(edge)  # Cannot claim definition or reachability.
@@ -119,6 +132,7 @@ def build(root: Path) -> dict:
         "functions": entries,
         "edges": sorted(edges, key=lambda x: (x["caller"], x["callee"])),
         "unresolved_calls": sorted(unresolved, key=lambda x: (x["caller"], x["callee"])),
+        "ambiguous_calls": sorted(ambiguous, key=lambda x: (x["caller"], x["callee"])),
     }
 
 
@@ -149,12 +163,17 @@ def lookup(index: dict, key: str) -> dict:
     key = key.lower()
     funcs = {f["id"]: f for f in index["functions"]}
     if key not in funcs:
+        variants = sorted(f for f in funcs if f.startswith(key + "#variant"))
+        if variants:
+            raise ValueError(f"{key}: ambiguous source-address overloads: {variants}")
         raise ValueError(f"{key}: no indexed function (not proof the original code lacks it)")
     incoming = sorted(e["caller"] for e in index["edges"] if e["callee"] == key)
     outgoing = sorted(e["callee"] for e in index["edges"] if e["caller"] == key)
     dangling = sorted(e["callee"] for e in index["unresolved_calls"] if e["caller"] == key)
+    ambiguous = sorted(e["callee"] for e in index["ambiguous_calls"] if e["caller"] == key)
     return {"function": funcs[key], "callers": incoming,
-            "callees": outgoing, "unresolved_callees": dangling}
+            "callees": outgoing, "unresolved_callees": dangling,
+            "ambiguous_callees": ambiguous}
 
 
 def impact(index: dict, key: str, limit: int = 1000) -> dict:
@@ -210,6 +229,7 @@ def main(argv: list[str] | None = None) -> int:
             summary = {"index": str(args.output), "functions": len(obj["functions"]),
                        "edges": len(obj["edges"]),
                        "unresolved_calls": len(obj["unresolved_calls"]),
+                       "ambiguous_calls": len(obj["ambiguous_calls"]),
                        "status": obj["authority"]}
             print(json.dumps(summary, sort_keys=True))
         elif args.action == "verify-media":
