@@ -205,6 +205,36 @@ try
         mzImage.CreateEntryCodeRegion(), mzImage.InitialIp, maxInstructions: 32);
     Equal(desktopMzGraph.Instructions.Count, 2,
         "desktop x86-16 engine can analyze synthetic MOV and RET from MZ entry");
+    // Desktop double-click navigation consults only explicit direct
+    // candidate edges, never a formatted CALL operand or fallthrough.
+    var src16 = new Dos16Address(0, 0x25);
+    var target16 = new Dos16Address(0, 0x17D);
+    var after16 = new Dos16Address(0, 0x28);
+    var navEdges = new[] {
+        new Dos16FlowEdge(src16, target16, "call", "direct-original-byte-candidate"),
+        new Dos16FlowEdge(src16, after16, "call-return-candidate", "return-not-proven")
+    };
+    Equal(Dos16Navigation.DirectTarget(navEdges, src16), (Dos16Address?)target16,
+        "double-click call selects the direct target, not speculative return");
+    Equal(Dos16Navigation.DirectTarget(
+        new[] { new Dos16FlowEdge(src16, target16, "branch-taken", "synthetic"),
+            new Dos16FlowEdge(src16, after16, "branch-not-taken", "synthetic") }, src16),
+        (Dos16Address?)target16,
+        "conditional branch prefers taken target over fallthrough");
+    Equal(Dos16Navigation.DirectTarget(
+        new[] { new Dos16FlowEdge(src16, null, "unresolved-indirect-call", "synthetic") }, src16),
+        (Dos16Address?)null,
+        "indirect call without statically backed destination cannot navigate");
+    Equal(Dos16Navigation.DirectTarget(
+        new[] { new Dos16FlowEdge(src16, new Dos16Address(1, 0x17D),
+            "call", "foreign-segment") }, src16),
+        (Dos16Address?)null,
+        "cross-segment guessed target is never navigated");
+    Equal(Dos16Navigation.DirectTarget(
+        new[] { navEdges[0], new Dos16FlowEdge(src16, after16, "call", "ambiguous") }, src16),
+        (Dos16Address?)null,
+        "competing direct targets require ambiguity rejection");
+
     string mzDesktopJson = Dos16DesktopReportExport.BuildJson(
         mzArtifact, mzImage, desktopMzGraph);
     using (var reportDoc = JsonDocument.Parse(mzDesktopJson))
