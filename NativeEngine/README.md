@@ -1,5 +1,16 @@
 # Ravenloft: Strahd's Possession — Independent Native Engine
 
+## CONTROLLING SOURCE-ONLY MILESTONE — actual NativeEngine byte round-trip VERIFIED on Linux (2026-10-11)
+
+**Exact compiled C++ source:** `4676ebf50668480512861c9fd981d6e36402da82`.
+**GitHub Actions Linux source-only run [#38185185120](https://github.com/Hyperbog/RLOFT/actions/runs/38185185120): 16/16 CTests PASS**, including the native bank and new world-payload tests. The full portable engine sources compile. A prior Linux SIGILL was traced to an EH2 font validator falling off a `bool` function; the explicit non-inert return repaired genuine undefined behavior, without disabling the test. The manually authorized Windows/MSVC workflow remains unchanged and **has NOT** built this newer revision.
+
+The two GitHub-built Linux auditors from **that exact source** were downloaded and executed locally on the owner's real `LEVELS.DAT` and `SINTAB`, each pinned to its SHA-256. NativeEngine produced a complete 32-level world report (115,584 cells, 1,659 controls, 394 event slots / 555 commands, 127 SINTAB scale blocks), and its native typed-world payload round-trip returned `decoded_section_roundtrip_equal=true`. A separately implemented Python original-byte oracle independently verified **256/256 source section SHA-256 hashes**: all 32 levels × packed cells, controls, event slots, automap, annotations and the A/B/C compact families. Full original `LEVELS.DAT` SHA also matched between the independent reader and native executable. This supersedes the prior unbuilt source-only parity note for **world data preservation**.
+
+The local isolated source directory included copies of the authentic `LEVELS.DAT` and `SINTAB`, plus **empty synthetic INIT, RES0 and T signature files solely to satisfy NativeMedia directory recognition**. This is *not* a validated playable original installation; no game input was uploaded to CI, shipped in the executable ZIP, or committed. The verification evidence is retained as the local user-facing report `rloft_native_original_sections_256_verified.json`; source and binary SHA/provenance details are recorded in [the milestone documentation](ACTUAL_ORIGINAL_WORLD_256_LINUX_VERIFIED_20261011.md).
+
+**Project completion boundary:** Compiled Linux content decoder and byte-exact source preservation YES; current Windows/MSVC executable validation, original DOS runtime execution, 3D renderer/texture parity, AI/NPC/event VM and playable independent native game NO. The independent `demo-v1` gameplay implementation must never be linked into NativeEngine.
+
 ## New typed-world SHA-256 round-trip gate — source only, not yet a Windows build
 
 [Full report contract and implementation](WORLD_FINGERPRINT_COMPARISON_20261011.md):
