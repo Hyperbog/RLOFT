@@ -8,14 +8,8 @@ normative evidence requirements or a Git status check.
 
 ## What is proven
 
-- **Last owner-authorized build:** [GitHub Actions run #40](https://github.com/Hyperbog/RLOFT/actions/runs/38091963405),
-  Windows and Linux builds plus synthetic suites **PASS**.
-  Exact temporary PR merge checkout:
-  `5eaa1fb0798007dfca73e648f91bc1add42409e9`;
-  equivalent canonical code/test source:
-  `7fa76f822e0aa56a4bf1c611076bc50e5e0a5389`.
-  Published Windows desktop/CLI and Linux CLI are preview artifacts,
-  **not** a new GUI-accepted or full game-accuracy-certified release.
+- **Latest owner-authorized build:** [GitHub Actions run #42](https://github.com/Hyperbog/RLOFT/actions/runs/38096831427) **SUCCESS**, Windows desktop/CLI and Linux CLI compile/publish, Windows+Linux C# smoke and project suites, **17 Python synthetic** tests passed. Exact temporary PR #8 merge SHA `dd251ba7479fe802e17155a2740d3519cf23847b`; source-equivalent canonical C#/Python code/test SHA `3956f036fee44c0b6f07361811e4f0857dbea916`. See [full gate record](G2_BUILD_GATE_RECORD_20261010_RUN42.md). Windows GUI-owner acceptance, new original-file comparison and broad accuracy certification are **NOT** included.
+- **Failed/diagnostic run #41:** Windows/Linux compilation passed, but an incorrect negative test removed one sampled original instruction while asserting a two-instruction SHA. Corrected the synthetic-only manifest membership at canonical `3956f036`; rerun #42 passed. Both run IDs are retained.
 - **Last verified original-code scope:** owner-local original Strahd
   `CODE.2` outer 16-bit MZ launcher, independently decoded with
   GNU objdump 2.44: **28/28** selected instruction starts,
@@ -36,16 +30,17 @@ normative evidence requirements or a Git status check.
   first **283 stored bytes**, which are not 283 decoded instructions.
   Original files do **not** currently need reupload for these cases.
 
-## Current SOURCE ONLY / NOT YET EXECUTED
+## Build/synthetic verified, but original independent validation pending
 
 - Report fields `mappedRegionSha256` and
   `benchmarkedInstructionBytesSha256`, plus C# synthetic fixtures
   to expose repeated original code samples across containers,
-  overlays and different relative CS mappings.
+  overlays and different relative CS mappings. **Synthetic verified
+  Windows/Linux at #42; original sampled-code coverage still pending.**
 - `research/original_source_preflight.py` and its synthetic
-  `test_original_source_preflight.py` suite: source-authored,
-  **not yet run**, independently checks file SHA and MZ/COM geometry
-  without executing game code or using Iced/DOSDis.
+  `test_original_source_preflight.py` suite: synthetic verified
+  in Linux #42; the preflight has **not** been applied to new
+  owner-original binaries by this build gate.
 - Multigame original selection/relocation geometry records:
   **source hash/header verified only**; no new external-disassembler
   / DOSDis original-file comparison for the four other game files.
@@ -59,8 +54,8 @@ normative evidence requirements or a Git status check.
   exposes the matching copied-image fingerprint in `mz-relocate`
   and `mz-analyze --load-segment` output. Synthetic positive,
   overlap, wrap, malformed-SHA and invalid-segment cases were
-  authored. **None are compiled or executed; no original game
-  relocation comparison has occurred.**
+  authored and **synthetically verified by #42**. No original
+  game relocation comparison has occurred.
 - Source-only evidence-reconciliation hardening:
   C# synthetic MZ relocation tests no longer depend on opaque
   prewritten SHA256 strings; their expected 480-/464-byte image
@@ -77,8 +72,9 @@ normative evidence requirements or a Git status check.
   statuses and self-contradictory overlap claims fail closed.
   `mz-relocate` and `mz-analyze --load-segment` now expose
   `OriginalFileBackedBytes` for an independent length check.
-  This comparator is **SOURCE ONLY, NEVER EXECUTED**; agreement
-  must remain `metadata-agreement-not-certification`.
+  This comparator's synthetic cases **passed Linux #42**; no
+  actual original-game comparison was run. Agreement must remain
+  `metadata-agreement-not-certification`.
   Reproduction and the synthetic test-discovery command are in
   [the multigame G2 record](G2_MULTIGAME_ORIGINAL_SOURCE_SELECTION_20261010.md).
 - Project-side iteration protocol in
@@ -88,12 +84,12 @@ normative evidence requirements or a Git status check.
 
 ## Next highest-information steps
 
-1. Next approved exact-SHA G2 gate should first compile all
-   current source and run both synthetic suites, including
-   `python3 -m unittest discover -s research -p 'test_*.py'`.
-   Then compare independent Python versus DOSDis relocation metadata
-   for the exact-hash Dungeon Hack CHECKSYS MZ at a common hypothetical
-   load segment, retaining all discrepancies and status limitations.
+1. The #42 Windows/Linux and synthetic Python/C# gate is now
+   **PASS**. Next separately authorized exact-SHA original-file
+   validation should compare independent Python versus compiled DOSDis
+   relocation metadata for the verified Dungeon Hack CHECKSYS MZ at
+   the same hypothetical load segment. Retain discrepancies, negative
+   controls, sample denominators and all status limitations.
 2. Until that gate is explicitly authorized, continue *source-only*
    independently researched and predeclared x86-16 COM near-transfer
    / MZ relocation-bearing original windows; never seed expectations
@@ -102,9 +98,9 @@ normative evidence requirements or a Git status check.
    indirect and signed/unsigned guard behavior, retaining unknown
    paths and exact predeclared denominators.
 4. When the owner next **explicitly authorizes** a compiled test
-   gate, build at one exact SHA, run synthetic negatives and the
-   independent-source comparisons locally, without proprietary
-   originals in hosted CI. Record disagreements and preserve
+   original-comparison gate, use the exact #42 compiled binary
+   and separately researched expected values; keep proprietary
+   originals out of hosted CI. Record disagreements and preserve
    authorizations/artifact SHA.
 5. Do not call **G2 INDEPENDENT VERIFIED** until all required
    feature/format samples, second evidence class and human reviewer
@@ -119,8 +115,8 @@ normative evidence requirements or a Git status check.
 5. [Strahd executed sample evidence](G2_STRAHD_ORIGINAL_VALIDATION_RECORD_20261010.md)
 6. [Normative independent validation policy](INDEPENDENT_VALIDATION_POLICY.md)
 
-**Guardrails:** canonical GitHub Actions is
-`workflow_dispatch`-only; PR #6 was closed/unmerged. Source-only work
+**Guardrails:** canonical GitHub Actions remains
+`workflow_dispatch`-only; temporary PRs #6 and #8 are never merged. Source-only work
 and commits do not imply permission to build/test/dispatch CI. Always
 verify these facts against live GitHub state before acting. Do not
 commit original proprietary game bytes or private manifest excerpts.
