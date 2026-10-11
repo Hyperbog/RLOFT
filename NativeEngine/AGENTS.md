@@ -1,5 +1,12 @@
 # NativeEngine — Active developer/agent instructions
 
+## Proven palette context is NOT per RES archive (user field finding, 2026-10-11)
+
+The owner found multiple incompatible palettes *inside* the same RES file, matching existing original CODE.2 palette-routing research. [ORIGINAL_PALETTE_CONTEXT_ROUTING_20261011.md](ORIGINAL_PALETTE_CONTEXT_ROUTING_20261011.md) is now the controlling checkpoint for native asset display. Current Windows source has `native_palette_context`: **exact callsite evidence, optional active-world-level palette, canonical PREVIEW ONLY, explicitly UNRESOLVED**. The 32 original level display banks and mixed RES0 palette IDs are tested, and Windows GUI defaults to `AUTO (source context)` with manual 0–14 override. Never assign one COLORS palette to a whole RES archive or assume each raster has a permanent correct bank; the eventual native renderer must carry mutable VGA DAC/level/modal/fade context. A fixed bank for a resource is evidence only for the original callsite that was observed.
+
+Real Windows [run #38170601091](https://github.com/Hyperbog/RLOFT/actions/runs/38170601091) compiled source SHA `b1892e8448734f3ad8018a0a3911fe9ed59d582c`, **13/13 CTests PASS**, verified asset-free ZIP. **New AUTO palette appearance on owned GOG is NOT yet field-accepted**. Previous GOG ISO indexing 19/19 remains valid. No DemoV1 runtime linkage or original files packaged. Documentation HEAD after this source SHA is not what was compiled.
+
+
 ## Wrong-looking native RES colors — corrected source and MSVC verified, field comparison pending
 
 [WINDOWS_PALETTE_CONTEXT_CORRECTION_20261011.md](WINDOWS_PALETTE_CONTEXT_CORRECTION_20261011.md) records the owner's observation: native and separate decomp-demo renderers can show inverted-looking sprite colors. The confirmed native cause is a **single hardcoded COLORS bank 12 for every original RES resource** and omitted CODE.2 menu cursor **19-index remap**. Real game uses multiple bank contexts: menu 12, character creation 8, opening logos 14/9, etc. Correct independent colorizer in `src/native_raster_colors.cpp` takes the decoded palette explicitly and performs original DAC6 RGB→Windows BGRA without blind channel swapping/inverting. Windows asset UI has 0–14 bank selection, a Title cursor mode and raw RES browsing.
