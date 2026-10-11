@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(RavenloftNativeFrameworkContracts LANGUAGES CXX)
+project(RavenloftNativeEngine LANGUAGES CXX)
 # This standalone test tree deliberately does not build or rename DemoV1.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
