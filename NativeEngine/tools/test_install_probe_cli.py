@@ -88,6 +88,14 @@ def test(exe: Path) -> None:
         assert "ASSET\tRES4\tPRESENT\tINVENTORY\t-" in out
         assert "SOURCE_VERSION\tUNVERIFIED" in out
         assert "PLAYABLE_GAME_NOT_YET_IMPLEMENTED" in out
+        # Windows wmain must preserve Unicode install paths end-to-end.
+        unicode_dir = root / "Ravenloft-Été-中文"
+        unicode_dir.mkdir()
+        for name in ("RES0", "INIT", "T"):
+            (unicode_dir / name).write_bytes(bytes([1, 2, 3]))
+        unicode_before = snapshot(unicode_dir)
+        expect(run(exe, "--install", str(unicode_dir)), 0, "MINIMUM_MEDIA_SIGNATURE_PASS")
+        assert snapshot(unicode_dir) == unicode_before
         env = dict(os.environ, RLOFT_GAME_DIR=str(loose))
         expect(run(exe, "--auto", env=env), 0, "MINIMUM_MEDIA_SIGNATURE_PASS")
         assert snapshot(loose) == before, "inspector modified source installation"
