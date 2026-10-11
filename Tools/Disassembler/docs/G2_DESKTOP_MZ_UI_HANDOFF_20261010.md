@@ -1,5 +1,8 @@
 # DOSDis desktop-only MZ support — CHECKSYS.EXE field report and source fix
 
+**Latest gate correction:** [Owner-authorized Windows desktop build #43](G2_DESKTOP_MZ_WINDOWS_BUILD_20261010_RUN43.md) **PASSED** WPF/Core/Persistence compilation, both C# synthetic suites and one desktop-only self-contained win-x64 publish at canonical code/test SHA `244718cc7f86ba7ee2815cfc1df2d27f9be271b0`. Earlier sections referring to `SOURCE ONLY / NOT YET BUILT` describe the original development checkpoint and are superseded for **build and synthetic regression evidence only**. User interactive checks on the original `CHECKSYS.EXE` and an LE regression **remain pending**.
+
+
 **User-observed bug:** Windows WPF preview built by G2 run #42 opens
 Dungeon Hack `CHECKSYS.EXE` (15,882 bytes; exact SHA256
 `60070e69c2ca61e1adb6fc82bf4a3ed2652a576e40d610ec4f2b83df237fdc22`)
