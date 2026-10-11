@@ -17,7 +17,7 @@ class OriginalContextTests(unittest.TestCase):
             src=index.build(root)
             witness={'id':'code2:35418','original_span_sha256':'f'*64,
                      'original_file_sha256':'a'*64,'source_index_matches':['code2:35418'],
-                     'flow':{'basic_blocks':[{'start':0x35418}],'indirect_edges':[{'address':1}],
+                     'flow':{'basic_blocks':[{'start':0x35418}], 'edges':[], 'external_targets':[], 'indirect_edges':[{'address':1,'kind':'indirect_call'}],
                              'semantic_status':'candidate_static_cfg_not_runtime_reachability'}}
             machine={'schema':original_cfg.SCHEMA,'decoder':'GNU objdump (GNU Binutils) 2.44',
                      'witnesses':[witness]}
