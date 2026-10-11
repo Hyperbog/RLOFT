@@ -28,6 +28,15 @@ original code-path color-INDEX remapping table. The old inspector applied
 palette 12 to EVERY sprite, which could make other screens look inverted.
 
 This version offers:
+  * AUTO (source context): source-evidenced per-record bank selection where
+    exact CODE.2 palette callsites are known. Never assume a whole RES file
+    has one palette. Each raster is decoded independently.
+  * Clear classification: PROVEN ORIGINAL CALLSITE, CONTEXTUAL PREVIEW ONLY,
+    or UNRESOLVED. Canonical world preview bank 4 is NOT necessarily the
+    original bank for the current level; unresolved records preserve the
+    previous bank for manual comparison, explicitly marked uncertain.
+  * MANUAL override: select any of the 15 COLORS banks without changing
+    original indexed pixels or game.gog. AUTO can be restored at any time.
   * COLORS bank 0..14 selection, applied to both the swatch grid and sprite.
   * Bank 12 (MENU), bank 8 (CODE.1 character creation), bank 9/14 (logos).
   * "Title cursor" button: show the original INIT-selected RES0 cursor with
