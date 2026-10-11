@@ -25,6 +25,7 @@
 #include "rloft_native/cpu_reference_presenter.hpp"
 #include "rloft_native/install_probe.hpp"
 #include "rloft_native/original_resource_preview.hpp"
+#include "rloft_native/original_menu_preview.hpp"
 
 #ifndef RLOFT_NATIVE_SOURCE_SHA
 #define RLOFT_NATIVE_SOURCE_SHA "local-unversioned"
@@ -88,6 +89,7 @@ struct State final {
     std::wstring selected_folder{L"(none)"};
     bool signature_ok{};
     bool showing_original_cursor{};
+    bool showing_original_menu{};
     int original_cursor_id{-1};
     std::wstring original_cursor_status;
 };
@@ -107,6 +109,7 @@ void refresh_bgra(State& state) {
 
 void prepare_diagnostic(State& state) {
     state.showing_original_cursor = false;
+    state.showing_original_menu = false;
     state.original_cursor_id = -1;
     state.original_cursor_status.clear();
     state.diagnostic.pixels.resize(kFrameWidth * kFrameHeight);
@@ -132,22 +135,32 @@ void inspect(State& state, const rloft::GameSource& original) {
     // Registry/discovery and explicit paths can differ; the displayed
     // provenance must identify the actual chosen backing media.
     state.selected_folder = original.location().media_path.wstring();
-    // Source-backed diagnostic: exact inherited EH type-1 RES0 decoder and
-    // the original COLORS palette12; composition is NOT the DOS title.
-    // Invalid optional asset data leaves the synthetic reference visible,
-    // while the minimum-media signature report remains authoritative.
+    // First choice: source-traced CODE.2 192CC static menu composition
+    // from original resource banks. This is NOT interactive startup logic.
     try {
-        const auto preview = rloft_native::make_source_cursor_preview(original);
-        state.diagnostic = preview.frame;
-        state.original_cursor_id = preview.original_res0_entry;
-        state.showing_original_cursor = true;
+        state.diagnostic = rloft_native::make_source_menu_preview(original);
+        state.showing_original_menu = true;
         state.original_cursor_status =
-            L"Source-backed RES0 cursor raster displayed; diagnostic composition only.";
+            L"Original CODE.2 static menu framebuffer; preview only, NOT gameplay.";
         refresh_bgra(state);
-    } catch (const std::exception& error) {
-        prepare_diagnostic(state);
-        state.original_cursor_status =
-            L"Optional RES0 cursor preview unavailable: " + widen(error.what());
+    } catch (const std::exception& menu_error) {
+        // Full original media may be absent in a partial installation.
+        // Fall back to a smaller original RES0 cursor/palette diagnostic.
+        try {
+            const auto preview = rloft_native::make_source_cursor_preview(original);
+            state.diagnostic = preview.frame;
+            state.original_cursor_id = preview.original_res0_entry;
+            state.showing_original_cursor = true;
+            state.original_cursor_status =
+                L"Original RES0 cursor raster; full menu unavailable: " +
+                widen(menu_error.what());
+            refresh_bgra(state);
+        } catch (const std::exception& cursor_error) {
+            prepare_diagnostic(state);
+            state.original_cursor_status =
+                L"Original menu and cursor unavailable; synthetic reference shown. " +
+                widen(cursor_error.what());
+        }
     }
     std::wostringstream out;
     out << L"Original installation (READ ONLY)\n"
@@ -218,9 +231,11 @@ void paint(State& state, HDC dc, const RECT& client) {
     SetTextColor(dc, RGB(240, 183, 125));
     RECT caption{20, client.bottom - 38, split - 8, client.bottom - 8};
     text_at(dc,
-            state.showing_original_cursor ?
-                L"Original RES0 cursor + palette12 — DIAGNOSTIC ONLY" :
-                L"Synthetic indexed-frame diagnostic — NOT game graphics",
+            state.showing_original_menu ?
+                L"Original CODE.2 STATIC MENU FRAME — NOT GAMEPLAY" :
+                (state.showing_original_cursor ?
+                    L"Original RES0 cursor + palette12 — DIAGNOSTIC ONLY" :
+                    L"Synthetic indexed-frame diagnostic — NOT game graphics"),
             caption, DT_SINGLELINE | DT_END_ELLIPSIS);
     SetTextColor(dc, RGB(226, 230, 236));
     RECT right{split + 10, 136, client.right - 14, client.bottom - 12};
