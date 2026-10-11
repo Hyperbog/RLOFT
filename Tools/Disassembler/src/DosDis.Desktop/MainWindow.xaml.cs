@@ -37,6 +37,7 @@ public partial class MainWindow : Window
     private int _lastByteMatchOffset = -1;
     private System.Windows.Point? _hexMouseDownPosition;
     private bool _suppressAutomaticHexRefresh;
+    private AssemblyRow? _highlightedAssemblyRow;
 
     private void Trace(DiagnosticStage stage, int? objectNumber = null,
         uint? objectOffset = null, int? instructionCount = null)
@@ -64,8 +65,27 @@ public partial class MainWindow : Window
 
     private sealed record AssemblyRow(int Object, uint Offset, string Bytes,
         string Assembly, string Evidence, string? DisplayAddress = null)
+        : INotifyPropertyChanged
     {
         public string AddressText => DisplayAddress ?? $"{Object}:0x{Offset:X8}";
+        private int _highlightStart;
+        private int _highlightLength;
+        public string BytesBefore => Bytes[.._highlightStart];
+        public string BytesMatched => Bytes.Substring(_highlightStart, _highlightLength);
+        public string BytesAfter => Bytes[(_highlightStart + _highlightLength)..];
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public void MarkBytes(int firstByte, int byteCount)
+        {
+            int start = Math.Clamp(firstByte * 2, 0, Bytes.Length);
+            int length = Math.Clamp(byteCount * 2, 0, Bytes.Length - start);
+            if (_highlightStart == start && _highlightLength == length) return;
+            _highlightStart = start;
+            _highlightLength = length;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(BytesBefore)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(BytesMatched)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(BytesAfter)));
+        }
     }
     private sealed record FunctionRow(FlowAddress? LeAddress, string DisplayName,
         Dos16Address? MzAddress = null);
