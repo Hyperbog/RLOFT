@@ -1,6 +1,6 @@
 # NativeEngine Windows-first x64 build and acceptance checkpoint
 
-**Date:** 2026-10-10. **Owner:** `native-engine`. **Status:** Windows GUI bootstrap source + Windows-only manually triggered MSVC workflow committed; **no verified Windows compilation, Windows GUI field test or released playable engine yet**.
+**Date:** 2026-10-10. **Owner:** `native-engine`. **Status:** Windows GUI bootstrap source + Windows-only manually triggered VS2022/MSVC workflow committed; **no verified Windows compilation, Windows GUI field test or released playable engine yet**.
 
 ## New direction from owner
 
@@ -12,7 +12,7 @@ Target **Windows x64 first**. Stop allocating active development/CI time to Linu
 2. **Dedicated Windows CMake target** `rloft_native_bootstrap` (WIN32 only), MSVC C++17, packaged system Win32 libraries `User32/Gdi32/Shell32/Ole32/Advapi32`, runtime static link configuration, exact Git source-revision definition. Windows CTest `native_win32_bootstrap_headless_contract` uses `--self-test` to exercise the renderer-neutral indexed→BGRA conversion without opening a window.
 3. **Actual install console inspector** `rloft_install_probe.exe`: preserved dedicated native media-reader target. Windows-specific `wmain(wchar_t**)` now supports Unicode installation paths without CP_ACP argv conversion. The synthetic loose/ISO integration fixture adds a Unicode directory path. **No original game files are embedded.**
 4. **Single-step user build/packager** `NativeEngine/Windows/Build-NativeEngine-Windows.ps1`: VS CMake `-A x64` Release, full registered native CTest suite, GUI/headless smoke, snapshot exact source SHA, SHA256 of the two EXEs, full build manifest with explicit `game_playable=false`, and ZIP named `RLOFT-NativeEngine-Windows-x64-BOOTSTRAP.zip`. Does **not** package proprietary assets or change Git automatically.
-5. **Dedicated manual Windows-only workflow** [`.github/workflows/native-engine-windows.yml`](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/.github/workflows/native-engine-windows.yml) exists on **both** default `code1-decompilation` (for GitHub Actions workflow visibility) and `native-engine` (for source ownership). `workflow_dispatch` only, `windows-latest`, actions checkout fixed to the latest `native-engine` branch source, setup Python for synthetic fixture CTests, runs MSVC build+tests+ZIP and publishes an artifact. **No Linux job; no push/PR/release trigger; no bot binary commits; read-only contents permission.**
+5. **Dedicated manual Windows-only workflow** [`.github/workflows/native-engine-windows.yml`](https://github.com/Hyperbog/RLOFT/blob/code1-decompilation/.github/workflows/native-engine-windows.yml) exists on **both** default `code1-decompilation` (for GitHub Actions workflow visibility) and `native-engine` (for source ownership). `workflow_dispatch` only, `windows-2022`, actions checkout fixed to the latest `native-engine` branch source, setup Python for synthetic fixture CTests, runs MSVC build+tests+ZIP and publishes an artifact. **No Linux job; no push/PR/release trigger; no bot binary commits; read-only contents permission.**
 
 ## Build it on a Windows developer machine
 
