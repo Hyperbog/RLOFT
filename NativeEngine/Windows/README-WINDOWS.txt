@@ -21,8 +21,12 @@ To begin:
   4. Review the listed resources. "PASS" confirms only a minimal media
      signature; it does NOT certify the version, graphics, level loading or
      gameplay compatibility.
-  5. The colored rectangle is SYNTHETIC TEST ART. It is intentionally not
-     presented as original Strahd graphics or as a playable game.
+  5. With an installation containing a valid original RES0, INIT and
+     COLORS bank, the viewport attempts to show the authentic default
+     RES0 cursor raster using original palette 12. This is only a centered
+     source-backed RESOURCE DIAGNOSTIC, not the original game scene.
+     If decoding is unavailable, the window shows labeled SYNTHETIC TEST
+     ART instead. Neither image means a game is running.
 
 You may also invoke from a Windows terminal:
   rloft_native_bootstrap.exe --install "C:\Games\Ravenloft"
