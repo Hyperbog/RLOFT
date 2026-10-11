@@ -38,6 +38,12 @@ The first run found and fixed **NTFS case-folded filesystem fixture** and **Powe
 
 **Important scope:** these are genuine Windows executable/bootstrap test results with **synthetic original-format media**. NO user-owned install field test, NO interactive CODE.2 menu or normal CODE.1 character workflow, NO playable `rloft_native.exe`, NO original DOS parity. [M-WIN-01 #12](https://github.com/Hyperbog/RLOFT/issues/12) stays open for user installation field test; [M-ENGINE-01 #9](https://github.com/Hyperbog/RLOFT/issues/9) remains the gameplay objective. Do not restart Linux-port work or trigger another workflow without explicit user instruction.
 
+## Existing demo live startup is the integration source of truth (owner correction, 2026-10-11)
+
+**Do not reimplement or describe as missing the original introductory cinematic, animated menu, or CODE.1 character-creation flow.** The owner confirms these already run with accurate timing and animations in the **decomp DemoV1 executable**. Source-reviewed `DemoV1/src/win32_main.cpp` already wires `AnmCinematic` (`CINE00`/`CINE12`), BIOS/PIT-timed logo/palette/menu presentation, `BootFlow` menu selection/status-10 supervisor dispatch, `CharacterCreationPresenter`/`CharacterCreationFlow`, original music/SFX and the `CHARS` handoff back to CODE.2. The new Windows native bootstrap displays only a static menu because it has **not reused that existing live runtime yet**, not because the project lacks these systems.
+
+**Actionable integration map:** [DEMO_BOOT_PIPELINE_REUSE_20261011.md](DEMO_BOOT_PIPELINE_REUSE_20261011.md). Next work must **share/reuse already implemented decomp/demo controllers and timed presentation**, preserve normal startup and test contracts, and keep the independent, installation-backed, profile-safe native-engine executable identity. Do NOT clone code speculatively, overwrite original installation saves, or bypass normal route via the demo's developer-only Level22 shortcut. The owner's demo timing result is not automatically original DOS bit-parity certification; those gates stay separate.
+
 ## Exact work order
 
 1. Check **live Git HEAD** and all files modified by parallel agents; use blob-SHA-guarded edits, bounded commits and no force updates. Record actual build revision and original-file patch identity. Do not overwrite parallel work.
