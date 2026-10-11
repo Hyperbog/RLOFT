@@ -68,6 +68,20 @@ def make_synthetic_res0_cursor() -> bytes:
     return header + offsets + record + pixels
 
 
+def make_synthetic_menu_res0() -> bytes:
+    # Original CODE.2 0x192CC static menu draws RES0 indices 97..101.
+    # These are synthetic EH type-1 test records, not copyrighted sprites.
+    count = 102
+    data = bytearray(4 + 4 * count)
+    data[0:4] = count.to_bytes(4, "little")
+    for i in range(count):
+        data[4 + 4*i:8 + 4*i] = len(data).to_bytes(4, "little")
+        if 97 <= i <= 101:
+            record = bytes([69, 72, 1, 8, 0, 1, 0, 2, 0, 1, 255, 0, 0])
+            data.extend(record + bytes([i - 95] * 16))
+    return bytes(data)
+
+
 def run(exe: Path, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run([str(exe), *args], env=env, capture_output=True,
                           text=True, check=False, timeout=15)
@@ -113,6 +127,25 @@ def test(exe: Path, bootstrap: Path | None = None) -> None:
             (cursor_dir / "COLORS").write_bytes(bytes(palette[:-1]))
             assert run(bootstrap, "--self-test-source-cursor", str(cursor_dir)).returncode == 4
             assert run(bootstrap, "--self-test-install", str(cursor_dir)).returncode == 0
+
+            menu_dir = root / "source-backed-static-menu"
+            menu_dir.mkdir()
+            (menu_dir / "RES0").write_bytes(make_synthetic_menu_res0())
+            (menu_dir / "INIT").write_bytes(bytes([0, 0]))
+            (menu_dir / "T").write_bytes(bytes([1]))
+            (menu_dir / "COLORS").write_bytes(palette)
+            for archive_name in ("RES1", "RES5", "RES6", "RES7", "RES8", "RES10"):
+                (menu_dir / archive_name).write_bytes(bytes([0, 0, 0, 0]))
+            # Mimic the pinned CODE.1 byte length only. Never executable data.
+            (menu_dir / "CODE.1").write_bytes(bytes(0x43D1B))
+            before_menu = snapshot(menu_dir)
+            assert run(bootstrap, "--self-test-source-menu", str(menu_dir)).returncode == 0
+            assert snapshot(menu_dir) == before_menu
+            # Removing any eagerly loaded original asset disqualifies menu
+            # evidence without affecting minimum install detection.
+            (menu_dir / "RES5").unlink()
+            assert run(bootstrap, "--self-test-source-menu", str(menu_dir)).returncode == 5
+            assert run(bootstrap, "--self-test-install", str(menu_dir)).returncode == 0
         before = snapshot(loose)
         expect(run(exe, "--install", str(loose)), 0, "MINIMUM_MEDIA_SIGNATURE_PASS")
         if bootstrap:
