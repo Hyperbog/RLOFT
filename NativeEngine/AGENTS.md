@@ -1,5 +1,33 @@
 # NativeEngine — Active developer/agent instructions
 
+## New typed-world SHA-256 round-trip gate — source only, not yet a Windows build
+
+[Full report contract and implementation](WORLD_FINGERPRINT_COMPARISON_20261011.md):
+\`native_world_fingerprints\` now reconstructs the **full 32-level typed
+world source sections**, verifies each decoded section byte-for-byte
+against the user-owned original image, and emits **256 section SHA-256
+hashes** across cells, controls, all event-slot bytes, automap,
+annotations, and the three eleven-byte families. The new
+\`rloft_native_payload_audit\` is a fourth internal C++ executable
+configured in CMake, not yet a certified/packaged Windows binary.
+Existing \`native_world_payload_tests\` now include three standard SHA-256
+vectors and structural mutation rejection. **Current native-engine
+HEAD has not been compiled or CTest-certified on Windows.**
+
+The independent canonical \`SharedDecomp/verify_native_world_fingerprints.py\`
+compares these native hashes against independent original-file parsing.
+On **actual owner-supplied original bytes**, an isolated locally compiled
+C++17 SHA implementation and independent Python \`hashlib\` agreed on
+**385/385 hashes** (256 per-level sections, 127 SINTAB blocks, two full
+original input files); four separate local byte-mutation controls were
+all detected. This validates SHA/corpus evidence, **not** the exact
+\`native-engine\` source compile or native gameplay. Canonical research CI
+passed **106/106 source-only tests** including native-shaped synthetic
+fingerprint comparison. Windows Actions remain manual-only, requiring
+explicit owner authorization. Next is compiling the exact native source
+and independently comparing the real \`rloft_native_payload_audit\` output,
+then integrating verified world state into first-person simulation/rendering.
+
 ## Typed original-world payload continuation — SOURCE ONLY, UNBUILT
 
 [Original-world payload retention](WORLD_PAYLOAD_RETENTION_20261011.md) at native
