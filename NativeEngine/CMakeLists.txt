@@ -103,3 +103,11 @@ foreach(t IN ITEMS native_mod_load_plan_tests native_install_probe_contract_test
   endif()
   add_test(NAME ${t} COMMAND ${t})
 endforeach()
+
+# Synthetic loose/ISO9660 integration against actual linked GameSource.
+if(TARGET rloft_install_probe AND Python3_Interpreter_FOUND)
+  add_test(NAME native_install_probe_cli_fixture_tests
+    COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_install_probe_cli.py"
+      --executable "$<TARGET_FILE:rloft_install_probe>")
+endif()
