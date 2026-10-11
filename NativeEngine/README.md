@@ -1,5 +1,12 @@
 # Ravenloft: Strahd's Possession — Independent Native Engine
 
+## First real GOG install verified; independent raster decoding underway
+
+[**User's original GOG field test**](WINDOWS_REAL_GOG_ASSET_FIELD_TEST_20261011.md): the previously compiled independent native asset loader opened the actual original GOG `game.gog` as **ISO2048**, indexed **69 source files**, reported **19/19 recognized resources validated, zero missing/invalid**, and displayed the **original COLORS palette 12**. This is real installation-backed **structural validation**, not proof of full sprite/cinematic/world/gameplay decoding.
+
+[**Native EH1 raster milestone**](NATIVE_EH1_RASTER_MILESTONE_20261011.md): the next independent source implementation now decodes raw and original LZSS-4K compressed RES EH type-1 images, resolves the original default cursor from INIT/RES0, displays a native GDI original-sprite preview when available, and adds `--verify-raster` with separate failure codes. A new native corruption/LZSS/selection test brings Windows **required registered CTests from 9 to 10**. **These latest source changes have not been MSVC compiled or tested against the owned GOG installation; the prior 9/9 verified build corresponds only to `fd314b89`.** No decomp demo code is linked or original assets distributed.
+
+
 ## VERIFIED Windows x64 independent native asset build — October 11
 
 **[Download and verification evidence](WINDOWS_NATIVE_ASSETS_VERIFIED_BUILD_20261011.md):** `rloft_native.exe` was compiled on Windows Server 2022 using **MSVC 19.44**, all **9/9 Windows CTests passed**, and the asset-free ZIP was downloaded and independently checked. [Actual GitHub build #38164976411](https://github.com/Hyperbog/RLOFT/actions/runs/38164976411). **Exact compiled Git revision:** `fd314b89e96db07c739176d25f1fc9be94ecaa19` (later README/docs HEADs are not compiled revisions). Native engine is not the demo recomp, and this build does **not** implement gameplay. First **real GOG asset-loader field test remains pending**, although an older diagnostic bootstrap did display real GOG menu artwork. Primary output: `RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip` (no original files). ZIP SHA-256: `5ee2cdb58f3aa0ea10c715a2841b6be3eb0f411abb957132c4aa1150a857713c`.
