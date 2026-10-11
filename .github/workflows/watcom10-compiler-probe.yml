@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/watcom10-compiler-probe.yml'
       - 'Code2/tools/run_watcom10_windows_probe.py'
+      - 'Code2/tools/match_watcom_omf.py'
   workflow_dispatch:
 
 permissions:
@@ -62,6 +63,27 @@ jobs:
               sys.exit('No Watcom profile generated an object. Inspect uploaded diagnostics.')
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw 'No usable Watcom candidate object' }
+      - name: Verify relocation-resolved historical CODE.2 instruction hashes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:RUNNER_TEMP 'rloft-watcom-probe'
+          $profiles = @('386_stack_noopt','386_stack_time','386_register_time','486_stack_time')
+          foreach ($profile in $profiles) {
+            $obj = Join-Path (Join-Path $out $profile) 'watcom_candidates.obj'
+            $report = Join-Path (Join-Path $out $profile) 'original_hash_matches.json'
+            python Code2/tools/match_watcom_omf.py $obj --output $report
+            if ($LASTEXITCODE -ne 0) { throw "OMF hash matcher rejected $profile" }
+            $value = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
+            Write-Host "$profile matched $($value.matches) / $($value.expected_probes) pinned CODE.2 source spans"
+          }
+          foreach ($profile in @('386_stack_time','386_register_time')) {
+            $report = Join-Path (Join-Path $out $profile) 'original_hash_matches.json'
+            $value = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
+            if ($value.matches -ne 5 -or $value.expected_probes -ne 5) {
+              throw "Expected five verified source spans in $profile; got $($value.matches)"
+            }
+          }
       - name: Upload only new source-hypothesis objects and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
