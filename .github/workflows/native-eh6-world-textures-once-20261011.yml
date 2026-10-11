@@ -1,0 +1,37 @@
+name: "RLOFT independent RES4 EH6 native textures - authorized one-shot Windows build"
+on:
+  push:
+    branches:
+      - native-eh6-world-textures-win64-20261011-once
+    paths:
+      - .github/workflows/native-eh6-world-textures-once-20261011.yml
+permissions:
+  contents: read
+jobs:
+  native-original-eh6-asset-engine:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    steps:
+      - name: Checkout independent native-engine branch
+        uses: actions/checkout@v4
+        with:
+          ref: native-engine
+          persist-credentials: false
+      - name: Python original-asset fixture environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile independent RES4 EH6 texture renderer and require 14 CTests
+        shell: pwsh
+        run: |
+          & ./NativeEngine/Windows/Build-NativeAssets-Windows.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload verified asset-free native EH6 texture preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLOFT-NativeEngine-Windows-x64-EH6-TEXTURES-20261011
+          path: |
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
