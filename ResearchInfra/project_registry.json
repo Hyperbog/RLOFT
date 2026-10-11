@@ -1,0 +1,67 @@
+{
+  "schema": "rloft-project-registry-v1",
+  "policy": "This is an ownership/configuration register, not a completion or parity certificate.",
+  "primary": [
+    {
+      "branch": "code1-decompilation",
+      "owns": [
+        "Code1/",
+        "Code2/",
+        "Recomp/",
+        "ResearchInfra/",
+        "DatFiles/",
+        "Resources/",
+        "Runtime/",
+        "docs/"
+      ],
+      "role": "canonical reconstruction and research infrastructure"
+    },
+    {
+      "branch": "demo-v1",
+      "owns": [
+        "DemoV1/"
+      ],
+      "role": "faithful full game recreation on native host"
+    },
+    {
+      "branch": "native-engine",
+      "owns": [
+        "NativeEngine/"
+      ],
+      "role": "independent install-backed original-assets application"
+    },
+    {
+      "branch": "disassembler-foundation",
+      "owns": [
+        "Tools/Disassembler/"
+      ],
+      "role": "Windows desktop DOSDis and independent analysis core"
+    },
+    {
+      "branch": "extractor-wpf-fluent",
+      "owns": [
+        "Tools/"
+      ],
+      "role": "asset extractor and original resource research"
+    },
+    {
+      "branch": "DnD-Classics",
+      "owns": [
+        "MASTER/",
+        "D&D Classics/"
+      ],
+      "role": "read-only original media preservation"
+    }
+  ],
+  "protected_patterns": [
+    "DnD-Classics",
+    "code1-decompilation",
+    "demo-v1",
+    "native-engine",
+    "disassembler-foundation",
+    "extractor-wpf-fluent"
+  ],
+  "snapshots": {
+    "classification": "Preserve identifiable build/validation SHA and provenance until verified merged or archived; no sweeping merges, force pushes, or original-file rewrites."
+  }
+}
