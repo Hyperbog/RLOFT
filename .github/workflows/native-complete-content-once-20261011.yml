@@ -1,0 +1,73 @@
+name: "RLOFT original RES banks PLUS complete world/SINTAB - authorized Windows release"
+on:
+  push:
+    branches:
+      - native-complete-content-win64-20261011-once
+    paths:
+      - .github/workflows/native-complete-content-once-20261011.yml
+permissions:
+  contents: read
+jobs:
+  full-independent-original-content:
+    runs-on: windows-2022
+    timeout-minutes: 100
+    steps:
+      - name: Checkout replacement engine only (NOT the decomp/recomp demo)
+        uses: actions/checkout@v4
+        with:
+          ref: native-engine
+          path: engine
+          persist-credentials: false
+      - name: Checkout owned original game content as PRIVATE TEST FIXTURE ONLY
+        uses: actions/checkout@v4
+        with:
+          ref: DnD-Classics
+          path: original-corpus
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/
+          persist-credentials: false
+      - name: Python 3.12 corpus certification
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile MSVC x64 independent native source and run 16 CTests
+        shell: pwsh
+        working-directory: engine
+        run: |
+          & ./NativeEngine/Windows/Build-NativeAssets-Windows.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Validate all 12,562 shipped resource records plus 32 world levels and 127 scales
+        shell: pwsh
+        working-directory: engine
+        run: |
+          $src = Join-Path (Resolve-Path ..).Path "original-corpus\MASTER\Ravenloft - Strahd's Possession\CD_Extracted\RLOFT"
+          $build = "build\native-assets-windows-x64\Release"
+          $bankExe = (Resolve-Path "$build\rloft_native_bank_audit.exe").Path
+          $worldExe = (Resolve-Path "$build\rloft_native_world_audit.exe").Path
+          if (-not (Test-Path (Join-Path $src "RES12")) -or
+              -not (Test-Path (Join-Path $src "LEVELS.DAT")) -or
+              -not (Test-Path (Join-Path $src "SINTAB"))) {
+            throw "Required private original resource/world corpus was not checked out"
+          }
+          $bankReport = Join-Path $env:RUNNER_TEMP "rloft_complete_original_res.json"
+          $worldReport = Join-Path $env:RUNNER_TEMP "rloft_complete_original_world.json"
+          & $bankExe $src | Set-Content -Encoding utf8 -LiteralPath $bankReport
+          if ($LASTEXITCODE -ne 0) { throw "Native original 13-bank decoder rejected shipped records" }
+          & python NativeEngine/tools/verify_whole_res_banks.py $bankReport
+          if ($LASTEXITCODE -ne 0) { throw "Original 12,562 resource certificates failed" }
+          & $worldExe $src | Set-Content -Encoding utf8 -LiteralPath $worldReport
+          if ($LASTEXITCODE -ne 0) { throw "Native original LEVELS/SINTAB validator rejected files" }
+          & python NativeEngine/tools/verify_original_world_system.py $worldReport
+          if ($LASTEXITCODE -ne 0) { throw "Original 32-level + 127 SINTAB blocks certificates failed" }
+          Write-Host "COMPLETE ORIGINAL RES BANKS + WORLD + SINTAB SOURCE ACCEPTED"
+      - name: Upload six-entry asset-free native Windows content-engine package
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLOFT-NativeEngine-Windows-x64-FULL-CONTENT-20261011
+          path: |
+            engine/NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip
+            engine/NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
