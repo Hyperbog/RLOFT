@@ -349,3 +349,57 @@ or callback parity. The known callable F0C8 hook, all
 open to investigation. Do not flatten shared tails or
 assume global EBP preservation.
 
+## 2026-10-10 Opcode-17 original drawing recursion and private page buffer
+
+**Source authority:** original uploaded CODE.2 SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
+Fresh original binary disassembly independently verifies five bounded
+source ranges: `1A288..1A3B7`, `1A5B0..1A723`,
+`29804..29837`, `2932C..2939A`, and `1A3B8..1A50C`.
+The existing C050 verifier now authenticates all five SHA-256 slices,
+**25 original near-E8 destinations**, eight exact cross-range
+branches, and 27 opcode windows. The independent local source-byte
+regression passed. None of the five slices contains a direct
+four-byte literal operand for `C050`, `F0C8` or `F0CC`.
+
+**Shared-tail drawing path:** `1A288` does not end in a conventional
+RET. It conditionally branches to `1AC0B`, `1AC04`,
+`1ABFF`, or `1AB6C`; another conditional path
+jumps `1A33D→1ABF7`; its `1A3B2` tail jumps back
+to `1A288`. It calls `1A3B8` for geometry,
+`292BC/2AE30` for drawing/collision support,
+and `1AACC/2F29C/30CD4` on selected paths.
+`1A3B8` also calls `33C90` twice and `1F820`
+once. These are source slices and shared control-flow edges,
+not proof that callers' EBP or ES states are globally preserved.
+
+**Page-private animation staging:** `1A5B0` tests
+`WORD[85FC]` and `WORD[9E37]`, guards an active
+drawing branch, and calls `1A288` at `1A667`.
+The active path sets `WORD[A6BA]=1` at `1A5DB`,
+temporarily resets `WORD[9E37]=0` at `1A64A`,
+and later restores those flags via `1A6D0` and
+`1A6D9`. It changes `BYTE[9E39]` at
+`1A68F` after computing `AL XOR 1`, and
+uses `SI XOR 1` at `1A683` when selecting the
+second 0x400-byte private graphics buffer.
+On the alternate path, `1A708` XORs BL with 1
+before copying a page. These are **private
+graphics-buffer/page indices** and do **not**
+prove the independent `DWORD[C050]` page is modified
+by these routines. The original function returns
+at `1A6ED` or `1A723`.
+
+**Leaf wrappers:** `29804` updates mutable
+`EFd4` during `29414` sprite drawing and restores
+its counter afterward; `2932C` clips destination
+bounds then calls `2A178`. Neither directly
+changes EBP or a literal C050/F0C8/F0CC pointer.
+**Still open:** all indirect and callee effects
+from `29414`, `2A178`, `2AE30`, `33C90`
+and the greater drawing graph, original DOS memory
+selectors, callbacks and pixel parity.
+
+No native gameplay code, additional CTest, Windows Full
+CI dispatch, or accepted DOS equivalence resulted from
+this original-byte-only research.
+

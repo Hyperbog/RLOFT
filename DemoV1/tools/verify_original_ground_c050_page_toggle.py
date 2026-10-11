@@ -402,6 +402,66 @@ def audit_original(path:Path)->None:
     for at,signature in nested_graphics_windows.items():
         wanted=bytes.fromhex(signature)
         assert obj[at:at+len(wanted)]==wanted,hex(at)
+    # Batch A: opcode-17 graphics page-copy and recursive drawing
+    # provenance. These are original binary slices; 1A288 branches
+    # into shared tails in 1ABxx/1ACxx and is NOT a standalone RET body.
+    opcode17_page_copy_spans={
+        (0x1A288,0x1A3B8):"f6a3586d73cdd3d3132060492477f4325fd5a5cd294031129e0137d6161c9ecd",
+        (0x1A5B0,0x1A724):"2c1e3cf2a887bdcda658487698fe113b34d487dda4038050bd69f0cca14427c6",
+        (0x29804,0x29838):"ba7f7cb4d410ff348eca26162196d69e7cd9a11e89887b9a38257622447d36d3",
+        (0x2932C,0x2939B):"f4c81f0edeea641437135cdd368f3dd0f15bf81351d3edc4495e88581dc3a3ed",
+        (0x1A3B8,0x1A50D):"706fe1969bb08173d5330e638e869151a9cc52b36c52a448d6add09c1ccd2774",
+    }
+    for (lo,hi),digest in opcode17_page_copy_spans.items():
+        assert hashlib.sha256(obj[lo:hi]).hexdigest()==digest,hex(lo)
+        for addr in (0xC050,0xF0C8,0xF0CC):
+            assert struct.pack("<I",addr) not in obj[lo:hi],(hex(lo),hex(addr))
+    opcode17_page_copy_calls={
+        0x1A2AC:0x2E590,0x1A2C3:0x1A3B8,0x1A2EF:0x292BC,0x1A307:0x2AE30,
+        0x1A344:0x1AACC,0x1A397:0x2F29C,0x1A3AA:0x30CD4,
+        0x1A61F:0x2F29C,0x1A632:0x30CD4,0x1A667:0x1A288,0x1A670:0x291C8,
+        0x1A67B:0x2E590,0x1A688:0x2A020,0x1A6B4:0x30CD4,0x1A6C3:0x1AB20,
+        0x1A6CB:0x2E5D4,0x1A6F2:0x291C8,0x1A6FB:0x2E590,0x1A70B:0x2A020,
+        0x1A719:0x2E5D4,0x29829:0x29414,0x2938D:0x2A178,
+        0x1A43F:0x33C90,0x1A4AD:0x33C90,0x1A4DC:0x1F820,
+    }
+    assert len(opcode17_page_copy_calls)==25
+    for call,target in opcode17_page_copy_calls.items():
+        assert obj[call]==0xE8
+        assert call+5+struct.unpack_from("<i",obj,call+1)[0]==target,hex(call)
+    opcode17_page_copy_branches={
+        0x1A290:(6,0x1AC0B),0x1A29E:(6,0x1AC04),0x1A317:(6,0x1ABFF),
+        0x1A320:(6,0x1AB6C),0x1A33D:(5,0x1ABF7),0x1A3B2:(5,0x1A288),
+        0x1A5C5:(6,0x1A6EE),0x1A5D5:(6,0x1A6EE),
+    }
+    for at,(length,target) in opcode17_page_copy_branches.items():
+        displacement=struct.unpack_from("<i",obj,at+(2 if length==6 else 1))[0]
+        assert at+length+displacement==target,hex(at)
+    opcode17_page_copy_windows={
+        0x1A288:"66833dfc85000000",0x1A290:"0f8475090000",
+        0x1A29E:"0f8560090000",0x1A317:"0f84e2080000",
+        0x1A320:"0f8546080000",0x1A33D:"e9b5080000",
+        0x1A3B2:"e9d1feffff",0x1A5B0:"535683ec08",
+        0x1A5DB:"66c705baa600000100",0x1A64A:"66c705379e00000000",
+        0x1A667:"e81cfcffff",0x1A683:"6683f601",
+        0x1A68F:"3401a2399e0000",
+        0x1A6D0:"66c705379e00000100",
+        0x1A6D9:"66c705baa600000000",
+        0x1A6EE:"0fb6c3",0x1A6ED:"c3",
+        0x1A708:"80f301",0x1A723:"c3",
+        0x29804:"a1d4ef0000",0x29824:"a3d4ef0000",
+        0x2982E:"ff0dd4ef0000",0x2932C:"535683ec04",
+        0x2938D:"e8e60d0000",0x29398:"5e5bc3",
+        0x1A3B8:"5356",0x1A50A:"5e5bc3",
+    }
+    assert len(opcode17_page_copy_windows)==27
+    for at,hexbytes in opcode17_page_copy_windows.items():
+        sig=bytes.fromhex(hexbytes)
+        assert obj[at:at+len(sig)]==sig,hex(at)
+    print("ORIGINAL_PASS: opcode17 drawing: 5 slices, 25 calls, 8 branches, 27 windows")
+    print("BOUND: 1A288 shared tails; 1A5B0 toggles 9E39/private drawing page, not C050")
+    print("OPEN: 29414, 2A178, 2AE30 and 33C90 transitive effects")
+
     print("ORIGINAL_PASS: 5 nested source spans, 38 instruction-bound E8 edges")
     print("ORIGINAL_PASS: 6 shared-tail branches, 21 opcode windows")
     print("BOUND: 2F5F4 restores EBP at 2F81E/2F834; nested callees remain open")
@@ -436,6 +496,8 @@ def audit_repository()->None:
     for term in ("1A510","1A9F8","2A020","30CD4","2ABF4","2ABC4","44 opcode","EF4D","EF4E"):
         assert term in doc,term
     for term in ("1AACC","1AB20","2F580","2F5F4","1A3B8","1AAC9","38","2F81E","2F834"):
+        assert term in doc,term
+    for term in ("1A5B0","1A288","9E39","A6BA","1A6ED","25 original"):
         assert term in doc,term
     print("SOURCE_ONLY_PASS: registered CTest, original ground batch and audit notes")
 

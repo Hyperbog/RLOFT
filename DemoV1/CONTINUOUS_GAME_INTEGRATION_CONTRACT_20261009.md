@@ -1,5 +1,9 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+## 2026-10-10 Part 12 opcode-17 private page and recursive draw source paths
+
+Batch A authenticated 5 CODE.2 code slices covering `1A288, 1A5B0, 1A3B8, 29804, 2932C`, plus 25 decoded original near E8 targets, 8 cross-range branches and 27 instruction windows; independent binary-only audit passed. `1A288` is a shared-tail drawing sequence, not a conventional returning function; `1A5B0` stages private `9E39` buffer/page selection and `9E37/A6BA` state, independently of original C050. The five bounded slices have no literal operand C050/F0C8/F0CC; nested callees and computed aliases still open. Existing pinned original C050 oracle extended; no gameplay change, CTest registration or Windows Full run; DOS parity pending. [Source proof](LEVEL22_ORIGINAL_VGA_C050_PAGE_TOGGLE_AUDIT_20261010.md).
+
 ## 2026-10-10 Script opcode-17 nested graphics shared-return and EBP bounds
 
 Independently re-disassembled original CODE.2 source regions 1AACC, 1AB20, 2F580, 2F5F4, 1A3B8. Five SHA-pinned bounded slices, **38 instruction-aligned near-E8 calls**, six cross-entry/tail branches and 21 opcode windows passed locally in the existing pinned C050 oracle. 1AACC and 1AB20 branch to common RET 1AAC9 (distinct from 1AAC8 pop EBX in 1A9F8) or tail-JMP to 2E5D4; preserve stack state. 2F5F4 modifies EBP locally but restores it on both source exits 2F81E/2F834. Two E8 bytes embedded in encoded call operands (1AB15, 2F708) explicitly rejected as false callsites. Zero direct literal C050/F0C8/F0CC DWORD references across these five slices; their **38 nested call effects, indirect aliases and installed callback remain open**. Existing registration, no new CTest or native change; Windows Full and matched DOS parity unrun. [Evidence](LEVEL22_ORIGINAL_VGA_C050_PAGE_TOGGLE_AUDIT_20261010.md).
