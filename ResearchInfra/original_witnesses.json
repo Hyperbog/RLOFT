@@ -1,0 +1,110 @@
+{
+  "schema": "rloft-original-witness-manifest-v1",
+  "witnesses": [
+    {
+      "module": "code1",
+      "start": "07F50",
+      "end": "07F5C",
+      "sha256": "de7effb0cdc71791a399b1b0edcba872d7a0df5333e0d0c1fb6a5b0fa4308407",
+      "purpose": "original direct memory-tick getter"
+    },
+    {
+      "module": "code1",
+      "start": "095A8",
+      "end": "095BB",
+      "sha256": "f2d3c2169db05893ae35eda08a650dd4148daaf6c5eb195ec2959f7341e486ac",
+      "purpose": "original far callback"
+    },
+    {
+      "module": "code2",
+      "start": "35286",
+      "end": "352BD",
+      "sha256": "2e5b3733f905b5560c69698faa61b4fb92c1042473ea28b461888e855aea674c",
+      "purpose": "DOS disk/free-space helper"
+    },
+    {
+      "module": "code2",
+      "start": "353A0",
+      "end": "353A2",
+      "sha256": "326483fa1d1597f096d675f0ac348108412053844fdb555a3f36c2d41c83d772",
+      "purpose": "DOS original entry trampoline"
+    },
+    {
+      "module": "code2",
+      "start": "35418",
+      "end": "3562F",
+      "sha256": "bde266affb92d4e977a8ffa8c405642e28dbc80430321181264abcb9e424c01b",
+      "purpose": "DOS extender startup and command-tail/environment staging"
+    },
+    {
+      "module": "code2",
+      "start": "3562F",
+      "end": "35675",
+      "sha256": "2e3798e49b55499bc5f01e51bd962f56253845e9fc6bd97a13c9ef1b5c46bab6",
+      "purpose": "DOS process exit and DS restoration"
+    },
+    {
+      "module": "code2",
+      "start": "39526",
+      "end": "39589",
+      "sha256": "73cc1ac557f76f9607a116050cb0dd53180c100ae6de3cac9eabc0b8a3c687da",
+      "purpose": "runtime case-insensitive byte comparison"
+    },
+    {
+      "module": "code2",
+      "start": "39589",
+      "end": "395E2",
+      "sha256": "4d01c84b06650061922e0f5406c5c18225ab3984583f9a96aba138a7a8cef038",
+      "purpose": "runtime post-initialization launcher"
+    },
+    {
+      "module": "code2",
+      "start": "395E2",
+      "end": "3962D",
+      "sha256": "4372327a1ecb72c421622e01ebc4cab18320202d60e5afc3a8aef6c39268e410",
+      "purpose": "runtime priority initializer scheduler"
+    },
+    {
+      "module": "code2",
+      "start": "3962D",
+      "end": "3967C",
+      "sha256": "ddbb043ce125bac62303954e01d5fa2f1d74667c9c588acecf089c18dfc2bbfe",
+      "purpose": "runtime termination callback scheduler"
+    },
+    {
+      "module": "code2",
+      "start": "3968E",
+      "end": "39752",
+      "sha256": "405b8d6871e820a7d8191df7f56818f68d3e2e9acc0a724f81c857fba0634c74",
+      "purpose": "runtime argv construction"
+    },
+    {
+      "module": "code2",
+      "start": "39752",
+      "end": "39837",
+      "sha256": "65a82679dd6bd7fba5d3bb3c38183732817da3a0d5e924af7de8409da0d1617e",
+      "purpose": "runtime argument tokenizer"
+    },
+    {
+      "module": "code2",
+      "start": "3A16E",
+      "end": "3A176",
+      "sha256": "74746f375879b05d7aadc4187242c99b7d25fb421f1fc0838ecd09bafb068f5c",
+      "purpose": "runtime saved SS initializer"
+    },
+    {
+      "module": "code2",
+      "start": "3A1B3",
+      "end": "3A2AD",
+      "sha256": "295974dbdf1b3a0994b765cbe78bf2269747ef5a65b7931a0cd5b5eafdc8b6e8",
+      "purpose": "runtime stream initialization and cleanup"
+    },
+    {
+      "module": "code2",
+      "start": "3A2AD",
+      "end": "3A38A",
+      "sha256": "02856358bd8ddcf0da443beeaf6075fc791d33dad995e97b6cee847084cc26f6",
+      "purpose": "runtime environment table setup"
+    }
+  ]
+}
