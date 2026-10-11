@@ -6,7 +6,7 @@
 This is a navigation handoff, not a substitute for the full roadmap,
 normative evidence requirements or a Git status check.
 
-## NEW CHECKSYS owner navigation feedback — SOURCE FIX ONLY, unbuilt
+## CHECKSYS navigation #44 Windows BUILD/SYNTHETIC PASS — owner GUI acceptance pending
 
 - Owner tested the original-MZ Windows #43 WPF preview: double-click
   `0000:0025 call 017Dh` did nothing; Go while on Hexadecimal
@@ -19,26 +19,36 @@ normative evidence requirements or a Git status check.
   relied on `SelectionChanged` (which does not fire when selecting
   the same instruction again). Hex also lacked a physical-position
   label and scroll reset.
-- **SOURCE-ONLY changes (not built):** direct same-segment graph
+- **NOW BUILT / SYNTHETIC VERIFIED by owner-authorized Windows
+  [run #44](https://github.com/Hyperbog/RLOFT/actions/runs/38143277116)
+  (original GUI interaction NOT YET TESTED):** direct same-segment graph
   call/branch navigation on Assembly double-click, Hex Go to any
   backed module-relative MZ position with explicit original physical
   offset and scroll reset, References default ALL graph edges
   with Source/Destination/Kind/Evidence/count and optional
   selected-row filter; preserves existing linked-reference navigation.
-  Synthetic source-only negative controls reject indirect, far
+  Synthetic negative controls reject indirect, far
   and ambiguous destinations; an LE project without analysis
-  clears stale graph-reference state.
+  clears stale graph-reference state. Both C# smoke suites
+  **PASSED** on Windows #44, with zero .NET warnings or errors.
 - Explicit original mapping: `0000:0025` CALL stored at
   `file+0x225`; encoded `E8 55 01` resolves within the
   same segment to `0000:017D`, stored `file+0x37D`.
   This is file-backed candidate navigation, not a runtime trace.
 - [Desktop navigation owner field report and next Windows test
   checklist](G2_DESKTOP_NAVIGATION_FIELD_REPORT_20261010.md).
-- **Last successfully built Windows app is still #43**, canonical
-  application/test source `244718cc7f86ba7ee2815cfc1df2d27f9be271b0`
-  (before these changes). A NEW owner-authorized Windows desktop-only
-  build and manual UI test is required to validate them; CI not
-  dispatched by this feedback.
+- **Latest successfully built Windows app is #44**: canonical
+  application/test SHA `9e18238c2c4dbb1ebfb13948e07ef6efd82b7a9f`;
+  actual ephemeral PR #13 merge checkout SHA
+  `6626ce4e17d589b16a458e9b5950f910f19791ee`
+  differs ONLY by temporary pull-request workflow. One
+  Windows desktop-only artifact `11703189013`, ZIP bytes
+  `66906804`, archive SHA256
+  `da73be2d543171f956307fa0eb51463e8528ad2f219154ee6b32bbcac55dc8f4`.
+  [Download](https://github.com/Hyperbog/RLOFT/actions/runs/38143277116/artifacts/11703189013).
+  NO user-facing CLI package and NO proprietary originals in CI.
+  **Source compiled and synthetic tested, not yet owner GUI verified.**
+  Full [#44 gate record](G2_DESKTOP_NAVIGATION_WINDOWS_BUILD_20261011_RUN44.md).
 
 ## CHECKSYS original MZ screenshot + JSON — partial owner GUI acceptance
 
@@ -76,7 +86,14 @@ normative evidence requirements or a Git status check.
   **desktop only**, no CLI artifact.
 - Exact root cause and Windows acceptance plan:
   [G2_DESKTOP_MZ_UI_HANDOFF_20261010.md](G2_DESKTOP_MZ_UI_HANDOFF_20261010.md).
-- **Next:** Original MZ **visual File Intelligence and post-analysis disassembly are now evidenced**. Request only the remaining interaction evidence: Go/CS:IP navigation to another backed address, References/Hexadecimal tab synchronization, optional text export, and one original LE file's project workflow. Prioritize future GUI layout improvements (truncated Explorer entry, Evidence strings and File Intelligence fields, space reserved for LE-only comments) without asserting functions that the current analyzer has not established. **G2 code-accuracy certification stays pending.**
+- **Next:** Owner should test the NEW #44 artifact with exact original
+  CHECKSYS: direct `0000:0025 call 017Dh` double-click -> `0000:017D`;
+  Hex Go at both addresses with source physical file+0x225 and
+  file+0x37D plus scroll/first-row readout; all References by default
+  and selected-only filter while retaining linked-reference navigation.
+  Check one real LE file's project workflow and optional MZ text export.
+  Continue visual layout improvements separately. **G2 original-code
+  independent accuracy acceptance remains pending.**
 - Exact first original-file export evidence and private-audit summary:
   [G2_DESKTOP_MZ_WINDOWS_BUILD_20261010_RUN43.md](G2_DESKTOP_MZ_WINDOWS_BUILD_20261010_RUN43.md).
   Do NOT check in the owner's exported JSON or proprietary disassembly.
@@ -191,7 +208,7 @@ normative evidence requirements or a Git status check.
 6. [Normative independent validation policy](INDEPENDENT_VALIDATION_POLICY.md)
 
 **Guardrails:** canonical GitHub Actions remains
-`workflow_dispatch`-only; temporary PRs #6, #8 and #11 were
+`workflow_dispatch`-only; temporary PRs #6, #8, #11 and #13 are
 closed without merging. Source-only work
 and commits do not imply permission to build/test/dispatch CI. Always
 verify these facts against live GitHub state before acting. Do not
