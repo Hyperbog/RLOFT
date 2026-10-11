@@ -49,3 +49,11 @@ Windows x64 only for the current native-engine deliverable. Do not allocate new 
 4. Use the validated Windows host to integrate **source-faithful original graphics and runtime**, not synthetic screens or developer skip flags, toward full `rloft_native.exe`. The bootstrap is not gameplay and **does not close** [M-ENGINE-01 #9](https://github.com/Hyperbog/RLOFT/issues/9).
 
 **Tracking:** [M-WIN-01 #12](https://github.com/Hyperbog/RLOFT/issues/12), [framework benchmarking #10](https://github.com/Hyperbog/RLOFT/issues/10), [original engine playability #9](https://github.com/Hyperbog/RLOFT/issues/9). No new Windows run was dispatched and no copyrighted assets were committed.
+
+## Release fail-closed gate refinements
+
+After the initial source audit, Windows CMake was tightened to require **Python 3.10 or later** (rather than silently skipping Python-dependent CTests). The Windows build script now enumerates CTests and refuses to release an artifact unless **at least 13 tests** are registered and all five named critical tests are present: the Win32 indexed-frame GUI self-test, the Win32 actual-media synthetic fixture, the Windows PowerShell ZIP integrity test, the real `GameSource` ISO/loose media CLI fixture, and the real reader/mod overlay adapter. **Only then** does it run the complete native CTest suite and create the archive.
+
+The release script also requires the relevant tracked `NativeEngine` and inherited `GameSource` files to be clean against Git HEAD before embedding a source-revision label. The ZIP verification is performed against the **final compressed archive and extracted file bytes**, not just the build directory.
+
+These are **source-level gates only** until Windows/MSVC compiles and executes them. The existing Linux CTest count cannot substitute for a green Windows build. [M-WIN-01 #12](https://github.com/Hyperbog/RLOFT/issues/12) remains open.
