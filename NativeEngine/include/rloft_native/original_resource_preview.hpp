@@ -69,7 +69,11 @@ inline SourceCursorPreview make_source_cursor_preview(
                                    static_cast<std::size_t>(cursor.width) +
                                static_cast<std::size_t>(x);
             const auto color = cursor.pixels[index];
-            if (color != cursor.transparent_index) {
+            // Match IndexedFramebuffer::draw_frame: 0xFF disables the
+            // transparency-key test; it is not an automatic transparent
+            // pixel. This matters for source-faithful unusual cursor banks.
+            if (cursor.transparent_index == 0xFF ||
+                color != cursor.transparent_index) {
                 output.frame.pixels[
                     (y_start + static_cast<unsigned>(y)) * IndexedFrame::width +
                     x_start + static_cast<unsigned>(x)] = color;
