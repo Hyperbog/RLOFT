@@ -301,6 +301,8 @@ void browse(State& state, std::string archive, std::size_t index, int direction)
             L" #" + std::to_wstring(state.browsed_record) +
             L" (" + std::to_wstring(state.cursor.width) +
             L"x" + std::to_wstring(state.cursor.height) +
+            (resource.resource_type==6 ? L", EH6 world texture" :
+                                         L", EH1 indexed raster") +
             L"), COLORS " + std::to_wstring(bank) +
             L". " + provenance + L".";
         if(state.index_control)
@@ -450,8 +452,9 @@ void draw(State& state,HDC dc) {
     const std::wstring caption =
         L"RES " + unicode(state.browsed_archive) +
         L" #" + std::to_wstring(state.browsed_record) +
-        (state.title_cursor_active ? L" — CODE.2 COLOR REMAP" :
-                                    L" — RAW INDEXED COLOR");
+        (state.title_cursor_active ? L" — CODE.2 CURSOR" :
+         state.browsed_archive=="RES4" ? L" — EH6 WORLD TEXTURE" :
+         L" — EH1 INDEXED RASTER");
     DrawTextW(dc,caption.c_str(),-1,&cursor_title,DT_SINGLELINE|DT_END_ELLIPSIS);
     if (!state.cursor.bgra.empty()) {
         BITMAPINFO info{};
@@ -566,7 +569,7 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
             SendMessageW(state->palette_control,CB_SETCURSEL,0,0);
             for(const auto* archive : {
                 L"RES0", L"RES1", L"RES2", L"RES3", L"RES4",
-                L"RES5", L"RES6", L"RES7", L"RES8", L"RES10"
+                L"RES5", L"RES6", L"RES7", L"RES8", L"RES9", L"RES10"
             }) {
                 SendMessageW(state->archive_control,CB_ADDSTRING,0,
                              reinterpret_cast<LPARAM>(archive));
