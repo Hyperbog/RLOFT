@@ -11,6 +11,7 @@ This repository preserves and reverse-engineers the original DOS game and develo
 | Reconstructed executable CODE.1 | [`Code1/README.md`](Code1/README.md) |
 | Reconstructed executable CODE.2 | [`Code2/README.md`](Code2/README.md) |
 | Native game engine (`demo-v1`) | [`DemoV1/README.md`](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/README.md); [original-game fidelity charter](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/ORIGINAL_EXECUTION_FIDELITY_CHARTER.md) |
+| Standalone installed-game engine (`native-engine`) | [Engine product contract](https://github.com/Hyperbog/RLOFT/blob/native-engine/NativeEngine/README.md); [M-ENGINE-01 first native playtest](https://github.com/Hyperbog/RLOFT/issues/9) — separate executable, user installation assets, first playable-state assessment; **not built/accepted yet** |
 | DOSDis disassembler (`disassembler-foundation`) | [`Tools/Disassembler/README.md`](https://github.com/Hyperbog/RLOFT/blob/disassembler-foundation/Tools/Disassembler/README.md) |
 | Asset extractor (`extractor-wpf-fluent`) | [`Tools/anm/README.md`](https://github.com/Hyperbog/RLOFT/blob/extractor-wpf-fluent/Tools/anm/README.md) and [`Tools/README.md`](Tools/README.md) |
 | DAT, resource and runtime format research | [`DatFiles/`](DatFiles/README.md), [`Resources/`](Resources/README.md), [`Runtime/`](Runtime/README.md) |
