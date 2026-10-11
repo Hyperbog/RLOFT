@@ -6,6 +6,7 @@
 - [Branch ownership and lifecycle](BRANCH_OWNERSHIP.md) — seven active/review branches and recovery policy.
 - [2026-10-11 branch cleanup audit](BRANCH_CLEANUP_AUDIT_20261011.md) — fourteen archived branch tips and obsolete workflow retirement.
 - [Shared-code synchronization register](SHARED_SOURCE_REGISTER.md) — exact shared blobs, intentional drift and source-proof gate.
+- [Original-machine CFG and AI work-packet integration](../ResearchInfra/ORIGINAL_MACHINE_CFG_20261011.md) — optional authenticated CODE originals, independent x86 blocks and source-call overlays.
 - [Documentation maintenance policy](DOCUMENTATION_POLICY.md) — retain original addresses, research and history in context.
 
 ## Project-specific authoritative documentation

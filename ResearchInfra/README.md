@@ -37,3 +37,16 @@ Branch inventory, retirement policy, and housekeeping live in \`docs/BRANCH_CLEA
 ## Shared decompilation / native-parity workflow v1
 
 The [shared original-bank/CFG/trace/iteration gates](../SharedDecomp/README.md) extend this source-only index without changing its proof authority. Run `python3 -m unittest discover -s SharedDecomp -p 'test_*.py' -v` and `python3 ResearchInfra/export_workflow_context.py --key code2:35418 --out build/research/workflow_context.json` to generate a hash-verified bounded AI packet. See [implementation and DOS runtime limitations](WORKFLOW_INTEGRATION.md). The tool will not claim DOS codegen or native gameplay parity without independently captured execution traces.
+
+
+## Independently authenticated original-machine CFG and cross-project packets (2026-10-11)
+
+The original x86-32 LE witness importer is now implemented. [Method and original-byte results](ORIGINAL_MACHINE_CFG_20261011.md).
+
+- \`original_cfg.py\`: source-selected, SHA-pinned original LE instructions → candidate CFG/basic blocks, call/branch edges, external and unresolved indirect edges, and explicit DOS interrupt sites. Requires owner-local original CODE.1 and CODE.2 plus GNU objdump; binary content is never committed.
+- \`original_witnesses.json\`: 15 original instruction spans with complete original-file and individual slice hashes; no executable bytes embedded.
+- \`compare_call_evidence.py\`: original direct CALL sites versus canonical C++ static function-call references; mismatches are review candidates, **not** a presumed behavioral defect.
+- \`original_context.py\`: regenerates authenticated original CFG and bundles code signatures with SHA-fresh source context and project-ownership review lanes; no original-DOS parity or compiler-output matching implied.
+- \`test_original_cfg.py\`, \`test_original_context.py\`, \`test_compare_call_evidence.py\`: offline synthetic original-source-safe regression suites.
+
+The existing canonical source index is still the source-only graph, not a decompiler. Original-machine CFG records form a **separate trust domain** and are only joined when original file identity is authenticated. CI tests the synthetic paths; original-file acceptance is an opt-in local operation.
