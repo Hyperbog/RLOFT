@@ -1,5 +1,10 @@
 # NativeEngine — Active developer/agent instructions
 
+## Verified independently built original RES browser (2026-10-11)
+
+[WINDOWS_NATIVE_RES_BROWSER_VERIFIED_20261011.md](WINDOWS_NATIVE_RES_BROWSER_VERIFIED_20261011.md) records actual verified Windows MSVC x64 execution: separate EH1 decoder build [run #38168263623](https://github.com/Hyperbog/RLOFT/actions/runs/38168263623) initially found a malformed test lambda capture, then passed **10/10** CTests after fix; full original RES image browser [run #38168898735](https://github.com/Hyperbog/RLOFT/actions/runs/38168898735) compiled source SHA `d29914503fb6d6bb3a65954257d0ac145f0ceaf0`, passed **11/11**, and produced asset-free AMD64 GUI EXE, with exact ZIP and executable SHA-256 independently verified. The new browser selects RES archive/record and navigates type1 images without flattening/repacking the install; other EH types are explicitly not decoded yet. **New raster output against user-owned GOG has NOT YET been field verified**; earlier 19/19 real GOG resource inventory belongs to a previous compiler SHA. Do not call documentation-only later HEAD compiled. Keep DemoV1 full decomp/recomp separate and do not resurrect gameplay source linking. Next resource work should inspect real images, then typed EH/ANM/DAT formats.
+
+
 ## Real original GOG asset loading accepted; EH1 raster next unbuilt gate
 
 The owner provided a **Windows screenshot from the independent `rloft_native.exe` asset-loader** opening their original GOG `game.gog`. [Field ledger](WINDOWS_REAL_GOG_ASSET_FIELD_TEST_20261011.md) records **ISO2048, 69 indexed files, 19/19 known resources structurally validated, 0 missing, 0 invalid and original palette12 displayed**. This closes the *real source-media indexing and structural inventory* gate of the earlier compiled `fd314b89` binary. It does **not** establish deep decoding or gameplay.
