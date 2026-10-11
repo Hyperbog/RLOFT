@@ -1,0 +1,37 @@
+name: "RLOFT independent RES image browser Windows x64 - authorized single run"
+on:
+  push:
+    branches:
+      - native-browser-win64-20261011-1610-once
+    paths:
+      - .github/workflows/native-browser-win64-once-20261011.yml
+permissions:
+  contents: read
+jobs:
+  native-image-browser:
+    runs-on: windows-2022
+    timeout-minutes: 50
+    steps:
+      - name: Checkout latest independent native-engine
+        uses: actions/checkout@v4
+        with:
+          ref: native-engine
+          persist-credentials: false
+      - name: Install fixture Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile native RES image browser and require 11 Windows tests
+        shell: pwsh
+        run: |
+          & ./NativeEngine/Windows/Build-NativeAssets-Windows.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload asset-free image browser ZIP and SHA256
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLOFT-NativeEngine-Windows-x64-RES-BROWSER-20261011
+          path: |
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
