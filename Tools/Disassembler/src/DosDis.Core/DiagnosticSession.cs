@@ -176,7 +176,8 @@ public enum DiagnosticStage
     UnhandledUiException,
     UnhandledProcessException,
     UnobservedTaskException,
-    AppClosed
+    AppClosed,
+    FileOpenedMz
 }
 
 public sealed record DiagnosticEvent(long Sequence, string TimestampUtc,
