@@ -217,7 +217,18 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpar
             return state->select_button ? 0 : -1;
         case WM_COMMAND:
             if (LOWORD(wparam) == kSelectId && HIWORD(wparam) == BN_CLICKED) {
-                if (auto selected = browse_install(hwnd)) choose(*state, *selected);
+                // Never propagate C++ exceptions across the User32 window
+                // procedure: report the error in the live desktop UI.
+                try {
+                    if (auto selected = browse_install(hwnd))
+                        choose(*state, *selected);
+                } catch (const std::exception& error) {
+                    state->signature_ok = false;
+                    state->status = L"Windows folder selection failed:\n" +
+                        widen(error.what()) +
+                        L"\nNo original files were modified.";
+                    InvalidateRect(hwnd, nullptr, TRUE);
+                }
                 return 0;
             }
             break;
