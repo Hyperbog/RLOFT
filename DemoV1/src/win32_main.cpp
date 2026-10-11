@@ -27,6 +27,7 @@
 #include "rloft/anm_cinematic.hpp"
 #include "rloft/dev_level_diagnostics.hpp"
 #include "rloft/dev_session_trace.hpp"
+#include "rloft/win32_scan_observation.hpp"
 #include "rloft/dev_level_interaction_policy.hpp"
 #include "rloft/automap_modal.hpp"
 #include "rloft/automap_screen_presenter.hpp"
@@ -583,6 +584,33 @@ private:
     }
 
     LRESULT handle(UINT msg, WPARAM wparam, LPARAM lparam) {
+        // Developer-only metadata, never original CODE.2 gameplay input.
+        // Status rejects missing E0/E1 streams and unknown repeat timing.
+        // Keep the existing Win32 key handler entirely unchanged below.
+        if(session_trace_ &&
+           (msg==WM_KEYDOWN || msg==WM_KEYUP ||
+            msg==WM_SYSKEYDOWN || msg==WM_SYSKEYUP)) {
+            const auto observation=
+                rloft::Win32ScanObservationModel::decode(
+                    static_cast<std::uint32_t>(msg),
+                    static_cast<std::uint64_t>(lparam));
+            // Trace parameters: a=OEM scan byte; b bits 0..7=status,
+            // 8..23=repeat, 24=extended, 25=ALT context,
+            // 26=previous down, 27=key up, 28=system key.
+            const auto scan_flags=
+                static_cast<std::uint32_t>(observation.status) |
+                (static_cast<std::uint32_t>(observation.repeat_count)<<8U) |
+                (static_cast<std::uint32_t>(observation.extended)<<24U) |
+                (static_cast<std::uint32_t>(observation.alt_context)<<25U) |
+                (static_cast<std::uint32_t>(observation.previous_down)<<26U) |
+                (static_cast<std::uint32_t>(observation.key_up)<<27U) |
+                (static_cast<std::uint32_t>(observation.system_key)<<28U);
+            try {
+                session_trace_->event("key.scan_observation",
+                    static_cast<std::int64_t>(observation.oem_scan),
+                    static_cast<std::int64_t>(scan_flags));
+            }catch(...) {session_trace_=nullptr;}
+        }
         switch (msg) {
             case WM_PAINT:
                 paint();

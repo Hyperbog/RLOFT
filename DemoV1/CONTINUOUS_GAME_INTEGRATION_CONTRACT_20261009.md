@@ -1,5 +1,9 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+## 2026-10-11 Win32 scan metadata observer, no DOS IRQ injection
+
+A portable native Win32 LPARAM scan decoder now distinguishes ordinary single make/break observations from unresolved E0/E1 extended streams, Windows repeats and inconsistent transitions. Microsoft-defined bits 0..31 are retained. Its strict GCC 14 C++17 regression passed locally. The Windows host uses this decoder only in pre-existing opt-in session tracing, logging metadata as `key.scan_observation` while preserving the existing normal gameplay keyboard message switch byte-for-byte. A separate source-only CTest prevents accidental calls to the DOS keyboard dispatcher from this host. **No keyboard-to-port-0x60 translation has been accepted or enabled in ordinary gameplay.** Original CODE.2 keyboard IRQ and F0C8 runtime parity, current-SHA Windows Full and M-PLAY-01 remain pending. [Instrumentation and acceptance](WIN32_SCAN_OBSERVATION_20261011.md).
+
 ## 2026-10-11 Native DOS keyboard session and hardware interrupt boundary
 
 The native C++17 keyboard session now combines the installed CODE.2 F590 keymap with a single mutable held-key state, the raw 30950 dispatcher and separate 30AD8/30B40/30AEC key readers. An independent regression authenticates original keyboard ISR prelude 308F8..3094F (88-byte SHA), call 30902→3566C, 30 machine-code windows, port 0x60/0x61 operations and all three PIC port 0x20 EOI/IRET exits. Tested locally with source-backed input services and original CODE.2. Distinct 0x80 comparisons at 30925 (port 0x61) and 30951 (port 0x60) prohibit assuming a Win32 E0/E1 mapping. Normal Win32 input is deliberately **not wired** to the adapter; no current-SHA Windows Full or original-DOS playthrough acceptance. [Native session boundary](ORIGINAL_DOS_KEYBOARD_SESSION_MPLAY01_20261011.md).

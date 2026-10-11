@@ -74,6 +74,12 @@ if(Python3_Interpreter_FOUND)
     # for FDBC page base / FF48 source texture origin, bounded
     # against indirect alias and ES selector uncertainty.
     # Read-only C050 original page toggle width and byte-literal audit.
+    # Win32 hardware scan metadata is developer-only and does not
+    # dispatch the original CODE.2 IRQ from ordinary gameplay.
+    add_test(
+        NAME win32_scan_observation_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_win32_scan_observer_contract.py")
     # CODE.2 raw keyboard controller, PIC EOI and IRET byte evidence.
     add_test(
         NAME original_dos_keyboard_isr_hardware_source_tests
