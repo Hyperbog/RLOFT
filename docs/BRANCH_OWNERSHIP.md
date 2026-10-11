@@ -6,6 +6,7 @@
 | --- | --- | --- |
 | `code1-decompilation` | Default branch; source-owned `Code1/`, `Code2/`, `DatFiles/`, `Resources/`, preservation evidence | **Canonical decompilation**; cross-project documentation entry lives here |
 | `demo-v1` | `DemoV1/` faithful native engine, tests and Win32 host | **Active native development**; [original-game charter](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/ORIGINAL_EXECUTION_FIDELITY_CHARTER.md) is binding |
+| `native-engine` | `NativeEngine/` standalone install-backed native engine application / user playtest | **Separate product milestone**; [M-ENGINE-01](https://github.com/Hyperbog/RLOFT/issues/9) tracks distinct `rloft_native.exe` and real installation-backed progression; source from `demo-v1` may be reused but its demo binary does not satisfy acceptance |
 | `disassembler-foundation` | `Tools/Disassembler/`: DOSDis .NET, WPF and external validation | **Active disassembler**; [its local docs](https://github.com/Hyperbog/RLOFT/blob/disassembler-foundation/Tools/Disassembler/README.md) remain authoritative |
 | `extractor-wpf-fluent` | `Tools/`: WPF extractor, Python/ANM underlying formats | **Specialist implementation**; local docs stay in place |
 | `DnD-Classics` | `MASTER/` original media | **Media-preservation branch**; do not rewrite game files, identities or history during housekeeping |
