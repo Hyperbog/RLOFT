@@ -54,9 +54,11 @@ class ResearchIndexTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 verify_orig(root, "code2")
 
-    def test_duplicate_definitions_rejected(self):
-        with self.assertRaises(ValueError):
-            extract("void function_abcd(){} void function_abcd(){}", "code2", "x.cpp")
+    def test_overloaded_address_variants_are_preserved(self):
+        defs = extract("void function_abcd(){} void function_abcd(){}", "code2", "x.cpp")
+        self.assertEqual([f["id"] for f in defs],
+                         ["code2:0abcd#variant1", "code2:0abcd#variant2"])
+        self.assertTrue(all(f["address_alias_ambiguous"] for f in defs))
 
     def test_comments_strings_not_false_calls(self):
         s = 'void function_ab12(){// function_beef()\n"function_dead()"; function_ab13();}'
