@@ -1,4 +1,5 @@
-# Local Windows build. Nothing in this script calls GitHub Actions.
+# Local Windows DESKTOP build. No end-user CLI is built or packaged.
+# Core research/validation commands remain internal-only. Nothing calls GitHub Actions.
 # Run from any directory on Windows 11 with .NET 10 SDK installed.
 param(
     [switch]$Publish,
@@ -31,7 +32,6 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "dotnet $($Arguments -join ' ') failed ($LASTEXITCODE)" }
     }
     Invoke-Dotnet -Arguments @('build', 'src/DosDis.Desktop/DosDis.Desktop.csproj', '-c', 'Release')
-    Invoke-Dotnet -Arguments @('build', 'src/DosDis.Cli/DosDis.Cli.csproj', '-c', 'Release')
     Invoke-Dotnet -Arguments @('run', '--project', 'tests/DosDis.Smoke', '--configuration', 'Release')
     Invoke-Dotnet -Arguments @('run', '--project', 'tests/DosDis.ProjectSmoke', '--configuration', 'Release')
     if (($OriginalCode1 -ne '') -xor ($OriginalCode2 -ne '')) {
@@ -44,9 +44,6 @@ try {
     if ($Publish) {
         Invoke-Dotnet -Arguments @('publish', 'src/DosDis.Desktop/DosDis.Desktop.csproj', '-c', 'Release',
             '-r', 'win-x64', '--self-contained', 'true', '--output', 'dist/windows-desktop')
-        Invoke-Dotnet -Arguments @('publish', 'src/DosDis.Cli/DosDis.Cli.csproj', '-c', 'Release',
-            '-r', 'win-x64', '--self-contained', 'true', '-p:PublishSingleFile=true', '--output', 'dist/windows-cli')
-        Copy-Item README.md,THIRD_PARTY_NOTICES.md -Destination dist/windows-cli/ -ErrorAction Stop
         Copy-Item README.md,THIRD_PARTY_NOTICES.md -Destination dist/windows-desktop/ -ErrorAction Stop
         $package = 'dist/DOSDis-Windows11-x64-preview.zip'
         if (Test-Path $package) { Remove-Item $package -Force }
