@@ -1,0 +1,48 @@
+name: "RLOFT native-engine Windows x64 - owner-authorized one-shot 20261011"
+
+# User explicitly authorized one Windows build on 2026-10-11.
+# This exists on one isolated build branch only, never on the main
+# development branches; the sole push is this exact workflow's creation.
+on:
+  push:
+    branches:
+      - native-engine-win64-build-20261011-0647
+    paths:
+      - .github/workflows/native-engine-win64-one-shot-20261011.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rloft-native-engine-once-20261011-0647
+  cancel-in-progress: false
+
+jobs:
+  windows-native-bootstrap:
+    if: github.ref == 'refs/heads/native-engine-win64-build-20261011-0647'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - name: Check out independently versioned native-engine
+        uses: actions/checkout@v4
+        with:
+          ref: native-engine
+          persist-credentials: false
+      - name: Pin fixture Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build, test, verify and package Windows x64 native bootstrap
+        shell: pwsh
+        run: |
+          & ./NativeEngine/Windows/Build-NativeEngine-Windows.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Publish result and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLOFT-NativeEngine-Windows-x64-BOOTSTRAP-20261011
+          path: |
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-BOOTSTRAP.zip
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-BOOTSTRAP.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
