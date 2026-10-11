@@ -2,6 +2,12 @@
 
 **Branch owner:** `native-engine`; do not mistake the inherited `DemoV1/` implementation or its developer-only `--explore-level22` path for this product. Read [README.md](README.md), [Proof C](FRAMEWORK_PROOF_C_INSTALL_AND_MOD_TRANSACTION_20261010.md), [GPU acceptance spec](GPU_BACKEND_ACCEPTANCE_SPEC_20261010.md), and [original execution charter](../DemoV1/ORIGINAL_EXECUTION_FIDELITY_CHARTER.md) before changing native gameplay. Consult the `Code1/` and `Code2/` original-source continuity and immutable original game bytes before any game-facing implementation.
 
+## Windows-first platform directive (2026-10-10)
+
+**Windows x64/MSVC is the sole active desktop build and release gate.** Do not spend new effort on Linux compatibility, Linux CI, Linux packaging, Linux port-specific bugs or Linux performance benchmarks. Existing portable C++ game logic, source readers and previously executed Linux tests remain useful historical evidence, not new deliverables.
+
+The separate `rloft_native_bootstrap.exe` Win32 **media/viewport diagnostic** target and `rloft_install_probe.exe` Windows console inspector are registered, alongside the dedicated `NativeEngine/Windows/Build-NativeEngine-Windows.ps1` script and manual `.github/workflows/native-engine-windows.yml` workflow on default branch and `native-engine`. **No accepted Windows build/exe exists until actual MSVC compilation/CTest and artifact checks are observed**; the bootstrap is not the playable `rloft_native.exe`. See [Windows-first acceptance](WINDOWS_FIRST_BUILD_AND_ACCEPTANCE_20261010.md).
+
 ## Exact work order
 
 1. Check **live Git HEAD** and all files modified by parallel agents; use blob-SHA-guarded edits, bounded commits and no force updates. Record actual build revision and original-file patch identity. Do not overwrite parallel work.
@@ -14,14 +20,13 @@
 8. **Windows GitHub Actions Full builds are manually dispatched only with explicit owner approval per run.** Documentation changes, user "continue" or source commits do not themselves authorize CI. No proprietary original game files or private saves are committed.
 9. Keep a reproducible acceptance ledger: source evidence / authored regression / actual local compiler+CTest / actual Windows host / actual owned-install gameplay / original DOS comparison are six separate statuses. Do not increase complete-game readiness for a source-only tooling checkpoint.
 
-## Quick local commands (full Git checkout)
+## Windows x64 build commands (full Git checkout)
 
-```sh
-cmake -S NativeEngine -B build/native-preflight -DCMAKE_BUILD_TYPE=Release \
-  -DRLOFT_NATIVE_SOURCE_SHA="$(git rev-parse HEAD)"
-cmake --build build/native-preflight --parallel
-ctest --test-dir build/native-preflight --output-on-failure
-./build/native-preflight/rloft_install_probe --help
+```powershell
+git switch native-engine
+powershell -NoProfile -ExecutionPolicy Bypass -File NativeEngine\Windows\Build-NativeEngine-Windows.ps1
 ```
+
+The [dedicated manual GitHub Actions workflow](https://github.com/Hyperbog/RLOFT/actions/workflows/native-engine-windows.yml) builds `native-engine` using MSVC x64, executes all registered Windows CTests, verifies the GUI/headless smoke test and uploads an asset-free ZIP with exact Git source SHA and executable hashes. It never runs automatically. Do not report an artifact as existing unless the run has succeeded and its artifact identity was verified.
 
 **Next two gates:** (1) isolated SDL3 Renderer / bgfx / SDL_GPU GPU proof builds with readback and shader acceptance, then genuine installed-asset normal-game launcher work; (2) independent source-faithful executable `rloft_native` player boot-to-first-blocker test, tracked by [M-ENGINE-01](https://github.com/Hyperbog/RLOFT/issues/9). Treat the fidelity charter's Level22 acceptance sequence as binding for game work.
