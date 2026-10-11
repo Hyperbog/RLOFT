@@ -6,7 +6,7 @@
 This is a navigation handoff, not a substitute for the full roadmap,
 normative evidence requirements or a Git status check.
 
-## CHECKSYS original MZ GUI analysis/export evidence — partial owner acceptance
+## CHECKSYS original MZ screenshot + JSON — partial owner GUI acceptance
 
 - User tested the run #42 Windows WPF executable with exact-original
   Dungeon Hack `CHECKSYS.EXE` and reported only **RAW HEX VIEW**;
@@ -22,9 +22,14 @@ normative evidence requirements or a Git status check.
   `dosdis-mz16-candidate-analysis.json` with **336 x86-16
   candidate instructions, 394 edges and 28 unresolved diagnostics**
   from exact-SHA Dungeon Hack CHECKSYS.EXE. This now evidences
-  a real-original MZ Analyze/JSON Export workflow, but **NOT**
-  a screenshot-confirmed WPF navigation or a real LE GUI regression.
-  No independent decoded-code accuracy or real DOS execution claim.
+  a real-original MZ Analyze/JSON Export workflow. **The owner
+  then supplied a Windows GUI screenshot** visually confirming
+  standalone MZ recognition, CS:IP instruction listings, the
+  File Intelligence entry/relocation fields, and the same
+  336/394/28/14,544 analysis status. No screenshot of an actual
+  navigation/References/Hex action or real LE GUI regression
+  is supplied. No independent decoded-code accuracy or
+  real DOS execution claim.
 - Current SQLite graph and note schema is LE-object-only: project
   save/open/notes/backup are disabled in MZ mode, while direct
   MZ candidate export is available. The exporter checks full source
@@ -37,7 +42,7 @@ normative evidence requirements or a Git status check.
   **desktop only**, no CLI artifact.
 - Exact root cause and Windows acceptance plan:
   [G2_DESKTOP_MZ_UI_HANDOFF_20261010.md](G2_DESKTOP_MZ_UI_HANDOFF_20261010.md).
-- **Next:** Obtain WPF screenshot/user verification of module-relative CS:IP navigation, File Intelligence labels and optional text export; regression-test one original LE GUI workflow including project operations. The uploaded original-MZ JSON validates that ANALYZE/JSON EXPORT produced a real-file result but does not verify visual WPF interaction or all physical mapping semantics. **G2 accuracy certification stays pending.**
+- **Next:** Original MZ **visual File Intelligence and post-analysis disassembly are now evidenced**. Request only the remaining interaction evidence: Go/CS:IP navigation to another backed address, References/Hexadecimal tab synchronization, optional text export, and one original LE file's project workflow. Prioritize future GUI layout improvements (truncated Explorer entry, Evidence strings and File Intelligence fields, space reserved for LE-only comments) without asserting functions that the current analyzer has not established. **G2 code-accuracy certification stays pending.**
 - Exact first original-file export evidence and private-audit summary:
   [G2_DESKTOP_MZ_WINDOWS_BUILD_20261010_RUN43.md](G2_DESKTOP_MZ_WINDOWS_BUILD_20261010_RUN43.md).
   Do NOT check in the owner's exported JSON or proprietary disassembly.
