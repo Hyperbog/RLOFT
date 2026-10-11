@@ -13,7 +13,7 @@ namespace rloft_native {
 // Complete independent original-resource bank loader and structural auditor.
 // No DemoV1 execution/linkage, no writes to installed original media.
 enum class BankRecordKind {
-    Empty, NonEh, Raster, Font, Xmidi, Voc, Structured5, Texture, SceneShape,
+    Empty, NonEh, Raster, InertLegacyRaster, Font, Xmidi, Voc, Structured5, Texture, SceneShape,
     UnknownTyped
 };
 
@@ -34,6 +34,7 @@ struct NativeBankSummary {
     std::size_t non_eh{};
     std::size_t raw_wordcode{};
     std::size_t decoded_raster{};
+    std::size_t inert_legacy_raster{};
     std::size_t decoded_font{};
     std::size_t decoded_texture{};
     std::size_t decoded_scene_shape{};
