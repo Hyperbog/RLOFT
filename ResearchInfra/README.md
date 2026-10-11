@@ -33,3 +33,7 @@ For other branches, run the same tool with \`--root <checkout>\` only if that ch
 (1) Import **original instruction-level CFGs** and indirect-target xrefs from independent x86 LE analysis, with explicit ambiguity tracking; (2) ingest Watcom OMF fixups and normalized instruction diffs from \`Code2/tools/\`; (3) bridge DOSDis JSON and native/DOS field captures; (4) produce project-specific change-impact reports tied to exact Git SHA and original hash. Validate every layer independently before promoting evidence strength.
 
 Branch inventory, retirement policy, and housekeeping live in \`docs/BRANCH_CLEANUP_AUDIT_20261011.md\`; no branch should be deleted merely because its name suggests a temporary build.
+
+## Shared decompilation / native-parity workflow v1
+
+The [shared original-bank/CFG/trace/iteration gates](../SharedDecomp/README.md) extend this source-only index without changing its proof authority. Run `python3 -m unittest discover -s SharedDecomp -p 'test_*.py' -v` and `python3 ResearchInfra/export_workflow_context.py --key code2:35418 --out build/research/workflow_context.json` to generate a hash-verified bounded AI packet. See [implementation and DOS runtime limitations](WORKFLOW_INTEGRATION.md). The tool will not claim DOS codegen or native gameplay parity without independently captured execution traces.

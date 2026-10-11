@@ -4,6 +4,8 @@ on:
     branches: [code1-decompilation]
     paths:
       - 'ResearchInfra/**'
+      - 'SharedDecomp/**'
+      - 'AGENTS.md'
       - '.github/workflows/research-infrastructure.yml'
   workflow_dispatch:
 permissions:
@@ -21,11 +23,14 @@ jobs:
           python-version: '3.12'
       - name: Offline research parser regression suite
         run: python3 -m unittest discover -s ResearchInfra -p 'test_*.py' -v
+      - name: Cross-project deterministic evidence and native trace gates
+        run: python3 -m unittest discover -s SharedDecomp -p 'test_*.py' -v
       - name: Build real canonical CODE.1/CODE.2 source graph
         run: |
           python3 ResearchInfra/index.py build --root . --output build/research/index.json
           python3 ResearchInfra/index.py query --output build/research/index.json --key code2:353a0 > build/research/entry.json
           python3 ResearchInfra/index.py packet --root . --output build/research/index.json --key code2:35418 > build/research/startup.json
+          python3 ResearchInfra/export_workflow_context.py --root . --index build/research/index.json --key code2:35418 --out build/research/workflow_context.json
       - name: Assert parsed canonical entry and provenance
         run: |
           python3 - <<'PY'
@@ -36,6 +41,10 @@ jobs:
           assert len(j['functions'])>=100
           assert {f['id'] for f in j['functions']} >= {'code1:07f50','code2:353a0','code2:35418','code2:395e2'}
           assert j['authority']=='source_structure_only_not_original_binary_or_DOS_acceptance'
+          w=json.loads(Path('build/research/workflow_context.json').read_text())
+          assert w['target']=='code2:35418'
+          assert w['source_authority']=='STATIC_SOURCE_ONLY'
+          assert not w['original_binary_match'] and not w['native_windows_parity'] and not w['dos_runtime_parity']
           print('SOURCE_ONLY_RESEARCH_GRAPH_PASS',len(j['functions']),len(j['edges']))
           PY
       - name: Retain generated metadata, not game media
@@ -46,5 +55,6 @@ jobs:
             build/research/index.json
             build/research/entry.json
             build/research/startup.json
+            build/research/workflow_context.json
           if-no-files-found: error
           retention-days: 7
