@@ -37,7 +37,7 @@ void exercise() {
     // transparent=255, raw uncompressed, no transform, 16 data bytes.
     const std::vector<std::uint8_t> cursor{
         'E','H', 1, 8, 0, 1, 0, 2, 0, 1, 255, 0, 0,
-        0, 1, 2, 3, 4, 5, 6, 7,
+        0, 1, 2, 3, 255, 5, 6, 7,
         7, 6, 5, 4, 3, 2, 1, 0,
     };
     archive.insert(archive.end(), cursor.begin(), cursor.end());
@@ -63,6 +63,9 @@ void exercise() {
         const unsigned top = 199U * 320U + 156U;
         assert(preview.frame.pixels[top] == 0);
         assert(preview.frame.pixels[top + 1] == 1);
+        // EH transparent key FF disables transparency testing. FF is a
+        // real indexed pixel here and must not be silently erased.
+        assert(preview.frame.pixels[top + 4] == 255);
         assert(preview.frame.pixels[top + 7] == 7);
         assert(preview.frame.pixels[top + 320U] == 7);
         rloft_native::CpuReferencePresenter cpu;
