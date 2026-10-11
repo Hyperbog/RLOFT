@@ -24,6 +24,15 @@ class ProtectedNoncodeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             protected_noncode.parse_ledger(q.replace(b'unknown',b'noncode'),code_size=12,expected_total=None)
 
+    def test_current_canonical_code1_residual_ledger_is_consistent(self):
+        from pathlib import Path
+        root=Path(__file__).resolve().parents[1]
+        actual=protected_noncode.load(root)
+        self.assertEqual(actual['declared_noncode_bytes'],1041)
+        self.assertEqual(actual['counts'],
+                         {'alignment':575,'table':204,'noncode':262})
+        self.assertTrue(all(a['end_exclusive']<=0x11302 for a in actual['ranges']))
+
     def test_duplicate_marker_rejected(self):
         q=b'<!-- RESIDUAL-RANGES-BEGIN -->\n<!-- RESIDUAL-RANGES-BEGIN -->\n'
         with self.assertRaises(ValueError):
