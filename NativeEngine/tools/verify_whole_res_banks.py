@@ -68,11 +68,11 @@ def certify(data: dict) -> None:
            "active interaction/wordcode bank not checked")
     expect(banks["RES12"]["raw_wordcode"] == 37,
            "legacy wordcode bank not checked")
-    expect(sum(b["retained_shipped_anomalies"] for b in banks.values()) == 2,
+    expect(sum(b["shipped_anomalies"] for b in banks.values()) == 2,
            "known VOC length anomalies must be preserved and recognized")
-    expect(banks["RES11"]["retained_shipped_anomalies"] == 1,
+    expect(banks["RES11"]["shipped_anomalies"] == 1,
            "RES11 original VOC anomaly missing")
-    expect(banks["RES12"]["retained_shipped_anomalies"] == 1,
+    expect(banks["RES12"]["shipped_anomalies"] == 1,
            "RES12 original VOC anomaly missing")
     expect(sum(b["inert_legacy_eh1"] for b in banks.values()) == 5,
            "the five zero-pixel inactive RES12 image descriptors were not retained")
