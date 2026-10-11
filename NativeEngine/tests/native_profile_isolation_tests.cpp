@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <utility>
 
 namespace fs = std::filesystem;
 namespace {
@@ -61,6 +62,16 @@ void test_isolation() {
         assert(bytes_at(install / "CHARS") == std::vector<std::uint8_t>({0x11,0x22}));
         assert(bytes_at(install / "SOUND.CFG") == std::vector<std::uint8_t>({0x44}));
         assert(game.read("RES0") == std::vector<std::uint8_t>({3}));
+        // The full original game host moves GameSource into
+        // RavenloftBootAssets immediately after profile selection.
+        // Profile isolation MUST survive that move without reverting to
+        // the installed CHARS file.
+        auto moved = std::move(game);
+        assert(moved.runtime_output_path("CHARS") == profile / "CHARS");
+        assert(moved.read_runtime("CHARS") ==
+               std::vector<std::uint8_t>({0x55,0x66,0x77}));
+        assert(bytes_at(install / "CHARS") ==
+               std::vector<std::uint8_t>({0x11,0x22}));
     } catch (...) {
         fs::remove_all(root);
         throw;
