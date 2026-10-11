@@ -1,5 +1,22 @@
 # Ravenloft: Strahd's Possession — Independent Native Engine
 
+## Typed original-world payload continuation — SOURCE ONLY, UNBUILT
+
+[Original-world payload retention](WORLD_PAYLOAD_RETENTION_20261011.md) at native
+commit `19ada509fe03c5718a49cc6ce08b2154f5c233e2` adds
+`native_world_payload`: all 32 original packed cell grids, column-owned
+10-byte controls, complete 11-byte world families, full event-slot data and
+automap/annotations, plus isolated mutable cell/automap copies. The standalone
+`native_world_payload_tests` is registered as the **17th CTest**. This is a
+real implementation step toward native simulation, not full gameplay or DOS
+execution parity. **No build/CTest of this newer source has been run**;
+the last certified MSVC artifact remains pinned to original
+`44cc2ccc950aa686d6563b9eda6cd804b1b08cf8`. Do not trigger native
+Windows Actions without explicit owner approval. Independent source-byte
+fingerprints are available under canonical
+`code1-decompilation/SharedDecomp/original_world_oracle.py`; native decoded
+payload bytes are not yet compared against those hashes.
+
 ## Whole original RES + LEVELS + SINTAB content system: WINDOWS VERIFIED
 
 [**Canonical whole-content audit / MSVC certification**](WHOLE_CONTENT_WINDOWS_CERTIFICATION_20261011.md) supersedes individual resource-preview checkpoints. Real Windows x64 MSVC [Actions run #38174139897](https://github.com/Hyperbog/RLOFT/actions/runs/38174139897) compiled exact native source `44cc2ccc950aa686d6563b9eda6cd804b1b08cf8`, passed **16/16 Windows CTests**, then successfully decoded/validated **12,562/12,562 real source RES0..RES12 records**, all known EH families including 8,362 compiled shape display lists, all **32 original world records / 115,584 packed cells / 1,659 controls / 555 active event commands**, and all **127 SINTAB renderer scale packages** from `DnD-Classics` owned original media. New independent C++ all-bank/world systems and their fail-closed native command-line auditors are distributed with the GUI, not the decomp demo. The six-file asset-free ZIP and all **three Win64 executables** were downloaded and SHA256 verified; no copyrighted original files were shipped. **This is not yet native gameplay, scene rasterizer parity, active event VM or audio/cinematic playback.** Next work must be integrated first-person level simulation and rendering, not more one-record previews.

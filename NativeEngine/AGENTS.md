@@ -1,5 +1,22 @@
 # NativeEngine — Active developer/agent instructions
 
+## Typed original-world payload continuation — SOURCE ONLY, UNBUILT
+
+[Original-world payload retention](WORLD_PAYLOAD_RETENTION_20261011.md) at native
+commit `19ada509fe03c5718a49cc6ce08b2154f5c233e2` adds
+`native_world_payload`: all 32 original packed cell grids, column-owned
+10-byte controls, complete 11-byte world families, full event-slot data and
+automap/annotations, plus isolated mutable cell/automap copies. The standalone
+`native_world_payload_tests` is registered as the **17th CTest**. This is a
+real implementation step toward native simulation, not full gameplay or DOS
+execution parity. **No build/CTest of this newer source has been run**;
+the last certified MSVC artifact remains pinned to original
+`44cc2ccc950aa686d6563b9eda6cd804b1b08cf8`. Do not trigger native
+Windows Actions without explicit owner approval. Independent source-byte
+fingerprints are available under canonical
+`code1-decompilation/SharedDecomp/original_world_oracle.py`; native decoded
+payload bytes are not yet compared against those hashes.
+
 ## NEW controlling milestone — original WHOLE-CONTENT CERTIFIED, not native gameplay complete (2026-10-11)
 
 Read [WHOLE_CONTENT_WINDOWS_CERTIFICATION_20261011.md](WHOLE_CONTENT_WINDOWS_CERTIFICATION_20261011.md). **Windows MSVC source SHA `44cc2ccc950aa686d6563b9eda6cd804b1b08cf8`**, [actual Actions run #38174139897](https://github.com/Hyperbog/RLOFT/actions/runs/38174139897), **16/16 CTests PASS**, all owned `DnD-Classics` original RES0–RES12 **12,562/12,562 typed/empty/raw records PASS**, all 8,362 EH7 source geometry/display-list records pass, all 1,319 EH6 textures and all 1,005 VOC containers PASS, all 32 LEVELS.DAT levels and 127 SINTAB raster-code blocks structurally accepted on real game bytes. Original world totals **115,584 cells, 1,659 controls, 394 active event slots / 555 commands**. This supersedes older small-step 9/9–14/14 build notes without invalidating their narrower historical evidence. Native content system has *three* independent Windows executables now: GUI, native whole-bank audit, and native whole-world+SINTAB audit; output ZIP is original-asset-free and independently SHA256 verified.
