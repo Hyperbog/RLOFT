@@ -73,7 +73,10 @@
       <Border Grid.Column="2" Background="{StaticResource PanelBrush}" CornerRadius="7" Padding="10">
         <TabControl x:Name="MainTabs" Background="{StaticResource PanelBrush}" Foreground="{StaticResource PrimaryTextBrush}">
           <TabItem Header="Disassembly">
-            <DataGrid x:Name="AssemblyGrid" SelectionChanged="AssemblyGrid_SelectionChanged" VirtualizingPanel.VirtualizationMode="Recycling">
+            <DataGrid x:Name="AssemblyGrid" SelectionChanged="AssemblyGrid_SelectionChanged"
+                      MouseDoubleClick="AssemblyGrid_MouseDoubleClick"
+                      ToolTip="Double-click a candidate direct CALL/JMP or taken conditional branch to follow its resolved target; unresolved targets are never guessed."
+                      VirtualizingPanel.VirtualizationMode="Recycling">
               <DataGrid.Columns>
                 <DataGridTextColumn Header="Location" Binding="{Binding AddressText}" Width="120"/>
                 <DataGridTextColumn Header="Original bytes" Binding="{Binding Bytes}" Width="170"/>
@@ -83,19 +86,37 @@
             </DataGrid>
           </TabItem>
           <TabItem Header="Hexadecimal">
-            <TextBox x:Name="HexView" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                     HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="12"/>
+            <DockPanel>
+              <TextBlock x:Name="HexLocationText" DockPanel.Dock="Top" Margin="6,4,6,8"
+                         Text="No physical file position selected" TextWrapping="Wrap"
+                         Foreground="{StaticResource SecondaryTextBrush}" FontFamily="Consolas" FontSize="11"/>
+              <TextBox x:Name="HexView" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                       HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="12"/>
+            </DockPanel>
           </TabItem>
           <TabItem Header="References">
-            <DataGrid x:Name="ReferencesGrid" MouseDoubleClick="ReferencesGrid_MouseDoubleClick"
-                      ToolTip="Double-click a resolved LE object reference or module-relative MZ CS:IP reference">
-              <DataGrid.Columns>
-                <DataGridTextColumn Header="Direction" Binding="{Binding Direction}" Width="100"/>
-                <DataGridTextColumn Header="Location" Binding="{Binding AddressText}" Width="140"/>
-                <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="190"/>
-                <DataGridTextColumn Header="Evidence" Binding="{Binding Evidence}" Width="*"/>
-              </DataGrid.Columns>
-            </DataGrid>
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6,4,6,8">
+                <CheckBox x:Name="SelectedReferencesOnlyCheckBox" Content="Selected instruction only"
+                          VerticalAlignment="Center" Margin="0,0,12,0"
+                          Checked="SelectedReferencesOnly_Changed"
+                          Unchecked="SelectedReferencesOnly_Changed"
+                          ToolTip="Unchecked: show every recorded candidate edge. Checked: show incoming and outgoing references for the selected instruction."/>
+                <TextBlock x:Name="ReferencesSummary" Text="No analyzed references"
+                           Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center"
+                           FontSize="11"/>
+              </StackPanel>
+              <DataGrid x:Name="ReferencesGrid" MouseDoubleClick="ReferencesGrid_MouseDoubleClick"
+                        ToolTip="Double-click a resolved destination to navigate. Unresolved dynamic and far targets remain unknown.">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Source" Binding="{Binding SourceText}" Width="125"/>
+                  <DataGridTextColumn Header="Direction" Binding="{Binding Direction}" Width="85"/>
+                  <DataGridTextColumn Header="Destination" Binding="{Binding AddressText}" Width="125"/>
+                  <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="180"/>
+                  <DataGridTextColumn Header="Evidence" Binding="{Binding Evidence}" Width="*"/>
+                </DataGrid.Columns>
+              </DataGrid>
+            </DockPanel>
           </TabItem>
         </TabControl>
       </Border>
