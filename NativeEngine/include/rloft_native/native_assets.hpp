@@ -36,6 +36,16 @@ struct NativeType1Raster {
 [[nodiscard]] NativeType1Raster decode_native_type1_raster(
     const std::vector<std::uint8_t>& entry);
 
+struct NativeCursorResource {
+    std::size_t res0_id{};
+    NativeType1Raster image;
+};
+
+// Original INIT[0..1] + 0x2F selects default RES0 mouse raster.
+// Resolves source bytes via the independent lazy NativeMedia reader.
+[[nodiscard]] NativeCursorResource load_native_default_cursor(
+    const NativeMedia& source);
+
 struct NativePalette6 {
     std::array<std::uint8_t, 768> rgb{};
 };
