@@ -188,6 +188,56 @@ try
     Equal(mzImage.LoadImageFileOffset, 32, "DOS header paragraph mapping");
     Equal(mzImage.FileBackedImageLength, 480, "MZ declared load module length");
     Equal(mzImage.Relocations.Count, 1, "MZ relocation count");
+    // The desktop recognizes standalone MZ as supported x86-16 rather
+    // than relegating a validated header to the unsupported raw hex view.
+    var mzIntelligence = FileIntelligence.Inspect(mzArtifact, mz: mzImage);
+    Equal(mzIntelligence["analysis_support"].Status, "validated-loader",
+        "standalone MZ desktop capability is identified without LE object mapping");
+    Equal(mzIntelligence["entry_point"].Value, "0000:0000",
+        "MZ desktop advertises source-relative entry CS:IP");
+    Equal(mzIntelligence["relocation_entries"].Value, "1",
+        "MZ desktop displays original stored relocation count");
+    Fails(() => FileIntelligence.Inspect(
+        BinaryArtifact.FromBytes(new byte[] { 0x90, 0xC3 }), mz: mzImage),
+        "MZ desktop intelligence rejects a foreign binary hash");
+
+    var desktopMzGraph = Dos16ControlFlowAnalysis.Analyze(
+        mzImage.CreateEntryCodeRegion(), mzImage.InitialIp, maxInstructions: 32);
+    Equal(desktopMzGraph.Instructions.Count, 2,
+        "desktop x86-16 engine can analyze synthetic MOV and RET from MZ entry");
+    string mzDesktopJson = Dos16DesktopReportExport.BuildJson(
+        mzArtifact, mzImage, desktopMzGraph);
+    using (var reportDoc = JsonDocument.Parse(mzDesktopJson))
+    {
+        var root = reportDoc.RootElement;
+        Equal(root.GetProperty("format").GetString(), "dosdis-mz-16-candidate-analysis",
+            "MZ desktop JSON export has distinct typed format");
+        Equal(root.GetProperty("source").GetProperty("sha256").GetString(), mzArtifact.Sha256,
+            "MZ desktop export preserves exact immutable source identity");
+        Equal(root.GetProperty("source").GetProperty("sourceBinaryIncluded").GetBoolean(), false,
+            "MZ desktop export never embeds the complete original executable");
+        Equal(root.GetProperty("instructions").GetArrayLength(), 2,
+            "MZ desktop JSON export contains bounded candidate instructions");
+        Equal(root.GetProperty("instructions")[0].TryGetProperty("originalBytes", out _), false,
+            "MZ desktop export excludes instruction machine bytes by default");
+    }
+    Equal(mzDesktopJson.Contains("MAIN.EXE", StringComparison.Ordinal), false,
+        "desktop MZ export excludes original source filenames");
+    string mzDesktopBytesJson = Dos16DesktopReportExport.BuildJson(
+        mzArtifact, mzImage, desktopMzGraph, includeInstructionBytes: true);
+    Equal(mzDesktopBytesJson.Contains("B83412", StringComparison.Ordinal), true,
+        "desktop MZ export requires explicit original instruction-byte opt-in");
+    string mzDesktopText = Dos16DesktopReportExport.BuildText(
+        mzArtifact, mzImage, desktopMzGraph);
+    Equal(mzDesktopText.Contains("0000:0000", StringComparison.Ordinal), true,
+        "desktop MZ text export retains module-relative entry address");
+    Equal(mzDesktopText.Contains("B83412", StringComparison.Ordinal), false,
+        "desktop MZ text export excludes original machine bytes by default");
+    var invalidDesktopGraph = desktopMzGraph with { SourceSha256 = "f" + mzArtifact.Sha256[1..] };
+    Fails(() => Dos16DesktopReportExport.BuildJson(mzArtifact, mzImage, invalidDesktopGraph),
+        "desktop MZ exporter rejects forged graph source identity");
+    Equal(mzArtifact.Data[32], (byte)0xB8, "desktop MZ analysis does not modify original bytes");
+
     Equal(mzImage.Relocations[0].SourceFileOffset, 33L, "MZ relocation original file offset");
     Equal(mzImage.ToFileOffset(0, 0), 32L, "DOS 16-bit segment:offset source mapping");
     Equal(mzImage.ToFileOffset(0x30, 0), (long?)null, "unbacked MZ address cannot map to a fictional file offset");
