@@ -21,6 +21,21 @@ private:
     std::vector<std::uint32_t> offsets_;
 };
 
+struct NativeType1Raster {
+    std::uint16_t frames{};
+    std::uint16_t width{};
+    std::uint16_t height{};
+    std::uint8_t transparent_index{};
+    // Indexed pixels, frame-major, row-major, 8 pixels per width unit.
+    std::vector<std::uint8_t> pixels;
+};
+
+// Original EH type-1 indexed image: independent decode of raw and CODE.2
+// LZSS-4K compressed raster bodies. Invalid compressed data fails closed.
+// This is an asset decoder, NOT the decomp demo's raster presenter.
+[[nodiscard]] NativeType1Raster decode_native_type1_raster(
+    const std::vector<std::uint8_t>& entry);
+
 struct NativePalette6 {
     std::array<std::uint8_t, 768> rgb{};
 };
