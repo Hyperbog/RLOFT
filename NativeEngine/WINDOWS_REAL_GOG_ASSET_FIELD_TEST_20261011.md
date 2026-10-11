@@ -36,8 +36,8 @@ Selected observed asset figures (do not infer content parity from this summary):
 | LEVELS.DAT | 499,878 | — |
 | OBJECTS.DAT | 21,844 | — |
 | NPCS.DAT | 5,731 | — |
-| SINTAB | 33,757 | — |
-| CINE00.ANM | 1,378,193 | — |
+| SINTAB | 333,757 | — |
+| CINE00.ANM | 13,781,936 | — |
 | CINE12.ANM | 1,446,666 | — |
 
 T was also present/validated at 133,584 bytes. All 19 original resource labels displayed `[OK]`.
