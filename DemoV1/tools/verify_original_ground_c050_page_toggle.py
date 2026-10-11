@@ -331,6 +331,80 @@ def audit_original(path:Path)->None:
     for at,encoded in script17_callee_windows.items():
         want=bytes.fromhex(encoded)
         assert obj[at:at+len(want)]==want,hex(at)
+    # Script opcode 17 deeper graphics-state paths. These hashes attest
+    # independently decoded original code slices, not transitive effects.
+    # 1AACC and 1AB20 have no conventional local frame; they share
+    # RET 1AAC9 and JMP to the page-stack unwind helper 2E5D4.
+    nested_graphics_spans={
+        (0x1AACC,0x1AB20):"07d5112274f40c7e4ef49894bb580a0b02fcb7137bea839b906cd8ce4e5fc0a8",
+        (0x1AB20,0x1AC0C):"07ba01f3f70cee6963f2a227ffb3aa7a4d2a0fd85a945c886cf920262b868fc6",
+        (0x2F580,0x2F5F1):"f72f1a2dff71df4d206f4dda95e6cedcd2e57170661f72edcdf9a01d776f384f",
+        (0x2F5F4,0x2F839):"850f11e768b152840c16337ebe8677ef4b034907ae4fa841e4cbafa6a7201748",
+        (0x1A3B8,0x1A50D):"706fe1969bb08173d5330e638e869151a9cc52b36c52a448d6add09c1ccd2774",
+    }
+    for (start,end),expected in nested_graphics_spans.items():
+        assert hashlib.sha256(obj[start:end]).hexdigest()==expected,hex(start)
+        for address in (0xC050,0xF0C8,0xF0CC):
+            assert struct.pack("<I",address) not in obj[start:end],(
+                hex(start),hex(address))
+    nested_graphics_calls={
+        0x1AAE7:0x2E590,0x1AB13:0x2932C,
+        0x1AB3B:0x2E590,0x1AB5F:0x2932C,
+        0x1ABAD:0x29804,0x1ABF7:0x29804,0x1ABFF:0x2E5D4,
+        0x2F59F:0x2F5F4,0x2F5AE:0x290F4,0x2F5B6:0x2F4E0,
+        0x2F5C7:0x290F4,0x2F5CF:0x2F4E0,
+        0x2F5D8:0x311E8,0x2F5E0:0x376F0,0x2F5E7:0x352BE,
+        0x2F61B:0x3058C,0x2F624:0x30594,
+        0x2F652:0x291B0,0x2F667:0x291B0,0x2F686:0x3104C,
+        0x2F6A5:0x292BC,0x2F6BE:0x29CEC,0x2F6EC:0x30288,
+        0x2F707:0x304F4,0x2F719:0x303C8,0x2F75B:0x2A104,
+        0x2F770:0x2E614,0x2F77C:0x30AEC,0x2F79E:0x30AEC,
+        0x2F7C1:0x2932C,0x2F7CA:0x310B0,0x2F7D8:0x291B0,
+        0x2F7E7:0x304F4,0x2F811:0x2A104,0x2F827:0x311E8,
+        0x1A43F:0x33C90,0x1A4AD:0x33C90,0x1A4DC:0x1F820,
+    }
+    assert len(nested_graphics_calls)==38
+    for at,target in nested_graphics_calls.items():
+        assert obj[at]==0xE8,hex(at)
+        assert at+5+struct.unpack_from("<i",obj,at+1)[0]==target,hex(at)
+    # Literal opcode scans produce two false E8 call candidates:
+    # each lies INSIDE the displacement of a decoded E8 instruction.
+    assert obj[0x1AB15]==obj[0x2F708]==0xE8
+    assert 0x1AB15 not in nested_graphics_calls
+    assert 0x2F708 not in nested_graphics_calls
+    nested_graphics_branches={
+        0x1AAD4:(2,0x1AAC9),0x1AADD:(2,0x1AAC9),
+        0x1AB28:(2,0x1AAC9),0x1AB31:(2,0x1AAC9),
+        0x1AB1B:(5,0x2E5D4),0x1AB67:(5,0x2E5D4),
+    }
+    for at,(length,target) in nested_graphics_branches.items():
+        if length==2:
+            assert obj[at] in (0x74,0x75)
+            displacement=struct.unpack_from("<b",obj,at+1)[0]
+        else:
+            assert obj[at]==0xE9
+            displacement=struct.unpack_from("<i",obj,at+1)[0]
+        assert at+length+displacement==target,hex(at)
+    nested_graphics_windows={
+        0x1AAC8:"5bc3",0x1AAC9:"c3",
+        0x1AACC:"66833dfc85000000",0x1AAD6:"66ff0d379e0000",
+        0x1AADD:"75ea",0x1AB1B:"e9b43a0100",
+        0x1AB20:"66833dfc85000000",0x1AB2A:"66ff0d379e0000",
+        0x1AB31:"7596",0x1AB67:"e9683a0100",
+        0x1AC04:"66ff05379e0000",0x1AC0B:"c3",
+        0x2F580:"53",0x2F59F:"e850000000",
+        0x2F5EF:"5bc3",0x2F5F4:"53565755",
+        0x2F6A3:"89c5",0x2F81B:"83c4105d5f5e5bc3",
+        0x2F831:"83c4105d5f5e5bc3",
+        0x1A3B8:"5356",0x1A50A:"5e5bc3",
+    }
+    assert len(nested_graphics_windows)==21
+    for at,signature in nested_graphics_windows.items():
+        wanted=bytes.fromhex(signature)
+        assert obj[at:at+len(wanted)]==wanted,hex(at)
+    print("ORIGINAL_PASS: 5 nested source spans, 38 instruction-bound E8 edges")
+    print("ORIGINAL_PASS: 6 shared-tail branches, 21 opcode windows")
+    print("BOUND: 2F5F4 restores EBP at 2F81E/2F834; nested callees remain open")
     print("ORIGINAL_PASS: opcode 17: 11 bounded helper bodies, 20 E8 edges, 44 opcode windows")
     print("BOUND: distinct EF4D drawing/EF4E display page; CRTC 3D4 and retrace 3DA")
     print("BOUND: 30CD4 restores ES on changed paths; deeper handlers and F0C8 open")
@@ -360,6 +434,8 @@ def audit_repository()->None:
     for term in ("48 direct E8","opcode 17","1A8C8","15CA4","36 distinct","F0CC"):
         assert term in doc,term
     for term in ("1A510","1A9F8","2A020","30CD4","2ABF4","2ABC4","44 opcode","EF4D","EF4E"):
+        assert term in doc,term
+    for term in ("1AACC","1AB20","2F580","2F5F4","1A3B8","1AAC9","38","2F81E","2F834"):
         assert term in doc,term
     print("SOURCE_ONLY_PASS: registered CTest, original ground batch and audit notes")
 

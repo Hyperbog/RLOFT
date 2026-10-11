@@ -293,3 +293,59 @@ Installed `F0C8` targets, full `EBP` caller preservation,
 VGA ES/DS mapping, native indexed palette/tick output
 and original-DOS parity remain unresolved.
 
+## 2026-10-10 Shared-tail script graphics and EBP return-path audit
+
+**Original:** byte-authenticated uploaded CODE.2 (558,689 bytes, SHA-256
+`853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`),
+object-1 at physical `0x3AF24`. Fresh independent disassembly checked
+`1AACC..1AB1F`, `1AB20..1AC0B`, `2F580..2F5F0`,
+`2F5F4..2F838`, and `1A3B8..1A50C`.
+All five bounded *slices* now have full SHA-256 witnesses in the
+existing pinned original C050 verifier. Decoded **38 actual direct
+E8 edges**, six exact shared-tail branches, and 21 opcode windows
+passed locally. These are not claims of transitive register purity.
+
+**Nonconventional return sharing matters:** `1AACC` and `1AB20`
+both compare `WORD[85FC]` and decrement `WORD[9E37]` on
+conditional paths. The four original conditional branches
+`1AAD4`, `1AADD`, `1AB28`, and `1AB31` target the
+**same lone RET at 1AAC9** (the immediately preceding
+`1AAC8 pop ebx` belongs to the *other* entry at `1A9F8`).
+On the active draw path, `1AACC` reaches `1AB1B` and
+`1AB20` reaches `1AB67`; both are **JMP 2E5D4**
+tail transfers, not CALL/RET pairs. The remaining branch
+at `1ABFF` explicitly CALLs `2E5D4`, then increments
+`WORD[9E37]` and returns via `1AC0B`. Rewriting these
+as independent ordinary functions could change stack
+consumption or the rendering-state counter.
+
+**Input/display helper:** original `2F580..2F5F0` saves
+and restores EBX, has eight near calls, and directly enters
+`2F5F4` at `2F59F` when its branch condition permits.
+`2F5F4..2F838` saves EBX/ESI/EDI/EBP at entry, changes
+EBP at `2F6A3` for its drawing buffer, but restores the
+original EBP via `pop ebp` at **2F81E** and **2F834**
+on two source exits. The whole bounded source body
+has 20 direct near calls; their nested effects are **not**
+settled by local register restoration. The geometry helper
+`1A3B8..1A50C` preserves EBX/ESI locally and has
+three direct near calls.
+
+**Source validation pitfall:** the original byte `E8` at
+`1AB15` and `2F708` is embedded inside the *operand*
+of another CALL; a blind opcode-byte census would count
+**40**, but correctly decoded source contains only **38
+instruction-aligned calls** across these five slices.
+The updated regression explicitly rejects the two false
+callsite addresses. Each slice has **zero direct four-byte
+literal references** to `C050`, `F0C8` or `F0CC`;
+this is not proof of register-computed aliases.
+
+**Acceptance:** original binary-only checks passed locally.
+No new CTest, no native gameplay change, no current-revision
+Windows Full build, no matched original DOS framebuffer/page
+or callback parity. The known callable F0C8 hook, all
+38 nested call effects and protected-mode selectors remain
+open to investigation. Do not flatten shared tails or
+assume global EBP preservation.
+
