@@ -223,3 +223,73 @@ change**. Windows Full on current HEAD, original-DOS page/tick
 behavior, external callback installation and ES/DS alias safety
 remain **not accepted**.
 
+## 2026-10-10 Opcode-17 VGA display-page helper closure
+
+**Original authority:** authenticated shipped CODE.2 object-1,
+SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
+Independent original disassembly and the local binary-only oracle
+confirm **11 bounded complete helper bodies** (SHA-256 including
+RET), **20 exact E8 destinations**, **44 byte windows**, and no
+literal operand of `C050`, `F0C8` or `F0CC` in those bodies.
+Direct-address absence does not exclude register-computed addresses,
+transitive calls or callbacks.
+
+The **zero-mode script opcode 17** takes
+`15C9C→1A510`, then XORs BYTE[C050] with 1 at `15CA4`,
+and calls `15CAB→1A9F8`. The original `1A510..1A5AE`
+(159 bytes) has four direct E8 calls (to `1A288`,
+`291C8` twice, and `1AB20`), with no direct EBP
+register modification. `1A9F8..1AAC9` (210 bytes)
+has eight direct E8 calls (`2E590`, `2A020`, `30CD4`,
+`1AACC`, `2E5D4`) across its two source branches.
+It also has no direct EBP-register modification. Their callees
+remain independent acceptance subjects.
+
+**Two distinct source display/draw page selectors**:
+`291B0` calls `29FEC→2AB6C` to update the original
+`F001` drawing framebuffer page, then stores its selected
+BYTE in `EF4D` at `291C2`.
+In contrast `291C8` calls `29FFC` and stores the selected
+BYTE in `EF4E` at `291DA` (display page).
+`29FFC` calls `2ABF4`, which masks interrupts using
+`CLI` at `2ABF6`, writes two CRTC registers via
+`0x3D4` at `2ABFF/2AC05`, reenables interrupts using
+`STI` at `2AC07`, then calls `2ABC4`.
+The latter polls port `0x3DA` until vertical-retrace bit
+`0x08` passes the two source loops. These are **actual
+original hardware instructions**, not a suggestion to
+emulate CRTC timing as a host sleep.
+
+The original page-copy helper `2A020..2A074` uses
+`ENTER` and `LEAVE` to save/restore its EBP frame, and
+copies `rep movsb DS:[ESI]→ES:[EDI]` after VGA sequencer
+register setup. **ES is not set within this helper**, so
+its runtime ES selector alias must still be proven.
+The separate original memory mover `30CD4..30D25`
+takes overlap-safe forward/backward branches, saves ES,
+temporarily does `mov ES,DS` at `30CF9/30D14`,
+and restores ES using `pop ES` at `30D0A/30D22`.
+The early equal-source/destination return at `30D23`
+does not change ES. This closes the **local ES save/restore
+boundary for 30CD4 only**, not for the VGA raster generally.
+
+The original page-selection stack helpers `2E590`
+and `2E5D4` manage `F0D0` and call `291B0` to
+restore drawing-page selection. They must not be
+confused with the *different* mutable callback
+pointers `F0C8` and `F0CC`.
+
+**Evidence and limits:** Eleven full SHA witnesses,
+20 E8 checks, 44 opcode windows, original RET boundaries
+and bounded literal operand census passed a targeted local
+verification against the supplied CODE.2. The existing
+`original_ground_c050_page_toggle_tests` source-only CTest
+registration now covers this additional source oracle;
+no new CTest or native gameplay change. Deeper callees
+`1A288/1AB20/1AACC/2F580/29FFC→2ABF4` should
+be tracked by their actual source body (display chain
+bounded here; other transitive paths remain open).
+Installed `F0C8` targets, full `EBP` caller preservation,
+VGA ES/DS mapping, native indexed palette/tick output
+and original-DOS parity remain unresolved.
+

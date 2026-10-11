@@ -255,6 +255,85 @@ def audit_original(path:Path)->None:
         occurrences=[i for i in range(len(body)-3)
                      if body[i:i+4]==literal]
         assert len(occurrences)==count,(hex(address),len(occurrences))
+    # Opcode 17 two branches: original source-bounded graphics helpers.
+    # Whole-body hashes, all E8 targets in the two main functions,
+    # VGA port/ES handling and return boundaries. This does not close
+    # transitive 1A288/1AB20/1AACC/2F580/2ABF4 call effects beyond
+    # the ranges explicitly checked below or installed F0C8 callbacks.
+    script17_callee_spans={
+        (0x1A510,0x1A5AF):"dd5abbfef05856c37d88ab05dc7f5eea15b32c60f30b29c00b5cd89388c69285",
+        (0x1A9F8,0x1AACA):"c9d143ff9177c930a5e445579592dfdbfebeaca20b9014376d136d47152c2fda",
+        (0x2A020,0x2A075):"92ec3e0e031e104f07307ca637d5e8af1a71e0fb82f3235dd6f8e5bff51b62cb",
+        (0x30CD4,0x30D26):"0b08ba8947ac2925a428bfd02ead86299e66a7a9984a7ec7f82313c25e97cd67",
+        (0x291C8,0x291E0):"f9647dbf90774d4c72f0632e4863ebeca61f37d8bd4878fe294d99fd01be1ca0",
+        (0x2E590,0x2E5D3):"34c0b454e84e9a9b0b042daefdd2291b6bc0b2397cd11e3198d7e4e672b45bc2",
+        (0x2E5D4,0x2E608):"1001144b2e8fbc27822c7c98e07036b27427ec8ac4e4c7ec48b0d55d76493188",
+        (0x291B0,0x291C8):"2be56f0929c1cc8a7c662b0c07d7d67bdd75ca3a115135dea8c8ff040e40042b",
+        (0x29FFC,0x2A01D):"2efd01db2afcd628ff75c097eb72c6a2a5f1c4df7a52c85903604e9a4351b2f4",
+        (0x2ABF4,0x2AC10):"ace61f68b80924da7c40f774c3b95f311b9ed16fd00bdaf7771441099617c7a5",
+        (0x2ABC4,0x2ABDB):"3fe94500d0abf6fb8022bc87bd0e669d2fba910f9cab9c38041f1dd86ddc1f2b",
+    }
+    for (start,end),sha in script17_callee_spans.items():
+        assert obj[end-1]==0xC3,hex(end)
+        assert hashlib.sha256(obj[start:end]).hexdigest()==sha,hex(start)
+        # Literal address census within eleven bounded functions;
+        # this does NOT detect any computed indirect writes.
+        for address in (0xC050,0xF0C8,0xF0CC):
+            assert obj[start:end].count(struct.pack("<I",address))==0,(
+                hex(start),hex(address))
+    script17_callee_calls={
+        0x1A55B:0x1A288,0x1A564:0x291C8,0x1A57C:0x1AB20,
+        0x1A59C:0x291C8,
+        0x1AA2F:0x2E590,0x1AA42:0x2A020,0x1AA76:0x30CD4,
+        0x1AA7E:0x1AACC,0x1AA83:0x2E5D4,0x1AAA8:0x2E590,
+        0x1AABB:0x2A020,0x1AAC3:0x2E5D4,
+        0x291CE:0x29FFC,0x2E5A1:0x2F580,0x2E5CA:0x291B0,
+        0x2E5E2:0x2F580,0x2E5FF:0x291B0,
+        0x291B6:0x29FEC,0x2A014:0x2ABF4,0x2AC08:0x2ABC4,
+    }
+    assert len(script17_callee_calls)==20
+    for at,target in script17_callee_calls.items():
+        assert obj[at]==0xE8 and (
+            at+5+struct.unpack_from("<i",obj,at+1)[0])==target,hex(at)
+    for start,end,count in ((0x1A510,0x1A5AF,4),
+                            (0x1A9F8,0x1AACA,8),
+                            (0x2A020,0x2A075,0),
+                            (0x30CD4,0x30D26,0)):
+        found=[i for i in range(start,end) if obj[i]==0xE8]
+        expected=[i for i in script17_callee_calls if start<=i<end]
+        assert found==expected and len(found)==count,hex(start)
+    script17_callee_windows={
+        0x1A510:"5383ec08",0x1A520:"7476",0x1A52C:"7c6a",
+        0x1A55B:"e828fdffff",0x1A57C:"e89f050000",
+        0x1A598:"0fb6c3",0x1A5AA:"83c4085bc3",
+        0x1A9F8:"53",0x1AA01:"0f8499000000",
+        0x1AA11:"0f8c89000000",
+        0x1AA2F:"e85c3b0100",0x1AA42:"e8d9f50000",
+        0x1AA76:"e859620100",0x1AA7E:"e849000000",
+        0x1AA83:"e84c3b0100",0x1AAA8:"e8e33a0100",
+        0x1AABB:"e860f50000",0x1AAC3:"e80c3b0100",
+        0x1AA9E:"5bc3",0x1AAC8:"5bc3",
+        0x2A020:"c8000000",0x2A024:"5657525153",
+        0x2A062:"f3a4",0x2A06E:"5b595a5f5ec9c3",
+        0x30CF6:"8cda068ec2",0x30D0A:"07fc5f5ec3",
+        0x30D0F:"8cda89c7068ec2",0x30D22:"075f5ec3",
+        0x30D23:"5f5ec3",
+        0x291C8:"0fb6442404",0x291DA:"a24eef0000",
+        0x291B0:"0fb6442404",0x291C2:"a24def0000",
+        0x29FFC:"c8000000",0x2A014:"e8db0b0000",
+        0x2A01B:"c9c3",0x2ABF4:"5253fa",
+        0x2ABF7:"66bad403",0x2ABFD:"b00c66ef",
+        0x2AC03:"fec066ef",0x2AC07:"fb",
+        0x2ABC8:"66bada03",
+        0x2ABCD:"a80875fb",0x2ABD2:"a80874fb",
+    }
+    assert len(script17_callee_windows)==44
+    for at,encoded in script17_callee_windows.items():
+        want=bytes.fromhex(encoded)
+        assert obj[at:at+len(want)]==want,hex(at)
+    print("ORIGINAL_PASS: opcode 17: 11 bounded helper bodies, 20 E8 edges, 44 opcode windows")
+    print("BOUND: distinct EF4D drawing/EF4E display page; CRTC 3D4 and retrace 3DA")
+    print("BOUND: 30CD4 restores ES on changed paths; deeper handlers and F0C8 open")
     print("ORIGINAL_PASS: 42 opcode handlers, 48 E8 edges, 36 distinct callees")
     print("ORIGINAL_PASS: opcode 17 conditional BYTE C050 toggle, 1A8C8 EBP restores")
     print("BOUND: 8 C050/0 F0C8/0 F0CC literal refs in 15534..15E37")
@@ -279,6 +358,8 @@ def audit_repository()->None:
     for term in ("15534","1548C","42-way","16034","7FEC","F0C8"):
         assert term in doc,term
     for term in ("48 direct E8","opcode 17","1A8C8","15CA4","36 distinct","F0CC"):
+        assert term in doc,term
+    for term in ("1A510","1A9F8","2A020","30CD4","2ABF4","2ABC4","44 opcode","EF4D","EF4E"):
         assert term in doc,term
     print("SOURCE_ONLY_PASS: registered CTest, original ground batch and audit notes")
 
