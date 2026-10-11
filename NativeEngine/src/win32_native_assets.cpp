@@ -229,7 +229,12 @@ void install(State& state,const fs::path& path) {
         state.palette=palette;
         state.has_palette=palette_ok;
         state.cursor=std::move(preview);
+        state.browsed_archive="RES0";
+        state.browsed_record=state.cursor.res0_id;
         state.cursor_error=cursor_info;
+        if (state.index_control)
+            SetWindowTextW(state.index_control,
+                           std::to_wstring(state.browsed_record).c_str());
         state.status=output;
     } catch(const std::exception& error) {
         // Do not show another install's palette after a failed selection.
@@ -246,6 +251,35 @@ void install(State& state,const fs::path& path) {
     if(state.window)InvalidateRect(state.window,nullptr,TRUE);
 }
 
+// Original-art inspection: keep the source installation immutable and
+// display typed data only after successfully decoding a complete EH1 record.
+void browse(State& state, std::string archive, std::size_t index, int direction) {
+    if (!state.media || !state.has_palette) return;
+    try {
+        std::size_t actual = 0;
+        auto new_image = load_browser_preview(
+            *state.media,state.palette,archive,index,direction,actual);
+        state.cursor = std::move(new_image);
+        state.browsed_archive = std::move(archive);
+        state.browsed_record = actual;
+        state.cursor_error =
+            L"Decoded original " + unicode(state.browsed_archive) +
+            L" raster #" + std::to_wstring(actual) +
+            L" (" + std::to_wstring(state.cursor.width) +
+            L"x" + std::to_wstring(state.cursor.height) + L").";
+        if (state.index_control)
+            SetWindowTextW(state.index_control,std::to_wstring(actual).c_str());
+    } catch (const std::exception& error) {
+        state.cursor=NativeCursorPreview{};
+        state.cursor_error=L"Original RES raster decode: "+unicode(error.what());
+    }
+    state.status=format_report(*state.media,state.audit) +
+                 L"\r\n" + state.cursor_error + L"\r\n";
+    if (state.report_widget)
+        SetWindowTextW(state.report_widget,state.status.c_str());
+    if (state.window)InvalidateRect(state.window,nullptr,TRUE);
+}
+
 void layout(State& state) {
     if(!state.window)return;
     RECT r{};GetClientRect(state.window,&r);
@@ -256,6 +290,12 @@ void layout(State& state) {
         const int height=std::max(150, int(r.bottom)-166);
         MoveWindow(state.report_widget,left,top,width,height,TRUE);
     }
+    const int x=std::max(245,int(r.right)-320);
+    if(state.archive_control) MoveWindow(state.archive_control,x,453,97,220,TRUE);
+    if(state.index_control) MoveWindow(state.index_control,x+105,453,72,26,TRUE);
+    if(state.go_control) MoveWindow(state.go_control,x+184,453,56,26,TRUE);
+    if(state.previous_control) MoveWindow(state.previous_control,x,486,114,26,TRUE);
+    if(state.next_control) MoveWindow(state.next_control,x+126,486,114,26,TRUE);
 }
 
 void draw(State& state,HDC dc) {
@@ -296,10 +336,13 @@ void draw(State& state,HDC dc) {
                      L"installation to inspect real asset data.",
                   -1,&empty,DT_WORDBREAK);
     }
-    RECT cursor_title{x,465,rect.right-14,486};
+    RECT cursor_title{x,520,rect.right-14,543};
     SetTextColor(dc,RGB(241,207,137));
-    DrawTextW(dc,L"ORIGINAL RES0 CURSOR — INDEPENDENT EH1 DECODER",
-              -1,&cursor_title,DT_SINGLELINE|DT_END_ELLIPSIS);
+    const std::wstring caption =
+        L"RES IMAGE " + unicode(state.browsed_archive) +
+        L" #" + std::to_wstring(state.browsed_record) +
+        L" — NATIVE EH1";
+    DrawTextW(dc,caption.c_str(),-1,&cursor_title,DT_SINGLELINE|DT_END_ELLIPSIS);
     if (!state.cursor.bgra.empty()) {
         BITMAPINFO info{};
         info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
@@ -308,25 +351,25 @@ void draw(State& state,HDC dc) {
         info.bmiHeader.biPlanes=1;
         info.bmiHeader.biBitCount=32;
         info.bmiHeader.biCompression=BI_RGB;
-        const int scale=std::max(1,std::min({
-            8,240/state.cursor.width,145/state.cursor.height}));
-        const int display_width=scale*state.cursor.width;
-        const int display_height=scale*state.cursor.height;
+        const double scale=std::min({
+            8.0,240.0/state.cursor.width,130.0/state.cursor.height});
+        const int display_width=std::max(1,int(scale*state.cursor.width));
+        const int display_height=std::max(1,int(scale*state.cursor.height));
         const int left=x+(240-display_width)/2;
-        const int top=492+(145-display_height)/2;
+        const int top=545+(130-display_height)/2;
         SetStretchBltMode(dc,COLORONCOLOR);
         StretchDIBits(dc,left,top,display_width,display_height,
                       0,0,state.cursor.width,state.cursor.height,
                       state.cursor.bgra.data(),&info,DIB_RGB_COLORS,SRCCOPY);
     } else {
-        RECT unavailable{x,506,rect.right-20,626};
+        RECT unavailable{x,550,rect.right-20,670};
         SetTextColor(dc,RGB(175,184,193));
-        DrawTextW(dc,L"Select original game media to decode its default "
-                     L"mouse raster. An unavailable cursor is reported "
+        DrawTextW(dc,L"Select a RES archive and record. EH1 pixels appear "
+                     L"here; unsupported/non-image types are reported "
                      L"separately from archive structural validation.",
                   -1,&unavailable,DT_WORDBREAK);
     }
-    RECT explanation{x,660,rect.right-14,rect.bottom-12};
+    RECT explanation{x,690,rect.right-14,rect.bottom-12};
     SetTextColor(dc,RGB(183,192,211));
     DrawTextW(dc,
         L"Read original RES archives and COLORS directly.\n"
