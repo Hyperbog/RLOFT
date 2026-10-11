@@ -1,4 +1,6 @@
 #include "rloft_native/native_world_payload.hpp"
+#include "rloft_native/native_world_fingerprints.hpp"
+#include "rloft_native/native_sha256.hpp"
 
 #include <cassert>
 #include <cstddef>
@@ -79,6 +81,18 @@ void run() {
     assert(world.total_cells==128);
     assert(world.total_control_records==64);
     assert(world.total_event_commands==96);
+    const auto fingerprints=native_world_payload_fingerprints_json(world,original);
+    assert(fingerprints.find("\"decoded_section_roundtrip_equal\":true")!=std::string::npos);
+    assert(fingerprints.find("\"total_cells\":128")!=std::string::npos);
+    assert(fingerprints.find("\"total_commands\":96")!=std::string::npos);
+    assert(native_sha256_hex({})==
+           "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+    const std::vector<std::uint8_t> abc{'a','b','c'};
+    assert(native_sha256_hex(abc)==
+           "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    const std::vector<std::uint8_t> million(1000000U,'a');
+    assert(native_sha256_hex(million)==
+           "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0");
     const auto& level=world.level(22);
     assert(level.id==22 && level.width==2 && level.height==2);
     assert(level.cell_words.size()==4);
@@ -109,6 +123,22 @@ void run() {
     assert(level.automap.size()==4 && level.automap[3]==4);
     assert(level.annotation.size()==3 && level.annotation[2]==0xFC);
 
+    auto perturbed=world;
+    perturbed.levels[22].cell_words[0]^=0x40U;
+    must_reject([&]{static_cast<void>(
+        native_world_payload_fingerprints_json(perturbed,original));});
+    perturbed=world;
+    perturbed.levels[22].controls[0].bytes[0]^=1U;
+    must_reject([&]{static_cast<void>(
+        native_world_payload_fingerprints_json(perturbed,original));});
+    perturbed=world;
+    perturbed.levels[22].event_slots[1][1]^=1U;
+    must_reject([&]{static_cast<void>(
+        native_world_payload_fingerprints_json(perturbed,original));});
+    perturbed=world;
+    perturbed.levels[22].automap[0]^=1U;
+    must_reject([&]{static_cast<void>(
+        native_world_payload_fingerprints_json(perturbed,original));});
     auto mutable_world=clone_native_mutable_world(world);
     assert(mutable_world.levels.size()==32);
     mutable_world.level(22).cell_words[0]=0xFFFF;

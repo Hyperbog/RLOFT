@@ -27,7 +27,8 @@ add_library(rloft_native_assets STATIC
   src/native_palette_context.cpp
   src/native_bank_system.cpp
   src/native_world_system.cpp
-  src/native_world_payload.cpp)
+  src/native_world_payload.cpp
+  src/native_world_fingerprints.cpp)
 target_link_libraries(rloft_native_assets PUBLIC rloft_native_contracts)
 
 function(native_warnings target)
@@ -48,6 +49,12 @@ native_warnings(rloft_native_bank_audit)
 add_executable(rloft_native_world_audit src/native_world_audit_main.cpp)
 target_link_libraries(rloft_native_world_audit PRIVATE rloft_native_assets)
 native_warnings(rloft_native_world_audit)
+
+# Metadata-only verification: reconstruct every typed original world section,
+# verify round-trip equality and emit independent-comparable SHA-256 digests.
+add_executable(rloft_native_payload_audit src/native_world_payload_audit_main.cpp)
+target_link_libraries(rloft_native_payload_audit PRIVATE rloft_native_assets)
+native_warnings(rloft_native_payload_audit)
 
 set(RLOFT_NATIVE_SOURCE_SHA "local-unversioned" CACHE STRING
   "Exact source revision of independent asset engine")
