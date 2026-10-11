@@ -23,6 +23,10 @@ add_executable(native_game_source_adapter_tests
 target_include_directories(native_game_source_adapter_tests PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/../DemoV1/include")
 target_link_libraries(native_game_source_adapter_tests PRIVATE rloft_native_contracts)
+# The inherited Windows GameSource probes the GOG install registry (Advapi32).
+if(WIN32)
+  target_link_libraries(native_game_source_adapter_tests PRIVATE Advapi32)
+endif()
 if(MSVC)
   target_compile_options(native_game_source_adapter_tests PRIVATE /W4 /UNDEBUG)
 else()
