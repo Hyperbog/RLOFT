@@ -13,6 +13,7 @@ from pathlib import Path
 
 import index as source_index
 import original_cfg
+import compare_call_evidence
 
 SCHEMA = 'rloft-original-crossproject-packet-v1'
 ROOT = Path(__file__).resolve().parent.parent
@@ -60,6 +61,7 @@ def packet(machine: dict, sources: dict, root: Path, registry: dict, key: str,
         'source_index_matches':sources_for_key,
         'source_context':selected,
         'static_machine_cfg':witness['flow'],
+        'original_vs_cpp_call_observations':compare_call_evidence.compare_witness(witness,sources),
         'cross_project_review_lanes':owner,
         'verification_gaps':[
             'original CFG is bounded linear x86-32 candidate, not traced DOS reachability',
