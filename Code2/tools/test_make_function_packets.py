@@ -31,6 +31,11 @@ class WorkPacketTests(unittest.TestCase):
             p.write_text('[{"start":"0x10","end":"0x20"},{"start":"0x10","end":"0x20"}]')
             with self.assertRaises(ValueError):
                 parse_targets(p, 32)
+            p.write_text('[{"start":"0x10","end":"0x20"},{"start":"0x18","end":"0x28"}]')
+            with self.assertRaisesRegex(ValueError, 'overlapping spans'):
+                parse_targets(p, 64)
+            p.write_text('[{"start":"0x10","end":"0x20"},{"start":"0x20","end":"0x28"}]')
+            self.assertEqual(parse_targets(p, 64), [(16, 32), (32, 40)])
 
     def test_refuse_wrong_binary_version_and_name(self):
         with tempfile.TemporaryDirectory() as d:

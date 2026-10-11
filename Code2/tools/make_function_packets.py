@@ -76,6 +76,9 @@ def parse_targets(path: Path, object_length: int) -> list[tuple[int, int]]:
             raise ValueError(f"invalid half-open object-1 span: {start:#x}..{end:#x}")
         if (start, end) in seen:
             raise ValueError("duplicate span")
+        if any(start < prior_end and prior_start < end
+               for prior_start, prior_end in ranges):
+            raise ValueError("overlapping spans must be assigned as one work item")
         ranges.append((start, end))
         seen.add((start, end))
     return ranges
