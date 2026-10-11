@@ -173,7 +173,15 @@ void inspect(State& state, const rloft::GameSource& original) {
         if (file.required_for_probe) out << L"  (minimum signature)";
         out << L"\n";
     }
+    // Source frame fingerprints are forensic identifiers for diagnosing
+    // retail patch/asset differences. Not a declaration of DOS pixel parity.
+    const auto fingerprints = rloft_native::frame_identity(state.diagnostic);
     out << L"\n" << state.original_cursor_status << L"\n"
+        << L"Diagnostic frame FNV64: " << std::hex
+        << fingerprints.pixels_fnv1a64
+        << L"\nDiagnostic DAC FNV64: "
+        << fingerprints.palette_fnv1a64 << std::dec << L"\n"
+        << L"Not a DOS-oracle screenshot or gameplay parity certification.\n"
         << L"This is a native ENGINE BOOTSTRAP, not a playable game.\n"
         << L"No game data or saves have been written.";
     state.status = out.str();
