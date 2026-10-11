@@ -444,6 +444,7 @@ public partial class MainWindow : Window
         SelectedAddressText.Text = "Select an instruction";
         HexView.Text = string.Empty;
         _hexByteTokens = Array.Empty<HexByteToken>();
+        _highlightedAssemblyRow = null;
         HexLocationText.Text = "No physical file position selected";
     }
 
@@ -478,6 +479,8 @@ public partial class MainWindow : Window
             _highlightedFileOffset = physical is >= 0 and <= int.MaxValue
                 ? checked((int)physical.Value) : null;
             _highlightedByteLength = 1;
+            if (_highlightedFileOffset is { } originalOffset)
+                MarkAssemblyBytes(row, originalOffset, 1);
             if (_mzImage is not null)
                 RenderMzHex(new Dos16Address(checked((ushort)row.Object), checked((ushort)row.Offset)));
             else
@@ -664,6 +667,41 @@ public partial class MainWindow : Window
         return null; // Do not invent a disassembly row for undecoded data.
     }
 
+    private void MarkAssemblyBytes(AssemblyRow? row, int fileOffset, int length)
+    {
+        if (_highlightedAssemblyRow is not null &&
+            !ReferenceEquals(_highlightedAssemblyRow, row))
+            _highlightedAssemblyRow.MarkBytes(0, 0);
+        _highlightedAssemblyRow = row;
+        if (row is null) return;
+        int firstIndex = -1;
+        int count = row.Bytes.Length / 2;
+        if (_mzImage is not null &&
+            row.Object is >= 0 and <= ushort.MaxValue &&
+            row.Offset <= ushort.MaxValue)
+        {
+            long? start = _mzImage.ToFileOffset((ushort)row.Object, (ushort)row.Offset);
+            if (start is { } physical && fileOffset >= physical &&
+                fileOffset < physical + count)
+                firstIndex = checked((int)(fileOffset - physical));
+        }
+        else if (_image is not null)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                if (row.Offset > uint.MaxValue - (uint)i) break;
+                if (_image.ToFileOffset(row.Object, row.Offset + (uint)i) == fileOffset)
+                {
+                    firstIndex = i;
+                    break;
+                }
+            }
+        }
+        if (firstIndex >= 0)
+            row.MarkBytes(firstIndex, Math.Min(length, count - firstIndex));
+        else row.MarkBytes(0, 0);
+    }
+
     private void SelectPhysicalBytes(int fileOffset, int length,
         bool preserveGoQuery = true)
     {
@@ -690,6 +728,7 @@ public partial class MainWindow : Window
             _suppressAutomaticHexRefresh = true;
             try { AssemblyGrid.SelectedItem = matchedInstruction; }
             finally { _suppressAutomaticHexRefresh = false; }
+            MarkAssemblyBytes(matchedInstruction, fileOffset, length);
             if (MainTabs.SelectedIndex == 0)
                 AssemblyGrid.ScrollIntoView(matchedInstruction);
 
@@ -700,6 +739,7 @@ public partial class MainWindow : Window
         }
         else
         {
+            MarkAssemblyBytes(null, fileOffset, length);
             ReferencesGrid.SelectedItem = null;
             // Undecoded source bytes have no honest disassembly or
             // reference highlight. Show the exact hex cell instead.
