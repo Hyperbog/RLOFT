@@ -144,6 +144,18 @@ void run() {
     broken=r1;broken.push_back(0);
     rejects([&] {static_cast<void>(validate_native_bank_record(
         broken,"RES0",0,anomaly));});
+    // Five original RES12 legacy EH1 slots represent ZERO decoded pixels,
+    // not malformed active images. Keep inert and reject nonempty payload.
+    auto inert=eh1();
+    p16(inert,5,0);
+    inert.resize(13);
+    assert(validate_native_bank_record(
+        inert,"RES12",74,anomaly)==BankRecordKind::InertLegacyRaster);
+    rejects([&] {static_cast<void>(validate_native_bank_record(
+        inert,"RES0",74,anomaly));});
+    inert.push_back(0x00);
+    rejects([&] {static_cast<void>(validate_native_bank_record(
+        inert,"RES12",74,anomaly));});
     const auto legacy=eh4(true);
     assert(validate_native_bank_record(
         legacy,"RES11",4877,anomaly)==BankRecordKind::Voc && anomaly);
