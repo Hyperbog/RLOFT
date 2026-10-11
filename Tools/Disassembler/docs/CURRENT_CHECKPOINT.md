@@ -6,6 +6,34 @@
 This is a navigation handoff, not a substitute for the full roadmap,
 normative evidence requirements or a Git status check.
 
+## NEW top-priority desktop user feedback (SOURCE ONLY; unbuilt)
+
+- User tested the run #42 Windows WPF executable with exact-original
+  Dungeon Hack `CHECKSYS.EXE` and reported only **RAW HEX VIEW**;
+  Analyze and Export were disabled. This is an integration defect:
+  WPF only loaded LE images despite x86-16/MZ core support.
+- Standalone MZ WPF loader/preview, bounded x86-16 entry-segment
+  analysis, typed **CS:IP** navigation/references/physical-hex view,
+  source-bound private JSON/text candidate export and MZ File Intelligence
+  capability labels were **SOURCE-AUTHORED**. No new Windows .NET compile,
+  WPF interactive check or original-game comparison has run since #42.
+- Current SQLite graph and note schema is LE-object-only: project
+  save/open/notes/backup are disabled in MZ mode, while direct
+  MZ candidate export is available. The exporter checks full source
+  SHA, original image geometry, candidate source bytes and duplicate
+  addresses before publication. New synthetic core regression cases
+  were authored but not executed.
+- **Owner product requirement:** only the **Windows WPF desktop** is
+  distributed. CLI remains INTERNAL research/validation harness code;
+  local Windows build script and canonical manual-only CI now publish
+  **desktop only**, no CLI artifact.
+- Exact root cause and Windows acceptance plan:
+  [G2_DESKTOP_MZ_UI_HANDOFF_20261010.md](G2_DESKTOP_MZ_UI_HANDOFF_20261010.md).
+- **Next validation gate requires explicit authorization** to compile
+  current Windows desktop/core/synthetic tests, publish the WPF preview,
+  and have the owner verify `CHECKSYS.EXE` Analyze/Export interactively.
+  G2 original-code independent accuracy remains separate and pending.
+
 ## What is proven
 
 - **Latest owner-authorized build:** [GitHub Actions run #42](https://github.com/Hyperbog/RLOFT/actions/runs/38096831427) **SUCCESS**, Windows desktop/CLI and Linux CLI compile/publish, Windows+Linux C# smoke and project suites, **17 Python synthetic** tests passed. Exact temporary PR #8 merge SHA `dd251ba7479fe802e17155a2740d3519cf23847b`; source-equivalent canonical C#/Python code/test SHA `3956f036fee44c0b6f07361811e4f0857dbea916`. See [full gate record](G2_BUILD_GATE_RECORD_20261010_RUN42.md). Windows GUI-owner acceptance, new original-file comparison and broad accuracy certification are **NOT** included.
