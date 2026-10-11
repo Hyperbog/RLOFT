@@ -92,7 +92,7 @@ NativeCursorPreview make_raster_preview(
         rloft_native::NativeRasterColorMode::RawIndices) {
     if (image.width > 2048 || image.height > 2048)
         throw std::runtime_error("original raster exceeds inspector viewport");
-    const auto converted =
+    auto converted =
         rloft_native::colorize_native_raster(image,palette,0,mode);
     NativeCursorPreview output;
     output.width = converted.width;
