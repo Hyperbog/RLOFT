@@ -533,6 +533,166 @@ public partial class MainWindow : Window
     private static string Format(FlowAddress? at) =>
         at is { } a ? $"{a.Object}:0x{a.Offset:X8}" : "unresolved";
 
+    private void AddressBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || _working) return;
+        e.Handled = true;
+        GoTo_Click(sender, new RoutedEventArgs());
+    }
+
+    private void MainTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!ReferenceEquals(e.Source, MainTabs) || MainTabs.SelectedIndex != 1) return;
+        // The TextBox may have been collapsed while its selection changed.
+        Dispatcher.BeginInvoke(new Action(HighlightVisibleHexByte),
+            System.Windows.Threading.DispatcherPriority.Loaded);
+    }
+
+    private void HexView_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) =>
+        _hexMouseDownPosition = e.GetPosition(HexView);
+
+    private void HexView_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_working || _artifact is null || _hexMouseDownPosition is not { } down)
+            return;
+        _hexMouseDownPosition = null;
+        System.Windows.Point end = e.GetPosition(HexView);
+        if ((end - down).Length > 4)
+            return; // preserve normal drag-to-select/copy behavior.
+        int index = HexView.GetCharacterIndexFromPoint(end, true);
+        HexByteToken? token = HexByteNavigation.HitTest(_hexByteTokens, index);
+        if (token is null) return; // ASCII, address, gap, or LE ??.
+        SelectPhysicalBytes(token.PhysicalFileOffset, 1, preserveGoQuery: false);
+        StatusText.Text = $"Selected exact original file+0x{token.PhysicalFileOffset:X8}, " +
+            $"byte {_artifact.Data[token.PhysicalFileOffset]:X2}; source remains read-only.";
+    }
+
+    private void HighlightVisibleHexByte()
+    {
+        if (_highlightedFileOffset is not { } offset) return;
+        HexByteToken? start = HexByteNavigation.FindPhysical(_hexByteTokens, offset);
+        if (start is null) return;
+        int selectionLength = 2; // always at least the clicked/search first byte.
+        if (_highlightedByteLength > 1)
+        {
+            int lastPhysical = checked(offset + _highlightedByteLength - 1);
+            HexByteToken? end = HexByteNavigation.FindPhysical(_hexByteTokens, lastPhysical);
+            if (end is not null)
+            {
+                int firstLine = HexView.Text.LastIndexOf('\n', start.CharacterStart);
+                int lastLine = HexView.Text.LastIndexOf('\n', end.CharacterStart);
+                // For same-row sequences include intervening byte separators.
+                // Never select ASCII/prefix columns on a multi-row pattern.
+                if (firstLine == lastLine)
+                    selectionLength = end.CharacterStart + 2 - start.CharacterStart;
+            }
+        }
+        HexView.Select(start.CharacterStart, selectionLength);
+        if (MainTabs.SelectedIndex == 1)
+            HexView.ScrollToLine(HexView.GetLineIndexFromCharacterIndex(start.CharacterStart));
+    }
+
+    private AssemblyRow? FindInstructionAtFileOffset(int fileOffset)
+    {
+        foreach (AssemblyRow row in _rows)
+        {
+            int count = row.Bytes.Length / 2;
+            if (count is < 1 or > 15) continue;
+            if (_mzImage is not null)
+            {
+                if (row.Object is < 0 or > ushort.MaxValue ||
+                    row.Offset > ushort.MaxValue) continue;
+                long? first = _mzImage.ToFileOffset((ushort)row.Object, (ushort)row.Offset);
+                if (first is { } start && fileOffset >= start &&
+                    fileOffset - start < count) return row;
+            }
+            else if (_image is not null)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    if (row.Offset > uint.MaxValue - (uint)i) break;
+                    if (_image.ToFileOffset(row.Object, row.Offset + (uint)i) == fileOffset)
+                        return row;
+                }
+            }
+        }
+        return null; // Do not invent a disassembly row for undecoded data.
+    }
+
+    private void SelectPhysicalBytes(int fileOffset, int length,
+        bool preserveGoQuery = true)
+    {
+        BinaryArtifact source = _artifact ?? throw new InvalidOperationException("No file loaded.");
+        if (fileOffset < 0 || length < 1 ||
+            (long)fileOffset + length > source.Length)
+            throw new ArgumentOutOfRangeException(nameof(fileOffset));
+
+        _highlightedFileOffset = fileOffset;
+        _highlightedByteLength = length;
+        if (HexByteNavigation.FindPhysical(_hexByteTokens, fileOffset) is null)
+        {
+            // A search might find header/data bytes outside the current MZ
+            // entry region, or bytes without a decoded instruction.
+            SetHexWindow(RawHexPreview.Render(source, fileOffset),
+                $"Original file+0x{fileOffset:X8} " +
+                $"(first displayed row file+0x{(fileOffset & ~15):X8})");
+        }
+        else HighlightVisibleHexByte();
+
+        AssemblyRow? matchedInstruction = FindInstructionAtFileOffset(fileOffset);
+        if (matchedInstruction is not null)
+        {
+            _suppressAutomaticHexRefresh = true;
+            try { AssemblyGrid.SelectedItem = matchedInstruction; }
+            finally { _suppressAutomaticHexRefresh = false; }
+            if (MainTabs.SelectedIndex == 0)
+                AssemblyGrid.ScrollIntoView(matchedInstruction);
+
+            // Highlight a real graph reference only when its source or
+            // destination corresponds to this mapped candidate instruction.
+            string sourceAddress = matchedInstruction.AddressText;
+            ReferenceRow? reference = _allReferences.FirstOrDefault(x =>
+                x.SourceText == sourceAddress || x.AddressText == sourceAddress);
+            ReferencesGrid.SelectedItem = reference;
+            if (reference is not null && MainTabs.SelectedIndex == 2)
+                ReferencesGrid.ScrollIntoView(reference);
+        }
+        else
+        {
+            ReferencesGrid.SelectedItem = null;
+            // Undecoded source bytes have no honest disassembly or
+            // reference highlight. Show the exact hex cell instead.
+            if (MainTabs.SelectedIndex != 1) MainTabs.SelectedIndex = 1;
+        }
+        HighlightVisibleHexByte();
+        if (!preserveGoQuery)
+            AddressBox.Text = $"file:0x{fileOffset:X8}";
+    }
+
+    private void SearchOriginalBytes(string query, byte[] pattern)
+    {
+        BinaryArtifact source = _artifact ?? throw new InvalidOperationException("No file loaded.");
+        string normalized = Convert.ToHexString(pattern);
+        int next = string.Equals(_lastByteSearch, normalized, StringComparison.Ordinal)
+            ? _lastByteMatchOffset + 1
+            : (_highlightedFileOffset ?? 0);
+        int found = HexByteNavigation.FindNext(source.Data, pattern,
+            Math.Clamp(next, 0, source.Length));
+        if (found < 0)
+        {
+            StatusText.Text = $"No original-file match for hex bytes {normalized}.";
+            return;
+        }
+        _lastByteSearch = normalized;
+        _lastByteMatchOffset = found;
+        SelectPhysicalBytes(found, pattern.Length);
+        // Keep the original query so pressing Enter again finds the NEXT hit.
+        AddressBox.Text = query;
+        StatusText.Text = $"Original bytes {normalized} found at file+0x{found:X8} " +
+            $"(match length {pattern.Length}); Enter again finds next. " +
+            "Candidate code/reference rows are selected only if source-backed.";
+    }
+
     private void SetHexWindow(string preview, string location)
     {
         HexLocationText.Text = location;
