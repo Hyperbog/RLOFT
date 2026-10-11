@@ -1,7 +1,13 @@
 # NativeEngine — standalone installation-backed Ravenloft reimplementation
 
-**Owner branch:** `native-engine`. **Product target:** `rloft_native.exe` (planned, **not yet an independently built executable**).  
+**Owner branch:** `native-engine`. **Product target:** `rloft_native.exe` (**source-wired and separately buildable, not yet MSVC-compiled or Windows field-verified**).  
 **Purpose:** a fully native, source-faithful replacement engine that runs *Ravenloft: Strahd's Possession* from the player's original installed resources, in the same *installation-backed engine* sense as OpenMW. This is **not** Demo v1, an asset viewer, a level preview, a Windows wrapper around DOSBox, or a modernization branch.
+
+## Live decomp runtime reuse — new independent native-game source target
+
+**[Live original runtime integration checkpoint](LIVE_ORIGINAL_RUNTIME_INTEGRATION_20261011.md)**: the native game now has a dedicated `rloft_native.exe` Windows CMake target, distinct `wWinMain`, product registry/window identity, and local app-data writable profile. The exact **172 reconstructed game-core translation units** are declared once in `DemoV1/cmake/shared_game_core_sources.cmake` and compiled by **both** DemoV1 and NativeEngine: this preserves already-implemented CINE00/CINE12, intro music/timing, animated CODE.2 menu and CODE.1 character creation, CHARS handoff, and existing exploration controllers **without duplicating or recoding them**. DemoV1 keeps its original entrypoint and behavior.
+
+**Original install protection:** new native game uses `GameSource::set_runtime_root` to direct **all native CHARS/runtime reads and writes** to `%LOCALAPPDATA%\\Hyperbog\\RLOFT\\NativeEngine\\Default`; it does not silently import or overwrite original saved parties or installed SAVE.DAT. No developer-only `--explore-level22` shortcut is available to this new game target. A real inherited-media profile isolation regression and a headless game-product entry smoke are registered; **at least 17 Windows CTests** are now intended. [Local Windows build/ZIP script](Windows/Build-LiveNativeGame-Windows.ps1) prepares a source-identified, no-assets field-test preview. **These latest game-source changes have NOT been compiled under MSVC or user-tested**; the historical 15/15 Windows CI + GOG static image refer solely to the previously delivered bootstrap.
 
 ## Integration correction — decomp demo already has animated intro, interactive menu and character creation
 
