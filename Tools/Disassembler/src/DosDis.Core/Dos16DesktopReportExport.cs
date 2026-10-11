@@ -157,10 +157,25 @@ public static class Dos16DesktopReportExport
             graph.FileOffset != mz.LoadImageFileOffset + mz.InitialCs * 16 ||
             graph.RegionByteLength != mz.CreateEntryCodeRegion().ByteLength)
             throw new InvalidDataException("16-bit analysis does not match the standalone MZ entry window.");
-        if (graph.Instructions.Count > 100_000 ||
-            graph.Instructions.Any(x => x.Address.Segment != graph.Entry.Segment
-                || x.SourceFileOffset != (long)graph.FileOffset + x.Address.Offset
-                || x.Address.Offset + x.Length > graph.RegionByteLength))
-            throw new InvalidDataException("16-bit report contains unbacked or inconsistent source addresses.");
+        Dos16CodeRegion region = mz.CreateEntryCodeRegion();
+        if (graph.MappingEvidence != region.MappingEvidence ||
+            graph.RegionByteLength != region.ByteLength ||
+            graph.Instructions.Count > 100_000)
+            throw new InvalidDataException("16-bit candidate graph does not match the original MZ mapping.");
+        var starts = new HashSet<ushort>();
+        foreach (Dos16FlowInstruction ins in graph.Instructions)
+        {
+            int address = ins.Address.Offset;
+            if (ins.Address.Segment != graph.Entry.Segment ||
+                address < region.Origin || ins.Length is < 1 or > 15 ||
+                (long)address + ins.Length > region.EndExclusive ||
+                ins.SourceFileOffset != (long)graph.FileOffset + address - region.Origin ||
+                !starts.Add(ins.Address.Offset) ||
+                ins.OriginalBytes.Length != ins.Length * 2 ||
+                !string.Equals(ins.OriginalBytes,
+                    Convert.ToHexString(source.Data.Slice(checked((int)ins.SourceFileOffset), ins.Length)),
+                    StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("16-bit candidate contains duplicate, forged, or unbacked original bytes.");
+        }
     }
 }
