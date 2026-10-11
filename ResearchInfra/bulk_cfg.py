@@ -16,6 +16,7 @@ from pathlib import Path
 import compare_call_evidence
 import index as source_index
 import original_cfg
+import protected_noncode
 
 SCHEMA = 'rloft-original-source-seeded-cfg-survey-v1'
 MAX_LABELS = 2500
@@ -24,13 +25,26 @@ MAX_TOTAL = 500000
 
 
 def ranges_from_index(doc: dict, objects: dict[str, bytes], *, span_limit: int,
-                      total_limit: int, max_labels: int) -> tuple[list[dict], list[dict]]:
+                      total_limit: int, max_labels: int,
+                      protected: dict[str, list[dict]] | None = None) -> tuple[list[dict], list[dict]]:
     if doc.get('schema') != source_index.SCHEMA:
         raise ValueError('unrecognized canonical source-index schema')
     if span_limit < 1 or span_limit > MAX_SPAN or total_limit < 1 or total_limit > MAX_TOTAL:
         raise ValueError('span or total byte budget exceeds published bounds')
     if max_labels < 1 or max_labels > MAX_LABELS:
         raise ValueError('source-label count outside bounded range')
+    protected = protected or {}
+    # Validate every imported protected interval before using it to suppress
+    # candidate decoding. The ledger is independent of C++ function labels.
+    for module, spans in protected.items():
+        if module not in objects:
+            raise ValueError('protected source span names an unknown code object')
+        last = 0
+        for region in spans:
+            b, e = region['start'], region['end_exclusive']
+            if type(b) is not int or type(e) is not int or b < last or not b < e <= len(objects[module]):
+                raise ValueError('invalid or overlapping source protected intervals')
+            last = e
     labels: dict[str, dict[int, list[str]]] = defaultdict(lambda: defaultdict(list))
     rejected = []
     for row in doc['functions']:
@@ -53,6 +67,22 @@ def ranges_from_index(doc: dict, objects: dict[str, bytes], *, span_limit: int,
         for index, start in enumerate(positions):
             next_start = positions[index + 1] if index + 1 < len(positions) else size
             end = min(start + span_limit, next_start, size)
+            ledger_clipped = False
+            protected_at_seed = False
+            for region in protected.get(module, []):
+                b, e = region['start'], region['end_exclusive']
+                if b <= start < e:
+                    protected_at_seed = True
+                    break
+                if start < b < end:
+                    end = b
+                    ledger_clipped = True
+                    break
+            if protected_at_seed:
+                rejected.append({'module':module,'offset':start,
+                                 'reason':'source_seed_inside_declared_noncode',
+                                 'source_ids':sorted(labels[module][start])})
+                continue
             # Labels sharing one original address are retained as an ambiguity,
             # not represented as multiple independently decoded functions.
             if end <= start:
@@ -65,12 +95,14 @@ def ranges_from_index(doc: dict, objects: dict[str, bytes], *, span_limit: int,
                                'source_ids': sorted(labels[module][start]),
                                'next_source_label': next_start if next_start < size else None,
                                'truncated_by_cap': start + span_limit < next_start,
+                               'cut_at_declared_noncode': ledger_clipped,
                                'source_symbol_is_proven_function_boundary': False})
     return candidates, rejected
 
 
 def inspect(original_root: Path, doc: dict, *, span_limit=160, max_labels=MAX_LABELS,
-            total_limit=MAX_TOTAL, executable='objdump') -> dict:
+            total_limit=MAX_TOTAL, executable='objdump',
+            source_root: Path | None = None) -> dict:
     version = original_cfg.decoder_version(executable)
     objs = {}
     origins = {}
@@ -80,8 +112,13 @@ def inspect(original_root: Path, doc: dict, *, span_limit=160, max_labels=MAX_LA
         objs[module] = code
         origins[module] = {'file_sha256': identity['original_sha256'],
                            'object_size': len(code), 'entry': identity['entry']}
+    # Imported CODE.1 residual ledger is sourced from canonical research, not
+    # guessed from decoder output. CODE.2 remains without a protected map.
+    ledger = protected_noncode.load(source_root) if source_root is not None else None
+    protected = {'code1':ledger['ranges']} if ledger is not None else {}
     survey, rejected = ranges_from_index(doc, objs, span_limit=span_limit,
-                                          max_labels=max_labels, total_limit=total_limit)
+                                          max_labels=max_labels, total_limit=total_limit,
+                                          protected=protected)
     rows = []
     totals = defaultdict(int)
     for spec in survey:
@@ -121,10 +158,14 @@ def inspect(original_root: Path, doc: dict, *, span_limit=160, max_labels=MAX_LA
         'schema': SCHEMA,
         'authority': 'authenticated_original_bytes_and_source_seeds_cannot_prove_function_boundaries',
         'decoder': version, 'originals': origins, 'source_hashes': doc['sources'],
+        'code1_source_declared_noncode': (
+            {'ledger_sha256':ledger['source_sha256'],
+             'declared_noncode_bytes':ledger['declared_noncode_bytes'],
+             'class_breakdown':ledger['counts']} if ledger else None),
         'limits': {'span_limit': span_limit, 'total_limit': total_limit,
                    'max_source_labels': max_labels},
         'summary': dict(sorted(totals.items())),
-        'out_of_object_source_labels': rejected,
+        'excluded_or_out_of_object_source_labels': rejected,
         'candidates': rows,
         'original_dos_execution_proven': False,
         'watcom_matching_proven': False,
@@ -146,7 +187,8 @@ def main(argv=None) -> int:
         doc = source_index.read_index(args.index) if args.index else source_index.build(args.source_root)
         compare_call_evidence.verify_source_index_freshness(doc, args.source_root)
         report = inspect(args.original_root, doc, span_limit=args.span_limit,
-                         max_labels=args.max_labels, total_limit=args.total_limit)
+                         max_labels=args.max_labels, total_limit=args.total_limit,
+                         source_root=args.source_root)
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(report, sort_keys=True, indent=2) + '\n')
         print(json.dumps({'schema': report['schema'], 'summary': report['summary'],
