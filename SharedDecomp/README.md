@@ -52,3 +52,7 @@ Use corresponding Z80 flags and slot registers for SMS, or DOS x86 registers/fix
 - ROM-backed identity/reassembly and differential replay must run locally with **user-supplied** original media; never silently claim CI ran those jobs.
 - Completion requires mapped entry proofs, data/CFG closure, native implementation and reference-versus-host replay of declared scenarios. A byte-identical bank with unresolved candidate bytes is **not complete**.
 - For DOS/Watcom, matching exact linked LE bytes and running a native Windows executable are independent objectives with separate acceptance reports.
+
+## Declared-provenance trace comparison
+
+A new optional, strictly bounded [trace capture certificate](TRACE_CERTIFICATION.md) validates capture trace hashes, scenario/session identity, contiguous steps and all execution-state comparisons. It deliberately reports `EQUAL_UNATTESTED` rather than claiming verified original DOS or native gameplay parity. The existing `workflow.py diff` remains available for lightweight diagnostics.
