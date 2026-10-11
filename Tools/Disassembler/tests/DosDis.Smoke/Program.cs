@@ -236,6 +236,25 @@ try
     var invalidDesktopGraph = desktopMzGraph with { SourceSha256 = "f" + mzArtifact.Sha256[1..] };
     Fails(() => Dos16DesktopReportExport.BuildJson(mzArtifact, mzImage, invalidDesktopGraph),
         "desktop MZ exporter rejects forged graph source identity");
+    var originalFirstRow = desktopMzGraph.Instructions[0];
+    var tamperedDesktopGraph = desktopMzGraph with {
+        Instructions = new[] {
+            originalFirstRow with { OriginalBytes = "909090" },
+            desktopMzGraph.Instructions[1]
+        }
+    };
+    Fails(() => Dos16DesktopReportExport.BuildJson(mzArtifact, mzImage, tamperedDesktopGraph),
+        "desktop MZ export rejects forged stored-instruction bytes");
+    var duplicateDesktopGraph = desktopMzGraph with {
+        Instructions = new[] { originalFirstRow, originalFirstRow }
+    };
+    Fails(() => Dos16DesktopReportExport.BuildText(mzArtifact, mzImage, duplicateDesktopGraph),
+        "desktop MZ export rejects repeated source instruction starts");
+    var wrongModeGraph = desktopMzGraph with {
+        Entry = new Dos16Address(1, 0)
+    };
+    Fails(() => Dos16DesktopReportExport.BuildJson(mzArtifact, mzImage, wrongModeGraph),
+        "desktop MZ export rejects a foreign module-relative entry segment");
     Equal(mzArtifact.Data[32], (byte)0xB8, "desktop MZ analysis does not modify original bytes");
 
     Equal(mzImage.Relocations[0].SourceFileOffset, 33L, "MZ relocation original file offset");
