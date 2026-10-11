@@ -15,6 +15,10 @@ Build with **MSVC x64, CMake and Python** using [`Windows/Build-NativeEngine-Win
 
 **Honest result:** these latest **Windows-only corrections and extra tests are committed but NOT compiled on MSVC, executed on a Windows host, or accepted as a packaged executable**. Earlier 10/10 Linux CTests remain historical proof of portable subsystems; no further Linux compatibility work will be performed. The manual workflow has not been dispatched. The bootstrap is **not gameplay**.
 
+## Windows original-asset presentation integration
+
+[Windows build hardening and original cursor proof](WINDOWS_BUILD_HARDENING_20261010.md): the Windows bootstrap now decodes a **real original-source `RES0` EH type-1 cursor** selected by `INIT` and the original 6-bit `COLORS` palette12 using the inherited `resource_assets.cpp`. It displays this **centered diagnostic source raster**, not an authentic DOS title/game frame; unavailable or invalid optional resources retain a labeled synthetic fallback. A new original-format synthetic RES0 decoder regression and strict headless Windows GUI source-cursor test are registered. The Windows package now requires **at least 14 CTests**, including the inherited cursor decoder fixture. **New MSVC compilation/Windows CTest/artifact evidence does not yet exist**; the GitHub connector cannot dispatch the manual workflow despite this turn's explicit user authorization.
+
 ## Ownership and continuity
 
 The branch was forked at the exact existing `demo-v1` source revision `f0880727c312be4ea30f8ab6032ff413432f5fe4` **only to retain the already developed and verified underlying code**. The inherited `DemoV1/` tree is the **source-integration starting point**, not the shipping product identity. Future product code, build/packaging and acceptance documents belong under `NativeEngine/`; keep `demo-v1` developer previews and experiments separate. Reuse verified `GameSource`, asset decoders and runtime systems without duplicating reverse-engineering evidence or rewriting proven routines unnecessarily. Shared implementations may later be extracted into a common library after source/ABI/tests are checked.
