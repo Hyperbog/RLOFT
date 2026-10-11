@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     // distinct typed identities at every user-facing navigation boundary.
     private IReadOnlyDictionary<(int Number, uint Offset), IReadOnlyList<ReferenceRow>> _referenceIndex =
         new Dictionary<(int Number, uint Offset), IReadOnlyList<ReferenceRow>>();
+    private IReadOnlyList<ReferenceRow> _allReferences = Array.Empty<ReferenceRow>();
     private bool _working;
     private long _commentRevision;
     private CancellationTokenSource? _analysisCancellation;
@@ -57,7 +58,7 @@ public partial class MainWindow : Window
         Dos16Address? MzAddress = null);
     private sealed record ReferenceRow(string Direction, string AddressText, string Kind,
         string Evidence, FlowAddress? LeNavigationTarget,
-        Dos16Address? MzNavigationTarget = null);
+        Dos16Address? MzNavigationTarget = null, string SourceText = "");
     private sealed record IntelligenceRow(string Name, string DisplayValue, string Evidence);
 
     private void SetWorking(bool value, string? status = null)
@@ -148,6 +149,8 @@ public partial class MainWindow : Window
             _mzGraph = null;
             ExportAnalysisButton.IsEnabled = false;
             _referenceIndex = new Dictionary<(int Number, uint Offset), IReadOnlyList<ReferenceRow>>();
+            _allReferences = Array.Empty<ReferenceRow>();
+            RefreshReferences();
             if (_project != null && !_project.ListArtifacts().Any(a => a.Sha256 == _artifact.Sha256))
             {
                 _project.Dispose();
@@ -320,14 +323,14 @@ public partial class MainWindow : Window
         foreach (var edge in graph.Edges)
         {
             Add(edge.Source, new ReferenceRow("Outgoing", Format(edge.Destination),
-                edge.Kind, edge.Evidence, edge.Destination));
+                edge.Kind, edge.Evidence, edge.Destination, SourceText: Format(edge.Source)));
             if (edge.Destination is { } destination)
                 Add(destination, new ReferenceRow("Incoming", Format(edge.Source),
-                    edge.Kind, edge.Evidence, edge.Source));
+                    edge.Kind, edge.Evidence, edge.Source, SourceText: Format(edge.Source)));
         }
         foreach (var reference in graph.DataReferences)
             Add(reference.Source, new ReferenceRow("Data", Format(reference.Target),
-                reference.Kind, reference.Evidence, reference.Target));
+                reference.Kind, reference.Evidence, reference.Target, SourceText: Format(reference.Source)));
         return index.ToDictionary(x => x.Key,
             x => (IReadOnlyList<ReferenceRow>)x.Value.ToArray());
     }
@@ -341,6 +344,14 @@ public partial class MainWindow : Window
             x.OriginalBytes, x.Assembly, x.Evidence)).ToArray());
         FunctionsList.ItemsSource = graph.FunctionCandidates.Select(f => new FunctionRow(f.Entry,
             $"{f.Entry.Object}:0x{f.Entry.Offset:X8}  [{f.Blocks.Count} blocks]")).ToArray();
+        _allReferences = graph.Edges.Select(edge => new ReferenceRow("Edge",
+            Format(edge.Destination), edge.Kind, edge.Evidence,
+            edge.Destination, SourceText: Format(edge.Source)))
+            .Concat(graph.DataReferences.Select(reference => new ReferenceRow("Data",
+                Format(reference.Target), reference.Kind, reference.Evidence,
+                reference.Target, SourceText: Format(reference.Source))))
+            .ToArray();
+        RefreshReferences();
     }
     private void ShowMzAnalysis(Dos16FlowResult graph)
     {
@@ -358,10 +369,12 @@ public partial class MainWindow : Window
         {
             Add(edge.Source, new ReferenceRow("Outgoing",
                 edge.Destination is { } target ? Display(target) : "unresolved",
-                edge.Kind, edge.Evidence, null, edge.Destination));
+                edge.Kind, edge.Evidence, null, edge.Destination,
+                Display(edge.Source)));
             if (edge.Destination is { } incoming)
                 Add(incoming, new ReferenceRow("Incoming", Display(edge.Source),
-                    edge.Kind, edge.Evidence, null, edge.Source));
+                    edge.Kind, edge.Evidence, null, edge.Source,
+                    Display(edge.Source)));
         }
         _referenceIndex = index.ToDictionary(x => x.Key,
             x => (IReadOnlyList<ReferenceRow>)x.Value.ToArray());
@@ -372,6 +385,10 @@ public partial class MainWindow : Window
         FunctionsList.ItemsSource = new[] { new FunctionRow(null,
             $"{Display(graph.Entry)}  [entry hypothesis; no function proof]",
             graph.Entry) };
+        _allReferences = graph.Edges.Select(edge => new ReferenceRow("Edge",
+            edge.Destination is { } target ? Display(target) : "unresolved",
+            edge.Kind, edge.Evidence, null, edge.Destination, Display(edge.Source))).ToArray();
+        RefreshReferences();
         ExportAnalysisButton.IsEnabled = true;
     }
 
@@ -380,6 +397,7 @@ public partial class MainWindow : Window
         _rows = items;
         AssemblyGrid.ItemsSource = items;
         ReferencesGrid.ItemsSource = null;
+        ReferencesSummary.Text = "No analyzed references";
         _commentRevision = 0;
         SaveNoteButton.IsEnabled = false;
         NoteEditor.IsEnabled = false;
@@ -407,8 +425,7 @@ public partial class MainWindow : Window
         NoteEditor.IsEnabled = !_working && _mzImage is null;
         SelectedAddressText.Text = row.AddressText;
         AddressBox.Text = _mzImage is not null ? row.AddressText : $"{row.Object}:0x{row.Offset:X}";
-        ReferencesGrid.ItemsSource = _referenceIndex.TryGetValue((row.Object, row.Offset), out var refs)
-            ? refs : Array.Empty<ReferenceRow>();
+        RefreshReferences();
         if (_mzImage is not null)
             RenderMzHex(new Dos16Address(checked((ushort)row.Object), checked((ushort)row.Offset)));
         else
@@ -422,6 +439,29 @@ public partial class MainWindow : Window
         }
         SaveNoteButton.IsEnabled = !_working && _mzImage is null && _artifact != null;
     }
+    private void SelectedReferencesOnly_Changed(object sender, RoutedEventArgs e) =>
+        RefreshReferences();
+
+    private void RefreshReferences()
+    {
+        // An analyzed graph can have hundreds of edges. Default to a
+        // complete edge list; narrowing to the selected instruction is opt-in.
+        if (ReferencesGrid is null || ReferencesSummary is null ||
+            SelectedReferencesOnlyCheckBox is null) return;
+        bool selectedOnly = SelectedReferencesOnlyCheckBox.IsChecked == true;
+        IReadOnlyList<ReferenceRow> shown = _allReferences;
+        if (selectedOnly)
+        {
+            shown = AssemblyGrid.SelectedItem is AssemblyRow row &&
+                _referenceIndex.TryGetValue((row.Object, row.Offset), out var at)
+                ? at : Array.Empty<ReferenceRow>();
+        }
+        ReferencesGrid.ItemsSource = shown;
+        ReferencesSummary.Text = selectedOnly
+            ? $"{shown.Count:N0} references at selected instruction"
+            : $"{shown.Count:N0} graph references (including unresolved)";
+    }
+
     private void ReferencesGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         if (_working) return;
