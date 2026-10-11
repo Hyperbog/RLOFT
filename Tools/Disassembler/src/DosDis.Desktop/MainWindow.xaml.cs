@@ -449,6 +449,14 @@ public partial class MainWindow : Window
         RefreshReferences();
         if (!_suppressAutomaticHexRefresh)
         {
+            long? physical = _mzImage is not null
+                ? row.Object is >= 0 and <= ushort.MaxValue && row.Offset <= ushort.MaxValue
+                    ? _mzImage.ToFileOffset((ushort)row.Object, (ushort)row.Offset)
+                    : null
+                : _image?.ToFileOffset(row.Object, row.Offset);
+            _highlightedFileOffset = physical is >= 0 and <= int.MaxValue
+                ? checked((int)physical.Value) : null;
+            _highlightedByteLength = 1;
             if (_mzImage is not null)
                 RenderMzHex(new Dos16Address(checked((ushort)row.Object), checked((ushort)row.Offset)));
             else
@@ -759,9 +767,16 @@ public partial class MainWindow : Window
         if (_artifact is null) return;
         try
         {
-            string[] parts = AddressBox.Text.Trim().Split(':', 2);
+            string query = AddressBox.Text.Trim();
+            if (HexByteNavigation.TryParseBytePattern(query, out byte[] pattern))
+            {
+                SearchOriginalBytes(query, pattern);
+                return;
+            }
+            string[] parts = query.Split(':', 2);
             if (parts.Length != 2)
-                throw new FormatException("Use object:0xOFFSET for LE code or file:0xOFFSET for physical file bytes.");
+                throw new FormatException(
+                    "Enter MZ CS:IP, LE object:0xOFFSET, file:0xOFFSET, or hex bytes such as CD 21.");
             string value = parts[1].StartsWith("0x", StringComparison.OrdinalIgnoreCase)
                 ? parts[1][2..] : parts[1];
 
@@ -769,10 +784,12 @@ public partial class MainWindow : Window
             {
                 int fileOffset = int.Parse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
                 MainTabs.SelectedIndex = 1;  // reveal Hex before scrolling
+                _highlightedFileOffset = fileOffset;
+                _highlightedByteLength = 1;
                 SetHexWindow(RawHexPreview.Render(_artifact, fileOffset),
                     $"Original file+0x{fileOffset:X8} " +
                     $"(first displayed row file+0x{(fileOffset & ~15):X8})");
-                AddressBox.Text = $"file:0x{fileOffset:X8}";
+                SelectPhysicalBytes(fileOffset, 1, preserveGoQuery: false);
                 StatusText.Text = "Physical source file view (unmodified original bytes); this is not LE object-relative disassembly.";
                 return;
             }
@@ -825,6 +842,10 @@ public partial class MainWindow : Window
             { Error("Cannot navigate to address", ex); return; }
         }
         if (found is null) return;
+        long? original = _image.ToFileOffset(address.Object, address.Offset);
+        _highlightedFileOffset = original is >= 0 and <= int.MaxValue
+            ? checked((int)original.Value) : null;
+        _highlightedByteLength = 1;
         Trace(DiagnosticStage.Navigation, address.Object, address.Offset);
         // Navigation updates the selected address and context without
         // unexpectedly switching the user's Hexadecimal or References tab.
@@ -845,6 +866,10 @@ public partial class MainWindow : Window
             return;
         }
         AddressBox.Text = $"{cs:X4}:{ip:X4}";
+        long? original = mz.ToFileOffset(cs, ip);
+        _highlightedFileOffset = original is >= 0 and <= int.MaxValue
+            ? checked((int)original.Value) : null;
+        _highlightedByteLength = 1;
         if (activateDisassembly) MainTabs.SelectedIndex = 0;
         if (MainTabs.SelectedIndex == 1)
         {
