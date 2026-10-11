@@ -57,6 +57,17 @@ def make_image(path: Path, user_offset: int = 0, physical_sector: int = SECTOR) 
             output.write(physical)
 
 
+def make_synthetic_res0_cursor() -> bytes:
+    # Source-verified INIT[0]=0 selects RES0[0x2F], EH type1 with 8x2 pixels.
+    count = 48
+    first_offset = 4 + 4 * count
+    header = count.to_bytes(4, "little")
+    offsets = first_offset.to_bytes(4, "little") * count
+    record = bytes([69, 72, 1, 8, 0, 1, 0, 2, 0, 1, 255, 0, 0])
+    pixels = bytes([0, 1, 2, 3, 4, 5, 6, 7, 7, 6, 5, 4, 3, 2, 1, 0])
+    return header + offsets + record + pixels
+
+
 def run(exe: Path, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run([str(exe), *args], env=env, capture_output=True,
                           text=True, check=False, timeout=15)
@@ -81,6 +92,27 @@ def test(exe: Path, bootstrap: Path | None = None) -> None:
         for name, value in {"res0": b"\x05", "INIT": b"\x01\x02",
                             "T": b"\x03\x04\x05", "RES4": b"\x06\x07\x08"}.items():
             (loose / name).write_bytes(value)
+        # Windows GUI source renderer diagnostic: both image input and
+        # original palette must come from an original-format synthetic RES
+        # fixture, not from hardcoded GUI test pixels.
+        if bootstrap:
+            cursor_dir = root / "source-backed-cursor"
+            cursor_dir.mkdir()
+            (cursor_dir / "INIT").write_bytes(bytes([0, 0]))
+            (cursor_dir / "T").write_bytes(bytes([1]))
+            (cursor_dir / "RES0").write_bytes(make_synthetic_res0_cursor())
+            palette = bytearray(1 + 15 * 768)
+            palette[0] = 15
+            palette[1 + 12 * 768 + 3] = 63
+            (cursor_dir / "COLORS").write_bytes(palette)
+            original_cursor_hashes = snapshot(cursor_dir)
+            assert run(bootstrap, "--self-test-source-cursor", str(cursor_dir)).returncode == 0
+            assert snapshot(cursor_dir) == original_cursor_hashes
+            # Corrupt optional source palette: normal inspect still works,
+            # but strict original cursor output must fail, never fake it.
+            (cursor_dir / "COLORS").write_bytes(bytes(palette[:-1]))
+            assert run(bootstrap, "--self-test-source-cursor", str(cursor_dir)).returncode == 4
+            assert run(bootstrap, "--self-test-install", str(cursor_dir)).returncode == 0
         before = snapshot(loose)
         expect(run(exe, "--install", str(loose)), 0, "MINIMUM_MEDIA_SIGNATURE_PASS")
         if bootstrap:
