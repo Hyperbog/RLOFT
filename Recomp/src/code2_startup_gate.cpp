@@ -27,7 +27,7 @@ struct Session {
     code2::Runtime119Boundary init{};
     const char* stop_reason="NO_BOUNDARY_REACHED";
     u32 first_guest=0, guest_arg=0;
-    unsigned version_calls=0, ff00_calls=0, dpmi_calls=0;
+    unsigned version_calls=0, ff00_calls=0, dpmi_calls=0, completed_initializers=0;
 };
 thread_local Session* current=nullptr;
 [[noreturn]] void stop(const char* reason) noexcept {
@@ -68,8 +68,16 @@ void dpmi31(code2::Machine&) noexcept {
     ++current->dpmi_calls;stop("UNSUPPORTED_DPMI_INT31");
 }
 void guest(u32 address,u32 arg) noexcept {
-    current->first_guest=address; current->guest_arg=arg;
-    stop("FIRST_ORIGINAL_INITIALIZER_UNRESOLVED");
+    // All four source-table entries have priority 0x20. The original
+    // <= comparison replaces an earlier winner: ties dispatch LAST first.
+    // 3A16E is the genuine original saved-SS startup initializer.
+    if(address==0x3A16Eu) {
+        code2::function_3a16e(current->machine,current->machine.cpu.ss);
+        ++current->completed_initializers;
+        return;
+    }
+    current->first_guest=address;current->guest_arg=arg;
+    stop("NEXT_ORIGINAL_INITIALIZER_REQUIRES_ALLOCATOR");
 }
 void initializers(code2::Machine& m) noexcept {
     // This executes the real reconstructed CODE.2 scheduler. Source directly
@@ -166,10 +174,19 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original) {
             "original PSP command-tail whitespace handling mismatch");
     require(code2::load_le32(state.data.data()+0x12638u)==0x2BD10u,
             "original argv/command staging pointer mismatch");
-    require(state.first_guest==0x3968Eu,
-            "original initializer table dispatch did not reach first callback");
-    require(state.stop_reason==std::string("FIRST_ORIGINAL_INITIALIZER_UNRESOLVED"),
-            "test continued beyond the first unsupported real initializer");
+    if(state.first_guest!=0x3A2ADu) {
+        std::cerr<<"STARTUP_DIAGNOSTIC stop="<<state.stop_reason
+                 <<" first_guest=0x"<<std::hex<<state.first_guest<<std::dec
+                 <<" initialized="<<state.completed_initializers
+                 <<" env_selector=0x"<<std::hex<<state.machine.cpu.ds<<std::dec<<'\n';
+    }
+    require(state.completed_initializers==1 &&
+            code2::load_le16(state.data.data()+0x126ECu)==0x30u,
+            "canonical SS initializer at 3A16E did not run");
+    require(state.first_guest==0x3A2ADu,
+            "original initializer tie order is not source-equivalent");
+    require(state.stop_reason==std::string("NEXT_ORIGINAL_INITIALIZER_REQUIRES_ALLOCATOR"),
+            "test continued past an unimplemented original environment allocator");
     std::cout<<"CODE2_ORIGINAL_SOURCE_ENTRY=353A0\n"
              <<"CODE2_ORIGINAL_SOURCE_STARTUP=35418..3562E\n"
              <<"DOS21_30H_VERSION_FIXTURE=PASS\n"
@@ -177,6 +194,7 @@ void run(const rloft_recomp::OriginalLeImage& img,bool original) {
              <<"DOS_PSP_COMMAND_AND_NO87_ENVIRONMENT=PASS\n"
              <<"CODE_SELECTOR_SAVED_DS=PASS\n"
              <<"ORIGINAL_INITIALIZER_DISPATCH=395E2\n"
+             <<"EXECUTED_SAVED_SS_INITIALIZER=0x3A16E\n"
              <<"FIRST_UNRESOLVED_GUEST=0x"<<std::hex<<state.first_guest<<std::dec<<'\n'
              <<"EXECUTION_BOUNDARY=INTENTIONALLY_STOPPED\n"
              <<"ORIGINAL_DOS_STARTUP_ACCEPTED=NO\n"
