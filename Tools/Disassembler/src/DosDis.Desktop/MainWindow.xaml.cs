@@ -636,10 +636,12 @@ public partial class MainWindow : Window
         // Navigation updates the selected address and context without
         // unexpectedly switching the user's Hexadecimal or References tab.
         AssemblyGrid.SelectedItem = found;
+        // Selecting the same row twice does not raise SelectionChanged.
+        if (MainTabs.SelectedIndex == 1) RenderHex(address);
         if (MainTabs.SelectedIndex == 0) AssemblyGrid.ScrollIntoView(found);
     }
 
-    private void NavigateMz(Dos16Address address)
+    private void NavigateMz(Dos16Address address, bool activateDisassembly = false)
     {
         DosMzImage mz = _mzImage ?? throw new InvalidOperationException("MZ is not open.");
         ushort cs = address.Segment;
@@ -647,6 +649,17 @@ public partial class MainWindow : Window
         if (mz.ToFileOffset(cs, ip) is null)
         {
             StatusText.Text = "Selected CS:IP is outside original-file-backed MZ load bytes.";
+            return;
+        }
+        AddressBox.Text = $"{cs:X4}:{ip:X4}";
+        if (activateDisassembly) MainTabs.SelectedIndex = 0;
+        if (MainTabs.SelectedIndex == 1)
+        {
+            // Hex Go can inspect ANY originally backed byte without
+            // inventing a code boundary or requiring a graph row.
+            RenderMzHex(address);
+            Trace(DiagnosticStage.Navigation);
+            StatusText.Text = $"MZ CS:IP {cs:X4}:{ip:X4} mapped to physical original-file bytes.";
             return;
         }
         AssemblyRow? found = _rows.FirstOrDefault(x => x.Object == cs && x.Offset == ip);
@@ -680,8 +693,9 @@ public partial class MainWindow : Window
         // mislabel MZ CS=0000 as an LE object index.
         Trace(DiagnosticStage.Navigation);
         AssemblyGrid.SelectedItem = found;
+        // Always reposition Hex, even if selecting an unchanged row.
+        RenderMzHex(address);
         if (MainTabs.SelectedIndex == 0) AssemblyGrid.ScrollIntoView(found);
-        else RenderMzHex(address);
     }
 
     private void IntelligenceList_SelectionChanged(object sender, SelectionChangedEventArgs e)
