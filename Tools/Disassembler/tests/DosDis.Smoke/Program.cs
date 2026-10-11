@@ -287,6 +287,56 @@ try
         "desktop MZ export rejects a foreign module-relative entry segment");
     Equal(mzArtifact.Data[32], (byte)0xB8, "desktop MZ analysis does not modify original bytes");
 
+    // Addressable hex cells: the visible original file bytes are kept
+    // text-copyable, while hit-testing admits only two-digit hex tokens
+    // in the byte column, never address prefixes or printable ASCII.
+    var clickableOriginal = BinaryArtifact.FromBytes(new byte[] {
+        0x09, 0xFF, 0xCD, 0x21, 0xB9, 0x90, 0xCD, 0x21
+    });
+    string renderedRawHex = RawHexPreview.Render(clickableOriginal);
+    var rawByteMap = HexByteNavigation.MapRenderedBytes(renderedRawHex);
+    Equal(rawByteMap.Count, 8, "original raw hex maps each backed byte to a selectable token");
+    int originalCdPosition = renderedRawHex.IndexOf("CD 21", StringComparison.Ordinal);
+    Equal(HexByteNavigation.HitTest(rawByteMap, originalCdPosition)?.PhysicalFileOffset, 2,
+        "click on CD highlights the actual original file+0x2 byte");
+    Equal(HexByteNavigation.HitTest(rawByteMap, originalCdPosition + 1)?.PhysicalFileOffset, 2,
+        "click on the second hex digit remains the same byte");
+    Equal(HexByteNavigation.HitTest(rawByteMap, originalCdPosition + 2), null,
+        "separating space does not select an unrelated byte");
+    Equal(HexByteNavigation.HitTest(rawByteMap, renderedRawHex.IndexOf("file+0x", StringComparison.Ordinal)),
+        null, "raw original hex address label is not a byte token");
+    Equal(HexByteNavigation.FindPhysical(rawByteMap, 6)?.CharacterStart,
+        renderedRawHex.LastIndexOf("CD 21", StringComparison.Ordinal),
+        "another occurrence of CD has a distinct physically mapped clickable position");
+
+    var leMapped = HexByteNavigation.MapRenderedBytes(
+        "1:00000020   09 FF ?? CD " + new string(' ', 36) + "  ....\r\n",
+        (obj, off) => obj == 1 ? 0x200 + checked((int)off) : null);
+    Equal(leMapped.Count, 3, "LE unbacked ?? token is not clickable or falsely file backed");
+    Equal(leMapped[2].PhysicalFileOffset, 0x223,
+        "LE byte-column selection respects object-relative mapping");
+    Equal(HexByteNavigation.HitTest(leMapped, "1:00000020   09 FF ?? CD ".IndexOf("??", StringComparison.Ordinal)),
+        null, "LE unknown original-byte cell remains unselectable");
+
+    foreach (string query in new[] { "CD", "CD 21", "4604CD21", "hex:46 04 CD 21" })
+        Equal(HexByteNavigation.TryParseBytePattern(query, out _), true,
+            "hex byte search accepts a bounded original-byte pattern: " + query);
+    foreach (string invalid in new[] { "", "F", "GG", "hex:4", "0000:0025",
+        "file:0x225", new string('F', 130), "CD/21" })
+        Equal(HexByteNavigation.TryParseBytePattern(invalid, out _), false,
+            "address or malformed bytes must never be silently interpreted as a byte search");
+    Equal(HexByteNavigation.TryParseBytePattern("CD 21", out var intPattern), true,
+        "hexadecimal byte-pair search parsed");
+    Equal(HexByteNavigation.FindNext(clickableOriginal.Data, intPattern, 0), 2,
+        "byte search first hit preserves original source offset");
+    Equal(HexByteNavigation.FindNext(clickableOriginal.Data, intPattern, 3), 6,
+        "Enter again advances to next original-byte pattern");
+    Equal(HexByteNavigation.FindNext(clickableOriginal.Data, intPattern, 8), 2,
+        "next search wraps after end of original input");
+    Equal(HexByteNavigation.FindNext(clickableOriginal.Data, new byte[] { 0xDE }, 0), -1,
+        "unmatched original-byte pattern is never fabricated");
+
+
     Equal(mzImage.Relocations[0].SourceFileOffset, 33L, "MZ relocation original file offset");
     Equal(mzImage.ToFileOffset(0, 0), 32L, "DOS 16-bit segment:offset source mapping");
     Equal(mzImage.ToFileOffset(0x30, 0), (long?)null, "unbacked MZ address cannot map to a fictional file offset");
