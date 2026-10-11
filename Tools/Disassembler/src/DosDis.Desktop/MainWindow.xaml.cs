@@ -389,7 +389,11 @@ public partial class MainWindow : Window
 
     private void FunctionsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (FunctionsList.SelectedItem is FunctionRow row) Navigate(row.Address);
+        if (FunctionsList.SelectedItem is not FunctionRow row) return;
+        if (_mzImage is not null && row.MzAddress is { } mzAddress)
+            NavigateMz(mzAddress);
+        else if (_image is not null && row.LeAddress is { } leAddress)
+            Navigate(leAddress);
     }
     private void AssemblyGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -400,12 +404,14 @@ public partial class MainWindow : Window
             return;
         }
         NoteEditor.IsEnabled = !_working && _mzImage is null;
-        var address = new FlowAddress(row.Object, row.Offset);
         SelectedAddressText.Text = row.AddressText;
         AddressBox.Text = _mzImage is not null ? row.AddressText : $"{row.Object}:0x{row.Offset:X}";
-        ReferencesGrid.ItemsSource = _referenceIndex.TryGetValue(address, out var refs)
+        ReferencesGrid.ItemsSource = _referenceIndex.TryGetValue((row.Object, row.Offset), out var refs)
             ? refs : Array.Empty<ReferenceRow>();
-        RenderHex(address);
+        if (_mzImage is not null)
+            RenderMzHex(new Dos16Address(checked((ushort)row.Object), checked((ushort)row.Offset)));
+        else
+            RenderHex(new FlowAddress(row.Object, row.Offset));
         _commentRevision = 0;
         NoteEditor.Text = string.Empty;
         if (_project != null && _mzImage is null)
@@ -418,24 +424,26 @@ public partial class MainWindow : Window
     private void ReferencesGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         if (_working) return;
-        if (ReferencesGrid.SelectedItem is ReferenceRow { NavigationTarget: { } target })
-            Navigate(target);
+        if (ReferencesGrid.SelectedItem is not ReferenceRow row) return;
+        if (_mzImage is not null && row.MzNavigationTarget is { } mzTarget)
+            NavigateMz(mzTarget);
+        else if (_image is not null && row.LeNavigationTarget is { } leTarget)
+            Navigate(leTarget);
     }
 
     private static string Format(FlowAddress? at) =>
         at is { } a ? $"{a.Object}:0x{a.Offset:X8}" : "unresolved";
 
+    private void RenderMzHex(Dos16Address address)
+    {
+        if (_mzImage is null || _artifact is null) return;
+        long? physical = _mzImage.ToFileOffset(address.Segment, address.Offset);
+        if (physical.HasValue)
+            HexView.Text = RawHexPreview.Render(_artifact, checked((int)physical.Value));
+    }
+
     private void RenderHex(FlowAddress address)
     {
-        if (_mzImage is not null)
-        {
-            if (_artifact is null || address.Object is < 0 or > 65535 ||
-                address.Offset > ushort.MaxValue) return;
-            long? physical = _mzImage.ToFileOffset((ushort)address.Object, (ushort)address.Offset);
-            if (physical.HasValue)
-                HexView.Text = RawHexPreview.Render(_artifact, checked((int)physical.Value));
-            return;
-        }
         if (_image is null)
         {
             if (_artifact is not null) HexView.Text = RawHexPreview.Render(_artifact);
@@ -493,7 +501,7 @@ public partial class MainWindow : Window
                     ? parts[0][2..] : parts[0];
                 ushort cs = ushort.Parse(segment, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
                 ushort ip = ushort.Parse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-                Navigate(new FlowAddress(cs, ip));
+                NavigateMz(new Dos16Address(cs, ip));
                 return;
             }
             if (_image is null)
@@ -507,11 +515,6 @@ public partial class MainWindow : Window
     }
     private void Navigate(FlowAddress address)
     {
-        if (_mzImage is not null)
-        {
-            NavigateMz(address);
-            return;
-        }
         if (_image is null) return;
         AssemblyRow? found = _rows.FirstOrDefault(x => x.Object == address.Object && x.Offset == address.Offset);
         if (found is null)
@@ -545,16 +548,11 @@ public partial class MainWindow : Window
         if (MainTabs.SelectedIndex == 0) AssemblyGrid.ScrollIntoView(found);
     }
 
-    private void NavigateMz(FlowAddress address)
+    private void NavigateMz(Dos16Address address)
     {
         DosMzImage mz = _mzImage ?? throw new InvalidOperationException("MZ is not open.");
-        if (address.Object is < 0 or > 65535 || address.Offset > ushort.MaxValue)
-        {
-            StatusText.Text = "16-bit MZ navigation requires hexadecimal module-relative CS:IP.";
-            return;
-        }
-        ushort cs = (ushort)address.Object;
-        ushort ip = (ushort)address.Offset;
+        ushort cs = address.Segment;
+        ushort ip = address.Offset;
         if (mz.ToFileOffset(cs, ip) is null)
         {
             StatusText.Text = "Selected CS:IP is outside original-file-backed MZ load bytes.";
@@ -592,7 +590,7 @@ public partial class MainWindow : Window
         Trace(DiagnosticStage.Navigation);
         AssemblyGrid.SelectedItem = found;
         if (MainTabs.SelectedIndex == 0) AssemblyGrid.ScrollIntoView(found);
-        else RenderHex(address);
+        else RenderMzHex(address);
     }
 
     private void IntelligenceList_SelectionChanged(object sender, SelectionChangedEventArgs e)
