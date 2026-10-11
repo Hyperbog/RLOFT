@@ -15,6 +15,9 @@ else()
 endif()
 add_test(NAME native_framework_contract_tests COMMAND native_framework_contract_tests)
 
+# Full Git checkout only: compile the real inherited media reader when available.
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../DemoV1/src/game_source.cpp" AND
+   EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../DemoV1/include/rloft/game_source.hpp")
 # Integrates the adapter with the actual inherited reader, not a mock loader.
 # This is still a read-only synthetic media fixture, not a GUI or game build.
 add_executable(native_game_source_adapter_tests
@@ -34,6 +37,10 @@ else()
 endif()
 add_test(NAME native_game_source_adapter_tests COMMAND native_game_source_adapter_tests)
 
+else()
+  message(STATUS "NativeEngine: full GameSource source absent; adapter CTest NOT registered")
+endif()
+
 # CPU golden output for future GPU backend readback equality, not a DOS CRT.
 add_executable(native_cpu_reference_presenter_tests tests/cpu_reference_presenter_tests.cpp)
 target_link_libraries(native_cpu_reference_presenter_tests PRIVATE rloft_native_contracts)
@@ -43,3 +50,13 @@ else()
   target_compile_options(native_cpu_reference_presenter_tests PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG)
 endif()
 add_test(NAME native_cpu_reference_presenter_tests COMMAND native_cpu_reference_presenter_tests)
+
+# Real folder mount proof; no proprietary assets or external engine dependencies.
+add_executable(native_disk_mod_mount_tests tests/disk_mod_mount_tests.cpp)
+target_link_libraries(native_disk_mod_mount_tests PRIVATE rloft_native_contracts)
+if(MSVC)
+  target_compile_options(native_disk_mod_mount_tests PRIVATE /W4 /UNDEBUG)
+else()
+  target_compile_options(native_disk_mod_mount_tests PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG)
+endif()
+add_test(NAME native_disk_mod_mount_tests COMMAND native_disk_mod_mount_tests)
