@@ -1,8 +1,12 @@
 #include "rloft_native/native_assets.hpp"
 
 #include <cassert>
+#include <chrono>
 #include <cstdint>
+#include <filesystem>
+#include <fstream>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 using rloft_native::NativeType1Raster;
@@ -79,6 +83,52 @@ void run_tests() {
     rejects([] { decode_native_type1_raster(record(1,1,1,0,3,0,{0xFF,1})); });
     rejects([] { decode_native_type1_raster(record(1,1,1,0,3,0,{0x00,0xFF,0xF0})); });
     rejects([] { decode_native_type1_raster(record(32767,32767,255,0,0,0,{})); });
+
+    // Full native reader -> INIT selector -> RES0[47] -> EH image bridge.
+    // This fixture is standalone original-format data, not demo code.
+    namespace fs = std::filesystem;
+    const auto folder = fs::temp_directory_path() /
+        ("rloft-eh1-native-" + std::to_string(
+            std::chrono::steady_clock::now().time_since_epoch().count()));
+    fs::create_directory(folder);
+    try {
+        const std::size_t entries = 48;
+        const std::size_t header_length = 4 + 4 * entries;
+        std::vector<std::uint8_t> archive(header_length,0);
+        const auto put32 = [&](std::size_t at, std::uint32_t value) {
+            for(unsigned k=0;k<4;++k)
+                archive[at+k] = std::uint8_t(value >> (8*k));
+        };
+        put32(0, static_cast<std::uint32_t>(entries));
+        for(std::size_t n=0;n<entries;++n)
+            put32(4 + n*4, static_cast<std::uint32_t>(header_length));
+        const auto cursor = record(1,1,1,255,0,0,eight);
+        archive.insert(archive.end(),cursor.begin(),cursor.end());
+        const auto write = [&](const char* name,
+                               const std::vector<std::uint8_t>& bytes) {
+            std::ofstream file(folder/name,std::ios::binary);
+            if(!file)throw std::runtime_error("cannot construct native raster fixture");
+            file.write(reinterpret_cast<const char*>(bytes.data()),
+                       static_cast<std::streamsize>(bytes.size()));
+            if(!file)throw std::runtime_error("native raster fixture incomplete");
+        };
+        write("INIT",{0,0});
+        write("T",{1});
+        write("RES0",archive);
+        const auto source = rloft_native::NativeMedia::open(folder);
+        const auto original = rloft_native::load_native_default_cursor(source);
+        assert(original.res0_id == 47);
+        assert(original.image.pixels == eight);
+        assert(original.image.frames == 1 && original.image.width == 8);
+        assert(fs::file_size(folder/"RES0") == archive.size());
+        write("INIT",{0xFF,0xFF});
+        const auto wrong = rloft_native::NativeMedia::open(folder);
+        rejects([&] {static_cast<void>(rloft_native::load_native_default_cursor(wrong));});
+    } catch (...) {
+        fs::remove_all(folder);
+        throw;
+    }
+    fs::remove_all(folder);
 
     auto short_header = record(1,1,1,0,0,0,eight);
     short_header[3] = 7;
