@@ -34,12 +34,13 @@ try {
     foreach ($test in @("native_asset_media_tests", "native_framework_contract_tests",
         "native_cpu_reference_presenter_tests", "native_disk_mod_mount_tests",
         "native_mod_load_plan_tests", "native_mod_mount_plan_tests",
-        "native_renderer_evidence_contract_tests", "native_asset_engine_window_target")) {
+        "native_renderer_evidence_contract_tests", "native_asset_engine_window_target",
+        "native_raster_tests")) {
         if (-not $display.Contains($test)) { throw "Mandatory native asset CTest absent: $test" }
     }
     $count = [regex]::Match($display, 'Total Tests:\s*(\d+)')
-    if (-not $count.Success -or [int]$count.Groups[1].Value -lt 9) {
-        throw "At least 9 independent asset CTests required"
+    if (-not $count.Success -or [int]$count.Groups[1].Value -lt 10) {
+        throw "At least 10 independent asset CTests required"
     }
     & ctest --test-dir $BuildDir -C Release --output-on-failure --parallel 2
     if ($LASTEXITCODE -ne 0) { throw "Windows native asset CTests failed" }
