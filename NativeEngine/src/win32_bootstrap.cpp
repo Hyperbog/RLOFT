@@ -148,9 +148,9 @@ void paint(State& state, HDC dc, const RECT& client) {
     RECT subtitle{20, 48, client.right - 20, 95};
     text_at(dc, L"Original installation reader | Revision " + widen(RLOFT_NATIVE_SOURCE_SHA) +
         L" | NOT PLAYABLE YET", subtitle, DT_SINGLELINE | DT_END_ELLIPSIS);
-    const int split = std::max(350, client.right / 2);
+    const int split = std::max(350, static_cast<int>(client.right / 2));
     const int left_width = std::max(1, split - 40);
-    const int left_height = std::max(1, client.bottom - 174);
+    const int left_height = std::max(1, static_cast<int>(client.bottom - 174));
     const auto box = rloft_native::fit_original_aspect(
         static_cast<unsigned>(left_width), static_cast<unsigned>(left_height));
     const int x = 20 + static_cast<int>(box.x);
