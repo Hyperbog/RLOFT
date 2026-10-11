@@ -214,7 +214,7 @@ if(Python3_Interpreter_FOUND)
 endif()
 
 # Shared authoritative 172-file reconstruction source inventory.
-include(cmake/shared_game_core_sources.cmake)
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/shared_game_core_sources.cmake")
 add_library(rloft_boot_flow ${RLOFT_SHARED_GAME_CORE_SOURCES})
 target_include_directories(rloft_boot_flow PUBLIC include)
 target_compile_features(rloft_boot_flow PUBLIC cxx_std_17)
