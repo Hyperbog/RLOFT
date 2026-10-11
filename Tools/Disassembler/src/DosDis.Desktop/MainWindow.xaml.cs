@@ -63,10 +63,28 @@ public partial class MainWindow : Window
             new MouseButtonEventHandler(HexView_MouseLeftButtonUp), true);
     }
 
-    private sealed record AssemblyRow(int Object, uint Offset, string Bytes,
-        string Assembly, string Evidence, string? DisplayAddress = null)
-        : INotifyPropertyChanged
+    private sealed class AssemblyRow : INotifyPropertyChanged
     {
+        // Stable reference identity is essential for WPF DataGrid selection.
+        // Do NOT use a record with mutable highlight fields: generated record
+        // equality changes when a byte is highlighted.
+        public AssemblyRow(int number, uint offset, string bytes, string assembly,
+            string evidence, string? displayAddress = null)
+        {
+            Object = number;
+            Offset = offset;
+            Bytes = bytes;
+            Assembly = assembly;
+            Evidence = evidence;
+            DisplayAddress = displayAddress;
+        }
+
+        public int Object { get; }
+        public uint Offset { get; }
+        public string Bytes { get; }
+        public string Assembly { get; }
+        public string Evidence { get; }
+        public string? DisplayAddress { get; }
         public string AddressText => DisplayAddress ?? $"{Object}:0x{Offset:X8}";
         private int _highlightStart;
         private int _highlightLength;
