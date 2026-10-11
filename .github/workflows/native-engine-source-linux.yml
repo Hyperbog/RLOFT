@@ -40,6 +40,23 @@ jobs:
         run: cmake --build build/native-source-ci --parallel 2
       - name: Run source-only NativeEngine CTest suite
         run: ctest --test-dir build/native-source-ci --output-on-failure
+      - name: Diagnose native bank fixture failure on Linux
+        if: failure()
+        run: |
+          if command -v gdb >/dev/null 2>&1; then
+            gdb --batch -ex run -ex "bt 30" --args build/native-source-ci/native_bank_system_tests
+          else
+            echo "gdb unavailable: preserve failing CTest status"
+          fi
+      - name: Upload asset-free Linux validation executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLOFT-native-source-linux-auditors
+          path: |
+            build/native-source-ci/rloft_native_payload_audit
+            build/native-source-ci/rloft_native_world_audit
+          if-no-files-found: error
+          retention-days: 7
       - name: Check standalone payload auditor exists
         run: test -x build/native-source-ci/rloft_native_payload_audit
       - name: Assert no original media was added by source-only test
