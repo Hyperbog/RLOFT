@@ -15,9 +15,9 @@ void exercise() {
     assert(plan_mod_mounts({}).empty());
     const std::vector<ModManifest> manifests = {
         {"Quest", "1.0", 1, 1, {"Textures", "Core"}},
-        {"Unrelated", "2.1"},
+        {"Unrelated", "2.1", 1, 1, {}},
         {"Textures", "1.0", 1, 1, {"Core"}},
-        {"Core", "1.0"}
+        {"Core", "1.0", 1, 1, {}}
     };
     const auto plan = plan_mod_mounts(manifests);
     assert(plan.size() == 4);
@@ -32,12 +32,12 @@ void exercise() {
     rejects([] { canonical_mod_id("original"); });
     rejects([] { canonical_mod_id("bad/name"); });
     rejects([] { canonical_mod_id("é"); });
-    rejects([] { plan_mod_mounts({{"Same", "1"}, {"same", "1"}}); });
+    rejects([] { plan_mod_mounts({{"Same", "1", 1, 1, {}}, {"same", "1", 1, 1, {}}}); });
     rejects([] { plan_mod_mounts({{"missing", "1", 1, 1, {"unavailable"}}}); });
     rejects([] { plan_mod_mounts({{"self", "1", 1, 1, {"SELF"}}}); });
     rejects([] { plan_mod_mounts({{"A", "1", 1, 1, {"b"}},
                                   {"b", "1", 1, 1, {"a"}}}); });
-    rejects([] { plan_mod_mounts({{"a", "1", 1, 1, {"B", "b"}}, {"b", "1"}}); });
+    rejects([] { plan_mod_mounts({{"a", "1", 1, 1, {"B", "b"}}, {"b", "1", 1, 1, {}}}); });
     rejects([] { plan_mod_mounts({{"a", "", 1, 1, {}}}); });
     rejects([] { plan_mod_mounts({{"a", "1", 2, 3, {}}}); });
     rejects([] { plan_mod_mounts({{"a", "1", 3, 1, {}}}); });
@@ -46,7 +46,7 @@ void exercise() {
     // A low-priority base may be listed after its dependent; planning
     // reorders it ahead of the dependent so final mounts satisfy overrides.
     assert(plan_mod_mounts({{"dependent", "1", 1, 1, {"base"}},
-                            {"base", "1"}})[0].id == "base");
+                            {"base", "1", 1, 1, {}}})[0].id == "base");
     auto many = std::vector<ModManifest>(257);
     for (std::size_t i = 0; i < many.size(); ++i)
         many[i].id = "mod" + std::to_string(i);
