@@ -60,3 +60,11 @@ else()
   target_compile_options(native_disk_mod_mount_tests PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG)
 endif()
 add_test(NAME native_disk_mod_mount_tests COMMAND native_disk_mod_mount_tests)
+
+# Synthetic metadata only. This Python test never benchmarks a real GPU.
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+  add_test(NAME native_renderer_evidence_contract_tests
+    COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_compare_renderer_candidates.py")
+endif()
