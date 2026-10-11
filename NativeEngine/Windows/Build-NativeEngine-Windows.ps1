@@ -19,7 +19,7 @@ try {
         throw "Cannot determine exact checked-out Git revision."
     }
     Write-Host "NativeEngine source checkout: $sha"
-    & cmake -S NativeEngine -B $BuildDir -A x64 "-DRLOFT_NATIVE_SOURCE_SHA=$sha"
+    & cmake -S NativeEngine -B $BuildDir -G "Visual Studio 17 2022" -A x64 "-DRLOFT_NATIVE_SOURCE_SHA=$sha"
     if ($LASTEXITCODE -ne 0) { throw "Windows x64 CMake configure failed" }
     & cmake --build $BuildDir --config Release --parallel 2
     if ($LASTEXITCODE -ne 0) { throw "Windows x64 MSVC compilation failed" }
