@@ -36,6 +36,10 @@
 #include "rloft/automap_screen_presenter.hpp"
 #include "rloft/automap_controls.hpp"
 #include "rloft/boot_flow.hpp"
+#include "rloft/win32_game_entry.hpp"
+#ifdef RLOFT_NATIVE_ENGINE
+#include "rloft_native/windows_profile.hpp"
+#endif
 #include "rloft/character_creation_flow.hpp"
 #include "rloft/character_creation_presenter.hpp"
 #include "rloft/character_stats.hpp"
@@ -108,7 +112,11 @@ public:
         // never paints a second Windows arrow over the game.
         wc.hCursor = nullptr;
         wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
+        #ifdef RLOFT_NATIVE_ENGINE
+        wc.lpszClassName = L"RavenloftNativeEngineWindow";
+#else
         wc.lpszClassName = L"RavenloftDemoV1Window";
+#endif
         RegisterClassW(&wc);
 
 #ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
@@ -137,7 +145,11 @@ public:
         hwnd_ = CreateWindowExW(
             0,
             wc.lpszClassName,
+            #ifdef RLOFT_NATIVE_ENGINE
+            L"Ravenloft: Strahd's Possession - Native Engine",
+#else
             L"Ravenloft: Strahd's Possession - Demo Build v1",
+#endif
             WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
@@ -2331,7 +2343,11 @@ void save_preferred_install(const std::filesystem::path& path) {
     HKEY key = nullptr;
     if (RegCreateKeyExW(
             HKEY_CURRENT_USER,
+            #ifdef RLOFT_NATIVE_ENGINE
+            L"Software\\Hyperbog\\RLOFT NativeEngine",
+#else
             L"Software\\Hyperbog\\RLOFT Demo V1",
+#endif
             0,
             nullptr,
             0,
@@ -2357,7 +2373,11 @@ std::optional<std::filesystem::path> preferred_install() {
     HKEY key = nullptr;
     if (RegOpenKeyExW(
             HKEY_CURRENT_USER,
+            #ifdef RLOFT_NATIVE_ENGINE
+            L"Software\\Hyperbog\\RLOFT NativeEngine",
+#else
             L"Software\\Hyperbog\\RLOFT Demo V1",
+#endif
             0,
             KEY_QUERY_VALUE,
             &key) != ERROR_SUCCESS) {
@@ -2469,6 +2489,15 @@ DemoCommandLine command_line_options() {
         throw;
     }
     LocalFree(argv);
+#ifdef RLOFT_NATIVE_ENGINE
+    // The independent game exposes the original normal route only.
+    if (result.explore_level22 || result.dev_inspect || result.dev_interact ||
+        result.dev_trace || result.capture_render ||
+        result.custom_capture_limit) {
+        throw std::invalid_argument(
+            "Native engine does not expose DemoV1 developer shortcuts");
+    }
+#endif
     if(!rloft::DevLevelInteractionPolicy::valid(
            result.explore_level22,result.dev_interact)) {
         throw std::invalid_argument(
@@ -2533,6 +2562,11 @@ int run(HINSTANCE instance) {
             source = std::move(*chosen);
         }
     }
+
+#ifdef RLOFT_NATIVE_ENGINE
+    // Never read/write the installed DOS/GOG runtime files in native mode.
+    source.set_runtime_root(rloft_native::windows_native_profile_directory());
+#endif
 
     // CODE.2 204B3 checks the writable runtime CHARS transfer before the
     // cold-start presentation. A valid existing party enters the gameplay
@@ -3836,7 +3870,9 @@ int run(HINSTANCE instance) {
 
 }  // namespace
 
-int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
+
+namespace rloft {
+int run_windows_game(HINSTANCE instance) {
     try {
         return run(instance);
     } catch (const std::exception& exc) {
@@ -3848,9 +3884,20 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
         MessageBoxW(
             nullptr,
             text.c_str(),
+#ifdef RLOFT_NATIVE_ENGINE
+            L"Ravenloft Native Engine",
+#else
             L"Ravenloft Demo Build v1",
+#endif
             MB_OK | MB_ICONERROR);
         return 1;
     }
 }
+} // namespace rloft
+
+#ifndef RLOFT_NATIVE_ENGINE
+int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
+    return rloft::run_windows_game(instance);
+}
+#endif
 #endif
