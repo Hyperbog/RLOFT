@@ -286,6 +286,21 @@ int run(HINSTANCE instance) {
         LocalFree(argv);
         return self_test();
     }
+    if (argc == 3 && std::wstring_view(argv[1]) == L"--self-test-install") {
+        // Noninteractive Windows CI gate: validate the GUI's real reader +
+        // State inventory path with synthetic loose/ISO installations. Never
+        // create a window, modify original media or display error dialogs.
+        const auto media_path = std::filesystem::path(argv[2]);
+        LocalFree(argv);
+        try {
+            const auto media = rloft::GameSource::open(media_path);
+            State state;
+            inspect(state, media);
+            return state.signature_ok ? 0 : 3;
+        } catch (...) {
+            return 2;
+        }
+    }
     std::optional<std::filesystem::path> initial;
     if (argc == 3 && std::wstring_view(argv[1]) == L"--install")
         initial = std::filesystem::path(argv[2]);
