@@ -78,12 +78,27 @@ void verify_shape7(const std::vector<std::uint8_t>& decoded) {
     }
 }
 
-void verify_image(const std::vector<std::uint8_t>& e, bool font) {
-    const auto validate_exact = [](const std::vector<std::uint8_t>& raster) {
+bool verify_image(const std::vector<std::uint8_t>& e, bool font,
+                  std::string_view archive) {
+    const auto validate_exact = [archive](const std::vector<std::uint8_t>& raster) {
         require(raster.size()>=13,"EH1 shared payload envelope truncated");
         const int frames=s16(raster.data()+5), rows=s16(raster.data()+7);
-        require(frames>0 && rows>0 && raster[9]>0,
-                "EH1 invalid image geometry");
+        require(frames>=0 && rows>=0,
+                "negative signed raster dimensions in original EH");
+        const bool inert=frames==0 || rows==0 || raster[9]==0;
+        if(inert) {
+            // The archived pre-split RES12 bank legitimately contains five
+            // zero-geometry EH1 records. Original CODE.2 loader size product
+            // is zero: no image pixels and NO compressed payload bytes.
+            // Preserve as inert legacy source records, never pass them to
+            // the normal native renderable-image decoder.
+            require(archive=="RES12",
+                    "unexpected zero-dimension active original raster");
+            require((raster[11]==0 || raster[11]==3) &&
+                    raster.size()==13,
+                    "legacy zero-dimensional raster contains invalid payload");
+            return true;
+        }
         const auto decoded=std::size_t(frames)*std::size_t(rows)*
                            std::size_t(raster[9])*8U;
         if (raster[11]==3) {
@@ -97,11 +112,12 @@ void verify_image(const std::vector<std::uint8_t>& e, bool font) {
         } else {
             throw std::runtime_error("unsupported original EH1 method");
         }
+        return false;
     };
     if (!font) {
-        (void)decode_native_type1_raster(e);
-        validate_exact(e);
-        return;
+        const bool inert=validate_exact(e);
+        if(!inert)(void)decode_native_type1_raster(e);
+        return inert;
     }
     require(e.size()>=141 && e[3]==0x88 && e[4]==0,
             "EH2 font width/descriptor header malformed");
@@ -111,7 +127,7 @@ void verify_image(const std::vector<std::uint8_t>& e, bool font) {
     EH1.insert(EH1.end(),e.begin()+133,e.begin()+141);
     EH1.insert(EH1.end(),e.begin()+141,e.end());
     const auto image=decode_native_type1_raster(EH1);
-    validate_exact(EH1);
+    require(!validate_exact(EH1),"EH2 font cannot have inert raster");
     require(image.frames==128 && image.width==8,
             "EH2 font glyph count or width inconsistent");
 }
@@ -171,11 +187,12 @@ BankRecordKind validate_native_bank_record(
     switch(type) {
         case 1:
             require(signed_header==8,"EH1 descriptor span not 8");
-            verify_image(e,false);
-            return BankRecordKind::Raster;
+            return verify_image(e,false,archive) ?
+                BankRecordKind::InertLegacyRaster :
+                BankRecordKind::Raster;
         case 2:
             require(signed_header==136,"EH2 font descriptor span not 136");
-            verify_image(e,true);
+            (void)verify_image(e,true,archive);
             return BankRecordKind::Font;
         case 3:
         case 4: {
@@ -283,6 +300,8 @@ NativeBankSystemReport audit_native_bank_system(
                             if(bank==9 || bank==12)++summary.raw_wordcode;
                             break;
                         case BankRecordKind::Raster:++summary.decoded_raster;break;
+                        case BankRecordKind::InertLegacyRaster:
+                            ++summary.inert_legacy_raster;break;
                         case BankRecordKind::Font:++summary.decoded_font;break;
                         case BankRecordKind::Xmidi:++summary.decoded_music;break;
                         case BankRecordKind::Voc:++summary.decoded_sound;break;
@@ -335,6 +354,7 @@ std::string native_bank_system_json(const NativeBankSystemReport& report) {
            <<",\"non_eh\":"<<b.non_eh
            <<",\"raw_wordcode\":"<<b.raw_wordcode
            <<",\"image_eh1\":"<<b.decoded_raster
+           <<",\"inert_legacy_eh1\":"<<b.inert_legacy_raster
            <<",\"font_eh2\":"<<b.decoded_font
            <<",\"xmidi_eh3\":"<<b.decoded_music
            <<",\"voc_eh4\":"<<b.decoded_sound
