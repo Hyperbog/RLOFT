@@ -272,6 +272,7 @@ add_library(rloft_boot_flow
     src/combat_irq_message.cpp
     src/combat_irq_display.cpp
     src/combat_irq_display_runtime.cpp
+    src/original_dos_feedback_runtime.cpp
     src/combat_original_text_runtime.cpp
     src/combat_original_sprite_runtime.cpp
     src/combat_original_vga_address.cpp
@@ -563,6 +564,9 @@ add_test(NAME combat_level_message_tests COMMAND combat_level_message_tests)
 add_executable(combat_irq_display_runtime_tests tests/combat_irq_display_runtime_tests.cpp)
 target_link_libraries(combat_irq_display_runtime_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_irq_display_runtime_tests COMMAND combat_irq_display_runtime_tests)
+add_executable(original_dos_feedback_runtime_tests tests/original_dos_feedback_runtime_tests.cpp)
+target_link_libraries(original_dos_feedback_runtime_tests PRIVATE rloft_boot_flow)
+add_test(NAME original_dos_feedback_runtime_tests COMMAND original_dos_feedback_runtime_tests)
 add_executable(combat_original_text_runtime_tests tests/combat_original_text_runtime_tests.cpp)
 target_link_libraries(combat_original_text_runtime_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_original_text_runtime_tests COMMAND combat_original_text_runtime_tests)
