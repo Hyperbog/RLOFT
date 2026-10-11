@@ -308,6 +308,20 @@ try
     Equal(HexByteNavigation.FindPhysical(rawByteMap, 6)?.CharacterStart,
         renderedRawHex.LastIndexOf("CD 21", StringComparison.Ordinal),
         "another occurrence of CD has a distinct physically mapped clickable position");
+    var laterOffsetFixture = new byte[0x40];
+    laterOffsetFixture[0x22] = 0xCD;
+    laterOffsetFixture[0x23] = 0x21;
+    string laterWindow = RawHexPreview.Render(
+        BinaryArtifact.FromBytes(laterOffsetFixture), startOffset: 0x22, maxLines: 2);
+    var laterMap = HexByteNavigation.MapRenderedBytes(laterWindow);
+    Equal(laterMap[0].PhysicalFileOffset, 0x20,
+        "visible click coordinates reflect aligned ORIGINAL physical row, not text line zero");
+    Equal(HexByteNavigation.FindPhysical(laterMap, 0x22)?.CharacterStart,
+        laterWindow.IndexOf("CD 21", StringComparison.Ordinal),
+        "searched original CD byte in a scrolled window maps to its exact pair");
+    Equal(HexByteNavigation.HitTest(laterMap, laterWindow.LastIndexOf("file+0x", StringComparison.Ordinal)),
+        null, "physical row labels cannot masquerade as byte hit targets");
+
 
     var leMapped = HexByteNavigation.MapRenderedBytes(
         "1:00000020   09 FF ?? CD " + new string(' ', 36) + "  ....\r\n",
