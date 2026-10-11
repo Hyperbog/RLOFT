@@ -336,6 +336,43 @@ public partial class MainWindow : Window
         FunctionsList.ItemsSource = graph.FunctionCandidates.Select(f => new FunctionRow(f.Entry,
             $"{f.Entry.Object}:0x{f.Entry.Offset:X8}  [{f.Blocks.Count} blocks]")).ToArray();
     }
+    private void ShowMzAnalysis(Dos16FlowResult graph)
+    {
+        // MZ CS:IP is a module-relative namespace. Never store this graph
+        // in SQLite's LE object-relative project snapshot format.
+        var index = new Dictionary<FlowAddress, List<ReferenceRow>>();
+        void Add(Dos16Address where, ReferenceRow row)
+        {
+            var key = new FlowAddress(where.Segment, where.Offset);
+            if (!index.TryGetValue(key, out var list))
+                index.Add(key, list = new List<ReferenceRow>());
+            list.Add(row);
+        }
+        static string MzAddress(Dos16Address at) => $"{at.Segment:X4}:{at.Offset:X4}";
+        foreach (var edge in graph.Edges)
+        {
+            FlowAddress? destination = edge.Destination is { } target
+                ? new FlowAddress(target.Segment, target.Offset) : null;
+            Add(edge.Source, new ReferenceRow("Outgoing",
+                edge.Destination is { } resolved ? MzAddress(resolved) : "unresolved",
+                edge.Kind, edge.Evidence, destination));
+            if (edge.Destination is { } incoming)
+                Add(incoming, new ReferenceRow("Incoming", MzAddress(edge.Source),
+                    edge.Kind, edge.Evidence,
+                    new FlowAddress(edge.Source.Segment, edge.Source.Offset)));
+        }
+        _referenceIndex = index.ToDictionary(x => x.Key,
+            x => (IReadOnlyList<ReferenceRow>)x.Value.ToArray());
+        SetRows(graph.Instructions.Select(x => new AssemblyRow(
+            x.Address.Segment, x.Address.Offset, x.OriginalBytes, x.Assembly,
+            $"x86-16-candidate;{x.FlowControl};runtime-unverified",
+            MzAddress(x.Address))).ToArray());
+        FunctionsList.ItemsSource = new[] { new FunctionRow(
+            new FlowAddress(graph.Entry.Segment, graph.Entry.Offset),
+            $"{MzAddress(graph.Entry)}  [entry hypothesis; no function proof]") };
+        ExportAnalysisButton.IsEnabled = true;
+    }
+
     private void SetRows(IReadOnlyList<AssemblyRow> items)
     {
         _rows = items;
@@ -361,21 +398,21 @@ public partial class MainWindow : Window
             NoteEditor.IsEnabled = false;
             return;
         }
-        NoteEditor.IsEnabled = !_working;
+        NoteEditor.IsEnabled = !_working && _mzImage is null;
         var address = new FlowAddress(row.Object, row.Offset);
         SelectedAddressText.Text = row.AddressText;
-        AddressBox.Text = $"{row.Object}:0x{row.Offset:X}";
+        AddressBox.Text = _mzImage is not null ? row.AddressText : $"{row.Object}:0x{row.Offset:X}";
         ReferencesGrid.ItemsSource = _referenceIndex.TryGetValue(address, out var refs)
             ? refs : Array.Empty<ReferenceRow>();
         RenderHex(address);
         _commentRevision = 0;
         NoteEditor.Text = string.Empty;
-        if (_project != null)
+        if (_project != null && _mzImage is null)
         {
             var note = _project.GetAnnotation(_artifact.Sha256, row.Object, row.Offset, "comment");
             if (note != null) { NoteEditor.Text = note.Body; _commentRevision = note.Revision; }
         }
-        SaveNoteButton.IsEnabled = !_working && _artifact != null;
+        SaveNoteButton.IsEnabled = !_working && _mzImage is null && _artifact != null;
     }
     private void ReferencesGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
@@ -389,6 +426,15 @@ public partial class MainWindow : Window
 
     private void RenderHex(FlowAddress address)
     {
+        if (_mzImage is not null)
+        {
+            if (_artifact is null || address.Object is < 0 or > 65535 ||
+                address.Offset > ushort.MaxValue) return;
+            long? physical = _mzImage.ToFileOffset((ushort)address.Object, (ushort)address.Offset);
+            if (physical.HasValue)
+                HexView.Text = RawHexPreview.Render(_artifact, checked((int)physical.Value));
+            return;
+        }
         if (_image is null)
         {
             if (_artifact is not null) HexView.Text = RawHexPreview.Render(_artifact);
@@ -438,6 +484,17 @@ public partial class MainWindow : Window
                 return;
             }
 
+            if (_mzImage is not null)
+            {
+                // MZ addresses are hexadecimal MODULE-RELATIVE CS:IP, not
+                // runtime selectors and never 32-bit LE object numbers.
+                string segment = parts[0].StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+                    ? parts[0][2..] : parts[0];
+                ushort cs = ushort.Parse(segment, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                ushort ip = ushort.Parse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                Navigate(new FlowAddress(cs, ip));
+                return;
+            }
             if (_image is null)
                 throw new FormatException("This file has no supported executable mapping. Use file:0xOFFSET to inspect original bytes.");
             int number = int.Parse(parts[0], CultureInfo.InvariantCulture);
@@ -449,6 +506,11 @@ public partial class MainWindow : Window
     }
     private void Navigate(FlowAddress address)
     {
+        if (_mzImage is not null)
+        {
+            NavigateMz(address);
+            return;
+        }
         if (_image is null) return;
         AssemblyRow? found = _rows.FirstOrDefault(x => x.Object == address.Object && x.Offset == address.Offset);
         if (found is null)
@@ -480,6 +542,56 @@ public partial class MainWindow : Window
         // unexpectedly switching the user's Hexadecimal or References tab.
         AssemblyGrid.SelectedItem = found;
         if (MainTabs.SelectedIndex == 0) AssemblyGrid.ScrollIntoView(found);
+    }
+
+    private void NavigateMz(FlowAddress address)
+    {
+        DosMzImage mz = _mzImage ?? throw new InvalidOperationException("MZ is not open.");
+        if (address.Object is < 0 or > 65535 || address.Offset > ushort.MaxValue)
+        {
+            StatusText.Text = "16-bit MZ navigation requires hexadecimal module-relative CS:IP.";
+            return;
+        }
+        ushort cs = (ushort)address.Object;
+        ushort ip = (ushort)address.Offset;
+        if (mz.ToFileOffset(cs, ip) is null)
+        {
+            StatusText.Text = "Selected CS:IP is outside original-file-backed MZ load bytes.";
+            return;
+        }
+        AssemblyRow? found = _rows.FirstOrDefault(x => x.Object == cs && x.Offset == ip);
+        if (found is null)
+        {
+            try
+            {
+                var preview = mz.Decode(cs, ip, 64);
+                var byAddress = _rows.ToDictionary(x => (x.Object, x.Offset));
+                foreach (var ins in preview)
+                {
+                    var item = new AssemblyRow(ins.Segment, ins.Offset, ins.OriginalBytes,
+                        ins.Assembly, ins.Valid ? "supplemental-x86-16-unverified" : "invalid-decoding",
+                        $"{ins.Segment:X4}:{ins.Offset:X4}");
+                    byAddress.TryAdd((item.Object, item.Offset), item);
+                }
+                _rows = byAddress.Values.OrderBy(x => x.Object).ThenBy(x => x.Offset).ToArray();
+                AssemblyGrid.ItemsSource = _rows;
+                found = _rows.FirstOrDefault(x => x.Object == cs && x.Offset == ip);
+                StatusText.Text = "Supplemental source-backed x86-16 preview; no verified code/function claims.";
+            }
+            catch (Exception ex) when (ex is InvalidDataException or ArgumentException or NotSupportedException)
+            {
+                Error("Cannot navigate to MZ address", ex);
+                return;
+            }
+        }
+        if (found is null) return;
+        AddressBox.Text = $"{cs:X4}:{ip:X4}";
+        // Diagnostic events accept positive LE object IDs only. Do not
+        // mislabel MZ CS=0000 as an LE object index.
+        Trace(DiagnosticStage.Navigation);
+        AssemblyGrid.SelectedItem = found;
+        if (MainTabs.SelectedIndex == 0) AssemblyGrid.ScrollIntoView(found);
+        else RenderHex(address);
     }
 
     private void IntelligenceList_SelectionChanged(object sender, SelectionChangedEventArgs e)
