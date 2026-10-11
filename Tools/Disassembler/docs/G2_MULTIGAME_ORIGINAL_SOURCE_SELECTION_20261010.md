@@ -1,5 +1,7 @@
 # DOSDis G2 — independently identified DOS original-source selection (2026-10-10)
 
+**Current verification update:** [G2 #42](G2_BUILD_GATE_RECORD_20261010_RUN42.md) **PASSED** Windows/Linux .NET compile, C# synthetic suites and 17 Python synthetic-only tests. The SHA-bound MZ preflight, relocation model and strict five-field comparator were synthetically exercised with NO proprietary originals in hosted CI. Later sections saying “source only”, “unbuilt” or “not yet run” describe the state **when this selection record was initially drafted**, before #42; they are superseded for compilation/synthetic verification only. Original Dungeon Hack, Gold Box and Strahd follow-up comparison against the **#42 compiled binary**, real-game relocation validation, GUI user acceptance and human-reviewed G2 format accuracy all remain **NOT PERFORMED / PENDING**.
+
 **Status:** ORIGINAL BYTE IDENTITY AND HEADER GEOMETRY CHECKED (read-only).
 **NOT a DOSDis comparison, decoder run, runtime test, independently reviewed
 G2 pass, or owner authorization for additional builds/CI.**
