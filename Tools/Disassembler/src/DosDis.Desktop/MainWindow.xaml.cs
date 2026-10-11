@@ -458,7 +458,10 @@ public partial class MainWindow : Window
                 _referenceIndex.TryGetValue((row.Object, row.Offset), out var at)
                 ? at : Array.Empty<ReferenceRow>();
         }
-        ReferencesGrid.ItemsSource = shown;
+        // Global data does not change when the selected disassembly row
+        // changes. Preserve scroll position and virtualization state.
+        if (!ReferenceEquals(ReferencesGrid.ItemsSource, shown))
+            ReferencesGrid.ItemsSource = shown;
         ReferencesSummary.Text = selectedOnly
             ? $"{shown.Count:N0} references at selected instruction"
             : $"{shown.Count:N0} graph references (including unresolved)";
@@ -472,7 +475,9 @@ public partial class MainWindow : Window
         // disassembly row can request a candidate control-flow jump.
         System.Windows.DependencyObject? visual = e.OriginalSource as System.Windows.DependencyObject;
         while (visual is not null && visual is not DataGridRow)
-            visual = System.Windows.Media.VisualTreeHelper.GetParent(visual);
+            visual = visual is System.Windows.Media.Visual
+                ? System.Windows.Media.VisualTreeHelper.GetParent(visual)
+                : System.Windows.LogicalTreeHelper.GetParent(visual);
         if (visual is not DataGridRow clicked ||
             !ReferenceEquals(clicked.Item, row)) return;
         if (_mzGraph is null || _mzImage is null)
