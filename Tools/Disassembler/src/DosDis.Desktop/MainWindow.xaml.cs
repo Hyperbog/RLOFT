@@ -447,6 +447,7 @@ public partial class MainWindow : Window
         SelectedAddressText.Text = row.AddressText;
         AddressBox.Text = _mzImage is not null ? row.AddressText : $"{row.Object}:0x{row.Offset:X}";
         RefreshReferences();
+        SelectMatchingReference(row);
         if (!_suppressAutomaticHexRefresh)
         {
             long? physical = _mzImage is not null
@@ -471,8 +472,24 @@ public partial class MainWindow : Window
         }
         SaveNoteButton.IsEnabled = !_working && _mzImage is null && _artifact != null;
     }
-    private void SelectedReferencesOnly_Changed(object sender, RoutedEventArgs e) =>
+    private void SelectMatchingReference(AssemblyRow row)
+    {
+        if (ReferencesGrid.ItemsSource is not IEnumerable<ReferenceRow> available)
+            return;
+        string selectedAddress = row.AddressText;
+        ReferenceRow? reference = available.FirstOrDefault(x =>
+            x.SourceText == selectedAddress || x.AddressText == selectedAddress);
+        ReferencesGrid.SelectedItem = reference;
+        if (reference is not null && MainTabs.SelectedIndex == 2)
+            ReferencesGrid.ScrollIntoView(reference);
+    }
+
+    private void SelectedReferencesOnly_Changed(object sender, RoutedEventArgs e)
+    {
         RefreshReferences();
+        if (AssemblyGrid.SelectedItem is AssemblyRow selected)
+            SelectMatchingReference(selected);
+    }
 
     private void RefreshReferences()
     {
@@ -659,11 +676,7 @@ public partial class MainWindow : Window
             // Highlight a real graph reference only when its source or
             // destination corresponds to this mapped candidate instruction.
             string sourceAddress = matchedInstruction.AddressText;
-            ReferenceRow? reference = _allReferences.FirstOrDefault(x =>
-                x.SourceText == sourceAddress || x.AddressText == sourceAddress);
-            ReferencesGrid.SelectedItem = reference;
-            if (reference is not null && MainTabs.SelectedIndex == 2)
-                ReferencesGrid.ScrollIntoView(reference);
+            SelectMatchingReference(matchedInstruction);
         }
         else
         {
@@ -773,6 +786,8 @@ public partial class MainWindow : Window
                 SearchOriginalBytes(query, pattern);
                 return;
             }
+            if (query.StartsWith("hex:", StringComparison.OrdinalIgnoreCase))
+                throw new FormatException("Hex byte patterns require 1–64 complete bytes (for example hex:CD 21).");
             string[] parts = query.Split(':', 2);
             if (parts.Length != 2)
                 throw new FormatException(
@@ -852,6 +867,7 @@ public partial class MainWindow : Window
         AssemblyGrid.SelectedItem = found;
         // Selecting the same row twice does not raise SelectionChanged.
         if (MainTabs.SelectedIndex == 1) RenderHex(address);
+        SelectMatchingReference(found);
         if (MainTabs.SelectedIndex == 0) AssemblyGrid.ScrollIntoView(found);
     }
 
@@ -913,6 +929,7 @@ public partial class MainWindow : Window
         AssemblyGrid.SelectedItem = found;
         // Always reposition Hex, even if selecting an unchanged row.
         RenderMzHex(address);
+        SelectMatchingReference(found);
         if (MainTabs.SelectedIndex == 0) AssemblyGrid.ScrollIntoView(found);
     }
 
