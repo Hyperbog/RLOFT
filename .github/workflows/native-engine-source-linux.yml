@@ -43,12 +43,13 @@ jobs:
       - name: Diagnose native bank fixture failure on Linux
         if: failure()
         run: |
-          if command -v gdb >/dev/null 2>&1; then
-            gdb --batch -ex run -ex "bt 30" --args build/native-source-ci/native_bank_system_tests
-          else
-            echo "gdb unavailable: preserve failing CTest status"
+          if ! command -v gdb >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq gdb
           fi
+          gdb --batch -ex run -ex "bt full" --args build/native-source-ci/native_bank_system_tests
       - name: Upload asset-free Linux validation executables
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: RLOFT-native-source-linux-auditors
