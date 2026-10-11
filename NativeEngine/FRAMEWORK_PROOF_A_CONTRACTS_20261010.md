@@ -33,3 +33,44 @@ Local GNU C++ 14.2.0, CMake/Ninja:
 4. Progress M-ENGINE-01: a genuinely separate original-install-backed desktop engine executable and normal-path user playthrough. Present test coverage must not count as that milestone.
 
 This is an **architecture integration checkpoint**, not the standalone playable engine, a released mod SDK, enhanced renderer or completion score.
+
+## Proof A follow-up: canonical CPU RGBA reference and Windows adapter linkage
+
+Added `include/rloft_native/cpu_reference_presenter.hpp` and
+`tests/cpu_reference_presenter_tests.cpp`. This is a **benchmark-only CPU
+reference**, not DOS palette gamma or an enhanced gameplay renderer. It
+converts 6-bit RGB through a documented host rule
+`(channel*255+31)/63`, expands each original 320×400 indexed pixel into
+RGBA8 (alpha 255) and provides a deterministic FNV-1a64 RGBA fingerprint.
+This makes future SDL_GPU, bgfx and Godot GPU readbacks **comparable to an
+identical defined output**, including palette-only changes that must not
+alter the underlying indexed source buffer. It does not claim the original
+VGA analog/display phosphor transfer function.
+
+Local GNU C++14.2.0 direct exact-source builds:
+
+| Contract | Default C++17 `-Werror -UNDEBUG` | Release `-O3 -Werror -UNDEBUG` | ASan/UBSan |
+| --- | --- | --- | --- |
+| `framework_contract_tests` | PASS | PASS | PASS |
+| `cpu_reference_presenter_tests` | PASS | PASS | PASS |
+| `game_source_adapter_tests` (real inherited source) | NOT BUILT locally: complete Git checkout unavailable | NOT BUILT | NOT BUILT |
+
+There are now **three authored CTest targets** in the `NativeEngine`
+subproject, **not three locally executed CTests**. The first frame/VFS
+CMake/CTest ran 1/1 in local default and Release configurations before
+registering the adapter and CPU-target additions. The two independent
+CPU/reference executable regressions subsequently passed via direct
+compiler invocations (2/2) in both configurations. Thus full
+`NativeEngine` three-target CTest on its **current SHA is still unrun**.
+Additional `Advapi32` linking was authored for the inherited Win32
+`GameSource` GOG-registry probe; Windows compilation remains unrun.
+
+New exact Git blob hashes matched locally:
+- `cpu_reference_presenter.hpp`:
+  `fc87d0afef8901ec86fc9447ef182c84c5894300`
+- `cpu_reference_presenter_tests.cpp`:
+  `d8c706c3e584b10e7f90a973345666710181efc0`
+
+No SDL3, bgfx, SDL_GPU or Godot runtimes are currently installed in
+the local container. Do not upgrade the renderer selection or engine
+playability claim based on CPU-only proofs.
