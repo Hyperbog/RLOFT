@@ -36,12 +36,13 @@ try {
         "native_mod_load_plan_tests", "native_mod_mount_plan_tests",
         "native_renderer_evidence_contract_tests", "native_asset_engine_window_target",
         "native_raster_tests", "native_raster_browser_tests",
-        "native_raster_colors_tests", "native_palette_context_tests")) {
+        "native_raster_colors_tests", "native_palette_context_tests",
+        "native_type6_texture_tests")) {
         if (-not $display.Contains($test)) { throw "Mandatory native asset CTest absent: $test" }
     }
     $count = [regex]::Match($display, 'Total Tests:\s*(\d+)')
-    if (-not $count.Success -or [int]$count.Groups[1].Value -lt 13) {
-        throw "At least 13 independent asset CTests required"
+    if (-not $count.Success -or [int]$count.Groups[1].Value -lt 14) {
+        throw "At least 14 independent asset CTests required"
     }
     & ctest --test-dir $BuildDir -C Release --output-on-failure --parallel 2
     if ($LASTEXITCODE -ne 0) { throw "Windows native asset CTests failed" }
