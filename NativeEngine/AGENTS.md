@@ -24,6 +24,12 @@ The Windows build now **requires Python >=3.10**, must enumerate **at least 15 C
 
 [`native_original_menu_preview_tests`](tests/original_menu_preview_tests.cpp) uses disposable synthetic original-format RES and required CODE.1-sized media; [headless GUI `--self-test-source-menu`](src/win32_bootstrap.cpp) is a strict pass/fail path exercised by the ISO/loose installation Python fixture. It is now one of the **15 mandatory registered Windows CTests**. All new source is authored/committed; **Windows/MSVC build and original-media field test remain unrun** until manual CI invocation. No new Linux compatibility work.
 
+## Windows first-run blocker repaired (2026-10-11)
+
+The Windows release verifier had inadvertently accumulated **three duplicated copies** and broken `-cmatch` expressions. `NativeEngine/Windows/Verify-NativeEngine-WindowsPackage.ps1` was completely rewritten to a **single ZIP SHA256/allowed-entry/source-provenance/two-EXE-hash checker**; `Test-NativeEngine-WindowsPackage.ps1` now exercises a synthetic valid ZIP plus **four malicious/tampered ZIP variants**. These are **source-authored**, structurally reviewed only — **PowerShell has not run**, MSVC/Windows SDK is absent here, and the connected GitHub app cannot dispatch new workflow runs. Do not repeat previous claims that this ZIP verification passed on Windows.
+
+The owner **explicitly authorized one Windows build** on October 11, but no GitHub runner could be dispatched from available tools. The manual workflow [native-engine-windows.yml](https://github.com/Hyperbog/RLOFT/actions/workflows/native-engine-windows.yml) remains the only approved execution path; do **not** add unapproved push-trigger/issue-trigger CI workarounds. A future verified run must compile `native-engine` on VS2022 Windows x64, execute **15+ CTests**, produce the two real .exe files, pass the package verifier, and publish checksums. Never count authored CI steps as successful results.
+
 ## Exact work order
 
 1. Check **live Git HEAD** and all files modified by parallel agents; use blob-SHA-guarded edits, bounded commits and no force updates. Record actual build revision and original-file patch identity. Do not overwrite parallel work.
