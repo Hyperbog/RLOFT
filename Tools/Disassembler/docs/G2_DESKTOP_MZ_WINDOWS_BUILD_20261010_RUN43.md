@@ -131,6 +131,79 @@ prove no change to the owner's original executable, though the
 SHA identifies the analyzed original bytes. G2-wide independent
 accuracy **PENDING**.
 
+## Owner desktop screenshot: visual MZ acceptance evidence
+
+The owner subsequently supplied an actual Windows desktop screenshot
+showing `CHECKSYS.EXE` after Analyze; the screenshot itself is kept
+out of the public repository. This corroborates the previously
+uploaded exported JSON with the **same source fingerprint and
+analysis-result counts**.
+
+**Visible and independently checkable in the screenshot:**
+
+- DOSDis top-left file summary: `15,882 bytes · DOS MZ · x86-16
+  entry 0000:0000 · 43 stored fixups`; no RAW HEX ONLY banner.
+- Explorer identifies `CHECKSYS.EXE` and
+  `16-BIT ENTRY — CANDIDATE FLOW`; displays entry hypothesis
+  `0000:0000` without falsely asserting a verified function.
+- **Disassembly** tab renders actual original-derived bytes,
+  x86-16 assembly, module-relative CS:IP (starting at
+  `0000:0000`), and candidate evidence labels. The initial
+  `mov dx, 33Fh`, next `mov [cs:291h], dx`,
+  `mov ah, 30h`, `int 21h` match the prior
+  user-supplied JSON rows. This is a cross-presentation
+  consistency check, NOT an independent ISA decoder comparison.
+- **File Intelligence** pane visibly identifies
+  `analysis_support`, `architecture`, `entry_point`,
+  `executable_format`, `file_format`,
+  `format_loader_status`, `relocation_entries=43`,
+  source SHA, `size_bytes=15882` and
+  `stored_image_bytes=15370`. Some values are clipped.
+- Bottom status visibly states **336** x86-16 candidates,
+  **394** control-flow edges, **28** diagnostics and
+  **14,544** bytes not classified as code. These match
+  the original-file JSON export. The exported `Truncated=false`
+  status remains report-specific.
+- Analyze is enabled and the populated post-analysis view shows
+  the original **raw-only Analyze-disabled** symptom no longer
+  occurs. The previous JSON output corroborates that JSON export
+  produced a source-bound file.
+
+**Not proven by a static screenshot:**
+
+- Actual **Go / CS:IP** input interaction or resolved-reference
+  double-click navigation; the visible address box is
+  `0000:0000`, but no navigation action is recorded.
+- Switch to References or Hexadecimal tabs and validation of
+  the displayed physical offset after clicking an instruction.
+- A separate privacy-default **text** export; LE original
+  project create/open/save/backup/analysis/export regression;
+  an independent original-file decoder or runtime DOS trace.
+- The specific package executable SHA or build number from
+  the image alone. The screenshot and upload are consistent
+  with the build #43 feature set, but it is not a cryptographic
+  executable-provenance attestation.
+
+**User interface findings for future work (not correctness
+claims or authorization to rebuild):** Explorer has a narrow
+truncated entry-hypothesis row and horizontal overflow; Evidence
+column clips long repetitive `x86-16-candidate` labels;
+File Intelligence values are truncated; and the right-hand
+LE-only comment/project panel still occupies space in MZ mode,
+even where disabled. Improve adaptive sizing and evidence
+presentation, add genuine block/routine candidate grouping
+and direct diagnostic/reference navigation, and preserve
+uncertainty labels throughout. Do not manufacture function
+boundaries to fill an empty tree.
+
+**Revised MZ GUI acceptance:** **PASS for visible original-file
+MZ recognition, presentation, post-Analyze result display,
+File Intelligence and JSON export evidence**. **PARTIAL** for
+the complete owner's interactive MZ workflow, with
+CS:IP navigation, text export and LE regression still pending.
+The x86-16 analysis remains candidate/unverified. Independent
+G2 code-accuracy approval is still **PENDING**.
+
 ## Owner Windows acceptance: exact original CHECKSYS.EXE
 
 Use SHA-pinned original from Dungeon Hack:
@@ -166,5 +239,10 @@ distinct from this compile/synthetic gate. No complete G2 source
 accuracy or runtime-flow claim without independently compared
 original-code evidence.
 
-**Final classification:** BUILD/SYNTHETIC PASS; ORIGINAL WPF UI
-ACCEPTANCE **PENDING**.
+**Final classification:** BUILD/SYNTHETIC PASS; original
+CHECKSYS MZ WPF recognition/disassembly/File Intelligence,
+post-Analyze results and JSON export **VISUALLY EVIDENCED /
+PARTIAL GUI ACCEPTANCE**. Owner CS:IP interactive navigation,
+References/Hex views, text export and LE regression remain
+**PENDING**. G2 independent code-accuracy certification
+**PENDING**.
