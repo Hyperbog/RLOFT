@@ -19,8 +19,10 @@ public partial class MainWindow : Window
     private Dos16FlowResult? _mzGraph;
     private ProjectStore? _project;
     private IReadOnlyList<AssemblyRow> _rows = Array.Empty<AssemblyRow>();
-    private IReadOnlyDictionary<FlowAddress, IReadOnlyList<ReferenceRow>> _referenceIndex =
-        new Dictionary<FlowAddress, IReadOnlyList<ReferenceRow>>();
+    // Presentation indexing only: MZ CS:IP and LE object:offset keep their
+    // distinct typed identities at every user-facing navigation boundary.
+    private IReadOnlyDictionary<(int Number, uint Offset), IReadOnlyList<ReferenceRow>> _referenceIndex =
+        new Dictionary<(int Number, uint Offset), IReadOnlyList<ReferenceRow>>();
     private bool _working;
     private long _commentRevision;
     private CancellationTokenSource? _analysisCancellation;
@@ -51,9 +53,11 @@ public partial class MainWindow : Window
     {
         public string AddressText => DisplayAddress ?? $"{Object}:0x{Offset:X8}";
     }
-    private sealed record FunctionRow(FlowAddress Address, string DisplayName);
+    private sealed record FunctionRow(FlowAddress? LeAddress, string DisplayName,
+        Dos16Address? MzAddress = null);
     private sealed record ReferenceRow(string Direction, string AddressText, string Kind,
-        string Evidence, FlowAddress? NavigationTarget);
+        string Evidence, FlowAddress? LeNavigationTarget,
+        Dos16Address? MzNavigationTarget = null);
     private sealed record IntelligenceRow(string Name, string DisplayValue, string Evidence);
 
     private void SetWorking(bool value, string? status = null)
@@ -143,7 +147,7 @@ public partial class MainWindow : Window
             _graph = null;
             _mzGraph = null;
             ExportAnalysisButton.IsEnabled = false;
-            _referenceIndex = new Dictionary<FlowAddress, IReadOnlyList<ReferenceRow>>();
+            _referenceIndex = new Dictionary<(int Number, uint Offset), IReadOnlyList<ReferenceRow>>();
             if (_project != null && !_project.ListArtifacts().Any(a => a.Sha256 == _artifact.Sha256))
             {
                 _project.Dispose();
@@ -170,9 +174,9 @@ public partial class MainWindow : Window
                 SetRows(result.mzPreview.Select(x => new AssemblyRow(x.Segment, x.Offset,
                     x.OriginalBytes, x.Assembly, x.Valid ? "linear-x86-16-preview-unverified" : "invalid-decoding",
                     $"{x.Segment:X4}:{x.Offset:X4}")).ToArray());
-                FunctionsList.ItemsSource = new[] { new FunctionRow(
-                    new FlowAddress(_mzImage.InitialCs, _mzImage.InitialIp),
-                    $"{_mzImage.InitialCs:X4}:{_mzImage.InitialIp:X4}  [entry hypothesis]") };
+                FunctionsList.ItemsSource = new[] { new FunctionRow(null,
+                    $"{_mzImage.InitialCs:X4}:{_mzImage.InitialIp:X4}  [entry hypothesis]",
+                    new Dos16Address(_mzImage.InitialCs, _mzImage.InitialIp)) };
                 int mzOffset = checked((int)(_mzImage.ToFileOffset(_mzImage.InitialCs, _mzImage.InitialIp)
                     ?? throw new InvalidDataException("MZ entry is not file backed.")));
                 HexView.Text = RawHexPreview.Render(_artifact, mzOffset);
@@ -298,16 +302,17 @@ public partial class MainWindow : Window
         StatusText.Text = "Cancellation requested; retaining previous findings…";
     }
 
-    private static IReadOnlyDictionary<FlowAddress, IReadOnlyList<ReferenceRow>> IndexReferences(
+    private static IReadOnlyDictionary<(int Number, uint Offset), IReadOnlyList<ReferenceRow>> IndexReferences(
         FlowAnalysisResult graph)
     {
-        var index = new Dictionary<FlowAddress, List<ReferenceRow>>();
+        var index = new Dictionary<(int Number, uint Offset), List<ReferenceRow>>();
         void Add(FlowAddress source, ReferenceRow reference)
         {
-            if (!index.TryGetValue(source, out var refs))
+            var key = (Number: source.Object, Offset: source.Offset);
+            if (!index.TryGetValue(key, out var refs))
             {
                 refs = new List<ReferenceRow>();
-                index.Add(source, refs);
+                index.Add(key, refs);
             }
             refs.Add(reference);
         }
@@ -338,38 +343,34 @@ public partial class MainWindow : Window
     }
     private void ShowMzAnalysis(Dos16FlowResult graph)
     {
-        // MZ CS:IP is a module-relative namespace. Never store this graph
-        // in SQLite's LE object-relative project snapshot format.
-        var index = new Dictionary<FlowAddress, List<ReferenceRow>>();
-        void Add(Dos16Address where, ReferenceRow row)
+        // CS:IP remains Dos16Address and is never retyped as FlowAddress.
+        var index = new Dictionary<(int Number, uint Offset), List<ReferenceRow>>();
+        void Add(Dos16Address at, ReferenceRow row)
         {
-            var key = new FlowAddress(where.Segment, where.Offset);
+            var key = (Number: (int)at.Segment, Offset: (uint)at.Offset);
             if (!index.TryGetValue(key, out var list))
                 index.Add(key, list = new List<ReferenceRow>());
             list.Add(row);
         }
-        static string MzAddress(Dos16Address at) => $"{at.Segment:X4}:{at.Offset:X4}";
+        static string Display(Dos16Address at) => $"{at.Segment:X4}:{at.Offset:X4}";
         foreach (var edge in graph.Edges)
         {
-            FlowAddress? destination = edge.Destination is { } target
-                ? new FlowAddress(target.Segment, target.Offset) : null;
             Add(edge.Source, new ReferenceRow("Outgoing",
-                edge.Destination is { } resolved ? MzAddress(resolved) : "unresolved",
-                edge.Kind, edge.Evidence, destination));
+                edge.Destination is { } target ? Display(target) : "unresolved",
+                edge.Kind, edge.Evidence, null, edge.Destination));
             if (edge.Destination is { } incoming)
-                Add(incoming, new ReferenceRow("Incoming", MzAddress(edge.Source),
-                    edge.Kind, edge.Evidence,
-                    new FlowAddress(edge.Source.Segment, edge.Source.Offset)));
+                Add(incoming, new ReferenceRow("Incoming", Display(edge.Source),
+                    edge.Kind, edge.Evidence, null, edge.Source));
         }
         _referenceIndex = index.ToDictionary(x => x.Key,
             x => (IReadOnlyList<ReferenceRow>)x.Value.ToArray());
         SetRows(graph.Instructions.Select(x => new AssemblyRow(
             x.Address.Segment, x.Address.Offset, x.OriginalBytes, x.Assembly,
             $"x86-16-candidate;{x.FlowControl};runtime-unverified",
-            MzAddress(x.Address))).ToArray());
-        FunctionsList.ItemsSource = new[] { new FunctionRow(
-            new FlowAddress(graph.Entry.Segment, graph.Entry.Offset),
-            $"{MzAddress(graph.Entry)}  [entry hypothesis; no function proof]") };
+            Display(x.Address))).ToArray());
+        FunctionsList.ItemsSource = new[] { new FunctionRow(null,
+            $"{Display(graph.Entry)}  [entry hypothesis; no function proof]",
+            graph.Entry) };
         ExportAnalysisButton.IsEnabled = true;
     }
 
@@ -876,7 +877,7 @@ public partial class MainWindow : Window
                 BackupProjectButton.IsEnabled = true;
                 _graph = saved;
                 ExportAnalysisButton.IsEnabled = saved != null;
-                _referenceIndex = new Dictionary<FlowAddress, IReadOnlyList<ReferenceRow>>();
+                _referenceIndex = new Dictionary<(int Number, uint Offset), IReadOnlyList<ReferenceRow>>();
                 if (saved != null)
                 {
                     ShowAnalysis(saved);
