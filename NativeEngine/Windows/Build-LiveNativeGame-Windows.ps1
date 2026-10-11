@@ -75,6 +75,62 @@ Compress-Archive -Path (Join-Path $staging "*") -DestinationPath $zip
 if (-not (Test-Path -LiteralPath $zip -PathType Leaf)) { throw "Native game ZIP not created" }
 $zipHash = Sha256File $zip
 "$zipHash  $name.zip" | Set-Content -Encoding ascii "$zip.sha256"
+# Reopen the FINAL ZIP; never infer distribution integrity from staging files.
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$archiveReader = [System.IO.Compression.ZipFile]::OpenRead($zip)
+try {
+    $expectedNames = @(
+        "rloft_native.exe",
+        "README-LIVE-PREVIEW.txt",
+        "SHA256SUMS.txt",
+        "build-provenance.json"
+    )
+    if ($archiveReader.Entries.Count -ne $expectedNames.Count) {
+        throw "Live game release ZIP has unexpected entry count"
+    }
+    $seen = [System.Collections.Generic.HashSet[string]]::new(
+        [System.StringComparer]::Ordinal)
+    foreach ($entry in $archiveReader.Entries) {
+        if ($expectedNames -cnotcontains $entry.FullName -or
+            -not $seen.Add($entry.FullName)) {
+            throw "Unexpected or duplicate Windows live-game ZIP entry"
+        }
+    }
+    $packedExe = $archiveReader.GetEntry("rloft_native.exe")
+    if ($null -eq $packedExe -or $packedExe.Length -le 0) {
+        throw "Windows native-game executable absent from final ZIP"
+    }
+    $shaAlgorithm = [System.Security.Cryptography.SHA256]::Create()
+    $zipExeStream = $packedExe.Open()
+    try {
+        $packedHash = [BitConverter]::ToString(
+            $shaAlgorithm.ComputeHash($zipExeStream)).Replace("-", "").ToLowerInvariant()
+    } finally {
+        $zipExeStream.Dispose()
+        $shaAlgorithm.Dispose()
+    }
+    if ($packedHash -cne $binaryHash) {
+        throw "ZIP native-game EXE checksum mismatch"
+    }
+    $metaEntry = $archiveReader.GetEntry("build-provenance.json")
+    if ($null -eq $metaEntry) { throw "Native-game provenance missing" }
+    $metaStream = $metaEntry.Open()
+    $reader = [IO.StreamReader]::new($metaStream)
+    try {
+        $meta = $reader.ReadToEnd() | ConvertFrom-Json
+    } finally {
+        $reader.Dispose()
+        $metaStream.Dispose()
+    }
+    if ($meta.source_commit -cne $sha -or
+        $meta.game_playability_verified -ne $false -or
+        $meta.original_assets_included -ne $false -or
+        $meta.ctest_outcome -cne "PASS") {
+        throw "Native-game archive provenance invalid"
+    }
+} finally {
+    $archiveReader.Dispose()
+}
 Write-Host "NATIVE_GAME_SOURCE_SHARED_BUILD_AND_TEST_PASS"
 Write-Host "Source SHA: $sha"
 Write-Host "Windows game preview ZIP: $zip"
