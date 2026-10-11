@@ -246,3 +246,18 @@ if(WIN32)
     target_compile_options(rloft_native PRIVATE /W4 /permissive- /utf-8)
   endif()
 endif()
+
+# Explicit profile-mode regression uses the actual original media reader.
+# This must PASS before any independently writable native CHARS handoff.
+if(WIN32)
+  add_executable(native_profile_isolation_tests
+    tests/native_profile_isolation_tests.cpp
+    ../DemoV1/src/game_source.cpp)
+  target_include_directories(native_profile_isolation_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../DemoV1/include")
+  target_link_libraries(native_profile_isolation_tests PRIVATE Advapi32)
+  if(MSVC)
+    target_compile_options(native_profile_isolation_tests PRIVATE /W4 /permissive- /utf-8 /UNDEBUG)
+  endif()
+  add_test(NAME native_profile_isolation_tests COMMAND native_profile_isolation_tests)
+endif()
