@@ -23,13 +23,13 @@
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
           <Button x:Name="OpenBinaryButton" Style="{StaticResource PrimaryActionButtonStyle}" Content="Open binary" Click="OpenBinary_Click"/>
           <Button x:Name="OpenProjectButton" Content="Open project" Click="OpenProject_Click"/>
-          <Button x:Name="SaveProjectButton" Content="Save project" Click="SaveProject_Click"/>
-          <Button x:Name="ExportAnalysisButton" Content="Export…" Click="ExportAnalysis_Click" ToolTip="Export evidence-tagged analysis as JSON or text; excludes the original executable"/>
+          <Button x:Name="SaveProjectButton" Content="Save project" Click="SaveProject_Click" ToolTip="LE project snapshots only. For standalone MZ, use Export for source-bound JSON or text."/>
+          <Button x:Name="ExportAnalysisButton" Content="Export…" Click="ExportAnalysis_Click" ToolTip="Export source-bound LE or x86-16 MZ candidate analysis as JSON/text. Original bytes excluded by default."/>
           <Button x:Name="ExportDiagnosticButton" Content="Diagnostics…" Click="ExportDiagnostic_Click"
                   ToolTip="Export bounded session events without paths, source bytes, comments or exception messages."/>
           <Button x:Name="BackupProjectButton" Content="Backup project" Click="BackupProject_Click"
                   ToolTip="Back up your research project. If none exists, you can create one first."/>
-          <Button x:Name="AnalyzeButton" Style="{StaticResource PrimaryActionButtonStyle}" Content="Analyze" Click="Analyze_Click"/>
+          <Button x:Name="AnalyzeButton" Style="{StaticResource PrimaryActionButtonStyle}" Content="Analyze" Click="Analyze_Click" ToolTip="Analyze supported LE code or the validated standalone MZ entry segment as unverified candidate control flow."/>
           <Button x:Name="CancelAnalysisButton" Content="Cancel analysis" Click="CancelAnalysis_Click" IsEnabled="False"
                   ToolTip="Only enabled while analysis is running. Small originals may complete before cancellation is possible."/>
         </StackPanel>
@@ -42,7 +42,7 @@
         <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
           <TextBlock Text="Go to" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
           <TextBox x:Name="AddressBox" Width="155" FontFamily="Consolas" Text="1:0x0" Margin="0,0,8,0"/>
-          <Button Content="Go" Click="GoTo_Click" Margin="0"/>
+          <Button Content="Go" Click="GoTo_Click" Margin="0" ToolTip="LE: object:0xOFFSET; MZ: CS:IP (hex); any file: file:0xOFFSET"/>
         </StackPanel>
       </DockPanel>
     </Border>
@@ -88,7 +88,7 @@
           </TabItem>
           <TabItem Header="References">
             <DataGrid x:Name="ReferencesGrid" MouseDoubleClick="ReferencesGrid_MouseDoubleClick"
-                      ToolTip="Double-click a resolved reference to navigate to its object-relative address">
+                      ToolTip="Double-click a resolved LE object reference or module-relative MZ CS:IP reference">
               <DataGrid.Columns>
                 <DataGridTextColumn Header="Direction" Binding="{Binding Direction}" Width="100"/>
                 <DataGridTextColumn Header="Location" Binding="{Binding AddressText}" Width="140"/>
