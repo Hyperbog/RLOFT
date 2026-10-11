@@ -602,13 +602,15 @@ public partial class MainWindow : Window
 
     private async void ExportAnalysis_Click(object sender, RoutedEventArgs e)
     {
-        if (_working || _graph is null) return;
+        if (_working || (_graph is null && _mzGraph is null)) return;
+        bool mzMode = _mzGraph is not null && _mzImage is not null;
         var picker = new SaveFileDialog
         {
             Title = "Export candidate analysis (no executable or source paths)",
             Filter = "JSON analysis report (*.json)|*.json|Text analysis report (*.txt)|*.txt",
             DefaultExt = ".json", AddExtension = true, OverwritePrompt = false,
-            FileName = "dosdis-candidate-analysis.json"
+            FileName = mzMode ? "dosdis-mz16-candidate-analysis.json"
+                : "dosdis-candidate-analysis.json"
         };
         if (picker.ShowDialog(this) != true) return;
         bool json = picker.FilterIndex == 1;
@@ -623,21 +625,35 @@ public partial class MainWindow : Window
         if (selected is null) return;
         string destination = selected.Value.Path;
         bool overwrite = selected.Value.Overwrite;
-        FlowAnalysisResult graph = _graph ?? throw new InvalidOperationException("No analysis to export.");
+        FlowAnalysisResult? graph = _graph;
+        Dos16FlowResult? mzGraph = _mzGraph;
         BinaryArtifact artifact = _artifact ?? throw new InvalidOperationException("Original source is not open.");
-        LeImage image = _image ?? throw new InvalidOperationException("LE object map is not available.");
+        LeImage? image = _image;
+        DosMzImage? mz = _mzImage;
         SetWorking(true, "Exporting evidence-tagged candidate analysis…");
         try
         {
             await Task.Run(() =>
             {
-                // Snapshot the already opened original's identity, never a
-                // guessed game name or an absolute local source path.
-                var provenance = SourceProvenance.ForArtifact(artifact, image);
-                var gaps = ExecutableGapAnalysis.Analyze(graph, image);
-                ProjectFilePaths.PublishNewOrReplace(destination, overwrite, temporary =>
-                    AnalysisReportExport.WriteNew(temporary, graph,
-                        json, bytesChoice == MessageBoxResult.Yes, provenance, gaps));
+                // Both exporters preserve the exact source SHA and never
+                // publish the entire proprietary source or its private path.
+                // MZ remains module-relative x86-16, not a fabricated LE
+                // object graph. Keep the existing LE export unchanged.
+                if (mz is not null && mzGraph is not null)
+                {
+                    ProjectFilePaths.PublishNewOrReplace(destination, overwrite, temporary =>
+                        Dos16DesktopReportExport.WriteNew(temporary, artifact, mz, mzGraph,
+                            json, bytesChoice == MessageBoxResult.Yes));
+                }
+                else if (image is not null && graph is not null)
+                {
+                    var provenance = SourceProvenance.ForArtifact(artifact, image);
+                    var gaps = ExecutableGapAnalysis.Analyze(graph, image);
+                    ProjectFilePaths.PublishNewOrReplace(destination, overwrite, temporary =>
+                        AnalysisReportExport.WriteNew(temporary, graph,
+                            json, bytesChoice == MessageBoxResult.Yes, provenance, gaps));
+                }
+                else throw new InvalidOperationException("No matching source-backed analysis to export.");
             });
             Trace(DiagnosticStage.AnalysisReportExported);
             StatusText.Text = $"Analysis report saved: {destination}. Original executable untouched.";
@@ -752,7 +768,10 @@ public partial class MainWindow : Window
     /// </summary>
     private bool TryCreateProject(string action)
     {
-        if (_project != null) return true;
+        if (_project != null && _mzImage is null) return true;
+        if (_mzImage is not null)
+            throw new NotSupportedException(
+                "MZ analysis can be exported as JSON or text. LE-only SQLite project snapshots and notes are not yet supported for MZ addresses.");
         if (_artifact is null) return false;
         var picker = new SaveFileDialog
         {
@@ -775,7 +794,7 @@ public partial class MainWindow : Window
 
     private void SaveProject_Click(object sender, RoutedEventArgs e)
     {
-        if (_artifact is null || _working) return;
+        if (_artifact is null || _working || _mzImage is not null) return;
         try
         {
             bool alreadyOpen = _project is not null;
@@ -796,7 +815,7 @@ public partial class MainWindow : Window
 
     private void BackupProject_Click(object sender, RoutedEventArgs e)
     {
-        if (_artifact is null || _working) return;
+        if (_artifact is null || _working || _mzImage is not null) return;
         try
         {
             if (!TryCreateProject("create a project backup")) return;
@@ -823,6 +842,13 @@ public partial class MainWindow : Window
 
     private void OpenProject_Click(object sender, RoutedEventArgs e)
     {
+        if (_mzImage is not null)
+        {
+            MessageBox.Show(this,
+                "16-bit MZ candidate graphs use CS:IP addresses and are not yet stored in the LE-only project database. Use Export to save a source-bound JSON/text report.",
+                "MZ project support pending", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
         if (_artifact is null)
         {
             MessageBox.Show(this,"First open the original binary so its SHA-256 can be checked against the project.",
@@ -890,7 +916,7 @@ public partial class MainWindow : Window
     }
     private void SaveNote_Click(object sender, RoutedEventArgs e)
     {
-        if (_working || _artifact is null || AssemblyGrid.SelectedItem is not AssemblyRow row) return;
+        if (_working || _mzImage is not null || _artifact is null || AssemblyGrid.SelectedItem is not AssemblyRow row) return;
         try
         {
             // Keep the unsaved text in the editor while asking for a project;
