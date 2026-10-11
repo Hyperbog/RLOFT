@@ -72,7 +72,7 @@ def snapshot(folder: Path) -> dict[str, str]:
             for p in folder.rglob("*") if p.is_file()}
 
 
-def test(exe: Path) -> None:
+def test(exe: Path, bootstrap: Path | None = None) -> None:
     assert exe.is_file(), exe
     with tempfile.TemporaryDirectory(prefix="rloft-native-install-") as temp:
         root = Path(temp)
@@ -83,6 +83,8 @@ def test(exe: Path) -> None:
             (loose / name).write_bytes(value)
         before = snapshot(loose)
         expect(run(exe, "--install", str(loose)), 0, "MINIMUM_MEDIA_SIGNATURE_PASS")
+        if bootstrap:
+            assert run(bootstrap, "--self-test-install", str(loose)).returncode == 0
         out = run(exe, "--install", str(loose)).stdout
         assert "loose Ravenloft media directory" in out
         assert "ASSET\tRES4\tPRESENT\tINVENTORY\t-" in out
@@ -95,15 +97,21 @@ def test(exe: Path) -> None:
             (unicode_dir / name).write_bytes(bytes([1, 2, 3]))
         unicode_before = snapshot(unicode_dir)
         expect(run(exe, "--install", str(unicode_dir)), 0, "MINIMUM_MEDIA_SIGNATURE_PASS")
+        if bootstrap:
+            assert run(bootstrap, "--self-test-install", str(unicode_dir)).returncode == 0
         assert snapshot(unicode_dir) == unicode_before
         env = dict(os.environ, RLOFT_GAME_DIR=str(loose))
         expect(run(exe, "--auto", env=env), 0, "MINIMUM_MEDIA_SIGNATURE_PASS")
         assert snapshot(loose) == before, "inspector modified source installation"
         (loose / "T").write_bytes(b"")
         expect(run(exe, "--install", str(loose)), 3, "MEDIA_INCOMPLETE")
+        if bootstrap:
+            assert run(bootstrap, "--self-test-install", str(loose)).returncode == 3
         (loose / "T").unlink()
         expect(run(exe, "--install", str(loose)), 2, "MEDIA_PROBE_ERROR")
         expect(run(exe, "--install", str(root / "absent")), 2, "MEDIA_PROBE_ERROR")
+        if bootstrap:
+            assert run(bootstrap, "--self-test-install", str(root / "absent")).returncode == 2
         expect(run(exe, "--unknown"), 64, "Usage:")
         expect(run(exe, "--help"), 0, "READ ONLY")
         for label, offset, sector_size in [("iso2048", 0, 2048),
@@ -116,6 +124,9 @@ def test(exe: Path) -> None:
             original_hash = hashlib.sha256(image.read_bytes()).hexdigest()
             result = run(exe, "--install", str(folder))
             expect(result, 0, "MINIMUM_MEDIA_SIGNATURE_PASS")
+            if bootstrap:
+                assert run(bootstrap, "--self-test-install", str(folder)).returncode == 0
+                assert run(bootstrap, "--self-test-install", str(image)).returncode == 0
             assert "installed GOG game.gog CD image" in result.stdout
             assert "ASSET\tRES4\tPRESENT" in result.stdout
             expect(run(exe, "--install", str(image)), 0, "MINIMUM_MEDIA_SIGNATURE_PASS")
@@ -126,5 +137,6 @@ def test(exe: Path) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--executable", type=Path, required=True)
+    parser.add_argument("--bootstrap", type=Path)
     arguments = parser.parse_args()
-    test(arguments.executable.resolve())
+    test(arguments.executable.resolve(), arguments.bootstrap.resolve() if arguments.bootstrap else None)
