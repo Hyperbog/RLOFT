@@ -6,6 +6,40 @@
 This is a navigation handoff, not a substitute for the full roadmap,
 normative evidence requirements or a Git status check.
 
+## NEW CHECKSYS owner navigation feedback — SOURCE FIX ONLY, unbuilt
+
+- Owner tested the original-MZ Windows #43 WPF preview: double-click
+  `0000:0025 call 017Dh` did nothing; Go while on Hexadecimal
+  did not visibly reposition the pane; References double-click
+  **did navigate correctly**, but References showed only a few
+  items for the selected instruction. This refines, rather than
+  invalidates, the earlier Analyze/JSON Export success.
+- Source cause: Disassembly DataGrid had NO double-click handler,
+  References was restricted to a selected-row index, and Hex Go
+  relied on `SelectionChanged` (which does not fire when selecting
+  the same instruction again). Hex also lacked a physical-position
+  label and scroll reset.
+- **SOURCE-ONLY changes (not built):** direct same-segment graph
+  call/branch navigation on Assembly double-click, Hex Go to any
+  backed module-relative MZ position with explicit original physical
+  offset and scroll reset, References default ALL graph edges
+  with Source/Destination/Kind/Evidence/count and optional
+  selected-row filter; preserves existing linked-reference navigation.
+  Synthetic source-only negative controls reject indirect, far
+  and ambiguous destinations; an LE project without analysis
+  clears stale graph-reference state.
+- Explicit original mapping: `0000:0025` CALL stored at
+  `file+0x225`; encoded `E8 55 01` resolves within the
+  same segment to `0000:017D`, stored `file+0x37D`.
+  This is file-backed candidate navigation, not a runtime trace.
+- [Desktop navigation owner field report and next Windows test
+  checklist](G2_DESKTOP_NAVIGATION_FIELD_REPORT_20261010.md).
+- **Last successfully built Windows app is still #43**, canonical
+  application/test source `244718cc7f86ba7ee2815cfc1df2d27f9be271b0`
+  (before these changes). A NEW owner-authorized Windows desktop-only
+  build and manual UI test is required to validate them; CI not
+  dispatched by this feedback.
+
 ## CHECKSYS original MZ screenshot + JSON — partial owner GUI acceptance
 
 - User tested the run #42 Windows WPF executable with exact-original
@@ -157,7 +191,8 @@ normative evidence requirements or a Git status check.
 6. [Normative independent validation policy](INDEPENDENT_VALIDATION_POLICY.md)
 
 **Guardrails:** canonical GitHub Actions remains
-`workflow_dispatch`-only; temporary PRs #6 and #8 are never merged. Source-only work
+`workflow_dispatch`-only; temporary PRs #6, #8 and #11 were
+closed without merging. Source-only work
 and commits do not imply permission to build/test/dispatch CI. Always
 verify these facts against live GitHub state before acting. Do not
 commit original proprietary game bytes or private manifest excerpts.
