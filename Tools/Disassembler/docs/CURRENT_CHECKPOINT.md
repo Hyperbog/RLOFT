@@ -6,37 +6,37 @@
 This is a navigation handoff, not a substitute for the full roadmap,
 normative evidence requirements or a Git status check.
 
-## NEW top-priority desktop user feedback (SOURCE ONLY; unbuilt)
+## NEW Windows MZ desktop build PASS — owner interaction pending
 
 - User tested the run #42 Windows WPF executable with exact-original
   Dungeon Hack `CHECKSYS.EXE` and reported only **RAW HEX VIEW**;
   Analyze and Export were disabled. This is an integration defect:
   WPF only loaded LE images despite x86-16/MZ core support.
+- **Owner-authorized [Windows build #43](https://github.com/Hyperbog/RLOFT/actions/runs/38098035861) PASSED.** Exact temporary PR #11 merge checkout `88c2131d155a7c532dce37a6e9965c25bec42c69`, application/test code equivalent to canonical `244718cc7f86ba7ee2815cfc1df2d27f9be271b0`; temporary workflow is the only changed path. Windows WPF, core and project synthetic tests, original-free MZ analysis/export regressions, and self-contained desktop publish **PASS** with zero .NET warnings/errors.
+- **Only one artifact**: `DOSDis-Desktop-win-x64-preview`, GitHub artifact ID `11686312055`, 66,903,050 ZIP bytes, ZIP SHA256 `313653140fb6fb2e322e13e7e7a7c0d0f7bbed37fafd8c4b9454e3e103700812`, [download](https://github.com/Hyperbog/RLOFT/actions/runs/38098035861/artifacts/11686312055). No user-facing CLI package.
 - Standalone MZ WPF loader/preview, bounded x86-16 entry-segment
   analysis, typed **CS:IP** navigation/references/physical-hex view,
-  source-bound private JSON/text candidate export and MZ File Intelligence
-  capability labels were **SOURCE-AUTHORED**. No new Windows .NET compile,
-  WPF interactive check or original-game comparison has run since #42.
+  source-bound JSON/text candidate export and MZ File Intelligence
+  passed **compilation plus original-free synthetic validation**.
+  **Owner interactive use of actual CHECKSYS.EXE and LE GUI regression
+  still NOT TESTED**; no new independent original accuracy claims.
 - Current SQLite graph and note schema is LE-object-only: project
   save/open/notes/backup are disabled in MZ mode, while direct
   MZ candidate export is available. The exporter checks full source
   SHA, original image geometry, candidate source bytes and duplicate
   addresses before publication. New synthetic core regression cases
-  were authored but not executed.
+  passed the Windows #43 synthetic regression gate.
 - **Owner product requirement:** only the **Windows WPF desktop** is
   distributed. CLI remains INTERNAL research/validation harness code;
   local Windows build script and canonical manual-only CI now publish
   **desktop only**, no CLI artifact.
 - Exact root cause and Windows acceptance plan:
   [G2_DESKTOP_MZ_UI_HANDOFF_20261010.md](G2_DESKTOP_MZ_UI_HANDOFF_20261010.md).
-- **Next validation gate requires explicit authorization** to compile
-  current Windows desktop/core/synthetic tests, publish the WPF preview,
-  and have the owner verify `CHECKSYS.EXE` Analyze/Export interactively.
-  G2 original-code independent accuracy remains separate and pending.
+- **Next:** Have owner unzip build #43 and verify original SHA-matched `CHECKSYS.EXE` Analyze/Export/navigation in WPF and one LE workflow. This is an owner-interactive acceptance step; **G2 original-code independent accuracy remains separate and pending.**
 
 ## What is proven
 
-- **Latest owner-authorized build:** [GitHub Actions run #42](https://github.com/Hyperbog/RLOFT/actions/runs/38096831427) **SUCCESS**, Windows desktop/CLI and Linux CLI compile/publish, Windows+Linux C# smoke and project suites, **17 Python synthetic** tests passed. Exact temporary PR #8 merge SHA `dd251ba7479fe802e17155a2740d3519cf23847b`; source-equivalent canonical C#/Python code/test SHA `3956f036fee44c0b6f07361811e4f0857dbea916`. See [full gate record](G2_BUILD_GATE_RECORD_20261010_RUN42.md). Windows GUI-owner acceptance, new original-file comparison and broad accuracy certification are **NOT** included.
+- **Previous owner-authorized cross-platform build (historical):** [GitHub Actions run #42](https://github.com/Hyperbog/RLOFT/actions/runs/38096831427) **SUCCESS**, Windows desktop/CLI and Linux CLI compile/publish, Windows+Linux C# smoke and project suites, **17 Python synthetic** tests passed. Exact temporary PR #8 merge SHA `dd251ba7479fe802e17155a2740d3519cf23847b`; source-equivalent canonical C#/Python code/test SHA `3956f036fee44c0b6f07361811e4f0857dbea916`. See [full gate record](G2_BUILD_GATE_RECORD_20261010_RUN42.md). Windows GUI-owner acceptance, new original-file comparison and broad accuracy certification are **NOT** included.
 - **Failed/diagnostic run #41:** Windows/Linux compilation passed, but an incorrect negative test removed one sampled original instruction while asserting a two-instruction SHA. Corrected the synthetic-only manifest membership at canonical `3956f036`; rerun #42 passed. Both run IDs are retained.
 - **Last verified original-code scope:** owner-local original Strahd
   `CODE.2` outer 16-bit MZ launcher, independently decoded with
@@ -58,7 +58,7 @@ normative evidence requirements or a Git status check.
   first **283 stored bytes**, which are not 283 decoded instructions.
   Original files do **not** currently need reupload for these cases.
 
-## Build/synthetic verified, but original independent validation pending
+## Earlier cross-platform G2 synthetic verification; original accuracy pending
 
 - Report fields `mappedRegionSha256` and
   `benchmarkedInstructionBytesSha256`, plus C# synthetic fixtures
