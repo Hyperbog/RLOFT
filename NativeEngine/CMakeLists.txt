@@ -37,6 +37,27 @@ else()
 endif()
 add_test(NAME native_game_source_adapter_tests COMMAND native_game_source_adapter_tests)
 
+# Standalone preflight executable, distinct from the future playable engine.
+add_executable(rloft_install_probe
+  src/install_probe_main.cpp
+  ../DemoV1/src/game_source.cpp)
+target_include_directories(rloft_install_probe PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/../DemoV1/include")
+target_link_libraries(rloft_install_probe PRIVATE rloft_native_contracts)
+if(WIN32)
+  target_link_libraries(rloft_install_probe PRIVATE Advapi32)
+endif()
+set(RLOFT_NATIVE_SOURCE_SHA "local-unversioned" CACHE STRING
+  "Exact Git checkout revision reported by standalone install probe")
+target_compile_definitions(rloft_install_probe PRIVATE
+  "RLOFT_NATIVE_SOURCE_SHA=\"${RLOFT_NATIVE_SOURCE_SHA}\"")
+if(MSVC)
+  target_compile_options(rloft_install_probe PRIVATE /W4 /UNDEBUG)
+else()
+  target_compile_options(rloft_install_probe PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG)
+endif()
+add_test(NAME native_install_probe_help COMMAND rloft_install_probe --help)
+
 else()
   message(STATUS "NativeEngine: full GameSource source absent; adapter CTest NOT registered")
 endif()
@@ -68,3 +89,17 @@ if(Python3_Interpreter_FOUND)
     COMMAND "${Python3_EXECUTABLE}"
       "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_compare_renderer_candidates.py")
 endif()
+
+# Algorithm-only contracts; never enables modded original gameplay.
+add_executable(native_mod_load_plan_tests tests/mod_load_plan_tests.cpp)
+target_link_libraries(native_mod_load_plan_tests PRIVATE rloft_native_contracts)
+add_executable(native_install_probe_contract_tests tests/install_probe_tests.cpp)
+target_link_libraries(native_install_probe_contract_tests PRIVATE rloft_native_contracts)
+foreach(t IN ITEMS native_mod_load_plan_tests native_install_probe_contract_tests)
+  if(MSVC)
+    target_compile_options(${t} PRIVATE /W4 /UNDEBUG)
+  else()
+    target_compile_options(${t} PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG)
+  endif()
+  add_test(NAME ${t} COMMAND ${t})
+endforeach()
