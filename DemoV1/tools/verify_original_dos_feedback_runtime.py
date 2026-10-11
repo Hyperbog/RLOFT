@@ -63,6 +63,31 @@ def audit_original(path:Path)->None:
         assert values[scan]==expected,hex(scan)
     assert b[0x75F24+0xF6F4:0x75F24+0xF6F4+4]==bytes((1,0,0,0))
     assert b[0x75F24+0xF572]==0
+    # Sibling input services use the same original F572/F590 state
+    # but have different polling/consumption semantics.
+    siblings={
+        (0x30AD8,0x30AEB):
+            '12f0d299d6c3adfca40aaec0b8acd901eff26e65ef537659482760cf34e96e0a',
+        (0x30B3E,0x30B54):
+            '36295f21f86851b1668c46e0f5718a3a349fc8d15faac5a333cdb16b8164af7c',
+    }
+    for (lo,hi),expected in siblings.items():
+        assert hashlib.sha256(obj[lo:hi]).hexdigest()==expected,hex(lo)
+        assert obj[hi-1]==0xC3
+    sibling_windows={
+        0x30AD8:'e88bedffff',0x30ADD:'803d72f5000000',
+        0x30AE4:'0f95c0',0x30AE7:'0fb6c0',0x30AEA:'c3',
+        0x30B3E:'8bc0',0x30B40:'e823edffff',
+        0x30B45:'0fb60572f50000',
+        0x30B4C:'8b048590f50000',0x30B53:'c3',
+    }
+    for at,encoding in sibling_windows.items():
+        s=bytes.fromhex(encoding)
+        assert obj[at:at+len(s)]==s,hex(at)
+    for call in (0x30AD8,0x30B40):
+        assert obj[call]==0xE8
+        assert call+5+struct.unpack_from('<i',obj,call+1)[0]==0x2F868
+    print('ORIGINAL_PASS: 30AD8/30B40 2 spans, 10 windows, 2 E8')
     print('ORIGINAL_PASS: F590 89-entry original keymap, boundary and seed')
 
     print('ORIGINAL_PASS: CODE.2 identity, 3 source spans, 16 windows, 2 E8 edges')
@@ -76,7 +101,8 @@ def audit_repo()->None:
     assert 'NAME original_dos_feedback_runtime_tests' in cm
     assert 'NAME original_dos_feedback_binary_contract_tests' in cm
     assert 'src/original_dos_feedback_runtime.cpp' in cm
-    for term in ('poll_30aec','print_311e8','capture_initial_f590_from_code2'):
+    for term in ('poll_30aec','print_311e8','capture_initial_f590_from_code2',
+                 'input_ready_30ad8','peek_key_30b40'):
         assert term in h and term in src and term in test
     for term in ('F572','F590','F0C8','311E8','AH=09','source-only','not wired'):
         assert term in audit,term

@@ -52,6 +52,30 @@ std::uint32_t OriginalDosFeedbackRuntimeModel::poll_30aec(
     return result;
 }
 
+bool OriginalDosFeedbackRuntimeModel::input_ready_30ad8(
+    OriginalDosInputState& state,
+    const std::function<void()>& render_2f868) {
+    if(!render_2f868)
+        throw std::invalid_argument("30AD8 requires original 2F868 service");
+    render_2f868();
+    return state.pending_f572!=0U;
+}
+
+std::uint32_t OriginalDosFeedbackRuntimeModel::peek_key_30b40(
+    OriginalDosInputState& state,
+    const std::function<void()>& render_2f868) {
+    if(!render_2f868)
+        throw std::invalid_argument("30B40 requires original 2F868 service");
+    render_2f868();
+    const auto index=static_cast<std::size_t>(state.pending_f572);
+    // Original 30B4C reads a DWORD directly. A short captured host
+    // table is an explicit unsupported snapshot, not an invented
+    // original DOS bounds check. Do not consume F572.
+    if(index>=state.mapping_f590.size())
+        throw std::invalid_argument("uncaptured 30B40 F590 DWORD");
+    return state.mapping_f590[index];
+}
+
 void OriginalDosFeedbackRuntimeModel::print_311e8(
     std::vector<std::uint8_t>& original_c_string,
     const std::function<void(const std::vector<std::uint8_t>&,

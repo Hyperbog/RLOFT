@@ -94,3 +94,26 @@ This is a real native installation-media decoding seam, **not wired**
 to Win32 keyboard scan input yet. Original 307xx hardware scan/IRQ
 semantics, live keyboard layout, DOS selector handling and modded
 CODE.2 variants must be resolved before normal-play event routing.
+
+## Adjacent CODE.2 input helpers implemented without keyboard emulation
+
+The original `30AD8..30AEA` (19 bytes, SHA-256
+`12f0d299d6c3adfca40aaec0b8acd901eff26e65ef537659482760cf34e96e0a`)
+**always** invokes `2F868` once, then returns whether BYTE `F572`
+is nonzero. It does not translate or clear the byte.
+
+The original `30B3E..30B53` (22 bytes, SHA-256
+`36295f21f86851b1668c46e0f5718a3a349fc8d15faac5a333cdb16b8164af7c`)
+includes `30B40→2F868`, then reads DWORD `F590[BYTE F572]`
+and returns without clearing `F572`. Unlike `30AEC`, it does
+not wait for a nonzero byte; zero is a valid index.
+
+The native `input_ready_30ad8` and `peek_key_30b40` reproduce
+those directly observed operations using the shared captured state.
+Tests cover callback-before-read ordering, injected key mutation,
+zero-index reads, no byte consumption, and missing host capture guards.
+The SHA-pinned original verifier asserts both complete byte spans,
+10 exact instruction windows and two direct E8 call destinations.
+These adapters remain **unwired** to the Win32 keyboard pump;
+original `307xx` interrupt propagation, F0C8 installation,
+DOS runtime timing and player-visible presentation remain open.

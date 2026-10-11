@@ -75,6 +75,39 @@ int main() {
     } catch(const std::invalid_argument&) {rejected=true;}
     assert(rejected && (text==Bytes{'$','X'}));
 
+    // Original 30AD8 is one 2F868 frame/input pass and a boolean
+    // live F572 probe; it does not consume the scan byte.
+    OriginalDosInputState polled{};
+    polled.mapping_f590={0xAAU,0xABU,0xACU};
+    int frame_calls=0;
+    assert(!OriginalDosFeedbackRuntimeModel::input_ready_30ad8(
+        polled,[&]() {++frame_calls;}));
+    assert(frame_calls==1 && polled.pending_f572==0U);
+    assert(OriginalDosFeedbackRuntimeModel::input_ready_30ad8(
+        polled,[&]() {++frame_calls;polled.pending_f572=2U;}));
+    assert(frame_calls==2 && polled.pending_f572==2U);
+    // Original 30B40 also calls 2F868 exactly once, then returns
+    // F590[BYTE F572] WITHOUT clearing F572, even for index zero.
+    assert(OriginalDosFeedbackRuntimeModel::peek_key_30b40(
+        polled,[&]() {++frame_calls;})==0xACU);
+    assert(frame_calls==3 && polled.pending_f572==2U);
+    assert(OriginalDosFeedbackRuntimeModel::peek_key_30b40(
+        polled,[&]() {++frame_calls;polled.pending_f572=0U;})==0xAAU);
+    assert(frame_calls==4 && polled.pending_f572==0U);
+    bool missing_peek=false;
+    polled.pending_f572=42U;
+    try {
+        (void)OriginalDosFeedbackRuntimeModel::peek_key_30b40(
+            polled,[&]() {++frame_calls;});
+    }catch(const std::invalid_argument&) {missing_peek=true;}
+    assert(missing_peek && polled.pending_f572==42U);
+    assert(frame_calls==5);
+    bool missing_service=false;
+    try {
+        (void)OriginalDosFeedbackRuntimeModel::input_ready_30ad8(polled,{});
+    }catch(const std::invalid_argument&) {missing_service=true;}
+    assert(missing_service && polled.pending_f572==42U);
+
     // 30AEC starts with a pending byte: it must return the original
     // DWORD table result without invoking the optional graphics path.
     OriginalDosInputState input{};

@@ -33,6 +33,18 @@ public:
         OriginalDosInputState& state,
         const std::function<void()>& render_2f868);
 
+    // Original CODE.2 30AD8: invoke 2F868 exactly once, then
+    // check BYTE[F572] without consuming the pending scan index.
+    [[nodiscard]] static bool input_ready_30ad8(
+        OriginalDosInputState& state,
+        const std::function<void()>& render_2f868);
+
+    // Original 30B40: invoke 2F868 once and read F590[BYTE F572].
+    // Unlike 30AEC, does NOT wait for a nonzero byte or clear F572.
+    [[nodiscard]] static std::uint32_t peek_key_30b40(
+        OriginalDosInputState& state,
+        const std::function<void()>& render_2f868);
+
     // CODE.2 311E8: edit caller-owned DOS bytes before AH=09 service.
     // Converts embedded '$' to '*', overwrites the final NUL with '$',
     // calls the service on this SAME mutable backing, then restores NUL.
