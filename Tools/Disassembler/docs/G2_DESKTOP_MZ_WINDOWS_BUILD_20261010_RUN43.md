@@ -76,6 +76,61 @@ The canonical repository workflow remains
 `workflow_dispatch`-only; the temporary PR verification trigger
 must remain **closed/unmerged**.
 
+## First user-supplied original-file MZ analysis/export evidence
+
+**Evidence received:** after build #43, the owner supplied
+`dosdis-mz16-candidate-analysis.json`, generated
+`2026-10-11T00:28:13.3531938+00:00`. This is an actual
+`dosdis-mz-16-candidate-analysis` schema-version-1 report
+containing candidate x86-16 instructions, graph edges, and
+uncertainty diagnostics, not a hosted-CI synthetic fixture.
+The report itself is **PRIVATE** and has NOT been committed.
+It carries no executable bytes, input file path or original
+instruction byte excerpts. It does not cryptographically attest
+which desktop binary generated the JSON; timing and schema are
+consistent with the released #43 application.
+
+The exported `source.sha256` is
+`60070e69c2ca61e1adb6fc82bf4a3ed2652a576e40d610ec4f2b83df237fdc22`
+and `byteLength=15882`, matching the independently pinned
+original Dungeon Hack `CHECKSYS.EXE`. The reported file-backed
+MZ image starts at physical offset **512**, spans **15,370**
+bytes, has header initial **CS:IP 0000:0000**, and contains
+**43 stored relocation records**, with no claimed runtime
+load segment, applied relocation values or trailing overlay.
+
+Private, read-only structured audit of the user-supplied JSON:
+- `instructionCount=336`; `edgeCount=394`;
+  `diagnosticCount=28`; `Truncated=false`.
+- **826** unique, nonoverlapping, original-file-backed candidate
+  instruction bytes (**5.37%** of the stored MZ image);
+  **14,544** unclassified file-backed bytes (**94.63%**).
+  This is classification coverage, NOT measured decoder accuracy.
+- All instructions map their exported physical offsets to the
+  declared MZ image offset, all resolved edges point to exported
+  instruction starts, and the 28 distinct unresolved diagnostics
+  have matching unresolved edges. The 28 comprise **19 unresolved
+  software interrupts**, **8 unresolved indirect calls** and
+  **1 unresolved far call**.
+- The exported graph remains explicitly
+  `candidate-unverified;one-explicit-segment;no-runtime-relocation`.
+  This scope has no demonstrated full-image 16-bit program coverage,
+  DOS service emulation, dynamic far target resolution, actual
+  runtime flow, or independently accepted opcode/operand oracle.
+
+**Acceptance classification:** Original-file **MZ decode/Analyze
+and JSON Export behavior is now evidenced by the owner-supplied
+result**, closing the specific raw-only/disabled-export symptom
+for the workflow that generated it. Source identity and stored
+header geometry are consistent with independently established
+original-source SHA and MZ geometry. **WPF visual behavior, typed
+CS:IP user navigation, no-byte text export, MZ file-intelligence
+screen rendering and real LE project regression remain UNCHECKED**
+without further screenshots/interaction. The JSON alone cannot
+prove no change to the owner's original executable, though the
+SHA identifies the analyzed original bytes. G2-wide independent
+accuracy **PENDING**.
+
 ## Owner Windows acceptance: exact original CHECKSYS.EXE
 
 Use SHA-pinned original from Dungeon Hack:
