@@ -1,5 +1,10 @@
 # Ravenloft: Strahd's Possession — Independent Native Engine
 
+## Verified independent native RES image browser — Windows 2026-10-11
+
+**[MSVC / 11-of-11 Windows CTest acceptance](WINDOWS_NATIVE_RES_BROWSER_VERIFIED_20261011.md)**: the independent `rloft_native.exe` now has its own native EH1 raw/LZSS decoder, original INIT/RES0 cursor resolver, and **RES0–RES8/RES10 numeric image browser** with previous/next image navigation. Windows Actions [run #38168898735](https://github.com/Hyperbog/RLOFT/actions/runs/38168898735) compiled this specific source SHA `d29914503fb6d6bb3a65954257d0ac145f0ceaf0`, passed **11/11 CTests**, uploaded an asset-free ZIP, and its actual EXE/ZIP checksums and Windows AMD64 PE format were independently verified. Download [the archived Windows artifact](https://github.com/Hyperbog/RLOFT/actions/runs/38168898735/artifacts/11712864857). **The new raster browser is NOT YET USER-TESTED against the original GOG installation**, although earlier real original file indexing (19/19, 69 files, COLORS palette12) is verified in its own previous build. The decomp demo remains entirely separate; no original assets are distributed or extracted in bulk. Later documentation-only HEAD revisions are not this compiled source.
+
+
 ## First real GOG install verified; independent raster decoding underway
 
 [**User's original GOG field test**](WINDOWS_REAL_GOG_ASSET_FIELD_TEST_20261011.md): the previously compiled independent native asset loader opened the actual original GOG `game.gog` as **ISO2048**, indexed **69 source files**, reported **19/19 recognized resources validated, zero missing/invalid**, and displayed the **original COLORS palette 12**. This is real installation-backed **structural validation**, not proof of full sprite/cinematic/world/gameplay decoding.
