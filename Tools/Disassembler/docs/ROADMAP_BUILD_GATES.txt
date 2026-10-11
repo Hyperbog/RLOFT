@@ -322,6 +322,32 @@ Never claim an unseen original was tested.
 
 CURRENT NEXT ACTIONS
 --------------------
+NEWEST WINDOWS DESKTOP BUILD #44 — OWNER-AUTHORIZED PASS:
+- https://github.com/Hyperbog/RLOFT/actions/runs/38143277116
+- Canonical source/test SHA 9e18238c2c4dbb1ebfb13948e07ef6efd82b7a9f,
+  ephemeral PR #13 merge checkout
+  6626ce4e17d589b16a458e9b5950f910f19791ee.
+  Exact compare shows ONLY temporary .github/workflows/
+  disassembler-core.yml differs (4 lines); no application/test
+  differences between canonical source and compiled checkout.
+- Windows .NET 10 WPF/core + both regression projects compiled
+  0 warnings/0 errors. DosDis.Smoke and DosDis.ProjectSmoke
+  synthetic suites PASS. Self-contained Windows desktop publish PASS.
+- ONE end-user ZIP: DOSDis-Desktop-win-x64-preview,
+  artifact 11703189013, 66906804 bytes, ZIP SHA256
+  da73be2d543171f956307fa0eb51463e8528ad2f219154ee6b32bbcac55dc8f4.
+  https://github.com/Hyperbog/RLOFT/actions/runs/38143277116/artifacts/11703189013
+- PR #13 CLOSED, NEVER MERGED; canonical CI workflow_dispatch only.
+  No CLI distributable and no proprietary originals in hosted CI.
+- Owner Windows INTERACTIVE acceptance still pending: double-click
+  source-backed 0000:0025 CALL target 0000:017D; Hex Go at both
+  offsets (physical file+0x225, file+0x37D); References entire graph
+  and selected-only filtering, resolved reference navigation, and
+  one real LE GUI regression. No new G2 independent original-code
+  accuracy comparison or DOS runtime proof.
+- Full source/build/status:
+  docs/G2_DESKTOP_NAVIGATION_WINDOWS_BUILD_20261011_RUN44.md
+PREVIOUS SOURCE-ONLY CHECKPOINT BELOW (SUPERSEDED FOR BUILD ONLY):
 NEW USER FIELD BUG — WPF ORIGINAL MZ NAVIGATION (SOURCE FIX UNBUILT):
 - Owner's #43 GUI confirms real CHECKSYS MZ decode/Analyze/JSON
   export but found assembly double-click on 0000:0025 call 017Dh
@@ -1756,3 +1782,25 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   interaction on this new source. Prior Windows #43 remains last
   compiled build at SHA 244718cc7f86ba7ee2815cfc1df2d27f9be271b0;
   canonical GitHub Actions remains workflow_dispatch-only.
+2026-10-11 | OWNER-AUTHORIZED DOSDIS WINDOWS NAVIGATION BUILD #44 SUCCESS:
+- Initial canonical source SHA 9e18238c2c4dbb1ebfb13948e07ef6efd82b7a9f
+  and isolated temporary PR #13 supplied a PR-only CI trigger.
+  No game bytes or user files in hosted Windows Actions.
+- GitHub #44 (38143277116) Windows WPF/Core, both C# synthetic
+  suites, full desktop-only self-contained publish/upload all PASS.
+  All .NET build steps 0 warnings/errors. Smoke includes safe
+  direct CALL/conditional-taken navigation helper guards.
+- Tested ephemeral PR merge SHA
+  6626ce4e17d589b16a458e9b5950f910f19791ee; compared to canonical
+  code/test source, only temporary workflow differs (one path).
+- Published ONE win-x64 WPF preview ZIP artifact 11703189013,
+  66906804 bytes; GitHub archive SHA256
+  da73be2d543171f956307fa0eb51463e8528ad2f219154ee6b32bbcac55dc8f4.
+  No CLI package. PR #13 closed without merging; canonical manual
+  Actions trigger remains intact.
+- IMPORTANT: build/synthetic PASS is not WPF mouse navigation
+  acceptance; owner to verify source-backed CALL 017Dh double-click,
+  Hex Go file offsets, References all/selected filter, old working
+  reference link click, plus one LE project UI regression.
+  G2 independent original-byte accuracy and DOS runtime still PENDING.
+- Permanent #44 evidence: docs/G2_DESKTOP_NAVIGATION_WINDOWS_BUILD_20261011_RUN44.md.
