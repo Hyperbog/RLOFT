@@ -21,12 +21,16 @@ To begin:
   4. Review the listed resources. "PASS" confirms only a minimal media
      signature; it does NOT certify the version, graphics, level loading or
      gameplay compatibility.
-  5. With an installation containing a valid original RES0, INIT and
-     COLORS bank, the viewport attempts to show the authentic default
-     RES0 cursor raster using original palette 12. This is only a centered
-     source-backed RESOURCE DIAGNOSTIC, not the original game scene.
-     If decoding is unavailable, the window shows labeled SYNTHETIC TEST
-     ART instead. Neither image means a game is running.
+  5. When the original game has all required source files (RES0, RES1,
+     RES5/6/7/8/10, CODE.1, COLORS, INIT and T), the viewport attempts
+     to reconstruct the original CODE.2 static startup menu frame using
+     the inherited source-traced presenter and original palette 12.
+     The image is original-resource composition, but has no menu input
+     behavior and is NOT an interactive game.
+  6. If full source files are missing, the preview falls back to a
+     centered original RES0 cursor raster. If that is unavailable it
+     displays labeled SYNTHETIC TEST ART instead. Neither fallback is
+     claimed as original gameplay.
 
 You may also invoke from a Windows terminal:
   rloft_native_bootstrap.exe --install "C:\Games\Ravenloft"
