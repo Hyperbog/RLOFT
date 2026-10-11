@@ -62,6 +62,23 @@ try {
     [IO.File]::WriteAllBytes((Join-Path $stage "OBJECTS.DAT"), [byte[]](1,2,3))
     Package $stage $archive
     Assert-VerificationExit $archive 1
+    Remove-Item -LiteralPath (Join-Path $stage "OBJECTS.DAT") -Force
+
+    # Case 3: metadata falsely reporting a playable game must fail even
+    # if the attacker correctly updates the outer archive hash.
+    $metadata.game_playable = $true
+    $metadata | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $stage "build-provenance.json")
+    Package $stage $archive
+    Assert-VerificationExit $archive 1
+    $metadata.game_playable = $false
+    $metadata | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $stage "build-provenance.json")
+
+    # Case 4: changed executable bytes with stale binary checksum must
+    # fail even if the outer ZIP sidecar is correctly regenerated.
+    [IO.File]::WriteAllBytes((Join-Path $stage "rloft_install_probe.exe"),
+                            [byte[]](0x4d,0x5a,0x09,0x09))
+    Package $stage $archive
+    Assert-VerificationExit $archive 1
     Write-Host "WINDOWS_PACKAGE_INTEGRITY_CONTRACT_PASS (synthetic fixtures)"
 } finally {
     if (Test-Path -LiteralPath $folder) { Remove-Item -LiteralPath $folder -Force -Recurse }
