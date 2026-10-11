@@ -64,7 +64,6 @@ public partial class MainWindow : Window
     {
         _working = value;
         OpenBinaryButton.IsEnabled = !value;
-        OpenProjectButton.IsEnabled = !value;
         AnalyzeButton.IsEnabled = !value && (_image != null || _mzImage != null);
         // Current SQLite graphs/comments use LE object addresses. Disable
         // MZ project mutation rather than silently saving an empty LE graph.
@@ -143,7 +142,8 @@ public partial class MainWindow : Window
             _filePreferences.RememberBinary(_openedBinaryPath);
             _image = result.image;
             _mzImage = result.mz;
-            Trace(_image is not null ? DiagnosticStage.FileOpenedLe : DiagnosticStage.FileOpenedRaw);
+            Trace(_image is not null ? DiagnosticStage.FileOpenedLe
+                : _mzImage is not null ? DiagnosticStage.FileOpenedMz : DiagnosticStage.FileOpenedRaw);
             _graph = null;
             _mzGraph = null;
             ExportAnalysisButton.IsEnabled = false;
@@ -269,6 +269,7 @@ public partial class MainWindow : Window
     private async Task AnalyzeMzAsync()
     {
         DosMzImage mz = _mzImage ?? throw new InvalidOperationException("MZ is not open.");
+        Trace(DiagnosticStage.AnalysisStarted);
         SetWorking(true, "Analyzing original-backed DOS MZ entry segment as x86-16 candidate code…");
         try
         {
