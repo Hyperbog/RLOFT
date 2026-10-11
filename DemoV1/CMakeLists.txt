@@ -74,6 +74,11 @@ if(Python3_Interpreter_FOUND)
     # for FDBC page base / FF48 source texture origin, bounded
     # against indirect alias and ES selector uncertainty.
     # Read-only C050 original page toggle width and byte-literal audit.
+    # Original CODE.2 30748/307F0/30950 keyboard IRQ original-byte witness.
+    add_test(
+        NAME original_dos_keyboard_irq_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_dos_keyboard_irq.py")
     # CODE.2 30AEC/311E8 source-only native input/text semantics;
     # optional authentic CODE.2 SHA verification is external to CI.
     add_test(
