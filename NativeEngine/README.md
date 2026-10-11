@@ -9,6 +9,10 @@ The branch was forked at the exact existing `demo-v1` source revision `f0880727c
 
 The [original-game fidelity charter](../DemoV1/ORIGINAL_EXECUTION_FIDELITY_CHARTER.md) remains binding: recreate the **entire original game** before any new game features or modern gameplay changes. The original game files and DOS behavior are the final authority. The initial milestone below tests progress; it **does not** replace the full-game goal or waive the Level 22 source-faithful acceptance requirement before implementing independent Level 23 gameplay.
 
+## Platform/framework architecture review (2026-10-10)
+
+[**Framework research RFC-001**](FRAMEWORK_RESEARCH_RFC_001_20261010.md) recommends a **headless portable C++ game core** plus **SDL3 platform/input/audio** and a **renderer-independent GPU API**, with **bgfx as the provisional favorite** against SDL3 GPU and Godot GDExtension. It also specifies early layered mod VFS, versioned content/data schemas, sandboxed Lua interfaces and optional editor tooling, with source-faithful original execution kept separate from future expanded content. **No renderer selected definitively or dependency installed yet; no prototype benchmark has been run.** [Architecture decision/benchmark issue #10](https://github.com/Hyperbog/RLOFT/issues/10) owns objective comparison before engine implementation settles on a renderer. This is distinct from [M-ENGINE-01 original-install first playtest #9](https://github.com/Hyperbog/RLOFT/issues/9).
+
 ## Evidence-based starting assets, not completeness claims
 
 Existing source contains `DemoV1/include/rloft/game_source.hpp` and `DemoV1/src/game_source.cpp`: `GameSource::open(path)`, autodiscovery, loose-directory media and `game.gog` ISO access. `RavenloftBootAssets` already includes RES archives, palettes, text, sound and other source readers; `BootFlow` models original CODE.1/CODE.2 startup. Those APIs are **reuse candidates**, not proof they cover every original asset or satisfy a stand-alone engine integration.
