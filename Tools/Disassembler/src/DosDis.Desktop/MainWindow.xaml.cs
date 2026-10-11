@@ -580,11 +580,11 @@ public partial class MainWindow : Window
             if (parts[0].Equals("file", StringComparison.OrdinalIgnoreCase))
             {
                 int fileOffset = int.Parse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                MainTabs.SelectedIndex = 1;  // reveal Hex before scrolling
                 SetHexWindow(RawHexPreview.Render(_artifact, fileOffset),
                     $"Original file+0x{fileOffset:X8} " +
                     $"(first displayed row file+0x{(fileOffset & ~15):X8})");
                 AddressBox.Text = $"file:0x{fileOffset:X8}";
-                MainTabs.SelectedIndex = 1;
                 StatusText.Text = "Physical source file view (unmodified original bytes); this is not LE object-relative disassembly.";
                 return;
             }
