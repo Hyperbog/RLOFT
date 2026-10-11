@@ -20,6 +20,8 @@ add_library(rloft_native_assets STATIC
   src/native_media.cpp
   src/native_assets.cpp
   src/native_raster.cpp
+  src/native_lzss.cpp
+  src/native_type6_texture.cpp
   src/native_raster_browser.cpp
   src/native_raster_colors.cpp
   src/native_palette_context.cpp)
@@ -83,6 +85,11 @@ add_executable(native_palette_context_tests tests/native_palette_context_tests.c
 target_link_libraries(native_palette_context_tests PRIVATE rloft_native_assets)
 native_warnings(native_palette_context_tests)
 add_test(NAME native_palette_context_tests COMMAND native_palette_context_tests)
+
+add_executable(native_type6_texture_tests tests/native_type6_texture_tests.cpp)
+target_link_libraries(native_type6_texture_tests PRIVATE rloft_native_assets)
+native_warnings(native_type6_texture_tests)
+add_test(NAME native_type6_texture_tests COMMAND native_type6_texture_tests)
 
 # Native Windows asset UI built as its own EXE, never a renamed demo.
 if(WIN32)
