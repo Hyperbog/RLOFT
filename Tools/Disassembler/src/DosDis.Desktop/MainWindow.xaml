@@ -40,9 +40,11 @@
         <TextBlock x:Name="FileSubtitle" Text="No file loaded" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center"
                    DockPanel.Dock="Left" Margin="0,0,24,0"/>
         <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-          <TextBlock Text="Go to" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-          <TextBox x:Name="AddressBox" Width="155" FontFamily="Consolas" Text="1:0x0" Margin="0,0,8,0"/>
-          <Button Content="Go" Click="GoTo_Click" Margin="0" ToolTip="LE: object:0xOFFSET; MZ: CS:IP (hex); any file: file:0xOFFSET"/>
+          <TextBlock Text="Go to / find bytes" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+          <TextBox x:Name="AddressBox" Width="188" FontFamily="Consolas" Text="1:0x0" Margin="0,0,8,0"
+                   KeyDown="AddressBox_KeyDown"
+                   ToolTip="Press Enter or Go. Address: 0000:0025, 1:0x25, file:0x225. Byte search: CD, CD 21, hex:46 04 CD 21. Repeat Enter to find next."/>
+          <Button Content="Go / Find" Click="GoTo_Click" Margin="0" ToolTip="Enter searches exact original bytes or goes to a physical/object/CS:IP address; selections are shared across tabs."/>
         </StackPanel>
       </DockPanel>
     </Border>
@@ -71,7 +73,8 @@
       </Border>
       <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="Transparent"/>
       <Border Grid.Column="2" Background="{StaticResource PanelBrush}" CornerRadius="7" Padding="10">
-        <TabControl x:Name="MainTabs" Background="{StaticResource PanelBrush}" Foreground="{StaticResource PrimaryTextBrush}">
+        <TabControl x:Name="MainTabs" Background="{StaticResource PanelBrush}" Foreground="{StaticResource PrimaryTextBrush}"
+                    SelectionChanged="MainTabs_SelectionChanged">
           <TabItem Header="Disassembly">
             <DataGrid x:Name="AssemblyGrid" SelectionChanged="AssemblyGrid_SelectionChanged"
                       MouseDoubleClick="AssemblyGrid_MouseDoubleClick"
@@ -91,7 +94,11 @@
                          Text="No physical file position selected" TextWrapping="Wrap"
                          Foreground="{StaticResource SecondaryTextBrush}" FontFamily="Consolas" FontSize="11"/>
               <TextBox x:Name="HexView" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                       HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="12"/>
+                       HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="12"
+                       SelectionBrush="#377ED0" SelectionOpacity="0.9"
+                       IsInactiveSelectionHighlightEnabled="True"
+                       PreviewMouseLeftButtonDown="HexView_PreviewMouseLeftButtonDown"
+                       ToolTip="Click one hex byte (two digits) to select its original-file offset. Drag to select and copy text. Go/Find highlights matched source bytes."/>
             </DockPanel>
           </TabItem>
           <TabItem Header="References">
