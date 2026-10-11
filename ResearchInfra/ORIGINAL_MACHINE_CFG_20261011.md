@@ -70,3 +70,8 @@ The positive original-file path above was locally run for the complete 15-window
 ## Next priority
 
 Expand the manifest only after verifying original function boundaries, import actual DOSDis candidate xrefs as separately attributed evidence, resolve original \`395E2\`/ \`3962D\` indirect targets through CODE.2 initializer table/ABI, and connect the reconstructed environment initializer \`3A2AD\` to the canonical recomp runtime with exact selector/memory behavior. Cross-project delivery should remain bounded, with original file/version and tested Git SHA pinned.
+
+
+### Later original/source SHA freshness hardening
+
+The call-evidence overlay and original work-packet CLI now both **recheck every CODE.1/CODE.2 source file SHA against the supplied source index before issuing cross-project comparisons**. Stale source indices and unsafe traversal paths are rejected. The [newer source-only Actions run #38182793468](https://github.com/Hyperbog/RLOFT/actions/runs/38182793468) passed **19 ResearchInfra tests, 65 SharedDecomp tests**, and independently regenerated the 1,560-function/961-edge canonical C++ index at commit `3bdf38566809bc9d7e31cf918c95566fffac4bf7`. This is still **not original-media CI or a DOS parity gate**.
