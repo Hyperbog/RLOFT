@@ -1,5 +1,10 @@
 # NativeEngine — Active developer/agent instructions
 
+## First verified independent Windows asset build — new accepted state
+
+[WINDOWS_NATIVE_ASSETS_VERIFIED_BUILD_20261011.md](WINDOWS_NATIVE_ASSETS_VERIFIED_BUILD_20261011.md) is the exact execution evidence. **MSVC x64 compiled the independent `rloft_native.exe` from SHA `fd314b89e96db07c739176d25f1fc9be94ecaa19`**, **9/9 native Windows tests passed**, source-identified no-assets ZIP uploaded and its actual bytes downloaded/verified. [Windows Actions run #38164976411](https://github.com/Hyperbog/RLOFT/actions/runs/38164976411). This replaces earlier **no native asset Windows compilation** claims; those were historical. The **real user-owned GOG installation has NOT yet been opened by this independent asset engine**, so field compatibility is still pending. Historical decomp bootstrap's original-menu screenshot does not verify this parser. Do not call any documentation-only later HEAD compiled. No new automated push triggers on main development branches; one authorized isolated build was used.
+
+
 **Source of truth:** [ASSET_RUNTIME_ARCHITECTURE_20261011.md](ASSET_RUNTIME_ARCHITECTURE_20261011.md). Owner explicitly corrected architectural confusion on October 11, 2026.
 
 ## Two different products — DO NOT MERGE
