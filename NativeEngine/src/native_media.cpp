@@ -7,6 +7,7 @@
 #include <limits>
 #include <stdexcept>
 #include <system_error>
+#include <utility>
 
 namespace rloft_native {
 namespace {
