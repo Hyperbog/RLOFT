@@ -927,6 +927,8 @@ public partial class MainWindow : Window
         AssemblyGrid.SelectedItem = found;
         // Selecting the same row twice does not raise SelectionChanged.
         if (MainTabs.SelectedIndex == 1) RenderHex(address);
+        if (_highlightedFileOffset is { } fileOffset)
+            MarkAssemblyBytes(found, fileOffset, 1);
         SelectMatchingReference(found);
         if (MainTabs.SelectedIndex == 0) AssemblyGrid.ScrollIntoView(found);
     }
@@ -952,6 +954,8 @@ public partial class MainWindow : Window
             // Hex Go can inspect ANY originally backed byte without
             // inventing a code boundary or requiring a graph row.
             RenderMzHex(address);
+            if (_highlightedFileOffset is { } fileOffset)
+                SelectPhysicalBytes(fileOffset, 1);
             Trace(DiagnosticStage.Navigation);
             StatusText.Text = $"MZ CS:IP {cs:X4}:{ip:X4} mapped to physical original-file bytes.";
             return;
@@ -989,6 +993,8 @@ public partial class MainWindow : Window
         AssemblyGrid.SelectedItem = found;
         // Always reposition Hex, even if selecting an unchanged row.
         RenderMzHex(address);
+        if (_highlightedFileOffset is { } fileOffset)
+            MarkAssemblyBytes(found, fileOffset, 1);
         SelectMatchingReference(found);
         if (MainTabs.SelectedIndex == 0) AssemblyGrid.ScrollIntoView(found);
     }
