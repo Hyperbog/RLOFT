@@ -79,8 +79,28 @@ void verify_shape7(const std::vector<std::uint8_t>& decoded) {
 }
 
 void verify_image(const std::vector<std::uint8_t>& e, bool font) {
+    const auto validate_exact = [](const std::vector<std::uint8_t>& raster) {
+        require(raster.size()>=13,"EH1 shared payload envelope truncated");
+        const int frames=s16(raster.data()+5), rows=s16(raster.data()+7);
+        require(frames>0 && rows>0 && raster[9]>0,
+                "EH1 invalid image geometry");
+        const auto decoded=std::size_t(frames)*std::size_t(rows)*
+                           std::size_t(raster[9])*8U;
+        if (raster[11]==3) {
+            const auto result=native_lzss4k_decode(
+                raster.data()+13,raster.size()-13,decoded);
+            require(result.consumed==raster.size()-13,
+                    "EH1 LZSS original compressed stream has trailing bytes");
+        } else if (raster[11]==0) {
+            require(raster.size()-13==decoded,
+                    "EH1 raw compressed stream has wrong length");
+        } else {
+            throw std::runtime_error("unsupported original EH1 method");
+        }
+    };
     if (!font) {
         (void)decode_native_type1_raster(e);
+        validate_exact(e);
         return;
     }
     require(e.size()>=141 && e[3]==0x88 && e[4]==0,
@@ -91,6 +111,7 @@ void verify_image(const std::vector<std::uint8_t>& e, bool font) {
     EH1.insert(EH1.end(),e.begin()+133,e.begin()+141);
     EH1.insert(EH1.end(),e.begin()+141,e.end());
     const auto image=decode_native_type1_raster(EH1);
+    validate_exact(EH1);
     require(image.frames==128 && image.width==8,
             "EH2 font glyph count or width inconsistent");
 }
@@ -193,6 +214,10 @@ BankRecordKind validate_native_bank_record(
             require(signed_header==0 && e.size()>=8,
                     "EH6 world texture envelope truncated");
             (void)decode_native_type6_texture(e);
+            const auto result=native_lzss4k_decode(
+                e.data()+7,e.size()-7,u16(e.data()+5));
+            require(result.consumed==e.size()-7,
+                    "EH6 LZSS compressed stream has trailing bytes");
             return BankRecordKind::Texture;
         }
         case 7: {
@@ -201,9 +226,11 @@ BankRecordKind validate_native_bank_record(
             const auto decoded_bytes=u16(e.data()+5);
             require(decoded_bytes>=10,
                     "EH7 geometry bytes too short");
-            const auto decoded=native_lzss4k(
+            const auto decoded=native_lzss4k_decode(
                 e.data()+7,e.size()-7,decoded_bytes);
-            verify_shape7(decoded);
+            require(decoded.consumed==e.size()-7,
+                    "EH7 LZSS original compressed stream has trailing bytes");
+            verify_shape7(decoded.bytes);
             return BankRecordKind::SceneShape;
         }
         default:
