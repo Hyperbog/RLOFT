@@ -29,8 +29,10 @@ try {
     foreach ($binary in @($bootstrap, $inspector)) {
         if (-not (Test-Path $binary)) { throw "Expected Windows EXE missing: $binary" }
     }
-    & $bootstrap --self-test
-    if ($LASTEXITCODE -ne 0) { throw "Windows GUI bootstrap self-test failed" }
+    # GUI-subsystem executables may return before completing under a shell '&'.
+    # Start-Process -Wait captures the actual exit status deterministically.
+    $smoke = Start-Process -FilePath $bootstrap -ArgumentList "--self-test" -Wait -PassThru -NoNewWindow
+    if ($smoke.ExitCode -ne 0) { throw "Windows GUI bootstrap self-test failed: $($smoke.ExitCode)" }
     & $inspector --help
     if ($LASTEXITCODE -ne 0) { throw "Windows install inspector self-test failed" }
     $testStatus = "NOT_RUN"
