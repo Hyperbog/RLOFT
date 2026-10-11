@@ -1,6 +1,7 @@
 #include "rloft_native/native_media.hpp"
 #include "rloft_native/native_assets.hpp"
 #include <cassert>
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstdint>
@@ -60,7 +61,8 @@ std::vector<std::uint8_t> rec(const std::string& name,
     std::copy(name.begin(),name.end(),x.begin()+33);
     return x;
 }
-void emit_iso(const fs::path& path,int physical,unsigned dataOffset) {
+void emit_iso(const fs::path& path,int physical,unsigned dataOffset,
+              bool nested=false) {
     const auto r=mkres(),colors=mkcolors();
     std::vector<std::vector<std::uint8_t>> sectors(
         64,std::vector<std::uint8_t>(kSector,0));
@@ -78,12 +80,19 @@ void emit_iso(const fs::path& path,int physical,unsigned dataOffset) {
     };
     append(root);
     append(rec(std::string(1,char(1)),20,2048,true));
+    if(nested) {
+        append(rec("RLOFT;1",30,2048,true));
+        std::copy(dir.begin(),dir.end(),sectors[20].begin());
+        dir.clear();
+        append(rec(std::string(1,char(0)),30,2048,true));
+        append(rec(std::string(1,char(1)),20,2048,true));
+    }
     append(rec("RES0;1",21,std::uint32_t(r.size()),false));
     append(rec("INIT;1",22,2,false));
     append(rec("T;1",23,3,false));
     append(rec("COLORS;1",24,std::uint32_t(colors.size()),false));
     assert(dir.size()<2048);
-    std::copy(dir.begin(),dir.end(),sectors[20].begin());
+    std::copy(dir.begin(),dir.end(),sectors[nested?30:20].begin());
     std::copy(r.begin(),r.end(),sectors[21].begin());
     sectors[22][0]=0;sectors[22][1]=0;
     sectors[23][0]=1;sectors[23][1]=2;sectors[23][2]=3;
@@ -155,6 +164,15 @@ void exercise() {
             else if(test.second==16)assert(iso.kind()==NativeMediaKind::GogIso2352_16);
             else assert(iso.kind()==NativeMediaKind::GogIso2352_24);
         }
+        // Real game.gog distributions can nest DOS data under RLOFT/.
+        // File IDs stay accessible without flattening the ISO namespace.
+        const auto nested=root/"nested-game.gog";
+        emit_iso(nested,2048,0,true);
+        auto nestedSource=NativeMedia::open(nested);
+        assert(nestedSource.contains("RLOFT/RES0"));
+        assert(nestedSource.contains("RES0"));
+        assert(nestedSource.read("RES0")==mkres());
+        check(nestedSource);
         std::vector<std::uint8_t> bad(16,0);
         set32(bad,0,3);
         rejects([&]{NativeResArchive fail(bad);});
