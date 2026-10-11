@@ -202,7 +202,7 @@ void install(State& state,const fs::path& path) {
         if (palette_ok) {
             try {
                 preview = make_cursor_preview(*media, palette);
-                cursor_info = L"Native EH type-1 RES0 cursor decoded (ID " +
+                cursor_info = L"CODE.2 title cursor with original index remap (RES0 ID " +
                               std::to_wstring(preview.res0_id) + L", " +
                               std::to_wstring(preview.width) + L"x" +
                               std::to_wstring(preview.height) + L").";
@@ -348,6 +348,8 @@ void layout(State& state) {
         MoveWindow(state.report_widget,left,top,width,height,TRUE);
     }
     const int x=std::max(245,int(r.right)-320);
+    if(state.palette_control) MoveWindow(state.palette_control,x,418,120,320,TRUE);
+    if(state.title_cursor_control) MoveWindow(state.title_cursor_control,x+132,418,108,27,TRUE);
     if(state.archive_control) MoveWindow(state.archive_control,x,453,97,220,TRUE);
     if(state.index_control) MoveWindow(state.index_control,x+105,453,72,26,TRUE);
     if(state.go_control) MoveWindow(state.go_control,x+184,453,56,26,TRUE);
@@ -370,9 +372,11 @@ void draw(State& state,HDC dc) {
     const int x=std::max(245, int(rect.right)-320);
     RECT label{x,148,rect.right-18,186};
     SetTextColor(dc,RGB(241,207,137));
-    DrawTextW(dc,L"ORIGINAL COLORS PALETTE 12", -1,&label,DT_SINGLELINE);
+    const std::wstring palette_label=L"ORIGINAL COLORS BANK " +
+        std::to_wstring(state.palette_bank) + L" (DAC6 RGB)";
+    DrawTextW(dc,palette_label.c_str(),-1,&label,DT_SINGLELINE);
     if(state.has_palette) {
-        constexpr int swatch=15;
+        constexpr int swatch=14;
         for(int index=0;index<256;++index) {
             const auto pos=3*index;
             const auto expand=[](std::uint8_t c) {
@@ -381,8 +385,8 @@ void draw(State& state,HDC dc) {
             auto color=CreateSolidBrush(RGB(expand(state.palette.rgb[pos]),
                                            expand(state.palette.rgb[pos+1]),
                                            expand(state.palette.rgb[pos+2])));
-            RECT cell{x+(index%16)*swatch,188+(index/16)*swatch,
-                      x+(index%16+1)*swatch,188+(index/16+1)*swatch};
+            RECT cell{x+(index%16)*swatch,181+(index/16)*swatch,
+                      x+(index%16+1)*swatch,181+(index/16+1)*swatch};
             FillRect(dc,&cell,color);
             DeleteObject(color);
         }
@@ -396,9 +400,10 @@ void draw(State& state,HDC dc) {
     RECT cursor_title{x,520,rect.right-14,543};
     SetTextColor(dc,RGB(241,207,137));
     const std::wstring caption =
-        L"RES IMAGE " + unicode(state.browsed_archive) +
+        L"RES " + unicode(state.browsed_archive) +
         L" #" + std::to_wstring(state.browsed_record) +
-        L" — NATIVE EH1";
+        (state.title_cursor_active ? L" — CODE.2 COLOR REMAP" :
+                                    L" — RAW INDEXED COLOR");
     DrawTextW(dc,caption.c_str(),-1,&cursor_title,DT_SINGLELINE|DT_END_ELLIPSIS);
     if (!state.cursor.bgra.empty()) {
         BITMAPINFO info{};
@@ -483,10 +488,32 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
                 925,486,114,26,hwnd,
                 reinterpret_cast<HMENU>(static_cast<INT_PTR>(kRasterNext)),
                 instance,nullptr);
+            state->palette_control=CreateWindowExW(
+                0,L"COMBOBOX",nullptr,
+                WS_CHILD|WS_VISIBLE|WS_TABSTOP|CBS_DROPDOWNLIST|WS_VSCROLL,
+                800,418,120,320,hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(kPaletteSelect)),
+                instance,nullptr);
+            state->title_cursor_control=CreateWindowExW(
+                0,L"BUTTON",L"Title cursor",
+                WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_PUSHBUTTON,
+                932,418,108,27,hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(kTitleCursor)),
+                instance,nullptr);
             if(!state->button||!state->report_widget||!state->archive_control||
                !state->index_control||!state->go_control||
-               !state->previous_control||!state->next_control)
+               !state->previous_control||!state->next_control||
+               !state->palette_control||!state->title_cursor_control)
                 return -1;
+            for(unsigned bank=0;bank<15;++bank) {
+                const std::wstring label=L"COLORS " + std::to_wstring(bank) +
+                    (bank==8 ? L" · CODE.1" :
+                     bank==12 ? L" · MENU" :
+                     bank==9 || bank==14 ? L" · LOGO" : L"");
+                SendMessageW(state->palette_control,CB_ADDSTRING,0,
+                    reinterpret_cast<LPARAM>(label.c_str()));
+            }
+            SendMessageW(state->palette_control,CB_SETCURSEL,12,0);
             for(const auto* archive : {
                 L"RES0", L"RES1", L"RES2", L"RES3", L"RES4",
                 L"RES5", L"RES6", L"RES7", L"RES8", L"RES10"
@@ -508,6 +535,19 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
                     state->status=L"Install dialog failed: "+unicode(error.what());
                     SetWindowTextW(state->report_widget,state->status.c_str());
                 }
+                return 0;
+            }
+            if (LOWORD(wparam)==kPaletteSelect &&
+                HIWORD(wparam)==CBN_SELCHANGE) {
+                const auto selection=SendMessageW(
+                    state->palette_control,CB_GETCURSEL,0,0);
+                if(selection>=0 && selection<15)
+                    change_palette(*state,static_cast<unsigned>(selection));
+                return 0;
+            }
+            if (LOWORD(wparam)==kTitleCursor &&
+                HIWORD(wparam)==BN_CLICKED) {
+                show_title_cursor(*state);
                 return 0;
             }
             if (LOWORD(wparam)==kRasterGo &&
