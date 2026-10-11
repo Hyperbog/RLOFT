@@ -5,6 +5,7 @@ on:
     branches: [code1-decompilation]
     paths:
       - '.github/workflows/watcom10-compiler-probe.yml'
+      - 'Code2/tools/run_watcom10_windows_probe.py'
   workflow_dispatch:
 
 permissions:

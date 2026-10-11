@@ -40,6 +40,7 @@ class WatcomWindowsProbeTests(unittest.TestCase):
             out = Path(d)/'out'
             def fake_run(args, **kwargs):
                 self.assertIn('-bt=dos',args)
+                self.assertIn('-s',args)
                 self.assertTrue(kwargs['env']['WCC386'] == '')
                 return types.SimpleNamespace(returncode=1,stdout='',stderr='syntax intentionally failed')
             with patch('run_watcom10_windows_probe.verify_toolchain',return_value={'synthetic':'only'}):

@@ -25,10 +25,10 @@ PROBE = Path(__file__).parent / 'probes' / 'watcom10_probe_candidates.c'
 # Historical Watcom uses -3s for 386 stack arguments; -3r for registers.
 # The five options here are toolchain hypotheses, not validated game flags.
 VARIANTS = {
-    '386_stack_noopt': ('-bt=dos', '-3s', '-od', '-zq'),
-    '386_stack_time': ('-bt=dos', '-3s', '-ot', '-zq'),
-    '386_register_time': ('-bt=dos', '-3r', '-ot', '-zq'),
-    '486_stack_time': ('-bt=dos', '-4s', '-ot', '-zq'),
+    '386_stack_noopt': ('-bt=dos', '-3s', '-od', '-s', '-zq'),
+    '386_stack_time': ('-bt=dos', '-3s', '-ot', '-s', '-zq'),
+    '386_register_time': ('-bt=dos', '-3r', '-ot', '-s', '-zq'),
+    '486_stack_time': ('-bt=dos', '-4s', '-ot', '-s', '-zq'),
 }
 
 
