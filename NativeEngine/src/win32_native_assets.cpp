@@ -10,12 +10,16 @@
 #include "rloft_native/native_assets.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 #ifndef RLOFT_NATIVE_SOURCE_SHA
 #define RLOFT_NATIVE_SOURCE_SHA "unversioned"
