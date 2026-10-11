@@ -30,8 +30,15 @@ TO TEST:
      cursor from INIT using its NEW independent EH type-1 raw/LZSS parser.
      If supported, an authentic palette-indexed cursor appears below the
      source COLORS palette. The cursor is a resource preview, NOT gameplay.
-  6. Record any BAD entries or unexpectedly missing resources. Cursor
-     decode failure is reported separately from the 19 structural checks.
+  6. NEW: choose RES0/RES1/.../RES10 in the image browser. Enter the
+     original resource record number and press Go, or use Previous /
+     Next image to find indexed EH type-1 images. The original palette
+     is applied in memory. No resource bytes are exported or modified.
+     Other EH resource types are reported as NOT an EH1 image, rather
+     than guessed/decoded with the wrong codec.
+  7. Record any BAD entries or unexpectedly missing resources. Cursor
+     and optional RES image decode failures are reported separately
+     from the 19 structural checks.
 
 For a noninteractive status code on Windows, use the original-install path:
   rloft_native.exe --verify-assets "D:\GOG Games\Ravenloft - Strahd's Possession"
