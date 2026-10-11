@@ -41,6 +41,27 @@ else()
 endif()
 add_test(NAME native_game_source_adapter_tests COMMAND native_game_source_adapter_tests)
 
+# Exercise original-source RES0 EH type-1 decoding and COLORS palette
+# as a diagnostic cursor preview. Uses only synthetic test media.
+add_executable(native_original_resource_preview_tests
+  tests/original_resource_preview_tests.cpp
+  ../DemoV1/src/game_source.cpp
+  ../DemoV1/src/resource_assets.cpp)
+target_include_directories(native_original_resource_preview_tests PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/../DemoV1/include")
+target_link_libraries(native_original_resource_preview_tests PRIVATE
+  rloft_native_contracts)
+if(WIN32)
+  target_link_libraries(native_original_resource_preview_tests PRIVATE Advapi32)
+endif()
+if(MSVC)
+  target_compile_options(native_original_resource_preview_tests PRIVATE /W4 /utf-8 /UNDEBUG)
+else()
+  target_compile_options(native_original_resource_preview_tests PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG)
+endif()
+add_test(NAME native_original_resource_preview_tests COMMAND native_original_resource_preview_tests)
+
+
 # Standalone preflight executable, distinct from the future playable engine.
 add_executable(rloft_install_probe
   src/install_probe_main.cpp
@@ -141,7 +162,8 @@ if(WIN32)
   endif()
   add_executable(rloft_native_bootstrap WIN32
     src/win32_bootstrap.cpp
-    ../DemoV1/src/game_source.cpp)
+    ../DemoV1/src/game_source.cpp
+    ../DemoV1/src/resource_assets.cpp)
   target_include_directories(rloft_native_bootstrap PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/../DemoV1/include")
   target_link_libraries(rloft_native_bootstrap PRIVATE
