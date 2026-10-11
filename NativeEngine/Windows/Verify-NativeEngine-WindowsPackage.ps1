@@ -9,6 +9,21 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
+function Get-RloftFileSha256([string]$Path) {
+    # PowerShell 5.1 on some GitHub images does not autoload
+    # Microsoft.PowerShell.Utility/Get-FileHash from a CTest child.
+    # Use the .NET SHA256 implementation present in both PS5.1 and pwsh.
+    $stream = [System.IO.File]::OpenRead($Path)
+    $algorithm = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return [System.BitConverter]::ToString($algorithm.ComputeHash($stream)).Replace("-", "").ToLowerInvariant()
+    } finally {
+        $algorithm.Dispose()
+        $stream.Dispose()
+    }
+}
+
+
 $sourceSha = $ExpectedSourceSha.ToLowerInvariant()
 if (-not ($sourceSha -cmatch '^[0-9a-f]{40}$')) {
     throw "ExpectedSourceSha must be exactly 40 hexadecimal characters"
@@ -28,7 +43,7 @@ if (-not ($line -cmatch '^([0-9a-f]{64})  RLOFT-NativeEngine-Windows-x64-BOOTSTR
     throw "Invalid ZIP SHA256 sidecar"
 }
 $expectedArchiveSha = $Matches[1]
-$actualArchiveSha = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+$actualArchiveSha = (Get-RloftFileSha256 -Path $archivePath)
 if ($actualArchiveSha -cne $expectedArchiveSha) {
     throw "ZIP SHA256 mismatch"
 }
@@ -119,7 +134,7 @@ try {
         if (-not $recorded.ContainsKey($name)) {
             throw "Missing binary checksum: $name"
         }
-        $actual = (Get-FileHash -LiteralPath (Join-Path $destination $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+        $actual = (Get-RloftFileSha256 -Path (Join-Path $destination $name))
         if ($actual -cne $recorded[$name]) {
             throw "Binary SHA256 mismatch: $name"
         }
