@@ -63,6 +63,37 @@ If colors remain incorrect for a specific original image, record the
 archive, entry ID and palette number. Some resources may require another
 source-specific color-index remap; this inspector does not invent one.
 
+COMPLETE ORIGINAL RES BANK RECONSTRUCTION AND AUDIT
+----------------------------------------------------
+This package includes a SECOND executable, rloft_native_bank_audit.exe.
+Unlike the GUI's single-record image preview, it walks every entry across
+all thirteen original RES0..RES12 archives, validating:
+  EH1 indexed image data and exact LZSS stream consumption;
+  EH2 original 128-character font glyph widths and raster body;
+  EH3 FORM/XDIR XMIDI music archive signatures and payload sizes;
+  EH4 Creative Voice File VOC sound/voice structure, preserving two known
+      anomalies in the old RES11/RES12 generation;
+  EH6 32x128/64x128 original first-person world textures;
+  EH7 original compiled 2D scene geometry, pointer tables, terminated
+      drawing descriptor lists and bounded SINTAB selector indices;
+  RES9/RES12 non-EH original game script/wordcode containers;
+  RES1 empty slots and inactive raw marker records.
+The system emits aggregate metadata only, never original bytes or artwork.
+
+In Windows Terminal, PowerShell or Command Prompt, run:
+  rloft_native_bank_audit.exe "D:\\GOG Games\\Ravenloft - Strahd's Possession"
+
+The command emits one JSON object with bank-by-bank record counts, EH type
+distribution, and exact record/index failure reasons. Exit 0 means that
+the original source supplied all banks and every supported record passed;
+exit 3 indicates absent banks or invalid records; exit 2 means source media
+cannot be opened. Add --active-only before the path to check RES0..RES10.
+
+No copyrighted game data is included in this ZIP, and the audit never
+writes to your original installation. This is whole-BANK resource decoding
+and metadata validation, not gameplay, animation playback, SINTAB x86 code
+execution, or 3D scene-renderer parity.
+
 TO TEST:
   1. Extract the ZIP in a folder separate from the original game.
   2. Run rloft_native.exe.
