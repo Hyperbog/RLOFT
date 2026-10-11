@@ -74,6 +74,12 @@ if(Python3_Interpreter_FOUND)
     # for FDBC page base / FF48 source texture origin, bounded
     # against indirect alias and ES selector uncertainty.
     # Read-only C050 original page toggle width and byte-literal audit.
+    # CODE.2 30AEC/311E8 source-only native input/text semantics;
+    # optional authentic CODE.2 SHA verification is external to CI.
+    add_test(
+        NAME original_dos_feedback_binary_contract_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_dos_feedback_runtime.py")
     # Original input-poll / optional F0C8 route and DOS AH=09 string mutation.
     add_test(
         NAME original_ground_input_callback_poll_tests
