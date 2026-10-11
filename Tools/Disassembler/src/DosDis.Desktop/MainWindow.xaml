@@ -80,6 +80,16 @@
                       MouseDoubleClick="AssemblyGrid_MouseDoubleClick"
                       ToolTip="Double-click a candidate direct CALL/JMP or taken conditional branch to follow its resolved target; unresolved targets are never guessed."
                       VirtualizingPanel.VirtualizationMode="Recycling">
+              <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                  <Style.Triggers>
+                    <Trigger Property="IsSelected" Value="True">
+                      <Setter Property="Background" Value="#315B88"/>
+                      <Setter Property="Foreground" Value="White"/>
+                    </Trigger>
+                  </Style.Triggers>
+                </Style>
+              </DataGrid.RowStyle>
               <DataGrid.Columns>
                 <DataGridTextColumn Header="Location" Binding="{Binding AddressText}" Width="120"/>
                 <DataGridTemplateColumn Header="Original bytes" Width="170">
@@ -124,6 +134,16 @@
               </StackPanel>
               <DataGrid x:Name="ReferencesGrid" MouseDoubleClick="ReferencesGrid_MouseDoubleClick"
                         ToolTip="Double-click a resolved destination to navigate. Unresolved dynamic and far targets remain unknown.">
+                <DataGrid.RowStyle>
+                  <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                      <Trigger Property="IsSelected" Value="True">
+                        <Setter Property="Background" Value="#315B88"/>
+                        <Setter Property="Foreground" Value="White"/>
+                      </Trigger>
+                    </Style.Triggers>
+                  </Style>
+                </DataGrid.RowStyle>
                 <DataGrid.Columns>
                   <DataGridTextColumn Header="Source" Binding="{Binding SourceText}" Width="125"/>
                   <DataGridTextColumn Header="Direction" Binding="{Binding Direction}" Width="85"/>
