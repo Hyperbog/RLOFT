@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Fail-closed original CODE.2 startup binary oracle; no original bytes embedded."""
+from __future__ import annotations
+import argparse
+import hashlib
+from pathlib import Path
+import struct
+
+SIZE = 558689
+SHA256 = "853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314"
+CODE_START = 0x3AF24
+DATA_START = 0x75F24
+SPANS = {
+    (0x353A0, 0x353A2): "326483fa1d1597f096d675f0ac348108412053844fdb555a3f36c2d41c83d772",
+    (0x35418, 0x3562F): "bde266affb92d4e977a8ffa8c405642e28dbc80430321181264abcb9e424c01b",
+    (0x395E2, 0x3962D): "4372327a1ecb72c421622e01ebc4cab18320202d60e5afc3a8aef6c39268e410",
+    (0x3A16E, 0x3A176): "74746f375879b05d7aadc4187242c99b7d25fb421f1fc0838ecd09bafb068f5c",
+    (0x3A2AD, 0x3A38A): "02856358bd8ddcf0da443beeaf6075fc791d33dad995e97b6cee847084cc26f6",
+}
+EXPECTED_INITIALIZERS = (0x3968E, 0x3A1B3, 0x3A2AD, 0x3A16E)
+
+
+def verify(image: bytes) -> dict[str, int]:
+    if len(image) != SIZE or hashlib.sha256(image).hexdigest() != SHA256:
+        raise ValueError("CODE.2 is not the authenticated original executable")
+    for (start, end), expected in SPANS.items():
+        actual = hashlib.sha256(image[CODE_START+start:CODE_START+end]).hexdigest()
+        if actual != expected:
+            raise ValueError(f"original instruction span {start:05X}..{end:05X} differs")
+    # Source instructions: JMP 35418; EAX=FF, E8 to 395E2; EDX=EAX;
+    # <= priority selection (JA, not JAE); MOV word[126EC],SS.
+    windows = {
+        0x353A0: bytes.fromhex("eb76"),
+        0x3561E: bytes.fromhex("b8ff000000"),
+        0x35623: bytes.fromhex("e8ba3f0000"),
+        0x395E7: bytes.fromhex("89c2"),
+        0x39602: bytes.fromhex("3846017705"),
+        0x39607: bytes.fromhex("89f3"),
+        0x3A16E: bytes.fromhex("668c15ec260100"),
+    }
+    for offset, expected in windows.items():
+        if image[CODE_START+offset:CODE_START+offset+len(expected)] != expected:
+            raise ValueError(f"original opcode differs at {offset:05X}")
+    observed = []
+    for i in range(4):
+        flags, priority, target = struct.unpack_from("<BBI", image, DATA_START+0x12720+i*6)
+        if flags != 0 or priority != 0x20 or target != EXPECTED_INITIALIZERS[i]:
+            raise ValueError(f"original initializer table entry {i} differs")
+        observed.append((priority, -i, target))
+    winner = min(observed)[2]  # Later record replaces earlier equal priority.
+    if winner != 0x3A16E:
+        raise ValueError("first initializer violates original equal-priority tie rule")
+    return {"verified_spans": len(SPANS), "verified_opcodes": len(windows),
+            "callback_table_entries": len(observed), "first_initializer": winner,
+            "next_unresolved_initializer": 0x3A2AD}
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("original_code2", type=Path)
+    args = parser.parse_args()
+    try:
+        result = verify(args.original_code2.read_bytes())
+    except (ValueError, OSError) as exc:
+        parser.exit(1, f"ORIGINAL_CODE2_STARTUP_REJECTED: {exc}\n")
+    print("ORIGINAL_CODE2_STARTUP_ORACLE=PASS")
+    for key, value in result.items():
+        print(f"{key}={value:#x}" if key.endswith("initializer") else f"{key}={value}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
