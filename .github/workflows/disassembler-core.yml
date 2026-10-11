@@ -1,4 +1,4 @@
-name: Windows DOS disassembler core smoke tests
+name: DOSDis Windows desktop build and synthetic regressions
 # Manual only — no GitHub Actions minutes on push or PR.
 on:
   workflow_dispatch:
@@ -18,7 +18,6 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           foreach ($project in @(
-            'src/DosDis.Cli/DosDis.Cli.csproj',
             'src/DosDis.Desktop/DosDis.Desktop.csproj',
             'tests/DosDis.Smoke/DosDis.Smoke.csproj',
             'tests/DosDis.ProjectSmoke/DosDis.ProjectSmoke.csproj'
@@ -34,13 +33,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet run --project tests/DosDis.ProjectSmoke --configuration Release --no-build
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Publish portable self-contained Windows CLI
-        shell: pwsh
-        working-directory: Tools/Disassembler
-        run: |
-          dotnet publish src/DosDis.Cli/DosDis.Cli.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true --output dist/win-x64
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Copy-Item README.md,THIRD_PARTY_NOTICES.md -Destination dist/win-x64/
       - name: Publish portable self-contained Windows desktop
         shell: pwsh
         working-directory: Tools/Disassembler
@@ -53,12 +45,5 @@ jobs:
         with:
           name: DOSDis-Desktop-win-x64-preview
           path: Tools/Disassembler/dist/windows-desktop/
-          if-no-files-found: error
-          retention-days: 30
-      - name: Upload Windows CLI preview artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: DOSDis-CLI-win-x64-preview
-          path: Tools/Disassembler/dist/win-x64/
           if-no-files-found: error
           retention-days: 30
