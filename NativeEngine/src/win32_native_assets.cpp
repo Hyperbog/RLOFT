@@ -8,6 +8,7 @@
 
 #include "rloft_native/native_media.hpp"
 #include "rloft_native/native_assets.hpp"
+#include "rloft_native/native_raster_browser.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -33,6 +34,11 @@ using rloft_native::NativePalette6;
 
 constexpr int kFolderButton = 4201;
 constexpr int kResults = 4202;
+constexpr int kArchiveSelect = 4203;
+constexpr int kRasterIndex = 4204;
+constexpr int kRasterGo = 4205;
+constexpr int kRasterPrevious = 4206;
+constexpr int kRasterNext = 4207;
 
 std::wstring unicode(std::string_view utf8) {
     const auto n=MultiByteToWideChar(CP_UTF8, 0, utf8.data(),
@@ -76,17 +82,16 @@ struct NativeCursorPreview {
     std::vector<std::uint8_t> bgra;
 };
 
-NativeCursorPreview make_cursor_preview(
-    const NativeMedia& media, const NativePalette6& palette) {
-    const auto resource = rloft_native::load_native_default_cursor(media);
-    const auto& image = resource.image;
-    if (image.width > 256 || image.height > 256 ||
+NativeCursorPreview make_raster_preview(
+    const rloft_native::NativeType1Raster& image,
+    std::size_t id, const NativePalette6& palette) {
+    if (image.width > 2048 || image.height > 2048 ||
         image.pixels.size() < std::size_t(image.width) * image.height)
         throw std::runtime_error("original cursor exceeds display safety bounds");
     NativeCursorPreview output;
     output.width = image.width;
     output.height = image.height;
-    output.res0_id = resource.res0_id;
+    output.res0_id = id;
     output.bgra.resize(std::size_t(image.width) * image.height * 4);
     for (std::size_t i = 0; i < std::size_t(image.width) * image.height; ++i) {
         const auto color = image.pixels[i];
@@ -111,10 +116,35 @@ NativeCursorPreview make_cursor_preview(
     return output;
 }
 
+NativeCursorPreview make_cursor_preview(
+    const NativeMedia& media, const NativePalette6& palette) {
+    auto resource = rloft_native::load_native_default_cursor(media);
+    return make_raster_preview(resource.image, resource.res0_id, palette);
+}
+
+NativeCursorPreview load_browser_preview(
+    const NativeMedia& media, const NativePalette6& palette,
+    const std::string& archive, std::size_t record, int direction,
+    std::size_t& actual_record) {
+    const auto result = direction == 0 ?
+        rloft_native::load_native_raster_record(media,archive,record) :
+        rloft_native::seek_native_raster_record(
+            media,archive,record,direction > 0);
+    actual_record = result.record_index;
+    return make_raster_preview(result.raster,actual_record,palette);
+}
+
 struct State {
     HWND window{};
     HWND button{};
     HWND report_widget{};
+    HWND archive_control{};
+    HWND index_control{};
+    HWND go_control{};
+    HWND previous_control{};
+    HWND next_control{};
+    std::string browsed_archive{"RES0"};
+    std::size_t browsed_record{};
     std::unique_ptr<NativeMedia> media;
     NativeAssetReport audit;
     NativePalette6 palette;
