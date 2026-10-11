@@ -175,7 +175,7 @@ void run() {
         const auto source=NativeMedia::open(root);
         const auto full=audit_native_bank_system(source,true);
         assert(full.banks.size()==13 && full.failed==0);
-        assert(full.absent_banks==0 && full.records==23);
+        assert(full.absent_banks==0 && full.records==24);
         assert(full.validated==full.records);
         assert(full.banks[0].decoded_font==1);
         assert(full.banks[3].decoded_scene_shape==2);
@@ -191,7 +191,7 @@ void run() {
         assert(encoded.find("\"name\":\"RES12\"")!=std::string::npos);
         const auto active=audit_native_bank_system(source,false);
         assert(active.banks.size()==11 && active.absent_banks==0);
-        assert(active.records==17);
+        assert(active.records==18);
         fs::remove(root/"RES6");
         const auto incomplete=audit_native_bank_system(
             NativeMedia::open(root),false);
