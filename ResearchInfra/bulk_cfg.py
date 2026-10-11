@@ -100,6 +100,39 @@ def ranges_from_index(doc: dict, objects: dict[str, bytes], *, span_limit: int,
     return candidates, rejected
 
 
+def separate_window_tail_artifacts(spec: dict, flow: dict, code: bytes,
+                                   executable='objdump') -> tuple[list[dict], list[dict]]:
+    """Verify synthetic end cuts with authenticated original lookahead.
+
+    A linear decoder can emit (bad) when a valid instruction begins just
+    before the arbitrary sampling cap but its remainder lies *outside* the
+    selected bytes. Lookahead proves only that truncation was synthetic;
+    it does not certify a real function body or executable reachability.
+    """
+    unresolved = []
+    artificial = []
+    for c in flow['conflicts']:
+        off = c.get('address')
+        remaining = spec['end_exclusive'] - off if type(off) is int else 0
+        if (c.get('reason') == 'undecodable_reachable_instruction'
+                and spec.get('truncated_by_cap')
+                and type(off) is int and 0 < remaining <= 15
+                and off + 15 <= len(code)):
+            probe = original_cfg.decode(code[off:off+15], off, executable)
+            if (probe and probe[0]['address'] == off
+                    and probe[0]['size'] > remaining
+                    and probe[0]['mnemonic'] not in ('(bad)', '.byte', '.word', '.long')):
+                artificial.append({
+                    'address':off,
+                    'reason':'artificial_sample_window_splits_original_instruction',
+                    'remaining_bytes_in_sample':remaining,
+                    'decoded_instruction_size_with_original_lookahead':probe[0]['size'],
+                    'instruction_bytes_in_report':False})
+                continue
+        unresolved.append(c)
+    return unresolved, artificial
+
+
 def inspect(original_root: Path, doc: dict, *, span_limit=160, max_labels=MAX_LABELS,
             total_limit=MAX_TOTAL, executable='objdump',
             source_root: Path | None = None) -> dict:
@@ -128,6 +161,8 @@ def inspect(original_root: Path, doc: dict, *, span_limit=160, max_labels=MAX_LA
         try:
             linear = original_cfg.decode(witness, start, executable)
             flow = original_cfg.graph(linear, start, end)
+            residual_conflicts, sample_artifacts = separate_window_tail_artifacts(
+                spec, flow, objs[module], executable)
             row.update({'status': 'candidate_decoded_original_bytes',
                         'linear_instructions': flow['linear_decoded_instruction_count'],
                         'statically_traversed_candidates': flow['reachable_instruction_count'],
@@ -135,7 +170,8 @@ def inspect(original_root: Path, doc: dict, *, span_limit=160, max_labels=MAX_LA
                         'local_edges': len(flow['edges']),
                         'external_edges': len(flow['external_targets']),
                         'indirect_edges': len(flow['indirect_edges']),
-                        'conflicts': flow['conflicts'],
+                        'conflicts': residual_conflicts,
+                        'window_tail_artifacts': sample_artifacts,
                         'indirect_sites': flow['indirect_edges'],
                         'external_sites': flow['external_targets'][:40],
                         'interrupt_sites': flow['service_boundaries']})
@@ -146,6 +182,7 @@ def inspect(original_root: Path, doc: dict, *, span_limit=160, max_labels=MAX_LA
             totals['local_edges'] += row['local_edges']
             totals['indirect_edges'] += row['indirect_edges']
             totals['conflict_sites'] += len(row['conflicts'])
+            totals['artificial_window_tail_sites'] += len(row['window_tail_artifacts'])
         except ValueError as error:
             row.update({'status': 'candidate_decoder_rejected',
                         'error_kind': 'decode_failure_without_promotion'})
