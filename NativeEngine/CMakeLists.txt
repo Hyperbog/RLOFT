@@ -4,6 +4,10 @@ project(RavenloftNativeFrameworkContracts LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 enable_testing()
+# Ship independent native Windows executables without a separate VC runtime.
+if(WIN32 AND MSVC)
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
 add_library(rloft_native_contracts INTERFACE)
 target_include_directories(rloft_native_contracts INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 add_executable(native_framework_contract_tests tests/framework_contract_tests.cpp)
@@ -121,3 +125,27 @@ else()
   target_compile_options(native_mod_mount_plan_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
 endif()
 add_test(NAME native_mod_mount_plan_tests COMMAND native_mod_mount_plan_tests)
+
+# Windows-first user-visible app. This is a NON-PLAYABLE install/media
+# bootstrap and synthetic indexed-renderer diagnostic, not DemoV1 or the
+# accepted full rloft_native.exe game. No SDL3/bgfx required for first MSVC.
+if(WIN32)
+  if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../DemoV1/src/game_source.cpp")
+    message(FATAL_ERROR "Windows bootstrap requires exact inherited GameSource")
+  endif()
+  add_executable(rloft_native_bootstrap WIN32
+    src/win32_bootstrap.cpp
+    ../DemoV1/src/game_source.cpp)
+  target_include_directories(rloft_native_bootstrap PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../DemoV1/include")
+  target_link_libraries(rloft_native_bootstrap PRIVATE
+    rloft_native_contracts User32 Gdi32 Shell32 Ole32 Advapi32)
+  target_compile_definitions(rloft_native_bootstrap PRIVATE
+    "RLOFT_NATIVE_SOURCE_SHA=\"${RLOFT_NATIVE_SOURCE_SHA}\""
+    UNICODE _UNICODE)
+  if(MSVC)
+    target_compile_options(rloft_native_bootstrap PRIVATE /W4 /permissive-)
+  endif()
+  add_test(NAME native_win32_bootstrap_headless_contract
+    COMMAND rloft_native_bootstrap --self-test)
+endif()
