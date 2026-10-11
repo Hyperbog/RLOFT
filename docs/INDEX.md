@@ -7,6 +7,7 @@
 - [2026-10-11 branch cleanup audit](BRANCH_CLEANUP_AUDIT_20261011.md) — fourteen archived branch tips and obsolete workflow retirement.
 - [Shared-code synchronization register](SHARED_SOURCE_REGISTER.md) — exact shared blobs, intentional drift and source-proof gate.
 - [Original-machine CFG and AI work-packet integration](../ResearchInfra/ORIGINAL_MACHINE_CFG_20261011.md) — optional authenticated CODE originals, independent x86 blocks and source-call overlays.
+- [Bulk original LE survey and DOSDis evidence cross-check](../ResearchInfra/BULK_CFG_DOSDIS_BRIDGE_20261011.md) — bounded candidate source-address coverage and fail-closed DOSDis schema-v1 bridge.
 - [Documentation maintenance policy](DOCUMENTATION_POLICY.md) — retain original addresses, research and history in context.
 
 ## Project-specific authoritative documentation

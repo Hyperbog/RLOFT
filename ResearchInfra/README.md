@@ -50,3 +50,7 @@ The original x86-32 LE witness importer is now implemented. [Method and original
 - `test_original_cfg.py`, `test_original_context.py`, `test_compare_call_evidence.py`: offline synthetic original-source-safe regression suites.
 
 The existing canonical source index is still the source-only graph, not a decompiler. Original-machine CFG records form a **separate trust domain** and are only joined when original file identity is authenticated. CI tests the synthetic paths; original-file acceptance is an opt-in local operation.
+
+## Bulk LE survey and independent DOSDis JSON cross-check
+
+[Read the source-backed survey and evidence limits](BULK_CFG_DOSDIS_BRIDGE_20261011.md). `bulk_cfg.py` partitions canonical C++ source-address candidates into bounded original LE code windows, validates full CODE.1/CODE.2 SHA-256 and emits static decoder diagnostics without claiming correct function boundaries. `dosdis_bridge.py` accepts source-SHA-pinned DOSDis schema-v1 developer analysis exports, validates object-offset/length integrity and compares candidate instruction starts, lengths and direct edges against separately decoded original window evidence. Neither component is a game runtime, a DOSDis GUI change, or original DOS acceptance.
