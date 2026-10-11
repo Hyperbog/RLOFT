@@ -1,0 +1,69 @@
+name: "RLOFT complete original bank-system reconstruction - one owner-authorized Windows build"
+on:
+  push:
+    branches:
+      - native-fullbank-win64-20261011-once
+    paths:
+      - .github/workflows/native-fullbank-win64-once-20261011.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify-all-original-res-banks:
+    runs-on: windows-2022
+    timeout-minutes: 100
+    steps:
+      - name: Checkout independent native-engine (NO decomp gameplay linkage)
+        uses: actions/checkout@v4
+        with:
+          ref: native-engine
+          persist-credentials: false
+          path: engine
+      - name: Checkout ONLY owned original RES media from DnD-Classics
+        uses: actions/checkout@v4
+        with:
+          ref: DnD-Classics
+          persist-credentials: false
+          path: original-corpus
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            MASTER/Ravenloft - Strahd's Possession/CD_Extracted/RLOFT/
+      - name: Python 3.12 original-format certification
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build standalone native system, verify 15 CTests and asset-free package
+        shell: pwsh
+        working-directory: engine
+        run: |
+          & ./NativeEngine/Windows/Build-NativeAssets-Windows.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Certify EVERY original RES0..RES12 record using new native executable
+        shell: pwsh
+        working-directory: engine
+        run: |
+          $src = Join-Path (Resolve-Path ..).Path "original-corpus\MASTER\Ravenloft - Strahd's Possession\CD_Extracted\RLOFT"
+          $audit = (Resolve-Path "build\native-assets-windows-x64\Release\rloft_native_bank_audit.exe").Path
+          if (-not (Test-Path (Join-Path $src 'RES12'))) {
+            throw "Original DnD-Classics 13-bank checkout incomplete"
+          }
+          $report = Join-Path $env:RUNNER_TEMP 'rloft_full_original_bank_report.json'
+          & $audit $src | Set-Content -Encoding utf8 -LiteralPath $report
+          if ($LASTEXITCODE -ne 0) {
+            Get-Content $report | Select-Object -First 15
+            throw "Independent native RES bank decoder rejected original source records"
+          }
+          & python NativeEngine/tools/verify_whole_res_banks.py $report
+          if ($LASTEXITCODE -ne 0) { throw "Original RES0..RES12 source certification failed" }
+          Write-Host "FULL ORIGINAL RES BANK VERIFICATION PASS"
+      - name: Upload asset-free Windows executable package (NEVER original media)
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLOFT-NativeEngine-Windows-x64-FULL-RES-BANKS-20261011
+          path: |
+            engine/NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip
+            engine/NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
