@@ -65,6 +65,48 @@ fs::path select_original_install(HWND owner) {
     return path;
 }
 
+struct NativeCursorPreview {
+    int width{};
+    int height{};
+    std::size_t res0_id{};
+    std::vector<std::uint8_t> bgra;
+};
+
+NativeCursorPreview make_cursor_preview(
+    const NativeMedia& media, const NativePalette6& palette) {
+    const auto resource = rloft_native::load_native_default_cursor(media);
+    const auto& image = resource.image;
+    if (image.width > 256 || image.height > 256 ||
+        image.pixels.size() < std::size_t(image.width) * image.height)
+        throw std::runtime_error("original cursor exceeds display safety bounds");
+    NativeCursorPreview output;
+    output.width = image.width;
+    output.height = image.height;
+    output.res0_id = resource.res0_id;
+    output.bgra.resize(std::size_t(image.width) * image.height * 4);
+    for (std::size_t i = 0; i < std::size_t(image.width) * image.height; ++i) {
+        const auto color = image.pixels[i];
+        const bool transparent = image.transparent_index != 255 &&
+                                 color == image.transparent_index;
+        const std::size_t at = 4 * i;
+        if (transparent) {
+            output.bgra[at] = 35;
+            output.bgra[at + 1] = 27;
+            output.bgra[at + 2] = 22;
+        } else {
+            const auto palette_at = 3 * std::size_t(color);
+            auto channel = [](std::uint8_t dac) {
+                return std::uint8_t((unsigned(dac) * 255U + 31U) / 63U);
+            };
+            output.bgra[at] = channel(palette.rgb[palette_at + 2]);
+            output.bgra[at + 1] = channel(palette.rgb[palette_at + 1]);
+            output.bgra[at + 2] = channel(palette.rgb[palette_at]);
+        }
+        output.bgra[at + 3] = 255;
+    }
+    return output;
+}
+
 struct State {
     HWND window{};
     HWND button{};
@@ -73,6 +115,8 @@ struct State {
     NativeAssetReport audit;
     NativePalette6 palette;
     bool has_palette{};
+    NativeCursorPreview cursor;
+    std::wstring cursor_error;
     std::wstring status{
         L"Select the directory containing your owned original game.gog, "
         L"or the loose DOS INIT/RES0/T files.\r\n"
@@ -127,17 +171,38 @@ void install(State& state,const fs::path& path) {
                 palette_ok=true;
             } catch(const std::exception&) {}
         }
-        // Commit the new source only after all indexing/reporting succeeded.
-        const auto output=format_report(*media,report);
+        NativeCursorPreview preview;
+        std::wstring cursor_info;
+        if (palette_ok) {
+            try {
+                preview = make_cursor_preview(*media, palette);
+                cursor_info = L"Native EH type-1 RES0 cursor decoded (ID " +
+                              std::to_wstring(preview.res0_id) + L", " +
+                              std::to_wstring(preview.width) + L"x" +
+                              std::to_wstring(preview.height) + L").";
+            } catch (const std::exception& error) {
+                cursor_info = L"Native EH type-1 cursor preview: " +
+                              unicode(error.what());
+            }
+        } else {
+            cursor_info = L"Native EH type-1 cursor preview requires valid COLORS.";
+        }
+        // Commit the source and image only after the reader + audit succeeds.
+        const auto output = format_report(*media, report) +
+                            L"\r\n" + cursor_info + L"\r\n";
         state.media=std::move(media);
         state.audit=std::move(report);
         state.palette=palette;
         state.has_palette=palette_ok;
+        state.cursor=std::move(preview);
+        state.cursor_error=cursor_info;
         state.status=output;
     } catch(const std::exception& error) {
         // Do not show another install's palette after a failed selection.
         state.media.reset();
         state.has_palette=false;
+        state.cursor=NativeCursorPreview{};
+        state.cursor_error.clear();
         state.status=L"Cannot read selected original game media:\r\n"+
                      unicode(error.what())+
                      L"\r\nNo original files were written or extracted.";
@@ -197,7 +262,37 @@ void draw(State& state,HDC dc) {
                      L"installation to inspect real asset data.",
                   -1,&empty,DT_WORDBREAK);
     }
-    RECT explanation{x,465,rect.right-14,rect.bottom-12};
+    RECT cursor_title{x,465,rect.right-14,486};
+    SetTextColor(dc,RGB(241,207,137));
+    DrawTextW(dc,L"ORIGINAL RES0 CURSOR — INDEPENDENT EH1 DECODER",
+              -1,&cursor_title,DT_SINGLELINE|DT_END_ELLIPSIS);
+    if (!state.cursor.bgra.empty()) {
+        BITMAPINFO info{};
+        info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
+        info.bmiHeader.biWidth=state.cursor.width;
+        info.bmiHeader.biHeight=-state.cursor.height;
+        info.bmiHeader.biPlanes=1;
+        info.bmiHeader.biBitCount=32;
+        info.bmiHeader.biCompression=BI_RGB;
+        const int scale=std::max(1,std::min({
+            8,240/state.cursor.width,145/state.cursor.height}));
+        const int display_width=scale*state.cursor.width;
+        const int display_height=scale*state.cursor.height;
+        const int left=x+(240-display_width)/2;
+        const int top=492+(145-display_height)/2;
+        SetStretchBltMode(dc,COLORONCOLOR);
+        StretchDIBits(dc,left,top,display_width,display_height,
+                      0,0,state.cursor.width,state.cursor.height,
+                      state.cursor.bgra.data(),&info,DIB_RGB_COLORS,SRCCOPY);
+    } else {
+        RECT unavailable{x,506,rect.right-20,626};
+        SetTextColor(dc,RGB(175,184,193));
+        DrawTextW(dc,L"Select original game media to decode its default "
+                     L"mouse raster. An unavailable cursor is reported "
+                     L"separately from archive structural validation.",
+                  -1,&unavailable,DT_WORDBREAK);
+    }
+    RECT explanation{x,660,rect.right-14,rect.bottom-12};
     SetTextColor(dc,RGB(183,192,211));
     DrawTextW(dc,
         L"Read original RES archives and COLORS directly.\n"
@@ -260,7 +355,7 @@ LRESULT CALLBACK proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam) {
     return DefWindowProcW(hwnd,msg,wparam,lparam);
 }
 
-int inspect_headless(const fs::path& source) {
+int inspect_headless(const fs::path& source, bool need_raster) {
     try {
         const auto media=NativeMedia::open(source);
         const auto report=rloft_native::inspect_native_assets(media);
@@ -271,7 +366,17 @@ int inspect_headless(const fs::path& source) {
             if(check.name=="T") t=check.validated;
             if(check.name=="COLORS") colors=check.validated;
         }
-        return init&&res0&&t&&colors ? 0 : 3;
+        if (!(init&&res0&&t&&colors)) return 3;
+        if (need_raster) {
+            try {
+                const auto palette = rloft_native::decode_native_palette(
+                    media.read("COLORS"),12);
+                static_cast<void>(make_cursor_preview(media,palette));
+            } catch (const std::exception&) {
+                return 4;
+            }
+        }
+        return 0;
     } catch(...) {return 2;}
 }
 
@@ -282,10 +387,11 @@ int run(HINSTANCE instance) {
     std::wstring option=argc>1?argv[1]:L"";
     fs::path source=argc>2?fs::path(argv[2]):fs::path{};
     const bool headless=argc==3&&option==L"--verify-assets";
+    const bool raster_test=argc==3&&option==L"--verify-raster";
     const bool from_arg=argc==3&&option==L"--install";
-    const bool invalid=argc!=1&&!headless&&!from_arg;
+    const bool invalid=argc!=1&&!headless&&!raster_test&&!from_arg;
     LocalFree(argv);
-    if(headless)return inspect_headless(source);
+    if(headless||raster_test)return inspect_headless(source,raster_test);
     if(invalid)return 64;
 
     const HRESULT initialized=CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);
