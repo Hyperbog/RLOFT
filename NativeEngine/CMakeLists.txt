@@ -212,3 +212,37 @@ if(WIN32)
       -NoProfile -ExecutionPolicy Bypass
       -File "${CMAKE_CURRENT_SOURCE_DIR}/Windows/Test-NativeEngine-WindowsPackage.ps1")
 endif()
+
+# Independent, installation-backed live ORIGINAL GAME target.
+# Both targets compile the same authoritative decomp game core manifest.
+# Original intro/menu/CODE.1 controllers and timing are NOT recreated.
+if(WIN32)
+  include("${CMAKE_CURRENT_SOURCE_DIR}/../DemoV1/cmake/shared_game_core_sources.cmake")
+  add_library(rloft_native_game_core STATIC ${RLOFT_SHARED_GAME_CORE_SOURCES})
+  target_include_directories(rloft_native_game_core PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/../DemoV1/include")
+  target_compile_features(rloft_native_game_core PUBLIC cxx_std_17)
+  target_link_libraries(rloft_native_game_core PRIVATE Advapi32)
+  if(MSVC)
+    target_compile_options(rloft_native_game_core PRIVATE /W4 /permissive- /MP2 /utf-8)
+  endif()
+
+  add_executable(rloft_native WIN32
+    src/win32_native_main.cpp
+    src/win32_native_profile.cpp
+    ../DemoV1/src/win32_main.cpp
+    ../DemoV1/src/win32_audio.cpp
+    ../DemoV1/src/win32_midi.cpp)
+  target_include_directories(rloft_native PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../DemoV1/include")
+  target_link_libraries(rloft_native PRIVATE
+    rloft_native_contracts rloft_native_game_core
+    User32 Gdi32 Shell32 Ole32 Advapi32 Winmm)
+  target_compile_definitions(rloft_native PRIVATE
+    RLOFT_NATIVE_ENGINE
+    UNICODE _UNICODE
+    "RLOFT_DEMO_SOURCE_SHA=\"${RLOFT_NATIVE_SOURCE_SHA}\"")
+  if(MSVC)
+    target_compile_options(rloft_native PRIVATE /W4 /permissive- /utf-8)
+  endif()
+endif()
