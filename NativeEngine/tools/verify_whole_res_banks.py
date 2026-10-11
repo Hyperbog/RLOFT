@@ -81,7 +81,7 @@ def certify(data: dict) -> None:
     expect(sum(b["image_eh1"] + b["inert_legacy_eh1"]
                for b in banks.values()) == 1591,
            "original raster descriptors were lost")
-        expect(sum(b["font_eh2"] for b in banks.values()) == 15,
+    expect(sum(b["font_eh2"] for b in banks.values()) == 15,
            "original fonts not decoded")
     expect(sum(b["texture_eh6"] for b in banks.values()) == 1319,
            "native texture validation incomplete")
