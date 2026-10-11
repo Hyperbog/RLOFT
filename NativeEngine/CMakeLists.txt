@@ -111,3 +111,13 @@ if(TARGET rloft_install_probe AND Python3_Interpreter_FOUND)
       "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_install_probe_cli.py"
       --executable "$<TARGET_FILE:rloft_install_probe>")
 endif()
+
+# Dependency-ordered transactional mod directory application: diagnostic only.
+add_executable(native_mod_mount_plan_tests tests/mod_mount_plan_tests.cpp)
+target_link_libraries(native_mod_mount_plan_tests PRIVATE rloft_native_contracts)
+if(MSVC)
+  target_compile_options(native_mod_mount_plan_tests PRIVATE /W4 /WX /UNDEBUG)
+else()
+  target_compile_options(native_mod_mount_plan_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+endif()
+add_test(NAME native_mod_mount_plan_tests COMMAND native_mod_mount_plan_tests)
