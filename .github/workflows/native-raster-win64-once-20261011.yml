@@ -1,0 +1,38 @@
+name: "RLOFT independent native EH1 raster Windows x64 - authorized single run"
+on:
+  push:
+    branches:
+      - native-raster-win64-20261011-1530-once
+    paths:
+      - .github/workflows/native-raster-win64-once-20261011.yml
+permissions:
+  contents: read
+jobs:
+  native-assets-and-eh1:
+    if: github.ref == 'refs/heads/native-raster-win64-20261011-1530-once'
+    runs-on: windows-2022
+    timeout-minutes: 50
+    steps:
+      - name: Checkout independent native-engine source
+        uses: actions/checkout@v4
+        with:
+          ref: native-engine
+          persist-credentials: false
+      - name: Set up fixture Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: MSVC x64 build and mandatory EH1 raster CTests
+        shell: pwsh
+        run: |
+          & ./NativeEngine/Windows/Build-NativeAssets-Windows.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload independent native engine Windows preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLOFT-NativeEngine-Windows-x64-EH1-PREVIEW-20261011
+          path: |
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
