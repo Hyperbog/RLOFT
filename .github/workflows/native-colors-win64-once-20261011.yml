@@ -1,0 +1,37 @@
+name: "RLOFT independent native palette correction Windows x64 - authorized once"
+on:
+  push:
+    branches:
+      - native-colors-win64-20261011-1730-once
+    paths:
+      - .github/workflows/native-colors-win64-once-20261011.yml
+permissions:
+  contents: read
+jobs:
+  original-res-palette-validation:
+    runs-on: windows-2022
+    timeout-minutes: 50
+    steps:
+      - name: Check out native-engine original-asset runtime
+        uses: actions/checkout@v4
+        with:
+          ref: native-engine
+          persist-credentials: false
+      - name: Python synthetic format test runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile palette-aware native RES browser and run 12 MSVC Windows CTests
+        shell: pwsh
+        run: |
+          & ./NativeEngine/Windows/Build-NativeAssets-Windows.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload native palette-aware asset-free Windows package
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLOFT-NativeEngine-Windows-x64-PALETTE-CORRECTION-20261011
+          path: |
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
