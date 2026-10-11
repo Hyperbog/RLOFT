@@ -336,11 +336,14 @@ int run(HINSTANCE instance) {
     }
     if (argc == 3 &&
         (std::wstring_view(argv[1]) == L"--self-test-install" ||
-         std::wstring_view(argv[1]) == L"--self-test-source-cursor")) {
+         std::wstring_view(argv[1]) == L"--self-test-source-cursor" ||
+         std::wstring_view(argv[1]) == L"--self-test-source-menu")) {
         // Exercise the exact GUI media/presenter boundary without opening a
         // window; stricter cursor mode asserts genuine original RES0 decode.
         const bool require_original_cursor =
             std::wstring_view(argv[1]) == L"--self-test-source-cursor";
+        const bool require_original_menu =
+            std::wstring_view(argv[1]) == L"--self-test-source-menu";
         const auto media_path = std::filesystem::path(argv[2]);
         LocalFree(argv);
         try {
@@ -350,6 +353,8 @@ int run(HINSTANCE instance) {
             if (!state.signature_ok) return 3;
             if (require_original_cursor && !state.showing_original_cursor)
                 return 4;
+            if (require_original_menu && !state.showing_original_menu)
+                return 5;
             return 0;
         } catch (...) {
             return 2;
