@@ -1,0 +1,43 @@
+name: "RLOFT independent native asset engine Windows x64 - single authorized run"
+
+# Explicit user authorization: 2026-10-11. Isolated branch only.
+# No persistent triggers on native-engine or the default branch.
+on:
+  push:
+    branches:
+      - native-assets-win64-20261011-1415-once
+    paths:
+      - .github/workflows/native-assets-win64-20261011-one-shot.yml
+
+permissions:
+  contents: read
+
+jobs:
+  independent-windows-native-assets:
+    if: github.ref == 'refs/heads/native-assets-win64-20261011-1415-once'
+    runs-on: windows-2022
+    timeout-minutes: 50
+    steps:
+      - name: Check out independent original-asset engine only
+        uses: actions/checkout@v4
+        with:
+          ref: native-engine
+          persist-credentials: false
+      - name: Python synthetic asset-format fixture runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build MSVC asset engine, run tests and verify final asset-free archive
+        shell: pwsh
+        run: |
+          & ./NativeEngine/Windows/Build-NativeAssets-Windows.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload independent native asset engine x64 ZIP and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW-20261011
+          path: |
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip
+            NativeEngine/Windows/dist/RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
