@@ -75,7 +75,9 @@ class CaptureCertificateTests(unittest.TestCase):
         result = certify(self.ref, self.host, self.rm, self.cm)
         self.assertEqual(result["status"], "DIFFERENT")
         json.dumps(result)
-        self.assertEqual(result["comparison"]["candidate"], "<field absent>")
+        self.assertIsNone(result["comparison"]["candidate"])
+        self.assertFalse(result["comparison"]["candidate_field_present"])
+        self.assertTrue(result["comparison"]["reference_field_present"])
 
     def test_manifest_hash_tampering_rejected(self):
         self.cm["trace_sha256"] = "0" * 64

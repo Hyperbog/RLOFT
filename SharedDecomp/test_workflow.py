@@ -135,6 +135,20 @@ class TraceTests(unittest.TestCase):
         self.put(self.nat,mutated)
         self.assertEqual(trace_diff(self.ref,self.nat)['field'],'mapper')
 
+    def test_missing_field_diagnostic_is_json_serializable(self):
+        mutated=copy.deepcopy(self.frames)
+        del mutated[0]['regs']
+        self.put(self.nat,mutated)
+        r=trace_diff(self.ref,self.nat)
+        self.assertFalse(r['candidate_field_present'])
+        self.assertTrue(r['reference_field_present'])
+        self.assertIsNone(r['candidate'])
+        json.dumps(r)
+
+    def test_cannot_ignore_live_execution_state(self):
+        with self.assertRaisesRegex(EvidenceError,'cannot ignore live'):
+            trace_diff(self.ref,self.nat,{'regs'})
+
     def test_truncated(self):
         self.put(self.nat,self.frames[:1]);self.assertEqual(trace_diff(self.ref,self.nat)['field'],'trace_length')
 

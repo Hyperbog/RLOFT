@@ -185,7 +185,10 @@ def normalize_frame(frame: dict, ignored: set[str]) -> dict:
 
 def trace_diff(reference: str | Path, candidate: str | Path,
                ignored: set[str] | None = None) -> dict:
-    ignored = (ignored or set()) | {"wall_time", "capture_note"}
+    permitted_ignored = {"wall_time", "capture_note"}
+    require(ignored is None or set(ignored).issubset(permitted_ignored),
+            "cannot ignore live execution state in trace comparison")
+    ignored = permitted_ignored
     from itertools import zip_longest
     total = 0
     sentinel = object()
@@ -202,6 +205,8 @@ def trace_diff(reference: str | Path, candidate: str | Path,
             return {"status":"FAIL", "matched_steps":total,
                     "first_divergence_step":idx,"field":first,
                     "reference":left.get(first), "candidate":right.get(first),
+                    "reference_field_present":first in left,
+                    "candidate_field_present":first in right,
                     "reference_pc":left.get("pc"), "candidate_pc":right.get("pc"),
                     "reference_bank":left.get("physical_bank"), "candidate_bank":right.get("physical_bank")}
         total += 1

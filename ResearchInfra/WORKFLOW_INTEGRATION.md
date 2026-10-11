@@ -17,3 +17,18 @@ python3 SharedDecomp/workflow.py diff /private/original_dos_steps.jsonl /private
 Watcom 10.0a remains a codegen **hypothesis**; existing Watcom OMF probe gates should remain separate from whole-source native compilation and observed DOS runtime parity. `objdiff` may be useful after authentic OMF/LE relocation normalization; do not substitute generic ELF32 similarity for an exact historical DOS object match.
 
 Progress is judged by executable entry/ABI coverage, original versus native replay cases, authenticated LE fixup/loaded-image correctness, and actual native game-state parity, not number of reconstructed C++ functions alone. Three non-improvements stop only the current hypothesis (record blocker), never the complete CODE.1/CODE.2 subsystem workstream.
+
+
+## Provenance-bound trace gate (2026-10-11)
+
+The stronger `SharedDecomp/certify_trace.py` accepts two *separate* scenario-aligned
+trace files and SHA256-bound capture manifests, enforcing distinct declared
+reference/host capture identities, contiguous steps and explicit first-divergence
+diagnostics. See [the trace certificate contract](../SharedDecomp/TRACE_CERTIFICATION.md)
+for required fields and the source-origin proof boundary. A successful comparison
+is intentionally labeled `EQUAL_UNATTESTED`: manifest declarations are not
+external attestation that DOS reference execution actually took place.
+`workflow.py diff` now refuses to ignore live execution-state fields, and a
+missing JSON key is reported with separate field-presence indicators instead of
+an unserializable sentinel object. These protections are covered by ROM-free
+regressions; no original DOS/native gameplay parity has been certified.

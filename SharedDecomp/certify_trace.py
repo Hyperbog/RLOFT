@@ -102,6 +102,7 @@ def certify(reference: Path, candidate: Path,
     difference = {k: _safe_json(v) for k, v in outcome.items()
                   if k in ("matched_steps", "first_divergence_step", "field",
                            "reference", "candidate", "reference_pc", "candidate_pc",
+                           "reference_field_present", "candidate_field_present",
                            "reference_bank", "candidate_bank")}
     equal = outcome["status"] == "PASS"
     return {"schema": "rloft-trace-comparison-certificate-v1",
