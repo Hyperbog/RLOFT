@@ -182,7 +182,7 @@ public partial class MainWindow : Window
                     new Dos16Address(_mzImage.InitialCs, _mzImage.InitialIp)) };
                 int mzOffset = checked((int)(_mzImage.ToFileOffset(_mzImage.InitialCs, _mzImage.InitialIp)
                     ?? throw new InvalidDataException("MZ entry is not file backed.")));
-                HexView.Text = RawHexPreview.Render(_artifact, mzOffset);
+                RenderMzHex(new Dos16Address(_mzImage.InitialCs, _mzImage.InitialIp));
                 MainTabs.SelectedIndex = 0;
             }
             else
@@ -192,7 +192,8 @@ public partial class MainWindow : Window
             {
                 // Data/resource files are not code. Show exact physical bytes
                 // immediately, without inventing a function candidate.
-                HexView.Text = RawHexPreview.Render(_artifact);
+                SetHexWindow(RawHexPreview.Render(_artifact),
+                    "Original raw file bytes, starting file+0x00000000");
                 AddressBox.Text = "file:0x0";
                 MainTabs.SelectedIndex = 1;
             }
@@ -404,6 +405,7 @@ public partial class MainWindow : Window
         NoteEditor.Text = string.Empty;
         SelectedAddressText.Text = "Select an instruction";
         HexView.Text = string.Empty;
+        HexLocationText.Text = "No physical file position selected";
     }
 
     private void FunctionsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -462,6 +464,35 @@ public partial class MainWindow : Window
             : $"{shown.Count:N0} graph references (including unresolved)";
     }
 
+    private void AssemblyGrid_MouseDoubleClick(object sender,
+        System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (_working || AssemblyGrid.SelectedItem is not AssemblyRow row) return;
+        // Ignore headers and empty-grid clicks; only the selected
+        // disassembly row can request a candidate control-flow jump.
+        System.Windows.DependencyObject? visual = e.OriginalSource as System.Windows.DependencyObject;
+        while (visual is not null && visual is not DataGridRow)
+            visual = System.Windows.Media.VisualTreeHelper.GetParent(visual);
+        if (visual is not DataGridRow clicked ||
+            !ReferenceEquals(clicked.Item, row)) return;
+        if (_mzGraph is null || _mzImage is null)
+        {
+            StatusText.Text = "Run Analyze before following a candidate 16-bit direct call or jump.";
+            return;
+        }
+        var source = new Dos16Address(checked((ushort)row.Object),
+            checked((ushort)row.Offset));
+        Dos16Address? target = Dos16Navigation.DirectTarget(_mzGraph.Edges, source);
+        if (target is not { } resolved)
+        {
+            StatusText.Text = "No unique source-backed direct branch/call destination. " +
+                "Indirect, far and runtime-dependent targets are not guessed.";
+            return;
+        }
+        NavigateMz(resolved, activateDisassembly: true);
+        e.Handled = true;
+    }
+
     private void ReferencesGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         if (_working) return;
@@ -475,19 +506,34 @@ public partial class MainWindow : Window
     private static string Format(FlowAddress? at) =>
         at is { } a ? $"{a.Object}:0x{a.Offset:X8}" : "unresolved";
 
+    private void SetHexWindow(string preview, string location)
+    {
+        HexLocationText.Text = location;
+        HexView.Text = preview;
+        // A WPF TextBox can retain its old vertical position when
+        // text is replaced; ensure Go shows the requested first row.
+        HexView.CaretIndex = 0;
+        HexView.ScrollToHome();
+    }
+
     private void RenderMzHex(Dos16Address address)
     {
         if (_mzImage is null || _artifact is null) return;
         long? physical = _mzImage.ToFileOffset(address.Segment, address.Offset);
         if (physical.HasValue)
-            HexView.Text = RawHexPreview.Render(_artifact, checked((int)physical.Value));
+            SetHexWindow(RawHexPreview.Render(_artifact, checked((int)physical.Value)),
+                $"MZ module CS:IP {address.Segment:X4}:{address.Offset:X4} → " +
+                $"original file+0x{physical.Value:X8} " +
+                $"(first displayed row file+0x{(physical.Value & ~15L):X8})");
     }
 
     private void RenderHex(FlowAddress address)
     {
         if (_image is null)
         {
-            if (_artifact is not null) HexView.Text = RawHexPreview.Render(_artifact);
+            if (_artifact is not null)
+                SetHexWindow(RawHexPreview.Render(_artifact),
+                    "Original raw file bytes, starting file+0x00000000");
             return;
         }
         if (address.Object < 1 || address.Object > _image.Objects.Count) return;
@@ -510,7 +556,9 @@ public partial class MainWindow : Window
             }
             output.Append("  ").AppendLine(ascii.ToString());
         }
-        HexView.Text = output.ToString();
+        SetHexWindow(output.ToString(),
+            $"LE object {address.Object}, virtual offset 0x{address.Offset:X8} " +
+            "(original-file mapping may contain unbacked ?? bytes)");
     }
 
     private void GoTo_Click(object sender, RoutedEventArgs e)
@@ -527,7 +575,9 @@ public partial class MainWindow : Window
             if (parts[0].Equals("file", StringComparison.OrdinalIgnoreCase))
             {
                 int fileOffset = int.Parse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-                HexView.Text = RawHexPreview.Render(_artifact, fileOffset);
+                SetHexWindow(RawHexPreview.Render(_artifact, fileOffset),
+                    $"Original file+0x{fileOffset:X8} " +
+                    $"(first displayed row file+0x{(fileOffset & ~15):X8})");
                 AddressBox.Text = $"file:0x{fileOffset:X8}";
                 MainTabs.SelectedIndex = 1;
                 StatusText.Text = "Physical source file view (unmodified original bytes); this is not LE object-relative disassembly.";
