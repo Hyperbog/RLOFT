@@ -9,6 +9,7 @@
 #include "rloft_native/native_media.hpp"
 #include "rloft_native/native_assets.hpp"
 #include "rloft_native/native_raster_browser.hpp"
+#include "rloft_native/native_raster_colors.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -39,6 +40,8 @@ constexpr int kRasterIndex = 4204;
 constexpr int kRasterGo = 4205;
 constexpr int kRasterPrevious = 4206;
 constexpr int kRasterNext = 4207;
+constexpr int kPaletteSelect = 4208;
+constexpr int kTitleCursor = 4209;
 
 std::wstring unicode(std::string_view utf8) {
     const auto n=MultiByteToWideChar(CP_UTF8, 0, utf8.data(),
@@ -84,42 +87,27 @@ struct NativeCursorPreview {
 
 NativeCursorPreview make_raster_preview(
     const rloft_native::NativeType1Raster& image,
-    std::size_t id, const NativePalette6& palette) {
-    if (image.width > 2048 || image.height > 2048 ||
-        image.pixels.size() < std::size_t(image.width) * image.height)
-        throw std::runtime_error("original cursor exceeds display safety bounds");
+    std::size_t id, const NativePalette6& palette,
+    rloft_native::NativeRasterColorMode mode =
+        rloft_native::NativeRasterColorMode::RawIndices) {
+    if (image.width > 2048 || image.height > 2048)
+        throw std::runtime_error("original raster exceeds inspector viewport");
+    const auto converted =
+        rloft_native::colorize_native_raster(image,palette,0,mode);
     NativeCursorPreview output;
-    output.width = image.width;
-    output.height = image.height;
+    output.width = converted.width;
+    output.height = converted.height;
     output.res0_id = id;
-    output.bgra.resize(std::size_t(image.width) * image.height * 4);
-    for (std::size_t i = 0; i < std::size_t(image.width) * image.height; ++i) {
-        const auto color = image.pixels[i];
-        const bool transparent = image.transparent_index != 255 &&
-                                 color == image.transparent_index;
-        const std::size_t at = 4 * i;
-        if (transparent) {
-            output.bgra[at] = 35;
-            output.bgra[at + 1] = 27;
-            output.bgra[at + 2] = 22;
-        } else {
-            const auto palette_at = 3 * std::size_t(color);
-            auto channel = [](std::uint8_t dac) {
-                return std::uint8_t((unsigned(dac) * 255U + 31U) / 63U);
-            };
-            output.bgra[at] = channel(palette.rgb[palette_at + 2]);
-            output.bgra[at + 1] = channel(palette.rgb[palette_at + 1]);
-            output.bgra[at + 2] = channel(palette.rgb[palette_at]);
-        }
-        output.bgra[at + 3] = 255;
-    }
+    output.bgra = std::move(converted.bgra);
     return output;
 }
 
 NativeCursorPreview make_cursor_preview(
     const NativeMedia& media, const NativePalette6& palette) {
     auto resource = rloft_native::load_native_default_cursor(media);
-    return make_raster_preview(resource.image, resource.res0_id, palette);
+    return make_raster_preview(
+        resource.image,resource.res0_id,palette,
+        rloft_native::NativeRasterColorMode::Code2TitleCursor);
 }
 
 NativeCursorPreview load_browser_preview(
@@ -143,6 +131,10 @@ struct State {
     HWND go_control{};
     HWND previous_control{};
     HWND next_control{};
+    HWND palette_control{};
+    HWND title_cursor_control{};
+    unsigned palette_bank{12};
+    bool title_cursor_active{true};
     std::string browsed_archive{"RES0"};
     std::size_t browsed_record{};
     std::unique_ptr<NativeMedia> media;
@@ -231,6 +223,10 @@ void install(State& state,const fs::path& path) {
         state.cursor=std::move(preview);
         state.browsed_archive="RES0";
         state.browsed_record=state.cursor.res0_id;
+        state.title_cursor_active=true;
+        state.palette_bank=12;
+        if (state.palette_control)
+            SendMessageW(state.palette_control,CB_SETCURSEL,12,0);
         state.cursor_error=cursor_info;
         if (state.index_control)
             SetWindowTextW(state.index_control,
@@ -241,6 +237,7 @@ void install(State& state,const fs::path& path) {
         state.media.reset();
         state.has_palette=false;
         state.cursor=NativeCursorPreview{};
+        state.title_cursor_active=false;
         state.cursor_error.clear();
         state.status=L"Cannot read selected original game media:\r\n"+
                      unicode(error.what())+
@@ -260,6 +257,7 @@ void browse(State& state, std::string archive, std::size_t index, int direction)
         auto new_image = load_browser_preview(
             *state.media,state.palette,archive,index,direction,actual);
         state.cursor = std::move(new_image);
+        state.title_cursor_active=false;
         state.browsed_archive = std::move(archive);
         state.browsed_record = actual;
         state.cursor_error =
@@ -278,6 +276,65 @@ void browse(State& state, std::string archive, std::size_t index, int direction)
     if (state.report_widget)
         SetWindowTextW(state.report_widget,state.status.c_str());
     if (state.window)InvalidateRect(state.window,nullptr,TRUE);
+}
+
+void change_palette(State& state, unsigned bank) {
+    if (!state.media || bank >= 15) return;
+    try {
+        const auto selected =
+            rloft_native::decode_native_palette(state.media->read("COLORS"),bank);
+        NativeCursorPreview preview;
+        if (state.title_cursor_active) {
+            preview=make_cursor_preview(*state.media,selected);
+        } else {
+            std::size_t actual{};
+            preview=load_browser_preview(*state.media,selected,
+                state.browsed_archive,state.browsed_record,0,actual);
+        }
+        state.palette=selected;
+        state.palette_bank=bank;
+        state.has_palette=true;
+        state.cursor=std::move(preview);
+        state.cursor_error=L"Original indexed pixels with COLORS bank " +
+            std::to_wstring(bank) +
+            (state.title_cursor_active ?
+             L" and CODE.2 title cursor remap." : L" (raw RES indices).");
+    } catch (const std::exception& error) {
+        state.cursor=NativeCursorPreview{};
+        state.cursor_error=L"Palette/render error: "+unicode(error.what());
+    }
+    state.status=format_report(*state.media,state.audit) +
+                 L"\r\n" + state.cursor_error + L"\r\n";
+    if (state.report_widget)
+        SetWindowTextW(state.report_widget,state.status.c_str());
+    if (state.window) InvalidateRect(state.window,nullptr,TRUE);
+}
+
+void show_title_cursor(State& state) {
+    if (!state.media || !state.has_palette) return;
+    try {
+        auto preview=make_cursor_preview(*state.media,state.palette);
+        state.browsed_archive="RES0";
+        state.browsed_record=preview.res0_id;
+        state.title_cursor_active=true;
+        state.cursor=std::move(preview);
+        state.cursor_error=
+            L"Original CODE.2 title cursor: remapped raster indices; "
+            L"COLORS bank " + std::to_wstring(state.palette_bank) + L".";
+        if(state.index_control)
+            SetWindowTextW(state.index_control,
+                std::to_wstring(state.browsed_record).c_str());
+        if(state.archive_control)
+            SendMessageW(state.archive_control,CB_SETCURSEL,0,0);
+    } catch(const std::exception& error) {
+        state.cursor=NativeCursorPreview{};
+        state.cursor_error=L"Original menu cursor: "+unicode(error.what());
+    }
+    state.status=format_report(*state.media,state.audit) +
+                 L"\r\n" + state.cursor_error + L"\r\n";
+    if(state.report_widget)
+        SetWindowTextW(state.report_widget,state.status.c_str());
+    if(state.window)InvalidateRect(state.window,nullptr,TRUE);
 }
 
 void layout(State& state) {
