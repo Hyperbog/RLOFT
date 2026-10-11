@@ -82,7 +82,16 @@
                       VirtualizingPanel.VirtualizationMode="Recycling">
               <DataGrid.Columns>
                 <DataGridTextColumn Header="Location" Binding="{Binding AddressText}" Width="120"/>
-                <DataGridTextColumn Header="Original bytes" Binding="{Binding Bytes}" Width="170"/>
+                <DataGridTemplateColumn Header="Original bytes" Width="170">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <TextBlock FontFamily="Consolas">
+                        <Run Text="{Binding BytesBefore}"/><Run Text="{Binding BytesMatched}" Background="#D59D30"
+                          Foreground="#101923"/><Run Text="{Binding BytesAfter}"/>
+                      </TextBlock>
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
                 <DataGridTextColumn Header="Assembly" Binding="{Binding Assembly}" Width="*"/>
                 <DataGridTextColumn Header="Evidence" Binding="{Binding Evidence}" Width="210"/>
               </DataGrid.Columns>
