@@ -28,6 +28,25 @@ std::vector<std::uint8_t> raster(std::uint8_t index) {
     for(unsigned i=0;i<8;++i) raw.push_back(index);
     return raw;
 }
+std::vector<std::uint8_t> archive_of(
+    const std::vector<std::vector<std::uint8_t>>& entries) {
+    std::vector<std::uint8_t> data(4+entries.size()*4,0);
+    u32(data,0,static_cast<std::uint32_t>(entries.size()));
+    for(std::size_t i=0;i<entries.size();++i) {
+        u32(data,4+i*4,static_cast<std::uint32_t>(data.size()));
+        data.insert(data.end(),entries[i].begin(),entries[i].end());
+    }
+    return data;
+}
+std::vector<std::uint8_t> texture6() {
+    std::vector<std::uint8_t> out{'E','H',6,0,0,0,16};
+    for(unsigned i=0;i<4096;i+=8) {
+        out.push_back(0xff);
+        for(unsigned j=0;j<8;++j)
+            out.push_back(std::uint8_t(((i+j)/128*7+(i+j)%128*3)&255U));
+    }
+    return out;
+}
 template<class Fn> void rejects(Fn fn) {
     bool thrown=false;
     try{fn();}catch(const std::exception&){thrown=true;}
@@ -53,6 +72,12 @@ void verify() {
         write(root/"INIT",{0,0});
         write(root/"T",{1});
         write(root/"RES0",archive);
+        write(root/"RES4",archive_of({{0,3},texture6(),texture6()}));
+        write(root/"RES9",archive_of({raster(32),{1,2,3}}));
+        write(root/"RES3",archive_of({{'E','H',7,0,0}}));
+        write(root/"RES5",archive_of({{'E','H',3,0,0}}));
+        write(root/"RES6",archive_of({{'E','H',4,0,0}}));
+        write(root/"RES10",archive_of({{'E','H',4,0,0}}));
         const auto source=NativeMedia::open(root);
         const auto one=load_native_raster_record(source,"res0",1);
         assert(one.archive=="RES0" && one.record_index==1);
@@ -71,7 +96,24 @@ void verify() {
         rejects([&] {static_cast<void>(load_native_raster_record(source,"RES0",5));});
         rejects([&] {static_cast<void>(load_native_raster_record(source,"../RES0",1));});
         rejects([&] {static_cast<void>(load_native_raster_record(source,"COLORS",1));});
-        assert(fs::file_size(root/"RES0")==archive.size());
+        auto tex=load_native_raster_record(source,"RES4",1);
+        assert(tex.resource_type==6 && tex.raster.width==32 &&
+               tex.raster.height==128 && tex.raster.frames==1);
+        assert(tex.raster.pixels[0]==0);
+        assert(tex.raster.pixels[32]==3);
+        assert(tex.raster.pixels[1]==7);
+        auto forward_tex=seek_native_raster_record(source,"RES4",1,true);
+        assert(forward_tex.resource_type==6 && forward_tex.record_index==2);
+        auto back_tex=seek_native_raster_record(source,"RES4",2,false);
+        assert(back_tex.resource_type==6 && back_tex.record_index==1);
+        auto ninth=load_native_raster_record(source,"RES9",0);
+        assert(ninth.resource_type==1 && ninth.raster.pixels[0]==32);
+        for(const auto* category:{"RES3","RES5","RES6","RES10"})
+            rejects([&] {static_cast<void>(
+                load_native_raster_record(source,category,0));});
+        rejects([&] {static_cast<void>(
+            seek_native_raster_record(source,"RES5",0,true));});
+                assert(fs::file_size(root/"RES0")==archive.size());
     } catch (...) {
         fs::remove_all(root);throw;
     }
