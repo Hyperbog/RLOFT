@@ -24,6 +24,7 @@
 #include "rloft/game_source.hpp"
 #include "rloft_native/cpu_reference_presenter.hpp"
 #include "rloft_native/install_probe.hpp"
+#include "rloft_native/original_resource_preview.hpp"
 
 #ifndef RLOFT_NATIVE_SOURCE_SHA
 #define RLOFT_NATIVE_SOURCE_SHA "local-unversioned"
@@ -86,20 +87,12 @@ struct State final {
     std::wstring media_kind{L"Not selected"};
     std::wstring selected_folder{L"(none)"};
     bool signature_ok{};
+    bool showing_original_cursor{};
+    int original_cursor_id{-1};
+    std::wstring original_cursor_status;
 };
 
-void prepare_diagnostic(State& state) {
-    state.diagnostic.pixels.resize(kFrameWidth * kFrameHeight);
-    // Synthetic, unmistakable color-grid diagnostic. NEVER original art.
-    for (unsigned y = 0; y < static_cast<unsigned>(kFrameHeight); ++y)
-        for (unsigned x = 0; x < static_cast<unsigned>(kFrameWidth); ++x)
-            state.diagnostic.pixels[y * kFrameWidth + x] =
-                static_cast<std::uint8_t>(((x / 40U) + 2U * (y / 50U)) % 16U);
-    for (unsigned i = 0; i < 256; ++i) {
-        state.diagnostic.dac6[i * 3U]     = static_cast<std::uint8_t>((i * 13U) % 64U);
-        state.diagnostic.dac6[i * 3U + 1] = static_cast<std::uint8_t>((i * 23U) % 64U);
-        state.diagnostic.dac6[i * 3U + 2] = static_cast<std::uint8_t>((i * 37U) % 64U);
-    }
+void refresh_bgra(State& state) {
     rloft_native::CpuReferencePresenter cpu;
     cpu.present(state.diagnostic);
     state.bgra.resize(cpu.rgba().size());
@@ -112,6 +105,24 @@ void prepare_diagnostic(State& state) {
     }
 }
 
+void prepare_diagnostic(State& state) {
+    state.showing_original_cursor = false;
+    state.original_cursor_id = -1;
+    state.original_cursor_status.clear();
+    state.diagnostic.pixels.resize(kFrameWidth * kFrameHeight);
+    // Synthetic, unmistakable color-grid diagnostic. NEVER original art.
+    for (unsigned y = 0; y < static_cast<unsigned>(kFrameHeight); ++y)
+        for (unsigned x = 0; x < static_cast<unsigned>(kFrameWidth); ++x)
+            state.diagnostic.pixels[y * kFrameWidth + x] =
+                static_cast<std::uint8_t>(((x / 40U) + 2U * (y / 50U)) % 16U);
+    for (unsigned i = 0; i < 256; ++i) {
+        state.diagnostic.dac6[i * 3U]     = static_cast<std::uint8_t>((i * 13U) % 64U);
+        state.diagnostic.dac6[i * 3U + 1] = static_cast<std::uint8_t>((i * 23U) % 64U);
+        state.diagnostic.dac6[i * 3U + 2] = static_cast<std::uint8_t>((i * 37U) % 64U);
+    }
+    refresh_bgra(state);
+}
+
 void inspect(State& state, const rloft::GameSource& original) {
     const auto report = rloft_native::inspect_original_install(
         [&original](std::string_view file) { return original.contains(file); },
@@ -121,6 +132,23 @@ void inspect(State& state, const rloft::GameSource& original) {
     // Registry/discovery and explicit paths can differ; the displayed
     // provenance must identify the actual chosen backing media.
     state.selected_folder = original.location().media_path.wstring();
+    // Source-backed diagnostic: exact inherited EH type-1 RES0 decoder and
+    // the original COLORS palette12; composition is NOT the DOS title.
+    // Invalid optional asset data leaves the synthetic reference visible,
+    // while the minimum-media signature report remains authoritative.
+    try {
+        const auto preview = rloft_native::make_source_cursor_preview(original);
+        state.diagnostic = preview.frame;
+        state.original_cursor_id = preview.original_res0_entry;
+        state.showing_original_cursor = true;
+        state.original_cursor_status =
+            L"Source-backed RES0 cursor raster displayed; diagnostic composition only.";
+        refresh_bgra(state);
+    } catch (const std::exception& error) {
+        prepare_diagnostic(state);
+        state.original_cursor_status =
+            L"Optional RES0 cursor preview unavailable: " + widen(error.what());
+    }
     std::wostringstream out;
     out << L"Original installation (READ ONLY)\n"
         << L"Version/patch: UNVERIFIED\n"
@@ -132,13 +160,15 @@ void inspect(State& state, const rloft::GameSource& original) {
         if (file.required_for_probe) out << L"  (minimum signature)";
         out << L"\n";
     }
-    out << L"\nThis is a native ENGINE BOOTSTRAP, not a playable game.\n"
+    out << L"\n" << state.original_cursor_status << L"\n"
+        << L"This is a native ENGINE BOOTSTRAP, not a playable game.\n"
         << L"No game data or saves have been written.";
     state.status = out.str();
 }
 
 void choose(State& state, const std::filesystem::path& path) {
     state.signature_ok = false;
+    prepare_diagnostic(state); // never retain another installation's image
     try {
         auto media = rloft::GameSource::open(path);
         inspect(state, media);
@@ -187,7 +217,10 @@ void paint(State& state, HDC dc, const RECT& client) {
                   &bits, DIB_RGB_COLORS, SRCCOPY);
     SetTextColor(dc, RGB(240, 183, 125));
     RECT caption{20, client.bottom - 38, split - 8, client.bottom - 8};
-    text_at(dc, L"Synthetic indexed-frame diagnostic — NOT game graphics",
+    text_at(dc,
+            state.showing_original_cursor ?
+                L"Original RES0 cursor + palette12 — DIAGNOSTIC ONLY" :
+                L"Synthetic indexed-frame diagnostic — NOT game graphics",
             caption, DT_SINGLELINE | DT_END_ELLIPSIS);
     SetTextColor(dc, RGB(226, 230, 236));
     RECT right{split + 10, 136, client.right - 14, client.bottom - 12};
