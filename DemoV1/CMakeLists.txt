@@ -74,6 +74,11 @@ if(Python3_Interpreter_FOUND)
     # for FDBC page base / FF48 source texture origin, bounded
     # against indirect alias and ES selector uncertainty.
     # Read-only C050 original page toggle width and byte-literal audit.
+    # Original input-poll / optional F0C8 route and DOS AH=09 string mutation.
+    add_test(
+        NAME original_ground_input_callback_poll_tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_ground_input_callback_poll.py")
     add_test(
         NAME original_ground_c050_page_toggle_tests
         COMMAND "${Python3_EXECUTABLE}"

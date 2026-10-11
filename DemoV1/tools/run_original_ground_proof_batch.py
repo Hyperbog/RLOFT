@@ -31,6 +31,7 @@ CHECKS = (
     ("surface_dispatch", "verify_original_ground_surface_dispatch.py", False),
     ("upper_callbacks", "verify_original_ground_upper_callback_boundary.py", False),
     ("cache_32954", "verify_original_ground_cache_hit_22220.py", False),
+    ("input_f0c8", "verify_original_ground_input_callback_poll.py", False),
     ("c050_page", "verify_original_ground_c050_page_toggle.py", False),
     ("vga_page_refs", "verify_original_ground_vga_page_refs.py", False),
 )

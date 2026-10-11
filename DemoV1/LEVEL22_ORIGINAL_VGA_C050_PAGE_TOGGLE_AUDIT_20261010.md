@@ -403,3 +403,53 @@ No native gameplay code, additional CTest, Windows Full
 CI dispatch, or accepted DOS equivalence resulted from
 this original-byte-only research.
 
+## 2026-10-10 Input-poll callback re-entry and DOS text buffer effects
+
+**Original authority:** uploaded CODE.2, SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`.
+Targeted original-byte verification passed **six SHA-256 slices**,
+four instruction-aligned E8 edges, six short branch targets, and
+31 exact opcode windows. The inspected slices include source
+`30AEC..30B18`, `311E8..31217`, fixed getters
+`3058C/30594`, graphics callback prelude
+`2F868..2F87B`, and input-prompt branches
+`2F77A..2F7AE`. The last two are deliberately
+**truncated source slices**, not full routines.
+
+**Graphics callback re-entry:** `2F77C` and `2F79E` both
+call `30AEC`. The first input loop accepts **N/Y/S**
+(with `S` normalized to `Y`), while the second accepts
+**space/T**. When `BYTE[F572]` is zero, `30AEC`
+calls `2F868` at `30AF5`, repeating until the flag
+becomes nonzero. It reads DWORD[`F590+4*BYTE[F572]`],
+then clears `F572`. It performs **no direct index-bounds
+comparison**. The source `2F868` tests mutable
+`DWORD[F0C8]` at `2F86D` and conditionally calls
+`DWORD[F0C8]` at `2F876`. Thus an input wait
+can enter a dynamically installed graphics callback.
+The hook's installed target, original interrupt scheduling
+and complete register/selector effects remain unknown.
+
+**Original DOS text output:** `2F827` enters `311E8`,
+whose complete authenticated 48-byte body scans the
+caller's *mutable* string and **replaces every embedded
+ASCII dollar sign '$' (0x24) with '*' (0x2A)**.
+It writes a temporary DOS '$' sentinel at the original
+NUL terminator, executes **INT 21h with AH=09**,
+and restores that terminator to NUL on return.
+The embedded substitutions remain permanently in
+the supplied buffer; do not silently treat this as a
+non-mutating host-language print. The original EBP
+frame is restored by `LEAVE`, but DOS interrupt
+register/selector effects still require independent
+runtime verification.
+
+**Acceptance:** independent local original-byte check
+passed with the authenticated CODE.2. A separate
+source-only CTest `original_ground_input_callback_poll_tests`
+and pinned batch item `input_f0c8` ensure this
+research remains executable. No native gameplay
+code changed. No current-revision Windows Full
+build was dispatched; matched original-DOS input,
+callback, timing, ES mapping and indexed frame
+parity remain **unaccepted**.
+
