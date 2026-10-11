@@ -196,6 +196,69 @@ def audit_original(path:Path)->None:
     assert (event_vm_table[0],event_vm_table[27],event_vm_table[41])==(
         0x155D0,0x1553F,0x156F2)
     assert obj[0x16089]==0xC3
+    # Part 12: source-bounded full handler-range inventory, authenticated
+    # by original object-1 identity + full slice hash above. The 48
+    # machine-decoded near-E8 edges below cover the bounded VM region,
+    # not transitive callees or dynamically installed callbacks.
+    handler_calls={
+        0x15689:0x146DC,0x156C7:0x14FC0,0x156E5:0x15050,0x1571F:0x2195C,0x15740:0xF540,0x1577C:0x141B8,
+        0x15788:0x15168,0x15797:0x15168,0x157A4:0x1520C,0x157AE:0x15280,0x157DA:0x153FC,0x15819:0xF4B0,
+        0x15850:0x1C1DC,0x15887:0x1C1DC,0x15934:0x1C124,0x15955:0x1C160,0x15976:0x1C1A0,0x15A47:0x30700,
+        0x15A8A:0x291B0,0x15ACB:0x2E510,0x15AF6:0x296C0,0x15B06:0x291B0,0x15B42:0x297D0,0x15B58:0x296C0,
+        0x15B7D:0x291B0,0x15BA2:0x2F29C,0x15BAD:0x2E538,0x15BE9:0x2E510,0x15BF2:0x2E538,0x15C0E:0x291B0,
+        0x15C25:0x30CA2,0x15C64:0x2E510,0x15C80:0x291B0,0x15C88:0x15320,0x15C9C:0x1A510,0x15CAB:0x1A9F8,
+        0x15CC6:0x1A8C8,0x15CDF:0x2E614,0x15CE7:0x2E608,0x15D16:0x15534,0x15D6D:0x27F24,0x15D87:0x28EF0,
+        0x15D8E:0x29008,0x15D98:0x28F58,0x15DBD:0x28E58,0x15DDE:0x13EF8,0x15E0C:0x15534,0x15E2D:0x15534,
+    }
+    assert len(handler_calls)==48 and len(set(handler_calls.values()))==36
+    for at,target in handler_calls.items():
+        assert 0x15534<=at<0x15E38 and obj[at]==0xE8,hex(at)
+        assert at+5+struct.unpack_from("<i",obj,at+1)[0]==target,(hex(at),hex(target))
+    # Opcode 17 in the original 42-way CS jump table enters 15C78.
+    # Its normal branch calls 1A510, flips exactly BYTE[C050] and
+    # enters 1A9F8. The alternate branch calls 1A8C8 *without*
+    # the direct C050 flip at 15CA4.
+    assert event_vm_table[17]==0x15C78
+    assert hashlib.sha256(obj[0x15C78:0x15CF1]).hexdigest()==(
+        "ddc8a55faceaafbe35e95b228f5905ff269ef22b25fbf3f6db976059c313c2a2")
+    # Original 1A8C8 uses EBP as an internal geometry register, but
+    # locally saves at entry and restores in BOTH source return tails.
+    assert hashlib.sha256(obj[0x1A8C8:0x1A9F8]).hexdigest()==(
+        "8f3572ad75c478d56df8d82236281a79e701a8ff566d4820a4d3f3b15f91be14")
+    handler_windows={
+        0x15C78:"0fb60550c00000",
+        0x15C8D:"803d0281000000",
+        0x15C94:"751c",
+        0x15C96:"ff3550c00000",
+        0x15C9C:"e86f480000",
+        0x15CA4:"803550c0000001",
+        0x15CAB:"e8484d0000",
+        0x15CB0:"eb1c",
+        0x15CC0:"ff3550c00000",
+        0x15CC6:"e8fd4b0000",
+        0x15CCE:"803db87f000000",
+        0x15CD5:"0f84b3f8ffff",
+        0x1A8C8:"53565755",
+        0x1A8F5:"0fbf2d319e0000",
+        0x1A9D0:"5d5f5e5bc3",
+        0x1A9F3:"5d5f5e5bc3",
+    }
+    for at,hex_op in handler_windows.items():
+        want=bytes.fromhex(hex_op)
+        assert obj[at:at+len(want)]==want,hex(at)
+    # An exhaustive literal DWORD-operand scan inside the full decoded
+    # script handler region, distinct from all indirect alias paths.
+    body=obj[0x15534:0x15E38]
+    reference_counts={0xC050:8,0xF0C8:0,0xF0CC:0}
+    for address,count in reference_counts.items():
+        literal=struct.pack("<I",address)
+        occurrences=[i for i in range(len(body)-3)
+                     if body[i:i+4]==literal]
+        assert len(occurrences)==count,(hex(address),len(occurrences))
+    print("ORIGINAL_PASS: 42 opcode handlers, 48 E8 edges, 36 distinct callees")
+    print("ORIGINAL_PASS: opcode 17 conditional BYTE C050 toggle, 1A8C8 EBP restores")
+    print("BOUND: 8 C050/0 F0C8/0 F0CC literal refs in 15534..15E37")
+    print("OPEN: downstream handlers' register, graphics hook and VGA alias effects")
     print("ORIGINAL_PASS: timer event-loop and 42 original CS opcode targets")
     print("ORIGINAL_PASS: four source hashes, 17 op windows and nine near-E8 edges")
     print("OPEN: VM handler callees, EBP/DS/ES effects and runtime callback target")
@@ -214,6 +277,8 @@ def audit_repository()->None:
     for term in ("14218","16400","1602C","1A1F4","2F868","F0C8"):
         assert term in doc,term
     for term in ("15534","1548C","42-way","16034","7FEC","F0C8"):
+        assert term in doc,term
+    for term in ("48 direct E8","opcode 17","1A8C8","15CA4","36 distinct","F0CC"):
         assert term in doc,term
     print("SOURCE_ONLY_PASS: registered CTest, original ground batch and audit notes")
 

@@ -165,3 +165,61 @@ effects. No new CTest registration or native gameplay change.
 protected-mode ES/DS and any original runtime C050 state,
 the current Windows Full build, and original DOS parity.
 
+## 2026-10-10 Part 12 full 42-handler local call-edges and opcode-17 page flip
+
+**Authority:** independently decoded original Strahd CODE.2 object-1 bytes,
+SHA-256 `853e0a4dfcabebcfeecb975cf2a92b92eb4d94806d835ad30a0bab3e265bd314`,
+original script dispatcher table `1548C..15533` and all 42 entries
+within original bounded handler slice `15534..15E37`. This is a
+**source-bounded reachability and direct-effect proof**, not proof
+of all transitive callees, installed pointers, or DOS segment aliasing.
+
+The entire `15534..15E37` region was instruction-decoded from the
+authenticated machine-code bytes. **All 48 direct E8 calls** from
+this region were enumerated: they target **36 distinct routines**,
+including three recursive calls back to `15534`. The source slice
+contains **no directly decoded EBP register references**, one
+indirect **CS jump-table dispatch** at `1556D`, and no directly
+encoded call to the setter `2E74C`. All 48 byte-level E8
+displacements are now independently asserted in the pinned C050
+regression. A full decoded-slice SHA already authenticates the
+source instructions; this does **not** establish callee ABI or
+absence of computed memory aliases.
+
+The handler region contains **eight** raw literal DWORD
+operands matching address `C050` and **zero** matching graphics
+callback `F0C8` or event callback `F0CC`. This is a
+four-byte literal census only; address computation through
+registers or external routines is still open.
+
+**Script opcode 17** (original jump-table target `15C78`)
+is a concrete VGA page state writer. It first reads BYTE `C050`,
+calls `291B0` and `15320`, then chooses a branch on
+`BYTE[8102]`. On the zero branch, it pushes the **full DWORD
+C050** at `15C96`, calls `1A510` at `15C9C`, **XORs only
+BYTE[C050] with 1 at 15CA4**, and calls `1A9F8`
+at `15CAB`. On the other branch it passes the original
+DWORD page and coordinates to `1A8C8` at `15CC6`
+without executing the direct `15CA4` flip. Preserve
+this byte-versus-DWORD distinction and the branch-specific
+order in any native script implementation.
+
+Original `1A8C8..1A9F7` is **304 bytes** of graphics work,
+whole-body SHA-256
+`8f3572ad75c478d56df8d82236281a79e701a8ff566d4820a4d3f3b15f91be14`.
+It saves EBP at `1A8CB`, uses `1A8F5 movsx ebp,WORD[9E31]`
+internally, and restores EBP in **both** source epilogues:
+`1A9D0..1A9D4` and `1A9F3..1A9F7`. Local restoration
+is proven; its `2A078/1A288/30CD4/1AB20` callees and
+other external effects are still unverified.
+
+**Regression:** the existing Python source/binary C050 oracle
+now checks all 48 near-call targets, the opcode 17 table entry,
+two additional complete SHA-256 code spans, 16 critical
+instruction windows and exact literal-address counts.
+The new assertions passed locally against the uploaded original
+CODE.2. There is **no new CTest registration or native gameplay
+change**. Windows Full on current HEAD, original-DOS page/tick
+behavior, external callback installation and ES/DS alias safety
+remain **not accepted**.
+
