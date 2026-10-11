@@ -8,6 +8,12 @@
 
 The separate `rloft_native_bootstrap.exe` Win32 **media/viewport diagnostic** target and `rloft_install_probe.exe` Windows console inspector are registered, alongside the dedicated `NativeEngine/Windows/Build-NativeEngine-Windows.ps1` script and manual `.github/workflows/native-engine-windows.yml` workflow on default branch and `native-engine`. **No accepted Windows build/exe exists until actual MSVC compilation/CTest and artifact checks are observed**; the bootstrap is not the playable `rloft_native.exe`. See [Windows-first acceptance](WINDOWS_FIRST_BUILD_AND_ACCEPTANCE_20261010.md).
 
+## Windows-first hardening continuation
+
+**Current Windows acceptance tracker:** [M-WIN-01 issue #12](https://github.com/Hyperbog/RLOFT/issues/12) and [Windows build hardening checkpoint](WINDOWS_BUILD_HARDENING_20261010.md). The modern Unicode `IFileOpenDialog` bootstrap path, RGB→BGRA source-invariant test, hidden `--self-test-install` real `GameSource` fixture, all critical PowerShell ZIP/package checks and Windows-only CTest registration are **authored/committed**. **NO actual Windows compilation or executable artifact is verified.**
+
+The Windows build now **requires Python >=3.10**, must enumerate **at least 13 CTests** including five mandatory Windows/original-media/package checks, does not permit releasing with skipped tests, fails on tracked dirty source and verifies ZIP/archive source/EXE hashes after building. Do not reduce these gates to make CI green or treat synthetic window output as actual game graphics. [Manual Windows workflow](https://github.com/Hyperbog/RLOFT/actions/workflows/native-engine-windows.yml) remains dispatched only with explicit owner approval. No Linux work shall be added.
+
 ## Exact work order
 
 1. Check **live Git HEAD** and all files modified by parallel agents; use blob-SHA-guarded edits, bounded commits and no force updates. Record actual build revision and original-file patch identity. Do not overwrite parallel work.
