@@ -1,216 +1,137 @@
-# Windows x64 distribution acceptance: verify only the asset-free bootstrap zip.
-# This is not a test of actual original DOS behavior or game playability.
+# Validate an asset-free Windows native-engine BOOTSTRAP distribution.
+# This is archive/provenance integrity checking, NOT Authenticode or gameplay.
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true)][string]$Archive,
-    [Parameter(Mandatory=$true)][string]$ExpectedSourceSha
+    [Parameter(Mandatory = $true)][string]$Archive,
+    [Parameter(Mandatory = $true)][string]$ExpectedSourceSha
 )
+
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $sourceSha = $ExpectedSourceSha.ToLowerInvariant()
-if ($sourceSha -notmatch '^[0-9a-f]{40}$') { throw "ExpectedSourceSha must be a 40-hex Git SHA" }
-$archiveFile = (Resolve-Path -LiteralPath $Archive).Path
-$zipName = "RLOFT-NativeEngine-Windows-x64-BOOTSTRAP.zip"
-if ([IO.Path]::GetFileName($archiveFile) -cne $zipName) {
-    throw "Unexpected package name: $archiveFile"
+if (-not ($sourceSha -cmatch '^[0-9a-f]{40}$')) {
+    throw "ExpectedSourceSha must be exactly 40 hexadecimal characters"
 }
-$checksum = "$archiveFile.sha256"
-if (-not (Test-Path -LiteralPath $checksum)) { throw "Missing ZIP SHA256 sidecar" }
-$line = (Get-Content -LiteralPath $checksum -Raw).Trim()
-if (-not ($line -cmatch '^([0-9a-f]{64})  RLOFT-NativeEngine-Windows-x64-BOOTSTRAP\.zip
-    throw "Invalid ZIP SHA256 sidecar format"
-}
-$expectedZipHash = $Matches[1]
-$actualZipHash = (Get-FileHash -LiteralPath $archiveFile -Algorithm SHA256).Hash.ToLowerInvariant()
-if ($actualZipHash -cne $expectedZipHash) { throw "ZIP SHA256 does not match sidecar" }
 
-$temp = Join-Path ([IO.Path]::GetTempPath()) ("rloft-native-package-check-" + [Guid]::NewGuid().ToString("N"))
-New-Item -ItemType Directory -Force -Path $temp | Out-Null
+$archivePath = (Resolve-Path -LiteralPath $Archive).Path
+$archiveName = "RLOFT-NativeEngine-Windows-x64-BOOTSTRAP.zip"
+if ([IO.Path]::GetFileName($archivePath) -cne $archiveName) {
+    throw "Unexpected package name"
+}
+$sidecar = "$archivePath.sha256"
+if (-not (Test-Path -LiteralPath $sidecar -PathType Leaf)) {
+    throw "ZIP SHA256 sidecar missing"
+}
+$line = (Get-Content -LiteralPath $sidecar -Raw).Trim()
+if (-not ($line -cmatch '^([0-9a-f]{64})  RLOFT-NativeEngine-Windows-x64-BOOTSTRAP\.zip$')) {
+    throw "Invalid ZIP SHA256 sidecar"
+}
+$expectedArchiveSha = $Matches[1]
+$actualArchiveSha = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actualArchiveSha -cne $expectedArchiveSha) {
+    throw "ZIP SHA256 mismatch"
+}
+
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$allowed = @(
+    "README-WINDOWS.txt",
+    "SHA256SUMS.txt",
+    "build-provenance.json",
+    "rloft_install_probe.exe",
+    "rloft_native_bootstrap.exe"
+)
+$seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+$destination = Join-Path ([IO.Path]::GetTempPath()) ("rloft-native-zip-verify-" + [Guid]::NewGuid().ToString("N"))
+[void](New-Item -ItemType Directory -Force -Path $destination)
+$zip = $null
 try {
-    Expand-Archive -LiteralPath $archiveFile -DestinationPath $temp -Force
-    $allowed = @(
-        "README-WINDOWS.txt",
-        "SHA256SUMS.txt",
-        "build-provenance.json",
-        "rloft_install_probe.exe",
-        "rloft_native_bootstrap.exe"
-    )
-    $found = @(Get-ChildItem -LiteralPath $temp -File -Recurse |
-        ForEach-Object { $_.FullName.Substring($temp.Length + 1).Replace('\', '/') } |
-        Sort-Object)
-    $expected = @($allowed | Sort-Object)
-    if (($found -join '|') -cne ($expected -join '|')) {
-        throw "Unexpected or missing files in Windows bootstrap ZIP. Found: $($found -join ', ')"
+    $zip = [System.IO.Compression.ZipFile]::OpenRead($archivePath)
+    if ($zip.Entries.Count -ne $allowed.Count) {
+        throw "Unexpected number of archive entries"
     }
 
-    $metadataPath = Join-Path $temp "build-provenance.json"
-    $metadata = Get-Content -LiteralPath $metadataPath -Raw | ConvertFrom-Json
-    if ($metadata.source_commit -cne $sourceSha -or
-        $metadata.source_branch -cne "native-engine" -or
-        $metadata.build -cne "MSVC x64 Release" -or
-        $metadata.game_playable -ne $false -or
-        $metadata.original_assets_included -ne $false -or
-        $metadata.test_outcome -cne "PASS") {
-        throw "Provenance or non-playable state invalid"
+    # Inspect every name BEFORE extraction, including duplicate names,
+    # traversal, alternate directories and path/case substitution.
+    foreach ($entry in $zip.Entries) {
+        $entryName = $entry.FullName
+        if ($allowed -cnotcontains $entryName) {
+            throw "Unapproved archive entry: $entryName"
+        }
+        if (-not $seen.Add($entryName)) {
+            throw "Duplicate archive entry: $entryName"
+        }
+        if ($entry.Length -gt 67108864 -or $entry.Length -lt 0) {
+            throw "Archive entry exceeds 64 MiB diagnostic limit: $entryName"
+        }
+    }
+    foreach ($required in $allowed) {
+        if (-not $seen.Contains($required)) {
+            throw "Required release entry missing: $required"
+        }
     }
 
-    $sumFile = Join-Path $temp "SHA256SUMS.txt"
-    $lines = @(Get-Content -LiteralPath $sumFile)
-    if ($lines.Count -ne 2) { throw "Exactly two binary checksums required" }
+    # Extract only five whitelisted flat filenames from the already opened
+    # ZIP object, not arbitrary user-controlled relative paths.
+    foreach ($entry in $zip.Entries) {
+        $outputPath = Join-Path $destination $entry.FullName
+        $inputStream = $entry.Open()
+        $outputStream = [IO.File]::Create($outputPath)
+        try {
+            $inputStream.CopyTo($outputStream)
+        } finally {
+            $outputStream.Dispose()
+            $inputStream.Dispose()
+        }
+        $actualLength = (Get-Item -LiteralPath $outputPath).Length
+        if ($actualLength -ne $entry.Length) {
+            throw "Extracted release file length mismatch"
+        }
+    }
+
+    $provenance = Get-Content -LiteralPath (Join-Path $destination "build-provenance.json") -Raw | ConvertFrom-Json
+    if ($provenance.source_commit -cne $sourceSha -or
+        $provenance.source_branch -cne "native-engine" -or
+        $provenance.build -cne "MSVC x64 Release" -or
+        $provenance.test_outcome -cne "PASS" -or
+        $provenance.game_playable -ne $false -or
+        $provenance.original_assets_included -ne $false) {
+        throw "Incorrect source, test, or non-playable release provenance"
+    }
+
+    $sumLines = @(Get-Content -LiteralPath (Join-Path $destination "SHA256SUMS.txt"))
+    if ($sumLines.Count -ne 2) {
+        throw "Exactly two binary SHA256 records required"
+    }
     $recorded = @{}
-    foreach ($shaLine in $lines) {
-        if (-not ($shaLine -cmatch '^([0-9a-f]{64})  (rloft_native_bootstrap.exe|rloft_install_probe.exe)
-            throw "Unexpected executable checksum record: $shaLine"
+    foreach ($sumLine in $sumLines) {
+        if (-not ($sumLine -cmatch '^([0-9a-f]{64})  (rloft_native_bootstrap\.exe|rloft_install_probe\.exe)$')) {
+            throw "Malformed or unauthorized executable checksum record"
         }
-        if ($recorded.ContainsKey($Matches[2])) { throw "Duplicate binary hash record" }
-        $recorded[$Matches[2]] = $Matches[1]
-    }
-    foreach ($exe in @("rloft_native_bootstrap.exe", "rloft_install_probe.exe")) {
-        $actual = (Get-FileHash -LiteralPath (Join-Path $temp $exe) -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ($actual -cne $recorded[$exe]) { throw "Extracted binary hash mismatch: $exe" }
-    }
-    Write-Host "WINDOWS_PACKAGE_PROVENANCE_PASS: $sourceSha"
-    Write-Host "WINDOWS_PACKAGE_ASSET_FREE_ALLOWLIST_PASS"
-    Write-Host "WINDOWS_PACKAGE_SHA256_PASS: $actualZipHash"
-} finally {
-    if (Test-Path -LiteralPath $temp) {
-        Remove-Item -LiteralPath $temp -Recurse -Force
-    }
-}
-)) {
-    throw "Invalid ZIP SHA256 sidecar format"
-}
-$actualZipHash = (Get-FileHash -LiteralPath $archiveFile -Algorithm SHA256).Hash.ToLowerInvariant()
-if ($actualZipHash -cne $Matches[1]) { throw "ZIP SHA256 does not match sidecar" }
-
-$temp = Join-Path ([IO.Path]::GetTempPath()) ("rloft-native-package-check-" + [Guid]::NewGuid().ToString("N"))
-New-Item -ItemType Directory -Force -Path $temp | Out-Null
-try {
-    Expand-Archive -LiteralPath $archiveFile -DestinationPath $temp -Force
-    $allowed = @(
-        "README-WINDOWS.txt",
-        "SHA256SUMS.txt",
-        "build-provenance.json",
-        "rloft_install_probe.exe",
-        "rloft_native_bootstrap.exe"
-    )
-    $found = @(Get-ChildItem -LiteralPath $temp -File -Recurse |
-        ForEach-Object { $_.FullName.Substring($temp.Length + 1).Replace('\', '/') } |
-        Sort-Object)
-    $expected = @($allowed | Sort-Object)
-    if (($found -join '|') -cne ($expected -join '|')) {
-        throw "Unexpected or missing files in Windows bootstrap ZIP. Found: $($found -join ', ')"
-    }
-
-    $metadataPath = Join-Path $temp "build-provenance.json"
-    $metadata = Get-Content -LiteralPath $metadataPath -Raw | ConvertFrom-Json
-    if ($metadata.source_commit -cne $sourceSha -or
-        $metadata.source_branch -cne "native-engine" -or
-        $metadata.build -cne "MSVC x64 Release" -or
-        $metadata.game_playable -ne $false -or
-        $metadata.original_assets_included -ne $false -or
-        $metadata.test_outcome -cne "PASS") {
-        throw "Provenance or non-playable state invalid"
-    }
-
-    $sumFile = Join-Path $temp "SHA256SUMS.txt"
-    $lines = @(Get-Content -LiteralPath $sumFile)
-    if ($lines.Count -ne 2) { throw "Exactly two binary checksums required" }
-    $recorded = @{}
-    foreach ($shaLine in $lines) {
-        if ($shaLine -cnotmatch '^([0-9a-f]{64})  (rloft_native_bootstrap.exe|rloft_install_probe.exe)$') {
-            throw "Unexpected executable checksum record: $shaLine"
+        $name = $Matches[2]
+        $sha = $Matches[1]
+        if ($recorded.ContainsKey($name)) {
+            throw "Duplicate executable checksum record"
         }
-        if ($recorded.ContainsKey($Matches[2])) { throw "Duplicate binary hash record" }
-        $recorded[$Matches[2]] = $Matches[1]
+        $recorded[$name] = $sha
     }
-    foreach ($exe in @("rloft_native_bootstrap.exe", "rloft_install_probe.exe")) {
-        $actual = (Get-FileHash -LiteralPath (Join-Path $temp $exe) -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ($actual -cne $recorded[$exe]) { throw "Extracted binary hash mismatch: $exe" }
-    }
-    Write-Host "WINDOWS_PACKAGE_PROVENANCE_PASS: $sourceSha"
-    Write-Host "WINDOWS_PACKAGE_ASSET_FREE_ALLOWLIST_PASS"
-    Write-Host "WINDOWS_PACKAGE_SHA256_PASS: $actualZipHash"
-} finally {
-    if (Test-Path -LiteralPath $temp) {
-        Remove-Item -LiteralPath $temp -Recurse -Force
-    }
-}
-)) {
-            throw "Unexpected executable checksum record: $shaLine"
+    foreach ($name in @("rloft_native_bootstrap.exe", "rloft_install_probe.exe")) {
+        if (-not $recorded.ContainsKey($name)) {
+            throw "Missing binary checksum: $name"
         }
-        if ($recorded.ContainsKey($Matches[2])) { throw "Duplicate binary hash record" }
-        $recorded[$Matches[2]] = $Matches[1]
-    }
-    foreach ($exe in @("rloft_native_bootstrap.exe", "rloft_install_probe.exe")) {
-        $actual = (Get-FileHash -LiteralPath (Join-Path $temp $exe) -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ($actual -cne $recorded[$exe]) { throw "Extracted binary hash mismatch: $exe" }
-    }
-    Write-Host "WINDOWS_PACKAGE_PROVENANCE_PASS: $sourceSha"
-    Write-Host "WINDOWS_PACKAGE_ASSET_FREE_ALLOWLIST_PASS"
-    Write-Host "WINDOWS_PACKAGE_SHA256_PASS: $actualZipHash"
-} finally {
-    if (Test-Path -LiteralPath $temp) {
-        Remove-Item -LiteralPath $temp -Recurse -Force
-    }
-}
-)) {
-    throw "Invalid ZIP SHA256 sidecar format"
-}
-$actualZipHash = (Get-FileHash -LiteralPath $archiveFile -Algorithm SHA256).Hash.ToLowerInvariant()
-if ($actualZipHash -cne $Matches[1]) { throw "ZIP SHA256 does not match sidecar" }
-
-$temp = Join-Path ([IO.Path]::GetTempPath()) ("rloft-native-package-check-" + [Guid]::NewGuid().ToString("N"))
-New-Item -ItemType Directory -Force -Path $temp | Out-Null
-try {
-    Expand-Archive -LiteralPath $archiveFile -DestinationPath $temp -Force
-    $allowed = @(
-        "README-WINDOWS.txt",
-        "SHA256SUMS.txt",
-        "build-provenance.json",
-        "rloft_install_probe.exe",
-        "rloft_native_bootstrap.exe"
-    )
-    $found = @(Get-ChildItem -LiteralPath $temp -File -Recurse |
-        ForEach-Object { $_.FullName.Substring($temp.Length + 1).Replace('\', '/') } |
-        Sort-Object)
-    $expected = @($allowed | Sort-Object)
-    if (($found -join '|') -cne ($expected -join '|')) {
-        throw "Unexpected or missing files in Windows bootstrap ZIP. Found: $($found -join ', ')"
-    }
-
-    $metadataPath = Join-Path $temp "build-provenance.json"
-    $metadata = Get-Content -LiteralPath $metadataPath -Raw | ConvertFrom-Json
-    if ($metadata.source_commit -cne $sourceSha -or
-        $metadata.source_branch -cne "native-engine" -or
-        $metadata.build -cne "MSVC x64 Release" -or
-        $metadata.game_playable -ne $false -or
-        $metadata.original_assets_included -ne $false -or
-        $metadata.test_outcome -cne "PASS") {
-        throw "Provenance or non-playable state invalid"
-    }
-
-    $sumFile = Join-Path $temp "SHA256SUMS.txt"
-    $lines = @(Get-Content -LiteralPath $sumFile)
-    if ($lines.Count -ne 2) { throw "Exactly two binary checksums required" }
-    $recorded = @{}
-    foreach ($shaLine in $lines) {
-        if ($shaLine -cnotmatch '^([0-9a-f]{64})  (rloft_native_bootstrap.exe|rloft_install_probe.exe)$') {
-            throw "Unexpected executable checksum record: $shaLine"
+        $actual = (Get-FileHash -LiteralPath (Join-Path $destination $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actual -cne $recorded[$name]) {
+            throw "Binary SHA256 mismatch: $name"
         }
-        if ($recorded.ContainsKey($Matches[2])) { throw "Duplicate binary hash record" }
-        $recorded[$Matches[2]] = $Matches[1]
     }
-    foreach ($exe in @("rloft_native_bootstrap.exe", "rloft_install_probe.exe")) {
-        $actual = (Get-FileHash -LiteralPath (Join-Path $temp $exe) -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ($actual -cne $recorded[$exe]) { throw "Extracted binary hash mismatch: $exe" }
-    }
-    Write-Host "WINDOWS_PACKAGE_PROVENANCE_PASS: $sourceSha"
-    Write-Host "WINDOWS_PACKAGE_ASSET_FREE_ALLOWLIST_PASS"
-    Write-Host "WINDOWS_PACKAGE_SHA256_PASS: $actualZipHash"
+
+    Write-Host "WINDOWS_BOOTSTRAP_PACKAGE_INTEGRITY_PASS"
+    Write-Host "WINDOWS_BOOTSTRAP_SOURCE_COMMIT: $sourceSha"
+    Write-Host "WINDOWS_BOOTSTRAP_ZIP_SHA256: $actualArchiveSha"
+    Write-Host "WARNING: integrity checks do not attest Windows executable behavior or game playability."
 } finally {
-    if (Test-Path -LiteralPath $temp) {
-        Remove-Item -LiteralPath $temp -Recurse -Force
+    if ($null -ne $zip) { $zip.Dispose() }
+    if (Test-Path -LiteralPath $destination) {
+        Remove-Item -LiteralPath $destination -Recurse -Force
     }
 }
