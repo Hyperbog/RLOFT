@@ -14,3 +14,18 @@ else()
   target_compile_options(native_framework_contract_tests PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG)
 endif()
 add_test(NAME native_framework_contract_tests COMMAND native_framework_contract_tests)
+
+# Integrates the adapter with the actual inherited reader, not a mock loader.
+# This is still a read-only synthetic media fixture, not a GUI or game build.
+add_executable(native_game_source_adapter_tests
+  tests/game_source_adapter_tests.cpp
+  ../DemoV1/src/game_source.cpp)
+target_include_directories(native_game_source_adapter_tests PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/../DemoV1/include")
+target_link_libraries(native_game_source_adapter_tests PRIVATE rloft_native_contracts)
+if(MSVC)
+  target_compile_options(native_game_source_adapter_tests PRIVATE /W4 /UNDEBUG)
+else()
+  target_compile_options(native_game_source_adapter_tests PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG)
+endif()
+add_test(NAME native_game_source_adapter_tests COMMAND native_game_source_adapter_tests)
