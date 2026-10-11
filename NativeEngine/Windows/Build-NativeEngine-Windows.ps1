@@ -3,8 +3,7 @@
 [CmdletBinding()]
 param(
     [string]$BuildDir = "",
-    [string]$OutputDir = "",
-    [switch]$SkipTests
+    [string]$OutputDir = ""
 )
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
@@ -31,16 +30,18 @@ try {
     }
     # GUI-subsystem executables may return before completing under a shell '&'.
     # Start-Process -Wait captures the actual exit status deterministically.
-    $smoke = Start-Process -FilePath $bootstrap -ArgumentList "--self-test" -Wait -PassThru -NoNewWindow
+    $smoke = Start-Process -FilePath $bootstrap -ArgumentList "--self-test" -PassThru -NoNewWindow
+    if (-not $smoke.WaitForExit(20000)) {
+        $smoke.Kill()
+        throw "Windows GUI bootstrap self-test timed out"
+    }
     if ($smoke.ExitCode -ne 0) { throw "Windows GUI bootstrap self-test failed: $($smoke.ExitCode)" }
     & $inspector --help
     if ($LASTEXITCODE -ne 0) { throw "Windows install inspector self-test failed" }
-    $testStatus = "NOT_RUN"
-    if (-not $SkipTests) {
-        & ctest --test-dir $BuildDir -C Release --output-on-failure --parallel 2
-        if ($LASTEXITCODE -ne 0) { throw "Windows CTest suite failed" }
-        $testStatus = "PASS"
-    }
+    # There is intentionally no release "skip tests" switch.
+    & ctest --test-dir $BuildDir -C Release --output-on-failure --parallel 2
+    if ($LASTEXITCODE -ne 0) { throw "Windows CTest suite failed" }
+    $testStatus = "PASS"
     New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
     $stage = Join-Path $OutputDir "RLOFT-NativeEngine-Windows-x64-BOOTSTRAP"
     if (Test-Path $stage) { Remove-Item -Force -Recurse $stage }
@@ -70,6 +71,9 @@ try {
     if (-not (Test-Path $archive)) { throw "No Windows release ZIP was created" }
     $bundleHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash.ToLowerInvariant()
     "$bundleHash  RLOFT-NativeEngine-Windows-x64-BOOTSTRAP.zip" | Set-Content -Encoding ascii (Join-Path $OutputDir "RLOFT-NativeEngine-Windows-x64-BOOTSTRAP.zip.sha256")
+    # Validate the actual ZIP on disk, not only the loose staging folder.
+    & (Join-Path $PSScriptRoot "Verify-NativeEngine-WindowsPackage.ps1") -Archive $archive -ExpectedSourceSha $sha
+    if (-not $?) { throw "Windows ZIP post-packaging validation failed" }
     Write-Host "Windows bootstrap package: $archive"
     Write-Host "SHA256: $bundleHash"
     Write-Host "Exact source: $sha"
