@@ -6,6 +6,43 @@
 This is a navigation handoff, not a substitute for the full roadmap,
 normative evidence requirements or a Git status check.
 
+## NEW user-requested Enter search and clickable Hex bytes — SOURCE ONLY
+
+- Owner reports that the previous #44 navigation fixes work in their
+  Windows application. New request: pressing **Enter** in Go To
+  should execute search; searched addresses/byte values should
+  be highlighted in Disassembly, Hexadecimal and References; clicking
+  one hex byte (`CD` in `09 FF CD 21`) should select the
+  individual original-file byte rather than only allowing text drag.
+- **SOURCE-AUTHORED, NOT YET BUILT:** Go/Find Enter handler,
+  `CS:IP` / LE object / original file addresses retained, plus
+  bounded `CD`, `CD 21`, `hex:46 04 CD 21` original-file
+  byte-pattern queries; repeated Enter finds next match with wrap.
+  Invalid byte syntax and unbacked `??` cells are rejected.
+- `HexByteNavigation` maps click/text spans in bounded raw/LE
+  hex previews to true physical source offsets; the read-only
+  TextBox remains copyable with drag-select. Clicking one
+  original-byte cell marks exactly its two hex digits and shows
+  original physical offset and value. Cross-tab status,
+  disassembly selected row AND exact hex substring,
+  References source/destination row, and Hex selection
+  use the same original-byte selection without guessing code.
+  Undecoded data searches switch to Hex rather than
+  fabricating an instruction/reference.
+- WPF assembly rows are now **stable-identity classes** with
+  mutable byte highlight properties and change notification:
+  this avoids the earlier risk of record equality changing when
+  highlighting the selected row. Synthetic-only hex token,
+  search, malformed-input, no-match, next-match, wrap, LE
+  unbacked and nonzero window regression fixtures were authored.
+- Current preview #44 **does not include these additions**.
+  No new Windows build, smoke execution or actual GUI interaction
+  has occurred on this new source. Owner authorization for a
+  new desktop-only build gate remains necessary.
+- [Full Enter-search/clickable-hex scope and acceptance checklist](DESKTOP_BYTE_SEARCH_AND_HIGHLIGHT_20261011.md).
+  Prior build #44 remains Windows compiled/synthetic verified;
+  original G2 decoder accuracy and DOS runtime unchanged/pending.
+
 ## CHECKSYS navigation #44 Windows BUILD/SYNTHETIC PASS — owner GUI acceptance pending
 
 - Owner tested the original-MZ Windows #43 WPF preview: double-click
