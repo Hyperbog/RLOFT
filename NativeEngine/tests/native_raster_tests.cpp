@@ -73,16 +73,16 @@ void run_tests() {
            transformed.width == 8 && transformed.height == 2);
     assert(transformed.pixels == twoRows);
 
-    rejects([] { decode_native_type1_raster({}); });
-    rejects([] { decode_native_type1_raster({'E','H',2}); });
-    rejects([] { decode_native_type1_raster(record(0,1,1,0,0,0,{})); });
-    rejects([] { decode_native_type1_raster(record(1,0,1,0,0,0,{})); });
-    rejects([] { decode_native_type1_raster(record(1,1,0,0,0,0,{})); });
-    rejects([] { decode_native_type1_raster(record(1,1,1,0,0,0,{0,1})); });
-    rejects([] { decode_native_type1_raster(record(1,1,1,0,2,0,eight)); });
-    rejects([] { decode_native_type1_raster(record(1,1,1,0,3,0,{0xFF,1})); });
-    rejects([] { decode_native_type1_raster(record(1,1,1,0,3,0,{0x00,0xFF,0xF0})); });
-    rejects([] { decode_native_type1_raster(record(32767,32767,255,0,0,0,{})); });
+    rejects([] { static_cast<void>(decode_native_type1_raster({})); });
+    rejects([] { static_cast<void>(decode_native_type1_raster({'E','H',2})); });
+    rejects([] { static_cast<void>(decode_native_type1_raster(record(0,1,1,0,0,0,{}))); });
+    rejects([] { static_cast<void>(decode_native_type1_raster(record(1,0,1,0,0,0,{}))); });
+    rejects([] { static_cast<void>(decode_native_type1_raster(record(1,1,0,0,0,0,{}))); });
+    rejects([] { static_cast<void>(decode_native_type1_raster(record(1,1,1,0,0,0,{0,1}))); });
+    rejects([&] { static_cast<void>(decode_native_type1_raster(record(1,1,1,0,2,0,eight))); });
+    rejects([] { static_cast<void>(decode_native_type1_raster(record(1,1,1,0,3,0,{0xFF,1}))); });
+    rejects([] { static_cast<void>(decode_native_type1_raster(record(1,1,1,0,3,0,{0x00,0xFF,0xF0}))); });
+    rejects([] { static_cast<void>(decode_native_type1_raster(record(32767,32767,255,0,0,0,{}))); });
 
     // Full native reader -> INIT selector -> RES0[47] -> EH image bridge.
     // This fixture is standalone original-format data, not demo code.
