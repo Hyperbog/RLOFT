@@ -63,6 +63,32 @@ If colors remain incorrect for a specific original image, record the
 archive, entry ID and palette number. Some resources may require another
 source-specific color-index remap; this inspector does not invent one.
 
+FULL ORIGINAL WORLD / FIRST-PERSON RENDERER DATA RECONSTRUCTION
+----------------------------------------------------------------
+This package also includes rloft_native_world_audit.exe, an independent
+original-content loader, NOT the decomp demo or the DOS executable.
+
+Run:
+  rloft_native_world_audit.exe "D:\\GOG Games\\Ravenloft - Strahd's Possession"
+
+It reads LEVELS.DAT and SINTAB directly without copying/unpacking media and
+reports all 32 world-level records, their dimensions and packed cells,
+all original 10-byte controls, the 11-byte compact actor/world families,
+50 event-script slots (up to five CODE.2 commands) per level, automap
+data and annotation tails. It also parses all 127 SINTAB scale rasterizer
+blocks and their complete 129-entry code-selector/scale-step tables,
+validates boundaries and retained bytes, and NEVER executes the original
+16-bit/DOS or embedded x86 renderer code.
+
+The emitted report is JSON-only metadata, with no copyrighted cell contents
+or game art. Exit 0: all level and SINTAB structures validate.
+Exit 3: a source file is absent or fails original format checks.
+The 3 packaged EXEs serve separate purposes: GUI asset inspector,
+complete all-13-bank validator, and complete original world/scale validator.
+
+Validation of encoded source geometry is NOT the same as rendering all
+compiled scene shapes, running the story VM, or a playable native RPG.
+
 COMPLETE ORIGINAL RES BANK RECONSTRUCTION AND AUDIT
 ----------------------------------------------------
 This package includes a SECOND executable, rloft_native_bank_audit.exe.
