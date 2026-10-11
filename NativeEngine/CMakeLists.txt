@@ -86,8 +86,14 @@ else()
 endif()
 add_test(NAME native_disk_mod_mount_tests COMMAND native_disk_mod_mount_tests)
 
+# Windows release QA requires Python for original-media and ZIP evidence
+# fixture tests. Never silently ship an artifact with those checks skipped.
+if(WIN32)
+  find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
+else()
+  find_package(Python3 COMPONENTS Interpreter QUIET)
+endif()
 # Synthetic metadata only. This Python test never benchmarks a real GPU.
-find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
   add_test(NAME native_renderer_evidence_contract_tests
     COMMAND "${Python3_EXECUTABLE}"
