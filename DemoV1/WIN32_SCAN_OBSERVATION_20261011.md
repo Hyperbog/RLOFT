@@ -58,3 +58,30 @@ This **does not** certify a Windows build, trace runtime behavior,
 DOS PIC timing, E0/E1 prefix parity, real F0C8 callback installation,
 full gameplay engine integration or M-PLAY-01. The native Windows
 Full build remains manual and unrun for this source revision.
+
+## Developer trace analysis for first Windows keyboard field check
+
+The native opt-in session tracer records one `key.scan_observation`
+JSON-line event per observed Windows keyboard message, with only an
+OEM scan byte and a packed status/repeat/extended metadata integer.
+The source-only tool `tools/summarize_win32_scan_trace.py`
+reads the trace's `events.jsonl`, counts observed
+single nonextended candidates, extended events, unresolved repeats
+and invalid metadata, and identifies the **sequence number** of
+the first unresolved event. It never outputs a scan sequence,
+virtual-key codes, typed text or raw event contents.
+
+The matching four-case Python regression passed locally. It checks
+candidate/unresolved aggregates, first failure sequence, zero-key
+captures, invalid status and out-of-order sequence rejection.
+A zero-unresolved report is NOT evidence of original DOS parity:
+the source stream, IRQ cadence, installed F0C8 callback and
+game-facing input wiring still require independent validation.
+
+Example internal developer use after a manually approved, new Windows
+executable has been built and an opt-in trace captured:
+
+`python DemoV1/tools/summarize_win32_scan_trace.py C:\path\to\events.jsonl`
+
+This is an offline internal diagnostic, not a command-line
+implementation of the desktop game, and changes no native controls.

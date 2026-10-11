@@ -1,5 +1,9 @@
 # Demo v1 → Complete Ravenloft: continuous-game integration contract
 
+## 2026-10-11 Keyboard trace blocker-report tool
+
+Opt-in Windows developer trace now has an offline, source-only aggregate report `tools/summarize_win32_scan_trace.py`. It summarizes Win32 scan candidate/unresolved counts and the first unresolved event sequence without emitting typed text or scan sequences. Four Python unit tests passed locally; one source-only CTest is registered. This supplies reproducible keyboard-bridge failure triage after a Windows field trace. It does NOT establish source-to-DOS IRQ translation, Windows Full acceptance or M-PLAY-01 gameplay readiness. [Diagnostic audit](WIN32_SCAN_OBSERVATION_20261011.md).
+
 ## 2026-10-11 Win32 scan metadata observer, no DOS IRQ injection
 
 A portable native Win32 LPARAM scan decoder now distinguishes ordinary single make/break observations from unresolved E0/E1 extended streams, Windows repeats and inconsistent transitions. Microsoft-defined bits 0..31 are retained. Its strict GCC 14 C++17 regression passed locally. The Windows host uses this decoder only in pre-existing opt-in session tracing, logging metadata as `key.scan_observation` while preserving the existing normal gameplay keyboard message switch byte-for-byte. A separate source-only CTest prevents accidental calls to the DOS keyboard dispatcher from this host. **No keyboard-to-port-0x60 translation has been accepted or enabled in ordinary gameplay.** Original CODE.2 keyboard IRQ and F0C8 runtime parity, current-SHA Windows Full and M-PLAY-01 remain pending. [Instrumentation and acceptance](WIN32_SCAN_OBSERVATION_20261011.md).
