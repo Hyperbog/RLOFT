@@ -26,13 +26,29 @@ TO TEST:
   3. Select the folder that contains your ORIGINAL game.gog or loose files.
   4. Inspect file sizes, RES entry counts, validation status and the
      original source COLORS palette 12.
-  5. Record any BAD entries or unexpected missing original resources.
+  5. The engine also attempts to decode the original RES0 default
+     cursor from INIT using its NEW independent EH type-1 raw/LZSS parser.
+     If supported, an authentic palette-indexed cursor appears below the
+     source COLORS palette. The cursor is a resource preview, NOT gameplay.
+  6. Record any BAD entries or unexpectedly missing resources. Cursor
+     decode failure is reported separately from the 19 structural checks.
 
 For a noninteractive status code on Windows, use the original-install path:
   rloft_native.exe --verify-assets "D:\GOG Games\Ravenloft - Strahd's Possession"
 Exit 0: RES0 offset table, INIT, T and COLORS present/valid
 Exit 3: source exists, but one of these primary validation checks failed
 Exit 2: source cannot be opened
+
+For the NEW stricter original raster verification:
+  rloft_native.exe --verify-raster "D:\\GOG Games\\Ravenloft - Strahd's Possession"
+Exit 0: required original assets and default RES0 cursor decode accepted
+Exit 3: primary media signature incomplete
+Exit 4: original cursor decoder/resource unsupported or invalid
+Exit 2: original source cannot be opened
+
+The independent EH1 decoder and --verify-raster option are part of a
+NEW SOURCE REVISION. Earlier successfully built asset-preview executables
+do NOT contain them; verify the compiled Git SHA before trying this mode.
 
 IMPORTANT: The independent native game simulation, cinematics, world,
 interaction, save system and DOS parity are separate future milestones.
