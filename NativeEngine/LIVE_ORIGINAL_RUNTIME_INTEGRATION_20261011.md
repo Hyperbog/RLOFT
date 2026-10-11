@@ -10,7 +10,7 @@ The independent `rloft_native_bootstrap.exe` is a proven installed-asset *static
 
 ## Source arrangement: no duplicate game logic
 
-- **172 reconstructed game-core source files**: originally hardcoded in `DemoV1/CMakeLists.txt`; now declared once in `DemoV1/cmake/shared_game_core_sources.cmake`, referenced by the unchanged `rloft_boot_flow` demo library and separately by `NativeEngine` library `rloft_native_game_core`. The original 172 members were transferred without intentionally dropping or adding any; source equality verified via source-text inventory but **demo/full MSVC rebuild pending**.
+- **176 reconstructed game-core source files**: originally hardcoded in `DemoV1/CMakeLists.txt`; now declared once in `DemoV1/cmake/shared_game_core_sources.cmake`, referenced by the unchanged `rloft_boot_flow` demo library and separately by `NativeEngine` library `rloft_native_game_core`. The original 176 members were transferred without intentionally dropping or adding any; source equality verified via source-text inventory but **demo/full MSVC rebuild pending**.
 - **Live Win32 host**: `DemoV1/src/win32_main.cpp` (original large integrated animation/input/audio/character/gameplay flow), compiled into both products. Common external entry `rloft::run_windows_game(HINSTANCE)` lives in `DemoV1/include/rloft/win32_game_entry.hpp`; the demo still owns its original `wWinMain` when not compiled with `RLOFT_NATIVE_ENGINE`.
 - **Native entrypoint**: `NativeEngine/src/win32_native_main.cpp` owns the *different* `rloft_native.exe` `wWinMain`, calls the shared runner, and exposes a headless `--self-test-product` for Windows acceptance only.
 - **Same original sound and MIDI implementation**: the native target compiles `DemoV1/src/win32_audio.cpp` and `DemoV1/src/win32_midi.cpp`. It does not rewrite audio timing, palette fades, or the original animations.
@@ -33,6 +33,10 @@ The native Win32 host installs the profile immediately **before** reading its st
 `%LOCALAPPDATA%\Hyperbog\RLOFT\NativeEngine\Default\`
 
 The original game directory is never the target for new native `CHARS` writes. Existing original parties are intentionally **not automatically imported**, and runtime `SOUND.CFG` defaults to native profile unless explicitly configured; exact original-user sound preferences require a later **read-only, opt-in import** (not unsafe fallback). This is an *application-level* source-protection contract, not an OS hostile-process sandbox or atomic NTFS ransomware guard.
+
+## Current demo-branch parity follow-up
+
+After the first source integration, an exact live `demo-v1` branch comparison identified **four newer C++ modules** that were absent from the `native-engine` snapshot: `original_dos_feedback_runtime.cpp`, `original_dos_keyboard_irq.cpp`, `original_dos_keyboard_session.cpp`, and `win32_scan_observation.cpp`. Their four headers and four sources were copied **byte-for-byte** from current `demo-v1` to `native-engine` (eight matching Git blob hashes verified), and the **authoritative game-core manifest now contains all 176 currently listed demo source files in their original order**. These modules are presently research/runtime-contract foundations, **not a fabricated Windows virtual-key-to-DOS-port60 adapter or a replacement for the existing working DemoV1 input path**. The upstream DemoV1 host also has additional developer-only scan-observation trace instrumentation that was not injected into the new native host; it must not alter original gameplay. Demo-v1 and native-engine remain different branches; exact continued parity needs later source review.
 
 ## Tests authored — NOT executed on Windows
 
