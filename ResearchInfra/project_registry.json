@@ -62,6 +62,14 @@
     "extractor-wpf-fluent"
   ],
   "snapshots": {
-    "classification": "Preserve identifiable build/validation SHA and provenance until verified merged or archived; no sweeping merges, force pushes, or original-file rewrites."
-  }
+    "classification": "Preserve identifiable build/validation SHA and provenance until verified merged or archived; no sweeping merges, force pushes, or original-file rewrites.",
+    "archived_tag_prefix": "archive/retired-20261011/",
+    "retired_branch_count": 14
+  },
+  "review": [
+    {
+      "branch": "disassembler-g2-build-20261010-54247e",
+      "status": "hold for source/test reconciliation; do not retire"
+    }
+  ]
 }

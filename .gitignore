@@ -1,0 +1,9 @@
+# Locally generated build and research artifacts (never source-of-truth)
+/build/
+/ResearchInfra/__pycache__/
+*.pyc
+/.rloft-private/
+
+# Locally supplied original executable evidence; immutable originals reside on DnD-Classics
+/CODE.1
+/CODE.2

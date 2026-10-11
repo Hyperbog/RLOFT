@@ -1,29 +1,33 @@
-# Branch ownership, status and preservation boundaries
+# RLOFT branch ownership and lifecycle (verified 2026-10-11)
 
-**Checked 2026-10-10.** Every branch has independent source, tests and build acceptance. This defines where changes belong; it does not authorize deletion, moving a project-specific document, rewriting original assets or merging long-diverged branches.
+## Seven retained branches
 
-| Branch | Workstream / owner area | Treatment |
+| Branch | Sole owning project / purpose | Treatment |
 | --- | --- | --- |
-| `code1-decompilation` | Default branch; source-owned `Code1/`, `Code2/`, `DatFiles/`, `Resources/`, preservation evidence | **Canonical decompilation**; cross-project documentation entry lives here |
-| `demo-v1` | `DemoV1/` faithful native engine, tests and Win32 host | **Active native development**; [original-game charter](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/ORIGINAL_EXECUTION_FIDELITY_CHARTER.md) is binding |
-| `native-engine` | `NativeEngine/` standalone install-backed native engine application / user playtest | **Separate product milestone**; [M-ENGINE-01](https://github.com/Hyperbog/RLOFT/issues/9) tracks distinct `rloft_native.exe` and real installation-backed progression; source from `demo-v1` may be reused but its demo binary does not satisfy acceptance |
-| `disassembler-foundation` | `Tools/Disassembler/`: DOSDis .NET, WPF and external validation | **Active disassembler**; [its local docs](https://github.com/Hyperbog/RLOFT/blob/disassembler-foundation/Tools/Disassembler/README.md) remain authoritative |
-| `extractor-wpf-fluent` | `Tools/`: WPF extractor, Python/ANM underlying formats | **Specialist implementation**; local docs stay in place |
-| `DnD-Classics` | `MASTER/` original media | **Media-preservation branch**; do not rewrite game files, identities or history during housekeeping |
-| `disassembler-g2-build-20261010` | Predeclared G2 candidate build tree | **Validation snapshot** with independent tool changes; keep exact evidence until promotion |
-| `disassembler-g2-validation-20261010` | G2 workflow-validation variant | **Validation snapshot**; check existing CI and PR provenance before retirement |
-| `preservation-backup-code1-2026-10-07` | Historical code/preservation snapshot | **Historical backup**, intentionally preserving older decomp source |
+| \`code1-decompilation\` | Default; CODE.1, CODE.2, Recomp, shared ResearchInfra, original DAT/RES/runtime research and central docs | **Active canonical source** |
+| \`demo-v1\` | \`DemoV1/\` complete faithful native-game recreation | **Active native fidelity project** |
+| \`native-engine\` | \`NativeEngine/\` independent install-backed native executable | **Active standalone product** |
+| \`disassembler-foundation\` | \`Tools/Disassembler/\` Windows desktop DOSDis and independent validation | **Active disassembler** |
+| \`extractor-wpf-fluent\` | \`Tools/\` GUI extraction and research implementations | **Active extractor** |
+| \`DnD-Classics\` | Original preserved \`MASTER/\` and D&D game collection | **Immutable media; no housekeeping rewrites** |
+| \`disassembler-g2-build-20261010-54247e\` | Distinct G2 validation candidate with two unmerged commits (workflow plus independent smoke-test changes) | **Review hold; do not delete or assume merged** |
 
-At the audited checkpoint, all eight branches reported `protected=false`. Review bot-commit workflows and collaboration permissions before changing that.
+**There are seven branches, not seven completed products.** Exact branch HEAD, source blob SHA, CI checkout and original-source acceptance remain separate. For original-game fidelity, retain the [game charter](https://github.com/Hyperbog/RLOFT/blob/demo-v1/DemoV1/ORIGINAL_EXECUTION_FIDELITY_CHARTER.md).
 
-## Cross-branch correction protocol
+## 2026-10-11 consolidation
 
-1. Check exact live HEAD and target Git blob SHA, original-file version, relevant project-specific methodology and affected caller/consumer.
-2. Synchronize **bounded source-verified shared changes** such as `Code1.cpp` or `Code2.cpp` into active live consumers. Verify matching Git blobs. Do not merge separate engine/disassembler/extractor trees wholesale.
-3. For original media, historical backups or accuracy-validation snapshots, mark drift **intentional/pinned**, never rewrite a proven build checkout to equalize source tree hashes.
-4. Record any shared source delta in [the source synchronization register](SHARED_SOURCE_REGISTER.md), including owner, witness, active consumers and remaining adoption.
-5. Project-specific contracts, instruction witnesses, reports and tests **stay under their existing owning directory/branch**. The central [project index](INDEX.md) links to them rather than duplicating them.
-6. No CI run, release rewrite, gameplay change, DOS parity claim, or branch deletion is authorized by docs synchronization alone.
-7. Before retiring a branch, require active-owner approval, exact compare/merge review, and a recovery tag/ref.
+[Audited branch retirement run #38179888132](https://github.com/Hyperbog/RLOFT/actions/runs/38179888132) succeeded: **14 obsolete branch refs retired, each first preserved as an exact SHA lightweight tag**. The old 21-branch tree is now seven branches. Recovery tags are \`refs/tags/archive/retired-20261011/<original-branch-name>\`; tags preserve historical commit/tree/CI provenance. Details and complete retired names are in [the exact branch cleanup audit](BRANCH_CLEANUP_AUDIT_20261011.md).
 
-**Promotion checklist:** original proof and version → corrected owning source → local regression → active-consumer inventory → exact blob comparison → targeted file sync → fresh HEAD check → record status → separate platform and original-DOS acceptance.
+Across five **active development** branches (canonical, demo, native engine, disassembler, extractor), five historical CODE.1-only workflows were retired from each because their one-off job or obsolete accounting conditions were no longer suitable for current CI. The original media branch and the independent G2 review branch were not rewritten. The active project workflows remain in place.
+
+## Safe branch lifecycle rules
+
+1. **Do not create a long-lived branch solely for a one-time Windows build.** Prefer a manual dispatch on the owning workstream where practical, or a temporary branch with a documented source SHA and explicit retirement step.
+2. **Retire only after concrete comparisons**, not names: inspect current SHA, merge base, ahead/behind commits, every unique changed path, open PRs and branch protection. An unmerged source/test change is a stop condition, even on a build-named branch.
+3. **Archive first.** Record an immutable source SHA and establish/re-read a recovery tag before deleting the branch ref. Never delete an original-media branch, source owner branch, or protected/active PR branch.
+4. **Do not wholesale merge divergently owned trees.** Synchronize only bounded, independently proven shared source changes and record exact blob identities in [the shared source register](SHARED_SOURCE_REGISTER.md).
+5. **Keep owner-specific files in their own directory/branch.** The shared [Research Infrastructure](../ResearchInfra/README.md) is an evidence index, not a second copy of each project. Use the [project registry](../ResearchInfra/project_registry.json) for machine-readable ownership.
+6. **Evidence is graded.** Parser findings are not original-byte proofs; compilation is not DOS equivalence; Windows/native CI does not establish playable original game acceptance. Preserve the exact accepted checkout.
+7. **No original media rewrites, release rewrite, auto-merge or new Windows Full run** is authorized by documentation or housekeeping alone.
+
+Recreate an archived branch only when genuinely needed: \`git switch -c <new-name> archive/retired-20261011/<old-name>\`. Do not re-use retired one-shot branch names for ongoing development.
