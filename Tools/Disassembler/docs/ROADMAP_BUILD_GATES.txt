@@ -322,6 +322,26 @@ Never claim an unseen original was tested.
 
 CURRENT NEXT ACTIONS
 --------------------
+NEW HIGHEST PRIORITY: owner tested Windows run #42 GUI with independently
+SHA-matched Dungeon Hack CHECKSYS.EXE (15,882-byte DOS MZ). Desktop
+incorrectly showed raw hex only and disabled Analyze/Export.
+Root cause: WPF only wired LE parsing, analysis and report export even
+though core already supported MZ and x86-16. User clarified DOSDis
+is a WINDOWS DESKTOP-ONLY user product; do not ship CLI binaries.
+SOURCE-ONLY GUI integration now adds validated standalone MZ open,
+entry CS:IP decoding, bounded x86-16 candidate CFG, typed CS:IP
+references/navigation, source-backed physical hex view and JSON/text
+candidate exports. SQLite LE-only project saving/annotations remain
+disabled for MZ until their address schema supports CS:IP; do not
+treat MZ CS:IP as LE object:offset. Windows build script and canonical
+manual-only CI now publish desktop alone; CLI is an internal
+research/validation harness, not a deliverable.
+UNBUILT/UNEXECUTED: no GUI or compile verification since #42.
+DETAILS: docs/G2_DESKTOP_MZ_UI_HANDOFF_20261010.md.
+NEXT: owner-approve new Windows desktop-only build gate, run core/
+project synthetic tests and publish only new WPF preview. Then owner
+visually tests original CHECKSYS MZ Analyze/Export and LE regression.
+No new G2 exact-original accuracy certification from GUI support.
 NEWEST VERIFIED COMPILED/SYNTHETIC: owner-authorized temporary PR #8
 Actions run #42 (38096831427), SUCCESS Windows+Linux on 2026-10-10
 local date. Exact PR merge checkout SHA
@@ -1614,3 +1634,37 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   review was performed at the new compiled SHA; G2 INDEPENDENT
   ACCURACY CERTIFICATION PENDING.
 - Gate detail: docs/G2_BUILD_GATE_RECORD_20261010_RUN42.md.
+2026-10-10 | OWNER GUI CHECKSYS.EXE FIELD FAILURE + DESKTOP-ONLY MZ FIX (SOURCE):
+- Screenshot: standalone 15,882-byte Dungeon Hack CHECKSYS DOS MZ
+  loaded in Windows run #42 WPF as RAW HEX ONLY, disabling Analyze and
+  Export. Original's MZ identity/header had been independently checked.
+- Root cause: WPF selection loaded only LE, with _image/_graph
+  gating; core x86-16 DosMzImage and Dos16ControlFlowAnalysis existed
+  but had no WPF integration. This is a user-facing functionality gap
+  that synthetic CLI/core validation did NOT catch.
+- Added desktop-only MZ fallback AFTER LE parsing for validated
+  standalone MZ signatures. Extended MZ module wrappers are NOT
+  silently reinterpreted. Shows exact original module-relative
+  initial CS:IP, 16-bit preview, supported capability intelligence
+  and stored MZ relocation count.
+- Analyze now accepts bounded source-backed entry-segment x86-16
+  candidate CFG independently of LE object graph, 20k cap,
+  far/indirect edges unresolved, no simulated runtime load base.
+  New typed Dos16Address navigation, references and original-file
+  hex mapping avoid LE FlowAddress namespace confusion.
+- Added standalone MZ JSON/text report exporter with explicit
+  original instruction-byte opt-in, original hash binding,
+  row/source-byte validation, no proprietary whole binary/path.
+  Existing atomic nonoverwrite export and LE implementation retained.
+  MZ project create/open/notes/backup disabled until a typed MZ
+  project schema is implemented.
+- Added synthetic regression cases covering MZ capability,
+  x86-16 entry analysis and output, original-byte privacy, wrong
+  SHA, duplicate starts, forged original bytes and CS mismatch.
+- User scope: ship only WPF Windows desktop. Internal CLI retained
+  for research. Local and hosted Windows packaging now produce only
+  WPF preview. Hosted CI remains manual-only.
+- STATUS: SOURCE AUTHORED, unbuilt/unexecuted. Last compiled and
+  synthetic-verified build #42 is historical and PRE-DATES this fix.
+  See docs/G2_DESKTOP_MZ_UI_HANDOFF_20261010.md for owner GUI
+  acceptance and original SHA verification gates.
