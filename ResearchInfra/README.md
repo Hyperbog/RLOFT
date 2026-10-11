@@ -54,3 +54,7 @@ The existing canonical source index is still the source-only graph, not a decomp
 ## Bulk LE survey and independent DOSDis JSON cross-check
 
 [Read the source-backed survey and evidence limits](BULK_CFG_DOSDIS_BRIDGE_20261011.md). `bulk_cfg.py` partitions canonical C++ source-address candidates into bounded original LE code windows, validates full CODE.1/CODE.2 SHA-256 and emits static decoder diagnostics without claiming correct function boundaries. `dosdis_bridge.py` accepts source-SHA-pinned DOSDis schema-v1 developer analysis exports, validates object-offset/length integrity and compares candidate instruction starts, lengths and direct edges against separately decoded original window evidence. Neither component is a game runtime, a DOSDis GUI change, or original DOS acceptance.
+
+## 2026-10-11 CODE.1 verified overlapping-instruction correction
+
+The independently authenticated broad-source survey found one **real** alternate-entry overlap at CODE.1 `B04C`. [Original-byte analysis and synchronized C++ fix](CODE1_B01A_OVERLAP_CORRECTION_20261011.md) document why the reconstructed even-length string append needed an explicit terminating zero write. The canonical compiled test checks real memory state; this is not DOS gameplay acceptance.

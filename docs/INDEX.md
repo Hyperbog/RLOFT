@@ -8,6 +8,7 @@
 - [Shared-code synchronization register](SHARED_SOURCE_REGISTER.md) — exact shared blobs, intentional drift and source-proof gate.
 - [Original-machine CFG and AI work-packet integration](../ResearchInfra/ORIGINAL_MACHINE_CFG_20261011.md) — optional authenticated CODE originals, independent x86 blocks and source-call overlays.
 - [Bulk original LE survey and DOSDis evidence cross-check](../ResearchInfra/BULK_CFG_DOSDIS_BRIDGE_20261011.md) — bounded candidate source-address coverage and fail-closed DOSDis schema-v1 bridge.
+- [CODE.1 B01A overlapping-original-instruction correction](../ResearchInfra/CODE1_B01A_OVERLAP_CORRECTION_20261011.md) — authenticated alternate-entry STOSB, compiled regression and shared-source synchronization.
 - [Documentation maintenance policy](DOCUMENTATION_POLICY.md) — retain original addresses, research and history in context.
 
 ## Project-specific authoritative documentation

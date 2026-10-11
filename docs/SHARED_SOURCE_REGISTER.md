@@ -1,4 +1,4 @@
-# Shared reconstructed source register — 2026-10-10
+# Shared reconstructed source register — updated 2026-10-11
 
 **Purpose:** prevent silent CODE source drift without disturbing media preservation or G2 accuracy-validation snapshots. Exact Git blob reconciliation below is **not** complete semantic/DOS acceptance.
 
@@ -6,10 +6,15 @@
 
 | Path | Git blob SHA | Active consumers checked | State |
 | --- | --- | --- | --- |
-| `Code1/Code1.cpp` | `226c563007ac…` | Decompilation, native, disassembler and other audited branches | Identical across all eight audited branches |
+| `Code1/Code1.cpp` | `bdfe208db205fc3da467c3bf9d6710869096ddea` | `code1-decompilation`, `demo-v1`, `native-engine`, `disassembler-foundation`, `extractor-wpf-fluent` | **Exact shared blob after authenticated B01A alternate-entry terminator correction** |
 | `Code2/Code2.cpp` | `5b0b4dd7b6a91bfcc99068970c3152f0f62ce54e` | `code1-decompilation`, `demo-v1`, `disassembler-foundation` | **Identical** after original-byte-verified F790 sync |
 | `Code2/verify_f790_stack_local_preread.py` | `4e2afcb39eb751be5a58e9963ba0e8bd1a405d52` | Same three active consumers | **Identical**; source-only test, optional original CODE.2/T oracle |
 | `Code2/README.md` | `fc1681e828a0a6120d61e951549f1fd6345afeac` | Same three active consumers | **Identical**; correction and semantic caveat current |
+
+
+### CODE.1 B01A shared semantic correction — 2026-10-11
+
+The owner-original CODE.1 SHA-256 and code-object B01A instruction span prove a deliberate branch into the second byte of A8 AA, executing STOSB at B04C. The previous canonical source omitted the byte terminator write on even-length source strings; correction was compiled and link-tested in Windows [run #38184924773](https://github.com/Hyperbog/RLOFT/actions/runs/38184924773), then selectively copied (exact new Git blob `bdfe208d…`) into all four active source consumers. [Detailed original-byte proof and downstream commit register](../ResearchInfra/CODE1_B01A_OVERLAP_CORRECTION_20261011.md). Preserved media/history branches remain intentionally older.
 
 ### Original witness for the CODE.2 correction
 

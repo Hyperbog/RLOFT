@@ -57,3 +57,7 @@ Both optional commands refuse wrong-version original game media. Original execut
 - Partition and independently verify the **72 conflict observations** from the 310-sample survey; use original CODE runtime semantics, relocation-target tables and DOSDis protected-data regions rather than blindly forcing graph closure.
 - Import known source-backed CODE.1 padding/table regions and CODE.2 protected switch table ranges into the survey to reduce false decoding.
 - Continue canonical DOS runtime initialization `3A2AD`/allocator `37B42`, resolving indirect callback targets without substituting synthetic successful services.
+
+## Correction to initial sample-only conflict narrative
+
+The earlier 310-address sample had 72 raw linear-decoder conflict observations; the full 1,543-address survey exposed that most such conflicts are **cut-through instructions at artificial window ends**, not defective CODE.1/CODE.2 functions. The updated tool independently looks ahead into the authenticated original code beyond each truncated 160-byte window. On the full sweep the final classification is **292 artificial window-tail sites** and **two duplicate observations of the single intentional B04C overlapping instruction target**. See [the original CODE.1 byte witness](CODE1_B01A_OVERLAP_CORRECTION_20261011.md). The original numbers are retained above solely as a dated baseline, not as unresolved bug counts.
