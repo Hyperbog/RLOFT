@@ -11,9 +11,13 @@ public static class FileIntelligence
     /// provide separate evidence, never executable behavior assertions.
     /// </summary>
     public static IReadOnlyDictionary<string, IntelligenceField> Inspect(
-        BinaryArtifact artifact, LeImage? le = null, SourceIdentityRegistry? registry = null)
+        BinaryArtifact artifact, LeImage? le = null, SourceIdentityRegistry? registry = null,
+        DosMzImage? mz = null)
     {
         ArgumentNullException.ThrowIfNull(artifact);
+        if (mz is not null && (le is not null ||
+            !string.Equals(mz.SourceSha256, artifact.Sha256, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidDataException("MZ intelligence must reference the same standalone source and not an LE module.");
         var fields = new SortedDictionary<string, IntelligenceField>();
         fields["sha256"] = new(artifact.Sha256, "direct", "SHA-256 over immutable input bytes");
         fields["size_bytes"] = new(artifact.Length.ToString(), "direct", "Input byte length");
@@ -28,6 +32,26 @@ public static class FileIntelligence
                 "Non-LE instruction decoding requires a separate validated loader and explicit address mapping.")
             : new("32-bit LE object-mapped candidate analysis", "tool-capability",
                 "Only bounded MZ/LE executable mapping is currently supported for recursive disassembly.");
+
+        if (mz is not null)
+        {
+            fields["analysis_support"] = new(
+                "x86-16 MZ original-backed entry-segment candidate analysis",
+                "validated-loader",
+                "Standalone MZ header and relocation storage validated. Dynamic FAR/indirect targets, relocation runtime base and real execution remain unknown.");
+            fields["format_loader_status"] = new("mz-entry-region-supported", "validated-loader",
+                "Stored DOS MZ entry CS:IP and source-backed relocation geometry; no runtime simulation.");
+            fields["executable_format"] = new("DOS MZ 16-bit", "validated-loader",
+                "Standalone MZ header and original file-backed load image.");
+            fields["architecture"] = new("x86 16-bit real-mode candidate", "header-derived",
+                "Original DOS MZ entry; runtime selectors, process load state and actual CPU behavior unverified.");
+            fields["entry_point"] = new($"{mz.InitialCs:X4}:{mz.InitialIp:X4}", "header-derived",
+                "Relative initial CS:IP from stored MZ header; not an observed runtime address.");
+            fields["relocation_entries"] = new(mz.Relocations.Count.ToString(), "validated-loader",
+                "Bounded original MZ relocation table; relocation writes have not been applied.");
+            fields["stored_image_bytes"] = new(mz.FileBackedImageLength.ToString(), "validated-loader",
+                "File-backed original MZ load-module bytes; excludes header and trailing overlay.");
+        }
 
         SourceIdentityEntry? identity = registry?.Find(artifact);
         if (identity is not null)
