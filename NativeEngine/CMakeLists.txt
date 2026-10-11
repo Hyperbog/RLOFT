@@ -238,6 +238,8 @@ if(WIN32)
   target_link_libraries(rloft_native PRIVATE
     rloft_native_contracts rloft_native_game_core
     User32 Gdi32 Shell32 Ole32 Advapi32 Winmm)
+  add_test(NAME native_live_game_product_self_test
+    COMMAND rloft_native --self-test-product)
   target_compile_definitions(rloft_native PRIVATE
     RLOFT_NATIVE_ENGINE
     UNICODE _UNICODE
