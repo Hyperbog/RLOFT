@@ -322,9 +322,29 @@ Never claim an unseen original was tested.
 
 CURRENT NEXT ACTIONS
 --------------------
-LAST VERIFIED COMPILED/SYNTHETIC: owner-authorized PR #6 Actions
-run #40 (38091963405), completed SUCCESS Windows+Linux on
-2026-10-10; exact temporary PR merge checkout SHA
+NEWEST VERIFIED COMPILED/SYNTHETIC: owner-authorized temporary PR #8
+Actions run #42 (38096831427), SUCCESS Windows+Linux on 2026-10-10
+local date. Exact PR merge checkout SHA
+dd251ba7479fe802e17155a2740d3519cf23847b;
+source-equivalent canonical code/test SHA
+3956f036fee44c0b6f07361811e4f0857dbea916.
+- Windows .NET 10 desktop/CLI and both C# smoke suites PASS.
+  Linux .NET 10 CLI, both C# smoke suites and 17 Python synthetic
+  tests PASS. Three Windows/Linux self-contained preview artifacts
+  published; zero build warnings or errors.
+- Initial run #41 compiled both platforms but FAILED a synthetic
+  oracle sample identity assertion with changed sample membership;
+  fixed in canonical 3956f036 and verified by full run #42.
+- NO new original-game runtime or original-file comparison in #42.
+  Independent CODE.2 28/28, 15/15, 5/5 and 8/8 negative controls
+  remain only the earlier exact compiled #40 source-scope, not a
+  new original verification against #42.
+- Exact report: docs/G2_BUILD_GATE_RECORD_20261010_RUN42.md.
+- PR #8 is temporary, NEVER MERGE; canonical Actions remains
+  workflow_dispatch-only. Future original-file comparisons require
+  separate owner authorization.
+PREVIOUS VERIFIED COMPILED/SYNTHETIC (historical): owner-authorized
+PR #6 Actions run #40 (38091963405), exact temporary PR merge
 5eaa1fb0798007dfca73e648f91bc1add42409e9,
 source-equivalent canonical code/test SHA
 7fa76f822e0aa56a4bf1c611076bc50e5e0a5389.
@@ -1567,3 +1587,30 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   compiled/synthetic owner-authorized test is still Actions #40
   source-equivalent SHA 7fa76f822e0aa56a4bf1c611076bc50e5e0a5389.
   G2 independent accuracy acceptance remains PENDING.
+2026-10-10 | OWNER-AUTHORIZED G2 WINDOWS/LINUX BUILD GATE #42 — PASS:
+- "You may build" authorized temporary isolated PR #8 to trigger
+  Windows/Linux Actions without changing canonical manual-only CI.
+  PR #8 has ONLY a temporary PR workflow diff against canonical.
+- #41 compiled both OSes but the synthetic external oracle negative
+  test incorrectly shrank a two-sample fingerprint to one sample;
+  claimed the digest would stay unchanged. Canonical fix
+  3956f036 keeps both original sample rows and forges only one
+  external hex assertion. This corrects the synthetic test contract.
+- #42 successfully compiled/published Windows WPF desktop, Windows
+  CLI, Linux CLI. Both DosDis.Smoke and DosDis.ProjectSmoke
+  PASSED on Windows and Linux. Separately authored Python
+  synthetic-only unittest discovery PASSED 17/17 on Linux.
+  All .NET builds have zero warnings, zero errors.
+- Exact ephemeral PR merge SHA
+  dd251ba7479fe802e17155a2740d3519cf23847b; canonical
+  SOURCE-EQUIVALENT code/test SHA
+  3956f036fee44c0b6f07361811e4f0857dbea916.
+  Difference is temporary CI workflow only (one file).
+- Artifacts: Windows desktop 11686885378, Windows CLI 11686550805,
+  Linux CLI 11686021352. See detailed gate record for sizes
+  and ZIP archive SHA256 hashes.
+- Original DOS files were NOT uploaded, executed or compared
+  by hosted Actions. No new exact-original independent accuracy
+  review was performed at the new compiled SHA; G2 INDEPENDENT
+  ACCURACY CERTIFICATION PENDING.
+- Gate detail: docs/G2_BUILD_GATE_RECORD_20261010_RUN42.md.
