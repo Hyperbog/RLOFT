@@ -17,6 +17,7 @@ BOUNDS={
  (0x307F0,0x308B9):'f44711e3a4376548b98e8c4bf72fc99e9982de685e5cf751f196164009dae716',
  (0x308BC,0x308F5):'d477d5952d4a8495767276a8e2b0b56a0f1823cc89d15724ea8543a32dd7adf4',
  (0x30950,0x30ABA):'509b4f6b6abc6b0292e6adccfc0bbf98dddf6bf5079acb8ea7ae54678438783b',
+ (0x30ABC,0x30AD7):'67ea2baee9861d6009e9a9f0834aed232645999bcec90243b9a39e2ecd109d6d',
 }
 KEYPAD_TARGETS=(0x30857,0x30843,0x3086B,0x308A7,0x30876,
                 0x308A7,0x3088A,0x308A7,0x308A7,0x30895)
@@ -64,7 +65,7 @@ def audit_original(path:Path):
  # F588/F571..574 initial zero; mutable runtime stack is not fixed-sized.
  data=b[0x75F24:]
  assert data[0xF588]==0 and data[0xF571:0xF575]==bytes(4)
- print(f'ORIGINAL_PASS: CODE.2 keyboard 5 spans, {len(WINDOWS)} op windows, 4 E8 and 10 dispatch entries')
+ print(f'ORIGINAL_PASS: CODE.2 keyboard {len(BOUNDS)} spans, {len(WINDOWS)} op windows, 4 E8 and 10 dispatch entries')
 
 
 def audit_repo():
@@ -73,7 +74,8 @@ def audit_repo():
  hdr=(ROOT/'DemoV1/include/rloft/original_dos_keyboard_irq.hpp').read_text()
  tst=(ROOT/'DemoV1/tests/original_dos_keyboard_irq_tests.cpp').read_text()
  doc=(ROOT/'DemoV1/ORIGINAL_DOS_KEYBOARD_IRQ_20261011.md').read_text()
- for name in ('release_30748','press_307f0','held_308bc','dispatch_30950'):
+ for name in ('release_30748','press_307f0','held_308bc','dispatch_30950',
+              'modifiers_30abc','consume_space_30ac8'):
   assert all(name in s for s in (src,hdr,tst)),name
  assert 'NAME original_dos_keyboard_irq_tests' in cm
  assert 'NAME original_dos_keyboard_irq_binary_contract_tests' in cm

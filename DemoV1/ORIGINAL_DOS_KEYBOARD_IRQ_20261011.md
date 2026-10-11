@@ -26,3 +26,25 @@ Python registration does not establish original DOS runtime parity.
 hardware emulation, keyboard IRQ/PIC timing, F0C8 callback target,
 or current Windows Full build was accepted. M-PLAY-01 still needs
 an actual ordinary launch and user field test.
+
+## Adjacent original modifier/Space queries
+
+The two directly decoded leaf routines have been integrated into the
+same native IRQ state. Original `30ABC` reads unsigned BYTE
+`F573`, ANDs it with the caller's DWORD mask and returns the
+masked integer without consuming the modifier state. Original
+`30AC8` returns unsigned BYTE `F574` and then clears
+that byte; it does not change the pending scan code.
+
+The complete original source slice `30ABC..30AD6` has SHA-256
+`67ea2baee9861d6009e9a9f0834aed232645999bcec90243b9a39e2ecd109d6d`.
+Together with the previous evidence, the binary verifier now guards
+**six** source slices, **45** opcode windows, four direct E8
+edges and ten dispatch entries. These checks passed against the
+uploaded original CODE.2.
+
+The C++17 methods `modifiers_30abc` and
+`consume_space_30ac8` passed the locally compiled strict GCC 14
+test, including multi-bit masks, zero matches, repeated Space flag
+consumption and preserving `F572`. No Windows event routing,
+keyboard IRQ timing or original DOS gameplay acceptance is claimed.

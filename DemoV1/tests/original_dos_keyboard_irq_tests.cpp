@@ -62,6 +62,19 @@ int main(){
     assert(s.break_flag_1457c==1U && s.input.pending_f572==0x19U);
     assert(!M::dispatch_30950(s,0x39U));
     assert(s.space_f574==1U && s.input.pending_f572==0x39U);
+    // 30ABC is a masked DWORD result, not a boolean modifier check.
+    s.modifiers_f573=0x0BU;
+    assert(M::modifiers_30abc(s,0xFFFFFFFFU)==0x0BU);
+    assert(M::modifiers_30abc(s,0x4U)==0U);
+    assert(M::modifiers_30abc(s,0x3U)==3U);
+    assert(s.modifiers_f573==0x0BU);
+    // 30AC8 returns then clears the source byte; original key scan
+    // and direction state remain unchanged.
+    assert(M::consume_space_30ac8(s)==1U);
+    assert(M::consume_space_30ac8(s)==0U);
+    s.space_f574=0xA5U;
+    assert(M::consume_space_30ac8(s)==0xA5U);
+    assert(s.input.pending_f572==0x39U);
 
     s={};
     assert(!M::dispatch_30950(s,0x48U));

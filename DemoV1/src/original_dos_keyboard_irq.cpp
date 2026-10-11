@@ -57,6 +57,18 @@ bool OriginalDosKeyboardIrqModel::held_308bc(
     return false;
 }
 
+std::uint32_t OriginalDosKeyboardIrqModel::modifiers_30abc(
+    const OriginalDosKeyboardIrqState& s, std::uint32_t mask) {
+    return static_cast<std::uint32_t>(s.modifiers_f573)&mask;
+}
+
+std::uint8_t OriginalDosKeyboardIrqModel::consume_space_30ac8(
+    OriginalDosKeyboardIrqState& s) {
+    const auto result=s.space_f574;
+    s.space_f574=0U;
+    return result;
+}
+
 bool OriginalDosKeyboardIrqModel::dispatch_30950(
     OriginalDosKeyboardIrqState& s, std::uint8_t raw_port60) {
     const bool is_break=raw_port60>0x80U; // source uses JLE 80h
