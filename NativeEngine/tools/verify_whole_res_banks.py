@@ -74,7 +74,14 @@ def certify(data: dict) -> None:
            "RES11 original VOC anomaly missing")
     expect(banks["RES12"]["retained_shipped_anomalies"] == 1,
            "RES12 original VOC anomaly missing")
-    expect(sum(b["font_eh2"] for b in banks.values()) == 15,
+    expect(sum(b["inert_legacy_eh1"] for b in banks.values()) == 5,
+           "the five zero-pixel inactive RES12 image descriptors were not retained")
+    expect(banks["RES12"]["inert_legacy_eh1"] == 5,
+           "zero-sized historical RES12 EH1 records wrongly rendered/repaired")
+    expect(sum(b["image_eh1"] + b["inert_legacy_eh1"]
+               for b in banks.values()) == 1591,
+           "original raster descriptors were lost")
+        expect(sum(b["font_eh2"] for b in banks.values()) == 15,
            "original fonts not decoded")
     expect(sum(b["texture_eh6"] for b in banks.values()) == 1319,
            "native texture validation incomplete")
@@ -103,7 +110,7 @@ def main() -> int:
     print("1,319 decoded original textures: PASS")
     print("15 fonts + 172 XMIDI + 1,005 VOC: PASS")
     print("38 active and 37 legacy raw scripts: PASS")
-    print("21 empty slots + two preserved legacy VOC anomalies: PASS")
+    print("21 empty slots + 5 inert legacy EH1 + 2 preserved VOC anomalies: PASS")
     return 0
 
 
