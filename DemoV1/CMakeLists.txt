@@ -291,6 +291,7 @@ add_library(rloft_boot_flow
     src/original_dos_feedback_runtime.cpp
     src/original_dos_keyboard_irq.cpp
     src/original_dos_keyboard_session.cpp
+    src/win32_scan_observation.cpp
     src/combat_original_text_runtime.cpp
     src/combat_original_sprite_runtime.cpp
     src/combat_original_vga_address.cpp
@@ -582,6 +583,9 @@ add_test(NAME combat_level_message_tests COMMAND combat_level_message_tests)
 add_executable(combat_irq_display_runtime_tests tests/combat_irq_display_runtime_tests.cpp)
 target_link_libraries(combat_irq_display_runtime_tests PRIVATE rloft_boot_flow)
 add_test(NAME combat_irq_display_runtime_tests COMMAND combat_irq_display_runtime_tests)
+add_executable(win32_scan_observation_tests tests/win32_scan_observation_tests.cpp)
+target_link_libraries(win32_scan_observation_tests PRIVATE rloft_boot_flow)
+add_test(NAME win32_scan_observation_tests COMMAND win32_scan_observation_tests)
 add_executable(original_dos_keyboard_session_tests tests/original_dos_keyboard_session_tests.cpp)
 target_link_libraries(original_dos_keyboard_session_tests PRIVATE rloft_boot_flow)
 add_test(NAME original_dos_keyboard_session_tests COMMAND original_dos_keyboard_session_tests)
