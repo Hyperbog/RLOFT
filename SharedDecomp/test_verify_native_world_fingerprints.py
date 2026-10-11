@@ -11,13 +11,13 @@ import tempfile
 import unittest
 
 from original_world_oracle import OracleError, audit
-from test_original_world_oracle import world, sintab
+from test_original_world_oracle import levels_fixture, sintab_fixture
 from verify_native_world_fingerprints import (compare_payload, expected_hashes,
                                                read_report)
 
 
 def source():
-    return bytes(world()[0]), bytes(sintab())
+    return bytes(levels_fixture()[0]), bytes(sintab_fixture())
 
 
 def synthetic_native(original_levels, original_sintab):
