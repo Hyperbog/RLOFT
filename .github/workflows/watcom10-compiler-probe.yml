@@ -1,0 +1,71 @@
+name: Watcom 10.0a compiler fingerprint pilot (source-only)
+
+on:
+  push:
+    branches: [code1-decompilation]
+    paths:
+      - '.github/workflows/watcom10-compiler-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: watcom10-compiler-pilot-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  watcom10-source-only:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - name: Checkout project sources without credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Source-only parser/provisioning regressions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -m unittest discover -s Code2/tools -p 'test_*.py'
+          if ($LASTEXITCODE -ne 0) { throw 'Source-only Python unit tests failed' }
+      - name: Download, authenticate and unpack Watcom 10.0a
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = 'https://github.com/decompme/compilers/releases/download/compilers/wcc10.0a.tar.gz'
+          $archive = Join-Path $env:RUNNER_TEMP 'wcc10.0a.tar.gz'
+          $watcom = Join-Path $env:RUNNER_TEMP 'watcom10a'
+          Invoke-WebRequest -Uri $url -OutFile $archive
+          python Code2/tools/provision_watcom10.py $archive --extract-to $watcom
+          if ($LASTEXITCODE -ne 0) { throw 'Published compiler SHA-256 or safe extraction check failed' }
+      - name: Compile authored hypotheses with historical Watcom
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $watcom = Join-Path $env:RUNNER_TEMP 'watcom10a'
+          $out = Join-Path $env:RUNNER_TEMP 'rloft-watcom-probe'
+          python Code2/tools/run_watcom10_windows_probe.py --watcom-root $watcom --output $out
+          if ($LASTEXITCODE -ne 0) { throw 'Watcom probe driver failed' }
+          $env:RLOFT_PILOT_REPORT = Join-Path $out 'report.json'
+          @'
+          import json,os,sys
+          with open(os.environ['RLOFT_PILOT_REPORT'],encoding='utf-8') as f: report=json.load(f)
+          for p in report['profiles']:
+              print(f"{p['profile']}: exit={p['exit_code']} obj={p['object_present']} OMF={p['omf_inventory_success']}")
+          if not any(p['exit_code']==0 and p['object_present'] for p in report['profiles']):
+              sys.exit('No Watcom profile generated an object. Inspect uploaded diagnostics.')
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'No usable Watcom candidate object' }
+      - name: Upload only new source-hypothesis objects and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: watcom10-omf-source-only-${{ github.run_number }}
+          path: ${{ runner.temp }}/rloft-watcom-probe/
+          if-no-files-found: warn
+          retention-days: 7
