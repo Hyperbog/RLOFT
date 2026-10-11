@@ -981,6 +981,8 @@ public partial class MainWindow : Window
                 _graph = saved;
                 ExportAnalysisButton.IsEnabled = saved != null;
                 _referenceIndex = new Dictionary<(int Number, uint Offset), IReadOnlyList<ReferenceRow>>();
+                _allReferences = Array.Empty<ReferenceRow>();
+                RefreshReferences();
                 if (saved != null)
                 {
                     ShowAnalysis(saved);
@@ -1002,7 +1004,8 @@ public partial class MainWindow : Window
                         x.ObjectOffset, x.Bytes, x.Assembly, "linear-preview-unverified")).ToArray());
                     if (_image is null && _artifact is not null)
                     {
-                        HexView.Text = RawHexPreview.Render(_artifact);
+                        SetHexWindow(RawHexPreview.Render(_artifact),
+                            "Original raw file bytes, starting file+0x00000000");
                         AddressBox.Text = "file:0x0";
                         MainTabs.SelectedIndex = 1;
                     }
