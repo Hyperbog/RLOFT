@@ -1,5 +1,10 @@
 # Ravenloft: Strahd's Possession — Independent Native Engine
 
+## VERIFIED Windows x64 independent native asset build — October 11
+
+**[Download and verification evidence](WINDOWS_NATIVE_ASSETS_VERIFIED_BUILD_20261011.md):** `rloft_native.exe` was compiled on Windows Server 2022 using **MSVC 19.44**, all **9/9 Windows CTests passed**, and the asset-free ZIP was downloaded and independently checked. [Actual GitHub build #38164976411](https://github.com/Hyperbog/RLOFT/actions/runs/38164976411). **Exact compiled Git revision:** `fd314b89e96db07c739176d25f1fc9be94ecaa19` (later README/docs HEADs are not compiled revisions). Native engine is not the demo recomp, and this build does **not** implement gameplay. First **real GOG asset-loader field test remains pending**, although an older diagnostic bootstrap did display real GOG menu artwork. Primary output: `RLOFT-NativeEngine-Windows-x64-ASSET-PREVIEW.zip` (no original files). ZIP SHA-256: `5ee2cdb58f3aa0ea10c715a2841b6be3eb0f411abb957132c4aa1150a857713c`.
+
+
 **Authoritative direction (October 11, 2026):** [Native asset runtime architecture](ASSET_RUNTIME_ARCHITECTURE_20261011.md).
 
 This is a NEW Windows replacement game engine, conceptually like OpenMW/KEX. It reads the player's **original game assets** and will eventually implement its own graphics, audio, game-state, world and gameplay systems. It is **not** the original-source decompilation/recompilation and does **not** link or execute the `demo-v1` game runtime. The working decomp demo continues as an independent project and can supply research/evidence about original formats and behavior.
