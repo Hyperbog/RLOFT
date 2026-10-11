@@ -42,6 +42,15 @@ This version offers:
   * "Title cursor" button: show the original INIT-selected RES0 cursor with
     its original 19-entry CODE.2 palette INDEX translation and current bank.
   * Archive browsing: raw RES indices, no automatic cursor translation.
+  * RES4: EH6 first-person world textures, independently decoded through
+    the original LZSS-4K format, then transposed from 128-texel vertical
+    columns into 32x128 or 64x128 original indexed previews.
+  * RES9: 517 more EH1 indexed images (plus 38 non-image wordcode scripts).
+  * RES3: EH7 compiled NPC/item/scene shapes need a separate SINTAB-based
+    renderer, not an EH1 raster viewer.
+  * RES5: EH3 XMIDI music. RES6 and RES10: EH4 VOC sounds/voices.
+    Audio archives have NO sprite images; their browser error now says so.
+    These are valid original media, not corrupted installations.
 
 Windows display buffers are BGRA, but original COLORS records are RGB DAC6.
 The engine independently verifies byte order with red/green/blue regression
