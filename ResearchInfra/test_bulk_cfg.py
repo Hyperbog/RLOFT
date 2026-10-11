@@ -76,6 +76,28 @@ class BulkSurveyTests(unittest.TestCase):
                 protected={'code1':[{'start':4,'end_exclusive':7},
                                     {'start':6,'end_exclusive':8}]})
 
+    def test_artificial_sampling_window_truncation_is_not_a_decoder_conflict(self):
+        from unittest.mock import patch
+        # The first decoded instruction is 5 bytes long, but only two fit
+        # before the arbitrary sample cap.
+        spec={'start':0x100,'end_exclusive':0x102,'truncated_by_cap':True}
+        raw=b'\x90'*0x120
+        flow={'conflicts':[{'address':0x100,'reason':'undecodable_reachable_instruction'}]}
+        first=[{'address':0x100,'size':5,'mnemonic':'call'}]
+        with patch('bulk_cfg.original_cfg.decode',return_value=first):
+            remaining,artifacts=bulk_cfg.separate_window_tail_artifacts(spec,flow,raw)
+        self.assertEqual(remaining,[])
+        self.assertEqual(artifacts[0]['reason'],
+                         'artificial_sample_window_splits_original_instruction')
+        self.assertEqual(artifacts[0]['decoded_instruction_size_with_original_lookahead'],5)
+        # If the clip came from source/data provenance rather than arbitrary
+        # sampling, do NOT use extra code bytes to erase the disagreement.
+        spec['truncated_by_cap']=False
+        with patch('bulk_cfg.original_cfg.decode',return_value=first):
+            remaining,artifacts=bulk_cfg.separate_window_tail_artifacts(spec,flow,raw)
+        self.assertEqual(artifacts,[])
+        self.assertEqual(remaining,flow['conflicts'])
+
     def test_authentication_failure_precedes_decode(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td)
