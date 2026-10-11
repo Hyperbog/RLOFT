@@ -6,6 +6,9 @@ on:
       - 'ResearchInfra/**'
       - 'SharedDecomp/**'
       - 'AGENTS.md'
+      - 'Code1/Code1.cpp'
+      - 'Code1/RESIDUAL_LEDGER.md'
+      - 'Code2/Code2.cpp'
       - '.github/workflows/research-infrastructure.yml'
   workflow_dispatch:
 permissions:
@@ -63,5 +66,11 @@ jobs:
             build/research/entry.json
             build/research/startup.json
             build/research/workflow_context.json
+            ResearchInfra/bulk_cfg.py
+            ResearchInfra/original_cfg.py
+            ResearchInfra/protected_noncode.py
+            ResearchInfra/compare_call_evidence.py
+            ResearchInfra/index.py
+            Code1/RESIDUAL_LEDGER.md
           if-no-files-found: error
           retention-days: 7
