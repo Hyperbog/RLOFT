@@ -30,14 +30,14 @@ int main(){
     assert(s.count_f588==0U && s.input.pending_f572==0U);
     assert(!M::held_308bc(s,0x48U));
 
-    // Source-specific navigation mapping table includes holes 4A/4C/4E/4F/50.
-    for(auto sc:{0x47U,0x48U,0x49U,0x4BU,0x4DU,0x51U}) {
+    // Source-specific navigation mapping table includes holes 4A/4C/4E/4F/51.
+    for(auto sc:{0x47U,0x48U,0x49U,0x4BU,0x4DU,0x50U}) {
         s.direction_258fc=100U;
         M::press_307f0(s,static_cast<std::uint8_t>(sc));
         assert(s.direction_258fc!=100U);
     }
     s.direction_258fc=100U;
-    M::press_307f0(s,0x50U);
+    M::press_307f0(s,0x51U);
     assert(s.direction_258fc==100U);
 
     // Raw IRQ source treats 0x80 as a make event (JG 80h, not JGE).

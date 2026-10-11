@@ -43,9 +43,7 @@ void OriginalDosKeyboardIrqModel::press_307f0(
         case 0x49: s.direction_258fc=1U; s.step_258fe=1U; break;
         case 0x4B: s.direction_258fc=2U; s.step_258fe=0xFFFFU; break;
         case 0x4D: s.direction_258fc=2U; s.step_258fe=1U; break;
-        case 0x50: // Original table entry at 307E8 points to 308A7.
-            break;
-        case 0x51: s.direction_258fc=0U; s.step_258fe=1U; break;
+        case 0x50: s.direction_258fc=0U; s.step_258fe=1U; break;
         default: break;
     }
     s.input.pending_f572=scan;
