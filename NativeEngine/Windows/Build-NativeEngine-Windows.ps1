@@ -54,7 +54,8 @@ try {
         "native_win32_bootstrap_original_media_contract",
         "native_windows_package_integrity_contract",
         "native_install_probe_cli_fixture_tests",
-        "native_game_source_adapter_tests"
+        "native_game_source_adapter_tests",
+        "native_original_resource_preview_tests"
     )
     foreach ($required in $essentialTests) {
         if (-not $listed.Contains($required)) {
@@ -62,8 +63,8 @@ try {
         }
     }
     $countMatch = [regex]::Match($listed, 'Total Tests:\s*(\d+)')
-    if (-not $countMatch.Success -or [int]$countMatch.Groups[1].Value -lt 13) {
-        throw "NativeEngine Windows release requires at least 13 registered CTests"
+    if (-not $countMatch.Success -or [int]$countMatch.Groups[1].Value -lt 14) {
+        throw "NativeEngine Windows release requires at least 14 registered CTests"
     }
     # There is intentionally no release "skip tests" switch.
     & ctest --test-dir $BuildDir -C Release --output-on-failure --parallel 2
