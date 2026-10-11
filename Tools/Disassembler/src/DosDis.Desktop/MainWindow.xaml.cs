@@ -14,7 +14,9 @@ public partial class MainWindow : Window
 {
     private BinaryArtifact? _artifact;
     private LeImage? _image;
+    private DosMzImage? _mzImage;
     private FlowAnalysisResult? _graph;
+    private Dos16FlowResult? _mzGraph;
     private ProjectStore? _project;
     private IReadOnlyList<AssemblyRow> _rows = Array.Empty<AssemblyRow>();
     private IReadOnlyDictionary<FlowAddress, IReadOnlyList<ReferenceRow>> _referenceIndex =
@@ -45,9 +47,9 @@ public partial class MainWindow : Window
     }
 
     private sealed record AssemblyRow(int Object, uint Offset, string Bytes,
-        string Assembly, string Evidence)
+        string Assembly, string Evidence, string? DisplayAddress = null)
     {
-        public string AddressText => $"{Object}:0x{Offset:X8}";
+        public string AddressText => DisplayAddress ?? $"{Object}:0x{Offset:X8}";
     }
     private sealed record FunctionRow(FlowAddress Address, string DisplayName);
     private sealed record ReferenceRow(string Direction, string AddressText, string Kind,
@@ -59,19 +61,22 @@ public partial class MainWindow : Window
         _working = value;
         OpenBinaryButton.IsEnabled = !value;
         OpenProjectButton.IsEnabled = !value;
-        AnalyzeButton.IsEnabled = !value && _image != null;
-        SaveProjectButton.IsEnabled = !value && _artifact != null;
+        AnalyzeButton.IsEnabled = !value && (_image != null || _mzImage != null);
+        // Current SQLite graphs/comments use LE object addresses. Disable
+        // MZ project mutation rather than silently saving an empty LE graph.
+        OpenProjectButton.IsEnabled = !value && _mzImage is null;
+        SaveProjectButton.IsEnabled = !value && _artifact != null && _mzImage is null;
         // Both workflows can create a project on demand. A missing project
         // must not strand an entered analyst comment behind a disabled button.
-        BackupProjectButton.IsEnabled = !value && _artifact != null;
-        SaveNoteButton.IsEnabled = !value && _artifact != null &&
+        BackupProjectButton.IsEnabled = !value && _artifact != null && _mzImage is null;
+        SaveNoteButton.IsEnabled = !value && _mzImage is null && _artifact != null &&
             AssemblyGrid.SelectedItem is AssemblyRow;
-        NoteEditor.IsEnabled = !value && _artifact != null &&
+        NoteEditor.IsEnabled = !value && _mzImage is null && _artifact != null &&
             AssemblyGrid.SelectedItem is AssemblyRow;
         AssemblyGrid.IsEnabled = !value;
         FunctionsList.IsEnabled = !value;
         CancelAnalysisButton.IsEnabled = value && _analysisCancellation is not null;
-        ExportAnalysisButton.IsEnabled = !value && _graph is not null;
+        ExportAnalysisButton.IsEnabled = !value && (_graph is not null || _mzGraph is not null);
         ExportDiagnosticButton.IsEnabled = !value;
         if (status != null) StatusText.Text = status;
     }
@@ -103,21 +108,40 @@ public partial class MainWindow : Window
                 try { image = LeImage.Load(artifact); }
                 catch (InvalidDataException) { image = null; }
                 catch (NotSupportedException) { image = null; }
-                var intelligence = FileIntelligence.Inspect(artifact, image);
+                DosMzImage? mz = null;
+                // Only standalone, source-backed MZ receives automatic
+                // 16-bit decoding. Extended MZ stubs need explicit handling;
+                // never reinterpret an unsupported LE/LX/PE as standalone MZ.
+                if (image is null && BinaryFormatDetector.Inspect(artifact).FormatId == "mz")
+                {
+                    try { mz = DosMzImage.Load(artifact); }
+                    catch (InvalidDataException) { /* Malformed MZ remains raw. */ }
+                    catch (NotSupportedException) { /* Unsupported container remains raw. */ }
+                }
+                var intelligence = FileIntelligence.Inspect(artifact, image, mz: mz);
                 IReadOnlyList<DecodedLine> preview = Array.Empty<DecodedLine>();
+                IReadOnlyList<Dos16Instruction> mzPreview = Array.Empty<Dos16Instruction>();
                 if (image != null)
                 {
                     try { preview = Disassembly.Decode(image, (int)image.EntryObject, image.EntryOffset, 128); }
                     catch (InvalidDataException) { /* Entry not stored in the original file. */ }
                 }
-                return (artifact, image, intelligence, preview);
+                else if (mz != null)
+                {
+                    try { mzPreview = mz.Decode(mz.InitialCs, mz.InitialIp, 128); }
+                    catch (ArgumentException) { /* Keep backed image available for explicit navigation. */ }
+                    catch (InvalidDataException) { /* Invalid initial instruction is not executable proof. */ }
+                }
+                return (artifact, image, mz, intelligence, preview, mzPreview);
             });
             _artifact = result.artifact;
             _openedBinaryPath = Path.GetFullPath(picker.FileName);
             _filePreferences.RememberBinary(_openedBinaryPath);
             _image = result.image;
-            Trace(_image is null ? DiagnosticStage.FileOpenedRaw : DiagnosticStage.FileOpenedLe);
+            _mzImage = result.mz;
+            Trace(_image is not null ? DiagnosticStage.FileOpenedLe : DiagnosticStage.FileOpenedRaw);
             _graph = null;
+            _mzGraph = null;
             ExportAnalysisButton.IsEnabled = false;
             _referenceIndex = new Dictionary<FlowAddress, IReadOnlyList<ReferenceRow>>();
             if (_project != null && !_project.ListArtifacts().Any(a => a.Sha256 == _artifact.Sha256))
@@ -128,17 +152,36 @@ public partial class MainWindow : Window
             }
             BinaryName.Text = _artifact.Name;
             ArtifactHash.Text = $"SHA-256 {_artifact.Sha256}";
-            FileSubtitle.Text = _image is null
-                ? $"{_artifact.Length:N0} bytes · original raw file · code analysis unavailable"
-                : $"{_artifact.Length:N0} bytes · LE · {_image.Objects.Count} objects · {_image.Relocations.Count:N0} fixups";
-            ExplorerSectionTitle.Text = _image is null ? "RAW FILE — NO FUNCTION ANALYSIS" : "FUNCTION CANDIDATES";
+            FileSubtitle.Text = _image is not null
+                ? $"{_artifact.Length:N0} bytes · LE · {_image.Objects.Count} objects · {_image.Relocations.Count:N0} fixups"
+                : _mzImage is not null
+                    ? $"{_artifact.Length:N0} bytes · DOS MZ · x86-16 entry {_mzImage.InitialCs:X4}:{_mzImage.InitialIp:X4} · {_mzImage.Relocations.Count} stored fixups"
+                    : $"{_artifact.Length:N0} bytes · original raw file · code analysis unavailable";
+            ExplorerSectionTitle.Text = _image is not null ? "FUNCTION CANDIDATES"
+                : _mzImage is not null ? "16-BIT ENTRY — CANDIDATE FLOW"
+                : "RAW FILE — NO FUNCTION ANALYSIS";
             IntelligenceList.ItemsSource = result.intelligence.Select(x => new IntelligenceRow(x.Key,
                 $"{x.Value.Value} ({x.Value.Status})", x.Value.Evidence)).ToArray();
             FunctionsList.ItemsSource = Array.Empty<FunctionRow>();
-            AddressBox.Text = _image is null ? "1:0x0" : $"{_image.EntryObject}:0x{_image.EntryOffset:X}";
-            SetRows(result.preview.Select(x => new AssemblyRow(_image is null ? 1 : (int)_image.EntryObject,
-                x.ObjectOffset, x.Bytes, x.Assembly, "linear-preview-unverified")).ToArray());
-            if (_image is null)
+            AddressBox.Text = _image is not null ? $"{_image.EntryObject}:0x{_image.EntryOffset:X}"
+                : _mzImage is not null ? $"{_mzImage.InitialCs:X4}:{_mzImage.InitialIp:X4}" : "file:0x0";
+            if (_mzImage is not null)
+            {
+                SetRows(result.mzPreview.Select(x => new AssemblyRow(x.Segment, x.Offset,
+                    x.OriginalBytes, x.Assembly, x.Valid ? "linear-x86-16-preview-unverified" : "invalid-decoding",
+                    $"{x.Segment:X4}:{x.Offset:X4}")).ToArray());
+                FunctionsList.ItemsSource = new[] { new FunctionRow(
+                    new FlowAddress(_mzImage.InitialCs, _mzImage.InitialIp),
+                    $"{_mzImage.InitialCs:X4}:{_mzImage.InitialIp:X4}  [entry hypothesis]") };
+                int mzOffset = checked((int)(_mzImage.ToFileOffset(_mzImage.InitialCs, _mzImage.InitialIp)
+                    ?? throw new InvalidDataException("MZ entry is not file backed.")));
+                HexView.Text = RawHexPreview.Render(_artifact, mzOffset);
+                MainTabs.SelectedIndex = 0;
+            }
+            else
+                SetRows(result.preview.Select(x => new AssemblyRow(_image is null ? 1 : (int)_image.EntryObject,
+                    x.ObjectOffset, x.Bytes, x.Assembly, "linear-preview-unverified")).ToArray());
+            if (_image is null && _mzImage is null)
             {
                 // Data/resource files are not code. Show exact physical bytes
                 // immediately, without inventing a function candidate.
@@ -151,10 +194,12 @@ public partial class MainWindow : Window
                 _graph = _project.LoadLatestAnalysis(_artifact.Sha256, _image);
                 if (_graph != null) ShowAnalysis(_graph);
             }
-            StatusText.Text = _image is null
-                ? "RAW HEX VIEW ONLY: original file bytes at physical offsets. No LE object mapping or instructions inferred."
-                : _graph is not null ? "Restored saved candidate analysis. Original file hash verified."
-                : "Showing an UNVERIFIED linear preview. Run Analyze for evidence-tagged reachable code.";
+            StatusText.Text = _image is not null
+                ? _graph is not null ? "Restored saved candidate analysis. Original file hash verified."
+                  : "Showing an UNVERIFIED linear preview. Run Analyze for evidence-tagged reachable code."
+                : _mzImage is not null
+                  ? "Standalone DOS MZ loaded. Initial CS:IP is module-relative. Run Analyze for bounded x86-16 candidate control flow; not verified executed code."
+                  : "RAW HEX VIEW ONLY: original file bytes at physical offsets. No executable mapping or instructions inferred.";
         }
         catch (Exception ex) { Error("Unable to open file", ex); }
         finally { SetWorking(false); }
@@ -162,7 +207,13 @@ public partial class MainWindow : Window
 
     private async void Analyze_Click(object sender, RoutedEventArgs e)
     {
-        if (_image is null || _artifact is null || _working) return;
+        if (_artifact is null || _working) return;
+        if (_mzImage is not null)
+        {
+            await AnalyzeMzAsync();
+            return;
+        }
+        if (_image is null) return;
         _analysisCancellation = new CancellationTokenSource();
         CancellationTokenSource cancellation = _analysisCancellation;
         Trace(DiagnosticStage.AnalysisStarted);
@@ -209,6 +260,34 @@ public partial class MainWindow : Window
             cancellation.Dispose();
             SetWorking(false);
         }
+    }
+
+    private async Task AnalyzeMzAsync()
+    {
+        DosMzImage mz = _mzImage ?? throw new InvalidOperationException("MZ is not open.");
+        SetWorking(true, "Analyzing original-backed DOS MZ entry segment as x86-16 candidate code…");
+        try
+        {
+            // This core analyzer has an instruction budget but currently no
+            // cancellation token. Do not enable Cancel for this operation.
+            var graph = await Task.Run(() => Dos16ControlFlowAnalysis.Analyze(
+                mz.CreateEntryCodeRegion(), mz.InitialIp, maxInstructions: 20_000));
+            if (!ReferenceEquals(_mzImage, mz)) return;
+            _mzGraph = graph;
+            ShowMzAnalysis(graph);
+            Trace(DiagnosticStage.AnalysisCompleted, instructionCount: graph.Instructions.Count);
+            StatusText.Text = $"{graph.Instructions.Count:N0} unverified x86-16 candidates; " +
+                $"{graph.Edges.Count:N0} control-flow edges; {graph.Diagnostics.Count:N0} diagnostics; " +
+                $"{graph.UnknownFileBackedBytes:N0} source-backed bytes not classified as code. " +
+                (graph.Truncated ? "Budget reached; analysis TRUNCATED." :
+                 "No confirmed functions, live DOS load address or dynamic far targets.");
+        }
+        catch (Exception ex)
+        {
+            App.Diagnostics.Record(DiagnosticStage.AnalysisFailed, _artifact?.Sha256, error: ex);
+            Error("MZ analysis failed", ex);
+        }
+        finally { SetWorking(false); }
     }
 
     private void CancelAnalysis_Click(object sender, RoutedEventArgs e)
