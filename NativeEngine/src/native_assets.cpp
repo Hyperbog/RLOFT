@@ -3,6 +3,7 @@
 #include <array>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 
 namespace rloft_native {
 namespace {
