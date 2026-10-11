@@ -26,7 +26,8 @@ add_library(rloft_native_assets STATIC
   src/native_raster_colors.cpp
   src/native_palette_context.cpp
   src/native_bank_system.cpp
-  src/native_world_system.cpp)
+  src/native_world_system.cpp
+  src/native_world_payload.cpp)
 target_link_libraries(rloft_native_assets PUBLIC rloft_native_contracts)
 
 function(native_warnings target)
@@ -112,6 +113,11 @@ add_executable(native_world_system_tests tests/native_world_system_tests.cpp)
 target_link_libraries(native_world_system_tests PRIVATE rloft_native_assets)
 native_warnings(native_world_system_tests)
 add_test(NAME native_world_system_tests COMMAND native_world_system_tests)
+
+add_executable(native_world_payload_tests tests/native_world_payload_tests.cpp)
+target_link_libraries(native_world_payload_tests PRIVATE rloft_native_assets)
+native_warnings(native_world_payload_tests)
+add_test(NAME native_world_payload_tests COMMAND native_world_payload_tests)
 
 # Native Windows asset UI built as its own EXE, never a renamed demo.
 if(WIN32)
