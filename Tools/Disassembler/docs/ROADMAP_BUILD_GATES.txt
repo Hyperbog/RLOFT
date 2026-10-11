@@ -322,6 +322,24 @@ Never claim an unseen original was tested.
 
 CURRENT NEXT ACTIONS
 --------------------
+LATEST WINDOWS DESKTOP-ONLY BUILD/REGRESSION VERIFIED:
+- Owner-authorized WPF win-x64 build #43 SUCCESS, original-free
+  smoke/project synthetic tests both PASS, 0 build warnings/errors.
+- Exact PR #11 merge checkout 88c2131d155a7c532dce37a6e9965c25bec42c69,
+  code/test-equivalent to canonical source SHA
+  244718cc7f86ba7ee2815cfc1df2d27f9be271b0; only the temporary
+  PR workflow differs. No user-facing CLI distributable.
+- Desktop artifact 11686312055, 66,903,050 ZIP bytes, archive
+  SHA256 313653140fb6fb2e322e13e7e7a7c0d0f7bbed37fafd8c4b9454e3e103700812.
+  https://github.com/Hyperbog/RLOFT/actions/runs/38098035861
+- **OWNER INTERACTIVE ACCEPTANCE PENDING:** SHA-matched Dungeon Hack
+  CHECKSYS.EXE (15,882 bytes) Analyze, CS:IP navigation, JSON/text
+  export, 43 stored relocation count; one real LE GUI regression.
+- Full gate record:
+  docs/G2_DESKTOP_MZ_WINDOWS_BUILD_20261010_RUN43.md
+- G2 original-file independent accuracy remains pending; synthetic
+  GUI backend validation is not a runtime trace.
+PREVIOUS HIGH PRIORITY FIELD REPORT (root cause/fix now COMPILED):
 NEW HIGHEST PRIORITY: owner tested Windows run #42 GUI with independently
 SHA-matched Dungeon Hack CHECKSYS.EXE (15,882-byte DOS MZ). Desktop
 incorrectly showed raw hex only and disabled Analyze/Export.
@@ -336,7 +354,8 @@ disabled for MZ until their address schema supports CS:IP; do not
 treat MZ CS:IP as LE object:offset. Windows build script and canonical
 manual-only CI now publish desktop alone; CLI is an internal
 research/validation harness, not a deliverable.
-UNBUILT/UNEXECUTED: no GUI or compile verification since #42.
+#43 WPF/Core/Project compile and synthetic regression verified; still
+no original-executable GUI owner validation or emulator execution.
 DETAILS: docs/G2_DESKTOP_MZ_UI_HANDOFF_20261010.md.
 NEXT: owner-approve new Windows desktop-only build gate, run core/
 project synthetic tests and publish only new WPF preview. Then owner
@@ -1668,3 +1687,25 @@ Reference: LE_STRAHD_CODE_JSON_HANDOFF_20261010.md.
   synthetic-verified build #42 is historical and PRE-DATES this fix.
   See docs/G2_DESKTOP_MZ_UI_HANDOFF_20261010.md for owner GUI
   acceptance and original SHA verification gates.
+2026-10-10 | OWNER-AUTHORIZED WINDOWS DESKTOP-ONLY BUILD #43 PASS:
+- User authorized desktop-only WPF build after CHECKSYS raw-only
+  screenshot. Temporary PR #11 created to activate isolated
+  pull_request Windows workflow without changing canonical manual CI.
+  Canonical source tested: 244718cc7f86ba7ee2815cfc1df2d27f9be271b0.
+  Actual ephemeral merge checkout:
+  88c2131d155a7c532dce37a6e9965c25bec42c69.
+  Compared trees differ ONLY by temporary workflow (3 lines).
+- GitHub Actions #43, run 38098035861 SUCCESS. WPF and both C#
+  synthetic/project test projects compiled (zero warnings/errors);
+  both C# test suites PASS, including independent synthetic MZ
+  GUI backend recognition/candidate/report/forgery negative checks.
+  Windows self-contained desktop publish/upload SUCCESS.
+- Exactly ONE artifact: DOSDis-Desktop-win-x64-preview ID 11686312055,
+  ZIP bytes 66903050 and ZIP SHA256
+  313653140fb6fb2e322e13e7e7a7c0d0f7bbed37fafd8c4b9454e3e103700812.
+  NO CLI artifact and no proprietary originals in GitHub CI.
+- Remaining required owner visual Windows check: actual SHA-bound
+  Dungeon Hack CHECKSYS original loads as DOS MZ, Analyze and Export
+  work, CS:IP navigation is correct; LE GUI project/export unaffected.
+  No claim of complete G2 accuracy. Details:
+  docs/G2_DESKTOP_MZ_WINDOWS_BUILD_20261010_RUN43.md.
