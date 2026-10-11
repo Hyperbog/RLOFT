@@ -148,6 +148,15 @@ if(WIN32)
   endif()
   add_test(NAME native_win32_bootstrap_headless_contract
     COMMAND rloft_native_bootstrap --self-test)
+  if(Python3_Interpreter_FOUND)
+    # Reuse the original-media synthetic corpus against the actual Windows
+    # GUI inventory code, without opening a desktop window in CI.
+    add_test(NAME native_win32_bootstrap_original_media_contract
+      COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_install_probe_cli.py"
+        --executable "$<TARGET_FILE:rloft_install_probe>"
+        --bootstrap "$<TARGET_FILE:rloft_native_bootstrap>")
+  endif()
   # Package QA runs only under real Windows PowerShell; no Linux analogue.
   find_program(RLOFT_NATIVE_WINDOWS_POWERSHELL NAMES powershell.exe REQUIRED)
   add_test(NAME native_windows_package_integrity_contract
