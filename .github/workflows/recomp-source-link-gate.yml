@@ -1,0 +1,45 @@
+name: Canonical reconstructed CODE.1 + CODE.2 source link gate
+
+on:
+  push:
+    branches: [code1-decompilation]
+    paths:
+      - '.github/workflows/recomp-source-link-gate.yml'
+      - 'Recomp/**'
+      - 'Code1/Code1.cpp'
+      - 'Code2/Code2.cpp'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: canonical-recomp-link-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  code1-code2-reconstruction:
+    name: Compile, link, and execute canonical reconstructed source
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure source-build target (not native engine)
+        shell: pwsh
+        run: cmake -S Recomp -B build/recomp -A x64
+      - name: Compile and link both complete reconstruction files
+        shell: pwsh
+        run: cmake --build build/recomp --config Debug --parallel 2
+      - name: Execute compiled reconstruction leaf and entry-boundary tests
+        shell: pwsh
+        run: ctest --test-dir build/recomp -C Debug --output-on-failure
+      - name: Retain the source-linked test executable for inspection
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reconstructed-code1-code2-link-gate-${{ github.run_number }}
+          path: build/recomp/Debug/rloft_recomp_link_gate.exe
+          if-no-files-found: error
+          retention-days: 7
