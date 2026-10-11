@@ -7,6 +7,17 @@ param(
 )
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+function Get-RloftFileSha256([string]$Path) {
+    $stream = [System.IO.File]::OpenRead($Path)
+    $algorithm = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return [System.BitConverter]::ToString($algorithm.ComputeHash($stream)).Replace("-", "").ToLowerInvariant()
+    } finally {
+        $algorithm.Dispose()
+        $stream.Dispose()
+    }
+}
+
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 if (-not $BuildDir) { $BuildDir = Join-Path $root "build\native-engine-windows-x64" }
 if (-not $OutputDir) { $OutputDir = Join-Path $root "NativeEngine\Windows\dist" }
@@ -79,7 +90,7 @@ try {
     Copy-Item -LiteralPath $inspector -Destination (Join-Path $stage "rloft_install_probe.exe")
     Copy-Item -LiteralPath (Join-Path $root "NativeEngine\Windows\README-WINDOWS.txt") -Destination (Join-Path $stage "README-WINDOWS.txt")
     $shaLines = foreach ($binaryName in @("rloft_native_bootstrap.exe","rloft_install_probe.exe")) {
-        $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $stage $binaryName)).Hash.ToLowerInvariant()
+        $hash = (Get-RloftFileSha256 -Path (Join-Path $stage $binaryName))
         "$hash  $binaryName"
     }
     $shaLines | Set-Content -Encoding ascii (Join-Path $stage "SHA256SUMS.txt")
@@ -98,7 +109,7 @@ try {
     if (Test-Path $archive) { Remove-Item -Force $archive }
     Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $archive -CompressionLevel Optimal
     if (-not (Test-Path $archive)) { throw "No Windows release ZIP was created" }
-    $bundleHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash.ToLowerInvariant()
+    $bundleHash = (Get-RloftFileSha256 -Path $archive)
     "$bundleHash  RLOFT-NativeEngine-Windows-x64-BOOTSTRAP.zip" | Set-Content -Encoding ascii (Join-Path $OutputDir "RLOFT-NativeEngine-Windows-x64-BOOTSTRAP.zip.sha256")
     # Validate the actual ZIP on disk, not only the loose staging folder.
     & (Join-Path $PSScriptRoot "Verify-NativeEngine-WindowsPackage.ps1") -Archive $archive -ExpectedSourceSha $sha
