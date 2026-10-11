@@ -20,6 +20,31 @@ It loads ORIGINAL USER-OWNED ASSETS DIRECTLY:
 No bulk unpacking, repacking or conversion is required to open a game
 installation. The source game directory and game.gog are read-only.
 
+COLOR DIAGNOSTICS
+-----------------
+Original EH1 rasters contain palette INDICES, not RGB colors. Their colors
+depend on the currently active DOS VGA COLORS bank and sometimes a separate
+original code-path color-INDEX remapping table. The old inspector applied
+palette 12 to EVERY sprite, which could make other screens look inverted.
+
+This version offers:
+  * COLORS bank 0..14 selection, applied to both the swatch grid and sprite.
+  * Bank 12 (MENU), bank 8 (CODE.1 character creation), bank 9/14 (logos).
+  * "Title cursor" button: show the original INIT-selected RES0 cursor with
+    its original 19-entry CODE.2 palette INDEX translation and current bank.
+  * Archive browsing: raw RES indices, no automatic cursor translation.
+
+Windows display buffers are BGRA, but original COLORS records are RGB DAC6.
+The engine independently verifies byte order with red/green/blue regression
+tests, not a guessed inversion or channel swap. There is NO global inverted-
+colors flag; different original screens really do use different palette banks.
+
+To compare coloring: select the relevant original bank for the scene and
+switch between original title-cursor mode and raw RES index browsing.
+If colors remain incorrect for a specific original image, record the
+archive, entry ID and palette number. Some resources may require another
+source-specific color-index remap; this inspector does not invent one.
+
 TO TEST:
   1. Extract the ZIP in a folder separate from the original game.
   2. Run rloft_native.exe.
